@@ -4,7 +4,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import type { VirtualItem, Virtualizer } from "@tanstack/react-virtual";
 import { Children, isValidElement, useCallback, useEffect, useMemo, useRef } from "react";
 import type { Key, ReactNode, RefObject } from "react";
-import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import {
 	findItemControl,
 	isItemChildDisabled,

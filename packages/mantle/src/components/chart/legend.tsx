@@ -2,7 +2,7 @@
 
 import type { ComponentProps, CSSProperties, ReactNode } from "react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { POINT_SHAPE_CLIP_PATHS } from "./engine.js";
 import { observeResize } from "./environment.js";

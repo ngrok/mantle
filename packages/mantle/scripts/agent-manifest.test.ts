@@ -413,6 +413,20 @@ describe("buildAgentManifest", () => {
 		]);
 	});
 
+	it("reads a hook's JSDoc across a line comment above the declaration", () => {
+		const manifest = buildAgentManifest(
+			inputs({
+				readSource: (basePath) =>
+					basePath === "utils/compose-refs/compose-refs"
+						? "/** Composes refs. */\n// Why: a note for the reader.\nfunction useComposedRefs() {}"
+						: (sources[`${basePath}.tsx`] ?? sources[`${basePath}.ts`]),
+			}),
+		);
+		const hook = manifest.hooks.find((entry) => entry.name === "useComposedRefs");
+
+		expect(hook?.summary).toBe("Composes refs.");
+	});
+
 	it("reads a utility's summary from its primary export", () => {
 		const manifest = buildAgentManifest(inputs());
 		const cx = manifest.utilities.find((entry) => entry.name === "cx");
@@ -437,7 +451,7 @@ describe("renderLlmsTxt", () => {
 		const text = renderLlmsTxt(buildAgentManifest(inputs()));
 
 		expect(text).toContain("Neither file lists props");
-		expect(text).toContain("`<subpath>.d.ts`");
+		expect(text).toContain("the type declarations that `package.json#exports` names");
 	});
 });
 

@@ -1,3 +1,5 @@
+"use client";
+
 import { createContext, useContext, useId, useMemo } from "react";
 import type { ComponentProps, HTMLAttributes } from "react";
 import { $cssProperties } from "../../types/index.js";

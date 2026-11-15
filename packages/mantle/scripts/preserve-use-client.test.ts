@@ -1,0 +1,73 @@
+import { describe, expect, it } from "vitest";
+import {
+	chunkNeedsUseClient,
+	findClientImport,
+	hasUseClientDirective,
+} from "./preserve-use-client.ts";
+
+describe("hasUseClientDirective", () => {
+	it("finds the directive after leading comments", () => {
+		expect(hasUseClientDirective('// Why: a note.\n/** Doc. */\n"use client";\nexport {};')).toBe(
+			true,
+		);
+	});
+
+	it("ignores the words after the first statement", () => {
+		expect(hasUseClientDirective('import { cx } from "./cx.js";\n"use client";')).toBe(false);
+	});
+});
+
+describe("chunkNeedsUseClient", () => {
+	const clientModuleIds = new Set(["/m/src/components/dialog/dialog.tsx"]);
+
+	it("marks a chunk that holds a client module", () => {
+		expect(
+			chunkNeedsUseClient({
+				code: "export const a = 1;",
+				moduleIds: ["/m/src/components/dialog/dialog.tsx"],
+				clientModuleIds,
+			}),
+		).toBe(true);
+	});
+
+	it("marks a chunk that imports the React Compiler runtime", () => {
+		expect(
+			chunkNeedsUseClient({
+				code: 'import{c as e}from"react/compiler-runtime";',
+				moduleIds: ["/m/src/components/badge/badge.tsx"],
+				clientModuleIds,
+			}),
+		).toBe(true);
+	});
+
+	it("leaves a pure utility chunk server-callable", () => {
+		expect(
+			chunkNeedsUseClient({
+				code: "export function cx() {}",
+				moduleIds: ["/m/src/utils/cx/cx.ts"],
+				clientModuleIds,
+			}),
+		).toBe(false);
+	});
+});
+
+describe("findClientImport", () => {
+	it("finds a client chunk that an entry imports through another chunk", () => {
+		expect(
+			findClientImport("utils.js", {
+				"utils.js": { type: "chunk", code: 'import"./copy.js";', imports: ["copy.js"] },
+				"copy.js": { type: "chunk", code: 'import"./dom.js";', imports: ["dom.js"] },
+				"dom.js": { type: "chunk", code: '"use client";\nexport {};', imports: [] },
+			}),
+		).toEqual(["utils.js", "copy.js", "dom.js"]);
+	});
+
+	it("passes an entry that reaches only server chunks", () => {
+		expect(
+			findClientImport("cx.js", {
+				"cx.js": { type: "chunk", code: 'import"./clsx.js";', imports: ["clsx.js"] },
+				"clsx.js": { type: "chunk", code: "export {};", imports: [] },
+			}),
+		).toBeUndefined();
+	});
+});

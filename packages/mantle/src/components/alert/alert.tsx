@@ -14,7 +14,7 @@ import invariant from "tiny-invariant";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import { $cssProperties } from "../../types/css-properties.js";
 import type { WithAsChild } from "../../types/as-child.js";
-import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -59,7 +59,7 @@ const defaultDismissIcon = <XIcon />;
 
 function useAlertContext() {
 	const context = useContext(AlertContext);
-	invariant(context, "useAlertContext hook used outside of Alert parent!");
+	invariant(context, "Alert parts must be rendered inside Alert.Root.");
 	return context;
 }
 

@@ -16,6 +16,18 @@ describe("List.Item", () => {
 		expect(screen.getByRole("button", { name: "Account" })).toHaveAttribute("type", "button");
 	});
 
+	test("joins a consumer data-slot in front of its own", () => {
+		render(
+			<List.Root aria-label="Accounts">
+				<List.Item data-slot="account-switcher-item">Account</List.Item>
+			</List.Root>,
+		);
+		expect(screen.getByRole("button", { name: "Account" })).toHaveAttribute(
+			"data-slot",
+			"account-switcher-item list-item-control",
+		);
+	});
+
 	test("clicking fires onClick", async () => {
 		const user = userEvent.setup();
 		const onClick = vi.fn<() => void>();

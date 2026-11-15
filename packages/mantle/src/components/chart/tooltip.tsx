@@ -2,7 +2,8 @@
 
 import type { ComponentProps, CSSProperties, ReactNode, Ref } from "react";
 import { useLayoutEffect, useRef, useSyncExternalStore } from "react";
-import { composeRefs, useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
+import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { formatNumber, formatXValue } from "./format.js";
 import type { ChartStore } from "./store.js";

@@ -1,4 +1,5 @@
 import mantlePackageJson from "@ngrok/mantle/package.json" with { type: "json" };
+import { importableSubpaths } from "../../../../packages/mantle/scripts/agent-manifest";
 
 /**
  * Public shape of `/api/package.json`. The full `package.json` would
@@ -19,20 +20,6 @@ export type PackageInfo = {
 	/** Full import specifiers (`@ngrok/mantle/<name>`), sorted, JS only. */
 	subpaths: string[];
 };
-
-/**
- * Importable JS subpaths from `package.json#exports`, sorted. Drops CSS
- * bundles, the `./package.json` passthrough, and the `./agent.json` /
- * `./llms.txt` agent-discovery artifacts (those exist precisely to
- * describe this list — including them in it would be circular).
- */
-function importableSubpaths(): string[] {
-	const skip = new Set([".", "./package.json", "./agent.json", "./llms.txt"]);
-	return Object.keys(mantlePackageJson.exports)
-		.filter((key) => key.startsWith("./") && !skip.has(key) && !key.endsWith(".css"))
-		.map((key) => `@ngrok/mantle/${key.slice(2)}`)
-		.toSorted((a, b) => a.localeCompare(b));
-}
 
 /**
  * `package.json#repository` may be a bare URL string or a `{ type, url }`
@@ -68,7 +55,7 @@ export function buildPackageInfo(): PackageInfo {
 		license: mantlePackageJson.license,
 		peerDependencies: mantlePackageJson.peerDependencies,
 		devDependencies: mantlePackageJson.devDependencies,
-		subpaths: importableSubpaths(),
+		subpaths: importableSubpaths(mantlePackageJson.exports),
 	};
 	return cached;
 }

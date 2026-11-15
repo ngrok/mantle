@@ -1,3 +1,5 @@
+"use client";
+
 import type { ComponentProps } from "react";
 import { Anchor } from "../anchor/anchor.js";
 import { cx } from "../../utils/cx/cx.js";

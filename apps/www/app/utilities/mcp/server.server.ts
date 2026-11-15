@@ -4,8 +4,9 @@ import { z } from "zod";
 import { canonicalHref, canonicalOrigin } from "~/utilities/canonical-origin";
 import { loadFrontmatter, rawDocContent, urlToFileMap } from "~/utilities/docs";
 import { checkCode } from "~/utilities/mcp/check.server";
-import { isMcpToolEnabled, type McpFlags } from "~/utilities/mcp/flags.server";
+import { isMcpToolEnabled, previewFrameOrigin, type McpFlags } from "~/utilities/mcp/flags.server";
 import { fitMarkdown } from "~/utilities/mcp/markdown-budget";
+import { MCP_APP_MIME_TYPE, PREVIEW_APP_URI, previewAppHtml } from "~/utilities/mcp/preview-app";
 import { MAX_PREVIEW_CODE_BYTES, previewUrl } from "~/utilities/mcp/preview-url";
 import {
 	closeNames,
@@ -63,6 +64,8 @@ export type McpDependencies = {
 	flags: () => McpFlags;
 	/** The origin of the preview page. */
 	previewOrigin: string;
+	/** The origin of the prototype frame that the preview page and the MCP App view load. */
+	frameOrigin: string;
 	/** Records one tool call. Never receives code or messages, and free text only as `scrubIntent` output. */
 	log: (event: ToolCallEvent) => void;
 };
@@ -697,6 +700,8 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				}),
 			),
 			annotations: readOnly,
+			// Why the flat key too: it is the deprecated MCP Apps form, and the ext-apps SDK still writes it for older hosts.
+			_meta: { ui: { resourceUri: PREVIEW_APP_URI }, "ui/resourceUri": PREVIEW_APP_URI },
 		},
 		run("preview", async ({ code }) => {
 			if (byteLength(code) > MAX_PREVIEW_CODE_BYTES) {
@@ -783,6 +788,32 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				dataVersion: data.version,
 				gap: { source: "report_gap", tokens, kind, workaround, closestPart: closest },
 			};
+		}),
+	);
+
+	server.registerResource(
+		"preview-app",
+		PREVIEW_APP_URI,
+		{
+			title: "mantle preview view",
+			description: "The MCP App view that shows a `preview` result in the chat.",
+			mimeType: MCP_APP_MIME_TYPE,
+		},
+		async (uri) => ({
+			contents: [
+				{
+					uri: uri.href,
+					mimeType: MCP_APP_MIME_TYPE,
+					text: previewAppHtml({
+						pageOrigin: dependencies.previewOrigin,
+						frameOrigin: dependencies.frameOrigin,
+					}),
+					// Why on the content item: hosts read `_meta.ui` from `resources/read` first.
+					_meta: {
+						ui: { csp: { frameDomains: [dependencies.frameOrigin] }, prefersBorder: true },
+					},
+				},
+			],
 		}),
 	);
 
@@ -960,7 +991,9 @@ let loader: VersionDataLoader | undefined;
 /**
  * The production dependencies: one version loader for the process. The
  * preview links point at `MANTLE_PREVIEW_ORIGIN` when set, else at the request
- * origin in dev and the canonical origin in production.
+ * origin in dev and the canonical origin in production. The prototype frame
+ * comes from `MANTLE_PREVIEW_FRAME_ORIGIN` when set, else from the preview
+ * page origin.
  */
 export function productionDependencies({
 	flags,
@@ -970,6 +1003,8 @@ export function productionDependencies({
 	requestOrigin: string;
 }): McpDependencies {
 	loader ??= createVersionDataLoader();
+	const previewOrigin =
+		process.env.MANTLE_PREVIEW_ORIGIN ?? (import.meta.env.DEV ? requestOrigin : canonicalOrigin);
 	return {
 		loader,
 		docsVersion: mantlePackageJson.version,
@@ -978,8 +1013,8 @@ export function productionDependencies({
 		migrations: loadMigrationGuides,
 		docPages: loadDocPages,
 		flags,
-		previewOrigin:
-			process.env.MANTLE_PREVIEW_ORIGIN ?? (import.meta.env.DEV ? requestOrigin : canonicalOrigin),
+		previewOrigin,
+		frameOrigin: previewFrameOrigin() || previewOrigin,
 		log: (event) => {
 			console.info(JSON.stringify({ event: "mcp.tool_call", ...event }));
 			mcpPulse.record(event);

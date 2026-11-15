@@ -6,6 +6,10 @@
 
 export {
 	//,
-	canUseDOM,
 	BrowserOnly,
 } from "./browser-only.js";
+
+export {
+	//,
+	canUseDOM,
+} from "./can-use-dom.js";

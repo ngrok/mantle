@@ -1,4 +1,4 @@
-import { canUseDOM } from "../components/browser-only/browser-only.js";
+import { canUseDOM } from "../components/browser-only/can-use-dom.js";
 import { useMatchesMediaQuery } from "./use-matches-media-query.js";
 
 /**

@@ -14,7 +14,6 @@
 ## Documentation
 
 - [mantle.ngrok.com](https://mantle.ngrok.com) - our official component documentation site (reflects latest releases)
-- [develop.mantle.ngrok.com](https://develop.mantle.ngrok.com) - staging site for all merges to `main`
 
 ## Installation
 
@@ -40,7 +39,17 @@ Next, check out the [Overview & Setup](https://mantle.ngrok.com/) docs and start
 
 ## Using with AI Agents
 
-Mantle ships machine-readable entry points for coding agents — see [For AI Agents](https://mantle.ngrok.com/for-ai-agents) for the system-prompt snippet, conventions, and the full list of `/api/*.json` and `llms.txt` endpoints. An offline pointer file (`@ngrok/mantle/agent.json`) is included in the published package as a fallback when network access isn't available.
+Mantle runs a hosted, read-only [MCP](https://modelcontextprotocol.io) server at `https://mantle.ngrok.com/mcp`. It reads the API of the version you installed. [For AI Agents](https://mantle.ngrok.com/for-ai-agents) has the setup for each client, the system-prompt snippet, and the full list of `/api/*.json` and `llms.txt` endpoints.
+
+The package also works offline:
+
+- `@ngrok/mantle/agent.json`: the full component, hook, and utility records for the installed version.
+- `@ngrok/mantle/llms.txt`: one line for each module, with its import path and summary.
+- `dist/migrations/`: the codemods that the migration guides name.
+
+## Design tokens
+
+`@ngrok/mantle/tokens.json` holds mantle's design tokens in the [Design Tokens Community Group (DTCG)](https://www.designtokens.org/tr/2025.10/format/) format, with their light theme values. `@ngrok/mantle/tokens.dark.json` holds the tokens that change in the dark theme, and `@ngrok/mantle/tokens.resolver.json` is a DTCG resolver document that applies them. A token path joined with `-` names its Tailwind theme variable: `color.sky.500` is `--color-sky-500`.
 
 ## Code Block Tooling
 

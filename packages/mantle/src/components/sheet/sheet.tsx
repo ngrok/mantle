@@ -24,6 +24,7 @@ import {
 	Title as SheetPrimitiveTitle,
 	Trigger as SheetPrimitiveTrigger,
 } from "../dialog/primitive.js";
+import { Slot } from "../slot/index.js";
 
 // Why a private dialog scope: a sheet wraps arbitrary content, and Radix binds
 // a default-scope `Dialog.Trigger` to the nearest dialog. With a scope of its
@@ -197,9 +198,21 @@ const Root = (props: ComponentProps<typeof SheetPrimitiveRoot>) => {
  * </Sheet.Root>
  * ```
  */
-const Trigger = (props: ComponentProps<typeof SheetPrimitiveTrigger>) => {
+const Trigger = ({
+	asChild,
+	children,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof SheetPrimitiveTrigger> & WithDataSlot) => {
 	const sheetScope = useSheetScope();
-	return <SheetPrimitiveTrigger {...props} {...sheetScope} />;
+	const slot = joinDataSlot(dataSlot, "sheet-trigger");
+	// Why mantle's `Slot` under `asChild`: Radix's merge lets the child's own
+	// `data-slot` replace this one, and `Slot` joins the two.
+	return (
+		<SheetPrimitiveTrigger asChild={asChild} data-slot={slot} {...props} {...sheetScope}>
+			{asChild ? <Slot data-slot={slot}>{children}</Slot> : children}
+		</SheetPrimitiveTrigger>
+	);
 };
 
 /**
@@ -243,9 +256,19 @@ const Trigger = (props: ComponentProps<typeof SheetPrimitiveTrigger>) => {
  * </Sheet.Root>
  * ```
  */
-const Close = (props: ComponentProps<typeof SheetPrimitiveClose>) => {
+const Close = ({
+	asChild,
+	children,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof SheetPrimitiveClose> & WithDataSlot) => {
 	const sheetScope = useSheetScope();
-	return <SheetPrimitiveClose {...props} {...sheetScope} />;
+	const slot = joinDataSlot(dataSlot, "sheet-close");
+	return (
+		<SheetPrimitiveClose asChild={asChild} data-slot={slot} {...props} {...sheetScope}>
+			{asChild ? <Slot data-slot={slot}>{children}</Slot> : children}
+		</SheetPrimitiveClose>
+	);
 };
 
 /**

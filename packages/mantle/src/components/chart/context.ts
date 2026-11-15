@@ -1,3 +1,5 @@
+"use client";
+
 import { createContext, useContext, useState, useSyncExternalStore } from "react";
 import invariant from "tiny-invariant";
 import type { ChartEngine } from "./engine.js";

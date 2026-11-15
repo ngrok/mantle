@@ -16,7 +16,6 @@ This monorepo is managed with pnpm workspaces, [Turborepo](https://turbo.build/)
 ## Documentation
 
 - [mantle.ngrok.com](https://mantle.ngrok.com) — official component documentation (reflects latest releases)
-- [develop.mantle.ngrok.com](https://develop.mantle.ngrok.com) — staging site for all merges to `main`
 
 ## Packages
 
@@ -38,7 +37,7 @@ This installs [mise](https://mise.jdx.dev/) (if missing), provisions Node and pn
 
 ## Using with AI Agents
 
-Mantle ships machine-readable entry points for coding agents — see [For AI Agents](https://mantle.ngrok.com/for-ai-agents) for the system-prompt snippet, conventions, and the full list of `/api/*.json` and `llms.txt` endpoints.
+Mantle ships machine-readable entry points for coding agents — see [For AI Agents](https://mantle.ngrok.com/for-ai-agents) for the system-prompt snippet, conventions, and the full list of `/api/*.json` and `llms.txt` endpoints. Agents with MCP support can connect to the hosted server at `https://mantle.ngrok.com/mcp`.
 
 ## Code of Conduct
 

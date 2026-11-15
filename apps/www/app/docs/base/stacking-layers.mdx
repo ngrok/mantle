@@ -20,7 +20,7 @@ Every mantle surface that floats above the page stacks on one shared scale. Two 
 | Float       | `z-50`      | [Popover](/components/overlays/popover), [Tooltip](/components/overlays/tooltip), [Select](/components/forms/select), [DropdownMenu](/components/overlays/dropdown-menu), [HoverCard](/components/overlays/hover-card) | The nearest overlay's positioner, else `document.body`             |
 | Overlay     | `z-60`      | [Dialog](/components/overlays/dialog), [AlertDialog](/components/overlays/alert-dialog), [Sheet](/components/overlays/sheet), [Command](/components/navigation/command)'s palette                                      | The nearest overlay's positioner, else `document.body`             |
 | Toast       | `999999999` | [Toast](/components/feedback/toast) (sonner's own viewport)                                                                                                                                                            | In place where `<Toaster />` renders; painted above both tiers     |
-| Skip link   | `z-max`     | [SkipToMainLink](/components/navigation/skip-to-main-link)                                                                                                                                                             | In place; `--z-index-max` so nothing covers keyboard escape routes |
+| Skip link   | `z-max`     | [SkipToMainLink](/components/primitives/skip-to-main-link)                                                                                                                                                             | In place; `--z-index-max` so nothing covers keyboard escape routes |
 
 Two components place themselves differently on purpose:
 

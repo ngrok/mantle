@@ -75,9 +75,9 @@ from `vite.config.ts` first.
 
 ### What it does
 
-In `vite dev` the plugin is inactive. `source-all.css` scans every mantle file, so Tailwind styles
-every component your app can reach, including one that first appears through hot module
-replacement (HMR). The dev server serves that CSS locally, so its size doesn't matter.
+In `vite dev` the plugin is inactive. `source-all.css` scans every mantle JavaScript file, so
+Tailwind styles every component your app can reach, including one that first appears through hot
+module replacement (HMR). The dev server serves that CSS locally, so its size doesn't matter.
 
 In `vite build` the plugin reads the bundler's module graph in the client environment. When the
 last module parses, it replaces the `source-all.css` import with `@source` directives that keep the

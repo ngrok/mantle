@@ -2,7 +2,7 @@
 
 import type { ComponentProps, ComponentRef } from "react";
 import { useRef, useState } from "react";
-import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";

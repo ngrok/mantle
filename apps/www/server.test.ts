@@ -54,6 +54,8 @@ describe("the docs app server", () => {
 		expect(policy).toContain("default-src 'none'");
 		expect(policy).not.toContain("'strict-dynamic'");
 		expect(policy).toContain("frame-ancestors 'self' https://mantle.ngrok.com");
+		// The MCP App view of a chat host frames the prototype inline.
+		expect(policy).toContain("https://claude.ai");
 	});
 
 	it("limits where a frame can navigate from a page", async () => {

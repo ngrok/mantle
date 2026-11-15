@@ -128,6 +128,8 @@ type AgentManifestUtility = {
 type AgentManifestEndpoints = {
 	docs: string;
 	forAiAgents: string;
+	/** The hosted, read-only MCP server (streamable HTTP transport). */
+	mcp: string;
 	llmsTxt: string;
 	llmsFullTxt: string;
 	components: string;
@@ -198,19 +200,22 @@ const importPathOverrides: Record<string, string> = {
 	"components/feedback/progress-donut": "@ngrok/mantle/progress",
 };
 
+/** Matches an export key that names a file, such as `./mantle.css`. */
+const FILE_EXTENSION_RE = /\.[a-z]+$/;
+
 /**
  * Sorted list of importable `@ngrok/mantle/*` specifiers, derived from
- * `package.json#exports`. Skips CSS bundles, the `./package.json`
- * passthrough, and the agent artifacts the manifest itself describes.
+ * `package.json#exports`. A key with a file extension is a file, such as
+ * `./mantle.css`, `./agent.json`, or `./tokens.json`, not a module, so the
+ * list skips it.
  *
  * @example
  * importableSubpaths({ "./button": {}, "./mantle.css": "./dist/mantle.css" });
  * // => ["@ngrok/mantle/button"]
  */
 function importableSubpaths(exports: Record<string, unknown>): string[] {
-	const skip = new Set(["./package.json", "./agent.json", "./llms.txt"]);
 	return Object.keys(exports)
-		.filter((key) => key.startsWith("./") && !skip.has(key) && !key.endsWith(".css"))
+		.filter((key) => key.startsWith("./") && !FILE_EXTENSION_RE.test(key))
 		.map((key) => `@ngrok/mantle/${key.slice(2)}`)
 		.toSorted((a, b) => a.localeCompare(b));
 }
@@ -360,12 +365,17 @@ function parseScalar(value: string): string {
 
 /**
  * Locate a JSDoc block (`/** ... *\/`) immediately preceding the given
- * declaration index. Tolerates whitespace between the JSDoc close and the
- * declaration, and returns `undefined` when any other content intervenes, so
- * a JSDoc from an unrelated earlier declaration never lifts.
+ * declaration index. Tolerates whitespace and `//` line comments between the
+ * JSDoc close and the declaration, as TypeScript does. Returns `undefined`
+ * when any other content intervenes, so a JSDoc from an unrelated earlier
+ * declaration never lifts.
  */
 function findPrecedingJsDoc(source: string, declarationIndex: number): string | undefined {
-	const before = source.slice(0, declarationIndex).trimEnd();
+	const before = source
+		.slice(0, declarationIndex)
+		.trimEnd()
+		.replace(/(?:\n\s*\/\/[^\n]*)+$/, "")
+		.trimEnd();
 	if (!before.endsWith("*/")) {
 		return undefined;
 	}
@@ -923,6 +933,7 @@ function endpointsFor(origin: string): AgentManifestEndpoints {
 	return {
 		docs: `${origin}/`,
 		forAiAgents: `${origin}/for-ai-agents`,
+		mcp: `${origin}/mcp`,
 		llmsTxt: `${origin}/llms.txt`,
 		llmsFullTxt: `${origin}/llms-full.txt`,
 		components: `${origin}/api/components.json`,
@@ -998,10 +1009,11 @@ function renderLlmsTxt(manifest: AgentManifest): string {
 	return [
 		`# ${manifest.name} (${manifest.version})`,
 		"",
-		`> Offline index shipped inside the ${manifest.name} npm package. The full records, with examples and sibling boundaries, are in agent.json beside this file. Neither file lists props: read the bundled type declarations (\`<subpath>.d.ts\` beside this file) for every prop and its JSDoc. Live docs: ${endpoints.forAiAgents}.`,
+		`> Offline index shipped inside the ${manifest.name} npm package. The full records, with examples and sibling boundaries, are in agent.json beside this file. Neither file lists props: read the type declarations that \`package.json#exports\` names for each subpath (for example \`button.d.ts\` beside this file), and follow their imports, for every prop and its JSDoc. Live docs: ${endpoints.forAiAgents}.`,
 		"",
 		`Docs: ${endpoints.docs}`,
 		`Agent guide: ${endpoints.forAiAgents}`,
+		`MCP server: ${endpoints.mcp}`,
 		`Index: ${endpoints.llmsTxt}`,
 		`Full text: ${endpoints.llmsFullTxt}`,
 		"",

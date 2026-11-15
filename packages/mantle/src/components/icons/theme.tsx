@@ -1,3 +1,5 @@
+"use client";
+
 import { DesktopIcon } from "@phosphor-icons/react/Desktop";
 import { MoonIcon } from "@phosphor-icons/react/Moon";
 import { SunIcon } from "@phosphor-icons/react/Sun";

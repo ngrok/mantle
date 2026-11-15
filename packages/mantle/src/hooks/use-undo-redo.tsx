@@ -1,3 +1,5 @@
+"use client";
+
 import { useCallback, useMemo, useRef, useState } from "react";
 
 type UseUndoRedoReturn<T> = {

@@ -44,7 +44,7 @@ export default defineConfig({
 });
 ```
 
-In `vite dev` the plugin is inactive, so `source-all.css` scans every mantle file. Tailwind styles every component the app can reach. In `vite build`, in the client environment, the plugin reads the bundler's module graph. It replaces the `source-all.css` import with `@source` directives for the `@ngrok/mantle` files the graph holds, chunks and dynamic imports included. That is one `@source` per directory, plus an `@source not` for every neighbor outside the graph. The build logs one line:
+In `vite dev` the plugin is inactive, so `source-all.css` scans every mantle JavaScript file. Tailwind styles every component the app can reach. In `vite build`, in the client environment, the plugin reads the bundler's module graph. It replaces the `source-all.css` import with `@source` directives for the `@ngrok/mantle` files the graph holds, chunks and dynamic imports included. That is one `@source` per directory, plus an `@source not` for every neighbor outside the graph. The build logs one line:
 
 ```
 mantle sources: 6 @ngrok/mantle files listed for src/app.css (source-all.css scans 248)

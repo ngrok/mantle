@@ -6,6 +6,7 @@ import { assetsCdnOrigin } from "@ngrok/mantle/theme";
 import { canonicalOrigin } from "~/utilities/canonical-origin";
 import { allowsIndexing, EDGE_HEADER } from "~/utilities/indexing";
 import { previewFrameOrigin } from "~/utilities/mcp/flags.server";
+import { MCP_APP_HOST_SOURCES } from "~/utilities/mcp/preview-app";
 import { DIGEST_INTERVAL_MS, mcpPulse } from "~/utilities/mcp/pulse.server";
 
 /** True for a framed example preview (`/preview/*`), which a docs page shows in an iframe. */
@@ -24,7 +25,8 @@ function isPrototypeFrame(path: string): boolean {
 /**
  * The CSP of the prototype frame. The policy repeats the frame's `sandbox`, so
  * the document has an opaque origin also when someone opens it outside the
- * preview page. `default-src 'none'` blocks each request that the frame does
+ * preview page. The preview page and the MCP App view of each listed host can
+ * frame it. `default-src 'none'` blocks each request that the frame does
  * not need, so the code cannot send data out. `'unsafe-eval'` lets the frame
  * run the compiled prototype.
  *
@@ -39,7 +41,11 @@ function prototypeFramePolicy(scriptSrc: string): string {
 	const trustedScripts = new Set(scriptSrc.split(" "));
 	trustedScripts.delete("'strict-dynamic'");
 	trustedScripts.add("'self'");
-	const pageOrigins = [canonicalOrigin, process.env.MANTLE_PREVIEW_ORIGIN].filter(Boolean);
+	const ancestors = [
+		canonicalOrigin,
+		process.env.MANTLE_PREVIEW_ORIGIN,
+		...MCP_APP_HOST_SOURCES,
+	].filter(Boolean);
 	const framePolicy = [
 		"default-src 'none'",
 		`script-src ${Array.from(trustedScripts).join(" ")} 'unsafe-eval'`,
@@ -48,7 +54,7 @@ function prototypeFramePolicy(scriptSrc: string): string {
 		`font-src 'self' ${assetsCdnOrigin}`,
 		"form-action 'none'",
 		"base-uri 'none'",
-		`frame-ancestors 'self' ${pageOrigins.join(" ")}`,
+		`frame-ancestors 'self' ${ancestors.join(" ")}`,
 		"sandbox allow-scripts",
 	].join("; ");
 	return `${framePolicy}, script-src 'self' 'unsafe-inline' 'unsafe-eval'`;

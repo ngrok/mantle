@@ -74,6 +74,9 @@ LICENSE
 # www bundles packages/mantle/CHANGELOG.md as build input (mantleChangelogMdx
 # vite plugin + `?raw` import), so re-include package changelogs.
 !packages/*/CHANGELOG.md
+# www source imports its own markdown with `?raw`, such as the agent skill in
+# app/utilities/mantle-skill.md, so re-include it.
+!apps/www/app/**/*.md
 
 # Test artifacts
 **/coverage

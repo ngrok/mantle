@@ -763,10 +763,11 @@ import {
 	parseCodeBlockLineNumberStart,
 	parseCodeBlockShowLineNumbers,
 	supportedLanguages,
+	escapeHtml,
 } from "@ngrok/mantle/code-block";
 
 // React-free utilities (safe for server-only code, no React dependency)
-import { decorateHighlightedHtml, escapeHtml } from "@ngrok/mantle/highlight-utils";
+import { decorateHighlightedHtml } from "@ngrok/mantle/highlight-utils";
 
 // Vite plugins
 import { mantleCodeBlockPlugins } from "@ngrok/mantle-vite-plugins";

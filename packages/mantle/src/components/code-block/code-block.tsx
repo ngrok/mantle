@@ -28,7 +28,7 @@ import { useCopyToClipboard } from "../../hooks/use-copy-to-clipboard.js";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { SelfClosingWithAsChild, WithAsChild } from "../../types/as-child.js";
 import { alternateAnnouncement } from "../../utils/alternate-announcement.js";
-import { useComposedRefs } from "../../utils/compose-refs/compose-refs.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -593,7 +593,7 @@ const Title = ({
 	className,
 	ref,
 	...props
-}: ComponentProps<"h3"> & { asChild?: boolean } & WithDataSlot) => {
+}: ComponentProps<"h3"> & WithAsChild & WithDataSlot) => {
 	const Component = asChild ? Slot : "h3";
 	return (
 		<Component

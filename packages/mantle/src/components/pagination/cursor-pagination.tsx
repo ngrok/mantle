@@ -288,7 +288,7 @@ const PageSizeSelect = ({
 }: CursorPageSizeSelectProps) => {
 	const ctx = useContext(CursorPaginationContext);
 
-	invariant(ctx, "CursorPageSizeSelect must be used as a child of a CursorPagination component");
+	invariant(ctx, "CursorPagination.PageSizeSelect must be rendered inside CursorPagination.Root.");
 
 	invariant(
 		pageSizes.includes(ctx.pageSize),
@@ -355,7 +355,7 @@ type CursorPageSizeValueProps = Omit<ComponentProps<"span">, "children"> & WithD
 function PageSizeValue({ "data-slot": dataSlot, className, ...props }: CursorPageSizeValueProps) {
 	const ctx = useContext(CursorPaginationContext);
 
-	invariant(ctx, "CursorPageSizeValue must be used as a child of a CursorPagination component");
+	invariant(ctx, "CursorPagination.PageSizeValue must be rendered inside CursorPagination.Root.");
 
 	return (
 		<span

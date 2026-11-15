@@ -14,6 +14,7 @@ import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
+import { Slot } from "../slot/index.js";
 
 /**
  * A floating overlay that displays rich content in a portal, triggered by a button.
@@ -63,7 +64,21 @@ const Root = PopoverPrimitiveRoot;
  * </Popover.Root>
  * ```
  */
-const Trigger = PopoverPrimitiveTrigger;
+const Trigger = ({
+	asChild,
+	children,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof PopoverPrimitiveTrigger> & WithDataSlot) => {
+	const slot = joinDataSlot(dataSlot, "popover-trigger");
+	// Why mantle's `Slot` under `asChild`: Radix's merge lets the child's own
+	// `data-slot` replace this one, and `Slot` joins the two.
+	return (
+		<PopoverPrimitiveTrigger asChild={asChild} data-slot={slot} {...props}>
+			{asChild ? <Slot data-slot={slot}>{children}</Slot> : children}
+		</PopoverPrimitiveTrigger>
+	);
+};
 
 /**
  * An optional element to position the PopoverContent against. If this part is not used, the content will position alongside the PopoverTrigger.
@@ -87,7 +102,19 @@ const Trigger = PopoverPrimitiveTrigger;
  * </Popover.Root>
  * ```
  */
-const Anchor = PopoverPrimitiveAnchor;
+const Anchor = ({
+	asChild,
+	children,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof PopoverPrimitiveAnchor> & WithDataSlot) => {
+	const slot = joinDataSlot(dataSlot, "popover-anchor");
+	return (
+		<PopoverPrimitiveAnchor asChild={asChild} data-slot={slot} {...props}>
+			{asChild ? <Slot data-slot={slot}>{children}</Slot> : children}
+		</PopoverPrimitiveAnchor>
+	);
+};
 
 /**
  * A button that closes an open popover.
@@ -111,7 +138,19 @@ const Anchor = PopoverPrimitiveAnchor;
  * </Popover.Root>
  * ```
  */
-const Close = PopoverPrimitiveClose;
+const Close = ({
+	asChild,
+	children,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof PopoverPrimitiveClose> & WithDataSlot) => {
+	const slot = joinDataSlot(dataSlot, "popover-close");
+	return (
+		<PopoverPrimitiveClose asChild={asChild} data-slot={slot} {...props}>
+			{asChild ? <Slot data-slot={slot}>{children}</Slot> : children}
+		</PopoverPrimitiveClose>
+	);
+};
 
 type PopoverContentProps = ComponentProps<typeof PopoverPrimitiveContent> & {
 	/**

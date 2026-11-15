@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, type ComponentProps, useContext, useState } from "react";
-import { useComposedRefs } from "../compose-refs/compose-refs.js";
+import { useComposedRefs } from "../compose-refs/use-composed-refs.js";
 
 /**
  * The portal target for floating layers composed inside an overlay.

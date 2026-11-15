@@ -667,6 +667,20 @@ describe("Field", () => {
 			expect(legend).toHaveTextContent("Title");
 		});
 
+		test("joins a consumer data-slot in front of its own", () => {
+			render(
+				<Field.Set>
+					<Field.Legend data-slot="settings-legend" data-testid="legend">
+						Title
+					</Field.Legend>
+				</Field.Set>,
+			);
+			expect(screen.getByTestId("legend")).toHaveAttribute(
+				"data-slot",
+				"settings-legend field-legend",
+			);
+		});
+
 		test("a consumer font size replaces the default text-sm", () => {
 			// tailwind-merge override contract: the consumer's `text-base` replaces the
 			// default `text-sm`, so the assertion reads the merge outcome.
@@ -805,7 +819,10 @@ describe("Field", () => {
 				</Field.Help>,
 			);
 			const trigger = screen.getByRole("button", { name: "What is this field?" });
-			expect(trigger).toHaveAttribute("data-slot", "icon-button");
+			expect(trigger).toHaveAttribute(
+				"data-slot",
+				"field-help-trigger popover-trigger icon-button",
+			);
 			expect(trigger).toHaveAttribute("data-size", "xs");
 			expect(trigger).toHaveAttribute("data-appearance", "ghost");
 			// tailwind-merge override contract: HelpTrigger's `text-body` replaces the ghost

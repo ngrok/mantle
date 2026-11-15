@@ -1,3 +1,5 @@
+"use client";
+
 import { Root as SwitchPrimitiveRoot, Thumb as SwitchPrimitiveThumb } from "@radix-ui/react-switch";
 import type { ComponentProps } from "react";
 import { parseBooleanish } from "../../types/booleanish.js";

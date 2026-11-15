@@ -697,7 +697,7 @@ describe("mantleSourcesPlugin build", () => {
 
 		unlisted = readdirSync(mantleDist)
 			.map((file) => path.join(mantleDist, file))
-			.filter((file) => !listed.includes(file) && !file.endsWith(".css"));
+			.filter((file) => !listed.includes(file) && file.endsWith(".js"));
 		const listedCandidates = candidatesIn(listed);
 		const onlyUnlisted = new Set(
 			[...candidatesIn(unlisted)].filter((candidate) => !carries(listedCandidates, candidate)),
@@ -734,8 +734,8 @@ describe("mantleSourcesPlugin build", () => {
 	});
 
 	test("logs one summary line with the listed count and the source-all total", () => {
-		// Why the sum: the oracle partitions dist into listed and unlisted files and skips the
-		// stylesheets Tailwind never scans, so the total comes from the partition, not from the
+		// Why the sum: the oracle partitions the `dist/*.js` files that `source-all.css` scans
+		// into listed and unlisted files, so the total comes from the partition, not from the
 		// plugin's own directory read.
 		const distCount = listed.length + unlisted.length;
 		expect(trimmed.logs.info).toContain(

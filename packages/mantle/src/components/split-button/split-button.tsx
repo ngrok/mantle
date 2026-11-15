@@ -1,3 +1,5 @@
+"use client";
+
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { createContext, useContext, useMemo, type ComponentProps, type ReactNode } from "react";
 import { cx } from "../../utils/cx/cx.js";
@@ -139,11 +141,19 @@ type PrimaryActionProps = Omit<ComponentProps<typeof Button>, "appearance" | "in
  * </SplitButton.Root>
  * ```
  */
-const PrimaryAction = (props: PrimaryActionProps) => {
+const PrimaryAction = ({ "data-slot": dataSlot, ...props }: PrimaryActionProps) => {
 	const { size } = useContext(SplitButtonContext);
 
 	// `type` and `ref` flow through; `Button` defaults `type` to "button".
-	return <Button appearance="outlined" intent="neutral" size={size} {...props} />;
+	return (
+		<Button
+			appearance="outlined"
+			intent="neutral"
+			size={size}
+			data-slot={joinDataSlot(dataSlot, "split-button-primary-action")}
+			{...props}
+		/>
+	);
 };
 
 type MenuTriggerProps = Omit<
@@ -180,11 +190,15 @@ type MenuTriggerProps = Omit<
  * </SplitButton.Root>
  * ```
  */
-const MenuTrigger = ({ icon, ...props }: MenuTriggerProps) => {
+const MenuTrigger = ({ "data-slot": dataSlot, icon, ...props }: MenuTriggerProps) => {
 	const { size } = useContext(SplitButtonContext);
 
 	return (
-		<DropdownMenu.Trigger asChild className="group">
+		<DropdownMenu.Trigger
+			asChild
+			className="group"
+			data-slot={joinDataSlot(dataSlot, "split-button-menu-trigger")}
+		>
 			<IconButton
 				icon={
 					icon ?? (
@@ -235,8 +249,18 @@ const MenuTrigger = ({ icon, ...props }: MenuTriggerProps) => {
  * </SplitButton.Root>
  * ```
  */
-const MenuContent = ({ align = "end", ...props }: ComponentProps<typeof DropdownMenu.Content>) => {
-	return <DropdownMenu.Content align={align} {...props} />;
+const MenuContent = ({
+	align = "end",
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof DropdownMenu.Content>) => {
+	return (
+		<DropdownMenu.Content
+			align={align}
+			data-slot={joinDataSlot(dataSlot, "split-button-menu-content")}
+			{...props}
+		/>
+	);
 };
 
 /**
@@ -267,8 +291,18 @@ const MenuContent = ({ align = "end", ...props }: ComponentProps<typeof Dropdown
  * </SplitButton.Root>
  * ```
  */
-const MenuItem = ({ className, ...props }: ComponentProps<typeof DropdownMenu.Item>) => {
-	return <DropdownMenu.Item className={cx("gap-2", className)} {...props} />;
+const MenuItem = ({
+	className,
+	"data-slot": dataSlot,
+	...props
+}: ComponentProps<typeof DropdownMenu.Item>) => {
+	return (
+		<DropdownMenu.Item
+			className={cx("gap-2", className)}
+			data-slot={joinDataSlot(dataSlot, "split-button-menu-item")}
+			{...props}
+		/>
+	);
 };
 
 /**

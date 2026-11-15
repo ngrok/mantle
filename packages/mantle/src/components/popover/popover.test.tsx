@@ -4,6 +4,38 @@ import { describe, expect, test } from "vitest";
 import { Popover } from "./popover.js";
 
 describe("Popover", () => {
+	test("Trigger, Anchor, and Close join their data-slot with the asChild child's own", async () => {
+		const user = userEvent.setup();
+		render(
+			<Popover.Root>
+				<Popover.Anchor asChild>
+					<div data-slot="inner" data-testid="anchor" />
+				</Popover.Anchor>
+				<Popover.Trigger asChild data-slot="outer">
+					<button data-slot="inner" type="button">
+						Open
+					</button>
+				</Popover.Trigger>
+				<Popover.Content>
+					<Popover.Close asChild>
+						<button data-slot="inner" type="button">
+							Done
+						</button>
+					</Popover.Close>
+				</Popover.Content>
+			</Popover.Root>,
+		);
+
+		const trigger = screen.getByRole("button", { name: "Open" });
+		expect(trigger).toHaveAttribute("data-slot", "outer popover-trigger inner");
+		expect(screen.getByTestId("anchor")).toHaveAttribute("data-slot", "popover-anchor inner");
+		await user.click(trigger);
+		expect(await screen.findByRole("button", { name: "Done" })).toHaveAttribute(
+			"data-slot",
+			"popover-close inner",
+		);
+	});
+
 	describe("Arrow", () => {
 		test("renders inside the open content with its data-slot", async () => {
 			const user = userEvent.setup();
