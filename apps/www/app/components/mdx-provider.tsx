@@ -103,7 +103,7 @@ const components = {
 	// },
 	li: (props) => {
 		const { node: _node, className, ...rest } = props;
-		return <li className={cx("text-body", className)} {...rest} />;
+		return <li className={cx("wrap-break-word text-body", className)} {...rest} />;
 	},
 	ol: (props) => {
 		const { node: _node, className, ...rest } = props;
@@ -125,9 +125,13 @@ const components = {
 		const { children, className, indentation: _indentation, ...rawProps } = props;
 		const { mantleCode: preRendered, props: rest } = resolvePreRenderedCodeBlockProps(rawProps);
 
+		// Why overflow-x-auto: a fence in a language without highlighting renders
+		// here, and a long line must scroll in the block, not widen the page.
+		const fallbackClassName = cx("scrollbar overflow-x-auto", className);
+
 		if (!preRendered) {
 			return (
-				<pre className={className} {...rest}>
+				<pre className={fallbackClassName} {...rest}>
 					{children}
 				</pre>
 			);
@@ -137,7 +141,7 @@ const components = {
 		if (!code || !language || !preHtml) {
 			warnMalformedPreRenderedCodeBlock(preRendered.rawLanguage);
 			return (
-				<pre className={className} {...rest}>
+				<pre className={fallbackClassName} {...rest}>
 					{children}
 				</pre>
 			);

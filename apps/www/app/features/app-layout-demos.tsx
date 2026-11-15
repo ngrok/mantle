@@ -289,18 +289,21 @@ export function AppLayoutPageShapesExample() {
 				<AppLayout.Workspace>
 					<AppLayout.Content>
 						<AppLayout.Header>
-							{pageShapes.map((candidate) => (
-								<Button
-									key={candidate.id}
-									type="button"
-									size="sm"
-									appearance={candidate.id === shape ? "filled" : "outlined"}
-									intent={candidate.id === shape ? "accent" : "neutral"}
-									onClick={() => setShape(candidate.id)}
-								>
-									{candidate.label}
-								</Button>
-							))}
+							{/* Why overflow-x-auto: on a phone, the buttons scroll instead of clipping. */}
+							<AppLayout.HeaderContent className="scrollbar overflow-x-auto py-1">
+								{pageShapes.map((candidate) => (
+									<Button
+										key={candidate.id}
+										type="button"
+										size="sm"
+										appearance={candidate.id === shape ? "filled" : "outlined"}
+										intent={candidate.id === shape ? "accent" : "neutral"}
+										onClick={() => setShape(candidate.id)}
+									>
+										{candidate.label}
+									</Button>
+								))}
+							</AppLayout.HeaderContent>
 						</AppLayout.Header>
 						{/* Why asChild: the docs page already owns the main landmark. */}
 						<AppLayout.Body asChild>

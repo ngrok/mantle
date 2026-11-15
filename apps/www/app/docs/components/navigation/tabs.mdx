@@ -29,7 +29,7 @@ import { Example } from "~/components/example";
 Layered sections of content, called tab panels, that show one at a time.
 
 <Example>
-	<Tabs.Root orientation="horizontal" defaultValue="account" className="w-100 max-w-[400px]">
+	<Tabs.Root orientation="horizontal" defaultValue="account" className="w-full max-w-100">
 		<Tabs.List>
 			<Tabs.Trigger value="account">Account</Tabs.Trigger>
 			<Tabs.Trigger value="password">Password</Tabs.Trigger>
@@ -62,7 +62,7 @@ Layered sections of content, called tab panels, that show one at a time.
 import { Card } from "@ngrok/mantle/card";
 import { Tabs } from "@ngrok/mantle/tabs";
 
-<Tabs.Root orientation="horizontal" defaultValue="account" className="w-100 max-w-[400px]">
+<Tabs.Root orientation="horizontal" defaultValue="account" className="w-full max-w-100">
 	<Tabs.List>
 		<Tabs.Trigger value="account">Account</Tabs.Trigger>
 		<Tabs.Trigger value="password">Password</Tabs.Trigger>
@@ -100,7 +100,7 @@ import { Tabs } from "@ngrok/mantle/tabs";
 
 Put an `Icon` before the label in `Tabs.Trigger` to help the user scan the tabs.
 
-<Example className="scrollbar -m-1 p-1 overflow-x-scroll">
+<Example>
 	<Tabs.Root orientation="horizontal" defaultValue="tab-1">
 		<Tabs.List>
 			<Tabs.Trigger value="tab-1">
@@ -148,7 +148,7 @@ import { GlobeIcon } from "@phosphor-icons/react/Globe";
 
 Put a `Tabs.Badge` after the label in `Tabs.Trigger` to show a count for the tab. A badge can sit beside an icon.
 
-<Example className="scrollbar -m-1 p-1 overflow-x-scroll">
+<Example>
 	<Tabs.Root orientation="horizontal" defaultValue="tab-1">
 		<Tabs.List>
 			<Tabs.Trigger value="tab-1">
@@ -198,7 +198,7 @@ import { GlobeIcon } from "@phosphor-icons/react/Globe";
 
 Pass `disabled` to a `Tabs.Trigger` to stop the user from selecting that tab.
 
-<Example className="scrollbar -m-1 p-1 overflow-x-scroll">
+<Example>
 	<Tabs.Root orientation="horizontal" defaultValue="tab-1">
 		<Tabs.List>
 			<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
@@ -315,7 +315,7 @@ A link tab activates on click, not on the press, so a press released off the lin
 
 `Tabs.Root`, `Tabs.List`, and `Tabs.Content` accept `asChild` through Radix. Each composes its part's attributes and behavior onto your own element instead of rendering its own `<div>`.
 
-<Example className="scrollbar -m-1 p-1 overflow-x-scroll">
+<Example>
 	<Tabs.Root orientation="horizontal" defaultValue="colors">
 		<Tabs.List>
 			<Tabs.Trigger value="colors" asChild>
@@ -505,7 +505,7 @@ import { UserIcon } from "@phosphor-icons/react/User";
 
 Use `appearance="pill"` to render each tab as a pill instead of the default classic underline style.
 
-<Example className="grid gap-6">
+<Example className="grid grid-cols-1 gap-6">
 	<p>`asChild` with `Link`s</p>
 	<div className="scrollbar -m-1 p-1 overflow-x-scroll">
 		<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="colors">
@@ -611,7 +611,7 @@ Use `appearance="pill"` to render each tab as a pill instead of the default clas
 		appearance="pill"
 		orientation="horizontal"
 		defaultValue="account"
-		className="w-100 max-w-[400px]"
+		className="w-full max-w-100"
 	>
 		<Tabs.List>
 			<Tabs.Trigger value="account">
@@ -789,7 +789,7 @@ import { Link, href } from "react-router";
 	appearance="pill"
 	orientation="horizontal"
 	defaultValue="account"
-	className="w-100 max-w-[400px]"
+	className="w-full max-w-100"
 >
 	<Tabs.List>
 		<Tabs.Trigger value="account">
@@ -868,7 +868,7 @@ As the root's direct child, the separator pulls itself up by `--tabs-gap`, the r
 
 The separator is decorative (`role="none"`). Pass `semantic` to render `role="separator"`.
 
-<Example className="grid gap-6">
+<Example className="grid grid-cols-1 gap-6">
 	<div>
 		<p className="mb-2 font-mono text-xs">with Tabs.Separator</p>
 		<div className="scrollbar -m-1 p-1 overflow-x-scroll">

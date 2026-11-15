@@ -110,7 +110,7 @@ Only the box scales: every size keeps the same typography (`text-sm font-medium`
 `size` has no effect when `appearance="link"`: link buttons inherit the surrounding typography and have no box to size.
 
 <Example className="flex-col gap-4">
-	<div className="flex items-center gap-2">
+	<div className="flex flex-wrap items-center justify-center gap-2">
 		<Button appearance="outlined" intent="neutral" size="xs">
 			Extra Small
 		</Button>
@@ -127,7 +127,7 @@ Only the box scales: every size keeps the same typography (`text-sm font-medium`
 			Extra Large
 		</Button>
 	</div>
-	<div className="flex items-center gap-2">
+	<div className="flex flex-wrap items-center justify-center gap-2">
 		<Button appearance="outlined" intent="neutral" size="xs" icon={<FireIcon weight="fill" />}>
 			Extra Small
 		</Button>
