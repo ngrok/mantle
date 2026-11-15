@@ -47,6 +47,10 @@ The package also works offline:
 - `@ngrok/mantle/llms.txt`: one line for each module, with its import path and summary.
 - `dist/migrations/`: the codemods that the migration guides name.
 
+## Design tokens
+
+`@ngrok/mantle/tokens.json` holds mantle's design tokens in the [Design Tokens Community Group (DTCG)](https://www.designtokens.org/tr/2025.10/format/) format, with their light theme values. `@ngrok/mantle/tokens.dark.json` holds the tokens that change in the dark theme, and `@ngrok/mantle/tokens.resolver.json` is a DTCG resolver document that applies them. A token path joined with `-` names its Tailwind theme variable: `color.sky.500` is `--color-sky-500`.
+
 ## Code Block Tooling
 
 Mantle ships runtime components from `@ngrok/mantle`, while build-time and server-side tooling lives in `@ngrok/mantle-vite-plugins`:
