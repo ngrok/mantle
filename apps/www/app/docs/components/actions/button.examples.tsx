@@ -77,7 +77,7 @@ export function SizeExample() {
 		<PreviewCanvas className="flex-col gap-4">
 			<div className="flex flex-wrap items-center justify-center gap-2">
 				<Button appearance="outlined" intent="neutral" size="xs">
-					Extra Small
+					Extra small
 				</Button>
 				<Button appearance="outlined" intent="neutral" size="sm">
 					Small
@@ -89,12 +89,12 @@ export function SizeExample() {
 					Large
 				</Button>
 				<Button appearance="outlined" intent="neutral" size="xl">
-					Extra Large
+					Extra large
 				</Button>
 			</div>
 			<div className="flex flex-wrap items-center justify-center gap-2">
 				<Button appearance="outlined" intent="neutral" size="xs" icon={<FireIcon weight="fill" />}>
-					Extra Small
+					Extra small
 				</Button>
 				<Button appearance="outlined" intent="neutral" size="sm" icon={<FireIcon weight="fill" />}>
 					Small
@@ -106,7 +106,7 @@ export function SizeExample() {
 					Large
 				</Button>
 				<Button appearance="outlined" intent="neutral" size="xl" icon={<FireIcon weight="fill" />}>
-					Extra Large
+					Extra large
 				</Button>
 			</div>
 		</PreviewCanvas>
@@ -119,7 +119,7 @@ export function IconAndPositioningExample() {
 		<PreviewCanvas>
 			<div className="flex items-center gap-2">
 				<Button appearance="outlined" intent="neutral" icon={<FireIcon weight="fill" />}>
-					Icon Start
+					Icon start
 				</Button>
 				<Button
 					appearance="outlined"
@@ -127,7 +127,7 @@ export function IconAndPositioningExample() {
 					icon={<FireIcon weight="fill" />}
 					iconPlacement="end"
 				>
-					Icon End
+					Icon end
 				</Button>
 			</div>
 		</PreviewCanvas>

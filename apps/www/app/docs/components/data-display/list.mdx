@@ -184,7 +184,7 @@ Bound the height (e.g. `className="max-h-80"`) so long lists scroll.
 
 ### List.VirtualRoot
 
-The windowed container — same surface as `Root` (compose the same `Item` children), plus the virtualizer knobs:
+The windowed container, with the same surface as `Root` (compose the same `Item` children), plus the virtualizer knobs:
 
 | Prop                  | Type        | Default | Description                                                                                                                             |
 | --------------------- | ----------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------- |
@@ -196,11 +196,11 @@ The windowed container — same surface as `Root` (compose the same `Item` child
 
 A clickable row. Accepts all `<button>` props (minus `type`), plus:
 
-| Prop        | Type      | Default | Description                                                                                                                                                                               |
-| ----------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `current?`  | `boolean` | `false` | Marks the row as the current one (tinted pill) and sets `aria-current`, so the state is announced, not just shown. Omit for a plain action/navigation list.                               |
-| `disabled?` | `boolean` | `false` | Disables the row (dimmed). `disabled` on the button; with `asChild`, `aria-disabled` + removal from the tab order, and clicks are swallowed — prefer omitting `href` for a disabled link. |
-| `asChild?`  | `boolean` | `false` | Render the row as the provided child element (e.g. an `<a>`) instead of a `<button>`.                                                                                                     |
+| Prop        | Type      | Default | Description                                                                                                                                                                              |
+| ----------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `current?`  | `boolean` | `false` | Marks the row as the current one (tinted pill) and sets `aria-current`, so the state is announced, not just shown. Omit for a plain action/navigation list.                              |
+| `disabled?` | `boolean` | `false` | Disables the row (dimmed). `disabled` on the button; with `asChild`, `aria-disabled` + removal from the tab order, and clicks are swallowed. Prefer omitting `href` for a disabled link. |
+| `asChild?`  | `boolean` | `false` | Render the row as the child element you pass (e.g. an `<a>`) instead of a `<button>`.                                                                                                    |
 
 ### List.ItemTitle / List.ItemDescription
 

@@ -312,9 +312,8 @@ export function AlertCenterSupportingCopyExample() {
 					<Alert.Content>
 						<Alert.Title>The last payment attempt for your account failed</Alert.Title>
 						<Alert.Description>
-							Please{" "}
 							<a className="font-medium" href="#billing">
-								update your payment method
+								Update your payment method
 							</a>{" "}
 							to avoid a service interruption.
 						</Alert.Description>

@@ -77,7 +77,7 @@ export function SandbarDemo() {
 			setIsPending(false);
 			if (failNextSave) {
 				setFailNextSave(false);
-				setError("Something went wrong while saving. Try again.");
+				setError("Couldn’t save your changes. Try again.");
 				return;
 			}
 			setSaved(draft);
@@ -184,7 +184,7 @@ export function SandbarFailedSaveDemo() {
 		// is exercised on every save
 		window.setTimeout(() => {
 			setIsPending(false);
-			setError("Something went wrong while saving. Try again.");
+			setError("Couldn’t save your changes. Try again.");
 		}, 800);
 	};
 

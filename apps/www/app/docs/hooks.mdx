@@ -596,7 +596,7 @@ export function UseInViewDemo() {
 const { canUndo, canRedo, push, undo, redo } = useUndoRedo<T>();
 ```
 
-Generic undo/redo hook that maintains two history stacks (undo and redo). The hook does not own your application state — it helps you snapshot it. Call `push(snapshot)` _before_ mutating state, then `undo(current)` or `redo(current)` return the snapshot to apply, or `undefined` when their stack is empty. Pushing a new snapshot clears the redo stack, matching standard editor semantics.
+Generic undo/redo hook that maintains two history stacks (undo and redo). The hook does not own your application state. It helps you snapshot it. Call `push(snapshot)` _before_ mutating state, then `undo(current)` or `redo(current)` return the snapshot to apply, or `undefined` when their stack is empty. Pushing a new snapshot clears the redo stack, matching standard editor semantics.
 
 ```tsx
 import { useUndoRedo } from "@ngrok/mantle/hooks";

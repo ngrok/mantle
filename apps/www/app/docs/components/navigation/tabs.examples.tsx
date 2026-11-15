@@ -63,15 +63,15 @@ export function IconsExample() {
 				<Tabs.List>
 					<Tabs.Trigger value="tab-1">
 						<Icon svg={<GlobeIcon />} />
-						Tab Title
+						Tab title
 					</Tabs.Trigger>
 					<Tabs.Trigger value="tab-2">
 						<Icon svg={<GlobeIcon />} />
-						Tab Title
+						Tab title
 					</Tabs.Trigger>
 					<Tabs.Trigger value="tab-3">
 						<Icon svg={<GlobeIcon />} />
-						Tab Title
+						Tab title
 					</Tabs.Trigger>
 				</Tabs.List>
 				<Tabs.Separator />
@@ -87,16 +87,16 @@ export function BadgesExample() {
 			<Tabs.Root orientation="horizontal" defaultValue="tab-1">
 				<Tabs.List>
 					<Tabs.Trigger value="tab-1">
-						Tab Title
+						Tab title
 						<Tabs.Badge>32</Tabs.Badge>
 					</Tabs.Trigger>
 					<Tabs.Trigger value="tab-2">
-						Tab Title
+						Tab title
 						<Tabs.Badge>32</Tabs.Badge>
 					</Tabs.Trigger>
 					<Tabs.Trigger value="tab-3">
 						<Icon svg={<GlobeIcon />} />
-						Tab Title
+						Tab title
 						<Tabs.Badge>32</Tabs.Badge>
 					</Tabs.Trigger>
 				</Tabs.List>
@@ -112,12 +112,12 @@ export function DisabledTabsExample() {
 		<PreviewCanvas className="*:min-w-0">
 			<Tabs.Root orientation="horizontal" defaultValue="tab-1">
 				<Tabs.List>
-					<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
-					<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
+					<Tabs.Trigger value="tab-1">Tab title</Tabs.Trigger>
+					<Tabs.Trigger value="tab-2">Tab title</Tabs.Trigger>
 					<Tabs.Trigger disabled value="tab-3">
-						Tab Title
+						Tab title
 					</Tabs.Trigger>
-					<Tabs.Trigger value="tab-4">Tab Title</Tabs.Trigger>
+					<Tabs.Trigger value="tab-4">Tab title</Tabs.Trigger>
 				</Tabs.List>
 				<Tabs.Separator />
 			</Tabs.Root>
@@ -196,7 +196,7 @@ export function HorizontalOverflowExample() {
 				<Tabs.List>
 					<Tabs.Trigger value="getting-started">
 						<Icon svg={<RocketLaunchIcon />} />
-						Getting Started
+						Getting started
 					</Tabs.Trigger>
 					<Tabs.Trigger value="traffic-policy">
 						<Icon svg={<ArrowsSplitIcon />} />
@@ -293,12 +293,12 @@ export function PillAppearanceExample() {
 			<div className="scrollbar -m-1 p-1 overflow-x-scroll">
 				<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="tab-1">
 					<Tabs.List>
-						<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
-						<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
+						<Tabs.Trigger value="tab-1">Tab title</Tabs.Trigger>
+						<Tabs.Trigger value="tab-2">Tab title</Tabs.Trigger>
 						<Tabs.Trigger disabled value="tab-3">
-							Tab Title
+							Tab title
 						</Tabs.Trigger>
-						<Tabs.Trigger value="tab-4">Tab Title</Tabs.Trigger>
+						<Tabs.Trigger value="tab-4">Tab title</Tabs.Trigger>
 					</Tabs.List>
 				</Tabs.Root>
 			</div>
@@ -307,19 +307,19 @@ export function PillAppearanceExample() {
 					<Tabs.List>
 						<Tabs.Trigger value="tab-1">
 							<Icon svg={<GlobeIcon />} />
-							Tab Title
+							Tab title
 						</Tabs.Trigger>
 						<Tabs.Trigger value="tab-2">
 							<Icon svg={<GlobeIcon />} />
-							Tab Title
+							Tab title
 						</Tabs.Trigger>
 						<Tabs.Trigger disabled value="tab-3">
 							<Icon svg={<GlobeIcon />} />
-							Tab Title
+							Tab title
 						</Tabs.Trigger>
 						<Tabs.Trigger value="tab-4">
 							<Icon svg={<GlobeIcon />} />
-							Tab Title
+							Tab title
 						</Tabs.Trigger>
 					</Tabs.List>
 				</Tabs.Root>
@@ -328,19 +328,19 @@ export function PillAppearanceExample() {
 				<Tabs.Root appearance="pill" orientation="horizontal" defaultValue="tab-1">
 					<Tabs.List>
 						<Tabs.Trigger value="tab-1">
-							Tab Title
+							Tab title
 							<Tabs.Badge>32</Tabs.Badge>
 						</Tabs.Trigger>
 						<Tabs.Trigger value="tab-2">
-							Tab Title
+							Tab title
 							<Tabs.Badge>32</Tabs.Badge>
 						</Tabs.Trigger>
 						<Tabs.Trigger disabled value="tab-3">
-							Tab Title
+							Tab title
 							<Tabs.Badge>32</Tabs.Badge>
 						</Tabs.Trigger>
 						<Tabs.Trigger value="tab-4">
-							Tab Title
+							Tab title
 							<Tabs.Badge>32</Tabs.Badge>
 						</Tabs.Trigger>
 					</Tabs.List>
@@ -351,22 +351,22 @@ export function PillAppearanceExample() {
 					<Tabs.List>
 						<Tabs.Trigger value="tab-1">
 							<Icon svg={<GlobeIcon />} />
-							Tab Title
+							Tab title
 							<Tabs.Badge>32</Tabs.Badge>
 						</Tabs.Trigger>
 						<Tabs.Trigger value="tab-2">
 							<Icon svg={<GlobeIcon />} />
-							Tab Title
+							Tab title
 							<Tabs.Badge>32</Tabs.Badge>
 						</Tabs.Trigger>
 						<Tabs.Trigger disabled value="tab-3">
 							<Icon svg={<GlobeIcon />} />
-							Tab Title
+							Tab title
 							<Tabs.Badge>32</Tabs.Badge>
 						</Tabs.Trigger>
 						<Tabs.Trigger value="tab-4">
 							<Icon svg={<GlobeIcon />} />
-							Tab Title
+							Tab title
 							<Tabs.Badge>32</Tabs.Badge>
 						</Tabs.Trigger>
 					</Tabs.List>
@@ -457,9 +457,9 @@ export function SeparatorExample() {
 				<div className="scrollbar -m-1 p-1 overflow-x-scroll">
 					<Tabs.Root orientation="horizontal" defaultValue="tab-1">
 						<Tabs.List>
-							<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
-							<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
-							<Tabs.Trigger value="tab-3">Tab Title</Tabs.Trigger>
+							<Tabs.Trigger value="tab-1">Tab title</Tabs.Trigger>
+							<Tabs.Trigger value="tab-2">Tab title</Tabs.Trigger>
+							<Tabs.Trigger value="tab-3">Tab title</Tabs.Trigger>
 						</Tabs.List>
 						<Tabs.Separator />
 					</Tabs.Root>
@@ -470,9 +470,9 @@ export function SeparatorExample() {
 				<div className="scrollbar -m-1 p-1 overflow-x-scroll">
 					<Tabs.Root orientation="horizontal" defaultValue="tab-1">
 						<Tabs.List>
-							<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
-							<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
-							<Tabs.Trigger value="tab-3">Tab Title</Tabs.Trigger>
+							<Tabs.Trigger value="tab-1">Tab title</Tabs.Trigger>
+							<Tabs.Trigger value="tab-2">Tab title</Tabs.Trigger>
+							<Tabs.Trigger value="tab-3">Tab title</Tabs.Trigger>
 						</Tabs.List>
 					</Tabs.Root>
 				</div>
@@ -481,9 +481,9 @@ export function SeparatorExample() {
 				<p className="mb-2 font-mono text-xs">vertical</p>
 				<Tabs.Root orientation="vertical" defaultValue="tab-1" className="max-w-xl">
 					<Tabs.List>
-						<Tabs.Trigger value="tab-1">Tab Title</Tabs.Trigger>
-						<Tabs.Trigger value="tab-2">Tab Title</Tabs.Trigger>
-						<Tabs.Trigger value="tab-3">Tab Title</Tabs.Trigger>
+						<Tabs.Trigger value="tab-1">Tab title</Tabs.Trigger>
+						<Tabs.Trigger value="tab-2">Tab title</Tabs.Trigger>
+						<Tabs.Trigger value="tab-3">Tab title</Tabs.Trigger>
 					</Tabs.List>
 					<Tabs.Separator />
 					<Tabs.Content value="tab-1">

@@ -34,7 +34,7 @@ export function ErrorPage({ status }: ErrorPageProps) {
 							</span>
 						</>
 					) : (
-						"Something went wrong."
+						"We couldn’t load this page."
 					)}
 				</h1>
 				<Button asChild intent="neutral" appearance="filled">

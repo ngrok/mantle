@@ -1643,14 +1643,14 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `aria-labelledby?` | `string` | —        | Names the `<nav>` from another element's id, and names the mobile sheet dialog directly. Takes precedence over the `aria-label` default.                                                      |
 | `data-slot?`       | `string` | —        | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `sidebar-nav` rather than replacing it. In the mobile sheet, `Sheet.Content` joins its own `sheet-content` after it. |
 
-`Sidebar.Nav` takes no `asChild` — see [Polymorphism](#polymorphism).
+`Sidebar.Nav` takes no `asChild` (see [Polymorphism](#polymorphism)).
 
 | CSS Variable             | Default   | Description                                                                                                                                                                                                                                                                                   |
 | ------------------------ | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--sidebar-width`        | `13rem`   | Expanded desktop width (208px). Set it on `Sidebar.Nav` for one sidebar or on any ancestor (`:root`) for every sidebar — see [Width](#width).                                                                                                                                                 |
-| `--sidebar-width-mobile` | `18rem`   | Mobile sheet width (288px). Set it on `Sidebar.Nav` or any ancestor — see [Width](#width).                                                                                                                                                                                                    |
-| `--sidebar-width-icon`   | `3.25rem` | Collapsed icon rail width (52px). Set it on `Sidebar.Nav` or any ancestor — see [Width](#width).                                                                                                                                                                                              |
-| `--sidebar-row-width`    | `12rem`   | Read, not set: one row's width in the expanded panel (192px), derived as `calc(var(--sidebar-width, 13rem) - 1rem)` and declared at `:root` by `mantle.css` so surfaces rendered outside the panel can size to a row — see [Sizing a menu to a sidebar row](#sizing-a-menu-to-a-sidebar-row). |
+| `--sidebar-width`        | `13rem`   | Expanded desktop width (208px). Set it on `Sidebar.Nav` for one sidebar or on any ancestor (`:root`) for every sidebar (see [Width](#width)).                                                                                                                                                 |
+| `--sidebar-width-mobile` | `18rem`   | Mobile sheet width (288px). Set it on `Sidebar.Nav` or any ancestor (see [Width](#width)).                                                                                                                                                                                                    |
+| `--sidebar-width-icon`   | `3.25rem` | Collapsed icon rail width (52px). Set it on `Sidebar.Nav` or any ancestor (see [Width](#width)).                                                                                                                                                                                              |
+| `--sidebar-row-width`    | `12rem`   | Read, not set: one row's width in the expanded panel (192px), derived as `calc(var(--sidebar-width, 13rem) - 1rem)` and declared at `:root` by `mantle.css` so surfaces rendered outside the panel can size to a row (see [Sizing a menu to a sidebar row](#sizing-a-menu-to-a-sidebar-row)). |
 
 **Data attributes**
 
@@ -1659,7 +1659,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `data-state`    | `"expanded"` \| `"collapsed"`     | On the desktop panel surface. Mirrors the root's expanded state and drives the width collapse to the icon rail; descendant parts style off it with `group-data-[state=collapsed]/sidebar-nav:`.                                                                                                                                                           |
 | `data-hydrated` | present one frame after hydration | Presence-only, desktop panel surface. The panel's pre-hydration visibility gate, its width transition, and descendant collapse transitions all key off its absence in CSS (`not-data-hydrated:`, `group-not-data-hydrated/sidebar-nav:`). The stamp waits one frame, so an SSR state correction paints first and snaps instead of animating on page load. |
 | `data-mobile`   | present in the mobile sheet       | Presence-only. Marks the `Sheet.Content` presentation used below the root's `mobileBreakpoint`.                                                                                                                                                                                                                                                           |
-| `data-state`    | `"open"` \| `"closed"`            | In the mobile sheet only, where the panel _is_ the `Sheet`'s Radix dialog content element and Radix owns the attribute — the sheet's open/close animation state, not the desktop expanded state. Consumers style against it too.                                                                                                                          |
+| `data-state`    | `"open"` \| `"closed"`            | In the mobile sheet only, where the panel _is_ the `Sheet`'s Radix dialog content element and Radix owns the attribute. It is the sheet's open/close animation state, not the desktop expanded state. Consumers style against it too.                                                                                                                     |
 
 `Sidebar.Header` reads one more public token, [`--sidebar-header-height`](#sidebarheader), which belongs on a
 common ancestor of the sidebar and the app-layout header rather than on the panel.
@@ -1669,18 +1669,18 @@ common ancestor of the sidebar and the app-layout header rather than on the pane
 A small ghost [IconButton](/components/actions/icon-button) wired to toggle the sidebar. All `IconButton` props
 except `asChild` and `children`, with sidebar defaults:
 
-| Prop          | Type                                   | Default                 | Description                                                                                                                                                                                                                     |
-| ------------- | -------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `appearance?` | `"filled" \| "ghost" \| "outlined"`    | `"ghost"`               | The visual style of the trigger.                                                                                                                                                                                                |
-| `icon?`       | `ReactNode`                            | `<SidebarSimpleIcon />` | The icon rendered inside the trigger.                                                                                                                                                                                           |
-| `intent?`     | `"neutral"`                            | `"neutral"`             | The color intent of the trigger. `IconButton` draws the neutral tone only.                                                                                                                                                      |
-| `label?`      | `string`                               | `"Toggle Sidebar"`      | Accessible name, and what the tooltip says; override for localization.                                                                                                                                                          |
-| `shortcut?`   | `ReactNode`                            | —                       | Chord chips rendered after the label in the tooltip — usually `<><MetaKey /><Kbd>B</Kbd></>`. Dropped under `Sidebar.Root keyboardShortcut={false}`, and `aria-hidden` because `aria-keyshortcuts` already announces the chord. |
-| `size?`       | `"xs" \| "sm" \| "md" \| "lg" \| "xl"` | `"sm"`                  | The size of the trigger. Small, so it sits level with the other `size="sm"` controls in an `AppLayout.Header` row.                                                                                                              |
+| Prop          | Type                                   | Default                 | Description                                                                                                                                                                                                                    |
+| ------------- | -------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `appearance?` | `"filled" \| "ghost" \| "outlined"`    | `"ghost"`               | The visual style of the trigger.                                                                                                                                                                                               |
+| `icon?`       | `ReactNode`                            | `<SidebarSimpleIcon />` | The icon rendered inside the trigger.                                                                                                                                                                                          |
+| `intent?`     | `"neutral"`                            | `"neutral"`             | The color intent of the trigger. `IconButton` draws the neutral tone only.                                                                                                                                                     |
+| `label?`      | `string`                               | `"Toggle Sidebar"`      | Accessible name, and what the tooltip says; override for localization.                                                                                                                                                         |
+| `shortcut?`   | `ReactNode`                            | —                       | Chord chips rendered after the label in the tooltip, usually `<><MetaKey /><Kbd>B</Kbd></>`. Dropped under `Sidebar.Root keyboardShortcut={false}`, and `aria-hidden` because `aria-keyshortcuts` already announces the chord. |
+| `size?`       | `"xs" \| "sm" \| "md" \| "lg" \| "xl"` | `"sm"`                  | The size of the trigger. Small, so it sits level with the other `size="sm"` controls in an `AppLayout.Header` row.                                                                                                             |
 
 The button is icon-only at every breakpoint, so it always renders a tooltip showing `label`. **That means it
 requires a [`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) ancestor, like any
-`Tooltip.Root`, and throws without one** — mount a single provider at your app root, decoupled from the
+`Tooltip.Root`, and throws without one.** Mount a single provider at your app root, decoupled from the
 sidebar, so the app-wide delay and hover settings stay app-wide. It also stamps `aria-keyshortcuts`
 (`"Meta+B"` on Apple platforms, `"Control+B"` elsewhere), omitted along with the chips under
 `Sidebar.Root keyboardShortcut={false}`. The server cannot know the host, so the server HTML and the
@@ -1705,14 +1705,14 @@ after hydration reads the platform in its first render.
 
 ### Sidebar.Header
 
-The pinned structural container at the top of `Sidebar.Nav` — the app/product switcher row lives here. Its
+The pinned structural container at the top of `Sidebar.Nav`. The app/product switcher row lives here. Its
 **first child** owns a band exactly `--sidebar-header-height` tall (default `4.5rem`) and centers inside it.
 When the sidebar composes into an `AppLayout`,
 [`AppLayout.Header`](/layouts/app-layout#applayoutheader) derives its own height from the same token, so the
 two rows stay center-aligned by construction.
 
 Every child after the first stacks below the band in its own row, and the header grows to fit. That is how a
-[search row](#the-search-row) pins under the switcher: the band — and with it the toolbar — stays the height
+[search row](#the-search-row) pins under the switcher: the band (and with it the toolbar) stays the height
 of the switcher row alone, and the row inherits the header's gutter, so neither the token nor the padding
 needs a copy. The alignment is positional, so keep the aligned row as the header's first direct child. A
 wrapper around both rows takes the band itself, and a first row taller than the band overflows it.
@@ -1720,7 +1720,7 @@ wrapper around both rows takes the band itself, and a first row taller than the 
 > [!NOTE]
 > **The alignment is a desktop-only coupling.** `AppLayout.Header` finds the sidebar header with
 > `:has()` from `AppLayout.Root`. Below `mobileBreakpoint` the sidebar renders inside a `Sheet` that portals
-> to `document.body` — outside the shell subtree — so the selector stops matching and `AppLayout.Header`
+> to `document.body` (outside the shell subtree), so the selector stops matching and `AppLayout.Header`
 > falls back to its standalone `h-14` (56px) from the derived 54px. That 2px change lands after hydration,
 > because the server renders desktop-first. It is invisible in practice and there is nothing to align to on
 > mobile (the sidebar header is inside a closed sheet), but if you are diffing layout snapshots across
@@ -1732,9 +1732,9 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | ---------- | --------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Sidebar.Header` styling onto alternative element types or your own React components. |
 
-| CSS Variable              | Default  | Description                                                                                                                                                                                                                                                                                                                                                      |
-| ------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--sidebar-header-height` | `4.5rem` | The first child's band (72px) — the height [`AppLayout.Header`](/layouts/app-layout#applayoutheader) matches, not a cap on the header, which grows for every row after the first. Set it on a common ancestor of the sidebar and the app-layout header — e.g. `AppLayout.Root` — not on `Sidebar.Nav`, so both rows read the same value and stay center-aligned. |
+| CSS Variable              | Default  | Description                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--sidebar-header-height` | `4.5rem` | The first child's band (72px): the height [`AppLayout.Header`](/layouts/app-layout#applayoutheader) matches, not a cap on the header, which grows for every row after the first. Set it on a common ancestor of the sidebar and the app-layout header (e.g. `AppLayout.Root`), not on `Sidebar.Nav`, so both rows read the same value and stay center-aligned. |
 
 ### Sidebar.Body
 
@@ -1748,7 +1748,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### Sidebar.Footer
 
-The pinned structural container at the bottom of `Sidebar.Nav` — the account/user switcher row lives here.
+The pinned structural container at the bottom of `Sidebar.Nav`. The account/user switcher row lives here.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
@@ -1769,7 +1769,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### Sidebar.GroupLabel
 
-The group's label, a `div` — pass `asChild` to render a heading at a level you control. In the collapsed
+The group's label, a `div`. Pass `asChild` to render a heading at a level you control. In the collapsed
 icon rail it fades in place with its row retained, so icon positions match the expanded state.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
@@ -1790,7 +1790,7 @@ All props from [ul](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ul
 
 ### Sidebar.Item
 
-A single navigation row — an `li` wrapping a `Sidebar.ItemButton`.
+A single navigation row: an `li` wrapping a `Sidebar.ItemButton`.
 
 All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li#attributes), plus:
 
@@ -1804,8 +1804,8 @@ The interactive navigation row. Expanded spacing matches the regular sidebar; in
 item rows keep their original square icon chip with a small offset so body and footer icons stay aligned
 without text peeking from the rail.
 
-The row sizes its **leading** icon (20px) and leaves trailing visuals — a menu caret, a count, a status
-pip — to size themselves, so composing one needs no `!` override. A row composed with
+The row sizes its **leading** icon (20px) and leaves trailing visuals (a menu caret, a count, a status
+pip) to size themselves, so composing one needs no `!` override. A row composed with
 `DropdownMenu.Trigger asChild` also stays highlighted while its menu is open (`data-state="open"`, supplied
 by the trigger), and takes the same `--sidebar-row-width` floor on its menu as a switcher row (see
 [Sizing a menu to a sidebar row](#sizing-a-menu-to-a-sidebar-row)). That is how the **Help** row is built in
@@ -1832,11 +1832,11 @@ All props from `button` plus:
 
 The row that opens a search or command palette. Place it in `Sidebar.Body` above the first `Sidebar.Group`, so
 it shares the column the navigation rows use in both panel states and scrolls with them, or in
-[`Sidebar.Header`](#sidebarheader) when it has to stay pinned while the navigation scrolls — see
-[The search row](#the-search-row).
+[`Sidebar.Header`](#sidebarheader) when it has to stay pinned while the navigation scrolls (see
+[The search row](#the-search-row)).
 
 It is deliberately a navigation row and not a text field. The row is the same chrome as a
-`Sidebar.ItemButton` — same height, padding, radius, hover, and the same 28px chip in the collapsed icon rail —
+`Sidebar.ItemButton` (same height, padding, radius, hover, and the same 28px chip in the collapsed icon rail),
 because a search entry point in a sidebar is one of the rows, not a form control wedged among them. Its
 `shortcut` hint appears on hover or keyboard focus and is otherwise invisible, which keeps the resting panel
 quiet.
@@ -1854,7 +1854,7 @@ direct-child one for the `asChild` path, and `[&>[data-slot=sidebar-search-trigg
 for the default `button` path. A `[&>svg]` override of your own still reaches an `asChild` icon. Add the
 slot-scoped twin when you override the `button` path.
 
-A styled button only — compose it with
+A styled button only. Compose it with
 [`Command.SearchTrigger`](/components/navigation/command#commandsearchtrigger), which supplies the dialog
 wiring, `aria-keyshortcuts`, and the behavior that makes typing or pasting into the row open the palette with
 that text already in the query. Wrap the pair in `Sidebar.Tooltip` so the row keeps a visible label in the rail.
@@ -1875,17 +1875,17 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 | `data-slot`    | `"sidebar-search-trigger-shortcut"` | On the chord chips. Default `button` path only, where it is always mounted and `display: none` while empty; the props union forbids `shortcut` under `asChild`. Carries `translate="no"`: a chord is a key name, not prose. |
 | `data-state`   | `"open"` \| `"closed"`              | **Read, not stamped**: supplied by the composing `Command.SearchTrigger` / `Dialog.Trigger`. The row stays highlighted while its palette is open.                                                                           |
 
-The `shortcut` hint is dropped outright in the collapsed rail — the chip has room for the icon and nothing
+The `shortcut` hint is dropped outright in the collapsed rail: the chip has room for the icon and nothing
 else, and `aria-keyshortcuts` already announces the chord. The row's label is clipped rather than removed, so
 the button keeps its accessible name as a chip.
 
 ### Sidebar.SwitcherTrigger
 
 The styled switcher row for the header (app switcher) and footer (account/user row). Its leading visual is
-size-7 to match selected rail icons while the row keeps a compact 36px footprint —
+size-7 to match selected rail icons while the row keeps a compact 36px footprint.
 [Avatar](/components/data-display/avatar) is that size by default, which is what an account or user row puts
 there. The control uses a custom 10px radius on all corners so product and account switchers share the same
-shape around their rounded tiles. A styled button only — compose it with `DropdownMenu.Trigger asChild` or
+shape around their rounded tiles. A styled button only. Compose it with `DropdownMenu.Trigger asChild` or
 `Dialog.Trigger asChild`, which set the open state (`data-state="open"` styling responds automatically).
 
 Match the trailing affordance to the surface the trigger actually opens. A `CaretDown` promises a menu
@@ -1905,21 +1905,21 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 | `data-slot`    | `"sidebar-switcher-trigger"` | Names the part, with any composing ancestor's chain ahead of it.                                                                                                                                                                                                                                     |
 | `data-state`   | `"open"` \| `"closed"`       | **Read, not stamped**: supplied by the composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. Inside `Sidebar.Tooltip` the tooltip's own `data-state` replaces this one, so the open highlight also keys on `aria-expanded`. |
 
-Inside the collapsed icon rail, the row collapses to its **first child element** — the
-leading visual — and the remaining children become visually hidden while staying in the accessibility tree,
+Inside the collapsed icon rail, the row collapses to its **first child element** (the
+leading visual), and the remaining children become visually hidden while staying in the accessibility tree,
 so the button's accessible name is unchanged. Wrap loose text in an element (e.g. a `<span>`) so it
 participates. Because the row shrinks, give the menu it opens the `--sidebar-row-width` floor
-(`className="min-w-(--sidebar-row-width)"`) so the menu keeps the expanded row's width — see
-[Sizing a menu to a sidebar row](#sizing-a-menu-to-a-sidebar-row).
+(`className="min-w-(--sidebar-row-width)"`) so the menu keeps the expanded row's width (see
+[Sizing a menu to a sidebar row](#sizing-a-menu-to-a-sidebar-row)).
 
 ### Sidebar.Tooltip
 
-Labels a row while — and only while — the desktop panel is collapsed to the icon rail. See
+Labels a row only while the desktop panel is collapsed to the icon rail. See
 [Labeling the rail for pointer users](#labeling-the-rail-for-pointer-users). Requires a
 [`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) ancestor and must be inside a
 `Sidebar.Root` (it throws otherwise).
 
-It opens on hover or focus like any tooltip and closes when the pointer leaves the row — the label itself is
+It opens on hover or focus like any tooltip and closes when the pointer leaves the row. The label itself is
 not hoverable. The rail state vetoes it: the expanded panel and the mobile sheet never show it, and toggling
 the rail dismisses whatever was showing, so collapsing the panel cannot pop a label under a pointer that has
 already moved on.
@@ -1927,20 +1927,20 @@ already moved on.
 Its props are [`Tooltip.Content`](/components/overlays/tooltip#tooltipcontent)'s, minus the two this row
 owns, plus:
 
-| Prop         | Type                                           | Default   | Description                                                                                                                                                                                                                                                                 |
-| ------------ | ---------------------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `children`   | `ReactElement`                                 | —         | The single element row to label: a `Sidebar.ItemButton` or `Sidebar.SwitcherTrigger`, optionally already wrapped in a `DropdownMenu.Trigger asChild`. Required — `Tooltip.Trigger asChild` clones it, so text or no child renders nothing hoverable and is a compile error. |
-| `label`      | `ReactNode`                                    | —         | What the tooltip says — normally the row's own label text.                                                                                                                                                                                                                  |
-| `shortcut?`  | `ReactNode`                                    | —         | Chord chips rendered after the label — usually `<><MetaKey /><Kbd>K</Kbd></>`. The rail hides the row's own hint along with its text, so the tooltip is where a pointer user can still learn it. `aria-hidden`, since the row's `aria-keyshortcuts` already announces it.   |
-| `side?`      | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | `"right"` | Which side of the row the tooltip opens on. The rail sits at the inline start of the viewport, so the default points the tooltip away from it.                                                                                                                              |
-| `className?` | `string`                                       | —         | Merged onto the tooltip surface, last, by `Tooltip.Content` — this part adds no classes of its own.                                                                                                                                                                         |
-| `data-slot?` | `string`                                       | —         | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `sidebar-tooltip` rather than replacing it.                                                                                                                                                        |
+| Prop         | Type                                           | Default   | Description                                                                                                                                                                                                                                                                |
+| ------------ | ---------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `children`   | `ReactElement`                                 | —         | The single element row to label: a `Sidebar.ItemButton` or `Sidebar.SwitcherTrigger`, optionally already wrapped in a `DropdownMenu.Trigger asChild`. Required: `Tooltip.Trigger asChild` clones it, so text or no child renders nothing hoverable and is a compile error. |
+| `label`      | `ReactNode`                                    | —         | What the tooltip says, normally the row's own label text.                                                                                                                                                                                                                  |
+| `shortcut?`  | `ReactNode`                                    | —         | Chord chips rendered after the label, usually `<><MetaKey /><Kbd>K</Kbd></>`. The rail hides the row's own hint along with its text, so the tooltip is where a pointer user can still learn it. `aria-hidden`, since the row's `aria-keyshortcuts` already announces it.   |
+| `side?`      | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | `"right"` | Which side of the row the tooltip opens on. The rail sits at the inline start of the viewport, so the default points the tooltip away from it.                                                                                                                             |
+| `className?` | `string`                                       | —         | Merged onto the tooltip surface, last, by `Tooltip.Content`. This part adds no classes of its own.                                                                                                                                                                         |
+| `data-slot?` | `string`                                       | —         | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `sidebar-tooltip` rather than replacing it.                                                                                                                                                       |
 
 `asChild` is not accepted. `Tooltip.Content` omits it because its arrow is a permanent sibling of the body, so
 a slot would receive two elements. See [Polymorphism](#polymorphism).
 
-Every remaining `Tooltip.Content` prop — `style`, `ref`, `align`, `sideOffset`, `collisionPadding`, any
-`data-*` — lands on the tooltip surface as usual, and so do the attributes
+Every remaining `Tooltip.Content` prop (`style`, `ref`, `align`, `sideOffset`, `collisionPadding`, any
+`data-*`) lands on the tooltip surface as usual, and so do the attributes
 [Tooltip](/components/overlays/tooltip#tooltipcontent) itself emits there (`data-state`, `data-side`). The
 four in the table above are the exceptions: this part reads them itself.
 
@@ -1989,7 +1989,7 @@ All props from [Separator](/components/structure/separator), including:
 
 ### useSidebar
 
-A hook returning the nearest `Sidebar.Root` state (`SidebarState`) — throws outside a root. Use it for custom
+A hook returning the nearest `Sidebar.Root` state (`SidebarState`). It throws outside a root. Use it for custom
 triggers, close-on-navigate, or a keyboard shortcut:
 
 | Field              | Type                      | Description                                                                                                                              |
@@ -2007,13 +2007,13 @@ triggers, close-on-navigate, or a keyboard shortcut:
 ### extractSidebarStateCookie
 
 Parses the sidebar's expanded state out of a raw `Cookie` header, for
-[cookie-backed persistence](#persisting-to-a-cookie-ssr). Framework-agnostic — it takes a header string, so
+[cookie-backed persistence](#persisting-to-a-cookie-ssr). Framework-agnostic: it takes a header string, so
 it works in any server runtime.
 
-| Param          | Type                          | Description                                                                                                         |
-| -------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `cookieHeader` | `string \| null \| undefined` | The request's raw `Cookie` header.                                                                                  |
-| **returns**    | `boolean \| undefined`        | `true` expanded, `false` collapsed, `undefined` when unset or unparseable — decide your own default with `?? true`. |
+| Param          | Type                          | Description                                                                                                        |
+| -------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `cookieHeader` | `string \| null \| undefined` | The request's raw `Cookie` header.                                                                                 |
+| **returns**    | `boolean \| undefined`        | `true` expanded, `false` collapsed, `undefined` when unset or unparseable. Decide your own default with `?? true`. |
 
 ### serializeSidebarStateCookie
 

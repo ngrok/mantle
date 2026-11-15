@@ -94,7 +94,7 @@ export function SingleLineWithHeaderDemo() {
 			<CodeBlock.Root>
 				<CodeBlock.Header>
 					<CodeBlock.Icon preset="cli" />
-					<CodeBlock.Title>Command Line</CodeBlock.Title>
+					<CodeBlock.Title>Command line</CodeBlock.Title>
 				</CodeBlock.Header>
 				<CodeBlock.Body>
 					<CodeBlock.CopyButton />

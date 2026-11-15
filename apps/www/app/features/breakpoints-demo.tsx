@@ -20,7 +20,7 @@ export function BreakpointsLiveDemo() {
 			<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 				<Card.Root>
 					<Card.Header>
-						<Card.Title>Current Breakpoint</Card.Title>
+						<Card.Title>Current breakpoint</Card.Title>
 					</Card.Header>
 					<Card.Body className="flex items-center justify-between">
 						<span>Current breakpoint:</span>
@@ -29,7 +29,7 @@ export function BreakpointsLiveDemo() {
 				</Card.Root>
 				<Card.Root>
 					<Card.Header>
-						<Card.Title>Below Extra Extra Small?</Card.Title>
+						<Card.Title>Below extra extra small?</Card.Title>
 					</Card.Header>
 					<Card.Body className="flex items-center justify-between">
 						<span>Below 2xs (360px):</span>
@@ -38,7 +38,7 @@ export function BreakpointsLiveDemo() {
 				</Card.Root>
 				<Card.Root>
 					<Card.Header>
-						<Card.Title>Below Extra Small?</Card.Title>
+						<Card.Title>Below extra small?</Card.Title>
 					</Card.Header>
 					<Card.Body className="flex items-center justify-between">
 						<span>Below xs (480px):</span>
@@ -47,7 +47,7 @@ export function BreakpointsLiveDemo() {
 				</Card.Root>
 				<Card.Root>
 					<Card.Header>
-						<Card.Title>Below Small?</Card.Title>
+						<Card.Title>Below small?</Card.Title>
 					</Card.Header>
 					<Card.Body className="flex items-center justify-between">
 						<span>Below sm (640px):</span>
@@ -56,7 +56,7 @@ export function BreakpointsLiveDemo() {
 				</Card.Root>
 				<Card.Root>
 					<Card.Header>
-						<Card.Title>Below Medium?</Card.Title>
+						<Card.Title>Below medium?</Card.Title>
 					</Card.Header>
 					<Card.Body className="flex items-center justify-between">
 						<span>Below md (768px):</span>
@@ -65,7 +65,7 @@ export function BreakpointsLiveDemo() {
 				</Card.Root>
 				<Card.Root>
 					<Card.Header>
-						<Card.Title>Below Large?</Card.Title>
+						<Card.Title>Below large?</Card.Title>
 					</Card.Header>
 					<Card.Body className="flex items-center justify-between">
 						<span>Below lg (1024px):</span>

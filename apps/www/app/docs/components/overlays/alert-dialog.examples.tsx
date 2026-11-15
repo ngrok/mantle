@@ -11,7 +11,7 @@ export function OverviewExample() {
 			<AlertDialog.Root intent="info">
 				<AlertDialog.Trigger asChild>
 					<Button type="button" appearance="outlined" intent="neutral">
-						Show Info Alert Dialog
+						Show info alert dialog
 					</Button>
 				</AlertDialog.Trigger>
 				<AlertDialog.Content>
@@ -41,7 +41,7 @@ export function IntentExample() {
 			<AlertDialog.Root intent="info">
 				<AlertDialog.Trigger asChild>
 					<Button type="button" appearance="outlined" intent="neutral">
-						Show Info Alert Dialog
+						Show info alert dialog
 					</Button>
 				</AlertDialog.Trigger>
 				<AlertDialog.Content>
@@ -63,7 +63,7 @@ export function IntentExample() {
 			<AlertDialog.Root intent="danger">
 				<AlertDialog.Trigger asChild>
 					<Button type="button" appearance="outlined" intent="neutral">
-						Show Danger Alert Dialog
+						Show danger alert dialog
 					</Button>
 				</AlertDialog.Trigger>
 				<AlertDialog.Content>

@@ -19,7 +19,7 @@ export const DropdownMenuExample = () => {
 		<DropdownMenu.Root>
 			<DropdownMenu.Trigger asChild>
 				<Button type="button" appearance="filled" intent="neutral">
-					Open Menu
+					Open menu
 				</Button>
 			</DropdownMenu.Trigger>
 			<DropdownMenu.Content>
@@ -33,15 +33,15 @@ export const DropdownMenuExample = () => {
 				>
 					<DropdownMenu.RadioItem value="system">
 						<Icon svg={<DesktopIcon />} />
-						System Preference
+						System preference
 					</DropdownMenu.RadioItem>
 					<DropdownMenu.RadioItem value="light">
 						<Icon svg={<SunIcon />} />
-						Light Mode
+						Light mode
 					</DropdownMenu.RadioItem>
 					<DropdownMenu.RadioItem value="dark">
 						<Icon svg={<MoonIcon />} />
-						Dark Mode
+						Dark mode
 					</DropdownMenu.RadioItem>
 				</DropdownMenu.RadioGroup>
 				<DropdownMenu.Separator />
@@ -49,7 +49,7 @@ export const DropdownMenuExample = () => {
 					<Tooltip.Trigger asChild>
 						<DropdownMenu.Item className="flex items-center gap-2" disabled>
 							<Icon svg={<GearIcon />} />
-							User Settings
+							User settings
 						</DropdownMenu.Item>
 					</Tooltip.Trigger>
 					<Tooltip.Content side="left">Only winners get user settings.</Tooltip.Content>
@@ -61,7 +61,7 @@ export const DropdownMenuExample = () => {
 						setEnableNotifications(value);
 					}}
 				>
-					Enable Notifications
+					Enable notifications
 				</DropdownMenu.CheckboxItem>
 				<DropdownMenu.Group>
 					<DropdownMenu.Item>Team</DropdownMenu.Item>
@@ -75,7 +75,7 @@ export const DropdownMenuExample = () => {
 						</DropdownMenu.SubContent>
 					</DropdownMenu.Sub>
 					<DropdownMenu.Item>
-						New Team
+						New team
 						<DropdownMenu.Shortcut>⌘+T</DropdownMenu.Shortcut>
 					</DropdownMenu.Item>
 				</DropdownMenu.Group>

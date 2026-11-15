@@ -39,7 +39,7 @@ export function FormExample() {
 				{(field) => (
 					<Field.Item name={field.name}>
 						<Field.Label className="inline-flex items-center gap-2">
-							Airplane Mode
+							Airplane mode
 							<Field.Control>
 								<Switch
 									checked={field.state.value}
@@ -68,7 +68,7 @@ export function OverviewExample() {
 					<Field.Control>
 						<Switch />
 					</Field.Control>
-					Airplane Mode
+					Airplane mode
 				</Field.Label>
 				<Field.Description>Disables wireless radios while in flight.</Field.Description>
 			</Field.Item>
@@ -82,7 +82,7 @@ export function WithoutAFieldExample() {
 		<PreviewCanvas className="grid place-items-center">
 			<div className="flex flex-col gap-6">
 				<Label htmlFor="airplane-mode" className="self-start inline-flex items-center gap-2">
-					Airplane Mode
+					Airplane mode
 					<Switch id="airplane-mode" />
 				</Label>
 				<Label htmlFor="unchecked" className="self-start inline-flex items-center gap-2">

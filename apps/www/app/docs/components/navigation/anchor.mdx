@@ -35,12 +35,12 @@ import { Anchor } from "@ngrok/mantle/anchor";
 
 ## When not to use
 
-- Internal application routes — prefer the framework router's link primitive ([`react-router` `<Link>`](https://reactrouter.com/en/main/components/link)) so client-side navigation kicks in. Keep mantle's styling by composing (see [Polymorphism](#polymorphism)).
-- For triggering an action — use a [`Button`](/components/actions/button) instead. If it doesn't navigate, it's not a link.
+- Internal application routes: prefer the framework router's link primitive ([`react-router` `<Link>`](https://reactrouter.com/en/main/components/link)) so client-side navigation kicks in. Keep mantle's styling by composing (see [Polymorphism](#polymorphism)).
+- For triggering an action: use a [`Button`](/components/actions/button) instead. If it doesn't navigate, it's not a link.
 
 ## Icons
 
-Pass `icon` (a phosphor or custom SVG) and optionally `iconPlacement` (`"start"` default, or `"end"`) to render a small inline icon — useful for "external link" or "download" affordances. Icons are decorative; the link text must still describe the destination on its own.
+Pass `icon` (a phosphor or custom SVG) and optionally `iconPlacement` (`"start"` default, or `"end"`) to render a small inline icon. It suits "external link" or "download" affordances. Icons are decorative; the link text must still describe the destination on its own.
 
 <Example name="components/navigation/anchor/icons" title="Anchor icons example">
 

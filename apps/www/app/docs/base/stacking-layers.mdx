@@ -25,7 +25,7 @@ Every mantle surface that floats above the page stacks on one shared scale. Two 
 Two components place themselves differently on purpose:
 
 - [Combobox](/components/forms/combobox)`.Content` renders in place at `z-50`: it does not portal, so the dialog primitive's Escape handling can see it.
-- [MultiSelect](/components/forms/multi-select)`.Content` portals into the closest `data-mantle-modal-content` element — an enclosing overlay's content — else the nearest overlay's positioner, else `document.body`.
+- [MultiSelect](/components/forms/multi-select)`.Content` portals into the closest `data-mantle-modal-content` element (an enclosing overlay's content), else the nearest overlay's positioner, else `document.body`.
 
 ## Layer containers
 

@@ -380,8 +380,8 @@ Accepts all `<div>` props, plus:
 | Field          | Type        | Description                                                                                                                   |
 | -------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `value`        | `string`    | Stable, unique selection value (flows through `value`/`onValueChange`).                                                       |
-| `label`        | `ReactNode` | The title — rendered in the default row and, as the checkbox's `<label>`, its accessible name (keep readable text inside).    |
-| `labelText`    | `string`    | Plain-text form of the label — what the default filter matches. Optional for a string `label`; **required** for a rich label. |
+| `label`        | `ReactNode` | The title. The default row renders it, and as the checkbox's `<label>` it is the accessible name (keep readable text inside). |
+| `labelText`    | `string`    | Plain-text form of the label, which the default filter matches. Optional for a string `label`; **required** for a rich label. |
 | `description?` | `ReactNode` | Optional de-emphasized sub-line under the title in the default row.                                                           |
 | `disabled?`    | `boolean`   | Renders the row dimmed and excludes it from toggling and "select all".                                                        |
 
@@ -420,7 +420,7 @@ The non-virtualized grid. Accepts all `<div>` props (except `children`, which is
 
 ### SelectableList.VirtualViewport
 
-The windowed grid — same surface as `Viewport`, plus the virtualizer knobs:
+The windowed grid, with the same surface as `Viewport`, plus the virtualizer knobs:
 
 | Prop                  | Type                                                     | Default | Description                                                             |
 | --------------------- | -------------------------------------------------------- | ------- | ----------------------------------------------------------------------- |
@@ -448,7 +448,7 @@ The title and de-emphasized sub-line inside a `SelectableList.Item`. `ItemTitle`
 
 ### SelectableList.Empty
 
-Shown in place of the viewport when no options match the filter. Accepts all `<div>` props; `children` are the message (e.g. "No access keys found."). It is an always-mounted polite `role="status"` live region — visually hidden while options match — so the empty state is announced as the filter narrows.
+Shown in place of the viewport when no options match the filter. Accepts all `<div>` props; `children` are the message (e.g. "No access keys found."). It is an always-mounted polite `role="status"` live region (visually hidden while options match), so the empty state is announced as the filter narrows.
 
 The message renders inside a `<span data-slot="selectable-list-empty-label">`. The live region stays mounted, so React removes that span when options match again. The span exists so the node React removes is an element: a browser translation engine reparents text nodes, and a removal aimed at one throws. The span is `display: contents`, so it adds no box and your message stays a direct child of the centered region. [Browser translation](/browser-translation) covers the mechanism.
 

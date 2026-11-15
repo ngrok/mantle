@@ -349,7 +349,7 @@ The `Select` components are built on top of [Radix Select](https://www.radix-ui.
 
 ### Select.Root
 
-Displays a list of options for the user to pick from—triggered by a button.
+Displays a list of options for the user to pick from, triggered by a button.
 
 `Select.Content` renders at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
 
@@ -479,7 +479,7 @@ All props from Radix [Select.Item](https://www.radix-ui.com/primitives/docs/comp
 
 ### Select.Label
 
-Used to render the label of a group. It won't be focusable using arrow keys. Pair it with `Select.Group` — the label gives the group its accessible name.
+Used to render the label of a group. It won't be focusable using arrow keys. Pair it with `Select.Group`: the label gives the group its accessible name.
 
 Radix [Select.Label](https://www.radix-ui.com/primitives/docs/components/select#label) props.
 

@@ -526,14 +526,14 @@ Static, label-styled text for a `Field.Item` row that does **not** caption a foc
 
 #### When to use
 
-- A `Field.Item` row that displays a derived or system-managed value — owner, created-at, computed status, an identity card — where there is no `<input>`, `<select>`, `<button>`, or other focusable target to caption.
+- A `Field.Item` row that displays a derived or system-managed value (owner, created-at, computed status, an identity card) where there is no `<input>`, `<select>`, `<button>`, or other focusable target to caption.
 - Read-only summary rows inside a sheet or details panel that should visually align with sibling `Field.Item`s but have no editable control.
 - Anywhere you'd otherwise hand-roll a `<p>` styled to mimic `Field.Label` typography. Use `Field.LabelText` so the intent is explicit at the call site.
 
 #### When _not_ to use
 
 - The row has a focusable control. Use `Field.Label` so the `htmlFor` ↔ control association, click-to-focus, and accessible name are wired automatically.
-- For body copy, section headings, or any text whose typography only happens to match by accident. Reach for a heading or a plain `<p>` instead — `Field.LabelText` exists specifically to slot into the `Field.Label` position of a `Field.Item`.
+- For body copy, section headings, or any text whose typography only happens to match by accident. Reach for a heading or a plain `<p>` instead. `Field.LabelText` exists specifically to slot into the `Field.Label` position of a `Field.Item`.
 
 <Example name="components/forms/field/when-not-to-use" title="Field when not to use example">
 
@@ -557,9 +557,9 @@ All props from [p](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p#a
 
 A single form field. Renders a plain `<div>` with `flex flex-col gap-1.5` so `Field.Label`, control, and helper / error siblings stack tightly together. No implicit ARIA role: the `<label htmlFor>` ↔ control association already carries the right semantics for a single field. It owns the description/error IDs and validation state that `Field.Control` applies; rendered errors infer `"error"` after hydration unless `validation` is set. For a server-rendered error, set `validation` (see [Server-rendered errors](#server-rendered-errors)).
 
-**Single-slot constraint.** A `Field.Item` owns one description ID and one errors ID, so render at most one `Field.Description` and one `Field.Errors` _or_ `Field.ErrorList` (not both) per item. A second instance would duplicate the slot `id` in the DOM — pass multiple messages to one `Field.Errors`, or multiple `Field.ErrorItem` children to one `Field.ErrorList`, instead.
+**Single-slot constraint.** A `Field.Item` owns one description ID and one errors ID, so render at most one `Field.Description` and one `Field.Errors` _or_ `Field.ErrorList` (not both) per item. A second instance would duplicate the slot `id` in the DOM. Pass multiple messages to one `Field.Errors`, or multiple `Field.ErrorItem` children to one `Field.ErrorList`, instead.
 
-**When to use:** for every individual field — text inputs, selects, single checkboxes, switches, password inputs, etc.
+**When to use:** for every individual field: text inputs, selects, single checkboxes, switches, password inputs, etc.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) except `id`, plus:
 
@@ -576,7 +576,7 @@ Applies `Field.Item` description, error, identity, and validation state to a sin
 
 For the simple element-child form, see the [primary example](#field) above; to wrap a compound control (`Select`, `MultiSelect`) at its root, follow the composition shown in that control's own docs.
 
-Use a function child when the focusable element is nested inside a wrapper that `Slot` cannot reach — for example a `<label>`-wrapped native checkbox where the `<input>` is the focusable target but the outer `<label>` is the rendered element. The function receives the generated ARIA props and the caller spreads them onto the inner control.
+Use a function child when the focusable element is nested inside a wrapper that `Slot` cannot reach, for example a `<label>`-wrapped native checkbox where the `<input>` is the focusable target but the outer `<label>` is the rendered element. The function receives the generated ARIA props and the caller spreads them onto the inner control.
 
 <Example name="components/forms/field/field-control" title="Field Field.Control example">
 
@@ -602,7 +602,7 @@ Use a function child when the focusable element is nested inside a wrapper that 
 
 ### Field.Group
 
-Layout container that stacks multiple `Field.Item`s vertically with `gap-4`. Renders a plain `<div>` — pure layout, no semantics.
+Layout container that stacks multiple `Field.Item`s vertically with `gap-4`. Renders a plain `<div>`: pure layout, no semantics.
 
 **When to use:** any time a form has more than one field. This is the default way to compose multiple `Field.Item`s. Reach for `Field.Set` + `Field.Legend` instead only when the grouping itself carries semantic weight (radios, related checkboxes).
 
@@ -616,7 +616,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 Renders a semantic `<fieldset>` with default browser styling reset (no border, no padding, `min-width: 0`). Pair with `Field.Legend` to give the surrounding controls a single accessible name.
 
-**When to use:** specifically for radios (one question, many possible answers) or sets of related checkboxes (preference toggles, permission flags). _Skip it_ for stacking unrelated fields — `Field.Group` is the right call there. A `<fieldset>` around plain inputs reads as noise to assistive tech.
+**When to use:** specifically for radios (one question, many possible answers) or sets of related checkboxes (preference toggles, permission flags). _Skip it_ for stacking unrelated fields. `Field.Group` is the right call there. A `<fieldset>` around plain inputs reads as noise to assistive tech.
 
 `Field.Set` does not automatically associate `Field.Description`. If the group needs additional announced instructions beyond the legend, pass `aria-describedby` to `Field.Set` and point it at your own text element.
 
@@ -624,7 +624,7 @@ All props from [fieldset](https://developer.mozilla.org/en-US/docs/Web/HTML/Elem
 
 ### Field.Legend
 
-Caption for a `Field.Set`. Renders a `<legend>` styled to match the mantle `Label` typography. Always render a `Field.Legend` inside a `Field.Set` — it's what gives the surrounding fieldset its accessible name.
+Caption for a `Field.Set`. Renders a `<legend>` styled to match the mantle `Label` typography. Always render a `Field.Legend` inside a `Field.Set`. It's what gives the surrounding fieldset its accessible name.
 
 Carries a default `mb-1.5` so the legend sits 6px above the next sibling. The margin is on the legend (not the parent `Field.Set`'s flex `gap`) because `<legend>` has special browser rendering inside a `<fieldset>` that ignores the parent's flex `gap`. Override with any `mb-*` utility passed on `Field.Legend`.
 
@@ -632,7 +632,7 @@ All props from [legend](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 ### Field.LabelRow
 
-Horizontal layout container for the label area of a field — a flex row with `items-center` and `gap-1`. Use when the label needs a sibling affordance that can't live inside the `<Field.Label>` itself, like a help-icon `Field.HelpTrigger`. Center-aligned (not baseline) so SVG icon buttons sit visually centered next to the label text.
+Horizontal layout container for the label area of a field: a flex row with `items-center` and `gap-1`. Use when the label needs a sibling affordance that can't live inside the `<Field.Label>` itself, like a help-icon `Field.HelpTrigger`. Center-aligned (not baseline) so SVG icon buttons sit visually centered next to the label text.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
@@ -646,7 +646,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### Field.HelpTrigger
 
-`Popover.Trigger` wired to a ghost-appearance `IconButton` with a default Phosphor `QuestionIcon`. Requires a contextual accessible `label`. Pre-styled with `text-body` so the icon reads as subtle metadata at rest; `IconButton`'s ghost `hover:text-strong` brightens it on interaction. Carries a default `-my-0.5` so the 24px `xs` button keeps a full click target while contributing only 20px to the `Field.LabelRow` flex line — matching the label's text line-height so the label is not pushed off-center.
+`Popover.Trigger` wired to a ghost-appearance `IconButton` with a default Phosphor `QuestionIcon`. Requires a contextual accessible `label`. Pre-styled with `text-body` so the icon reads as subtle metadata at rest; `IconButton`'s ghost `hover:text-strong` brightens it on interaction. Carries a default `-my-0.5` so the 24px `xs` button keeps a full click target while contributing only 20px to the `Field.LabelRow` flex line. That matches the label's text line-height, so the label is not pushed off-center.
 
 Accepts every `IconButton` prop, with sensible visual defaults. `label` remains required:
 
@@ -661,7 +661,7 @@ Accepts every `IconButton` prop, with sensible visual defaults. `label` remains 
 
 ### Field.HelpContent
 
-Body of a `Field.Help` popover. Forwards every `Popover.Content` prop — see the [Popover docs](/components/overlays/popover#popovercontent) for the full surface (`side`, `align`, `preferredWidth`, etc.).
+Body of a `Field.Help` popover. Forwards every `Popover.Content` prop. See the [Popover docs](/components/overlays/popover#popovercontent) for the full surface (`side`, `align`, `preferredWidth`, etc.).
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
@@ -671,7 +671,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### Field.Optional
 
-Inline "(Optional)" suffix to mark a field as optional. Renders a `<span>` in `text-muted` at `text-sm` / `font-normal`. Default content is the literal string "(Optional)" — pass children to translate or replace.
+Inline "(Optional)" suffix to mark a field as optional. Renders a `<span>` in `text-muted` at `text-sm` / `font-normal`. Default content is the literal string "(Optional)". Pass children to translate or replace.
 
 All props from [span](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/span#attributes), plus:
 
@@ -681,7 +681,7 @@ All props from [span](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/
 
 ### Field.Description
 
-Helper / hint text. Renders a `<p>` in the muted body color. Use inside `Field.Item`, below the control, to clarify expected format or constraints for that single field. Render at most one per `Field.Item` — `Field.Item` owns a single description slot ID and applies it via context.
+Helper / hint text. Renders a `<p>` in the muted body color. Use inside `Field.Item`, below the control, to clarify expected format or constraints for that single field. Render at most one per `Field.Item`: `Field.Item` owns a single description slot ID and applies it via context.
 
 When rendered inside `Field.Item`, `Field.Description` receives an automatic generated ID that `Field.Control` merges into the control's `aria-describedby`. The ID is owned by `Field.Item` and is not consumer-overridable. When `Field.Description` is rendered immediately after `Field.Errors` or `Field.ErrorList`, it automatically collapses the parent's `gap-1.5` via a `-mt-1.5` so errors + helper read as a single tight block. The rule's specificity is flattened to `(0,1,0)` so any margin utility you pass on `Field.Description` (e.g. `mt-1`, `mt-0`) overrides cleanly.
 
@@ -695,7 +695,7 @@ All props from [p](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p#a
 
 Convenience renderer for validation messages. Accepts an array of strings, trims each message, filters empty, nullish, and false values, then renders a `Field.ErrorList` with one `Field.ErrorItem` per remaining message. When rendered inside `Field.Item`, a non-empty list receives an automatic generated ID and infers `"error"` validation after hydration unless `Field.Item` overrides it. `Field.Control` merges that ID into the control's `aria-describedby` and `aria-errormessage` when the field is invalid. The ID is owned by `Field.Item` and is not consumer-overridable. For a server-rendered error, set `validation` on `Field.Item` (see [Server-rendered errors](#server-rendered-errors)).
 
-Render at most one `Field.Errors` per `Field.Item`, and do not combine it with `Field.ErrorList` in the same item — both render a single shared errors slot. Pass multiple messages to one `Field.Errors` for the multi-error case.
+Render at most one `Field.Errors` per `Field.Item`, and do not combine it with `Field.ErrorList` in the same item: both render a single shared errors slot. Pass multiple messages to one `Field.Errors` for the multi-error case.
 
 `Field.Errors` owns its generated list items and does not accept `children` or `asChild`. Use `Field.ErrorList` / `Field.ErrorItem` directly when you need custom list contents or polymorphic list markup.
 
@@ -715,7 +715,7 @@ All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li
 
 Wraps one or more `Field.ErrorItem` children in a semantic `<ul>` with `role="list"` so a list of validation errors is announced as a list by screen readers, including Safari/VoiceOver combinations that drop list semantics when list styling is removed. Renders nothing when given no renderable children. When rendered inside `Field.Item`, a non-empty list receives an automatic generated ID and infers `"error"` validation after hydration unless `Field.Item` overrides it. `Field.Control` merges that ID into the control's `aria-describedby` and `aria-errormessage` when the field is invalid. The ID is owned by `Field.Item` and is not consumer-overridable. For a server-rendered error, set `validation` on `Field.Item` (see [Server-rendered errors](#server-rendered-errors)).
 
-Render at most one `Field.ErrorList` per `Field.Item`, and do not combine it with `Field.Errors` in the same item — both render a single shared errors slot. Put multiple `Field.ErrorItem` children inside one list for the multi-error case.
+Render at most one `Field.ErrorList` per `Field.Item`, and do not combine it with `Field.Errors` in the same item: both render a single shared errors slot. Put multiple `Field.ErrorItem` children inside one list for the multi-error case.
 
 Strips the default browser `<ul>` styling (no bullets, no padding, no margin) and stacks items as a flex column with no gap so consecutive errors read as a single tight block. Pass `asChild` with an `<ol>` if the list is meaningfully ordered.
 
@@ -729,7 +729,7 @@ All props from [ul](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ul
 
 Normalize a TanStack React Form field's `meta.errors` array (or any mixed array of `string` / `{ message }` / nullish / `false` entries) into a clean `string[]` ready to pass to `Field.Errors`. Trims whitespace, drops empty / whitespace-only entries, and removes duplicates so callers don't have to filter again.
 
-Use this for [TanStack Form](https://tanstack.com/form) with Zod, Standard Schema, or thrown `Error` validators — `field.state.meta.errors` is a union of all of those shapes, and this helper folds them down to plain strings without coupling Mantle to a specific form library. For other validators where the error shape is already a `string[]`, skip the helper and pass the array directly.
+Use this for [TanStack Form](https://tanstack.com/form) with Zod, Standard Schema, or thrown `Error` validators. `field.state.meta.errors` is a union of all of those shapes, and this helper folds them down to plain strings without coupling Mantle to a specific form library. For other validators where the error shape is already a `string[]`, skip the helper and pass the array directly.
 
 <Example name="components/forms/field/toerrormessages" title="Field toErrorMessages example">
 

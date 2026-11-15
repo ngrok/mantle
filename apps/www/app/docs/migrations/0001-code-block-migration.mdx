@@ -86,10 +86,10 @@ import { CodeBlock, createMantleCodeBlockValue } from "@ngrok/mantle/code-block"
 | -------------------------------------------------- | ------------------------------------------------------------------------ |
 | Highlighting runs in the browser                   | Highlighting runs at build time or on the server, never in browser       |
 | Language is a prop on the component                | Language is part of `mantleCode("lang")` or `createMantleCodeBlockValue` |
-| Imports grammar files per language                 | No grammar imports needed — Shiki bundles are build/server only          |
-| `useEffect` + `Prism.highlightAll()`               | No effect needed — HTML is pre-rendered                                  |
+| Imports grammar files per language                 | No grammar imports needed: Shiki bundles are build/server only           |
+| `useEffect` + `Prism.highlightAll()`               | No effect needed: HTML is pre-rendered                                   |
 | Ships ~30-100KB+ JS to browser                     | Ships 0KB highlighting JS to browser                                     |
-| `suppressHydrationWarning` needed for SSR          | No hydration mismatch — HTML is stable                                   |
+| `suppressHydrationWarning` needed for SSR          | No hydration mismatch: HTML is stable                                    |
 | CSS classes like `.token.keyword`, `.token.string` | CSS variables like `--shiki-token-keyword`                               |
 
 ### CSS migration

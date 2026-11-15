@@ -30,7 +30,7 @@ import { Skeleton } from "@ngrok/mantle/skeleton";
 
 ## When not to use
 
-- For very short fetches (under ~200&thinsp;ms) — a flash of skeleton is more distracting than helpful.
+- For very short fetches (under ~200&thinsp;ms). A flash of skeleton is more distracting than helpful.
 - To convey error or empty states. Use [`Empty`](/components/feedback/empty) instead.
 - As a permanent decorative shape.
 
@@ -38,7 +38,7 @@ import { Skeleton } from "@ngrok/mantle/skeleton";
 
 A skeleton renders a neutral block where the real content will appear. It gives the user an early sense of the layout, and it reduces both perceived loading time and Cumulative Layout Shift (CLS).
 
-Default height is `1rem`. Override `className` with `h-*`, `w-*`, and `rounded-*` utilities to match the real content's dimensions — the more closely the skeleton matches, the less layout shift on swap.
+Default height is `1rem`. Override `className` with `h-*`, `w-*`, and `rounded-*` utilities to match the real content's dimensions. The more closely the skeleton matches, the less layout shift on swap.
 
 ## Accessibility
 

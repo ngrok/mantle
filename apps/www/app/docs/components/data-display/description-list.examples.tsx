@@ -31,7 +31,7 @@ export function OverviewExample() {
 						<DescriptionList.Value>2 days ago by admin@example.com</DescriptionList.Value>
 					</DescriptionList.Item>
 					<DescriptionList.Item>
-						<DescriptionList.Label>Last Used</DescriptionList.Label>
+						<DescriptionList.Label>Last used</DescriptionList.Label>
 						<DescriptionList.Value>
 							<span className="italic text-muted">Never</span>
 						</DescriptionList.Value>

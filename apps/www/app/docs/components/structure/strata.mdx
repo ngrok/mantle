@@ -105,11 +105,11 @@ Strata.Root
     └── Strata.Body
 ```
 
-- **`Root`** is the stack. It rules a hairline between adjacent `Section` children — never above the first or below the last — and it is the place to set `--strata-columns` for every section at once.
+- **`Root`** is the stack. It rules a hairline between adjacent `Section` children (never above the first or below the last), and it is the place to set `--strata-columns` for every section at once.
 - **`Section`** is one titled band. It owns its own vertical rhythm (`py-8 first:pt-0`) rather than taking it from `Root`, so a single section reads correctly on a page with nothing else on it. Below `md` it stacks `Header` above `Body`; at `md` and up it splits them one to two.
-- **`Header`** is the introductory column — `Title` and `Description`, spaced by `gap-2`. It renders a semantic `<header>`, which groups the introductory content of its own `<section>`; see [Accessibility](#accessibility) for why that is not a second `banner` landmark.
+- **`Header`** is the introductory column: `Title` and `Description`, spaced by `gap-2`. It renders a semantic `<header>`, which groups the introductory content of its own `<section>`; see [Accessibility](#accessibility) for why that is not a second `banner` landmark.
 - **`Title`** renders an `<h2>`, one level below the page's `<h1>`. Compose `asChild` when a page nests its sections deeper.
-- **`Description`** is the sentence that says what the section's controls do. Optional — a section whose title says everything may omit it.
+- **`Description`** is the sentence that says what the section's controls do. It is optional: a section whose title says everything may omit it.
 - **`Body`** is the content column: the controls, cards, or table the header describes. Its `gap-4` spaces stacked children, and a consumer's own `gap-*` replaces it.
 
 `Strata` owns only the structure: the grid, the vertical rhythm, and the rules between sections. Form state, validation, and the controls themselves come in as composed JSX.
@@ -162,9 +162,9 @@ Below the `md` breakpoint, the header stacks above its own content. A narrow vie
 
 Each demo on this page runs in its own framed document, so its media queries follow the frame and not your browser window. Switch the frame to tablet, which is the Tailwind `md` boundary where the split is narrowest. Then switch it to mobile, where every header stacks above its own controls.
 
-At `md` and up, `Section` reads its `grid-template-columns` from `--strata-columns`, defaulting to `minmax(0, 1fr) minmax(0, 2fr)`: a one-to-two split whose tracks shrink below their content, so a long single-line value in `Body` truncates or wraps instead of widening the page. Set the variable on `Root` to re-split every section at once, or on a single `Section` to move only that one — custom properties inherit, so the nearest declaration wins. Keep the `minmax(0, …)` form in an override: a bare `1fr` track grows to its content. Below `md` the variable goes quiet, because the two parts stack in one `minmax(0, 1fr)` track.
+At `md` and up, `Section` reads its `grid-template-columns` from `--strata-columns`, defaulting to `minmax(0, 1fr) minmax(0, 2fr)`: a one-to-two split whose tracks shrink below their content, so a long single-line value in `Body` truncates or wraps instead of widening the page. Set the variable on `Root` to re-split every section at once, or on a single `Section` to move only that one. Custom properties inherit, so the nearest declaration wins. Keep the `minmax(0, …)` form in an override: a bare `1fr` track grows to its content. Below `md` the variable goes quiet, because the two parts stack in one `minmax(0, 1fr)` track.
 
-The default suits a short label beside a wide set of controls. When the explanation carries as much weight as the controls, an even split reads better — switch the frame to mobile to watch both splits collapse to the same stack:
+The default suits a short label beside a wide set of controls. When the explanation carries as much weight as the controls, an even split reads better. Switch the frame to mobile to watch both splits collapse to the same stack:
 
 <Example name="strata-columns" title="Strata column split demo">
 
@@ -213,18 +213,18 @@ export function ModelSettings() {
 
 ## Accessibility
 
-- **Sections carry no landmark, by design.** `Section` renders a `<section>` with no accessible name, so it stays generic in the accessibility tree. Its `Title` heading is the navigation affordance instead. A heading outline can run long and nest deeply; a landmark list only stays useful while it is short enough that `main` and `nav` are one keypress away. A named `<section>` is a `region` landmark, so one per section turns that list into a second table of contents the headings already provide.
-- **A landmark does not disambiguate controls.** When two sections hold controls that read alike — two radio groups both offering "Allow all" — reach for [`Field.Set` and `Field.Legend`](/components/forms/field#fieldset), which name the group on every control inside it. Assistive technology announces a landmark once, on entry, so naming the `Section` fixes nothing here.
-- **Name a `Section` only when it is a destination.** Pass `aria-labelledby` pointing at the `Title`'s `id` when a returning user jumps straight to that section _and_ its container beats its heading as the landing spot — a live log, a status readout, or a chart whose heading is separated from its content by a toolbar. One or two such sections on a page is already a lot. Past that, headings do the job better.
+- **Sections carry no landmark, by design.** `Section` renders a `<section>` with no accessible name, so it stays generic in the accessibility tree. Its `Title` heading is the navigation affordance instead. A heading outline can run long and nest deeply; a landmark list only stays useful while it is short enough that `main` and `nav` are one keypress away. A named `<section>` is a `region` landmark, so one per section turns that list into a second table of contents. The headings already form the first.
+- **A landmark does not disambiguate controls.** When two sections hold controls that read alike (two radio groups both offering "Allow all"), reach for [`Field.Set` and `Field.Legend`](/components/forms/field#fieldset), which name the group on every control inside it. Assistive technology announces a landmark once, on entry, so naming the `Section` fixes nothing here.
+- **Name a `Section` only when it is a destination.** Pass `aria-labelledby` pointing at the `Title`'s `id` when a returning user jumps straight to that section _and_ its container beats its heading as the landing spot: a live log, a status readout, or a chart whose heading is separated from its content by a toolbar. One or two such sections on a page is already a lot. Past that, headings do the job better.
 - **Header is not a second banner.** `Header` renders a `<header>`, which maps to the `banner` landmark only when its nearest sectioning ancestor is the document body. Nested inside `Section`'s `<section>`, it is generic, so a page carries as many headers as it has sections.
-- **Heading level is yours.** `Title` defaults to `<h2>` for a section directly under a page `<h1>`. When the sections sit deeper, compose `asChild` with the correct level rather than letting the outline skip — mantle cannot see the surrounding document.
+- **Heading level is yours.** `Title` defaults to `<h2>` for a section directly under a page `<h1>`. When the sections sit deeper, compose `asChild` with the correct level rather than letting the outline skip. Mantle cannot see the surrounding document.
 - **Controls keep their own labels.** The `Title` is a heading, not a label. A group of inputs inside `Body` still needs its own [Field](/components/forms/field) legend or label; a heading above a group names the section, not the control.
 
 ## API Reference
 
 ### Strata.Root
 
-The stack of sections. Rules a hairline between adjacent `Strata.Section` children — never above the first or below the last — and scopes `--strata-columns` for all of them.
+The stack of sections. Rules a hairline between adjacent `Strata.Section` children (never above the first or below the last) and scopes `--strata-columns` for all of them.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
@@ -258,7 +258,7 @@ All props from [section](https://developer.mozilla.org/en-US/docs/Web/HTML/Eleme
 
 ### Strata.Header
 
-A section's introductory column — its `Strata.Title` and `Strata.Description`, spaced by `gap-2`. Renders a semantic `<header>`, which is generic rather than a `banner` landmark inside `Strata.Section`.
+A section's introductory column: its `Strata.Title` and `Strata.Description`, spaced by `gap-2`. Renders a semantic `<header>`, which is generic rather than a `banner` landmark inside `Strata.Section`.
 
 All props from [header](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/header#attributes), plus:
 
@@ -300,7 +300,7 @@ All props from [p](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p#a
 
 ### Strata.Body
 
-The section's content column — the controls, cards, or table `Strata.Header` describes. Its `gap-4` spaces stacked children, and a consumer's own `gap-*` replaces it.
+The section's content column: the controls, cards, or table `Strata.Header` describes. Its `gap-4` spaces stacked children, and a consumer's own `gap-*` replaces it.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 

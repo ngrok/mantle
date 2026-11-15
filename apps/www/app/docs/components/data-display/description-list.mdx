@@ -33,7 +33,7 @@ import { DescriptionList } from "@ngrok/mantle/description-list";
 		<DescriptionList.Value>2 days ago by admin@example.com</DescriptionList.Value>
 	</DescriptionList.Item>
 	<DescriptionList.Item>
-		<DescriptionList.Label>Last Used</DescriptionList.Label>
+		<DescriptionList.Label>Last used</DescriptionList.Label>
 		<DescriptionList.Value>
 			<span className="italic text-muted">Never</span>
 		</DescriptionList.Value>
@@ -205,12 +205,12 @@ All props from [dt](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dt
 
 ### DescriptionList.Value
 
-The value for a description list item. Renders a `<dd>` element. Compose any content inside — the component imposes no layout on its children.
+The value for a description list item. Renders a `<dd>` element. Compose any content inside: the component imposes no layout on its children.
 
 All props from [dd](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dd#attributes), plus:
 
 | Prop         | Type        | Default | Description                                                                                                                        |
 | ------------ | ----------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `children?`  | `ReactNode` |         | The value content for this description list item. Can be any React node — text, formatted values, interactive elements, etc.       |
+| `children?`  | `ReactNode` |         | The value content for this description list item. Can be any React node: text, formatted values, interactive elements, etc.        |
 | `className?` | `string`    |         | Additional CSS class names to apply to the value element.                                                                          |
 | `asChild?`   | `boolean`   | `false` | Use the `asChild` prop to compose the `DescriptionList.Value` styling onto alternative element types or your own React components. |

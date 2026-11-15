@@ -35,7 +35,7 @@ function DemoPaletteContent() {
 					</Command.Item>
 					<Command.Item>
 						<SmileyIcon />
-						<span>Search Emoji</span>
+						<span>Search emoji</span>
 					</Command.Item>
 					<Command.Item>
 						<CalculatorIcon />
@@ -118,7 +118,7 @@ export function CommandDialogDemo() {
 		<Command.DialogRoot keyboardShortcut={false}>
 			<Command.DialogTrigger asChild>
 				<Button type="button" appearance="outlined" intent="neutral">
-					Open Command Dialog
+					Open command dialog
 				</Button>
 			</Command.DialogTrigger>
 			<DemoPaletteContent />

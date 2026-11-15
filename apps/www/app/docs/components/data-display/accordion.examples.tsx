@@ -204,7 +204,7 @@ export function CustomHeaderWithAnInlineActionExample() {
 						</Accordion.Trigger>
 						<Separator orientation="horizontal" className="flex-1" />
 						<Button type="button" appearance="link" intent="accent" icon={<PlusIcon />}>
-							<span className="xs:inline hidden">Add Rule</span>
+							<span className="xs:inline hidden">Add rule</span>
 						</Button>
 					</div>
 					<Accordion.Content>
@@ -226,7 +226,7 @@ export function CustomHeaderWithAnInlineActionExample() {
 						</Accordion.Trigger>
 						<Separator orientation="horizontal" className="flex-1" />
 						<Button type="button" appearance="link" intent="accent" icon={<PlusIcon />}>
-							<span className="xs:inline hidden">Add Rule</span>
+							<span className="xs:inline hidden">Add rule</span>
 						</Button>
 					</div>
 					<Accordion.Content>
@@ -248,7 +248,7 @@ export function CustomHeaderWithAnInlineActionExample() {
 						</Accordion.Trigger>
 						<Separator orientation="horizontal" className="flex-1" />
 						<Button type="button" appearance="link" intent="accent" icon={<PlusIcon />}>
-							<span className="xs:inline hidden">Add Rule</span>
+							<span className="xs:inline hidden">Add rule</span>
 						</Button>
 					</div>
 					<Accordion.Content>

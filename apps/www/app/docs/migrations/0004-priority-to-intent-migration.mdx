@@ -89,22 +89,22 @@ value}`. Or better, fix the upstream type/value source. Types written as
 
 ## The mapping table
 
-| Old (as written)                                                | New (explicit)                                                                                |
-| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `<Button>` (no `priority`, no `appearance`)                     | `appearance="outlined" intent="accent"`                                                       |
-| Button `appearance="filled"`, no `priority`                     | `intent="neutral"` ⚠️ deliberate restyle — the new default primary action (was accent-filled) |
-| Button `priority="default"`                                     | `intent="accent"`                                                                             |
-| Button `priority="neutral"`                                     | `intent="neutral"`                                                                            |
-| Button `priority="danger"`                                      | `intent="danger"`                                                                             |
-| Button `appearance` omitted                                     | `appearance="outlined"`                                                                       |
-| `<IconButton>` (no `appearance`)                                | `appearance="outlined" intent="neutral"`                                                      |
-| IconButton `appearance="ghost" \| "outlined"`                   | unchanged, add `intent="neutral"`                                                             |
-| Button `appearance="filled" \| "ghost" \| "outlined" \| "link"` | unchanged                                                                                     |
-| Alert/Toast/AlertDialog `priority={x}`                          | `intent={x}` (values unchanged)                                                               |
-| `AlertDialog.Action`/`HeaderSortButton` `priority={x}`          | `intent={x}` (Button value map applies)                                                       |
-| `import type { Priority } from "@ngrok/mantle/toast"`           | `ToastIntent`                                                                                 |
-| `[data-priority]` selectors                                     | `[data-intent]`                                                                               |
-| `ComponentProps<typeof Button>["priority"]`                     | `ComponentProps<typeof Button>["intent"]`                                                     |
+| Old (as written)                                                | New (explicit)                                                                               |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `<Button>` (no `priority`, no `appearance`)                     | `appearance="outlined" intent="accent"`                                                      |
+| Button `appearance="filled"`, no `priority`                     | `intent="neutral"` ⚠️ deliberate restyle: the new default primary action (was accent-filled) |
+| Button `priority="default"`                                     | `intent="accent"`                                                                            |
+| Button `priority="neutral"`                                     | `intent="neutral"`                                                                           |
+| Button `priority="danger"`                                      | `intent="danger"`                                                                            |
+| Button `appearance` omitted                                     | `appearance="outlined"`                                                                      |
+| `<IconButton>` (no `appearance`)                                | `appearance="outlined" intent="neutral"`                                                     |
+| IconButton `appearance="ghost" \| "outlined"`                   | unchanged, add `intent="neutral"`                                                            |
+| Button `appearance="filled" \| "ghost" \| "outlined" \| "link"` | unchanged                                                                                    |
+| Alert/Toast/AlertDialog `priority={x}`                          | `intent={x}` (values unchanged)                                                              |
+| `AlertDialog.Action`/`HeaderSortButton` `priority={x}`          | `intent={x}` (Button value map applies)                                                      |
+| `import type { Priority } from "@ngrok/mantle/toast"`           | `ToastIntent`                                                                                |
+| `[data-priority]` selectors                                     | `[data-intent]`                                                                              |
+| `ComponentProps<typeof Button>["priority"]`                     | `ComponentProps<typeof Button>["intent"]`                                                    |
 
 ---
 

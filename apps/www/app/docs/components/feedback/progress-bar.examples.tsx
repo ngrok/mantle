@@ -84,7 +84,7 @@ export function WithALabelExample() {
 					<ProgressBar.Root aria-label="In progress" value={45} className="w-24">
 						<ProgressBar.Indicator className="bg-warning-600" />
 					</ProgressBar.Root>
-					In Progress
+					In progress
 				</div>
 				<div className="flex items-center gap-3 text-sm">
 					<ProgressBar.Root aria-label="Starting" value={10} className="w-24">

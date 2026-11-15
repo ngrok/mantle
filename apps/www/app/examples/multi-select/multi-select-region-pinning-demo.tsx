@@ -71,13 +71,13 @@ export function RegionPinningDemo() {
 						/>
 						{/* Input is flex-1 so this sibling is pushed to the right */}
 						<span className="text-accent-600 mr-2 shrink-0 whitespace-nowrap text-xs">
-							Requires Upgrade
+							Requires upgrade
 						</span>
 					</MultiSelect.Trigger>
 					<MultiSelect.Content aria-busy={isPending}>
 						{filteredAliases.length > 0 && (
 							<MultiSelect.Group>
-								<MultiSelect.GroupLabel>Regional Aliases</MultiSelect.GroupLabel>
+								<MultiSelect.GroupLabel>Regional aliases</MultiSelect.GroupLabel>
 								<MultiSelect.GroupDescription>
 									Include all points of presence that are geographically within the region.
 								</MultiSelect.GroupDescription>

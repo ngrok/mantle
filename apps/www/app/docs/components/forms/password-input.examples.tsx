@@ -12,7 +12,7 @@ export function ControlledVisibilityExample() {
 
 	return (
 		<Field.Item className="max-w-sm" name="password-controlled">
-			<Field.Label>Controlled Visibility</Field.Label>
+			<Field.Label>Controlled visibility</Field.Label>
 			<Field.Control>
 				{(controlProps) => (
 					<div className="flex flex-wrap items-center gap-2">

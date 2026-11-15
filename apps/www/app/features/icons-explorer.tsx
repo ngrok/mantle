@@ -20,7 +20,7 @@ export function IconsExplorer() {
 		<div className="space-y-4 mb-4">
 			<div className="space-y-1">
 				<Label className="block" htmlFor="icon-search">
-					Search Icons
+					Search icons
 				</Label>
 				<Input
 					autoComplete="off"
@@ -35,7 +35,7 @@ export function IconsExplorer() {
 						No results found for <Code>{query}</Code>
 					</p>
 					<Button type="button" appearance="outlined" intent="neutral" onClick={() => setQuery("")}>
-						Clear Search
+						Clear search
 					</Button>
 				</div>
 			) : (

@@ -8,7 +8,7 @@ import { PreviewCanvas } from "~/components/preview-canvas";
 
 export function FormExample() {
 	const formSchema = z.object({
-		feedback: z.string().trim().min(1, "Please enter your feedback."),
+		feedback: z.string().trim().min(1, "Enter your feedback."),
 	});
 	const defaultValues = {
 		feedback: "",

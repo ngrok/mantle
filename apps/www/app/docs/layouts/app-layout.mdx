@@ -1642,10 +1642,10 @@ Why each class on `AppLayout.Body` is there, and what breaks without it:
   `mx-auto max-w-7xl` would shrink-to-fit, getting _narrower_ as the viewport gets _wider_. Keeping the page
   region block-level is what makes the most common page shape work at all.
 - **`w-full`** states the width outright instead of leaning on the flex container's cross-axis `stretch`, so an
-  `mx-auto` merged onto `Body` still leaves it full width — auto cross-axis margins would otherwise turn a
+  `mx-auto` merged onto `Body` still leaves it full width. Auto cross-axis margins would otherwise turn a
   stretched item into a shrink-to-fit one. It is no floor, though: `cx` is tailwind-merge-backed and the
-  consumer's `className` wins, so a merged `w-*` replaces it outright, while a merged `max-w-*` — a separate
-  conflict group — survives beside it and clamps the scrollport. Constrain the _page_ inside `Body`, not
+  consumer's `className` wins, so a merged `w-*` replaces it outright, while a merged `max-w-*` (a separate
+  conflict group) survives beside it and clamps the scrollport. Constrain the _page_ inside `Body`, not
   `Body` itself.
 - **`relative`** contains absolutely-positioned page content: a toolbar floating over an editor resolves
   against the scrollport instead of escaping to `AppLayout.Root` and painting across the sidebar rail.
@@ -2201,13 +2201,13 @@ ancestor's chain. The tables below list only the attributes a part stamps beyond
 
 The outer frame of the shell: `bg-base relative isolate flex h-full w-full flex-col overflow-clip`. Fills
 its nearest sized ancestor; merge `className="fixed inset-0"` to pin a real app shell to the viewport. The
-shell itself never scrolls — only [`AppLayout.Body`](#applayoutbody) does. When the shell owns the document, render a
+shell itself never scrolls. Only [`AppLayout.Body`](#applayoutbody) does. When the shell owns the document, render a
 [SkipToMainLink](/components/primitives/skip-to-main-link) as its first child (see
 [Landmarks](#landmarks)).
 
 It is `overflow-clip`, not `overflow-hidden`, for the same reason
 [`AppLayout.Content`](#applayoutcontent) is: `hidden` **is** a scroll container that paints no scrollbar, so
-anything wider than the frame lets focus scroll the entire shell sideways — translating the notice, the rail,
+anything wider than the frame lets focus scroll the entire shell sideways. That translates the notice, the rail,
 and the card out of view with no scrollbar and no gesture to bring them back. On a frame pinned with
 `fixed inset-0` that is the whole window. `clip` is not a scroll container at all.
 
@@ -2219,11 +2219,11 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### AppLayout.Notice
 
-A full-window-width, vertical composition slot pinned above everything else in the shell — including any
-sidebar — for app-wide messaging. Stack a rare maintenance or environment banner and a persistent account
+A full-window-width, vertical composition slot pinned above everything else in the shell (including any
+sidebar) for app-wide messaging. Stack a rare maintenance or environment banner and a persistent account
 alert bar here; each child brings its own colors and layout while the slot pushes the whole shell down.
 Renders an unstyled `<div>` (`flex w-full shrink-0 flex-col`) and collapses to nothing when empty.
-Deliberately not named Banner so it never reads as the ARIA `banner` landmark — it claims no landmark at
+Deliberately not named Banner so it never reads as the ARIA `banner` landmark: it claims no landmark at
 all; give the notice content its own semantics if it needs them. Optional.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
@@ -2263,14 +2263,14 @@ The card surface beside the sidebar:
 Holds `AppLayout.Header` and `AppLayout.Body`. In the canonical shell it wraps the route's `<Outlet />`, and the
 route renders both (see [One header per page](#one-header-per-page)).
 
-The card **does not scroll** — [`AppLayout.Body`](#applayoutbody) does. It insets itself from the window edge
+The card **does not scroll**. [`AppLayout.Body`](#applayoutbody) does. It insets itself from the window edge
 and the rail with its own margin, driven by `--app-layout-card-gutter`, because the gutter has to belong to
 the card: the only other element that could hold it is `AppLayout.Workspace`, which also contains the rail,
 so padding there would push the sidebar off the window edge.
 
 It is `overflow-clip`, not `overflow-hidden`, and the distinction matters: `hidden` **is** a scroll container
-that paints no scrollbar, so a toolbar wider than the card lets <kbd translate="no">Tab</kbd> scroll it sideways —
-translating the header and the page out of view with no scrollbar and no gesture to bring them back. `clip`
+that paints no scrollbar, so a toolbar wider than the card lets <kbd translate="no">Tab</kbd> scroll it sideways.
+That translates the header and the page out of view with no scrollbar and no gesture to bring them back. `clip`
 is not a scroll container at all. It also keeps a full-bleed page background from painting square corners
 over the card's `rounded-xl`.
 
@@ -2312,8 +2312,8 @@ Optional standalone; effectively required once a `Sidebar` is composed (see
 **Sidebar alignment is an invariant, not a coincidence:** standalone, the toolbar is `h-14`. When the shell
 contains a `Sidebar.Header` (detected with `:has()` from `AppLayout.Root`), the toolbar instead derives its
 height from the sidebar's public `--sidebar-header-height` token as
-`calc(var(--sidebar-header-height, 4.5rem) - 2 * var(--app-layout-card-gutter, 0.5rem) - 2px)` — subtracting
-twice the card gutter and twice the card's hairline border — which keeps this toolbar's vertical center on
+`calc(var(--sidebar-header-height, 4.5rem) - 2 * var(--app-layout-card-gutter, 0.5rem) - 2px)`. The formula subtracts
+twice the card gutter and twice the card's hairline border, which keeps this toolbar's vertical center on
 the band that token names, for any band height. The band belongs to the
 [sidebar header's first row](/components/navigation/sidebar#sidebarheader), so a header that stacks a second
 row grows downward while this toolbar keeps matching the switcher row alone. Override
@@ -2322,7 +2322,7 @@ together.
 
 > [!NOTE]
 > The alignment is a **desktop-only** coupling. Below the sidebar's `mobileBreakpoint` the sidebar renders
-> inside a `Sheet` portaled to `document.body` — outside the shell subtree — so the `:has()` selector stops
+> inside a `Sheet` portaled to `document.body` (outside the shell subtree), so the `:has()` selector stops
 > matching and this toolbar falls back to its standalone `h-14`. That is a 2px change (54px → 56px) applied
 > after hydration, since the server renders desktop-first. There is nothing to align to on mobile anyway, but
 > it explains the 2px if you are diffing layout across breakpoints.
@@ -2335,7 +2335,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 | CSS Variable               | Default  | Description                                                                                                                                                                                                                                                                        |
 | -------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--sidebar-header-height`  | `4.5rem` | Read (not set) by `AppLayout.Header` when the shell contains a [`Sidebar.Header`](/components/navigation/sidebar#sidebarheader), which owns the token — the band its first row sits on. Set it on a common ancestor of both (e.g. `AppLayout.Root`) so the two rows move together. |
+| `--sidebar-header-height`  | `4.5rem` | Read (not set) by `AppLayout.Header` when the shell contains a [`Sidebar.Header`](/components/navigation/sidebar#sidebarheader), which owns the token (the band its first row sits on). Set it on a common ancestor of both (e.g. `AppLayout.Root`) so the two rows move together. |
 | `--app-layout-card-gutter` | `0.5rem` | Read (not set) by `AppLayout.Header`; owned by [`AppLayout.Content`](#applayoutcontent). The derived height subtracts twice its value, so changing the card gutter keeps the two rows aligned.                                                                                     |
 
 ### AppLayout.HeaderStart
@@ -2635,8 +2635,8 @@ it on sign-out or read it with its own cookie library.
 
 ### There is no AppLayout.Footer
 
-Deliberately. A bar pinned to the bottom of the card is almost always a **page's** bar — an editor's validity
-line, a save bar, a selection count — and a route rendering through an `<Outlet />` inside `AppLayout.Body`
+Deliberately. A bar pinned to the bottom of the card is almost always a **page's** bar (an editor's validity
+line, a save bar, a selection count). A route rendering through an `<Outlet />` inside `AppLayout.Body`
 could never reach a shell-level part, because it would be a sibling of the region the route renders into.
 
 Pin it inside `AppLayout.Body` instead:

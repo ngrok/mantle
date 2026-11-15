@@ -466,7 +466,7 @@ export function AccountAlerts({ serverAlerts }: { serverAlerts: ReadonlyArray<Se
 The bar renders the top alert **as authored** (icon, title, `Alert.Description`, call-to-action), so it is
 a single line for a title alone and a two-line banner once a description is composed, exactly like the same
 alert renders as an expansion row. Nothing is suppressed by placement, so a CTA reads naturally from the
-description (`Please update your payment method.`) instead of being crammed into the title.
+description (`Update your payment method.`) instead of being crammed into the title.
 
 <Example name="components/feedback/alert-center/supporting-copy-in-the-bar" title="Alert Center supporting copy in the bar example">
 
@@ -484,8 +484,8 @@ export function AccountAlerts() {
 				<Alert.Content>
 					<Alert.Title>The last payment attempt for your account failed</Alert.Title>
 					<Alert.Description>
-						Please <a href="/billing/payment-overdue">update your payment method</a> to avoid a
-						service interruption.
+						<a href="/billing/payment-overdue">Update your payment method</a> to avoid a service
+						interruption.
 					</Alert.Description>
 				</Alert.Content>
 			</AlertCenter.Item>
@@ -755,12 +755,12 @@ The renderless state owner. It creates the registration store the items register
 state of the inline list, and mounts the persistent `role="status"` live region. Compose its `Bar` and
 `Content` inside `AppLayout.Notice`, alongside any other window-level notice.
 
-| Prop           | Type                      | Default | Description                                                                                                                                                                              |
-| -------------- | ------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `open`         | `boolean`                 | —       | Controlled expanded state of the additional-alert list. Pair with `onOpenChange`.                                                                                                        |
-| `defaultOpen`  | `boolean`                 | `false` | Uncontrolled initial expanded state of the additional-alert list.                                                                                                                        |
-| `onOpenChange` | `(open: boolean) => void` | —       | Called when the additional-alert list expands or collapses.                                                                                                                              |
-| `children`     | `ReactNode`               | —       | The `Bar`, the `Content`, and every `Item`. Items may be authored anywhere under the root — their children stay in this tree and are projected into the bar or an expansion row by rank. |
+| Prop           | Type                      | Default | Description                                                                                                                                                                             |
+| -------------- | ------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `open`         | `boolean`                 | —       | Controlled expanded state of the additional-alert list. Pair with `onOpenChange`.                                                                                                       |
+| `defaultOpen`  | `boolean`                 | `false` | Uncontrolled initial expanded state of the additional-alert list.                                                                                                                       |
+| `onOpenChange` | `(open: boolean) => void` | —       | Called when the additional-alert list expands or collapses.                                                                                                                             |
+| `children`     | `ReactNode`               | —       | The `Bar`, the `Content`, and every `Item`. Items may be authored anywhere under the root. Their children stay in this tree and are projected into the bar or an expansion row by rank. |
 
 `Root` renders no DOM of its own beyond the live region it mounts:
 
@@ -788,7 +788,7 @@ to the banner chrome. `appearance` and `intent` are the component's own: the chr
 | `className` | `string`              | —       | Merged onto the banner chrome after the bar's own classes, so yours win. The presence wrapper that animates the bar in and out is not stylable. |
 | `data-slot` | `string`              | —       | Joined ancestors-first with `alert-center-bar` on the chrome, so a wrapping component can add its own slot without dropping this one.           |
 | `ref`       | `Ref<HTMLDivElement>` | —       | Forwarded to the banner chrome, not to the presence wrapper.                                                                                    |
-| `children`  | `never`               | —       | Not accepted — the bar renders the top-ranked item's authored children.                                                                         |
+| `children`  | `never`               | —       | Not accepted. The bar renders the top-ranked item's authored children.                                                                          |
 
 | Data Attribute       | Value                          | Description                                                                                          |
 | -------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------- |
@@ -796,10 +796,10 @@ to the banner chrome. `appearance` and `intent` are the component's own: the chr
 | `data-slot`          | `alert-center-bar alert`       | On the banner chrome the top item's children render inside, joined ahead of `Alert.Root`'s own slot. |
 | `data-slot`          | `alert-center-bar-mount`       | On the layout-transparent element the top item's host is adopted into.                               |
 | `data-state`         | `"open"` \| `"closed"`         | On the wrapper; drives the enter/exit transition, and stays `closed` while the exit plays.           |
-| `data-placement`     | `"bar"`                        | On the chrome — where the top item's children are currently rendering.                               |
+| `data-placement`     | `"bar"`                        | On the chrome: where the top item's children are currently rendering.                                |
 | `data-alert-id`      | the top item's `id`            | On the chrome; per-alert styling and testing hook.                                                   |
-| `data-alert-dismiss` | present on the dismiss control | Read, not stamped — `Alert` emits it; the bar's CSS centers and offsets the control with it.         |
-| `data-alert-expand`  | present on the expand control  | Read, not stamped — `Alert` emits it; the bar's CSS centers the control with it.                     |
+| `data-alert-dismiss` | present on the dismiss control | Read, not stamped. `Alert` emits it; the bar's CSS centers and offsets the control with it.          |
+| `data-alert-expand`  | present on the expand control  | Read, not stamped. `Alert` emits it; the bar's CSS centers the control with it.                      |
 
 ### AlertCenter.Content
 
@@ -807,7 +807,7 @@ The inline expansion beneath the bar. It lists every alert hidden by the bar, ra
 highest-severity-first, as full-width banner rows. It renders only when additional alerts exist.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) except
-`children` and `id` — `id` is reserved, since it anchors the expand control's `aria-controls` — plus:
+`children` and `id` (`id` is reserved, since it anchors the expand control's `aria-controls`), plus:
 
 | Prop              | Type                  | Default         | Description                                                                                                                                             |
 | ----------------- | --------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -816,22 +816,22 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `className`       | `string`              | —               | Merged onto the expansion wrapper after the collapse-animation classes.                                                                                 |
 | `data-slot`       | `string`              | —               | Joined ancestors-first with `alert-center-content` on the wrapper.                                                                                      |
 | `ref`             | `Ref<HTMLDivElement>` | —               | Forwarded to the expansion wrapper.                                                                                                                     |
-| `children`        | `never`               | —               | Not accepted — the rows are the registered items' authored children.                                                                                    |
+| `children`        | `never`               | —               | Not accepted. The rows are the registered items' authored children.                                                                                     |
 
-| Data Attribute     | Value                     | Description                                                                                 |
-| ------------------ | ------------------------- | ------------------------------------------------------------------------------------------- |
-| `data-slot`        | `alert-center-content`    | On the expansion wrapper that owns the collapse animation.                                  |
-| `data-slot`        | `alert-center-item alert` | On each row's banner chrome, joined ahead of `Alert.Root`'s own slot.                       |
-| `data-state`       | `"open"` \| `"closed"`    | On the wrapper; drives the collapse transition.                                             |
-| `data-placement`   | `"list"`                  | On each row's chrome — where that item's children are currently rendering.                  |
-| `data-alert-id`    | the row item's `id`       | On each row's chrome; per-alert styling and testing hook.                                   |
-| `data-alert-mount` | the row item's `id`       | On the row's layout-transparent mount point — the element that item's host is adopted into. |
+| Data Attribute     | Value                     | Description                                                                                |
+| ------------------ | ------------------------- | ------------------------------------------------------------------------------------------ |
+| `data-slot`        | `alert-center-content`    | On the expansion wrapper that owns the collapse animation.                                 |
+| `data-slot`        | `alert-center-item alert` | On each row's banner chrome, joined ahead of `Alert.Root`'s own slot.                      |
+| `data-state`       | `"open"` \| `"closed"`    | On the wrapper; drives the collapse transition.                                            |
+| `data-placement`   | `"list"`                  | On each row's chrome: where that item's children are currently rendering.                  |
+| `data-alert-id`    | the row item's `id`       | On each row's chrome; per-alert styling and testing hook.                                  |
+| `data-alert-mount` | the row item's `id`       | On the row's layout-transparent mount point: the element that item's host is adopted into. |
 
 ### AlertCenter.Item
 
 One authored alert: the coordination facts as props, the banner content as children. Renders `null` in
 place and registers with the center; mount to show, unmount to dismiss. Two items mounted at once may not
-share an `id` — the second registration throws, since both would project into that id's single host.
+share an `id`. The second registration throws, since both would project into that id's single host.
 
 `children` render inside a `<div data-slot="alert-center-item-label">`, which is the only node the portal
 puts in the host. A portal owns no node of its own, so React removes each portal child from the host by
@@ -846,21 +846,21 @@ children stay direct flex items of the banner chrome and keep its `gap`.
 | `intent`    | `"danger" \| "important" \| "info" \| "success" \| "warning"` | —       | The tone the alert communicates. Drives severity ranking and the banner chrome's intent.                                                                                                                                            |
 | `className` | `string`                                                      | —       | Optional classes for this item's chrome `Alert.Root`, in both placements.                                                                                                                                                           |
 | `order`     | `number`                                                      | —       | The position among same-intent peers. Lower comes first. Items that share an order keep arrival order. An item with no order follows every item that declares one. `Infinity` counts as declared. `intent` still decides the tier.  |
-| `children`  | `ReactNode`                                                   | —       | The banner content — `Alert` parts, not `Alert.Root`. Rendered at the Bar/Content position, not where the item is authored.                                                                                                         |
+| `children`  | `ReactNode`                                                   | —       | The banner content: `Alert` parts, not `Alert.Root`. Rendered at the Bar/Content position, not where the item is authored.                                                                                                          |
 
 | Data Attribute    | Value                     | Description                                                                       |
 | ----------------- | ------------------------- | --------------------------------------------------------------------------------- |
 | `data-slot`       | `alert-center-item-host`  | On the stable per-id host element the item's children portal into.                |
 | `data-slot`       | `alert-center-item-label` | On the layout-transparent element inside the host that wraps the item's children. |
-| `data-alert-host` | the item's `id`           | On that same host — which alert's projected children it holds.                    |
+| `data-alert-host` | the item's `id`           | On that same host: which alert's projected children it holds.                     |
 
 ### AlertCenter.DismissIconButton
 
 The per-item dismiss affordance: a thin wrapper over
 [`Alert.DismissIconButton`](/components/feedback/alert#alertdismissiconbutton) that defaults its `label` to
-`Dismiss ${title}` — derived from the enclosing banner's **rendered** `Alert.Title` text with inline CTA
+`Dismiss ${title}`. That label derives from the enclosing banner's **rendered** `Alert.Title` text with inline CTA
 anchors stripped and re-read on every commit, so the accessible name stays in lockstep with the visible
-copy. Compose it — or leave it out — per alert; its presence is what makes that alert dismissable. Where it
+copy. Compose it (or leave it out) per alert; its presence is what makes that alert dismissable. Where it
 sits is the chrome's business: the bar centers its trailing controls while it is a single line and
 top-aligns them once the top alert has a description, matching every expansion row.
 
@@ -869,10 +869,10 @@ All props from [Alert.DismissIconButton](/components/feedback/alert#alertdismiss
 | Prop        | Type                | Default            | Description                                                                            |
 | ----------- | ------------------- | ------------------ | -------------------------------------------------------------------------------------- |
 | `onClick`   | `MouseEventHandler` | —                  | Required. Unmount the item (update your state); the center re-ranks from what remains. |
-| `label`     | `string`            | `Dismiss ${title}` | Accessible name override — e.g. when the rendered title is long.                       |
+| `label`     | `string`            | `Dismiss ${title}` | Accessible name override, e.g. when the rendered title is long.                        |
 | `data-slot` | `string`            | —                  | Joined ancestors-first with `alert-center-dismiss-icon-button` on the rendered button. |
 
 | Data Attribute       | Value                                                                    | Description                                                                                      |
 | -------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
 | `data-slot`          | `alert-center-dismiss-icon-button alert-dismiss-icon-button icon-button` | On the rendered button, joined ahead of `Alert.DismissIconButton`'s own slot and `IconButton`'s. |
-| `data-alert-dismiss` | present                                                                  | Read, not stamped — `Alert` emits it, and `AlertCenter`'s bar CSS positions the control with it. |
+| `data-alert-dismiss` | present                                                                  | Read, not stamped. `Alert` emits it, and `AlertCenter`'s bar CSS positions the control with it.  |

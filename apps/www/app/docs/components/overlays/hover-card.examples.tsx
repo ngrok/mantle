@@ -13,7 +13,7 @@ export function OverviewExample() {
 			<HoverCard.Root>
 				<HoverCard.Trigger asChild>
 					<Button type="button" appearance="link" intent="accent">
-						Open Hover Card
+						Open hover card
 					</Button>
 				</HoverCard.Trigger>
 				<HoverCard.Content className="w-80">
