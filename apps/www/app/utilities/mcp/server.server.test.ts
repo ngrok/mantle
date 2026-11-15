@@ -40,6 +40,7 @@ function dependencies(overrides: Partial<McpDependencies> = {}): McpDependencies
 		],
 		flags: (): McpFlags => ({ enabled: true, disabledTools: new Set() }),
 		previewOrigin: "https://mantle.example",
+		frameOrigin: "https://frame.example",
 		log: () => {},
 		...overrides,
 	};
@@ -405,6 +406,40 @@ describe("the mantle MCP server", () => {
 
 		expect(text).toMatch(/^Preview: https:\/\/mantle\.example\/mcp\/preview#code=[\w-]+\n/);
 		expect(text).toContain("check found nothing.");
+	});
+
+	it("links the preview tool to an MCP App view that resources/read serves with the frame origin", async () => {
+		const { result: listed } = await rpc(dependencies(), "tools/list");
+		const preview = (
+			(listed?.tools ?? []) as { name: string; _meta?: { ui?: { resourceUri?: string } } }[]
+		).find((tool) => tool.name === "preview");
+		const resourceUri = preview?._meta?.ui?.resourceUri ?? "";
+
+		const { result: read } = await rpc(dependencies(), "resources/read", { uri: resourceUri });
+		const [content] = (read?.contents ?? []) as {
+			uri: string;
+			mimeType: string;
+			text: string;
+			_meta?: { ui?: { csp?: { frameDomains?: string[] } } };
+		}[];
+
+		expect(resourceUri).toMatch(/^ui:\/\//);
+		expect(content?.mimeType).toBe("text/html;profile=mcp-app");
+		expect(content?._meta?.ui?.csp?.frameDomains).toEqual(["https://frame.example"]);
+		expect(content?.text).toContain('"https://frame.example"');
+	});
+
+	// Why: the MCP App view reads the link from `structuredContent.url`, so a rename breaks the inline preview.
+	it("puts the preview link of the text result in its structured content", async () => {
+		const { result } = await rpc(dependencies(), "tools/call", {
+			name: "preview",
+			arguments: { code: "export default () => null;" },
+		});
+		const text = ((result?.content ?? []) as { text: string }[])[0]?.text ?? "";
+		const structured = result?.structuredContent as { url?: string } | undefined;
+
+		expect(text).toContain(`Preview: ${structured?.url}\n`);
+		expect(structured?.url).toMatch(/^https:\/\/mantle\.example\/mcp\/preview#code=[\w-]+$/);
 	});
 
 	it("reports a preview with no default export and keeps the local-module note", async () => {
