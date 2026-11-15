@@ -1,3 +1,5 @@
+"use client";
+
 import { useId, useLayoutEffect } from "react";
 import invariant from "tiny-invariant";
 import type {

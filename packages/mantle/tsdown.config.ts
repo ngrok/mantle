@@ -3,6 +3,7 @@ import { transform } from "oxc-transform-react";
 import { defineConfig } from "tsdown";
 
 import { reactCompilerOptions } from "./react-compiler.config.ts";
+import { preserveUseClient } from "./scripts/preserve-use-client.ts";
 
 const MANTLE_CSS_SRC = new URL("./src/mantle.css", import.meta.url);
 const SOURCE_ALL_CSS_SRC = new URL("./src/source-all.css", import.meta.url);
@@ -153,7 +154,7 @@ export default defineConfig((options) => [
 		tsconfig: "tsconfig.build.json",
 		fixedExtension: false,
 		format: "esm",
-		plugins: [reactCompiler()],
+		plugins: [preserveUseClient(), reactCompiler()],
 		outputOptions: {
 			// Name shared chunks after their owning component directory so
 			// per-component `@source "<name>-*.js"` globs match them (see

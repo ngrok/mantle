@@ -1,3 +1,5 @@
+"use client";
+
 import { useMemo } from "react";
 import { usePrefersReducedMotion } from "./use-prefers-reduced-motion.js";
 

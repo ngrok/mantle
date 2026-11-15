@@ -1,3 +1,5 @@
+"use client";
+
 import { createContext, type ComponentProps } from "react";
 import { parseValidation, type ValidationState } from "./validation.js";
 

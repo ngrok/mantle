@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useLayoutEffect } from "react";
 import { canUseDOM } from "../components/browser-only/browser-only.js";
 

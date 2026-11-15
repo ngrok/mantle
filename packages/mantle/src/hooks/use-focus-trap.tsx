@@ -1,3 +1,5 @@
+"use client";
+
 import type { RefObject } from "react";
 import { useEffect } from "react";
 import { findTabbableDescendants } from "../components/alert/tabbable-neighbors.js";

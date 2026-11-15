@@ -1,3 +1,5 @@
+"use client";
+
 import { useCallback, useEffect, useRef } from "react";
 import { useCallbackRef } from "./use-callback-ref.js";
 
