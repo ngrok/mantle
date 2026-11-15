@@ -199,6 +199,18 @@ export default [
 		id: "api-search-index-json",
 	}),
 	route("api/shiki-highlight", "./routes/api.shiki-highlight.tsx"),
+	// Agent skill discovery, for `npx skills add https://mantle.ngrok.com`.
+	route(".well-known/skills/index.json", "./routes/well-known.skills.index[.]json.tsx", {
+		id: "well-known-skills-index-json",
+	}),
+	route(".well-known/skills/mantle/SKILL.md", "./routes/well-known.skills.mantle.skill[.]md.tsx", {
+		id: "well-known-skills-mantle-skill-md",
+	}),
+	route(
+		".well-known/agent-skills/index.json",
+		"./routes/well-known.agent-skills.index[.]json.tsx",
+		{ id: "well-known-agent-skills-index-json" },
+	),
 
 	// docs layout
 	layout("./routes/docs-layout.tsx", [
