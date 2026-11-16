@@ -122,14 +122,14 @@ type MultiSelectProps = AriakitComboboxProviderProps<string[]>;
  * `aria-errormessage`, and `aria-invalid` through to the focusable
  * `MultiSelect.Input` via `FieldControlContext`. The field `name` flows through
  * too, but lands on one hidden input per selected value rather than on the
- * combobox input — so a native form submit sends the selected values, not the
+ * combobox input, so a native form submit sends the selected values, not the
  * typeahead filter text.
  *
  * `MultiSelect.Content` renders at Tailwind `z-50` and portals into the closest
- * `data-mantle-modal-content` element — an enclosing overlay's content — else
+ * `data-mantle-modal-content` element (an enclosing overlay's content), else
  * the nearest overlay's positioner, else `document.body`. Inside an overlay it
- * paints above the content that contains
- * it. Outside one, an open overlay (`z-60`) covers it.
+ * paints above the content that contains it. Outside one, an open overlay
+ * (`z-60`) covers it.
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectroot
  *
@@ -403,11 +403,11 @@ const Tag = ({
  * registration all wired up automatically.
  *
  * Pre-wired handlers included:
- * - `onKeyDown` — arrow-key nav between tags, Backspace/Delete to remove
- * - `onClick` — focuses the tag and opens the popover, or keeps it open
+ * - `onKeyDown`: arrow-key nav between tags, Backspace/Delete to remove
+ * - `onClick`: focuses the tag and opens the popover, or keeps it open
  */
 type TagRenderProps = TagProps & {
-	/** Ref callback — forward this to the tag element to enable keyboard navigation between tags. */
+	/** Ref callback. Forward it to the tag element to register it for keyboard navigation between tags. */
 	ref: (node: HTMLSpanElement | null) => void;
 };
 
@@ -668,7 +668,7 @@ const TagValues = ({
 			const lastValue = selectedArray[selectedArray.length - 1];
 			if (lastValue != null) {
 				if (lockedValuesSet.has(lastValue)) {
-					// The last tag is locked — shake it to signal that removal is blocked.
+					// The last tag is locked. Shake it to signal that removal is blocked.
 					const tagElement = tagRefs.current.get(lastValue);
 					if (tagElement) {
 						shakeElement(tagElement);
@@ -722,7 +722,7 @@ const TagValues = ({
 						}
 					},
 					onKeyDown: (event: KeyboardEvent<HTMLSpanElement>) => handleTagKeyDown(event, index),
-					// A tag click opens the popover, or keeps it open — including
+					// A tag click opens the popover, or keeps it open, including
 					// when the component was fully blurred before the click.
 					onClick: () => focusTag(index),
 				};
@@ -755,7 +755,7 @@ type MultiSelectInputProps = Omit<AriakitComboboxProps, "render"> & {
  * `id`, `aria-invalid`, `aria-describedby`, and `aria-errormessage` flow onto
  * the input here via `FieldControlContext`.
  *
- * A `name` — passed directly or flowed from `Field.Control` — is not set on this
+ * A `name` (passed directly or flowed from `Field.Control`) is not set on this
  * input. Its value is the typeahead filter text, so naming it would submit what
  * the user typed. The name is applied to one hidden input per selected value
  * instead, which is what a native form submit sends.
@@ -857,14 +857,14 @@ type MultiSelectContentProps = Omit<AriakitComboboxPopoverProps, "render"> &
  * and separators. Opens below the trigger.
  *
  * `MultiSelect.Content` renders at Tailwind `z-50` and portals into the closest
- * `data-mantle-modal-content` element — an enclosing overlay's content — else
+ * `data-mantle-modal-content` element (an enclosing overlay's content), else
  * the nearest overlay's positioner, else `document.body`. Inside an overlay it
- * paints above the content that contains
- * it. Outside one, an open overlay (`z-60`) covers it.
+ * paints above the content that contains it. Outside one, an open overlay
+ * (`z-60`) covers it.
  *
  * By default, mantle disables Ariakit's body scroll lock when the trigger is
- * inside a mantle modal (`Dialog`, `Sheet`, `AlertDialog`) — the modal already
- * locks body scroll — and enables it otherwise. Pass `preventBodyScroll` to
+ * inside a mantle modal (`Dialog`, `Sheet`, `AlertDialog`), and enables it
+ * otherwise. The modal already locks body scroll. Pass `preventBodyScroll` to
  * override.
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectcontent
@@ -921,7 +921,7 @@ const Content = ({
 
 			// Why the layer-container fallback: when the trigger sits in a float
 			// portaled into an overlay's positioner, `closest` cannot reach the
-			// overlay's content element — the popup would land on `document.body`
+			// overlay's content element, so the popup would land on `document.body`
 			// at `z-50`, under the overlay tier.
 			return (
 				portalElement ??
@@ -937,7 +937,7 @@ const Content = ({
 		(event: Event) => {
 			// Keep the popover open when interacting with any part of the trigger
 			// (tags, buttons, input, padding). Ariakit would otherwise close on any
-			// mousedown outside the popover — including tag clicks.
+			// mousedown outside the popover, including tag clicks.
 			if (event.target instanceof Node && triggerRef.current?.contains(event.target)) {
 				return false;
 			}
@@ -1381,10 +1381,10 @@ const ContentFooter = ({
  * or Select (without).
  *
  * `MultiSelect.Content` renders at Tailwind `z-50` and portals into the closest
- * `data-mantle-modal-content` element — an enclosing overlay's content — else
+ * `data-mantle-modal-content` element (an enclosing overlay's content), else
  * the nearest overlay's positioner, else `document.body`. Inside an overlay it
- * paints above the content that contains
- * it. Outside one, an open overlay (`z-60`) covers it.
+ * paints above the content that contains it. Outside one, an open overlay
+ * (`z-60`) covers it.
  *
  * @useWhen Pick several values from a list with a typeahead filter, and show the picks as removable
  * tags.
@@ -1440,10 +1440,10 @@ const MultiSelect = {
 	 * or Select (without).
 	 *
 	 * `MultiSelect.Content` renders at Tailwind `z-50` and portals into the
-	 * closest `data-mantle-modal-content` element — an enclosing overlay's content
-	 * — else the nearest overlay's positioner, else `document.body`. Inside an
-	 * overlay it paints above the content that contains it. Outside one, an open
-	 * overlay (`z-60`) covers it.
+	 * closest `data-mantle-modal-content` element (an enclosing overlay's
+	 * content), else the nearest overlay's positioner, else `document.body`.
+	 * Inside an overlay it paints above the content that contains it. Outside
+	 * one, an open overlay (`z-60`) covers it.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectroot
 	 *
@@ -1508,7 +1508,7 @@ const MultiSelect = {
 	 * ```
 	 *
 	 * @example
-	 * Custom tags via children render function — `locked` is forwarded via props.
+	 * Custom tags via the children render function. The render props forward `locked`.
 	 * ```tsx
 	 * <MultiSelect.Root>
 	 *   <MultiSelect.Trigger>
@@ -1572,10 +1572,10 @@ const MultiSelect = {
 	 * Renders a popover that contains multi-select content.
 	 *
 	 * `MultiSelect.Content` renders at Tailwind `z-50` and portals into the
-	 * closest `data-mantle-modal-content` element — an enclosing overlay's content
-	 * — else the nearest overlay's positioner, else `document.body`. Inside an
-	 * overlay it paints above the content that contains it. Outside one, an open
-	 * overlay (`z-60`) covers it.
+	 * closest `data-mantle-modal-content` element (an enclosing overlay's
+	 * content), else the nearest overlay's positioner, else `document.body`.
+	 * Inside an overlay it paints above the content that contains it. Outside
+	 * one, an open overlay (`z-60`) covers it.
 	 *
 	 * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectcontent
 	 *

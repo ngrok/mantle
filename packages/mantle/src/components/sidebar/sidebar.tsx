@@ -179,7 +179,7 @@ function useSidebarContext(part: string): SidebarState {
 
 type SidebarRootProps = {
 	/**
-	 * The sidebar's parts — a `Sidebar.Nav` and anything that reads the state,
+	 * The sidebar's parts: a `Sidebar.Nav` and anything that reads the state,
 	 * including a `Sidebar.Trigger` rendered anywhere below (an
 	 * `AppLayout.Header`, for example). `Root` renders no DOM of its own.
 	 */
@@ -216,14 +216,14 @@ type SidebarRootProps = {
 	/**
 	 * Toggle the sidebar with `⌘B` (macOS) / `Ctrl+B` (Windows/Linux). The
 	 * shortcut requires exactly the platform modifier + `b`: `⌘` on Apple
-	 * platforms and `Ctrl` everywhere else, resolved per host — the two never
+	 * platforms and `Ctrl` everywhere else, resolved per host. The two never
 	 * substitute for each other, so macOS's native `Ctrl+B` ("move the caret
 	 * back one character") is left alone. Combinations with `Shift`/`Alt` (e.g.
 	 * the browser's own `⌘⇧B`) pass through too.
 	 *
 	 * The shortcut is also ignored while focus is in a text-editing or form
-	 * control — an `<input>`, `<textarea>`, `<select>`, or any `contenteditable`
-	 * host — because the chord is usually already bound there (`⌘B` is "bold")
+	 * control (an `<input>`, `<textarea>`, `<select>`, or any `contenteditable`
+	 * host), because the chord is usually already bound there (`⌘B` is "bold")
 	 * and this is a `window` listener that calls `preventDefault()`. That covers
 	 * embedded editors like Monaco and CodeMirror, which attach to exactly those
 	 * elements. Set `false` to opt out entirely.
@@ -244,7 +244,7 @@ type SidebarRootProps = {
 
 /**
  * The key that toggles the sidebar together with the platform modifier
- * (`⌘` on macOS, `Ctrl` elsewhere) — shadcn-compatible.
+ * (`⌘` on macOS, `Ctrl` elsewhere). The chord is shadcn-compatible.
  */
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 
@@ -297,7 +297,7 @@ function claimKeyboardShortcut(): { isOwner: () => boolean; release: () => void 
 
 /**
  * The state owner for a sidebar. Renders no DOM of its own (like
- * `Tooltip.Root`) — it carries the expanded/collapsed and mobile-sheet state
+ * `Tooltip.Root`). It carries the expanded/collapsed and mobile-sheet state
  * to every part below it, so `Sidebar.Trigger` can live anywhere in the tree
  * (for example inside an `AppLayout.Header`) without coupling the app shell
  * to the sidebar.
@@ -410,7 +410,7 @@ const Root = ({
 	// Crossing up over the breakpoint unmounts the sheet without closing it;
 	// clear the stale flag so narrowing the window later doesn't pop the sheet
 	// back open without user action. Only a true mobile→desktop transition may
-	// reset — a bare state check would fire on mount and clobber a controlled
+	// reset: a bare state check would fire on mount and clobber a controlled
 	// `openMobile` during SSR hydration (isMobile is desktop-first until the
 	// media query snapshot corrects).
 	const wasMobile = useRef(isMobile);
@@ -433,7 +433,7 @@ const Root = ({
 	// ⌘B (Apple) / Ctrl+B (elsewhere) toggles the sidebar (shadcn-compatible).
 	// Exact-modifier match: Shift/Alt combinations (e.g. the browser's own ⌘⇧B)
 	// pass through, and the two platform modifiers never substitute for each
-	// other — accepting either would hijack macOS's native Ctrl+B ("move the
+	// other. Accepting either would hijack macOS's native Ctrl+B ("move the
 	// caret back one character"), which every macOS text field binds.
 	// Ownership: only the registry's first claimant handles the keypress, so
 	// multiple mounted roots (nested or siblings) never toggle together.
@@ -441,7 +441,7 @@ const Root = ({
 	// `toggle` is read through a stable ref rather than listed as a dependency:
 	// its identity changes on every toggle (and on every parent render when the
 	// consumer passes an inline `onOpenChange`), and re-running the effect would
-	// release the claim and re-queue it at the TAIL — handing ownership to a
+	// release the claim and re-queue it at the TAIL. That hands ownership to a
 	// sibling root after the first keypress, exactly the ping-pong the queue
 	// exists to prevent.
 	const toggleRef = useCallbackRef(toggle);
@@ -472,7 +472,7 @@ const Root = ({
 			const platformModifier = isApple ? event.metaKey : event.ctrlKey;
 			const foreignModifier = isApple ? event.ctrlKey : event.metaKey;
 			// toLowerCase: with Caps Lock on, browsers report key "B" with
-			// shiftKey false — the shortcut must not silently die there.
+			// shiftKey false, and the shortcut must not silently die there.
 			// The optional read is not redundant. The DOM type says `key` is a
 			// string. An extension or a password manager can dispatch a `keydown`
 			// that omits it. The bare read then throws on the page.
@@ -525,7 +525,7 @@ const Root = ({
 type SidebarNavProps = ComponentProps<"div"> & WithDataSlot;
 
 // Why no `asChild`: Nav renders a fixed two-element structure on desktop (a
-// width animator clipping the `<nav>`) and a `Sheet` on mobile — there
+// width animator clipping the `<nav>`) and a `Sheet` on mobile. There
 // is no single default element a Slot swap could coherently replace.
 /**
  * The sidebar panel. On viewports at or above the root's `mobileBreakpoint`
@@ -761,12 +761,12 @@ type SidebarTriggerProps = Omit<
 		label?: string;
 		/**
 		 * The keyboard chord that also toggles the sidebar, rendered after the label
-		 * in the tooltip — usually `<><MetaKey /><Kbd>B</Kbd></>`.
+		 * in the tooltip, usually `<><MetaKey /><Kbd>B</Kbd></>`.
 		 *
 		 * Ignored under `Sidebar.Root keyboardShortcut={false}`, so the tooltip can
 		 * never name a binding that is not bound. Passed rather than built in so the
 		 * sidebar does not have to reach into another component for the platform
-		 * modifier glyph — `aria-keyshortcuts` is stamped either way, which is also
+		 * modifier glyph. `aria-keyshortcuts` is stamped either way, which is also
 		 * why the chips render `aria-hidden`.
 		 */
 		shortcut?: ReactNode;
@@ -828,13 +828,13 @@ const TooltipLabel = ({ label, shortcut }: { label: ReactNode; shortcut: ReactNo
  * `mobileBreakpoint`, the desktop expanded state otherwise. Renders a small
  * ghost neutral `IconButton` with `aria-expanded` and `aria-controls` wired to
  * the sidebar's `<nav>`. Place it in your app shell's header (for example
- * `AppLayout.Header`) — it must stay visible at every breakpoint where the
+ * `AppLayout.Header`). It must stay visible at every breakpoint where the
  * sidebar can collapse, or users have no way to reopen it.
  *
  * The button is icon-only at every breakpoint, so it always renders a tooltip
  * showing `label` (plus the optional `shortcut` chips). **That means it requires
  * a `TooltipProvider` ancestor, like any `Tooltip.Root`, and throws without
- * one** — mount a single provider at your app root, decoupled from the sidebar,
+ * one.** Mount a single provider at your app root, decoupled from the sidebar,
  * so the app-wide delay and hover settings stay app-wide.
  *
  * It also stamps `aria-keyshortcuts` for the `⌘B` / `Ctrl+B` chord the root
@@ -943,7 +943,7 @@ const Trigger = ({
 	const isApple = useIsApplePlatform();
 	const expanded = isMobile ? openMobile : open;
 	// The mobile `Sheet` unmounts its content while closed, so the `<nav>` this
-	// would point at does not exist — and `aria-controls` must reference an
+	// would point at does not exist, and `aria-controls` must reference an
 	// element that is in the document. Desktop keeps the panel mounted at every
 	// state (collapsing is a width animation), so the reference always resolves.
 	const controlsNav = !isMobile || openMobile;
@@ -960,7 +960,7 @@ const Trigger = ({
 		// Unlike `Sidebar.Tooltip`, this label is not gated on the rail state: the
 		// trigger is an icon-only button at every breakpoint, so a pointer user has
 		// nothing else to read. Requires a `TooltipProvider` ancestor, like any
-		// `Tooltip.Root` — mount one at your app root, decoupled from the sidebar,
+		// `Tooltip.Root`. Mount one at your app root, decoupled from the sidebar,
 		// so the app-wide delay and hover settings stay app-wide.
 		<Tooltip.Root>
 			<Tooltip.Trigger asChild>
@@ -1006,7 +1006,7 @@ type SidebarHeaderProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  * construction.
  *
  * Every child after the first stacks flush below the band in its own row, the
- * way rows stack in `Sidebar.Footer` — the band's own lower half is the space
+ * way rows stack in `Sidebar.Footer`: the band's own lower half is the space
  * between them. The header grows to fit them. The band, and with it the toolbar,
  * stays the height of the switcher row alone, so a search row pinned under the
  * switcher (`Sidebar.SearchTrigger`) needs no override and no hand-copied
@@ -1014,13 +1014,13 @@ type SidebarHeaderProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  *
  * The alignment is positional: keep the aligned row as the header's first direct
  * child. A wrapper around both rows takes the band itself. A first row taller
- * than the band overflows it — raise the variable instead.
+ * than the band overflows it. Raise the variable instead.
  *
  * **CSS variables (public API):**
  *
  * | CSS Variable | Default | Description |
  * | --- | --- | --- |
- * | `--sidebar-header-height` | `4.5rem` | The first child's band (72px) — the height an `AppLayout.Header` toolbar matches, not a cap on the header, which grows for every row after the first. Set it on a common ancestor of the sidebar and `AppLayout.Header`, not on `Sidebar.Nav`, so both rows read one value. |
+ * | `--sidebar-header-height` | `4.5rem` | The first child's band (72px): the height an `AppLayout.Header` toolbar matches, not a cap on the header, which grows for every row after the first. Set it on a common ancestor of the sidebar and `AppLayout.Header`, not on `Sidebar.Nav`, so both rows read one value. |
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarheader
  *
@@ -1090,7 +1090,7 @@ const Header = ({
 				// Why grid: the first track is exactly --sidebar-header-height, so the
 				// first child owns the band an AppLayout.Header toolbar sizes itself
 				// against (see AppLayout.Header) while every later child gets its own
-				// auto track below it — a search row stacks under the switcher without
+				// auto track below it. A search row stacks under the switcher without
 				// moving it off that band, and neither row needs a token override. The
 				// single minmax(0,1fr) column keeps a long switcher label truncating
 				// instead of widening the track.
@@ -1298,8 +1298,8 @@ const Footer = ({
 
 type SidebarGroupContextValue = {
 	/**
-	 * The id of the `Sidebar.GroupLabel` currently mounted in this group — the
-	 * consumer's own `id` when they pass one, else the label's generated id —
+	 * The id of the `Sidebar.GroupLabel` currently mounted in this group (the
+	 * consumer's own `id` when they pass one, else the label's generated id),
 	 * or `null` while no label is mounted, so the list's `aria-labelledby`
 	 * never dangles.
 	 */
@@ -1602,7 +1602,7 @@ const List = ({
 type SidebarItemProps = ComponentProps<"li"> & WithAsChild & WithDataSlot;
 
 /**
- * A single `<li>` row of a `Sidebar.List`. A plain wrapper — the interactive
+ * A single `<li>` row of a `Sidebar.List`. A plain wrapper: the interactive
  * element is the `Sidebar.ItemButton` child, so props, `ref`, and `className`
  * all target the list item itself.
  *
@@ -1865,7 +1865,7 @@ const ItemButton = ({
 type SidebarSearchTriggerProps = ComponentProps<"button"> &
 	WithDataSlot &
 	// `shortcut` and `asChild` are mutually exclusive: the hint is a sibling this
-	// part renders after `children`, and a slotted child is cloned, not wrapped —
+	// part renders after `children`, and a slotted child is cloned, not wrapped:
 	// there is nowhere to put a sibling. With `asChild` the row's whole content is
 	// yours, hint included; `group-hover:`/`group-focus-visible:` still work,
 	// because the row keeps its `group` class either way.
@@ -1873,7 +1873,7 @@ type SidebarSearchTriggerProps = ComponentProps<"button"> &
 		| {
 				/**
 				 * Compose the search row's styling onto your own element. Then the
-				 * row's entire content is yours — including any shortcut hint, which
+				 * row's entire content is yours, including any shortcut hint, which
 				 * `shortcut` cannot add to a cloned child.
 				 */
 				asChild: true;
@@ -1882,12 +1882,12 @@ type SidebarSearchTriggerProps = ComponentProps<"button"> &
 		| {
 				/**
 				 * Compose the search row's styling onto your own element. Then the
-				 * row's entire content is yours — including any shortcut hint, which
+				 * row's entire content is yours, including any shortcut hint, which
 				 * `shortcut` cannot add to a cloned child.
 				 */
 				asChild?: false;
 				/**
-				 * The keyboard hint for the chord that opens the same palette — usually
+				 * The keyboard hint for the chord that opens the same palette, usually
 				 * `<><MetaKey /><Kbd>K</Kbd></>`.
 				 *
 				 * Rendered pinned to the end of the row and **revealed only on hover or
@@ -1905,7 +1905,7 @@ type SidebarSearchTriggerProps = ComponentProps<"button"> &
 	);
 
 /**
- * The search row — the row that opens a search or command palette.
+ * The search row: the row that opens a search or command palette.
  *
  * Put it at the top of `Sidebar.Body`, above the first `Sidebar.Group`: it lands
  * in the same `px-3` gutter as the navigation rows, so it shares their column in
@@ -1914,19 +1914,19 @@ type SidebarSearchTriggerProps = ComponentProps<"button"> &
  * `Sidebar.Header`, under the switcher, also works, and pins the row above the
  * scrolling body instead. The switcher stays the header's first child, so it
  * keeps the `--sidebar-header-height` band an `AppLayout.Header` toolbar
- * matches, and this row takes the next row down — the header grows for it, so
+ * matches, and this row takes the next row down. The header grows for it, so
  * nothing needs a token override. The header reserves no scrollbar gutter, so on
  * a platform whose scrollbars take space the row runs wider than the navigation
  * rows below it, which sit inside `Sidebar.Body`'s reserved gutter.
  *
  * It is deliberately a navigation row and not a text field. The row is the same
- * chrome as a `Sidebar.ItemButton` — same height, padding, radius, hover, and
- * the same 28px chip in the collapsed icon rail — because a search entry point
+ * chrome as a `Sidebar.ItemButton` (same height, padding, radius, hover, and
+ * the same 28px chip in the collapsed icon rail), because a search entry point
  * in a sidebar is one of the rows, not a form control wedged among them. The
  * `shortcut` hint appears on hover or focus and is otherwise invisible, which
  * keeps the resting panel quiet.
  *
- * A styled button only — it is not wired to any state. Compose it with
+ * A styled button only. It is not wired to any state. Compose it with
  * [`Command.SearchTrigger`](https://mantle.ngrok.com/components/navigation/command#commandsearchtrigger),
  * which supplies the dialog wiring, `aria-keyshortcuts`, and the behavior that
  * makes typing or pasting into the row open the palette with that text already
@@ -2014,7 +2014,7 @@ const SearchTrigger = ({
 	// Why branch on `asChild` and not on `shortcut`: the `asChild` case hands
 	// `Slot` exactly one child, and `Children.only` rejects a second. Branching
 	// on `shortcut` instead flipped the child list between `children` and a
-	// Fragment, so React deleted every child when a chord arrived — and a
+	// Fragment, so React deleted every child when a chord arrived. A
 	// translated label is reparented by then, so that removal throws.
 	// decisions/2026-08-04-translation-safe-label-wrappers.md
 	const content = asChild ? (
@@ -2064,7 +2064,7 @@ const SearchTrigger = ({
 				"group",
 				rowClassName,
 				// The leading magnifier matches a nav row's leading icon, hover
-				// brightening included — without it the row's label lifts to
+				// brightening included. Without it the row's label lifts to
 				// `text-strong` while its icon stays muted, which no nav row does.
 				// Why both forms: the label span makes a consumer's icon a grandchild
 				// on the `button` path, and `asChild` renders no label span at all, so
@@ -2227,12 +2227,12 @@ const SwitcherTrigger = ({
 type SidebarTooltipProps = Omit<ComponentProps<typeof Tooltip.Content>, "children" | "side"> &
 	WithDataSlot & {
 		/**
-		 * The row this labels — a `Sidebar.ItemButton` or `Sidebar.SwitcherTrigger`,
+		 * The row this labels: a `Sidebar.ItemButton` or `Sidebar.SwitcherTrigger`,
 		 * optionally already wrapped in a `DropdownMenu.Trigger asChild`.
 		 *
 		 * A single element, required: `Tooltip.Trigger asChild` clones its child, so
 		 * text renders nothing a pointer can hover and no children renders no row at
-		 * all — both silently.
+		 * all. Both fail silently.
 		 */
 		children: ReactElement;
 		/**
@@ -2243,7 +2243,7 @@ type SidebarTooltipProps = Omit<ComponentProps<typeof Tooltip.Content>, "childre
 		 */
 		label: ReactNode;
 		/**
-		 * The keyboard chord that reaches the same row, rendered after the label —
+		 * The keyboard chord that reaches the same row, rendered after the label,
 		 * usually `<><MetaKey /><Kbd>K</Kbd></>`. The rail hides the row's own
 		 * shortcut hint along with its label, so the tooltip is where a pointer user
 		 * can still learn the chord. The chips are `aria-hidden`: a tooltip is wired
@@ -2267,7 +2267,7 @@ type SidebarTooltipProps = Omit<ComponentProps<typeof Tooltip.Content>, "childre
 // because its arrow is a permanent sibling of the body. The row's own
 // polymorphism goes through the part inside.
 /**
- * Labels a sidebar row while — and only while — the desktop panel is collapsed
+ * Labels a sidebar row only while the desktop panel is collapsed
  * to the icon rail. Wrap it around a `Sidebar.ItemButton` or
  * `Sidebar.SwitcherTrigger`.
  *
@@ -2278,13 +2278,13 @@ type SidebarTooltipProps = Omit<ComponentProps<typeof Tooltip.Content>, "childre
  * the mobile sheet shows full labels, so the collapsed desktop rail is the only
  * state that shows a label at all.
  *
- * It opens the way any tooltip does — the pointer entering the row, or focus
- * reaching it — and the rail state vetoes it: the expanded panel and the mobile
+ * It opens the way any tooltip does (the pointer entering the row, or focus
+ * reaching it), and the rail state vetoes it: the expanded panel and the mobile
  * sheet keep the row at `data-state="closed"` with no `aria-describedby`, and
  * toggling the rail dismisses whatever was showing, so collapsing the panel
  * cannot pop a label under a pointer that has already moved on.
  *
- * **Requires a `TooltipProvider` ancestor**, like any `Tooltip.Root` — mount one
+ * **Requires a `TooltipProvider` ancestor**, like any `Tooltip.Root`. Mount one
  * at your app root. This part deliberately does not mount its own, so the
  * app-wide tooltip delay stays app-wide rather than being overridden per row.
  * The one provider setting it does override is hoverable content: a rail label
@@ -2293,7 +2293,7 @@ type SidebarTooltipProps = Omit<ComponentProps<typeof Tooltip.Content>, "childre
  * It composes with a menu trigger: nest `DropdownMenu.Root >
  * Sidebar.Tooltip > DropdownMenu.Trigger asChild > Sidebar.ItemButton` for a
  * row that opens a menu *and* labels itself in the rail. `DropdownMenu.Root` must
- * stay **outside** the tooltip — it is renderless, and `Tooltip.Trigger asChild`
+ * stay **outside** the tooltip: it is renderless, and `Tooltip.Trigger asChild`
  * needs a real element to clone.
  *
  * `children` is the row; `label` is what the tooltip says. Every other prop is
@@ -2400,9 +2400,9 @@ const SidebarTooltip = ({
 	 * Mirrors Radix's open state, clamped so it can only ever hold `true` in the
 	 * one rail state that shows a label.
 	 *
-	 * The clamp is load-bearing, not belt-and-braces. Radix reports every open it
+	 * The clamp is required, not belt-and-braces. Radix reports every open it
 	 * wants, including ones the veto below discards, so an unclamped mirror holds
-	 * `true` through the whole expanded panel — and a repeat `open` (a menu on the
+	 * `true` through the whole expanded panel. A repeat `open` (a menu on the
 	 * row closing and restoring focus to it, say) then sets the mirror to a value
 	 * it already has. React keeps that no-op update queued, and replays it after
 	 * the rail-flip reset commits, which lands `true` in the collapsed rail with
@@ -2417,7 +2417,7 @@ const SidebarTooltip = ({
 		 * The rail state vetoes the open state rather than withholding the Content:
 		 * Radix's own pointer close path lives inside `Tooltip.Content`, so a Root
 		 * left to its own devices while the Content is unmounted latches open with
-		 * nothing to close it — and meanwhile points the row's `aria-describedby` at
+		 * nothing to close it. Meanwhile it points the row's `aria-describedby` at
 		 * an id that is not in the document. Owning `open` keeps the expanded panel
 		 * and the mobile sheet at `data-state="closed"`, which is the truth.
 		 *
@@ -2425,8 +2425,8 @@ const SidebarTooltip = ({
 		 * unmount the Trigger with it, dropping focus off the row the user was on.
 		 *
 		 * `disableHoverableContent` moves the close path onto the Trigger, which is
-		 * always mounted. A rail label has nothing to hover into — per the WAI-ARIA
-		 * tooltip pattern it holds no interactive content — so trading the grace
+		 * always mounted. A rail label has nothing to hover into (per the WAI-ARIA
+		 * tooltip pattern it holds no interactive content), so trading the grace
 		 * area for a close that cannot depend on what is mounted is free.
 		 *
 		 * `className` is not destructured on purpose: it rides `props` into
@@ -2539,9 +2539,9 @@ const SidebarSeparator = ({
 
 /**
  * A composable, collapsible app-navigation sidebar. `Sidebar.Root` owns the
- * state (no DOM); `Sidebar.Nav` renders the panel — inline on desktop,
+ * state (no DOM). `Sidebar.Nav` renders the panel: inline on desktop,
  * collapsing to a skinny icon rail, and a left-side `Sheet` below the root's
- * `mobileBreakpoint`; and `Sidebar.Trigger` toggles it from anywhere under the
+ * `mobileBreakpoint`. `Sidebar.Trigger` toggles it from anywhere under the
  * root (typically an `AppLayout.Header`). Navigation is grouped with
  * `Sidebar.Group`/`Sidebar.GroupLabel`/`Sidebar.List`, and the switcher rows
  * (app switcher up top, account/user down bottom) compose
@@ -2639,7 +2639,7 @@ const SidebarSeparator = ({
  */
 const Sidebar = {
 	/**
-	 * The state owner for a sidebar. Renders no DOM — carries expanded /
+	 * The state owner for a sidebar. Renders no DOM. It carries expanded /
 	 * mobile-sheet state to every part below it so the trigger can live in the
 	 * app shell without coupling it to the sidebar.
 	 *
@@ -3303,7 +3303,7 @@ const Sidebar = {
 	 * The search row: an item-shaped row whose `shortcut` hint appears on hover or
 	 * focus, and the same chip as any other row in the collapsed icon rail. Goes
 	 * in `Sidebar.Body` to scroll with the navigation, or in `Sidebar.Header` to
-	 * stay pinned above it. Not state-wired — compose with
+	 * stay pinned above it. Not state-wired: compose with
 	 * `Command.SearchTrigger`.
 	 *
 	 * **Data attributes:**

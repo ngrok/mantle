@@ -16,7 +16,7 @@ import { useIsApplePlatform } from "../../hooks/use-is-apple-platform.js";
  */
 type CommandSearchTriggerProps = Omit<ComponentProps<typeof Slot>, "children"> & {
 	/**
-	 * The control that opens the palette — the row or button a user sees.
+	 * The control that opens the palette: the row or button a user sees.
 	 *
 	 * A single element, required: this part renders no DOM of its own and
 	 * clones what it is given, so text renders nothing to click and no children
@@ -29,8 +29,8 @@ type CommandSearchTriggerProps = Omit<ComponentProps<typeof Slot>, "children"> &
 
 /**
  * Makes any control behave like a search field that opens the command palette.
- * It renders no DOM of its own — it clones its child and gives it the wiring,
- * so **presentation belongs entirely to the child** and this part never has an
+ * It renders no DOM of its own (it clones its child and gives it the wiring),
+ * so **presentation belongs entirely to the child**. This part never has an
  * opinion about how the trigger looks or how it behaves in a collapsed sidebar
  * rail.
  *
@@ -57,12 +57,12 @@ type CommandSearchTriggerProps = Omit<ComponentProps<typeof Slot>, "children"> &
  *   binds to `Command.DialogRoot`, because `Sheet` parts read a dialog scope
  *   of their own.
  * - `data-state="open" | "closed"`, stamped from the palette's own state so it
- *   survives being wrapped in another cloning trigger — a `Sidebar.Tooltip`
+ *   survives being wrapped in another cloning trigger. A `Sidebar.Tooltip`
  *   passes its own `data-state` down, and Radix's prop merge would otherwise
  *   let it win.
  * - `aria-keyshortcuts`, so the `⌘K` binding is announced rather than only
- *   drawn — present only when `Command.DialogRoot` owns the shortcut, so it can
- *   never advertise a binding that is not bound. Pass your own value to
+ *   drawn. It is present only when `Command.DialogRoot` owns the shortcut, so it
+ *   can never advertise a binding that is not bound. Pass your own value to
  *   announce a chord you bound yourself.
  * - `onKeyDown` and `onPaste`, composed with the child's own handlers.
  * - `data-slot="command-search-trigger"`, joined ahead of the child's own slot.
@@ -73,7 +73,7 @@ type CommandSearchTriggerProps = Omit<ComponentProps<typeof Slot>, "children"> &
  *
  * It adds no accessible name: the child's visible label is the name, so the two
  * cannot drift apart. A visible `⌘K` hint belongs to the child and should be
- * `aria-hidden` there, since `aria-keyshortcuts` already announces the chord —
+ * `aria-hidden` there, since `aria-keyshortcuts` already announces the chord.
  * `Sidebar.SearchTrigger`'s `shortcut` prop does that for you.
  *
  * @see https://mantle.ngrok.com/components/navigation/command#commandsearchtrigger
@@ -110,7 +110,7 @@ type CommandSearchTriggerProps = Omit<ComponentProps<typeof Slot>, "children"> &
  *
  * @example
  * In a sidebar, where `Sidebar.SearchTrigger` owns the row's appearance in both
- * panel states — including its hover-revealed shortcut hint — and
+ * panel states (including its hover-revealed shortcut hint) and
  * `Sidebar.Tooltip` labels it in the collapsed rail. `Command.DialogRoot` sits
  * above `Sidebar.Nav`: below `mobileBreakpoint` the nav is a sheet that
  * unmounts its subtree when it closes, and a root inside it takes the `⌘K`
@@ -149,7 +149,7 @@ type CommandSearchTriggerProps = Omit<ComponentProps<typeof Slot>, "children"> &
  * ```
  */
 // Why no `asChild` prop: this part is *only* a child-cloning wrapper, so
-// cloning is unconditional rather than opt-in — the same shape as
+// cloning is unconditional rather than opt-in. It is the same shape as
 // `Sidebar.Tooltip`, which also takes a required single-element `children`.
 const CommandSearchTrigger = ({
 	"aria-keyshortcuts": ariaKeyshortcuts,
@@ -174,8 +174,8 @@ const CommandSearchTrigger = ({
 	return (
 		<Dialog.Trigger asChild>
 			<Slot
-				// Rest props first: composing this inside another cloning trigger — a
-				// `Sidebar.Tooltip`, say — routes that trigger's pointer and focus
+				// Rest props first: composing this inside another cloning trigger (a
+				// `Sidebar.Tooltip`, say) routes that trigger's pointer and focus
 				// handlers and `aria-describedby` through here, and dropping them
 				// leaves the outer trigger inert.
 				{...props}
@@ -185,7 +185,7 @@ const CommandSearchTrigger = ({
 				data-slot={joinDataSlot(dataSlot, "command-search-trigger")}
 				// Stamped last, and from the palette's own state, because an outer
 				// cloning trigger's `data-state` arrives in `props` and Radix's
-				// `mergeProps` gives the child's value priority — so a
+				// `mergeProps` gives the child's value priority, so a
 				// `Sidebar.Tooltip` wrapper would otherwise hand the row the
 				// *tooltip's* state and the palette's open highlight would never fire.
 				data-state={open ? "open" : "closed"}
@@ -198,7 +198,7 @@ const CommandSearchTrigger = ({
 					// policy reads the native one.
 					const action = searchActionFromKeyDown(event.nativeEvent);
 					if (action.type === "seed") {
-						// Keep the character from also reaching the page — `/` opens
+						// Keep the character from also reaching the page: `/` opens
 						// Firefox's quick-find, and a bare letter can hit an app-level
 						// hotkey.
 						event.preventDefault();

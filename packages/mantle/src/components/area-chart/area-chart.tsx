@@ -41,7 +41,7 @@ type AreaChartListProps = ChartListPrimitiveProps;
 
 /**
  * Props for {@link AreaChart.Root}. Areas fill from a shared zero baseline, so
- * the y domain minimum is fixed at `0` — a truncated-area axis is
+ * the y domain minimum is fixed at `0`. A truncated-area axis is
  * unrepresentable.
  */
 type AreaChartRootProps<
@@ -118,7 +118,7 @@ type AreaChartGridProps = GridPrimitiveProps;
 
 /**
  * Props for {@link AreaChart.XAxis}. The tick formatter receives the row's x
- * value — the category value on point scales, a `Date` on time scales, and a
+ * value: the category value on point scales, a `Date` on time scales, and a
  * number on linear scales.
  */
 type AreaChartXAxisProps = XAxisPrimitiveProps;
@@ -224,7 +224,7 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
 );
 
 /**
- * One area series. Renders nothing itself — it registers the series with the
+ * One area series. Renders nothing itself: it registers the series with the
  * chart, which paints it. Compose one `Area` per series; with
  * `stacked` on the Root, areas stack in registration order with the
  * first-registered series at the baseline, so an `Area` that mounts later
@@ -311,8 +311,8 @@ const XAxis = (props: AreaChartXAxisProps) => useXAxisPrimitive("AreaChart.XAxis
 const YAxis = (props: AreaChartYAxisProps) => useYAxisPrimitive("AreaChart.YAxis", props);
 
 /**
- * A dashed horizontal marker at a y value — an SLO threshold, a budget, a
- * limit (renderless; the chart paints it).
+ * A dashed horizontal marker at a y value, such as an SLO threshold, a budget,
+ * or a limit (renderless; the chart paints it).
  *
  * @see https://mantle.ngrok.com/components/charts/area-chart#areachartreferenceline
  *
@@ -336,7 +336,7 @@ const ReferenceLine = (props: AreaChartReferenceLineProps) =>
 /**
  * Customizes the hover/keyboard tooltip readout. The tooltip itself is part
  * of `AreaChart.Root`'s interaction contract and renders even when this part
- * is absent — compose it to format the label or values, append a footer, or
+ * is absent. Compose it to format the label or values, append a footer, or
  * replace the content entirely via the render-prop `children`.
  *
  * **Structure.** A `children` readout renders inside a
@@ -371,7 +371,7 @@ const Tooltip = (props: AreaChartTooltipProps) => useTooltipPrimitive("AreaChart
 
 /**
  * The legend: series names keyed by color swatches, rendered as real DOM in
- * flow below the plot. Always compose it on multi-series charts — identity
+ * flow below the plot. Always compose it on multi-series charts: identity
  * must never rely on color-matching alone. It renders nothing for a single
  * series (the chart's title already names it).
  *
@@ -388,7 +388,7 @@ const Tooltip = (props: AreaChartTooltipProps) => useTooltipPrimitive("AreaChart
  * | --- | --- | --- |
  * | `data-slot` | `"area-chart-legend"` | The legend list. `AreaChart.Legend` renders it in flow below the plot. |
  * | `data-slot` | `"area-chart-legend-label"` | On the `<div>` wrapping a `children` render prop. The default legend has none. |
- * | `data-shape` | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` \| `"triangle-down"` \| `"plus"` \| `"cross"` \| `"star"` | On each series' swatch, naming the glyph its `AreaChart.Area` wears — the `shape` it set, else the circle. The swatch clips itself to that glyph, so target this only to restyle a key. |
+ * | `data-shape` | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` \| `"triangle-down"` \| `"plus"` \| `"cross"` \| `"star"` | On each series' swatch, naming the glyph its `AreaChart.Area` wears: the `shape` it set, else the circle. The swatch clips itself to that glyph, so target this only to restyle a key. |
  *
  * @see https://mantle.ngrok.com/components/charts/area-chart#areachartlegend
  *
@@ -411,8 +411,8 @@ const Legend = (props: AreaChartLegendProps) => (
 
 /**
  * A button that copies the chart's current data to the clipboard as a
- * markdown table (ISO dates, plain numbers, one column per series) —
- * pasteable into Slack, issues, docs, spreadsheets, and LLM chats. Renders
+ * markdown table (ISO dates, plain numbers, one column per series). The table
+ * pastes into Slack, issues, docs, spreadsheets, and LLM chats. Renders
  * in flow where composed (alongside `Legend`, below the plot); `Root` is
  * relatively positioned, so `className` can dock it over a corner instead
  * (e.g. `absolute right-0 top-0`).
@@ -463,8 +463,8 @@ const List = (props: AreaChartListProps) => (
 );
 
 /**
- * An area chart for showing how values — and, when stacked, a
- * total and its parts — change over a continuous x axis. Each area fills with
+ * An area chart for showing how values (and, when stacked, a
+ * total and its parts) change over a continuous x axis. Each area fills with
  * a 10% wash of the series color plus a 2px band-edge stroke; the Root-level
  * `stacked` prop stacks the series in registration order from the baseline.
  * Each series names its own `color`. Interaction ships with `Root`

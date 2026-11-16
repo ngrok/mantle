@@ -18,11 +18,11 @@ import { useChartContext } from "./context.js";
 /**
  * The copy button part: copies the chart's data as a Markdown table.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation, not exported from the package.
  */
 
 // The native `onCopy` clipboard event handler is omitted so the part's own
-// callback (fired with the serialized markdown) can own the name — on a copy
+// callback (fired with the serialized markdown) can own the name. On a copy
 // button, the DOM event is noise and the collision would poison both types.
 type CopyButtonPrimitiveProps = Omit<
 	ComponentProps<"button">,
@@ -59,8 +59,8 @@ type CopyButtonPrimitiveProps = Omit<
  * GitHub-flavored markdown table. Columns mirror the sr-only data table twin:
  * x first, one column per composed series in paint order, and the z column on
  * 3D scatters. Output is machine-stable (ISO 8601 dates, un-separated
- * numbers, em dash gaps) so the paste target — Slack, an issue, a
- * spreadsheet, an LLM chat — receives parseable data, not locale formatting.
+ * numbers, em dash gaps), so the paste target (Slack, an issue, a
+ * spreadsheet, an LLM chat) receives parseable data, not locale formatting.
  *
  * The data is serialized at click time, so the copy always reflects the
  * chart's current rows.

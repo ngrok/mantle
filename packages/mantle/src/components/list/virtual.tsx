@@ -70,7 +70,7 @@ function buildItemPlacement({
  * One windowed row: memoizes its {@link ListItemContextValue} (index + placement)
  * and hands it to the composed `Item` (wherever it sits, even inside a consumer's
  * item wrapper). Extracted so the provider value is a `useMemo` result rather
- * than reconstructed inline — a `.map()` body can't call hooks itself.
+ * than reconstructed inline: a `.map()` body can't call hooks itself.
  */
 function WindowedItem({
 	children,
@@ -163,18 +163,18 @@ function useVirtualWindow({
 /**
  * The windowed counterpart to `Root`: renders only the visible slice of its
  * composed `Item` children via `@tanstack/react-virtual`, sharing the plain
- * shell's chrome, semantics, and — for a grid — `aria-activedescendant`
+ * shell's chrome, semantics, and (for a grid) `aria-activedescendant`
  * keyboard navigation. Authored identically to `Root` (you still compose `<Item>`
  * children), so swapping in virtualization never changes the call site. This
  * module is the sole importer of `@tanstack/react-virtual`; because the `List`
  * namespace (and both higher-level list components) re-export `VirtualRoot`,
- * the dependency ships with every list entrypoint — it is small (~a few kB
+ * the dependency ships with every list entrypoint. It is small (~a few kB
  * gzipped) and does no windowing work until a `VirtualRoot` actually renders.
  *
  * Grid navigation works across the **full** collection, not just the window:
  * arrow keys move an active index over all rows, `scrollToIndex` reveals + mounts
  * the active row, and focus stays on the collection (never on a row) so it
- * survives windowing. Each windowed row still carries its position —
+ * survives windowing. Each windowed row still carries its position:
  * `aria-posinset` / `aria-setsize` on a listitem, `aria-rowindex` (with
  * `aria-rowcount` on the grid) on a grid row. `overscan` keeps the active row
  * mounted through nearby scrolling; if it is mouse-scrolled fully out of the
@@ -217,7 +217,7 @@ const VirtualRoot = ({
 	const composedViewportRef = useComposedRefs(scrollRef, ref);
 	// Memoized so a scroll or keyboard-nav re-render (`useVirtualizer` re-renders
 	// on every offset change) doesn't re-walk + re-filter the full child set each
-	// frame — only the windowed slice below needs to re-render.
+	// frame. Only the windowed slice below needs to re-render.
 	const items = useMemo(() => Children.toArray(children).filter(isValidElement), [children]);
 	const count = items.length;
 	// Key windowed rows by the child's own key (assigned by `Children.toArray`).
@@ -268,7 +268,7 @@ const VirtualRoot = ({
 					return;
 				}
 				// A jump target (Home/End) may not be mounted until the virtualizer
-				// renders the new window — scroll it in, then poll for its control.
+				// renders the new window, so scroll it in, then poll for its control.
 				scrollRowIntoView(target);
 				const item = viewport.querySelector(`[data-index="${target}"]`);
 				if (item != null) {

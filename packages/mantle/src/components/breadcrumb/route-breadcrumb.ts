@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 /**
- * One crumb a route contributes — a discriminated union on `kind`. Create
+ * One crumb a route contributes: a discriminated union on `kind`. Create
  * these with {@link routeBreadcrumb}; the factory stamps the discriminant, so
  * no call site hand-writes one.
  *
@@ -26,8 +26,8 @@ type Crumb =
 	  }
 	| {
 			/**
-			 * A prefix crumb: it names a level with no page of its own — a section
-			 * whose index URL only redirects — so the renderer draws it as a
+			 * A prefix crumb: it names a level with no page of its own (a section
+			 * whose index URL only redirects), so the renderer draws it as a
 			 * non-link `Breadcrumb.Label`.
 			 */
 			kind: "label";
@@ -54,7 +54,7 @@ type Crumb =
 /**
  * Creates the crumb a route contributes: a link crumb, whose omitted `to`
  * resolves to the contributing route's own `pathname`. Two members cover the
- * crumbs that are not plain links — `routeBreadcrumb.label` for a section
+ * crumbs that are not plain links: `routeBreadcrumb.label` for a section
  * prefix that never links, and `routeBreadcrumb.content` for a trail segment
  * that renders itself from fetched data.
  *
@@ -81,7 +81,7 @@ const routeBreadcrumb = Object.assign(
 	}),
 	{
 		/**
-		 * Creates a prefix crumb — one that never links. The renderer draws it as
+		 * Creates a prefix crumb: one that never links. The renderer draws it as
 		 * a non-link `Breadcrumb.Label`.
 		 *
 		 * @example
@@ -91,7 +91,7 @@ const routeBreadcrumb = Object.assign(
 		 */
 		label: (label: ReactNode): Crumb => ({ kind: "label", label }),
 		/**
-		 * Creates a content crumb — a complete rendered trail segment, for labels
+		 * Creates a content crumb: a complete rendered trail segment, for labels
 		 * and links that only exist in fetched data. The node decides link vs
 		 * current page itself, because the trail builder cannot see inside it.
 		 *
@@ -136,7 +136,7 @@ type RouteBreadcrumb<TMatch = unknown> = string | ((match: TMatch) => ReadonlyAr
 
 /**
  * The `handle` shape a route exports to appear in the trail. Omitting `handle`
- * entirely is the opt-out — no filter list to maintain.
+ * entirely is the opt-out, with no filter list to maintain.
  *
  * @see https://mantle.ngrok.com/components/navigation/breadcrumb#routebreadcrumb
  *
@@ -167,13 +167,13 @@ type BreadcrumbMatch = {
 	id: string;
 	/** The URL portion this route matched. */
 	pathname: string;
-	/** The route module's `handle` export — `unknown` until narrowed. */
+	/** The route module's `handle` export (`unknown` until narrowed). */
 	handle: unknown;
 };
 
 /**
- * A crumb with its link and React key resolved — what a trail renderer
- * consumes. Link crumbs carry a definite `to`; label crumbs carry none, which
+ * A crumb with its link and React key resolved (what a trail renderer
+ * consumes). Link crumbs carry a definite `to`; label crumbs carry none, which
  * is what makes an unlinked link crumb unrepresentable.
  *
  * @see https://mantle.ngrok.com/components/navigation/breadcrumb#buildcrumbs
@@ -234,7 +234,7 @@ function hasBreadcrumb<TMatch extends BreadcrumbMatch>(
  *
  * Pure: no hooks, no browser APIs, no clock. It runs identically on the
  * server and the client, which is the whole reason the trail needs no state
- * and no effects — and it means you can assert the trail as a plain value.
+ * and no effects. You can also assert the trail as a plain value.
  * Router-agnostic: it reads only {@link BreadcrumbMatch}'s three fields, which
  * react-router's `UIMatch` satisfies structurally.
  *

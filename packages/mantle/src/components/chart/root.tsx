@@ -44,7 +44,7 @@ import { ChartTooltipSurface } from "./tooltip.js";
  * The chart Root: the plot, the interaction overlay, the engine lifecycle,
  * and the engagement latch. Each family's `Root` wraps `ChartRootPrimitive`.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation, not exported from the package.
  */
 
 /** The `style` identity a Root with no inline style keys its color effect on. */
@@ -56,7 +56,7 @@ const TOUCH_SLOP = 10;
 /**
  * Root props shared by every chart kind, WITHOUT the accessibility/interaction
  * union or the data/x props. Public wrappers `Omit` from this base and
- * re-intersect `ChartAccessibilityProps` — `Omit` over a union type flattens
+ * re-intersect `ChartAccessibilityProps`: `Omit` over a union type flattens
  * it, which would silently make the required accessible name optional and
  * erase the `mode` discriminant.
  */
@@ -74,8 +74,8 @@ type ChartRootBaseProps = Omit<ComponentProps<"div">, "aria-label" | "aria-label
 		/** Animate enter/update transitions. `prefers-reduced-motion` always wins. */
 		animate?: boolean;
 		/**
-		 * Hold the previous render at reduced opacity while fresh data loads —
-		 * never swap a chart that has rendered once for a skeleton.
+		 * Hold the previous render at reduced opacity while fresh data loads.
+		 * Never swap a chart that has rendered once for a skeleton.
 		 */
 		pending?: boolean;
 	};
@@ -124,7 +124,7 @@ type InternalRootProps = ChartRootPrimitiveProps & {
 };
 
 /**
- * Detect the x scale kind from the first row whose x value is present — a
+ * Detect the x scale kind from the first row whose x value is present. A
  * leading null/missing x (a gap row the engine drops anyway) must not
  * misclassify a numeric or time series as categorical.
  */
@@ -387,7 +387,7 @@ const ChartRootPrimitive = ({
 	"aria-labelledby": ariaLabelledBy,
 	// Pulled out of `props` so the decorative contract can't be clobbered by a
 	// consumer value spread after it. A decorative chart is unconditionally
-	// hidden from AT and never a tab stop; the other modes honor what's passed
+	// hidden from assistive technology and never a tab stop; the other modes honor what's passed
 	// (an interactive chart's own focus lives on the overlay, not here).
 	"aria-hidden": ariaHidden,
 	tabIndex,
@@ -466,7 +466,7 @@ const ChartRootPrimitive = ({
 	}, []);
 
 	const descriptionId = useId();
-	// Scatter axes are continuous by contract — a string x would silently render
+	// Scatter axes are continuous by contract: a string x would silently render
 	// evenly-spaced categorical positions misaligned against the value axis.
 	invariant(
 		kind !== "scatter" || data.length === 0 || resolvedXScale !== "point",
@@ -665,7 +665,7 @@ const ChartRootPrimitive = ({
 	// Must stay the LAST effect: rows, options, and series registrations from
 	// one commit land in the engine as a single consistent ingest. Ingesting
 	// inline (mid-commit) would validate one render's series specs against the
-	// previous render's rows — swapping `data` and a series `dataKey` together
+	// previous render's rows, so swapping `data` and a series `dataKey` together
 	// would fail fast on a key the settled commit does contain.
 
 	// A dormant Root holds no engine, so it throws the key invariants itself:
@@ -779,13 +779,13 @@ const ChartRootPrimitive = ({
 					ref={plotRef}
 				>
 					{/* aria-hidden: the overlay is an interactive chart's single named
-					    element for AT — a role="img" sibling with the same name would
+					    element for assistive technology, and a role="img" sibling with the same name would
 					    announce the chart twice. The sr-only table carries the
 					    structured data. */}
 					{/* The interaction overlay is the chart's only focusable element and
 					    the surface every pointer/keyboard handler lives on. A static or
-					    decorative chart omits it entirely — no tab stop, no hover band,
-					    no crosshair, no activation — so it stays quiet without any
+					    decorative chart omits it entirely (no tab stop, no hover band,
+					    no crosshair, no activation), so it stays quiet without any
 					    consumer CSS or `inert` workaround. */}
 					{interactive && (
 						<div
@@ -818,7 +818,7 @@ const ChartRootPrimitive = ({
 								// Capture only for the 3D rotation drag (it must keep tracking
 								// outside the plot); on 2D charts, capture would also make
 								// drag-away-to-cancel activation impossible. Synthetic events
-								// (tests) have no active pointer to capture — capturing one
+								// (tests) have no active pointer to capture, and capturing one
 								// throws before the engine ever sees the press.
 								if (event.isTrusted && kind === "scatter" && zKey != null) {
 									event.currentTarget.setPointerCapture(event.pointerId);
@@ -903,8 +903,8 @@ const ChartRootPrimitive = ({
 								engineRef.current?.handlePointerLeave();
 							}}
 							onPointerCancel={() => {
-								// The browser reclaimed the pointer (e.g. a touch pan won) —
-								// reset drag/hover state deterministically.
+								// The browser reclaimed the pointer (e.g. a touch pan won).
+								// Reset drag/hover state deterministically.
 								engineRef.current?.handlePointerLeave();
 							}}
 							onBlur={() => {

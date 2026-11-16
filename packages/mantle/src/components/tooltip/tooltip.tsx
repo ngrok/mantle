@@ -209,8 +209,8 @@ const Content = ({
  * A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.
  *
  * Use `Tooltip` to show a short, non-essential label or hint when the user
- * hovers or focuses an element — e.g., the meaning of an icon button, a
- * keyboard shortcut, or a brief explanation. Tooltips are NON-INTERACTIVE:
+ * hovers or focuses an element (e.g., the meaning of an icon button, a
+ * keyboard shortcut, or a brief explanation). Tooltips are NON-INTERACTIVE:
  * do not put buttons, links, or form controls inside one. Per the WAI-ARIA
  * tooltip pattern, tooltips never receive focus, so interactive content
  * inside them is unreachable for keyboard users. For interactive overlay

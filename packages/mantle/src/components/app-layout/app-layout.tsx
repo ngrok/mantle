@@ -35,17 +35,17 @@ import { Tooltip } from "../tooltip/index.js";
 /**
  * The outer frame of an application shell. Renders a `<div>` with
  * `relative isolate flex h-full w-full flex-col overflow-clip`, so
- * it fills its nearest sized ancestor — which makes it embeddable in docs
+ * it fills its nearest sized ancestor. That makes it embeddable in docs
  * demos and tests. Real app shells pin it to the viewport by merging
  * `className="fixed inset-0"` (mantle `cx` is tailwind-merge-backed, so the
- * override is deterministic); the shell itself never scrolls — only
+ * override is deterministic); the shell itself never scrolls. Only
  * `AppLayout.Body` does.
  *
  * It clips with `overflow-clip` rather than `overflow-hidden` for the same
  * reason `AppLayout.Content` does: `hidden` **is** a scroll container that
  * paints no scrollbar, so anything wider than the frame lets focus scroll the
- * entire shell sideways — translating the notice, the rail, and the card out of
- * view with no scrollbar and no gesture to bring them back. On a frame pinned
+ * entire shell sideways. That translates the notice, the rail, and the card out
+ * of view with no scrollbar and no gesture to bring them back. On a frame pinned
  * with `fixed inset-0` that is the whole window. `clip` is not a scroll
  * container at all.
  *
@@ -100,10 +100,10 @@ const Root = ({
 			className={cx(
 				// group/app-layout lets descendant parts adapt to what the shell
 				// contains (AppLayout.Header derives its height from the sidebar
-				// header's token when one is composed — see AppLayout.Header).
+				// header's token when one is composed; see AppLayout.Header).
 				"group/app-layout bg-base relative isolate flex h-full w-full flex-col",
-				// clip, not hidden — the same trap AppLayout.Content avoids, one
-				// level up: `hidden` is a scroll container that paints no scrollbar,
+				// clip, not hidden: the same trap AppLayout.Content avoids, one
+				// level up. `hidden` is a scroll container that paints no scrollbar,
 				// so anything overflowing the frame lets focus scroll the whole shell
 				// sideways with no way back. On `fixed inset-0` that is the window.
 				"overflow-clip",
@@ -117,14 +117,14 @@ const Root = ({
 };
 
 /**
- * A full-window-width strip pinned above everything else in the shell —
- * including any sidebar — for maintenance notices, environment warnings,
+ * A full-window-width strip pinned above everything else in the shell
+ * (including any sidebar) for maintenance notices, environment warnings,
  * and similar app-wide messaging. It is a vertical composition slot: place a
  * maintenance banner and an `AlertCenter.Bar` here, and each contributes its
  * own row while the slot pushes the shell down. Renders an unstyled `<div>`
  * (`flex w-full shrink-0 flex-col`): its children bring their own colors and
  * layout, and the part collapses to nothing when empty. Deliberately not named
- * `Banner` so it never reads as the ARIA `banner` landmark — it claims no
+ * `Banner` so it never reads as the ARIA `banner` landmark: it claims no
  * landmark at all.
  *
  * @see https://mantle.ngrok.com/layouts/app-layout#applayoutnotice
@@ -273,11 +273,11 @@ const Workspace = ({
  * the sidebar, holding `AppLayout.Header` and `AppLayout.Body`. A flex column
  * that fills the remaining width of
  * `AppLayout.Workspace` and insets itself from the window edge and the rail with
- * its own margin (`--app-layout-card-gutter`, default `0.5rem`) — the gutter
+ * its own margin (`--app-layout-card-gutter`, default `0.5rem`). The gutter
  * belongs to the card so a rail stays flush against the window edge.
  *
  * The card does **not** scroll: `AppLayout.Body` does. `Content` is
- * `overflow-clip`, which does two jobs — it keeps a full-bleed page background
+ * `overflow-clip`, which does two jobs: it keeps a full-bleed page background
  * from painting square corners over the card's `rounded-xl`, and it is
  * deliberately `clip` rather than `hidden` because `hidden` is a scroll
  * container with no scrollbar: a long toolbar would let focus scroll the card
@@ -345,8 +345,8 @@ const Content = ({
 				// window edge and break the flush collapsed icon rail.
 				"m-(--app-layout-card-gutter,0.5rem)",
 				// clip, not hidden: `hidden` is a scroll container that paints no
-				// scrollbar, so a long toolbar lets focus scroll the card sideways —
-				// translating the header and the page off-screen with no way back.
+				// scrollbar, so a long toolbar lets focus scroll the card sideways.
+				// That translates the header and the page off-screen with no way back.
 				"overflow-clip",
 				className,
 			)}
@@ -649,7 +649,7 @@ const HeaderActions = ({
 
 /**
  * The page region of the content card, and the shell's **only** scroll
- * container (`overflow-y-auto overscroll-none`) — the page body never scrolls
+ * container (`overflow-y-auto overscroll-none`). The page body never scrolls,
  * and scroll never bounces the shell. Render it after `AppLayout.Header` inside
  * `AppLayout.Content`.
  *
@@ -671,17 +671,17 @@ const HeaderActions = ({
  * - `min-h-0 flex-1` gives it a definite height, so a page that asks for
  *   `h-full` fills exactly the card interior instead of overflowing it by the
  *   toolbar's height.
- * - block layout inside — not flex — is why `mx-auto max-w-7xl` still centers a
+ * - block layout inside (not flex) is why `mx-auto max-w-7xl` still centers a
  *   page at its max width. As a *flex child*, auto margins beat
  *   `align-items: stretch` and the same container shrink-to-fits, getting
  *   *narrower* as the viewport gets wider.
  * - `w-full` states the width outright instead of leaning on the flex
  *   container's cross-axis `stretch`, so an `mx-auto` merged onto `Body` still
- *   leaves it full width — auto cross-axis margins would otherwise turn a
+ *   leaves it full width. Auto cross-axis margins would otherwise turn a
  *   stretched item into a shrink-to-fit one. It is no floor, though: `cx` is
  *   tailwind-merge-backed and the consumer's `className` wins, so a merged
- *   `w-*` replaces it outright, while a merged `max-w-*` — a separate conflict
- *   group — survives beside it and clamps the scrollport. Constrain the *page*
+ *   `w-*` replaces it outright, while a merged `max-w-*` (a separate conflict
+ *   group) survives beside it and clamps the scrollport. Constrain the *page*
  *   inside `Body`, not `Body` itself.
  *
  * It is `relative` too, so page content positioned with `absolute` is contained
@@ -2181,8 +2181,8 @@ const AppLayout = {
 	Workspace,
 	/**
 	 * The rounded `bg-card` surface beside the sidebar, holding the toolbar and
-	 * the page region. Insets itself with `--app-layout-card-gutter`; does not
-	 * scroll — `AppLayout.Body` does.
+	 * the page region. Insets itself with `--app-layout-card-gutter`. It does not
+	 * scroll: `AppLayout.Body` does.
 	 *
 	 * @see https://mantle.ngrok.com/layouts/app-layout#applayoutcontent
 	 *

@@ -100,7 +100,7 @@ function useAccordionItemContext(component: string): AccordionItemContextValue {
 }
 
 /**
- * `"single"` mode props: at most one item open at a time — opening a section
+ * `"single"` mode props: at most one item open at a time. Opening a section
  * auto-closes the previously open one. This is the **opt-in** behavior; `type`
  * defaults to `"multiple"`, so you must set `type="single"` explicitly to get
  * the auto-close accordion. `value`/`defaultValue` are the open item's value
@@ -109,7 +109,7 @@ function useAccordionItemContext(component: string): AccordionItemContextValue {
 type AccordionSingleProps = {
 	/**
 	 * Keep at most one section open at a time: opening a section auto-closes the
-	 * previously open one. Must be set explicitly — the default is `"multiple"`,
+	 * previously open one. Must be set explicitly: the default is `"multiple"`,
 	 * where sections open independently.
 	 */
 	type: "single";
@@ -122,15 +122,15 @@ type AccordionSingleProps = {
 };
 
 /**
- * `"multiple"` mode props — the **default** when `type` is omitted: any number
+ * `"multiple"` mode props, the **default** when `type` is omitted. Any number
  * of items may be open at once, and opening one never closes another.
  * `value`/`defaultValue` are the list of open item values. Use `type="single"`
  * instead if you want opening a section to auto-close the others.
  */
 type AccordionMultipleProps = {
 	/**
-	 * Allow any number of sections open at once — the **default** when `type` is
-	 * omitted. Opening one section never collapses the others. Switch to
+	 * Allow any number of sections open at once. This is the **default** when
+	 * `type` is omitted. Opening one section never collapses the others. Switch to
 	 * `type="single"` for the accordion that auto-closes the previously open
 	 * section.
 	 *
@@ -149,7 +149,7 @@ type AccordionMultipleProps = {
  * Props for {@link Root}. A discriminated union on `type` so `value`,
  * `defaultValue`, and `onValueChange` are typed as a single string in
  * `"single"` mode and a string array in `"multiple"` mode. `type` is optional
- * and **defaults to `"multiple"`** — omitting it is the same as
+ * and **defaults to `"multiple"`**. Omitting it is the same as
  * `type="multiple"` (sections open independently), so `value` / `defaultValue` /
  * `onValueChange` are typed as string arrays. Set `type="single"` for the
  * accordion that keeps at most one section open at a time. Also accepts all
@@ -173,8 +173,8 @@ type AccordionRootProps = (AccordionSingleProps | AccordionMultipleProps) &
  * with controlled (`value` + `onValueChange`) and uncontrolled (`defaultValue`)
  * usage in both `"single"` and `"multiple"` modes.
  *
- * `type` is optional and **defaults to `"multiple"`** — sections open
- * independently and opening one never closes another. Pass `type="single"` for
+ * `type` is optional and **defaults to `"multiple"`**: sections open
+ * independently, and opening one never closes another. Pass `type="single"` for
  * the classic accordion where opening a section auto-closes the previously open
  * one.
  *
@@ -204,7 +204,7 @@ const Root = (props: AccordionRootProps) => {
 	// Pull the accordion-specific props out so the rest (`aria-*`, `data-*`, `id`,
 	// `style`, event handlers, …) can be forwarded to the container without leaking
 	// non-DOM attributes. `props` stays whole for `emitValueChange`, which relies on
-	// the discriminated-union narrowing on `props.type` — so `onValueChange` is only
+	// the discriminated-union narrowing on `props.type`, so `onValueChange` is only
 	// destructured to exclude it from `domProps` (hence the `_` name).
 	const {
 		// `type` defaults to "multiple": omitting it opens sections independently.
@@ -286,12 +286,12 @@ const Root = (props: AccordionRootProps) => {
 };
 
 /**
- * A single collapsible section, rendered as a plain `<div role="group">` — the
- * same accessibility role the browser gives a native `<details>`. Derives its
+ * A single collapsible section, rendered as a plain `<div role="group">` (the
+ * same accessibility role the browser gives a native `<details>`). Derives its
  * open state from {@link Root}.
  *
- * Because the item is a plain `<div>`, its header can be any layout — e.g. a flex
- * row with the {@link Trigger} alongside a separate, non-toggling action button.
+ * Because the item is a plain `<div>`, its header can be any layout, including a
+ * flex row with the {@link Trigger} beside a separate, non-toggling action button.
  *
  * @see https://mantle.ngrok.com/components/data-display/accordion#accordionitem
  *
@@ -353,7 +353,7 @@ const Item = ({
 
 /**
  * The interactive header that toggles its section, rendered as a `<button>` with
- * `aria-expanded` — the disclosure semantics a native `<summary>` carries, but
+ * `aria-expanded`: the disclosure semantics a native `<summary>` carries, but
  * via a real button so the role is consistent across browsers (native summary's
  * role varies). Its `aria-controls` points at the item's {@link Content}, as the
  * WAI-ARIA disclosure pattern requires. Place the {@link TriggerIcon} as the last
@@ -398,7 +398,7 @@ const Trigger = ({
 			className={cx(
 				"group flex w-full cursor-pointer items-center justify-between gap-4 py-4 text-left font-medium outline-none",
 				// `-mx-2 px-2` gives the focus ring (and tap target) horizontal breathing room
-				// without shifting the trigger's content — the negative margin cancels the padding,
+				// without shifting the trigger's content: the negative margin cancels the padding,
 				// the same trick the tabs trigger uses. `rounded-md` matches Button/IconButton.
 				"-mx-2 rounded-md px-2",
 				// Why the padding never changes with the open state: the trigger keeps one size,
@@ -490,8 +490,8 @@ const TriggerIcon = ({
 );
 
 /**
- * The collapsible region of an {@link Item} — the zero-padding viewport that
- * slides open and closed. Wrap its children in {@link Body} for the standard
+ * The collapsible region of an {@link Item} (the zero-padding viewport that
+ * slides open and closed). Wrap its children in {@link Body} for the standard
  * padding (text inherits the ambient size); `Content` itself stays unpadded so
  * its `h-0` collapse can reach zero height. Always rendered into the DOM. When
  * collapsed, it leaves the accessibility tree and the tab order, like a closed
@@ -621,7 +621,7 @@ const Content = ({
 			data-state={open ? "open" : "closed"}
 			className={cx(
 				// Animate height 0 <-> auto via `interpolate-size` (Chromium only; other
-				// engines snap, which is fine — the slide is a progressive enhancement and
+				// engines snap, which is fine: the slide is a progressive enhancement and
 				// find-in-page works regardless). The strong ease-out moves most of the
 				// distance early and then settles, so the section answers the click at
 				// once. The content fades with the height, so it never shows clipped at
@@ -641,14 +641,14 @@ const Content = ({
 };
 
 /**
- * The padded inner region of an {@link Item}'s {@link Content} — where the
+ * The padded inner region of an {@link Item}'s {@link Content}, where the
  * section's body content lives. Owns the body's padding so {@link Content} can
  * stay a zero-padding animation viewport: a padded `h-0` border-box can't
  * collapse below its padding, so keeping the padding here lets the closed slide
  * reach zero height. The `pt-1` is the focus ring's vertical clearance: the
  * trigger keeps its `py-4` when open, and its `ring-4` paints 4px below the
  * button, so the ring stays off the body's first line (see {@link Trigger}). Text inherits the ambient
- * size — it isn't forced — so set a size on the content where you need one.
+ * size rather than being forced to a fixed size. Set a text class where you need one.
  * Override `className` to retune the padding (e.g. `pb-0`, `px-6`); `cx` resolves
  * last-wins.
  *
@@ -689,8 +689,8 @@ const Body = ({
  * A vertically stacked set of disclosure sections styled after the shadcn /
  * ngrok.com accordion.
  *
- * Its defining feature: collapsed content is never removed from the DOM — it
- * stays put with `hidden="until-found"` — so the browser's find-in-page (⌘F /
+ * Its defining feature: collapsed content is never removed from the DOM (it
+ * stays put with `hidden="until-found"`), so the browser's find-in-page (⌘F /
  * Ctrl-F) can find text inside closed sections and auto-expand them (synced via
  * the `beforematch` event). Built on plain `<div>`/`<button>` elements, so a
  * section header can be any layout, including a non-toggling action button

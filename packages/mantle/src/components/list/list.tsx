@@ -12,7 +12,7 @@ import type { VirtualRootProps as ListPrimitiveVirtualRootProps } from "./virtua
 import { Slot } from "../slot/index.js";
 
 /**
- * Props for `List.Root` — the internal list primitive's `Root` props, minus
+ * Props for `List.Root`: the internal list primitive's `Root` props, minus
  * `semantics` (a `List` is always a `role="list"`) and the grid-only
  * `onActivate` / `itemId` / `isItemDisabled` knobs (inert under list semantics).
  *
@@ -64,7 +64,7 @@ type ListRootProps = Omit<
 const Root = (props: ListRootProps) => <ListPrimitiveRoot semantics="list" {...props} />;
 
 /**
- * Props for `List.VirtualRoot` — the internal list primitive's
+ * Props for `List.VirtualRoot`: the internal list primitive's
  * `VirtualRoot` props (viewport props plus `estimateItemHeight` / `overscan`),
  * minus `semantics` and the grid-only `onActivate` / `itemId` / `isItemDisabled`
  * knobs.
@@ -134,7 +134,7 @@ type ListItemProps = Omit<ComponentProps<"button">, "type"> &
 	WithAsChild &
 	WithDataSlot & {
 		/**
-		 * Marks the item as the current one (e.g. the active account) — gives its
+		 * Marks the item as the current one (e.g. the active account). Gives its
 		 * pill the accent tint and sets `aria-current` so the state is announced,
 		 * not just shown. Optional; omit it for a plain action/navigation list.
 		 */
@@ -202,7 +202,7 @@ const Item = ({
 				aria-current={current || undefined}
 				// A real <button> for the default (fully inert when `disabled`). For asChild
 				// the consumer owns the element (e.g. <a>), where the `disabled` attribute
-				// isn't valid — so convey state with `aria-disabled` and actually make it
+				// isn't valid, so convey state with `aria-disabled` and actually make it
 				// inert: drop it from the tab order (`tabIndex={-1}`), block pointer events
 				// (`aria-disabled:pointer-events-none` below), and swallow the click in the
 				// onClick handler below, because assistive tech dispatches clicks directly
@@ -238,7 +238,7 @@ const Item = ({
 				// the bubble phase), so the bubble-phase swallow above lands too late to
 				// stop a router <Link> / consumer handler on the child. A capture-phase
 				// preventDefault runs before any bubble onClick, so the child sees
-				// defaultPrevented — blocking screen-reader / programmatic clicks (which
+				// defaultPrevented. That blocks screen-reader / programmatic clicks (which
 				// bypass the `pointer-events:none` hit-test block) from navigating.
 				onClickCapture={
 					asChild && disabled
@@ -318,19 +318,19 @@ const ItemDescription = ({
 );
 
 /**
- * A scrollable, optionally-virtualized list of clickable items — the action /
+ * A scrollable, optionally-virtualized list of clickable items: the action /
  * navigation counterpart to `SelectableList` (e.g. an account switcher or SSO
  * provider picker). Compose `List.Item` children directly inside a
  * `List.Root`; each item is a `<button>` (or your own element via
  * `asChild`, e.g. an `<a>`), with an optional `current` accent.
  *
  * It is a **non-selecting** semantic list (`role="list"` of `role="listitem"`),
- * not a selection widget — selection is `SelectableList`'s job. Non-virtualized
+ * not a selection widget; selection is `SelectableList`'s job. Non-virtualized
  * by default; swap `Root` → `VirtualRoot` (same children) for windowing.
  * Both public list components are built on the same internal list primitive
- * (`./primitive.js`, deliberately unexported — like `dialog/primitive`). Items
+ * (`./primitive.js`, deliberately unexported, like `dialog/primitive`). Items
  * keep their native tab order, and `ArrowUp` / `ArrowDown` / `Home` / `End`
- * also move focus between them — the focused item tints like hover instead of
+ * also move focus between them. The focused item tints like hover instead of
  * drawing a focus ring.
  *
  * @useWhen Show a scrollable list of items that each run an action or navigate, such as an account

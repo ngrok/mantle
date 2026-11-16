@@ -490,7 +490,7 @@ type DataTableProps<TFeatures extends TableFeatures, TData extends RowData> = Co
  * REQUIRED: Construct a TanStack Table instance via `useTable` (from
  * `@tanstack/react-table`, also re-exported from `@ngrok/mantle/data-table`)
  * and pass it through the `table` prop. The instance owns columns, data, and
- * any sorting / filtering / pagination state — the wrapper components read
+ * any sorting / filtering / pagination state. The wrapper components read
  * from it.
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatableroot
@@ -563,13 +563,13 @@ type DataTableHeaderSortButtonProps<
 	 */
 	column: SortableColumn<TFeatures, TData, TValue>;
 	/**
-	 * The visual style of the sort button. Optional — the header sort button's
+	 * The visual style of the sort button. Optional: the header sort button's
 	 * design is a ghost button, so the wrapper defaults it.
 	 * @default "ghost"
 	 */
 	appearance?: ButtonAppearance;
 	/**
-	 * The tone of the sort button. Optional — the header sort button's design
+	 * The tone of the sort button. Optional: the header sort button's design
 	 * is neutral-toned, so the wrapper defaults it.
 	 * @default "neutral"
 	 */
@@ -977,8 +977,8 @@ type DataTableHeadProps = Omit<ComponentProps<typeof Table.Head>, "children"> & 
 
 /**
  * The `<thead>` container that renders column headers automatically from
- * `table.getHeaderGroups()`. Does not accept children — headers come from each
- * column's `header` definition on the TanStack Table column config.
+ * `table.getHeaderGroups()`. Does not accept children: the headers come from
+ * each column's `header` definition on the TanStack Table column config.
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table#datatablehead
  *
@@ -1027,8 +1027,8 @@ type DataTableRowProps<TFeatures extends TableFeatures, TData extends RowData> =
 	row: TableRow<TFeatures, TData>;
 	/**
 	 * Renders an inline detail panel beneath the row. Called only while the row is
-	 * expanded (`row.getIsExpanded()`), so the panel — and any expensive work it
-	 * does — stays lazy. Mantle wraps the returned content in a sibling
+	 * expanded (`row.getIsExpanded()`), so the panel (and any expensive work it
+	 * does) stays lazy. Mantle wraps the returned content in a sibling
 	 * `DataTable.ExpandedRow` spanning every visible column, so return the
 	 * panel content (not a `<tr>`). Requires the table to register
 	 * `rowExpandingFeature`, plus `getRowCanExpand` for detail panels; pair it
@@ -1107,7 +1107,7 @@ function isRowActivationClick(event: MouseEvent<HTMLTableRowElement>): boolean {
 
 /**
  * A single data table body row rendered from a TanStack Table row instance.
- * Does not accept children — cells come from each column's `cell` definition.
+ * Does not accept children: cells come from each column's `cell` definition.
  *
  * When `onClick` is set, the row receives `cursor-pointer` and `data-clickable`.
  * Pass a different `cursor-*` class via `className` (e.g. `cursor-default`,
@@ -1167,7 +1167,7 @@ function isRowActivationClick(event: MouseEvent<HTMLTableRowElement>): boolean {
  * ```
  *
  * @example
- * Expandable row with an inline JSON detail panel (lazy — only built when open):
+ * Expandable row with an inline JSON detail panel (lazy: built only when open):
  * ```tsx
  * import { CodeBlock, jsonCodeBlockValue } from "@ngrok/mantle/code-block";
  *
@@ -1253,7 +1253,7 @@ function Row<TFeatures extends TableFeatures, TData extends RowData>({
 			return dataRow;
 		}
 
-		// With it, render the data row plus — only while expanded — its detail row.
+		// With it, render the data row plus (only while expanded) its detail row.
 		// `renderExpanded` is called lazily so collapsed rows pay nothing.
 		return (
 			<>
@@ -1355,7 +1355,7 @@ function EmptyRow({ "data-slot": dataSlot, children, ...props }: DataTableEmptyR
 
 /**
  * Internal: renders the visual indicator on the left edge of the sticky action
- * column — a 1px divider plus a soft shadow gradient that reads as content
+ * column: a 1px divider plus a soft shadow gradient that reads as content
  * sliding under the pinned column. Positioned as a 6px strip sitting
  * immediately to the left of its sticky parent cell; `-inset-y-px` lets
  * adjacent rows' strips overlap at row dividers so the effect reads as one
@@ -1445,7 +1445,7 @@ function ActionCell({
 			className={cx(
 				// `bg-inherit` keeps the sticky cell opaque with the row's current bg
 				// (including hover state) so scrolling cells don't show through.
-				// Avoid `display: flex` here — it overrides `display: table-cell`,
+				// Avoid `display: flex` here: it overrides `display: table-cell`,
 				// preventing the cell from stretching to the full row height in
 				// `border-separate` mode.
 				"sticky z-10 right-0 text-end align-middle bg-inherit p-2",
@@ -1658,12 +1658,12 @@ function ControlCell({
  * Compute the stable DOM `id` for a row's expanded detail row. Shared by
  * `DataTable.RowExpandButton` (as its `aria-controls` target) and
  * `DataTable.ExpandedRow` (as its `id`) so the accessibility association is
- * _derived_ from the row — never synchronized state — and stays correct whether
+ * _derived_ from the row (never synchronized state) and stays correct whether
  * or not the detail panel is currently rendered.
  *
  * REQUIRED: configure the table with a stable `getRowId` so `row.id` (and thus
  * this id) is stable across sorting/filtering/pagination. Any `row.id` value is
- * safe — it is URL-encoded into a valid, whitespace-free HTML id token (and thus
+ * safe: it is URL-encoded into a valid, whitespace-free HTML id token (and thus
  * a valid `aria-controls` IDREF), so display names with spaces, URLs, and emails
  * all work; `getRowId` controls the value.
  *
@@ -1679,7 +1679,7 @@ function expandedRowId<TFeatures extends TableFeatures, TData extends RowData>(
 	row: TableRow<TFeatures, TData>,
 ): string {
 	// `encodeURIComponent` guarantees a whitespace-free, valid HTML id token (and
-	// thus a valid `aria-controls` IDREF) for ANY `getRowId` value — e.g. a display
+	// thus a valid `aria-controls` IDREF) for ANY `getRowId` value, e.g. a display
 	// name like "Acme Inc". Both the toggle's `aria-controls` and the expanded
 	// row's `id` derive from this one function, so encoding both sides keeps them
 	// equal and preserves the accessibility association.
@@ -1688,7 +1688,7 @@ function expandedRowId<TFeatures extends TableFeatures, TData extends RowData>(
 
 type DataTableExpandHeaderProps = Omit<ComponentProps<typeof Table.Header>, "children"> & {
 	/**
-	 * Optional header content — e.g. an "expand all" toggle wired to
+	 * Optional header content, e.g. an "expand all" toggle wired to
 	 * `table.getToggleAllRowsExpandedHandler()`. Defaults to a screen-reader-only
 	 * label so the column is announced while staying visually empty.
 	 */
@@ -1736,7 +1736,7 @@ function ExpandHeader({
 	);
 }
 
-// Stable element references for the default toggle icons — defining these inline
+// Stable element references for the default toggle icons. Defining these inline
 // as default prop values would recreate them every render (and trips
 // react/no-object-type-as-default-prop). `size-3.5` overrides Icon's default
 // `size-5` (the `+`/`−` glyphs fill their full box, so 20px reads oversized for
@@ -1752,13 +1752,13 @@ type DataTableRowExpandButtonProps<
 	"appearance" | "aria-controls" | "aria-expanded" | "icon" | "intent" | "label"
 > & {
 	/**
-	 * The visual style of the expand toggle. Optional — the row expand button's
+	 * The visual style of the expand toggle. Optional: the row expand button's
 	 * design is a ghost button, so the wrapper defaults it.
 	 * @default "ghost"
 	 */
 	appearance?: IconButtonAppearance;
 	/**
-	 * The tone of the expand toggle. Optional — the row expand button's design
+	 * The tone of the expand toggle. Optional: the row expand button's design
 	 * is neutral-toned, so the wrapper defaults it, and it is the only tone
 	 * `IconButton` draws.
 	 * @default "neutral"
@@ -1866,7 +1866,7 @@ function RowExpandButton<TFeatures extends ExpandableTableFeatures, TData extend
 				size={size}
 				className={cx("rounded", className)}
 				aria-expanded={isExpanded}
-				// Reference the detail row only while it actually exists in the DOM — a
+				// Reference the detail row only while it actually exists in the DOM: a
 				// dangling `aria-controls` IDREF is an accessibility validity violation.
 				aria-controls={isExpanded && controlsPanel ? expandedRowId(row) : undefined}
 				icon={isExpanded ? collapseIcon : expandIcon}
@@ -1877,7 +1877,7 @@ function RowExpandButton<TFeatures extends ExpandableTableFeatures, TData extend
 				}
 				onClick={(event) => {
 					// Always keep the toggle click from bubbling to a row-level onClick
-					// (e.g. navigation) — even when a consumer vetoes the toggle below.
+					// (e.g. navigation), even when a consumer vetoes the toggle below.
 					event.stopPropagation();
 					onClick?.(event);
 					if (event.defaultPrevented) {
@@ -1934,10 +1934,10 @@ type DataTableExpandedRowProps<TFeatures extends TableFeatures, TData extends Ro
 /**
  * The sibling `<tr>` that renders a row's expanded detail panel. For the common
  * case, prefer `DataTable.Row`'s `renderExpanded` prop, which renders this for
- * you. Reach for `ExpandedRow` directly when you need full control — a custom
+ * you. Reach for `ExpandedRow` directly when you need full control: a custom
  * `colSpan`, multiple panels, or bespoke markup. Render it directly after the
- * parent `DataTable.Row` — wrapped in a `Fragment`, never a DOM element (a node
- * between `<tbody>` and `<tr>` is invalid HTML) — and only when
+ * parent `DataTable.Row`, wrapped in a `Fragment` and never a DOM element (a node
+ * between `<tbody>` and `<tr>` is invalid HTML). Render it only when
  * `row.getIsExpanded()` is true.
  *
  * The single cell spans every visible column (override with `colSpan`), carries
@@ -1953,8 +1953,8 @@ type DataTableExpandedRowProps<TFeatures extends TableFeatures, TData extends Ro
  *
  * @example
  * Render the row's underlying object as JSON (a common detail-panel use case).
- * `jsonCodeBlockValue` highlights the JSON entirely on the client — no Shiki
- * runtime, no build-time plugin, no server roundtrip — so it works for runtime
+ * `jsonCodeBlockValue` highlights the JSON entirely on the client (no Shiki
+ * runtime, no build-time plugin, no server roundtrip), so it works for runtime
  * data and matches server/build-time highlighting:
  * ```tsx
  * import { CodeBlock, jsonCodeBlockValue } from "@ngrok/mantle/code-block";
@@ -2039,7 +2039,7 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
 }
 
 /**
- * Use `DataTable` for INTERACTIVE tabular data — sorting, filtering, pagination,
+ * Use `DataTable` for INTERACTIVE tabular data: sorting, filtering, pagination,
  * row selection, and server-side or client-side data. Built on TanStack Table;
  * the consumer MUST construct a `useTable` instance from
  * `@tanstack/react-table` and pass it to `DataTable.Root` via the `table` prop.
@@ -2092,7 +2092,7 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
  * ```
  *
  * @example
- * Minimal — read-only table with a single sortable column:
+ * A minimal, read-only table with a single sortable column:
  * ```tsx
  * import {
  *   DataTable,
@@ -2153,7 +2153,7 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
  * ```
  *
  * @example
- * Sortable, filterable, paginated, with both empty states — a global text
+ * Sortable, filterable, paginated, with both empty states: a global text
  * filter, the no-data vs. no-results-for-filter empty states (an `Empty`
  * dropped into `DataTable.EmptyRow`), and `CursorPagination` with a page-size
  * dropdown:
@@ -2341,7 +2341,7 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
  * ```
  *
  * @example
- * Row action column — a sticky right-edge cell with a dropdown menu of actions.
+ * Row action column: a sticky right-edge cell with a dropdown menu of actions.
  * The cell stops its own clicks, so the menu opens without a clickable row
  * navigating:
  * ```tsx
@@ -2428,7 +2428,7 @@ const DataTable = {
 	/**
 	 * The root container of the data table component. REQUIRED: pass a
 	 * `useTable` instance (from `@tanstack/react-table`, also re-exported
-	 * from `@ngrok/mantle/data-table`) via the `table` prop — every other
+	 * from `@ngrok/mantle/data-table`) via the `table` prop. Every other
 	 * `DataTable.*` part reads from it through context.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatableroot
@@ -2572,7 +2572,7 @@ const DataTable = {
 	 * branch when `rows.length === 0` to keep the table's frame intact instead
 	 * of collapsing to an empty `<tbody>`.
 	 *
-	 * Drop an `Empty` in as the child for a real empty state — `EmptyRow` spans
+	 * Drop an `Empty` in as the child for a real empty state: `EmptyRow` spans
 	 * every column and `Empty.Root` centers itself, so no `<td>` or centering
 	 * markup is needed.
 	 *
@@ -2596,7 +2596,7 @@ const DataTable = {
 	EmptyRow,
 	/**
 	 * The `<thead>` container that renders column headers automatically from
-	 * `table.getHeaderGroups()`. Does not accept children — headers come from
+	 * `table.getHeaderGroups()`. Does not accept children: the headers come from
 	 * each column's `header` definition.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/data-table#datatablehead
@@ -2700,7 +2700,7 @@ const DataTable = {
 	HeaderSortButton,
 	/**
 	 * A single data table body row rendered from a TanStack Table row instance.
-	 * Does not accept children — cells come from each column's `cell` definition.
+	 * Does not accept children: cells come from each column's `cell` definition.
 	 *
 	 * When `onClick` is set, the row receives `cursor-pointer` and `data-clickable`.
 	 * It runs the handler only for a plain primary click: a modified click, a
@@ -2709,7 +2709,7 @@ const DataTable = {
 	 * cursor. A `<tr>` is not focusable, so also render a `<Link>` inside the
 	 * primary cell as the keyboard and screen-reader path.
 	 *
-	 * Pass `renderExpanded` to give the row an inline detail panel — the row then
+	 * Pass `renderExpanded` to give the row an inline detail panel: the row then
 	 * renders a sibling `DataTable.ExpandedRow` (only while expanded) holding the
 	 * returned content. Pair with `DataTable.RowExpandButton`.
 	 *

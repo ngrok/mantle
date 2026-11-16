@@ -26,18 +26,18 @@ import type { ChartDatum, ChartDatumEvent, SeriesMark, SeriesMeta, XScaleKind } 
  * can see, and a table of sparklines holds no hidden tables until a reader
  * asks for one.
  *
- * This module is internal shared implementation — it is not exported from the
+ * This module is internal shared implementation. It is not exported from the
  * package.
  */
 
 /**
  * Every interactive chart must have an accessible name: either a direct
  * `aria-label` or an `aria-labelledby` reference to a visible title (preferred
- * when the chart sits under a heading — no drift-prone duplicated text).
+ * when the chart sits under a heading, so no duplicated text can drift).
  * Enforced at the type level; the name lands on the interaction overlay (the
- * chart's single named element — the canvas itself is aria-hidden so AT never
- * announces the chart twice). Decorative charts are exempt — see
- * {@link ChartAccessibilityProps}.
+ * chart's single named element: the canvas itself is aria-hidden, so assistive
+ * technology never announces the chart twice). Decorative charts are exempt;
+ * see {@link ChartAccessibilityProps}.
  */
 type ChartAccessibleName =
 	| { "aria-label": string; "aria-labelledby"?: never }
@@ -207,13 +207,13 @@ type ChartAccessibilityProps<TMode extends ChartMode = ChartMode> = {
 
 type ChartContextValue = {
 	kind: SeriesMark;
-	/** The public namespace name, e.g. `"BarChart"` — used in error messages. */
+	/** The public namespace name, e.g. `"BarChart"`, used in error messages. */
 	componentName: string;
 	store: ChartStore;
 	engineRef: { current: ChartEngine | null };
 	/**
 	 * The Root's current data props, read at interaction time (never at render
-	 * time) by parts like `CopyButton` — a ref so the context value, created
+	 * time) by parts like `CopyButton`. It is a ref so the context value, created
 	 * once per Root lifetime, stays stable across data updates.
 	 */
 	dataRef: {

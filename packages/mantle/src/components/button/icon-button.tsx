@@ -31,8 +31,8 @@ type IconButtonProps = Omit<ComponentProps<"button">, "aria-label"> &
 		 */
 		"aria-label"?: never;
 		/**
-		 * The visual style of the IconButton. Required — there is no default,
-		 * so every call site states the weight it means. The union matches
+		 * The visual style of the IconButton. Required: there is no default,
+		 * so every call site states the visual weight it means. The union matches
 		 * `Button`'s without `link`.
 		 *
 		 * @enum
@@ -42,13 +42,14 @@ type IconButtonProps = Omit<ComponentProps<"button">, "aria-label"> &
 		 */
 		appearance: IconButtonAppearance;
 		/**
-		 * The tone of the IconButton. Narrower than `Button`'s — `"neutral"` is
-		 * the only tone `IconButton` draws, so the accent and danger tones are
-		 * a type error here. Still required, so a call site reads the same on
+		 * The tone of the IconButton: the purpose its color communicates to the
+		 * user. Narrower than `Button`'s: `"neutral"` is the only tone
+		 * `IconButton` draws, so the accent and danger tones are a type error
+		 * here. Still required, so a call site reads the same on
 		 * both components and keeps compiling if more tones land.
 		 *
 		 * @enum
-		 * - `"neutral"`: the workhorse tone — routine and secondary actions
+		 * - `"neutral"`: the workhorse tone: routine and secondary actions
 		 */
 		intent: IconButtonIntent;
 		/**
@@ -73,7 +74,7 @@ type IconButtonProps = Omit<ComponentProps<"button">, "aria-label"> &
 		icon: ReactNode;
 		/**
 		 * The behavior of the button when activated. Defaults to `"button"`, so the
-		 * button does not accidentally submit a surrounding `<form>` — pass
+		 * button does not accidentally submit a surrounding `<form>`. Pass
 		 * `type="submit"` to submit a form, or `type="reset"` to reset it.
 		 *
 		 * When `asChild` is used, `type` has no effect and is not forwarded to the
@@ -95,19 +96,19 @@ type IconButtonProps = Omit<ComponentProps<"button">, "aria-label"> &
  * A button that renders one icon and nothing else. Its required `label` prop
  * carries the accessible name.
  *
- * `appearance` (visual weight) and `intent` (tone) are required — every call
+ * `appearance` (visual weight) and `intent` (tone) are required: every call
  * site states what it means; there are no implicit defaults.
  *
  * `IconButton` draws all three of `Button`'s box appearances, each in the
  * neutral tone only, and each one matches its `Button` twin. `link` stays off
- * the union — an icon-only link has no text to read as a link. The accent and
- * danger tones stay off `intent` — an icon carries no text to name the action
+ * the union: an icon-only link has no text to read as a link. The accent and
+ * danger tones stay off `intent`: an icon carries no text to name the action
  * a tone colors.
  *
  * The border radius is driven by the `--icon-button-border-radius` CSS
  * variable (default: `0.375rem`). Wrappers can set it to slot icon buttons
- * into their chrome — e.g. `ButtonGroup`'s panel appearance tightens it to
- * `0.125rem`.
+ * into their chrome. For example, `ButtonGroup`'s panel appearance tightens
+ * it to `0.125rem`.
  *
  * **Disabled and loading.** A native `<button>` gets the `disabled` attribute.
  * Under `asChild`, the child gets no `disabled` attribute, because it is inert
@@ -147,7 +148,7 @@ type IconButtonProps = Omit<ComponentProps<"button">, "aria-label"> &
  * ```
  *
  * @example
- * Submit a form — opt in with `type="submit"` (the default `"button"` does not submit):
+ * Submit a form. Opt in with `type="submit"` (the default `"button"` does not submit):
  * ```tsx
  * <IconButton
  *   type="submit"

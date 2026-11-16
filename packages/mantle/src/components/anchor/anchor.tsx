@@ -45,7 +45,7 @@ type AnchorProps = Omit<ComponentProps<"a">, "rel"> &
 	};
 
 /**
- * A styled hyperlink — a native `<a>` with mantle's link styling, focus
+ * A styled hyperlink: a native `<a>` with mantle's link styling, focus
  * treatment, optional leading/trailing icon, and a safer default for the
  * `rel` attribute. Use for links that point _outside_ the current
  * application.
@@ -55,16 +55,16 @@ type AnchorProps = Omit<ComponentProps<"a">, "rel"> &
  * - Links to files or `mailto:` / `tel:` destinations.
  *
  * **When not to use**
- * - Internal application routes — prefer the framework router's link
+ * - Internal application routes: prefer the framework router's link
  *   primitive ({@link https://reactrouter.com/en/main/components/link `react-router` `<Link>`})
  *   so client-side navigation kicks in. You can keep mantle's styling by
  *   composing: `<Anchor asChild><Link to="/foo">…</Link></Anchor>`.
- * - For triggering an action — use a {@link https://mantle.ngrok.com/components/actions/button Button}
+ * - For triggering an action: use a {@link https://mantle.ngrok.com/components/actions/button Button}
  *   instead. If it doesn't navigate, it's not a link.
  *
  * **Icons.** Pass `icon` (a phosphor or custom SVG) and optionally
  * `iconPlacement` (`"start"` default, or `"end"`) to render a small inline
- * icon — useful for "external link" or "download" affordances. Icons are
+ * icon. It suits "external link" or "download" affordances. Icons are
  * decorative; the link text must still describe the destination on its own.
  *
  * **Security.** When `target="_blank"` and `rel` is omitted, the anchor

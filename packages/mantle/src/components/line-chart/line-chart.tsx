@@ -42,7 +42,7 @@ type LineChartListProps = ChartListPrimitiveProps;
 /**
  * Props for {@link LineChart.Root}. Lines encode value by vertical position,
  * not length from a baseline, so the full y domain stays overridable via
- * `yDomain` — and lines never stack, so there is no `stacked` prop.
+ * `yDomain`. Lines never stack, so there is no `stacked` prop.
  */
 type LineChartRootProps<
 	TDatum extends ChartDatum = ChartDatum,
@@ -122,7 +122,7 @@ type LineChartGridProps = GridPrimitiveProps;
 
 /**
  * Props for {@link LineChart.XAxis}. The tick formatter receives the row's x
- * value — a `Date` on time scales, a number on linear scales, and the
+ * value: a `Date` on time scales, a number on linear scales, and the
  * category value on point scales.
  */
 type LineChartXAxisProps = XAxisPrimitiveProps;
@@ -227,7 +227,7 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
 );
 
 /**
- * One line series. Renders nothing itself — it registers the series with the
+ * One line series. Renders nothing itself: it registers the series with the
  * chart, which paints it. Compose one `Line` per series; `null` and
  * missing values render as gaps unless `connectNulls` joins across them.
  *
@@ -305,8 +305,8 @@ const XAxis = (props: LineChartXAxisProps) => useXAxisPrimitive("LineChart.XAxis
 const YAxis = (props: LineChartYAxisProps) => useYAxisPrimitive("LineChart.YAxis", props);
 
 /**
- * A dashed horizontal marker at a y value — an SLO threshold, a budget, a
- * limit (renderless; the chart paints it).
+ * A dashed horizontal marker at a y value, such as an SLO threshold, a budget,
+ * or a limit (renderless; the chart paints it).
  *
  * @see https://mantle.ngrok.com/components/charts/line-chart#linechartreferenceline
  *
@@ -328,7 +328,7 @@ const ReferenceLine = (props: LineChartReferenceLineProps) =>
 /**
  * Customizes the hover/keyboard tooltip readout. The tooltip itself is part
  * of `LineChart.Root`'s interaction contract and renders even when this part
- * is absent — compose it to format the label or values, append a footer, or
+ * is absent. Compose it to format the label or values, append a footer, or
  * replace the content entirely via the render-prop `children`.
  *
  * **Structure.** A `children` readout renders inside a
@@ -362,7 +362,7 @@ const Tooltip = (props: LineChartTooltipProps) => useTooltipPrimitive("LineChart
 
 /**
  * The legend: series names keyed by color swatches, rendered as real DOM in
- * flow below the plot. Always compose it on multi-series charts — identity
+ * flow below the plot. Always compose it on multi-series charts: identity
  * must never rely on color-matching alone. It renders nothing for a single
  * series (the chart's title already names it).
  *
@@ -379,7 +379,7 @@ const Tooltip = (props: LineChartTooltipProps) => useTooltipPrimitive("LineChart
  * | --- | --- | --- |
  * | `data-slot` | `"line-chart-legend"` | The legend list. `LineChart.Legend` renders it in flow below the plot. |
  * | `data-slot` | `"line-chart-legend-label"` | On the `<div>` wrapping a `children` render prop. The default legend has none. |
- * | `data-shape` | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` \| `"triangle-down"` \| `"plus"` \| `"cross"` \| `"star"` | On the glyph riding each swatch's stroke, naming what its `LineChart.Line` wears — the `shape` it set, else the circle. The glyph clips itself to that shape, so target this only to restyle a key. |
+ * | `data-shape` | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` \| `"triangle-down"` \| `"plus"` \| `"cross"` \| `"star"` | On the glyph riding each swatch's stroke, naming what its `LineChart.Line` wears: the `shape` it set, else the circle. The glyph clips itself to that shape, so target this only to restyle a key. |
  *
  * @see https://mantle.ngrok.com/components/charts/line-chart#linechartlegend
  *
@@ -401,8 +401,8 @@ const Legend = (props: LineChartLegendProps) => (
 
 /**
  * A button that copies the chart's current data to the clipboard as a
- * markdown table (ISO dates, plain numbers, one column per series) —
- * pasteable into Slack, issues, docs, spreadsheets, and LLM chats. Renders
+ * markdown table (ISO dates, plain numbers, one column per series). The table
+ * pastes into Slack, issues, docs, spreadsheets, and LLM chats. Renders
  * in flow where composed (alongside `Legend`, below the plot); `Root` is
  * relatively positioned, so `className` can dock it over a corner instead
  * (e.g. `absolute right-0 top-0`).
@@ -453,7 +453,7 @@ const List = (props: LineChartListProps) => (
 );
 
 /**
- * A line chart for trends over a continuous x — time above
+ * A line chart for trends over a continuous x, time above
  * all. Each series names its own `color`. Interaction ships with `Root`
  * unconditionally: a crosshair snapped to the nearest x with an every-series
  * tooltip, keyboard stepping, aria-live announcements, and an sr-only

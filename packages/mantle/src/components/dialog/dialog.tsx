@@ -101,7 +101,7 @@ const Trigger = ({
  * The portal container for the dialog. Renders the overlay and content into a
  * portal so the dialog escapes its parent's stacking context.
  *
- * Most consumers should not need to use this directly — `Dialog.Content`
+ * Most consumers should not need to use this directly. `Dialog.Content`
  * already wraps its children in a portal. Use this only when you need to
  * customize the portal target or render the overlay yourself.
  *
@@ -179,7 +179,7 @@ const Close = ({
  * The backdrop overlay for the dialog. Sits between the page and the dialog
  * content and applies a blur and dim effect.
  *
- * Most consumers should not need to use this directly — `Dialog.Content`
+ * Most consumers should not need to use this directly. `Dialog.Content`
  * renders an overlay automatically. Use this only when composing a custom
  * `Dialog.Portal` tree.
  *
@@ -235,10 +235,10 @@ const Overlay = ({
  * there. The three values move together as one decision, because a dialog that
  * fills the viewport has no width to cap and no corner left to round.
  *
- * - `"centered"` — a card capped at `preferredWidth`, inset 16px from every
+ * - `"centered"`: a card capped at `preferredWidth`, inset 16px from every
  *   viewport edge, rounded and bordered.
- * - `"full-page"` — fills that same 16px-inset box, still rounded and bordered.
- * - `"full-bleed"` — fills the whole viewport, square and unbordered.
+ * - `"full-page"`: fills that same 16px-inset box, still rounded and bordered.
+ * - `"full-bleed"`: fills the whole viewport, square and unbordered.
  */
 type DialogAppearance = "centered" | "full-page" | "full-bleed";
 
@@ -296,7 +296,7 @@ type ContentProps = ComponentProps<typeof DialogPrimitiveContent> &
 				appearance: "full-page" | "full-bleed";
 				/**
 				 * Never set here. A `"full-page"` or `"full-bleed"` dialog fills its box,
-				 * so it has no width to cap — pass `appearance="centered"` to cap it.
+				 * so it has no width to cap. Pass `appearance="centered"` to cap it.
 				 */
 				preferredWidth?: never;
 		  }
@@ -399,7 +399,7 @@ const Content = ({
 		{/* Why the positioner is the layer container: floats composed inside the
 		    dialog portal into it, after the content, so they paint above the
 		    content inside the dialog's own stacking context. It stays free of
-		    transforms — the open animation lives on the content — so a portaled
+		    transforms (the open animation lives on the content), so a portaled
 		    float's `position: fixed` still resolves against the viewport. */}
 		<LayerContainer
 			data-slot="dialog-positioner"
@@ -491,7 +491,7 @@ const Header = ({
 
 type CloseIconButtonProps = Partial<Omit<IconButtonProps, "appearance" | "icon" | "intent">> & {
 	/**
-	 * The visual style of the close icon button. Optional here —
+	 * The visual style of the close icon button. Optional here:
 	 * `Dialog.CloseIconButton` defaults to `"ghost"` so the close affordance
 	 * stays visually quiet in the dialog header.
 	 *
@@ -499,7 +499,7 @@ type CloseIconButtonProps = Partial<Omit<IconButtonProps, "appearance" | "icon" 
 	 */
 	appearance?: IconButtonAppearance;
 	/**
-	 * The tone of the close icon button. Optional here —
+	 * The tone of the close icon button. Optional here:
 	 * `Dialog.CloseIconButton` defaults to `"neutral"`, the workhorse tone for
 	 * routine actions like dismissing a dialog, and the only tone `IconButton`
 	 * draws.

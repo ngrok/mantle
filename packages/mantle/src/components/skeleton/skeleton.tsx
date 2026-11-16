@@ -19,14 +19,14 @@ type Props = Omit<ComponentProps<"div">, "children"> & SelfClosingWithAsChild & 
  * - On initial page load, before data has resolved.
  *
  * **When not to use**
- * - For very short fetches (< 200 ms) — a flash of skeleton is more
+ * - For very short fetches (< 200 ms). A flash of skeleton is more
  *   distracting than helpful.
  * - To convey error or empty states. Use {@link https://mantle.ngrok.com/components/feedback/empty Empty} instead.
  * - As a permanent decorative shape.
  *
  * **Sizing.** Default height is `1rem`. Override `className` with `h-*`,
- * `w-*`, and `rounded-*` utilities to match the real content's dimensions
- * — the more closely the skeleton matches, the less layout shift on swap.
+ * `w-*`, and `rounded-*` utilities to match the real content's dimensions.
+ * The more closely the skeleton matches, the less layout shift on swap.
  *
  * **Accessibility.** Skeletons are decorative and convey no semantic
  * meaning to assistive tech, so the element renders `aria-hidden="true"` by

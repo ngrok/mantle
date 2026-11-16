@@ -30,8 +30,8 @@ type CommandDialogState = {
 	 */
 	open: boolean;
 	/**
-	 * Set the open state. **Opening through this resets the query to empty** —
-	 * use {@link CommandDialogState.openWithQuery} to open with text in the
+	 * Set the open state. **Opening through this resets the query to empty**.
+	 * Use {@link CommandDialogState.openWithQuery} to open with text in the
 	 * field. Calls `onOpenChange` and, when uncontrolled, updates the internal
 	 * state.
 	 */
@@ -52,7 +52,7 @@ type CommandDialogState = {
 	 * The current text of `Command.Input`. Read it to drive your own filtering
 	 * or a server-side search when the palette runs with `shouldFilter={false}`.
 	 *
-	 * Only meaningful while `Command.Input` is uncontrolled — passing it a
+	 * Only meaningful while `Command.Input` is uncontrolled. Passing it a
 	 * `value` takes ownership of the query, and this stops tracking the field.
 	 */
 	query: string;
@@ -76,8 +76,8 @@ const CommandDialogContext = createContext<CommandDialogState | null>(null);
  * Read the nearest `Command.DialogRoot` state. Throws when called outside one
  * so misuse fails loudly rather than rendering a trigger that opens nothing.
  *
- * Reach for it to open the palette from somewhere other than its trigger — a
- * sidebar row, an empty state, a "no results, search everything" link — or to
+ * Reach for it to open the palette from somewhere other than its trigger (a
+ * sidebar row, an empty state, a "no results, search everything" link), or to
  * build a custom trigger, pairing it with
  * [`searchActionFromKeyDown`](https://mantle.ngrok.com/components/navigation/command#searchactionfromkeydown)
  * so typing into your trigger behaves like typing into `Command.SearchTrigger`.
@@ -104,7 +104,7 @@ function useCommandDialog(): CommandDialogState {
 
 /**
  * Read the nearest {@link CommandDialogContext} without requiring one. For
- * parts that work both inside a dialog and standalone under `Command.Root` —
+ * parts that work both inside a dialog and standalone under `Command.Root`:
  * `Command.Input` seeds itself from the dialog when there is one and stays
  * uncontrolled when there is not.
  */

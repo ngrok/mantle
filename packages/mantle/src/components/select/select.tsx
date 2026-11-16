@@ -133,7 +133,7 @@ type SelectProps = PropsWithChildren & {
 	WithAriaInvalid;
 
 /**
- * Displays a list of options for the user to pick from—triggered by a button.
+ * Displays a list of options for the user to pick from, triggered by a button.
  *
  * Use Select for a small, finite list of options (~2-15) where the user picks exactly one
  * and search/filtering is unnecessary. For larger lists or async/searchable data, use
@@ -837,7 +837,7 @@ const SelectSeparatorComponent = ({
 );
 
 /**
- * Displays a list of options for the user to pick from—triggered by a button.
+ * Displays a list of options for the user to pick from, triggered by a button.
  *
  * Use Select for a small, finite list of options (~2-15) where the user picks exactly one
  * and search/filtering is unnecessary. For larger lists or async/searchable data, use
@@ -898,7 +898,7 @@ const SelectSeparatorComponent = ({
  */
 const Select = {
 	/**
-	 * Displays a list of options for the user to pick from—triggered by a button.
+	 * Displays a list of options for the user to pick from, triggered by a button.
 	 *
 	 * Use Select for a small, finite list of options (~2-15) where the user picks exactly one
 	 * and search/filtering is unnecessary. For larger lists or async/searchable data, use

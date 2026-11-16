@@ -59,8 +59,8 @@ const sizingVariants = cva("", {
  * - Inside a select option, list row, or status pill that needs a quick visual cue.
  *
  * **When not to use**
- * - As a stand-in for language. Flags ≠ languages — Brazilian Portuguese is
- *   not "Portugal", Spanish is not just "Spain". Use a language label instead.
+ * - As a stand-in for language. Flags are not languages: Brazilian Portuguese is
+ *   not "Portugal", and Spanish is not just "Spain". Use a language label instead.
  * - As decoration where the country isn't meaningful to the user.
  *
  * **Sizing.** `"s"` (16×12), `"m"` (20×15), and `"l"` (32×24, default) match

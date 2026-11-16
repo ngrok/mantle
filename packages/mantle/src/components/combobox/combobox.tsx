@@ -33,12 +33,12 @@ type ComboboxProps = AriakitComboboxProviderProps;
 /**
  * The outermost part of a combobox. It owns the ariakit store that holds the query text, the open state, and the selection.
  *
- * Use Combobox for a list of options where the user types to filter — large static lists,
+ * Use Combobox for a list of options where the user types to filter: large static lists,
  * async/server-side data, or any single-select where search is helpful. For very small
  * finite lists with no filtering, prefer Select. For multi-selection, prefer MultiSelect.
  *
- * `Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier —
- * it does not portal, so the dialog primitive's Escape guard can see it. Inside
+ * `Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier.
+ * It does not portal, so the dialog primitive's Escape guard can see it. Inside
  * an overlay it paints with the overlay's content. Outside one, an open overlay
  * (`z-60`) covers it.
  *
@@ -165,8 +165,8 @@ type ComboboxContentProps = Omit<AriakitComboboxPopoverProps, "render"> &
 /**
  * Renders a popover that contains combobox content, e.g. Combobox.Items, Combobox.Groups, and Combobox.Separators.
  *
- * `Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier —
- * it does not portal, so the dialog primitive's Escape guard can see it. Inside
+ * `Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier.
+ * It does not portal, so the dialog primitive's Escape guard can see it. Inside
  * an overlay it paints with the overlay's content. Outside one, an open overlay
  * (`z-60`) covers it.
  *
@@ -457,12 +457,12 @@ const ComboboxSeparatorComponent = ({
  * Choose from a list of suggested values with full keyboard support.
  * It follows the WAI-ARIA Combobox Pattern and builds on the ariakit Combobox.
  *
- * Use Combobox for a list of options where the user types to filter — large static lists,
+ * Use Combobox for a list of options where the user types to filter: large static lists,
  * async/server-side data, or any single-select where search is helpful. For very small
  * finite lists with no filtering, prefer Select. For multi-selection, prefer MultiSelect.
  *
- * `Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier —
- * it does not portal, so the dialog primitive's Escape guard can see it. Inside
+ * `Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier.
+ * It does not portal, so the dialog primitive's Escape guard can see it. Inside
  * an overlay it paints with the overlay's content. Outside one, an open overlay
  * (`z-60`) covers it.
  *
@@ -508,12 +508,12 @@ const Combobox = {
 	/**
 	 * The outermost part of a combobox. It owns the ariakit store that holds the query text, the open state, and the selection.
 	 *
-	 * Use Combobox for a list of options where the user types to filter — large static lists,
+	 * Use Combobox for a list of options where the user types to filter: large static lists,
 	 * async/server-side data, or any single-select where search is helpful. For very small
 	 * finite lists with no filtering, prefer Select. For multi-selection, prefer MultiSelect.
 	 *
-	 * `Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier
-	 * — it does not portal, so the dialog primitive's Escape guard can see it.
+	 * `Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier.
+	 * It does not portal, so the dialog primitive's Escape guard can see it.
 	 * Inside an overlay it paints with the overlay's content. Outside one, an open
 	 * overlay (`z-60`) covers it.
 	 *
@@ -538,8 +538,8 @@ const Combobox = {
 	/**
 	 * Renders a popover that contains combobox content, e.g. Combobox.Items, Combobox.Groups, and Combobox.Separators.
 	 *
-	 * `Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier
-	 * — it does not portal, so the dialog primitive's Escape guard can see it.
+	 * `Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier.
+	 * It does not portal, so the dialog primitive's Escape guard can see it.
 	 * Inside an overlay it paints with the overlay's content. Outside one, an open
 	 * overlay (`z-60`) covers it.
 	 *
