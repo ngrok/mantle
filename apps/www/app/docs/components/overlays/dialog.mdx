@@ -74,6 +74,20 @@ UI that must take clicks above an open dialog, such as a consent banner, carries
 
 The class reaches pointer input only. The open dialog traps keyboard focus and hides outside content from assistive technology with `aria-hidden`, so a keyboard or screen reader user cannot reach the banner. Put a control that every user must reach inside the dialog content.
 
+## Third-party popups
+
+A widget in the dialog can put its own popup on `<body>`. A payment script does this for a 3-D Secure challenge and for a wallet sign-in. While the popup covers the center of the viewport and takes pointer input, the dialog treats the popup as part of itself:
+
+- Focus that the widget's script moves into the popup stays there. The focus trap does not take it back.
+- Escape does not close the dialog under the popup. Close the popup first.
+- A click in the popup is not an outside click.
+
+The dialog finds the popup with a hit test at the center of the viewport. The popup counts when it is a child of `<body>`, has a `z-index` at or above the `z-60` of the dialog, and takes pointer input. An open dialog sets `pointer-events: none` on `<body>`, so a popup must set `pointer-events: auto` to take a click. Stripe's popups set it. If the popup of another widget does not, set it on the popup in your CSS.
+
+Close the dialog from your code only after the popup closes. A payment script saves the `<body>` style when its popup opens and puts that style back when the popup closes. If the dialog closes in between, the style that comes back still has `pointer-events: none`.
+
+The [Sheet page](/components/overlays/sheet#third-party-popups) runs an example with a payment popup.
+
 ## Handling autofill overlays
 
 When a dialog contains form inputs, browser autofill or password-manager plugins (e.g. 1Password) may render overlays as siblings to the dialog content. By default, clicking these overlays triggers `onPointerDownOutside`, which closes the dialog. Use `isDialogOverlayTarget` to prevent this:
