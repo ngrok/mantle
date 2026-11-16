@@ -33,7 +33,7 @@
     "migrate": "node ./scripts/migrate.ts"
   },
   "devDependencies": {
-    "@ast-grep/cli": "0.51.3",
+    "@ast-grep/cli": "0.51.2",
     "@changesets/changelog-github": "1.0.1",
     "@changesets/cli": "3.0.3",
     "@tailwindcss/node": "catalog:",
