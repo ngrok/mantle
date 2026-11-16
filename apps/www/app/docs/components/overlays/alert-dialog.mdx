@@ -129,7 +129,7 @@ The class reaches pointer input only. The open alert dialog traps keyboard focus
 
 ## Third-party popups
 
-A script can show its own popup in a frame on `<body>`, above the alert dialog. A payment script does this for a 3-D Secure challenge and for a wallet sign-in. While the popup covers the center of the viewport and takes pointer input, the alert dialog yields to it. Focus that the script moves into the popup stays there. Escape does not close the alert dialog: it moves focus into the popup, and the next Escape goes to the popup.
+A script can show its own popup in a frame on `<body>`, above the alert dialog. A payment script does this for a 3-D Secure challenge and for a wallet sign-in. While that frame is on top at the center of the viewport, the alert dialog yields to the popup. Focus that the script moves into the popup stays there. Escape does not close the alert dialog: it moves focus into the popup, and the popup then takes the keyboard.
 
 Close the alert dialog from your code only after the popup closes. [Third-party popups](/components/overlays/sheet#third-party-popups) on the Sheet page has the reason, the rule for what counts as a popup, and an example.
 

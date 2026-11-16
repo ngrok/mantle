@@ -76,10 +76,10 @@ The class reaches pointer input only. The open dialog traps keyboard focus and h
 
 ## Third-party popups
 
-A script can show its own popup in a frame on `<body>`, above the dialog. A payment script does this for a 3-D Secure challenge and for a wallet sign-in. While the popup covers the center of the viewport and takes pointer input, the dialog yields to it:
+A script can show its own popup in a frame on `<body>`, above the dialog. A payment script does this for a 3-D Secure challenge and for a wallet sign-in. While that frame is on top at the center of the viewport, the dialog yields to the popup:
 
 - Focus that the script moves into the popup stays there. The focus trap does not take it back.
-- Escape does not close the dialog. It moves focus into the popup, and the next Escape goes to the popup.
+- Escape does not close the dialog. It moves focus into the popup, and the popup then takes the keyboard.
 - A click in the popup is not an outside click.
 
 Close the dialog from your code only after the popup closes. [Third-party popups](/components/overlays/sheet#third-party-popups) on the Sheet page has the reason, the rule for what counts as a popup, and an example.

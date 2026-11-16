@@ -43,7 +43,7 @@ Floats do not register a container of their own. A select opened from inside a p
 
 Escape follows the same order. While focus is in an overlay, Escape closes that overlay, even when a float outside it opened later. The float stays open under it.
 
-An overlay yields to a frame above it that a script puts on `<body>`, such as a payment popup. While that frame covers the center of the viewport and takes pointer input, the overlay lets it keep focus, and Escape moves focus into it. [Third-party popups](/components/overlays/sheet#third-party-popups) has the rule and an example.
+An overlay yields to a frame above it that a script puts on `<body>`, such as a payment popup. While that frame is on top at the center of the viewport, the overlay lets it keep focus, and Escape moves focus into it. [Third-party popups](/components/overlays/sheet#third-party-popups) has the rule and an example.
 
 ## See the contract work
 

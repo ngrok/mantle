@@ -105,23 +105,22 @@ The class reaches pointer input only. The open sheet traps keyboard focus and hi
 
 ## Third-party popups
 
-A script can show its own popup in a frame on `<body>`, above the sheet. A payment script does this for a 3-D Secure challenge and for a wallet sign-in. While the popup covers the center of the viewport and takes pointer input, the sheet yields to it:
+A script can show its own popup in a frame on `<body>`, above the sheet. A payment script does this for a 3-D Secure challenge and for a wallet sign-in. While that frame is on top at the center of the viewport, the sheet yields to the popup:
 
 - Focus that the script moves into the popup stays there. The focus trap does not take it back.
-- Escape does not close the sheet. It moves focus into the popup, and the next Escape goes to the popup.
+- Escape does not close the sheet. It moves focus into the popup, and the popup then takes the keyboard.
 - A click in the popup is not an outside click.
 
-The sheet finds the popup with a hit test at the center of the viewport. The popup counts when it:
+The sheet finds the popup with a hit test at the center of the viewport. The popup counts when:
 
-- is a child of `<body>` that holds a frame
-- has a `z-index` at or above the `z-60` of the sheet
-- takes pointer input
+- the element on top there is a frame, and the frame takes pointer input
+- the frame is in a child of `<body>` that has a `position` and a `z-index` at or above the `z-60` of the sheet
 
-An open sheet sets `pointer-events: none` on `<body>`, so a popup must set `pointer-events: auto` to take a click. Stripe's popups set it. If the popup of another script does not, set it on the popup in your CSS.
+An open sheet sets `pointer-events: none` on `<body>`, so a frame must set `pointer-events: auto` to take a click. Stripe's popups set it. If the popup of another script does not, set it on the frame in your CSS.
 
-A popup that a script builds from page elements, with no frame, does not count. If the script can render its popup into an element that you choose, give it an element in the sheet.
+A popup that shows page elements at the center of the viewport does not count, also when it holds a frame at another place. If the script can render its popup into an element that you choose, give it an element in the sheet.
 
-An open sheet hides the rest of the page from assistive technology. That includes a popup that was on the page before the sheet opened. The sheet removes that `aria-hidden` from the popup when focus moves into it.
+An open sheet hides the rest of the page from assistive technology. That includes a popup that was on the page before the sheet opened. The sheet removes that `aria-hidden` from the popup when the page gets a focus event for the move into the popup. Firefox sends no such event when focus was in another frame or on `<body>`.
 
 Your code still does two things:
 
@@ -135,7 +134,7 @@ The example runs `confirmWithBank`, a stand-in for a payment script. It does wha
 - It calls `focus()` on the frame from the page.
 - It saves the `<body>` style, and puts that style back when the popup closes.
 
-Select **Save card**, then type a code in the bank's frame. Press Escape in the frame to cancel the check: the popup closes, the sheet stays open, and focus moves to the result. The sheet itself is an ordinary form.
+Select **Save card**. In the bank's frame, select the code field and type a code. Press Escape in the frame to cancel the check: the popup closes, the sheet stays open, and focus moves to the result. The sheet itself is an ordinary form.
 
 <Example name="components/overlays/sheet/third-party-popups" title="Sheet third-party popups example">
 
