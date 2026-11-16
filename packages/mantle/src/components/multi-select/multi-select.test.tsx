@@ -210,7 +210,7 @@ describe("MultiSelect", () => {
 
 			await user.type(screen.getByRole("combobox"), "ban");
 
-			// One call per keystroke, with the whole input value — not the typed char.
+			// One call per keystroke, with the whole input value, not the typed char.
 			expect(onValueChange.mock.calls).toEqual([["b"], ["ba"], ["ban"]]);
 			// The raw event handler is composed, not replaced.
 			expect(onChange).toHaveBeenCalledTimes(3);
@@ -283,7 +283,7 @@ describe("MultiSelect", () => {
 		test("pressing the trigger's own surface focuses the input instead of starting a selection", () => {
 			renderTrigger([]);
 
-			// `fireEvent` returns false when a handler called preventDefault — here that
+			// `fireEvent` returns false when a handler called preventDefault. Here that
 			// suppression is what stops the press from dragging a text selection.
 			expect(fireEvent.mouseDown(screen.getByTestId("trigger"))).toBe(false);
 			expect(screen.getByRole("combobox")).toHaveFocus();
@@ -305,7 +305,7 @@ describe("MultiSelect", () => {
 
 	describe("keyboard navigation", () => {
 		/**
-		 * Stateful wrapper for keyboard nav tests — uses useState so that
+		 * Stateful wrapper for keyboard nav tests. It uses useState so that
 		 * removeValue calls actually update the rendered tag list.
 		 */
 		const Subject = ({
@@ -442,7 +442,7 @@ describe("MultiSelect", () => {
 				const tag = getTagOption("banana");
 				tag.focus();
 
-				// `fireEvent` returns false when a handler called preventDefault — that
+				// `fireEvent` returns false when a handler called preventDefault. That
 				// suppression is what keeps the page from scrolling under the popover.
 				expect(fireEvent.keyDown(tag, { key })).toBe(false);
 				expect(screen.getByRole("combobox")).toHaveFocus();
@@ -811,7 +811,7 @@ describe("MultiSelect", () => {
 		expect(input).toHaveAttribute("aria-errormessage", errors.id);
 		expect(input).not.toHaveAttribute("id", "ignored-input");
 		// The field name lands on the hidden inputs that carry the selected values, not on the
-		// combobox input — whose value is the typeahead filter text and never a submitted value.
+		// combobox input, whose value is the typeahead filter text and never a submitted value.
 		expect(input).not.toHaveAttribute("name");
 	});
 

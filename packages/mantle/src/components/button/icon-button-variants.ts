@@ -5,21 +5,21 @@ import type { ButtonSize } from "./sizes.js";
 
 /**
  * The visual style of an `IconButton`: how much visual weight it carries.
- * The union matches `Button`'s without `link` — an icon-only link has no text
+ * The union matches `Button`'s without `link`: an icon-only link has no text
  * to read as a link.
  *
- * - `"filled"` — solid fill; the heaviest weight on the page
- * - `"ghost"` — no border or fill until hovered
- * - `"outlined"` — bordered on the form background
+ * - `"filled"`: solid fill; the heaviest weight on the page
+ * - `"ghost"`: no border or fill until hovered
+ * - `"outlined"`: bordered on the form background
  */
 type IconButtonAppearance = "filled" | "ghost" | "outlined";
 
 /**
- * The tone of an `IconButton` — the purpose its color communicates to the
- * user. Narrower than `ButtonIntent`: an icon carries no text to name the
+ * The tone of an `IconButton` (the purpose its color communicates to the
+ * user). Narrower than `ButtonIntent`: an icon carries no text to name the
  * action a tone colors, so `IconButton` draws the neutral tone only.
  *
- * - `"neutral"` — the workhorse tone; the only tone `IconButton` draws
+ * - `"neutral"`: the workhorse tone; the only tone `IconButton` draws
  */
 type IconButtonIntent = "neutral";
 
@@ -65,7 +65,7 @@ const iconButtonVariants = cva(baseIconButtonClasses, {
 				"border-form bg-form text-strong focus-visible:border-accent-600 focus-visible:ring-focus-accent not-disabled:hover:border-neutral-400 not-disabled:hover:bg-form-hover not-disabled:hover:text-strong focus-visible:not-disabled:hover:border-accent-600 focus-visible:not-disabled:active:border-accent-600",
 		} satisfies Record<IconButtonAppearance, string>,
 		/**
-		 * The tone of the IconButton. One value, and it styles nothing — the
+		 * The tone of the IconButton. One value, and it styles nothing: the
 		 * appearance classes already draw it. The variant stays so a call site
 		 * that names its tone, like `Calendar`'s nav buttons, keeps compiling.
 		 */

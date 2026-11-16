@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, type ComponentProps, useContext, useState } from "react";
+import { createContext, type ComponentProps, useContext, useEffect, useState } from "react";
+import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { useComposedRefs } from "../compose-refs/use-composed-refs.js";
 
 /**
@@ -30,7 +31,7 @@ const ModalLayerContext = createContext(false);
 
 /**
  * The nearest overlay's layer container, or `null` outside every overlay.
- * Pass the result to a portal's `container` prop — `null` falls back to
+ * Pass the result to a portal's `container` prop; `null` falls back to
  * `document.body`.
  *
  * @example
@@ -59,7 +60,7 @@ function useIsInsideModalLayer(): boolean {
 /**
  * The provider half of {@link LayerContainerContext}: a `div` that registers
  * itself as the layer container for every float composed inside it. An overlay
- * renders it as its positioner — the fixed element that lays out its content —
+ * renders it as its positioner (the fixed element that lays out its content),
  * so floats portaled into it later land on the content's ancestor chain and
  * paint above the content. The caller passes the positioning classes and the
  * `data-slot`; this component carries none of its own.
@@ -100,10 +101,120 @@ function LayerContainer({
 	);
 }
 
+/**
+ * An open overlay that can take an Escape from a float it covers.
+ */
+type OpenOverlay = {
+	/** The overlay's layer container: its positioner. */
+	container: Element;
+	/** The overlay's content element, inside `container`. Floats the overlay owns sit beside it. */
+	content: Element;
+	/** Runs the overlay's own Escape handling, then closes it unless a handler prevents that. */
+	escape: (event: KeyboardEvent) => void;
+};
+
+/**
+ * The open overlays in mount order. The last one paints on top.
+ */
+const openOverlays: OpenOverlay[] = [];
+
+/**
+ * Registers an open overlay, so a float it covers can hand it Escape. Pass
+ * `null` for `container` or `content` while the overlay is closed or not yet
+ * mounted, and it stays out of the registry.
+ */
+function useRegisterOverlay({
+	container,
+	content,
+	escape,
+}: {
+	container: Element | DocumentFragment | null;
+	content: Element | null;
+	escape: (event: KeyboardEvent) => void;
+}): void {
+	const stableEscape = useCallbackRef(escape);
+
+	useEffect(() => {
+		if (!(container instanceof Element) || content == null) {
+			return;
+		}
+		const overlay: OpenOverlay = { container, content, escape: stableEscape };
+		openOverlays.push(overlay);
+		return () => {
+			openOverlays.splice(openOverlays.indexOf(overlay), 1);
+		};
+	}, [container, content, stableEscape]);
+}
+
+/**
+ * Whether `overlay` covers a float that portals into `floatContainer`: the
+ * float sits outside the overlay, so it paints under it.
+ */
+function coversFloat(
+	overlay: OpenOverlay,
+	floatContainer: Element | DocumentFragment | null,
+): boolean {
+	return floatContainer == null || !overlay.container.contains(floatContainer);
+}
+
+/**
+ * Returns the `onOpenAutoFocus` handler for a float. A float that opens under
+ * the top overlay keeps focus in that overlay, because the user cannot see
+ * the float.
+ */
+function useFloatOpenAutoFocus(
+	onOpenAutoFocus: ((event: Event) => void) | undefined,
+): (event: Event) => void {
+	const floatContainer = useLayerContainer();
+
+	return (event) => {
+		onOpenAutoFocus?.(event);
+		const topOverlay = openOverlays.at(-1);
+		if (topOverlay != null && coversFloat(topOverlay, floatContainer)) {
+			event.preventDefault();
+		}
+	};
+}
+
+/**
+ * Returns the `onEscapeKeyDown` handler for a float. Radix sends Escape to the
+ * layer that mounted last. A float outside an overlay can mount after the
+ * overlay and paint under it, and Escape then closes a float the user cannot
+ * see. While focus is in the content of an overlay that does not contain the
+ * float, this handler gives Escape to that overlay and keeps the float open.
+ *
+ * Focus in a float that the overlay owns is outside the overlay's content, so
+ * Radix keeps the Escape: the overlay cannot close that float, and it must
+ * not close itself under the float.
+ */
+function useFloatEscapeKeyDown(
+	onEscapeKeyDown: ((event: KeyboardEvent) => void) | undefined,
+): (event: KeyboardEvent) => void {
+	const floatContainer = useLayerContainer();
+
+	return (event) => {
+		const coveringOverlay = openOverlays.findLast(
+			(overlay) =>
+				event.target instanceof Node &&
+				overlay.content.contains(event.target) &&
+				coversFloat(overlay, floatContainer),
+		);
+		if (coveringOverlay == null) {
+			onEscapeKeyDown?.(event);
+			return;
+		}
+		coveringOverlay.escape(event);
+		event.preventDefault();
+	};
+}
+
 export {
 	//,
 	LayerContainer,
 	LayerContainerContext,
+	useFloatEscapeKeyDown,
+	useFloatOpenAutoFocus,
 	useIsInsideModalLayer,
 	useLayerContainer,
+	useRegisterOverlay,
 };

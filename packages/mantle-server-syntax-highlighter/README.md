@@ -27,16 +27,16 @@ const result = await highlighter.highlight({
 	language: "typescript",
 });
 
-// result.html        — highlighted HTML (inner content, no <code> wrapper)
-// result.code        — normalized source code
-// result.language    — resolved language
+// result.html:     highlighted HTML (inner content, no <code> wrapper)
+// result.code:     normalized source code
+// result.language: resolved language
 ```
 
 ## API
 
 ### `createMantleServerSyntaxHighlighter()`
 
-Creates a reusable server highlighter instance. This is the recommended entry point — it internally caches the Shiki highlighter and recently highlighted results for performance.
+Creates a reusable server highlighter instance. This is the recommended entry point. It caches the Shiki highlighter and recently highlighted results for performance.
 
 ```ts
 const highlighter = createMantleServerSyntaxHighlighter();
@@ -104,5 +104,5 @@ Type declarations are included. No `@types/*` package is needed.
 
 ## Related Packages
 
-- [`@ngrok/mantle`](https://github.com/ngrok/mantle/tree/main/packages/mantle) — UI component library ([npm](https://www.npmjs.com/package/@ngrok/mantle))
-- [`@ngrok/mantle-vite-plugins`](https://github.com/ngrok/mantle/tree/main/packages/mantle-vite-plugins) — Vite + rehype plugins ([npm](https://www.npmjs.com/package/@ngrok/mantle-vite-plugins))
+- [`@ngrok/mantle`](https://github.com/ngrok/mantle/tree/main/packages/mantle): UI component library ([npm](https://www.npmjs.com/package/@ngrok/mantle))
+- [`@ngrok/mantle-vite-plugins`](https://github.com/ngrok/mantle/tree/main/packages/mantle-vite-plugins): Vite + rehype plugins ([npm](https://www.npmjs.com/package/@ngrok/mantle-vite-plugins))

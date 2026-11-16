@@ -17,7 +17,7 @@ const singleSeries = (step: number) => ({ step, slot: step - 2 });
 
 /**
  * A vertical value axis 200px tall: value `0` sits at pixel 200 and value `1`
- * at pixel 0, so a taller value maps to a smaller pixel — the sign convention
+ * at pixel 0, so a taller value maps to a smaller pixel: the sign convention
  * the engine's y coefficients produce.
  */
 const toPixel = (value: number): number => 200 - value * 200;
@@ -34,7 +34,7 @@ const GAP = 2;
 describe("barThickness", () => {
 	test("a dense chart fills its slot, exactly as it did before the fill rule", () => {
 		// 60 points across a 650px plot: a 10.8px step. The cap sits far above the
-		// slot, so the bar is the slot — the case a fixed 24px cap already handled.
+		// slot, so the bar is the slot: the case a fixed 24px cap already handled.
 		expect(barThickness(singleSeries(10.8))).toBeCloseTo(8.8, 10);
 		expect(barThickness(singleSeries(30))).toBe(24);
 	});
@@ -47,7 +47,7 @@ describe("barThickness", () => {
 	});
 
 	test("the two clamps meet the fill line, so thickness never jumps", () => {
-		// The floor and the fill rule cross at one step — 40px — and the ceiling and
+		// The floor and the fill rule cross at one step (40px), and the ceiling and
 		// the fill rule at another. A mismatch there is a visible pop as a row
 		// arrives or the container resizes, which no per-step assertion would catch.
 		const meetsFloor = BAR_DENSE_THICKNESS / BAR_STEP_FILL;
@@ -119,7 +119,7 @@ describe("stackedSegmentEdges", () => {
 	});
 
 	test("a column whose stack below rounds to no ink stays welded to the zero baseline", () => {
-		// The series below contributes 0.0001, which is 0.02px — nonzero, but it
+		// The series below contributes 0.0001, which is 0.02px: nonzero, but it
 		// paints nothing. Carving against it floats the visible column off the axis
 		// and shows the grid through the seam.
 		const edges = stackedSegmentEdges({ lower: 0.0001, upper: 0.4, toPixel, reveal: 1, gap: GAP });

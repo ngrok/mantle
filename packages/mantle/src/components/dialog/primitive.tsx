@@ -12,21 +12,95 @@ import {
 	Trigger as DialogPrimitiveTrigger,
 } from "@radix-ui/react-dialog";
 import type { ComponentProps, ComponentPropsWithoutRef, Ref } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
+import { useCallbackRef } from "../../hooks/use-callback-ref.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { Slot } from "../slot/index.js";
 import { preventCloseOnPromptInteraction } from "../toast/prevent-close-on-prompt-interaction.js";
 import { parseBooleanish } from "../../types/booleanish.js";
 import {
 	LayerContainerContext,
 	useLayerContainer,
+	useRegisterOverlay,
 } from "../../utils/layer-container/layer-container.js";
 
 type DialogPrimitiveContentProps = ComponentProps<typeof DialogPrimitiveContent>;
 
-const Root = DialogPrimitiveRoot;
+/**
+ * The open state and the close action of a dialog root, linked to the roots
+ * above it. A float that the dialog covers uses it to hand the dialog an
+ * Escape, which Radix sent to the float.
+ */
+type DialogRootState = {
+	/** The Radix scope key of the root. See {@link dialogScopeKey}. */
+	scopeKey: unknown;
+	open: boolean;
+	close: () => void;
+	parent: DialogRootState | null;
+};
+
+const DialogRootContext = createContext<DialogRootState | null>(null);
+
+/**
+ * The key Radix binds a dialog part to its root by: the dialog contexts of the
+ * part's `__scopeDialog` prop, or `undefined` for the default scope.
+ */
+function dialogScopeKey(props: object): unknown {
+	const scope: unknown = Reflect.get(props, "__scopeDialog");
+	return scope != null && typeof scope === "object" ? Reflect.get(scope, "Dialog") : undefined;
+}
+
+/**
+ * The state of the root that Radix binds the part to: the nearest root with
+ * the same scope key. Without this match, a `Dialog.Content` inside a
+ * `Sheet.Root` would read the sheet's state.
+ */
+function useDialogRootState(props: object): DialogRootState | null {
+	const scopeKey = dialogScopeKey(props);
+	let state = useContext(DialogRootContext);
+	while (state != null && state.scopeKey !== scopeKey) {
+		state = state.parent;
+	}
+	return state;
+}
+
+/**
+ * The Radix dialog root, with the open state kept here so that mantle can
+ * close the dialog from outside Radix. It is controlled when `open` is set.
+ */
+const Root = ({
+	defaultOpen = false,
+	onOpenChange,
+	open: openProp,
+	...props
+}: ComponentProps<typeof DialogPrimitiveRoot>) => {
+	const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+	const open = openProp ?? uncontrolledOpen;
+	const parent = useContext(DialogRootContext);
+
+	const setOpen = (next: boolean) => {
+		if (openProp === undefined) {
+			setUncontrolledOpen(next);
+		}
+		onOpenChange?.(next);
+	};
+	const close = useCallbackRef(() => setOpen(false));
+	const scopeKey = dialogScopeKey(props);
+	const rootState = useMemo(
+		() => ({ scopeKey, open, close, parent }),
+		[scopeKey, open, close, parent],
+	);
+
+	return (
+		<DialogRootContext.Provider value={rootState}>
+			<DialogPrimitiveRoot open={open} onOpenChange={setOpen} {...props} />
+		</DialogRootContext.Provider>
+	);
+};
 const Trigger = DialogPrimitiveTrigger;
 
 /**
- * Mounts dialog layers into the nearest layer container — an enclosing
+ * Mounts dialog layers into the nearest layer container: an enclosing
  * overlay's positioner when one is open, else `document.body`. An explicit
  * `container` prop wins over both.
  */
@@ -36,7 +110,7 @@ const Portal = ({ container, ...props }: ComponentProps<typeof DialogPrimitivePo
 
 	// Why the provider: `Dialog.Content` portals again internally, so the
 	// resolved container must also become the layer container for the wrapped
-	// subtree — otherwise the inner portal would ignore an explicit `container`.
+	// subtree. Otherwise the inner portal would ignore an explicit `container`.
 	return (
 		<LayerContainerContext.Provider value={resolvedContainer}>
 			<DialogPrimitivePortal container={resolvedContainer} {...props} />
@@ -63,27 +137,51 @@ const Content = ({
 	onPointerDownOutside,
 	ref,
 	...props
-}: DialogPrimitiveContentProps) => (
-	<DialogPrimitiveContent
-		ref={ref}
-		onEscapeKeyDown={(event) => {
-			preventCloseOnNestedPopupEscape(event);
+}: DialogPrimitiveContentProps) => {
+	const rootState = useDialogRootState(props);
+	const layerContainer = useLayerContainer();
+	const [contentElement, setContentElement] = useState<HTMLDivElement | null>(null);
+	const composedRef = useComposedRefs(ref, setContentElement);
+
+	// Why register: Radix can send Escape to a float this dialog covers. The
+	// float then passes it here, and this runs the same guards as Radix would.
+	// Why only while open: a closed dialog can stay mounted for its exit animation.
+	useRegisterOverlay({
+		container: rootState?.open ? layerContainer : null,
+		content: contentElement,
+		escape: (event) => {
+			if (layerContainer != null && escapeBelongsToNestedPopup(layerContainer, event.target)) {
+				event.preventDefault();
+			}
 			onEscapeKeyDown?.(event);
-		}}
-		onInteractOutside={(event) => {
-			preventCloseOnPromptInteraction(event);
-			onInteractOutside?.(event);
-		}}
-		onPointerDownOutside={(event) => {
-			preventCloseOnPromptInteraction(event);
-			onPointerDownOutside?.(event);
-		}}
-		// Why no `aria-describedby` here: Radix sets it only while a `Description`
-		// is mounted. Radix spreads these props after that computed value, so a
-		// value set here, even `undefined`, replaces the Radix one.
-		{...props}
-	/>
-);
+			if (!event.defaultPrevented) {
+				rootState?.close();
+			}
+		},
+	});
+
+	return (
+		<DialogPrimitiveContent
+			ref={composedRef}
+			onEscapeKeyDown={(event) => {
+				preventCloseOnNestedPopupEscape(event);
+				onEscapeKeyDown?.(event);
+			}}
+			onInteractOutside={(event) => {
+				preventCloseOnPromptInteraction(event);
+				onInteractOutside?.(event);
+			}}
+			onPointerDownOutside={(event) => {
+				preventCloseOnPromptInteraction(event);
+				onPointerDownOutside?.(event);
+			}}
+			// Why no `aria-describedby` here: Radix sets it only while a `Description`
+			// is mounted. Radix spreads these props after that computed value, so a
+			// value set here, even `undefined`, replaces the Radix one.
+			{...props}
+		/>
+	);
+};
 
 const Title = DialogPrimitiveTitle;
 

@@ -89,7 +89,7 @@ export default defineConfig(({ command }) => ({
 		mantleSourcesPlugin(),
 		mdx({
 			// Only treat `.mdx` files as MDX. `.md` is left alone so `?raw`
-			// imports of plain markdown stay raw — `@mdx-js/rollup`'s filter
+			// imports of plain markdown stay raw: `@mdx-js/rollup`'s filter
 			// strips the `?raw` query before checking the include pattern,
 			// so widening this would clobber raw imports. The one exception
 			// is the synthetic CHANGELOG module exposed by
@@ -116,7 +116,7 @@ export default defineConfig(({ command }) => ({
 		}),
 		// The React Router plugin's Fast Refresh transform injects a preamble
 		// check that throws when .tsx modules load under Vitest, and tests
-		// don't need the framework plugins — component tests render directly.
+		// don't need the framework plugins; component tests render directly.
 		...(process.env.VITEST ? [] : [reactRouter(), appServer()]),
 		reactCompiler(),
 		workspacePluginCacheKey([
@@ -131,7 +131,7 @@ export default defineConfig(({ command }) => ({
 	],
 	// A spy or global stub a test installs and then fails to tear down leaks into every test that
 	// runs after it, turning an unrelated failure into a cascade and making results order-dependent.
-	// Restoring centrally means an inline `mockRestore()` is never load-bearing — a test that throws
+	// Restoring centrally means no test depends on an inline `mockRestore()`: a test that throws
 	// before reaching its cleanup line still leaves the environment pristine. Mirrors
 	// `packages/mantle/vitest.config.ts`, which docs/testing.md § Determinism documents repo-wide.
 	test: {
@@ -180,7 +180,7 @@ export default defineConfig(({ command }) => ({
 		// HTTP requests to `resolvedUrls.local[0]` (always IPv4 `127.0.0.1`).
 		// Without pinning the host, Vite binds loopback as `localhost`, which
 		// inside Linux build containers (e.g. the Docker image) resolves to IPv6
-		// `::1` only — so the prerender request to 127.0.0.1 is refused and the
+		// `::1` only, so the prerender request to 127.0.0.1 is refused and the
 		// build dies with `ECONNREFUSED` on the first route. macOS aligns both
 		// stacks, which is why it only fails in containers. Pinning IPv4 makes
 		// the bind interface match the request target.

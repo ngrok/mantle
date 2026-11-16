@@ -89,12 +89,12 @@ describe("RouteAnnouncer", () => {
 
 	test("falls back to the document title when the page has no heading", async () => {
 		const router = renderWithRouter();
-		document.title = "Kbd — @ngrok/mantle";
+		document.title = "Kbd - @ngrok/mantle";
 
 		await act(() => router.navigate("/no-heading"));
 		await flushAnnouncement();
 
-		expect(screen.getByRole("status").textContent).toBe("Navigated to Kbd — @ngrok/mantle");
+		expect(screen.getByRole("status").textContent).toBe("Navigated to Kbd - @ngrok/mantle");
 	});
 
 	test("falls back to the pathname when there is no heading and no title", async () => {

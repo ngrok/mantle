@@ -198,7 +198,7 @@ export function StackingASheetOverADialogExample() {
 						<Dialog.CloseIconButton />
 					</Dialog.Header>
 					<Dialog.Body className="space-y-4">
-						<p>Open the sheet below — it stacks on top of this dialog.</p>
+						<p>Open the sheet below. It stacks on top of this dialog.</p>
 						<Sheet.Root>
 							<Sheet.Trigger asChild>
 								<Button type="button" appearance="outlined" intent="neutral">

@@ -10,8 +10,8 @@ import { Field } from "./field.js";
  * mantle stylesheet so the test stays hermetic and doesn't require a Tailwind
  * build step in the test pipeline.
  *
- * Keep the escaped class selectors identical to the class names in `field.tsx`
- * — a rename or typo on either side stops the rule from matching, which is
+ * Keep the escaped class selectors identical to the class names in `field.tsx`.
+ * A rename or typo on either side stops the rule from matching, which is
  * exactly the regression these tests exist to catch. The numeric values are
  * inlined (vs. the `--spacing` var) so the test doesn't depend on the mantle
  * theme being loaded.

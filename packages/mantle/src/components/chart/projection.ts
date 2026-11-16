@@ -3,11 +3,11 @@
  *
  * Points live in a normalized [-1, 1]³ cube; the camera is a yaw (around the
  * vertical y axis) plus a pitch (around the screen-space x axis), followed by
- * a weak perspective divide. Pure math — depth sorting and painting stay in
+ * a weak perspective divide. Pure math: depth sorting and painting stay in
  * the engine/renderer, and nothing here touches the DOM, so the whole module
  * is unit-testable.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation. The package does not export it.
  */
 
 /**
@@ -23,7 +23,7 @@ type Camera = {
 
 /**
  * A camera's precomputed rotation coefficients, so per-point projection is
- * six multiplies — no trig in the loop.
+ * six multiplies, with no trig in the loop.
  */
 type ProjectionMatrix = {
 	cosYaw: number;
@@ -62,8 +62,8 @@ const projectionMatrix = (camera: Camera): ProjectionMatrix => ({
 /**
  * A projected point: view-space x/y in cube units (scale to pixels with the
  * plot radius), `depth` increasing away from the viewer (sort descending to
- * paint back-to-front), and `scale` — the perspective attenuation to apply to
- * the mark radius.
+ * paint back-to-front), and `scale` (the perspective attenuation to apply to
+ * the mark radius).
  */
 type ProjectedPoint = {
 	x: number;
@@ -128,7 +128,7 @@ const normalizeToCube = (value: number, domain: readonly [number, number]): numb
 
 /**
  * The cube's 8 corners in normalized space, and the 12 edges as corner index
- * pairs — the wireframe frame the 3D scatter draws for orientation.
+ * pairs: the wireframe frame the 3D scatter draws for orientation.
  */
 const CUBE_CORNERS: ReadonlyArray<readonly [number, number, number]> = [
 	[-1, -1, -1],

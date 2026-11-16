@@ -49,7 +49,7 @@ Many code blocks will be single line command line prompts and should be able to 
 <CodeBlock.Root>
 	<CodeBlock.Header>
 		<CodeBlock.Icon preset="cli" />
-		<CodeBlock.Title>Command Line</CodeBlock.Title>
+		<CodeBlock.Title>Command line</CodeBlock.Title>
 	</CodeBlock.Header>
 	<CodeBlock.Body>
 		<CodeBlock.CopyButton />
@@ -203,7 +203,7 @@ For frontends backed by non-Node.js services (Go, Python, etc.), deploy a small 
 Create a highlight server using `createMantleServerSyntaxHighlighter`:
 
 ```ts
-// highlight-service.ts — deploy as a sidecar alongside your Go service
+// highlight-service.ts: deploy as a sidecar alongside your Go service
 import { createServer } from "node:http";
 import { createMantleServerSyntaxHighlighter } from "@ngrok/mantle-server-syntax-highlighter";
 
@@ -310,7 +310,7 @@ Multi-line objects and arrays are collapsible by default (the same fold runtime 
 ```tsx
 import { CodeBlock, jsonCodeBlockValue } from "@ngrok/mantle/code-block";
 
-// `record` is any runtime value — an API response, a table row's object, etc.
+// `record` is any runtime value: an API response, a table row's object, etc.
 <CodeBlock.Root>
 	<CodeBlock.Body>
 		<CodeBlock.CopyButton />
@@ -422,7 +422,7 @@ This is ideal for sharing a Traffic Policy or config snippet across multiple SDK
 <Example name="components/data-display/code-block/reusing-fragments-with-nested-interpolation" title="Code Block reusing fragments with nested interpolation example">
 
 ```tsx
-// shared-policies.ts — author the reusable policy once.
+// shared-policies.ts: author the reusable policy once.
 import { mantleCode } from "@ngrok/mantle/code-block";
 
 export const oauthPolicyFragment = mantleCode("yaml")`on_http_request:
@@ -435,7 +435,7 @@ export const oauthPolicyFragment = mantleCode("yaml")`on_http_request:
 </Example>
 
 ```tsx
-// listener-demo.tsx — embed it into a Java text block.
+// listener-demo.tsx: embed it into a Java text block.
 import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
 import { oauthPolicyFragment } from "./shared-policies";
 
@@ -706,7 +706,7 @@ All props from [standard HTML h3 attributes](https://developer.mozilla.org/en-US
 
 ### CodeBlock.CopyButton
 
-The optional copy button. Render it as a child of `CodeBlock.Body`. It copies the raw source of the mounted `CodeBlock.Code` to the clipboard — in a tabbed block, the active tab's code.
+The optional copy button. Render it as a child of `CodeBlock.Body`. It copies the raw source of the mounted `CodeBlock.Code` to the clipboard (in a tabbed block, the active tab's code).
 
 All props from [standard HTML button attributes](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes), plus:
 
@@ -727,14 +727,14 @@ All props from [standard HTML button attributes](https://developer.mozilla.org/e
 
 ### CodeBlock.Icon
 
-A small icon that represents the type of code block being displayed, rendered as an SVG next to the code block title in the code block header. You can pass in a custom SVG component or use one of the presets (you can exclusively pass one of `svg` or `preset`).
+A small icon that represents the type of code block being displayed, rendered as an SVG next to the code block title in the code block header. Pass a custom SVG component or use one of the presets (pass either `svg` or `preset`, not both).
 
 All props from [Icon](/components/data-display/icon), plus:
 
-| Prop      | Type                                      | Default | Description                                                                                          |
-| :-------- | :---------------------------------------- | :------ | :--------------------------------------------------------------------------------------------------- |
-| `svg?`    | `ReactNode`                               |         | A custom icon to display in the code block header. You can exclusively pass one of `svg` or `preset` |
-| `preset?` | `"cli"` \| `"file"` \| `"traffic-policy"` |         | A preset icon to display in the code block header. You can exclusively pass one of `svg` or `preset` |
+| Prop      | Type                                      | Default | Description                                                                                 |
+| :-------- | :---------------------------------------- | :------ | :------------------------------------------------------------------------------------------ |
+| `svg?`    | `ReactNode`                               |         | A custom icon to display in the code block header. Pass either `svg` or `preset`, not both. |
+| `preset?` | `"cli"` \| `"file"` \| `"traffic-policy"` |         | A preset icon to display in the code block header. Pass either `svg` or `preset`, not both. |
 
 ### CodeBlock.TabList
 
@@ -764,7 +764,7 @@ All props from [standard HTML div attributes](https://developer.mozilla.org/en-U
 
 ### jsonCodeBlockValue
 
-Builds a `MantleCodeBlockValue` that renders any value as syntax-highlighted JSON entirely on the client — no Shiki runtime, build-time plugin, or server roundtrip (see [Highlighting runtime JSON on the client](#highlighting-runtime-json-on-the-client)). Pass the result to `CodeBlock.Code`'s `value` prop. Serialization is safe and never throws: `BigInt` → decimal string, circular/repeated references → `"[Circular]"`, and values that serialize to `undefined` → `""`.
+Builds a `MantleCodeBlockValue` that renders any value as syntax-highlighted JSON entirely on the client, with no Shiki runtime, build-time plugin, or server roundtrip (see [Highlighting runtime JSON on the client](#highlighting-runtime-json-on-the-client)). Pass the result to `CodeBlock.Code`'s `value` prop. Serialization is safe and never throws: `BigInt` → decimal string, circular/repeated references → `"[Circular]"`, and values that serialize to `undefined` → `""`.
 
 ```ts
 jsonCodeBlockValue(value: unknown, options?: JsonCodeBlockValueOptions): MantleCodeBlockValue
@@ -775,11 +775,11 @@ jsonCodeBlockValue(value: unknown, options?: JsonCodeBlockValueOptions): MantleC
 | `foldable?`        | `boolean` | `true`  | Give multi-line objects/arrays collapsible fold toggles (the same fold runtime as every other JSON block). |
 | `showLineNumbers?` | `boolean` | `false` | Render a line-number gutter. Detail panels usually read better without one.                                |
 
-Byte-for-byte parity with server/build-time Shiki output is guaranteed for canonical `JSON.stringify` shapes — which is exactly what this function produces.
+Byte-for-byte parity with server/build-time Shiki output is guaranteed for canonical `JSON.stringify` shapes. This function produces exactly those shapes.
 
 ### jsonToShikiHtml
 
-The lower-level primitive behind `jsonCodeBlockValue`. Tokenizes a JSON string into the same CSS-variable-colored `<code>` inner HTML that Mantle's server/build-time Shiki highlighter produces, without shipping Shiki to the browser. Returns an HTML string with **no** line-number or fold decoration — feed it through `decorateHighlightedHtml` for that, as `jsonCodeBlockValue` does. Reach for it only when you need the raw markup; most consumers want `jsonCodeBlockValue`.
+The lower-level primitive behind `jsonCodeBlockValue`. Tokenizes a JSON string into the same CSS-variable-colored `<code>` inner HTML that Mantle's server/build-time Shiki highlighter produces, without shipping Shiki to the browser. Returns an HTML string with **no** line-number or fold decoration. For that, feed it through `decorateHighlightedHtml`, as `jsonCodeBlockValue` does. Reach for it only when you need the raw markup; most consumers want `jsonCodeBlockValue`.
 
 ```ts
 jsonToShikiHtml(code: string): string

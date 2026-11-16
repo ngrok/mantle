@@ -211,7 +211,7 @@ Every dialog already sits 16px from each viewport edge: `Dialog.Content` positio
 The three values move together as one decision, because a dialog that fills the viewport has no width left to cap and no corner left to round. `preferredWidth` therefore belongs to `"centered"` only: passing it beside `"full-page"` or `"full-bleed"` is a type error, not a prop that silently does nothing.
 
 ```tsx
-// a card, capped — the default
+// a card, capped (the default)
 <Dialog.Content preferredWidth="max-w-2xl">
 
 // fills the 16px-inset box, still a rounded card
@@ -390,7 +390,7 @@ import { Button } from "@ngrok/mantle/button";
 			<Dialog.CloseIconButton />
 		</Dialog.Header>
 		<Dialog.Body className="space-y-4">
-			<p>Open the sheet below — it stacks on top of this dialog.</p>
+			<p>Open the sheet below. It stacks on top of this dialog.</p>
 			<Sheet.Root>
 				<Sheet.Trigger asChild>
 					<Button type="button" appearance="outlined" intent="neutral">
@@ -655,10 +655,10 @@ An accessible name to be announced when the dialog is opened.
 
 An accessible description to be announced when the dialog is opened.
 
-| Prop       | Type        | Default | Description                                                                                  |
-| ---------- | ----------- | ------- | -------------------------------------------------------------------------------------------- |
-| `children` | `ReactNode` |         | The description text for the dialog. Enhances accessibility by providing additional context. |
-| `asChild?` | `boolean`   | `false` | Use the `asChild` prop to render a custom element instead of the default `div`.              |
+| Prop       | Type        | Default | Description                                                                     |
+| ---------- | ----------- | ------- | ------------------------------------------------------------------------------- |
+| `children` | `ReactNode` |         | The description text for the dialog. It adds context for assistive technology.  |
+| `asChild?` | `boolean`   | `false` | Use the `asChild` prop to render a custom element instead of the default `div`. |
 
 ### Dialog.Close
 

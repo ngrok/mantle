@@ -1,19 +1,19 @@
 ---
 title: Typography
-description: Typography tokens for consistency and readability in the mantle design system
+description: The type scale, text color tokens, and fonts of the mantle design system
 ---
 
 import { TypographyColors } from "~/features/typography-demo";
 
 # Typography
 
-Mantle ships typography tokens for consistency and readability.
+The type scale, text colors, and fonts for mantle UI.
 
 ## Scale
 
-Mantle ships a general type scale for the headers throughout our products. Text styling is independent of the actual markup, so a Heading 1 can be styled as a Heading 2 or Heading 5 as appropriate.
+The type scale sets the size of each heading level. It's separate from the markup, so an `<h1>` can use the Heading 2 style when the layout needs it.
 
-Headings do not set a font family. They inherit the body font, so keep `font-sans`, `font-family`, and
+Headings don't set a font family. They inherit the body font, so keep `font-sans`, `font-family`, and
 `font-mono` off them.
 
 <p className="mt-4 text-5xl font-medium">Heading 1</p>
@@ -23,34 +23,34 @@ Headings do not set a font family. They inherit the body font, so keep `font-san
 <p className="mt-4 text-base font-medium">Heading 5</p>
 <p className="mt-4 text-xs font-medium uppercase tracking-widest">Heading 6</p>
 
-| Level     | Class       | Size        | Weight        | Additional                  |
-| --------- | ----------- | ----------- | ------------- | --------------------------- |
-| Heading 1 | `text-5xl`  | `text-5xl`  | `font-medium` | `-`                         |
-| Heading 2 | `text-3xl`  | `text-3xl`  | `font-medium` | `-`                         |
-| Heading 3 | `text-2xl`  | `text-2xl`  | `font-medium` | `-`                         |
-| Heading 4 | `text-xl`   | `text-xl`   | `font-medium` | `-`                         |
-| Heading 5 | `text-base` | `text-base` | `font-medium` | `-`                         |
-| Heading 6 | `text-xs`   | `text-xs`   | `font-medium` | `uppercase tracking-widest` |
+| Level     | Size        | Weight        | Additional                  |
+| --------- | ----------- | ------------- | --------------------------- |
+| Heading 1 | `text-5xl`  | `font-medium` |                             |
+| Heading 2 | `text-3xl`  | `font-medium` |                             |
+| Heading 3 | `text-2xl`  | `font-medium` |                             |
+| Heading 4 | `text-xl`   | `font-medium` |                             |
+| Heading 5 | `text-base` | `font-medium` |                             |
+| Heading 6 | `text-xs`   | `font-medium` | `uppercase tracking-widest` |
 
 ## Colors
 
-When possible, render text with the following tokens. They add hierarchy outside of font size, and keep type the correct color across themes.
+Color text with these tokens. They set hierarchy without a size change, and each one has a value for every theme.
 
 <TypographyColors />
 
-| Token       | Class               | Description                          |
-| ----------- | ------------------- | ------------------------------------ |
-| Strong      | `.text-strong`      | High emphasis text, primary content. |
-| Body        | `.text-body`        | Default body text.                   |
-| Muted       | `.text-muted`       | De-emphasized, secondary text.       |
-| Placeholder | `.text-placeholder` | Lowest emphasis, placeholder text.   |
+| Token       | Class               | Description                         |
+| ----------- | ------------------- | ----------------------------------- |
+| Strong      | `.text-strong`      | High emphasis, for primary content. |
+| Body        | `.text-body`        | Default body text.                  |
+| Muted       | `.text-muted`       | Low emphasis, for secondary text.   |
+| Placeholder | `.text-placeholder` | Lowest emphasis, for placeholders.  |
 
 ## Fonts
 
-Mantle specifies Roobert as the default font for UI and headings. We also use JetBrains Mono as a monospace typeface, and Family for longform prose.
+Roobert is the default font for UI and headings. JetBrains Mono sets code, and Family sets long-form prose.
 
-| Class         | Font Family                                                                                      | Description                                                                       |
-| ------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
-| `font-sans`   | `"Roobert"`, `ui-sans-serif`, `system-ui`, `sans-serif`                                          | The default font for rendering UI and headings. Also applied by `default`.        |
-| `font-family` | `"Family"`, `"Georgia"`, `serif`                                                                 | Best when used in longform writing like prose documentation. Not for headings.    |
-| `font-mono`   | `"JetBrains Mono"`, `ui-monospace`, `SFMono-Regular`, `Menlo`, `Monaco`, `Consolas`, `monospace` | Used to render code and tokens. Adjust the size a step down in most applications. |
+| Class         | Font family                                                                                      | Description                                                         |
+| ------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| `font-sans`   | `"Roobert"`, `ui-sans-serif`, `system-ui`, `sans-serif`                                          | The page default, for UI and headings.                              |
+| `font-family` | `"Family"`, `"Georgia"`, `serif`                                                                 | For long-form prose, such as documentation. Not for headings.       |
+| `font-mono`   | `"JetBrains Mono"`, `ui-monospace`, `SFMono-Regular`, `Menlo`, `Monaco`, `Consolas`, `monospace` | For code and tokens. Set it one size step below the text around it. |

@@ -9,13 +9,13 @@ import type { DefaultTreeAdapterMap } from "parse5";
  * the line numbers of its open and close tags. Walking the tree gives us:
  *
  * - One fold per multi-line element (`<div>…</div>`).
- * - One fold per multi-line opening tag (`<div\n  class="x"\n>` — the
+ * - One fold per multi-line opening tag (`<div\n  class="x"\n>`: the
  *   attribute list collapses).
- * - Correct void-element handling — parse5 already knows that `<br>`, `<img>`,
+ * - Correct void-element handling: parse5 already knows that `<br>`, `<img>`,
  *   etc. don't open folds.
- * - Template content traversal — parse5 stores `<template>` descendants on a
+ * - Template content traversal: parse5 stores `<template>` descendants on a
  *   separate `content` fragment, not on `childNodes`.
- * - String/comment scope filtering — angle brackets in `<!-- … -->` or
+ * - String/comment scope filtering: angle brackets in `<!-- … -->` or
  *   inside `"…"` attribute values aren't mistaken for tag openings.
  *
  * @see https://parse5.js.org/
@@ -60,7 +60,7 @@ const xmlFragmentContext: Element = {
 
 /**
  * Returns true when a parse5 tree node has element-style `tagName` and child
- * nodes — i.e. it's an `Element` we should consider folding. Comments,
+ * nodes, i.e. it's an `Element` we should consider folding. Comments,
  * doctypes, text nodes, and the document root all fail this check.
  */
 function isElement(node: Node): node is Element {
@@ -76,7 +76,7 @@ function isElement(node: Node): node is Element {
  * element whose source span covers more than one line.
  *
  * Multi-line *elements* fold from the opening tag's start line to the closing
- * tag's end line (or to the element end when `endTag` info is unavailable —
+ * tag's end line (or to the element end when `endTag` info is unavailable:
  * parse5 sometimes synthesizes elements without a real closer when handling
  * malformed input).
  *
@@ -182,7 +182,7 @@ function pushTagFoldIfMultiline(
  *   honored as foldable openers. Implicit wrappers parse5 fabricates for
  *   fragment input have no `sourceCodeLocation` and are skipped.
  * - XML: uses `parse5.parseFragment` rooted in an SVG fragment context so the
- *   tokenizer applies foreign-content (XML-like) rules — self-closing `<foo/>`
+ *   tokenizer applies foreign-content (XML-like) rules: self-closing `<foo/>`
  *   is respected, void HTML elements aren't special-cased.
  *
  * @example

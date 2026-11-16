@@ -240,7 +240,7 @@ export function CustomDismissIconExample() {
 			<Alert.Root intent="warning">
 				<Alert.Icon />
 				<Alert.Content>
-					<Alert.Title>Custom Dismiss Icon</Alert.Title>
+					<Alert.Title>Custom dismiss icon</Alert.Title>
 					<Alert.DismissIconButton icon={<ShrimpIcon />} />
 					<Alert.Description>This dismiss button uses a custom icon.</Alert.Description>
 				</Alert.Content>

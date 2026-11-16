@@ -1,5 +1,5 @@
 /**
- * Re-exports for the Pagination component family — `CursorPagination`'s parts
+ * Re-exports for the Pagination component family: `CursorPagination`'s parts
  * for cursor paging, `useOffsetPagination` for offset paging, and
  * `PaginationRange` for the count line of a list whose total is known.
  *

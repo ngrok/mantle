@@ -21,7 +21,7 @@ export function HeaderAndFooterExample() {
 		<PreviewCanvas>
 			<Card.Root>
 				<Card.Header>
-					<Card.Title>Card Title Here</Card.Title>
+					<Card.Title>Card title here</Card.Title>
 				</Card.Header>
 				<Card.Body>
 					<p>Laborum in aute officia adipisicing elit velit.</p>

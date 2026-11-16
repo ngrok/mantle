@@ -20,10 +20,10 @@ import type { ButtonSize } from "./sizes.js";
  * The visual style of a `Button`: how much visual weight the button carries,
  * independent of its tone (`intent`).
  *
- * - `"filled"` — solid fill; the heaviest weight on the page
- * - `"outlined"` — bordered on the form background
- * - `"ghost"` — no border or fill until hovered
- * - `"link"` — renders like an inline link (inherits surrounding typography)
+ * - `"filled"`: solid fill; the heaviest weight on the page
+ * - `"outlined"`: bordered on the form background
+ * - `"ghost"`: no border or fill until hovered
+ * - `"link"`: renders like an inline link (inherits surrounding typography)
  *   while remaining a button that runs an action
  */
 type ButtonAppearance = "filled" | "ghost" | "link" | "outlined";
@@ -53,7 +53,7 @@ const buttonVariants = cva("", {
 			true: "opacity-50",
 		},
 		/**
-		 * The tone of the Button — the purpose its color communicates. The
+		 * The tone of the Button (the purpose its color communicates). The
 		 * accent tone is styled by the appearance base classes; danger and
 		 * neutral override via compoundVariants.
 		 */
@@ -64,8 +64,8 @@ const buttonVariants = cva("", {
 		} satisfies Record<ButtonIntent, string>,
 		/**
 		 * The size of the Button, controlling its box height and horizontal
-		 * padding, default `"md"`. Shared scale with `IconButton` — same size
-		 * name, same box height. Has no effect when `appearance` is `"link"`:
+		 * padding, default `"md"`. Shared scale with `IconButton`: the same size
+		 * name renders the same box height. Has no effect when `appearance` is `"link"`:
 		 * link buttons inherit the surrounding typography and have no box to
 		 * size.
 		 */
@@ -167,8 +167,8 @@ type ButtonProps = ComponentProps<"button"> &
 	Omit<ButtonVariants, "appearance" | "intent"> &
 	WithAsChild & {
 		/**
-		 * The visual style of the Button. Required — there is no default, so
-		 * every call site states the weight it means.
+		 * The visual style of the Button. Required: there is no default, so
+		 * every call site states the visual weight it means.
 		 *
 		 * @enum
 		 * - `"filled"`: solid fill; the heaviest visual weight
@@ -178,12 +178,12 @@ type ButtonProps = ComponentProps<"button"> &
 		 */
 		appearance: ButtonAppearance;
 		/**
-		 * The tone of the Button — the purpose its color communicates to the
-		 * user. Required — there is no default, so every call site states the
+		 * The tone of the Button (the purpose its color communicates to the
+		 * user). Required: there is no default, so every call site states the
 		 * tone it means.
 		 *
 		 * @enum
-		 * - `"neutral"`: the workhorse tone — routine and secondary actions, and the default primary action (`appearance="filled" intent="neutral"`)
+		 * - `"neutral"`: the workhorse tone: routine and secondary actions, and the default primary action (`appearance="filled" intent="neutral"`)
 		 * - `"accent"`: deliberate brand emphasis; reach for it when an action should carry the brand color, not as the routine primary
 		 * - `"danger"`: a destructive or irreversible action
 		 */
@@ -199,7 +199,7 @@ type ButtonProps = ComponentProps<"button"> &
 		 * The icon gets `size-5`. A size class on the icon element wins, as in
 		 * `icon={<GearIcon className="size-4" />}`.
 		 *
-		 * For an icon-only button, do not use `Button` — use `IconButton`
+		 * For an icon-only button, do not use `Button`. Use `IconButton`
 		 * instead: it requires an accessible `label` and renders a square box
 		 * on the same shared size scale.
 		 */
@@ -212,7 +212,7 @@ type ButtonProps = ComponentProps<"button"> &
 		iconPlacement?: "start" | "end";
 		/**
 		 * The behavior of the button when activated. Defaults to `"button"`, so the
-		 * button does not accidentally submit a surrounding `<form>` — pass
+		 * button does not accidentally submit a surrounding `<form>`. Pass
 		 * `type="submit"` to submit a form, or `type="reset"` to reset it.
 		 *
 		 * When `asChild` is used, `type` has no effect and is not forwarded to the
@@ -236,14 +236,14 @@ type ButtonProps = ComponentProps<"button"> &
  * other assistive technology. Once activated, it then runs an action, such
  * as submitting a form or opening a dialog.
  *
- * `appearance` (visual weight) and `intent` (tone) are required — every call
+ * `appearance` (visual weight) and `intent` (tone) are required: every call
  * site states what it means; there are no implicit defaults.
  *
- * The primary action button should be `appearance="filled" intent="neutral"` —
+ * The primary action button should be `appearance="filled" intent="neutral"`,
  * the system's default primary action. Reserve `intent="accent"` for
  * deliberate brand emphasis.
  *
- * An icon-only button is not a `Button` — use `IconButton` instead: an
+ * An icon-only button is not a `Button`. Use `IconButton` instead: an
  * icon-only `Button` has no accessible name and keeps its text-box padding,
  * while `IconButton` requires a screen-reader `label` and renders a square
  * box on the same shared size scale.
@@ -254,11 +254,11 @@ type ButtonProps = ComponentProps<"button"> &
  *
  * **Structure.** `children` render inside a `<span data-slot="button-label">`,
  * beside the `icon` slot. The span carries `display: contents`, so it lays out
- * nothing of its own — every child stays a flex item of the button, and the
+ * nothing of its own: every child stays a flex item of the button, and the
  * button's `gap` still falls between them. The span exists so a newly-appearing
  * icon inserts before an element sibling: a browser translation engine reparents
- * text nodes, and an insert aimed at one throws. To style the label as a box —
- * `truncate` to clamp a long one — give the slot a display of its own first, with
+ * text nodes, and an insert aimed at one throws. To style the label as a box
+ * (`truncate` to clamp a long one), give the slot a display of its own first, with
  * `[&>[data-slot=button-label]]:block`.
  *
  * **Disabled and loading.** A native `<button>` gets the `disabled` attribute.
@@ -294,7 +294,7 @@ type ButtonProps = ComponentProps<"button"> &
  * @see https://mantle.ngrok.com/components/actions/button
  *
  * @example
- * The default primary action — filled + neutral:
+ * The default primary action (filled + neutral):
  * ```tsx
  * <Button appearance="filled" intent="neutral" onClick={handleClick}>
  *   Click me
@@ -302,7 +302,7 @@ type ButtonProps = ComponentProps<"button"> &
  * ```
  *
  * @example
- * Submit a form — opt in with `type="submit"` (the default `"button"` does not submit):
+ * Submit a form. Opt in with `type="submit"` (the default `"button"` does not submit):
  * ```tsx
  * <Button type="submit" appearance="filled" intent="neutral">
  *   Save
@@ -344,7 +344,7 @@ type ButtonProps = ComponentProps<"button"> &
  * ```
  *
  * @example
- * Icon-only buttons are not `Button`s — use `IconButton` instead (an icon-only
+ * Icon-only buttons are not `Button`s. Use `IconButton` instead (an icon-only
  * `Button` has no accessible name and keeps its text-box padding):
  * ```tsx
  * // ❌ <Button appearance="outlined" intent="neutral" icon={<CopyIcon />} onClick={copyPage} />

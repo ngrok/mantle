@@ -22,7 +22,7 @@ import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
 <HoverCard.Root>
 	<HoverCard.Trigger asChild>
 		<Button type="button" appearance="link" intent="accent">
-			Open Hover Card
+			Open hover card
 		</Button>
 	</HoverCard.Trigger>
 	<HoverCard.Content className="w-80">
@@ -150,7 +150,7 @@ The content to render inside the hover card. Appears in a portal with rich styli
 
 An optional tip that points from `HoverCard.Content` at its trigger. Render it as a child of `HoverCard.Content`. Radix renders it as an `svg`, so `fill-*` paints the surface and `bg-*` paints nothing.
 
-It takes no `asChild` — the shape is a filled polygon plus a polyline that strokes the slanted edges, and a swapped element loses the border that continues `HoverCard.Content`'s edge.
+It takes no `asChild`: the shape is a filled polygon plus a polyline that strokes the slanted edges, and a swapped element loses the border that continues `HoverCard.Content`'s edge.
 
 | Prop        | Type     | Default | Description                                                                                                                                                                               |
 | ----------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -160,7 +160,7 @@ It takes no `asChild` — the shape is a filled polygon plus a polyline that str
 
 ### HoverCard.Portal
 
-The portal container that renders hover card content outside the normal DOM tree. `HoverCard.Content` already renders inside this portal internally, so you rarely need this part directly — reach for it only to customize portal placement with `container`, or to wrap multiple `HoverCard.Content` instances in one shared portal.
+The portal container that renders hover card content outside the normal DOM tree. `HoverCard.Content` already renders inside this portal internally, so you rarely need this part directly. Reach for it only to customize portal placement with `container`, or to wrap multiple `HoverCard.Content` instances in one shared portal.
 
 | Prop         | Type                                  | Default                 | Description                                                                                                                                                       |
 | ------------ | ------------------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |

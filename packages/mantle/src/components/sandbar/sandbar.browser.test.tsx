@@ -79,7 +79,7 @@ describe("Sandbar (browser)", () => {
 
 	test("shake under prefers-reduced-motion skips the animation but still announces", async () => {
 		// `getPrefersReducedMotion` queries "(prefers-reduced-motion: no-preference)",
-		// and an unprimed query reports `matches: false` — i.e. reduced motion.
+		// and an unprimed query reports `matches: false`, i.e. reduced motion.
 		mockMatchMedia();
 		const handle = createRef<SandbarHandle>();
 		render(
@@ -98,7 +98,7 @@ describe("Sandbar (browser)", () => {
 		});
 	});
 
-	// NOTE: the exit-timeout close path lives in happy-dom instead — see
+	// NOTE: the exit-timeout close path lives in happy-dom instead. See
 	// sandbar.test.tsx's "the safety timeout closes the panel when no transition
 	// ever fires", which pins it deterministically under fake timers. It touches no
 	// real-browser API, so a copy here would only buy Chromium startup. The focus
@@ -124,7 +124,7 @@ describe("Sandbar (browser)", () => {
 
 		rerender(tree({ isLoading: true }));
 
-		// the Button collapsed isLoading into native disabled — focus must land
+		// the Button collapsed isLoading into native disabled, so focus must land
 		// on the panel instead of evaporating to <body>
 		await waitFor(() => {
 			expect(document.activeElement).toBe(getPanel());
@@ -132,7 +132,7 @@ describe("Sandbar (browser)", () => {
 	});
 
 	// NOTE (plan §6): there is deliberately no test for the generic focusout
-	// parking path with a composed plain button — verified empirically that
+	// parking path with a composed plain button. Testing showed that
 	// Chromium does not fire focusout when a focused button becomes disabled
 	// (the WHATWG focus-fixup divergence), so only the blessed SaveButton path
 	// can guarantee parking. The focusout handler remains as best-effort for
@@ -157,7 +157,7 @@ describe("Sandbar (browser)", () => {
 		screen.getByRole("button", { name: "Discard" }).focus();
 
 		rerender(tree({ open: false }));
-		// the restore runs in a passive effect after the close commit — wait for
+		// the restore runs in a passive effect after the close commit. Wait for
 		// the focus outcome itself, not just the hidden attribute
 		await waitFor(() => {
 			expect(getPanel()).toHaveAttribute("hidden");
@@ -188,7 +188,7 @@ describe("Sandbar (browser)", () => {
 			expect(getPanel()).toHaveAttribute("hidden");
 		});
 		// flush the passive restore effect, then confirm it left focus alone. `act`
-		// drains React's effect queue deterministically — a fixed sleep would let
+		// drains React's effect queue deterministically. A fixed sleep would let
 		// this assertion pass merely by running before the effect it is guarding.
 		await act(async () => {});
 		expect(document.activeElement).toBe(elsewhere);
@@ -225,7 +225,7 @@ describe("Sandbar (browser)", () => {
 		await act(async () => {});
 		expect(document.activeElement).toBe(fieldB);
 
-		// session 2: reopen and focus the bar directly from <body> — closing must
+		// session 2: reopen and focus the bar directly from <body>. Closing must
 		// not teleport focus back to session 1's Field A
 		rerender(tree({ open: true }));
 		fieldB.blur();
@@ -261,7 +261,7 @@ describe("Sandbar (browser)", () => {
 		await waitFor(() => {
 			expect(getPanel()).toHaveAttribute("hidden");
 		});
-		// the stored target is disconnected — focus is left where the browser put it
+		// the stored target is disconnected, so focus is left where the browser put it
 		// rather than restored to a dead node. Poll the focus itself: hiding the
 		// panel drops focus to <body> through the browser's own focus-fixup, which
 		// is not synchronous with the DOM mutation.
@@ -287,7 +287,7 @@ describe("Sandbar (browser)", () => {
 		outside.focus();
 		discard.focus();
 		// the in-bar control loses focus to <body> (not to another control) while
-		// the bar is still open — the departed control is still connected, so the
+		// the bar is still open. The departed control is still connected, so the
 		// focusout parking is a no-op and focus stays on <body>. Closing then runs
 		// through the fell-to-body restore branch, not the focus-still-in-bar one.
 		discard.blur();
@@ -300,8 +300,8 @@ describe("Sandbar (browser)", () => {
 		});
 	});
 
-	// NOTE: the restore effect's remaining rejection guards — a stored candidate
-	// that is now `:disabled`, or that fails `checkVisibility()` — are deliberately
+	// NOTE: the restore effect's remaining rejection guards (a stored candidate
+	// that is now `:disabled`, or that fails `checkVisibility()`) are deliberately
 	// untested. `HTMLElement.focus()` on a disabled or non-rendered element is a
 	// spec-defined no-op, so removing either guard leaves the identical observable
 	// outcome (focus stays on <body>); a black-box focus assertion cannot tell the
@@ -328,7 +328,7 @@ describe("Sandbar (browser)", () => {
 
 		// Mid-exit: still painted (`hidden` lands only at rest, 400ms later via the
 		// safety timeout) but no longer reachable. Without `inert` here the user
-		// could Tab onto the visually-vanishing Discard button and activate it —
+		// could Tab onto the visually-vanishing Discard button and activate it:
 		// `data-state-closed:pointer-events-none` suppresses only the mouse.
 		expect(panel).not.toHaveAttribute("hidden");
 		expect(panel).toHaveAttribute("inert");
@@ -340,7 +340,7 @@ describe("Sandbar (browser)", () => {
 
 /**
  * Mirrors the two display utilities Tailwind 4 emits for the panel, in the layer
- * and selector form it emits them — that is what decides the cascade. Chromium's
+ * and selector form it emits them. That is what decides the cascade. Chromium's
  * own UA stylesheet supplies `[hidden] { display: none }`; Preflight (which would
  * add `[hidden] { display: none !important }`) is deliberately NOT included,
  * because a consumer importing only `tailwindcss/theme` + `tailwindcss/utilities`

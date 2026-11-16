@@ -14,7 +14,7 @@ import { useChartContext, useShallowStable } from "./context.js";
 /**
  * The tooltip part and the tooltip surface the Root renders on the first hover.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation. The package does not export it.
  */
 
 /**
@@ -50,7 +50,7 @@ type TooltipPrimitiveProps = Omit<ComponentProps<"div">, "children"> & {
 };
 
 /**
- * Register tooltip customization (renderless — Root owns the tooltip element
+ * Register tooltip customization (renderless: Root owns the tooltip element
  * so the hover layer exists even when this part is absent).
  */
 const useTooltipPrimitive = (partName: string, props: TooltipPrimitiveProps): null => {

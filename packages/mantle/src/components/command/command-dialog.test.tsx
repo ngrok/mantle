@@ -135,7 +135,7 @@ describe("Command.Dialog", () => {
 			const input = await screen.findByPlaceholderText("Type a command or search...");
 			expect(input).toHaveValue("p");
 			// The seed has to reach cmdk's own search state, not just the field's
-			// value — otherwise the palette opens showing text that filters nothing.
+			// value. Otherwise the palette opens showing text that filters nothing.
 			await waitFor(() => {
 				expect(screen.getByText("Endpoints")).toBeInTheDocument();
 			});

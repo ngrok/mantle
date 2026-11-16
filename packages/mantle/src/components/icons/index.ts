@@ -1,5 +1,5 @@
 /**
- * Re-exports for the Icons component — the ngrok-specific icons that
+ * Re-exports for the Icons component: the ngrok-specific icons that
  * `@phosphor-icons/react` does not ship.
  *
  * @useWhen Show an ngrok glyph that `@phosphor-icons/react` does not ship, such as the ngrok

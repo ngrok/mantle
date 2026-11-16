@@ -89,7 +89,7 @@ const makeContext = (size: number): CanvasRenderingContext2D => {
 
 /**
  * Every value the tile painters cover, typed off the option itself rather than
- * hand-copied — a narrower copy would stay assignable and cover nothing new.
+ * hand-copied: a narrower copy would stay assignable and cover nothing new.
  * Pixel coverage for a ninth value is still on the author: the probes below name
  * their textures explicitly.
  */
@@ -134,7 +134,7 @@ const inkedColumns = (tile: readonly number[][]): number[] =>
 /**
  * Mean ink coverage of a texture's tile: black ink on a white ground, weighted
  * per pixel so a half-covered edge counts as half. The tile repeats, so one
- * tile's coverage is the bar's. This is the loudness contract's unit — a
+ * tile's coverage is the bar's. This is the loudness contract's unit: a
  * textured bar may never read darker than its siblings.
  */
 const inkCoverage = (texture: NonSolidTexture, devicePixelRatio: number): number => {
@@ -251,7 +251,7 @@ describe("texture tiles", () => {
 	test('"grid" inks both rung families and crosses at the tile center', () => {
 		// The orthogonal lattice: one full-width row band and one full-height
 		// column band, which no single-rung texture can show. The corners stay bare
-		// ground — the 45° family passes through (0, 0), so a grid routed into the
+		// ground. The 45° family passes through (0, 0), so a grid routed into the
 		// crosshatch branch would ink there.
 		const tile = tileReds("grid", "vertical");
 		expect(inkedRows(tile)).toEqual([3, 4]);
@@ -276,7 +276,7 @@ describe("texture tiles", () => {
 		// shipped first, measured through the real tile painters rather than
 		// recomputed from constants. Sample at device pixel ratio 2. At 1x the diagonal strokes
 		// and the dot field both lose ink to the coarse device grid, so the floor
-		// drops to about 22.5% — low enough to admit a lattice that reads too light
+		// drops to about 22.5%, low enough to admit a lattice that reads too light
 		// at real resolutions.
 		const shipped = (
 			["hatch", "hatch-reverse", "crosshatch", "perpendicular", "dots"] as const
@@ -392,7 +392,7 @@ describe("textured legend keys", () => {
 	test("every texture paints its own chip, so no value can fall through to another", () => {
 		// The chip layers are a lookup keyed by the union. Its predecessor was an
 		// if-chain ending in the dot gradient, so an unhandled value rendered as
-		// dots — a wrong chip that looks deliberate. All eight series share one
+		// dots: a wrong chip that looks deliberate. All eight series share one
 		// series color here, so two equal backgrounds can only mean two values
 		// reading one entry.
 		const paint = chipPaint("vertical");
@@ -401,7 +401,7 @@ describe("textured legend keys", () => {
 		expect(new Set(backgrounds).size).toBe(backgrounds.length);
 		expect(chipOf(paint, "solid").backgroundImage).toBe("none");
 		// A solid chip wears the series color. Every textured chip wears one light
-		// tint of it under the stripes — a chip that lost its ground floats over nothing.
+		// tint of it under the stripes. A chip that lost its ground floats over nothing.
 		const solidGround = chipOf(paint, "solid").backgroundColor;
 		const texturedGrounds = new Set(
 			[...paint.entries()].flatMap(([texture, chip]) =>

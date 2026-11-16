@@ -11,7 +11,7 @@ import { Slot } from "../slot/index.js";
  * the first or below the last. Vertical rhythm belongs to `Section`
  * (`py-8 first:pt-0`) rather than here, which keeps a lone `Section` usable
  * without a `Root` around it. Set `--strata-columns` on `Root` to re-split
- * every section at once — custom properties inherit, so one declaration reaches
+ * every section at once. Custom properties inherit, so one declaration reaches
  * all of them.
  *
  * | Data Attribute | Value       | Description                                                        |
@@ -74,13 +74,13 @@ const Root = ({
  * section.
  *
  * The `<section>` takes no accessible name, which keeps it generic in the
- * accessibility tree instead of adding one `region` landmark per band — the
+ * accessibility tree instead of adding one `region` landmark per band. The
  * `Strata.Title` headings already carry the page outline, and a landmark list
  * only stays useful while `main` and `nav` are easy to find in it. Set
  * `aria-labelledby` to the `Title`'s `id` only when the section is a
  * destination a reader jumps back to, not merely a division of the page. To
  * tell apart controls that read alike across two sections, reach for
- * `Field.Set` and `Field.Legend` instead — assistive technology announces a
+ * `Field.Set` and `Field.Legend` instead: assistive technology announces a
  * landmark on entry, never per control.
  *
  * | CSS Variable        | Default   | Description                                                                                                                 |
@@ -145,7 +145,7 @@ const Section = ({
 };
 
 /**
- * A section's introductory column — its `Strata.Title` and
+ * A section's introductory column: its `Strata.Title` and
  * `Strata.Description`. Renders a `<header>` with `flex flex-col gap-2`, so
  * anything else composed in (a `Badge`, a count) picks up the same spacing. At
  * `md` and up it takes the grid's first column; below the breakpoint it stacks
@@ -209,8 +209,8 @@ const Header = ({
 /**
  * The section's heading. Renders an `<h2>`, one level below the page's `<h1>`,
  * because a `Strata.Section` is a top-level division of its page. Compose
- * `asChild` with the right element when a page nests its sections deeper —
- * heading level is document structure, so mantle does not guess it.
+ * `asChild` with the right element when a page nests its sections deeper.
+ * Heading level is document structure, so mantle does not guess it.
  *
  * | Data Attribute | Value             | Description                                                        |
  * | -------------- | ----------------- | ------------------------------------------------------------------ |
@@ -264,8 +264,8 @@ const Title = ({
 
 /**
  * The sentence that says what the section's controls do, and what changing them
- * costs. Renders a `<p>` in muted body text beneath `Strata.Title`. Optional —
- * a section whose title says everything may omit it.
+ * costs. Renders a `<p>` in muted body text beneath `Strata.Title`. It is
+ * optional: a section whose title says everything may omit it.
  *
  * | Data Attribute | Value                   | Description                                                        |
  * | -------------- | ----------------------- | ------------------------------------------------------------------ |
@@ -318,7 +318,7 @@ const Description = ({
 };
 
 /**
- * The section's content column — the controls, cards, or table that
+ * The section's content column: the controls, cards, or table that
  * `Strata.Header` describes. Renders a `<div>` with `flex flex-col gap-4`, so
  * stacked controls space themselves and a consumer's own `gap-*` replaces the
  * default cleanly. At `md` and up it takes the grid's second column; below the
@@ -376,14 +376,14 @@ const Body = ({
 
 /**
  * A page of titled sections, each one explained beside its content. Every
- * section pairs a `Strata.Header` — its `Title` and `Description` — with a
+ * section pairs a `Strata.Header` (its `Title` and `Description`) with a
  * `Strata.Body` of controls. `Strata.Root` stacks the sections with a
  * hairline between them. Below the `md` breakpoint the header stacks above its
  * own content, so the pairing survives a narrow viewport. It is the shape of a
  * settings page, a resource configuration editor, and any form long enough that
  * each group needs its own explanation.
  *
- * It owns structure only — the grid, the rhythm, and the rules between sections.
+ * It owns structure only: the grid, the rhythm, and the rules between sections.
  * Reach for [Card](https://mantle.ngrok.com/components/structure/card) when a
  * group needs a raised surface of its own, for
  * [MediaObject](https://mantle.ngrok.com/components/structure/media-object)
@@ -483,12 +483,12 @@ const Strata = {
 	 * (`py-8 first:pt-0`). Both layouts size their tracks `minmax(0, …)`, so a
 	 * nowrap value in `Body` clips or wraps instead of widening the section. It
 	 * takes no accessible name, which keeps it generic in the accessibility tree
-	 * instead of adding one `region` landmark per band —
-	 * the `Title` headings already carry the page outline. Set `aria-labelledby`
+	 * instead of adding one `region` landmark per band.
+	 * The `Title` headings already carry the page outline. Set `aria-labelledby`
 	 * to the `Title`'s `id` only when the section is a destination a reader jumps
 	 * back to, not merely a division of the page. To tell apart controls that read
-	 * alike across two sections, reach for `Field.Set` and `Field.Legend` instead
-	 * — assistive technology announces a landmark on entry, never per control.
+	 * alike across two sections, reach for `Field.Set` and `Field.Legend` instead:
+	 * assistive technology announces a landmark on entry, never per control.
 	 *
 	 * | CSS Variable        | Default   | Description                                                                                                            |
 	 * | ------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -526,7 +526,7 @@ const Strata = {
 	 */
 	Section,
 	/**
-	 * A section's introductory column — its `Title` and `Description`. Renders a
+	 * A section's introductory column: its `Title` and `Description`. Renders a
 	 * `<header>` with `flex flex-col gap-2`, so anything else composed in picks
 	 * up the same spacing. At `md` and up it takes the grid's first column; below
 	 * the breakpoint it stacks above `Body`. Nested inside `Section`'s
@@ -567,8 +567,8 @@ const Strata = {
 	/**
 	 * The section's heading. Renders an `<h2>`, one level below the page's
 	 * `<h1>`, because a `Section` is a top-level division of its page. Compose
-	 * `asChild` with the right element when a page nests its sections deeper —
-	 * heading level is document structure, so mantle does not guess it.
+	 * `asChild` with the right element when a page nests its sections deeper.
+	 * Heading level is document structure, so mantle does not guess it.
 	 *
 	 * | Data Attribute | Value             | Description                                                        |
 	 * | -------------- | ----------------- | ------------------------------------------------------------------ |
@@ -603,8 +603,8 @@ const Strata = {
 	Title,
 	/**
 	 * The sentence that says what the section's controls do, and what changing
-	 * them costs. Renders a `<p>` in muted body text beneath `Title`. Optional —
-	 * a section whose title says everything may omit it.
+	 * them costs. Renders a `<p>` in muted body text beneath `Title`. It is
+	 * optional: a section whose title says everything may omit it.
 	 *
 	 * | Data Attribute | Value                   | Description                                                        |
 	 * | -------------- | ----------------------- | ------------------------------------------------------------------ |
@@ -638,7 +638,7 @@ const Strata = {
 	 */
 	Description,
 	/**
-	 * The section's content column — the controls, cards, or table that `Header`
+	 * The section's content column: the controls, cards, or table that `Header`
 	 * describes. Renders a `<div>` with `flex flex-col gap-4`, so stacked
 	 * controls space themselves and a consumer's own `gap-*` replaces the default
 	 * cleanly. At `md` and up it takes the grid's second column; below the

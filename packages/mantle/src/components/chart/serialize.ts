@@ -4,7 +4,7 @@ import type { ChartDatum, SeriesMeta, XScaleKind } from "./types.js";
 /**
  * Serialization of chart data to clipboard-friendly text formats.
  *
- * This module is internal shared implementation — not exported from the
+ * This module is internal shared implementation, not exported from the
  * package; the per-family `CopyButton` parts are the public surface.
  */
 
@@ -17,11 +17,11 @@ const escapeCell = (text: string): string =>
 
 /**
  * A machine-stable x cell: ISO 8601 for dates (unambiguous and re-parseable,
- * unlike the locale-formatted display strings), `String(value)` for numbers —
- * never locale separators; extreme magnitudes keep JavaScript's E-notation
+ * unlike the locale-formatted display strings), `String(value)` for numbers
+ * (never locale separators; extreme magnitudes keep JavaScript's E-notation
  * (`1e+21`), which round-trips exactly through `Number()`, spreadsheets, and
  * CSV parsers, where a fixed-point expansion would risk silent precision
- * loss — and the value itself for category strings. Invalid dates render as
+ * loss), and the value itself for category strings. Invalid dates render as
  * an em dash, matching the tooltip/table convention. On a `"time"` scale an
  * epoch number and a date string are dates too, as the engine reads them.
  */
@@ -40,9 +40,9 @@ const xCell = (raw: unknown, xScale: XScaleKind | undefined): string => {
 };
 
 /**
- * A machine-stable value cell: `String(value)` — never locale separators;
+ * A machine-stable value cell: `String(value)` (never locale separators;
  * extreme magnitudes keep JavaScript's E-notation, which round-trips exactly
- * through `Number()` — with `null`/missing (and anything non-finite) rendered
+ * through `Number()`), with `null`/missing (and anything non-finite) rendered
  * as an em dash, never zero.
  */
 const valueCell = (value: unknown): string =>
@@ -70,7 +70,7 @@ type SerializeChartMarkdownOptions = {
 
 /**
  * Serialize chart data to a GitHub-flavored markdown table: one x column, one
- * column per series, and an optional z column — the same layout as the
+ * column per series, and an optional z column: the same layout as the
  * chart's sr-only data table twin. Output is machine-stable (ISO 8601 dates,
  * un-separated numbers, em dash for gaps) so pasted tables stay parseable by
  * humans, spreadsheets, and LLMs alike.

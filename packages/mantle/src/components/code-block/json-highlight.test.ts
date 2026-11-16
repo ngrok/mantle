@@ -8,7 +8,7 @@ import { jsonCodeBlockValue, jsonToShikiHtml } from "./json-highlight.js";
 describe("jsonToShikiHtml", () => {
 	// The fixtures are the <code> inner HTML captured from Mantle's real Shiki
 	// engine. Equality here is the byte-for-byte "matches Shiki 1:1" guarantee.
-	test.each(jsonHighlightFixtures)("matches Shiki output 1:1 — $name", ({ code, expected }) => {
+	test.each(jsonHighlightFixtures)("matches Shiki output 1:1 ($name)", ({ code, expected }) => {
 		expect(jsonToShikiHtml(code)).toBe(expected);
 	});
 
@@ -73,7 +73,7 @@ describe("jsonCodeBlockValue", () => {
 		const circular: Record<string, unknown> = { id: "abc" };
 		circular.self = circular;
 		const { code } = jsonCodeBlockValue(circular);
-		// Non-circular fields survive; only the back-reference is collapsed — not the
+		// Non-circular fields survive; only the back-reference is collapsed, not the
 		// useless whole-object `[object Object]` of a plain `String(value)` fallback.
 		expect(code).toContain('"id": "abc"');
 		expect(code).toContain('"self": "[Circular]"');
@@ -87,7 +87,7 @@ describe("jsonCodeBlockValue", () => {
 		expect(code).toContain('"b": "[Circular]"');
 	});
 
-	test("never throws — even when both `JSON.stringify` and the `String()` fallback would throw", () => {
+	test("never throws, even when both `JSON.stringify` and the `String()` fallback would throw", () => {
 		// Null-prototype object with a throwing getter: `JSON.stringify` throws while
 		// reading the getter, then `String(value)` throws too (no inherited
 		// `toString`). The doubly-guarded fallback must still return a string.
@@ -126,7 +126,7 @@ describe("JSON fold parity", () => {
 	// fold-decorated markup captured from the real Shiki server pipeline. This is
 	// the byte-for-byte "client folds === server/build folds" guarantee.
 	test.each(jsonFoldFixtures)(
-		"reconstructs the server's fold-decorated markup 1:1 — $name",
+		"reconstructs the server's fold-decorated markup 1:1 ($name)",
 		({ code, html, showLineNumbers, lineNumberStart, highlightLines }) => {
 			const reconstructed = decorateHighlightedHtml({
 				html: jsonToShikiHtml(code),

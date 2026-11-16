@@ -209,8 +209,8 @@ function compileQuery<Item extends object>({
 }
 
 /**
- * Splits the token stream into OR groups. An `AND` is dropped — conjunction is
- * already implicit. Empty groups — a leading, trailing, or doubled `OR` — are
+ * Splits the token stream into OR groups. An `AND` is dropped: conjunction is
+ * already implicit. Empty groups (a leading, trailing, or doubled `OR`) are
  * dropped too: the user is mid-token, and an empty group matching everything
  * would flood the list under them.
  */
@@ -250,8 +250,8 @@ function filterItemsByTokens<Item extends object>({
 }) {
 	const groups = splitOrGroups(tokens);
 
-	// Hand back the same array when nothing was asked — an empty query, or
-	// bare operators mid-typing — so an unfiltered list keeps its identity
+	// Hand back the same array when nothing was asked (an empty query, or
+	// bare operators mid-typing), so an unfiltered list keeps its identity
 	// through a memoized caller.
 	if (groups.length === 0) {
 		return items;
@@ -377,7 +377,7 @@ function storeCount(counts: Map<string, number>, query: string, count: number) {
 /**
  * Counts the items a raw `?q=` string matches, without building the filtered
  * array. Counts are memoized (see {@link matchCountCaches}), so a count whose
- * matcher reads the clock — `is:expired` — can lag until a refetch replaces
+ * matcher reads the clock (`is:expired`) can lag until a refetch replaces
  * the items.
  *
  * @example

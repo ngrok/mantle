@@ -1,13 +1,13 @@
 /**
  * Returns `true` if {@link value} is a string that looks like a safe,
- * same-origin, relative path — that is, it starts with a single `/` and
+ * same-origin, relative path: it starts with a single `/` and
  * contains only printable ASCII.
  *
  * This is the lowest-common-denominator check used to defend against:
- * - **Open redirects** (`//evil.com/foo`, `https://evil.com/foo`) — an attacker
+ * - **Open redirects** (`//evil.com/foo`, `https://evil.com/foo`): an attacker
  *   who controls the `redirectTo` param could otherwise bounce users through
  *   our origin to a lookalike domain.
- * - **Non-navigation schemes** (`javascript:…`, `mailto:…`, `data:…`) — these
+ * - **Non-navigation schemes** (`javascript:…`, `mailto:…`, `data:…`): these
  *   parse as valid `URL`s but their pathnames don't start with `/`, and
  *   executing them via client-side navigation is unsafe (XSS, unintended
  *   protocol handlers).
@@ -49,7 +49,7 @@ function isSafeLocalPath(value: unknown): value is string {
 		return false;
 	}
 
-	// Basic printable-ASCII check — blocks control chars and non-Latin-1 bytes
+	// Basic printable-ASCII check: blocks control chars and non-Latin-1 bytes
 	// that could be used to smuggle header sequences via a Location response.
 	if (/[^\x20-\x7E]/.test(value)) {
 		return false;

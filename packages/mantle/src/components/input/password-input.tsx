@@ -91,7 +91,7 @@ type PasswordInputType = Extract<InputType, "text" | "password">;
  * import { Label } from "@ngrok/mantle/label";
  * import { useState } from "react";
  *
- * // Basic — uncontrolled visibility.
+ * // Basic: uncontrolled visibility.
  * <Label className="grid gap-1">
  *   <span>Password</span>
  *   <PasswordInput name="password" autoComplete="current-password" />
@@ -100,7 +100,7 @@ type PasswordInputType = Extract<InputType, "text" | "password">;
  * // Validation state.
  * <PasswordInput validation="error" />
  *
- * // Controlled visibility — one toggle reveals multiple fields.
+ * // Controlled visibility: one toggle reveals multiple fields.
  * function PasswordPair() {
  *   const [show, setShow] = useState(false);
  *   return (

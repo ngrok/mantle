@@ -6,7 +6,7 @@ describe("isPreviewExampleName", () => {
 		expect(isPreviewExampleName("centered-layout")).toBe(true);
 	});
 
-	it("rejects unknown URL segments — the preview route 404s on these", () => {
+	it("rejects unknown URL segments: the preview route 404s on these", () => {
 		expect(isPreviewExampleName("nope")).toBe(false);
 		expect(isPreviewExampleName("")).toBe(false);
 	});

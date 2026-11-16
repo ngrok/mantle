@@ -90,14 +90,14 @@ describe("Sandbar structure", () => {
 		);
 
 		// Cross-file spelling pin, asserting BOTH sides together: the panel emits
-		// the class, and mantle.css is what gives it meaning — the theme blocks'
+		// the class, and mantle.css is what gives it meaning: the theme blocks'
 		// selector extensions (`:root:is(.dark, …) .invert-theme`) plus the
 		// palette-alias rule. Renaming either side alone silently un-themes every
 		// Sandbar. The computed inversion itself is proven end-to-end by
 		// theme/invert-theme.browser.test.ts.
 		//
 		// Whitespace-normalized because oxfmt wraps these selector lists once they
-		// grow past the print width — the pin is on the selector shape, not on where
+		// grow past the print width. The pin is on the selector shape, not on where
 		// the formatter chose to break the line.
 		const normalizedCss = mantleCss.replace(/\s+/g, " ");
 		expect(getPanel().classList.contains("invert-theme")).toBe(true);
@@ -261,7 +261,7 @@ describe("Sandbar structure", () => {
 
 		// `Button` requires `appearance` and `intent`; defaulting them is why these
 		// two parts exist instead of bare Buttons, so the resolved pair is Sandbar's
-		// contract — and Button publishes each one as a documented data attribute
+		// contract, and Button publishes each one as a documented data attribute
 		const save = screen.getByRole("button", { name: "Save" });
 		expect(save).toHaveAttribute("data-appearance", "filled");
 		expect(save).toHaveAttribute("data-intent", "neutral");
@@ -300,7 +300,7 @@ describe("Sandbar structure", () => {
 		// tailwind-merge override contract, asserting the merge OUTCOME rather than a
 		// list of internal defaults. The docs' reduced-motion demo cancels the panel's
 		// travel this way, and it only works when the consumer's variant chain matches
-		// the internal utility exactly — a bare `data-state-closed:translate-y-0` sits
+		// the internal utility exactly: a bare `data-state-closed:translate-y-0` sits
 		// beside `motion-safe:data-state-closed:translate-y-[…]` and loses to it.
 		const { unmount } = render(
 			<Sandbar.Root open>
@@ -359,7 +359,7 @@ describe("Sandbar structure", () => {
 		expect(getPanel()).toHaveAttribute("data-state", "open");
 
 		rerender(fullTree({ open: false }));
-		// closing keeps the panel mounted but already reports "closed" — that flip
+		// closing keeps the panel mounted but already reports "closed"; that flip
 		// is what drives the exit transition
 		expect(getPanel()).toHaveAttribute("data-state", "closed");
 	});
@@ -461,7 +461,7 @@ describe("Sandbar presence", () => {
 
 	/**
 	 * happy-dom has no TransitionEvent constructor, so fireEvent.transitionEnd
-	 * drops `propertyName` — build the event by hand instead.
+	 * drops `propertyName`, so build the event by hand instead.
 	 */
 	function fireTransitionEnd(element: HTMLElement, propertyName: string) {
 		const event = new Event("transitionend", { bubbles: true, cancelable: true });
@@ -545,7 +545,7 @@ describe("Sandbar presence", () => {
 		});
 	});
 
-	test("reopening mid-exit retargets straight to open — no restart frame", () => {
+	test("reopening mid-exit retargets straight to open, with no restart frame", () => {
 		const { rerender } = render(fullTree({ open: true }));
 		rerender(fullTree({ open: false }));
 		rerender(fullTree({ open: true }));
@@ -557,7 +557,7 @@ describe("Sandbar presence", () => {
 		expect(panel).not.toHaveAttribute("hidden");
 	});
 
-	test("closing during the pre-paint opening frame hides immediately — nothing visible happened yet", () => {
+	test("closing during the pre-paint opening frame hides immediately because nothing visible happened yet", () => {
 		const { rerender } = render(fullTree({ open: false }));
 		rerender(fullTree({ open: true }));
 		rerender(fullTree({ open: false }));
@@ -840,7 +840,7 @@ describe("Sandbar interaction", () => {
 describe("Sandbar regressions", () => {
 	test("an asChild Message keeps the panel's accessible name pointed at the rendered id", () => {
 		// regression: Slot's merge lets the child's own `id` win, so registering the
-		// generated id aimed aria-labelledby at a non-existent element — and because
+		// generated id aimed aria-labelledby at a non-existent element, and because
 		// a present aria-labelledby suppresses aria-label, the group lost its name
 		render(
 			<Sandbar.Root open>
@@ -920,7 +920,7 @@ describe("Sandbar regressions", () => {
 	test("a save button left explicitly enabled while loading keeps focus", () => {
 		// regression: Button resolves disabled as `ariaDisabled ?? disabled ??
 		// isLoading`, so `disabled={false}` beside `isLoading` leaves it enabled and
-		// focusable — parking focus then yanked it off a live, still-clickable
+		// focusable. Parking focus then yanked it off a live, still-clickable
 		// control onto a panel that renders no focus ring
 		const { rerender } = render(loadableSaveTree({ disabled: false, isLoading: false }));
 

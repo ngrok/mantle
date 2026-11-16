@@ -41,7 +41,7 @@ export function ToastDemo() {
 					setIntentIndex((prev) => prev + 1);
 				}}
 			>
-				Show Toast
+				Show toast
 			</Button>
 		</PreviewCanvas>
 	);
@@ -53,7 +53,7 @@ export function ToastOverOverlaysDemo() {
 			<Sheet.Root>
 				<Sheet.Trigger asChild>
 					<Button type="button" appearance="filled" intent="neutral">
-						Open Sheet
+						Open sheet
 					</Button>
 				</Sheet.Trigger>
 				<Sheet.Content>
@@ -86,7 +86,7 @@ export function ToastOverOverlaysDemo() {
 								)
 							}
 						>
-							Show Toast
+							Show toast
 						</Button>
 					</Sheet.Body>
 					<Sheet.Footer>
@@ -135,7 +135,7 @@ export function ToastOverOverlaysDemo() {
 								)
 							}
 						>
-							Show Toast
+							Show toast
 						</Button>
 					</Dialog.Body>
 					<Dialog.Footer>
@@ -150,7 +150,7 @@ export function ToastOverOverlaysDemo() {
 			<AlertDialog.Root intent="info">
 				<AlertDialog.Trigger asChild>
 					<Button type="button" appearance="filled" intent="neutral">
-						Show Info Alert Dialog
+						Show info alert dialog
 					</Button>
 				</AlertDialog.Trigger>
 				<AlertDialog.Content>
@@ -184,7 +184,7 @@ export function ToastOverOverlaysDemo() {
 								)
 							}
 						>
-							Show Toast
+							Show toast
 						</Button>
 						<AlertDialog.Footer>
 							<AlertDialog.Cancel type="button">Cancel</AlertDialog.Cancel>

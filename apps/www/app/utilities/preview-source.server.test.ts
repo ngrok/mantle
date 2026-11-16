@@ -50,7 +50,7 @@ describe("collectPreviewSources", () => {
 	});
 
 	// `/llms-full.txt` wraps each source in a ```tsx fence. A demo module's own
-	// JSDoc fences are comment-prefixed (` * ```tsx`), so they cannot close it —
+	// JSDoc fences are comment-prefixed (` * ```tsx`), so they cannot close it;
 	// but a fence at the start of a line would, and the rest of the module would
 	// spill out of the code block as broken markdown.
 	it("publishes no source that could close the markdown fence around it", () => {

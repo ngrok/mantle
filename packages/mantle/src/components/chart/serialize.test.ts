@@ -19,7 +19,7 @@ describe("serializeChartMarkdown", () => {
 				"| time | p50 | p99 |",
 				"| --- | --- | --- |",
 				"| 2026-07-18T10:00:00.000Z | 120 | 480 |",
-				// Numbers are never locale-separated — "1,284.5" would split cells
+				// Numbers are never locale-separated: "1,284.5" would split cells
 				// in CSV round-trips and confuse parsers.
 				"| 2026-07-18T10:01:00.000Z | 1284.5 | 510 |",
 			].join("\n"),
@@ -36,7 +36,7 @@ describe("serializeChartMarkdown", () => {
 	});
 
 	test("extreme magnitudes keep E-notation", () => {
-		// Deliberate contract: String(value), never a fixed-point expansion —
+		// Deliberate contract: String(value), never a fixed-point expansion:
 		// capped-precision formatting can silently corrupt (1e-21 rounds to "0"),
 		// while E-notation stays exactly re-parseable everywhere.
 		const markdown = serializeChartMarkdown({
@@ -50,7 +50,7 @@ describe("serializeChartMarkdown", () => {
 		expect(markdown).toContain("| 1 | 1e+21 | 1e-7 |");
 	});
 
-	test("null, missing, and non-finite values render as an em dash — never zero", () => {
+	test("null, missing, and non-finite values render as an em dash, never zero", () => {
 		const markdown = serializeChartMarkdown({
 			data: [
 				{ time: "10:00", p50: null, p99: Number.NaN },

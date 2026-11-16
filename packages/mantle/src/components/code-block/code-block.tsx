@@ -441,8 +441,8 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 	}, [__preHtml, __preValToken, __preVals]);
 
 	// Attach a single delegated click handler per <pre> so fold toggles do
-	// not pay the cost of N React re-renders or N event handlers — see the
-	// performance rationale in `fold-runtime.ts`. Re-attaches when the
+	// not pay the cost of N React re-renders or N event handlers (see the
+	// performance rationale in `fold-runtime.ts`). Re-attaches when the
 	// rendered HTML changes since `<code>` gets a new dangerouslySetInnerHTML.
 	// Only highlighted HTML has fold toggles, so plain text gets no handler.
 	useEffect(() => {
@@ -565,10 +565,10 @@ const Header = ({
  * use `asChild` to render a different element.
  *
  * The heading carries `translate="no"` by default, because the title usually names
- * a file — `example.ts` — and a translated filename names a file that does not
+ * a file (`example.ts`), and a translated filename names a file that does not
  * exist. The slot takes arbitrary children though, so pass `translate="yes"` when
  * the title is prose rather than a filename. `CodeBlock.Code` takes no such
- * override — a block of code is never translatable.
+ * override: a block of code is never translatable.
  *
  * @see https://mantle.ngrok.com/components/data-display/code-block#codeblocktitle
  *
@@ -633,7 +633,7 @@ type CodeBlockCopyButtonProps = Omit<ComponentProps<"button">, "aria-label" | "c
 
 /**
  * The optional copy button. Copies the raw source of the mounted
- * `CodeBlock.Code` to the clipboard — in a tabbed block, the active tab's code.
+ * `CodeBlock.Code` to the clipboard (in a tabbed block, the active tab's code).
  * Omit it to render the code block without a copy control.
  *
  * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockcopybutton
@@ -1161,8 +1161,8 @@ const CodeBlock = {
 	Code,
 	/**
 	 * The optional copy button. Copies the raw source of the mounted
-	 * `CodeBlock.Code` to the clipboard — in a tabbed block, the active tab's
-	 * code. Omit it to render the code block without a copy control.
+	 * `CodeBlock.Code` to the clipboard (in a tabbed block, the active tab's
+	 * code). Omit it to render the code block without a copy control.
 	 *
 	 * @see https://mantle.ngrok.com/components/data-display/code-block#codeblockcopybutton
 	 *

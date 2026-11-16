@@ -42,7 +42,7 @@ function DemoAppTrail() {
 }
 
 /**
- * The shortest trail, and the fallback for an out-of-range index — named so
+ * The shortest trail, and the fallback for an out-of-range index, named so
  * TypeScript knows it is defined (`trails[i]` is `Trail | undefined` under
  * `noUncheckedIndexedAccess`).
  */
@@ -55,7 +55,7 @@ const endpointsTrail = {
  * The trails this demo switches between, one per URL a reader can pick.
  *
  * In an app these come from `buildCrumbs(useMatches())`. Here they are fixtures,
- * because a demo embedded in this page cannot mount a second router — but the
+ * because a demo embedded in this page cannot mount a second router, but the
  * component rendering them is the real `Breadcrumbs`, unmodified, so what you see
  * is what the recipe ships.
  *
@@ -101,8 +101,8 @@ const trails = [
 ] satisfies ReadonlyArray<Trail>;
 
 /**
- * Switches between five trails so a reader can watch it grow — and watch the leaf
- * become `aria-current="page"` while its ancestors become links — without leaving
+ * Switches between five trails so a reader can watch it grow (and watch the leaf
+ * become `aria-current="page"` while its ancestors become links) without leaving
  * the docs page. The fourth trail carries a prefix crumb, rendered as a non-link
  * `Breadcrumb.Label`; the fifth carries a query-backed content crumb that shows
  * `Breadcrumb.Skeleton` until its simulated query resolves.

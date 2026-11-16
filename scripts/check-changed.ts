@@ -22,6 +22,9 @@ const packageInputFile = /\.(?:[cm]?[jt]sx?|mdx|css|jsonc?|ya?ml)$/;
 // Why the whole repo: a new rule or a plugin change can fail a file that did not change.
 const lintConfigFile =
 	/^(?:\.oxlintrc\.json|scripts\/oxlint-plugin-mantle\.js|scripts\/oxlint-rules\/[^/]+\.js)$/;
+// The files `check-prose.ts` reads: prose and stylesheets.
+const proseFile = /\.(md|mdx|css)$/;
+
 // Why: turbo selects only the root package for these paths, and the root has no `typecheck` or `test` task.
 const rootTaskInputFile =
 	/^(?:scripts\/|\.claude\/hooks\/|config\/tsconfig\/|packages\/mantle\/migrations\/|apps\/www\/app\/docs\/migrations\/|\.changeset\/[^/]+\.md$)/;
@@ -29,7 +32,7 @@ const rootTaskInputFile =
 /**
  * Plan the checks for a set of changed files, cheapest first.
  *
- * Format, the Tailwind class check, lint, and the markdown link check read only the changed files that still
+ * Format, the Tailwind class check, lint, the markdown link check, and the prose check read only the changed files that still
  * exist. A change to a stylesheet, the lockfile, or the Tailwind fixer checks the classes in every file.
  * Typecheck and tests run through turbo for each package that changed since `base`, plus the packages that depend on
  * it. A deleted file still schedules them, because a deletion can break an import. A lint config change lints the whole repo, and a change to a
@@ -58,6 +61,7 @@ export function planChecks({
 	const lintable = existing.filter((file) => lintableFile.test(file));
 	const tailwindSources = existing.filter((file) => tailwindSourceFile.test(file));
 	const markdown = existing.filter((file) => file.endsWith(".md"));
+	const prose = existing.filter((file) => proseFile.test(file));
 	const touchesPackage = files.some((file) => packageInputFile.test(file));
 	const steps: CheckStep[] = [];
 
@@ -95,6 +99,9 @@ export function planChecks({
 			command: "node",
 			args: ["./scripts/check-doc-links.ts", ...markdown],
 		});
+	}
+	if (prose.length > 0) {
+		steps.push({ name: "prose", command: "node", args: ["./scripts/check-prose.ts", ...prose] });
 	}
 	if (touchesPackage) {
 		const filter = `--filter=...[${base}]`;

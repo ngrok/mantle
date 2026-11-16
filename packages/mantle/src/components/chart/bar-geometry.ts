@@ -4,11 +4,11 @@
  *
  * Stacking accumulates in value space (see ./stack.js); this module turns one
  * segment's boundaries into the two pixel edges the renderer fills. Both axes
- * are handled in one direction-free vocabulary — value edges and a thickness —
+ * are handled in one direction-free vocabulary (value edges and a thickness),
  * so vertical and horizontal bars share the math instead of keeping mirrored
  * copies that drift apart.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation. The package does not export it.
  */
 
 /**
@@ -30,7 +30,7 @@ type SegmentEdges = {
 const BAR_STEP_FILL = 0.6;
 
 /**
- * The thickest a bar paints while the fill rule has not taken over — the cap a
+ * The thickest a bar paints while the fill rule has not taken over: the cap a
  * dense chart keeps. `BAR_STEP_FILL` reaches it at a step of exactly 40px, so
  * the two rules meet with no jump, and every chart whose step is narrower than
  * that paints exactly what it painted before the fill rule existed.
@@ -48,11 +48,11 @@ const BAR_MAX_THICKNESS = 64;
  * The thickness one bar paints across the category axis: its slot, capped so a
  * wide band grows the bar instead of the air beside it.
  *
- * A fixed cap makes a sparse chart look gap-toothed — seven bars across a wide
+ * A fixed cap makes a sparse chart look gap-toothed: seven bars across a wide
  * plot each took 24px of a 93px step and left 69px of air. The cap therefore
  * tracks the step: `BAR_STEP_FILL` of it, floored at `BAR_DENSE_THICKNESS` and
  * ceilinged at `BAR_MAX_THICKNESS`. The result depends on the step and the slot
- * alone — same layout, same pixels, and monotonic in both — and the two clamps
+ * alone (same layout, same pixels, and monotonic in both), and the two clamps
  * meet the fill line without a step change, so a chart never jumps thickness as
  * a row arrives or the container resizes.
  *
@@ -63,9 +63,9 @@ const BAR_MAX_THICKNESS = 64;
  * @example
  * ```ts
  * // Seven days across a 650px plot: a 93px step, a 91px band.
- * barThickness({ step: 92.9, slot: 90.9 }); // 55.7 — the fill rule
+ * barThickness({ step: 92.9, slot: 90.9 }); // 55.7 (the fill rule)
  * // Sixty points across the same plot: the step is too narrow to reach the cap.
- * barThickness({ step: 10.8, slot: 8.8 }); // 8.8 — the whole slot
+ * barThickness({ step: 10.8, slot: 8.8 }); // 8.8 (the whole slot)
  * ```
  */
 const barThickness = (options: { step: number; slot: number }): number => {
@@ -84,7 +84,7 @@ const barThickness = (options: { step: number; slot: number }): number => {
 const MIN_VISIBLE_EXTENT = 0.5;
 
 /**
- * The data-end boundary of one segment — the one further from zero. A positive
+ * The data-end boundary of one segment: the one further from zero. A positive
  * segment runs `lower` → `upper`; a negative one runs `upper` → `lower`.
  */
 const dataEndOf = (lower: number, upper: number): number => (lower < 0 ? lower : upper);
@@ -112,7 +112,7 @@ const dataEndOf = (lower: number, upper: number): number => (lower < 0 ? lower :
  * ```ts
  * // The 0.4 → 0.6 segment of a stack, on an axis where 0 is 200px and 1 is 0px.
  * stackedSegmentEdges({ lower: 0.4, upper: 0.6, toPixel: (v) => 200 - v * 200, reveal: 1, gap: 2 });
- * // { baseline: 118, value: 80 } — 2px carved off the 120px baseline edge
+ * // { baseline: 118, value: 80 } (2px carved off the 120px baseline edge)
  * ```
  */
 const stackedSegmentEdges = (options: {

@@ -6,7 +6,7 @@ import { Strata } from "./strata.js";
  * Real-browser computed style for `Strata.Section`'s column split and
  * `Strata.Root`'s hairline. happy-dom substitutes no custom properties and lays
  * nothing out, so `grid-template-columns` reads back as the author string and
- * every border width reads back empty — the assertions below would pass whatever
+ * every border width reads back empty. The assertions below would pass whatever
  * the two parts emit.
  *
  * The stylesheet is Tailwind 4.3.3's own output for the utilities these parts
@@ -17,7 +17,7 @@ import { Strata } from "./strata.js";
  *
  * The `md:` rule is copied **without** its `@media (width >= 48rem)` wrapper.
  * The subject is the custom property's name and fallback, not the breakpoint, and
- * the runner's iframe is narrower than 48rem — keeping the wrapper would make
+ * the runner's iframe is narrower than 48rem. Keeping the wrapper would make
  * every assertion here pass for the wrong reason.
  */
 /** The `md:` rule alone, so the stacked tests can leave it out. */

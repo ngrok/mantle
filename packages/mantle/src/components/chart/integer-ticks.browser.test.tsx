@@ -11,7 +11,7 @@ import { CanvasBarChartRoot, CanvasLineChartRoot } from "../../test-utils/canvas
  * Real-browser regression tests for MNTL-56: axes backed by integer-only data
  * must never paint fractional tick labels ("0.5" on a request-count axis).
  * Tick labels are canvas ink, so happy-dom (null 2d context) never reaches the
- * paint path — these spy on `fillText` in Chromium instead and assert on the
+ * paint path. These tests spy on `fillText` in Chromium instead and assert on the
  * painted strings.
  */
 const STYLE = `
@@ -66,7 +66,7 @@ beforeAll(() => {
 });
 
 // Installed per test rather than once, because `restoreMocks` tears every spy down between tests.
-// Calls through to the real implementation, so painting is unchanged — the spy only records which
+// Calls through to the real implementation, so painting is unchanged. The spy only records which
 // strings hit the canvas.
 beforeEach(() => {
 	fillTextSpy = vi.spyOn(CanvasRenderingContext2D.prototype, "fillText");

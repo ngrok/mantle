@@ -68,8 +68,8 @@ export function nextOpenValues({
 }
 
 /**
- * Normalizes the public `value`/`defaultValue` prop — a `string` in `"single"`
- * mode (where `""` means "no item open") or a `string[]` in `"multiple"` mode —
+ * Normalizes the public `value`/`defaultValue` prop (a `string` in `"single"`
+ * mode, where `""` means "no item open", or a `string[]` in `"multiple"` mode)
  * into the internal open-values array. Narrows on the runtime shape so no type
  * assertion is needed.
  *

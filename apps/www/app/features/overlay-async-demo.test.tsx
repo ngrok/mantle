@@ -53,7 +53,7 @@ describe("UserOverlayDemo", () => {
 
 		fireEvent.click(screen.getByRole("button", { name: "Happy path" }));
 
-		// The shell mounts synchronously with the pending body — that is the
+		// The shell mounts synchronously with the pending body: that is the
 		// recipe's core claim. (Sheet renders role="dialog".) The pending body is
 		// asserted inside the shell, because a shell that already resolved would also
 		// pass a bare role query.
@@ -127,7 +127,7 @@ describe("UserOverlayDemo terminal states", () => {
 		fireEvent.click(screen.getByRole("button", { name: "404 error" }));
 		await advanceBy(FIRST_ATTEMPT_MS);
 
-		// already terminal one attempt in — a retried 404 would still be pending
+		// already terminal one attempt in: a retried 404 would still be pending
 		expect(screen.queryByLabelText("Loading user details")).toBeNull();
 		expect(screen.queryByText("User not found")).not.toBeNull();
 		expect(screen.queryByText("req_404_rmissing")).not.toBeNull();

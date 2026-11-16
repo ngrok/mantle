@@ -7,7 +7,7 @@ import { Example } from "~/components/example";
 
 # Overlays + Async Data (React Query)
 
-Opening a floating overlay (a [`Sheet`](/components/overlays/sheet), a [`Dialog`](/components/overlays/dialog), or an [`Alert Dialog`](/components/overlays/alert-dialog)) is a navigation: the user has already committed to seeing more context by clicking the trigger. When the overlay's body needs remote data, fetching before opening turns a 404 or 500 into a silent drop back to the parent view, and a spinner on the trigger leaves the click feeling unregistered. This recipe mounts the shell immediately and resolves data inside it, so every click produces forward motion and every error stays in the place the user navigated to.
+Opening a floating overlay (a [`Sheet`](/components/overlays/sheet), a [`Dialog`](/components/overlays/dialog), or an [`AlertDialog`](/components/overlays/alert-dialog)) is a navigation: the user has already committed to seeing more context by clicking the trigger. When the overlay's body needs remote data, fetching before opening turns a 404 or 500 into a silent drop back to the parent view, and a spinner on the trigger leaves the click feeling unregistered. This recipe mounts the shell immediately and resolves data inside it, so every click produces forward motion and every error stays in the place the user navigated to.
 
 The pattern is identical across all three overlays: only the shell changes. The query hook, the body-state components, and the retry policy below are shared verbatim; the demo lets you host them in any of the three shells.
 
@@ -564,7 +564,7 @@ export function UserDialog({ onClose, scenario, userId }: UserOverlayProps) {
 			}}
 		>
 			<Dialog.Content preferredWidth="max-w-xl">
-				{/* Dialog.Header is a single flex row — Title + CloseIconButton only.
+				{/* Dialog.Header is a single flex row: Title + CloseIconButton only.
 				    The description lives at the top of the Body (Radix wires
 				    aria-describedby from anywhere inside Content). */}
 				<Dialog.Header>
@@ -594,7 +594,7 @@ export function UserDialog({ onClose, scenario, userId }: UserOverlayProps) {
 }
 ```
 
-### Alert Dialog
+### AlertDialog
 
 An `AlertDialog` confirms a consequential (usually destructive) action, which sharpens the pattern's stakes: the record the user is about to act on is exactly the thing being fetched. Two rules are non-negotiable here:
 
@@ -627,8 +627,11 @@ export function UserAlertDialog({ onClose, scenario, userId }: UserOverlayProps)
 					<AlertDialog.Header>
 						<AlertDialog.Title>Remove this user?</AlertDialog.Title>
 						<AlertDialog.Description>
-							Review <span className="font-mono">{userId}</span> before removing them — loaded
-							through the {scenarioLabels[scenario]} case.
+							Review{" "}
+							<span translate="no" className="font-mono">
+								{userId}
+							</span>{" "}
+							before removing them (loaded through the {scenarioLabels[scenario]} case).
 						</AlertDialog.Description>
 					</AlertDialog.Header>
 					<div className="mt-4">

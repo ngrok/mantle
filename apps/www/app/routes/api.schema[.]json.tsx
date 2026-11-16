@@ -270,7 +270,7 @@ const SCHEMA = {
 } as const;
 
 /**
- * Serve `/api/schema.json` — JSON Schema (draft-07) definitions for every
+ * Serve `/api/schema.json`: JSON Schema (draft-07) definitions for every
  * `/api/*.json` payload this site emits. One fetch is enough for an agent
  * to validate the rest of the surface or to introspect each endpoint's
  * field set without reading our source.

@@ -4,7 +4,7 @@ import { computeKeywordFoldRanges } from "./compute-keyword-fold-ranges.js";
 
 /**
  * Builds a token with the given content and (optionally nested) scope names.
- * The last scope is the innermost — what the inert-scope filter checks.
+ * The last scope is the innermost: the one the inert-scope filter checks.
  */
 function token(content: string, ...scopeNames: string[]) {
 	return {
@@ -70,7 +70,7 @@ describe("computeKeywordFoldRanges (ruby)", () => {
 			line(["  puts e"]),
 			line(["end"]),
 		];
-		// `rescue` does not pop the stack — the begin..end is a single fold.
+		// `rescue` does not pop the stack: the begin..end is a single fold.
 		expect(computeKeywordFoldRanges({ language: "ruby", tokens })).toEqual([
 			{ id: "1", startLine: 1, endLine: 5 },
 		]);

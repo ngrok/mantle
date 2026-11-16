@@ -111,7 +111,7 @@ const alertVariants = cva(
 	{
 		variants: {
 			/**
-			 * The intent of the Alert — the status its color communicates to the user,
+			 * The intent of the Alert: the status its color communicates to the user,
 			 * determining the color and styling of the Alert.
 			 */
 			intent: {
@@ -144,7 +144,7 @@ const alertVariants = cva(
 
 type AlertProps = ComponentProps<"div"> & {
 	/**
-	 * The intent of the Alert — the status its color communicates to the user,
+	 * The intent of the Alert: the status its color communicates to the user,
 	 * determining the color and styling of the Alert.
 	 */
 	intent: AlertIntent;
@@ -423,7 +423,7 @@ type AlertDismissIconButtonProps = Partial<
 	Omit<IconButtonProps, "appearance" | "icon" | "intent">
 > & {
 	/**
-	 * The visual style of the dismiss button. Optional here —
+	 * The visual style of the dismiss button. Optional here:
 	 * `Alert.DismissIconButton` defaults to `"ghost"` so the dismiss affordance
 	 * stays visually quiet inside the Alert.
 	 *
@@ -592,7 +592,7 @@ type AlertExpandButtonProps = Omit<
 	ButtonProps,
 	// `asChild` is omitted: ExpandButton always renders two children (the count and
 	// the word), which would trip Button's single-child `Children.only` invariant at
-	// runtime — so the invalid configuration is unrepresentable.
+	// runtime, so the invalid configuration is unrepresentable.
 	"appearance" | "asChild" | "children" | "icon" | "iconPlacement" | "intent" | "size"
 > & {
 	/** The number of alerts hidden by a collapsed alert center. */
@@ -659,7 +659,7 @@ const ExpandButton = ({
 			className={cx(
 				// Why two longhands instead of `px-1.5`: `Button` tightens the icon side
 				// by 0.125rem so the glyph reads optically aligned, and it spells that as
-				// `pe-2`. A shorthand cannot override a longhand — tailwind-merge keeps
+				// `pe-2`. A shorthand cannot override a longhand: tailwind-merge keeps
 				// both, and Tailwind emits `pe-*` after `px-*`, so `pe-2` would win and
 				// leave the caret side looser than the text side. `pe-1` is `ps-1.5` less
 				// that same 0.125rem, and it replaces `pe-2` outright.
@@ -867,6 +867,6 @@ export {
 	//,
 	Alert,
 	// Why: internal projection support for AlertCenter (portal children need
-	// the chrome's context from their own tree) — not re-exported by index.ts.
+	// the chrome's context from their own tree). index.ts does not re-export it.
 	AlertContextProvider,
 };

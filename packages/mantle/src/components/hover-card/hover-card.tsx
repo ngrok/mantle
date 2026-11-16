@@ -13,6 +13,7 @@ import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import {
 	LayerContainerContext,
+	useFloatEscapeKeyDown,
 	useLayerContainer,
 } from "../../utils/layer-container/layer-container.js";
 
@@ -111,7 +112,7 @@ const Portal = ({ container, ...props }: ComponentProps<typeof HoverCardPrimitiv
 
 	// Why the provider: `HoverCard.Content` portals again internally, so the
 	// resolved container must also become the layer container for the wrapped
-	// subtree — otherwise the inner portal would ignore an explicit `container`.
+	// subtree; otherwise the inner portal would ignore an explicit `container`.
 	return (
 		<LayerContainerContext.Provider value={resolvedContainer}>
 			<HoverCardPrimitivePortal container={resolvedContainer} {...props} />
@@ -153,36 +154,42 @@ const Content = ({
 	"data-slot": dataSlot,
 	className,
 	onClick,
+	onEscapeKeyDown,
 	align = "center",
 	sideOffset = 4,
 	...props
-}: ComponentProps<typeof HoverCardPrimitiveContent> & WithDataSlot) => (
-	<Portal>
-		<HoverCardPrimitiveContent
-			data-slot={joinDataSlot(dataSlot, "hover-card-content")}
-			align={align}
-			sideOffset={sideOffset}
-			className={cx(
-				// Why relative: `HoverCard.Arrow`'s wrapper is absolutely positioned, and
-				// the open animation's `scale` makes this element its containing block for
-				// one frame — then drops it, moving the arrow 1px. Positioning this element
-				// keeps that containing block the same before, during, and after.
-				"relative",
-				"bg-popover border-popover z-50 w-64 rounded-md border p-4 shadow-md outline-hidden",
-				"data-state-open:animate-in data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:fade-in-0 data-state-closed:zoom-out-95 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-left:slide-in-from-right-1 data-side-right:slide-in-from-left-1 data-side-top:slide-in-from-bottom-1 data-side-bottom:slide-out-to-top-1 data-side-left:slide-out-to-right-1 data-side-right:slide-out-to-left-1 data-side-top:slide-out-to-bottom-1 duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none!",
-				className,
-			)}
-			onClick={(event) => {
-				/**
-				 * Prevent the click event from propagating up to parent/containing elements
-				 */
-				event.stopPropagation();
-				onClick?.(event);
-			}}
-			{...props}
-		/>
-	</Portal>
-);
+}: ComponentProps<typeof HoverCardPrimitiveContent> & WithDataSlot) => {
+	const handleEscapeKeyDown = useFloatEscapeKeyDown(onEscapeKeyDown);
+
+	return (
+		<Portal>
+			<HoverCardPrimitiveContent
+				data-slot={joinDataSlot(dataSlot, "hover-card-content")}
+				align={align}
+				sideOffset={sideOffset}
+				className={cx(
+					// Why relative: `HoverCard.Arrow`'s wrapper is absolutely positioned, and
+					// the open animation's `scale` makes this element its containing block for
+					// one frame, then drops it, moving the arrow 1px. Positioning this element
+					// keeps that containing block the same before, during, and after.
+					"relative",
+					"bg-popover border-popover z-50 w-64 rounded-md border p-4 shadow-md outline-hidden",
+					"data-state-open:animate-in data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:fade-in-0 data-state-closed:zoom-out-95 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-left:slide-in-from-right-1 data-side-right:slide-in-from-left-1 data-side-top:slide-in-from-bottom-1 data-side-bottom:slide-out-to-top-1 data-side-left:slide-out-to-right-1 data-side-right:slide-out-to-left-1 data-side-top:slide-out-to-bottom-1 duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none!",
+					className,
+				)}
+				onClick={(event) => {
+					/**
+					 * Prevent the click event from propagating up to parent/containing elements
+					 */
+					event.stopPropagation();
+					onClick?.(event);
+				}}
+				onEscapeKeyDown={handleEscapeKeyDown}
+				{...props}
+			/>
+		</Portal>
+	);
+};
 
 type HoverCardArrowProps = Omit<
 	ComponentProps<typeof HoverCardPrimitiveArrow>,
@@ -220,8 +227,8 @@ const Arrow = ({
 	width = 14,
 	...props
 }: HoverCardArrowProps) => (
-	// Why no asChild prop: a swapped element loses the two-layer shape — a filled
-	// polygon, plus a polyline that strokes the slanted edges only — that continues
+	// Why no asChild prop: a swapped element loses the two-layer shape (a filled
+	// polygon, plus a polyline that strokes the slanted edges only) that continues
 	// `HoverCard.Content`'s border. `HoverCardArrowProps` omits the prop, so restyle
 	// with `className` instead. The `asChild` below is mantle's own, and hands that
 	// shape to the primitive.
@@ -236,7 +243,7 @@ const Arrow = ({
 		<svg
 			className={cx(
 				// `HoverCard.Content` is the wrapper's containing block, so Radix's own
-				// `0` offset resolves to that content's padding box — the base lands 1px
+				// `0` offset resolves to that content's padding box: the base lands 1px
 				// inside the border box, and the fill covers the border it sits on.
 				"fill-(--background-color-popover)",
 				// Why filter and clip-path: `HoverCard.Content`'s `shadow-md` stops at
@@ -244,8 +251,8 @@ const Arrow = ({
 				// casts the tip's own shadow, and the clip trims it at the base, because
 				// the arrow paints above the content and the shadow would otherwise
 				// darken the content's interior. One wide, faint layer only, matching
-				// what the content's shadow leaves along the edge the tip grows out of —
-				// a tighter layer muddies a shape this small. The offsets stay symmetric,
+				// what the content's shadow leaves along the edge the tip grows out of.
+				// A tighter layer muddies a shape this small. The offsets stay symmetric,
 				// since Radix rotates the wrapper per side and would swing an offset.
 				"[clip-path:inset(0_-200%_-200%_-200%)]",
 				"filter-[drop-shadow(0_0_4px_color-mix(in_oklab,var(--shadow-color)_var(--shadow-first-opacity),transparent))]",
@@ -271,7 +278,7 @@ const Arrow = ({
 /**
  * A floating card that appears when a user hovers over a trigger element.
  *
- * Use `HoverCard` for non-essential preview content shown on HOVER — user
+ * Use `HoverCard` for non-essential preview content shown on HOVER: user
  * cards, repo previews, rich link previews. Because hover is not reachable
  * via keyboard, all content inside a `HoverCard` must be supplemental,
  * never the only path to information; the trigger is typically a link that

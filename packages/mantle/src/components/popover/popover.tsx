@@ -13,7 +13,11 @@ import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
+import {
+	useFloatEscapeKeyDown,
+	useFloatOpenAutoFocus,
+	useLayerContainer,
+} from "../../utils/layer-container/layer-container.js";
 import { Slot } from "../slot/index.js";
 
 /**
@@ -200,12 +204,16 @@ const Content = ({
 	align = "center",
 	className,
 	onClick,
+	onEscapeKeyDown,
+	onOpenAutoFocus,
 	preferredWidth = "max-w-72",
 	ref,
 	sideOffset = 4,
 	...props
 }: PopoverContentProps) => {
 	const layerContainer = useLayerContainer();
+	const handleEscapeKeyDown = useFloatEscapeKeyDown(onEscapeKeyDown);
+	const handleOpenAutoFocus = useFloatOpenAutoFocus(onOpenAutoFocus);
 
 	return (
 		<PopoverPrimitivePortal container={layerContainer}>
@@ -215,7 +223,7 @@ const Content = ({
 				className={cx(
 					// Why relative: `Popover.Arrow`'s wrapper is absolutely positioned, and the
 					// open animation's `scale` makes this element its containing block for one
-					// frame — then drops it, moving the arrow 1px. Positioning this element
+					// frame, then drops it and moves the arrow 1px. Positioning this element
 					// keeps that containing block the same before, during, and after.
 					"relative",
 					"text-popover-foreground border-popover bg-popover data-side-bottom:slide-in-from-top-1 data-side-left:slide-in-from-right-1 data-side-right:slide-in-from-left-1 data-side-top:slide-in-from-bottom-1 data-side-bottom:slide-out-to-top-1 data-side-left:slide-out-to-right-1 data-side-right:slide-out-to-left-1 data-side-top:slide-out-to-bottom-1 duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none! data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 z-50 rounded-md border p-4 shadow-md outline-hidden",
@@ -230,6 +238,8 @@ const Content = ({
 					event.stopPropagation();
 					onClick?.(event);
 				}}
+				onEscapeKeyDown={handleEscapeKeyDown}
+				onOpenAutoFocus={handleOpenAutoFocus}
 				ref={ref}
 				sideOffset={sideOffset}
 				{...props}
@@ -276,8 +286,8 @@ const Arrow = ({
 	width = 14,
 	...props
 }: PopoverArrowProps) => (
-	// Why no asChild prop: a swapped element loses the two-layer shape — a filled
-	// polygon, plus a polyline that strokes the slanted edges only — that continues
+	// Why no asChild prop: a swapped element loses the two-layer shape (a filled
+	// polygon, plus a polyline that strokes the slanted edges only) that continues
 	// `Popover.Content`'s border. `PopoverArrowProps` omits the prop, so restyle with
 	// `className` instead. The `asChild` below is mantle's own, and hands that shape
 	// to the primitive.
@@ -292,7 +302,7 @@ const Arrow = ({
 		<svg
 			className={cx(
 				// `Popover.Content` is the wrapper's containing block, so Radix's own
-				// `0` offset resolves to that content's padding box — the base lands 1px
+				// `0` offset resolves to that content's padding box: the base lands 1px
 				// inside the border box, and the fill covers the border it sits on.
 				"fill-(--background-color-popover)",
 				// Why filter and clip-path: `Popover.Content`'s `shadow-md` stops at its
@@ -300,7 +310,7 @@ const Arrow = ({
 				// the tip's own shadow, and the clip trims it at the base, because the
 				// arrow paints above the content and the shadow would otherwise darken
 				// the content's interior. One wide, faint layer only, matching what the
-				// content's shadow leaves along the edge the tip grows out of — a tighter
+				// content's shadow leaves along the edge the tip grows out of. A tighter
 				// layer muddies a shape this small. The offsets stay symmetric, since
 				// Radix rotates the wrapper per side and would swing an offset with it.
 				"[clip-path:inset(0_-200%_-200%_-200%)]",
@@ -327,7 +337,7 @@ const Arrow = ({
 /**
  * A floating overlay that displays rich content in a portal, triggered by a button.
  *
- * Use `Popover` for INTERACTIVE overlay content — small forms, settings
+ * Use `Popover` for INTERACTIVE overlay content: small forms, settings
  * menus, color pickers, action lists. The user opens it deliberately
  * (click/tap or focus + space). For short, non-interactive label hints
  * triggered by hover, use `Tooltip` instead. For non-essential preview

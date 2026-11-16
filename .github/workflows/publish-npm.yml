@@ -6,7 +6,7 @@ on:
       - main
 
 # GitHub writes (release PR, tags, releases) use the App token minted in the
-# publish job, not the default GITHUB_TOKEN — keep this least-privilege.
+# publish job, not the default GITHUB_TOKEN. Keep this least-privilege.
 permissions:
   contents: read
   id-token: write # Required for OIDC (npm provenance)

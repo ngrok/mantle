@@ -49,7 +49,7 @@ function getLocalStorageArea(): Storage | null {
 /**
  * Builds the subscribe function for one localStorage key. It notifies only
  * for `storage` events that could change that key: a matching `key` (or a
- * clear-all event, where `key` is null) in localStorage — or an event whose
+ * clear-all event, where `key` is null) in localStorage, or an event whose
  * `storageArea` is unknown, from dispatchers that omit it. Unrelated keys
  * and sessionStorage events never wake the hook, so instances don't pay a
  * snapshot re-read for churn they can't be affected by.
@@ -73,7 +73,7 @@ function subscribeToLocalStorageKey(key: string): (onStoreChange: () => void) =>
 }
 
 /**
- * The server never has a stored value — rendering on the server always
+ * The server never has a stored value: rendering on the server always
  * resolves to the caller's default. This is what makes the hook SSR-safe:
  * localStorage is a client-only API and must never be touched during
  * server rendering.

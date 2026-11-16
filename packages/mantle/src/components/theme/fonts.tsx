@@ -72,11 +72,11 @@ type PreloadFontProps = {
 	/**
 	 * The name of the individual core font to preload.
 	 *
-	 * - `"roobert"` — Roobert proportional variable font
-	 * - `"jetbrains-mono"` — JetBrains Mono variable weight
-	 * - `"jetbrains-mono-italic"` — JetBrains Mono italic variable weight
-	 * - `"family-regular"` — Family regular
-	 * - `"family-italic"` — Family italic
+	 * - `"roobert"`: Roobert proportional variable font
+	 * - `"jetbrains-mono"`: JetBrains Mono variable weight
+	 * - `"jetbrains-mono-italic"`: JetBrains Mono italic variable weight
+	 * - `"family-regular"`: Family regular
+	 * - `"family-italic"`: Family italic
 	 */
 	name: CoreFontName;
 };

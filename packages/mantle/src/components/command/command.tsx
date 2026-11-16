@@ -21,7 +21,7 @@ type CommandRootProps = ComponentProps<typeof CommandPrimitive> & WithDataSlot;
 
 /**
  * The inline palette, wrapping `Command.Input` and `Command.List`. It owns the
- * filtering and the active item for every part below it — `Command.DialogContent`
+ * filtering and the active item for every part below it. `Command.DialogContent`
  * renders one itself, so a modal palette does not add it.
  *
  * @see https://mantle.ngrok.com/components/navigation/command#commandroot
@@ -62,8 +62,8 @@ const CommandRoot = ({ "data-slot": dataSlot, className, ...props }: CommandRoot
 );
 
 /**
- * The props for `Command.DialogRoot`. `Dialog.Root`'s props — so `modal` still
- * reaches the underlying dialog — with the open state and the keyboard shortcut
+ * The props for `Command.DialogRoot`. `Dialog.Root`'s props (so `modal` still
+ * reaches the underlying dialog), with the open state and the keyboard shortcut
  * redeclared here, because this part owns them.
  *
  * @see https://mantle.ngrok.com/components/navigation/command#commanddialogroot
@@ -73,7 +73,7 @@ type CommandDialogRootProps = Omit<
 	"children" | "defaultOpen" | "onOpenChange" | "open"
 > & {
 	/**
-	 * The palette's parts — a `Command.DialogContent`, and any trigger or
+	 * The palette's parts: a `Command.DialogContent`, and any trigger or
 	 * consumer of `useCommandDialog()`. `DialogRoot` renders no DOM of its own.
 	 */
 	children?: ReactNode;
@@ -85,19 +85,19 @@ type CommandDialogRootProps = Omit<
 	defaultOpen?: boolean;
 	/**
 	 * Bind `⌘K` (macOS) / `Ctrl+K` (Windows/Linux) to toggle the palette. The
-	 * shortcut requires exactly the platform modifier + `k`, resolved per host —
-	 * the two never substitute for each other, so macOS's native `Ctrl+K` ("kill
+	 * shortcut requires exactly the platform modifier + `k`, resolved per host.
+	 * The two never substitute for each other, so macOS's native `Ctrl+K` ("kill
 	 * to end of line") is left alone. `Shift`/`Alt` combinations pass through.
 	 *
 	 * It lives here rather than on `Command.SearchTrigger` because the trigger
-	 * may be unmounted while the shortcut must still work — a sidebar rendered
+	 * may be unmounted while the shortcut must still work: a sidebar rendered
 	 * as a mobile sheet unmounts its whole tree when the sheet is closed.
 	 *
 	 * The shortcut is ignored while focus is in a rich-text or code editor
 	 * (`contenteditable`, or a `<textarea>`, which is what Monaco attaches to),
 	 * where `⌘K` is already bound to "insert link" or a chord prefix. It
 	 * deliberately still fires from a plain `<input>`, including the palette's
-	 * own `Command.Input` — so the chord closes what it opened.
+	 * own `Command.Input`, so the chord closes what it opened.
 	 *
 	 * An earlier `keydown` listener that calls `preventDefault()` (on `document`,
 	 * or on an element) stops the shortcut. Do not bind `⌘K` in your app as
@@ -108,8 +108,8 @@ type CommandDialogRootProps = Omit<
 	 * a second palette never opens alongside the first.
 	 *
 	 * Set `false` to bind the chord yourself with `useCommandDialog()`.
-	 * `Command.SearchTrigger` then adds no `aria-keyshortcuts` of its own — pass
-	 * one to announce the chord you bound — and `useCommandDialog().keyboardShortcut`
+	 * `Command.SearchTrigger` then adds no `aria-keyshortcuts` of its own (pass
+	 * one to announce the chord you bound), and `useCommandDialog().keyboardShortcut`
 	 * reports the same flag. The *visible* hint always belongs to the trigger's
 	 * child, so gating that on the flag is the child's job.
 	 *
@@ -135,7 +135,7 @@ type CommandDialogRootProps = Omit<
  * seed and the open state land in one state update, so `Command.Input` mounts
  * with the character already in it and no keystroke races the dialog's mount.
  *
- * **Opening always starts from a known query** — the seed, or empty. That
+ * **Opening always starts from a known query**: the seed, or empty. That
  * happens at open time rather than by clearing on close, because
  * `Dialog.Content` animates out and clearing on close would swap the visible
  * list mid-animation. So dismissing and reopening never resurrects the previous
@@ -143,7 +143,7 @@ type CommandDialogRootProps = Omit<
  *
  * Pass `open`/`onOpenChange` to control the open state; the query stays
  * internal either way. To own the query too, pass `value`/`onValueChange` to
- * `Command.Input` — see that part for the trade-off.
+ * `Command.Input`. See that part for the trade-off.
  *
  * @see https://mantle.ngrok.com/components/navigation/command#commanddialogroot
  *
@@ -401,7 +401,7 @@ const CommandDialogContent = ({
  * palette, no dialog) it stays uncontrolled and cmdk owns the text.
  *
  * Passing `value` takes the query over completely: your value wins, this stops
- * reporting to `useCommandDialog()`, and **seeding becomes yours to apply** —
+ * reporting to `useCommandDialog()`, and **seeding becomes yours to apply**:
  * read `useCommandDialog().query` and mirror it, or drop
  * `Command.SearchTrigger` for a plain `Command.DialogTrigger`. Prefer leaving
  * it uncontrolled and reading the query from the hook.
@@ -414,7 +414,7 @@ const CommandDialogContent = ({
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-slot` | `"command-input-wrapper"` | The row holding the magnifier and the field. |
- * | `data-slot` | `"command-input"` | The `<input>` itself, joined after any `data-slot` you forward. Load-bearing beyond styling: `Command.DialogContent` finds the field by this slot when the palette opens, to place the caret after a seeded query instead of over it, so this part of the chain is never replaced. |
+ * | `data-slot` | `"command-input"` | The `<input>` itself, joined after any `data-slot` you forward. Beyond styling, `Command.DialogContent` finds the field by this slot when the palette opens, to place the caret after a seeded query instead of over it, so this part of the chain is never replaced. |
  *
  * @see https://mantle.ngrok.com/components/navigation/command#commandinput
  *
@@ -851,7 +851,7 @@ const CommandShortcut = ({
 const Command = {
 	/**
 	 * The inline palette, wrapping `Command.Input` and `Command.List`. It owns the
-	 * filtering and the active item for every part below it — `Command.DialogContent`
+	 * filtering and the active item for every part below it. `Command.DialogContent`
 	 * renders one itself, so a modal palette does not add it.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/command#commandroot
@@ -957,7 +957,7 @@ const Command = {
 	 */
 	SearchTrigger: CommandSearchTrigger,
 	/**
-	 * A bare button that opens the Command dialog when clicked — the escape hatch
+	 * A bare button that opens the Command dialog when clicked: the escape hatch
 	 * for a trigger that should not look like a search field. Wrap your own
 	 * element with `asChild`.
 	 *

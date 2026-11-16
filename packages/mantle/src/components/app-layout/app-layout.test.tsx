@@ -261,7 +261,7 @@ describe("AppLayout.Header", () => {
 	});
 
 	test("both halves of the :has() coupling line up with what Sidebar.Header emits", () => {
-		// The derived height is pure CSS, so happy-dom cannot measure it — but it
+		// The derived height is pure CSS, so happy-dom cannot measure it, but it
 		// can prove the selector has something to match: AppLayout.Root names the
 		// `app-layout` group the variant is scoped to, and Sidebar.Header stamps the
 		// `data-slot` token the `:has()` looks for. Renaming either side silently
@@ -298,7 +298,7 @@ describe("AppLayout.Header", () => {
 		expect(screen.getByTestId("panel-header").className).toContain(derivedHeight);
 		// The other half of the token contract: the sidebar header spends the same
 		// variable, with the same fallback, on the grid track its first row sits in.
-		// Two files spelling one token, so they are pinned in one test — rename it on
+		// Two files spelling one token, so they are pinned in one test. Rename it on
 		// either side and the toolbar stops matching the switcher row.
 		expect(screen.getByTestId("sidebar-header")).toHaveClass(
 			"grid-rows-(--sidebar-header-height,4.5rem)",

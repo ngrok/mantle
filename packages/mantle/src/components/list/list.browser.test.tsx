@@ -131,7 +131,7 @@ describe("List (browser)", () => {
 		await user.keyboard("{ArrowDown}");
 		expect(item("Item 3")).toHaveFocus();
 		await user.keyboard("{ArrowDown}");
-		// No wrap — holds on the last enabled item.
+		// No wrap: focus holds on the last enabled item.
 		expect(item("Item 3")).toHaveFocus();
 		await user.keyboard("{ArrowUp}");
 		expect(item("Item 1")).toHaveFocus();
@@ -145,7 +145,7 @@ describe("List (browser)", () => {
 	test("arrow navigation skips a row that hosts no focusable control instead of dead-ending on it", async () => {
 		// Regression: a static row (a bare divider, or an asChild link with no href)
 		// was counted as a navigable index, so arrow nav targeted it, found no
-		// control to focus, and silently stuck there — leaving every row past it
+		// control to focus, and silently stuck there, leaving every row past it
 		// unreachable by the keyboard.
 		const user = userEvent.setup();
 		render(
@@ -181,7 +181,7 @@ describe("List (browser)", () => {
 
 		screen.getByRole("button", { name: "Item 0" }).focus();
 		await user.keyboard("{Control>}{ArrowDown}{/Control}");
-		// Focus stays put — the chord belongs to the browser/OS.
+		// Focus stays put: the chord belongs to the browser/OS.
 		expect(screen.getByRole("button", { name: "Item 0" })).toHaveFocus();
 		await user.keyboard("{Meta>}{ArrowDown}{/Meta}");
 		expect(screen.getByRole("button", { name: "Item 0" })).toHaveFocus();

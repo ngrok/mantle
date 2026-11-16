@@ -647,7 +647,7 @@ function isProgram(node: unknown): node is OxcProgram {
 
 /**
  * The static `mantleCode` symbol tables extracted from a single module. Used to resolve
- * `<fragment>.code` interpolations within the module and — for imported fragments — across
+ * `<fragment>.code` interpolations within the module and (for imported fragments) across
  * module boundaries.
  */
 type ModuleFragmentContext = {
@@ -734,7 +734,7 @@ function collectModuleSymbols(program: unknown): Omit<ModuleFragmentContext, "re
 			}
 
 			if (isExportNamedDeclaration(statement)) {
-				// `export … from "…"` is a re-export — out of scope for v1; skip.
+				// `export … from "…"` is a re-export, out of scope for v1; skip.
 				if (statement.source != null) {
 					continue;
 				}
@@ -827,7 +827,7 @@ async function resolveFragmentTemplate({
  * import of a directly-exported top-level `mantleCode` `const` from another module. Nested
  * references are resolved recursively across module boundaries.
  *
- * Returns `null` — signalling the caller to keep the runtime placeholder path — when the
+ * Returns `null` (which signals the caller to keep the runtime placeholder path) when the
  * expression is not a non-computed `.code` member access, the binding is not a resolvable
  * fragment, the reference is cyclic, a same-module fragment is declared after this reference
  * (mirroring runtime evaluation order so plugin output matches the no-plugin fallback), or the

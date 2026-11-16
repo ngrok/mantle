@@ -14,8 +14,8 @@ type FoldScope = {
 
 /**
  * One sub-explanation within a {@link FoldToken}. A single Shiki token may
- * cover content with several scope sets — for example an interpolation
- * boundary inside a template literal — so its `explanation` is an array.
+ * cover content with several scope sets (for example an interpolation
+ * boundary inside a template literal), so its `explanation` is an array.
  */
 type FoldExplanation = {
 	content: string;
@@ -42,10 +42,10 @@ type FoldLine = FoldToken[];
  * Folding strategy applied to a language. Picked by {@link foldStrategyFor}
  * based on how the language naturally delimits blocks:
  *
- * - `bracket` — `{}`/`[]` pairs (C-family, JSON, CSS, Rust, Go, …).
- * - `indentation` — significant whitespace (Python, YAML).
- * - `tag` — element open/close tags (HTML, XML).
- * - `none` — plain text and other languages without a useful folding model.
+ * - `bracket`: `{}`/`[]` pairs (C-family, JSON, CSS, Rust, Go, …).
+ * - `indentation`: significant whitespace (Python, YAML).
+ * - `tag`: element open/close tags (HTML, XML).
+ * - `none`: plain text and other languages without a useful folding model.
  */
 type FoldStrategy = "bracket" | "indentation" | "tag" | "none";
 
@@ -97,7 +97,7 @@ type ComputeFoldRangesInput = {
  *
  * The bracket strategy uses TextMate scopes to distinguish real punctuation
  * from `{`/`[` characters that appear inside strings, comments, or regular
- * expressions — this is what lets one parser cover JS, TS, Go, Rust, JSON,
+ * expressions. This is what lets one parser cover JS, TS, Go, Rust, JSON,
  * CSS, and friends without per-language string/comment logic.
  *
  * Returns ranges sorted by `startLine` ascending; at most one range per
@@ -120,7 +120,7 @@ function computeFoldRanges({ language, tokens }: ComputeFoldRangesInput): Foldab
 
 /**
  * Returns true when a token's innermost scope means it represents inert
- * content — string body, comment body, regex body, or character escape —
+ * content (string body, comment body, regex body, or character escape),
  * and therefore any `{`/`[`/`<` characters inside it should be ignored.
  *
  * Checking the innermost scope (last entry) keeps template-literal
@@ -186,7 +186,7 @@ function visibleTextForLine(line: FoldLine): string {
 
 /**
  * Returns the count of leading whitespace characters on a line, or `-1`
- * for blank lines. Reads only the first token's content — Shiki emits
+ * for blank lines. Reads only the first token's content: Shiki emits
  * leading whitespace as its own token, so a full-line concat is wasted
  * work for the indentation strategy.
  */
@@ -214,7 +214,7 @@ function leadingIndentOfLine(line: FoldLine | undefined): number {
  * comment, escape) regions, and pairs `{`/`[` openers with `}`/`]` closers
  * via a single stack pass.
  *
- * Parens (`(`/`)`) are intentionally not folded — function call argument
+ * Parens (`(`/`)`) are intentionally not folded: function call argument
  * lists are usually short and folding them creates more noise than value.
  */
 function computeBracketFoldRanges(tokens: FoldLine[]): FoldableRange[] {
@@ -278,7 +278,7 @@ function hasBracketChar(content: string): boolean {
  * For each non-blank line, finds the maximal run of following lines that are
  * either blank or more deeply indented than the opener. The opener stays
  * visible; descendant lines collapse. The "closer" line (`endLine`) is the
- * first line at or below the opener's indent — purely a sentinel so the
+ * first line at or below the opener's indent, purely a sentinel so the
  * decorator's `startLine + 1 .. endLine - 1` hide loop covers the body.
  *
  * A tab is treated as one column. Mixed tabs/spaces compare consistently
@@ -338,7 +338,7 @@ function computeIndentationFoldRanges(tokens: FoldLine[]): FoldableRange[] {
  * unmatched opener and a matching closer on a later line.
  *
  * Multi-line tags (an opener whose `>` is on a different line than the
- * `<`) are deliberately not folded in v1 — they're rare and would require
+ * `<`) are deliberately not folded in v1: they're rare and would require
  * cross-line state.
  */
 function computeTagFoldRanges(tokens: FoldLine[]): FoldableRange[] {

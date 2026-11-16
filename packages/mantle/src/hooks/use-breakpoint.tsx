@@ -404,7 +404,7 @@ function getCurrentBreakpointSnapshot(): Breakpoint {
  *
  * Without caching, `useSyncExternalStore` receives a new function reference on
  * every render, causing it to tear down and re-attach the `MediaQueryList`
- * listener each time — the primary source of resize sluggishness.
+ * listener each time. That churn is the primary source of resize sluggishness.
  *
  * @private
  */

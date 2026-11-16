@@ -8,7 +8,7 @@ import type { BarOrientation, SeriesColor, SeriesMeta } from "./types.js";
  * draw calls into pixels: the canvas backend rasterizes them, and the SVG
  * backend records them into one `<path>` per style run.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation. The package does not export it.
  */
 
 /**

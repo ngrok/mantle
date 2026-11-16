@@ -6,7 +6,7 @@ import { isApplePlatform } from "../../utils/platform.js";
 
 /**
  * The key that opens the command palette together with the platform modifier
- * (`⌘` on macOS, `Ctrl` elsewhere) — the ecosystem-standard chord.
+ * (`⌘` on macOS, `Ctrl` elsewhere): the ecosystem-standard chord.
  */
 const COMMAND_KEYBOARD_SHORTCUT = "k";
 
@@ -18,9 +18,9 @@ const COMMAND_KEYBOARD_SHORTCUT = "k";
  *
  * This queue is deliberately its own, not shared with `Sidebar`'s `⌘B` queue:
  * per-chord exclusivity is the invariant, and one queue across chords would let
- * a mounted sidebar starve a palette. The two also differ in policy — `⌘B` is
+ * a mounted sidebar starve a palette. The two also differ in policy: `⌘B` is
  * suppressed inside every form control because it is "bold" there, while `⌘K`
- * must keep working from a focused text input (see {@link isEditorHost}) — so
+ * must keep working from a focused text input (see {@link isEditorHost}). So
  * they have different reasons to change.
  *
  * Module state is safe here: it is only touched from effects, never during
@@ -49,14 +49,14 @@ function claimShortcut(): { isOwner: () => boolean; release: () => void } {
 
 /**
  * Whether an event target is a rich-text or code editor host that owns `⌘K`
- * itself — where the chord is "insert link" (or a chord prefix, in Monaco and
+ * itself, where the chord is "insert link" (or a chord prefix, in Monaco and
  * VS Code-style keymaps) and a `preventDefault()`ing window listener would
  * steal it.
  *
  * Deliberately narrower than the equivalent guard in `Sidebar`: `<input>` and
  * `<select>` are **not** excluded. A global palette is expected to open from
  * anywhere, including an app's own filter field, and the palette's own
- * `Command.Input` is an `<input>` — excluding it would make the chord unable to
+ * `Command.Input` is an `<input>`. Excluding it would make the chord unable to
  * close the palette it just opened. `<textarea>` is excluded because that is
  * what Monaco and other code editors attach to; CodeMirror uses
  * `contenteditable`.
@@ -133,7 +133,7 @@ function useCommandShortcut({ enabled, onTrigger }: UseCommandShortcutOptions): 
 			const platformModifier = isApple ? event.metaKey : event.ctrlKey;
 			const foreignModifier = isApple ? event.ctrlKey : event.metaKey;
 			// toLowerCase: with Caps Lock on, browsers report key "K" with
-			// shiftKey false — the shortcut must not silently die there.
+			// shiftKey false, and the shortcut must not silently die there.
 			// The optional read is not redundant. The DOM type says `key` is a
 			// string. An extension or a password manager can dispatch a `keydown`
 			// that omits it. The bare read then throws on the page.

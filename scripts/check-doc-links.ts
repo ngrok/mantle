@@ -15,8 +15,13 @@ const inlineLink = /!?\[[^\]]*\]\(\s*(<[^>]*>|[^\s)]+)/g;
 const referenceDefinition = /^\s{0,3}\[[^\]]+\]:\s*(<[^>]*>|\S+)/;
 const heading = /^\s{0,3}#{1,6}\s+(.*?)\s*#*\s*$/;
 
-/** The lines of a markdown file outside its code blocks. */
-function proseLines(markdown: string): { text: string; line: number }[] {
+/**
+ * The lines of a markdown file outside its code blocks, each with its 1-based line.
+ *
+ * @example
+ * proseLines("a\n```\nb\n```\nc"); // => [{ text: "a", line: 1 }, { text: "c", line: 5 }]
+ */
+export function proseLines(markdown: string): { text: string; line: number }[] {
 	const lines: { text: string; line: number }[] = [];
 	let openFence: string | null = null;
 	markdown.split("\n").forEach((text, index) => {

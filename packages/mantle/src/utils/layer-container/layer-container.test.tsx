@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import { type ReactNode, useState } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { AlertDialog } from "../../components/alert-dialog/alert-dialog.js";
@@ -22,7 +23,7 @@ import { LayerContainer } from "./layer-container.js";
  * - Overlays (`Dialog`, `AlertDialog`, `Sheet`) render at `z-60` and expose a
  *   positioner element that doubles as the layer container.
  * - Floats (`Popover`, `Tooltip`, `Select`, `DropdownMenu`, `HoverCard`) render
- *   at `z-50` and portal into the nearest layer container — the positioner when
+ *   at `z-50` and portal into the nearest layer container: the positioner when
  *   composed inside an overlay, else `document.body`.
  * - A float inside the positioner follows the overlay content in document
  *   order, so it paints above the content inside the overlay's stacking
@@ -85,7 +86,7 @@ const overlays = [
 /**
  * Each float under test. `renderClosed` mounts it shut so a real event (or the
  * controlled-open flip for the hover-driven floats, whose pointer timing
- * happy-dom cannot reproduce) opens it after the overlay already exists —
+ * happy-dom cannot reproduce) opens it after the overlay already exists:
  * the mount order that used to lose.
  */
 const floats = [
@@ -209,8 +210,8 @@ describe("layer containers", () => {
 				).toBeTruthy();
 				// The modal overlay marks the portal's other children
 				// `aria-hidden` on open. The positioner is on the content's
-				// ancestor chain, so a float portaled into it stays readable —
-				// portaling into a sibling element instead would hide it.
+				// ancestor chain, so a float portaled into it stays readable.
+				// Portaling into a sibling element instead would hide it.
 				expect(floatContent.closest("[aria-hidden='true']")).toBeNull();
 			});
 		}
@@ -639,7 +640,7 @@ describe("layer containers", () => {
 		test("a MultiSelect inside a popover inside a dialog portals into the dialog's positioner", async () => {
 			// The trigger sits in a float portaled into the positioner, so
 			// `closest("[data-mantle-modal-content]")` cannot reach the dialog
-			// content — without the layer-container fallback the popup lands on
+			// content. Without the layer-container fallback the popup lands on
 			// `document.body` at `z-50`, under the `z-60` dialog.
 			const user = userEvent.setup();
 			render(
@@ -674,7 +675,7 @@ describe("layer containers", () => {
 			// The dialog primitive's Escape guard requires the popup to be a DOM
 			// descendant of the dialog content (`currentTarget.contains(popup)`),
 			// so `Combobox.Content` must never portal. Adding Ariakit's `portal`
-			// prop to it turns this red — and breaks Escape inside dialogs.
+			// prop to it turns this red and breaks Escape inside dialogs.
 			const user = userEvent.setup();
 			render(
 				overlays[0].renderOpen(
@@ -828,7 +829,7 @@ describe("layer containers", () => {
 
 describe("layer tiers", () => {
 	// Why class assertions: the z-index tier is the only observable
-	// implementation of the layering contract in happy-dom — no stylesheet
+	// implementation of the layering contract in happy-dom: no stylesheet
 	// loads, so there is no computed style to read. Each class below is pinned
 	// against the selector-free contract the JSDoc documents (floats `z-50`,
 	// overlays `z-60`); `layer-container.browser.test.tsx` asserts the paint
@@ -879,4 +880,188 @@ test("LayerContainer fires a callback ref once with the container across a re-re
 
 	expect(refSpy).toHaveBeenCalledTimes(1);
 	expect(refSpy).toHaveBeenLastCalledWith(screen.getByTestId("container"));
+});
+
+/**
+ * Each overlay, open by default and uncontrolled, so Escape must close it
+ * through the root's own state.
+ */
+const uncontrolledOverlays = [
+	{
+		name: "Dialog",
+		render: (children: ReactNode) => (
+			<Dialog.Root defaultOpen>
+				<Dialog.Content>
+					<Dialog.Title>Overlay</Dialog.Title>
+					<Dialog.Body>{children}</Dialog.Body>
+				</Dialog.Content>
+			</Dialog.Root>
+		),
+	},
+	{
+		name: "AlertDialog",
+		render: (children: ReactNode) => (
+			<AlertDialog.Root intent="info" defaultOpen>
+				<AlertDialog.Content>
+					<AlertDialog.Body>
+						<AlertDialog.Title>Overlay</AlertDialog.Title>
+						{children}
+					</AlertDialog.Body>
+				</AlertDialog.Content>
+			</AlertDialog.Root>
+		),
+	},
+	{
+		name: "Sheet",
+		render: (children: ReactNode) => (
+			<Sheet.Root defaultOpen>
+				<Sheet.Content>
+					<Sheet.Header>
+						<Sheet.TitleGroup>
+							<Sheet.Title>Overlay</Sheet.Title>
+						</Sheet.TitleGroup>
+					</Sheet.Header>
+					<Sheet.Body>{children}</Sheet.Body>
+				</Sheet.Content>
+			</Sheet.Root>
+		),
+	},
+] as const;
+
+/**
+ * A page-level popover that a button inside the overlay opens, so the
+ * popover mounts after the overlay and paints under it.
+ */
+function LateFloatUnderOverlay({
+	renderOverlay,
+}: {
+	renderOverlay: (children: ReactNode) => ReactNode;
+}) {
+	const [floatOpen, setFloatOpen] = useState(false);
+
+	return (
+		<>
+			<Popover.Root open={floatOpen} onOpenChange={setFloatOpen}>
+				<Popover.Anchor asChild>
+					<span>Anchor</span>
+				</Popover.Anchor>
+				{/* Why: an onboarding popover stays open until its own button closes it. */}
+				<Popover.Content onInteractOutside={(event) => event.preventDefault()}>
+					Page popover
+				</Popover.Content>
+			</Popover.Root>
+			{renderOverlay(
+				<button type="button" onClick={() => setFloatOpen(true)}>
+					Open late float
+				</button>,
+			)}
+		</>
+	);
+}
+
+describe("Escape and covered floats", () => {
+	test.each(uncontrolledOverlays)(
+		"Escape closes the $name that covers a late float, and the float stays open without focus",
+		async ({ render: renderOverlay }) => {
+			const user = userEvent.setup();
+			render(<LateFloatUnderOverlay renderOverlay={renderOverlay} />);
+
+			const opener = screen.getByRole("button", { name: "Open late float" });
+			await user.click(opener);
+			expect(screen.getByText("Page popover")).toBeInTheDocument();
+			// The covered float must not take focus out of the overlay.
+			expect(opener).toHaveFocus();
+			await user.keyboard("{Escape}");
+
+			await waitFor(() => {
+				expect(screen.queryByText("Open late float")).not.toBeInTheDocument();
+			});
+			expect(screen.getByText("Page popover")).toBeInTheDocument();
+		},
+	);
+
+	test("Escape inside an overlay still closes a float the overlay owns first", async () => {
+		const user = userEvent.setup();
+		render(
+			<Dialog.Root defaultOpen>
+				<Dialog.Content>
+					<Dialog.Title>Overlay</Dialog.Title>
+					<Popover.Root defaultOpen>
+						<Popover.Trigger>Owned trigger</Popover.Trigger>
+						<Popover.Content>Owned popover</Popover.Content>
+					</Popover.Root>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+
+		await user.keyboard("{Escape}");
+
+		await waitFor(() => {
+			expect(screen.queryByText("Owned popover")).not.toBeInTheDocument();
+		});
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+	});
+
+	test("Escape from an owned popover keeps the dialog open when a late float covers it", async () => {
+		const user = userEvent.setup();
+		render(
+			<LateFloatUnderOverlay
+				renderOverlay={(children) => (
+					<Dialog.Root defaultOpen>
+						<Dialog.Content>
+							<Dialog.Title>Overlay</Dialog.Title>
+							<Popover.Root defaultOpen>
+								<Popover.Trigger>Owned trigger</Popover.Trigger>
+								<Popover.Content>{children}</Popover.Content>
+							</Popover.Root>
+						</Dialog.Content>
+					</Dialog.Root>
+				)}
+			/>,
+		);
+
+		const opener = screen.getByRole("button", { name: "Open late float" });
+		await user.click(opener);
+		expect(opener).toHaveFocus();
+		await user.keyboard("{Escape}");
+		await user.keyboard("{Escape}");
+
+		await waitFor(() => {
+			expect(screen.queryByText("Open late float")).not.toBeInTheDocument();
+		});
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+	});
+
+	test("Escape from a covered float closes the dialog that Radix binds to the content, not an inner sheet root", async () => {
+		const user = userEvent.setup();
+		const onDialogOpenChange = vi.fn<(open: boolean) => void>();
+		const onSheetOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<LateFloatUnderOverlay
+				renderOverlay={(children) => (
+					<Dialog.Root defaultOpen onOpenChange={onDialogOpenChange}>
+						<Sheet.Root defaultOpen onOpenChange={onSheetOpenChange}>
+							<Sheet.Content>
+								<Sheet.Header>
+									<Sheet.TitleGroup>
+										<Sheet.Title>Sheet</Sheet.Title>
+									</Sheet.TitleGroup>
+								</Sheet.Header>
+								<Dialog.Content>
+									<Dialog.Title>Overlay</Dialog.Title>
+									<Dialog.Body>{children}</Dialog.Body>
+								</Dialog.Content>
+							</Sheet.Content>
+						</Sheet.Root>
+					</Dialog.Root>
+				)}
+			/>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "Open late float" }));
+		await user.keyboard("{Escape}");
+
+		expect(onDialogOpenChange).toHaveBeenCalledWith(false);
+		expect(onSheetOpenChange).not.toHaveBeenCalled();
+	});
 });

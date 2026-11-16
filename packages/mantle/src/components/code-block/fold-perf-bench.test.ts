@@ -4,7 +4,7 @@ import { decorateHighlightedHtml } from "./decorate-highlighted-html.js";
 
 /**
  * Synthesizes Shiki-shaped HTML for a JSON source by wrapping every line in
- * `<span class="line">` — exactly the shape `decorateHighlightedHtml` expects.
+ * `<span class="line">`: exactly the shape `decorateHighlightedHtml` expects.
  */
 function shikiShapedHtml(code: string): string {
 	return code

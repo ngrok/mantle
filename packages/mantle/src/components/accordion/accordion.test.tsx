@@ -131,7 +131,7 @@ describe("Accordion", () => {
 
 		// `data-state` on the trigger is the documented styling hook consumers target
 		// (`data-state-open:*`), and it's what rotates `Accordion.TriggerIcon` via
-		// `group-data-state-open:rotate-180` — so it has to track open state too.
+		// `group-data-state-open:rotate-180`, so it has to track open state too.
 		expect(triggerA).toHaveAttribute("data-state", "open");
 		expect(triggerB).toHaveAttribute("data-state", "closed");
 	});
@@ -171,7 +171,7 @@ describe("Accordion", () => {
 
 		await user.click(screen.getByRole("button", { name: "Trigger B" }));
 
-		// Single mode's callback receives a bare string, not an array — a consumer
+		// Single mode's callback receives a bare string, not an array. A consumer
 		// holding `useState("")` depends on it.
 		expect(onValueChange).toHaveBeenCalledTimes(1);
 		expect(onValueChange).toHaveBeenLastCalledWith("b");
@@ -194,7 +194,7 @@ describe("Accordion", () => {
 
 	test("keeps collapsed content in the DOM so find-in-page can reveal it", () => {
 		renderExample("a");
-		// Section B is collapsed — asserted here so the presence check below can't pass
+		// Section B is collapsed. This is asserted here so the presence check below can't pass
 		// for the trivial reason that the section is open.
 		expect(screen.getByRole("button", { name: /Trigger B/ })).toHaveAttribute(
 			"aria-expanded",
@@ -205,7 +205,7 @@ describe("Accordion", () => {
 			"data-state",
 			"closed",
 		);
-		// Its body text still exists in the DOM — this is the entire point of the
+		// Its body text still exists in the DOM. This is the entire point of the
 		// component (browser find-in-page support).
 		expect(collapsedBody).toBeInTheDocument();
 	});

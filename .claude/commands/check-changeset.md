@@ -13,7 +13,7 @@ git fetch origin main
 git diff main...HEAD --name-only
 ```
 
-Capture the list. If empty, the branch has no changes — exit cleanly.
+Capture the list. If empty, the branch has no changes. Exit cleanly.
 
 ## 2. Decide whether a changeset is required
 
@@ -39,7 +39,7 @@ short description
 ## 4. Validate
 
 - If a changeset is required AND no candidate changeset names `@ngrok/mantle`: **FAIL**. Recommend running `pnpm -w run changeset` and proposing a bump type:
-  Read [VERSIONING.md](../../VERSIONING.md) and apply it. Do not apply stock semver — mantle is `0.x`, there is
+  Read [VERSIONING.md](../../VERSIONING.md) and apply it. Do not apply stock semver: mantle is `0.x`, there is
   no `major`, and additive changes are a `patch`:
   - `patch` for a bug fix, a new prop, a new part in a shipped namespace, a new data attribute or CSS variable,
     a styling change, a dependency bump, or a JSDoc-only edit

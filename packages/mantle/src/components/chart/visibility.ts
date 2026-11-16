@@ -5,7 +5,7 @@
  * can see it, the `near` band tells it to paint, and the `far` band tells it
  * to release its canvas memory.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation, not exported from the package.
  */
 import { cancelActivation, flushActivations } from "./activation.js";
 

@@ -1,5 +1,5 @@
 ---
-description: "Audit a mantle component against COMPONENT_SPEC.md — implementation, JSDoc, docs page, and wiring — and fix the mechanical discrepancies."
+description: "Audit a mantle component against COMPONENT_SPEC.md (implementation, JSDoc, docs page, and wiring) and fix the mechanical discrepancies."
 argument-hint: "<component-name> | all"
 ---
 

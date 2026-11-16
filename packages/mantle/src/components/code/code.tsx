@@ -6,7 +6,7 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 import { Slot } from "../slot/index.js";
 
 /**
- * Marks a short fragment of inline computer code — a function name, a
+ * Marks a short fragment of inline computer code: a function name, a
  * variable, a CLI flag, a key. Renders a native `<code>` element with
  * mantle's monospace styling.
  *
@@ -26,7 +26,7 @@ import { Slot } from "../slot/index.js";
  * browser translation engine skips the subtree. A translated CLI flag, env var,
  * or YAML key is wrong, and the reader copies it anyway. `Code` also styles terms
  * that are not code, so pass `translate="yes"` when the content is prose.
- * `Kbd` and `CodeBlock.Code` take no such override — a key and a block of code
+ * `Kbd` and `CodeBlock.Code` take no such override: a key and a block of code
  * are never translatable.
  *
  * @useWhen Mark a short fragment of code inside a sentence, such as a function name, a file path,

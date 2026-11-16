@@ -33,7 +33,7 @@ describe("computeStackBoundaries", () => {
 	});
 
 	test("the stacked extent is the extent of the cumulative boundaries, not summed per-series extents", () => {
-		// series maxima occur at different x — the naive sum-of-maxima (30 + 30)
+		// series maxima occur at different x, so the naive sum-of-maxima (30 + 30)
 		// overshoots the true stacked maximum (40).
 		const { max } = computeStackBoundaries([
 			Float64Array.from([30, 10]),

@@ -52,11 +52,11 @@ export function EndpointSettings() {
 			setIsPending(false);
 			if (failNextSave) {
 				setFailNextSave(false);
-				setError("Something went wrong while saving. Try again.");
+				setError("Couldn’t save your changes. Try again.");
 				return;
 			}
 			setSaved(draft);
-			// the bar exits silently — announce the save's resolution yourself
+			// the bar exits silently, so announce the save's resolution yourself
 			makeToast(
 				<Toast.Root intent="success">
 					<Toast.Icon />
@@ -73,8 +73,8 @@ export function EndpointSettings() {
 
 	return (
 		<form>
-			{/* the failure belongs in the form, next to what could not be saved —
-			    see "Reporting a failed save" below */}
+			{/* the failure belongs in the form, next to what could not be saved.
+			    See "Reporting a failed save" below */}
 			{error != null && (
 				<Alert.Root
 					intent="danger"
@@ -311,13 +311,13 @@ export function EndpointName() {
 		// stand-in for the real request; this demo always fails
 		window.setTimeout(() => {
 			setIsPending(false);
-			setError("Something went wrong while saving. Try again.");
+			setError("Couldn’t save your changes. Try again.");
 		}, 800);
 	};
 
 	return (
 		<form>
-			{/* the failure reports in the form — and takes focus, so it is both
+			{/* the failure reports in the form and takes focus, so it is both
 			    announced reliably and impossible to miss */}
 			{error != null && (
 				<Alert.Root
@@ -406,7 +406,7 @@ import { useRef, useState } from "react";
 
 // What a reduced-motion visitor sees, reproduced through the consumer `className`
 // that `Sandbar.Root` merges last. The variant chain has to match the internal
-// utility exactly — a bare `data-state-closed:translate-y-0` would sit beside the
+// utility exactly: a bare `data-state-closed:translate-y-0` would sit beside the
 // panel's own travel instead of replacing it.
 //
 // `transform-none!` is what stops the `shake()` wiggle: the wiggle is a Web
@@ -642,22 +642,22 @@ Discard/Save. Two caveats:
 The always-mounted shell: a private fixed-position wrapper, two persistent screen-reader
 announcers, and the visible panel. `ref`, `className`, and all other props target the panel (a
 `role="group"` element named by `Sandbar.Message` via `aria-labelledby`; a consumer `aria-label`
-wins when passed). Does not support `asChild` — Root renders multiple nodes, so single-child
+wins when passed). Does not support `asChild`: Root renders multiple nodes, so single-child
 polymorphism has no coherent meaning.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
 | Prop         | Type                 | Default | Description                                                                                          |
 | ------------ | -------------------- | ------- | ---------------------------------------------------------------------------------------------------- |
-| `open`       | `boolean`            | —       | Whether the bar is showing. Controlled-only; drive it from your pending state (e.g. a dirty flag).   |
-| `handleRef?` | `Ref<SandbarHandle>` | —       | Receives the imperative handle: `shake(options?: { announcement?: string })` for blocked navigation. |
+| `open`       | `boolean`            |         | Whether the bar is showing. Controlled-only; drive it from your pending state (e.g. a dirty flag).   |
+| `handleRef?` | `Ref<SandbarHandle>` |         | Receives the imperative handle: `shake(options?: { announcement?: string })` for blocked navigation. |
 
 Stamped on the panel:
 
-| Data Attribute | Value                  | Description                                                                                                                                       |
-| -------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"sandbar"`            | Stable styling hook for the panel. Survives `className` overrides.                                                                                |
-| `data-state`   | `"open"` \| `"closed"` | `"open"` only at the resting open pose — `"closed"` covers both the pre-enter frame and the exit transition, which is what drives the slide/fade. |
+| Data Attribute | Value                  | Description                                                                                                                                      |
+| -------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `data-slot`    | `"sandbar"`            | Stable styling hook for the panel. Survives `className` overrides.                                                                               |
+| `data-state`   | `"open"` \| `"closed"` | `"open"` only at the resting open pose. `"closed"` covers both the pre-enter frame and the exit transition, which is what drives the slide/fade. |
 
 Every part also joins an incoming `data-slot` chain ahead of its own name, so composing a
 part through an ancestor's `asChild` yields `data-slot="ancestor-slot sandbar-…"` instead of
@@ -666,7 +666,7 @@ losing one of the two.
 ### SandbarHandle
 
 The imperative surface received through `handleRef`. `shake()` wiggles the panel (skipped under
-`prefers-reduced-motion` — never rely on the motion alone) and always announces assertively. Pass
+`prefers-reduced-motion`, so never rely on the motion alone) and always announces assertively. Pass
 `announcement` to replace the default save-flavored wording for other intents.
 
 | Method  | Signature                                       | Description                                                          |
@@ -707,7 +707,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### Sandbar.SaveButton
 
-The primary (save) action — a mantle [Button](/components/actions/button) defaulting to the system
+The primary (save) action: a mantle [Button](/components/actions/button) defaulting to the system
 primary style. While `isLoading`, Root announces "Saving changes…" politely and keeps focus from
 being lost when the button becomes disabled. Defaults to `type="button"`; pass `type="submit"`
 inside the form it saves.
@@ -718,7 +718,7 @@ All props from [Button](/components/actions/button), with these differences:
 | ------------- | --------------------------------------------- | ----------- | ---------------------------------------------------- |
 | `appearance?` | `"ghost" \| "filled" \| "outlined" \| "link"` | `"filled"`  | The Button appearance, made optional with a default. |
 | `intent?`     | `"accent" \| "danger" \| "neutral"`           | `"neutral"` | The Button intent, made optional with a default.     |
-| `children`    | `ReactNode`                                   | —           | Required — the visible action label is app voice.    |
+| `children`    | `ReactNode`                                   |             | Required. The visible action label is app voice.     |
 
 | Data Attribute    | Value                          | Description                                                   |
 | ----------------- | ------------------------------ | ------------------------------------------------------------- |
@@ -731,7 +731,7 @@ All props from [Button](/components/actions/button), with these differences:
 
 ### Sandbar.DiscardButton
 
-The secondary (discard/reset) action — a mantle [Button](/components/actions/button). Discard is
+The secondary (discard/reset) action: a mantle [Button](/components/actions/button). Discard is
 destructive-ish: for large forms, consider confirming before discarding.
 
 All props from [Button](/components/actions/button), with these differences:
@@ -740,7 +740,7 @@ All props from [Button](/components/actions/button), with these differences:
 | ------------- | --------------------------------------------- | ------------ | ---------------------------------------------------- |
 | `appearance?` | `"ghost" \| "filled" \| "outlined" \| "link"` | `"outlined"` | The Button appearance, made optional with a default. |
 | `intent?`     | `"accent" \| "danger" \| "neutral"`           | `"neutral"`  | The Button intent, made optional with a default.     |
-| `children`    | `ReactNode`                                   | —            | Required — the visible action label is app voice.    |
+| `children`    | `ReactNode`                                   |              | Required. The visible action label is app voice.     |
 
 | Data Attribute    | Value                             | Description                                                   |
 | ----------------- | --------------------------------- | ------------------------------------------------------------- |

@@ -6,7 +6,7 @@ import type { TocEntry } from "~/utilities/docs";
 
 // Matches the `scroll-mt-24` (6rem = 96px) on `HashLinkHeading`. The trigger
 // aligns with where headings land after a hash-link click, so the clicked
-// entry — not its predecessor — is the one marked active.
+// entry (not its predecessor) is the one marked active.
 const HEADER_OFFSET = 96;
 const EASE_START = 0.75;
 
@@ -32,7 +32,7 @@ function useActiveHeading(entries: Array<TocEntry>): string | undefined {
 	const tocIsVisible = !useIsBelowBreakpoint("xl");
 
 	// Read `location.hash` so ToC link clicks update the highlight
-	// immediately — otherwise scroll-based detection lags the smooth-scroll
+	// immediately; otherwise scroll-based detection lags the smooth-scroll
 	// animation and briefly highlights the predecessor heading.
 	// Why during render: React runs this render again with the new `activeId`
 	// before it commits, so the highlight needs no extra commit.
@@ -158,7 +158,7 @@ export function TableOfContents({ entries }: { entries: Array<TocEntry> }) {
 								className={cx(
 									// 3px left bar that overlays the ol's 1px gray edge (descendant
 									// paints over ancestor) and extends 2px rightward into the content
-									// area. We can't extend leftward — the scroll container's `overflow-y-auto`
+									// area. We can't extend leftward: the scroll container's `overflow-y-auto`
 									// implicitly clips horizontal overflow, so any negative-margin
 									// extension gets cut off. Padding compensates so content text
 									// position stays the same as the previous 1px-bar layout.

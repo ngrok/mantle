@@ -1,9 +1,9 @@
 /**
- * Re-exports for the List component — a scrollable, optionally-virtualized
+ * Re-exports for the List component: a scrollable, optionally-virtualized
  * list of clickable items (account switchers, SSO provider pickers).
  *
  * The list primitive backing it (and `SelectableList`) lives in
- * `./primitive.js` / `./virtual.js` and is deliberately **not** exported — it
+ * `./primitive.js` / `./virtual.js` and is deliberately **not** exported. It
  * is internal shared implementation, mirroring how `dialog/primitive` backs
  * the dialog family.
  *

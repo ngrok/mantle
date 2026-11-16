@@ -7,7 +7,7 @@ import { formatNumber, formatXValue, hasTimeOfDay } from "./format.js";
  * holds and how to drive it. A dormant chart (one the reader has not reached)
  * has no data table yet, so this sentence is what a screen reader gets.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation. The package does not export it.
  */
 
 /** What one pass over `data` learns about the x column. */

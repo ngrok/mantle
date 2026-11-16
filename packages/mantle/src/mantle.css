@@ -675,7 +675,7 @@ the app stylesheet in `<head>`. An app that `@import`ed `mantle-dark.css` after
 	--color-card-border-muted: var(--color-neutral-200);
 	--color-separator: --alpha(var(--color-gray-600) / 0.2);
 
-	/* Chart series tokens — one per mantle color name, each that color's 500
+	/* Chart series tokens: one per mantle color name, each that color's 500
 	   step, which clears 3:1 on the dark card. Light mode paints one step deeper.
 	   Functional names alias the hue their status color uses. Neutral is the
 	   color for an "Other" series. chart/tokens.test.ts measures every name. */
@@ -728,7 +728,7 @@ the app stylesheet in `<head>`. An app that `@import`ed `mantle-dark.css` after
 	--background-color-filled-warning-hover: var(--color-warning-700);
 	--background-color-filled-success-hover: var(--color-success-700);
 
-	/* Focus tokens — same expressions as the light base (the mid-ramp stops they
+	/* Focus tokens: same expressions as the light base (the mid-ramp stops they
 	   reference are theme-symmetric), declared here so `.invert-theme` islands
 	   re-resolve them against this block's ramps. */
 	--ring-color-focus-neutral: --alpha(var(--color-neutral-500) / 0.3);
@@ -756,7 +756,7 @@ MARK: LIGHT DEFS
 
 Light's own definitions: the stops that intentionally diverge from Tailwind's
 defaults, and every semantic token built on them. Tailwind's unmodified default
-ramps are NOT restated here — they live in MARK: LIGHT PALETTE RESTORE below,
+ramps are NOT restated here; they live in MARK: LIGHT PALETTE RESTORE below,
 scoped to islands, because restating them at `:root` would override a consumer's
 `@theme` palette customization.
 
@@ -774,7 +774,7 @@ from `:root` (see MARK: INVERT THEME below).
 	color-scheme: light;
 
 	/* custom stops that intentionally diverge from the Tailwind defaults */
-	--color-neutral-950: oklch(18.2% 0 0); /* TW4 default is 14.5% — intentionally lighter */
+	--color-neutral-950: oklch(18.2% 0 0); /* TW4 default is 14.5%; intentionally lighter */
 	--color-sky-600: oklch(55% 0.158 241.966);
 
 	/* gray is identical to neutral in light mode */
@@ -848,7 +848,7 @@ from `:root` (see MARK: INVERT THEME below).
 	--color-selected-menu-item: --alpha(var(--color-accent-500) / 0.1);
 	--color-active-selected-menu-item: --alpha(var(--color-accent-500) / 0.15);
 
-	/* Chart series tokens — one per mantle color name, each that color's 600
+	/* Chart series tokens: one per mantle color name, each that color's 600
 	   step: one step deeper than dark mode's 500, because the 500 steps read
 	   washed out on white. Only yellow stays under 3:1 here, at 2.94:1. Functional
 	   names alias the hue their status color uses. Neutral is the color for an
@@ -882,7 +882,7 @@ from `:root` (see MARK: INVERT THEME below).
 	/* The fill every series wears on a decorative chart, in place of its own
 	   color. It is neutral because a placeholder encodes no series identity, and it is
 	   this light because the message laid over it must stay readable: --text-color-muted
-	   over neutral-200 measures 4.56:1 here, and neutral-300 drops it to 4.24:1 — under
+	   over neutral-200 measures 4.56:1 here, and neutral-300 drops it to 4.24:1, under
 	   the 4.5:1 floor for 14px text. Each theme aliases its own neutral-200, and
 	   chart/decorative-contrast.test.tsx measures both. */
 	--color-chart-decorative: var(--color-neutral-200);
@@ -926,14 +926,14 @@ from `:root` (see MARK: INVERT THEME below).
 MARK: LIGHT PALETTE RESTORE (islands only)
 
 Tailwind's default light palette, materialized so `.invert-theme` islands on
-dark pages restore it — MARK: DARK DEFS never encodes light values. Every value
+dark pages restore it. MARK: DARK DEFS never encodes light values. Every value
 is verbatim from the pinned tailwindcss/theme.css (the invert-theme test suite
 pins them against it).
 
 Scoped to the island selector on purpose: `@theme` variables are emitted into
 `@layer theme`, and unlayered author CSS beats every layer, so declaring these
 at `:root` would silently override a consumer's own
-`@theme { --color-<ramp>-<stop>: … }` for all 22 ramps — and ship ~17 KB of
+`@theme { --color-<ramp>-<stop>: … }` for all 22 ramps, and ship ~17 KB of
 dead weight to every page that renders no island. At page level Tailwind's own
 defaults already supply these values, so the page needs nothing here.
 
@@ -1191,14 +1191,14 @@ MARK: COMPONENT GEOMETRY
 */
 /* Geometry a component publishes for surfaces that render OUTSIDE it.
    `--sidebar-row-width` is the width of one row inside an expanded `Sidebar`
-   panel — `--sidebar-width` minus the row gutter every sidebar region applies
+   panel: `--sidebar-width` minus the row gutter every sidebar region applies
    (`px-3` plus the expanded `pr-1` on Sidebar.Header/Body/Footer = 1rem). A
    switcher's menu renders in a portal on `document.body`, so it inherits
    nothing the sidebar sets; declaring the row width here is what lets such a
    menu stay as wide as the expanded row while the panel is collapsed to the
    icon rail (`min-w-(--sidebar-row-width)` on the menu content). Resolved at
    `:root`, so a per-sidebar `--sidebar-width` override set on `Sidebar.Nav`
-   does not reach it in either direction — a narrower panel leaves the floor
+   does not reach it in either direction: a narrower panel leaves the floor
    wider than its row. Override `--sidebar-width` here to move both (and
    `--sidebar-width-mobile` with it, or the floor outgrows the sheet's row),
    or set `--sidebar-row-width` on the outside surface itself. */
@@ -1213,7 +1213,7 @@ The `invert-theme` class renders a DOM subtree in the opposite theme of the
 page: light ⇄ dark.
 
 Mechanism: every mantle color utility resolves a CSS custom property at the
-element that uses it, and custom properties inherit — so re-declaring the
+element that uses it, and custom properties inherit, so re-declaring the
 theme variables on one element re-themes its entire subtree. Each theme
 block's selector list therefore also matches `.invert-theme` subtrees on the
 opposite theme's pages (see the LIGHT DEFS and DARK DEFS selectors above); the
@@ -1227,8 +1227,8 @@ Requirements and limitations:
 - Theme variant utilities (`dark:*`, `light:*`) key off the page theme
   classes on `:root`, not the inversion scope, so they do not flip inside an
   island. This includes the six
-  mantle internals that still carry variant-gated tweaks — Progress Bar,
-  Progress Donut, RadioGroup, Skeleton, Table, and Toast — so composing those
+  mantle internals that still carry variant-gated tweaks (Progress Bar,
+  Progress Donut, RadioGroup, Skeleton, Table, and Toast), so composing those
   inside an island mixes page-variant selection with island-resolved variables
   until they migrate to theme-declared tokens. Redefining the variants cannot
   fix this: they are already scope-relative (`&:where(.dark, .dark *, …)`), and
@@ -1237,14 +1237,14 @@ Requirements and limitations:
 - Semantic tokens are re-declared ON the island (see the palette-alias rule
   below), and a declaration on the element beats a value inherited from an
   ancestor. So a consumer who rebrands at the alias level
-  (`:root { --color-accent-600: … }`) does not see it inside islands — rebrand
+  (`:root { --color-accent-600: … }`) does not see it inside islands. Rebrand
   at the ramp level (`--color-sky-600`) instead, which the aliases resolve
   through.
 - Nesting `invert-theme` inside an inverted subtree is idempotent: the inner
   island stays inverted relative to the page (it does not revert).
 - Box shadows flip with the island: shadow utilities inline
   `var(--shadow-color)` / `var(--shadow-*-opacity)` at the consuming element,
-  and the theme blocks re-declare those tokens on islands — so content inside
+  and the theme blocks re-declare those tokens on islands, so content inside
   a light island gets light-theme shadows, which keeps the island's interior
   coherent.
 
@@ -1252,7 +1252,7 @@ The rule below re-declares the palette aliases from the `@theme` block so
 they re-resolve against the island's inverted ramps: `@theme` variables are
 emitted at `:root`, where e.g. `--color-accent-500` computes to the page
 theme's sky-500 before the island can flip it. Keep it in sync with the
-`@theme` aliases — the invert-theme test suite enforces the pairing.
+`@theme` aliases; the invert-theme test suite enforces the pairing.
 */
 .invert-theme {
 	--color-accent-50: var(--color-sky-50);
@@ -1529,8 +1529,8 @@ MARK: UTILITIES
 	/*
 	 * Fades the inline-start/end edges of a horizontally-scrolling container to
 	 * signal more content in that direction. The element is its own scroll
-	 * timeline, so an edge with nothing beyond it — at the start, at the end, or
-	 * with no overflow at all (inactive timeline => initial value) — renders
+	 * timeline, so an edge with nothing beyond it (at the start, at the end, or
+	 * with no overflow at all: inactive timeline => initial value) renders
 	 * cleanly with no fade. Consumers can pin an edge opaque by overriding
 	 * `--_fade-left` / `--_fade-right` (the animation drives the upstream
 	 * `--_scroll-fade-*` vars, so a static override always wins).
@@ -1565,7 +1565,7 @@ MARK: UTILITIES
 }
 
 @utility scroll-fade-y {
-	/* Vertical sibling of `scroll-fade-x` — see it for how the masking works. */
+	/* Vertical sibling of `scroll-fade-x`; see it for how the masking works. */
 	--_fade-top: var(--_scroll-fade-top);
 	--_fade-bottom: var(--_scroll-fade-bottom);
 
@@ -1594,7 +1594,7 @@ MARK: UTILITIES
  * edge should fade (e.g. a sidebar that fades content scrolling under a sticky
  * header but stays flush at the bottom). Each masks and drives only its own
  * edge; the opposite edge stays fully opaque. Same scroll-driven mechanics and
- * fallback behavior as the axis utilities — see `scroll-fade-x` for details.
+ * fallback behavior as the axis utilities; see `scroll-fade-x` for details.
  */
 @utility scroll-fade-t {
 	--_fade-top: var(--_scroll-fade-top);
@@ -1711,7 +1711,7 @@ MARK: SHIKI SYNTAX HIGHLIGHT
 
 Also declared on `.invert-theme` islands: these tokens reference theme-dependent
 variables, and their `var()` references substitute at the element that declares
-them — re-declaring them on the island makes them re-resolve against the
+them, so re-declaring them on the island makes them re-resolve against the
 island's inverted ramps instead of inheriting the page-theme values computed
 at `:root` (same reason as the palette-alias rule in MARK: INVERT THEME).
 */
@@ -1785,7 +1785,7 @@ at `:root` (same reason as the palette-alias rule in MARK: INVERT THEME).
 
 /*
  * The opaque gutter backdrop. Scrolled code slides under the pinned numbers,
- * so this masks it across the whole gutter band — the number column plus its
+ * so this masks it across the whole gutter band: the number column plus its
  * gap, and the fold gutter on fold-enabled blocks (`--_gutter-overhang`).
  */
 .mantle-code-line-number::before {
@@ -1805,7 +1805,7 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) .mantle-code-line
 
 /*
  * Re-add the line-highlight tint over the opaque backdrop, so a highlighted
- * line's gutter matches its content — the same look the translucent line
+ * line's gutter matches its content, with the same look the translucent line
  * background painted before the backdrop covered it.
  */
 .mantle-code-line-highlighted .mantle-code-line-number::before {
@@ -1869,8 +1869,8 @@ pre[data-mantle-line-numbers="true"] .mantle-code-fold-toggle {
  * Reserve the fold-gutter column so non-opener lines stay aligned with opener
  * lines (whose toggle button occupies the gutter). A single per-<pre> `:has()`
  * scopes this to fold-enabled blocks; within them every line's content gets the
- * gutter margin by default, and opener lines — tagged `mantle-code-line-opener`
- * at HTML-generation time (see decorate-highlighted-html.ts) — reset it. This
+ * gutter margin by default, and opener lines (tagged `mantle-code-line-opener`
+ * at HTML-generation time; see decorate-highlighted-html.ts) reset it. This
  * replaces the old *per-line* relational `:not(:has())` probe (whose cost scaled
  * with line count) with a flat class match, while keeping HTML payload tiny:
  * only the sparse opener lines carry an extra class.

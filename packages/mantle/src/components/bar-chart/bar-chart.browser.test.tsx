@@ -90,7 +90,7 @@ beforeAll(() => {
 });
 
 // Installed per test rather than once, because `restoreMocks` tears every spy down between tests.
-// It calls through to the real implementation, so painting is unchanged — the spy only records
+// It calls through to the real implementation, so painting is unchanged. The spy only records
 // which strings hit the canvas.
 beforeEach(() => {
 	fillTextSpy = vi.spyOn(CanvasRenderingContext2D.prototype, "fillText");

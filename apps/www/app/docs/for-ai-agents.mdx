@@ -91,7 +91,7 @@ The skill uses the MCP server when your client has it connected, and the files i
 | URL                                                | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | [`/llms.txt`](/llms.txt)                           | Curated index of every docs page (title, description, html + markdown URLs). Follows the [llms.txt convention](https://llmstxt.org).                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| [`/llms-full.txt`](/llms-full.txt)                 | Concatenated plain-markdown of every docs page, then `# Framed preview sources` — the whole React source of the app-shell and layout demos the pages embed. It is several megabytes, so it does not fit in most context windows. Read one page's `.md` URL or the MCP `read_docs` tool instead, and search this file for a preview's source when you are building a shell.                                                                                                                                                                                               |
+| [`/llms-full.txt`](/llms-full.txt)                 | Concatenated plain-markdown of every docs page, then `# Framed preview sources`: the whole React source of the app-shell and layout demos the pages embed. It is several megabytes, so it does not fit in most context windows. Read one page's `.md` URL or the MCP `read_docs` tool instead, and search this file for a preview's source when you are building a shell.                                                                                                                                                                                                |
 | [`/api/components.json`](/api/components.json)     | Structured component manifest. Each entry has `name`, `slug`, `kind`, `status`, `importPath`, `docsUrl`, `markdownUrl`, a one-line `summary`, the source `jsdoc` first sentence, `examples` (the body of each `@example` block, which for a compound component is the full part tree), `aliases` (search words such as `modal` for Dialog), and the sibling boundary from the source JSDoc: `useWhen`, and `siblings` with a `name` and the `boundary` that picks it instead. `kind: "component"` entries also carry `category` (layouts are a flat family and omit it). |
 | [`/api/hooks.json`](/api/hooks.json)               | Structured hooks manifest. Each entry has `name`, `importPath`, `docsUrl`, `markdownUrl`, an optional `summary`, and `examples` from the hook's JSDoc.                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | [`/api/utils.json`](/api/utils.json)               | Structured utilities manifest. Same shape as hooks.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
@@ -124,12 +124,12 @@ design system. Conventions:
   `import { useBreakpoint } from "@ngrok/mantle/hooks"`.
 - Utilities live at their own subpaths, e.g. @ngrok/mantle/cx,
   @ngrok/mantle/color.
-- Compose class names with `cx` from @ngrok/mantle/cx — never use string
+- Compose class names with `cx` from @ngrok/mantle/cx. Never use string
   interpolation inside className.
 - Many components support `asChild` to swap the rendered element while
   keeping the styling and behavior. Prefer this over wrapping.
 - Never render a conditional element immediately before bare text
-  children — a browser translation engine makes React throw there and
+  children: a browser translation engine makes React throw there and
   the page goes blank. Wrap the text in a <span>, or pass an icon
   through the `icon` prop instead of as a child. Mark code, keys,
   filenames, IDs, and passcodes translate="no", and nothing else: the
@@ -158,7 +158,7 @@ design system. Conventions:
 - Reference the canonical docs at https://mantle.ngrok.com or fetch
   https://mantle.ngrok.com/llms.txt for the full index. When building an
   app shell, read the demo sources under `# Framed preview sources` in
-  https://mantle.ngrok.com/llms-full.txt — the fences on the docs pages
+  https://mantle.ngrok.com/llms-full.txt. The fences on the docs pages
   are shorter excerpts of them.
 ```
 

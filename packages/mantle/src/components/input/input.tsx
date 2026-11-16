@@ -167,7 +167,7 @@ type InputContainerProps = InputHTMLAttributes<HTMLInputElement> &
 	};
 
 /**
- * The chrome around a bare `<input>` — the border, the `focus-within` ring, and
+ * The chrome around a bare `<input>`: the border, the `focus-within` ring, and
  * the `data-slot` hook. A click anywhere on it focuses that input.
  */
 const InputContainer = ({

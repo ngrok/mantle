@@ -112,7 +112,7 @@ function Frame({ name, title, height }: FrameProps) {
 					className={cx(
 						"mx-auto h-full transition-[width] duration-200 ease-out-strong motion-reduce:transition-none",
 						// box-content keeps the preset width as the iframe's actual
-						// viewport width — the delineating borders sit outside it
+						// viewport width; the delineating borders sit outside it
 						viewport !== "desktop" && "box-content border-x border-gray-300",
 						viewportWidthClasses[viewport],
 					)}

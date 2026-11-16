@@ -15,7 +15,7 @@ import { Slot } from "../slot/index.js";
 
 /**
  * The breadcrumb landmark. Renders a `<nav>` with a default
- * `aria-label="Breadcrumb"` per the WAI-ARIA breadcrumb pattern — pass your
+ * `aria-label="Breadcrumb"` per the WAI-ARIA breadcrumb pattern. Pass your
  * own `aria-label` to override it (e.g. for localization or when a page has
  * multiple breadcrumb trails). Carries no visual styling. Its one layout class
  * is `min-w-0`: inside a flex row such as `AppLayout.Header` the landmark must
@@ -103,7 +103,7 @@ function pinTrailToEnd(element: Element, previousEnd: number | undefined) {
 }
 
 /**
- * The ordered list of crumbs. Renders an `<ol>` — an **ordered** list, because
+ * The ordered list of crumbs. Renders an `<ol>` (an **ordered** list), because
  * the order of the items is the hierarchy, from the root to the current page.
  * Lays the crumbs out in one row of muted, small text.
  *
@@ -113,10 +113,10 @@ function pinTrailToEnd(element: Element, previousEnd: number | undefined) {
  * out, and an edge with nothing beyond it stays flush.
  *
  * The trail keeps its end in view, because the end is the current page. It
- * scrolls itself there whenever that end moves — on mount, when a navigation
- * swaps the crumbs, and when the row around it resizes — and leaves the reader's
- * own scroll position alone the rest of the time, including while a crumb holds
- * focus. Tabbing to a crumb the trail has scrolled past is the browser's own
+ * scrolls itself there whenever that end moves: on mount, when a navigation
+ * swaps the crumbs, and when the row around it resizes. The rest of the time,
+ * it leaves the reader's own scroll position alone, including while a crumb
+ * holds focus. Tabbing to a crumb the trail has scrolled past is the browser's own
  * job, and `scroll-padding` the width of the fade zone is what lands that crumb
  * clear of the fade rather than under it.
  *
@@ -177,8 +177,8 @@ const List = ({
 
 		// Why an observer: a window drag, a sidebar collapse, or a zoom change moves
 		// the end with no render to hang a measurement off, and a narrower row moves
-		// the end further away — leaving the current page off to the right, out of
-		// view, until something else re-renders.
+		// the end further away. That leaves the current page off to the right, out
+		// of view, until something else re-renders.
 		const observer = new ResizeObserver(() => {
 			pinnedEnd.current = pinTrailToEnd(element, pinnedEnd.current);
 		});
@@ -196,7 +196,7 @@ const List = ({
 			className={cx(
 				"text-muted flex items-center gap-1.5 text-sm",
 				// The trail scrolls rather than wraps, masked at both edges like
-				// Tabs.List. min-w-0 is what lets the row shrink — and so scroll —
+				// Tabs.List. min-w-0 is what lets the row shrink (and so scroll)
 				// when the list is itself a flex item.
 				"scroll-fade-x min-w-0 overflow-x-auto overscroll-x-none",
 				// overflow-x-auto promotes overflow-y to auto, and the mask paints
@@ -205,7 +205,7 @@ const List = ({
 				// back to the surrounding layout. Same trade as CodeBlock.TabList.
 				"-m-1 p-1",
 				// The mask fades 40px at each edge, and the browser scrolls a crumb it
-				// tabs to only as far as the scroll padding asks for — 40px matches the
+				// tabs to only as far as the scroll padding asks for. 40px matches the
 				// two, so a focused crumb lands clear of the fade instead of under it.
 				"scroll-px-10",
 				className,
@@ -219,8 +219,8 @@ const List = ({
 
 /**
  * A single crumb. Renders an `<li>` (`role="listitem"`) that lays out its
- * content — a `Breadcrumb.Link`, a `Breadcrumb.Label`, or a `Breadcrumb.Page`
- * — inline.
+ * content (a `Breadcrumb.Link`, a `Breadcrumb.Label`, or a `Breadcrumb.Page`)
+ * inline.
  *
  * The crumb never shrinks (`shrink-0`). A squeezed crumb would break its own
  * label across two lines, so a trail too wide for its container scrolls in
@@ -270,8 +270,8 @@ const Item = ({
 };
 
 /**
- * A link to an ancestor page in the hierarchy. Renders an `<a>` by default;
- * the component is router-agnostic — use `asChild` to compose the styling
+ * A link to an ancestor page in the hierarchy. Renders an `<a>` by default.
+ * The component is router-agnostic: use `asChild` to compose the styling
  * onto your app router's link (e.g. react-router's `<Link>`) so client-side
  * navigation kicks in.
  *
@@ -326,7 +326,7 @@ const Link = ({
 };
 
 /**
- * A crumb that is not a link — a level with no page of its own, such as a
+ * A crumb that is not a link: a level with no page of its own, such as a
  * section whose index URL only redirects (`Settings` in `Settings > General`).
  * Renders a `<span>` with no `aria-current` and no link semantics, so the
  * trail shows the level without offering it as a destination. Use
@@ -373,7 +373,7 @@ const Label = ({
 };
 
 /**
- * The current page — the last crumb in the trail. Renders a `<span>` (not a
+ * The current page (the last crumb in the trail). Renders a `<span>` (not a
  * link; the user is already here) with `aria-current="page"`. The ARIA is the
  * part's whole contract, so `aria-current` is always emitted and is not
  * overridable via props.
@@ -431,8 +431,8 @@ const Page = ({
 /**
  * The props for `Breadcrumb.Separator`. When `asChild` is set, `children` is
  * required: the child element is what gets rendered, so an `asChild` separator
- * without children would clone the default caret icon into the list — invalid
- * `<ol>` content. The union makes that misuse a compile error.
+ * without children would clone the default caret icon into the list, which is
+ * invalid `<ol>` content. The union makes that misuse a compile error.
  */
 type BreadcrumbSeparatorProps = Omit<ComponentProps<"li">, "children"> &
 	(
@@ -448,12 +448,12 @@ type BreadcrumbSeparatorProps = Omit<ComponentProps<"li">, "children"> &
 
 /**
  * A purely visual divider between crumbs, hidden from assistive technology.
- * Renders an `<li>` with `role="presentation"` and `aria-hidden="true"` — a
+ * Renders an `<li>` with `role="presentation"` and `aria-hidden="true"`: a
  * listitem sibling of `Breadcrumb.Item` elements per the APG breadcrumb
  * pattern, so it never counts as a crumb. Children default to a size-3.5
  * caret icon (`<Icon svg={<CaretRightIcon />} className="size-3.5" />`); pass
  * your own children (e.g. a slash) to replace it. With `asChild`, children
- * are required — the child element is what renders.
+ * are required: the child element is what renders.
  *
  * Like `Breadcrumb.Item`, the divider never shrinks (`shrink-0`), so a trail
  * too wide for its container scrolls in `Breadcrumb.List` instead.
@@ -526,7 +526,7 @@ type BreadcrumbSkeletonProps = Omit<ComponentProps<"li">, "children"> & {
 /**
  * A placeholder crumb for a label that is still loading. Renders one `<li>`
  * as a crumb-sized pulsing bar carrying a screen-reader-only `role="status"`
- * announcement. The bar is `w-24` by default — pass a `w-*` utility for your
+ * announcement. The bar is `w-24` by default. Pass a `w-*` utility for your
  * best-guess width, so the row's shape holds when the real crumb replaces it.
  * One skeleton usually stands in for a whole pending segment; compose several
  * with `Breadcrumb.Separator` when the segment's shape matters.
@@ -572,7 +572,7 @@ const BreadcrumbSkeleton = ({
 );
 
 /**
- * Compound component for WAI-ARIA breadcrumb navigation — the path from a
+ * Compound component for WAI-ARIA breadcrumb navigation: the path from a
  * root to the current page as an ordered list of links inside a labeled
  * `<nav>` landmark. Router-agnostic: compose `Breadcrumb.Link` onto your app
  * router's link via `asChild`. A trail too wide for its row scrolls sideways
@@ -624,7 +624,7 @@ const BreadcrumbSkeleton = ({
 const Breadcrumb = {
 	/**
 	 * The breadcrumb landmark. Renders a `<nav>` with a default
-	 * `aria-label="Breadcrumb"` — pass your own `aria-label` to override it.
+	 * `aria-label="Breadcrumb"`. Pass your own `aria-label` to override it.
 	 * Carries no visual styling; `min-w-0` is what lets the landmark shrink
 	 * inside a flex row so the trail scrolls.
 	 *
@@ -651,7 +651,7 @@ const Breadcrumb = {
 	 */
 	Root,
 	/**
-	 * The ordered list of crumbs. Renders an `<ol>` — the order of the items
+	 * The ordered list of crumbs. Renders an `<ol>`: the order of the items
 	 * is the hierarchy, from the root to the current page. A trail wider than
 	 * its container scrolls sideways with a faded edge instead of wrapping, and
 	 * starts at the current page.
@@ -732,7 +732,7 @@ const Breadcrumb = {
 	 */
 	Link,
 	/**
-	 * A crumb that is not a link — a level with no page of its own, such as a
+	 * A crumb that is not a link: a level with no page of its own, such as a
 	 * section whose index URL only redirects. Renders a `<span>` with no
 	 * `aria-current` and no link semantics.
 	 *
@@ -755,7 +755,7 @@ const Breadcrumb = {
 	 */
 	Label,
 	/**
-	 * The current page — the last crumb. Renders a `<span>` (not a link) with
+	 * The current page (the last crumb). Renders a `<span>` (not a link) with
 	 * `aria-current="page"`; the ARIA is the part's whole contract and is not
 	 * overridable.
 	 *
@@ -812,7 +812,7 @@ const Breadcrumb = {
 	/**
 	 * A placeholder crumb for a label that is still loading: one `<li>` as a
 	 * crumb-sized pulsing bar, plus a screen-reader-only `role="status"`
-	 * announcement. `w-24` by default — pass a `w-*` utility for your
+	 * announcement. `w-24` by default. Pass a `w-*` utility for your
 	 * best-guess width, so the row's shape holds when the real crumb arrives.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/breadcrumb#breadcrumbskeleton

@@ -6,7 +6,7 @@ Convert legacy component documentation pages from handrolled `.tsx` route files 
 
 ## Remaining Pages to Migrate
 
-Check `apps/www/app/routes.ts` — any route using a direct `route()` call to a `./routes/components.*.tsx` file (not using `docRoute()`) still needs migration. Exclude `components.preview.*` files and `components._redirect.*` files — those are not documentation pages.
+Check `apps/www/app/routes.ts`: any route using a direct `route()` call to a `./routes/components.*.tsx` file (not using `docRoute()`) still needs migration. Exclude `components.preview.*` files and `components._redirect.*` files, because those are not documentation pages.
 
 ## Step-by-Step Migration Process
 
@@ -103,13 +103,13 @@ The old TSX pages used `#component-name` anchor format (e.g., `#tooltip-root`). 
 
 Find and update all `@see` JSDoc links in `packages/mantle/src/components/<component-name>/` to use the new anchor format.
 
-**Single components** (e.g., `Button`, `Separator`) — link to the top-level URL with no hash:
+**Single components** (e.g., `Button`, `Separator`): link to the top-level URL with no hash:
 
 ```
 @see https://mantle.ngrok.com/components/button
 ```
 
-**Compound components** (e.g., `Tooltip.Root`, `Tooltip.Content`) — use the new MDX anchor format (lowercase, no dots):
+**Compound components** (e.g., `Tooltip.Root`, `Tooltip.Content`): use the new MDX anchor format (lowercase, no dots):
 
 ```
 # Old format:

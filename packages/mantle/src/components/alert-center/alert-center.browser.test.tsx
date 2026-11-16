@@ -11,7 +11,7 @@ import { AlertCenter } from "./alert-center.js";
  * These exercise the real-browser half of stable-host projection:
  * `Element.moveBefore`, the state-preserving move `adoptHost` prefers. happy-dom
  * does not implement it at all, so the unit project only ever runs the
- * `appendChild` fallback — every branch around the call (the connectivity guard,
+ * `appendChild` fallback. Every branch around the call (the connectivity guard,
  * the insertion reference, and the `catch` that recovers when the spec forbids
  * the move, e.g. for a host that has no parent yet) is unreachable there.
  */

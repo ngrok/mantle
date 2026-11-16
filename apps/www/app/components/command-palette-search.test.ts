@@ -21,7 +21,7 @@ describe("buildPaletteCommands", () => {
 		const releases = commands.find((command) => command.id === "github-releases");
 		expect(releases).toMatchObject({
 			kind: "external",
-			// The literal URL, not `releaseHref("4.2.0")` — calling the helper the
+			// The literal URL, not `releaseHref("4.2.0")`: calling the helper the
 			// implementation also calls moves both sides together, so a dropped
 			// `encodeURIComponent` or a changed path segment would stay green.
 			href: "https://github.com/ngrok/mantle/releases/tag/%40ngrok%2Fmantle%404.2.0",
@@ -165,7 +165,7 @@ describe("searchPaletteCommands", () => {
 
 	// Regression: a per-key CONTAINS threshold in a single matchSorter call
 	// gates the whole item by its highest-ranked key, so a sub-CONTAINS
-	// subtitle match vetoed a qualifying fuzzy title match — "go" dropped
+	// subtitle match vetoed a qualifying fuzzy title match: "go" dropped
 	// "GitHub Repo" and "Pagination" from the results entirely.
 	test("a weak subtitle match never vetoes a qualifying fuzzy title match", () => {
 		const results = titles("go");
@@ -187,7 +187,7 @@ describe("searchPaletteCommands", () => {
 	});
 
 	// The two passes are unioned, so a command that matches on both its title and
-	// its route subtitle would be emitted twice without the id filter — duplicate
+	// its route subtitle would be emitted twice without the id filter: duplicate
 	// rows, duplicate React keys, and colliding cmdk values that make arrow-key
 	// selection land on a twin.
 	test("returns each command at most once", () => {

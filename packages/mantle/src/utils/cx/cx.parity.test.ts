@@ -5,7 +5,7 @@ import fixtureData from "./__fixtures__/parity.json" with { type: "json" };
 type ParityCase = { args: ClassValue[]; expected: string };
 
 // `expected` was frozen by running the PREVIOUS implementation (clsx + extendTailwindMerge)
-// over a corpus harvested from this repo plus curated edge cases — the byte-for-byte oracle
+// over a corpus harvested from this repo plus curated edge cases: the byte-for-byte oracle
 // the vendored engine must reproduce. See ./vendor/README.md.
 const fixture: ParityCase[] = fixtureData;
 

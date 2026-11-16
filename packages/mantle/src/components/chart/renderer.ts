@@ -20,10 +20,10 @@ import { traceArea, traceLine } from "./curve.js";
  * - markers: r ≥ 4 dots with a 2px surface ring
  *
  * All coordinates are CSS pixels (the engine sets a devicePixelRatio
- * transform). `ctx` never leaks out of this module — the renderer seam is
+ * transform). `ctx` never leaks out of this module: the renderer seam is
  * what would let a WebGL backend slot in later.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation. The package does not export it.
  */
 
 /**
@@ -49,7 +49,7 @@ const AXIS_FONT_SIZE = 11;
 const hairline = (position: number): number => Math.round(position) + 0.5;
 
 /**
- * Draw solid hairline gridlines. Each line carries its own alpha — gridlines
+ * Draw solid hairline gridlines. Each line carries its own alpha: gridlines
  * share the axis labels' fade state so tick churn slides instead of popping.
  * Neighboring lines at one alpha share one stroke, so a settled grid costs one
  * stroke per direction.
@@ -161,7 +161,7 @@ const cornerRadius = (options: { radius: number; thickness: number; length: numb
 
 /**
  * Fill one series' bars as a single batched path (one `fill()` per series).
- * `fill` is the series' solid color or its texture's `url(#…)` reference — the
+ * `fill` is the series' solid color or its texture's `url(#…)` reference. The
  * `<pattern>` anchors to the SVG, so one pattern paints every bar of the
  * series in a continuous field. Corner radii collapse as bars get thin (< 4px:
  * square; width is clamped to a minimum of half a pixel so ten-thousand-category
@@ -345,7 +345,7 @@ const drawAreaPath = (
 
 /**
  * Decimated line stroke: at most four vertices per device-pixel column
- * (entry, min, max, exit) — O(plot width) regardless of point count.
+ * (entry, min, max, exit), so O(plot width) regardless of point count.
  * `valueK`/`valueB` map data values to pixel y; `columnToX` maps a column
  * index to pixel x.
  */
@@ -410,7 +410,7 @@ const drawDecimatedArea = (
 	},
 ): void => {
 	const { color, lowerColumns, upperColumns, columnToX, valueK, valueB } = options;
-	// Fill per contiguous run of data columns so gap columns stay unpainted —
+	// Fill per contiguous run of data columns so gap columns stay unpainted:
 	// bridging an outage window would fabricate data presence.
 	ctx.beginPath();
 	let runStart = -1;
@@ -456,7 +456,7 @@ const drawDecimatedArea = (
 };
 
 /**
- * The subset of the 2D context {@link tracePointShape} traces into —
+ * The subset of the 2D context {@link tracePointShape} traces into:
  * structural, so unit tests can record calls without type assertions.
  */
 type PathTraceContext = Pick<PaintContext, "arc" | "moveTo" | "lineTo" | "closePath">;
@@ -585,7 +585,7 @@ const POINT_SHAPE_TRACERS: Record<
 		traceOutline(ctx, x, y, radius * 1.189, GREEK_CROSS_OUTLINE);
 	},
 	cross: (ctx, x, y, radius) => {
-		// The plus turned 45° — rotation keeps the area, so the same 1.189r
+		// The plus turned 45°: rotation keeps the area, so the same 1.189r
 		// half-extent holds. Widening it to fill a box would multiply the ink by
 		// 9/8 and break the pair.
 		traceOutline(ctx, x, y, radius * 1.189, DIAGONAL_CROSS_OUTLINE);
@@ -653,7 +653,7 @@ const drawMarkers = (
 
 /**
  * A dashed reference line with an optional right-aligned label above it.
- * Dashing is reserved for thresholds (gridlines stay solid) — the dash is
+ * Dashing is reserved for thresholds (gridlines stay solid). The dash is
  * what says "this is a marker, not data".
  */
 const drawReferenceLine = (
@@ -686,7 +686,7 @@ const drawReferenceLine = (
 };
 
 /**
- * A dashed vertical reference line with an optional label beside its top end —
+ * A dashed vertical reference line with an optional label beside its top end:
  * the {@link drawReferenceLine} mirror for horizontal bars, where the value
  * axis runs along x.
  */

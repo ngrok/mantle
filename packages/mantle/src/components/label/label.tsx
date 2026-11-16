@@ -12,7 +12,7 @@ type LabelProps = ComponentProps<"label"> & {
 } & WithDataSlot;
 
 /**
- * A caption for a form control — input, checkbox, radio, switch, select.
+ * A caption for a form control: input, checkbox, radio, switch, select.
  * Renders a native `<label>`. Pair every form control with a `Label` so the
  * control has an accessible name, clicks on the label focus the control, and
  * screen readers announce the field correctly.
@@ -23,14 +23,14 @@ type LabelProps = ComponentProps<"label"> & {
  * - Wrapping a checkbox or radio next to its descriptive text.
  *
  * **When not to use**
- * - For static UI text that isn't labeling a control — use a heading or
+ * - For static UI text that isn't labeling a control. Use a heading or
  *   plain `<p>`/`<span>`.
  * - As a substitute for `aria-label` on non-`<input>` widgets that don't
  *   support `<label for>` association.
  *
  * **Two ways to associate.** Either wrap the control inside the `<Label>`
- * (implicit association — simplest) or set `htmlFor` to the control's `id`
- * (explicit — required when the control isn't a child).
+ * (implicit association, the simplest) or set `htmlFor` to the control's `id`
+ * (explicit, required when the control isn't a child).
  *
  * **Disabled state.** Pass `disabled` to render the label in a disabled
  * style. Typically you'll want this to mirror the underlying control's
@@ -42,7 +42,7 @@ type LabelProps = ComponentProps<"label"> & {
  * **not** contain a nested form control (`<input>`, `<textarea>`, `<select>`,
  * `<button>`, or `[contenteditable]`). When the label *does* wrap a control,
  * the auto default is intentionally skipped so the control's own typography
- * isn't bolded — apply `font-medium` to your own caption element (e.g. a
+ * isn't bolded. Apply `font-medium` to your own caption element (e.g. a
  * `<span>` or `<p>`) inside the label. Override the default at any time by
  * passing a font-weight utility on the `Label` itself, e.g.
  * `<Label className="font-bold">`.
@@ -60,13 +60,13 @@ type LabelProps = ComponentProps<"label"> & {
  * import { Label } from "@ngrok/mantle/label";
  * import { Input } from "@ngrok/mantle/input";
  *
- * // Implicit — control nested inside the label.
+ * // Implicit: control nested inside the label.
  * <Label className="grid gap-1">
  *   <span>Email</span>
  *   <Input type="email" name="email" />
  * </Label>
  *
- * // Explicit — htmlFor matches the control's id.
+ * // Explicit: htmlFor matches the control's id.
  * <div className="grid gap-1">
  *   <Label htmlFor="api-key">API key</Label>
  *   <Input id="api-key" name="apiKey" />
@@ -97,8 +97,8 @@ const Label = ({
 		className={cx(
 			"text-strong cursor-pointer text-sm peer-disabled:cursor-default has-disabled:cursor-default data-disabled:cursor-default font-sans",
 			// Default to font-medium when the label isn't wrapping a form control. The
-			// arbitrary variant wraps the *entire* matched selector — class + the
-			// `:not(:has(...))` check — in `:where()`, flattening total specificity to 0.
+			// arbitrary variant wraps the *entire* matched selector (class + the
+			// `:not(:has(...))` check) in `:where()`, flattening total specificity to 0.
 			// That lets a user-supplied font-weight utility (`font-bold`, `font-normal`,
 			// etc.) at (0,1,0) override cleanly, even though `[contenteditable]` is an
 			// attribute selector that would otherwise lift the rule to (0,1,0) and tie.

@@ -8,7 +8,7 @@ type ErrorPageProps = {
 
 /**
  * Full-page error view shared by the 404 splat route and the root error
- * boundary. Mirrors the ngrok dot-com www 404 — a large gradient status
+ * boundary. Mirrors the ngrok dot-com www 404: a large gradient status
  * number, a playful heading, and a single neutral button back home.
  *
  * @example
@@ -34,7 +34,7 @@ export function ErrorPage({ status }: ErrorPageProps) {
 							</span>
 						</>
 					) : (
-						"Something went wrong."
+						"We couldn’t load this page."
 					)}
 				</h1>
 				<Button asChild intent="neutral" appearance="filled">

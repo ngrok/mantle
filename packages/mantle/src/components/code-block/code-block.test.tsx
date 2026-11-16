@@ -298,7 +298,7 @@ describe("CodeBlock", () => {
 
 		test('a call site can opt back in with translate="yes"', () => {
 			// The slot takes arbitrary children, so a title that is prose rather than a
-			// filename can override the default — unlike `CodeBlock.Code`.
+			// filename can override the default (unlike `CodeBlock.Code`).
 			render(
 				<CodeBlock.Root>
 					<CodeBlock.Header>

@@ -16,11 +16,11 @@ import {
  * together used to hand the page to the preference: every theme block listed a
  * bare `[data-theme="…"]`, so `:root[data-theme="dark"]` matched a
  * `forceTheme="light"` page and the later dark rule won the cascade at equal
- * specificity — a light-locked page painted fully dark, from the first byte.
+ * specificity: a light-locked page painted fully dark, from the first byte.
  *
  * The guard is `[data-theme="…"]:not([data-applied-theme])`: the preference
  * selects a theme only when nothing has applied one. Only a computed style can
- * see this, so it has to run in a real browser — happy-dom resolves no cascade,
+ * see this, so it has to run in a real browser: happy-dom resolves no cascade,
  * and asserting the class and the data attributes (which are correct either way)
  * is exactly what missed it.
  */

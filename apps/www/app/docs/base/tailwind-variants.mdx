@@ -8,82 +8,82 @@ import { TailwindVariantsPills } from "~/features/tailwind-variants-demo";
 
 # Tailwind Variants
 
-Custom Tailwind variants registered by mantle via `@custom-variant` in `mantle.css`.
+Mantle registers these Tailwind variants with `@custom-variant` in `mantle.css`.
 
 ## Theme
 
-| Variant   | Description                                                                                                                                        |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.light:` | Apply a class when the light theme is active.                                                                                                      |
-| `.dark:`  | Apply a class when the dark theme is active. Overrides Tailwind's built-in `dark:` to use class-based detection instead of `prefers-color-scheme`. |
+| Variant  | Description                                                                                                                                                                                         |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `light:` | Applies a class when the light theme is active.                                                                                                                                                     |
+| `dark:`  | Applies a class when the dark theme is active. Replaces Tailwind's built-in `dark:`: it matches the theme mantle applies (a `.dark` class or a `data-theme` attribute), not `prefers-color-scheme`. |
 
 ## Hover media queries
 
-|                                                                         | Variant         | Description                                                                                                                                  |
-| ----------------------------------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| <VariantIndicator show="hover-hover:block" hide="hover-hover:hidden" /> | `.hover-hover:` | Apply a class if hover is supported. Unlike Tailwind's `hover:`, this applies unconditionally without requiring an actual hover interaction. |
-| <VariantIndicator show="hover-none:block" hide="hover-none:hidden" />   | `.hover-none:`  | Apply a class if hover is unsupported.                                                                                                       |
+|                                                                         | Variant        | Description                                                                                                                                            |
+| ----------------------------------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| <VariantIndicator show="hover-hover:block" hide="hover-hover:hidden" /> | `hover-hover:` | Applies a class on a device that can hover, whether or not the pointer is over the element. Tailwind's `hover:` also needs the pointer on the element. |
+| <VariantIndicator show="hover-none:block" hide="hover-none:hidden" />   | `hover-none:`  | Applies a class on a device that can't hover.                                                                                                          |
 
-## Aria
+## ARIA
 
-| Variant            | Description                                  |
-| ------------------ | -------------------------------------------- |
-| `.aria-collapsed:` | Match elements with `aria-expanded="false"`. |
-| `.aria-invalid:`   | Match elements with `aria-invalid="true"`.   |
-| `.aria-unchecked:` | Match elements with `aria-checked="false"`.  |
+| Variant           | Description                                    |
+| ----------------- | ---------------------------------------------- |
+| `aria-collapsed:` | Matches elements with `aria-expanded="false"`. |
+| `aria-invalid:`   | Matches elements with `aria-invalid="true"`.   |
+| `aria-unchecked:` | Matches elements with `aria-checked="false"`.  |
 
 ## Data attribute: state
 
-| Variant                      | Description                                      |
-| ---------------------------- | ------------------------------------------------ |
-| `.data-state-active:`        | Match elements with `data-state~=active`.        |
-| `.data-state-checked:`       | Match elements with `data-state~=checked`.       |
-| `.data-state-closed:`        | Match elements with `data-state~=closed`.        |
-| `.data-state-idle:`          | Match elements with `data-state~=idle`.          |
-| `.data-state-inactive:`      | Match elements with `data-state~=inactive`.      |
-| `.data-state-indeterminate:` | Match elements with `data-state~=indeterminate`. |
-| `.data-state-open:`          | Match elements with `data-state~=open`.          |
-| `.data-state-pending:`       | Match elements with `data-state~=pending`.       |
-| `.data-state-selected:`      | Match elements with `data-state~=selected`.      |
-| `.data-state-submitting:`    | Match elements with `data-state~=submitting`.    |
-| `.data-state-unchecked:`     | Match elements with `data-state~=unchecked`.     |
+| Variant                     | Description                                        |
+| --------------------------- | -------------------------------------------------- |
+| `data-state-active:`        | Matches elements with `data-state~=active`.        |
+| `data-state-checked:`       | Matches elements with `data-state~=checked`.       |
+| `data-state-closed:`        | Matches elements with `data-state~=closed`.        |
+| `data-state-idle:`          | Matches elements with `data-state~=idle`.          |
+| `data-state-inactive:`      | Matches elements with `data-state~=inactive`.      |
+| `data-state-indeterminate:` | Matches elements with `data-state~=indeterminate`. |
+| `data-state-open:`          | Matches elements with `data-state~=open`.          |
+| `data-state-pending:`       | Matches elements with `data-state~=pending`.       |
+| `data-state-selected:`      | Matches elements with `data-state~=selected`.      |
+| `data-state-submitting:`    | Matches elements with `data-state~=submitting`.    |
+| `data-state-unchecked:`     | Matches elements with `data-state~=unchecked`.     |
 
-## Data attribute: orientation & side
+## Data attribute: orientation and side
 
-| Variant                         | Description                                          |
-| ------------------------------- | ---------------------------------------------------- |
-| `.data-orientation-horizontal:` | Match elements with `data-orientation="horizontal"`. |
-| `.data-orientation-vertical:`   | Match elements with `data-orientation="vertical"`.   |
-| `.data-side-bottom:`            | Match elements with `data-side="bottom"`.            |
-| `.data-side-left:`              | Match elements with `data-side="left"`.              |
-| `.data-side-right:`             | Match elements with `data-side="right"`.             |
-| `.data-side-top:`               | Match elements with `data-side="top"`.               |
+| Variant                        | Description                                            |
+| ------------------------------ | ------------------------------------------------------ |
+| `data-orientation-horizontal:` | Matches elements with `data-orientation="horizontal"`. |
+| `data-orientation-vertical:`   | Matches elements with `data-orientation="vertical"`.   |
+| `data-side-bottom:`            | Matches elements with `data-side="bottom"`.            |
+| `data-side-left:`              | Matches elements with `data-side="left"`.              |
+| `data-side-right:`             | Matches elements with `data-side="right"`.             |
+| `data-side-top:`               | Matches elements with `data-side="top"`.               |
 
 ## Data attribute: validation
 
-| Variant                     | Description                                      |
-| --------------------------- | ------------------------------------------------ |
-| `.data-validation-error:`   | Match elements with `data-validation="error"`.   |
-| `.data-validation-success:` | Match elements with `data-validation="success"`. |
-| `.data-validation-warning:` | Match elements with `data-validation="warning"`. |
+| Variant                    | Description                                        |
+| -------------------------- | -------------------------------------------------- |
+| `data-validation-error:`   | Matches elements with `data-validation="error"`.   |
+| `data-validation-success:` | Matches elements with `data-validation="success"`. |
+| `data-validation-warning:` | Matches elements with `data-validation="warning"`. |
 
 ## Data attribute: other
 
-| Variant              | Description                                           |
-| -------------------- | ----------------------------------------------------- |
-| `.data-active-item:` | Match elements with `data-active-item~="true"`.       |
-| `.data-disabled:`    | Match elements with the `data-disabled` attribute.    |
-| `.data-drag-over:`   | Match elements with `data-drag-over="true"`.          |
-| `.data-highlighted:` | Match elements with the `data-highlighted` attribute. |
+| Variant             | Description                                             |
+| ------------------- | ------------------------------------------------------- |
+| `data-active-item:` | Matches elements with `data-active-item~="true"`.       |
+| `data-disabled:`    | Matches elements with the `data-disabled` attribute.    |
+| `data-drag-over:`   | Matches elements with `data-drag-over="true"`.          |
+| `data-highlighted:` | Matches elements with the `data-highlighted` attribute. |
 
 ## Utility
 
-| Variant   | Description                                               |
-| --------- | --------------------------------------------------------- |
-| `.where:` | Wraps the selector in `:where()` to zero out specificity. |
+| Variant  | Description                                               |
+| -------- | --------------------------------------------------------- |
+| `where:` | Wraps the selector in `:where()` to zero out specificity. |
 
 ## Live detection
 
-The pills below show which variants are currently active in your browser:
+The pills below show which variants are active in your browser:
 
 <TailwindVariantsPills />

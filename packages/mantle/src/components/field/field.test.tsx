@@ -320,7 +320,7 @@ describe("Field", () => {
 			expect(input).toHaveAccessibleDescription("Email is required.");
 		});
 
-		test("ignores child-supplied aria-invalid — Field.Item owns the contract", () => {
+		test("ignores child-supplied aria-invalid: Field.Item owns the contract", () => {
 			// Field.Item is the single source of truth for aria-invalid. A
 			// child-side aria-invalid="false" no longer overrides the inferred
 			// error state; set validation on Field.Item to opt out.
@@ -480,7 +480,7 @@ describe("Field", () => {
 		});
 
 		test("splats Field.Item name and generated id onto the control, overriding child-supplied values", () => {
-			// Field.Item owns the name + id contract — context wins so the
+			// Field.Item owns the name + id contract. Context wins so the
 			// TanStack-friendly `name` only needs to live on Field.Item, and
 			// any name/id passed on the child is intentionally overwritten.
 			render(

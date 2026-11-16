@@ -8,7 +8,7 @@ import { useSyncExternalStore } from "react";
  */
 function subscribeToNothing(): () => void {
 	return () => {
-		// Why: intentionally empty — the snapshot is constant per environment.
+		// Why: intentionally empty; the snapshot is constant per environment.
 	};
 }
 
@@ -31,7 +31,7 @@ function getServerSnapshot(): boolean {
 
 /**
  * Returns `false` during server rendering and the initial hydration render,
- * then `true` on the client — without hydration mismatches, because React
+ * then `true` on the client, without hydration mismatches, because React
  * uses the server snapshot for the hydration pass and re-renders once with
  * the client snapshot afterwards.
  *

@@ -7,8 +7,8 @@
  * Without this, interacting with the prompt would close the modaled view.
  *
  * This lives in its own module (rather than `toast.tsx`) so that modaled views
- * can import it without pulling the Toast implementation — and its `sonner`
- * dependency — into their module graph.
+ * can import it without pulling the Toast implementation (and its `sonner`
+ * dependency) into their module graph.
  *
  * @example
  * ```tsx

@@ -37,7 +37,7 @@ function isLineRangeString(value: string): value is LineRange {
  * Parses a single highlight-line entry into either a positive integer line
  * number or a `"start-end"` {@link LineRange} string. Accepts a number, a
  * decimal-digit string (e.g. `"3"`), or a range string (e.g. `"5-9"`); any
- * other shape — including non-positive bounds — yields `undefined` so callers
+ * other shape (including non-positive bounds) yields `undefined` so callers
  * can drop the entry. Whitespace around string inputs is tolerated.
  *
  * @example

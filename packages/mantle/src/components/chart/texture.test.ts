@@ -45,7 +45,7 @@ describe("traceDiagonalLines", () => {
 	test("the family tiles seamlessly: every line sits on the tile-period lattice", () => {
 		// A 45° line is x + y = c (its 135° mirror x - y = c). Repeating the tile
 		// shifts c by the tile size, so a seamless family needs every traced line
-		// on a multiple of the period — otherwise stripes jump at tile seams.
+		// on a multiple of the period: otherwise stripes jump at tile seams.
 		const size = TEXTURE_TILE_SIZE;
 		const up = makeRecorder();
 		traceDiagonalLines(up, size, "up");

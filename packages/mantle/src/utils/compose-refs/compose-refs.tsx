@@ -27,7 +27,7 @@ function setRef<T>(ref: PossibleRef<T>, node: T | null) {
  * If no inner ref returns a cleanup, the composed ref returns `undefined`
  * and React calls it again with `null` on unmount (legacy behavior).
  *
- * Prefer {@link useComposedRefs} inside components — it keeps a stable
+ * Prefer {@link useComposedRefs} inside components: it keeps a stable
  * function identity across renders.
  *
  * @example

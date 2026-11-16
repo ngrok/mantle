@@ -28,7 +28,7 @@ cx("base", { active: isActive, disabled: isDisabled });
 // Conditional classes (falsy values are ignored)
 cx("base", isActive && "active", isDisabled && "disabled");
 
-// Tailwind conflict resolution — later class wins
+// Tailwind conflict resolution: later class wins
 cx("text-red-500", "text-blue-500");
 // → "text-blue-500"
 
@@ -41,10 +41,10 @@ cx(["px-4", "py-2"], "text-sm");
 `cx` uses `tailwind-merge` to resolve conflicts between Tailwind utility classes. When two classes target the same CSS property, the last one wins:
 
 ```tsx
-// Without cx — both classes are applied, browser resolves by specificity (unpredictable, stinky)
+// Without cx, both classes are applied and the browser resolves by specificity (unpredictable, stinky)
 <div className={`text-red-500 ${override}`} />
 
-// With cx — later class always wins (predictable, like inline styles)
+// With cx, the later class always wins (predictable, like inline styles)
 <div className={cx("text-red-500", override)} />
 ```
 

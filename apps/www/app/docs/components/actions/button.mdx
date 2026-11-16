@@ -53,11 +53,11 @@ Only the box scales: every size keeps the same typography (`text-sm font-medium`
 ```tsx
 import { Button } from "@ngrok/mantle/button";
 
-<Button appearance="outlined" intent="neutral" size="xs">Extra Small</Button>
+<Button appearance="outlined" intent="neutral" size="xs">Extra small</Button>
 <Button appearance="outlined" intent="neutral" size="sm">Small</Button>
 <Button appearance="outlined" intent="neutral" size="md">Medium</Button>
 <Button appearance="outlined" intent="neutral" size="lg">Large</Button>
-<Button appearance="outlined" intent="neutral" size="xl">Extra Large</Button>
+<Button appearance="outlined" intent="neutral" size="xl">Extra large</Button>
 ```
 
 </Example>
@@ -69,10 +69,10 @@ Unlike the native `<button>` element (which defaults to `type="submit"`), a mant
 The tradeoff: a button that _should_ submit a form has to opt in with `type="submit"` (or `type="reset"` to reset it). A plain `<Button>` that relies on native form submission will silently do nothing.
 
 ```tsx
-// ✅ Opts in — submits the form
+// ✅ Opts in: submits the form
 <Button type="submit" appearance="filled" intent="neutral">Save</Button>
 
-// ❌ Defaults to type="button" — native form submission never fires
+// ❌ Defaults to type="button", so native form submission never fires
 <Button appearance="filled" intent="neutral">Save</Button>
 ```
 
@@ -91,10 +91,10 @@ import { Button } from "@ngrok/mantle/button";
 import { FireIcon } from "@phosphor-icons/react/Fire";
 
 <Button appearance="outlined" intent="neutral" icon={<FireIcon weight="fill" />}>
-	Icon Start
+	Icon start
 </Button>
 <Button appearance="outlined" intent="neutral" icon={<FireIcon weight="fill" />} iconPlacement="end">
-	Icon End
+	Icon end
 </Button>
 ```
 
@@ -110,7 +110,7 @@ An icon-only button is not a `Button`: use [`IconButton`](/components/actions/ic
 import { Button } from "@ngrok/mantle/button";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
 
-// ❌ Wrong — icon-only Button: no accessible name, text-shaped padding
+// ❌ Wrong: an icon-only Button has no accessible name and text-shaped padding
 <Button appearance="outlined" intent="neutral" icon={<CopyIcon />} onClick={copyPage} />;
 ```
 
@@ -120,7 +120,7 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { IconButton } from "@ngrok/mantle/button";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
 
-// ✅ Correct — IconButton: required screen-reader label, square box
+// ✅ Correct: IconButton has a required screen-reader label and a square box
 <IconButton
 	appearance="outlined"
 	intent="neutral"
@@ -142,7 +142,7 @@ The one exception is a **second** icon, such as a trailing caret, because the bu
 import { Button } from "@ngrok/mantle/button";
 import { PlusIcon } from "@phosphor-icons/react/Plus";
 
-// ❌ Wrong — the icon keeps its own size, and `isLoading` renders a second glyph beside it
+// ❌ Wrong: the icon keeps its own size, and `isLoading` renders a second glyph beside it
 <Button appearance="filled" intent="neutral">
 	<PlusIcon />
 	Create endpoint
@@ -155,7 +155,7 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 import { Button } from "@ngrok/mantle/button";
 import { PlusIcon } from "@phosphor-icons/react/Plus";
 
-// ✅ Correct — `icon` gets its own slot beside the label
+// ✅ Correct: `icon` gets its own slot beside the label
 <Button appearance="filled" intent="neutral" icon={<PlusIcon />}>
 	Create endpoint
 </Button>;
@@ -295,16 +295,16 @@ Use `appearance="filled" intent="neutral"` for the primary action. This is the d
 
 All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes), plus:
 
-| Prop             | Type                                                | Default    | Description                                                                                                                                                                                                                                                                                                                                                                                                |
-| ---------------- | --------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `appearance`     | `"ghost"` \| `"filled"` \| `"outlined"` \| `"link"` |            | The visual style of the `Button`. **Required** — there is no default, so every call site states the visual weight it means.                                                                                                                                                                                                                                                                                |
-| `asChild?`       | `boolean`                                           | `false`    | Use the `asChild` prop to compose the `Button` styling onto alternative element types or your own React components.                                                                                                                                                                                                                                                                                        |
-| `icon?`          | `ReactNode`                                         |            | An icon to render inside the button. When `isLoading` is `true`, the icon will automatically be replaced with a spinner.                                                                                                                                                                                                                                                                                   |
-| `iconPlacement?` | `"start"` \| `"end"`                                | `"start"`  | The side that the icon will render on, if one is present. When `isLoading` is `true`, the loading spinner will also render on this side.                                                                                                                                                                                                                                                                   |
-| `intent`         | `"accent"` \| `"danger"` \| `"neutral"`             |            | The tone of the `Button` — the purpose its color communicates to the user: `"neutral"` for the workhorse tone (routine and secondary actions, and the default primary action: `appearance="filled" intent="neutral"`), `"accent"` for deliberate brand emphasis, and `"danger"` for a destructive or irreversible action. **Required** — there is no default, so every call site states the tone it means. |
-| `isLoading?`     | `boolean`                                           | `false`    | Whether the button is in a loading state. Setting `isLoading` replaces any `icon` with a spinner, or adds one when the button has no icon. It also disables user interaction with the button and sets `aria-disabled`.                                                                                                                                                                                     |
-| `size?`          | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`      | `"md"`     | The size of the `Button`, controlling its box height and horizontal padding. Shared scale with `IconButton` — the same size name renders the same box height. Has no effect when `appearance="link"`.                                                                                                                                                                                                      |
-| `type?`          | `"button"` \| `"reset"` \| `"submit"`               | `"button"` | The behavior of the `Button` when activated. Defaults to `"button"`, so a `Button` inside a `<form>` will **not** submit it — pass `type="submit"` to submit the form. When `asChild` is used, `type` has no effect and is not forwarded to the child. See [the MDN docs](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#type) for more information.                                     |
+| Prop             | Type                                                | Default    | Description                                                                                                                                                                                                                                                                                                                                                                                               |
+| ---------------- | --------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `appearance`     | `"ghost"` \| `"filled"` \| `"outlined"` \| `"link"` |            | The visual style of the `Button`. **Required**: there is no default, so every call site states the visual weight it means.                                                                                                                                                                                                                                                                                |
+| `asChild?`       | `boolean`                                           | `false`    | Use the `asChild` prop to compose the `Button` styling onto alternative element types or your own React components.                                                                                                                                                                                                                                                                                       |
+| `icon?`          | `ReactNode`                                         |            | An icon to render inside the button. When `isLoading` is `true`, the icon will automatically be replaced with a spinner.                                                                                                                                                                                                                                                                                  |
+| `iconPlacement?` | `"start"` \| `"end"`                                | `"start"`  | The side that the icon will render on, if one is present. When `isLoading` is `true`, the loading spinner will also render on this side.                                                                                                                                                                                                                                                                  |
+| `intent`         | `"accent"` \| `"danger"` \| `"neutral"`             |            | The tone of the `Button` (the purpose its color communicates to the user): `"neutral"` for the workhorse tone (routine and secondary actions, and the default primary action: `appearance="filled" intent="neutral"`), `"accent"` for deliberate brand emphasis, and `"danger"` for a destructive or irreversible action. **Required**: there is no default, so every call site states the tone it means. |
+| `isLoading?`     | `boolean`                                           | `false`    | Whether the button is in a loading state. Setting `isLoading` replaces any `icon` with a spinner, or adds one when the button has no icon. It also disables user interaction with the button and sets `aria-disabled`.                                                                                                                                                                                    |
+| `size?`          | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`      | `"md"`     | The size of the `Button`, controlling its box height and horizontal padding. Shared scale with `IconButton`: the same size name renders the same box height. Has no effect when `appearance="link"`.                                                                                                                                                                                                      |
+| `type?`          | `"button"` \| `"reset"` \| `"submit"`               | `"button"` | The behavior of the `Button` when activated. Defaults to `"button"`, so a `Button` inside a `<form>` will **not** submit it. Pass `type="submit"` to submit the form. When `asChild` is used, `type` has no effect and is not forwarded to the child. See [the MDN docs](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#type) for more information.                                     |
 
 #### Data attributes
 

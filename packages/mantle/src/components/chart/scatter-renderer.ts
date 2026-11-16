@@ -7,7 +7,7 @@ import { MARKER_RING, tracePointShape } from "./renderer.js";
  * scatter modules import this module, so Bar, Line, and Area charts load none
  * of it. The 3D draw routines live in `scatter-3d.ts`.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation. The package does not export it.
  */
 
 /**
@@ -30,7 +30,7 @@ const drawScatterPoints = (
 		surface: string;
 		/** The series' point glyph (ignored on the 2×2-rect fast path). */
 		shape: PointShape;
-		/** Total points across ALL series this paint — the degradation input. */
+		/** Total points across ALL series this paint: the degradation input. */
 		totalPointCount: number;
 		indexes: readonly number[];
 		xAt: (index: number) => number;

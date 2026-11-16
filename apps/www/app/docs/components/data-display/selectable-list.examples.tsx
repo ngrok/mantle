@@ -64,12 +64,12 @@ export function CustomRowsDemo() {
 			<SelectableList.Root options={keyOptions} value={selected} onValueChange={setSelected}>
 				<SelectableList.Viewport aria-label="Access keys" className="max-h-80">
 					{(option) => {
-						// Rich row data that isn't part of the option — look it up by `option.value`.
+						// Rich row data that isn't part of the option: look it up by `option.value`.
 						const status = keyStatus[option.value];
 						return (
 							<SelectableList.Item value={option.value}>
 								{/* Stopgap: inside Item you are hand-rolling the row's content cell.
-								    Keep ItemTitle — it is the label that names the row's checkbox. */}
+								    Keep ItemTitle: it is the label that names the row's checkbox. */}
 								<div className="flex items-center gap-2">
 									<SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
 									<Badge appearance="muted" color={status === "active" ? "success" : "warning"}>

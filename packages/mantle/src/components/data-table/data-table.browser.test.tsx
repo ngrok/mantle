@@ -52,7 +52,7 @@ function Harness(props: Omit<ComponentProps<typeof DataTable.Row>, "row" | "rend
 
 // Why browser mode: the guard reads the live `Selection`, and only a real mouse
 // drag proves that the browser fires `click` on the row after it selects text.
-describe("DataTable.Row (browser) — text selection", () => {
+describe("DataTable.Row (browser): text selection", () => {
 	test("a drag-select across the row's cells skips onClick; a click on unselected text runs it", async () => {
 		const handleClick = vi.fn<() => void>();
 		render(<Harness onClick={handleClick} />);
@@ -152,7 +152,7 @@ function SortableHeaderHarness({ appearance, intent }: SortableHeaderHarnessProp
 
 // Why browser mode: the mute is a class tailwind-merge weighs against the tone
 // class, so only the computed color shows which one survived the merge.
-describe("DataTable.HeaderSortButton (browser) — muted header text", () => {
+describe("DataTable.HeaderSortButton (browser): muted header text", () => {
 	let styleElement: HTMLStyleElement;
 
 	beforeAll(() => {

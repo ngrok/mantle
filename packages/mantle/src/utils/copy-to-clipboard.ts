@@ -6,7 +6,7 @@ import { canUseDOM } from "../components/browser-only/can-use-dom.js";
  * browsers.
  *
  * Throws when called outside a DOM environment, or when both the Clipboard
- * API and the polyfill fail — `await` the call to observe success.
+ * API and the polyfill fail. `await` the call to observe success.
  */
 async function copyToClipboard(value: string) {
 	if (!canUseDOM()) {

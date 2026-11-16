@@ -52,8 +52,8 @@ const normalizeErrorMessages = (messages: readonly FieldErrorMessage[] | undefin
 
 /**
  * Returns `true` when the supplied children would produce visible content in
- * a `Field.ErrorItem` — i.e. they are not `null`, `undefined`, `false`, or a
- * whitespace-only string. Used by both `Field.ErrorItem`'s render guard and
+ * a `Field.ErrorItem` (i.e. they are not `null`, `undefined`, `false`, or a
+ * whitespace-only string). Used by both `Field.ErrorItem`'s render guard and
  * the `Field.ErrorList` walker so an empty item is identified consistently.
  */
 const isErrorItemRenderable = (children: ReactNode): boolean => {

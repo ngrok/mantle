@@ -1,6 +1,6 @@
 import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
 
-/** JavaScript fold demo — AST strategy. */
+/** JavaScript fold demo: AST strategy. */
 export function FoldingJavaScriptDemo() {
 	return (
 		<CodeBlock.Root>
@@ -35,7 +35,7 @@ export function FoldingJavaScriptDemo() {
 	);
 }
 
-/** TypeScript fold demo — AST strategy with type literals. */
+/** TypeScript fold demo: AST strategy with type literals. */
 export function FoldingTypeScriptDemo() {
 	return (
 		<CodeBlock.Root>
@@ -72,7 +72,7 @@ export function FoldingTypeScriptDemo() {
 }
 
 /**
- * TSX fold demo — AST strategy folds blocks, objects, JSX elements,
+ * TSX fold demo: AST strategy folds blocks, objects, JSX elements,
  * multi-line opening tags, and self-closing tags with multi-line attribute
  * lists.
  */
@@ -122,7 +122,7 @@ export function FoldingTsxDemo() {
 }
 
 /**
- * JSX fold demo — AST strategy folds blocks, objects, JSX elements,
+ * JSX fold demo: AST strategy folds blocks, objects, JSX elements,
  * multi-line opening tags, and self-closing tags with multi-line attribute
  * lists.
  */
@@ -166,7 +166,7 @@ export function FoldingJsxDemo() {
 	);
 }
 
-/** JSON fold demo — raw-source strategy. */
+/** JSON fold demo: raw-source strategy. */
 export function FoldingJsonDemo() {
 	return (
 		<CodeBlock.Root>
@@ -203,7 +203,7 @@ export function FoldingJsonDemo() {
 	);
 }
 
-/** CSS fold demo — raw-source strategy. */
+/** CSS fold demo: raw-source strategy. */
 export function FoldingCssDemo() {
 	return (
 		<CodeBlock.Root>
@@ -243,7 +243,7 @@ export function FoldingCssDemo() {
 	);
 }
 
-/** Go fold demo — bracket-paired strategy. */
+/** Go fold demo: bracket-paired strategy. */
 export function FoldingGoDemo() {
 	return (
 		<CodeBlock.Root>
@@ -280,7 +280,7 @@ export function FoldingGoDemo() {
 	);
 }
 
-/** Java fold demo — bracket-paired strategy. */
+/** Java fold demo: bracket-paired strategy. */
 export function FoldingJavaDemo() {
 	return (
 		<CodeBlock.Root>
@@ -316,7 +316,7 @@ export function FoldingJavaDemo() {
 	);
 }
 
-/** C# fold demo — bracket-paired strategy. */
+/** C# fold demo: bracket-paired strategy. */
 export function FoldingCSharpDemo() {
 	return (
 		<CodeBlock.Root>
@@ -354,7 +354,7 @@ export function FoldingCSharpDemo() {
 	);
 }
 
-/** Rust fold demo — bracket-paired strategy. */
+/** Rust fold demo: bracket-paired strategy. */
 export function FoldingRustDemo() {
 	return (
 		<CodeBlock.Root>
@@ -390,7 +390,7 @@ export function FoldingRustDemo() {
 	);
 }
 
-/** Terraform fold demo — bracket-paired strategy. */
+/** Terraform fold demo: bracket-paired strategy. */
 export function FoldingTerraformDemo() {
 	return (
 		<CodeBlock.Root>
@@ -436,7 +436,7 @@ export function FoldingTerraformDemo() {
 	);
 }
 
-/** Ruby fold demo — bracket + keyword strategy. */
+/** Ruby fold demo: bracket + keyword strategy. */
 export function FoldingRubyDemo() {
 	return (
 		<CodeBlock.Root>
@@ -485,7 +485,7 @@ export function FoldingRubyDemo() {
 	);
 }
 
-/** Python fold demo — indentation-based strategy. */
+/** Python fold demo: indentation-based strategy. */
 export function FoldingPythonDemo() {
 	return (
 		<CodeBlock.Root>
@@ -521,7 +521,7 @@ export function FoldingPythonDemo() {
 	);
 }
 
-/** YAML fold demo — indentation-based strategy. */
+/** YAML fold demo: indentation-based strategy. */
 export function FoldingYamlDemo() {
 	return (
 		<CodeBlock.Root>
@@ -556,7 +556,7 @@ export function FoldingYamlDemo() {
 	);
 }
 
-/** HTML fold demo — parse5 AST strategy. */
+/** HTML fold demo: parse5 AST strategy. */
 export function FoldingHtmlDemo() {
 	return (
 		<CodeBlock.Root>
@@ -592,7 +592,7 @@ export function FoldingHtmlDemo() {
 	);
 }
 
-/** XML fold demo — parse5-based strategy (foreign-content / XML mode). */
+/** XML fold demo: parse5-based strategy (foreign-content / XML mode). */
 export function FoldingXmlDemo() {
 	return (
 		<CodeBlock.Root>
@@ -626,7 +626,7 @@ export function FoldingXmlDemo() {
 }
 
 /**
- * HTML multi-line opening tag fold demo — exercises parse5's `startTag`
+ * HTML multi-line opening tag fold demo: exercises parse5's `startTag`
  * span so the attribute list collapses into the tag name.
  */
 export function FoldingHtmlMultilineTagDemo() {
@@ -661,7 +661,7 @@ export function FoldingHtmlMultilineTagDemo() {
 	);
 }
 
-/** Bash fold demo — keyword-paired strategy folds `if/fi`, `for/done`, brace groups. */
+/** Bash fold demo: keyword-paired strategy folds `if/fi`, `for/done`, brace groups. */
 export function FoldingBashDemo() {
 	return (
 		<CodeBlock.Root>

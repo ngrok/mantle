@@ -83,7 +83,7 @@ import { CHART_TWEEN_DURATION_MS, ChaseTween, PER_DATUM_TWEEN_LIMIT, ValueTween 
  *   idle chart costs zero CPU (there is no always-on loop)
  * - decimates to min/max-per-pixel-column past 4 points per device pixel
  * - drives interruptible tweens (domains always; per-datum only ≤ 2,500 points
- *   with an identical x vector — streaming appends animate the domain instead)
+ *   with an identical x vector; streaming appends animate the domain instead)
  * - hit-tests hover/keyboard positions and publishes snapshots to the store;
  *   the crosshair/markers/hover band/tooltip are DOM overlay elements moved
  *   with transforms, so pointer moves never repaint the canvas
@@ -97,7 +97,7 @@ import { CHART_TWEEN_DURATION_MS, ChaseTween, PER_DATUM_TWEEN_LIMIT, ValueTween 
  *
  * React never renders inside the paint path; the engine never touches React.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation. The package does not export it.
  */
 
 /**
@@ -133,7 +133,7 @@ type EngineCallbacks = {
 };
 
 /**
- * The per-series inputs the resolved paint cache derives from — any change
+ * The per-series inputs the resolved paint cache derives from. Any change
  * (color or texture) must invalidate the cached colors and patterns.
  */
 const seriesPaintInput = (meta: SeriesMeta): string => `${meta.colorInput}|${meta.texture}`;
@@ -282,8 +282,8 @@ class ChartEngine {
 	#valueMax = 0;
 	/**
 	 * Every finite series value is an integer. Integer-count data (requests,
-	 * errors) never renders fractional value ticks — a "1.5" label on a count
-	 * axis is meaningless — so value tick generation clamps its step to whole
+	 * errors) never renders fractional value ticks (a "1.5" label on a count
+	 * axis is meaningless), so value tick generation clamps its step to whole
 	 * numbers while this holds (MNTL-56).
 	 */
 	#valuesAllIntegers = true;
@@ -464,7 +464,7 @@ class ChartEngine {
 		this.#store.onSeriesChange = () => {
 			// Deferred (not ingested inline): a series (re)registration and its
 			// matching rows can arrive in the same React commit but in separate
-			// layout effects — ingesting mid-commit would validate one render's
+			// layout effects. Ingesting mid-commit would validate one render's
 			// specs against the other render's rows. `flushIngest` runs after the
 			// commit's effects (and `#commit` backstops before any paint).
 			this.#pendingIngest = true;
@@ -782,7 +782,7 @@ class ChartEngine {
 		const previous = this.#options;
 		this.#options = options;
 		if (previous.xScale !== options.xScale) {
-			// Band/point fade keys are indexes; continuous keys are data values —
+			// Band/point fade keys are indexes; continuous keys are data values:
 			// stale entries would be reinterpreted under the new scale.
 			this.#xLabelFade.clear();
 		}
@@ -846,7 +846,7 @@ class ChartEngine {
 	/**
 	 * Run any pending ingest now. Rows, options, and series registrations all
 	 * mark ingest pending instead of ingesting inline, because within one React
-	 * commit they arrive in separate layout effects — a series registering
+	 * commit they arrive in separate layout effects. A series registering
 	 * against rows the Root has not pushed yet (or vice versa) would fail the
 	 * dataKey fail-fast on data that IS consistent once the commit finishes.
 	 * The Root binding calls this in a layout effect that runs after every
@@ -869,7 +869,7 @@ class ChartEngine {
 	 *
 	 * When the incoming value echoes an index this engine just notified through
 	 * `onActiveIndexChange`, the interaction source (keyboard vs pointer) is
-	 * restored from that notification — otherwise keyboard stepping on a
+	 * restored from that notification. Otherwise keyboard stepping on a
 	 * controlled chart would round-trip back as a pointer-flavored snapshot and
 	 * silence the aria-live announcer.
 	 */
@@ -887,7 +887,7 @@ class ChartEngine {
 		} else if (wasControlled) {
 			// Leaving controlled mode: reset to "no active point" instead of
 			// resurrecting whatever uncontrolled index was frozen when control
-			// began — the store would keep serving that stale snapshot.
+			// began: the store would keep serving that stale snapshot.
 			this.#setActive(null, { viaKeyboard: false, notify: false });
 		}
 		this.#scheduleOverlay();
@@ -1206,7 +1206,7 @@ class ChartEngine {
 		const count = this.#rowCount;
 
 		// Per-datum tweens are only meaningful when old and new points share the
-		// same x positions — index-aligned interpolation across a shifted window
+		// same x positions: index-aligned interpolation across a shifted window
 		// would morph each point into its neighbor's value.
 		// Why the categories: a category scale's positions are the indexes, which
 		// are equal whenever the counts are, so only the categories show a shift.
@@ -1250,7 +1250,7 @@ class ChartEngine {
 		// A series registered after the first paint has no resolved canvas color
 		// yet (the theme signature is unchanged, so the lazy cache would skip it
 		// and paint would fall back to currentColor). Invalidate when the series
-		// set or any series' color/texture input changed — not on every data tick.
+		// set or any series' color/texture input changed, not on every data tick.
 		const resolved = this.#colors;
 		if (resolved != null) {
 			for (const meta of this.#store.seriesMeta()) {
@@ -1484,7 +1484,7 @@ class ChartEngine {
 	/**
 	 * Horizontal bar orientation: categories band down the y axis, values run
 	 * along x from a left baseline. The engine's semantic structures (x =
-	 * category ticks and fades, the y tween = the value domain) are unchanged —
+	 * category ticks and fades, the y tween = the value domain) are unchanged:
 	 * orientation only flips which pixel axis each maps onto.
 	 */
 	/** Whether any part draws ticks: an axis or a grid. */
@@ -1545,7 +1545,7 @@ class ChartEngine {
 
 	/**
 	 * Schedule only the DOM overlay sync (crosshair/band/markers/tooltip
-	 * transforms). This is the hover path — pointer moves never repaint the
+	 * transforms). This is the hover path: pointer moves never repaint the
 	 * marks.
 	 */
 	#scheduleOverlay(): void {
@@ -1797,7 +1797,7 @@ class ChartEngine {
 			? Number.POSITIVE_INFINITY
 			: Math.max(2, Math.floor(this.#plot.height / Y_TICK_SPACING));
 		// Integer data keeps integer ticks even mid-glide (tweened fractional
-		// domain bounds) and under a fractional yDomain override — integrality is
+		// domain bounds) and under a fractional yDomain override: integrality is
 		// a fact about the data, not the domain.
 		const limit = Math.min(tickCount ?? Number.POSITIVE_INFINITY, fit);
 		const count = tickCount ?? Y_TICK_COUNT;
@@ -1882,9 +1882,9 @@ class ChartEngine {
 		if (this.#hasCategoryTicks()) {
 			// Pre-thin dense category axes by stride before any text measurement so
 			// ten-thousand-band charts never format ten thousand labels per paint.
-			// The category axis runs along whichever pixel dimension carries it —
+			// The category axis runs along whichever pixel dimension carries it:
 			// x (width, labels side by side) when vertical, y (height, labels
-			// stacked) when horizontal — so budget label slots against THAT
+			// stacked) when horizontal. Budget label slots against THAT
 			// dimension. #desiredXTicks does the precise per-label collision
 			// thinning afterward.
 			const horizontal = this.#horizontalBars();
@@ -1989,7 +1989,7 @@ class ChartEngine {
 		// Left-edge scroll mask strength: eases in while streaming slides the
 		// window, decays after the stream idles long enough for the domain
 		// chase to settle. A static gradient is not motion, so reduced motion
-		// only snaps the strength — the mask itself stays.
+		// only snaps the strength; the mask itself stays.
 		const edgeFade = this.#edgeFade;
 		if (edgeFade.target === 1) {
 			if (now - this.#lastSlideAt > EDGE_FADE_LINGER_MS) {
@@ -2036,7 +2036,7 @@ class ChartEngine {
 			alpha: entry.alpha,
 		}));
 
-		// grid (2D only — the 3D frame is the cube wireframe). `lines` is physical:
+		// grid (2D only: the 3D frame is the cube wireframe). `lines` is physical:
 		// "horizontal" draws horizontal lines, "vertical" vertical ones. Category
 		// and value each supply whichever direction their axis currently occupies.
 		const paintGrid = (): void => {
@@ -2044,7 +2044,7 @@ class ChartEngine {
 				return;
 			}
 			// An unset direction (the store publishes `undefined` for "author left
-			// it to the chart") defaults to VALUE gridlines — perpendicular to the
+			// it to the chart") defaults to VALUE gridlines, perpendicular to the
 			// bars: horizontal for vertical bars / line / area, vertical for
 			// horizontal bars.
 			const lines = snapshot.grid.lines ?? (horizontal ? "vertical" : "horizontal");
@@ -2100,7 +2100,7 @@ class ChartEngine {
 			this.#scatter?.paintLabels(ctx, frame.labels);
 		}
 
-		// baseline (bars grow from a single baseline; keep it visible) — a vertical
+		// baseline (bars grow from a single baseline; keep it visible): a vertical
 		// baseline at value zero when horizontal, a horizontal one otherwise. A
 		// chart without ticks skips it: its rounded bar ends mark the base.
 		if (this.#kind === "bar" && this.#rowCount > 0 && this.#hasTicks()) {
@@ -2347,7 +2347,7 @@ class ChartEngine {
 	/**
 	 * The baseline-side boundary of one bar segment: the stacked lower boundary,
 	 * or the zero baseline when the chart does not stack. `computeStackBoundaries`
-	 * pairs its `NaN`s, so a defined upper implies a defined lower — the fallback
+	 * pairs its `NaN`s, so a defined upper implies a defined lower. The fallback
 	 * only keeps a torn column anchored at zero instead of at `NaN`.
 	 */
 	#segmentLower(lower: Float64Array | null, index: number): number {
@@ -2449,7 +2449,7 @@ class ChartEngine {
 	/**
 	 * The {@link #paintBars} mirror for `orientation="horizontal"`: categories
 	 * band down the y axis and values run along x from a left baseline. The slot
-	 * math is identical with x and y swapped — group slots stack down the band,
+	 * math is identical with x and y swapped: group slots stack down the band,
 	 * bar thickness is a y extent, and the reveal grows rightward from the value
 	 * baseline.
 	 */
@@ -2757,7 +2757,7 @@ class ChartEngine {
 		const specs = this.#store.seriesSpecs();
 		const horizontal = this.#horizontalBars();
 		// Grouped bars: the pointer's slot within the band names the series. The
-		// slots stack along the band's axis — y when horizontal, x otherwise.
+		// slots stack along the band's axis: y when horizontal, x otherwise.
 		const layout = this.#bandLayout;
 		if (this.#kind === "bar" && this.#stack == null && layout != null && specs.length > 1) {
 			const withinBand = (horizontal ? cssY : cssX) - bandStart(layout, index);
@@ -2788,14 +2788,14 @@ class ChartEngine {
 			}
 		}
 		// Otherwise pick the series whose painted value sits nearest the pointer
-		// along the value axis (x when horizontal, y otherwise) — the mark IS the
+		// along the value axis (x when horizontal, y otherwise). The mark IS the
 		// boundary for a line or an area, and a pointer clear of a stack still
 		// names the segment it is closest to.
 		let nearest: string | null = null;
 		let bestDistance = Number.POSITIVE_INFINITY;
 		specs.forEach((spec, seriesIndex) => {
 			// Stacked marks paint at their cumulative boundary, so hit-test the
-			// boundary — raw values would misattribute everything to the largest series.
+			// boundary: raw values would misattribute everything to the largest series.
 			const values =
 				this.#stack == null ? this.#columnOf(spec.dataKey) : this.#stack.upper[seriesIndex];
 			const value = values?.[index] ?? Number.NaN;
@@ -2813,7 +2813,7 @@ class ChartEngine {
 
 	/**
 	 * Set the active position (view-space index). `notify` reports the change
-	 * through `onActiveIndexChange` in SOURCE space — public indexes always
+	 * through `onActiveIndexChange` in SOURCE space: public indexes always
 	 * address the consumer's `data` array, never the engine's sorted view.
 	 */
 	#setActive(index: number | null, options: { viaKeyboard: boolean; notify: boolean }): void {
@@ -2827,7 +2827,7 @@ class ChartEngine {
 			this.#callbacks.onActiveIndexChange?.(sourceIndex);
 			if (controlled) {
 				// The consumer owns the state: remember the interaction source for
-				// the echo, and publish nothing now — a snapshot of the OLD index
+				// the echo, and publish nothing now: a snapshot of the OLD index
 				// wearing the NEW interaction source would be spurious.
 				this.#pendingControlledEcho = { index: sourceIndex, viaKeyboard: options.viaKeyboard };
 				return;
@@ -2851,7 +2851,7 @@ class ChartEngine {
 			!options.force &&
 			index === this.#lastPublishedIndex &&
 			this.#viaKeyboard === this.#lastPublishedViaKeyboard &&
-			// A scatter row can carry several series' points at one index — moving
+			// A scatter row can carry several series' points at one index; moving
 			// between same-row dots changes the hit series without changing index.
 			this.#activeSeriesKey === this.#lastPublishedSeriesKey
 		) {
@@ -2887,7 +2887,7 @@ class ChartEngine {
 		}
 		if (this.#kind === "scatter") {
 			// Scatter rows are individual points: the readout names the hit point's
-			// series (pointer) or the row's populated series (keyboard) — never a
+			// series (pointer) or the row's populated series (keyboard), never a
 			// column of em dashes for every series the row doesn't carry.
 			points =
 				this.#activeSeriesKey == null
@@ -2978,7 +2978,7 @@ class ChartEngine {
 			const layout = this.#bandLayout;
 			if (layout != null) {
 				// The highlight is the hit region itself. A wider one would wash over
-				// the neighbors it does not select — at 60 categories the old 24px
+				// the neighbors it does not select: at 60 categories the old 24px
 				// floor reached a third of the way into the next bar. A region under
 				// a pixel wide rasterizes to nothing, so the band keeps 1px and stays
 				// centered on the region rather than growing off one end.
@@ -3018,7 +3018,7 @@ class ChartEngine {
 				}
 				// Visibility follows the RAW value (a null row hides the dot even if
 				// the stack carries a boundary through the gap); position follows the
-				// PAINTED value — the stacked upper boundary when stacking — so the
+				// PAINTED value (the stacked upper boundary when stacking), so the
 				// dot sits on its series' drawn line, never at the unstacked height.
 				const raw = this.#columnOf(series.dataKey)?.[index] ?? Number.NaN;
 				const painted =
@@ -3164,7 +3164,7 @@ const advanceLabelFade = (
  * lighter than their box.
  *
  * The box is the ceiling here, not the polygon, so this family cannot hold the
- * canvas paths' equal-area contract — the shipped triangle paints 64% of the
+ * canvas paths' equal-area contract: the shipped triangle paints 64% of the
  * circle's ink, and the star 39%. Each polygon does hold its canvas twin's
  * silhouette. The cross is the plus rotated in place rather than widened to
  * fill the box, so that pair carries equal ink here too.

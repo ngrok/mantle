@@ -8,7 +8,7 @@ import { LineChart } from "./line-chart.js";
 
 /**
  * Real-browser geometry tests for the three series props whose entire effect is
- * canvas ink — `connectNulls`, `curve`, and `markers`. happy-dom's
+ * canvas ink: `connectNulls`, `curve`, and `markers`. happy-dom's
  * `getContext("2d")` is null, so the renderer never runs there and unit tests
  * can only observe the tooltip's text; the path shape is only assertable
  * against real pixels.
@@ -129,8 +129,8 @@ const inkSpan = (columns: ColumnInk[]): { first: number; last: number } => {
 };
 
 /**
- * The widest run of ink-free columns strictly inside the painted span — the
- * signature of a broken path. A continuous stroke leaves none.
+ * The widest run of ink-free columns strictly inside the painted span (the
+ * signature of a broken path). A continuous stroke leaves none.
  */
 const widestInteriorGap = (columns: ColumnInk[]): number => {
 	const { first, last } = inkSpan(columns);

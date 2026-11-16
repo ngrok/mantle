@@ -32,7 +32,7 @@ export function InlinePaletteExample() {
 						</Command.Item>
 						<Command.Item>
 							<SmileyIcon />
-							<span>Search Emoji</span>
+							<span>Search emoji</span>
 						</Command.Item>
 						<Command.Item>
 							<CalculatorIcon />

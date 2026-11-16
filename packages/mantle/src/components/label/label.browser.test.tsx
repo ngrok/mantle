@@ -11,7 +11,7 @@ import { Label } from "./label.js";
  * the full mantle stylesheet so the test stays hermetic and doesn't require a
  * Tailwind build step in the test pipeline.
  *
- * Keep the selector form identical to Tailwind's output — that's what determines
+ * Keep the selector form identical to Tailwind's output, because that's what determines
  * specificity and source order. The numeric values are inlined (vs. CSS vars) so
  * the test doesn't depend on the mantle theme being loaded.
  */

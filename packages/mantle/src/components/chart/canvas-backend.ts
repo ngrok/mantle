@@ -22,7 +22,7 @@ import {
  * every color through the Root's computed style, and repaints when the theme
  * or the device pixel ratio changes. Only ScatterPlot paints here.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation. The package does not export it.
  */
 class CanvasBackend implements PaintBackend {
 	readonly kind = "canvas";

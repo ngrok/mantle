@@ -43,9 +43,9 @@ function serializeThemeRules(css: string): string {
 		.join("\n");
 }
 
-// Light's surface is split across two rules — its own definitions at `:root`
-// (plus islands) and Tailwind's unmodified default ramps scoped to islands only
-// — so the sweep surface is the union. Taking just the page-level block would
+// Light's surface is split across two rules: its own definitions at `:root`
+// (plus islands) and Tailwind's unmodified default ramps scoped to islands only,
+// so the sweep surface is the union. Taking just the page-level block would
 // leave the ramps in the sweep only for as long as the dark block keeps
 // declaring them.
 const lightBlock = new Map([
@@ -72,7 +72,7 @@ const tailwindDefaults = parseDeclarationBlock(twThemeCss, (selector) =>
 
 /**
  * Every custom property any theme block declares, plus the palette aliases
- * and the Shiki/code-block tokens — the full inversion surface under test.
+ * and the Shiki/code-block tokens: the full inversion surface under test.
  */
 const sweepProperties = [
 	...new Set(
@@ -132,7 +132,7 @@ beforeAll(() => {
 
 afterAll(() => {
 	styleElement.remove();
-	// pageProbe sits directly under <body> — remove the probe itself, never its parent
+	// pageProbe sits directly under <body>, so remove the probe itself, never its parent
 	pageProbe.remove();
 	islandProbe.parentElement?.remove();
 	nestedIslandProbe.parentElement?.parentElement?.remove();

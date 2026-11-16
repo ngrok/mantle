@@ -16,7 +16,7 @@ import { XIcon } from "@phosphor-icons/react/X";
 import { Fragment, useLayoutEffect, useRef, useState } from "react";
 
 /**
- * The AppLayout shell on its own — no sidebar. A toggleable `Notice` strip
+ * The AppLayout shell on its own, with no sidebar. A toggleable `Notice` strip
  * pinned above everything, a toolbar `Header`, and a `Body` page region that is
  * the only scroll container. Renders as an entire framed-preview document
  * (see preview-registry.ts), so it composes like a real app shell: pinned
@@ -32,7 +32,7 @@ export function AppLayoutDemo() {
 				{showNotice && (
 					<div className="text-on-filled flex items-center gap-2 bg-red-600 px-4 py-1 text-xs">
 						<WarningCircleIcon weight="fill" className="shrink-0" />
-						Scheduled maintenance in progress — the dashboard is read-only.
+						Scheduled maintenance in progress. The dashboard is read-only.
 					</div>
 				)}
 			</AppLayout.Notice>
@@ -60,7 +60,7 @@ export function AppLayoutDemo() {
 								<div key={index} className="border-card-muted rounded-lg border p-4">
 									<p className="text-strong text-sm font-medium">Row {index + 1}</p>
 									<p className="text-muted text-sm">
-										Scroll happens inside this card with `overscroll-none` — the shell never moves
+										Scroll happens inside this card with `overscroll-none`. The shell never moves
 										and scroll never bounces the page.
 									</p>
 								</div>
@@ -100,7 +100,7 @@ type PageShape = (typeof pageShapes)[number]["id"];
 
 /**
  * The page a route renders inside `AppLayout.Body` for each documented shape.
- * Only the classes on the page's own root differ — the shell around it is
+ * Only the classes on the page's own root differ; the shell around it is
  * identical in all four cases, which is the whole point of the section.
  */
 function DemoPage({ shape }: { shape: PageShape }) {
@@ -120,7 +120,7 @@ function DemoPage({ shape }: { shape: PageShape }) {
 		return (
 			// mx-auto centers at the max width because AppLayout.Body is block
 			// inside. A real dashboard page clamps at max-w-7xl, which is wider than
-			// this preview — max-w-md keeps the centering visible at demo scale.
+			// this preview, so max-w-md keeps the centering visible at demo scale.
 			<div className="mx-auto max-w-md space-y-3 p-6">
 				<DemoRows count={8} label="Contained row" />
 			</div>
@@ -148,7 +148,7 @@ function DemoPage({ shape }: { shape: PageShape }) {
 		);
 	}
 
-	// grow and scroll — the default, and the shape that needs nothing at all
+	// grow and scroll: the default, and the shape that needs nothing at all
 	return (
 		<div className="space-y-3 p-6">
 			<DemoRows count={12} label="Row" />
@@ -269,7 +269,7 @@ export function AppLayoutHeaderSlotsExample() {
  * The four page shapes from the docs' "Sizing a page to the card", switchable
  * live: the shell markup never changes, only the classes on the page's own
  * root. Embedded rather than pinned with `fixed inset-0`, so it can sit inside
- * the docs page — `AppLayout.Root` fills its nearest sized ancestor — and
+ * the docs page (`AppLayout.Root` fills its nearest sized ancestor), and
  * `AppLayout.Body` renders a `<div>` through `asChild` because the page already
  * owns the `main` landmark.
  *
@@ -370,7 +370,7 @@ export function AppLayoutPinnedFooterExample() {
 									    sticky keeps it there once the page scrolls */}
 									<div className="bg-card border-card-muted text-muted sticky bottom-0 mt-auto flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
 										<CheckCircleIcon weight="fill" className="fill-success-600 shrink-0" />
-										Traffic policy is valid — {ruleCount} rules
+										Traffic policy is valid: {ruleCount} rules
 									</div>
 								</div>
 							</div>
@@ -391,13 +391,13 @@ const scrollResetRoutes = [
 /**
  * Resetting the card's scroll on navigation. `AppLayout.Body` is the scroll
  * container, not the document, so React Router's `ScrollRestoration` has
- * nothing to restore — a ref on the scrollport and a layout effect keyed on the
+ * nothing to restore. A ref on the scrollport and a layout effect keyed on the
  * navigation do the job instead.
  *
  * Navigation here is a **fake router**: the demo keeps a local `pathname` so it
  * can be embedded in the docs page (a real shell keys the effect on
  * `useLocation().key`, so a back/forward entry counts as a navigation too).
- * Scroll a page down, then switch pages — the card returns to the top.
+ * Scroll a page down, then switch pages. The card returns to the top.
  *
  * @example
  * ```tsx
@@ -473,7 +473,7 @@ export function AppLayoutPolymorphismDemo() {
 						<AppLayout.Body asChild>
 							<section aria-label="Demo content">
 								<p className="text-muted p-6 text-sm">
-									This scroll region is a `&lt;section&gt;` — inspect it to see the merged classes
+									This scroll region is a `&lt;section&gt;`. Inspect it to see the merged classes
 									and `data-slot=&quot;app-layout-body&quot;`.
 								</p>
 							</section>

@@ -3,7 +3,7 @@
 import changelogMarkdown from "../../../../packages/mantle/CHANGELOG.md?raw";
 
 /**
- * Serve `/changelog.md` — the raw `@ngrok/mantle` CHANGELOG as plain
+ * Serve `/changelog.md`: the raw `@ngrok/mantle` CHANGELOG as plain
  * markdown. Mirrors the docs-site convention where every page is also
  * available with a `.md` suffix for agent and tooling consumption.
  */

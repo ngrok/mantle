@@ -68,7 +68,7 @@ describe("cx", () => {
 	});
 });
 
-describe("cx — value shapes (clsx parity)", () => {
+describe("cx: value shapes (clsx parity)", () => {
 	test("object syntax resolves conflicts left-to-right by insertion order", () => {
 		expect(cx({ "p-4": true, "p-8": true })).toBe("p-8");
 	});
@@ -100,7 +100,7 @@ describe("cx — value shapes (clsx parity)", () => {
 	});
 });
 
-describe("cx — modifiers, important, postfix, arbitrary", () => {
+describe("cx: modifiers, important, postfix, arbitrary", () => {
 	test("variant modifiers scope conflicts", () => {
 		expect(cx("hover:bg-red-500 hover:bg-blue-500")).toBe("hover:bg-blue-500");
 		expect(cx("md:p-4 md:p-8")).toBe("md:p-8");
@@ -137,10 +137,10 @@ describe("cx — modifiers, important, postfix, arbitrary", () => {
 	});
 });
 
-describe("cx — responsive breakpoint modifiers", () => {
+describe("cx: responsive breakpoint modifiers", () => {
 	// Mantle layers custom breakpoints on top of Tailwind's defaults in mantle.css
 	// (`--breakpoint-2xs: 22.5rem`, `--breakpoint-xs: 30rem`). The merge engine never validates a
-	// variant prefix against a configured breakpoint/screens list — every prefix, custom or
+	// variant prefix against a configured breakpoint/screens list: every prefix, custom or
 	// built-in, is parsed and sorted as an opaque modifier. So mantle's custom breakpoints get
 	// conflict-scoped exactly like the built-ins with zero extra config: distinct breakpoints get
 	// distinct conflict keys and all survive, while same-breakpoint utilities in the same group
@@ -177,7 +177,7 @@ describe("cx — responsive breakpoint modifiers", () => {
 	});
 });
 
-describe("cx — tagged-template form", () => {
+describe("cx: tagged-template form", () => {
 	test("merges a static template", () => {
 		expect(cx`px-2 px-4`).toBe("px-4");
 	});
@@ -218,7 +218,7 @@ describe("cx — tagged-template form", () => {
 	});
 });
 
-describe("cx — caching correctness", () => {
+describe("cx: caching correctness", () => {
 	test("same first arg, different rest args do not cross-contaminate", () => {
 		expect(cx("p-4", "p-8")).toBe("p-8");
 		expect(cx("p-4", "p-2")).toBe("p-2");
@@ -247,11 +247,11 @@ describe("cx — caching correctness", () => {
 	});
 });
 
-describe("cx — long class lists", () => {
+describe("cx: long class lists", () => {
 	// The engine tracks keep/drop decisions in a Uint8Array that starts at 64 entries and doubles to
 	// fit longer lists. A TypedArray write past the end silently no-ops and the read back is
-	// `undefined`, so broken growth arithmetic would drop every token past index 63 with no error —
-	// reachable when a cva base, several variant strings, and a consumer className concatenate.
+	// `undefined`, so broken growth arithmetic would drop every token past index 63 with no error;
+	// it is reachable when a cva base, several variant strings, and a consumer className concatenate.
 	const nonConflicting = Array.from(
 		{ length: 70 },
 		(_, index) => `[--mantle-long-list-${index}:${index}]`,

@@ -143,7 +143,7 @@ describe("ChaseTween", () => {
 		expect(chase.active).toBe(false);
 	});
 
-	test("re-aiming mid-glide continues from the current value — no restart stutter", () => {
+	test("re-aiming mid-glide continues from the current value with no restart stutter", () => {
 		const chase = new ChaseTween({ speed: 0.2 });
 		chase.jump([0]);
 		chase.aim([100], 0);
@@ -196,7 +196,7 @@ describe("ChaseTween", () => {
 		expect(after).toBeLessThan(50);
 	});
 
-	test("epoch-magnitude domains still glide — the snap threshold follows the journey, not the target size", () => {
+	test("epoch-magnitude domains still glide: the snap threshold follows the journey, not the target size", () => {
 		// Regression: with a snap distance relative to |target| (~1.75e12 epoch
 		// ms), a streaming time window's 150ms shift snapped on the first tick
 		// and live charts never animated.
@@ -231,7 +231,7 @@ describe("ChaseTween", () => {
 		// Regression: live charts re-aim the identical y-domain target on every
 		// data ingest (~every few frames). Each re-aim rewrote the journey with
 		// the shrinking remaining distance, ratcheting the snap threshold below
-		// the float rounding of `current + (target - current) * factor` — the
+		// the float rounding of `current + (target - current) * factor`. The
 		// update stopped making representable progress, tick() returned true
 		// forever, and the engine repainted at full rate indefinitely.
 		const runScenario = (options: {

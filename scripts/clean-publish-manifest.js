@@ -15,12 +15,12 @@ import path from "node:path";
  *    development and would point npm consumers at `./src/...` paths that are
  *    excluded from the tarball.
  * 2. Drop `import` conditions that duplicate a sibling `default` condition
- *    with the same target — `default` already matches importers.
+ *    with the same target, because `default` already matches importers.
  * 3. Collapse `{ "types": "./dist/x.d.ts", "import": "./dist/x.js" }` entries
  *    to the plain string `"./dist/x.js"`. TypeScript resolves the sibling
  *    `.d.ts` next to a string export target automatically, so the explicit
  *    `types` condition is redundant.
- * 4. Delete `devDependencies` and `scripts` — consumers never install or run
+ * 4. Delete `devDependencies` and `scripts`: consumers never install or run
  *    them. pnpm resolves the pack lifecycle from the manifest it read at
  *    startup, so deleting `scripts` here does not stop `postpack` from
  *    running.
@@ -129,7 +129,7 @@ function siblingDeclarationPath(jsPath) {
  * exactly `{ types, import }` where `types` is the `.d.ts` sibling of the
  * `import` target collapses to the plain `import` string (TypeScript finds
  * the sibling declaration file on its own). Entries that don't match these
- * shapes are returned unchanged — a conservative rule, so anything with e.g.
+ * shapes are returned unchanged. This is a conservative rule, so anything with e.g.
  * a `require` condition or a non-sibling `types` path stays an object.
  *
  * @param {unknown} entry one value of the `exports` map
@@ -166,7 +166,7 @@ function collapseRedundantConditions(entry) {
 /**
  * Back up the pristine `package.json`, then rewrite it in its lean published
  * form (see the module doc for the exact transformations). Fails fast if a
- * backup already exists — that means a previous pack aborted before its
+ * backup already exists: that means a previous pack aborted before its
  * `restore` ran, and overwriting the backup with the (possibly
  * already-cleaned) working copy would destroy the only pristine manifest.
  */

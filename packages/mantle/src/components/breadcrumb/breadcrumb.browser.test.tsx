@@ -12,7 +12,7 @@ import { Breadcrumb } from "./breadcrumb.js";
  *
  * Keep each declaration identical to Tailwind's output: the geometry these tests
  * assert is only tied to the component while the class names here match the ones
- * it renders. `scroll-fade-x` is left out on purpose — a mask changes what paints,
+ * it renders. `scroll-fade-x` is left out on purpose: a mask changes what paints,
  * never what measures, and `breadcrumb.test.tsx` pins its spelling.
  */
 const STYLE = `
@@ -33,7 +33,7 @@ const STYLE = `
 	.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
 }
 
-/* The toolbar the trail has to fit into — AppLayout.Header, narrowed. */
+/* The toolbar the trail has to fit into: AppLayout.Header, narrowed. */
 .test-header {
 	display: flex;
 	align-items: center;
@@ -251,8 +251,8 @@ describe("Breadcrumb overflow", () => {
 		const listBox = list.getBoundingClientRect();
 		const pageBox = page.getBoundingClientRect();
 
-		// Everything outside the list's border box is clipped twice over — by the
-		// scrollport and by the mask, whose clip box is that border box — so the
+		// Everything outside the list's border box is clipped twice over (by the
+		// scrollport and by the mask, whose clip box is that border box), so the
 		// room has to be inside it, on all three edges a crumb can reach.
 		expect(pageBox.top - listBox.top).toBeGreaterThanOrEqual(FOCUS_RING);
 		expect(listBox.bottom - pageBox.bottom).toBeGreaterThanOrEqual(FOCUS_RING);

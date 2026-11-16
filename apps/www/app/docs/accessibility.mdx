@@ -60,7 +60,7 @@ The table below summarizes the keyboard contract for the most common interactive
 | [Checkbox](/components/forms/checkbox) / [Switch](/components/forms/switch)                                                 | `Tab` to focus, `Space` to toggle.                                                                                                                |
 | [RadioGroup](/components/forms/radio-group)                                                                                 | `Tab` to enter the group, `Arrow` keys to move and select within the group.                                                                       |
 | [Tabs](/components/navigation/tabs)                                                                                         | `Tab` to enter the tab list, `Arrow Left`/`Right` to move, `Home`/`End` to jump, `Enter`/`Space` to activate.                                     |
-| [Dialog](/components/overlays/dialog) / [AlertDialog](/components/overlays/alert-dialog)                                    | Focus is trapped inside while open, `Esc` closes (Dialog only — AlertDialog requires explicit confirmation), `Tab`/`Shift+Tab` cycles focus.      |
+| [Dialog](/components/overlays/dialog) / [AlertDialog](/components/overlays/alert-dialog)                                    | Focus is trapped inside while open, `Esc` closes (Dialog only; AlertDialog requires explicit confirmation), `Tab`/`Shift+Tab` cycles focus.       |
 | [Sheet](/components/overlays/sheet)                                                                                         | Same as Dialog.                                                                                                                                   |
 | [Popover](/components/overlays/popover) / [HoverCard](/components/overlays/hover-card)                                      | `Esc` closes; `Tab` cycles focusable content. HoverCard opens on hover/focus and is non-essential.                                                |
 | [DropdownMenu](/components/overlays/dropdown-menu) / [Command](/components/navigation/command)                              | `Arrow Up`/`Down` to navigate items, `Enter` to select, `Esc` to close, type-ahead jumps to matching items.                                       |
@@ -136,4 +136,4 @@ If a third-party widget or constraint makes a component temporarily inaccessible
 2. Communicate the limitation to the user: don't ship invisible inaccessibility.
 3. Add a fallback path (e.g. a plain `<a>` with the same target) so keyboard and screen-reader users are not blocked.
 
-The goal isn't perfect compliance forever; it's making the right choice the default and surfacing the exceptions honestly.
+The goal isn't perfect compliance forever. It's to make the right choice the default and to keep every exception visible.

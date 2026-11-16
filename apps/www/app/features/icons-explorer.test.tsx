@@ -16,7 +16,7 @@ describe("IconsExplorer", () => {
 		const user = userEvent.setup();
 		render(<IconsExplorer />);
 
-		await user.type(screen.getByRole("textbox", { name: "Search Icons" }), "logo");
+		await user.type(screen.getByRole("textbox", { name: "Search icons" }), "logo");
 
 		const shown = screen.getAllByRole("listitem").map((item) => item.textContent);
 		expect(shown).toHaveLength(2);
@@ -27,14 +27,14 @@ describe("IconsExplorer", () => {
 	test("offers a clear button when nothing matches, and the button restores the grid", async () => {
 		const user = userEvent.setup();
 		render(<IconsExplorer />);
-		const search = screen.getByRole("textbox", { name: "Search Icons" });
+		const search = screen.getByRole("textbox", { name: "Search icons" });
 
 		await user.type(search, "zzzz");
 
 		expect(screen.queryAllByRole("listitem")).toHaveLength(0);
 		expect(screen.queryByText("zzzz")).not.toBeNull();
 
-		await user.click(screen.getByRole("button", { name: "Clear Search" }));
+		await user.click(screen.getByRole("button", { name: "Clear search" }));
 
 		expect(screen.getAllByRole("listitem")).toHaveLength(iconData.length);
 		expect(search).toHaveProperty("value", "");

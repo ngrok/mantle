@@ -46,7 +46,7 @@ describe("parseCodeBlockHighlightLines", () => {
 	});
 
 	test("tolerates whitespace around entries", () => {
-		// A metastring value is authored the natural way — `highlightLines="1, 3-5, 7"` —
+		// A metastring value is authored the natural way (`highlightLines="1, 3-5, 7"`),
 		// so every segment after the first arrives with a leading space.
 		expect(parseCodeBlockHighlightLines("1, 3-5, 7")).toEqual([1, "3-5", 7]);
 		expect(parseCodeBlockHighlightLines([" 4 ", " 6-8 "])).toEqual([4, "6-8"]);

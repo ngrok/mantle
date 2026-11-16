@@ -3,7 +3,7 @@
  * the DOM, so a component's update path can be asserted against it.
  *
  * Google Translate wraps each text node in a `<font>` element. The original
- * text node is _reparented_ — React's reference to it stays alive, but its
+ * text node is _reparented_: React's reference to it stays alive, but its
  * parent is now the `<font>` rather than the element React rendered it into.
  * A later `insertBefore` or `removeChild` that React aims at that node then
  * names a node its parent no longer owns, and the DOM raises `NotFoundError`.

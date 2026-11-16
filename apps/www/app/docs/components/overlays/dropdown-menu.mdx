@@ -32,7 +32,7 @@ function Example() {
 		<DropdownMenu.Root>
 			<DropdownMenu.Trigger asChild>
 				<Button type="button" appearance="filled" intent="neutral">
-					Open Menu
+					Open menu
 				</Button>
 			</DropdownMenu.Trigger>
 			<DropdownMenu.Content>
@@ -46,15 +46,15 @@ function Example() {
 				>
 					<DropdownMenu.RadioItem value="system">
 						<Icon svg={<DesktopIcon />} />
-						System Preference
+						System preference
 					</DropdownMenu.RadioItem>
 					<DropdownMenu.RadioItem value="light">
 						<Icon svg={<SunIcon />} />
-						Light Mode
+						Light mode
 					</DropdownMenu.RadioItem>
 					<DropdownMenu.RadioItem value="dark">
 						<Icon svg={<MoonIcon />} />
-						Dark Mode
+						Dark mode
 					</DropdownMenu.RadioItem>
 				</DropdownMenu.RadioGroup>
 				<DropdownMenu.Separator />
@@ -62,7 +62,7 @@ function Example() {
 					<Tooltip.Trigger asChild>
 						<DropdownMenu.Item className="flex items-center gap-2" disabled>
 							<Icon svg={<GearIcon />} />
-							User Settings
+							User settings
 						</DropdownMenu.Item>
 					</Tooltip.Trigger>
 					<Tooltip.Content side="left">Only winners get user settings.</Tooltip.Content>
@@ -74,7 +74,7 @@ function Example() {
 						setEnableNotifications(value);
 					}}
 				>
-					Enable Notifications
+					Enable notifications
 				</DropdownMenu.CheckboxItem>
 				<DropdownMenu.Group>
 					<DropdownMenu.Item>Team</DropdownMenu.Item>
@@ -88,7 +88,7 @@ function Example() {
 						</DropdownMenu.SubContent>
 					</DropdownMenu.Sub>
 					<DropdownMenu.Item>
-						New Team
+						New team
 						<DropdownMenu.Shortcut>⌘+T</DropdownMenu.Shortcut>
 					</DropdownMenu.Item>
 				</DropdownMenu.Group>
@@ -198,14 +198,14 @@ The container for the dropdown menu content. Appears in a portal with scrolling 
 
 All props from Radix [DropdownMenu.Content](https://www.radix-ui.com/primitives/docs/components/dropdown-menu#content), plus:
 
-| Prop           | Type                                           | Default    | Description                                                                                                                                                   |
-| :------------- | :--------------------------------------------- | :--------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `width?`       | `"trigger"` \| `"content"`                     |            | `trigger` will ensure the dropdown content is the same width as the trigger button. `content` will make the dropdown content use the intrinsic content width. |
-| `side?`        | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | `"bottom"` | The preferred side of the trigger to render against when open.                                                                                                |
-| `sideOffset?`  | `number`                                       |            | The distance in pixels from the trigger.                                                                                                                      |
-| `align?`       | `"start"` \| `"center"` \| `"end"`             | `"center"` | The preferred alignment against the trigger.                                                                                                                  |
-| `alignOffset?` | `number`                                       | `0`        | An offset in pixels from the `start` or `end` alignment options.                                                                                              |
-| `loop?`        | `boolean`                                      | `true`     | When `true`, keyboard navigation will loop from last item to first, and vice versa.                                                                           |
+| Prop           | Type                                           | Default    | Description                                                                                                                                        |
+| :------------- | :--------------------------------------------- | :--------- | :------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `width?`       | `"trigger"` \| `"content"`                     |            | `trigger` sets the dropdown content to the same width as the trigger button. `content` makes the dropdown content use the intrinsic content width. |
+| `side?`        | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | `"bottom"` | The preferred side of the trigger to render against when open.                                                                                     |
+| `sideOffset?`  | `number`                                       |            | The distance in pixels from the trigger.                                                                                                           |
+| `align?`       | `"start"` \| `"center"` \| `"end"`             | `"center"` | The preferred alignment against the trigger.                                                                                                       |
+| `alignOffset?` | `number`                                       | `0`        | An offset in pixels from the `start` or `end` alignment options.                                                                                   |
+| `loop?`        | `boolean`                                      | `true`     | When `true`, keyboard navigation will loop from last item to first, and vice versa.                                                                |
 
 ### DropdownMenu.Item
 

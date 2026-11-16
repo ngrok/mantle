@@ -23,7 +23,7 @@ export type PackageInfo = {
 
 /**
  * `package.json#repository` may be a bare URL string or a `{ type, url }`
- * object — the npm spec allows both. Normalize to a URL or undefined.
+ * object; the npm spec allows both. Normalize to a URL or undefined.
  */
 function repositoryUrl(): string | undefined {
 	const repository = mantlePackageJson.repository;
@@ -38,7 +38,7 @@ function repositoryUrl(): string | undefined {
 }
 
 /**
- * Cached for the process lifetime — the inputs all come from the static
+ * Cached for the process lifetime: the inputs all come from the static
  * JSON import above, so a rebuild is the only thing that can change them.
  */
 let cached: PackageInfo | null = null;

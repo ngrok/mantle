@@ -29,7 +29,7 @@ type StackLengths = {
 /**
  * Generic undo/redo hook that maintains two history stacks (undo and redo).
  *
- * The hook does not own your application state — instead it helps you
+ * The hook does not own your application state; instead it helps you
  * snapshot it. Call `push(snapshot)` *before* mutating state to capture
  * the current value, then call `undo(current)` or `redo(current)` to swap
  * `current` with the previous/next snapshot. Both `undo` and `redo` return
@@ -37,7 +37,7 @@ type StackLengths = {
  * new snapshot clears the redo stack, matching standard editor semantics.
  *
  * `push`, `undo`, and `redo` operate on the live history, so calling them
- * multiple times within a single event handler works as expected — each
+ * multiple times within a single event handler works as expected: each
  * call sees the result of the previous one.
  *
  * @typeParam T - The type of the value being snapshotted (e.g. a list of

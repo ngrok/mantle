@@ -49,7 +49,7 @@ describe("useDebounce", () => {
 		act(() => {
 			vi.advanceTimersByTime(200);
 		});
-		// each change restarted the timer — still the original value
+		// each change restarted the timer, so it is still the original value
 		expect(result.current).toBe("a");
 
 		act(() => {

@@ -11,7 +11,7 @@ import {
 } from "./direction.js";
 
 /**
- * Values that are not strings at all — every guard must reject them before it
+ * Values that are not strings at all: every guard must reject them before it
  * reaches `Array.prototype.includes`. Kept as `{ label, value }` records so an
  * array or object case is passed as one argument instead of being spread.
  */

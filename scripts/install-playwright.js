@@ -16,7 +16,7 @@
 import { execSync } from "node:child_process";
 
 if (process.env.PLAYWRIGHT_WS_ENDPOINT) {
-	console.log("PLAYWRIGHT_WS_ENDPOINT is set — skipping local Chromium install.");
+	console.log("PLAYWRIGHT_WS_ENDPOINT is set; skipping local Chromium install.");
 	process.exit(0);
 }
 

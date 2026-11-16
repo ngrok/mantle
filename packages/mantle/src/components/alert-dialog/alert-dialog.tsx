@@ -42,7 +42,7 @@ function useAlertDialogContext() {
 
 type AlertDialogProps = ComponentProps<typeof AlertDialogPrimitiveRoot> & {
 	/**
-	 * The intent of the AlertDialog — the tone its color communicates to the
+	 * The intent of the AlertDialog: the tone its color communicates to the
 	 * user, affecting the color and styling of descendants like
 	 * `AlertDialog.Icon` and `AlertDialog.Action`.
 	 */
@@ -259,7 +259,7 @@ const Content = ({
 		{/* Why the positioner is the layer container: floats composed inside the
 		    alert dialog portal into it, after the content, so they paint above
 		    the content inside the alert dialog's own stacking context. It stays
-		    free of transforms — the open animation lives on the content — so a
+		    free of transforms (the open animation lives on the content), so a
 		    portaled float's `position: fixed` still resolves against the viewport. */}
 		<LayerContainer
 			data-slot="alert-dialog-positioner"
@@ -561,7 +561,7 @@ const Description = ({
 
 type AlertDialogActionProps = Omit<ButtonProps, "appearance" | "intent"> & {
 	/**
-	 * The visual style of the action button. Optional here — `AlertDialog.Action`
+	 * The visual style of the action button. Optional here: `AlertDialog.Action`
 	 * defaults to `"filled"` so the confirming action carries the heaviest
 	 * visual weight in the dialog.
 	 *
@@ -569,7 +569,7 @@ type AlertDialogActionProps = Omit<ButtonProps, "appearance" | "intent"> & {
 	 */
 	appearance?: ButtonAppearance;
 	/**
-	 * The tone of the action button. Optional here — when omitted,
+	 * The tone of the action button. Optional here. When omitted,
 	 * `AlertDialog.Action` derives the tone from the parent `AlertDialog.Root`'s
 	 * `intent` (`"danger"` → `"danger"`, `"info"` → `"neutral"`). A passed
 	 * value always wins over the context-derived tone.
@@ -653,7 +653,7 @@ const Action = ({
 
 type AlertDialogCancelProps = Omit<ButtonProps, "appearance" | "intent"> & {
 	/**
-	 * The visual style of the cancel button. Optional here — `AlertDialog.Cancel`
+	 * The visual style of the cancel button. Optional here: `AlertDialog.Cancel`
 	 * defaults to `"outlined"` so it visually de-emphasizes against
 	 * `AlertDialog.Action`.
 	 *
@@ -661,7 +661,7 @@ type AlertDialogCancelProps = Omit<ButtonProps, "appearance" | "intent"> & {
 	 */
 	appearance?: ButtonAppearance;
 	/**
-	 * The tone of the cancel button. Optional here — `AlertDialog.Cancel`
+	 * The tone of the cancel button. Optional here: `AlertDialog.Cancel`
 	 * defaults to `"neutral"`, the workhorse tone for routine actions.
 	 *
 	 * @default "neutral"
@@ -864,7 +864,7 @@ const Close = ({
  * A modal dialog that interrupts the user with important content and expects a
  * response. Use AlertDialog for destructive or irreversible confirmations
  * (delete, sign out, leave without saving) where the user must explicitly
- * acknowledge before proceeding — it blocks all background interaction by
+ * acknowledge before proceeding. It blocks all background interaction by
  * default. For non-destructive input modals or confirmation flows, use
  * `Dialog` instead. For side-panel content (filter panels, detail views,
  * navigation drawers), use `Sheet`.

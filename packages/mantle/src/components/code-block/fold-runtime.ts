@@ -2,7 +2,7 @@
  * Runtime fold/unfold behavior for `CodeBlock.Code` lives in this module so it
  * can be unit-tested independently of React. The implementation deliberately
  * keeps all interaction state in the DOM and uses a single delegated event
- * handler per `<pre>` — no per-line listeners, no React re-renders on toggle.
+ * handler per `<pre>`: no per-line listeners, no React re-renders on toggle.
  *
  * Why event delegation: GitHub's diff-line performance work showed that
  * attaching listeners per line scales poorly past ~1000 rows. A single
@@ -22,7 +22,7 @@ type FoldGeometry = {
 	/**
 	 * Per-line cache of parent fold-region IDs as a `Set`. Pre-parsed at
 	 * map-build time so toggles can avoid re-splitting `data-fold-regions`
-	 * on every affected line every click — meaningful when 1000+ lines belong
+	 * on every affected line every click. This matters when 1000+ lines belong
 	 * to the toggled region.
 	 */
 	lineToRegions: WeakMap<HTMLElement, Set<string>>;
@@ -103,7 +103,7 @@ function resetFoldState(codeElement: Element): void {
  * Cheap liveness probe: checks whether the first cached line is still
  * attached to the document. If `innerHTML` was replaced under us, the cached
  * line elements get detached and {@link Element.isConnected} flips to false.
- * Inspecting one entry is enough — they all detach together when the parent's
+ * Inspecting one entry is enough: they all detach together when the parent's
  * `innerHTML` is reset.
  */
 function isGeometryConnected(geometry: FoldGeometry): boolean {
@@ -117,7 +117,7 @@ function isGeometryConnected(geometry: FoldGeometry): boolean {
 		}
 		return sample.isConnected;
 	}
-	// Empty geometry — treat as still valid; rebuilding wouldn't add anything.
+	// Empty geometry: treat as still valid; rebuilding wouldn't add anything.
 	return true;
 }
 

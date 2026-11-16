@@ -27,8 +27,8 @@ describe("Main", () => {
 		expect(main).not.toHaveFocus();
 
 		// SkipToMainLink resolves its target with getElementById(targetId), so its
-		// default "main" target and Main's id="main" are one cross-file contract —
-		// both sides are rendered here so a rename of either turns this red.
+		// default "main" target and Main's id="main" are one cross-file contract.
+		// Both sides are rendered here so a rename of either turns this red.
 		await user.click(screen.getByRole("link", { name: "Skip to main content" }));
 
 		expect(main).toHaveFocus();

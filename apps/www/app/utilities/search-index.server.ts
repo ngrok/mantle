@@ -19,7 +19,7 @@ export type SearchEntry = {
 	docsUrl: string;
 	markdownUrl: string;
 	summary?: string;
-	/** Set on components only — hooks/utilities don't carry a lifecycle. */
+	/** Set on components only; hooks/utilities don't carry a lifecycle. */
 	status?: "stable" | "preview";
 	/** Docs sidebar category (e.g. "Data Display"). Components only. */
 	category?: string;

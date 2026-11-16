@@ -424,7 +424,7 @@ const Content = ({
 			{/* Why the positioner is the layer container: floats composed inside the
 			    sheet portal into it, after the content, so they paint above the
 			    content inside the sheet's own stacking context. The content cannot be
-			    the container itself — its slide animation carries a transform, which
+			    the container itself: its slide animation carries a transform, which
 			    would turn a portaled float's `position: fixed` into a position
 			    relative to the content. The positioner has no box of its own; the
 			    content keeps its own fixed positioning. */}
@@ -451,7 +451,7 @@ type SheetCloseIconButtonProps = Partial<
 	Omit<IconButtonProps, "icon" | "appearance" | "intent">
 > & {
 	/**
-	 * The visual style of the close icon button. Optional here —
+	 * The visual style of the close icon button. Optional here:
 	 * `Sheet.CloseIconButton` defaults to `"ghost"` so it stays visually quiet
 	 * in the `Sheet.Header` beside the title.
 	 *
@@ -459,7 +459,7 @@ type SheetCloseIconButtonProps = Partial<
 	 */
 	appearance?: IconButtonAppearance;
 	/**
-	 * The tone of the close icon button. Optional here — `Sheet.CloseIconButton`
+	 * The tone of the close icon button. Optional here: `Sheet.CloseIconButton`
 	 * defaults to `"neutral"`, the workhorse tone for routine dismissal, and the
 	 * only tone `IconButton` draws.
 	 *

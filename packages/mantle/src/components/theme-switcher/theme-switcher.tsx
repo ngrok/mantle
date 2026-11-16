@@ -182,8 +182,8 @@ type ThemeDropdownMenuItemProps = WithStyleProps &
 	);
 
 /**
- * Must render inside a `DropdownMenu.Content` or `DropdownMenu.SubContent` —
- * the type system cannot express this constraint, so it is on you to uphold it.
+ * Must render inside a `DropdownMenu.Content` or `DropdownMenu.SubContent`.
+ * The type system cannot express this constraint, so it is on you to uphold it.
  *
  * The light/dark toggle for an existing menu, such as an account menu: one
  * "Theme" row that ends in the `ThemeSwitcher` icon. It is the menu form of

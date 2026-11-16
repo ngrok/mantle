@@ -69,7 +69,7 @@ describe("HoverCard", () => {
 
 			// A cross-element pin, asserted where both sides render together. The arrow's
 			// wrapper is absolutely positioned, so `HoverCard.Content` has to be its
-			// containing block — otherwise the open animation's `scale` becomes that
+			// containing block; otherwise the open animation's `scale` becomes that
 			// containing block for one frame and the arrow lands 1px off. No Tailwind runs
 			// in either vitest project, so the class is the only observable form here;
 			// `popover.browser.test.tsx` measures the same geometry on the shared shape.

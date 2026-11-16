@@ -1,7 +1,7 @@
 /**
  * The grammar contract of the query-filter language.
  *
- * A grammar declares the qualifier keys of one list surface — their spellings,
+ * A grammar declares the qualifier keys of one list surface: their spellings,
  * their fixed values, and how one value tests one item. The engine modules
  * (`parse`, `match`, `suggestions`, `highlight`) stay grammar-agnostic and take
  * the grammar as their first argument, so every list can speak the same
@@ -9,7 +9,7 @@
  *
  * Spellings stay forgiving through explicit aliases, never fuzzy matching:
  * each accepted spelling is one entry, matched case-insensitively, and the
- * suggestions always write the canonical form — so a shared `?q=` URL never
+ * suggestions always write the canonical form, so a shared `?q=` URL never
  * surprises the person who opens it.
  */
 
@@ -170,8 +170,8 @@ function getFilterSyntax<Item>(grammar: FilterGrammar<Item>): FilterSyntax {
 /**
  * Resolves a written key to its definition, case-insensitively.
  *
- * @returns the definition, or `null` when the spelling is not a qualifier —
- * in which case the caller keeps the whole token as free text.
+ * @returns the definition, or `null` when the spelling is not a qualifier. In
+ * that case the caller keeps the whole token as free text.
  *
  * @example
  * ```ts
@@ -192,11 +192,11 @@ function resolveFilterKey<Item>(
  * Free-text keys have no vocabulary, so their values pass through unchanged.
  *
  * @returns the canonical value, or `null` when the key is enumerated and the
- * spelling matches no alias — that filter then matches no item.
+ * spelling matches no alias. That filter then matches no item.
  *
  * @example
  * ```ts
- * resolveFilterValue(grammar, "is", "LIVE"); // => "active" — an alias
+ * resolveFilterValue(grammar, "is", "LIVE"); // => "active" (an alias)
  * resolveFilterValue(grammar, "is", "bogus"); // => null
  * resolveFilterValue(grammar, "description", "Staging API"); // => "Staging API"
  * ```

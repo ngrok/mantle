@@ -3,7 +3,7 @@ import { preventCloseOnPromptInteraction } from "./prevent-close-on-prompt-inter
 
 /**
  * Dispatches a cancelable pointerdown on `node` and returns the event with its
- * `target` populated — the only way to hand the guard a real event whose target
+ * `target` populated: the only way to hand the guard a real event whose target
  * is the node under test (a hand-rolled object would need a type assertion).
  */
 function pointerDownOn(node: EventTarget): MouseEvent {
@@ -63,7 +63,7 @@ describe("preventCloseOnPromptInteraction", () => {
 	});
 
 	test("ignores a non-Element target instead of throwing", () => {
-		// window/document-retargeted events have no `closest` — the guard's
+		// window/document-retargeted events have no `closest`; the guard's
 		// `instanceof Element` check is what keeps them from throwing.
 		const event = pointerDownOn(window);
 		expect(event.target).not.toBeInstanceOf(Element);

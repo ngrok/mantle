@@ -102,7 +102,7 @@ const accounts = [
 	{ id: "acc_atlas", name: "Atlas Industries" },
 ];
 
-/** The product's own pages — what `Sidebar.Body` shows most of the time. */
+/** The product's own pages: what `Sidebar.Body` shows most of the time. */
 const productSections: Array<NavSection> = [
 	{
 		title: "Traffic",
@@ -174,7 +174,7 @@ function ProductSwitcher({
 						{product.icon}
 						<span className="text-strong min-w-0 flex-1 truncate text-base">{product.label}</span>
 						{/* the double caret reads "pick one of several", not "a menu drops from
-						    here" — that is the caret-down the account switcher uses */}
+						    here". That is the caret-down the account switcher uses */}
 						<CaretUpDownIcon className="text-muted size-4 shrink-0" />
 					</Sidebar.SwitcherTrigger>
 				</Dialog.Trigger>
@@ -240,7 +240,7 @@ function SettingsHeader({
 	);
 }
 
-/** Whichever navigation section is showing — a product's pages, or settings. */
+/** Whichever navigation section is showing: a product's pages, or settings. */
 function ShellNav({
 	onNavigate,
 	pathname,
@@ -334,7 +334,7 @@ function HelpMenu() {
 }
 
 /**
- * The footer's account switcher: one row covering both scopes — account
+ * The footer's account switcher: one row covering both scopes: account
  * destinations (billing, account settings, switching) and user-level items
  * (user settings, theme, log out).
  */
@@ -361,7 +361,7 @@ function AccountSwitcher({
 							{account.name}
 						</span>
 						{/* the user has no picture here, so the avatar is a silhouette that
-						    names the signed-in user itself — a bare span is role=generic,
+						    names the signed-in user itself. A bare span is role=generic,
 						    where an accessible name is prohibited, hence role="img" */}
 						<Avatar.Root aria-label="Jane Doe" className="text-muted" role="img">
 							<Avatar.Fallback>
@@ -497,7 +497,7 @@ export function Shell() {
 	// the framed examples fake a router so they can be embedded; a real app
 	// renders react-router `Link`s through `asChild` and derives both `current`
 	// and which section is showing from `useLocation()`. The rows'
-	// `Sidebar.Tooltip`s need a `TooltipProvider` ancestor — the docs site mounts
+	// `Sidebar.Tooltip`s need a `TooltipProvider` ancestor. The docs site mounts
 	// one at its root, so mount one at yours too.
 	const [pathname, setPathname] = useState("/endpoints");
 	// where the settings section's back link returns to: the product page you
@@ -844,7 +844,7 @@ export function SectionContent() {
 					<AppLayout.Body asChild>
 						<section aria-label="Demo content">
 							<p className="text-muted p-6 text-sm">
-								This scroll region is a `&lt;section&gt;` — inspect it to see the merged classes and
+								This scroll region is a `&lt;section&gt;`. Inspect it to see the merged classes and
 								`data-slot=&quot;app-layout-body&quot;`.
 							</p>
 						</section>
@@ -1454,7 +1454,7 @@ export function Shell() {
 				{showNotice && (
 					<div className="text-on-filled flex items-center gap-2 bg-red-600 px-4 py-1 text-xs">
 						<WarningCircleIcon weight="fill" className="shrink-0" />
-						Scheduled maintenance in progress — the dashboard is read-only.
+						Scheduled maintenance in progress. The dashboard is read-only.
 					</div>
 				)}
 			</AppLayout.Notice>
@@ -1584,7 +1584,7 @@ function Page({ shape }: { shape: PageShape }) {
 		);
 	}
 
-	// grow and scroll — the default, and the shape that needs nothing at all
+	// grow and scroll: the default, and the shape that needs nothing at all
 	return (
 		<div className="space-y-3 p-6">
 			<Rows count={12} label="Row" />
@@ -1642,10 +1642,10 @@ Why each class on `AppLayout.Body` is there, and what breaks without it:
   `mx-auto max-w-7xl` would shrink-to-fit, getting _narrower_ as the viewport gets _wider_. Keeping the page
   region block-level is what makes the most common page shape work at all.
 - **`w-full`** states the width outright instead of leaning on the flex container's cross-axis `stretch`, so an
-  `mx-auto` merged onto `Body` still leaves it full width — auto cross-axis margins would otherwise turn a
+  `mx-auto` merged onto `Body` still leaves it full width. Auto cross-axis margins would otherwise turn a
   stretched item into a shrink-to-fit one. It is no floor, though: `cx` is tailwind-merge-backed and the
-  consumer's `className` wins, so a merged `w-*` replaces it outright, while a merged `max-w-*` — a separate
-  conflict group — survives beside it and clamps the scrollport. Constrain the _page_ inside `Body`, not
+  consumer's `className` wins, so a merged `w-*` replaces it outright, while a merged `max-w-*` (a separate
+  conflict group) survives beside it and clamps the scrollport. Constrain the _page_ inside `Body`, not
   `Body` itself.
 - **`relative`** contains absolutely-positioned page content: a toolbar floating over an editor resolves
   against the scrollport instead of escaping to `AppLayout.Root` and painting across the sidebar rail.
@@ -1729,7 +1729,7 @@ export function EditorPage() {
 						<AppLayout.Body>
 							{/* The page fills the card: flex column, h-full. */}
 							<div className="flex h-full flex-col">
-								{/* Toolbar row — shrink-0 so it never gives up height */}
+								{/* Toolbar row: shrink-0 so it never gives up height */}
 								<div className="border-card-muted flex shrink-0 items-center gap-3 border-b px-6 py-3">
 									<p className="text-strong text-sm font-medium">Policy editor</p>
 									<Badge appearance="muted" color="neutral">
@@ -1777,10 +1777,10 @@ export function EditorPage() {
 									</pre>
 								</div>
 
-								{/* Status bar — shrink-0, so it pins to the card's bottom edge */}
+								{/* Status bar: shrink-0, so it pins to the card's bottom edge */}
 								<div className="border-card-muted text-muted flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
 									<CheckCircleIcon weight="fill" className="fill-success-600 shrink-0" />
-									Policy is valid — {ruleCount} rules
+									Policy is valid: {ruleCount} rules
 								</div>
 							</div>
 						</AppLayout.Body>
@@ -1871,7 +1871,7 @@ export function PolicyPage() {
 								    sticky keeps it there once the page scrolls */}
 								<div className="bg-card border-card-muted text-muted sticky bottom-0 mt-auto flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
 									<CheckCircleIcon weight="fill" className="fill-success-600 shrink-0" />
-									Traffic policy is valid — {ruleCount} rules
+									Traffic policy is valid: {ruleCount} rules
 								</div>
 							</div>
 						</div>
@@ -1932,7 +1932,7 @@ const policy = [
 	"          rate: 60s",
 ].join("\n");
 
-// route: /endpoints/:type/:id — owns the title + tabs. min-h-full reaches the
+// route: /endpoints/:type/:id. It owns the title + tabs. min-h-full reaches the
 // card's bottom edge on a short page; gap-0 because the rows below manage
 // their own spacing.
 export function EndpointDetailRoute() {
@@ -1975,7 +1975,7 @@ export function EndpointDetailRoute() {
 	);
 }
 
-// child route: /endpoints/:type/:id/traffic-policy/editor — owns the toolbar + validity bar
+// child route: /endpoints/:type/:id/traffic-policy/editor. It owns the toolbar + validity bar
 export function TrafficPolicyEditorRoute() {
 	return (
 		<div className="flex flex-1 flex-col">
@@ -2201,13 +2201,13 @@ ancestor's chain. The tables below list only the attributes a part stamps beyond
 
 The outer frame of the shell: `bg-base relative isolate flex h-full w-full flex-col overflow-clip`. Fills
 its nearest sized ancestor; merge `className="fixed inset-0"` to pin a real app shell to the viewport. The
-shell itself never scrolls — only [`AppLayout.Body`](#applayoutbody) does. When the shell owns the document, render a
+shell itself never scrolls. Only [`AppLayout.Body`](#applayoutbody) does. When the shell owns the document, render a
 [SkipToMainLink](/components/primitives/skip-to-main-link) as its first child (see
 [Landmarks](#landmarks)).
 
 It is `overflow-clip`, not `overflow-hidden`, for the same reason
 [`AppLayout.Content`](#applayoutcontent) is: `hidden` **is** a scroll container that paints no scrollbar, so
-anything wider than the frame lets focus scroll the entire shell sideways — translating the notice, the rail,
+anything wider than the frame lets focus scroll the entire shell sideways. That translates the notice, the rail,
 and the card out of view with no scrollbar and no gesture to bring them back. On a frame pinned with
 `fixed inset-0` that is the whole window. `clip` is not a scroll container at all.
 
@@ -2219,11 +2219,11 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### AppLayout.Notice
 
-A full-window-width, vertical composition slot pinned above everything else in the shell — including any
-sidebar — for app-wide messaging. Stack a rare maintenance or environment banner and a persistent account
+A full-window-width, vertical composition slot pinned above everything else in the shell (including any
+sidebar) for app-wide messaging. Stack a rare maintenance or environment banner and a persistent account
 alert bar here; each child brings its own colors and layout while the slot pushes the whole shell down.
 Renders an unstyled `<div>` (`flex w-full shrink-0 flex-col`) and collapses to nothing when empty.
-Deliberately not named Banner so it never reads as the ARIA `banner` landmark — it claims no landmark at
+Deliberately not named Banner so it never reads as the ARIA `banner` landmark: it claims no landmark at
 all; give the notice content its own semantics if it needs them. Optional.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
@@ -2263,14 +2263,14 @@ The card surface beside the sidebar:
 Holds `AppLayout.Header` and `AppLayout.Body`. In the canonical shell it wraps the route's `<Outlet />`, and the
 route renders both (see [One header per page](#one-header-per-page)).
 
-The card **does not scroll** — [`AppLayout.Body`](#applayoutbody) does. It insets itself from the window edge
+The card **does not scroll**. [`AppLayout.Body`](#applayoutbody) does. It insets itself from the window edge
 and the rail with its own margin, driven by `--app-layout-card-gutter`, because the gutter has to belong to
 the card: the only other element that could hold it is `AppLayout.Workspace`, which also contains the rail,
 so padding there would push the sidebar off the window edge.
 
 It is `overflow-clip`, not `overflow-hidden`, and the distinction matters: `hidden` **is** a scroll container
-that paints no scrollbar, so a toolbar wider than the card lets <kbd translate="no">Tab</kbd> scroll it sideways —
-translating the header and the page out of view with no scrollbar and no gesture to bring them back. `clip`
+that paints no scrollbar, so a toolbar wider than the card lets <kbd translate="no">Tab</kbd> scroll it sideways.
+That translates the header and the page out of view with no scrollbar and no gesture to bring them back. `clip`
 is not a scroll container at all. It also keeps a full-bleed page background from painting square corners
 over the card's `rounded-xl`.
 
@@ -2312,8 +2312,8 @@ Optional standalone; effectively required once a `Sidebar` is composed (see
 **Sidebar alignment is an invariant, not a coincidence:** standalone, the toolbar is `h-14`. When the shell
 contains a `Sidebar.Header` (detected with `:has()` from `AppLayout.Root`), the toolbar instead derives its
 height from the sidebar's public `--sidebar-header-height` token as
-`calc(var(--sidebar-header-height, 4.5rem) - 2 * var(--app-layout-card-gutter, 0.5rem) - 2px)` — subtracting
-twice the card gutter and twice the card's hairline border — which keeps this toolbar's vertical center on
+`calc(var(--sidebar-header-height, 4.5rem) - 2 * var(--app-layout-card-gutter, 0.5rem) - 2px)`. The formula subtracts
+twice the card gutter and twice the card's hairline border, which keeps this toolbar's vertical center on
 the band that token names, for any band height. The band belongs to the
 [sidebar header's first row](/components/navigation/sidebar#sidebarheader), so a header that stacks a second
 row grows downward while this toolbar keeps matching the switcher row alone. Override
@@ -2322,7 +2322,7 @@ together.
 
 > [!NOTE]
 > The alignment is a **desktop-only** coupling. Below the sidebar's `mobileBreakpoint` the sidebar renders
-> inside a `Sheet` portaled to `document.body` — outside the shell subtree — so the `:has()` selector stops
+> inside a `Sheet` portaled to `document.body` (outside the shell subtree), so the `:has()` selector stops
 > matching and this toolbar falls back to its standalone `h-14`. That is a 2px change (54px → 56px) applied
 > after hydration, since the server renders desktop-first. There is nothing to align to on mobile anyway, but
 > it explains the 2px if you are diffing layout across breakpoints.
@@ -2335,7 +2335,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 | CSS Variable               | Default  | Description                                                                                                                                                                                                                                                                        |
 | -------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--sidebar-header-height`  | `4.5rem` | Read (not set) by `AppLayout.Header` when the shell contains a [`Sidebar.Header`](/components/navigation/sidebar#sidebarheader), which owns the token — the band its first row sits on. Set it on a common ancestor of both (e.g. `AppLayout.Root`) so the two rows move together. |
+| `--sidebar-header-height`  | `4.5rem` | Read (not set) by `AppLayout.Header` when the shell contains a [`Sidebar.Header`](/components/navigation/sidebar#sidebarheader), which owns the token (the band its first row sits on). Set it on a common ancestor of both (e.g. `AppLayout.Root`) so the two rows move together. |
 | `--app-layout-card-gutter` | `0.5rem` | Read (not set) by `AppLayout.Header`; owned by [`AppLayout.Content`](#applayoutcontent). The derived height subtracts twice its value, so changing the card gutter keeps the two rows aligned.                                                                                     |
 
 ### AppLayout.HeaderStart
@@ -2420,9 +2420,9 @@ breakpoint lands on the visible one.
 | Prop            | Type                      | Default | Description                                                                                                                 |
 | --------------- | ------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `defaultOpen?`  | `boolean`                 | `false` | Whether the panel starts open, when uncontrolled. Read once at mount, so pass the value the server read from a cookie here. |
-| `open?`         | `boolean`                 | —       | Controlled open state. Pair with `onOpenChange`.                                                                            |
-| `onOpenChange?` | `(open: boolean) => void` | —       | Called with the next open state whenever it changes. Write the cookie here.                                                 |
-| `children?`     | `ReactNode`               | —       | The shell below it. The root renders no element of its own.                                                                 |
+| `open?`         | `boolean`                 |         | Controlled open state. Pair with `onOpenChange`.                                                                            |
+| `onOpenChange?` | `(open: boolean) => void` |         | Called with the next open state whenever it changes. Write the cookie here.                                                 |
+| `children?`     | `ReactNode`               |         | The shell below it. The root renders no element of its own.                                                                 |
 
 ### AppLayout.SidePanel
 
@@ -2513,7 +2513,7 @@ All props from [`IconButton`](/components/actions/icon-button#api-reference) exc
 | `icon?`       | `ReactNode`                            | `<SidebarSimpleIcon mirrored />` | The icon rendered inside the trigger.                                                                              |
 | `intent?`     | `"neutral"`                            | `"neutral"`                      | The color intent of the trigger.                                                                                   |
 | `label?`      | `string`                               | `"Toggle side panel"`            | The accessible name, also shown in the tooltip.                                                                    |
-| `onClick?`    | `MouseEventHandler<HTMLButtonElement>` | —                                | Runs before the toggle. Call `event.preventDefault()` to keep the panel where it is.                               |
+| `onClick?`    | `MouseEventHandler<HTMLButtonElement>` |                                  | Runs before the toggle. Call `event.preventDefault()` to keep the panel where it is.                               |
 | `size?`       | `"xs" \| "sm" \| "md" \| "lg" \| "xl"` | `"sm"`                           | The size of the trigger. Small, so it sits level with the other `size="sm"` controls in an `AppLayout.Header` row. |
 
 | Data Attribute     | Value                                                     | Description                                                                                                                                                                                       |
@@ -2621,10 +2621,10 @@ No `HttpOnly` option: the browser writes this cookie from `onOpenChange`.
 
 | Param       | Type                          | Default    | Description                                                                            |
 | ----------- | ----------------------------- | ---------- | -------------------------------------------------------------------------------------- |
-| `open`      | `boolean`                     | —          | Whether the panel is open.                                                             |
+| `open`      | `boolean`                     |            | Whether the panel is open.                                                             |
 | `maxAge?`   | `number`                      | `31536000` | How long the preference survives, in seconds (one year).                               |
 | `path?`     | `string`                      | `"/"`      | Path the cookie applies to.                                                            |
-| `domain?`   | `string`                      | —          | Domain the cookie applies to; omitted by default, which scopes it to the current host. |
+| `domain?`   | `string`                      |            | Domain the cookie applies to; omitted by default, which scopes it to the current host. |
 | `sameSite?` | `"Lax" \| "Strict" \| "None"` | `"Lax"`    | `SameSite` policy.                                                                     |
 | `secure?`   | `boolean`                     | `false`    | Omitted by default so the cookie is not rejected over `http://localhost`.              |
 
@@ -2635,8 +2635,8 @@ it on sign-out or read it with its own cookie library.
 
 ### There is no AppLayout.Footer
 
-Deliberately. A bar pinned to the bottom of the card is almost always a **page's** bar — an editor's validity
-line, a save bar, a selection count — and a route rendering through an `<Outlet />` inside `AppLayout.Body`
+Deliberately. A bar pinned to the bottom of the card is almost always a **page's** bar (an editor's validity
+line, a save bar, a selection count). A route rendering through an `<Outlet />` inside `AppLayout.Body`
 could never reach a shell-level part, because it would be a sibling of the region the route renders into.
 
 Pin it inside `AppLayout.Body` instead:

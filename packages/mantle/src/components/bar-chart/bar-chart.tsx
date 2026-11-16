@@ -40,7 +40,7 @@ type BarChartListProps = ChartListPrimitiveProps;
 
 /**
  * Props for {@link BarChart.Root}. Bars encode value by length from a shared
- * zero baseline, so the y domain minimum is fixed at `0` — a truncated-bar
+ * zero baseline, so the y domain minimum is fixed at `0`. A truncated-bar
  * axis is unrepresentable.
  */
 type BarChartRootProps<
@@ -57,10 +57,10 @@ type BarChartRootProps<
 		/** Override the automatic y maximum. The minimum is always the zero baseline. */
 		yDomain?: [0, number | "auto"];
 		/**
-		 * The direction the bars point — this names the bars, not an axis.
+		 * The direction the bars point. This names the bars, not an axis.
 		 * `"vertical"` (default) bars stand up from a bottom baseline with
 		 * categories along the x axis; `"horizontal"` bars run rightward from a
-		 * left baseline with categories down the y axis — better for long category
+		 * left baseline with categories down the y axis, better for long category
 		 * labels or many categories. The value axis, baseline, reference lines, and
 		 * the two rung textures (`"perpendicular"` and `"parallel"`) all flip to
 		 * match.
@@ -99,13 +99,13 @@ type BarChartBarProps = {
 	 * The fill texture the series wears, on the bars and on its legend key:
 	 * `"solid"` (default), diagonal hatch lines at 45° (`"hatch"`), the 135°
 	 * mirror (`"hatch-reverse"`), both (`"crosshatch"`), rungs perpendicular
-	 * to the bar's length (`"perpendicular"` — horizontal lines on vertical
-	 * bars), rungs parallel to it (`"parallel"` — vertical lines on vertical
+	 * to the bar's length (`"perpendicular"`: horizontal lines on vertical
+	 * bars), rungs parallel to it (`"parallel"`: vertical lines on vertical
 	 * bars), the orthogonal lattice of both rung directions (`"grid"`), or an
 	 * offset dot field (`"dots"`).
 	 *
 	 * The two rung textures flip with the Root's `orientation`, in opposite
-	 * senses. Every other value is direction-free, `"grid"` included — it is the
+	 * senses. Every other value is direction-free, `"grid"` included: it is the
 	 * orthogonal lattice against `"crosshatch"`'s diagonal one.
 	 *
 	 * A textured series paints its marks in the full series color over a light
@@ -224,7 +224,7 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
 );
 
 /**
- * One bar series. Renders nothing itself — it registers the series with the
+ * One bar series. Renders nothing itself: it registers the series with the
  * chart, which paints it. Compose one `Bar` per series; with
  * `stacked` on the Root, bars stack from the baseline up in registration
  * order, so a `Bar` that mounts later stacks on top whatever its position in
@@ -333,7 +333,7 @@ const ReferenceLine = (props: BarChartReferenceLineProps) =>
 /**
  * Customizes the hover/keyboard tooltip readout. The tooltip itself is part
  * of `BarChart.Root`'s interaction contract and renders even when this part is
- * absent — compose it to format the label or values, append a footer, or
+ * absent. Compose it to format the label or values, append a footer, or
  * replace the content entirely via the render-prop `children`.
  *
  * **Structure.** A `children` readout renders inside a
@@ -367,7 +367,7 @@ const Tooltip = (props: BarChartTooltipProps) => useTooltipPrimitive("BarChart.T
 
 /**
  * The legend: series names keyed by color swatches, rendered as real DOM in
- * flow below the plot. Always compose it on multi-series charts — identity
+ * flow below the plot. Always compose it on multi-series charts: identity
  * must never rely on color-matching alone. It renders nothing for a single
  * series (the chart's title already names it).
  *
@@ -406,8 +406,8 @@ const Legend = (props: BarChartLegendProps) => (
 
 /**
  * A button that copies the chart's current data to the clipboard as a
- * markdown table (ISO dates, plain numbers, one column per series) —
- * pasteable into Slack, issues, docs, spreadsheets, and LLM chats. Renders
+ * markdown table (ISO dates, plain numbers, one column per series). The table
+ * pastes into Slack, issues, docs, spreadsheets, and LLM chats. Renders
  * in flow where composed (alongside `Legend`, below the plot); `Root` is
  * relatively positioned, so `className` can dock it over a corner instead
  * (e.g. `absolute right-0 top-0`).

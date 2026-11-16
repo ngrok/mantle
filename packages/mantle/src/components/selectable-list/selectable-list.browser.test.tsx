@@ -72,7 +72,7 @@ describe("SelectableList (browser)", () => {
 		await user.keyboard("{ArrowDown}");
 		expect(grid).toHaveAttribute("aria-activedescendant", checkboxId("Banana"));
 
-		// Space toggles the active row (Banana) — the checkbox never holds focus.
+		// Space toggles the active row (Banana). The checkbox never holds focus.
 		await user.keyboard(" ");
 		expect(screen.getByRole<HTMLInputElement>("checkbox", { name: "Banana" }).checked).toBe(true);
 
@@ -120,7 +120,7 @@ describe("SelectableList (browser)", () => {
 		render(<DisabledHarness />);
 
 		const grid = await screen.findByRole("grid", { name: "Fruit" });
-		// Press the disabled row's bare content (not a control) — this focuses the grid.
+		// Press the disabled row's bare content (not a control). This focuses the grid.
 		await user.click(screen.getByText("fruit-b"));
 		expect(grid).not.toHaveAttribute("aria-activedescendant");
 		expect(
@@ -164,7 +164,7 @@ describe("SelectableList (browser)", () => {
 		// The checkbox id must be a single whitespace-free token so it is a valid IDREF.
 		expect(checkbox.id).not.toMatch(/\s/);
 
-		// Focusing the grid points aria-activedescendant at that id — the association holds.
+		// Focusing the grid points aria-activedescendant at that id: the association holds.
 		grid.focus();
 		await waitFor(() => expect(grid).toHaveAttribute("aria-activedescendant", checkbox.id));
 	});
@@ -230,7 +230,7 @@ describe("SelectableList (browser)", () => {
 		render(<ComposeHarness />);
 
 		// Click bare row content (not the checkbox/label): the consumer handler runs
-		// AND selection still toggles — the built-in onClick isn't silently replaced.
+		// AND selection still toggles: the built-in onClick isn't silently replaced.
 		await user.click(await screen.findByText("bare: fruit-a"));
 		expect(onItemClick).toHaveBeenCalledOnce();
 		expect(screen.getByRole<HTMLInputElement>("checkbox", { name: "Apple" }).checked).toBe(true);
@@ -251,7 +251,7 @@ describe("SelectableList (browser)", () => {
 					}}
 				>
 					<SelectableList.Viewport aria-label="Fruit">
-						{/* Drop the middle option (Banana) — rendered rows are Apple, then Cherry. */}
+						{/* Drop the middle option (Banana). The rendered rows are Apple, then Cherry. */}
 						{(option) =>
 							option.value === "b" ? null : (
 								<SelectableList.Item value={option.value}>
@@ -270,7 +270,7 @@ describe("SelectableList (browser)", () => {
 		expect(screen.queryByRole("checkbox", { name: "Banana" })).not.toBeInTheDocument();
 
 		// Focus activates the first visible row (Apple); ArrowDown moves to the second
-		// visible row (Cherry). Space must toggle Cherry — the row it visibly lands on —
+		// visible row (Cherry). Space must toggle Cherry (the row it visibly lands on),
 		// not the dropped Banana that previously sat at that index.
 		grid.focus();
 		await user.keyboard("{ArrowDown}");
@@ -302,9 +302,9 @@ describe("SelectableList (browser)", () => {
 		expect(banana.checked).toBe(false);
 	});
 
-	test("clicking bare row content makes that row active — a following Space toggles the same row", async () => {
+	test("clicking bare row content makes that row active: a following Space toggles the same row", async () => {
 		// Regression: clicking non-focusable content (the description) focuses the
-		// grid directly, and the active row used to default to row 0 — so the click
+		// grid directly, and the active row used to default to row 0, so the click
 		// toggled Cherry while Space then toggled Apple.
 		const user = userEvent.setup();
 		render(<Harness />);
@@ -366,8 +366,8 @@ describe("SelectableList (browser)", () => {
 		await screen.findByRole("checkbox", { name: "Apple" });
 
 		const results = await axe.run(container, {
-			// Colors aren't themed in the test DOM, so contrast results are noise here —
-			// the markup/ARIA rules are what this asserts.
+			// Colors aren't themed in the test DOM, so contrast results are noise here.
+			// The markup/ARIA rules are what this asserts.
 			rules: { "color-contrast": { enabled: false } },
 		});
 

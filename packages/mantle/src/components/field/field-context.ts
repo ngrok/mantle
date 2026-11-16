@@ -92,7 +92,7 @@ const FieldItemContext = createContext<FieldItemContextValue | null>(null);
  * Context published by `Field.Control` carrying the resolved ARIA / identity
  * props that should land on the focusable control. Mantle compound triggers
  * (`Select.Trigger`, `MultiSelect.Trigger`, …) consume this so wrapping a
- * compound widget in `Field.Control` works — `cloneElement` only reaches the
+ * compound widget in `Field.Control` works: `cloneElement` only reaches the
  * direct child, which for a compound widget is a context provider that does
  * not forward ARIA props to its inner trigger.
  *
@@ -103,7 +103,7 @@ const FieldControlContext = createContext<FieldControlAriaProps | null>(null);
 /**
  * Resolves the ARIA, identity, and validation props that `Field.Control`
  * applies to its focusable child. `Field.Item` is the single source of truth
- * for `id`, `name`, `aria-*`, and `validation` — the resolver reads only the
+ * for `id`, `name`, `aria-*`, and `validation`: the resolver reads only the
  * surrounding `Field.Item` context and ignores anything supplied on the child
  * element. To override these values, set them on `Field.Item` itself.
  */

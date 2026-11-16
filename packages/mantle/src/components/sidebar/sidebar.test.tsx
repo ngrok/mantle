@@ -15,7 +15,7 @@ import { Sidebar, useSidebar } from "./sidebar.js";
 
 /**
  * `Sidebar.Trigger` renders a real tooltip, so every subject needs a
- * `TooltipProvider` — the same ancestor `Sidebar.Tooltip` requires, and the one
+ * `TooltipProvider`: the same ancestor `Sidebar.Tooltip` requires, and the one
  * an app mounts at its root. Wrapping here keeps it out of every call site; a
  * nested provider in the tests that mount their own is harmless.
  */
@@ -296,7 +296,7 @@ describe("Sidebar.Nav (desktop)", () => {
 
 	test("Ctrl+B still toggles with Caps Lock on (uppercase key without shift)", () => {
 		// Regression: with Caps Lock engaged, browsers report key "B" while
-		// shiftKey stays false — the shortcut must match case-insensitively.
+		// shiftKey stays false, so the shortcut must match case-insensitively.
 		// Raw event dispatch because user-event's "B" always implies Shift.
 		render(
 			<Sidebar.Root>
@@ -484,7 +484,7 @@ describe("Sidebar.Nav (desktop)", () => {
 
 	describe("on Apple platforms", () => {
 		// The handler resolves the platform once per mount, so the stub has to be
-		// installed before `render()` — a `beforeEach` is the only safe place.
+		// installed before `render()`. A `beforeEach` is the only safe place.
 		// `restoreMocks` in vitest.config.ts undoes it between tests.
 		beforeEach(() => {
 			vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
@@ -557,13 +557,13 @@ describe("Sidebar.Nav (desktop)", () => {
 		});
 
 		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
-		// Skipping the toggle is not enough — swallowing the default would still
+		// Skipping the toggle is not enough: swallowing the default would still
 		// break whatever the field or its embedded editor binds the chord to.
 		expect(notPrevented).toBe(true);
 	});
 
 	test("with two mounted roots, only the first claimant handles the shortcut", async () => {
-		// Regression: the shortcut has exactly one owner per window — a second
+		// Regression: the shortcut has exactly one owner per window. A second
 		// sidebar (sibling root) must not toggle in lockstep with the first.
 		const user = userEvent.setup();
 		render(
@@ -584,7 +584,7 @@ describe("Sidebar.Nav (desktop)", () => {
 	test("shortcut ownership stays with the first root across repeated presses", async () => {
 		// Regression: the owner used to re-claim on every toggle (its `toggle`
 		// identity is in the effect's deps), which re-queued it at the TAIL and
-		// handed ownership to the sibling — so press 2 toggled the wrong sidebar.
+		// handed ownership to the sibling, so press 2 toggled the wrong sidebar.
 		const user = userEvent.setup();
 		render(
 			<>
@@ -606,7 +606,7 @@ describe("Sidebar.Nav (desktop)", () => {
 	test("shortcut ownership hands off when the owning root unmounts", async () => {
 		// The keyed conditional keeps the second root's instance stable across
 		// the rerender, so React genuinely unmounts the owner instead of
-		// relabeling it — a real handoff, not a fresh mount.
+		// relabeling it: a real handoff, not a fresh mount.
 		function TwoRoots({ showPrimary }: { showPrimary: boolean }) {
 			return (
 				<>
@@ -630,7 +630,7 @@ describe("Sidebar.Nav (desktop)", () => {
 
 	test("an opted-out root never claims shortcut ownership", async () => {
 		// keyboardShortcut={false} must not park an inert claim at the head of
-		// the queue — the enabled sibling owns the shortcut immediately.
+		// the queue. The enabled sibling owns the shortcut immediately.
 		const user = userEvent.setup();
 		render(
 			<>
@@ -649,7 +649,7 @@ describe("Sidebar.Nav (desktop)", () => {
 
 	test("mounting with controlled openMobile on desktop does not clobber it", () => {
 		// Regression: the stale-sheet reset must only fire on a real
-		// mobile→desktop transition — never on mount, where it would override a
+		// mobile→desktop transition, never on mount, where it would override a
 		// controlled openMobile during SSR hydration (isMobile is desktop-first
 		// until the media query snapshot corrects).
 		const onOpenMobileChange = vi.fn<(open: boolean) => void>();
@@ -729,7 +729,7 @@ describe("Sidebar.Nav first paint", () => {
 	// The first paint is part of the API: the server cannot know the viewport, so
 	// `isMobile` is desktop-first and the panel hides itself in CSS below the
 	// root's `mobileBreakpoint` instead. These render the actual pre-hydration
-	// markup — the client tests above always observe the post-effect state.
+	// markup. The client tests above always observe the post-effect state.
 	test.for(["sm", "md", "lg"] as const)(
 		"hides the desktop panel below the %s breakpoint with static classes",
 		(mobileBreakpoint) => {
@@ -773,7 +773,7 @@ describe("Sidebar.Nav first paint", () => {
 describe("--sidebar-row-width", () => {
 	// The token is public API for surfaces that render OUTSIDE the panel: a
 	// switcher's menu is portaled to document.body, so it inherits nothing the
-	// sidebar sets and reads the expanded row width from :root instead — which is
+	// sidebar sets and reads the expanded row width from :root instead. That is
 	// how a menu keeps that width while its trigger shrinks into the icon rail.
 	// happy-dom loads no stylesheet, so guard the declaration itself.
 	test("mantle.css derives it at :root from the expanded panel width", () => {
@@ -805,7 +805,7 @@ describe("--sidebar-row-width", () => {
 		);
 		const menu = screen.getByTestId("menu");
 		expect(menu.className).toContain("min-w-(--sidebar-row-width)");
-		// the trigger width survives beside the floor — min-width clamps it up
+		// the trigger width survives beside the floor: min-width clamps it up
 		expect(menu.className).toContain("w-(--radix-dropdown-menu-trigger-width)");
 		expect(menu.className).not.toContain("min-w-32");
 	});
@@ -826,7 +826,7 @@ describe("--sidebar-row-width", () => {
 		for (const region of ["header", "body", "footer"]) {
 			// px-3 (0.75rem) plus the expanded pr-1 (0.25rem) is the 1rem the token
 			// subtracts, so a row spans --sidebar-width minus exactly that.
-			// toHaveClass matches whole class tokens — a substring assertion would
+			// toHaveClass matches whole class tokens. A substring assertion would
 			// stay green for a half-step edit (px-3.5, pr-1.5), the very change that
 			// makes the token's hard-coded 1rem wrong.
 			expect(screen.getByTestId(region)).toHaveClass(
@@ -1230,8 +1230,8 @@ describe("Sidebar.SearchTrigger", () => {
 	});
 
 	test("asChild leaves type off the consumer element", () => {
-		// `shortcut` is unavailable here by construction — a cloned child has no
-		// room for a sibling hint — so the whole row content is the consumer's.
+		// `shortcut` is unavailable here by construction (a cloned child has no
+		// room for a sibling hint), so the whole row content is the consumer's.
 		render(
 			<Sidebar.SearchTrigger asChild>
 				<a href="/search">Search…</a>
@@ -1377,7 +1377,7 @@ describe("Sidebar.SearchTrigger", () => {
 	test("a Sidebar.Tooltip around it opens in the rail, shortcut and all", async () => {
 		// Regression: `Command.SearchTrigger` typed its props as `{ children }` only,
 		// so wrapping it in `Sidebar.Tooltip` dropped every prop Radix's
-		// `Tooltip.Trigger` passes down — the row rendered fine and the tooltip
+		// `Tooltip.Trigger` passes down. The row rendered fine and the tooltip
 		// could never open. This is the composition the docs recommend, so it is
 		// asserted end to end rather than per-part.
 		const user = userEvent.setup();
@@ -1409,7 +1409,7 @@ describe("Sidebar.SearchTrigger", () => {
 
 	test("stays highlighted while its palette is open, even inside a Sidebar.Tooltip", async () => {
 		// Cross-part pin: `Tooltip.Trigger` hands its own `data-state` down, and
-		// Radix's prop merge lets the child's value win — so `Command.SearchTrigger`
+		// Radix's prop merge lets the child's value win, so `Command.SearchTrigger`
 		// has to re-stamp the palette's state after the forwarded props. Without
 		// that, this row reads `data-state="closed"` with the palette open and
 		// `rowClassName`'s `data-state-open:` styling never fires.
@@ -1450,7 +1450,7 @@ describe("Sidebar.SearchTrigger", () => {
 
 	test("keeps its label in the accessibility tree in the collapsed rail", async () => {
 		// The rail hides everything after the leading icon with `sr-only` rather
-		// than removing it, so the row still has a name when it is only a chip —
+		// than removing it, so the row still has a name when it is only a chip:
 		// the same contract `Sidebar.SwitcherTrigger` keeps.
 		const user = userEvent.setup();
 		render(
@@ -1531,7 +1531,7 @@ describe("Sidebar.Tooltip", () => {
 						</Sidebar.Body>
 					</Sidebar.Nav>
 					{/* The rail state is what gates the label, so these tests toggle it
-					    the way a user does rather than by re-rendering `defaultOpen` —
+					    the way a user does rather than by re-rendering `defaultOpen`,
 					    which seeds the uncontrolled state once and never collapses it. */}
 					<Sidebar.Trigger />
 				</Sidebar.Root>
@@ -1540,8 +1540,8 @@ describe("Sidebar.Tooltip", () => {
 	}
 
 	/**
-	 * Renders one `Sidebar.Tooltip` in the collapsed desktop rail — the only rail
-	 * state that shows a label — hovers the row, and answers with the tooltip
+	 * Renders one `Sidebar.Tooltip` in the collapsed desktop rail (the only rail
+	 * state that shows a label), hovers the row, and answers with the tooltip
 	 * surface, so a test can assert what reached `Tooltip.Content`.
 	 */
 	async function hoverRailTooltip(tooltip: ReactElement): Promise<HTMLElement> {
@@ -1610,7 +1610,7 @@ describe("Sidebar.Tooltip", () => {
 		expect(tooltip.querySelector('[data-slot="sidebar-tooltip-shortcut"]')).toHaveTextContent("E");
 	});
 
-	test("stays silent while the panel is expanded — the row reads its own label", async () => {
+	test("stays silent while the panel is expanded: the row reads its own label", async () => {
 		const user = userEvent.setup();
 		render(<RailRow defaultOpen />);
 
@@ -1671,8 +1671,8 @@ describe("Sidebar.Tooltip", () => {
 
 	test("stays closed when the rail collapses after the pointer swept an expanded row", async () => {
 		// Regression: the pointer crossing an expanded row on its way to the
-		// collapse trigger used to latch the label open — the panel withheld the
-		// surface, so nothing was mounted to close it again — and collapsing then
+		// collapse trigger used to latch the label open (the panel withheld the
+		// surface, so nothing was mounted to close it again), and collapsing then
 		// popped a tooltip nobody was hovering.
 		const user = userEvent.setup();
 		render(<RailRow defaultOpen />);
@@ -1723,7 +1723,7 @@ describe("Sidebar.Tooltip", () => {
 	test("stays closed when the rail collapses after a menu on the row hands focus back", async () => {
 		// The overlay path into the same bug. Closing a menu restores focus to its
 		// trigger, which here is also the tooltip trigger, so Radix asks for a label
-		// the expanded panel has no use for — a request that must not outlive the
+		// the expanded panel has no use for: a request that must not outlive the
 		// collapse either. The hover first is what makes it a *repeat* request, the
 		// shape a mirror of Radix's state can silently keep queued.
 		const user = userEvent.setup();
@@ -1810,7 +1810,7 @@ describe("Sidebar.Tooltip", () => {
 
 	test("keeps the trigger mounted across a collapse so focus is not dropped", async () => {
 		// Regression guard on keeping Tooltip.Root mounted across the rail states:
-		// unmounting it would take the Trigger — and the focused row — with it. The
+		// unmounting it would take the Trigger (and the focused row) with it. The
 		// rail collapses by keyboard so focus stays on the row under test.
 		const user = userEvent.setup();
 		render(<RailRow defaultOpen />);

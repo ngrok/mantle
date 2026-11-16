@@ -1,7 +1,7 @@
 import { canUseDOM } from "../components/browser-only/can-use-dom.js";
 
 /**
- * Type guard for `navigator.userAgentData` existence — the modern UA-hints
+ * Type guard for `navigator.userAgentData` existence: the modern UA-hints
  * surface, where `platform` is a plain token like `"macOS"`.
  */
 function hasUserAgentData(
@@ -14,7 +14,7 @@ function hasUserAgentData(
  * Whether the host is an Apple platform (macOS, iOS, iPadOS). This is the
  * predicate that decides which modifier a keyboard shortcut must match:
  * `event.metaKey` (`⌘`) on Apple platforms, `event.ctrlKey` everywhere else.
- * The two never substitute for each other — accepting either would hijack
+ * The two never substitute for each other: accepting either would hijack
  * macOS's native `Ctrl+B` / `Ctrl+A` / `Ctrl+E` emacs-style caret bindings,
  * which every macOS text field implements.
  *
@@ -48,7 +48,7 @@ function isApplePlatform(): boolean {
 
 	if (!platform) {
 		// Why: `navigator.platform` is deprecated, but `userAgentData` ships only
-		// in Chromium — Safari and Firefox expose no replacement, and Safari is
+		// in Chromium. Safari and Firefox expose no replacement, and Safari is
 		// the browser where resolving this wrong matters most. The `userAgent`
 		// fallback covers engines that report an empty `platform`.
 		platform = navigator.platform || navigator.userAgent || "";

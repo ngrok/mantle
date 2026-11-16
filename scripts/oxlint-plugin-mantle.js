@@ -9,6 +9,7 @@ import noBarrelImports from "./oxlint-rules/no-barrel-imports.js";
 import noBooleanPositionalParam from "./oxlint-rules/no-boolean-positional-param.js";
 import noClassnameConstruction from "./oxlint-rules/no-classname-construction.js";
 import noClsxClassnames from "./oxlint-rules/no-clsx-classnames.js";
+import noEmDashComment from "./oxlint-rules/no-em-dash-comment.js";
 import noReactHooksSuppression from "./oxlint-rules/no-react-hooks-suppression.js";
 import preferCanUseDom from "./oxlint-rules/prefer-can-use-dom.js";
 import preferTypeAlias from "./oxlint-rules/prefer-type-alias.js";
@@ -266,6 +267,7 @@ export default {
 		...noBooleanPositionalParam.rules,
 		...noClassnameConstruction.rules,
 		...noClsxClassnames.rules,
+		...noEmDashComment.rules,
 		...noReactHooksSuppression.rules,
 		...preferCanUseDom.rules,
 		...preferTypeAlias.rules,

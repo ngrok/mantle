@@ -8,7 +8,7 @@ import type { WithDataSlot } from "../../utils/data-slot.js";
 /**
  * The chart List: a wrapper whose charts share one live region.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation, not exported from the package.
  */
 
 type ChartListContextValue = {

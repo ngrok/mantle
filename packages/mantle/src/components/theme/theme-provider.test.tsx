@@ -285,6 +285,46 @@ describe("ssrCookie seeds the server render", () => {
 		});
 		container.remove();
 	});
+
+	// Why: a prerendered page has no request, so the server renders `"system"`
+	// while the client cookie holds the stored theme.
+	test.each([
+		{ cookie: "dark", prefersDark: false, expected: "theme=dark applied=dark" },
+		{ cookie: undefined, prefersDark: true, expected: "theme=system applied=dark" },
+	])(
+		"hydrates without a mismatch with no ssrCookie, then shows the client theme (cookie $cookie, OS dark $prefersDark)",
+		({ cookie, prefersDark, expected }) => {
+			const app = (
+				<ThemeProvider>
+					<ThemeProbe />
+				</ThemeProvider>
+			);
+			const container = document.createElement("div");
+			container.innerHTML = renderOnServer(app);
+			expect(container.textContent).toBe("theme=system applied=light");
+			document.body.append(container);
+			mockMatchMedia({ [PREFERS_DARK]: prefersDark });
+			if (cookie != null) {
+				document.cookie = `${THEME_COOKIE}=${cookie}; path=/`;
+			}
+			const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+			const onRecoverableError = vi.fn<(error: unknown) => void>();
+
+			let root: Root | undefined;
+			act(() => {
+				root = hydrateRoot(container, app, { onRecoverableError });
+			});
+
+			expect(onRecoverableError).toHaveBeenCalledTimes(0);
+			expect(consoleError).toHaveBeenCalledTimes(0);
+			expect(container.textContent).toBe(expected);
+
+			act(() => {
+				root?.unmount();
+			});
+			container.remove();
+		},
+	);
 });
 
 describe("ThemeProvider applies and persists a selection", () => {
@@ -653,7 +693,7 @@ describe("the inline FOUC script resolves and persists the preference", () => {
 
 describe("forceTheme pins what lands on <html>", () => {
 	// The dark stylesheet is live on every page, light pages included. Which block wins is then decided
-	// by the class and `data-applied-theme` on `<html>` — and these three writers
+	// by the class and `data-applied-theme` on `<html>`, and these three writers
 	// are what put them there. If any of them resolves the stored preference
 	// instead of the forced theme, a user whose cookie says dark gets
 	// `<html class="dark">` with the dark sheet applied, and a `forceTheme="light"`
@@ -669,7 +709,7 @@ describe("forceTheme pins what lands on <html>", () => {
 		mockMatchMedia({ [PREFERS_DARK]: true });
 		document.cookie = `${THEME_COOKIE}=dark; path=/`;
 
-		// evaluate the real stringified script — nothing else can see a scoping or
+		// evaluate the real stringified script: nothing else can see a scoping or
 		// serialization regression in it, and lint/typecheck/build all pass on a
 		// script that throws at runtime
 		new Function(preventWrongThemeFlashScriptContent("light"))();

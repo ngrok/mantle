@@ -175,8 +175,8 @@ const shapedRegionData = [
 ];
 
 function ShapesExample() {
-	// Pin the active index so the hover dots — where an area chart wears its
-	// glyphs — stay visible; hovering still moves the crosshair freely.
+	// Pin the active index so the hover dots (where an area chart wears its
+	// glyphs) stay visible; hovering still moves the crosshair freely.
 	const [activeIndex, setActiveIndex] = useState(9);
 	return (
 		<AreaChart.Root
@@ -344,7 +344,7 @@ function NoTrafficYetAreaChartExample() {
 
 ## Reference lines
 
-`AreaChart.ReferenceLine` paints a dashed horizontal marker at a y value — an SLO threshold, a budget, a capacity limit — with an optional label above its right end. Here the stacked total crosses provisioned capacity twice:
+`AreaChart.ReferenceLine` paints a dashed horizontal marker at a y value (an SLO threshold, a budget, a capacity limit) with an optional label above its right end. Here the stacked total crosses provisioned capacity twice:
 
 <Example name="components/charts/area-chart/reference-lines" title="Area Chart reference lines example">
 
@@ -539,7 +539,7 @@ Reach for `mode="decorative"` over hand-rolled `inert` + CSS: it removes the int
 import { Empty } from "@ngrok/mantle/empty";
 import { AreaChart } from "@ngrok/mantle/area-chart";
 
-/** Synthetic area — a backdrop, not data — so no Math.random and no real values. */
+/** Synthetic area (a backdrop, not data), so no Math.random and no real values. */
 const placeholderTraffic = [30, 48, 40, 62, 55, 74, 66, 80].map((value, index) => ({
 	minute: index,
 	value,
@@ -626,7 +626,7 @@ Past eight series, a reader cannot match each band to its legend key by color. R
 
 ## Accessibility
 
-Every interactive chart must have an accessible name: the Root requires exactly one of `aria-label` or `aria-labelledby`, enforced at the type level. Prefer `aria-labelledby` referencing a visible title when the chart sits under a heading — no drift-prone duplicated text. The name lands on the focusable interaction overlay, the chart's single named element (the paint surface itself is hidden from assistive technology, so the chart is never announced twice). A [static chart](#static-charts) names its plot `role="img"` instead and has no Tab stop. A [decorative chart](#decorative-charts) carries no real data, so it takes no accessible name and is hidden from assistive technology entirely.
+Every interactive chart must have an accessible name: the Root requires exactly one of `aria-label` or `aria-labelledby`, enforced at the type level. Prefer `aria-labelledby` referencing a visible title when the chart sits under a heading, so no duplicated text can drift. The name lands on the focusable interaction overlay, the chart's single named element (the paint surface itself is hidden from assistive technology, so the chart is never announced twice). A [static chart](#static-charts) names its plot `role="img"` instead and has no Tab stop. A [decorative chart](#decorative-charts) carries no real data, so it takes no accessible name and is hidden from assistive technology entirely.
 
 The plot is a single tab stop with a keyboard point cursor:
 
@@ -653,7 +653,7 @@ The Bar Chart page lists the [accessibility limits](/components/charts/bar-chart
 
 ## API Reference
 
-`AreaChart.Area`, `AreaChart.Grid`, `AreaChart.XAxis`, `AreaChart.YAxis`, and `AreaChart.ReferenceLine` are renderless: they register configuration with the Root, which paints everything onto one surface: an `<svg>`. They accept no `className`, `style`, or other DOM props. `AreaChart.Tooltip` and `AreaChart.Legend` accept `div` props — the legend renders a real DOM element in flow, and the tooltip forwards its `div` props onto the tooltip element the Root renders. `AreaChart.CopyButton` also renders real DOM — an icon button accepting `button` props. `AreaChart.List` renders a `div` around a list of Roots.
+`AreaChart.Area`, `AreaChart.Grid`, `AreaChart.XAxis`, `AreaChart.YAxis`, and `AreaChart.ReferenceLine` are renderless: they register configuration with the Root, which paints everything onto one surface: an `<svg>`. They accept no `className`, `style`, or other DOM props. `AreaChart.Tooltip` and `AreaChart.Legend` accept `div` props: the legend renders a real DOM element in flow, and the tooltip forwards its `div` props onto the tooltip element the Root renders. `AreaChart.CopyButton` also renders real DOM: an icon button that accepts `button` props. `AreaChart.List` renders a `div` around a list of Roots.
 
 ### AreaChart.Root
 
@@ -665,19 +665,19 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | --------------------- | ------------------------------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `data`                | `readonly TDatum[]`                         |                 | Rows of data; each `AreaChart.Area` reads one numeric key per row.                                                                                                                                                                                                                                                                                                                                                                             |
 | `xKey`                | `Extract<keyof TDatum, string>`             |                 | The key of each row's x value.                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `aria-label`          | `string`                                    |                 | The chart's accessible name. Exactly one of `aria-label` or `aria-labelledby` is required — enforced at the type level. Required unless `mode` is `\"decorative\"`, which forbids it.                                                                                                                                                                                                                                                          |
+| `aria-label`          | `string`                                    |                 | The chart's accessible name. Exactly one of `aria-label` or `aria-labelledby` is required, enforced at the type level. Required unless `mode` is `\"decorative\"`, which forbids it.                                                                                                                                                                                                                                                           |
 | `aria-labelledby`     | `string`                                    |                 | The id of a visible element that names the chart. Preferred over `aria-label` when the chart sits under a visible heading. Required unless `mode` is `\"decorative\"`, which forbids it.                                                                                                                                                                                                                                                       |
 | `mode?`               | `"interactive" \| "static" \| "decorative"` | `"interactive"` | How much of the contract the Root exposes: explore it (`"interactive"`), glance at it with its values beside it (`"static"`: a named `role="img"`, no Tab stop, no tooltip, no table, `animate` off by default), or paint a placeholder (`"decorative"`: hidden from assistive technology, one neutral fill). The name props are required unless decorative, and the interaction props are allowed only when interactive. See [Modes](#modes). |
 | `xScale`              | `"time"` \| `"linear"` \| `"point"`         | auto-detected   | Override the auto-detected x scale (`Date` values → `"time"`, numbers → `"linear"`, strings → `"point"`).                                                                                                                                                                                                                                                                                                                                      |
 | `yDomain`             | `[0, number \| "auto"]`                     | `[0, "auto"]`   | Override the automatic y maximum. The minimum is always the zero baseline.                                                                                                                                                                                                                                                                                                                                                                     |
 | `stacked`             | `boolean`                                   | `false`         | Stack the series in registration order, the first-registered series at the baseline.                                                                                                                                                                                                                                                                                                                                                           |
 | `animate`             | `boolean`                                   | `true`          | Animate enter/update transitions; the enter transition plays when the chart first comes into view. `prefers-reduced-motion` always wins.                                                                                                                                                                                                                                                                                                       |
-| `pending`             | `boolean`                                   | `false`         | Hold the previous render at reduced opacity while fresh data loads — never swap a chart that has rendered once for a skeleton.                                                                                                                                                                                                                                                                                                                 |
+| `pending`             | `boolean`                                   | `false`         | Hold the previous render at reduced opacity while fresh data loads. Never swap a chart that has rendered once for a skeleton.                                                                                                                                                                                                                                                                                                                  |
 | `activeIndex`         | `number \| null`                            |                 | Controlled active datum index (`null` = none). Omit for uncontrolled hover. Allowed only when `mode` is `"interactive"`.                                                                                                                                                                                                                                                                                                                       |
 | `onActiveIndexChange` | `(index: number \| null) => void`           |                 | Notified when hover or keyboard stepping moves the active index. Allowed only when `mode` is `"interactive"`.                                                                                                                                                                                                                                                                                                                                  |
 | `onDatumActivate`     | `(event: ChartDatumEvent) => void`          |                 | Notified on datum activation: a mark click, or <kbd translate="no">Enter</kbd>/<kbd translate="no">Space</kbd> on the focused chart. Allowed only when `mode` is `"interactive"`.                                                                                                                                                                                                                                                              |
 
-`ChartDatumEvent` is importable from `@ngrok/mantle/area-chart`: `{ index: number; xValue: string | number | Date; datum: object; dataKey: string | null }` (`datum` is the original row — narrow it to your row type), where `dataKey` names the series nearest the pointer on mouse activation and is `null` for keyboard activation.
+`ChartDatumEvent` is importable from `@ngrok/mantle/area-chart`: `{ index: number; xValue: string | number | Date; datum: object; dataKey: string | null }` (`datum` is the original row; narrow it to your row type), where `dataKey` names the series nearest the pointer on mouse activation and is `null` for keyboard activation.
 
 **Data attributes**
 
@@ -698,7 +698,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### AreaChart.Area
 
-One area series. Renders nothing itself — it registers the series with the chart, which paints it. Compose one `Area` per series.
+One area series. Renders nothing itself: it registers the series with the chart, which paints it. Compose one `Area` per series.
 
 | Prop            | Type                                                                                                | Default    | Description                                                                                                                                                                                           |
 | --------------- | --------------------------------------------------------------------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -737,7 +737,7 @@ Value tick labels along the left of the plot (renderless; the chart paints it). 
 
 ### AreaChart.ReferenceLine
 
-A dashed horizontal marker at a y value — an SLO threshold, a budget, a limit (renderless; the chart paints it).
+A dashed horizontal marker at a y value, such as an SLO threshold, a budget, or a limit (renderless; the chart paints it).
 
 | Prop    | Type                | Default                     | Description                                       |
 | ------- | ------------------- | --------------------------- | ------------------------------------------------- |
@@ -747,7 +747,7 @@ A dashed horizontal marker at a y value — an SLO threshold, a budget, a limit 
 
 ### AreaChart.Tooltip
 
-Customizes the hover/keyboard tooltip readout. The tooltip itself is part of `AreaChart.Root`'s interaction contract and renders even when this part is absent — compose it to format the label or values, append a footer, or replace the content entirely.
+Customizes the hover/keyboard tooltip readout. The tooltip itself is part of `AreaChart.Root`'s interaction contract and renders even when this part is absent. Compose it to format the label or values, append a footer, or replace the content entirely.
 
 A `children` readout renders inside a `<div data-slot="area-chart-tooltip-label">`. When it goes away, React removes that div instead of your own text nodes: a browser translation engine reparents text nodes, and a removal aimed at one throws. The div is `display: contents`, so it adds no box and your content stays a direct layout child of the parent. To style it as a box, set a display of your own on it first. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
 
@@ -771,7 +771,7 @@ The `HoverSnapshot` passed to `footer` and `children` describes the active x pos
 
 ### AreaChart.Legend
 
-The legend: series names keyed by swatches carrying each series' color and glyph, rendered as real DOM in flow below the plot. Always compose it on multi-series charts — identity must never rely on color-matching alone. It renders nothing for a single series (the chart's title already names it). The legend is at most 64px tall (`max-h-16`) and scrolls past that, so many series never take the plot's height in a fixed-height Root. Set a `max-h-*` class in `className` to change the bound.
+The legend: series names keyed by swatches carrying each series' color and glyph, rendered as real DOM in flow below the plot. Always compose it on multi-series charts: identity must never rely on color-matching alone. It renders nothing for a single series (the chart's title already names it). The legend is at most 64px tall (`max-h-16`) and scrolls past that, so many series never take the plot's height in a fixed-height Root. Set a `max-h-*` class in `className` to change the bound.
 
 A `children` render prop renders inside a `<div data-slot="area-chart-legend-label">`. When it goes away, React removes that div instead of your own text nodes: a browser translation engine reparents text nodes, and a removal aimed at one throws. The div is `display: contents`, so it adds no box and your content stays a direct layout child of the parent. To style it as a box, set a display of your own on it first. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
 

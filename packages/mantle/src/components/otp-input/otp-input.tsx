@@ -20,7 +20,7 @@ type OtpState = "idle" | "caret" | "range" | "all";
 /**
  * The color token name (`danger` / `success` / `warning`) that backs each
  * validation value. The `Validation` vocabulary (`"error"` / `"success"` /
- * `"warning"`) doesn't exactly match the color-token vocabulary — the
+ * `"warning"`) doesn't exactly match the color-token vocabulary: the
  * `error` validation maps to the `danger` color hue.
  */
 type ValidationHue = "danger" | "success" | "warning";
@@ -65,13 +65,13 @@ const computeOtpState = ({
  * `OTPInputContext`) and exposes the current selection state as a DOM data
  * attribute. Descendant `OtpInput.Group` / `OtpInput.Slot` parts read this
  * via Tailwind's `group-data-*` selector, so all conditional styling lives
- * in CSS — no React context.
+ * in CSS, with no React context.
  *
  * `data-otp-state` is one of:
- * - `"idle"` — no slot active (input not focused)
- * - `"caret"` — exactly one slot active (typing caret)
- * - `"range"` — multiple but not all slots active (partial selection)
- * - `"all"` — every slot active (cmd+a / select-all)
+ * - `"idle"`: no slot active (input not focused)
+ * - `"caret"`: exactly one slot active (typing caret)
+ * - `"range"`: multiple but not all slots active (partial selection)
+ * - `"all"`: every slot active (cmd+a / select-all)
  */
 const MantleOtpBridge = ({
 	children,
@@ -88,7 +88,7 @@ const MantleOtpBridge = ({
 	);
 	const otpState = computeOtpState({ totalActive, total });
 
-	// Map the validation hue to two CSS custom properties — descendant
+	// Map the validation hue to two CSS custom properties. Descendant
 	// slot/group classes reference these vars instead of having one
 	// branch per validation value. When no validation is set, the vars
 	// are left undefined and the validation utilities (gated on
@@ -116,7 +116,7 @@ const MantleOtpBridge = ({
 };
 
 // Drop the `render` / `children?: never` branch of input-otp's discriminated
-// union — `OtpInput.Root` always wraps its children in `MantleOtpBridge`,
+// union: `OtpInput.Root` always wraps its children in `MantleOtpBridge`,
 // so consumers compose with `OtpInput.Group` / `OtpInput.Slot` children
 // rather than a render prop.
 type OtpInputRootProps = Omit<ComponentProps<typeof OTPInput>, "render" | "children"> &
@@ -170,7 +170,7 @@ type OtpInputRootProps = Omit<ComponentProps<typeof OTPInput>, "render" | "child
  * ```
  */
 // `OtpInput.Root` does not support `asChild`: the underlying `OTPInput`
-// owns its hidden `<input>` and its render contract — swapping the element
+// owns its hidden `<input>` and its render contract. Swapping the element
 // would break input-otp's internal focus and selection management.
 const Root = ({
 	"data-slot": dataSlot,
@@ -288,7 +288,7 @@ type OtpInputSlotProps = Omit<ComponentProps<"div">, "translate"> & {
 /**
  * Renders a single character slot for the OTP input. Reads its display state
  * (the typed character, active/focused state, and fake caret position) from
- * the nearest `OtpInput.Root` via context — so this part must always be
+ * the nearest `OtpInput.Root` via context, so this part must always be
  * rendered inside an `OtpInput.Root`.
  *
  * **Translation.** The slot always carries `translate="no"`, so a browser
@@ -346,7 +346,7 @@ const OtpInputSlotImpl = ({
 				"first:rounded-l-md first:border-l last:rounded-r-md",
 				// When this slot is immediately followed by the caret
 				// slot, hide our `border-r` so the active slot's
-				// `border-l` is the only line at the boundary — without
+				// `border-l` is the only line at the boundary. Without
 				// this, the two adjacent 1px borders read as a doubled
 				// edge. We use an arbitrary `&:has(+ ...)` variant
 				// because Tailwind's `has-[...]` shorthand doesn't
@@ -355,7 +355,7 @@ const OtpInputSlotImpl = ({
 				// Per-slot ring renders only in `caret` state (single
 				// active slot). When more than one slot is active, the
 				// surrounding `OtpInput.Group` draws a single ring
-				// around the whole group — see Group's `:has()` rule.
+				// around the whole group (see Group's `:has()` rule).
 				// We also recolor the slot's own borders to accent and
 				// fill in `border-l` (groups normally only render
 				// `border-l` on `:first-child`), so the slot reads as
@@ -377,7 +377,7 @@ const OtpInputSlotImpl = ({
 				// Validation overrides. Only the *outer* edges of the
 				// group are tinted (top + bottom on every slot, left on
 				// the first slot, right on the last slot) so adjacent
-				// slots still join with a neutral divider — matching how
+				// slots still join with a neutral divider. This matches how
 				// `Input` tints the container border, not the internal
 				// elements. The all-state and caret-active overrides
 				// still recolor every border so a fully-active slot or
@@ -415,7 +415,7 @@ type OtpInputSeparatorProps = ComponentProps<"div"> &
 		 * If `true`, the separator renders with `role="separator"` so assistive
 		 * tech announces it as a divider between OTP groups.
 		 * If `false`, the separator is purely decorative and is removed from
-		 * the accessibility tree — preferred inside an OTP control where the
+		 * the accessibility tree. Prefer `false` inside an OTP control where the
 		 * minus icon is visual chrome between slot groups.
 		 *
 		 * @default false

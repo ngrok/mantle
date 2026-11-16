@@ -80,8 +80,8 @@ describe("List.Item", () => {
 	});
 
 	test("a disabled asChild link swallows activation (AT dispatches clicks without hit testing)", () => {
-		// Regression: `pointer-events: none` only blocks hit-tested pointer input —
-		// screen readers and `element.click()` dispatch click events directly, which
+		// Regression: `pointer-events: none` only blocks hit-tested pointer input.
+		// Screen readers and `element.click()` dispatch click events directly, which
 		// would follow the still-present `href`. The item must swallow those too.
 		const onClick = vi.fn<() => void>();
 		render(
@@ -92,7 +92,7 @@ describe("List.Item", () => {
 			</List.Root>,
 		);
 
-		// Dispatch the click directly on the element (as AT does) — fireEvent returns
+		// Dispatch the click directly on the element (as AT does). fireEvent returns
 		// false when a handler called preventDefault, i.e. navigation was blocked.
 		const link = screen.getByRole("link", { name: "Account" });
 		const activationAllowed = fireEvent.click(link);
@@ -115,7 +115,7 @@ describe("List.Item", () => {
 
 	test("keeps a consumer's onClickCapture on an enabled item (only the disabled asChild guard replaces it)", () => {
 		// The disabled-asChild guard is installed *as* `onClickCapture`, after the
-		// prop spread — so the enabled branch has to hand a consumer's own capture
+		// prop spread, so the enabled branch has to hand a consumer's own capture
 		// handler back or it is silently dropped.
 		const onClickCapture = vi.fn<() => void>();
 		render(

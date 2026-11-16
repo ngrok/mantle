@@ -163,7 +163,7 @@ describe("Select", () => {
 		expect(trigger.getAttribute("aria-describedby")).not.toContain("ignored-description");
 		expect(trigger).toHaveAttribute("aria-errormessage", errors.id);
 		// The field owns the id, so `Field.Label`'s `htmlFor` resolves to the
-		// trigger — the caller-supplied id loses.
+		// trigger, and the caller-supplied id loses.
 		expect(trigger.id).not.toBe("");
 		expect(trigger.id).not.toBe("ignored-trigger");
 		expect(screen.getByTestId("label")).toHaveAttribute("for", trigger.id);
@@ -189,7 +189,7 @@ describe("Select", () => {
 	test("rendered Field errors force the trigger into error state even when Select.Root says otherwise", () => {
 		// Field.Control wires aria-invalid="true" onto the trigger when the
 		// Field has rendered errors, and an explicit invalid aria value always
-		// resolves to "error" in parseValidation — so a "warning" claim from
+		// resolves to "error" in parseValidation, so a "warning" claim from
 		// Select.Root is overridden in this case. Consumers who need the
 		// non-error Select.Root state to win must suppress the inferred error
 		// via `validation` on Field.Item or Field.Control.

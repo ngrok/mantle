@@ -26,7 +26,7 @@ import { VirtualRoot as ListVirtualRoot } from "../list/virtual.js";
 /**
  * A single selectable row in a {@link SelectableList}. The list is data-driven:
  * map your domain objects into these options once, and the list owns filtering,
- * selection, and (optionally) virtualization. Item *rendering* stays composable —
+ * selection, and (optionally) virtualization. Item *rendering* stays composable:
  * pass a render-prop child to a viewport to draw your own layout.
  *
  * A `label` may be any ReactNode; when it isn't a plain string, `labelText` is
@@ -67,8 +67,8 @@ type SelectableListOption = {
 } & (
 	| {
 			/**
-			 * Plain-text title — rendered in the default row and, as the checkbox's
-			 * `<label>`, its accessible name. Also what the default filter matches
+			 * Plain-text title. The default row renders it, and as the checkbox's
+			 * `<label>` it is the accessible name. The default filter also matches it
 			 * (override that with `labelText`).
 			 */
 			label: string;
@@ -77,7 +77,7 @@ type SelectableListOption = {
 	  }
 	| {
 			/**
-			 * A rich title (any ReactNode). Keep readable text inside — the rendered
+			 * A rich title (any ReactNode). Keep readable text inside: the rendered
 			 * content is the checkbox's accessible name.
 			 */
 			label: ReactNode;
@@ -111,7 +111,7 @@ function optionLabelText(option: SelectableListOption): string {
  * Case-insensitive substring filter over each option's plain text (see
  * {@link optionLabelText}: `labelText`, or a string `label`). Returns the input
  * untouched for an empty/whitespace query so the common "no filter" path does no
- * work. Pure — safe to unit test and to call from `useMemo`.
+ * work. Pure, so it is safe to unit test and to call from `useMemo`.
  *
  * @example
  * ```ts
@@ -395,8 +395,8 @@ const Root = ({
 /**
  * The filter/search box for a `SelectableList`. Renders the mantle `Input` with
  * a leading magnifying-glass icon and drives the list's filter query (a
- * case-insensitive substring match over each option's plain text — `labelText`,
- * or a string `label`). Optional — omit it for a non-filterable list.
+ * case-insensitive substring match over each option's plain text: `labelText`,
+ * or a string `label`). Optional: omit it for a non-filterable list.
  *
  * @see https://mantle.ngrok.com/components/data-display/selectable-list
  *
@@ -418,7 +418,7 @@ const Filter = ({
 }: Omit<
 	ComponentProps<typeof Input>,
 	// The input is always controlled by the list's `query`, so `defaultValue`
-	// would typecheck yet be silently ignored — omit it too.
+	// would typecheck yet be silently ignored, so omit it too.
 	"value" | "defaultValue" | "onChange" | "type" | "children"
 > &
 	WithDataSlot) => {
@@ -442,8 +442,8 @@ const Filter = ({
 
 /**
  * A tri-state "select all" header for a `SelectableList`. Reflects the selection
- * of the **currently filtered** options — checked when all are selected,
- * indeterminate when only some are, unchecked when none are — and toggling it
+ * of the **currently filtered** options (checked when all are selected,
+ * indeterminate when only some are, unchecked when none are), and toggling it
  * selects or clears that filtered set. Optional. Children are the visible label.
  *
  * **Structure.** `children` render inside a
@@ -528,13 +528,13 @@ const SelectAll = ({
 
 /**
  * The DOM id of a row's checkbox, derived from the list id and the option value.
- * The grid's `aria-activedescendant` resolves to this — the row element itself is
+ * The grid's `aria-activedescendant` resolves to this. The row element itself is
  * a `Choice.Root`, which reserves `id` for the control, so the checkbox is the
  * real element that carries the id.
  */
 function controlIdFor(listId: string, value: string): string {
 	// `encodeURIComponent` guarantees a whitespace-free, valid HTML id token (and
-	// thus a resolvable `aria-activedescendant` IDREF) for ANY option `value` — e.g.
+	// thus a resolvable `aria-activedescendant` IDREF) for ANY option `value`, e.g.
 	// a display name like "Acme Inc" or an email. The checkbox `id` and the grid's
 	// `aria-activedescendant`/`itemId` all derive from this one function, so encoding
 	// every call site keeps them equal and preserves the accessibility association.
@@ -560,7 +560,7 @@ type SelectableListItemProps = Omit<ComponentProps<"div">, "children" | "id"> & 
 	/** The option's selection value. Selection state is read from, and toggled in, the list. */
 	value: string;
 	/**
-	 * Item content — typically `SelectableList.ItemTitle` over a
+	 * Item content, typically `SelectableList.ItemTitle` over a
 	 * `SelectableList.ItemDescription`, or any layout you like. It fills the row's
 	 * content `gridcell`; nested interactive content (links, buttons) is allowed.
 	 */
@@ -644,7 +644,7 @@ const Item = ({
 };
 
 /**
- * The emphasized title of a `SelectableList.Item`, rendered as `Choice.Label` —
+ * The emphasized title of a `SelectableList.Item`, rendered as `Choice.Label`:
  * a real `<label>` wired to the row's checkbox, so clicking it toggles the row
  * and it supplies the checkbox's accessible name.
  *
@@ -729,7 +729,7 @@ function renderDefaultOption(option: SelectableListOption): ReactElement {
  * Returns the rendered items alongside the `options` that produced them, in the
  * same order. Non-element render-prop results (e.g. a conditional `null`) are
  * skipped from *both* arrays, so `options[i]` always corresponds to the rendered
- * `items[i]` — and to the index the list primitive assigns that item (it derives
+ * `items[i]`, and to the index the list primitive assigns that item (it derives
  * indices from the elements it renders via `Children.toArray`). The viewport
  * resolves activation, `itemId`, and disabled state by that index against
  * `options`, so keeping them aligned is what stops keyboard nav from toggling
@@ -757,7 +757,7 @@ function renderItems(
  * items and the option array that stays index-aligned with them, plus the
  * index-based callbacks (`onActivate`, `itemId`, `isItemDisabled`) the list
  * primitive consumes. One implementation so the item/option alignment contract
- * keyboard navigation depends on exists once — and the callbacks are
+ * keyboard navigation depends on exists once, and the callbacks are
  * identity-stable so the primitive's item-level render bail-outs hold across
  * unrelated re-renders.
  */
@@ -775,7 +775,7 @@ function useViewportItems(
 	const renderOption = renderPropChild ?? renderDefaultOption;
 	// Memoized so a selection toggle (which leaves `filteredOptions` and the
 	// renderer untouched) doesn't re-map + re-clone every row. A fresh inline
-	// render-prop each render opts out of the memo — memoize it to keep the win.
+	// render-prop each render opts out of the memo, so memoize it to keep the win.
 	const { items, options: itemOptions } = useMemo(
 		() => renderItems(filteredOptions, renderOption),
 		[filteredOptions, renderOption],
@@ -882,7 +882,7 @@ const Viewport = ({
 };
 
 /**
- * Props for `SelectableList.VirtualViewport` — the `Viewport` props plus the
+ * Props for `SelectableList.VirtualViewport`: the `Viewport` props plus the
  * virtualizer knobs.
  *
  * @see https://mantle.ngrok.com/components/data-display/selectable-list
@@ -1020,16 +1020,16 @@ const Empty = ({
 };
 
 /**
- * A filterable, multi-select **grid** of checkbox rows — the inline
+ * A filterable, multi-select **grid** of checkbox rows, the inline
  * (non-popover) counterpart to `MultiSelect`/`Combobox`. Map your data into
  * `options` once; the list owns filtering, selection, and (optionally)
  * virtualization. Each row is an APG grid `role="row"` (`aria-selected`) whose
- * cells hold a real `Checkbox` and a `Choice`-laid-out title + description — the
+ * cells hold a real `Checkbox` and a `Choice`-laid-out title + description. This is the
  * pattern that lets a selectable row carry a real control and nested interactive
  * content. Non-virtualized by default; swap `Viewport` → `VirtualViewport` (same
  * props) for windowing. Built on the shared `list` primitive.
  *
- * Keyboard: the grid is a single tab stop — `Arrow`/`Home`/`End` move an active
+ * Keyboard: the grid is a single tab stop: `Arrow`/`Home`/`End` move an active
  * row (tracked via `aria-activedescendant`, so navigation works across the full
  * option set even when virtualized) and `Space`/`Enter` toggles it.
  *

@@ -94,7 +94,7 @@ export function SingleLineWithHeaderDemo() {
 			<CodeBlock.Root>
 				<CodeBlock.Header>
 					<CodeBlock.Icon preset="cli" />
-					<CodeBlock.Title>Command Line</CodeBlock.Title>
+					<CodeBlock.Title>Command line</CodeBlock.Title>
 				</CodeBlock.Header>
 				<CodeBlock.Body>
 					<CodeBlock.CopyButton />
@@ -706,7 +706,7 @@ listener = ngrok.forward(8080, traffic_policy=policy)`;
  * Demonstrates nested `mantleCode` interpolation: a reusable policy fragment authored once
  * and embedded into multiple SDK snippets. Each `${oauthPolicyFragment.code}` is inlined at
  * build time, so the embedded policy is highlighted as real lines of its host language with
- * correct line numbers — and pays no runtime substitution cost.
+ * correct line numbers, and pays no runtime substitution cost.
  */
 export function NestedFragmentInterpolationDemo() {
 	return (
@@ -732,7 +732,7 @@ export function NestedFragmentInterpolationDemo() {
 	);
 }
 
-// A realistic "runtime" record — the kind of value you only have in the browser
+// A realistic "runtime" record: the kind of value you only have in the browser
 // (an API response, a table row's underlying object) and therefore can't run
 // through the build-time `mantleCode` transform.
 const exampleRuntimeRecord = {
@@ -750,7 +750,7 @@ const exampleRuntimeRecord = {
 
 /**
  * Demonstrates `jsonCodeBlockValue` highlighting a runtime value entirely on the
- * client — no Shiki shipped to the browser — and folding multi-line objects/arrays
+ * client (no Shiki shipped to the browser) and folding multi-line objects/arrays
  * by default, just like a build-time JSON block.
  */
 export function JsonCodeBlockValueDemo() {

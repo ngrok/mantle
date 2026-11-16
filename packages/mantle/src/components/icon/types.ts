@@ -14,7 +14,7 @@ import type { ComponentProps } from "react";
 export type SvgAttributes = ComponentProps<"svg"> & {
 	/**
 	 * Whether the SVG can receive keyboard focus. Use the string form
-	 * (`"true"` / `"false"`) — the SVG attribute is serialized as a string and
+	 * (`"true"` / `"false"`): the SVG attribute is serialized as a string and
 	 * React's boolean form can produce inconsistent output.
 	 */
 	focusable?: "true" | "false";

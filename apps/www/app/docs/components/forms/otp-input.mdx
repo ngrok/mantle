@@ -301,16 +301,16 @@ All props from the underlying [`OTPInput`](https://github.com/guilhermerodz/inpu
 
 | Prop                           | Type                             | Default  | Description                                                               |
 | ------------------------------ | -------------------------------- | -------- | ------------------------------------------------------------------------- |
-| `maxLength`                    | `number`                         | —        | The total number of character slots. Required.                            |
-| `value?`                       | `string`                         | —        | Controlled value.                                                         |
-| `onChange?`                    | `(value: string) => void`        | —        | Fired when the value changes.                                             |
-| `onComplete?`                  | `(value: string) => void`        | —        | Fired when the user fills the final slot.                                 |
-| `pattern?`                     | `string`                         | —        | Regex source restricting accepted characters (e.g. `REGEXP_ONLY_DIGITS`). |
+| `maxLength`                    | `number`                         |          | The total number of character slots. Required.                            |
+| `value?`                       | `string`                         |          | Controlled value.                                                         |
+| `onChange?`                    | `(value: string) => void`        |          | Fired when the value changes.                                             |
+| `onComplete?`                  | `(value: string) => void`        |          | Fired when the user fills the final slot.                                 |
+| `pattern?`                     | `string`                         |          | Regex source restricting accepted characters (e.g. `REGEXP_ONLY_DIGITS`). |
 | `textAlign?`                   | `"left" \| "center" \| "right"`  | `"left"` | Caret alignment within the hidden input.                                  |
-| `containerClassName?`          | `string`                         | —        | Class applied to the slot container element.                              |
-| `pasteTransformer?`            | `(pasted: string) => string`     | —        | Transform pasted text before it is consumed.                              |
-| `pushPasswordManagerStrategy?` | `"increase-width" \| "none"`     | —        | Strategy to push password-manager badges out of the way.                  |
-| `validation?`                  | `Validation \| () => Validation` | —        | Validation state. `"error"` also sets `aria-invalid` on the input.        |
+| `containerClassName?`          | `string`                         |          | Class applied to the slot container element.                              |
+| `pasteTransformer?`            | `(pasted: string) => string`     |          | Transform pasted text before it is consumed.                              |
+| `pushPasswordManagerStrategy?` | `"increase-width" \| "none"`     |          | Strategy to push password-manager badges out of the way.                  |
+| `validation?`                  | `Validation \| () => Validation` |          | Validation state. `"error"` also sets `aria-invalid` on the input.        |
 
 ### OtpInput.Group
 
@@ -324,13 +324,13 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### OtpInput.Slot
 
-A single character slot. Must be rendered inside an `OtpInput.Root`. Reads its character, active state, and fake caret position from the root via context. Always renders `translate="no"` — see [Translation](#translation).
+A single character slot. Must be rendered inside an `OtpInput.Root`. Reads its character, active state, and fake caret position from the root via context. Always renders `translate="no"`. See [Translation](#translation).
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) except `translate`, plus:
 
 | Prop    | Type     | Default | Description                                                    |
 | ------- | -------- | ------- | -------------------------------------------------------------- |
-| `index` | `number` | —       | Zero-based index of the slot. Required. Must be `< maxLength`. |
+| `index` | `number` |         | Zero-based index of the slot. Required. Must be `< maxLength`. |
 
 ### OtpInput.Separator
 

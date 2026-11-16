@@ -15,7 +15,7 @@ export function WithoutTriggerExample() {
 	return (
 		<>
 			<Button type="button" appearance="outlined" intent="neutral" onClick={() => setIsOpen(true)}>
-				Open Sheet
+				Open sheet
 			</Button>
 			{isOpen && (
 				<Sheet.Root open onOpenChange={() => setIsOpen(false)}>
@@ -59,7 +59,7 @@ export function OverviewExample() {
 			<Sheet.Root>
 				<Sheet.Trigger asChild>
 					<Button type="button" appearance="filled" intent="neutral">
-						Open Sheet
+						Open sheet
 					</Button>
 				</Sheet.Trigger>
 				<Sheet.Content>

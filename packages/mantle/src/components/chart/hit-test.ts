@@ -5,12 +5,12 @@
  * pointer move at 100k points); band x inverts the band-step math directly
  * (see `invertBand` in ./scales.js).
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation, not exported from the package.
  */
 
 /**
  * The index in ascending `xs` (first `length` entries) whose value is nearest
- * to `x` — the crosshair snap. Returns `null` for empty data.
+ * to `x` (the crosshair snap). Returns `null` for empty data.
  *
  * @example
  * ```ts

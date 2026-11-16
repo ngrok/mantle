@@ -16,7 +16,7 @@ A vertically stacked set of disclosure sections whose collapsed content stays in
 ```tsx
 import { Accordion } from "@ngrok/mantle/accordion";
 
-// `type` is optional and defaults to "multiple" — any number of sections can be open at once.
+// `type` is optional and defaults to "multiple": any number of sections can be open at once.
 <Accordion.Root defaultValue={["dns"]} className="max-w-xl">
 	<Accordion.Item value="dns">
 		<Accordion.Trigger>
@@ -49,7 +49,7 @@ import { Accordion } from "@ngrok/mantle/accordion";
 		</Accordion.Trigger>
 		<Accordion.Content>
 			<Accordion.Body>
-				The free plan includes ephemeral endpoints and one reserved domain — enough to demo a
+				The free plan includes ephemeral endpoints and one reserved domain: enough to demo a
 				deployment or prototype an integration.
 			</Accordion.Body>
 		</Accordion.Content>
@@ -114,7 +114,7 @@ section, the section that was open closes.
 		</Accordion.Trigger>
 		<Accordion.Content>
 			<Accordion.Body>
-				The free plan includes ephemeral endpoints and one reserved domain — enough to demo a
+				The free plan includes ephemeral endpoints and one reserved domain: enough to demo a
 				deployment or prototype an integration.
 			</Accordion.Body>
 		</Accordion.Content>
@@ -229,7 +229,7 @@ never toggles it; and the `Content` spans full-width below. Override the default
 
 ```tsx
 // The header is a plain flex row: the Trigger button, a divider, and the action
-// button are siblings — no overlay, no absolute positioning. The Add Rule button
+// button are siblings, with no overlay and no absolute positioning. The Add Rule button
 // is outside the Trigger, so it never toggles the section; Content is full-width.
 import { Accordion } from "@ngrok/mantle/accordion";
 import { Badge } from "@ngrok/mantle/badge";
@@ -254,7 +254,7 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 			</Accordion.Trigger>
 			<Separator orientation="horizontal" className="flex-1" />
 			<Button type="button" appearance="link" intent="accent" icon={<PlusIcon />}>
-				<span className="xs:inline hidden">Add Rule</span>
+				<span className="xs:inline hidden">Add rule</span>
 			</Button>
 		</div>
 		<Accordion.Content>
@@ -276,7 +276,7 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 			</Accordion.Trigger>
 			<Separator orientation="horizontal" className="flex-1" />
 			<Button type="button" appearance="link" intent="accent" icon={<PlusIcon />}>
-				<span className="xs:inline hidden">Add Rule</span>
+				<span className="xs:inline hidden">Add rule</span>
 			</Button>
 		</div>
 		<Accordion.Content>
@@ -298,7 +298,7 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 			</Accordion.Trigger>
 			<Separator orientation="horizontal" className="flex-1" />
 			<Button type="button" appearance="link" intent="accent" icon={<PlusIcon />}>
-				<span className="xs:inline hidden">Add Rule</span>
+				<span className="xs:inline hidden">Add rule</span>
 			</Button>
 		</div>
 		<Accordion.Content>
@@ -472,10 +472,10 @@ the browser's find-in-page.
 Owns the accordion state and renders a wrapping `<div>` (or your own element via `asChild`). The `type` prop is a
 discriminated union that shapes the open value:
 
-- `type="multiple"` — **the default.** Any number of sections may be open at once, and opening one never closes
+- `type="multiple"`: **the default.** Any number of sections may be open at once, and opening one never closes
   another. `value` / `defaultValue` are a `string[]`, and `onValueChange` receives the new list. Omitting `type`
   entirely is the same as `type="multiple"`.
-- `type="single"` — at most one section open at a time: opening a section auto-closes the previously open one.
+- `type="single"`: at most one section open at a time. Opening a section auto-closes the previously open one.
   `value` / `defaultValue` are a `string` (use `""` for none), and `onValueChange` receives the newly open value.
 
 > [!IMPORTANT]
@@ -495,7 +495,7 @@ props, plus:
 
 ### Accordion.Item
 
-A single collapsible section, rendered as a `<div role="group">` — the role a native `<details>` carries. Its open
+A single collapsible section, rendered as a `<div role="group">` (the role a native `<details>` carries). Its open
 state is derived from `Root`. Because the item is a plain `<div>`, its header can be any layout, including a flex row
 with the `Trigger` beside a separate, non-toggling action button. Accepts all `<div>` props, plus:
 
@@ -505,7 +505,7 @@ with the `Trigger` beside a separate, non-toggling action button. Accepts all `<
 
 ### Accordion.Trigger
 
-The clickable header that toggles its section, rendered as a `<button aria-expanded>` — the disclosure semantics a
+The clickable header that toggles its section, rendered as a `<button aria-expanded>`: the disclosure semantics a
 native `<summary>` carries, via a real button so the role is consistent across browsers. Its `aria-controls` points at
 the item's `Accordion.Content`. Defaults to full-width with
 the `TriggerIcon` pushed to the trailing edge; set `w-auto` when placing it in a custom header row. A consumer `onClick`
@@ -517,14 +517,14 @@ runs first and the section still toggles afterward (calling `preventDefault()` d
 The indicator icon. Defaults to a downward caret that rotates 180° when its section opens. Accepts all
 [`Icon`](/components/data-display/icon) props (notably `className` and `style`), plus:
 
-| Prop   | Type        | Default          | Description                                                                                     |
-| :----- | :---------- | :--------------- | :---------------------------------------------------------------------------------------------- |
-| `svg?` | `ReactNode` | a downward caret | The icon to render. Rotation-on-open still applies — override `className` to change the motion. |
+| Prop   | Type        | Default          | Description                                                                                    |
+| :----- | :---------- | :--------------- | :--------------------------------------------------------------------------------------------- |
+| `svg?` | `ReactNode` | a downward caret | The icon to render. Rotation-on-open still applies. Override `className` to change the motion. |
 
 ### Accordion.Content
 
-The collapsible region, rendered as a `<div>` that is always present in the DOM — the zero-padding viewport that slides
-open and closed. When collapsed, it leaves the accessibility tree and the tab order: in browsers that support
+The collapsible region, rendered as a `<div>` that is always present in the DOM (the zero-padding viewport that slides
+open and closed). When collapsed, it leaves the accessibility tree and the tab order: in browsers that support
 `hidden="until-found"` it carries that attribute, so its text stays discoverable by find-in-page and a `beforematch`
 listener opens the section when the browser reveals a match; in other browsers, and in the server HTML, it carries
 `inert`. Its `id` is the target of the trigger's `aria-controls`; `Accordion.Item` generates it, so `id` is not a prop
@@ -536,6 +536,6 @@ inside an `Accordion.Body`. It is flow content, so it may contain **anything**, 
 
 The padded inner region of a `Content`, where the section's body content lives. It owns the bottom padding so `Content`
 can stay an unpadded animation viewport (a padded `h-0` border-box can't collapse below its padding, so the closed
-slide would never reach zero height). Text inherits the ambient size rather than being forced to a fixed size — set a
-text class where you need one. Override `className` to retune the spacing — e.g. `pb-0` to remove the bottom padding,
-`px-6` for horizontal padding — and `cx` resolves last-wins over the defaults. Accepts all `<div>` props.
+slide would never reach zero height). Text inherits the ambient size rather than being forced to a fixed size. Set a
+text class where you need one. Override `className` to retune the spacing (e.g. `pb-0` to remove the bottom padding,
+`px-6` for horizontal padding). `cx` resolves last-wins over the defaults. Accepts all `<div>` props.

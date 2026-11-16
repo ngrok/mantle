@@ -450,7 +450,7 @@ export function EndpointsDemo() {
 }
 
 /**
- * Demo of a data table in its "no data yet" empty state — an informational
+ * Demo of a data table in its "no data yet" empty state: an informational
  * `Empty` with an optional primary "create" action, hosted in `DataTable.EmptyRow`.
  */
 export function EmptyPaymentsDemo() {
@@ -609,7 +609,7 @@ function PaymentsEmptyRow({
 /**
  * Demo of the "no results for the active filter" empty state. Typing a query
  * that matches nothing swaps in a filtered `Empty` whose `Clear filters` action
- * resets the search — distinct from the "no data yet" state above.
+ * resets the search (distinct from the "no data yet" state above).
  */
 export function FilteredEmptyStateDemo() {
 	const data = useMemo(() => examplePayments, []);
@@ -1024,7 +1024,7 @@ const expandableColumns = expandableColumnHelper.columns([
 /**
  * Demo of expandable rows. A `DataTable.RowExpandButton` in the leading column
  * toggles a `DataTable.ExpandedRow` that renders the row's underlying object as
- * JSON via `CodeBlock` — a common "inspect the raw record" support workflow.
+ * JSON via `CodeBlock`, a common "inspect the raw record" support workflow.
  * Expansion is driven entirely by native TanStack state (multiple rows may be
  * open at once).
  */
@@ -1050,13 +1050,13 @@ export function ExpandableRowsDemo() {
 						<DataTable.Row
 							key={row.id}
 							row={row}
-							// `renderExpanded` is called lazily — only while the row is open —
+							// `renderExpanded` is called lazily (only while the row is open),
 							// so collapsed rows never build (or tokenize) their panel.
 							renderExpanded={(row) => (
 								<CodeBlock.Root>
 									<CodeBlock.Body>
 										<CodeBlock.CopyButton />
-										{/* Highlighted entirely on the client — no Shiki runtime, no
+										{/* Highlighted entirely on the client: no Shiki runtime, no
 										    build-time plugin, no server roundtrip. */}
 										<CodeBlock.Code value={jsonCodeBlockValue(row.original)} />
 									</CodeBlock.Body>

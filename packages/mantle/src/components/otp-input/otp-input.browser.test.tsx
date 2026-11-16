@@ -8,10 +8,10 @@ import { OtpInput, REGEXP_ONLY_DIGITS } from "./otp-input.js";
 
 /**
  * Render a default 6-slot OTP input. Returns the hidden input that accepts
- * keystrokes/paste — input-otp renders a real `<input>` we can target via
+ * keystrokes/paste; input-otp renders a real `<input>` we can target via
  * the textbox role.
  */
-// Loosely-typed root props for the test helper — the real `OtpInput.Root`
+// Loosely-typed root props for the test helper: the real `OtpInput.Root`
 // type is a discriminated union (render | children) which doesn't compose
 // cleanly with `Partial<>`. The runtime contract is the same.
 type RenderOtpProps = {
@@ -113,7 +113,7 @@ describe("OtpInput (browser)", () => {
 		expect(slots[0]).toHaveTextContent("");
 	});
 
-	test("pattern restricts accepted characters — letters are rejected when REGEXP_ONLY_DIGITS is set", async () => {
+	test("pattern restricts accepted characters: letters are rejected when REGEXP_ONLY_DIGITS is set", async () => {
 		const user = userEvent.setup();
 		const { input, slots } = renderOtp({ pattern: REGEXP_ONLY_DIGITS });
 
@@ -261,7 +261,7 @@ describe("OtpInput (browser)", () => {
 
 			// Every assertion below asserts a state *different* from the previous
 			// one, so a stale read can't satisfy it. One slot short of the whole
-			// input is still a range — never `all`.
+			// input is still a range, never `all`.
 			input.setSelectionRange(0, 5);
 			await expect.poll(otpState).toBe("range");
 
@@ -294,7 +294,7 @@ describe("OtpInput (browser)", () => {
 				</form>,
 			);
 
-			// Clicking the field's label must focus the OTP input — that only works
+			// Clicking the field's label must focus the OTP input. That only works
 			// if `htmlFor` and the input's `id` agree.
 			await user.click(screen.getByText("Code"));
 			await user.keyboard("428");

@@ -36,7 +36,7 @@ ordering to get wrong, and is as deep as your route tree.
 ## Anatomy
 
 ```text showLineNumbers=false
-routes.ts                 the route tree — the single source of truth for hierarchy
+routes.ts                 the route tree, the single source of truth for hierarchy
 └── each route module
     └── export const handle = { breadcrumb: … }    what this level is called
         └── <RouteBreadcrumbs />                   reads useMatches(), renders the trail
@@ -92,7 +92,7 @@ In order of preference. Reach for the first one that works.
 the pages that should show it (see [the trail follows nesting](#the-trail-follows-nesting-not-the-url)):
 
 ```tsx
-// app/routes/endpoints.tsx — the layout route at path "endpoints"
+// app/routes/endpoints.tsx: the layout route at path "endpoints"
 import type { BreadcrumbHandle } from "@ngrok/mantle/breadcrumb";
 
 export const handle = { breadcrumb: "Endpoints" } satisfies BreadcrumbHandle;
@@ -237,7 +237,7 @@ does not.
 Give the **layout route** that owns the section a `routeBreadcrumb.label` crumb:
 
 ```tsx
-// app/routes/settings.tsx — the layout route at path "settings"
+// app/routes/settings.tsx: the layout route at path "settings"
 import { routeBreadcrumb, type BreadcrumbHandle } from "@ngrok/mantle/breadcrumb";
 
 export const handle = {
@@ -291,13 +291,13 @@ function CrumbContent({ crumb, isCurrentPage }: { crumb: ItemCrumb; isCurrentPag
 	}
 
 	if (crumb.kind === "label") {
-		// a section prefix whose index URL only redirects — a link there would
+		// a section prefix whose index URL only redirects: a link there would
 		// bounce the user back to where they already are
 		return <Breadcrumb.Label>{crumb.label}</Breadcrumb.Label>;
 	}
 
 	return (
-		// asChild, so the router owns navigation — a bare href on
+		// asChild, so the router owns navigation: a bare href on
 		// Breadcrumb.Link would full-page-navigate
 		<Breadcrumb.Link asChild>
 			<Link to={crumb.to}>{crumb.label}</Link>
@@ -308,8 +308,8 @@ function CrumbContent({ crumb, isCurrentPage }: { crumb: ItemCrumb; isCurrentPag
 /**
  * Renders a breadcrumb trail from already-resolved crumbs. The last crumb is the
  * current page (`aria-current="page"`, not a link), and every earlier one links
- * to its route — except a label crumb, which renders as a non-link
- * `Breadcrumb.Label`, and a content crumb, which renders its own items. A
+ * to its route, with two exceptions: a label crumb renders as a non-link
+ * `Breadcrumb.Label`, and a content crumb renders its own items. A
  * content crumb decides link vs current page itself, because the renderer
  * cannot see inside it.
  *
@@ -354,7 +354,7 @@ function Breadcrumbs({ crumbs }: { crumbs: ReadonlyArray<ResolvedCrumb> }) {
 
 /**
  * The breadcrumb trail for the current route. Render it once, in your app shell's
- * header — it derives everything from the matched route chain, so no route needs to
+ * header: it derives everything from the matched route chain, so no route needs to
  * push anything up.
  *
  * This is the only piece that touches the router, which keeps the hook at the edge.
@@ -587,7 +587,7 @@ describe("Breadcrumbs", () => {
 		expect(screen.getByText("ep_1").getAttribute("aria-current")).toBe("page");
 	});
 
-	it("renders a prefix crumb as plain text — no link, no aria-current", () => {
+	it("renders a prefix crumb as plain text: no link, no aria-current", () => {
 		render(
 			<MemoryRouter>
 				<Breadcrumbs

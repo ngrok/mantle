@@ -73,15 +73,15 @@ CenteredLayout.Root
 └── CenteredLayout.Footer
 ```
 
-- **`Root`** is the outer frame. It fills its nearest sized ancestor (`min-h-full`) and stacks `Notice` and `Header` (pinned top), `Body` (which grows), and `Footer` (pinned bottom). Merge `h-full` via `className` when the host requires an exact height — `cx` is tailwind-merge-backed, so the override is deterministic.
-- **`Notice`** is a full-window-width strip pinned above everything else — including `Header` — for maintenance notices, environment warnings, and similar app-wide messaging. It is unstyled (`w-full shrink-0`): the notice content brings its own colors, and the part collapses to nothing when empty. The same slot contract as [`AppLayout.Notice`](/layouts/app-layout#applayoutnotice), so an app-wide banner composes identically across mantle's layouts; see [Notice](#notice). Optional.
+- **`Root`** is the outer frame. It fills its nearest sized ancestor (`min-h-full`) and stacks `Notice` and `Header` (pinned top), `Body` (which grows), and `Footer` (pinned bottom). Merge `h-full` via `className` when the host requires an exact height. `cx` is tailwind-merge-backed, so the override is deterministic.
+- **`Notice`** is a full-window-width strip pinned above everything else (including `Header`) for maintenance notices, environment warnings, and similar app-wide messaging. It is unstyled (`w-full shrink-0`): the notice content brings its own colors, and the part collapses to nothing when empty. The same slot contract as [`AppLayout.Notice`](/layouts/app-layout#applayoutnotice), so an app-wide banner composes identically across mantle's layouts; see [Notice](#notice). Optional.
 - **`Header`** is a utility strip at the top (an account chip, a close button) rendered **outside** the centered region as a semantic `<header>`, the mirror of `Footer`. Optional; see [Header](#header) for the window-pinned variant.
 - **`Body`** is the growing, centered region (`flex-1`, centered, `gap-6`). By convention the brand mark (a fully-styled logo/wordmark anchor) is its **first child**, and the primary content follows as composed JSX (a `div`, or the [Main](/components/primitives/main) landmark when the layout owns the document; see [Landmarks](#landmarks)). There is deliberately no `Logo` or `Content` part because they would own nothing: vertical spacing comes from `Body`'s `gap-6`, and both arrive as already-styled JSX. Content taller than the viewport top-flows and the page scrolls, because `Root` grows instead of clipping.
-- **`Footer`** is a pinned utility strip (theme switcher, legal links) rendered **outside** the centered `flex-1` region — which is exactly why `Body` exists as a separate part: `Root` cannot own the centering because `Header` and `Footer` must sit outside it. `Footer` is optional; omitting it is fine.
+- **`Footer`** is a pinned utility strip (theme switcher, legal links) rendered **outside** the centered `flex-1` region. That is exactly why `Body` exists as a separate part: `Root` cannot own the centering because `Header` and `Footer` must sit outside it. `Footer` is optional; omitting it is fine.
 
 ## Header
 
-Focused flows that the user can leave (checkout, plan pickers, onboarding steps) carry a utility strip at the top: who is signed in on the left, a close button on the right. `Header` is that strip, the mirror of `Footer`. To keep the close button reachable while the page scrolls, merge `sticky top-0 z-10` (and a background) via `className` — prefer `sticky` over `fixed`, which removes the strip from flow and underlaps the content below it. The demo runs in its own framed document, so its page really does own the scroller; scroll it to see the header stay pinned. On a real page, give the document scroller `overscroll-none` to suppress rubber-banding and pull-to-refresh; don't set it on a nested scroller, where cutting scroll chaining swallows the wheel at the scroller's edge instead of handing it back to the page.
+Focused flows that the user can leave (checkout, plan pickers, onboarding steps) carry a utility strip at the top: who is signed in on the left, a close button on the right. `Header` is that strip, the mirror of `Footer`. To keep the close button reachable while the page scrolls, merge `sticky top-0 z-10` (and a background) via `className`. Prefer `sticky` over `fixed`, which removes the strip from flow and underlaps the content below it. The demo runs in its own framed document, so its page really does own the scroller; scroll it to see the header stay pinned. On a real page, give the document scroller `overscroll-none` to suppress rubber-banding and pull-to-refresh; don't set it on a nested scroller, where cutting scroll chaining swallows the wheel at the scroller's edge instead of handing it back to the page.
 
 <Example name="centered-layout-header" title="Centered layout header demo">
 
@@ -121,7 +121,7 @@ mantle's layouts. It is unstyled (`w-full shrink-0`): the notice content brings 
 nothing when empty, so it can stay mounted and conditionally render its contents. Toggle the notice in the
 demo to see it push the whole page (header included) down. On flows that scroll, it scrolls away with the
 page by default; merge `sticky top-0 z-20` via `className` to pin it to the window. To keep a sticky
-[`Header`](#header) pinned as well, wrap the two strips in a single `sticky top-0` container — two
+[`Header`](#header) pinned as well, wrap the two strips in a single `sticky top-0` container. Two
 elements pinned at `top-0` overlap each other once the page scrolls.
 
 <Example name="centered-layout-notice" title="Centered layout notice demo">
@@ -146,7 +146,7 @@ export function CheckoutPage() {
 				{isUnderMaintenance && (
 					<div className="text-on-filled flex items-center gap-2 bg-red-600 px-4 py-1 text-xs">
 						<WarningCircleIcon weight="fill" className="shrink-0" />
-						Scheduled maintenance in progress — the dashboard is read-only.
+						Scheduled maintenance in progress. The dashboard is read-only.
 					</div>
 				)}
 			</CenteredLayout.Notice>
@@ -246,8 +246,8 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### CenteredLayout.Notice
 
-A full-window-width strip pinned above everything else in the layout — including `CenteredLayout.Header` — for maintenance notices, environment warnings, and similar app-wide messaging. Renders an unstyled `<div>` (`w-full shrink-0`): the notice content brings its own colors and layout, and the part collapses to nothing when empty, so it can stay mounted and conditionally render its contents. Deliberately not named Banner — `CenteredLayout.Header` renders the page's `<header>` (the ARIA `banner` landmark), and this part is not that. On flows that scroll, it scrolls away with the page by default; merge `sticky top-0 z-20` via `className` to pin it to the window. To keep a sticky
-[`Header`](#header) pinned as well, wrap the two strips in a single `sticky top-0` container — two
+A full-window-width strip pinned above everything else in the layout (including `CenteredLayout.Header`) for maintenance notices, environment warnings, and similar app-wide messaging. Renders an unstyled `<div>` (`w-full shrink-0`): the notice content brings its own colors and layout, and the part collapses to nothing when empty, so it can stay mounted and conditionally render its contents. Deliberately not named Banner: `CenteredLayout.Header` renders the page's `<header>` (the ARIA `banner` landmark), and this part is not that. On flows that scroll, it scrolls away with the page by default; merge `sticky top-0 z-20` via `className` to pin it to the window. To keep a sticky
+[`Header`](#header) pinned as well, wrap the two strips in a single `sticky top-0` container. Two
 elements pinned at `top-0` overlap each other once the page scrolls. Optional.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:

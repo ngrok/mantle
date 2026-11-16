@@ -31,7 +31,7 @@ function AlertBody({ title, href, cta }: { title: string; href?: string; cta?: s
 
 /**
  * The bar's presence wrapper, or `null` once the exit completed and it
- * unmounted. Queried by slot because it is not reachable through `Bar`'s props —
+ * unmounted. Queried by slot because it is not reachable through `Bar`'s props:
  * those forward to the banner chrome inside it.
  */
 function queryBarWrapper(): HTMLElement | null {
@@ -64,7 +64,7 @@ function getItemHost(id: string): HTMLElement {
 	return host;
 }
 
-/** The bar's banner chrome — the `Alert.Root` the top item's children render inside. */
+/** The bar's banner chrome: the `Alert.Root` the top item's children render inside. */
 function getBarChrome(): HTMLElement {
 	const chrome = document.querySelector<HTMLElement>('[data-slot~="alert-center-bar"]');
 	if (chrome == null) {
@@ -253,7 +253,7 @@ describe("AlertCenterStore", () => {
 		const store = new AlertCenterStore();
 		const unregisterA = store.register(registration("a", "warning"));
 		store.register(registration("b", "warning"));
-		// a prop update re-registers "a" — React tears the previous registration
+		// a prop update re-registers "a"; React tears the previous registration
 		// down first, and the sticky sequence keeps it ahead of "b"
 		unregisterA();
 		store.register({ ...registration("a", "warning"), className: "updated" });
@@ -285,7 +285,7 @@ describe("AlertCenterStore", () => {
 		unregisterFirst();
 		store.register({ ...registration("x", "info"), className: "second" });
 		expect(store.getSnapshot().map((alert) => alert.className)).toEqual(["second"]);
-		// the first cleanup runs again (a duplicated effect teardown) — it compares
+		// the first cleanup runs again (a duplicated effect teardown); it compares
 		// the exact registration object, so the survivor stays
 		unregisterFirst();
 		expect(store.getSnapshot().map((alert) => alert.className)).toEqual(["second"]);
@@ -305,7 +305,7 @@ describe("AlertCenterStore", () => {
 	test("keeps an id's host identity across unregistration and re-registration", () => {
 		const store = new AlertCenterStore();
 		const host = store.getHost("payment");
-		// asking twice never mints a second host — the projected children live in
+		// asking twice never mints a second host; the projected children live in
 		// it, so a swap would remount them
 		expect(store.getHost("payment")).toBe(host);
 		const unregister = store.register(registration("payment", "danger"));
@@ -409,7 +409,7 @@ describe("AlertCenter.Bar", () => {
 		const bar = container.querySelector('[data-slot~="alert-center-bar"]');
 		expect(bar).not.toBeNull();
 		expect(bar).toHaveAttribute("data-alert-id", "payment");
-		// the authored children — heading, CTA link — render inside the bar chrome
+		// the authored children (heading, CTA link) render inside the bar chrome
 		expect(bar).toContainElement(screen.getByRole("heading", { level: 5, name: /Payment failed/ }));
 		const cta = screen.getByRole("link", { name: "Update payment method" });
 		expect(bar).toContainElement(cta);
@@ -455,7 +455,7 @@ describe("AlertCenter.Bar", () => {
 			const wrapper = closingBar?.closest("[data-state]");
 			expect(wrapper).toHaveAttribute("data-state", "closed");
 			expect(wrapper).toHaveAttribute("inert");
-			// the retained children keep the banner filled through the slide —
+			// the retained children keep the banner filled through the slide;
 			// an empty strip collapsing would flash blank before the exit
 			expect(closingBar).toHaveTextContent("Payment failed");
 			expect(screen.getByRole("link", { name: "Update payment method" })).toBeInTheDocument();
@@ -514,7 +514,7 @@ describe("AlertCenter.Bar", () => {
 		expect(trigger).toHaveAttribute("data-slot", "alert-expand-button button");
 		expect(trigger).toHaveTextContent("+2");
 
-		// the reference resolves even while collapsed — Content stays mounted
+		// the reference resolves even while collapsed; Content stays mounted
 		// (hidden) whenever additional alerts exist
 		const content = screen.getByTestId("content");
 		expect(content.id).not.toBe("");
@@ -525,7 +525,7 @@ describe("AlertCenter.Bar", () => {
 	});
 
 	test("keeps derived labels settled when the dismiss button is composed inside Alert.Title", () => {
-		// regression: the derived label must not read back its own sr-only text —
+		// regression: the derived label must not read back its own sr-only text;
 		// that fed the title-derived string to itself and grew it every layout
 		// pass until React threw "Maximum update depth exceeded"
 		render(
@@ -595,7 +595,7 @@ describe("AlertCenter.Bar", () => {
 		);
 		expect(screen.getByRole("status")).toHaveTextContent("Payment failed");
 
-		// without the Bar there is no rendered title to headline with — the
+		// without the Bar there is no rendered title to headline with, so the
 		// announcer falls back to the count instead of a frozen stale label
 		rerender(
 			<AlertCenter.Root>
@@ -722,7 +722,7 @@ describe("AlertCenter.Bar", () => {
 				</AlertCenter.Item>
 			</AlertCenter.Root>,
 		);
-		// no expansion surface exists — a control that toggles nothing (with a
+		// no expansion surface exists, so a control that toggles nothing (with a
 		// dangling aria-controls) must not render
 		expect(screen.queryByRole("button", { name: /show/i })).not.toBeInTheDocument();
 	});
@@ -801,7 +801,7 @@ describe("AlertCenter.Bar", () => {
 		await user.click(expand);
 		expect(expand).toHaveFocus();
 
-		// a higher-severity alert arrives and promotes into the bar — the expand
+		// a higher-severity alert arrives and promotes into the bar; the expand
 		// button survives the swap, so the user's focus must stay put
 		rerender(
 			<AlertCenter.Root>
@@ -829,7 +829,7 @@ describe("AlertCenter.Bar", () => {
 	test("does not steal focus from the demoted alert's own control when a new top alert arrives", async () => {
 		// Regression: adopting the new top's host transiently detaches the demoted
 		// one, so the redirect's DOM-connectivity check read a live control as
-		// removed and yanked focus onto the arriving alert's dismiss button — a
+		// removed and yanked focus onto the arriving alert's dismiss button. A
 		// background arrival must never move the user's focus.
 		function BackgroundArrival({ danger }: { danger: boolean }) {
 			return (
@@ -893,7 +893,7 @@ describe("AlertCenter.Bar", () => {
 		const { container } = render(<PromotionToControlFreeAlert />);
 
 		// the promoted alert has no dismiss control, and with nothing left to
-		// expand there's no expand control either — focus falls to the wrapper
+		// expand there's no expand control either, so focus falls to the wrapper
 		// (tabIndex -1) rather than dropping to <body>
 		await user.click(screen.getByRole("button", { name: "Dismiss Payment failed" }));
 
@@ -928,7 +928,7 @@ describe("AlertCenter.Bar", () => {
 	});
 
 	test("joins an incoming data-slot chain ahead of its own", () => {
-		// an ancestor composing the Bar via `asChild` forwards its chain — the
+		// an ancestor composing the Bar via `asChild` forwards its chain; the
 		// part's own slot must extend it, not clobber it
 		render(
 			<AlertCenter.Root>
@@ -947,7 +947,7 @@ describe("AlertCenter.Bar", () => {
 	test("stamps the presence wrapper, the announcer, and the dismiss control with their part slots", () => {
 		render(<ThreeAlertHarness />);
 		const wrapper = getBarWrapper();
-		// the wrapper — not the chrome — is what owns the enter/exit state
+		// the wrapper (not the chrome) is what owns the enter/exit state
 		expect(wrapper).toHaveAttribute("data-state", "open");
 		expect(wrapper).toContainElement(getBarChrome());
 		expect(screen.getByRole("status")).toHaveAttribute("data-slot", "alert-center-announcer");
@@ -979,7 +979,7 @@ describe("AlertCenter.Bar", () => {
 			expect(getBarWrapper()).toHaveAttribute("data-state", "closed");
 
 			// a height transition bubbling up from a descendant is not the wrapper's
-			// collapse — the expand caret's rotate would otherwise unmount the bar
+			// collapse: the expand caret's rotate would otherwise unmount the bar
 			// mid-slide
 			fireEvent(getBarChrome(), transitionEndEvent("height"));
 			expect(queryBarWrapper()).not.toBeNull();
@@ -1017,8 +1017,8 @@ describe("AlertCenter.Bar", () => {
 				);
 			});
 
-			// the 150ms CSS exit has elapsed with no transitionend — reduced motion,
-			// an engine that snaps the `auto` keyword, a backgrounded tab
+			// the 150ms CSS exit has elapsed with no transitionend (reduced motion,
+			// an engine that snaps the `auto` keyword, a backgrounded tab)
 			act(() => {
 				vi.advanceTimersByTime(150);
 			});
@@ -1196,7 +1196,7 @@ describe("AlertCenter.Item projection", () => {
 			</AlertCenter.Root>,
 		);
 		// without a composed Bar/Content, the only rendered output is the
-		// announcer — and with no bar DOM to derive a headline from, it falls
+		// announcer, and with no bar DOM to derive a headline from, it falls
 		// back to the count-only summary
 		expect(document.querySelector('[data-alert-host="payment"]')).toBeNull();
 		expect(
@@ -1255,7 +1255,7 @@ describe("AlertCenter.Item projection", () => {
 
 	test("throws when two simultaneously mounted items claim the same id", () => {
 		// Both items would portal into that id's single stable host, so one's
-		// children would silently vanish (or thrash) — fail loudly instead.
+		// children would silently vanish (or thrash), so fail loudly instead.
 		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() =>
 			render(
@@ -1270,7 +1270,7 @@ describe("AlertCenter.Item projection", () => {
 				</AlertCenter.Root>,
 			),
 		).toThrow(
-			'AlertCenter.Item id "payment" is already registered by another mounted item — ids must be unique under one <AlertCenter.Root>.',
+			'AlertCenter.Item id "payment" is already registered by another mounted item. Ids must be unique under one <AlertCenter.Root>.',
 		);
 	});
 
@@ -1305,7 +1305,7 @@ describe("AlertCenter.Item projection", () => {
 		await user.click(screen.getByRole("button", { name: "toggle first" }));
 		expect(getBarChrome()).toHaveAttribute("data-alert-id", "second");
 
-		// back it comes, with its sticky arrival sequence — and no invariant
+		// back it comes, with its sticky arrival sequence, and no invariant
 		await user.click(screen.getByRole("button", { name: "toggle first" }));
 		expect(getBarChrome()).toHaveAttribute("data-alert-id", "first");
 	});
@@ -1515,7 +1515,7 @@ describe("AlertCenter.DismissIconButton", () => {
 							onClick={onDismiss}
 							ref={ref}
 						>
-							{/* the child's own handler still runs — Slot chains it */}
+							{/* the child's own handler still runs; Slot chains it */}
 							<a className="test-child" href="#dismiss" onClick={preventDefault} />
 						</AlertCenter.DismissIconButton>
 					</Alert.Content>
@@ -1596,7 +1596,7 @@ describe("AlertCenter.Content", () => {
 
 		await user.click(screen.getByRole("button", { name: "Collapse additional alerts" }));
 		// Collapsing runs an exit animation, so the content stays mounted (hidden)
-		// rather than unmounting — its data-state flips to "closed".
+		// rather than unmounting: its data-state flips to "closed".
 		expect(screen.getByTestId("content")).toHaveAttribute("data-state", "closed");
 	});
 
@@ -1678,7 +1678,7 @@ describe("AlertCenter.Content", () => {
 		await user.click(screen.getByRole("button", { name: "Show 1 more alert" }));
 		expect(screen.getByTestId("content")).toHaveAttribute("data-state", "open");
 
-		// the extra condition clears — the expansion (and its control) unmount
+		// the extra condition clears, so the expansion (and its control) unmount
 		await user.click(screen.getByRole("button", { name: "toggle region" }));
 		expect(screen.queryByTestId("content")).not.toBeInTheDocument();
 
@@ -1690,7 +1690,7 @@ describe("AlertCenter.Content", () => {
 
 	test("starts expanded for defaultOpen, whose rows only register after the first commit", () => {
 		// Regression: items register from their own layout effects, which run AFTER
-		// Content's — so on the very first commit the row set still looks empty.
+		// Content's, so on the very first commit the row set still looks empty.
 		// Retiring the open state there defeated `defaultOpen` outright, and fired
 		// a spurious onOpenChange(false) at a consumer controlling `open`.
 		const onOpenChange = vi.fn<(open: boolean) => void>();
@@ -1733,7 +1733,7 @@ describe("AlertCenter.Content", () => {
 		render(<ThreeAlertHarness />);
 		await user.click(screen.getByRole("button", { name: "Show 2 more alerts" }));
 
-		// dismissing the focused row removes its button with no blur — focus is
+		// dismissing the focused row removes its button with no blur; focus is
 		// steered to the remaining row's dismiss control instead of <body>
 		await user.click(
 			screen.getByRole("button", { name: "Dismiss Approaching your data transfer limit" }),
@@ -1745,7 +1745,7 @@ describe("AlertCenter.Content", () => {
 		// Regression: the row redirect optional-chained a querySelector with no
 		// fallback, so dismissing the last dismissable row while a non-dismissable
 		// one remained silently dropped focus to <body>. Rows are not required to
-		// be dismissable — danger and hard-limit alerts generally are not.
+		// be dismissable: danger and hard-limit alerts generally are not.
 		function MixedDismissability() {
 			const [dismissed, setDismissed] = useState(false);
 			return (
@@ -1799,7 +1799,7 @@ describe("AlertCenter.Content", () => {
 
 	test("authored content's React events propagate to the author's tree", () => {
 		// The children render through the item's portal, so their React events
-		// bubble to where the item is AUTHORED — a wrapper around one item can
+		// bubble to where the item is AUTHORED. A wrapper around one item can
 		// observe focus in its own alert without hearing about any other. The
 		// center's internal focus tracking uses native focusin/focusout on the
 		// chrome, so consumer handlers never collide with it.
@@ -1879,7 +1879,7 @@ describe("AlertCenter.Content", () => {
 		}
 		render(<Harness />);
 
-		// Dismissing the last ROW steers focus to the bar's control — the top
+		// Dismissing the last ROW steers focus to the bar's control. The top
 		// alert is still showing, so the dismissal flow continues there.
 		await user.click(screen.getByRole("button", { name: "Dismiss New region available" }));
 		expect(screen.getByRole("button", { name: "Dismiss Payment failed" })).toHaveFocus();
@@ -1996,7 +1996,7 @@ describe("AlertCenter.Root", () => {
 		await user.click(screen.getByRole("button", { name: "Show 1 more alert" }));
 
 		// the consumer owns the state: the expansion stays closed until they pass
-		// the next `open` — but the request is reported
+		// the next `open`, but the request is reported
 		expect(screen.getByTestId("content")).toHaveAttribute("data-state", "closed");
 		expect(onOpenChange).toHaveBeenCalledTimes(1);
 		expect(onOpenChange).toHaveBeenCalledWith(true);
@@ -2031,7 +2031,7 @@ describe("AlertCenter.Root", () => {
 	test("reports the close a controlled root cannot see coming when the row set empties", () => {
 		// The open state describes a gesture applied to a set of hidden alerts.
 		// When that set empties the expansion unmounts, so the center retires the
-		// state — and a consumer holding `open` has to be told, or their `true`
+		// state, and a consumer holding `open` has to be told, or their `true`
 		// would silently re-open the expansion on the next lower-ranked arrival.
 		const onOpenChange = vi.fn<(open: boolean) => void>();
 		const { rerender } = render(<ControlledHarness onOpenChange={onOpenChange} open />);
@@ -2048,7 +2048,7 @@ describe("AlertCenter.Root", () => {
 describe("AlertCenter host projection", () => {
 	test("context provided around an item reaches its children", () => {
 		// Children render in the item's own React tree (only their DOM lands in
-		// the chrome), so providers wrapping the ITEM — not just Root — work.
+		// the chrome), so providers wrapping the ITEM (not just Root) work.
 		const ItemScopedContext = createContext("fallback");
 		function ShowScoped() {
 			return <Alert.Title>{useContext(ItemScopedContext)}</Alert.Title>;
@@ -2072,7 +2072,7 @@ describe("AlertCenter host projection", () => {
 
 	test("children keep React and uncontrolled DOM state across a re-rank in both directions", async () => {
 		// The stable host is MOVED between the bar and a row, never remounted, so
-		// both kinds of state survive — React state because the children never
+		// both kinds of state survive: React state because the children never
 		// leave the author's tree, and DOM state because it is the same element.
 		const user = userEvent.setup();
 		function Counter() {

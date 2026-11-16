@@ -19,7 +19,7 @@ import { useChartContext } from "./context.js";
  * The renderless parts (series, grid, axes, reference lines) that register
  * their configuration with the Root's store.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation. The package does not export it.
  */
 
 type SeriesPrimitiveProps = {
@@ -31,13 +31,13 @@ type SeriesPrimitiveProps = {
 	connectNulls?: boolean;
 	/** The point glyph (scatter marks, line markers, hover dots), worn by the marks and their legend key. Defaults to `"circle"`. */
 	shape?: PointShape;
-	/** The fill texture (bar marks only) — worn by the bars and their legend key. */
+	/** The fill texture (bar marks only), worn by the bars and their legend key. */
 	texture?: BarTexture;
 };
 
 /**
- * Register a series (renderless). The public series parts — `BarChart.Bar`,
- * `LineChart.Line`, `AreaChart.Area` — wrap this with their mark fixed.
+ * Register a series (renderless). The public series parts (`BarChart.Bar`,
+ * `LineChart.Line`, `AreaChart.Area`) wrap this with their mark fixed.
  */
 const useSeriesPrimitive = (
 	partName: string,
@@ -48,7 +48,7 @@ const useSeriesPrimitive = (
 	invariant(
 		context.kind === mark,
 		() =>
-			`${partName} cannot be composed inside ${context.componentName}.Root — compose ${context.componentName} series parts instead.`,
+			`${partName} cannot be composed inside ${context.componentName}.Root. Compose ${context.componentName} series parts instead.`,
 	);
 	const {
 		dataKey,
@@ -104,7 +104,7 @@ type XAxisPrimitiveProps = {
 	/**
 	 * Target tick count (continuous scales only; a density-derived default
 	 * otherwise). Approximate: ticks land on human-friendly steps, and a linear
-	 * axis whose x values are all integers never renders fractional ticks —
+	 * axis whose x values are all integers never renders fractional ticks:
 	 * the integer step wins over the requested count.
 	 */
 	tickCount?: number;

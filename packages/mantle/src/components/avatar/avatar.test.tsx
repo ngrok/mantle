@@ -44,7 +44,7 @@ describe("Avatar.Root", () => {
 	test("colorSeed paints a swatch and the static foreground that stays legible on it", () => {
 		render(<Avatar.Root colorSeed="acc_123" data-testid="avatar" />);
 		// Pinned on purpose: the palette order is what makes a seed's color stable, so
-		// reordering it — which would recolor every account on screen — fails here.
+		// reordering it (which would recolor every account on screen) fails here.
 		expect(screen.getByTestId("avatar")).toHaveClass("bg-orange-500", "text-static-white");
 	});
 
@@ -176,7 +176,7 @@ describe("Avatar.Fallback", () => {
 	test("a child that resolves to nothing renders nothing, not a stray question mark", () => {
 		// `{isAdmin && <ShieldIcon />}` is the caller saying "nothing here" for
 		// everyone else. Coalescing that into derived initials would answer with a bare
-		// "?" — and an announced one, since only name-derived initials are hidden.
+		// "?", and an announced one, since only name-derived initials are hidden.
 		render(<Avatar.Fallback data-testid="fallback">{null}</Avatar.Fallback>);
 		const fallback = screen.getByTestId("fallback");
 		expect(fallback).toBeEmptyDOMElement();
@@ -223,7 +223,7 @@ describe("Avatar.Image", () => {
 	test("is in the server-rendered markup, alongside the fallback behind it", () => {
 		// The reason this part is a plain <img>: the server emits it, so the browser
 		// fetches while it parses HTML and a cached image is on screen in the first
-		// frame — no hydration, no swap, no flash of initials.
+		// frame: no hydration, no swap, no flash of initials.
 		const html = renderToString(
 			<Avatar.Root>
 				<Avatar.Image alt="Jane Doe" src="https://example.com/jane.png" />
@@ -251,7 +251,7 @@ describe("Avatar.Image", () => {
 
 	test("onError runs first and can preventDefault to keep the image mounted", () => {
 		// The house convention for a wrapped handler: the consumer's callback runs
-		// first and `preventDefault()` bails out of the default behavior — here, for
+		// first and `preventDefault()` bails out of the default behavior: here, for
 		// someone who would rather retry a URL than fall back.
 		const onError = vi.fn<(event: { preventDefault: () => void }) => void>((event) => {
 			event.preventDefault();
@@ -270,7 +270,7 @@ describe("Avatar.Image", () => {
 	});
 
 	test("a new src is a fresh attempt, so a good URL recovers from a bad one", () => {
-		// Only the exact URL that failed stays unmounted — a boolean would strand an
+		// Only the exact URL that failed stays unmounted. A boolean would strand an
 		// avatar whose src changed after one failure.
 		const { rerender } = render(
 			<Avatar.Root>
@@ -356,8 +356,8 @@ describe("Avatar.Image", () => {
  * `@ts-expect-error` that compiles is the assertion, and pairing it with a runtime
  * `expect` would read as coverage the vitest run does not have.
  *
- * `Avatar.Fallback` takes exactly one source of content — two would leave the winner
- * to precedence, none would render an empty avatar — and `asChild` needs a real
+ * `Avatar.Fallback` takes exactly one source of content (two would leave the winner
+ * to precedence, none would render an empty avatar), and `asChild` needs a real
  * element to clone, so it belongs to the `children` arm only; beside `name` it would
  * otherwise typecheck and then render a string into `Slot`. `Avatar.Image` requires
  * `alt`, because an `<img>` without one announces its URL.

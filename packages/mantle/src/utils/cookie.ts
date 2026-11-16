@@ -1,5 +1,5 @@
 /**
- * Reading one named cookie out of a raw cookie string — the one place mantle
+ * Reading one named cookie out of a raw cookie string: the one place mantle
  * parses cookies.
  *
  * Three call sites share this: `extractThemeCookie` and `getStoredTheme`
@@ -12,7 +12,7 @@
  * which captures only its own body, so anything it imported would be `undefined`
  * at runtime. Its duplication is a runtime constraint, not an oversight.
  *
- * Module-internal on purpose — imported by relative path, never re-exported
+ * Module-internal on purpose: imported by relative path, never re-exported
  * from `utils/index.ts`, so it adds no public subpath (see COMPONENT_SPEC.md
  * §1.2).
  */
@@ -22,8 +22,8 @@
  * pair, or `undefined` when the cookie is absent.
  *
  * Returning the pair rather than the value is what lets a server hand a single
- * cookie to the client without leaking the rest of the `Cookie` header — which
- * may carry session or `HttpOnly` cookies — into serialized loader data.
+ * cookie to the client without leaking the rest of the `Cookie` header (which
+ * may carry session or `HttpOnly` cookies) into serialized loader data.
  *
  * @param cookieString - A raw `Cookie` header or `document.cookie`. `null` and
  *   `undefined` are accepted so a caller can pass `headers.get("Cookie")`
@@ -52,14 +52,14 @@ function findCookiePair(cookieString: string | null | undefined, name: string): 
  * Reads one cookie's percent-decoded value, or `undefined` when the cookie is
  * absent or its value cannot be decoded.
  *
- * Two details are load-bearing, and both were bugs at call sites before this
+ * Two details matter, and both were bugs at call sites before this
  * existed:
  *
  * - **Splitting on the first `=` only.** A cookie value may legally contain
  *   `=` (base64 padding, for one), and `value.split("=")[1]` silently truncates
  *   it at the first one.
  * - **Decoding cannot throw.** `decodeURIComponent` raises `URIError` on a
- *   malformed percent-escape, and a cookie header is client-controlled — any
+ *   malformed percent-escape, and a cookie header is client-controlled: any
  *   client can send `name=%E0%A4%A`. An undecodable value is absent data, not a
  *   fatal error, so it resolves to `undefined` rather than failing a server
  *   render on every request.
@@ -73,7 +73,7 @@ function findCookiePair(cookieString: string | null | undefined, name: string): 
  * @example
  * ```ts
  * readCookie("mantle-theme=dark", "mantle-theme"); // "dark"
- * readCookie("mantle-theme=%E0%A4%A", "mantle-theme"); // undefined — malformed, not a throw
+ * readCookie("mantle-theme=%E0%A4%A", "mantle-theme"); // undefined (malformed, not a throw)
  * readCookie("", "mantle-theme"); // undefined
  * ```
  */
@@ -83,7 +83,7 @@ function readCookie(cookieString: string | null | undefined, name: string): stri
 		return undefined;
 	}
 
-	// Everything after the FIRST "=" — a value may contain more of them.
+	// Everything after the FIRST "=". A value may contain more of them.
 	const rawValue = pair.slice(name.length + 1);
 
 	try {

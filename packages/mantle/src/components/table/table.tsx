@@ -114,11 +114,11 @@ import { joinDataSlot } from "../../utils/data-slot.js";
  *
  * Data attributes it stamps on the outer element, for your own CSS to target:
  *
- * - `data-x-overflow="true" | "false"` — whether the content is wider than the
+ * - `data-x-overflow="true" | "false"`: whether the content is wider than the
  *   container. Always present, so match the value, not the attribute.
- * - `data-x-scroll-end="true" | "false"` — whether an overflowing container is
+ * - `data-x-scroll-end="true" | "false"`: whether an overflowing container is
  *   scrolled to its right edge. Always present.
- * - `data-sticky-active` — present only while the container overflows and is not
+ * - `data-sticky-active`: present only while the container overflows and is not
  *   scrolled to the end. `DataTable`'s pinned action column keys its shadow off
  *   this through `group-data-sticky-active/table:`.
  *
@@ -725,7 +725,7 @@ const Caption = ({
 );
 
 /**
- * Use `Table` for STATIC, layout-driven tabular data — read-only data dumps,
+ * Use `Table` for STATIC, layout-driven tabular data: read-only data dumps,
  * simple key/value displays, plain markup tables. The API matches the HTML
  * `<table>` element 1:1, with no built-in sorting, filtering, or pagination.
  *

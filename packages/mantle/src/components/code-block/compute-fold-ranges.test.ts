@@ -3,7 +3,7 @@ import { computeFoldRanges, foldStrategyFor, type FoldLine } from "./compute-fol
 
 /**
  * Builds a single token with the given content and (optionally nested) scope
- * names. Scope chains read outermost-to-innermost — the last entry is what
+ * names. Scope chains read outermost-to-innermost: the last entry is what
  * the strategy filter checks.
  */
 function token(content: string, ...scopeNames: string[]) {

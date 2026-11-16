@@ -14,7 +14,7 @@ import { useChartContext, useStoreSeries } from "./context.js";
 /**
  * The legend part: one swatch and label for each registered series.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation, not exported from the package.
  */
 
 /** Subscribe to the registered bar direction only (see {@link useStoreSeries}). */
@@ -54,7 +54,7 @@ const legendHatchGradient = (
  * Legend keys are pure color/texture chips, so they keep their author colors
  * where backgrounds are normally stripped: forced-colors mode (the sanctioned
  * `forced-color-adjust: none` use) and printing (where default settings drop
- * CSS backgrounds entirely) — otherwise the series↔label mapping vanishes in
+ * CSS backgrounds entirely). Otherwise the series↔label mapping vanishes in
  * exactly the modes textures exist to serve.
  */
 const LEGEND_SWATCH_PAINT_CLASSES =
@@ -68,7 +68,7 @@ const LEGEND_SWATCH_PAINT_CLASSES =
  *
  * A total record makes a missing chip a compile error. The compiler names a
  * ninth `BarTexture` value's missing entry, where a fall-through would paint it
- * as dots — a wrong-but-plausible key nobody would question.
+ * as dots: a wrong-but-plausible key nobody would question.
  */
 const LEGEND_TEXTURE_LAYERS: Record<
 	Exclude<BarTexture, "solid">,
@@ -83,7 +83,7 @@ const LEGEND_TEXTURE_LAYERS: Record<
 	}),
 	perpendicular: ({ ink, orientation }) => ({
 		// The rung runs across the bar's length, so it flips with the bars:
-		// horizontal rungs on vertical bars, vertical rungs on horizontal bars —
+		// horizontal rungs on vertical bars, vertical rungs on horizontal bars,
 		// matching the canvas tile in texture.ts.
 		backgroundImage: legendHatchGradient(orientation === "horizontal" ? "90deg" : "0deg", ink),
 	}),
@@ -108,7 +108,7 @@ const LEGEND_TEXTURE_LAYERS: Record<
 
 /**
  * The background layers mirroring a bar series' canvas texture on its legend
- * key — empty for solid fills so the plain swatch color shows.
+ * key: empty for solid fills so the plain swatch color shows.
  */
 const legendTextureStyle = (
 	texture: BarTexture,
@@ -125,8 +125,8 @@ const legendTextureStyle = (
 };
 
 /**
- * A legend key that mirrors its series' mark AND its redundant encoding —
- * the channel that keeps series apart without color vision — so the key
+ * A legend key that mirrors its series' mark AND its redundant encoding
+ * (the channel that keeps series apart without color vision), so the key
  * carries it everywhere the marks do: scatter and area keys are the glyph
  * itself (the area glyph is exactly what its hover dot shows), line keys are
  * the glyph riding a short stroke, and bar keys are filled squares wearing
@@ -190,7 +190,7 @@ const LegendSwatch = ({
 
 /**
  * The legend: a real DOM flex row keyed by series color. Renders nothing for
- * a single series — one color needs no legend box; the chart's title already
+ * a single series: one color needs no legend box; the chart's title already
  * names it. Swatches mirror the mark and its glyph: the shape riding a short
  * stroke for lines, the shape itself for scatter points and areas, a filled
  * square for bars. The legend never shrinks the plot by more than its

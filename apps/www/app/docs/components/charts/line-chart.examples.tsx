@@ -75,7 +75,7 @@ export function CurveMarkersExample() {
 }
 
 export function seededWalk(count: number, seed: number) {
-	// Deterministic LCG (Numerical Recipes constants) — the docs render
+	// Deterministic LCG (Numerical Recipes constants): the docs render
 	// identically on every load, no Math.random.
 	let state = seed >>> 0;
 	const nextRandom = () => {

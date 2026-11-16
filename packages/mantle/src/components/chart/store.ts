@@ -40,9 +40,9 @@ type TooltipConfig = {
  * configuration here from layout effects; the engine and the DOM-rendering
  * parts (legend, tooltip, data table) read from it. Hover/keyboard snapshots
  * are published here by the engine and consumed via `useSyncExternalStore` so
- * a pointer move re-renders only the tooltip subtree — never the chart Root.
+ * a pointer move re-renders only the tooltip subtree, never the chart Root.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation. The package does not export it.
  */
 
 /**
@@ -123,9 +123,9 @@ class ChartStore {
 		return this.#hoverEver;
 	}
 
-	/** Engine hook: series registrations changed — columnar data must re-ingest. */
+	/** Engine hook: series registrations changed, so columnar data must re-ingest. */
 	onSeriesChange: (() => void) | null = null;
-	/** Engine hook: presentation registrations changed — a repaint suffices. */
+	/** Engine hook: presentation registrations changed, so a repaint suffices. */
 	onPresentationChange: (() => void) | null = null;
 
 	subscribe = (listener: () => void): (() => void) => {
@@ -178,7 +178,7 @@ class ChartStore {
 	 *
 	 * Publishing as a series change is what makes a runtime flip repaint. The
 	 * engine's color cache keys on the theme, not on the series, and re-resolves
-	 * only when an ingest sees a series' paint input change — which is exactly
+	 * only when an ingest sees a series' paint input change, which is exactly
 	 * what this is.
 	 */
 	setDecorative(decorative: boolean): void {
@@ -200,7 +200,7 @@ class ChartStore {
 
 	registerGrid(lines: GridLines | undefined): () => void {
 		// Singleton parts: last registration wins. Cleanup compares the exact
-		// registration object, never its value — an equal-valued duplicate part
+		// registration object, never its value: an equal-valued duplicate part
 		// unmounting must not clear the surviving registration.
 		const registration = { lines };
 		this.#grid = registration;

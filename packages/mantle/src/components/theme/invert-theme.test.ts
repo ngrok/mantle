@@ -11,7 +11,7 @@ import {
  * Guard suite for the `invert-theme` strategy: an inverted island is styled
  * by the opposite theme's own declarations, applied via selector extensions
  * on the theme blocks plus the palette-alias re-resolution rule in mantle.css.
- * Each stylesheet encodes only its own theme's values — the light base
+ * Each stylesheet encodes only its own theme's values: the light base
  * materializes its complete palette so islands on dark pages restore the
  * defaults from the light block itself. These tests keep the hand-written
  * pieces mechanically honest: if a theme block gains or loses a variable, or
@@ -90,7 +90,7 @@ describe("theme block selector extensions", () => {
 		// `data-theme` carries the stored *preference*, which `forceTheme` leaves
 		// disagreeing with the theme actually applied. The dark rule is
 		// always live, so a bare `[data-theme="dark"]` matches a
-		// `forceTheme="light"` page and the later rule wins the cascade — the page
+		// `forceTheme="light"` page and the later rule wins the cascade, so the page
 		// paints dark. The guard is what makes the applied theme authoritative.
 		// force-theme.browser.test.ts proves the computed outcome; this pins the
 		// spelling in mantle.css so a new selector cannot reintroduce it.
@@ -131,7 +131,7 @@ describe("theme block completeness", () => {
 
 	test("the light and dark blocks declare identical variable sets", () => {
 		// each stylesheet encodes only its own theme's values, so the pair must
-		// cover the same surface — a var one member declares and the other omits
+		// cover the same surface: a var one member declares and the other omits
 		// would leak page-theme values into inverted islands
 		expect([...lightBlock.keys()].toSorted()).toEqual([...darkBlock.keys()].toSorted());
 	});
@@ -156,7 +156,7 @@ describe("theme block completeness", () => {
 
 describe("the materialized default palette (mantle.css light base)", () => {
 	// Light materializes its complete palette so islands on dark pages restore it
-	// from the light rules — the dark rule never encodes light values. The
+	// from the light rules; the dark rule never encodes light values. The
 	// verbatim Tailwind defaults live in the island-scoped restore rule and light's
 	// own divergences in the page-level block; the union is what an island sees.
 	// Custom stops that intentionally diverge are exempt from the verbatim check.
@@ -174,7 +174,7 @@ describe("the materialized default palette (mantle.css light base)", () => {
 		// This is the whole reason for the island-only scope: `@theme` variables are
 		// emitted into `@layer theme` and unlayered author CSS beats every layer, so
 		// a verbatim restatement at `:root` silently overrides a consumer's own
-		// `@theme { --color-rose-500: … }` with mantle's stock value — for every ramp,
+		// `@theme { --color-rose-500: … }` with mantle's stock value, for every ramp,
 		// with no error anywhere.
 		const restated = [...lightPageBlock]
 			.filter(([property]) => property.startsWith("--color-"))

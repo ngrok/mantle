@@ -29,7 +29,7 @@ import { useState } from "react";
  *    the absolutely-positioned button group resolves against it rather than
  *    escaping to `AppLayout.Root` and painting across the sidebar rail.
  *
- * The "editor" is a static code block — the point is the geometry, not a real
+ * The "editor" is a static code block: the point is the geometry, not a real
  * editor. Grow the fake policy with the toolbar's button to watch the editor
  * scroll while the toolbar and status bar stay put.
  *
@@ -98,7 +98,7 @@ export function AppLayoutEditorDemo() {
 						<AppLayout.Body>
 							{/* The page fills the card: flex column, h-full. */}
 							<div className="flex h-full flex-col">
-								{/* Toolbar row — shrink-0 so it never gives up height */}
+								{/* Toolbar row: shrink-0 so it never gives up height */}
 								<div className="border-card-muted flex shrink-0 items-center gap-3 border-b px-6 py-3">
 									<p className="text-strong text-sm font-medium">Policy editor</p>
 									<Badge appearance="muted" color="neutral">
@@ -146,10 +146,10 @@ export function AppLayoutEditorDemo() {
 									</pre>
 								</div>
 
-								{/* Status bar — shrink-0, so it pins to the card's bottom edge */}
+								{/* Status bar: shrink-0, so it pins to the card's bottom edge */}
 								<div className="border-card-muted text-muted flex shrink-0 items-center gap-2 border-t px-6 py-2 text-xs">
 									<CheckCircleIcon weight="fill" className="fill-success-600 shrink-0" />
-									Policy is valid — {ruleCount} rules
+									Policy is valid: {ruleCount} rules
 								</div>
 							</div>
 						</AppLayout.Body>
@@ -294,7 +294,7 @@ export function AppLayoutPinnedFooterDemo() {
 
 								<Tabs.Content value="overview" className="flex-1">
 									<p className="text-muted p-6 text-sm">
-										Switch back to <strong>Traffic Policy</strong> — the validity bar stays on the
+										Switch back to <strong>Traffic Policy</strong>. The validity bar stays on the
 										card&rsquo;s bottom edge however tall the policy gets.
 									</p>
 								</Tabs.Content>

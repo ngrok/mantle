@@ -8,7 +8,7 @@ argument-hint: "<path> | staged"
 Scan `$ARGUMENTS` for invalid `@ngrok/mantle` imports. The two common mistakes:
 
 1. Importing from `@ngrok/mantle` root instead of a subpath (`import { Button } from "@ngrok/mantle"`).
-2. Importing from a non-existent subpath (e.g. `@ngrok/mantle/icon-button`, which doesn't exist — `IconButton` is exported from `@ngrok/mantle/button`).
+2. Importing from a non-existent subpath (e.g. `@ngrok/mantle/icon-button`, which doesn't exist; `IconButton` is exported from `@ngrok/mantle/button`).
 
 ## 1. Resolve the target
 
@@ -47,7 +47,7 @@ For any other unknown subpath, recommend checking the structured manifest at <ht
 Print one line per issue:
 
 ```
-<file>:<line> — <specifier> is invalid. Suggested: <correct-specifier>
+<file>:<line>: <specifier> is invalid. Suggested: <correct-specifier>
 ```
 
 End with a summary: `N file(s) scanned, M issue(s) found`.

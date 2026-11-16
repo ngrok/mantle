@@ -63,7 +63,7 @@ export function ChoiceLabelVsChoiceTitleExample() {
 							<Checkbox defaultChecked />
 						</Choice.Indicator>
 						<Choice.Content>
-							<Choice.Title>Onboarding Key</Choice.Title>
+							<Choice.Title>Onboarding key</Choice.Title>
 							<Choice.Description translate="no">ng-3FaThZL***8xiA</Choice.Description>
 						</Choice.Content>
 					</Choice.Root>

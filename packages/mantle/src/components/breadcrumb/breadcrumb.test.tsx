@@ -67,7 +67,7 @@ describe("Breadcrumb", () => {
 
 	// tailwind-merge override contract: min-w-0 is what lets the landmark shrink
 	// inside a flex row, so a consumer's className must compose with it rather
-	// than replace it — and a conflicting min-w-* must win outright.
+	// than replace it, and a conflicting min-w-* must win outright.
 	test("Root keeps its min-width default beside a consumer className", () => {
 		render(
 			<Breadcrumb.Root className="custom-class" data-testid="root">
@@ -223,7 +223,7 @@ describe("Breadcrumb", () => {
 		expect(link.className).toContain("router-link");
 	});
 
-	test("Label renders a non-link crumb — no anchor, no aria-current", () => {
+	test("Label renders a non-link crumb: no anchor, no aria-current", () => {
 		render(
 			<Breadcrumb.Root>
 				<Breadcrumb.List>
@@ -243,7 +243,7 @@ describe("Breadcrumb", () => {
 		expect(label).toHaveAttribute("data-slot", "breadcrumb-label");
 		expect(label).not.toHaveAttribute("aria-current");
 		expect(screen.queryByRole("link")).not.toBeInTheDocument();
-		// The prefix names a level, so it counts as a crumb — unlike a separator.
+		// The prefix names a level, so it counts as a crumb, unlike a separator.
 		expect(screen.getAllByRole("listitem")).toHaveLength(2);
 		expect(screen.getByText("General")).toHaveAttribute("aria-current", "page");
 	});
@@ -289,7 +289,7 @@ describe("Breadcrumb", () => {
 		expect(screen.queryByRole("link")).not.toBeInTheDocument();
 	});
 
-	test("Page always emits aria-current=page — a consumer-supplied value cannot override it", () => {
+	test("Page always emits aria-current=page: a consumer-supplied value cannot override it", () => {
 		render(
 			<Breadcrumb.Root>
 				<Breadcrumb.List>
@@ -341,7 +341,7 @@ describe("Breadcrumb", () => {
 		expect(screen.getAllByRole("listitem")).toHaveLength(2);
 	});
 
-	test("Separator always stays presentational — consumer role/aria-hidden cannot override it", () => {
+	test("Separator always stays presentational: consumer role/aria-hidden cannot override it", () => {
 		render(
 			<Breadcrumb.Root>
 				<Breadcrumb.List>

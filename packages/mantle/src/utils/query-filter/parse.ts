@@ -70,12 +70,12 @@ type FacetToken = FilterTokenBase & {
 	 * The value's members, which OR together: every unquoted comma splits one
 	 * off for a list key (`is:active,pending`), a quoted comma stays inside its
 	 * member (`name:"a,b",c`), and a prose key keeps one member. Empty while the
-	 * value is empty — the user is still typing.
+	 * value is empty (the user is still typing).
 	 */
 	members: FacetValueMember[];
 	/**
 	 * False only when some member is unknown on an enumerated key. An empty
-	 * value is never invalid — the user is still typing.
+	 * value is never invalid (the user is still typing).
 	 */
 	isKnownValue: boolean;
 	/** Offset of the separating `:` in the source query. */
@@ -521,7 +521,7 @@ function toggleFacet<Item>({
  * ```ts
  * const tokens = parseFilterQuery(grammar, "is:active acme");
  * findTokenAtCaret(tokens, 3)?.key; // => "is"
- * findTokenAtCaret(tokens, 6); // => undefined — the caret is in the space
+ * findTokenAtCaret(tokens, 6); // => undefined (the caret is in the space)
  * ```
  */
 function findTokenAtCaret(tokens: readonly FilterToken[], caretIndex: number) {
@@ -535,7 +535,7 @@ function findTokenAtCaret(tokens: readonly FilterToken[], caretIndex: number) {
  * ```ts
  * const [token] = parseFilterQuery(grammar, "is:active");
  * isCaretInFacetValue(token, 4); // => true
- * isCaretInFacetValue(token, 2); // => false — still in the key
+ * isCaretInFacetValue(token, 2); // => false (still in the key)
  * ```
  */
 function isCaretInFacetValue(token: FilterToken, caretIndex: number): token is FacetToken {

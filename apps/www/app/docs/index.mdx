@@ -146,7 +146,7 @@ In your app's `app/root.tsx`, import `app.css` (created in [Stylesheet](#stylesh
 > headers using `preloadFontLink` so fonts start fetching before the browser parses any HTML.
 
 ```ts
-// app/entry.server.tsx — send font preload Link headers
+// app/entry.server.tsx: send font preload Link headers
 import { assetsCdnOrigin, preloadFontLink } from "@ngrok/mantle/theme";
 
 // inside your handleRequest / onShellReady:

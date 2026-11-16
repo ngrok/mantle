@@ -443,10 +443,10 @@ describe("IconButton", () => {
  * `expect` would read as coverage the vitest run does not have.
  *
  * `appearance` and `intent` are both required, so no call site inherits a weight or
- * a tone it did not state. `intent` takes `"neutral"` alone — `IconButton` draws no
+ * a tone it did not state. `intent` takes `"neutral"` alone: `IconButton` draws no
  * accent or danger tone, and a call site that asks for one would otherwise compile
  * and then render neutral. `aria-label` is typed `never`, so `label` is the single
- * naming interface — TypeScript skips excess-attribute checks for hyphenated JSX
+ * naming interface. TypeScript skips excess-attribute checks for hyphenated JSX
  * attributes, and the `never` type is what makes the call site an error anyway.
  */
 export function typeLevelContracts() {

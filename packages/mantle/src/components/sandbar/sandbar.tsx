@@ -66,7 +66,7 @@ const EXIT_TRANSITION_TIMEOUT_MS = 400;
 
 /**
  * The imperative surface of a {@link Sandbar}, exposed via `Sandbar.Root`'s
- * `handleRef` prop. `shake()` is a compound feedback action — it wiggles the
+ * `handleRef` prop. `shake()` is a compound feedback action: it wiggles the
  * panel (skipped under `prefers-reduced-motion`) and always pushes an
  * assertive live-region announcement, so blocked navigation is perceivable
  * with or without motion.
@@ -77,7 +77,7 @@ const EXIT_TRANSITION_TIMEOUT_MS = 400;
  * ```tsx
  * const sandbarHandle = useRef<SandbarHandle>(null);
  *
- * // hand this to your router's guard — it owns the blocking, the bar reacts
+ * // hand this to your router's guard; it owns the blocking, and the bar reacts
  * const onNavigationBlocked = () => sandbarHandle.current?.shake();
  *
  * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>
@@ -154,8 +154,8 @@ function nextPresenceForOpen({
 }
 
 /**
- * Props for `Sandbar.Root`. Extends `<div>` props — which target the visible
- * panel, not the fixed-position wrapper — with the controlled `open` flag and
+ * Props for `Sandbar.Root`. Extends `<div>` props (which target the visible
+ * panel, not the fixed-position wrapper) with the controlled `open` flag and
  * the imperative `handleRef`. Deliberately no `asChild`: Root renders four
  * nodes, so single-child polymorphism has no coherent meaning.
  *
@@ -175,7 +175,7 @@ function nextPresenceForOpen({
 type SandbarRootProps = ComponentProps<"div"> &
 	WithDataSlot & {
 		/**
-		 * Whether the sandbar is showing. Controlled-only — the pending state
+		 * Whether the sandbar is showing. Controlled-only: the pending state
 		 * (e.g. a form's dirty flag) lives in your app, not in the component.
 		 *
 		 * `Sandbar.Root` must stay mounted and be toggled with `open`, never
@@ -188,8 +188,8 @@ type SandbarRootProps = ComponentProps<"div"> &
 		open: boolean;
 		/**
 		 * Receives the imperative {@link SandbarHandle}. Kept separate from `ref`
-		 * (which stays the panel's DOM element, like every other mantle part) —
-		 * wire it to your navigation guard's blocked callback.
+		 * (which stays the panel's DOM element, like every other mantle part).
+		 * Wire it to your navigation guard's blocked callback.
 		 */
 		handleRef?: Ref<SandbarHandle>;
 	};
@@ -197,12 +197,12 @@ type SandbarRootProps = ComponentProps<"div"> &
 /**
  * The always-mounted shell of the sandbar. Renders a private viewport-fixed
  * wrapper, two persistent visually-hidden live regions (a polite `status`
- * announcer and an assertive `alert` announcer), and the visible panel — a
+ * announcer and an assertive `alert` announcer), and the visible panel: a
  * floating island with `role="group"`, named by `Sandbar.Message` via
  * `aria-labelledby` (a consumer `aria-label` wins when passed).
  *
  * The panel is an `invert-theme` island: it renders in the opposite theme of
- * the page (light ⇄ dark), and so does everything composed inside it — the
+ * the page (light ⇄ dark), and so does everything composed inside it: the
  * blessed buttons and any custom children.
  *
  * The bar renders at Tailwind `z-70`, above Mantle's overlay tier (`z-60`), so
@@ -212,16 +212,16 @@ type SandbarRootProps = ComponentProps<"div"> &
  * form inside an overlay keeps its save actions in the overlay.
  *
  * `ref`, `className`, and all other props target the panel. Render it in
- * place at the end of the form it saves — `position: fixed` changes paint
+ * place at the end of the form it saves. `position: fixed` changes paint
  * position, not tab order, so Tab from the last field lands on the actions.
  * Escape is intentionally inert (a one-keypress discard would destroy data).
  *
  * Data attributes stamped on the panel:
  *
- * | Data Attribute | Value                  | Description                                                                                                                        |
- * | -------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
- * | `data-slot`    | `"sandbar"`            | Stable styling hook for the panel. Survives `className` overrides.                                                                 |
- * | `data-state`   | `"open"` \| `"closed"` | `"open"` only at the resting open pose — `"closed"` covers the pre-enter frame and the exit transition, which is what drives them. |
+ * | Data Attribute | Value                  | Description                                                                                                                                      |
+ * | -------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+ * | `data-slot`    | `"sandbar"`            | Stable styling hook for the panel. Survives `className` overrides.                                                                               |
+ * | `data-state`   | `"open"` \| `"closed"` | `"open"` only at the resting open pose. `"closed"` covers both the pre-enter frame and the exit transition, which is what drives the slide/fade. |
  *
  * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarroot
  *
@@ -266,7 +266,7 @@ const Root = ({
 	const assertiveToggleRef = useRef(false);
 	const isSavingRef = useRef(false);
 	/**
-	 * The element that was focused immediately before focus entered the bar —
+	 * The element that was focused immediately before focus entered the bar:
 	 * the restore target when closing while focus is still inside.
 	 */
 	const restoreFocusRef = useRef<HTMLElement | null>(null);
@@ -320,7 +320,7 @@ const Root = ({
 			announcePolite(SAVING_ANNOUNCEMENT);
 			// mantle Button collapses `isLoading` into the native `disabled`
 			// attribute, so a keyboard-activated save button drops focus the moment
-			// the save starts. Park focus on the panel before paint — covering both
+			// the save starts. Park focus on the panel before paint. That covers both
 			// fixup behaviors: Chromium has already moved focus to <body>, Firefox
 			// leaves it on the now-disabled button.
 			//
@@ -369,7 +369,7 @@ const Root = ({
 	// rest inserts one painted frame in the closed pose so the enter can
 	// transition from it; reopening mid-exit goes straight to open, letting
 	// the transition retarget smoothly from the panel's current position
-	// (never restarting from the bottom — the sonner behavior).
+	// (never restarting from the bottom, as sonner does).
 	//
 	// Why during render: React runs this render again with the new `presence`
 	// before it commits, so the `"opening"` pose commits in the same commit
@@ -381,7 +381,7 @@ const Root = ({
 
 	// One painted frame in the closed pose, then flip to open. Double-rAF
 	// guarantees the closed pose actually painted before the destination
-	// styles land — a single callback can fire before the commit's paint.
+	// styles land: a single callback can fire before the commit's paint.
 	useEffect(() => {
 		if (presence !== "opening") {
 			return;
@@ -413,11 +413,11 @@ const Root = ({
 	// Announce the message when the bar opens. Mount is deliberately skipped:
 	// a live region only announces changes, so a Root that mounts with `open`
 	// already true stays silent (and conditional mounting misses announcements
-	// entirely — pass `open` instead).
+	// entirely, so pass `open` instead).
 	useEffect(() => {
 		// `previousOpenRef` is seeded with `open`, so the mount pass already reads
-		// `wasOpen === open` and falls through both guards below without announcing
-		// — no separate first-render flag is needed.
+		// `wasOpen === open` and falls through both guards below without announcing.
+		// No separate first-render flag is needed.
 		const wasOpen = previousOpenRef.current;
 		previousOpenRef.current = open;
 		if (!open) {
@@ -542,13 +542,13 @@ const Root = ({
 		if (event.target !== event.currentTarget) {
 			return;
 		}
-		// only the presence transition's own properties advance the machine —
+		// only the presence transition's own properties advance the machine:
 		// a consumer-added transition on another property must not close early.
 		//
 		// Why no "transform": Tailwind v4's `translate-y-*` writes the standalone
 		// `translate` property, never `transform`. `motion-safe` gates only that
 		// half, so the `opacity` transition runs in every engine and under reduced
-		// motion — it is the guaranteed path, and widening this list would let a
+		// motion. It is the guaranteed path, and widening this list would let a
 		// consumer's own `transform` transition close the panel mid-exit.
 		if (event.propertyName !== "opacity" && event.propertyName !== "translate") {
 			return;
@@ -571,7 +571,7 @@ const Root = ({
 	// suppresses the mouse. Focus that `inert` evicts lands on <body> with no
 	// `relatedTarget`, which `handleFocusOut` ignores (the departed control is
 	// neither disconnected, disabled, nor hidden) and which the restore-on-close
-	// effect reads as `focusFellToBody` — so the pre-bar element still gets focus.
+	// effect reads as `focusFellToBody`, so the pre-bar element still gets focus.
 	const isInert = isClosed || presence === "closing";
 
 	return (
@@ -601,9 +601,9 @@ const Root = ({
 				</div>
 				<div
 					className={cx(
-						// island surface — `invert-theme` renders the whole panel subtree in
-						// the opposite theme (light ⇄ dark), so the surface AND everything composed inside it — buttons,
-						// alerts, links — read inverted from the page. bg-base/text-strong
+						// island surface: `invert-theme` renders the whole panel subtree in
+						// the opposite theme (light ⇄ dark), so the surface AND everything composed inside it (buttons,
+						// alerts, links) read inverted from the page. bg-base/text-strong
 						// resolve against the inverted theme. border-transparent is the
 						// forced-colors technique: invisible normally, but forced-colors mode
 						// recolors transparent borders to a system color while stripping
@@ -613,12 +613,12 @@ const Root = ({
 						"max-h-[60svh] overflow-y-auto",
 						"focus:outline-hidden",
 						// The closed state is the `hidden` attribute, and `flex` above would
-						// otherwise beat the UA's `[hidden] { display: none }` — leaving a
+						// otherwise beat the UA's `[hidden] { display: none }` and leave a
 						// permanently visible, inert, un-dismissable bar. Tailwind's Preflight
 						// papers over this with `[hidden] { display: none !important }`, but a
 						// consumer importing only `tailwindcss/theme` + `tailwindcss/utilities`
 						// (a documented v4 setup) has no Preflight. This attribute-qualified
-						// variant compiles to `.…:is([hidden]) { display: none }` — author-origin
+						// variant compiles to `.…:is([hidden]) { display: none }`: author-origin
 						// and specificity (0,2,0), so it outranks `flex` and any consumer
 						// display utility on its own, with or without Preflight.
 						//
@@ -634,7 +634,7 @@ const Root = ({
 						// exit mirrors the enter on the same curve, and reduced motion keeps
 						// only the fades (motion-safe gates the translate).
 						// `translate-y-*` writes the standalone `translate` property in
-						// Tailwind v4 — transitioning `transform` instead silently snaps
+						// Tailwind v4. Transitioning `transform` instead silently snaps.
 						"transition-[opacity,translate] duration-200 ease-out-strong",
 						"data-state-closed:pointer-events-none data-state-closed:opacity-0 data-state-closed:duration-150 motion-safe:data-state-closed:translate-y-[calc(100%+2.5rem)]",
 						className,
@@ -660,7 +660,7 @@ const Root = ({
 
 /**
  * Props for `Sandbar.Message`. Extends `<p>` props with `asChild`. An `id` is
- * generated when none is passed — it is what `Sandbar.Root` points
+ * generated when none is passed. It is what `Sandbar.Root` points
  * `aria-labelledby` at, so passing your own keeps that wiring intact.
  *
  * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarmessage
@@ -720,7 +720,7 @@ const Message = ({
 	// Register the id the DOM actually carries, not the one passed down: under
 	// `asChild`, Slot's merge lets the child element's own `id` win, so
 	// registering `id` here would aim Root's `aria-labelledby` at an element that
-	// does not exist — and because a present `aria-labelledby` suppresses
+	// does not exist. Because a present `aria-labelledby` suppresses
 	// `aria-label`, the panel would end up with no accessible name at all.
 	useIsomorphicLayoutEffect(
 		() => registerMessage(nodeRef.current?.id || id),
@@ -759,7 +759,7 @@ const Message = ({
 type SandbarActionsProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 /**
- * The action-button row. A plain flex container — deliberately not
+ * The action-button row. A plain flex container, deliberately not
  * `role="toolbar"`, which the ARIA APG reserves for 3+ controls with roving
  * tab stops.
  *
@@ -795,8 +795,8 @@ const Actions = ({ asChild, className, "data-slot": dataSlot, ...props }: Sandba
 };
 
 /**
- * Props for `Sandbar.SaveButton`. Extends `Button`'s props — including
- * `asChild` and `isLoading` — but makes `appearance` and `intent` optional
+ * Props for `Sandbar.SaveButton`. Extends `Button`'s props (including
+ * `asChild` and `isLoading`) but makes `appearance` and `intent` optional
  * with save-flavored defaults, and `children` required.
  *
  * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarsavebutton
@@ -825,7 +825,7 @@ type SandbarSaveButtonProps = Omit<ButtonProps, "appearance" | "children" | "int
 		 */
 		intent?: ButtonProps["intent"];
 		/**
-		 * The visible action label (e.g. "Save"). Required — action labels are app
+		 * The visible action label (e.g. "Save"). Required. Action labels are app
 		 * voice and must be visible at the call site.
 		 */
 		children: ReactNode;
@@ -840,7 +840,7 @@ type SandbarSaveButtonProps = Omit<ButtonProps, "appearance" | "children" | "int
  *
  * Defaults to `type="button"`; pass `type="submit"` when rendered inside the
  * form it saves. Announce the save's resolution yourself (e.g. a success
- * Toast) — the bar exits silently.
+ * Toast). The bar exits silently.
  *
  * Data attributes:
  *
@@ -879,7 +879,7 @@ const SaveButton = ({
 	const buttonRef = useRef<HTMLButtonElement>(null);
 	const composedRef = useComposedRefs(buttonRef, ref);
 
-	// Layout effect so Root can park focus before paint — Chromium moves focus
+	// Layout effect so Root can park focus before paint: Chromium moves focus
 	// off a disabled button synchronously, so timing matters.
 	useIsomorphicLayoutEffect(() => {
 		reportSaving({ button: buttonRef.current, isSaving: isLoading });
@@ -906,8 +906,8 @@ const SaveButton = ({
 };
 
 /**
- * Props for `Sandbar.DiscardButton`. Extends `Button`'s props — including
- * `asChild` — but makes `appearance` and `intent` optional with
+ * Props for `Sandbar.DiscardButton`. Extends `Button`'s props (including
+ * `asChild`) but makes `appearance` and `intent` optional with
  * secondary-action defaults, and `children` required.
  *
  * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbardiscardbutton
@@ -936,7 +936,7 @@ type SandbarDiscardButtonProps = Omit<ButtonProps, "appearance" | "children" | "
 		 */
 		intent?: ButtonProps["intent"];
 		/**
-		 * The visible action label (e.g. "Discard"). Required — action labels are
+		 * The visible action label (e.g. "Discard"). Required. Action labels are
 		 * app voice and must be visible at the call site.
 		 */
 		children: ReactNode;
@@ -992,12 +992,12 @@ const DiscardButton = ({
 
 /**
  * A persistent, decision-bearing bar that floats near the bottom edge of the
- * viewport. It surfaces pending state — primarily a form's unsaved ("dirty")
- * changes — and stays until the user resolves it. Toast announces something
+ * viewport. It surfaces pending state (primarily a form's unsaved ("dirty")
+ * changes) and stays until the user resolves it. Toast announces something
  * that already happened and leaves on its own; a Sandbar waits for the user's
  * decision. When the message needs no decision, reach for Toast or Alert.
  *
- * The name: a sandbar is a bar that blocks navigation — exactly what this
+ * The name: a sandbar is a bar that blocks navigation, exactly what this
  * component does while changes are pending. Pair it with your app's
  * navigation guard and call `shake()` on the {@link SandbarHandle} when a
  * navigation attempt is blocked.
@@ -1037,7 +1037,7 @@ const Sandbar = {
 	/**
 	 * The always-mounted shell: fixed positioning, persistent live-region
 	 * announcers, presence-managed panel. Toggle with the controlled `open`
-	 * prop — never conditionally mount it.
+	 * prop; never conditionally mount it.
 	 *
 	 * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarroot
 	 *
@@ -1090,7 +1090,7 @@ const Sandbar = {
 	 */
 	Actions,
 	/**
-	 * The primary (save) action — announces "Saving changes…" and keeps focus
+	 * The primary (save) action. It announces "Saving changes…" and keeps focus
 	 * from being lost while the save is pending.
 	 *
 	 * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarsavebutton

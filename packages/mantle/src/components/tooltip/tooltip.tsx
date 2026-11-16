@@ -12,7 +12,10 @@ import type { ComponentProps, ComponentPropsWithoutRef } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
+import {
+	useFloatEscapeKeyDown,
+	useLayerContainer,
+} from "../../utils/layer-container/layer-container.js";
 
 /**
  * Wraps your app to set shared global behavior for your tooltips, such
@@ -167,11 +170,13 @@ const Content = ({
 	children,
 	className,
 	"data-slot": dataSlot,
+	onEscapeKeyDown,
 	ref,
 	sideOffset = 4,
 	...props
 }: TooltipContentProps) => {
 	const layerContainer = useLayerContainer();
+	const handleEscapeKeyDown = useFloatEscapeKeyDown(onEscapeKeyDown);
 
 	return (
 		<TooltipPrimitivePortal container={layerContainer}>
@@ -181,6 +186,7 @@ const Content = ({
 					className,
 				)}
 				data-slot={joinDataSlot(dataSlot, "tooltip-content")}
+				onEscapeKeyDown={handleEscapeKeyDown}
 				ref={ref}
 				sideOffset={sideOffset}
 				{...props}
@@ -203,8 +209,8 @@ const Content = ({
  * A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it.
  *
  * Use `Tooltip` to show a short, non-essential label or hint when the user
- * hovers or focuses an element — e.g., the meaning of an icon button, a
- * keyboard shortcut, or a brief explanation. Tooltips are NON-INTERACTIVE:
+ * hovers or focuses an element (e.g., the meaning of an icon button, a
+ * keyboard shortcut, or a brief explanation). Tooltips are NON-INTERACTIVE:
  * do not put buttons, links, or form controls inside one. Per the WAI-ARIA
  * tooltip pattern, tooltips never receive focus, so interactive content
  * inside them is unreachable for keyboard users. For interactive overlay

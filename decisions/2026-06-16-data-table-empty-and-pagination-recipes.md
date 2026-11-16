@@ -2,20 +2,20 @@
 
 ## Status
 
-Decided — **Option A (canonical recipe + JSDoc)**. 2026-06-16.
+Decided: **Option A (canonical recipe + JSDoc)**. 2026-06-16.
 
 ## Context
 
 Every list-style `DataTable` needs two things the docs under-taught:
 
-1. **Two empty states** — "no data yet" (informational, optional create action) vs.
+1. **Two empty states**: "no data yet" (informational, optional create action) vs.
    "no results for the active filter/search" (needs a `Clear filters` way out).
-2. **Pagination** — a page-size dropdown plus previous/next, wired to the table.
+2. **Pagination**: a page-size dropdown plus previous/next, wired to the table.
 
 The docs previously shipped only bare `<DataTable.EmptyRow>No results.</DataTable.EmptyRow>`
 and a hand-rolled `<Button>`-based prev/next recipe. Because the source JSDoc `@example`
 blocks feed the `.d.ts`, `llms.txt`, and `/api/components.json` agent manifest (see
-[#1239](https://github.com/ngrok/mantle/pull/1239)), those examples are **normative** —
+[#1239](https://github.com/ngrok/mantle/pull/1239)), those examples are **normative**:
 coding agents reproduce them verbatim. A downstream migration of ~57 tables copied exactly
 the bare-string empty and hand-rolled pagination the docs showed.
 
@@ -26,20 +26,20 @@ gap was the **integration documentation**, not missing primitives.
 
 ## Options considered
 
-- **A — Canonical recipe + JSDoc.** Document the two-state empty pattern and the
+- **A: Canonical recipe + JSDoc.** Document the two-state empty pattern and the
   `CursorPagination`-wired pagination in the DataTable/Empty/Pagination docs and, critically, in
   the `data-table` source JSDoc `@example` blocks so the regenerated agent surface teaches them.
   No new public API.
-- **B — A documented (un-exported) `<DataTableEmpty>` recipe component** taking
+- **B: A documented (un-exported) `<DataTableEmpty>` recipe component** taking
   `isFiltered` + `onClearFilters` + no-data content. One shape, still copy-paste.
-- **C — A built-in slot/prop**, e.g. `<DataTable.Empty isFiltered onClearFilters>` and
+- **C: A built-in slot/prop**, e.g. `<DataTable.Empty isFiltered onClearFilters>` and
   `<DataTable.Pagination table>` (or a `renderEmpty` / `emptyState` prop). Most ergonomic,
   largest API surface.
 
 ## Decision
 
 **Option A.** It fully addresses the actual failure (agents copy what the docs show) by fixing
-the highest-leverage surface — the source JSDoc — while staying inside the project's conventions:
+the highest-leverage surface (the source JSDoc) while staying inside the project's conventions:
 
 - Empty-state content varies widely (icon, title, copy, optional actions). A slot/prop with
   `isFiltered` / `onClearFilters` bakes a specific two-state _policy_ into the component and is
@@ -64,4 +64,4 @@ across consumers, revisit it.
 - The `data-table` source JSDoc `@example` on `DataTable` now teaches the two-state `Empty`
   pattern and `CursorPagination`; the regenerated `components-surface.json` snapshot reflects it.
   One minimal bare-string empty example stays for the trivial case.
-- No `@ngrok/mantle` runtime API change — only JSDoc/docs. Shipped as a `patch`.
+- No `@ngrok/mantle` runtime API change, only JSDoc/docs. Shipped as a `patch`.

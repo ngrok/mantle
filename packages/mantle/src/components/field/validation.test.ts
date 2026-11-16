@@ -41,7 +41,7 @@ describe("field validation helpers", () => {
 	});
 
 	test("lets an explicit aria-invalid={false} keep error styling without announcing invalid", () => {
-		// Explicit valid ARIA wins over the error styling request — the control
+		// Explicit valid ARIA wins over the error styling request: the control
 		// still renders red, but assistive tech is not told the value is invalid.
 		expect(parseValidation({ "aria-invalid": false, validation: "error" })).toEqual({
 			ariaInvalid: false,

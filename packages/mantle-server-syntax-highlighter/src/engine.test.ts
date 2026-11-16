@@ -8,7 +8,7 @@ describe("getMantleShikiHighlighter", () => {
 		const loadedLanguages = highlighter.getLoadedLanguages();
 		// Why the exclusion: Shiki special-cases the plain-text ids and never
 		// registers a grammar for them. Every other supported language must
-		// appear in the loaded list — grammar names and their aliases both
+		// appear in the loaded list. Grammar names and their aliases both
 		// register, so a missing entry in `mantleShikiLanguageGrammarIds`
 		// turns this red.
 		const plainTextFamily = new Set(["plain", "plaintext", "text", "txt"]);

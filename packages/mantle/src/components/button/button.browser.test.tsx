@@ -13,7 +13,7 @@ import { Button } from "./button.js";
  * inline it instead of importing the mantle stylesheet so the test stays
  * hermetic and needs no Tailwind build step.
  *
- * Keep the selector form and the numeric values identical to Tailwind's output —
+ * Keep the selector form and the numeric values identical to Tailwind's output:
  * `gap-1.5` is `0.375rem`, which is `6px` at the default root font size.
  */
 const STYLE = `

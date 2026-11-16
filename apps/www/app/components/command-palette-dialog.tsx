@@ -52,11 +52,11 @@ function PaletteCommandItem({
 	/** The palette command to render. */
 	command: PaletteCommand;
 	/**
-	 * Show the preview badge inline on preview-component commands — for search
+	 * Show the preview badge inline on preview-component commands, for search
 	 * results, where the badged group heading is not visible.
 	 */
 	showPreviewBadge?: boolean;
-	/** Called after the command's action runs — closes the palette. */
+	/** Called after the command's action runs, to close the palette. */
 	onDone: () => void;
 }) {
 	const navigate = useNavigate();

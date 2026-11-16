@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-06-17. Implemented. Shipped as a `patch` (see [Changeset](#implementation-plan) note);
+Accepted: 2026-06-17. Implemented. Shipped as a `patch` (see [Changeset](#implementation-plan) note);
 the `asChild` discriminated union was collapsed to a single flat shape since `type` was the only
 prop it gated.
 
@@ -13,13 +13,13 @@ Today `Button` (`packages/mantle/src/components/button/button.tsx`) and `IconBut
 discriminated union on `asChild`:
 
 - `asChild: true` → `type?: …` (optional, and intentionally **not** forwarded to the
-  cloned child — see the `Slot` branch, which spreads `buttonProps` _without_ `type`).
+  cloned child (see the `Slot` branch, which spreads `buttonProps` _without_ `type`)).
 - `asChild?: false | undefined` → `type: Exclude<ComponentProps<"button">["type"], undefined>`
   (**required**, no default).
 
 The native render path is `<button {...buttonProps} type={type}>`. There is already an
-`oxlint-disable react/button-has-type` comment claiming `type` is _"defaulted to 'button'"_
-— which is **not true today** (it is required, and the destructure has no default). That
+`oxlint-disable react/button-has-type` comment claiming `type` is _"defaulted to 'button'"_,
+which is **not true today** (it is required, and the destructure has no default). That
 comment is stale/aspirational.
 
 Why this is worth changing:
@@ -31,14 +31,14 @@ Why this is worth changing:
   and the `/api/components.json` agent manifest (see
   [#1239](https://github.com/ngrok/mantle/pull/1239), and the
   [2026-06-16 DataTable recipes decision](./2026-06-16-data-table-empty-and-pagination-recipes.md)),
-  so examples are normative — agents reproduce them. A required `type` means every generated
+  so examples are normative: agents reproduce them. A required `type` means every generated
   button must spell out `type="button"` or fail to compile; agents trained on the ecosystem
   norm will routinely omit it and round-trip on the diagnostic.
 - **The native default (`submit`) is the real footgun.** Native `<button>` inside a `<form>`
   submits on click. Defaulting to `"button"` neutralizes the accidental-submit footgun for
   the common case while still allowing `type="submit"` opt-in.
 
-This relaxes a **required** prop to **optional** with a safe default — backward compatible.
+This relaxes a **required** prop to **optional** with a safe default. The change is backward compatible.
 All ~311 existing `<Button>`/`<IconButton>` call sites already pass `type` explicitly (they
 had to), so nothing breaks; the change is purely additive.
 
@@ -54,7 +54,7 @@ The current required-prop design is the _only_ option that is un-footgunnable in
 directions: you cannot accidentally submit, and you cannot accidentally fail to submit,
 because it forces you to choose. Defaulting to `"button"` trades the loud, obvious
 accidental-submit footgun for a quiet one: a form whose submit button is written
-`<Button>Submit</Button>` and relies on **native** form submission will silently not submit —
+`<Button>Submit</Button>` and relies on **native** form submission will silently not submit,
 with no compile error, just wrong runtime behavior.
 
 This is low-risk in practice because most form code uses an explicit `onClick`/`onSubmit`
@@ -64,23 +64,23 @@ the docs show forms.
 
 ## Implementation plan
 
-1. **`button.tsx` — relax the type and apply the default.**
+1. **`button.tsx`: relax the type and apply the default.**
    - In the `asChild?: false | undefined` arm, change
      `type: Exclude<ComponentProps<"button">["type"], undefined>` →
      `type?: ComponentProps<"button">["type"]`.
    - Apply the default at the point of use on the native branch only, to preserve the
      `asChild` "not forwarded" semantics:
      `<button {...buttonProps} type={type ?? "button"}>`.
-     (Do **not** default in the destructure — that would risk leaking `type` toward the
+     (Do **not** default in the destructure: that would risk leaking `type` toward the
      `asChild`/`Slot` path. Keeping the default at the `<button>` also makes the existing
      `react/button-has-type` lint-disable comment finally accurate.)
    - Re-evaluate whether the `asChild` discriminated union is still needed for `type`. If the
      two arms now differ only by the `asChild` literal and JSDoc, simplify toward a single
-     shape with `asChild?: boolean` + optional `type` — **only if** nothing else depends on
+     shape with `asChild?: boolean` + optional `type`, **only if** nothing else depends on
      the discriminant. Verify by typechecking; do not force a simplification that changes
      other props.
 
-2. **`icon-button.tsx` — same change.** Identical union shape (lines ~102/120) and render
+2. **`icon-button.tsx`: same change.** Identical union shape (lines ~102/120) and render
    path; apply the same relaxation + `?? "button"` default.
 
 3. **JSDoc rewrite (both files).** Replace the multi-paragraph "unlike native `<button>`,
@@ -89,16 +89,16 @@ the docs show forms.
    `type`" note. Update the `@example` on `Button`/`IconButton` to omit `type` for the common
    case (showing the new ergonomic default) while keeping one `type="submit"` example.
 
-4. **`split-button.tsx` — keep in lockstep.** `SplitButton` forwards `type` to `Button` at
+4. **`split-button.tsx`: keep in lockstep.** `SplitButton` forwards `type` to `Button` at
    lines 43 and 75. If its own `type` prop is modeled as required, relax it to optional in the
    same change so `SplitButton` doesn't keep forcing `type` after `Button` stops. (Confirm its
    current modeling; if it just passes through `...props`, no change is needed.)
 
-5. **Tests (`button.test.tsx`, `icon-button.test.tsx`) — regression coverage.**
+5. **Tests (`button.test.tsx`, `icon-button.test.tsx`): regression coverage.**
    - Omitted `type` renders `type="button"` (the new default) for both components.
    - Explicit `type="submit"` / `type="reset"` still render through unchanged.
    - `asChild` with an `<a>` child renders **no** `type` attribute on the anchor.
-   - (These are DOM-attribute assertions — happy-dom is sufficient, no browser mode.)
+   - (These are DOM-attribute assertions; happy-dom is sufficient, no browser mode.)
 
 6. **Docs site.**
    - `apps/www/app/docs/components/button.mdx`, `icon-button.mdx`, `split-button.mdx`: drop
@@ -106,13 +106,13 @@ the docs show forms.
    - Use `type="submit"` prominently in the Field/form docs and any form example to
      counter the reverse footgun.
    - Regenerate the agent surface snapshot
-     (`apps/www/app/utilities/__snapshots__/components-surface.json`) — it derives from the
+     (`apps/www/app/utilities/__snapshots__/components-surface.json`). It derives from the
      JSDoc and will pick up the new `@default`/examples.
 
-7. **Changeset — `patch`.** The public type contract changes (required → optional) and a new
+7. **Changeset: `patch`.** The public type contract changes (required → optional) and a new
    runtime default lands; both are backward compatible and additive. We shipped this as a
    `patch`: every existing call site already passes `type`, so no published behavior changes for
-   current consumers — the relaxation only removes a compile error from previously-invalid code.
+   current consumers. The relaxation only removes a compile error from previously-invalid code.
    (`minor` is defensible too, treating the new optional-usage capability as a feature.)
 
 ## Optional follow-up (separate PR)
@@ -132,10 +132,10 @@ separately if desired.
 
 ## Resolved
 
-- `minor` vs `patch` — **shipped as `patch`.** Existing explicit usage is unchanged and no
+- `minor` vs `patch`: **shipped as `patch`.** Existing explicit usage is unchanged and no
   published runtime behavior changes for current consumers; the relaxation only removes a
   compile error from previously-invalid code.
-- Simplify the `asChild` discriminated union — **yes, simplified.** Once `type` was relaxed to
+- Simplify the `asChild` discriminated union: **yes, simplified.** Once `type` was relaxed to
   optional in both arms, the discriminant gated nothing else, so both `Button` and `IconButton`
   now use a single flat `WithAsChild`-based shape. `split-button.tsx` dropped its now-redundant
   `Pick<…, "type">` and `type="button"` defaults, deferring to the components' default.

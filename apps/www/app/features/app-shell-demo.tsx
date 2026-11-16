@@ -62,15 +62,15 @@ import type { KeyboardEvent, ReactElement, ReactNode } from "react";
 import { useRef, useState } from "react";
 
 /*
- * Navigation in these demos is a FAKE ROUTER — do not copy it. They keep a local
+ * Navigation in these demos is a FAKE ROUTER. Do not copy it. They keep a local
  * `pathname` in state and cancel every anchor's default, purely so the examples
  * can be embedded. A real consumer uses their router's primitives instead:
  * render react-router's `Link` through `Sidebar.ItemButton`'s `asChild` and
- * derive `current` — and here, which navigation section is showing — from
+ * derive `current` (and here, which navigation section is showing) from
  * `useLocation()`.
  *
  * Why the demos can't: each renders as its own framed-preview document *inside*
- * the docs app's router, and React Router permits exactly one router per tree —
+ * the docs app's router, and React Router permits exactly one router per tree:
  * a nested `MemoryRouter` (or a data-mode `RouterProvider`) throws "You cannot
  * render a <Router> inside another <Router>". Real `Link`s would mean giving the
  * previews real URLs, and then every click a reader makes inside a preview
@@ -162,7 +162,7 @@ const demoNavSections: ReadonlyArray<DemoNavSection> = [
 ];
 
 /**
- * The account/user settings navigation — the second _section_ of navigation the
+ * The account/user settings navigation: the second _section_ of navigation the
  * same sidebar can show. Entering it swaps what `Sidebar.Header` and
  * `Sidebar.Body` render; the shell, the panel, and the footer are untouched.
  */
@@ -196,7 +196,7 @@ const demoSettingsSections: ReadonlyArray<DemoNavSection> = [
  * The account-scoped destinations the multi-product shell pins to its footer:
  * areas that outlive whichever product `Sidebar.Body` is showing, so they stay
  * put while the body's navigation changes. They are deliberately absent from
- * `demoNavSections` — one path must own exactly one row, or the panel would
+ * `demoNavSections`: one path must own exactly one row, or the panel would
  * announce two current pages.
  */
 const demoFooterItems: ReadonlyArray<DemoNavItem> = [
@@ -210,8 +210,8 @@ const settingsSectionPath = "/settings/general";
 
 /**
  * Whether a demo path belongs to the settings section. Which navigation the
- * sidebar shows is *derived* from the location — the same thing a real app gets
- * for free from a nested settings route — so there is no second source of truth
+ * sidebar shows is *derived* from the location (the same thing a real app gets
+ * for free from a nested settings route), so there is no second source of truth
  * to keep in sync with the router.
  */
 function isSettingsPath(path: string) {
@@ -220,12 +220,12 @@ function isSettingsPath(path: string) {
 
 /**
  * The demo account alerts, authored as `AlertCenter.Item` JSX under a
- * stay-mounted `AlertCenter.Root` — the toggle mounts and unmounts items, so
+ * stay-mounted `AlertCenter.Root`: the toggle mounts and unmounts items, so
  * flipping everything off collapses the bar with its exit animation instead of
  * popping it out. The single example shows only the usage-limit warning; the
  * multiple example adds a billing failure (the danger takes the bar) and a
  * member-limit warning. The warnings are dismissable per the docs' best
- * practice — the billing failure withholds its dismiss button — and choosing
+ * practice (the billing failure withholds its dismiss button), and choosing
  * a preset resets any dismissals.
  */
 function DemoAccountAlerts({
@@ -417,7 +417,7 @@ function ProductSwitcherDialog({
 						<ProductIcon product={product} />
 						<span className="text-strong min-w-0 flex-1 truncate text-base">{product.label}</span>
 						{/* the double caret reads "pick one of several", not "a menu drops from
-						    here" — the caret-down below belongs to the account switchers, which
+						    here". The caret-down below belongs to the account switchers, which
 						    really do open a DropdownMenu */}
 						<CaretUpDownIcon className="text-muted size-4 shrink-0" />
 					</Sidebar.SwitcherTrigger>
@@ -488,13 +488,13 @@ function ProductSwitcherDialog({
 
 /**
  * The sidebar's search row and the palette it opens. The row is a
- * `Sidebar.SearchTrigger` — an item-shaped row whose ⌘K hint appears on hover or
- * focus — wrapped in `Command.SearchTrigger`, which is what makes typing or
+ * `Sidebar.SearchTrigger` (an item-shaped row whose ⌘K hint appears on hover or
+ * focus) wrapped in `Command.SearchTrigger`, which is what makes typing or
  * pasting into the row open the palette with that text already in the query.
  *
- * `setOpenMobile(false)` as the palette opens is load-bearing, not tidiness:
+ * `setOpenMobile(false)` as the palette opens is required, not tidiness:
  * below the sidebar's `mobileBreakpoint` the panel *is* a `Sheet`, so leaving it
- * open would stack a dialog inside a dialog — two focus traps, and two scroll
+ * open would stack a dialog inside a dialog: two focus traps, and two scroll
  * locks unwinding in an order neither owns.
  */
 function DemoSearch({
@@ -558,10 +558,10 @@ function DemoSearch({
 }
 
 /**
- * The navigation for whichever section is showing — a product's pages or the
+ * The navigation for whichever section is showing: a product's pages or the
  * settings pages, with the search row above them. Lives inside `Sidebar.Root`,
  * so it can use `useSidebar` to close the mobile sheet when a nav item
- * "navigates" — the same shape a real app uses with its router.
+ * "navigates", the same shape a real app uses with its router.
  */
 function DemoNav({
 	onNavigate,
@@ -611,8 +611,8 @@ function DemoNav({
 }
 
 /**
- * The sidebar header while the settings section is showing: one full-width row —
- * back arrow plus the section title — that leaves the section, occupying the same
+ * The sidebar header while the settings section is showing: one full-width row
+ * (back arrow plus the section title) that leaves the section, occupying the same
  * header band the product (or account) switcher owns the rest of the time.
  * Nothing about the shell or the panel changes; swapping what `Sidebar.Header`
  * and `Sidebar.Body` render is the entire pattern.
@@ -659,7 +659,7 @@ function DemoSettingsHeader({
  * opens a menu"; the leading icon is the only one the row sizes for you, which
  * is why the caret carries its own `size-4`.
  *
- * The menu opens upward (`side="top"`) — it is pinned to the bottom of the
+ * The menu opens upward (`side="top"`): it is pinned to the bottom of the
  * viewport, so downward is off-screen.
  *
  * @example
@@ -748,7 +748,7 @@ function DemoHelpMenu() {
 /**
  * The multi-product shell's footer switcher row: the account's avatar, the
  * account's name, and the signed-in user's avatar in one row that opens one
- * menu covering both scopes — account destinations (billing, settings,
+ * menu covering both scopes: account destinations (billing, settings,
  * switching) and user-level items (settings, theme, log out).
  *
  * @example
@@ -785,7 +785,7 @@ function AppShellAccountSwitcher({
 							{account.name}
 						</span>
 						{/* the user has no picture here, so the avatar is a silhouette that
-						    names the signed-in user itself — a bare span is role=generic,
+						    names the signed-in user itself. A bare span is role=generic,
 						    where an accessible name is prohibited, hence role="img" */}
 						<Avatar.Root aria-label="Jane Doe" className="text-muted" role="img">
 							<Avatar.Fallback>
@@ -923,7 +923,7 @@ function PageActions({ actions }: { actions: ReadonlyArray<PageAction> }) {
  * header-mounted trigger, a product-choice dialog in the sidebar header, a
  * toggleable full-window notice strip, and a content card whose `Body` page
  * region is the only scroll container. The two components never reference each
- * other — `Sidebar.Root` wraps the shell so `Sidebar.Trigger` works from
+ * other: `Sidebar.Root` wraps the shell so `Sidebar.Trigger` works from
  * `AppLayout.Header`.
  *
  * The footer carries the shell's stable rows, bottom-anchored under the
@@ -944,7 +944,7 @@ function PageActions({ actions }: { actions: ReadonlyArray<PageAction> }) {
  * `Main` landmark. Narrow the preview below `md` for the mobile sheet.
  */
 export function AppShellDemo() {
-	// fake router — a real app reads this from `useLocation()` (see the note at
+	// fake router: a real app reads this from `useLocation()` (see the note at
 	// the top of this file)
 	const [pathname, setPathname] = useState("/endpoints");
 	// Where the settings section's back link goes: the product route the reader
@@ -1131,7 +1131,7 @@ export function AppShellDemo() {
 											{currentItem?.label ?? "Overview"} row {index + 1}
 										</p>
 										<p className="text-muted text-sm">
-											The page region is the only scroll container — the document never scrolls.
+											The page region is the only scroll container. The document never scrolls.
 										</p>
 									</div>
 								))}

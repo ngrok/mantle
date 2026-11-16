@@ -146,7 +146,7 @@ describe("useUndoRedo", () => {
 	});
 
 	// `undefined` is the empty-stack sentinel, so the guards must test for it
-	// exactly — a falsy-but-valid snapshot has to survive a round trip.
+	// exactly: a falsy-but-valid snapshot has to survive a round trip.
 	test("round-trips falsy snapshots such as 0", () => {
 		const { result } = renderHook(() => useUndoRedo<number>());
 
@@ -195,7 +195,7 @@ describe("useUndoRedo", () => {
 		act(() => {
 			result.current.push("v1");
 		});
-		// undo pushes the supplied current value onto the redo stack — here, ""
+		// undo pushes the supplied current value onto the redo stack (here, "")
 		act(() => {
 			result.current.undo("");
 		});

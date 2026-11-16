@@ -15,7 +15,7 @@ import { Accordion } from "./accordion.js";
 // Why inline CSS: the browser project loads no Tailwind, so its classes are bare here. The
 // reveal handler's inline `height: auto` and `opacity: 1` must beat the `h-0` and `opacity-0`
 // rules for the match to lay out and show. The content's real height and opacity transition is
-// load-bearing too: a transition starts the box at zero height and opacity, so without it a
+// required too: a transition starts the box at zero height and opacity, so without it a
 // handler that only sets the end values still passes. The trigger row rules give the icon its
 // layout, and `font: inherit` is the Tailwind preflight rule that gives the button the line height
 // of its parent.

@@ -17,7 +17,7 @@ type JsonBracketStackEntry = {
  * open spurious folds.
  *
  * Runs in a single pass over the source (O(n) chars). At most one fold range
- * per opener line is emitted — when several brackets open on the same line,
+ * per opener line is emitted. When several brackets open on the same line,
  * only the outermost (largest range) survives, so a single click collapses
  * the whole sub-tree without rendering stacked toggles.
  *
@@ -52,7 +52,7 @@ function computeJsonFoldRanges(code: string): FoldableRange[] {
 			continue;
 		}
 		if (character === 13) {
-			// '\r' — treat \r\n and bare \r as a line break
+			// '\r': treat \r\n and bare \r as a line break
 			line += 1;
 			index += 1;
 			if (index < length && code.charCodeAt(index) === 10) {
@@ -62,12 +62,12 @@ function computeJsonFoldRanges(code: string): FoldableRange[] {
 		}
 
 		if (character === 34) {
-			// '"' — skip over string contents (including escaped quotes)
+			// '"': skip over string contents (including escaped quotes)
 			index += 1;
 			while (index < length) {
 				const stringChar = code.charCodeAt(index);
 				if (stringChar === 92) {
-					// '\\' — skip the next char unconditionally; do not advance line on escaped \n
+					// '\\': skip the next char unconditionally; do not advance line on escaped \n
 					index += 2;
 					continue;
 				}
@@ -76,7 +76,7 @@ function computeJsonFoldRanges(code: string): FoldableRange[] {
 					break;
 				}
 				if (stringChar === 10 || stringChar === 13) {
-					// Unterminated string spanning a line — bail without advancing further into it.
+					// Unterminated string spanning a line: bail without advancing further into it.
 					break;
 				}
 				index += 1;

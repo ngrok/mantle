@@ -35,7 +35,7 @@ function DemoPaletteContent() {
 					</Command.Item>
 					<Command.Item>
 						<SmileyIcon />
-						<span>Search Emoji</span>
+						<span>Search emoji</span>
 					</Command.Item>
 					<Command.Item>
 						<CalculatorIcon />
@@ -113,12 +113,12 @@ export function CommandSearchTriggerDemo() {
  */
 export function CommandDialogDemo() {
 	return (
-		// keyboardShortcut={false}: see CommandSearchTriggerDemo — the docs site
+		// keyboardShortcut={false}: see CommandSearchTriggerDemo. The docs site
 		// owns ⌘K.
 		<Command.DialogRoot keyboardShortcut={false}>
 			<Command.DialogTrigger asChild>
 				<Button type="button" appearance="outlined" intent="neutral">
-					Open Command Dialog
+					Open command dialog
 				</Button>
 			</Command.DialogTrigger>
 			<DemoPaletteContent />
@@ -132,7 +132,7 @@ export function CommandDialogDemo() {
  * unmounts its subtree when it closes, and a root inside it takes the `⌘K`
  * binding with it.
  *
- * `setOpenMobile(false)` as the palette opens is load-bearing, not tidiness: a
+ * `setOpenMobile(false)` as the palette opens is required, not tidiness: a
  * palette over an open sheet stacks two focus traps and two scroll locks, and
  * they unwind in an order neither owns.
  */

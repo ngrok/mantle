@@ -199,7 +199,7 @@ Mantle no longer ships high-contrast themes. A user who picked one in an earlier
 
 Add the `invert-theme` class to any element to render that subtree in the opposite theme of the
 page: light ⇄ dark. The island is styled by the
-opposite theme's own definitions, so every mantle component and color token inside it just works:
+opposite theme's own definitions, so every mantle component and color token inside it renders in that theme:
 no conditional rendering, no per-component overrides.
 
 ```tsx
@@ -309,11 +309,11 @@ await page.reload();
 
 The `ThemeProvider` accepts the following props in addition to the [PropsWithChildren](https://react.dev/reference/react/PropsWithChildren).
 
-| Prop          | Type            | Default | Description                                                                                                                                                                                                                                                                                |
-| ------------- | --------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `children`    | `ReactNode`     |         | The React components to be wrapped by the theme provider context.                                                                                                                                                                                                                          |
-| `forceTheme?` | `ResolvedTheme` |         | Pin the theme that renders, ignoring the stored preference and the OS. See [Locking a page to one theme](#locking-a-page-to-one-theme) — pass the same value to every component that forces a theme.                                                                                       |
-| `ssrCookie?`  | `string`        |         | The theme cookie pair from the request, via `extractThemeCookie`. On the server, the provider seeds the theme from it, so `useTheme` and `useAppliedTheme` hydrate without a mismatch. When omitted, the server renders `system`. Pass the same value you pass `useInitialHtmlThemeProps`. |
+| Prop          | Type            | Default | Description                                                                                                                                                                                                                                                                                                                                                 |
+| ------------- | --------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `children`    | `ReactNode`     |         | The React components to be wrapped by the theme provider context.                                                                                                                                                                                                                                                                                           |
+| `forceTheme?` | `ResolvedTheme` |         | Pin the theme that renders, ignoring the stored preference and the OS. See [Locking a page to one theme](#locking-a-page-to-one-theme). Pass the same value to every component that forces a theme.                                                                                                                                                         |
+| `ssrCookie?`  | `string`        |         | The theme cookie pair from the request, via `extractThemeCookie`. On the server, the provider seeds the theme from it, so `useTheme` and `useAppliedTheme` hydrate without a mismatch. When omitted, the server and the hydration render use `system`, and the next render shows the stored theme. Pass the same value you pass `useInitialHtmlThemeProps`. |
 
 The `ThemeProvider` uses a hardcoded storage key of `mantle-ui-theme` and defaults to `system` theme. The provider manages both values internally, so they need no configuration.
 
@@ -328,7 +328,7 @@ The `PreventWrongThemeFlashScript` component renders the inline script to preven
 
 ### preloadFontLink
 
-**Preferred for SSR.** Returns an HTTP `Link` header value that preloads a single core font by name. This is the server-side equivalent of `PreloadFont` — identical in effect, but delivered as an HTTP header so the browser can start the font fetch before it has parsed any HTML, giving better CWV scores on mobile and slow connections.
+**Preferred for SSR.** Returns an HTTP `Link` header value that preloads a single core font by name. This is the server-side equivalent of `PreloadFont`, with the same effect. It sends the hint as an HTTP header, so the browser can start the font fetch before it has parsed any HTML. This gives better Core Web Vitals (CWV) scores on mobile and slow connections.
 
 ```ts
 import { assetsCdnOrigin, preloadFontLink } from "@ngrok/mantle/theme";
@@ -352,7 +352,7 @@ headers.set(
 
 ### PreloadFont
 
-The `PreloadFont` component renders a single preload `<link>` element for one named core font. Prefer [`preloadFontLink`](#preloadfontlink) in SSR apps where you can set HTTP response headers — sending the hint as a header starts the fetch earlier than HTML parsing allows. Use `PreloadFont` when you have no access to response headers.
+The `PreloadFont` component renders a single preload `<link>` element for one named core font. Prefer [`preloadFontLink`](#preloadfontlink) in SSR apps where you can set HTTP response headers. A hint sent as a header starts the fetch earlier than HTML parsing allows. Use `PreloadFont` when you have no access to response headers.
 
 ```tsx
 import { PreloadFont } from "@ngrok/mantle/theme";

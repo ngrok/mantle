@@ -88,7 +88,7 @@ The example below is a fully-clickable row: the row's own `<label>` (sharing the
 			<Checkbox defaultChecked />
 		</Choice.Indicator>
 		<Choice.Content>
-			<Choice.Title>Onboarding Key</Choice.Title>
+			<Choice.Title>Onboarding key</Choice.Title>
 			<Choice.Description translate="no">ng-3FaThZL***8xiA</Choice.Description>
 		</Choice.Content>
 	</Choice.Root>
@@ -103,7 +103,7 @@ The example below is a fully-clickable row: the row's own `<label>` (sharing the
 Choice.Root
 ├── Choice.Indicator
 └── Choice.Content
-    ├── Choice.Label        (or Choice.Title — pick one)
+    ├── Choice.Label        (or Choice.Title, pick one)
     └── Choice.Description
 ```
 
@@ -160,9 +160,9 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 | Prop        | Type      | Default | Description                                                                                            |
 | ----------- | --------- | ------- | ------------------------------------------------------------------------------------------------------ |
-| `disabled?` | `boolean` | `false` | Marks the choice disabled — dims the title/description and is injected onto the control.               |
-| `id?`       | `string`  | —       | Explicit control id. Defaults to a generated id, or the surrounding `Field`'s id when composed in one. |
-| `name?`     | `string`  | —       | Form value name injected onto the control. Inherited from `Field` when composed within one.            |
+| `disabled?` | `boolean` | `false` | Marks the choice disabled: dims the title/description and is injected onto the control.                |
+| `id?`       | `string`  |         | Explicit control id. Defaults to a generated id, or the surrounding `Field`'s id when composed in one. |
+| `name?`     | `string`  |         | Form value name injected onto the control. Inherited from `Field` when composed within one.            |
 
 ### Choice.Indicator
 
@@ -182,9 +182,9 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### Choice.Label
 
-The title as a real `<label htmlFor>` wired to the control. Use when the `Choice` owns the labeling. This is the mantle [`Label`](/components/forms/label) (not a re-implementation), so it keeps all of its styling and behavior — mirroring how `Field.Label` reuses `Label`.
+The title as a real `<label htmlFor>` wired to the control. Use when the `Choice` owns the labeling. This is the mantle [`Label`](/components/forms/label) (not a re-implementation), so it keeps all of its styling and behavior. `Field.Label` reuses `Label` the same way.
 
-All props from [`Label`](/components/forms/label) / [label](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/label#attributes), **except** `htmlFor` and `disabled` — those are owned by `Choice.Root` (the control id and the choice's disabled state).
+All props from [`Label`](/components/forms/label) / [label](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/label#attributes), **except** `htmlFor` and `disabled`. `Choice.Root` owns those (the control id and the choice's disabled state).
 
 ### Choice.Title
 

@@ -65,7 +65,7 @@ The `source-all.css` import must sit in a CSS file Vite processes. An import cha
 
 ### `mantleCodeBlockPlugins(options?)`
 
-Unified helper that returns plugin lists for both Vite and MDX integration surfaces — runtime tagged template transforms and rehype-based fenced code block highlighting.
+Unified helper that returns plugin lists for both Vite and MDX integration surfaces: runtime tagged template transforms and rehype-based fenced code block highlighting.
 
 ```ts
 import { mantleCodeBlockPlugins } from "@ngrok/mantle-vite-plugins";
@@ -130,5 +130,5 @@ Type declarations are included. No `@types/*` package is needed.
 
 ## Related Packages
 
-- [`@ngrok/mantle`](https://github.com/ngrok/mantle/tree/main/packages/mantle) — UI component library ([npm](https://www.npmjs.com/package/@ngrok/mantle))
-- [`@ngrok/mantle-server-syntax-highlighter`](https://github.com/ngrok/mantle/tree/main/packages/mantle-server-syntax-highlighter) — Server-side highlighting engine ([npm](https://www.npmjs.com/package/@ngrok/mantle-server-syntax-highlighter))
+- [`@ngrok/mantle`](https://github.com/ngrok/mantle/tree/main/packages/mantle): UI component library ([npm](https://www.npmjs.com/package/@ngrok/mantle))
+- [`@ngrok/mantle-server-syntax-highlighter`](https://github.com/ngrok/mantle/tree/main/packages/mantle-server-syntax-highlighter): Server-side highlighting engine ([npm](https://www.npmjs.com/package/@ngrok/mantle-server-syntax-highlighter))

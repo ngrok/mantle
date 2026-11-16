@@ -2,30 +2,30 @@
 
 Read this file before you add or change a test anywhere in the monorepo. [COMPONENT_SPEC.md §8](../COMPONENT_SPEC.md#8-tests) adds the minimums for a component.
 
-- Runner: Vitest. Two modes — happy-dom (default, no per-file Playwright startup) and real-browser Chromium via Playwright.
+- Runner: Vitest. Two modes: happy-dom (default, no per-file Playwright startup) and real-browser Chromium via Playwright.
 - Chromium starts with its sandbox on, in the browser project and in the `apps/www/bench` scripts. On Ubuntu 23.10 and later, AppArmor blocks the user namespaces that the sandbox needs, and Chromium does not start. Run `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0`, or add an AppArmor profile for the Playwright Chromium. The `browser-test` CI job runs the `sysctl` command.
 - Libraries: `@testing-library/react`, `@testing-library/dom`, `@testing-library/jest-dom`
 - File naming, colocated with source:
   - happy-dom: `*.test.{ts,tsx}`
   - browser: `*.browser.test.{ts,tsx}`
-- No `*.test.*` under `app/routes/` — React Router treats that as route modules. Put route-behavior tests under the owning `app/features/*` area.
+- No `*.test.*` under `app/routes/`. React Router treats that as route modules. Put route-behavior tests under the owning `app/features/*` area.
 - Business logic MUST be thoroughly tested, including edge cases (transformations, validation, conditional rendering, state machines, parsing/formatting).
-- Every bug fix adds a regression test that fails before the fix and passes after — unless genuinely infeasible (document why in the PR).
+- Every bug fix adds a regression test that fails before the fix and passes after, unless genuinely infeasible (document why in the PR).
 - Test count is not a quality signal. One test that pins a real contract is worth more than five that render and check attributes. A case that reaches a branch a sibling already reaches is run time, not coverage; see [One test per branch](#one-test-per-branch). A constant asserted against a copy of itself and a class string frozen by a regression test are the next two; see [No tautological tests, no change-detector tests](#no-tautological-tests-no-change-detector-tests).
 
 ## The bar: a test must be able to fail
 
-Before a test is done, answer: **what single-line change to the implementation would turn this red?** If there is no answer, the test is decoration — delete it or make it assert something.
+Before a test is done, answer: **what single-line change to the implementation would turn this red?** If there is no answer, the test is decoration: delete it or make it assert something.
 
 - These are never a test's _only_ assertion: `toBeDefined()`, `toBeTruthy()`, `not.toThrow()`, `toBeInstanceOf(HTMLElement)`. Assert the actual value, DOM state, or ARIA state. (lint: `mantle/no-only-to-be-defined`, for `toBeDefined()`)
 - Never wrap a `getBy*` query in `toBeDefined()`, `toBeTruthy()`, or `not.toBeNull()`. `getBy*` already throws when it finds nothing, so the matcher adds no coverage. A named `getByRole` or an exact `getByText` plus `toBeInTheDocument()` is a real assertion: the query pins the ARIA name or the copy. `apps/www` loads no jest-dom, so its presence check is `queryBy*` plus `not.toBeNull()`, where the matcher does the work. (lint: `mantle/no-presence-matcher-on-get-by`)
 - A bare-role query such as `getByRole("table")` pins only the role. In `packages/mantle` the role is the part's contract. In `apps/www` a mantle part renders the element, so the query pins mantle's markup and not the demo's.
 - Never assert an element you constructed but never rendered.
-- Never compare the implementation's arithmetic against constants re-declared in the test body — call the real function and assert its output, or the test only proves the test agrees with itself.
+- Never compare the implementation's arithmetic against constants re-declared in the test body. Call the real function and assert its output, or the test only proves the test agrees with itself.
 - Never assert one fixture value against another (the sum of the expected rows equals the expected total). State the relation in a comment and assert the implementation's output.
 - Make sure your query can match. A selector that can never match makes the assertion unfailable. Before a `queryBy*` absence assertion, render the branch where the element exists and confirm the same query finds it. A `data-testid` that only the test's own fixture carries can never appear.
 - A validator or a parser that returns a message is asserted on the message. `toBeDefined()` alone passes a wrong or swapped message.
-- `@ts-expect-error` is owned by `pnpm typecheck`. Do not pair it with a placeholder runtime `expect` — that reads as coverage the vitest run does not have.
+- `@ts-expect-error` is owned by `pnpm typecheck`. Do not pair it with a placeholder runtime `expect`: that reads as coverage the vitest run does not have.
 - Spies assert count and arguments: `toHaveBeenCalledTimes(n)` plus `toHaveBeenLastCalledWith(…)`, not a bare `toHaveBeenCalled()`. A call-count-blind spy cannot see a debounce that stopped debouncing. (lint: `mantle/no-bare-to-have-been-called`)
 - A rule tagged `(lint: name)` has an oxlint check. `vitest/expect-expect` also fails a test with no assertion, and the `mantle/*` rules live in `scripts/oxlint-plugin-mantle.js`. An untagged rule is on you.
 
@@ -83,11 +83,11 @@ A test must pay for its upkeep. Before you add one, answer three questions: whic
 
 ## Drive the interaction
 
-If a component owns an event handler, a controlled prop, or a documented keyboard contract, at least one test must **drive it end to end** — `await user.click(…)` / `await user.keyboard("{ArrowDown}")` — and assert both the callback arguments and the resulting DOM/ARIA state.
+If a component owns an event handler, a controlled prop, or a documented keyboard contract, at least one test must **drive it end to end** (`await user.click(…)` / `await user.keyboard("{ArrowDown}")`) and assert both the callback arguments and the resulting DOM/ARIA state.
 
 Rendering a component with `defaultValue`/`open` hardcoded and checking attributes does not test an interactive component; it tests its initial markup. `readOnly` and `disabled` guards, controlled-vs-uncontrolled paths, dismissal, and sort/expand/select cycles all need a real event.
 
-Test mantle's own logic — its wiring, guards, prop plumbing, and ARIA setup. Do not re-test Radix or Ariakit internals.
+Test mantle's own logic: its wiring, guards, prop plumbing, and ARIA setup. Do not re-test Radix or Ariakit internals.
 
 ## Mock the environment, not the tree
 
@@ -113,16 +113,16 @@ Mock what happy-dom cannot supply: `matchMedia` (`test-utils/mock-match-media.ts
 
 ## Assert behavior, not styling internals
 
-**Do not assert Tailwind utility strings.** Neither project loads Tailwind, so `expect(el.className).toContain("shadow-inner")` compares a string to the source literal — it observes nothing about rendering, and it false-fails on behavior-preserving token renames. Reach instead, in order, for:
+**Do not assert Tailwind utility strings.** Neither project loads Tailwind, so `expect(el.className).toContain("shadow-inner")` compares a string to the source literal. It observes nothing about rendering, and it false-fails on behavior-preserving token renames. Reach instead, in order, for:
 
-1. the documented public API the class implements — a `data-slot`, a documented data attribute, or a documented CSS custom property (all three are public API per [COMPONENT_SPEC.md](../COMPONENT_SPEC.md));
+1. the documented public API the class implements: a `data-slot`, a documented data attribute, or a documented CSS custom property (all three are public API per [COMPONENT_SPEC.md](../COMPONENT_SPEC.md));
 2. a behavioral assertion (role, accessible name, text, ARIA state, callback);
-3. in browser mode only, `getComputedStyle` with the load-bearing CSS injected inline in the test file (`label.browser.test.tsx` is the reference);
+3. in browser mode only, `getComputedStyle` with the CSS under test injected inline in the test file (`label.browser.test.tsx` is the reference);
 4. deleting the assertion, if none of the above applies.
 
-Three uses are legitimate and should stay, each of which needs a comment saying which one it is: **tailwind-merge override contracts** (proving a consumer's `className` beats a default — assert the merge outcome, not a list of internal defaults), **explicitly commented cross-file spelling pins** that tie a class to a selector in another file, and **the class as the only observable implementation of an enumerated prop** — when a variant emits no data attribute and no other DOM difference, the class is the only thing that can catch a permuted lookup table (`toast.test.tsx`'s intent tables are the reference; prefer exposing a data attribute when you own the component).
+Three uses are legitimate and should stay, each of which needs a comment saying which one it is: **tailwind-merge override contracts** (proving a consumer's `className` beats a default; assert the merge outcome, not a list of internal defaults), **explicitly commented cross-file spelling pins** that tie a class to a selector in another file, and **the class as the only observable implementation of an enumerated prop**: when a variant emits no data attribute and no other DOM difference, the class is the only thing that can catch a permuted lookup table (`toast.test.tsx`'s intent tables are the reference; prefer exposing a data attribute when you own the component).
 
-Also: `toHaveClass` ignores extra classes, so it cannot back a test name that promises exclusivity. And no snapshot tests of rendered HTML — use declarative assertions (`getByRole`, `getByText`, `toBeInTheDocument`). `toMatchInlineSnapshot` is for serialized data shapes only.
+Also: `toHaveClass` ignores extra classes, so it cannot back a test name that promises exclusivity. And no snapshot tests of rendered HTML. Use declarative assertions (`getByRole`, `getByText`, `toBeInTheDocument`). `toMatchInlineSnapshot` is for serialized data shapes only.
 
 Never assert that a class is absent. `not.toHaveClass("overflow-hidden")` passes when the regression comes back as `overflow-clip` or an inline style, so assert the data attribute or the behavior the class implements. (lint: `mantle/no-absent-class-assertion`) `tagName`, child counts, and `compareDocumentPosition` pin the markup. Use them only where the markup is mantle's contract: an `asChild` swap, a documented part order, a layer tier (`layer-container.test.tsx`). In `apps/www` that markup is mantle's, so assert roles, names, and text.
 
@@ -136,22 +136,22 @@ When a selector in one file depends on an attribute or class emitted in another 
 
 ## Cover the server render
 
-Anything whose purpose is server output needs `renderToString` from `react-dom/server` — pre-hydration branches, SSR-only props, and FOUC prevention. Asserting only post-mount state cannot see the render path, because the mount effect overwrites it before the assertion runs.
+Anything whose purpose is server output needs `renderToString` from `react-dom/server`: pre-hydration branches, SSR-only props, and FOUC prevention. Asserting only post-mount state cannot see the render path, because the mount effect overwrites it before the assertion runs.
 
-For logic that is stringified into an inline `<script>`, evaluate the produced string in the test (`new Function(scriptContent())()`) and assert its side effects. Nothing else makes a closure-scoping regression in it visible — lint, typecheck, and build all pass on a script that throws at runtime.
+For logic that is stringified into an inline `<script>`, evaluate the produced string in the test (`new Function(scriptContent())()`) and assert its side effects. Nothing else makes a closure-scoping regression in it visible: lint, typecheck, and build all pass on a script that throws at runtime.
 
 ## Determinism
 
-- **No arbitrary sleeps.** `await new Promise((resolve) => setTimeout(resolve, 100))` is a race, not a wait. Use `waitFor`, `findBy*`, or `expect.poll` on the state you actually need — for observer-driven measurement, poll the measured value itself. (lint: `mantle/no-sleep-in-tests`)
+- **No arbitrary sleeps.** `await new Promise((resolve) => setTimeout(resolve, 100))` is a race, not a wait. Use `waitFor`, `findBy*`, or `expect.poll` on the state you actually need. For observer-driven measurement, poll the measured value itself. (lint: `mantle/no-sleep-in-tests`)
 - Never mutate state inside a `waitFor` callback; it can run many times.
 - **Skip a real delay with fake timers that still advance.** `vi.useFakeTimers()` freezes the timers that `findBy*` and `waitFor` poll with, so they never retry. Use `vi.useFakeTimers({ shouldAdvanceTime: true })`, skip the delay with `await vi.advanceTimersByTimeAsync(ms)`, and call `vi.useRealTimers()` in `afterEach`. The Vitest config does not restore timers.
 - **Put the target state in the `findBy*` query.** When the element is already mounted and the test waits for it to change, `findByRole("heading", { level: 1 })` resolves at once on the stale heading. The `toHaveTextContent` that follows gets no retry window. Write `findByRole("heading", { level: 1, name: "Domains" })` or `findByText` instead.
 - Install spies **after** `userEvent.setup()`. `setup()` swaps `navigator.clipboard` for its own stub, so a patch applied before it is silently discarded.
-- Every test-bearing package sets `restoreMocks`, `unstubEnvs`, and `unstubGlobals` in its Vitest config (mantle's root config, which both of its projects inherit, `apps/www`, `mantle-vite-plugins`, `mantle-server-syntax-highlighter`), so `vi.spyOn` spies and `vi.stubGlobal`/`vi.stubEnv` stubs are torn down between tests automatically. A trailing `spy.mockRestore()` in a test body is dead code — and relying on one is a leak, since a test that throws never reaches it. Vitest also clears every mock's call history before each test, because `clearMocks` defaults to `true`, but neither setting resets a `vi.fn()`'s implementation, so a shared `vi.fn()` that a test gives a per-test implementation still needs `mockReset()` — put it in `beforeEach`, or create the mock there. A spy that must survive across tests in a file goes in `beforeEach`, not `beforeAll`.
+- Every test-bearing package sets `restoreMocks`, `unstubEnvs`, and `unstubGlobals` in its Vitest config (mantle's root config, which both of its projects inherit, `apps/www`, `mantle-vite-plugins`, `mantle-server-syntax-highlighter`), so `vi.spyOn` spies and `vi.stubGlobal`/`vi.stubEnv` stubs are torn down between tests automatically. A trailing `spy.mockRestore()` in a test body is dead code, and relying on one is a leak, since a test that throws never reaches it. Vitest also clears every mock's call history before each test, because `clearMocks` defaults to `true`, but neither setting resets a `vi.fn()`'s implementation, so a shared `vi.fn()` that a test gives a per-test implementation still needs `mockReset()`. Put it in `beforeEach`, or create the mock there. A spy that must survive across tests in a file goes in `beforeEach`, not `beforeAll`.
 - No test may depend on another test having run. Verify with `pnpm vitest run --project unit --sequence.shuffle.tests --sequence.shuffle.files --sequence.seed=<n>` across a few seeds, such as 11, 23, and 29.
 - The `unit` project runs with `isolate: false`: the files in one worker share one module registry and one happy-dom window. [`vitest.setup-file-reset.ts`](../packages/mantle/vitest.setup-file-reset.ts) resets the modules before each file, and the stubs, spies, timers, DOM, storage, cookies, and URL after it. State in a dependency under `node_modules` survives the module reset. When a file passes alone and fails in the full run, run the failing seed with `--maxWorkers=1`, then run pairs of files with `--maxWorkers=1 --no-file-parallelism` until one pair fails.
 - Change an env value with `vi.stubEnv`, never by writing `process.env`. The files share a worker, so a write reaches every later file, and a replaced `process.env` object hides every later `vi.stubEnv`. (lint: `mantle/no-process-env-write`)
-- Locale- and timezone-sensitive assertions rely on `TZ`/`LC_ALL` being pinned in the Vitest config, not in a package script — a pin in a script is lost the moment anyone runs a single file directly. Mantle's root config pins them via `test.env`; the browser project also pins Chromium's own `locale`/`timezoneId` through the Playwright `contextOptions`, which `process.env` cannot reach.
+- Locale- and timezone-sensitive assertions rely on `TZ`/`LC_ALL` being pinned in the Vitest config, not in a package script: a pin in a script is lost the moment anyone runs a single file directly. Mantle's root config pins them via `test.env`; the browser project also pins Chromium's own `locale`/`timezoneId` through the Playwright `contextOptions`, which `process.env` cannot reach.
 - Never assert a wall-clock duration or a throughput threshold. Benchmarks use the `bench` fixture from the test context (`test("name", ({ bench }) => …)`), not an `expect`.
 
 ## When to reach for browser mode
@@ -161,7 +161,7 @@ Default to happy-dom. Reach for browser mode only when the test depends on a rea
 - Web Animations API (`getAnimations`, `Animation.finished`)
 - IntersectionObserver / ResizeObserver
 - Inline `<script>` execution (3rd-party SDK bootstrappers like GTM/Ketch)
-- `<noscript>` parsing — happy-dom drops noscript children
+- `<noscript>` parsing: happy-dom drops noscript children
 - Real layout, scroll, `:focus-visible`, real `getBoundingClientRect` / `getComputedStyle`
 - Clipboard API, Drag-and-drop / `DataTransfer`, `FileReader`
 - Pointer/touch events, real hover, focus-within
@@ -173,9 +173,9 @@ Default to happy-dom. Reach for browser mode only when the test depends on a rea
 - Canvas 2D / WebGL / OffscreenCanvas
 - Real `requestAnimationFrame` timing
 
-If the test only touches DOM structure, ARIA, event handlers, or pure state — stay in happy-dom. A file belongs in the browser project only if it exercises a named API from that list; otherwise it pays Chromium startup and browser-launch flake for assertions that are deterministic in happy-dom. This is a rule in both directions — misplaced files should be renamed back to `*.test.tsx`.
+If the test only touches DOM structure, ARIA, event handlers, or pure state, stay in happy-dom. A file belongs in the browser project only if it exercises a named API from that list; otherwise it pays Chromium startup and browser-launch flake for assertions that are deterministic in happy-dom. This is a rule in both directions: misplaced files should be renamed back to `*.test.tsx`.
 
-Browser tests load **no Tailwind** and the browser project injects no stylesheet, so a browser test that asserts geometry, visibility, or computed style **must inject the load-bearing CSS inline** (`label.browser.test.tsx` is the reference) — otherwise the layout is degenerate and the assertion passes for the wrong reason. For a component whose layout depends on arbitrary values, inject `await commands.tailwindCss("./<component>.tsx")` instead (`truncated-text.browser.test.tsx` is the reference). It compiles the classes Tailwind really emits, so a rule Tailwind drops fails the test. When injecting CSS is impractical, assert the mechanism (`element.style.height === "auto"`) rather than the geometry it produces, and say so in a comment.
+Browser tests load **no Tailwind** and the browser project injects no stylesheet, so a browser test that asserts geometry, visibility, or computed style **must inject the CSS it depends on inline** (`label.browser.test.tsx` is the reference). Otherwise the layout is degenerate and the assertion passes for the wrong reason. For a component whose layout depends on arbitrary values, inject `await commands.tailwindCss("./<component>.tsx")` instead (`truncated-text.browser.test.tsx` is the reference). It compiles the classes Tailwind really emits, so a rule Tailwind drops fails the test. When injecting CSS is impractical, assert the mechanism (`element.style.height === "auto"`) rather than the geometry it produces, and say so in a comment.
 
 If a browser test fails with `Vite unexpectedly reloaded a test` and a broken `vi.mock` after you add a bare import, the browser-mode dependency cache in `node_modules/.vite/vitest/` is stale. Delete it in that package and run again before you debug the test.
 

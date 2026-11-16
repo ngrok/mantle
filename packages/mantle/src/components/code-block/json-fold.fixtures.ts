@@ -1,4 +1,4 @@
-// GENERATED GOLDEN FIXTURES — do not edit by hand.
+// GENERATED GOLDEN FIXTURES: do not edit by hand.
 //
 // Full fold-decorated <code> markup captured from Mantle’s real Shiki server
 // pipeline (@ngrok/mantle-server-syntax-highlighter, shiki 4.2.0): highlight +

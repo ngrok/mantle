@@ -90,7 +90,7 @@ describe("CodeBlock (browser)", () => {
 	/**
 	 * The copy-button clearance utility on `CodeBlock.Body`. `LAYOUT_STYLE`
 	 * expands it to the CSS Tailwind emits for it, keyed by `CSS.escape` to
-	 * this exact class string — when the component's class drifts from this
+	 * this exact class string. When the component's class drifts from this
 	 * constant, the rule stops matching and the clearance assertions fail.
 	 */
 	const CLEARANCE_CLASS =
@@ -110,7 +110,7 @@ describe("CodeBlock (browser)", () => {
 	 * `block min-w-full w-max`), and the `.mantle-code-line` rules from
 	 * `mantle.css`, including the pinned line-number gutter. We inline the rules
 	 * because browser tests load no Tailwind and no mantle stylesheet. Keep the
-	 * selectors and values in sync with their sources — these tests pin both
+	 * selectors and values in sync with their sources: these tests pin both
 	 * sides of the clearance and pinned-gutter contracts.
 	 */
 	const LAYOUT_STYLE = `

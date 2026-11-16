@@ -40,7 +40,7 @@ function PlanPicker() {
 			<div className="space-y-2">
 				<p className="text-strong text-3xl font-medium">Choose a plan</p>
 				<p className="text-body text-lg">
-					Scale your fake apps — none of these plans, prices, or features are real.
+					Scale your fake apps. None of these plans, prices, or features are real.
 				</p>
 			</div>
 			<div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-3">
@@ -125,17 +125,17 @@ function PlanPicker() {
 				<Card.Body className="space-y-3">
 					<p className="text-strong text-sm font-medium">Wait, is any of this real?</p>
 					<p className="text-body text-sm">
-						No — every plan, price, and feature on this page is made up to demonstrate the
+						No. Every plan, price, and feature on this page is made up to demonstrate the
 						CenteredLayout composition. Scroll this frame to see the sticky header stay put.
 					</p>
 					<ul className="text-body list-disc space-y-1.5 pl-5 text-sm">
 						<li>Can I upgrade from Sandbox to Pretend Pro? Only in your imagination.</li>
 						<li>
-							Do fake credits roll over? Forever — they aren&apos;t real, so they never expire.
+							Do fake credits roll over? Forever. They aren&apos;t real, so they never expire.
 						</li>
 						<li>Is there a fake annual discount? Yes: save $0 with annual billing.</li>
 						<li>What payment methods are accepted? Monopoly money and firm handshakes.</li>
-						<li>Can I talk to fake sales? Absolutely — book a meeting that never happens.</li>
+						<li>Can I talk to fake sales? Absolutely. Book a meeting that never happens.</li>
 					</ul>
 				</Card.Body>
 			</Card.Root>
@@ -181,7 +181,7 @@ export function CenteredLayoutDemo() {
  * The `CenteredLayout.Header` composition for the centered-layout docs: a
  * sticky utility strip over a scrolling plan picker. Renders as an entire
  * framed-preview document (see preview-registry.ts), so the page's own
- * scroller does the scrolling and the sticky header pins to the document —
+ * scroller does the scrolling and the sticky header pins to the document,
  * exactly like the real checkout/plan-picker flows it demonstrates.
  */
 export function CenteredLayoutHeaderDemo() {
@@ -212,8 +212,8 @@ export function CenteredLayoutHeaderDemo() {
 
 /**
  * The `CenteredLayout.Notice` composition for the centered-layout docs: a
- * toggleable maintenance strip pinned above everything — the header
- * included. Renders as an entire framed-preview document (see
+ * toggleable maintenance strip pinned above everything (the header
+ * included). Renders as an entire framed-preview document (see
  * preview-registry.ts), so it composes exactly like a real page: the layout
  * owns the document, with a `SkipToMainLink` first and the `Main` landmark
  * composed directly in `Body`.
@@ -228,7 +228,7 @@ export function CenteredLayoutNoticeDemo() {
 				{showNotice && (
 					<div className="text-on-filled flex items-center gap-2 bg-red-600 px-4 py-1 text-xs">
 						<WarningCircleIcon weight="fill" className="shrink-0" />
-						Scheduled maintenance in progress — the dashboard is read-only.
+						Scheduled maintenance in progress. The dashboard is read-only.
 					</div>
 				)}
 			</CenteredLayout.Notice>
@@ -248,7 +248,7 @@ export function CenteredLayoutNoticeDemo() {
 					<Card.Root>
 						<Card.Body className="space-y-3">
 							<p className="text-body text-sm">
-								The notice strip pushes everything down — the header included — and collapses to
+								The notice strip pushes everything down (the header included) and collapses to
 								nothing when empty.
 							</p>
 							<Button

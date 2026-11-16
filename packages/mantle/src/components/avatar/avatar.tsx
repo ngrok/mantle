@@ -10,7 +10,7 @@ import { Slot } from "../slot/index.js";
 
 /**
  * The shape an `Avatar.Root` renders as. Circles read as people, rounded
- * squares as the things people belong to — accounts, workspaces, teams,
+ * squares as the things people belong to: accounts, workspaces, teams,
  * organizations. Keeping the two shapes visually distinct is the point: a
  * switcher row showing both at once stays legible without labels.
  *
@@ -62,7 +62,7 @@ const swatchClassNames = [
 
 /**
  * djb2 is a stable, fast string hashing function. It is what makes a seed's
- * swatch reproducible across renders, sessions, devices, and the server — an
+ * swatch reproducible across renders, sessions, devices, and the server: an
  * account keeps its color everywhere, with nothing stored.
  */
 function djb2Hash(value: string): number {
@@ -75,7 +75,7 @@ function djb2Hash(value: string): number {
 }
 
 /**
- * The swatch class a seed maps to — the same seed always yields the same
+ * The swatch class a seed maps to. The same seed always yields the same
  * swatch.
  *
  * @example
@@ -101,14 +101,14 @@ function swatchClassName(seed: string): string {
  * initialsFromName("Acme Corp"); // "AC"
  * initialsFromName("jane"); // "J"
  * initialsFromName("山田 太郎"); // "山太"
- * initialsFromName("straße hof"); // "SH" — not "SSH"
+ * initialsFromName("straße hof"); // "SH", not "SSH"
  * initialsFromName("…"); // "?"
  * ```
  */
 function initialsFromName(name: string): string {
 	const initials = name
-		// `\p{P}` reaches the punctuation an ASCII class cannot — ellipses,
-		// guillemets, em dashes — while leaving `\p{S}` symbols alone so an
+		// `\p{P}` reaches the punctuation an ASCII class cannot (ellipses,
+		// guillemets, em dashes) while leaving `\p{S}` symbols alone so an
 		// emoji-leading name still resolves to the emoji rather than to `"?"`. The
 		// ASCII tail covers the symbols that read as punctuation in a name.
 		.replace(/[\p{P}`~!@#$%^&*+|=<>]/gu, "")
@@ -119,8 +119,8 @@ function initialsFromName(name: string): string {
 			(part) =>
 				// Uppercase the word BEFORE taking its first code point, not the joined
 				// result: "ß".toUpperCase() is "SS" and "ﬄ" is "FFL", so uppercasing
-				// afterwards would blow past two characters. Locale-invariant on purpose
-				// — toLocaleUpperCase() follows the *host* locale, so an SSR server and a
+				// afterwards would blow past two characters. Locale-invariant on purpose:
+				// toLocaleUpperCase() follows the *host* locale, so an SSR server and a
 				// Turkish-locale client would disagree (i → İ) and mismatch on hydration.
 				// `Array.from` iterates code points, so an astral character or emoji
 				// survives instead of being cut in half.
@@ -131,8 +131,8 @@ function initialsFromName(name: string): string {
 }
 
 /**
- * The props for `Avatar.Root`. A `<span>`'s props — so `className`, `style`,
- * `ref`, `asChild`, and any `data-*` or `aria-*` reach the rendered element —
+ * The props for `Avatar.Root`. A `<span>`'s props (so `className`, `style`,
+ * `ref`, `asChild`, and any `data-*` or `aria-*` reach the rendered element),
  * plus the shape and swatch this root owns.
  */
 type AvatarRootProps = ComponentProps<"span"> &
@@ -146,7 +146,7 @@ type AvatarRootProps = ComponentProps<"span"> &
 		 */
 		appearance?: AvatarAppearance;
 		/**
-		 * A stable identifier — an account id, a user id — that deterministically
+		 * A stable identifier (an account id, a user id) that deterministically
 		 * selects a background swatch, so the same subject always gets the same
 		 * color with nothing persisted. Omit it for a neutral surface, or set your
 		 * own `bg-*` class through `className` to opt out entirely.
@@ -159,7 +159,7 @@ type AvatarRootProps = ComponentProps<"span"> &
 
 /**
  * A small image representing a person or an account, with a text or icon
- * fallback for when there is no picture — or before one loads.
+ * fallback for when there is no picture, or before one loads.
  *
  * The root sizes and shapes the avatar and paints the surface behind it. It is
  * `size-7` and `shrink-0` by default: an avatar is a fixed-size visual, and the
@@ -199,7 +199,7 @@ const Root = ({
 	return (
 		<Comp
 			className={cx(
-				// `relative` is load-bearing: `Avatar.Image` positions itself against
+				// Why `relative`: `Avatar.Image` positions itself against
 				// this box so it covers the fallback rather than displacing it.
 				"text-body bg-neutral-500/15 relative flex size-7 shrink-0 items-center justify-center overflow-hidden text-xs font-medium select-none",
 				appearanceClassName[appearance],
@@ -215,9 +215,9 @@ const Root = ({
 };
 
 /**
- * The props for `Avatar.Image`. An `<img>`'s props — so `srcSet`, `sizes`,
+ * The props for `Avatar.Image`. An `<img>`'s props (so `srcSet`, `sizes`,
  * `loading`, `referrerPolicy`, `crossOrigin`, `className`, `style`, `ref`,
- * `asChild`, and any `data-*` reach the element — with `alt` promoted to
+ * `asChild`, and any `data-*` reach the element), with `alt` promoted to
  * required.
  */
 type AvatarImageProps = Omit<ComponentProps<"img">, "alt" | "onError"> &
@@ -228,8 +228,8 @@ type AvatarImageProps = Omit<ComponentProps<"img">, "alt" | "onError"> &
 		 * `<img>` element: an avatar is the one image a developer reliably forgets,
 		 * and an `<img>` with no `alt` announces its URL.
 		 *
-		 * Pass `alt=""` when adjacent text already names the subject — the common
-		 * case, and the reason this is not just "always pass the name". Pass the name
+		 * Pass `alt=""` when adjacent text already names the subject. That is the
+		 * common case, and the reason this is not just "always pass the name". Pass the name
 		 * when the avatar stands alone, and name `Avatar.Root` as well (`role="img"`
 		 * + `aria-label`) so the label survives the states where the image is gone.
 		 */
@@ -249,14 +249,14 @@ type AvatarImageProps = Omit<ComponentProps<"img">, "alt" | "onError"> &
  * The avatar's picture, layered over `Avatar.Fallback` so the fallback shows
  * through until the image paints. It is a plain `<img>` in the markup, which is
  * the whole point: the server renders it, the browser starts fetching while it
- * parses the HTML, and a cached image is *there* on the first frame — no
+ * parses the HTML, and a cached image is *there* on the first frame: no
  * hydration, no swap, no flash of initials.
  *
  * A failed load unmounts the image and leaves the fallback showing. That covers
  * every failure the client can observe; one it cannot is a load that fails
  * *before* hydration, where the error event has already come and gone. There the
- * browser's own rendering stands, which for `alt=""` is nothing at all — the
- * fallback shows through — and is one more reason to prefer `alt=""`
+ * browser's own rendering stands, which for `alt=""` is nothing at all (the
+ * fallback shows through), and is one more reason to prefer `alt=""`
  * whenever adjacent text names the subject.
  *
  * `onError` runs first and can `preventDefault()` to keep the image mounted, for
@@ -317,8 +317,8 @@ const Image = ({
  * The props for `Avatar.Fallback`. A `<span>`'s props, with the content stated
  * exactly one way: either `children` you render yourself, or a `name` this part
  * derives initials from. Passing both would leave the winner to precedence, so
- * the type forbids it — and `asChild`, which needs a real element to clone,
- * belongs to the `children` side only.
+ * the type forbids it. `asChild`, which needs a real element to clone, belongs
+ * to the `children` side only.
  */
 type AvatarFallbackProps = Omit<ComponentProps<"span">, "children"> &
 	WithDataSlot &
@@ -326,7 +326,7 @@ type AvatarFallbackProps = Omit<ComponentProps<"span">, "children"> &
 		| {
 				/**
 				 * Render this element instead of the fallback's own `<span>`. Only
-				 * available beside `children` — there has to be an element to clone.
+				 * available beside `children`: there has to be an element to clone.
 				 */
 				asChild?: boolean;
 				/**
@@ -341,22 +341,22 @@ type AvatarFallbackProps = Omit<ComponentProps<"span">, "children"> &
 				children?: never;
 				/**
 				 * The subject's display name, rendered as at most two uppercase
-				 * initials — `"Acme Corp"` becomes `"AC"`, a name with no usable
+				 * initials: `"Acme Corp"` becomes `"AC"`, and a name with no usable
 				 * characters becomes `"?"`. Deriving it here keeps one implementation
 				 * of a surprisingly fiddly rule (punctuation, code points, and casing
 				 * that has to match between server and client).
 				 *
 				 * Initials derived this way are `aria-hidden`: they abbreviate a name
 				 * the page already carries in text beside the avatar. When the avatar
-				 * is the only thing naming its subject, name it — `role="img"` plus
-				 * `aria-label` on `Avatar.Root` — rather than announcing `"AC"`.
+				 * is the only thing naming its subject, name it (`role="img"` plus
+				 * `aria-label` on `Avatar.Root`) rather than announcing `"AC"`.
 				 */
 				name: string;
 		  }
 	);
 
 /**
- * What the avatar shows when there is no picture — initials, an icon, a
+ * What the avatar shows when there is no picture: initials, an icon, a
  * monogram. It always renders, sitting *behind* `Avatar.Image`: that is what
  * makes a loading image show initials instead of an empty box, with no loading
  * state for anyone to handle. A loaded image covers it, so give a transparent
@@ -395,7 +395,7 @@ const Fallback = ({
 	return (
 		<Comp
 			// Derived initials are a visual shorthand for a name the page already
-			// carries — the row, cell, or card next to the avatar — so announcing them
+			// carries (the row, cell, or card next to the avatar), so announcing them
 			// would read it twice ("A C Acme Corp"). They are decorative by default;
 			// `children` are not, and an explicit `aria-hidden` overrides either way.
 			aria-hidden={name == null ? undefined : true}
@@ -417,11 +417,11 @@ const Fallback = ({
 
 /**
  * A small image representing a person or an account, with a text or icon
- * fallback for when there is no picture — or before one loads.
+ * fallback for when there is no picture, or before one loads.
  *
  * `appearance` carries the meaning: `"circle"` for a person, `"square"` (a
  * rounded square) for an account, workspace, team, or organization. A row that
- * shows both — an account switcher with the signed-in user's photo beside it —
+ * shows both (an account switcher with the signed-in user's photo beside it)
  * stays readable without labels because the shapes differ.
  *
  * `colorSeed` gives a subject a stable color derived from its id, so the same
@@ -466,7 +466,7 @@ const Fallback = ({
 const Avatar = {
 	/**
 	 * A small image representing a person or an account, with a text or icon
-	 * fallback for when there is no picture — or before one loads.
+	 * fallback for when there is no picture, or before one loads.
 	 *
 	 * The root sizes and shapes the avatar and paints the surface behind it. It is
 	 * `size-7` and `shrink-0` by default: an avatar is a fixed-size visual, and the
@@ -515,7 +515,7 @@ const Avatar = {
 	 */
 	Image,
 	/**
-	 * What the avatar shows when there is no picture — initials, an icon, a
+	 * What the avatar shows when there is no picture: initials, an icon, a
 	 * monogram. It always renders, behind `Avatar.Image`, which is what makes a
 	 * loading image show initials rather than an empty box. Pass `name` to render
 	 * the subject's initials, or `children` for anything else.

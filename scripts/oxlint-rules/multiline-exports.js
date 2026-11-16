@@ -17,7 +17,7 @@
  *   bar,
  * } from "./foo.js";
  *
- * // ✅ Also fine — exceeds printWidth, so the formatter expands it to multi-line naturally;
+ * // ✅ Also fine: exceeds printWidth, so the formatter expands it to multi-line naturally;
  * // the //,  marker is not needed because the formatter won't collapse it back.
  * // The result after formatting:
  * export {
@@ -26,7 +26,7 @@
  *   reallyLongExportNameC,
  * } from "./foo.js";
  *
- * // ❌ Incorrect — fits on one line so formatter will collapse it; add the marker
+ * // ❌ Incorrect: fits on one line so formatter will collapse it; add the marker
  * export { foo, bar } from "./foo.js";
  */
 
@@ -69,7 +69,7 @@ const multilineExports = {
 					return;
 				}
 
-				// Skip enforcement when the single-line form exceeds printWidth — the
+				// Skip enforcement when the single-line form exceeds printWidth: the
 				// formatter won't reasonably collapse those, so the //, marker isn't needed.
 				const exportLine = sourceCode.lines[node.loc.start.line - 1];
 				const baseIndent = exportLine.match(/^(\s*)/)?.[1] ?? "";

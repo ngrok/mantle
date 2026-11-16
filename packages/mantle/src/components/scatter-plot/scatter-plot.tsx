@@ -36,7 +36,7 @@ type ScatterPlotListProps = ChartListPrimitiveProps;
 
 /**
  * Props for {@link ScatterPlot.Root}. Scatter x values must be continuous
- * (numbers or `Date`s — there is no categorical scatter axis). Set `zKey` to
+ * (numbers or `Date`s; there is no categorical scatter axis). Set `zKey` to
  * switch the chart into the 3D projection: points render inside a rotatable
  * cube (drag to orbit), depth-sorted with gentle perspective.
  *
@@ -80,7 +80,7 @@ type ScatterPlotDepthProps<TDatum extends ChartDatum = ChartDatum> =
 			/**
 			 * How many axes the cloud currently occupies (default `3`). Changing it
 			 * morphs the points onto the x axis line (`1`), the xy plane (`2`), or
-			 * the full cube (`3`) with a smooth glide — the pattern behind "click
+			 * the full cube (`3`) with a smooth glide. This is the pattern behind "click
 			 * 1D/2D/3D to see the clusters separate" explainers. The y and z frame
 			 * edges fade in with their dimension.
 			 */
@@ -250,7 +250,7 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
 };
 
 /**
- * One point series. Renders nothing itself — it registers the series with the
+ * One point series. Renders nothing itself: it registers the series with the
  * chart, which paints its points on canvas (r≥4 dots with a surface ring,
  * degrading gracefully past thousands of points).
  *
@@ -273,9 +273,8 @@ const Point = (props: ScatterPlotPointProps) =>
 	useSeriesPrimitive("ScatterPlot.Point", "scatter", props);
 
 /**
- * Hairline gridlines behind the points (renderless; painted on canvas; 2D
- * only — the 3D cube frame carries orientation). Omit the part to omit the
- * grid.
+ * Hairline gridlines behind the points. Renderless (painted on canvas); 2D only
+ * (the 3D cube frame carries orientation). Omit the part to omit the grid.
  *
  * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotgrid
  *
@@ -331,8 +330,8 @@ const XAxis = (props: ScatterPlotXAxisProps) => useXAxisPrimitive("ScatterPlot.X
 const YAxis = (props: ScatterPlotYAxisProps) => useYAxisPrimitive("ScatterPlot.YAxis", props);
 
 /**
- * A dashed horizontal marker at a y value (renderless; painted on canvas; 2D
- * only — ignored in the 3D projection).
+ * A dashed horizontal marker at a y value. Renderless (painted on canvas); 2D
+ * only (ignored in the 3D projection).
  *
  * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotreferenceline
  *
@@ -354,7 +353,7 @@ const ReferenceLine = (props: ScatterPlotReferenceLineProps) =>
 /**
  * Customizes the hover/keyboard tooltip readout. The tooltip itself is part
  * of `ScatterPlot.Root`'s interaction contract and renders even when this
- * part is absent — compose it to format the label or values, append a footer,
+ * part is absent. Compose it to format the label or values, append a footer,
  * or replace the content entirely via the render-prop `children`.
  * In 3D the readout also carries the point's z value.
  *
@@ -387,7 +386,7 @@ const Tooltip = (props: ScatterPlotTooltipProps) =>
 
 /**
  * The legend: series names keyed by color dots, rendered as real DOM in flow
- * below the plot. Always compose it on multi-series charts — identity must
+ * below the plot. Always compose it on multi-series charts: identity must
  * never rely on color-matching alone. It renders nothing for a single series
  * (the chart's title already names it).
  *
@@ -404,7 +403,7 @@ const Tooltip = (props: ScatterPlotTooltipProps) =>
  * | --- | --- | --- |
  * | `data-slot` | `"scatter-plot-legend"` | The legend list. `ScatterPlot.Legend` renders it in flow below the plot. |
  * | `data-slot` | `"scatter-plot-legend-label"` | On the `<div>` wrapping a `children` render prop. The default legend has none. |
- * | `data-shape` | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` \| `"triangle-down"` \| `"plus"` \| `"cross"` \| `"star"` | On each series' swatch, naming the glyph its `ScatterPlot.Point` wears — the `shape` it set, else the circle. The swatch clips itself to that glyph, so target this only to restyle a key. |
+ * | `data-shape` | `"circle"` \| `"square"` \| `"triangle"` \| `"diamond"` \| `"triangle-down"` \| `"plus"` \| `"cross"` \| `"star"` | On each series' swatch, naming the glyph its `ScatterPlot.Point` wears: the `shape` it set, else the circle. The swatch clips itself to that glyph, so target this only to restyle a key. |
  *
  * @see https://mantle.ngrok.com/components/charts/scatter-plot#scatterplotlegend
  *
@@ -425,7 +424,7 @@ const Legend = (props: ScatterPlotLegendProps) => (
 /**
  * A button that copies the chart's current data to the clipboard as a
  * markdown table (ISO dates, plain numbers, one column per series, plus the
- * z column on 3D scatters) — pasteable into Slack, issues, docs,
+ * z column on 3D scatters). The table pastes into Slack, issues, docs,
  * spreadsheets, and LLM chats. Renders in flow where composed (alongside
  * `Legend`, below the plot); `Root` is relatively positioned, so `className`
  * can dock it over a corner instead (e.g. `absolute right-0 top-0`).
@@ -476,7 +475,7 @@ const List = (props: ScatterPlotListProps) => (
 );
 
 /**
- * A canvas-rendered scatter plot for correlating two measures — three with
+ * A canvas-rendered scatter plot for correlating two measures, or three with
  * the 3D projection (`zKey`), which renders a rotatable, depth-sorted point
  * cloud (drag to orbit). Hover hits the nearest point within 24px; keyboard
  * stepping, polite announcements, and the sr-only description ship with

@@ -4,7 +4,7 @@
  * listeners, and one font-load listener per window instead of one of each per
  * chart.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation, not exported from the package.
  */
 
 // Why keyed by the function: a test that stubs `matchMedia` swaps the function, and the

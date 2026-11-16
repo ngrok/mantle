@@ -25,7 +25,7 @@ const demoNavItems: ReadonlyArray<DemoNavItem> = [
 
 /**
  * A realistic set of account-limit / usage / billing alerts, authored as
- * `AlertCenter.Item` JSX — a payment-failure alert, two upgrade nags, and an
+ * `AlertCenter.Item` JSX: a payment-failure alert, two upgrade nags, and an
  * informational notice, all dismissable so the demos can prove that dismissing
  * the bar's top alert promotes the next severity up. `AlertCenter` ranks them
  * by severity, so "Payment failed" leads the bar until dismissed; dismissal is
@@ -94,7 +94,7 @@ function DemoAlerts({
 					<Alert.Icon />
 					<Alert.Content>
 						<Alert.Title>
-							Payment failed — update your card{" "}
+							Payment failed: update your card{" "}
 							<a className="font-medium" href="#billing">
 								Update payment method
 							</a>
@@ -223,7 +223,7 @@ export function AlertCenterShellDemo() {
 											{currentLabel} row {index + 1}
 										</p>
 										<p className="text-muted text-sm">
-											The page region is the only scroll container — the document never scrolls.
+											The page region is the only scroll container. The document never scrolls.
 										</p>
 									</div>
 								))}
@@ -271,7 +271,7 @@ export function AlertCenterExample() {
 
 /**
  * A single-alert demo: with one alert the bar shows it inline with its CTA and
- * omits the count-and-caret control entirely — there's nothing hidden to reveal.
+ * omits the count-and-caret control entirely: there's nothing hidden to reveal.
  */
 export function AlertCenterSingleAlertExample() {
 	return (
@@ -283,7 +283,7 @@ export function AlertCenterSingleAlertExample() {
 					<Alert.Icon />
 					<Alert.Content>
 						<Alert.Title>
-							Payment failed — update your card{" "}
+							Payment failed: update your card{" "}
 							<a className="font-medium" href="#billing">
 								Update payment method
 							</a>
@@ -297,7 +297,7 @@ export function AlertCenterSingleAlertExample() {
 
 /**
  * A supporting-copy demo: both alerts author an `Alert.Description`, and the bar
- * renders the top one's inline — so the bar is the same two-line banner as the
+ * renders the top one's inline, so the bar is the same two-line banner as the
  * expansion row beneath it, and a call-to-action reads naturally from the
  * description instead of being crammed into the title.
  */
@@ -312,9 +312,8 @@ export function AlertCenterSupportingCopyExample() {
 					<Alert.Content>
 						<Alert.Title>The last payment attempt for your account failed</Alert.Title>
 						<Alert.Description>
-							Please{" "}
 							<a className="font-medium" href="#billing">
-								update your payment method
+								Update your payment method
 							</a>{" "}
 							to avoid a service interruption.
 						</Alert.Description>
@@ -359,7 +358,7 @@ export function AlertCenterMixedDismissabilityExample() {
 						<Alert.Icon />
 						<Alert.Content>
 							<Alert.Title>
-								Payment failed — update your card{" "}
+								Payment failed: update your card{" "}
 								<a className="font-medium" href="#billing">
 									Update payment method
 								</a>
@@ -370,7 +369,7 @@ export function AlertCenterMixedDismissabilityExample() {
 						<Alert.Icon />
 						<Alert.Content>
 							<Alert.Title>
-								Tunnel limit reached — new tunnels are blocked{" "}
+								Tunnel limit reached: new tunnels are blocked{" "}
 								<a className="font-medium" href="#upgrade">
 									Upgrade
 								</a>
@@ -435,7 +434,7 @@ const serverAlertCatalog: ReadonlyArray<ServerAlert> = [
 	{
 		id: "payment-failed",
 		intent: "danger",
-		title: "Payment failed — update your card",
+		title: "Payment failed: update your card",
 		cta: "Update payment method",
 		href: "#billing",
 	},
@@ -568,8 +567,8 @@ const demoRoutes: ReadonlyArray<{ label: string; path: DemoRoutePath }> = [
 ];
 
 /**
- * A "route" that raises its own alert. The DNS warning is authored here — deep
- * inside the page, not in the shell — and still lands in the shell's alert bar,
+ * A "route" that raises its own alert. The DNS warning is authored here (deep
+ * inside the page, not in the shell) and still lands in the shell's alert bar,
  * because `AlertCenter.Root` is hoisted above whatever renders the routes.
  */
 function EndpointsRoute() {
@@ -591,7 +590,7 @@ function EndpointsRoute() {
 	);
 }
 
-/** A route with nothing to report — leaving the endpoint route clears its alert. */
+/** A route with nothing to report: leaving the endpoint route clears its alert. */
 function AgentsRoute() {
 	return <p className="text-strong p-6 text-sm font-medium">2 agents online</p>;
 }
@@ -599,8 +598,8 @@ function AgentsRoute() {
 /**
  * The hoisted-`Root` demo: `AlertCenter.Root` wraps the whole shell, so a route
  * rendered inside `AppLayout.Body` can author an alert that lands in the bar
- * composed up in `AppLayout.Notice`. The route buttons stand in for a router —
- * a real shell renders its `Outlet` there — and the shell is embedded in a
+ * composed up in `AppLayout.Notice`. The route buttons stand in for a router
+ * (a real shell renders its `Outlet` there), and the shell is embedded in a
  * sized box rather than pinned with `fixed inset-0`, because the docs page
  * around it already owns the document and its `main` landmark.
  */
@@ -612,7 +611,7 @@ export function AlertCenterRouteAlertExample() {
 			<AlertCenter.Root>
 				<AppLayout.Root className="border-card-muted rounded-lg border">
 					<AppLayout.Notice>
-						{/* only the chrome lives here — items are authored anywhere below */}
+						{/* only the chrome lives here; items are authored anywhere below */}
 						<AlertCenter.Bar />
 						<AlertCenter.Content />
 						{/* an account-level alert the shell itself authors */}
@@ -658,10 +657,10 @@ export function AlertCenterRouteAlertExample() {
 
 /**
  * A custom-content demo: each alert's banner is authored JSX, so anything
- * composes — a custom icon, placement-aware extras, arbitrary elements. The
+ * composes: a custom icon, placement-aware extras, arbitrary elements. The
  * usage tip renders a lightbulb instead of the intent icon, and its detail
  * line is marked `in-data-[placement=bar]:hidden` so it appears only in the
- * expansion rows — the opt-out for content that would make the bar too tall.
+ * expansion rows: the opt-out for content that would make the bar too tall.
  */
 export function AlertCenterCustomContentExample() {
 	return (

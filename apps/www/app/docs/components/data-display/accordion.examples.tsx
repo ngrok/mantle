@@ -90,7 +90,7 @@ export function OverviewExample() {
 					</Accordion.Trigger>
 					<Accordion.Content>
 						<Accordion.Body>
-							The free plan includes ephemeral endpoints and one reserved domain — enough to demo a
+							The free plan includes ephemeral endpoints and one reserved domain: enough to demo a
 							deployment or prototype an integration.
 						</Accordion.Body>
 					</Accordion.Content>
@@ -137,7 +137,7 @@ export function OneSectionOpenAtATimeExample() {
 					</Accordion.Trigger>
 					<Accordion.Content>
 						<Accordion.Body>
-							The free plan includes ephemeral endpoints and one reserved domain — enough to demo a
+							The free plan includes ephemeral endpoints and one reserved domain: enough to demo a
 							deployment or prototype an integration.
 						</Accordion.Body>
 					</Accordion.Content>
@@ -204,7 +204,7 @@ export function CustomHeaderWithAnInlineActionExample() {
 						</Accordion.Trigger>
 						<Separator orientation="horizontal" className="flex-1" />
 						<Button type="button" appearance="link" intent="accent" icon={<PlusIcon />}>
-							<span className="xs:inline hidden">Add Rule</span>
+							<span className="xs:inline hidden">Add rule</span>
 						</Button>
 					</div>
 					<Accordion.Content>
@@ -226,7 +226,7 @@ export function CustomHeaderWithAnInlineActionExample() {
 						</Accordion.Trigger>
 						<Separator orientation="horizontal" className="flex-1" />
 						<Button type="button" appearance="link" intent="accent" icon={<PlusIcon />}>
-							<span className="xs:inline hidden">Add Rule</span>
+							<span className="xs:inline hidden">Add rule</span>
 						</Button>
 					</div>
 					<Accordion.Content>
@@ -248,7 +248,7 @@ export function CustomHeaderWithAnInlineActionExample() {
 						</Accordion.Trigger>
 						<Separator orientation="horizontal" className="flex-1" />
 						<Button type="button" appearance="link" intent="accent" icon={<PlusIcon />}>
-							<span className="xs:inline hidden">Add Rule</span>
+							<span className="xs:inline hidden">Add rule</span>
 						</Button>
 					</div>
 					<Accordion.Content>

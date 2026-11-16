@@ -3,6 +3,7 @@
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import invariant from "tiny-invariant";
+import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import { useMatchesMediaQuery } from "../../hooks/use-matches-media-query.js";
 import { findCookiePair, readCookie } from "../../utils/cookie.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -94,9 +95,9 @@ type ThemeProviderProps = PropsWithChildren<{
 	 * Pass the value `extractThemeCookie` returns. Pass the same value to
 	 * `useInitialHtmlThemeProps`. The server then seeds
 	 * the context with the stored theme, so the hydrated client agrees with the
-	 * server HTML. When omitted, the server renders `"system"`. A client with a
-	 * stored theme then reports a hydration mismatch. The client reads
-	 * `document.cookie`, and reads `ssrCookie` only when the environment blocks cookies.
+	 * server HTML. When omitted, the server and the hydration render use
+	 * `"system"`, and the render after hydration shows the stored theme. The client
+	 * reads `document.cookie`, and reads `ssrCookie` only when the environment blocks cookies.
 	 */
 	ssrCookie?: string;
 }>;
@@ -131,7 +132,7 @@ type ThemeProviderProps = PropsWithChildren<{
  *
  * @example
  * ```tsx
- * // a page locked to light — mirror the same value everywhere it is forced
+ * // a page locked to light: mirror the same value everywhere it is forced
  * <ThemeProvider forceTheme="light">
  *   <App />
  * </ThemeProvider>
@@ -148,6 +149,11 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 		applyThemeToHtml(storedTheme, { forceTheme });
 		return storedTheme;
 	});
+
+	// Why the server theme during hydration: a prerendered page has no request
+	// cookie, so the server renders `"system"`. The next render shows the client theme.
+	const isHydrated = useIsHydrated();
+	const renderedTheme = isHydrated ? theme : getStoredTheme({ cookie: ssrCookie });
 
 	const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
 
@@ -226,7 +232,7 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 
 	const value: ThemeProviderState = useMemo(
 		() => [
-			theme,
+			renderedTheme,
 			(next: Theme | ((theme: Theme) => Theme), { origin }: SetThemeOptions = {}) => {
 				// Why read `<html>` for an updater: the swap runs `update` in a later
 				// frame, so a second call can come first. `update` writes `<html>` at once.
@@ -257,7 +263,7 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 				}
 			},
 		],
-		[forceTheme, theme],
+		[forceTheme, renderedTheme, theme],
 	);
 
 	return (
@@ -373,6 +379,8 @@ function resolveTheme(
  * Returns the theme the page paints in: the provider's `forceTheme` when it
  * has one, else the stored theme with `"system"` resolved against the OS
  * dark-mode preference. The result mirrors what lands on the `<html>` element.
+ * During hydration, it returns the theme the server rendered, so the markup
+ * matches. The next render returns the client theme.
  *
  * @see https://mantle.ngrok.com/components/primitives/theme
  */
@@ -506,14 +514,14 @@ export type PreventWrongThemeFlashScriptProps = {
  *
  * @example
  * ```tsx
- * // entry.server.tsx — send font preloads as HTTP headers (preferred for SSR)
+ * // entry.server.tsx: send font preloads as HTTP headers (preferred for SSR)
  * headers.set("Link", [
  *   `<${assetsCdnOrigin}>; rel=preconnect; crossorigin`,
  *   preloadFontLink("roobert"),
  *   preloadFontLink("jetbrains-mono"),
  * ].join(", "));
  *
- * // root.tsx — only the FOUC script in <head>
+ * // root.tsx: only the FOUC script in <head>
  * <head>
  *   <PreventWrongThemeFlashScript nonce={nonce} />
  * </head>

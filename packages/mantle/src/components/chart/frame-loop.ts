@@ -4,7 +4,7 @@
  * frame per window instead of 100, and the engines commit inside it in the
  * order they asked.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation, not exported from the package.
  */
 
 type FrameLoop = {

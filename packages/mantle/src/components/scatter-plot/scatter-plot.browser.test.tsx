@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { ScatterPlot } from "./scatter-plot.js";
 
 /**
- * Real-browser tests for the scatter plot's paint paths — the 3D projection
+ * Real-browser tests for the scatter plot's paint paths. The 3D projection
  * (depth-sorted, camera-rotated) especially needs a real 2d context and real
  * layout. Tokens and structural layout CSS are inlined so the test stays
  * hermetic (mirrors bar-chart.browser.test.tsx).
@@ -101,7 +101,7 @@ const isChart2Ink: InkPredicate = (red, green, blue, alpha) =>
  * The cube wireframe and axis lines, painted in --border-color-card-muted
  * (#e5e5e5) / --border-color-card (#d4d4d4): near-neutral light greys. Counting
  * them apart from the cloud is what makes "the frame fades with its dimension"
- * assertable — an any-color pixel count cannot tell frame from points.
+ * assertable: an any-color pixel count cannot tell frame from points.
  */
 const isFrameInk: InkPredicate = (red, green, blue, alpha) =>
 	alpha > 200 &&

@@ -1,4 +1,4 @@
-// GENERATED GOLDEN FIXTURES — do not edit by hand.
+// GENERATED GOLDEN FIXTURES: do not edit by hand.
 //
 // Captured from Mantle’s real Shiki engine (@ngrok/mantle-server-syntax-highlighter,
 // shiki 4.2.0) via codeToHtml(code, { lang: "json", theme: "mantle-css-variables" }),

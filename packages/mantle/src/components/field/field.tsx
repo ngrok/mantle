@@ -49,7 +49,7 @@ import { FieldValidationProvider, resolveValidation, type WithValidation } from 
  * `Field.Legend` and `Field.Group`. Always renders a real `<fieldset>` so
  * the grouping semantics cannot be accidentally removed.
  *
- * Reach for `Field.Set` when the grouping carries semantic weight — most
+ * Reach for `Field.Set` when the grouping carries semantic weight: most
  * commonly a `RadioGroup` (where the legend names the question the radios
  * answer) or a set of related checkboxes. For laying out unrelated fields
  * with consistent spacing, prefer `Field.Group` on its own.
@@ -90,7 +90,7 @@ const FieldSet = ({
  * (e.g. "Notification frequency, group, Daily").
  *
  * **Spacing.** Has a default `mb-1.5` so the legend sits 6px above the next
- * sibling — matching the figma. We use a margin (not the parent `Field.Set`'s
+ * sibling, as in the figma. We use a margin (not the parent `Field.Set`'s
  * flex `gap`) because `<legend>` has special browser rendering inside a
  * `<fieldset>` that ignores the parent's flex `gap`. Override the default
  * with any `mb-*` utility on `Field.Legend`.
@@ -206,15 +206,15 @@ const FieldLabel = ({ "data-slot": dataSlot, ref, ...props }: FieldLabelProps) =
  * - Read-only summary rows inside a sheet or detail panel that should
  *   visually align with sibling `Field.Item`s but have no editable control.
  * - Anywhere you would otherwise hand-roll a `<p>` styled to mimic
- *   `Field.Label` typography — prefer this so intent is explicit at the call site.
+ *   `Field.Label` typography. Prefer this so intent is explicit at the call site.
  *
  * **When not to use**
  * - The row has a focusable control (input, select, checkbox, switch,
  *   button trigger). Use `Field.Label` so the click-to-focus and
  *   accessible-name association are wired correctly.
  * - For body copy, section headings, or any text whose typography happens
- *   to look similar by accident — use the appropriate heading or `<p>`
- *   directly. `Field.LabelText` exists specifically to slot into the
+ *   to look similar by accident. Use the appropriate heading or `<p>`
+ *   directly instead. `Field.LabelText` exists specifically to slot into the
  *   `Field.Label` position of a `Field.Item`.
  *
  * @see https://mantle.ngrok.com/components/forms/field
@@ -251,15 +251,15 @@ const LabelText = ({
  * Horizontal layout container for the label area of a field. Aligns a
  * `<Field.Label>` (which may contain `Field.Optional`) with adjacent affordances
  * like a help-icon `Popover.Trigger` on a shared center line with a tight
- * `gap-1`. Center-alignment is used (not baseline) so SVG icon buttons —
- * which have no text baseline — sit visually centered next to the label
+ * `gap-1`. Center-alignment is used (not baseline) so SVG icon buttons,
+ * which have no text baseline, sit visually centered next to the label
  * text rather than dropping to the box bottom.
  *
  * Use this when the label needs sibling decorations that can't live inside
- * the `<Field.Label>` itself (e.g. an interactive help button — clicking inside a
+ * the `<Field.Label>` itself (e.g. an interactive help button: clicking inside a
  * `<label>` would forward focus to the associated control). For a label
  * with only an `(Optional)` suffix, place `Field.Optional` directly inside
- * the `<Field.Label>` instead — no `LabelRow` needed.
+ * the `<Field.Label>` instead, with no `LabelRow`.
  *
  * @see https://mantle.ngrok.com/components/forms/field
  *
@@ -309,7 +309,7 @@ const LabelRow = ({
  * `Field.HelpTrigger` (renders a default question-mark `IconButton`) and
  * `Field.HelpContent` (the popover body) to drop a help button into a
  * `Field.LabelRow` without manually wiring `Popover` + `IconButton` +
- * `QuestionIcon`. All `Popover.Root` props are forwarded — pass `modal`,
+ * `QuestionIcon`. All `Popover.Root` props are forwarded: pass `modal`,
  * `defaultOpen`, etc. as needed.
  *
  * Popover (not Tooltip) so the affordance is reachable on touch devices.
@@ -351,9 +351,9 @@ type FieldHelpTriggerProps = Partial<
 > &
 	Pick<IconButtonProps, "label"> & {
 		/**
-		 * The visual style of the trigger button. Optional here —
-		 * `Field.HelpTrigger` defaults to `"ghost"` so the help affordance reads
-		 * as subtle metadata next to the label.
+		 * The visual style of the trigger button. Optional here: `Field.HelpTrigger`
+		 * defaults to `"ghost"` so the help affordance reads as subtle metadata
+		 * next to the label.
 		 *
 		 * @default "ghost"
 		 */
@@ -364,7 +364,7 @@ type FieldHelpTriggerProps = Partial<
 		 */
 		icon?: ReactNode;
 		/**
-		 * The tone of the trigger button. Optional here — `Field.HelpTrigger`
+		 * The tone of the trigger button. Optional here: `Field.HelpTrigger`
 		 * defaults to `"neutral"` because opening contextual help is a routine
 		 * action, and it is the only tone `IconButton` draws.
 		 *
@@ -374,7 +374,7 @@ type FieldHelpTriggerProps = Partial<
 	};
 
 /**
- * The trigger for a `Field.Help` popover — a `Popover.Trigger` wired to a
+ * The trigger for a `Field.Help` popover: a `Popover.Trigger` wired to a
  * ghost-appearance `IconButton` with a default Phosphor `QuestionIcon`.
  * Requires a contextual screen-reader label, and accepts `icon` or other
  * `IconButton` props for visual customization.
@@ -383,7 +383,7 @@ type FieldHelpTriggerProps = Partial<
  * subtle metadata at rest; `IconButton`'s ghost `hover:text-strong` still
  * brightens it on interaction. Carries a default `-my-0.5` so the 24px
  * `xs` button keeps a full click target while contributing only 20px to
- * the `Field.LabelRow` flex line — matching the label's text line-height
+ * the `Field.LabelRow` flex line. That matches the label's text line-height,
  * so the label text is not pushed off-center.
  *
  * @see https://mantle.ngrok.com/components/forms/field
@@ -483,7 +483,7 @@ const HelpContent = ({
 /**
  * Inline "(Optional)" suffix to mark a field as optional. Defaults to the
  * literal string `(Optional)` so the common case is `<Field.Optional />` with
- * no children — pass children to translate or replace the text. Renders a
+ * no children. Pass children to translate or replace the text. Renders a
  * `<span>` in `text-muted` at `text-sm` / `font-normal` so it reads as
  * secondary metadata next to the bolder Label text.
  *
@@ -539,8 +539,8 @@ const Optional = ({
 
 /**
  * Layout container that stacks multiple `Field.Item`s vertically with
- * `gap-4` between them. This is the default way to compose multiple fields
- * — most forms only need a `Field.Group` of `Field.Item`s. Reach for
+ * `gap-4` between them. This is the default way to compose multiple fields:
+ * most forms only need a `Field.Group` of `Field.Item`s. Reach for
  * `Field.Set` + `Field.Legend` only when the grouping carries semantic
  * weight (e.g. a `RadioGroup` or related checkboxes).
  *
@@ -610,12 +610,12 @@ type FieldItemProps = Omit<ComponentProps<"div">, "id"> &
 	} & WithDataSlot;
 
 /**
- * A single form field — `Label`, a control (`Input`, `Select`, `Checkbox`,
+ * A single form field: `Label`, a control (`Input`, `Select`, `Checkbox`,
  * etc.), and any `Field.Description`, `Field.Errors`, or `Field.ErrorList` siblings stacked
  * vertically with a consistent `gap-1.5` so help and error messaging sit
  * tightly under the input.
  *
- * Renders a plain `<div>` — the `<label htmlFor>` ↔ control association
+ * Renders a plain `<div>`: the `<label htmlFor>` ↔ control association
  * already carries the right semantics for a single field, so it adds no
  * implicit `role`. `Field.Item` owns the contextual description/error IDs
  * that `Field.Control` applies to the focusable control. Rendered errors
@@ -728,7 +728,7 @@ type FieldControlSlotProps = Omit<
 
 /**
  * Element-child form of `Field.Control`. Renders via `Slot`, so it accepts
- * any HTML/Slot props, including `ref` — those land on the single child
+ * any HTML/Slot props, including `ref`. Those land on the single child
  * element along with the generated ARIA props. `id` is not a prop here;
  * `Field.Item` owns the control id.
  */
@@ -741,7 +741,7 @@ type FieldControlElementProps = FieldControlSlotProps & {
 
 /**
  * Render-prop form of `Field.Control`. The caller owns the rendered element,
- * so `Field.Control` itself renders nothing — extra DOM props and `ref` have
+ * so `Field.Control` itself renders nothing. Extra DOM props and `ref` have
  * no element to attach to and are intentionally not part of this variant.
  * Slot props are marked `never` so passing e.g. `className` alongside a
  * render-prop child is a type error rather than a silently ignored prop.
@@ -759,24 +759,24 @@ type FieldControlRenderProps = {
  * Props for `Field.Control`. A discriminated union over how the caller
  * supplies the focusable element:
  *
- * - `FieldControlElementProps` — pass a single React element child and
+ * - `FieldControlElementProps`: pass a single React element child and
  *   `Field.Control` clones the generated ARIA props onto it via `Slot`.
  *   Accepts the full Slot prop surface, including `ref`.
- * - `FieldControlRenderProps` — pass a render function that receives the
+ * - `FieldControlRenderProps`: pass a render function that receives the
  *   ARIA props and places them on a control of the caller's choosing. The
  *   caller owns the rendered element, so DOM/Slot props and `ref` are
  *   excluded from this variant at the type level.
  *
  * @example
  * ```tsx
- * // Element form — Slot splats id, name, and ARIA props onto <Input/>
+ * // Element form: Slot splats id, name, and ARIA props onto <Input/>
  * <Field.Item name="email">
  *   <Field.Control>
  *     <Input type="email" />
  *   </Field.Control>
  * </Field.Item>
  *
- * // Render-prop form — caller spreads the props onto its own element
+ * // Render-prop form: caller spreads the props onto its own element
  * <Field.Item name="acceptTerms">
  *   <Field.Control>
  *     {(controlProps) => (
@@ -800,7 +800,7 @@ type FieldControlProps = FieldControlElementProps | FieldControlRenderProps;
  * composition; otherwise use the render-prop form to place the generated props
  * on the actual focusable element.
  *
- * `Field.Item` owns the full control contract — `id`, `name`, `aria-*`, and
+ * `Field.Item` owns the full control contract: `id`, `name`, `aria-*`, and
  * `validation` all flow down from the surrounding `Field.Item` and overwrite
  * anything passed on the child. To override these values, set them on
  * `Field.Item` itself (`<Field.Item id="password">`,
@@ -833,7 +833,7 @@ type FieldControlProps = FieldControlElementProps | FieldControlRenderProps;
  */
 const Control = ({ children, ref, ...props }: FieldControlProps) => {
 	const context = useContext(FieldItemContext);
-	// Field.Item owns id, name, aria-*, and validation — `cloneElement` below
+	// Field.Item owns id, name, aria-*, and validation. `cloneElement` below
 	// overwrites whatever the child supplied, and the resolver no longer reads
 	// child-side overrides. To override any of these, set them on Field.Item.
 	const controlState = resolveFieldControlAriaProps({ context });
@@ -858,7 +858,7 @@ const Control = ({ children, ref, ...props }: FieldControlProps) => {
 	// the direct child is the focusable element. `FieldControlContext` covers
 	// compound widgets like Select / MultiSelect, where the direct child is a
 	// context provider (e.g. `Select.Root`) that does not forward ARIA props
-	// to its inner focusable trigger — that trigger reads the context itself.
+	// to its inner focusable trigger. That trigger reads the context itself.
 	return (
 		<FieldValidationProvider validation={controlState.validation}>
 			<FieldControlContext.Provider value={context ? controlState.ariaProps : null}>
@@ -883,7 +883,7 @@ const Control = ({ children, ref, ...props }: FieldControlProps) => {
  * `Field.Errors` or `Field.ErrorList` output, the parent's `gap-1.5`
  * collapses via a matching negative top margin so error list + helper read as
  * one tight block. Pass any margin utility (`mt-1`, `mt-0`, etc.) to override
- * — the rule's specificity is flattened to `(0,1,0)` so a single user class wins.
+ * it. The rule's specificity is flattened to `(0,1,0)`, so a single user class wins.
  *
  * @see https://mantle.ngrok.com/components/forms/field
  *
@@ -1234,7 +1234,7 @@ const Field = {
 	 * Applies generated field ARIA props and validation state to a single
 	 * focusable control. Accepts either a single React element child (cloned
 	 * via `Slot`) or a render-prop child that receives the ARIA props for
-	 * cases where `Slot` cannot reach the focusable element — for example a
+	 * cases where `Slot` cannot reach the focusable element, for example a
 	 * `<label>`-wrapped native checkbox, or a third-party component that
 	 * needs the props placed manually on an inner input.
 	 *
@@ -1242,7 +1242,7 @@ const Field = {
 	 *
 	 * @example
 	 * ```tsx
-	 * // Element child — Slot splats id, name, and ARIA props onto <Input/>.
+	 * // Element child: Slot splats id, name, and ARIA props onto <Input/>.
 	 * <Field.Item name="apiKey">
 	 *   <Field.Label>API key</Field.Label>
 	 *   <Field.Control>
@@ -1254,7 +1254,7 @@ const Field = {
 	 *
 	 * @example
 	 * ```tsx
-	 * // Render-prop child — caller spreads the props onto an inner element
+	 * // Render-prop child: caller spreads the props onto an inner element
 	 * // when the focusable target is nested (e.g. inside a <label>).
 	 * <Field.Item name="acceptTerms">
 	 *   <Field.Control>
@@ -1449,7 +1449,7 @@ const Field = {
 	 */
 	Help,
 	/**
-	 * Trigger for a `Field.Help` popover — a ghost `IconButton` with a default
+	 * Trigger for a `Field.Help` popover: a ghost `IconButton` with a default
 	 * `QuestionIcon`. Requires a contextual `label`; pass `icon` to swap the
 	 * glyph, or other `IconButton` props (`size`, `appearance`, etc.) to customize.
 	 *

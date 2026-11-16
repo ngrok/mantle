@@ -93,11 +93,11 @@ function useChoiceContext(part: string): ChoiceContextValue {
  * ```
  */
 type ChoiceRootProps = Omit<ComponentProps<"div">, "id"> & {
-	/** Marks the choice disabled — dims the text and is injected onto the control. */
+	/** Marks the choice disabled: dims the title/description and is injected onto the control. */
 	disabled?: boolean;
 	/**
-	 * Explicit control id. Defaults to a generated id, or — when composed inside a
-	 * `Field.Control` — the field's id, so `Field.Label` and `Choice.Label` resolve
+	 * Explicit control id. Defaults to a generated id, or (when composed inside a
+	 * `Field.Control`) the field's id, so `Field.Label` and `Choice.Label` resolve
 	 * to the same control.
 	 */
 	id?: string;
@@ -148,7 +148,7 @@ const Root = ({
 	const fieldControl = useContext(FieldControlContext);
 	// Read the field values as primitives. `Field.Control` rebuilds its context
 	// object every render, so depending on the object would defeat the memo
-	// below — depend on these stable strings instead.
+	// below. Depend on these stable strings instead.
 	const fieldId = fieldControl?.id;
 	const fieldName = fieldControl?.name;
 	const fieldDescribedBy = fieldControl?.["aria-describedby"];
@@ -221,7 +221,7 @@ type ChoiceIndicatorProps = ComponentProps<"span"> & WithDataSlot;
  * threading ids. A non-element child (or none) is rendered untouched.
  *
  * The slot is one line tall (`h-lh`) using the same `text-sm` line box as the
- * title, and centers its child — so the control sits centered on the title's
+ * title, and centers its child, so the control sits centered on the title's
  * first line and stays put when the title wraps.
  *
  * @see https://mantle.ngrok.com/components/forms/choice
@@ -249,7 +249,7 @@ const Indicator = ({
 	const { controlProps } = useChoiceContext("Indicator");
 	// Inject the association props onto the control. `id` and `aria-describedby`
 	// are owned by Choice and always win. `disabled` / `name` / `aria-invalid` /
-	// `aria-errormessage`, though, may have been set on the control itself — only
+	// `aria-errormessage`, though, may have been set on the control itself. Only
 	// override those when Choice (or a Field) actually carries a value, so a
 	// `<Checkbox disabled name="x" />` placed here isn't silently reset.
 	const control: ReactNode = isValidElement<Record<string, unknown>>(children)
@@ -268,7 +268,7 @@ const Indicator = ({
 			ref={ref}
 			data-slot={joinDataSlot(dataSlot, "choice-indicator")}
 			// `h-lh` resolves to this element's own line-height, so it must share the
-			// title's `text-sm` line box (14px / 20px) — otherwise the slot would size
+			// title's `text-sm` line box (14px / 20px). Otherwise the slot would size
 			// to the inherited line-height and the control could not center on the
 			// title's first line. `items-center` then centers the control in that
 			// one-line box; `items-start` on Root keeps it on the first line when the
@@ -284,7 +284,7 @@ const Indicator = ({
 type ChoiceContentProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 /**
- * The right column of a `Choice` — stacks a `Choice.Label` / `Choice.Title` over
+ * The right column of a `Choice`: stacks a `Choice.Label` / `Choice.Title` over
  * an optional `Choice.Description`. `min-w-0` so long titles truncate instead of
  * pushing the row wide.
  *
@@ -324,9 +324,9 @@ const Content = ({
 
 /**
  * Props for `Choice.Label`. The mantle `Label` props, minus `htmlFor` and
- * `disabled` — those are owned by `Choice.Root` (the control id and the choice's
- * disabled state) and are not part of the public surface, so consumer props can
- * never override the label-to-control wiring.
+ * `disabled`. `Choice.Root` owns those (the control id and the choice's
+ * disabled state). They are not part of the public surface, so consumer props
+ * can never override the label-to-control wiring.
  */
 type ChoiceLabelProps = Omit<ComponentProps<typeof Label>, "htmlFor" | "disabled"> & WithDataSlot;
 
@@ -337,11 +337,11 @@ type ChoiceLabelProps = Omit<ComponentProps<typeof Label>, "htmlFor" | "disabled
  * standalone checkbox, a raw `<form>`, React-state-only).
  *
  * It is the mantle {@link Label} (not a re-implementation), so it keeps every
- * base-label behavior — cursor, the double-click text-selection guard, and the
- * auto `font-medium` — and mirrors how `Field.Label` reuses `Label`. When an
+ * base-label behavior (cursor, the double-click text-selection guard, and the
+ * auto `font-medium`). `Field.Label` reuses `Label` the same way. When an
  * ancestor already owns the labeling and click target (a fully-clickable list
- * row or a Headless radio item), use `Choice.Title` instead — a label-less `<p>`
- * (it accepts `asChild`) — so labels never nest or compete.
+ * row or a Headless radio item), use `Choice.Title` instead: a label-less `<p>`
+ * that accepts `asChild`, so labels never nest or compete.
  *
  * @see https://mantle.ngrok.com/components/forms/choice
  *
@@ -379,12 +379,12 @@ const ChoiceLabel = ({ "data-slot": dataSlot, className, ref, ...props }: Choice
 };
 
 /**
- * The emphasized title of a `Choice`, label-styled but **not** a `<label>` —
+ * The emphasized title of a `Choice`, label-styled but **not** a `<label>`:
  * renders a `<p>`. Mirrors `Field.LabelText`. Use this when something else owns
  * the control's labeling and click target: a fully-clickable list row or a
  * Headless radio item. It avoids nesting two `<label>`s or splitting
  * the click target. Pass `asChild` to supply your own element. For a standalone
- * control — or inside a `Field` — where the title can be the label, use
+ * control (or inside a `Field`) where the title can be the label, use
  * `Choice.Label`.
  *
  * Inside a `RadioGroup` item, the title registers its id with the radio, so the
@@ -544,19 +544,19 @@ const Description = ({
  *
  * It is a pure layout + association primitive: it owns the control's `id` and
  * the description's `id` and wires them together, but does **not** own the
- * control's value — drop your own control into `Choice.Indicator`. Pick
+ * control's value. Drop your own control into `Choice.Indicator`. Pick
  * `Choice.Label` (a real `<label>`) when the `Choice` owns the labeling, or
  * `Choice.Title` (label-less text) when an ancestor (a clickable row or a
  * Headless radio item) already does.
  *
- * **Use it for choice-like layouts** — a checkbox or radio input that needs an
+ * **Use it for choice-like layouts:** a checkbox or radio input that needs an
  * associated label and an optional supplementary description. It is not a
  * general-purpose layout primitive; for laying out non-control content, reach
  * for a plain flex/grid or `MediaObject` instead.
  *
  * **Field interop.** Inside a `Field.Control`, `Choice.Root` reads the field's
  * `id` / `name` / `aria-*` and merges its description into the control's
- * `aria-describedby`. Outside a `Field` it uses its own generated ids — the two
+ * `aria-describedby`. Outside a `Field` it uses its own generated ids. The two
  * are aware of each other but neither is required.
  *
  * **Radio interop.** Inside a `RadioGroup` item, `Choice.Title` and
@@ -578,7 +578,7 @@ const Description = ({
  * Choice.Root
  * ├── Choice.Indicator
  * └── Choice.Content
- *     ├── Choice.Label        (or Choice.Title — pick one)
+ *     ├── Choice.Label        (or Choice.Title, pick one)
  *     └── Choice.Description
  * ```
  *

@@ -129,7 +129,7 @@ export function OverviewExample() {
 				<Field.Control>
 					<Input placeholder="ada-lovelace" />
 				</Field.Control>
-				<Field.Description>Pick something memorable — you can change it later.</Field.Description>
+				<Field.Description>Pick something memorable. You can change it later.</Field.Description>
 			</Field.Item>
 		</PreviewCanvas>
 	);

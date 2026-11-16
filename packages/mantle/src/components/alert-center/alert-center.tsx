@@ -23,7 +23,7 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 import { Alert, AlertContextProvider } from "../alert/alert.js";
 
 /**
- * The tone an alert's color communicates — identical to `Alert`'s intent axis,
+ * The tone an alert's color communicates, identical to `Alert`'s intent axis,
  * so an item's `intent` flows straight through to the `Alert` chrome that
  * renders it. Also the severity ranking key: `danger` › `warning` ›
  * `important` › `info` › `success` decides which item the bar shows.
@@ -40,7 +40,7 @@ type AlertCenterIntent = "danger" | "important" | "info" | "success" | "warning"
 /**
  * Highest-severity-first ranking used to pick the alert shown in the bar and to
  * order the inline expansion. Kept as a plain lookup so ordering is a pure,
- * testable function of the registered data — never incidental DOM paint order.
+ * testable function of the registered data, never incidental DOM paint order.
  */
 const SEVERITY_RANK = {
 	danger: 5,
@@ -52,12 +52,12 @@ const SEVERITY_RANK = {
 
 /**
  * One registered alert: the coordination facts the center ranks and labels
- * with. The authored banner content never enters the store — each
+ * with. The authored banner content never enters the store: each
  * `AlertCenter.Item` renders its children through a portal into its stable
  * host element, and `Bar`/`Content` adopt that host into their chrome.
  */
 type AlertCenterRegisteredAlert = {
-	/** Stable identity — the React key, the sticky-order key, and the styling hook. */
+	/** Stable identity: the React key, the sticky-order key, and the styling hook. */
 	id: string;
 	/** The tone the alert's color communicates; becomes the chrome `Alert.Root`'s intent. */
 	intent: AlertCenterIntent;
@@ -82,8 +82,8 @@ type AlertCenterRegisteredAlert = {
  * Moves an item's host element into a chrome mount point, preserving as much
  * client state as the platform allows: `Element.moveBefore` (when supported
  * and both nodes share a connected document) is an atomic, state-preserving
- * move — React subtree state, element focus, selection, and CSS transitions
- * all survive — with `appendChild` as the fallback (React state still
+ * move (React subtree state, element focus, selection, and CSS transitions
+ * all survive), with `appendChild` as the fallback (React state still
  * survives; transient DOM state like focus is re-established by the center's
  * focus redirects).
  */
@@ -99,7 +99,7 @@ function adoptHost(
 			mount.moveBefore(host, null);
 			return true;
 		} catch {
-			// Different roots or an otherwise unmovable node — fall through to
+			// Different roots or an otherwise unmovable node: fall through to
 			// the state-resetting (but always-valid) append.
 		}
 	}
@@ -108,7 +108,7 @@ function adoptHost(
 }
 
 /**
- * Collapse an element's `textContent` to a single-spaced, trimmed string —
+ * Collapse an element's `textContent` to a single-spaced, trimmed string.
  * JSX text nodes carry authoring whitespace that reads as pauses to a screen
  * reader.
  *
@@ -127,8 +127,8 @@ function normalizeText(text: string): string {
  * composed controls removed (mirroring how the bar treats the title and its
  * inline call-to-action as separate things), whitespace-normalized. Falls
  * back to the full title text when the title is entirely links; empty when
- * the banner rendered no title. Deriving from the committed DOM — instead of
- * requiring a duplicated plain-text prop — keeps accessible strings in
+ * the banner rendered no title. Deriving from the committed DOM (instead of
+ * requiring a duplicated plain-text prop) keeps accessible strings in
  * lockstep with the visible copy, and is safe because the center renders
  * exclusively client-side.
  *
@@ -240,7 +240,7 @@ const EMPTY_ALERTS: readonly AlertCenterRegisteredAlert[] = [];
  * The registration store an `AlertCenter.Root` owns for its lifetime.
  * `AlertCenter.Item` parts render `null` and register their facts + content
  * here from layout effects; `Bar`, `Content`, and the live-region announcer
- * read the ranked snapshot via `useSyncExternalStore` — so registration churn
+ * read the ranked snapshot via `useSyncExternalStore`, so registration churn
  * re-renders only those leaf surfaces, never the consumer's tree. (Same
  * pattern as the chart family's `ChartStore`.)
  *
@@ -264,13 +264,13 @@ class AlertCenterStore {
 
 	/**
 	 * The stable host element an id's authored children portal into. Created
-	 * lazily (client-only — callers reach here from effects) and kept for the
+	 * lazily (client-only: callers reach here from effects) and kept for the
 	 * store's lifetime, like the id's sticky sequence: a dismissed-then-
 	 * returning id reuses its host. `display: contents` makes the host
 	 * layout-transparent, so the authored children participate in the chrome's
 	 * flex row as if the host weren't there. `Bar`/`Content` physically adopt
 	 * the host into their chrome (see {@link adoptHost}); an unplaced host
-	 * stays detached — its children stay mounted (and stateful) in React
+	 * stays detached: its children stay mounted (and stateful) in React
 	 * while contributing nothing to the document.
 	 */
 	getHost(id: string): HTMLElement {
@@ -291,7 +291,7 @@ class AlertCenterStore {
 	/**
 	 * Item-side: snapshot the host's current content (a deep clone). The item
 	 * unmounting empties its host BEFORE the bar's exit commit renders, so the
-	 * exit slide needs a pre-captured copy to stay filled — captured on every
+	 * exit slide needs a pre-captured copy to stay filled. It is captured on every
 	 * item commit (deterministic, unlike observing mutations) and kept past
 	 * unregistration on purpose: the exit is exactly when it's read.
 	 *
@@ -299,8 +299,8 @@ class AlertCenterStore {
 	 * ghost is a bar-only affordance, so a lower-ranked item's clone can never
 	 * be read, and keeping one per id ever registered would hold a detached
 	 * banner subtree for the store's lifetime. A promoted id captures on the
-	 * very commit that promotes it — unranking the previous top re-renders its
-	 * siblings, and cleanup runs before their effects — so the ghost is always
+	 * very commit that promotes it (unranking the previous top re-renders its
+	 * siblings, and cleanup runs before their effects), so the ghost is always
 	 * ready by the time the bar exits.
 	 */
 	captureHostSnapshot(id: string): void {
@@ -332,8 +332,8 @@ class AlertCenterStore {
 	getSnapshot = (): readonly AlertCenterRegisteredAlert[] => this.#snapshot;
 
 	/**
-	 * Whether an id currently has a mounted registration. This — not DOM
-	 * connectivity — is how the focus redirects tell a dismissal ("the alert is
+	 * Whether an id currently has a mounted registration. This (not DOM
+	 * connectivity) is how the focus redirects tell a dismissal ("the alert is
 	 * gone") from a re-rank ("the alert moved placements"): adoption detaches
 	 * and re-attaches hosts, so a surviving control reads as removed mid-commit.
 	 */
@@ -346,7 +346,7 @@ class AlertCenterStore {
 	 * Bar-side: publish the top alert's rendered title text for the announcer
 	 * and any other string surface. Bails when unchanged, so the Bar can call
 	 * it from an every-commit layout effect without notification churn. Leaves
-	 * the ranked-array snapshot untouched — array subscribers bail on the
+	 * the ranked-array snapshot untouched: array subscribers bail on the
 	 * unchanged reference.
 	 */
 	setTopLabel(topLabel: string): void {
@@ -363,7 +363,7 @@ class AlertCenterStore {
 	 * Ask for a control to be re-focused once the placement move that displaced
 	 * it finishes. Re-inserting a subtree (the `appendChild` path in
 	 * {@link adoptHost}) drops focus to `<body>` with no blur event, and the
-	 * surface that notices is not the one that completes the move — the bar sees
+	 * surface that notices is not the one that completes the move: the bar sees
 	 * the demotion, the expansion re-attaches the host a moment later.
 	 */
 	requestFocusRestore(element: HTMLElement): void {
@@ -395,7 +395,7 @@ class AlertCenterStore {
 	 * Bumped whenever a host physically moves into new chrome. Parts that
 	 * derive from their rendered surroundings (`AlertCenter.DismissIconButton`
 	 * reads the enclosing banner's title for its accessible name) subscribe to
-	 * this so a placement move re-runs their DOM reads — the move is
+	 * this so a placement move re-runs their DOM reads. The move is
 	 * imperative, so no React re-render reaches the portaled tree otherwise.
 	 */
 	getPlacementVersion = (): number => this.#placementVersion;
@@ -435,7 +435,7 @@ class AlertCenterStore {
 	 * Item-side: add the registration for `alert.id` and return its cleanup. An
 	 * id's arrival `sequence` is assigned once and kept for the store's
 	 * lifetime, so a re-registration reorders only when its `order` changes. Only the coordination facts
-	 * register — the authored children render through the item's own portal
+	 * register. The authored children render through the item's own portal
 	 * into {@link AlertCenterStore.getHost}.
 	 *
 	 * Throws when a SECOND mounted item claims an already-registered id: both
@@ -444,15 +444,15 @@ class AlertCenterStore {
 	 * consumer seeing the mistake.
 	 */
 	register(alert: Omit<AlertCenterRegisteredAlert, "sequence">): () => void {
-		// The check lives here — the one funnel every registration passes
-		// through — and it is a live-entry check rather than an ever-seen one,
+		// The check lives here (the one funnel every registration passes
+		// through), and it is a live-entry check rather than an ever-seen one,
 		// because React always runs an effect's cleanup before re-running it: a
 		// prop update, StrictMode's mount double-invoke, and a same-commit
 		// unmount/remount of the same id all unregister first. A live entry can
 		// therefore only mean a second, concurrently mounted item.
 		invariant(
 			!this.#alertsById.has(alert.id),
-			`AlertCenter.Item id "${alert.id}" is already registered by another mounted item — ids must be unique under one <AlertCenter.Root>. Render one item per id, or give each alert its own id.`,
+			`AlertCenter.Item id "${alert.id}" is already registered by another mounted item. Ids must be unique under one <AlertCenter.Root>. Render one item per id, or give each alert its own id.`,
 		);
 		const sequence = this.#sequenceById.get(alert.id) ?? this.#nextSequence++;
 		this.#sequenceById.set(alert.id, sequence);
@@ -460,7 +460,7 @@ class AlertCenterStore {
 		this.#alertsById.set(alert.id, registration);
 		this.#publish();
 		return () => {
-			// Cleanup compares the exact registration object, never its id alone —
+			// Cleanup compares the exact registration object, never its id alone:
 			// re-registering the same id (a prop update, or the same id
 			// unmounting and returning) must not let a stale cleanup delete the
 			// surviving registration.
@@ -487,7 +487,7 @@ class AlertCenterStore {
  * The facts every part needs, stable for the Root's lifetime. Deliberately
  * kept apart from {@link AlertCenterExpansionContextValue}: `AlertCenter.Item`
  * and `AlertCenter.DismissIconButton` read only these, so toggling the
- * expansion must not re-render — and re-derive the accessible name of — every
+ * expansion must not re-render (and re-derive the accessible name of) every
  * mounted alert.
  */
 type AlertCenterContextValue = {
@@ -498,7 +498,7 @@ type AlertCenterContextValue = {
 
 const AlertCenterContext = createContext<AlertCenterContextValue | null>(null);
 
-/** The inline expansion's open state — consumed only by `Bar` and `Content`. */
+/** The inline expansion's open state, consumed only by `Bar` and `Content`. */
 type AlertCenterExpansionContextValue = {
 	/** Whether the additional alerts are currently rendered below the bar. */
 	isExpanded: boolean;
@@ -527,9 +527,9 @@ const useRankedAlerts = (store: AlertCenterStore) =>
  * Whether an `AlertCenter.Item` encloses this subtree, provided around its
  * portaled children at the AUTHORING site (the portal keeps React context
  * flowing from where the item is written, not where its DOM lands). Presence
- * is the whole payload — it guards the composition invariants:
+ * is the whole payload. It guards the composition invariants:
  * `AlertCenter.DismissIconButton` must be inside an item's children, and items
- * must never nest. Placement-aware STYLING needs no context — the chrome
+ * must never nest. Placement-aware STYLING needs no context: the chrome
  * stamps `data-placement`, so `in-data-[placement=…]` variants adapt purely in
  * CSS, even as a host physically moves between the bar and a row.
  */
@@ -542,7 +542,7 @@ const AlertCenterItemContext = createContext(false);
  * DOM on every commit), keeping the announcement in lockstep with the visible
  * copy. Screen
  * readers only announce a polite region reliably when it already exists in the
- * accessibility tree before its text changes — so the announcer lives in the
+ * accessibility tree before its text changes, so the announcer lives in the
  * always-mounted Root output (not in `AlertCenter.Bar`, which unmounts when
  * empty), and only its text content swaps. This is why the visual Bar carries
  * no role/aria-live of its own.
@@ -558,7 +558,7 @@ function Announcer({ store }: { store: AlertCenterStore }) {
 }
 
 /**
- * Props for {@link AlertCenter.Root} — the expansion's open state. The alerts
+ * Props for {@link AlertCenter.Root}: the expansion's open state. The alerts
  * themselves are authored as `AlertCenter.Item` children.
  *
  * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenterroot
@@ -585,7 +585,7 @@ type AlertCenterRootProps = {
 	onOpenChange?: (open: boolean) => void;
 	/**
 	 * The `AlertCenter.Bar`, `AlertCenter.Content`, and every `AlertCenter.Item`.
-	 * Items may be authored anywhere under the root — their children stay in this
+	 * Items may be authored anywhere under the root. Their children stay in this
 	 * tree and are projected into the bar or an expansion row by rank.
 	 */
 	children?: ReactNode;
@@ -599,7 +599,7 @@ type AlertCenterRootProps = {
  * notice, so all top-of-viewport messaging shares one layout slot.
  *
  * Items register client-side (from layout effects), so server-rendered HTML
- * contains no bar; it enters with its height animation after hydration — the
+ * contains no bar; it enters with its height animation after hydration, the
  * same entrance every arriving alert gets by design.
  *
  * **Data attributes:**
@@ -620,7 +620,7 @@ type AlertCenterRootProps = {
  *       <Alert.Icon />
  *       <Alert.Content>
  *         <Alert.Title>
- *           Payment failed — <a href="/billing">update your card</a>
+ *           Payment failed: <a href="/billing">update your card</a>
  *         </Alert.Title>
  *       </Alert.Content>
  *     </AlertCenter.Item>
@@ -663,7 +663,7 @@ const Root = ({ children, defaultOpen, onOpenChange, open }: AlertCenterRootProp
 
 /**
  * Props for {@link AlertCenter.Item}: the coordination facts the center needs
- * to rank, announce, and label an alert — everything presentational is the
+ * to rank, announce, and label an alert. Everything presentational is the
  * authored `children`.
  *
  * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenteritem
@@ -689,7 +689,7 @@ type AlertCenterItemProps = {
 	 * their state as the host moves between the bar and a row), pins the
 	 * item's arrival order (a returning id resumes its original position), and
 	 * is stamped on the chrome as `data-alert-id` for styling. Must be unique
-	 * among the items mounted under one `AlertCenter.Root` — a second mounted
+	 * among the items mounted under one `AlertCenter.Root`. A second mounted
 	 * item claiming the same id throws, since both would project into that
 	 * id's single host.
 	 */
@@ -713,7 +713,7 @@ type AlertCenterItemProps = {
 	/**
 	 * The banner content: compose `Alert.Icon`, `Alert.Content`, `Alert.Title`,
 	 * `Alert.Description`, and `AlertCenter.DismissIconButton`. Do NOT include
-	 * `Alert.Root` — the center renders the chrome (with this item's `intent`)
+	 * `Alert.Root`: the center renders the chrome (with this item's `intent`)
 	 * at whichever placement the item ranks into.
 	 */
 	children: ReactNode;
@@ -724,18 +724,18 @@ type AlertCenterItemProps = {
  * with the center and renders its children through a portal into a stable
  * per-id host element that `AlertCenter.Bar` / `AlertCenter.Content`
  * physically adopt into their chrome. Mount it to show the alert, unmount it
- * to remove it — dismissal is your state flipping the condition off.
+ * to remove it. Dismissal is your state flipping the condition off.
  *
  * Because the children stay in YOUR React tree (only their DOM lands in the
  * chrome), context providers and error boundaries around the item work, and
  * router-aware links resolve at the authoring location. The host element is
- * stable and moved — not remounted — between the bar and a row, so authored
+ * stable and moved (not remounted) between the bar and a row, so authored
  * content keeps its state (and, in engines with `Element.moveBefore`, even
  * focus) across re-ranks. While an item ranks nowhere visible (e.g. the
- * expansion is not composed), its children stay mounted on a detached host —
- * rendered by React, contributing nothing to the document.
+ * expansion is not composed), its children stay mounted on a detached host:
+ * React renders them, and they add nothing to the document.
  *
- * Server rendering emits no alert DOM — the bar enters after hydration with
+ * Server rendering emits no alert DOM. The bar enters after hydration with
  * its height animation, the same entrance every arriving alert gets.
  *
  * **Structure.** `children` render inside a
@@ -752,7 +752,7 @@ type AlertCenterItemProps = {
  * | --- | --- | --- |
  * | `data-slot` | `alert-center-item-host` | On the stable per-id host element the item's children portal into. |
  * | `data-slot` | `alert-center-item-label` | On the layout-transparent element inside the host that wraps the item's children. |
- * | `data-alert-host` | the item's `id` | On that same host — which alert's projected children it holds. |
+ * | `data-alert-host` | the item's `id` | On that same host: which alert's projected children it holds. |
  *
  * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenteritem
  *
@@ -777,11 +777,11 @@ type AlertCenterItemProps = {
 const Item = ({ children, className, id, intent, order }: AlertCenterItemProps) => {
 	const { store } = useAlertCenterContext("AlertCenter.Item");
 	// A nested item would register while its enclosing item renders, outrank
-	// or unrank its host, and loop the projection forever — fail fast instead.
+	// or unrank its host, and loop the projection forever. Fail fast instead.
 	const isInsideItem = useContext(AlertCenterItemContext);
 	invariant(!isInsideItem, "AlertCenter.Item cannot be rendered inside another item's children.");
 	// The host is created client-side in an effect (SSR emits nothing), then
-	// the portal renders into it. Facts re-register only when they change —
+	// the portal renders into it. Facts re-register only when they change;
 	// children updates flow through the portal like any other render.
 	const [host, setHost] = useState<HTMLElement | null>(null);
 	useIsomorphicLayoutEffect(() => {
@@ -800,7 +800,7 @@ const Item = ({ children, className, id, intent, order }: AlertCenterItemProps) 
 	if (host == null) {
 		return null;
 	}
-	// The chrome `Alert.Root` is only a DOM ancestor of the portaled children —
+	// The chrome `Alert.Root` is only a DOM ancestor of the portaled children.
 	// React context can't cross a portal from the DOM side, so the item
 	// provides the same Alert context (same `intent`) the chrome renders with.
 	// Why `redirectDismissFocus={false}`: the bar's focus redirect owns focus
@@ -838,11 +838,11 @@ type AlertCenterDismissIconButtonProps = ComponentProps<typeof Alert.DismissIcon
 
 /**
  * The dismiss affordance for the item it's composed inside. A thin wrapper over
- * `Alert.DismissIconButton` whose label defaults to `Dismiss ${title}`, derived
- * from the enclosing banner's RENDERED `Alert.Title` text and re-read on every
- * commit so the accessible name stays in lockstep with the visible copy (pass
- * `label` to override, e.g. when the title is long). Compose it — or leave it
- * out — per alert; its presence IS the alert's dismissability.
+ * `Alert.DismissIconButton` whose label defaults to `Dismiss ${title}`. That
+ * label derives from the enclosing banner's RENDERED `Alert.Title` text and is
+ * re-read on every commit, so the accessible name stays in lockstep with the
+ * visible copy (pass `label` to override, e.g. when the title is long). Compose
+ * it (or leave it out) per alert; its presence IS the alert's dismissability.
  *
  * Where the control sits in each placement is the chrome's business, not this
  * wrapper's: `Alert.Root` keeps it rightmost and seats the bar's expand
@@ -854,7 +854,7 @@ type AlertCenterDismissIconButtonProps = ComponentProps<typeof Alert.DismissIcon
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-slot` | `alert-center-dismiss-icon-button alert-dismiss-icon-button icon-button` | On the rendered button, joined ahead of `Alert.DismissIconButton`'s own slot and `IconButton`'s. |
- * | `data-alert-dismiss` | present | Read, not stamped — `Alert` emits it, and `AlertCenter`'s bar CSS positions the control with it. |
+ * | `data-alert-dismiss` | present | Read, not stamped. `Alert` emits it, and `AlertCenter`'s bar CSS positions the control with it. |
  *
  * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenterdismissiconbutton
  *
@@ -885,15 +885,15 @@ const DismissIconButton = ({
 		"AlertCenter.DismissIconButton must be composed inside an <AlertCenter.Item>'s children.",
 	);
 	const { store } = useAlertCenterContext("AlertCenter.DismissIconButton");
-	// Placement moves are imperative DOM adoption — no render reaches this
-	// portaled tree — so subscribe to the store's placement version: landing
+	// Placement moves are imperative DOM adoption (no render reaches this
+	// portaled tree), so subscribe to the store's placement version: landing
 	// in (or moving between) chrome re-renders this control and re-derives.
 	useSyncExternalStore(store.subscribe, store.getPlacementVersion, store.getPlacementVersion);
 	const buttonRef = useRef<HTMLButtonElement | null>(null);
 	const composedRef = useComposedRefs(buttonRef, ref);
 	const [derivedLabel, setDerivedLabel] = useState<string | null>(null);
 	// No dependency array: the enclosing banner's title copy can change on any
-	// commit, and reading the rendered DOM is the point — the derived name can
+	// commit, and reading the rendered DOM is the point: the derived name can
 	// never drift from the visible text. `setState` bails on the unchanged
 	// string, so this settles immediately.
 	useIsomorphicLayoutEffect(() => {
@@ -920,7 +920,7 @@ type AlertCenterBarProps = Omit<
 	"appearance" | "intent" | "children"
 > &
 	WithDataSlot & {
-		/** The bar renders the top-ranked item's authored children — it takes none of its own. */
+		/** Not accepted. The bar renders the top-ranked item's authored children. */
 		children?: never;
 	};
 
@@ -928,14 +928,14 @@ type AlertCenterBarProps = Omit<
  * The bar's enter/exit animation, applied to a padding-free wrapper around the
  * banner. On appearance it eases down from zero height while fading in; on
  * disappearance it collapses back the same way but faster (the exit answers a
- * dismissal, so it drops away sooner — the sonner/Sandbar cadence). The
- * wrapper carries no padding — like `Accordion.Content` — so its height
+ * dismissal, so it drops away sooner, as in sonner and Sandbar). The
+ * wrapper carries no padding (like `Accordion.Content`), so its height
  * reaches a true zero that the banner's own `py-2` would otherwise clamp, and
  * the opacity fade hides the opening/closing frame. `@starting-style` (the
  * `starting:` variant) supplies the pre-insertion state so the enter runs on
  * mount; the exit is driven by `data-state="closed"` while the wrapper stays
  * mounted (see {@link useBarPresence}). `interpolate-size:allow-keywords`
- * makes the `auto` keyword animatable (Chromium — other engines snap, a fine
+ * makes the `auto` keyword animatable (Chromium only; other engines snap, a fine
  * progressive enhancement).
  */
 const barAnimation =
@@ -952,7 +952,7 @@ type BarPresence = "open" | "closing" | "closed";
 /**
  * Presence transitions for the bar's mount lifecycle, modeled as a pure reducer
  * so the enter/exit/interrupt logic is testable without a DOM. `show` always
- * resolves to `"open"` — re-showing mid-exit is a smooth retarget back to open,
+ * resolves to `"open"`: re-showing mid-exit is a smooth retarget back to open,
  * never a restart; `hide` begins the exit only from a mounted state; `exited`
  * completes it once the transition (or the safety timeout) fires.
  *
@@ -992,7 +992,7 @@ function useBarPresence({ present }: { present: boolean }): {
 } {
 	const [state, dispatch] = useReducer(barPresenceReducer, present ? "open" : "closed");
 
-	// Layout effect so "closing" is applied before paint — no flash of the open
+	// Layout effect so "closing" is applied before paint: no flash of the open
 	// state after the alerts empty.
 	useIsomorphicLayoutEffect(() => {
 		dispatch(present ? "show" : "hide");
@@ -1007,7 +1007,7 @@ function useBarPresence({ present }: { present: boolean }): {
 	}, [state]);
 
 	const onExitTransitionEnd = useCallback((event: TransitionEvent<HTMLElement>) => {
-		// Only the wrapper's own height transition completes the exit — ignore
+		// Only the wrapper's own height transition completes the exit. Ignore
 		// transitions bubbling up from children (e.g. the expand caret's rotate).
 		if (event.target === event.currentTarget && event.propertyName === "height") {
 			dispatch("exited");
@@ -1024,11 +1024,11 @@ function useBarPresence({ present }: { present: boolean }): {
 /**
  * Track whether keyboard focus is (or was, at the moment a focused node got
  * removed) inside a container. Removing a focused element fires no blur and
- * silently resets `document.activeElement` to `<body>` — so by the time an
+ * silently resets `document.activeElement` to `<body>`, so by the time an
  * effect runs, the "focus was in here" fact is only recoverable from this
  * ref. Tracked with NATIVE `focusin`/`focusout` listeners (which follow DOM
  * propagation) rather than React handlers: the authored alert content is
- * portaled, so its React events propagate through the author's tree — never
+ * portaled, so its React events propagate through the author's tree, never
  * through the chrome wrapper the redirect logic lives on.
  *
  * @example
@@ -1049,7 +1049,7 @@ function useFocusWithin({
 	/**
 	 * The last element that held focus inside the container, or `null` once
 	 * focus deliberately moved elsewhere. Consumers decide "focus was lost to
-	 * a dismissal" by checking `!element.isConnected` at effect time — a
+	 * a dismissal" by checking `!element.isConnected` at effect time. A
 	 * `focusout` with a null `relatedTarget` is ambiguous (node removal,
 	 * `inert` application mid-commit, window blur, a click on empty page), so
 	 * the tracker never clears on it; only a real refocus outside does.
@@ -1085,7 +1085,7 @@ function useFocusWithin({
 }
 
 /**
- * Steers keyboard focus to the page's main content landmark — the fallback
+ * Steers keyboard focus to the page's main content landmark: the fallback
  * for dismissing the LAST alert, when no in-component control remains to
  * redirect to. Landing on `main` mirrors the skip-link contract (mantle's
  * `Main` ships `tabIndex={-1}` for exactly this); a bare `<main>` without it
@@ -1111,10 +1111,10 @@ function focusMainLandmark(): void {
  * focus to `<body>` for keyboard users; this steers it to the new bar's first
  * trailing control instead (the dismiss button when the new top is
  * dismissable, else the expand control), so dismissing alert after alert
- * stays a keyboard-only flow. When the LAST alert dismisses — nothing left to
- * redirect into — focus falls back to the page's main landmark, mirroring the
+ * stays a keyboard-only flow. When the LAST alert dismisses (nothing left to
+ * redirect into), focus falls back to the page's main landmark, mirroring the
  * skip-link contract. It redirects ONLY when the previous top alert was
- * actually DISMISSED — a promotion while the previous alert merely moves
+ * actually DISMISSED. A promotion while the previous alert merely moves
  * placements (a higher-severity alert arriving from a poll or a socket) must
  * never steal focus, wherever in the banner that focus sits.
  */
@@ -1144,8 +1144,8 @@ function useBarFocusRedirect({
 		}
 		const lastFocused = lastFocusedWithinRef.current;
 		// A demotion, not a dismissal: the previous top alert is still registered,
-		// so its focused control only moved placements. Registration — not DOM
-		// connectivity — is the signal, because adopting the new top's host
+		// so its focused control only moved placements. Registration (not DOM
+		// connectivity) is the signal, because adopting the new top's host
 		// transiently detaches the demoted one, which would make a live control
 		// read as removed and let a background arrival steal the user's focus.
 		// The move may still have blown focus off that control, so ask whoever
@@ -1157,7 +1157,7 @@ function useBarFocusRedirect({
 			return;
 		}
 		// Redirect only when the focused control was genuinely REMOVED by the
-		// dismissal — a still-connected tracked element means focus deliberately
+		// dismissal. A still-connected tracked element means focus deliberately
 		// moved elsewhere, and taking it would be stealing.
 		if (lastFocused == null || lastFocused.isConnected) {
 			return;
@@ -1165,7 +1165,7 @@ function useBarFocusRedirect({
 		lastFocusedWithinRef.current = null;
 		const wrapper = wrapperRef.current;
 		// The bar emptied entirely beneath the focused control: the wrapper is
-		// inert and animating out, so no in-component target remains — land on
+		// inert and animating out, so no in-component target remains. Land on
 		// the main content instead of silently dropping to <body>.
 		if (topId == null) {
 			focusMainLandmark();
@@ -1195,8 +1195,8 @@ const chromeClassName = "gap-2 py-2 pr-2 **:data-[slot~=alert-icon]:shrink-0";
 
 /**
  * Vertically centers the bar's trailing controls (dismiss and expand) while the
- * bar is a single line. `Alert` pins both controls at a fixed `top-1.5` — tuned
- * to center within its default `p-2.5` and to top-align in a multi-line alert —
+ * bar is a single line. `Alert` pins both controls at a fixed `top-1.5` (tuned
+ * to center within its default `p-2.5` and to top-align in a multi-line alert),
  * and the bar's tighter `py-2` leaves that offset ~2px below center, so a
  * transform re-centers them independent of the padding. The
  * `not-has-data-[slot=alert-description]` gate scopes that to the single-line
@@ -1205,7 +1205,7 @@ const chromeClassName = "gap-2 py-2 pr-2 **:data-[slot~=alert-icon]:shrink-0";
  * default is the correct (and row-matching) position.
  *
  * Written on the chrome rather than on the controls so one rule covers both, and
- * because only the chrome can see whether a description was authored — the
+ * because only the chrome can see whether a description was authored: the
  * children render through a portal, so no React state describes their shape;
  * `:has()` reads it off the committed DOM instead. A chrome-side descendant
  * selector also follows a control through a placement move for free, which a
@@ -1215,20 +1215,20 @@ const chromeClassName = "gap-2 py-2 pr-2 **:data-[slot~=alert-icon]:shrink-0";
 const singleLineBarControls =
 	"not-has-data-[slot=alert-description]:[&_[data-alert-dismiss],&_[data-alert-expand]]:top-1/2 not-has-data-[slot=alert-description]:[&_[data-alert-dismiss],&_[data-alert-expand]]:-translate-y-1/2";
 
-// Why no `asChild`: Bar renders a fixed two-element structure — a presence
+// Why no `asChild`: Bar renders a fixed two-element structure (a presence
 // wrapper that owns the exit animation (`data-state`, `inert`, `tabIndex`, and
-// the `transitionend` that completes the exit) around an `Alert.Root` banner —
+// the `transitionend` that completes the exit) around an `Alert.Root` banner),
 // so there is no single default element a Slot swap could coherently replace:
 // swapping the outer element breaks the exit animation, swapping the inner one
 // discards the Alert chrome the part exists to render. It also takes
-// `children?: never` — the banner content is the top item's projected children,
+// `children?: never`: the banner content is the top item's projected children,
 // so a consumer has nothing to compose in. The element they actually want to
 // reach is each alert's `Alert` chrome, whose parts they already author as that
 // item's children.
 /**
  * The always-visible, full-width strip. It renders the single highest-severity
- * item's authored children INLINE — icon, title, description, and its
- * call-to-action — so the top CTA is one glance (and zero extra clicks) away,
+ * item's authored children INLINE (icon, title, description, and its
+ * call-to-action), so the top CTA is one glance (and zero extra clicks) away,
  * then appends a count-and-caret control that expands the additional alerts
  * below the bar. Collapses to nothing when there are no alerts (like
  * `AppLayout.Notice`), so it can stay mounted and render unconditionally.
@@ -1237,12 +1237,12 @@ const singleLineBarControls =
  * content: single-line for a title alone, two lines once an `Alert.Description`
  * is composed (matching how the same alert renders as an expansion row). Its
  * chrome carries `data-placement="bar"` and `data-alert-id` as styling hooks for
- * placement-aware authored content — `in-data-[placement=bar]:hidden` keeps a
+ * placement-aware authored content: `in-data-[placement=bar]:hidden` keeps a
  * given element out of the bar and shows it only in the expansion.
  *
- * The bar itself claims NO ARIA landmark (deliberately, like `AppLayout.Notice`)
- * — arrivals and re-ranks are announced by the persistent visually-hidden
- * `role="status"` region that `AlertCenter.Root` mounts.
+ * The bar itself claims NO ARIA landmark (deliberately, like `AppLayout.Notice`).
+ * The persistent visually-hidden `role="status"` region that `AlertCenter.Root`
+ * mounts announces arrivals and re-ranks.
  *
  * **Data attributes:**
  *
@@ -1252,10 +1252,10 @@ const singleLineBarControls =
  * | `data-slot` | `alert-center-bar alert` | On the banner chrome the top item's children render inside, joined ahead of `Alert.Root`'s own slot. |
  * | `data-slot` | `alert-center-bar-mount` | On the layout-transparent element the top item's host is adopted into. |
  * | `data-state` | `"open"` \| `"closed"` | On the wrapper; drives the enter/exit transition, and stays `closed` while the exit plays. |
- * | `data-placement` | `"bar"` | On the chrome — where the top item's children are currently rendering. |
+ * | `data-placement` | `"bar"` | On the chrome: where the top item's children are currently rendering. |
  * | `data-alert-id` | the top item's `id` | On the chrome; per-alert styling and testing hook. |
- * | `data-alert-dismiss` | present on the dismiss control | Read, not stamped — `Alert` emits it; the bar's CSS centers and offsets the control with it. |
- * | `data-alert-expand` | present on the expand control | Read, not stamped — `Alert` emits it; the bar's CSS centers the control with it. |
+ * | `data-alert-dismiss` | present on the dismiss control | Read, not stamped. `Alert` emits it; the bar's CSS centers and offsets the control with it. |
+ * | `data-alert-expand` | present on the expand control | Read, not stamped. `Alert` emits it; the bar's CSS centers the control with it. |
  *
  * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenterbar
  *
@@ -1268,7 +1268,7 @@ const singleLineBarControls =
  *     <Alert.Icon />
  *     <Alert.Content>
  *       <Alert.Title>
- *         Payment failed — we couldn't charge your card.{" "}
+ *         Payment failed: we couldn't charge your card.{" "}
  *         <a href="/billing">Update payment method</a>
  *       </Alert.Title>
  *       <Alert.Description>
@@ -1320,20 +1320,20 @@ const Bar = ({ className, "data-slot": dataSlot, ref, ...props }: AlertCenterBar
 	}
 	const alert = topAlert ?? lastAlert;
 
-	// Adopt the top alert's host into the bar chrome — declared before the
+	// Adopt the top alert's host into the bar chrome. It is declared before the
 	// focus redirect and label effects so both read post-adoption DOM. No
 	// dependency array on purpose: the mount appears a commit AFTER the top
 	// id settles (the presence reducer flips `isMounted` in its own layout
 	// effect), so id-keyed deps would skip the commit that finally renders the
 	// mount. Idempotent (adoptHost bails when already placed), and disjoint
-	// from Content's adoption — the bar takes exactly the top id, the rows
-	// take the rest — so sibling effect order never matters.
+	// from Content's adoption (the bar takes exactly the top id, the rows
+	// take the rest), so sibling effect order never matters.
 	//
 	// The ghost: the item's unmount empties its host (the portal's children
 	// leave with it), so the exit slide would collapse a blank strip. Each
 	// item snapshots its own rendered content into the store on every commit;
 	// when the bar exits, the retained alert's snapshot swaps in so the banner
-	// stays filled through the slide — the wrapper is `inert`, so the clone's
+	// stays filled through the slide. The wrapper is `inert`, so the clone's
 	// dead controls are unreachable by design.
 	const barMountRef = useRef<HTMLDivElement | null>(null);
 	useIsomorphicLayoutEffect(() => {
@@ -1372,7 +1372,7 @@ const Bar = ({ className, "data-slot": dataSlot, ref, ...props }: AlertCenterBar
 		store.setTopLabel(present && wrapper != null ? alertTitleText(wrapper) : "");
 	});
 	// The authored children render in the ITEM's tree (through its portal), so
-	// a content-only update never re-renders the Bar — observe the wrapper's
+	// a content-only update never re-renders the Bar. Observe the wrapper's
 	// subtree and republish so the announcer can never drift from the visible
 	// copy.
 	useIsomorphicLayoutEffect(() => {
@@ -1421,7 +1421,7 @@ const Bar = ({ className, "data-slot": dataSlot, ref, ...props }: AlertCenterBar
 			data-slot="alert-center-bar-wrapper"
 			tabIndex={-1}
 			// While closing, the retained children still include the author's live
-			// controls (dismiss, CTA links) for an alert that's already gone —
+			// controls (dismiss, CTA links) for an alert that's already gone.
 			// `inert` takes them out of the tab order, the a11y tree, and hit
 			// testing for the exit slide (pointer-events alone wouldn't stop a
 			// second Enter on the still-focused dismiss button).
@@ -1442,10 +1442,10 @@ const Bar = ({ className, "data-slot": dataSlot, ref, ...props }: AlertCenterBar
 				data-alert-id={alert.id}
 			>
 				{/* The top item's host is physically adopted in here (layout
-				    effect above) — layout-transparent, so the authored children
+				    effect above). It is layout-transparent, so the authored children
 				    sit in the chrome's flex row as direct participants. */}
 				<div ref={barMountRef} className="contents" data-slot="alert-center-bar-mount" />
-				{/* Only while a Content surface is composed — otherwise the control
+				{/* Only while a Content surface is composed. Otherwise the control
 				    would toggle an expansion with nowhere to render, and its
 				    aria-controls would reference a missing id. */}
 				{remaining > 0 && contentMounted && (
@@ -1463,13 +1463,13 @@ const Bar = ({ className, "data-slot": dataSlot, ref, ...props }: AlertCenterBar
 
 type AlertCenterContentProps = Omit<ComponentProps<"div">, "children" | "id"> &
 	WithDataSlot & {
-		/** Rows are the registered items' authored children — Content takes none of its own. */
+		/** Not accepted. The rows are the registered items' authored children. */
 		children?: never;
 	};
 
-// Why no `asChild`: Content renders a fixed structure — a focus-within
+// Why no `asChild`: Content renders a fixed structure (a focus-within
 // container that owns the collapse animation (`data-state`, the expansion's
-// `id`) around the `<ul>` of rows — so there is no single default element a
+// `id`) around the `<ul>` of rows), so there is no single default element a
 // Slot swap could coherently replace. It also takes `children?: never`: the
 // rows are the registered items' projected children, so a consumer has nothing
 // to compose in. The element they actually want to reach is each alert's
@@ -1483,7 +1483,7 @@ type AlertCenterContentProps = Omit<ComponentProps<"div">, "children" | "id"> &
  * `data-alert-id`.
  *
  * `aria-label` (default `"More alerts"`) and `aria-labelledby` name the row
- * list itself — the outer wrapper is `role="generic"`, where ARIA prohibits
+ * list itself. The outer wrapper is `role="generic"`, where ARIA prohibits
  * accessible names, so a name passed here would otherwise be dropped.
  *
  * **Data attributes:**
@@ -1493,9 +1493,9 @@ type AlertCenterContentProps = Omit<ComponentProps<"div">, "children" | "id"> &
  * | `data-slot` | `alert-center-content` | On the expansion wrapper that owns the collapse animation. |
  * | `data-slot` | `alert-center-item alert` | On each row's banner chrome, joined ahead of `Alert.Root`'s own slot. |
  * | `data-state` | `"open"` \| `"closed"` | On the wrapper; drives the collapse transition. |
- * | `data-placement` | `"list"` | On each row's chrome — where that item's children are currently rendering. |
+ * | `data-placement` | `"list"` | On each row's chrome: where that item's children are currently rendering. |
  * | `data-alert-id` | the row item's `id` | On each row's chrome; per-alert styling and testing hook. |
- * | `data-alert-mount` | the row item's `id` | On the row's layout-transparent mount point — the element that item's host is adopted into. |
+ * | `data-alert-mount` | the row item's `id` | On the row's layout-transparent mount point: the element that item's host is adopted into. |
  *
  * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcentercontent
  *
@@ -1508,7 +1508,7 @@ type AlertCenterContentProps = Omit<ComponentProps<"div">, "children" | "id"> &
  *     <Alert.Icon />
  *     <Alert.Content>
  *       <Alert.Title>
- *         Payment failed — <a href="/billing">update your card</a>
+ *         Payment failed: <a href="/billing">update your card</a>
  *       </Alert.Title>
  *     </Alert.Content>
  *   </AlertCenter.Item>
@@ -1539,7 +1539,7 @@ const Content = ({
 	const hasRows = additionalAlerts.length > 0;
 
 	// Report the expansion surface to the Bar (which renders the expand control
-	// only while one is composed). Mount/unmount only — an empty Content is
+	// only while one is composed). Mount/unmount only: an empty Content is
 	// still composed.
 	useIsomorphicLayoutEffect(() => {
 		store.setContentMounted(true);
@@ -1550,7 +1550,7 @@ const Content = ({
 
 	// The open state describes a user gesture applied to a set of hidden alerts.
 	// Once that set EMPTIES, the expansion (and its control) unmount, so a stale
-	// `true` would silently re-open — pushing the shell down — the next time any
+	// `true` would silently re-open (pushing the shell down) the next time any
 	// lower-ranked alert arrives, with no user action. Only that transition
 	// retires the state: the first commit has no rows yet either (items register
 	// from their own layout effects, which run after this one), so collapsing
@@ -1565,11 +1565,11 @@ const Content = ({
 		}
 	}, [hasRows, isExpanded, setExpanded]);
 
-	// Dismissing a row removes the focused control with no blur — steer
+	// Dismissing a row removes the focused control with no blur. Steer
 	// keyboard focus to the first remaining dismiss control instead of letting
 	// it fall to <body>. When the LAST row goes (the wrapper unmounts with
-	// it), fall back to the bar's first trailing control — the top alert is
-	// still showing, so the dismissal flow continues there — and to the page's
+	// it), fall back to the bar's first trailing control (the top alert is
+	// still showing, so the dismissal flow continues there), and to the page's
 	// main landmark only when no bar control remains either.
 	const wrapperRef = useRef<HTMLDivElement | null>(null);
 	const composedRef = useComposedRefs(wrapperRef, ref);
@@ -1579,10 +1579,10 @@ const Content = ({
 	});
 	const rowIds = additionalAlerts.map((alert) => alert.id).join(" ");
 
-	// Adopt each additional alert's host into its row chrome — declared before
+	// Adopt each additional alert's host into its row chrome. It is declared before
 	// the focus redirect so it queries post-adoption DOM. Disjoint from the
 	// Bar's adoption (the rows take everything but the top id), idempotent per
-	// host, and keyed on the row set — expansion toggles keep rows mounted, so
+	// host, and keyed on the row set: expansion toggles keep rows mounted, so
 	// hosts never need re-adoption for open/close.
 	useIsomorphicLayoutEffect(() => {
 		const wrapper = wrapperRef.current;
@@ -1611,7 +1611,7 @@ const Content = ({
 		}
 		if (lastFocused.isConnected) {
 			// The control survived. If it also left the expansion, a promotion
-			// carried it into the bar — re-inserting its host drops focus with no
+			// carried it into the bar. Re-inserting its host drops focus with no
 			// blur, so put the user back on it. A control still inside the
 			// expansion that lost focus means the user deliberately moved on.
 			const currentWrapper = wrapperRef.current;
@@ -1625,12 +1625,12 @@ const Content = ({
 			}
 			return;
 		}
-		// The focused control was genuinely REMOVED by the dismissal — steer
+		// The focused control was genuinely REMOVED by the dismissal. Steer
 		// focus rather than letting it fall to <body>.
 		lastFocusedWithinRef.current = null;
 		// Prefer another row's dismiss control. Rows are not required to be
 		// dismissable (danger and hard-limit alerts generally are not), so when
-		// none remains — or the whole expansion went with the last row — continue
+		// none remains (or the whole expansion went with the last row), continue
 		// the flow at the bar, which is still showing, and land on the page's main
 		// content only when no control remains anywhere.
 		// Matched on `Alert`'s presence attributes rather than its `data-slot`
@@ -1669,12 +1669,12 @@ const Content = ({
 			id={contentId}
 			data-state={isExpanded ? "open" : "closed"}
 			className={cx(
-				// Slide the expansion open/closed by animating height 0 <-> auto — the
-				// same technique and 200ms/ease-out curve as `Accordion.Content`.
+				// Slide the expansion open/closed by animating height 0 <-> auto,
+				// with the same technique and 200ms/ease-out curve as `Accordion.Content`.
 				// `interpolate-size:allow-keywords` makes the `auto` keyword animatable
 				// (Chromium; other engines snap, a fine progressive enhancement) and
 				// `overflow-hidden` clips the rows mid-slide. When collapsed,
-				// `content-visibility:hidden` takes the rows — and their CTA links — out
+				// `content-visibility:hidden` takes the rows (and their CTA links) out
 				// of the tab order and a11y tree; `invisible` is the equivalent fallback
 				// for engines without content-visibility. Both transition discretely so
 				// the rows stay visible through the closing slide before they're skipped.
@@ -1712,7 +1712,7 @@ const Content = ({
 
 /**
  * A single, top-level entry point for one-to-many account alerts and their
- * upgrade CTAs — the aggregation layer that replaces a stack of independent
+ * upgrade CTAs: the aggregation layer that replaces a stack of independent
  * window banners. Alerts are AUTHORED as `AlertCenter.Item` JSX (mount to
  * show, unmount to dismiss); each item registers its coordination facts, and
  * the center derives the count, the top alert, and the severity ranking from
@@ -1731,7 +1731,7 @@ const Content = ({
  * children stay in the author's React tree (context providers and error
  * boundaries around an item work; router links resolve where the item is
  * written) while their DOM renders through a stable per-id host that the bar
- * and rows physically adopt — so content keeps its state across re-ranks.
+ * and rows physically adopt, so content keeps its state across re-ranks.
  *
  * Siblings: `Alert` (`@ngrok/mantle/alert`) is a single inline banner you place
  * and control yourself; `Toast` (`@ngrok/mantle/toast`) is for transient,
@@ -1773,7 +1773,7 @@ const Content = ({
  *         <Alert.Icon />
  *         <Alert.Content>
  *           <Alert.Title>
- *             Payment failed — we couldn't charge your card.{" "}
+ *             Payment failed: we couldn't charge your card.{" "}
  *             <a href="/billing">Update payment method</a>
  *           </Alert.Title>
  *           <Alert.Description>
@@ -1821,7 +1821,7 @@ const AlertCenter = {
 	 *     <Alert.Icon />
 	 *     <Alert.Content>
 	 *       <Alert.Title>
-	 *         Payment failed — we couldn't charge your card.{" "}
+	 *         Payment failed: we couldn't charge your card.{" "}
 	 *         <a href="/billing">Update payment method</a>
 	 *       </Alert.Title>
 	 *       <Alert.Description>
@@ -1859,10 +1859,10 @@ const AlertCenter = {
 	 * | `data-slot` | `alert-center-bar alert` | On the banner chrome the top item's children render inside, joined ahead of `Alert.Root`'s own slot. |
 	 * | `data-slot` | `alert-center-bar-mount` | On the layout-transparent element the top item's host is adopted into. |
 	 * | `data-state` | `"open"` \| `"closed"` | On the wrapper; drives the enter/exit transition, and stays `closed` while the exit plays. |
-	 * | `data-placement` | `"bar"` | On the chrome — where the top item's children are currently rendering. |
+	 * | `data-placement` | `"bar"` | On the chrome: where the top item's children are currently rendering. |
 	 * | `data-alert-id` | the top item's `id` | On the chrome; per-alert styling and testing hook. |
-	 * | `data-alert-dismiss` | present on the dismiss control | Read, not stamped — `Alert` emits it; the bar's CSS centers and offsets the control with it. |
-	 * | `data-alert-expand` | present on the expand control | Read, not stamped — `Alert` emits it; the bar's CSS centers the control with it. |
+	 * | `data-alert-dismiss` | present on the dismiss control | Read, not stamped. `Alert` emits it; the bar's CSS centers and offsets the control with it. |
+	 * | `data-alert-expand` | present on the expand control | Read, not stamped. `Alert` emits it; the bar's CSS centers the control with it. |
 	 *
 	 * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenterbar
 	 *
@@ -1875,7 +1875,7 @@ const AlertCenter = {
 	 *     <Alert.Icon />
 	 *     <Alert.Content>
 	 *       <Alert.Title>
-	 *         Payment failed — we couldn't charge your card.{" "}
+	 *         Payment failed: we couldn't charge your card.{" "}
 	 *         <a href="/billing">Update payment method</a>
 	 *       </Alert.Title>
 	 *       <Alert.Description>
@@ -1911,9 +1911,9 @@ const AlertCenter = {
 	 * | `data-slot` | `alert-center-content` | On the expansion wrapper that owns the collapse animation. |
 	 * | `data-slot` | `alert-center-item alert` | On each row's banner chrome, joined ahead of `Alert.Root`'s own slot. |
 	 * | `data-state` | `"open"` \| `"closed"` | On the wrapper; drives the collapse transition. |
-	 * | `data-placement` | `"list"` | On each row's chrome — where that item's children are currently rendering. |
+	 * | `data-placement` | `"list"` | On each row's chrome: where that item's children are currently rendering. |
 	 * | `data-alert-id` | the row item's `id` | On each row's chrome; per-alert styling and testing hook. |
-	 * | `data-alert-mount` | the row item's `id` | On the row's layout-transparent mount point — the element that item's host is adopted into. |
+	 * | `data-alert-mount` | the row item's `id` | On the row's layout-transparent mount point: the element that item's host is adopted into. |
 	 *
 	 * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcentercontent
 	 *
@@ -1926,7 +1926,7 @@ const AlertCenter = {
 	 *     <Alert.Icon />
 	 *     <Alert.Content>
 	 *       <Alert.Title>
-	 *         Payment failed — <a href="/billing">update your card</a>
+	 *         Payment failed: <a href="/billing">update your card</a>
 	 *       </Alert.Title>
 	 *     </Alert.Content>
 	 *   </AlertCenter.Item>
@@ -1946,7 +1946,7 @@ const AlertCenter = {
 	/**
 	 * One authored alert: registers its `{id, intent}` facts and renders its
 	 * children through a portal into a stable per-id host that the bar or an
-	 * expansion row adopts by rank — children stay in the author's React tree
+	 * expansion row adopts by rank. Children stay in the author's React tree
 	 * and keep their state across re-ranks. Mount to show; unmount to dismiss.
 	 *
 	 * `children` render inside a `<div data-slot="alert-center-item-label">`, so
@@ -1958,7 +1958,7 @@ const AlertCenter = {
 	 * | --- | --- | --- |
 	 * | `data-slot` | `alert-center-item-host` | On the stable per-id host element the item's children portal into. |
 	 * | `data-slot` | `alert-center-item-label` | On the layout-transparent element inside the host that wraps the item's children. |
-	 * | `data-alert-host` | the item's `id` | On that same host — which alert's projected children it holds. |
+	 * | `data-alert-host` | the item's `id` | On that same host: which alert's projected children it holds. |
 	 *
 	 * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenteritem
 	 *
@@ -1971,7 +1971,7 @@ const AlertCenter = {
 	 *     <Alert.Icon />
 	 *     <Alert.Content>
 	 *       <Alert.Title>
-	 *         Payment failed — <a href="/billing">update your card</a>
+	 *         Payment failed: <a href="/billing">update your card</a>
 	 *       </Alert.Title>
 	 *     </Alert.Content>
 	 *   </AlertCenter.Item>
@@ -1989,7 +1989,7 @@ const AlertCenter = {
 	 * | Data Attribute | Value | Description |
 	 * | --- | --- | --- |
 	 * | `data-slot` | `alert-center-dismiss-icon-button alert-dismiss-icon-button icon-button` | On the rendered button, joined ahead of `Alert.DismissIconButton`'s own slot and `IconButton`'s. |
-	 * | `data-alert-dismiss` | present | Read, not stamped — `Alert` emits it, and `AlertCenter`'s bar CSS positions the control with it. |
+	 * | `data-alert-dismiss` | present | Read, not stamped. `Alert` emits it, and `AlertCenter`'s bar CSS positions the control with it. |
 	 *
 	 * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenterdismissiconbutton
 	 *
