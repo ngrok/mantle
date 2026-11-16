@@ -363,9 +363,8 @@ type SheetContentProps = ComponentProps<typeof SheetPrimitiveContent> &
  * every user must reach inside the content.
  *
  * A script can show its own popup in a frame on `<body>`, above the sheet,
- * such as the 3-D Secure challenge of a payment script. While that popup
- * covers the center of the viewport and takes pointer input, the sheet
- * yields to it:
+ * such as the 3-D Secure challenge of a payment script. While that frame is
+ * on top at the center of the viewport, the sheet yields to the popup:
  *
  * - Focus that a script moves into the popup stays there.
  * - Escape moves focus into the popup and does not close the sheet.
@@ -1384,9 +1383,8 @@ const Sheet = {
 	 * every user must reach inside the content.
 	 *
 	 * A script can show its own popup in a frame on `<body>`, above the sheet,
-	 * such as the 3-D Secure challenge of a payment script. While that popup
-	 * covers the center of the viewport and takes pointer input, the sheet
-	 * yields to it:
+	 * such as the 3-D Secure challenge of a payment script. While that frame is
+	 * on top at the center of the viewport, the sheet yields to the popup:
 	 *
 	 * - Focus that a script moves into the popup stays there.
 	 * - Escape moves focus into the popup and does not close the sheet.

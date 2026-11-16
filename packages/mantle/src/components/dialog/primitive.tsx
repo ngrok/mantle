@@ -20,7 +20,6 @@ import { preventCloseOnPromptInteraction } from "../toast/prevent-close-on-promp
 import { parseBooleanish } from "../../types/booleanish.js";
 import {
 	getCoveringFrame,
-	isCoveringLayerPress,
 	LayerContainerContext,
 	useLayerContainer,
 	useRegisterOverlay,
@@ -155,7 +154,7 @@ const Content = ({
 			if (layerContainer != null && escapeBelongsToNestedPopup(layerContainer, event.target)) {
 				event.preventDefault();
 			}
-			yieldEscapeToCoveringLayer(event, contentElement);
+			yieldEscapeToCoveringFrame(event);
 			onEscapeKeyDown?.(event);
 			if (!event.defaultPrevented) {
 				rootState?.close();
@@ -168,17 +167,15 @@ const Content = ({
 			ref={composedRef}
 			onEscapeKeyDown={(event) => {
 				preventCloseOnNestedPopupEscape(event);
-				yieldEscapeToCoveringLayer(event, contentElement);
+				yieldEscapeToCoveringFrame(event);
 				onEscapeKeyDown?.(event);
 			}}
 			onInteractOutside={(event) => {
 				preventCloseOnPromptInteraction(event);
-				preventCloseOnCoveringLayerPress(event);
 				onInteractOutside?.(event);
 			}}
 			onPointerDownOutside={(event) => {
 				preventCloseOnPromptInteraction(event);
-				preventCloseOnCoveringLayerPress(event);
 				onPointerDownOutside?.(event);
 			}}
 			// Why no `aria-describedby` here: Radix sets it only while a `Description`
@@ -262,38 +259,25 @@ function preventCloseOnNestedPopupEscape(
 }
 
 /**
- * Gives an Escape to the layer that covers the parent dialog/sheet/alert-dialog,
+ * Gives an Escape to the frame that covers the parent dialog/sheet/alert-dialog,
  * such as a 3-D Secure challenge that a payment script puts on `<body>`. The
- * dialog stays open, and focus moves into the frame of the layer.
+ * dialog stays open, and focus moves into the frame.
  *
- * Why the dialog stays open: a dialog that closes under the layer leaves the
- * layer with no owner. A payment script then puts back the `<body>` styles it
+ * Why the dialog stays open: a dialog that closes under the frame leaves the
+ * frame with no owner. A payment script then puts back the `<body>` styles it
  * saved while the dialog was open, and the page stops taking clicks.
  *
  * Why the focus move: a key press reaches a frame only while focus is in it.
- * The next Escape then goes to the layer.
+ * The frame then takes the keyboard.
  */
-function yieldEscapeToCoveringLayer(event: Event, content: Element | null): void {
-	const frame = getCoveringFrame(content);
+function yieldEscapeToCoveringFrame(event: Event): void {
+	const frame = getCoveringFrame();
 	if (frame == null) {
 		return;
 	}
 	event.preventDefault();
 	// Why a timer: Firefox ignores a `focus()` call on a frame from a key listener.
 	setTimeout(() => frame.focus());
-}
-
-/**
- * Prevents the parent dialog/sheet/alert-dialog from closing on a press that
- * landed in the layer that covers it. The layer is part of the dialog, so the
- * press is not outside it.
- */
-function preventCloseOnCoveringLayerPress(
-	event: Parameters<NonNullable<DialogPrimitiveContentProps["onInteractOutside"]>>[0],
-): void {
-	if (isCoveringLayerPress(event.detail.originalEvent)) {
-		event.preventDefault();
-	}
 }
 
 /**

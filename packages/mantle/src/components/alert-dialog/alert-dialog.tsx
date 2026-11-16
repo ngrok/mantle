@@ -216,9 +216,9 @@ type AlertDialogContentProps = ComponentProps<typeof AlertDialogPrimitiveContent
  *
  * A script can show its own popup in a frame on `<body>`, above the alert
  * dialog, such as the 3-D Secure challenge of a payment script. While that
- * popup covers the center of the viewport and takes pointer input, the alert
- * dialog yields to it. Focus that a script moves into the popup stays there.
- * Escape moves focus into the popup and does not close the alert dialog.
+ * frame is on top at the center of the viewport, the alert dialog yields to
+ * the popup. Focus that a script moves into the popup stays there. Escape
+ * moves focus into the popup and does not close the alert dialog.
  *
  * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogcontent
  *
@@ -1171,9 +1171,9 @@ const AlertDialog = {
 	 *
 	 * A script can show its own popup in a frame on `<body>`, above the alert
 	 * dialog, such as the 3-D Secure challenge of a payment script. While that
-	 * popup covers the center of the viewport and takes pointer input, the alert
-	 * dialog yields to it. Focus that a script moves into the popup stays there.
-	 * Escape moves focus into the popup and does not close the alert dialog.
+	 * frame is on top at the center of the viewport, the alert dialog yields to
+	 * the popup. Focus that a script moves into the popup stays there. Escape
+	 * moves focus into the popup and does not close the alert dialog.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogcontent
 	 *
