@@ -171,8 +171,11 @@ export function TableOfContents({ entries }: { entries: Array<TocEntry> }) {
 									"focus-visible:before:rounded-md focus-visible:before:content-['']",
 									"focus-visible:before:ring-3 focus-visible:before:ring-inset focus-visible:before:ring-focus-accent",
 									entry.level <= 2 ? "pl-2.5" : "pl-5.5",
+									// Mark the active entry with color and the bar only. A heavier
+									// font weight widens the text, so a long entry wraps to one more
+									// line and the list below it moves during scroll.
 									activeId === entry.id
-										? "text-strong border-accent-500 font-medium"
+										? "text-strong border-accent-500"
 										: "text-muted border-transparent hover:text-strong hover:border-gray-400",
 								)}
 							>
