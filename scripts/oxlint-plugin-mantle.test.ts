@@ -239,6 +239,37 @@ describe("no-default-export", () => {
 	});
 });
 
+describe("no-em-dash-comment", () => {
+	it("reports an em dash in comment prose", () => {
+		const source =
+			"/**\n * The flush resets the cursor \u2014 and the queue.\n */\nexport const a = 1;\n// Keep it \u2014 always.\n";
+
+		expect(lint({ rule: "no-em-dash-comment", fileName: "a.ts", source })).toEqual([
+			"no-em-dash-comment",
+			"no-em-dash-comment",
+		]);
+	});
+
+	it("allows an em dash in example code, an inline code span, and a string", () => {
+		const source = [
+			"/**",
+			" * Names the `\u2014` character.",
+			" *",
+			" * @example",
+			' * show("a \u2014 b");',
+			" *",
+			" * ```ts",
+			" * // fenced \u2014 code",
+			" * ```",
+			" */",
+			'export const a = "\u2014";',
+			"",
+		].join("\n");
+
+		expect(lint({ rule: "no-em-dash-comment", fileName: "a.ts", source })).toEqual([]);
+	});
+});
+
 // One case each way for the rules ported from the frontend repo. The cases pin the mantle changes:
 // the render-prop exemption in `no-classname-construction` and the reason clause.
 describe.each([

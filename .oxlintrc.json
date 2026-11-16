@@ -34,6 +34,7 @@
     "mantle/no-boolean-positional-param": "error",
     "mantle/no-classname-construction": "error",
     "mantle/no-clsx-classnames": "error",
+    "mantle/no-em-dash-comment": "error",
     "mantle/no-jsx-null-ternary": "error",
     "mantle/no-react-hooks-suppression": "error",
     "mantle/prefer-can-use-dom": "error",

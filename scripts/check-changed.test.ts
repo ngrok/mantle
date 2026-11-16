@@ -14,16 +14,18 @@ describe("planChecks", () => {
 		expect(stepNames(["decisions/2026-07-04-list-family-api-design.md"])).toEqual([
 			"fmt",
 			"doc links",
+			"prose",
 		]);
 	});
 
 	it("checks the budget when an agent doc changes", () => {
-		expect(stepNames(["packages/AGENTS.md"])).toEqual(["fmt", "agent docs", "doc links"]);
+		expect(stepNames(["packages/AGENTS.md"])).toEqual(["fmt", "agent docs", "doc links", "prose"]);
 	});
 
 	it("typechecks and tests a changed docs page, which the www suite reads", () => {
 		expect(stepNames(["apps/www/app/docs/components/button.mdx"])).toEqual([
 			"fmt",
+			"prose",
 			"typecheck",
 			"test",
 		]);
@@ -76,7 +78,12 @@ describe("planChecks", () => {
 	});
 
 	it("runs the root script tasks for a changeset-only change", () => {
-		expect(stepNames([".changeset/new-feature.md"])).toEqual(["fmt", "doc links", "scripts"]);
+		expect(stepNames([".changeset/new-feature.md"])).toEqual([
+			"fmt",
+			"doc links",
+			"prose",
+			"scripts",
+		]);
 	});
 
 	it("runs the root script tasks beside the package checks for a script change", () => {
@@ -150,6 +157,11 @@ describe("planChecks", () => {
 				name: "doc links",
 				command: "node",
 				args: ["./scripts/check-doc-links.ts", "README.md"],
+			},
+			{
+				name: "prose",
+				command: "node",
+				args: ["./scripts/check-prose.ts", "README.md"],
 			},
 			{
 				name: "typecheck",

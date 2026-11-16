@@ -8,6 +8,7 @@
     "check:agent-docs": "node ./scripts/check-agent-docs.ts",
     "check:changed": "node ./scripts/check-changed.ts",
     "check:doc-links": "node ./scripts/check-doc-links.ts",
+    "check:prose": "node ./scripts/check-prose.ts",
     "start": "turbo run start",
     "serve": "turbo run serve",
     "clean": "turbo run clean",
