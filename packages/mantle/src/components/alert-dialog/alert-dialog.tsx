@@ -214,11 +214,11 @@ type AlertDialogContentProps = ComponentProps<typeof AlertDialogPrimitiveContent
  * focus and hides outside content from assistive technology. Put a control that
  * every user must reach inside the content.
  *
- * A widget in the alert dialog can put its own popup on `<body>`, such as the
- * 3-D Secure challenge of a payment script. While that popup covers the
- * center of the viewport and takes pointer input, it is part of the alert
- * dialog. Focus that a script moves into the popup stays there, and Escape
- * does not close the alert dialog under the popup.
+ * A script can show its own popup in a frame on `<body>`, above the alert
+ * dialog, such as the 3-D Secure challenge of a payment script. While that
+ * popup covers the center of the viewport and takes pointer input, the alert
+ * dialog yields to it. Focus that a script moves into the popup stays there.
+ * Escape moves focus into the popup and does not close the alert dialog.
  *
  * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogcontent
  *
@@ -1169,11 +1169,11 @@ const AlertDialog = {
 	 * focus and hides outside content from assistive technology. Put a control that
 	 * every user must reach inside the content.
 	 *
-	 * A widget in the alert dialog can put its own popup on `<body>`, such as the
-	 * 3-D Secure challenge of a payment script. While that popup covers the
-	 * center of the viewport and takes pointer input, it is part of the alert
-	 * dialog. Focus that a script moves into the popup stays there, and Escape
-	 * does not close the alert dialog under the popup.
+	 * A script can show its own popup in a frame on `<body>`, above the alert
+	 * dialog, such as the 3-D Secure challenge of a payment script. While that
+	 * popup covers the center of the viewport and takes pointer input, the alert
+	 * dialog yields to it. Focus that a script moves into the popup stays there.
+	 * Escape moves focus into the popup and does not close the alert dialog.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/alert-dialog#alertdialogcontent
 	 *

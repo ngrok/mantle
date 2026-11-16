@@ -1,6 +1,6 @@
 "use client";
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { useState } from "react";
 import { afterAll, beforeAll, describe, expect, onTestFinished, test } from "vitest";
@@ -420,6 +420,21 @@ describe("a layer that covers an overlay", () => {
 		});
 	});
 
+	test("Escape from the sheet moves focus into the frame", async () => {
+		// A key press reaches a frame only while focus is in it, so the sheet
+		// sends the keyboard there. The focus trap must not take focus back.
+		const user = userEvent.setup();
+		renderSheet();
+		const { frame } = await showPaymentPopup();
+
+		await user.keyboard("{Escape}");
+
+		await waitFor(() => {
+			expect(frame).toHaveFocus();
+		});
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+	});
+
 	test("focus that a page script moves into the frame stays there", async () => {
 		// Regression (MNTL-136): a wallet popup calls `focus()` on its frame when
 		// it opens, and the focus trap of the sheet took focus back.
@@ -430,6 +445,54 @@ describe("a layer that covers an overlay", () => {
 		frame.focus();
 
 		expect(frame).toHaveFocus();
+	});
+
+	test("focus into the frame leaves open a popover that holds the sheet", async () => {
+		// Regression: a popover closes when focus leaves it, and it unmounts the
+		// sheet with it. Its listener is on the document before the sheet opens.
+		const user = userEvent.setup();
+		render(
+			<Popover.Root defaultOpen>
+				<Popover.Trigger>Billing</Popover.Trigger>
+				<Popover.Content>
+					<Sheet.Root>
+						<Sheet.Trigger>Add card</Sheet.Trigger>
+						<Sheet.Content>
+							<Sheet.Header>
+								<Sheet.TitleGroup>
+									<Sheet.Title>Payment method</Sheet.Title>
+								</Sheet.TitleGroup>
+							</Sheet.Header>
+							<Sheet.Body>
+								<button type="button">Save</button>
+							</Sheet.Body>
+						</Sheet.Content>
+					</Sheet.Root>
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		await user.click(screen.getByRole("button", { name: "Add card" }));
+		screen.getByRole("button", { name: "Save" }).focus();
+		const { frame } = await showPaymentPopup();
+
+		// Why `act`: a popover that closes on the focus move unmounts in the next render.
+		act(() => frame.focus());
+
+		expect(frame).toHaveFocus();
+		expect(screen.getByRole("dialog", { name: "Payment method" })).toBeInTheDocument();
+	});
+
+	test("focus into a frame that was on the page first shows the frame to assistive technology", async () => {
+		// Radix hides from assistive technology each child of `<body>` that is on
+		// the page as the sheet opens. A wallet popup stays there between uses.
+		const { frame, popup } = await showPaymentPopup();
+		renderSheet();
+		expect(popup).toHaveAttribute("aria-hidden", "true");
+		screen.getByRole("button", { name: "Save" }).focus();
+
+		frame.focus();
+
+		expect(popup).not.toHaveAttribute("aria-hidden");
 	});
 
 	test("a frame that sets no pointer-events of its own does not cover the sheet", async () => {
