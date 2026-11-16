@@ -2,4 +2,4 @@
 "@ngrok/mantle": patch
 ---
 
-Escape now closes the `Dialog`, `AlertDialog`, or `Sheet` that has focus when a float outside it opened later. Before, Escape closed that float out of sight under the overlay, and the overlay stayed open. The float now stays open. This applies to `Popover`, `DropdownMenu`, `Select`, `HoverCard`, and `Tooltip`. A consumer's `onEscapeKeyDown` on the overlay content still runs first and can keep the overlay open.
+A `Popover`, `DropdownMenu`, `Select`, `HoverCard`, or `Tooltip` outside a `Dialog`, `AlertDialog`, or `Sheet` paints under that overlay when it opens after the overlay. Escape from the overlay's content now closes the overlay, and the float stays open. Before, Escape closed the hidden float, and the overlay stayed open. A `Popover` that opens under an overlay also no longer moves focus out of the overlay. The overlay content's `onEscapeKeyDown` still runs first and can keep the overlay open.
