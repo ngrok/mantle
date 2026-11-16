@@ -34,7 +34,7 @@ describe("readCookie", () => {
 		expect(readCookie("greeting=hello%20world", "greeting")).toBe("hello world");
 	});
 
-	test("keeps the whole value when it contains '=' — not just the first segment", () => {
+	test("keeps the whole value when it contains '=', not just the first segment", () => {
 		// Regression: `pair.split("=")[1]` truncated a value at its first `=`,
 		// which silently corrupts base64 padding.
 		expect(readCookie("token=YWJjZA==", "token")).toBe("YWJjZA==");
@@ -42,7 +42,7 @@ describe("readCookie", () => {
 
 	test("returns undefined rather than throwing on a malformed percent-escape", () => {
 		// Regression: decodeURIComponent raises URIError("URI malformed") here, and
-		// a cookie header is client-controlled — any client can send this. Before
+		// a cookie header is client-controlled: any client can send this. Before
 		// the shared helper it crashed the SSR render on every page load.
 		expect(readCookie("mantle-theme=%E0%A4%A", "mantle-theme")).toBeUndefined();
 	});

@@ -103,7 +103,7 @@ The example below is a fully-clickable row: the row's own `<label>` (sharing the
 Choice.Root
 ├── Choice.Indicator
 └── Choice.Content
-    ├── Choice.Label        (or Choice.Title — pick one)
+    ├── Choice.Label        (or Choice.Title, pick one)
     └── Choice.Description
 ```
 
@@ -161,8 +161,8 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | Prop        | Type      | Default | Description                                                                                            |
 | ----------- | --------- | ------- | ------------------------------------------------------------------------------------------------------ |
 | `disabled?` | `boolean` | `false` | Marks the choice disabled: dims the title/description and is injected onto the control.                |
-| `id?`       | `string`  | —       | Explicit control id. Defaults to a generated id, or the surrounding `Field`'s id when composed in one. |
-| `name?`     | `string`  | —       | Form value name injected onto the control. Inherited from `Field` when composed within one.            |
+| `id?`       | `string`  |         | Explicit control id. Defaults to a generated id, or the surrounding `Field`'s id when composed in one. |
+| `name?`     | `string`  |         | Form value name injected onto the control. Inherited from `Field` when composed within one.            |
 
 ### Choice.Indicator
 

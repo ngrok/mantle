@@ -25,7 +25,7 @@ Measured against the whole history: 392 patches, 93 minors, and **zero majors, e
 
 Start at `patch`. Move to `minor` only when a row below says so.
 
-### `minor` — existing API breaks, disappears, or a whole component arrives
+### `minor`: existing API breaks, disappears, or a whole component arrives
 
 | Change                                            | Example from history                                     |
 | ------------------------------------------------- | -------------------------------------------------------- |
@@ -40,7 +40,7 @@ Start at `patch`. Move to `minor` only when a row below says so.
 A new top-level component is the one additive change that takes a `minor`. It is a new entry point, a new
 docs page, and a new subpath export, so consumers want it called out. Everything else additive is a `patch`.
 
-### `patch` — everything else
+### `patch`: everything else
 
 | Change                                                    | Example from history                             |
 | --------------------------------------------------------- | ------------------------------------------------ |
@@ -67,7 +67,7 @@ Only the three published packages:
 
 `@app/*` and `@cfg/*` are private and sit in the `ignore` list in `.changeset/config.json`. A docs-site-only
 change needs no changeset at all. When one PR touches two published packages, write one changeset per
-package — a component that a Vite plugin must also know about takes two.
+package. A component that a Vite plugin must also know about takes two.
 
 ## How many changesets
 
@@ -75,7 +75,7 @@ One per logical change, not one per PR. A PR that fixes three separate defects s
 each becomes its own changelog bullet for the consumer who only cares about one of them. Four in a single
 chart PR is normal.
 
-Name the file for the change in kebab-case — `chart-series-slot.md`, `mute-breadcrumb-page.md`. Do not keep
+Name the file for the change in kebab-case: `chart-series-slot.md`, `mute-breadcrumb-page.md`. Do not keep
 the three-word name `pnpm -w run changeset` generates.
 
 ## What goes in the body
@@ -98,4 +98,4 @@ when every step is semantic. A `minor` for a new component or a preview promotio
 ## When the bump is genuinely unclear
 
 Ask the maintainer, or pick `patch` and say so in the PR. Do not open a debate in the PR description, and do
-not "correct" a bump a maintainer has already set — this file is their decision, written down.
+not "correct" a bump a maintainer has already set: this file is their decision, written down.

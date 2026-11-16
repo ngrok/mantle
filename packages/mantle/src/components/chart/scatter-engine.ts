@@ -14,7 +14,7 @@ import type { PointShape, SeriesSpec } from "./types.js";
  * `zKey` mounts (see {@link preloadScatter3d}), so a 2D scatter plot never
  * loads them.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation. The package does not export it.
  */
 
 /** A linear map from data to CSS pixels: `pixel = value * k + b`. */

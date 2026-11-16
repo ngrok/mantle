@@ -39,7 +39,7 @@ describe("Code", () => {
 
 	test('a call site can opt back in with translate="yes"', () => {
 		// `Code` also styles terms that are not code, so the default is overridable
-		// here — unlike `Kbd`, where a key is never translatable.
+		// here, unlike `Kbd`, where a key is never translatable.
 		render(
 			<Code data-testid="code" translate="yes">
 				dashboard

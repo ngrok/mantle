@@ -6,10 +6,10 @@ import { canonicalOrigin } from "~/utilities/canonical-origin";
 
 /**
  * One change entry inside a published version. Mirrors the line shape
- * `@changesets/cli` emits — the only producer of `CHANGELOG.md` here.
+ * `@changesets/cli` emits, the only producer of `CHANGELOG.md` here.
  */
 export type ChangelogChange = {
-	/** Bump category — inferred from the parent `### {Bump} Changes` heading. */
+	/** Bump category, inferred from the parent `### {Bump} Changes` heading. */
 	bump: "major" | "minor" | "patch";
 	/** Markdown body the changeset author wrote, with the metadata preamble trimmed off. */
 	summary: string;
@@ -62,7 +62,7 @@ function bumpFromHeading(heading: string): ChangelogChange["bump"] | null {
  * Only operates at the start of the body, so prose that happens to
  * mention `Thanks` or `[@someone]` mid-sentence isn't mangled.
  *
- * Exported for unit tests — callers should use {@link buildChangelog}.
+ * Exported for unit tests; callers should use {@link buildChangelog}.
  */
 export function parseChangeBody(
 	raw: string,
@@ -99,14 +99,14 @@ export function parseChangeBody(
  * Walk the line stream and emit one entry per top-level `- ` bullet
  * under a `### {Bump} Changes` heading. Continuation lines (two-space
  * indents and blank paragraph separators) fold into the prior bullet so
- * multi-paragraph changeset bodies — including before/after code blocks
- * — survive intact.
+ * multi-paragraph changeset bodies (including before/after code blocks)
+ * survive intact.
  *
  * Inside a fenced code block, every line is treated as content. Without
  * this, a snippet that starts with `- ` or `## ` would be mistaken for a
  * new bullet or version heading.
  *
- * Exported for unit tests — callers should use {@link buildChangelog}.
+ * Exported for unit tests; callers should use {@link buildChangelog}.
  */
 export function parseVersions(source: string): ChangelogVersion[] {
 	const lines = source.split("\n");
@@ -183,7 +183,7 @@ export function parseVersions(source: string): ChangelogVersion[] {
 let cached: Changelog | null = null;
 /**
  * Parse `packages/mantle/CHANGELOG.md` into a structured shape suitable
- * for `/api/changelog.json`. Cached for the process lifetime — the file
+ * for `/api/changelog.json`. Cached for the process lifetime: the file
  * is regenerated at release time, well outside the request path.
  */
 export async function buildChangelog(): Promise<Changelog> {

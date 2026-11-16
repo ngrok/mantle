@@ -6,7 +6,7 @@
  * any object without asserting a shape, and the declared `unknown` return
  * keeps every caller narrowing intentionally.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation. The package does not export it.
  */
 
 /**
@@ -71,7 +71,7 @@ const missingKeyMessage = (
 
 /** The message for x values none of which read as the scale's type. */
 const uncoercibleXMessage = (rootName: string, xKey: string, xScale: string): string =>
-	`${rootName} could not read any "${xKey}" values as ${xScale === "time" ? "dates" : "numbers"} for the "${xScale}" x scale — check the xScale and the data types.`;
+	`${rootName} could not read any "${xKey}" values as ${xScale === "time" ? "dates" : "numbers"} for the "${xScale}" x scale. Check the xScale and the data types.`;
 
 type ChartKeys = {
 	/** The Root's display name in a message, such as `BarChart.Root`. */

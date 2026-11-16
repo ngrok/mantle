@@ -1,5 +1,5 @@
 # ============================================================
-# Dockerfile.dockerignore — scoped to apps/www/Dockerfile
+# Dockerfile.dockerignore: scoped to apps/www/Dockerfile
 # Paths are relative to the repo root (the build context).
 # This file takes precedence over the root .dockerignore when
 # building with: docker build -f apps/www/Dockerfile .
@@ -17,7 +17,7 @@
 # TypeScript incremental build info
 **/*.tsbuildinfo
 
-# Exclude source dirs from all apps — pnpm only needs their package.json
+# Exclude source dirs from all apps: pnpm only needs their package.json
 # for workspace resolution, not source or static assets.
 # Glob patterns mean new apps are covered automatically without editing this file.
 apps/*/app
@@ -26,23 +26,23 @@ apps/*/public
 apps/*/scripts
 apps/*/vite-plugins
 
-# Re-include www source — it's the app this Dockerfile builds. Its local
+# Re-include www source: it's the app this Dockerfile builds. Its local
 # vite-plugins are imported by apps/www/vite.config.ts, so the build needs them.
 !apps/www/app
 !apps/www/public
 !apps/www/vite-plugins
 
-# Env files — never ship local env into the build context. The www build reads
+# Env files: never ship local env into the build context. The www build reads
 # no build-time secrets; runtime env is supplied to the container by the
 # platform. Ignoring every `.env*` (including `.env.production`) keeps local
 # secrets out of build layers and the build cache.
 **/.env
 **/.env.*
 
-# Version control — large and unused by the build; keep it out of the context
+# Version control: large and unused by the build; keep it out of the context
 .git
 
-# Dev tool config — not needed inside the build container
+# Dev tool config: not needed inside the build container
 .claude
 .editorconfig
 .gitattributes

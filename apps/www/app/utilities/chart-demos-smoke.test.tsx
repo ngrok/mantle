@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
  * Every chart docs-page demo mounts without throwing.
  *
  * `pnpm build` compiles the pages and the surface-drift test reads their
- * frontmatter, but neither renders a demo — so a page can ship an example that
+ * frontmatter, but neither renders a demo, so a page can ship an example that
  * type-checks and then throws on a reader's first paint. This mounts each one and
  * checks the engine reached its paint surface: an SVG, or a canvas for a
  * scatter plot.
@@ -26,7 +26,7 @@ const chartPages = import.meta.glob<Record<string, unknown>>(
 /** Narrows a page export to a renderable demo. */
 const isDemo = (value: unknown): value is () => ReactNode => typeof value === "function";
 
-/** The page's demo components — by convention every `*Example` export. */
+/** The page's demo components: by convention every `*Example` export. */
 const demosOf = (page: Record<string, unknown>): Array<[string, () => ReactNode]> =>
 	Object.entries(page).flatMap(([name, value]) =>
 		name.endsWith("Example") && isDemo(value) ? [[name, value]] : [],

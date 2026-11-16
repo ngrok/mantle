@@ -9,7 +9,7 @@ import { Tabs } from "./tabs.js";
 describe("Tabs", () => {
 	describe("Root", () => {
 		// data-appearance is a public styling hook (SSR-friendly alternative to
-		// reading context) — consumer CSS like [data-appearance="pill"] relies on it.
+		// reading context). Consumer CSS like [data-appearance="pill"] relies on it.
 		test.each(["classic", "pill"] as const)(
 			"renders data-appearance=%s for appearance-scoped styling",
 			(appearance) => {
@@ -716,7 +716,7 @@ describe("Tabs", () => {
 			// tailwind-merge override contract. Moving the default off the `[&>svg]`
 			// variant prefix puts it in a different conflict group, so a consumer's
 			// `[&>svg]:size-4` survives instead of replacing the default. Both classes
-			// have to reach the DOM, and the consumer's now matches nothing — which is
+			// have to reach the DOM, and the consumer's now matches nothing. That is
 			// the migration the changeset names.
 			render(
 				<Tabs.Root orientation="horizontal" defaultValue="a">
@@ -735,7 +735,7 @@ describe("Tabs", () => {
 
 		test("lets the matching slot-scoped override replace the default", () => {
 			// The migration the changeset recommends. Same variant prefix, so
-			// tailwind-merge drops the default instead of shipping both — which is
+			// tailwind-merge drops the default instead of shipping both. That is
 			// what a `[&_svg]` override cannot do, because it also loses on
 			// specificity to the trigger's extra attribute selector.
 			render(

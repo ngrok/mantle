@@ -348,17 +348,17 @@ The [pagination recipe](#pagination-controls) puts these together.
 Common mistakes. The left column is what not to do; the right column is the fix.
 
 ```tsx
-// ❌ Raw <td> — misses mantle styling
+// ❌ Raw <td> misses mantle styling
 cell: (props) => <td>{props.getValue()}</td>,
 // ✅
 cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 
-// ❌ Manual cursor-pointer — redundant, can desync from behavior
+// ❌ Manual cursor-pointer is redundant and can desync from behavior
 <DataTable.Row className="cursor-pointer" onClick={handle} row={row} />
 // ✅
 <DataTable.Row onClick={handle} row={row} />
 
-// ❌ Plain button for a sortable header — no icon, no ARIA
+// ❌ Plain button for a sortable header: no icon, no ARIA
 header: () => <button onClick={() => column.toggleSorting()}>Name</button>,
 // ✅
 header: (props) => (
@@ -369,7 +369,7 @@ header: (props) => (
 	</DataTable.Header>
 ),
 
-// ❌ Bare link in a clickable row — the link click also runs the row onClick
+// ❌ Bare link in a clickable row: the link click also runs the row onClick
 <DataTable.Cell>
 	<Link to={href("/payments/:id", { id: row.original.id })}>{row.original.id}</Link>
 </DataTable.Cell>
@@ -380,12 +380,12 @@ header: (props) => (
 	</SandboxedOnClick>
 </DataTable.Cell>
 
-// ❌ tabIndex or a widget role on the row — a focusable link inside a role="button" is nested interactive content
+// ❌ tabIndex or a widget role on the row: a focusable link inside a role="button" is nested interactive content
 <DataTable.Row tabIndex={0} role="button" onClick={navigate} row={row} />
 // ✅ Keep role="row"; the link inside the primary cell is the keyboard path
 <DataTable.Row onClick={navigate} row={row} />
 
-// ❌ Empty state returns null — collapses the table frame
+// ❌ Empty state returns null and collapses the table frame
 <DataTable.Body>{rows.map((row) => <DataTable.Row key={row.id} row={row} />)}</DataTable.Body>
 // ✅ Use DataTable.EmptyRow
 <DataTable.Body>
@@ -692,7 +692,7 @@ columnHelper.accessor("status", {
 	},
 }),
 
-// Right-aligned numeric — the header button also needs justify-end + iconPlacement="start"
+// Right-aligned numeric: the header button also needs justify-end + iconPlacement="start"
 // so the sort affordance stays visually paired with the label
 columnHelper.accessor("amount", {
 	id: "amount",

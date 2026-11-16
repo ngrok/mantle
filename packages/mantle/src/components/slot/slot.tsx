@@ -14,7 +14,7 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 
 /**
  * A `className` or `style` the child resolves itself, from state only the child
- * knows — react-router's `NavLink` calls it with
+ * knows: react-router's `NavLink` calls it with
  * `{ isActive, isPending, isTransitioning }`, another component with something else
  * entirely. `Slot` never invents arguments for one and never inspects them; it
  * forwards the ones the child supplied, so they are typed `unknown`.
@@ -74,8 +74,8 @@ function composeClassName(
 }
 
 /**
- * Composes the slot's `style` with the child's, letting the child win per property —
- * the same precedence {@link composeClassName} uses. A lone side is returned as-is
+ * Composes the slot's `style` with the child's, letting the child win per property,
+ * with the same precedence {@link composeClassName} uses. A lone side is returned as-is
  * rather than copied, so a stable `style` object keeps its identity across renders.
  */
 function composeStyle(
@@ -102,8 +102,8 @@ function composeStyle(
  * chain first, then the child's own) so `asChild` composition accumulates the
  * whole slot chain instead of one side clobbering the other.
  *
- * A child that resolves its own `className` or `style` from state only it knows —
- * react-router's `NavLink`, whose `className` may be `({ isActive }) => …` — keeps
+ * A child that resolves its own `className` or `style` from state only it knows
+ * (react-router's `NavLink`, whose `className` may be `({ isActive }) => …`) keeps
  * that behavior: the merge composes a function of the same shape, which forwards
  * the child's arguments to the child's function and merges the resolved value with
  * the slot's classes or style. `Slot` never calls it, so it needs to know nothing
@@ -154,8 +154,8 @@ const Slot = ({ children, className, "data-slot": dataSlot, ref, style, ...props
 			 * The child is rebuilt without the composed props rather than cloned with
 			 * them, because a composed value may be a function. Radix's `mergeProps`
 			 * (`@radix-ui/react-slot` 1.3.3) walks the child's own prop keys and rewrites
-			 * `className` with `join(" ")` and `style` with an object spread — which
-			 * stringifies one function and empties the other — while it forwards a slot
+			 * `className` with `join(" ")` and `style` with an object spread (which
+			 * stringifies one function and empties the other), while it forwards a slot
 			 * prop the child does not declare untouched. Withholding the props from the
 			 * child is what lets a render prop reach the element that calls it, and the
 			 * render-prop tests pin that contract against a Radix upgrade.

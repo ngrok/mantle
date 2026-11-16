@@ -13,7 +13,7 @@ import { BAR_DENSE_THICKNESS, BAR_MAX_THICKNESS } from "./bar-geometry.js";
  * the engine measures, which happy-dom has no real geometry for.
  *
  * Each test measures the widest run of series ink across the ink-heaviest row of
- * the canvas — one bar, in CSS pixels — and asserts against the shipped
+ * the canvas (one bar, in CSS pixels) and asserts against the shipped
  * constants rather than a re-derived number.
  */
 const STYLE = `
@@ -158,7 +158,7 @@ describe("bar thickness on the painted canvas", () => {
 	});
 
 	test("two categories stop at the ceiling instead of painting panels", async () => {
-		// Half a 600px plot each, unclamped — the case the ceiling exists for.
+		// Half a 600px plot each, unclamped: the case the ceiling exists for.
 		const measured = await measure(seriesOf(2));
 		expect(measured).toBeGreaterThan(BAR_MAX_THICKNESS - 2);
 		expect(measured).toBeLessThanOrEqual(BAR_MAX_THICKNESS + 1);

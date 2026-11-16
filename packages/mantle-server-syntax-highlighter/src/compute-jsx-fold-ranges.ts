@@ -8,8 +8,8 @@ import { buildLineOffsets, offsetToLine } from "./line-offsets.js";
  * Loads `oxc-parser` lazily on first use. Eager `import` of oxc-parser runs
  * its napi-rs bootstrap (`bindings.js`), which `throw`s synchronously when the
  * platform-specific native binding (`@oxc-parser/binding-*`) isn't resolvable
- * — common on serverless hosts that ship the bundled JS without the binding
- * package alongside it. A throw at module-eval time would propagate through
+ * (common on serverless hosts that ship the bundled JS without the binding
+ * package alongside it). A throw at module-eval time would propagate through
  * the entire server bundle's import graph and 500 every route, not just
  * JSX/TSX folding. Deferring the load until folding runs lets this strategy
  * convert the failure into a cached "no folds" fallback while keeping every
@@ -56,9 +56,9 @@ const loadOxcParser = createOxcParserLoader(() => requireOxc("oxc-parser") as Ox
  * - JSX elements (`<Foo>…</Foo>`, fragments, members like `<obj.Foo>`).
  * - Template literals that span multiple lines (including tagged templates).
  *
- * It also keeps every fold the bracket strategy used to give us — block
+ * It also keeps every fold the bracket strategy used to give us (block
  * statements, object literals, array literals, class/interface bodies, switch
- * statements — without the per-character scope-walk cost.
+ * statements) without the per-character scope-walk cost.
  *
  * @see https://github.com/microsoft/vscode/blob/main/extensions/typescript-language-features/src/languageFeatures/folding.ts
  */
@@ -86,7 +86,7 @@ function oxcLangFor(language: JsxFoldLanguage): "jsx" | "ts" | "tsx" {
 	}
 }
 
-/** Minimal AST node shape — every oxc node carries `type`, `start`, `end`. */
+/** Minimal AST node shape: every oxc node carries `type`, `start`, `end`. */
 type AstNode = {
 	type: string;
 	start: number;
@@ -113,12 +113,12 @@ function isAstNode(value: unknown): value is AstNode {
  * when they span multiple lines.
  *
  * Curated to match VS Code's TypeScript folder:
- * - Block-like statement bodies — covers function/method bodies, class bodies,
+ * - Block-like statement bodies: covers function/method bodies, class bodies,
  *   `if`/`for`/`while` blocks, modules, namespaces.
- * - Object & array literals — covers JSON-shaped data and JSX style props.
- * - JSX elements & fragments — open/close tags fold like HTML.
- * - Template literals — fold multi-line backtick strings (including tagged).
- * - Switch statements — VS Code folds the whole `switch (…) { … }`, not each case.
+ * - Object & array literals: covers JSON-shaped data and JSX style props.
+ * - JSX elements & fragments: open/close tags fold like HTML.
+ * - Template literals: fold multi-line backtick strings (including tagged).
+ * - Switch statements: VS Code folds the whole `switch (…) { … }`, not each case.
  */
 const FOLDABLE_NODE_TYPES = new Set<string>([
 	"BlockStatement",
@@ -192,7 +192,7 @@ const SYNTHETIC_FILENAME = "__mantle_fold__";
 /**
  * Pushes a {@link FoldableRange} for the source span `[startOffset, endOffset]`
  * (inclusive) when it crosses a line boundary. Single-line spans contribute
- * nothing — there's nothing to fold.
+ * nothing: there's nothing to fold.
  */
 function pushRange({
 	ranges,
@@ -214,7 +214,7 @@ function pushRange({
 
 /**
  * Computes foldable ranges for a JS/TS/JSX/TSX source string by parsing it
- * with `oxc-parser` and walking the AST. Errors are tolerated — a partial AST
+ * with `oxc-parser` and walking the AST. Errors are tolerated: a partial AST
  * still produces useful folds.
  *
  * @example
@@ -256,7 +256,7 @@ function computeJsxFoldRanges({
 			const opening = jsxOpeningElement(node);
 			const isSelfClosing = opening != null && isSelfClosingOpening(opening);
 			if (isSelfClosing) {
-				// Self-closing tags fold the open-tag span only — there's no
+				// Self-closing tags fold the open-tag span only; there's no
 				// body. Diverges from VS Code's stock TS folder, which doesn't
 				// fold these at all, but matches what JSX authors actually want
 				// for long attribute lists across multiple lines.
@@ -272,7 +272,7 @@ function computeJsxFoldRanges({
 			}
 			// Non-self-closing: fold the whole element AND any multi-line
 			// opening tag's attribute list. After dedup, when both share an
-			// opener line, the larger element fold wins — but the open-tag
+			// opener line, the larger element fold wins, but the open-tag
 			// fold survives when it has its own opener line offset.
 			pushRange({ ranges, lineOffsets, startOffset: node.start, endOffset: node.end - 1 });
 			if (opening != null) {

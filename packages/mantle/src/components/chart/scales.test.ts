@@ -198,7 +198,7 @@ describe("linearTicks", () => {
 });
 
 describe("linearTicks with the integer option", () => {
-	// Regression: MNTL-56 — a small integer-count domain used to grow fractional
+	// Regression: MNTL-56. A small integer-count domain used to grow fractional
 	// ticks ("0.5 requests") because the 1/2/5 solver steps below 1.
 	test("a small integer domain steps by whole numbers instead of fractions", () => {
 		expect(linearTicks([0, 3], 5, { integer: true })).toEqual([0, 1, 2, 3]);

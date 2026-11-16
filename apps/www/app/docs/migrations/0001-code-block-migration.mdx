@@ -209,7 +209,7 @@ mantleCode("typescript", {
 	showLineNumbers: true,
 	highlightLines: [1, "3-5"],
 	lineNumberStart: 10,
-	indentation: "spaces", // or "tabs" — overrides language default
+	indentation: "spaces", // or "tabs"; overrides language default
 })`const x = 1;`;
 ```
 
@@ -541,7 +541,7 @@ function DynamicCodeBlock({ code, language }: { code: string; language: string }
 	const value = createMantleCodeBlockValue({
 		code,
 		language,
-		// preHtml is omitted — renders as plain text
+		// preHtml is omitted, so it renders as plain text
 	});
 
 	return (
@@ -653,23 +653,23 @@ As of this release, `@ngrok/mantle` requires `react@^19` and `react-dom@^19`.
 
 ```tsx
 <CodeBlock.Root>
-	{/* Container — manages context, applies base styles */}
+	{/* Container: manages context, applies base styles */}
 	<CodeBlock.Header>
-		{/* Optional — header bar with icon and title */}
+		{/* Optional: header bar with icon and title */}
 		<CodeBlock.Icon /> {/* preset="file" | "cli" | "traffic-policy", or svg={<CustomIcon />} */}
 		<CodeBlock.Title /> {/* Renders <h3> by default, supports asChild */}
 		<CodeBlock.TabList>
-			{/* Optional — pill-styled tabs in header (Radix-based) */}
+			{/* Optional: pill-styled tabs in header (Radix-based) */}
 			<CodeBlock.TabTrigger value="example-tab" /> {/* Individual tab trigger */}
 		</CodeBlock.TabList>
 	</CodeBlock.Header>
 	<CodeBlock.Body>
-		{/* Content wrapper — positions CopyButton */}
+		{/* Content wrapper: positions CopyButton */}
 		<CodeBlock.CopyButton /> {/* Copy-to-clipboard with "Copied" feedback */}
 		<CodeBlock.Code /> {/* Renders <pre><code> with highlighted HTML */}
 		<CodeBlock.TabContent value="..." /> {/* Conditional content for each tab */}
 	</CodeBlock.Body>
-	<CodeBlock.ExpanderButton /> {/* Optional — "Show more" / "Show less" toggle */}
+	<CodeBlock.ExpanderButton /> {/* Optional: "Show more" / "Show less" toggle */}
 </CodeBlock.Root>
 ```
 

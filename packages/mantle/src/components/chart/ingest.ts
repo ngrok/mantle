@@ -7,7 +7,7 @@ import { hasTimeOfDay } from "./format.js";
  * Row ingest: consumer rows into the typed columns the engine draws from.
  * Pure, so it runs and tests without a DOM.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation. The package does not export it.
  */
 
 /** The public part name of each series mark, for error messages. */

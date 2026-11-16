@@ -21,7 +21,7 @@ import type { SeriesSpec } from "./types.js";
  * imports this module when a chart with a `zKey` mounts, so a 2D scatter
  * plot never loads it.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation, not exported from the package.
  */
 
 /**
@@ -31,7 +31,7 @@ import type { SeriesSpec } from "./types.js";
  */
 const cameraViewFor = (dimensions: 1 | 2 | 3): Camera => {
 	if (dimensions === 3) {
-		// Slightly above and to the right — the standard "looking down at the
+		// Slightly above and to the right: the standard "looking down at the
 		// cube" explainer view.
 		return { yaw: 0.65, pitch: -0.35 };
 	}
@@ -207,7 +207,7 @@ class Scatter3d {
 		const collapseZ = collapse[1] ?? 1;
 		// The frame must survive any rotation: cube corners sit √3 units out
 		// (≤ ~1.75 screen units with perspective), a plane's corners √2, a line's
-		// ends 1 — so the radius breathes with the collapse, letting a face-on
+		// ends 1, so the radius breathes with the collapse, letting a face-on
 		// line or plane fill more of the plot than the full rotating cube.
 		const radiusFactor = 0.85 - 0.22 * collapseY - 0.11 * collapseZ;
 		const cubeRadius = (Math.min(plot.width, plot.height) / 2) * radiusFactor;
@@ -284,7 +284,7 @@ class Scatter3d {
 					continue;
 				}
 				// Collapse scales toward the cube center, and the axis lines travel
-				// with it — 1D reads as points on a centered line, 2D as a flat plane.
+				// with it: 1D reads as points on a centered line, 2D as a flat plane.
 				const point = projectPoint(
 					normalizeToCube(xs[index] ?? 0, domains.x),
 					normalizeToCube(value, domains.y) * collapseY,
@@ -309,7 +309,7 @@ class Scatter3d {
 			return labels;
 		}
 
-		// Paint back-to-front, reusing a persistent order buffer — a fresh
+		// Paint back-to-front, reusing a persistent order buffer. A fresh
 		// Array+toSorted every frame churned GC during rotation/dimension morphs.
 		if (this.#depthOrder.length < count) {
 			this.#depthOrder = new Int32Array(capacity);

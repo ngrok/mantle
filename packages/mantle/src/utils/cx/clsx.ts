@@ -2,7 +2,7 @@ import { type ClassValue, clsx as vendorClsx } from "./vendor/clsx.js";
 
 /**
  * Conditionally join class names into a single space-separated string, with falsy
- * values ignored — **without** Tailwind conflict resolution.
+ * values ignored, **without** Tailwind conflict resolution.
  *
  * Vendored `clsx`. Prefer {@link cx} for composing a `className` (it also resolves
  * Tailwind conflicts); reach for `clsx` only when you need a plain space-join that

@@ -18,8 +18,8 @@ import {
  * Real-browser marker tests: the active-point dots are DOM overlay elements
  * the engine positions from real plot layout, which happy-dom does not model
  * (degenerate geometry collapses every y to the same pixel). The canvas
- * markers need the same layout — the engine skips them until the plot is wide
- * enough per row — plus a real 2d context to read the painted glyph back.
+ * markers need the same layout (the engine skips them until the plot is wide
+ * enough per row), plus a real 2d context to read the painted glyph back.
  *
  * Regression suite for the stacked-area bug where dots rendered at each
  * series' RAW value near the plot bottom instead of on the painted (stacked)
@@ -125,7 +125,7 @@ const activeDots = (container: HTMLElement): HTMLElement[] =>
 
 /**
  * The engine-managed markers layer the active-point dots live in. It carries no
- * data-slot of its own, so it is reached through a dot — but its opacity, not
+ * data-slot of its own, so it is reached through a dot, but its opacity, not
  * each dot's, is the overlay's actual visibility gate.
  */
 const markersLayer = (container: HTMLElement): HTMLElement => {
@@ -264,7 +264,7 @@ describe("hover marker geometry", () => {
 		});
 	});
 
-	test("the markers layer — not the individual dots — gates hover visibility", async () => {
+	test("the markers layer, not the individual dots, gates hover visibility", async () => {
 		// #updateOverlay early-returns once nothing is active, so every dot KEEPS
 		// its own opacity "1" while the layer hides them. Asserting the dots alone
 		// would pass with the layer permanently hidden (invisible hover markers on
@@ -293,14 +293,14 @@ describe("hover marker geometry", () => {
 		overlay.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
 		await waitFor(() => {
 			expect(getComputedStyle(markersLayer(container)).opacity).toBe("0");
-			// The dots themselves are left as they were — proof the layer is the gate.
+			// The dots themselves are left as they were: proof the layer is the gate.
 			expect(activeDots(container).map((dot) => dot.style.opacity)).toEqual(["1", "1"]);
 		});
 	});
 
 	test("a gapped series hides its dot while its neighbors keep theirs", async () => {
 		// Visibility follows the RAW value: without the NaN guard the dot gets
-		// opacity 1 and `translate(…, NaNpx)`, which is invalid CSS — the
+		// opacity 1 and `translate(…, NaNpx)`, which is invalid CSS. The
 		// transform is dropped and the dot pins itself to the layer's top-left
 		// corner, claiming a point the tooltip reports as an em dash.
 		const { container } = render(
@@ -479,7 +479,7 @@ describe("hover marker geometry", () => {
 		});
 	});
 
-	test("bar charts never render dots — the category band is the hover affordance", async () => {
+	test("bar charts never render dots: the category band is the hover affordance", async () => {
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
 				<CanvasBarChartRoot

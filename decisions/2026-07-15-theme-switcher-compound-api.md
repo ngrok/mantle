@@ -10,7 +10,7 @@
 `ThemeSwitcher` shipped as a monolithic component: one `<ThemeSwitcher />` that
 internally composed `DropdownMenu.Root` + `DropdownMenu.Trigger` (an
 `IconButton`) + `DropdownMenu.Content` (hosting `ThemeDropdownMenuRadioGroup`).
-To let consumers position or style the popover, it grew a `contentProps` prop —
+To let consumers position or style the popover, it grew a `contentProps` prop:
 an `Omit<ComponentProps<typeof DropdownMenu.Content>, "children">` bag forwarded
 wholesale to the internal `DropdownMenu.Content`.
 
@@ -19,8 +19,8 @@ That prop bag is the tell that the component wanted to be a compound all along:
 - It re-encodes the component's internal structure as prop names. The consumer
   must already know there _is_ a content element to configure; the JSX shows
   none of it, and nothing autocompletes toward it.
-- It scales by widening — the next request is `triggerProps`, then
-  `triggerProps.iconProps` — each a new bag with its own `Omit` carve-outs,
+- It scales by widening: the next request is `triggerProps`, then
+  `triggerProps.iconProps`, each a new bag with its own `Omit` carve-outs,
   drifting from the wrapped component's real API.
 - It creates a second way to do what composition already does. Every other
   mantle overlay is `X.Root`/`X.Trigger`/`X.Content`; a `contentProps` bag on a
@@ -41,14 +41,14 @@ Each part is a thin forwarding wrapper: `Root` forwards `DropdownMenu.Root`
 (open-state control), `Trigger` renders the ghost `IconButton` with the
 SSR-safe themed icon wired up as the menu trigger, `Content` forwards
 `DropdownMenu.Content`. "It's just forwarding" is not an argument against a
-part — the forwarding **is** the API: it puts every prop of the wrapped
+part: the forwarding **is** the API: it puts every prop of the wrapped
 primitive where the consumer already expects it, with zero bag types to
 maintain.
 
 ### 2. The rule: never expose `*Props` prop-bag passthrough props
 
 If a consumer needs to reach an element a component renders internally, the
-component is a compound — expose that element as a part. Prop bags
+component is a compound: expose that element as a part. Prop bags
 (`contentProps`, `triggerProps`, `slotProps`, MUI-style `componentsProps`) are
 forbidden in mantle component APIs. This is now a Component API Design rule in
 [CONVENTIONS.md](../COMPONENT_SPEC.md#1-before-you-scaffold) and part of the
@@ -59,9 +59,9 @@ diff-audit checklist in [AGENTS.md](../AGENTS.md).
 `Trigger` owns `icon` (the SSR-safe themed icon is the component's identity)
 and `intent` (always `"neutral"`), and defaults `appearance` to `"ghost"` and
 `label` to `"Change Theme"`. `asChild` and `children` are removed at the type
-level — the trigger renders only its icon and sr-only label, so both would be
+level: the trigger renders only its icon and sr-only label, so both would be
 silently meaningless (make invalid states unrepresentable). Everything else is
-`IconButtonProps`, forwarded — including `disabled`, which the trigger also
+`IconButtonProps`, forwarded, including `disabled`, which the trigger also
 threads into `DropdownMenu.Trigger` so Radix's open behavior honors it.
 A fully custom trigger is out of scope for the compound: compose `DropdownMenu`
 \+ `ThemeDropdownMenuRadioGroup` directly instead (the documented escape hatch).
@@ -70,7 +70,7 @@ A fully custom trigger is out of scope for the compound: compose `DropdownMenu`
 
 `<ThemeSwitcher.Content />` renders `ThemeDropdownMenuRadioGroup`; passing
 children **replaces** that default (compose the radio group yourself alongside
-extra items). Replace-with-default keeps the contract explicit — no hidden
+extra items). Replace-with-default keeps the contract explicit: no hidden
 merging, no ordering surprises.
 
 ### 5. `ThemeDropdownMenuRadioGroup` stays a standalone export
@@ -78,7 +78,7 @@ merging, no ordering surprises.
 It is not `ThemeSwitcher.RadioGroup`: it renders inside _any_
 `DropdownMenu.Content`/`SubContent` (the embed-in-your-account-menu case), not
 just the switcher's, and aliasing it under the namespace would create two
-import paths for the same primitive — the exact thing the compound-component
+import paths for the same primitive, the exact thing the compound-component
 record warns against.
 
 ## Consequences
@@ -89,7 +89,7 @@ record warns against.
   documents the migration.
 - `data-slot` values are now per-part: `theme-switcher-trigger` on the trigger
   (previously a single `theme-switcher`) and
-  `theme-switcher-content dropdown-menu-content` on the menu —
+  `theme-switcher-content dropdown-menu-content` on the menu.
   `DropdownMenu.Content` now joins an incoming `data-slot` chain ahead of its
   own slot name (per the `joinDataSlot` contract) instead of letting it clobber
   its `dropdown-menu-content` identity, so consumers selecting

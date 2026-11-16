@@ -14,7 +14,7 @@ If the user passes no argument, ask what they are looking for.
 The manifest lives in two places. Prefer the local one when working in this repo, fall back to the public one otherwise.
 
 - **Local (this repo):** Read the committed snapshot `apps/www/app/utilities/__snapshots__/components-surface.json`, or run `pnpm -F @ngrok/mantle run agent-artifacts` and read `packages/mantle/dist/agent.json` (components, hooks, and utilities in one file).
-- **Public:** `https://mantle.ngrok.com/api/components.json` — fetch with `WebFetch` if a network is available.
+- **Public:** `https://mantle.ngrok.com/api/components.json`: fetch with `WebFetch` if a network is available.
 
 Each manifest entry has:
 
@@ -52,7 +52,7 @@ If nothing matches, suggest the closest 3 by simple Levenshtein distance against
 For each match, output a concise block:
 
 ```
-<Name> — <status>
+<Name>: <status>
   import { ... } from "<importPath>";
   Docs: <docsUrl>
   Markdown: <markdownUrl>
@@ -63,4 +63,4 @@ End with the match's `useWhen` line and its `siblings`, so the user sees the bou
 
 ## 4. Do not fabricate
 
-If you can't access the manifest (no network and no local file), say so explicitly. Do not invent component names or import paths. Mantle's exports are listed in `packages/mantle/package.json` — that is the ground truth.
+If you can't access the manifest (no network and no local file), say so explicitly. Do not invent component names or import paths. Mantle's exports are listed in `packages/mantle/package.json`: that is the ground truth.

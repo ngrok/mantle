@@ -5,7 +5,7 @@ type Route = Parameters<typeof href>[0];
 /**
  * The component categories, alphabetical (the sidebar display order). Each
  * category is a subheading in the docs sidebar and a URL segment (see
- * {@link componentCategorySlugs}) — component docs live at
+ * {@link componentCategorySlugs}). Component docs live at
  * `/components/<category-slug>/<component-slug>`.
  *
  * Categories describe what a component *is* in the UI (an action, a form
@@ -45,7 +45,7 @@ export const componentCategorySlugs = {
 /**
  * Production-ready components grouped by category, alphabetical within each
  * group. This is the source of truth for the docs sidebar, the command
- * palette, and the component manifest — a component missing here is
+ * palette, and the component manifest: a component missing here is
  * invisible to humans and agents alike.
  */
 export const componentsByCategory = {
@@ -118,7 +118,7 @@ export const componentsByCategory = {
 		"Theme",
 		"Visually Hidden",
 	],
-	// Structure: contains, divides, or arranges arbitrary content — vs Data
+	// Structure: contains, divides, or arranges arbitrary content, unlike Data
 	// Display, which presents specific content. Page/viewport structure
 	// belongs to the top-level Layouts section, not here.
 	Structure: ["Card", "Media Object", "Separator", "Strata", "Well"],
@@ -309,7 +309,7 @@ export const utilsRoutes = {
 } as const satisfies Record<(typeof utilsPages)[number], Route>;
 
 /**
- * Layout pages — published primitives that own page/viewport structure and
+ * Layout pages: published primitives that own page/viewport structure and
  * regions (app shells, centered flows, …). Residents land here as they
  * graduate from app-side incubation (see
  * decisions/2026-07-08-docs-information-architecture.md).
@@ -329,13 +329,13 @@ export const layoutRoutes = {
 /** Short descriptions for the layouts index page. */
 export const layoutDescriptions = {
 	"App Layout":
-		"A viewport-locked application shell — a full-width notice strip, a toolbar header, and a rounded content card whose page region is the only scroll container — designed to compose with (but stay decoupled from) the Sidebar.",
+		"A viewport-locked application shell: a full-width notice strip, a toolbar header, and a rounded content card whose page region is the only scroll container. It composes with the Sidebar but stays decoupled from it.",
 	"Centered Layout":
-		"A viewport-filling centered page flow — brand mark, centered content, and a pinned utility footer — for sign-in, onboarding, 404, and other focused full-page states.",
+		"A viewport-filling centered page flow (brand mark, centered content, and a pinned utility footer) for sign-in, onboarding, 404, and other focused full-page states.",
 } as const satisfies Record<(typeof layoutPages)[number], string>;
 
 /**
- * Recipe pages — compositional how-tos that wire multiple mantle primitives
+ * Recipe pages: compositional how-tos that wire multiple mantle primitives
  * together with state, data, or routing (e.g. a floating overlay driven by
  * async data with loading and error states). Recipes are documentation, not
  * published API: they transcend any single component or layout.
@@ -354,7 +354,7 @@ export const recipePages = [
 ] as const;
 
 /**
- * Recipe proposals — recipes with an open design question. They are not yet a
+ * Recipe proposals: recipes with an open design question. They are not yet a
  * recommended pattern; each page states what is still open.
  */
 export const proposalRecipePages = [
@@ -464,7 +464,7 @@ export const migrations = [
 		slug: "dialog-footer-dom-order-migration",
 		title: "Dialog.Footer DOM Order",
 		description:
-			"Dialog.Footer now renders children in DOM order — reverse footer children to preserve their layout.",
+			"Dialog.Footer now renders children in DOM order. Reverse footer children to preserve their layout.",
 		route: "/migrations/0003-dialog-footer-dom-order-migration",
 	},
 	{
@@ -472,7 +472,7 @@ export const migrations = [
 		slug: "priority-to-intent-migration",
 		title: "Priority → Intent",
 		description:
-			"priority is now intent across Button, Alert, AlertDialog, and Toast — and Button and IconButton require explicit appearance and intent.",
+			"priority is now intent across Button, Alert, AlertDialog, and Toast. Button and IconButton also require explicit appearance and intent.",
 		route: "/migrations/0004-priority-to-intent-migration",
 	},
 	{

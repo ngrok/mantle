@@ -862,7 +862,7 @@ describe("data-table caption", () => {
 		await user.tab();
 		const caption = document.querySelector('[data-slot="bar-chart-data-table"] caption');
 		expect(caption?.textContent).toMatch(/^Visitors/);
-		expect(caption?.textContent).not.toContain("chart data — chart data");
+		expect(caption?.textContent).not.toContain("chart data: chart data");
 	});
 });
 

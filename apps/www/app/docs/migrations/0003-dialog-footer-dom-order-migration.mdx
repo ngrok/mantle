@@ -65,7 +65,7 @@ The rules apply step 2 to a `Dialog.Footer` with exactly two actions: they swap 
 ### Two actions (most common)
 
 ```tsx
-// BEFORE — primary action written first to land on the right under flex-row-reverse
+// BEFORE: primary action written first to land on the right under flex-row-reverse
 <Dialog.Footer>
 	<Button type="button" appearance="filled" intent="neutral">
 		Save
@@ -79,7 +79,7 @@ The rules apply step 2 to a `Dialog.Footer` with exactly two actions: they swap 
 ```
 
 ```tsx
-// AFTER — DOM order matches visual order: cancel on the left, primary on the right
+// AFTER: DOM order matches visual order (cancel on the left, primary on the right)
 <Dialog.Footer>
 	<Dialog.Close asChild>
 		<Button type="button" appearance="outlined" intent="neutral">

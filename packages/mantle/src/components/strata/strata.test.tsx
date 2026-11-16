@@ -14,7 +14,7 @@ type PartCase = {
 };
 
 /**
- * Every part rendered on its default branch — no `asChild` — with the same
+ * Every part rendered on its default branch (no `asChild`) with the same
  * three consumer props. The `asChild` cases below go through `Slot`, which
  * merges the child's own props, so they stay green even when a part drops
  * `{...props}` from the branch that renders its own element.
@@ -171,7 +171,7 @@ describe("Strata", () => {
 
 		// Why not getByRole("banner"): HTML-AAM maps `<header>` to `banner` only
 		// when no sectioning ancestor scopes it, and testing-library's role mapping
-		// does not model that condition — it reports both headers as banners. The
+		// does not model that condition: it reports both headers as banners. The
 		// nesting below is the half mantle owns; browsers apply the scoping.
 		expect(Array.from(headers, (header) => header.tagName)).toEqual(["HEADER", "HEADER"]);
 		expect(Array.from(headers, (header) => header.closest("section"))).toEqual(
@@ -366,7 +366,7 @@ describe("Strata", () => {
 		expect(section.className).not.toContain("py-8");
 	});
 
-	// tailwind-merge override contract, as above — Body's default gap is a
+	// tailwind-merge override contract, as above: Body's default gap is a
 	// starting point, not a floor.
 	test("a consumer's className replaces Body's gap", () => {
 		render(<Strata.Body className="gap-8" data-testid="body" />);

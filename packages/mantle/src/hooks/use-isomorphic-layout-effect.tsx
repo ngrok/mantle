@@ -17,7 +17,7 @@ import { canUseDOM } from "../components/browser-only/can-use-dom.js";
  * by other Mantle hooks and components.
  *
  * @param effect - The imperative function that may return a cleanup
- *   function — same signature as React's `useLayoutEffect` / `useEffect`.
+ *   function, with the same signature as React's `useLayoutEffect` / `useEffect`.
  * @param deps - Optional dependency list, same semantics as
  *   `useLayoutEffect`.
  * @returns Nothing.

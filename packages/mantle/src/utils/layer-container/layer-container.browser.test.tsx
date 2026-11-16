@@ -11,7 +11,7 @@ import { Sheet } from "../../components/sheet/sheet.js";
 import { makeToast, Toaster } from "../../components/toast/toast.js";
 
 /**
- * Browser mode proves the paint order the layer tiers produce — happy-dom can
+ * Browser mode proves the paint order the layer tiers produce; happy-dom can
  * pin DOM placement (`layer-container.test.tsx`) but not hit-testing. Needs
  * real layout, `getBoundingClientRect`, `getComputedStyle`, and
  * `document.elementFromPoint`.
@@ -23,7 +23,7 @@ import { makeToast, Toaster } from "../../components/toast/toast.js";
  * so `.z-50` here engages the real stacking mechanism. If a component's tier
  * class changes, `layer-container.test.tsx`'s tier test catches the class; if
  * these pinned values stop matching Tailwind's output, the paint-order
- * assertions here go stale together — change both deliberately.
+ * assertions here go stale together, so change both deliberately.
  */
 const STYLE = `
 .fixed { position: fixed; }
@@ -68,11 +68,11 @@ function topElementAt(element: Element): Element | null {
 
 /**
  * A dialog plus a base-level popover that opens only after the dialog is
- * already open — the FEP-1754 shape, where mount order used to put the
+ * already open: the FEP-1754 shape, where mount order used to put the
  * popover on top of the takeover.
  *
  * Why `modal={false}`: a modal dialog sets `pointer-events: none` on `body`,
- * and `elementFromPoint` skips pointer-events-none elements — the assertion
+ * and `elementFromPoint` skips pointer-events-none elements, so the assertion
  * would pass with any z-index. Non-modal keeps hit-testing honest; the tiers
  * under test are identical either way.
  */
@@ -104,7 +104,7 @@ describe("paint order across layer tiers", () => {
 		const user = userEvent.setup();
 		render(<LateBasePopoverScenario />);
 
-		// The popover opens after the dialog mounted — later in DOM order, which
+		// The popover opens after the dialog mounted: later in DOM order, which
 		// used to win the tie at a shared z-50.
 		await user.click(screen.getByRole("button", { name: "Announce" }));
 		const popoverContent = await screen.findByText("base popover content");
@@ -189,7 +189,7 @@ describe("paint order across layer tiers", () => {
 	test("a popover inside a sheet positions against its trigger even when the sheet content is transformed", async () => {
 		// Sheet.Content carries a transform while its slide animation runs, and a
 		// transformed element is the containing block for fixed descendants. The
-		// popover portals into the positioner — a sibling of the content — so its
+		// popover portals into the positioner (a sibling of the content), so its
 		// `position: fixed` must keep resolving against the viewport. The identity
 		// transform below is visually nothing but still creates a containing
 		// block: portaling the float into the content instead turns this red.

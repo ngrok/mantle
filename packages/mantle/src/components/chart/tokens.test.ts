@@ -51,7 +51,7 @@ const UNDER_FLOOR: Record<(typeof THEMES)[number]["name"], readonly string[]> = 
 	dark: [],
 };
 
-describe.each(THEMES)("chart color tokens — $name", ({ name, chain }) => {
+describe.each(THEMES)("chart color tokens ($name)", ({ name, chain }) => {
 	const surface = hexFromOklch(resolveProperty(chain, "--background-color-card").literal);
 	const resolve = (color: string) => resolveProperty(chain, `--color-chart-${color}`);
 

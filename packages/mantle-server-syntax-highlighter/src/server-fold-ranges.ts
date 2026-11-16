@@ -28,7 +28,7 @@ import {
  * - `token-keyword` matches keyword openers / closers against tokenized line
  *   text (Bash / Shell).
  * - `token-bracket-and-keyword` runs the bracket pass *and* the keyword pass
- *   and merges them — Ruby uses brace-style blocks (`{ |x| … }`) plus
+ *   and merges them. Ruby uses brace-style blocks (`{ |x| … }`) plus
  *   keyword blocks (`def … end`).
  * - `none` opts out for plain text and unknown languages.
  *
@@ -148,7 +148,7 @@ function isKeywordFoldLanguage(language: SupportedLanguage): language is Keyword
  * - For raw / AST strategies, `tokens` is ignored; only `code` matters.
  *
  * Errors raised by underlying parsers are caught and converted into "no
- * folds" — Shiki still gets to render the highlighted code, the gutter just
+ * folds". Shiki still gets to render the highlighted code, the gutter just
  * skips the toggle. We log nothing here because the engine is the wrong
  * layer to surface diagnostics.
  */

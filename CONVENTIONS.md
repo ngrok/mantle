@@ -99,59 +99,59 @@ These rules are [ASD-STE100](https://www.asd-ste100.org/) Simplified Technical E
 - **Out of scope:** chat replies, product copy, marketing text, vendored code (`packages/mantle/src/utils/cx/vendor/**`), and the generated code and config files [JSDoc](#jsdoc) already exempts.
 - **Identifier naming** stays with [Readability & Maintainability](#readability--maintainability).
 
-**Scope and status** — the stance is [COMPONENT_SPEC.md § Scope and status](./COMPONENT_SPEC.md#scope-and-status). This is the bar for prose you write or edit. Prose you touch comes up to the bar; the rest waits until someone opts into the work. An audit reports a prose gap; it does not open a migration inside an unrelated PR. Never reflow a verbatim quote, an ASCII composition tree, or an `@example`.
+**Scope and status:** the stance is [COMPONENT_SPEC.md § Scope and status](./COMPONENT_SPEC.md#scope-and-status). This is the bar for prose you write or edit. Prose you touch comes up to the bar; the rest waits until someone opts into the work. An audit reports a prose gap; it does not open a migration inside an unrelated PR. Never reflow a verbatim quote, an ASCII composition tree, or an `@example`.
 
 ### Words
 
 - **One word, one meaning, within one file.** Reuse one term per concept verbatim. `cache`, `store`, and `buffer` in one file read as three things.
-- **Match the code.** Write the identifier's exact name and casing, in backticks — `ThemeProvider`, `data-slot`, `performance.now()`. Never paraphrase an identifier. The backticks are load-bearing: no word rule below reaches inside a backtick span. That is what keeps `justify-center`, `enabled`, and `oxlint-enable` off the ban list.
-- **Prefer the short common word** — `use`, `get`, `set`, `add`, `remove`, `keep`, `read`, `write`, `start`, `stop`, `fix`. Write the rest in plain words. The reader knows the identifiers and the house terms, and no other jargon.
+- **Match the code.** Write the identifier's exact name and casing, in backticks: `ThemeProvider`, `data-slot`, `performance.now()`. Never paraphrase an identifier. The backticks matter: no word rule below reaches inside a backtick span. That is what keeps `justify-center`, `enabled`, and `oxlint-enable` off the ban list.
+- **Prefer the short common word:** `use`, `get`, `set`, `add`, `remove`, `keep`, `read`, `write`, `start`, `stop`, `fix`. Write the rest in plain words. The reader knows the identifiers and the house terms, and no other jargon.
 - **Never write** `utilize`, `facilitate`, `orchestrate`, `basically`, `essentially`, `comprehensive`, `robust`, or `ensure`. None of them states a fact. For `ensure`, write `make sure` ([docs/testing.md](./docs/testing.md) already uses it), or name the mechanism that guarantees the outcome.
 - **Never write `simply`.** The ban is word-exact: `simplify`, `simpler`, and `simplified` are fine.
-- **Cut the hedges.** Delete `it seems`, `arguably`, `might possibly`, `should probably`, and `this could be removed`. Keep `must`, `can`, `may`, `never`, and `always` — each states a constraint or a real option.
+- **Cut the hedges.** Delete `it seems`, `arguably`, `might possibly`, `should probably`, and `this could be removed`. Keep `must`, `can`, `may`, `never`, and `always`: each states a constraint or a real option.
 - **These six carry a second, earned sense in mantle's prose. Ban the first sense only:**
-  - `provide` — cut the verb; write `pass`, `set`, or `carry`. Write `when set` for `when provided`, and `when omitted` for `if not provided`. The `Provider` and `*Provider` identifiers stay, and so does React context vocabulary (`the context Root provides`).
-  - `leverage` — cut the verb; write `use`. The noun `high-leverage` stays.
-  - `perform` — cut the vague verb, so `performs an action` becomes `runs an action`. The noun `performance` and the API `performance.now()` stay.
-  - `enable` — use the verb for a real flag only (`Whether to enable filtering of command items.`). The adjective `enabled` is the antonym of `disabled`, not the verb. It always stays, and so does `oxlint-enable`.
-  - `just` — where deleting it changes no meaning, cut it. Contrastive `not just`, comparative `just as` and `just like`, temporal `just` (`the index just past the closing quote`), and `justify-*` all stay.
-  - `seamless` — cut the quality adjective. It stays for a tile that repeats with no visible seam (`packages/mantle/src/components/chart/texture.ts`).
-- **Cap a noun stack at three words.** A backticked identifier counts as one word. `retry backoff config` passes. `user account credential rotation policy handler` fails — add a preposition: `handler for rotating user account credentials`.
+  - `provide`: cut the verb; write `pass`, `set`, or `carry`. Write `when set` for `when provided`, and `when omitted` for `if not provided`. The `Provider` and `*Provider` identifiers stay, and so does React context vocabulary (`the context Root provides`).
+  - `leverage`: cut the verb; write `use`. The noun `high-leverage` stays.
+  - `perform`: cut the vague verb, so `performs an action` becomes `runs an action`. The noun `performance` and the API `performance.now()` stay.
+  - `enable`: use the verb for a real flag only (`Whether to enable filtering of command items.`). The adjective `enabled` is the antonym of `disabled`, not the verb. It always stays, and so does `oxlint-enable`.
+  - `just`: where deleting it changes no meaning, cut it. Contrastive `not just`, comparative `just as` and `just like`, temporal `just` (`the index just past the closing quote`), and `justify-*` all stay.
+  - `seamless`: cut the quality adjective. It stays for a tile that repeats with no visible seam (`packages/mantle/src/components/chart/texture.ts`).
+- **Cap a noun stack at three words.** A backticked identifier counts as one word. `retry backoff config` passes. `user account credential rotation policy handler` fails. Add a preposition: `handler for rotating user account credentials`.
 - **Spell out a new abbreviation on first use in the file.** Never invent one. Two lists decide it:
-  - **Bare is fine** — `HTTP`, `API`, `SQL`, `TLS`, `URL`, `DOM`, `CSS`, `HTML`, `JSON`, `SVG`, `JSX`, `UI`, `ID`, `SSR`, `ARIA`, `a11y`, `WAI`, `APG`, `FOUC`, `CDN`, `POJO`, and the initialisms [Readability & Maintainability](#readability--maintainability) allows in identifiers.
-  - **Spell it out** — anything narrower, such as `MQL`, `OTP`, or `TZ`.
+  - **Bare is fine:** `HTTP`, `API`, `SQL`, `TLS`, `URL`, `DOM`, `CSS`, `HTML`, `JSON`, `SVG`, `JSX`, `UI`, `ID`, `SSR`, `ARIA`, `a11y`, `WAI`, `APG`, `FOUC`, `CDN`, `POJO`, and the initialisms [Readability & Maintainability](#readability--maintainability) allows in identifiers.
+  - **Spell it out:** anything narrower, such as `MQL`, `OTP`, or `TZ`.
 
 ### Sentences
 
 - **Use the active voice.** Write `The processor drops the event.`, not `The event is dropped by the processor.` When the actor is unknown or irrelevant, the passive voice is correct.
-- **Use simple tenses only** — present, past, future, imperative, infinitive. Write `renders`, not `will be rendered`. Never use an `-ing` form as the main verb.
+- **Use simple tenses only:** present, past, future, imperative, infinitive. Write `renders`, not `will be rendered`. Never use an `-ing` form as the main verb.
 - **Put one idea in each sentence.** When both halves stand alone, split the sentence on `and` or `but`.
-- **Rewrite the em-dash aside as a parenthetical, a colon, a comma, or its own sentence. The prose semicolon is house style and stays.** When the aside names an exception, a fallback, a consequence, or the mechanism, keep the content and move it behind a colon or into parentheses (`the consumer's own id when they pass one, else the label's generated id`). When it restates the first half, cut it. An aside is not a second idea.
+- **Rewrite the em-dash aside as a parenthetical, a colon, a comma, or its own sentence. The prose semicolon is house style and stays.** When the aside names an exception, a fallback, a consequence, or the mechanism, keep the content and move it behind a colon or into parentheses (`the consumer's own id when they pass one, else the label's generated id`). When it restates the first half, cut it. An aside is not a second idea. (lint: `mantle/no-em-dash-comment` for comments; `pnpm run check:prose` for Markdown, MDX, and CSS)
 - **Put the condition first.** Write `If the lease expires, the worker exits.`, not `The worker exits if the lease expires.`
 - **Do not drop words to shorten.** Keep the articles, subjects, and verbs inside a sentence. Concision removes ideas, not grammar: rewrite `// resets cursor on flush` as `// The flush resets the cursor.`
 - **A fragment is correct in three places, and the rule above does not reach them:**
   - a list item, including a label-colon bullet
-  - a JSDoc summary or prop doc that names a thing — `The click event handler.`
+  - a JSDoc summary or prop doc that names a thing (`The click event handler.`)
   - a `Why <topic>:` comment label
 - **Never add a verb to turn one of those three into a sentence.** Most bullets in this file, and most mantle JSDoc summaries, are verbless by design.
 - **Three or more parallel items make a list**, not a longer sentence.
-- **Length is a smell, not a gate.** Keep procedural text — a commit subject, a step, a `TODO` — to 20 words, and descriptive text to 25. The limits do not reach `.changeset/*.md` or `decisions/*.md`. When a descriptive sentence runs past 25 words, ask which one it is:
-  - a clause, a colon, and an enumeration — write a list.
-  - several facts in one sentence — split it.
-  - one contract that needs every word — keep it. Most JSDoc summaries here land near 10 words. A 40-word summary that pins a whole contract beats four vague ones.
+- **Length is a smell, not a gate.** Keep procedural text (a commit subject, a step, a `TODO`) to 20 words, and descriptive text to 25. The limits do not reach `.changeset/*.md` or `decisions/*.md`. When a descriptive sentence runs past 25 words, ask which one it is:
+  - a clause, a colon, and an enumeration: write a list.
+  - several facts in one sentence: split it.
+  - one contract that needs every word: keep it. Most JSDoc summaries here land near 10 words. A 40-word summary that pins a whole contract beats four vague ones.
 
 ### Comments and JSDoc
 
-- **State the constraint, the trade-off, or the surprise, in one sentence, two at most.** The code already states what it does — see [Readability & Maintainability](#readability--maintainability). Never restate the identifier.
-- **Prefer the `Why <topic>:` label for a constraint** — `// Why: navigator.platform is deprecated…`, `// Why no asChild:`, `// Why event delegation:`. Do not expand a label into a sentence.
+- **State the constraint, the trade-off, or the surprise, in one sentence, two at most.** The code already states what it does (see [Readability & Maintainability](#readability--maintainability)). Never restate the identifier.
+- **Prefer the `Why <topic>:` label for a constraint:** `// Why: navigator.platform is deprecated…`, `// Why no asChild:`, `// Why event delegation:`. Do not expand a label into a sentence.
 - **Never narrate the investigation.** What you checked, tried, or read belongs in the PR description.
 - **Describe the code as it is now.** Never refer to a previous state or a dropped design that exists only in your context window. The reader has the code and the git history, not your session.
 - **Put the warning above the code it guards.**
-- **Lead with one summary sentence, then state the contract** — inputs, outputs, errors, units, ranges, defaults, side effects, invariants, and nothing more. Delete a `@param` or `@returns` that only restates the name or the type. Keep one that names a unit, a range, a default, or a side effect. [JSDoc](#jsdoc) says which exports need one. [COMPONENT_SPEC.md §4](./COMPONENT_SPEC.md#4-jsdoc) owns _what_ a component's JSDoc must contain; this section owns _how_ those sentences read.
+- **Lead with one summary sentence, then state the contract:** inputs, outputs, errors, units, ranges, defaults, side effects, invariants, and nothing more. Delete a `@param` or `@returns` that only restates the name or the type. Keep one that names a unit, a range, a default, or a side effect. [JSDoc](#jsdoc) says which exports need one. [COMPONENT_SPEC.md §4](./COMPONENT_SPEC.md#4-jsdoc) owns _what_ a component's JSDoc must contain; this section owns _how_ those sentences read.
 - **Restructure instead of explaining.** If a comment excuses confusing code, rename or split the code.
 - **`@example` prose follows these rules; the code in the fence does not.** Never paraphrase example code. Never de-duplicate the repeated full-tree examples [COMPONENT_SPEC.md §4.2](./COMPONENT_SPEC.md#42-compound-components-the-full-tree-rule) requires.
-- **Editing a JSDoc summary is a multi-file change.** The same summary often repeats on a part declaration, its namespace property, and an `.mdx` page — fix every copy. Editing a summary or an `@example` also changes `apps/www/app/utilities/__snapshots__/components-surface.json` — regenerate it with `pnpm -F @app/www test -u` or CI fails.
-- **Two spans are not yours to edit.** Never rewrite quoted upstream text that carries a `@see` citation — MDN's `autocomplete` values in `packages/mantle/src/components/input/types.ts` — because an edit forks it from its source. oxlint parses the `oxlint-disable` and `oxlint-enable` directive text, so only the `-- reason` clause after it is prose. A fragment there is fine.
+- **Editing a JSDoc summary is a multi-file change.** The same summary often repeats on a part declaration, its namespace property, and an `.mdx` page. Fix every copy. Editing a summary or an `@example` also changes `apps/www/app/utilities/__snapshots__/components-surface.json`. Regenerate it with `pnpm -F @app/www test -u` or CI fails.
+- **Two spans are not yours to edit.** Never rewrite quoted upstream text that carries a `@see` citation (MDN's `autocomplete` values in `packages/mantle/src/components/input/types.ts`), because an edit forks it from its source. oxlint parses the `oxlint-disable` and `oxlint-enable` directive text, so only the `-- reason` clause after it is prose. A fragment there is fine.
 
 ```tsx
 // ❌ restates the identifier, and the second sentence adds nothing
@@ -175,14 +175,14 @@ Worked before/after pairs live in the `simplified-technical-english` skill, out 
 
 ### Commit messages and PR descriptions
 
-- **Write the subject in the imperative, after the conventional-commit prefix this repo uses** — `fix(breadcrumb): mute current page text`. Keep it to ten words or fewer after the prefix, with no trailing period. The `(#1234)` suffix GitHub appends on squash-merge does not count.
-- **The one-idea rule governs prose sentences, not the subject line.** A multi-part change gets one subject, and the parts go in the body — `feat(command): add SearchTrigger, a stateful DialogRoot, and ⌘K`.
+- **Write the subject in the imperative, after the conventional-commit prefix this repo uses:** `fix(breadcrumb): mute current page text`. Keep it to ten words or fewer after the prefix, with no trailing period. The `(#1234)` suffix GitHub appends on squash-merge does not count.
+- **The one-idea rule governs prose sentences, not the subject line.** A multi-part change gets one subject, and the parts go in the body: `feat(command): add SearchTrigger, a stateful DialogRoot, and ⌘K`.
 - **When the subject is not enough, add a body.** State the reason for the change. Then state how the behavior changes. Files are not behavior.
 - **Never list the changed files.** The diff is the changelog.
 - **This repo ships no PR template, so this is the section order:**
-  - **Why** — the problem, the trigger, and the intended outcome.
-  - **How** — the approach in one or two sentences. Do not tour the diff.
-  - **Validation** — one line per check. Include only what a reviewer cannot read off CI.
+  - **Why:** the problem, the trigger, and the intended outcome.
+  - **How:** the approach in one or two sentences. Do not tour the diff.
+  - **Validation:** one line per check. Include only what a reviewer cannot read off CI.
   - Investigation detail, rejected alternatives, and links belong here, not in the source.
 - **Cut the boilerplate.** No generated footer, no empty section, no restated file list.
 

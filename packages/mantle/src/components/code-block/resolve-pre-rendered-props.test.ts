@@ -137,7 +137,7 @@ describe("resolvePreRenderedCodeBlockProps", () => {
 			title: "bare title",
 		});
 
-		// `false` from the mantle tier must win over `true` from the bare tier — a
+		// `false` from the mantle tier must win over `true` from the bare tier. A
 		// `||` in place of the nullish fallback would silently flip both booleans.
 		expect(result.mantleCode?.collapsible).toBe(false);
 		expect(result.mantleCode?.disableCopy).toBe(false);

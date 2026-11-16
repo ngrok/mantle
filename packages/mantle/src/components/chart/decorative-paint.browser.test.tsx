@@ -15,8 +15,8 @@ import { CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
  * unresolved, which makes the DOM-level checks in `bar-chart.test.tsx` the wiring
  * test and this one the paint test.
  *
- * The two token values below are unmistakable in a pixel scan — a saturated blue
- * against a mid gray — rather than the shipped light-theme pair, whose neutral
+ * The two token values below are unmistakable in a pixel scan (a saturated blue
+ * against a mid gray), rather than the shipped light-theme pair, whose neutral
  * sits a step off white and could be confused for the transparent ground.
  */
 const CHART_1 = { red: 62, green: 111, blue: 244 };

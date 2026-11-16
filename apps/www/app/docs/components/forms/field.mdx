@@ -21,7 +21,7 @@ import { Input } from "@ngrok/mantle/input";
 	<Field.Control>
 		<Input placeholder="ada-lovelace" />
 	</Field.Control>
-	<Field.Description>Pick something memorable — you can change it later.</Field.Description>
+	<Field.Description>Pick something memorable. You can change it later.</Field.Description>
 </Field.Item>;
 ```
 
@@ -40,7 +40,7 @@ import { Input } from "@ngrok/mantle/input";
 The canonical slot order inside a `Field.Item` is `Field.Label` → `Field.Control` → `Field.Errors` → `Field.Description`. `Field.Item` renders its children in source order and the JSX stays valid no matter how you arrange them, so a misplaced slot fails silently rather than erroring. The most common mistake is putting `Field.Description` (help text) **above** the control instead of below it.
 
 ```tsx
-// ❌ Wrong — help text rendered between the label and the control
+// ❌ Wrong: help text rendered between the label and the control
 <Field.Item name="recoveryCode">
 	<Field.Label>Recovery code</Field.Label>
 	<Field.Description>This renders above the input.</Field.Description>
@@ -53,7 +53,7 @@ The canonical slot order inside a `Field.Item` is `Field.Label` → `Field.Contr
 <Example name="components/forms/field/common-mistakes" title="Field common mistakes example">
 
 ```tsx
-// ✅ Correct — label, control, then errors and help text below
+// ✅ Correct: label, control, then errors and help text below
 <Field.Item name="recoveryCode">
 	<Field.Label>Recovery code</Field.Label>
 	<Field.Control>
@@ -565,10 +565,10 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 | Prop          | Type                                         | Default | Description                                                                                                                                                                                                      |
 | ------------- | -------------------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`        | `string`                                     | —       | Form field name. Splats onto the focusable child rendered inside `Field.Control`; `Field.Item` also owns the generated id used by `Field.Control` and `Field.Label`'s default `htmlFor`.                         |
+| `name`        | `string`                                     |         | Form field name. Splats onto the focusable child rendered inside `Field.Control`; `Field.Item` also owns the generated id used by `Field.Control` and `Field.Label`'s default `htmlFor`.                         |
 | `asChild?`    | `boolean`                                    | `false` | Render as a different element by passing a child.                                                                                                                                                                |
-| `id?`         | `string`                                     | —       | DOM id for the focusable control, not for the wrapping `<div>`. `Field.Control` splats it onto the control and `Field.Label` uses it as the default `htmlFor`. When omitted, `Field.Item` generates a stable id. |
-| `validation?` | `"error" \| "success" \| "warning" \| false` | —       | Validation state that `Field.Control` applies. Overrides the inferred `"error"` state; set it for a server-rendered error.                                                                                       |
+| `id?`         | `string`                                     |         | DOM id for the focusable control, not for the wrapping `<div>`. `Field.Control` splats it onto the control and `Field.Label` uses it as the default `htmlFor`. When omitted, `Field.Item` generates a stable id. |
+| `validation?` | `"error" \| "success" \| "warning" \| false` |         | Validation state that `Field.Control` applies. Overrides the inferred `"error"` state; set it for a server-rendered error.                                                                                       |
 
 ### Field.Control
 
@@ -598,7 +598,7 @@ Use a function child when the focusable element is nested inside a wrapper that 
 
 | Prop          | Type                                         | Default | Description                                    |
 | ------------- | -------------------------------------------- | ------- | ---------------------------------------------- |
-| `validation?` | `"error" \| "success" \| "warning" \| false` | —       | Override validation inherited from Field.Item. |
+| `validation?` | `"error" \| "success" \| "warning" \| false` |         | Override validation inherited from Field.Item. |
 
 ### Field.Group
 
@@ -653,11 +653,11 @@ Accepts every `IconButton` prop, with sensible visual defaults. `label` remains 
 | Prop          | Type                                    | Default            | Description                                                           |
 | ------------- | --------------------------------------- | ------------------ | --------------------------------------------------------------------- |
 | `icon?`       | `ReactNode`                             | `<QuestionIcon />` | Icon rendered inside the trigger button. Override to swap the glyph.  |
-| `label`       | `string`                                | —                  | Contextual visually-hidden label announced by screen readers.         |
+| `label`       | `string`                                |                    | Contextual visually-hidden label announced by screen readers.         |
 | `appearance?` | `"filled"` \| `"ghost"` \| `"outlined"` | `"ghost"`          | `IconButton` appearance variant.                                      |
 | `intent?`     | `"neutral"`                             | `"neutral"`        | `IconButton` intent (tone). `IconButton` draws the neutral tone only. |
 | `size?`       | `"xs"` \| `"sm"` \| `"md"`              | `"xs"`             | `IconButton` size.                                                    |
-| `className?`  | `string`                                | —                  | Merged onto the underlying `IconButton`.                              |
+| `className?`  | `string`                                |                    | Merged onto the underlying `IconButton`.                              |
 
 ### Field.HelpContent
 

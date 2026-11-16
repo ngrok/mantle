@@ -1,7 +1,7 @@
 import { finalizeFoldRanges, type FoldableRange } from "@ngrok/mantle/highlight-utils";
 
 /**
- * Raw-source fold computer for CSS — single-pass, parser-quality without a
+ * Raw-source fold computer for CSS: single-pass, parser-quality without a
  * parser dependency.
  *
  * Mirrors `computeJsonFoldRanges` but adds CSS-specific lexical features:
@@ -10,13 +10,13 @@ import { finalizeFoldRanges, type FoldableRange } from "@ngrok/mantle/highlight-
  * - `"…"` and `'…'` string literals (including `\\` and `\` escapes) are
  *   skipped so braces inside `content: "{ }"` don't open folds.
  * - Backslash escapes outside of strings (CSS identifiers can use them) are
- *   transparent — we just consume the next character.
+ *   transparent: we consume the next character.
  *
  * lightningcss is the project's preferred CSS parser, but its public visitor
  * API only surfaces *start* locations (`Location { line, column }`), not end
  * locations, which is what `FoldableRange.endLine` requires. Until upstream
  * exposes end spans we get the same correctness from a single-pass brace
- * matcher with a tiny CSS lexer — and skip the ~5MB native dep.
+ * matcher with a tiny CSS lexer, and skip the ~5MB native dep.
  *
  * @see https://github.com/parcel-bundler/lightningcss/issues/512
  */
@@ -26,7 +26,7 @@ import { finalizeFoldRanges, type FoldableRange } from "@ngrok/mantle/highlight-
  * (style rule, at-rule body, nested rule, keyframe selector) emits one range
  * with the opener and closer lines staying visible.
  *
- * Tolerant of malformed CSS — unmatched braces are dropped silently rather
+ * Tolerant of malformed CSS: unmatched braces are dropped silently rather
  * than throwing, so a partial snippet still gets every fold it can. This
  * matches the behavior of `computeJsonFoldRanges` for JSON.
  *
@@ -68,7 +68,7 @@ function computeCssFoldRanges({
 			continue;
 		}
 
-		// `/* … */` block comment — CSS has no line comments in standard CSS.
+		// `/* … */` block comment. CSS has no line comments in standard CSS.
 		if (character === 47 && index + 1 < length && code.charCodeAt(index + 1) === 42) {
 			index += 2;
 			while (index < length) {

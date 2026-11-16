@@ -162,7 +162,7 @@ function buildCodeFromTemplate(strings: TemplateStringsArray, values: unknown[])
  * mantleCode("typescript")`const greeting = "Hello, ${name}!";`
  * // Disable line numbers
  * mantleCode("typescript", { showLineNumbers: false })`const x = 1;`
- * // Single-line shell — line numbers hidden by default
+ * // Single-line shell: line numbers hidden by default
  * mantleCode("bash")`npm install @ngrok/mantle`
  * ```
  */

@@ -88,7 +88,7 @@ function buildPath(modules: ReadonlyArray<ReadonlyArray<boolean>>, pixelSize: nu
 }
 
 /**
- * QR error correction level — the share of the code that can be damaged or
+ * QR error correction level: the share of the code that can be damaged or
  * obscured while staying scannable: `"L"` ~7%, `"M"` ~15%, `"Q"` ~25%, `"H"`
  * ~30%. Higher levels produce a denser code.
  */
@@ -110,7 +110,7 @@ type QrCodeRootProps = ComponentProps<"div"> &
 		/** The pixel size of each module, affecting internal resolution. */
 		pixelSize?: number;
 		/**
-		 * Width of the quiet zone — the light-module margin baked into the encoded
+		 * Width of the quiet zone: the light-module margin baked into the encoded
 		 * grid around the code, not cosmetic CSS padding. Defaults to `4`, the QR
 		 * spec's recommended margin for reliable scanning. Lower values tighten the
 		 * surrounding whitespace but can hurt scannability; avoid `0`.
@@ -161,7 +161,7 @@ const Root = ({
 	assertValidRootProps(pixelSize, quietZone);
 
 	// The quiet zone is the QR spec's required margin (light modules on each
-	// side). It's part of the code itself — the scannable margin — not cosmetic
+	// side). It's part of the code itself (the scannable margin), not cosmetic
 	// padding. The spec recommends 4; lowering it tightens the whitespace at
 	// the cost of scannability.
 	const encoded = useMemo(() => encode(value, { ecc, border: quietZone }), [value, ecc, quietZone]);

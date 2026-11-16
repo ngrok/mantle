@@ -2,7 +2,7 @@ import { buildHooksManifest } from "~/utilities/hooks-manifest.server";
 import { jsonAgentResponse } from "~/utilities/json-response.server";
 
 /**
- * Serve `/api/hooks.json` — a structured, machine-readable manifest of
+ * Serve `/api/hooks.json`: a structured, machine-readable manifest of
  * every hook re-exported from `@ngrok/mantle/hooks`, designed for
  * ingestion by LLMs, code-generation agents, IDE plugins, and downstream
  * tooling.

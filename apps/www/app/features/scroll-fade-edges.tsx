@@ -1,7 +1,7 @@
 import { cx } from "@ngrok/mantle/cx";
 
-// Pre-scroll each demo box to its midpoint so the single faded edge — and the
-// flush opposite edge, which is the whole point — is visible at rest without
+// Pre-scroll each demo box to its midpoint so the single faded edge (and the
+// flush opposite edge, which is the whole point) is visible at rest without
 // interacting. Ref callbacks run on the client during commit (before paint) and
 // never on the server, so there's no SSR layout access.
 function scrollToMiddleY(node: HTMLDivElement | null) {

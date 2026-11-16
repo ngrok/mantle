@@ -6,8 +6,8 @@ import { usePrefersReducedMotion } from "./use-prefers-reduced-motion.js";
 /**
  * `scroll-behavior` values:
  *
- * - `"auto"`   — scrolling happens instantly (no animation).
- * - `"smooth"` — scrolling animates smoothly using a user-agent–defined easing and duration.
+ * - `"auto"`: scrolling happens instantly (no animation).
+ * - `"smooth"`: scrolling animates smoothly using a user-agent–defined easing and duration.
  *
  * @see https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-behavior#values
  */

@@ -113,12 +113,12 @@ value}`. Or better, fix the upstream type/value source. Types written as
 ### Bare Button (was implicit accent + outlined)
 
 ```tsx
-// BEFORE — implicit defaults: outlined appearance, accent tone
+// BEFORE: implicit defaults (outlined appearance, accent tone)
 <Button onClick={handleClick}>Details</Button>
 ```
 
 ```tsx
-// AFTER — the same rendering, now explicit
+// AFTER: the same rendering, now explicit
 <Button appearance="outlined" intent="accent" onClick={handleClick}>
 	Details
 </Button>
@@ -127,14 +127,14 @@ value}`. Or better, fix the upstream type/value source. Types written as
 ### Filled Button without priority (the one deliberate restyle)
 
 ```tsx
-// BEFORE — filled with no priority; rendered accent-filled
+// BEFORE: filled with no priority; rendered accent-filled
 <Button appearance="filled" onClick={handleSave}>
 	Save
 </Button>
 ```
 
 ```tsx
-// AFTER — adopts the system's default primary action: filled + neutral.
+// AFTER: adopts the system's default primary action (filled + neutral).
 // This is the migration's only pixel change (accent-filled → neutral-filled).
 // If this button really is the surface's brand-emphasis CTA, choose
 // intent="accent" deliberately instead.
@@ -155,7 +155,7 @@ value}`. Or better, fix the upstream type/value source. Types written as
 ```
 
 ```tsx
-// AFTER — "default" maps to "accent"; other values rename in place
+// AFTER: "default" maps to "accent"; other values rename in place
 <Button type="submit" appearance="filled" intent="accent" isLoading={isPending}>
 	Save
 </Button>
@@ -166,13 +166,13 @@ value}`. Or better, fix the upstream type/value source. Types written as
 ### IconButton (parity value is neutral, not accent)
 
 ```tsx
-// BEFORE — implicit outlined appearance; IconButton had no tone axis
+// BEFORE: implicit outlined appearance; IconButton had no tone axis
 <IconButton label="Copy" icon={<CopyIcon />} />
 <IconButton appearance="ghost" size="sm" label="Dismiss" icon={<XIcon />} />
 ```
 
 ```tsx
-// AFTER — IconButton's old rendering was neutral-toned
+// AFTER: IconButton's old rendering was neutral-toned
 <IconButton appearance="outlined" intent="neutral" label="Copy" icon={<CopyIcon />} />
 <IconButton appearance="ghost" intent="neutral" size="sm" label="Dismiss" icon={<XIcon />} />
 ```
@@ -196,7 +196,7 @@ makeToast(<Toast.Root intent="success">…</Toast.Root>);
 ### Wrapper components and dynamic values
 
 ```tsx
-// BEFORE — a local wrapper leaking the prop name and old union
+// BEFORE: a local wrapper leaking the prop name and old union
 type ProductButtonProps = {
 	priority?: ComponentProps<typeof Button>["priority"];
 };
@@ -206,7 +206,7 @@ const ProductButton = ({ priority = "neutral", ...props }: ProductButtonProps) =
 ```
 
 ```tsx
-// AFTER — indexed-access types follow the rename automatically
+// AFTER: indexed-access types follow the rename automatically
 type ProductButtonProps = {
 	intent?: ComponentProps<typeof Button>["intent"];
 };

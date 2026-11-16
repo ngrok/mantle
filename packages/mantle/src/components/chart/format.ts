@@ -3,7 +3,7 @@ import type { XValue } from "./types.js";
 /**
  * Default label formatting for axis ticks and tooltip readouts.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation, not exported from the package.
  */
 
 // Why lazy: an `Intl` constructor costs about a millisecond, and a page pays
@@ -14,7 +14,7 @@ const defaultNumberFormatter = (): Intl.NumberFormat =>
 
 // The locale default caps fraction digits at three, which would round
 // small-magnitude data (error rates, durations in seconds) to
-// indistinguishable "0"s — sub-1 magnitudes get significant digits instead.
+// indistinguishable "0"s, so sub-1 magnitudes get significant digits instead.
 let smallNumberFormatter: Intl.NumberFormat | null = null;
 const defaultSmallNumberFormatter = (): Intl.NumberFormat =>
 	(smallNumberFormatter ??= new Intl.NumberFormat(undefined, { maximumSignificantDigits: 4 }));
@@ -31,7 +31,7 @@ type FormatNumberOptions = {
 };
 
 /**
- * Thousands-separated number formatting for value ticks and tooltip values —
+ * Thousands-separated number formatting for value ticks and tooltip values:
  * clean numbers, never scientific notation. Values between -1 and 1 keep four
  * significant digits so small-magnitude data never rounds to a bare "0".
  *
@@ -44,7 +44,7 @@ type FormatNumberOptions = {
  */
 const formatNumber = (value: number, options?: FormatNumberOptions): string => {
 	// Normalize negative zero so computed/stacked values (e.g. `0 * -1`) never
-	// render as "-0" — Intl.NumberFormat formats -0 as "-0" on every path.
+	// render as "-0". Intl.NumberFormat formats -0 as "-0" on every path.
 	const normalized = Object.is(value, -0) ? 0 : value;
 	const digits = options?.maximumFractionDigits;
 	if (digits != null) {
@@ -127,7 +127,7 @@ type FormatXValueOptions = {
 
 /**
  * Default x-value formatting for tooltip labels: category labels pass
- * through, numbers are thousands-separated, dates render granularity-aware —
+ * through, numbers are thousands-separated, dates render granularity-aware:
  * all-midnight (daily) data as a date with year, anything with a time
  * component as a compact date-time. Invalid dates render as an em dash
  * instead of throwing.

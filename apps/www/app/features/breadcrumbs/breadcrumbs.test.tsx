@@ -64,7 +64,7 @@ describe("Breadcrumbs", () => {
 		expect(screen.getByText("ep_1").getAttribute("aria-current")).toBe("page");
 	});
 
-	it("renders a prefix crumb as plain text — no link, no aria-current", () => {
+	it("renders a prefix crumb as plain text: no link, no aria-current", () => {
 		render(
 			<MemoryRouter>
 				<Breadcrumbs

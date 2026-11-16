@@ -1302,7 +1302,7 @@ type DataTableEmptyRowProps = ComponentProps<typeof Table.Row> & WithDataSlot;
  * const rows = table.getRowModel().rows;
  * const isFiltered = (table.state.globalFilter ?? "") !== "";
  *
- * // EmptyRow already spans every column and Empty.Root centers itself — drop a
+ * // EmptyRow already spans every column and Empty.Root centers itself. Drop a
  * // single Empty.Root in as the child; don't hand-roll a <td> or any centering.
  * <DataTable.Body>
  *   {rows.length > 0 ? (
@@ -1672,7 +1672,7 @@ function ControlCell({
  * <DataTable.RowExpandButton row={row} label={row.original.name} />
  * // ...renders aria-controls={expandedRowId(row)} while expanded, and
  * <DataTable.ExpandedRow row={row}>...</DataTable.ExpandedRow>
- * // ...renders id={expandedRowId(row)} — the same value, so they stay associated.
+ * // ...renders id={expandedRowId(row)}, the same value, so they stay associated.
  * ```
  */
 function expandedRowId<TFeatures extends TableFeatures, TData extends RowData>(
@@ -2277,7 +2277,7 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
  *           {rows.length > 0 ? (
  *             rows.map((row) => <DataTable.Row key={row.id} row={row} />)
  *           ) : isFiltered ? (
- *             // No results for the active filter — give the user a way out.
+ *             // No results for the active filter: give the user a way out.
  *             <DataTable.EmptyRow>
  *               <Empty.Root>
  *                 <Empty.Icon svg={<MagnifyingGlassIcon />} />
@@ -2298,7 +2298,7 @@ function ExpandedRow<TFeatures extends TableFeatures, TData extends RowData>({
  *               </Empty.Root>
  *             </DataTable.EmptyRow>
  *           ) : (
- *             // No data yet — informational, optionally a primary "create" action.
+ *             // No data yet: informational, optionally a primary "create" action.
  *             <DataTable.EmptyRow>
  *               <Empty.Root>
  *                 <Empty.Icon svg={<TrayIcon />} />

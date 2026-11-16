@@ -15,7 +15,7 @@ import { CanvasAreaChartRoot, CanvasBarChartRoot } from "../../test-utils/canvas
  * the painted canvas or a positioned overlay, so they need real layout and a
  * real 2d context.
  *
- * Regression suite for sparse stacks — series that are zero on most columns,
+ * Regression suite for sparse stacks: series that are zero on most columns,
  * which is the shape a "usage by access key" chart produces. Those columns used
  * to render square-topped and floating 2px off the baseline, because the cap
  * and the gap were decided per series instead of per column.
@@ -124,7 +124,7 @@ const readCanvas = (canvas: HTMLCanvasElement): Painted => {
 /**
  * Wait until the engine has measured the whole plot, not a partial first frame.
  * The backing store is sized in device pixels, so it reaches at least the CSS
- * width once the real measurement lands — where a partial frame leaves a canvas
+ * width once the real measurement lands. A partial frame leaves a canvas
  * a few pixels wide, a band layout with a near-zero step, and a hover that
  * resolves every x to the same category.
  */
@@ -189,7 +189,7 @@ const columnRunLength = (
 
 type Span = { start: number; end: number };
 
-/** The contiguous column runs that carry any pixel of `color` — one per bar. */
+/** The contiguous column runs that carry any pixel of `color`: one per bar. */
 const columnRunsOf = (painted: Painted, color: Rgb): Span[] => {
 	const runs: Span[] = [];
 	let open: Span | null = null;
@@ -209,7 +209,7 @@ const columnRunsOf = (painted: Painted, color: Rgb): Span[] => {
 	return runs;
 };
 
-/** The contiguous row runs that carry any pixel of `color` — one per bar when horizontal. */
+/** The contiguous row runs that carry any pixel of `color`: one per bar when horizontal. */
 const rowRunsOf = (painted: Painted, color: Rgb): Span[] => {
 	const runs: Span[] = [];
 	let open: Span | null = null;
@@ -273,7 +273,7 @@ const baselineRowOf = (painted: Painted): number => {
 
 /**
  * The painted zero rule's column, for a horizontal chart. The vertical twin of
- * `baselineRowOf` — a horizontal chart's baseline runs down the plot, so the
+ * `baselineRowOf`. A horizontal chart's baseline runs down the plot, so the
  * weld has to be measured against a column rather than a row.
  */
 const baselineColumnOf = (painted: Painted): number => {
@@ -300,8 +300,8 @@ const sparseStack = [
 const threeEqualSegments = [{ day: "Mon", bottom: 1, middle: 1, top: 1 }];
 
 /**
- * A top series that is nonzero but paints under a pixel — sub-cent line items on
- * a dollar-scale axis — beside the same column with an exact zero. Value equality
+ * A top series that is nonzero but paints under a pixel (sub-cent line items on
+ * a dollar-scale axis) beside the same column with an exact zero. Value equality
  * with `0` catches only the second, so the cap used to land on a rect with no ink
  * and Monday rendered square while Tuesday rendered capped.
  */
@@ -347,7 +347,7 @@ describe("stacked bar caps and baselines", () => {
 
 	test("a segment the column cannot show never takes the cap from the one it can", async () => {
 		// The pixel half of the cap rule. `sliver` is nonzero, so a value-equality
-		// check hands it the cap, and it rasterizes to nothing — leaving the visible
+		// check hands it the cap, and it rasterizes to nothing, which leaves the visible
 		// `body` segment square-topped. Only pixel distance gets this right.
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
@@ -807,7 +807,7 @@ describe("stacked bar caps and baselines", () => {
 /**
  * The hover band overlay, addressed by its public slot. The engine writes the
  * band's `width` as an inline style, so an empty one means it has not painted
- * yet — that makes this a usable poll condition as well as a query.
+ * yet. That makes this a usable poll condition as well as a query.
  */
 const hoverBandOf = (container: HTMLElement): HTMLElement => {
 	const band = container.querySelector('[data-slot="bar-chart-hover-band"]');
@@ -831,8 +831,8 @@ const overlayOf = (container: HTMLElement): HTMLElement => {
 /**
  * Move the pointer to one plot coordinate. The engine reads `offsetX`/`offsetY`
  * off the native event, and userEvent's pointer API cannot address a point
- * inside the plot, so these tests dispatch the real events themselves — the
- * same approach `bar-chart.browser.test.tsx` takes. Keyboard stepping reaches
+ * inside the plot, so these tests dispatch the real events themselves (the
+ * same approach `bar-chart.browser.test.tsx` takes). Keyboard stepping reaches
  * the same code, but headless CI never focuses the window, so the key would
  * land nowhere.
  */
@@ -894,7 +894,7 @@ describe("hover band geometry", () => {
 		 * Hover one plot-relative x until the band lands somewhere new. Both the
 		 * dispatch and the measurement re-read the plot box, because sibling test
 		 * containers move it, and re-dispatching inside `waitFor` covers the first
-		 * pointer event racing the first layout commit — the same reason
+		 * pointer event racing the first layout commit: the same reason
 		 * `bar-chart.browser.test.tsx` re-dispatches. Hover at a fixed position is
 		 * idempotent, so repeating it changes nothing.
 		 */
@@ -913,7 +913,7 @@ describe("hover band geometry", () => {
 
 		const first = await hoverUntilBandMoves((plotWidth) => plotWidth / 2, null);
 		// One pixel past the band belongs to the next category, so the band that
-		// answers must be the neighbor — abutting, never overlapping.
+		// answers must be the neighbor: abutting, never overlapping.
 		const second = await hoverUntilBandMoves(() => first.right + 1, first.left);
 
 		expect(second.width).toBeCloseTo(first.width, 1);
@@ -1158,7 +1158,7 @@ describe("tooltip placement", () => {
 		// layout commit, and the engine repositions again once its size observer
 		// measures the readout. React renders the rows during the event itself
 		// while the engine positions on an animation frame, so wait for the
-		// transform — without it the readout still sits at its unpositioned
+		// transform. Without it the readout still sits at its unpositioned
 		// origin, which is the very place this test expects to find it.
 		await waitFor(() => {
 			const plot = overlay.getBoundingClientRect();
@@ -1231,7 +1231,7 @@ describe("tooltip placement", () => {
 
 		/**
 		 * Hover one plot-relative y until the readout's center lands on it. The
-		 * engine repositions on an animation frame, so the poll re-dispatches —
+		 * engine repositions on an animation frame, so the poll re-dispatches;
 		 * hovering one fixed point is idempotent.
 		 */
 		const expectReadoutToFollow = async (anchorY: number): Promise<void> => {
@@ -1269,7 +1269,7 @@ describe("tooltip placement", () => {
 	test("a readout that fits keeps clear of the x-axis tick labels", async () => {
 		// The engine reserves the bottom of the wrapper for the tick labels, so a
 		// clamp that reaches the wrapper's own bottom edge covers them. Hovering
-		// low is what exposes it — a centered hover never engages the clamp.
+		// low is what exposes it: a centered hover never engages the clamp.
 		const xAxisBand = 24;
 		const { container } = render(
 			<div style={{ width: 600, height: 300 }}>
@@ -1297,7 +1297,7 @@ describe("tooltip placement", () => {
 		// positions the readout on an animation frame, so a single event dispatched
 		// before the first layout commit leaves the transform empty and nothing
 		// fires again. Hovering one fixed point is idempotent. Wait for the
-		// transform first — an unpositioned readout still sits at its `top: 0`
+		// transform first. An unpositioned readout still sits at its `top: 0`
 		// origin, which satisfies a bottom-edge assertion for free.
 		await waitFor(() => {
 			const plot = overlay.getBoundingClientRect();

@@ -51,7 +51,7 @@ describe("CommandPalette", () => {
 
 	// Regression: with cmdk's built-in filtering, searching "tabs" surfaced
 	// Tailwind Variants, Typography, and Table while the Tabs page stayed
-	// below the fold — cmdk's group sorting is a silent no-op upstream. The
+	// below the fold: cmdk's group sorting is a silent no-op upstream. The
 	// palette now owns ranking (shouldFilter={false} + match-sorter), so the
 	// DOM must list the exact title match first.
 	it("renders search results in ranked order with the best match first", async () => {
@@ -140,7 +140,7 @@ describe("CommandPalette", () => {
 
 	// Regression: cmdk hides separators whenever its internal search state is
 	// non-empty, and a whitespace-only query keeps the browse view while still
-	// syncing " " into cmdk — separators must not blink out.
+	// syncing " " into cmdk. Separators must not blink out.
 	it("keeps browse-view separators visible for a whitespace-only query", async () => {
 		renderPalette();
 		const input = await openPalette();

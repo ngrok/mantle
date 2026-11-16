@@ -39,7 +39,7 @@ const docsPages = [
 	"base/tailwind-variants",
 	"base/typography",
 
-	// component docs — /components/<category>/<component>, alphabetical by
+	// component docs: /components/<category>/<component>, alphabetical by
 	// full slug (category blocks and entries within each block)
 	// actions
 	"components/actions/button",
@@ -232,7 +232,7 @@ export default [
 
 	// layouts layout
 	layout("./routes/layouts-layout.tsx", [
-		// The explicit id is load-bearing: layouts-layout.tsx matches on it to
+		// Why the explicit id: layouts-layout.tsx matches on it to
 		// keep the section index on the standard centered container.
 		route("layouts", "./routes/layouts.tsx", { id: "layouts-index" }),
 		...layoutsPages.flatMap((slug) => markdownAliasRoutes(`layouts/${slug}`, "layouts", slug)),
@@ -267,8 +267,8 @@ export default [
 		),
 	]),
 
-	// chrome-less framed example previews — the document the docs pages' iframe
-	// preview frames point at. The explicit id is load-bearing: root.tsx matches
+	// chrome-less framed example previews: the document the docs pages' iframe
+	// preview frames point at. Why the explicit id: root.tsx matches
 	// on it to skip the site chrome, and entry.server.tsx path-matches /preview/
 	// to allow same-origin framing. Splat routes are excluded from
 	// prerendering and served by the runtime SSR function.
@@ -281,10 +281,10 @@ export default [
 	route("mcp/preview", "./routes/mcp.preview.tsx", { id: "mcp-preview" }),
 	route("mcp/preview-frame", "./routes/mcp.preview-frame.tsx", { id: "mcp-preview-frame" }),
 	// chrome-less chart mount benchmark page, driven by apps/www/bench/. The id is
-	// load-bearing too: root.tsx matches on it to skip the site chrome.
+	// required too: root.tsx matches on it to skip the site chrome.
 	route("bench/charts", "./routes/bench.charts.tsx", { id: "bench-charts" }),
 
-	// 404 + legacy redirects — splat catch-all for any unmatched URL. Matches
+	// 404 + legacy redirects: splat catch-all for any unmatched URL. Matches
 	// (so ancestor loaders run) and 301s known pre-IA-reorg paths (e.g.
 	// /components/button, /blocks/*) to their new homes, returning a 404
 	// status for everything else, mirroring the dot-com www 404 route.

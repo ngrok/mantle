@@ -16,7 +16,7 @@ A canvas-rendered scatter plot for correlating two continuous measures (three wi
 import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
 
 function createSeededRandom(seed: number) {
-	// Deterministic LCG (Numerical Recipes constants) — renders identically
+	// Deterministic LCG (Numerical Recipes constants): renders identically
 	// on every load, no Math.random.
 	let state = seed >>> 0;
 	return () => {
@@ -126,7 +126,7 @@ This chart plots 8,000 seeded points in a single series. Rendering degrades by t
 import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
 
 function createSeededRandom(seed: number) {
-	// Deterministic LCG (Numerical Recipes constants) — renders identically
+	// Deterministic LCG (Numerical Recipes constants): renders identically
 	// on every load, no Math.random.
 	let state = seed >>> 0;
 	return () => {
@@ -179,7 +179,7 @@ The glyphs carry into the projection too, and each one depth-sorts with its poin
 import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
 
 function createSeededRandom(seed: number) {
-	// Deterministic LCG (Numerical Recipes constants) — renders identically
+	// Deterministic LCG (Numerical Recipes constants): renders identically
 	// on every load, no Math.random.
 	let state = seed >>> 0;
 	return () => {
@@ -478,7 +478,7 @@ Reach for `mode="decorative"` over hand-rolled `inert` + CSS: it removes the int
 import { Empty } from "@ngrok/mantle/empty";
 import { ScatterPlot } from "@ngrok/mantle/scatter-plot";
 
-/** Synthetic points — a backdrop, not data — so no Math.random and no real values. */
+/** Synthetic points (a backdrop, not data), so no Math.random and no real values. */
 const placeholderCloud = [
 	[12, 840],
 	[20, 610],

@@ -56,7 +56,7 @@ export function EndpointSettings() {
 				return;
 			}
 			setSaved(draft);
-			// the bar exits silently — announce the save's resolution yourself
+			// the bar exits silently, so announce the save's resolution yourself
 			makeToast(
 				<Toast.Root intent="success">
 					<Toast.Icon />
@@ -73,8 +73,8 @@ export function EndpointSettings() {
 
 	return (
 		<form>
-			{/* the failure belongs in the form, next to what could not be saved —
-			    see "Reporting a failed save" below */}
+			{/* the failure belongs in the form, next to what could not be saved.
+			    See "Reporting a failed save" below */}
 			{error != null && (
 				<Alert.Root
 					intent="danger"
@@ -317,7 +317,7 @@ export function EndpointName() {
 
 	return (
 		<form>
-			{/* the failure reports in the form — and takes focus, so it is both
+			{/* the failure reports in the form and takes focus, so it is both
 			    announced reliably and impossible to miss */}
 			{error != null && (
 				<Alert.Root
@@ -406,7 +406,7 @@ import { useRef, useState } from "react";
 
 // What a reduced-motion visitor sees, reproduced through the consumer `className`
 // that `Sandbar.Root` merges last. The variant chain has to match the internal
-// utility exactly — a bare `data-state-closed:translate-y-0` would sit beside the
+// utility exactly: a bare `data-state-closed:translate-y-0` would sit beside the
 // panel's own travel instead of replacing it.
 //
 // `transform-none!` is what stops the `shake()` wiggle: the wiggle is a Web
@@ -649,8 +649,8 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 | Prop         | Type                 | Default | Description                                                                                          |
 | ------------ | -------------------- | ------- | ---------------------------------------------------------------------------------------------------- |
-| `open`       | `boolean`            | —       | Whether the bar is showing. Controlled-only; drive it from your pending state (e.g. a dirty flag).   |
-| `handleRef?` | `Ref<SandbarHandle>` | —       | Receives the imperative handle: `shake(options?: { announcement?: string })` for blocked navigation. |
+| `open`       | `boolean`            |         | Whether the bar is showing. Controlled-only; drive it from your pending state (e.g. a dirty flag).   |
+| `handleRef?` | `Ref<SandbarHandle>` |         | Receives the imperative handle: `shake(options?: { announcement?: string })` for blocked navigation. |
 
 Stamped on the panel:
 
@@ -718,7 +718,7 @@ All props from [Button](/components/actions/button), with these differences:
 | ------------- | --------------------------------------------- | ----------- | ---------------------------------------------------- |
 | `appearance?` | `"ghost" \| "filled" \| "outlined" \| "link"` | `"filled"`  | The Button appearance, made optional with a default. |
 | `intent?`     | `"accent" \| "danger" \| "neutral"`           | `"neutral"` | The Button intent, made optional with a default.     |
-| `children`    | `ReactNode`                                   | —           | Required. The visible action label is app voice.     |
+| `children`    | `ReactNode`                                   |             | Required. The visible action label is app voice.     |
 
 | Data Attribute    | Value                          | Description                                                   |
 | ----------------- | ------------------------------ | ------------------------------------------------------------- |
@@ -740,7 +740,7 @@ All props from [Button](/components/actions/button), with these differences:
 | ------------- | --------------------------------------------- | ------------ | ---------------------------------------------------- |
 | `appearance?` | `"ghost" \| "filled" \| "outlined" \| "link"` | `"outlined"` | The Button appearance, made optional with a default. |
 | `intent?`     | `"accent" \| "danger" \| "neutral"`           | `"neutral"`  | The Button intent, made optional with a default.     |
-| `children`    | `ReactNode`                                   | —            | Required. The visible action label is app voice.     |
+| `children`    | `ReactNode`                                   |              | Required. The visible action label is app voice.     |
 
 | Data Attribute    | Value                             | Description                                                   |
 | ----------------- | --------------------------------- | ------------------------------------------------------------- |

@@ -111,7 +111,7 @@ describe("Slot", () => {
 		).toThrow(/single React element/);
 	});
 
-	it("concatenates data-slot values in DOM order — the Slot's chain first, then the child's own", () => {
+	it("concatenates data-slot values in DOM order: the Slot's chain first, then the child's own", () => {
 		const { container } = render(
 			<Slot data-slot="parent-part">
 				<div data-slot="child-part">Content</div>
@@ -152,7 +152,7 @@ describe("Slot", () => {
 		await user.click(button);
 
 		// Radix Slot semantics: both handlers run, and neither is invoked twice by
-		// the composition — a double-fire here would break every `asChild` consumer.
+		// the composition. A double-fire here would break every `asChild` consumer.
 		expect(slotOnClick).toHaveBeenCalledTimes(1);
 		expect(childOnClick).toHaveBeenCalledTimes(1);
 		expect(slotOnClick).toHaveBeenLastCalledWith(
@@ -166,7 +166,7 @@ describe("Slot", () => {
 
 /**
  * Stands in for react-router's `NavLink`: `className` and `style` may each be a
- * function of the link's active state, which the component — not the `Slot` —
+ * function of the link's active state, which the component (not the `Slot`)
  * resolves. This is the shape that used to silently lose its styling through
  * `asChild` (issue #1374).
  */
@@ -235,7 +235,7 @@ describe("Slot render-prop className and style", () => {
 	it("re-resolves on every render, so the child's state can change", () => {
 		// The composed value has to stay a function all the way to the child. If it
 		// were resolved once at composition time, the class would be frozen at the
-		// state of the first render — which is the whole point of a render prop.
+		// state of the first render, which defeats the whole point of a render prop.
 		const { getByRole, rerender } = render(
 			<Slot className="slot-class">
 				<NavLinkish
@@ -347,7 +347,7 @@ describe("Slot render-prop className and style", () => {
 	});
 
 	it("leaves a function children alone", () => {
-		// `children` is forwarded as-is — Slot composes className and style only.
+		// `children` is forwarded as-is: Slot composes className and style only.
 		const { getByRole } = render(
 			<Slot>
 				<NavLinkish>
@@ -360,8 +360,8 @@ describe("Slot render-prop className and style", () => {
 	});
 
 	it("composes the Slot's ref with the child's own ref", () => {
-		// The child element is rebuilt to compose render props, so its own props —
-		// `ref` included — have to survive that rebuild.
+		// The child element is rebuilt to compose render props, so its own props
+		// (`ref` included) have to survive that rebuild.
 		const slotRef = createRef<HTMLAnchorElement>();
 		const childRef = createRef<HTMLAnchorElement>();
 
@@ -384,7 +384,7 @@ describe("Radix prop-merging contract", () => {
 		/**
 		 * The one assumption `Slot`'s render-prop composition rests on, asserted
 		 * directly rather than through mantle's output. Radix rewrites `className` and
-		 * `style` only for keys it finds on the child element — that is why `Slot`
+		 * `style` only for keys it finds on the child element. That is why `Slot`
 		 * withholds them from the child and hands the composed value to the slot
 		 * instead. If a Radix upgrade starts touching props the child does not declare,
 		 * this fails naming the contract, instead of a `NavLink` somewhere losing its

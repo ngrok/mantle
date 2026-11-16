@@ -9,7 +9,7 @@ import { Sidebar } from "./sidebar.js";
 /**
  * Real-browser geometry for `Sidebar.Header`'s alignment band: its first child
  * sits on a `--sidebar-header-height` track, and `AppLayout.Header` derives its
- * own height from that same token. happy-dom lays nothing out — every
+ * own height from that same token. happy-dom lays nothing out: every
  * `getBoundingClientRect()` there returns zeros, so the two centers would agree
  * no matter what the components emit.
  *
@@ -21,9 +21,9 @@ import { Sidebar } from "./sidebar.js";
  * through `@tailwindcss/node`'s `compile()`.
  */
 const STYLE = `
-/* The layer order is load-bearing: unlayered rules beat every layer, so a bare
+/* The layer order matters: unlayered rules beat every layer, so a bare
    preflight reset here would win over the utilities and zero out the card's
-   margin and border — the two values the toolbar's derived height subtracts. */
+   margin and border, the two values the toolbar's derived height subtracts. */
 @layer theme, base, components, utilities;
 @layer theme {
 	:root {
@@ -114,7 +114,7 @@ function topY(element: HTMLElement): number {
  * the panel's mobile/desktop switch.
  *
  * Every row carries an explicit pixel height, because the contract under test is
- * where the band puts a row — not how tall `Sidebar.SwitcherTrigger` renders.
+ * where the band puts a row, not how tall `Sidebar.SwitcherTrigger` renders.
  */
 function Shell({ children, className }: { children: ReactNode; className?: string }) {
 	return (
@@ -148,7 +148,7 @@ describe("Sidebar.Header alignment band", () => {
 	test("a second row stacks below the band instead of squeezing the first", () => {
 		// Regression (issue #1399): the header was a fixed `h-` band, so a search row
 		// under the switcher either squashed both rows or forced
-		// `--sidebar-header-height` up — which dragged the toolbar up with it.
+		// `--sidebar-header-height` up, which dragged the toolbar up with it.
 		render(
 			<Shell>
 				{switcherRow}

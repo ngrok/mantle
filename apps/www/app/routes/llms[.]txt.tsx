@@ -112,7 +112,7 @@ async function buildBody(): Promise<string> {
 	const lines: string[] = [
 		"# @ngrok/mantle",
 		"",
-		"> ngrok's UI library and design system — built with React, TypeScript, Tailwind CSS, Radix, and Ariakit. Accessible, semantic, and progressively enhanced primitives for production web apps.",
+		"> ngrok's UI library and design system, built with React, TypeScript, Tailwind CSS, Radix, and Ariakit. Accessible, semantic, and progressively enhanced primitives for production web apps.",
 		"",
 		`Docs: ${canonicalHref("/")}`,
 		`MCP server: ${canonicalHref("/mcp")}`,
@@ -129,7 +129,7 @@ async function buildBody(): Promise<string> {
 		"",
 		"Every docs page is also available as plain markdown by appending `.md` to its URL (e.g. `/components/actions/button.md`).",
 		"",
-		"The framed app-shell and layout demos embedded in those pages ship their full React source in `/llms-full.txt`, under `# Framed preview sources`. Read those rather than a page's fence when you are building a shell — the fences are shorter excerpts.",
+		"The framed app-shell and layout demos embedded in those pages ship their full React source in `/llms-full.txt`, under `# Framed preview sources`. Read those rather than a page's fence when you are building a shell: the fences are shorter excerpts.",
 		"",
 	];
 
@@ -161,7 +161,7 @@ async function buildBody(): Promise<string> {
 }
 
 /**
- * Serve `/llms.txt` — the curated index agents and LLMs use to ingest the
+ * Serve `/llms.txt`: the curated index agents and LLMs use to ingest the
  * mantle docs site.
  *
  * The format follows the emerging `llms.txt` convention: a top-level H1

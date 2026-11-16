@@ -12,7 +12,7 @@ import { LineChart } from "../line-chart/index.js";
  * mask: streaming window slides fade the marks out through a band at the
  * plot's left edge (a destination-out gradient, with the grid painted beneath
  * afterward).
- * happy-dom cannot exercise this — it has no real 2D context or paint.
+ * happy-dom cannot exercise this: it has no real 2D context or paint.
  */
 const STYLE = `
 :root {
@@ -89,7 +89,7 @@ const windowAt = (start: number) =>
 const growthAt = (start: number) =>
 	Array.from({ length: 10 }, (_, index) => ({ x: start + index, value: 100 }));
 
-/** Resolve on the next animation frame — the granularity paint decisions happen at. */
+/** Resolve on the next animation frame: the granularity paint decisions happen at. */
 const nextFrame = (): Promise<number> =>
 	new Promise((resolve) => {
 		requestAnimationFrame(resolve);
@@ -113,7 +113,7 @@ const Chart = ({
 /**
  * A gridded LINE chart: the mask exists so the erase spares the grid painted
  * beneath the marks, and a line leaves the gridlines uncovered everywhere but
- * its own 2px stroke — so grid ink (opaque grey) and mark ink (blue) stay
+ * its own 2px stroke, so grid ink (opaque grey) and mark ink (blue) stay
  * separable per pixel, which an area wash would blend.
  */
 const GriddedChart = ({ data }: { data: Array<{ x: number; value: number }> }) => (
@@ -190,7 +190,7 @@ describe("left-edge scroll mask", () => {
 			expect(left).toBeGreaterThan(0);
 			expect(Math.abs(left - right)).toBeLessThanOrEqual(8);
 		});
-		// Slide the window twice: append newer rows, drop the oldest — the
+		// Slide the window twice: append newer rows, drop the oldest: the
 		// streaming signature that activates the mask.
 		rerender(<Chart data={windowAt(1)} />);
 		rerender(<Chart data={windowAt(2)} />);
@@ -218,7 +218,7 @@ describe("left-edge scroll mask", () => {
 		// On the animated path the decay is driven by a one-shot timer that wakes a
 		// single frame; the ramp only completes because paint reports itself as
 		// still animating and re-schedules. Without that, the mask freezes partway
-		// erased until the next data push — for a stream that has stopped, forever.
+		// erased until the next data push (for a stream that has stopped, forever).
 		const { container, rerender } = render(<Chart animate data={windowAt(0)} />);
 		const canvas = await findChartCanvas(container);
 		await waitFor(() => {
@@ -235,7 +235,7 @@ describe("left-edge scroll mask", () => {
 			expect(right).toBeGreaterThan(0);
 			expect(left).toBeLessThan(right * 0.5);
 		});
-		// 1s linger, then the ease-out — comfortably inside 4s if it keeps
+		// 1s linger, then the ease-out: comfortably inside 4s if it keeps
 		// scheduling frames, never reached if it stalls at its first eased step.
 		await waitFor(
 			() => {
@@ -252,8 +252,8 @@ describe("left-edge scroll mask", () => {
 		// Only a SLIDE fades: the first x advanced (rows scrolled out of view) while
 		// the last kept up. A pure append grows the domain and drops nothing, so
 		// relaxing the comparison to `>=` would dissolve the left 40px of every
-		// growing chart. The slide at the end proves the mask still works here —
-		// otherwise this test would pass on a chart that never fades at all.
+		// growing chart. The slide at the end proves the mask still works here.
+		// Otherwise this test would pass on a chart that never fades at all.
 		const { container, rerender } = render(<Chart data={windowAt(0)} />);
 		const canvas = await findChartCanvas(container);
 		await waitFor(() => {
@@ -269,7 +269,7 @@ describe("left-edge scroll mask", () => {
 		await waitFor(() => {
 			expect(container).toHaveTextContent(`${grown.length} data points`);
 		});
-		// There is nothing to wait FOR here — the claim is that no frame fades — so
+		// There is nothing to wait FOR here (the claim is that no frame fades), so
 		// check the invariant on every frame of the linger a mask would have held
 		// for. A re-measure can leave one frame blank (cleared, ink not yet
 		// painted); that keeps the two edges equal, and `inkedFrames` proves the
@@ -298,7 +298,7 @@ describe("left-edge scroll mask", () => {
 	test("a non-slide data swap clears the mask immediately instead of lingering", async () => {
 		// Only the streaming signature (first advanced, last kept up) may fade the
 		// edge. Activating on any x-vector change would dissolve the left 40px of
-		// the plot for a second on every ordinary refresh — a date-range swap, a
+		// the plot for a second on every ordinary refresh: a date-range swap, a
 		// filter change, a backward pan.
 		const { container, rerender } = render(<Chart data={windowAt(50)} />);
 		const canvas = await findChartCanvas(container);

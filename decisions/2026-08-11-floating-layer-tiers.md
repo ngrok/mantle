@@ -8,15 +8,15 @@
 
 Every mantle floating layer rendered at one Tailwind `z-50`, portaled to
 `document.body`, and DOM order broke ties: the most recently mounted layer
-painted on top. That rule is correct for interaction-nested layers — a menu
-opened from inside a dialog mounts after the dialog and paints above it — but
+painted on top. That rule is correct for interaction-nested layers (a menu
+opened from inside a dialog mounts after the dialog and paints above it), but
 it encodes "opened later" as "logically above," and those are not the same
 fact.
 
 The counterexample shipped: the dashboard's "moved the cheese" onboarding
 popover opens on its own after hydration. When the user loads a route whose
 content is a full-bleed `Dialog`, the dialog's portal lands during hydration
-and the popover's portal lands one commit later — a later `body` sibling at the
+and the popover's portal lands one commit later: a later `body` sibling at the
 same `z-50`, painting on top of a takeover that covers its anchor
 (ngrok/FEP-1754). The popover was also inert, because the modal dialog put
 `pointer-events: none` on `body`.
@@ -29,8 +29,8 @@ dialog's own popovers must paint over it.
 
 ### 1. Layer ownership comes from the React tree, not from mount timing
 
-Each overlay's positioner — the fixed, transform-free element that lays out
-its content — doubles as its **layer container**, published through the
+Each overlay's positioner (the fixed, transform-free element that lays out
+its content) doubles as its **layer container**, published through the
 internal `LayerContainerContext`
 (`packages/mantle/src/utils/layer-container/layer-container.tsx`). Every
 portaled float resolves its portal target through `useLayerContainer()`: the
@@ -53,7 +53,7 @@ zero-box positioner wrapper. `Dialog` and `AlertDialog` already had one.
 
 ### 2. Overlays take a higher tier: floats `z-50`, overlays `z-60`
 
-The container alone cannot fix the shipped bug — a late-opening base popover
+The container alone cannot fix the shipped bug: a late-opening base popover
 still appends to `body` after the dialog's portal and wins the `z-50` tie. So
 overlays (`Dialog`, `AlertDialog`, `Sheet`, and `Command.DialogRoot` through
 `Dialog`) moved to `z-60`: a base-level float can never out-paint an overlay,
@@ -70,11 +70,11 @@ banners) stays at `z-50`, so overlays now correctly cover it.
   (`dialog/primitive.tsx`) only yields to a popup the dialog content
   _contains_; portaling the popup would make Escape close the whole dialog.
 - **`MultiSelect.Content` portals into the closest
-  `[data-mantle-modal-content]`** — inside the overlay's content element — for
+  `[data-mantle-modal-content]`** (inside the overlay's content element) for
   the same Escape reason, resolved by DOM search rather than context.
 - **An explicit `container` prop wins.** `Dialog.Portal` and `HoverCard.Portal`
   pass the resolved container back down as the layer container, so the parts
-  that re-portal internally honor it — before this change, a `container` on
+  that re-portal internally honor it. Before this change, a `container` on
   those parts was silently ignored by the inner portal.
 
 ## Alternatives considered
@@ -98,11 +98,11 @@ banners) stays at `z-50`, so overlays now correctly cover it.
 
 - Consumer chrome at `z-50` that relied on out-stacking an open dialog by
   mount order now paints under it. The fix is to move that chrome to `z-60`
-  or above — or, usually, to stop rendering it under a takeover.
+  or above, or (usually) to stop rendering it under a takeover.
 - Consumer CSS that assumed a float's portal is a direct `body` child
   (`body > [data-radix-popper-content-wrapper]`) breaks when the float is
   composed inside an overlay. Target the float's `data-slot` instead.
-- Floats inside overlays are no longer `aria-hidden` by timing luck — they sit
+- Floats inside overlays are no longer `aria-hidden` by timing luck: they sit
   inside the positioner, which the modal marking skips by construction.
 - The `z-60` tier is two utility classes (`z-50`/`z-60`) documented in every
   floating component's JSDoc, not a CSS variable; a consumer aligning a custom

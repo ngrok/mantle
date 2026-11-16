@@ -1,6 +1,6 @@
 /**
  * Returns `true` if {@link value} looks like a path to a static, non-route
- * resource — a file the server serves directly rather than a React Router
+ * resource: a file the server serves directly rather than a React Router
  * route (e.g. `/llms.txt`, `/api/components.json`, `/components/actions/button.md`).
  *
  * Used by the MDX `<a>` mapper to decide whether to render a real `<a>` (full

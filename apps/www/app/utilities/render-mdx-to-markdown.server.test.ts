@@ -43,7 +43,7 @@ describe("renderMdxToMarkdown", () => {
 		expect(result).toContain("const answer = 42;");
 		expect(result).not.toContain("<Example");
 		expect(result).toContain(
-			'<!-- framed preview /preview/centered-layout — full source in /llms-full.txt under "# Framed preview sources" -->',
+			'<!-- framed preview /preview/centered-layout: full source in /llms-full.txt under "# Framed preview sources" -->',
 		);
 		expect(result).not.toContain("omitted in markdown output");
 	});
@@ -52,7 +52,7 @@ describe("renderMdxToMarkdown", () => {
 		const result = renderMdxToMarkdown("<Example />\n\nAfter.");
 
 		expect(result).toContain(
-			'<!-- framed preview — full source in /llms-full.txt under "# Framed preview sources" -->',
+			'<!-- framed preview: full source in /llms-full.txt under "# Framed preview sources" -->',
 		);
 		expect(result).toContain("After.");
 		expect(result).not.toContain("/preview/");

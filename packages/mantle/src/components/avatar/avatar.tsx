@@ -101,7 +101,7 @@ function swatchClassName(seed: string): string {
  * initialsFromName("Acme Corp"); // "AC"
  * initialsFromName("jane"); // "J"
  * initialsFromName("山田 太郎"); // "山太"
- * initialsFromName("straße hof"); // "SH" — not "SSH"
+ * initialsFromName("straße hof"); // "SH", not "SSH"
  * initialsFromName("…"); // "?"
  * ```
  */
@@ -199,7 +199,7 @@ const Root = ({
 	return (
 		<Comp
 			className={cx(
-				// `relative` is load-bearing: `Avatar.Image` positions itself against
+				// Why `relative`: `Avatar.Image` positions itself against
 				// this box so it covers the fallback rather than displacing it.
 				"text-body bg-neutral-500/15 relative flex size-7 shrink-0 items-center justify-center overflow-hidden text-xs font-medium select-none",
 				appearanceClassName[appearance],

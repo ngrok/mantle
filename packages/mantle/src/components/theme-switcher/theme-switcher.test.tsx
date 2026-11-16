@@ -71,7 +71,7 @@ const renderMenuItem = (props: ComponentProps<typeof ThemeDropdownMenuItem> = {}
 
 beforeEach(() => {
 	// ThemeProvider initializes from the persisted cookie, which survives
-	// between tests in the same happy-dom document — reset to a known theme.
+	// between tests in the same happy-dom document. Reset to a known theme.
 	// The provider writes its cookie with `path=/`, and happy-dom keys cookies
 	// by name + path, so the reset must use the same path to overwrite it.
 	document.cookie = "mantle-ui-theme=system; path=/";

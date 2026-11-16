@@ -3,7 +3,7 @@ import { isPreviewExampleName, previewExamples } from "~/features/preview-regist
 
 /**
  * Raw source for every demo module under `app/features/`, bundled by Vite so
- * serverless runtimes can publish it without reading from the filesystem — the
+ * serverless runtimes can publish it without reading from the filesystem, the
  * same approach `mantle-source.server.ts` takes for the package's own source.
  * The two patterns cover the naming every demo module already follows and leave
  * their test files out, since those never render a preview.
@@ -35,7 +35,7 @@ type PreviewSourceModule = {
  * `centered-layout-header` both live in `centered-layout-demos.tsx`), so each
  * module appears once and names all of them. Throws when a registered
  * `sourceFile` matches no module, because that is a renamed file the registry
- * never heard about — and the alternative is a silent hole in the published
+ * never heard about, and the alternative is a silent hole in the published
  * docs.
  *
  * @example

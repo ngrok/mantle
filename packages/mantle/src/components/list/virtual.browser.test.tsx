@@ -25,10 +25,10 @@ function Item({ row }: { row: (typeof rows)[number] }) {
 
 // The browser test DOM has no compiled Tailwind, so the utility classes the
 // primitive relies on for row geometry are inert by default (the abs-position
-// placement is inline, so *that* applies — the inset padding and the
+// placement is inline, so *that* applies; the inset padding and the
 // positioning context are the classes we must shim). Define exactly those
 // utilities so the component's *own* class placement (`p-1` on the viewport,
-// no horizontal padding on the collection) drives the measured layout — a
+// no horizontal padding on the collection) drives the measured layout: a
 // regression that moved the inset back onto the collection would fail here.
 const UTILITY_SHIM = `
 	* { box-sizing: border-box; }
@@ -214,8 +214,8 @@ describe("List virtualization windowing knobs", () => {
 
 test("row identity follows consumer keys across a reorder, matching the plain Root", async () => {
 	// Regression: windowed rows used to be keyed by the virtualizer's default
-	// key (the index), so a reorder remounted every moved row — losing its DOM
-	// node and any state inside it — instead of following the consumer's `key`s
+	// key (the index), so a reorder remounted every moved row (losing its DOM
+	// node and any state inside it) instead of following the consumer's `key`s
 	// the way the non-virtualized `Root` does.
 	const keyedRows = gridRows.slice(0, 5);
 	function KeyedList({ order }: { order: typeof keyedRows }) {
@@ -240,7 +240,7 @@ test("row identity follows consumer keys across a reorder, matching the plain Ro
 		).toHaveAttribute("data-index", "4");
 	});
 
-	// The same DOM node still renders "Grid row 0" — moved, not remounted...
+	// The same DOM node still renders "Grid row 0": moved, not remounted...
 	expect(screen.getByRole("button", { name: "Grid row 0" })).toBe(buttonBefore);
 	// ...and its row now sits at the end of the reversed collection.
 	expect(buttonBefore.closest("[data-index]")?.getAttribute("data-index")).toBe("4");
@@ -299,7 +299,7 @@ describe("List grid navigation", () => {
 
 		// The scroll must stay put (the bug snapped it back to the top)...
 		expect(Math.abs(viewport.scrollTop - scrollBefore)).toBeLessThan(20);
-		// ...and the clicked row — not row 0 — becomes the active descendant.
+		// ...and the clicked row (not row 0) becomes the active descendant.
 		expect(grid.getAttribute("aria-activedescendant")).toBe(
 			grid.querySelector(`[data-index='${clickedIndex}']`)?.id,
 		);
@@ -329,8 +329,8 @@ describe("List grid navigation", () => {
 			</ListVirtualRoot>,
 		);
 		const link = await screen.findByRole("link", { name: "Grid row 0" });
-		// Focusing a tabbable in-row control must NOT bounce focus back to the grid —
-		// otherwise the control is keyboard-unreachable and forward-Tab is trapped.
+		// Focusing a tabbable in-row control must NOT bounce focus back to the grid.
+		// Otherwise the control is keyboard-unreachable and forward-Tab is trapped.
 		// (The row's own tabIndex=-1 controls are still reclaimed; see the click test.)
 		link.focus();
 		expect(link).toHaveFocus();
@@ -343,7 +343,7 @@ describe("List grid navigation", () => {
 	});
 
 	test("keyboard navigation skips rows whose `disabled` prop is set", async () => {
-		// Index 2 is disabled — arrowing should step over it, reading the flag from
+		// Index 2 is disabled, so arrowing should step over it, reading the flag from
 		// the row element's `disabled` prop (not the DOM), so it works windowed too.
 		render(
 			<ListVirtualRoot

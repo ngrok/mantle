@@ -33,7 +33,7 @@ function openMenu(trigger: HTMLElement) {
 // location and swaps what Sidebar.Header and Sidebar.Body render. These cover
 // the swap in both directions, since a silent break here reads as a working
 // demo (the product nav never leaves). The shell offers the section where its
-// information architecture puts it — the footer's account menu.
+// information architecture puts it: the footer's account menu.
 describe("AppShellDemo settings section", () => {
 	function enterSettings() {
 		openMenu(screen.getByRole("button", { name: /Acme Corp/ }));
@@ -56,8 +56,8 @@ describe("AppShellDemo settings section", () => {
 		expect(screen.queryByRole("navigation", { name: "Settings" })).not.toBeNull();
 		expect(screen.queryByRole("link", { name: "Audit Logs" })).not.toBeNull();
 		expect(screen.queryByRole("link", { name: "Endpoints" })).toBeNull();
-		// exactly one current row across the whole panel — the settings landing
-		// page — so neither the pinned entry link nor a footer row doubles the
+		// exactly one current row across the whole panel (the settings landing
+		// page), so neither the pinned entry link nor a footer row doubles the
 		// announcement
 		expect(
 			screen.getAllByRole("link", { current: "page" }).map((link) => link.textContent),
@@ -80,7 +80,7 @@ describe("AppShellDemo settings section", () => {
 
 // The footer's Help row: a Sidebar.ItemButton composed as a
 // DropdownMenu.Trigger. The row is a menu button, not a link, and its items are
-// menu items — a regression here (a plain row, or items that stop rendering)
+// menu items. A regression here (a plain row, or items that stop rendering)
 // reads as a working demo until a reader clicks it.
 it("opens a menu of help destinations from the footer Help row", () => {
 	renderShell(AppShellDemo);
@@ -177,7 +177,7 @@ describe("AppShellDemo product switcher", () => {
 		expect(
 			cards.map((card) => productLabels.find((label) => card.textContent?.startsWith(label))),
 		).toEqual(productLabels);
-		// Gateway is the initial product, so focus lands on its card — not the
+		// Gateway is the initial product, so focus lands on its card, not the
 		// first tabbable node Radix's own auto-focus would have picked
 		expect(focusedIndex(cards)).toBe(0);
 	});

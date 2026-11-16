@@ -27,7 +27,7 @@ RUN npm install --global "pnpm@$(scripts/package-manager-version)" \
     && test "$(cd / && pnpm --version)" = "$(scripts/package-manager-version)" \
     && rm -r package.json scripts
 
-# Pruner stage — generates a minimal workspace containing only @app/www and
+# Pruner stage: generates a minimal workspace containing only @app/www and
 # the workspace packages it depends on (@ngrok/mantle, mantle-vite-plugins,
 # mantle-server-syntax-highlighter, @cfg/tsconfig). turbo prune rewrites the
 # lockfile and workspace manifest down to that subset, so anything @app/www
@@ -54,7 +54,7 @@ RUN --mount=type=secret,id=TURBO_TOKEN \
     export TURBO_TELEMETRY_DISABLED=1 && \
     turbo prune @app/www --docker
 
-# Builder stage — works entirely within the pruned workspace
+# Builder stage: works entirely within the pruned workspace
 FROM base AS builder
 WORKDIR /app
 
@@ -62,7 +62,7 @@ WORKDIR /app
 COPY --from=pruner /app/out/json/ ./
 
 # Install ALL dependencies (devDeps needed for build)
-# Note: turbo prune generates a subset lockfile — skip frozen-lockfile
+# Note: turbo prune generates a subset lockfile, so skip frozen-lockfile
 #
 # The store lives on a BuildKit cache mount, which is a separate filesystem.
 # pnpm moves its default store onto the project's filesystem in that case, so
@@ -90,7 +90,7 @@ RUN --mount=type=secret,id=TURBO_TOKEN \
     export TURBO_TELEMETRY_DISABLED=1 && \
     pnpm turbo run build --filter=@app/www...
 
-# Node runtime stage — stages the Node files the runner copies, so `binutils`
+# Node runtime stage: stages the Node files the runner copies, so `binutils`
 # never reaches the runner.
 # - `strip` removes the ELF symbol table, about 18 MB on amd64. Native frames
 #   in core dumps, `perf`, and `--report` lose their names. JS stacks,
@@ -110,7 +110,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && /node-runtime/nodejs/bin/node -p process.version
 
 # ---------------------------------------------------------------------------
-# Runner stage — Distroless, no shell/npm/package manager.
+# Runner stage: Distroless, no shell/npm/package manager.
 # The `appServer` Vite plugin bundles each dependency into the server build,
 # so the build directory runs with no install.
 # ---------------------------------------------------------------------------

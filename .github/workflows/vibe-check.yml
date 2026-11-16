@@ -4,7 +4,7 @@ on:
   # Run on PRs (one run per PR; superseded pushes auto-cancel) and on the branches
   # that actually gate a merge: `main` (post-merge validation + warms the turbo
   # remote cache for PRs) and the merge-queue refs. Plain feature-branch pushes no
-  # longer trigger the full matrix on their own — open a PR to get CI.
+  # longer trigger the full matrix on their own; open a PR to get CI.
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   push:
@@ -85,6 +85,9 @@ jobs:
 
       - name: Doc Links 🔗
         run: pnpm run check:doc-links
+
+      - name: Prose 🖊️
+        run: pnpm run check:prose
 
   mise-lock-check:
     name: Mise Lockfile
@@ -313,7 +316,7 @@ jobs:
         run: |
           version="$(yq -r '.catalog.playwright' pnpm-workspace.yaml)"
           if [[ -z "${version}" || "${version}" == "null" ]]; then
-            echo "::error::Could not resolve .catalog.playwright from pnpm-workspace.yaml — refusing to cache an invalid Playwright browser build."
+            echo "::error::Could not resolve .catalog.playwright from pnpm-workspace.yaml; refusing to cache an invalid Playwright browser build."
             exit 1
           fi
           echo "version=${version}" >> "${GITHUB_OUTPUT}"

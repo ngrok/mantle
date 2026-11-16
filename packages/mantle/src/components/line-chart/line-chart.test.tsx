@@ -447,8 +447,8 @@ describe("LineChart.Legend", () => {
 	});
 
 	test("legend keys wear each series' glyph on the stroke", () => {
-		// Regression: line keys were bare strokes, so `shape` — the redundant
-		// encoding alongside color — never reached the legend.
+		// Regression: line keys were bare strokes, so `shape` (the redundant
+		// encoding alongside color) never reached the legend.
 		const { container } = render(
 			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
 				<LineChart.Line dataKey="p50" label="p50" color="blue" />
@@ -936,7 +936,7 @@ test("rows with unparseable timestamps are dropped without blanking the chart or
 	expect(tooltip?.textContent).toContain("111");
 	await user.keyboard("{End}");
 	expect(tooltip?.textContent).toContain("222");
-	// The invalid row is unreachable by stepping — only two positions exist.
+	// The invalid row is unreachable by stepping: only two positions exist.
 	await user.keyboard("{Home}{ArrowRight}");
 	expect(tooltip?.textContent).toContain("222");
 });

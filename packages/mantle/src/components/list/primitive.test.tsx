@@ -13,7 +13,7 @@ function focusViaTab(element: HTMLElement) {
 }
 
 /**
- * A plain grid of button rows where any subset can be disabled — the smallest
+ * A plain grid of button rows where any subset can be disabled: the smallest
  * harness that exercises the primitive's keyboard navigation directly.
  */
 function Grid({
@@ -52,7 +52,7 @@ describe("List grid keyboard navigation edges", () => {
 		expect(activeIndex()).toBe("1");
 
 		await user.keyboard("{End}");
-		// The last row (5) is disabled — End lands on the last enabled row.
+		// The last row (5) is disabled, so End lands on the last enabled row.
 		expect(activeIndex()).toBe("4");
 
 		await user.keyboard("{Home}");
@@ -64,7 +64,7 @@ describe("List grid keyboard navigation edges", () => {
 		// Skips disabled row 3.
 		expect(activeIndex()).toBe("4");
 		await user.keyboard("{ArrowDown}");
-		// No enabled row below (5 is disabled) — the active row holds.
+		// No enabled row below (5 is disabled), so the active row holds.
 		expect(activeIndex()).toBe("4");
 
 		await user.keyboard("{ArrowUp}");
@@ -155,7 +155,7 @@ describe("List grid keyboard navigation edges", () => {
 test("list semantics moves focus between asChild rows that are themselves the control", () => {
 	// Regression: `findItemControl` only searched a row's descendants, so an
 	// `asChild` row that *is* the focusable control (the docs' Polymorphism
-	// example — the row renders as an <a>) was never a navigation target.
+	// example, where the row renders as an <a>) was never a navigation target.
 	render(
 		<ListRoot semantics="list" aria-label="links">
 			<ListItem asChild>
@@ -179,7 +179,7 @@ test("list semantics moves focus between asChild rows that are themselves the co
 
 test("hands arrow/Home/End back to a text field hosted inside a row", () => {
 	// Regression guard: a row that hosts a text-editing control (rename-in-place,
-	// an in-row filter) must keep the caret keys — claiming them would
+	// an in-row filter) must keep the caret keys: claiming them would
 	// preventDefault the caret move *and* yank focus to another row mid-typing.
 	render(
 		<ListRoot semantics="list" aria-label="rows">
@@ -204,7 +204,7 @@ test("hands arrow/Home/End back to a text field hosted inside a row", () => {
 	}
 
 	// Contrast: the very same key pressed on a row's button *is* claimed and does
-	// move focus — so the assertions above are about the guard, not a dead harness.
+	// move focus, so the assertions above are about the guard, not a dead harness.
 	const control = screen.getByRole("button", { name: "Item 0" });
 	control.focus();
 	expect(fireEvent.keyDown(control, { key: "ArrowDown" })).toBe(false);
@@ -280,7 +280,7 @@ describe("List grid pointer activation", () => {
 		await user.click(screen.getByText("Item 0"));
 		expect(onActivate).toHaveBeenCalledExactlyOnceWith(0);
 
-		// The nested control handles its own click — activation must not fire twice.
+		// The nested control handles its own click; activation must not fire twice.
 		await user.click(screen.getByRole("button", { name: "nested control" }));
 		expect(onActivate).toHaveBeenCalledTimes(1);
 
@@ -349,8 +349,8 @@ describe("List grid row ids", () => {
 
 	test("a custom itemId leaves the row's own id alone instead of duplicating the referenced id", () => {
 		// Regression: the row used to stamp itemId(index) as its own DOM id even when
-		// the consumer's itemId pointed at an element *inside* the row — producing
-		// duplicate ids — and silently discarded the consumer's own row id.
+		// the consumer's itemId pointed at an element *inside* the row (producing
+		// duplicate ids) and silently discarded the consumer's own row id.
 		render(
 			<ListRoot semantics="grid" aria-label="grid" itemId={(index) => `ctrl-${index}`}>
 				<ListItem id="consumer-row">

@@ -14,7 +14,7 @@ const query = "(prefers-reduced-motion: no-preference)";
  *
  * Useful in event handlers, animation entrypoints, or plain functions where
  * a React hook cannot be called. Prefer {@link usePrefersReducedMotion}
- * inside components — it subscribes to live changes.
+ * inside components: it subscribes to live changes.
  *
  * @returns `true` when the user has opted out of animations or when called
  *   outside a browser environment (SSR), `false` when motion is allowed.

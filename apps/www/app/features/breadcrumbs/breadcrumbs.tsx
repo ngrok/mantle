@@ -16,13 +16,13 @@ function CrumbContent({ crumb, isCurrentPage }: { crumb: ItemCrumb; isCurrentPag
 	}
 
 	if (crumb.kind === "label") {
-		// a section prefix whose index URL only redirects — a link there would
+		// a section prefix whose index URL only redirects: a link there would
 		// bounce the user back to where they already are
 		return <Breadcrumb.Label>{crumb.label}</Breadcrumb.Label>;
 	}
 
 	return (
-		// asChild, so the router owns navigation — a bare href on
+		// asChild, so the router owns navigation: a bare href on
 		// Breadcrumb.Link would full-page-navigate
 		<Breadcrumb.Link asChild>
 			<Link to={crumb.to}>{crumb.label}</Link>
@@ -33,8 +33,8 @@ function CrumbContent({ crumb, isCurrentPage }: { crumb: ItemCrumb; isCurrentPag
 /**
  * Renders a breadcrumb trail from already-resolved crumbs. The last crumb is the
  * current page (`aria-current="page"`, not a link), and every earlier one links
- * to its route — except a label crumb, which renders as a non-link
- * `Breadcrumb.Label`, and a content crumb, which renders its own items. A
+ * to its route, with two exceptions: a label crumb renders as a non-link
+ * `Breadcrumb.Label`, and a content crumb renders its own items. A
  * content crumb decides link vs current page itself, because the renderer
  * cannot see inside it.
  *
@@ -79,7 +79,7 @@ function Breadcrumbs({ crumbs }: { crumbs: ReadonlyArray<ResolvedCrumb> }) {
 
 /**
  * The breadcrumb trail for the current route. Render it once, in your app shell's
- * header — it derives everything from the matched route chain, so no route needs to
+ * header: it derives everything from the matched route chain, so no route needs to
  * push anything up.
  *
  * This is the only piece that touches the router, which keeps the hook at the edge.

@@ -134,7 +134,7 @@ A rule rewrites syntax. These are not syntax, so the guide lists them as manual 
 
 - A class string, a CSS selector, or a test query (`gap-2`, `[data-hide-border]`, `getByRole("application")`).
 - Code that moves between modules (a header that leaves the shell for every route).
-- A choice the agent makes per call site (which chart is a sparkline, which `id` was load-bearing).
+- A choice the agent makes per call site (which chart is a sparkline, which `id` a test depended on).
 - A swap of one library's API for another's (PrismJS to `CodeBlock`).
 
 When every step is one of these, the guide says `Codemod: manual: <reason>.` and ships no rules directory.

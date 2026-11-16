@@ -2,7 +2,7 @@ import type { Color } from "../../utils/color/index.js";
 /**
  * Shared types for the internal canvas chart engine.
  *
- * This module is internal shared implementation — it is not exported from the
+ * This module is internal shared implementation. It is not exported from the
  * package. The public components built on it are `BarChart` (../bar-chart),
  * `LineChart` (../line-chart), `AreaChart` (../area-chart), and
  * `ScatterPlot` (../scatter-plot), mirroring how `dialog/primitive` backs
@@ -16,7 +16,7 @@ import type { Color } from "../../utils/color/index.js";
 type XValue = string | number | Date;
 
 /**
- * A single row of chart data — any object shape. Series read one numeric key
+ * A single row of chart data: any object shape. Series read one numeric key
  * per row; the x key identifies the row's position on the x axis. Missing
  * keys and `null` values are rendered as gaps. Typed as `object` (not an
  * index signature) so interface-typed rows compose without ceremony; reads
@@ -27,10 +27,10 @@ type ChartDatum = object;
 /**
  * How x values map onto the x axis:
  *
- * - `"band"` — categorical bands with air between them (bar charts).
- * - `"point"` — categorical positions with no band thickness (line/area over categories).
- * - `"linear"` — continuous numeric axis.
- * - `"time"` — continuous time axis with calendar-aware ticks.
+ * - `"band"`: categorical bands with air between them (bar charts).
+ * - `"point"`: categorical positions with no band thickness (line/area over categories).
+ * - `"linear"`: continuous numeric axis.
+ * - `"time"`: continuous time axis with calendar-aware ticks.
  */
 type XScaleKind = "band" | "point" | "linear" | "time";
 
@@ -100,12 +100,12 @@ type PointShape =
  * The fill texture a bar series wears: solid color (the default), diagonal
  * hatch lines at 45° (`"hatch"`), the 135° mirror (`"hatch-reverse"`), both
  * (`"crosshatch"`), rungs perpendicular to the bar's length
- * (`"perpendicular"` — horizontal lines on vertical bars), rungs parallel to
- * it (`"parallel"` — vertical lines on vertical bars), the orthogonal lattice
+ * (`"perpendicular"`: horizontal lines on vertical bars), rungs parallel to
+ * it (`"parallel"`: vertical lines on vertical bars), the orthogonal lattice
  * of both rung directions (`"grid"`), or an offset dot field (`"dots"`).
  *
  * The two rung textures flip with `orientation`, in opposite senses. Every
- * other value is direction-free, `"grid"` included — it is the orthogonal
+ * other value is direction-free, `"grid"` included. It is the orthogonal
  * lattice against `"crosshatch"`'s diagonal one.
  *
  * A textured series paints its marks in the full series color over a light
@@ -127,7 +127,7 @@ type BarTexture =
 /**
  * The direction a bar chart's bars run: vertical columns rising from a bottom
  * baseline (the default), or horizontal bars growing rightward from a left
- * baseline — the layout for long category labels, which move into the left
+ * baseline: the layout for long category labels, which move into the left
  * gutter at full width instead of colliding under the plot.
  */
 type BarOrientation = "vertical" | "horizontal";
@@ -233,7 +233,7 @@ type ReferenceLineSpec = {
 
 /**
  * The hover/keyboard snapshot published by the engine. One snapshot describes
- * the active x position and every series' value at it — the tooltip, the
+ * the active x position and every series' value at it. The tooltip, the
  * aria-live announcement, and `onDatumActivate` all read from it.
  */
 type HoverSnapshot = {
@@ -307,7 +307,7 @@ type ChartOptions = {
 	/**
 	 * 3D scatter only: how many axes the cloud currently occupies. Changing it
 	 * morphs points onto the x axis line (1), the xy plane (2), or the full
-	 * cube (3) — the collapse glides via the same chase as the domains.
+	 * cube (3). The collapse glides via the same chase as the domains.
 	 */
 	dimensions: 1 | 2 | 3;
 	stacked: boolean;

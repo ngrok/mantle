@@ -564,7 +564,7 @@ export function UserDialog({ onClose, scenario, userId }: UserOverlayProps) {
 			}}
 		>
 			<Dialog.Content preferredWidth="max-w-xl">
-				{/* Dialog.Header is a single flex row — Title + CloseIconButton only.
+				{/* Dialog.Header is a single flex row: Title + CloseIconButton only.
 				    The description lives at the top of the Body (Radix wires
 				    aria-describedby from anywhere inside Content). */}
 				<Dialog.Header>
@@ -627,8 +627,11 @@ export function UserAlertDialog({ onClose, scenario, userId }: UserOverlayProps)
 					<AlertDialog.Header>
 						<AlertDialog.Title>Remove this user?</AlertDialog.Title>
 						<AlertDialog.Description>
-							Review <span className="font-mono">{userId}</span> before removing them — loaded
-							through the {scenarioLabels[scenario]} case.
+							Review{" "}
+							<span translate="no" className="font-mono">
+								{userId}
+							</span>{" "}
+							before removing them (loaded through the {scenarioLabels[scenario]} case).
 						</AlertDialog.Description>
 					</AlertDialog.Header>
 					<div className="mt-4">

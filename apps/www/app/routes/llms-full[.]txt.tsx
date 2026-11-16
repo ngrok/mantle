@@ -7,7 +7,7 @@ function buildBody(): string {
 	const slugs = Array.from(urlToFileMap.keys()).toSorted((a, b) => a.localeCompare(b));
 
 	const sections: string[] = [
-		"# @ngrok/mantle — Full Documentation",
+		"# @ngrok/mantle full documentation",
 		"",
 		"> Concatenated markdown for every page on https://mantle.ngrok.com. Each section is preceded by its canonical docs URL. JSX preview blocks (`<Example>`) are dropped; code fences are preserved verbatim. The framed demos those pages embed follow the last page, under `# Framed preview sources`.",
 		"",
@@ -48,7 +48,7 @@ function buildBody(): string {
 	sections.push(
 		"# Framed preview sources",
 		"",
-		"> The React source of the framed demos the pages above embed, verbatim. Each module renders one or more previews at `/preview/<name>` and is the code that preview actually runs — the fences on the docs pages are shorter, hand-written excerpts. The preview URLs a module serves are listed above it.",
+		"> The React source of the framed demos the pages above embed, verbatim. Each module renders one or more previews at `/preview/<name>` and is the code that preview actually runs. The fences on the docs pages are shorter, hand-written excerpts. The preview URLs a module serves are listed above it.",
 		"",
 		"---",
 		"",
@@ -77,7 +77,7 @@ function buildBody(): string {
 let productionBody: string | undefined;
 
 /**
- * Serve `/llms-full.txt` — the concatenated markdown of every docs page, then
+ * Serve `/llms-full.txt`: the concatenated markdown of every docs page, then
  * the React source of every framed preview those pages embed, suitable for
  * shoving into an LLM context window when an agent needs full coverage of the
  * library rather than just the per-page index.

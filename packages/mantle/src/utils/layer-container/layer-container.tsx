@@ -31,7 +31,7 @@ const ModalLayerContext = createContext(false);
 
 /**
  * The nearest overlay's layer container, or `null` outside every overlay.
- * Pass the result to a portal's `container` prop — `null` falls back to
+ * Pass the result to a portal's `container` prop; `null` falls back to
  * `document.body`.
  *
  * @example
@@ -60,7 +60,7 @@ function useIsInsideModalLayer(): boolean {
 /**
  * The provider half of {@link LayerContainerContext}: a `div` that registers
  * itself as the layer container for every float composed inside it. An overlay
- * renders it as its positioner — the fixed element that lays out its content —
+ * renders it as its positioner (the fixed element that lays out its content),
  * so floats portaled into it later land on the content's ancestor chain and
  * paint above the content. The caller passes the positioning classes and the
  * `data-slot`; this component carries none of its own.

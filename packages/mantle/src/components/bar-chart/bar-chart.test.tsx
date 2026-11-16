@@ -59,14 +59,14 @@ describe("BarChart.Root", () => {
 		engageChart();
 		await vi.waitFor(() => {
 			expect(
-				screen.getByRole("table", { name: "Visitors by month — chart data." }),
+				screen.getByRole("table", { name: "Visitors by month: chart data." }),
 			).toBeInTheDocument();
 		});
 	});
 
 	test("an xKey matching no row throws instead of rendering undefined categories", () => {
 		// Regression: a typo'd xKey used to coerce every category to the literal
-		// string "undefined" — a plausibly-rendered chart that ships the typo.
+		// string "undefined": a plausibly-rendered chart that ships the typo.
 		// Loosely-typed rows (API responses) evade the compile-time xKey check,
 		// which is exactly the hole the runtime invariant backstops.
 		const untypedRows: Array<Record<string, unknown>> = data;
@@ -345,7 +345,7 @@ describe("BarChart keyboard interaction", () => {
 		const onActiveIndexChange = vi.fn<(index: number | null) => void>();
 		renderChart({ onActiveIndexChange });
 		await user.tab();
-		// Stepping backwards into an unpositioned cursor enters from the end — the
+		// Stepping backwards into an unpositioned cursor enters from the end, the
 		// mirror of ArrowRight entering at the first datum.
 		await user.keyboard("{ArrowLeft}");
 		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
@@ -673,7 +673,7 @@ describe("BarChart decorative mode", () => {
 		const { container } = renderDecorative();
 		const root = container.querySelector('[data-slot="bar-chart"]');
 		expect(root).toHaveAttribute("aria-hidden", "true");
-		// The surface still paints the placeholder bars — decorative preserves the
+		// The surface still paints the placeholder bars: decorative preserves the
 		// visual rendering, it only strips the interaction and a11y layers.
 		expect(container.querySelector('[data-slot="bar-chart-svg"]')).toBeInTheDocument();
 	});
@@ -687,7 +687,7 @@ describe("BarChart decorative mode", () => {
 	test("paints every series neutral, so no mark on a backdrop reads as data", () => {
 		// The Root prop has to reach the store for the neutral fill to land, and the
 		// legend swatch is where a DOM surface publishes what a series paints. The
-		// paint surface reads the same value from the same place — the browser sweep in
+		// paint surface reads the same value from the same place. The browser sweep in
 		// chart/decorative-paint.browser.test.tsx samples the painted pixels.
 		const { container } = render(
 			<BarChart.Root data={data} xKey="month" mode="decorative">
@@ -768,13 +768,13 @@ describe("BarChart decorative mode", () => {
 
 	test("suppresses a type-bypassing controlled activeIndex so no readout surfaces", () => {
 		// A loosely-typed / JS consumer can slip past the ChartAccessibilityProps
-		// union — the same class of hole the xKey invariant backstops. The runtime
+		// union: the same class of hole the xKey invariant backstops. The runtime
 		// guard must still keep a decorative chart inert: an activeIndex of 1 drives
 		// the tooltip to "February" on an interactive chart (see the controlled
 		// activeIndex test above), but must surface nothing here.
 		const { container } = render(
 			<>
-				{/* @ts-expect-error — decorative forbids activeIndex; the runtime guard must suppress it anyway */}
+				{/* @ts-expect-error: decorative forbids activeIndex; the runtime guard must suppress it anyway */}
 				<BarChart.Root data={data} xKey="month" mode="decorative" activeIndex={1}>
 					<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 				</BarChart.Root>

@@ -452,7 +452,7 @@ class AlertCenterStore {
 		// therefore only mean a second, concurrently mounted item.
 		invariant(
 			!this.#alertsById.has(alert.id),
-			`AlertCenter.Item id "${alert.id}" is already registered by another mounted item — ids must be unique under one <AlertCenter.Root>. Render one item per id, or give each alert its own id.`,
+			`AlertCenter.Item id "${alert.id}" is already registered by another mounted item. Ids must be unique under one <AlertCenter.Root>. Render one item per id, or give each alert its own id.`,
 		);
 		const sequence = this.#sequenceById.get(alert.id) ?? this.#nextSequence++;
 		this.#sequenceById.set(alert.id, sequence);
@@ -620,7 +620,7 @@ type AlertCenterRootProps = {
  *       <Alert.Icon />
  *       <Alert.Content>
  *         <Alert.Title>
- *           Payment failed — <a href="/billing">update your card</a>
+ *           Payment failed: <a href="/billing">update your card</a>
  *         </Alert.Title>
  *       </Alert.Content>
  *     </AlertCenter.Item>
@@ -1268,7 +1268,7 @@ const singleLineBarControls =
  *     <Alert.Icon />
  *     <Alert.Content>
  *       <Alert.Title>
- *         Payment failed — we couldn't charge your card.{" "}
+ *         Payment failed: we couldn't charge your card.{" "}
  *         <a href="/billing">Update payment method</a>
  *       </Alert.Title>
  *       <Alert.Description>
@@ -1508,7 +1508,7 @@ type AlertCenterContentProps = Omit<ComponentProps<"div">, "children" | "id"> &
  *     <Alert.Icon />
  *     <Alert.Content>
  *       <Alert.Title>
- *         Payment failed — <a href="/billing">update your card</a>
+ *         Payment failed: <a href="/billing">update your card</a>
  *       </Alert.Title>
  *     </Alert.Content>
  *   </AlertCenter.Item>
@@ -1773,7 +1773,7 @@ const Content = ({
  *         <Alert.Icon />
  *         <Alert.Content>
  *           <Alert.Title>
- *             Payment failed — we couldn't charge your card.{" "}
+ *             Payment failed: we couldn't charge your card.{" "}
  *             <a href="/billing">Update payment method</a>
  *           </Alert.Title>
  *           <Alert.Description>
@@ -1821,7 +1821,7 @@ const AlertCenter = {
 	 *     <Alert.Icon />
 	 *     <Alert.Content>
 	 *       <Alert.Title>
-	 *         Payment failed — we couldn't charge your card.{" "}
+	 *         Payment failed: we couldn't charge your card.{" "}
 	 *         <a href="/billing">Update payment method</a>
 	 *       </Alert.Title>
 	 *       <Alert.Description>
@@ -1875,7 +1875,7 @@ const AlertCenter = {
 	 *     <Alert.Icon />
 	 *     <Alert.Content>
 	 *       <Alert.Title>
-	 *         Payment failed — we couldn't charge your card.{" "}
+	 *         Payment failed: we couldn't charge your card.{" "}
 	 *         <a href="/billing">Update payment method</a>
 	 *       </Alert.Title>
 	 *       <Alert.Description>
@@ -1926,7 +1926,7 @@ const AlertCenter = {
 	 *     <Alert.Icon />
 	 *     <Alert.Content>
 	 *       <Alert.Title>
-	 *         Payment failed — <a href="/billing">update your card</a>
+	 *         Payment failed: <a href="/billing">update your card</a>
 	 *       </Alert.Title>
 	 *     </Alert.Content>
 	 *   </AlertCenter.Item>
@@ -1971,7 +1971,7 @@ const AlertCenter = {
 	 *     <Alert.Icon />
 	 *     <Alert.Content>
 	 *       <Alert.Title>
-	 *         Payment failed — <a href="/billing">update your card</a>
+	 *         Payment failed: <a href="/billing">update your card</a>
 	 *       </Alert.Title>
 	 *     </Alert.Content>
 	 *   </AlertCenter.Item>

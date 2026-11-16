@@ -5,7 +5,7 @@
  * first, in slices of a few milliseconds, and yields to the browser between
  * slices, so the page keeps painting and answering input while the rest fill.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation, not exported from the package.
  */
 
 type Activation = {

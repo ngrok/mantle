@@ -89,7 +89,7 @@ describe("useSessionStorage", () => {
 		const { result } = renderHook(() => useSessionStorage(key, defaultValue));
 		expect(result.current[0]).toBe("initial");
 
-		// change the underlying entry WITHOUT a matching notification — a
+		// change the underlying entry WITHOUT a matching notification; a
 		// filtered subscription must not re-read the snapshot
 		act(() => {
 			window.sessionStorage.setItem(key, JSON.stringify("changed-silently"));

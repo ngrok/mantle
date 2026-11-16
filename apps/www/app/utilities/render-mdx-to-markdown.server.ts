@@ -14,7 +14,7 @@ import { unified } from "unified";
  * code blocks is always preserved because it parses as `code` nodes.
  *
  * Handlers that need to render a component to HTML can lazily import the
- * `virtual:mdx-doc-component-imports` module on demand — we intentionally
+ * `virtual:mdx-doc-component-imports` module on demand. We intentionally
  * do not import it here so the server bundle does not pull in the entire
  * set of doc-only React components for every `.md` request.
  */
@@ -100,7 +100,7 @@ const handlers: Record<string, Handler> = {
 			nodes: [
 				{
 					type: "html",
-					value: `<!-- ${preview} — full source in /llms-full.txt under "# Framed preview sources" -->`,
+					value: `<!-- ${preview}: full source in /llms-full.txt under "# Framed preview sources" -->`,
 				},
 				...node.children,
 			],

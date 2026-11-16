@@ -57,7 +57,7 @@ describe("buildCrumbs", () => {
 		expect(buildCrumbs([match({ id: "root", pathname: "/" })])).toEqual([]);
 	});
 
-	test("skips routes with no breadcrumb handle — omitting it is the opt-out", () => {
+	test("skips routes with no breadcrumb handle, because omitting it is the opt-out", () => {
 		const crumbs = buildCrumbs([
 			match({ id: "root", pathname: "/" }),
 			match({ id: "gate", pathname: "/", handle: { requiresAuth: true } }),
@@ -108,7 +108,7 @@ describe("buildCrumbs", () => {
 				handle: { breadcrumb: () => [routeBreadcrumb.label("Settings")] },
 			}),
 		]);
-		// no `to` at all — an unlinked link crumb is unrepresentable
+		// no `to` at all: an unlinked link crumb is unrepresentable
 		expect(crumbs).toEqual([{ kind: "label", key: "settings:0", label: "Settings" }]);
 	});
 

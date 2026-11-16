@@ -175,8 +175,8 @@ const shapedRegionData = [
 ];
 
 function ShapesExample() {
-	// Pin the active index so the hover dots — where an area chart wears its
-	// glyphs — stay visible; hovering still moves the crosshair freely.
+	// Pin the active index so the hover dots (where an area chart wears its
+	// glyphs) stay visible; hovering still moves the crosshair freely.
 	const [activeIndex, setActiveIndex] = useState(9);
 	return (
 		<AreaChart.Root
@@ -539,7 +539,7 @@ Reach for `mode="decorative"` over hand-rolled `inert` + CSS: it removes the int
 import { Empty } from "@ngrok/mantle/empty";
 import { AreaChart } from "@ngrok/mantle/area-chart";
 
-/** Synthetic area — a backdrop, not data — so no Math.random and no real values. */
+/** Synthetic area (a backdrop, not data), so no Math.random and no real values. */
 const placeholderTraffic = [30, 48, 40, 62, 55, 74, 66, 80].map((value, index) => ({
 	minute: index,
 	value,

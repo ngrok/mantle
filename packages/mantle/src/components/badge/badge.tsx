@@ -30,8 +30,8 @@ type BadgeProps = ComponentProps<"span"> &
 	} & WithDataSlot;
 
 /**
- * A non-interactive label used to highlight short, scannable information —
- * a status, a category tag, or a count — in the smallest possible footprint.
+ * A non-interactive label used to highlight short, scannable information
+ * (a status, a category tag, or a count) in the smallest possible footprint.
  *
  * **When to use**
  * - Status indicators: `Succeeded`, `Failed`, `Pending`, `Beta`.
@@ -39,7 +39,7 @@ type BadgeProps = ComponentProps<"span"> &
  * - Counts (e.g. `12 new`) when paired with brief context.
  *
  * **When not to use**
- * - For interactive UI. Badges are not buttons or links — use {@link https://mantle.ngrok.com/components/actions/button Button}
+ * - For interactive UI. Badges are not buttons or links. Use {@link https://mantle.ngrok.com/components/actions/button Button}
  *   or {@link https://mantle.ngrok.com/components/navigation/anchor Anchor} (optionally with `asChild` styling) instead.
  * - For long-form text. Keep labels to one or two short words.
  * - As the sole signal of meaning. Pair color with a label or icon so the
@@ -51,12 +51,12 @@ type BadgeProps = ComponentProps<"span"> &
  * isn't already covered.
  *
  * **Polymorphism.** Pass `asChild` to render the badge as a single child
- * element — useful when the badge wraps a link or other semantic element
+ * element. This is useful when the badge wraps a link or other semantic element
  * while keeping the badge styling.
  *
  * **Structure.** `children` render inside a `<span data-slot="badge-label">`,
  * beside the `icon` slot. The span carries `display: contents`, so it lays out
- * nothing of its own — every child stays a flex item of the badge, and the badge's
+ * nothing of its own: every child stays a flex item of the badge, and the badge's
  * `gap` still falls between them. The span exists so a newly-appearing icon
  * inserts before an element sibling: a browser translation engine reparents text
  * nodes, and an insert aimed at one throws. A label that must shrink stays a child
@@ -84,7 +84,7 @@ type BadgeProps = ComponentProps<"span"> &
  *   Succeeded
  * </Badge>
  *
- * // Polymorphic — render the badge as a link, preserving its styling.
+ * // Polymorphic: render the badge as a link, preserving its styling.
  * <Badge appearance="muted" color="info" asChild>
  *   <a href="/status">Operational</a>
  * </Badge>

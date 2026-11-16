@@ -12,7 +12,7 @@ import { Choice } from "./choice.js";
 /**
  * Run axe against a rendered container and return its violations. Color contrast
  * is disabled because the test DOM has no theme tokens applied, so contrast
- * results are noise — every other WCAG / best-practice rule stays on.
+ * results are noise. Every other WCAG / best-practice rule stays on.
  */
 async function axeViolations(container: HTMLElement) {
 	const results = await axe.run(container, {
@@ -21,8 +21,8 @@ async function axeViolations(container: HTMLElement) {
 	return results.violations;
 }
 
-describe("Choice accessibility (axe) — no violations across the control matrix", () => {
-	test("checkbox — standalone", async () => {
+describe("Choice accessibility (axe): no violations across the control matrix", () => {
+	test("checkbox: standalone", async () => {
 		const { container } = render(
 			<Choice.Root name="terms">
 				<Choice.Indicator>
@@ -37,7 +37,7 @@ describe("Choice accessibility (axe) — no violations across the control matrix
 		expect(await axeViolations(container)).toEqual([]);
 	});
 
-	test("checkbox — inside a Field with description and error", async () => {
+	test("checkbox: inside a Field with description and error", async () => {
 		const { container } = render(
 			<Field.Item name="notify" validation="error">
 				<Field.Control>
@@ -58,7 +58,7 @@ describe("Choice accessibility (axe) — no violations across the control matrix
 		expect(await axeViolations(container)).toEqual([]);
 	});
 
-	test("switch — standalone", async () => {
+	test("switch: standalone", async () => {
 		const { container } = render(
 			<Choice.Root name="airplane-mode">
 				<Choice.Indicator>

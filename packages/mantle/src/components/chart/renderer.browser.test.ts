@@ -8,7 +8,7 @@ import { drawBars, drawDecimatedArea, drawDecimatedLine, drawHorizontalBars } fr
  * the decimated line/area pen bookkeeping. These take a real
  * `CanvasRenderingContext2D` (happy-dom's `getContext("2d")` returns `null`),
  * so they run in browser mode and record the path ops the renderer emits
- * instead of sampling pixels — a bridged gap or a corner rounded at the wrong
+ * instead of sampling pixels: a bridged gap or a corner rounded at the wrong
  * end is invisible to ink counting.
  */
 
@@ -280,7 +280,7 @@ describe("drawDecimatedLine", () => {
 });
 
 describe("drawDecimatedArea", () => {
-	test("each contiguous run of data columns is its own closed fill — a gap is never bridged", () => {
+	test("each contiguous run of data columns is its own closed fill; a gap is never bridged", () => {
 		// Regression guard: a single sweep over all columns would paint a solid
 		// band across an outage window and fabricate data presence.
 		const recorder = makeRecorder();

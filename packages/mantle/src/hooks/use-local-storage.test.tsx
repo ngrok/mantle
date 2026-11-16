@@ -43,7 +43,7 @@ describe("useLocalStorage", () => {
 
 		const [value] = result.current;
 		expect(value).toBe(defaultValue);
-		// reading is side-effect free — no default seeding
+		// reading is side-effect free: no default seeding
 		expect(window.localStorage.getItem(key)).toBeNull();
 	});
 
@@ -120,7 +120,7 @@ describe("useLocalStorage", () => {
 		const { result } = renderHook(() => useLocalStorage(key, defaultValue));
 		expect(result.current[0]).toBe("initial");
 
-		// change the underlying entry WITHOUT a matching notification — a
+		// change the underlying entry WITHOUT a matching notification. A
 		// filtered subscription must not re-read the snapshot
 		act(() => {
 			window.localStorage.setItem(key, JSON.stringify("changed-silently"));

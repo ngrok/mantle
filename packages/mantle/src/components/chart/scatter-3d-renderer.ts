@@ -9,7 +9,7 @@ import type { PointShape } from "./types.js";
  * depth-sorted cloud, the cube frame, and the frame's axis labels. Only
  * `scatter-3d.ts` imports this module, so it loads with the 3D code.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation. The package does not export it.
  */
 
 /**
@@ -45,7 +45,7 @@ const drawDepthSortedPoints = (
 		colorAt: (slot: number) => string;
 		/** Per-slot point glyph (ignored on the rect fast path). */
 		shapeAt: (slot: number) => PointShape;
-		/** Per-slot opacity (series enter reveals) — 1 for settled series. */
+		/** Per-slot opacity (series enter reveals), 1 for settled series. */
 		alphaAt: (slot: number) => number;
 		surface: string;
 	},
@@ -111,7 +111,7 @@ const drawCubeFrame = (
 		/** The projected screen positions of the cube's 8 corners. */
 		corners: ReadonlyArray<{ x: number; y: number }>;
 		edges: ReadonlyArray<readonly [number, number]>;
-		/** Wireframe opacity — fades with the 3rd dimension during the morph. */
+		/** Wireframe opacity, which fades with the 3rd dimension during the morph. */
 		cubeAlpha: number;
 		/** Axis lines with pre-projected screen endpoints (they travel with the
 		 * dimensions morph, hugging the collapsed line/plane). */
@@ -159,7 +159,7 @@ const drawCubeFrame = (
 /**
  * Axis-name labels for the 3D frame, drawn AFTER the points so they stay
  * readable, each placed a fixed distance past whichever end of its axis sits
- * farther from the frame's center — outside the cube, never over the cloud.
+ * farther from the frame's center: outside the cube, never over the cloud.
  */
 const drawCubeAxisLabels = (
 	ctx: PaintContext,

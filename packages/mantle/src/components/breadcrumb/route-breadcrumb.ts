@@ -69,7 +69,7 @@ type Crumb =
  * ```tsx
  * routeBreadcrumb("Endpoints");                       // links to the contributing route's pathname
  * routeBreadcrumb("Endpoints", { to: "/endpoints" }); // links to an explicit path
- * routeBreadcrumb.label("Settings");                  // never links — renders as Breadcrumb.Label
+ * routeBreadcrumb.label("Settings");                  // never links; renders as Breadcrumb.Label
  * routeBreadcrumb.content(<AppTrail appId="app_123" />); // renders its own items from query data
  * ```
  */

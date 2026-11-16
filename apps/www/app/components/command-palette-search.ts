@@ -45,7 +45,7 @@ type PaletteCommandBase = {
 	 */
 	subtitle?: string;
 	/**
-	 * Extra search-only terms, matched as substrings and never rendered — e.g.
+	 * Extra search-only terms, matched as substrings and never rendered, e.g.
 	 * the route of a welcome page whose row intentionally shows no subtitle.
 	 */
 	keywords?: string[];
@@ -263,7 +263,7 @@ export function groupPaletteCommands(commands: readonly PaletteCommand[]): Palet
  * Titles are the primary signal and match fuzzily (exact > prefix > word
  * prefix > substring > acronym > fuzzy). Subtitles and keywords (route paths,
  * the repo slug) are secondary and must contain the query as a real
- * substring — fuzzy path matching is how "tabs" used to surface Tailwind
+ * substring: fuzzy path matching is how "tabs" used to surface Tailwind
  * Variants via `/base/tailwind-variants`. Any title match, however weak,
  * outranks a subtitle/keyword-only match; within each tier, ties break
  * alphabetically.

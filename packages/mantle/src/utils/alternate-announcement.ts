@@ -5,7 +5,7 @@
  * Two mechanisms need this. React bails out of a `setState` with an identical
  * value, so re-announcing a byte-identical string would never mutate the text
  * node and would say nothing at all (a retried save, a second blocked
- * navigation). And a live region only announces *changes* — Safari/VoiceOver
+ * navigation). And a live region only announces *changes*. Safari/VoiceOver
  * additionally skip repeated identical strings even when the node is rewritten.
  *
  * @example

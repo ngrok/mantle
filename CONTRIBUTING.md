@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to the Mantle! We welcome contributions from the community and are grateful for your help in making our design system better.
 
-Please review our [conventions](CONVENTIONS.md) before submitting changes — it is the single source of truth for code style and patterns.
+Please review our [conventions](CONVENTIONS.md) before submitting changes. It is the single source of truth for code style and patterns.
 
 ## Getting started
 
@@ -21,7 +21,7 @@ From a fresh clone, run:
 ./scripts/setup
 ```
 
-This installs [mise](https://mise.jdx.dev/) (if missing), provisions Node and pnpm at the versions pinned in `.nvmrc` and `package.json#packageManager`, and runs `pnpm install --frozen-lockfile`. The setup is idempotent — re-run it any time to re-sync the toolchain.
+This installs [mise](https://mise.jdx.dev/) (if missing), provisions Node and pnpm at the versions pinned in `.nvmrc` and `package.json#packageManager`, and runs `pnpm install --frozen-lockfile`. The setup is idempotent: re-run it any time to re-sync the toolchain.
 
 ### Shell activation
 
@@ -113,7 +113,7 @@ This builds the packages that the documentation site needs, then starts the site
 
 [**COMPONENT_SPEC.md**](./COMPONENT_SPEC.md) is the standard for authoring a mantle component: the principles behind the library, the artifacts a component must ship, its API shape, JSDoc, CSS-variable and data-attribute documentation, docs page, tests, wiring, and a review checklist to lint a diff against. Read it first, whether you scaffold by hand or with the tooling below. It applies to new components and to the parts of a component you change; existing components are brought up to spec over time, not in a sweep.
 
-If you use [Claude Code](https://claude.com/claude-code), the repo ships a `/scaffold-component` slash command that implements the spec end-to-end — component files, package.json export, docs page, route registration, navigation entry, and a changeset:
+If you use [Claude Code](https://claude.com/claude-code), the repo ships a `/scaffold-component` slash command that implements the spec end-to-end: component files, package.json export, docs page, route registration, navigation entry, and a changeset:
 
 ```
 /scaffold-component <component-name>
@@ -123,7 +123,7 @@ The command definition lives at [`.claude/commands/scaffold-component.md`](./.cl
 
 ## Auditing an Existing Component
 
-To validate that an existing component still matches [COMPONENT_SPEC.md](./COMPONENT_SPEC.md) — and to auto-fix the mechanical drift like missing `@see` links, missing composition trees, mislabeled `Composition` headings, or missing nav/route entries — run the `/audit-component` slash command:
+To validate that an existing component still matches [COMPONENT_SPEC.md](./COMPONENT_SPEC.md), and to auto-fix the mechanical drift (missing `@see` links, missing composition trees, mislabeled `Composition` headings, or missing nav/route entries), run the `/audit-component` slash command:
 
 ```
 /audit-component <component-name>

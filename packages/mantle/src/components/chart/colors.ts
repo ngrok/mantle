@@ -6,7 +6,7 @@ import type { SeriesColor } from "./types.js";
  * chrome colors, all as CSS. The SVG backend paints these strings as
  * they are; `canvas-colors.ts` resolves them for a canvas.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation. The package does not export it.
  */
 
 /**
@@ -24,15 +24,15 @@ const CHART_DECORATIVE_COLOR = "var(--color-chart-decorative)";
  * Chrome (non-series) paint colors, from mantle functional tokens.
  */
 type ChartChromeColors = {
-	/** Hairline gridlines — `--border-color-card-muted`. */
+	/** Hairline gridlines: `--border-color-card-muted`. */
 	grid: string;
-	/** The zero baseline on bar charts — `--border-color-card`. */
+	/** The zero baseline on bar charts: `--border-color-card`. */
 	baseline: string;
-	/** Axis tick labels — `--text-color-muted`. */
+	/** Axis tick labels: `--text-color-muted`. */
 	tickText: string;
-	/** Reference lines — `--color-neutral-500`. */
+	/** Reference lines: `--color-neutral-500`. */
 	reference: string;
-	/** The chart surface, used for marker rings and stacked-segment gaps — `--background-color-card`. */
+	/** The chart surface, used for marker rings and stacked-segment gaps: `--background-color-card`. */
 	surface: string;
 };
 

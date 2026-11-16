@@ -6,7 +6,7 @@ const shades = [950, 900, 800, 700, 600, 500, 400, 300, 200, 100, 50] as const;
 
 /**
  * Explicit Tailwind bg class map for each color and shade.
- * Tailwind requires full class names at build time — dynamic interpolation is not supported.
+ * Tailwind requires full class names at build time; dynamic interpolation is not supported.
  */
 const colorClasses: Record<string, Record<(typeof shades)[number], string>> = {
 	neutral: {

@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
  * ([#1374](https://github.com/ngrok/mantle/issues/1374)).
  *
  * These live in `www` rather than beside `Slot`'s own tests because `react-router`
- * is a `www` dependency, not a mantle one — mantle's tests use a `NavLink`-shaped
+ * is a `www` dependency, not a mantle one; mantle's tests use a `NavLink`-shaped
  * double. `www` resolves `@ngrok/mantle` through the `@ngrok/src-live-types`
  * condition, so this runs against mantle's source. Assertions are plain DOM, since
  * `www` has no `@testing-library/jest-dom`.

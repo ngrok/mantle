@@ -226,7 +226,7 @@ describe("OtpInput", () => {
 			const { container, rerender } = render(subject("12"));
 			translateTextNodes(container);
 
-			// The engine model ran — it translated the prose beside the control...
+			// The engine model ran: it translated the prose beside the control...
 			expect(screen.getByText("[Enter your code-es]")).toBeInTheDocument();
 			// ...and it left every slot alone, because each one carries translate="no".
 			const slots = container.querySelectorAll('[data-slot="otp-input-slot"]');
@@ -239,7 +239,7 @@ describe("OtpInput", () => {
 
 			// A backspace removes the character React holds. The slot renders that
 			// character as a sibling of the conditional caret, so React removes a text
-			// node rather than rewriting one — and a reparented text node makes that
+			// node rather than rewriting one, and a reparented text node makes that
 			// removal throw. The guard is what keeps the engine out of this subtree.
 			rerender(subject("1"));
 

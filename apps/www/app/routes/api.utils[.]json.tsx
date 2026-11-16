@@ -2,7 +2,7 @@ import { jsonAgentResponse } from "~/utilities/json-response.server";
 import { buildUtilitiesManifest } from "~/utilities/utils-manifest.server";
 
 /**
- * Serve `/api/utils.json` — a structured, machine-readable manifest of
+ * Serve `/api/utils.json`: a structured, machine-readable manifest of
  * every utility module published by `@ngrok/mantle`, designed for
  * ingestion by LLMs, code-generation agents, IDE plugins, and downstream
  * tooling.

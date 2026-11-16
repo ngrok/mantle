@@ -14,10 +14,10 @@ import type { BarOrientation, BarTexture } from "./types.js";
  * The SVG backend records each tile into a `<pattern>`, so the browser
  * rasterizes it at the screen's resolution.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation, not exported from the package.
  */
 
-/** The texture period in CSS pixels — one tile edge. */
+/** The texture period in CSS pixels: one tile edge. */
 const TEXTURE_TILE_SIZE = 8;
 /** Stroke width of a single-direction hatch line, in CSS pixels. */
 const TEXTURE_LINE_WIDTH = 1.5;
@@ -26,7 +26,7 @@ const CROSSHATCH_LINE_WIDTH = 1;
 /**
  * A single rung is thicker than a hatch line: one rung per tile carries less
  * run-length than a diagonal, so 2px keeps its ink coverage at the same
- * loudness — and lands on the device grid at integer ratios. Both single-rung
+ * loudness, and lands on the device grid at integer ratios. Both single-rung
  * textures read it: `"parallel"` is `"perpendicular"` rotated a quarter turn.
  * Either way the rung measures 25% ink at every device pixel ratio.
  */
@@ -61,7 +61,7 @@ const textureGroundColor = (seriesColor: string): string =>
 	`color-mix(in oklab, ${seriesColor} ${TEXTURE_GROUND_SHARE}%, var(--background-color-card))`;
 
 /**
- * The subset of the 2D context {@link traceDiagonalLines} traces into —
+ * The subset of the 2D context {@link traceDiagonalLines} traces into:
  * structural, so unit tests can record calls without a real canvas.
  */
 type LineTraceContext = Pick<PaintContext, "moveTo" | "lineTo">;
@@ -105,7 +105,7 @@ const traceDiagonalLines = (
 
 /**
  * Ink one horizontal rung across the middle of the tile. Centered, it tiles
- * with no visible seam — an edge-anchored rung stitches against its neighbor.
+ * with no visible seam. An edge-anchored rung stitches against its neighbor.
  */
 const fillHorizontalRung = (
 	tileContext: PaintContext,
@@ -116,7 +116,7 @@ const fillHorizontalRung = (
 };
 
 /**
- * Ink one vertical rung down the middle of the tile — the quarter turn of
+ * Ink one vertical rung down the middle of the tile: the quarter turn of
  * {@link fillHorizontalRung}, centered for the same reason.
  */
 const fillVerticalRung = (
@@ -185,7 +185,7 @@ const TILE_PAINTERS: Record<Exclude<BarTexture, "solid">, TilePainter> = {
 	},
 	parallel: (tileContext, { size, ink, orientation }) => {
 		// The complement of `"perpendicular"`: this rung runs along the bar's
-		// length, so the flip resolves the other way — vertical bars wear a
+		// length, so the flip resolves the other way: vertical bars wear a
 		// vertical rung.
 		tileContext.fillStyle = ink;
 		if (orientation === "horizontal") {
@@ -207,7 +207,7 @@ const TILE_PAINTERS: Record<Exclude<BarTexture, "solid">, TilePainter> = {
 		tileContext.fillStyle = ink;
 		tileContext.beginPath();
 		tileContext.arc(size / 4, size / 4, DOT_RADIUS, 0, Math.PI * 2);
-		// A fresh subpath — otherwise the arcs join with a connecting line.
+		// A fresh subpath. Otherwise the arcs join with a connecting line.
 		tileContext.moveTo((3 * size) / 4 + DOT_RADIUS, (3 * size) / 4);
 		tileContext.arc((3 * size) / 4, (3 * size) / 4, DOT_RADIUS, 0, Math.PI * 2);
 		tileContext.fill();

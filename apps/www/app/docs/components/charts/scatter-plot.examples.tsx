@@ -6,7 +6,7 @@ import { useState } from "react";
 import { PreviewCanvas } from "~/components/preview-canvas";
 
 export function createSeededRandom(seed: number) {
-	// Deterministic LCG (Numerical Recipes constants) — the docs render
+	// Deterministic LCG (Numerical Recipes constants): the docs render
 	// identically on every load, no Math.random.
 	let state = seed >>> 0;
 	return () => {

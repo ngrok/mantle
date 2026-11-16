@@ -2,16 +2,16 @@ import type { ComponentType } from "react";
 
 type PreviewExample = {
 	/**
-	 * Human-readable name for the example — becomes the preview document's
+	 * Human-readable name for the example, used as the preview document's
 	 * title and the accessible label of the docs page's preview frame.
 	 */
 	title: string;
 	/**
 	 * Loads the demo component. A preview document loads only its own demo,
 	 * not every module in the registry. The demo renders as the entire preview
-	 * document (no site chrome), so it must size itself to the viewport —
-	 * full-page layout demos fill it (`min-h-full`) or pin themselves with
-	 * `fixed inset-0` — and should own the document's landmarks (a real `Main`,
+	 * document (no site chrome), so it must size itself to the viewport
+	 * (full-page layout demos fill it with `min-h-full` or pin themselves with
+	 * `fixed inset-0`) and should own the document's landmarks (a real `Main`,
 	 * optionally a `SkipToMainLink`).
 	 */
 	load: () => Promise<ComponentType>;
@@ -156,7 +156,7 @@ export const previewExamples = {
 } as const satisfies Record<string, PreviewExample>;
 
 /**
- * The names of all registered preview examples — the valid values for the
+ * The names of all registered preview examples: the valid values for the
  * path after `/preview/` and `Example`'s
  * `example` prop.
  */

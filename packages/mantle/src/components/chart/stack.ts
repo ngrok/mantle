@@ -3,12 +3,12 @@
  *
  * Stacking runs BEFORE decimation: it produces full-resolution cumulative
  * boundary series (layer edges), and decimation then buckets those boundaries.
- * Decimating raw series first and stacking after is incorrect — per-column
+ * Decimating raw series first and stacking after is incorrect: per-column
  * minima/maxima of different series occur at different x samples, so the
  * composed edges would be fabricated geometry and the stack's top would
  * overshoot the true total (sum of maxima ≥ max of sums).
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation, not exported from the package.
  */
 
 /**
@@ -21,11 +21,11 @@
 type StackBoundaries = {
 	lower: Float64Array[];
 	upper: Float64Array[];
-	/** Extent of the outermost boundaries — the stacked y domain. */
+	/** Extent of the outermost boundaries (the stacked y domain). */
 	min: number;
 	max: number;
 	/**
-	 * The series index at the data end of each column's positive pile — the last
+	 * The series index at the data end of each column's positive pile: the last
 	 * series with a value above zero there. `-1` marks a column with no positive
 	 * segment, which matches no series index. Zero-valued and `NaN` series paint
 	 * nothing, so they never claim the end.

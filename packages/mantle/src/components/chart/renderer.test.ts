@@ -97,8 +97,8 @@ const unitVertices = (vertices: readonly Vertex[]): Vertex[] => {
 
 /**
  * A polygon's corner set on that unit box, sorted. Winding drops out as well,
- * so two paths that visit the same corners in a different order compare equal
- * — pair this with {@link polygonArea} to pin the order too.
+ * so two paths that visit the same corners in a different order compare equal.
+ * Pair this with {@link polygonArea} to pin the order too.
  */
 const unitSilhouette = (vertices: readonly Vertex[]): string[] =>
 	unitVertices(vertices)
@@ -250,7 +250,7 @@ describe("tracePointShape", () => {
 		},
 	);
 
-	test("every glyph traces its own path — no two shapes are the same drawing", () => {
+	test("every glyph traces its own path: no two shapes are the same drawing", () => {
 		// A lookup table that points two entries at one tracer costs a series its
 		// second identity channel while every other test stays green.
 		const drawings = ALL_SHAPES.map((shape) =>
@@ -270,7 +270,7 @@ describe("point glyphs across the canvas and the CSS clip", () => {
 		const clipped = parseClipPolygon(POINT_SHAPE_CLIP_PATHS[shape]);
 		const traced = trace(shape).vertices;
 		expect(unitSilhouette(clipped)).toEqual(unitSilhouette(traced));
-		// The corner sets are sorted, so they cannot see two corners swapped —
+		// The corner sets are sorted, so they cannot see two corners swapped,
 		// which clips a crossed, self-intersecting glyph out of the same corners.
 		// Shoelace area on the same unit box does see it: a crossing changes the
 		// area the outline encloses.

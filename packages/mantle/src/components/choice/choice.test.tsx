@@ -288,7 +288,7 @@ describe("Choice asChild", () => {
 	});
 });
 
-describe("Choice — clicking the Label toggles the control", () => {
+describe("Choice: clicking the Label toggles the control", () => {
 	test("checkbox, standalone", async () => {
 		const user = userEvent.setup();
 		render(
@@ -357,7 +357,7 @@ describe("Choice — clicking the Label toggles the control", () => {
 	});
 });
 
-describe("Choice — Description extends the label's click target", () => {
+describe("Choice: Description extends the label's click target", () => {
 	test("clicking the Description toggles the control once, through Choice.Label", async () => {
 		const user = userEvent.setup();
 		const onChange = vi.fn<() => void>();

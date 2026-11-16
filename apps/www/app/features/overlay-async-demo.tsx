@@ -302,7 +302,7 @@ function UserDialog({ onClose, scenario, userId }: UserOverlayProps) {
 			}}
 		>
 			<Dialog.Content preferredWidth="max-w-xl">
-				{/* Dialog.Header is a single flex row — Title + CloseIconButton only.
+				{/* Dialog.Header is a single flex row: Title + CloseIconButton only.
 				    The description lives at the top of the Body (Radix wires
 				    aria-describedby from anywhere inside Content). */}
 				<Dialog.Header>
@@ -336,7 +336,7 @@ function UserDialog({ onClose, scenario, userId }: UserOverlayProps) {
 
 /**
  * Renders immediately and loads the record the user is about to act on. The
- * destructive action stays disabled until the data resolves — confirming
+ * destructive action stays disabled until the data resolves: confirming
  * against a record that hasn't loaded is never safe.
  */
 function UserAlertDialog({ onClose, scenario, userId }: UserOverlayProps) {
@@ -362,7 +362,7 @@ function UserAlertDialog({ onClose, scenario, userId }: UserOverlayProps) {
 							<span translate="no" className="font-mono">
 								{userId}
 							</span>{" "}
-							before removing them — loaded through the {scenarioLabels[scenario]} case.
+							before removing them (loaded through the {scenarioLabels[scenario]} case).
 						</AlertDialog.Description>
 					</AlertDialog.Header>
 					<div className="mt-4">

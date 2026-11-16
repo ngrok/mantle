@@ -1001,7 +1001,7 @@ describe("DataTable.RowExpandButton", () => {
 		expect(screen.getByTestId("detail-row-1")).toBeInTheDocument();
 	});
 
-	test("lets a consumer onClick veto the toggle via preventDefault — and still stops propagation", async () => {
+	test("lets a consumer onClick veto the toggle via preventDefault and still stops propagation", async () => {
 		const user = userEvent.setup();
 		const handleRowClick = vi.fn<() => void>();
 		render(
@@ -1462,7 +1462,7 @@ type RenderExpandedHarnessProps = {
 /**
  * Renders a table that drives its detail panel through `DataTable.Row`'s
  * `renderExpanded` prop (rather than a hand-written `ExpandedRow`). `renderSpy`
- * lets tests assert the lazy contract — that the panel is built only while open.
+ * lets tests assert the lazy contract: that the panel is built only while open.
  */
 function RenderExpandedHarness({ renderSpy }: RenderExpandedHarnessProps) {
 	const [expanded, setExpanded] = useState<ExpandedState>({});

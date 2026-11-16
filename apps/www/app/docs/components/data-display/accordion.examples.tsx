@@ -90,7 +90,7 @@ export function OverviewExample() {
 					</Accordion.Trigger>
 					<Accordion.Content>
 						<Accordion.Body>
-							The free plan includes ephemeral endpoints and one reserved domain — enough to demo a
+							The free plan includes ephemeral endpoints and one reserved domain: enough to demo a
 							deployment or prototype an integration.
 						</Accordion.Body>
 					</Accordion.Content>
@@ -137,7 +137,7 @@ export function OneSectionOpenAtATimeExample() {
 					</Accordion.Trigger>
 					<Accordion.Content>
 						<Accordion.Body>
-							The free plan includes ephemeral endpoints and one reserved domain — enough to demo a
+							The free plan includes ephemeral endpoints and one reserved domain: enough to demo a
 							deployment or prototype an integration.
 						</Accordion.Body>
 					</Accordion.Content>

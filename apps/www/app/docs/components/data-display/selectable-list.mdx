@@ -108,11 +108,11 @@ The default row (a title over a description) is the design-system row; prefer it
 Treat custom children as a **stopgap, not a second design system**. `Item` keeps owning the row (the `role="row"` chrome, click-to-toggle, `aria-selected`, and the checkbox `gridcell`) and renders your children into the content `gridcell`, a flex column beside the checkbox laid out by [`Choice`](/components/forms/choice). Everything inside that column is yours: hand-rolled, one-off layout for this row shape, not a mantle-styled surface.
 
 ```text showLineNumbers=false
-SelectableList.Item                     role="row" — selection + disabled read from the list by `value`
-├── checkbox gridcell                   provided by Item — the row's real Checkbox
+SelectableList.Item                     role="row"; selection + disabled read from the list by `value`
+├── checkbox gridcell                   provided by Item: the row's real Checkbox
 └── content gridcell (flex column)      your children render here
-    ├── SelectableList.ItemTitle        the row's Choice.Label — names the checkbox; always render it
-    └── SelectableList.ItemDescription  a Choice.Description — associated via aria-describedby
+    ├── SelectableList.ItemTitle        the row's Choice.Label, which names the checkbox; always render it
+    └── SelectableList.ItemDescription  a Choice.Description, associated via aria-describedby
 ```
 
 Two rules keep the row's accessibility wiring intact:
@@ -146,12 +146,12 @@ function Example() {
 		<SelectableList.Root options={options} value={selected} onValueChange={setSelected}>
 			<SelectableList.Viewport aria-label="Access keys" className="max-h-80">
 				{(option) => {
-					// Rich row data that isn't part of the option — look it up by `option.value`.
+					// Rich row data that isn't part of the option: look it up by `option.value`.
 					const status = keyStatus[option.value];
 					return (
 						<SelectableList.Item value={option.value}>
 							{/* Stopgap: inside Item you are hand-rolling the row's content cell.
-							    Keep ItemTitle — it is the label that names the row's checkbox. */}
+							    Keep ItemTitle: it is the label that names the row's checkbox. */}
 							<div className="flex items-center gap-2">
 								<SelectableList.ItemTitle>{option.label}</SelectableList.ItemTitle>
 								<Badge appearance="muted" color={status === "active" ? "success" : "warning"}>
@@ -188,7 +188,7 @@ On the server, `VirtualViewport` renders the first slice of rows, sized by `esti
 import { SelectableList } from "@ngrok/mantle/selectable-list";
 import { useState } from "react";
 
-// `VirtualViewport` is a drop-in for `Viewport` — same props, same render-prop.
+// `VirtualViewport` is a drop-in for `Viewport`: same props, same render-prop.
 function Example() {
 	const [selected, setSelected] = useState<string[]>([]);
 

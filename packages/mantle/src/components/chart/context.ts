@@ -239,7 +239,7 @@ const useChartContext = (partName: string): ChartContextValue => {
 	invariant(
 		context,
 		() =>
-			`${partName} must be composed inside ${partName.split(".")[0]}.Root — it registers into the chart it belongs to and renders nothing on its own.`,
+			`${partName} must be composed inside ${partName.split(".")[0]}.Root. It registers into the chart it belongs to and renders nothing on its own.`,
 	);
 	return context;
 };

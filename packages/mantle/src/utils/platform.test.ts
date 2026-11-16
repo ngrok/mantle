@@ -3,7 +3,7 @@ import { isApplePlatform } from "./platform.js";
 
 /**
  * happy-dom reports `navigator.platform === "X11; Darwin arm64"`, which is
- * deliberately NOT matched by the Apple regex — so the default test platform is
+ * deliberately NOT matched by the Apple regex, so the default test platform is
  * non-Apple regardless of the machine running the suite. Each case stubs the
  * property it exercises so the assertions never depend on the host.
  */

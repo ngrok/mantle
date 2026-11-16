@@ -8,7 +8,7 @@ import { Main } from "@ngrok/mantle/main";
 import type { DocHandle, TocEntry } from "~/utilities/docs";
 
 type PageLayoutProps = ComponentProps<"div"> & {
-	/** The section's sidebar navigation — rendered in the desktop sidebar column and inside the mobile drawer. */
+	/** The section's sidebar navigation, rendered in the desktop sidebar column and inside the mobile drawer. */
 	sidebar: ReactNode;
 };
 

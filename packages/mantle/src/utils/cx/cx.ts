@@ -27,7 +27,7 @@ const isTemplateStringsArray = (
  * on every repeated multi-arg call (the join is a fresh string each render). The arg cache
  * below avoids that by keying on the stable individual argument strings instead. JavaScriptCore
  * (Safari/Bun) and SpiderMonkey (Firefox) hash fresh strings cheaply, so the extra layer is
- * pure overhead there — hence the gate. V8 `Error`s expose neither JSC's `line` nor
+ * pure overhead there, hence the gate. V8 `Error`s expose neither JSC's `line` nor
  * SpiderMonkey's `lineNumber`, a deterministic, allocation-free signal evaluated once.
  */
 const isV8 = (() => {
@@ -48,7 +48,7 @@ const ARG_CACHE_GENERATION_SIZE = 500;
 
 // Two-generation LRU. The merged output of `cx("a", cond && "b", …)` depends only on which
 // string args are truthy and their order, and JSX class literals keep a stable identity across
-// renders — so an identical arg sequence always yields an identical result and can be cached
+// renders, so an identical arg sequence always yields an identical result and can be cached
 // against the args by identity, with no re-hash of the joined string.
 let argCache = new Map<string, ArgCacheEntry[]>();
 let previousArgCache = new Map<string, ArgCacheEntry[]>();
@@ -91,7 +91,7 @@ const mergeVariadicCached = (inputs: ClassValue[]): string => {
 		return twMerge.mergeString(firstKey);
 	}
 
-	// Identity-compare the remaining truthy args against each cached entry — no string hashing.
+	// Identity-compare the remaining truthy args against each cached entry, with no string hashing.
 	const bucket = argCache.get(firstKey) ?? previousArgCache.get(firstKey);
 	if (bucket != null) {
 		for (const entry of bucket) {
@@ -162,8 +162,8 @@ const mergeVariadicCached = (inputs: ClassValue[]): string => {
  * Conditionally compose class names and resolve Tailwind CSS conflicts, so later
  * classes override earlier ones (the same precedence model as inline styles).
  *
- * Accepts the same inputs as `clsx` — strings, numbers, arrays, and
- * `{ [className]: boolean }` objects, with falsy values ignored — then resolves
+ * Accepts the same inputs as `clsx` (strings, numbers, arrays, and
+ * `{ [className]: boolean }` objects, with falsy values ignored), then resolves
  * Tailwind utility conflicts so the rightmost class in each conflicting group wins.
  * This makes `cx` safe for prop overrides: `cx("bg-blue-500", className)` lets a
  * consumer's `className` win.
@@ -172,7 +172,7 @@ const mergeVariadicCached = (inputs: ClassValue[]): string => {
  * `./vendor`) with mantle's overrides baked into the default config: the `em` spacing
  * scale (`w-em`, `p-em`, …) and the `text-mono` / `text-size-inherit` font-size
  * utilities are conflict-aware with no `extendTailwindMerge` call. Results are cached so
- * repeated calls with the same arguments — the common case across re-renders — are cheap.
+ * repeated calls with the same arguments (the common case across re-renders) are cheap.
  *
  * Also callable as a tagged template, which caches by call-site identity for hot
  * re-rendering paths: `` cx`px-2 px-4 ${active && "bg-blue-500"}` ``.

@@ -471,7 +471,7 @@ const ChartRootPrimitive = ({
 	invariant(
 		kind !== "scatter" || data.length === 0 || resolvedXScale !== "point",
 		() =>
-			`${componentName}.Root requires numeric or Date x values — the "${xKey}" values are not numbers or dates, so they have no position on a continuous scatter axis.`,
+			`${componentName}.Root requires numeric or Date x values: the "${xKey}" values are not numbers or dates, so they have no position on a continuous scatter axis.`,
 	);
 	const [yDomainMin, yDomainMax] = yDomain;
 

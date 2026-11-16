@@ -5,7 +5,7 @@ import invariant from "tiny-invariant";
 /**
  * A validated `major.minor.patch` semantic version string for `@ngrok/mantle`.
  * The template-literal shape prevents arbitrary strings from flowing into the
- * provider — values must be produced by a parser (e.g. the server-only
+ * provider: values must be produced by a parser (e.g. the server-only
  * utility in `utilities/mantle-version.server.ts`).
  */
 export type MantleVersion = `${number}.${number}.${number}`;
@@ -38,7 +38,7 @@ export function MantleVersionProvider({ children, mantleVersion }: MantleVersion
 /**
  * Returns the current `@ngrok/mantle` version supplied by the nearest
  * {@link MantleVersionProvider} ancestor. Throws if called outside of a
- * provider — the version is required context, not an optional value.
+ * provider; the version is required context, not an optional value.
  */
 export function useMantleVersion() {
 	const context = useContext(MantleVersionContext);

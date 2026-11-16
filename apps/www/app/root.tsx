@@ -126,7 +126,7 @@ const chromelessRouteIds = new Set([
  * Whether the matched route is a chrome-less document: a framed example
  * preview (`/preview/*`), the chart benchmark page
  * (`/bench/charts`), or an MCP prototype preview (`/mcp/preview` and its
- * frame). Matched on route identity, not pathname —
+ * frame). Matched on route identity, not pathname,
  * mirroring the `layouts-index` pattern in layouts-layout.tsx. Preview
  * documents render inside the docs pages' iframes, and the benchmark page
  * is a timing fixture, so both skip the site chrome and the forced
@@ -228,7 +228,7 @@ export function Layout({ children }: PropsWithChildren) {
 }
 
 /**
- * The outermost route component. Renders only the truly page-agnostic chrome —
+ * The outermost route component. Renders only the truly page-agnostic chrome:
  * skip link, header, and the outer page wrapper. Each layout route owns its
  * own sidebar / main / TOC grid inside the `<Outlet />`. Framed example
  * previews are the exception: they render the bare outlet so the example owns
@@ -238,7 +238,7 @@ export default function App() {
 	const isFramedPreview = useIsFramedPreview();
 
 	// framed example previews own their whole document: no site header or skip
-	// link — the example brings its own landmarks (see routes/preview.tsx)
+	// link: the example brings its own landmarks (see routes/preview.tsx)
 	if (isFramedPreview) {
 		return <Outlet />;
 	}
@@ -254,7 +254,7 @@ export default function App() {
 
 /**
  * Root error boundary. Renders the site chrome (header + page frame) around the
- * shared {@link ErrorPage} for errors thrown from a matched route — e.g. the
+ * shared {@link ErrorPage} for errors thrown from a matched route, e.g. the
  * `404` a docs `.md` route raises for an unknown slug, or an unexpected `500`.
  * Unmatched URLs are handled by the splat `catch-all` route instead, so the
  * root loader runs there and the page renders with full chrome and data.

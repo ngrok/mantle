@@ -35,7 +35,7 @@ Every affected component rendered a conditional element immediately before bare
 {children}
 ```
 
-When `icon` appears, React inserts it before the children text node — it calls
+When `icon` appears, React inserts it before the children text node: it calls
 `button.insertBefore(icon, childrenTextNode)`. That text node is no longer a
 child of the button, so the DOM raises `NotFoundError`.
 
@@ -78,7 +78,7 @@ write wipes the `<font>` wrapper and repairs the subtree instead of fighting it.
 ```
 
 The slot names are `button-label`, `badge-label`, and `anchor-label`. Each is
-public API — a consumer may target it to style the label, for example to clamp a
+public API: a consumer may target it to style the label, for example to clamp a
 long one with `min-w-0 truncate`. `Select.Item` was already the precedent in the
 library: it has the identical `{icon && …}` shape but wraps children in
 `SelectPrimitive.ItemText`, so it never threw.
@@ -90,13 +90,13 @@ Both the plain and the `asChild` path wrap, because both render the same shape.
 
 ### 2. The label is one flex item. Pass an icon through `icon`, not as a child
 
-**Revised the same day — see [the amendment](#amendment-2026-08-04-the-wrapper-is-display-contents).**
+**Revised the same day (see [the amendment](#amendment-2026-08-04-the-wrapper-is-display-contents)).**
 The label is no longer one flex item. Passing an icon through `icon` is still the
 guidance, for the reasons the docs page now gives.
 
 `Button` and `Badge` are flex containers, and bare text children were an
 anonymous flex item. A real span is one flex item too, so a single-child button
-lays out identically — but multiple children now share one item, and the
+lays out identically. But multiple children now share one item, and the
 container's `gap` no longer falls between them.
 
 This is the trade-off the decision accepts, and it points call sites at the API
@@ -116,8 +116,8 @@ mounted its screen-reader sort announcement only while sorted, immediately befor
 the header label, so the first click on any sortable column threw.
 
 That announcer is now always mounted and takes a single computed string from the
-pure `sortStateAnnouncement` function — an empty string when the column is
-unsorted. Every sort change is then a `textContent` write, which is both safe and
+pure `sortStateAnnouncement` function (an empty string when the column is
+unsorted). Every sort change is then a `textContent` write, which is both safe and
 self-healing. The announcer is `sr-only`, so it is absolutely positioned and
 never a flex item; mounting it unconditionally costs no layout.
 
@@ -142,15 +142,15 @@ with more than one child re-does its layout", which a patch release must not ask
 
 `Button` and `Badge` now render the label span with `display: contents`. The span
 generates no box, so every child is a flex item of the button or badge again and the
-container's `gap` falls between them — the layout is identical to the release before
+container's `gap` falls between them: the layout is identical to the release before
 the wrapper. The crash fix is untouched, because the span stays in the DOM and an
 icon's `insertBefore` still names an element.
 
 This reverses the alternative rejected under decision 1. That rejection traded a
 shipped layout regression for an affordance nothing used: a search of this repo and of
 `ngrok-private/frontend` found no call site that styles a label slot. What call sites
-do instead is style a child they own — `ai-dashboard`'s access-key chip gives its label
-`min-w-0 flex-1 truncate` between two icons — and that shape needs the child to stay a
+do instead is style a child they own (`ai-dashboard`'s access-key chip gives its label
+`min-w-0 flex-1 truncate` between two icons), and that shape needs the child to stay a
 flex item, which is exactly what the box took away. The slot keeps its other uses:
 finding the label and reading its text.
 

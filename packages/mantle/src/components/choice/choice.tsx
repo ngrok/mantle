@@ -578,7 +578,7 @@ const Description = ({
  * Choice.Root
  * ├── Choice.Indicator
  * └── Choice.Content
- *     ├── Choice.Label        (or Choice.Title — pick one)
+ *     ├── Choice.Label        (or Choice.Title, pick one)
  *     └── Choice.Description
  * ```
  *

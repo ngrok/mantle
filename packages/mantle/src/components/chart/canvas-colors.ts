@@ -14,7 +14,7 @@ import { CHART_CHROME_CSS, cssSeriesColor } from "./colors.js";
  * never per point), so multi-chart dashboards don't thrash style recalculation.
  * Only the canvas backend imports this module.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation, not exported from the package.
  */
 
 /**

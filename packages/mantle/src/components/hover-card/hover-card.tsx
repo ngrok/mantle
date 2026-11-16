@@ -112,7 +112,7 @@ const Portal = ({ container, ...props }: ComponentProps<typeof HoverCardPrimitiv
 
 	// Why the provider: `HoverCard.Content` portals again internally, so the
 	// resolved container must also become the layer container for the wrapped
-	// subtree — otherwise the inner portal would ignore an explicit `container`.
+	// subtree; otherwise the inner portal would ignore an explicit `container`.
 	return (
 		<LayerContainerContext.Provider value={resolvedContainer}>
 			<HoverCardPrimitivePortal container={resolvedContainer} {...props} />
@@ -170,7 +170,7 @@ const Content = ({
 				className={cx(
 					// Why relative: `HoverCard.Arrow`'s wrapper is absolutely positioned, and
 					// the open animation's `scale` makes this element its containing block for
-					// one frame — then drops it, moving the arrow 1px. Positioning this element
+					// one frame, then drops it, moving the arrow 1px. Positioning this element
 					// keeps that containing block the same before, during, and after.
 					"relative",
 					"bg-popover border-popover z-50 w-64 rounded-md border p-4 shadow-md outline-hidden",
@@ -227,8 +227,8 @@ const Arrow = ({
 	width = 14,
 	...props
 }: HoverCardArrowProps) => (
-	// Why no asChild prop: a swapped element loses the two-layer shape — a filled
-	// polygon, plus a polyline that strokes the slanted edges only — that continues
+	// Why no asChild prop: a swapped element loses the two-layer shape (a filled
+	// polygon, plus a polyline that strokes the slanted edges only) that continues
 	// `HoverCard.Content`'s border. `HoverCardArrowProps` omits the prop, so restyle
 	// with `className` instead. The `asChild` below is mantle's own, and hands that
 	// shape to the primitive.
@@ -243,7 +243,7 @@ const Arrow = ({
 		<svg
 			className={cx(
 				// `HoverCard.Content` is the wrapper's containing block, so Radix's own
-				// `0` offset resolves to that content's padding box — the base lands 1px
+				// `0` offset resolves to that content's padding box: the base lands 1px
 				// inside the border box, and the fill covers the border it sits on.
 				"fill-(--background-color-popover)",
 				// Why filter and clip-path: `HoverCard.Content`'s `shadow-md` stops at
@@ -251,8 +251,8 @@ const Arrow = ({
 				// casts the tip's own shadow, and the clip trims it at the base, because
 				// the arrow paints above the content and the shadow would otherwise
 				// darken the content's interior. One wide, faint layer only, matching
-				// what the content's shadow leaves along the edge the tip grows out of —
-				// a tighter layer muddies a shape this small. The offsets stay symmetric,
+				// what the content's shadow leaves along the edge the tip grows out of.
+				// A tighter layer muddies a shape this small. The offsets stay symmetric,
 				// since Radix rotates the wrapper per side and would swing an offset.
 				"[clip-path:inset(0_-200%_-200%_-200%)]",
 				"filter-[drop-shadow(0_0_4px_color-mix(in_oklab,var(--shadow-color)_var(--shadow-first-opacity),transparent))]",
@@ -278,7 +278,7 @@ const Arrow = ({
 /**
  * A floating card that appears when a user hovers over a trigger element.
  *
- * Use `HoverCard` for non-essential preview content shown on HOVER — user
+ * Use `HoverCard` for non-essential preview content shown on HOVER: user
  * cards, repo previews, rich link previews. Because hover is not reachable
  * via keyboard, all content inside a `HoverCard` must be supplemental,
  * never the only path to information; the trigger is typically a link that

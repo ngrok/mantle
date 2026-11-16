@@ -1,7 +1,7 @@
 /**
  * Disallows imports of `clsx` and `classnames`. The codebase standardizes on
  * `cx` from `@ngrok/mantle/cx` for className composition. A second composition
- * utility fragments search, lint coverage, and review — and may diverge in
+ * utility fragments search, lint coverage, and review, and may diverge in
  * edge cases.
  *
  * @example

@@ -65,7 +65,7 @@ beforeAll(() => {
 });
 
 // Installed per test rather than once, because `restoreMocks` tears every spy down between tests.
-// Calls through to the real implementation, so painting is unchanged — the spy only records where
+// Calls through to the real implementation, so painting is unchanged; the spy only records where
 // each tick label landed.
 beforeEach(() => {
 	fillTextSpy = vi.spyOn(CanvasRenderingContext2D.prototype, "fillText");
@@ -77,7 +77,7 @@ afterAll(() => {
 
 /**
  * A pixel is a series-fill pixel when it is the blue-dominant chart-1 color
- * (`rgb(62, 111, 244)`) — distinct from the grey axis text/grid and the
+ * (`rgb(62, 111, 244)`), distinct from the grey axis text/grid and the
  * transparent ground, so ink counts ignore chrome.
  */
 const isSeriesInk = (data: Uint8ClampedArray, offset: number): boolean => {
@@ -142,7 +142,7 @@ const twoCategories = [
 /**
  * Where each distinct tick label was last painted, in canvas coordinates.
  * Axis labels are canvas ink, so their side of the plot is only observable
- * through the paint call — and the label-side swap is exactly what
+ * through the paint call, and the label-side swap is exactly what
  * `orientation` has to get right.
  */
 const labelPositions = (): Map<string, { x: number; y: number }> => {

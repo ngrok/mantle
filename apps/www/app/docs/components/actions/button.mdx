@@ -69,10 +69,10 @@ Unlike the native `<button>` element (which defaults to `type="submit"`), a mant
 The tradeoff: a button that _should_ submit a form has to opt in with `type="submit"` (or `type="reset"` to reset it). A plain `<Button>` that relies on native form submission will silently do nothing.
 
 ```tsx
-// ✅ Opts in — submits the form
+// ✅ Opts in: submits the form
 <Button type="submit" appearance="filled" intent="neutral">Save</Button>
 
-// ❌ Defaults to type="button" — native form submission never fires
+// ❌ Defaults to type="button", so native form submission never fires
 <Button appearance="filled" intent="neutral">Save</Button>
 ```
 
@@ -110,7 +110,7 @@ An icon-only button is not a `Button`: use [`IconButton`](/components/actions/ic
 import { Button } from "@ngrok/mantle/button";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
 
-// ❌ Wrong — icon-only Button: no accessible name, text-shaped padding
+// ❌ Wrong: an icon-only Button has no accessible name and text-shaped padding
 <Button appearance="outlined" intent="neutral" icon={<CopyIcon />} onClick={copyPage} />;
 ```
 
@@ -120,7 +120,7 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { IconButton } from "@ngrok/mantle/button";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
 
-// ✅ Correct — IconButton: required screen-reader label, square box
+// ✅ Correct: IconButton has a required screen-reader label and a square box
 <IconButton
 	appearance="outlined"
 	intent="neutral"
@@ -142,7 +142,7 @@ The one exception is a **second** icon, such as a trailing caret, because the bu
 import { Button } from "@ngrok/mantle/button";
 import { PlusIcon } from "@phosphor-icons/react/Plus";
 
-// ❌ Wrong — the icon keeps its own size, and `isLoading` renders a second glyph beside it
+// ❌ Wrong: the icon keeps its own size, and `isLoading` renders a second glyph beside it
 <Button appearance="filled" intent="neutral">
 	<PlusIcon />
 	Create endpoint
@@ -155,7 +155,7 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 import { Button } from "@ngrok/mantle/button";
 import { PlusIcon } from "@phosphor-icons/react/Plus";
 
-// ✅ Correct — `icon` gets its own slot beside the label
+// ✅ Correct: `icon` gets its own slot beside the label
 <Button appearance="filled" intent="neutral" icon={<PlusIcon />}>
 	Create endpoint
 </Button>;

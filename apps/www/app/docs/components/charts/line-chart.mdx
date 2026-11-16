@@ -106,7 +106,7 @@ Rendering decimates each series to its min/max per pixel column, so series of 10
 import { LineChart } from "@ngrok/mantle/line-chart";
 
 function seededWalk(count: number, seed: number) {
-	// Deterministic LCG (Numerical Recipes constants) — renders identically
+	// Deterministic LCG (Numerical Recipes constants): renders identically
 	// on every load, no Math.random.
 	let state = seed >>> 0;
 	const nextRandom = () => {
@@ -423,7 +423,7 @@ Reach for `mode="decorative"` over hand-rolled `inert` + CSS: it removes the int
 import { Empty } from "@ngrok/mantle/empty";
 import { LineChart } from "@ngrok/mantle/line-chart";
 
-/** Synthetic line — a backdrop, not data — so no Math.random and no real values. */
+/** Synthetic line (a backdrop, not data), so no Math.random and no real values. */
 const placeholderLatency = [120, 138, 126, 152, 141, 168, 150, 162].map((value, index) => ({
 	minute: index,
 	value,

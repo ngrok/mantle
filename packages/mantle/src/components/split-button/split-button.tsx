@@ -31,7 +31,7 @@ type RootProps = ComponentProps<typeof DropdownMenu.Root> &
 		/**
 		 * The size of the SplitButton, default `"md"`. Applied to both the
 		 * primary action and the menu trigger so the two halves always share
-		 * one height — the parts do not accept `size`, so mixed-size
+		 * one height. The parts do not accept `size`, so mixed-size
 		 * composites cannot be expressed in the type system.
 		 */
 		size?: ButtonSize;

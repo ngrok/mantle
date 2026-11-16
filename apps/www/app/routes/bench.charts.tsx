@@ -12,7 +12,7 @@ import { Scenario } from "~/features/chart-bench/scenario";
  */
 export function meta() {
 	return [
-		{ title: "Chart mount benchmark — @ngrok/mantle" },
+		{ title: "Chart mount benchmark - @ngrok/mantle" },
 		// A benchmark fixture is not a page to index.
 		{ name: "robots", content: "noindex, nofollow" },
 	];

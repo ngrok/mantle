@@ -17,7 +17,7 @@ import type { ChartListContextValue } from "./list.js";
  * The screen-reader layer of an interactive chart: the description, the
  * keyboard-step announcers, and the sr-only data table.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation, not exported from the package.
  */
 
 /** The hover snapshot of a keyboard step alone, else `null`: a pointer hover is never announced. */
@@ -374,12 +374,12 @@ const ChartDataTable = ({
 	}
 	const rows = data.slice(0, CHART_TABLE_ROW_LIMIT);
 	return (
-		// The slot names the twin for programmatic discovery — an agent scraping
+		// The slot names the twin for programmatic discovery: an agent scraping
 		// the machine-readable table targets it without heuristics.
 		<div className="sr-only" data-slot={`${slotName}-data-table`}>
 			<table>
 				<caption>
-					{`${resolvedLabel == null ? "Chart data" : `${resolvedLabel} — chart data`}${
+					{`${resolvedLabel == null ? "Chart data" : `${resolvedLabel}: chart data`}${
 						data.length > CHART_TABLE_ROW_LIMIT
 							? `. Showing the first ${CHART_TABLE_ROW_LIMIT} of ${data.length} rows.`
 							: "."
@@ -399,7 +399,7 @@ const ChartDataTable = ({
 				<tbody>
 					{rows.map((row, index) => {
 						// Cells carry the display-formatted text for AT and the raw value
-						// beside it for machines — `<time dateTime>` and `data-value` let
+						// beside it for machines. `<time dateTime>` and `data-value` let
 						// agents scrape exact timestamps/numbers from the DOM without
 						// reverse-engineering locale formatting.
 						const x = datumValue(row, xKey);

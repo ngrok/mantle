@@ -44,7 +44,7 @@ export const loader = async ({ params }: Route.LoaderArgs) => {
  */
 export function meta({ loaderData }: Route.MetaArgs) {
 	return [
-		{ title: loaderData ? `${loaderData.title} — @ngrok/mantle` : "@ngrok/mantle" },
+		{ title: loaderData ? `${loaderData.title} - @ngrok/mantle` : "@ngrok/mantle" },
 		// belt-and-suspenders with the X-Robots-Tag the server sets for /preview
 		// documents: preview fragments should never land in a search index
 		{ name: "robots", content: "noindex, nofollow" },

@@ -10,14 +10,14 @@ Load a primer into the current context so subsequent code generation correctly u
 
 Read these files in order. Skip any that don't exist (the user may not be in the mantle monorepo).
 
-1. `AGENTS.md` — top-level agent guide (project structure, commands, dependencies).
-2. `CONVENTIONS.md` — code style, file naming, JSDoc requirements, the `cx` rule, the no-`as` rule, and exact-version pinning.
-3. `apps/www/app/docs/for-ai-agents.mdx` — agent-specific entry point with the suggested system-prompt snippet and composition patterns.
+1. `AGENTS.md`: top-level agent guide (project structure, commands, dependencies).
+2. `CONVENTIONS.md`: code style, file naming, JSDoc requirements, the `cx` rule, the no-`as` rule, and exact-version pinning.
+3. `apps/www/app/docs/for-ai-agents.mdx`: agent-specific entry point with the suggested system-prompt snippet and composition patterns.
 
 If the user is not in the mantle repo, fetch instead:
 
-- `https://mantle.ngrok.com/llms.txt` — curated docs index.
-- `https://mantle.ngrok.com/for-ai-agents.md` — the same agent guide as plain markdown.
+- `https://mantle.ngrok.com/llms.txt`: curated docs index.
+- `https://mantle.ngrok.com/for-ai-agents.md`: the same agent guide as plain markdown.
 
 ## 2. Read the components manifest
 
@@ -31,7 +31,7 @@ After reading, briefly confirm:
 - Whether the app already mounts `ThemeProvider`, `TooltipProvider`, and `Toaster` at the root.
 - Whether to favor stable components only or include preview ones.
 
-Ask only if any of those are ambiguous — don't make the user repeat answers that are obvious from the code you read.
+Ask only if any of those are ambiguous. Don't make the user repeat answers that are obvious from the code you read.
 
 ## 4. Working rules going forward
 

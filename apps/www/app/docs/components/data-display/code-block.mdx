@@ -203,7 +203,7 @@ For frontends backed by non-Node.js services (Go, Python, etc.), deploy a small 
 Create a highlight server using `createMantleServerSyntaxHighlighter`:
 
 ```ts
-// highlight-service.ts — deploy as a sidecar alongside your Go service
+// highlight-service.ts: deploy as a sidecar alongside your Go service
 import { createServer } from "node:http";
 import { createMantleServerSyntaxHighlighter } from "@ngrok/mantle-server-syntax-highlighter";
 
@@ -310,7 +310,7 @@ Multi-line objects and arrays are collapsible by default (the same fold runtime 
 ```tsx
 import { CodeBlock, jsonCodeBlockValue } from "@ngrok/mantle/code-block";
 
-// `record` is any runtime value — an API response, a table row's object, etc.
+// `record` is any runtime value: an API response, a table row's object, etc.
 <CodeBlock.Root>
 	<CodeBlock.Body>
 		<CodeBlock.CopyButton />
@@ -422,7 +422,7 @@ This is ideal for sharing a Traffic Policy or config snippet across multiple SDK
 <Example name="components/data-display/code-block/reusing-fragments-with-nested-interpolation" title="Code Block reusing fragments with nested interpolation example">
 
 ```tsx
-// shared-policies.ts — author the reusable policy once.
+// shared-policies.ts: author the reusable policy once.
 import { mantleCode } from "@ngrok/mantle/code-block";
 
 export const oauthPolicyFragment = mantleCode("yaml")`on_http_request:
@@ -435,7 +435,7 @@ export const oauthPolicyFragment = mantleCode("yaml")`on_http_request:
 </Example>
 
 ```tsx
-// listener-demo.tsx — embed it into a Java text block.
+// listener-demo.tsx: embed it into a Java text block.
 import { CodeBlock, mantleCode } from "@ngrok/mantle/code-block";
 import { oauthPolicyFragment } from "./shared-policies";
 

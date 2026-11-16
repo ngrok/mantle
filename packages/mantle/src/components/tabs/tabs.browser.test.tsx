@@ -8,7 +8,7 @@ import { Tabs } from "./tabs.js";
  * slot-scoped icon rule the trigger carries, the root's `--tabs-gap` flex
  * layout that `Tabs.Separator` cancels with a parent-scoped negative margin,
  * and the horizontal list's scroll-container box. Preflight's `box-sizing`
- * rule is load-bearing for that box: on a content-box list, `w-full` plus
+ * rule matters for that box: on a content-box list, `w-full` plus
  * the padding still reaches the root's right edge and the bug hides.
  * Inlined so the tests stay hermetic and need no Tailwind build step: a browser
  * test loads no stylesheet, so without this the wrapper would report its initial

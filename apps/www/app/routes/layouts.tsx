@@ -19,7 +19,7 @@ export default function LayoutsPage() {
 			<p className="mb-4 leading-relaxed text-pretty text-body">
 				Published <code translate="no">@ngrok/mantle</code> primitives that own page and viewport
 				structure: region skeletons, landmark wiring, and scroll architecture. A layout is the frame
-				you put components in — it owns <em>where things go</em>, while a component owns an
+				you put components in. It owns <em>where things go</em>, while a component owns an
 				interaction or a widget. App state (routing, sessions, data) never enters a layout; it
 				arrives as slotted JSX.
 			</p>

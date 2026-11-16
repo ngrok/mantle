@@ -15,8 +15,8 @@ const secondRow = { date: new Date(2026, 6, 16), http: 510, tcp: 165 };
 const thirdRow = { date: new Date(2026, 6, 17), http: 470, tcp: 150 };
 const data = [firstRow, secondRow, thirdRow];
 
-// Mirrors the chart's default x-value formatting for time scales — daily data
-// at local midnight renders date-only with the year — so label assertions
+// Mirrors the chart's default x-value formatting for time scales (daily data
+// at local midnight renders date-only with the year), so label assertions
 // hold in any locale or timezone.
 const dateOnlyFormatter = new Intl.DateTimeFormat(undefined, {
 	year: "numeric",
@@ -204,8 +204,8 @@ describe("AreaChart.Legend", () => {
 	});
 
 	test("legend keys wear each series' glyph", () => {
-		// Regression: area keys were plain filled squares, so `shape` — the
-		// redundant encoding alongside color — never reached the legend.
+		// Regression: area keys were plain filled squares, so `shape` (the
+		// redundant encoding alongside color) never reached the legend.
 		const { container } = render(
 			<AreaChart.Root data={data} xKey="date" aria-label="Traffic by protocol">
 				<AreaChart.Area dataKey="http" label="HTTP" color="blue" />

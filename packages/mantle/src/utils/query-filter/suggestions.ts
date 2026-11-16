@@ -101,7 +101,7 @@ function keyMatchesTyped<Item>(
 
 /**
  * Reports whether a value answers to what the user has typed so far, through
- * its own spelling or an alias — so a typed alias still offers the canonical
+ * its own spelling or an alias, so a typed alias still offers the canonical
  * value, which is also how that alias gets rewritten to the canonical form.
  */
 function valueMatchesTyped<Item>({
@@ -133,7 +133,7 @@ type ValueCandidate = {
  * @example
  * ```ts
  * getValueCandidates(isDefinition); // => [{ value: "active", description: "…" }, …]
- * getValueCandidates(descriptionDefinition); // => [] — free text
+ * getValueCandidates(descriptionDefinition); // => [] (free text)
  * ```
  */
 function getValueCandidates(

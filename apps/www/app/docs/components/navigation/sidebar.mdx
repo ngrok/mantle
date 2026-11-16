@@ -85,8 +85,8 @@ const settingsSections: Array<NavSection> = [
 /** Where the settings section lands when it is entered. */
 const settingsSectionPath = "/settings/general";
 
-// Which section the sidebar shows is *derived* from the location — a real app
-// gets this from a nested settings route — so there is no second source of
+// Which section the sidebar shows is *derived* from the location (a real app
+// gets this from a nested settings route), so there is no second source of
 // truth to keep in sync with the router.
 function isSettingsPath(path: string) {
 	return path === "/settings" || path.startsWith("/settings/");
@@ -275,7 +275,7 @@ function ProductSwitcherDialog({
 	);
 }
 
-// The navigation for whichever section is showing — a product's pages or the
+// The navigation for whichever section is showing: a product's pages or the
 // settings pages. The sidebar never knows which: the app picks the sections.
 function SectionNav({
 	pathname,
@@ -319,8 +319,8 @@ function SectionNav({
 	);
 }
 
-// The sidebar header while the settings section is showing: one full-width row —
-// back arrow plus the section title — occupying the same header band the product
+// The sidebar header while the settings section is showing: one full-width row
+// (back arrow plus the section title), occupying the same header band the product
 // switcher owns the rest of the time. The whole row is the affordance, so it is a
 // single Sidebar.ItemButton: the icon rail collapses it to the arrow chip with
 // the title clipped away, exactly like every other row.
@@ -432,7 +432,7 @@ function AccountSwitcher({
 						{account.name}
 					</span>
 					{/* the user has no picture here, so the avatar is a silhouette that
-					    names the signed-in user itself — a bare span is role=generic,
+					    names the signed-in user itself. A bare span is role=generic,
 					    where an accessible name is prohibited, hence role="img" */}
 					<Avatar.Root aria-label="Jane Doe" className="text-muted" role="img">
 						<Avatar.Fallback>
@@ -529,7 +529,7 @@ export function AppShell() {
 					{showNotice && (
 						<div className="text-on-filled flex items-center gap-2 bg-red-600 px-4 py-1 text-xs">
 							<WarningCircleIcon weight="fill" className="shrink-0" />
-							Scheduled maintenance in progress — the dashboard is read-only.
+							Scheduled maintenance in progress. The dashboard is read-only.
 						</div>
 					)}
 				</AppLayout.Notice>
@@ -872,7 +872,7 @@ export function WideSidebar() {
 		// `sm` rather than the `lg` default keeps this inline panel visible at tablet
 		// widths; a real app shell keeps the default
 		<Sidebar.Root mobileBreakpoint="sm">
-			{/* the panel fills its ancestor's height — a real app shell gets that from
+			{/* the panel fills its ancestor's height. A real app shell gets that from
 			    `AppLayout.Workspace`, so an inline example brings its own frame */}
 			<div className="border-card-muted bg-base flex h-72 w-full max-w-lg overflow-hidden rounded-lg border">
 				<Sidebar.Nav aria-label="Main" className="[--sidebar-width:18rem]">
@@ -986,7 +986,7 @@ export function LabeledRail() {
 					</Sidebar.Body>
 					<Sidebar.Footer>
 						{/* a row that also opens a menu: `DropdownMenu.Root` stays OUTSIDE the
-						    tooltip — it is renderless, and `Tooltip.Trigger asChild` needs a
+						    tooltip: it is renderless, and `Tooltip.Trigger asChild` needs a
 						    real element to clone */}
 						<DropdownMenu.Root>
 							<Sidebar.Tooltip label="Help">
@@ -1488,7 +1488,7 @@ export function PersistedShell() {
 						</AppLayout.Header>
 						<AppLayout.Body>
 							<p className="text-muted p-6 text-sm">
-								Toggle the sidebar, then reload the preview — the collapsed state is restored from
+								Toggle the sidebar, then reload the preview. The collapsed state is restored from
 								localStorage.
 							</p>
 						</AppLayout.Body>
@@ -1529,7 +1529,7 @@ import { NavLink, Outlet } from "react-router";
 import type { Route } from "./+types/root";
 
 export const loader = ({ request }: Route.LoaderArgs) => ({
-	// `undefined` means "no preference yet" — pick your own default here
+	// `undefined` means "no preference yet", so pick your own default here
 	sidebarOpen: extractSidebarStateCookie(request.headers.get("Cookie")) ?? true,
 });
 
@@ -1622,10 +1622,10 @@ The state owner. Renders no DOM.
 | Prop                  | Type                      | Default | Description                                                                                                                                                                                                                          |
 | --------------------- | ------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `defaultOpen?`        | `boolean`                 | `true`  | Initial desktop expanded state for the uncontrolled case.                                                                                                                                                                            |
-| `open?`               | `boolean`                 | —       | Controlled desktop expanded state. Pair with `onOpenChange`.                                                                                                                                                                         |
-| `onOpenChange?`       | `(open: boolean) => void` | —       | Called with the next desktop expanded state.                                                                                                                                                                                         |
-| `openMobile?`         | `boolean`                 | —       | Controlled mobile sheet open state. Pair with `onOpenMobileChange`.                                                                                                                                                                  |
-| `onOpenMobileChange?` | `(open: boolean) => void` | —       | Called with the next mobile sheet open state.                                                                                                                                                                                        |
+| `open?`               | `boolean`                 |         | Controlled desktop expanded state. Pair with `onOpenChange`.                                                                                                                                                                         |
+| `onOpenChange?`       | `(open: boolean) => void` |         | Called with the next desktop expanded state.                                                                                                                                                                                         |
+| `openMobile?`         | `boolean`                 |         | Controlled mobile sheet open state. Pair with `onOpenMobileChange`.                                                                                                                                                                  |
+| `onOpenMobileChange?` | `(open: boolean) => void` |         | Called with the next mobile sheet open state.                                                                                                                                                                                        |
 | `mobileBreakpoint?`   | `"sm" \| "md" \| "lg"`    | `"lg"`  | Breakpoint below which `Sidebar.Nav` renders as a mobile `Sheet`.                                                                                                                                                                    |
 | `keyboardShortcut?`   | `boolean`                 | `true`  | Toggle with `⌘B` (Apple) / `Ctrl+B` (elsewhere). Exact-modifier match, resolved per platform (`⌘⇧B` and macOS's native `Ctrl+B` pass through), and ignored while focus is in a text-editing or form control; set `false` to opt out. |
 
@@ -1640,8 +1640,8 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | Prop               | Type     | Default  | Description                                                                                                                                                                                   |
 | ------------------ | -------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `aria-label?`      | `string` | `"Main"` | Names the inner `<nav>` landmark, and the mobile `Sheet` dialog along with it. Override it for localization. Omitted when you pass `aria-labelledby` instead.                                 |
-| `aria-labelledby?` | `string` | —        | Names the `<nav>` from another element's id, and names the mobile sheet dialog directly. Takes precedence over the `aria-label` default.                                                      |
-| `data-slot?`       | `string` | —        | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `sidebar-nav` rather than replacing it. In the mobile sheet, `Sheet.Content` joins its own `sheet-content` after it. |
+| `aria-labelledby?` | `string` |          | Names the `<nav>` from another element's id, and names the mobile sheet dialog directly. Takes precedence over the `aria-label` default.                                                      |
+| `data-slot?`       | `string` |          | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `sidebar-nav` rather than replacing it. In the mobile sheet, `Sheet.Content` joins its own `sheet-content` after it. |
 
 `Sidebar.Nav` takes no `asChild` (see [Polymorphism](#polymorphism)).
 
@@ -1675,7 +1675,7 @@ except `asChild` and `children`, with sidebar defaults:
 | `icon?`       | `ReactNode`                            | `<SidebarSimpleIcon />` | The icon rendered inside the trigger.                                                                                                                                                                                          |
 | `intent?`     | `"neutral"`                            | `"neutral"`             | The color intent of the trigger. `IconButton` draws the neutral tone only.                                                                                                                                                     |
 | `label?`      | `string`                               | `"Toggle Sidebar"`      | Accessible name, and what the tooltip says; override for localization.                                                                                                                                                         |
-| `shortcut?`   | `ReactNode`                            | —                       | Chord chips rendered after the label in the tooltip, usually `<><MetaKey /><Kbd>B</Kbd></>`. Dropped under `Sidebar.Root keyboardShortcut={false}`, and `aria-hidden` because `aria-keyshortcuts` already announces the chord. |
+| `shortcut?`   | `ReactNode`                            |                         | Chord chips rendered after the label in the tooltip, usually `<><MetaKey /><Kbd>B</Kbd></>`. Dropped under `Sidebar.Root keyboardShortcut={false}`, and `aria-hidden` because `aria-keyshortcuts` already announces the chord. |
 | `size?`       | `"xs" \| "sm" \| "md" \| "lg" \| "xl"` | `"sm"`                  | The size of the trigger. Small, so it sits level with the other `size="sm"` controls in an `AppLayout.Header` row.                                                                                                             |
 
 The button is icon-only at every breakpoint, so it always renders a tooltip showing `label`. **That means it
@@ -1817,7 +1817,7 @@ All props from `button` plus:
 | Prop       | Type      | Default | Description                                                                                                                                     |
 | ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Render the single child (e.g. a router link) instead of a `<button>`.                                                                           |
-| `current?` | `boolean` | —       | Marks the current page: sets `aria-current="page"` and `data-current`. Not needed for a child that marks itself, like react-router's `NavLink`. |
+| `current?` | `boolean` |         | Marks the current page: sets `aria-current="page"` and `data-current`. Not needed for a child that marks itself, like react-router's `NavLink`. |
 
 **Data attributes**
 
@@ -1929,12 +1929,12 @@ owns, plus:
 
 | Prop         | Type                                           | Default   | Description                                                                                                                                                                                                                                                                |
 | ------------ | ---------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `children`   | `ReactElement`                                 | —         | The single element row to label: a `Sidebar.ItemButton` or `Sidebar.SwitcherTrigger`, optionally already wrapped in a `DropdownMenu.Trigger asChild`. Required: `Tooltip.Trigger asChild` clones it, so text or no child renders nothing hoverable and is a compile error. |
-| `label`      | `ReactNode`                                    | —         | What the tooltip says, normally the row's own label text.                                                                                                                                                                                                                  |
-| `shortcut?`  | `ReactNode`                                    | —         | Chord chips rendered after the label, usually `<><MetaKey /><Kbd>K</Kbd></>`. The rail hides the row's own hint along with its text, so the tooltip is where a pointer user can still learn it. `aria-hidden`, since the row's `aria-keyshortcuts` already announces it.   |
+| `children`   | `ReactElement`                                 |           | The single element row to label: a `Sidebar.ItemButton` or `Sidebar.SwitcherTrigger`, optionally already wrapped in a `DropdownMenu.Trigger asChild`. Required: `Tooltip.Trigger asChild` clones it, so text or no child renders nothing hoverable and is a compile error. |
+| `label`      | `ReactNode`                                    |           | What the tooltip says, normally the row's own label text.                                                                                                                                                                                                                  |
+| `shortcut?`  | `ReactNode`                                    |           | Chord chips rendered after the label, usually `<><MetaKey /><Kbd>K</Kbd></>`. The rail hides the row's own hint along with its text, so the tooltip is where a pointer user can still learn it. `aria-hidden`, since the row's `aria-keyshortcuts` already announces it.   |
 | `side?`      | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | `"right"` | Which side of the row the tooltip opens on. The rail sits at the inline start of the viewport, so the default points the tooltip away from it.                                                                                                                             |
-| `className?` | `string`                                       | —         | Merged onto the tooltip surface, last, by `Tooltip.Content`. This part adds no classes of its own.                                                                                                                                                                         |
-| `data-slot?` | `string`                                       | —         | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `sidebar-tooltip` rather than replacing it.                                                                                                                                                       |
+| `className?` | `string`                                       |           | Merged onto the tooltip surface, last, by `Tooltip.Content`. This part adds no classes of its own.                                                                                                                                                                         |
+| `data-slot?` | `string`                                       |           | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `sidebar-tooltip` rather than replacing it.                                                                                                                                                       |
 
 `asChild` is not accepted. `Tooltip.Content` omits it because its arrow is a permanent sibling of the body, so
 a slot would receive two elements. See [Polymorphism](#polymorphism).
@@ -2022,15 +2022,15 @@ No `HttpOnly` option: the browser writes this cookie from `onOpenChange`.
 
 | Param       | Type                                 | Default | Description                                                                   |
 | ----------- | ------------------------------------ | ------- | ----------------------------------------------------------------------------- |
-| `open`      | `boolean`                            | —       | Whether the sidebar is expanded.                                              |
+| `open`      | `boolean`                            |         | Whether the sidebar is expanded.                                              |
 | `options?`  | `SerializeSidebarStateCookieOptions` | `{}`    | Cookie attributes; see below.                                                 |
-| **returns** | `string`                             | —       | e.g. `mantle-sidebar-state=collapsed; Max-Age=31536000; Path=/; SameSite=Lax` |
+| **returns** | `string`                             |         | e.g. `mantle-sidebar-state=collapsed; Max-Age=31536000; Path=/; SameSite=Lax` |
 
 | Option      | Type                          | Default    | Description                                                                            |
 | ----------- | ----------------------------- | ---------- | -------------------------------------------------------------------------------------- |
 | `maxAge?`   | `number`                      | `31536000` | Lifetime in seconds (one year).                                                        |
 | `path?`     | `string`                      | `"/"`      | Path the cookie applies to.                                                            |
-| `domain?`   | `string`                      | —          | Omitted by default (exact host). Set e.g. `".example.com"` to share across subdomains. |
+| `domain?`   | `string`                      |            | Omitted by default (exact host). Set e.g. `".example.com"` to share across subdomains. |
 | `sameSite?` | `"Lax" \| "Strict" \| "None"` | `"Lax"`    | `SameSite` policy.                                                                     |
 | `secure?`   | `boolean`                     | `false`    | Omitted by default so the cookie is not rejected over `http://localhost`.              |
 

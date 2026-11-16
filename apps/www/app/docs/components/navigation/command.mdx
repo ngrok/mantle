@@ -379,7 +379,7 @@ Both `searchActionFromKeyDown` and `searchActionFromPaste` are exported for a tr
 **Do not bind `⌘K` yourself.** `Command.DialogRoot` does it, and it handles the parts a hand-rolled listener usually misses: claiming the event, keeping the two platform modifiers distinct, one owner per window, and the editor carve-out. If you must own the chord, turn mantle's off explicitly:
 
 ```tsx
-// ❌ Two owners for one chord — mantle's shortcut is still bound
+// ❌ Two owners for one chord: mantle's shortcut is still bound
 useHotkeys("mod+k", () => setOpen(true), { preventDefault: true });
 <Command.DialogRoot open={open} onOpenChange={setOpen}>
 

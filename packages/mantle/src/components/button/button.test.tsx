@@ -713,7 +713,7 @@ describe("Button", () => {
 			);
 			translateTextNodes(screen.getByRole("button"));
 
-			// The spinner replaces the `icon` slot, which is the label span's sibling —
+			// The spinner replaces the `icon` slot, which is the label span's sibling,
 			// so the swap never aims an insert at a child of the label.
 			rerender(
 				<Button appearance="outlined" intent="neutral" icon={<PlusIcon />} isLoading>

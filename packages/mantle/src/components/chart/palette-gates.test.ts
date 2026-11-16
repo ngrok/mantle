@@ -21,9 +21,9 @@ import {
  *
  * Without these the whole palette suite can pass because a conversion is wrong
  * in a direction that happens to inflate every distance. Every anchor below is
- * externally sourced — a hex Tailwind publishes for its own ramp step, a ratio
+ * externally sourced (a hex Tailwind publishes for its own ramp step, a ratio
  * WCAG documents, or a pair whose collapse under deuteranopia is the textbook
- * example — so none of them is this module's arithmetic agreeing with itself.
+ * example), so none of them is this module's arithmetic agreeing with itself.
  */
 
 describe("hexFromOklch", () => {
@@ -92,7 +92,7 @@ describe("oklchOf", () => {
 describe("simulateCvd", () => {
 	test("pure red under protanopia loses its red channel to a dark yellow", () => {
 		// The matrices must be applied in LINEAR sRGB. Run them on gamma-encoded
-		// channels and the same input lands on #271d00 instead — a different
+		// channels and the same input lands on #271d00 instead: a different
 		// question, answered with the same numbers.
 		const simulated = simulateCvd("#ff0000", "protan");
 		const asHex = simulated
@@ -155,8 +155,8 @@ describe("the gates", () => {
 	});
 
 	test("lowContrastSlots defaults to the absolute minimum and takes a stricter one", () => {
-		// The two grays straddle 3:1 on white by one 8-bit step — #949494 is 3.034:1
-		// and #959595 is 2.995:1 — so this call omits `minimum` and still pins the
+		// The two grays straddle 3:1 on white by one 8-bit step (#949494 is 3.034:1
+		// and #959595 is 2.995:1), so this call omits `minimum` and still pins the
 		// `CONTRAST_MIN` default rather than any looser number.
 		expect(lowContrastSlots(["#949494", "#959595"], "#ffffff")).toEqual([
 			{ slot: 2, hex: "#959595", ratio: expect.closeTo(2.995, 3) },

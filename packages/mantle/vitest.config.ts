@@ -113,7 +113,7 @@ export default defineConfig({
 	test: {
 		// A spy or global stub that a test installs and then fails to tear down leaks into every test
 		// that runs after it, which turns an unrelated failure into a cascade and makes results depend
-		// on order. Restoring centrally means an inline `mockRestore()` is never load-bearing: a test
+		// on order. Restoring centrally means no test depends on an inline `mockRestore()`: a test
 		// that throws before it reaches its cleanup line still leaves the environment pristine.
 		clearMocks: true,
 		restoreMocks: true,

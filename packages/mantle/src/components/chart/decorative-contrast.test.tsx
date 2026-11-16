@@ -31,8 +31,8 @@ const { light: lightCss, dark: darkCss } = splitDarkThemeRule(mantleCss);
  * dimming, and no blur: a blur leaves the color under the middle of a mark where
  * it was, and dimming far enough to rescue `text-muted` from a categorical slot
  * erases the chart. The token is instead the darkest neutral step that keeps
- * `text-muted` — the weakest text mantle ships, and what `Empty.Description`
- * wears — over the AA floor unaided. The next step down, `neutral-300`, drops
+ * `text-muted` (the weakest text mantle ships, and what `Empty.Description`
+ * wears) over the AA floor unaided. The next step down, `neutral-300`, drops
  * light to 4.24:1, which is why this is the step.
  *
  * When this fails, re-step `--color-chart-decorative`. Never widen

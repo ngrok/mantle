@@ -7,7 +7,7 @@ import { copyToClipboard } from "../utils/copy-to-clipboard.js";
  * The returned function uses the Clipboard API when available and falls back
  * to a `document.execCommand("copy")` polyfill for older browsers. `await`
  * the call (or attach a `.then()` / `.catch()`) to observe whether the copy
- * succeeded — the function throws when both the Clipboard API and the
+ * succeeded: the function throws when both the Clipboard API and the
  * polyfill fail, or when called outside of a DOM environment.
  *
  * Inspired by: https://usehooks.com/usecopytoclipboard

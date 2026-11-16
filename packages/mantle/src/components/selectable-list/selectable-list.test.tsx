@@ -62,8 +62,8 @@ describe("filterSelectableOptions", () => {
 	});
 
 	test("labelText replaces a string label as the match target", () => {
-		// labelText is THE plain-text form of the label, not an additional alias —
-		// when present, the string label is no longer matched.
+		// labelText is THE plain-text form of the label, not an additional alias.
+		// When present, the string label is no longer matched.
 		const aliased: SelectableListOption[] = [{ value: "a", label: "Apple", labelText: "malus" }];
 		expect(filterSelectableOptions(aliased, "malus")).toHaveLength(1);
 		expect(filterSelectableOptions(aliased, "apple")).toHaveLength(0);
@@ -234,7 +234,7 @@ describe("SelectableList.SelectAll with an active filter", () => {
 
 		await user.type(screen.getByRole("textbox", { name: "Filter fruit" }), "ran");
 		const selectAll = screen.getByRole("checkbox", { name: "Select all" });
-		await user.click(selectAll); // ["a", "d"] — all filtered selectable selected
+		await user.click(selectAll); // ["a", "d"]: all filtered selectable selected
 		expect(selectAll).toBeChecked();
 
 		await user.click(selectAll);
@@ -382,7 +382,7 @@ describe("SelectableList selection state", () => {
 			</SelectableList.Root>,
 		);
 
-		// Cherry is disabled via options[].disabled — the single source of truth.
+		// Cherry is disabled via options[].disabled, the single source of truth.
 		const cherryRow = screen.getByRole("checkbox", { name: "Cherry" }).closest("[role='row']");
 		if (cherryRow == null) {
 			throw new Error("Cherry row not found");
@@ -470,7 +470,7 @@ describe("SelectableList filter query", () => {
 
 		// "a" discriminates the predicates: the value match keeps only Apple, while
 		// the default label substring match would also keep Banana ("banana"
-		// contains "a") — so two rows here would mean the custom filter was ignored.
+		// contains "a"), so two rows here would mean the custom filter was ignored.
 		await user.type(screen.getByRole("textbox", { name: "Filter fruit" }), "a");
 		expect(screen.getAllByRole("row")).toHaveLength(1);
 		expect(screen.getByRole("checkbox", { name: "Apple" })).toBeInTheDocument();

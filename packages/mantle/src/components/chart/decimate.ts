@@ -5,7 +5,7 @@
  * vertices per column (entry, min, max, exit) is visually lossless and makes
  * redraw cost O(plot width) instead of O(points).
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation, not exported from the package.
  */
 
 /**

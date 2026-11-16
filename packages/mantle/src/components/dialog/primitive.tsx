@@ -100,7 +100,7 @@ const Root = ({
 const Trigger = DialogPrimitiveTrigger;
 
 /**
- * Mounts dialog layers into the nearest layer container — an enclosing
+ * Mounts dialog layers into the nearest layer container: an enclosing
  * overlay's positioner when one is open, else `document.body`. An explicit
  * `container` prop wins over both.
  */
@@ -110,7 +110,7 @@ const Portal = ({ container, ...props }: ComponentProps<typeof DialogPrimitivePo
 
 	// Why the provider: `Dialog.Content` portals again internally, so the
 	// resolved container must also become the layer container for the wrapped
-	// subtree — otherwise the inner portal would ignore an explicit `container`.
+	// subtree. Otherwise the inner portal would ignore an explicit `container`.
 	return (
 		<LayerContainerContext.Provider value={resolvedContainer}>
 			<DialogPrimitivePortal container={resolvedContainer} {...props} />

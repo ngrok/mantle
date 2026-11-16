@@ -77,7 +77,7 @@ const EXIT_TRANSITION_TIMEOUT_MS = 400;
  * ```tsx
  * const sandbarHandle = useRef<SandbarHandle>(null);
  *
- * // hand this to your router's guard — it owns the blocking, the bar reacts
+ * // hand this to your router's guard; it owns the blocking, and the bar reacts
  * const onNavigationBlocked = () => sandbarHandle.current?.shake();
  *
  * <Sandbar.Root open={isDirty} handleRef={sandbarHandle}>

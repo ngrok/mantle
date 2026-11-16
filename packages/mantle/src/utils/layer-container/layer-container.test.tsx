@@ -23,7 +23,7 @@ import { LayerContainer } from "./layer-container.js";
  * - Overlays (`Dialog`, `AlertDialog`, `Sheet`) render at `z-60` and expose a
  *   positioner element that doubles as the layer container.
  * - Floats (`Popover`, `Tooltip`, `Select`, `DropdownMenu`, `HoverCard`) render
- *   at `z-50` and portal into the nearest layer container — the positioner when
+ *   at `z-50` and portal into the nearest layer container: the positioner when
  *   composed inside an overlay, else `document.body`.
  * - A float inside the positioner follows the overlay content in document
  *   order, so it paints above the content inside the overlay's stacking
@@ -86,7 +86,7 @@ const overlays = [
 /**
  * Each float under test. `renderClosed` mounts it shut so a real event (or the
  * controlled-open flip for the hover-driven floats, whose pointer timing
- * happy-dom cannot reproduce) opens it after the overlay already exists —
+ * happy-dom cannot reproduce) opens it after the overlay already exists:
  * the mount order that used to lose.
  */
 const floats = [
@@ -210,8 +210,8 @@ describe("layer containers", () => {
 				).toBeTruthy();
 				// The modal overlay marks the portal's other children
 				// `aria-hidden` on open. The positioner is on the content's
-				// ancestor chain, so a float portaled into it stays readable —
-				// portaling into a sibling element instead would hide it.
+				// ancestor chain, so a float portaled into it stays readable.
+				// Portaling into a sibling element instead would hide it.
 				expect(floatContent.closest("[aria-hidden='true']")).toBeNull();
 			});
 		}
@@ -640,7 +640,7 @@ describe("layer containers", () => {
 		test("a MultiSelect inside a popover inside a dialog portals into the dialog's positioner", async () => {
 			// The trigger sits in a float portaled into the positioner, so
 			// `closest("[data-mantle-modal-content]")` cannot reach the dialog
-			// content — without the layer-container fallback the popup lands on
+			// content. Without the layer-container fallback the popup lands on
 			// `document.body` at `z-50`, under the `z-60` dialog.
 			const user = userEvent.setup();
 			render(
@@ -675,7 +675,7 @@ describe("layer containers", () => {
 			// The dialog primitive's Escape guard requires the popup to be a DOM
 			// descendant of the dialog content (`currentTarget.contains(popup)`),
 			// so `Combobox.Content` must never portal. Adding Ariakit's `portal`
-			// prop to it turns this red — and breaks Escape inside dialogs.
+			// prop to it turns this red and breaks Escape inside dialogs.
 			const user = userEvent.setup();
 			render(
 				overlays[0].renderOpen(
@@ -829,7 +829,7 @@ describe("layer containers", () => {
 
 describe("layer tiers", () => {
 	// Why class assertions: the z-index tier is the only observable
-	// implementation of the layering contract in happy-dom — no stylesheet
+	// implementation of the layering contract in happy-dom: no stylesheet
 	// loads, so there is no computed style to read. Each class below is pinned
 	// against the selector-free contract the JSDoc documents (floats `z-50`,
 	// overlays `z-60`); `layer-container.browser.test.tsx` asserts the paint

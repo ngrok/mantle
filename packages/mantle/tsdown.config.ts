@@ -12,7 +12,7 @@ const SOURCE_ALL_CSS_SRC = new URL("./src/source-all.css", import.meta.url);
  * A set of package names that should not be published to npm.
  * `chart` is the internal shared engine behind
  * bar-chart/line-chart/area-chart/scatter-plot (the dialog/list `primitive`
- * pattern, one directory up) — bundled into its consumers, never a subpath.
+ * pattern, one directory up). It is bundled into its consumers, never a subpath.
  */
 const doNotPublish = new Set<string>(["portal", "chart"]);
 

@@ -10,7 +10,7 @@ import { useState } from "react";
  * The primary Strata composition for the docs: two sections of a resource
  * configuration editor, the page shape this component came from. Renders as an
  * entire framed-preview document (see preview-registry.ts), so the frame's
- * viewport switcher drives the `md` breakpoint — mobile stacks each header above
+ * viewport switcher drives the `md` breakpoint: mobile stacks each header above
  * its own controls, and the page owns a real `h1` above the sections' `h2`s.
  *
  * The provider scope is real state, so the radio cards answer a click instead of

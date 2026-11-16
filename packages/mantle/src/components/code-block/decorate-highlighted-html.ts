@@ -106,8 +106,8 @@ function decorateHighlightedHtml({
 		const displayedLineNumber = lineNumberStart + i;
 		// In a fold-enabled block, CSS reserves the gutter column on every line's
 		// content by default and resets it on opener lines (whose toggle button
-		// already occupies the gutter). Tagging the *opener* lines — which are
-		// sparse — instead of probing each line with a relational `:has()` keeps
+		// already occupies the gutter). Tagging the *opener* lines (which are
+		// sparse) instead of probing each line with a relational `:has()` keeps
 		// gutter alignment a flat class match whose cost does not scale with line
 		// count, and adds near-zero markup (see mantle.css). `openerId` is only set
 		// when folding is active, so the tag never appears in non-fold blocks.

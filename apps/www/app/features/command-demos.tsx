@@ -113,7 +113,7 @@ export function CommandSearchTriggerDemo() {
  */
 export function CommandDialogDemo() {
 	return (
-		// keyboardShortcut={false}: see CommandSearchTriggerDemo — the docs site
+		// keyboardShortcut={false}: see CommandSearchTriggerDemo. The docs site
 		// owns ⌘K.
 		<Command.DialogRoot keyboardShortcut={false}>
 			<Command.DialogTrigger asChild>
@@ -132,7 +132,7 @@ export function CommandDialogDemo() {
  * unmounts its subtree when it closes, and a root inside it takes the `⌘K`
  * binding with it.
  *
- * `setOpenMobile(false)` as the palette opens is load-bearing, not tidiness: a
+ * `setOpenMobile(false)` as the palette opens is required, not tidiness: a
  * palette over an open sheet stacks two focus traps and two scroll locks, and
  * they unwind in an order neither owns.
  */

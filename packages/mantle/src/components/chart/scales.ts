@@ -1,6 +1,6 @@
 // The 1/2/5 "nice step" tick solver, ported from d3-array 3.2.4 (`ticks` /
 // `tickIncrement`) so the chart engine doesn't pull the whole d3-array package
-// in for two pure functions. Behavior is identical — `scales.test.ts` locks the
+// in for two pure functions. Behavior is identical: `scales.test.ts` locks the
 // parity cases (sub-integer, negative, reversed, and flat domains).
 const e10 = Math.sqrt(50);
 const e5 = Math.sqrt(10);
@@ -25,7 +25,7 @@ const niceFactor = (error: number): number => {
  */
 type TickOptions = {
 	/**
-	 * Clamp the tick step to whole numbers so every tick is an integer — the
+	 * Clamp the tick step to whole numbers so every tick is an integer: the
 	 * shape for axes whose backing data is entirely integer-valued (counts),
 	 * where a "1.5" gridline label is meaningless. May yield fewer ticks than
 	 * `count`; a domain containing no integer yields no ticks.
@@ -100,7 +100,7 @@ const ticks = (start: number, stop: number, count: number, options?: TickOptions
 	}
 	if (start === stop) {
 		// A flat fractional domain (an explicitly flat fractional override) has
-		// no integer to tick — the no-fractional-ticks contract is absolute.
+		// no integer to tick; the no-fractional-ticks contract is absolute.
 		if (options?.integer && !Number.isInteger(start)) {
 			return [];
 		}
@@ -258,7 +258,7 @@ const bandCenter = (layout: BandLayout, index: number): number =>
 	bandStart(layout, index) + layout.bandwidth / 2;
 
 /**
- * The pixel span that hits band `index` — the whole step, including the
+ * The pixel span that hits band `index`: the whole step, including the
  * padding air on either side of the band itself. This is exactly the span
  * {@link invertBand} maps back to `index`, so a hover highlight drawn from it
  * covers one category and no part of a neighbor.
@@ -367,7 +367,7 @@ const niceDomain = (domain: readonly [number, number], count: number): [number, 
 	// domain and repeat until the step stops changing. A single pass can leave
 	// bounds that don't land on tick values, because widening the domain can
 	// select a coarser step than the one the raw domain implied. Iterations are
-	// bounded — d3 relies on convergence within a couple of passes; the cap only
+	// bounded. d3 relies on convergence within a couple of passes; the cap only
 	// guards a pathological step that never settles.
 	let start = domain[0];
 	let stop = domain[1];
@@ -402,7 +402,7 @@ const niceDomain = (domain: readonly [number, number], count: number): [number, 
  * @example
  * ```ts
  * niceZeroAnchoredDomain([0, 0], 5); // [0, 1]
- * niceZeroAnchoredDomain([-3, 5], 5); // [-4, 6] — same as niceDomain
+ * niceZeroAnchoredDomain([-3, 5], 5); // [-4, 6], same as niceDomain
  * ```
  */
 const niceZeroAnchoredDomain = (

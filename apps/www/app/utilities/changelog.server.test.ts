@@ -138,7 +138,7 @@ describe("parseVersions", () => {
 	it("folds an indented fenced block into its bullet, the shape changesets emit", () => {
 		// This is what the real file looks like: `packages/mantle/CHANGELOG.md` has 46
 		// indented fences and none at column 0. Indented fences never reach the `inFence`
-		// branch — the two-space continuation rule carries them — so this pins the path
+		// branch (the two-space continuation rule carries them), so this pins the path
 		// production actually takes, and the column-0 fixture below pins the other one.
 		const source = [
 			"## 1.0.0",

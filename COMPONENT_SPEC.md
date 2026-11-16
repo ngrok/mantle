@@ -4,9 +4,9 @@ The single normative standard for authoring a component in `@ngrok/mantle`. It a
 **why the library is shaped the way it is**, **what a component must ship**, **what its code must look like**,
 **what its docs must contain**, and **how to audit an existing component against all of it**.
 
-This file is self-contained on purpose. Everything a component author or auditor needs — the principles from
+This file is self-contained on purpose. Everything a component author or auditor needs (the principles from
 the [Philosophy page](./apps/www/app/docs/philosophy.mdx), the component rules, and the full validation
-procedure the `/scaffold-component` and `/audit-component` workflows run — is stated here so there is one place to read and one place to change.
+procedure the `/scaffold-component` and `/audit-component` workflows run) is stated here so there is one place to read and one place to change.
 
 ## Scope and status
 
@@ -30,7 +30,7 @@ is a bug in the rule.
 
 ## Precedence
 
-- **This file governs component questions** — artifacts, API shape, JSDoc, CSS variables, data attributes,
+- **This file governs component questions:** artifacts, API shape, JSDoc, CSS variables, data attributes,
   docs page, tests, wiring.
 - [CONVENTIONS.md](./CONVENTIONS.md) governs general code and prose style for the whole monorepo (formatting,
   imports, package management, prose in comments/JSDoc/changesets, TypeScript rules that are not
@@ -40,15 +40,15 @@ is a bug in the rule.
 - The [Philosophy page](./apps/www/app/docs/philosophy.mdx) explains the _why_ at length. §0 below is its
   actionable distillation.
 - `/scaffold-component`, `/audit-component`, and `/promote-preview-component` are _workflows that implement
-  this spec_. If a workflow disagrees with this file, this file wins — report the mismatch rather than editing
+  this spec_. If a workflow disagrees with this file, this file wins. Report the mismatch rather than editing
   the workflow mid-task.
 
-**Definition of "component"** — anything documented on its own docs page and reachable from a
+**Definition of "component":** anything documented on its own docs page and reachable from a
 `packages/mantle/package.json` export. A module-internal primitive imported only by relative path
 (`dialog/primitive.tsx`, `list/primitive.tsx`) or an internal engine directory with no export (`chart/`) is
 **not** a component: no docs page, no nav entry, no export map entry. See [§1.2](#12-ship-the-smallest-public-surface).
-Hooks (`./hooks`), utilities (`./utils`, `./cx`, `./color`, …), and types (`./types`) are outside this spec —
-they follow CONVENTIONS.md and their own docs routes.
+Hooks (`./hooks`), utilities (`./utils`, `./cx`, `./color`, …), and types (`./types`) are outside this spec.
+They follow CONVENTIONS.md and their own docs routes.
 
 ---
 
@@ -57,7 +57,7 @@ they follow CONVENTIONS.md and their own docs routes.
 These decide the questions the rest of the spec only mechanizes. Each is a rule with a consequence, not a
 slogan.
 
-1. **Semantic HTML, then everything else.** The right element is the starting point — `Button` renders a
+1. **Semantic HTML, then everything else.** The right element is the starting point: `Button` renders a
    `<button>`, `Checkbox` a real `<input type="checkbox">`, `Kbd` a real `<kbd>`. Enhancement is layered on
    top and every enhancement names its fallback (`Accordion`'s `hidden="until-found"` and `interpolate-size`
    both degrade cleanly). If a component needs JavaScript to do what an element already does, start over.
@@ -65,7 +65,7 @@ slogan.
    enough (`Accordion`, `Field`); wrap the best engine where the behavior is genuinely hard (Radix for
    `Dialog`, Ariakit for `Combobox`, Headless UI for `RadioGroup`, cmdk for `Command`, TanStack Table for
    `DataTable`, sonner for `Toast`). A consumer must not be able to tell which is which: every foundation is
-   normalized behind the same house API — flat namespace, `asChild`, `data-slot`, consumer `className` merged
+   normalized behind the same house API: flat namespace, `asChild`, `data-slot`, consumer `className` merged
    last.
 3. **One component per user intent.** Name the intent in a sentence. A variant is a prop or a sibling part,
    never a second public component ([§1.1](#11-one-component-per-user-intent)).
@@ -73,13 +73,13 @@ slogan.
    handle everything else. Never a prop bag ([§1.7](#17-forbidden-api-shapes)). Take a data prop only when
    behavior must reach items that are not mounted, and even then the data never renders: rows are parts
    ([§1.5](#15-composition-vs-data-driven)).
-5. **Make invalid states unrepresentable.** Push contracts into the type system — discriminated unions,
+5. **Make invalid states unrepresentable.** Push contracts into the type system: discriminated unions,
    `satisfies Record<…>` exhaustiveness, a rich `label` that requires `labelText`. What the compiler cannot
    catch fails loudly at runtime ([§3.5](#35-errors-and-invariants)).
 6. **Pure cores, thin bindings.** Filtering, selection math, parsing, formatting and validation are exported
    or module-local pure functions, tested apart from rendering. Framework state and DOM stay at the edges.
 7. **Accessibility is engineered, then given away.** The promise is not that semantic markup makes
-   accessibility free — it is that mantle does the engineering so the consumer gets it free: `Field` threads
+   accessibility free. It is that mantle does the engineering so the consumer gets it free: `Field` threads
    ids through context, `IconButton` makes its screen-reader label required, virtualized rows announce
    `aria-posinset`/`aria-setsize`. Motion defaults are conservative ([§3.6](#36-accessibility-and-motion)).
 8. **The first paint is part of the API.** Mantle assumes a server. If a component renders wrong for one
@@ -93,7 +93,7 @@ slogan.
     `Button` defaults `type="button"`; `AlertDialog.Action` deliberately does not dismiss; wrapped handlers run
     the consumer's callback first and bail on `preventDefault()`.
 12. **Docs are executable contracts.** JSDoc and docs examples feed the published types, `llms.txt`, and the
-    component manifest that agents read. They are reproduced verbatim — one recorded migration copied a docs
+    component manifest that agents read. They are reproduced verbatim: one recorded migration copied a docs
     pattern into ~57 call sites before the docs were fixed. Maintain examples with the same care as API.
 13. **Decisions get recorded.** A contested trade-off lands in `decisions/` with alternatives and honest
     negative consequences ([§1.8](#18-write-a-decision-doc-when-the-answer-was-contested)).
@@ -112,7 +112,7 @@ Answer all of these _before_ writing code. Every one is expensive to change afte
 
 Name the intent in a sentence: "click an item to act or navigate" (`List`) vs "check items to select"
 (`SelectableList`); "pick one of a few known options" (`Select`) vs "type to filter many" (`Combobox`) vs
-"pick several" (`MultiSelect`). If an existing component already answers that intent, extend it — a variant is
+"pick several" (`MultiSelect`). If an existing component already answers that intent, extend it. A variant is
 a prop or a sibling part, never a new public component. State the sibling boundary in the JSDoc so it ships
 with the component. If the proposed docs page would mostly redirect readers to siblings, the component should
 not be public.
@@ -135,15 +135,15 @@ module-internal and promote on demand.
 
 Two shapes of internal primitive, with different build consequences:
 
-- **A file inside a component directory** (`dialog/primitive.tsx`, `list/primitive.tsx`) — imported by
+- **A file inside a component directory** (`dialog/primitive.tsx`, `list/primitive.tsx`): imported by
   relative path, never re-exported from `index.ts`. Nothing else to do.
-- **A whole directory** (`chart/`) — tsdown auto-discovers component directories, so it must also be added to
+- **A whole directory** (`chart/`): tsdown auto-discovers component directories, so it must also be added to
   `doNotPublish` in `packages/mantle/tsdown.config.ts` or the build publishes a subpath for it
   ([§2.3](#23-export-map-and-build-configuration)).
 
 ### 1.3. Name parts for the DOM and ARIA they emit
 
-- The outermost part is **always** `Root` — even when the compound has no separate state owner and `Root` _is_
+- The outermost part is **always** `Root`, even when the compound has no separate state owner and `Root` _is_
   the whole component. Consumers must never learn which part is outermost per component.
 - Parts take the web platform's vocabulary for what they render: a `List` has `Item`s (`<li>`,
   `role="listitem"`), a `Table` has `Row`s (`<tr>`, `role="row"`), a `DescriptionList` has `Term`s and
@@ -151,27 +151,27 @@ Two shapes of internal primitive, with different build consequences:
 - Props read as the ARIA/DOM they set: `current` → `aria-current`, not `isActive`. Props must not collide
   semantically with sibling props (`textValue` beside `value` was rejected in favor of `labelText`).
 - Where WAI-ARIA offers competing patterns, the component makes the choice: `role="list"` for action and
-  navigation items — interactive content and multiple tab stops per item are fine, since the
+  navigation items. Interactive content and multiple tab stops per item are fine, since the
   no-interactive-content restriction belongs to `listbox`, not `list`. Reach for the APG grid only when rows
   carry selection state with real controls (`aria-selected` is invalid on `listitem`) or need a single tab stop
   over a large virtualized collection. Do not default to grid: screen readers announce grids as tables, and
   short lists of links belong in the page's tab order.
-- Renames must go all the way through — props, types, `data-slot` values, tests, docs, internals. A
+- Renames must go all the way through: props, types, `data-slot` values, tests, docs, internals. A
   half-renamed API is worse than either name.
 
 ### 1.4. ARIA pattern words are earned, not borrowed
 
 `Menu`/`MenuItem`, `Listbox`/`Option`, `Tab`/`TabPanel`, `Tree`/`TreeItem`, `Grid`/`Row`/`Cell`, `Dialog`,
 `Toolbar`, and `Combobox` are reserved. Split a candidate name into PascalCase segments and match **whole
-segments, not substrings** — `MenuItem` and `SidebarMenuButton` both hit `Menu`, while `Table` does not hit
+segments, not substrings**: `MenuItem` and `SidebarMenuButton` both hit `Menu`, while `Table` does not hit
 `Tab` and `Optional` does not hit `Option`.
 
-A hit is a question, not yet a violation. Before using one — alone (`.Menu`), as a qualifier (`.MenuItem`), or
-inside a composite (`.SidebarMenuButton`) — both must be true:
+A hit is a question, not yet a violation. Before using one (alone as `.Menu`, as a qualifier in `.MenuItem`, or
+inside a composite such as `.SidebarMenuButton`), both must be true:
 
-1. **The role is emitted** — natively (`<tr>`, `<dialog>`, `<table>`), explicitly, or by a wrapped third-party
+1. **The role is emitted:** natively (`<tr>`, `<dialog>`, `<table>`), explicitly, or by a wrapped third-party
    primitive that emits it (Radix `DropdownMenu`/`Tabs`/`Dialog`, Ariakit equivalents).
-2. **The pattern's keyboard contract is implemented** — roving focus / single tab stop, arrow keys, typeahead,
+2. **The pattern's keyboard contract is implemented:** roving focus / single tab stop, arrow keys, typeahead,
    `Escape` to dismiss, as the APG pattern requires. A wrapped Radix/Ariakit primitive satisfies this; a
    hand-rolled `<ul>` with `role="menu"` and no key handling does not.
 
@@ -196,7 +196,7 @@ porting from the ecosystem; vocabulary is re-derived from what the component emi
 ### 1.5. Composition vs data-driven
 
 Compose children when every behavior derives from the authored children (`Table`, `List`). Take a data prop
-when collection-level behavior — filtering, select-all, virtualization — must operate over items that may not
+when collection-level behavior (filtering, select-all, virtualization) must operate over items that may not
 be mounted or even created (`DataTable`'s `data`, `SelectableList`'s `options`). Keep the data a thin
 description (a value, its text, a disabled flag).
 
@@ -218,7 +218,7 @@ function child returns each row part:
 `Query` first shipped `Query.Content` as a closed box that rendered all four from `Root`'s `items` (#1622), and
 #1633 broke it into parts. An `items`, `options`, or `rows` prop that renders is the same defect.
 
-**Never** read collection facts off children via prop-sniffing or `cloneElement` injection — pass data or
+**Never** read collection facts off children via prop-sniffing or `cloneElement` injection. Pass data or
 index-based callbacks. Element sniffing only sees the outermost composed child and fails silently the moment a
 consumer wraps it.
 
@@ -238,7 +238,7 @@ Avoid optional-property-heavy "bag of props" types where states are mutually exc
 | Nested namespace (`Command.Dialog.Root`)                           | Flatten into member names (`Command.DialogRoot`)                                                                                                                                    |
 | Prop-bag passthrough (`contentProps`, `triggerProps`, `slotProps`) | Expose the internal element as a compound part                                                                                                                                      |
 | Re-exporting another mantle namespace under yours                  | Let consumers import that primitive directly                                                                                                                                        |
-| `Component.displayName = "…"`                                      | Nothing — React DevTools infers the name from the function                                                                                                                          |
+| `Component.displayName = "…"`                                      | Nothing: React DevTools infers the name from the function                                                                                                                           |
 | `forwardRef`                                                       | `ref` is a regular prop (React 19+)                                                                                                                                                 |
 | `React.FC` / `FC`                                                  | Inline function types                                                                                                                                                               |
 | Boolean-bag prop types where states are mutually exclusive         | Discriminated unions that make invalid states unrepresentable                                                                                                                       |
@@ -251,12 +251,12 @@ Two of these are non-obvious enough to justify:
 
 - **`displayName`.** A top-level `Root.displayName = "Foo.Root"` is a module side effect bundlers (verified
   with Vite 8 / Rolldown) cannot eliminate, so unused components and their transitive dependencies stay pinned
-  in consumer bundles — a dialog-only consumer bundle measured **11% smaller** without them (#1346). It is the
+  in consumer bundles: a dialog-only consumer bundle measured **11% smaller** without them (#1346). It is the
   reflexive habit when porting the Radix compounds [§3.4](#34-compound-namespace) tells you to write. Nothing
   reads it at runtime.
 - **Prop bags.** A `*Props` object prop hides the element it configures, defeats autocomplete-driven
   discovery, and grows without bound. Needing to reach an internal element means the component is a compound
-  and that element is a part — even when the part is a thin forwarding wrapper (see
+  and that element is a part, even when the part is a thin forwarding wrapper (see
   `decisions/2026-07-15-theme-switcher-compound-api.md`, where `contentProps` became `ThemeSwitcher.Content`).
 
 ### 1.8. Write a decision doc when the answer was contested
@@ -292,13 +292,13 @@ The nine every component ships:
 Plus the ones that are conditional or generated. These are the ones most often missed, and one of them fails
 _after_ all of [§9](#9-verification) passes:
 
-| Artifact                                                             | When                                                                                          | If omitted                                                                                      |
-| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `apps/www/app/utilities/__snapshots__/components-surface.json`       | always — any new component, or any edit to a docs `description`, JSDoc summary, or `@example` | CI's Vibe Check fails. Regenerate with `pnpm -F @app/www test -u` and commit it                 |
-| `doNotPublish` in `packages/mantle/tsdown.config.ts`                 | adding an internal engine _directory_ (`chart/`)                                              | tsdown publishes a subpath for a directory that must have none                                  |
-| `importPathOverrides` in `packages/mantle/scripts/agent-manifest.ts` | the docs slug is not also the export key ([§2.2](#22-naming))                                 | the agent manifest build fails, because the slug names a subpath `package.json` does not export |
-| `previewExamples` in `apps/www/app/features/preview-registry.ts`     | the docs page runs a shell demo in an `Example`                                               | the `example` prop fails typecheck                                                              |
-| `apps/www/app/docs/<page>.examples.tsx`                              | the docs page has a page example ([§7.3](#73-examples-must-be-live-and-complete))             | `page-examples.test.tsx` fails, and the preview frame shows a 404                               |
+| Artifact                                                             | When                                                                                         | If omitted                                                                                      |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `apps/www/app/utilities/__snapshots__/components-surface.json`       | always: any new component, or any edit to a docs `description`, JSDoc summary, or `@example` | CI's Vibe Check fails. Regenerate with `pnpm -F @app/www test -u` and commit it                 |
+| `doNotPublish` in `packages/mantle/tsdown.config.ts`                 | adding an internal engine _directory_ (`chart/`)                                             | tsdown publishes a subpath for a directory that must have none                                  |
+| `importPathOverrides` in `packages/mantle/scripts/agent-manifest.ts` | the docs slug is not also the export key ([§2.2](#22-naming))                                | the agent manifest build fails, because the slug names a subpath `package.json` does not export |
+| `previewExamples` in `apps/www/app/features/preview-registry.ts`     | the docs page runs a shell demo in an `Example`                                              | the `example` prop fails typecheck                                                              |
+| `apps/www/app/docs/<page>.examples.tsx`                              | the docs page has a page example ([§7.3](#73-examples-must-be-live-and-complete))            | `page-examples.test.tsx` fails, and the preview frame shows a 404                               |
 
 ### 2.2. Naming
 
@@ -311,7 +311,7 @@ Naming is mechanical, from one input:
 | `<Display Name>`   | Title Case | Docs `title:` frontmatter, nav label, route lookups        |
 
 **Family directories are the exception.** A component may ship inside an existing directory when it shares
-that family's build entry — `IconButton` and `ButtonGroup` in `button/`, `PasswordInput` in `input/`,
+that family's build entry: `IconButton` and `ButtonGroup` in `button/`, `PasswordInput` in `input/`,
 `ProgressBar` and `ProgressDonut` in `progress/`. Then artifacts 1–4 belong to the family: the export key
 stays the family's (`./button`), the implementation is `components/<family>/<component-name>.tsx`, tests are
 `components/<family>/<component-name>.test.tsx`, and the docs slug stays `<component-name>`. A directory that
@@ -331,7 +331,7 @@ Alphabetical among siblings, exactly this shape:
 }
 ```
 
-tsdown auto-discovers component directories, so there is no entry list to edit — but one build-config file
+tsdown auto-discovers component directories, so there is no entry list to edit, but one build-config file
 is hand-maintained:
 
 - **`packages/mantle/tsdown.config.ts` → `doNotPublish`.** An internal engine directory must be listed here
@@ -340,10 +340,10 @@ is hand-maintained:
 ### 2.4. Nav and route registration
 
 A component missing from `navigation-data.ts` is invisible to the sidebar, the command palette, the search
-index, `/api/components.json`, `llms.txt`, and the agent manifest — it effectively does not exist.
+index, `/api/components.json`, `llms.txt`, and the agent manifest. It effectively does not exist.
 
 Categories are `Actions`, `Charts`, `Data Display`, `Feedback`, `Forms`, `Navigation`, `Overlays`,
-`Primitives`, and `Structure` — pick what the component _is_ in the UI. Membership tests live in
+`Primitives`, and `Structure`. Pick what the component _is_ in the UI. Membership tests live in
 `decisions/2026-07-08-docs-information-architecture.md`. Use the category's slug from `componentCategorySlugs`
 as the `<category>` URL segment. Page/viewport structure primitives are Layouts, not Structure.
 
@@ -351,7 +351,7 @@ as the `<category>` URL segment. Page/viewport structure primitives are Layouts,
 
 - `apps/www/app/routes.ts`: add `"components/<category>/<component-name>"` to the `docsPages` array, alphabetical within its category block. The route module is the MDX file itself. `markdownAliasRoutes` derives the `.md`/`.mdx` aliases from the same entry.
 - `navigation-data.ts`: add `<Display Name>` to its category array in `componentsByCategory`, and the route to
-  `prodReadyComponentRouteLookup` (both alphabetical). `prodReadyComponents` is derived — never edit it.
+  `prodReadyComponentRouteLookup` (both alphabetical). `prodReadyComponents` is derived; never edit it.
 - If the docs slug leaf is not also the `@ngrok/mantle/*` import subpath (a family-directory component), add
   `"components/<category>/<component-name>": "@ngrok/mantle/<export-key>"` to `importPathOverrides` in
   `packages/mantle/scripts/agent-manifest.ts`. Without it the manifest build fails, because the slug names a
@@ -376,10 +376,10 @@ mantle is `0.x`, so there is no major, and additive changes are a `patch`. The c
 | New top-level component                             | `minor`                                                                      |
 | Preview → stable promotion                          | `minor`                                                                      |
 | Breaking rename or removal                          | `minor`, a migration guide, and a codemod ([VERSIONING.md](./VERSIONING.md)) |
-| New part, prop, data attribute, or CSS variable     | `patch` — additive, so a consumer does nothing                               |
+| New part, prop, data attribute, or CSS variable     | `patch`: additive, so a consumer does nothing                                |
 | Bug fix, behavior fix, styling fix, JSDoc-only edit | `patch`                                                                      |
-| Docs-site-only change (`apps/www/**`)               | none — `@app/*` is ignored in `.changeset/config.json`                       |
-| Change to a component not yet released              | none — fold the description into that component's own changeset              |
+| Docs-site-only change (`apps/www/**`)               | none: `@app/*` is ignored in `.changeset/config.json`                        |
+| Change to a component not yet released              | none: fold the description into that component's own changeset               |
 
 An edit to `packages/mantle-vite-plugins` needs its own changeset for that package.
 
@@ -398,15 +398,15 @@ CONVENTIONS.md covers general style ([TypeScript](./CONVENTIONS.md#typescript),
 ### 3.1. Required
 
 - `"use client";` on the first line when the file uses hooks, DOM event handlers, browser APIs, or context.
-  When in doubt, add it — the cost is negligible.
+  When in doubt, add it: the cost is negligible.
 - Named exports only, no default exports. Relative imports ending in `.js` (`../../utils/cx/cx.js`).
-- `type`, not `interface`. Props based on `ComponentProps<…>` — which already includes `ref`. Never
+- `type`, not `interface`. Props based on `ComponentProps<…>`, which already includes `ref`. Never
   `HTMLAttributes<…>` alone, which does not.
 - No `any`, no type assertions (`as Type`) outside `as const` / type guards / true framework boundaries, no
   non-null assertions (`value!`). `== null` / `!= null` for nullish checks.
 - `className` composed with `cx` from `../../utils/cx/cx.js`, with the consumer's `className` **last** so
   their classes win. No string interpolation, `+`, or ternaries inside `className`.
-- Business logic — transformations, parsing, formatting, validation, state derivation — lives in small pure
+- Business logic (transformations, parsing, formatting, validation, state derivation) lives in small pure
   functions, testable without rendering.
 
 ### 3.2. `data-slot` on every part
@@ -439,21 +439,21 @@ const Comp = asChild ? Slot : "div";
 return <Comp data-slot={joinDataSlot(dataSlot, "foo")} className={cx("…", className)} {...props} />;
 ```
 
-**A part with no children of its own still takes `asChild`** — type it `SelfClosingWithAsChild` (same module),
+**A part with no children of its own still takes `asChild`.** Type it `SelfClosingWithAsChild` (same module),
 a union that requires `children` exactly when `asChild` is `true` and forbids it otherwise, so
 `<Part asChild />` with nothing to clone is a compile error. See `skeleton.tsx`, `code-block.tsx`,
 `chart/copy-button.tsx`.
 
-Legitimate exceptions — document the reason in a short comment at the declaration so the next maintainer sees
-intent, not oversight:
+Legitimate exceptions (document the reason in a short comment at the declaration so the next maintainer sees
+intent, not oversight):
 
 - **The part takes an element via a prop and clones it** (`Empty.Icon`'s `svg` prop, cloned through
-  `SvgOnly`) — polymorphism already goes through the prop.
-- **The part wraps a third-party primitive that already exposes `asChild` / `render`** — forward to that
+  `SvgOnly`): polymorphism already goes through the prop.
+- **The part wraps a third-party primitive that already exposes `asChild` / `render`:** forward to that
   escape hatch instead of re-implementing with `Slot`. When the props type is `ComponentProps<typeof Radix.X>`
   this is automatic and needs no comment.
 
-A part that renders no DOM at all (`BrowserOnly`, `Slot`) was never in scope — that is not an exception.
+A part that renders no DOM at all (`BrowserOnly`, `Slot`) was never in scope, so it is not an exception.
 
 ### 3.4. Compound namespace
 
@@ -469,14 +469,14 @@ const MyComponent = {
 
 - One level deep, always. No nested namespaces, no re-exported foreign namespaces
   ([§1.7](#17-forbidden-api-shapes)).
-- Each member is a directly-defined component whose type has an explicit name — not an inferred literal whose
+- Each member is a directly-defined component whose type has an explicit name, not an inferred literal whose
   shape depends on chasing types through external packages.
 - If any member's type comes from a third-party namespace, **annotate the namespace object explicitly**
   (`const MyComponent: { Root: typeof Root; … } = { … }`) so `.d.ts` emit does not synthesize a non-portable
-  type. Without it an `@types/react` bump surfaces `TS2883` at build time — which is why
+  type. Without it an `@types/react` bump surfaces `TS2883` at build time, which is why
   [§9](#9-verification) runs the build.
 - **The annotation costs every member's JSDoc.** The build emits the annotation in place of the object
-  literal, so each member's summary, `@see`, and `@example` drop out of the published `.d.ts` — the only
+  literal, so each member's summary, `@see`, and `@example` drop out of the published `.d.ts`: the only
   channel that feeds editor tooltips. The annotation also discards the `readonly` modifiers `as const` adds.
   Reach for it only when a member's type comes from outside the package, because `as const` alone already
   emits `readonly Root: typeof Root`.
@@ -489,7 +489,7 @@ const MyComponent = {
 Errors are control flow. `console.error` is not error handling.
 
 - A compound part rendered outside its `Root` throws a descriptive `invariant` (`tiny-invariant`) naming the
-  required ancestor — never renders an inert shell.
+  required ancestor. It never renders an inert shell.
 - `asChild` with the wrong children throws with the reason, as `Anchor` and `Badge` do.
 - Prefer explicit failure over a silent fallback or a partial state update. Fail fast when an invariant is
   violated rather than letting invalid state propagate.
@@ -500,7 +500,7 @@ Errors are control flow. `console.error` is not error handling.
   and wire ids through context rather than asking consumers to thread them (`Field`).
 - An icon-only control makes its screen-reader label a **required** prop.
 - A virtualized collection announces `aria-posinset` / `aria-setsize` so it still reads as the whole set.
-- Any animation or transition honors reduced motion — `usePrefersReducedMotion` (which returns `true` on the
+- Any animation or transition honors reduced motion: `usePrefersReducedMotion` (which returns `true` on the
   server and in the hydration render, so nothing animates before the real preference is known) or a
   `motion-reduce:` variant. The library publishes this promise on the Accessibility page; it is untested
   unless you test it ([§8](#8-tests)).
@@ -595,8 +595,8 @@ its sentences read.
 
 Components, hooks, functions, and prop types each need:
 
-1. A description of the **contract** — what it is for, what it guarantees, and which sibling component answers
-   the adjacent intent ([§1.1](#11-one-component-per-user-intent)) — not implementation commentary. On the
+1. A description of the **contract** (what it is for, what it guarantees, and which sibling component answers
+   the adjacent intent ([§1.1](#11-one-component-per-user-intent)), not implementation commentary. On the
    primary export (the namespace of a compound component, else the component itself), write the boundary as
    two tags. The agent manifest (`dist/agent.json`, `/api/components.json`) extracts them into `useWhen` and
    `siblings`, so an agent can answer "which component" from data:
@@ -616,7 +616,7 @@ Components, hooks, functions, and prop types each need:
 
 2. A `@see` link:
    - Component or compound namespace: `https://mantle.ngrok.com/components/<category>/<component-name>`.
-   - A compound part: append that part's API-reference anchor —
+   - A compound part: append that part's API-reference anchor:
      `…/components/feedback/alert#alertroot` for `### Alert.Root`, as `alert.tsx` does.
    - Layout: `https://mantle.ngrok.com/layouts/<layout-name>`.
 3. At least one `@example` with realistic props and the key expected behavior.
@@ -630,7 +630,7 @@ when the prop is required-with-no-default on purpose.
 
 - The JSDoc on the **namespace declaration** carries two `@example` blocks, in order: a `Composition:` ASCII
   tree in a plain fence, then a full-tree JSX usage example.
-- **Every namespace property _and_ every underlying part declaration repeats the full-tree JSX example** — all
+- **Every namespace property _and_ every underlying part declaration repeats the full-tree JSX example**: all
   commonly-used parts, not an abbreviated snippet. This is deliberate duplication: each is an entry point a
   reader or agent may hover first, and each must show the whole shape. Never "de-duplicate" these examples. A
   variant part may use a distinct full tree that demonstrates that variant.
@@ -682,7 +682,7 @@ documentation burden as a prop.
 
 ### 5.2. Documenting
 
-Every public variable appears in **both** places — a missing entry in either is a violation:
+Every public variable appears in **both** places. A missing entry in either is a violation:
 
 1. The owning part's JSDoc, as a markdown table (see `alert.tsx`).
 2. The docs page's API reference, beside that part's props table.
@@ -695,7 +695,7 @@ Both use these columns:
 
 The **documented default is the value a consumer actually observes**: the fallback when nothing sets the
 variable, or the value the owning part sets on itself. `Alert.Root` sets `--alert-control-*` from its `intent`,
-so the documented defaults are `var(--color-<intent>-700)` and friends — the `currentColor` fallbacks in the
+so the documented defaults are `var(--color-<intent>-700)` and friends. The `currentColor` fallbacks in the
 class strings are only render-safety.
 
 ### 5.3. Ownership and direction
@@ -710,7 +710,7 @@ class strings are only render-safety.
 
 ### 5.4. Design tokens
 
-A token the component _paints_ with (not a consumer-settable knob) is not a CSS-variable API entry — it is a
+A token the component _paints_ with (not a consumer-settable knob) is not a CSS-variable API entry. It is a
 design token, and it needs a value in **both** theme blocks of `packages/mantle/src/mantle.css` (LIGHT DEFS and
 DARK DEFS) or it resolves to nothing outside light mode. No §9 command catches a missing one. Pin the mapping with a `?raw` test, as
 `components/chart/tokens.test.ts` does.
@@ -721,7 +721,7 @@ DARK DEFS) or it resolves to nothing outside light mode. No §9 command catches 
 
 - `data-slot` is on every part ([§3.2](#32-data-slot-on-every-part)) and is always targetable.
 - Any other `data-*` a component stamps for styling or coordination (`data-state`, `data-orientation`,
-  `data-validation`, a per-item id) is documented in the part's JSDoc **and** its API-reference section —
+  `data-validation`, a per-item id) is documented in the part's JSDoc **and** its API-reference section,
   including the attributes a wrapped third-party primitive emits, since consumers style against those too.
   Both use these columns:
 
@@ -731,7 +731,7 @@ DARK DEFS) or it resolves to nothing outside light mode. No §9 command catches 
 | `data-loading` | present when loading   | Presence-only. Style with `data-loading:`.           |
 
 - Prefer **presence semantics** for boolean states: stamp `data-selected=""` when true and **omit the
-  attribute** when false. Never `data-selected="false"` — mantle's custom variants are defined as
+  attribute** when false. Never `data-selected="false"`: mantle's custom variants are defined as
   `&[data-selected]`, which matches attribute presence, so `"false"` still matches and the variant fires when
   it should not. Beware `data-x={someBoolean}`: React renders that as `data-x="false"`.
 
@@ -748,21 +748,21 @@ plain-markdown twin (`/api/…`, `llms-full.txt`) generated from it.
 
 ### 7.1. Page kinds
 
-- **Component page** — `apps/www/app/docs/components/<category>/<component-name>.mdx`. Follows §7.2 exactly.
-- **Preview component page** — `docs/components/preview/<component-name>.mdx`, header carries `isPreview`.
-- **Layout page** — `apps/www/app/docs/layouts/<layout-name>.mdx`, wired through `layoutPages` /
+- **Component page:** `apps/www/app/docs/components/<category>/<component-name>.mdx`. Follows §7.2 exactly.
+- **Preview component page:** `docs/components/preview/<component-name>.mdx`, header carries `isPreview`.
+- **Layout page:** `apps/www/app/docs/layouts/<layout-name>.mdx`, wired through `layoutPages` /
   `layoutRoutes` / `layoutDescriptions`.
-- **Supplementary sub-page** — a routed deep-dive under a component's own folder
+- **Supplementary sub-page:** a routed deep-dive under a component's own folder
   (`data-display/code-block/folding-by-language.mdx`). It gets a route but no nav entry, and §7.2 items 6–11 do
   not apply.
 
 ### 7.2. Required structure, in order
 
-1. **Frontmatter** — `title: <Display Name>` (Title Case, matching the nav label — this feeds `<title>`,
+1. **Frontmatter:** `title: <Display Name>` (Title Case, matching the nav label; this feeds `<title>`,
    `og:title`, JSON-LD, and every `llms.txt` entry) and a one-line `description`.
-2. **Imports** — `Example`. The demos live in the page's examples module
+2. **Imports:** `Example`. The demos live in the page's examples module
    ([§7.3](#73-examples-must-be-live-and-complete)), not in the MDX.
-3. **Page title** — `# <Display Name>`, the house default. Use
+3. **Page title:** `# <Display Name>`, the house default. Use
    `<PageHeader id="<component-name>">Display Name</PageHeader>` when the page needs a copyable hash anchor or
    a lifecycle badge (`isPreview` for preview pages, `isUnreleased` for an unpublished component). Note the
    trade-off: `PageHeader` is currently invisible to `render-mdx-to-markdown.server.ts` and
@@ -789,22 +789,22 @@ plain-markdown twin (`/api/…`, `llms-full.txt`) generated from it.
    sections. A prop scale that changes only the look (every `size`, every `intent`) is one variant: one section
    named for the prop, with every value in one example.
 
-8. **`## Composition`** — compound components only: the ASCII tree in a ` ```text showLineNumbers=false `
-   fence, identical to the namespace JSDoc's tree. Simple components omit it — there is no tree to draw.
-9. **`## Polymorphism`** — required when any part accepts `asChild`. List every part that supports it and when
+8. **`## Composition`:** compound components only. The ASCII tree in a ` ```text showLineNumbers=false `
+   fence, identical to the namespace JSDoc's tree. Simple components omit it: there is no tree to draw.
+9. **`## Polymorphism`:** required when any part accepts `asChild`. List every part that supports it and when
    a consumer would reach for it. Never title this section "Composition"; that name is reserved for the
    structural tree.
-10. **Optional sections** — variants, sizing, accessibility notes, recipes, and the longer guidance item 6 moves
+10. **Optional sections:** variants, sizing, accessibility notes, recipes, and the longer guidance item 6 moves
     out. They come after Composition and Polymorphism, before the API reference, and none of them may be named
     "Composition".
-11. **`## API Reference`** — one `### <ComponentName>.<Part>` subsection per exported part (`### Alert.Root`,
+11. **`## API Reference`:** one `### <ComponentName>.<Part>` subsection per exported part (`### Alert.Root`,
     `### Card.Header`), each with its props table and, where applicable, its CSS-variable
     ([§5.2](#52-documenting)) and data-attribute ([§6](#6-data-attributes-are-api)) tables. Props tables use
     `Prop | Type | Default | Description`.
 
 ### 7.3. Examples must be live and complete
 
-Both, for **every** example on the page — primary and secondary (variants, virtualization,
+Both, for **every** example on the page: primary and secondary (variants, virtualization,
 controlled/uncontrolled, polymorphism):
 
 - **Live, in an `Example`.** Every example is one `<Example name="…" title="…">` with its usage block inside
@@ -819,10 +819,10 @@ controlled/uncontrolled, polymorphism):
 - **Server-render exception.** A fence that needs a router or a request loader (a `useMatches()` consumer, a
   cookie read in a loader) may ship with nothing rendering it. The paragraph above it must state why, and
   must link the recipe or the page that renders it for real.
-- **Complete and self-contained.** Full component or render — never a fragment, never `…` placeholders, never
+- **Complete and self-contained.** Full component or render: never a fragment, never `…` placeholders, never
   a "only this line changes" diff, never a reference to an identifier that appears nowhere on the page. Data,
   handlers, and state are defined inline or in the page's module scope (a page-level `const fruits = […]` is
-  fine). An undefined `switchTo` counts as incomplete — define it or use `() => {}`.
+  fine). An undefined `switchTo` counts as incomplete. Define it or use `() => {}`.
 - **Built from mantle.** Show the component the way a product uses it, and render everything around it with
   mantle components that already exist: `DataTable` or `Table` for rows, `Card` for a card grid, `List` for
   items, `DescriptionList` for key-value pairs, and `Empty` for an empty or no-results state. Never hand-roll a
@@ -843,10 +843,10 @@ generated dataset. Icons come from `@phosphor-icons/react`.
 
 ### 7.4. Prose rules
 
-Sentence-level style — voice, tense, sentence length, noun stacks, banned filler — is
+Sentence-level style (voice, tense, sentence length, noun stacks, banned filler) is
 [CONVENTIONS.md § Writing](./CONVENTIONS.md#writing). These bullets are what the docs prose must cover.
 
-- Explain the _why_ behind non-obvious API, especially anything a reader would otherwise "fix" — a fake router
+- Explain the _why_ behind non-obvious API, especially anything a reader would otherwise "fix": a fake router
   in a demo, a deliberate absence of a part, an intentional ARIA choice.
 - Link to sibling components and layouts by their docs URL rather than repeating their rules.
 - Do not document internals a consumer cannot reach.
@@ -876,7 +876,7 @@ run them with the `@app/www` tests.
 
 Colocated with the source. Default to happy-dom (`<component-name>.test.tsx`); use browser mode
 (`<component-name>.browser.test.tsx`) only when the test depends on a real-browser API happy-dom does not
-implement — see [docs/testing.md → When to reach for browser mode](./docs/testing.md#when-to-reach-for-browser-mode).
+implement (see [docs/testing.md → When to reach for browser mode](./docs/testing.md#when-to-reach-for-browser-mode)).
 
 Minimums:
 
@@ -886,7 +886,7 @@ Minimums:
 - For every `asChild` part: the swap renders the child **and** merges classes, data attributes, and the ref.
   (`breadcrumb`, `button`, `icon-button`, `list`, and `slot` do this today; most other `asChild` tests assert
   only classes and `data-slot`.)
-- The ARIA and keyboard contract the API promises — roles, `aria-current` / `aria-expanded` / `aria-controls`
+- The ARIA and keyboard contract the API promises: roles, `aria-current` / `aria-expanded` / `aria-controls`
   wiring, focus movement, keyboard shortcuts.
 - Reduced motion, if the component animates.
 - Business logic and its edge cases: state machines, parsing/formatting, validation, conditional rendering.
@@ -894,7 +894,7 @@ Minimums:
 - **Every event handler, controlled prop, and documented keyboard contract is driven by a real event.**
   `await user.click(…)` / `await user.keyboard("{ArrowDown}")`, then assert the callback arguments **and** the
   resulting DOM/ARIA state. A component whose value is interaction is not covered by a render that hardcodes
-  `open` or `defaultValue` and checks attributes — that tests its initial markup. This includes `disabled` and
+  `open` or `defaultValue` and checks attributes: that tests its initial markup. This includes `disabled` and
   `readOnly` guards, controlled _and_ uncontrolled paths, dismissal, and any select/sort/expand cycle.
 - Every documented data attribute and CSS variable is asserted, since [§5](#5-css-variables-are-api) and
   [§6](#6-data-attributes-are-api) make them public API. Where a selector in another file consumes one
@@ -903,7 +903,7 @@ Minimums:
 - SSR-only branches and first-paint behavior ([§3.7](#37-ssr-and-first-paint)) are asserted with
   `renderToString`; post-mount state cannot observe the render path.
 - Translation safety ([§3.8](#38-browser-translation)): a locked `translate="no"` is asserted on the rendered
-  element, and a label wrapper is driven against a translated DOM — `translateTextNodes` from
+  element, and a label wrapper is driven against a translated DOM: `translateTextNodes` from
   `../../test-utils/translate-text-nodes.js`, then the update that used to throw.
 
 Every test must be able to fail: name the one-line implementation change it would catch. That change is a
@@ -930,20 +930,20 @@ branch a sibling already reaches.
 
 From the workspace root, once a coherent chunk of work is done and again before reporting completion:
 
-1. `pnpm -w run lint` — 0 errors
-2. `pnpm -w run fmt:check` — clean (`pnpm -w run fmt` to fix)
-3. `pnpm -w run typecheck` — 0 errors
-4. `pnpm -w run test` — all pass. Run it **unscoped**: the `@app/www` suite is the only automated enforcement
+1. `pnpm -w run lint`: 0 errors
+2. `pnpm -w run fmt:check`: clean (`pnpm -w run fmt` to fix)
+3. `pnpm -w run typecheck`: 0 errors
+4. `pnpm -w run test`: all pass. Run it **unscoped**: the `@app/www` suite is the only automated enforcement
    of §4 and §7 (`agent-surface-drift.test.ts` snapshots the component manifest;
    `agent-manifests.server.test.ts` asserts each export's JSDoc survives extraction), and `-F @ngrok/mantle`
    cannot reach it.
-5. `pnpm -w run build -F @ngrok/mantle` — succeeds (the only thing that exercises `.d.ts` emit, and so the only
+5. `pnpm -w run build -F @ngrok/mantle`: succeeds (the only thing that exercises `.d.ts` emit, and so the only
    thing that catches `TS2883` from [§3.4](#34-compound-namespace))
 
 Then commit the generated file these produce: `apps/www/app/utilities/__snapshots__/components-surface.json`
 (regenerate with `pnpm -F @app/www test -u`).
 
-Nothing in this list catches a token missing from the non-light themes — check [§5.4](#54-design-tokens) by
+Nothing in this list catches a token missing from the non-light themes. Check [§5.4](#54-design-tokens) by
 hand.
 
 ---
@@ -955,16 +955,16 @@ does not sweep ([Scope and status](#scope-and-status)).
 
 ### 10.1. Classify
 
-Read every non-test `.tsx` in `packages/mantle/src/components/<component-name>/` — or, for a
-family-directory component, `components/<family>/<component-name>.tsx`
-([§2.2](#22-naming)). Fall back to any `.tsx` in the directory when the filename differs
+Read every non-test `.tsx` in `packages/mantle/src/components/<component-name>/` (or, for a
+family-directory component, `components/<family>/<component-name>.tsx`;
+[§2.2](#22-naming)). Fall back to any `.tsx` in the directory when the filename differs
 (`icons/`, `pagination/`, `progress/`, `theme/` have no `<dir>/<dir>.tsx`).
 
 - Contains `const <ComponentName> = { … } as const` → **compound**; otherwise **simple**.
-- Detect `asChild` support (imports `Slot`, or accepts `asChild` on any part) — it decides whether the docs
+- Detect `asChild` support (imports `Slot`, or accepts `asChild` on any part). It decides whether the docs
   page needs `## Polymorphism`.
 - Audit every directory with a `packages/mantle/package.json` export. Skip export-less directories (today only
-  `chart`) and `*/primitive.tsx` files — they are internal by design ([§1.2](#12-ship-the-smallest-public-surface)).
+  `chart`) and `*/primitive.tsx` files. They are internal by design ([§1.2](#12-ship-the-smallest-public-surface)).
 
 ### 10.2. Check
 
@@ -988,7 +988,7 @@ beside it, because a wrapper makes the consumer's element a grandchild and break
 
 ### 10.3. Fix
 
-**Auto-fixable — apply directly.** These are mechanical and reversible:
+**Auto-fixable: apply directly.** These are mechanical and reversible:
 
 - Missing or incorrect `@see` URL, or a part-level `@see` missing its anchor.
 - Missing `Composition` `@example` tree on the namespace JSDoc → derive it from the namespace members and the
@@ -1012,11 +1012,11 @@ beside it, because a wrapper makes the consumer's element a grandchild and break
   `importPathOverrides` entry → insert in alphabetical order.
 - A stale generated file → regenerate ([§9](#9-verification)).
 
-**Needs author judgment — report and wait.** Anything that changes public API, runtime behavior, or
+**Needs author judgment: report and wait.** Anything that changes public API, runtime behavior, or
 accessibility semantics:
 
-- Adding a `package.json` export. Publishing is irreversible ([§1.2](#12-ship-the-smallest-public-surface)) —
-  an export-less directory is usually internal on purpose, not an oversight.
+- Adding a `package.json` export. Publishing is irreversible ([§1.2](#12-ship-the-smallest-public-surface)).
+  An export-less directory is usually internal on purpose, not an oversight.
 - A missing JSDoc description or `@example` where the content is non-obvious.
 - Refactoring a non-namespace exported object into the POJO namespace pattern.
 - Adding `asChild` to a part that lacks it, or adding a missing test file.
@@ -1033,7 +1033,7 @@ accessibility semantics:
   between implementing the contract and dropping both the role and the name.
 
 **Never auto-fix a naming violation by changing the markup.** Adding an ARIA role, a keyboard handler, or
-`tabIndex` to make an unearned pattern word honest is not a fix — it changes runtime behavior and
+`tabIndex` to make an unearned pattern word honest is not a fix. It changes runtime behavior and
 accessibility semantics to preserve a name that should change instead.
 
 ### 10.4. Report
@@ -1090,7 +1090,7 @@ Run this against the diff before calling a component done. Each line is a defect
 
 - [ ] JSDoc on every export: contract description, `@see` (with part anchor), `@example`; per-prop docs with
       defaults.
-- [ ] Compound: composition tree first, then full-tree JSX — repeated on every namespace member and part.
+- [ ] Compound: composition tree first, then full-tree JSX, repeated on every namespace member and part.
 - [ ] Every public CSS variable documented in **both** the JSDoc and the docs-page API reference, with the
       default a consumer actually observes. Private variables use `--_` and stay undocumented.
 - [ ] Every `data-*` the component stamps for styling or coordination appears in the JSDoc and the API
@@ -1125,11 +1125,11 @@ Run this against the diff before calling a component done. Each line is a defect
 
 ## Reference
 
-- [CONVENTIONS.md](./CONVENTIONS.md) — general code style, TypeScript, prose, package management.
-- [docs/testing.md](./docs/testing.md) — the test rules and tooling for every package.
-- [AGENTS.md](./AGENTS.md) — the task router that sends component work here.
-- [Philosophy](./apps/www/app/docs/philosophy.mdx) — the long-form rationale §0 distills.
-- `decisions/` — the argued-over decisions, including
+- [CONVENTIONS.md](./CONVENTIONS.md): general code style, TypeScript, prose, package management.
+- [docs/testing.md](./docs/testing.md): the test rules and tooling for every package.
+- [AGENTS.md](./AGENTS.md): the task router that sends component work here.
+- [Philosophy](./apps/www/app/docs/philosophy.mdx): the long-form rationale §0 distills.
+- `decisions/`: the argued-over decisions, including
   `2025-07-16-compound-component-named-exports.md` (POJO namespaces),
   `2026-07-04-list-family-api-design.md` (naming and composition),
   `2026-07-08-docs-information-architecture.md` (categories),

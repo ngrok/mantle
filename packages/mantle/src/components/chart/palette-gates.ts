@@ -2,8 +2,8 @@
  * The measured accessibility gates the chart color palette must clear, plus the
  * CSS custom-property resolution that feeds them.
  *
- * This module is internal shared implementation — it is not exported from the
- * package. `tokens.test.ts` is its only consumer: it resolves every
+ * This module is internal shared implementation. The package does not
+ * export it. `tokens.test.ts` is its only consumer: it resolves every
  * `--color-chart-*` slot in every theme down to a concrete color and runs the
  * gates on the result, so a slot that drifts below a threshold fails CI instead
  * of shipping.
@@ -13,7 +13,7 @@
  * ratio, and the Machado severity-1.0 matrices are reimplemented from their
  * primary sources so the numbers match that standard bit for bit.
  *
- * Two details are load-bearing and easy to get wrong:
+ * Two details matter and are easy to get wrong:
  *
  * - The Machado simulation runs in **linear** sRGB with a `[0, 1]` clamp. Run
  *   the same matrices on gamma-encoded sRGB and individual pairs move by up to
@@ -22,9 +22,9 @@
  * - Every gate runs on the **quantized** 8-bit value, not the float the
  *   `oklch()` literal describes, because that is what a browser rasterizes.
  *
- * @see https://bottosson.github.io/posts/oklab/ — Ottosson, OKLab
- * @see doi:10.1109/TVCG.2009.113 — Machado, Oliveira & Fernandes 2009
- * @see https://www.w3.org/TR/WCAG21/#dfn-relative-luminance — WCAG 2.1 SC 1.4.3
+ * @see https://bottosson.github.io/posts/oklab/ (Ottosson, OKLab)
+ * @see doi:10.1109/TVCG.2009.113 (Machado, Oliveira & Fernandes 2009)
+ * @see https://www.w3.org/TR/WCAG21/#dfn-relative-luminance (WCAG 2.1 SC 1.4.3)
  */
 
 /** The OKLCH lightness band a categorical mark must sit inside, per mode. */
@@ -201,7 +201,7 @@ const oklabFromLinear = ([red, green, blue]: Rgb): Rgb => {
  *
  * @example
  * ```ts
- * oklchOf("#737373"); // { lightness: 0.5555…, chroma: 0 } — a neutral gray
+ * oklchOf("#737373"); // { lightness: 0.5555…, chroma: 0 } (a neutral gray)
  * ```
  */
 const oklchOf = (hex: string): { lightness: number; chroma: number } => {
@@ -227,7 +227,7 @@ const luminance = (hex: string): number => {
  *
  * @example
  * ```ts
- * contrastRatio("#767676", "#ffffff"); // 4.5422… — the documented 4.5:1 boundary
+ * contrastRatio("#767676", "#ffffff"); // 4.5422… (the documented 4.5:1 boundary)
  * ```
  */
 const contrastRatio = (first: string, second: string): number => {
@@ -239,7 +239,7 @@ const contrastRatio = (first: string, second: string): number => {
 };
 
 /**
- * A hex color as one kind of dichromat sees it — Machado severity 1.0, applied
+ * A hex color as one kind of dichromat sees it: Machado severity 1.0, applied
  * in linear sRGB and clamped back into gamut.
  *
  * @example
@@ -263,8 +263,8 @@ const simulateCvd = (hex: string, kind: CvdKind): Rgb => {
  *
  * @example
  * ```ts
- * deltaE("#ff0000", "#00ff00");           // 51.98… — obvious to a full-color reader
- * deltaE("#ff0000", "#00ff00", "deutan"); // 22.22… — the same pair, collapsing
+ * deltaE("#ff0000", "#00ff00");           // 51.98… (obvious to a full-color reader)
+ * deltaE("#ff0000", "#00ff00", "deutan"); // 22.22… (the same pair, collapsing)
  * ```
  */
 const deltaE = (first: string, second: string, kind?: CvdKind): number => {
@@ -279,7 +279,7 @@ const deltaE = (first: string, second: string, kind?: CvdKind): number => {
  * Which pairs of slots a chart form can put side by side. A stack, bar, or line
  * only ever touches its neighbor, so `"adjacent"` gates the palette as a chart
  * of automatic series hands it out, in order. Scatter marks can neighbor any
- * other mark, so a scatter palette must clear every pair — a strictly harder
+ * other mark, so a scatter palette must clear every pair, a strictly harder
  * test that caps how many series the form can carry.
  *
  * Neither scope covers a consumer color override because that paint sits
@@ -306,7 +306,7 @@ type OffBandSlot = { slot: number; hex: string; lightness: number };
  *
  * @example
  * ```ts
- * offBandSlots(["#3e6ff4"], "light"); // [] — L 0.584 sits inside 0.43–0.77
+ * offBandSlots(["#3e6ff4"], "light"); // []: L 0.584 sits inside 0.43–0.77
  * ```
  */
 const offBandSlots = (hexes: readonly string[], mode: PaletteMode): OffBandSlot[] => {
@@ -322,7 +322,7 @@ const offBandSlots = (hexes: readonly string[], mode: PaletteMode): OffBandSlot[
  *
  * @example
  * ```ts
- * lowChromaSlots(["#737373"]); // one entry — a neutral gray does no identity work
+ * lowChromaSlots(["#737373"]); // one entry: a neutral gray does no identity work
  * ```
  */
 const lowChromaSlots = (hexes: readonly string[]): Array<{ slot: number; chroma: number }> =>
@@ -369,7 +369,7 @@ const closestPair = (
 };
 
 /**
- * The closest pair under simulated protanopia or deuteranopia — the pair a
+ * The closest pair under simulated protanopia or deuteranopia: the pair a
  * dichromat is most likely to read as one color.
  *
  * @example
@@ -399,8 +399,8 @@ const worstNormalPair = (hexes: readonly string[], scope: PairScope): WorstPair 
  *
  * @example
  * ```ts
- * lowContrastSlots(["#3e6ff4"], "#ffffff");                  // [] — 4.39:1 clears 3:1
- * lowContrastSlots(["#3e6ff4"], "#ffffff", { minimum: 4.5 }); // one entry — 4.39:1 misses 4.5:1
+ * lowContrastSlots(["#3e6ff4"], "#ffffff");                  // [] (4.39:1 clears 3:1)
+ * lowContrastSlots(["#3e6ff4"], "#ffffff", { minimum: 4.5 }); // one entry (4.39:1 misses 4.5:1)
  * ```
  */
 const lowContrastSlots = (
@@ -466,7 +466,7 @@ type ResolvedProperty = { name: string; literal: string; source: string };
 /**
  * Follow one custom property through a lookup chain down to a literal value.
  *
- * The chain models the cascade a browser applies — the theme file outranks
+ * The chain models the cascade a browser applies: the theme file outranks
  * `mantle.css`, which outranks Tailwind's own theme. Strict and loud by design:
  * a missing name, a `var()` carrying a fallback, a resolution cycle, or a value
  * that is neither a plain alias nor a literal all throw. A silent fallback here

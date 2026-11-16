@@ -21,7 +21,7 @@ mise install
 mise run setup
 
 # If the user's shell isn't already activated for mise, append the activation
-# snippet to their shell rc so a new terminal in this repo "just works" — tools
+# snippet to their shell rc so a new terminal in this repo "just works": tools
 # and [env] vars load automatically on cd. mise sets MISE_SHELL when activated;
 # we also skip in CI (no interactive shell) and on unknown shells (print
 # manual instructions instead). Idempotency is keyed on stable markers so the

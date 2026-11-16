@@ -8,16 +8,16 @@ The current (shipped) implementation uses a **directory scan**: it walks the dir
 
 ---
 
-## Problem 1 — Monorepo workspace packages (original motivation)
+## Problem 1: Monorepo workspace packages (original motivation)
 
-Directory scanning breaks down in monorepos where the app depends on workspace packages that themselves import mantle. Example: `apps/www` depends on `packages/ui`, and `packages/ui/src/severity.ts` imports `@ngrok/mantle/badge`. If you only scan `apps/www/app`, you miss `badge`. If you add `packages/ui/src` to `include`, you pull in _every_ mantle component imported anywhere in that package — not just the ones reachable from `apps/www`.
+Directory scanning breaks down in monorepos where the app depends on workspace packages that themselves import mantle. Example: `apps/www` depends on `packages/ui`, and `packages/ui/src/severity.ts` imports `@ngrok/mantle/badge`. If you only scan `apps/www/app`, you miss `badge`. If you add `packages/ui/src` to `include`, you pull in _every_ mantle component imported anywhere in that package, not only the ones reachable from `apps/www`.
 
 **Proposed fix (deferred):** Use Vite's `resolveId` hook to intercept every `@ngrok/mantle/<name>` import Vite actually resolves during the session. Module-graph-aware: only sees imports reachable from the app's entry points, including through workspace packages, without overcounting.
 
 ### `resolveId` two-pass design
 
-1. **Startup (`configResolved`)** — Read the existing `@source` block from the CSS file (`parseComponentsFromCssFile`) to seed `knownComponents`. On first cold start, fall back to a directory scan of `include` to bootstrap.
-2. **Session (`resolveId`)** — Intercept every `@ngrok/mantle/<name>` specifier. Accumulate into `seenComponents`.
+1. **Startup (`configResolved`)**: Read the existing `@source` block from the CSS file (`parseComponentsFromCssFile`) to seed `knownComponents`. On first cold start, fall back to a directory scan of `include` to bootstrap.
+2. **Session (`resolveId`)**: Intercept every `@ngrok/mantle/<name>` specifier. Accumulate into `seenComponents`.
    - Dev: debounce-write the CSS with `knownComponents ∪ seenComponents` when a new component is first seen.
    - Prod: `closeBundle` writes `seenComponents` (precise set for this build), removing stale entries.
 
@@ -32,30 +32,30 @@ Directory scanning breaks down in monorepos where the app depends on workspace p
 
 ---
 
-## Problem 2 — Transitive imports within mantle itself (discovered 2026-03-09)
+## Problem 2: Transitive imports within mantle itself (discovered 2026-03-09)
 
-Mantle components import each other directly. For example, `command.tsx` imports from the `dialog` component. An app that imports `@ngrok/mantle/command` but never directly imports `@ngrok/mantle/dialog` will only get an `@source` directive for `command` — dialog styles will be missing.
+Mantle components import each other directly. For example, `command.tsx` imports from the `dialog` component. An app that imports `@ngrok/mantle/command` but never directly imports `@ngrok/mantle/dialog` will only get an `@source` directive for `command`, so dialog styles will be missing.
 
 The directory scan only finds imports the _app_ makes directly. It does not follow the mantle-internal dependency graph. This is a correctness bug, not a performance gap.
 
 **Attempted escape hatch:** Added an `allowlist` option to `MantleTwSourcePluginOptions` so consumers can explicitly name components the scanner misses. Accepts PascalCase (`"Dialog"`) or kebab-case (`"dialog"`). Merged with scanned results before writing `@source` block.
 
-**This turned out not to work** — see Problem 3.
+**This turned out not to work** (see Problem 3).
 
 ---
 
-## Problem 3 — Entry-point stubs contain no classes (discovered 2026-03-09)
+## Problem 3: Entry-point stubs contain no classes (discovered 2026-03-09)
 
 **This is the root cause that makes the entire plugin ineffective.**
 
 When tsdown builds mantle with multiple entry points, rolldown uses code splitting: it extracts shared code into hashed chunk files (e.g. `dialog-BswTx6oS.js`) and the named entry files become thin re-export stubs:
 
 ```js
-// dist/dialog.js — the file @source points at
+// dist/dialog.js: the file @source points at
 export { t as Dialog } from "./dialog-BswTx6oS.js";
 ```
 
-All Tailwind class strings live in the chunk files. Tailwind's `@source` scanner reads file contents with regex — it does not execute JavaScript or follow re-exports. So it scans `dist/dialog.js`, finds no class strings, and moves on. Tailwind discovers no styles.
+All Tailwind class strings live in the chunk files. Tailwind's `@source` scanner reads file contents with regex: it does not execute JavaScript or follow re-exports. So it scans `dist/dialog.js`, finds no class strings, and moves on. Tailwind discovers no styles.
 
 This means:
 
@@ -104,11 +104,11 @@ Additionally:
 
 The per-entry-point `@source` model cannot be fixed without changing either the build output or the scanning strategy:
 
-| Approach                            | Status                                                                                    |
-| ----------------------------------- | ----------------------------------------------------------------------------------------- |
-| `resolveId` module graph            | ✅ Shipped — fixes problems 1 & 2                                                         |
-| Two-pattern `@source` globs         | ✅ Shipped — fixes problem 3 (`name.js` + `name-*.js` covers stub and chunk)              |
-| `codeSplitting: false`              | Blocked — rolldown rejects multiple entries with splitting disabled                       |
-| Chunk manifest (entry → chunks)     | Not emitted by rolldown/tsdown; hashes change every build                                 |
-| `@source "dist/"` (whole directory) | Works but is identical to `source-all.css` — zero optimization; still valid as a fallback |
-| Tailwind `@plugin` approach         | More precise (explicit class registration, no scanning) — viable future direction         |
+| Approach                            | Status                                                                                   |
+| ----------------------------------- | ---------------------------------------------------------------------------------------- |
+| `resolveId` module graph            | ✅ Shipped: fixes problems 1 & 2                                                         |
+| Two-pattern `@source` globs         | ✅ Shipped: fixes problem 3 (`name.js` + `name-*.js` covers stub and chunk)              |
+| `codeSplitting: false`              | Blocked: rolldown rejects multiple entries with splitting disabled                       |
+| Chunk manifest (entry → chunks)     | Not emitted by rolldown/tsdown; hashes change every build                                |
+| `@source "dist/"` (whole directory) | Works but is identical to `source-all.css`: zero optimization; still valid as a fallback |
+| Tailwind `@plugin` approach         | More precise (explicit class registration, no scanning); viable future direction         |

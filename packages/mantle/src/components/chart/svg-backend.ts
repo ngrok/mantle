@@ -20,7 +20,7 @@ import { paintTextureTile, TEXTURE_TILE_SIZE, textureGroundColor } from "./textu
  * resolves it. A theme switch repaints no chart, and the backend reads no
  * computed style, watches no theme attribute, and holds no bitmap.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation. The package does not export it.
  */
 
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";

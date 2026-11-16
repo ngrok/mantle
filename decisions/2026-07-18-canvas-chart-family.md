@@ -40,7 +40,7 @@ Canvas 2D charting library), with d3 supplying the math it hand-rolls:
   ≤4 vertices per column is visually lossless and redraw cost is O(plot
   width), not O(points). 100k-point charts redraw in the frame budget.
 - **Stacking runs before decimation** (cumulative boundary series, then
-  bucket the boundaries) — decimating raw series first fabricates geometry
+  bucket the boundaries): decimating raw series first fabricates geometry
   because per-column extrema of different series occur at different samples.
 - **Hover never repaints the canvas.** The crosshair, active-point markers,
   hover band, and tooltip are DOM overlay elements moved with transforms;
@@ -52,7 +52,7 @@ Canvas 2D charting library), with d3 supplying the math it hand-rolls:
   d3-transition/d3-axis are deliberately absent.
 - **Interruptible tweens** per channel (x domain, y domain, per-datum
   buffers); retargeting starts from current values. Per-datum tweens only run
-  ≤2,500 points with an identical x vector — streaming appends animate the
+  ≤2,500 points with an identical x vector: streaming appends animate the
   domain (a scroll), never index-misaligned values. `prefers-reduced-motion`
   and `animate={false}` collapse every tween to a snap.
 - **Theme-token colors resolved at runtime** via a probe element per chart
@@ -73,14 +73,14 @@ performance, consumer ergonomics) reshaped the draft API:
 1. **Interaction is Root's unconditional contract.** Keyboard stepping
    (arrows/PageUp/PageDown/Home/End/Escape, Enter/Space activation),
    aria-live announcements, the hover layer, and the sr-only data table ship
-   with `Root` — no composable part can strip accessibility. The `Tooltip`
+   with `Root`, so no composable part can strip accessibility. The `Tooltip`
    part _customizes_ the always-on readout (formats, footer, render-prop
    children); it is not an on-switch.
 2. **Sticky color slots.** The first registration of a `dataKey` claims the
    next never-used `--color-chart-N` slot for the Root's lifetime; filtering
    a series out never recolors survivors (color follows the entity, not its
    row number). Unpinned series past eight all use `--color-chart-other`
-   (never a recycled hue — fold to "Other" instead).
+   (never a recycled hue; fold to "Other" instead).
 3. **Fail fast on programmer error.** A `dataKey` matching zero rows of
    non-empty data throws a tiny-invariant listing the available keys; parts
    outside Root throw; series parts in the wrong family Root throw. Per-row
@@ -92,7 +92,7 @@ performance, consumer ergonomics) reshaped the draft API:
    a union type; `xScale` exists only on line/area (bars are always band).
 5. **`xKey` over `x`** (it names a key, parallels `dataKey`, and Root's own
    generic types it as `Extract<keyof TDatum, string>`). Series `dataKey`
-   stays `string` — a compound part cannot soundly thread Root's generic
+   stays `string`: a compound part cannot soundly thread Root's generic
    through context; the ingest invariant is the runtime backstop.
 6. **Legend is an explicit part** (no mantle part renders unbidden) but
    renders `null` for a single series (one color needs no legend box) and is
@@ -103,7 +103,7 @@ performance, consumer ergonomics) reshaped the draft API:
 7. **Consumer needs surfaced by the ergonomics review** shipped in v1:
    `onDatumActivate` (click/Enter with `{ index, xValue, datum, dataKey }`),
    controlled `activeIndex`/`onActiveIndexChange` (linked crosshairs),
-   `ReferenceLine` (SLO thresholds), `pending` (opacity-hold on refetch —
+   `ReferenceLine` (SLO thresholds), `pending` (opacity-hold on refetch,
    never a skeleton flash), tooltip `footer` + snapshot `index`/`datum`,
    `connectNulls`, and a Legend render-prop.
 8. **Bounded a11y twin.** The sr-only table caps at 150 rows with a
@@ -118,17 +118,17 @@ derived from mantle's existing ramps by exhaustive search using the exact
 CVD-simulation math (Machado 2009, severity 1.0) and validated per theme
 against that theme's card surface:
 
-| Theme                  | Result                                                                                                                                                                                                            |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| light (`#ffffff` card) | all gates pass, zero warns — worst adjacent CVD ΔE 14.0 (target ≥ 8), normal-vision floor 15.7 (≥ 15), all slots ≥ 3:1                                                                                            |
-| dark (`#171717` card)  | all gates pass, zero warns (dark ramps mirror light, so slots resolve to the same colors from per-mode steps)                                                                                                     |
-| light high contrast    | all gates pass — pink/teal move to their 300 steps (the only steps clearing chroma + adjacency in the compressed HC ramps)                                                                                        |
-| dark high contrast     | CVD/normal/chroma/contrast pass (6.8–12.2:1, zero warns); the standard dark lightness band is unsatisfiable by construction (bimodal ramps) — deliberately brighter marks are the correct high-contrast trade-off |
+| Theme                  | Result                                                                                                                                                                                                           |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| light (`#ffffff` card) | all gates pass, zero warns; worst adjacent CVD ΔE 14.0 (target ≥ 8), normal-vision floor 15.7 (≥ 15), all slots ≥ 3:1                                                                                            |
+| dark (`#171717` card)  | all gates pass, zero warns (dark ramps mirror light, so slots resolve to the same colors from per-mode steps)                                                                                                    |
+| light high contrast    | all gates pass; pink/teal move to their 300 steps (the only steps clearing chroma + adjacency in the compressed HC ramps)                                                                                        |
+| dark high contrast     | CVD/normal/chroma/contrast pass (6.8–12.2:1, zero warns); the standard dark lightness band is unsatisfiable by construction (bimodal ramps); deliberately brighter marks are the correct high-contrast trade-off |
 
 Semantic ramps (sky/emerald/rose/amber/purple) are excluded from series slots
 so a series never reads as a status color; a series that _means_ good/bad
 should wear status tokens explicitly. `chart/tokens.test.ts` pins the
-slot→token mapping in all four theme files — editing a theme file fails the
+slot→token mapping in all four theme files: editing a theme file fails the
 build until the new values are re-validated.
 
 ## ScatterPlot and the live-motion engine (2026-07-19)
@@ -141,7 +141,7 @@ build until the new values are re-validated.
   count: surface rings drop past 5k points, dots become fast-path rects past
   20k. Scatter is an **all-pairs** chart form, so the validated palette caps
   it at four series (the first four slots pass `--pairs all` in both modes).
-- **3D**: `zKey` on Root renders a rotatable point cloud — still Canvas 2D,
+- **3D**: `zKey` on Root renders a rotatable point cloud, still Canvas 2D,
   via a pure projection module (`chart/projection.ts`: yaw/pitch rotation,
   weak perspective, depth sort, clamped pitch so the cube never flips).
   Drag-to-rotate uses pointer capture; a tap still inspects/activates. Axis
@@ -153,11 +153,11 @@ build until the new values are re-validated.
   lerps points toward per-dimension collapsed targets at 0.18/frame under
   three.js): `dimensions: 1 | 2 | 3` on the 3D Root chases per-axis collapse
   factors `[fy, fz]` that scale the normalized y/z coordinates before
-  projection — the cloud glides onto the x-axis line, the xy plane, or the
+  projection: the cloud glides onto the x-axis line, the xy plane, or the
   full cube, and the y/z frame edges + wireframe fade with their factors.
   Two chased scalars beat per-point target buffers: O(1) state at any point
   count, and reduced motion snaps for free. This deliberately does NOT extend 3D to the other chart
-  kinds or promise a camera API — true 3D scenes remain a hypothetical
+  kinds or promise a camera API: true 3D scenes remain a hypothetical
   separate component; scatter projection is pure math on the existing
   renderer seam.
 
@@ -165,8 +165,8 @@ build until the new values are re-validated.
 ease-stop-jump "ticks" next to liveline): domain animation switched from
 fixed-duration cubic tweens to **frame-rate-independent exponential chases**
 (`ChaseTween`: `factor = 1 − (1−speed)^(dt/16.67)`, dt clamped, snap-epsilon
-terminated so idle charts still cost zero CPU). Regular retargets — streaming
-appends at any cadence — read as continuous scrolling because the glide never
+terminated so idle charts still cost zero CPU). Regular retargets (streaming
+appends at any cadence) read as continuous scrolling because the glide never
 completes-and-stops between updates and retargeting continues from the
 current value by construction. Axis ticks and gridlines gained **per-label
 alpha fade state** (liveline's pattern): desired tick sets fade in/out and
@@ -176,15 +176,15 @@ label alphas. Per-datum morphs and enter reveals stay fixed-duration cubic;
 
 **Left-edge scroll mask** (also liveline's pattern, adapted): a sliding
 window hard-clips exiting marks at the plot's left edge while the chasing
-domain opens a pulsing wedge there — the step-like jank live charts showed.
+domain opens a pulsing wedge there: the step-like jank live charts showed.
 When an ingest carries the streaming signature (first x advanced, last x
 kept up), marks paint through an offscreen layer that is erased with a
 `destination-out` gradient over a 40px band at the plot's left edge, then
 composited over the grid (erasing on the main canvas would punch out
-gridlines — liveline gets away with that; our grid paints under the marks).
+gridlines: liveline gets away with that; our grid paints under the marks).
 Activation is automatic (no prop), eases in/out, and retires ~1s after the
 stream idles via a one-shot timer, preserving idle-at-zero-CPU. Reduced
-motion snaps the strength but keeps the mask — a static gradient is not
+motion snaps the strength but keeps the mask: a static gradient is not
 motion. Deferred escalation if the wedge ever shows through the fade: a
 paint-only "exit buffer" retaining recently dropped leading rows to fill the
 wedge with real data (interacts with stacking/decimation/hit-testing/the
@@ -202,20 +202,20 @@ PNG-export handle, sequential/diverging ramps, WebGL renderer.
 Shipped after the initial draft (were deferred): horizontal bars
 (`orientation` on `BarChart.Root`) and bar `texture` fills.
 
-Shipped after the initial draft (not deferred — a new capability): a
+Shipped after the initial draft (not deferred, a new capability): a
 `decorative` Root prop on all four families for placeholder / empty-state
 charts. It keeps the canvas paint and animation but drops every real-data
-layer — no interaction overlay (so no tab stop, hover band, tooltip, or
-activation), no sr-only data-table twin, no live region — and marks the root
+layer (no interaction overlay (so no tab stop, hover band, tooltip, or
+activation), no sr-only data-table twin, no live region) and marks the root
 `aria-hidden`. Modeled as a discriminated union over `decorative` (the
 `ChartAccessibilityProps` type): interactive charts still require an accessible
 name and may wire the interaction callbacks; a decorative chart forbids both,
 so invalid combinations are unrepresentable rather than runtime-checked. Named
-`decorative` (not `disabled` — a chart is not a form control, and the real
+`decorative` (not `disabled`: a chart is not a form control, and the real
 distinction is whether the values are information); it supersedes the prior
 consumer workaround of native `inert` + CSS targeting `[role="application"]`.
-An `interactive={false}` mode — real, table-readable data without pointer/
-keyboard exploration — remains a separate, unshipped concern; do not conflate
+An `interactive={false}` mode (real, table-readable data without pointer/
+keyboard exploration) remains a separate, unshipped concern; do not conflate
 it with `decorative`.
 
 Shipped after that prop (a change to it, not a new one): a decorative chart
@@ -223,7 +223,7 @@ paints every series with `--color-chart-decorative` instead of its categorical
 slot, and that one fill is the whole legibility mechanism for a message laid
 over it. `Empty.Description` sits on `text-muted`, which holds 0.38 over the
 4.5:1 floor for 14px text on a bare light card, so any tint under that copy
-spends the headroom. The token is each theme's `neutral-200` — the darkest
+spends the headroom. The token is each theme's `neutral-200`: the darkest
 neutral step that still clears the floor in all four (4.56:1 light, 4.93:1
 dark, 9.08:1 and 8.14:1 in the high-contrast pair), which is why the fill sits
 one step off the surface rather than at a mid gray. Two alternatives lost: a
@@ -237,7 +237,7 @@ canvas.
 Shipped after the initial draft: bar thickness tracks the category step. A bar
 fills its slot up to a cap of 60% of one step, floored at 24px and ceilinged at
 64px (`chart/bar-geometry.ts`). The flat 24px cap it replaced made a sparse
-chart read gap-toothed — seven bars in a 93px step each sat in 69px of air.
+chart read gap-toothed: seven bars in a 93px step each sat in 69px of air.
 The floor and the fill line meet at a 40px step, so a dense chart paints what
 it always did, and the curve has no jump at either clamp. There is no
 `barSize` prop: thickness stays a property of the layout.
@@ -255,4 +255,4 @@ it always did, and the curve has no jump at either clamp. There is no
 - **SVG rendering:** cannot hit the 10k–100k+ point target with animation.
 - **An always-on rAF loop (liveline):** correct for a live-scrolling chart
   whose x domain moves every frame; wrong for dashboards that are mostly
-  static — mantle charts idle at zero CPU.
+  static. Mantle charts idle at zero CPU.

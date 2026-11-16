@@ -769,14 +769,14 @@ type FieldControlRenderProps = {
  *
  * @example
  * ```tsx
- * // Element form — Slot splats id, name, and ARIA props onto <Input/>
+ * // Element form: Slot splats id, name, and ARIA props onto <Input/>
  * <Field.Item name="email">
  *   <Field.Control>
  *     <Input type="email" />
  *   </Field.Control>
  * </Field.Item>
  *
- * // Render-prop form — caller spreads the props onto its own element
+ * // Render-prop form: caller spreads the props onto its own element
  * <Field.Item name="acceptTerms">
  *   <Field.Control>
  *     {(controlProps) => (
@@ -1242,7 +1242,7 @@ const Field = {
 	 *
 	 * @example
 	 * ```tsx
-	 * // Element child — Slot splats id, name, and ARIA props onto <Input/>.
+	 * // Element child: Slot splats id, name, and ARIA props onto <Input/>.
 	 * <Field.Item name="apiKey">
 	 *   <Field.Label>API key</Field.Label>
 	 *   <Field.Control>
@@ -1254,7 +1254,7 @@ const Field = {
 	 *
 	 * @example
 	 * ```tsx
-	 * // Render-prop child — caller spreads the props onto an inner element
+	 * // Render-prop child: caller spreads the props onto an inner element
 	 * // when the focusable target is nested (e.g. inside a <label>).
 	 * <Field.Item name="acceptTerms">
 	 *   <Field.Control>

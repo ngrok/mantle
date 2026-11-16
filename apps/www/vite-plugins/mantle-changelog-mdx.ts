@@ -7,7 +7,7 @@ import type { Plugin } from "vite";
  * `CHANGELOG.md` directly:
  *
  *   1. `@mdx-js/rollup`'s `include: /\.mdx$/` filter doesn't catch `.md`
- *      files (and widening it to `/\.mdx?$/` clobbers `?raw` imports —
+ *      files (and widening it to `/\.mdx?$/` clobbers `?raw` imports:
  *      the plugin strips the query before testing the path).
  *   2. MDX-compiled output emits `import { useMDXComponents } from
  *      "@mdx-js/react"`, which Rolldown resolves from the source file's
@@ -23,7 +23,7 @@ export function mantleChangelogMdx(absoluteChangelogPath: string): Plugin {
 	// any id that starts with `\0` (the Rollup convention for virtual modules).
 	// We need MDX to actually transform this module, so the resolved id has to
 	// look like a normal markdown path. Use `.md` (not `.mdx`) so MDX runs in
-	// CommonMark-only mode — the published CHANGELOG contains stray HTML-like
+	// CommonMark-only mode: the published CHANGELOG contains stray HTML-like
 	// tokens in prose (e.g. `<Button appearance="link">`) that MDX-mode would
 	// (incorrectly) parse as JSX.
 	const virtualId = "virtual:@ngrok/mantle/changelog.md";

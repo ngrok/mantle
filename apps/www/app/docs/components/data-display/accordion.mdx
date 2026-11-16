@@ -16,7 +16,7 @@ A vertically stacked set of disclosure sections whose collapsed content stays in
 ```tsx
 import { Accordion } from "@ngrok/mantle/accordion";
 
-// `type` is optional and defaults to "multiple" — any number of sections can be open at once.
+// `type` is optional and defaults to "multiple": any number of sections can be open at once.
 <Accordion.Root defaultValue={["dns"]} className="max-w-xl">
 	<Accordion.Item value="dns">
 		<Accordion.Trigger>
@@ -49,7 +49,7 @@ import { Accordion } from "@ngrok/mantle/accordion";
 		</Accordion.Trigger>
 		<Accordion.Content>
 			<Accordion.Body>
-				The free plan includes ephemeral endpoints and one reserved domain — enough to demo a
+				The free plan includes ephemeral endpoints and one reserved domain: enough to demo a
 				deployment or prototype an integration.
 			</Accordion.Body>
 		</Accordion.Content>
@@ -114,7 +114,7 @@ section, the section that was open closes.
 		</Accordion.Trigger>
 		<Accordion.Content>
 			<Accordion.Body>
-				The free plan includes ephemeral endpoints and one reserved domain — enough to demo a
+				The free plan includes ephemeral endpoints and one reserved domain: enough to demo a
 				deployment or prototype an integration.
 			</Accordion.Body>
 		</Accordion.Content>
@@ -229,7 +229,7 @@ never toggles it; and the `Content` spans full-width below. Override the default
 
 ```tsx
 // The header is a plain flex row: the Trigger button, a divider, and the action
-// button are siblings — no overlay, no absolute positioning. The Add Rule button
+// button are siblings, with no overlay and no absolute positioning. The Add Rule button
 // is outside the Trigger, so it never toggles the section; Content is full-width.
 import { Accordion } from "@ngrok/mantle/accordion";
 import { Badge } from "@ngrok/mantle/badge";

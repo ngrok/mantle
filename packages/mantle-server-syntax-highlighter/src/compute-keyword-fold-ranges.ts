@@ -11,10 +11,10 @@ import {
  * VS Code models this with `foldingStartMarker` / `foldingStopMarker`
  * declarations in each language's `language-configuration.json`. We mirror
  * that behavior with linear marker predicates, evaluated against the
- * *visible* (non-string, non-comment) portion of each line — the Shiki tokens
+ * *visible* (non-string, non-comment) portion of each line. The Shiki tokens
  * carry scope information that lets us strip those out reliably.
  *
- * The stack is untyped — every closer pops the most recent opener, regardless
+ * The stack is untyped: every closer pops the most recent opener, regardless
  * of which keyword opened it. Real source code nests properly, so this stays
  * correct without per-keyword tracking, and matches VS Code's marker-based
  * behavior.
@@ -28,8 +28,8 @@ type KeywordFoldLanguage = "ruby" | "rb" | "bash" | "sh" | "shell";
 
 /**
  * Per-line opener/closer marker pair. The predicates intentionally match the
- * *visible* line content (after string and comment scopes are filtered out)
- * — interpolated `do … end` markers inside a string don't trigger folds.
+ * *visible* line content (after string and comment scopes are filtered out),
+ * so interpolated `do … end` markers inside a string don't trigger folds.
  */
 type KeywordPattern = {
 	/** Returns true when this line opens a foldable block. */
@@ -58,7 +58,7 @@ const BASH_END_KEYWORDS: readonly string[] = ["fi", "esac", "done"];
  *
  * - Definition keywords at the start of a line: `def`, `class`, `module`, `begin`.
  * - Control-flow openers at the start of a line: `if`, `unless`, `while`,
- *   `until`, `for`, `case` — Ruby's flagship multi-line constructs.
+ *   `until`, `for`, `case` (Ruby's flagship multi-line constructs).
  * - Trailing `do` / `do |args|` for blocks attached to a method call.
  *
  * `end` always closes; mid-block keywords (`else`, `elsif`, `when`, `rescue`,
@@ -73,12 +73,12 @@ const RUBY_PATTERN: KeywordPattern = {
 /**
  * Bash / Shell keyword folds modeled after VS Code's grammar.
  *
- * - Opener keywords at the start of a line — `if`, `while`, `for`, `case`,
- *   `until`, `select` — that aren't closed by a same-line command marker.
+ * - Opener keywords at the start of a line (`if`, `while`, `for`, `case`,
+ *   `until`, `select`) that aren't closed by a same-line command marker.
  * - Lines ending with an unmatched `{` (function bodies, brace groups).
  * - Lines ending with `do` (the `for x in y; do` / `while cond; do` form).
  *
- * The end predicate matches `}` only when it leads its line — that lets us
+ * The end predicate matches `}` only when it leads its line. That lets us
  * close brace groups while ignoring `${VAR}` parameter expansions, which
  * are never line-leading.
  */
@@ -323,7 +323,7 @@ function isInertScope(scopes: readonly { scopeName: string }[]): boolean {
  * tokenized line.
  *
  * Subtlety: Shiki keeps leading whitespace inside `token.content` but strips
- * it from every `explanation.content` piece — so `" HttpListener"` (token)
+ * it from every `explanation.content` piece, so `" HttpListener"` (token)
  * decomposes into `[{ content: "HttpListener", scopes: […] }]`. Iterating
  * explanations alone collapses adjacent identifiers (`class HttpListener`
  * becomes `classHttpListener`), which breaks every word-boundary keyword
@@ -365,7 +365,7 @@ function visibleTextForLine(line: FoldLine): string {
  *
  * The same line can both open and close a block (`if foo; end` in Ruby).
  * Such lines push and pop on the stack but their start/end coincide, so the
- * range gets discarded by the `endLine > startLine` filter — matching how
+ * range gets discarded by the `endLine > startLine` filter. This matches how
  * the bracket strategy treats single-line `{}` constructs.
  *
  * @example

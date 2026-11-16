@@ -121,7 +121,7 @@ const Group = ({
 );
 
 /**
- * Mounts dropdown content into the nearest layer container — an enclosing
+ * Mounts dropdown content into the nearest layer container: an enclosing
  * overlay's positioner when one is open, else `document.body`. An explicit
  * `container` prop wins over both.
  */
@@ -202,7 +202,7 @@ type DropdownMenuSubTriggerProps = ComponentProps<typeof DropdownMenuPrimitiveSu
  * `display: contents`, so an icon and its label stay flex items of the item and
  * keep its `gap`. An icon you pass as a child is now a grandchild, so a
  * `[&>svg]` class of your own no longer reaches it. Match the part's own
- * variant instead — `[&>[data-slot=dropdown-menu-sub-trigger-label]>svg]:size-4`.
+ * variant instead: `[&>[data-slot=dropdown-menu-sub-trigger-label]>svg]:size-4`.
  * A `[&_svg]` class or a class on the icon loses to the default, which is more
  * specific.
  *
@@ -460,7 +460,7 @@ type DropdownMenuCheckboxItemProps = ComponentProps<typeof DropdownMenuPrimitive
  * `display: contents`, so an icon and its label stay flex items of the item and
  * keep its `gap`. An icon you pass as a child is now a grandchild, so a
  * `[&>svg]` class of your own no longer reaches it. Match the part's own
- * variant instead — `[&>[data-slot=dropdown-menu-checkbox-item-label]>svg]:size-4`.
+ * variant instead: `[&>[data-slot=dropdown-menu-checkbox-item-label]>svg]:size-4`.
  * A `[&_svg]` class or a class on the icon loses to the default, which is more
  * specific.
  *
@@ -549,7 +549,7 @@ type DropdownMenuRadioItemProps = ComponentProps<typeof DropdownMenuPrimitiveRad
  * `display: contents`, so an icon and its label stay flex items of the item and
  * keep its `gap`. An icon you pass as a child is now a grandchild, so a
  * `[&>svg]` class of your own no longer reaches it. Match the part's own
- * variant instead — `[&>[data-slot=dropdown-menu-radio-item-label]>svg]:size-4`.
+ * variant instead: `[&>[data-slot=dropdown-menu-radio-item-label]>svg]:size-4`.
  * A `[&_svg]` class or a class on the icon loses to the default, which is more
  * specific.
  *
@@ -810,7 +810,7 @@ const DropdownMenu = {
 	 * `display: contents`, so an icon and its label stay flex items of the item and
 	 * keep its `gap`. An icon you pass as a child is now a grandchild, so a
 	 * `[&>svg]` class of your own no longer reaches it. Match the part's own
-	 * variant instead — `[&>[data-slot=dropdown-menu-checkbox-item-label]>svg]:size-4`.
+	 * variant instead: `[&>[data-slot=dropdown-menu-checkbox-item-label]>svg]:size-4`.
 	 * A `[&_svg]` class or a class on the icon loses to the default, which is more
 	 * specific.
 	 *
@@ -952,7 +952,7 @@ const DropdownMenu = {
 	 * `display: contents`, so an icon and its label stay flex items of the item and
 	 * keep its `gap`. An icon you pass as a child is now a grandchild, so a
 	 * `[&>svg]` class of your own no longer reaches it. Match the part's own
-	 * variant instead — `[&>[data-slot=dropdown-menu-radio-item-label]>svg]:size-4`.
+	 * variant instead: `[&>[data-slot=dropdown-menu-radio-item-label]>svg]:size-4`.
 	 * A `[&_svg]` class or a class on the icon loses to the default, which is more
 	 * specific.
 	 *
@@ -1084,7 +1084,7 @@ const DropdownMenu = {
 	 * `display: contents`, so an icon and its label stay flex items of the item and
 	 * keep its `gap`. An icon you pass as a child is now a grandchild, so a
 	 * `[&>svg]` class of your own no longer reaches it. Match the part's own
-	 * variant instead — `[&>[data-slot=dropdown-menu-sub-trigger-label]>svg]:size-4`.
+	 * variant instead: `[&>[data-slot=dropdown-menu-sub-trigger-label]>svg]:size-4`.
 	 * A `[&_svg]` class or a class on the icon loses to the default, which is more
 	 * specific.
 	 *

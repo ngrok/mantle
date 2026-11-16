@@ -4,11 +4,11 @@
  * Each animated channel (x domain, y domain, per-datum series buffers) owns
  * one `ValueTween`. Retargeting an active tween starts from the CURRENT
  * interpolated values, never the original start, and tweens are ticked from
- * the engine's paint loop — there is no per-tween timer and React state is
+ * the engine's paint loop. There is no per-tween timer and React state is
  * never touched per frame. `prefers-reduced-motion` collapses every tween to
  * a snap by passing `duration: 0`.
  *
- * This module is internal shared implementation — not exported from the package.
+ * This module is internal shared implementation. The package does not export it.
  */
 
 /**
@@ -18,7 +18,7 @@ const easeCubicOut = (t: number): number => 1 - (1 - t) ** 3;
 
 /**
  * A reusable tween over a vector of numbers. Buffers are reused across
- * retargets — no per-frame allocation.
+ * retargets, with no per-frame allocation.
  *
  * @example
  * ```ts
@@ -76,7 +76,7 @@ class ValueTween {
 			return;
 		}
 		// A re-target to the values we already hold (a re-ingest of unchanged
-		// data) must not restart a no-op tween — that would repaint for the full
+		// data) must not restart a no-op tween: that would repaint for the full
 		// duration and break the idle-at-zero-CPU guarantee. Exact equality is
 		// correct: unchanged values are recomputed deterministically from the same
 		// data. Mirrors ChaseTween.aim's unchanged-target bail-out.
@@ -124,7 +124,7 @@ class ValueTween {
 	/**
 	 * Advance toward the target. Returns `true` while more frames are needed.
 	 * The snap threshold is relative to the current glide's length so domains
-	 * of any magnitude terminate — and actually glide. A component whose
+	 * of any magnitude terminate, and actually glide. A component whose
 	 * remaining delta is too small for the step to make representable float
 	 * progress snaps to the target, so rounding can never wedge the chase into
 	 * ticking forever.
@@ -155,7 +155,7 @@ class ValueTween {
  * A frame-rate-independent exponential chase: the value continuously glides
  * toward its target with `speed` as the fraction covered per 60fps frame
  * (liveline's lerp backbone). Unlike a fixed-duration tween, retargeting
- * mid-flight never stutters — regular retargets (streaming appends) read as
+ * mid-flight never stutters: regular retargets (streaming appends) read as
  * constant smooth motion instead of ease-stop-jump ticks. A snap epsilon
  * terminates the chase so an idle chart stops burning frames.
  *
@@ -226,7 +226,7 @@ class ChaseTween {
 		// Live charts re-aim an unchanged domain on every data ingest. Restarting
 		// the journey bookkeeping for an identical target would ratchet the snap
 		// threshold down to the shrinking remaining distance until it fell below
-		// float rounding and the chase could never settle — so bail out before
+		// float rounding and the chase could never settle, so bail out before
 		// touching any state. An in-flight glide to the same target also keeps its
 		// constant speed.
 		if (this.#isTarget(target)) {
@@ -247,7 +247,7 @@ class ChaseTween {
 				journey = distance;
 			}
 		}
-		// The snap threshold is relative to THIS glide's length — never to the
+		// The snap threshold is relative to THIS glide's length, never to the
 		// targets' absolute magnitude, which would make epoch-millisecond time
 		// domains snap instantly and all-zero targets never settle.
 		this.#journey = journey;
@@ -323,7 +323,7 @@ class ChaseTween {
 	/**
 	 * Advance toward the target. Returns `true` while more frames are needed.
 	 * The snap threshold is relative to the current glide's length so domains
-	 * of any magnitude terminate — and actually glide. A component whose
+	 * of any magnitude terminate, and actually glide. A component whose
 	 * remaining delta is too small for the step to make representable float
 	 * progress snaps to the target, so rounding can never wedge the chase into
 	 * ticking forever.
@@ -356,11 +356,11 @@ class ChaseTween {
 			}
 			const next = current + (target - current) * factor;
 			// `next === current` with a positive factor means the remaining delta
-			// is below the value's float resolution — no future frame can advance
+			// is below the value's float resolution: no future frame can advance
 			// it, so treat it as arrived. Skip factor 0 (two ticks sharing a
 			// timestamp): that's "no time passed", not a stall, and snapping there
 			// would teleport a live glide. This only ever makes the snap more
-			// forgiving — it fires solely where the glide is already pixel-frozen.
+			// forgiving: it fires solely where the glide is already pixel-frozen.
 			const stalled = factor > 0 && next === current;
 			if (stalled || Math.abs(target - next) <= snapDistance) {
 				this.#current[index] = target;

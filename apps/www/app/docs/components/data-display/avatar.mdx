@@ -246,8 +246,8 @@ Accepts all `<span>` props (`asChild`, `className`, `style`, `ref`, `data-*`, `a
 | Prop          | Type                     | Default    | Description                                                                                                                                                                 |
 | ------------- | ------------------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `appearance?` | `"circle"` \| `"square"` | `"circle"` | The shape. `"circle"` for a person, `"square"` (a rounded square) for an account, workspace, or team.                                                                       |
-| `colorSeed?`  | `string`                 | —          | A stable id that deterministically selects a background swatch and switches the foreground to `text-static-white`. Omit for a neutral surface. Seed with an id, not a name. |
-| `data-slot?`  | `string`                 | —          | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `avatar` rather than replacing it.                                                                 |
+| `colorSeed?`  | `string`                 |            | A stable id that deterministically selects a background swatch and switches the foreground to `text-static-white`. Omit for a neutral surface. Seed with an id, not a name. |
+| `data-slot?`  | `string`                 |            | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `avatar` rather than replacing it.                                                                 |
 
 **Data attributes**
 
@@ -263,10 +263,10 @@ hydration to appear. A failed load unmounts it, revealing the fallback. Accepts 
 
 | Prop         | Type                              | Default | Description                                                                                                                                                                                                             |
 | ------------ | --------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `alt`        | `string`                          | —       | **Required**, stricter than the `<img>` element: an image with no `alt` announces its URL. Pass `""` when adjacent text already names the subject. It cannot name the avatar in the states where no `<img>` is mounted. |
-| `src?`       | `string`                          | —       | The picture's URL. Nullish or empty renders nothing and the fallback stands alone, so an optional URL passes straight through without branching.                                                                        |
-| `onError?`   | `(event: SyntheticEvent) => void` | —       | Runs **before** the image unmounts itself; `preventDefault()` keeps it mounted, for a consumer who would rather retry than fall back. Changing `src` is always a fresh attempt.                                         |
-| `data-slot?` | `string`                          | —       | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `avatar-image`.                                                                                                                                |
+| `alt`        | `string`                          |         | **Required**, stricter than the `<img>` element: an image with no `alt` announces its URL. Pass `""` when adjacent text already names the subject. It cannot name the avatar in the states where no `<img>` is mounted. |
+| `src?`       | `string`                          |         | The picture's URL. Nullish or empty renders nothing and the fallback stands alone, so an optional URL passes straight through without branching.                                                                        |
+| `onError?`   | `(event: SyntheticEvent) => void` |         | Runs **before** the image unmounts itself; `preventDefault()` keeps it mounted, for a consumer who would rather retry than fall back. Changing `src` is always a fresh attempt.                                         |
+| `data-slot?` | `string`                          |         | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `avatar-image`.                                                                                                                                |
 
 **Data attributes**
 
@@ -282,9 +282,9 @@ What shows when there is no image: while one loads, when it fails, or when there
 
 | Prop         | Type        | Default | Description                                                                                                                                                                                           |
 | ------------ | ----------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `children`   | `ReactNode` | —       | What to show: an icon, a monogram, initials you derived yourself. Announced normally. Mutually exclusive with `name`: the type forbids passing both.                                                  |
-| `name`       | `string`    | —       | A display name, rendered as at most two uppercase initials (`"Acme Corp"` → `"AC"`, an unusable name → `"?"`). `aria-hidden`, since it abbreviates text already beside the avatar. Not for `asChild`. |
-| `data-slot?` | `string`    | —       | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `avatar-fallback`.                                                                                                           |
+| `children`   | `ReactNode` |         | What to show: an icon, a monogram, initials you derived yourself. Announced normally. Mutually exclusive with `name`: the type forbids passing both.                                                  |
+| `name`       | `string`    |         | A display name, rendered as at most two uppercase initials (`"Acme Corp"` → `"AC"`, an unusable name → `"?"`). `aria-hidden`, since it abbreviates text already beside the avatar. Not for `asChild`. |
+| `data-slot?` | `string`    |         | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `avatar-fallback`.                                                                                                           |
 
 **Data attributes**
 

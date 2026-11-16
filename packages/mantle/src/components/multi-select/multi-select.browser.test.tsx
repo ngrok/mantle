@@ -14,9 +14,9 @@ import { MultiSelect } from "./multi-select.js";
  * off. In browser mode, Ariakit's popover/portal can momentarily compute
  * `pointer-events: none` while it mounts and animates, so user-event's default
  * check throws ("Unable to perform pointer interaction…") and flakes the
- * click-driven tests in CI. None of the behaviors here rely on that CSS guard —
- * locked tags enforce their lock in the remove handler, not via `pointer-events`
- * — so disabling the check makes clicks deterministic without weakening intent.
+ * click-driven tests in CI. None of the behaviors here rely on that CSS guard
+ * (locked tags enforce their lock in the remove handler, not via `pointer-events`),
+ * so disabling the check makes clicks deterministic without weakening intent.
  *
  * @example
  * const user = setupUser();
@@ -381,7 +381,7 @@ describe("MultiSelect (browser)", () => {
 			render(<Subject initialValues={["apple"]} />);
 			await user.click(screen.getByLabelText("Remove apple"));
 			expect(screen.queryByLabelText("Remove apple")).not.toBeInTheDocument();
-			// The component is still functional — clicking the input reopens the popover
+			// The component is still functional: clicking the input reopens the popover
 			await user.click(screen.getByRole("combobox"));
 			await waitFor(() => expect(screen.getByRole("listbox")).toBeVisible());
 		});
@@ -425,7 +425,7 @@ describe("MultiSelect (browser)", () => {
 
 		test("Backspace on empty input with a locked last tag does not remove any tag", async () => {
 			const user = setupUser();
-			// "banana" is last and locked — Backspace shakes it instead of removing anything
+			// "banana" is last and locked, so Backspace shakes it instead of removing anything
 			render(<Subject initialValues={["apple", "banana"]} lockedValues={["banana"]} />);
 			await user.click(screen.getByRole("combobox"));
 			await user.keyboard("{Backspace}");
@@ -545,7 +545,7 @@ describe("MultiSelect (browser)", () => {
 			await user.keyboard("{Backspace}");
 
 			expect(tag.getAnimations()).toHaveLength(0);
-			// The lock itself is still enforced — only the animation is skipped.
+			// The lock itself is still enforced; only the animation is skipped.
 			expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
 		});
 	});
@@ -564,7 +564,7 @@ describe("MultiSelect (browser)", () => {
 			const user = setupUser();
 			render(<Subject initialValues={["apple"]} />);
 			getTagOption("apple").focus();
-			// ctrl+a is a common selection shortcut — should not be hijacked
+			// ctrl+a is a common selection shortcut and should not be hijacked
 			await user.keyboard("{Control>}a{/Control}");
 			expect(getTagOption("apple")).toHaveFocus();
 		});

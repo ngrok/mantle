@@ -17,7 +17,7 @@ import type { PropsWithChildren } from "react";
 import { useRef, useState } from "react";
 
 /**
- * The failed-save report, rendered where the failure happened — inside the form,
+ * The failed-save report, rendered where the failure happened: inside the form,
  * not on the bar. The bar carries the *pending decision*; a failure is about the
  * content the user is looking at, so it belongs next to it.
  *
@@ -81,7 +81,7 @@ export function SandbarDemo() {
 				return;
 			}
 			setSaved(draft);
-			// the bar exits silently — announce the save's resolution yourself
+			// the bar exits silently, so announce the save's resolution yourself
 			makeToast(
 				<Toast.Root intent="success">
 					<Toast.Icon />
@@ -165,7 +165,7 @@ export function SandbarDemo() {
 
 /**
  * A Sandbar whose save always fails, showing where a failure belongs: in the
- * form, next to the field that could not be saved — while the bar stays open,
+ * form, next to the field that could not be saved, while the bar stays open,
  * because the decision is still pending and the user can retry. Renders as a
  * full preview document.
  */
@@ -372,11 +372,11 @@ export function SandbarOverSheetDemo() {
  *
  * `Sandbar.Root` merges a consumer `className` last, so these win over the
  * panel's own defaults. The variant chain has to match the internal utility
- * exactly — `motion-safe:data-state-closed:translate-y-0` replaces the travel,
+ * exactly: `motion-safe:data-state-closed:translate-y-0` replaces the travel,
  * while a bare `data-state-closed:translate-y-0` would sit beside it and lose.
  *
  * - `motion-safe:data-state-closed:translate-y-0` cancels the enter/exit
- *   travel, leaving the fades — the same result `motion-safe:` produces when
+ *   travel, leaving the fades: the same result `motion-safe:` produces when
  *   the preference is real.
  * - `transform-none!` stops the `shake()` wiggle. The wiggle is a Web
  *   Animations transform, and an `!important` author declaration outranks an
@@ -386,8 +386,8 @@ export function SandbarOverSheetDemo() {
 const STILLNESS = "motion-safe:data-state-closed:translate-y-0 transform-none!";
 
 /**
- * Shows what `Sandbar` does under `prefers-reduced-motion: reduce` — no enter
- * or exit travel, and no wiggle from `shake()`.
+ * Shows what `Sandbar` does under `prefers-reduced-motion: reduce` (no enter
+ * or exit travel, and no wiggle from `shake()`).
  *
  * The switch is here because a page cannot change an operating-system
  * preference. It reproduces the two *outcomes* through `className`, so a reader

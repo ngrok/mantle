@@ -1,4 +1,4 @@
-# ShikiCodeBlock v2 — Build-Time Highlighting, Zero Browser Bundle
+# ShikiCodeBlock v2: Build-Time Highlighting, Zero Browser Bundle
 
 ## Status
 
@@ -11,9 +11,9 @@
 
 The existing `CodeBlock` component uses PrismJS for syntax highlighting. Prism runs in the browser via `useEffect`, which causes three problems:
 
-1. **PrismJS bundle shipped to every page** — `CodeBlock` loads grammars eagerly for all supported languages
-2. **Hydration mismatches** — SSR renders plain escaped text; client swaps in highlighted HTML in a `useEffect`, requiring `suppressHydrationWarning` on the `<code>` element
-3. **No clean server rendering** — there is no path to get highlighted HTML on the server without shipping Shiki/Prism to the browser
+1. **PrismJS bundle shipped to every page**: `CodeBlock` loads grammars eagerly for all supported languages
+2. **Hydration mismatches**: SSR renders plain escaped text; client swaps in highlighted HTML in a `useEffect`, requiring `suppressHydrationWarning` on the `<code>` element
+3. **No clean server rendering**: there is no path to get highlighted HTML on the server without shipping Shiki/Prism to the browser
 
 The goal is a **net-new** `ShikiCodeBlock` component that produces identical highlighted output to Shiki running in the browser, but does all highlighting work at build/HMR time via a Vite plugin. Zero Shiki or Prism runtime in the browser bundle. Works for both MDX docs (static code fences) and pure Vite apps (runtime interpolations). For code that is truly dynamic at request time (e.g. traffic inspector showing API response bodies), a React Router server action will do the highlighting.
 
@@ -53,7 +53,7 @@ shikiCode("typescript")`const x = ${someVar};`
 }
 ```
 
-A runtime lookup (`map[hash]`) is not tree-shakeable — dynamic key access defeats static analysis, and a single shared virtual module would load ALL highlighted HTML for the entire app on every page. Inline strings travel with their component into whatever chunk Rollup places it in. The only scenario where a virtual module wins is the identical literal code string appearing in two separate source files (rare; you'd share a component instead).
+A runtime lookup (`map[hash]`) is not tree-shakeable: dynamic key access defeats static analysis, and a single shared virtual module would load ALL highlighted HTML for the entire app on every page. Inline strings travel with their component into whatever chunk Rollup places it in. The only scenario where a virtual module wins is the identical literal code string appearing in two separate source files (rare; you'd share a component instead).
 
 ### Interpolation Support
 
@@ -79,7 +79,7 @@ The tagged template co-locates the language with the code, so `ShikiCodeBlock.Co
 <ShikiCodeBlock.Code value={shikiCode("typescript")`const x = "hello";`} />
 ```
 
-The `shikiCode("lang")` runtime function is a no-op that returns a `ShikiCodeValue` object with `__preHtml: undefined`. If the Vite plugin is not configured, the component renders plain escaped text and logs a dev warning. No highlighting without the plugin — but no broken rendering either.
+The `shikiCode("lang")` runtime function is a no-op that returns a `ShikiCodeValue` object with `__preHtml: undefined`. If the Vite plugin is not configured, the component renders plain escaped text and logs a dev warning. No highlighting without the plugin, but no broken rendering either.
 
 ### Server Action Path (`highlightHref`)
 
@@ -124,7 +124,7 @@ Dark mode uses `-400` palette variants of the same hues. Phase 3 deletes the Pri
 | `@ngrok/mantle/vite-plugin`      | `shikiCodeBlock()` Vite plugin (required for Path 1)                                        |
 | `@ngrok/mantle/shiki-server`     | `shikiHighlightAction` React Router action handler (Path 3)                                 |
 
-`shiki` is a `devDependency` of `@ngrok/mantle` — only the Vite plugin (Node.js build process) and the server action ever import it. It is never in the browser bundle.
+`shiki` is a `devDependency` of `@ngrok/mantle`. Only the Vite plugin (Node.js build process) and the server action ever import it. It is never in the browser bundle.
 
 ## Alternatives Considered
 
@@ -150,4 +150,4 @@ Dark mode uses `-400` palette variants of the same hues. Phase 3 deletes the Pri
 ### RSC / React Flight Protocol
 
 - Would require React Flight support in React Router render
-- Premature — React Router 7 SSR + Vite plugin path achieves the same result without RSC
+- Premature: React Router 7 SSR + Vite plugin path achieves the same result without RSC

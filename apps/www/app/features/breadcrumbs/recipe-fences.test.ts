@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
  * only stays true if the fences and the real modules cannot drift, so this asserts
  * each fence is byte-identical to the file it claims to be.
  *
- * If this fails, the fix is to re-copy the file into the fence — never to loosen
+ * If this fails, the fix is to re-copy the file into the fence, never to loosen
  * the assertion. A recipe whose code does not run is worse than no recipe.
  */
 const RECIPE = "app/docs/recipes/breadcrumbs-from-routes.mdx";
@@ -24,7 +24,7 @@ const APP_ROOT = new URL("../../../", import.meta.url);
  * Reads a path written relative to the app root. The paths above stay
  * app-relative because they are the names the recipe page itself uses and the
  * names that read best in test output, but they are resolved against this
- * module's own URL rather than the process's working directory — which is not
+ * module's own URL rather than the process's working directory, which is not
  * the app root under every runner and IDE.
  */
 function readFromAppRoot(path: string): string {
@@ -32,7 +32,7 @@ function readFromAppRoot(path: string): string {
 }
 
 /**
- * Extracts every fenced `ts`/`tsx` block, allowing any fence length — a block
+ * Extracts every fenced `ts`/`tsx` block, allowing any fence length: a block
  * whose own content contains a ``` fence (JSDoc `@example`) must be delimited by a
  * longer run, and oxfmt normalizes those to four backticks.
  */

@@ -20,8 +20,8 @@ import { buildManifest, type ManifestComponent } from "./manifest.server";
  *
  * CI's "Vibe Check" runs `vitest` without `-u`, so any un-regenerated change
  * fails this test. Volatile fields (`version`, absolute `docsUrl`/
- * `markdownUrl`) are dropped — they're derivable from `slug` + the published
- * version — so the snapshot only churns on real content changes, not on
+ * `markdownUrl`) are dropped (they're derivable from `slug` + the published
+ * version), so the snapshot only churns on real content changes, not on
  * version bumps.
  */
 

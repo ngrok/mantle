@@ -141,7 +141,7 @@ function parseDeclarations(body: string): Map<string, string> {
 
 /**
  * Parse the declarations of the first top-level rule whose selector matches.
- * Throws when nothing matches — a signal the theme sources changed shape and
+ * Throws when nothing matches: a signal the theme sources changed shape and
  * the calling test needs updating.
  *
  * @example

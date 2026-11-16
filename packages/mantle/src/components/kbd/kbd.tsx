@@ -4,7 +4,7 @@ import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 
 /**
- * A square, centered keyboard "key" chip for rendering shortcut hints —
+ * A square, centered keyboard "key" chip for rendering shortcut hints:
  * "K", "⌘", "⌃", "Enter". Renders a native `<kbd>` element so screen
  * readers announce it as keyboard input. Sized so letters and modifier
  * symbols share a consistent visual height, width, and baseline.
@@ -15,8 +15,8 @@ import { joinDataSlot } from "../../utils/data-slot.js";
  * - Inline with prose: "Press `Kbd K` to open search."
  *
  * **When not to use**
- * - For arbitrary monospace text — use {@link https://mantle.ngrok.com/components/data-display/code Code}.
- * - For chord-style multi-key shortcuts as a single chip — render multiple
+ * - For arbitrary monospace text, use {@link https://mantle.ngrok.com/components/data-display/code Code}.
+ * - For chord-style multi-key shortcuts as a single chip, render multiple
  *   `<Kbd>` elements separated by `+` text instead.
  *
  * **Accessibility.** Symbol-only glyphs (`⌘`, `⌃`, `↵`) are not announced
@@ -53,7 +53,7 @@ import { joinDataSlot } from "../../utils/data-slot.js";
  *   <span aria-hidden>↵</span>
  * </Kbd>
  *
- * // Chord — render each key separately.
+ * // Chord: render each key separately.
  * <span className="inline-flex items-center gap-1">
  *   <Kbd>
  *     <span className="sr-only">Command</span>

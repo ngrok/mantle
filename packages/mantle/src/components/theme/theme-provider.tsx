@@ -132,7 +132,7 @@ type ThemeProviderProps = PropsWithChildren<{
  *
  * @example
  * ```tsx
- * // a page locked to light — mirror the same value everywhere it is forced
+ * // a page locked to light: mirror the same value everywhere it is forced
  * <ThemeProvider forceTheme="light">
  *   <App />
  * </ThemeProvider>
@@ -514,14 +514,14 @@ export type PreventWrongThemeFlashScriptProps = {
  *
  * @example
  * ```tsx
- * // entry.server.tsx — send font preloads as HTTP headers (preferred for SSR)
+ * // entry.server.tsx: send font preloads as HTTP headers (preferred for SSR)
  * headers.set("Link", [
  *   `<${assetsCdnOrigin}>; rel=preconnect; crossorigin`,
  *   preloadFontLink("roobert"),
  *   preloadFontLink("jetbrains-mono"),
  * ].join(", "));
  *
- * // root.tsx — only the FOUC script in <head>
+ * // root.tsx: only the FOUC script in <head>
  * <head>
  *   <PreventWrongThemeFlashScript nonce={nonce} />
  * </head>

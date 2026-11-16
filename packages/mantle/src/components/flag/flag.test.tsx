@@ -19,7 +19,7 @@ const getFlag = (code: string) => {
 };
 
 /**
- * Values that are not strings at all — the guard must reject them before
+ * Values that are not strings at all. The guard must reject them before
  * `Array.prototype.includes` sees them. `840` is a number whose string form *is* a valid
  * code, so it catches a guard that coerces instead of comparing.
  */

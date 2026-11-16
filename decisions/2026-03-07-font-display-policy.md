@@ -40,7 +40,7 @@ Set per-face `font-display` values in Mantle's `@font-face` declarations:
 ### `optional` for all faces
 
 - **Pros**: Best performance; never causes layout shift
-- **Cons**: Too aggressive for primary fonts — risks invisible text on slow connections even when fonts are preloaded
+- **Cons**: Too aggressive for primary fonts: risks invisible text on slow connections even when fonts are preloaded
 
 ## Consequences
 

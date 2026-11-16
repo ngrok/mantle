@@ -107,7 +107,7 @@ describe("computeJsxFoldRanges", () => {
 
 		test("folds a multi-line self-closing element on its attribute list", () => {
 			// Self-closing tags with multi-line attribute lists fold even though
-			// VS Code's stock TS folder leaves them alone — this matches what
+			// VS Code's stock TS folder leaves them alone. This matches what
 			// JSX authors expect for long prop lists.
 			const code = ["<Foo", "  a={1}", "  b={2}", "/>"].join("\n");
 			expect(computeJsxFoldRanges({ code, language: "tsx" })).toEqual([

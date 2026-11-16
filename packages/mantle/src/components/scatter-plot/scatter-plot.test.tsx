@@ -306,7 +306,7 @@ describe("ScatterPlot keyboard interaction", () => {
 		expect(tooltip?.textContent).toContain("840");
 	});
 
-	test("a sparse row reads only its populated series — never an em-dash row", async () => {
+	test("a sparse row reads only its populated series, never an em-dash row", async () => {
 		// Scatter rows are individual points, so keyboard snapshots filter to the
 		// row's populated series (unlike bar/line, which read every series and
 		// render gaps as em dashes).

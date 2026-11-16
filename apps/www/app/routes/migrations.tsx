@@ -17,7 +17,7 @@ export default function MigrationsPage() {
 			<p className="mb-4 leading-relaxed text-pretty text-body">
 				Step-by-step guides for migrating existing code to new{" "}
 				<code translate="no">@ngrok/mantle</code> APIs and behaviors. Each guide is written to be
-				handed directly to a coding agent — append <code translate="no">.md</code> to any
+				handed directly to a coding agent. Append <code translate="no">.md</code> to any
 				guide&rsquo;s URL to fetch its raw markdown.
 			</p>
 			<p className="mb-4 leading-relaxed text-pretty text-body">

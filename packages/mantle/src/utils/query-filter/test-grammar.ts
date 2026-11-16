@@ -2,7 +2,7 @@ import type { FilterGrammar } from "./grammar.js";
 
 /**
  * A small grammar over plain objects for the engine's own tests. It mirrors
- * the shape of a real grammar — aliases, an enumerated key, prose keys — so
+ * the shape of a real grammar (aliases, an enumerated key, prose keys), so
  * the tests stay grammar-realistic without depending on any feature.
  */
 

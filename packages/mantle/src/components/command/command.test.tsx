@@ -9,7 +9,7 @@ import { useCommandDialog } from "./dialog-context.js";
 
 /**
  * The control `Command.SearchTrigger` wraps. Presentation is always the child's
- * — the part renders no DOM of its own — so every test that used to assert the
+ * (the part renders no DOM of its own), so every test that used to assert the
  * trigger's own chrome now asserts what reaches this button instead.
  */
 function SearchButton(props: ComponentProps<"button">) {
@@ -67,7 +67,7 @@ describe("Command.SearchTrigger", () => {
 		expect(trigger()).not.toHaveAttribute("aria-label");
 	});
 
-	test("renders no DOM of its own — the child is the trigger", () => {
+	test("renders no DOM of its own: the child is the trigger", () => {
 		const ref = createRef<HTMLButtonElement>();
 		render(
 			<Command.DialogRoot>
@@ -436,7 +436,7 @@ describe("Command.DialogRoot", () => {
 
 		describe("on Apple platforms", () => {
 			// The handler resolves the platform once per mount, so the stub has to be
-			// installed before `render()` — a `beforeEach` is the only safe place.
+			// installed before `render()`. A `beforeEach` is the only safe place.
 			// `restoreMocks` in vitest.config.ts undoes it between tests.
 			beforeEach(() => {
 				vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
@@ -543,7 +543,7 @@ describe("Command.DialogRoot", () => {
 			// Cross-part pin: `Command.DialogContent`'s open-autofocus handler finds
 			// the field with `[data-slot="command-input"]`, which `Command.Input`
 			// stamps. Renaming either side restores Radix's own autofocus, which
-			// selects the whole value — so the first keystroke after a seeded open
+			// selects the whole value, so the first keystroke after a seeded open
 			// would replace the seed instead of extending it.
 			const user = userEvent.setup();
 			render(<Palette />);
