@@ -1001,4 +1001,67 @@ describe("Escape and covered floats", () => {
 		});
 		expect(screen.getByRole("dialog")).toBeInTheDocument();
 	});
+
+	test("Escape from an owned popover keeps the dialog open when a late float covers it", async () => {
+		const user = userEvent.setup();
+		render(
+			<LateFloatUnderOverlay
+				renderOverlay={(children) => (
+					<Dialog.Root defaultOpen>
+						<Dialog.Content>
+							<Dialog.Title>Overlay</Dialog.Title>
+							<Popover.Root defaultOpen>
+								<Popover.Trigger>Owned trigger</Popover.Trigger>
+								<Popover.Content>{children}</Popover.Content>
+							</Popover.Root>
+						</Dialog.Content>
+					</Dialog.Root>
+				)}
+			/>,
+		);
+
+		const opener = screen.getByRole("button", { name: "Open late float" });
+		await user.click(opener);
+		expect(opener).toHaveFocus();
+		await user.keyboard("{Escape}");
+		await user.keyboard("{Escape}");
+
+		await waitFor(() => {
+			expect(screen.queryByText("Open late float")).not.toBeInTheDocument();
+		});
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+	});
+
+	test("Escape from a covered float closes the dialog that Radix binds to the content, not an inner sheet root", async () => {
+		const user = userEvent.setup();
+		const onDialogOpenChange = vi.fn<(open: boolean) => void>();
+		const onSheetOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<LateFloatUnderOverlay
+				renderOverlay={(children) => (
+					<Dialog.Root defaultOpen onOpenChange={onDialogOpenChange}>
+						<Sheet.Root defaultOpen onOpenChange={onSheetOpenChange}>
+							<Sheet.Content>
+								<Sheet.Header>
+									<Sheet.TitleGroup>
+										<Sheet.Title>Sheet</Sheet.Title>
+									</Sheet.TitleGroup>
+								</Sheet.Header>
+								<Dialog.Content>
+									<Dialog.Title>Overlay</Dialog.Title>
+									<Dialog.Body>{children}</Dialog.Body>
+								</Dialog.Content>
+							</Sheet.Content>
+						</Sheet.Root>
+					</Dialog.Root>
+				)}
+			/>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "Open late float" }));
+		await user.keyboard("{Escape}");
+
+		expect(onDialogOpenChange).toHaveBeenCalledWith(false);
+		expect(onSheetOpenChange).not.toHaveBeenCalled();
+	});
 });

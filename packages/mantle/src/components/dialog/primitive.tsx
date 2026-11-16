@@ -12,8 +12,9 @@ import {
 	Trigger as DialogPrimitiveTrigger,
 } from "@radix-ui/react-dialog";
 import type { ComponentProps, ComponentPropsWithoutRef, Ref } from "react";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { Slot } from "../slot/index.js";
 import { preventCloseOnPromptInteraction } from "../toast/prevent-close-on-prompt-interaction.js";
 import { parseBooleanish } from "../../types/booleanish.js";
@@ -26,10 +27,42 @@ import {
 type DialogPrimitiveContentProps = ComponentProps<typeof DialogPrimitiveContent>;
 
 /**
- * Closes the nearest dialog root. A float that the dialog covers uses it to
- * hand the dialog an Escape, which Radix sent to the float.
+ * The open state and the close action of a dialog root, linked to the roots
+ * above it. A float that the dialog covers uses it to hand the dialog an
+ * Escape, which Radix sent to the float.
  */
-const CloseDialogContext = createContext<(() => void) | null>(null);
+type DialogRootState = {
+	/** The Radix scope key of the root. See {@link dialogScopeKey}. */
+	scopeKey: unknown;
+	open: boolean;
+	close: () => void;
+	parent: DialogRootState | null;
+};
+
+const DialogRootContext = createContext<DialogRootState | null>(null);
+
+/**
+ * The key Radix binds a dialog part to its root by: the dialog contexts of the
+ * part's `__scopeDialog` prop, or `undefined` for the default scope.
+ */
+function dialogScopeKey(props: object): unknown {
+	const scope: unknown = Reflect.get(props, "__scopeDialog");
+	return scope != null && typeof scope === "object" ? Reflect.get(scope, "Dialog") : undefined;
+}
+
+/**
+ * The state of the root that Radix binds the part to: the nearest root with
+ * the same scope key. Without this match, a `Dialog.Content` inside a
+ * `Sheet.Root` would read the sheet's state.
+ */
+function useDialogRootState(props: object): DialogRootState | null {
+	const scopeKey = dialogScopeKey(props);
+	let state = useContext(DialogRootContext);
+	while (state != null && state.scopeKey !== scopeKey) {
+		state = state.parent;
+	}
+	return state;
+}
 
 /**
  * The Radix dialog root, with the open state kept here so that mantle can
@@ -43,6 +76,7 @@ const Root = ({
 }: ComponentProps<typeof DialogPrimitiveRoot>) => {
 	const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
 	const open = openProp ?? uncontrolledOpen;
+	const parent = useContext(DialogRootContext);
 
 	const setOpen = (next: boolean) => {
 		if (openProp === undefined) {
@@ -50,12 +84,17 @@ const Root = ({
 		}
 		onOpenChange?.(next);
 	};
-	const closeDialog = useCallbackRef(() => setOpen(false));
+	const close = useCallbackRef(() => setOpen(false));
+	const scopeKey = dialogScopeKey(props);
+	const rootState = useMemo(
+		() => ({ scopeKey, open, close, parent }),
+		[scopeKey, open, close, parent],
+	);
 
 	return (
-		<CloseDialogContext.Provider value={closeDialog}>
+		<DialogRootContext.Provider value={rootState}>
 			<DialogPrimitiveRoot open={open} onOpenChange={setOpen} {...props} />
-		</CloseDialogContext.Provider>
+		</DialogRootContext.Provider>
 	);
 };
 const Trigger = DialogPrimitiveTrigger;
@@ -99,24 +138,31 @@ const Content = ({
 	ref,
 	...props
 }: DialogPrimitiveContentProps) => {
-	const closeDialog = useContext(CloseDialogContext);
+	const rootState = useDialogRootState(props);
 	const layerContainer = useLayerContainer();
+	const [contentElement, setContentElement] = useState<HTMLDivElement | null>(null);
+	const composedRef = useComposedRefs(ref, setContentElement);
 
 	// Why register: Radix can send Escape to a float this dialog covers. The
 	// float then passes it here, and this runs the same guards as Radix would.
-	useRegisterOverlay(closeDialog == null ? null : layerContainer, (event) => {
-		if (layerContainer != null && escapeBelongsToNestedPopup(layerContainer, event.target)) {
-			event.preventDefault();
-		}
-		onEscapeKeyDown?.(event);
-		if (!event.defaultPrevented) {
-			closeDialog?.();
-		}
+	// Why only while open: a closed dialog can stay mounted for its exit animation.
+	useRegisterOverlay({
+		container: rootState?.open ? layerContainer : null,
+		content: contentElement,
+		escape: (event) => {
+			if (layerContainer != null && escapeBelongsToNestedPopup(layerContainer, event.target)) {
+				event.preventDefault();
+			}
+			onEscapeKeyDown?.(event);
+			if (!event.defaultPrevented) {
+				rootState?.close();
+			}
+		},
 	});
 
 	return (
 		<DialogPrimitiveContent
-			ref={ref}
+			ref={composedRef}
 			onEscapeKeyDown={(event) => {
 				preventCloseOnNestedPopupEscape(event);
 				onEscapeKeyDown?.(event);

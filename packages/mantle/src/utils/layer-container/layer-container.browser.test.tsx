@@ -287,3 +287,72 @@ describe("paint order across layer tiers", () => {
 		});
 	});
 });
+
+describe("covered-float focus", () => {
+	/**
+	 * Why `animation-name` with no keyframes: Radix `Presence` keeps a closed
+	 * layer mounted while its computed `animation-name` changes, and no
+	 * `animationend` fires, so the dialog stays in its exit animation.
+	 */
+	const EXIT_STYLE = `
+[data-slot="dialog-positioner"] { animation-name: none; }
+[data-slot="dialog-positioner"]:not(:has([data-state="open"])) { animation-name: exit-hold; }
+[data-slot="dialog-content"] { animation-name: none; }
+[data-slot="dialog-content"][data-state="closed"] { animation-name: exit; }
+`;
+
+	function CloseDialogThenOpenFloat() {
+		const [dialogOpen, setDialogOpen] = useState(true);
+		const [floatOpen, setFloatOpen] = useState(false);
+
+		return (
+			<>
+				<Popover.Root open={floatOpen} onOpenChange={setFloatOpen}>
+					<Popover.Anchor asChild>
+						<span>Anchor</span>
+					</Popover.Anchor>
+					<Popover.Content>
+						<button type="button">Float button</button>
+					</Popover.Content>
+				</Popover.Root>
+				<Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
+					<Dialog.Content onCloseAutoFocus={(event) => event.preventDefault()}>
+						<Dialog.Title>Overlay</Dialog.Title>
+						<button
+							type="button"
+							onClick={() => {
+								setDialogOpen(false);
+								setFloatOpen(true);
+							}}
+						>
+							Close and open
+						</button>
+					</Dialog.Content>
+				</Dialog.Root>
+			</>
+		);
+	}
+
+	test("a float that opens while a dialog plays its exit animation takes focus", async () => {
+		const exitStyle = document.createElement("style");
+		exitStyle.textContent = EXIT_STYLE;
+		document.head.append(exitStyle);
+
+		try {
+			const user = userEvent.setup();
+			render(<CloseDialogThenOpenFloat />);
+			await user.click(screen.getByRole("button", { name: "Close and open" }));
+
+			// The closed dialog must still be mounted, or this test proves nothing.
+			expect(document.querySelector('[data-slot="dialog-content"]')).toHaveAttribute(
+				"data-state",
+				"closed",
+			);
+			await waitFor(() => {
+				expect(screen.getByRole("button", { name: "Float button" })).toHaveFocus();
+			});
+		} finally {
+			exitStyle.remove();
+		}
+	});
+});
