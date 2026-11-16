@@ -3,7 +3,7 @@ import { Button } from "@ngrok/mantle/button";
 import { Field } from "@ngrok/mantle/field";
 import { Input } from "@ngrok/mantle/input";
 import { Sheet } from "@ngrok/mantle/sheet";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type ChallengeResult = "verified" | "canceled";
 
@@ -102,9 +102,47 @@ function confirmWithBank(): Promise<ChallengeResult> {
 }
 
 /**
+ * The result of the bank's check, shown in the sheet after the popup closes.
+ *
+ * `role="alert"` makes a screen reader announce it. It also takes focus on
+ * mount, because the browser does not return focus to the sheet when the
+ * popup closes.
+ *
+ * @example
+ * <ChallengeResultAlert result="verified" />
+ */
+function ChallengeResultAlert({ result }: { result: ChallengeResult }) {
+	const alertRef = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		alertRef.current?.focus();
+	}, []);
+	const isVerified = result === "verified";
+
+	return (
+		<Alert.Root
+			intent={isVerified ? "success" : "warning"}
+			ref={alertRef}
+			role="alert"
+			tabIndex={-1}
+		>
+			<Alert.Icon />
+			<Alert.Content>
+				<Alert.Title>{isVerified ? "Card verified" : "Card not verified"}</Alert.Title>
+				<Alert.Description>
+					{isVerified
+						? "The bank approved the card."
+						: "You canceled the check. Save the card again."}
+				</Alert.Description>
+			</Alert.Content>
+		</Alert.Root>
+	);
+}
+
+/**
  * Demonstrates a `Sheet` under the popup of a payment script. The sheet has no
  * code for the popup: focus stays in the bank's frame, Escape in the frame
  * closes only the popup, and the page takes clicks after the popup closes.
+ * The form moves focus to the result when the popup closes.
  *
  * @example
  * <PaymentPopupDemo />
@@ -151,25 +189,8 @@ export function PaymentPopupDemo() {
 							</Field.Control>
 							<Field.Description>A test card that needs a 3-D Secure challenge.</Field.Description>
 						</Field.Item>
-						{status === "verified" && (
-							<Alert.Root intent="success">
-								<Alert.Icon />
-								<Alert.Content>
-									<Alert.Title>Card verified</Alert.Title>
-									<Alert.Description>The bank approved the card.</Alert.Description>
-								</Alert.Content>
-							</Alert.Root>
-						)}
-						{status === "canceled" && (
-							<Alert.Root intent="warning">
-								<Alert.Icon />
-								<Alert.Content>
-									<Alert.Title>Card not verified</Alert.Title>
-									<Alert.Description>
-										You canceled the check. Save the card again.
-									</Alert.Description>
-								</Alert.Content>
-							</Alert.Root>
+						{(status === "verified" || status === "canceled") && (
+							<ChallengeResultAlert result={status} />
 						)}
 					</Sheet.Body>
 					<Sheet.Footer>

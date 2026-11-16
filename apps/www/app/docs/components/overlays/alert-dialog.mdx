@@ -129,13 +129,9 @@ The class reaches pointer input only. The open alert dialog traps keyboard focus
 
 ## Third-party popups
 
-A widget in the alert dialog can put its own popup on `<body>`. A payment script does this for a 3-D Secure challenge and for a wallet sign-in. While the popup covers the center of the viewport and takes pointer input, the alert dialog treats the popup as part of itself. Focus that the widget's script moves into the popup stays there, and Escape does not close the alert dialog under the popup. Close the popup first.
+A script can show its own popup in a frame on `<body>`, above the alert dialog. A payment script does this for a 3-D Secure challenge and for a wallet sign-in. While the popup covers the center of the viewport and takes pointer input, the alert dialog yields to it. Focus that the script moves into the popup stays there. Escape does not close the alert dialog: it moves focus into the popup, and the next Escape goes to the popup.
 
-The alert dialog finds the popup with a hit test at the center of the viewport. The popup counts when it is a child of `<body>`, has a `z-index` at or above the `z-60` of the alert dialog, and takes pointer input. An open alert dialog sets `pointer-events: none` on `<body>`, so a popup must set `pointer-events: auto` to take a click. Stripe's popups set it. If the popup of another widget does not, set it on the popup in your CSS.
-
-Close the alert dialog from your code only after the popup closes. A payment script saves the `<body>` style when its popup opens and puts that style back when the popup closes. If the alert dialog closes in between, the style that comes back still has `pointer-events: none`.
-
-The [Sheet page](/components/overlays/sheet#third-party-popups) runs an example with a payment popup.
+Close the alert dialog from your code only after the popup closes. [Third-party popups](/components/overlays/sheet#third-party-popups) on the Sheet page has the reason, the rule for what counts as a popup, and an example.
 
 ## Composition
 

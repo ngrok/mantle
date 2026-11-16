@@ -105,15 +105,28 @@ The class reaches pointer input only. The open sheet traps keyboard focus and hi
 
 ## Third-party popups
 
-A widget in the sheet can put its own popup on `<body>`. A payment script does this for a 3-D Secure challenge and for a wallet sign-in. While the popup covers the center of the viewport and takes pointer input, the sheet treats the popup as part of itself:
+A script can show its own popup in a frame on `<body>`, above the sheet. A payment script does this for a 3-D Secure challenge and for a wallet sign-in. While the popup covers the center of the viewport and takes pointer input, the sheet yields to it:
 
-- Focus that the widget's script moves into the popup stays there. The focus trap does not take it back.
-- Escape does not close the sheet under the popup. Close the popup first.
+- Focus that the script moves into the popup stays there. The focus trap does not take it back.
+- Escape does not close the sheet. It moves focus into the popup, and the next Escape goes to the popup.
 - A click in the popup is not an outside click.
 
-The sheet finds the popup with a hit test at the center of the viewport. The popup counts when it is a child of `<body>`, has a `z-index` at or above the `z-60` of the sheet, and takes pointer input. An open sheet sets `pointer-events: none` on `<body>`, so a popup must set `pointer-events: auto` to take a click. Stripe's popups set it. If the popup of another widget does not, set it on the popup in your CSS.
+The sheet finds the popup with a hit test at the center of the viewport. The popup counts when it:
 
-Close the sheet from your code only after the popup closes. A payment script saves the `<body>` style when its popup opens and puts that style back when the popup closes. If the sheet closes in between, the style that comes back still has `pointer-events: none`.
+- is a child of `<body>` that holds a frame
+- has a `z-index` at or above the `z-60` of the sheet
+- takes pointer input
+
+An open sheet sets `pointer-events: none` on `<body>`, so a popup must set `pointer-events: auto` to take a click. Stripe's popups set it. If the popup of another script does not, set it on the popup in your CSS.
+
+A popup that a script builds from page elements, with no frame, does not count. If the script can render its popup into an element that you choose, give it an element in the sheet.
+
+An open sheet hides the rest of the page from assistive technology. That includes a popup that was on the page before the sheet opened. The sheet removes that `aria-hidden` from the popup when focus moves into it.
+
+Your code still does two things:
+
+- Close the sheet only after the popup closes. A payment script saves the `<body>` style and the `aria-hidden` state of the page when its popup opens. It puts them back when the popup closes. If the sheet closes in between, the page takes no clicks and a screen reader finds no content.
+- Move focus when the script gives you the result. The browser does not return focus to the sheet when the popup closes.
 
 The example runs `confirmWithBank`, a stand-in for a payment script. It does what Stripe.js does to the page:
 
@@ -122,7 +135,7 @@ The example runs `confirmWithBank`, a stand-in for a payment script. It does wha
 - It calls `focus()` on the frame from the page.
 - It saves the `<body>` style, and puts that style back when the popup closes.
 
-Select **Save card**, then type a code in the bank's frame. Press Escape in the frame to cancel the check: the popup closes and the sheet stays open. The sheet itself is an ordinary form.
+Select **Save card**, then type a code in the bank's frame. Press Escape in the frame to cancel the check: the popup closes, the sheet stays open, and focus moves to the result. The sheet itself is an ordinary form.
 
 <Example name="components/overlays/sheet/third-party-popups" title="Sheet third-party popups example">
 
@@ -132,7 +145,7 @@ import { Button } from "@ngrok/mantle/button";
 import { Field } from "@ngrok/mantle/field";
 import { Input } from "@ngrok/mantle/input";
 import { Sheet } from "@ngrok/mantle/sheet";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type ChallengeResult = "verified" | "canceled";
 
@@ -221,6 +234,36 @@ function confirmWithBank(): Promise<ChallengeResult> {
 	});
 }
 
+// The result of the bank's check. `role="alert"` makes a screen reader
+// announce it. It takes focus on mount, because the browser does not return
+// focus to the sheet when the popup closes.
+function ChallengeResultAlert({ result }: { result: ChallengeResult }) {
+	const alertRef = useRef<HTMLDivElement>(null);
+	useEffect(() => {
+		alertRef.current?.focus();
+	}, []);
+	const isVerified = result === "verified";
+
+	return (
+		<Alert.Root
+			intent={isVerified ? "success" : "warning"}
+			ref={alertRef}
+			role="alert"
+			tabIndex={-1}
+		>
+			<Alert.Icon />
+			<Alert.Content>
+				<Alert.Title>{isVerified ? "Card verified" : "Card not verified"}</Alert.Title>
+				<Alert.Description>
+					{isVerified
+						? "The bank approved the card."
+						: "You canceled the check. Save the card again."}
+				</Alert.Description>
+			</Alert.Content>
+		</Alert.Root>
+	);
+}
+
 function Example() {
 	const [status, setStatus] = useState<"idle" | "confirming" | ChallengeResult>("idle");
 
@@ -263,25 +306,8 @@ function Example() {
 							</Field.Control>
 							<Field.Description>A test card that needs a 3-D Secure challenge.</Field.Description>
 						</Field.Item>
-						{status === "verified" && (
-							<Alert.Root intent="success">
-								<Alert.Icon />
-								<Alert.Content>
-									<Alert.Title>Card verified</Alert.Title>
-									<Alert.Description>The bank approved the card.</Alert.Description>
-								</Alert.Content>
-							</Alert.Root>
-						)}
-						{status === "canceled" && (
-							<Alert.Root intent="warning">
-								<Alert.Icon />
-								<Alert.Content>
-									<Alert.Title>Card not verified</Alert.Title>
-									<Alert.Description>
-										You canceled the check. Save the card again.
-									</Alert.Description>
-								</Alert.Content>
-							</Alert.Root>
+						{(status === "verified" || status === "canceled") && (
+							<ChallengeResultAlert result={status} />
 						)}
 					</Sheet.Body>
 					<Sheet.Footer>
