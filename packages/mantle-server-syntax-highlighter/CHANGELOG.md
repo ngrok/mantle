@@ -1,5 +1,21 @@
 # @ngrok/mantle-server-syntax-highlighter
 
+## 1.1.23
+
+### Patch Changes
+
+- [#1700](https://github.com/ngrok/mantle/pull/1700) [`d3de9c8`](https://github.com/ngrok/mantle/commit/d3de9c8fcaf3e8498d4c8a1841d524a98813b25e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `dist/agent.json` and `dist/llms.txt` now name the hosted MCP server, `https://mantle.ngrok.com/mcp`, in `endpoints.mcp`. `dist/llms.txt` now tells agents to read the type declarations that `package.json#exports` names, because some subpaths do not ship a `.d.ts` file with the same name.
+
+  `agent.json` now reads a JSDoc that has a `//` comment between it and its declaration, so `useCallbackRef` has its summary and example.
+
+  The npm pages of all three packages now link to the package directory in the repository, and list keywords for search.
+
+- [#1706](https://github.com/ngrok/mantle/pull/1706) [`3034130`](https://github.com/ngrok/mantle/commit/3034130fd4058ce1d909bdcbe46bd4748edf183a) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Update dependencies within the 6h minimum release age.
+
+- [#1701](https://github.com/ngrok/mantle/pull/1701) [`46841eb`](https://github.com/ngrok/mantle/commit/46841eb142622f21c8cd9f112360747505ea47e5) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The JSDoc in the built types and the package READMEs no longer use em-dash asides: each one is now a parenthetical, a colon, or a separate sentence. Editor hover text and `llms.txt` now read the same as the docs pages.
+
+  The screen-reader caption on a chart's data table now reads `Visitors by month: chart data.` instead of `Visitors by month — chart data.` An accessible-name query in a test that matches the old caption needs the new text.
+
 ## 1.1.22
 
 ### Patch Changes

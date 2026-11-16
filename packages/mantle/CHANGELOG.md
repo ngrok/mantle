@@ -1,5 +1,78 @@
 # @ngrok/mantle
 
+## 0.94.1
+
+### Patch Changes
+
+- [#1700](https://github.com/ngrok/mantle/pull/1700) [`d3de9c8`](https://github.com/ngrok/mantle/commit/d3de9c8fcaf3e8498d4c8a1841d524a98813b25e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `dist/agent.json` and `dist/llms.txt` now name the hosted MCP server, `https://mantle.ngrok.com/mcp`, in `endpoints.mcp`. `dist/llms.txt` now tells agents to read the type declarations that `package.json#exports` names, because some subpaths do not ship a `.d.ts` file with the same name.
+
+  `agent.json` now reads a JSDoc that has a `//` comment between it and its declaration, so `useCallbackRef` has its summary and example.
+
+  The npm pages of all three packages now link to the package directory in the repository, and list keywords for search.
+
+- [#1697](https://github.com/ngrok/mantle/pull/1697) [`6d6ad8c`](https://github.com/ngrok/mantle/commit/6d6ad8c9c0f869cc6a995f3d86e8158f333b07cb) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Charts work with a finger. Drag sideways across a `BarChart`, `LineChart`, `AreaChart`, or 2D `ScatterPlot` to move the tooltip to the datum under your finger. A drag does not call `onDatumActivate`; a tap does. A vertical drag still scrolls the page, and a pinch still zooms it. The tooltip stays when you lift your finger, and a tap outside the chart hides it. A long press no longer selects the plot or opens the browser's callout menu.
+
+- [#1700](https://github.com/ngrok/mantle/pull/1700) [`d3de9c8`](https://github.com/ngrok/mantle/commit/d3de9c8fcaf3e8498d4c8a1841d524a98813b25e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Ship mantle's design tokens in the Design Tokens Community Group (DTCG) format, version 2025.10.
+
+  - `@ngrok/mantle/tokens.json` holds every token with its light theme value: the color palette and the semantic colors, font stacks, font weights, font sizes, spacing, radii, shadows, z-index, breakpoints, container widths, and timing functions.
+  - `@ngrok/mantle/tokens.dark.json` holds the tokens that change in the dark theme.
+  - `@ngrok/mantle/tokens.resolver.json` is a DTCG resolver document that applies the dark file for the `dark` context.
+
+  A token path joined with `-` names its Tailwind theme variable, so `color.sky.500` is `--color-sky-500`. The fluid font sizes `text-lg` to `text-9xl` use `clamp()`, which DTCG cannot express, so the files list them under `$extensions` with their CSS values.
+
+- [#1701](https://github.com/ngrok/mantle/pull/1701) [`46841eb`](https://github.com/ngrok/mantle/commit/46841eb142622f21c8cd9f112360747505ea47e5) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A `Popover`, `DropdownMenu`, `Select`, `HoverCard`, or `Tooltip` outside a `Dialog`, `AlertDialog`, or `Sheet` paints under that overlay when it opens after the overlay. Escape from the overlay's content now closes the overlay, and the float stays open. Before, Escape closed the hidden float, and the overlay stayed open. A `Popover` that opens under an overlay also no longer moves focus out of the overlay. The overlay content's `onEscapeKeyDown` still runs first and can keep the overlay open.
+
+- [#1701](https://github.com/ngrok/mantle/pull/1701) [`46841eb`](https://github.com/ngrok/mantle/commit/46841eb142622f21c8cd9f112360747505ea47e5) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The JSDoc in the built types and the package READMEs no longer use em-dash asides: each one is now a parenthetical, a colon, or a separate sentence. Editor hover text and `llms.txt` now read the same as the docs pages.
+
+  The screen-reader caption on a chart's data table now reads `Visitors by month: chart data.` instead of `Visitors by month — chart data.` An accessible-name query in a test that matches the old caption needs the new text.
+
+- [#1700](https://github.com/ngrok/mantle/pull/1700) [`d3de9c8`](https://github.com/ngrok/mantle/commit/d3de9c8fcaf3e8498d4c8a1841d524a98813b25e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The published files keep the `"use client"` directive. Each `dist` chunk that holds a client component or hook now starts with `"use client"`, so a React Server Components host treats mantle components as client components. A compound component such as `Popover` is one object, and a server component cannot read a part of a client object, such as `Popover.Root`. Render compound components from a client component.
+
+  Chunks with no client code stay free of the directive, so server code can call them: `@ngrok/mantle/cx`, `@ngrok/mantle/utils`, `@ngrok/mantle/types`, `@ngrok/mantle/color`, and `canUseDOM` from `@ngrok/mantle/browser-only`.
+
+- [#1704](https://github.com/ngrok/mantle/pull/1704) [`1b5e06f`](https://github.com/ngrok/mantle/commit/1b5e06f5316ffb13a5258a4e85db790ede28bfe9) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A `Dialog`, `AlertDialog`, or `Sheet` now yields to a popup that a script shows in a frame above it. A payment script puts such a popup on `<body>` for a 3-D Secure challenge and for a wallet sign-in. Before, the focus trap took focus back from the popup when the script moved focus there, and Escape closed the overlay under the popup. Stripe then put back the `<body>` style it saved while the overlay was open, with `pointer-events: none`, and the page took no clicks until a reload.
+
+  While the frame of the popup is on top at the center of the viewport:
+
+  - Focus that a script moves into the popup stays there.
+  - Escape does not close the overlay. It moves focus into the popup, and the popup then takes the keyboard.
+  - A click in the popup is not an outside click.
+  - The overlay removes the `aria-hidden` that it put on the popup, when the page gets a focus event for the move into the popup. Firefox sends no such event when focus was in another frame or on `<body>`.
+
+  The overlay finds the popup with a hit test, so an `onEscapeKeyDown` guard for a payment popup can go. For an Escape that the overlay yields, the content's `onEscapeKeyDown` still runs, and it gets an event that is already prevented. A click in the popup does not reach `onPointerDownOutside` or `onInteractOutside`.
+
+  A popup counts when the element on top at the center of the viewport is a frame that takes pointer input, in a child of `<body>` that has a `position` and a `z-index` at or above the `z-60` of the overlay. An open overlay sets `pointer-events: none` on `<body>`: Stripe's popups set `pointer-events: auto` themselves, and a frame that does not needs that rule in your CSS. A popup that shows page elements at the center of the viewport does not count. A toast or another `overlay-prompt` element takes clicks only, as before.
+
+  Your code still does two things:
+
+  - Close the overlay only after the popup closes. An overlay that closes under a popup can get stale state back from the script: a `<body>` style with `pointer-events: none`, and `aria-hidden` on the page.
+  - Move focus when the script gives you the result. The browser does not return focus to the overlay when the popup closes.
+
+  Docs: https://mantle.ngrok.com/components/overlays/sheet#third-party-popups
+
+- [#1700](https://github.com/ngrok/mantle/pull/1700) [`d3de9c8`](https://github.com/ngrok/mantle/commit/d3de9c8fcaf3e8498d4c8a1841d524a98813b25e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - More parts stamp a `data-slot`, so you can style or query them the same way as their siblings:
+
+  - `Popover.Trigger`, `Popover.Anchor`, and `Popover.Close`: `popover-trigger`, `popover-anchor`, and `popover-close`.
+  - `Sheet.Trigger` and `Sheet.Close`: `sheet-trigger` and `sheet-close`.
+  - `SplitButton.PrimaryAction`, `SplitButton.MenuTrigger`, `SplitButton.MenuContent`, and `SplitButton.MenuItem`: `split-button-primary-action`, `split-button-menu-trigger`, `split-button-menu-content`, and `split-button-menu-item`.
+  - `Field.Label` and `Field.HelpTrigger`: `field-label` and `field-help-trigger`.
+
+  Each slot joins in front of the slot of the part it wraps. For example, a `Popover.Trigger asChild` around a `Button` renders `data-slot="popover-trigger button"`. Match one slot with `[data-slot~="button"]`, not `[data-slot="button"]`.
+
+  `Field.Legend` and `List.Item` now join a `data-slot` that you pass in front of their own slot, instead of letting yours replace it.
+
+  `MultiSelect.Group` now merges your `className` with its default margin, as `Combobox.Group` does. Before, your `className` replaced the margin.
+
+  A part rendered outside its root now throws an error that names the root: `Alert`, `AlertDialog`, `DataTable`, and `CursorPagination.PageSizeSelect` and `CursorPagination.PageSizeValue`.
+
+- [#1700](https://github.com/ngrok/mantle/pull/1700) [`d3de9c8`](https://github.com/ngrok/mantle/commit/d3de9c8fcaf3e8498d4c8a1841d524a98813b25e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `@ngrok/mantle/source-all.css` now scans only the JavaScript in `dist`. Before, Tailwind also scanned the type declarations, `agent.json`, `llms.txt`, and the codemods, and emitted CSS for the class names in their JSDoc examples, which no component renders. The CSS output is about 5 KB smaller (minified), and the scan is faster.
+
+  `@ngrok/mantle/highlight-utils` no longer loads the Tailwind class merge engine, so its bundle is about 29 KB smaller (raw).
+
+- [#1701](https://github.com/ngrok/mantle/pull/1701) [`46841eb`](https://github.com/ngrok/mantle/commit/46841eb142622f21c8cd9f112360747505ea47e5) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `useTheme` and `useAppliedTheme` no longer cause a hydration mismatch on a page rendered without `ssrCookie`, such as a prerendered page. During hydration, both return the theme the server rendered. The next render returns the stored theme from the cookie.
+
+- [#1705](https://github.com/ngrok/mantle/pull/1705) [`5c490b1`](https://github.com/ngrok/mantle/commit/5c490b13d82e20cef7061ae858096b6c67e364dc) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `ThemeProvider` keeps the server HTML of a `Suspense` boundary that is still loading after hydration. Before, when the stored theme was not the server theme, the provider changed the theme after hydration in a context update. React then removed the server HTML of each boundary that was not hydrated, and mounted its content again. The provider now keeps the theme in a store, so a theme change re-renders only the hydrated components that read the theme.
+
 ## 0.94.0
 
 ### Minor Changes
