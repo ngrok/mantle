@@ -1,17 +1,16 @@
 "use client";
 
-import type { PropsWithChildren } from "react";
+import type { ContextType, PropsWithChildren } from "react";
 import {
 	createContext,
-	startTransition,
 	useContext,
 	useEffect,
 	useMemo,
 	useRef,
 	useState,
+	useSyncExternalStore,
 } from "react";
 import invariant from "tiny-invariant";
-import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import { useMatchesMediaQuery } from "../../hooks/use-matches-media-query.js";
 import { findCookiePair, readCookie } from "../../utils/cookie.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -71,10 +70,58 @@ type ThemeProviderState = [
 ];
 
 /**
- * The `[theme, setTheme]` tuple {@link ThemeProvider} provides. Read it with
- * {@link useTheme}. `null` outside a provider, so `useTheme` can fail fast.
+ * Holds the stored theme of one {@link ThemeProvider}.
+ *
+ * Why a store and not context state: a context change also schedules work on
+ * each Suspense boundary that is not hydrated. A sync update then drops the
+ * server HTML of that boundary, and a transition waits until it loads, so the
+ * hydrated controls show a stale theme. `useSyncExternalStore` re-renders only
+ * the hydrated components that read the theme.
  */
-const ThemeProviderContext = createContext<ThemeProviderState | null>(null);
+type ThemeStore = {
+	getTheme: () => Theme;
+	setTheme: (theme: Theme) => void;
+	subscribe: (listener: () => void) => () => void;
+};
+
+function createThemeStore(initialTheme: Theme): ThemeStore {
+	let theme = initialTheme;
+	const listeners = new Set<() => void>();
+	return {
+		getTheme: () => theme,
+		setTheme: (next) => {
+			if (next === theme) {
+				return;
+			}
+			theme = next;
+			for (const listener of listeners) {
+				listener();
+			}
+		},
+		subscribe: (listener) => {
+			listeners.add(listener);
+			return () => {
+				listeners.delete(listener);
+			};
+		},
+	};
+}
+
+/**
+ * The theme store, the theme the server rendered, and the setter of the
+ * nearest {@link ThemeProvider}. Read the theme with {@link useTheme}. `null`
+ * outside a provider, so `useTheme` can fail fast.
+ */
+const ThemeProviderContext = createContext<{
+	serverTheme: Theme;
+	setTheme: ThemeProviderState[1];
+	store: ThemeStore;
+} | null>(null);
+
+/**
+ * The store for a tree with no {@link ThemeProvider}: it always holds `"system"`.
+ */
+const noProviderStore = createThemeStore(DEFAULT_THEME);
 
 /**
  * The `forceTheme` of the nearest {@link ThemeProvider}, or `undefined` when
@@ -150,32 +197,24 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 	// Why apply during init: the resolved class must be on `<html>` before first paint.
 	// Why the client reads `document.cookie` first: the FOUC script can seed or migrate
 	// the cookie before hydration. `ssrCookie` is the fallback where cookies are blocked.
-	const [theme, setTheme] = useState<Theme>(() => {
+	const [store] = useState(() => {
 		const storedTheme = getStoredTheme({
 			cookie: canUseDOM() ? (readDocumentCookie() ?? ssrCookie) : ssrCookie,
 		});
 		applyThemeToHtml(storedTheme, { forceTheme });
-		return storedTheme;
+		return createThemeStore(storedTheme);
 	});
 
 	// Why the server theme during hydration: a prerendered page has no request
 	// cookie, so the server renders `"system"`. The client theme shows after hydration.
-	// Why a transition: a sync context update makes React drop the server HTML of a
-	// Suspense boundary that is still loading, and mount its content again.
-	const [showsClientTheme, setShowsClientTheme] = useState(useIsHydrated());
-	useEffect(() => {
-		startTransition(() => {
-			setShowsClientTheme(true);
-		});
-	}, []);
-	const renderedTheme = showsClientTheme ? theme : getStoredTheme({ cookie: ssrCookie });
+	const serverTheme = getStoredTheme({ cookie: ssrCookie });
 
 	const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
 
 	useEffect(() => {
 		function syncThemeFromCookie() {
 			const newTheme = getStoredTheme({ cookie: readDocumentCookie() ?? ssrCookie });
-			setTheme(newTheme);
+			store.setTheme(newTheme);
 			applyThemeToHtml(newTheme, { forceTheme });
 		}
 
@@ -243,12 +282,12 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 			closeBroadcastChannel(broadcastChannelRef.current);
 			broadcastChannelRef.current = null;
 		};
-	}, [forceTheme, ssrCookie]);
+	}, [forceTheme, ssrCookie, store]);
 
-	const value: ThemeProviderState = useMemo(
-		() => [
-			renderedTheme,
-			(next: Theme | ((theme: Theme) => Theme), { origin }: SetThemeOptions = {}) => {
+	const value = useMemo(
+		() => ({
+			serverTheme,
+			setTheme: (next: Theme | ((theme: Theme) => Theme), { origin }: SetThemeOptions = {}) => {
 				// Why read `<html>` for an updater: the swap runs `update` in a later
 				// frame, so a second call can come first. `update` writes `<html>` at once.
 				const resolveNext = () => {
@@ -256,12 +295,12 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 						return next;
 					}
 					const stored = document.documentElement.dataset.theme;
-					return next(isTheme(stored) ? stored : theme);
+					return next(isTheme(stored) ? stored : store.getTheme());
 				};
 				const update = () => {
 					const resolved = resolveNext();
 					setCookie(resolved);
-					setTheme(resolved);
+					store.setTheme(resolved);
 					applyThemeToHtml(resolved, { forceTheme });
 					notifyOtherTabs(resolved, {
 						broadcastChannel: broadcastChannelRef.current,
@@ -277,8 +316,9 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 					swapTheme(update, { origin });
 				}
 			},
-		],
-		[forceTheme, renderedTheme, theme],
+			store,
+		}),
+		[forceTheme, serverTheme, store],
 	);
 
 	return (
@@ -308,12 +348,22 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
  *
  * @note This function will throw an error if used outside of a ThemeProvider context tree.
  */
-function useTheme() {
+function useTheme(): ThemeProviderState {
 	const context = useContext(ThemeProviderContext);
 
 	invariant(context, "useTheme must be used within a ThemeProvider");
 
-	return context;
+	return [useStoredTheme(context), context.setTheme];
+}
+
+/**
+ * Reads the theme of the nearest {@link ThemeProvider}, or `"system"` outside
+ * one. During hydration it returns the theme the server rendered.
+ */
+function useStoredTheme(context: ContextType<typeof ThemeProviderContext>): Theme {
+	const store = context?.store ?? noProviderStore;
+	const serverTheme = context?.serverTheme ?? DEFAULT_THEME;
+	return useSyncExternalStore(store.subscribe, store.getTheme, () => serverTheme);
 }
 
 /**
@@ -400,9 +450,8 @@ function resolveTheme(
  * @see https://mantle.ngrok.com/components/primitives/theme
  */
 function useAppliedTheme() {
-	const themeContext = useContext(ThemeProviderContext);
+	const theme = useStoredTheme(useContext(ThemeProviderContext));
 	const forcedTheme = useForcedTheme();
-	const theme = themeContext != null ? themeContext[0] : "system";
 
 	const prefersDarkMode = useMatchesMediaQuery(prefersDarkModeMediaQuery);
 

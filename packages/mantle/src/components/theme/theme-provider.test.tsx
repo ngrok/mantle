@@ -1,11 +1,13 @@
 import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ReactElement } from "react";
+import { Suspense, use } from "react";
 import type { Root } from "react-dom/client";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
+import { canUseDOM } from "../browser-only/can-use-dom.js";
 import {
 	extractThemeCookie,
 	getStoredTheme,
@@ -325,6 +327,64 @@ describe("ssrCookie seeds the server render", () => {
 			container.remove();
 		},
 	);
+
+	test("with no ssrCookie, shows the client theme and a click at once, and keeps the server HTML of a boundary that still loads", async () => {
+		const { promise, resolve } = Promise.withResolvers<undefined>();
+		// Why `canUseDOM`: the server render stubs `window` away, so the server renders
+		// the text and the hydration render suspends until the test resolves the promise.
+		function Pending() {
+			const [theme] = useTheme();
+			if (canUseDOM()) {
+				use(promise);
+			}
+			return <p>{`pending theme=${theme}`}</p>;
+		}
+		const app = (
+			<ThemeProvider>
+				<ThemeProbe />
+				<ThemeControls />
+				<Suspense fallback={null}>
+					<Pending />
+				</Suspense>
+			</ThemeProvider>
+		);
+		const container = document.createElement("div");
+		container.innerHTML = renderOnServer(app);
+		const serverParagraph = container.querySelector("p");
+		document.body.append(container);
+		mockMatchMedia({ [PREFERS_DARK]: false });
+		document.cookie = `${THEME_COOKIE}=dark; path=/`;
+		const onRecoverableError = vi.fn<(error: unknown) => void>();
+
+		let root: Root | undefined;
+		await act(async () => {
+			root = hydrateRoot(container, app, { onRecoverableError });
+		});
+
+		expect(container.querySelector("span")?.textContent).toBe("theme=dark applied=dark");
+		expect(container.querySelector("p")).toBe(serverParagraph);
+
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "light" }));
+		});
+
+		expect(container.querySelector("span")?.textContent).toBe("theme=light applied=light");
+		expect(container.querySelector("p")).toBe(serverParagraph);
+
+		await act(async () => {
+			resolve(undefined);
+			await promise;
+		});
+
+		expect(onRecoverableError).toHaveBeenCalledTimes(0);
+		expect(container.querySelector("p")).toBe(serverParagraph);
+		expect(serverParagraph?.textContent).toBe("pending theme=light");
+
+		act(() => {
+			root?.unmount();
+		});
+		container.remove();
+	});
 });
 
 describe("ThemeProvider applies and persists a selection", () => {
