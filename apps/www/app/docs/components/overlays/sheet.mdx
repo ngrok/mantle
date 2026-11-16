@@ -134,7 +134,7 @@ The example runs `confirmWithBank`, a stand-in for a payment script. It does wha
 - It calls `focus()` on the frame from the page.
 - It saves the `<body>` style, and puts that style back when the popup closes.
 
-Select **Save card**. In the bank's frame, select the code field and type a code. Press Escape in the frame to cancel the check: the popup closes, the sheet stays open, and focus moves to the result. The sheet itself is an ordinary form.
+Select **Save card**. In the bank's frame, select the code field and type a code. Press Escape in the frame to cancel the check: the popup closes, the sheet stays open, and focus moves to the result. While the popup is open, the sheet ignores each close request.
 
 <Example name="components/overlays/sheet/third-party-popups" title="Sheet third-party popups example">
 
@@ -264,10 +264,23 @@ function ChallengeResultAlert({ result }: { result: ChallengeResult }) {
 }
 
 function Example() {
+	const [isOpen, setIsOpen] = useState(false);
 	const [status, setStatus] = useState<"idle" | "confirming" | ChallengeResult>("idle");
 
 	return (
-		<Sheet.Root onOpenChange={() => setStatus("idle")}>
+		<Sheet.Root
+			open={isOpen}
+			onOpenChange={(open) => {
+				// Keep the sheet open until the popup closes. Focus can come back to
+				// the sheet from the frame, and a close in between leaves the page
+				// with no clicks.
+				if (status === "confirming") {
+					return;
+				}
+				setIsOpen(open);
+				setStatus("idle");
+			}}
+		>
 			<Sheet.Trigger asChild>
 				<Button type="button" appearance="filled" intent="neutral">
 					Add payment method

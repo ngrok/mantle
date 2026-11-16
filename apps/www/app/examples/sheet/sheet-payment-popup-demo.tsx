@@ -139,19 +139,33 @@ function ChallengeResultAlert({ result }: { result: ChallengeResult }) {
 }
 
 /**
- * Demonstrates a `Sheet` under the popup of a payment script. The sheet has no
- * code for the popup: focus stays in the bank's frame, Escape in the frame
- * closes only the popup, and the page takes clicks after the popup closes.
- * The form moves focus to the result when the popup closes.
+ * Demonstrates a `Sheet` under the popup of a payment script. The sheet needs
+ * no code for focus, Escape, or clicks: focus stays in the bank's frame, Escape
+ * in the frame closes only the popup, and the page takes clicks after the popup
+ * closes. The sheet stays open while the popup is open, and the form moves
+ * focus to the result when the popup closes.
  *
  * @example
  * <PaymentPopupDemo />
  */
 export function PaymentPopupDemo() {
+	const [isOpen, setIsOpen] = useState(false);
 	const [status, setStatus] = useState<"idle" | "confirming" | ChallengeResult>("idle");
 
 	return (
-		<Sheet.Root onOpenChange={() => setStatus("idle")}>
+		<Sheet.Root
+			open={isOpen}
+			onOpenChange={(open) => {
+				// Keep the sheet open until the popup closes. Focus can come back to
+				// the sheet from the frame, and a close in between leaves the page
+				// with no clicks.
+				if (status === "confirming") {
+					return;
+				}
+				setIsOpen(open);
+				setStatus("idle");
+			}}
+		>
 			<Sheet.Trigger asChild>
 				<Button type="button" appearance="filled" intent="neutral">
 					Add payment method
