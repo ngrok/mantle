@@ -6,6 +6,7 @@ import { TerminalWindowIcon } from "@phosphor-icons/react/TerminalWindow";
 import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 import { useState } from "react";
 
+import { PaymentPopupDemo } from "~/examples/sheet/sheet-payment-popup-demo";
 import { TanStackFormDemo } from "~/examples/sheet/sheet-tanstack-form-demo";
 import { PreviewCanvas } from "~/components/preview-canvas";
 
@@ -212,6 +213,15 @@ export function WithTanstackFormExample() {
 	return (
 		<PreviewCanvas className="min-h-160 w-full">
 			<TanStackFormDemo />
+		</PreviewCanvas>
+	);
+}
+
+/** The "Third-party popups" example on the Sheet docs page. */
+export function ThirdPartyPopupsExample() {
+	return (
+		<PreviewCanvas className="min-h-160 w-full">
+			<PaymentPopupDemo />
 		</PreviewCanvas>
 	);
 }

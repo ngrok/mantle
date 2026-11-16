@@ -19,6 +19,7 @@ import { Slot } from "../slot/index.js";
 import { preventCloseOnPromptInteraction } from "../toast/prevent-close-on-prompt-interaction.js";
 import { parseBooleanish } from "../../types/booleanish.js";
 import {
+	getCoveringFrame,
 	LayerContainerContext,
 	useLayerContainer,
 	useRegisterOverlay,
@@ -153,6 +154,7 @@ const Content = ({
 			if (layerContainer != null && escapeBelongsToNestedPopup(layerContainer, event.target)) {
 				event.preventDefault();
 			}
+			yieldEscapeToCoveringFrame(event);
 			onEscapeKeyDown?.(event);
 			if (!event.defaultPrevented) {
 				rootState?.close();
@@ -165,6 +167,7 @@ const Content = ({
 			ref={composedRef}
 			onEscapeKeyDown={(event) => {
 				preventCloseOnNestedPopupEscape(event);
+				yieldEscapeToCoveringFrame(event);
 				onEscapeKeyDown?.(event);
 			}}
 			onInteractOutside={(event) => {
@@ -253,6 +256,28 @@ function preventCloseOnNestedPopupEscape(
 	if (escapeBelongsToNestedPopup(event.currentTarget, event.target)) {
 		event.preventDefault();
 	}
+}
+
+/**
+ * Gives an Escape to the frame that covers the parent dialog/sheet/alert-dialog,
+ * such as a 3-D Secure challenge that a payment script puts on `<body>`. The
+ * dialog stays open, and focus moves into the frame.
+ *
+ * Why the dialog stays open: a dialog that closes under the frame leaves the
+ * frame with no owner. A payment script then puts back the `<body>` styles it
+ * saved while the dialog was open, and the page stops taking clicks.
+ *
+ * Why the focus move: a key press reaches a frame only while focus is in it.
+ * The frame then takes the keyboard.
+ */
+function yieldEscapeToCoveringFrame(event: Event): void {
+	const frame = getCoveringFrame();
+	if (frame == null) {
+		return;
+	}
+	event.preventDefault();
+	// Why a timer: Firefox ignores a `focus()` call on a frame from a key listener.
+	setTimeout(() => frame.focus());
 }
 
 /**

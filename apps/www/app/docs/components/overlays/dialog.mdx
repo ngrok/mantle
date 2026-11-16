@@ -74,6 +74,16 @@ UI that must take clicks above an open dialog, such as a consent banner, carries
 
 The class reaches pointer input only. The open dialog traps keyboard focus and hides outside content from assistive technology with `aria-hidden`, so a keyboard or screen reader user cannot reach the banner. Put a control that every user must reach inside the dialog content.
 
+## Third-party popups
+
+A script can show its own popup in a frame on `<body>`, above the dialog. A payment script does this for a 3-D Secure challenge and for a wallet sign-in. While that frame is on top at the center of the viewport, the dialog yields to the popup:
+
+- Focus that the script moves into the popup stays there. The focus trap does not take it back.
+- Escape does not close the dialog. It moves focus into the popup, and the popup then takes the keyboard.
+- A click in the popup is not an outside click.
+
+Close the dialog from your code only after the popup closes. [Third-party popups](/components/overlays/sheet#third-party-popups) on the Sheet page has the reason, the rule for what counts as a popup, and an example.
+
 ## Handling autofill overlays
 
 When a dialog contains form inputs, browser autofill or password-manager plugins (e.g. 1Password) may render overlays as siblings to the dialog content. By default, clicking these overlays triggers `onPointerDownOutside`, which closes the dialog. Use `isDialogOverlayTarget` to prevent this:

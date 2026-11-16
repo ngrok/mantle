@@ -331,6 +331,14 @@ type ContentProps = ComponentProps<typeof DialogPrimitiveContent> &
  * focus and hides outside content from assistive technology. Put a control that
  * every user must reach inside the content.
  *
+ * A script can show its own popup in a frame on `<body>`, above the dialog,
+ * such as the 3-D Secure challenge of a payment script. While that frame is
+ * on top at the center of the viewport, the dialog yields to the popup:
+ *
+ * - Focus that a script moves into the popup stays there.
+ * - Escape moves focus into the popup and does not close the dialog.
+ * - A click in the popup is not an outside click.
+ *
  * @see https://mantle.ngrok.com/components/overlays/dialog#dialogcontent
  *
  * @example
@@ -965,6 +973,14 @@ const Dialog = {
 	 * The class reaches pointer input only. The open dialog traps keyboard
 	 * focus and hides outside content from assistive technology. Put a control that
 	 * every user must reach inside the content.
+	 *
+	 * A script can show its own popup in a frame on `<body>`, above the dialog,
+	 * such as the 3-D Secure challenge of a payment script. While that frame is
+	 * on top at the center of the viewport, the dialog yields to the popup:
+	 *
+	 * - Focus that a script moves into the popup stays there.
+	 * - Escape moves focus into the popup and does not close the dialog.
+	 * - A click in the popup is not an outside click.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/dialog#dialogcontent
 	 *
