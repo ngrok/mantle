@@ -511,7 +511,7 @@
 		"happy-dom": "catalog:",
 		"oxc-transform-react": "catalog:",
 		"playwright": "catalog:",
-		"postcss": "8.5.32",
+		"postcss": "8.5.33",
 		"react": "catalog:",
 		"react-dom": "catalog:",
 		"tailwindcss": "catalog:",
