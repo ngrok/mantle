@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, type ComponentProps, useContext, useEffect, useState } from "react";
+import {
+	createContext,
+	type ComponentProps,
+	useContext,
+	useEffect,
+	useLayoutEffect,
+	useState,
+} from "react";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { useComposedRefs } from "../compose-refs/use-composed-refs.js";
 
@@ -102,7 +109,8 @@ function LayerContainer({
 }
 
 /**
- * An open overlay that can take an Escape from a float it covers.
+ * An open overlay. It can take an Escape from a float it covers, and it yields
+ * to a layer that covers it.
  */
 type OpenOverlay = {
 	/** The overlay's layer container: its positioner. */
@@ -119,9 +127,10 @@ type OpenOverlay = {
 const openOverlays: OpenOverlay[] = [];
 
 /**
- * Registers an open overlay, so a float it covers can hand it Escape. Pass
- * `null` for `container` or `content` while the overlay is closed or not yet
- * mounted, and it stays out of the registry.
+ * Registers an open overlay, so a float it covers can hand it Escape, and so
+ * the overlay on top can find a layer that covers it. Pass `null` for
+ * `container` or `content` while the overlay is closed or not yet mounted, and
+ * it stays out of the registry.
  */
 function useRegisterOverlay({
 	container,
@@ -208,10 +217,171 @@ function useFloatEscapeKeyDown(
 	};
 }
 
+/**
+ * What a hit test can find outside the top overlay that is not a covering
+ * layer: the backdrop of an overlay, the content of an overlay that plays its
+ * exit animation, and a floating prompt.
+ */
+const notCoveringLayers = "[data-overlay], [data-mantle-modal-content], .overlay-prompt";
+
+/**
+ * The layer that covers the open overlay whose content is `content`: a child
+ * of `<body>` that is on top at the center of the viewport, takes pointer
+ * input there, and is stacked at or above the overlay. A widget in the overlay
+ * can put such a layer on `<body>`, for example a payment script that shows a
+ * 3-D Secure challenge in a frame.
+ *
+ * Returns `null` when the overlay or one of its floats is on top, when another
+ * overlay is open above this one, and for a floating prompt (`overlay-prompt`),
+ * which takes clicks only.
+ *
+ * Why a hit test: an open modal overlay sets `pointer-events: none` on
+ * `<body>`, so only a layer that turns pointer input back on is on top. That
+ * layer is one the user can use, and the page behind the overlay never is.
+ *
+ * @example
+ * ```ts
+ * // a payment challenge fills the viewport above the open sheet
+ * getCoveringLayer(sheetContent); // the wrapper the script put on `<body>`
+ * ```
+ */
+function getCoveringLayer(content: Element | null): Element | null {
+	const overlay = openOverlays.at(-1);
+	// Why the top overlay only: Radix already sends Escape, focus, and presses
+	// to an overlay that is open above this one.
+	if (content == null || overlay?.content !== content) {
+		return null;
+	}
+	// Why the shadow root: the hit test of the document stops at the host of a
+	// shadow tree, and an overlay in that tree is then never on top.
+	const root = content.getRootNode();
+	const scope = root instanceof ShadowRoot ? root : content.ownerDocument;
+	// Why the `elementFromPoint` guard: jsdom has no layout and leaves the method
+	// out, so a test that runs there counts the overlay as on top.
+	if (typeof scope.elementFromPoint !== "function") {
+		return null;
+	}
+	const { clientHeight, clientWidth } = content.ownerDocument.documentElement;
+	const topElement = scope.elementFromPoint(clientWidth / 2, clientHeight / 2);
+	const layer = topElement?.closest("body > *");
+	if (
+		topElement == null ||
+		layer == null ||
+		overlay.container.contains(topElement) ||
+		topElement.closest(notCoveringLayers) != null
+	) {
+		return null;
+	}
+	// Why the `z-index` of the layer: page chrome can turn pointer input on and
+	// paint above the overlay, and its `<body>` child is the page itself.
+	return stackLevel(layer) >= stackLevel(overlay.container) ? layer : null;
+}
+
+/**
+ * The `z-index` of `element` as a number, or `NaN` for `auto`. `NaN` is not at
+ * or above a level, so an element with no `z-index` never covers an overlay.
+ */
+function stackLevel(element: Element): number {
+	return Number(getComputedStyle(element).zIndex);
+}
+
+/**
+ * Whether `node` is in the layer that covers the top open overlay. See
+ * {@link getCoveringLayer}.
+ */
+function isInCoveringLayer(node: EventTarget | null): boolean {
+	const overlay = openOverlays.at(-1);
+	// Why the container check first: most nodes are in the overlay, and the hit
+	// test makes the browser lay out the page.
+	if (overlay == null || !(node instanceof Node) || overlay.container.contains(node)) {
+		return false;
+	}
+	return getCoveringLayer(overlay.content)?.contains(node) ?? false;
+}
+
+/**
+ * Stops a focus event that moves focus into the layer that covers the top open
+ * overlay, so the focus trap of the overlay does not take focus back.
+ *
+ * Why stop the event: the trap is a later listener on the document. Radix
+ * lets only a React child of the content keep focus outside the content.
+ */
+function keepFocusInCoveringLayer(event: FocusEvent): void {
+	const destination = event.type === "focusin" ? event.target : event.relatedTarget;
+	if (isInCoveringLayer(destination)) {
+		event.stopImmediatePropagation();
+	}
+}
+
+/**
+ * The presses that landed in a covering layer.
+ *
+ * Why a record: Radix reports an outside press on the click that follows it,
+ * and a layer that closes on the press is gone by then.
+ */
+const coveringLayerPresses = new WeakSet<Event>();
+
+/**
+ * Whether the pointer down `event` landed in the layer that covered the top
+ * open overlay at that time. The overlay then does not count it as a press
+ * outside.
+ *
+ * @example
+ * ```ts
+ * // a press on the backdrop of a payment challenge above the open sheet
+ * isCoveringLayerPress(event.detail.originalEvent); // true
+ * ```
+ */
+function isCoveringLayerPress(event: Event): boolean {
+	return coveringLayerPresses.has(event);
+}
+
+/**
+ * Lets the layer that covers the top open overlay keep focus and take presses.
+ * An overlay calls it while it is mounted.
+ *
+ * A click in a frame, and a frame that focuses itself, never reach the focus
+ * trap. The focus case this handles is a page script that calls `focus()` on
+ * the frame of the layer, as a wallet popup does when it opens.
+ *
+ * @example
+ * ```tsx
+ * const Content = (props: ComponentProps<typeof DialogPrimitiveContent>) => {
+ *   useCoveringLayerEvents();
+ *   return <DialogPrimitiveContent {...props} />;
+ * };
+ * ```
+ */
+function useCoveringLayerEvents(): void {
+	// Why a layout effect: Radix adds the focus trap in an effect. These
+	// listeners must be on the document first, or they cannot stop the event.
+	useLayoutEffect(() => {
+		// Why a function for each overlay: the document keeps one copy of a
+		// listener, and an overlay that closes must not remove it for the others.
+		const keepFocus = (event: FocusEvent) => keepFocusInCoveringLayer(event);
+		const recordPress = (event: PointerEvent) => {
+			if (isInCoveringLayer(event.target)) {
+				coveringLayerPresses.add(event);
+			}
+		};
+		document.addEventListener("focusin", keepFocus);
+		document.addEventListener("focusout", keepFocus);
+		document.addEventListener("pointerdown", recordPress, true);
+		return () => {
+			document.removeEventListener("focusin", keepFocus);
+			document.removeEventListener("focusout", keepFocus);
+			document.removeEventListener("pointerdown", recordPress, true);
+		};
+	}, []);
+}
+
 export {
 	//,
+	getCoveringLayer,
+	isCoveringLayerPress,
 	LayerContainer,
 	LayerContainerContext,
+	useCoveringLayerEvents,
 	useFloatEscapeKeyDown,
 	useFloatOpenAutoFocus,
 	useIsInsideModalLayer,

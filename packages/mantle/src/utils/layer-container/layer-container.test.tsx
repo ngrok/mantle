@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { type ReactNode, useState } from "react";
 import { renderToString } from "react-dom/server";
-import { describe, expect, test, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, onTestFinished, test, vi } from "vitest";
 import { AlertDialog } from "../../components/alert-dialog/alert-dialog.js";
 import { Combobox } from "../../components/combobox/combobox.js";
 import { Command } from "../../components/command/command.js";
@@ -1063,5 +1063,323 @@ describe("Escape and covered floats", () => {
 
 		expect(onDialogOpenChange).toHaveBeenCalledWith(false);
 		expect(onSheetOpenChange).not.toHaveBeenCalled();
+	});
+});
+
+/**
+ * Mounts a stand-in for a popup that a widget puts on `<body>`, such as a 3-D
+ * Secure challenge: a wrapper that holds a frame. The inline styles copy what
+ * a real popup sets: a `z-index` above every layer, and the `pointer-events`
+ * that an open overlay turns off on `<body>`.
+ *
+ * Why the stub: happy-dom lays nothing out, so its hit test finds nothing.
+ * The stub returns the frame, as a browser does while the popup covers the
+ * viewport. `layer-container.browser.test.tsx` runs the real hit test.
+ */
+function coverWithPopup() {
+	const popup = document.createElement("div");
+	popup.style.cssText = "position: fixed; z-index: 2147483647; pointer-events: auto;";
+	const frame = document.createElement("iframe");
+	popup.append(frame);
+	document.body.append(popup);
+	onTestFinished(() => popup.remove());
+	const hitTest = vi.spyOn(document, "elementFromPoint").mockReturnValue(frame);
+
+	return { frame, hitTest, popup };
+}
+
+describe("a layer that covers an overlay", () => {
+	// Cross-file spelling pin: tests load no Tailwind, so this restates the
+	// `z-60` tier that each overlay positioner and backdrop carries. A layer
+	// covers an overlay only from that level up.
+	let tierStyle: HTMLStyleElement;
+
+	beforeAll(() => {
+		tierStyle = document.createElement("style");
+		tierStyle.textContent = ".z-60 { z-index: 60; }";
+		document.head.append(tierStyle);
+	});
+
+	afterAll(() => {
+		tierStyle.remove();
+	});
+
+	test.each(uncontrolledOverlays)(
+		"Escape leaves the $name open under the layer, and closes it after the layer goes",
+		async ({ render: renderOverlay }) => {
+			// Regression (MNTL-136): Escape closed a sheet under a payment popup,
+			// and the popup then put the sheet's `pointer-events: none` back on `<body>`.
+			const user = userEvent.setup();
+			render(renderOverlay(<button type="button">Save</button>));
+			const { hitTest } = coverWithPopup();
+
+			await user.keyboard("{Escape}");
+			expect(screen.getByText("Overlay")).toBeInTheDocument();
+
+			// With the popup gone, the hit test finds the overlay itself again.
+			hitTest.mockReturnValue(screen.getByText("Overlay"));
+			await user.keyboard("{Escape}");
+			await waitFor(() => {
+				expect(screen.queryByText("Overlay")).not.toBeInTheDocument();
+			});
+		},
+	);
+
+	test("a layer at the tier of the overlay covers the dialog", async () => {
+		// The Stacking Layers page puts custom UI above an open overlay at `z-60`,
+		// the level of the overlay itself.
+		const user = userEvent.setup();
+		render(
+			<Dialog.Root defaultOpen>
+				<Dialog.Content>
+					<Dialog.Title>Overlay</Dialog.Title>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+		const { popup } = coverWithPopup();
+		popup.style.zIndex = "60";
+
+		await user.keyboard("{Escape}");
+
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+	});
+
+	test("a consumer onEscapeKeyDown sees the event that the covered dialog already prevented", async () => {
+		const user = userEvent.setup();
+		const preventedWhenCalled: boolean[] = [];
+		render(
+			<Dialog.Root defaultOpen>
+				<Dialog.Content
+					onEscapeKeyDown={(event) => {
+						preventedWhenCalled.push(event.defaultPrevented);
+					}}
+				>
+					<Dialog.Title>Overlay</Dialog.Title>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+		coverWithPopup();
+
+		await user.keyboard("{Escape}");
+
+		expect(preventedWhenCalled).toEqual([true]);
+	});
+
+	test("Escape from a covered float leaves the dialog open under the layer", async () => {
+		const user = userEvent.setup();
+		render(
+			<LateFloatUnderOverlay
+				renderOverlay={(children) => (
+					<Dialog.Root defaultOpen>
+						<Dialog.Content>
+							<Dialog.Title>Overlay</Dialog.Title>
+							<Dialog.Body>{children}</Dialog.Body>
+						</Dialog.Content>
+					</Dialog.Root>
+				)}
+			/>,
+		);
+		await user.click(screen.getByRole("button", { name: "Open late float" }));
+		coverWithPopup();
+
+		await user.keyboard("{Escape}");
+
+		// The popover is a `dialog` too, so the button in the dialog stands for it.
+		expect(screen.getByRole("button", { name: "Open late float" })).toBeInTheDocument();
+		expect(screen.getByText("Page popover")).toBeInTheDocument();
+	});
+
+	/**
+	 * Renders an open dialog beside a page button, and returns what a hit test
+	 * can find on top of the dialog that is not a layer.
+	 */
+	function renderDialogOnPage() {
+		render(
+			<>
+				<button type="button">Page</button>
+				<Dialog.Root defaultOpen>
+					<Dialog.Content>
+						<Dialog.Title>Overlay</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+			</>,
+		);
+		const backdrop = document.querySelector('[data-slot="dialog-overlay"]');
+		if (!(backdrop instanceof HTMLElement)) {
+			throw new Error("dialog overlay not found");
+		}
+		// The modal marks the page `aria-hidden`, so the query passes `hidden: true`.
+		const pageButton = screen.getByRole("button", { name: "Page", hidden: true });
+
+		return { backdrop, pageButton };
+	}
+
+	/**
+	 * A stand-in for a toast in the `Toaster` viewport. The `.overlay-prompt`
+	 * class and the `z-index` above every tier are what `Toaster` renders.
+	 */
+	function mountToast() {
+		const prompt = document.createElement("div");
+		prompt.className = "overlay-prompt";
+		prompt.style.cssText = "position: fixed; z-index: 999999999; pointer-events: auto;";
+		const toast = document.createElement("button");
+		prompt.append(toast);
+		document.body.append(prompt);
+		onTestFinished(() => prompt.remove());
+
+		return toast;
+	}
+
+	/**
+	 * A stand-in for the content of an overlay that closed and still plays its
+	 * exit animation, so it is no longer in the registry of open overlays.
+	 * Cross-file spelling pin: each overlay content carries
+	 * `data-mantle-modal-content`, in a positioner at the `z-60` tier.
+	 */
+	function mountClosingOverlayContent() {
+		const positioner = document.createElement("div");
+		positioner.className = "z-60";
+		const content = document.createElement("div");
+		content.setAttribute("data-mantle-modal-content", "");
+		positioner.append(content);
+		document.body.append(positioner);
+		onTestFinished(() => positioner.remove());
+
+		return content;
+	}
+
+	const notLayers = [
+		{
+			name: "a toast, which takes clicks only",
+			find: () => mountToast(),
+		},
+		{
+			name: "the backdrop of the dialog, which shows while a menu in the dialog is open",
+			find: (page: ReturnType<typeof renderDialogOnPage>) => page.backdrop,
+		},
+		{
+			name: "the content of another overlay, which plays its exit animation",
+			find: () => mountClosingOverlayContent(),
+		},
+		{
+			name: "page chrome that paints above the dialog",
+			find: (page: ReturnType<typeof renderDialogOnPage>) => page.pageButton,
+		},
+		{
+			name: "the root element, which a view transition puts on top",
+			find: () => document.documentElement,
+		},
+	];
+	test.each(notLayers)("Escape closes a dialog under $name", async ({ find }) => {
+		const user = userEvent.setup();
+		const page = renderDialogOnPage();
+		vi.spyOn(document, "elementFromPoint").mockReturnValue(find(page));
+
+		await user.keyboard("{Escape}");
+
+		await waitFor(() => {
+			expect(screen.queryByText("Overlay")).not.toBeInTheDocument();
+		});
+	});
+
+	test("a press in the layer leaves the dialog open", async () => {
+		const user = userEvent.setup();
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<Dialog.Root defaultOpen onOpenChange={onOpenChange}>
+				<Dialog.Content>
+					<Dialog.Title>Overlay</Dialog.Title>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+		// The hit test finds the frame, and the press lands on the wrapper around it.
+		const { popup } = coverWithPopup();
+
+		await user.click(popup);
+
+		expect(onOpenChange).toHaveBeenCalledTimes(0);
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+	});
+
+	test("a press that closes the layer leaves the dialog open", async () => {
+		// Radix reports an outside press on the click. A popup that closes on a
+		// press of its backdrop is gone by then, and the press was still for it.
+		const user = userEvent.setup();
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<Dialog.Root defaultOpen onOpenChange={onOpenChange}>
+				<Dialog.Content>
+					<Dialog.Title>Overlay</Dialog.Title>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+		const { hitTest, popup } = coverWithPopup();
+		popup.addEventListener("click", () => {
+			popup.remove();
+			hitTest.mockReturnValue(screen.getByRole("dialog"));
+		});
+
+		await user.click(popup);
+
+		expect(popup).not.toBeInTheDocument();
+		expect(onOpenChange).toHaveBeenCalledTimes(0);
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+	});
+
+	test("focus that a script moves into the layer stays there", async () => {
+		// Regression (MNTL-136): a wallet popup focuses its frame from the page,
+		// and the focus trap took focus back, so the keyboard acted on the sheet.
+		render(
+			<Dialog.Root defaultOpen>
+				<Dialog.Content>
+					<Dialog.Title>Overlay</Dialog.Title>
+					<Dialog.Body>
+						<button type="button">Save</button>
+					</Dialog.Body>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+		screen.getByRole("button", { name: "Save" }).focus();
+		const { frame } = coverWithPopup();
+
+		frame.focus();
+
+		expect(frame).toHaveFocus();
+	});
+
+	test("the focus trap still takes focus back from the page under the layer", async () => {
+		const { pageButton } = renderDialogOnPage();
+		const title = screen.getByText("Overlay");
+		coverWithPopup();
+
+		pageButton.focus();
+
+		expect(title.closest('[role="dialog"]')).toContainElement(
+			document.activeElement instanceof HTMLElement ? document.activeElement : null,
+		);
+	});
+
+	test("focus into the layer leaves open a dialog that is not modal, under the dialog that the layer covers", async () => {
+		// A dialog that is not modal closes when focus leaves it. Its listener is
+		// on the document before the one of the dialog inside it.
+		render(
+			<Dialog.Root defaultOpen modal={false}>
+				<Dialog.Content>
+					<Dialog.Title>Outer</Dialog.Title>
+					<Dialog.Root defaultOpen>
+						<Dialog.Content>
+							<Dialog.Title>Inner</Dialog.Title>
+						</Dialog.Content>
+					</Dialog.Root>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+		const { frame } = coverWithPopup();
+
+		frame.focus();
+
+		expect(frame).toHaveFocus();
+		expect(screen.getByText("Outer")).toBeInTheDocument();
+		expect(screen.getByText("Inner")).toBeInTheDocument();
 	});
 });

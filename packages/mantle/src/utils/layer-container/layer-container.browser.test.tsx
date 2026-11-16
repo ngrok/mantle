@@ -3,7 +3,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { useState } from "react";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, onTestFinished, test } from "vitest";
 import { Dialog } from "../../components/dialog/dialog.js";
 import { Popover } from "../../components/popover/popover.js";
 import { Sandbar } from "../../components/sandbar/sandbar.js";
@@ -354,5 +354,96 @@ describe("covered-float focus", () => {
 		} finally {
 			exitStyle.remove();
 		}
+	});
+});
+
+/**
+ * Mounts a stand-in for the popup that a payment widget puts on `<body>` for a
+ * 3-D Secure challenge: a wrapper that fills the viewport above every layer,
+ * and a frame that turns pointer input back on. The styles copy the ones
+ * Stripe.js sets on its popups.
+ */
+async function showPaymentPopup() {
+	const popup = document.createElement("div");
+	popup.style.cssText = "position: fixed; inset: 0; z-index: 2147483647;";
+	const frame = document.createElement("iframe");
+	frame.title = "Payment challenge";
+	frame.style.cssText =
+		"position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: auto;";
+	// Why a `data:` URL: its origin is opaque, so the frame is cross-origin, as a
+	// payment frame is.
+	frame.src = "data:text/html,<input>";
+	const loaded = new Promise((resolve) => {
+		frame.addEventListener("load", resolve, { once: true });
+	});
+	popup.append(frame);
+	document.body.append(popup);
+	onTestFinished(() => popup.remove());
+	await loaded;
+
+	return { frame, popup };
+}
+
+describe("a layer that covers an overlay", () => {
+	// `layer-container.test.tsx` runs each guard against a stubbed hit test.
+	// These need the real one: the paint order, `pointer-events`, and the focus
+	// events that a browser sends for a frame.
+	function renderSheet() {
+		render(
+			<Sheet.Root defaultOpen>
+				<Sheet.Content>
+					<Sheet.Header>
+						<Sheet.TitleGroup>
+							<Sheet.Title>Payment method</Sheet.Title>
+						</Sheet.TitleGroup>
+					</Sheet.Header>
+					<Sheet.Body>
+						<button type="button">Save</button>
+					</Sheet.Body>
+				</Sheet.Content>
+			</Sheet.Root>,
+		);
+	}
+
+	test("Escape leaves a sheet open under a frame that covers it, and closes it after the frame hides", async () => {
+		const user = userEvent.setup();
+		renderSheet();
+		const { popup } = await showPaymentPopup();
+
+		await user.keyboard("{Escape}");
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+		popup.style.display = "none";
+		await user.keyboard("{Escape}");
+		await waitFor(() => {
+			expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+		});
+	});
+
+	test("focus that a page script moves into the frame stays there", async () => {
+		// Regression (MNTL-136): a wallet popup calls `focus()` on its frame when
+		// it opens, and the focus trap of the sheet took focus back.
+		renderSheet();
+		screen.getByRole("button", { name: "Save" }).focus();
+		const { frame } = await showPaymentPopup();
+
+		frame.focus();
+
+		expect(frame).toHaveFocus();
+	});
+
+	test("a frame that sets no pointer-events of its own does not cover the sheet", async () => {
+		// The open sheet sets `pointer-events: none` on `<body>`. A frame that
+		// inherits it takes no click, so the hit test finds the sheet under it.
+		const user = userEvent.setup();
+		renderSheet();
+		const { frame } = await showPaymentPopup();
+		frame.style.pointerEvents = "";
+
+		await user.keyboard("{Escape}");
+
+		await waitFor(() => {
+			expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+		});
 	});
 });

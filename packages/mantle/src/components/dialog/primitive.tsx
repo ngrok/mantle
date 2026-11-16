@@ -19,7 +19,10 @@ import { Slot } from "../slot/index.js";
 import { preventCloseOnPromptInteraction } from "../toast/prevent-close-on-prompt-interaction.js";
 import { parseBooleanish } from "../../types/booleanish.js";
 import {
+	getCoveringLayer,
+	isCoveringLayerPress,
 	LayerContainerContext,
+	useCoveringLayerEvents,
 	useLayerContainer,
 	useRegisterOverlay,
 } from "../../utils/layer-container/layer-container.js";
@@ -153,26 +156,31 @@ const Content = ({
 			if (layerContainer != null && escapeBelongsToNestedPopup(layerContainer, event.target)) {
 				event.preventDefault();
 			}
+			preventCloseUnderCoveringLayer(event, contentElement);
 			onEscapeKeyDown?.(event);
 			if (!event.defaultPrevented) {
 				rootState?.close();
 			}
 		},
 	});
+	useCoveringLayerEvents();
 
 	return (
 		<DialogPrimitiveContent
 			ref={composedRef}
 			onEscapeKeyDown={(event) => {
 				preventCloseOnNestedPopupEscape(event);
+				preventCloseUnderCoveringLayer(event, contentElement);
 				onEscapeKeyDown?.(event);
 			}}
 			onInteractOutside={(event) => {
 				preventCloseOnPromptInteraction(event);
+				preventCloseOnCoveringLayerPress(event);
 				onInteractOutside?.(event);
 			}}
 			onPointerDownOutside={(event) => {
 				preventCloseOnPromptInteraction(event);
+				preventCloseOnCoveringLayerPress(event);
 				onPointerDownOutside?.(event);
 			}}
 			// Why no `aria-describedby` here: Radix sets it only while a `Description`
@@ -251,6 +259,34 @@ function preventCloseOnNestedPopupEscape(
 		return;
 	}
 	if (escapeBelongsToNestedPopup(event.currentTarget, event.target)) {
+		event.preventDefault();
+	}
+}
+
+/**
+ * Prevents the parent dialog/sheet/alert-dialog from closing on Escape while a
+ * layer outside it covers it, such as a 3-D Secure challenge that a payment
+ * script puts on `<body>`.
+ *
+ * Why: a dialog that closes under the layer leaves the layer with no owner.
+ * A payment script then puts back the `<body>` styles it saved while the dialog
+ * was open, and the page stops taking clicks.
+ */
+function preventCloseUnderCoveringLayer(event: Event, content: Element | null): void {
+	if (getCoveringLayer(content) != null) {
+		event.preventDefault();
+	}
+}
+
+/**
+ * Prevents the parent dialog/sheet/alert-dialog from closing on a press that
+ * landed in the layer that covers it. The layer is part of the dialog, so the
+ * press is not outside it.
+ */
+function preventCloseOnCoveringLayerPress(
+	event: Parameters<NonNullable<DialogPrimitiveContentProps["onInteractOutside"]>>[0],
+): void {
+	if (isCoveringLayerPress(event.detail.originalEvent)) {
 		event.preventDefault();
 	}
 }

@@ -362,6 +362,14 @@ type SheetContentProps = ComponentProps<typeof SheetPrimitiveContent> &
  * focus and hides outside content from assistive technology. Put a control that
  * every user must reach inside the content.
  *
+ * A widget in the sheet can put its own popup on `<body>`, such as the 3-D
+ * Secure challenge of a payment script. While that popup covers the center
+ * of the viewport and takes pointer input, it is part of the sheet:
+ *
+ * - Focus that a script moves into the popup stays there.
+ * - Escape does not close the sheet under the popup.
+ * - A click in the popup is not an outside click.
+ *
  * @see https://mantle.ngrok.com/components/overlays/sheet#sheetcontent
  *
  * @example
@@ -1373,6 +1381,14 @@ const Sheet = {
 	 * The class reaches pointer input only. The open sheet traps keyboard
 	 * focus and hides outside content from assistive technology. Put a control that
 	 * every user must reach inside the content.
+	 *
+	 * A widget in the sheet can put its own popup on `<body>`, such as the 3-D
+	 * Secure challenge of a payment script. While that popup covers the center
+	 * of the viewport and takes pointer input, it is part of the sheet:
+	 *
+	 * - Focus that a script moves into the popup stays there.
+	 * - Escape does not close the sheet under the popup.
+	 * - A click in the popup is not an outside click.
 	 *
 	 * @see https://mantle.ngrok.com/components/overlays/sheet#sheetcontent
 	 *
