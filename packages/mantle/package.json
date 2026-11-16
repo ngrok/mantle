@@ -505,7 +505,7 @@
 		"@types/react": "catalog:",
 		"@types/react-dom": "catalog:",
 		"@vitest/browser-playwright": "catalog:",
-		"axe-core": "4.14.0",
+		"axe-core": "4.14.1",
 		"d3-scale": "4.0.3",
 		"d3-shape": "3.2.1",
 		"happy-dom": "catalog:",

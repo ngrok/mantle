@@ -43,7 +43,7 @@
     "lint-staged": "17.6.1",
     "oxc-parser": "catalog:",
     "oxfmt": "catalog:",
-    "oxlint": "1.93.0",
+    "oxlint": "1.94.0",
     "oxlint-tsgolint": "7.0.2007",
     "tsrs": "0.25.0-ts7.1.0-beta",
     "turbo": "2.11.11",
