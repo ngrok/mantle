@@ -1,7 +1,15 @@
 "use client";
 
 import type { PropsWithChildren } from "react";
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+	createContext,
+	startTransition,
+	useContext,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import invariant from "tiny-invariant";
 import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import { useMatchesMediaQuery } from "../../hooks/use-matches-media-query.js";
@@ -151,9 +159,16 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
 	});
 
 	// Why the server theme during hydration: a prerendered page has no request
-	// cookie, so the server renders `"system"`. The next render shows the client theme.
-	const isHydrated = useIsHydrated();
-	const renderedTheme = isHydrated ? theme : getStoredTheme({ cookie: ssrCookie });
+	// cookie, so the server renders `"system"`. The client theme shows after hydration.
+	// Why a transition: a sync context update makes React drop the server HTML of a
+	// Suspense boundary that is still loading, and mount its content again.
+	const [showsClientTheme, setShowsClientTheme] = useState(useIsHydrated());
+	useEffect(() => {
+		startTransition(() => {
+			setShowsClientTheme(true);
+		});
+	}, []);
+	const renderedTheme = showsClientTheme ? theme : getStoredTheme({ cookie: ssrCookie });
 
 	const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
 
