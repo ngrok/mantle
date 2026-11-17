@@ -220,6 +220,34 @@ export function InlineActionsQueryExample() {
 	);
 }
 
+export function KeyboardShortcutQueryExample() {
+	const [query, setQuery] = useState("");
+
+	return (
+		<Query.Root
+			className="max-w-xl"
+			grammar={projectFilterGrammar}
+			items={projects}
+			value={query}
+			onValueChange={setQuery}
+		>
+			<Query.Input
+				keyboardShortcut
+				aria-label="Filter projects"
+				placeholder="Filter projects, or type a filter like is:shared"
+			/>
+			<Query.Content>
+				<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+				<Query.Empty />
+				<Query.Footer>
+					<Query.Legend />
+					<Query.KeyboardHints />
+				</Query.Footer>
+			</Query.Content>
+		</Query.Root>
+	);
+}
+
 const accountSearchGrammar = defineRemoteFilterGrammar({
 	keys: [
 		{

@@ -394,6 +394,89 @@ describe("Query.Input", () => {
 		expect(screen.getByRole("button", { name: "Clear search" })).toBeInTheDocument();
 	});
 
+	describe("keyboardShortcut", () => {
+		test("leaves `/` alone by default", () => {
+			const { input } = renderQuery();
+
+			expect(fireEvent.keyDown(document.body, { key: "/" })).toBe(true);
+			expect(input).not.toHaveFocus();
+			expect(input).not.toHaveAttribute("aria-keyshortcuts");
+			expect(document.querySelector('[data-slot~="query-input-shortcut"]')).toBeNull();
+		});
+
+		test("focuses the field on `/` and names the key", () => {
+			const { input } = renderQuery({ fieldProps: { keyboardShortcut: true } });
+
+			const hint = input
+				.closest('[data-slot~="input"]')
+				?.querySelector('[data-slot~="query-input-shortcut"]');
+			expect(hint).toHaveTextContent("/");
+			expect(hint).toHaveAttribute("aria-hidden", "true");
+			expect(input).toHaveAttribute("aria-keyshortcuts", "/");
+
+			expect(fireEvent.keyDown(document.body, { key: "/" })).toBe(false);
+			expect(input).toHaveFocus();
+		});
+
+		test("hides the hint while the query has text", () => {
+			renderQuery({ initialValue: "acme", fieldProps: { keyboardShortcut: true } });
+
+			expect(document.querySelector('[data-slot~="query-input-shortcut"]')).toBeNull();
+		});
+
+		test("lets `/` type in another text field", () => {
+			const { input } = renderQuery({
+				fieldProps: { keyboardShortcut: true },
+				before: <input aria-label="Notes" />,
+			});
+			const notes = screen.getByRole("textbox", { name: "Notes" });
+			notes.focus();
+
+			expect(fireEvent.keyDown(notes, { key: "/" })).toBe(true);
+			expect(notes).toHaveFocus();
+			expect(input).not.toHaveFocus();
+		});
+
+		test("ignores `/` with a modifier", () => {
+			const { input } = renderQuery({ fieldProps: { keyboardShortcut: true } });
+
+			expect(fireEvent.keyDown(document.body, { key: "/", ctrlKey: true })).toBe(true);
+			expect(input).not.toHaveFocus();
+		});
+
+		test("ignores `/` and shows no hint while the field is disabled", () => {
+			const { input } = renderQuery({ fieldProps: { keyboardShortcut: true, disabled: true } });
+
+			expect(fireEvent.keyDown(document.body, { key: "/" })).toBe(true);
+			expect(input).not.toHaveFocus();
+			expect(document.querySelector('[data-slot~="query-input-shortcut"]')).toBeNull();
+		});
+
+		test("gives `/` to the first mounted field that a modal does not hide", () => {
+			function ShortcutField({ label }: { label: string }) {
+				const [value, setValue] = useState("");
+				return (
+					<Query.Root grammar={testGrammar} value={value} onValueChange={setValue}>
+						<Query.Input keyboardShortcut aria-label={label} placeholder="Filter" />
+					</Query.Root>
+				);
+			}
+			render(
+				<>
+					<div aria-hidden="true">
+						<ShortcutField label="Hidden" />
+					</div>
+					<ShortcutField label="First" />
+					<ShortcutField label="Second" />
+				</>,
+			);
+
+			fireEvent.keyDown(document.body, { key: "/" });
+
+			expect(screen.getByRole("combobox", { name: "First" })).toHaveFocus();
+		});
+	});
+
 	test("renders its children as inline actions inside the input's box", () => {
 		const { input } = renderQuery({
 			fieldChildren: <button type="button">Copy query</button>,

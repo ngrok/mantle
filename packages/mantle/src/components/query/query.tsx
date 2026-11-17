@@ -453,6 +453,15 @@ type QueryInputProps = Omit<
 		 */
 		clearLabel?: string;
 		/**
+		 * Whether `/` moves focus into the field from anywhere on the page. The
+		 * field then shows a `/` hint while it is empty and not focused. Turn it on
+		 * for the one primary filter on a page. If more than one field turns it on,
+		 * the first mounted field that can take focus gets it.
+		 *
+		 * @default false
+		 */
+		keyboardShortcut?: boolean;
+		/**
 		 * Called after the clear button empties the query. Use it for work that
 		 * only a clear does, such as applying the empty query at once.
 		 */
@@ -489,6 +498,10 @@ type QueryInputProps = Omit<
  * in a `[data-slot="query-input-actions"]` wrapper with `display: contents`.
  * The clear button sits after that wrapper, not inside it.
  *
+ * With `keyboardShortcut`, `/` focuses the field. The key types as usual
+ * while focus is in a text control, and it does nothing while the field is
+ * disabled or a modal covers it. The `<input>` carries `aria-keyshortcuts="/"`.
+ *
  * **CSS variables:**
  *
  * | CSS Variable             | Default                        | Description                     |
@@ -503,6 +516,7 @@ type QueryInputProps = Omit<
  * | ----------------- | -------------------------------------- | -------------------------------------------- |
  * | `data-slot`       | `"query-input"`                        | On the field's outer element.                |
  * | `data-slot`       | `"query-input-actions"`                | On the `span` that wraps the children.       |
+ * | `data-slot`       | `"query-input-shortcut kbd"`           | On the `/` hint, with `keyboardShortcut`.    |
  * | `data-slot`       | `"input"`                              | On the field's chrome, as on `Input`.        |
  * | `data-disabled`   | present                                | On the chrome while the field is disabled.   |
  * | `data-validation` | `"error"` \| `"success"` \| `"warning"` | On the chrome. Omitted when unset.           |
@@ -538,6 +552,7 @@ function Input({
 	clearLabel = "Clear filter",
 	disabled,
 	id,
+	keyboardShortcut = false,
 	name,
 	onBlur,
 	onClear,
@@ -584,6 +599,37 @@ function Input({
 			setIsOpen(false);
 		}
 	}, [canSuggest, setIsOpen]);
+
+	// Why opt in: a page with many tables has many Query fields, and `/` can focus only one.
+	useEffect(() => {
+		if (!keyboardShortcut) {
+			return;
+		}
+		const handleWindowKeyDown = (event: globalThis.KeyboardEvent) => {
+			const input = inputRef.current;
+			if (
+				input == null ||
+				input.disabled ||
+				event.key !== "/" ||
+				event.defaultPrevented ||
+				event.repeat ||
+				event.isComposing ||
+				event.metaKey ||
+				event.ctrlKey ||
+				event.altKey ||
+				isTextControl(event.target) ||
+				// A modal hides the page behind it with `aria-hidden`, and a field there must not take focus.
+				input.closest("[inert], [aria-hidden='true']") != null
+			) {
+				return;
+			}
+			// The prevented default also tells a later field with the shortcut that this one took it.
+			event.preventDefault();
+			input.focus();
+		};
+		window.addEventListener("keydown", handleWindowKeyDown);
+		return () => window.removeEventListener("keydown", handleWindowKeyDown);
+	}, [inputRef, keyboardShortcut]);
 
 	function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
 		onKeyDown?.(event);
@@ -696,6 +742,7 @@ function Input({
 						}
 						aria-describedby={describedByIds === "" ? undefined : describedByIds}
 						aria-errormessage={fieldControl ? fieldControl["aria-errormessage"] : errorMessage}
+						aria-keyshortcuts={keyboardShortcut ? "/" : undefined}
 						className="caret-(--text-color-strong) text-transparent"
 						value={context.value}
 						onChange={(event) => context.reportTypedValue(event.target)}
@@ -732,6 +779,17 @@ function Input({
 						}}
 					/>
 				</div>
+				{/* `aria-keyshortcuts` names the key to assistive tech, so the hint is visual only.
+				    A focused field hides it: there, `/` types a slash. */}
+				{keyboardShortcut && !disabled && context.value === "" && (
+					<Kbd
+						aria-hidden
+						data-slot="query-input-shortcut"
+						className="[[data-slot=input]:focus-within>&]:hidden"
+					>
+						/
+					</Kbd>
+				)}
 				{/* Why the clear button sits outside the wrapper: the consumer's
 				    children need a host node of their own, or the button's mount
 				    lands beside a text node that a translation engine reparented. */}
@@ -751,6 +809,14 @@ function Input({
 				)}
 			</InputShell>
 		</Popover.Anchor>
+	);
+}
+
+/** Whether a key press goes into a control that takes text, where `/` must type a slash. */
+function isTextControl(target: EventTarget | null): boolean {
+	return (
+		target instanceof HTMLElement &&
+		(target.isContentEditable || target.matches("input, textarea, select"))
 	);
 }
 

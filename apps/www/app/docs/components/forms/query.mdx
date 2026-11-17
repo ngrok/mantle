@@ -308,6 +308,49 @@ export function InlineActionsQueryExample() {
 
 `projectFilterGrammar` and `projects` are the ones from the first example.
 
+## Keyboard shortcut
+
+Set `keyboardShortcut` on `Query.Input` to let `/` move focus into the field from anywhere on the page. While the field is empty and not focused, it shows a `/` hint at its right edge. The key still types a slash in any text field, and it does nothing while the field is disabled or a modal covers it.
+
+The shortcut is off by default, because a page with many tables has many fields and `/` can focus only one. Turn it on for the one primary filter on a page. If more than one field turns it on, the first mounted field that can take focus gets it.
+
+<Example name="components/forms/query/keyboard-shortcut" title="Query keyboard shortcut example">
+
+```tsx
+import { Query } from "@ngrok/mantle/query";
+import { useState } from "react";
+
+export function KeyboardShortcutQueryExample() {
+	const [query, setQuery] = useState("");
+
+	return (
+		<Query.Root
+			className="max-w-xl"
+			grammar={projectFilterGrammar}
+			items={projects}
+			value={query}
+			onValueChange={setQuery}
+		>
+			<Query.Input
+				keyboardShortcut
+				aria-label="Filter projects"
+				placeholder="Filter projects, or type a filter like is:shared"
+			/>
+			<Query.Content>
+				<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+				<Query.Empty />
+				<Query.Footer>
+					<Query.Legend />
+					<Query.KeyboardHints />
+				</Query.Footer>
+			</Query.Content>
+		</Query.Root>
+	);
+}
+```
+
+</Example>
+
 ## Search on the server
 
 When a server runs the query, declare its vocabulary with `defineRemoteFilterGrammar` and leave out `items`. The suggestions then carry no counts. The grammar's `syntax` keeps the highlighting to what the server reads: `"qualifiers"` (the default) treats only bare `key:value` tokens as structure, and `"conjunction"` reads one AND group of exclusions, comma lists, and quotes.
@@ -429,6 +472,7 @@ The field is a real `<input role="combobox">` with `aria-autocomplete="list"`. T
 - Enter accepts the active suggestion. With no active suggestion, Enter closes the list and lets the event reach your form. Escape closes the list.
 - A caret move retires the active suggestion, so Enter can't accept a row from a list you didn't see.
 - While an IME composes, every key goes to the IME.
+- With `keyboardShortcut`, the input carries `aria-keyshortcuts="/"`. The `/` hint is hidden from assistive tech.
 - While the popover is open, `Query.Footer` joins the input's accessible description, after any description you set. While no suggestion matches, `Query.Empty` joins it too.
 
 Name the field with `aria-label`, or put it in a [Field](/components/forms/field) and label it with `Field.Label`. Inside `Field.Control`, the field takes its `id`, `name`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` from the `Field.Item`.
@@ -465,6 +509,7 @@ The query field. `className` and `style` go to the field's outer element, as on 
 | `children`         | `ReactNode`                                                                                              | none             | Inline actions inside the field at its right edge, before the clear button.                                                         |
 | `clearLabel`       | `string`                                                                                                 | `"Clear filter"` | The accessible name and tooltip of the clear button.                                                                                |
 | `onClear`          | `() => void`                                                                                             | none             | Called after the clear button empties the query.                                                                                    |
+| `keyboardShortcut` | `boolean`                                                                                                | `false`          | Whether `/` moves focus into the field from anywhere on the page. Turn it on for one field per page.                                |
 | `ref`              | `Ref<HTMLInputElement>`                                                                                  | none             | The `<input>` element.                                                                                                              |
 | `validation`       | `"error"` \| `"success"` \| `"warning"` \| `false` \| `() => "error" \| "success" \| "warning" \| false` | none             | The validation state. It sets the border, and `"error"` also sets `aria-invalid`. Inside `Field.Control`, the `Field.Item` sets it. |
 | `aria-describedby` | `string`                                                                                                 | none             | The field's own description. `Query.Footer` joins it while the popover is open.                                                     |
@@ -479,6 +524,7 @@ The query field. `className` and `style` go to the field's outer element, as on 
 | ----------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `data-slot`       | `"query-input"`                         | On the field's outer element.                                                                                                      |
 | `data-slot`       | `"query-input-actions"`                 | On the `span` that wraps the children. The clear button follows it. It has `display: contents`, so each child lays out in the row. |
+| `data-slot`       | `"query-input-shortcut kbd"`            | On the `/` hint, with `keyboardShortcut`. It shows while the field is empty and not focused.                                       |
 | `data-slot`       | `"input"`                               | On the field's chrome, inside `"query-input"`, as on `Input`.                                                                      |
 | `data-disabled`   | present                                 | On the `"input"` chrome while the field is disabled.                                                                               |
 | `data-validation` | `"error"` \| `"success"` \| `"warning"` | On the `"input"` chrome. Omitted when unset.                                                                                       |
