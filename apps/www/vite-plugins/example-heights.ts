@@ -1,9 +1,14 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { availableParallelism } from "node:os";
 import path from "node:path";
 import type { Browser, Page } from "playwright";
 import { globSync } from "tinyglobby";
 import { preview, type Plugin, type ResolvedConfig } from "vite";
-import { exampleHeightsFile, type ExampleHeights } from "../app/features/example-heights.ts";
+import {
+	exampleHeightsFile,
+	type ExampleHeight,
+	type ExampleHeights,
+} from "../app/features/example-heights.ts";
 
 /** The window widths the measure uses for a desktop and a phone reader. */
 const windowWidths = { wide: 1440, narrow: 390 } as const;
@@ -11,8 +16,8 @@ const windowWidths = { wide: 1440, narrow: 390 } as const;
 /** A docs page with a content-height example, to find the frame width at each window width. */
 const probePage = "/components/actions/button";
 
-/** The number of preview documents to measure at the same time. */
-const concurrency = 8;
+/** The number of preview documents to measure at the same time: one for each core, eight at most. */
+const concurrency = Math.min(8, availableParallelism());
 
 /**
  * Measures the height of each docs page example after the production build
@@ -99,8 +104,15 @@ async function measure(
 		await Promise.all(
 			Array.from({ length: concurrency }, async () => {
 				const page = await context.newPage();
+				const measureExample = exampleMeasurer(page, frameWidths);
 				for (let key = queue.shift(); key != null; key = queue.shift()) {
-					heights[key] = await measureExample(page, new URL(`preview/${key}`, base), frameWidths);
+					const url = new URL(`preview/${key}`, base);
+					// Why one retry: on a busy build machine, one request can stall a page
+					// that loads in under a second on the next try.
+					heights[key] = await measureExample(url).catch((error: unknown) => {
+						config.logger.warn(`Measuring ${url.pathname} again: ${String(error)}`);
+						return measureExample(url);
+					});
 				}
 				await page.close();
 			}),
@@ -134,7 +146,15 @@ async function measureFrameWidths(page: Page, base: string) {
 	return widths;
 }
 
-async function measureExample(page: Page, url: URL, frameWidths: { wide: number; narrow: number }) {
+/**
+ * Returns a function that loads a preview in `page` and measures its canvas
+ * at each frame width.
+ */
+function exampleMeasurer(page: Page, frameWidths: { wide: number; narrow: number }) {
+	const openRequests = new Set<string>();
+	page.on("request", (request) => openRequests.add(request.url()));
+	page.on("requestfinished", (request) => openRequests.delete(request.url()));
+	page.on("requestfailed", (request) => openRequests.delete(request.url()));
 	const canvasHeight = async (width: number) => {
 		await page.setViewportSize({ width, height: 900 });
 		return page.locator("[data-preview-canvas]").evaluate(async (canvas) => {
@@ -154,16 +174,23 @@ async function measureExample(page: Page, url: URL, frameWidths: { wide: number;
 			return Math.ceil(canvas.getBoundingClientRect().height);
 		});
 	};
-	const response = await page.goto(url.href, { waitUntil: "load" });
-	if (!response?.ok()) {
-		throw new Error(`The preview ${url.pathname} answered ${response?.status()}.`);
-	}
-	try {
-		return {
-			wide: await canvasHeight(frameWidths.wide),
-			narrow: await canvasHeight(frameWidths.narrow),
-		};
-	} catch (error) {
-		throw new Error(`Could not measure the preview ${url.pathname}.`, { cause: error });
-	}
+	return async (url: URL): Promise<ExampleHeight> => {
+		const response = await page.goto(url.href, { waitUntil: "load" }).catch((error: unknown) => {
+			const open = [...openRequests].join(", ") || "none";
+			throw new Error(`The preview ${url.pathname} did not load. Open requests: ${open}`, {
+				cause: error,
+			});
+		});
+		if (!response?.ok()) {
+			throw new Error(`The preview ${url.pathname} answered ${response?.status()}.`);
+		}
+		try {
+			return {
+				wide: await canvasHeight(frameWidths.wide),
+				narrow: await canvasHeight(frameWidths.narrow),
+			};
+		} catch (error) {
+			throw new Error(`Could not measure the preview ${url.pathname}.`, { cause: error });
+		}
+	};
 }
