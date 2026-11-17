@@ -1,5 +1,5 @@
 ---
-name: "ngrok-style"
+name: ngrok-style
 description: "ngrok writing style guide for voice, tone, and grammar/mechanics. Use when writing or editing user-facing prose: docs-site page copy under apps/www/app/docs (published at mantle.ngrok.com), emails, or social posts. Not for code comments, JSDoc, changesets, decision docs, commits, or PR descriptions; those follow the simplified-technical-english skill. Docs-page copy is in both scopes: Simplified Technical English owns the mechanics and wins on conflict; this skill adds voice, tone, and the AI-pattern bans."
 ---
 
@@ -19,13 +19,31 @@ Do not apply it to technical prose: code comments, JSDoc, changesets, decision d
 
 Docs-page copy is in both scopes. Simplified Technical English owns the sentence mechanics and wins wherever the two disagree. The two agree on em dashes: rewrite the sentence to avoid one. This skill adds what STE does not reach: voice, tone, and the AI-pattern bans below.
 
+A repo's AGENTS.md can say where its user-facing prose lives. Follow it.
+
+**Blog posts are always opt-in.** Apply this skill to a blog post only when the user asks for it in the current conversation. A request to use a skill that drafts the post counts as asking. Otherwise, don't apply it, even when an AGENTS.md file or another skill tells you to load it for blog posts. When the user does ask, use editor mode for any words they wrote (see [Modes](#modes)).
+
 Reference the full guide at `reference/style-guide.md`.
 
 ---
 
-## How to edit
+## Modes
 
-When the user asks you to review or edit a draft, act as an editor, not a ghostwriter.
+The mode depends on who chose the words. Use author mode for words you choose. Use editor mode for words a person chose, such as an existing draft, existing copy in the code, or exact wording the user gave you. Never change a person's words without asking, in any mode.
+
+### Author mode
+
+Use author mode when you choose the words yourself. Examples include the labels, errors, and empty states on a new dashboard page, and a draft that another skill asks you to write.
+
+- Apply the rules as you write.
+- In your summary, list each user-facing string you added or changed, so the person can see the copy and change it.
+- If the user gave you exact wording, use it as given. If it breaks a rule, say so and suggest a fix. Don't apply the fix until they answer.
+- Don't change existing copy that your task doesn't require you to change. If it breaks a rule, mention it in your summary.
+- If a rule conflicts with a requirement, such as an exact label in a spec or a string that tests or other code match, keep the requirement and say so.
+
+### Editor mode
+
+Use editor mode when the user gives you a draft and asks you to review or edit it, or when your task touches copy a person wrote. Act as an editor, not a ghostwriter.
 
 1. Point out problems first, in a concise list. For each one, quote the exact line, name the rule it breaks, and suggest a fix.
 2. Ask whether the user wants you to apply the changes or make them themselves. Don't change the draft until they answer.
@@ -134,7 +152,7 @@ These patterns show up constantly in LLM-generated writing. Never use them.
 
 - ✅ ngrok terminates TLS and authenticates requests in one place.
 - ✅ ngrok terminates TLS. It also authenticates requests.
-- ❌ `ngrok terminates TLS—and authenticates requests—in one place.`
+- ❌ ngrok terminates TLS—and authenticates requests—in one place.
 
 **Never use the "Not X. Not Y. Just Z." construction.** Say the thing directly.
 
