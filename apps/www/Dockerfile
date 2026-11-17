@@ -71,6 +71,11 @@ COPY --from=pruner /app/out/json/ ./
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --no-frozen-lockfile --store-dir /pnpm/store
 
+# The build measures each docs example in Chromium, so each frame on a page has
+# its example's height at the first paint (`vite-plugins/example-heights.ts`).
+# This layer changes only when the dependencies change.
+RUN pnpm --filter @app/www exec playwright install --with-deps --only-shell chromium
+
 # Copy full pruned source
 COPY --from=pruner /app/out/full/ ./
 # `.nvmrc` is a turbo global dependency. Without it, a Node bump keeps the build
@@ -86,6 +91,7 @@ RUN --mount=type=secret,id=TURBO_TOKEN \
     export TURBO_TOKEN=$(cat /run/secrets/TURBO_TOKEN || echo "") && \
     export TURBO_TEAM=$(cat /run/secrets/TURBO_TEAM || echo "") && \
     export NODE_ENV=production && \
+    export MEASURE_EXAMPLE_HEIGHTS=1 && \
     export DO_NOT_TRACK=1 && \
     export TURBO_TELEMETRY_DISABLED=1 && \
     pnpm turbo run build --filter=@app/www...

@@ -8,6 +8,7 @@
     "build": {
       "cache": true,
       "inputs": ["$TURBO_DEFAULT$", ".env*", "!**/*.test.*"],
+      "env": ["MEASURE_EXAMPLE_HEIGHTS"],
       "dependsOn": ["^build"],
       "outputs": ["**/build/**", "**/dist/**", "!**/node_modules/**"]
     },

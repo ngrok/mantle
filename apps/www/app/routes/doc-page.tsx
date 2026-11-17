@@ -2,8 +2,10 @@ import type { ShouldRevalidateFunctionArgs } from "react-router";
 import { Outlet, useLocation } from "react-router";
 import { z } from "zod";
 import { ContentLayout } from "~/components/content-layout";
+import { ExampleHeightsContext } from "~/components/example";
 import { canonicalHref } from "~/utilities/canonical-origin";
 import { loadFrontmatter, urlToFileMap } from "~/utilities/docs";
+import { pageExampleHeights } from "~/utilities/example-heights.server";
 import {
 	jsonLdGraphMetaDescriptor,
 	mantleTechArticleJsonLd,
@@ -74,8 +76,9 @@ export function meta({ loaderData, location }: Route.MetaArgs) {
 /**
  * Loader for every MDX docs page. Each child route is a single doc's MDX
  * module registered at its canonical path, so the doc comes from the URL.
- * Returns the doc's validated frontmatter for `meta`; the toc rides on the
- * matched route's `handle`, not through this loader.
+ * Returns the doc's validated frontmatter for `meta` and the measured heights
+ * of the doc's examples for their frames. The toc rides on the matched route's
+ * `handle`, not through this loader.
  */
 export async function loader({ url }: Route.LoaderArgs) {
 	let pathname = url.pathname;
@@ -103,6 +106,7 @@ export async function loader({ url }: Route.LoaderArgs) {
 
 	return {
 		frontmatter: frontmatterResult.data,
+		exampleHeights: await pageExampleHeights(pathname),
 	};
 }
 
@@ -133,13 +137,15 @@ export function shouldRevalidate({
  * the initial HTML with no `Suspense` fallback and no client-side MDX
  * resolution.
  */
-export default function DocPage() {
+export default function DocPage({ loaderData }: Route.ComponentProps) {
 	const location = useLocation();
 	const isIndex = location.pathname === "/";
 
 	return (
-		<ContentLayout markdownPath={isIndex ? "/index.md" : undefined}>
-			<Outlet />
-		</ContentLayout>
+		<ExampleHeightsContext value={loaderData.exampleHeights}>
+			<ContentLayout markdownPath={isIndex ? "/index.md" : undefined}>
+				<Outlet />
+			</ContentLayout>
+		</ExampleHeightsContext>
 	);
 }

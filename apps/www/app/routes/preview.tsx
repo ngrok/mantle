@@ -1,5 +1,7 @@
+import { cspNonce } from "@ngrok/app-server/client";
 import { Suspense, use } from "react";
 import { data } from "react-router";
+import { reportPreviewHeightScript } from "~/features/example-heights";
 import {
 	isComponentType,
 	loadPageExampleModule,
@@ -66,7 +68,16 @@ export default function PreviewExamplePage({ loaderData }: Route.ComponentProps)
 			{loaderData.kind === "registry" ? (
 				<RegistryDemo name={loaderData.key} />
 			) : (
-				<PageExample modulePath={loaderData.modulePath} exportName={loaderData.exportName} />
+				<>
+					<PageExample modulePath={loaderData.modulePath} exportName={loaderData.exportName} />
+					{/* Why inline and after the example: it runs as soon as the canvas is
+					parsed, so the docs frame gets the height before this document loads. */}
+					<script
+						nonce={cspNonce()}
+						dangerouslySetInnerHTML={{ __html: reportPreviewHeightScript }}
+						suppressHydrationWarning
+					/>
+				</>
 			)}
 		</Suspense>
 	);

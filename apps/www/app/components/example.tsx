@@ -7,9 +7,15 @@ import { ArrowSquareOutIcon } from "@phosphor-icons/react/ArrowSquareOut";
 import { DesktopIcon } from "@phosphor-icons/react/Desktop";
 import { DeviceMobileIcon } from "@phosphor-icons/react/DeviceMobile";
 import { DeviceTabletIcon } from "@phosphor-icons/react/DeviceTablet";
+import { $cssProperties } from "@ngrok/mantle/types";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { createContext, use, useState } from "react";
 import { href } from "react-router";
+import {
+	type ExampleHeights,
+	parsePreviewHeightMessage,
+	previewHeightRequest,
+} from "~/features/example-heights";
 import type { PreviewExampleName } from "~/features/preview-registry";
 
 const viewportValues = ["desktop", "tablet", "mobile"] as const;
@@ -44,6 +50,14 @@ const viewportWidthClasses = {
  */
 export type PreviewKey = PreviewExampleName | `${string}/${string}`;
 
+/**
+ * The measured heights of the current docs page's examples. The `doc-page`
+ * route provides them from its loader. A frame with a measured height takes
+ * that height at the first paint, so the page does not shift when the
+ * preview loads.
+ */
+export const ExampleHeightsContext = createContext<ExampleHeights>({});
+
 type FrameProps = {
 	name: PreviewKey;
 	title: string;
@@ -60,6 +74,7 @@ function Frame({ name, title, height }: FrameProps) {
 	// remounting the iframe with a new key is a full document reload
 	const [reloadCount, setReloadCount] = useState(0);
 	const [contentHeight, setContentHeight] = useState<number | null>(null);
+	const measuredHeight = use(ExampleHeightsContext)[name];
 	const previewHref = href("/preview/*", { "*": name });
 
 	return (
@@ -110,7 +125,9 @@ function Frame({ name, title, height }: FrameProps) {
 			<div className="bg-base bg-[radial-gradient(var(--color-gray-300)_1px,transparent_1px)] bg-size-[16px_16px]">
 				<div
 					className={cx(
-						"mx-auto h-full transition-[width] duration-200 ease-out-strong motion-reduce:transition-none",
+						// Why a container: the measured height to start from depends on the frame's
+						// width, and a container query reads that width before the first paint.
+						"@container mx-auto h-full transition-[width] duration-200 ease-out-strong motion-reduce:transition-none",
 						// box-content keeps the preset width as the iframe's actual
 						// viewport width; the delineating borders sit outside it
 						viewport !== "desktop" && "box-content border-x border-gray-300",
@@ -126,28 +143,45 @@ function Frame({ name, title, height }: FrameProps) {
 						src={previewHref}
 						title={`Preview of the ${title}`}
 						loading="lazy"
-						className={cx("bg-card block w-full", height === "fixed" ? "h-full" : "h-40")}
-						style={
-							height === "content" && contentHeight != null ? { height: contentHeight } : undefined
-						}
+						className={cx(
+							"bg-card block w-full",
+							height === "fixed" && "h-full",
+							height === "content" &&
+								(measuredHeight == null
+									? "h-40"
+									: "h-(--example-height-narrow) @3xl:h-(--example-height-wide)"),
+						)}
+						style={$cssProperties({
+							height: contentHeight ?? undefined,
+							...(measuredHeight != null && {
+								"--example-height-narrow": `${measuredHeight.narrow}px`,
+								"--example-height-wide": `${measuredHeight.wide}px`,
+							}),
+						})}
 						ref={(iframe) => {
 							if (iframe == null || height !== "content") {
 								return;
 							}
-							let observer: ResizeObserver | null = null;
-							const observe = () => {
-								observer?.disconnect();
-								observer = observeCanvasHeight(iframe, setContentHeight);
+							const onMessage = (event: MessageEvent) => {
+								const reported = parsePreviewHeightMessage(event.data);
+								if (
+									reported != null &&
+									event.source === iframe.contentWindow &&
+									event.origin === window.location.origin
+								) {
+									setContentHeight(reported);
+								}
 							};
-							// Why check readyState: a frame near the top can finish loading
-							// before the page hydrates, and then its load event is gone.
-							if (iframe.contentDocument?.readyState === "complete") {
-								observe();
-							}
-							iframe.addEventListener("load", observe);
+							window.addEventListener("message", onMessage);
+							// Why ask: a preview near the top can report its height before the page
+							// hydrates and this listener exists. A preview that has not loaded yet
+							// reports on its own.
+							iframe.contentWindow?.postMessage(
+								{ type: previewHeightRequest },
+								window.location.origin,
+							);
 							return () => {
-								iframe.removeEventListener("load", observe);
-								observer?.disconnect();
+								window.removeEventListener("message", onMessage);
 							};
 						}}
 					/>
@@ -155,29 +189,6 @@ function Frame({ name, title, height }: FrameProps) {
 			</div>
 		</div>
 	);
-}
-
-/**
- * Reports the height of the `PreviewCanvas` in a loaded preview frame, now and
- * on each resize. Returns the observer, or `null` when the frame's document has
- * no canvas yet (the blank document before the preview loads).
- */
-function observeCanvasHeight(
-	iframe: HTMLIFrameElement,
-	onHeight: (height: number) => void,
-): ResizeObserver | null {
-	const canvas = iframe.contentDocument?.querySelector("[data-preview-canvas]");
-	const frameWindow = canvas?.ownerDocument.defaultView;
-	if (canvas == null || frameWindow == null) {
-		return null;
-	}
-	// Why the frame's own ResizeObserver: the canvas lives in the frame's
-	// document, and that document runs the resize steps for it.
-	const observer = new frameWindow.ResizeObserver(() => {
-		onHeight(Math.ceil(canvas.getBoundingClientRect().height));
-	});
-	observer.observe(canvas);
-	return observer;
 }
 
 type ExampleProps = {
