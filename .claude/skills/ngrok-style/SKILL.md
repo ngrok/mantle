@@ -152,7 +152,7 @@ These patterns show up constantly in LLM-generated writing. Never use them.
 
 - ✅ ngrok terminates TLS and authenticates requests in one place.
 - ✅ ngrok terminates TLS. It also authenticates requests.
-- ❌ ngrok terminates TLS—and authenticates requests—in one place.
+- ❌ `ngrok terminates TLS—and authenticates requests—in one place.`
 
 **Never use the "Not X. Not Y. Just Z." construction.** Say the thing directly.
 
