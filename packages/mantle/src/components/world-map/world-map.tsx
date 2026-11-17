@@ -4,7 +4,10 @@ import type { ComponentProps, ReactNode } from "react";
 import { createContext, use, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import invariant from "tiny-invariant";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
+import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../utils/data-slot.js";
+import { joinDataSlot } from "../../utils/data-slot.js";
 import { CHART_TABLE_ROW_LIMIT, useResolvedChartLabel } from "../chart/a11y.js";
 import { createCanvasBackend } from "../chart/canvas-backend.js";
 import type { ChartAccessibilityProps, ChartMode, ChartReadout } from "../chart/context.js";
@@ -31,6 +34,7 @@ import type {
 	PointShape,
 	SeriesColor,
 } from "../chart/types.js";
+import { Slot } from "../slot/index.js";
 import { WORLD_LAND } from "./world-land.js";
 
 /**
@@ -135,10 +139,13 @@ type WorldMapConnectorProps = {
  * Props for {@link WorldMap.Callout}.
  */
 type WorldMapCalloutProps = Omit<ComponentProps<"div">, "children"> &
+	WithAsChild &
+	WithDataSlot &
 	GeoPlace & {
 		/**
-		 * Which side of the place the callout sits on. Near the plot's edge the
-		 * callout moves to stay inside the plot.
+		 * Which side of the place the callout sits on. When that side has no
+		 * room, the callout flips to the other side; near the plot's edge it
+		 * moves to stay inside the plot.
 		 *
 		 * @default "top"
 		 */
@@ -247,7 +254,7 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
 		return initial;
 	});
 	const [geoView] = useState(() => createGeoViewFactory(scene));
-	const readout = useMemo(() => mapReadout(longitudeKey, labelKey), [longitudeKey, labelKey]);
+	const readout = useMemo(() => mapReadout(labelKey, sizeKey), [labelKey, sizeKey]);
 	useLayoutEffect(() => {
 		scene.configure(
 			sceneInputs(
@@ -268,8 +275,6 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
 			paintBackend={createCanvasBackend}
 			scatterView={geoView}
 			readout={readout}
-			keyNames={MAP_KEY_NAMES}
-			sizeKey={sizeKey}
 			xKey={longitudeKey}
 			xScale="linear"
 			// Why 2:1: the Robinson world is 1.97 times as wide as it is tall, and the legend needs the rest.
@@ -484,7 +489,9 @@ const Connector = ({
  * real DOM after the plot, so a screen reader reads it as page content. It
  * shows once the map has painted, and hides while its place is outside the
  * plot. It takes no pointer events, so the points under it still hover; add
- * `pointer-events-auto` to `className` for a callout with a link.
+ * `pointer-events-auto` to `className` for a callout with a link. Pass
+ * `asChild` to render your own element, such as a `Card`, in place of the
+ * `<div>`.
  *
  * **Data attributes:**
  *
@@ -521,9 +528,11 @@ const Callout = ({
 	longitude,
 	latitude,
 	side = "top",
+	asChild = false,
 	className,
 	children,
 	ref,
+	"data-slot": dataSlot,
 	...props
 }: WorldMapCalloutProps) => {
 	const scene = useGeoScene("WorldMap.Callout");
@@ -544,9 +553,10 @@ const Callout = ({
 	useLayoutEffect(() => {
 		scene.calloutsChanged();
 	});
+	const Component = asChild ? Slot : "div";
 	return (
-		<div
-			data-slot="world-map-callout"
+		<Component
+			data-slot={joinDataSlot(dataSlot, "world-map-callout")}
 			data-side={side}
 			ref={composedRef}
 			className={cx(
@@ -557,7 +567,7 @@ const Callout = ({
 			{...props}
 		>
 			{children}
-		</div>
+		</Component>
 	);
 };
 
@@ -594,7 +604,9 @@ const hoverPlace = (hover: HoverSnapshot): GeoPlace => ({
 });
 
 /** The map's readout: a row reads as a place, by its name, else by its coordinates. */
-const mapReadout = (longitudeKey: string, labelKey: string | undefined): ChartReadout => ({
+const mapReadout = (labelKey: string | undefined, sizeKey: string | undefined): ChartReadout => ({
+	keyNames: MAP_KEY_NAMES,
+	sizeKey,
 	Tooltip: ({ hover, config }: { hover: HoverSnapshot; config: TooltipConfig | null }) => {
 		const place = hoverPlace(hover);
 		const coordinates = formatCoordinates(place.longitude, place.latitude);
@@ -643,7 +655,17 @@ const mapReadout = (longitudeKey: string, labelKey: string | undefined): ChartRe
 			instructions: ` ${MAP_KEYBOARD_INSTRUCTIONS}`,
 		};
 	},
-	DataTable: (props) => <MapDataTable {...props} longitudeKey={longitudeKey} labelKey={labelKey} />,
+	DataTable: ({ data, label, labelledBy, slotName, store, xKey }) => (
+		<MapDataTable
+			data={data}
+			label={label}
+			labelledBy={labelledBy}
+			slotName={slotName}
+			store={store}
+			longitudeKey={xKey}
+			labelKey={labelKey}
+		/>
+	),
 });
 
 /**
@@ -728,7 +750,9 @@ const MapDataTable = ({
  * The map is a chart: hover and keyboard reach every point, the tooltip and
  * polite announcements name it, the sr-only data table lists every point,
  * and new rows animate in. Size points by a count (`sizeKey`) when many share
- * one place, as IP geolocation puts many agents in one city.
+ * one place, as IP geolocation puts many agents in one city. For one request,
+ * zoom to the client's region (`bounds`), keep a card over its place
+ * (`Callout`), and draw a line to the ngrok edge (`Connector`).
  *
  * **CSS variables (public API):**
  *
@@ -736,13 +760,11 @@ const MapDataTable = ({
  * | --- | --- | --- |
  * | `--world-map-land-color` | `var(--color-neutral-200)` | The land fill. |
  * | `--world-map-ocean-color` | `var(--color-neutral-50)` | The fill inside the world's outline. |
- * | `--color-chart-1` … `--color-chart-8` | per theme | The categorical series slots, in assignment order. |
- * | `--color-chart-other` | `--color-neutral-500` | The neutral slot. |
  *
  * Set a variable on `Root` to restyle one map:
  * `className="[--world-map-land-color:var(--color-neutral-300)]"`.
  *
- * @useWhen Show where things are in the world: agents, endpoints, or edge locations placed by longitude and latitude.
+ * @useWhen Show where things are in the world: agents, endpoints, or edge locations placed by longitude and latitude, or one request's client and the ngrok edge that received it.
  *
  * @siblings
  * - `ScatterPlot`: the two values are measures, not a place on Earth.
@@ -756,6 +778,8 @@ const MapDataTable = ({
  * WorldMap.Root
  * ├── WorldMap.Graticule
  * ├── WorldMap.Point (one per series)
+ * ├── WorldMap.Connector
+ * ├── WorldMap.Callout
  * ├── WorldMap.Tooltip
  * └── WorldMap.Legend
  * ```
@@ -901,8 +925,14 @@ const WorldMap = {
 	 *
 	 * @example
 	 * ```tsx
+	 * const client = { longitude: -87.63, latitude: 41.88 };
+	 * const pop = { longitude: -82.99, latitude: 39.96 };
+	 *
 	 * <WorldMap.Root
-	 *   data={places}
+	 *   data={[
+	 *     { name: "Chicago, Illinois", ...client, client: client.latitude, pop: null },
+	 *     { name: "ngrok Ohio", ...pop, client: null, pop: pop.latitude },
+	 *   ]}
 	 *   longitudeKey="longitude"
 	 *   labelKey="name"
 	 *   bounds={{ west: -105, south: 30, east: -65, north: 50 }}
@@ -923,8 +953,14 @@ const WorldMap = {
 	 *
 	 * @example
 	 * ```tsx
+	 * const client = { longitude: -87.63, latitude: 41.88 };
+	 * const pop = { longitude: -82.99, latitude: 39.96 };
+	 *
 	 * <WorldMap.Root
-	 *   data={places}
+	 *   data={[
+	 *     { name: "Chicago, Illinois", ...client, client: client.latitude, pop: null },
+	 *     { name: "ngrok Ohio", ...pop, client: null, pop: pop.latitude },
+	 *   ]}
 	 *   longitudeKey="longitude"
 	 *   labelKey="name"
 	 *   bounds={{ west: -105, south: 30, east: -65, north: 50 }}

@@ -581,10 +581,15 @@ class GeoView implements PointView {
 				Math.max(x - width / 2, plot.left),
 				Math.max(plot.left, plot.left + plot.width - width),
 			);
-			const top =
-				side === "top"
-					? Math.max(plot.top, y - reach - height)
-					: Math.min(y + reach, Math.max(plot.top, plot.top + plot.height - height));
+			const above = y - reach - height;
+			const below = y + reach;
+			const fitsAbove = above >= plot.top;
+			const fitsBelow = below + height <= plot.top + plot.height;
+			// Why flip: a callout clamped on its own side would cover its point.
+			const placeAbove = side === "top" ? fitsAbove || !fitsBelow : !fitsBelow && fitsAbove;
+			const top = placeAbove
+				? Math.max(plot.top, above)
+				: Math.min(below, Math.max(plot.top, plot.top + plot.height - height));
 			element.style.transform = `translate(${offset.left + left}px, ${offset.top + top}px)`;
 			element.style.visibility = "visible";
 		}

@@ -49,6 +49,9 @@ describe("WorldMap.Root", () => {
 			<WorldMap.Root
 				data={agents}
 				longitudeKey="longitude"
+				labelKey="name"
+				sizeKey="sessions"
+				bounds={{ west: -130, south: -40, east: 160, north: 60 }}
 				aria-label="Agents by location"
 				className="custom-class"
 				data-testid="map-root"
@@ -61,8 +64,10 @@ describe("WorldMap.Root", () => {
 		expect(root).toHaveClass("custom-class");
 		expect(root).toHaveAttribute("data-testid", "map-root");
 		expect(ref.current).toBe(root);
-		// The longitude key is a WorldMap prop, not a DOM attribute.
-		expect(root).not.toHaveAttribute("longitudeKey");
+		// The map props configure the map; none reaches the DOM as an attribute.
+		for (const name of ["longitudeKey", "labelKey", "sizeKey", "bounds"]) {
+			expect(root).not.toHaveAttribute(name);
+		}
 	});
 
 	test("a longitudeKey that no row carries throws with the WorldMap prop name", () => {
@@ -252,4 +257,51 @@ describe("WorldMap.Callout and WorldMap.Connector", () => {
 			"WorldMap.Root bounds.west must be less than bounds.east.",
 		);
 	});
+});
+
+describe("WorldMap.Callout asChild", () => {
+	test("renders the child with the callout's slot, classes, and ref", () => {
+		const ref = createRef<HTMLDivElement>();
+		render(
+			<WorldMap.Root data={agents} longitudeKey="longitude" aria-label="Agents">
+				<WorldMap.Point latitudeKey="online" color="blue" />
+				<WorldMap.Callout
+					asChild
+					longitude={8.68}
+					latitude={50.11}
+					className="w-48"
+					data-testid="callout"
+					ref={ref}
+				>
+					<a href="/clients/fra" className="underline">
+						Frankfurt
+					</a>
+				</WorldMap.Callout>
+			</WorldMap.Root>,
+		);
+		const link = screen.getByRole("link", { name: "Frankfurt" });
+		expect(link).toHaveAttribute("data-slot", "world-map-callout");
+		expect(link).toHaveAttribute("data-side", "top");
+		expect(link).toHaveAttribute("data-testid", "callout");
+		expect(link).toHaveClass("underline", "w-48", "invisible");
+		expect(ref.current).toBe(link);
+	});
+});
+
+test("a new labelKey keeps the map's paint surface", () => {
+	const view = renderMap();
+	engageChart();
+	const surface = document.querySelector('[data-slot="world-map-canvas"]');
+	expect(surface).not.toBeNull();
+	view.rerender(
+		<WorldMap.Root
+			data={agents}
+			longitudeKey="longitude"
+			labelKey="sessions"
+			aria-label="Agents by location"
+		>
+			<WorldMap.Point latitudeKey="online" color="blue" label="Online" />
+		</WorldMap.Root>,
+	);
+	expect(document.querySelector('[data-slot="world-map-canvas"]')).toBe(surface);
 });

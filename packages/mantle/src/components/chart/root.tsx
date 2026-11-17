@@ -122,18 +122,16 @@ type InternalRootProps = ChartRootPrimitiveProps & {
 	paintBackend: PaintBackendFactory;
 	/** The point view factory. ScatterPlot and WorldMap pass one; the other families leave it out. */
 	scatterView?: ScatterViewFactory;
-	/** `WorldMap` only: the readout that names a row as a place. */
+	/** `WorldMap` only: the readout that names a row as a place, its key names, and its size key. */
 	readout?: ChartReadout;
-	/** `WorldMap` only: the public names of the x and series keys, for error messages. */
-	keyNames?: ChartKeyNames;
-	/** `WorldMap` only: the row key of each point's size value, checked like `zKey`. */
-	sizeKey?: string;
 	/** `WorldMap` only: its name for `xKey`, which it also passes as `xKey`. Pulled out so it never reaches the DOM. */
 	longitudeKey?: string;
 	/** `WorldMap` only: read by its readout. Pulled out so it never reaches the DOM. */
 	labelKey?: string;
 	/** `WorldMap` only: read by its view. Pulled out so it never reaches the DOM. */
 	bounds?: unknown;
+	/** `WorldMap` only: read through `readout`. Pulled out so it never reaches the DOM. */
+	sizeKey?: string;
 };
 
 const DEFAULT_KEY_NAMES: ChartKeyNames = { x: "xKey", series: "dataKey" };
@@ -381,11 +379,10 @@ const ChartRootPrimitive = ({
 	paintBackend,
 	scatterView,
 	readout,
-	keyNames = DEFAULT_KEY_NAMES,
-	sizeKey,
 	longitudeKey: _longitudeKey,
 	labelKey: _labelKey,
 	bounds: _bounds,
+	sizeKey: _sizeKey,
 	data,
 	xKey,
 	xScale,
@@ -418,6 +415,8 @@ const ChartRootPrimitive = ({
 	...props
 }: InternalRootProps) => {
 	const interactive = mode === "interactive";
+	// Why a module constant on both sides: a new identity would rebuild the engine.
+	const keyNames = readout?.keyNames ?? DEFAULT_KEY_NAMES;
 	const decorative = mode === "decorative";
 	// A static chart plays no reveal unless asked: a list of sparklines that
 	// each animate in as the reader scrolls is motion with no information.
@@ -710,7 +709,7 @@ const ChartRootPrimitive = ({
 			xKey,
 			resolvedXScale,
 			zKey ?? null,
-			sizeKey ?? null,
+			readout?.sizeKey ?? null,
 			dataKeys,
 		]);
 		const validated = validatedRef.current;
@@ -725,13 +724,14 @@ const ChartRootPrimitive = ({
 			xScale: resolvedXScale,
 			dataKeys,
 			zKey: zKey ?? null,
-			sizeKey: sizeKey ?? null,
+			sizeKey: readout?.sizeKey ?? null,
 			keyNames,
 		});
 		validatedRef.current = { data, signature };
 	});
 
 	const latchState = engaged ? "engaged" : "dormant";
+	const DataTable = readout?.DataTable ?? ChartDataTable;
 	return (
 		<div
 			data-slot={joinDataSlot(dataSlot, slotName)}
@@ -1000,17 +1000,8 @@ const ChartRootPrimitive = ({
 					/>
 				)}
 				{/* Why last: the table mounts as an append, which a translation engine cannot break. */}
-				{interactive && engaged && readout != null && (
-					<readout.DataTable
-						data={data}
-						label={ariaLabel}
-						labelledBy={ariaLabelledBy}
-						slotName={slotName}
-						store={store}
-					/>
-				)}
-				{interactive && engaged && readout == null && (
-					<ChartDataTable
+				{interactive && engaged && (
+					<DataTable
 						data={data}
 						label={ariaLabel}
 						labelledBy={ariaLabelledBy}

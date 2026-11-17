@@ -259,6 +259,37 @@ describe("WorldMap regions, connectors, and callouts", () => {
 		expect(box.bottom).toBeCloseTo(plotBox.top + y - 12, 0);
 	});
 
+	test("a callout with no room above its point flips below it", async () => {
+		const nearTop = { west: -100, south: 30, east: -75, north: 43 };
+		const { container } = render(
+			<WorldMap.Root data={[client]} longitudeKey="longitude" bounds={nearTop} aria-label="Client">
+				<WorldMap.Point latitudeKey="latitude" color="blue" />
+				<WorldMap.Callout {...client}>
+					<div style={{ width: 100, height: 40 }} />
+				</WorldMap.Callout>
+			</WorldMap.Root>,
+		);
+		await findChartCanvas(container);
+		const plot = container.querySelector<HTMLElement>('[data-slot="world-map-plot"]');
+		const callout = container.querySelector<HTMLElement>('[data-slot="world-map-callout"]');
+		if (plot == null || callout == null) {
+			throw new Error("The map rendered no plot or no callout.");
+		}
+		const plotBox = plot.getBoundingClientRect();
+		const fit = fitBounds(
+			{ left: 0, top: 0, width: plotBox.width, height: plotBox.height },
+			nearTop,
+			{
+				inset: 0,
+			},
+		);
+		const [, y] = toScreen(fit, client.longitude, client.latitude);
+		// Guards the setup: the point is too near the top for a 40px callout above it.
+		expect(y).toBeLessThan(52);
+		await waitFor(() => expect(getComputedStyle(callout).visibility).toBe("visible"));
+		expect(callout.getBoundingClientRect().top).toBeCloseTo(plotBox.top + y + 12, 0);
+	});
+
 	test("a callout whose place is outside the region hides", async () => {
 		const { container } = render(
 			<WorldMap.Root data={[client]} longitudeKey="longitude" bounds={bounds} aria-label="Client">

@@ -89,6 +89,7 @@ export const previewModules: Readonly<Record<string, () => Promise<unknown>>> = 
 	"@ngrok/mantle/utils": () => import("@ngrok/mantle/utils"),
 	"@ngrok/mantle/visually-hidden": () => import("@ngrok/mantle/visually-hidden"),
 	"@ngrok/mantle/well": () => import("@ngrok/mantle/well"),
+	"@ngrok/mantle/world-map": () => import("@ngrok/mantle/world-map"),
 };
 
 const phosphorPackage = "@phosphor-icons/react";

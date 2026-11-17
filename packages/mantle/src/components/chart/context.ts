@@ -4,6 +4,8 @@ import type { ComponentType } from "react";
 import { createContext, useContext, useState, useSyncExternalStore } from "react";
 import invariant from "tiny-invariant";
 import type { ChartEngine } from "./engine.js";
+import type { ChartDataTableProps } from "./a11y.js";
+import type { ChartKeyNames } from "./datum.js";
 import type { XSummary } from "./describe.js";
 import type { ChartStore, TooltipConfig } from "./store.js";
 import type {
@@ -301,6 +303,10 @@ const useShallowStable = <T extends object>(value: T): T => {
  * none loads none of this code.
  */
 type ChartReadout = {
+	/** The public names of the x and series keys, for error messages. */
+	keyNames: ChartKeyNames;
+	/** The row key of each point's size value, checked like `zKey`. */
+	sizeKey: string | undefined;
 	/** The default tooltip body, when the Tooltip part sets no `children`. */
 	Tooltip: ComponentType<{ hover: HoverSnapshot; config: TooltipConfig | null }>;
 	/** What a keyboard step announces. */
@@ -308,13 +314,7 @@ type ChartReadout = {
 	/** The description's first sentence and the keyboard instructions. */
 	describe: (summary: XSummary, hydrated: boolean) => { sentence: string; instructions: string };
 	/** The sr-only data table. */
-	DataTable: ComponentType<{
-		data: readonly ChartDatum[];
-		label: string | undefined;
-		labelledBy: string | undefined;
-		slotName: string;
-		store: ChartStore;
-	}>;
+	DataTable: ComponentType<ChartDataTableProps>;
 };
 
 export type {

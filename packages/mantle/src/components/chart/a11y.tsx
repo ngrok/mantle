@@ -347,17 +347,8 @@ const xHeaderFor = (
  * The keyboard point cursor and the Markdown copy reach the rows past the
  * bound.
  */
-const ChartDataTable = ({
-	data,
-	label,
-	labelledBy,
-	slotName,
-	store,
-	xHasTimeOfDay,
-	xKey,
-	xScale,
-	zKey,
-}: {
+/** The props of a chart's sr-only data table, which a family's readout can replace. */
+type ChartDataTableProps = {
 	data: readonly ChartDatum[];
 	/** The chart's `aria-label`, so multi-chart pages get distinct captions. */
 	label: string | undefined;
@@ -378,7 +369,19 @@ const ChartDataTable = ({
 	 */
 	xScale?: XScaleKind;
 	zKey: string | undefined;
-}) => {
+};
+
+const ChartDataTable = ({
+	data,
+	label,
+	labelledBy,
+	slotName,
+	store,
+	xHasTimeOfDay,
+	xKey,
+	xScale,
+	zKey,
+}: ChartDataTableProps) => {
 	// Why a selector: `publishHover` replaces the snapshot on every index
 	// change. Without the selector, the table reconciles up to 150 rows for a
 	// value it never reads.
@@ -458,6 +461,11 @@ const ChartDataTable = ({
 			</table>
 		</div>
 	);
+};
+
+export type {
+	//,
+	ChartDataTableProps,
 };
 
 export {
