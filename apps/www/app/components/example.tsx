@@ -148,8 +148,12 @@ function Frame({ name, title, height }: FrameProps) {
 						// then fits the new height with the scrollbar still on. HTML marks the
 						// attribute obsolete, but each browser obeys it, and no CSS on the frame
 						// stops the scroll of the document in it.
+						// Why only with a height: a document with no canvas, such as an error
+						// page, reports no height, and it must stay in reach.
 						// oxlint-disable-next-line typescript/no-deprecated -- see the comment above
-						scrolling={height === "content" ? "no" : undefined}
+						scrolling={
+							height === "content" && (contentHeight ?? measuredHeight) != null ? "no" : undefined
+						}
 						className={cx(
 							"bg-card block w-full",
 							height === "fixed" && "h-full",

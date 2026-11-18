@@ -68,17 +68,6 @@ describe("Example", () => {
 		expect(getIframe().getAttribute("src")).toBe("/preview/components/actions/button/size");
 	});
 
-	it("stops the scroll of a content-height frame and lets a fixed-height frame scroll", () => {
-		const { unmount } = render(
-			<Example name="components/actions/button/size" title="Button size example" />,
-		);
-		expect(getIframe().getAttribute("scrolling")).toBe("no");
-		unmount();
-
-		render(<Example name="centered-layout" title="Centered layout demo" />);
-		expect(getIframe().hasAttribute("scrolling")).toBe(false);
-	});
-
 	it("starts a page example at its measured height", () => {
 		render(
 			<ExampleHeightsContext
@@ -121,6 +110,31 @@ describe("Example", () => {
 
 		report(iframe.contentWindow, 312);
 		expect(iframe.style.height).toBe("312px");
+	});
+
+	it("stops the scroll of a content-height frame when the frame has a height", () => {
+		const { unmount } = render(
+			<Example name="components/actions/button/size" title="Button size example" />,
+		);
+		// A preview with no canvas, such as an error page, reports no height and must still scroll.
+		expect(getIframe().hasAttribute("scrolling")).toBe(false);
+		report(getIframe().contentWindow, 312);
+		expect(getIframe().getAttribute("scrolling")).toBe("no");
+		unmount();
+
+		render(
+			<ExampleHeightsContext
+				value={{ "components/actions/button/size": { wide: 240, narrow: 236 } }}
+			>
+				<Example name="components/actions/button/size" title="Button size example" />
+			</ExampleHeightsContext>,
+		);
+		expect(getIframe().getAttribute("scrolling")).toBe("no");
+	});
+
+	it("lets a fixed-height frame scroll", () => {
+		render(<Example name="centered-layout" title="Centered layout demo" />);
+		expect(getIframe().hasAttribute("scrolling")).toBe(false);
 	});
 
 	it("keeps its measured height until the preview hydrates", () => {
