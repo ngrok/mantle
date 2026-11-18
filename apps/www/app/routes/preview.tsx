@@ -68,16 +68,7 @@ export default function PreviewExamplePage({ loaderData }: Route.ComponentProps)
 			{loaderData.kind === "registry" ? (
 				<RegistryDemo name={loaderData.key} />
 			) : (
-				<>
-					<PageExample modulePath={loaderData.modulePath} exportName={loaderData.exportName} />
-					{/* Why inline and after the example: it runs as soon as the canvas is
-					parsed, so the docs frame gets the height before this document loads. */}
-					<script
-						nonce={cspNonce()}
-						dangerouslySetInnerHTML={{ __html: reportPreviewHeightScript }}
-						suppressHydrationWarning
-					/>
-				</>
+				<PageExample modulePath={loaderData.modulePath} exportName={loaderData.exportName} />
 			)}
 		</Suspense>
 	);
@@ -101,7 +92,12 @@ function RegistryDemo({ name }: { name: PreviewExampleName }) {
 	if (!isComponentType(Demo)) {
 		throw new Error(`The preview registry entry ${name} loads no component.`);
 	}
-	return <Demo />;
+	return (
+		<>
+			<Demo />
+			<HeightReporter />
+		</>
+	);
 }
 
 function PageExample({ modulePath, exportName }: PageExampleRef) {
@@ -109,5 +105,31 @@ function PageExample({ modulePath, exportName }: PageExampleRef) {
 	if (!isComponentType(Example)) {
 		throw new Error(`${modulePath} has no ${exportName} export.`);
 	}
-	return <Example />;
+	return (
+		<>
+			<Example />
+			<HeightReporter />
+		</>
+	);
+}
+
+/**
+ * Reports the height of the `PreviewCanvas` to the docs frame. Render it after
+ * the example, in the component that resolves the example.
+ *
+ * Why after `use()` resolves: when the example suspends, React streams its
+ * siblings first. A sibling script then runs before the canvas exists and
+ * finds nothing to measure.
+ *
+ * Why inline: it runs as soon as the canvas is parsed, so the docs frame gets
+ * the height before this document loads.
+ */
+function HeightReporter() {
+	return (
+		<script
+			nonce={cspNonce()}
+			dangerouslySetInnerHTML={{ __html: reportPreviewHeightScript }}
+			suppressHydrationWarning
+		/>
+	);
 }
