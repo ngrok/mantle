@@ -143,6 +143,13 @@ function Frame({ name, title, height }: FrameProps) {
 						src={previewHref}
 						title={`Preview of the ${title}`}
 						loading="lazy"
+						// Why no scrollbar: the frame takes the height of the canvas. A scrollbar
+						// makes the canvas narrower, which changes that height, and the frame
+						// then fits the new height with the scrollbar still on. HTML marks the
+						// attribute obsolete, but each browser obeys it, and no CSS on the frame
+						// stops the scroll of the document in it.
+						// oxlint-disable-next-line typescript/no-deprecated -- see the comment above
+						scrolling={height === "content" ? "no" : undefined}
 						className={cx(
 							"bg-card block w-full",
 							height === "fixed" && "h-full",

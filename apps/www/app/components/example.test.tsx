@@ -68,6 +68,17 @@ describe("Example", () => {
 		expect(getIframe().getAttribute("src")).toBe("/preview/components/actions/button/size");
 	});
 
+	it("stops the scroll of a content-height frame and lets a fixed-height frame scroll", () => {
+		const { unmount } = render(
+			<Example name="components/actions/button/size" title="Button size example" />,
+		);
+		expect(getIframe().getAttribute("scrolling")).toBe("no");
+		unmount();
+
+		render(<Example name="centered-layout" title="Centered layout demo" />);
+		expect(getIframe().hasAttribute("scrolling")).toBe(false);
+	});
+
 	it("starts a page example at its measured height", () => {
 		render(
 			<ExampleHeightsContext
