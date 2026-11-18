@@ -16,11 +16,36 @@
  */
 const easeCubicOut = (t: number): number => 1 - (1 - t) ** 3;
 
+/** One axis of a cubic Bézier from `0` to `1` with control points `p1` and `p2`, at parameter `s`. */
+const bezierAxis = (p1: number, p2: number, s: number): number =>
+	3 * (1 - s) ** 2 * s * p1 + 3 * (1 - s) * s ** 2 * p2 + s ** 3;
+
 /**
- * Quintic ease-out: the curve the `ease-out-strong` token approximates with
- * `cubic-bezier(0.23, 1, 0.32, 1)`. Most of the distance moves at once.
+ * The `ease-out-strong` token, `cubic-bezier(0.23, 1, 0.32, 1)`, for a canvas
+ * paint that has no CSS timing function. Most of the distance moves at once.
+ *
+ * @example
+ * ```ts
+ * easeOutStrong(0.5); // about 0.97
+ * ```
  */
-const easeQuintOut = (t: number): number => 1 - (1 - t) ** 5;
+const easeOutStrong = (t: number): number => {
+	if (t <= 0 || t >= 1) {
+		return t <= 0 ? 0 : 1;
+	}
+	// Why a bisection: x grows with `s` on this curve, so it always converges.
+	let low = 0;
+	let high = 1;
+	for (let step = 0; step < 24; step++) {
+		const middle = (low + high) / 2;
+		if (bezierAxis(0.23, 0.32, middle) < t) {
+			low = middle;
+		} else {
+			high = middle;
+		}
+	}
+	return bezierAxis(1, 1, (low + high) / 2);
+};
 
 /**
  * A reusable tween over a vector of numbers. Buffers are reused across
@@ -415,7 +440,7 @@ export {
 	CHART_TWEEN_DURATION_MS,
 	ChaseTween,
 	easeCubicOut,
-	easeQuintOut,
+	easeOutStrong,
 	PER_DATUM_TWEEN_LIMIT,
 	ValueTween,
 };

@@ -11,7 +11,7 @@
  * This module is internal shared implementation. The package does not export it.
  */
 
-import { easeQuintOut } from "./tween.js";
+import { easeOutStrong } from "./tween.js";
 
 /**
  * The two pixel edges of one painted bar segment.
@@ -220,7 +220,7 @@ const barReveal = (options: {
 	const share = count > 1 ? BAR_ENTER_SHARE : 1;
 	const start = count > 1 ? (index / (count - 1)) * (1 - share) : 0;
 	const local = Math.min(1, Math.max(0, (progress - start) / share));
-	return easeQuintOut(local);
+	return easeOutStrong(local);
 };
 
 /**

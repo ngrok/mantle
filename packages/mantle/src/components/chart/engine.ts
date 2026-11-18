@@ -76,7 +76,7 @@ import {
 	CHART_ENTER_DURATION_MS,
 	CHART_TWEEN_DURATION_MS,
 	ChaseTween,
-	easeQuintOut,
+	easeOutStrong,
 	PER_DATUM_TWEEN_LIMIT,
 	ValueTween,
 } from "./tween.js";
@@ -535,7 +535,7 @@ class ChartEngine {
 				columnOf: (dataKey) => this.#columnOf(dataKey),
 				paintedValues: (spec, seriesIndex) => this.#paintedValues(spec, "value", seriesIndex),
 				definedIndexes: (values) => this.#definedIndexes(values),
-				reveal: (dataKey) => easeQuintOut(this.#enterProgress(dataKey)),
+				reveal: (dataKey) => easeOutStrong(this.#enterProgress(dataKey)),
 				shape: (dataKey) => this.#store.seriesShape(dataKey),
 				xCoefficients: () => this.#xCoefficients(),
 				yCoefficients: () => this.#yCoefficients(),
@@ -1324,6 +1324,14 @@ class ChartEngine {
 		// Why none above the limit: `#paintedValues` reads no tween there, and each
 		// tween holds three copies of its column.
 		const holdsValueTweens = this.#rowCount <= PER_DATUM_TWEEN_LIMIT;
+		// Why a settle: a bar's place in the enter stagger comes from its row index
+		// and the row count, so new categories move a grown bar back to zero. The
+		// bar values jump on a new x vector too.
+		if (this.#kind === "bar" && !sameXVector) {
+			for (const reveal of this.#revealTweens.values()) {
+				reveal.snap();
+			}
+		}
 		const activeKeys = new Set<string>();
 		const registeredKeys = new Set<string>();
 		const retargetBuffer = (tweenKey: string, target: Float64Array, hadPrevious: boolean) => {
@@ -2554,7 +2562,7 @@ class ChartEngine {
 
 		specs.forEach((spec, seriesIndex) => {
 			const color = colors.series.get(spec.dataKey) ?? "currentColor";
-			const reveal = easeQuintOut(this.#enterProgress(spec.dataKey));
+			const reveal = easeOutStrong(this.#enterProgress(spec.dataKey));
 			ctx.save();
 			if (reveal < 1) {
 				ctx.beginPath();
