@@ -1,0 +1,211 @@
+---
+title: Chip
+description: A compact toggle button that turns an item in a set on or off.
+category: Forms
+aliases: [toggle chip, filter chip, scope chip]
+---
+
+import { Example } from "~/components/example";
+import { PageHeader } from "~/components/page-header";
+
+<PageHeader id="chip" isPreview>
+	Chip
+</PageHeader>
+
+A compact toggle button that turns an item in a set on or off. It uses `aria-pressed` and a plus or check icon to show its state.
+
+<Example name="components/preview/chip/overview" title="Chip example">
+
+```tsx
+import { Chip } from "@ngrok/mantle/chip";
+
+function Example() {
+	return (
+		<div className="flex flex-wrap gap-2">
+			<Chip>Read</Chip>
+			<Chip defaultPressed>Write</Chip>
+			<Chip>Manage</Chip>
+		</div>
+	);
+}
+```
+
+</Example>
+
+## When to use
+
+- Turn one item in a set on or off, such as a filter or an access level.
+- Use [`Badge`](/components/data-display/badge) when the label does not change state.
+- Use [`Checkbox`](/components/forms/checkbox) when the choice needs a form value.
+- Use [`Multi Select`](/components/forms/multi-select) when the user must search a long list of choices.
+- Use [`Button`](/components/actions/button) when a press runs an action without a selected state.
+
+## Controlled state
+
+Pass `pressed` and `onPressedChange` when the page owns the state. The chip reports the next state and waits for the new prop.
+
+<Example name="components/preview/chip/controlled" title="Controlled Chip example">
+
+```tsx
+import { Chip } from "@ngrok/mantle/chip";
+import { useState } from "react";
+
+function Example() {
+	const [pressed, setPressed] = useState(false);
+	return (
+		<Chip pressed={pressed} onPressedChange={setPressed}>
+			Write
+		</Chip>
+	);
+}
+```
+
+</Example>
+
+## Size
+
+Use `xs` in a data row. Use `sm` beside a small button. The two sizes match the `Button` height scale.
+
+<Example name="components/preview/chip/size" title="Chip size example">
+
+```tsx
+import { Chip } from "@ngrok/mantle/chip";
+
+function Example() {
+	return (
+		<div className="flex items-center gap-3">
+			<Chip size="xs" defaultPressed>
+				Read
+			</Chip>
+			<Chip size="sm" defaultPressed>
+				Read
+			</Chip>
+		</div>
+	);
+}
+```
+
+</Example>
+
+## Disabled
+
+A disabled chip keeps its state visible. It does not change state when the user presses it.
+
+<Example name="components/preview/chip/disabled" title="Disabled Chip example">
+
+```tsx
+import { Chip } from "@ngrok/mantle/chip";
+
+function Example() {
+	return (
+		<div className="flex gap-2">
+			<Chip disabled>Write</Chip>
+			<Chip disabled defaultPressed>
+				Read
+			</Chip>
+		</div>
+	);
+}
+```
+
+</Example>
+
+## A set of chips
+
+Name the group when its chips answer one question. Keep the selected items in one state value.
+
+<Example name="components/preview/chip/scopes" title="Access scope Chip example">
+
+```tsx
+import { Chip } from "@ngrok/mantle/chip";
+import { useState } from "react";
+
+function Example() {
+	const [granted, setGranted] = useState(["Read"]);
+	const levels = ["Read", "Write", "Manage"];
+	return (
+		<div role="group" aria-label="Access token scopes" className="flex flex-wrap gap-2">
+			{levels.map((level) => (
+				<Chip
+					key={level}
+					pressed={granted.includes(level)}
+					onPressedChange={(pressed) =>
+						setGranted((current) =>
+							pressed ? [...current, level] : current.filter((item) => item !== level),
+						)
+					}
+				>
+					{level}
+				</Chip>
+			))}
+		</div>
+	);
+}
+```
+
+</Example>
+
+## With a tooltip
+
+Use `Tooltip.Trigger asChild` to add a short hint to a chip. The chip passes its ref to its button.
+
+<Example name="components/preview/chip/tooltip" title="Chip with tooltip example">
+
+```tsx
+import { Chip } from "@ngrok/mantle/chip";
+import { Tooltip } from "@ngrok/mantle/tooltip";
+
+function Example() {
+	return (
+		<Tooltip.Root>
+			<Tooltip.Trigger asChild>
+				<Chip defaultPressed>Manage</Chip>
+			</Tooltip.Trigger>
+			<Tooltip.Content>Manage resources and settings</Tooltip.Content>
+		</Tooltip.Root>
+	);
+}
+```
+
+</Example>
+
+## Polymorphism
+
+`Chip` accepts `asChild` when an app-owned button must carry the chip style and state. Pass one button as its child.
+
+<Example name="components/preview/chip/polymorphism" title="Chip asChild example">
+
+```tsx
+import { Chip } from "@ngrok/mantle/chip";
+
+function Example() {
+	return (
+		<Chip asChild>
+			<button type="button">Read</button>
+		</Chip>
+	);
+}
+```
+
+</Example>
+
+## API Reference
+
+### Chip
+
+All native button props except `type` and `aria-pressed`, plus:
+
+| Prop               | Type                         | Default | Description                                   |
+| ------------------ | ---------------------------- | ------- | --------------------------------------------- |
+| `asChild?`         | `boolean`                    | `false` | Pass the chip props to one child button.      |
+| `pressed`          | `boolean`                    |         | Controlled state. Requires `onPressedChange`. |
+| `defaultPressed?`  | `boolean`                    | `false` | Initial state when the chip owns its state.   |
+| `onPressedChange?` | `(pressed: boolean) => void` |         | Receives the next state after a press.        |
+| `size?`            | `"xs" \| "sm"`               | `"xs"`  | The height and spacing on the `Button` scale. |
+
+| Data Attribute | Value             | Description                                                    |
+| -------------- | ----------------- | -------------------------------------------------------------- |
+| `data-slot`    | `"chip"`          | The root control.                                              |
+| `data-slot`    | `"chip-label"`    | The label wrapper around `children`, with `display: contents`. |
+| `data-state`   | `"on"` \| `"off"` | The pressed state.                                             |
+| `data-size`    | `"xs"` \| `"sm"`  | The size of the control.                                       |

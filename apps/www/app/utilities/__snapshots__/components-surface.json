@@ -257,7 +257,6 @@
     ],
     "aliases": [
       "tag",
-      "chip",
       "pill",
       "lozenge"
     ],
@@ -501,6 +500,43 @@
       }
     ],
     "useWhen": "Turn one or more independent options on or off in a form, with an indeterminate state for a partial selection."
+  },
+  {
+    "name": "Chip",
+    "slug": "components/preview/chip",
+    "kind": "component",
+    "category": "Forms",
+    "status": "preview",
+    "importPath": "@ngrok/mantle/chip",
+    "summary": "A compact toggle button that turns an item in a set on or off.",
+    "jsdoc": "A compact toggle button that turns an item in a set on or off.",
+    "examples": [
+      "```tsx\n<Chip defaultPressed>Read</Chip>\n<Chip pressed={isGranted} onPressedChange={setIsGranted}>Write</Chip>\n```"
+    ],
+    "aliases": [
+      "toggle chip",
+      "filter chip",
+      "scope chip"
+    ],
+    "siblings": [
+      {
+        "name": "Badge",
+        "boundary": "the label does not change state."
+      },
+      {
+        "name": "Checkbox",
+        "boundary": "the choice needs a form value."
+      },
+      {
+        "name": "MultiSelect",
+        "boundary": "the user must search a long list of choices."
+      },
+      {
+        "name": "Button",
+        "boundary": "a press runs an action without a selected state."
+      }
+    ],
+    "useWhen": "Turn one item in a set on or off, such as a filter or an access level."
   },
   {
     "name": "Choice",
