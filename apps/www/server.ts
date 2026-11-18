@@ -153,6 +153,25 @@ const mcpEndpoint = protocolRoute({
 });
 
 /**
+ * Sends an MCP request at another form of `/mcp`, such as `/mcp/` or `/MCP`,
+ * to `/mcp` with a 308, which keeps the method and the body. Why:
+ * `mcpEndpoint` matches `/mcp` only, but the router matches each form, so a
+ * client configured with one got the setup page's 405. A GET or a HEAD goes
+ * on: `trailingSlash` redirects `/mcp/`, and the router renders the page.
+ */
+const mcpPathForms: Plugin = {
+	name: "mcp-path-forms",
+	middleware: async (context, next) => {
+		const { method, path } = context.req;
+		const isOtherForm = path !== "/mcp" && path.toLowerCase().replace(/\/+$/, "") === "/mcp";
+		if (!isOtherForm || method === "GET" || method === "HEAD") {
+			return next();
+		}
+		return context.redirect(`/mcp${new URL(context.req.url).search}`, 308);
+	},
+};
+
+/**
  * The docs site's app: the default plugins, with a CSP for each document, the
  * indexing rule, the MCP server, and the markdown twin of each docs page. A
  * test makes a new one for each server, because an app runs the `setup` of
@@ -179,7 +198,7 @@ export function createDocsServer() {
 								`frame-src 'self' ${previewFrameOrigin()}`.trim(),
 							].join("; "),
 			},
-			beforeStatic: [documentIndexing, assetsCors, mcpPulseDigest(), mcpEndpoint],
+			beforeStatic: [documentIndexing, assetsCors, mcpPulseDigest(), mcpPathForms, mcpEndpoint],
 			prerendered: { markdownTwins: true },
 		}),
 		trustForwardedProto: process.env.TRUST_FORWARDED_PROTO === "1",
