@@ -1,10 +1,11 @@
 // The docs site's app server. The `appServer` Vite plugin finds this file and bundles it into
 // `build/server/app-server.js`.
 import type { Plugin } from "@ngrok/app-server";
-import { createServer, defaultPlugins, withHeaderHook } from "@ngrok/app-server";
+import { createServer, defaultPlugins, protocolRoute, withHeaderHook } from "@ngrok/app-server";
 import { assetsCdnOrigin } from "@ngrok/mantle/theme";
 import { canonicalOrigin } from "~/utilities/canonical-origin";
 import { allowsIndexing, EDGE_HEADER } from "~/utilities/indexing";
+import { serveMcp } from "~/utilities/mcp/endpoint.server";
 import { previewFrameOrigin } from "~/utilities/mcp/flags.server";
 import { MCP_APP_HOST_SOURCES } from "~/utilities/mcp/preview-app";
 import { DIGEST_INTERVAL_MS, mcpPulse } from "~/utilities/mcp/pulse.server";
@@ -127,9 +128,35 @@ function mcpPulseDigest(): Plugin {
 }
 
 /**
+ * Serves the MCP server at `/mcp`, and sends a browser to the setup page at
+ * the same URL. CORS allows any origin, because no request carries a
+ * credential and each tool reads only public data.
+ */
+const mcpEndpoint = protocolRoute({
+	path: "/mcp",
+	handle: serveMcp,
+	cors: {
+		origin: "*",
+		allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
+		allowHeaders: [
+			"Content-Type",
+			"Accept",
+			"Mcp-Method",
+			"Mcp-Name",
+			"MCP-Protocol-Version",
+			"Mcp-Session-Id",
+			"Last-Event-ID",
+		],
+		exposeHeaders: ["MCP-Protocol-Version", "Mcp-Session-Id"],
+		maxAge: 86400,
+	},
+});
+
+/**
  * The docs site's app: the default plugins, with a CSP for each document, the
- * indexing rule, and the markdown twin of each docs page. A test makes a new
- * one for each server, because an app runs the `setup` of its plugins one time.
+ * indexing rule, the MCP server, and the markdown twin of each docs page. A
+ * test makes a new one for each server, because an app runs the `setup` of
+ * its plugins one time.
  *
  * @example
  * const app = createDocsServer();
@@ -152,7 +179,7 @@ export function createDocsServer() {
 								`frame-src 'self' ${previewFrameOrigin()}`.trim(),
 							].join("; "),
 			},
-			beforeStatic: [documentIndexing, assetsCors, mcpPulseDigest()],
+			beforeStatic: [documentIndexing, assetsCors, mcpPulseDigest(), mcpEndpoint],
 			prerendered: { markdownTwins: true },
 		}),
 		trustForwardedProto: process.env.TRUST_FORWARDED_PROTO === "1",

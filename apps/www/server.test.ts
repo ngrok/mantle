@@ -130,6 +130,33 @@ describe("the docs app server", () => {
 		expect(response.headers.get("Vary")).toMatch(/Accept/);
 	});
 
+	it("sends a browser at /mcp to the setup page and an MCP client to the server", async () => {
+		server = await createTestServer({
+			app: createDocsServer(),
+			framework: async () =>
+				new Response("<!doctype html><title>setup</title>", {
+					headers: { "Content-Type": "text/html" },
+				}),
+		});
+
+		const page = await server.request("/mcp", { headers: { Accept: "text/html" } });
+		const rpc = await server.request("/mcp", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Accept: "application/json, text/event-stream",
+				Origin: "https://agent.example",
+			},
+			body: "{}",
+		});
+
+		expect(await page.text()).toContain("<title>setup</title>");
+		expect(page.headers.get("Vary")).toMatch(/Accept/);
+		expect(await rpc.json()).toMatchObject({ jsonrpc: "2.0", error: {} });
+		expect(rpc.headers.get("Access-Control-Allow-Origin")).toBe("*");
+		expect(rpc.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");
+	});
+
 	it("stops the daily MCP digest when the app shuts down", async () => {
 		vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
 		const flush = vi.spyOn(mcpPulse, "flush");
