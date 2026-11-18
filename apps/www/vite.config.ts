@@ -15,6 +15,7 @@ import devtoolsJson from "vite-plugin-devtools-json";
 import { remarkMdxNoParagraphWrap } from "@ngrok/remark-mdx-no-paragraph-wrap";
 import { reactCompilerOptions } from "../../packages/mantle/react-compiler.config.ts";
 import { mantleChangelogMdx } from "./vite-plugins/mantle-changelog-mdx.ts";
+import { exampleHeights } from "./vite-plugins/example-heights.ts";
 import { mdxDocComponentImports } from "./vite-plugins/mdx-doc-component-imports.ts";
 import { mdxGeneratedCode } from "./vite-plugins/mdx-generated-code.ts";
 import { opaqueOriginModuleCors } from "./vite-plugins/opaque-origin-module-cors.ts";
@@ -117,7 +118,13 @@ export default defineConfig(({ command }) => ({
 		// The React Router plugin's Fast Refresh transform injects a preamble
 		// check that throws when .tsx modules load under Vitest, and tests
 		// don't need the framework plugins; component tests render directly.
-		...(process.env.VITEST ? [] : [reactRouter(), appServer()]),
+		...(process.env.VITEST
+			? []
+			: [
+					reactRouter(),
+					appServer(),
+					exampleHeights(path.resolve(import.meta.dirname, "app/docs")),
+				]),
 		reactCompiler(),
 		workspacePluginCacheKey([
 			"@ngrok/mantle-vite-plugins",

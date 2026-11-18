@@ -2,9 +2,10 @@
 // @vitest-environment-options {"settings": {"disableIframePageLoading": true}}
 // (happy-dom otherwise fetches iframe src documents for real; these tests
 // only assert attributes and remounting, never framed content)
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { Example } from "./example";
+import { previewHeightMessage } from "~/features/example-heights";
+import { Example, ExampleHeightsContext } from "./example";
 
 function getIframe(): HTMLIFrameElement {
 	const iframe = document.querySelector("iframe");
@@ -65,6 +66,67 @@ describe("Example", () => {
 		render(<Example name="components/actions/button/size" title="Button size example" />);
 		expect(document.querySelector(".h-160")).toBeNull();
 		expect(getIframe().getAttribute("src")).toBe("/preview/components/actions/button/size");
+	});
+
+	it("starts a page example at its measured height", () => {
+		render(
+			<ExampleHeightsContext
+				value={{ "components/actions/button/size": { wide: 240, narrow: 236 } }}
+			>
+				<Example name="components/actions/button/size" title="Button size example" />
+			</ExampleHeightsContext>,
+		);
+
+		const iframe = getIframe();
+		expect(iframe.style.getPropertyValue("--example-height-wide")).toBe("240px");
+		expect(iframe.style.getPropertyValue("--example-height-narrow")).toBe("236px");
+		// Why a class check: happy-dom runs no container queries, so the classes that read the
+		// heights are the only observable of which height the frame starts at.
+		expect(iframe.classList.contains("@3xl:h-(--example-height-wide)")).toBe(true);
+		expect(iframe.classList.contains("h-40")).toBe(false);
+	});
+
+	function report(source: MessageEventSource | null, height: number, hydrated = true) {
+		act(() => {
+			window.dispatchEvent(
+				new MessageEvent("message", {
+					data: { type: previewHeightMessage, height, hydrated },
+					origin: window.location.origin,
+					source,
+				}),
+			);
+		});
+	}
+
+	it("grows a page example to the height its preview reports", () => {
+		render(<Example name="components/actions/button/size" title="Button size example" />);
+		const iframe = getIframe();
+
+		report(window, 900);
+		expect(iframe.style.height).toBe("");
+
+		report(iframe.contentWindow, 160, false);
+		expect(iframe.style.height).toBe("160px");
+
+		report(iframe.contentWindow, 312);
+		expect(iframe.style.height).toBe("312px");
+	});
+
+	it("keeps its measured height until the preview hydrates", () => {
+		render(
+			<ExampleHeightsContext
+				value={{ "components/actions/button/size": { wide: 226, narrow: 226 } }}
+			>
+				<Example name="components/actions/button/size" title="Button size example" />
+			</ExampleHeightsContext>,
+		);
+		const iframe = getIframe();
+
+		report(iframe.contentWindow, 160, false);
+		expect(iframe.style.height).toBe("");
+
+		report(iframe.contentWindow, 230);
+		expect(iframe.style.height).toBe("230px");
 	});
 
 	it("puts its code in a Code tab and keeps the preview mounted", () => {
