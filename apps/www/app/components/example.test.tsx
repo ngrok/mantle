@@ -86,26 +86,47 @@ describe("Example", () => {
 		expect(iframe.classList.contains("h-40")).toBe(false);
 	});
 
+	function report(source: MessageEventSource | null, height: number, hydrated = true) {
+		act(() => {
+			window.dispatchEvent(
+				new MessageEvent("message", {
+					data: { type: previewHeightMessage, height, hydrated },
+					origin: window.location.origin,
+					source,
+				}),
+			);
+		});
+	}
+
 	it("grows a page example to the height its preview reports", () => {
 		render(<Example name="components/actions/button/size" title="Button size example" />);
 		const iframe = getIframe();
-		const report = (source: MessageEventSource | null, height: number) => {
-			act(() => {
-				window.dispatchEvent(
-					new MessageEvent("message", {
-						data: { type: previewHeightMessage, height },
-						origin: window.location.origin,
-						source,
-					}),
-				);
-			});
-		};
 
 		report(window, 900);
 		expect(iframe.style.height).toBe("");
 
+		report(iframe.contentWindow, 160, false);
+		expect(iframe.style.height).toBe("160px");
+
 		report(iframe.contentWindow, 312);
 		expect(iframe.style.height).toBe("312px");
+	});
+
+	it("keeps its measured height until the preview hydrates", () => {
+		render(
+			<ExampleHeightsContext
+				value={{ "components/actions/button/size": { wide: 226, narrow: 226 } }}
+			>
+				<Example name="components/actions/button/size" title="Button size example" />
+			</ExampleHeightsContext>,
+		);
+		const iframe = getIframe();
+
+		report(iframe.contentWindow, 160, false);
+		expect(iframe.style.height).toBe("");
+
+		report(iframe.contentWindow, 230);
+		expect(iframe.style.height).toBe("230px");
 	});
 
 	it("puts its code in a Code tab and keeps the preview mounted", () => {

@@ -22,53 +22,93 @@ export type ExampleHeights = Record<string, ExampleHeight>;
 export const previewHeightMessage = "mantle:preview-height";
 
 /**
+ * The event a preview document fires on its `window` when it hydrates. The
+ * height reporter then reports again, marked as hydrated.
+ */
+export const previewHydratedEvent = "mantle:preview-hydrated";
+
+/**
+ * A height a preview reports. `hydrated` is `false` for the server markup,
+ * which can be shorter or taller than the hydrated example.
+ */
+export type PreviewHeightReport = { height: number; hydrated: boolean };
+
+/**
  * The `type` of the message a docs frame posts to its preview document to ask
  * for the current height again.
  */
 export const previewHeightRequest = "mantle:preview-height-request";
 
 /**
- * Returns the height a preview height message carries, or `null` when the
+ * Returns the report a preview height message carries, or `null` when the
  * data is some other message.
  */
-export function parsePreviewHeightMessage(data: unknown): number | null {
-	if (typeof data !== "object" || data == null || !("type" in data) || !("height" in data)) {
+export function parsePreviewHeightMessage(data: unknown): PreviewHeightReport | null {
+	if (
+		typeof data !== "object" ||
+		data == null ||
+		!("type" in data) ||
+		!("height" in data) ||
+		!("hydrated" in data)
+	) {
 		return null;
 	}
-	const { type, height } = data;
-	return type === previewHeightMessage && typeof height === "number" && height > 0 ? height : null;
+	const { type, height, hydrated } = data;
+	return type === previewHeightMessage &&
+		typeof height === "number" &&
+		height > 0 &&
+		typeof hydrated === "boolean"
+		? { height, hydrated }
+		: null;
 }
 
 /**
  * Reports the height of the `PreviewCanvas` to the parent docs frame, now and
- * on each resize, and again when the frame asks. The preview document runs it
- * as an inline script, so the frame gets a height as soon as the canvas is
- * parsed: it does not wait for the scripts, the hydration, or the load event.
+ * on each resize, again when the frame asks, and again when the preview
+ * hydrates. The preview document runs it as an inline script, so the frame
+ * gets a height as soon as the canvas is parsed: it does not wait for the
+ * scripts, the hydration, or the load event.
  *
  * Why it stays self-contained: it runs from its source text, so it can use
  * only its arguments and browser globals.
  */
-function reportPreviewHeight(message: string, request: string) {
+function reportPreviewHeight(message: string, request: string, hydratedEvent: string) {
 	const canvas = document.querySelector("[data-preview-canvas]");
 	if (canvas == null || window.parent === window) {
 		return;
 	}
 	let height = 0;
+	let hydrated = false;
 	const post = () => {
 		if (height > 0) {
-			window.parent.postMessage({ type: message, height }, window.location.origin);
+			window.parent.postMessage({ type: message, height, hydrated }, window.location.origin);
 		}
 	};
-	new ResizeObserver(() => {
+	const measure = () => {
 		height = Math.ceil(canvas.getBoundingClientRect().height);
 		post();
-	}).observe(canvas);
+	};
+	new ResizeObserver(measure).observe(canvas);
 	window.addEventListener("message", (event) => {
 		if (event.source === window.parent && event.data?.type === request) {
 			post();
 		}
 	});
+	window.addEventListener(
+		hydratedEvent,
+		() => {
+			hydrated = true;
+			measure();
+		},
+		{ once: true },
+	);
 }
 
 /** The source of the inline script that runs `reportPreviewHeight`. */
-export const reportPreviewHeightScript = `(${reportPreviewHeight.toString()})(${JSON.stringify(previewHeightMessage)},${JSON.stringify(previewHeightRequest)})`;
+export const reportPreviewHeightScript = `(${reportPreviewHeight.toString()})(${[
+	previewHeightMessage,
+	previewHeightRequest,
+	previewHydratedEvent,
+]
+	.map((argument) => JSON.stringify(argument))
+	.join(",")})`;

@@ -6,6 +6,7 @@ import { globSync } from "tinyglobby";
 import { preview, type Plugin, type ResolvedConfig } from "vite";
 import {
 	exampleHeightsFile,
+	previewHydratedEvent,
 	type ExampleHeight,
 	type ExampleHeights,
 } from "../app/features/example-heights.ts";
@@ -155,9 +156,21 @@ function exampleMeasurer(page: Page, frameWidths: { wide: number; narrow: number
 	page.on("request", (request) => openRequests.add(request.url()));
 	page.on("requestfinished", (request) => openRequests.delete(request.url()));
 	page.on("requestfailed", (request) => openRequests.delete(request.url()));
+	// Why: a docs frame keeps the measured height until its preview hydrates, so
+	// measure the hydrated preview.
+	const hydrated = page.locator("html[data-preview-hydrated]");
+	const watchHydration = page.addInitScript((event) => {
+		addEventListener(event, () => {
+			document.documentElement.dataset.previewHydrated = "";
+		});
+	}, previewHydratedEvent);
 	const canvasHeight = async (width: number) => {
 		await page.setViewportSize({ width, height: 900 });
-		return page.locator("[data-preview-canvas]").evaluate(async (canvas) => {
+		const canvasLocator = page.locator("[data-preview-canvas]");
+		// Why wait: React can keep a streamed canvas in a hidden container until its
+		// reveal timer runs, after the load event.
+		await canvasLocator.waitFor({ state: "visible" });
+		return canvasLocator.evaluate(async (canvas) => {
 			// Why: a docs frame is as tall as its canvas, so it never shows a scrollbar
 			// that takes width from the example.
 			document.documentElement.style.scrollbarWidth = "none";
@@ -171,10 +184,15 @@ function exampleMeasurer(page: Page, frameWidths: { wide: number; narrow: number
 					requestAnimationFrame(resolve);
 				});
 			});
-			return Math.ceil(canvas.getBoundingClientRect().height);
+			const height = Math.ceil(canvas.getBoundingClientRect().height);
+			if (height <= 0) {
+				throw new Error(`The canvas is ${height}px tall.`);
+			}
+			return height;
 		});
 	};
 	return async (url: URL): Promise<ExampleHeight> => {
+		await watchHydration;
 		const response = await page.goto(url.href, { waitUntil: "load" }).catch((error: unknown) => {
 			const open = [...openRequests].join(", ") || "none";
 			throw new Error(`The preview ${url.pathname} did not load. Open requests: ${open}`, {
@@ -185,6 +203,7 @@ function exampleMeasurer(page: Page, frameWidths: { wide: number; narrow: number
 			throw new Error(`The preview ${url.pathname} answered ${response?.status()}.`);
 		}
 		try {
+			await hydrated.waitFor({ state: "attached" });
 			return {
 				wide: await canvasHeight(frameWidths.wide),
 				narrow: await canvasHeight(frameWidths.narrow),

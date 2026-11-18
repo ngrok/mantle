@@ -1,7 +1,8 @@
 import { cspNonce } from "@ngrok/app-server/client";
-import { Suspense, use } from "react";
+import { useIsHydrated } from "@ngrok/mantle/hooks";
+import { Suspense, use, useEffect } from "react";
 import { data } from "react-router";
-import { reportPreviewHeightScript } from "~/features/example-heights";
+import { previewHydratedEvent, reportPreviewHeightScript } from "~/features/example-heights";
 import {
 	isComponentType,
 	loadPageExampleModule,
@@ -115,7 +116,8 @@ function PageExample({ modulePath, exportName }: PageExampleRef) {
 
 /**
  * Reports the height of the `PreviewCanvas` to the docs frame. Render it after
- * the example, in the component that resolves the example.
+ * the example, in the component that resolves the example. When the preview
+ * hydrates, it tells the reporter to report the hydrated height.
  *
  * Why after `use()` resolves: when the example suspends, React streams its
  * siblings first. A sibling script then runs before the canvas exists and
@@ -125,6 +127,14 @@ function PageExample({ modulePath, exportName }: PageExampleRef) {
  * the height before this document loads.
  */
 function HeightReporter() {
+	// Why `useIsHydrated`: it flips in the same commit as a `BrowserOnly` or other
+	// hydration-gated example, so the reporter measures the hydrated example.
+	const isHydrated = useIsHydrated();
+	useEffect(() => {
+		if (isHydrated) {
+			window.dispatchEvent(new Event(previewHydratedEvent));
+		}
+	}, [isHydrated]);
 	return (
 		<script
 			nonce={cspNonce()}

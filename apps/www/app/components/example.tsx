@@ -167,9 +167,12 @@ function Frame({ name, title, height }: FrameProps) {
 								if (
 									reported != null &&
 									event.source === iframe.contentWindow &&
-									event.origin === window.location.origin
+									event.origin === window.location.origin &&
+									// Why: the measured height is the hydrated height. The server markup
+									// can differ, so it does not replace the measured height.
+									(reported.hydrated || measuredHeight == null)
 								) {
-									setContentHeight(reported);
+									setContentHeight(reported.height);
 								}
 							};
 							window.addEventListener("message", onMessage);
