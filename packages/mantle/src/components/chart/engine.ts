@@ -1,5 +1,6 @@
 import invariant from "tiny-invariant";
 import {
+	barReveal,
 	barThickness,
 	isStackedBaseEnd,
 	isStackedDataEnd,
@@ -71,7 +72,14 @@ import {
 import type { FrameLabels, ScatterView, ScatterViewFactory } from "./scatter-engine.js";
 import { computeStackBoundaries } from "./stack.js";
 import type { StackBoundaries } from "./stack.js";
-import { CHART_TWEEN_DURATION_MS, ChaseTween, PER_DATUM_TWEEN_LIMIT, ValueTween } from "./tween.js";
+import {
+	CHART_ENTER_DURATION_MS,
+	CHART_TWEEN_DURATION_MS,
+	ChaseTween,
+	easeQuintOut,
+	PER_DATUM_TWEEN_LIMIT,
+	ValueTween,
+} from "./tween.js";
 
 /**
  * The imperative, framework-free chart engine. One instance backs one chart
@@ -165,7 +173,7 @@ const BAND_GAP_STEPS = [
 ] as const;
 
 /** A series with no boundaries: the fallback for an index past the spec list. */
-const EMPTY_SEGMENTS = { lower: null, upper: new Float64Array(0), reveal: 1 } as const;
+const EMPTY_SEGMENTS = { lower: null, upper: new Float64Array(0), progress: 1 } as const;
 
 /** The gap between the segments of a stack, in CSS pixels. */
 const STACK_GAP = 1;
@@ -527,7 +535,7 @@ class ChartEngine {
 				columnOf: (dataKey) => this.#columnOf(dataKey),
 				paintedValues: (spec, seriesIndex) => this.#paintedValues(spec, "value", seriesIndex),
 				definedIndexes: (values) => this.#definedIndexes(values),
-				reveal: (dataKey) => this.#reveal(dataKey),
+				reveal: (dataKey) => easeQuintOut(this.#enterProgress(dataKey)),
 				shape: (dataKey) => this.#store.seriesShape(dataKey),
 				xCoefficients: () => this.#xCoefficients(),
 				yCoefficients: () => this.#yCoefficients(),
@@ -634,7 +642,7 @@ class ChartEngine {
 		const now = performance.now();
 		// Why not `#motionDuration`: the Root marks a rebuilt engine seen when the
 		// chart was on screen before, and that chart can be off screen now.
-		const duration = this.#tweenDuration();
+		const duration = this.#enterDuration();
 		for (const reveal of this.#revealTweens.values()) {
 			reveal.retarget([1], { duration, now });
 		}
@@ -1356,12 +1364,13 @@ class ChartEngine {
 			// A chart nobody has seen holds it at zero until `markSeen`, unless
 			// there is no motion to play.
 			if (!this.#revealTweens.has(spec.dataKey) && this.#rowCount > 0) {
-				const reveal = new ValueTween();
+				// Why linear: each mark eases its own share of the enter (see `#enterProgress`).
+				const reveal = new ValueTween({ ease: (progress) => progress });
 				const motion = this.#motionDuration();
 				reveal.retarget([0], { duration: 0, now });
 				if (this.#seen || motion === 0) {
 					// A seen chart that is off screen now reveals a new series at once.
-					reveal.retarget([1], { duration: this.#seen ? this.#tweenDuration() : 0, now });
+					reveal.retarget([1], { duration: this.#seen ? this.#enterDuration() : 0, now });
 				}
 				this.#revealTweens.set(spec.dataKey, reveal);
 			}
@@ -1396,6 +1405,11 @@ class ChartEngine {
 			return 0;
 		}
 		return this.#motionDuration();
+	}
+
+	/** How long a series' enter reveal takes this frame, under the same gates as `#tweenDuration`. */
+	#enterDuration(): number {
+		return this.#tweenDuration() > 0 ? CHART_ENTER_DURATION_MS : 0;
 	}
 
 	/** The glide duration the viewer's settings allow, whatever the visibility. */
@@ -2306,41 +2320,54 @@ class ChartEngine {
 		return this.#allIndexes;
 	}
 
-	#reveal(dataKey: string): number {
+	/**
+	 * Linear time progress of a series' enter reveal, `0` to `1`. Each mark
+	 * eases it in its own way: a bar by its place in the stagger, a line or an
+	 * area as one sweep, and a point as one fade.
+	 */
+	#enterProgress(dataKey: string): number {
 		const tween = this.#revealTweens.get(dataKey);
 		return tween?.values()[0] ?? 1;
 	}
 
 	/**
-	 * Each bar series' boundaries and the reveal still to apply. A stacked
-	 * chart that is still entering re-stacks its revealed shares, so each column
-	 * grows as one bar; its segments then carry no reveal of their own.
+	 * Each bar series' boundaries and the enter progress still to apply. A
+	 * stacked chart that is still entering re-stacks its revealed shares, so
+	 * each column grows as one bar; its segments then carry no progress of
+	 * their own.
 	 */
 	#barSegments(
 		specs: readonly SeriesSpec[],
-	): Array<{ lower: Float64Array | null; upper: Float64Array; reveal: number }> {
-		const reveals = specs.map((spec) => this.#reveal(spec.dataKey));
+	): Array<{ lower: Float64Array | null; upper: Float64Array; progress: number }> {
+		const progresses = specs.map((spec) => this.#enterProgress(spec.dataKey));
 		if (this.#stack == null) {
 			return specs.map((spec, seriesIndex) => ({
 				lower: null,
 				upper: this.#paintedValues(spec, "value", seriesIndex),
-				reveal: reveals[seriesIndex] ?? 1,
+				progress: progresses[seriesIndex] ?? 1,
 			}));
 		}
 		const lower = specs.map((spec, seriesIndex) => this.#paintedValues(spec, "lower", seriesIndex));
 		const upper = specs.map((spec, seriesIndex) => this.#paintedValues(spec, "upper", seriesIndex));
-		if (reveals.every((reveal) => reveal >= 1)) {
+		if (progresses.every((progress) => progress >= 1)) {
 			return specs.map((_, seriesIndex) => ({
 				lower: lower[seriesIndex] ?? null,
 				upper: upper[seriesIndex] ?? new Float64Array(0),
-				reveal: 1,
+				progress: 1,
 			}));
 		}
-		const revealed = revealStack({ lower, upper, reveal: reveals, count: this.#rowCount });
+		const count = this.#rowCount;
+		const revealed = revealStack({
+			lower,
+			upper,
+			reveal: (seriesIndex, index) =>
+				barReveal({ progress: progresses[seriesIndex] ?? 1, index, count }),
+			count,
+		});
 		return specs.map((_, seriesIndex) => ({
 			lower: revealed.lower[seriesIndex] ?? null,
 			upper: revealed.upper[seriesIndex] ?? new Float64Array(0),
-			reveal: 1,
+			progress: 1,
 		}));
 	}
 
@@ -2403,7 +2430,7 @@ class ChartEngine {
 		const rects = this.#barRects;
 		const segments = this.#barSegments(specs);
 		specs.forEach((spec, seriesIndex) => {
-			const { lower, upper, reveal } = segments[seriesIndex] ?? EMPTY_SEGMENTS;
+			const { lower, upper, progress } = segments[seriesIndex] ?? EMPTY_SEGMENTS;
 			let count = 0;
 			for (let index = 0; index < this.#rowCount; index++) {
 				const upperValue = upper[index] ?? Number.NaN;
@@ -2421,7 +2448,7 @@ class ChartEngine {
 					lower: lowerValue,
 					upper: upperValue,
 					toPixel,
-					reveal,
+					reveal: barReveal({ progress, index, count: this.#rowCount }),
 					gap: stackGap,
 				});
 				const rect = rects[count] ?? emptyBarRect();
@@ -2471,7 +2498,7 @@ class ChartEngine {
 		const rects = this.#horizontalBarRects;
 		const segments = this.#barSegments(specs);
 		specs.forEach((spec, seriesIndex) => {
-			const { lower, upper, reveal } = segments[seriesIndex] ?? EMPTY_SEGMENTS;
+			const { lower, upper, progress } = segments[seriesIndex] ?? EMPTY_SEGMENTS;
 			let count = 0;
 			for (let index = 0; index < this.#rowCount; index++) {
 				const upperValue = upper[index] ?? Number.NaN;
@@ -2489,7 +2516,7 @@ class ChartEngine {
 					lower: lowerValue,
 					upper: upperValue,
 					toPixel,
-					reveal,
+					reveal: barReveal({ progress, index, count: this.#rowCount }),
 					gap: stackGap,
 				});
 				const rect = rects[count] ?? emptyHorizontalBarRect();
@@ -2527,7 +2554,7 @@ class ChartEngine {
 
 		specs.forEach((spec, seriesIndex) => {
 			const color = colors.series.get(spec.dataKey) ?? "currentColor";
-			const reveal = this.#reveal(spec.dataKey);
+			const reveal = easeQuintOut(this.#enterProgress(spec.dataKey));
 			ctx.save();
 			if (reveal < 1) {
 				ctx.beginPath();
