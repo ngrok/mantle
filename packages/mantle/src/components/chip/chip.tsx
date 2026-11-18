@@ -30,8 +30,13 @@ import { Slot } from "../slot/index.js";
 type ChipSize = Extract<ButtonSize, "xs" | "sm">;
 
 const chipSizeClassName = {
-	xs: "h-6 gap-1 ps-1.5 pe-2 text-xs",
-	sm: "h-7 gap-1 ps-2 pe-2.5 text-sm",
+	xs: "h-6 gap-1 ps-2 pe-2.5 text-xs",
+	sm: "h-7 gap-1 ps-2.5 pe-3 text-sm",
+} as const satisfies Record<ChipSize, string>;
+
+const chipRemoveEndClassName = {
+	xs: "pe-2",
+	sm: "pe-2.5",
 } as const satisfies Record<ChipSize, string>;
 
 type ChipPressedState =
@@ -269,7 +274,7 @@ function LabelChip({
 			"text-strong inline-flex w-fit shrink-0 items-center whitespace-nowrap rounded-full border border-neutral-500/20 bg-neutral-500/10 font-sans font-medium",
 			"motion-safe:data-shake:animate-shake",
 			chipSizeClassName[size],
-			hasRemoveButton && "pe-0.5",
+			hasRemoveButton && chipRemoveEndClassName[size],
 			className,
 		),
 	};
@@ -288,7 +293,7 @@ function LabelChip({
 			onClick={handleRemoveClick}
 			onMouseDown={handleRemoveMouseDown}
 		>
-			<Icon svg={locked ? <LockIcon /> : <XIcon weight="bold" />} className="size-4" />
+			<Icon svg={locked ? <LockIcon /> : <XIcon weight="bold" />} className="size-3" />
 		</button>
 	);
 	const contentFor = (label: ReactNode) => (
