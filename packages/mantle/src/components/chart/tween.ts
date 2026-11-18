@@ -16,6 +16,37 @@
  */
 const easeCubicOut = (t: number): number => 1 - (1 - t) ** 3;
 
+/** One axis of a cubic Bézier from `0` to `1` with control points `p1` and `p2`, at parameter `s`. */
+const bezierAxis = (p1: number, p2: number, s: number): number =>
+	3 * (1 - s) ** 2 * s * p1 + 3 * (1 - s) * s ** 2 * p2 + s ** 3;
+
+/**
+ * The `ease-out-strong` token, `cubic-bezier(0.23, 1, 0.32, 1)`, for a canvas
+ * paint that has no CSS timing function. Most of the distance moves at once.
+ *
+ * @example
+ * ```ts
+ * easeOutStrong(0.5); // about 0.97
+ * ```
+ */
+const easeOutStrong = (t: number): number => {
+	if (t <= 0 || t >= 1) {
+		return t <= 0 ? 0 : 1;
+	}
+	// Why a bisection: x grows with `s` on this curve, so it always converges.
+	let low = 0;
+	let high = 1;
+	for (let step = 0; step < 24; step++) {
+		const middle = (low + high) / 2;
+		if (bezierAxis(0.23, 0.32, middle) < t) {
+			low = middle;
+		} else {
+			high = middle;
+		}
+	}
+	return bezierAxis(1, 1, (low + high) / 2);
+};
+
 /**
  * A reusable tween over a vector of numbers. Buffers are reused across
  * retargets, with no per-frame allocation.
@@ -30,12 +61,22 @@ const easeCubicOut = (t: number): number => 1 - (1 - t) ** 3;
  * ```
  */
 class ValueTween {
+	#ease: (progress: number) => number;
 	#from: Float64Array = new Float64Array(0);
 	#to: Float64Array = new Float64Array(0);
 	#current: Float64Array = new Float64Array(0);
 	#startTime = 0;
 	#duration = 0;
 	#active = false;
+
+	/**
+	 * Create a settled tween with no values.
+	 *
+	 * @param options.ease Maps linear time progress (`0..1`) to value progress. Default {@link easeCubicOut}.
+	 */
+	constructor(options: { ease?: (progress: number) => number } = {}) {
+		this.#ease = options.ease ?? easeCubicOut;
+	}
 
 	/**
 	 * Whether the tween has frames left to play.
@@ -134,7 +175,7 @@ class ValueTween {
 			return false;
 		}
 		const progress = Math.min(1, (now - this.#startTime) / this.#duration);
-		const eased = easeCubicOut(progress);
+		const eased = this.#ease(progress);
 		for (let index = 0; index < this.#current.length; index++) {
 			const from = this.#from[index] ?? Number.NaN;
 			const to = this.#to[index] ?? Number.NaN;
@@ -380,6 +421,13 @@ class ChaseTween {
 const CHART_TWEEN_DURATION_MS = 280;
 
 /**
+ * Duration of a series' enter reveal in milliseconds. Bars grow one after
+ * another and a line sweeps across the plot, so the reveal runs longer than
+ * an update tween.
+ */
+const CHART_ENTER_DURATION_MS = 600;
+
+/**
  * Per-datum tweens are only meaningful below this point count; above it the
  * engine animates the scale domain instead (O(width) per frame via the
  * decimation cache) so 100k-point charts never tween 100k values.
@@ -388,9 +436,11 @@ const PER_DATUM_TWEEN_LIMIT = 2500;
 
 export {
 	//,
+	CHART_ENTER_DURATION_MS,
 	CHART_TWEEN_DURATION_MS,
 	ChaseTween,
 	easeCubicOut,
+	easeOutStrong,
 	PER_DATUM_TWEEN_LIMIT,
 	ValueTween,
 };

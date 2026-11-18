@@ -1,11 +1,20 @@
 import { describe, expect, test } from "vitest";
-import { ChaseTween, easeCubicOut, ValueTween } from "./tween.js";
+import { ChaseTween, easeCubicOut, easeOutStrong, ValueTween } from "./tween.js";
 
 describe("easeCubicOut", () => {
 	test("starts at 0, ends at 1, front-loads motion", () => {
 		expect(easeCubicOut(0)).toBe(0);
 		expect(easeCubicOut(1)).toBe(1);
 		expect(easeCubicOut(0.5)).toBeGreaterThan(0.5);
+	});
+});
+
+describe("easeOutStrong", () => {
+	test("follows the `ease-out-strong` token, cubic-bezier(0.23, 1, 0.32, 1)", () => {
+		expect(easeOutStrong(0)).toBe(0);
+		expect(easeOutStrong(1)).toBe(1);
+		// The curve's midpoint parameter: x = 0.33125, y = 0.875.
+		expect(easeOutStrong(0.33125)).toBeCloseTo(0.875, 4);
 	});
 });
 

@@ -11,6 +11,8 @@
  * This module is internal shared implementation. The package does not export it.
  */
 
+import { easeOutStrong } from "./tween.js";
+
 /**
  * The two pixel edges of one painted bar segment.
  */
@@ -187,9 +189,44 @@ const isStackedBaseEnd = (options: {
 }): boolean => Math.abs(options.baseline - options.toPixel(0)) < MIN_VISIBLE_EXTENT;
 
 /**
+ * The share of a series' enter reveal that one bar takes to grow. The rest is
+ * the stagger, so the last bar starts at `1 - BAR_ENTER_SHARE` whatever the
+ * bar count, and a 60-bar chart enters in the same time as a 6-bar chart.
+ */
+const BAR_ENTER_SHARE = 0.5;
+
+/**
+ * One bar's reveal at a point in its series' enter. Bars start one after
+ * another in category order, and each one eases out from the baseline.
+ *
+ * @example
+ * ```ts
+ * // Halfway through the enter, the first of three bars is full and the last has not started.
+ * barReveal({ progress: 0.5, index: 0, count: 3 }); // 1
+ * barReveal({ progress: 0.5, index: 2, count: 3 }); // 0
+ * ```
+ */
+const barReveal = (options: {
+	/** Linear time progress of the series' enter, `0` to `1`. */
+	progress: number;
+	index: number;
+	count: number;
+}): number => {
+	const { progress, index, count } = options;
+	if (progress >= 1) {
+		return 1;
+	}
+	// Why a full share for one bar: it has no stagger to leave room for.
+	const share = count > 1 ? BAR_ENTER_SHARE : 1;
+	const start = count > 1 ? (index / (count - 1)) * (1 - share) : 0;
+	const local = Math.min(1, Math.max(0, (progress - start) / share));
+	return easeOutStrong(local);
+};
+
+/**
  * Re-stack a stacked chart's segments at their enter reveal, so each column
  * grows as one bar from the baseline. Each series' share of a column scales by
- * its own reveal, and the shares sum again from zero, per pile.
+ * its reveal in that column, and the shares sum again from zero, per pile.
  *
  * Without this, a segment grows from its settled base: an upper segment
  * appears in the air above a lower one that is still rising. With it, every
@@ -202,14 +239,15 @@ const isStackedBaseEnd = (options: {
  * @example
  * ```ts
  * // Two series of 1 and 2, half revealed: the column reads 0.5 and 1.5.
- * revealStack({ lower: [[0], [1]], upper: [[1], [3]], reveal: [0.5, 0.5], count: 1 });
+ * revealStack({ lower: [[0], [1]], upper: [[1], [3]], reveal: () => 0.5, count: 1 });
  * // { lower: [[0], [0.5]], upper: [[0.5], [1.5]] }
  * ```
  */
 const revealStack = (options: {
 	lower: readonly ArrayLike<number>[];
 	upper: readonly ArrayLike<number>[];
-	reveal: readonly number[];
+	/** The reveal of one series in one column, `0` to `1`. */
+	reveal: (series: number, index: number) => number;
 	count: number;
 }): { lower: Float64Array[]; upper: Float64Array[] } => {
 	const { lower, upper, reveal, count } = options;
@@ -221,7 +259,7 @@ const revealStack = (options: {
 		for (let series = 0; series < upper.length; series++) {
 			const settledUpper = upper[series]?.[index] ?? Number.NaN;
 			const settledLower = lower[series]?.[index] ?? Number.NaN;
-			const share = reveal[series] ?? 1;
+			const share = reveal(series, index);
 			const revealedLower = outLower[series];
 			const revealedUpper = outUpper[series];
 			if (revealedLower == null || revealedUpper == null) {
@@ -253,6 +291,7 @@ export {
 	BAR_DENSE_THICKNESS,
 	BAR_MAX_THICKNESS,
 	BAR_STEP_FILL,
+	barReveal,
 	barThickness,
 	isStackedBaseEnd,
 	isStackedDataEnd,

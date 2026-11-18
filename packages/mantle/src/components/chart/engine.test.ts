@@ -847,6 +847,26 @@ describe("ChartEngine enter reveals", () => {
 		mount.engine.flushIngest();
 		expect(revealStarts()).toBe(3);
 	});
+
+	test("a category change during the bar enter keeps each grown bar on screen", () => {
+		const frames = installFrameClock();
+		const rows = ["A", "B", "C", "D"].map((x) => ({ x, a: 100 }));
+		const mount = mountEngine({
+			kind: "bar",
+			backend: createSvgBackend,
+			series: [makeSeries("a", "bar")],
+			rows,
+			options: { xScale: "band", yDomain: [0, 100], animate: true },
+		});
+		for (let frame = 0; frame < 12; frame++) {
+			frames.step();
+		}
+		mount.engine.setRows(rows.slice(0, 2));
+		mount.engine.flushIngest();
+		frames.step();
+		// A series paints as one path, with one subpath per bar.
+		expect(paintedPaths(mount).join("").match(/M/g)).toHaveLength(2);
+	});
 });
 
 describe("ChartEngine reveal on first sight", () => {

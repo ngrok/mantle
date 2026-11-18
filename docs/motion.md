@@ -55,6 +55,10 @@ explains nothing is noise. Leave it out.
   around the content holds `animate-exit-hold` so Radix waits for the exit. The hold matches while no open
   content is inside it, not while closed content is, so a shorter content exit cannot cancel it.
 - **An edge panel** (`Sheet`, `Sandbar`) slides its full size from the screen edge.
+- **A chart's enter reveal** runs 600ms on the `ease-out-strong` curve. It answers no input: it plays once, when
+  the chart first comes into view. Each bar grows for 300ms, and the bars start one after another in category
+  order. The last bar starts at 300ms for any bar count. A line or an area sweeps in from the left, and a scatter
+  series fades in. Reduced motion and `animate={false}` show the end state at once.
 
 ## Tokens
 

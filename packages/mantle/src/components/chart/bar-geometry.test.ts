@@ -3,6 +3,7 @@ import {
 	BAR_DENSE_THICKNESS,
 	BAR_MAX_THICKNESS,
 	BAR_STEP_FILL,
+	barReveal,
 	barThickness,
 	isStackedDataEnd,
 	revealStack,
@@ -244,19 +245,27 @@ describe("revealStack", () => {
 	const settled = { lower: [[0], [1], [3]], upper: [[1], [3], [6]] };
 
 	test("a stack entering together grows as one column, its seams inside the bar", () => {
-		const half = revealStack({ ...settled, reveal: [0.5, 0.5, 0.5], count: 1 });
+		const half = revealStack({ ...settled, reveal: () => 0.5, count: 1 });
 		expect(half.lower.map((column) => column[0])).toEqual([0, 0.5, 1.5]);
 		expect(half.upper.map((column) => column[0])).toEqual([0.5, 1.5, 3]);
 	});
 
 	test("a series entering later grows on top of a settled stack", () => {
-		const entering = revealStack({ ...settled, reveal: [1, 1, 0], count: 1 });
+		const entering = revealStack({
+			...settled,
+			reveal: (series) => (series === 2 ? 0 : 1),
+			count: 1,
+		});
 		expect(entering.lower.map((column) => column[0])).toEqual([0, 1, 3]);
 		expect(entering.upper.map((column) => column[0])).toEqual([1, 3, 3]);
 	});
 
 	test("a series entering below a settled one lifts it instead of overlapping it", () => {
-		const entering = revealStack({ ...settled, reveal: [0, 1, 1], count: 1 });
+		const entering = revealStack({
+			...settled,
+			reveal: (series) => (series === 0 ? 0 : 1),
+			count: 1,
+		});
 		expect(entering.lower.map((column) => column[0])).toEqual([0, 0, 2]);
 		expect(entering.upper.map((column) => column[0])).toEqual([0, 2, 5]);
 	});
@@ -265,10 +274,37 @@ describe("revealStack", () => {
 		const revealed = revealStack({
 			lower: [[0], [-2], [Number.NaN]],
 			upper: [[4], [0], [Number.NaN]],
-			reveal: [0.5, 0.5, 0.5],
+			reveal: () => 0.5,
 			count: 1,
 		});
 		expect(revealed.lower.map((column) => column[0])).toEqual([0, -1, Number.NaN]);
 		expect(revealed.upper.map((column) => column[0])).toEqual([2, 0, Number.NaN]);
+	});
+});
+
+describe("barReveal", () => {
+	test("bars start one after another, left to right", () => {
+		const early = [0, 1, 2, 3].map((index) => barReveal({ progress: 0.2, index, count: 4 }));
+		expect(early[0]).toBeGreaterThan(early[1] ?? 0);
+		expect(early[1]).toBeGreaterThan(0);
+		expect(early.slice(2)).toEqual([0, 0]);
+	});
+
+	test("the first bar is full when the last bar starts, whatever the bar count", () => {
+		for (const count of [2, 7, 60]) {
+			expect(barReveal({ progress: 0.5, index: 0, count })).toBe(1);
+			expect(barReveal({ progress: 0.5, index: count - 1, count })).toBe(0);
+		}
+	});
+
+	test("every bar is full at the end of the enter", () => {
+		for (const index of [0, 3, 6]) {
+			expect(barReveal({ progress: 1, index, count: 7 })).toBe(1);
+		}
+	});
+
+	test("a single bar grows over the whole enter", () => {
+		expect(barReveal({ progress: 0.5, index: 0, count: 1 })).toBeGreaterThan(0);
+		expect(barReveal({ progress: 0.5, index: 0, count: 1 })).toBeLessThan(1);
 	});
 });
