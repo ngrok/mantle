@@ -2,7 +2,7 @@
 
 import { render, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
-import { commands, userEvent } from "vitest/browser";
+import { commands } from "vitest/browser";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { fitBounds, toScreen } from "../chart/geo.js";
 import { WorldMap } from "./world-map.js";
@@ -363,14 +363,28 @@ describe("WorldMap regions, connectors, and callouts", () => {
 		if (plot == null || overlay == null) {
 			throw new Error("The map rendered no plot or no overlay.");
 		}
-		overlay.focus();
-		await userEvent.keyboard("{Home}");
+		const plotBox = plot.getBoundingClientRect();
+		const fit = fitBounds(
+			{ left: 0, top: 0, width: plotBox.width, height: plotBox.height },
+			bounds,
+			{
+				inset: 0,
+			},
+		);
+		const [x, y] = toScreen(fit, client.longitude, client.latitude);
+		// Why a dispatched pointer event and not the keyboard: browser test files share one page, and another file can take focus.
 		const tooltip = await waitFor(() => {
+			overlay.dispatchEvent(
+				new PointerEvent("pointermove", {
+					bubbles: true,
+					clientX: plotBox.left + x,
+					clientY: plotBox.top + y,
+				}),
+			);
 			const element = container.querySelector<HTMLElement>('[data-slot="world-map-tooltip"]');
 			expect(element?.style.opacity).toBe("1");
 			return element as HTMLElement;
 		});
-		const plotBox = plot.getBoundingClientRect();
 		const box = tooltip.getBoundingClientRect();
 		expect(box.left).toBeGreaterThanOrEqual(plotBox.left);
 		expect(box.right).toBeLessThanOrEqual(plotBox.right + 0.5);
