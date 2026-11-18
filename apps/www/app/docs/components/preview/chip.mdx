@@ -12,7 +12,7 @@ import { PageHeader } from "~/components/page-header";
 	Chip
 </PageHeader>
 
-A compact label for a value or a selectable choice. Add a remove control to let the user dismiss a value, or make the chip selectable to turn a choice on or off.
+A compact label for a value or a selectable choice. Press a selectable chip to turn it on or off. A chip can also have a separate remove control.
 
 <Example name="components/preview/chip/overview" title="Chip example">
 
@@ -20,7 +20,7 @@ A compact label for a value or a selectable choice. Add a remove control to let 
 import { Chip } from "@ngrok/mantle/chip";
 
 function Example() {
-	return <Chip>Read</Chip>;
+	return <Chip selectable>Read</Chip>;
 }
 ```
 
@@ -36,7 +36,7 @@ function Example() {
 
 ## Removable
 
-Pass `onRemove` and a `removeLabel` that names the value. The remove button is the only tab stop in a standalone removable chip.
+Pass `onRemove` and a `removeLabel` that names the value. With `selectable`, press the label to toggle it. Press the remove button to dismiss it.
 
 <Example name="components/preview/chip/removable" title="Removable Chip example">
 
@@ -48,7 +48,7 @@ function Example() {
 	const [showModel, setShowModel] = useState(true);
 	return (
 		showModel && (
-			<Chip onRemove={() => setShowModel(false)} removeLabel="Remove model A">
+			<Chip selectable onRemove={() => setShowModel(false)} removeLabel="Remove model A">
 				Model A
 			</Chip>
 		)
@@ -60,7 +60,7 @@ function Example() {
 
 ## Locked
 
-Set `locked` to keep the remove control visible and block removal. A locked chip ignores Delete and Backspace when it has focus.
+Set `locked` to keep the remove control visible and block removal. The toggle still works. A locked chip ignores Delete and Backspace when it has focus.
 
 <Example name="components/preview/chip/locked" title="Locked Chip example">
 
@@ -69,7 +69,7 @@ import { Chip } from "@ngrok/mantle/chip";
 
 function Example() {
 	return (
-		<Chip locked onRemove={() => {}} removeLabel="Remove global scope">
+		<Chip selectable locked onRemove={() => {}} removeLabel="Remove global scope">
 			Global scope
 		</Chip>
 	);
@@ -80,7 +80,7 @@ function Example() {
 
 ## Leading icon
 
-Pass `icon` to place an SVG before the label. Keep the icon out of `children` so the label remains a separate slot.
+Pass `icon` to place an SVG before the state icon and label. Keep the icon out of `children` so the label remains a separate slot.
 
 <Example name="components/preview/chip/icon" title="Chip with icon example">
 
@@ -89,7 +89,11 @@ import { CubeIcon } from "@phosphor-icons/react/Cube";
 import { Chip } from "@ngrok/mantle/chip";
 
 function Example() {
-	return <Chip icon={<CubeIcon />}>Model A</Chip>;
+	return (
+		<Chip selectable icon={<CubeIcon />}>
+			Model A
+		</Chip>
+	);
 }
 ```
 
@@ -153,8 +157,12 @@ import { Chip } from "@ngrok/mantle/chip";
 function Example() {
 	return (
 		<div className="flex items-center gap-3">
-			<Chip size="xs">Read</Chip>
-			<Chip size="sm">Read</Chip>
+			<Chip selectable size="xs">
+				Read
+			</Chip>
+			<Chip selectable size="sm">
+				Read
+			</Chip>
 		</div>
 	);
 }
@@ -251,7 +259,7 @@ function Example() {
 
 ## Polymorphism
 
-`Chip` accepts `asChild` to pass its props to one child. A selectable chip needs a button child. A removable chip needs a non-interactive container child so its remove button is not nested inside another control.
+`Chip` accepts `asChild` to pass its props to one child. A selectable chip without removal needs a button child. A removable chip needs a non-interactive container child so its controls are not nested inside another control.
 
 <Example name="components/preview/chip/polymorphism" title="Chip asChild example">
 
@@ -273,12 +281,12 @@ function Example() {
 
 ### Chip
 
-The default chip accepts native span props. A selectable chip accepts native button props except `type` and `aria-pressed`.
+The default chip accepts native span props. A selectable chip without removal accepts native button props except `type` and `aria-pressed`. With both `selectable` and `onRemove`, the root accepts native span props and contains two buttons.
 
 | Prop                    | Type                         | Default | Description                                               |
 | ----------------------- | ---------------------------- | ------- | --------------------------------------------------------- |
 | `asChild?`              | `boolean`                    | `false` | Pass the chip props to one child with the same semantics. |
-| `icon?`                 | `ReactNode`                  |         | SVG icon before the label on a plain or removable chip.   |
+| `icon?`                 | `ReactNode`                  |         | SVG icon before the label.                                |
 | `onRemove`              | `() => void`                 |         | Adds a remove button; requires `removeLabel`.             |
 | `removeLabel`           | `string`                     |         | Accessible name of the remove button.                     |
 | `locked?`               | `boolean`                    | `false` | Blocks removal and shows a lock icon.                     |
@@ -289,7 +297,7 @@ The default chip accepts native span props. A selectable chip accepts native but
 | `onPressedChange?`      | `(pressed: boolean) => void` |         | Receives the next state after a press.                    |
 | `size?`                 | `"xs" \| "sm"`               | `"xs"`  | Height and spacing on the `Button` scale.                 |
 
-`onRemove` and `selectable` cannot be combined. A plain chip renders a span; a selectable chip renders a button.
+`onRemove` and `selectable` can be combined. If both are set, the chip renders separate toggle and remove buttons. Without either prop, a chip renders a compact label.
 
 | Data Attribute | Value             | Description                                  |
 | -------------- | ----------------- | -------------------------------------------- |
@@ -297,6 +305,7 @@ The default chip accepts native span props. A selectable chip accepts native but
 | `data-slot`    | `"chip-label"`    | The label wrapper, with `display: contents`. |
 | `data-slot`    | `"chip-icon"`     | The optional leading icon.                   |
 | `data-slot`    | `"chip-remove"`   | The optional remove button.                  |
+| `data-slot`    | `"chip-toggle"`   | The toggle button beside a remove button.    |
 | `data-state`   | `"on"` \| `"off"` | The selectable state.                        |
 | `data-size`    | `"xs"` \| `"sm"`  | The size of the chip.                        |
 | `data-locked`  | present           | Removal is blocked.                          |

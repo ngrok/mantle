@@ -64,8 +64,30 @@ type SelectableChipProps = Omit<ComponentProps<"button">, "type" | "aria-pressed
 		onRemove?: never;
 		removeLabel?: never;
 		locked?: never;
-		icon?: never;
+		/** An SVG icon before the state icon and label. */
+		icon?: ReactNode;
 		removeButtonTabIndex?: never;
+	};
+
+type SelectableRemovableChipProps = Omit<ComponentProps<"span">, "children" | "onClick"> &
+	ChipSharedProps &
+	ChipPressedState & {
+		/** Renders a toggle button beside a remove button. */
+		selectable: true;
+		/** The chip's label. */
+		children?: ReactNode;
+		/** An SVG icon before the state icon and label. */
+		icon?: ReactNode;
+		/** Called after the remove button is activated. */
+		onRemove: () => void;
+		/** The remove button's accessible name. */
+		removeLabel: string;
+		/** Blocks removal while the chip remains selectable. @default false */
+		locked?: boolean;
+		/** Set to `-1` when a parent list owns keyboard focus. @default 0 */
+		removeButtonTabIndex?: number;
+		/** Called when the toggle button is activated. */
+		onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
 	};
 
 type ChipLabelBaseProps = Omit<ComponentProps<"span">, "children"> &
@@ -100,7 +122,7 @@ type RemovableChipProps = ChipLabelBaseProps & {
 
 /**
  * Props for a compact label, removable value, or selectable choice.
- * A plain chip renders a span. `onRemove` adds a remove button; `selectable` renders a toggle button.
+ * A plain chip renders a span. `selectable` adds a toggle button; `onRemove` adds a separate remove button.
  *
  * @see https://mantle.ngrok.com/components/preview/chip
  *
@@ -109,9 +131,14 @@ type RemovableChipProps = ChipLabelBaseProps & {
  * <Chip>Read</Chip>
  * <Chip onRemove={removeWrite} removeLabel="Remove Write">Write</Chip>
  * <Chip selectable defaultPressed>Manage</Chip>
+ * <Chip selectable onRemove={removeModel} removeLabel="Remove model">Model</Chip>
  * ```
  */
-type ChipProps = PlainChipProps | RemovableChipProps | SelectableChipProps;
+type ChipProps =
+	| PlainChipProps
+	| RemovableChipProps
+	| SelectableChipProps
+	| SelectableRemovableChipProps;
 
 function SelectableChip({
 	"data-slot": dataSlot,
@@ -123,6 +150,7 @@ function SelectableChip({
 	size = "xs",
 	className,
 	children,
+	icon: leadingIcon,
 	disabled,
 	onClick,
 	ref,
@@ -167,7 +195,12 @@ function SelectableChip({
 			className,
 		),
 	};
-	const icon = <StateIcon aria-hidden weight="bold" className="size-3 shrink-0" />;
+	const icon = (
+		<>
+			{leadingIcon != null && <Icon data-slot="chip-icon" svg={leadingIcon} className="size-3" />}
+			<StateIcon aria-hidden weight="bold" className="size-3 shrink-0" />
+		</>
+	);
 	if (asChild) {
 		invariant(
 			isValidElement<{ children?: ReactNode }>(children) && Children.only(children),
@@ -312,9 +345,91 @@ function LabelChip({
 	return <span {...spanProps}>{contentFor(children)}</span>;
 }
 
+function SelectableRemovableChip({
+	asChild = false,
+	selectable: _selectable,
+	pressed,
+	defaultPressed = false,
+	onPressedChange,
+	onRemove,
+	removeLabel,
+	locked,
+	icon,
+	children,
+	className,
+	onClick,
+	size = "xs",
+	...props
+}: SelectableRemovableChipProps) {
+	const [uncontrolledPressed, setUncontrolledPressed] = useState(defaultPressed);
+	const isPressed = pressed ?? uncontrolledPressed;
+	const StateIcon = isPressed ? CheckIcon : PlusIcon;
+
+	function handleToggleClick(event: MouseEvent<HTMLButtonElement>) {
+		onClick?.(event);
+		if (event.defaultPrevented) {
+			return;
+		}
+		if (pressed == null) {
+			setUncontrolledPressed(!isPressed);
+		}
+		onPressedChange?.(!isPressed);
+	}
+
+	const toggleButton = (
+		<button
+			type="button"
+			data-slot="chip-toggle"
+			aria-pressed={isPressed}
+			className={cx(
+				"inline-flex h-full cursor-pointer items-center gap-1 rounded-full bg-transparent ps-1.5 pe-2 text-inherit",
+				"focus-visible:ring-focus-accent focus-visible:ring-2 focus-visible:outline-hidden",
+				"motion-safe:active:scale-97",
+				size === "sm" && "ps-2 pe-2.5",
+			)}
+			onClick={handleToggleClick}
+		>
+			{icon != null && <Icon data-slot="chip-icon" svg={icon} className="size-3" />}
+			<StateIcon aria-hidden weight="bold" className="size-3 shrink-0" />
+			{asChild && isValidElement<{ children?: ReactNode }>(children)
+				? children.props.children
+				: children}
+		</button>
+	);
+	if (asChild) {
+		invariant(
+			isValidElement<{ children?: ReactNode }>(children) && Children.only(children),
+			"When using `asChild`, a removable Chip needs one container child.",
+		);
+	}
+	const content =
+		asChild && isValidElement<{ children?: ReactNode }>(children)
+			? cloneElement(children, {}, toggleButton)
+			: toggleButton;
+
+	return (
+		<LabelChip
+			{...props}
+			asChild={asChild}
+			size={size}
+			onRemove={onRemove}
+			removeLabel={removeLabel}
+			locked={locked}
+			data-state={isPressed ? "on" : "off"}
+			className={cx(
+				"border-base bg-transparent ps-0 text-muted motion-safe:transition motion-safe:duration-150 motion-safe:ease-out",
+				"data-[state=on]:border-transparent data-[state=on]:bg-accent-500/20 data-[state=on]:text-accent-700",
+				className,
+			)}
+		>
+			{content}
+		</LabelChip>
+	);
+}
+
 /**
  * A compact label for a value or a selectable choice.
- * A plain chip renders a span. `onRemove` adds a button; `selectable` renders a toggle button.
+ * A plain chip renders a span. `selectable` adds a toggle button; `onRemove` adds a separate remove button.
  * The `chip-label` slot has `display: contents` and keeps text safe when browser translation changes the page.
  *
  * | Data Attribute | Value | Description |
@@ -323,6 +438,7 @@ function LabelChip({
  * | `data-slot` | `"chip-label"` | The label wrapper, with `display: contents`. |
  * | `data-slot` | `"chip-icon"` | The optional leading icon. |
  * | `data-slot` | `"chip-remove"` | The optional remove button. |
+ * | `data-slot` | `"chip-toggle"` | The toggle button when a chip is also removable. |
  * | `data-state` | `"on"` \| `"off"` | The selectable state. |
  * | `data-size` | `"xs"` \| `"sm"` | The size of the chip. |
  * | `data-locked` | present when locked | Removal is blocked. |
@@ -342,10 +458,14 @@ function LabelChip({
  * <Chip>Read</Chip>
  * <Chip onRemove={removeWrite} removeLabel="Remove Write">Write</Chip>
  * <Chip selectable defaultPressed>Manage</Chip>
+ * <Chip selectable onRemove={removeModel} removeLabel="Remove model">Model</Chip>
  * ```
  */
 function Chip(props: ChipProps) {
 	if (props.selectable) {
+		if (props.onRemove != null) {
+			return <SelectableRemovableChip {...props} />;
+		}
 		return <SelectableChip {...props} />;
 	}
 	return <LabelChip {...props} />;

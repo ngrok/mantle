@@ -38,6 +38,71 @@ describe("Chip", () => {
 		expect(onClick).not.toHaveBeenCalled();
 	});
 
+	test("a removable selectable chip toggles and removes with separate buttons", async () => {
+		const onRemove = vi.fn<() => void>();
+		const onPressedChange = vi.fn<(pressed: boolean) => void>();
+		const user = userEvent.setup();
+		const { container } = render(
+			<Chip
+				selectable
+				onRemove={onRemove}
+				removeLabel="Remove model"
+				onPressedChange={onPressedChange}
+			>
+				Model
+			</Chip>,
+		);
+		const chip = container.querySelector('[data-slot="chip"]');
+		const toggle = screen.getByRole("button", { name: "Model" });
+		const remove = screen.getByRole("button", { name: "Remove model" });
+		expect(chip?.tagName).toBe("SPAN");
+		expect(toggle).toHaveAttribute("data-slot", "chip-toggle");
+		expect(toggle).toHaveAttribute("aria-pressed", "false");
+		await user.click(toggle);
+		expect(onPressedChange).toHaveBeenCalledWith(true);
+		expect(toggle).toHaveAttribute("aria-pressed", "true");
+		expect(chip).toHaveAttribute("data-state", "on");
+		await user.click(remove);
+		expect(onRemove).toHaveBeenCalledOnce();
+		expect(onPressedChange).toHaveBeenCalledOnce();
+	});
+
+	test("a locked removable chip still toggles but cannot be removed", async () => {
+		const onRemove = vi.fn<() => void>();
+		const user = userEvent.setup();
+		render(
+			<Chip selectable locked onRemove={onRemove} removeLabel="Remove scope">
+				Scope
+			</Chip>,
+		);
+		const toggle = screen.getByRole("button", { name: "Scope" });
+		const remove = screen.getByRole("button", { name: "Remove scope" });
+		await user.click(toggle);
+		expect(toggle).toHaveAttribute("aria-pressed", "true");
+		await user.click(remove);
+		expect(onRemove).not.toHaveBeenCalled();
+		expect(remove).toHaveAttribute("aria-disabled", "true");
+	});
+
+	test("a controlled removable chip waits for its pressed prop", async () => {
+		const onPressedChange = vi.fn<(pressed: boolean) => void>();
+		render(
+			<Chip
+				selectable
+				pressed
+				onPressedChange={onPressedChange}
+				onRemove={() => {}}
+				removeLabel="Remove model"
+			>
+				Model
+			</Chip>,
+		);
+		const toggle = screen.getByRole("button", { name: "Model" });
+		await userEvent.setup().click(toggle);
+		expect(onPressedChange).toHaveBeenCalledWith(false);
+		expect(toggle).toHaveAttribute("aria-pressed", "true");
+	});
+
 	test("locked chips keep the remove button but block removal and Delete", async () => {
 		const onRemove = vi.fn<() => void>();
 		const onKeyDown = vi.fn<() => void>();
@@ -65,6 +130,19 @@ describe("Chip", () => {
 		const { container } = render(<Chip icon={<StarIcon />}>Favorite</Chip>);
 		expect(container.querySelector('[data-slot~="chip-icon"]')).toBeInTheDocument();
 		expect(container.querySelector('[data-slot="chip-label"]')).toHaveTextContent("Favorite");
+	});
+
+	test("a selectable chip can keep a leading icon while its state changes", async () => {
+		const { container } = render(
+			<Chip selectable icon={<StarIcon />}>
+				Favorite
+			</Chip>,
+		);
+		const button = screen.getByRole("button", { name: "Favorite" });
+		expect(container.querySelector('[data-slot~="chip-icon"]')).toBeInTheDocument();
+		await userEvent.setup().click(button);
+		expect(button).toHaveAttribute("aria-pressed", "true");
+		expect(container.querySelector('[data-slot~="chip-icon"]')).toBeInTheDocument();
 	});
 
 	test("a controlled chip reports the next state and waits for the prop", async () => {
@@ -201,6 +279,34 @@ describe("Chip", () => {
 		expect(ref.current).toBe(chip);
 		expect(chip).toHaveAttribute("data-slot", "chip custom-label");
 		expect(chip).toHaveClass("chip-class", "child-class");
+		await userEvent.setup().click(screen.getByRole("button", { name: "Remove Read" }));
+		expect(onRemove).toHaveBeenCalledOnce();
+	});
+
+	test("removable selectable asChild keeps separate controls inside a container", async () => {
+		const ref = createRef<HTMLSpanElement>();
+		const onRemove = vi.fn<() => void>();
+		const { container } = render(
+			<Chip
+				selectable
+				asChild
+				ref={ref}
+				className="chip-class"
+				onRemove={onRemove}
+				removeLabel="Remove Read"
+			>
+				<span className="child-class" data-slot="custom-chip">
+					Read
+				</span>
+			</Chip>,
+		);
+		const chip = container.querySelector('[data-slot~="custom-chip"]');
+		expect(ref.current).toBe(chip);
+		expect(chip).toHaveAttribute("data-slot", "chip custom-chip");
+		expect(chip).toHaveClass("chip-class", "child-class");
+		const toggle = screen.getByRole("button", { name: "Read" });
+		await userEvent.setup().click(toggle);
+		expect(toggle).toHaveAttribute("aria-pressed", "true");
 		await userEvent.setup().click(screen.getByRole("button", { name: "Remove Read" }));
 		expect(onRemove).toHaveBeenCalledOnce();
 	});

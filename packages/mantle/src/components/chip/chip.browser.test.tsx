@@ -39,4 +39,19 @@ describe("Chip motion", () => {
 			"0s",
 		);
 	});
+
+	test("a selectable removable chip also changes without a transition", async () => {
+		await commands.emulateMedia({ reducedMotion: "reduce" });
+		const { container } = render(
+			<Chip selectable onRemove={() => {}} removeLabel="Remove model">
+				Model
+			</Chip>,
+		);
+		const chip = container.querySelector('[data-slot="chip"]');
+		if (chip == null) {
+			throw new Error("Expected a Chip root");
+		}
+
+		expect(getComputedStyle(chip).transitionDuration).toBe("0s");
+	});
 });

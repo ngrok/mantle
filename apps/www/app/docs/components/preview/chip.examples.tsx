@@ -4,22 +4,22 @@ import { Tooltip } from "@ngrok/mantle/tooltip";
 import { useState } from "react";
 import { PreviewCanvas } from "~/components/preview-canvas";
 
-/** A plain compact label. */
+/** A selectable compact value. */
 export function OverviewExample() {
 	return (
 		<PreviewCanvas>
-			<Chip>Read</Chip>
+			<Chip selectable>Read</Chip>
 		</PreviewCanvas>
 	);
 }
 
-/** A value with a remove control. */
+/** A value with separate toggle and remove controls. */
 export function RemovableExample() {
 	const [showModel, setShowModel] = useState(true);
 	return (
 		<PreviewCanvas>
 			{showModel && (
-				<Chip onRemove={() => setShowModel(false)} removeLabel="Remove model A">
+				<Chip selectable onRemove={() => setShowModel(false)} removeLabel="Remove model A">
 					Model A
 				</Chip>
 			)}
@@ -27,22 +27,24 @@ export function RemovableExample() {
 	);
 }
 
-/** A chip whose remove control is locked. */
+/** A chip that toggles while its remove control is locked. */
 export function LockedExample() {
 	return (
 		<PreviewCanvas>
-			<Chip locked onRemove={() => {}} removeLabel="Remove global scope">
+			<Chip selectable locked onRemove={() => {}} removeLabel="Remove global scope">
 				Global scope
 			</Chip>
 		</PreviewCanvas>
 	);
 }
 
-/** A chip with an icon beside its label. */
+/** A selectable chip with an icon beside its state icon. */
 export function IconExample() {
 	return (
 		<PreviewCanvas>
-			<Chip icon={<CubeIcon />}>Model A</Chip>
+			<Chip selectable icon={<CubeIcon />}>
+				Model A
+			</Chip>
 		</PreviewCanvas>
 	);
 }
@@ -76,8 +78,12 @@ export function ControlledExample() {
 export function SizeExample() {
 	return (
 		<PreviewCanvas className="gap-3">
-			<Chip size="xs">Read</Chip>
-			<Chip size="sm">Read</Chip>
+			<Chip selectable size="xs">
+				Read
+			</Chip>
+			<Chip selectable size="sm">
+				Read
+			</Chip>
 		</PreviewCanvas>
 	);
 }
