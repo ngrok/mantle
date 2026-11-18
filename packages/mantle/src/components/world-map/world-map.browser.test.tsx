@@ -4,7 +4,7 @@ import { render, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import { commands } from "vitest/browser";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
-import { fitBounds, toScreen } from "../chart/geo.js";
+import { fitBounds, toScreen, WORLD_BOUNDS } from "../chart/geo.js";
 import { WorldMap } from "./world-map.js";
 
 /**
@@ -144,8 +144,47 @@ const mountWestPoint = async () => {
 		canvas,
 		pointAlone,
 		addEastPoint: () => rerender(pointMap(next, { animate: true })),
+		stopMotion: () => rerender(pointMap(next, { animate: false })),
 	};
 };
+
+/** The plot's box and the fit that places a region in it; without `bounds`, the whole world. */
+const plotFit = (container: HTMLElement, bounds?: Parameters<typeof fitBounds>[1]) => {
+	const plot = container.querySelector<HTMLElement>('[data-slot="world-map-plot"]');
+	if (plot == null) {
+		throw new Error("The map rendered no plot.");
+	}
+	const plotBox = plot.getBoundingClientRect();
+	const fit = fitBounds(
+		{ left: 0, top: 0, width: plotBox.width, height: plotBox.height },
+		bounds ?? WORLD_BOUNDS,
+		{ inset: bounds == null ? 1 : 0 },
+	);
+	return { plotBox, fit };
+};
+
+/** Moves the pointer to a plot position, and returns the tooltip once it shows. */
+const hoverAt = async (
+	container: HTMLElement,
+	{ plotBox, x, y }: { plotBox: DOMRect; x: number; y: number },
+) =>
+	waitFor(() => {
+		container.querySelector('[role="application"]')?.dispatchEvent(
+			new PointerEvent("pointermove", {
+				bubbles: true,
+				clientX: plotBox.left + x,
+				clientY: plotBox.top + y,
+			}),
+		);
+		const tooltip = container.querySelector<HTMLElement>('[data-slot="world-map-tooltip"]');
+		expect(tooltip?.style.opacity).toBe("1");
+		return tooltip as HTMLElement;
+	});
+
+const nextFrame = () =>
+	new Promise((resolve) => {
+		requestAnimationFrame(resolve);
+	});
 
 describe("WorldMap paint", () => {
 	test("paints the land and the ocean inside the outline", async () => {
@@ -196,6 +235,43 @@ describe("WorldMap paint", () => {
 		await expect.poll(sampleEast, { interval: 50, timeout: 3000 }).toBe(pointAlone);
 	});
 
+	test("turning animate off clears a running pulse", async () => {
+		const { canvas, pointAlone, addEastPoint, stopMotion } = await mountWestPoint();
+		// The new point starts its pulse in this commit, and the next commit turns motion off.
+		addEastPoint();
+		stopMotion();
+		// Sample every frame while the ring would still be at its strongest.
+		const samples: number[] = [];
+		await expect
+			.poll(() => samples.push(countInk(canvas, isChart1Tint, { fromX: 400 })), {
+				interval: 16,
+				timeout: 2000,
+			})
+			.toBeGreaterThanOrEqual(15);
+		expect(Math.max(...samples)).toBe(pointAlone);
+	});
+
+	test("a new land color on the Root repaints the land", async () => {
+		const isGreen: InkPredicate = (red, green, blue) => green > 200 && red < 60 && blue < 60;
+		const landMap = (land: string) => (
+			<WorldMap.Root
+				data={first}
+				longitudeKey="longitude"
+				animate={false}
+				aria-label="Agents"
+				style={{ ["--world-map-land-color" as string]: land }}
+			>
+				<WorldMap.Point latitudeKey="latitude" color="blue" />
+			</WorldMap.Root>
+		);
+		const { container, rerender } = render(landMap("#a0a0a0"));
+		const canvas = await findChartCanvas(container);
+		await waitFor(() => expect(countInk(canvas, isLand)).toBeGreaterThan(1000));
+		rerender(landMap("#00ff00"));
+		await waitFor(() => expect(countInk(canvas, isGreen)).toBeGreaterThan(1000));
+		expect(countInk(canvas, isLand)).toBe(0);
+	});
+
 	test("reduced motion plays no pulse", async () => {
 		await commands.emulateMedia({ reducedMotion: "reduce" });
 		const { canvas, pointAlone, addEastPoint } = await mountWestPoint();
@@ -209,6 +285,54 @@ describe("WorldMap paint", () => {
 			})
 			.toBeGreaterThanOrEqual(30);
 		expect(Math.max(...samples)).toBe(pointAlone);
+	});
+});
+
+describe("WorldMap overlapping points", () => {
+	const place = { longitude: 10, latitude: 20 };
+	const isRed: InkPredicate = (red, green, blue) => red > 200 && green < 80 && blue < 80;
+
+	const overlapMap = (sizeKey: "count" | undefined, online: number, offline: number) => (
+		<div style={{ ["--test-red" as string]: "#ff0000" }}>
+			<WorldMap.Root
+				data={[
+					{ longitude: place.longitude, online: place.latitude, offline: null, count: online },
+					{ longitude: place.longitude, online: null, offline: place.latitude, count: offline },
+				]}
+				longitudeKey="longitude"
+				sizeKey={sizeKey}
+				animate={false}
+				aria-label="Agents"
+			>
+				<WorldMap.Point latitudeKey="online" color="var(--test-red)" label="Online" />
+				<WorldMap.Point latitudeKey="offline" color="blue" label="Offline" />
+				<WorldMap.Tooltip />
+			</WorldMap.Root>
+		</div>
+	);
+
+	test("a small point of an earlier series paints and hovers above a large point of a later one", async () => {
+		const { container } = render(overlapMap("count", 1, 100));
+		const canvas = await findChartCanvas(container);
+		const { plotBox, fit } = plotFit(container);
+		const [x, y] = toScreen(fit, place.longitude, place.latitude);
+		await waitFor(() => expect(countInk(canvas, isChart1Tint)).toBeGreaterThan(0));
+		expect(countInk(canvas, isRed, { fromX: x - 2, toX: x + 2 })).toBeGreaterThan(0);
+		const tooltip = await hoverAt(container, { plotBox, x, y });
+		expect(tooltip.textContent).toContain("Online");
+		expect(tooltip.textContent).not.toContain("Offline");
+	});
+
+	test("of two equal points at one place, the pointer finds the later series, which paints on top", async () => {
+		const { container } = render(overlapMap(undefined, 1, 1));
+		const canvas = await findChartCanvas(container);
+		const { plotBox, fit } = plotFit(container);
+		const [x, y] = toScreen(fit, place.longitude, place.latitude);
+		await waitFor(() => expect(countInk(canvas, isChart1Tint)).toBeGreaterThan(0));
+		expect(countInk(canvas, isRed)).toBe(0);
+		const tooltip = await hoverAt(container, { plotBox, x, y });
+		expect(tooltip.textContent).toContain("Offline");
+		expect(tooltip.textContent).not.toContain("Online");
 	});
 });
 
@@ -258,6 +382,115 @@ describe("WorldMap regions, connectors, and callouts", () => {
 		expect(box.left + box.width / 2).toBeCloseTo(plotBox.left + x, 0);
 		// The callout's bottom edge clears the point by its radius and the gap.
 		expect(box.bottom).toBeCloseTo(plotBox.top + y - 12, 0);
+	});
+
+	test("a callout clears a large sized point", async () => {
+		const { container } = render(
+			<WorldMap.Root
+				data={[
+					{ ...client, count: 100 },
+					{ ...pop, count: 1 },
+				]}
+				longitudeKey="longitude"
+				sizeKey="count"
+				bounds={bounds}
+				animate={false}
+				aria-label="Client location"
+			>
+				<WorldMap.Point latitudeKey="latitude" color="blue" />
+				<WorldMap.Callout {...client}>
+					<div style={{ width: 100, height: 40 }} />
+				</WorldMap.Callout>
+			</WorldMap.Root>,
+		);
+		await findChartCanvas(container);
+		const callout = container.querySelector<HTMLElement>('[data-slot="world-map-callout"]');
+		if (callout == null) {
+			throw new Error("The map rendered no callout.");
+		}
+		const { plotBox, fit } = plotFit(container, bounds);
+		const [, y] = toScreen(fit, client.longitude, client.latitude);
+		await waitFor(() => expect(getComputedStyle(callout).visibility).toBe("visible"));
+		// The largest point's 16px radius and the 8px gap.
+		expect(callout.getBoundingClientRect().bottom).toBeCloseTo(plotBox.top + y - 24, 0);
+	});
+
+	test("the pointer finds no point that the region clips", async () => {
+		const narrow = { west: -10, south: -10, east: 10, north: 10 };
+		const clippedMap = (longitude: number) => (
+			<WorldMap.Root
+				data={[
+					{ longitude: 0, latitude: 0 },
+					{ longitude, latitude: 0 },
+				]}
+				longitudeKey="longitude"
+				bounds={narrow}
+				animate={false}
+				aria-label="Agents"
+			>
+				<WorldMap.Point latitudeKey="latitude" color="blue" />
+				<WorldMap.Tooltip />
+			</WorldMap.Root>
+		);
+		const { container, rerender } = render(clippedMap(0));
+		await findChartCanvas(container);
+		const { plotBox, fit } = plotFit(container, narrow);
+		// The first longitude east of the region whose whole 4px point is past the plot's right edge.
+		let longitude = narrow.east;
+		while (toScreen(fit, longitude, 0)[0] <= plotBox.width + 5) {
+			longitude += 0.05;
+		}
+		const [x, y] = toScreen(fit, longitude, 0);
+		// Guards the setup: the pointer at the edge is within the 24px hit radius of the clipped point.
+		expect(x - (plotBox.width - 1)).toBeLessThan(24);
+		rerender(clippedMap(longitude));
+		const [centerX, centerY] = toScreen(fit, 0, 0);
+		// Proves the pointer reaches the map before the edge probe.
+		await hoverAt(container, { plotBox, x: centerX, y: centerY });
+		container.querySelector('[role="application"]')?.dispatchEvent(
+			new PointerEvent("pointermove", {
+				bubbles: true,
+				clientX: plotBox.left + plotBox.width - 1,
+				clientY: plotBox.top + y,
+			}),
+		);
+		await nextFrame();
+		await nextFrame();
+		const tooltip = container.querySelector<HTMLElement>('[data-slot="world-map-tooltip"]');
+		expect(tooltip?.style.opacity).toBe("0");
+	});
+
+	test("the hover marker follows its point to a new region", async () => {
+		const place = { longitude: 80, latitude: 40 };
+		// Why one array: new rows would drop the hover, and the test must move it with the region alone.
+		const data = [place];
+		const region = { west: 70, south: 30, east: 90, north: 50 };
+		const regionMap = (zoomed: boolean) => (
+			<WorldMap.Root
+				data={data}
+				longitudeKey="longitude"
+				bounds={zoomed ? region : undefined}
+				animate={false}
+				aria-label="Agents"
+			>
+				<WorldMap.Point latitudeKey="latitude" color="blue" />
+				<WorldMap.Tooltip />
+			</WorldMap.Root>
+		);
+		const { container, rerender } = render(regionMap(false));
+		await findChartCanvas(container);
+		const world = plotFit(container);
+		const [worldX, worldY] = toScreen(world.fit, place.longitude, place.latitude);
+		await hoverAt(container, { plotBox: world.plotBox, x: worldX, y: worldY });
+		rerender(regionMap(true));
+		const { fit } = plotFit(container, region);
+		const [x, y] = toScreen(fit, place.longitude, place.latitude);
+		const marker = container.querySelector<HTMLElement>('[data-slot="chart-active-point"]');
+		await waitFor(() => {
+			const [markerX, markerY] = (marker?.style.transform.match(/-?[\d.]+/g) ?? []).map(Number);
+			expect(markerX).toBeCloseTo(x, 1);
+			expect(markerY).toBeCloseTo(y, 1);
+		});
 	});
 
 	test("a callout with no room above its point flips below it", async () => {

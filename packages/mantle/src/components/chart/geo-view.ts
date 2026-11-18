@@ -13,7 +13,7 @@ import {
 import type { PaintContext, ResolvedPaint } from "./paint-backend.js";
 import { MARKER_RADIUS } from "./renderer.js";
 import type { DragEnd, DragMove, PointView, ScatterHit, ScatterHost } from "./scatter-engine.js";
-import { drawScatterPoints } from "./scatter-renderer.js";
+import { drawScatterPoints, SCATTER_RECT_LIMIT } from "./scatter-renderer.js";
 import { easeCubicOut } from "./tween.js";
 import type { SeriesColor } from "./types.js";
 
@@ -60,13 +60,12 @@ const MIN_VISIBLE_ALPHA = 1 / 510;
 const CALLOUT_GAP = 8;
 
 /**
- * What the world map's React parts tell its view: the land, the size key, the
- * region to show, the connectors, and the callouts. A Root owns one scene for
+ * What the world map's React parts tell its view: the land, the region to
+ * show, the connectors, and the callouts. A Root owns one scene for
  * its lifetime, so a view that the engine builds again reads the same parts.
  */
 class GeoScene {
 	land: GeoLand | null = null;
-	sizeKey: string | null = null;
 	bounds: GeoBounds | null = null;
 	readonly connectors = new Map<string, GeoConnector>();
 	readonly callouts = new Map<string, GeoCallout>();
@@ -75,13 +74,8 @@ class GeoScene {
 	#listener: { paint: () => void; place: () => void } | null = null;
 
 	/** Set the Root's inputs, and repaint. */
-	configure(inputs: {
-		land: GeoLand | null;
-		sizeKey: string | null;
-		bounds: GeoBounds | null;
-	}): void {
+	configure(inputs: { land: GeoLand | null; bounds: GeoBounds | null }): void {
 		this.land = inputs.land;
-		this.sizeKey = inputs.sizeKey;
 		this.bounds = inputs.bounds;
 		this.changed();
 	}
@@ -91,7 +85,7 @@ class GeoScene {
 		this.#listener = listener;
 	}
 
-	/** A change the canvas shows: the land, the size key, the region, or a connector. */
+	/** A change the canvas shows: the land, the region, or a connector. */
 	changed(): void {
 		this.version += 1;
 		this.#listener?.paint();
@@ -120,6 +114,9 @@ type GeoLayers = {
 	graticule: Path2D;
 };
 
+/** Consecutive points of one series in the paint order. */
+type GeoRun = { seriesIndex: number; indexes: number[] };
+
 /** The screen position of each point, per series, and the paint order (larger points first). */
 type GeoPoints = {
 	fit: GeoFit;
@@ -127,7 +124,7 @@ type GeoPoints = {
 	sizes: Float64Array;
 	x: Float64Array[];
 	y: Float64Array[];
-	order: number[][];
+	runs: GeoRun[];
 	total: number;
 };
 
@@ -150,11 +147,11 @@ class GeoView implements PointView {
 	#connectors: {
 		fit: GeoFit;
 		version: number;
-		signature: string;
+		colors: ResolvedPaint;
 		lines: { path: Path2D; color: string; dashed: boolean }[];
 	} | null = null;
 	#points: GeoPoints | null = null;
-	#chrome: { signature: string; land: string; ocean: string } | null = null;
+	#chrome: { colors: ResolvedPaint; land: string; ocean: string } | null = null;
 	/** The points of the last ingest, keyed by series and place; `null` before the first. */
 	#arrivalKeys: Set<string> | null = null;
 	#arrivals: { seriesIndex: number; longitude: number; latitude: number; start: number }[] = [];
@@ -167,7 +164,10 @@ class GeoView implements PointView {
 
 	setDimensions(): void {}
 
-	settle(): void {}
+	/** Motion stopped: drop the running pulses. */
+	settle(): void {
+		this.#arrivals = [];
+	}
 
 	tick(now: number): boolean {
 		this.#now = now;
@@ -239,15 +239,19 @@ class GeoView implements PointView {
 			this.#arrivals = [];
 			return null;
 		}
-		specs.forEach((spec, seriesIndex) => {
-			const reveal = this.#host.reveal(spec.dataKey);
-			if (reveal < MIN_VISIBLE_ALPHA) {
-				return;
-			}
+		// Why the cap: past the limit the renderer paints 2×2 squares, which drop the size each point shows.
+		const totalPointCount =
+			this.#sizes.length > 0 ? Math.min(points.total, SCATTER_RECT_LIMIT) : points.total;
+		for (const { seriesIndex, indexes } of points.runs) {
+			const spec = specs[seriesIndex];
 			const xs = points.x[seriesIndex];
 			const ys = points.y[seriesIndex];
-			if (xs == null || ys == null) {
-				return;
+			if (spec == null || xs == null || ys == null) {
+				continue;
+			}
+			const reveal = this.#host.reveal(spec.dataKey);
+			if (reveal < MIN_VISIBLE_ALPHA) {
+				continue;
 			}
 			ctx.save();
 			ctx.globalAlpha = reveal;
@@ -255,18 +259,19 @@ class GeoView implements PointView {
 				color: colors.series.get(spec.dataKey) ?? "currentColor",
 				surface: colors.chrome.surface,
 				shape: this.#host.shape(spec.dataKey),
-				totalPointCount: points.total,
-				indexes: points.order[seriesIndex] ?? [],
+				totalPointCount,
+				indexes,
 				xAt: (index) => xs[index] ?? 0,
 				yAt: (index) => ys[index] ?? 0,
 				radiusAt: (index) => this.radiusAt(index),
 			});
 			ctx.restore();
-		});
+		}
 
-		this.#arrivals = this.#arrivals.filter(
-			(arrival) => this.#now - arrival.start < ARRIVAL_PULSE_MS,
-		);
+		// Why check each frame: `animate` or reduced motion can turn off while a ring grows.
+		this.#arrivals = this.#host.animates()
+			? this.#arrivals.filter((arrival) => this.#now - arrival.start < ARRIVAL_PULSE_MS)
+			: [];
 		for (const arrival of this.#arrivals) {
 			const progress = easeCubicOut(Math.max(0, this.#now - arrival.start) / ARRIVAL_PULSE_MS);
 			const [x, y] = toScreen(fit, arrival.longitude, arrival.latitude);
@@ -284,7 +289,7 @@ class GeoView implements PointView {
 		return null;
 	}
 
-	/** The nearest point within {@link HIT_RADIUS} of the pointer, inside the plot. */
+	/** The nearest point within {@link HIT_RADIUS} of the pointer, both inside the plot. */
 	hitAt(cssX: number, cssY: number): ScatterHit | null {
 		if (!this.#inPlot(cssX, cssY)) {
 			return null;
@@ -293,36 +298,42 @@ class GeoView implements PointView {
 		const specs = this.#host.specs();
 		let bestDistance = HIT_RADIUS * HIT_RADIUS;
 		let best: ScatterHit | null = null;
-		specs.forEach((spec, seriesIndex) => {
+		// Why the paint order backward: the point painted last is on top, so it wins a tie.
+		for (const { seriesIndex, indexes } of points.runs.toReversed()) {
+			const spec = specs[seriesIndex];
 			const xs = points.x[seriesIndex];
 			const ys = points.y[seriesIndex];
-			if (xs == null || ys == null) {
-				return;
+			if (spec == null || xs == null || ys == null) {
+				continue;
 			}
-			// Why the paint order backward: the point painted last is on top, so it wins a tie.
-			const order = points.order[seriesIndex] ?? [];
-			for (let position = order.length - 1; position >= 0; position--) {
-				const index = order[position] ?? 0;
+			for (let position = indexes.length - 1; position >= 0; position--) {
+				const index = indexes[position] ?? 0;
 				const screenX = xs[index] ?? 0;
 				const screenY = ys[index] ?? 0;
 				const distance = (screenX - cssX) ** 2 + (screenY - cssY) ** 2;
-				if (distance < bestDistance) {
+				// Why in the plot: the clip hides a point outside the region, so the pointer must not find it.
+				if (distance < bestDistance && this.#inPlot(screenX, screenY)) {
 					bestDistance = distance;
 					best = { seriesKey: spec.dataKey, index, screenX, screenY };
 				}
 			}
-		});
+		}
 		return best;
 	}
 
 	/**
-	 * The screen position of a row reached without a pointer: its first
-	 * populated series. `null` when the place is outside the plot.
+	 * The screen position of a row reached without a pointer: the point of
+	 * `seriesKey`, else the row's first populated series. `null` when the place
+	 * is outside the plot.
 	 */
-	screenFor(index: number): { x: number; y: number } | null {
+	screenFor(index: number, seriesKey: string | null = null): { x: number; y: number } | null {
 		const points = this.#pointsFor(this.#currentFit());
 		const columns = this.#host.columns();
+		const specs = this.#host.specs();
 		for (let seriesIndex = 0; seriesIndex < columns.length; seriesIndex++) {
+			if (seriesKey != null && specs[seriesIndex]?.dataKey !== seriesKey) {
+				continue;
+			}
 			if (!Number.isNaN(columns[seriesIndex]?.[index] ?? Number.NaN)) {
 				const x = points.x[seriesIndex]?.[index] ?? 0;
 				const y = points.y[seriesIndex]?.[index] ?? 0;
@@ -330,6 +341,11 @@ class GeoView implements PointView {
 			}
 		}
 		return null;
+	}
+
+	/** Whether a row has a point: a latitude in any series. The keyboard skips a row with none. */
+	plots(index: number): boolean {
+		return this.#host.columns().some((latitudes) => !Number.isNaN(latitudes[index] ?? Number.NaN));
 	}
 
 	/**
@@ -383,13 +399,14 @@ class GeoView implements PointView {
 		return layers;
 	}
 
+	// Why key on the colors object: a Root style override resolves new colors with the same theme signature.
 	#chromeFor(colors: ResolvedPaint): { land: string; ocean: string } {
 		const cached = this.#chrome;
-		if (cached?.signature === colors.signature) {
+		if (cached?.colors === colors) {
 			return cached;
 		}
 		const chrome = {
-			signature: colors.signature,
+			colors,
 			land: colors.resolve("var(--world-map-land-color, var(--color-neutral-200))"),
 			ocean: colors.resolve("var(--world-map-ocean-color, var(--color-neutral-50))"),
 		};
@@ -407,7 +424,7 @@ class GeoView implements PointView {
 			cached != null &&
 			cached.fit === fit &&
 			cached.version === scene.version &&
-			cached.signature === colors.signature
+			cached.colors === colors
 		) {
 			return cached.lines;
 		}
@@ -416,7 +433,7 @@ class GeoView implements PointView {
 			color: colors.resolve(connector.color),
 			dashed: connector.lineStyle === "dashed",
 		}));
-		this.#connectors = { fit, version: scene.version, signature: colors.signature, lines };
+		this.#connectors = { fit, version: scene.version, colors, lines };
 		return lines;
 	}
 
@@ -424,7 +441,7 @@ class GeoView implements PointView {
 	#sizesFor({ validate }: { validate: boolean }): void {
 		const host = this.#host;
 		const columns = host.columns();
-		const sizeKey = this.#scene.sizeKey;
+		const sizeKey = host.sizeKey();
 		const sized = this.#sizedFor;
 		if (sized != null && sized.columns === columns && sized.sizeKey === sizeKey) {
 			return;
@@ -472,22 +489,43 @@ class GeoView implements PointView {
 			this.#points = points;
 			return points;
 		}
-		const order = columns.map((column) => {
-			const defined = host.definedIndexes(column);
-			return sizes.length > 0
-				? defined.toSorted((a, b) => this.radiusAt(b) - this.radiusAt(a))
-				: defined;
-		});
+		const runs = this.#paintRuns(columns);
 		const points = {
 			fit,
 			columns,
 			sizes,
 			...this.#project(fit, columns),
-			order,
-			total: order.reduce((sum, list) => sum + list.length, 0),
+			runs,
+			total: runs.reduce((sum, run) => sum + run.indexes.length, 0),
 		};
 		this.#points = points;
 		return points;
+	}
+
+	/**
+	 * The paint order: each series in turn, or with a size key, every point by
+	 * radius, largest first. Why one order across series: a large point of a
+	 * later series must not cover a small point of an earlier one. The sort is
+	 * stable, so a later series stays on top of an equal point.
+	 */
+	#paintRuns(columns: readonly Float64Array[]): GeoRun[] {
+		const perSeries = columns.map((column) => this.#host.definedIndexes(column));
+		if (this.#sizes.length === 0) {
+			return perSeries.map((indexes, seriesIndex) => ({ seriesIndex, indexes }));
+		}
+		const order = perSeries
+			.flatMap((indexes, seriesIndex) => indexes.map((index) => ({ seriesIndex, index })))
+			.toSorted((a, b) => this.radiusAt(b.index) - this.radiusAt(a.index));
+		const runs: GeoRun[] = [];
+		for (const { seriesIndex, index } of order) {
+			const last = runs.at(-1);
+			if (last?.seriesIndex === seriesIndex) {
+				last.indexes.push(index);
+			} else {
+				runs.push({ seriesIndex, indexes: [index] });
+			}
+		}
+		return runs;
 	}
 
 	#project(
@@ -576,7 +614,7 @@ class GeoView implements PointView {
 			}
 			const width = element.offsetWidth;
 			const height = element.offsetHeight;
-			const reach = MARKER_RADIUS + CALLOUT_GAP;
+			const reach = this.#largestRadiusAt(place) + CALLOUT_GAP;
 			const left = Math.min(
 				Math.max(x - width / 2, plot.left),
 				Math.max(plot.left, plot.left + plot.width - width),
@@ -593,6 +631,24 @@ class GeoView implements PointView {
 			element.style.transform = `translate(${offset.left + left}px, ${offset.top + top}px)`;
 			element.style.visibility = "visible";
 		}
+	}
+
+	/** The radius of the largest point at a place, so a callout clears it. */
+	#largestRadiusAt(place: GeoPlace): number {
+		this.#sizesFor({ validate: false });
+		if (this.#sizes.length === 0) {
+			return MARKER_RADIUS;
+		}
+		const longitudes = this.#host.xs();
+		let largest = MARKER_RADIUS;
+		for (const latitudes of this.#host.columns()) {
+			for (let index = 0; index < latitudes.length; index++) {
+				if (longitudes[index] === place.longitude && latitudes[index] === place.latitude) {
+					largest = Math.max(largest, this.radiusAt(index));
+				}
+			}
+		}
+		return largest;
 	}
 }
 

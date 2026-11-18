@@ -247,10 +247,10 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
 		"WorldMap.Root bounds.west must be less than bounds.east.",
 	);
 	// Why configure in the initializer: the chart Root's layout effects run
-	// before this component's, and its first ingest reads the size key.
+	// before this component's, and its first paint reads the land and the region.
 	const [scene] = useState(() => {
 		const initial = new GeoScene();
-		initial.configure(sceneInputs(sizeKey, bounds));
+		initial.configure(sceneInputs(bounds));
 		return initial;
 	});
 	const [geoView] = useState(() => createGeoViewFactory(scene));
@@ -258,13 +258,12 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
 	useLayoutEffect(() => {
 		scene.configure(
 			sceneInputs(
-				sizeKey,
 				west == null || south == null || east == null || north == null
 					? undefined
 					: { west, south, east, north },
 			),
 		);
-	}, [scene, sizeKey, west, south, east, north]);
+	}, [scene, west, south, east, north]);
 	return (
 		// Why no destructure: a rest over the `mode` union loses the union, and the props stop type-checking.
 		<ChartRootPrimitive
@@ -573,9 +572,8 @@ const Callout = ({
 };
 
 /** What a Root tells its scene. */
-const sceneInputs = (sizeKey: string | undefined, bounds: GeoBounds | undefined) => ({
+const sceneInputs = (bounds: GeoBounds | undefined) => ({
 	land: WORLD_LAND,
-	sizeKey: sizeKey ?? null,
 	bounds: bounds ?? null,
 });
 
@@ -598,6 +596,18 @@ const pointName = (datum: ChartDatum, labelKey: string | undefined, place: GeoPl
 	return formatCoordinates(place.longitude, place.latitude);
 };
 
+/**
+ * A point's size for people, such as `"sessions: 12"`. `null` without a size
+ * key or a size value. Why read it out: the point's area shows it to sighted
+ * people only.
+ */
+const sizeText = (datum: ChartDatum, sizeKey: string | undefined): string | null => {
+	const size = sizeKey == null ? undefined : datumValue(datum, sizeKey);
+	return typeof size === "number" && Number.isFinite(size)
+		? `${sizeKey}: ${formatNumber(size)}`
+		: null;
+};
+
 /** The place a hover points at. */
 const hoverPlace = (hover: HoverSnapshot): GeoPlace => ({
 	longitude: typeof hover.xValue === "number" ? hover.xValue : Number.NaN,
@@ -612,11 +622,13 @@ const mapReadout = (labelKey: string | undefined, sizeKey: string | undefined): 
 		const place = hoverPlace(hover);
 		const coordinates = formatCoordinates(place.longitude, place.latitude);
 		const name = pointName(hover.datum, labelKey, place);
+		const size = sizeText(hover.datum, sizeKey);
 		const footer = config?.footer;
 		return (
 			<>
 				<div className="text-strong font-medium">{name}</div>
 				{name !== coordinates && <div className="text-muted tabular-nums">{coordinates}</div>}
+				{size != null && <div className="text-muted tabular-nums">{size}</div>}
 				<div className="mt-1 grid gap-1">
 					{hover.points.map((point) => (
 						<div key={point.dataKey} className="flex items-center gap-1.5">
@@ -644,7 +656,9 @@ const mapReadout = (labelKey: string | undefined, sizeKey: string | undefined): 
 		const coordinates = formatCoordinates(place.longitude, place.latitude);
 		const name = pointName(hover.datum, labelKey, place);
 		const where = name === coordinates ? name : `${name}, ${coordinates}`;
-		return `${where}. ${hover.points.map((point) => point.label).join(", ")}`;
+		const size = sizeText(hover.datum, sizeKey);
+		const series = hover.points.map((point) => point.label).join(", ");
+		return `${where}. ${series}${size == null ? "" : `, ${size}`}`;
 	},
 	describe: (summary: XSummary, hydrated: boolean) => {
 		const count = hydrated ? formatNumber(summary.count) : String(summary.count);
@@ -665,6 +679,7 @@ const mapReadout = (labelKey: string | undefined, sizeKey: string | undefined): 
 			store={store}
 			longitudeKey={xKey}
 			labelKey={labelKey}
+			sizeKey={sizeKey}
 		/>
 	),
 });
@@ -672,7 +687,8 @@ const mapReadout = (labelKey: string | undefined, sizeKey: string | undefined): 
 /**
  * The map's structural twin: an sr-only table with one row per point,
  * bounded to {@link CHART_TABLE_ROW_LIMIT} rows. Each row names the point, its
- * series, and its coordinates, in the west-to-east order the keyboard steps.
+ * series, its coordinates, and its size value when the map has a size key, in
+ * the west-to-east order the keyboard steps.
  */
 const MapDataTable = ({
 	data,
@@ -682,6 +698,7 @@ const MapDataTable = ({
 	store,
 	longitudeKey,
 	labelKey,
+	sizeKey,
 }: {
 	data: readonly ChartDatum[];
 	label: string | undefined;
@@ -690,6 +707,7 @@ const MapDataTable = ({
 	store: ChartStore;
 	longitudeKey: string;
 	labelKey: string | undefined;
+	sizeKey: string | undefined;
 }) => {
 	const series = useStoreSeries(store);
 	const resolvedLabel = useResolvedChartLabel(label, labelledBy);
@@ -725,6 +743,7 @@ const MapDataTable = ({
 						<th scope="col">Series</th>
 						<th scope="col">Latitude</th>
 						<th scope="col">Longitude</th>
+						{sizeKey != null && <th scope="col">{sizeKey}</th>}
 					</tr>
 				</thead>
 				<tbody>
@@ -734,11 +753,22 @@ const MapDataTable = ({
 							<td>{point.seriesLabel}</td>
 							<td data-value={point.latitude}>{formatNumber(point.latitude)}</td>
 							<td data-value={point.longitude}>{formatNumber(point.longitude)}</td>
+							{sizeKey != null && <SizeCell datum={point.datum} sizeKey={sizeKey} />}
 						</tr>
 					))}
 				</tbody>
 			</table>
 		</div>
+	);
+};
+
+/** A table cell with a point's size value; empty when the row has none. */
+const SizeCell = ({ datum, sizeKey }: { datum: ChartDatum; sizeKey: string }) => {
+	const size = datumValue(datum, sizeKey);
+	return typeof size === "number" && Number.isFinite(size) ? (
+		<td data-value={size}>{formatNumber(size)}</td>
+	) : (
+		<td />
 	);
 };
 

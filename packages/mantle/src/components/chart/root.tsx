@@ -502,6 +502,7 @@ const ChartRootPrimitive = ({
 	// announcer, and the data table share it.
 	const xSummary = useMemo(() => scanX(data, xKey, resolvedXScale), [data, xKey, resolvedXScale]);
 	const xHasTimeOfDay = xSummary.hasTimeOfDay;
+	const sizeKey = readout?.sizeKey ?? null;
 
 	// The latest engine inputs, applied in one go when the engine is created
 	// after the commit that carried them.
@@ -511,6 +512,7 @@ const ChartRootPrimitive = ({
 			xScale: resolvedXScale,
 			yDomain: [yDomainMin, yDomainMax],
 			zKey: zKey ?? null,
+			sizeKey,
 			dimensions,
 			stacked,
 			orientation,
@@ -526,6 +528,7 @@ const ChartRootPrimitive = ({
 				xScale: resolvedXScale,
 				yDomain: [yDomainMin, yDomainMax],
 				zKey: zKey ?? null,
+				sizeKey,
 				dimensions,
 				stacked,
 				orientation,
@@ -628,6 +631,7 @@ const ChartRootPrimitive = ({
 			xScale: resolvedXScale,
 			yDomain: [yDomainMin, yDomainMax],
 			zKey: zKey ?? null,
+			sizeKey,
 			dimensions,
 			stacked,
 			orientation,
@@ -647,6 +651,7 @@ const ChartRootPrimitive = ({
 		yDomainMin,
 		yDomainMax,
 		zKey,
+		sizeKey,
 		dimensions,
 		stacked,
 		orientation,
@@ -705,13 +710,7 @@ const ChartRootPrimitive = ({
 		}
 		const dataKeys = store.seriesSpecs().map((spec) => spec.dataKey);
 		// Why JSON: a key may hold any character, so a joined string can collide.
-		const signature = JSON.stringify([
-			xKey,
-			resolvedXScale,
-			zKey ?? null,
-			readout?.sizeKey ?? null,
-			dataKeys,
-		]);
+		const signature = JSON.stringify([xKey, resolvedXScale, zKey ?? null, sizeKey, dataKeys]);
 		const validated = validatedRef.current;
 		if (validated != null && validated.data === data && validated.signature === signature) {
 			return;
@@ -724,7 +723,7 @@ const ChartRootPrimitive = ({
 			xScale: resolvedXScale,
 			dataKeys,
 			zKey: zKey ?? null,
-			sizeKey: readout?.sizeKey ?? null,
+			sizeKey,
 			keyNames,
 		});
 		validatedRef.current = { data, signature };

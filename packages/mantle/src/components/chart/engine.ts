@@ -187,6 +187,9 @@ const HORIZONTAL_BAR_KEYS: ReadonlyMap<string, string> = new Map([
 	["PageUp", "PageDown"],
 ]);
 
+/** The keys whose skip over a row with no point searches toward the first row. End lands on the last row, so it searches back. */
+const BACKWARD_KEYS = new Set(["ArrowLeft", "PageDown", "End"]);
+
 /**
  * The share of a band's step left as air: a fixed pixel gap, so dense bars
  * fill their step whatever its width.
@@ -219,6 +222,7 @@ class ChartEngine {
 		yDomain: ["auto", "auto"],
 		orientation: "vertical",
 		zKey: null,
+		sizeKey: null,
 		dimensions: 3,
 		stacked: false,
 		animate: true,
@@ -548,6 +552,7 @@ class ChartEngine {
 				},
 				xKey: () => this.#options.xKey,
 				zKey: () => this.#options.zKey,
+				sizeKey: () => this.#options.sizeKey,
 				is3d: () => this.#is3d(),
 				requestPaint: () => this.#schedule(),
 				sourceRow: (index) => this.#rows[this.#order?.[index] ?? index],
@@ -819,6 +824,7 @@ class ChartEngine {
 			previous.xKey !== options.xKey ||
 			previous.xScale !== options.xScale ||
 			previous.zKey !== options.zKey ||
+			previous.sizeKey !== options.sizeKey ||
 			previous.stacked !== options.stacked
 		) {
 			this.#pendingIngest = true;
@@ -1100,6 +1106,12 @@ class ChartEngine {
 			}
 			return true;
 		}
+		// Why skip: a world map row with no latitude has no point to show or announce.
+		const stop =
+			target == null ? null : this.#plottedFrom(target, BACKWARD_KEYS.has(stepKey) ? -1 : 1);
+		if (target != null && stop == null) {
+			return true;
+		}
 		// Reset BOTH pointer axes: a stale #pointerX would anchor a horizontal
 		// bar's keyboard tooltip to the old pointer column instead of the plot
 		// center (the vertical case already relied on #pointerY being cleared).
@@ -1107,8 +1119,19 @@ class ChartEngine {
 		this.#pointerY = null;
 		this.#activeSeriesKey = null;
 		this.#activeScreen = null;
-		this.#setActive(target, { viaKeyboard: true, notify: true });
+		this.#setActive(stop, { viaKeyboard: true, notify: true });
 		return true;
+	}
+
+	/** The first row from `index` in the direction of `step` that has a point; `null` when none does. */
+	#plottedFrom(index: number, step: 1 | -1): number | null {
+		const view = this.#scatter;
+		for (let row = index; row >= 0 && row < this.#rowCount; row += step) {
+			if (view == null || view.plots(row)) {
+				return row;
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -2979,7 +3002,9 @@ class ChartEngine {
 		const plot = this.#plot;
 
 		if (isScatter) {
-			const screen = this.#activeScreen ?? this.#scatter?.screenFor(index) ?? null;
+			// Why no cached pixel on a map: a new region moves every point, and the view projects the active one again.
+			const cached = this.#scatter?.kind === "geo" ? null : this.#activeScreen;
+			const screen = cached ?? this.#scatter?.screenFor(index, this.#activeSeriesKey) ?? null;
 			if (screen == null) {
 				markers.style.opacity = "0";
 				if (tooltip != null) {

@@ -304,6 +304,8 @@ type ChartOptions = {
 	orientation: BarOrientation;
 	/** Scatter plots only: the row key of the depth value; enables the 3D projection. */
 	zKey: string | null;
+	/** `WorldMap` only: the row key of each point's size value. */
+	sizeKey: string | null;
 	/**
 	 * 3D scatter only: how many axes the cloud currently occupies. Changing it
 	 * morphs points onto the x axis line (1), the xy plane (2), or the full

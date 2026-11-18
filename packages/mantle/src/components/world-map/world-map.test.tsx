@@ -127,6 +127,14 @@ describe("WorldMap data table", () => {
 		expect(screen.getByRole("cell", { name: "-122.42" })).toHaveAttribute("data-value", "-122.42");
 	});
 
+	test("adds a column with each point's size value when the map has a sizeKey", () => {
+		renderMap({ sizeKey: "sessions" });
+		engageChart();
+		expect(screen.getByRole("columnheader", { name: "sessions" })).toBeInTheDocument();
+		const rows = screen.getAllByRole("row").slice(1);
+		expect(rows.map((row) => row.lastElementChild?.textContent)).toEqual(["12", "30", "4"]);
+	});
+
 	test("names a point by its coordinates when the map has no labelKey", () => {
 		renderMap({ labelKey: undefined });
 		engageChart();
@@ -147,6 +155,18 @@ describe("WorldMap keyboard interaction", () => {
 		expect(tooltipText()).toBe("syd-edge-133.9° S, 151.2° EOffline");
 	});
 
+	test("with a sizeKey, the tooltip and the announcement give the size value", async () => {
+		const user = userEvent.setup();
+		renderMap({ sizeKey: "sessions" });
+		await user.tab();
+		await user.keyboard("{ArrowRight}");
+		expect(tooltipText()).toBe("sfo-edge-137.8° N, 122.4° Wsessions: 12Online");
+		const status = await screen.findByRole("status");
+		await vi.waitFor(() => {
+			expect(status).toHaveTextContent("sfo-edge-1, 37.8° N, 122.4° W. Online, sessions: 12");
+		});
+	});
+
 	test("each step announces the name, the coordinates, and the series", async () => {
 		const user = userEvent.setup();
 		renderMap();
@@ -156,6 +176,20 @@ describe("WorldMap keyboard interaction", () => {
 		await vi.waitFor(() => {
 			expect(status).toHaveTextContent("sfo-edge-1, 37.8° N, 122.4° W. Online");
 		});
+	});
+
+	test("the keyboard skips a row with no latitude in any series", async () => {
+		const user = userEvent.setup();
+		const unplaced = { name: "home-lab", longitude: 0, online: null, offline: null, sessions: 1 };
+		renderMap({ data: [...agents, unplaced] });
+		await user.tab();
+		await user.keyboard("{ArrowRight}{ArrowRight}");
+		// home-lab sits between sfo-edge-1 (122.4° W) and fra-edge-1 (8.7° E) from west to east.
+		expect(tooltipText()).toContain("fra-edge-1");
+		await user.keyboard("{ArrowLeft}");
+		expect(tooltipText()).toContain("sfo-edge-1");
+		const status = await screen.findByRole("status");
+		expect(status.textContent).not.toContain("NaN");
 	});
 
 	test("Enter activates the point with its row and its longitude as the x value", async () => {
@@ -304,4 +338,22 @@ test("a new labelKey keeps the map's paint surface", () => {
 		</WorldMap.Root>,
 	);
 	expect(document.querySelector('[data-slot="world-map-canvas"]')).toBe(surface);
+});
+
+test("data and a sizeKey that change together re-render an engaged map", () => {
+	const sizedMap = (data: readonly Record<string, unknown>[], sizeKey: string) => (
+		<WorldMap.Root<Record<string, unknown>>
+			data={data}
+			longitudeKey="longitude"
+			sizeKey={sizeKey}
+			aria-label="Agents"
+		>
+			<WorldMap.Point latitudeKey="latitude" color="blue" />
+		</WorldMap.Root>
+	);
+	const view = render(sizedMap([{ longitude: 0, latitude: 0, count: 1 }], "count"));
+	engageChart();
+	expect(() =>
+		view.rerender(sizedMap([{ longitude: 0, latitude: 0, total: 2 }], "total")),
+	).not.toThrow();
 });

@@ -49,6 +49,8 @@ type ScatterHost = {
 	domains: () => { x: [number, number]; y: [number, number]; z: [number, number] };
 	xKey: () => string;
 	zKey: () => string | null;
+	/** `WorldMap` only: the row key of each point's size value. */
+	sizeKey: () => string | null;
 	is3d: () => boolean;
 	/** Ask the engine for a repaint, such as when the 3D code finishes loading. */
 	requestPaint: () => void;
@@ -171,7 +173,10 @@ type PointView = {
 	paint(ctx: PaintContext): FrameLabels | null;
 	paintLabels(ctx: PaintContext, labels: FrameLabels): void;
 	hitAt(cssX: number, cssY: number): ScatterHit | null;
-	screenFor(index: number): { x: number; y: number } | null;
+	/** The screen position of a row's point: the point of `seriesKey` when given. */
+	screenFor(index: number, seriesKey: string | null): { x: number; y: number } | null;
+	/** Whether a row has a point. The keyboard skips a row with none. */
+	plots(index: number): boolean;
 	/** The radius of the point at a sorted row index, which sizes the hover dot. */
 	radiusAt(index: number): number;
 };
@@ -402,6 +407,11 @@ class ScatterView implements PointView {
 			ctx.restore();
 		});
 		return null;
+	}
+
+	/** Every scatter row is a keyboard stop. */
+	plots(): boolean {
+		return true;
 	}
 
 	/** Every scatter point has the one marker radius. */

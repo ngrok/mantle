@@ -96,6 +96,7 @@ const hostAt = (reveals: { a: number; b: number }): ScatterHost => ({
 	domains: () => ({ x: [0, 2], y: [0, 4], z: [0, 2] }),
 	xKey: () => "x",
 	zKey: () => "z",
+	sizeKey: () => null,
 	is3d: () => true,
 	requestPaint: () => {},
 	sourceRow: () => undefined,

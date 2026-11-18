@@ -76,6 +76,7 @@ const baseOptions: ChartOptions = {
 	yDomain: ["auto", "auto"],
 	orientation: "vertical",
 	zKey: null,
+	sizeKey: null,
 	dimensions: 3,
 	stacked: false,
 	animate: false,
