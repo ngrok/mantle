@@ -273,7 +273,8 @@ export default [
 	// to allow same-origin framing. Splat routes are excluded from
 	// prerendering and served by the runtime SSR function.
 	route("preview/*", "./routes/preview.tsx", { id: "preview-example" }),
-	// The MCP server: a stateless resource route that answers 404 while the MANTLE_MCP flag is off.
+	// The setup page of the MCP server. server.ts sends each MCP request at /mcp to the
+	// server first, so only a browser reaches this route.
 	route("mcp", "./routes/mcp.tsx", { id: "mcp" }),
 	// The MCP `preview` tool's link target and the sandboxed frame it embeds. root.tsx
 	// matches on the ids to skip the site chrome, and server.ts path-matches

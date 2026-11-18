@@ -130,6 +130,71 @@ describe("the docs app server", () => {
 		expect(response.headers.get("Vary")).toMatch(/Accept/);
 	});
 
+	it("sends a browser at /mcp to the setup page and an MCP client to the server", async () => {
+		server = await createTestServer({
+			app: createDocsServer(),
+			framework: async () =>
+				new Response("<!doctype html><title>setup</title>", {
+					headers: { "Content-Type": "text/html" },
+				}),
+		});
+
+		const page = await server.request("/mcp", { headers: { Accept: "text/html" } });
+		const rpc = await server.request("/mcp", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Accept: "application/json, text/event-stream",
+				Origin: "https://agent.example",
+			},
+			body: "{}",
+		});
+
+		expect(await page.text()).toContain("<title>setup</title>");
+		expect(page.headers.get("Vary")).toMatch(/Accept/);
+		expect(await rpc.json()).toMatchObject({ jsonrpc: "2.0", error: {} });
+		expect(rpc.headers.get("Access-Control-Allow-Origin")).toBe("*");
+		expect(rpc.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");
+	});
+
+	it("redirects an MCP request at another form of /mcp to /mcp with its method", async () => {
+		const app = await start();
+
+		const slash = await app.request("/mcp/?source=frontend", { method: "POST", body: "{}" });
+		const upper = await app.request("/MCP", { method: "DELETE" });
+
+		expect(slash.status).toBe(308);
+		expect(slash.headers.get("Location")).toBe("/mcp?source=frontend");
+		expect(upper.status).toBe(308);
+		expect(upper.headers.get("Location")).toBe("/mcp");
+	});
+
+	it("answers a CORS preflight and refuses a call while MANTLE_MCP is off", async () => {
+		vi.stubEnv("MANTLE_MCP", "off");
+		try {
+			const app = await start();
+
+			const preflight = await app.request("/mcp", {
+				method: "OPTIONS",
+				headers: {
+					Origin: "https://agent.example",
+					"Access-Control-Request-Method": "POST",
+				},
+			});
+			const rpc = await app.request("/mcp", {
+				method: "POST",
+				headers: { "Content-Type": "application/json", Accept: "application/json" },
+				body: "{}",
+			});
+
+			expect(preflight.status).toBe(204);
+			expect(preflight.headers.get("Access-Control-Allow-Origin")).toBe("*");
+			expect(rpc.status).toBe(404);
+		} finally {
+			vi.unstubAllEnvs();
+		}
+	});
+
 	it("stops the daily MCP digest when the app shuts down", async () => {
 		vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
 		const flush = vi.spyOn(mcpPulse, "flush");

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { action } from "~/routes/mcp";
+import { serveMcp } from "~/utilities/mcp/endpoint.server";
 
 /** A `subscriptions/listen` request in the 2026-07-28 envelope. */
 function listenRequest(signal: AbortSignal): Request {
@@ -28,19 +28,16 @@ function listenRequest(signal: AbortSignal): Request {
 	});
 }
 
-describe("the /mcp route", () => {
-	it("streams an open subscription with CORS headers instead of waiting for its end", async () => {
+describe("serveMcp", () => {
+	it("streams an open subscription instead of waiting for its end", async () => {
 		const controller = new AbortController();
 
-		const response = await action({ request: listenRequest(controller.signal) } as Parameters<
-			typeof action
-		>[0]);
+		const response = await serveMcp(listenRequest(controller.signal));
 		const reader = response.body?.getReader();
 		const first = await reader?.read();
 		controller.abort();
 		await reader?.cancel();
 
-		expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
 		expect(new TextDecoder().decode(first?.value)).toContain(
 			"notifications/subscriptions/acknowledged",
 		);
