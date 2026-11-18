@@ -312,7 +312,7 @@ export function InlineActionsQueryExample() {
 
 Set `keyboardShortcut` on `Query.Input` to let `/` move focus into the field from anywhere on the page. While the field is empty and not focused, it shows a `/` hint at its right edge. The key still types a slash in any text field, and it does nothing while the field is disabled or a modal covers it.
 
-The shortcut is off by default, because a page with many tables has many fields and `/` can focus only one. Turn it on for the one primary filter on a page. If more than one field turns it on, the first mounted field that can take focus gets it.
+The shortcut is off by default, because a page with many tables has many fields and `/` can focus only one. Turn it on for the one primary filter on a page. If more than one field turns it on, `/` goes to the field that turned it on first and can take focus.
 
 <Example name="components/forms/query/keyboard-shortcut" title="Query keyboard shortcut example">
 

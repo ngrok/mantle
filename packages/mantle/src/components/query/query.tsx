@@ -456,7 +456,7 @@ type QueryInputProps = Omit<
 		 * Whether `/` moves focus into the field from anywhere on the page. The
 		 * field then shows a `/` hint while it is empty and not focused. Turn it on
 		 * for the one primary filter on a page. If more than one field turns it on,
-		 * the first mounted field that can take focus gets it.
+		 * `/` goes to the field that turned it on first and can take focus.
 		 *
 		 * @default false
 		 */
@@ -546,6 +546,7 @@ function Input({
 	"aria-describedby": describedBy,
 	"aria-errormessage": errorMessage,
 	"aria-invalid": invalid,
+	"aria-keyshortcuts": callerKeyShortcuts,
 	"data-slot": dataSlot,
 	children,
 	className,
@@ -573,6 +574,10 @@ function Input({
 	const fieldControl = useContext(FieldControlContext);
 	const overlayRef = useRef<HTMLDivElement>(null);
 	const composedRef = useComposedRefs(ref, inputRef);
+	// `aria-keyshortcuts` is a space-separated list, so the caller's own shortcuts stay.
+	const keyShortcuts = keyboardShortcut
+		? ["/", callerKeyShortcuts].filter(Boolean).join(" ")
+		: callerKeyShortcuts;
 
 	// Field.Item owns the id, name, and ARIA wiring, as it does for `Select.Trigger`,
 	// so a prop on the input cannot drop the field's description or error.
@@ -617,15 +622,21 @@ function Input({
 				event.metaKey ||
 				event.ctrlKey ||
 				event.altKey ||
-				isTextControl(event.target) ||
+				// The composed path starts at a text field inside a shadow root, where `target` is the host.
+				isTextControl(event.composedPath()[0] ?? null) ||
 				// A modal hides the page behind it with `aria-hidden`, and a field there must not take focus.
 				input.closest("[inert], [aria-hidden='true']") != null
 			) {
 				return;
 			}
+			// A field that is not displayed or sits in a disabled fieldset does not take focus.
+			// It leaves the key to a later field.
+			input.focus();
+			if (!input.matches(":focus")) {
+				return;
+			}
 			// The prevented default also tells a later field with the shortcut that this one took it.
 			event.preventDefault();
-			input.focus();
 		};
 		window.addEventListener("keydown", handleWindowKeyDown);
 		return () => window.removeEventListener("keydown", handleWindowKeyDown);
@@ -742,7 +753,7 @@ function Input({
 						}
 						aria-describedby={describedByIds === "" ? undefined : describedByIds}
 						aria-errormessage={fieldControl ? fieldControl["aria-errormessage"] : errorMessage}
-						aria-keyshortcuts={keyboardShortcut ? "/" : undefined}
+						aria-keyshortcuts={keyShortcuts}
 						className="caret-(--text-color-strong) text-transparent"
 						value={context.value}
 						onChange={(event) => context.reportTypedValue(event.target)}
@@ -780,12 +791,12 @@ function Input({
 					/>
 				</div>
 				{/* `aria-keyshortcuts` names the key to assistive tech, so the hint is visual only.
-				    A focused field hides it: there, `/` types a slash. */}
+				    A focused field hides it: there, `/` types a slash. A disabled fieldset hides it too. */}
 				{keyboardShortcut && !disabled && context.value === "" && (
 					<Kbd
 						aria-hidden
 						data-slot="query-input-shortcut"
-						className="[[data-slot=input]:focus-within>&]:hidden"
+						className="[[data-slot=input]:focus-within>&]:hidden [[data-slot=input]:has(input:disabled)>&]:hidden"
 					>
 						/
 					</Kbd>

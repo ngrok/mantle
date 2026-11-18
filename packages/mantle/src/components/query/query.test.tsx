@@ -452,7 +452,21 @@ describe("Query.Input", () => {
 			expect(document.querySelector('[data-slot~="query-input-shortcut"]')).toBeNull();
 		});
 
-		test("gives `/` to the first mounted field that a modal does not hide", () => {
+		test("keeps the caller's `aria-keyshortcuts`", () => {
+			const { input } = renderQuery({ fieldProps: { "aria-keyshortcuts": "Control+k" } });
+
+			expect(input).toHaveAttribute("aria-keyshortcuts", "Control+k");
+		});
+
+		test("adds `/` to the caller's `aria-keyshortcuts`", () => {
+			const { input } = renderQuery({
+				fieldProps: { keyboardShortcut: true, "aria-keyshortcuts": "Control+k" },
+			});
+
+			expect(input).toHaveAttribute("aria-keyshortcuts", "/ Control+k");
+		});
+
+		test("gives `/` to the first field that a modal does not hide", () => {
 			function ShortcutField({ label }: { label: string }) {
 				const [value, setValue] = useState("");
 				return (
