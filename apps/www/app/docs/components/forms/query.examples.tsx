@@ -1,5 +1,6 @@
 import {
 	InlineActionsQueryExample,
+	KeyboardShortcutQueryExample,
 	QueryExample,
 	RemoteQueryExample,
 	TokenColorsQueryExample,
@@ -38,6 +39,15 @@ export function TokenColorsExample() {
 	return (
 		<PreviewCanvas className="min-h-160">
 			<TokenColorsQueryExample />
+		</PreviewCanvas>
+	);
+}
+
+/** The "Keyboard shortcut" example on the Query docs page. */
+export function KeyboardShortcutExample() {
+	return (
+		<PreviewCanvas className="min-h-160">
+			<KeyboardShortcutQueryExample />
 		</PreviewCanvas>
 	);
 }

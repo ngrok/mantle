@@ -1,9 +1,19 @@
 import { render } from "@testing-library/react";
 import { useState } from "react";
-import { describe, expect, test, vi } from "vitest";
-import { page, userEvent } from "vitest/browser";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import { commands, page, userEvent } from "vitest/browser";
 import { testGrammar } from "../../utils/query-filter/test-grammar.js";
 import { Query } from "./query.js";
+
+/** A field with the `/` shortcut, named by `label`. */
+function ShortcutField({ label }: { label: string }) {
+	const [value, setValue] = useState("");
+	return (
+		<Query.Root grammar={testGrammar} value={value} onValueChange={setValue}>
+			<Query.Input keyboardShortcut aria-label={label} placeholder="Filter" />
+		</Query.Root>
+	);
+}
 
 /** The compound under a `useState`, with the state painted where a test can read it. */
 function Host({ onValueChange }: { onValueChange?: (value: string) => void }) {
@@ -98,5 +108,80 @@ describe("Query in a browser", () => {
 		await expect.element(input).toHaveValue("");
 		await expect.element(input).toHaveFocus();
 		await expect.element(input).toHaveAttribute("aria-expanded", "true");
+	});
+
+	// A window listener sees the shadow host as the target, not the text field inside it.
+	test("lets `/` type in a text field inside a shadow root", async () => {
+		const host = document.createElement("div");
+		document.body.append(host);
+		const notes = document.createElement("input");
+		notes.setAttribute("aria-label", "Notes");
+		host.attachShadow({ mode: "open" }).append(notes);
+		render(<ShortcutField label="Filter projects" />);
+
+		notes.focus();
+		await userEvent.keyboard("/");
+
+		expect(notes).toHaveValue("/");
+		await expect.element(page.getByRole("combobox", { name: "Filter projects" })).not.toHaveFocus();
+		host.remove();
+	});
+
+	// happy-dom focuses both of these fields, so only a browser shows that they cannot take focus.
+	test("gives `/` to a later field when earlier ones cannot take focus", async () => {
+		render(
+			<>
+				<div hidden>
+					<ShortcutField label="Hidden" />
+				</div>
+				<fieldset disabled>
+					<ShortcutField label="Disabled" />
+				</fieldset>
+				<ShortcutField label="Shown" />
+			</>,
+		);
+
+		await userEvent.keyboard("/");
+
+		const shown = page.getByRole("combobox", { name: "Shown" });
+		await expect.element(shown).toHaveFocus();
+		await expect.element(shown).toHaveValue("");
+	});
+
+	describe("the `/` hint", () => {
+		let styleElement: HTMLStyleElement;
+
+		// Why the compiled CSS: the browser project loads no stylesheet, and CSS hides the hint.
+		beforeAll(async () => {
+			styleElement = document.createElement("style");
+			styleElement.textContent = await commands.tailwindCss("./query.tsx");
+			document.head.appendChild(styleElement);
+		});
+
+		afterAll(() => {
+			styleElement.remove();
+		});
+
+		test("shows only while the field can take the key", async () => {
+			render(
+				<>
+					<fieldset disabled>
+						<ShortcutField label="Disabled" />
+					</fieldset>
+					<ShortcutField label="Enabled" />
+				</>,
+			);
+			const [disabledHint, enabledHint] = document.querySelectorAll(
+				'[data-slot~="query-input-shortcut"]',
+			);
+
+			expect(disabledHint).not.toBeVisible();
+			expect(enabledHint).toBeVisible();
+
+			await userEvent.keyboard("/");
+
+			await expect.element(page.getByRole("combobox", { name: "Enabled" })).toHaveFocus();
+			expect(enabledHint).not.toBeVisible();
+		});
 	});
 });
