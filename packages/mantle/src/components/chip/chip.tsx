@@ -30,13 +30,8 @@ import { Slot } from "../slot/index.js";
 type ChipSize = Extract<ButtonSize, "xs" | "sm">;
 
 const chipSizeClassName = {
-	xs: "h-6 gap-1 ps-2 pe-2.5 text-xs",
-	sm: "h-7 gap-1 ps-2.5 pe-3 text-sm",
-} as const satisfies Record<ChipSize, string>;
-
-const chipRemoveEndClassName = {
-	xs: "pe-2",
-	sm: "pe-2.5",
+	xs: "h-6 gap-0.5 px-2 text-xs",
+	sm: "h-7 gap-0.5 px-2.5 text-sm",
 } as const satisfies Record<ChipSize, string>;
 
 type ChipPressedState =
@@ -197,7 +192,7 @@ function SelectableChip({
 					<>
 						{icon}
 						<span data-slot="chip-label" className="contents">
-							{children.props.children}
+							<span className="px-0.5">{children.props.children}</span>
 						</span>
 					</>,
 				)}
@@ -208,7 +203,7 @@ function SelectableChip({
 		<button {...buttonProps} type="button">
 			{icon}
 			<span data-slot="chip-label" className="contents">
-				{children}
+				<span className="px-0.5">{children}</span>
 			</span>
 		</button>
 	);
@@ -274,7 +269,6 @@ function LabelChip({
 			"text-strong inline-flex w-fit shrink-0 items-center whitespace-nowrap rounded-full border border-neutral-500/20 bg-neutral-500/10 font-sans font-medium",
 			"motion-safe:data-shake:animate-shake",
 			chipSizeClassName[size],
-			hasRemoveButton && chipRemoveEndClassName[size],
 			className,
 		),
 	};
@@ -286,7 +280,7 @@ function LabelChip({
 			aria-disabled={locked || undefined}
 			tabIndex={removeButtonTabIndex}
 			className={cx(
-				"text-strong/40 hover:bg-neutral-500/15 hover:text-strong cursor-pointer rounded-full p-0.5",
+				"text-strong/40 hover:bg-neutral-500/15 hover:text-strong -me-0.5 cursor-pointer rounded-full p-0.5",
 				"focus-visible:ring-focus-accent focus-visible:ring-2 focus-visible:outline-hidden",
 				"aria-disabled:cursor-default aria-disabled:hover:bg-transparent aria-disabled:hover:text-strong/40",
 			)}
@@ -300,7 +294,7 @@ function LabelChip({
 		<>
 			{icon != null && <Icon data-slot="chip-icon" svg={icon} className="size-3" />}
 			<span data-slot="chip-label" className="contents">
-				{label}
+				<span className="px-0.5">{label}</span>
 			</span>
 			{removeButton}
 		</>
