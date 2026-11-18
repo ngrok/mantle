@@ -56,18 +56,57 @@ export function tocFromMatches(matches: Array<{ handle?: unknown } | undefined>)
 }
 
 /**
+ * The mobile navigation drawer. The header's menu button toggles it through
+ * `NavigationContext`, so each page under the header must render it: a page
+ * without it gets a menu button that opens nothing.
+ *
+ * @example
+ * ```tsx
+ * <PageContainer>…</PageContainer>
+ * <MobileNavigation sidebar={<DocsNavigation />} />
+ * ```
+ */
+export function MobileNavigation({ sidebar }: Pick<PageLayoutProps, "sidebar">) {
+	const { showNavigation, setShowNavigation } = useNavigation();
+
+	if (!showNavigation) {
+		return null;
+	}
+
+	return (
+		<div className="bg-card fixed bottom-0 left-0 right-0 top-15 z-50 p-4 md:hidden">
+			<div className="scroll-fade-y scrollbar h-full overflow-auto overscroll-contain px-1">
+				<nav className="text-sm px-1 mb-6">
+					<ul className="flex flex-col">
+						<li className="mb-2 text-xs font-medium uppercase tracking-wider font-mono">Menu</li>
+						{mobileDrawerLinks.map((link) => (
+							<li key={link.to}>
+								<Link
+									to={link.to}
+									prefetch="intent"
+									className="text-muted hover:text-strong block py-1 rounded focus:outline-hidden focus-visible:ring-3 focus-visible:ring-focus-accent"
+									onClick={() => {
+										setShowNavigation(false);
+									}}
+								>
+									{link.label}
+								</Link>
+							</li>
+						))}
+					</ul>
+				</nav>
+				{sidebar}
+			</div>
+		</div>
+	);
+}
+
+/**
  * Shared page frame used by section layouts (docs, blocks, …). Renders the
- * three-column grid (sidebar | main | TOC aside) and the mobile drawer. The
- * mobile drawer's open/closed state comes from `NavigationContext`, which is
- * toggled by the header's hamburger button.
+ * three-column grid (sidebar | main | TOC aside) and the {@link MobileNavigation} drawer.
  */
 export function PageLayout({ className, children, sidebar, ...props }: PageLayoutProps) {
-	const { showNavigation, setShowNavigation } = useNavigation();
 	const toc = tocFromMatches(useMatches());
-
-	const closeMobileNavigation = () => {
-		setShowNavigation(false);
-	};
 
 	return (
 		<>
@@ -83,32 +122,7 @@ export function PageLayout({ className, children, sidebar, ...props }: PageLayou
 					<TableOfContents entries={toc} />
 				</aside>
 			</PageContainer>
-			{showNavigation && (
-				<div className="bg-card fixed bottom-0 left-0 right-0 top-15 z-50 p-4 md:hidden">
-					<div className="scroll-fade-y scrollbar h-full overflow-auto overscroll-contain px-1">
-						<nav className="text-sm px-1 mb-6">
-							<ul className="flex flex-col">
-								<li className="mb-2 text-xs font-medium uppercase tracking-wider font-mono">
-									Menu
-								</li>
-								{mobileDrawerLinks.map((link) => (
-									<li key={link.to}>
-										<Link
-											to={link.to}
-											prefetch="intent"
-											className="text-muted hover:text-strong block py-1 rounded focus:outline-hidden focus-visible:ring-3 focus-visible:ring-focus-accent"
-											onClick={closeMobileNavigation}
-										>
-											{link.label}
-										</Link>
-									</li>
-								))}
-							</ul>
-						</nav>
-						{sidebar}
-					</div>
-				</div>
-			)}
+			<MobileNavigation sidebar={sidebar} />
 		</>
 	);
 }

@@ -1,6 +1,8 @@
 import { data, redirect } from "react-router";
+import { DocsNavigation } from "~/components/docs-navigation";
 import { ErrorPage } from "~/components/error-page";
 import { PageContainer } from "~/components/page-container";
+import { MobileNavigation } from "~/components/page-layout";
 import { canonicalHref } from "~/utilities/canonical-origin";
 import { legacyRedirectFor } from "~/utilities/legacy-redirects";
 import type { Route } from "./+types/catch-all";
@@ -44,8 +46,11 @@ export function action() {
 /** The 404 page. Catches any URL that doesn't match a known route. */
 export default function CatchAll() {
 	return (
-		<PageContainer>
-			<ErrorPage status={404} />
-		</PageContainer>
+		<>
+			<PageContainer>
+				<ErrorPage status={404} />
+			</PageContainer>
+			<MobileNavigation sidebar={<DocsNavigation />} />
+		</>
 	);
 }

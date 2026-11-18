@@ -25,11 +25,13 @@ import {
 	useRouteLoaderData,
 } from "react-router";
 import type { Route } from "./+types/root";
+import { DocsNavigation } from "./components/docs-navigation";
 import { ErrorPage } from "./components/error-page";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { Header } from "./components/header";
 import { NavigationProvider } from "./components/navigation-context";
 import { PageContainer } from "./components/page-container";
+import { MobileNavigation } from "./components/page-layout";
 import { useLocationHash } from "./features/mcp-preview/use-location-hash";
 import { RouteAnnouncer } from "./features/route-announcer";
 import "./global.css";
@@ -281,6 +283,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 					</pre>
 				)}
 			</PageContainer>
+			<MobileNavigation sidebar={<DocsNavigation />} />
 		</div>
 	);
 }
