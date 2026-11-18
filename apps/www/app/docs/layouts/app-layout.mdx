@@ -768,7 +768,7 @@ overflow-clip rounded-xl border shadow-sm`. It insets **itself** with its own ma
   trail and gives up width first, and `HeaderActions` (`ml-auto shrink-0`) holds the page's actions at the
   row's end. They carry the flex, so no call site sets it. See [Header slots](#header-slots).
 - **`Body`** is the page region and the shell's **only** scroll container
-  (`scrollbar relative min-h-0 w-full flex-1 overflow-y-auto overscroll-none`). Render your `<Outlet />`
+  (`scrollbar scrollbar-gutter-stable relative min-h-0 w-full flex-1 overflow-y-auto overscroll-none`). Render your `<Outlet />`
   here. It is mantle's `Main` landmark by default (see [Landmarks](#landmarks)).
   See [Sizing a page to the card](#sizing-a-page-to-the-card) for what its classes buy you.
   There is deliberately **no `Footer` part**. A bar pinned to the bottom of the card is almost always a
@@ -791,7 +791,7 @@ overflow-clip rounded-xl border shadow-sm`. It insets **itself** with its own ma
   It sits on the same band as `Header`, by the same derivation, so the two rows and the sidebar header's
   switcher row center on one line.
 - **`SidePanelBody`** is the panel's scroll region
-  (`scrollbar relative min-h-0 w-full flex-1 overflow-y-auto overscroll-none`): the same box as `Body` with
+  (`scrollbar scrollbar-gutter-stable relative min-h-0 w-full flex-1 overflow-y-auto overscroll-none`): the same box as `Body` with
   no landmark, because the page's body already owns `main`.
 - **`SidePanelFooter`** is the bar pinned to the panel's bottom edge
   (`flex shrink-0 flex-col gap-2 px-3 pb-3`), outside the scroll region: a composer, a save row, a status
@@ -2381,7 +2381,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 ### AppLayout.Body
 
 The page region, and the shell's **only** scroll container:
-`scrollbar relative min-h-0 w-full flex-1 overflow-y-auto overscroll-none`. Render it after
+`scrollbar scrollbar-gutter-stable relative min-h-0 w-full flex-1 overflow-y-auto overscroll-none`. Render it after
 `AppLayout.Header` inside `AppLayout.Content`. In the canonical shell the route renders both, with
 the page content as the body's children (see [One header per page](#one-header-per-page)).
 
@@ -2390,6 +2390,9 @@ It renders mantle's [Main](/components/primitives/main) landmark: `<main id="mai
 the scroll container (see [Landmarks](#landmarks)). `id` and `tabIndex` are not props. When the document
 already owns a `main`, pass `asChild` and render a `<div>`. The part then adds its classes and
 `data-slot="app-layout-body"` to your element and no landmark.
+
+`scrollbar-gutter-stable` keeps space for the scrollbar when the page does not overflow, so the page does not
+move sideways when it starts to scroll. `AppLayout.SidePanelBody` does the same.
 
 Every class on it has a job; see [Sizing a page to the card](#sizing-a-page-to-the-card) for what each
 one buys a route author, and [Scroll restoration](#scroll-restoration) for what an inner scrollport means for
@@ -2563,7 +2566,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 ### AppLayout.SidePanelBody
 
 The side panel's scroll region, after the header:
-`scrollbar relative min-h-0 w-full flex-1 overflow-y-auto overscroll-none`. The same box as
+`scrollbar scrollbar-gutter-stable relative min-h-0 w-full flex-1 overflow-y-auto overscroll-none`. The same box as
 [`AppLayout.Body`](#applayoutbody) with no landmark, because the page's body already owns `main`. It is
 block inside, so a child that asks for `h-full` fills the panel between the header and the footer, and
 `mx-auto max-w-*` still centers.

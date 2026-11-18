@@ -687,6 +687,9 @@ const HeaderActions = ({
  * It is `relative` too, so page content positioned with `absolute` is contained
  * by the scrollport the route author is already reasoning about.
  *
+ * `scrollbar-gutter-stable` keeps space for the scrollbar when the page does
+ * not overflow, so the page does not move sideways when it starts to scroll.
+ *
  * @see https://mantle.ngrok.com/layouts/app-layout#applayoutbody
  *
  * @example
@@ -734,7 +737,7 @@ const Body = ({
 		<Comp
 			data-slot={joinDataSlot(dataSlot, "app-layout-body")}
 			className={cx(
-				"scrollbar relative min-h-0 w-full flex-1 overflow-y-auto overscroll-none",
+				"scrollbar scrollbar-gutter-stable relative min-h-0 w-full flex-1 overflow-y-auto overscroll-none",
 				className,
 			)}
 			{...props}
@@ -1824,8 +1827,9 @@ const SidePanelHeader = ({
 
 /**
  * The scroll region of `AppLayout.SidePanel`, and the only part of the panel
- * that scrolls (`scrollbar relative min-h-0 w-full flex-1 overflow-y-auto
- * overscroll-none`). Render it after `AppLayout.SidePanelHeader`. It is the
+ * that scrolls (`scrollbar scrollbar-gutter-stable relative min-h-0 w-full
+ * flex-1 overflow-y-auto overscroll-none`). Render it after
+ * `AppLayout.SidePanelHeader`. It is the
  * same box as `AppLayout.Body` with no landmark: the page's body already owns
  * `main`, and a second scroll region beside it is plain content. It is block
  * inside, so a child that asks for `h-full` fills the panel between the header
@@ -1889,7 +1893,7 @@ const SidePanelBody = ({
 		<Comp
 			data-slot={joinDataSlot(dataSlot, "app-layout-side-panel-body")}
 			className={cx(
-				"scrollbar relative min-h-0 w-full flex-1 overflow-y-auto overscroll-none",
+				"scrollbar scrollbar-gutter-stable relative min-h-0 w-full flex-1 overflow-y-auto overscroll-none",
 				className,
 			)}
 			{...props}
