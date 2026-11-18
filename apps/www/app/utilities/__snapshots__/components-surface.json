@@ -511,7 +511,7 @@
     "summary": "A compact label for a value or a selectable choice.",
     "jsdoc": "A compact label for a value or a selectable choice.",
     "examples": [
-      "```tsx\n<Chip>Read</Chip>\n<Chip onRemove={removeWrite} removeLabel=\"Remove Write\">Write</Chip>\n<Chip selectable defaultPressed>Manage</Chip>\n<Chip selectable onRemove={removeModel} removeLabel=\"Remove model\">Model</Chip>\n```"
+      "```tsx\n<Chip>Read</Chip>\n<Chip onRemove={removeWrite} removeLabel=\"Remove Write\">Write</Chip>\n<Chip selectable defaultPressed>Manage</Chip>\n```"
     ],
     "aliases": [
       "toggle chip",

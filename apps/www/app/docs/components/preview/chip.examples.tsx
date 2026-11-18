@@ -13,13 +13,13 @@ export function OverviewExample() {
 	);
 }
 
-/** A value with separate toggle and remove controls. */
+/** A value with a remove control. */
 export function RemovableExample() {
 	const [showModel, setShowModel] = useState(true);
 	return (
 		<PreviewCanvas>
 			{showModel && (
-				<Chip selectable onRemove={() => setShowModel(false)} removeLabel="Remove model A">
+				<Chip onRemove={() => setShowModel(false)} removeLabel="Remove model A">
 					Model A
 				</Chip>
 			)}
@@ -27,22 +27,28 @@ export function RemovableExample() {
 	);
 }
 
-/** A chip that toggles while its remove control is locked. */
+/** A chip whose remove control is locked. */
 export function LockedExample() {
 	return (
 		<PreviewCanvas>
-			<Chip selectable locked onRemove={() => {}} removeLabel="Remove global scope">
+			<Chip locked onRemove={() => {}} removeLabel="Remove global scope">
 				Global scope
 			</Chip>
 		</PreviewCanvas>
 	);
 }
 
-/** A selectable chip with an icon beside its state icon. */
+/** A selectable chip whose icon changes weight with its state. */
 export function IconExample() {
+	const [pressed, setPressed] = useState(false);
 	return (
 		<PreviewCanvas>
-			<Chip selectable icon={<CubeIcon />}>
+			<Chip
+				selectable
+				pressed={pressed}
+				onPressedChange={setPressed}
+				icon={<CubeIcon weight={pressed ? "fill" : "regular"} />}
+			>
 				Model A
 			</Chip>
 		</PreviewCanvas>

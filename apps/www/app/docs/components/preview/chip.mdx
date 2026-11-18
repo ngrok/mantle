@@ -36,7 +36,7 @@ function Example() {
 
 ## Removable
 
-Pass `onRemove` and a `removeLabel` that names the value. With `selectable`, press the label to toggle it. Press the remove button to dismiss it.
+Pass `onRemove` and a `removeLabel` that names the value. Press the remove button to dismiss it.
 
 <Example name="components/preview/chip/removable" title="Removable Chip example">
 
@@ -48,7 +48,7 @@ function Example() {
 	const [showModel, setShowModel] = useState(true);
 	return (
 		showModel && (
-			<Chip selectable onRemove={() => setShowModel(false)} removeLabel="Remove model A">
+			<Chip onRemove={() => setShowModel(false)} removeLabel="Remove model A">
 				Model A
 			</Chip>
 		)
@@ -60,7 +60,7 @@ function Example() {
 
 ## Locked
 
-Set `locked` to keep the remove control visible and block removal. The toggle still works. A locked chip ignores Delete and Backspace when it has focus.
+Set `locked` to keep the remove control visible and block removal. A locked chip ignores Delete and Backspace when it has focus.
 
 <Example name="components/preview/chip/locked" title="Locked Chip example">
 
@@ -69,7 +69,7 @@ import { Chip } from "@ngrok/mantle/chip";
 
 function Example() {
 	return (
-		<Chip selectable locked onRemove={() => {}} removeLabel="Remove global scope">
+		<Chip locked onRemove={() => {}} removeLabel="Remove global scope">
 			Global scope
 		</Chip>
 	);
@@ -80,17 +80,24 @@ function Example() {
 
 ## Leading icon
 
-Pass `icon` to place an SVG before the state icon and label. Keep the icon out of `children` so the label remains a separate slot.
+Pass `icon` to place an SVG before the label. On a selectable chip, it replaces the plus or check icon. Change its weight to show the selected state without color alone.
 
 <Example name="components/preview/chip/icon" title="Chip with icon example">
 
 ```tsx
 import { CubeIcon } from "@phosphor-icons/react/Cube";
 import { Chip } from "@ngrok/mantle/chip";
+import { useState } from "react";
 
 function Example() {
+	const [pressed, setPressed] = useState(false);
 	return (
-		<Chip selectable icon={<CubeIcon />}>
+		<Chip
+			selectable
+			pressed={pressed}
+			onPressedChange={setPressed}
+			icon={<CubeIcon weight={pressed ? "fill" : "regular"} />}
+		>
 			Model A
 		</Chip>
 	);
@@ -101,7 +108,7 @@ function Example() {
 
 ## Selectable
 
-Set `selectable` to render a button with `aria-pressed`. Its plus or check icon makes the state visible without color.
+Set `selectable` to render a button with `aria-pressed`. By default, its plus or check icon makes the state visible without color.
 
 <Example name="components/preview/chip/selectable" title="Selectable Chip example">
 
@@ -259,7 +266,7 @@ function Example() {
 
 ## Polymorphism
 
-`Chip` accepts `asChild` to pass its props to one child. A selectable chip without removal needs a button child. A removable chip needs a non-interactive container child so its controls are not nested inside another control.
+`Chip` accepts `asChild` to pass its props to one child. A selectable chip needs a button child. A removable chip needs a non-interactive container child so its remove button is not nested inside another control.
 
 <Example name="components/preview/chip/polymorphism" title="Chip asChild example">
 
@@ -281,23 +288,23 @@ function Example() {
 
 ### Chip
 
-The default chip accepts native span props. A selectable chip without removal accepts native button props except `type` and `aria-pressed`. With both `selectable` and `onRemove`, the root accepts native span props and contains two buttons.
+The default chip accepts native span props. A selectable chip accepts native button props except `type` and `aria-pressed`.
 
-| Prop                    | Type                         | Default | Description                                               |
-| ----------------------- | ---------------------------- | ------- | --------------------------------------------------------- |
-| `asChild?`              | `boolean`                    | `false` | Pass the chip props to one child with the same semantics. |
-| `icon?`                 | `ReactNode`                  |         | SVG icon before the label.                                |
-| `onRemove`              | `() => void`                 |         | Adds a remove button; requires `removeLabel`.             |
-| `removeLabel`           | `string`                     |         | Accessible name of the remove button.                     |
-| `locked?`               | `boolean`                    | `false` | Blocks removal and shows a lock icon.                     |
-| `removeButtonTabIndex?` | `number`                     | `0`     | Use `-1` when a parent list owns keyboard focus.          |
-| `selectable?`           | `boolean`                    | `false` | Renders a toggle button.                                  |
-| `pressed`               | `boolean`                    |         | Controlled state. Requires `onPressedChange`.             |
-| `defaultPressed?`       | `boolean`                    | `false` | Initial state when the chip owns its state.               |
-| `onPressedChange?`      | `(pressed: boolean) => void` |         | Receives the next state after a press.                    |
-| `size?`                 | `"xs" \| "sm"`               | `"xs"`  | Height and spacing on the `Button` scale.                 |
+| Prop                    | Type                         | Default | Description                                                 |
+| ----------------------- | ---------------------------- | ------- | ----------------------------------------------------------- |
+| `asChild?`              | `boolean`                    | `false` | Pass the chip props to one child with the same semantics.   |
+| `icon?`                 | `ReactNode`                  |         | SVG icon before the label; replaces the default state icon. |
+| `onRemove`              | `() => void`                 |         | Adds a remove button; requires `removeLabel`.               |
+| `removeLabel`           | `string`                     |         | Accessible name of the remove button.                       |
+| `locked?`               | `boolean`                    | `false` | Blocks removal and shows a lock icon.                       |
+| `removeButtonTabIndex?` | `number`                     | `0`     | Use `-1` when a parent list owns keyboard focus.            |
+| `selectable?`           | `boolean`                    | `false` | Renders a toggle button.                                    |
+| `pressed`               | `boolean`                    |         | Controlled state. Requires `onPressedChange`.               |
+| `defaultPressed?`       | `boolean`                    | `false` | Initial state when the chip owns its state.                 |
+| `onPressedChange?`      | `(pressed: boolean) => void` |         | Receives the next state after a press.                      |
+| `size?`                 | `"xs" \| "sm"`               | `"xs"`  | Height and spacing on the `Button` scale.                   |
 
-`onRemove` and `selectable` can be combined. If both are set, the chip renders separate toggle and remove buttons. Without either prop, a chip renders a compact label.
+`onRemove` and `selectable` cannot be combined. A plain chip renders a span; a selectable chip renders a button.
 
 | Data Attribute | Value             | Description                                  |
 | -------------- | ----------------- | -------------------------------------------- |
@@ -305,7 +312,6 @@ The default chip accepts native span props. A selectable chip without removal ac
 | `data-slot`    | `"chip-label"`    | The label wrapper, with `display: contents`. |
 | `data-slot`    | `"chip-icon"`     | The optional leading icon.                   |
 | `data-slot`    | `"chip-remove"`   | The optional remove button.                  |
-| `data-slot`    | `"chip-toggle"`   | The toggle button beside a remove button.    |
 | `data-state`   | `"on"` \| `"off"` | The selectable state.                        |
 | `data-size`    | `"xs"` \| `"sm"`  | The size of the chip.                        |
 | `data-locked`  | present           | Removal is blocked.                          |
