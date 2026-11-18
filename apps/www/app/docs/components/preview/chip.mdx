@@ -1,8 +1,8 @@
 ---
 title: Chip
-description: A compact toggle button that turns an item in a set on or off.
+description: A compact label for a value or a selectable choice.
 category: Forms
-aliases: [toggle chip, filter chip, scope chip]
+aliases: [toggle chip, filter chip, scope chip, removable chip]
 ---
 
 import { Example } from "~/components/example";
@@ -12,7 +12,7 @@ import { PageHeader } from "~/components/page-header";
 	Chip
 </PageHeader>
 
-A compact toggle button that turns an item in a set on or off. It uses `aria-pressed` and a plus or check icon to show its state.
+A compact label for a value or a selectable choice. Add a remove control to let the user dismiss a value, or make the chip selectable to turn a choice on or off.
 
 <Example name="components/preview/chip/overview" title="Chip example">
 
@@ -20,13 +20,7 @@ A compact toggle button that turns an item in a set on or off. It uses `aria-pre
 import { Chip } from "@ngrok/mantle/chip";
 
 function Example() {
-	return (
-		<div className="flex flex-wrap gap-2">
-			<Chip>Read</Chip>
-			<Chip defaultPressed>Write</Chip>
-			<Chip>Manage</Chip>
-		</div>
-	);
+	return <Chip>Read</Chip>;
 }
 ```
 
@@ -34,11 +28,96 @@ function Example() {
 
 ## When to use
 
-- Turn one item in a set on or off, such as a filter or an access level.
-- Use [`Badge`](/components/data-display/badge) when the label does not change state.
+- Show a compact value, let a user remove it, or turn a choice on or off.
+- Use [`Badge`](/components/data-display/badge) to show status.
 - Use [`Checkbox`](/components/forms/checkbox) when the choice needs a form value.
 - Use [`Multi Select`](/components/forms/multi-select) when the user must search a long list of choices.
 - Use [`Button`](/components/actions/button) when a press runs an action without a selected state.
+
+## Removable
+
+Pass `onRemove` and a `removeLabel` that names the value. The remove button is the only tab stop in a standalone removable chip.
+
+<Example name="components/preview/chip/removable" title="Removable Chip example">
+
+```tsx
+import { Chip } from "@ngrok/mantle/chip";
+import { useState } from "react";
+
+function Example() {
+	const [showModel, setShowModel] = useState(true);
+	return (
+		showModel && (
+			<Chip onRemove={() => setShowModel(false)} removeLabel="Remove model A">
+				Model A
+			</Chip>
+		)
+	);
+}
+```
+
+</Example>
+
+## Locked
+
+Set `locked` to keep the remove control visible and block removal. A locked chip ignores Delete and Backspace when it has focus.
+
+<Example name="components/preview/chip/locked" title="Locked Chip example">
+
+```tsx
+import { Chip } from "@ngrok/mantle/chip";
+
+function Example() {
+	return (
+		<Chip locked onRemove={() => {}} removeLabel="Remove global scope">
+			Global scope
+		</Chip>
+	);
+}
+```
+
+</Example>
+
+## Leading icon
+
+Pass `icon` to place an SVG before the label. Keep the icon out of `children` so the label remains a separate slot.
+
+<Example name="components/preview/chip/icon" title="Chip with icon example">
+
+```tsx
+import { CubeIcon } from "@phosphor-icons/react/Cube";
+import { Chip } from "@ngrok/mantle/chip";
+
+function Example() {
+	return <Chip icon={<CubeIcon />}>Model A</Chip>;
+}
+```
+
+</Example>
+
+## Selectable
+
+Set `selectable` to render a button with `aria-pressed`. Its plus or check icon makes the state visible without color.
+
+<Example name="components/preview/chip/selectable" title="Selectable Chip example">
+
+```tsx
+import { Chip } from "@ngrok/mantle/chip";
+
+function Example() {
+	return (
+		<div className="flex flex-wrap gap-2">
+			<Chip selectable>Read</Chip>
+			<Chip selectable defaultPressed>
+				Write
+			</Chip>
+			<Chip selectable>Manage</Chip>
+		</div>
+	);
+}
+```
+
+</Example>
 
 ## Controlled state
 
@@ -53,7 +132,7 @@ import { useState } from "react";
 function Example() {
 	const [pressed, setPressed] = useState(false);
 	return (
-		<Chip pressed={pressed} onPressedChange={setPressed}>
+		<Chip selectable pressed={pressed} onPressedChange={setPressed}>
 			Write
 		</Chip>
 	);
@@ -74,12 +153,8 @@ import { Chip } from "@ngrok/mantle/chip";
 function Example() {
 	return (
 		<div className="flex items-center gap-3">
-			<Chip size="xs" defaultPressed>
-				Read
-			</Chip>
-			<Chip size="sm" defaultPressed>
-				Read
-			</Chip>
+			<Chip size="xs">Read</Chip>
+			<Chip size="sm">Read</Chip>
 		</div>
 	);
 }
@@ -89,7 +164,7 @@ function Example() {
 
 ## Disabled
 
-A disabled chip keeps its state visible. It does not change state when the user presses it.
+A disabled selectable chip keeps its state visible. It does not change state when the user presses it.
 
 <Example name="components/preview/chip/disabled" title="Disabled Chip example">
 
@@ -99,8 +174,10 @@ import { Chip } from "@ngrok/mantle/chip";
 function Example() {
 	return (
 		<div className="flex gap-2">
-			<Chip disabled>Write</Chip>
-			<Chip disabled defaultPressed>
+			<Chip selectable disabled>
+				Write
+			</Chip>
+			<Chip selectable disabled defaultPressed>
 				Read
 			</Chip>
 		</div>
@@ -127,6 +204,7 @@ function Example() {
 		<div role="group" aria-label="Access token scopes" className="flex flex-wrap gap-2">
 			{levels.map((level) => (
 				<Chip
+					selectable
 					key={level}
 					pressed={granted.includes(level)}
 					onPressedChange={(pressed) =>
@@ -159,7 +237,9 @@ function Example() {
 	return (
 		<Tooltip.Root>
 			<Tooltip.Trigger asChild>
-				<Chip defaultPressed>Manage</Chip>
+				<Chip selectable defaultPressed>
+					Manage
+				</Chip>
 			</Tooltip.Trigger>
 			<Tooltip.Content>Manage resources and settings</Tooltip.Content>
 		</Tooltip.Root>
@@ -171,7 +251,7 @@ function Example() {
 
 ## Polymorphism
 
-`Chip` accepts `asChild` when an app-owned button must carry the chip style and state. Pass one button as its child.
+`Chip` accepts `asChild` to pass its props to one child. A selectable chip needs a button child. A removable chip needs a non-interactive container child so its remove button is not nested inside another control.
 
 <Example name="components/preview/chip/polymorphism" title="Chip asChild example">
 
@@ -180,7 +260,7 @@ import { Chip } from "@ngrok/mantle/chip";
 
 function Example() {
 	return (
-		<Chip asChild>
+		<Chip selectable asChild>
 			<button type="button">Read</button>
 		</Chip>
 	);
@@ -193,19 +273,30 @@ function Example() {
 
 ### Chip
 
-All native button props except `type` and `aria-pressed`, plus:
+The default chip accepts native span props. A selectable chip accepts native button props except `type` and `aria-pressed`.
 
-| Prop               | Type                         | Default | Description                                   |
-| ------------------ | ---------------------------- | ------- | --------------------------------------------- |
-| `asChild?`         | `boolean`                    | `false` | Pass the chip props to one child button.      |
-| `pressed`          | `boolean`                    |         | Controlled state. Requires `onPressedChange`. |
-| `defaultPressed?`  | `boolean`                    | `false` | Initial state when the chip owns its state.   |
-| `onPressedChange?` | `(pressed: boolean) => void` |         | Receives the next state after a press.        |
-| `size?`            | `"xs" \| "sm"`               | `"xs"`  | The height and spacing on the `Button` scale. |
+| Prop                    | Type                         | Default | Description                                               |
+| ----------------------- | ---------------------------- | ------- | --------------------------------------------------------- |
+| `asChild?`              | `boolean`                    | `false` | Pass the chip props to one child with the same semantics. |
+| `icon?`                 | `ReactNode`                  |         | SVG icon before the label on a plain or removable chip.   |
+| `onRemove`              | `() => void`                 |         | Adds a remove button; requires `removeLabel`.             |
+| `removeLabel`           | `string`                     |         | Accessible name of the remove button.                     |
+| `locked?`               | `boolean`                    | `false` | Blocks removal and shows a lock icon.                     |
+| `removeButtonTabIndex?` | `number`                     | `0`     | Use `-1` when a parent list owns keyboard focus.          |
+| `selectable?`           | `boolean`                    | `false` | Renders a toggle button.                                  |
+| `pressed`               | `boolean`                    |         | Controlled state. Requires `onPressedChange`.             |
+| `defaultPressed?`       | `boolean`                    | `false` | Initial state when the chip owns its state.               |
+| `onPressedChange?`      | `(pressed: boolean) => void` |         | Receives the next state after a press.                    |
+| `size?`                 | `"xs" \| "sm"`               | `"xs"`  | Height and spacing on the `Button` scale.                 |
 
-| Data Attribute | Value             | Description                                                    |
-| -------------- | ----------------- | -------------------------------------------------------------- |
-| `data-slot`    | `"chip"`          | The root control.                                              |
-| `data-slot`    | `"chip-label"`    | The label wrapper around `children`, with `display: contents`. |
-| `data-state`   | `"on"` \| `"off"` | The pressed state.                                             |
-| `data-size`    | `"xs"` \| `"sm"`  | The size of the control.                                       |
+`onRemove` and `selectable` cannot be combined. A plain chip renders a span; a selectable chip renders a button.
+
+| Data Attribute | Value             | Description                                  |
+| -------------- | ----------------- | -------------------------------------------- |
+| `data-slot`    | `"chip"`          | The root element.                            |
+| `data-slot`    | `"chip-label"`    | The label wrapper, with `display: contents`. |
+| `data-slot`    | `"chip-icon"`     | The optional leading icon.                   |
+| `data-slot`    | `"chip-remove"`   | The optional remove button.                  |
+| `data-state`   | `"on"` \| `"off"` | The selectable state.                        |
+| `data-size`    | `"xs"` \| `"sm"`  | The size of the chip.                        |
+| `data-locked`  | present           | Removal is blocked.                          |

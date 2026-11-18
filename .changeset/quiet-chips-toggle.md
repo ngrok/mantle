@@ -2,7 +2,9 @@
 "@ngrok/mantle": minor
 ---
 
-Add a preview `Chip` for compact choices that turn on or off. A chip uses
-`aria-pressed`, a plus or check icon, and a label slot that stays safe when the
-browser translates a page. It has `data-state`, `data-size`, and `data-slot`
-attributes for styling. See the [Chip docs](https://mantle.ngrok.com/components/preview/chip).
+Add a preview `Chip` for compact values. A chip can show a label, a leading
+icon, or a removable value with a named remove button. Set `selectable` to
+render a toggle button with `aria-pressed`. The `chip-label` slot keeps text
+safe when the browser translates a page. The component exposes `data-slot`,
+`data-size`, `data-state`, and `data-locked` for styling. See the
+[Chip docs](https://mantle.ngrok.com/components/preview/chip).

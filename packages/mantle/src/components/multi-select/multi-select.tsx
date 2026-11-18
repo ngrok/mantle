@@ -20,8 +20,6 @@ import type {
 } from "@ariakit/react/combobox";
 import { useStoreState as useAriakitStoreState } from "@ariakit/react/store";
 import { CheckIcon } from "@phosphor-icons/react/Check";
-import { LockIcon } from "@phosphor-icons/react/Lock";
-import { XIcon } from "@phosphor-icons/react/X";
 import type {
 	ComponentProps,
 	Dispatch,
@@ -53,6 +51,7 @@ import {
 	useLayerContainer,
 } from "../../utils/layer-container/layer-container.js";
 import { shakeElement } from "../../utils/shake.js";
+import { Chip } from "../chip/chip.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
 import type { AriaInvalid, WithValidation } from "../field/validation.js";
@@ -223,7 +222,7 @@ const Trigger = ({
 				data-slot={joinDataSlot(dataSlot, "multi-select-trigger")}
 				className={cx(
 					"cursor-text select-none font-sans text-sm",
-					"border-form bg-form text-strong flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border px-3 py-1 has-data-[slot=multi-select-tag]:px-1",
+					"border-form bg-form text-strong flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border px-3 py-1 has-data-[slot~=multi-select-tag]:px-1",
 					"has-focus:outline-hidden has-focus-within:ring-4 has-aria-expanded:ring-4",
 					"has-focus-within:border-accent-600 has-focus-within:ring-focus-accent has-aria-expanded:border-accent-600 has-aria-expanded:ring-focus-accent",
 					"data-validation-success:border-success-600 data-validation-success:has-focus-within:border-success-600 data-validation-success:has-focus-within:ring-focus-success data-validation-success:has-aria-expanded:border-success-600 data-validation-success:has-aria-expanded:ring-focus-success",
@@ -245,7 +244,7 @@ const Trigger = ({
 					// input. Clicks on buttons, the input itself, or tag spans are handled by those elements.
 					if (
 						event.target instanceof HTMLElement &&
-						!event.target.closest("button, input, [data-slot='multi-select-tag']")
+						!event.target.closest('button, input, [data-slot~="multi-select-tag"]')
 					) {
 						event.preventDefault();
 						inputRef.current?.focus();
@@ -325,22 +324,25 @@ const Tag = ({
 	ref,
 	...props
 }: TagProps) => {
-	const internalRef = useRef<HTMLSpanElement | null>(null);
 	// Why local state: the tag list has no listbox, so `aria-selected` is not
 	// valid here, and `aria-current` names a current item, not focus. DOM focus
 	// exposes the active tag; `data-active` drives its styling.
 	const [isActive, setIsActive] = useState(false);
 
 	return (
-		<span
-			ref={composeRefs(internalRef, ref)}
+		<Chip
+			ref={ref}
 			role="listitem"
 			tabIndex={-1}
 			data-slot={joinDataSlot(dataSlot, "multi-select-tag")}
 			data-active={isActive || undefined}
-			data-locked={locked || undefined}
+			size="sm"
+			locked={locked}
+			onRemove={() => onRemove?.()}
+			removeLabel={`Remove ${value}`}
+			removeButtonTabIndex={-1}
 			className={cx(
-				"cursor-default bg-neutral-500/10 border border-neutral-500/20 rounded-xs text-strong inline-flex items-center gap-1 pl-2 pr-0.5 py-0.5 text-sm font-normal motion-safe:data-shake:animate-shake",
+				"cursor-default text-sm font-normal",
 				"focus-visible:outline-hidden focus-visible:border-accent-600/50 focus-visible:ring-3 focus-visible:ring-focus-accent",
 				className,
 			)}
@@ -352,47 +354,11 @@ const Tag = ({
 				setIsActive(true);
 				onFocus?.(event);
 			}}
-			onKeyDown={(event) => {
-				if (locked && (event.key === "Backspace" || event.key === "Delete")) {
-					event.preventDefault();
-					shakeElement(event.currentTarget);
-					return;
-				}
-				onKeyDown?.(event);
-			}}
+			onKeyDown={onKeyDown}
 			{...props}
 		>
 			{value}
-			<button
-				type="button"
-				aria-label={`Remove ${value}`}
-				tabIndex={-1}
-				aria-disabled={locked || undefined}
-				className={cx(
-					"cursor-pointer text-strong/40 hover:bg-neutral-500/15 hover:text-strong rounded-xs p-0.5",
-					"aria-disabled:cursor-default aria-disabled:hover:bg-transparent aria-disabled:hover:text-strong/40",
-				)}
-				onClick={(event) => {
-					// Prevent the click from bubbling to the trigger, which would reopen or refocus the combobox
-					event.stopPropagation();
-					if (locked) {
-						// Shake the tag to signal that removal is blocked
-						const tagElement = internalRef.current;
-						if (tagElement) {
-							shakeElement(tagElement);
-						}
-						return;
-					}
-					onRemove?.();
-				}}
-				onMouseDown={(event) => {
-					// Prevent the input from losing focus on click, which would close the popover before the remove fires
-					event.preventDefault();
-				}}
-			>
-				<Icon svg={locked ? <LockIcon /> : <XIcon weight="bold" />} className="size-4" />
-			</button>
-		</span>
+		</Chip>
 	);
 };
 
