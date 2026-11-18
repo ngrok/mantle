@@ -2,7 +2,7 @@
 
 import { render, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
-import { commands } from "vitest/browser";
+import { commands, userEvent } from "vitest/browser";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { fitBounds, toScreen } from "../chart/geo.js";
 import { WorldMap } from "./world-map.js";
@@ -55,7 +55,8 @@ const STYLE = `
 .invisible {
 	visibility: hidden;
 }
-[data-slot="world-map-callout"] {
+[data-slot="world-map-callout"],
+[data-slot="world-map-tooltip"] {
 	position: absolute;
 	left: 0;
 	top: 0;
@@ -340,5 +341,38 @@ describe("WorldMap regions, connectors, and callouts", () => {
 		);
 		expect(countInk(canvas, isRed, { toX: fromX - 8 })).toBe(0);
 		expect(countInk(canvas, isRed, { fromX: toX + 4 })).toBe(0);
+	});
+
+	test("a tooltip with no room on either side of its point stays inside a narrow plot", async () => {
+		const { container } = render(
+			<WorldMap.Root
+				data={[client]}
+				longitudeKey="longitude"
+				bounds={bounds}
+				animate={false}
+				aria-label="Client location"
+				style={{ width: 240, height: 120 }}
+			>
+				<WorldMap.Point latitudeKey="latitude" color="blue" />
+				<WorldMap.Tooltip>{() => <div style={{ width: 200, height: 40 }} />}</WorldMap.Tooltip>
+			</WorldMap.Root>,
+		);
+		await findChartCanvas(container);
+		const plot = container.querySelector<HTMLElement>('[data-slot="world-map-plot"]');
+		const overlay = container.querySelector<HTMLElement>('[role="application"]');
+		if (plot == null || overlay == null) {
+			throw new Error("The map rendered no plot or no overlay.");
+		}
+		overlay.focus();
+		await userEvent.keyboard("{Home}");
+		const tooltip = await waitFor(() => {
+			const element = container.querySelector<HTMLElement>('[data-slot="world-map-tooltip"]');
+			expect(element?.style.opacity).toBe("1");
+			return element as HTMLElement;
+		});
+		const plotBox = plot.getBoundingClientRect();
+		const box = tooltip.getBoundingClientRect();
+		expect(box.left).toBeGreaterThanOrEqual(plotBox.left);
+		expect(box.right).toBeLessThanOrEqual(plotBox.right + 0.5);
 	});
 });

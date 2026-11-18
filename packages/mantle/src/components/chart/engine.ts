@@ -3110,11 +3110,12 @@ class ChartEngine {
 	}
 
 	/**
-	 * Position the tooltip near an anchor point, flipping sides at the plot edge
-	 * and clamping vertically. The inner clamp holds the readout inside the plot
-	 * rect, which keeps it off the tick labels the x-axis band reserves below.
-	 * When the readout is taller than the plot, the outer clamp pins it to the
-	 * wrapper's top edge instead of spilling the overflow past the bottom.
+	 * Position the tooltip near an anchor point, flipping sides at the plot edge,
+	 * then clamping on both axes. The inner clamps hold the readout inside the
+	 * plot rect, which keeps it off the tick labels the x-axis band reserves
+	 * below, and keeps a readout with no room on either side from widening the
+	 * page. When the readout is larger than the plot, the outer clamps pin it to
+	 * the wrapper's top and left edges.
 	 */
 	#positionTooltip(anchorX: number, anchorY: number): void {
 		const plot = this.#plot;
@@ -3137,6 +3138,8 @@ class ChartEngine {
 		) {
 			tooltipLeft = anchorX - gapX - size.width;
 		}
+		// Why clamp after the flip: on a narrow plot neither side has room, and an unclamped readout overflows the page.
+		tooltipLeft = Math.max(0, Math.min(tooltipLeft, plot.left + plot.width - size.width));
 		const tooltipTop = Math.max(
 			0,
 			Math.min(anchorY - size.height / 2, plot.top + plot.height - size.height),

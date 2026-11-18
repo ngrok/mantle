@@ -561,7 +561,8 @@ const Callout = ({
 			ref={composedRef}
 			className={cx(
 				// Why invisible: the map places the callout after it paints, and an unplaced one would sit at the corner.
-				"bg-popover border-popover text-strong pointer-events-none invisible absolute left-0 top-0 z-10 rounded-md border px-2.5 py-1.5 text-xs shadow-md",
+				// Why no z-index: the callout comes after the plot, so it paints over the canvas, and the hover tooltip (z-10) paints over it.
+				"bg-popover border-popover text-strong pointer-events-none invisible absolute left-0 top-0 rounded-md border px-2.5 py-1.5 text-xs shadow-md",
 				className,
 			)}
 			{...props}
