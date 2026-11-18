@@ -65,7 +65,7 @@ export function parsePreviewHeightMessage(data: unknown): PreviewHeightReport | 
 /**
  * Reports the height of the `PreviewCanvas` to the parent docs frame, now and
  * on each resize, again when the frame asks, and again when the preview
- * hydrates. The preview document runs it as an inline script, so the frame
+ * hydrates and its fonts load. The preview document runs it as an inline script, so the frame
  * gets a height as soon as the canvas is parsed: it does not wait for the
  * scripts, the hydration, or the load event.
  *
@@ -94,11 +94,17 @@ function reportPreviewHeight(message: string, request: string, hydratedEvent: st
 			post();
 		}
 	});
+	// Why wait for the fonts: the build measures after them, and a fallback font
+	// height would replace the measured height for a moment.
+	const reportHydrated = async () => {
+		await document.fonts.ready;
+		hydrated = true;
+		measure();
+	};
 	window.addEventListener(
 		hydratedEvent,
 		() => {
-			hydrated = true;
-			measure();
+			void reportHydrated();
 		},
 		{ once: true },
 	);
