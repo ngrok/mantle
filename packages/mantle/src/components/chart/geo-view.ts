@@ -633,7 +633,7 @@ class GeoView implements PointView {
 		const plot = this.#host.plot();
 		const offset = this.#host.plotOffset();
 		for (const { element, place, side, size } of callouts.values()) {
-			// Why no read here: the size comes from the callout's report, so a placement forces no layout.
+			// Why no size read here: the size comes from the callout's report, and a read after a write forces a layout.
 			if (size == null) {
 				continue;
 			}

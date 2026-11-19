@@ -216,12 +216,18 @@ const resizeWatches = new WeakMap<Document, ResizeWatch>();
  * second call for the same element replaces its handler. Without a
  * `ResizeObserver` (a test DOM) nothing reports.
  *
+ * @param options The box whose size change sends a report. Default: the content box.
+ *
  * @example
  * ```ts
  * const stop = observeResize(plot, (entry) => engine.resize(entry.contentRect));
  * ```
  */
-const observeResize = (element: Element, onResize: ResizeHandler): (() => void) => {
+const observeResize = (
+	element: Element,
+	onResize: ResizeHandler,
+	options?: ResizeObserverOptions,
+): (() => void) => {
 	if (typeof ResizeObserver === "undefined") {
 		return () => {};
 	}
@@ -241,7 +247,7 @@ const observeResize = (element: Element, onResize: ResizeHandler): (() => void) 
 	}
 	const current = watch;
 	current.handlers.set(element, onResize);
-	current.observer.observe(element);
+	current.observer.observe(element, options);
 	return () => {
 		if (current.handlers.get(element) !== onResize) {
 			return;

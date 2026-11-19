@@ -572,6 +572,17 @@ describe("WorldMap regions, connectors, and callouts", () => {
 		});
 	});
 
+	test("a callout stays over its place when only its padding grows", async () => {
+		const { callout, plotBox, x } = await mountCallout();
+		// Why padding: the content box stays 100px wide, so only a report of the border box can place the callout again.
+		callout.style.setProperty("padding", "0 30px");
+		await waitFor(() => {
+			const box = callout.getBoundingClientRect();
+			expect(box.width).toBe(160);
+			expect(box.left + box.width / 2).toBeCloseTo(plotBox.left + x, 0);
+		});
+	});
+
 	test("a callout below its place on a Root with padding sits at the plot's offset", async () => {
 		const { callout, plotBox, x, y } = await mountCallout({
 			side: "bottom",
@@ -583,14 +594,15 @@ describe("WorldMap regions, connectors, and callouts", () => {
 		expect(box.top).toBeCloseTo(plotBox.top + y + 12, 0);
 	});
 
-	test("a callout moves to the other side of its place when `side` changes", async () => {
+	test("a callout moves to the other side of its place in the frame after `side` changes", async () => {
 		const { callout, plotBox, y, rerender } = await mountCallout();
-		// Why a new `side` and no new size: the part registers the callout again, and only the
-		// first size report of that registration can place it.
 		rerender(calloutMap({ side: "bottom" }));
-		await waitFor(() =>
-			expect(callout.getBoundingClientRect().top).toBeCloseTo(plotBox.top + y + 12, 0),
-		);
+		// Why one frame: the part registers the callout again with the size it has, so the
+		// map need not wait for a new size report, which comes a frame later.
+		await new Promise<void>((resolve) => {
+			requestAnimationFrame(() => resolve());
+		});
+		expect(callout.getBoundingClientRect().top).toBeCloseTo(plotBox.top + y + 12, 0);
 	});
 
 	test("the pointer finds no point that the region clips", async () => {

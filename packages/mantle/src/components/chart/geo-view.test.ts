@@ -3,14 +3,16 @@ import { WORLD_LAND } from "../world-map/world-land.js";
 import type { GeoBounds, GeoPlace } from "./geo.js";
 import { fitBounds, toScreen } from "./geo.js";
 import { GeoScene } from "./geo-view.js";
+import type { ResolvedPaint } from "./paint-backend.js";
 import type { ScatterHost } from "./scatter-engine.js";
+import { recordingPaintContext } from "../../test-utils/recording-paint-context.js";
 import type { SeriesSpec } from "./types.js";
 
 /**
  * These tests drive the world map's view over a hand-built host, the way the
  * engine drives it: new rows, then `resetProjection`. happy-dom has no
- * `Path2D`, so no test paints. Each test reads what the view tells the engine
- * or what it writes on a callout.
+ * `Path2D`, so one test stubs it to paint. Each other test reads what the view
+ * tells the engine or what it writes on a callout.
  */
 
 /** One row of a map with one series: a place, and its size value on a sized map. */
@@ -39,7 +41,13 @@ const SERIES: SeriesSpec = {
  * `requestPaint` records each paint the view asks the host for.
  */
 const mountMap = (
-	config: { bounds?: GeoBounds; sizeKey?: "sessions"; animates?: boolean } = {},
+	config: {
+		bounds?: GeoBounds;
+		sizeKey?: "sessions";
+		animates?: boolean;
+		/** The colors of a map that paints. When omitted, a paint returns before it draws. */
+		colors?: ResolvedPaint;
+	} = {},
 ) => {
 	let rows: readonly Place[] = [];
 	let longitudes = new Float64Array(0);
@@ -49,8 +57,7 @@ const mountMap = (
 	const requestPaint = vi.fn<ScatterHost["requestPaint"]>();
 	const host: ScatterHost = {
 		plot: () => PLOT,
-		// No test paints, so no test resolves a color.
-		colors: () => null,
+		colors: () => config.colors ?? null,
 		specs: () => [SERIES],
 		rowCount: () => rows.length,
 		xs: () => longitudes,
@@ -342,7 +349,7 @@ describe("GeoView callouts", () => {
 		expect(map.requestPaint).toHaveBeenCalledTimes(1);
 	});
 
-	test("a placement takes the size from the callout's report and reads no layout", () => {
+	test("a placement takes the size from the callout's report and reads no callout size", () => {
 		const map = mountMap();
 		const center = { longitude: 0, latitude: 0 };
 		const callout = addCallout(map.scene, { place: center, size: { width: 100, height: 20 } });
@@ -357,6 +364,60 @@ describe("GeoView callouts", () => {
 		// Why a count: happy-dom lays out nothing, so a read of the size is the one trace of a forced layout.
 		expect(readWidth).toHaveBeenCalledTimes(0);
 		expect(readHeight).toHaveBeenCalledTimes(0);
+	});
+
+	test("a callout report places the callouts in the next paint, and in no paint after it", () => {
+		// Why a stub: happy-dom has no `Path2D`, which the map builds its layers from.
+		vi.stubGlobal(
+			"Path2D",
+			class {
+				addPath(): void {}
+				moveTo(): void {}
+				lineTo(): void {}
+				closePath(): void {}
+			},
+		);
+		const colors: ResolvedPaint = {
+			signature: "test",
+			series: new Map(),
+			inputs: new Map(),
+			barFills: new Map(),
+			chrome: {
+				grid: "gray",
+				baseline: "gray",
+				tickText: "gray",
+				reference: "gray",
+				surface: "white",
+			},
+			fontFamily: () => "sans-serif",
+			resolve: () => "gray",
+		};
+		const map = mountMap({ colors });
+		const center = { longitude: 0, latitude: 0 };
+		const callout = addCallout(map.scene, { place: center, size: { width: 100, height: 20 } });
+		const record = (width: number): void => {
+			map.scene.callouts.set("callout", {
+				element: callout,
+				place: center,
+				side: "top",
+				size: { width, height: 20 },
+			});
+		};
+		// `isPointInPath` marks the context as a canvas for the view.
+		const canvas = { ...recordingPaintContext().context, isPointInPath: () => false };
+		// The first paint fits the map, and the fit places the 100px callout over x = 400.
+		map.view.paint(canvas);
+		expect(translateOf(callout).x).toBe(350);
+
+		record(200);
+		map.scene.calloutsChanged();
+		map.view.paint(canvas);
+		expect(translateOf(callout).x).toBe(300);
+
+		// A new size with no report: the next paint leaves the callout where it is.
+		record(300);
+		map.view.paint(canvas);
+		expect(translateOf(callout).x).toBe(300);
 	});
 
 	test("a callout with no size report yet stays unplaced", () => {

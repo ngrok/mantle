@@ -1,7 +1,16 @@
 "use client";
 
 import type { ComponentProps, ReactNode } from "react";
-import { createContext, use, useCallback, useId, useLayoutEffect, useMemo, useState } from "react";
+import {
+	createContext,
+	use,
+	useCallback,
+	useId,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import invariant from "tiny-invariant";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import type { WithAsChild } from "../../types/as-child.js";
@@ -556,17 +565,36 @@ const Callout = ({
 }: WorldMapCalloutProps) => {
 	const scene = useGeoScene("WorldMap.Callout");
 	const id = useId();
+	/** The last size report. A new place or side registers the same element again, and its size is still right. */
+	const lastReport = useRef<{ element: HTMLElement; width: number; height: number } | null>(null);
 	// Why a ref callback: it runs again for a new element, and it watches the size, which moves the callout off its place.
 	const register = useCallback(
 		(element: HTMLDivElement) => {
 			const place = { longitude, latitude };
-			scene.callouts.set(id, { element, place, side, size: null });
-			// Why read in the callback: it runs after layout, so the read forces none. The first report comes right after the mount.
-			const stopResize = observeResize(element, () => {
-				const size = { width: element.offsetWidth, height: element.offsetHeight };
-				scene.callouts.set(id, { element, place, side, size });
+			const known = lastReport.current?.element === element ? lastReport.current : null;
+			const size = known == null ? null : { width: known.width, height: known.height };
+			scene.callouts.set(id, { element, place, side, size });
+			if (size != null) {
 				scene.calloutsChanged();
-			});
+			}
+			// Why read in the callback: it runs after layout, so the read forces none. The first report comes right after the mount.
+			const stopResize = observeResize(
+				element,
+				() => {
+					const width = element.offsetWidth;
+					const height = element.offsetHeight;
+					const last = lastReport.current;
+					// Why return: a report with the size that the map already has moves nothing.
+					if (last?.element === element && last.width === width && last.height === height) {
+						return;
+					}
+					lastReport.current = { element, width, height };
+					scene.callouts.set(id, { element, place, side, size: { width, height } });
+					scene.calloutsChanged();
+				},
+				// Why the border box: the placement uses `offsetWidth` and `offsetHeight`, which hold the padding and the border.
+				{ box: "border-box" },
+			);
 			return () => {
 				stopResize();
 				scene.callouts.delete(id);

@@ -745,6 +745,8 @@ class ChartEngine {
 				reveal.retarget([1], { duration: 0, now });
 			}
 		}
+		// Why flush first: a pending ingest starts its motion in the commit below, after the settle.
+		this.flushIngest();
 		// Why settle: the snapshot takes this one frame, so motion left in flight prints part-way.
 		this.#snapAllMotion();
 		this.#needsPaint = true;
@@ -1343,12 +1345,9 @@ class ChartEngine {
 		} else {
 			this.#yTween.aim(this.#targetYDomain(), now);
 			// Why a jump: the band layout places each bar, and each mark of a line or an
-			// area on a point scale, so no paint reads the x domain. A scatter plot and
-			// the columns of a decimated series do read it.
-			const bandPlacesMarks =
-				this.#kind === "bar" ||
-				(this.#kind !== "scatter" && this.#hasCategoryTicks() && !this.#decimated);
-			if (bandPlacesMarks) {
+			// area on a point scale, so no paint reads the x domain. The columns of a
+			// decimated series do read it.
+			if (this.#kind === "bar" || (this.#hasCategoryTicks() && !this.#decimated)) {
 				this.#xTween.jump(this.#targetXDomain());
 			} else if (this.#sliding && this.#streamInterval != null) {
 				// Why a straight line: a stream's x axis is time passing, so it
