@@ -239,41 +239,16 @@ describe("GeoView hit test", () => {
 
 describe("GeoView callouts", () => {
 	/**
-	 * A detached top callout of `size` over `place`, in the scene's callouts as
-	 * `WorldMap.Callout` puts one. Each read of its size and each write to its
-	 * style adds an entry with its `name` to `log`.
+	 * A detached top callout over `place`, in the scene's callouts as
+	 * `WorldMap.Callout` puts one after a size report of `size`. Pass `null` for
+	 * a callout that has no report yet.
 	 */
 	const addCallout = (
 		scene: GeoScene,
-		{
-			name = "callout",
-			place,
-			size,
-			log = [],
-		}: {
-			name?: string;
-			place: GeoPlace;
-			size: { width: number; height: number };
-			log?: string[];
-		},
+		{ place, size }: { place: GeoPlace; size: { width: number; height: number } | null },
 	): HTMLElement => {
 		const element = document.createElement("div");
-		const read = (pixels: number) => (): number => {
-			log.push(`read ${name}`);
-			return pixels;
-		};
-		// happy-dom lays out nothing, so the test gives the callout its box.
-		vi.spyOn(element, "offsetWidth", "get").mockImplementation(read(size.width));
-		vi.spyOn(element, "offsetHeight", "get").mockImplementation(read(size.height));
-		vi.spyOn(element, "style", "get").mockReturnValue(
-			new Proxy(element.style, {
-				set: (style, property, value) => {
-					log.push(`write ${name}`);
-					return Reflect.set(style, property, value);
-				},
-			}),
-		);
-		scene.callouts.set(name, { element, place, side: "top" });
+		scene.callouts.set("callout", { element, place, side: "top", size });
 		return element;
 	};
 
@@ -352,8 +327,13 @@ describe("GeoView callouts", () => {
 		// The 100px callout is centered over the point at x = 400.
 		expect(translateOf(callout).x).toBe(350);
 
-		// The content grows. `WorldMap.Callout` reports that from its `ResizeObserver` callback.
-		vi.spyOn(callout, "offsetWidth", "get").mockReturnValue(200);
+		// The content grows. `WorldMap.Callout` records the new size in its `ResizeObserver` callback, then reports.
+		map.scene.callouts.set("callout", {
+			element: callout,
+			place: center,
+			side: "top",
+			size: { width: 200, height: 20 },
+		});
 		map.scene.calloutsChanged();
 
 		// A move inside the callback can resize an observed box in the same observer pass: a loop error.
@@ -362,24 +342,32 @@ describe("GeoView callouts", () => {
 		expect(map.requestPaint).toHaveBeenCalledTimes(1);
 	});
 
-	test("a placement reads the size of each callout before it writes to a callout", () => {
+	test("a placement takes the size from the callout's report and reads no layout", () => {
 		const map = mountMap();
-		const west = { longitude: -90, latitude: 0 };
-		const east = { longitude: 90, latitude: 0 };
-		const size = { width: 100, height: 20 };
-		// Why a log: happy-dom lays out nothing, so the order of the size reads and the style
-		// writes is the one trace of a forced layout. A size read after a write forces one.
-		const log: string[] = [];
-		addCallout(map.scene, { name: "west", place: west, size, log });
-		addCallout(map.scene, { name: "east", place: east, size, log });
-		map.ingest([west, east]);
-		// The first read of a position fits the map. The fit places both callouts.
+		const center = { longitude: 0, latitude: 0 };
+		const callout = addCallout(map.scene, { place: center, size: { width: 100, height: 20 } });
+		const readWidth = vi.spyOn(callout, "offsetWidth", "get");
+		const readHeight = vi.spyOn(callout, "offsetHeight", "get");
+		map.ingest([center]);
+		// The first read of a position fits the map. The fit places the callout.
 		map.view.screenFor(0, null);
 
-		const firstWrite = log.findIndex((entry) => entry.startsWith("write"));
-		// Each callout gives its size before the first write.
-		expect(new Set(log.slice(0, firstWrite))).toEqual(new Set(["read west", "read east"]));
-		// No read follows the first write.
-		expect(new Set(log.slice(firstWrite))).toEqual(new Set(["write west", "write east"]));
+		// The 100px callout is centered over the point at x = 400.
+		expect(translateOf(callout).x).toBe(350);
+		// Why a count: happy-dom lays out nothing, so a read of the size is the one trace of a forced layout.
+		expect(readWidth).toHaveBeenCalledTimes(0);
+		expect(readHeight).toHaveBeenCalledTimes(0);
+	});
+
+	test("a callout with no size report yet stays unplaced", () => {
+		const map = mountMap();
+		const center = { longitude: 0, latitude: 0 };
+		const callout = addCallout(map.scene, { place: center, size: null });
+		map.ingest([center]);
+		map.view.screenFor(0, null);
+
+		// The callout keeps the `invisible` class of `WorldMap.Callout`: the view wrote no style.
+		expect(callout.style.visibility).toBe("");
+		expect(callout.style.transform).toBe("");
 	});
 });

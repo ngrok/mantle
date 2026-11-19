@@ -559,9 +559,14 @@ const Callout = ({
 	// Why a ref callback: it runs again for a new element, and it watches the size, which moves the callout off its place.
 	const register = useCallback(
 		(element: HTMLDivElement) => {
-			scene.callouts.set(id, { element, place: { longitude, latitude }, side });
-			scene.calloutsChanged();
-			const stopResize = observeResize(element, () => scene.calloutsChanged());
+			const place = { longitude, latitude };
+			scene.callouts.set(id, { element, place, side, size: null });
+			// Why read in the callback: it runs after layout, so the read forces none. The first report comes right after the mount.
+			const stopResize = observeResize(element, () => {
+				const size = { width: element.offsetWidth, height: element.offsetHeight };
+				scene.callouts.set(id, { element, place, side, size });
+				scene.calloutsChanged();
+			});
 			return () => {
 				stopResize();
 				scene.callouts.delete(id);

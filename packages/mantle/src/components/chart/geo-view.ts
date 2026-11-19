@@ -38,6 +38,8 @@ type GeoCallout = {
 	element: HTMLElement;
 	place: GeoPlace;
 	side: "top" | "bottom";
+	/** The element's size in CSS pixels from its last size report; `null` before the first one. */
+	size: { width: number; height: number } | null;
 };
 
 /** The pointer must land within this distance of a point to hit it. */
@@ -107,7 +109,7 @@ class GeoScene {
 		this.#listener?.paint();
 	}
 
-	/** A callout moved or changed size: the next frame places the callouts again. */
+	/** A callout reported a new size: the next frame places the callouts again. */
 	calloutsChanged(): void {
 		this.#listener?.place();
 	}
@@ -172,7 +174,7 @@ class GeoView implements PointView {
 	/** The points of the last ingest, keyed by series and place; `null` until a map has had rows. */
 	#arrivalKeys: Set<string> | null = null;
 	#arrivals: GeoArrival[] = [];
-	/** A callout reported a move or a new size, and the next paint places the callouts. */
+	/** A callout reported a new size, and the next paint places the callouts. */
 	#calloutsMoved = false;
 
 	constructor(host: ScatterHost, scene: GeoScene) {
@@ -617,8 +619,9 @@ class GeoView implements PointView {
 	/**
 	 * Put each callout over its place, above or below the point, kept inside
 	 * the plot, and write the side it sits on to `data-side`. A callout whose
-	 * place is outside the plot hides. The callouts are the Root's children, so
-	 * their positions add the plot's offset.
+	 * place is outside the plot hides, and one with no size report yet stays as
+	 * it is. The callouts are the Root's children, so their positions add the
+	 * plot's offset.
 	 */
 	#placeCallouts(): void {
 		this.#calloutsMoved = false;
@@ -629,24 +632,17 @@ class GeoView implements PointView {
 		}
 		const plot = this.#host.plot();
 		const offset = this.#host.plotOffset();
-		// Why read each size first: a write between two reads makes the browser lay out again for the second one.
-		const measured = [...callouts.values()].map((callout) => {
-			const [x, y] = toScreen(fit, callout.place.longitude, callout.place.latitude);
-			const shown = this.#inPlot(x, y);
-			return {
-				...callout,
-				x,
-				y,
-				shown,
-				width: shown ? callout.element.offsetWidth : 0,
-				height: shown ? callout.element.offsetHeight : 0,
-			};
-		});
-		for (const { element, place, side, x, y, shown, width, height } of measured) {
-			if (!shown) {
+		for (const { element, place, side, size } of callouts.values()) {
+			// Why no read here: the size comes from the callout's report, so a placement forces no layout.
+			if (size == null) {
+				continue;
+			}
+			const [x, y] = toScreen(fit, place.longitude, place.latitude);
+			if (!this.#inPlot(x, y)) {
 				element.style.visibility = "hidden";
 				continue;
 			}
+			const { width, height } = size;
 			const reach = this.#largestRadiusAt(place) + CALLOUT_GAP;
 			const left = Math.min(
 				Math.max(x - width / 2, plot.left),

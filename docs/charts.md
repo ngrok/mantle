@@ -41,8 +41,8 @@ A change that fails a gate does not ship.
   - Keep it in units that the frequent input does not change: data or projection units, not pixels.
   - Bound it when its keys come from data.
   - Give each key a behavior test for the stale case, such as `a dense line samples its marks at the new width after a resize` in `chart/engine.test.ts`.
-- **Read style and layout one time for each pass, before any write.** Check: `one pass reads a custom property once for every series that paints it` in `chart/canvas-colors.test.ts`; `a placement reads the size of each callout before it writes to a callout` in `chart/geo-view.test.ts`.
-- **In a `ResizeObserver` callback, record the report and ask for a frame. Write the DOM in that frame.** Check: `a new readout size moves the tooltip on the next frame, not inside the observer callback` in `chart/engine.test.ts`; `a callout report asks the host for one paint, and moves no callout inside the call` in `chart/geo-view.test.ts`.
+- **Read style and layout one time for each pass, before any write.** Check: `one pass reads a custom property once for every series that paints it` in `chart/canvas-colors.test.ts`.
+- **In a `ResizeObserver` callback, read the size and record it, then ask for a frame. Write the DOM in that frame, with no layout read.** The callback runs after layout, so the read there forces none. A write there can resize an observed box in the same pass. Check: `a new readout size moves the tooltip on the next frame, not inside the observer callback` in `chart/engine.test.ts`; `a callout report asks the host for one paint, and moves no callout inside the call` and `a placement takes the size from the callout's report and reads no layout` in `chart/geo-view.test.ts`.
 
 ## React and loading
 

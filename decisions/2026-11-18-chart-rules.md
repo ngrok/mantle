@@ -15,13 +15,13 @@ The rules of the family were in six dated records, in code comments, and in priv
 
 ## Decision
 
-1. **[docs/charts.md](../docs/charts.md) is the rule file of the chart family.** `packages/AGENTS.md` routes to it, and so do `docs/motion.md` and the header of `chart/engine.ts`. Each rule names the test that fails when the rule breaks, or the word review. `chart/rule-checks.test.ts` fails when a named test no longer exists. The file holds no dated number: the records do. The rules on how to measure are in `docs/principles/explain-the-number.md` and `apps/www/bench/README.md`.
+1. **[docs/charts.md](../docs/charts.md) is the rule file of the chart family.** `packages/AGENTS.md` routes to it, and so do `docs/motion.md` and the header of `chart/engine.ts`. Each rule names the test that fails when the rule breaks, or the word review. `chart/rule-checks.test.ts` fails when a named test no longer exists. The file holds no dated number: the records do. The rules on how to measure are in `apps/www/bench/README.md`, under the principle `docs/principles/explain-the-number.md`.
 2. **A finished value tween holds its exact target.** `from + (to - from)` misses `to` by one rounding step for about 15% of pairs of one-decimal values. The retarget guard compares the new target with the held value, so the next update with equal values read as a change.
 3. **A line or an area on a point scale jumps its x chase,** as a bar chart does: the band layout places each mark, so no paint reads the x domain. A scatter plot and the columns of a decimated series read it, and they keep the chase.
 4. **A print opens the paint gate, not the motion gate.** A chart that is not on screen paints each update settled, also between `beforeprint` and `afterprint`. A chart on screen keeps its motion.
 5. **A resize and a ratio change keep the decimation cache.** Its key holds the x domain and the column count, so a new width or a new ratio misses the cache without a clear. The clear at ingest stays: the key does not hold the data.
 6. **A lone circle is a bare `arc`.** The circle tracer starts with a `moveTo`, which the one path of `drawMarkers` needs. The per-point loops of the 2D and 3D scatter called the same tracer after their own `beginPath`, and Chromium records an `arc` after a `moveTo` as a general path. The loops now call `arc` for a circle and the tracer for each other glyph.
-7. **A callout report places in the next paint.** `WorldMap.Callout` reports from its ref callback and from a `ResizeObserver` callback. The view records the report and asks for a paint, and one placement reads the size of each callout before it writes to any callout.
+7. **A callout report places in the next paint.** `WorldMap.Callout` reads its size in its `ResizeObserver` callback, where the read forces no layout, and records it. The view then asks for a paint, and that paint places each callout from the recorded sizes, with no layout read.
 8. **The docs say that an axis compares `tickFormat` by identity.** A function has no value form to compare, so there is no guard. An app that the React Compiler compiles keeps an inline function stable.
 
 ## Consequences
@@ -56,7 +56,7 @@ Point draw times for one paint, base against this work:
 - A round point paints as it did before #1683, with the antialiasing of a circle and not of a general path. Of 1,536,000 pixels in a paint of 5,000 points, 146,405 differ from the base. A square paints the same pixels.
 - The first case needs a replace: after an update that moves each value by less than a factor of 2, `to - from` is exact, and the base took 1 frame too. The base lost one 17-frame run for each such replace.
 - A settled picture can differ from the base by 0.01 px in a path coordinate: 14 of 9,429 settled states of a seeded random walk over 180 charts. In each of the 14, this work equals a newly mounted chart with the same inputs, and the base does not. The base kept the rounding step of its last tween until the next data update.
-- A callout report now costs one paint of the map canvas, where it cost none. The reports of a mount arrive with the first plot size, so they add no paint there. A map that is far from the viewport places its callouts when it comes into view.
+- A callout report now costs one paint of the map canvas, where it cost none. The reports of a mount arrive with the first plot size, so they add no paint there. A callout shows after its first size report, and a map that is far from the viewport places its callouts when it comes into view.
 - No count here shows that a browser runs animation frames while its print dialog is open. If it runs none, the base played the motion after `afterprint`, and this work plays none.
 
 ## Measured and not shipped

@@ -583,6 +583,16 @@ describe("WorldMap regions, connectors, and callouts", () => {
 		expect(box.top).toBeCloseTo(plotBox.top + y + 12, 0);
 	});
 
+	test("a callout moves to the other side of its place when `side` changes", async () => {
+		const { callout, plotBox, y, rerender } = await mountCallout();
+		// Why a new `side` and no new size: the part registers the callout again, and only the
+		// first size report of that registration can place it.
+		rerender(calloutMap({ side: "bottom" }));
+		await waitFor(() =>
+			expect(callout.getBoundingClientRect().top).toBeCloseTo(plotBox.top + y + 12, 0),
+		);
+	});
+
 	test("the pointer finds no point that the region clips", async () => {
 		const { container, rerender } = render(clippedMap(0));
 		await findChartCanvas(container);
