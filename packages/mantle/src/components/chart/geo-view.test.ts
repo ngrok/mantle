@@ -36,6 +36,7 @@ const SERIES: SeriesSpec = {
  * A view over a host that holds its rows the way the engine does after an
  * ingest. `ingest` swaps the rows, then tells the view, as the engine does.
  * Pass the rows from west to east: the engine sorts them so.
+ * `requestPaint` records each paint the view asks the host for.
  */
 const mountMap = (
 	config: { bounds?: GeoBounds; sizeKey?: "sessions"; animates?: boolean } = {},
@@ -45,6 +46,7 @@ const mountMap = (
 	let latitudes = new Float64Array(0);
 	let columns: readonly Float64Array[] = [latitudes];
 	let animates = config.animates ?? true;
+	const requestPaint = vi.fn<ScatterHost["requestPaint"]>();
 	const host: ScatterHost = {
 		plot: () => PLOT,
 		// No test paints, so no test resolves a color.
@@ -66,7 +68,7 @@ const mountMap = (
 		zKey: () => null,
 		sizeKey: () => config.sizeKey ?? null,
 		is3d: () => false,
-		requestPaint: () => {},
+		requestPaint,
 		sourceRow: (index) => rows[index],
 		animates: () => animates,
 		grid: () => false,
@@ -77,6 +79,7 @@ const mountMap = (
 	return {
 		scene,
 		view,
+		requestPaint,
 		ingest: (next: readonly Place[]): void => {
 			rows = next;
 			longitudes = Float64Array.from(next, (row) => row.longitude);
@@ -105,6 +108,18 @@ describe("GeoView arrival pulses", () => {
 		const now = performance.now();
 		expect(map.view.tick(now)).toBe(true);
 		expect(map.view.tick(now + 1000)).toBe(false);
+	});
+
+	test("a ring that no longer changes a pixel ends before the 900 ms of the pulse", () => {
+		// Why a fixed clock: the ring starts at 0 ms, so each `tick` reads an exact age.
+		vi.spyOn(performance, "now").mockReturnValue(0);
+		const map = mountMap();
+		map.ingest([lisbon]);
+		map.ingest([lisbon, tokyo]);
+		// The alpha of the ring is `0.6 * (1 - easeCubicOut(age / 900))`.
+		// From 767 ms it is under 1/510, which is half of one 8-bit step.
+		expect(map.view.tick(700)).toBe(true);
+		expect(map.view.tick(800)).toBe(false);
 	});
 
 	test("the first rows after an empty map start no pulse", () => {
@@ -223,16 +238,42 @@ describe("GeoView hit test", () => {
 });
 
 describe("GeoView callouts", () => {
-	/** A detached top callout of `size` over `place`, in the scene's callouts as `WorldMap.Callout` puts one. */
+	/**
+	 * A detached top callout of `size` over `place`, in the scene's callouts as
+	 * `WorldMap.Callout` puts one. Each read of its size and each write to its
+	 * style adds an entry with its `name` to `log`.
+	 */
 	const addCallout = (
 		scene: GeoScene,
-		{ place, size }: { place: GeoPlace; size: { width: number; height: number } },
+		{
+			name = "callout",
+			place,
+			size,
+			log = [],
+		}: {
+			name?: string;
+			place: GeoPlace;
+			size: { width: number; height: number };
+			log?: string[];
+		},
 	): HTMLElement => {
 		const element = document.createElement("div");
+		const read = (pixels: number) => (): number => {
+			log.push(`read ${name}`);
+			return pixels;
+		};
 		// happy-dom lays out nothing, so the test gives the callout its box.
-		vi.spyOn(element, "offsetWidth", "get").mockReturnValue(size.width);
-		vi.spyOn(element, "offsetHeight", "get").mockReturnValue(size.height);
-		scene.callouts.set("callout", { element, place, side: "top" });
+		vi.spyOn(element, "offsetWidth", "get").mockImplementation(read(size.width));
+		vi.spyOn(element, "offsetHeight", "get").mockImplementation(read(size.height));
+		vi.spyOn(element, "style", "get").mockReturnValue(
+			new Proxy(element.style, {
+				set: (style, property, value) => {
+					log.push(`write ${name}`);
+					return Reflect.set(style, property, value);
+				},
+			}),
+		);
+		scene.callouts.set(name, { element, place, side: "top" });
 		return element;
 	};
 
@@ -299,5 +340,46 @@ describe("GeoView callouts", () => {
 		// Guards the assertion below: a place on a whole pixel would pass with no rounding.
 		expect(Number.isInteger(pointY)).toBe(false);
 		expect(callout.style.transform).toMatch(/^translate\(\d+px, \d+px\)$/);
+	});
+
+	test("a callout report asks the host for one paint, and moves no callout inside the call", () => {
+		const map = mountMap();
+		const center = { longitude: 0, latitude: 0 };
+		const callout = addCallout(map.scene, { place: center, size: { width: 100, height: 20 } });
+		map.ingest([center]);
+		// The first read of a position fits the map. The fit places the callout.
+		map.view.screenFor(0, null);
+		// The 100px callout is centered over the point at x = 400.
+		expect(translateOf(callout).x).toBe(350);
+
+		// The content grows. `WorldMap.Callout` reports that from its `ResizeObserver` callback.
+		vi.spyOn(callout, "offsetWidth", "get").mockReturnValue(200);
+		map.scene.calloutsChanged();
+
+		// A move inside the callback can resize an observed box in the same observer pass: a loop error.
+		expect(translateOf(callout).x).toBe(350);
+		// Why a count: no test here paints, so the request is the one trace of the frame that moves the callout.
+		expect(map.requestPaint).toHaveBeenCalledTimes(1);
+	});
+
+	test("a placement reads the size of each callout before it writes to a callout", () => {
+		const map = mountMap();
+		const west = { longitude: -90, latitude: 0 };
+		const east = { longitude: 90, latitude: 0 };
+		const size = { width: 100, height: 20 };
+		// Why a log: happy-dom lays out nothing, so the order of the size reads and the style
+		// writes is the one trace of a forced layout. A size read after a write forces one.
+		const log: string[] = [];
+		addCallout(map.scene, { name: "west", place: west, size, log });
+		addCallout(map.scene, { name: "east", place: east, size, log });
+		map.ingest([west, east]);
+		// The first read of a position fits the map. The fit places both callouts.
+		map.view.screenFor(0, null);
+
+		const firstWrite = log.findIndex((entry) => entry.startsWith("write"));
+		// Each callout gives its size before the first write.
+		expect(new Set(log.slice(0, firstWrite))).toEqual(new Set(["read west", "read east"]));
+		// No read follows the first write.
+		expect(new Set(log.slice(firstWrite))).toEqual(new Set(["write west", "write east"]));
 	});
 });

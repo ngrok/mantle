@@ -152,10 +152,11 @@ const preloadScatter3d = (): Promise<typeof Scatter3d> => {
 /**
  * What the engine calls on the view that paints and hit tests its points: the
  * scatter plot's {@link ScatterView}, or the world map's view. The engine
- * calls each method once per frame or once per pointer event, never once per
- * point. A view leaves out a member it has no use for, and the engine takes
- * the default: the 3D camera members for the map, `plots` and `radiusAt` for
- * the scatter plot.
+ * calls each method once per frame or once per event, never once per point.
+ * The one exception is `plots`: a key step calls it for each row it passes.
+ * A view leaves out a member it has no use for, and the engine takes the
+ * default: the 3D camera members for the map, `plots` and `radiusAt` for the
+ * scatter plot.
  */
 type PointView = {
 	/**

@@ -107,7 +107,7 @@ class GeoScene {
 		this.#listener?.paint();
 	}
 
-	/** A callout moved or changed size: place the callouts again, with no repaint. */
+	/** A callout moved or changed size: the next frame places the callouts again. */
 	calloutsChanged(): void {
 		this.#listener?.place();
 	}
@@ -172,11 +172,21 @@ class GeoView implements PointView {
 	/** The points of the last ingest, keyed by series and place; `null` until a map has had rows. */
 	#arrivalKeys: Set<string> | null = null;
 	#arrivals: GeoArrival[] = [];
+	/** A callout reported a move or a new size, and the next paint places the callouts. */
+	#calloutsMoved = false;
 
 	constructor(host: ScatterHost, scene: GeoScene) {
 		this.#host = host;
 		this.#scene = scene;
-		scene.listen({ paint: host.requestPaint, place: () => this.#placeCallouts() });
+		scene.listen({
+			paint: host.requestPaint,
+			// Why a frame: a size report comes from a `ResizeObserver` callback, and a
+			// move there can resize an observed box in the same pass.
+			place: () => {
+				this.#calloutsMoved = true;
+				host.requestPaint();
+			},
+		});
 	}
 
 	/** Motion stopped: drop the running pulses. */
@@ -218,6 +228,9 @@ class GeoView implements PointView {
 		}
 		invariant(isCanvasContext(ctx), "WorldMap paints on the canvas backend only.");
 		const fit = this.#currentFit();
+		if (this.#calloutsMoved) {
+			this.#placeCallouts();
+		}
 		const layers = this.#layersFor(fit);
 		ctx.fillStyle = colors.resolve("var(--world-map-ocean-color, var(--color-neutral-50))");
 		ctx.fill(layers.outline);
@@ -608,6 +621,7 @@ class GeoView implements PointView {
 	 * their positions add the plot's offset.
 	 */
 	#placeCallouts(): void {
+		this.#calloutsMoved = false;
 		const fit = this.#fit;
 		const callouts = this.#scene.callouts;
 		if (fit == null || callouts.size === 0) {
@@ -615,14 +629,24 @@ class GeoView implements PointView {
 		}
 		const plot = this.#host.plot();
 		const offset = this.#host.plotOffset();
-		for (const { element, place, side } of callouts.values()) {
-			const [x, y] = toScreen(fit, place.longitude, place.latitude);
-			if (!this.#inPlot(x, y)) {
+		// Why read each size first: a write between two reads makes the browser lay out again for the second one.
+		const measured = [...callouts.values()].map((callout) => {
+			const [x, y] = toScreen(fit, callout.place.longitude, callout.place.latitude);
+			const shown = this.#inPlot(x, y);
+			return {
+				...callout,
+				x,
+				y,
+				shown,
+				width: shown ? callout.element.offsetWidth : 0,
+				height: shown ? callout.element.offsetHeight : 0,
+			};
+		});
+		for (const { element, place, side, x, y, shown, width, height } of measured) {
+			if (!shown) {
 				element.style.visibility = "hidden";
 				continue;
 			}
-			const width = element.offsetWidth;
-			const height = element.offsetHeight;
 			const reach = this.#largestRadiusAt(place) + CALLOUT_GAP;
 			const left = Math.min(
 				Math.max(x - width / 2, plot.left),
