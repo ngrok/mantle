@@ -24,7 +24,7 @@ type ContentLayoutProps = {
  *
  * @example
  * ```tsx
- * <PageLayout className={cx("max-w-full", fullWidthProseMeasure)} sidebar={…}>
+ * <PageLayout className={cx("max-w-full", fullWidthProseMeasure)}>
  * ```
  */
 export const fullWidthProseMeasure = [
@@ -45,7 +45,7 @@ export const fullWidthProseMeasure = [
  * @example
  * ```tsx
  * const fullWidth = isFullWidthDoc(useMatches());
- * <PageLayout className={cx(fullWidth && ["max-w-full", fullWidthProseMeasure])} sidebar={…}>
+ * <PageLayout className={cx(fullWidth && ["max-w-full", fullWidthProseMeasure])}>
  * ```
  */
 export function isFullWidthDoc(matches: ReadonlyArray<{ handle?: unknown }>): boolean {

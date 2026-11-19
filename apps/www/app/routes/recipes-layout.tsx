@@ -1,8 +1,10 @@
 import { cx } from "@ngrok/mantle/cx";
 import { Outlet, useMatches } from "react-router";
 import { fullWidthProseMeasure, isFullWidthDoc } from "~/components/content-layout";
-import { PageLayout } from "~/components/page-layout";
+import { PageLayout, type SectionHandle } from "~/components/page-layout";
 import { RecipesNavigation } from "~/components/recipes-navigation";
+
+export const handle = { sidebar: <RecipesNavigation /> } satisfies SectionHandle;
 
 /**
  * Layout route for the recipes section. Renders the recipes sidebar alongside
@@ -15,10 +17,7 @@ export default function RecipesLayout() {
 	const fullWidth = isFullWidthDoc(useMatches());
 
 	return (
-		<PageLayout
-			className={cx(fullWidth && ["max-w-full", fullWidthProseMeasure])}
-			sidebar={<RecipesNavigation />}
-		>
+		<PageLayout className={cx(fullWidth && ["max-w-full", fullWidthProseMeasure])}>
 			<Outlet />
 		</PageLayout>
 	);

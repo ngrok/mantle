@@ -28,6 +28,7 @@ import type { Route } from "./+types/root";
 import { ErrorPage } from "./components/error-page";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { Header } from "./components/header";
+import { MobileNavigation } from "./components/mobile-navigation";
 import { NavigationProvider } from "./components/navigation-context";
 import { PageContainer } from "./components/page-container";
 import { useLocationHash } from "./features/mcp-preview/use-location-hash";
@@ -229,9 +230,9 @@ export function Layout({ children }: PropsWithChildren) {
 
 /**
  * The outermost route component. Renders only the truly page-agnostic chrome:
- * skip link, header, and the outer page wrapper. Each layout route owns its
- * own sidebar / main / TOC grid inside the `<Outlet />`. Framed example
- * previews are the exception: they render the bare outlet so the example owns
+ * skip link, header, mobile drawer, and the outer page wrapper. Each layout
+ * route owns its own sidebar / main / TOC grid inside the `<Outlet />`. Framed
+ * example previews are the exception: they render the bare outlet so the example owns
  * the entire document.
  */
 export default function App() {
@@ -247,6 +248,7 @@ export default function App() {
 		<div className="flex min-h-full flex-col">
 			<SkipToMainLink />
 			<Header />
+			<MobileNavigation />
 			<Outlet />
 		</div>
 	);
@@ -268,6 +270,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 		<div className="flex min-h-full flex-col">
 			<SkipToMainLink />
 			<Header />
+			<MobileNavigation />
 			<PageContainer>
 				<ErrorPage status={status} />
 				{stack && (

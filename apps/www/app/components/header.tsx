@@ -37,8 +37,8 @@ function HeaderNavLink({ to, children }: PropsWithChildren<{ to: string }>) {
 
 /**
  * Shared sticky header with logo, navigation, search, and theme controls.
- * Owns the hamburger toggle for the mobile drawer; the drawer itself is
- * rendered by the active layout and keyed off `NavigationContext`.
+ * Owns the hamburger toggle for the mobile drawer; `MobileNavigation` renders
+ * the drawer from `NavigationContext`.
  */
 export function Header({ className, ...props }: Omit<ComponentProps<"header">, "children">) {
 	const { showNavigation, setShowNavigation } = useNavigation();
