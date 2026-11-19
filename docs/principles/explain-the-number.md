@@ -11,7 +11,9 @@ When you state a number (a size, a speed, a count, a percent), say how you got i
 - "Faster" or "smaller" in a changeset with no before and after.
 - A bundle size with no build command or no note of minified or gzipped.
 - A file size given as proof of a better outcome.
+- A time from a model of the code, not from the code.
+- Two variants timed in one fixed order, or beside a build or a test run.
 
-**In this repo:** changesets ([COMPONENT_SPEC.md §2.5](../../COMPONENT_SPEC.md#25-changesets)), decision docs under `decisions/`, and PR descriptions.
+**In this repo:** changesets ([COMPONENT_SPEC.md §2.5](../../COMPONENT_SPEC.md#25-changesets)), decision docs under `decisions/`, and PR descriptions. [apps/www/bench/README.md](../../apps/www/bench/README.md#how-to-measure) says how to time a change.
 
 **Enforced by:** review.

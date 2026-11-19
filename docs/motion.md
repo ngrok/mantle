@@ -2,6 +2,7 @@
 
 These are the rules for each animation and transition in mantle. They come from Emil Kowalski's animation
 guidance, cut to the rules mantle uses. The `motion` skill applies them; this file is the normative copy.
+The chart engine paints its own motion: [docs/charts.md](./charts.md) holds those rules.
 
 Motion explains a change: where an element came from, where it went, and what moved to make room. Motion that
 explains nothing is noise. Leave it out.

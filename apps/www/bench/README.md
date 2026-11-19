@@ -54,4 +54,18 @@ prints every main-thread task inside the mount window with a per-phase breakdown
 profile, which is the tool for "where does the time go" and for a main-thread figure scoped to
 the mount. `canvas-cost.ts` measures raw canvas setup and paint with no React and no engine.
 
-Timing runs are sensitive: do not run builds or tests while one is active.
+## How to measure
+
+- Time the real routine, not a model of it. One canvas call more or less changes what the browser
+  does: Chromium records a bare `arc` and an `arc` after a `moveTo` at different costs.
+  `canvas-cost.ts` is a model on purpose: it gives the cost of the canvas alone, not of a chart.
+- Say what each number measures. A test or a script in Node counts frames, calls, and DOM writes,
+  and it times only the chart's own JavaScript. The cost of each canvas call, the raster, and the
+  graphics processor (GPU) time need a browser.
+- Time canvas raster by frame throughput: paint N times in one animation frame, and divide the frame
+  interval by N. Read no pixel inside the timed window, because a `getImageData` call can move the
+  canvas off the GPU.
+- Timing runs are sensitive: do not run builds or tests while one is active. To compare two builds,
+  run them in interleaved rounds on one machine, and swap the order between rounds. Name the GPU and
+  the basis of each size: the bundler and its version, minified or not, the gzip level, and each
+  external. `run.ts` writes the browser version and the GPU to its result file before the cases.
