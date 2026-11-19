@@ -98,7 +98,10 @@ type XAxisPrimitiveProps = {
 	 * Format a tick label. Receives the chart's x values: the category value on
 	 * band/point scales, a `Date` on time scales, and a number on linear scales.
 	 * The second argument carries the `defaultLabel` the axis paints without a
-	 * formatter, so a formatter can decorate it.
+	 * formatter, so a formatter can decorate it. The chart compares the function
+	 * by identity, so a new function paints the chart again. The React Compiler
+	 * in your build keeps an inline function stable. Without it, define the
+	 * function outside the component.
 	 */
 	tickFormat?: (value: XValue, context: XTickContext) => string;
 	/**
@@ -125,7 +128,10 @@ type YAxisPrimitiveProps = {
 	 * Format a tick label. Defaults to thousands-separated numbers. The second
 	 * argument carries the tick `step` and the `defaultLabel`, whose precision
 	 * follows the step. A formatter that adds a unit can decorate
-	 * `defaultLabel` and needs no precision of its own.
+	 * `defaultLabel` and needs no precision of its own. The chart compares the
+	 * function by identity, so a new function paints the chart again. The React
+	 * Compiler in your build keeps an inline function stable. Without it, define
+	 * the function outside the component.
 	 */
 	tickFormat?: (value: number, context: YTickContext) => string;
 	/**

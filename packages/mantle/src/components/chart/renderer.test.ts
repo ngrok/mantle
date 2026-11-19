@@ -3,7 +3,7 @@ import type { PointShape } from "./types.js";
 import { POINT_SHAPE_CLIP_PATHS } from "./engine.js";
 import { CUBE_CORNERS, CUBE_EDGES, projectionMatrix, projectPoint } from "./projection.js";
 import type { PaintContext } from "./paint-backend.js";
-import { drawAreaPath, drawLinePath, tracePointShape } from "./renderer.js";
+import { drawAreaPath, drawLinePath, drawMarkers, tracePointShape } from "./renderer.js";
 import { drawCubeFrame } from "./scatter-3d-renderer.js";
 import { SvgRecorder } from "./svg-backend.js";
 
@@ -490,5 +490,27 @@ test("drawAreaPath fills the band between y0 and y1 and strokes the y1 edge alon
 	expect(paths).toEqual([
 		["fill", "M0 0L5 0L5 5L10 5L10 40L5 40L5 40L0 40Z"],
 		["stroke", "M0 0L5 0L5 5L10 5"],
+	]);
+});
+
+test("`drawMarkers` starts each circle of its one path with a move, so no line joins two markers", () => {
+	const paths = recordedPaths((context) => {
+		drawMarkers(context, {
+			color: "red",
+			surface: "white",
+			shape: "circle",
+			indexes: [0, 1],
+			xAt: (index) => 10 + index * 30,
+			yAt: () => 20,
+			definedAt: () => true,
+		});
+	});
+	// Why an `M` at each circle: with no move, the second circle starts with a line
+	// from the end of the first circle. The `L` after each `M` has no length.
+	const firstCircle = "M14 20L14 20A4 4 0 1 1 6 20A4 4 0 1 1 14 20";
+	const secondCircle = "M44 20L44 20A4 4 0 1 1 36 20A4 4 0 1 1 44 20";
+	expect(paths).toEqual([
+		["fill", firstCircle + secondCircle],
+		["stroke", firstCircle + secondCircle],
 	]);
 });

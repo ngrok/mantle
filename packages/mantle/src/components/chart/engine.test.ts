@@ -279,7 +279,7 @@ const nextRows = [
  * A bar engine with motion on that shows `firstRows`, and the `nextRows` frame
  * it must reach. Both are at rest, so a later frame runs the engine alone.
  */
-const mountBars = (config: { onScreen?: boolean } = {}) => {
+const mountBars = (config: { inView?: boolean; onScreen?: boolean } = {}) => {
 	const frames = installFrameClock();
 	const series = [makeSeries("a", "bar")];
 	const mount = mountEngine({
@@ -288,6 +288,7 @@ const mountBars = (config: { onScreen?: boolean } = {}) => {
 		series,
 		rows: firstRows,
 		options: { xScale: "band", animate: true },
+		inView: config.inView,
 		onScreen: config.onScreen,
 	});
 	const settled = mountEngine({
@@ -1188,6 +1189,33 @@ describe("ChartEngine resize observation", () => {
 		expect(measureFirst).toHaveBeenCalledTimes(1);
 		expect(measureSecond).toHaveBeenCalledTimes(0);
 	});
+
+	test("a dense line samples its marks at the new width after a resize", () => {
+		const frames = installFrameClock();
+		const rows = Array.from({ length: 4000 }, (_, index) => ({
+			x: index,
+			a: 50 + 40 * Math.sin(index / 7),
+		}));
+		// 4,000 rows are 48 rows per pixel column on an 84 px plot and 22 on a 184 px plot, so both lines decimate.
+		const mountAt = (width: number) =>
+			mountEngine({
+				kind: "line",
+				backend: createSvgBackend,
+				series: lineSeries,
+				rows,
+				size: { width, height: 100 },
+			});
+		const mount = mountAt(100);
+		const wide = mountAt(200);
+		frames.settle();
+		expect(paintedPaths(mount)).not.toEqual(paintedPaths(wide));
+
+		deliverResize(mount, { width: 200, height: 100 });
+		frames.settle();
+
+		// Columns kept from the old width draw the whole line in the left half of the plot.
+		expect(paintedPaths(mount)).toEqual(paintedPaths(wide));
+	});
 });
 
 describe("ChartEngine printing", () => {
@@ -1274,6 +1302,35 @@ describe("ChartEngine printing", () => {
 
 		// No frame runs before the print snapshot, so a glide left in flight prints mid-way.
 		expect(painted()).toEqual(paintedPaths(settled));
+	});
+
+	test("an engine in view but off screen paints a data update during a print settled, in one frame", () => {
+		const { frames, engine, painted, settled } = mountBars({ onScreen: false });
+		engine.paintForPrint();
+
+		engine.setRows(nextRows);
+		engine.flushIngest();
+		frames.step();
+
+		// A print lets a chart that is off screen paint. It does not let that chart glide.
+		expect(painted()).toEqual(paintedPaths(settled));
+		expect(frames.pending()).toBe(false);
+	});
+
+	test("a dormant engine that takes a data update during a print enters view settled, in one frame", () => {
+		const { frames, engine, painted, settled } = mountBars({ inView: false });
+		engine.paintForPrint();
+		engine.setRows(nextRows);
+		engine.flushIngest();
+		engine.afterPrint();
+		frames.settle();
+
+		engine.setInView(true);
+		frames.step();
+
+		// When the chart enters view, a glide left in flight at the end of the print plays.
+		expect(painted()).toEqual(paintedPaths(settled));
+		expect(frames.pending()).toBe(false);
 	});
 });
 
@@ -1682,6 +1739,170 @@ describe("ChartEngine domain chase", () => {
 
 		expect(frames.settle()).toBe(1);
 	});
+
+	test("a line on a point scale that gains a category does not chase its x domain", () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "line",
+			series: lineSeries,
+			rows: [
+				{ x: "GET", a: 80 },
+				{ x: "POST", a: 50 },
+			],
+			options: { xScale: "point", animate: true },
+		});
+		frames.settle();
+
+		// The new value is between the other two, so the value domain stays.
+		mount.engine.setRows([
+			{ x: "GET", a: 80 },
+			{ x: "POST", a: 50 },
+			{ x: "PUT", a: 60 },
+		]);
+		mount.engine.flushIngest();
+
+		// Why one frame: the point layout places each point, so a chase of the x domain paints the same frame again.
+		expect(frames.settle()).toBe(1);
+	});
+
+	test("a decimated line on a point scale that gains categories chases its x domain", () => {
+		const frames = installFrameClock();
+		const rowsOf = (count: number) =>
+			Array.from({ length: count }, (_, index) => ({
+				x: `Bucket ${index}`,
+				a: 50 + 40 * Math.sin(index / 7),
+			}));
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: lineSeries,
+			rows: rowsOf(2000),
+			// Why a fixed domain: only the x domain can move, so one frame shows whether it chases.
+			options: { xScale: "point", yDomain: [0, 100], animate: true },
+			// 2,000 rows on an 84 px plot is 24 rows per pixel column, so the line decimates.
+			size: { width: 100, height: 200 },
+		});
+		frames.settle();
+
+		// Half a pixel of the plot is 12 rows, so 400 more rows give the chase somewhere to go.
+		mount.engine.setRows(rowsOf(2400));
+		mount.engine.flushIngest();
+		frames.step();
+		const firstFrame = paintedPaths(mount);
+		frames.settle();
+
+		// A decimated line reads the x domain for its columns, so its first frame is part of the way there.
+		expect(firstFrame).not.toEqual(paintedPaths(mount));
+	});
+
+	test("a scatter plot on a point scale that gains a category chases its x domain", () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "scatter",
+			series: [makeSeries("a", "scatter")],
+			rows: [
+				{ x: "GET", a: 80 },
+				{ x: "POST", a: 50 },
+			],
+			options: { xScale: "point", yDomain: [0, 100], animate: true },
+		});
+		frames.settle();
+
+		mount.engine.setRows([
+			{ x: "GET", a: 80 },
+			{ x: "POST", a: 50 },
+			{ x: "PUT", a: 60 },
+		]);
+		mount.engine.flushIngest();
+
+		// Why more than one frame: a scatter plot places each point from the x domain, so its points glide to their new places.
+		expect(frames.settle()).toBeGreaterThan(1);
+	});
+});
+
+describe("ChartEngine motion on a chart that cannot paint", () => {
+	/** One flat row at each x. Each row also holds a value for a second series. */
+	const rowsAt = (...xs: number[]) => xs.map((x) => ({ x, a: 50, b: 50 }));
+
+	type MotionCase = {
+		motion: string;
+		rows: readonly object[];
+		/** Start the motion on a line chart at rest. */
+		start: (mount: Mounted, frames: ReturnType<typeof installFrameClock>) => void;
+	};
+
+	// Why a plot with no size: the engine asks for no paint context there, so each row also
+	// holds the case of a canvas that has none.
+	test.each<MotionCase>([
+		{
+			motion: "the enter reveal of a new series",
+			rows: rowsAt(0, 1),
+			start: ({ engine, store }) => {
+				store.registerSeries(makeSeries("b", "line"));
+				engine.flushIngest();
+			},
+		},
+		{
+			motion: "a value tween",
+			rows: rowsAt(0, 1),
+			start: ({ engine }) => {
+				engine.setRows([
+					{ x: 0, a: 20 },
+					{ x: 1, a: 80 },
+				]);
+				engine.flushIngest();
+			},
+		},
+		{
+			motion: "a value chase",
+			rows: rowsAt(0, 1),
+			start: ({ engine, options }) => {
+				engine.setOptions({ ...options, yDomain: [0, 200] });
+			},
+		},
+		{
+			motion: "an x chase",
+			rows: rowsAt(0, 100),
+			start: ({ engine }) => {
+				engine.setRows(rowsAt(0, 200));
+				engine.flushIngest();
+			},
+		},
+		{
+			motion: "a stream glide",
+			rows: rowsAt(0, 1, 2),
+			start: ({ engine }, frames) => {
+				// Two window slides 100 ms apart make a stream, and the second one glides.
+				engine.setRows(rowsAt(1, 2, 3));
+				engine.flushIngest();
+				for (let frame = 0; frame < 6; frame++) {
+					frames.step();
+				}
+				engine.setRows(rowsAt(2, 3, 4));
+				engine.flushIngest();
+			},
+		},
+	])("$motion goes idle on a plot with no size", ({ rows, start }) => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "line",
+			series: lineSeries,
+			rows,
+			options: { yDomain: [0, 100], animate: true },
+			// The plot of a chart in a collapsed panel has no size, so no frame can paint it.
+			size: null,
+			// Why off screen at mount: the first series then enters with no reveal, so each motion runs alone.
+			onScreen: false,
+		});
+		mount.engine.setOnScreen(true);
+		frames.settle();
+
+		start(mount, frames);
+
+		// Why the frames: a chart that cannot paint shows nothing, so the frames it asks for are
+		// the one trace of its motion. If the chart never goes idle, `settle` throws.
+		expect(frames.settle()).toBeGreaterThan(1);
+	});
 });
 
 describe("ChartEngine category changes", () => {
@@ -1873,5 +2094,37 @@ describe("ChartEngine per-datum tweens", () => {
 
 		// The decimated paint reads the settled column, so a value tween only repeats that frame.
 		expect(frames.pending()).toBe(false);
+	});
+
+	test("an update with equal values after a value tween ends starts no tween", () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "line",
+			series: lineSeries,
+			rows: [
+				{ x: 0, a: 12.3 },
+				{ x: 1, a: 45.6 },
+			],
+			// Why a fixed domain: only the values can move, so each frame comes from a value tween.
+			options: { yDomain: [0, 100], animate: true },
+		});
+		frames.settle();
+		// Why these decimals: `12.3 + (45.6 - 12.3)` is `45.599999999999994`, so a tween that
+		// ends on its own arithmetic holds a value one rounding step from its target.
+		const next = [
+			{ x: 0, a: 45.6 },
+			{ x: 1, a: 12.3 },
+		];
+		mount.engine.setRows(next);
+		mount.engine.flushIngest();
+		// Why more than one frame: this update must play a tween, or the next one tests nothing.
+		expect(frames.settle()).toBeGreaterThan(1);
+
+		// A poll returns the same rows in a new array.
+		mount.engine.setRows([...next]);
+		mount.engine.flushIngest();
+
+		// Why one frame: the new array asks for one paint, and a tween to equal values paints that frame again.
+		expect(frames.settle()).toBe(1);
 	});
 });

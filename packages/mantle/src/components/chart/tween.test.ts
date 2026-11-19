@@ -113,6 +113,30 @@ describe("ValueTween", () => {
 		expect(tween.active).toBe(false);
 		expect(tween.values()[0]).toBe(100);
 	});
+
+	/**
+	 * A tween that ran its full duration from 0.7 to 0.1. In floating point,
+	 * `0.7 + (0.1 - 0.7)` is 0.09999999999999998, so the last interpolation step
+	 * misses the target.
+	 */
+	const finishedDecimalTween = (): ValueTween => {
+		const tween = new ValueTween();
+		tween.retarget([0.7], { duration: 0, now: 0 });
+		tween.retarget([0.1], { duration: 100, now: 0 });
+		tween.tick(100);
+		return tween;
+	};
+
+	test("a finished tween of decimal values holds its exact target", () => {
+		expect(finishedDecimalTween().values()[0]).toBe(0.1);
+	});
+
+	test("a retarget to equal values after a finished tween stays settled", () => {
+		const tween = finishedDecimalTween();
+		tween.retarget([0.1], { duration: 100, now: 100 });
+		expect(tween.active).toBe(false);
+		expect(tween.tick(116)).toBe(false);
+	});
 });
 
 describe("ChaseTween", () => {

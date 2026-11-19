@@ -119,15 +119,7 @@ class ValueTween {
 	/**
 	 * Advance to `now`. Returns `true` while more frames are needed. Gap
 	 * endpoints (`NaN` on either side) snap to the target instead of
-	 * interpolating through `NaN`.
-	 */
-	/**
-	 * Advance toward the target. Returns `true` while more frames are needed.
-	 * The snap threshold is relative to the current glide's length so domains
-	 * of any magnitude terminate, and actually glide. A component whose
-	 * remaining delta is too small for the step to make representable float
-	 * progress snaps to the target, so rounding can never wedge the chase into
-	 * ticking forever.
+	 * interpolating through `NaN`. A finished tween holds its exact target.
 	 */
 	tick(now: number): boolean {
 		if (!this.#active) {
@@ -145,7 +137,9 @@ class ValueTween {
 			this.#current[index] = from + (to - from) * eased;
 		}
 		if (progress >= 1) {
-			this.#active = false;
+			// Why a snap: `from + (to - from)` can miss `to` by one rounding step, and
+			// the next retarget to equal values would then read as a change.
+			this.snap();
 		}
 		return this.#active;
 	}

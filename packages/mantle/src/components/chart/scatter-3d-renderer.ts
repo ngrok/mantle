@@ -88,8 +88,15 @@ const drawDepthSortedPoints = (
 			ctx.globalAlpha = alpha;
 			currentAlpha = alpha;
 		}
+		const shape = shapeAt(slot);
 		ctx.beginPath();
-		tracePointShape(ctx, screenX[slot] ?? 0, screenY[slot] ?? 0, radius[slot] ?? 0, shapeAt(slot));
+		if (shape === "circle") {
+			// Why no tracer: its `moveTo` guards a batched path. Chromium records a
+			// path of one bare arc at about half the cost.
+			ctx.arc(screenX[slot] ?? 0, screenY[slot] ?? 0, radius[slot] ?? 0, 0, Math.PI * 2);
+		} else {
+			tracePointShape(ctx, screenX[slot] ?? 0, screenY[slot] ?? 0, radius[slot] ?? 0, shape);
+		}
 		ctx.fill();
 		if (drawRing) {
 			ctx.stroke();

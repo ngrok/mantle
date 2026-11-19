@@ -60,7 +60,13 @@ const drawScatterPoints = (
 			continue;
 		}
 		ctx.beginPath();
-		tracePointShape(ctx, xAt(index), yAt(index), radius, shape);
+		if (shape === "circle") {
+			// Why no tracer: its `moveTo` guards a batched path. Chromium records a
+			// path of one bare arc at about half the cost.
+			ctx.arc(xAt(index), yAt(index), radius, 0, Math.PI * 2);
+		} else {
+			tracePointShape(ctx, xAt(index), yAt(index), radius, shape);
+		}
 		ctx.fill();
 		if (drawRing) {
 			ctx.stroke();

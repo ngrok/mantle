@@ -84,8 +84,9 @@ import { CHART_TWEEN_DURATION_MS, ChaseTween, PER_DATUM_TWEEN_LIMIT, ValueTween 
  * - schedules on demand: every mutation coalesces into one rAF commit; an
  *   idle chart costs zero CPU (there is no always-on loop)
  * - decimates to min/max-per-pixel-column past 4 points per device pixel
- * - drives interruptible tweens (domains always; per-datum only ≤ 2,500 points
- *   with an identical x vector; streaming appends animate the domain instead)
+ * - drives interruptible tweens, and starts one only when a paint reads its
+ *   values: a domain chase, and per-datum tweens at 2,500 points or fewer with
+ *   an identical x vector (`docs/charts.md` holds the motion rules)
  * - hit-tests hover/keyboard positions and publishes snapshots to the store;
  *   the crosshair/markers/hover band/tooltip are DOM overlay elements moved
  *   with transforms, so pointer moves never repaint the canvas
@@ -502,7 +503,6 @@ class ChartEngine {
 			this.#cssWidth = entry.contentRect.width;
 			this.#cssHeight = entry.contentRect.height;
 			this.#dpr = dpr;
-			this.#decimationCache.clear();
 			// The cached hover pixel is in plot space; a resize moves every mark,
 			// so drop it and let #updateOverlay recompute from the new projection
 			// (a stale pixel would detach the marker/tooltip from its point).
@@ -565,7 +565,6 @@ class ChartEngine {
 
 	#onRatioChange = (): void => {
 		this.#dpr = this.#currentDpr();
-		this.#decimationCache.clear();
 		this.#schedule();
 	};
 
@@ -1343,8 +1342,13 @@ class ChartEngine {
 			this.#xTween.jump(this.#targetXDomain());
 		} else {
 			this.#yTween.aim(this.#targetYDomain(), now);
-			if (this.#kind === "bar") {
-				// Why a jump: the band layout places every bar, so no bar paint reads the x domain.
+			// Why a jump: the band layout places each bar, and each mark of a line or an
+			// area on a point scale, so no paint reads the x domain. A scatter plot and
+			// the columns of a decimated series do read it.
+			const bandPlacesMarks =
+				this.#kind === "bar" ||
+				(this.#kind !== "scatter" && this.#hasCategoryTicks() && !this.#decimated);
+			if (bandPlacesMarks) {
 				this.#xTween.jump(this.#targetXDomain());
 			} else if (this.#sliding && this.#streamInterval != null) {
 				// Why a straight line: a stream's x axis is time passing, so it
@@ -1442,11 +1446,10 @@ class ChartEngine {
 	 * How long a glide takes this frame: zero while dormant, so a chart that
 	 * enters view paints its current data instead of gliding from a stale
 	 * domain it never showed. Off screen it is zero too: no reader sees a glide
-	 * there.
+	 * there. A print opens the paint gate and not this one.
 	 */
 	#tweenDuration(): number {
-		const visible = this.#inView && this.#onScreen;
-		if (!visible && !this.#printing) {
+		if (!this.#inView || !this.#onScreen) {
 			return 0;
 		}
 		return this.#motionDuration();
