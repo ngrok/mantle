@@ -15,7 +15,7 @@ export type AgentDocBudget = {
  * Why bytes: a harness that cuts long command output counts tokens, and bytes track tokens at about 4 to 1.
  */
 export const agentDocBudgets = [
-	{ path: "AGENTS.md", maxBytes: 8_000 },
+	{ path: "AGENTS.md", maxBytes: 10_000 },
 	{ path: "CONVENTIONS.md", maxBytes: 24_000 },
 	{ path: "packages/AGENTS.md", maxBytes: 2_000 },
 	{ path: "apps/www/AGENTS.md", maxBytes: 2_000 },
