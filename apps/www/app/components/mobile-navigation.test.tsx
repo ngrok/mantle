@@ -1,13 +1,28 @@
 // @vitest-environment happy-dom
 import { ThemeProvider } from "@ngrok/mantle/theme";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { createRoutesStub, Outlet } from "react-router";
+import { createRoutesStub, Outlet, useNavigate } from "react-router";
 import { expect, test } from "vitest";
 import { Header } from "./header";
 import { MantleVersionProvider } from "./mantle-version-provider";
 import { MobileNavigation } from "./mobile-navigation";
 import { NavigationProvider } from "./navigation-context";
 import { sidebarFromMatches, type SectionHandle } from "./page-layout";
+
+/** Stands in for the back and forward buttons of the browser. */
+function HistoryButtons() {
+	const navigate = useNavigate();
+	return (
+		<>
+			<button type="button" onClick={() => void navigate(-1)}>
+				Back
+			</button>
+			<button type="button" onClick={() => void navigate(1)}>
+				Forward
+			</button>
+		</>
+	);
+}
 
 /** The chrome that `root.tsx` renders around each route. */
 function Chrome() {
@@ -17,6 +32,7 @@ function Chrome() {
 				<NavigationProvider>
 					<Header />
 					<MobileNavigation />
+					<HistoryButtons />
 					<Outlet />
 				</NavigationProvider>
 			</MantleVersionProvider>
@@ -33,6 +49,7 @@ function renderAt(path: string) {
 					handle: { sidebar: <a href="/philosophy">Philosophy</a> } satisfies SectionHandle,
 					children: [{ path: "/docs", Component: () => <p>Docs page</p> }],
 				},
+				{ path: "/", Component: () => <p>Home page</p> },
 				{ path: "/mcp", Component: () => <p>Setup page</p> },
 				{ path: "/migrations", Component: () => <p>Migrations page</p> },
 			],
@@ -71,6 +88,30 @@ test("a drawer link closes the drawer", () => {
 	fireEvent.click(drawerLink);
 
 	expect(screen.getAllByRole("link", { name: "Migrations" })).toHaveLength(1);
+});
+
+test("a navigation from outside the drawer closes the drawer", async () => {
+	renderAt("/mcp");
+	fireEvent.click(screen.getByRole("button", { name: "Menu" }));
+
+	fireEvent.click(screen.getByRole("link", { name: /mantle/ }));
+
+	await screen.findByText("Home page");
+	expect(screen.getAllByRole("link", { name: "Recipes" })).toHaveLength(1);
+});
+
+test("the forward button does not open the drawer again", async () => {
+	renderAt("/mcp");
+	fireEvent.click(screen.getByRole("link", { name: /mantle/ }));
+	await screen.findByText("Home page");
+	fireEvent.click(screen.getByRole("button", { name: "Menu" }));
+
+	fireEvent.click(screen.getByRole("button", { name: "Back" }));
+	await screen.findByText("Setup page");
+	fireEvent.click(screen.getByRole("button", { name: "Forward" }));
+	await screen.findByText("Home page");
+
+	expect(screen.getAllByRole("link", { name: "Recipes" })).toHaveLength(1);
 });
 
 test("sidebarFromMatches skips matches with no sidebar", () => {
