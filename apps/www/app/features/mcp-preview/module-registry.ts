@@ -25,6 +25,7 @@ export const previewModules: Readonly<Record<string, () => Promise<unknown>>> = 
 	"@ngrok/mantle/card": () => import("@ngrok/mantle/card"),
 	"@ngrok/mantle/centered-layout": () => import("@ngrok/mantle/centered-layout"),
 	"@ngrok/mantle/checkbox": () => import("@ngrok/mantle/checkbox"),
+	"@ngrok/mantle/chip": () => import("@ngrok/mantle/chip"),
 	"@ngrok/mantle/choice": () => import("@ngrok/mantle/choice"),
 	"@ngrok/mantle/code": () => import("@ngrok/mantle/code"),
 	"@ngrok/mantle/code-block": () => import("@ngrok/mantle/code-block"),

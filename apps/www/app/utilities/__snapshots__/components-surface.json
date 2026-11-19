@@ -257,7 +257,6 @@
     ],
     "aliases": [
       "tag",
-      "chip",
       "pill",
       "lozenge"
     ],
@@ -501,6 +500,44 @@
       }
     ],
     "useWhen": "Turn one or more independent options on or off in a form, with an indeterminate state for a partial selection."
+  },
+  {
+    "name": "Chip",
+    "slug": "components/preview/chip",
+    "kind": "component",
+    "category": "Forms",
+    "status": "preview",
+    "importPath": "@ngrok/mantle/chip",
+    "summary": "A compact label for a value or a selectable choice.",
+    "jsdoc": "A compact label for a value or a selectable choice.",
+    "examples": [
+      "```tsx\n<Chip>Read</Chip>\n<Chip onRemove={removeWrite} removeLabel=\"Remove Write\">Write</Chip>\n<Chip selectable defaultPressed>Manage</Chip>\n```"
+    ],
+    "aliases": [
+      "toggle chip",
+      "filter chip",
+      "scope chip",
+      "removable chip"
+    ],
+    "siblings": [
+      {
+        "name": "Badge",
+        "boundary": "the label shows status and has no control."
+      },
+      {
+        "name": "Checkbox",
+        "boundary": "the choice needs a form value."
+      },
+      {
+        "name": "MultiSelect",
+        "boundary": "the user must search a long list of choices."
+      },
+      {
+        "name": "Button",
+        "boundary": "a press runs an action without a selected state."
+      }
+    ],
+    "useWhen": "Show a compact value, let a user remove it, or turn a choice on or off."
   },
   {
     "name": "Choice",
