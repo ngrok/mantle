@@ -61,14 +61,12 @@ const useKeyboardStepAnnouncement = ({
 	// Why a callback ref: a render that passes a new `announce` or a new
 	// `xHasTimeOfDay` must not start the wait again.
 	const write = useCallbackRef((hover: HoverSnapshot | null) => {
-		const tooltip = store.getSnapshot().tooltip;
-		if (hover == null) {
-			announce("");
-		} else if (readout == null) {
-			announce(announcementFor(hover, { xHasTimeOfDay, tooltip }));
-		} else {
-			announce(readout.announce(hover, tooltip));
-		}
+		announce(
+			hover == null
+				? ""
+				: (readout?.announce(hover) ??
+						announcementFor(hover, { xHasTimeOfDay, tooltip: store.getSnapshot().tooltip })),
+		);
 	});
 	useEffect(() => {
 		// Why clear first: assistive technology (AT) does not announce text that did
@@ -259,7 +257,7 @@ const useResolvedChartLabel = (label: string | undefined, labelledBy: string | u
  * ancestor of the chart holds the caption, and a caption that feeds its own
  * snapshot renders forever.
  */
-const CHART_DATA_TABLE_SELECTOR = '[data-slot$="-chart-data-table"]';
+const CHART_DATA_TABLE_SELECTOR = '[data-slot$="-data-table"]';
 
 /**
  * Joins the trimmed text of each element that `labelledBy` names, in order,
@@ -341,12 +339,6 @@ const xHeaderFor = (
 	return { text: typeof value === "number" ? formatNumber(value) : String(value), date: null };
 };
 
-/**
- * The chart's structural twin: an sr-only table of the data, bounded to
- * {@link CHART_TABLE_ROW_LIMIT} rows with a caption stating the summarization.
- * The keyboard point cursor and the Markdown copy reach the rows past the
- * bound.
- */
 /** The props of a chart's sr-only data table, which a family's readout can replace. */
 type ChartDataTableProps = {
 	data: readonly ChartDatum[];
@@ -371,6 +363,12 @@ type ChartDataTableProps = {
 	zKey: string | undefined;
 };
 
+/**
+ * The chart's structural twin: an sr-only table of the data, bounded to
+ * {@link CHART_TABLE_ROW_LIMIT} rows with a caption stating the summarization.
+ * The keyboard point cursor and the Markdown copy reach the rows past the
+ * bound.
+ */
 const ChartDataTable = ({
 	data,
 	label,

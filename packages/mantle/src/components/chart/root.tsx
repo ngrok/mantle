@@ -122,7 +122,7 @@ type InternalRootProps = ChartRootPrimitiveProps & {
 	paintBackend: PaintBackendFactory;
 	/** The point view factory. ScatterPlot and WorldMap pass one; the other families leave it out. */
 	scatterView?: ScatterViewFactory;
-	/** `WorldMap` only: the readout that names a row as a place, its key names, and its size key. */
+	/** `WorldMap` only: the readout that names a row as a place, and its key names. */
 	readout?: ChartReadout;
 	/** `WorldMap` only: its name for `xKey`, which it also passes as `xKey`. Pulled out so it never reaches the DOM. */
 	longitudeKey?: string;
@@ -130,7 +130,7 @@ type InternalRootProps = ChartRootPrimitiveProps & {
 	labelKey?: string;
 	/** `WorldMap` only: read by its view. Pulled out so it never reaches the DOM. */
 	bounds?: unknown;
-	/** `WorldMap` only: read through `readout`. Pulled out so it never reaches the DOM. */
+	/** `WorldMap` only: the row key of each point's size value, checked like `zKey`. */
 	sizeKey?: string;
 };
 
@@ -197,7 +197,7 @@ const createHoverLayers = (document: Document, slotName: string): HoverLayers =>
 	};
 };
 
-/** The series part of each family, for the key invariants a dormant Root throws. */
+/** The series part of each family, for error messages. */
 const SERIES_PART_NAME: Record<SeriesMark, string> = {
 	bar: "Bar",
 	line: "Line",
@@ -382,7 +382,7 @@ const ChartRootPrimitive = ({
 	longitudeKey: _longitudeKey,
 	labelKey: _labelKey,
 	bounds: _bounds,
-	sizeKey: _sizeKey,
+	sizeKey: sizeKeyProp,
 	data,
 	xKey,
 	xScale,
@@ -415,8 +415,16 @@ const ChartRootPrimitive = ({
 	...props
 }: InternalRootProps) => {
 	const interactive = mode === "interactive";
-	// Why a module constant on both sides: a new identity would rebuild the engine.
+	// Why a memo over module constants: a new identity would rebuild the engine.
 	const keyNames = readout?.keyNames ?? DEFAULT_KEY_NAMES;
+	const names = useMemo(
+		() => ({
+			root: `${componentName}.Root`,
+			part: `${componentName}.${SERIES_PART_NAME[kind]}`,
+			keys: keyNames,
+		}),
+		[componentName, kind, keyNames],
+	);
 	const decorative = mode === "decorative";
 	// A static chart plays no reveal unless asked: a list of sparklines that
 	// each animate in as the reader scrolls is motion with no information.
@@ -502,7 +510,8 @@ const ChartRootPrimitive = ({
 	// announcer, and the data table share it.
 	const xSummary = useMemo(() => scanX(data, xKey, resolvedXScale), [data, xKey, resolvedXScale]);
 	const xHasTimeOfDay = xSummary.hasTimeOfDay;
-	const sizeKey = readout?.sizeKey ?? null;
+	// Why the readout gate: only a world map has a size key, and a stray prop on another chart must not fail its key check.
+	const sizeKey = readout == null ? null : (sizeKeyProp ?? null);
 
 	// The latest engine inputs, applied in one go when the engine is created
 	// after the commit that carried them.
@@ -568,11 +577,7 @@ const ChartRootPrimitive = ({
 				store,
 				backend: paintBackend,
 				scatter: scatterView,
-				names: {
-					root: `${componentName}.Root`,
-					part: `${componentName}.${SERIES_PART_NAME[kind]}`,
-					keys: keyNames,
-				},
+				names,
 				slotName,
 				elements: { root, plot, tooltip: tooltipRef.current },
 				// The engine puts its surface under the overlay and makes the hover
@@ -613,7 +618,7 @@ const ChartRootPrimitive = ({
 			engineRef.current?.destroy();
 			engineRef.current = null;
 		};
-	}, [kind, componentName, keyNames, store, slotName, interactive, paintBackend, scatterView]);
+	}, [kind, names, store, slotName, interactive, paintBackend, scatterView]);
 
 	useChartVisibility({
 		plotRef,
@@ -716,15 +721,13 @@ const ChartRootPrimitive = ({
 			return;
 		}
 		assertChartKeys({
-			rootName: `${componentName}.Root`,
-			partName: `${componentName}.${SERIES_PART_NAME[kind]}`,
+			names,
 			rows: data,
 			xKey,
 			xScale: resolvedXScale,
 			dataKeys,
 			zKey: zKey ?? null,
 			sizeKey,
-			keyNames,
 		});
 		validatedRef.current = { data, signature };
 	});

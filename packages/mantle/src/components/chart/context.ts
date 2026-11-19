@@ -19,7 +19,7 @@ import type {
 
 /**
  * The shared React layer of the chart family. `BarChart`, `LineChart`,
- * `AreaChart`, and `ScatterPlot` are thin public wrappers over these
+ * `AreaChart`, `ScatterPlot`, and `WorldMap` are thin public wrappers over these
  * primitives, mirroring how `dialog/primitive` backs the dialog family and
  * `list/primitive` backs the list family.
  *
@@ -305,12 +305,10 @@ const useShallowStable = <T extends object>(value: T): T => {
 type ChartReadout = {
 	/** The public names of the x and series keys, for error messages. */
 	keyNames: ChartKeyNames;
-	/** The row key of each point's size value, checked like `zKey`. */
-	sizeKey: string | undefined;
 	/** The default tooltip body, when the Tooltip part sets no `children`. */
 	Tooltip: ComponentType<{ hover: HoverSnapshot; config: TooltipConfig | null }>;
 	/** What a keyboard step announces. */
-	announce: (hover: HoverSnapshot, tooltip: TooltipConfig | null) => string;
+	announce: (hover: HoverSnapshot) => string;
 	/** The description's first sentence and the keyboard instructions. */
 	describe: (summary: XSummary, hydrated: boolean) => { sentence: string; instructions: string };
 	/** The sr-only data table. */

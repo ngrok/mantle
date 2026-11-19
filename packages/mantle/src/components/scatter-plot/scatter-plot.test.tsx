@@ -111,6 +111,25 @@ describe("ScatterPlot.Root", () => {
 		expect(screen.getByText(/Showing the first 150 of 500 rows/)).toBeInTheDocument();
 	});
 
+	test("an aria-labelledby that names an ancestor of the plot resolves without the table text", async () => {
+		const user = userEvent.setup();
+		render(
+			<section id="latency-card">
+				<h2>Latency</h2>
+				<ScatterPlot.Root data={data} xKey="latency" aria-labelledby="latency-card">
+					<ScatterPlot.Point dataKey="regionA" label="Region A" color="blue" />
+				</ScatterPlot.Root>
+			</section>,
+		);
+		// Focus mounts the table, whose caption sits inside the named ancestor.
+		await user.tab();
+		const caption = document.querySelector('[data-slot="scatter-plot-data-table"] caption');
+		expect(caption?.textContent).toMatch(/^Latency.*: chart data\.$/);
+		// A cell value is table text: the table holds it, and the caption does not.
+		expect(screen.getByRole("cell", { name: "840" })).toBeInTheDocument();
+		expect(caption?.textContent).not.toContain("840");
+	});
+
 	test("empty data renders without crashing and without a table", () => {
 		render(
 			<ScatterPlot.Root data={[]} xKey="latency" aria-label="Empty chart">

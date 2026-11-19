@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { WORLD_LAND } from "../world-map/world-land.js";
 import { createCanvasBackend } from "./canvas-backend.js";
+import type { ScatterViewFactory } from "./scatter-engine.js";
 import { createScatterView } from "./scatter-engine.js";
 import { createColorResolver } from "./canvas-colors.js";
 import { CHART_CHROME_CSS } from "./colors.js";
 import { createSvgBackend } from "./svg-backend.js";
 import type { EngineElements, HoverLayers } from "./engine.js";
 import { ChartEngine } from "./engine.js";
+import { GeoScene } from "./geo-view.js";
 import type { PaintBackendFactory } from "./paint-backend.js";
 import { ChartStore } from "./store.js";
 import { ChaseTween, PER_DATUM_TWEEN_LIMIT, ValueTween } from "./tween.js";
@@ -27,6 +30,13 @@ vi.mock("./canvas-colors.js", { spy: true });
  * A fake `ResizeObserver` gives the plot a size, because happy-dom's never
  * fires and a 0×0 plot projects every value onto one pixel.
  */
+
+/** No test here reads an error message, so one set of names serves each chart kind. */
+const TEST_NAMES = {
+	root: "LineChart.Root",
+	part: "LineChart.Line",
+	keys: { x: "xKey", series: "dataKey" },
+} as const;
 
 type PlotSize = { width: number; height: number };
 type ResizeCallback = (entries: Array<{ target: Element; contentRect: PlotSize }>) => void;
@@ -139,6 +149,8 @@ const mountEngine = (config: {
 	onScreen?: boolean;
 	/** The canvas backend paints nothing in happy-dom. Pass the SVG backend to read the painted marks. */
 	backend?: PaintBackendFactory;
+	/** The point view of a `"scatter"` engine. Pass a `GeoScene`'s `createView` for a world map. */
+	scatter?: ScatterViewFactory;
 }): Mounted => {
 	const store = new ChartStore();
 	const elements = createElements();
@@ -148,7 +160,8 @@ const mountEngine = (config: {
 		store,
 		backend: config.backend ?? createCanvasBackend,
 		slotName: "chart",
-		scatter: createScatterView,
+		names: TEST_NAMES,
+		scatter: config.scatter ?? createScatterView,
 		createHoverLayers: () => elements.layers,
 		inView: config.inView,
 		onScreen: config.onScreen,
@@ -1285,6 +1298,7 @@ describe("ChartEngine device pixel ratio", () => {
 			store,
 			backend: createSvgBackend,
 			slotName: "chart",
+			names: TEST_NAMES,
 		});
 		store.registerSeries(makeSeries("y", "line"));
 		engine.setOptions({ ...baseOptions, xKey: "x" });
@@ -1507,6 +1521,60 @@ describe("ChartEngine on-screen motion", () => {
 
 		expect(paintedPaths(mount)).toEqual(paintedPaths(atRest));
 		expect(frames.pending()).toBe(false);
+	});
+
+	// Why the frames: happy-dom paints no canvas, so the frames a pulse asks for are its one trace.
+	test.each([
+		{ where: "on screen", onScreen: true, pulses: true },
+		{ where: "in view but off screen", onScreen: false, pulses: false },
+	])(
+		"a world map $where asks for another frame after rows add a place: $pulses",
+		({ onScreen, pulses }) => {
+			const frames = installFrameClock();
+			const paris = { x: 2.35, a: 48.86 };
+			const mount = mountEngine({
+				kind: "scatter",
+				scatter: new GeoScene(WORLD_LAND, null).createView,
+				series: [makeSeries("a", "scatter")],
+				rows: [paris],
+				options: { animate: true },
+				onScreen,
+			});
+			frames.settle();
+
+			mount.engine.setRows([paris, { x: 139.69, a: 35.69 }]);
+			mount.engine.flushIngest();
+			frames.step();
+
+			expect(frames.pending()).toBe(pulses);
+		},
+	);
+});
+
+describe("ChartEngine keyboard on a world map region", () => {
+	test("a page step past the last point the region shows lands on that point", () => {
+		const frames = installFrameClock();
+		// 100 rows from 180° W, 3.6° apart. The region shows rows 50 to 58: 0° to 28.8° E.
+		const rows = Array.from({ length: 100 }, (_unused, index) => ({
+			x: -180 + index * 3.6,
+			a: 48,
+		}));
+		const mount = mountEngine({
+			kind: "scatter",
+			scatter: new GeoScene(WORLD_LAND, { west: 0, south: 44, east: 30, north: 52 }).createView,
+			series: [makeSeries("a", "scatter")],
+			rows,
+		});
+		frames.settle();
+		const press = (key: string): number | null => {
+			mount.engine.handleKeyDown(key);
+			return mount.store.getSnapshot().hover?.index ?? null;
+		};
+
+		expect(press("Home")).toBe(50);
+		// A page is 10 rows, and row 60 is outside the region.
+		expect(press("PageUp")).toBe(58);
+		expect(press("PageDown")).toBe(50);
 	});
 });
 

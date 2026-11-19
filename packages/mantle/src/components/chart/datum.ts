@@ -74,10 +74,8 @@ const uncoercibleXMessage = (rootName: string, xKey: string, xScale: string): st
 	`${rootName} could not read any "${xKey}" values as ${xScale === "time" ? "dates" : "numbers"} for the "${xScale}" x scale. Check the xScale and the data types.`;
 
 type ChartKeys = {
-	/** The Root's display name in a message, such as `BarChart.Root`. */
-	rootName: string;
-	/** The series part's display name in a message, such as `BarChart.Bar`. */
-	partName: string;
+	/** The public names a message uses. */
+	names: ChartNames;
 	rows: readonly object[];
 	xKey: string;
 	xScale: "band" | "point" | "linear" | "time";
@@ -86,14 +84,18 @@ type ChartKeys = {
 	zKey: string | null;
 	/** `WorldMap` only: the size key, checked like the depth key. */
 	sizeKey: string | null;
-	/** The public prop names a message uses: a world map names its keys for the coordinates they hold. */
-	keyNames: ChartKeyNames;
 };
 
-/** The public prop names of the x key and the series key, for error messages. */
+/**
+ * The public prop names of the x key and the series key, for error messages.
+ * A world map names its keys for the coordinates they hold.
+ */
 type ChartKeyNames = { x: "xKey" | "longitudeKey"; series: "dataKey" | "latitudeKey" };
 
-/** The public names an engine error message uses, such as `"WorldMap.Root"` and `"WorldMap.Point"`. */
+/**
+ * The public names an error message uses: the Root, such as `"BarChart.Root"`,
+ * the series part, such as `"BarChart.Bar"`, and the key props.
+ */
 type ChartNames = { root: string; part: string; keys: ChartKeyNames };
 
 /** Whether any of `candidates` carries `key`: a `null` value counts, an absent key does not. */
@@ -109,26 +111,25 @@ const hasKey = (candidates: readonly object[], key: string): boolean =>
  *
  * @example
  * ```ts
- * assertChartKeys({ rootName: "BarChart.Root", partName: "BarChart.Bar", rows, xKey: "month", xScale: "band", dataKeys: ["desktop"], zKey: null, sizeKey: null, keyNames: { x: "xKey", series: "dataKey" } });
+ * const names = { root: "BarChart.Root", part: "BarChart.Bar", keys: { x: "xKey", series: "dataKey" } };
+ * assertChartKeys({ names, rows, xKey: "month", xScale: "band", dataKeys: ["desktop"], zKey: null, sizeKey: null });
  * // throws when no row carries "month" or "desktop"
  * ```
  */
 const assertChartKeys = ({
-	rootName,
-	partName,
+	names,
 	rows,
 	xKey,
 	xScale,
 	dataKeys,
 	zKey,
 	sizeKey,
-	keyNames,
 }: ChartKeys): void => {
 	if (rows.length === 0) {
 		return;
 	}
 	if (!hasKey(rows, xKey)) {
-		throw new Error(missingKeyMessage(rootName, keyNames.x, xKey, rows));
+		throw new Error(missingKeyMessage(names.root, names.keys.x, xKey, rows));
 	}
 	let plotted: readonly object[] = rows;
 	if (xScale === "linear" || xScale === "time") {
@@ -141,7 +142,7 @@ const assertChartKeys = ({
 			return Number.isFinite(toEpochOrNumber(raw, xScale === "time"));
 		});
 		if (sawNonNullish && plotted.length === 0) {
-			throw new Error(uncoercibleXMessage(rootName, xKey, xScale));
+			throw new Error(uncoercibleXMessage(names.root, xKey, xScale));
 		}
 	}
 	// The engine reads the series and depth columns from the plotted rows alone,
@@ -151,14 +152,14 @@ const assertChartKeys = ({
 	}
 	for (const dataKey of dataKeys) {
 		if (!hasKey(plotted, dataKey)) {
-			throw new Error(missingKeyMessage(partName, keyNames.series, dataKey, rows));
+			throw new Error(missingKeyMessage(names.part, names.keys.series, dataKey, rows));
 		}
 	}
 	if (zKey != null && !hasKey(plotted, zKey)) {
-		throw new Error(missingKeyMessage(rootName, "zKey", zKey, rows));
+		throw new Error(missingKeyMessage(names.root, "zKey", zKey, rows));
 	}
 	if (sizeKey != null && !hasKey(plotted, sizeKey)) {
-		throw new Error(missingKeyMessage(rootName, "sizeKey", sizeKey, rows));
+		throw new Error(missingKeyMessage(names.root, "sizeKey", sizeKey, rows));
 	}
 };
 

@@ -58,7 +58,9 @@ const crossingLatitude = (from: Position, to: Position): number => {
 	// Unwrap `to` so the segment is short, then interpolate at ±180.
 	const toLongitude = to[0] + (fromLongitude > 0 ? 360 : -360);
 	const edge = fromLongitude > 0 ? 180 : -180;
-	const t = (edge - fromLongitude) / (toLongitude - fromLongitude);
+	// Why the guard: a segment with both ends on the antimeridian crosses at its start, and the ratio is 0 / 0.
+	const t =
+		toLongitude === fromLongitude ? 0 : (edge - fromLongitude) / (toLongitude - fromLongitude);
 	return from[1] + t * (to[1] - from[1]);
 };
 
@@ -130,6 +132,10 @@ const cutAtAntimeridian = (ring: Position[]): Position[][] => {
 const quantize = (ring: Position[]): Position[] => {
 	const out: Position[] = [];
 	for (const [longitude, latitude] of ring) {
+		// Why throw: the encoder writes a coordinate that is not a number as a zero step, and the ring moves.
+		if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) {
+			throw new Error(`world-atlas land-110m gave the coordinate ${longitude}, ${latitude}`);
+		}
 		const point: Position = [Math.round(longitude * PRECISION), Math.round(latitude * PRECISION)];
 		const last = out.at(-1);
 		if (last == null || last[0] !== point[0] || last[1] !== point[1]) {
@@ -196,7 +202,9 @@ const source = `import type { GeoLand } from "../chart/geo.js";
  */
 const WORLD_LAND: GeoLand = {
 	precision: ${PRECISION},
-	rings: ${JSON.stringify(encoded)},
+	rings: [
+${encoded.map((ring) => `\t\t${JSON.stringify(ring)},`).join("\n")}
+	],
 };
 
 export {

@@ -36,7 +36,7 @@ import type {
 import { decimateColumns, shouldDecimate } from "./decimate.js";
 import { formatNumber, formatXValue, tickFractionDigits } from "./format.js";
 import type { ChartNames } from "./datum.js";
-import { ingestRows, PART_NAME } from "./ingest.js";
+import { ingestRows } from "./ingest.js";
 import { nearestIndex } from "./hit-test.js";
 import {
 	bandCenter,
@@ -212,8 +212,8 @@ const barGap = ({ bandwidth, groupCount }: { bandwidth: number; groupCount: numb
 
 class ChartEngine {
 	#kind: SeriesMark;
-	/** The public names for error messages, from the Root; `null` derives them from the kind. */
-	#names: ChartNames | null;
+	/** The public names for error messages. */
+	#names: ChartNames;
 	#elements: EngineElements;
 	#store: ChartStore;
 	#options: ChartOptions = {
@@ -417,11 +417,8 @@ class ChartEngine {
 		slotName: string;
 		/** Builds the point view. Required for `kind: "scatter"`, and ignored for every other kind. */
 		scatter?: ScatterViewFactory;
-		/**
-		 * The public names an error message uses, such as `"WorldMap.Root"`.
-		 * When omitted, the names follow the chart kind.
-		 */
-		names?: ChartNames;
+		/** The public names an error message uses, such as `"WorldMap.Root"`. */
+		names: ChartNames;
 		/**
 		 * Builds the hover layers. The engine calls it the first time it shows an
 		 * active datum, appends the layers to the plot, and removes them on
@@ -450,7 +447,7 @@ class ChartEngine {
 		size?: { width: number; height: number };
 	}) {
 		this.#kind = options.kind;
-		this.#names = options.names ?? null;
+		this.#names = options.names;
 		this.#elements = options.elements;
 		this.#createHoverLayers = options.createHoverLayers ?? null;
 		this.#store = options.store;
@@ -555,8 +552,8 @@ class ChartEngine {
 				sizeKey: () => this.#options.sizeKey,
 				is3d: () => this.#is3d(),
 				requestPaint: () => this.#schedule(),
-				sourceRow: (index) => this.#rows[this.#order?.[index] ?? index],
-				animates: () => this.#seen && this.#motionDuration() > 0,
+				sourceRow: (index) => this.#rows[this.#toSourceIndex(index)],
+				animates: () => this.#seen && this.#tweenDuration() > 0,
 				grid: () => this.#store.getSnapshot().grid != null,
 				plotOffset: () => ({
 					left: this.#elements.plot.offsetLeft,
@@ -816,7 +813,7 @@ class ChartEngine {
 		if (previous.dimensions !== options.dimensions) {
 			// Snap before first paint (and under reduced motion): a chart must not
 			// mount mid-collapse.
-			this.#scatter?.setDimensions(options.dimensions, {
+			this.#scatter?.setDimensions?.(options.dimensions, {
 				glide: this.#tweenDuration() > 0 && this.#hasIngested,
 			});
 		}
@@ -918,7 +915,7 @@ class ChartEngine {
 
 	handlePointerMove(cssX: number, cssY: number): void {
 		const scatter = this.#scatter;
-		const drag = scatter?.dragTo(cssX, cssY) ?? "none";
+		const drag = scatter?.dragTo?.(cssX, cssY) ?? "none";
 		if (drag !== "none") {
 			// A 3D rotation drag suppresses hover and repaints.
 			if (drag === "rotated") {
@@ -946,7 +943,7 @@ class ChartEngine {
 	 */
 	handlePointerDown(cssX: number, cssY: number): void {
 		this.#pressed = true;
-		if (this.#scatter?.pressAt(cssX, cssY) === true) {
+		if (this.#scatter?.pressAt?.(cssX, cssY) === true) {
 			return;
 		}
 		this.handlePointerMove(cssX, cssY);
@@ -964,7 +961,7 @@ class ChartEngine {
 		cssY: number,
 		{ activate = true }: { activate?: boolean } = {},
 	): void {
-		const drag = this.#scatter?.release() ?? "none";
+		const drag = this.#scatter?.release?.() ?? "none";
 		const pressed = this.#pressed;
 		this.#pressed = false;
 		if (drag === "rotated") {
@@ -983,7 +980,7 @@ class ChartEngine {
 	handlePointerLeave(): void {
 		this.#pointerX = null;
 		this.#pointerY = null;
-		this.#scatter?.release();
+		this.#scatter?.release?.();
 		this.#pressed = false;
 		this.#activeSeriesKey = null;
 		this.#activeScreen = null;
@@ -1106,9 +1103,8 @@ class ChartEngine {
 			}
 			return true;
 		}
-		// Why skip: a world map row with no latitude has no point to show or announce.
-		const stop =
-			target == null ? null : this.#plottedFrom(target, BACKWARD_KEYS.has(stepKey) ? -1 : 1);
+		// Why skip: a world map row with no point in the plot has nothing to show or announce.
+		const stop = target == null ? null : this.#stopFor(target, BACKWARD_KEYS.has(stepKey) ? -1 : 1);
 		if (target != null && stop == null) {
 			return true;
 		}
@@ -1123,11 +1119,27 @@ class ChartEngine {
 		return true;
 	}
 
-	/** The first row from `index` in the direction of `step` that has a point; `null` when none does. */
+	/**
+	 * The row a key step lands on: the first row from `target` in the direction
+	 * of `step` whose point the plot shows. Why the search back: a page step can
+	 * go past the last such row, and the cursor must then stop on that row, not
+	 * stay where it is. `null` when no row past the cursor has a point.
+	 */
+	#stopFor(target: number, step: 1 | -1): number | null {
+		const ahead = this.#plottedFrom(target, step);
+		if (ahead != null) {
+			return ahead;
+		}
+		const behind = this.#plottedFrom(target, step === 1 ? -1 : 1);
+		const current = this.#effectiveIndex() ?? (step === 1 ? -1 : this.#rowCount);
+		return behind != null && (behind - current) * step > 0 ? behind : null;
+	}
+
+	/** The first row from `index` in the direction of `step` whose point the plot shows; `null` when none does. */
 	#plottedFrom(index: number, step: 1 | -1): number | null {
 		const view = this.#scatter;
 		for (let row = index; row >= 0 && row < this.#rowCount; row += step) {
-			if (view == null || view.plots(row)) {
+			if (view?.plots?.(row) ?? true) {
 				return row;
 			}
 		}
@@ -1192,9 +1204,7 @@ class ChartEngine {
 			xScale,
 			specs,
 			zKey: this.#kind === "scatter" ? this.#options.zKey : null,
-			rootName: this.#rootName(),
-			partName: this.#names?.part,
-			keyNames: this.#names?.keys,
+			names: this.#names,
 		});
 		this.#rowCount = ingested.rowCount;
 		this.#xs = ingested.xs;
@@ -1356,8 +1366,10 @@ class ChartEngine {
 			sameXVector &&
 			!this.#decimated;
 		// Why none above the limit: `#paintedValues` reads no tween there, and each
-		// tween holds three copies of its column.
-		const holdsValueTweens = this.#rowCount <= PER_DATUM_TWEEN_LIMIT;
+		// tween holds three copies of its column. Why none on a world map: its view
+		// paints the columns, so a tween would only repaint frames that change nothing.
+		const holdsValueTweens =
+			this.#rowCount <= PER_DATUM_TWEEN_LIMIT && this.#scatter?.kind !== "geo";
 		const activeKeys = new Set<string>();
 		const registeredKeys = new Set<string>();
 		const retargetBuffer = (tweenKey: string, target: Float64Array, hadPrevious: boolean) => {
@@ -1565,14 +1577,6 @@ class ChartEngine {
 
 	#horizontalBars(): boolean {
 		return this.#kind === "bar" && this.#options.orientation === "horizontal";
-	}
-
-	/** The public Root part name for error messages, e.g. `"BarChart.Root"`. */
-	#rootName(): string {
-		if (this.#names != null) {
-			return this.#names.root;
-		}
-		return `${PART_NAME[this.#kind].split(".")[0] ?? "Chart"}.Root`;
 	}
 
 	/**
@@ -2160,7 +2164,7 @@ class ChartEngine {
 
 		// 3D frame labels: after the clip so edge-adjacent labels stay whole.
 		if (frame.labels != null) {
-			this.#scatter?.paintLabels(ctx, frame.labels);
+			this.#scatter?.paintLabels?.(ctx, frame.labels);
 		}
 
 		// baseline (bars grow from a single baseline; keep it visible): a vertical
@@ -3018,6 +3022,7 @@ class ChartEngine {
 			if (markers.children.length === 0) {
 				markers.appendChild(createMarkerDot(markers.ownerDocument));
 			}
+			const radius = this.#scatter?.radiusAt?.(index) ?? MARKER_RADIUS;
 			const dot = markers.children[0];
 			if (dot instanceof HTMLElement) {
 				const meta = this.#store.getSnapshot().series;
@@ -3031,7 +3036,7 @@ class ChartEngine {
 				dot.style.opacity = "1";
 				styleMarkerDot(dot, active?.shape ?? "circle", active?.color ?? "currentColor");
 				// A sized world map point outgrows the default dot, so the dot takes its size plus the ring.
-				const size = `${2 * ((this.#scatter?.radiusAt(index) ?? MARKER_RADIUS) + 2)}px`;
+				const size = `${2 * (radius + 2)}px`;
 				if (dot.style.width !== size) {
 					dot.style.width = size;
 					dot.style.height = size;
@@ -3040,7 +3045,8 @@ class ChartEngine {
 				}
 				dot.style.transform = `translate(${screen.x}px, ${screen.y}px)`;
 			}
-			this.#positionTooltip(screen.x, screen.y);
+			// Why the wider gap: a sized world map point outgrows the default gap, and the readout would cover it.
+			this.#positionTooltip(screen.x, screen.y, Math.max(12, radius + 8));
 			return;
 		}
 
@@ -3142,7 +3148,7 @@ class ChartEngine {
 	 * page. When the readout is larger than the plot, the outer clamps pin it to
 	 * the wrapper's top and left edges.
 	 */
-	#positionTooltip(anchorX: number, anchorY: number): void {
+	#positionTooltip(anchorX: number, anchorY: number, gapX = 12): void {
 		const plot = this.#plot;
 		const tooltip = this.#elements.tooltip;
 		if (tooltip == null) {
@@ -3155,7 +3161,6 @@ class ChartEngine {
 			this.#tooltipSize = { width: tooltip.offsetWidth, height: tooltip.offsetHeight };
 		}
 		const size = this.#tooltipSize;
-		const gapX = 12;
 		let tooltipLeft = anchorX + gapX;
 		if (
 			tooltipLeft + size.width > plot.left + plot.width &&

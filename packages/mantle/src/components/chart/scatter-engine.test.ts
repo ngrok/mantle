@@ -185,6 +185,11 @@ const mount3d = (scatter: ScatterModule, options: { inView: boolean }): Mounted 
 		store,
 		backend,
 		scatter: scatter.createScatterView,
+		names: {
+			root: "ScatterPlot.Root",
+			part: "ScatterPlot.Point",
+			keys: { x: "xKey", series: "dataKey" },
+		},
 		slotName: "scatter-plot",
 		elements: { root, plot, tooltip: null },
 		inView: options.inView,

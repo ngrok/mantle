@@ -1,30 +1,29 @@
 "use client";
 
 import type { ComponentProps, ReactNode } from "react";
-import { createContext, use, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createContext, use, useCallback, useId, useLayoutEffect, useMemo, useState } from "react";
 import invariant from "tiny-invariant";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import type { ChartDataTableProps } from "../chart/a11y.js";
 import { CHART_TABLE_ROW_LIMIT, useResolvedChartLabel } from "../chart/a11y.js";
 import { createCanvasBackend } from "../chart/canvas-backend.js";
 import type { ChartAccessibilityProps, ChartMode, ChartReadout } from "../chart/context.js";
 import { useStoreSeries } from "../chart/context.js";
 import { datumValue } from "../chart/datum.js";
-import type { XSummary } from "../chart/describe.js";
+import { observeResize } from "../chart/environment.js";
 import { formatNumber } from "../chart/format.js";
-import type { GeoBounds } from "../chart/geo.js";
+import type { GeoBounds, GeoPlace } from "../chart/geo.js";
 import { formatCoordinates } from "../chart/geo.js";
-import type { GeoPlace } from "../chart/geo-view.js";
-import { createGeoViewFactory, GeoScene } from "../chart/geo-view.js";
+import { GeoScene } from "../chart/geo-view.js";
 import { ChartLegendPrimitive } from "../chart/legend.js";
 import type { LegendPrimitiveProps } from "../chart/legend.js";
 import { useGridPrimitive, useSeriesPrimitive } from "../chart/registration.js";
 import { ChartRootPrimitive } from "../chart/root.js";
 import type { ChartRootBaseProps } from "../chart/root.js";
-import type { ChartStore, TooltipConfig } from "../chart/store.js";
 import { useTooltipPrimitive } from "../chart/tooltip.js";
 import type { TooltipPrimitiveProps } from "../chart/tooltip.js";
 import type {
@@ -66,16 +65,20 @@ type WorldMapRootProps<
 		 * place. A point's area follows the value: the largest value gets a 16px
 		 * radius, and no point shrinks below 4px, so the smallest stays a target.
 		 * Rows without a positive value take 4px. Larger points paint first, so
-		 * a small point on top of a large one stays visible. If no row has the
-		 * key, the Root throws.
+		 * a small point on top of a large one stays visible. Past 5,000 points
+		 * the points lose their 2px surface ring, so a small point shows on a
+		 * large one only when their colors differ. If no row has the key, the
+		 * Root throws.
 		 */
 		sizeKey?: Extract<keyof TDatum, string>;
 		/**
 		 * The region the map shows, in degrees, such as the area around one
 		 * client. The region fills the plot and keeps its shape, so the plot
 		 * shows more of the map on its loose side. Points, connectors, and
-		 * callouts outside the plot do not show. `west` must be less than
-		 * `east`. When omitted, the map shows the whole world.
+		 * callouts outside the plot do not show, and the keyboard cursor skips
+		 * those points. The data table still lists them. The map ends at the
+		 * antimeridian, so a region that reaches past ±180° stops there. `west`
+		 * must be less than `east`. When omitted, the map shows the whole world.
 		 *
 		 * @example
 		 * ```tsx
@@ -178,29 +181,48 @@ type WorldMapLegendProps = LegendPrimitiveProps;
  * renderer, and the whole interaction contract (the tooltip, keyboard
  * stepping from west to east with polite announcements, an sr-only
  * description, an sr-only data table, Enter/Space + click activation).
- * Hovering hits the nearest point within 24px.
+ * Hovering hits the nearest point within 24px. With `sizeKey`, a pointer over
+ * a point hits the top point there, not a neighbor with a nearer center. The
+ * keyboard cursor skips a row that has no point in the plot. Such a row has
+ * no latitude in any series, or, with `bounds`, its point is outside the plot.
  *
  * A Root mounts dormant: a shell of the plot, the named overlay, and its
  * sr-only description. It builds its canvas once it comes within one viewport
  * of the visible area, takes focus, or prints, and it mounts the sr-only data
  * table once focus lands inside it.
  *
- * **Live data.** Pass new rows whenever they arrive. A point at a place the
- * last rows did not have gets one ring that grows and fades in 900ms; a moved
- * point is a new place. Reduced motion and `animate={false}` play no ring.
+ * **Live data.** Pass new rows whenever they arrive. A point at a place its
+ * series did not have gets one ring that starts at the point's edge, grows,
+ * and fades in 900ms. A moved point is a new place. A point that changes
+ * series at one place, such as an agent that goes offline, gets a ring too.
+ * The map plays no ring:
+ *
+ * - under reduced motion, or with `animate={false}`
+ * - while it is off screen
+ * - for its first rows
+ * - for an update that adds more than 48 places
+ * - when it has more than 5,000 rows
+ *
+ * At most 48 rings run at one time.
  *
  * The Root's own subtree is addressable by slot: `world-map` on the wrapper,
- * then `world-map-plot`, `world-map-canvas`, `world-map-markers`,
- * `world-map-tooltip`, `world-map-description`, and, once focus lands inside
- * the map, `world-map-data-table`. The canvas and the hover layers are
- * engine-owned: absent from server HTML and from a dormant map.
+ * then `world-map-plot`, `world-map-canvas`, `world-map-crosshair`,
+ * `world-map-hover-band`, `world-map-markers`, `world-map-tooltip`,
+ * `world-map-description`, and, once focus lands inside the map,
+ * `world-map-data-table`. A world map shows one marker dot on the hit point,
+ * and never the crosshair or the band. That dot carries `chart-active-point`
+ * plus a `data-shape` of `"circle"`, `"square"`, `"triangle"`, `"diamond"`,
+ * `"triangle-down"`, `"plus"`, `"cross"`, or `"star"`, naming the glyph its
+ * series wears. The canvas and the three hover layers are engine-owned:
+ * absent from server HTML and from a dormant map. The canvas arrives at
+ * activation, and the layers arrive on the first hover or keyboard step.
  *
  * **Data attributes:**
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-slot` | `"world-map-description"` | The `sr-only` description the overlay's `aria-describedby` points at: the point count, the series labels, and, on an interactive map, the keyboard instructions. Omitted when `mode="decorative"`. |
- * | `data-slot` | `"world-map-data-table"` | The `sr-only` data table: one row per point, with its name, series, latitude, and longitude, from west to east. Mounts once focus lands inside the map (`data-state` flips to `"engaged"`) and stays. Interactive maps only. |
+ * | `data-slot` | `"world-map-data-table"` | The `sr-only` data table: one row for each of the first 150 points from west to east, with its name, series, latitude, longitude, and, with `sizeKey`, its size value. Mounts once focus lands inside the map (`data-state` flips to `"engaged"`) and stays. Interactive maps only. |
  * | `data-state` | `"dormant"` \| `"engaged"` | On the Root. Flips to `"engaged"` once focus lands inside the map, and never flips back. Interactive maps only. |
  *
  * **CSS variables (public API):**
@@ -238,30 +260,20 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
 	props: WorldMapRootProps<TDatum, TMode>,
 ) => {
 	const { longitudeKey, labelKey, sizeKey, bounds, children } = props;
-	const west = bounds?.west;
-	const south = bounds?.south;
-	const east = bounds?.east;
-	const north = bounds?.north;
+	const { west, south, east, north }: Partial<GeoBounds> = bounds ?? {};
 	invariant(
 		west == null || east == null || west < east,
 		"WorldMap.Root bounds.west must be less than bounds.east.",
 	);
-	// Why configure in the initializer: the chart Root's layout effects run
-	// before this component's, and its first paint reads the land and the region.
-	const [scene] = useState(() => {
-		const initial = new GeoScene();
-		initial.configure(sceneInputs(bounds));
-		return initial;
-	});
-	const [geoView] = useState(() => createGeoViewFactory(scene));
+	// Why the bounds in the initializer: the chart Root's layout effects run
+	// before this component's, and its first paint reads the region.
+	const [scene] = useState(() => new GeoScene(WORLD_LAND, bounds ?? null));
 	const readout = useMemo(() => mapReadout(labelKey, sizeKey), [labelKey, sizeKey]);
 	useLayoutEffect(() => {
-		scene.configure(
-			sceneInputs(
-				west == null || south == null || east == null || north == null
-					? undefined
-					: { west, south, east, north },
-			),
+		scene.setBounds(
+			west == null || south == null || east == null || north == null
+				? null
+				: { west, south, east, north },
 		);
 	}, [scene, west, south, east, north]);
 	return (
@@ -272,11 +284,11 @@ const Root = <TDatum extends ChartDatum = ChartDatum, TMode extends ChartMode = 
 			componentName="WorldMap"
 			slotName="world-map"
 			paintBackend={createCanvasBackend}
-			scatterView={geoView}
+			scatterView={scene.createView}
 			readout={readout}
 			xKey={longitudeKey}
 			xScale="linear"
-			// Why 2:1: the Robinson world is 1.97 times as wide as it is tall, and the legend needs the rest.
+			// Why 2:1: the Robinson world is 1.97 times as wide as it is tall.
 			className={cx("aspect-2/1", props.className)}
 		>
 			<GeoSceneContext value={scene}>{children}</GeoSceneContext>
@@ -337,9 +349,10 @@ const Graticule = () => useGridPrimitive("WorldMap.Graticule", {});
  * Customizes the hover/keyboard tooltip readout. The tooltip itself is part
  * of `WorldMap.Root`'s interaction contract and renders even when this part
  * is absent. The default readout names the point (its `labelKey` value, else
- * its coordinates), then its coordinates, then its series. Compose this part
- * to append a footer, or replace the readout through the render-prop
- * `children`, which receives the hovered row as `datum`.
+ * its coordinates), then its coordinates, its size value when the map has a
+ * `sizeKey`, and its series. Compose this part to append a footer, or replace
+ * the readout through the render-prop `children`, which receives the hovered
+ * row as `datum`.
  *
  * **Structure.** A `children` readout renders inside a
  * `<div data-slot="world-map-tooltip-label">`. When it goes away, React
@@ -428,9 +441,11 @@ const useGeoScene = (partName: string): GeoScene => {
 /**
  * A line between two places, such as from a client to the ngrok edge that
  * received its request. It follows the great circle, the shortest route on
- * the globe, and paints on canvas under the points (renderless). The line is
- * decoration: name both places with points or a callout, so a reader who
- * cannot see the line gets the same facts.
+ * the globe, and paints on canvas under the points (renderless). Where the
+ * line crosses the antimeridian, it runs to the edge of the map and starts
+ * again at the opposite edge. The line is decoration: name both places with
+ * points or a callout, so a reader who cannot see the line gets the same
+ * facts.
  *
  * @see https://mantle.ngrok.com/components/preview/world-map#worldmapconnector
  *
@@ -474,11 +489,15 @@ const Connector = ({
 			lineStyle,
 		});
 		scene.changed();
-		return () => {
+	}, [scene, id, fromLongitude, fromLatitude, toLongitude, toLatitude, color, lineStyle]);
+	// Why its own effect: a delete on each prop change would move the connector to the end of the paint order.
+	useLayoutEffect(
+		() => () => {
 			scene.connectors.delete(id);
 			scene.changed();
-		};
-	}, [scene, id, fromLongitude, fromLatitude, toLongitude, toLatitude, color, lineStyle]);
+		},
+		[scene, id],
+	);
 	return null;
 };
 
@@ -487,7 +506,8 @@ const Connector = ({
  * request's detail page. Unlike the tooltip, it shows without a hover. It is
  * real DOM after the plot, so a screen reader reads it as page content. It
  * shows once the map has painted, and hides while its place is outside the
- * plot. It takes no pointer events, so the points under it still hover; add
+ * plot. When its content changes size, the map places it again. It takes no
+ * pointer events, so the points under it still hover; add
  * `pointer-events-auto` to `className` for a callout with a link. Pass
  * `asChild` to render your own element, such as a `Card`, in place of the
  * `<div>`.
@@ -497,7 +517,7 @@ const Connector = ({
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
  * | `data-slot` | `"world-map-callout"` | The callout. |
- * | `data-side` | `"top"` \| `"bottom"` | The side of the place the callout sits on. |
+ * | `data-side` | `"top"` \| `"bottom"` | The side of the place the callout sits on after placement: `side`, or the other side after a flip. |
  *
  * @see https://mantle.ngrok.com/components/preview/world-map#worldmapcallout
  *
@@ -536,22 +556,20 @@ const Callout = ({
 }: WorldMapCalloutProps) => {
 	const scene = useGeoScene("WorldMap.Callout");
 	const id = useId();
-	const elementRef = useRef<HTMLDivElement | null>(null);
-	const composedRef = useComposedRefs(elementRef, ref);
-	useLayoutEffect(() => {
-		const element = elementRef.current;
-		if (element == null) {
-			return;
-		}
-		scene.callouts.set(id, { element, place: { longitude, latitude }, side });
-		return () => {
-			scene.callouts.delete(id);
-		};
-	}, [scene, id, longitude, latitude, side]);
-	// Why after every render: new content can change the callout's size, which moves it off its place.
-	useLayoutEffect(() => {
-		scene.calloutsChanged();
-	});
+	// Why a ref callback: it runs again for a new element, and it watches the size, which moves the callout off its place.
+	const register = useCallback(
+		(element: HTMLDivElement) => {
+			scene.callouts.set(id, { element, place: { longitude, latitude }, side });
+			scene.calloutsChanged();
+			const stopResize = observeResize(element, () => scene.calloutsChanged());
+			return () => {
+				stopResize();
+				scene.callouts.delete(id);
+			};
+		},
+		[scene, id, longitude, latitude, side],
+	);
+	const composedRef = useComposedRefs(register, ref);
 	const Component = asChild ? Slot : "div";
 	return (
 		<Component
@@ -560,7 +578,7 @@ const Callout = ({
 			ref={composedRef}
 			className={cx(
 				// Why invisible: the map places the callout after it paints, and an unplaced one would sit at the corner.
-				// Why no z-index: the callout comes after the plot, so it paints over the canvas, and the hover tooltip (z-10) paints over it.
+				// Why no z-index: the callout comes after the plot, so it paints over the canvas, and the hover tooltip (z-10) paints over it while the plot is at full opacity.
 				"bg-popover border-popover text-strong pointer-events-none invisible absolute left-0 top-0 rounded-md border px-2.5 py-1.5 text-xs shadow-md",
 				className,
 			)}
@@ -570,12 +588,6 @@ const Callout = ({
 		</Component>
 	);
 };
-
-/** What a Root tells its scene. */
-const sceneInputs = (bounds: GeoBounds | undefined) => ({
-	land: WORLD_LAND,
-	bounds: bounds ?? null,
-});
 
 /** The public names of the map's keys, for error messages. */
 const MAP_KEY_NAMES = { x: "longitudeKey", series: "latitudeKey" } as const;
@@ -617,8 +629,11 @@ const hoverPlace = (hover: HoverSnapshot): GeoPlace => ({
 /** The map's readout: a row reads as a place, by its name, else by its coordinates. */
 const mapReadout = (labelKey: string | undefined, sizeKey: string | undefined): ChartReadout => ({
 	keyNames: MAP_KEY_NAMES,
-	sizeKey,
-	Tooltip: ({ hover, config }: { hover: HoverSnapshot; config: TooltipConfig | null }) => {
+	Tooltip: ({ hover, config }) => {
+		// Why nothing: a controlled index can name a row with no point, and its coordinates would read "NaN".
+		if (hover.points.length === 0) {
+			return null;
+		}
 		const place = hoverPlace(hover);
 		const coordinates = formatCoordinates(place.longitude, place.latitude);
 		const name = pointName(hover.datum, labelKey, place);
@@ -652,6 +667,9 @@ const mapReadout = (labelKey: string | undefined, sizeKey: string | undefined): 
 		);
 	},
 	announce: (hover) => {
+		if (hover.points.length === 0) {
+			return "";
+		}
 		const place = hoverPlace(hover);
 		const coordinates = formatCoordinates(place.longitude, place.latitude);
 		const name = pointName(hover.datum, labelKey, place);
@@ -660,7 +678,7 @@ const mapReadout = (labelKey: string | undefined, sizeKey: string | undefined): 
 		const series = hover.points.map((point) => point.label).join(", ");
 		return `${where}. ${series}${size == null ? "" : `, ${size}`}`;
 	},
-	describe: (summary: XSummary, hydrated: boolean) => {
+	describe: (summary, hydrated) => {
 		const count = hydrated ? formatNumber(summary.count) : String(summary.count);
 		return {
 			sentence:
@@ -670,18 +688,7 @@ const mapReadout = (labelKey: string | undefined, sizeKey: string | undefined): 
 			instructions: ` ${MAP_KEYBOARD_INSTRUCTIONS}`,
 		};
 	},
-	DataTable: ({ data, label, labelledBy, slotName, store, xKey }) => (
-		<MapDataTable
-			data={data}
-			label={label}
-			labelledBy={labelledBy}
-			slotName={slotName}
-			store={store}
-			longitudeKey={xKey}
-			labelKey={labelKey}
-			sizeKey={sizeKey}
-		/>
-	),
+	DataTable: (props) => <MapDataTable {...props} labelKey={labelKey} sizeKey={sizeKey} />,
 });
 
 /**
@@ -696,24 +703,15 @@ const MapDataTable = ({
 	labelledBy,
 	slotName,
 	store,
-	longitudeKey,
+	xKey,
 	labelKey,
 	sizeKey,
-}: {
-	data: readonly ChartDatum[];
-	label: string | undefined;
-	labelledBy: string | undefined;
-	slotName: string;
-	store: ChartStore;
-	longitudeKey: string;
-	labelKey: string | undefined;
-	sizeKey: string | undefined;
-}) => {
+}: ChartDataTableProps & { labelKey: string | undefined; sizeKey: string | undefined }) => {
 	const series = useStoreSeries(store);
 	const resolvedLabel = useResolvedChartLabel(label, labelledBy);
 	const points = data
 		.flatMap((datum, rowIndex) => {
-			const longitude = datumValue(datum, longitudeKey);
+			const longitude = datumValue(datum, xKey);
 			if (typeof longitude !== "number" || !Number.isFinite(longitude)) {
 				return [];
 			}
@@ -778,12 +776,17 @@ const SizeCell = ({ datum, sizeKey }: { datum: ChartDatum; sizeKey: string }) =>
  * Robinson bends the meridians so no region swells the way Mercator swells
  * the poles, which keeps a point's place and the land around it honest.
  *
- * The map is a chart: hover and keyboard reach every point, the tooltip and
- * polite announcements name it, the sr-only data table lists every point,
- * and new rows animate in. Size points by a count (`sizeKey`) when many share
- * one place, as IP geolocation puts many agents in one city. For one request,
- * zoom to the client's region (`bounds`), keep a card over its place
- * (`Callout`), and draw a line to the ngrok edge (`Connector`).
+ * The map is a chart:
+ *
+ * - Hover and the keyboard reach each point the plot shows.
+ * - The tooltip and polite announcements name the point.
+ * - The sr-only data table lists the first 150 points from west to east.
+ * - A point at a new place pulses once.
+ *
+ * Size points by a count (`sizeKey`) when many share one place, as IP
+ * geolocation puts many agents in one city. For one request, zoom to the
+ * client's region (`bounds`), keep a card over its place (`Callout`), and
+ * draw a line to the ngrok edge (`Connector`).
  *
  * **CSS variables (public API):**
  *

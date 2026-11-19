@@ -21,7 +21,7 @@ import type { ChartDatum, PointShape, SeriesSpec } from "./types.js";
 type Coefficients = { k: number; b: number };
 
 /**
- * What the scatter view reads from the engine that owns it. Each member is a
+ * What a point view reads from the engine that owns it. Each member is a
  * function, so the view always reads the engine's current state.
  */
 type ScatterHost = {
@@ -56,7 +56,7 @@ type ScatterHost = {
 	requestPaint: () => void;
 	/** The consumer's row at a sorted row index. */
 	sourceRow: (index: number) => ChartDatum | undefined;
-	/** Whether a new point may animate: the chart was seen, and motion is on. */
+	/** Whether a new point may animate: the chart was seen, it is on screen, and motion is on. */
 	animates: () => boolean;
 	/** Whether a grid part is composed. */
 	grid: () => boolean;
@@ -153,7 +153,9 @@ const preloadScatter3d = (): Promise<typeof Scatter3d> => {
  * What the engine calls on the view that paints and hit tests its points: the
  * scatter plot's {@link ScatterView}, or the world map's view. The engine
  * calls each method once per frame or once per pointer event, never once per
- * point.
+ * point. A view leaves out a member it has no use for, and the engine takes
+ * the default: the 3D camera members for the map, `plots` and `radiusAt` for
+ * the scatter plot.
  */
 type PointView = {
 	/**
@@ -161,24 +163,24 @@ type PointView = {
 	 * reference lines, and keeps the x and y domains fixed.
 	 */
 	readonly kind: "scatter" | "geo";
-	setDimensions(dimensions: 1 | 2 | 3, options: { glide: boolean }): void;
+	setDimensions?(dimensions: 1 | 2 | 3, options: { glide: boolean }): void;
 	settle(dimensions: 1 | 2 | 3): void;
 	/** Advance the view's own motion. Returns `true` while it still moves. */
 	tick(now: number): boolean;
 	/** The engine ingested new rows. */
 	resetProjection(): void;
-	pressAt(cssX: number, cssY: number): boolean;
-	dragTo(cssX: number, cssY: number): DragMove;
-	release(): DragEnd;
+	pressAt?(cssX: number, cssY: number): boolean;
+	dragTo?(cssX: number, cssY: number): DragMove;
+	release?(): DragEnd;
 	paint(ctx: PaintContext): FrameLabels | null;
-	paintLabels(ctx: PaintContext, labels: FrameLabels): void;
+	paintLabels?(ctx: PaintContext, labels: FrameLabels): void;
 	hitAt(cssX: number, cssY: number): ScatterHit | null;
 	/** The screen position of a row's point: the point of `seriesKey` when given. */
 	screenFor(index: number, seriesKey: string | null): { x: number; y: number } | null;
-	/** Whether a row has a point. The keyboard skips a row with none. */
-	plots(index: number): boolean;
-	/** The radius of the point at a sorted row index, which sizes the hover dot. */
-	radiusAt(index: number): number;
+	/** Whether the plot shows a point for a row. The keyboard skips a row with none. When omitted, each row is a stop. */
+	plots?(index: number): boolean;
+	/** The radius of the point at a sorted row index, which sizes the hover dot. When omitted, the marker radius. */
+	radiusAt?(index: number): number;
 };
 
 /**
@@ -407,16 +409,6 @@ class ScatterView implements PointView {
 			ctx.restore();
 		});
 		return null;
-	}
-
-	/** Every scatter row is a keyboard stop. */
-	plots(): boolean {
-		return true;
-	}
-
-	/** Every scatter point has the one marker radius. */
-	radiusAt(): number {
-		return MARKER_RADIUS;
 	}
 
 	/** Paint the 3D frame's axis labels outside the marks clip, so edge labels stay whole. */
