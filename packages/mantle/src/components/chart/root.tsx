@@ -16,6 +16,7 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
+import type { ChartKeyNames } from "./datum.js";
 import { assertChartKeys, datumValue } from "./datum.js";
 import { cancelActivation, isOnScreen, promoteActivation, queueActivation } from "./activation.js";
 import { describeSeries, scanX } from "./describe.js";
@@ -36,7 +37,7 @@ import type {
 } from "./types.js";
 import { ChartAnnouncer, ChartDataTable, ChartDescription, ChartListAnnouncer } from "./a11y.js";
 import { ChartContext, useShallowStable } from "./context.js";
-import type { ChartAccessibilityProps, ChartContextValue } from "./context.js";
+import type { ChartAccessibilityProps, ChartContextValue, ChartReadout } from "./context.js";
 import { ChartListContext } from "./list.js";
 import { ChartTooltipSurface } from "./tooltip.js";
 
@@ -119,9 +120,21 @@ type InternalRootProps = ChartRootPrimitiveProps & {
 	slotName: string;
 	/** The surface the engine paints on. Pass a stable function: a new one rebuilds the engine. */
 	paintBackend: PaintBackendFactory;
-	/** The scatter view factory. ScatterPlot passes it; the other families leave it out. */
+	/** The point view factory. ScatterPlot and WorldMap pass one; the other families leave it out. */
 	scatterView?: ScatterViewFactory;
+	/** `WorldMap` only: the readout that names a row as a place, and its key names. */
+	readout?: ChartReadout;
+	/** `WorldMap` only: its name for `xKey`, which it also passes as `xKey`. Pulled out so it never reaches the DOM. */
+	longitudeKey?: string;
+	/** `WorldMap` only: read by its readout. Pulled out so it never reaches the DOM. */
+	labelKey?: string;
+	/** `WorldMap` only: read by its view. Pulled out so it never reaches the DOM. */
+	bounds?: unknown;
+	/** `WorldMap` only: the row key of each point's size value, checked like `zKey`. */
+	sizeKey?: string;
 };
+
+const DEFAULT_KEY_NAMES: ChartKeyNames = { x: "xKey", series: "dataKey" };
 
 /**
  * Detect the x scale kind from the first row whose x value is present. A
@@ -184,7 +197,7 @@ const createHoverLayers = (document: Document, slotName: string): HoverLayers =>
 	};
 };
 
-/** The series part of each family, for the key invariants a dormant Root throws. */
+/** The series part of each family, for error messages. */
 const SERIES_PART_NAME: Record<SeriesMark, string> = {
 	bar: "Bar",
 	line: "Line",
@@ -365,6 +378,11 @@ const ChartRootPrimitive = ({
 	slotName,
 	paintBackend,
 	scatterView,
+	readout,
+	longitudeKey: _longitudeKey,
+	labelKey: _labelKey,
+	bounds: _bounds,
+	sizeKey: sizeKeyProp,
 	data,
 	xKey,
 	xScale,
@@ -397,6 +415,16 @@ const ChartRootPrimitive = ({
 	...props
 }: InternalRootProps) => {
 	const interactive = mode === "interactive";
+	// Why a memo over module constants: a new identity would rebuild the engine.
+	const keyNames = readout?.keyNames ?? DEFAULT_KEY_NAMES;
+	const names = useMemo(
+		() => ({
+			root: `${componentName}.Root`,
+			part: `${componentName}.${SERIES_PART_NAME[kind]}`,
+			keys: keyNames,
+		}),
+		[componentName, kind, keyNames],
+	);
 	const decorative = mode === "decorative";
 	// A static chart plays no reveal unless asked: a list of sparklines that
 	// each animate in as the reader scrolls is motion with no information.
@@ -482,6 +510,8 @@ const ChartRootPrimitive = ({
 	// announcer, and the data table share it.
 	const xSummary = useMemo(() => scanX(data, xKey, resolvedXScale), [data, xKey, resolvedXScale]);
 	const xHasTimeOfDay = xSummary.hasTimeOfDay;
+	// Why the readout gate: only a world map has a size key, and a stray prop on another chart must not fail its key check.
+	const sizeKey = readout == null ? null : (sizeKeyProp ?? null);
 
 	// The latest engine inputs, applied in one go when the engine is created
 	// after the commit that carried them.
@@ -491,6 +521,7 @@ const ChartRootPrimitive = ({
 			xScale: resolvedXScale,
 			yDomain: [yDomainMin, yDomainMax],
 			zKey: zKey ?? null,
+			sizeKey,
 			dimensions,
 			stacked,
 			orientation,
@@ -506,6 +537,7 @@ const ChartRootPrimitive = ({
 				xScale: resolvedXScale,
 				yDomain: [yDomainMin, yDomainMax],
 				zKey: zKey ?? null,
+				sizeKey,
 				dimensions,
 				stacked,
 				orientation,
@@ -545,6 +577,7 @@ const ChartRootPrimitive = ({
 				store,
 				backend: paintBackend,
 				scatter: scatterView,
+				names,
 				slotName,
 				elements: { root, plot, tooltip: tooltipRef.current },
 				// The engine puts its surface under the overlay and makes the hover
@@ -585,7 +618,7 @@ const ChartRootPrimitive = ({
 			engineRef.current?.destroy();
 			engineRef.current = null;
 		};
-	}, [kind, store, slotName, interactive, paintBackend, scatterView]);
+	}, [kind, names, store, slotName, interactive, paintBackend, scatterView]);
 
 	useChartVisibility({
 		plotRef,
@@ -603,6 +636,7 @@ const ChartRootPrimitive = ({
 			xScale: resolvedXScale,
 			yDomain: [yDomainMin, yDomainMax],
 			zKey: zKey ?? null,
+			sizeKey,
 			dimensions,
 			stacked,
 			orientation,
@@ -622,6 +656,7 @@ const ChartRootPrimitive = ({
 		yDomainMin,
 		yDomainMax,
 		zKey,
+		sizeKey,
 		dimensions,
 		stacked,
 		orientation,
@@ -680,24 +715,25 @@ const ChartRootPrimitive = ({
 		}
 		const dataKeys = store.seriesSpecs().map((spec) => spec.dataKey);
 		// Why JSON: a key may hold any character, so a joined string can collide.
-		const signature = JSON.stringify([xKey, resolvedXScale, zKey ?? null, dataKeys]);
+		const signature = JSON.stringify([xKey, resolvedXScale, zKey ?? null, sizeKey, dataKeys]);
 		const validated = validatedRef.current;
 		if (validated != null && validated.data === data && validated.signature === signature) {
 			return;
 		}
 		assertChartKeys({
-			rootName: `${componentName}.Root`,
-			partName: `${componentName}.${SERIES_PART_NAME[kind]}`,
+			names,
 			rows: data,
 			xKey,
 			xScale: resolvedXScale,
 			dataKeys,
 			zKey: zKey ?? null,
+			sizeKey,
 		});
 		validatedRef.current = { data, signature };
 	});
 
 	const latchState = engaged ? "engaged" : "dormant";
+	const DataTable = readout?.DataTable ?? ChartDataTable;
 	return (
 		<div
 			data-slot={joinDataSlot(dataSlot, slotName)}
@@ -930,6 +966,7 @@ const ChartRootPrimitive = ({
 							seriesRef={descriptionSeriesRef}
 							summary={xSummary}
 							instructions={interactive}
+							readout={readout}
 						/>
 					)}
 					{/* The paint surface and the three hover layers are engine-owned: the
@@ -944,6 +981,7 @@ const ChartRootPrimitive = ({
 							store={store}
 							tooltipRef={attachTooltip}
 							xHasTimeOfDay={xHasTimeOfDay}
+							readout={readout}
 						/>
 					)}
 				</div>
@@ -952,7 +990,7 @@ const ChartRootPrimitive = ({
 				    mounts with the Root, because a region that appears right before
 				    its first message is not announced. */}
 				{interactive && list == null && (
-					<ChartAnnouncer store={store} xHasTimeOfDay={xHasTimeOfDay} />
+					<ChartAnnouncer store={store} xHasTimeOfDay={xHasTimeOfDay} readout={readout} />
 				)}
 				{interactive && list != null && (
 					<ChartListAnnouncer
@@ -960,11 +998,12 @@ const ChartRootPrimitive = ({
 						list={list}
 						store={store}
 						xHasTimeOfDay={xHasTimeOfDay}
+						readout={readout}
 					/>
 				)}
 				{/* Why last: the table mounts as an append, which a translation engine cannot break. */}
 				{interactive && engaged && (
-					<ChartDataTable
+					<DataTable
 						data={data}
 						label={ariaLabel}
 						labelledBy={ariaLabelledBy}

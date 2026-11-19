@@ -24,7 +24,11 @@ const ingest = (
 		xScale: options.xScale ?? "linear",
 		specs: [series("a"), series("b")],
 		zKey: options.zKey ?? null,
-		rootName: "LineChart.Root",
+		names: {
+			root: "LineChart.Root",
+			part: "LineChart.Line",
+			keys: { x: "xKey", series: "dataKey" },
+		},
 	});
 
 test("out-of-order rows sort by x, and a row with no position maps to -1", () => {

@@ -131,8 +131,13 @@ const hostOf = (cloud: Cloud, overrides: Partial<ScatterHost> = {}): ScatterHost
 		domains: () => ({ x: [0, 1], y: [0, 1], z: [0, 1] }),
 		xKey: () => "x",
 		zKey: () => null,
+		sizeKey: () => null,
 		is3d: () => false,
 		requestPaint: () => {},
+		sourceRow: () => undefined,
+		animates: () => false,
+		grid: () => false,
+		plotOffset: () => ({ left: 0, top: 0 }),
 		...overrides,
 	};
 };
@@ -180,6 +185,11 @@ const mount3d = (scatter: ScatterModule, options: { inView: boolean }): Mounted 
 		store,
 		backend,
 		scatter: scatter.createScatterView,
+		names: {
+			root: "ScatterPlot.Root",
+			part: "ScatterPlot.Point",
+			keys: { x: "xKey", series: "dataKey" },
+		},
 		slotName: "scatter-plot",
 		elements: { root, plot, tooltip: null },
 		inView: options.inView,
@@ -191,6 +201,7 @@ const mount3d = (scatter: ScatterModule, options: { inView: boolean }): Mounted 
 		yDomain: ["auto", "auto"],
 		orientation: "vertical",
 		zKey: "z",
+		sizeKey: null,
 		dimensions: 3,
 		stacked: false,
 		animate: false,

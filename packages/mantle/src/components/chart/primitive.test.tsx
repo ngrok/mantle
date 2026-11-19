@@ -461,6 +461,19 @@ describe("activation outside React", () => {
 		);
 	});
 
+	test("a dormant chart that is not a world map does not check a size key", () => {
+		const stub = createIntersectionObserverStub({ intersecting: false });
+		vi.stubGlobal("IntersectionObserver", stub.Observer);
+		// A spread from a wider object can carry a key that only `WorldMap.Root` reads.
+		const shared = { sizeKey: "weight" };
+		render(
+			<BarChart.Root data={data} xKey="month" aria-label="Visitors by month" {...shared}>
+				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
+			</BarChart.Root>,
+		);
+		expect(screen.getByRole("application", { name: "Visitors by month" })).toBeInTheDocument();
+	});
+
 	test("a dormant chart checks new series keys again when the joined keys read the same", () => {
 		const stub = createIntersectionObserverStub({ intersecting: false });
 		vi.stubGlobal("IntersectionObserver", stub.Observer);

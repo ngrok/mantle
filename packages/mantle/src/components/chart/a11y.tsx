@@ -10,6 +10,7 @@ import { describeChartParts } from "./describe.js";
 import { formatNumber, formatXValue } from "./format.js";
 import type { ChartStore, TooltipConfig } from "./store.js";
 import type { ChartDatum, HoverSnapshot, SeriesMark, XScaleKind } from "./types.js";
+import type { ChartReadout } from "./context.js";
 import { useStoreSeries } from "./context.js";
 import type { ChartListContextValue } from "./list.js";
 
@@ -40,8 +41,11 @@ const useKeyboardStepAnnouncement = ({
 	store,
 	xHasTimeOfDay,
 	announce,
+	readout,
 }: {
 	store: ChartStore;
+	/** The family's own readout, which words the announcement. */
+	readout?: ChartReadout;
 	/** Whether the dataset's x dates carry a time-of-day component (label granularity). */
 	xHasTimeOfDay: boolean;
 	/** Writes the live region: the text of a step when its wait ends, and `""` to clear it. */
@@ -60,7 +64,8 @@ const useKeyboardStepAnnouncement = ({
 		announce(
 			hover == null
 				? ""
-				: announcementFor(hover, { xHasTimeOfDay, tooltip: store.getSnapshot().tooltip }),
+				: (readout?.announce(hover) ??
+						announcementFor(hover, { xHasTimeOfDay, tooltip: store.getSnapshot().tooltip })),
 		);
 	});
 	useEffect(() => {
@@ -100,9 +105,11 @@ const ChartDescription = ({
 	seriesRef,
 	summary,
 	instructions,
+	readout,
 }: {
 	id: string;
 	kind: SeriesMark;
+	readout?: ChartReadout;
 	slotName: string;
 	/** The Root writes the registered series into this span after every commit. */
 	seriesRef: Ref<HTMLSpanElement>;
@@ -111,7 +118,8 @@ const ChartDescription = ({
 	instructions: boolean;
 }) => {
 	const hydrated = useIsHydrated();
-	const parts = describeChartParts({ kind, summary, hydrated });
+	const parts =
+		readout?.describe(summary, hydrated) ?? describeChartParts({ kind, summary, hydrated });
 	return (
 		// Why sr-only, not hidden: a hidden span would shape no text, but browse
 		// mode would no longer read the description as page content.
@@ -130,13 +138,15 @@ const ChartDescription = ({
 const ChartAnnouncer = ({
 	store,
 	xHasTimeOfDay,
+	readout,
 }: {
 	store: ChartStore;
 	/** Whether the dataset's x dates carry a time-of-day component (label granularity). */
 	xHasTimeOfDay: boolean;
+	readout?: ChartReadout;
 }) => {
 	const [announcement, setAnnouncement] = useState("");
-	useKeyboardStepAnnouncement({ store, xHasTimeOfDay, announce: setAnnouncement });
+	useKeyboardStepAnnouncement({ store, xHasTimeOfDay, announce: setAnnouncement, readout });
 	return (
 		<span role="status" aria-live="polite" className="sr-only">
 			{announcement}
@@ -194,11 +204,13 @@ const ChartListAnnouncer = ({
 	list,
 	store,
 	xHasTimeOfDay,
+	readout,
 }: {
 	id: string;
 	list: ChartListContextValue;
 	store: ChartStore;
 	xHasTimeOfDay: boolean;
+	readout?: ChartReadout;
 }) => {
 	// Why: a chart that unmounts takes its last announcement out of the shared region.
 	useEffect(() => () => list.announce(id, ""), [id, list]);
@@ -206,6 +218,7 @@ const ChartListAnnouncer = ({
 		store,
 		xHasTimeOfDay,
 		announce: (text) => list.announce(id, text),
+		readout,
 	});
 	return null;
 };
@@ -244,7 +257,7 @@ const useResolvedChartLabel = (label: string | undefined, labelledBy: string | u
  * ancestor of the chart holds the caption, and a caption that feeds its own
  * snapshot renders forever.
  */
-const CHART_DATA_TABLE_SELECTOR = '[data-slot$="-chart-data-table"]';
+const CHART_DATA_TABLE_SELECTOR = '[data-slot$="-data-table"]';
 
 /**
  * Joins the trimmed text of each element that `labelledBy` names, in order,
@@ -326,23 +339,8 @@ const xHeaderFor = (
 	return { text: typeof value === "number" ? formatNumber(value) : String(value), date: null };
 };
 
-/**
- * The chart's structural twin: an sr-only table of the data, bounded to
- * {@link CHART_TABLE_ROW_LIMIT} rows with a caption stating the summarization.
- * The keyboard point cursor and the Markdown copy reach the rows past the
- * bound.
- */
-const ChartDataTable = ({
-	data,
-	label,
-	labelledBy,
-	slotName,
-	store,
-	xHasTimeOfDay,
-	xKey,
-	xScale,
-	zKey,
-}: {
+/** The props of a chart's sr-only data table, which a family's readout can replace. */
+type ChartDataTableProps = {
 	data: readonly ChartDatum[];
 	/** The chart's `aria-label`, so multi-chart pages get distinct captions. */
 	label: string | undefined;
@@ -363,7 +361,25 @@ const ChartDataTable = ({
 	 */
 	xScale?: XScaleKind;
 	zKey: string | undefined;
-}) => {
+};
+
+/**
+ * The chart's structural twin: an sr-only table of the data, bounded to
+ * {@link CHART_TABLE_ROW_LIMIT} rows with a caption stating the summarization.
+ * The keyboard point cursor and the Markdown copy reach the rows past the
+ * bound.
+ */
+const ChartDataTable = ({
+	data,
+	label,
+	labelledBy,
+	slotName,
+	store,
+	xHasTimeOfDay,
+	xKey,
+	xScale,
+	zKey,
+}: ChartDataTableProps) => {
 	// Why a selector: `publishHover` replaces the snapshot on every index
 	// change. Without the selector, the table reconciles up to 150 rows for a
 	// value it never reads.
@@ -445,6 +461,11 @@ const ChartDataTable = ({
 	);
 };
 
+export type {
+	//,
+	ChartDataTableProps,
+};
+
 export {
 	//,
 	CHART_TABLE_ROW_LIMIT,
@@ -452,4 +473,5 @@ export {
 	ChartDataTable,
 	ChartDescription,
 	ChartListAnnouncer,
+	useResolvedChartLabel,
 };

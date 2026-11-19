@@ -63,6 +63,8 @@ const SCATTER_ONLY = [
 	"scatter-renderer.ts",
 	...THREE_D_ONLY,
 ];
+// Why: decisions/2026-11-03-world-map.md keeps the Robinson paint and the land outline in WorldMap alone.
+const WORLD_MAP_ONLY = ["geo.ts", "geo-view.ts", "../world-map/world-land.ts"];
 
 describe("the static import graph", () => {
 	test.each(["../bar-chart/index.ts", "../line-chart/index.ts", "../area-chart/index.ts"])(
@@ -72,12 +74,20 @@ describe("the static import graph", () => {
 			// Guards the walk: a graph that never reached the engine would pass the check below.
 			expect(graph).toContain("engine.ts");
 			expect(SCATTER_ONLY.filter((file) => graph.has(file))).toEqual([]);
+			expect(WORLD_MAP_ONLY.filter((file) => graph.has(file))).toEqual([]);
 		},
 	);
 
 	test("of ScatterPlot holds the 2D scatter modules and no 3D module", () => {
 		const graph = staticGraph("../scatter-plot/index.ts");
 		expect(SCATTER_ONLY.filter((file) => !graph.has(file))).toEqual(THREE_D_ONLY);
+		expect(WORLD_MAP_ONLY.filter((file) => graph.has(file))).toEqual([]);
+	});
+
+	test("of WorldMap holds the map modules, no scatter view, and no 3D module", () => {
+		const graph = staticGraph("../world-map/index.ts");
+		expect(WORLD_MAP_ONLY.filter((file) => !graph.has(file))).toEqual([]);
+		expect(["scatter-engine.ts", ...THREE_D_ONLY].filter((file) => graph.has(file))).toEqual([]);
 	});
 
 	test("of the lazy 3D module reaches the projection", () => {
@@ -92,6 +102,7 @@ describe("the static import graph", () => {
 		"../line-chart/index.ts",
 		"../area-chart/index.ts",
 		"../scatter-plot/index.ts",
+		"../world-map/index.ts",
 		"./scatter-3d.ts",
 	])("of %s loads no d3 package", (entry) => {
 		const packages = runtimePackages(staticGraph(entry));

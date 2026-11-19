@@ -3,9 +3,9 @@ import type { PaintContext } from "./paint-backend.js";
 import { MARKER_RING, tracePointShape } from "./renderer.js";
 
 /**
- * The scatter plot's 2D draw routine over a {@link PaintContext}. Only the
- * scatter modules import this module, so Bar, Line, and Area charts load none
- * of it. The 3D draw routines live in `scatter-3d.ts`.
+ * The 2D point draw routine over a {@link PaintContext}. Only the scatter
+ * modules and the world map's view import this module, so Bar, Line, and Area
+ * charts load none of it. The 3D draw routines live in `scatter-3d.ts`.
  *
  * This module is internal shared implementation. The package does not export it.
  */
@@ -60,7 +60,13 @@ const drawScatterPoints = (
 			continue;
 		}
 		ctx.beginPath();
-		tracePointShape(ctx, xAt(index), yAt(index), radius, shape);
+		if (shape === "circle") {
+			// Why no tracer: its `moveTo` guards a batched path. Chromium records a
+			// path of one bare arc at about half the cost.
+			ctx.arc(xAt(index), yAt(index), radius, 0, Math.PI * 2);
+		} else {
+			tracePointShape(ctx, xAt(index), yAt(index), radius, shape);
+		}
 		ctx.fill();
 		if (drawRing) {
 			ctx.stroke();

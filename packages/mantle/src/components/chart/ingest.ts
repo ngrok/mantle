@@ -1,5 +1,6 @@
 import invariant from "tiny-invariant";
-import type { ChartDatum, SeriesMark, SeriesSpec, XScaleKind, XValue } from "./types.js";
+import type { ChartDatum, SeriesSpec, XScaleKind, XValue } from "./types.js";
+import type { ChartNames } from "./datum.js";
 import { datumValue, missingKeyMessage, toEpochOrNumber, uncoercibleXMessage } from "./datum.js";
 import { hasTimeOfDay } from "./format.js";
 
@@ -10,14 +11,6 @@ import { hasTimeOfDay } from "./format.js";
  * This module is internal shared implementation. The package does not export it.
  */
 
-/** The public part name of each series mark, for error messages. */
-const PART_NAME: Record<SeriesMark, string> = {
-	bar: "BarChart.Bar",
-	line: "LineChart.Line",
-	area: "AreaChart.Area",
-	scatter: "ScatterPlot.Point",
-};
-
 type IngestInput = {
 	rows: readonly ChartDatum[];
 	xKey: string;
@@ -26,8 +19,8 @@ type IngestInput = {
 	specs: readonly SeriesSpec[];
 	/** The depth key of a 3D scatter plot; `null` for every other chart. */
 	zKey: string | null;
-	/** The Root's public name, such as `"BarChart.Root"`, for error messages. */
-	rootName: string;
+	/** The public names an error message uses. */
+	names: ChartNames;
 };
 
 type IngestResult = {
@@ -63,7 +56,7 @@ type XIngest = Pick<
 	"rowCount" | "xs" | "xValues" | "order" | "orderInverse" | "xsAllIntegers"
 >;
 
-const ingestCategories = ({ rows, xKey, rootName }: IngestInput): XIngest => {
+const ingestCategories = ({ rows, xKey, names }: IngestInput): XIngest => {
 	const count = rows.length;
 	const xs = new Float64Array(count);
 	const xValues: XValue[] = Array.from({ length: count }, () => "");
@@ -81,12 +74,12 @@ const ingestCategories = ({ rows, xKey, rootName }: IngestInput): XIngest => {
 			typeof raw === "string" || typeof raw === "number" || raw instanceof Date ? raw : String(raw);
 		xs[index] = index;
 	}
-	invariant(count === 0 || foundX, () => missingKeyMessage(rootName, "xKey", xKey, rows));
+	invariant(count === 0 || foundX, () => missingKeyMessage(names.root, names.keys.x, xKey, rows));
 	// Category positions are indexes: integral, and never linear-ticked.
 	return { rowCount: count, xs, xValues, order: null, orderInverse: null, xsAllIntegers: true };
 };
 
-const ingestContinuous = ({ rows, xKey, xScale, rootName }: IngestInput): XIngest => {
+const ingestContinuous = ({ rows, xKey, xScale, names }: IngestInput): XIngest => {
 	// Why typed arrays: a stream ingests on every append, and an object per row
 	// is garbage at that rate. `xsAll` and `sources` hold the coercible rows in
 	// row order; a sort, when needed, permutes them.
@@ -121,8 +114,10 @@ const ingestContinuous = ({ rows, xKey, xScale, rootName }: IngestInput): XInges
 			kept += 1;
 		}
 	}
-	invariant(rows.length === 0 || sawXKey, () => missingKeyMessage(rootName, "xKey", xKey, rows));
-	invariant(!sawNonNullish || kept > 0, () => uncoercibleXMessage(rootName, xKey, xScale));
+	invariant(rows.length === 0 || sawXKey, () =>
+		missingKeyMessage(names.root, names.keys.x, xKey, rows),
+	);
+	invariant(!sawNonNullish || kept > 0, () => uncoercibleXMessage(names.root, xKey, xScale));
 	// Sorting once keeps decimation and hit-testing correct for out-of-order
 	// responses; the sorted view is the engine's contract. A tie keeps row order.
 	const count = kept;
@@ -173,7 +168,8 @@ const ingestContinuous = ({ rows, xKey, xScale, rootName }: IngestInput): XInges
  *
  * @example
  * ```ts
- * const result = ingestRows({ rows, xKey: "time", xScale: "time", specs, zKey: null, rootName: "LineChart.Root" });
+ * const names = { root: "LineChart.Root", part: "LineChart.Line", keys: { x: "xKey", series: "dataKey" } };
+ * const result = ingestRows({ rows, xKey: "time", xScale: "time", specs, zKey: null, names });
  * result.columns[0]; // the first series' values, NaN at gaps
  * ```
  */
@@ -225,7 +221,7 @@ const ingestRows = (input: IngestInput): IngestResult => {
 			}
 		}
 		invariant(count === 0 || found, () =>
-			missingKeyMessage(PART_NAME[spec.mark], "dataKey", spec.dataKey, rows),
+			missingKeyMessage(input.names.part, input.names.keys.series, spec.dataKey, rows),
 		);
 		return values;
 	});
@@ -276,5 +272,4 @@ export type {
 export {
 	//,
 	ingestRows,
-	PART_NAME,
 };

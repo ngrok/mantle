@@ -4,7 +4,7 @@ import type { PlotRect } from "./renderer.js";
 import { MARKER_RADIUS } from "./renderer.js";
 import type { Scatter3d } from "./scatter-3d.js";
 import { drawScatterPoints } from "./scatter-renderer.js";
-import type { PointShape, SeriesSpec } from "./types.js";
+import type { ChartDatum, PointShape, SeriesSpec } from "./types.js";
 
 /**
  * The scatter plot's part of the chart engine: the 2D paint and the hit test.
@@ -21,7 +21,7 @@ import type { PointShape, SeriesSpec } from "./types.js";
 type Coefficients = { k: number; b: number };
 
 /**
- * What the scatter view reads from the engine that owns it. Each member is a
+ * What a point view reads from the engine that owns it. Each member is a
  * function, so the view always reads the engine's current state.
  */
 type ScatterHost = {
@@ -49,9 +49,19 @@ type ScatterHost = {
 	domains: () => { x: [number, number]; y: [number, number]; z: [number, number] };
 	xKey: () => string;
 	zKey: () => string | null;
+	/** `WorldMap` only: the row key of each point's size value. */
+	sizeKey: () => string | null;
 	is3d: () => boolean;
 	/** Ask the engine for a repaint, such as when the 3D code finishes loading. */
 	requestPaint: () => void;
+	/** The consumer's row at a sorted row index. */
+	sourceRow: (index: number) => ChartDatum | undefined;
+	/** Whether a new point may animate: the chart was seen, it is on screen, and motion is on. */
+	animates: () => boolean;
+	/** Whether a grid part is composed. */
+	grid: () => boolean;
+	/** The plot's offset inside the Root, for elements the Root positions over the plot. */
+	plotOffset: () => { left: number; top: number };
 };
 
 /** The 3D frame's axis labels, painted after the marks clip is restored. */
@@ -140,10 +150,46 @@ const preloadScatter3d = (): Promise<typeof Scatter3d> => {
 };
 
 /**
+ * What the engine calls on the view that paints and hit tests its points: the
+ * scatter plot's {@link ScatterView}, or the world map's view. The engine
+ * calls each method once per frame or once per event, never once per point.
+ * The one exception is `plots`: a key step calls it for each row it passes.
+ * A view leaves out a member it has no use for, and the engine takes the
+ * default: the 3D camera members for the map, `plots` and `radiusAt` for the
+ * scatter plot.
+ */
+type PointView = {
+	/**
+	 * `"geo"` paints a world map: the engine draws no axes, grid lines, or
+	 * reference lines, and keeps the x and y domains fixed.
+	 */
+	readonly kind: "scatter" | "geo";
+	setDimensions?(dimensions: 1 | 2 | 3, options: { glide: boolean }): void;
+	settle(dimensions: 1 | 2 | 3): void;
+	/** Advance the view's own motion. Returns `true` while it still moves. */
+	tick(now: number): boolean;
+	/** The engine ingested new rows. */
+	resetProjection(): void;
+	pressAt?(cssX: number, cssY: number): boolean;
+	dragTo?(cssX: number, cssY: number): DragMove;
+	release?(): DragEnd;
+	paint(ctx: PaintContext): FrameLabels | null;
+	paintLabels?(ctx: PaintContext, labels: FrameLabels): void;
+	hitAt(cssX: number, cssY: number): ScatterHit | null;
+	/** The screen position of a row's point: the point of `seriesKey` when given. */
+	screenFor(index: number, seriesKey: string | null): { x: number; y: number } | null;
+	/** Whether the plot shows a point for a row. The keyboard skips a row with none. When omitted, each row is a stop. */
+	plots?(index: number): boolean;
+	/** The radius of the point at a sorted row index, which sizes the hover dot. When omitted, the marker radius. */
+	radiusAt?(index: number): number;
+};
+
+/**
  * The scatter state one engine owns. The engine calls it once per frame to
  * paint and once per pointer event to hit test, never once per point.
  */
-class ScatterView {
+class ScatterView implements PointView {
+	readonly kind = "scatter";
 	readonly #host: ScatterHost;
 	/** The 3D state, once its module has loaded. */
 	#three: Scatter3d | null = null;
@@ -455,14 +501,15 @@ class ScatterView {
  */
 const createScatterView = (host: ScatterHost): ScatterView => new ScatterView(host);
 
-/** Builds the scatter view an engine owns; see {@link createScatterView}. */
-type ScatterViewFactory = typeof createScatterView;
+/** Builds the point view an engine owns; see {@link createScatterView}. */
+type ScatterViewFactory = (host: ScatterHost) => PointView;
 
 export type {
 	//,
 	DragEnd,
 	DragMove,
 	FrameLabels,
+	PointView,
 	ScatterHit,
 	ScatterHost,
 	ScatterView,

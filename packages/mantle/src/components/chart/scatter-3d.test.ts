@@ -96,8 +96,13 @@ const hostAt = (reveals: { a: number; b: number }): ScatterHost => ({
 	domains: () => ({ x: [0, 2], y: [0, 4], z: [0, 2] }),
 	xKey: () => "x",
 	zKey: () => "z",
+	sizeKey: () => null,
 	is3d: () => true,
 	requestPaint: () => {},
+	sourceRow: () => undefined,
+	animates: () => false,
+	grid: () => false,
+	plotOffset: () => ({ left: 0, top: 0 }),
 });
 
 /** Paint one frame of the cloud. Returns the 3D state and the calls the paint made. */

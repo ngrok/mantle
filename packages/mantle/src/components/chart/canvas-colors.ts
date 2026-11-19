@@ -30,6 +30,8 @@ const probeFor = (host: HTMLElement): HTMLSpanElement => {
 	if (probe == null || probe.parentNode !== host) {
 		probe = host.ownerDocument.createElement("span");
 		probe.style.display = "none";
+		// Why: forced colors would replace each probed color with one system color, and two fills would read the same.
+		probe.style.forcedColorAdjust = "none";
 		probe.setAttribute("aria-hidden", "true");
 		host.appendChild(probe);
 		probes.set(host, probe);

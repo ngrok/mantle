@@ -20,7 +20,8 @@ import {
  * The canvas paint backend: one `<canvas>` per chart, sized to the device
  * pixel ratio. A canvas cannot paint a CSS variable, so this backend resolves
  * every color through the Root's computed style, and repaints when the theme
- * or the device pixel ratio changes. Only ScatterPlot paints here.
+ * or the device pixel ratio changes. Of the shipped charts, only ScatterPlot
+ * and WorldMap paint here.
  *
  * This module is internal shared implementation. The package does not export it.
  */
@@ -88,7 +89,7 @@ class CanvasBackend implements PaintBackend {
 			signature,
 			series: colors,
 			inputs,
-			// Why empty: ScatterPlot draws no bars, so no series takes a texture.
+			// Why empty: no shipped canvas chart draws bars, so no series takes a texture.
 			barFills: new Map(),
 			chrome: resolveChromeColors(resolver),
 			fontFamily: () => resolver.fontFamily,

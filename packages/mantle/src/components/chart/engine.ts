@@ -36,7 +36,8 @@ import type {
 } from "./paint-backend.js";
 import { decimateColumns, shouldDecimate } from "./decimate.js";
 import { formatNumber, formatXValue, tickFractionDigits } from "./format.js";
-import { ingestRows, PART_NAME } from "./ingest.js";
+import type { ChartNames } from "./datum.js";
+import { ingestRows } from "./ingest.js";
 import { nearestIndex } from "./hit-test.js";
 import {
 	bandCenter,
@@ -68,8 +69,9 @@ import {
 	drawReferenceLine,
 	drawVerticalBaseline,
 	drawVerticalReferenceLine,
+	MARKER_RADIUS,
 } from "./renderer.js";
-import type { FrameLabels, ScatterView, ScatterViewFactory } from "./scatter-engine.js";
+import type { FrameLabels, PointView, ScatterViewFactory } from "./scatter-engine.js";
 import { computeStackBoundaries } from "./stack.js";
 import type { StackBoundaries } from "./stack.js";
 import {
@@ -90,8 +92,9 @@ import {
  * - schedules on demand: every mutation coalesces into one rAF commit; an
  *   idle chart costs zero CPU (there is no always-on loop)
  * - decimates to min/max-per-pixel-column past 4 points per device pixel
- * - drives interruptible tweens (domains always; per-datum only ≤ 2,500 points
- *   with an identical x vector; streaming appends animate the domain instead)
+ * - drives interruptible tweens, and starts one only when a paint reads its
+ *   values: a domain chase, and per-datum tweens at 2,500 points or fewer with
+ *   an identical x vector (`docs/charts.md` holds the motion rules)
  * - hit-tests hover/keyboard positions and publishes snapshots to the store;
  *   the crosshair/markers/hover band/tooltip are DOM overlay elements moved
  *   with transforms, so pointer moves never repaint the canvas
@@ -193,6 +196,9 @@ const HORIZONTAL_BAR_KEYS: ReadonlyMap<string, string> = new Map([
 	["PageUp", "PageDown"],
 ]);
 
+/** The keys whose skip over a row with no point searches toward the first row. End lands on the last row, so it searches back. */
+const BACKWARD_KEYS = new Set(["ArrowLeft", "PageDown", "End"]);
+
 /**
  * The share of a band's step left as air: a fixed pixel gap, so dense bars
  * fill their step whatever its width.
@@ -215,6 +221,8 @@ const barGap = ({ bandwidth, groupCount }: { bandwidth: number; groupCount: numb
 
 class ChartEngine {
 	#kind: SeriesMark;
+	/** The public names for error messages. */
+	#names: ChartNames;
 	#elements: EngineElements;
 	#store: ChartStore;
 	#options: ChartOptions = {
@@ -223,6 +231,7 @@ class ChartEngine {
 		yDomain: ["auto", "auto"],
 		orientation: "vertical",
 		zKey: null,
+		sizeKey: null,
 		dimensions: 3,
 		stacked: false,
 		animate: true,
@@ -364,8 +373,8 @@ class ChartEngine {
 
 	#zs = new Float64Array(0);
 	#zDomain: [number, number] = [0, 1];
-	/** The scatter paint, hit test, and 3D camera. `null` for every other kind. */
-	#scatter: ScatterView | null = null;
+	/** The scatter or world map paint, hit test, and 3D camera. `null` for every other kind. */
+	#scatter: PointView | null = null;
 	readonly #createHoverLayers: (() => HoverLayers) | null;
 	/** The hover layers, made the first time the engine shows an active datum. */
 	#hover: HoverLayers | null = null;
@@ -415,8 +424,10 @@ class ChartEngine {
 		backend: (options: PaintBackendOptions) => PaintBackend;
 		/** The Root's slot name, such as `"bar-chart"`, for the surface's `data-slot`. */
 		slotName: string;
-		/** Builds the scatter view. Required for `kind: "scatter"`, and ignored for every other kind. */
+		/** Builds the point view. Required for `kind: "scatter"`, and ignored for every other kind. */
 		scatter?: ScatterViewFactory;
+		/** The public names an error message uses, such as `"WorldMap.Root"`. */
+		names: ChartNames;
 		/**
 		 * Builds the hover layers. The engine calls it the first time it shows an
 		 * active datum, appends the layers to the plot, and removes them on
@@ -445,6 +456,7 @@ class ChartEngine {
 		size?: { width: number; height: number };
 	}) {
 		this.#kind = options.kind;
+		this.#names = options.names;
 		this.#elements = options.elements;
 		this.#createHoverLayers = options.createHoverLayers ?? null;
 		this.#store = options.store;
@@ -499,7 +511,6 @@ class ChartEngine {
 			this.#cssWidth = entry.contentRect.width;
 			this.#cssHeight = entry.contentRect.height;
 			this.#dpr = dpr;
-			this.#decimationCache.clear();
 			// The cached hover pixel is in plot space; a resize moves every mark,
 			// so drop it and let #updateOverlay recompute from the new projection
 			// (a stale pixel would detach the marker/tooltip from its point).
@@ -546,15 +557,22 @@ class ChartEngine {
 				},
 				xKey: () => this.#options.xKey,
 				zKey: () => this.#options.zKey,
+				sizeKey: () => this.#options.sizeKey,
 				is3d: () => this.#is3d(),
 				requestPaint: () => this.#schedule(),
+				sourceRow: (index) => this.#rows[this.#toSourceIndex(index)],
+				animates: () => this.#seen && this.#tweenDuration() > 0,
+				grid: () => this.#store.getSnapshot().grid != null,
+				plotOffset: () => ({
+					left: this.#elements.plot.offsetLeft,
+					top: this.#elements.plot.offsetTop,
+				}),
 			});
 		}
 	}
 
 	#onRatioChange = (): void => {
 		this.#dpr = this.#currentDpr();
-		this.#decimationCache.clear();
 		this.#schedule();
 	};
 
@@ -735,6 +753,8 @@ class ChartEngine {
 				reveal.retarget([1], { duration: 0, now });
 			}
 		}
+		// Why flush first: a pending ingest starts its motion in the commit below, after the settle.
+		this.flushIngest();
 		// Why settle: the snapshot takes this one frame, so motion left in flight prints part-way.
 		this.#snapAllMotion();
 		this.#needsPaint = true;
@@ -802,7 +822,7 @@ class ChartEngine {
 		if (previous.dimensions !== options.dimensions) {
 			// Snap before first paint (and under reduced motion): a chart must not
 			// mount mid-collapse.
-			this.#scatter?.setDimensions(options.dimensions, {
+			this.#scatter?.setDimensions?.(options.dimensions, {
 				glide: this.#tweenDuration() > 0 && this.#hasIngested,
 			});
 		}
@@ -810,6 +830,7 @@ class ChartEngine {
 			previous.xKey !== options.xKey ||
 			previous.xScale !== options.xScale ||
 			previous.zKey !== options.zKey ||
+			previous.sizeKey !== options.sizeKey ||
 			previous.stacked !== options.stacked
 		) {
 			this.#pendingIngest = true;
@@ -903,7 +924,7 @@ class ChartEngine {
 
 	handlePointerMove(cssX: number, cssY: number): void {
 		const scatter = this.#scatter;
-		const drag = scatter?.dragTo(cssX, cssY) ?? "none";
+		const drag = scatter?.dragTo?.(cssX, cssY) ?? "none";
 		if (drag !== "none") {
 			// A 3D rotation drag suppresses hover and repaints.
 			if (drag === "rotated") {
@@ -931,7 +952,7 @@ class ChartEngine {
 	 */
 	handlePointerDown(cssX: number, cssY: number): void {
 		this.#pressed = true;
-		if (this.#scatter?.pressAt(cssX, cssY) === true) {
+		if (this.#scatter?.pressAt?.(cssX, cssY) === true) {
 			return;
 		}
 		this.handlePointerMove(cssX, cssY);
@@ -949,7 +970,7 @@ class ChartEngine {
 		cssY: number,
 		{ activate = true }: { activate?: boolean } = {},
 	): void {
-		const drag = this.#scatter?.release() ?? "none";
+		const drag = this.#scatter?.release?.() ?? "none";
 		const pressed = this.#pressed;
 		this.#pressed = false;
 		if (drag === "rotated") {
@@ -968,7 +989,7 @@ class ChartEngine {
 	handlePointerLeave(): void {
 		this.#pointerX = null;
 		this.#pointerY = null;
-		this.#scatter?.release();
+		this.#scatter?.release?.();
 		this.#pressed = false;
 		this.#activeSeriesKey = null;
 		this.#activeScreen = null;
@@ -1091,6 +1112,11 @@ class ChartEngine {
 			}
 			return true;
 		}
+		// Why skip: a world map row with no point in the plot has nothing to show or announce.
+		const stop = target == null ? null : this.#stopFor(target, BACKWARD_KEYS.has(stepKey) ? -1 : 1);
+		if (target != null && stop == null) {
+			return true;
+		}
 		// Reset BOTH pointer axes: a stale #pointerX would anchor a horizontal
 		// bar's keyboard tooltip to the old pointer column instead of the plot
 		// center (the vertical case already relied on #pointerY being cleared).
@@ -1098,8 +1124,35 @@ class ChartEngine {
 		this.#pointerY = null;
 		this.#activeSeriesKey = null;
 		this.#activeScreen = null;
-		this.#setActive(target, { viaKeyboard: true, notify: true });
+		this.#setActive(stop, { viaKeyboard: true, notify: true });
 		return true;
+	}
+
+	/**
+	 * The row a key step lands on: the first row from `target` in the direction
+	 * of `step` whose point the plot shows. Why the search back: a page step can
+	 * go past the last such row, and the cursor must then stop on that row, not
+	 * stay where it is. `null` when no row past the cursor has a point.
+	 */
+	#stopFor(target: number, step: 1 | -1): number | null {
+		const ahead = this.#plottedFrom(target, step);
+		if (ahead != null) {
+			return ahead;
+		}
+		const behind = this.#plottedFrom(target, step === 1 ? -1 : 1);
+		const current = this.#effectiveIndex() ?? (step === 1 ? -1 : this.#rowCount);
+		return behind != null && (behind - current) * step > 0 ? behind : null;
+	}
+
+	/** The first row from `index` in the direction of `step` whose point the plot shows; `null` when none does. */
+	#plottedFrom(index: number, step: 1 | -1): number | null {
+		const view = this.#scatter;
+		for (let row = index; row >= 0 && row < this.#rowCount; row += step) {
+			if (view?.plots?.(row) ?? true) {
+				return row;
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -1160,7 +1213,7 @@ class ChartEngine {
 			xScale,
 			specs,
 			zKey: this.#kind === "scatter" ? this.#options.zKey : null,
-			rootName: this.#rootName(),
+			names: this.#names,
 		});
 		this.#rowCount = ingested.rowCount;
 		this.#xs = ingested.xs;
@@ -1180,7 +1233,7 @@ class ChartEngine {
 		const previousFirst = previousXs[0];
 		const previousLast = previousXs[previousXs.length - 1];
 		if (
-			!this.#is3d() &&
+			this.#hasCartesianFrame() &&
 			(xScale === "linear" || xScale === "time") &&
 			first != null &&
 			last != null &&
@@ -1299,8 +1352,10 @@ class ChartEngine {
 			this.#xTween.jump(this.#targetXDomain());
 		} else {
 			this.#yTween.aim(this.#targetYDomain(), now);
-			if (this.#kind === "bar") {
-				// Why a jump: the band layout places every bar, so no bar paint reads the x domain.
+			// Why a jump: the band layout places each bar, and each mark of a line or an
+			// area on a point scale, so no paint reads the x domain. The columns of a
+			// decimated series do read it.
+			if (this.#kind === "bar" || (this.#hasCategoryTicks() && !this.#decimated)) {
 				this.#xTween.jump(this.#targetXDomain());
 			} else if (this.#sliding && this.#streamInterval != null) {
 				// Why a straight line: a stream's x axis is time passing, so it
@@ -1349,6 +1404,8 @@ class ChartEngine {
 			registeredKeys.add(spec.dataKey);
 			const hadPrevious = previousColumnIndex.has(spec.dataKey);
 			// Above the limit the prune below drops a tween the series held under it.
+			// Why none on a world map: its view paints the columns, so a tween would
+			// only repaint frames that change nothing.
 			if (holdsValueTweens && this.#stack != null) {
 				retargetBuffer(
 					`${spec.dataKey}:lower`,
@@ -1360,7 +1417,7 @@ class ChartEngine {
 					this.#stack.upper[seriesIndex] ?? new Float64Array(0),
 					hadPrevious,
 				);
-			} else if (holdsValueTweens) {
+			} else if (holdsValueTweens && this.#scatter?.kind !== "geo") {
 				retargetBuffer(
 					spec.dataKey,
 					this.#columns[seriesIndex] ?? new Float64Array(0),
@@ -1405,11 +1462,10 @@ class ChartEngine {
 	 * How long a glide takes this frame: zero while dormant, so a chart that
 	 * enters view paints its current data instead of gliding from a stale
 	 * domain it never showed. Off screen it is zero too: no reader sees a glide
-	 * there.
+	 * there. A print opens the paint gate and not this one.
 	 */
 	#tweenDuration(): number {
-		const visible = this.#inView && this.#onScreen;
-		if (!visible && !this.#printing) {
+		if (!this.#inView || !this.#onScreen) {
 			return 0;
 		}
 		return this.#motionDuration();
@@ -1437,6 +1493,11 @@ class ChartEngine {
 	}
 
 	#targetYDomain(): [number, number] {
+		// Why fixed: the world map projects its own points, so a moving domain
+		// would only paint frames that change nothing.
+		if (this.#scatter?.kind === "geo") {
+			return [-90, 90];
+		}
 		const [minOverride, maxOverride] = this.#options.yDomain;
 		let min: number;
 		let max: number;
@@ -1483,6 +1544,9 @@ class ChartEngine {
 	}
 
 	#targetXDomain(): [number, number] {
+		if (this.#scatter?.kind === "geo") {
+			return [-180, 180];
+		}
 		if (this.#rowCount === 0) {
 			return [0, 1];
 		}
@@ -1501,6 +1565,11 @@ class ChartEngine {
 
 	#is3d(): boolean {
 		return this.#kind === "scatter" && this.#options.zKey != null;
+	}
+
+	/** Whether the plot has an x/y frame: axes, grid lines, and reference lines. */
+	#hasCartesianFrame(): boolean {
+		return !this.#is3d() && this.#scatter?.kind !== "geo";
 	}
 
 	/**
@@ -1532,11 +1601,6 @@ class ChartEngine {
 
 	#horizontalBars(): boolean {
 		return this.#kind === "bar" && this.#options.orientation === "horizontal";
-	}
-
-	/** The public Root part name for error messages, e.g. `"BarChart.Root"`. */
-	#rootName(): string {
-		return `${PART_NAME[this.#kind].split(".")[0] ?? "Chart"}.Root`;
 	}
 
 	/**
@@ -1676,17 +1740,21 @@ class ChartEngine {
 
 	#layout(): void {
 		const snapshot = this.#store.getSnapshot();
-		const is3d = this.#is3d();
+		const frameless = !this.#hasCartesianFrame();
 		const horizontal = this.#horizontalBars();
-		const hasXAxis = !is3d && snapshot.xAxis != null;
-		const hasYAxis = !is3d && snapshot.yAxis != null;
+		const hasXAxis = !frameless && snapshot.xAxis != null;
+		const hasYAxis = !frameless && snapshot.yAxis != null;
 		// Which composed axis part lands on which physical edge: vertically the
 		// value axis (YAxis) sits in the left gutter and the category axis (XAxis)
 		// runs along the bottom; horizontal orientation flips the two.
 		const leftAxis = horizontal ? hasXAxis : hasYAxis;
 		const bottomAxis = horizontal ? hasYAxis : hasXAxis;
-		// A bar chart without ticks runs its bars edge to edge, like a sparkline.
-		const padding = this.#kind === "bar" && !this.#hasTicks() ? 0 : PLOT_PADDING;
+		// A bar chart without ticks runs its bars edge to edge, like a sparkline,
+		// and a world map fits its own edge.
+		const padding =
+			(this.#kind === "bar" && !this.#hasTicks()) || this.#scatter?.kind === "geo"
+				? 0
+				: PLOT_PADDING;
 		const top = padding;
 		const bottom = bottomAxis ? X_AXIS_BAND : padding;
 		const height = Math.max(0, this.#cssHeight - top - bottom);
@@ -1989,7 +2057,7 @@ class ChartEngine {
 		const yCo = this.#yCoefficients();
 		const xCo = this.#xCoefficients();
 		const specs = this.#store.seriesSpecs();
-		const is3d = this.#is3d();
+		const frameless = !this.#hasCartesianFrame();
 
 		// Tick fade state: desired tick sets fade in/out instead of popping, and
 		// gridlines share the label alphas so everything slides together while
@@ -2001,9 +2069,10 @@ class ChartEngine {
 		// gridlines, and the `ctx.font` write plus a `measureText` per tick cost
 		// a sparkline more than its bars.
 		const wantsTicks = this.#hasTicks();
-		const desiredXTicks = is3d || !wantsTicks ? [] : this.#desiredXTicks(ctx, colors.fontFamily());
+		const desiredXTicks =
+			frameless || !wantsTicks ? [] : this.#desiredXTicks(ctx, colors.fontFamily());
 		const desiredYTicks =
-			is3d || !wantsTicks ? [] : this.#desiredValueTicks(ctx, colors.fontFamily());
+			frameless || !wantsTicks ? [] : this.#desiredValueTicks(ctx, colors.fontFamily());
 		let labelsAnimating = advanceLabelFade(this.#xLabelFade, desiredXTicks, paintDt, instantLabels);
 		labelsAnimating =
 			advanceLabelFade(this.#yLabelFade, desiredYTicks, paintDt, instantLabels) || labelsAnimating;
@@ -2062,7 +2131,7 @@ class ChartEngine {
 		// "horizontal" draws horizontal lines, "vertical" vertical ones. Category
 		// and value each supply whichever direction their axis currently occupies.
 		const paintGrid = (): void => {
-			if (snapshot.grid == null || is3d) {
+			if (snapshot.grid == null || frameless) {
 				return;
 			}
 			// An unset direction (the store publishes `undefined` for "author left
@@ -2119,7 +2188,7 @@ class ChartEngine {
 
 		// 3D frame labels: after the clip so edge-adjacent labels stay whole.
 		if (frame.labels != null) {
-			this.#scatter?.paintLabels(ctx, frame.labels);
+			this.#scatter?.paintLabels?.(ctx, frame.labels);
 		}
 
 		// baseline (bars grow from a single baseline; keep it visible): a vertical
@@ -2136,7 +2205,7 @@ class ChartEngine {
 		// reference lines mark a value, so they run across the value axis: a
 		// vertical line when horizontal, horizontal otherwise. Skipped when off the
 		// value axis (an unclipped line would strike the label strip) and in 3D.
-		for (const reference of is3d ? [] : snapshot.referenceLines) {
+		for (const reference of frameless ? [] : snapshot.referenceLines) {
 			const position = valuePosition(reference.y);
 			const outOfRange = horizontal
 				? position < plot.left || position > plot.left + plot.width
@@ -2172,7 +2241,7 @@ class ChartEngine {
 		// horizontal and the bottom strip (`xLabels`) when vertical; value swaps
 		// the other way.
 		const categoryLabels =
-			snapshot.xAxis == null || is3d
+			snapshot.xAxis == null || frameless
 				? []
 				: [...this.#xLabelFade.entries()].map(([key, entry]) => ({
 						position: categoryPosition(key),
@@ -2180,7 +2249,7 @@ class ChartEngine {
 						alpha: entry.alpha,
 					}));
 		const valueLabels =
-			snapshot.yAxis == null || is3d
+			snapshot.yAxis == null || frameless
 				? []
 				: [...this.#yLabelFade.entries()].map(([key, entry]) => ({
 						position: valuePosition(key),
@@ -2974,7 +3043,9 @@ class ChartEngine {
 		const plot = this.#plot;
 
 		if (isScatter) {
-			const screen = this.#activeScreen ?? this.#scatter?.screenFor(index) ?? null;
+			// Why no cached pixel on a map: a new region moves every point, and the view projects the active one again.
+			const cached = this.#scatter?.kind === "geo" ? null : this.#activeScreen;
+			const screen = cached ?? this.#scatter?.screenFor(index, this.#activeSeriesKey) ?? null;
 			if (screen == null) {
 				markers.style.opacity = "0";
 				if (tooltip != null) {
@@ -2988,6 +3059,7 @@ class ChartEngine {
 			if (markers.children.length === 0) {
 				markers.appendChild(createMarkerDot(markers.ownerDocument));
 			}
+			const radius = this.#scatter?.radiusAt?.(index) ?? MARKER_RADIUS;
 			const dot = markers.children[0];
 			if (dot instanceof HTMLElement) {
 				const meta = this.#store.getSnapshot().series;
@@ -3000,9 +3072,18 @@ class ChartEngine {
 						: meta.find((series) => series.dataKey === this.#activeSeriesKey);
 				dot.style.opacity = "1";
 				styleMarkerDot(dot, active?.shape ?? "circle", active?.color ?? "currentColor");
+				// A sized world map point outgrows the default dot, so the dot takes its size plus the ring.
+				const size = `${2 * (radius + 2)}px`;
+				if (dot.style.width !== size) {
+					dot.style.width = size;
+					dot.style.height = size;
+					dot.style.left = `calc(${size} / -2)`;
+					dot.style.top = `calc(${size} / -2)`;
+				}
 				dot.style.transform = `translate(${screen.x}px, ${screen.y}px)`;
 			}
-			this.#positionTooltip(screen.x, screen.y);
+			// Why the wider gap: a sized world map point outgrows the default gap, and the readout would cover it.
+			this.#positionTooltip(screen.x, screen.y, Math.max(12, radius + 8));
 			return;
 		}
 
@@ -3097,13 +3178,14 @@ class ChartEngine {
 	}
 
 	/**
-	 * Position the tooltip near an anchor point, flipping sides at the plot edge
-	 * and clamping vertically. The inner clamp holds the readout inside the plot
-	 * rect, which keeps it off the tick labels the x-axis band reserves below.
-	 * When the readout is taller than the plot, the outer clamp pins it to the
-	 * wrapper's top edge instead of spilling the overflow past the bottom.
+	 * Position the tooltip near an anchor point, flipping sides at the plot edge,
+	 * then clamping on both axes. The inner clamps hold the readout inside the
+	 * plot rect, which keeps it off the tick labels the x-axis band reserves
+	 * below, and keeps a readout with no room on either side from widening the
+	 * page. When the readout is larger than the plot, the outer clamps pin it to
+	 * the wrapper's top and left edges.
 	 */
-	#positionTooltip(anchorX: number, anchorY: number): void {
+	#positionTooltip(anchorX: number, anchorY: number, gapX = 12): void {
 		const plot = this.#plot;
 		const tooltip = this.#elements.tooltip;
 		if (tooltip == null) {
@@ -3116,7 +3198,6 @@ class ChartEngine {
 			this.#tooltipSize = { width: tooltip.offsetWidth, height: tooltip.offsetHeight };
 		}
 		const size = this.#tooltipSize;
-		const gapX = 12;
 		let tooltipLeft = anchorX + gapX;
 		if (
 			tooltipLeft + size.width > plot.left + plot.width &&
@@ -3124,6 +3205,8 @@ class ChartEngine {
 		) {
 			tooltipLeft = anchorX - gapX - size.width;
 		}
+		// Why clamp after the flip: on a narrow plot neither side has room, and an unclamped readout overflows the page.
+		tooltipLeft = Math.max(0, Math.min(tooltipLeft, plot.left + plot.width - size.width));
 		const tooltipTop = Math.max(
 			0,
 			Math.min(anchorY - size.height / 2, plot.top + plot.height - size.height),

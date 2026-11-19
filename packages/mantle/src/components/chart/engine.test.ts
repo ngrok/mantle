@@ -1,11 +1,15 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { WORLD_LAND } from "../world-map/world-land.js";
 import { createCanvasBackend } from "./canvas-backend.js";
+import type { ScatterViewFactory } from "./scatter-engine.js";
 import { createScatterView } from "./scatter-engine.js";
 import { createColorResolver } from "./canvas-colors.js";
 import { CHART_CHROME_CSS } from "./colors.js";
+import { decimateColumns } from "./decimate.js";
 import { createSvgBackend } from "./svg-backend.js";
 import type { EngineElements, HoverLayers } from "./engine.js";
 import { ChartEngine } from "./engine.js";
+import { GeoScene } from "./geo-view.js";
 import type { PaintBackendFactory } from "./paint-backend.js";
 import { ChartStore } from "./store.js";
 import { ChaseTween, PER_DATUM_TWEEN_LIMIT, ValueTween } from "./tween.js";
@@ -15,6 +19,9 @@ import type { ChartDatumEvent, ChartOptions, SeriesMark, SeriesSpec } from "./ty
 // canvas. `createColorResolver` runs once per color pass, and its call count is
 // the one trace of when the engine resolves colors.
 vi.mock("./canvas-colors.js", { spy: true });
+// Why a spied module: a dense line paints the same path from kept columns and
+// from a new pass over the rows, so the call count is the one trace of the pass.
+vi.mock("./decimate.js", { spy: true });
 
 /**
  * These tests drive `ChartEngine` directly, with a `ChartStore`, the canvas
@@ -27,6 +34,13 @@ vi.mock("./canvas-colors.js", { spy: true });
  * A fake `ResizeObserver` gives the plot a size, because happy-dom's never
  * fires and a 0×0 plot projects every value onto one pixel.
  */
+
+/** No test here reads an error message, so one set of names serves each chart kind. */
+const TEST_NAMES = {
+	root: "LineChart.Root",
+	part: "LineChart.Line",
+	keys: { x: "xKey", series: "dataKey" },
+} as const;
 
 type PlotSize = { width: number; height: number };
 type ResizeCallback = (entries: Array<{ target: Element; contentRect: PlotSize }>) => void;
@@ -76,6 +90,7 @@ const baseOptions: ChartOptions = {
 	yDomain: ["auto", "auto"],
 	orientation: "vertical",
 	zKey: null,
+	sizeKey: null,
 	dimensions: 3,
 	stacked: false,
 	animate: false,
@@ -138,6 +153,8 @@ const mountEngine = (config: {
 	onScreen?: boolean;
 	/** The canvas backend paints nothing in happy-dom. Pass the SVG backend to read the painted marks. */
 	backend?: PaintBackendFactory;
+	/** The point view of a `"scatter"` engine. Pass a `GeoScene`'s `createView` for a world map. */
+	scatter?: ScatterViewFactory;
 }): Mounted => {
 	const store = new ChartStore();
 	const elements = createElements();
@@ -147,7 +164,8 @@ const mountEngine = (config: {
 		store,
 		backend: config.backend ?? createCanvasBackend,
 		slotName: "chart",
-		scatter: createScatterView,
+		names: TEST_NAMES,
+		scatter: config.scatter ?? createScatterView,
 		createHoverLayers: () => elements.layers,
 		inView: config.inView,
 		onScreen: config.onScreen,
@@ -265,7 +283,7 @@ const nextRows = [
  * A bar engine with motion on that shows `firstRows`, and the `nextRows` frame
  * it must reach. Both are at rest, so a later frame runs the engine alone.
  */
-const mountBars = (config: { onScreen?: boolean } = {}) => {
+const mountBars = (config: { inView?: boolean; onScreen?: boolean } = {}) => {
 	const frames = installFrameClock();
 	const series = [makeSeries("a", "bar")];
 	const mount = mountEngine({
@@ -274,6 +292,7 @@ const mountBars = (config: { onScreen?: boolean } = {}) => {
 		series,
 		rows: firstRows,
 		options: { xScale: "band", animate: true },
+		inView: config.inView,
 		onScreen: config.onScreen,
 	});
 	const settled = mountEngine({
@@ -1161,6 +1180,19 @@ describe("ChartEngine color resolution", () => {
 });
 
 describe("ChartEngine resize observation", () => {
+	/** A line of 4,000 rows on the SVG backend, which decimates at each plot width these tests use. */
+	const mountDenseLine = (size: PlotSize) =>
+		mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: lineSeries,
+			rows: Array.from({ length: 4000 }, (_, index) => ({
+				x: index,
+				a: 50 + 40 * Math.sin(index / 7),
+			})),
+			size,
+		});
+
 	test("every engine in a document reports through one observer, and each gets its own size", () => {
 		// Why out of view: an engine in view also observes its tooltip, and that
 		// observer is its own by design.
@@ -1193,6 +1225,38 @@ describe("ChartEngine resize observation", () => {
 		second.engine.paintForPrint();
 		expect(measureFirst).toHaveBeenCalledTimes(1);
 		expect(measureSecond).toHaveBeenCalledTimes(0);
+	});
+
+	test("a dense line samples its marks at the new width after a resize", () => {
+		const frames = installFrameClock();
+		// 4,000 rows are 48 rows per pixel column on an 84 px plot and 22 on a 184 px plot, so both lines decimate.
+		const mount = mountDenseLine({ width: 100, height: 100 });
+		const wide = mountDenseLine({ width: 200, height: 100 });
+		frames.settle();
+		expect(paintedPaths(mount)).not.toEqual(paintedPaths(wide));
+
+		deliverResize(mount, { width: 200, height: 100 });
+		frames.settle();
+
+		// Columns kept from the old width draw the whole line in the left half of the plot.
+		expect(paintedPaths(mount)).toEqual(paintedPaths(wide));
+	});
+
+	test("a height-only resize of a dense line reads no row again", () => {
+		const frames = installFrameClock();
+		const mount = mountDenseLine({ width: 100, height: 100 });
+		frames.settle();
+		const before = paintedPaths(mount);
+		const passes = vi.mocked(decimateColumns).mock.calls.length;
+		// Guards the count below: a line that never decimates reads no row either.
+		expect(passes).toBeGreaterThan(0);
+
+		deliverResize(mount, { width: 100, height: 160 });
+		frames.settle();
+
+		// Guards the setup: the taller plot paints a new path, so the frame ran.
+		expect(paintedPaths(mount)).not.toEqual(before);
+		expect(vi.mocked(decimateColumns).mock.calls.length - passes).toBe(0);
 	});
 });
 
@@ -1281,21 +1345,75 @@ describe("ChartEngine printing", () => {
 		// No frame runs before the print snapshot, so a glide left in flight prints mid-way.
 		expect(painted()).toEqual(paintedPaths(settled));
 	});
+
+	test("a print paints an update that has not reached a frame yet, settled", () => {
+		const { engine, painted, settled } = mountBars();
+		engine.setRows(nextRows);
+
+		engine.paintForPrint();
+
+		// The print ingests the new rows, so the motion that the ingest starts must settle in the print too.
+		expect(painted()).toEqual(paintedPaths(settled));
+	});
+
+	test("an engine in view but off screen paints a data update during a print settled, in one frame", () => {
+		const { frames, engine, painted, settled } = mountBars({ onScreen: false });
+		engine.paintForPrint();
+
+		engine.setRows(nextRows);
+		engine.flushIngest();
+		frames.step();
+
+		// A print lets a chart that is off screen paint. It does not let that chart glide.
+		expect(painted()).toEqual(paintedPaths(settled));
+		expect(frames.pending()).toBe(false);
+	});
+
+	test("a dormant engine that takes a data update during a print enters view settled, in one frame", () => {
+		const { frames, engine, painted, settled } = mountBars({ inView: false });
+		engine.paintForPrint();
+		engine.setRows(nextRows);
+		engine.flushIngest();
+		engine.afterPrint();
+		frames.settle();
+
+		engine.setInView(true);
+		frames.step();
+
+		// When the chart enters view, a glide left in flight at the end of the print plays.
+		expect(painted()).toEqual(paintedPaths(settled));
+		expect(frames.pending()).toBe(false);
+	});
 });
 
 describe("ChartEngine device pixel ratio", () => {
-	test("an SVG chart samples its marks at the new ratio after a zoom", async () => {
-		// Why a fake query: happy-dom's `matchMedia` never fires `change`.
-		const ratioListeners: Array<() => void> = [];
+	/**
+	 * Set the device pixel ratio, and return the function that changes it the
+	 * way a zoom does. Why a fake query: happy-dom's `matchMedia` never fires
+	 * `change`.
+	 */
+	const stubRatio = (ratio: number): ((next: number) => void) => {
+		const listeners: Array<() => void> = [];
 		vi.stubGlobal("matchMedia", (query: string) => ({
 			matches: false,
 			media: query,
 			addEventListener: (_type: string, listener: () => void) => {
-				ratioListeners.push(listener);
+				listeners.push(listener);
 			},
 			removeEventListener: () => {},
 		}));
-		vi.stubGlobal("devicePixelRatio", 1);
+		vi.stubGlobal("devicePixelRatio", ratio);
+		return (next) => {
+			vi.stubGlobal("devicePixelRatio", next);
+			// Why splice: each listener re-arms the watch, which adds a listener.
+			for (const listener of listeners.splice(0)) {
+				listener();
+			}
+		};
+	};
+
+	test("an SVG chart samples its marks at the new ratio after a zoom", async () => {
+		const setRatio = stubRatio(1);
 		const store = new ChartStore();
 		const elements = createElements();
 		const engine = new ChartEngine({
@@ -1304,6 +1422,7 @@ describe("ChartEngine device pixel ratio", () => {
 			store,
 			backend: createSvgBackend,
 			slotName: "chart",
+			names: TEST_NAMES,
 		});
 		store.registerSeries(makeSeries("y", "line"));
 		engine.setOptions({ ...baseOptions, xKey: "x" });
@@ -1320,15 +1439,45 @@ describe("ChartEngine device pixel ratio", () => {
 		expect(atOne).toBeGreaterThan(0);
 
 		// A zoom changes the ratio and not the plot's CSS size, so no resize arrives.
-		vi.stubGlobal("devicePixelRatio", 2);
-		// Why splice: each listener re-arms the watch, which adds a listener.
-		for (const listener of ratioListeners.splice(0)) {
-			listener();
-		}
+		setRatio(2);
 		await afterNextCommit();
 		expect(commands()).toBeGreaterThan(atOne);
 		engine.destroy();
 		elements.root.remove();
+	});
+
+	test("a zoom that keeps the device-pixel columns of a dense line reads no row again", () => {
+		const setRatio = stubRatio(1);
+		const frames = installFrameClock();
+		const mountAt = (width: number) =>
+			mountEngine({
+				kind: "line",
+				backend: createSvgBackend,
+				series: lineSeries,
+				rows: Array.from({ length: 4000 }, (_, index) => ({
+					x: index,
+					a: 50 + 40 * Math.sin(index / 7),
+				})),
+				size: { width, height: 100 },
+			});
+		// An 84 px plot at a ratio of 1 has 84 columns.
+		const mount = mountAt(100);
+		frames.settle();
+		const passes = vi.mocked(decimateColumns).mock.calls.length;
+		// Guards the count below: a line that never decimates reads no row either.
+		expect(passes).toBeGreaterThan(0);
+
+		// A 42 px plot at a ratio of 2 has 84 columns again.
+		setRatio(2);
+		deliverResize(mount, { width: 58, height: 100 });
+		frames.settle();
+		const zoomPasses = vi.mocked(decimateColumns).mock.calls.length - passes;
+
+		// The kept columns paint what a chart mounted at the new size and ratio paints.
+		const fresh = mountAt(58);
+		frames.settle();
+		expect(paintedPaths(mount)).toEqual(paintedPaths(fresh));
+		expect(zoomPasses).toBe(0);
 	});
 });
 
@@ -1527,6 +1676,84 @@ describe("ChartEngine on-screen motion", () => {
 		expect(paintedPaths(mount)).toEqual(paintedPaths(atRest));
 		expect(frames.pending()).toBe(false);
 	});
+
+	// Why the frames: happy-dom paints no canvas, so the frames a pulse asks for are its one trace.
+	test.each([
+		{ where: "on screen", onScreen: true, pulses: true },
+		{ where: "in view but off screen", onScreen: false, pulses: false },
+	])(
+		"a world map $where asks for another frame after rows add a place: $pulses",
+		({ onScreen, pulses }) => {
+			const frames = installFrameClock();
+			const paris = { x: 2.35, a: 48.86 };
+			const mount = mountEngine({
+				kind: "scatter",
+				scatter: new GeoScene(WORLD_LAND, null).createView,
+				series: [makeSeries("a", "scatter")],
+				rows: [paris],
+				options: { animate: true },
+				onScreen,
+			});
+			frames.settle();
+
+			mount.engine.setRows([paris, { x: 139.69, a: 35.69 }]);
+			mount.engine.flushIngest();
+			frames.step();
+
+			expect(frames.pending()).toBe(pulses);
+		},
+	);
+});
+
+describe("ChartEngine value tweens on a world map", () => {
+	test("a point that changes series at a place its new series has repaints once", () => {
+		const frames = installFrameClock();
+		// Two agents in Frankfurt: one in series a, one in series b.
+		const other = { x: 8.68, a: null, b: 50.11 };
+		const mount = mountEngine({
+			kind: "scatter",
+			scatter: new GeoScene(WORLD_LAND, null).createView,
+			series: [makeSeries("a", "scatter"), makeSeries("b", "scatter")],
+			rows: [{ x: 8.68, a: 50.11, b: null }, other],
+			options: { animate: true },
+		});
+		frames.settle();
+
+		// The first agent moves to series b. No place is new, so no pulse runs.
+		mount.engine.setRows([{ x: 8.68, a: null, b: 50.11 }, other]);
+		mount.engine.flushIngest();
+		frames.step();
+
+		// Why no more frames: the view paints the columns, so a value tween would repaint equal frames.
+		expect(frames.pending()).toBe(false);
+	});
+});
+
+describe("ChartEngine keyboard on a world map region", () => {
+	test("a page step past the last point the region shows lands on that point", () => {
+		const frames = installFrameClock();
+		// 100 rows from 180° W, 3.6° apart. The region shows rows 50 to 58: 0° to 28.8° E.
+		const rows = Array.from({ length: 100 }, (_unused, index) => ({
+			x: -180 + index * 3.6,
+			a: 48,
+		}));
+		const mount = mountEngine({
+			kind: "scatter",
+			scatter: new GeoScene(WORLD_LAND, { west: 0, south: 44, east: 30, north: 52 }).createView,
+			series: [makeSeries("a", "scatter")],
+			rows,
+		});
+		frames.settle();
+		const press = (key: string): number | null => {
+			mount.engine.handleKeyDown(key);
+			return mount.store.getSnapshot().hover?.index ?? null;
+		};
+
+		expect(press("Home")).toBe(50);
+		// A page is 10 rows, and row 60 is outside the region.
+		expect(press("PageUp")).toBe(58);
+		expect(press("PageDown")).toBe(50);
+	});
 });
 
 describe("ChartEngine domain chase", () => {
@@ -1608,6 +1835,146 @@ describe("ChartEngine domain chase", () => {
 		mount.engine.flushIngest();
 
 		expect(frames.settle()).toBe(1);
+	});
+
+	test("a line on a point scale that gains a category does not chase its x domain", () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "line",
+			series: lineSeries,
+			rows: [
+				{ x: "GET", a: 80 },
+				{ x: "POST", a: 50 },
+			],
+			options: { xScale: "point", animate: true },
+		});
+		frames.settle();
+
+		// The new value is between the other two, so the value domain stays.
+		mount.engine.setRows([
+			{ x: "GET", a: 80 },
+			{ x: "POST", a: 50 },
+			{ x: "PUT", a: 60 },
+		]);
+		mount.engine.flushIngest();
+
+		// Why one frame: the point layout places each point, so a chase of the x domain paints the same frame again.
+		expect(frames.settle()).toBe(1);
+	});
+
+	test("a decimated line on a point scale that gains categories chases its x domain", () => {
+		const frames = installFrameClock();
+		const rowsOf = (count: number) =>
+			Array.from({ length: count }, (_, index) => ({
+				x: `Bucket ${index}`,
+				a: 50 + 40 * Math.sin(index / 7),
+			}));
+		const mount = mountEngine({
+			kind: "line",
+			backend: createSvgBackend,
+			series: lineSeries,
+			rows: rowsOf(2000),
+			// Why a fixed domain: only the x domain can move, so one frame shows whether it chases.
+			options: { xScale: "point", yDomain: [0, 100], animate: true },
+			// 2,000 rows on an 84 px plot is 24 rows per pixel column, so the line decimates.
+			size: { width: 100, height: 200 },
+		});
+		frames.settle();
+
+		// Half a pixel of the plot is 12 rows, so 400 more rows give the chase somewhere to go.
+		mount.engine.setRows(rowsOf(2400));
+		mount.engine.flushIngest();
+		frames.step();
+		const firstFrame = paintedPaths(mount);
+		frames.settle();
+
+		// A decimated line reads the x domain for its columns, so its first frame is part of the way there.
+		expect(firstFrame).not.toEqual(paintedPaths(mount));
+	});
+});
+
+describe("ChartEngine motion on a chart that cannot paint", () => {
+	/** One flat row at each x. Each row also holds a value for a second series. */
+	const rowsAt = (...xs: number[]) => xs.map((x) => ({ x, a: 50, b: 50 }));
+
+	type MotionCase = {
+		motion: string;
+		rows: readonly object[];
+		/** Start the motion on a line chart at rest. */
+		start: (mount: Mounted, frames: ReturnType<typeof installFrameClock>) => void;
+	};
+
+	// Why a plot with no size: the engine asks for no paint context there, so each row also
+	// holds the case of a canvas that has none.
+	test.each<MotionCase>([
+		{
+			motion: "the enter reveal of a new series",
+			rows: rowsAt(0, 1),
+			start: ({ engine, store }) => {
+				store.registerSeries(makeSeries("b", "line"));
+				engine.flushIngest();
+			},
+		},
+		{
+			motion: "a value tween",
+			rows: rowsAt(0, 1),
+			start: ({ engine }) => {
+				engine.setRows([
+					{ x: 0, a: 20 },
+					{ x: 1, a: 80 },
+				]);
+				engine.flushIngest();
+			},
+		},
+		{
+			motion: "a value chase",
+			rows: rowsAt(0, 1),
+			start: ({ engine, options }) => {
+				engine.setOptions({ ...options, yDomain: [0, 200] });
+			},
+		},
+		{
+			motion: "an x chase",
+			rows: rowsAt(0, 100),
+			start: ({ engine }) => {
+				engine.setRows(rowsAt(0, 200));
+				engine.flushIngest();
+			},
+		},
+		{
+			motion: "a stream glide",
+			rows: rowsAt(0, 1, 2),
+			start: ({ engine }, frames) => {
+				// Two window slides 100 ms apart make a stream, and the second one glides.
+				engine.setRows(rowsAt(1, 2, 3));
+				engine.flushIngest();
+				for (let frame = 0; frame < 6; frame++) {
+					frames.step();
+				}
+				engine.setRows(rowsAt(2, 3, 4));
+				engine.flushIngest();
+			},
+		},
+	])("$motion goes idle on a plot with no size", ({ rows, start }) => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "line",
+			series: lineSeries,
+			rows,
+			options: { yDomain: [0, 100], animate: true },
+			// The plot of a chart in a collapsed panel has no size, so no frame can paint it.
+			size: null,
+			// Why off screen at mount: the first series then enters with no reveal, so each motion runs alone.
+			onScreen: false,
+		});
+		mount.engine.setOnScreen(true);
+		frames.settle();
+
+		start(mount, frames);
+
+		// Why the frames: a chart that cannot paint shows nothing, so the frames it asks for are
+		// the one trace of its motion. If the chart never goes idle, `settle` throws.
+		expect(frames.settle()).toBeGreaterThan(1);
 	});
 });
 
@@ -1800,5 +2167,61 @@ describe("ChartEngine per-datum tweens", () => {
 
 		// The decimated paint reads the settled column, so a value tween only repeats that frame.
 		expect(frames.pending()).toBe(false);
+	});
+
+	test("a dense line paints its new values after an update on the same x vector", () => {
+		const frames = installFrameClock();
+		const mountWith = (phase: number) =>
+			mountEngine({
+				kind: "line",
+				backend: createSvgBackend,
+				series: lineSeries,
+				rows: waveRows(4000, phase),
+				options: { yDomain: [0, 100] },
+				size: { width: 100, height: 100 },
+			});
+		const mount = mountWith(0);
+		const fresh = mountWith(1);
+		frames.settle();
+		expect(paintedPaths(mount)).not.toEqual(paintedPaths(fresh));
+
+		mount.engine.setRows(waveRows(4000, 1));
+		mount.engine.flushIngest();
+		frames.settle();
+
+		// The key of the kept columns holds no value, so only the clear at ingest drops the old ones.
+		expect(paintedPaths(mount)).toEqual(paintedPaths(fresh));
+	});
+
+	test("an update with equal values after a value tween ends starts no tween", () => {
+		const frames = installFrameClock();
+		const mount = mountEngine({
+			kind: "line",
+			series: lineSeries,
+			rows: [
+				{ x: 0, a: 12.3 },
+				{ x: 1, a: 45.6 },
+			],
+			// Why a fixed domain: only the values can move, so each frame comes from a value tween.
+			options: { yDomain: [0, 100], animate: true },
+		});
+		frames.settle();
+		// Why these decimals: `12.3 + (45.6 - 12.3)` is `45.599999999999994`, so a tween that
+		// ends on its own arithmetic holds a value one rounding step from its target.
+		const next = [
+			{ x: 0, a: 45.6 },
+			{ x: 1, a: 12.3 },
+		];
+		mount.engine.setRows(next);
+		mount.engine.flushIngest();
+		// Why more than one frame: this update must play a tween, or the next one tests nothing.
+		expect(frames.settle()).toBeGreaterThan(1);
+
+		// A poll returns the same rows in a new array.
+		mount.engine.setRows([...next]);
+		mount.engine.flushIngest();
+
+		// Why one frame: the new array asks for one paint, and a tween to equal values paints that frame again.
+		expect(frames.settle()).toBe(1);
 	});
 });
