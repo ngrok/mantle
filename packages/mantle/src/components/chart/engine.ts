@@ -1366,10 +1366,8 @@ class ChartEngine {
 			sameXVector &&
 			!this.#decimated;
 		// Why none above the limit: `#paintedValues` reads no tween there, and each
-		// tween holds three copies of its column. Why none on a world map: its view
-		// paints the columns, so a tween would only repaint frames that change nothing.
-		const holdsValueTweens =
-			this.#rowCount <= PER_DATUM_TWEEN_LIMIT && this.#scatter?.kind !== "geo";
+		// tween holds three copies of its column.
+		const holdsValueTweens = this.#rowCount <= PER_DATUM_TWEEN_LIMIT;
 		const activeKeys = new Set<string>();
 		const registeredKeys = new Set<string>();
 		const retargetBuffer = (tweenKey: string, target: Float64Array, hadPrevious: boolean) => {
@@ -1387,6 +1385,8 @@ class ChartEngine {
 			registeredKeys.add(spec.dataKey);
 			const hadPrevious = previousColumnIndex.has(spec.dataKey);
 			// Above the limit the prune below drops a tween the series held under it.
+			// Why none on a world map: its view paints the columns, so a tween would
+			// only repaint frames that change nothing.
 			if (holdsValueTweens && this.#stack != null) {
 				retargetBuffer(
 					`${spec.dataKey}:lower`,
@@ -1398,7 +1398,7 @@ class ChartEngine {
 					this.#stack.upper[seriesIndex] ?? new Float64Array(0),
 					hadPrevious,
 				);
-			} else if (holdsValueTweens) {
+			} else if (holdsValueTweens && this.#scatter?.kind !== "geo") {
 				retargetBuffer(
 					spec.dataKey,
 					this.#columns[seriesIndex] ?? new Float64Array(0),

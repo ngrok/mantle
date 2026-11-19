@@ -1551,6 +1551,30 @@ describe("ChartEngine on-screen motion", () => {
 	);
 });
 
+describe("ChartEngine value tweens on a world map", () => {
+	test("a point that changes series at a place its new series has repaints once", () => {
+		const frames = installFrameClock();
+		// Two agents in Frankfurt: one in series a, one in series b.
+		const other = { x: 8.68, a: null, b: 50.11 };
+		const mount = mountEngine({
+			kind: "scatter",
+			scatter: new GeoScene(WORLD_LAND, null).createView,
+			series: [makeSeries("a", "scatter"), makeSeries("b", "scatter")],
+			rows: [{ x: 8.68, a: 50.11, b: null }, other],
+			options: { animate: true },
+		});
+		frames.settle();
+
+		// The first agent moves to series b. No place is new, so no pulse runs.
+		mount.engine.setRows([{ x: 8.68, a: null, b: 50.11 }, other]);
+		mount.engine.flushIngest();
+		frames.step();
+
+		// Why no more frames: the view paints the columns, so a value tween would repaint equal frames.
+		expect(frames.pending()).toBe(false);
+	});
+});
+
 describe("ChartEngine keyboard on a world map region", () => {
 	test("a page step past the last point the region shows lands on that point", () => {
 		const frames = installFrameClock();
