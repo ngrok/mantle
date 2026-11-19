@@ -1,24 +1,39 @@
 import type { ComponentProps, ReactNode } from "react";
-import { href, Link, useMatches } from "react-router";
-import { useNavigation } from "./navigation-context";
+import { useMatches } from "react-router";
 import { PageContainer } from "./page-container";
 import { TableOfContents } from "./table-of-contents";
 import { cx } from "@ngrok/mantle/cx";
 import { Main } from "@ngrok/mantle/main";
 import type { DocHandle, TocEntry } from "~/utilities/docs";
 
-type PageLayoutProps = ComponentProps<"div"> & {
-	/** The section's sidebar navigation, rendered in the desktop sidebar column and inside the mobile drawer. */
+/** The route `handle` of a section layout route. */
+export type SectionHandle = {
+	/** The sidebar navigation of the section. The desktop sidebar column and the mobile drawer render it. */
 	sidebar: ReactNode;
 };
 
-const mobileDrawerLinks = [
-	{ to: href("/"), label: "Docs" },
-	{ to: href("/components/actions/button"), label: "Components" },
-	{ to: href("/layouts"), label: "Layouts" },
-	{ to: href("/recipes"), label: "Recipes" },
-	{ to: href("/migrations"), label: "Migrations" },
-];
+/** True for a route `handle` with a sidebar. Each section layout route exports one. */
+function hasSidebar(handle: unknown): handle is SectionHandle {
+	return typeof handle === "object" && handle != null && "sidebar" in handle;
+}
+
+/**
+ * The sidebar from the first match whose route `handle` carries one, or
+ * `undefined` on a page outside a section, such as `/mcp` or the 404 page.
+ *
+ * @example
+ * const sidebar = sidebarFromMatches(useMatches());
+ * // under docs-layout.tsx: <DocsNavigation />
+ * // on /mcp: undefined
+ */
+export function sidebarFromMatches(matches: Array<{ handle?: unknown } | undefined>): ReactNode {
+	for (const match of matches) {
+		if (hasSidebar(match?.handle)) {
+			return match.handle.sidebar;
+		}
+	}
+	return undefined;
+}
 
 /**
  * True for a route `handle` with a toc. Why no schema: the build writes each
@@ -56,59 +71,39 @@ export function tocFromMatches(matches: Array<{ handle?: unknown } | undefined>)
 }
 
 /**
- * Shared page frame used by section layouts (docs, blocks, …). Renders the
- * three-column grid (sidebar | main | TOC aside) and the mobile drawer. The
- * mobile drawer's open/closed state comes from `NavigationContext`, which is
- * toggled by the header's hamburger button.
+ * Shared page frame used by section layouts (docs, recipes, …). Renders the
+ * three-column grid (sidebar | main | TOC aside). The sidebar comes from the
+ * `handle` of the section layout route, see {@link SectionHandle}.
+ *
+ * @example
+ * ```tsx
+ * export const handle = { sidebar: <DocsNavigation /> } satisfies SectionHandle;
+ *
+ * export default function DocsLayout() {
+ * 	return (
+ * 		<PageLayout>
+ * 			<Outlet />
+ * 		</PageLayout>
+ * 	);
+ * }
+ * ```
  */
-export function PageLayout({ className, children, sidebar, ...props }: PageLayoutProps) {
-	const { showNavigation, setShowNavigation } = useNavigation();
-	const toc = tocFromMatches(useMatches());
-
-	const closeMobileNavigation = () => {
-		setShowNavigation(false);
-	};
+export function PageLayout({ className, children, ...props }: ComponentProps<"div">) {
+	const matches = useMatches();
+	const toc = tocFromMatches(matches);
 
 	return (
-		<>
-			<PageContainer className={cx("flex gap-4", className)} {...props}>
-				<div className="scroll-fade-y scrollbar sticky top-15 hidden max-h-[calc(100vh-3.75rem)] w-44 overflow-y-auto px-1 pb-4 md:block">
-					{sidebar}
-				</div>
-				{/* The `xl:pb-[80vh]` tail lets late headings reach the scroll-spy
-				trigger line; it exists for the TOC aside, so below `xl` (no TOC,
-				no spy) the page keeps a normal end-of-page gap. */}
-				<Main className="w-0 flex-1 pb-16 xl:pb-[80vh] sm:px-8">{children}</Main>
-				<aside className="hidden w-40 xl:block">
-					<TableOfContents entries={toc} />
-				</aside>
-			</PageContainer>
-			{showNavigation && (
-				<div className="bg-card fixed bottom-0 left-0 right-0 top-15 z-50 p-4 md:hidden">
-					<div className="scroll-fade-y scrollbar h-full overflow-auto overscroll-contain px-1">
-						<nav className="text-sm px-1 mb-6">
-							<ul className="flex flex-col">
-								<li className="mb-2 text-xs font-medium uppercase tracking-wider font-mono">
-									Menu
-								</li>
-								{mobileDrawerLinks.map((link) => (
-									<li key={link.to}>
-										<Link
-											to={link.to}
-											prefetch="intent"
-											className="text-muted hover:text-strong block py-1 rounded focus:outline-hidden focus-visible:ring-3 focus-visible:ring-focus-accent"
-											onClick={closeMobileNavigation}
-										>
-											{link.label}
-										</Link>
-									</li>
-								))}
-							</ul>
-						</nav>
-						{sidebar}
-					</div>
-				</div>
-			)}
-		</>
+		<PageContainer className={cx("flex gap-4", className)} {...props}>
+			<div className="scroll-fade-y scrollbar sticky top-15 hidden max-h-[calc(100vh-3.75rem)] w-44 overflow-y-auto px-1 pb-4 md:block">
+				{sidebarFromMatches(matches)}
+			</div>
+			{/* The `xl:pb-[80vh]` tail lets late headings reach the scroll-spy
+			trigger line; it exists for the TOC aside, so below `xl` (no TOC,
+			no spy) the page keeps a normal end-of-page gap. */}
+			<Main className="w-0 flex-1 pb-16 xl:pb-[80vh] sm:px-8">{children}</Main>
+			<aside className="hidden w-40 xl:block">
+				<TableOfContents entries={toc} />
+			</aside>
+		</PageContainer>
 	);
 }

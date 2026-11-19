@@ -2,7 +2,9 @@ import { cx } from "@ngrok/mantle/cx";
 import { Outlet, useMatches } from "react-router";
 import { fullWidthProseMeasure } from "~/components/content-layout";
 import { LayoutsNavigation } from "~/components/layouts-navigation";
-import { PageLayout } from "~/components/page-layout";
+import { PageLayout, type SectionHandle } from "~/components/page-layout";
+
+export const handle = { sidebar: <LayoutsNavigation /> } satisfies SectionHandle;
 
 /**
  * Layout route for the layouts section. Renders the layouts sidebar alongside
@@ -19,10 +21,7 @@ export default function LayoutsLayout() {
 	const isSectionIndex = matches[matches.length - 1]?.id === "layouts-index";
 
 	return (
-		<PageLayout
-			className={cx(!isSectionIndex && ["max-w-full", fullWidthProseMeasure])}
-			sidebar={<LayoutsNavigation />}
-		>
+		<PageLayout className={cx(!isSectionIndex && ["max-w-full", fullWidthProseMeasure])}>
 			<Outlet />
 		</PageLayout>
 	);
