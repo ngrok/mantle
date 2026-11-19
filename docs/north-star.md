@@ -36,7 +36,7 @@ Each component owns the keyboard and ARIA contract that its name promises. It wo
 
 A component does what a consumer expects from its name, its props, and its JSDoc. A default is safe and matches the ecosystem. One component answers one intent, and one job has one way to do it. A consumer who knows one mantle component can predict the others. An upgrade never changes the behavior of an app with no word in the changeset, and a breaking change gets a `minor` bump ([VERSIONING.md](../VERSIONING.md)).
 
-- **Served by:** [experience first](./principles/experience-first.md), [migrate callers, then delete](./principles/migrate-callers-then-delete.md), [derive, don't sync](./principles/derive-dont-sync.md), and [make illegal states unrepresentable](./principles/make-illegal-states-unrepresentable.md).
+- **Served by:** [experience first](./principles/experience-first.md), [composition over configuration](./principles/composition-over-configuration.md), [migrate callers, then delete](./principles/migrate-callers-then-delete.md), [derive, don't sync](./principles/derive-dont-sync.md), and [make illegal states unrepresentable](./principles/make-illegal-states-unrepresentable.md).
 - **Signs you missed it:** two props that do one job, a prop whose name does not read as the DOM or ARIA that it sets, a default that differs from the ecosystem with no reason, or a breaking change with a `patch` bump.
 
 ## Fast
@@ -44,7 +44,7 @@ A component does what a consumer expects from its name, its props, and its JSDoc
 The user never waits for mantle.
 
 - **An input gets its answer in the next frame.** A press, a key, and a hover change what the user sees before any other work. Motion follows [docs/motion.md](./motion.md), and it never delays the change of state.
-- **The first paint is the final paint.** No layout shift, no flash of the wrong theme, and no script that the first paint waits for.
+- **The first paint is the final paint.** No layout shift, no flash of the wrong theme, and no script that the first paint waits for. The one exception is the inline theme script, which sets the theme before the first paint.
 - **Continuous input stays smooth.** A scroll, a resize, a drag, and a pointer move do layout work one time for each frame at most.
 - **A page of many stays fast.** The ngrok dashboard is the consumer that matters most, and its pages hold many instances of one component: the rows of a table, the cards of a list. Measure the page of many first. Content that is off screen costs nothing until the user gets near it.
 
@@ -62,10 +62,10 @@ The user gets a UI that answers at once, moves only to explain a change, and loo
 
 ## Clean
 
-The change is the smallest that meets the task, and each part reads in one pass. Each export, prop, CSS variable, and data attribute is API that mantle keeps. The core stays pure, and React and the DOM stay at the edges.
+The change is the smallest that meets the task, and each part reads in one pass. Each export, prop, CSS variable, and data attribute is API that mantle keeps. Small parts that compose come before a prop that configures. The core stays pure, and React and the DOM stay at the edges.
 
-- **Served by:** [write less code](./principles/write-less-code.md), [subtract before you add](./principles/subtract-before-you-add.md), [reuse before you build](./principles/reuse-before-you-build.md), [minimize reader load](./principles/minimize-reader-load.md), and [pure core, effects at the edges](./principles/pure-core-effects-at-the-edges.md).
-- **Signs you missed it:** a helper that already exists in `packages/mantle/src`, a prop that no app asked for, or a second path for one job.
+- **Served by:** [write less code](./principles/write-less-code.md), [subtract before you add](./principles/subtract-before-you-add.md), [reuse before you build](./principles/reuse-before-you-build.md), [composition over configuration](./principles/composition-over-configuration.md), [minimize reader load](./principles/minimize-reader-load.md), and [pure core, effects at the edges](./principles/pure-core-effects-at-the-edges.md).
+- **Signs you missed it:** a helper that already exists in `packages/mantle/src`, a prop that no app asked for, a prop that forwards props to an internal element, or a second path for one job.
 
 ## Efficient
 

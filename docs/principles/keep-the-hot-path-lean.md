@@ -8,7 +8,7 @@ Do each piece of work one time, at the earliest point that has its input: module
 
 **Signs you missed it:**
 
-- A layout read (`getBoundingClientRect`, `offsetWidth`, `getComputedStyle`) between two style writes. Each read after a write makes the browser do layout again. Do all reads first, in one `requestAnimationFrame`.
+- A layout read (`getBoundingClientRect`, `offsetWidth`, `getComputedStyle`) between two style writes. Each read after a write makes the browser do layout again. Do all reads first, in one `requestAnimationFrame` or in a `ResizeObserver` callback, which runs after layout and before paint.
 - React state that a pointer move or a scroll sets, when only one node changes. Write a CSS variable or a style to that node, or read an external store through a selector.
 - A context value that changes for each event, so each consumer renders again.
 - One listener or one observer for each instance, when one shared listener serves the page.
@@ -18,7 +18,7 @@ Do each piece of work one time, at the earliest point that has its input: module
 
 **In this repo:**
 
-- `Table` puts resize, mutation, and scroll into one `requestAnimationFrame` layout read for its overflow affordance.
+- `Table` puts mutation and scroll into one `requestAnimationFrame` layout read for its overflow affordance. It reads a resize in the `ResizeObserver` callback, so the affordance is correct in the first painted frame.
 - `useBreakpoint` shares one set of `matchMedia` subscriptions between all callers.
 - A chart activates when it gets near the viewport, and it builds its hover layers on the first active datum ([decision](../../decisions/2026-11-12-chart-engine-optimization.md)).
 - A chart's tooltip surface reads the hover through selectors, so a data update does not render the surface of a chart that nobody points at.

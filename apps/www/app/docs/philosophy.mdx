@@ -254,15 +254,16 @@ non-active theme stylesheets never block rendering.
 The runtime work that remains gets moved to the platform or measured down.
 [Tabs](/components/navigation/tabs)' edge fade and the [scroll fade](/base/scroll-fade) utilities
 are CSS scroll-driven animations with zero scroll listeners.
-[Table](/components/data-display/table) coalesces resize, mutation, and scroll into one
-`requestAnimationFrame` layout read to drive its overflow affordance. And
+[Table](/components/data-display/table) coalesces mutation and scroll into one
+`requestAnimationFrame` layout read to drive its overflow affordance, and reads a resize
+before the frame paints. And
 [`useBreakpoint`](/hooks) shares a single app-wide set of `matchMedia` subscriptions
 across every caller. It caches its subscribe functions because unstable references
 measurably made window resizing sluggish.
 
 A page of many is the case we measure first, because a dashboard holds hundreds of rows
 and cards. A chart activates only when it gets near the viewport, and it builds its hover
-layers only on the first hover. And a claim of speed ships with its number: the base, the
+layers only when you first point at it or move through it with the keyboard. And a claim of speed ships with its number: the base, the
 branch, and the command that measured both.
 
 ## Safe, ecosystem-normal defaults

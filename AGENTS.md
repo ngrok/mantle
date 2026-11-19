@@ -51,6 +51,7 @@ They are the methods that meet the [north star](#north-star). Each one has a fil
 - [Write less code](./docs/principles/write-less-code.md) (code, prose): the smallest change that meets the task.
 - [Subtract before you add](./docs/principles/subtract-before-you-add.md) (code, prose): remove a cause before you guard it.
 - [Reuse before you build](./docs/principles/reuse-before-you-build.md) (code): search for the helper, hook, or part first.
+- [Composition over configuration](./docs/principles/composition-over-configuration.md) (code): small parts first, and never a prop bag.
 - [Minimize reader load](./docs/principles/minimize-reader-load.md) (code, prose): code and prose that read in one pass.
 - [Experience first](./docs/principles/experience-first.md) (code, prose): judge a change at the call site and in the changelog.
 - [Make illegal states unrepresentable](./docs/principles/make-illegal-states-unrepresentable.md) (code): contracts in types.

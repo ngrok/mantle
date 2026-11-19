@@ -596,7 +596,9 @@ cure. Read the roster there rather than restating it here, because an enumerated
 - Use CSS and the platform before JavaScript: a scroll-driven animation before a scroll listener, a container
   query before a `ResizeObserver`, and `@starting-style` before a "mounted" flag.
 - A handler for a scroll, a resize, or a pointer move does layout work one time for each frame at most. Do all
-  layout reads together, in one `requestAnimationFrame`.
+  layout reads together, in one `requestAnimationFrame`. A `ResizeObserver` callback is the exception: it runs
+  after layout and before paint, so a read there is free and its result is in the same frame. Do not move that
+  read into `requestAnimationFrame`.
 - A component that a page holds many times (a row, a cell, a card, a chart) costs its page a measured amount.
   Share one listener or one observer between the instances. Do no work at mount for an instance that is off
   screen.
