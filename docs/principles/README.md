@@ -1,6 +1,6 @@
 # Principles
 
-Each file names one principle: the rule, why it matters, where it applies, the signs that a change missed it, where this repo already states it, and what checks it. [AGENTS.md](../../AGENTS.md#principles) lists them.
+Each file names one principle: the rule, why it matters, where it applies, the signs that a change missed it, where this repo already states it, and what checks it. [AGENTS.md](../../AGENTS.md#principles) lists them. They are the methods that meet the [north star](../north-star.md): when a principle and a goal of the north star pull apart, the goal wins.
 
 A principle never restates its owner doc. The owner doc stays the tie-breaker, and the principle links to it.
 

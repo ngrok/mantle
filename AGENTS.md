@@ -6,6 +6,18 @@ ngrok's UI library and design system: React, TypeScript, Radix, and Tailwind CSS
 
 This file follows the [AGENTS.md standard](https://agents.md) and is canonical for every harness. It routes you to the rules a task needs, and the files it links to are active instructions. `CLAUDE.md` is a symlink to it in each directory that has one; edit `AGENTS.md` only.
 
+## North star
+
+Each change meets all seven goals, for humans and agents alike. They have no order, and a change that fails one is not done. [docs/north-star.md](./docs/north-star.md) defines each goal, the principles that serve it, and the rule for a trade-off.
+
+- **Correct:** right in each theme, on the server and after hydration, at each width, and for each input. Never trade it.
+- **Accessible:** the keyboard and ARIA contract that the name promises, with no work at the call site.
+- **Least surprising:** safe defaults, one component for each intent, and no change in behavior without a changeset.
+- **Fast:** an answer in the next frame, a first paint that is final, and a measured cost for a page of many.
+- **Delightful:** for the user, the consumer, and the agent that reads the docs.
+- **Clean:** the smallest change that reads in one pass.
+- **Efficient:** few bytes, DOM nodes, layers, and listeners, and a small context window.
+
 ## Route by task
 
 Read the files for your task before the first edit. Work is incomplete until you check your diff against them.
@@ -16,6 +28,7 @@ Read the files for your task before the first edit. Work is incomplete until you
 - **An import in `packages/mantle/src`, or a part that reads router state:** [docs/framework-boundary.md](./docs/framework-boundary.md).
 - **JSX that renders text beside an element:** [docs/browser-translation.md](./docs/browser-translation.md).
 - **Any animation or transition:** [docs/motion.md](./docs/motion.md). Load the `motion` skill.
+- **A performance change or claim:** [explain the number](./docs/principles/explain-the-number.md) and [COMPONENT_SPEC.md §3.9](./COMPONENT_SPEC.md#39-performance). Measure the base and the branch the same way.
 - **Tests:** [docs/testing.md](./docs/testing.md).
 - **Docs site and recipes** under `apps/www`: [COMPONENT_SPEC.md §7](./COMPONENT_SPEC.md#7-the-docs-page) and the `ngrok-style` skill. The recipe-fence tests pin each recipe file.
 - **Changesets and releases:** [VERSIONING.md](./VERSIONING.md) decides the bump. Mantle is `0.x`: a breaking change is a `minor`, an additive change is a `patch`, and `major` is never correct. Never correct a bump that a maintainer set by hand.
@@ -33,11 +46,12 @@ If a workflow or a skill disagrees with the file it implements, the file wins. R
 
 ## Principles
 
-Each one has a file in [docs/principles/](./docs/principles/README.md). When you change files, name each principle you applied and the decision it changed.
+They are the methods that meet the [north star](#north-star). Each one has a file in [docs/principles/](./docs/principles/README.md). When you change files, name each principle you applied and the decision it changed.
 
 - [Write less code](./docs/principles/write-less-code.md) (code, prose): the smallest change that meets the task.
 - [Subtract before you add](./docs/principles/subtract-before-you-add.md) (code, prose): remove a cause before you guard it.
 - [Reuse before you build](./docs/principles/reuse-before-you-build.md) (code): search for the helper, hook, or part first.
+- [Composition over configuration](./docs/principles/composition-over-configuration.md) (code): small parts first, and never a prop bag.
 - [Minimize reader load](./docs/principles/minimize-reader-load.md) (code, prose): code and prose that read in one pass.
 - [Experience first](./docs/principles/experience-first.md) (code, prose): judge a change at the call site and in the changelog.
 - [Make illegal states unrepresentable](./docs/principles/make-illegal-states-unrepresentable.md) (code): contracts in types.
@@ -52,6 +66,9 @@ Each one has a file in [docs/principles/](./docs/principles/README.md). When you
 - [Sequence verifiable units](./docs/principles/sequence-verifiable-units.md) (code): small steps, each checked.
 - [Encode lessons in structure](./docs/principles/encode-lessons-in-structure.md) (code, prose): a check beats a doc rule.
 - [Guard the context window](./docs/principles/guard-the-context-window.md) (code, prose): load only what the task needs.
+- [Do less in the browser](./docs/principles/do-less-in-the-browser.md) (code): the build, then CSS and the platform, then JavaScript.
+- [Keep the hot path lean](./docs/principles/keep-the-hot-path-lean.md) (code): no repeated work for each frame, event, or item.
+- [Redesign before you cache](./docs/principles/redesign-before-you-cache.md) (code): a cache must beat the best design with no cache.
 
 ## Before you edit
 
@@ -69,7 +86,8 @@ Run checks when a coherent chunk of work is done and again before the final resp
 3. Run `pnpm -w run check:changed` from the repo root, and make it pass. It covers format, lint, agent-doc budgets, typecheck, and tests for each package changed since `origin/main` (`CHECK_BASE` sets another base).
    - Component work also runs the commands in [COMPONENT_SPEC.md §9](./COMPONENT_SPEC.md#9-verification), with the unscoped `pnpm -w run test`.
 4. Every published package that the diff touches has a changeset with the bump from VERSIONING.md.
-5. End with a `Conventions pass:` note that says what you checked. If you did not run a check, say why.
+5. Do the [north-star pass](./docs/north-star.md#how-to-use-the-goals), and put it in the PR description.
+6. End with a `Conventions pass:` note that says what you checked. If you did not run a check, say why.
 
 ## Setup and commands
 

@@ -55,7 +55,8 @@ They follow CONVENTIONS.md and their own docs routes.
 ## 0. Principles
 
 These decide the questions the rest of the spec only mechanizes. Each is a rule with a consequence, not a
-slogan.
+slogan. They are how a component meets the seven goals of the [north star](./docs/north-star.md): correct,
+accessible, least surprising, fast, delightful, clean, and efficient.
 
 1. **Semantic HTML, then everything else.** The right element is the starting point: `Button` renders a
    `<button>`, `Checkbox` a real `<input type="checkbox">`, `Kbd` a real `<kbd>`. Enhancement is layered on
@@ -106,7 +107,8 @@ slogan.
 
 ## 1. Before you scaffold
 
-Answer all of these _before_ writing code. Every one is expensive to change after release.
+Answer all of these _before_ writing code. Every one is expensive to change after release. Then ask what the
+design does to each goal of the [north star](./docs/north-star.md), and choose the design that meets all seven.
 
 ### 1.1. One component per user intent
 
@@ -579,6 +581,35 @@ set `translate="no"` only when the content also belongs on that list. A part tha
 
 [The Browser Translation page](./apps/www/app/docs/browser-translation.mdx) publishes which part ships which
 cure. Read the roster there rather than restating it here, because an enumerated copy drifts.
+
+### 3.9. Performance
+
+[Fast](./docs/north-star.md#fast) and [Efficient](./docs/north-star.md#efficient) are the goals.
+[Do less in the browser](./docs/principles/do-less-in-the-browser.md),
+[keep the hot path lean](./docs/principles/keep-the-hot-path-lean.md), and
+[redesign before you cache](./docs/principles/redesign-before-you-cache.md) are the methods.
+
+- An input changes what the user sees in the next frame. `aria-expanded`, the label, the icon, and focus change
+  on the input, and motion follows ([docs/motion.md](./docs/motion.md) rule 10).
+- The first paint is the final paint ([§3.7](#37-ssr-and-first-paint)). Nothing shifts the layout after it: an
+  image has its `width` and `height`, and content that loads later has its space from the start.
+- Use CSS and the platform before JavaScript: a scroll-driven animation before a scroll listener, a container
+  query before a `ResizeObserver`, and `@starting-style` before a "mounted" flag.
+- A handler for a scroll, a resize, or a pointer move does layout work one time for each frame at most. Do all
+  layout reads together, in one `requestAnimationFrame`. A `ResizeObserver` callback is the exception: it runs
+  after layout and before paint, so a read there is free and its result is in the same frame. Do not move that
+  read into `requestAnimationFrame`.
+- A component that a page holds many times (a row, a cell, a card, a chart) costs its page a measured amount.
+  Share one listener or one observer between the instances. Do no work at mount for an instance that is off
+  screen.
+- A leaf component imports no second component family, and no module has a side effect on import
+  ([§1.7](#17-forbidden-api-shapes)).
+- Do not add `useMemo`, `useCallback`, or `memo` for speed. The React Compiler memoizes each component
+  ([CONVENTIONS.md § React Compiler](./CONVENTIONS.md#react-compiler)).
+- A claim of speed or size gives the base, the branch, the command, and the browser
+  ([explain the number](./docs/principles/explain-the-number.md)). Run the base and the branch in turn.
+- Performance does not win against accessibility. Keep what assistive technology reads, and give the measured
+  cost to the author as a decision ([docs/north-star.md](./docs/north-star.md#when-two-goals-pull-apart)).
 
 ---
 
@@ -1078,6 +1109,12 @@ Run this against the diff before calling a component done. Each line is a defect
 - [ ] Invariants throw descriptively; no `console.error` as handling.
 - [ ] Animation honors reduced motion; SSR renders the final paint.
 - [ ] At a 320px viewport, nothing makes the page scroll sideways or clips content.
+- [ ] An input changes what the user sees in the next frame, and nothing shifts the layout after the first paint
+      ([§3.9](#39-performance)).
+- [ ] No listener or state does a job that CSS or the platform does; a handler for a scroll, a resize, or a
+      pointer move does layout work one time for each frame at most.
+- [ ] A part that a page holds many times shares its listeners and observers, and does no work at mount while
+      it is off screen.
 - [ ] No part leaves text bare beside a sibling: no element mounts in front of it, no keyed list re-sorts in
       front of it, no text child unmounts while a sibling stays, no child swaps between a string and an element,
       and no portal, keyed `Fragment`, array, or text-returning component holds bare text directly.
@@ -1120,6 +1157,8 @@ Run this against the diff before calling a component done. Each line is a defect
 - [ ] Every part that wraps children, portals them, or locks `translate="no"` has a `translateTextNodes`
       regression test that drives the update which used to throw.
 - [ ] All five verification commands pass, and `components-surface.json` is regenerated **and committed**.
+- [ ] Each claim of speed or size gives the base, the branch, and the command.
+- [ ] The PR description has the north-star pass ([docs/north-star.md](./docs/north-star.md#how-to-use-the-goals)).
 
 ---
 

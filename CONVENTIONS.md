@@ -183,6 +183,7 @@ Worked before/after pairs live in the `simplified-technical-english` skill, out 
   - **Why:** the problem, the trigger, and the intended outcome.
   - **How:** the approach in one or two sentences. Do not tour the diff.
   - **Validation:** one line per check. Include only what a reviewer cannot read off CI.
+  - **North star:** one line for each goal of [docs/north-star.md](./docs/north-star.md) that the change affects, and each trade-off with its reason.
   - Investigation detail, rejected alternatives, and links belong here, not in the source.
 - **Cut the boilerplate.** No generated footer, no empty section, no restated file list.
 
