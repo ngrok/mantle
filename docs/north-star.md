@@ -55,17 +55,17 @@ A claim of speed needs a measurement of the base and of the branch.
 
 ## Delightful
 
-The user gets a UI that answers at once, moves only to explain a change, and looks right in each theme. The consumer gets a component that works on the first try from its JSDoc example, a `className` that always wins, and an error that names the bad prop and the fix. The agent gets a docs example that runs as it is.
+The user gets a UI that answers at once, moves only to explain a change, and looks right in each theme. The consumer gets a component that works on the first try from its JSDoc example, a `className` that always wins, and an error that names the bad prop and the fix. A behavior with one right answer is built in: the app sets no prop, and the user changes it by an action that mantle keeps as their preference. The agent gets a docs example that runs as it is.
 
-- **Served by:** [experience first](./principles/experience-first.md) and [minimize reader load](./principles/minimize-reader-load.md).
-- **Signs you missed it:** a step that each app must remember, a silent failure, motion that explains nothing, or an example that does not run.
+- **Served by:** [experience first](./principles/experience-first.md), [build the behavior in](./principles/build-the-behavior-in.md), and [minimize reader load](./principles/minimize-reader-load.md).
+- **Signs you missed it:** a step that each app must remember, a prop that an app must set for the layout to hold, a recipe that each app copies to get a behavior, a silent failure, motion that explains nothing, or an example that does not run.
 
 ## Clean
 
 The change is the smallest that meets the task, and each part reads in one pass. Each export, prop, CSS variable, and data attribute is API that mantle keeps. Small parts that compose come before a prop that configures. The core stays pure, and React and the DOM stay at the edges.
 
-- **Served by:** [write less code](./principles/write-less-code.md), [subtract before you add](./principles/subtract-before-you-add.md), [reuse before you build](./principles/reuse-before-you-build.md), [composition over configuration](./principles/composition-over-configuration.md), [minimize reader load](./principles/minimize-reader-load.md), and [pure core, effects at the edges](./principles/pure-core-effects-at-the-edges.md).
-- **Signs you missed it:** a helper that already exists in `packages/mantle/src`, a prop that no app asked for, a prop that forwards props to an internal element, or a second path for one job.
+- **Served by:** [write less code](./principles/write-less-code.md), [subtract before you add](./principles/subtract-before-you-add.md), [reuse before you build](./principles/reuse-before-you-build.md), [composition over configuration](./principles/composition-over-configuration.md), [build the behavior in](./principles/build-the-behavior-in.md), [minimize reader load](./principles/minimize-reader-load.md), and [pure core, effects at the edges](./principles/pure-core-effects-at-the-edges.md).
+- **Signs you missed it:** a helper that already exists in `packages/mantle/src`, a prop that no named app asked for, a prop that forwards props to an internal element, or a second path for one job.
 
 ## Efficient
 

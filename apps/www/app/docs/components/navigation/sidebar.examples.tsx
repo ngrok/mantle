@@ -2,7 +2,7 @@ import {
 	SidebarAnatomyDemo,
 	SidebarNarrowMenuExample,
 	SidebarPolymorphismDemo,
-	SidebarRailTooltipExample,
+	SidebarCollapsedTooltipExample,
 	SidebarRowWidthMenuExample,
 	SidebarWidthExample,
 } from "~/features/sidebar-demos";
@@ -26,11 +26,11 @@ export function WidthExample() {
 	);
 }
 
-/** The "Labeling the rail for pointer users" example on the Sidebar docs page. */
-export function LabelingTheRailForPointerUsersExample() {
+/** The "Labeling the sidebar for pointer users" example on the Sidebar docs page. */
+export function LabelingTheSidebarForPointerUsersExample() {
 	return (
 		<PreviewCanvas className="min-h-160 p-4 md:p-8">
-			<SidebarRailTooltipExample />
+			<SidebarCollapsedTooltipExample />
 		</PreviewCanvas>
 	);
 }

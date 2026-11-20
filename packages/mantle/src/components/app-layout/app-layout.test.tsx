@@ -1021,15 +1021,15 @@ describe("AppLayout.SidePanel", () => {
 describe("AppLayout.SidePanel as an overlay", () => {
 	const coverQuery = "(width < 48rem)";
 
-	/** A row with a rail, a card holding the outside trigger, and the open panel. */
+	/** A row with a sidebar, a card holding the outside trigger, and the open panel. */
 	const coveringShell = (
 		mobileBreakpoint?: ComponentProps<typeof AppLayout.SidePanel>["mobileBreakpoint"],
 	) => (
 		<TooltipProvider>
 			<AppLayout.SidePanelRoot defaultOpen>
 				<AppLayout.Workspace>
-					<div data-testid="rail">
-						<button type="button">rail</button>
+					<div data-testid="sidebar">
+						<button type="button">sidebar</button>
 					</div>
 					<AppLayout.Content data-testid="card">
 						<AppLayout.SidePanelTrigger label="Toggle the assistant" />
@@ -1128,7 +1128,7 @@ describe("AppLayout.SidePanel as an overlay", () => {
 	test("a covering panel makes the row's other children inert and moves focus inside", () => {
 		mockMatchMedia({ [coverQuery]: true });
 		render(coveringShell());
-		expect(screen.getByTestId("rail")).toHaveAttribute("inert");
+		expect(screen.getByTestId("sidebar")).toHaveAttribute("inert");
 		expect(screen.getByTestId("card")).toHaveAttribute("inert");
 		expect(screen.getByTestId("panel")).not.toHaveAttribute("inert");
 		expect(screen.getByRole("button", { name: "Close the assistant" })).toHaveFocus();

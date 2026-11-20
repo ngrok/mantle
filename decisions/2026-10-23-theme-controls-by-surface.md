@@ -42,7 +42,7 @@ A signed-in app shell shows the theme control in the account menu only. It does 
 
 A choice between two named options (a radio group, or Light and Dark segments) asks the user a question the toggle never asks. The user at a theme control wants to flip the page, so the menu shows the same one-press control as the page header.
 
-The row goes at the top level of the menu. A submenu takes a second hover or key press, and its flyout opens beside a menu that is already narrow when the sidebar is a collapsed icon rail. One row fits the narrowest menu.
+The row goes at the top level of the menu. A submenu takes a second hover or key press, and its flyout opens beside a menu that is already narrow when the sidebar is collapsed. One row fits the narrowest menu.
 
 The menu stays open after a press, and the new theme grows in a circle from the icon, with the same view transition as `ThemeSwitcher`. Because the menu stays open, both snapshots show it, and nothing freezes outside the circle. `mantle.css` exempts `[data-slot~="theme-dropdown-menu-item"]` from the rule that stops transitions during the swap, so the icon swap runs, as it does in the switcher.
 

@@ -27,7 +27,7 @@ import { useState } from "react";
  *    the card's bottom edge instead of hanging below the fold.
  * 3. **Floating actions over the editor.** The editor region is `relative`, so
  *    the absolutely-positioned button group resolves against it rather than
- *    escaping to `AppLayout.Root` and painting across the sidebar rail.
+ *    escaping to `AppLayout.Root` and painting across the sidebar.
  *
  * The "editor" is a static code block: the point is the geometry, not a real
  * editor. Grow the fake policy with the toolbar's button to watch the editor

@@ -1,0 +1,65 @@
+---
+title: Side Panel Lane Collapsed Migration
+description: The theme token --container-side-panel-lane-icon-rail is now --container-side-panel-lane-collapsed. Rename it where you set it or read it.
+introducedIn: "0.95.0"
+---
+
+# Mantle Side Panel Lane Collapsed Migration Guide
+
+The theme token `--container-side-panel-lane-icon-rail` is gone. `--container-side-panel-lane-collapsed` takes its place, with the same default (`46.75rem`) and the same job: the narrowest `AppLayout.Workspace` row that holds a collapsed sidebar, the page, and an `AppLayout.SidePanel`. The Tailwind container variants that the token makes change name with it: `@min-side-panel-lane-icon-rail` and `@max-side-panel-lane-icon-rail` are now `@min-side-panel-lane-collapsed` and `@max-side-panel-lane-collapsed`. `--container-side-panel-lane` keeps its name.
+
+**TL;DR:** Search your CSS and your class strings for `side-panel-lane-icon-rail`, and replace each one with `side-panel-lane-collapsed`. An app that never set the token or used its variants changes nothing.
+
+## Codemod
+
+Codemod: manual: the token is set in a CSS file and read in class strings, and the rules read TSX and TS syntax only. One text search finds each use.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Search every CSS file for `--container-side-panel-lane-icon-rail`. It is set in an `@theme` block when the app has a wider sidebar or side panel. Rename it to `--container-side-panel-lane-collapsed`. Keep the value.
+2. Search every TSX, TS, and CSS file for `side-panel-lane-icon-rail`. Each remaining match is a Tailwind container variant, such as `@max-side-panel-lane-icon-rail/app-layout-workspace:hidden`, or a `var()` read. Replace `side-panel-lane-icon-rail` with `side-panel-lane-collapsed`.
+3. Leave `--container-side-panel-lane` and its variants (`@min-side-panel-lane`, `@max-side-panel-lane`) alone.
+4. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why rename it?** Mantle called the collapsed sidebar "the icon rail", and also used "rail" for the sidebar in each state. The one word had two meanings. The sidebar is now "collapsed" or "expanded" in each name and each doc, the same words that `data-state` on `Sidebar.Nav` already uses.
+
+---
+
+## Before → after
+
+### The token in `@theme`
+
+```css
+/* BEFORE */
+@theme {
+	--container-side-panel-lane: 62rem;
+	--container-side-panel-lane-icon-rail: 52rem;
+}
+
+/* AFTER */
+@theme {
+	--container-side-panel-lane: 62rem;
+	--container-side-panel-lane-collapsed: 52rem;
+}
+```
+
+### A container variant in a class string
+
+```tsx
+// BEFORE
+<div className="@max-side-panel-lane-icon-rail/app-layout-workspace:hidden" />
+
+// AFTER
+<div className="@max-side-panel-lane-collapsed/app-layout-workspace:hidden" />
+```
+
+## Edge cases & gotchas
+
+- A token that you leave under the old name has no effect. Tailwind makes no variant from it that mantle reads, so the side panel uses the default `46.75rem` and gives no error.
+- The docs anchor `#collapsing-to-the-icon-rail` on the Sidebar page is now `#collapsing-the-sidebar`.
+
+## How to verify
+
+Run `rg "side-panel-lane-icon-rail"` in the app. It must find nothing. If the app set the token, open a shell with a collapsed sidebar and an open side panel, and narrow the window: the panel floats below the width that you set.

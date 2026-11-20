@@ -186,7 +186,7 @@ export function RouteHeaderActionsDemo() {
 				<AppLayout.Workspace>
 					<AppLayout.Content>
 						<AppLayout.Header>
-							{/* an app shell puts Sidebar.Trigger here; this embedded demo has no rail */}
+							{/* an app shell puts Sidebar.Trigger here; this embedded demo has no sidebar */}
 							<AppLayout.HeaderStart>
 								<IconButton
 									asChild

@@ -32,7 +32,7 @@ type UseInertSiblingsOptions = {
  *
  * It reaches siblings only, not the rest of the document, so it fits a
  * surface that covers one row of a layout in place: a panel that covers the
- * card and the rail beside it, with a notice above the row still usable.
+ * card and the sidebar beside it, with a notice above the row still usable.
  * Pair it with `useFocusTrap` to keep keyboard focus inside the element.
  *
  * The element must be mounted when `active` turns on; the hook reads the ref

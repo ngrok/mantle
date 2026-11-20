@@ -25,8 +25,8 @@ import { AppLayout } from "./app-layout.js";
  * The ungated `data-state-closed:basis-0` rule stays loaded with no part that
  * uses it, so an ungated utility shows up as a third transition on the floating
  * panel. The row-driven float is loaded for a row
- * with no rail, the only row this file renders, so a lane expectation at a row
- * under the icon-rail threshold fails here the way it does in a real page.
+ * with no sidebar, the only row this file renders, so a lane expectation at a row
+ * under the collapsed sidebar threshold fails here the way it does in a real page.
  */
 const STYLE = `
 @layer theme, base, components, utilities;
@@ -134,27 +134,27 @@ const STYLE = `
 		container-name: app-layout-workspace;
 	}
 	@container app-layout-workspace (width < 46.75rem) {
-		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:absolute { position: absolute; }
-		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:inset-y-\\(--app-layout-card-gutter\\,0\\.5rem\\) { inset-block: var(--app-layout-card-gutter,0.5rem); }
-		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:right-\\(--app-layout-card-gutter\\,0\\.5rem\\) { right: var(--app-layout-card-gutter,0.5rem); }
-		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:z-20 { z-index: 20; }
-		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:my-0 { margin-block: 0px; }
-		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:\\[--_side-panel-content-width\\:100\\%\\] { --_side-panel-content-width: 100%; }
-		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:\\[--_side-panel-content-inset\\:0px\\] { --_side-panel-content-inset: 0px; }
-		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:data-state-closed\\:invisible[data-state~=closed] { visibility: hidden; }
-		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:data-state-closed\\:translate-x-\\[calc\\(100\\%\\+var\\(--app-layout-card-gutter\\,0\\.5rem\\)\\)\\][data-state~=closed] {
+		.\\@max-side-panel-lane-collapsed\\/app-layout-workspace\\:absolute { position: absolute; }
+		.\\@max-side-panel-lane-collapsed\\/app-layout-workspace\\:inset-y-\\(--app-layout-card-gutter\\,0\\.5rem\\) { inset-block: var(--app-layout-card-gutter,0.5rem); }
+		.\\@max-side-panel-lane-collapsed\\/app-layout-workspace\\:right-\\(--app-layout-card-gutter\\,0\\.5rem\\) { right: var(--app-layout-card-gutter,0.5rem); }
+		.\\@max-side-panel-lane-collapsed\\/app-layout-workspace\\:z-20 { z-index: 20; }
+		.\\@max-side-panel-lane-collapsed\\/app-layout-workspace\\:my-0 { margin-block: 0px; }
+		.\\@max-side-panel-lane-collapsed\\/app-layout-workspace\\:\\[--_side-panel-content-width\\:100\\%\\] { --_side-panel-content-width: 100%; }
+		.\\@max-side-panel-lane-collapsed\\/app-layout-workspace\\:\\[--_side-panel-content-inset\\:0px\\] { --_side-panel-content-inset: 0px; }
+		.\\@max-side-panel-lane-collapsed\\/app-layout-workspace\\:data-state-closed\\:invisible[data-state~=closed] { visibility: hidden; }
+		.\\@max-side-panel-lane-collapsed\\/app-layout-workspace\\:data-state-closed\\:translate-x-\\[calc\\(100\\%\\+var\\(--app-layout-card-gutter\\,0\\.5rem\\)\\)\\][data-state~=closed] {
 			--tw-translate-x: calc(100% + var(--app-layout-card-gutter,0.5rem));
 			translate: var(--tw-translate-x) var(--tw-translate-y);
 		}
 	}
 	@media (width >= 40rem) {
 		@container app-layout-workspace (width < 46.75rem) {
-			.sm\\:\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100cqw-5rem\\)\\)\\] { width: min(24rem, calc(100cqw - 5rem)); }
+			.sm\\:\\@max-side-panel-lane-collapsed\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100cqw-5rem\\)\\)\\] { width: min(24rem, calc(100cqw - 5rem)); }
 		}
 	}
 	@media (width >= 48rem) {
 		@container app-layout-workspace (width < 46.75rem) {
-			.md\\:\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100cqw-5rem\\)\\)\\] { width: min(24rem, calc(100cqw - 5rem)); }
+			.md\\:\\@max-side-panel-lane-collapsed\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100cqw-5rem\\)\\)\\] { width: min(24rem, calc(100cqw - 5rem)); }
 		}
 	}
 	@media (width >= 40rem) {
@@ -162,7 +162,7 @@ const STYLE = `
 			.sm\\:\\@min-side-panel-lane\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
 		}
 		@container app-layout-workspace (width >= 46.75rem) {
-			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed]))) .sm\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)\\)_\\&\\]\\:\\@min-side-panel-lane-icon-rail\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed]))) .sm\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)\\)_\\&\\]\\:\\@min-side-panel-lane-collapsed\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
 		}
 	}
 	@media (width >= 48rem) {
@@ -170,7 +170,7 @@ const STYLE = `
 			.md\\:\\@min-side-panel-lane\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
 		}
 		@container app-layout-workspace (width >= 46.75rem) {
-			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed]))) .md\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)\\)_\\&\\]\\:\\@min-side-panel-lane-icon-rail\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed]))) .md\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)\\)_\\&\\]\\:\\@min-side-panel-lane-collapsed\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
 		}
 	}
 	@media (width >= 64rem) {
@@ -178,7 +178,7 @@ const STYLE = `
 			.lg\\:\\@min-side-panel-lane\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
 		}
 		@container app-layout-workspace (width >= 46.75rem) {
-			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed]))) .lg\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)\\)_\\&\\]\\:\\@min-side-panel-lane-icon-rail\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed]))) .lg\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)\\)_\\&\\]\\:\\@min-side-panel-lane-collapsed\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
 		}
 	}
 	@media (width < 64rem) {
@@ -439,7 +439,7 @@ describe("AppLayout.SidePanel lane", () => {
 	test("sizes the default open width from the row, not the viewport", async () => {
 		// Why: the lane tokens budget the panel at its 21rem floor. A 24vw default
 		// on a 1920px viewport is 27rem, and in a 60rem row beside an expanded
-		// rail that leaves the page narrower than the panel.
+		// sidebar that leaves the page narrower than the panel.
 		await page.viewport(1920, 800);
 		render(<Shell panel="open" rootWidth={960} />);
 		const panel = screen.getByTestId("panel");
@@ -585,7 +585,7 @@ describe("AppLayout.SidePanel lane", () => {
 
 	test.each([
 		// Why 760 for sm: the row is the viewport here, and a 700px row is under
-		// the icon-rail lane (46.75rem), so the row rule would float the panel.
+		// the collapsed sidebar lane (46.75rem), so the row rule would float the panel.
 		["sm", 760],
 		["md", 800],
 		["lg", 1100],

@@ -31,8 +31,8 @@ type CommandSearchTriggerProps = Omit<ComponentProps<typeof Slot>, "children"> &
  * Makes any control behave like a search field that opens the command palette.
  * It renders no DOM of its own (it clones its child and gives it the wiring),
  * so **presentation belongs entirely to the child**. This part never has an
- * opinion about how the trigger looks or how it behaves in a collapsed sidebar
- * rail.
+ * opinion about how the trigger looks or how it behaves in a collapsed
+ * sidebar.
  *
  * The child stays a `<button>`, not a text field, even when it looks like one:
  * it opens a modal palette, so a screen reader hears "has popup dialog,
@@ -111,7 +111,7 @@ type CommandSearchTriggerProps = Omit<ComponentProps<typeof Slot>, "children"> &
  * @example
  * In a sidebar, where `Sidebar.SearchTrigger` owns the row's appearance in both
  * panel states (including its hover-revealed shortcut hint) and
- * `Sidebar.Tooltip` labels it in the collapsed rail. `Command.DialogRoot` sits
+ * `Sidebar.Tooltip` labels it in the collapsed sidebar. `Command.DialogRoot` sits
  * above `Sidebar.Nav`: below `mobileBreakpoint` the nav is a sheet that
  * unmounts its subtree when it closes, and a root inside it takes the `⌘K`
  * binding with it.

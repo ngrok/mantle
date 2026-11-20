@@ -15,7 +15,6 @@ import { flushSync } from "react-dom";
 import {
 	AssistantPage,
 	AssistantPanel,
-	AssistantSidebarRoot,
 	assistantPath,
 	assistantViewTransitionClassName,
 	crossesAssistant,
@@ -205,7 +204,7 @@ function DemoDomainsPage() {
 }
 
 /**
- * The rail. Lives inside `Sidebar.Root`, so it can close the mobile sheet when
+ * The sidebar. Lives inside `Sidebar.Root`, so it can close the mobile sheet when
  * a row "navigates", the same shape a real app uses with its router.
  */
 function DemoNav({
@@ -285,7 +284,7 @@ export function AssistantAcrossRoutesDemo() {
 			    the preference from the side panel cookie in its loader instead. */}
 			<AppLayout.SidePanelRoot defaultOpen>
 				{/* the framed demo narrows the mobile breakpoints; most apps keep the "lg" default */}
-				<AssistantSidebarRoot panelMounted={!onAssistantPage} mobileBreakpoint="md">
+				<Sidebar.Root mobileBreakpoint="md">
 					<AppLayout.Root className="fixed inset-0">
 						<SkipToMainLink />
 						<AppLayout.Workspace>
@@ -300,7 +299,7 @@ export function AssistantAcrossRoutesDemo() {
 							{!onAssistantPage && <AssistantPanel mobileBreakpoint="md" />}
 						</AppLayout.Workspace>
 					</AppLayout.Root>
-				</AssistantSidebarRoot>
+				</Sidebar.Root>
 			</AppLayout.SidePanelRoot>
 		</AssistantConversationProvider>
 	);

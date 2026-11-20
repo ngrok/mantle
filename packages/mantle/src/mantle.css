@@ -213,15 +213,15 @@ in a plain stylesheet (a third-party widget override) resolves to nothing.
 			opacity: 1;
 		}
 	}
-	/* The narrowest workspace row that holds the expanded rail (13rem), the content card at
+	/* The narrowest workspace row that holds the expanded sidebar (13rem), the content card at
 	   the side panel's floor (21rem), the panel itself (21rem), and the three gutters (1.5rem).
 	   Below it `AppLayout.SidePanel` floats over the card, so the page is never narrower than
 	   the panel beside it. The budget holds whatever the viewport is: the panel's default width
 	   reads the row (`24cqw`), so it sits at the floor in every row up to 87.5rem. */
 	--container-side-panel-lane: 56.5rem;
-	/* The same row with the icon rail (3.25rem) in place of the expanded one, or with no rail.
+	/* The same row with the collapsed sidebar (3.25rem) in place of the expanded one, or with no sidebar.
 	   `AppLayout.SidePanel` reads this threshold when the row holds no expanded `Sidebar.Nav`. */
-	--container-side-panel-lane-icon-rail: 46.75rem;
+	--container-side-panel-lane-collapsed: 46.75rem;
 	--font-sans: "Roobert", ui-sans-serif, system-ui, sans-serif;
 	--font-mono:
 		"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono,
@@ -1196,7 +1196,7 @@ MARK: COMPONENT GEOMETRY
    switcher's menu renders in a portal on `document.body`, so it inherits
    nothing the sidebar sets; declaring the row width here is what lets such a
    menu stay as wide as the expanded row while the panel is collapsed to the
-   icon rail (`min-w-(--sidebar-row-width)` on the menu content). Resolved at
+   collapsed sidebar (`min-w-(--sidebar-row-width)` on the menu content). Resolved at
    `:root`, so a per-sidebar `--sidebar-width` override set on `Sidebar.Nav`
    does not reach it in either direction: a narrower panel leaves the floor
    wider than its row. Override `--sidebar-width` here to move both (and
