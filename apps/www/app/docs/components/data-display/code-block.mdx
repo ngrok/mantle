@@ -624,6 +624,7 @@ The two parts differ on whether a call site may turn the guard off. `CodeBlock.C
 - `CodeBlock.CopyButton` is an icon button named by `label` (default "Copy code"). After a copy, an always-mounted `role="status"` element beside the button announces "Copied", so a screen-reader user hears the result and not only the icon swap.
 - `CodeBlock.ExpanderButton` carries `aria-expanded` and `aria-controls` that points at the `<pre>`. The `<pre>` itself carries no ARIA state; `data-state="collapsed" | "expanded"` drives the styling.
 - Fold toggles are real `<button>` elements named "Toggle code folding" with `aria-expanded`. Enter and Space toggle them. The folded marker is `aria-hidden`.
+- On a touch screen (`pointer: coarse`), a code block with fold toggles uses a 24px line height instead of 20px. The toggles of adjacent lines are then 24px apart, the spacing that WCAG 2.5.8 needs.
 - Line numbers are `aria-hidden`, so a screen reader reads the code, not "1 const x".
 - `CodeBlock.Code` and `CodeBlock.Title` carry `translate="no"`; see [Translation](#translation).
 

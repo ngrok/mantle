@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import axe from "axe-core";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import mantleCss from "../../mantle.css?raw";
 import { CodeBlock } from "./code-block.js";
@@ -224,6 +225,22 @@ describe("CodeBlock (browser)", () => {
 			throw new Error("mantle.css holds no hit-area rules for the fold toggle.");
 		}
 		return match[0];
+	}
+
+	/**
+	 * The coarse-pointer rules of the fold toggle, read from `mantle.css` with
+	 * the media query removed: the test browser has a fine pointer.
+	 */
+	function foldCoarsePointerCss(): string {
+		const match =
+			/@media \(pointer: coarse\) \{\n(\tpre\[data-slot="code-block-code"\]:has\(\.mantle-code-fold-toggle\) \{[\s\S]*?)\n\}/.exec(
+				mantleCss,
+			);
+		const rules = match?.[1];
+		if (rules == null) {
+			throw new Error("mantle.css holds no coarse-pointer rules for the fold toggle.");
+		}
+		return rules;
 	}
 
 	let styleElement: HTMLStyleElement;
@@ -472,6 +489,53 @@ describe("CodeBlock (browser)", () => {
 				expect(document.elementFromPoint(rect.left - 11, rect.bottom + 2)).not.toBe(inner);
 			},
 		);
+	});
+
+	describe("fold toggle target size", () => {
+		function renderAdjacentToggles() {
+			return render(
+				// Why the type scale: `text-mono` on the <pre> sets it, and the test page loads no Tailwind.
+				<div style={{ width: 340, fontSize: "0.8125rem", lineHeight: "1.25rem" }}>
+					<CodeBlock.Root>
+						<CodeBlock.Body>
+							<CodeBlock.Code
+								value={makeFixedWidthValue([100, 100, 100, 100], {
+									showLineNumbers: true,
+									foldableRanges: [
+										{ id: "1", startLine: 1, endLine: 4 },
+										{ id: "2", startLine: 2, endLine: 3 },
+									],
+								})}
+							/>
+						</CodeBlock.Body>
+					</CodeBlock.Root>
+				</div>,
+			);
+		}
+
+		async function targetSizeViolations(container: HTMLElement) {
+			const results = await axe.run(container, { runOnly: ["target-size"] });
+			return results.violations.flatMap((violation) => violation.nodes);
+		}
+
+		test("the toggles of adjacent lines fail the audit at the fine-pointer line height", async () => {
+			const { container } = renderAdjacentToggles();
+
+			expect(await targetSizeViolations(container)).toHaveLength(2);
+		});
+
+		test("the toggles of adjacent lines pass the audit with the coarse-pointer rules", async () => {
+			const coarse = document.createElement("style");
+			coarse.textContent = foldCoarsePointerCss();
+			document.head.appendChild(coarse);
+			try {
+				const { container } = renderAdjacentToggles();
+
+				expect(await targetSizeViolations(container)).toEqual([]);
+			} finally {
+				coarse.remove();
+			}
+		});
 	});
 
 	describe("tab row overflow", () => {

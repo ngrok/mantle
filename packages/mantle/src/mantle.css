@@ -1886,6 +1886,22 @@ pre[data-mantle-line-numbers="true"] .mantle-code-fold-toggle {
 	position: relative;
 }
 
+/*
+ * Why: on a touch screen, adjacent targets need 24px between their centers
+ * (WCAG 2.5.8). An audit measures the box of the toggle, not the hit area
+ * above, and the toggles of adjacent lines are one line apart: 20px. Foldable
+ * code thus gets 24px lines on a coarse pointer, and each toggle fills its line.
+ */
+@media (pointer: coarse) {
+	pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) {
+		line-height: 1.5rem;
+	}
+
+	.mantle-code-fold-toggle {
+		height: 1.5rem;
+	}
+}
+
 .mantle-code-fold-toggle:hover {
 	color: var(--mantle-code-fold-toggle-hover-color);
 }
