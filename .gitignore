@@ -37,3 +37,6 @@ tmp
 local
 .playwright-mcp
 mise.local.toml
+
+# Amp orb portal metadata
+.amp/portals/*
