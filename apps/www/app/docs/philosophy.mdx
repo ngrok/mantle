@@ -278,6 +278,17 @@ static black-on-white in every theme because inverted codes fail real scanners. 
 wrapped event handlers run your callback first and bail if you called
 `event.preventDefault()`.
 
+## Behavior is built in
+
+When a behavior has one right answer, Mantle does it and gives you no prop for it. The
+[Sidebar](/components/navigation/sidebar) collapses while an open
+[side panel](/layouts/app-layout#side-panel) needs the width, and expands again when the
+panel closes. Your app wires nothing. A prop is for a product decision that differs
+between apps. A preference belongs to the person at the screen: the
+[ThemeSwitcher](/components/forms/theme-switcher) follows the system theme until they pick one,
+and the sidebar follows the layout until they toggle it. Not everything is configurable,
+and that is on purpose: each prop is one more thing your app can set wrong.
+
 ## Docs are executable contracts
 
 Every export carries JSDoc with `@example` blocks and when-to-use guidance, and those

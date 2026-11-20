@@ -28,13 +28,13 @@ The canonical composition pairs the shell with the [Sidebar](/components/navigat
 deliberately decoupled (`AppLayout` never references sidebar state) but cohesive: wrap the shell in
 `Sidebar.Root`, place `Sidebar.Nav` as the first child of `AppLayout.Workspace`, and put `Sidebar.Trigger`
 in `AppLayout.HeaderStart`. The
-[collapsed icon rail](/components/navigation/sidebar#collapsing-to-the-icon-rail) is entirely the sidebar's
-business: the shell markup does not change, and the rail shares the shell's `bg-base` surface, so the card
+[collapsed sidebar](/components/navigation/sidebar#collapsing-the-sidebar) is entirely the sidebar's
+business: the shell markup does not change, and the sidebar shares the shell's `bg-base` surface, so the card
 gutter shows no seam. Every row here is wrapped in
-[`Sidebar.Tooltip`](/components/navigation/sidebar#sidebartooltip), which is what labels the rail for
+[`Sidebar.Tooltip`](/components/navigation/sidebar#sidebartooltip), which is what labels the sidebar for
 pointer users once it collapses; it needs a `TooltipProvider` ancestor, which a real app mounts at its root.
 The demo runs in its own framed document, exactly like a real app: collapse
-the sidebar to its icon rail with the trigger (or <kbd translate="no">⌘B</kbd>/<kbd translate="no">Ctrl+B</kbd>; the shortcut binds to
+the sidebar to its icons with the trigger (or <kbd translate="no">⌘B</kbd>/<kbd translate="no">Ctrl+B</kbd>; the shortcut binds to
 the frame, not this page), hover a row to see its tooltip, and reopen it the same way, toggle the
 notice to see the strip push the whole shell (sidebar included) down, and switch the preview to the mobile
 viewport for the sheet presentation. The sidebar's footer stays put through all of it: the account-scoped
@@ -42,7 +42,7 @@ rows every product shares, a **Help** menu row, and the account switcher row. Th
 a second **section** of navigation:
 choose **Account settings** from that account menu and the header's product
 switcher becomes a back link while the body swaps to the settings nav: the shell markup is identical, the
-`<nav>` landmark renames itself, the icon rail keeps working, and the back link returns to the product page
+`<nav>` landmark renames itself, the collapsed sidebar keeps working, and the back link returns to the product page
 you left. The demo narrows the sidebar's `mobileBreakpoint` to `md`
 so the desktop panel survives the preview's desktop and tablet widths; ngrok's dashboards keep the `lg`
 default.
@@ -167,7 +167,7 @@ function ProductSwitcher({
 	return (
 		<Dialog.Root>
 			{/* Sidebar.Tooltip wraps the trigger, so the row is still labelled once the
-			    sidebar collapses to its icon rail */}
+			    sidebar collapses to its icons */}
 			<Sidebar.Tooltip label={product.label}>
 				<Dialog.Trigger asChild>
 					<Sidebar.SwitcherTrigger>
@@ -208,7 +208,7 @@ function ProductSwitcher({
  * The sidebar header while the settings section is showing: one full-width row
  * that leaves the section, in the same header band the product switcher owns the
  * rest of the time. The whole row is the affordance, so it is a single
- * `Sidebar.ItemButton` that collapses to the arrow chip on the icon rail.
+ * `Sidebar.ItemButton` that collapses to the arrow chip on the collapsed sidebar.
  */
 function SettingsHeader({
 	onBack,
@@ -306,7 +306,7 @@ function HelpMenu() {
 				</DropdownMenu.Trigger>
 			</Sidebar.Tooltip>
 			{/* trigger width keeps the menu flush with the row; the row-width floor
-			    keeps it there once the row shrinks into the icon rail */}
+			    keeps it there once the row shrinks into the collapsed sidebar */}
 			<DropdownMenu.Content
 				align="start"
 				side="top"
@@ -745,14 +745,14 @@ AppLayout.Root
   empty. Optional.
 - **`Workspace`** is the region where the user works: everything below the notice, laid out as a flex row of
   columns (`relative flex min-h-0 min-w-0 flex-1`).
-  Place a [`Sidebar.Nav`](/components/navigation/sidebar) (or any other rail, on either side) beside the
+  Place a [`Sidebar.Nav`](/components/navigation/sidebar) (or any other sidebar, on either side) beside the
   `Content` card, and a `SidePanel` after it. The `min-h-0` is what lets `Body` scroll instead of the page.
-  It owns **no gutter**, deliberately, so a rail stays flush against the window edge and a collapsed icon
-  rail keeps its flush geometry. It fills the frame at any width.
+  It owns **no gutter**, deliberately, so a sidebar stays flush against the window edge and a collapsed
+  sidebar keeps its flush geometry. It fills the frame at any width.
 - **`Content`** is the card surface: `bg-card border-card-muted relative m-(--app-layout-card-gutter,0.5rem) flex min-w-0 flex-1 flex-col
 overflow-clip rounded-xl border shadow-sm`. It insets **itself** with its own margin
   (`--app-layout-card-gutter`), because the gutter has to belong to the card rather than to a wrapper: the
-  only other element that could hold it also contains the rail. It does **not** scroll.
+  only other element that could hold it also contains the sidebar. It does **not** scroll.
 - **`Header`** is the toolbar row, `Content`'s **first child** (`flex h-14 shrink-0` with a hairline border
   beneath it). Its three slots hold the `Sidebar.Trigger`, the
   [Breadcrumb](/components/navigation/breadcrumb) trail, and the page's actions. It is `h-14` standalone; with a
@@ -777,14 +777,14 @@ overflow-clip rounded-xl border shadow-sm`. It insets **itself** with its own ma
   renders into. Pin it inside `Body` instead:
   [Pinning a footer to the card](#pinning-a-footer-to-the-card).
 - **`SidePanelRoot`** is the renderless state owner for the side panel, the way `Sidebar.Root` owns the
-  rail: `open` + `onOpenChange` controlled, or `defaultOpen` uncontrolled, closed by default. Wrap
+  sidebar: `open` + `onOpenChange` controlled, or `defaultOpen` uncontrolled, closed by default. Wrap
   `Workspace` with it, or anything above both the trigger and the panel. Optional, with the panel.
 - **`SidePanel`** is a second card after `Content`, for an assistant or a details pane. It renders an
   `<aside>` with the card treatment. Open, it takes `--app-layout-side-panel-width` beside the card;
   closed, it collapses to nothing and goes `inert` with its children still mounted; below
   `mobileBreakpoint` it floats over the card. See [Side panel](#side-panel). Optional.
 - **`SidePanelTrigger`** is the ghost `IconButton` that toggles the panel, the way `Sidebar.Trigger`
-  toggles the rail, with `aria-expanded` and `aria-controls` wired to it. One in `HeaderActions` opens
+  toggles the sidebar, with `aria-expanded` and `aria-controls` wired to it. One in `HeaderActions` opens
   the panel; one in `SidePanelHeader` with a close icon closes it from inside.
 - **`SidePanelHeader`** is the panel's toolbar row and its **first child**
   (`flex shrink-0 items-center gap-2 border-b px-4`): the title at the start, the close control at the end.
@@ -1025,7 +1025,7 @@ usable:
 - **`AppLayout.SidePanelFooter`** is the bar pinned to the bottom edge, outside the scroll region: a
   composer, a save row, a status line. Optional.
 
-The state lives in `AppLayout.SidePanelRoot`, the way the rail's lives in
+The state lives in `AppLayout.SidePanelRoot`, the way the sidebar's lives in
 [`Sidebar.Root`](/components/navigation/sidebar#sidebarroot): `open` + `onOpenChange` controlled, or
 `defaultOpen` uncontrolled, closed by default. It is renderless, so wrap `AppLayout.Workspace` with it, or
 anything above both the trigger and the panel. `AppLayout.SidePanelTrigger` is the ghost `IconButton` that
@@ -1042,7 +1042,7 @@ custom control composes the same state from [`useSidePanel`](#usesidepanel).
 - **Closed**, the panel collapses to nothing and goes `inert`, so nothing inside it is focusable, clickable,
   or read by assistive technology. Its children stay mounted: a conversation keeps its scroll position and
   its in-flight reply across a close and a reopen.
-- **Between the two**, the panel moves the way the rail collapses: `flex-basis` alone animates over 200ms
+- **Between the two**, the panel moves the way the sidebar collapses: `flex-basis` alone animates over 200ms
   (`ease-out-strong`). The `<aside>` is a clip box, and the card is an inner column pinned to the row's end
   inset at the open width, so the header, the body, and the footer never reflow or move; the box's start
   edge sweeps across them. A CSS transition reverses from wherever it is, so a second click mid-flight turns
@@ -1052,24 +1052,23 @@ custom control composes the same state from [`useSidePanel`](#usesidepanel).
   - The transition holds until one frame after hydration, so a state the client corrects after the server
     render snaps instead of sliding on page load.
   - When a close ends, the transition stays off until the next open. A closed panel snaps when the viewport
-    crosses `mobileBreakpoint` or the rail changes.
+    crosses `mobileBreakpoint` or the sidebar changes.
 - **Below `mobileBreakpoint`** (`lg` by default), the panel floats over the card instead of taking width from
   it: pinned to the row's end edge inside the card gutter, `min(24rem, 100cqw - 5rem)` wide (24rem, or the
   row less a 5rem strip of page when the row is narrower), with a larger shadow. Closed, it slides off the end edge and goes `invisible` the instant the slide ends (`visibility`
   rides the transition), so a row narrower than the frame has no panel strip beside it. One breakpoint lower it covers the card from gutter to gutter. With `"sm"` there is no lower
   breakpoint, so the panel covers the card from gutter to gutter as soon as it floats. Two cards side by
-  side in 900px are two unusable cards. Match the prop to `Sidebar.Root`'s `mobileBreakpoint`, so the rail
+  side in 900px are two unusable cards. Match the prop to `Sidebar.Root`'s `mobileBreakpoint`, so the sidebar
   and the panel change presentation at one width.
 - **When the row is too narrow**, the panel floats the same way whatever the viewport is. `AppLayout.Workspace`
   is the container named `app-layout-workspace`, and the panel leaves the row below the lane it needs. The
-  lane depends on the rail beside the card. While a direct child of the row is an expanded `Sidebar.Nav`,
-  it is the `--container-side-panel-lane` theme token (56.5rem: the expanded rail, the card at the panel's
-  floor, the panel, and the three gutters). With a collapsed rail, no rail, or a rail that is a sheet, it is
-  `--container-side-panel-lane-icon-rail` (46.75rem: the same row with the icon rail). The page is never
-  narrower than the panel beside it: an expanded rail at a tablet width floats the panel instead of
-  squeezing the page, and collapsing the rail returns the panel to the lane. Set
-  [`yieldToSidePanel`](/components/navigation/sidebar#yielding-to-a-side-panel) on `Sidebar.Root`, and the
-  rail collapses for the reader when the panel opens. A wider rail or panel raises the tokens in `@theme`.
+  lane depends on the sidebar beside the card. While a direct child of the row is an expanded `Sidebar.Nav`,
+  it is the `--container-side-panel-lane` theme token (56.5rem: the expanded sidebar, the card at the panel's
+  floor, the panel, and the three gutters). With a collapsed sidebar, no sidebar, or a sidebar that is a sheet, it is
+  `--container-side-panel-lane-collapsed` (46.75rem: the same row with the collapsed sidebar). The page is never
+  narrower than the panel beside it: an expanded sidebar at a tablet width floats the panel instead of
+  squeezing the page, and collapsing the sidebar returns the panel to the lane. A `Sidebar.Root` in the same shell does that for the reader:
+  [the sidebar yields its width](/components/navigation/sidebar#yielding-to-a-side-panel) when the panel opens. A wider sidebar or panel raises the tokens in `@theme`.
 - **A swipe closes it in every presentation.** A drag on `AppLayout.SidePanelHeader` toward the end edge
   follows the pointer one to one: a floating panel slides, and a panel in the lane shrinks the way its
   close animation does, so the page grows under the finger. A release past 25% of the panel's width, or a
@@ -1077,7 +1076,7 @@ custom control composes the same state from [`useSidePanel`](#usesidepanel).
 - **Floating, the panel is an overlay** the reader can also dismiss with `Escape` while focus is inside.
   An open combobox or popover inside the panel takes the first `Escape`, and the next one closes the panel.
   The page beneath stays usable. A panel in the lane is a docked pane and ignores `Escape`.
-- **Covering, the panel is modal.** The row's other children, the card and the rail, go `inert` while it
+- **Covering, the panel is modal.** The row's other children, the card and the sidebar, go `inert` while it
   is open, so nothing beneath it is clickable or read, and [`useFocusTrap`](/hooks#usefocustrap) wraps
   `Tab` inside it and moves focus into it on open. The one `<aside>` stays mounted across the lane, the
   float, and the cover, so a conversation keeps its DOM and the trap turns on and off with the viewport.
@@ -1092,8 +1091,8 @@ every close, whether a trigger, `setOpen`, or a controlled parent closed the pan
 at the current breakpoint, or a disabled one, cannot take focus either, so a responsive header with one
 trigger per breakpoint lands on the visible one. Open the assistant from the header and close it from its
 own header. The demo narrows both breakpoints to `md`. The tablet preset is 48rem, narrower than the lane
-the panel needs beside an expanded rail, so the panel floats there; collapse the rail with its trigger and
-the panel returns to the lane beside the page. Switch the preview to the mobile viewport to see it cover the
+the panel needs beside an expanded sidebar, so the sidebar collapses when the panel opens, and the panel sits
+in the lane beside the page. Expand the sidebar with its trigger, and the panel floats over the page. Switch the preview to the mobile viewport to see it cover the
 card.
 
 An assistant can also be a page of its own. [Assistant Across Routes](/recipes/assistant-across-routes)
@@ -1234,7 +1233,7 @@ export function Shell() {
 
 A cookie is the only storage the **server** can read, so it is the only way to render the panel's state into
 the initial HTML with no first-frame correction at all. `@ngrok/mantle/app-layout` ships the pair for it,
-the same pair the sidebar ships for its rail
+the same pair the sidebar ships for its collapsed state
 ([`extractSidebarStateCookie`](/components/navigation/sidebar#extractsidebarstatecookie)): read the cookie
 in the loader, pass the result to `defaultOpen`, and write it back from `onOpenChange`.
 
@@ -1317,7 +1316,7 @@ toggles the panel.
 With **storage-backed** persistence instead (`useLocalStorage`), use controlled `open`: the stored value is
 not available at the hydration render, so a `defaultOpen` read from it is wrong once. The panel holds its
 transition until one frame after hydration, so that correction snaps shut instead of sliding, the same way
-the rail does.
+the sidebar does.
 
 ## One header per page
 
@@ -1325,7 +1324,7 @@ the rail does.
 > Every page in an app that renders `AppLayout` renders one `AppLayout.Header`, and that header holds at
 > minimum `AppLayout.HeaderStart` with `Sidebar.Trigger` and `AppLayout.HeaderContent` with the route's
 > breadcrumb trail. This is a hard requirement. The sidebar can collapse at every breakpoint, and
-> `Sidebar.Trigger` is the only way back from a collapsed rail or a closed mobile sheet.
+> `Sidebar.Trigger` is the only way back from a collapsed sidebar or a closed mobile sheet.
 
 The canonical shell gives each route its header. The shell renders `AppLayout.Content` around its
 `<Outlet />`, and each route renders `AppLayout.Header` and `AppLayout.Body` itself, so an action reads the
@@ -1649,7 +1648,7 @@ Why each class on `AppLayout.Body` is there, and what breaks without it:
   conflict group) survives beside it and clamps the scrollport. Constrain the _page_ inside `Body`, not
   `Body` itself.
 - **`relative`** contains absolutely-positioned page content: a toolbar floating over an editor resolves
-  against the scrollport instead of escaping to `AppLayout.Root` and painting across the sidebar rail.
+  against the scrollport instead of escaping to `AppLayout.Root` and painting across the sidebar.
 
 ### Editor page
 
@@ -2173,7 +2172,7 @@ export function Shell() {
   whole window) out of view.
 - **Every page renders one `AppLayout.Header`, with `Sidebar.Trigger` in `AppLayout.HeaderStart` and the
   route's trail in `AppLayout.HeaderContent`.** The sidebar can collapse at every breakpoint, and
-  `Sidebar.Trigger` is the only way back from a collapsed rail or a closed mobile sheet. A page with a
+  `Sidebar.Trigger` is the only way back from a collapsed sidebar or a closed mobile sheet. A page with a
   collapsible sidebar and no visible trigger is unrecoverable. [One header per page](#one-header-per-page)
   is the canonical shell that meets it.
 - `AppLayout.SidePanel` renders an `<aside>`, the `complementary` landmark. Name it with `aria-label`, so a
@@ -2184,7 +2183,7 @@ export function Shell() {
   whether a trigger, `setOpen`, or a controlled parent closed the panel. A trigger that CSS hides at the
   current breakpoint, or a disabled one, cannot take focus either, so a responsive header with one trigger
   per breakpoint lands on the visible one (see [Side panel](#side-panel)). Floating, the panel closes on
-  `Escape`. Covering the card, it is modal: the card and the rail go `inert`, and a focus trap wraps `Tab`
+  `Escape`. Covering the card, it is modal: the card and the sidebar go `inert`, and a focus trap wraps `Tab`
   inside it; the landmark keeps its name.
 - `AppLayout.SidePanelTrigger` carries `aria-expanded` and `aria-controls` for the panel, and a tooltip
   with its label, since it is icon-only. Keep one outside the panel at every breakpoint, or a closed panel
@@ -2208,7 +2207,7 @@ shell itself never scrolls. Only [`AppLayout.Body`](#applayoutbody) does. When t
 
 It is `overflow-clip`, not `overflow-hidden`, for the same reason
 [`AppLayout.Content`](#applayoutcontent) is: `hidden` **is** a scroll container that paints no scrollbar, so
-anything wider than the frame lets focus scroll the entire shell sideways. That translates the notice, the rail,
+anything wider than the frame lets focus scroll the entire shell sideways. That translates the notice, the sidebar,
 and the card out of view with no scrollbar and no gesture to bring them back. On a frame pinned with
 `fixed inset-0` that is the whole window. `clip` is not a scroll container at all.
 
@@ -2237,19 +2236,19 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 The region where the user works: everything below the notice, laid out as a flex row of columns
 (`relative flex min-h-0 min-w-0 flex-1`). Place a
-[`Sidebar.Nav`](/components/navigation/sidebar) (or any other rail, on either side) beside the
+[`Sidebar.Nav`](/components/navigation/sidebar) (or any other sidebar, on either side) beside the
 `AppLayout.Content` card, and an [`AppLayout.SidePanel`](#applayoutsidepanel) after the card. The `min-h-0`
 is what lets `AppLayout.Body` scroll instead of the page.
 
-It owns **no gutter**, deliberately: the card insets itself with its own margin, so a rail stays flush
-against the window edge and a [collapsed icon rail](/components/navigation/sidebar#collapsing-to-the-icon-rail)
+It owns **no gutter**, deliberately: the card insets itself with its own margin, so a sidebar stays flush
+against the window edge and a [collapsed sidebar](/components/navigation/sidebar#collapsing-the-sidebar)
 keeps its flush geometry.
 
 It is `relative`, so a floating side panel resolves against the row and covers the card, never the notice.
 It is also the container named `app-layout-workspace`: the panel floats when the row is narrower than the
 lane it needs, so a page is never narrower than the panel beside it. The lane is the
 `--container-side-panel-lane` theme token while a direct child of the row is an expanded `Sidebar.Nav`, and
-`--container-side-panel-lane-icon-rail` with a collapsed rail or none.
+`--container-side-panel-lane-collapsed` with a collapsed sidebar or none.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
@@ -2265,8 +2264,8 @@ Holds `AppLayout.Header` and `AppLayout.Body`. In the canonical shell it wraps t
 route renders both (see [One header per page](#one-header-per-page)).
 
 The card **does not scroll**. [`AppLayout.Body`](#applayoutbody) does. It insets itself from the window edge
-and the rail with its own margin, driven by `--app-layout-card-gutter`, because the gutter has to belong to
-the card: the only other element that could hold it is `AppLayout.Workspace`, which also contains the rail,
+and the sidebar with its own margin, driven by `--app-layout-card-gutter`, because the gutter has to belong to
+the card: the only other element that could hold it is `AppLayout.Workspace`, which also contains the sidebar,
 so padding there would push the sidebar off the window edge.
 
 It is `overflow-clip`, not `overflow-hidden`, and the distinction matters: `hidden` **is** a scroll container
@@ -2276,7 +2275,7 @@ is not a scroll container at all. It also keeps a full-bleed page background fro
 over the card's `rounded-xl`.
 
 It is `relative`, so page content positioned with `absolute` resolves against the card instead of escaping to
-`AppLayout.Root` and painting across the sidebar rail.
+`AppLayout.Root` and painting across the sidebar.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
@@ -2284,9 +2283,9 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `AppLayout.Content` styling onto alternative element types or your own components. |
 
-| CSS Variable               | Default  | Description                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| -------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--app-layout-card-gutter` | `0.5rem` | The gap between the card and the window edge, the notice above it, and the rail beside it (8px). `AppLayout.Header` subtracts twice this value when deriving its height, so overriding it keeps the toolbar aligned with the sidebar header's band. Set it on `AppLayout.Root` or another common ancestor, not on this part: `AppLayout.SidePanel` and `AppLayout.SidePanelHeader` read it too, and custom properties inherit downward only. |
+| CSS Variable               | Default  | Description                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| -------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--app-layout-card-gutter` | `0.5rem` | The gap between the card and the window edge, the notice above it, and the sidebar beside it (8px). `AppLayout.Header` subtracts twice this value when deriving its height, so overriding it keeps the toolbar aligned with the sidebar header's band. Set it on `AppLayout.Root` or another common ancestor, not on this part: `AppLayout.SidePanel` and `AppLayout.SidePanelHeader` read it too, and custom properties inherit downward only. |
 
 ### AppLayout.Header
 
@@ -2408,7 +2407,7 @@ All props from [main](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/
 ### AppLayout.SidePanelRoot
 
 The renderless state owner for the side panel, the way [`Sidebar.Root`](/components/navigation/sidebar#sidebarroot)
-owns the rail. Wrap `AppLayout.Workspace` with it, or anything above both the trigger and the panel. Closed
+owns the sidebar. Wrap `AppLayout.Workspace` with it, or anything above both the trigger and the panel. Closed
 by default: a side panel is a surface the user opens. To persist the state across visits, read
 [`extractSidePanelStateCookie`](#extractsidepanelstatecookie) in the loader into `defaultOpen` and write
 [`serializeSidePanelStateCookie`](#serializesidepanelstatecookie) from `onOpenChange` (see
@@ -2448,7 +2447,7 @@ ever animates.
 
 The box is a fixed basis (`grow-0 shrink-0`, the open width plus the end inset), never a share of the row,
 so the card absorbs every change in width. Opening and closing animate `flex-basis` alone over 200ms
-(`ease-out-strong`), the way the rail collapses: the inner card never moves, and the box's start edge sweeps
+(`ease-out-strong`), the way the sidebar collapses: the inner card never moves, and the box's start edge sweeps
 across it; a second click mid-flight reverses the run.
 
 - `motion-reduce:transition-none` turns the slide into a cut.
@@ -2465,7 +2464,7 @@ the card from gutter to gutter. With `"sm"` there is no lower breakpoint, so the
 gutter to gutter as soon as it floats. It also floats, with the strip treatment, when the
 `AppLayout.Workspace` row is narrower than the lane it needs, whatever the viewport is, so the page is never
 narrower than the panel beside it: `--container-side-panel-lane` (56.5rem) while a direct child of the row
-is an expanded `Sidebar.Nav`, and `--container-side-panel-lane-icon-rail` (46.75rem) with a collapsed rail
+is an expanded `Sidebar.Nav`, and `--container-side-panel-lane-collapsed` (46.75rem) with a collapsed sidebar
 or none. See [Side panel](#side-panel).
 
 A drag on [`AppLayout.SidePanelHeader`](#applayoutsidepanelheader) toward the end edge swipes the panel
@@ -2480,16 +2479,16 @@ so no single element could be swapped.
 
 All props from [aside](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/aside#attributes) except `id`, plus:
 
-| Prop                | Type                   | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| ------------------- | ---------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `mobileBreakpoint?` | `"sm" \| "md" \| "lg"` | `"lg"`  | The viewport width below which the panel floats over the card instead of taking width beside it. One breakpoint lower it covers the card from gutter to gutter and turns modal; with `"sm"` there is no lower breakpoint, so it covers the card as soon as it floats by viewport. Match it to `Sidebar.Root`'s `mobileBreakpoint`, so the rail and the panel change presentation at one width. The panel also floats when the row is narrower than the lane it needs (`--container-side-panel-lane` or `--container-side-panel-lane-icon-rail`), whatever this prop says. |
+| Prop                | Type                   | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------- | ---------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mobileBreakpoint?` | `"sm" \| "md" \| "lg"` | `"lg"`  | The viewport width below which the panel floats over the card instead of taking width beside it. One breakpoint lower it covers the card from gutter to gutter and turns modal; with `"sm"` there is no lower breakpoint, so it covers the card as soon as it floats by viewport. Match it to `Sidebar.Root`'s `mobileBreakpoint`, so the sidebar and the panel change presentation at one width. The panel also floats when the row is narrower than the lane it needs (`--container-side-panel-lane` or `--container-side-panel-lane-collapsed`), whatever this prop says. |
 
 | CSS Variable                            | Default                      | Description                                                                                                                                                                                                                                                                                                                                                                      |
 | --------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--app-layout-side-panel-width`         | `clamp(21rem, 24cqw, 27rem)` | The panel's width beside the card: a quarter of the `AppLayout.Workspace` row, never narrower than 336px and never wider than 432px. It reads the row, not the viewport, so a row narrower than the viewport holds the panel at its floor and the page keeps the rest. Set it on `AppLayout.Root` or on this part.                                                               |
 | `--app-layout-card-gutter`              | `0.5rem`                     | Read (not set) by `AppLayout.SidePanel`; owned by [`AppLayout.Content`](#applayoutcontent). The panel keeps it on three edges, and the floating panel insets itself by it. Set it on `AppLayout.Root` or another common ancestor of the card and the panel, not on `AppLayout.Content`: custom properties inherit downward only, so a value on the card never reaches the panel. |
-| `--container-side-panel-lane`           | `56.5rem`                    | A theme token the row's container query reads: the narrowest `AppLayout.Workspace` row that holds an expanded `Sidebar.Nav` (13rem), the card at the panel's floor (21rem), the panel (21rem), and the three gutters. Below it the panel floats while a direct child of the row is an expanded rail. Set it in `@theme`, not on an element.                                      |
-| `--container-side-panel-lane-icon-rail` | `46.75rem`                   | The same row with the icon rail (3.25rem) in place of the expanded one, or with no rail. Below it the panel floats whatever the rail is. Set it in `@theme`, not on an element.                                                                                                                                                                                                  |
+| `--container-side-panel-lane`           | `56.5rem`                    | A theme token the row's container query reads: the narrowest `AppLayout.Workspace` row that holds an expanded `Sidebar.Nav` (13rem), the card at the panel's floor (21rem), the panel (21rem), and the three gutters. Below it the panel floats while a direct child of the row is an expanded sidebar. Set it in `@theme`, not on an element.                                   |
+| `--container-side-panel-lane-collapsed` | `46.75rem`                   | The same row with the collapsed sidebar (3.25rem) in place of the expanded one, or with no sidebar. Below it the panel floats whatever state the sidebar is in. Set it in `@theme`, not on an element.                                                                                                                                                                           |
 
 | Data Attribute  | Value                             | Description                                                                                                                                                                |
 | --------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -2499,7 +2498,7 @@ All props from [aside](https://developer.mozilla.org/en-US/docs/Web/HTML/Element
 ### AppLayout.SidePanelTrigger
 
 The button that toggles the side panel, the way [`Sidebar.Trigger`](/components/navigation/sidebar#sidebartrigger)
-toggles the rail. Renders a small ghost neutral [`IconButton`](/components/actions/icon-button) with
+toggles the sidebar. Renders a small ghost neutral [`IconButton`](/components/actions/icon-button) with
 `aria-expanded` and `aria-controls` wired to the panel's `<aside>`. Place one in `AppLayout.HeaderActions`
 to open the panel, and one more in `AppLayout.SidePanelHeader` with a close icon to close it from inside:
 when that one closes the panel, the root moves focus to the one outside.

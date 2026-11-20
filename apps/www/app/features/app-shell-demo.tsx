@@ -619,7 +619,7 @@ function DemoNav({
  *
  * The whole row is the affordance (per Micah's prototype), so it is a single
  * `Sidebar.ItemButton`: the hover/focus treatment spans arrow and title, and the
- * icon rail collapses it to the arrow chip with the title clipped away, exactly
+ * collapsed sidebar collapses it to the arrow chip with the title clipped away, exactly
  * like every other row. The `sr-only` destination keeps the accessible name from
  * being a bare "Settings" link sitting inside the Settings navigation.
  */
@@ -686,7 +686,7 @@ function DemoHelpMenu() {
 			</Sidebar.Tooltip>
 			{/* trigger-width keeps the menu flush with the row it opens from; the
 			    --sidebar-row-width floor keeps it there when the row shrinks into
-			    the icon rail (the menu is portaled, so it inherits no sidebar
+			    the collapsed sidebar (the menu is portaled, so it inherits no sidebar
 			    geometry of its own) */}
 			<DropdownMenu.Content
 				align="start"
@@ -919,7 +919,7 @@ function PageActions({ actions }: { actions: ReadonlyArray<PageAction> }) {
 
 /**
  * The canonical Sidebar + AppLayout composition, shared by both docs pages: a
- * decoupled app shell with a sidebar that collapses to the icon rail, a
+ * decoupled app shell with a sidebar that collapses to its icons, a
  * header-mounted trigger, a product-choice dialog in the sidebar header, a
  * toggleable full-window notice strip, and a content card whose `Body` page
  * region is the only scroll container. The two components never reference each

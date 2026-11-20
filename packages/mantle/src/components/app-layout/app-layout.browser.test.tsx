@@ -54,8 +54,8 @@ const STYLE = `
 		container-name: app-layout-workspace;
 	}
 	@container app-layout-workspace (width < 46.75rem) {
-		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:absolute { position: absolute; }
-		.\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:right-\\(--app-layout-card-gutter\\,0\\.5rem\\) {
+		.\\@max-side-panel-lane-collapsed\\/app-layout-workspace\\:absolute { position: absolute; }
+		.\\@max-side-panel-lane-collapsed\\/app-layout-workspace\\:right-\\(--app-layout-card-gutter\\,0\\.5rem\\) {
 			right: var(--app-layout-card-gutter, 0.5rem);
 		}
 	}
@@ -69,7 +69,7 @@ const STYLE = `
 	}
 	@media (width >= 40rem) {
 		@container app-layout-workspace (width < 46.75rem) {
-			.sm\\:\\@max-side-panel-lane-icon-rail\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100cqw-5rem\\)\\)\\] {
+			.sm\\:\\@max-side-panel-lane-collapsed\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100cqw-5rem\\)\\)\\] {
 				width: min(24rem, calc(100cqw - 5rem));
 			}
 		}
@@ -239,24 +239,24 @@ describe("AppLayout.SidePanel lane float", () => {
 		return getComputedStyle(screen.getByRole("complementary", { name: "Assistant" })).position;
 	}
 
-	test("floats the panel when a row with no rail is narrower than the icon-rail lane", () => {
+	test("floats the panel when a row with no sidebar is narrower than the collapsed sidebar lane", () => {
 		expect(renderRow("45rem")).toBe("absolute");
 	});
 
-	test("keeps the panel in a row with no rail that holds the icon-rail lane", () => {
+	test("keeps the panel in a row with no sidebar that holds the collapsed sidebar lane", () => {
 		expect(renderRow("48rem")).toBe("relative");
 	});
 
 	/**
 	 * The row with a real `Sidebar.Nav` beside the card, so the `:has()` on the
-	 * rail's `data-slot` and `data-state` matches what the rail emits. The
-	 * viewport is desktop width, so the rail renders in the row and not as a
+	 * sidebar's `data-slot` and `data-state` matches what the sidebar emits. The
+	 * viewport is desktop width, so the sidebar renders in the row and not as a
 	 * sheet.
 	 */
-	async function renderRowWithRail(width: string, { railOpen }: { railOpen: boolean }) {
+	async function renderRowWithSidebar(width: string, { sidebarOpen }: { sidebarOpen: boolean }) {
 		await page.viewport(1280, 800);
 		render(
-			<Sidebar.Root defaultOpen={railOpen}>
+			<Sidebar.Root defaultOpen={sidebarOpen}>
 				<AppLayout.SidePanelRoot defaultOpen>
 					<AppLayout.Workspace style={{ width }}>
 						<Sidebar.Nav aria-label="Main" />
@@ -269,16 +269,16 @@ describe("AppLayout.SidePanel lane float", () => {
 		return getComputedStyle(screen.getByRole("complementary", { name: "Assistant" })).position;
 	}
 
-	test("floats the panel beside an expanded rail when the row is narrower than the lane", async () => {
-		expect(await renderRowWithRail("48rem", { railOpen: true })).toBe("absolute");
+	test("floats the panel beside an expanded sidebar when the row is narrower than the lane", async () => {
+		expect(await renderRowWithSidebar("48rem", { sidebarOpen: true })).toBe("absolute");
 	});
 
-	test("keeps the panel in the same row beside a collapsed rail", async () => {
-		expect(await renderRowWithRail("48rem", { railOpen: false })).toBe("relative");
+	test("keeps the panel in the same row beside a collapsed sidebar", async () => {
+		expect(await renderRowWithSidebar("48rem", { sidebarOpen: false })).toBe("relative");
 	});
 
-	test("keeps the panel beside an expanded rail once the row holds the lane", async () => {
-		expect(await renderRowWithRail("60rem", { railOpen: true })).toBe("relative");
+	test("keeps the panel beside an expanded sidebar once the row holds the lane", async () => {
+		expect(await renderRowWithSidebar("60rem", { sidebarOpen: true })).toBe("relative");
 	});
 
 	/** The floating panel's width, with the `md` breakpoint's cover tier below `sm`. */
@@ -296,7 +296,7 @@ describe("AppLayout.SidePanel lane float", () => {
 
 	test("takes the strip width above the cover tier", async () => {
 		await page.viewport(800, 600);
-		// Why: 45rem is under the icon-rail lane, and 24rem is under 800px minus 5rem.
+		// Why: 45rem is under the collapsed sidebar lane, and 24rem is under 800px minus 5rem.
 		expect(renderFloatingWidth("45rem")).toBe(384);
 	});
 

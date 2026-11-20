@@ -11,7 +11,7 @@ import { readCookie } from "../../utils/cookie.js";
  *
  * @example
  * ```ts
- * // clear the persisted rail state on sign-out
+ * // clear the persisted sidebar state on sign-out
  * headers.append("Set-Cookie", `${SIDEBAR_STATE_COOKIE_NAME}=; Max-Age=0; Path=/`);
  * ```
  */
@@ -74,7 +74,7 @@ function extractSidebarStateCookie(cookieHeader: string | null | undefined): boo
 /**
  * Attributes for {@link serializeSidebarStateCookie}. Deliberately omits
  * `HttpOnly`: the browser writes this cookie from `onOpenChange`, so a
- * server-only cookie could never be updated when the user toggles the rail.
+ * server-only cookie could never be updated when the user toggles the sidebar.
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar#serializesidebarstatecookie
  *
@@ -116,7 +116,7 @@ type SerializeSidebarStateCookieOptions = {
 	 * works on `http://localhost`: the browser silently rejects a `Secure` cookie
 	 * over http, which would make the preference appear not to persist in local
 	 * development. If your CSP or policy requires it, set it to `true` in
-	 * production; this cookie holds no secret, only whether a rail is open.
+	 * production; this cookie holds no secret, only whether a sidebar is open.
 	 *
 	 * @default false
 	 */

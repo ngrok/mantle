@@ -185,6 +185,7 @@ const migrationsPages = [
 	"0013-chart-svg-renderer-migration",
 	"0014-chart-named-colors-migration",
 	"0015-segmented-control-migration",
+	"0016-side-panel-lane-collapsed-migration",
 ];
 
 export default [

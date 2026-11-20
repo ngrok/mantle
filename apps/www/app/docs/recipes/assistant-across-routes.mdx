@@ -54,7 +54,7 @@ a shell of its own loses an in-memory conversation at that crossing unless the p
 app/routes/layouts/app.tsx                     the layout route that owns the shell
 ├── AssistantConversationProvider              the one store: messages, draft, the reply in flight
 └── AppLayout.SidePanelRoot                    open state, read from the cookie in the loader
-    └── Sidebar.Root yieldToSidePanel          the rail prefers its icons while the panel needs the lane
+    └── Sidebar.Root                           yields its width while the panel needs the lane
         └── AppLayout.Workspace
             ├── Sidebar.Nav                    <Link viewTransition={crossesAssistant(pathname, to)}>
             ├── AppLayout.Content              named on /assistant
@@ -111,7 +111,7 @@ export const loader = ({ request }: Route.LoaderArgs) => {
 	};
 };
 
-/** Closes the rail's mobile sheet on every navigation. A route change alone leaves it over the page. */
+/** Closes the sidebar's mobile sheet on every navigation. A route change alone leaves it over the page. */
 function CloseMobileNavOnNavigate() {
 	const { setOpenMobile } = useSidebar();
 	const { pathname } = useLocation();
@@ -134,7 +134,6 @@ export default function Layout({ loaderData }: Route.ComponentProps) {
 				}}
 			>
 				<Sidebar.Root
-					yieldToSidePanel={!onAssistantPage}
 					defaultOpen={loaderData.sidebarOpen}
 					onOpenChange={(open) => {
 						document.cookie = serializeSidebarStateCookie(open);
@@ -209,11 +208,9 @@ Three rules keep the transition running:
 - **Do not render the panel on the assistant's route.** A closed panel is still an `<aside>` with the
   conversation mounted inside it, rendered twice for nothing. An open one would name the conversation
   twice.
-- **Keep `AppLayout.SidePanelRoot` above both, and above the rail.** It is renderless, and `AssistantPage`
+- **Keep `AppLayout.SidePanelRoot` above both.** It is renderless, and `AssistantPage`
   calls [`useSidePanel`](/layouts/app-layout#usesidepanel) to open the companion on the first message, so
-  the conversation comes along when the reader leaves. `Sidebar.Root` reads the same state when
-  `yieldToSidePanel` is set (see [Tablet and phone](#tablet-and-phone)), so it sits below the root and
-  above the shell.
+  the conversation comes along when the reader leaves.
 
 The panel mounts open when the reader leaves the assistant's route, so its own 200ms slide never runs:
 there is no closed state to slide from. The morph is the only animation. The same holds in reverse: the
@@ -312,26 +309,26 @@ transcript.
 Three widths, one `<aside>`. The panel keeps its DOM across all of them, so the conversation never
 remounts, and the crossing still morphs: the page shrinks into whichever shape the panel takes.
 
-- **Beside the page, with the rail yielding.** Between the lane an icon rail needs (46.75rem) and the lane
-  an expanded rail needs (56.5rem), an expanded rail leaves the row too narrow for the panel, and the panel
-  floats over the page. With `yieldToSidePanel`, `Sidebar.Root` prefers the icon rail there: when the panel opens, or the
-  window narrows below the lane while it is open, the rail collapses and the panel sits beside the page.
-  The reader can expand the rail again with `Sidebar.Trigger`, and the panel floats. When the panel closes
-  or the window widens, a rail the panel collapsed expands again, and a rail the reader toggled keeps their
+- **Beside the page, with the sidebar yielding.** Between the lane a collapsed sidebar needs (46.75rem) and the lane
+  an expanded sidebar needs (56.5rem), an expanded sidebar leaves the row too narrow for the panel, and the panel
+  floats over the page. `Sidebar.Root` prefers the collapsed sidebar there: when the panel opens, or the
+  window narrows below the lane while it is open, the sidebar collapses and the panel sits beside the page.
+  The reader can expand the sidebar again with `Sidebar.Trigger`, and the panel floats. When the panel closes
+  or the window widens, a sidebar the panel collapsed expands again, and a sidebar the reader toggled keeps their
   choice. `onOpenChange` reports the reader's toggles only, so the sidebar cookie keeps their preference.
 - **Floating, below `mobileBreakpoint`.** The panel is an overlay the reader can also dismiss with
   `Escape` while focus is inside. The page beneath stays usable. A drag on the panel's header toward the
   end edge swipes it away at every width, beside the page too.
 - **Covering, one breakpoint lower.** The panel spans the row from gutter to gutter and turns modal: the
-  card and the rail go `inert`, a focus trap wraps `Tab` inside it, and `Escape` closes it. Nothing beneath
+  card and the sidebar go `inert`, a focus trap wraps `Tab` inside it, and `Escape` closes it. Nothing beneath
   it is clickable or read.
 
-Match `mobileBreakpoint` to `Sidebar.Root`'s, so the rail and the panel change presentation at one width.
+Match `mobileBreakpoint` to `Sidebar.Root`'s, so the sidebar and the panel change presentation at one width.
 The demo narrows both to `md`; most apps keep the `lg` default.
 
 ## The files
 
-Two files to copy, and the stylesheet above. `assistant-across-routes.tsx` is the two homes, the rail
+Two files to copy, and the stylesheet above. `assistant-across-routes.tsx` is the two homes, the sidebar
 that yields to the panel, and the two path helpers; nothing in it touches the router.
 `assistant-conversation.tsx` is the store and the two pieces of chat UI; nothing in it knows where it
 renders.

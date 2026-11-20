@@ -322,7 +322,7 @@ function SectionNav({
 // The sidebar header while the settings section is showing: one full-width row
 // (back arrow plus the section title), occupying the same header band the product
 // switcher owns the rest of the time. The whole row is the affordance, so it is a
-// single Sidebar.ItemButton: the icon rail collapses it to the arrow chip with
+// single Sidebar.ItemButton: the collapsed sidebar collapses it to the arrow chip with
 // the title clipped away, exactly like every other row.
 function SettingsHeader({
 	onBack,
@@ -368,7 +368,7 @@ function HelpMenu() {
 			</DropdownMenu.Trigger>
 			{/* trigger-width keeps the menu flush with the row it opens from; the
 			    --sidebar-row-width floor keeps it there when the row shrinks into
-			    the icon rail (the menu is portaled, so it inherits no sidebar
+			    the collapsed sidebar (the menu is portaled, so it inherits no sidebar
 			    geometry of its own) */}
 			<DropdownMenu.Content
 				align="start"
@@ -617,7 +617,7 @@ export function AppShell() {
 
 ## When to use
 
-- Show the main navigation of an app, with its app and account switchers, in a column that collapses to an [icon rail](#collapsing-to-the-icon-rail), and to a sheet on small screens.
+- Show the main navigation of an app, with its app and account switchers, in a column that collapses to [its icons](#collapsing-the-sidebar), and to a sheet on small screens.
 - Show a second section of navigation, such as account settings, in the same sidebar. See [The app shell demo](#the-app-shell-demo).
 - Prefer [`Tabs`](/components/navigation/tabs) when the user switches between views inside one page.
 - Prefer [`Sheet`](/components/overlays/sheet) when a panel opens over the page for a task, not for navigation.
@@ -649,8 +649,8 @@ Sidebar.Root
 
 `Sidebar.Root` renders no DOM: it only carries state, so `Sidebar.Trigger` can live anywhere under it,
 including inside layout components that know nothing about the sidebar.
-`Sidebar.Nav` renders the panel: inline on desktop, collapsing to a skinny
-[icon rail](#collapsing-to-the-icon-rail), and a left-side [Sheet](/components/overlays/sheet) below the
+`Sidebar.Nav` renders the panel: inline on desktop, collapsing to
+[its icons](#collapsing-the-sidebar), and a left-side [Sheet](/components/overlays/sheet) below the
 root's `mobileBreakpoint`. This keeps the sidebar decoupled from your app shell: place the trigger in an
 [App Layout](/layouts/app-layout) header without the shell knowing the sidebar exists. Render exactly one `Sidebar.Nav` per
 `Sidebar.Root`; nested roots shadow the outer sidebar for everything below them.
@@ -833,7 +833,7 @@ open, and opens the menu upward (`side="top"`); the footer sits at the bottom of
 is off-screen. The switcher's one menu covers both scopes it names: account destinations and switching, then
 user-level items including a **Theme** row that flips light and dark. That row is mantle's
 [`ThemeDropdownMenuItem`](/components/forms/theme-switcher#embedding-in-an-existing-menu): one row, so it fits
-the menu beside the collapsed icon rail.
+the menu beside the collapsed sidebar.
 
 Choosing **Account settings** from that menu shows a second **section** of navigation in the same
 sidebar: the header's switcher becomes a back link, `Sidebar.Body` renders the settings groups, and the
@@ -850,15 +850,15 @@ The panel's width is a CSS variable, not a prop: `Sidebar.Nav` reads each of the
 default as its fallback (`w-(--sidebar-width,13rem)`), so there is nothing to thread through your shell
 and one place to change it.
 
-| CSS Variable             | Default          | What it sizes                                           |
-| ------------------------ | ---------------- | ------------------------------------------------------- |
-| `--sidebar-width`        | `13rem` (208px)  | The expanded desktop panel                              |
-| `--sidebar-width-icon`   | `3.25rem` (52px) | The [collapsed icon rail](#collapsing-to-the-icon-rail) |
-| `--sidebar-width-mobile` | `18rem` (288px)  | The mobile `Sheet` panel                                |
+| CSS Variable             | Default          | What it sizes                                    |
+| ------------------------ | ---------------- | ------------------------------------------------ |
+| `--sidebar-width`        | `13rem` (208px)  | The expanded desktop panel                       |
+| `--sidebar-width-icon`   | `3.25rem` (52px) | The [collapsed sidebar](#collapsing-the-sidebar) |
+| `--sidebar-width-mobile` | `18rem` (288px)  | The mobile `Sheet` panel                         |
 
 Override one sidebar by setting the variable on `Sidebar.Nav`: a Tailwind arbitrary property is the
 shortest route, and `cx` keeps it deterministic. The panel below is `18rem` wide expanded; collapse it with
-the trigger and the rail still uses the default `--sidebar-width-icon`:
+the trigger and the collapsed sidebar still uses the default `--sidebar-width-icon`:
 
 <Example name="components/navigation/sidebar/width" title="Sidebar width example">
 
@@ -924,36 +924,36 @@ narrows the card by construction; and a surface that renders _outside_ the panel
 portaled to `document.body`) inherits none of them, which is what
 [`--sidebar-row-width`](#sizing-a-menu-to-a-sidebar-row) exists for.
 
-## Collapsing to the icon rail
+## Collapsing the sidebar
 
-On desktop the panel collapses to a skinny icon rail that keeps every row's leading icon visible and
+On desktop the panel collapses to a narrow column that keeps every row's leading icon visible and
 clickable: each row becomes a square chip around its icon, group labels fade out in place (their rows are
 retained, so icon groups stay visually separated and every icon keeps the exact position it has when
 expanded), the switcher rows in the header and footer collapse to their leading visual (product icon,
-account avatar), and the rail keeps the same `bg-base` surface as the expanded panel: no border, no
-separate chrome. The rail width is the `--sidebar-width-icon` CSS variable (default `3.25rem`); see
+account avatar), and the collapsed sidebar keeps the same `bg-base` surface as the expanded panel: no border, no
+separate chrome. Its width is the `--sidebar-width-icon` CSS variable (default `3.25rem`); see
 [Width](#width).
 
-The rail, its rows, the switcher rows, the separators, and the body's trailing padding move on one 200ms
-ease-out clock. As the rail narrows, a row trades its full-width shape for the chip, so nothing snaps to its
+The sidebar, its rows, the switcher rows, the separators, and the body's trailing padding move on one 200ms
+ease-out clock. As the sidebar narrows, a row trades its full-width shape for the chip, so nothing snaps to its
 new shape on the first frame. A second toggle mid-flight reverses from the point the first one reached.
 Under `prefers-reduced-motion`, the whole move is a cut. Every transition holds until one frame after
 hydration, so a persisted state the client corrects snaps into place on page load.
 
-Everything in the icon rail stays in the tab order and the accessibility tree (labels are clipped or
+Everything in the collapsed sidebar stays in the tab order and the accessibility tree (labels are clipped or
 visually hidden, not removed), so screen readers announce the full row names and lists keep their group
-names. The scrollable `Sidebar.Body` always fades its overflowing edges; in the collapsed rail it also
+names. The scrollable `Sidebar.Body` always fades its overflowing edges; in the collapsed sidebar it also
 hides its scrollbar and relies on the fade alone. Collapse and expand the shell demo at the top of this page
 with its header trigger or <kbd translate="no">⌘B</kbd>/<kbd translate="no">Ctrl+B</kbd> (click into the frame first; the shortcut binds
 to the frame's own window).
 
-### Labeling the rail for pointer users
+### Labeling the sidebar for pointer users
 
 Keeping labels in the accessibility tree serves screen-reader users, but a sighted pointer user hovering the
-collapsed rail sees an unlabeled icon column. Wrap a row in `Sidebar.Tooltip` to give them the label back.
+collapsed sidebar sees an unlabeled icon column. Wrap a row in `Sidebar.Tooltip` to give them the label back.
 The panel below starts collapsed; hover either icon to see its label, and use the trigger to expand it:
 
-<Example name="components/navigation/sidebar/labeling-the-rail-for-pointer-users" title="Sidebar labeling the rail for pointer users example">
+<Example name="components/navigation/sidebar/labeling-the-sidebar-for-pointer-users" title="Sidebar labeling the sidebar for pointer users example">
 
 ```tsx
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
@@ -963,7 +963,7 @@ import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { GraphIcon } from "@phosphor-icons/react/Graph";
 import { QuestionIcon } from "@phosphor-icons/react/Question";
 
-export function LabeledRail() {
+export function LabeledCollapsedSidebar() {
 	return (
 		// the rows' tooltips need a `TooltipProvider` ancestor, mounted at your app root
 		<Sidebar.Root defaultOpen={false} mobileBreakpoint="sm">
@@ -1024,27 +1024,27 @@ export function LabeledRail() {
 </Example>
 
 The label shows only while the desktop panel is collapsed: expanded rows already read their own text and the
-mobile sheet shows full labels, so there is nothing to duplicate. The rail state _vetoes_ the tooltip's open
+mobile sheet shows full labels, so there is nothing to duplicate. The sidebar state _vetoes_ the tooltip's open
 state rather than withholding its content: the expanded panel and the mobile sheet keep the row at
-`data-state="closed"` with no `aria-describedby`, and toggling the rail dismisses whatever was showing, so
+`data-state="closed"` with no `aria-describedby`, and toggling the sidebar dismisses whatever was showing, so
 collapsing the panel cannot pop a label under a pointer that has already moved on. `Tooltip.Root` itself stays
-mounted at every rail state, which keeps the row (and its focus) through a collapse.
+mounted at every sidebar state, which keeps the row (and its focus) through a collapse.
 
 It needs a `TooltipProvider` ancestor, like any `Tooltip.Root`: mount one at your app root. The part
 deliberately does not mount its own, so your app-wide tooltip delay still applies. The one provider setting
-it does override is hoverable content: a rail label holds nothing to hover into, so the label closes when the
+it does override is hoverable content: a row label holds nothing to hover into, so the label closes when the
 pointer leaves the row instead of waiting for the pointer to leave the label too.
 
 For a row that also opens a menu (the **Help** row above), keep `DropdownMenu.Root` **outside** the tooltip:
 it is renderless, and `Tooltip.Trigger asChild` needs a real element to clone. The menu itself takes the
-`--sidebar-row-width` floor, so it keeps the expanded row's width in the rail (see
+`--sidebar-row-width` floor, so it keeps the expanded row's width in the collapsed sidebar (see
 [Sizing a menu to a sidebar row](#sizing-a-menu-to-a-sidebar-row)).
 
 ## Sizing a menu to a sidebar row
 
 A menu opened from a sidebar row should be as wide as the row it opens from, and
 [`DropdownMenu.Content`](/components/overlays/dropdown-menu#dropdownmenucontent)'s `width="trigger"` does
-exactly that, until the panel collapses to the icon rail, where the trigger is a 36px chip (28px for a
+exactly that, until the panel collapses to its icons, where the trigger is a 36px chip (28px for a
 `Sidebar.ItemButton` row) and the menu shrinks with it. The menu cannot solve this from the sidebar's
 variables either: it renders in a portal on `document.body`, so it inherits nothing the panel sets.
 
@@ -1136,7 +1136,7 @@ export function AccountRowMenu() {
 
 One static class covers all three presentations at the default widths. Expanded, the floor is a no-op: the
 row already measures that wide, so the menu is flush with it. Collapsed, the floor holds the menu at the
-expanded row's width, so it looks identical in the rail. In the mobile `Sheet` the floor is inert because the
+expanded row's width, so it looks identical in the collapsed sidebar. In the mobile `Sheet` the floor is inert because the
 sheet's row is the wider of the two (`--sidebar-width-mobile` − `1.5rem` − the sheet's 1px `border-r` =
 263px, against 192px), so `width="trigger"` wins.
 
@@ -1229,14 +1229,14 @@ follows either one, so a composed child that marks itself (react-router's `NavLi
 > **The navigation is one level deep.** There is no nested item and no collapsible group: a
 > `Sidebar.List` holds rows, not sub-lists. A two-level nav cannot be lifted and shifted onto this component;
 > it has to flatten into `Sidebar.GroupLabel` + rows, which also means every row that was previously a
-> second-level text link now needs a leading icon (the collapsed rail is icon-only, so a row without one
+> second-level text link now needs a leading icon (the collapsed sidebar is icon-only, so a row without one
 > becomes a blank chip). Budget for that before you start: it is usually the largest single chunk of a
 > migration, and it is a design decision, not a mechanical one.
 >
 > This is deliberate: a disclosure tree is a different ARIA pattern with its own keyboard contract, and
-> nesting it inside a rail that collapses to icons has no coherent collapsed presentation. If you genuinely
+> nesting it inside a sidebar that collapses to icons has no coherent collapsed presentation. If you genuinely
 > need a tree, compose one from [Accordion](/components/data-display/accordion) inside `Sidebar.Body` rather than
-> expecting the rail to collapse it.
+> expecting the sidebar to collapse it.
 
 <Example name="components/navigation/sidebar/navigation-anatomy" title="Sidebar navigation anatomy example">
 
@@ -1297,7 +1297,7 @@ export function NetworkNav() {
 
 `Sidebar.SearchTrigger` is the row that opens a search or command palette. It is deliberately a navigation row
 and not a text field: the chrome is a `Sidebar.ItemButton`'s, down to the 28px chip it becomes in the collapsed
-rail, because a search entry point in a sidebar is one of the rows rather than a form control wedged among
+sidebar, because a search entry point in a sidebar is one of the rows rather than a form control wedged among
 them. Its `shortcut` hint appears on hover or keyboard focus and is otherwise invisible, so the resting panel
 stays quiet.
 
@@ -1356,7 +1356,7 @@ function SidebarSearch({ children }: { children: ReactNode }) {
 }
 
 function SidebarSearchRow() {
-	// The rail drops the row's own hint along with its label, so the tooltip
+	// The sidebar drops the row's own hint along with its label, so the tooltip
 	// repeats the chord for a pointer user.
 	return (
 		<Sidebar.Tooltip
@@ -1420,7 +1420,7 @@ function SidebarWithSearch() {
 </Example>
 
 Put it above the first `Sidebar.Group` so it shares the column the navigation rows use in both panel states, and
-mark it up like any other row: a leading icon, then the label in an element of its own so the rail can clip it
+mark it up like any other row: a leading icon, then the label in an element of its own so the collapsed sidebar can clip it
 without dropping it from the button's accessible name.
 
 ## Persisting the collapsed state
@@ -1577,51 +1577,32 @@ render and the hydration render, so the uncontrolled state initializes to the ri
 there; the server HTML ships `data-state="collapsed"` directly, with zero flash.
 
 `extractSidebarStateCookie` returns `boolean | undefined` rather than `boolean` on purpose: a first-time
-visitor with no cookie is not the same as someone who deliberately collapsed the rail, and folding the two
+visitor with no cookie is not the same as someone who deliberately collapsed the sidebar, and folding the two
 together would collapse the sidebar for everyone's first visit. Choose the default explicitly with `?? true`.
 
 `serializeSidebarStateCookie` returns a plain cookie string, valid for both `document.cookie` on the client
 and a `Set-Cookie` header on the server, so it works whichever side of your app owns the write. `Secure` is
 omitted by default so the same call persists over `http://localhost`; if your policy requires it, pass
 `{ secure: true }`. There is no `HttpOnly` option: the browser has to write this cookie when the user toggles
-the rail.
+the sidebar.
 
 ## Yielding to a side panel
 
-In a shell with an [`AppLayout.SidePanel`](/layouts/app-layout#side-panel), an expanded rail can leave the
-row too narrow for the panel, and the panel then floats over the page. Set `yieldToSidePanel` on
-`Sidebar.Root`, inside `AppLayout.SidePanelRoot`, and the rail gives its width to the panel instead:
+In a shell with an [`AppLayout.SidePanel`](/layouts/app-layout#side-panel), an expanded sidebar can leave the
+row too narrow for the panel, and the panel then floats over the page. The sidebar gives its width to the
+panel instead. This behavior is built in: no prop turns it on, and the two roots can nest in either order.
 
-```tsx
-<AppLayout.SidePanelRoot defaultOpen={sidePanelOpen}>
-	<Sidebar.Root
-		yieldToSidePanel
-		defaultOpen={sidebarOpen}
-		onOpenChange={(open) => {
-			document.cookie = serializeSidebarStateCookie(open);
-		}}
-	>
-		…
-	</Sidebar.Root>
-</AppLayout.SidePanelRoot>
-```
-
-- **The panel takes the width.** When the panel opens in a window narrower than `yieldToSidePanelBelow`, or
-  the window narrows below it while the panel is open, an expanded rail collapses to its icons. The collapse
-  lands in the same frame as the panel.
-- **The panel gives it back.** When the panel closes or the window widens, a rail that the panel collapsed
-  expands again.
-- **The reader's choice stands.** `Sidebar.Trigger` still toggles the rail beside the open panel, and a rail
-  that the reader toggled keeps that state when the panel closes.
+- **The panel takes the width.** When the panel opens in a window narrower than the
+  `--container-side-panel-lane` theme token (56.5rem), or the window narrows below it while the panel is open,
+  an expanded sidebar collapses. The collapse lands in the same frame as the panel.
+- **The panel gives it back.** When the panel closes, unmounts, or the window widens, a sidebar that the
+  panel collapsed expands again.
+- **The reader's choice stands.** `Sidebar.Trigger` still toggles the sidebar beside the open panel, and a
+  sidebar that the reader toggled keeps that state when the panel closes.
 - **The cookie keeps the preference.** `onOpenChange` reports the reader's toggles only. `open` and
   `defaultOpen` stay the reader's preference, and `useSidebar().open` reports the state on screen.
 
-Pass `yieldToSidePanel={false}` on a route that does not render the panel, so the rail keeps its width
-there. The default width is the `--container-side-panel-lane` theme token (56.5rem): the narrowest row that
-holds the expanded rail, the page, and the panel. A media query cannot read a CSS variable, so an app that
-raises the token in `@theme`, or that wants a wider page beside the panel, passes the same width to
-`yieldToSidePanelBelow`. The [Assistant Across Routes](/recipes/assistant-across-routes) recipe shows the
-whole shell.
+The [Assistant Across Routes](/recipes/assistant-across-routes) recipe shows the whole shell.
 
 ## Accessibility
 
@@ -1639,7 +1620,7 @@ whole shell.
 - When the shell owns the document, pair the sidebar with a `SkipToMainLink`. `AppLayout.Body` is the `main`
   landmark the link targets, so keyboard users jump past the sidebar's tab gauntlet straight into the scrolling
   page region (see [App Layout → Landmarks](/layouts/app-layout#landmarks)).
-- The collapsed icon rail stays fully interactive: row labels are clipped and switcher text is visually
+- The collapsed sidebar stays fully interactive: row labels are clipped and switcher text is visually
   hidden, but both remain in the tab order and the accessibility tree, so accessible names do not change
   between states.
 - `Sidebar.ItemButton` `current` renders `aria-current="page"`, and the row's current treatment is styled from
@@ -1656,17 +1637,15 @@ whole shell.
 
 The state owner. Renders no DOM.
 
-| Prop                     | Type                      | Default     | Description                                                                                                                                                                                                                                                                                             |
-| ------------------------ | ------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `defaultOpen?`           | `boolean`                 | `true`      | Initial desktop expanded state for the uncontrolled case.                                                                                                                                                                                                                                               |
-| `open?`                  | `boolean`                 |             | Controlled desktop expanded state. Pair with `onOpenChange`.                                                                                                                                                                                                                                            |
-| `onOpenChange?`          | `(open: boolean) => void` |             | Called with the next desktop expanded state when the reader or `setOpen` changes it. A change that `yieldToSidePanel` causes does not call it.                                                                                                                                                          |
-| `openMobile?`            | `boolean`                 |             | Controlled mobile sheet open state. Pair with `onOpenMobileChange`.                                                                                                                                                                                                                                     |
-| `onOpenMobileChange?`    | `(open: boolean) => void` |             | Called with the next mobile sheet open state.                                                                                                                                                                                                                                                           |
-| `mobileBreakpoint?`      | `"sm" \| "md" \| "lg"`    | `"lg"`      | Breakpoint below which `Sidebar.Nav` renders as a mobile `Sheet`.                                                                                                                                                                                                                                       |
-| `keyboardShortcut?`      | `boolean`                 | `true`      | Toggle with `⌘B` (Apple) / `Ctrl+B` (elsewhere). Exact-modifier match, resolved per platform (`⌘⇧B` and macOS's native `Ctrl+B` pass through), and ignored while focus is in a text-editing or form control; set `false` to opt out.                                                                    |
-| `yieldToSidePanel?`      | `boolean`                 | `false`     | Collapse an expanded rail to its icons while an open [`AppLayout.SidePanel`](/layouts/app-layout#side-panel) needs the width, and expand it again when the panel gives the width back. Requires an `AppLayout.SidePanelRoot` above the root. See [Yielding to a side panel](#yielding-to-a-side-panel). |
-| `yieldToSidePanelBelow?` | `` `${number}rem` ``      | `"56.5rem"` | The viewport width below which the open panel takes the rail's width. The default is the `--container-side-panel-lane` theme token.                                                                                                                                                                     |
+| Prop                  | Type                      | Default | Description                                                                                                                                                                                                                          |
+| --------------------- | ------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `defaultOpen?`        | `boolean`                 | `true`  | Initial desktop expanded state for the uncontrolled case.                                                                                                                                                                            |
+| `open?`               | `boolean`                 |         | Controlled desktop expanded state. Pair with `onOpenChange`.                                                                                                                                                                         |
+| `onOpenChange?`       | `(open: boolean) => void` |         | Called with the next desktop expanded state when the reader or `setOpen` changes it. A collapse or an expand that an [`AppLayout.SidePanel`](#yielding-to-a-side-panel) causes does not call it.                                     |
+| `openMobile?`         | `boolean`                 |         | Controlled mobile sheet open state. Pair with `onOpenMobileChange`.                                                                                                                                                                  |
+| `onOpenMobileChange?` | `(open: boolean) => void` |         | Called with the next mobile sheet open state.                                                                                                                                                                                        |
+| `mobileBreakpoint?`   | `"sm" \| "md" \| "lg"`    | `"lg"`  | Breakpoint below which `Sidebar.Nav` renders as a mobile `Sheet`.                                                                                                                                                                    |
+| `keyboardShortcut?`   | `boolean`                 | `true`  | Toggle with `⌘B` (Apple) / `Ctrl+B` (elsewhere). Exact-modifier match, resolved per platform (`⌘⇧B` and macOS's native `Ctrl+B` pass through), and ignored while focus is in a text-editing or form control; set `false` to opt out. |
 
 ### Sidebar.Nav
 
@@ -1688,14 +1667,14 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | ------------------------ | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--sidebar-width`        | `13rem`   | Expanded desktop width (208px). Set it on `Sidebar.Nav` for one sidebar or on any ancestor (`:root`) for every sidebar (see [Width](#width)).                                                                                                                                                 |
 | `--sidebar-width-mobile` | `18rem`   | Mobile sheet width (288px). Set it on `Sidebar.Nav` or any ancestor (see [Width](#width)).                                                                                                                                                                                                    |
-| `--sidebar-width-icon`   | `3.25rem` | Collapsed icon rail width (52px). Set it on `Sidebar.Nav` or any ancestor (see [Width](#width)).                                                                                                                                                                                              |
+| `--sidebar-width-icon`   | `3.25rem` | Collapsed sidebar width (52px). Set it on `Sidebar.Nav` or any ancestor (see [Width](#width)).                                                                                                                                                                                                |
 | `--sidebar-row-width`    | `12rem`   | Read, not set: one row's width in the expanded panel (192px), derived as `calc(var(--sidebar-width, 13rem) - 1rem)` and declared at `:root` by `mantle.css` so surfaces rendered outside the panel can size to a row (see [Sizing a menu to a sidebar row](#sizing-a-menu-to-a-sidebar-row)). |
 
 **Data attributes**
 
 | Data Attribute  | Value                             | Description                                                                                                                                                                                                                                                                                                                                               |
 | --------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-state`    | `"expanded"` \| `"collapsed"`     | On the desktop panel surface. Mirrors the root's expanded state and drives the width collapse to the icon rail; descendant parts style off it with `group-data-[state=collapsed]/sidebar-nav:`.                                                                                                                                                           |
+| `data-state`    | `"expanded"` \| `"collapsed"`     | On the desktop panel surface. Mirrors the root's expanded state and drives the width collapse to its icons; descendant parts style off it with `group-data-[state=collapsed]/sidebar-nav:`.                                                                                                                                                               |
 | `data-hydrated` | present one frame after hydration | Presence-only, desktop panel surface. The panel's pre-hydration visibility gate, its width transition, and descendant collapse transitions all key off its absence in CSS (`not-data-hydrated:`, `group-not-data-hydrated/sidebar-nav:`). The stamp waits one frame, so an SSR state correction paints first and snaps instead of animating on page load. |
 | `data-mobile`   | present in the mobile sheet       | Presence-only. Marks the `Sheet.Content` presentation used below the root's `mobileBreakpoint`.                                                                                                                                                                                                                                                           |
 | `data-state`    | `"open"` \| `"closed"`            | In the mobile sheet only, where the panel _is_ the `Sheet`'s Radix dialog content element and Radix owns the attribute. It is the sheet's open/close animation state, not the desktop expanded state. Consumers style against it too.                                                                                                                     |
@@ -1809,7 +1788,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 ### Sidebar.GroupLabel
 
 The group's label, a `div`. Pass `asChild` to render a heading at a level you control. In the collapsed
-icon rail it fades in place with its row retained, so icon positions match the expanded state.
+sidebar it fades in place with its row retained, so icon positions match the expanded state.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
@@ -1839,9 +1818,9 @@ All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li
 
 ### Sidebar.ItemButton
 
-The interactive navigation row. Expanded spacing matches the regular sidebar; in the collapsed icon rail,
+The interactive navigation row. Expanded spacing matches the regular sidebar; in the collapsed sidebar,
 item rows keep their original square icon chip with a small offset so body and footer icons stay aligned
-without text peeking from the rail.
+without text peeking from the collapsed sidebar.
 
 The row sizes its **leading** icon (20px) and leaves trailing visuals (a menu caret, a count, a status
 pip) to size themselves, so composing one needs no `!` override. A row composed with
@@ -1849,7 +1828,7 @@ pip) to size themselves, so composing one needs no `!` override. A row composed 
 by the trigger), and takes the same `--sidebar-row-width` floor on its menu as a switcher row (see
 [Sizing a menu to a sidebar row](#sizing-a-menu-to-a-sidebar-row)). That is how the **Help** row is built in
 the shell demo at the top of this page and in the live example under
-[Labeling the rail for pointer users](#labeling-the-rail-for-pointer-users).
+[Labeling the sidebar for pointer users](#labeling-the-sidebar-for-pointer-users).
 
 All props from `button` plus:
 
@@ -1875,7 +1854,7 @@ it shares the column the navigation rows use in both panel states and scrolls wi
 [The search row](#the-search-row)).
 
 It is deliberately a navigation row and not a text field. The row is the same chrome as a
-`Sidebar.ItemButton` (same height, padding, radius, hover, and the same 28px chip in the collapsed icon rail),
+`Sidebar.ItemButton` (same height, padding, radius, hover, and the same 28px chip in the collapsed sidebar),
 because a search entry point in a sidebar is one of the rows, not a form control wedged among them. Its
 `shortcut` hint appears on hover or keyboard focus and is otherwise invisible, which keeps the resting panel
 quiet.
@@ -1896,7 +1875,7 @@ slot-scoped twin when you override the `button` path.
 A styled button only. Compose it with
 [`Command.SearchTrigger`](/components/navigation/command#commandsearchtrigger), which supplies the dialog
 wiring, `aria-keyshortcuts`, and the behavior that makes typing or pasting into the row open the palette with
-that text already in the query. Wrap the pair in `Sidebar.Tooltip` so the row keeps a visible label in the rail.
+that text already in the query. Wrap the pair in `Sidebar.Tooltip` so the row keeps a visible label in the collapsed sidebar.
 
 All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes), plus:
 
@@ -1914,14 +1893,14 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 | `data-slot`    | `"sidebar-search-trigger-shortcut"` | On the chord chips. Default `button` path only, where it is always mounted and `display: none` while empty; the props union forbids `shortcut` under `asChild`. Carries `translate="no"`: a chord is a key name, not prose. |
 | `data-state`   | `"open"` \| `"closed"`              | **Read, not stamped**: supplied by the composing `Command.SearchTrigger` / `Dialog.Trigger`. The row stays highlighted while its palette is open.                                                                           |
 
-The `shortcut` hint is dropped outright in the collapsed rail: the chip has room for the icon and nothing
+The `shortcut` hint is dropped outright in the collapsed sidebar: the chip has room for the icon and nothing
 else, and `aria-keyshortcuts` already announces the chord. The row's label is clipped rather than removed, so
 the button keeps its accessible name as a chip.
 
 ### Sidebar.SwitcherTrigger
 
 The styled switcher row for the header (app switcher) and footer (account/user row). Its leading visual is
-size-7 to match selected rail icons while the row keeps a compact 36px footprint.
+size-7 to match selected sidebar icons while the row keeps a compact 36px footprint.
 [Avatar](/components/data-display/avatar) is that size by default, which is what an account or user row puts
 there. The control uses a custom 10px radius on all corners so product and account switchers share the same
 shape around their rounded tiles. A styled button only. Compose it with `DropdownMenu.Trigger asChild` or
@@ -1944,7 +1923,7 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 | `data-slot`    | `"sidebar-switcher-trigger"` | Names the part, with any composing ancestor's chain ahead of it.                                                                                                                                                                                                                                     |
 | `data-state`   | `"open"` \| `"closed"`       | **Read, not stamped**: supplied by the composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. Inside `Sidebar.Tooltip` the tooltip's own `data-state` replaces this one, so the open highlight also keys on `aria-expanded`. |
 
-Inside the collapsed icon rail, the row collapses to its **first child element** (the
+Inside the collapsed sidebar, the row collapses to its **first child element** (the
 leading visual), and the remaining children become visually hidden while staying in the accessibility tree,
 so the button's accessible name is unchanged. Wrap loose text in an element (e.g. a `<span>`) so it
 participates. Because the row shrinks, give the menu it opens the `--sidebar-row-width` floor
@@ -1953,27 +1932,27 @@ participates. Because the row shrinks, give the menu it opens the `--sidebar-row
 
 ### Sidebar.Tooltip
 
-Labels a row only while the desktop panel is collapsed to the icon rail. See
-[Labeling the rail for pointer users](#labeling-the-rail-for-pointer-users). Requires a
+Labels a row only while the desktop panel is collapsed to its icons. See
+[Labeling the sidebar for pointer users](#labeling-the-sidebar-for-pointer-users). Requires a
 [`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) ancestor and must be inside a
 `Sidebar.Root` (it throws otherwise).
 
 It opens on hover or focus like any tooltip and closes when the pointer leaves the row. The label itself is
-not hoverable. The rail state vetoes it: the expanded panel and the mobile sheet never show it, and toggling
-the rail dismisses whatever was showing, so collapsing the panel cannot pop a label under a pointer that has
+not hoverable. The sidebar state vetoes it: the expanded panel and the mobile sheet never show it, and toggling
+the sidebar dismisses whatever was showing, so collapsing the panel cannot pop a label under a pointer that has
 already moved on.
 
 Its props are [`Tooltip.Content`](/components/overlays/tooltip#tooltipcontent)'s, minus the two this row
 owns, plus:
 
-| Prop         | Type                                           | Default   | Description                                                                                                                                                                                                                                                                |
-| ------------ | ---------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `children`   | `ReactElement`                                 |           | The single element row to label: a `Sidebar.ItemButton` or `Sidebar.SwitcherTrigger`, optionally already wrapped in a `DropdownMenu.Trigger asChild`. Required: `Tooltip.Trigger asChild` clones it, so text or no child renders nothing hoverable and is a compile error. |
-| `label`      | `ReactNode`                                    |           | What the tooltip says, normally the row's own label text.                                                                                                                                                                                                                  |
-| `shortcut?`  | `ReactNode`                                    |           | Chord chips rendered after the label, usually `<><MetaKey /><Kbd>K</Kbd></>`. The rail hides the row's own hint along with its text, so the tooltip is where a pointer user can still learn it. `aria-hidden`, since the row's `aria-keyshortcuts` already announces it.   |
-| `side?`      | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | `"right"` | Which side of the row the tooltip opens on. The rail sits at the inline start of the viewport, so the default points the tooltip away from it.                                                                                                                             |
-| `className?` | `string`                                       |           | Merged onto the tooltip surface, last, by `Tooltip.Content`. This part adds no classes of its own.                                                                                                                                                                         |
-| `data-slot?` | `string`                                       |           | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `sidebar-tooltip` rather than replacing it.                                                                                                                                                       |
+| Prop         | Type                                           | Default   | Description                                                                                                                                                                                                                                                                           |
+| ------------ | ---------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `children`   | `ReactElement`                                 |           | The single element row to label: a `Sidebar.ItemButton` or `Sidebar.SwitcherTrigger`, optionally already wrapped in a `DropdownMenu.Trigger asChild`. Required: `Tooltip.Trigger asChild` clones it, so text or no child renders nothing hoverable and is a compile error.            |
+| `label`      | `ReactNode`                                    |           | What the tooltip says, normally the row's own label text.                                                                                                                                                                                                                             |
+| `shortcut?`  | `ReactNode`                                    |           | Chord chips rendered after the label, usually `<><MetaKey /><Kbd>K</Kbd></>`. The collapsed sidebar hides the row's own hint along with its text, so the tooltip is where a pointer user can still learn it. `aria-hidden`, since the row's `aria-keyshortcuts` already announces it. |
+| `side?`      | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | `"right"` | Which side of the row the tooltip opens on. The sidebar sits at the inline start of the viewport, so the default points the tooltip away from it.                                                                                                                                     |
+| `className?` | `string`                                       |           | Merged onto the tooltip surface, last, by `Tooltip.Content`. This part adds no classes of its own.                                                                                                                                                                                    |
+| `data-slot?` | `string`                                       |           | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `sidebar-tooltip` rather than replacing it.                                                                                                                                                                  |
 
 `asChild` is not accepted. `Tooltip.Content` omits it because its arrow is a permanent sibling of the body, so
 a slot would receive two elements. See [Polymorphism](#polymorphism).
@@ -1994,7 +1973,7 @@ four in the table above are the exceptions: this part reads them itself.
 | `data-slot`    | `"sidebar-tooltip-row"`                            | Inside that surface, on the flex row holding the label and the optional chord chips.                                                     |
 | `data-slot`    | `"sidebar-tooltip-label"`                          | On the `<span>` wrapping `label` inside that row. Always present, and `display: contents`.                                               |
 | `data-slot`    | `"sidebar-tooltip-shortcut"`                       | On the chord chips. Present only while `shortcut` holds something. Carries `translate="no"`: a chord is a key name, not prose.           |
-| `data-state`   | `"delayed-open"` \| `"instant-open"` \| `"closed"` | On the wrapped row, from `Tooltip.Trigger`. `"closed"` outside the collapsed rail, where this part vetoes the open state.                |
+| `data-state`   | `"delayed-open"` \| `"instant-open"` \| `"closed"` | On the wrapped row, from `Tooltip.Trigger`. `"closed"` outside the collapsed sidebar, where this part vetoes the open state.             |
 
 That row is always mounted, so a `shortcut` that resolves later appends beside an element instead of replacing
 the label. The label span is always mounted too, so your own swap of `label` from text to an element never
@@ -2007,7 +1986,7 @@ flex row) → `sidebar-tooltip-label` (`display: contents`).
 
 An inset hairline between sidebar regions, aligned with the surrounding `Sidebar.Body` and `Sidebar.Footer`
 padding (it deliberately does not run edge to edge). When the sidebar is expanded, those regions trim their
-trailing inset to account for the adjacent app-content gutter. When it collapses to the icon rail, the
+trailing inset to account for the adjacent app-content gutter. When it collapses to its icons, the
 separator widens to the collapsed switcher chip width so it stays optically centered between the viewport
 edge and content card.
 

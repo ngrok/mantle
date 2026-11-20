@@ -570,6 +570,14 @@ export const migrations = [
 			"RadioGroup.ButtonGroup and RadioGroup.Button are gone. Use SegmentedControl.Root and SegmentedControl.Item from @ngrok/mantle/segmented-control.",
 		route: "/migrations/0015-segmented-control-migration",
 	},
+	{
+		number: 16,
+		slug: "side-panel-lane-collapsed-migration",
+		title: "Side Panel Lane Collapsed",
+		description:
+			"The theme token --container-side-panel-lane-icon-rail is now --container-side-panel-lane-collapsed. Rename it where you set it or read it.",
+		route: "/migrations/0016-side-panel-lane-collapsed-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

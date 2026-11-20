@@ -344,7 +344,7 @@ describe("Sidebar.Nav (desktop)", () => {
 	});
 
 	test("Trigger's tooltip shows its label and shortcut to pointer users", async () => {
-		// Not gated on the rail state the way `Sidebar.Tooltip` is: the trigger is
+		// Not gated on the sidebar state the way `Sidebar.Tooltip` is: the trigger is
 		// icon-only at every breakpoint, so a pointer user has nothing else to read.
 		const user = userEvent.setup();
 		render(
@@ -776,7 +776,7 @@ describe("--sidebar-row-width", () => {
 	// The token is public API for surfaces that render OUTSIDE the panel: a
 	// switcher's menu is portaled to document.body, so it inherits nothing the
 	// sidebar sets and reads the expanded row width from :root instead. That is
-	// how a menu keeps that width while its trigger shrinks into the icon rail.
+	// how a menu keeps that width while its trigger shrinks into the collapsed sidebar.
 	// happy-dom loads no stylesheet, so guard the declaration itself.
 	test("mantle.css derives it at :root from the expanded panel width", () => {
 		expect(mantleCss).toMatch(
@@ -789,7 +789,7 @@ describe("--sidebar-row-width", () => {
 	// Cascade order would not save it: Tailwind emits `.min-w-(--var)` BEFORE the
 	// numeric scale, so if a tailwind-merge upgrade ever stopped grouping the
 	// bare-variable shorthand with that scale, `min-w-32` (128px) would win and
-	// the rail menu would silently shrink back to the bug this token fixed.
+	// the collapsed sidebar's menu would silently shrink back to the bug this token fixed.
 	test("the documented menu recipe replaces DropdownMenu.Content's own min-width", () => {
 		render(
 			<DropdownMenu.Root open>
@@ -1076,8 +1076,8 @@ describe("useSidebar", () => {
 	});
 });
 
-describe("Sidebar.Root yieldToSidePanel", () => {
-	/** The query the root reads by default: the viewport is below the lane. */
+describe("Sidebar beside AppLayout.SidePanel", () => {
+	/** The query `AppLayout.SidePanel` reads: the viewport is below the lane. */
 	const belowTheLane = "(width < 56.5rem)";
 
 	function PanelToggle() {
@@ -1089,14 +1089,18 @@ describe("Sidebar.Root yieldToSidePanel", () => {
 		);
 	}
 
-	/** A shell with the panel's state above the rail's, and one control for each. */
-	function Shell(props: Omit<Parameters<typeof Sidebar.Root>[0], "children">) {
+	/** A shell with one control for the sidebar and one for the panel. */
+	function Shell({
+		panelMounted = true,
+		...props
+	}: Omit<Parameters<typeof Sidebar.Root>[0], "children"> & { panelMounted?: boolean }) {
 		return (
 			<AppLayout.SidePanelRoot>
-				<Sidebar.Root yieldToSidePanel {...props}>
+				<Sidebar.Root {...props}>
 					<Sidebar.Nav data-testid="nav" />
 					<Sidebar.Trigger />
 					<PanelToggle />
+					{panelMounted && <AppLayout.SidePanel aria-label="Assistant" />}
 				</Sidebar.Root>
 			</AppLayout.SidePanelRoot>
 		);
@@ -1105,10 +1109,10 @@ describe("Sidebar.Root yieldToSidePanel", () => {
 	const nav = () => screen.getByTestId("nav");
 	const togglePanel = (user: ReturnType<typeof userEvent.setup>) =>
 		user.click(screen.getByRole("button", { name: "Toggle panel" }));
-	const toggleRail = (user: ReturnType<typeof userEvent.setup>) =>
+	const toggleSidebar = (user: ReturnType<typeof userEvent.setup>) =>
 		user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
 
-	test("the open panel collapses the rail below the lane, and a wider window expands it", async () => {
+	test("the open panel collapses the sidebar below the lane, and a wider window expands it", async () => {
 		const user = userEvent.setup();
 		const media = mockMatchMedia({ [belowTheLane]: true });
 		const onOpenChange = vi.fn<(open: boolean) => void>();
@@ -1125,13 +1129,32 @@ describe("Sidebar.Root yieldToSidePanel", () => {
 		expect(onOpenChange).toHaveBeenCalledTimes(0);
 	});
 
-	test("the panel gives the rail back when it closes", async () => {
+	test("the panel gives the width back when it closes", async () => {
 		const user = userEvent.setup();
 		mockMatchMedia({ [belowTheLane]: true });
 		render(<Shell />);
 		await togglePanel(user);
 		expect(nav()).toHaveAttribute("data-state", "collapsed");
 
+		await togglePanel(user);
+		expect(nav()).toHaveAttribute("data-state", "expanded");
+	});
+
+	test("the panel gives the width back when it unmounts open", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [belowTheLane]: true });
+		const { rerender } = render(<Shell />);
+		await togglePanel(user);
+		expect(nav()).toHaveAttribute("data-state", "collapsed");
+
+		rerender(<Shell panelMounted={false} />);
+		expect(nav()).toHaveAttribute("data-state", "expanded");
+	});
+
+	test("an open state with no panel in the row keeps the sidebar expanded", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [belowTheLane]: true });
+		render(<Shell panelMounted={false} />);
 		await togglePanel(user);
 		expect(nav()).toHaveAttribute("data-state", "expanded");
 	});
@@ -1143,12 +1166,12 @@ describe("Sidebar.Root yieldToSidePanel", () => {
 		render(<Shell onOpenChange={onOpenChange} />);
 		await togglePanel(user);
 
-		await toggleRail(user);
+		await toggleSidebar(user);
 		expect(nav()).toHaveAttribute("data-state", "expanded");
 		expect(onOpenChange).toHaveBeenCalledTimes(1);
 		expect(onOpenChange).toHaveBeenLastCalledWith(true);
 
-		await toggleRail(user);
+		await toggleSidebar(user);
 		expect(onOpenChange).toHaveBeenCalledTimes(2);
 		expect(onOpenChange).toHaveBeenLastCalledWith(false);
 
@@ -1156,7 +1179,7 @@ describe("Sidebar.Root yieldToSidePanel", () => {
 		expect(nav()).toHaveAttribute("data-state", "collapsed");
 	});
 
-	test("a rail that was collapsed when the panel opened follows a controlled `open`", async () => {
+	test("a sidebar that was collapsed when the panel opened follows a controlled `open`", async () => {
 		const user = userEvent.setup();
 		mockMatchMedia({ [belowTheLane]: true });
 		const { rerender } = render(<Shell open={false} />);
@@ -1166,7 +1189,7 @@ describe("Sidebar.Root yieldToSidePanel", () => {
 		expect(nav()).toHaveAttribute("data-state", "expanded");
 	});
 
-	test("the rail keeps its width at the lane and wider", async () => {
+	test("the sidebar keeps its width at the lane and wider", async () => {
 		const user = userEvent.setup();
 		mockMatchMedia({ [belowTheLane]: false });
 		render(<Shell />);
@@ -1174,29 +1197,30 @@ describe("Sidebar.Root yieldToSidePanel", () => {
 		expect(nav()).toHaveAttribute("data-state", "expanded");
 	});
 
-	test("`yieldToSidePanel={false}` keeps the rail's width beside the open panel", async () => {
+	test("a Sidebar.Root above AppLayout.SidePanelRoot yields too", async () => {
 		const user = userEvent.setup();
 		mockMatchMedia({ [belowTheLane]: true });
-		render(<Shell yieldToSidePanel={false} />);
-		await togglePanel(user);
-		expect(nav()).toHaveAttribute("data-state", "expanded");
-	});
-
-	test("`yieldToSidePanelBelow` moves the width the rail yields at", async () => {
-		const user = userEvent.setup();
-		mockMatchMedia({ "(width < 80rem)": true });
-		render(<Shell yieldToSidePanelBelow="80rem" />);
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav data-testid="nav" />
+				<AppLayout.SidePanelRoot>
+					<PanelToggle />
+					<AppLayout.SidePanel aria-label="Assistant" />
+				</AppLayout.SidePanelRoot>
+			</Sidebar.Root>,
+		);
 		await togglePanel(user);
 		expect(nav()).toHaveAttribute("data-state", "collapsed");
 	});
 
 	test("the server renders the reader's preference beside an open panel", () => {
-		// Why: the server cannot read the viewport, so the rail must not yield there.
+		// Why: the server cannot read the viewport, so the sidebar must not yield there.
 		const html = renderToString(
 			<TooltipProvider>
 				<AppLayout.SidePanelRoot defaultOpen>
-					<Sidebar.Root yieldToSidePanel>
+					<Sidebar.Root>
 						<Sidebar.Nav />
+						<AppLayout.SidePanel aria-label="Assistant" />
 					</Sidebar.Root>
 				</AppLayout.SidePanelRoot>
 			</TooltipProvider>,
@@ -1204,17 +1228,9 @@ describe("Sidebar.Root yieldToSidePanel", () => {
 		expect(html).toContain('data-state="expanded"');
 	});
 
-	test("throws outside AppLayout.SidePanelRoot", () => {
-		// Why: silence React's error log for the expected throw.
-		vi.spyOn(console, "error").mockImplementation(() => {});
-		expect(() => render(<Sidebar.Root yieldToSidePanel />)).toThrow(
-			"Sidebar.Root with yieldToSidePanel must be rendered inside AppLayout.SidePanelRoot.",
-		);
-	});
-
-	test("the default lane is the `--container-side-panel-lane` theme token", async () => {
+	test("the lane is the `--container-side-panel-lane` theme token", async () => {
 		// Why a cross-file pin: a media query cannot read a CSS variable, so the
-		// root repeats the token `AppLayout.SidePanel`'s container query reads.
+		// panel repeats the token its own container query reads.
 		const lane = /--container-side-panel-lane:\s*([\d.]+rem);/.exec(mantleCss)?.[1];
 		const user = userEvent.setup();
 		mockMatchMedia({ [`(width < ${lane})`]: true });
@@ -1524,7 +1540,7 @@ describe("Sidebar.SearchTrigger", () => {
 		);
 	});
 
-	test("a Sidebar.Tooltip around it opens in the rail, shortcut and all", async () => {
+	test("a Sidebar.Tooltip around it opens in the collapsed sidebar, shortcut and all", async () => {
 		// Regression: `Command.SearchTrigger` typed its props as `{ children }` only,
 		// so wrapping it in `Sidebar.Tooltip` dropped every prop Radix's
 		// `Tooltip.Trigger` passes down. The row rendered fine and the tooltip
@@ -1598,8 +1614,8 @@ describe("Sidebar.SearchTrigger", () => {
 		});
 	});
 
-	test("keeps its label in the accessibility tree in the collapsed rail", async () => {
-		// The rail hides everything after the leading icon with `sr-only` rather
+	test("keeps its label in the accessibility tree in the collapsed sidebar", async () => {
+		// The collapsed sidebar hides everything after the leading icon with `sr-only` rather
 		// than removing it, so the row still has a name when it is only a chip:
 		// the same contract `Sidebar.SwitcherTrigger` keeps.
 		const user = userEvent.setup();
@@ -1663,7 +1679,7 @@ describe("Sidebar.SearchTrigger", () => {
 });
 
 describe("Sidebar.Tooltip", () => {
-	function RailRow({ defaultOpen }: { defaultOpen: boolean }) {
+	function SidebarRow({ defaultOpen }: { defaultOpen: boolean }) {
 		return (
 			<TooltipProvider>
 				<Sidebar.Root defaultOpen={defaultOpen}>
@@ -1680,7 +1696,7 @@ describe("Sidebar.Tooltip", () => {
 							</Sidebar.Group>
 						</Sidebar.Body>
 					</Sidebar.Nav>
-					{/* The rail state is what gates the label, so these tests toggle it
+					{/* The sidebar state is what gates the label, so these tests toggle it
 					    the way a user does rather than by re-rendering `defaultOpen`,
 					    which seeds the uncontrolled state once and never collapses it. */}
 					<Sidebar.Trigger />
@@ -1690,11 +1706,11 @@ describe("Sidebar.Tooltip", () => {
 	}
 
 	/**
-	 * Renders one `Sidebar.Tooltip` in the collapsed desktop rail (the only rail
+	 * Renders one `Sidebar.Tooltip` in the collapsed desktop sidebar (the only sidebar
 	 * state that shows a label), hovers the row, and answers with the tooltip
 	 * surface, so a test can assert what reached `Tooltip.Content`.
 	 */
-	async function hoverRailTooltip(tooltip: ReactElement): Promise<HTMLElement> {
+	async function hoverRowTooltip(tooltip: ReactElement): Promise<HTMLElement> {
 		const user = userEvent.setup();
 		render(
 			<TooltipProvider>
@@ -1708,7 +1724,7 @@ describe("Sidebar.Tooltip", () => {
 	}
 
 	test("renders the row it wraps, keeping the row contract intact", () => {
-		render(<RailRow defaultOpen />);
+		render(<SidebarRow defaultOpen />);
 		const row = screen.getByRole("button", { name: "Endpoints" });
 		// One element is both the tooltip trigger and the row, so the data-slot
 		// chain accumulates in DOM order rather than one side clobbering the other.
@@ -1716,9 +1732,9 @@ describe("Sidebar.Tooltip", () => {
 		expect(row).toHaveAttribute("type", "button");
 	});
 
-	test("shows the label on hover while collapsed to the icon rail", async () => {
+	test("shows the label on hover while collapsed to its icons", async () => {
 		const user = userEvent.setup();
-		render(<RailRow defaultOpen={false} />);
+		render(<SidebarRow defaultOpen={false} />);
 
 		await user.hover(screen.getByRole("button", { name: "Endpoints" }));
 		expect(await screen.findByRole("tooltip")).toHaveTextContent("Endpoints");
@@ -1762,7 +1778,7 @@ describe("Sidebar.Tooltip", () => {
 
 	test("stays silent while the panel is expanded: the row reads its own label", async () => {
 		const user = userEvent.setup();
-		render(<RailRow defaultOpen />);
+		render(<SidebarRow defaultOpen />);
 
 		await user.hover(screen.getByRole("button", { name: "Endpoints" }));
 		expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
@@ -1794,7 +1810,7 @@ describe("Sidebar.Tooltip", () => {
 
 	test("closes the label when the pointer leaves the row", async () => {
 		const user = userEvent.setup();
-		render(<RailRow defaultOpen={false} />);
+		render(<SidebarRow defaultOpen={false} />);
 		const row = screen.getByRole("button", { name: "Endpoints" });
 
 		await user.hover(row);
@@ -1810,7 +1826,7 @@ describe("Sidebar.Tooltip", () => {
 		// with no mounted surface points aria-describedby at an id that is not in
 		// the document.
 		const user = userEvent.setup();
-		render(<RailRow defaultOpen />);
+		render(<SidebarRow defaultOpen />);
 		const row = screen.getByRole("button", { name: "Endpoints" });
 
 		await user.hover(row);
@@ -1819,13 +1835,13 @@ describe("Sidebar.Tooltip", () => {
 		expect(row).toHaveAttribute("data-state", "closed");
 	});
 
-	test("stays closed when the rail collapses after the pointer swept an expanded row", async () => {
+	test("stays closed when the sidebar collapses after the pointer swept an expanded row", async () => {
 		// Regression: the pointer crossing an expanded row on its way to the
 		// collapse trigger used to latch the label open (the panel withheld the
 		// surface, so nothing was mounted to close it again), and collapsing then
 		// popped a tooltip nobody was hovering.
 		const user = userEvent.setup();
-		render(<RailRow defaultOpen />);
+		render(<SidebarRow defaultOpen />);
 		const row = screen.getByRole("button", { name: "Endpoints" });
 
 		await user.hover(row);
@@ -1836,12 +1852,12 @@ describe("Sidebar.Tooltip", () => {
 		expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 	});
 
-	test("stays closed when the rail collapses while the row holds focus", async () => {
+	test("stays closed when the sidebar collapses while the row holds focus", async () => {
 		// Focus opens a tooltip per the ARIA pattern, so a row focused while the
 		// panel was expanded must not have that pending state cashed in the moment
-		// the rail collapses under it.
+		// the sidebar collapses under it.
 		const user = userEvent.setup();
-		render(<RailRow defaultOpen />);
+		render(<SidebarRow defaultOpen />);
 		const row = screen.getByRole("button", { name: "Endpoints" });
 		row.focus();
 
@@ -1852,11 +1868,11 @@ describe("Sidebar.Tooltip", () => {
 		expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 	});
 
-	test("stays closed when a label shown in the rail survives an expand and a re-collapse", async () => {
-		// The pointer never leaves the row here: it is the rail toggling out from
+	test("stays closed when a label shown in the collapsed sidebar survives an expand and a re-collapse", async () => {
+		// The pointer never leaves the row here: it is the sidebar toggling out from
 		// under it, twice. Neither flip may leave an open state behind to replay.
 		const user = userEvent.setup();
-		render(<RailRow defaultOpen={false} />);
+		render(<SidebarRow defaultOpen={false} />);
 
 		await user.hover(screen.getByRole("button", { name: "Endpoints" }));
 		expect(await screen.findByRole("tooltip")).toBeInTheDocument();
@@ -1870,7 +1886,7 @@ describe("Sidebar.Tooltip", () => {
 		expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 	});
 
-	test("stays closed when the rail collapses after a menu on the row hands focus back", async () => {
+	test("stays closed when the sidebar collapses after a menu on the row hands focus back", async () => {
 		// The overlay path into the same bug. Closing a menu restores focus to its
 		// trigger, which here is also the tooltip trigger, so Radix asks for a label
 		// the expanded panel has no use for: a request that must not outlive the
@@ -1916,7 +1932,7 @@ describe("Sidebar.Tooltip", () => {
 		// Every prop but `children` and `label` is Tooltip.Content's, so the whole
 		// content surface stays reachable without a prop bag.
 		const ref = createRef<HTMLDivElement>();
-		const tooltip = await hoverRailTooltip(
+		const tooltip = await hoverRowTooltip(
 			<Sidebar.Tooltip
 				className="custom-class"
 				data-flavor="primary"
@@ -1940,8 +1956,8 @@ describe("Sidebar.Tooltip", () => {
 	// avoidCollisions is off in both side tests so the placed side is exactly the
 	// requested one: happy-dom lays nothing out, so Radix's flip middleware would
 	// otherwise pick a side from zero-sized rects.
-	test("side defaults to right, pointing the tooltip away from the rail", async () => {
-		const tooltip = await hoverRailTooltip(
+	test("side defaults to right, pointing the tooltip away from the sidebar", async () => {
+		const tooltip = await hoverRowTooltip(
 			<Sidebar.Tooltip avoidCollisions={false} label="Endpoints">
 				<Sidebar.ItemButton>Endpoints</Sidebar.ItemButton>
 			</Sidebar.Tooltip>,
@@ -1950,7 +1966,7 @@ describe("Sidebar.Tooltip", () => {
 	});
 
 	test("side can be overridden", async () => {
-		const tooltip = await hoverRailTooltip(
+		const tooltip = await hoverRowTooltip(
 			<Sidebar.Tooltip avoidCollisions={false} label="Endpoints" side="top">
 				<Sidebar.ItemButton>Endpoints</Sidebar.ItemButton>
 			</Sidebar.Tooltip>,
@@ -1959,11 +1975,11 @@ describe("Sidebar.Tooltip", () => {
 	});
 
 	test("keeps the trigger mounted across a collapse so focus is not dropped", async () => {
-		// Regression guard on keeping Tooltip.Root mounted across the rail states:
+		// Regression guard on keeping Tooltip.Root mounted across the sidebar states:
 		// unmounting it would take the Trigger (and the focused row) with it. The
-		// rail collapses by keyboard so focus stays on the row under test.
+		// sidebar collapses by keyboard so focus stays on the row under test.
 		const user = userEvent.setup();
-		render(<RailRow defaultOpen />);
+		render(<SidebarRow defaultOpen />);
 		const row = screen.getByRole("button", { name: "Endpoints" });
 		row.focus();
 		expect(row).toHaveFocus();

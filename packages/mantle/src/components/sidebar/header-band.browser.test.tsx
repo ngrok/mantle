@@ -110,7 +110,7 @@ function topY(element: HTMLElement): number {
  * A shell sized in code rather than by the runner's viewport, so the numbers do
  * not move with the browser window. `Sidebar.Header` needs no `Sidebar.Root`
  * context and `AppLayout.Header`'s `:has()` finds the header at any depth, so the
- * rail is a plain sized column: this measures the band against the toolbar, not
+ * sidebar is a plain sized column: this measures the band against the toolbar, not
  * the panel's mobile/desktop switch.
  *
  * Every row carries an explicit pixel height, because the contract under test is

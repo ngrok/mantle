@@ -198,7 +198,7 @@ An avatar is almost always redundant with text beside it, and mantle defaults to
 
 - **Initials derived from `name` are `aria-hidden`.** They abbreviate a name the page already carries, so
   announcing them would read it twice ("A C Acme Corp"). Children are not hidden; you own their semantics.
-- **When the avatar is the only thing naming its subject** (a collapsed rail, a bare stack of members), name
+- **When the avatar is the only thing naming its subject** (a collapsed sidebar, a bare stack of members), name
   the root: `role="img"` plus `aria-label="Acme Corp"`. A bare `<span>` is `role="generic"`, where accessible
   names are prohibited, so the role is what makes the label count.
 - **`alt` on `Avatar.Image` is required**, and mantle makes it required deliberately: an `<img>` with no `alt`

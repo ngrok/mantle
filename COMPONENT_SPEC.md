@@ -102,6 +102,9 @@ accessible, least surprising, fast, delightful, clean, and efficient.
     that renders anything beside a consumer's `children` then turns that consumer's next update into a thrown
     `DOMException` and a blank page. The part owns the fix, and the call site cannot see the problem
     ([§3.8](#38-browser-translation)).
+15. **Behavior is built in.** When a behavior has one right answer, the component does it with no prop. A
+    prop is for a product decision that a named app makes differently, and a preference of the person at the
+    screen is state ([§1.9](#19-build-the-behavior-in-before-you-add-a-prop)).
 
 ---
 
@@ -270,6 +273,33 @@ link it from the JSDoc or docs page. Existing examples:
 accepts), `decisions/2026-07-04-list-family-api-design.md` (naming and composition),
 `decisions/2026-07-08-docs-information-architecture.md` (docs categories),
 `decisions/2026-07-15-theme-switcher-compound-api.md` (parts over prop bags).
+
+### 1.9. Build the behavior in before you add a prop
+
+A prop is API that mantle keeps, and a behavior behind a prop is off in each app that does not set it.
+[Build the behavior in](./docs/principles/build-the-behavior-in.md) is the rule, with the full list of
+questions. For a component, ask them before you add a prop, a part, or a recipe:
+
+| The difference is                                               | It ships as                                                             |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| None: one answer keeps the layout, the focus, or the ARIA right | Built-in behavior, with no prop and no opt-out                          |
+| A preference of the person at the screen                        | State that starts from the system or the layout; an action sets it      |
+| A size, a color, or a breakpoint                                | A CSS variable or a theme token ([§5](#5-css-variables-are-api))        |
+| What the part renders                                           | Children, `asChild`, or a part ([§1.5](#15-composition-vs-data-driven)) |
+| A product decision that a named, shipped app makes differently  | A prop, with the app named in the pull request                          |
+
+- **A behavior that needs two components is still built in.** The parts find each other through an internal
+  context, in each order that an app can nest them. `AppLayout.SidePanel` asks the nearest `Sidebar.Root` for
+  the sidebar's width this way. The app wires nothing.
+- **State follows the system until the person acts.** `ThemeSwitcher` follows the system theme until a click
+  sets light or dark. `Sidebar.Root` yields to an open side panel until `Sidebar.Trigger` overrides it. The
+  callback (`onOpenChange`) reports the person's action only, so a cookie keeps the preference and not the
+  automatic state.
+- **A recipe that each app copies is a missing default.** A recipe is for router glue and app data
+  ([docs/framework-boundary.md](./docs/framework-boundary.md)). When a second app copies behavior from a
+  recipe, move the behavior into the component and delete it from the recipe.
+- **When you are not sure, ship no prop.** To add a prop later is a `patch`. To remove one is a breaking
+  `minor` with a migration guide.
 
 ---
 
@@ -1085,6 +1115,8 @@ Run this against the diff before calling a component done. Each line is a defect
 - [ ] Answers one user intent no existing component already answers; the primary export's JSDoc names the
       sibling boundary in `@useWhen` and `@siblings` tags.
 - [ ] Nothing is public that could have stayed module-internal.
+- [ ] Each new prop names the shipped app that needs it; a behavior with one right answer has no prop
+      ([§1.9](#19-build-the-behavior-in-before-you-add-a-prop)).
 - [ ] Outermost part is `Root`; every part name is the web-standards term for what it renders.
 - [ ] No unearned ARIA pattern word anywhere in the component or part names.
 - [ ] Props read as the ARIA/DOM they emit; no prop-bag passthrough props.

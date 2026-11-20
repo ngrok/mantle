@@ -923,8 +923,8 @@ const Command = {
 	 * Makes any control behave like a search field that opens the command palette.
 	 * It renders no DOM of its own; it clones its child and gives it the wiring,
 	 * so **presentation belongs entirely to the child** and this part never has an
-	 * opinion about how the trigger looks or how it behaves in a collapsed sidebar
-	 * rail.
+	 * opinion about how the trigger looks or how it behaves in a collapsed
+	 * sidebar.
 	 *
 	 * @see https://mantle.ngrok.com/components/navigation/command#commandsearchtrigger
 	 *

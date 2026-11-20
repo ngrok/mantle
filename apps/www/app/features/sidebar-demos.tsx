@@ -116,7 +116,7 @@ export function SidebarPolymorphismDemo() {
 
 /**
  * One sidebar widened to `18rem` by setting `--sidebar-width` on
- * `Sidebar.Nav`; the icon rail and the mobile sheet keep their own defaults.
+ * `Sidebar.Nav`; the collapsed sidebar and the mobile sheet keep their own defaults.
  * The panel fills its ancestor's height. A real app gets that from
  * `AppLayout.Workspace`, so an inline example supplies a fixed-height frame of
  * its own. Mirrors the docs page's "Width" code block exactly.
@@ -157,14 +157,14 @@ export function SidebarWidthExample() {
 }
 
 /**
- * `Sidebar.Tooltip` labeling rows in the collapsed icon rail: a plain
+ * `Sidebar.Tooltip` labeling rows in the collapsed sidebar: a plain
  * navigation row, and a footer Help row that also opens a menu, which is why
  * its `DropdownMenu.Root` stays *outside* the tooltip. Starts collapsed
  * (`defaultOpen={false}`) so the tooltips are live without touching the
- * trigger. Mirrors the docs page's "Labeling the rail for pointer users" code
+ * trigger. Mirrors the docs page's "Labeling the sidebar for pointer users" code
  * block exactly.
  */
-export function SidebarRailTooltipExample() {
+export function SidebarCollapsedTooltipExample() {
 	return (
 		// the rows' tooltips need a `TooltipProvider` ancestor. The docs site
 		// mounts one at its root, so mount one at yours too
@@ -221,7 +221,7 @@ export function SidebarRailTooltipExample() {
 
 /**
  * A switcher row's menu keeping the expanded row's width inside the collapsed
- * icon rail: `width="trigger"` sizes it to the row, and the
+ * sidebar: `width="trigger"` sizes it to the row, and the
  * `--sidebar-row-width` floor holds it there once the row is a chip. Collapse
  * and expand the panel with the trigger: the menu looks the same either way.
  * Mirrors the docs page's "Sizing a menu to a sidebar row" code block exactly.

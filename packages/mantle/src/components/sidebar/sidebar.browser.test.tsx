@@ -324,8 +324,8 @@ test("animates a collapse the user triggers after hydration", async () => {
 	await userEvent.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
 
 	expect(nav).toHaveAttribute("data-state", "collapsed");
-	// Why every part: each trades its expanded shape for the rail's on the rail's
-	// clock, or it takes the rail shape on the first frame and the rail catches up.
+	// Why every part: each trades its expanded shape for its collapsed one on the sidebar's
+	// clock, or it takes the collapsed shape on the first frame and the sidebar catches up.
 	await waitFor(() => {
 		expect(transitions).toEqual(
 			expect.arrayContaining([

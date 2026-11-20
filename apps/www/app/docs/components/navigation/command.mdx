@@ -264,7 +264,7 @@ Passing `value` to `Command.Input` takes the query over completely: your value w
 
 ## In a sidebar
 
-In a sidebar the search row is a [`Sidebar.SearchTrigger`](https://mantle.ngrok.com/components/navigation/sidebar#sidebarsearchtrigger): the same row chrome as a `Sidebar.ItemButton`, with a `⌘K` hint that appears on hover or keyboard focus and is otherwise invisible. It is deliberately a row and not a text field (a search entry point in a sidebar is one of the rows, not a form control wedged among them), which is also why it becomes the same icon chip as its neighbors once the panel collapses to the rail. All of that is owned by `Sidebar`, where the rail lives, and `Command.SearchTrigger` supplies only the behavior. Wrap the pair in `Sidebar.Tooltip` so the row still has a visible label in the rail.
+In a sidebar the search row is a [`Sidebar.SearchTrigger`](https://mantle.ngrok.com/components/navigation/sidebar#sidebarsearchtrigger): the same row chrome as a `Sidebar.ItemButton`, with a `⌘K` hint that appears on hover or keyboard focus and is otherwise invisible. It is deliberately a row and not a text field (a search entry point in a sidebar is one of the rows, not a form control wedged among them), which is also why it becomes the same icon chip as its neighbors once the sidebar collapses. All of that is owned by `Sidebar`, where the collapsed state lives, and `Command.SearchTrigger` supplies only the behavior. Wrap the pair in `Sidebar.Tooltip` so the row still has a visible label in the collapsed sidebar.
 
 Collapse the panel with the toggle to watch the row become a chip. The preview is its own document, so `⌘K` works inside it.
 
@@ -304,7 +304,7 @@ function SidebarSearch({ children }: { children: ReactNode }) {
 }
 
 function SidebarSearchRow() {
-	// The rail drops the row's own hint along with its label, so the tooltip
+	// The collapsed sidebar drops the row's own hint along with its label, so the tooltip
 	// repeats the chord for a pointer user.
 	return (
 		<Sidebar.Tooltip
@@ -367,7 +367,7 @@ function SidebarWithSearch() {
 
 </Example>
 
-The row goes in `Sidebar.Body` rather than `Sidebar.Header` so it shares the item rows' column and collapses into the same icon stack. `Sidebar.SearchTrigger` marks the `shortcut` hint `aria-hidden` (`Command.SearchTrigger`'s `aria-keyshortcuts` already announces the chord) and drops it entirely in the rail, where the label is clipped rather than removed so the button keeps its accessible name as a chip.
+The row goes in `Sidebar.Body` rather than `Sidebar.Header` so it shares the item rows' column and collapses into the same icon stack. `Sidebar.SearchTrigger` marks the `shortcut` hint `aria-hidden` (`Command.SearchTrigger`'s `aria-keyshortcuts` already announces the chord) and drops it entirely in the collapsed sidebar, where the label is clipped rather than removed so the button keeps its accessible name as a chip.
 
 Both `searchActionFromKeyDown` and `searchActionFromPaste` are exported for a trigger that cannot use `Command.SearchTrigger` at all; they take the **native** event (`event.nativeEvent`), because React's synthetic keyboard event does not carry `isComposing`.
 
@@ -415,7 +415,7 @@ The state owner for the Command dialog. Owns the open state, the query text, and
 
 ### Command.SearchTrigger
 
-Makes any control behave like a search field that opens the palette. It renders no DOM of its own (it clones its child), so presentation belongs entirely to the child. This part never has an opinion about how the trigger looks or how it behaves in a collapsed sidebar rail.
+Makes any control behave like a search field that opens the palette. It renders no DOM of its own (it clones its child), so presentation belongs entirely to the child. This part never has an opinion about how the trigger looks or how it behaves in a collapsed sidebar.
 
 | Prop       | Type           | Default | Description                                                                                                                               |
 | :--------- | :------------- | :------ | :---------------------------------------------------------------------------------------------------------------------------------------- |
