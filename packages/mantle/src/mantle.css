@@ -1435,6 +1435,26 @@ MARK: UTILITIES
 	}
 }
 
+/*
+ * The focus ring of mantle: a 4px ring in a focus color, in place of the
+ * browser outline. Put a state variant before it, such as
+ * `focus-visible:focus-ring`. `focus-ring` is the accent ring; `focus-ring-danger`,
+ * `focus-ring-warning`, `focus-ring-success`, and `focus-ring-neutral` are the
+ * other tones. The docs page `/base/focus-ring` lists the rules.
+ *
+ * Why Tailwind's ring: it is a box shadow that adds to the element's own
+ * shadows, and a later `ring-focus-*` class can change the color for a state.
+ */
+@utility focus-ring {
+	@apply ring-4 outline-hidden;
+	--tw-ring-color: var(--ring-color-focus-accent);
+}
+
+@utility focus-ring-* {
+	@apply ring-4 outline-hidden;
+	--tw-ring-color: --value(--ring-color-focus-*);
+}
+
 @utility scrollbar {
 	scrollbar-color: --alpha(var(--color-neutral-800) / 50%) transparent;
 
@@ -1901,9 +1921,14 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) {
 	color: var(--mantle-code-fold-toggle-hover-color);
 }
 
-.mantle-code-fold-toggle:focus-visible {
-	outline: 2px solid var(--color-accent-500);
-	outline-offset: 1px;
+/*
+ * Why `z-index`: the ring extends past the line, and the gutter of the next
+ * line is later in the DOM at `z-index: 1`, so it would cover the ring. The
+ * parent in the selector lets this rule win over the sticky rule above.
+ */
+.mantle-code-line > .mantle-code-fold-toggle:focus-visible {
+	@apply focus-ring;
+	z-index: 2;
 }
 
 .mantle-code-fold-caret {
