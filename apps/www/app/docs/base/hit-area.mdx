@@ -1,18 +1,84 @@
 ---
 title: Hit Area
-description: A utility that gives a small control a larger tap target with no change to its look or the layout.
+description: An escape hatch that gives a small control a larger tap target with no change to its look or the layout. Fix the size of the control first.
 ---
 
 import { Example } from "~/components/example";
 
 # Hit Area
 
-The `hit-area` utility gives a small control a tap target of at least 44px by
-44px. The control looks the same, and the layout does not change.
+The `hit-area` utility is an escape hatch. It gives a small control a tap target
+of at least 44px by 44px, with no change to its look or the layout.
 
-The utility adds an invisible `::after` pseudo-element, centered on the control.
-A click or a tap on it goes to the control. The area is never smaller than the
-control itself.
+> [!WARNING]
+> Do not use `hit-area` by default. It hides a control that is too small; it does
+> not fix it. First make the control the correct size. Use `hit-area` only when
+> the design must keep the control small and the space around it is empty.
+
+## Fix the size first
+
+A small tap target is a layout problem. Fix the layout before you use this
+utility:
+
+1. Use a mantle control at its own size. [Button](/components/actions/button)
+   and [IconButton](/components/actions/icon-button) already have a correct tap
+   target.
+2. Make the control itself larger. Add padding, and a negative margin of the
+   same size if the glyph must stay aligned with the content around it.
+3. Add space between controls, or move a rare action into a
+   [DropdownMenu](/components/overlays/dropdown-menu).
+
+These fixes give the control a real box. A focus ring, a hover state, a screen
+magnifier, and an automated audit all see a real box. They do not see a hit
+area.
+
+## When to use it
+
+Use `hit-area` only when each of these conditions is true:
+
+- The design must keep the visible control small. Its size is part of what the
+  control is, not a way to save space.
+- The control has empty space on each side: no other control is in the 44px
+  square around its center.
+- No ancestor clips the control.
+
+The thumb of a [Slider](/components/forms/slider) is the model case. The thumb
+is 18px because a larger thumb hides the track and the value. The space above
+and below the track is empty, and the user must grab the thumb to drag it.
+`Slider` is the only mantle component that uses `hit-area`.
+
+## When not to use it
+
+- **Controls that are near each other.** A toolbar, the row actions of a table,
+  a list of icon buttons, or a row of tags with remove buttons. The hit areas
+  overlap, and a tap goes to the wrong control.
+- **Controls in a line of text or a line of code.** The line height limits the
+  space, and a 44px area covers the lines above and below.
+- **A mantle control that already has a correct size.** Do not add it to
+  `Button`, `IconButton`, an input, or a menu item.
+- **To pass an audit.** An audit does not see the hit area. See the risks below.
+- **As a default on each icon-only control.** If many controls need it, the
+  design is too dense. Fix the design.
+
+## Risks
+
+- **Stolen taps.** The utility does not know about neighbors. If two hit areas
+  overlap, or a hit area covers another control, the element that is later in
+  the DOM gets the tap. The user sees no sign of this.
+- **Invisible behavior.** The control does not look larger. A hover state and a
+  focus ring stay on the small box, so a tap near the control gives no feedback
+  before it activates.
+- **Clipping.** An ancestor that clips its content cuts the hit area off at its
+  edge. This includes each scroll container and each element with
+  `overflow-hidden`. The control then has a smaller area than you expect, with
+  no error.
+- **Audits still fail.** An automated audit, such as Lighthouse, measures the
+  box of the element and not the pseudo-element. It continues to report the
+  control as too small.
+- **Pseudo-element conflict.** The utility uses `::after`. On an element that
+  has its own `::after`, one of the two breaks.
+
+## Example
 
 <Example name="base/hit-area/basic" title="Hit Area example">
 
@@ -25,11 +91,22 @@ control itself.
 </Example>
 
 The dashed outline in the example shows the hit area. The utility itself paints
-nothing.
+nothing. The button stands alone, with no other control near it.
+
+## How it works
+
+The utility adds an invisible `::after` pseudo-element, centered on the
+control. A click or a tap on it goes to the control. The area is never smaller
+than the control itself.
+
+The utility sets `position: relative`. The `absolute`, `fixed`, and `sticky`
+classes win on the same element, and the hit area works with each of them.
 
 ## Size
 
-The minimum is 44px. To set another minimum, set `--hit-area-size`:
+The minimum is 44px. To set another minimum, set `--hit-area-size`. A smaller
+value is not a way to fit `hit-area` between controls that are near each other:
+make those controls larger instead.
 
 ```tsx
 <button
@@ -40,18 +117,3 @@ The minimum is 44px. To set another minimum, set `--hit-area-size`:
 	<XIcon />
 </button>
 ```
-
-## Requirements
-
-- Keep space between controls. The utility does not know about neighbors. If two
-  hit areas overlap, the control that is later in the DOM gets the tap in the
-  overlap. Give adjacent controls a smaller `--hit-area-size`, or more gap.
-- An ancestor that clips its content cuts the hit area off at its edge. This
-  includes each scroll container and each element with `overflow-hidden`.
-- The utility uses `::after`, so don't put it on an element that has its own
-  `::after`.
-- The utility sets `position: relative`. The `absolute`, `fixed`, and `sticky`
-  classes win on the same element, and the hit area works with each of them.
-- An automated audit, such as Lighthouse, measures the box of the element and
-  not the pseudo-element. The audit can report a small target that is easy to
-  tap.

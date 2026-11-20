@@ -1412,8 +1412,10 @@ MARK: UTILITIES
 }
 
 /*
- * A hit area of at least 44px by 44px, centered on the element, with no change
- * to the layout or the look. `--hit-area-size` sets another minimum.
+ * An escape hatch: a hit area of at least 44px by 44px, centered on the element,
+ * with no change to the layout or the look. `--hit-area-size` sets another
+ * minimum. Make the control the correct size first. The docs page `/base/hit-area`
+ * lists when to use it and the risks.
  *
  * Why `position: relative`: the hit area is positioned against the element.
  * Tailwind writes this utility before `absolute`, `fixed`, and `sticky`, so
