@@ -213,6 +213,7 @@ const migrationsPages = [
 	"0029-data-attribute-contract-migration",
 	"0030-between-variant-migration",
 	"0031-anchored-child-variant-migration",
+	"0032-query-filter-operators-migration",
 ];
 
 export default [

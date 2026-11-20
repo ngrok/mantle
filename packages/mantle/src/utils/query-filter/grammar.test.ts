@@ -114,6 +114,36 @@ describe("defineRemoteFilterGrammar", () => {
 	});
 });
 
+describe("a remote grammar with the full syntax", () => {
+	const fullGrammar = defineRemoteFilterGrammar({
+		syntax: "full",
+		keys: [{ key: "replicas", description: "Replica count", type: "number", operators: ["gt"] }],
+	});
+
+	test("paints free text, groups, and typed comparisons as the executor reads them", () => {
+		expect(getFilterSyntax(fullGrammar)).toBe("full");
+		expect(
+			getHighlightSegments(fullGrammar, "(api OR replicas:>3) replicas:<3").map(
+				(segment) => segment.kind,
+			),
+		).toEqual([
+			"operator",
+			"text",
+			"plain",
+			"operator",
+			"plain",
+			"key",
+			"syntax",
+			"value",
+			"operator",
+			"plain",
+			"key",
+			"syntax",
+			"invalid",
+		]);
+	});
+});
+
 describe("the conjunction syntax", () => {
 	test("reads the dash, quotes, commas, and the operators as structure", () => {
 		expect(

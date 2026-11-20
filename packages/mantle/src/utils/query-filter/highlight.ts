@@ -19,15 +19,16 @@ type HighlightSegmentKind =
 	| "value"
 	/**
 	 * A qualifier value that matches no alias, so the filter matches nothing.
-	 * Under the `"conjunction"` syntax, also a run the executor cannot run: a
-	 * bare term, or a `-` on a key that is not negatable.
+	 * Also a value that does not parse for its key's type, or an operator the
+	 * key does not accept. Under the `"conjunction"` syntax, also a run the
+	 * executor cannot run: a bare term, or a `-` on a key that is not negatable.
 	 */
 	| "invalid"
 	/** A bare search term. */
 	| "text"
-	/** The `OR` between two filter groups. */
+	/** An `OR`, `AND`, or `NOT`, or a parenthesis of a group. */
 	| "operator"
-	/** The `-` and `:` that give a token its shape. */
+	/** The `-`, `!`, and `:` that give a token its shape. */
 	| "syntax"
 	/** Whitespace between tokens. */
 	| "plain";
@@ -72,7 +73,10 @@ function getHighlightSegments<Item>(
 	for (const token of parseFilterQuery(grammar, query)) {
 		push(token.start, "plain");
 
-		if (token.kind === "or" || token.kind === "and") {
+		if (token.kind === "group-start" && token.negated) {
+			push(token.start + 1, "syntax");
+		}
+		if (token.kind !== "facet" && token.kind !== "text") {
 			push(token.end, "operator");
 			continue;
 		}

@@ -32,9 +32,12 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 import { observeScrollEdges } from "../../utils/scroll-edges.js";
 import {
 	type FilterGrammar,
+	type FilterOperator,
 	type FilterSyntax,
 	type RemoteFilterKeyDefinition,
+	getFilterOperators,
 	getFilterSyntax,
+	getFilterValueType,
 } from "../../utils/query-filter/grammar.js";
 import {
 	type HighlightSegment,
@@ -507,11 +510,11 @@ type QueryInputProps = Omit<
  *
  * **CSS variables:**
  *
- * | CSS Variable             | Default                        | Description                     |
- * | ------------------------ | ------------------------------ | ------------------------------- |
- * | `--query-key-color`      | `var(--shiki-token-attribute)` | The color of a qualifier key.   |
- * | `--query-value-color`    | `var(--shiki-token-string)`    | The color of a qualifier value. |
- * | `--query-operator-color` | `var(--shiki-token-operator)`  | The color of `OR` and `AND`.    |
+ * | CSS Variable             | Default                        | Description                                       |
+ * | ------------------------ | ------------------------------ | ------------------------------------------------- |
+ * | `--query-key-color`      | `var(--shiki-token-attribute)` | The color of a qualifier key.                     |
+ * | `--query-value-color`    | `var(--shiki-token-string)`    | The color of a qualifier value.                   |
+ * | `--query-operator-color` | `var(--shiki-token-operator)`  | The color of `OR`, `AND`, `NOT`, and parentheses. |
  *
  * **Data attributes:**
  *
@@ -1264,6 +1267,13 @@ function Empty({ "data-slot": dataSlot, children, className, ...props }: QueryEm
 	);
 }
 
+/** What a number, date, or duration key takes, for the empty message. */
+const typedValueHints = {
+	number: "Takes a number, as in >3 or 2..5.",
+	date: "Takes a date, as in 2026-01-31, or a time back from now, as in >7d.",
+	duration: "Takes a duration, as in >90s or 1h30m.",
+} as const;
+
 /** What the field accepts at the caret, from the grammar. */
 function EmptyMessage({
 	keys,
@@ -1287,7 +1297,17 @@ function EmptyMessage({
 	if (definition == null) {
 		return <p key="text">No filter matches. The words search as text.</p>;
 	}
-	if (definition.values == null) {
+	const type = getFilterValueType(definition);
+	if (type === "number" || type === "date" || type === "duration") {
+		return (
+			<p key={`${type}-value`}>
+				<SyntaxRule token={`${definition.key}:`}>
+					{`${definition.description}. ${typedValueHints[type]}`}
+				</SyntaxRule>
+			</p>
+		);
+	}
+	if (type === "text") {
 		return (
 			<p key="free-value">
 				<SyntaxRule token={`${definition.key}:`}>
@@ -1423,10 +1443,15 @@ function Legend({ "data-slot": dataSlot, className, ...props }: QueryLegendProps
 	}
 
 	const excludes = keys.some((definition) => definition.negatable !== false);
+	const accepts = (operator: FilterOperator) =>
+		keys.some((definition) => getFilterOperators(definition).includes(operator));
 	const rules = [
 		excludes && { token: "-key:value", text: "excludes" },
 		{ token: "key:a,b", text: "matches either" },
+		accepts("gt") && { token: "key:>n", text: "compares" },
+		accepts("starts-with") && { token: "key:a*", text: "starts with" },
 		syntax === "full" && { token: "OR", text: "joins filters" },
+		syntax === "full" && { token: "(a OR b)", text: "groups" },
 		{ token: '"quotes"', text: "keep spaces" },
 	].filter((rule) => rule !== false);
 

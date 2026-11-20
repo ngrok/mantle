@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import { getHighlightSegments } from "./highlight.js";
-import { testGrammar } from "./test-grammar.js";
+import { testGrammar, typedTestGrammar } from "./test-grammar.js";
 
 describe("getHighlightSegments", () => {
 	test("splits a qualifier into key, colon, and value", () => {
@@ -102,6 +102,37 @@ describe("getHighlightSegments", () => {
 			{ text: "desc", kind: "key" },
 			{ text: ":", kind: "syntax" },
 			{ text: '"staging api"', kind: "value" },
+		]);
+	});
+
+	test("paints NOT and parentheses as operators, and a leading ! as syntax", () => {
+		expect(getHighlightSegments(testGrammar, "!(is:new OR NOT acme)")).toMatchObject([
+			{ text: "!", kind: "syntax" },
+			{ text: "(", kind: "operator" },
+			{ text: "is", kind: "key" },
+			{ text: ":", kind: "syntax" },
+			{ text: "new", kind: "value" },
+			{ text: " ", kind: "plain" },
+			{ text: "OR", kind: "operator" },
+			{ text: " ", kind: "plain" },
+			{ text: "NOT", kind: "operator" },
+			{ text: " ", kind: "plain" },
+			{ text: "acme", kind: "text" },
+			{ text: ")", kind: "operator" },
+		]);
+	});
+
+	test("paints a typed value invalid when it does not parse or its operator is not accepted", () => {
+		const kinds = (query: string) =>
+			getHighlightSegments(typedTestGrammar, query)
+				.filter((segment) => segment.kind === "value" || segment.kind === "invalid")
+				.map((segment) => `${segment.text}:${segment.kind}`);
+
+		expect(kinds("replicas:many latency:<1s replicas:>=3 created:>7d")).toEqual([
+			"many:invalid",
+			"<1s:invalid",
+			">=3:value",
+			">7d:value",
 		]);
 	});
 });
