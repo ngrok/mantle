@@ -267,6 +267,7 @@ export const basePages = [
 	//,
 	"Breakpoints",
 	"Colors",
+	"Focus Ring",
 	"Hit Area",
 	"Scroll Fade",
 	"Shadows",
@@ -279,6 +280,7 @@ export const basePages = [
 export const baseRoutes = {
 	Breakpoints: "/base/breakpoints",
 	Colors: "/base/colors",
+	"Focus Ring": "/base/focus-ring",
 	"Hit Area": "/base/hit-area",
 	"Scroll Fade": "/base/scroll-fade",
 	Shadows: "/base/shadows",

@@ -180,7 +180,7 @@ const PasswordInput = ({
 				aria-label="Show value"
 				aria-pressed={showPassword}
 				aria-controls={id}
-				className="text-body hover:text-strong focus-visible:ring-focus-accent ml-1 cursor-pointer rounded-xs bg-inherit p-0 focus-visible:ring-2 focus-visible:outline-hidden"
+				className="text-body hover:text-strong focus-visible:focus-ring ml-1 cursor-pointer rounded-xs bg-inherit p-0 focus-visible:ring-2"
 				onClick={() => {
 					const nextShowPassword = !showPassword;
 					if (!isControlled) {

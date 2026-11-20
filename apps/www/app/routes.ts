@@ -33,6 +33,7 @@ const docsPages = [
 	"for-ai-agents",
 	"base/breakpoints",
 	"base/colors",
+	"base/focus-ring",
 	"base/hit-area",
 	"base/scroll-fade",
 	"base/shadows",

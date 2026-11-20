@@ -405,7 +405,7 @@ const Trigger = ({
 				// so its label, its focus ring, and the gap to the content stay still while only
 				// `Accordion.Content` moves. `Accordion.Body`'s `pt-1` keeps the `ring-4` focus
 				// ring off the body's first line.
-				"focus:outline-hidden focus-visible:ring-4 focus-visible:ring-focus-accent",
+				"focus-visible:focus-ring",
 				className,
 			)}
 			onClick={(event) => {

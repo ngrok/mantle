@@ -131,7 +131,7 @@ const Item = ({ "data-slot": dataSlot, className, ref, ...props }: SegmentedCont
 				"group/radio [&_label]:cursor-inherit relative flex flex-1 select-none items-center justify-center gap-2 rounded-md px-3 text-sm",
 				// Why nowrap: `SegmentedControl.Root` has a fixed height, so a wrapped label spills out of the item.
 				"whitespace-nowrap",
-				"focus-visible:ring-focus-accent focus-visible:z-1 focus-visible:ring-4",
+				"focus-visible:focus-ring focus-visible:z-1",
 				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
 				"text-muted not-aria-disabled:hover:text-strong aria-disabled:opacity-50",
 				// Why a lighter tint: hover moves an item toward the raised thumb in both themes.

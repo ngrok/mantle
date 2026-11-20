@@ -36,12 +36,12 @@ const buttonVariants = cva("", {
 		 */
 		appearance: {
 			filled:
-				"bg-filled-accent text-white focus-visible:ring-focus-accent not-disabled:hover:bg-filled-accent-hover border border-transparent text-sm font-medium",
+				"bg-filled-accent text-white not-disabled:hover:bg-filled-accent-hover border border-transparent text-sm font-medium",
 			ghost:
-				"text-accent-600 focus-visible:ring-focus-accent not-disabled:hover:bg-accent-500/10 not-disabled:hover:text-accent-700 border border-transparent text-sm font-medium",
+				"text-accent-600 not-disabled:hover:bg-accent-500/10 not-disabled:hover:text-accent-700 border border-transparent text-sm font-medium",
 			outlined:
-				"border-accent-600 bg-form text-accent-600 focus-visible:ring-focus-accent not-disabled:hover:border-accent-700 not-disabled:hover:bg-accent-500/10 not-disabled:hover:text-accent-700 border text-sm font-medium",
-			link: "text-accent-600 focus-visible:ring-focus-accent not-disabled:hover:underline group/button-link border-transparent",
+				"border-accent-600 bg-form text-accent-600 not-disabled:hover:border-accent-700 not-disabled:hover:bg-accent-500/10 not-disabled:hover:text-accent-700 border text-sm font-medium",
+			link: "text-accent-600 not-disabled:hover:underline group/button-link border-transparent",
 		} satisfies Record<ButtonAppearance, string>,
 		/**
 		 * Whether the button is in a loading state, default `false`. Setting `isLoading`
@@ -115,13 +115,13 @@ const buttonVariants = cva("", {
 			appearance: "ghost",
 			intent: "neutral",
 			class:
-				"text-strong focus-visible:ring-focus-accent not-disabled:hover:bg-neutral-500/10 not-disabled:hover:text-strong border-transparent",
+				"text-strong not-disabled:hover:bg-neutral-500/10 not-disabled:hover:text-strong border-transparent",
 		},
 		{
 			appearance: "outlined",
 			intent: "neutral",
 			class:
-				"border-form bg-form text-strong focus-visible:border-accent-600 focus-visible:ring-focus-accent not-disabled:hover:border-neutral-400 not-disabled:hover:bg-form-hover not-disabled:hover:text-strong focus-visible:not-disabled:hover:border-accent-600 focus-visible:not-disabled:active:border-accent-600",
+				"border-form bg-form text-strong focus-visible:border-accent-600 not-disabled:hover:border-neutral-400 not-disabled:hover:bg-form-hover not-disabled:hover:text-strong focus-visible:not-disabled:hover:border-accent-600 focus-visible:not-disabled:active:border-accent-600",
 		},
 		{
 			appearance: "filled",
@@ -132,7 +132,7 @@ const buttonVariants = cva("", {
 		{
 			appearance: "link",
 			intent: "neutral",
-			class: "text-strong focus-visible:ring-focus-accent",
+			class: "text-strong",
 		},
 	],
 });
@@ -396,7 +396,7 @@ const Button = ({
 		"data-slot": joinDataSlot(dataSlot, "button"),
 		className: cx(
 			"inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md",
-			"focus:outline-hidden focus-visible:ring-4",
+			"focus-visible:focus-ring",
 			"disabled:cursor-default disabled:opacity-50",
 			"aria-disabled:cursor-default aria-disabled:opacity-50",
 			"not-disabled:active:scale-97 ease-out transition-transform duration-150",

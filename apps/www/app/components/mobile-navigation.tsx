@@ -33,7 +33,7 @@ export function MobileNavigation() {
 	return (
 		<div className="bg-card fixed bottom-0 left-0 right-0 top-15 z-50 p-4 md:hidden">
 			<div className="scroll-fade-y scrollbar h-full overflow-auto overscroll-contain px-1">
-				<nav className="text-sm px-1 mb-6">
+				<nav aria-label="Sections" className="text-sm px-1 mb-6">
 					<ul className="flex flex-col">
 						<li className="mb-2 text-xs font-medium uppercase tracking-wider font-mono">Menu</li>
 						{sectionLinks.map((link) => (
@@ -41,7 +41,7 @@ export function MobileNavigation() {
 								<Link
 									to={link.to}
 									prefetch="intent"
-									className="text-muted hover:text-strong block py-1 rounded focus:outline-hidden focus-visible:ring-3 focus-visible:ring-focus-accent"
+									className="text-muted hover:text-strong block py-1 rounded focus-visible:ring-3 focus-visible:focus-ring"
 									onClick={() => {
 										setShowNavigation(false);
 									}}

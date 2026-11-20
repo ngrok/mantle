@@ -834,7 +834,7 @@ const ChartRootPrimitive = ({
 							className={cx(
 								// Why `outline-hidden` and not `outline-none`: forced colors mode drops
 								// the ring's box shadow, and `outline-hidden` keeps an outline there.
-								"focus-visible:ring-focus-accent absolute inset-0 rounded-sm focus:outline-hidden focus-visible:ring-2",
+								"focus-visible:focus-ring absolute inset-0 rounded-sm focus-visible:ring-2",
 								(kind === "line" || kind === "area") && "cursor-crosshair",
 								// Why touch-pan-y on 2D charts: a horizontal finger drag must
 								// scrub the tooltip, and with the default the browser claims

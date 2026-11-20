@@ -2,6 +2,8 @@
 
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import axe from "axe-core";
+import type { CSSProperties } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import mantleCss from "../../mantle.css?raw";
 import { CodeBlock } from "./code-block.js";
@@ -120,6 +122,7 @@ describe("CodeBlock (browser)", () => {
 			--mantle-code-line-number-gap: 1rem;
 			--mantle-code-fold-gutter-width: 1.125rem;
 			--mantle-code-fold-gutter-gap: 0.25rem;
+			--mantle-code-fold-line-height: 1.5rem;
 		}
 		pre[data-slot="code-block-code"] {
 			margin: 0;
@@ -172,7 +175,7 @@ describe("CodeBlock (browser)", () => {
 			flex-shrink: 0;
 			display: inline-flex;
 			width: var(--mantle-code-fold-gutter-width);
-			height: 1.5em;
+			height: var(--mantle-code-fold-line-height);
 			margin-right: var(--mantle-code-fold-gutter-gap);
 			padding: 0;
 			border: 0;
@@ -226,11 +229,27 @@ describe("CodeBlock (browser)", () => {
 		return match[0];
 	}
 
+	/**
+	 * The line-height rule of foldable code, read from `mantle.css` and not
+	 * mirrored. A change to the rule changes the target-size audit here.
+	 */
+	function foldLineHeightCss(): string {
+		const match =
+			/pre\[data-slot="code-block-code"\]:has\(\.mantle-code-fold-toggle\) \{\n\tline-height:[\s\S]*?\n\}/.exec(
+				mantleCss,
+			);
+		if (match == null) {
+			throw new Error("mantle.css holds no line-height rule for foldable code.");
+		}
+		return match[0];
+	}
+
 	let styleElement: HTMLStyleElement;
 
 	beforeAll(() => {
 		styleElement = document.createElement("style");
-		styleElement.textContent = LAYOUT_STYLE + TAB_LAYOUT_STYLE + foldHitAreaCss();
+		styleElement.textContent =
+			LAYOUT_STYLE + TAB_LAYOUT_STYLE + foldHitAreaCss() + foldLineHeightCss();
 		document.head.appendChild(styleElement);
 	});
 
@@ -472,6 +491,48 @@ describe("CodeBlock (browser)", () => {
 				expect(document.elementFromPoint(rect.left - 11, rect.bottom + 2)).not.toBe(inner);
 			},
 		);
+	});
+
+	describe("fold toggle target size", () => {
+		function renderAdjacentToggles(style?: CSSProperties) {
+			return render(
+				// Why the type scale: `text-mono` on the <pre> sets it, and the test page loads no Tailwind.
+				<div style={{ width: 340, fontSize: "0.8125rem", lineHeight: "1.25rem", ...style }}>
+					<CodeBlock.Root>
+						<CodeBlock.Body>
+							<CodeBlock.Code
+								value={makeFixedWidthValue([100, 100, 100, 100], {
+									showLineNumbers: true,
+									foldableRanges: [
+										{ id: "1", startLine: 1, endLine: 4 },
+										{ id: "2", startLine: 2, endLine: 3 },
+									],
+								})}
+							/>
+						</CodeBlock.Body>
+					</CodeBlock.Root>
+				</div>,
+			);
+		}
+
+		async function targetSizeViolations(container: HTMLElement) {
+			const results = await axe.run(container, { runOnly: ["target-size"] });
+			return results.violations.flatMap((violation) => violation.nodes);
+		}
+
+		test("the toggles of adjacent lines pass the target-size audit", async () => {
+			const { container } = renderAdjacentToggles();
+
+			expect(await targetSizeViolations(container)).toEqual([]);
+		});
+
+		test("the toggles of adjacent lines fail the audit at the 20px line height of `text-mono`", async () => {
+			const { container } = renderAdjacentToggles({
+				"--mantle-code-fold-line-height": "1.25rem",
+			} as CSSProperties);
+
+			expect(await targetSizeViolations(container)).toHaveLength(2);
+		});
 	});
 
 	describe("tab row overflow", () => {

@@ -1,0 +1,87 @@
+---
+title: Focus Ring
+description: The shared focus ring of mantle. One utility draws the 4px ring that Button, Input, and each other control show on focus, in five tones.
+---
+
+import { Example } from "~/components/example";
+
+# Focus Ring
+
+The `focus-ring` utility draws the focus ring of mantle: a 4px ring in a focus
+color, in place of the browser outline. Each mantle control uses it. Use it on
+a control that you build, so its focus ring matches.
+
+## Example
+
+Press <kbd>Tab</kbd> to move the focus through the buttons.
+
+<Example name="base/focus-ring/tones" title="Focus Ring tones example">
+
+```tsx
+<button type="button" className="rounded-md focus-visible:focus-ring">
+	Accent
+</button>
+<button type="button" className="rounded-md focus-visible:focus-ring-danger">
+	Danger
+</button>
+```
+
+</Example>
+
+## Usage
+
+Put a state variant before the utility. The utility alone shows the ring at all
+times.
+
+- `focus-visible:focus-ring` for a button, a link, or another control that the
+  user activates.
+- `focus-within:focus-ring` for a wrapper that holds the focused element, such
+  as the box around an input.
+- `focus:focus-ring` for a control that must show the ring after a click, such
+  as a select trigger.
+
+Give the element a border radius. The ring follows the radius of the element.
+
+## Tones
+
+| Class                | Use                                              |
+| -------------------- | ------------------------------------------------ |
+| `focus-ring`         | The default. The accent ring.                    |
+| `focus-ring-danger`  | A destructive action, or a field with an error.  |
+| `focus-ring-warning` | A field with a warning.                          |
+| `focus-ring-success` | A field with a valid value.                      |
+| `focus-ring-neutral` | A control on a surface where the accent is loud. |
+
+The tones read the `--ring-color-focus-*` theme tokens.
+
+## Change the tone or the size for a state
+
+`focus-ring` uses the ring of Tailwind. A `ring-focus-*` class or a `ring-*`
+width class on the same element overrides it.
+
+```tsx
+// The tone follows the validation state.
+<input className="focus-visible:focus-ring focus-visible:data-validation-error:ring-focus-danger" />
+
+// A 2px ring for a small control inside another control.
+<button type="button" className="focus-visible:focus-ring focus-visible:ring-2" />
+```
+
+Keep the 4px width unless the control is too small or too near other content
+for it.
+
+## A clipped ring
+
+The ring is a box shadow, so it extends 4px outside the element.
+
+- An ancestor that clips its content cuts the ring off. This includes each
+  scroll container and each element with `overflow-hidden`. Give that ancestor
+  4px of padding.
+- An adjacent element that is later in the DOM can cover the ring. Add
+  `focus-visible:z-1` to the control.
+
+## How it works
+
+The utility sets a 4px Tailwind ring and its color, and removes the browser
+outline. In forced-colors mode, a box shadow does not show, so the utility
+keeps a transparent outline that the browser then paints.

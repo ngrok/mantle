@@ -983,7 +983,7 @@ const TabTrigger = ({
 			"text-gray-600 outline-hidden",
 			"hover:text-gray-900",
 			"data-[state=active]:bg-neutral-500/15 data-[state=active]:text-strong",
-			"focus-visible:ring-focus-accent focus-visible:ring-4",
+			"focus-visible:focus-ring",
 			className,
 		)}
 		ref={ref}

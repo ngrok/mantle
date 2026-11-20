@@ -51,6 +51,20 @@ const mantleCustomVariants = async (): Promise<string> => {
 	return css.slice(start, end);
 };
 
+/**
+ * The `focus-ring` utilities of `mantle.css`. Without them, Tailwind compiles
+ * `focus-visible:focus-ring` to nothing, and a focused element keeps the
+ * browser outline.
+ */
+const mantleFocusRingUtilities = async (): Promise<string> => {
+	const css = await readFile(path.join(import.meta.dirname, "src/mantle.css"), "utf8");
+	const rules = css.match(/^@utility focus-ring[^{]*\{[\s\S]*?^\}/gm);
+	if (rules == null) {
+		throw new Error("mantle.css holds no focus-ring utilities.");
+	}
+	return rules.join("\n");
+};
+
 // Why a command: a browser test asserts layout, so it needs the CSS that Tailwind
 // really compiles for a component. A hand-written copy keeps passing when Tailwind
 // drops a rule. The path is relative to the test file.
@@ -64,7 +78,7 @@ const tailwindCss: BrowserCommand<[sourceFile: string]> = async ({ testPath }, s
 		.getCandidatesWithPositions({ content, extension: path.extname(file).slice(1) })
 		.map(({ candidate }) => candidate);
 	const compiler = await compile(
-		`@import "tailwindcss/theme"; @import "tailwindcss/utilities";\n${await mantleCustomVariants()}`,
+		`@import "tailwindcss/theme"; @import "tailwindcss/utilities";\n${await mantleCustomVariants()}\n${await mantleFocusRingUtilities()}`,
 		{
 			base: import.meta.dirname,
 			onDependency: () => {},

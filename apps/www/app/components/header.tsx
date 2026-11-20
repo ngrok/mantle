@@ -28,7 +28,7 @@ function HeaderNavLink({ to, children }: PropsWithChildren<{ to: string }>) {
 	return (
 		<Link
 			to={to}
-			className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium text-strong hover:bg-neutral-500/10 focus:outline-hidden focus-visible:ring-4 focus-visible:ring-focus-accent"
+			className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium text-strong hover:bg-neutral-500/10 focus-visible:focus-ring"
 		>
 			{children}
 		</Link>
@@ -49,14 +49,14 @@ export function Header({ className, ...props }: Omit<ComponentProps<"header">, "
 			<div className="mx-auto flex h-15 w-full max-w-7xl items-center gap-3 px-4 md:gap-4">
 				<Link
 					to={href("/")}
-					className="flex items-center gap-2 rounded font-mono text-xl leading-8 text-strong/90 hover:text-strong focus:outline-hidden focus-visible:ring-3 focus-visible:ring-focus-accent"
+					className="flex items-center gap-2 rounded font-mono text-xl leading-8 text-strong/90 hover:text-strong focus-visible:ring-3 focus-visible:focus-ring"
 				>
 					<NgrokLettermarkIcon className="size-6" />
 					<span className="text-muted">/</span>
 					<span>mantle</span>
 				</Link>
 
-				<nav className="hidden md:flex items-center gap-1">
+				<nav aria-label="Sections" className="hidden md:flex items-center gap-1">
 					<HeaderNavLink to={href("/")}>Docs</HeaderNavLink>
 					<HeaderNavLink to={href("/components/actions/button")}>Components</HeaderNavLink>
 					<HeaderNavLink to={href("/layouts")}>Layouts</HeaderNavLink>
