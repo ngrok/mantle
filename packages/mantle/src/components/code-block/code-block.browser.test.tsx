@@ -171,16 +171,6 @@ describe("CodeBlock (browser)", () => {
 			left: calc(var(--mantle-code-line-number-width) + var(--mantle-code-line-number-gap));
 			z-index: 1;
 		}
-		.mantle-code-fold-toggle {
-			flex-shrink: 0;
-			display: inline-flex;
-			width: var(--mantle-code-fold-gutter-width);
-			line-height: inherit;
-			height: 1lh;
-			margin-right: var(--mantle-code-fold-gutter-gap);
-			padding: 0;
-			border: 0;
-		}
 		pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) .mantle-code-line-content {
 			margin-left: calc(var(--mantle-code-fold-gutter-width) + var(--mantle-code-fold-gutter-gap));
 		}
@@ -213,6 +203,18 @@ describe("CodeBlock (browser)", () => {
 		.shrink-0 { flex-shrink: 0; }
 		.whitespace-nowrap { white-space: nowrap; }
 	`;
+
+	/**
+	 * The box rule of the fold toggle, read from `mantle.css` and not mirrored.
+	 * A change to its width, height, or margin changes the geometry here.
+	 */
+	function foldToggleCss(): string {
+		const match = /\n\.mantle-code-fold-toggle \{\n\tflex-shrink:[\s\S]*?\n\}/.exec(mantleCss);
+		if (match == null) {
+			throw new Error("mantle.css holds no box rule for the fold toggle.");
+		}
+		return match[0];
+	}
 
 	/**
 	 * The hit-area rules of the fold toggle, read from `mantle.css` and not
@@ -250,7 +252,7 @@ describe("CodeBlock (browser)", () => {
 	beforeAll(() => {
 		styleElement = document.createElement("style");
 		styleElement.textContent =
-			LAYOUT_STYLE + TAB_LAYOUT_STYLE + foldHitAreaCss() + foldLineHeightCss();
+			LAYOUT_STYLE + TAB_LAYOUT_STYLE + foldToggleCss() + foldHitAreaCss() + foldLineHeightCss();
 		document.head.appendChild(styleElement);
 	});
 
