@@ -7,7 +7,7 @@ import { formatMigrationNumber, migrationsNewestFirst } from "./navigation-data"
 /** Sidebar navigation for the migrations section, newest guide first. */
 export function MigrationsNavigation({ className, style }: WithStyleProps) {
 	return (
-		<nav className={cx("text-sm pb-16", className)} style={style}>
+		<nav aria-label="Migrations" className={cx("text-sm pb-16", className)} style={style}>
 			<p className="mb-2 text-xs font-medium uppercase tracking-wider font-mono">Migrations</p>
 			<ul className="mt-2 flex flex-col">
 				{migrationsNewestFirst.map((migration) => (

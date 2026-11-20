@@ -56,7 +56,7 @@ export function Header({ className, ...props }: Omit<ComponentProps<"header">, "
 					<span>mantle</span>
 				</Link>
 
-				<nav className="hidden md:flex items-center gap-1">
+				<nav aria-label="Sections" className="hidden md:flex items-center gap-1">
 					<HeaderNavLink to={href("/")}>Docs</HeaderNavLink>
 					<HeaderNavLink to={href("/components/actions/button")}>Components</HeaderNavLink>
 					<HeaderNavLink to={href("/layouts")}>Layouts</HeaderNavLink>
