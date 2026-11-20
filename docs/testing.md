@@ -177,6 +177,8 @@ If the test only touches DOM structure, ARIA, event handlers, or pure state, sta
 
 Browser tests load **no Tailwind** and the browser project injects no stylesheet, so a browser test that asserts geometry, visibility, or computed style **must inject the CSS it depends on inline** (`label.browser.test.tsx` is the reference). Otherwise the layout is degenerate and the assertion passes for the wrong reason. For a component whose layout depends on arbitrary values, inject `await commands.tailwindCss("./<component>.tsx")` instead (`truncated-text.browser.test.tsx` is the reference). It compiles the classes Tailwind really emits, so a rule Tailwind drops fails the test. When injecting CSS is impractical, assert the mechanism (`element.style.height === "auto"`) rather than the geometry it produces, and say so in a comment.
 
+Browser test files share one page and one real mouse. A `userEvent` pointer action leaves the mouse where it ended, and Chromium sends `pointerover` and `pointerout` to each element that later renders under it. An overlay with `pointer-events-none` in the product thus takes the pointer in a test, and the element below gets `pointerleave`. Mirror `pointer-events: none` in the inline CSS for each such overlay (the chart tooltip is the reference).
+
 If a browser test fails with `Vite unexpectedly reloaded a test` and a broken `vi.mock` after you add a bare import, the browser-mode dependency cache in `node_modules/.vite/vitest/` is stale. Delete it in that package and run again before you debug the test.
 
 Beware the inverse trap in happy-dom: `offsetWidth`/`offsetHeight`/`getBoundingClientRect` return zeros, so an assertion like `expect(node.offsetHeight).toBe(0)` passes no matter what the implementation does.
