@@ -1,7 +1,16 @@
 "use client";
 
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
-import { createContext, useContext, useMemo, type ComponentProps, type ReactNode } from "react";
+import {
+	createContext,
+	useContext,
+	useMemo,
+	useRef,
+	type ComponentProps,
+	type ReactNode,
+	type RefObject,
+} from "react";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -13,6 +22,8 @@ import { Icon } from "../icon/icon.js";
 
 type SplitButtonContextValue = {
 	size: ButtonSize;
+	/** The wrapping `<div>` of `Root`, which `MenuContent` measures for `width="root"`. */
+	rootRef: RefObject<HTMLDivElement | null>;
 };
 
 /**
@@ -21,10 +32,17 @@ type SplitButtonContextValue = {
  * value (rather than a null-and-throw context) is deliberate: the context
  * carries pure geometry, so a `PrimaryAction` stranded outside `Root`
  * degrades to the standalone `Button` default (`md`) instead of crashing,
+ * and a `MenuContent` with `width="root"` keeps its intrinsic width,
  * while `MenuTrigger` already fails fast outside `Root` via Radix's
  * `DropdownMenu.Trigger`.
  */
-const SplitButtonContext = createContext<SplitButtonContextValue>({ size: "md" });
+const SplitButtonContext = createContext<SplitButtonContextValue>({
+	size: "md",
+	rootRef: { current: null },
+});
+
+/** The private custom property that carries the width of `Root` to `MenuContent`. */
+const rootWidthVariable = "--_split-button-root-width";
 
 type RootProps = ComponentProps<typeof DropdownMenu.Root> &
 	ComponentProps<"div"> & {
@@ -41,6 +59,9 @@ type RootProps = ComponentProps<typeof DropdownMenu.Root> &
  * A button group that pairs a one-click default action with a dropdown menu
  * of related alternatives. Best for when users typically want one action but
  * occasionally need variants.
+ *
+ * `Root` is as wide as its parts, also in a block container. To stretch it,
+ * pass a width class such as `w-full`.
  *
  * | Data Attribute | Value                                       | Description                                        |
  * | -------------- | ------------------------------------------- | -------------------------------------------------- |
@@ -84,7 +105,9 @@ const Root = ({
 	ref,
 	...props
 }: RootProps) => {
-	const context: SplitButtonContextValue = useMemo(() => ({ size }), [size]);
+	const rootRef = useRef<HTMLDivElement>(null);
+	const composedRef = useComposedRefs(rootRef, ref);
+	const context: SplitButtonContextValue = useMemo(() => ({ size, rootRef }), [size]);
 
 	return (
 		<DropdownMenu.Root
@@ -99,10 +122,10 @@ const Root = ({
 					data-slot={joinDataSlot(dataSlot, "split-button")}
 					data-size={size}
 					className={cx(
-						"flex flex-row [&>*:first-child]:rounded-r-none [&>*:last-child]:rounded-l-none [&>*:not(:first-child):not(:last-child)]:rounded-none [&>*:not(:first-child)]:-ml-px [&>*:focus]:relative [&>*:focus]:z-10 [&>*:hover]:relative [&>*:hover]:z-10 *:active:scale-100!",
+						"flex w-fit flex-row [&>*:first-child]:rounded-r-none [&>*:last-child]:rounded-l-none [&>*:not(:first-child):not(:last-child)]:rounded-none [&>*:not(:first-child)]:-ml-px [&>*:focus]:relative [&>*:focus]:z-10 [&>*:hover]:relative [&>*:hover]:z-10 *:active:scale-100!",
 						className,
 					)}
-					ref={ref}
+					ref={composedRef}
 					{...props}
 				>
 					{children}
@@ -221,6 +244,18 @@ const MenuTrigger = ({ "data-slot": dataSlot, icon, ...props }: MenuTriggerProps
 	);
 };
 
+type MenuContentProps = Omit<ComponentProps<typeof DropdownMenu.Content>, "width"> & {
+	/**
+	 * The width of the menu. When omitted, the menu takes its intrinsic width.
+	 *
+	 * @enum
+	 * - `"root"`: the width of the whole split button, primary action and menu trigger together. With `align="end"` (the default), the menu lines up with both edges of the split button.
+	 * - `"trigger"`: the width of the menu trigger
+	 * - `"content"`: the intrinsic width of the menu: the width of the widest item
+	 */
+	width?: "root" | "trigger" | "content";
+};
+
 /**
  * The container for the split button dropdown menu content. Appears in a
  * portal with scrolling and animations.
@@ -251,13 +286,43 @@ const MenuTrigger = ({ "data-slot": dataSlot, icon, ...props }: MenuTriggerProps
  */
 const MenuContent = ({
 	align = "end",
+	className,
 	"data-slot": dataSlot,
+	ref,
+	width,
 	...props
-}: ComponentProps<typeof DropdownMenu.Content>) => {
+}: MenuContentProps) => {
+	const { rootRef } = useContext(SplitButtonContext);
+
+	const matchRootWidth = (content: HTMLDivElement | null) => {
+		const root = rootRef.current;
+		if (width !== "root" || content == null || root == null) {
+			return;
+		}
+		// Why a write before the observer: Radix positions the menu right after
+		// it mounts, and `align="end"` must place the final width, not the intrinsic one.
+		content.style.setProperty(rootWidthVariable, `${root.getBoundingClientRect().width}px`);
+		const observer = new ResizeObserver(([entry]) => {
+			const rootWidth = entry?.borderBoxSize[0]?.inlineSize;
+			if (rootWidth == null) {
+				return;
+			}
+			content.style.setProperty(rootWidthVariable, `${rootWidth}px`);
+		});
+		observer.observe(root, { box: "border-box" });
+		return () => {
+			observer.disconnect();
+		};
+	};
+	const composedRef = useComposedRefs(ref, matchRootWidth);
+
 	return (
 		<DropdownMenu.Content
 			align={align}
+			className={cx(width === "root" && "w-(--_split-button-root-width)", className)}
 			data-slot={joinDataSlot(dataSlot, "split-button-menu-content")}
+			ref={composedRef}
+			width={width === "root" ? undefined : width}
 			{...props}
 		/>
 	);
