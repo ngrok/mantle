@@ -1586,6 +1586,43 @@ omitted by default so the same call persists over `http://localhost`; if your po
 `{ secure: true }`. There is no `HttpOnly` option: the browser has to write this cookie when the user toggles
 the rail.
 
+## Yielding to a side panel
+
+In a shell with an [`AppLayout.SidePanel`](/layouts/app-layout#side-panel), an expanded rail can leave the
+row too narrow for the panel, and the panel then floats over the page. Set `yieldToSidePanel` on
+`Sidebar.Root`, inside `AppLayout.SidePanelRoot`, and the rail gives its width to the panel instead:
+
+```tsx
+<AppLayout.SidePanelRoot defaultOpen={sidePanelOpen}>
+	<Sidebar.Root
+		yieldToSidePanel
+		defaultOpen={sidebarOpen}
+		onOpenChange={(open) => {
+			document.cookie = serializeSidebarStateCookie(open);
+		}}
+	>
+		…
+	</Sidebar.Root>
+</AppLayout.SidePanelRoot>
+```
+
+- **The panel takes the width.** When the panel opens in a window narrower than `yieldToSidePanelBelow`, or
+  the window narrows below it while the panel is open, an expanded rail collapses to its icons. The collapse
+  lands in the same frame as the panel.
+- **The panel gives it back.** When the panel closes or the window widens, a rail that the panel collapsed
+  expands again.
+- **The reader's choice stands.** `Sidebar.Trigger` still toggles the rail beside the open panel, and a rail
+  that the reader toggled keeps that state when the panel closes.
+- **The cookie keeps the preference.** `onOpenChange` reports the reader's toggles only. `open` and
+  `defaultOpen` stay the reader's preference, and `useSidebar().open` reports the state on screen.
+
+Pass `yieldToSidePanel={false}` on a route that does not render the panel, so the rail keeps its width
+there. The default width is the `--container-side-panel-lane` theme token (56.5rem): the narrowest row that
+holds the expanded rail, the page, and the panel. A media query cannot read a CSS variable, so an app that
+raises the token in `@theme`, or that wants a wider page beside the panel, passes the same width to
+`yieldToSidePanelBelow`. The [Assistant Across Routes](/recipes/assistant-across-routes) recipe shows the
+whole shell.
+
 ## Accessibility
 
 - `Sidebar.Nav` renders a `<nav>` landmark named `Main` by default; override `aria-label` when your app has
@@ -1619,15 +1656,17 @@ the rail.
 
 The state owner. Renders no DOM.
 
-| Prop                  | Type                      | Default | Description                                                                                                                                                                                                                          |
-| --------------------- | ------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `defaultOpen?`        | `boolean`                 | `true`  | Initial desktop expanded state for the uncontrolled case.                                                                                                                                                                            |
-| `open?`               | `boolean`                 |         | Controlled desktop expanded state. Pair with `onOpenChange`.                                                                                                                                                                         |
-| `onOpenChange?`       | `(open: boolean) => void` |         | Called with the next desktop expanded state.                                                                                                                                                                                         |
-| `openMobile?`         | `boolean`                 |         | Controlled mobile sheet open state. Pair with `onOpenMobileChange`.                                                                                                                                                                  |
-| `onOpenMobileChange?` | `(open: boolean) => void` |         | Called with the next mobile sheet open state.                                                                                                                                                                                        |
-| `mobileBreakpoint?`   | `"sm" \| "md" \| "lg"`    | `"lg"`  | Breakpoint below which `Sidebar.Nav` renders as a mobile `Sheet`.                                                                                                                                                                    |
-| `keyboardShortcut?`   | `boolean`                 | `true`  | Toggle with `⌘B` (Apple) / `Ctrl+B` (elsewhere). Exact-modifier match, resolved per platform (`⌘⇧B` and macOS's native `Ctrl+B` pass through), and ignored while focus is in a text-editing or form control; set `false` to opt out. |
+| Prop                     | Type                      | Default     | Description                                                                                                                                                                                                                                                                                             |
+| ------------------------ | ------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `defaultOpen?`           | `boolean`                 | `true`      | Initial desktop expanded state for the uncontrolled case.                                                                                                                                                                                                                                               |
+| `open?`                  | `boolean`                 |             | Controlled desktop expanded state. Pair with `onOpenChange`.                                                                                                                                                                                                                                            |
+| `onOpenChange?`          | `(open: boolean) => void` |             | Called with the next desktop expanded state when the reader or `setOpen` changes it. A change that `yieldToSidePanel` causes does not call it.                                                                                                                                                          |
+| `openMobile?`            | `boolean`                 |             | Controlled mobile sheet open state. Pair with `onOpenMobileChange`.                                                                                                                                                                                                                                     |
+| `onOpenMobileChange?`    | `(open: boolean) => void` |             | Called with the next mobile sheet open state.                                                                                                                                                                                                                                                           |
+| `mobileBreakpoint?`      | `"sm" \| "md" \| "lg"`    | `"lg"`      | Breakpoint below which `Sidebar.Nav` renders as a mobile `Sheet`.                                                                                                                                                                                                                                       |
+| `keyboardShortcut?`      | `boolean`                 | `true`      | Toggle with `⌘B` (Apple) / `Ctrl+B` (elsewhere). Exact-modifier match, resolved per platform (`⌘⇧B` and macOS's native `Ctrl+B` pass through), and ignored while focus is in a text-editing or form control; set `false` to opt out.                                                                    |
+| `yieldToSidePanel?`      | `boolean`                 | `false`     | Collapse an expanded rail to its icons while an open [`AppLayout.SidePanel`](/layouts/app-layout#side-panel) needs the width, and expand it again when the panel gives the width back. Requires an `AppLayout.SidePanelRoot` above the root. See [Yielding to a side panel](#yielding-to-a-side-panel). |
+| `yieldToSidePanelBelow?` | `` `${number}rem` ``      | `"56.5rem"` | The viewport width below which the open panel takes the rail's width. The default is the `--container-side-panel-lane` theme token.                                                                                                                                                                     |
 
 ### Sidebar.Nav
 

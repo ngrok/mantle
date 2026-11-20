@@ -18,6 +18,7 @@ import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { useIsBelowBreakpoint } from "../../hooks/use-breakpoint.js";
 import { useIsApplePlatform } from "../../hooks/use-is-apple-platform.js";
 import { useIsHydratedAfterPaint } from "../../hooks/use-is-hydrated-after-paint.js";
+import { useMatchesMediaQuery } from "../../hooks/use-matches-media-query.js";
 import type { SelfClosingWithAsChild, WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -25,6 +26,7 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 import { isApplePlatform } from "../../utils/platform.js";
 import type { IconButtonProps } from "../button/icon-button.js";
 import { IconButton } from "../button/icon-button.js";
+import { SidePanelContext } from "../app-layout/side-panel-context.js";
 import { Separator } from "../separator/separator.js";
 import { Sheet } from "../sheet/index.js";
 import { Slot } from "../slot/index.js";
@@ -92,7 +94,8 @@ const collapseTransitionClassName =
 type SidebarState = {
 	/**
 	 * Whether the desktop sidebar is expanded. Mirrored as
-	 * `data-state="expanded" | "collapsed"` on `Sidebar.Nav`.
+	 * `data-state="expanded" | "collapsed"` on `Sidebar.Nav`. `false` while the
+	 * rail yields to the side panel (`yieldToSidePanel`).
 	 */
 	open: boolean;
 	/**
@@ -195,7 +198,9 @@ type SidebarRootProps = {
 	 */
 	open?: boolean;
 	/**
-	 * Called with the next desktop expanded state whenever it changes.
+	 * Called with the next desktop expanded state when the reader or `setOpen`
+	 * changes it. A collapse or an expand that `yieldToSidePanel` causes does
+	 * not call it, so a cookie written here keeps the reader's preference.
 	 */
 	onOpenChange?: (open: boolean) => void;
 	/**
@@ -240,7 +245,75 @@ type SidebarRootProps = {
 	 * @default true
 	 */
 	keyboardShortcut?: boolean;
+	/**
+	 * Whether the rail yields its width to an `AppLayout.SidePanel`. When
+	 * `true`, the root must be inside an `AppLayout.SidePanelRoot`, and it
+	 * throws outside one.
+	 *
+	 * While the panel is open in a window narrower than `yieldToSidePanelBelow`,
+	 * an expanded rail collapses to its icons, so the panel sits beside the
+	 * page. When the panel closes or the window widens, a rail that the panel
+	 * collapsed expands again. A rail that the reader toggled in between keeps
+	 * their choice. `open` and `defaultOpen` stay the reader's preference: a
+	 * change that the panel causes does not call `onOpenChange`.
+	 *
+	 * Pass `false` on a route that does not render the panel, so the rail keeps
+	 * its width there.
+	 *
+	 * @default false
+	 */
+	yieldToSidePanel?: boolean;
+	/**
+	 * The viewport width below which an open side panel takes the rail's
+	 * width, in `rem`. The default is the `--container-side-panel-lane` theme
+	 * token: the narrowest row that holds the expanded rail, the page, and the
+	 * panel. Raise it to give the page more width beside the panel. No effect
+	 * without `yieldToSidePanel`.
+	 *
+	 * @default "56.5rem"
+	 */
+	yieldToSidePanelBelow?: `${number}rem`;
 };
+
+/**
+ * Who holds the rail while `yieldToSidePanel` is set.
+ *
+ * - `"idle"`: the side panel does not need the rail's width.
+ * - `"yielded"`: the side panel needs the width, and it collapsed the rail.
+ * - `"kept"`: the side panel needs the width, and the reader's choice stands.
+ */
+type RailYield = "idle" | "yielded" | "kept";
+
+/**
+ * Returns who holds the rail after a render. The side panel takes an expanded
+ * rail only at the moment it starts to need the width, so a toggle by the
+ * reader after that moment stands until the panel gives the width back.
+ *
+ * @example
+ * ```ts
+ * resolveRailYield({ current: "idle", open: true, sidePanelNeedsTheRail: true }); // "yielded"
+ * resolveRailYield({ current: "kept", open: true, sidePanelNeedsTheRail: true }); // "kept"
+ * resolveRailYield({ current: "yielded", open: true, sidePanelNeedsTheRail: false }); // "idle"
+ * ```
+ */
+function resolveRailYield({
+	current,
+	open,
+	sidePanelNeedsTheRail,
+}: {
+	current: RailYield;
+	/** The reader's preference, not the state on screen. */
+	open: boolean;
+	sidePanelNeedsTheRail: boolean;
+}): RailYield {
+	if (!sidePanelNeedsTheRail) {
+		return "idle";
+	}
+	if (current !== "idle") {
+		return current;
+	}
+	return open ? "yielded" : "kept";
+}
 
 /**
  * The key that toggles the sidebar together with the platform modifier
@@ -305,6 +378,9 @@ function claimKeyboardShortcut(): { isOwner: () => boolean; release: () => void 
  * Render exactly one `Sidebar.Nav` per `Sidebar.Root`. Nested roots shadow
  * the outer sidebar for everything below them.
  *
+ * In a shell with an `AppLayout.SidePanel`, set `yieldToSidePanel`, so the
+ * rail collapses to its icons while the open panel needs the width.
+ *
  * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarroot
  *
  * @example
@@ -366,9 +442,22 @@ const Root = ({
 	onOpenMobileChange,
 	open: openProp,
 	openMobile: openMobileProp,
+	yieldToSidePanel = false,
+	yieldToSidePanelBelow = "56.5rem",
 }: SidebarRootProps) => {
 	const isMobile = useIsBelowBreakpoint(mobileBreakpoint);
 	const navId = useId();
+
+	const sidePanel = useContext(SidePanelContext);
+	invariant(
+		!yieldToSidePanel || sidePanel != null,
+		"Sidebar.Root with yieldToSidePanel must be rendered inside AppLayout.SidePanelRoot.",
+	);
+	// Why a viewport query: below the lane the `AppLayout.Workspace` row is the
+	// viewport's width, and a container query cannot drive React state.
+	const isBelowSidePanelLane = useMatchesMediaQuery(`(width < ${yieldToSidePanelBelow})`);
+	const sidePanelNeedsTheRail =
+		yieldToSidePanel && sidePanel?.state.open === true && isBelowSidePanelLane;
 
 	// Why refs: an inline `onOpenChange` takes a new identity on every parent
 	// render, and both setters are public through `useSidebar()` as effect
@@ -383,9 +472,24 @@ const Root = ({
 
 	const isOpenControlled = openProp != null;
 	const [internalOpen, setInternalOpen] = useState(defaultOpen);
-	const open = isOpenControlled ? openProp : internalOpen;
+	const preferredOpen = isOpenControlled ? openProp : internalOpen;
+
+	// Why state set during render: the collapse lands in the commit that opens
+	// the panel, so no frame paints the expanded rail under it.
+	const [railYield, setRailYield] = useState<RailYield>("idle");
+	const nextRailYield = resolveRailYield({
+		current: railYield,
+		open: preferredOpen,
+		sidePanelNeedsTheRail,
+	});
+	if (nextRailYield !== railYield) {
+		setRailYield(nextRailYield);
+	}
+	const open = preferredOpen && railYield !== "yielded";
+
 	const setOpen = useCallback(
 		(next: boolean) => {
+			setRailYield((current) => (current === "yielded" ? "kept" : current));
 			if (!isOpenControlled) {
 				setInternalOpen(next);
 			}

@@ -1,9 +1,8 @@
 "use client";
 
 import { SidebarSimpleIcon } from "@phosphor-icons/react/SidebarSimple";
-import type { ComponentProps, ReactNode, RefObject } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import {
-	createContext,
 	useCallback,
 	useContext,
 	useEffect,
@@ -31,6 +30,8 @@ import { IconButton } from "../button/icon-button.js";
 import { Main } from "../main/main.js";
 import { Slot } from "../slot/index.js";
 import { Tooltip } from "../tooltip/index.js";
+import type { SidePanelContextValue } from "./side-panel-context.js";
+import { SidePanelContext } from "./side-panel-context.js";
 
 /**
  * The outer frame of an application shell. Renders a `<div>` with
@@ -923,26 +924,6 @@ type AppLayoutSidePanelState = {
 	 */
 	panelId: string;
 };
-
-/**
- * The internal context value: the public state `useSidePanel` returns, and
- * the panel's focus tracker, which stays off the public object.
- */
-type SidePanelContextValue = {
-	state: AppLayoutSidePanelState;
-	/**
-	 * The last element focused inside the panel, or `null` once focus landed
-	 * outside it. The panel writes it; the root reads it on close.
-	 */
-	lastFocusedInsideRef: RefObject<Element | null>;
-	/**
-	 * The panel's `<aside>`. The panel fills it; the header reads it as the
-	 * element a swipe moves.
-	 */
-	panelRef: RefObject<HTMLElement | null>;
-};
-
-const SidePanelContext = createContext<SidePanelContextValue | null>(null);
 
 /**
  * Read the nearest `AppLayout.SidePanelRoot` state. Throws when called

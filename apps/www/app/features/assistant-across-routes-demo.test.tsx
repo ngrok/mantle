@@ -34,7 +34,7 @@ afterEach(() => {
 const composerName = "Message the assistant";
 
 /**
- * The query `AssistantSidebarRoot` reads: the viewport is narrower than the
+ * The query `Sidebar.Root` reads with `yieldToSidePanel`: the viewport is narrower than the
  * lane an expanded rail needs.
  */
 const belowTheLane = "(width < 56.5rem)";
@@ -77,7 +77,7 @@ function railState() {
 }
 
 describe("AssistantAcrossRoutesDemo", () => {
-	it("collapses the rail when the panel opens below the lane and expands it again on close", async () => {
+	it("yields the rail to the panel on every route but the assistant's", async () => {
 		stubMatchMedia([belowTheLane]);
 		const user = userEvent.setup();
 		renderDemo();
@@ -89,41 +89,6 @@ describe("AssistantAcrossRoutesDemo", () => {
 		expect(railState()).toBe("collapsed");
 
 		await user.click(screen.getByRole("button", { name: "Close the assistant" }));
-		expect(railState()).toBe("expanded");
-	});
-
-	it("lets the reader expand the rail again beside the open panel, and keeps that choice on close", async () => {
-		stubMatchMedia([belowTheLane]);
-		const user = userEvent.setup();
-		renderDemo();
-
-		await user.click(screen.getByRole("link", { name: "Endpoints" }));
-		await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
-		expect(railState()).toBe("expanded");
-
-		await user.click(screen.getByRole("button", { name: "Close the assistant" }));
-		expect(railState()).toBe("expanded");
-	});
-
-	it("leaves a rail the reader collapsed alone when the panel closes", async () => {
-		stubMatchMedia([belowTheLane]);
-		const user = userEvent.setup();
-		renderDemo();
-
-		await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
-		await user.click(screen.getByRole("link", { name: "Endpoints" }));
-		expect(railState()).toBe("collapsed");
-
-		await user.click(screen.getByRole("button", { name: "Close the assistant" }));
-		expect(railState()).toBe("collapsed");
-	});
-
-	it("keeps the rail expanded beside the open panel when the viewport holds the lane", async () => {
-		stubMatchMedia([]);
-		const user = userEvent.setup();
-		renderDemo();
-
-		await user.click(screen.getByRole("link", { name: "Endpoints" }));
 		expect(railState()).toBe("expanded");
 	});
 

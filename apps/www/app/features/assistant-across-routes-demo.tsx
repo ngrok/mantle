@@ -15,7 +15,6 @@ import { flushSync } from "react-dom";
 import {
 	AssistantPage,
 	AssistantPanel,
-	AssistantSidebarRoot,
 	assistantPath,
 	assistantViewTransitionClassName,
 	crossesAssistant,
@@ -285,7 +284,7 @@ export function AssistantAcrossRoutesDemo() {
 			    the preference from the side panel cookie in its loader instead. */}
 			<AppLayout.SidePanelRoot defaultOpen>
 				{/* the framed demo narrows the mobile breakpoints; most apps keep the "lg" default */}
-				<AssistantSidebarRoot panelMounted={!onAssistantPage} mobileBreakpoint="md">
+				<Sidebar.Root yieldToSidePanel={!onAssistantPage} mobileBreakpoint="md">
 					<AppLayout.Root className="fixed inset-0">
 						<SkipToMainLink />
 						<AppLayout.Workspace>
@@ -300,7 +299,7 @@ export function AssistantAcrossRoutesDemo() {
 							{!onAssistantPage && <AssistantPanel mobileBreakpoint="md" />}
 						</AppLayout.Workspace>
 					</AppLayout.Root>
-				</AssistantSidebarRoot>
+				</Sidebar.Root>
 			</AppLayout.SidePanelRoot>
 		</AssistantConversationProvider>
 	);

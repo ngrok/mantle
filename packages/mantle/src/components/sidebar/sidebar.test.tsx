@@ -1,12 +1,14 @@
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
-import { fireEvent, render as renderComponent, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render as renderComponent, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRef, type ReactElement, type ReactNode, useEffect } from "react";
 import { renderToString } from "react-dom/server";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import mantleCss from "../../mantle.css?raw";
+import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import type * as UseBreakpointModule from "../../hooks/use-breakpoint.js";
+import { AppLayout, useSidePanel } from "../app-layout/app-layout.js";
 import { Command } from "../command/command.js";
 import { DropdownMenu } from "../dropdown-menu/index.js";
 import { TooltipProvider } from "../tooltip/index.js";
@@ -1071,6 +1073,154 @@ describe("useSidebar", () => {
 		);
 		expect(first).toHaveBeenCalledTimes(0);
 		expect(latest).toHaveBeenCalledExactlyOnceWith(false);
+	});
+});
+
+describe("Sidebar.Root yieldToSidePanel", () => {
+	/** The query the root reads by default: the viewport is below the lane. */
+	const belowTheLane = "(width < 56.5rem)";
+
+	function PanelToggle() {
+		const { toggle } = useSidePanel();
+		return (
+			<button type="button" onClick={toggle}>
+				Toggle panel
+			</button>
+		);
+	}
+
+	/** A shell with the panel's state above the rail's, and one control for each. */
+	function Shell(props: Omit<Parameters<typeof Sidebar.Root>[0], "children">) {
+		return (
+			<AppLayout.SidePanelRoot>
+				<Sidebar.Root yieldToSidePanel {...props}>
+					<Sidebar.Nav data-testid="nav" />
+					<Sidebar.Trigger />
+					<PanelToggle />
+				</Sidebar.Root>
+			</AppLayout.SidePanelRoot>
+		);
+	}
+
+	const nav = () => screen.getByTestId("nav");
+	const togglePanel = (user: ReturnType<typeof userEvent.setup>) =>
+		user.click(screen.getByRole("button", { name: "Toggle panel" }));
+	const toggleRail = (user: ReturnType<typeof userEvent.setup>) =>
+		user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
+
+	test("the open panel collapses the rail below the lane, and a wider window expands it", async () => {
+		const user = userEvent.setup();
+		const media = mockMatchMedia({ [belowTheLane]: true });
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(<Shell onOpenChange={onOpenChange} />);
+		expect(nav()).toHaveAttribute("data-state", "expanded");
+
+		await togglePanel(user);
+		expect(nav()).toHaveAttribute("data-state", "collapsed");
+
+		act(() => {
+			media.setMatches(belowTheLane, false);
+		});
+		expect(nav()).toHaveAttribute("data-state", "expanded");
+		expect(onOpenChange).toHaveBeenCalledTimes(0);
+	});
+
+	test("the panel gives the rail back when it closes", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [belowTheLane]: true });
+		render(<Shell />);
+		await togglePanel(user);
+		expect(nav()).toHaveAttribute("data-state", "collapsed");
+
+		await togglePanel(user);
+		expect(nav()).toHaveAttribute("data-state", "expanded");
+	});
+
+	test("a toggle by the reader stands after the panel closes", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [belowTheLane]: true });
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(<Shell onOpenChange={onOpenChange} />);
+		await togglePanel(user);
+
+		await toggleRail(user);
+		expect(nav()).toHaveAttribute("data-state", "expanded");
+		expect(onOpenChange).toHaveBeenCalledTimes(1);
+		expect(onOpenChange).toHaveBeenLastCalledWith(true);
+
+		await toggleRail(user);
+		expect(onOpenChange).toHaveBeenCalledTimes(2);
+		expect(onOpenChange).toHaveBeenLastCalledWith(false);
+
+		await togglePanel(user);
+		expect(nav()).toHaveAttribute("data-state", "collapsed");
+	});
+
+	test("a rail that was collapsed when the panel opened follows a controlled `open`", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [belowTheLane]: true });
+		const { rerender } = render(<Shell open={false} />);
+		await togglePanel(user);
+
+		rerender(<Shell open />);
+		expect(nav()).toHaveAttribute("data-state", "expanded");
+	});
+
+	test("the rail keeps its width at the lane and wider", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [belowTheLane]: false });
+		render(<Shell />);
+		await togglePanel(user);
+		expect(nav()).toHaveAttribute("data-state", "expanded");
+	});
+
+	test("`yieldToSidePanel={false}` keeps the rail's width beside the open panel", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [belowTheLane]: true });
+		render(<Shell yieldToSidePanel={false} />);
+		await togglePanel(user);
+		expect(nav()).toHaveAttribute("data-state", "expanded");
+	});
+
+	test("`yieldToSidePanelBelow` moves the width the rail yields at", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ "(width < 80rem)": true });
+		render(<Shell yieldToSidePanelBelow="80rem" />);
+		await togglePanel(user);
+		expect(nav()).toHaveAttribute("data-state", "collapsed");
+	});
+
+	test("the server renders the reader's preference beside an open panel", () => {
+		// Why: the server cannot read the viewport, so the rail must not yield there.
+		const html = renderToString(
+			<TooltipProvider>
+				<AppLayout.SidePanelRoot defaultOpen>
+					<Sidebar.Root yieldToSidePanel>
+						<Sidebar.Nav />
+					</Sidebar.Root>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>,
+		);
+		expect(html).toContain('data-state="expanded"');
+	});
+
+	test("throws outside AppLayout.SidePanelRoot", () => {
+		// Why: silence React's error log for the expected throw.
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() => render(<Sidebar.Root yieldToSidePanel />)).toThrow(
+			"Sidebar.Root with yieldToSidePanel must be rendered inside AppLayout.SidePanelRoot.",
+		);
+	});
+
+	test("the default lane is the `--container-side-panel-lane` theme token", async () => {
+		// Why a cross-file pin: a media query cannot read a CSS variable, so the
+		// root repeats the token `AppLayout.SidePanel`'s container query reads.
+		const lane = /--container-side-panel-lane:\s*([\d.]+rem);/.exec(mantleCss)?.[1];
+		const user = userEvent.setup();
+		mockMatchMedia({ [`(width < ${lane})`]: true });
+		render(<Shell />);
+		await togglePanel(user);
+		expect(nav()).toHaveAttribute("data-state", "collapsed");
 	});
 });
 

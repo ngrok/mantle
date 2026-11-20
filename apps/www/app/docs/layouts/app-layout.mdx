@@ -1067,8 +1067,9 @@ custom control composes the same state from [`useSidePanel`](#usesidepanel).
   floor, the panel, and the three gutters). With a collapsed rail, no rail, or a rail that is a sheet, it is
   `--container-side-panel-lane-icon-rail` (46.75rem: the same row with the icon rail). The page is never
   narrower than the panel beside it: an expanded rail at a tablet width floats the panel instead of
-  squeezing the page, and collapsing the rail returns the panel to the lane. A wider rail or panel raises
-  the tokens in `@theme`.
+  squeezing the page, and collapsing the rail returns the panel to the lane. Set
+  [`yieldToSidePanel`](/components/navigation/sidebar#yielding-to-a-side-panel) on `Sidebar.Root`, and the
+  rail collapses for the reader when the panel opens. A wider rail or panel raises the tokens in `@theme`.
 - **A swipe closes it in every presentation.** A drag on `AppLayout.SidePanelHeader` toward the end edge
   follows the pointer one to one: a floating panel slides, and a panel in the lane shrinks the way its
   close animation does, so the page grows under the finger. A release past 25% of the panel's width, or a
