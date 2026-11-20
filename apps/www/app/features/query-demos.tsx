@@ -17,6 +17,7 @@ export type Project = {
 	description: string;
 	shared: boolean;
 	archived: boolean;
+	members: number;
 };
 
 export const projects: Project[] = [
@@ -26,6 +27,7 @@ export const projects: Project[] = [
 		description: "Invoices and payments",
 		shared: true,
 		archived: false,
+		members: 6,
 	},
 	{
 		id: "p_2",
@@ -33,6 +35,7 @@ export const projects: Project[] = [
 		description: "Public website",
 		shared: true,
 		archived: false,
+		members: 3,
 	},
 	{
 		id: "p_3",
@@ -40,6 +43,7 @@ export const projects: Project[] = [
 		description: "Old color scales",
 		shared: true,
 		archived: true,
+		members: 1,
 	},
 	{
 		id: "p_4",
@@ -47,6 +51,7 @@ export const projects: Project[] = [
 		description: "Staging API",
 		shared: false,
 		archived: false,
+		members: 4,
 	},
 	{
 		id: "p_5",
@@ -54,6 +59,7 @@ export const projects: Project[] = [
 		description: "Local webhook tests",
 		shared: false,
 		archived: false,
+		members: 1,
 	},
 ];
 
@@ -63,7 +69,8 @@ export const projectFilterGrammar: FilterGrammar<Project> = {
 			key: "name",
 			aliases: ["title"],
 			description: "Text in the project name",
-			matches: (project, value) => project.name.toLowerCase().includes(value.toLowerCase()),
+			type: "text",
+			getValue: (project) => project.name,
 		},
 		{
 			key: "description",
@@ -93,6 +100,12 @@ export const projectFilterGrammar: FilterGrammar<Project> = {
 				}
 			},
 		},
+		{
+			key: "members",
+			description: "How many people work on it",
+			type: "number",
+			getValue: (project) => project.members,
+		},
 	],
 	getSearchText: (project) => [project.name, project.description, project.id].join("\n"),
 };
@@ -117,6 +130,11 @@ const columns = columnHelper.columns([
 	columnHelper.accessor((project) => (project.shared ? "Shared" : "Private"), {
 		id: "visibility",
 		header: () => <DataTable.Header>Visibility</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("members", {
+		id: "members",
+		header: () => <DataTable.Header>Members</DataTable.Header>,
 		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 	}),
 ]);

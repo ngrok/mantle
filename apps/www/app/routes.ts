@@ -186,6 +186,7 @@ const migrationsPages = [
 	"0014-chart-named-colors-migration",
 	"0015-segmented-control-migration",
 	"0016-side-panel-lane-collapsed-migration",
+	"0017-query-filter-operators-migration",
 ];
 
 export default [
