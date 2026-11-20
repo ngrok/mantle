@@ -1,0 +1,57 @@
+---
+title: Hit Area
+description: A utility that gives a small control a larger tap target with no change to its look or the layout.
+---
+
+import { Example } from "~/components/example";
+
+# Hit Area
+
+The `hit-area` utility gives a small control a tap target of at least 44px by
+44px. The control looks the same, and the layout does not change.
+
+The utility adds an invisible `::after` pseudo-element, centered on the control.
+A click or a tap on it goes to the control. The area is never smaller than the
+control itself.
+
+<Example name="base/hit-area/basic" title="Hit Area example">
+
+```tsx
+<button type="button" aria-label="Dismiss" className="hit-area size-5">
+	<XIcon />
+</button>
+```
+
+</Example>
+
+The dashed outline in the example shows the hit area. The utility itself paints
+nothing.
+
+## Size
+
+The minimum is 44px. To set another minimum, set `--hit-area-size`:
+
+```tsx
+<button
+	type="button"
+	aria-label="Dismiss"
+	className="hit-area size-5 [--hit-area-size:--spacing(8)]"
+>
+	<XIcon />
+</button>
+```
+
+## Requirements
+
+- Keep space between controls. The utility does not know about neighbors. If two
+  hit areas overlap, the control that is later in the DOM gets the tap in the
+  overlap. Give adjacent controls a smaller `--hit-area-size`, or more gap.
+- An ancestor that clips its content cuts the hit area off at its edge. This
+  includes each scroll container and each element with `overflow-hidden`.
+- The utility uses `::after`, so don't put it on an element that has its own
+  `::after`.
+- The utility sets `position: relative`. The `absolute`, `fixed`, and `sticky`
+  classes win on the same element, and the hit area works with each of them.
+- An automated audit, such as Lighthouse, measures the box of the element and
+  not the pseudo-element. The audit can report a small target that is easy to
+  tap.
