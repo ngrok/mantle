@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Prepare an Amp orb for this repository. Amp runs this file as .agents/setup.
+#
+# Amp also runs this script on a stale snapshot, so every step must be
+# non-interactive, idempotent, and fast when tools and dependencies exist.
+
+set -euo pipefail
+
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "${repo_root}"
+
+step() {
+	local name="$1"
+	shift
+	local start=${SECONDS}
+	echo "==> ${name}"
+	"$@"
+	echo "<== ${name} ($((SECONDS - start))s)"
+}
+
+# Find the mise that an earlier run installed, so that it is not downloaded again.
+export PATH="${HOME}/.local/bin:${PATH}"
+step "scripts/setup" ./scripts/setup
+
+# The browser-mode tests of @ngrok/mantle need Chromium.
+# Install it here so that the snapshot keeps it.
+install_playwright() {
+	local dirs dir
+	dirs="$(mise x -- pnpm -F @ngrok/mantle exec playwright install --dry-run chromium | awk '/Install location:/ { print $3 }')"
+	if [ -z "${dirs}" ]; then
+		echo "mantle: playwright install --dry-run printed no install locations" >&2
+		return 1
+	fi
+	for dir in ${dirs}; do
+		if [ ! -f "${dir}/INSTALLATION_COMPLETE" ]; then
+			mise x -- pnpm run install:playwright
+			return
+		fi
+	done
+	echo "Playwright Chromium is already installed."
+}
+step "playwright" install_playwright
+
+# Amp and orb services start in login shells. In an orb, ~/.bash_profile reads
+# ~/.env after the mise activation of scripts/setup in ~/.bashrc, and ~/.env sets PATH.
+# Apply the mise env again at the end of ~/.bash_profile, so that the pinned tools stay on PATH.
+profile_marker="# mantle: apply mise env (.agents/setup)"
+if ! grep -Fqx "${profile_marker}" "${HOME}/.bash_profile" 2>/dev/null; then
+	cat >>"${HOME}/.bash_profile" <<EOF
+
+${profile_marker}
+export PATH="\$HOME/.local/bin:\$PATH"
+if [ -n "\${MISE_SHELL:-}" ]; then
+	eval "\$(mise hook-env --force -s bash)"
+elif command -v mise >/dev/null 2>&1; then
+	eval "\$(mise activate bash)"
+fi
+EOF
+fi
