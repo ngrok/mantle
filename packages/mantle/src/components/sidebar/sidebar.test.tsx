@@ -1189,6 +1189,47 @@ describe("Sidebar beside AppLayout.SidePanel", () => {
 		expect(nav()).toHaveAttribute("data-state", "expanded");
 	});
 
+	test("a controlled `open` that changes to `false` and back expands a yielded sidebar", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [belowTheLane]: true });
+		const { rerender } = render(<Shell open />);
+		await togglePanel(user);
+		expect(nav()).toHaveAttribute("data-state", "collapsed");
+
+		rerender(<Shell open={false} />);
+		rerender(<Shell open />);
+		expect(nav()).toHaveAttribute("data-state", "expanded");
+	});
+
+	test("a collapse that a controlled parent refuses keeps a yielded sidebar collapsed", async () => {
+		function CollapseSidebar() {
+			const { setOpen } = useSidebar();
+			return (
+				<button type="button" onClick={() => setOpen(false)}>
+					Collapse sidebar
+				</button>
+			);
+		}
+		const user = userEvent.setup();
+		mockMatchMedia({ [belowTheLane]: true });
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<AppLayout.SidePanelRoot>
+				<Sidebar.Root open onOpenChange={onOpenChange}>
+					<Sidebar.Nav data-testid="nav" />
+					<CollapseSidebar />
+					<PanelToggle />
+					<AppLayout.SidePanel aria-label="Assistant" />
+				</Sidebar.Root>
+			</AppLayout.SidePanelRoot>,
+		);
+		await togglePanel(user);
+
+		await user.click(screen.getByRole("button", { name: "Collapse sidebar" }));
+		expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
+		expect(nav()).toHaveAttribute("data-state", "collapsed");
+	});
+
 	test("the sidebar keeps its width at the lane and wider", async () => {
 		const user = userEvent.setup();
 		mockMatchMedia({ [belowTheLane]: false });

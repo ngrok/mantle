@@ -265,6 +265,7 @@ type SidebarYield = "idle" | "yielded" | "kept";
  * ```ts
  * resolveSidebarYield({ current: "idle", open: true, sidePanelNeedsWidth: true }); // "yielded"
  * resolveSidebarYield({ current: "kept", open: true, sidePanelNeedsWidth: true }); // "kept"
+ * resolveSidebarYield({ current: "yielded", open: false, sidePanelNeedsWidth: true }); // "kept"
  * resolveSidebarYield({ current: "yielded", open: true, sidePanelNeedsWidth: false }); // "idle"
  * ```
  */
@@ -281,10 +282,15 @@ function resolveSidebarYield({
 	if (!sidePanelNeedsWidth) {
 		return "idle";
 	}
-	if (current !== "idle") {
-		return current;
+	if (current === "idle") {
+		return open ? "yielded" : "kept";
 	}
-	return open ? "yielded" : "kept";
+	// Why: a preference that changes to collapsed is a choice by the reader. A
+	// controlled `open` that changes back to `true` must then expand the sidebar.
+	if (current === "yielded" && !open) {
+		return "kept";
+	}
+	return current;
 }
 
 /**
@@ -450,7 +456,12 @@ const Root = ({
 
 	const setOpen = useCallback(
 		(next: boolean) => {
-			setSidebarYield((current) => (current === "yielded" ? "kept" : current));
+			// Why only an expand: a collapse ends the yield when the preference
+			// changes, so a controlled parent that refuses it keeps the sidebar
+			// collapsed.
+			if (next) {
+				setSidebarYield((current) => (current === "yielded" ? "kept" : current));
+			}
 			if (!isOpenControlled) {
 				setInternalOpen(next);
 			}
