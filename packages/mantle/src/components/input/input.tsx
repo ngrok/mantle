@@ -213,10 +213,10 @@ const InputContainer = ({
 				data-validation={validation || undefined}
 				className={cx(
 					"pointer-coarse:text-base h-9 text-sm",
-					"bg-form relative flex w-full items-center gap-1.5 rounded-md border px-3 py-2 file:border-0 file:bg-transparent file:text-sm file:font-medium focus-within:outline-hidden focus-within:ring-4",
+					"bg-form relative flex w-full items-center gap-1.5 rounded-md border px-3 py-2 file:border-0 file:bg-transparent file:text-sm file:font-medium",
 					"data-disabled:opacity-50",
 					"has-[input:not(:first-child)]:ps-2.5 has-[input:not(:last-child)]:pe-2.5 [&>:not(input)]:shrink-0 [&_svg]:size-5",
-					"border-form text-strong focus-within:border-accent-600 focus-within:ring-focus-accent",
+					"border-form text-strong focus-within:border-accent-600 focus-within:focus-ring",
 					"data-validation-success:border-success-600 focus-within:data-validation-success:border-success-600 focus-within:data-validation-success:ring-focus-success",
 					"data-validation-warning:border-warning-600 focus-within:data-validation-warning:border-warning-600 focus-within:data-validation-warning:ring-focus-warning",
 					"data-validation-error:border-danger-600 focus-within:data-validation-error:border-danger-600 focus-within:data-validation-error:ring-focus-danger motion-safe:data-validation-error:animate-shake",

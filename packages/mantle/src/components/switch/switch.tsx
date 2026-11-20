@@ -72,7 +72,7 @@ const Switch = ({
 			className={cx(
 				"peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full outline-hidden",
 				"disabled:cursor-default disabled:opacity-50",
-				"focus-visible:border-accent-600 focus-visible:ring-focus-accent focus-visible:outline-hidden focus-visible:ring-4",
+				"focus-visible:border-accent-600 focus-visible:focus-ring",
 				"data-state-checked:bg-accent-600 data-state-unchecked:bg-gray-400",
 				"data-validation-success:data-state-checked:bg-success-600 focus-visible:data-validation-success:ring-focus-success",
 				"data-validation-warning:data-state-checked:bg-warning-600 focus-visible:data-validation-warning:ring-focus-warning",

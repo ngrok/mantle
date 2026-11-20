@@ -33,7 +33,7 @@ type IconButtonSize = "2xs" | ButtonSize;
 const baseIconButtonClasses = cx(
 	"icon-button",
 	"inline-flex shrink-0 items-center justify-center rounded-(--icon-button-border-radius,0.375rem) border",
-	"focus:outline-hidden focus-visible:ring-4",
+	"focus-visible:focus-ring",
 	"disabled:cursor-default disabled:opacity-50",
 	"aria-disabled:cursor-default aria-disabled:opacity-50",
 	"not-disabled:active:scale-97 ease-out transition-transform duration-150",
@@ -58,11 +58,11 @@ const iconButtonVariants = cva(baseIconButtonClasses, {
 		 */
 		appearance: {
 			filled:
-				"bg-filled-neutral text-neutral-50 focus-visible:ring-focus-accent focus-visible:border-transparent not-disabled:hover:bg-filled-neutral-hover border-transparent",
+				"bg-filled-neutral text-neutral-50 focus-visible:border-transparent not-disabled:hover:bg-filled-neutral-hover border-transparent",
 			ghost:
-				"text-strong focus-visible:ring-focus-accent not-disabled:hover:bg-neutral-500/10 not-disabled:hover:text-strong border-transparent",
+				"text-strong not-disabled:hover:bg-neutral-500/10 not-disabled:hover:text-strong border-transparent",
 			outlined:
-				"border-form bg-form text-strong focus-visible:border-accent-600 focus-visible:ring-focus-accent not-disabled:hover:border-neutral-400 not-disabled:hover:bg-form-hover not-disabled:hover:text-strong focus-visible:not-disabled:hover:border-accent-600 focus-visible:not-disabled:active:border-accent-600",
+				"border-form bg-form text-strong focus-visible:border-accent-600 not-disabled:hover:border-neutral-400 not-disabled:hover:bg-form-hover not-disabled:hover:text-strong focus-visible:not-disabled:hover:border-accent-600 focus-visible:not-disabled:active:border-accent-600",
 		} satisfies Record<IconButtonAppearance, string>,
 		/**
 		 * The tone of the IconButton. One value, and it styles nothing: the

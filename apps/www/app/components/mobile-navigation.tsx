@@ -41,7 +41,7 @@ export function MobileNavigation() {
 								<Link
 									to={link.to}
 									prefetch="intent"
-									className="text-muted hover:text-strong block py-1 rounded focus:outline-hidden focus-visible:ring-3 focus-visible:ring-focus-accent"
+									className="text-muted hover:text-strong block py-1 rounded focus-visible:ring-3 focus-visible:focus-ring"
 									onClick={() => {
 										setShowNavigation(false);
 									}}

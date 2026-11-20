@@ -128,7 +128,7 @@ const Checkbox = ({
 			className={clsx(
 				"border-form bg-form shrink-0 cursor-pointer select-none appearance-none rounded border disabled:cursor-default disabled:opacity-50",
 				"bg-center bg-no-repeat focus:outline-hidden",
-				"focus-visible:border-accent-600 focus-visible:ring-focus-accent focus-visible:outline-hidden focus-visible:ring-4",
+				"focus-visible:border-accent-600 focus-visible:focus-ring",
 				"checked:border-accent-600 checked:bg-accent-600 checked:bg-checked-icon",
 				"indeterminate:border-accent-600 indeterminate:bg-accent-600 indeterminate:bg-indeterminate-icon",
 				"data-validation-success:border-success-600 data-validation-success:checked:bg-success-600 data-validation-success:indeterminate:bg-success-600 focus-visible:data-validation-success:border-success-600 focus-visible:data-validation-success:ring-focus-success",

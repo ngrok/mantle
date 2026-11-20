@@ -1693,7 +1693,7 @@ const Item = ({
  * fresh class string on every row render.
  */
 const rowClassName = [
-	"ring-focus-accent flex w-full min-w-0 items-center gap-2 truncate rounded-md px-2 py-1 text-left font-normal focus:outline-hidden focus-visible:ring-4",
+	"focus-visible:focus-ring flex w-full min-w-0 items-center gap-2 truncate rounded-md px-2 py-1 text-left font-normal",
 	"text-body hover:text-strong hover:bg-neutral-500/10",
 	// A row composed as a menu or dialog trigger stays highlighted while the
 	// surface it opens is open, matching Sidebar.SwitcherTrigger.
@@ -2189,7 +2189,7 @@ const SwitcherTrigger = ({
 				// Why `aria-expanded` too: inside `Sidebar.Tooltip` the tooltip trigger's
 				// own `data-state` replaces the menu trigger's, and it stamps no `aria-expanded`.
 				"aria-expanded:bg-neutral-500/15 aria-expanded:text-strong",
-				"ring-focus-accent focus:outline-hidden focus-visible:ring-4",
+				"focus-visible:focus-ring",
 				// The leading account/product tile uses rounded-md (6px) and
 				// sits 4px from the edge, so the outer switcher radius is 10px.
 				// Product/account indicators are a little larger than their

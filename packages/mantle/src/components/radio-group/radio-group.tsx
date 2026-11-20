@@ -85,7 +85,7 @@ const Item = ({
 				"group/radio cursor-pointer aria-disabled:cursor-default [&_label]:cursor-inherit flex gap-2 py-1 text-sm focus:outline-hidden",
 				// Why the gate: the default indicator draws the focus ring on its circle.
 				// An item with a custom indicator, or none, has no other focus treatment.
-				"not-has-data-radio-default-indicator:focus-visible:ring-focus-accent not-has-data-radio-default-indicator:focus-visible:ring-4 not-has-data-radio-default-indicator:focus-visible:rounded-md",
+				"not-has-data-radio-default-indicator:focus-visible:focus-ring not-has-data-radio-default-indicator:focus-visible:rounded-md",
 				className,
 			)}
 			{...props}
@@ -122,7 +122,7 @@ const DefaultRadioIndicator = ({ checked, disabled, focus, hover }: RadioStateCo
 			// paints this border in a system color, so the circle keeps its outline.
 			checked ? "bg-filled-accent border-transparent" : "bg-form border-form",
 			hover && !disabled && (checked ? "bg-filled-accent-hover" : "border-neutral-400"),
-			focus && !disabled && "ring-focus-accent ring-4",
+			focus && !disabled && "focus-ring",
 		)}
 	>
 		{/* Why the forced-colors classes: forced-colors mode removes the fill, so the dot keeps a system color. */}
@@ -261,7 +261,7 @@ const ListItem = ({
 			className={cx(
 				"group/radio [&_label]:cursor-inherit relative flex select-none gap-2 rounded-md px-3 py-2 text-sm",
 				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
-				"focus-visible:ring-focus-accent focus-visible:z-1 focus-visible:ring-4",
+				"focus-visible:focus-ring focus-visible:z-1",
 				"not-aria-disabled:hover:bg-active-menu-item",
 				"aria-checked:bg-selected-menu-item not-aria-disabled:hover:aria-checked:bg-active-selected-menu-item",
 				"has-[.radio-indicator:first-child]:pl-2 has-[.radio-indicator:last-child]:pr-2",
@@ -326,7 +326,7 @@ const Card = ({
 			className={clsx(
 				"group/radio border-card bg-card [&_label]:cursor-inherit relative rounded-md border p-4 text-sm",
 				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
-				"focus-visible:ring-focus-accent focus-visible:ring-4",
+				"focus-visible:focus-ring",
 				"first-of-type:rounded-tl-md first-of-type:rounded-tr-md last-of-type:rounded-bl-md last-of-type:rounded-br-md",
 				"aria-disabled:border-form/50 not-aria-disabled:hover:bg-card-hover",
 				"aria-checked:border-accent-500/50 aria-checked:bg-selected-menu-item not-aria-disabled:hover:aria-checked:bg-active-selected-menu-item",

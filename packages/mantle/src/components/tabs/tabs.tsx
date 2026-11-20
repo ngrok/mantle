@@ -405,9 +405,9 @@ const TabsTriggerDecoration = () => {
 const triggerVariants = cva(
 	cx(
 		"group/tab-trigger relative flex cursor-pointer select-none items-center gap-1 whitespace-nowrap py-3 text-sm font-medium text-gray-600",
-		"ring-focus-accent outline-hidden",
+		"outline-hidden",
 		"aria-disabled:cursor-default aria-disabled:opacity-50",
-		"focus-visible:ring-4",
+		"focus-visible:focus-ring",
 		// Why slot-scoped: the label span makes a consumer's svg a grandchild, so a
 		// bare `[&>svg]` matches nothing. A `[&_svg]` would also size the glyph
 		// inside `Tabs.Badge`.
@@ -680,7 +680,7 @@ const Content = ({
 }: ComponentProps<typeof TabsPrimitiveContent> & WithDataSlot) => (
 	<TabsPrimitiveContent
 		data-slot={joinDataSlot(dataSlot, "tabs-content")}
-		className={cx("focus-visible:ring-focus-accent outline-hidden focus-visible:ring-4", className)}
+		className={cx("focus-visible:focus-ring outline-hidden", className)}
 		{...props}
 	/>
 );

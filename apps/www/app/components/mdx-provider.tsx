@@ -128,7 +128,7 @@ const components = {
 		// Why overflow-x-auto: a fence in a language without highlighting renders
 		// here, and a long line must scroll in the block, not widen the page.
 		const fallbackClassName = cx(
-			"scrollbar overflow-x-auto focus:outline-hidden focus-visible:ring-2 focus-visible:ring-focus-accent",
+			"scrollbar overflow-x-auto focus-visible:ring-2 focus-visible:focus-ring",
 			className,
 		);
 

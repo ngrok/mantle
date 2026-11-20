@@ -714,7 +714,7 @@ function isInsideControl(element: HTMLElement): boolean {
 // Why no ligatures: a ligature such as `//` shapes as one glyph, so a clip
 // inside it drops both characters and the ellipsis lands a cell away.
 const rootClassName =
-	"inline-block min-w-0 max-w-full rounded whitespace-nowrap select-all [font-variant-ligatures:none] focus:outline-hidden focus-visible:ring-3 focus-visible:ring-focus-accent";
+	"inline-block min-w-0 max-w-full rounded whitespace-nowrap select-all [font-variant-ligatures:none] focus-visible:ring-3 focus-visible:focus-ring";
 
 // Why 0.5px: without the slack, WebKit clips a value that fits exactly.
 // Why round(down, …, 1ch): while the value overflows, whole `ch` cells keep the
