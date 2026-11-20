@@ -1411,6 +1411,30 @@ MARK: UTILITIES
 	cursor: inherit;
 }
 
+/*
+ * An escape hatch: a hit area of at least 44px by 44px, centered on the element,
+ * with no change to the layout or the look. `--hit-area-size` sets another
+ * minimum. Make the control the correct size first. The docs page `/base/hit-area`
+ * lists when to use it and the risks.
+ *
+ * Why `position: relative`: the hit area is positioned against the element.
+ * Tailwind writes this utility before `absolute`, `fixed`, and `sticky`, so
+ * each of those classes wins on the same element.
+ */
+@utility hit-area {
+	position: relative;
+
+	&::after {
+		content: "";
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		translate: -50% -50%;
+		width: max(100%, var(--hit-area-size, 2.75rem));
+		height: max(100%, var(--hit-area-size, 2.75rem));
+	}
+}
+
 @utility scrollbar {
 	scrollbar-color: --alpha(var(--color-neutral-800) / 50%) transparent;
 
@@ -1844,6 +1868,22 @@ pre[data-mantle-line-numbers="true"] .mantle-code-fold-toggle {
 	user-select: none;
 	appearance: none;
 	border-radius: 0.125rem;
+}
+
+/*
+ * A larger hit area with no change to the layout or the look. It grows only
+ * sideways, into the empty space before the toggle and the gap after it: the
+ * toggles of adjacent lines touch, so more height would overlap them.
+ */
+.mantle-code-fold-toggle::before {
+	content: "";
+	position: absolute;
+	inset: 0 calc(-1 * var(--mantle-code-fold-gutter-gap)) 0 -0.75rem;
+}
+
+/* Why: the hit area is positioned against the toggle. The sticky rule above wins with line numbers on. */
+.mantle-code-fold-toggle {
+	position: relative;
 }
 
 .mantle-code-fold-toggle:hover {

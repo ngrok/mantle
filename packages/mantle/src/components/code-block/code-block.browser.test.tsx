@@ -3,6 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import mantleCss from "../../mantle.css?raw";
 import { CodeBlock } from "./code-block.js";
 import type { FoldableRange } from "./compute-json-fold-ranges.js";
 import { decorateHighlightedHtml } from "./decorate-highlighted-html.js";
@@ -126,6 +127,10 @@ describe("CodeBlock (browser)", () => {
 			overflow-x: auto;
 			overflow-y: hidden;
 		}
+		/* The \`pl-4\` of the <pre> with line numbers off. Only the hit-area tests opt in. */
+		.fixture-pl-4 pre[data-slot="code-block-code"][data-mantle-line-numbers~="false"] {
+			padding-left: 1rem;
+		}
 		pre[data-slot="code-block-code"] > code {
 			display: block;
 			min-width: 100%;
@@ -167,6 +172,7 @@ describe("CodeBlock (browser)", () => {
 			flex-shrink: 0;
 			display: inline-flex;
 			width: var(--mantle-code-fold-gutter-width);
+			height: 1.5em;
 			margin-right: var(--mantle-code-fold-gutter-gap);
 			padding: 0;
 			border: 0;
@@ -204,11 +210,27 @@ describe("CodeBlock (browser)", () => {
 		.whitespace-nowrap { white-space: nowrap; }
 	`;
 
+	/**
+	 * The hit-area rules of the fold toggle, read from `mantle.css` and not
+	 * mirrored: the `::before` strip, and the `position: relative` rule that
+	 * follows it. A change to either rule changes the hit test here.
+	 */
+	function foldHitAreaCss(): string {
+		const match =
+			/\.mantle-code-fold-toggle::before \{[\s\S]*?\n\}[\s\S]*?\.mantle-code-fold-toggle \{[\s\S]*?\n\}/.exec(
+				mantleCss,
+			);
+		if (match == null) {
+			throw new Error("mantle.css holds no hit-area rules for the fold toggle.");
+		}
+		return match[0];
+	}
+
 	let styleElement: HTMLStyleElement;
 
 	beforeAll(() => {
 		styleElement = document.createElement("style");
-		styleElement.textContent = LAYOUT_STYLE + TAB_LAYOUT_STYLE;
+		styleElement.textContent = LAYOUT_STYLE + TAB_LAYOUT_STYLE + foldHitAreaCss();
 		document.head.appendChild(styleElement);
 	});
 
@@ -397,6 +419,59 @@ describe("CodeBlock (browser)", () => {
 			// Why 48px: the 2rem number column plus its 1rem gap.
 			expect(toggle.getBoundingClientRect().left - preLeft).toBe(48);
 		});
+	});
+
+	describe("fold toggle hit area", () => {
+		test.each([{ showLineNumbers: true }, { showLineNumbers: false }])(
+			"a click in the strip before or after a toggle folds only that toggle (showLineNumbers: $showLineNumbers)",
+			async ({ showLineNumbers }) => {
+				const user = userEvent.setup();
+				render(
+					<div className="fixture-pl-4" style={{ width: 340 }}>
+						<CodeBlock.Root>
+							<CodeBlock.Body>
+								<CodeBlock.Code
+									value={makeFixedWidthValue([100, 100, 100, 100, 100, 100], {
+										showLineNumbers,
+										foldableRanges: [
+											{ id: "1", startLine: 1, endLine: 6 },
+											{ id: "2", startLine: 2, endLine: 5 },
+										],
+									})}
+								/>
+							</CodeBlock.Body>
+						</CodeBlock.Root>
+					</div>,
+				);
+
+				const pre = getPre();
+				const outer = pre.querySelector(".mantle-code-fold-toggle[data-fold-line='1']");
+				const inner = pre.querySelector(".mantle-code-fold-toggle[data-fold-line='2']");
+				const foldedLine = pre.querySelector(".mantle-code-line:nth-child(3)");
+				if (outer == null || inner == null || foldedLine == null) {
+					throw new Error("expected two fold toggles and a line inside the inner range");
+				}
+
+				const rect = inner.getBoundingClientRect();
+				const middle = rect.top + rect.height / 2;
+
+				// Why 11px: the strip before the toggle is 0.75rem wide, so this point is 1px inside it.
+				const before = document.elementFromPoint(rect.left - 11, middle);
+				expect(before).toBe(inner);
+				await user.click(inner);
+				expect(inner).toHaveAttribute("aria-expanded", "false");
+				expect(foldedLine).toHaveAttribute("data-fold-hidden", "true");
+				expect(outer).toHaveAttribute("aria-expanded", "true");
+
+				// Why 3px: the strip after the toggle is the 0.25rem gutter gap, so this point is 1px inside it.
+				const after = document.elementFromPoint(rect.right + 3, middle);
+				expect(after).toBe(inner);
+
+				// The strips do not grow up or down into the toggles of adjacent lines.
+				expect(document.elementFromPoint(rect.left - 11, rect.top - 2)).not.toBe(inner);
+				expect(document.elementFromPoint(rect.left - 11, rect.bottom + 2)).not.toBe(inner);
+			},
+		);
 	});
 
 	describe("tab row overflow", () => {

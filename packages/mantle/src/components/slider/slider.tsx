@@ -203,9 +203,14 @@ function Slider({
 					// multi-thumb sliders share the surrounding aria wiring.
 					id={index === 0 ? fieldControl?.id : undefined}
 					className={cx(
-						"bg-static-white border-card relative size-(--slider-thumb-size) rounded-full border",
+						"bg-static-white border-card hit-area size-(--slider-thumb-size) rounded-full border",
 						"shadow-md transition-[color,box-shadow]",
-						"after:absolute after:-inset-2",
+						// Why: a press on a thumb moves that thumb. With more than one thumb, a hit
+						// area that is wider than the thumb along the track covers an adjacent
+						// thumb. A press beside a thumb then goes to the root, which moves the
+						// nearest thumb.
+						values.length > 1 &&
+							"data-orientation-horizontal:after:w-full data-orientation-vertical:after:h-full",
 						"focus-visible:ring-3 focus-visible:ring-accent-500/20 focus-visible:outline-hidden",
 						"block shrink-0 cursor-pointer select-none",
 						"data-disabled:pointer-events-none data-disabled:cursor-default",
