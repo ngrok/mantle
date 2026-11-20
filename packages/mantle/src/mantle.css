@@ -1768,6 +1768,7 @@ at `:root` (same reason as the palette-alias rule in MARK: INVERT THEME).
 	--mantle-code-line-number-gap: 1rem;
 	--mantle-code-fold-gutter-width: 1.125rem;
 	--mantle-code-fold-gutter-gap: 0.25rem;
+	--mantle-code-fold-line-height: 1.5rem;
 	--mantle-code-fold-toggle-color: var(--text-color-muted);
 	--mantle-code-fold-toggle-hover-color: var(--text-color-strong);
 	--mantle-code-fold-ellipsis-color: var(--text-color-muted);
@@ -1858,7 +1859,7 @@ pre[data-mantle-line-numbers="true"] .mantle-code-fold-toggle {
 	align-items: center;
 	justify-content: center;
 	width: var(--mantle-code-fold-gutter-width);
-	height: 1.5em; /* match line-height so the button is line-aligned */
+	height: var(--mantle-code-fold-line-height); /* match line-height so the button is line-aligned */
 	margin-right: var(--mantle-code-fold-gutter-gap);
 	padding: 0;
 	border: 0;
@@ -1887,19 +1888,13 @@ pre[data-mantle-line-numbers="true"] .mantle-code-fold-toggle {
 }
 
 /*
- * Why: on a touch screen, adjacent targets need 24px between their centers
- * (WCAG 2.5.8). An audit measures the box of the toggle, not the hit area
- * above, and the toggles of adjacent lines are one line apart: 20px. Foldable
- * code thus gets 24px lines on a coarse pointer, and each toggle fills its line.
+ * Why: adjacent targets need 24px between their centers (WCAG 2.5.8). An
+ * audit measures the box of the toggle, not the hit area above, and the
+ * toggles of adjacent lines are one line apart. Foldable code thus gets 24px
+ * lines in place of the 20px of `text-mono`, and each toggle fills its line.
  */
-@media (pointer: coarse) {
-	pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) {
-		line-height: 1.5rem;
-	}
-
-	.mantle-code-fold-toggle {
-		height: 1.5rem;
-	}
+pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) {
+	line-height: var(--mantle-code-fold-line-height);
 }
 
 .mantle-code-fold-toggle:hover {

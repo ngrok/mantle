@@ -3,6 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import axe from "axe-core";
+import type { CSSProperties } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import mantleCss from "../../mantle.css?raw";
 import { CodeBlock } from "./code-block.js";
@@ -121,6 +122,7 @@ describe("CodeBlock (browser)", () => {
 			--mantle-code-line-number-gap: 1rem;
 			--mantle-code-fold-gutter-width: 1.125rem;
 			--mantle-code-fold-gutter-gap: 0.25rem;
+			--mantle-code-fold-line-height: 1.5rem;
 		}
 		pre[data-slot="code-block-code"] {
 			margin: 0;
@@ -173,7 +175,7 @@ describe("CodeBlock (browser)", () => {
 			flex-shrink: 0;
 			display: inline-flex;
 			width: var(--mantle-code-fold-gutter-width);
-			height: 1.5em;
+			height: var(--mantle-code-fold-line-height);
 			margin-right: var(--mantle-code-fold-gutter-gap);
 			padding: 0;
 			border: 0;
@@ -228,26 +230,26 @@ describe("CodeBlock (browser)", () => {
 	}
 
 	/**
-	 * The coarse-pointer rules of the fold toggle, read from `mantle.css` with
-	 * the media query removed: the test browser has a fine pointer.
+	 * The line-height rule of foldable code, read from `mantle.css` and not
+	 * mirrored. A change to the rule changes the target-size audit here.
 	 */
-	function foldCoarsePointerCss(): string {
+	function foldLineHeightCss(): string {
 		const match =
-			/@media \(pointer: coarse\) \{\n(\tpre\[data-slot="code-block-code"\]:has\(\.mantle-code-fold-toggle\) \{[\s\S]*?)\n\}/.exec(
+			/pre\[data-slot="code-block-code"\]:has\(\.mantle-code-fold-toggle\) \{\n\tline-height:[\s\S]*?\n\}/.exec(
 				mantleCss,
 			);
-		const rules = match?.[1];
-		if (rules == null) {
-			throw new Error("mantle.css holds no coarse-pointer rules for the fold toggle.");
+		if (match == null) {
+			throw new Error("mantle.css holds no line-height rule for foldable code.");
 		}
-		return rules;
+		return match[0];
 	}
 
 	let styleElement: HTMLStyleElement;
 
 	beforeAll(() => {
 		styleElement = document.createElement("style");
-		styleElement.textContent = LAYOUT_STYLE + TAB_LAYOUT_STYLE + foldHitAreaCss();
+		styleElement.textContent =
+			LAYOUT_STYLE + TAB_LAYOUT_STYLE + foldHitAreaCss() + foldLineHeightCss();
 		document.head.appendChild(styleElement);
 	});
 
@@ -492,10 +494,10 @@ describe("CodeBlock (browser)", () => {
 	});
 
 	describe("fold toggle target size", () => {
-		function renderAdjacentToggles() {
+		function renderAdjacentToggles(style?: CSSProperties) {
 			return render(
 				// Why the type scale: `text-mono` on the <pre> sets it, and the test page loads no Tailwind.
-				<div style={{ width: 340, fontSize: "0.8125rem", lineHeight: "1.25rem" }}>
+				<div style={{ width: 340, fontSize: "0.8125rem", lineHeight: "1.25rem", ...style }}>
 					<CodeBlock.Root>
 						<CodeBlock.Body>
 							<CodeBlock.Code
@@ -518,23 +520,18 @@ describe("CodeBlock (browser)", () => {
 			return results.violations.flatMap((violation) => violation.nodes);
 		}
 
-		test("the toggles of adjacent lines fail the audit at the fine-pointer line height", async () => {
+		test("the toggles of adjacent lines pass the target-size audit", async () => {
 			const { container } = renderAdjacentToggles();
 
-			expect(await targetSizeViolations(container)).toHaveLength(2);
+			expect(await targetSizeViolations(container)).toEqual([]);
 		});
 
-		test("the toggles of adjacent lines pass the audit with the coarse-pointer rules", async () => {
-			const coarse = document.createElement("style");
-			coarse.textContent = foldCoarsePointerCss();
-			document.head.appendChild(coarse);
-			try {
-				const { container } = renderAdjacentToggles();
+		test("the toggles of adjacent lines fail the audit at the 20px line height of `text-mono`", async () => {
+			const { container } = renderAdjacentToggles({
+				"--mantle-code-fold-line-height": "1.25rem",
+			} as CSSProperties);
 
-				expect(await targetSizeViolations(container)).toEqual([]);
-			} finally {
-				coarse.remove();
-			}
+			expect(await targetSizeViolations(container)).toHaveLength(2);
 		});
 	});
 
