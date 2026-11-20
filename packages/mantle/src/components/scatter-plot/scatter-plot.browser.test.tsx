@@ -59,6 +59,8 @@ const STYLE = `
 	position: absolute;
 	left: 0;
 	top: 0;
+	/* Why: the product class is \`pointer-events-none\`. The real mouse of an earlier file can rest here; see docs/testing.md. */
+	pointer-events: none;
 }
 `;
 
