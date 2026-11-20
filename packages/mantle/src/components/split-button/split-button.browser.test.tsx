@@ -23,12 +23,18 @@ afterAll(() => {
 	styleElement.remove();
 });
 
-function OpenSplitButton({ label, width }: { label: string; width?: "root" }) {
-	// Why the flex row: `Root` is a block-level flex box, so it hugs its parts
-	// only as a flex item, as it does in a toolbar.
+function OpenSplitButton({
+	className,
+	label,
+	width,
+}: {
+	className?: string;
+	label: string;
+	width?: "root";
+}) {
 	return (
-		<div style={{ display: "flex" }}>
-			<SplitButton.Root defaultOpen data-testid="root">
+		<div>
+			<SplitButton.Root className={className} defaultOpen data-testid="root">
 				<SplitButton.PrimaryAction>{label}</SplitButton.PrimaryAction>
 				<SplitButton.MenuTrigger label="More deploy options" />
 				<SplitButton.MenuContent width={width}>
@@ -38,6 +44,23 @@ function OpenSplitButton({ label, width }: { label: string; width?: "root" }) {
 		</div>
 	);
 }
+
+test("in a block container, Root is as wide as its parts", () => {
+	render(<OpenSplitButton label="Deploy to production" />);
+	const root = screen.getByTestId("root");
+	const trigger = screen.getByRole("button", { hidden: true, name: "More deploy options" });
+
+	expect(root.getBoundingClientRect().right).toBe(trigger.getBoundingClientRect().right);
+});
+
+test("a width class on Root still stretches it", () => {
+	render(<OpenSplitButton className="w-full" label="Deploy to production" />);
+	const root = screen.getByTestId("root");
+	const parent = root.parentElement;
+
+	expect(parent).not.toBeNull();
+	expect(width(root)).toBe(width(parent as Element));
+});
 
 function width(element: Element) {
 	return element.getBoundingClientRect().width;

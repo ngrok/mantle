@@ -60,6 +60,9 @@ type RootProps = ComponentProps<typeof DropdownMenu.Root> &
  * of related alternatives. Best for when users typically want one action but
  * occasionally need variants.
  *
+ * `Root` is as wide as its parts, also in a block container. To stretch it,
+ * pass a width class such as `w-full`.
+ *
  * | Data Attribute | Value                                       | Description                                        |
  * | -------------- | ------------------------------------------- | -------------------------------------------------- |
  * | `data-slot`    | `"split-button"`                            | On the wrapping `<div>`.                           |
@@ -119,7 +122,7 @@ const Root = ({
 					data-slot={joinDataSlot(dataSlot, "split-button")}
 					data-size={size}
 					className={cx(
-						"flex flex-row [&>*:first-child]:rounded-r-none [&>*:last-child]:rounded-l-none [&>*:not(:first-child):not(:last-child)]:rounded-none [&>*:not(:first-child)]:-ml-px [&>*:focus]:relative [&>*:focus]:z-10 [&>*:hover]:relative [&>*:hover]:z-10 *:active:scale-100!",
+						"flex w-fit flex-row [&>*:first-child]:rounded-r-none [&>*:last-child]:rounded-l-none [&>*:not(:first-child):not(:last-child)]:rounded-none [&>*:not(:first-child)]:-ml-px [&>*:focus]:relative [&>*:focus]:z-10 [&>*:hover]:relative [&>*:hover]:z-10 *:active:scale-100!",
 						className,
 					)}
 					ref={composedRef}
