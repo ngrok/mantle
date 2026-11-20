@@ -1879,7 +1879,9 @@ pre[data-mantle-line-numbers="true"] .mantle-code-fold-toggle {
 	align-items: center;
 	justify-content: center;
 	width: var(--mantle-code-fold-gutter-width);
-	height: var(--mantle-code-fold-line-height); /* match line-height so the button is line-aligned */
+	/* Why `1lh`: the toggle fills its line at each line height, and a button does not inherit one. */
+	line-height: inherit;
+	height: 1lh;
 	margin-right: var(--mantle-code-fold-gutter-gap);
 	padding: 0;
 	border: 0;
@@ -1912,9 +1914,12 @@ pre[data-mantle-line-numbers="true"] .mantle-code-fold-toggle {
  * audit measures the box of the toggle, not the hit area above, and the
  * toggles of adjacent lines are one line apart. Foldable code thus gets 24px
  * lines in place of the 20px of `text-mono`, and each toggle fills its line.
+ *
+ * Why `--tw-leading`: this rule is in no layer, so it wins over a `leading-*`
+ * class from the consumer. That class sets `--tw-leading`, and it stays first.
  */
 pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) {
-	line-height: var(--mantle-code-fold-line-height);
+	line-height: var(--tw-leading, var(--mantle-code-fold-line-height));
 }
 
 .mantle-code-fold-toggle:hover {

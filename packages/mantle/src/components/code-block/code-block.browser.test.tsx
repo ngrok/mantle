@@ -175,7 +175,8 @@ describe("CodeBlock (browser)", () => {
 			flex-shrink: 0;
 			display: inline-flex;
 			width: var(--mantle-code-fold-gutter-width);
-			height: var(--mantle-code-fold-line-height);
+			line-height: inherit;
+			height: 1lh;
 			margin-right: var(--mantle-code-fold-gutter-gap);
 			padding: 0;
 			border: 0;
@@ -524,6 +525,41 @@ describe("CodeBlock (browser)", () => {
 			const { container } = renderAdjacentToggles();
 
 			expect(await targetSizeViolations(container)).toEqual([]);
+		});
+
+		test("a consumer `leading-*` class sets the height of each line and each toggle", () => {
+			// Why the layer: Tailwind puts `leading-8` in a layer, and the test page loads no Tailwind.
+			const leadingStyle = document.createElement("style");
+			leadingStyle.textContent =
+				"@layer utilities { .leading-8 { --tw-leading: 2rem; line-height: 2rem; } }";
+			document.head.appendChild(leadingStyle);
+
+			try {
+				render(
+					<CodeBlock.Root>
+						<CodeBlock.Body>
+							<CodeBlock.Code
+								className="leading-8"
+								value={makeFixedWidthValue([100, 100], {
+									showLineNumbers: true,
+									foldableRanges: [{ id: "1", startLine: 1, endLine: 2 }],
+								})}
+							/>
+						</CodeBlock.Body>
+					</CodeBlock.Root>,
+				);
+
+				const toggle = getPre().querySelector(".mantle-code-fold-toggle");
+				const line = toggle?.closest(".mantle-code-line");
+				if (toggle == null || line == null) {
+					throw new Error("expected a fold toggle in a line");
+				}
+
+				expect(line.getBoundingClientRect().height).toBe(32);
+				expect(toggle.getBoundingClientRect().height).toBe(32);
+			} finally {
+				leadingStyle.remove();
+			}
 		});
 
 		test("the toggles of adjacent lines fail the audit at the 20px line height of `text-mono`", async () => {
