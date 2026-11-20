@@ -992,11 +992,12 @@ function useBarPresence({ present }: { present: boolean }): {
 } {
 	const [state, dispatch] = useReducer(barPresenceReducer, present ? "open" : "closed");
 
-	// Layout effect so "closing" is applied before paint: no flash of the open
-	// state after the alerts empty.
-	useIsomorphicLayoutEffect(() => {
-		dispatch(present ? "show" : "hide");
-	}, [present]);
+	// Why during render: React renders again with the new state before it
+	// commits, so `"closing"` commits with the change that empties the alerts.
+	const presenceEvent = present ? "show" : "hide";
+	if (barPresenceReducer(state, presenceEvent) !== state) {
+		dispatch(presenceEvent);
+	}
 
 	useEffect(() => {
 		if (state !== "closing") {
