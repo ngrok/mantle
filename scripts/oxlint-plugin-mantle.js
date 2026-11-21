@@ -249,8 +249,10 @@ const noNamespaceObject = {
 		return {
 			VariableDeclarator(node) {
 				const init = node.init?.type === "TSAsExpression" ? node.init.expression : node.init;
+				const statement =
+					node.parent.parent?.type === "ExportNamedDeclaration" ? node.parent.parent : node.parent;
 				if (
-					node.parent.parent?.type !== "Program" ||
+					statement.parent?.type !== "Program" ||
 					node.id.type !== "Identifier" ||
 					!isPascalCase(node.id.name) ||
 					init?.type !== "ObjectExpression" ||

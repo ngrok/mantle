@@ -321,8 +321,21 @@ export function declarationsOf(
 				continue;
 			}
 			// Why: a compound namespace is `typeof <Name>Parts`, so its parts are the exports of that module.
-			for (const part of exportNamesOf(files, namespacePath).names) {
-				add(find(namespacePath, part, 0));
+			const parts = [...exportNamesOf(files, namespacePath).names].map((part) => ({
+				part,
+				statement: find(namespacePath, part, 0),
+			}));
+			// Why the member map: a part declaration keeps its local name (`FieldLabel`), so only this
+			// map tells a reader that `Field.Label` is `FieldLabel`.
+			const members = parts.map(({ part, statement }) => {
+				const local = statement == null ? undefined : declaredNames(statement.statement)[0];
+				return `\treadonly ${part}: ${local == null ? "unknown" : `typeof ${local}`};`;
+			});
+			if (texts.length < MAX_DECLARATIONS) {
+				texts.push(`declare const ${reference}: {\n${members.join("\n")}\n};`);
+			}
+			for (const { statement } of parts) {
+				add(statement);
 			}
 		}
 	}

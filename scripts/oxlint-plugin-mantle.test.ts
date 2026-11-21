@@ -235,6 +235,14 @@ describe("no-namespace-object", () => {
 		]);
 	});
 
+	it("reports an exported compound namespace object", () => {
+		const source = "const Root = () => null;\nexport const Menu = { Root };\n";
+
+		expect(lint({ rule: "no-namespace-object", fileName: "a.tsx", source })).toEqual([
+			"no-namespace-object",
+		]);
+	});
+
 	it("leaves an UPPER_SNAKE_CASE lookup and an object with a literal value alone", () => {
 		const source =
 			"const Root = 1;\nexport const SEVERITY = { Root };\nexport const Sizes = { Small: 1, Root };\n";
