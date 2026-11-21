@@ -1,7 +1,7 @@
 ---
-title: Cancel and Submit
-description: Put a form's Cancel and submit buttons in one actions row below its Strata sections, and switch to a Sandbar when the form edits saved settings.
-useWhen: Place a form's Cancel and Save or Create buttons, or pick between an actions row and a save bar.
+title: Cancel and Submit Actions
+description: Put a form's Cancel and submit buttons in one actions row, and switch to a Sandbar when the form edits saved settings.
+useWhen: Place a form's Cancel and submit buttons, or pick between an actions row and a save bar.
 parts:
   - Strata
   - Field
@@ -10,20 +10,17 @@ parts:
 aliases:
   - form actions
   - form footer
-  - form layout
-  - save and cancel buttons
   - form buttons
-  - create form
-  - settings form
+  - save and cancel buttons
 ---
 
 import { Example } from "~/components/example";
 
-# Cancel and Submit
+# Cancel and Submit Actions
 
 [Field](/components/forms/field) is the forms page: labels, errors, help text, groups, and TanStack Form. Start there for anything inside one field. This recipe covers what goes around the fields: the buttons that end the form, and the sections above them.
 
-<Example name="recipes/cancel-and-submit/overview" title="Cancel and Submit example">
+<Example name="recipes/cancel-and-submit/overview" title="Cancel and Submit Actions example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
