@@ -11,26 +11,47 @@ The type scale, text colors, and fonts for mantle UI.
 
 ## Scale
 
-The type scale sets the size of each heading level. It's separate from the markup, so an `<h1>` can use the Heading 2 style when the layout needs it.
+The type scale is a set of type roles, one for each heading level plus paragraph and lead text. Each role is a `text-*` class that sets the font size, line height, and weight together. A role is separate from the markup, so an `<h1>` can use the Heading 2 role when the layout needs it. The [`Typography`](/components/data-display/typography) parts use these roles.
 
-Headings don't set a font family. They inherit the body font, so keep `font-sans`, `font-family`, and
-`font-mono` off them.
+<p className="mt-4 text-heading-1 font-heading">Heading 1</p>
+<p className="mt-4 text-heading-2 font-heading">Heading 2</p>
+<p className="mt-4 text-heading-3 font-heading">Heading 3</p>
+<p className="mt-4 text-heading-4 font-heading">Heading 4</p>
+<p className="mt-4 text-heading-5 font-heading">Heading 5</p>
+<p className="mt-4 text-heading-6 font-heading uppercase">Heading 6</p>
+<p className="mt-4 text-lead">Lead</p>
+<p className="mt-4 text-paragraph">Paragraph</p>
 
-<p className="mt-4 text-5xl font-medium">Heading 1</p>
-<p className="mt-4 text-3xl font-medium">Heading 2</p>
-<p className="mt-4 text-2xl font-medium">Heading 3</p>
-<p className="mt-4 text-xl font-medium">Heading 4</p>
-<p className="mt-4 text-base font-medium">Heading 5</p>
-<p className="mt-4 text-xs font-medium uppercase tracking-widest">Heading 6</p>
+| Role      | Class            | Size, as a default Tailwind class     | Weight | Additional                 |
+| --------- | ---------------- | ------------------------------------- | ------ | -------------------------- |
+| Heading 1 | `text-heading-1` | `text-5xl`                            | 500    |                            |
+| Heading 2 | `text-heading-2` | `text-3xl`                            | 500    |                            |
+| Heading 3 | `text-heading-3` | `text-2xl`                            | 500    |                            |
+| Heading 4 | `text-heading-4` | `text-xl`                             | 500    |                            |
+| Heading 5 | `text-heading-5` | `text-base`                           | 500    |                            |
+| Heading 6 | `text-heading-6` | `text-xs`                             | 500    | `uppercase`, 0.1em spacing |
+| Lead      | `text-lead`      | `text-lg`                             |        |                            |
+| Paragraph | `text-paragraph` | `text-base`, with a 1.625 line height |        |                            |
 
-| Level     | Size        | Weight        | Additional                  |
-| --------- | ----------- | ------------- | --------------------------- |
-| Heading 1 | `text-5xl`  | `font-medium` |                             |
-| Heading 2 | `text-3xl`  | `font-medium` |                             |
-| Heading 3 | `text-2xl`  | `font-medium` |                             |
-| Heading 4 | `text-xl`   | `font-medium` |                             |
-| Heading 5 | `text-base` | `font-medium` |                             |
-| Heading 6 | `text-xs`   | `font-medium` | `uppercase tracking-widest` |
+Headings use the `font-heading` class. It's the page font (`font-sans`) unless a site sets its own.
+
+### Set a site's scale
+
+Each role is a theme variable, so a site sets its own scale in its stylesheet, after the mantle import. Your values replace mantle's on every page of the site, and the markup stays the same:
+
+```css
+@import "@ngrok/mantle/mantle.css";
+
+@theme {
+	--font-heading: "Your Display Font", Georgia, serif;
+	--text-heading-1: clamp(2.5rem, 1.75rem + 3vw, 4.5rem);
+	--text-heading-1--line-height: 1.05;
+	--text-heading-1--letter-spacing: -0.02em;
+	--text-heading-1--font-weight: 400;
+}
+```
+
+Set every sub-key of a role you change: `--line-height`, `--font-weight`, and for Heading 6, `--letter-spacing`. A sub-key you leave out keeps mantle's value, so a 4.5rem heading would keep a line height made for 3rem. To change the scale for one section of a page instead, set the same variables on that section's element.
 
 ## Colors
 
@@ -47,7 +68,7 @@ Color text with these tokens. They set hierarchy without a size change, and each
 
 ## Fonts
 
-Roobert is the default font for UI and headings. JetBrains Mono sets code, and Family sets long-form prose.
+Roobert is the default font for UI and headings. JetBrains Mono sets code, and Family sets long-form prose. A site can give headings their own font with `--font-heading`.
 
 | Class         | Font family                                                                                      | Description                                                         |
 | ------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |

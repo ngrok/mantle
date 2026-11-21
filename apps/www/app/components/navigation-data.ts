@@ -68,6 +68,7 @@ export const componentsByCategory = {
 		"Selectable List",
 		"Table",
 		"Truncated Text",
+		"Typography",
 	],
 	Feedback: [
 		"Alert",
@@ -220,6 +221,7 @@ export const prodReadyComponentRouteLookup = {
 	Toast: "/components/feedback/toast",
 	Tooltip: "/components/overlays/tooltip",
 	"Truncated Text": "/components/data-display/truncated-text",
+	Typography: "/components/data-display/typography",
 	"Visually Hidden": "/components/primitives/visually-hidden",
 	Well: "/components/structure/well",
 } as const satisfies Record<ProdReadyComponent, Route>;

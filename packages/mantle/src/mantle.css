@@ -144,6 +144,34 @@ MARK: THEME
 	--spacing-em: 1em;
 
 	--z-index-max: 2147483647;
+
+	/* The type roles behind the text-heading-*, text-paragraph, text-lead, and font-heading classes.
+	   Why not `@theme inline`: each utility reads the variable, so a site's later `@theme` block,
+	   or a class on one section, sets its own scale. */
+	--font-heading: var(--font-sans);
+	--text-heading-1: clamp(2.4rem, 2.4rem + 0.75vw, 3rem);
+	--text-heading-1--line-height: 1;
+	--text-heading-1--font-weight: 500;
+	--text-heading-2: clamp(1.5rem, 1.275rem + 0.75vw, 1.875rem);
+	--text-heading-2--line-height: calc(2.25 / 1.875);
+	--text-heading-2--font-weight: 500;
+	--text-heading-3: clamp(1.2rem, 0.9rem + 0.75vw, 1.5rem);
+	--text-heading-3--line-height: calc(2 / 1.5);
+	--text-heading-3--font-weight: 500;
+	--text-heading-4: clamp(1.1rem, 0.8rem + 0.75vw, 1.25rem);
+	--text-heading-4--line-height: calc(1.75 / 1.25);
+	--text-heading-4--font-weight: 500;
+	--text-heading-5: 1rem;
+	--text-heading-5--line-height: 1.5;
+	--text-heading-5--font-weight: 500;
+	--text-heading-6: 0.75rem;
+	--text-heading-6--line-height: calc(1 / 0.75);
+	--text-heading-6--letter-spacing: 0.1em;
+	--text-heading-6--font-weight: 500;
+	--text-paragraph: 1rem;
+	--text-paragraph--line-height: 1.625;
+	--text-lead: clamp(1.075rem, 0.525rem + 0.75vw, 1.125rem);
+	--text-lead--line-height: calc(1.75 / 1.125);
 }
 
 /*
@@ -1404,6 +1432,54 @@ MARK: UTILITIES
 	.font-family {
 		-webkit-font-smoothing: auto;
 		-moz-osx-font-smoothing: auto;
+	}
+}
+
+/*
+Styles headings, paragraphs, and lists in HTML that no one maps to components, such as CMS or MDX
+output, with the type-role tokens.
+Why direct children only: a component inside the container, such as a Card with its own title,
+keeps its own styles. Why `:where()` on both sides: a class on a child wins over these styles.
+*/
+@utility type-prose {
+	:where(&) > :where(h1, h2, h3, h4, h5, h6) {
+		@apply font-heading text-strong mt-12 mb-4 text-balance;
+	}
+	:where(&) > :where(h1) {
+		@apply text-heading-1;
+	}
+	:where(&) > :where(h2) {
+		@apply text-heading-2;
+	}
+	:where(&) > :where(h3) {
+		@apply text-heading-3;
+	}
+	:where(&) > :where(h4) {
+		@apply text-heading-4;
+	}
+	:where(&) > :where(h5) {
+		@apply text-heading-5;
+	}
+	:where(&) > :where(h6) {
+		@apply text-heading-6 uppercase;
+	}
+	:where(&) > :where(p, ul, ol) {
+		@apply text-paragraph text-body mb-4;
+	}
+	:where(&) > :where(p) {
+		@apply text-pretty;
+	}
+	:where(&) > :where(ul) {
+		@apply list-disc pl-6;
+	}
+	:where(&) > :where(ol) {
+		@apply list-decimal pl-6;
+	}
+	:where(&) > :where(h1, h2, h3, h4, h5, h6) + :where(h1, h2, h3, h4, h5, h6) {
+		@apply mt-6;
+	}
+	:where(&) > :where(:first-child) {
+		@apply mt-0;
 	}
 }
 

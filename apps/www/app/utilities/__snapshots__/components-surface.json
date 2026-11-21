@@ -2233,6 +2233,42 @@
     "useWhen": "Show one long opaque value on one line, and keep its end visible when it clips."
   },
   {
+    "name": "Typography",
+    "slug": "components/data-display/typography",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/typography",
+    "summary": "Headings and paragraphs in the site's type scale, plus a container that styles HTML from a CMS or MDX.",
+    "jsdoc": "Headings and paragraphs in mantle's type roles, plus a container for HTML that no one maps to components.",
+    "examples": [
+      "Composition:\n```\nTypography.Root\n├── Typography.H1\n├── Typography.H2\n├── Typography.H3\n├── Typography.H4\n├── Typography.H5\n├── Typography.H6\n└── Typography.P\n```",
+      "```tsx\n<Typography.Root>\n  <Typography.H1>Endpoints</Typography.H1>\n  <Typography.P className=\"text-lead\">Each endpoint gets a public URL.</Typography.P>\n  <Typography.H2>Traffic policy</Typography.H2>\n  <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>\n</Typography.Root>\n```"
+    ],
+    "aliases": [
+      "heading",
+      "paragraph",
+      "prose",
+      "h1",
+      "text"
+    ],
+    "siblings": [
+      {
+        "name": "Card",
+        "boundary": "the heading is the title of a card; use `Card.Title`."
+      },
+      {
+        "name": "Dialog",
+        "boundary": "the heading is the title of a dialog; use `Dialog.Title`."
+      },
+      {
+        "name": "Code",
+        "boundary": "the text is a fragment of code."
+      }
+    ],
+    "useWhen": "Show a heading or a paragraph of copy in the site's type scale, or style CMS or MDX HTML with it."
+  },
+  {
     "name": "Visually Hidden",
     "slug": "components/primitives/visually-hidden",
     "kind": "component",

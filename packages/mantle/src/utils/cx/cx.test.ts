@@ -57,6 +57,12 @@ describe("cx", () => {
 		expect(cx("text-size-inherit text-base")).toBe("text-base");
 	});
 
+	test("a type-role size keeps the text color and yields to a later size", () => {
+		// Why: an unknown `text-*` class reads as a color, so `text-strong` would drop the size.
+		expect(cx("text-heading-2 text-strong")).toBe("text-heading-2 text-strong");
+		expect(cx("text-heading-2 text-sm text-paragraph")).toBe("text-paragraph");
+	});
+
 	test("w-4 can be overridden by w-em", () => {
 		expect(cx("w-4 w-em")).toBe("w-em");
 	});

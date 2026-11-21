@@ -72,6 +72,7 @@ const docsPages = [
 	"components/data-display/selectable-list",
 	"components/data-display/table",
 	"components/data-display/truncated-text",
+	"components/data-display/typography",
 	// feedback
 	"components/feedback/alert",
 	"components/feedback/alert-center",

@@ -13,6 +13,7 @@ import {
 } from "@ngrok/mantle/code-block";
 import { cx } from "@ngrok/mantle/cx";
 import { Table } from "@ngrok/mantle/table";
+import { Typography } from "@ngrok/mantle/typography";
 import { Link } from "react-router";
 import { isSafeLocalPath } from "../utilities/is-safe-local-path";
 import { isStaticResourcePath } from "../utilities/is-static-resource-path";
@@ -112,13 +113,7 @@ const components = {
 	p: (props) => {
 		const { node: _node, className, ...rest } = props;
 		return (
-			<p
-				className={cx(
-					"mb-4 leading-relaxed wrap-break-word text-pretty md:text-wrap text-body",
-					className,
-				)}
-				{...rest}
-			/>
+			<Typography.P className={cx("mb-4 wrap-break-word md:text-wrap", className)} {...rest} />
 		);
 	},
 	pre: (props: ComponentProps<"pre"> & CodeBlockPreElementInput) => {
@@ -273,28 +268,35 @@ function MdxHeading({ as: Component, children, className, id, ...props }: MdxHea
 		);
 	}
 
+	const Heading = typographyHeadings[Component];
+
 	return (
 		<HashLinkHeading id={id}>
-			<Component
+			<Heading
 				className={cx(
 					// Why wrap-anywhere: one long identifier (`SandboxedOnClick`) is wider
 					// than a 320px screen, and `break-word` does not shrink a `w-fit` box.
-					"font-medium text-strong mt-12 mb-4 wrap-anywhere [:is(h1,h2,h3,h4,h5,h6)+&]:mt-6",
-					Component === "h1" && "text-5xl mt-0",
-					Component === "h2" && "text-3xl",
-					Component === "h3" && "text-2xl",
-					Component === "h4" && "text-xl",
-					Component === "h5" && "text-base",
-					Component === "h6" && "text-xs",
+					"mt-12 mb-4 wrap-anywhere [:is(h1,h2,h3,h4,h5,h6)+&]:mt-6",
+					Component === "h1" && "mt-0",
 					className,
 				)}
 				{...props}
 			>
 				{children}
-			</Component>
+			</Heading>
 		</HashLinkHeading>
 	);
 }
+
+/** The `Typography` part that renders each heading tag in its type role. */
+const typographyHeadings = {
+	h1: Typography.H1,
+	h2: Typography.H2,
+	h3: Typography.H3,
+	h4: Typography.H4,
+	h5: Typography.H5,
+	h6: Typography.H6,
+} as const satisfies Record<HeadingTag, unknown>;
 
 type GitHubAlertTypes = "note" | "tip" | "important" | "warning" | "caution";
 
