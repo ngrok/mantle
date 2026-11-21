@@ -460,8 +460,8 @@ const WORKSPACE_SLUG = /^[a-z0-9][a-z0-9-]{0,31}$/;
 
 /**
  * The part of an agent's `workspace` that is safe to log: the trimmed,
- * lowercase value when it is a slug, else `undefined`. A path, a name with a
- * space, or an email does not survive.
+ * lowercase value when it is a clean slug, else `undefined`. A path, a name
+ * with a space, an email, or profanity does not survive.
  *
  * @example
  * workspaceSlug(" Dashboard "); // "dashboard"
@@ -469,7 +469,7 @@ const WORKSPACE_SLUG = /^[a-z0-9][a-z0-9-]{0,31}$/;
  */
 export function workspaceSlug(workspace: string): string | undefined {
 	const slug = workspace.trim().toLowerCase();
-	return WORKSPACE_SLUG.test(slug) ? slug : undefined;
+	return WORKSPACE_SLUG.test(slug) && !hasProfanity(slug) ? slug : undefined;
 }
 
 /** A Linear issue key: any team key in capitals (such as `FEP` or `K8SOP`), a hyphen, and a number. */
@@ -477,8 +477,8 @@ const TICKET_KEY = /^[A-Z][A-Z0-9]{0,9}-[1-9]\d{0,6}$/;
 
 /**
  * The part of an agent's `ticket` that is safe to log: the trimmed, uppercase
- * value when it is a Linear issue key, else `undefined`. A URL, a branch name,
- * or an issue title does not survive.
+ * value when it is a clean Linear issue key, else `undefined`. A URL, a branch
+ * name, an issue title, or profanity does not survive.
  *
  * @example
  * ticketKey(" fep-1867 "); // "FEP-1867"
@@ -486,7 +486,7 @@ const TICKET_KEY = /^[A-Z][A-Z0-9]{0,9}-[1-9]\d{0,6}$/;
  */
 export function ticketKey(ticket: string): string | undefined {
 	const key = ticket.trim().toUpperCase();
-	return TICKET_KEY.test(key) ? key : undefined;
+	return TICKET_KEY.test(key) && !hasProfanity(key) ? key : undefined;
 }
 
 /** The record named `name`, by display name or identifier. */

@@ -287,12 +287,14 @@ describe("the mantle MCP server", () => {
 				...gap,
 				writeup: `This ${profanity} stepper`,
 			});
-			const mixedCase = await callToolFromFrontend(dependencies(), "report_gap", {
-				...gap,
-				need: atob("ZlVjSw=="),
-			});
+			// Why two: `fUcK` and `shIt` split at different camelCase boundaries.
+			const mixedCase = await Promise.all(
+				["ZlVjSw==", "c2hJdA=="].map((need) =>
+					callToolFromFrontend(dependencies(), "report_gap", { ...gap, need: atob(need) }),
+				),
+			);
 
-			expect(mixedCase.isError).toBe(true);
+			expect(mixedCase.map(({ isError }) => isError)).toEqual([true, true]);
 			expect(result).toEqual({
 				text: "Remove the offensive language and report again.",
 				isError: true,
@@ -301,13 +303,24 @@ describe("the mantle MCP server", () => {
 			expect(log.mock.lastCall?.[0].gap).toBeUndefined();
 		});
 
-		it("keeps a code sketch with a hex color that reads as leet-speak", async () => {
+		it("keeps a code sketch with names and a hex color that read as profanity", async () => {
 			const result = await callToolFromFrontend(dependencies(), "report_gap", {
 				...gap,
-				writeup: '```tsx\n<rect fill="#a55" />\n```',
+				writeup: '```tsx\nconst data = useApiAnalytics();\n<rect fill="#a55" />\n```',
 			});
 
 			expect(result.isError).toBe(false);
+		});
+
+		it("logs no workspace that holds profanity", async () => {
+			const log = vi.fn<(event: ToolCallEvent) => void>();
+
+			await callToolFromFrontend(dependencies({ log }), "report_gap", {
+				...gap,
+				workspace: profanity,
+			});
+
+			expect(log.mock.lastCall?.[0]).toMatchObject({ outcome: "ok", workspace: undefined });
 		});
 
 		it("rejects a report with more than five links, and keeps one with five", async () => {

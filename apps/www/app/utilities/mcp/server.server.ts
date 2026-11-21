@@ -203,13 +203,14 @@ function failure(errorKind: ToolErrorKind, message: string, facts: ToolCallFacts
 
 /**
  * The client name of a request: the first product token of its `User-Agent`
- * header, with any character outside `[\w./-]` removed. Most clients send no
+ * header, with any character outside `[\w./-]` removed, or `undefined` for
+ * profanity. Most clients send no
  * `clientInfo` on a stateless `tools/call`, so the header is the one signal.
  */
 function clientOf(request: Request | undefined): string | undefined {
 	const token = request?.headers.get("user-agent")?.trim().split(/\s+/)[0] ?? "";
 	const client = token.replace(/[^\w./-]/g, "").slice(0, 60);
-	return client === "" ? undefined : client;
+	return client === "" || hasProfanity(client) ? undefined : client;
 }
 
 /** The string at `key` in the raw arguments of a call, or `undefined`. */
@@ -254,7 +255,7 @@ function sourceOf(request: Request | undefined): McpSource | undefined {
 	const org = NGROK_ORGS.find((name) => name === owner);
 	return (
 		SOURCE_ALIASES.get(source) ??
-		(org != null && repo != null && rest.length === 0 && REPO_NAME.test(repo)
+		(org != null && repo != null && rest.length === 0 && REPO_NAME.test(repo) && !hasProfanity(repo)
 			? `${org}/${repo}`
 			: undefined)
 	);
