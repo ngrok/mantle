@@ -31,9 +31,9 @@ type SelectBehavior = {
 
 /**
  * Owns the WAI-ARIA select-only combobox pattern: a button that opens a
- * listbox and picks one value. DOM focus never leaves the trigger, so a press
- * outside closes the list through the trigger's blur, with no document
- * listener. Call it in the root part; call
+ * modal listbox and picks one value. DOM focus never leaves the trigger, and
+ * Tab cannot move it while the list is open. A press outside closes the list
+ * through the trigger's blur, with no document listener. Call it in the root part; call
  * `useSelectTrigger` in the trigger and `useOption` in each option.
  *
  * @see https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-select-only/
@@ -196,7 +196,8 @@ const useSelectTrigger = (select: SelectBehavior) => {
 					return;
 				}
 				case "Tab": {
-					pickActive();
+					// Why: the open list is modal, so focus stays until Enter, Escape, or a pick.
+					event.preventDefault();
 					return;
 				}
 				default: {

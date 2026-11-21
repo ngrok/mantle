@@ -7,6 +7,7 @@ import type { ComponentProps, KeyboardEvent, PropsWithChildren, ReactNode } from
 import { cloneElement, createContext, isValidElement, use, useId, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
 import { composeHandlers } from "../../behaviors/compose-handlers.js";
+import { enterModal } from "../../behaviors/enter-modal.js";
 import { useComboboxInput } from "../../behaviors/use-combobox.js";
 import { useOption } from "../../behaviors/use-listbox.js";
 import { useMultiSelect } from "../../behaviors/use-multi-select.js";
@@ -660,8 +661,13 @@ const Input = ({
 					inputProps.onChange(event);
 				})}
 				onClick={composeHandlers(onClick, inputProps.onClick)}
-				onFocus={composeHandlers(onFocus, () => {
-					setOpen(true);
+				onFocus={composeHandlers(onFocus, (event) => {
+					// Why only from a tag: focus that returns from a tag keeps the list
+					// open. Focus from outside, such as a dialog's autofocus, opens nothing.
+					const trigger = event.currentTarget.closest('[data-slot~="multi-select-trigger"]');
+					if (event.relatedTarget instanceof Node && trigger?.contains(event.relatedTarget)) {
+						setOpen(true);
+					}
 				})}
 				onBlur={composeHandlers(onBlur, (event) => {
 					// Why: focus that moves to a tag or a remove button stays in the
@@ -672,6 +678,11 @@ const Input = ({
 					}
 				})}
 				onKeyDown={composeHandlers(onKeyDown, (event) => {
+					// Why: the open list is modal, so focus stays until Escape closes it.
+					if (event.key === "Tab" && multiSelect.open) {
+						event.preventDefault();
+						return;
+					}
 					const input = event.currentTarget;
 					const last = selected.at(-1);
 					if (
@@ -730,8 +741,8 @@ type MultiSelectContentProps = ComponentProps<"div"> &
  * paints above the overlay that owns it. Outside every overlay, it portals to
  * `document.body`, below the overlay tier (`z-60`).
  *
- * The list is not modal: the page keeps scrolling while it is open, and a
- * press outside the trigger and the list closes it.
+ * The list is modal: while it is open, the page does not scroll, the rest of
+ * the page is inert, and a press outside the trigger and the list closes it.
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectcontent
  *
@@ -763,6 +774,7 @@ const Content = ({
 		open,
 		anchorRef: triggerRef,
 		container: useLayerContainer(),
+		modal: enterModal,
 	});
 	const composedRef = useComposedRefs(ref, listbox.ref, popupRef);
 	const Component = asChild ? Slot : "div";

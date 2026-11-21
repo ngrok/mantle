@@ -235,7 +235,7 @@ describe("Select keyboard, focus, and ARIA contract", () => {
 		);
 	});
 
-	test("Escape and an outside press close without a change; Tab picks the active option", async () => {
+	test("Escape and an outside press close without a change", async () => {
 		const onValueChange = vi.fn<(value: string) => void>();
 		render(<FruitSelect onValueChange={onValueChange} />);
 		const trigger = screen.getByRole("combobox", { name: "Fruit" });
@@ -244,15 +244,33 @@ describe("Select keyboard, focus, and ARIA contract", () => {
 		await userEvent.keyboard("{ArrowDown}{Escape}");
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
 		await userEvent.click(trigger);
-		await userEvent.click(document.body);
+		// Why force: the open list makes the page inert, so the press lands on the root.
+		await userEvent.click(document.body, { force: true });
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
 		expect(onValueChange).toHaveBeenCalledTimes(0);
+	});
 
+	test("the open list is modal: Tab keeps focus, the page does not scroll, and only the select is exposed", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(<FruitSelect onValueChange={onValueChange} />);
+		const trigger = screen.getByRole("combobox", { name: "Fruit" });
+		const after = screen.getByRole("button", { name: "After" });
 		trigger.focus();
 		await userEvent.keyboard("{ArrowDown}{ArrowDown}{Tab}");
-		expect(onValueChange).toHaveBeenCalledTimes(1);
+		expect(document.activeElement).toBe(trigger);
+		expect(trigger).toHaveAttribute("aria-expanded", "true");
+		expect(onValueChange).toHaveBeenCalledTimes(0);
+		expect(document.documentElement.style.overflow).toBe("hidden");
+		// The button beside the trigger goes inert; the label, the trigger, and the list stay.
+		expect(after.inert).toBe(true);
+		expect(screen.getByRole("combobox", { name: "Fruit" })).toBe(trigger);
+		expect(screen.getByRole("listbox")).toBeInTheDocument();
+
+		await userEvent.keyboard("{Enter}");
 		expect(onValueChange).toHaveBeenLastCalledWith("cherry");
-		expect(document.activeElement).toBe(screen.getByRole("button", { name: "After" }));
+		expect(document.documentElement.style.overflow).toBe("");
+		expect(screen.getByRole("button", { name: "After" })).toBe(after);
+		expect(document.querySelector("[inert]")).toBeNull();
 	});
 
 	test("a pointer press on an option picks it", async () => {

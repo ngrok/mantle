@@ -91,7 +91,7 @@ Select.Root
 
 ## Server rendering
 
-The items mount after hydration, so a server-rendered or prerendered page shows no item text for a selected value until the page hydrates. When the selected text must be in the first paint, pass it as `children` of `Select.Value`.
+A server-rendered or prerendered page shows the selected item's text in its first paint. Before the items mount, `Select.Value` reads that text from the `Select.Item` elements under `Select.Root`. It cannot see an item that a component of your own renders: for one, pass the text as `children` of `Select.Value`.
 
 ## Layering and z-index
 
@@ -348,7 +348,7 @@ import { Select } from "@ngrok/mantle/select";
 
 ## API Reference
 
-The `Select` components follow the WAI-ARIA [select-only combobox](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-select-only/) pattern. DOM focus stays on the trigger while the list is open, and `aria-activedescendant` points at the highlighted option. The list is not modal: the page behind it keeps scrolling, and a press outside closes it.
+The `Select` components follow the WAI-ARIA [select-only combobox](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-select-only/) pattern. DOM focus stays on the trigger while the list is open, and `aria-activedescendant` points at the highlighted option. The list is modal, as it was with Radix: while it is open, the page does not scroll, the rest of the page is inert (hidden from screen readers and closed to the pointer and to Tab), and a press outside closes it.
 
 ### Select.Root
 

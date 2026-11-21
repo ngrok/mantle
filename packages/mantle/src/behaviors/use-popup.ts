@@ -93,10 +93,16 @@ const usePopup = ({
 	open,
 	anchorRef,
 	container,
+	modal,
 }: {
 	open: boolean;
 	anchorRef: RefObject<Element | null>;
 	container: Element | DocumentFragment | null;
+	/**
+	 * Makes the page behind the open popup inert, such as `enterModal`, and
+	 * returns the cleanup. A popup that passes nothing ships no modal code.
+	 */
+	modal?: (keep: readonly Element[]) => () => void;
 }): { host: HTMLElement | null; popupRef: RefCallback<HTMLElement> } => {
 	const hydrated = useIsHydrated();
 	const [host] = useState(() => {
@@ -118,7 +124,10 @@ const usePopup = ({
 		}
 		(container ?? document.body).append(host);
 		const stopFollowing = followAnchor(anchorRef, floating, host);
+		const anchor = anchorRef.current;
+		const exitModal = modal != null && anchor != null ? modal([anchor, host]) : undefined;
 		return () => {
+			exitModal?.();
 			stopFollowing();
 			host.remove();
 		};
