@@ -53,6 +53,7 @@ export const componentsByCategory = {
 	Charts: ["Area Chart", "Bar Chart", "Line Chart", "Scatter Plot"],
 	"Data Display": [
 		"Accordion",
+		"Accordion Native",
 		"Avatar",
 		"Badge",
 		"Code",
@@ -150,6 +151,7 @@ export const previewComponents = [
 /** Route lookup for production-ready component pages. */
 export const prodReadyComponentRouteLookup = {
 	Accordion: "/components/data-display/accordion",
+	"Accordion Native": "/components/data-display/accordion-native",
 	Alert: "/components/feedback/alert",
 	"Alert Center": "/components/feedback/alert-center",
 	"Alert Dialog": "/components/overlays/alert-dialog",

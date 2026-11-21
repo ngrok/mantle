@@ -24,6 +24,7 @@ import * as AccordionParts from "./accordion-parts.js";
  * answers or a group of advanced settings.
  *
  * @siblings
+ * - `Accordion Native`: a long page needs a faster load more than a custom header row.
  * - `Tabs`: one section shows at a time, and a row of tabs switches between them.
  * - `Strata`: every section stays open, with its title and explanation beside its content.
  *

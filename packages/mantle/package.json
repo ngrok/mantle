@@ -52,6 +52,11 @@
 			"types": "./dist/accordion.d.ts",
 			"import": "./dist/accordion.js"
 		},
+		"./accordion/native": {
+			"@ngrok/src-live-types": "./src/components/accordion-native/index.ts",
+			"types": "./dist/accordion-native.d.ts",
+			"import": "./dist/accordion-native.js"
+		},
 		"./alert": {
 			"@ngrok/src-live-types": "./src/components/alert/index.ts",
 			"types": "./dist/alert.d.ts",

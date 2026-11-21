@@ -64,6 +64,7 @@ import { Accordion } from "@ngrok/mantle/accordion";
 - Stack titled sections that each expand and collapse in place, such as an FAQ or a group of advanced settings.
 - Keep long content findable: collapsed sections stay in the DOM, so find-in-page matches text inside them and expands the section.
 - Give each section its own header controls beside the toggle, as in a dense layout like the dashboard's Traffic Policy GUI.
+- Prefer [`Accordion Native`](/components/data-display/accordion-native) for a long page where load time matters more than a custom header row. It takes the same parts and props on native `<details>` and `<summary>` elements.
 - Prefer [`Tabs`](/components/navigation/tabs) to switch between views of the same region, one at a time.
 - Prefer [`Strata`](/components/structure/strata) when every section stays open, with its title and explanation beside its content.
 
