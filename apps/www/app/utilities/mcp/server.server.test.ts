@@ -287,14 +287,14 @@ describe("the mantle MCP server", () => {
 				...gap,
 				writeup: `This ${profanity} stepper`,
 			});
-			// Why two: `fUcK` and `shIt` split at different camelCase boundaries.
+			// Why three: mixed case once split camelCase names and hid a term.
 			const mixedCase = await Promise.all(
-				["ZlVjSw==", "c2hJdA=="].map((need) =>
+				["ZlVjSw==", "c2hJdA==", "bXlTaEl0"].map((need) =>
 					callToolFromFrontend(dependencies(), "report_gap", { ...gap, need: atob(need) }),
 				),
 			);
 
-			expect(mixedCase.map(({ isError }) => isError)).toEqual([true, true]);
+			expect(mixedCase.map(({ isError }) => isError)).toEqual([true, true, true]);
 			expect(result).toEqual({
 				text: "Remove the offensive language and report again.",
 				isError: true,
@@ -306,7 +306,8 @@ describe("the mantle MCP server", () => {
 		it("keeps a code sketch with names and a hex color that read as profanity", async () => {
 			const result = await callToolFromFrontend(dependencies(), "report_gap", {
 				...gap,
-				writeup: '```tsx\nconst data = useApiAnalytics();\n<rect fill="#a55" />\n```',
+				writeup:
+					'```tsx\nconst data = useApiAnalytics() ?? useAPIAnalytics();\n<rect fill="#a55" />\n```',
 			});
 
 			expect(result.isError).toBe(false);

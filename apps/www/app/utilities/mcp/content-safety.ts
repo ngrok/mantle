@@ -22,38 +22,39 @@ const URL_PATTERN = /(?:https?:\/\/|www\.)[^\s)\]"'<>,]+?(?=https?:\/\/|www\.|[\
  */
 const HEX_LITERAL = /#[\da-f]{3,8}\b|\b0x[\da-f]+\b/gi;
 
-/** A camelCase boundary: a lowercase letter or digit, then a capital. */
-const CAMEL_BOUNDARY = /(?<=[\p{Ll}\d])(?=\p{Lu})/gu;
+/**
+ * Words such as `analytics` after a letter or digit, as in `useAnalytics` or
+ * `glassAnalysis`. Why: the dataset matches `eanal` and similar patterns
+ * across that joint, and the matcher ignores case, so the joint of a
+ * camelCase name looks like one word.
+ */
+const WORDS_AFTER_A_NAME = Array.from(
+	"abcdefghijklmnopqrstuvwxyz0123456789",
+	(char) => `${char}analy`,
+);
 
 // Why lazy: the matcher compiles many regexes once, at the first check.
 let matcher: RegExpMatcher | undefined;
 
 /**
  * Whether `text` holds a term from the `obscenity` English dataset, with
- * evasions such as leet-speak, mixed case, and repeated characters. A term
- * that starts at a camelCase boundary in the text does not count, so
- * `useApiAnalytics` does not match, and a hex literal such as `#a55` is not
- * read as text.
- *
- * Why two passes: the raw text catches mixed case, such as `shIt`, and the
- * text split into words catches a term after a boundary, such as `myTerm`.
+ * evasions such as leet-speak, mixed case, and repeated characters. Names
+ * such as `useApiAnalytics` do not match, and a hex literal such as `#a55` is
+ * not read as text.
  *
  * @example
  * hasProfanity("Settings page needs a stepper with a done state"); // false
  */
 export function hasProfanity(text: string): boolean {
-	matcher ??= new RegExpMatcher({ ...englishDataset.build(), ...englishRecommendedTransformers });
-	const plain = text.replace(HEX_LITERAL, " ");
-	const boundaries = new Set(Array.from(plain.matchAll(CAMEL_BOUNDARY), (match) => match.index));
-	// Why `startIndex + 1`: a match can start one character before its term,
-	// but not at the start of a word, so `fUcK` still counts.
-	const inIdentifier = ({ startIndex }: { startIndex: number }) =>
-		boundaries.has(startIndex) ||
-		(boundaries.has(startIndex + 1) && /[\p{L}\d]/u.test(plain[startIndex - 1] ?? ""));
-	return (
-		matcher.getAllMatches(plain).some((match) => !inIdentifier(match)) ||
-		matcher.hasMatch(plain.replace(CAMEL_BOUNDARY, " "))
-	);
+	if (matcher == null) {
+		const dataset = englishDataset.build();
+		matcher = new RegExpMatcher({
+			...dataset,
+			whitelistedTerms: [...(dataset.whitelistedTerms ?? []), ...WORDS_AFTER_A_NAME],
+			...englishRecommendedTransformers,
+		});
+	}
+	return matcher.hasMatch(text.replace(HEX_LITERAL, " "));
 }
 
 /**
