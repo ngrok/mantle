@@ -16,7 +16,6 @@ import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { Icon } from "../icon/index.js";
 import { IconSwap } from "../icon/icon-swap.js";
-import { Slot } from "../slot/index.js";
 import { ButtonSlot } from "./button-slot.js";
 import type { ButtonIntent } from "./intents.js";
 import type { ButtonSize } from "./sizes.js";
@@ -397,7 +396,6 @@ const Button = ({
 	const hasSpecialIconPadding = icon && appearance !== "link";
 
 	const buttonProps = {
-		"aria-disabled": disabled,
 		"data-slot": joinDataSlot(dataSlot, "button"),
 		className: cx(
 			"inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md",
@@ -412,9 +410,12 @@ const Button = ({
 			className,
 		),
 		"data-appearance": appearance,
-		// Why presence-only: the `data-disabled:` variant matches the attribute,
-		// so a `"false"` value fires it on every enabled button.
-		"data-disabled": disabled ? "" : undefined,
+		// Why set only when disabled: a server component renders this button before a client
+		// trigger such as `Dialog.Trigger asChild disabled` merges its props, and the
+		// button's own props win that merge, so an explicit `false` would beat the
+		// trigger's `disabled`. Presence-only, because the `data-disabled:` variant matches
+		// the attribute.
+		...(disabled && { "aria-disabled": true, "data-disabled": "" }),
 		"data-intent": intent,
 		"data-loading": isLoading ? "" : undefined,
 		"data-size": appearance === "link" ? undefined : size,
@@ -441,15 +442,15 @@ const Button = ({
 		);
 
 		return (
-			<ButtonSlot inert={disabled}>
-				<Slot {...buttonProps}>{content}</Slot>
+			<ButtonSlot {...buttonProps} inert={disabled}>
+				{content}
 			</ButtonSlot>
 		);
 	}
 
 	return (
 		// oxlint-disable-next-line react/button-has-type -- `type` defaults to "button" at runtime via the `?? "button"` fallback; the static analyzer can't resolve that expression.
-		<button {...buttonProps} disabled={disabled} type={type ?? "button"}>
+		<button {...buttonProps} {...(disabled && { disabled })} type={type ?? "button"}>
 			{icon}
 			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
 			<span data-slot="button-label" className="contents">

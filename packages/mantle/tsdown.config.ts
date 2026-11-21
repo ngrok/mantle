@@ -177,9 +177,16 @@ export default defineConfig((options) => [
 			},
 			// Why a group: rolldown puts `ButtonSlot` and `IconSwap` in one chunk, because the
 			// same entries import both. `ButtonSlot` is `"use client"`, so `IconSwap`, and with it
-			// `Button`, would ship as a client component.
+			// `Button`, would ship as a client component. Why not its dependencies: by default the
+			// group also takes `Slot`, a server component, and the build check rejects that.
 			codeSplitting: {
-				groups: [{ name: "button-slot", test: /[\\/]button-slot\.tsx$/ }],
+				groups: [
+					{
+						name: "button-slot",
+						test: /[\\/]button-slot\.tsx$/,
+						includeDependenciesRecursively: false,
+					},
+				],
 			},
 		},
 		entry: {

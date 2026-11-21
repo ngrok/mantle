@@ -9,6 +9,7 @@ import { renderToString } from "react-dom/server";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
+import * as Dialog from "../dialog/dialog-parts.js";
 import { Button } from "./button.js";
 
 describe("Button", () => {
@@ -326,6 +327,54 @@ describe("Button", () => {
 		expect(screen.getByTestId("click-state")).toHaveTextContent("clicked");
 	});
 
+	// Why `Button(…)`, not `<Button>`: a server component renders Button before a client parent
+	// merges its props, and calling the function directly gives the parent the same output.
+	describe("under a client trigger, rendered first as a server component", () => {
+		test("a trigger's disabled prop wins over an enabled native button", async () => {
+			const user = userEvent.setup();
+			render(
+				<Dialog.Root>
+					<Dialog.Trigger asChild disabled>
+						{Button({ appearance: "outlined", intent: "neutral", children: "Open" })}
+					</Dialog.Trigger>
+					<Dialog.Content>
+						<Dialog.Title>Title</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>,
+			);
+			const button = screen.getByRole("button", { name: "Open" });
+
+			await user.click(button);
+
+			expect(button).toBeDisabled();
+			expect(screen.queryByRole("dialog")).toBeNull();
+		});
+
+		test("a trigger's handlers reach an asChild link", async () => {
+			const user = userEvent.setup();
+			render(
+				<Dialog.Root>
+					<Dialog.Trigger asChild>
+						{Button({
+							appearance: "outlined",
+							intent: "neutral",
+							asChild: true,
+							// Why a `span`: a followed `href` would leak a hash into later tests.
+							children: <span role="link">Open</span>,
+						})}
+					</Dialog.Trigger>
+					<Dialog.Content>
+						<Dialog.Title>Title</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>,
+			);
+
+			await user.click(screen.getByRole("link", { name: "Open" }));
+
+			expect(screen.getByRole("dialog")).toBeInTheDocument();
+		});
+	});
+
 	describe("disabled", () => {
 		test("disabled={false} keeps a loading button enabled and focusable", () => {
 			render(
@@ -335,7 +384,7 @@ describe("Button", () => {
 			);
 			const button = screen.getByRole("button", { name: "Save" });
 			expect(button).not.toBeDisabled();
-			expect(button).toHaveAttribute("aria-disabled", "false");
+			expect(button).not.toHaveAttribute("aria-disabled");
 			expect(button).toHaveAttribute("data-loading", "");
 			// Why: `data-disabled` follows the resolved state, not `isLoading`.
 			expect(button).not.toHaveAttribute("data-disabled");
@@ -372,7 +421,8 @@ describe("Button", () => {
 			);
 			const button = screen.getByRole("button", { name: "Save" });
 			expect(button).toBeEnabled();
-			expect(button).toHaveAttribute("aria-disabled", "false");
+			// Why absent, not "false": a client trigger's `disabled` must win the prop merge.
+			expect(button).not.toHaveAttribute("aria-disabled");
 		});
 
 		test("data-disabled is present while disabled and absent once enabled", () => {
@@ -545,7 +595,7 @@ describe("Button", () => {
 			);
 			const link = screen.getByRole("link", { name: "Open" });
 			expect(link).not.toHaveAttribute("disabled");
-			expect(link).toHaveAttribute("aria-disabled", "false");
+			expect(link).not.toHaveAttribute("aria-disabled");
 			expect(link).not.toHaveAttribute("tabindex");
 
 			await user.click(link);

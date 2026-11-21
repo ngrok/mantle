@@ -1,7 +1,8 @@
 "use client";
 
-import type { MouseEvent, ReactElement } from "react";
+import type { ComponentProps, MouseEvent, ReactElement } from "react";
 import { cloneElement } from "react";
+import { Slot } from "../slot/index.js";
 
 /**
  * Props that make a disabled `asChild` child inert. The native `disabled`
@@ -21,11 +22,11 @@ const disabledChildProps = {
 	},
 } as const;
 
-type ButtonSlotProps = {
+type ButtonSlotProps = Omit<ComponentProps<typeof Slot>, "children"> & {
 	/**
-	 * The `Slot` element of the button, with the `asChild` child inside it.
+	 * The `asChild` child, with the button's icon and label inside it.
 	 */
-	children: ReactElement<{ children: ReactElement<Partial<typeof disabledChildProps>> }>;
+	children: ReactElement;
 	/**
 	 * Whether the button resolved disabled. When `true`, the child gets
 	 * `disabledChildProps`.
@@ -34,23 +35,25 @@ type ButtonSlotProps = {
 };
 
 /**
- * Makes the `asChild` child of a `Button` or `IconButton` inert when `inert`.
- * It takes the button's `Slot` element and sets `disabledChildProps` on the
- * child inside it, so `Slot` still merges the child's own props.
+ * The `Slot` of an `asChild` `Button` or `IconButton`. When `inert`, it makes
+ * the child inert with `disabledChildProps`.
  *
  * Why a client component of its own: the click blocker is a function, and a
  * server component cannot pass a function to an element. A native `<button>`
  * needs no blocker, so it stays a server component with no JavaScript.
  *
- * Why it does not import `Slot`: the server renders the `Slot` element and
- * passes it in, so `Slot` stays out of this client chunk.
+ * Why `Slot` renders here, not in the server component: a client trigger such
+ * as `Dialog.Trigger asChild` merges its props onto this component, and `Slot`
+ * passes them on to the child. A server-rendered `Slot` would hand this
+ * component the finished child, and the trigger's props would stop here.
  *
  * Why for every `asChild` child, not only a disabled one: a switch on
  * `inert` would remount the child when the button turns disabled, so the child
  * would lose focus and its translated text.
  */
-const ButtonSlot = ({ children: slot, inert }: ButtonSlotProps) =>
-	inert ? cloneElement(slot, {}, cloneElement(slot.props.children, disabledChildProps)) : slot;
+const ButtonSlot = ({ children, inert, ...props }: ButtonSlotProps) => (
+	<Slot {...props}>{inert ? cloneElement(children, disabledChildProps) : children}</Slot>
+);
 
 export {
 	//,
