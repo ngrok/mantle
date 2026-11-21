@@ -8,7 +8,6 @@ import {
 	type ReactNode,
 	type Ref,
 	type RefCallback,
-	use,
 	useCallback,
 } from "react";
 import type { WithStyleProps } from "../../types/with-style-props.js";
@@ -50,31 +49,6 @@ type AnyHandler = (...args: unknown[]) => unknown;
 const isHandler = (key: string, value: unknown): value is AnyHandler =>
 	/^on[A-Z]/.test(key) && typeof value === "function";
 
-const REACT_LAZY_TYPE = Symbol.for("react.lazy");
-
-type LazyElement = { $$typeof: symbol; _payload: PromiseLike<ReactNode> };
-
-const isLazyElement = (value: unknown): value is LazyElement =>
-	typeof value === "object" &&
-	value != null &&
-	"$$typeof" in value &&
-	value.$$typeof === REACT_LAZY_TYPE &&
-	"_payload" in value;
-
-/**
- * Resolves a lazy child, such as a client reference that a server component
- * passes as `children`, so `Slot` merges onto the element and not the wrapper.
- */
-const useUnwrappedLazy = (value: ReactNode): ReactNode => {
-	let unwrapped: unknown = value;
-	while (isLazyElement(unwrapped)) {
-		unwrapped = use(unwrapped._payload);
-	}
-	// Why the assertion is safe: `use` resolves a lazy payload to the node it wraps.
-	// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Why: React types a lazy payload as unknown.
-	return unwrapped as ReactNode;
-};
-
 /** Joins two `aria-describedby` id lists, without duplicates. */
 const joinIdLists = (first: string | undefined, second: string | undefined): string | undefined => {
 	const ids = new Set(`${first ?? ""} ${second ?? ""}`.split(/\s+/).filter(Boolean));
@@ -99,7 +73,6 @@ const setRef = <T,>(ref: Ref<T> | undefined, node: T | null): (() => void) | und
 /**
  * Composes the slot's ref and the child's ref into one stable callback. It
  * returns a single ref unchanged, so a child with no slot ref keeps its own.
- * `useCallback` runs in the `react-server` build, so `Slot` stays a server part.
  */
 const useComposedRef = (
 	slotRef: Ref<HTMLElement> | undefined,
@@ -206,18 +179,10 @@ function composeStyle(
  * </Slot>
  * ```
  */
-const Slot = ({
-	children: slotChildren,
-	className,
-	"data-slot": dataSlot,
-	ref,
-	style,
-	...props
-}: Props) => {
+const Slot = ({ children, className, "data-slot": dataSlot, ref, style, ...props }: Props) => {
 	// Why "use memo": for a render-prop child, `composeClassName` and `composeStyle` return new
 	// functions, and the child may compare them.
 	"use memo";
-	const children = useUnwrappedLazy(slotChildren);
 	const child = isValidElement<ComposedChildProps>(children) ? children : null;
 	const composedRef = useComposedRef(ref, child?.props.ref);
 	if (child == null) {
@@ -249,7 +214,6 @@ const Slot = ({
 	};
 	// Why only when set: a component child spreads its props after its own
 	// defaults, so an explicit `undefined` erases one, such as its `data-slot`.
-	// It also keeps the props out of a server component's payload.
 	for (const [key, value] of Object.entries(composed)) {
 		if (value === undefined || value === "") {
 			delete merged[key];
