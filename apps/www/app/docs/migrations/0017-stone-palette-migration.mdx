@@ -24,6 +24,7 @@ Codemod: manual: `stone` appears in class strings and CSS, and the rules read TS
 4. Search your CSS for overrides of the 41 tokens that the [decision doc](https://github.com/ngrok/mantle/blob/main/decisions/2026-11-21-trim-unused-palettes.md#tokens-moved-to-the-shared-rule) lists as moved, such as `--border-color-card`, `--ring-color-focus-accent`, or `--background-color-filled-accent`. Mantle now declares them in one `:root, .invert-theme` rule, which a later rule of yours beats:
    - A `:root { … }` override now applies on every page: light, dark, and a page with a forced theme. Before, mantle's theme selectors beat it on a page with an explicit theme.
    - A `.invert-theme { … }` override now applies on every island, in both themes, also on a nested or portaled island.
+   - A more specific override, such as `:root.dark { … }` or `:root .invert-theme { … }`, now applies even when it sits before mantle's import.
      Keep each override that you meant for every theme. Scope one that you meant for one theme to that theme, such as `:root.dark { … }`.
 5. Search your CSS for `@theme` overrides of `--color-gray-*`. Mantle now declares gray in `@theme` too, so your override takes effect. Before, mantle's light theme rule beat it. Remove an override that you do not want.
 6. Search for `var(--divide-color-card)` and `var(--divide-color-card-muted)`. Mantle no longer declares them at runtime. Read `var(--border-color-card)` and `var(--border-color-card-muted)` instead, which have the same values. The `divide-card` and `divide-card-muted` classes keep working.
@@ -63,7 +64,8 @@ Codemod: manual: `stone` appears in class strings and CSS, and the rules read TS
 
 - A `stone` class that you leave in place gives no error. Tailwind makes no CSS for it, so the element loses that color.
 - `gray` is mantle's neutral gray, not Tailwind's blue-gray. It matches `stone` closely except for the warm tint.
-- An override of a moved token that sits before mantle's import, or in a lower cascade layer, still loses to mantle, as before.
+- Specificity decides more than source order. An override of a moved token with the same specificity as `:root` that sits before mantle's import still loses, as before. A more specific one now wins wherever it sits, because no mantle theme selector declares the token any more. For example, an earlier `:root.dark { --border-color-card: red; }` or `:root .invert-theme { … }` now applies, where it lost before.
+- An override in a lower cascade layer, such as `@layer base`, still loses to mantle's unlayered rule.
 
 ## How to verify
 
