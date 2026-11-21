@@ -1,7 +1,4 @@
 "use client";
-// Why no memo: the browser owns the open state, so the parts re-render only with their parent,
-// and `Root` memoizes its context by hand. The compiler's caches add 0.8 KB gzip and save no render.
-"use no memo";
 
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import {
@@ -16,28 +13,28 @@ import {
 	useState,
 } from "react";
 import invariant from "tiny-invariant";
-import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
-import type { WithAsChild } from "../../types/as-child.js";
-import { cx } from "../../utils/cx/cx.js";
-import type { WithDataSlot } from "../../utils/data-slot.js";
-import { joinDataSlot } from "../../utils/data-slot.js";
-import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
+import { useIsomorphicLayoutEffect } from "../../../hooks/use-isomorphic-layout-effect.js";
+import type { WithAsChild } from "../../../types/as-child.js";
+import { cx } from "../../../utils/cx/cx.js";
+import type { WithDataSlot } from "../../../utils/data-slot.js";
+import { joinDataSlot } from "../../../utils/data-slot.js";
+import { composeRefs } from "../../../utils/compose-refs/compose-refs.js";
 import {
 	accordionBodyClassName,
 	accordionRootClassName,
 	accordionTriggerClassName,
 	accordionTriggerIconClassName,
-} from "../accordion/accordion-classes.js";
+} from "../accordion-classes.js";
 import {
 	type AccordionValueProps,
 	emitValueChange,
 	isItemOpen,
 	sameOpenValues,
 	toOpenValues,
-} from "../accordion/accordion-state.js";
-import type { IconProps } from "../icon/icon.js";
-import { hasAccessibleNaming, type NamedSvgProps } from "../icon/svg-only.js";
-import { Slot } from "../slot/index.js";
+} from "../accordion-state.js";
+import type { IconProps } from "../../icon/icon.js";
+import { hasAccessibleNaming, type NamedSvgProps } from "../../icon/svg-only.js";
+import { Slot } from "../../slot/index.js";
 
 type AccordionContextValue = {
 	/** The shared `<details name>` of a `"single"` accordion; `undefined` in `"multiple"` mode. */

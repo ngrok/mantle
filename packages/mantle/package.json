@@ -53,7 +53,7 @@
 			"import": "./dist/accordion.js"
 		},
 		"./accordion/native": {
-			"@ngrok/src-live-types": "./src/components/accordion-native/index.ts",
+			"@ngrok/src-live-types": "./src/components/accordion/native/index.ts",
 			"types": "./dist/accordion-native.d.ts",
 			"import": "./dist/accordion-native.js"
 		},

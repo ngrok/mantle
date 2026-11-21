@@ -312,7 +312,7 @@ describe("native Accordion (browser)", () => {
 
 		test("TriggerIcon turns under an open section only, not under an open outer section", async () => {
 			styleElement = document.createElement("style");
-			styleElement.textContent = await commands.tailwindCss("../accordion/accordion-classes.ts");
+			styleElement.textContent = await commands.tailwindCss("../accordion-classes.ts");
 			document.head.appendChild(styleElement);
 			render(
 				<Accordion.Root defaultValue={["outer"]}>

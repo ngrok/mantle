@@ -792,11 +792,9 @@ function componentEntry(
 		);
 	}
 
-	const subpath = importPath.replace(/^@ngrok\/mantle\//, "");
-	// Why: a nested subpath such as `accordion/native` ships from the `accordion-native`
-	// directory and exports its family's namespace, `Accordion`.
-	const [family = subpath, variant] = subpath.split("/");
-	const dir = variant == null ? subpath : `${family}-${variant}`;
+	const dir = importPath.replace(/^@ngrok\/mantle\//, "");
+	// Why: a nested subpath such as `accordion/native` exports its family's namespace, `Accordion`.
+	const [family = dir, variant] = dir.split("/");
 	const candidates =
 		variant == null ? [leafToPascal(leaf), name.replace(/\s+/g, "")] : [leafToPascal(family)];
 	let fields: JsDocFields = {};
