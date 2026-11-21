@@ -2,7 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { Table } from "./table.js";
+import * as Table from "./table-parts.js";
 
 /**
  * Mirrors the padding utilities Tailwind 4 emits, inlined so the test needs no Tailwind

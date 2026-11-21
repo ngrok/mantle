@@ -3,8 +3,8 @@
 import { render, waitFor } from "@testing-library/react";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { AreaChart } from "../area-chart/index.js";
-import { BarChart } from "../bar-chart/index.js";
+import * as AreaChart from "../area-chart/area-chart-parts.js";
+import * as BarChart from "../bar-chart/bar-chart-parts.js";
 import { BAR_CORNER_RADIUS } from "./renderer.js";
 import { CanvasAreaChartRoot, CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
 

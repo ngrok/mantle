@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test } from "vitest";
-import { Field } from "../field/field.js";
-import { Combobox } from "./combobox.js";
+import * as Field from "../field/field-parts.js";
+import * as Combobox from "./combobox-parts.js";
 
 describe("Combobox", () => {
 	test('given validation="error", renders the input with aria-invalid="true" and data-validation="error"', () => {

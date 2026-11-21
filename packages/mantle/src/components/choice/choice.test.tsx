@@ -3,9 +3,9 @@ import { userEvent } from "@testing-library/user-event";
 import type { MouseEvent } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { Checkbox } from "../checkbox/checkbox.js";
-import { Field } from "../field/field.js";
+import * as Field from "../field/field-parts.js";
 import { Switch } from "../switch/switch.js";
-import { Choice } from "./choice.js";
+import * as Choice from "./choice-parts.js";
 
 describe("Choice", () => {
 	// `data-slot` is public API that consumer CSS selects on, so a renamed or

@@ -5,7 +5,7 @@ import { userEvent } from "@testing-library/user-event";
 import axe from "axe-core";
 import { useState } from "react";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import { SelectableList } from "./selectable-list.js";
+import * as SelectableList from "./selectable-list-parts.js";
 
 const options = [
 	{ value: "a", label: "Apple", description: "fruit-a" },

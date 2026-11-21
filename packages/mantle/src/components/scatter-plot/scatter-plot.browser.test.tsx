@@ -3,7 +3,7 @@
 import { render, waitFor } from "@testing-library/react";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import { ScatterPlot } from "./scatter-plot.js";
+import * as ScatterPlot from "./scatter-plot-parts.js";
 
 /**
  * Real-browser tests for the scatter plot's paint paths. The 3D projection

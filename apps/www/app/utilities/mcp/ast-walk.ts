@@ -32,6 +32,9 @@ export function walk(node: unknown, visit: (node: Record<string, unknown>) => vo
 }
 
 /** Compares an oxc name kind as a string; the oxc kinds are `const enum` types. */
-export function hasKind(name: { kind: string }, kind: "Name" | "None" | "Default"): boolean {
+export function hasKind(
+	name: { kind: string },
+	kind: "Name" | "None" | "Default" | "NamespaceObject",
+): boolean {
 	return name.kind === kind;
 }

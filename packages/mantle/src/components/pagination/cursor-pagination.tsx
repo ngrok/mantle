@@ -8,7 +8,7 @@ import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { ButtonGroup, IconButton } from "../button/index.js";
-import { Select } from "../select/select.js";
+import * as Select from "../select/select-parts.js";
 import { Separator } from "../separator/separator.js";
 
 type CursorPaginationContextValue = {
@@ -368,143 +368,12 @@ function PageSizeValue({ "data-slot": dataSlot, className, ...props }: CursorPag
 	);
 }
 
-/**
- * A pagination component for use with cursor-based pagination.
- *
- * Cursor-based pagination is a way of loading data in chunks by using a cursor
- * from the last item on the current page to know where to start the next set,
- * making sure nothing is missed or repeated. Like a linked list, but for chunks
- * of data. It doesn't let you jump to a specific page or know how many total pages
- * there are, but it's more efficient for large or real-time data sets.
- *
- * @see https://mantle.ngrok.com/components/navigation/pagination
- *
- * @example
- * Composition:
- * ```
- * CursorPagination.Root
- * ├── CursorPagination.PageSizeSelect
- * ├── CursorPagination.PageSizeValue
- * └── CursorPagination.Buttons
- * ```
- *
- * @example
- * ```tsx
- * <CursorPagination.Root defaultPageSize={10}>
- *   <CursorPagination.Buttons
- *     hasNextPage={hasNext}
- *     hasPreviousPage={hasPrevious}
- *     onNextPage={handleNext}
- *     onPreviousPage={handlePrevious}
- *   />
- *   <CursorPagination.PageSizeSelect />
- * </CursorPagination.Root>
- * ```
- */
-const CursorPagination = {
-	/**
-	 * The root container for cursor-based pagination. It owns the page size that
-	 * `PageSizeSelect` and `PageSizeValue` read.
-	 *
-	 * Pass `defaultPageSize` to let the root own the page size, or pass `pageSize`
-	 * with `onChangePageSize` to own it yourself. The select shows the owner's
-	 * value in both modes, so an external change to a controlled `pageSize` updates
-	 * the select.
-	 *
-	 * @see https://mantle.ngrok.com/components/navigation/pagination#cursorpaginationroot
-	 *
-	 * @example
-	 * ```tsx
-	 * <CursorPagination.Root defaultPageSize={10}>
-	 *   <CursorPagination.Buttons
-	 *     hasNextPage={hasNext}
-	 *     hasPreviousPage={hasPrevious}
-	 *     onNextPage={handleNext}
-	 *     onPreviousPage={handlePrevious}
-	 *   />
-	 *   <CursorPagination.PageSizeSelect />
-	 * </CursorPagination.Root>
-	 * ```
-	 *
-	 * @example
-	 * Controlled page size, kept in the URL:
-	 * ```tsx
-	 * const pageSizes = [10, 20, 50, 100];
-	 * const [searchParams, setSearchParams] = useSearchParams();
-	 * const requestedPageSize = Number(searchParams.get("pageSize"));
-	 * // A hand-edited URL can carry a size the select does not list, and
-	 * // `PageSizeSelect` throws for one. Fall back to the default.
-	 * const pageSize = pageSizes.includes(requestedPageSize) ? requestedPageSize : 10;
-	 *
-	 * <CursorPagination.Root
-	 *   pageSize={pageSize}
-	 *   onChangePageSize={(size) =>
-	 *     setSearchParams((params) => {
-	 *       params.set("pageSize", String(size));
-	 *       return params;
-	 *     })
-	 *   }
-	 * >
-	 *   <CursorPagination.Buttons
-	 *     hasNextPage={hasNext}
-	 *     hasPreviousPage={hasPrevious}
-	 *     onNextPage={handleNext}
-	 *     onPreviousPage={handlePrevious}
-	 *   />
-	 *   <CursorPagination.PageSizeSelect pageSizes={pageSizes} />
-	 * </CursorPagination.Root>
-	 * ```
-	 */
-	Root,
-	/**
-	 * A pair of buttons for navigating between pages of data when using cursor-based pagination.
-	 *
-	 * @see https://mantle.ngrok.com/components/navigation/pagination#cursorpaginationbuttons
-	 *
-	 * @example
-	 * ```tsx
-	 * <CursorPagination.Buttons
-	 *   hasNextPage={hasNext}
-	 *   hasPreviousPage={hasPrevious}
-	 *   onNextPage={() => loadNextPage()}
-	 *   onPreviousPage={() => loadPreviousPage()}
-	 * />
-	 * ```
-	 */
-	Buttons,
-	/**
-	 * A select input for changing the number of items per page when using cursor-based pagination.
-	 *
-	 * @see https://mantle.ngrok.com/components/navigation/pagination#cursorpaginationpagesizeselect
-	 *
-	 * @example
-	 * ```tsx
-	 * <CursorPagination.PageSizeSelect
-	 *   pageSizes={[10, 20, 50, 100]}
-	 *   onChangePageSize={(size) => console.log('Page size changed to:', size)}
-	 * />
-	 * ```
-	 */
-	PageSizeSelect,
-	/**
-	 * Displays the current page size when using cursor-based pagination as a read-only value.
-	 *
-	 * @see https://mantle.ngrok.com/components/navigation/pagination#cursorpaginationpagesizevalue
-	 *
-	 * @example
-	 * ```tsx
-	 * <div className="flex items-center gap-2">
-	 *   <span>Items per page:</span>
-	 *   <CursorPagination.PageSizeValue />
-	 * </div>
-	 * ```
-	 */
-	PageSizeValue,
-} as const;
-
 export {
 	//,
-	CursorPagination,
+	Root,
+	Buttons,
+	PageSizeSelect,
+	PageSizeValue,
 };
 
 export type {

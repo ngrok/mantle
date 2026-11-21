@@ -4,7 +4,7 @@ import type { ComponentProps, ReactElement } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
-import { DropdownMenu } from "../dropdown-menu/index.js";
+import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
 import { ThemeIcon } from "../icons/theme.js";
 import { ThemeProvider, useTheme } from "../theme/theme-provider.js";
 import {

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test } from "vitest";
-import { HoverCard } from "./hover-card.js";
+import * as HoverCard from "./hover-card-parts.js";
 
 function renderHoverCard(arrow = <HoverCard.Arrow />) {
 	render(

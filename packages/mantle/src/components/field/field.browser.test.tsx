@@ -2,7 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { Field } from "./field.js";
+import * as Field from "./field-parts.js";
 
 /**
  * Mirrors the CSS Tailwind 4 emits for the three spacing utilities `Field`

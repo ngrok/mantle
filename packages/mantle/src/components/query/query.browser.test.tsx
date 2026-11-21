@@ -3,7 +3,7 @@ import { useState } from "react";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { testGrammar } from "../../utils/query-filter/test-grammar.js";
-import { Query } from "./query.js";
+import * as Query from "./query-parts.js";
 
 /** A field with the `/` shortcut, named by `label`. */
 function ShortcutField({ label }: { label: string }) {

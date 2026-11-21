@@ -2,11 +2,11 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRef } from "react";
 import { describe, expect, test, vi } from "vitest";
-import { BarChart } from "../bar-chart/index.js";
+import * as BarChart from "../bar-chart/bar-chart-parts.js";
 import { POINT_SHAPE_CLIP_PATHS } from "../chart/engine.js";
 import type { ChartDatumEvent } from "./scatter-plot.js";
 import { engageChart } from "../../test-utils/engage-chart.js";
-import { ScatterPlot } from "./scatter-plot.js";
+import * as ScatterPlot from "./scatter-plot-parts.js";
 
 // Scatter rows are individual points: most rows populate only one of the two
 // series, which is the shape the scatter snapshot filtering exists for.

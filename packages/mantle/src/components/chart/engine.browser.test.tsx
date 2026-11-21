@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { commands } from "vitest/browser";
-import { BarChart } from "../bar-chart/index.js";
+import * as BarChart from "../bar-chart/bar-chart-parts.js";
 
 /**
  * Real-browser tests of where the engine puts the tooltip. The engine learns

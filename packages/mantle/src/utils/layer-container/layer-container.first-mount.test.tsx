@@ -1,8 +1,8 @@
 import { act, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { expect, onTestFinished, test, vi } from "vitest";
-import { Popover } from "../../components/popover/popover.js";
-import { Sheet } from "../../components/sheet/sheet.js";
+import * as Popover from "../../components/popover/popover-parts.js";
+import * as Sheet from "../../components/sheet/sheet-parts.js";
 
 /**
  * Why its own file: the listeners for a covering frame stay on the document

@@ -342,125 +342,13 @@ const Overlay = ({
 	);
 };
 
-/**
- * A QR code. Compose `QrCode.Root` with a `QrCode.Frame` wrapping a
- * `QrCode.Pattern`, and optionally a `QrCode.Overlay` for a centered logo.
- * The dependency-free `uqr` library encodes `value`; mantle owns the render
- * logic (no headless runtime).
- *
- * `Root` and `Overlay` support the `asChild` prop for polymorphic composition.
- * `Frame` and `Pattern` render fixed SVG elements and do not.
- *
- * @useWhen Encode a URL or other text as a QR code that a phone camera can scan, with an optional
- * centered logo.
- *
- * @see https://mantle.ngrok.com/components/data-display/qr-code
- *
- * @example
- * Composition:
- * ```
- * QrCode.Root
- * ├── QrCode.Frame
- * │   └── QrCode.Pattern
- * └── QrCode.Overlay
- * ```
- *
- * @example
- * ```tsx
- * <QrCode.Root value="https://ngrok.com" ecc="H">
- *   <QrCode.Frame>
- *     <QrCode.Pattern />
- *   </QrCode.Frame>
- *   <QrCode.Overlay>
- *     <NgrokLettermarkIcon className="size-7" />
- *   </QrCode.Overlay>
- * </QrCode.Root>
- * ```
- */
-const QrCode = {
-	/**
-	 * The root container of a QR code. Encodes `value` and renders a positioned
-	 * white tile. Set `ecc` (e.g. `"H"` when using an `Overlay`).
-	 *
-	 * @see https://mantle.ngrok.com/components/data-display/qr-code
-	 *
-	 * @example
-	 * ```tsx
-	 * <QrCode.Root value="https://ngrok.com" ecc="H">
-	 *   <QrCode.Frame>
-	 *     <QrCode.Pattern />
-	 *   </QrCode.Frame>
-	 *   <QrCode.Overlay>
-	 *     <NgrokLettermarkIcon className="size-7" />
-	 *   </QrCode.Overlay>
-	 * </QrCode.Root>
-	 * ```
-	 */
-	Root,
-	/**
-	 * The `svg` frame that holds the QR `Pattern`. Defaults to `size-48`; resize
-	 * the whole code by passing a different size to `className`.
-	 *
-	 * @see https://mantle.ngrok.com/components/data-display/qr-code
-	 *
-	 * @example
-	 * ```tsx
-	 * <QrCode.Root value="https://ngrok.com" ecc="H">
-	 *   <QrCode.Frame>
-	 *     <QrCode.Pattern />
-	 *   </QrCode.Frame>
-	 *   <QrCode.Overlay>
-	 *     <NgrokLettermarkIcon className="size-7" />
-	 *   </QrCode.Overlay>
-	 * </QrCode.Root>
-	 * ```
-	 */
-	Frame,
-	/**
-	 * The encoded QR modules, rendered as a `path` inside the `Frame`. Defaults
-	 * to black fill so the code stays scannable in every theme.
-	 *
-	 * @see https://mantle.ngrok.com/components/data-display/qr-code
-	 *
-	 * @example
-	 * ```tsx
-	 * <QrCode.Root value="https://ngrok.com" ecc="H">
-	 *   <QrCode.Frame>
-	 *     <QrCode.Pattern />
-	 *   </QrCode.Frame>
-	 *   <QrCode.Overlay>
-	 *     <NgrokLettermarkIcon className="size-7" />
-	 *   </QrCode.Overlay>
-	 * </QrCode.Root>
-	 * ```
-	 */
-	Pattern,
-	/**
-	 * An overlay centered on top of the QR code, typically holding a brand logo.
-	 * Renders a white rounded "punch-out" so the logo stays legible. Use a higher
-	 * `ecc` on the `Root` when an overlay is present.
-	 *
-	 * @see https://mantle.ngrok.com/components/data-display/qr-code
-	 *
-	 * @example
-	 * ```tsx
-	 * <QrCode.Root value="https://ngrok.com" ecc="H">
-	 *   <QrCode.Frame>
-	 *     <QrCode.Pattern />
-	 *   </QrCode.Frame>
-	 *   <QrCode.Overlay>
-	 *     <NgrokLettermarkIcon className="size-7" />
-	 *   </QrCode.Overlay>
-	 * </QrCode.Root>
-	 * ```
-	 */
-	Overlay,
-} as const;
-
 export {
 	//,
 	buildPath,
-	QrCode,
+	Root,
+	Frame,
+	Pattern,
+	Overlay,
 };
 
 export type {

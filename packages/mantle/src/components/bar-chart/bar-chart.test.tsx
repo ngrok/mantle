@@ -4,7 +4,7 @@ import { createRef } from "react";
 import invariant from "tiny-invariant";
 import { describe, expect, test, vi } from "vitest";
 import { engageChart } from "../../test-utils/engage-chart.js";
-import { BarChart } from "./bar-chart.js";
+import * as BarChart from "./bar-chart-parts.js";
 
 // Keep the shared fixture under 4 rows: happy-dom never delivers a plot size,
 // and a zero-width plot decimates 4+ rows, which widens the keyboard arrow

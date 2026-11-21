@@ -3,8 +3,8 @@
 import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { AppLayout } from "../app-layout/app-layout.js";
-import { Sidebar } from "./sidebar.js";
+import * as AppLayout from "../app-layout/app-layout-parts.js";
+import * as Sidebar from "./sidebar-parts.js";
 
 /**
  * Real-browser geometry for `Sidebar.Header`'s alignment band: its first child

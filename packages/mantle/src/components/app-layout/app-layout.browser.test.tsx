@@ -4,10 +4,10 @@ import { render, screen } from "@testing-library/react";
 import { StrictMode, type CSSProperties, type ReactNode } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { page, userEvent } from "vitest/browser";
-import { Combobox } from "../combobox/index.js";
-import { Sidebar } from "../sidebar/sidebar.js";
+import * as Combobox from "../combobox/combobox-parts.js";
+import * as Sidebar from "../sidebar/sidebar-parts.js";
 import { TooltipProvider } from "../tooltip/index.js";
-import { AppLayout } from "./app-layout.js";
+import * as AppLayout from "./app-layout-parts.js";
 
 /**
  * Real-browser geometry for the header's three slots. The slots exist to carry

@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { DropdownMenu } from "./dropdown-menu.js";
+import * as DropdownMenu from "./dropdown-menu-parts.js";
 
 /**
  * Mirrors the CSS Tailwind 4 emits for the one utility every item's label span

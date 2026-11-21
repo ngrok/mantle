@@ -5,7 +5,8 @@ import { toast as sonnerToast } from "sonner";
 import { describe, expect, test, vi } from "vitest";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { preventCloseOnPromptInteraction } from "./prevent-close-on-prompt-interaction.js";
-import { makeToast, resolveToastDuration, Toast, Toaster } from "./toast.js";
+import * as Toast from "./toast-parts.js";
+import { makeToast, resolveToastDuration, Toaster } from "./toast.js";
 
 function getToastRoot(container: HTMLElement) {
 	return container.querySelector('[data-slot="toast"]');

@@ -13,7 +13,7 @@ import {
 	type IconButtonAppearance,
 	type IconButtonProps,
 } from "../button/icon-button.js";
-import { DropdownMenu } from "../dropdown-menu/index.js";
+import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
 import { IconSwap } from "../icon/icon-swap.js";
 import { ThemeIcon } from "../icons/theme.js";
 import { Skeleton } from "../skeleton/index.js";

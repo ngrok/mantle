@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { renderToString } from "react-dom/server";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import { commands, userEvent } from "vitest/browser";
-import { Dialog } from "../dialog/index.js";
+import * as Dialog from "../dialog/dialog-parts.js";
 import { TooltipProvider } from "../tooltip/index.js";
 import { TruncatedText } from "./truncated-text.js";
 

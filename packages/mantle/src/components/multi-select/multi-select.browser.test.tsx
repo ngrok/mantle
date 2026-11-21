@@ -4,10 +4,10 @@ import { type ReactNode, useState } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { installShakeStyle } from "../../test-utils/shake-style.js";
-import { AlertDialog } from "../alert-dialog/alert-dialog.js";
-import { Dialog } from "../dialog/dialog.js";
-import { Sheet } from "../sheet/sheet.js";
-import { MultiSelect } from "./multi-select.js";
+import * as AlertDialog from "../alert-dialog/alert-dialog-parts.js";
+import * as Dialog from "../dialog/dialog-parts.js";
+import * as Sheet from "../sheet/sheet-parts.js";
+import * as MultiSelect from "./multi-select-parts.js";
 
 /**
  * `userEvent.setup()` with the pre-interaction `pointer-events` assertion turned

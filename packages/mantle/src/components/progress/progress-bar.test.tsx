@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
-import { ProgressBar } from "./progress-bar.js";
+import * as ProgressBar from "./progress-bar-parts.js";
 
 describe("ProgressBar.Root", () => {
 	test("renders a named progressbar with its value range", () => {

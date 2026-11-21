@@ -3,7 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import { useLayoutEffect, useRef } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { describe, expect, test, vi } from "vitest";
-import { Field } from "../field/field.js";
+import * as Field from "../field/field-parts.js";
 import { Checkbox, selectAllChecked } from "./checkbox.js";
 import type { CheckedState } from "./checkbox.js";
 

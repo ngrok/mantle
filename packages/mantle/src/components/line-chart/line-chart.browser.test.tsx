@@ -4,7 +4,7 @@ import { render, waitFor } from "@testing-library/react";
 import { CanvasLineChartRoot } from "../../test-utils/canvas-chart-roots.js";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { LineChart } from "./line-chart.js";
+import * as LineChart from "./line-chart-parts.js";
 
 /**
  * Real-browser geometry tests for the three series props whose entire effect is

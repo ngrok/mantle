@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
-import { Strata } from "./strata.js";
+import * as Strata from "./strata-parts.js";
 
 /**
  * Real-browser computed style for `Strata.Section`'s column split and

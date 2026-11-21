@@ -4,12 +4,12 @@ import type { TransitionEvent } from "react";
 import { createRef } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import mantleCss from "../../mantle.css?raw";
-import { Dialog } from "../dialog/dialog.js";
-import { MultiSelect } from "../multi-select/multi-select.js";
-import { Popover } from "../popover/popover.js";
-import { Sheet } from "../sheet/sheet.js";
+import * as Dialog from "../dialog/dialog-parts.js";
+import * as MultiSelect from "../multi-select/multi-select-parts.js";
+import * as Popover from "../popover/popover-parts.js";
+import * as Sheet from "../sheet/sheet-parts.js";
 import type { SandbarHandle } from "./sandbar.js";
-import { Sandbar } from "./sandbar.js";
+import * as Sandbar from "./sandbar-parts.js";
 
 function getPanel(): HTMLElement {
 	const panel = document.querySelector('[data-slot="sandbar"]');

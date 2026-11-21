@@ -4,10 +4,10 @@ import { render, screen } from "@testing-library/react";
 import axe from "axe-core";
 import { describe, expect, test } from "vitest";
 import { Checkbox } from "../checkbox/checkbox.js";
-import { Field } from "../field/field.js";
-import { RadioGroup } from "../radio-group/radio-group.js";
+import * as Field from "../field/field-parts.js";
+import * as RadioGroup from "../radio-group/radio-group-parts.js";
 import { Switch } from "../switch/switch.js";
-import { Choice } from "./choice.js";
+import * as Choice from "./choice-parts.js";
 
 /**
  * Run axe against a rendered container and return its violations. Color contrast

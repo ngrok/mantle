@@ -421,124 +421,14 @@ const Message = ({
 	);
 };
 
-/**
- * A succinct message that appears temporarily. Toasts give the user feedback
- * without interrupting their workflow.
- *
- * @useWhen Report the result of an action, such as a save or a copy, in a brief message that goes
- * away on its own.
- *
- * @siblings
- * - `Alert`: the message stays in the page next to the content it describes.
- * - `AlertDialog`: the user must respond before they continue.
- * - `Sandbar`: the message waits for the user to save or discard pending changes.
- *
- * @see https://mantle.ngrok.com/components/feedback/toast
- *
- * @example
- * Composition:
- * ```
- * Toast.Root
- * ├── Toast.Icon
- * ├── Toast.Message
- * └── Toast.Action
- * ```
- *
- * @example
- * ```tsx
- * makeToast(
- *   <Toast.Root intent="success">
- *     <Toast.Icon />
- *     <Toast.Message>Operation completed successfully!</Toast.Message>
- *     <Toast.Action>Dismiss</Toast.Action>
- *   </Toast.Root>
- * );
- * ```
- */
-const Toast = {
-	/**
-	 * A succinct message with an intent that appears temporarily.
-	 *
-	 * **Structure.** `children` render inside a
-	 * `<div data-slot="toast-label">`. The intent accent bar is a permanent element
-	 * sibling, so without the wrapper a bare text child is never a lone child: a
-	 * browser translation engine reparents that text node, and the removal React
-	 * runs when the content changes shape or goes away throws. The wrapper is a
-	 * `<div>` because `Toast.Message` renders a `<p>`, which a `<span>` may not
-	 * contain. It is `display: contents`, so the icon, the message, and an action
-	 * stay flex items of the root and `Toast.Message`'s `flex-1` still resolves.
-	 *
-	 * **Data attributes:**
-	 *
-	 * | Data Attribute | Value | Description |
-	 * | --- | --- | --- |
-	 * | `data-slot` | `"toast"` | On the toast root. |
-	 * | `data-slot` | `"toast-label"` | On the `<div>` wrapping `children`, not only the message text. |
-	 *
-	 * @see https://mantle.ngrok.com/components/feedback/toast#toastroot
-	 *
-	 * @example
-	 * ```tsx
-	 * <Toast.Root intent="success">
-	 *   <Toast.Icon />
-	 *   <Toast.Message>Changes saved successfully!</Toast.Message>
-	 *   <Toast.Action>Undo</Toast.Action>
-	 * </Toast.Root>
-	 * ```
-	 */
-	Root,
-	/**
-	 * A button that dismisses the toast when clicked.
-	 *
-	 * @see https://mantle.ngrok.com/components/feedback/toast#toastaction
-	 *
-	 * @example
-	 * ```tsx
-	 * <Toast.Root intent="info">
-	 *   <Toast.Icon />
-	 *   <Toast.Message>File uploaded successfully</Toast.Message>
-	 *   <Toast.Action>View File</Toast.Action>
-	 * </Toast.Root>
-	 * ```
-	 */
-	Action,
-	/**
-	 * An icon that visually represents the intent of the toast.
-	 *
-	 * @see https://mantle.ngrok.com/components/feedback/toast#toasticon
-	 *
-	 * @example
-	 * ```tsx
-	 * <Toast.Root intent="warning">
-	 *   <Toast.Icon />
-	 *   <Toast.Message>Warning message</Toast.Message>
-	 *   <Toast.Action>Dismiss</Toast.Action>
-	 * </Toast.Root>
-	 * ```
-	 */
-	Icon,
-	/**
-	 * The message content of the toast.
-	 *
-	 * @see https://mantle.ngrok.com/components/feedback/toast#toastmessage
-	 *
-	 * @example
-	 * ```tsx
-	 * <Toast.Root intent="success">
-	 *   <Toast.Icon />
-	 *   <Toast.Message>Your changes have been saved</Toast.Message>
-	 *   <Toast.Action>Undo</Toast.Action>
-	 * </Toast.Root>
-	 * ```
-	 */
-	Message,
-} as const;
-
 export {
 	//,
 	makeToast,
 	resolveToastDuration,
-	Toast,
+	Root,
+	Action,
+	Icon,
+	Message,
 	Toaster,
 };
 

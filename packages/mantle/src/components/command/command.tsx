@@ -10,7 +10,7 @@ import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-eff
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { Dialog } from "../dialog/dialog.js";
+import * as Dialog from "../dialog/dialog-parts.js";
 import { Separator } from "../separator/separator.js";
 import type { CommandDialogState } from "./dialog-context.js";
 import { CommandDialogContext, useOptionalCommandDialog } from "./dialog-context.js";
@@ -785,48 +785,23 @@ const CommandShortcut = ({
 );
 
 /**
- * A command palette: a modal search field over a filtered, keyboard-navigable
- * list of items. `Command.SearchTrigger` is the field-shaped button that opens
- * it, `Command.DialogRoot` owns the open state, the query, and the `⌘K`
- * shortcut, and `Command.DialogTrigger` is the escape hatch for a trigger of
- * your own.
+ * A bare button that opens the Command dialog when clicked: the escape hatch
+ * for a trigger that should not look like a search field. Wrap your own
+ * element with `asChild`.
  *
- * Use `Command.Root` instead of `Command.DialogRoot` for an inline palette that
- * is always visible. For a text field that filters options in place rather than
- * opening a modal, the component is
- * [Combobox](https://mantle.ngrok.com/components/forms/combobox).
+ * It carries none of `Command.SearchTrigger`'s behavior: no `⌘K` hint, no
+ * `aria-keyshortcuts`, and typing or pasting into it does nothing. Rebuild
+ * that with `useCommandDialog()` and `searchActionFromKeyDown` /
+ * `searchActionFromPaste` if you need it.
  *
- * @useWhen Search for an action or a page and run it from a keyboard-first palette, such as a `⌘K`
- * menu.
- *
- * @siblings
- * - `Combobox`: the text field filters options in place and sets a form value.
- * - `DropdownMenu`: a short list of actions opens from one button.
- *
- * @see https://mantle.ngrok.com/components/navigation/command
- *
- * @example
- * Composition:
- * ```
- * Command.DialogRoot
- * ├── Command.SearchTrigger
- * ├── Command.DialogTrigger
- * └── Command.DialogContent
- *     ├── Command.Input
- *     └── Command.List
- *         ├── Command.Empty
- *         ├── Command.Group
- *         │   └── Command.Item
- *         │       └── Command.Shortcut
- *         └── Command.Separator
- * ```
+ * @see https://mantle.ngrok.com/components/navigation/command#commanddialogtrigger
  *
  * @example
  * ```tsx
  * <Command.DialogRoot>
- *   <Command.SearchTrigger>
- *     <button type="button">Search…</button>
- *   </Command.SearchTrigger>
+ *   <Command.DialogTrigger asChild>
+ *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
+ *   </Command.DialogTrigger>
  *   <Command.DialogContent>
  *     <Command.Input placeholder="Type a command or search..." />
  *     <Command.List>
@@ -848,430 +823,22 @@ const CommandShortcut = ({
  * </Command.DialogRoot>
  * ```
  */
-const Command = {
-	/**
-	 * The inline palette, wrapping `Command.Input` and `Command.List`. It owns the
-	 * filtering and the active item for every part below it. `Command.DialogContent`
-	 * renders one itself, so a modal palette does not add it.
-	 *
-	 * @see https://mantle.ngrok.com/components/navigation/command#commandroot
-	 *
-	 * @example
-	 * ```tsx
-	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger>
-	 *     <button type="button">Search…</button>
-	 *   </Command.SearchTrigger>
-	 *   <Command.DialogContent>
-	 *     <Command.Input placeholder="Type a command or search..." />
-	 *     <Command.List>
-	 *       <Command.Empty>No results found.</Command.Empty>
-	 *       <Command.Group heading="Suggestions">
-	 *         <Command.Item>
-	 *           <span>Calendar</span>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *       <Command.Separator />
-	 *       <Command.Group heading="Settings">
-	 *         <Command.Item>
-	 *           <span>Profile</span>
-	 *           <Command.Shortcut>⌘,</Command.Shortcut>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *     </Command.List>
-	 *   </Command.DialogContent>
-	 * </Command.DialogRoot>
-	 * ```
-	 */
-	Root: CommandRoot,
-	/**
-	 * The state owner for a command palette. Renders no DOM of its own; it owns
-	 * the open state, the query text, and the `⌘K` shortcut, and carries them to
-	 * every part below through `useCommandDialog()`.
-	 *
-	 * @see https://mantle.ngrok.com/components/navigation/command#commanddialogroot
-	 *
-	 * @example
-	 * ```tsx
-	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger>
-	 *     <button type="button">Search…</button>
-	 *   </Command.SearchTrigger>
-	 *   <Command.DialogContent>
-	 *     <Command.Input placeholder="Type a command or search..." />
-	 *     <Command.List>
-	 *       <Command.Empty>No results found.</Command.Empty>
-	 *       <Command.Group heading="Suggestions">
-	 *         <Command.Item>
-	 *           <span>Calendar</span>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *       <Command.Separator />
-	 *       <Command.Group heading="Settings">
-	 *         <Command.Item>
-	 *           <span>Profile</span>
-	 *           <Command.Shortcut>⌘,</Command.Shortcut>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *     </Command.List>
-	 *   </Command.DialogContent>
-	 * </Command.DialogRoot>
-	 * ```
-	 */
-	DialogRoot: CommandDialogRoot,
-	/**
-	 * Makes any control behave like a search field that opens the command palette.
-	 * It renders no DOM of its own; it clones its child and gives it the wiring,
-	 * so **presentation belongs entirely to the child** and this part never has an
-	 * opinion about how the trigger looks or how it behaves in a collapsed
-	 * sidebar.
-	 *
-	 * @see https://mantle.ngrok.com/components/navigation/command#commandsearchtrigger
-	 *
-	 * @example
-	 * ```tsx
-	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger>
-	 *     <button type="button">Search…</button>
-	 *   </Command.SearchTrigger>
-	 *   <Command.DialogContent>
-	 *     <Command.Input placeholder="Type a command or search..." />
-	 *     <Command.List>
-	 *       <Command.Empty>No results found.</Command.Empty>
-	 *       <Command.Group heading="Suggestions">
-	 *         <Command.Item>
-	 *           <span>Calendar</span>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *       <Command.Separator />
-	 *       <Command.Group heading="Settings">
-	 *         <Command.Item>
-	 *           <span>Profile</span>
-	 *           <Command.Shortcut>⌘,</Command.Shortcut>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *     </Command.List>
-	 *   </Command.DialogContent>
-	 * </Command.DialogRoot>
-	 * ```
-	 */
-	SearchTrigger: CommandSearchTrigger,
-	/**
-	 * A bare button that opens the Command dialog when clicked: the escape hatch
-	 * for a trigger that should not look like a search field. Wrap your own
-	 * element with `asChild`.
-	 *
-	 * It carries none of `Command.SearchTrigger`'s behavior: no `⌘K` hint, no
-	 * `aria-keyshortcuts`, and typing or pasting into it does nothing. Rebuild
-	 * that with `useCommandDialog()` and `searchActionFromKeyDown` /
-	 * `searchActionFromPaste` if you need it.
-	 *
-	 * @see https://mantle.ngrok.com/components/navigation/command#commanddialogtrigger
-	 *
-	 * @example
-	 * ```tsx
-	 * <Command.DialogRoot>
-	 *   <Command.DialogTrigger asChild>
-	 *     <Button type="button" appearance="outlined" intent="neutral">Open Command Palette</Button>
-	 *   </Command.DialogTrigger>
-	 *   <Command.DialogContent>
-	 *     <Command.Input placeholder="Type a command or search..." />
-	 *     <Command.List>
-	 *       <Command.Empty>No results found.</Command.Empty>
-	 *       <Command.Group heading="Suggestions">
-	 *         <Command.Item>
-	 *           <span>Calendar</span>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *       <Command.Separator />
-	 *       <Command.Group heading="Settings">
-	 *         <Command.Item>
-	 *           <span>Profile</span>
-	 *           <Command.Shortcut>⌘,</Command.Shortcut>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *     </Command.List>
-	 *   </Command.DialogContent>
-	 * </Command.DialogRoot>
-	 * ```
-	 */
-	DialogTrigger: Dialog.Trigger,
-	/**
-	 * The content of the CommandDialog. Renders the accessible title/description,
-	 * the command palette UI, and an optional close button.
-	 *
-	 * @see https://mantle.ngrok.com/components/navigation/command#commanddialogcontent
-	 *
-	 * @example
-	 * ```tsx
-	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger>
-	 *     <button type="button">Search…</button>
-	 *   </Command.SearchTrigger>
-	 *   <Command.DialogContent>
-	 *     <Command.Input placeholder="Type a command or search..." />
-	 *     <Command.List>
-	 *       <Command.Empty>No results found.</Command.Empty>
-	 *       <Command.Group heading="Suggestions">
-	 *         <Command.Item>
-	 *           <span>Calendar</span>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *       <Command.Separator />
-	 *       <Command.Group heading="Settings">
-	 *         <Command.Item>
-	 *           <span>Profile</span>
-	 *           <Command.Shortcut>⌘,</Command.Shortcut>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *     </Command.List>
-	 *   </Command.DialogContent>
-	 * </Command.DialogRoot>
-	 * ```
-	 */
-	DialogContent: CommandDialogContent,
-	/**
-	 * The palette's query field.
-	 *
-	 * @see https://mantle.ngrok.com/components/navigation/command#commandinput
-	 *
-	 * @example
-	 * ```tsx
-	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger>
-	 *     <button type="button">Search…</button>
-	 *   </Command.SearchTrigger>
-	 *   <Command.DialogContent>
-	 *     <Command.Input placeholder="Type a command or search..." />
-	 *     <Command.List>
-	 *       <Command.Empty>No results found.</Command.Empty>
-	 *       <Command.Group heading="Suggestions">
-	 *         <Command.Item>
-	 *           <span>Calendar</span>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *       <Command.Separator />
-	 *       <Command.Group heading="Settings">
-	 *         <Command.Item>
-	 *           <span>Profile</span>
-	 *           <Command.Shortcut>⌘,</Command.Shortcut>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *     </Command.List>
-	 *   </Command.DialogContent>
-	 * </Command.DialogRoot>
-	 * ```
-	 */
-	Input: CommandInput,
-	/**
-	 * The scrolling container for the palette's groups and items.
-	 *
-	 * @see https://mantle.ngrok.com/components/navigation/command#commandlist
-	 *
-	 * @example
-	 * ```tsx
-	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger>
-	 *     <button type="button">Search…</button>
-	 *   </Command.SearchTrigger>
-	 *   <Command.DialogContent>
-	 *     <Command.Input placeholder="Type a command or search..." />
-	 *     <Command.List>
-	 *       <Command.Empty>No results found.</Command.Empty>
-	 *       <Command.Group heading="Suggestions">
-	 *         <Command.Item>
-	 *           <span>Calendar</span>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *       <Command.Separator />
-	 *       <Command.Group heading="Settings">
-	 *         <Command.Item>
-	 *           <span>Profile</span>
-	 *           <Command.Shortcut>⌘,</Command.Shortcut>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *     </Command.List>
-	 *   </Command.DialogContent>
-	 * </Command.DialogRoot>
-	 * ```
-	 */
-	List: CommandList,
-	/**
-	 * The empty-state message; it renders only when no item matches the query.
-	 *
-	 * It renders nothing in the server HTML and in the hydration pass. Items
-	 * register with cmdk in a layout effect, which never runs on the server, so the
-	 * server counts zero matches for every list. A palette with no items shows its
-	 * empty state one render after hydration.
-	 *
-	 * @see https://mantle.ngrok.com/components/navigation/command#commandempty
-	 *
-	 * @example
-	 * ```tsx
-	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger>
-	 *     <button type="button">Search…</button>
-	 *   </Command.SearchTrigger>
-	 *   <Command.DialogContent>
-	 *     <Command.Input placeholder="Type a command or search..." />
-	 *     <Command.List>
-	 *       <Command.Empty>No results found.</Command.Empty>
-	 *       <Command.Group heading="Suggestions">
-	 *         <Command.Item>
-	 *           <span>Calendar</span>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *       <Command.Separator />
-	 *       <Command.Group heading="Settings">
-	 *         <Command.Item>
-	 *           <span>Profile</span>
-	 *           <Command.Shortcut>⌘,</Command.Shortcut>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *     </Command.List>
-	 *   </Command.DialogContent>
-	 * </Command.DialogRoot>
-	 * ```
-	 */
-	Empty: CommandEmpty,
-	/**
-	 * A labeled section of items; the `heading` prop names it.
-	 *
-	 * @see https://mantle.ngrok.com/components/navigation/command#commandgroup
-	 *
-	 * @example
-	 * ```tsx
-	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger>
-	 *     <button type="button">Search…</button>
-	 *   </Command.SearchTrigger>
-	 *   <Command.DialogContent>
-	 *     <Command.Input placeholder="Type a command or search..." />
-	 *     <Command.List>
-	 *       <Command.Empty>No results found.</Command.Empty>
-	 *       <Command.Group heading="Suggestions">
-	 *         <Command.Item>
-	 *           <span>Calendar</span>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *       <Command.Separator />
-	 *       <Command.Group heading="Settings">
-	 *         <Command.Item>
-	 *           <span>Profile</span>
-	 *           <Command.Shortcut>⌘,</Command.Shortcut>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *     </Command.List>
-	 *   </Command.DialogContent>
-	 * </Command.DialogRoot>
-	 * ```
-	 */
-	Group: CommandGroup,
-	/**
-	 * One selectable row in the palette's list.
-	 *
-	 * @see https://mantle.ngrok.com/components/navigation/command#commanditem
-	 *
-	 * @example
-	 * ```tsx
-	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger>
-	 *     <button type="button">Search…</button>
-	 *   </Command.SearchTrigger>
-	 *   <Command.DialogContent>
-	 *     <Command.Input placeholder="Type a command or search..." />
-	 *     <Command.List>
-	 *       <Command.Empty>No results found.</Command.Empty>
-	 *       <Command.Group heading="Suggestions">
-	 *         <Command.Item>
-	 *           <span>Calendar</span>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *       <Command.Separator />
-	 *       <Command.Group heading="Settings">
-	 *         <Command.Item>
-	 *           <span>Profile</span>
-	 *           <Command.Shortcut>⌘,</Command.Shortcut>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *     </Command.List>
-	 *   </Command.DialogContent>
-	 * </Command.DialogRoot>
-	 * ```
-	 */
-	Item: CommandItem,
-	/**
-	 * The keyboard hint for a `Command.Item`, aligned to the end of the row. It
-	 * locks `translate="no"`: a translated shortcut key names the wrong key.
-	 *
-	 * @see https://mantle.ngrok.com/components/navigation/command#commandshortcut
-	 *
-	 * @example
-	 * ```tsx
-	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger>
-	 *     <button type="button">Search…</button>
-	 *   </Command.SearchTrigger>
-	 *   <Command.DialogContent>
-	 *     <Command.Input placeholder="Type a command or search..." />
-	 *     <Command.List>
-	 *       <Command.Empty>No results found.</Command.Empty>
-	 *       <Command.Group heading="Suggestions">
-	 *         <Command.Item>
-	 *           <span>Calendar</span>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *       <Command.Separator />
-	 *       <Command.Group heading="Settings">
-	 *         <Command.Item>
-	 *           <span>Profile</span>
-	 *           <Command.Shortcut>⌘,</Command.Shortcut>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *     </Command.List>
-	 *   </Command.DialogContent>
-	 * </Command.DialogRoot>
-	 * ```
-	 */
-	Shortcut: CommandShortcut,
-	/**
-	 * A horizontal rule between two groups of items.
-	 *
-	 * @see https://mantle.ngrok.com/components/navigation/command#commandseparator
-	 *
-	 * @example
-	 * ```tsx
-	 * <Command.DialogRoot>
-	 *   <Command.SearchTrigger>
-	 *     <button type="button">Search…</button>
-	 *   </Command.SearchTrigger>
-	 *   <Command.DialogContent>
-	 *     <Command.Input placeholder="Type a command or search..." />
-	 *     <Command.List>
-	 *       <Command.Empty>No results found.</Command.Empty>
-	 *       <Command.Group heading="Suggestions">
-	 *         <Command.Item>
-	 *           <span>Calendar</span>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *       <Command.Separator />
-	 *       <Command.Group heading="Settings">
-	 *         <Command.Item>
-	 *           <span>Profile</span>
-	 *           <Command.Shortcut>⌘,</Command.Shortcut>
-	 *         </Command.Item>
-	 *       </Command.Group>
-	 *     </Command.List>
-	 *   </Command.DialogContent>
-	 * </Command.DialogRoot>
-	 * ```
-	 */
-	Separator: CommandSeparator,
-} as const;
+const DialogTrigger = Dialog.Trigger;
 
 export {
 	//,
-	Command,
+	CommandRoot,
+	CommandDialogRoot,
+	CommandSearchTrigger,
+	DialogTrigger,
+	CommandDialogContent,
+	CommandInput,
+	CommandList,
+	CommandEmpty,
+	CommandGroup,
+	CommandItem,
+	CommandShortcut,
+	CommandSeparator,
 	useCommandState,
 };
 

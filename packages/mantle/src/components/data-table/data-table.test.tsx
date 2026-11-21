@@ -17,10 +17,10 @@ import { findTranslatedFont, translateTextNodes } from "../../test-utils/transla
 import type { SortingMode } from "../../utils/sorting/direction.js";
 import type { SortDirection } from "./types.js";
 import type { ButtonAppearance, ButtonIntent, IconButtonAppearance } from "../button/index.js";
-import { Table } from "../table/table.js";
+import * as Table from "../table/table-parts.js";
+import * as DataTable from "./data-table-parts.js";
 import {
 	type Column,
-	DataTable,
 	type ExpandedState,
 	type Row as TableRow,
 	type RowSelectionState,

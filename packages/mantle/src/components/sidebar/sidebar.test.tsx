@@ -8,12 +8,14 @@ import mantleCss from "../../mantle.css?raw";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import type * as UseBreakpointModule from "../../hooks/use-breakpoint.js";
-import { AppLayout, useSidePanel } from "../app-layout/app-layout.js";
-import { Command } from "../command/command.js";
-import { DropdownMenu } from "../dropdown-menu/index.js";
+import * as AppLayout from "../app-layout/app-layout-parts.js";
+import { useSidePanel } from "../app-layout/app-layout.js";
+import * as Command from "../command/command-parts.js";
+import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
 import { TooltipProvider } from "../tooltip/index.js";
 import type { SidebarState } from "./sidebar.js";
-import { Sidebar, useSidebar } from "./sidebar.js";
+import * as Sidebar from "./sidebar-parts.js";
+import { useSidebar } from "./sidebar.js";
 
 /**
  * `Sidebar.Trigger` renders a real tooltip, so every subject needs a

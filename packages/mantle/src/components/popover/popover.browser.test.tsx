@@ -3,7 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { Popover } from "./popover.js";
+import * as Popover from "./popover-parts.js";
 
 /**
  * Mirrors the CSS Tailwind 4 emits for the utilities this file's geometry leans

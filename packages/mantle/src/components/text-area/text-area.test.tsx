@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { DragEvent } from "react";
 import { describe, expect, test, vi } from "vitest";
-import { Field } from "../field/field.js";
+import * as Field from "../field/field-parts.js";
 import { TextArea } from "./text-area.js";
 
 describe("TextArea", () => {

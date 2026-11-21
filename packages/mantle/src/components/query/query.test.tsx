@@ -4,8 +4,9 @@ import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { defineRemoteFilterGrammar } from "../../utils/query-filter/grammar.js";
 import { type TestItem, testGrammar, testItems } from "../../utils/query-filter/test-grammar.js";
-import { Field } from "../field/field.js";
-import { Query, type QueryInputProps } from "./query.js";
+import * as Field from "../field/field-parts.js";
+import * as Query from "./query-parts.js";
+import type { QueryInputProps } from "./query.js";
 
 /** Field props a test can set. The harness owns the label and the placeholder. */
 type ExtraFieldProps = Partial<Omit<QueryInputProps, "placeholder">> &

@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { afterAll, beforeAll, expect, test } from "vitest";
-import { Toast } from "./toast.js";
+import * as Toast from "./toast-parts.js";
 
 /**
  * Mirrors the CSS Tailwind 4 emits for the utilities this test reads. Inlined so

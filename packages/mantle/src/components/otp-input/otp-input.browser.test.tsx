@@ -3,8 +3,9 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
-import { Field } from "../field/field.js";
-import { OtpInput, REGEXP_ONLY_DIGITS } from "./otp-input.js";
+import * as Field from "../field/field-parts.js";
+import * as OtpInput from "./otp-input-parts.js";
+import { REGEXP_ONLY_DIGITS } from "./otp-input.js";
 
 /**
  * Render a default 6-slot OTP input. Returns the hidden input that accepts

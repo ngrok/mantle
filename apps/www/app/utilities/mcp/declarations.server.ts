@@ -275,6 +275,17 @@ export function declarationsOf(
 		return undefined;
 	};
 
+	/** The file that `import * as <localName>` reads, when the local is a namespace import. */
+	const namespaceImportPath = (path: string, localName: string): string | undefined => {
+		for (const statement of parse(path)?.module.staticImports ?? []) {
+			const imported = statement.entries.find((entry) => entry.localName.value === localName);
+			if (imported != null && hasKind(imported.importName, "NamespaceObject")) {
+				return resolveDeclarationPath(path, statement.moduleRequest.value);
+			}
+		}
+		return undefined;
+	};
+
 	const seen = new Set<string>();
 	const queue: LocatedStatement[] = [];
 	const texts: string[] = [];
@@ -304,7 +315,28 @@ export function declarationsOf(
 	}
 	for (let located = queue.shift(); located != null; located = queue.shift()) {
 		for (const reference of referencedNames(located.statement)) {
-			add(localDeclaration(located.path, reference, 0));
+			const namespacePath = namespaceImportPath(located.path, reference);
+			if (namespacePath == null) {
+				add(localDeclaration(located.path, reference, 0));
+				continue;
+			}
+			// Why: a compound namespace is `typeof <Name>Parts`, so its parts are the exports of that module.
+			const parts = [...exportNamesOf(files, namespacePath).names].map((part) => ({
+				part,
+				statement: find(namespacePath, part, 0),
+			}));
+			// Why the member map: a part declaration keeps its local name (`FieldLabel`), so only this
+			// map tells a reader that `Field.Label` is `FieldLabel`.
+			const members = parts.map(({ part, statement }) => {
+				const local = statement == null ? undefined : declaredNames(statement.statement)[0];
+				return `\treadonly ${part}: ${local == null ? "unknown" : `typeof ${local}`};`;
+			});
+			if (texts.length < MAX_DECLARATIONS) {
+				texts.push(`declare const ${reference}: {\n${members.join("\n")}\n};`);
+			}
+			for (const { statement } of parts) {
+				add(statement);
+			}
 		}
 	}
 	return texts.join("\n\n");

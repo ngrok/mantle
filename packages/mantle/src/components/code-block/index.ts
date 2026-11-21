@@ -4,10 +4,85 @@
  * @see https://mantle.ngrok.com/components/data-display/code-block
  */
 
+import * as CodeBlockParts from "./code-block-parts.js";
+
+/**
+ * Shiki-powered code blocks with build-time syntax highlighting and zero browser bundle.
+ *
+ * Use `mantleCodeBlockPlugins()` to enable pre-rendering at build time.
+ *
+ * @useWhen Show a block of code with syntax highlighting and a copy button.
+ *
+ * @siblings
+ * - `Code`: the code is a short fragment inside a sentence.
+ * - `TruncatedText`: one long opaque value must stay on one line.
+ *
+ * @see https://mantle.ngrok.com/components/data-display/code-block
+ *
+ * @example
+ * Composition:
+ * ```
+ * # Standard
+ * CodeBlock.Root
+ * ├── CodeBlock.Header
+ * │   ├── CodeBlock.Icon
+ * │   └── CodeBlock.Title
+ * ├── CodeBlock.Body
+ * │   ├── CodeBlock.CopyButton
+ * │   └── CodeBlock.Code
+ * └── CodeBlock.ExpanderButton
+ *
+ * # Tabbed
+ * CodeBlock.Root
+ * ├── CodeBlock.Header
+ * │   └── CodeBlock.TabList
+ * │       └── CodeBlock.TabTrigger
+ * ├── CodeBlock.Body
+ * │   ├── CodeBlock.CopyButton
+ * │   └── CodeBlock.TabContent
+ * │       └── CodeBlock.Code
+ * └── CodeBlock.ExpanderButton
+ * ```
+ *
+ * @example
+ * ```tsx
+ * <CodeBlock.Root>
+ *   <CodeBlock.Header>
+ *     <CodeBlock.Icon preset="file" />
+ *     <CodeBlock.Title>example.ts</CodeBlock.Title>
+ *   </CodeBlock.Header>
+ *   <CodeBlock.Body>
+ *     <CodeBlock.CopyButton />
+ *     <CodeBlock.Code value={mantleCode("typescript")`const x = "hello";`} />
+ *   </CodeBlock.Body>
+ *   <CodeBlock.ExpanderButton />
+ * </CodeBlock.Root>
+ *
+ * // Server-highlighted HTML fetched via an action route + React Query mutation
+ * const highlightMutation = useMutation({
+ *   mutationFn: async () => {
+ *     const response = await fetch("/api/shiki-highlight", {
+ *       method: "POST",
+ *       headers: { "Content-Type": "application/json" },
+ *       body: JSON.stringify({ code: source, language: "typescript" }),
+ *     });
+ *     return response.json();
+ *   },
+ * });
+ *
+ * const serverValue = createMantleCodeBlockValue({
+ *   language: "typescript",
+ *   code: source,
+ *   preHtml: highlightMutation.data?.html,
+ * });
+ * ```
+ */
+const CodeBlock = CodeBlockParts;
+
 export {
 	//,
 	CodeBlock,
-} from "./code-block.js";
+};
 
 export {
 	//,

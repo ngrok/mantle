@@ -3,7 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import { createRef, useEffect, type ComponentProps } from "react";
 import { renderToString } from "react-dom/server";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { Command } from "./command.js";
+import * as Command from "./command-parts.js";
 import type { CommandDialogState } from "./dialog-context.js";
 import { useCommandDialog } from "./dialog-context.js";
 

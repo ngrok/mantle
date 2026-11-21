@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import { describe, expect, test } from "vitest";
 import { Main } from "../main/main.js";
-import { CenteredLayout } from "./centered-layout.js";
+import * as CenteredLayout from "./centered-layout-parts.js";
 
 describe("CenteredLayout", () => {
 	test("Root carries its data-slot", () => {

@@ -2,7 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { Select } from "./select.js";
+import * as Select from "./select-parts.js";
 
 /**
  * Mirrors the CSS Tailwind 4 emits for the one utility the wrapper spans carry,

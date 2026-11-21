@@ -3,7 +3,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { Accordion } from "./accordion.js";
+import * as Accordion from "./accordion-parts.js";
 
 /**
  * Coverage that needs Chromium. happy-dom has no `onbeforematch`, so only a real

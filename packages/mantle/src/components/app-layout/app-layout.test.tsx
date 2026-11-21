@@ -5,11 +5,12 @@ import { createRef, useEffect, useState } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
-import { Combobox } from "../combobox/index.js";
-import { Sidebar } from "../sidebar/sidebar.js";
+import * as Combobox from "../combobox/combobox-parts.js";
+import * as Sidebar from "../sidebar/sidebar-parts.js";
 import { TooltipProvider } from "../tooltip/index.js";
 import type { AppLayoutSidePanelState } from "./app-layout.js";
-import { AppLayout, useSidePanel } from "./app-layout.js";
+import * as AppLayout from "./app-layout-parts.js";
+import { useSidePanel } from "./app-layout.js";
 
 describe("AppLayout.Root", () => {
 	test("renders a div stamped data-slot app-layout", () => {

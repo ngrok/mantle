@@ -3,7 +3,7 @@
 import { render } from "@testing-library/react";
 import { Fragment } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { Breadcrumb } from "./breadcrumb.js";
+import * as Breadcrumb from "./breadcrumb-parts.js";
 
 /**
  * Mirrors the CSS Tailwind 4 emits for the utilities this component's layout

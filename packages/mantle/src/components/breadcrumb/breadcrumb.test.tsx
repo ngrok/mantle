@@ -3,7 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import { createRef, Fragment } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
-import { Breadcrumb } from "./breadcrumb.js";
+import * as Breadcrumb from "./breadcrumb-parts.js";
 
 const Trail = ({ crumbs }: { crumbs: ReadonlyArray<string> }) => (
 	<Breadcrumb.Root>

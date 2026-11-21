@@ -1,7 +1,7 @@
 # Compound components ship as module namespaces, so an unused part tree-shakes
 
 **Date:** 2026-11-15
-**Status:** Proposed
+**Status:** Accepted (2026-11-21)
 **Contests:** [2025-07-16-compound-component-named-exports.md](./2025-07-16-compound-component-named-exports.md), which accepted that a compound component does not tree-shake inside its own boundary.
 
 ## Context
@@ -28,14 +28,15 @@ A prototype checked which `dist` shape lets a consumer drop a part that it does 
 
 ## Decision
 
-1. **Parts are named exports of a parts module.** `field/parts.ts` exports `Item`, `Label`, `Help`, and the other parts by their namespace names. `field/index.ts` has `export * as Field from "./parts.js"`. Call sites do not change: `Field.Help` reads the same.
-2. **The build keeps the namespace in `dist`.** Each compound gets a `<name>.parts` entry, and the public `<name>.js` entry is the one line `export * as <Name> from "./<name>.parts.js"`. The shared chunks keep their component names, so the `@source "<name>-*.js"` globs and `mantleSourcesPlugin` keep working. We do not switch to one file for each module, because that changes every path that the Tailwind source globs match.
-3. **Each part carries the JSDoc that the namespace member carries today.** A hover on `Field.Help` shows the JSDoc of the `Help` export. [COMPONENT_SPEC.md §4.2](../COMPONENT_SPEC.md#42-compound-components-the-full-tree-rule) changes from "on every namespace member and part" to "on every part". The namespace JSDoc moves to the parts module's leading comment.
-4. **The agent manifest and the MCP `get` tool read the parts module.** Both parse the namespace object today. They must read the named exports of `parts.ts` and the `export * as` line in the `.d.ts`.
+1. **Parts are named exports of a parts module.** `field/field-parts.ts` exports `Item`, `Label`, `Help`, and the other parts by their namespace names, and nothing else. `field/index.ts` imports it as `FieldParts` and declares `const Field = FieldParts` under the namespace JSDoc. Call sites do not change: `Field.Help` reads the same. The parts module is named after the component file, because `progress/` holds two namespaces.
+2. **The build keeps the namespace in `dist`.** Each compound gets a `<name>-parts` entry, and the public `<name>.js` entry is the one line `export * as <Name> from "./<name>-parts.js"`. The build rewrites the `const` alias to that namespace import, and fails when a component entry does not take its namespace from its parts entry (`packages/mantle/scripts/compound-namespaces.ts`). The entry names keep the `<name>-` prefix, so the `@source "<name>-*.js"` globs and `mantleSourcesPlugin` keep working. We do not switch to one file for each module, because that changes every path that the Tailwind source globs match.
+3. **Each part declaration carries its own JSDoc.** A hover on `Field.Help` shows the JSDoc of the `Help` declaration. [COMPONENT_SPEC.md §4.2](../COMPONENT_SPEC.md#42-compound-components-the-full-tree-rule) changes from "on every namespace member and part" to "on every part declaration". The namespace JSDoc moves to the `const` alias in `index.ts`: TypeScript 5.9 shows the JSDoc of a `const` on hover, and shows nothing for the JSDoc of an `export * as` statement or of a module's leading comment.
+4. **The MCP `get` tool follows the namespace import.** The `.d.ts` reads `declare const Field: typeof FieldParts`, so `declarationsOf` follows `import * as FieldParts` into the exports of `field-parts.d.ts`. The agent manifest needs no change: it reads the JSDoc of `const Field` in `index.ts`, and `components-surface.json` does not change.
 5. **The bump is `patch`.** Call sites, types, and behavior stay the same. A consumer that spreads or iterates a namespace (`{ ...Field }`, `Object.keys(Field)`) gets a frozen module namespace object. A search of the frontend apps (clone of 2026-10-29) found no such use.
 
 ## Consequences
 
-- One migration moves all 47 namespace objects, so the library never has two shapes for one job. An `ast-grep` rule does most of the move. A test fails the build when a component entry is not a namespace re-export.
-- The prototype measured rolldown only. Measure webpack and esbuild before the migration ships.
+- One migration moves all 48 namespace objects, so the library never has two shapes for one job. The build check above guards `dist`, and the lint rule `mantle/no-namespace-object` rejects a new namespace object.
+- Measured on the migrated `dist` with React left out, for a page that renders `Button` and the parts a marketing page uses of `DropdownMenu`, `Tabs`, `Accordion`, `Card`, and `Dialog`: Vite 8 goes from 185.9 KB to 154.5 KB minified (58.0 KB to 51.1 KB gzip), and webpack 5 from 195.5 KB to 161.3 KB. `Field` with `Item`, `Label`, and `Control` goes from 124.2 KB to 38.0 KB in Vite 8.
+- esbuild does not drop a part that reaches it through `export * as`. Mantle anchors on Vite, so mantle ships no esbuild workaround.
 - `Field` without `Help` drops `Popover`, and `Alert` without `DismissIconButton` drops the button graph. An app that uses those parts elsewhere pays nothing new and saves nothing.

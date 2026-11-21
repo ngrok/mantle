@@ -4,7 +4,60 @@
  * @see https://mantle.ngrok.com/components/overlays/hover-card
  */
 
+import * as HoverCardParts from "./hover-card-parts.js";
+
+/**
+ * A floating card that appears when a user hovers over a trigger element.
+ *
+ * Use `HoverCard` for non-essential preview content shown on HOVER: user
+ * cards, repo previews, rich link previews. Because hover is not reachable
+ * via keyboard, all content inside a `HoverCard` must be supplemental,
+ * never the only path to information; the trigger is typically a link that
+ * already leads to the same content for keyboard and screen reader users.
+ * For short, non-interactive labels or hints, use `Tooltip`. For
+ * interactive overlays the user opens deliberately, use `Popover`.
+ *
+ * `HoverCard.Content` renders at Tailwind `z-50`, Mantle's float tier. When
+ * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
+ * that overlay's positioner and paints above the overlay that owns it. Outside
+ * every overlay, it portals to `document.body`, below the overlay tier
+ * (`z-60`). When sibling floats share a container, the most recently mounted
+ * float paints on top.
+ *
+ * @useWhen Preview the content behind a link on hover, such as a user card or a repository preview.
+ *
+ * @siblings
+ * - `Tooltip`: the content is a short label or hint with no interactive content.
+ * - `Popover`: the user opens interactive content on purpose, with a click or a key.
+ *
+ * @see https://mantle.ngrok.com/components/overlays/hover-card
+ *
+ * @example
+ * Composition:
+ * ```
+ * HoverCard.Root
+ * ├── HoverCard.Trigger
+ * └── HoverCard.Content
+ *     └── HoverCard.Arrow
+ * ```
+ *
+ * @example
+ * ```tsx
+ * <HoverCard.Root>
+ *   <HoverCard.Trigger asChild>
+ *     <Button type="button" appearance="outlined" intent="neutral">
+ *       Hover me
+ *     </Button>
+ *   </HoverCard.Trigger>
+ *   <HoverCard.Content>
+ *     <p>This is the hover card content.</p>
+ *   </HoverCard.Content>
+ * </HoverCard.Root>
+ * ```
+ */
+const HoverCard = HoverCardParts;
+
 export {
 	//,
 	HoverCard,
-} from "./hover-card.js";
+};

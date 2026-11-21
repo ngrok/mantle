@@ -231,6 +231,51 @@ const noDisplayName = {
 	},
 };
 
+/** Whether a name is PascalCase, such as `DropdownMenu`, and not UPPER_SNAKE_CASE. */
+const isPascalCase = (name) => /^[A-Z][a-z0-9]/.test(name);
+
+const noNamespaceObject = {
+	meta: {
+		type: "problem",
+		docs: {
+			description: "Ship a compound component namespace as a module namespace, not an object.",
+		},
+		messages: {
+			namespaceObject:
+				"Export the parts from `<name>-parts.ts`, and alias its namespace import in `index.ts`. Bundlers keep every property of an object (COMPONENT_SPEC.md §3.4).",
+		},
+	},
+	create(context) {
+		return {
+			VariableDeclarator(node) {
+				const init = node.init?.type === "TSAsExpression" ? node.init.expression : node.init;
+				const statement =
+					node.parent.parent?.type === "ExportNamedDeclaration" ? node.parent.parent : node.parent;
+				if (
+					statement.parent?.type !== "Program" ||
+					node.id.type !== "Identifier" ||
+					!isPascalCase(node.id.name) ||
+					init?.type !== "ObjectExpression" ||
+					init.properties.length === 0
+				) {
+					return;
+				}
+				const allParts = init.properties.every(
+					(property) =>
+						property.type === "Property" &&
+						!property.computed &&
+						property.key.type === "Identifier" &&
+						isPascalCase(property.key.name) &&
+						(property.value.type === "Identifier" || property.value.type === "MemberExpression"),
+				);
+				if (allParts) {
+					context.report({ node, messageId: "namespaceObject" });
+				}
+			},
+		};
+	},
+};
+
 const noDefaultExport = {
 	meta: {
 		type: "problem",
@@ -258,6 +303,7 @@ export default {
 		"no-default-export": noDefaultExport,
 		"no-display-name": noDisplayName,
 		"no-jsx-null-ternary": noJsxNullTernary,
+		"no-namespace-object": noNamespaceObject,
 		"no-presence-matcher-on-get-by": noPresenceMatcherOnGetBy,
 		"no-sleep-in-tests": noSleepInTests,
 		...descriptiveNames.rules,

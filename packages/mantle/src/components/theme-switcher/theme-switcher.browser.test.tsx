@@ -7,8 +7,8 @@ import { userEvent } from "@testing-library/user-event";
 import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 import { commands } from "vitest/browser";
 import mantleCss from "../../mantle.css?raw";
-import { DropdownMenu } from "../dropdown-menu/index.js";
-import { Dialog } from "../dialog/index.js";
+import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
+import * as Dialog from "../dialog/dialog-parts.js";
 import { ThemeProvider, useTheme } from "../theme/theme-provider.js";
 import {
 	ThemeDropdownMenuItem,

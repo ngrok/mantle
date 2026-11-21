@@ -1,8 +1,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "vitest";
 import { commands, userEvent } from "vitest/browser";
-import { BarChart } from "../bar-chart/index.js";
-import { LineChart } from "../line-chart/index.js";
+import * as BarChart from "../bar-chart/bar-chart-parts.js";
+import * as LineChart from "../line-chart/line-chart-parts.js";
 
 /**
  * Real-browser tests of how the Root's focus ring and cursor layers show in a

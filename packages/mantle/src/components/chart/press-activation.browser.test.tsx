@@ -3,7 +3,7 @@
 import { act, render } from "@testing-library/react";
 import { createIntersectionObserverStub } from "../../test-utils/mock-intersection-observer.js";
 import { afterAll, beforeAll, expect, test, vi } from "vitest";
-import { BarChart } from "../bar-chart/index.js";
+import * as BarChart from "../bar-chart/bar-chart-parts.js";
 
 /**
  * Real-browser test of a press that lands before a chart's activation slice

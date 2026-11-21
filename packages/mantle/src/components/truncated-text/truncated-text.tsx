@@ -26,7 +26,7 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { joinDataSlot, type WithDataSlot } from "../../utils/data-slot.js";
 import { Slot } from "../slot/index.js";
-import { Tooltip } from "../tooltip/index.js";
+import * as Tooltip from "../tooltip/tooltip-parts.js";
 import { splitTail } from "./split-tail.js";
 
 /**
