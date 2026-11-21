@@ -15,8 +15,8 @@ const TYPEAHEAD_RESET_MS = 500;
 type ListboxState = {
 	/** The `id` of the option that has visual focus, or `null`. */
 	activeId: string | null;
-	/** The label of the selected option, so a closed select can show it. */
-	selectedLabel: { value: string; label: ReactNode; translate?: "yes" | "no" } | null;
+	/** The label of the last selected or active option, so a closed select can show it. */
+	itemLabel: { value: string; label: ReactNode; translate?: "yes" | "no" } | null;
 };
 
 type MoveTarget = "next" | "previous" | "first" | "last" | "selected";
@@ -109,9 +109,7 @@ const useListbox = ({
 }): Listbox => {
 	const id = useId();
 	const ref = useRef<HTMLElement | null>(null);
-	const [store] = useState(() =>
-		createStore<ListboxState>({ activeId: null, selectedLabel: null }),
-	);
+	const [store] = useState(() => createStore<ListboxState>({ activeId: null, itemLabel: null }));
 	const search = useRef({ text: "", time: 0 });
 
 	const activate = (option: HTMLElement | null) => {
