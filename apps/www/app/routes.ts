@@ -189,6 +189,7 @@ const migrationsPages = [
 	"0016-side-panel-lane-collapsed-migration",
 	"0017-select-owned-behavior-migration",
 	"0018-combobox-owned-behavior-migration",
+	"0019-multi-select-owned-behavior-migration",
 ];
 
 export default [

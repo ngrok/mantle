@@ -5,7 +5,7 @@ description: How mantle approaches accessibility, the keyboard and ARIA contract
 
 # Accessibility
 
-Mantle is built so the accessible thing and the easy thing are the same thing. Components render real semantic HTML, lean on battle-tested primitives ([Radix](https://www.radix-ui.com), [Ariakit](https://ariakit.org)) and mantle's own behavior hooks for complex interaction patterns, and ship with the keyboard, focus, and ARIA behavior already wired up. This page collects the cross-cutting guidance that doesn't fit on any single component page.
+Mantle is built so the accessible thing and the easy thing are the same thing. Components render real semantic HTML, lean on battle-tested [Radix](https://www.radix-ui.com) primitives and mantle's own behavior hooks for complex interaction patterns, and ship with the keyboard, focus, and ARIA behavior already wired up. This page collects the cross-cutting guidance that doesn't fit on any single component page.
 
 ## Principles
 
@@ -51,7 +51,7 @@ export default function App() {
 
 ## Keyboard interactions per component
 
-The table below summarizes the keyboard contract for the most common interactive components. Underlying primitives (Radix, Ariakit) implement the full WAI-ARIA pattern; these are the keys consumers most often need to remember.
+The table below summarizes the keyboard contract for the most common interactive components. Radix and mantle's behavior hooks implement the full WAI-ARIA pattern; these are the keys consumers most often need to remember.
 
 | Component                                                                                                                   | Keys                                                                                                                                              |
 | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |

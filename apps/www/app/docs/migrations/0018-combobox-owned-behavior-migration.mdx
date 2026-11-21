@@ -91,7 +91,7 @@ The rules apply steps 2 to 4. They rename the three text props on `Combobox.Root
 
 - While the list is open, Enter picks the highlighted item or does nothing. It never submits the form, as before. With `autoSelect={false}`, submit in `onKeyDown` when the input has no `aria-activedescendant`, as the [free-text example](/components/forms/combobox) does.
 - Inside a `Dialog`, the first Escape closes the list and the second closes the dialog, as before.
-- `MultiSelect` still uses Ariakit. It moves to the same hooks in a later release.
+- `MultiSelect` moves to the same hooks in the same release. The [MultiSelect migration](/migrations/0019-multi-select-owned-behavior-migration) covers it.
 
 ## How to verify
 

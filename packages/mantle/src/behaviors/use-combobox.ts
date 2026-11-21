@@ -122,7 +122,11 @@ const useComboboxInput = (
 	const activeId = useStoreValue(listbox.store, (state) => state.activeId);
 
 	const openTo = (target: "first" | "last" | null) => {
-		setOpen(true);
+		// Why flushSync: a closed list renders no options, so they exist only
+		// once React commits the open state.
+		flushSync(() => {
+			setOpen(true);
+		});
 		if (target == null) {
 			listbox.activate(null);
 			return;

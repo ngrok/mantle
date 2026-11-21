@@ -17,11 +17,10 @@ import * as MultiSelectParts from "./multi-select-parts.js";
  * items rendered as removable tags/chips. For single selection, use Combobox (with search)
  * or Select (without).
  *
- * `MultiSelect.Content` renders at Tailwind `z-50` and portals into the closest
- * `data-mantle-modal-content` element (an enclosing overlay's content), else
- * the nearest overlay's positioner, else `document.body`. Inside an overlay it
- * paints above the content that contains it. Outside one, an open overlay
- * (`z-60`) covers it.
+ * `MultiSelect.Content` renders at Tailwind `z-50`. Inside an open `Dialog`,
+ * `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and
+ * paints above the overlay that owns it. Outside every overlay, it portals to
+ * `document.body`, below the overlay tier (`z-60`).
  *
  * @useWhen Pick several values from a list with a typeahead filter, and show the picks as removable
  * tags.
