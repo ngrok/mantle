@@ -2,8 +2,8 @@
 "@ngrok/mantle": patch
 ---
 
-These components are now React Server Components: `Anchor`, `Badge`, `Card`, `CenteredLayout`, `Code`, `DescriptionList`, `Empty`, `Flag`, `Icon`, `SvgOnly`, `Kbd`, `LiveRegion`, `Main`, `MediaObject`, `Skeleton`, `Slot`, `Strata`, `VisuallyHidden`, and `Well`. They hold no state, so the React Compiler no longer compiles them, and their chunks no longer start with `"use client"`. A server component renders them to HTML and sends no JavaScript for them to the browser.
+The React Compiler now compiles a component only when memoization can help it: when the component calls a hook or creates a function in render. About 230 components and parts that do neither, such as `Button`, `Card`, `Dialog.Header`, `Table.Row`, and `Slot`, now ship as written, without a memo cache. They render the same HTML and behave the same.
 
-On a page that renders only these components, the browser gets no mantle JavaScript, where it got about 18 KB (gzip) before. A client bundle of each component is 150 to 1,400 bytes (gzip) smaller. Each client component that renders `Slot` or `Icon`, such as `Button`, is also smaller.
+Each entry is up to 2.3 KB (gzip) smaller. For example, `Button` is 2.0 KB smaller, `Dialog` 1.9 KB, `Alert` 2.3 KB, and `Card` 0.7 KB. All of mantle's JavaScript is 16.4 KB (gzip, 6.7%) smaller.
 
-The rendered HTML does not change. Their props, refs, and `asChild` work the same in client components.
+A file with no compiled component and no `"use client"`, such as `Card` or `MediaObject`, now builds to a chunk with no `"use client"`, so a server component can render it.

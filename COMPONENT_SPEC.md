@@ -432,23 +432,10 @@ CONVENTIONS.md covers general style ([TypeScript](./CONVENTIONS.md#typescript),
 
 - `"use client";` on the first line when the file uses hooks, DOM event handlers, browser APIs, or context.
   When in doubt, add it: the cost is negligible.
-- A stateless file starts with `"use no memo"` instead, and a `Why` comment, so a server component can render it
-  (`media-object/media-object.tsx`). Compiled output imports a cache hook, so the build marks the chunk
-  `"use client"` and the part ships JavaScript. The compiler saves little in a part that spreads its props onto
-  one element: the rest object is new on each render, so it rebuilds the element each time and caches only small
-  calls such as `cx`. A file is stateless when each component in it obeys all four rules; other files stay
-  compiled.
-  - It calls no hook, reads no context, and uses no browser API.
-  - It adds no event handler of its own.
-  - It has no `"use client"`.
-  - A page can render it from its own entry. An internal part of a client component gains nothing.
-- The build fails when a file with the file-level `"use no memo"` lands in a `"use client"` chunk
-  (`packages/mantle/scripts/preserve-use-client.ts`). A hook in such a file passes the build but breaks a server
-  render, so the reviewer checks for one.
-- Keep a part safe for React Server Components when it costs nothing, but never change its client behavior to do
-  it. ngrok's apps do not use RSC. When a part needs a client wrapper, a build special case, or a different prop
-  merge to render on the server, it stays a client component. A server-rendered `Button` lost the `disabled`,
-  `className`, and `data-slot` a client `Dialog.Trigger asChild` merges onto it, so `Button` stays client.
+- The build decides which components the React Compiler compiles. Write `"use no memo"` only for the library
+  case in [CONVENTIONS.md § React Compiler](./CONVENTIONS.md#react-compiler).
+- Keep a part safe for React Server Components only when that costs nothing. ngrok's apps do not use RSC, so
+  never add a client wrapper, a build special case, or a behavior change to get there.
 - Named exports only, no default exports. Relative imports ending in `.js` (`../../utils/cx/cx.js`).
 - `type`, not `interface`. Props based on `ComponentProps<…>`, which already includes `ref`. Never
   `HTMLAttributes<…>` alone, which does not.
@@ -1171,7 +1158,7 @@ Run this against the diff before calling a component done. Each line is a defect
 
 **Code**
 
-- [ ] `"use client"` where required, or a file-level `"use no memo"` on a stateless file; named exports; `.js`-suffixed relative imports; `ComponentProps<…>`-based
+- [ ] `"use client"` where required; named exports; `.js`-suffixed relative imports; `ComponentProps<…>`-based
       props.
 - [ ] `data-slot` on every part, joined where wrapping.
 - [ ] `asChild` on every DOM-rendering part (`SelfClosingWithAsChild` where there are no children), or a

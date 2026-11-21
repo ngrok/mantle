@@ -9,6 +9,7 @@ import { configDefaults, defineConfig } from "vitest/config";
 import type { BrowserCommand } from "vitest/node";
 
 import { reactCompilerOptions } from "./react-compiler.config.ts";
+import { markMemoFreeComponents } from "./scripts/mark-memo-free-components.ts";
 
 type ContextOptions = Pick<PlaywrightProviderOptions, "contextOptions">["contextOptions"];
 
@@ -103,7 +104,7 @@ const reactCompiler = () => ({
 			},
 		},
 		handler: async (code: string, id: string) => {
-			const result = await transform(id, code, {
+			const result = await transform(id, markMemoFreeComponents(id, code), {
 				jsx: "preserve",
 				sourcemap: true,
 				reactCompiler: reactCompilerOptions,

@@ -14,6 +14,7 @@ import devtoolsJson from "vite-plugin-devtools-json";
 
 import { remarkMdxNoParagraphWrap } from "@ngrok/remark-mdx-no-paragraph-wrap";
 import { reactCompilerOptions } from "../../packages/mantle/react-compiler.config.ts";
+import { markMemoFreeComponents } from "../../packages/mantle/scripts/mark-memo-free-components.ts";
 import { mantleChangelogMdx } from "./vite-plugins/mantle-changelog-mdx.ts";
 import { exampleHeights } from "./vite-plugins/example-heights.ts";
 import { mdxDocComponentImports } from "./vite-plugins/mdx-doc-component-imports.ts";
@@ -50,7 +51,7 @@ const reactCompiler = (): Plugin => ({
 			},
 		},
 		async handler(code, id) {
-			const result = await transform(id, code, {
+			const result = await transform(id, markMemoFreeComponents(id, code), {
 				jsx: "preserve",
 				sourcemap: true,
 				reactCompiler: reactCompilerOptions,

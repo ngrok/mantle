@@ -1,7 +1,3 @@
-// Why "use no memo": a server component can render this file. A stateless part gains little from
-// the compiler, and its cache hook would make the build mark the chunk "use client".
-"use no memo";
-
 import { cva } from "class-variance-authority";
 import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";

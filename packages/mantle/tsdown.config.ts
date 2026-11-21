@@ -4,6 +4,7 @@ import { defineConfig } from "tsdown";
 
 import { reactCompilerOptions } from "./react-compiler.config.ts";
 import { compoundNamespaces } from "./scripts/compound-namespaces.ts";
+import { markMemoFreeComponents } from "./scripts/mark-memo-free-components.ts";
 import { preserveUseClient } from "./scripts/preserve-use-client.ts";
 
 const MANTLE_CSS_SRC = new URL("./src/mantle.css", import.meta.url);
@@ -87,14 +88,16 @@ const DECLARATION_MODULE_RE = /\.d\.[cm]?ts$/;
  * than the Babel plugin and strips TypeScript in the same pass. JSX stays in
  * the output (`jsx: "preserve"`), so rolldown's own JSX transform still runs
  * with the tsconfig settings. `reactCompilerOptions` holds the strict
- * settings that all three compiler passes share.
+ * settings that all three compiler passes share. `markMemoFreeComponents`
+ * runs first in each pass, so the compiler skips each component that
+ * memoization cannot help.
  */
 const reactCompiler = () => ({
 	name: "react-compiler",
 	transform: {
 		filter: { id: { include: REACT_COMPILER_SOURCE_RE, exclude: DECLARATION_MODULE_RE } },
 		handler: async (code: string, id: string) => {
-			const result = await transform(id, code, {
+			const result = await transform(id, markMemoFreeComponents(id, code), {
 				jsx: "preserve",
 				sourcemap: true,
 				reactCompiler: reactCompilerOptions,

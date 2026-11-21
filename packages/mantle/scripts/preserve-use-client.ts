@@ -1,34 +1,12 @@
 /** Matches an import of the React Compiler runtime in an output chunk. */
 const COMPILER_RUNTIME_IMPORT_RE = /["']react\/compiler-runtime["']/;
 
-/**
- * Matches one token of a directive prologue: whitespace, a comment, or a string statement.
- * Why sticky (`y`): each match must start where the last one ended, so a lazy block comment
- * stops at its first `*\/` and never spans code.
- */
-const PROLOGUE_TOKEN_RE = /\s+|\/\/[^\n]*|\/\*[\s\S]*?\*\/|"([^"\\\n]*)"\s*;?|'([^'\\\n]*)'\s*;?/y;
+/** Matches a module whose first statement is `"use client"`, after any comments. */
+const USE_CLIENT_RE = /^(?:\s|\/\/[^\n]*\n|\/\*[\s\S]*?\*\/)*["']use client["']/;
 
 /** Matches the source modules that the build transforms, but not their declarations. */
 const SOURCE_RE = /[\\/]src[\\/].+\.tsx?$/;
 const DECLARATION_RE = /\.d\.[cm]?ts$/;
-
-/**
- * Reads the directives at the top of a module, before its first statement that is not a string.
- *
- * @example
- * readDirectives('// Note.\n"use no memo";\n"use client";\nexport {};'); // => ["use no memo", "use client"]
- */
-function readDirectives(code: string): string[] {
-	const directives: string[] = [];
-	const tokenRe = new RegExp(PROLOGUE_TOKEN_RE);
-	for (let match = tokenRe.exec(code); match?.[0]; match = tokenRe.exec(code)) {
-		const directive = match[1] ?? match[2];
-		if (directive != null) {
-			directives.push(directive);
-		}
-	}
-	return directives;
-}
 
 /**
  * Reports whether a source module starts with the `"use client"` directive.
@@ -37,18 +15,7 @@ function readDirectives(code: string): string[] {
  * hasUseClientDirective('"use client";\nimport { useState } from "react";'); // => true
  */
 function hasUseClientDirective(code: string): boolean {
-	return readDirectives(code).includes("use client");
-}
-
-/**
- * Reports whether a source module opts out of the React Compiler for the whole file. A
- * `"use no memo"` inside one function does not count.
- *
- * @example
- * hasFileUseNoMemoDirective('"use no memo";\nimport { cx } from "./cx.js";'); // => true
- */
-function hasFileUseNoMemoDirective(code: string): boolean {
-	return readDirectives(code).includes("use no memo");
+	return USE_CLIENT_RE.test(code);
 }
 
 /**
@@ -123,10 +90,6 @@ function findClientImport(
  * server component. A chunk with no client code, such as `cx`, stays free of
  * the directive, so server code can still call it.
  *
- * A module with a file-level `"use no memo"` is a server component (CONVENTIONS.md
- * § React Compiler). The build fails when one lands in a `"use client"` chunk, because a
- * server component would then silently render it as a client component.
- *
  * @example
  * defineConfig({ plugins: [preserveUseClient({ serverEntries: ["cx.js"] })] });
  */
@@ -137,24 +100,14 @@ function preserveUseClient({
 	serverEntries: readonly string[];
 }) {
 	const clientModuleIds = new Set<string>();
-	const serverModuleIds = new Set<string>();
 	return {
 		name: "preserve-use-client",
 		transform: {
 			order: "pre" as const,
 			filter: { id: { include: SOURCE_RE, exclude: DECLARATION_RE } },
 			handler: (code: string, id: string) => {
-				// Why delete as well as add: a watch rebuild transforms a changed module again, and an
-				// edit can remove its directive.
 				if (hasUseClientDirective(code)) {
 					clientModuleIds.add(id);
-				} else {
-					clientModuleIds.delete(id);
-				}
-				if (hasFileUseNoMemoDirective(code)) {
-					serverModuleIds.add(id);
-				} else {
-					serverModuleIds.delete(id);
 				}
 				return null;
 			},
@@ -165,12 +118,6 @@ function preserveUseClient({
 			}
 			if (!chunkNeedsUseClient({ code, moduleIds: chunk.moduleIds, clientModuleIds })) {
 				return null;
-			}
-			const serverModuleId = chunk.moduleIds.find((moduleId) => serverModuleIds.has(moduleId));
-			if (serverModuleId != null) {
-				throw new Error(
-					`${serverModuleId} has a file-level "use no memo" so server components can render it, but its chunk ${chunk.fileName} holds a "use client" or compiled module. Remove "use client" from that file, or keep compiled modules out of its chunk.`,
-				);
 			}
 			return `"use client";\n${code}`;
 		},
@@ -191,7 +138,6 @@ export {
 	//,
 	chunkNeedsUseClient,
 	findClientImport,
-	hasFileUseNoMemoDirective,
 	hasUseClientDirective,
 	preserveUseClient,
 };
