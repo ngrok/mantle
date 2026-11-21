@@ -9,10 +9,13 @@ import * as TableParts from "./table-parts.js";
 /**
  * Use `Table` for STATIC, layout-driven tabular data: read-only data dumps,
  * simple key/value displays, plain markup tables. The API matches the HTML
- * `<table>` element 1:1, with no built-in sorting, filtering, or pagination.
+ * `<table>` element 1:1, with no built-in sorting, filtering, pagination, or row
+ * expansion.
  *
  * For INTERACTIVE tabular data with sorting / filtering / pagination / row
- * selection, use `DataTable` (built on TanStack Table) instead.
+ * selection / expandable rows, use `DataTable` (built on TanStack Table)
+ * instead. For a detail panel, pass `renderExpanded` to `DataTable.Row`. For
+ * sub-rows, pass `getSubRows` to `useTable`.
  *
  * **Large lists.** Each rendered row costs mount and layout time, so a table
  * that renders every row of a large list blocks input while it mounts:
@@ -29,7 +32,7 @@ import * as TableParts from "./table-parts.js";
  * filtering, or pagination.
  *
  * @siblings
- * - `DataTable`: the user sorts, filters, pages through, or selects the rows.
+ * - `DataTable`: the user sorts, filters, pages through, selects, or expands rows (a detail panel or sub-rows).
  * - `DescriptionList`: one record shows as label and value pairs.
  *
  * @see https://mantle.ngrok.com/components/data-display/table

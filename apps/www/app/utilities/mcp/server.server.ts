@@ -37,6 +37,8 @@ import {
 import { createLinearGaps, type LinearGaps } from "~/utilities/mcp/linear.server";
 import { clipMarkdown, gapIssueOf, mcpPulse } from "~/utilities/mcp/pulse.server";
 import { renderMdxToMarkdown } from "~/utilities/render-mdx-to-markdown.server";
+import { loadSourceFiles } from "~/utilities/mantle-source.server";
+import { sourceHash } from "../../../../../packages/mantle/scripts/agent-manifest";
 
 /** The server instructions. The contract test caps their size. */
 export const MCP_INSTRUCTIONS = [
@@ -58,6 +60,8 @@ export type McpDependencies = {
 	docsVersion: string;
 	/** The commit of the docs build, when known. */
 	docsCommit?: string;
+	/** The `sourceHash` of the docs build's package source. */
+	docsSourceHash: () => Promise<string | undefined>;
 	readDocs: (slug: string) => Promise<string | undefined>;
 	migrations: () => Promise<MigrationGuide[]>;
 	/** The docs pages with no API record, such as foundations and recipes. */
@@ -313,12 +317,36 @@ function byteLength(body: string): number {
 	return new TextEncoder().encode(body).length;
 }
 
-function provenanceFor(dependencies: McpDependencies, data: VersionData): Provenance {
+async function provenanceFor(
+	dependencies: McpDependencies,
+	data: VersionData,
+): Promise<Provenance> {
+	const { docsVersion, docsCommit } = dependencies;
+	if (docsVersion !== data.version) {
+		return { dataVersion: data.version, docsVersion, docsCommit };
+	}
+	// Why the hash: main keeps the released version number until the next
+	// release, so the docs build can document props that version does not have.
+	const docsSourceHash = await dependencies.docsSourceHash();
+	if (docsSourceHash != null && docsSourceHash === data.manifest.sourceHash) {
+		return { dataVersion: data.version, docsVersion };
+	}
 	return {
 		dataVersion: data.version,
-		docsVersion: dependencies.docsVersion,
-		docsCommit: dependencies.docsVersion === data.version ? undefined : dependencies.docsCommit,
+		docsVersion: `${docsVersion} with unreleased changes`,
+		docsCommit,
 	};
+}
+
+/** The docs version as `provenanceFor` labels it against the latest release. */
+async function latestDocsVersion(dependencies: McpDependencies): Promise<string> {
+	try {
+		return (await provenanceFor(dependencies, await dependencies.loader.load(undefined)))
+			.docsVersion;
+	} catch {
+		// Why: `read_docs` needs no release data, so a registry failure keeps the bare version.
+		return dependencies.docsVersion;
+	}
 }
 
 function provenanceLine(provenance: Provenance): string {
@@ -533,7 +561,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				? "Call `get` with a name for its examples and props, or `read_docs` with a page path."
 				: "No result is a strong match, so mantle may have no part for this. Check that a result fits before you use it. If none fits, compose mantle parts, then call `report_gap`.";
 			const body = [
-				provenanceLine(provenanceFor(dependencies, data)),
+				provenanceLine(await provenanceFor(dependencies, data)),
 				"",
 				...found.map(({ record }) => findResultText(record)),
 				...(found.length === 0 ? ["No mantle part or docs page matches."] : []),
@@ -600,7 +628,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					{ dataVersion: data.version },
 				);
 			}
-			const provenance = provenanceFor(dependencies, data);
+			const provenance = await provenanceFor(dependencies, data);
 			const body = getRecordText({
 				record,
 				data,
@@ -654,7 +682,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					: "";
 			return {
 				result: text(
-					`docsVersion: ${dependencies.docsVersion} (latest)\n\n${fitted.text}${missing}`,
+					`docsVersion: ${await latestDocsVersion(dependencies)} (latest)\n\n${fitted.text}${missing}`,
 				),
 			};
 		}),
@@ -739,7 +767,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					content: [
 						{
 							type: "text",
-							text: `${provenanceLine(provenanceFor(dependencies, data))}\n\n${summary}\n\n${JSON.stringify(diagnostics, null, 1)}`,
+							text: `${provenanceLine(await provenanceFor(dependencies, data))}\n\n${summary}\n\n${JSON.stringify(diagnostics, null, 1)}`,
 						},
 					],
 					structuredContent: { dataVersion: data.version, diagnostics },
@@ -1180,6 +1208,17 @@ function loadDocPages(): Promise<DocPageRecord[]> {
 	return docPagesCache;
 }
 
+let docsSourceHashCache: Promise<string> | undefined;
+
+/** The source hash of the docs build: one hash for the process in production, a new one for each call in dev. */
+function loadDocsSourceHash(): Promise<string> {
+	if (!import.meta.env.PROD) {
+		return loadSourceFiles().then((files) => sourceHash(files, mantlePackageJson));
+	}
+	docsSourceHashCache ??= loadSourceFiles().then((files) => sourceHash(files, mantlePackageJson));
+	return docsSourceHashCache;
+}
+
 let loader: VersionDataLoader | undefined;
 let linear: LinearGaps | undefined;
 
@@ -1205,6 +1244,7 @@ export function productionDependencies({
 		loader,
 		docsVersion: mantlePackageJson.version,
 		docsCommit: process.env.COMMIT_SHA,
+		docsSourceHash: loadDocsSourceHash,
 		readDocs,
 		migrations: loadMigrationGuides,
 		docPages: loadDocPages,

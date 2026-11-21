@@ -10,6 +10,7 @@ import {
 	parseFrontmatter,
 	renderLlmsTxt,
 	siblingsFromJsDoc,
+	sourceHash,
 	whenToUseFromJsDoc,
 	type AgentManifestInputs,
 } from "./agent-manifest.ts";
@@ -303,6 +304,7 @@ function inputs(overrides: Partial<AgentManifestInputs> = {}): AgentManifestInpu
 			{ slug: "base/colors", frontmatter: { title: "Colors" } },
 		],
 		readSource: (basePath) => sources[`${basePath}.tsx`] ?? sources[`${basePath}.ts`],
+		sourceHash: sourceHash(sources, {}),
 		...overrides,
 	};
 }

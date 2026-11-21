@@ -671,8 +671,8 @@
     "category": "Data Display",
     "status": "stable",
     "importPath": "@ngrok/mantle/data-table",
-    "summary": "Tables purposefully designed for dynamic, application data with features like sorting, filtering, and pagination.",
-    "jsdoc": "Use `DataTable` for INTERACTIVE tabular data: sorting, filtering, pagination, row selection, and server-side or client-side data.",
+    "summary": "Tables purposefully designed for dynamic, application data with features like sorting, filtering, pagination, and expandable rows.",
+    "jsdoc": "Use `DataTable` for INTERACTIVE tabular data: sorting, filtering, pagination, row selection, expandable rows (a detail panel or sub-rows), and server-side or client-side data.",
     "examples": [
       "Composition:\n```\nDataTable.Root\n├── DataTable.Head\n│   └── DataTable.Row\n│       ├── DataTable.ExpandHeader\n│       ├── DataTable.Header\n│       │   └── DataTable.HeaderSortButton\n│       └── DataTable.ActionHeader\n└── DataTable.Body\n    ├── DataTable.Row\n    │   ├── DataTable.ControlCell\n    │   │   └── DataTable.RowExpandButton\n    │   ├── DataTable.Cell\n    │   └── DataTable.ActionCell\n    ├── DataTable.ExpandedRow\n    └── DataTable.EmptyRow\n```",
       "A minimal, read-only table with a single sortable column:\n```tsx\nimport {\n  DataTable,\n  createColumnHelper,\n  createSortedRowModel,\n  rowSortingFeature,\n  sortFn_alphanumeric,\n  sortFn_datetime,\n  sortFn_text,\n  tableFeatures,\n  useTable,\n} from \"@ngrok/mantle/data-table\";\n\ntype Row = { id: string; name: string };\n\n// Register only the features the table uses. Auto-sort resolves the\n// `alphanumeric`, `text`, and `datetime` comparators by name, so register those three.\nconst features = tableFeatures({\n  rowSortingFeature,\n  sortedRowModel: createSortedRowModel(),\n  sortFns: {\n    alphanumeric: sortFn_alphanumeric,\n    datetime: sortFn_datetime,\n    text: sortFn_text,\n  },\n});\n\nconst columnHelper = createColumnHelper<typeof features, Row>();\nconst columns = columnHelper.columns([\n  columnHelper.accessor(\"name\", {\n    id: \"name\",\n    header: (props) => (\n      <DataTable.Header column={props.column}>\n        <DataTable.HeaderSortButton column={props.column} sortingMode=\"alphanumeric\">\n          Name\n        </DataTable.HeaderSortButton>\n      </DataTable.Header>\n    ),\n    cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,\n  }),\n]);\n\nfunction MyTable({ data }: { data: Row[] }) {\n  const table = useTable({ features, data, columns });\n  const rows = table.getRowModel().rows;\n\n  return (\n    <DataTable.Root table={table}>\n      <DataTable.Head />\n      <DataTable.Body>\n        {rows.length > 0\n          ? rows.map((row) => <DataTable.Row key={row.id} row={row} />)\n          : <DataTable.EmptyRow>No results.</DataTable.EmptyRow>}\n      </DataTable.Body>\n    </DataTable.Root>\n  );\n}\n```",
@@ -684,19 +684,22 @@
       "data grid",
       "datagrid",
       "grid",
-      "sortable table"
+      "sortable table",
+      "expandable rows",
+      "row expansion",
+      "sub-rows"
     ],
     "siblings": [
       {
         "name": "Table",
-        "boundary": "the data is static, with no sorting, filtering, pagination, or selection."
+        "boundary": "the data is static, with no sorting, filtering, pagination, selection, or row expansion."
       },
       {
         "name": "DescriptionList",
         "boundary": "one record shows as label and value pairs."
       }
     ],
-    "useWhen": "Show rows of application data that the user sorts, filters, pages through, or selects."
+    "useWhen": "Show rows of application data that the user sorts, filters, pages through, selects, or expands into a detail panel or sub-rows."
   },
   {
     "name": "Description List",
@@ -2030,7 +2033,7 @@
     "siblings": [
       {
         "name": "DataTable",
-        "boundary": "the user sorts, filters, pages through, or selects the rows."
+        "boundary": "the user sorts, filters, pages through, selects, or expands rows (a detail panel or sub-rows)."
       },
       {
         "name": "DescriptionList",

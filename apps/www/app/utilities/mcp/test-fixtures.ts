@@ -92,6 +92,7 @@ export function packageFilesFixture(version = "0.93.0"): PackageFiles {
 				summary: "Color names and type guards.",
 			},
 		],
+		sourceHash: "release-hash",
 	};
 	return new Map([
 		[

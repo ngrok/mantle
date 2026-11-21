@@ -2,6 +2,7 @@ import mantlePackageJson from "@ngrok/mantle/package.json" with { type: "json" }
 import {
 	buildAgentManifest,
 	importableSubpaths,
+	sourceHash,
 	type AgentManifest,
 	type DocPage,
 } from "../../../../packages/mantle/scripts/agent-manifest";
@@ -29,6 +30,7 @@ async function build(): Promise<AgentManifest> {
 		subpaths: importableSubpaths(mantlePackageJson.exports),
 		docs,
 		readSource: sourceReader(sourceFiles),
+		sourceHash: sourceHash(sourceFiles, mantlePackageJson),
 	});
 }
 

@@ -205,6 +205,22 @@ describe("getRecordText", () => {
 		expect(text).toContain("## Extra context: docs prose for 0.94.0, not 0.93.0");
 	});
 
+	// Why: the budget cuts from the end, and a large declaration cut off the sections the caller asked for.
+	it("puts requested sections before the version's declarations", () => {
+		const text = getRecordText({
+			record,
+			data,
+			provenance: { dataVersion: "0.93.0", docsVersion: "0.93.0 with unreleased changes" },
+			docsMarkdown: buttonPage,
+			sections: ["Size"],
+		});
+
+		expect(text.indexOf("Small and medium.")).toBeGreaterThan(-1);
+		expect(text.indexOf("Small and medium.")).toBeLessThan(
+			text.indexOf("## Contract (declarations of @ngrok/mantle@0.93.0)"),
+		);
+	});
+
 	it("imports the name the subpath exports, and adds the parts of a compound component", () => {
 		const dialog = recordNamed(records, "Dialog");
 		const dataTable = recordNamed(records, "Data Table");
@@ -241,6 +257,22 @@ describe("getRecordText", () => {
 		expect(text).toContain("- Import from: `@ngrok/mantle/color`");
 		expect(text).not.toContain("import { color }");
 		expect(text).toContain("isColor checks a name.");
+	});
+
+	it("shows every declaration of a utility module when the docs are another version", () => {
+		const color = recordNamed(records, "color");
+		if (color == null) {
+			throw new Error("The fixture has no color utility.");
+		}
+
+		const text = getRecordText({
+			record: color,
+			data,
+			provenance: { dataVersion: "0.93.0", docsVersion: "0.94.0" },
+			docsMarkdown: undefined,
+		});
+
+		expect(text).toContain("declare const colors: readonly string[];");
 	});
 });
 
