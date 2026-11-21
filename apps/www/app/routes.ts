@@ -157,6 +157,7 @@ const recipesPages = [
 	"assistant-across-routes",
 	"breadcrumbs-from-routes",
 	"filter-from-a-value",
+	"form-sections-and-actions",
 	"header-actions-from-routes",
 	"list-page-loading-states",
 	"natural-language-query",
