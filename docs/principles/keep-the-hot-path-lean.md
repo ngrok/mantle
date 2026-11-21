@@ -13,7 +13,7 @@ Do each piece of work one time, at the earliest point that has its input: module
 - A context value that changes for each event, so each consumer renders again.
 - One listener or one observer for each instance, when one shared listener serves the page.
 - Work at mount for an item that is off screen: a measure, an engine, or a layer. Do it when the item gets near the viewport or on the first interaction.
-- A `useMemo`, a `useCallback`, or a `memo` that someone added for speed. The React Compiler already memoizes each component ([CONVENTIONS.md § React Compiler](../../CONVENTIONS.md#react-compiler)).
+- A `useMemo`, a `useCallback`, or a `memo` that someone added for speed. The React Compiler already memoizes each component that it compiles ([CONVENTIONS.md § React Compiler](../../CONVENTIONS.md#react-compiler)).
 - A speedup with no benchmark. See [explain the number](./explain-the-number.md).
 
 **In this repo:**
