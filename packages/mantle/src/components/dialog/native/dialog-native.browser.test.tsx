@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { createRef, Profiler, type ReactNode, useState } from "react";
+import { createRef, Profiler, type ReactNode, StrictMode, useState } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, onTestFinished, test, vi } from "vitest";
@@ -209,6 +209,155 @@ describe("Dialog (native)", () => {
 		await userEvent.keyboard("{Escape}");
 		await waitFor(() => expect(dialogElement().contains(toast)).toBe(false));
 		expect(document.body.contains(toast)).toBe(true);
+	});
+
+	test("a default-open dialog under StrictMode writes its open state", () => {
+		render(
+			<StrictMode>
+				<Dialog.Root defaultOpen>
+					<Dialog.Trigger>Open dialog</Dialog.Trigger>
+					<Dialog.Content>
+						<Dialog.Title>Delete tunnel</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+			</StrictMode>,
+		);
+		expect(dialogElement().open).toBe(true);
+		expect(dialogElement()).toHaveAttribute("data-state", "open");
+		expect(screen.getByText("Open dialog")).toHaveAttribute("aria-expanded", "true");
+	});
+
+	test("a trigger that mounts while the dialog is open shows the open state", () => {
+		function LateTrigger({ withTrigger }: { withTrigger: boolean }) {
+			return (
+				<Dialog.Root open>
+					{withTrigger && <Dialog.Trigger>Open dialog</Dialog.Trigger>}
+					<Dialog.Content>
+						<Dialog.Title>Delete tunnel</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+			);
+		}
+		const { rerender } = render(<LateTrigger withTrigger={false} />);
+		rerender(<LateTrigger withTrigger />);
+		expect(screen.getByText("Open dialog")).toHaveAttribute("aria-expanded", "true");
+		expect(screen.getByText("Open dialog")).toHaveAttribute("data-state", "open");
+	});
+
+	test("Content gives its aria-label, aria-labelledby, and aria-describedby to the <dialog>", () => {
+		render(
+			<Dialog.Root open>
+				<Dialog.Content aria-labelledby="own-name" aria-describedby="own-help">
+					<Dialog.Title>Delete tunnel</Dialog.Title>
+					<p id="own-name">Own name</p>
+					<p id="own-help">Own help</p>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+		const dialog = screen.getByRole("dialog", { name: "Own name" });
+		expect(dialog).toHaveAccessibleDescription("Own help");
+		expect(document.querySelector("[data-mantle-modal-content]")).not.toHaveAttribute(
+			"aria-labelledby",
+		);
+	});
+
+	test("a controlled dialog stays open when a `method=dialog` form submits, and asks its owner", async () => {
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<ExampleDialog open onOpenChange={onOpenChange}>
+				<form method="dialog">
+					<button type="submit">Submit</button>
+				</form>
+			</ExampleDialog>,
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Submit" }));
+		expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
+		expect(dialogElement().open).toBe(true);
+	});
+
+	test("focus goes back to the trigger when an open Content unmounts", async () => {
+		function Unmounting() {
+			const [shown, setShown] = useState(true);
+			return (
+				<Dialog.Root>
+					<Dialog.Trigger>Open dialog</Dialog.Trigger>
+					{shown && (
+						<Dialog.Content>
+							<Dialog.Title>Delete tunnel</Dialog.Title>
+							<button type="button" onClick={() => setShown(false)}>
+								Done
+							</button>
+						</Dialog.Content>
+					)}
+				</Dialog.Root>
+			);
+		}
+		render(<Unmounting />);
+		await userEvent.click(screen.getByRole("button", { name: "Open dialog" }));
+		await userEvent.click(screen.getByRole("button", { name: "Done" }));
+		await waitFor(() => expect(screen.getByRole("button", { name: "Open dialog" })).toHaveFocus());
+	});
+
+	test("Escape in a nested dialog closes it and leaves a controlled parent alone", async () => {
+		const onOuterOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<ExampleDialog open onOpenChange={onOuterOpenChange}>
+				<Dialog.Root>
+					<Dialog.Trigger>Open inner</Dialog.Trigger>
+					<Dialog.Content>
+						<Dialog.Title>Inner</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+			</ExampleDialog>,
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Open inner" }));
+		const inner = screen.getByRole("dialog", { name: "Inner" });
+
+		await userEvent.keyboard("{Escape}");
+
+		await waitFor(() => expect(inner).not.toHaveAttribute("open"));
+		expect(onOuterOpenChange).not.toHaveBeenCalled();
+	});
+
+	test("closing a controlled parent closes its open nested dialog first", async () => {
+		function Nested({ open }: { open: boolean }) {
+			return (
+				<ExampleDialog open={open}>
+					<Dialog.Root>
+						<Dialog.Trigger>Open inner</Dialog.Trigger>
+						<Dialog.Content>
+							<Dialog.Title>Inner</Dialog.Title>
+						</Dialog.Content>
+					</Dialog.Root>
+				</ExampleDialog>
+			);
+		}
+		const { rerender } = render(<Nested open />);
+		await userEvent.click(screen.getByRole("button", { name: "Open inner" }));
+		const inner = screen.getByRole("dialog", { name: "Inner" });
+
+		rerender(<Nested open={false} />);
+
+		expect(inner).not.toHaveAttribute("open");
+		expect(document.querySelector("dialog:modal")).toBeNull();
+	});
+
+	test("a Dialog.Trigger inside a native Sheet.Content opens the Dialog.Root above the sheet", async () => {
+		render(
+			<Dialog.Root>
+				<SheetNative.Root open>
+					<SheetNative.Content>
+						<SheetNative.Title>Filters</SheetNative.Title>
+						<Dialog.Trigger>Open dialog</Dialog.Trigger>
+					</SheetNative.Content>
+				</SheetNative.Root>
+				<Dialog.Content>
+					<Dialog.Title>Confirm</Dialog.Title>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Open dialog" }));
+		expect(screen.getByRole("dialog", { name: "Confirm" }).matches(":modal")).toBe(true);
 	});
 });
 

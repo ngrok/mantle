@@ -27,6 +27,8 @@ import * as SheetParts from "./sheet-native-parts.js";
  * - A controlled `open` works, but each change renders React. The fast path
  *   is the uncontrolled trigger.
  * - The exit animates in Chromium only; other browsers close at once.
+ * - Do not open it from inside a Radix `Dialog` or `Sheet`: the Radix overlay
+ *   takes Escape first and closes itself, not the native sheet.
  * - CSS locks page scroll (`:root:has(dialog:modal)`), not JavaScript.
  *
  * @useWhen Open a panel from the edge of the screen from a tap that must answer in one frame,

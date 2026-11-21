@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentProps, MouseEvent, ReactNode } from "react";
+import type { ComponentProps, Context, MouseEvent, ReactNode } from "react";
 import { createContext, useContext, useId, useLayoutEffect, useMemo, useRef } from "react";
 import invariant from "tiny-invariant";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
@@ -31,11 +31,24 @@ type RootState = {
 	onOpenChange: (open: boolean) => void;
 };
 
-const RootContext = createContext<RootState | null>(null);
+/**
+ * The context that ties the parts of one component family to its `Root`. Each
+ * family makes its own with `createScope`, so a `Dialog.Trigger` inside a
+ * `Sheet.Content` binds to the enclosing `Dialog.Root`, not to the sheet.
+ */
+type Scope = Context<RootState | null>;
 
-/** The `RootState` of the enclosing `Root`. Throws outside one. */
-function useRootState(part: string): RootState {
-	const state = useContext(RootContext);
+/** Makes the `Scope` of a component family. Call it once, at module level. */
+const createScope = (): Scope => createContext<RootState | null>(null);
+
+/** What every part takes: the `Scope` of its family. */
+type ScopeProps = {
+	scope: Scope;
+};
+
+/** The `RootState` of the enclosing `Root` in `scope`. Throws outside one. */
+function useRootState(scope: Scope, part: string): RootState {
+	const state = useContext(scope);
 	invariant(
 		state != null,
 		`The native dialog part \`${part}\` must be rendered inside its \`Root\`.`,
@@ -45,6 +58,12 @@ function useRootState(part: string): RootState {
 
 /** The open native dialogs, in open order. The last one is on top. */
 const openDialogs: HTMLDialogElement[] = [];
+
+/** Writes `state` to the `aria-expanded` and `data-state` of `trigger`. */
+function writeTriggerState(trigger: Element, state: string): void {
+	trigger.setAttribute("aria-expanded", String(state === "open"));
+	trigger.setAttribute("data-state", state);
+}
 
 /**
  * Writes the open state of `dialog` to the DOM that mirrors it: `data-state` on
@@ -58,8 +77,7 @@ function writeOpenState({ dialog, open }: { dialog: HTMLDialogElement; open: boo
 		dialog.dataset.state = state;
 		dialog.querySelector("[data-mantle-modal-content]")?.setAttribute("data-state", state);
 		for (const trigger of dialog.ownerDocument.querySelectorAll(`[aria-controls="${dialog.id}"]`)) {
-			trigger.setAttribute("aria-expanded", String(open));
-			trigger.setAttribute("data-state", state);
+			writeTriggerState(trigger, state);
 		}
 	}
 	const index = openDialogs.indexOf(dialog);
@@ -82,9 +100,17 @@ function moveDialog({ dialog, open }: { dialog: HTMLDialogElement; open: boolean
 	writeOpenState({ dialog, open });
 	if (open) {
 		dialog.showModal();
-	} else {
-		dialog.close();
+		return;
 	}
+	// Why the nested dialogs close first, innermost first: an open child stays
+	// modal inside its hidden parent and blocks the page, and each close
+	// returns focus to the element that opened it.
+	for (const child of [...dialog.querySelectorAll("dialog[open]")].toReversed()) {
+		if (child instanceof HTMLDialogElement) {
+			child.close();
+		}
+	}
+	dialog.close();
 }
 
 /**
@@ -123,14 +149,16 @@ function commandAttributes(root: RootState, command: "show-modal" | "close") {
 
 /** Whether the browser already ran the invoker command of `element` for this click. */
 function ranCommand(root: RootState, element: Element): boolean {
+	// Why `type="button"`: the browser runs no command for a submit or reset button.
 	return (
 		root.open === undefined &&
 		element instanceof HTMLButtonElement &&
+		element.type === "button" &&
 		"commandForElement" in element
 	);
 }
 
-type RootProps = {
+type RootProps = ScopeProps & {
 	children?: ReactNode;
 	/**
 	 * Whether the dialog opens on mount. The `<dialog>` owns the state after that.
@@ -149,7 +177,7 @@ type RootProps = {
 };
 
 /** The state owner of a native dialog. It renders no DOM. */
-const Root = ({ children, defaultOpen = false, onOpenChange, open }: RootProps) => {
+const Root = ({ children, defaultOpen = false, onOpenChange, open, scope: Scope }: RootProps) => {
 	const contentId = useId();
 	const titleId = useId();
 	const stableOnOpenChange = useCallbackRef((next: boolean) => onOpenChange?.(next));
@@ -158,12 +186,14 @@ const Root = ({ children, defaultOpen = false, onOpenChange, open }: RootProps) 
 		[contentId, titleId, open, defaultOpen, stableOnOpenChange],
 	);
 
-	return <RootContext.Provider value={state}>{children}</RootContext.Provider>;
+	return <Scope value={state}>{children}</Scope>;
 };
 
+type ButtonProps = ComponentProps<"button"> & WithAsChild & ScopeProps;
+
 /** A button that opens the dialog. */
-const Trigger = ({ asChild, onClick, ...props }: ComponentProps<"button"> & WithAsChild) => {
-	const root = useRootState("Trigger");
+const Trigger = ({ asChild, onClick, ref, scope, ...props }: ButtonProps) => {
+	const root = useRootState(scope, "Trigger");
 	const Component = asChild ? Slot : "button";
 	// Why a named handler: `Slot` types its event on `HTMLElement`, and the
 	// handler reads `currentTarget` as the clicked element either way.
@@ -174,10 +204,21 @@ const Trigger = ({ asChild, onClick, ...props }: ComponentProps<"button"> & With
 		}
 	};
 
+	// Why a ref: a trigger that mounts while its dialog is open takes the open
+	// state the dialog already has.
+	const readState = (trigger: HTMLButtonElement | null) => {
+		const state = trigger?.ownerDocument.getElementById(root.contentId)?.dataset.state;
+		if (trigger != null && state != null) {
+			writeTriggerState(trigger, state);
+		}
+	};
+	const composedRef = useComposedRefs(ref, readState);
+
 	// Why constant `aria-expanded` and `data-state`: `writeOpenState` keeps them
 	// current on the DOM, and React never writes a prop again that did not change.
 	return (
 		<Component
+			ref={composedRef}
 			type="button"
 			aria-controls={root.contentId}
 			aria-expanded="false"
@@ -191,8 +232,8 @@ const Trigger = ({ asChild, onClick, ...props }: ComponentProps<"button"> & With
 };
 
 /** A button that closes the dialog. */
-const Close = ({ asChild, onClick, ...props }: ComponentProps<"button"> & WithAsChild) => {
-	const root = useRootState("Close");
+const Close = ({ asChild, onClick, scope, ...props }: ButtonProps) => {
+	const root = useRootState(scope, "Close");
 	const Component = asChild ? Slot : "button";
 	const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
 		onClick?.(event);
@@ -227,12 +268,13 @@ const positionerBaseClassName = cx(
 	"not-open:backdrop:opacity-0 not-open:backdrop:duration-150 starting:open:backdrop:opacity-0 motion-reduce:backdrop:transition-none",
 );
 
-type ContentProps = ComponentProps<"div"> & {
-	/** The classes of the `<dialog>`, which positions the panel. */
-	positionerClassName: string;
-	/** The `data-slot` of the `<dialog>`. */
-	positionerSlot: string;
-};
+type ContentProps = ComponentProps<"div"> &
+	ScopeProps & {
+		/** The classes of the `<dialog>`, which positions the panel. */
+		positionerClassName: string;
+		/** The `data-slot` of the `<dialog>`. */
+		positionerSlot: string;
+	};
 
 /**
  * The panel of the dialog, inside a modal `<dialog>` that is always rendered,
@@ -242,13 +284,17 @@ type ContentProps = ComponentProps<"div"> & {
  * the top layer with it.
  */
 const Content = ({
+	"aria-describedby": ariaDescribedBy,
+	"aria-label": ariaLabel,
+	"aria-labelledby": ariaLabelledBy,
 	children,
 	positionerClassName,
 	positionerSlot,
 	ref,
+	scope,
 	...props
 }: ContentProps) => {
-	const root = useRootState("Content");
+	const root = useRootState(scope, "Content");
 	const dialogRef = useRef<HTMLDialogElement | null>(null);
 	const controlledOpen = useRef(root.open);
 	const reportedOpen = useRef(false);
@@ -256,11 +302,13 @@ const Content = ({
 
 	const sync = useCallbackRef((dialog: HTMLDialogElement) => {
 		const { open } = dialog;
+		// Why the write comes before the check: a StrictMode remount writes the
+		// state closed and then finds the dialog still open.
+		writeOpenState({ dialog, open });
 		if (open === reportedOpen.current) {
 			return;
 		}
 		reportedOpen.current = open;
-		writeOpenState({ dialog, open });
 		if (open !== controlledOpen.current) {
 			root.onOpenChange(open);
 		}
@@ -295,6 +343,17 @@ const Content = ({
 			observer.disconnect();
 			dialog.removeEventListener("command", writeCommand);
 			writeOpenState({ dialog, open: false });
+			if (!dialog.open) {
+				return;
+			}
+			// Why: the browser returns focus only from `close()`, not when an open
+			// `<dialog>` leaves the page. A StrictMode remount keeps it on the page.
+			const document = dialog.ownerDocument;
+			queueMicrotask(() => {
+				if (!dialog.isConnected && document.activeElement === document.body) {
+					document.querySelector<HTMLElement>(`[aria-controls="${dialog.id}"]`)?.focus();
+				}
+			});
 		};
 	});
 
@@ -312,13 +371,33 @@ const Content = ({
 		<dialog
 			ref={attach}
 			id={root.contentId}
-			aria-labelledby={root.titleId}
+			aria-describedby={ariaDescribedBy}
+			aria-label={ariaLabel}
+			aria-labelledby={ariaLabelledBy ?? (ariaLabel == null ? root.titleId : undefined)}
 			className={cx(positionerBaseClassName, positionerClassName)}
 			data-slot={positionerSlot}
 			data-state="closed"
+			// Why the target checks: React sends the events of a nested `<dialog>`
+			// up to this one too. Why the `preventDefault`: a controlled dialog
+			// closes when its owner sets `open`.
 			onCancel={(event) => {
-				// Why: a controlled dialog closes when its owner sets `open`.
-				if (root.open !== undefined) {
+				if (event.target === event.currentTarget && root.open !== undefined) {
+					event.preventDefault();
+					root.onOpenChange(false);
+				}
+			}}
+			onSubmit={(event) => {
+				const { currentTarget, nativeEvent, target } = event;
+				if (
+					root.open === undefined ||
+					!(nativeEvent instanceof SubmitEvent) ||
+					!(target instanceof HTMLFormElement) ||
+					target.closest("dialog") !== currentTarget
+				) {
+					return;
+				}
+				const method = nativeEvent.submitter?.getAttribute("formmethod")?.toLowerCase();
+				if ((method ?? target.method) === "dialog") {
 					event.preventDefault();
 					root.onOpenChange(false);
 				}
@@ -345,8 +424,12 @@ const Content = ({
 };
 
 /** The accessible name of the dialog. */
-const Title = ({ asChild, ...props }: Omit<ComponentProps<"h2">, "id"> & WithAsChild) => {
-	const root = useRootState("Title");
+const Title = ({
+	asChild,
+	scope,
+	...props
+}: Omit<ComponentProps<"h2">, "id"> & WithAsChild & ScopeProps) => {
+	const root = useRootState(scope, "Title");
 	const Component = asChild ? Slot : "h2";
 	return <Component id={root.titleId} {...props} />;
 };
@@ -355,8 +438,14 @@ const Title = ({ asChild, ...props }: Omit<ComponentProps<"h2">, "id"> & WithAsC
  * The accessible description of the dialog. While it is mounted, the
  * `<dialog>` names it in `aria-describedby`.
  */
-const Description = ({ asChild, id, ref, ...props }: ComponentProps<"div"> & WithAsChild) => {
-	useRootState("Description");
+const Description = ({
+	asChild,
+	id,
+	ref,
+	scope,
+	...props
+}: ComponentProps<"div"> & WithAsChild & ScopeProps) => {
+	useRootState(scope, "Description");
 	const generatedId = useId();
 	const descriptionId = id ?? generatedId;
 	const describe = (element: HTMLDivElement | null) => {
@@ -376,6 +465,7 @@ export {
 	//,
 	Close,
 	Content,
+	createScope,
 	Description,
 	Root,
 	Title,
@@ -386,4 +476,5 @@ export type {
 	//,
 	ContentProps,
 	RootProps,
+	Scope,
 };

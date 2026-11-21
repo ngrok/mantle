@@ -7,8 +7,10 @@ import { joinDataSlot } from "../../../utils/data-slot.js";
 import {
 	Close as NativeClose,
 	Content as NativeContent,
+	createScope,
 	Description as NativeDescription,
 	Root as NativeRoot,
+	type RootProps,
 	Title as NativeTitle,
 	Trigger as NativeTrigger,
 } from "../native-primitive.js";
@@ -21,6 +23,9 @@ import {
 	titleClassName,
 	wrapperClassName,
 } from "../presentation.js";
+
+/** The scope of the native parts of this family. */
+const scope = createScope();
 
 /**
  * The state owner of a native dialog. It renders no DOM. Leave `open` out for
@@ -54,7 +59,7 @@ import {
  * </Dialog.Root>
  * ```
  */
-const Root = NativeRoot;
+const Root = (props: Omit<RootProps, "scope">) => <NativeRoot scope={scope} {...props} />;
 
 /**
  * A button that opens the dialog. It carries `command="show-modal"`, so a
@@ -95,8 +100,8 @@ const Root = NativeRoot;
 const Trigger = ({
 	"data-slot": dataSlot,
 	...props
-}: ComponentProps<typeof NativeTrigger> & WithDataSlot) => (
-	<NativeTrigger data-slot={joinDataSlot(dataSlot, "dialog-trigger")} {...props} />
+}: Omit<ComponentProps<typeof NativeTrigger>, "scope"> & WithDataSlot) => (
+	<NativeTrigger scope={scope} data-slot={joinDataSlot(dataSlot, "dialog-trigger")} {...props} />
 );
 
 /**
@@ -201,13 +206,13 @@ const Overlay = () => null;
 const Close = ({
 	"data-slot": dataSlot,
 	...props
-}: ComponentProps<typeof NativeClose> & WithDataSlot) => (
-	<NativeClose data-slot={joinDataSlot(dataSlot, "dialog-close")} {...props} />
+}: Omit<ComponentProps<typeof NativeClose>, "scope"> & WithDataSlot) => (
+	<NativeClose scope={scope} data-slot={joinDataSlot(dataSlot, "dialog-close")} {...props} />
 );
 
 type ContentProps = Omit<
 	ComponentProps<typeof NativeContent>,
-	"positionerClassName" | "positionerSlot"
+	"positionerClassName" | "positionerSlot" | "scope"
 > &
 	DialogLayoutProps &
 	WithDataSlot;
@@ -265,6 +270,7 @@ const Content = ({
 	...props
 }: ContentProps) => (
 	<NativeContent
+		scope={scope}
 		positionerSlot="dialog-positioner"
 		positionerClassName={cx("items-center justify-center open:flex", wrapperClassName[appearance])}
 		data-appearance={appearance}
@@ -311,7 +317,7 @@ const Content = ({
  * ```
  */
 const CloseIconButton = (props: CloseIconButtonProps) => (
-	<NativeClose asChild>
+	<NativeClose scope={scope} asChild>
 		<CloseIconButtonView {...props} />
 	</NativeClose>
 );
@@ -351,8 +357,9 @@ const Title = ({
 	"data-slot": dataSlot,
 	className,
 	...props
-}: ComponentProps<typeof NativeTitle> & WithDataSlot) => (
+}: Omit<ComponentProps<typeof NativeTitle>, "scope"> & WithDataSlot) => (
 	<NativeTitle
+		scope={scope}
 		data-slot={joinDataSlot(dataSlot, "dialog-title")}
 		className={cx(titleClassName, className)}
 		{...props}
@@ -394,8 +401,9 @@ const Description = ({
 	"data-slot": dataSlot,
 	className,
 	...props
-}: ComponentProps<typeof NativeDescription> & WithDataSlot) => (
+}: Omit<ComponentProps<typeof NativeDescription>, "scope"> & WithDataSlot) => (
 	<NativeDescription
+		scope={scope}
 		data-slot={joinDataSlot(dataSlot, "dialog-description")}
 		className={cx(descriptionClassName, className)}
 		{...props}

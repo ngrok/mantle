@@ -594,6 +594,7 @@ Know these trade-offs before you swap:
 - A frame that a third-party script puts on `<body>` is inert under the dialog, and the browser gives no way out. Keep `@ngrok/mantle/dialog` for a form that embeds a captcha, a payment challenge, or a chat widget.
 - A controlled `open` works, but each change renders React. The fast path is the uncontrolled `Dialog.Trigger`.
 - The exit animates in Chromium only. Other browsers close the dialog at once.
+- Do not open a native dialog from inside a `@ngrok/mantle/dialog` or `@ngrok/mantle/sheet`. The Radix overlay takes Escape first and closes itself, not the native dialog. Move both onto the native backend.
 - CSS locks page scroll, not a script.
 - `Dialog.Portal` renders its children and `Dialog.Overlay` renders nothing, so markup written for `@ngrok/mantle/dialog` swaps unchanged. `Dialog.Content` takes none of the Radix event props: use a controlled `open` to keep the dialog open on Escape or on a backdrop click.
 
