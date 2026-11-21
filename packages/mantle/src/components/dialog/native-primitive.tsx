@@ -102,15 +102,21 @@ function moveDialog({ dialog, open }: { dialog: HTMLDialogElement; open: boolean
 		dialog.showModal();
 		return;
 	}
-	// Why the nested dialogs close first, innermost first: an open child stays
-	// modal inside its hidden parent and blocks the page, and each close
-	// returns focus to the element that opened it.
+	closeNested(dialog);
+	dialog.close();
+}
+
+/**
+ * Closes the open dialogs nested in `dialog`, innermost first. Call it before
+ * `dialog` closes: an open child stays modal inside its hidden parent and
+ * blocks the page, and each close returns focus to the element that opened it.
+ */
+function closeNested(dialog: HTMLDialogElement): void {
 	for (const child of [...dialog.querySelectorAll("dialog[open]")].toReversed()) {
 		if (child instanceof HTMLDialogElement) {
 			child.close();
 		}
 	}
-	dialog.close();
 }
 
 /**
@@ -328,8 +334,11 @@ const Content = ({
 		// `<dialog>`, so the state attributes join the browser's style pass.
 		const writeCommand = (event: Event) => {
 			const command: unknown = Reflect.get(event, "command");
-			if (command === "show-modal" || command === "close") {
-				writeOpenState({ dialog, open: command === "show-modal" });
+			if (command === "show-modal") {
+				writeOpenState({ dialog, open: true });
+			} else if (command === "close") {
+				closeNested(dialog);
+				writeOpenState({ dialog, open: false });
 			}
 		};
 		dialog.addEventListener("command", writeCommand);
@@ -390,6 +399,7 @@ const Content = ({
 				const { currentTarget, nativeEvent, target } = event;
 				if (
 					root.open === undefined ||
+					event.defaultPrevented ||
 					!(nativeEvent instanceof SubmitEvent) ||
 					!(target instanceof HTMLFormElement) ||
 					target.closest("dialog") !== currentTarget

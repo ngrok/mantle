@@ -268,8 +268,13 @@ describe("Dialog (native)", () => {
 				<form method="dialog">
 					<button type="submit">Submit</button>
 				</form>
+				<form method="dialog" onSubmit={(event) => event.preventDefault()}>
+					<button type="submit">Invalid</button>
+				</form>
 			</ExampleDialog>,
 		);
+		await userEvent.click(screen.getByRole("button", { name: "Invalid" }));
+		expect(onOpenChange).not.toHaveBeenCalled();
 		await userEvent.click(screen.getByRole("button", { name: "Submit" }));
 		expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
 		expect(dialogElement().open).toBe(true);
@@ -340,6 +345,30 @@ describe("Dialog (native)", () => {
 
 		expect(inner).not.toHaveAttribute("open");
 		expect(document.querySelector("dialog:modal")).toBeNull();
+	});
+
+	test("a Sheet.Close inside a nested native dialog closes both", async () => {
+		render(
+			<SheetNative.Root>
+				<SheetNative.Trigger>Open sheet</SheetNative.Trigger>
+				<SheetNative.Content>
+					<SheetNative.Title>Edit</SheetNative.Title>
+					<Dialog.Root>
+						<Dialog.Trigger>Open confirm</Dialog.Trigger>
+						<Dialog.Content>
+							<Dialog.Title>Discard changes?</Dialog.Title>
+							<SheetNative.Close>Discard</SheetNative.Close>
+						</Dialog.Content>
+					</Dialog.Root>
+				</SheetNative.Content>
+			</SheetNative.Root>,
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Open sheet" }));
+		await userEvent.click(screen.getByRole("button", { name: "Open confirm" }));
+		await userEvent.click(screen.getByRole("button", { name: "Discard" }));
+
+		expect(document.querySelector("dialog[open]")).toBeNull();
+		await waitFor(() => expect(screen.getByRole("button", { name: "Open sheet" })).toHaveFocus());
 	});
 
 	test("a Dialog.Trigger inside a native Sheet.Content opens the Dialog.Root above the sheet", async () => {
