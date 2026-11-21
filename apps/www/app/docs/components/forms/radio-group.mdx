@@ -300,7 +300,7 @@ RadioGroup.Root
 
 `RadioGroup.ItemContent` accepts `asChild`. When `true` it renders its single child instead of its default `<div>`, forwarding class names, `data-*` attributes, and `ref` onto that child. Reach for it when the title-and-description block beside a radio needs to be a specific element, such as a `<p>` or a link wrapping the whole content area. Do not reach for a `<label htmlFor>`: each item is a `div[role="radio"]`, which `for` cannot bind, and the item's text content is already its accessible name.
 
-The rest of the family deliberately does not take `asChild`. `RadioGroup.Root` and `List` own the group's roving-focus and arrow-key contract; `Item`, `ListItem`, and `Card` each render a `div[role="radio"]` with its keyboard handling, and `Indicator` paints the control itself. When the group has a `name`, Headless UI renders one hidden `<input type="radio">` for form submission. For a richer option layout, compose [`Choice`](/components/forms/choice) inside `RadioGroup.Item` (see [Rich option layout with `Choice`](#rich-option-layout-with-choice)) rather than swapping these elements out.
+The rest of the family deliberately does not take `asChild`. `RadioGroup.Root` and `List` own the group's roving-focus and arrow-key contract; `Item`, `ListItem`, and `Card` each render a `div[role="radio"]` with its keyboard handling, and `Indicator` paints the control itself. When the group has a `name`, it renders one hidden input that submits the checked value with its form. For a richer option layout, compose [`Choice`](/components/forms/choice) inside `RadioGroup.Item` (see [Rich option layout with `Choice`](#rich-option-layout-with-choice)) rather than swapping these elements out.
 
 ## API Reference
 
@@ -308,15 +308,17 @@ The rest of the family deliberately does not take `asChild`. `RadioGroup.Root` a
 
 A group of radio items. Manages state so only one item can be selected at a time. Unstyled and simple.
 
-All props from [Headless UI RadioGroup](https://headlessui.com/react/radio-group), including:
+It follows the [WAI-ARIA radio group pattern](https://www.w3.org/WAI/ARIA/apg/patterns/radio/): one Tab stop (the checked item, or the first enabled item), arrow keys that move and check with wrap, and Space that checks. A form reset returns an uncontrolled group to `defaultValue`. It accepts every `div` prop, plus:
 
-| Prop            | Type                      | Default | Description                                                    |
-| :-------------- | :------------------------ | :------ | :------------------------------------------------------------- |
-| `value?`        | `string`                  |         | The controlled value of the selected radio item.               |
-| `defaultValue?` | `string`                  |         | The default value when uncontrolled.                           |
-| `onChange?`     | `(value: string) => void` |         | Event handler called when the selected value changes.          |
-| `disabled?`     | `boolean`                 | `false` | When `true`, prevents interaction with all items in the group. |
-| `name?`         | `string`                  |         | The name used when using the radio group inside a form.        |
+| Prop            | Type                          | Default | Description                                                                       |
+| :-------------- | :---------------------------- | :------ | :-------------------------------------------------------------------------------- |
+| `value?`        | `string`                      |         | The controlled value of the selected radio item.                                  |
+| `defaultValue?` | `string`                      |         | The default value when uncontrolled.                                              |
+| `onChange?`     | `(value: string) => void`     |         | Event handler called when the selected value changes.                             |
+| `disabled?`     | `boolean`                     | `false` | When `true`, prevents interaction with all items in the group.                    |
+| `name?`         | `string`                      |         | The name used when using the radio group inside a form.                           |
+| `form?`         | `string`                      |         | The `id` of the form the hidden input belongs to, when the group sits outside it. |
+| `by?`           | `string \| (a, b) => boolean` |         | How to compare object values: a key, or a function.                               |
 
 ### RadioGroup.Item
 

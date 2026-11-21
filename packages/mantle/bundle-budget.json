@@ -9,15 +9,15 @@
   },
   "switch": {
     "entry": "import { Switch } from \"@ngrok/mantle/switch\"; export default [Switch];",
-    "maxGzipBytes": 14896
+    "maxGzipBytes": 11483
   },
   "progress": {
     "entry": "import { ProgressBar } from \"@ngrok/mantle/progress\"; export default [ProgressBar.Root, ProgressBar.Indicator];",
-    "maxGzipBytes": 13031
+    "maxGzipBytes": 11251
   },
   "radio-group": {
     "entry": "import { RadioGroup } from \"@ngrok/mantle/radio-group\"; export default [RadioGroup.Root, RadioGroup.Item, RadioGroup.Indicator];",
-    "maxGzipBytes": 21916
+    "maxGzipBytes": 14030
   },
   "select": {
     "entry": "import { Select } from \"@ngrok/mantle/select\"; export default [Select.Root, Select.Trigger, Select.Value, Select.Content, Select.Item];",
