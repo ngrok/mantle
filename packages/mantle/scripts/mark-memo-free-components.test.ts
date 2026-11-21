@@ -1,19 +1,15 @@
-import { transform } from "oxc-transform-react";
+import { SourceMap } from "node:module";
 import { describe, expect, it } from "vitest";
-import { reactCompilerOptions } from "../react-compiler.config.ts";
+import { compileReact } from "../react-compiler.config.ts";
 import { markMemoFreeComponents } from "./mark-memo-free-components.ts";
 
-/** Compiles a module the way the build does and reports whether it imports the compiler runtime. */
+/** Compiles a module the way every compiler pass does and reports whether it imports the compiler runtime. */
 async function isCompiled(code: string): Promise<boolean> {
-	const result = await transform("part.tsx", markMemoFreeComponents("part.tsx", code), {
-		jsx: "preserve",
-		reactCompiler: reactCompilerOptions,
-	});
-	expect(result.errors).toEqual([]);
+	const result = await compileReact("/m/src/part.tsx", code);
 	return result.code.includes("react/compiler-runtime");
 }
 
-describe("markMemoFreeComponents", () => {
+describe("compileReact", () => {
 	it("leaves a part that spreads its props uncompiled", async () => {
 		expect(
 			await isCompiled(
@@ -31,7 +27,15 @@ describe("markMemoFreeComponents", () => {
 	it("compiles a component that calls a hook", async () => {
 		expect(
 			await isCompiled(
-				'import { useState } from "react";\nexport const Counter = () => {\n\tconst [count, setCount] = useState(0);\n\treturn <output>{count}</output>;\n};',
+				'import { useState } from "react";\nexport const Counter = () => {\n\tconst [count] = useState(0);\n\treturn <output>{count}</output>;\n};',
+			),
+		).toBe(true);
+	});
+
+	it("compiles a component that calls a hook under another name", async () => {
+		expect(
+			await isCompiled(
+				'import { use as read } from "react";\nexport function Part({ promise }) {\n\treturn <div>{read(promise)}</div>;\n}',
 			),
 		).toBe(true);
 	});
@@ -44,6 +48,14 @@ describe("markMemoFreeComponents", () => {
 		).toBe(true);
 	});
 
+	it("compiles a component that creates a function in a parameter default", async () => {
+		expect(
+			await isCompiled(
+				"export function Part({ Child, onClick = () => 1 }) {\n\treturn <Child onClick={onClick} />;\n}",
+			),
+		).toBe(true);
+	});
+
 	it('compiles a hook-free component that starts with "use memo"', async () => {
 		expect(
 			await isCompiled(
@@ -52,18 +64,32 @@ describe("markMemoFreeComponents", () => {
 		).toBe(true);
 	});
 
+	it("still rejects a memo-free component that breaks the Rules of React", async () => {
+		await expect(
+			compileReact(
+				"/m/src/part.tsx",
+				"export function Part() {\n\treturn <span>{Date.now()}</span>;\n}",
+			),
+		).rejects.toThrow(/impure/i);
+	});
+
+	it("maps the output back to the columns of the original source", async () => {
+		const code = "export const Part = () => <span />; export const tail = 3;";
+		const { code: output, map } = await compileReact("/m/src/part.tsx", code);
+		const line = output.split("\n").findIndex((text) => text.includes("tail"));
+		const column = output.split("\n")[line]?.indexOf("tail") ?? -1;
+		const entry = new SourceMap(JSON.parse(JSON.stringify(map))).findEntry(line, column);
+		expect("originalColumn" in entry && entry.originalColumn).toBe(code.indexOf("tail"));
+	});
+});
+
+describe("markMemoFreeComponents", () => {
 	it("marks each component on its own", () => {
 		const marked = markMemoFreeComponents(
 			"parts.tsx",
 			'import { useId } from "react";\nconst Plain = () => <p />;\nconst Stateful = () => <p id={useId()} />;',
-		);
+		).toString();
 		expect(marked).toContain('const Plain = () => { "use no memo"; return (<p />); };');
 		expect(marked).toContain("const Stateful = () => <p id={useId()} />;");
-	});
-
-	it("keeps every line in place for source maps", () => {
-		const code =
-			"const A = () => (\n\t<div>\n\t\ttext\n\t</div>\n);\nfunction B() {\n\treturn <i />;\n}\n";
-		expect(markMemoFreeComponents("a.tsx", code).split("\n")).toHaveLength(code.split("\n").length);
 	});
 });

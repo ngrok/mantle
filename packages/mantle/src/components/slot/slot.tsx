@@ -131,6 +131,9 @@ function composeStyle(
  * ```
  */
 const Slot = ({ children, className, "data-slot": dataSlot, ref, style, ...props }: Props) => {
+	// Why "use memo": for a render-prop child, `composeClassName` and `composeStyle` return new
+	// functions, and the child may compare them.
+	"use memo";
 	if (!isValidElement<ComposedChildProps>(children)) {
 		return Children.only(children);
 	}

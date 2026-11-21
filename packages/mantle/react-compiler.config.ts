@@ -1,4 +1,6 @@
-import type { ReactCompilerOptions } from "oxc-transform-react";
+import remapping from "@jridgewell/remapping";
+import { transform, type ReactCompilerOptions, type TransformResult } from "oxc-transform-react";
+import { markMemoFreeComponents } from "./scripts/mark-memo-free-components.ts";
 
 /**
  * The React Compiler options for every compiler pass in the repo: the tsdown
@@ -39,7 +41,48 @@ const reactCompilerOptions = {
 	},
 } satisfies ReactCompilerOptions;
 
+/** Throws the compiler's errors when it could not compile or validate a module. */
+function assertCompiled(id: string, result: TransformResult): void {
+	if (result.fatal) {
+		const messages = result.errors.map((error) => error.message).join("\n");
+		throw new Error(`The React Compiler pass failed for ${id}:\n${messages}`);
+	}
+}
+
+/**
+ * Runs the React Compiler over one module, for the tsdown build, the vitest suite, and the docs
+ * site. Each component that memoization cannot help ships as written (see
+ * `markMemoFreeComponents`). The source map points at the original module. JSX stays in the output,
+ * so the host's own JSX transform still runs.
+ *
+ * Why compile the original first: `"use no memo"` also turns off the compiler's validations, and
+ * every component must still pass them.
+ *
+ * @example
+ * ```ts
+ * const { code, map } = await compileReact("/repo/src/card.tsx", source);
+ * ```
+ */
+async function compileReact(id: string, code: string) {
+	const options = {
+		jsx: "preserve",
+		sourcemap: true,
+		reactCompiler: reactCompilerOptions,
+	} as const;
+	const validated = await transform(id, code, options);
+	assertCompiled(id, validated);
+	const marked = markMemoFreeComponents(id, code);
+	if (!marked.hasChanged()) {
+		return { code: validated.code, map: validated.map };
+	}
+	const result = await transform(id, marked.toString(), options);
+	assertCompiled(id, result);
+	const markMap = marked.generateMap({ source: id, hires: true, includeContent: true }).toString();
+	return { code: result.code, map: remapping([JSON.stringify(result.map), markMap], () => null) };
+}
+
 export {
 	//,
+	compileReact,
 	reactCompilerOptions,
 };
