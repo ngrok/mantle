@@ -445,6 +445,10 @@ CONVENTIONS.md covers general style ([TypeScript](./CONVENTIONS.md#typescript),
 - The build fails when a file with the file-level `"use no memo"` lands in a `"use client"` chunk
   (`packages/mantle/scripts/preserve-use-client.ts`). A hook in such a file passes the build but breaks a server
   render, so the reviewer checks for one.
+- Keep a part safe for React Server Components when it costs nothing, but never change its client behavior to do
+  it. ngrok's apps do not use RSC. When a part needs a client wrapper, a build special case, or a different prop
+  merge to render on the server, it stays a client component. A server-rendered `Button` lost the `disabled`,
+  `className`, and `data-slot` a client `Dialog.Trigger asChild` merges onto it, so `Button` stays client.
 - Named exports only, no default exports. Relative imports ending in `.js` (`../../utils/cx/cx.js`).
 - `type`, not `interface`. Props based on `ComponentProps<…>`, which already includes `ref`. Never
   `HTMLAttributes<…>` alone, which does not.
