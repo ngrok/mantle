@@ -21,6 +21,11 @@ import * as SheetParts from "./sheet-parts.js";
  * When multiple overlays are open, the most recently mounted overlay renders on
  * top.
  *
+ * `@ngrok/mantle/sheet/native` exports the same parts on the browser's modal
+ * `<dialog>`: an uncontrolled tap opens it with no React render, such as for a
+ * mobile navigation menu. Its content renders and hydrates on every page, and
+ * a third-party frame on `<body>` is inert under it.
+ *
  * @useWhen Open a panel from the edge of the screen for a task beside the current view, such as a
  * filter panel, a detail view, or a mobile menu.
  *

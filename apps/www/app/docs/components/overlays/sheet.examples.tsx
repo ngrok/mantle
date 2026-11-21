@@ -1,6 +1,7 @@
 import { Button, IconButton } from "@ngrok/mantle/button";
 import { Separator } from "@ngrok/mantle/separator";
 import { Sheet } from "@ngrok/mantle/sheet";
+import { Sheet as NativeSheet } from "@ngrok/mantle/sheet/native";
 import { ListMagnifyingGlassIcon } from "@phosphor-icons/react/ListMagnifyingGlass";
 import { TerminalWindowIcon } from "@phosphor-icons/react/TerminalWindow";
 import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
@@ -222,6 +223,44 @@ export function ThirdPartyPopupsExample() {
 	return (
 		<PreviewCanvas className="min-h-160 w-full">
 			<PaymentPopupDemo />
+		</PreviewCanvas>
+	);
+}
+
+/** The "Native sheet" example on the Sheet docs page. */
+export function NativeSheetExample() {
+	return (
+		<PreviewCanvas className="min-h-160 flex-col gap-6">
+			<NativeSheet.Root>
+				<NativeSheet.Trigger asChild>
+					<Button type="button" appearance="filled" intent="neutral">
+						Open native sheet
+					</Button>
+				</NativeSheet.Trigger>
+				<NativeSheet.Content side="left">
+					<NativeSheet.Header>
+						<NativeSheet.TitleGroup>
+							<NativeSheet.Title>Menu</NativeSheet.Title>
+							<NativeSheet.Actions>
+								<NativeSheet.CloseIconButton />
+							</NativeSheet.Actions>
+						</NativeSheet.TitleGroup>
+						<NativeSheet.Description>
+							The tap opened this sheet with no React render.
+						</NativeSheet.Description>
+					</NativeSheet.Header>
+					<NativeSheet.Body>
+						<p>Press Escape, click the backdrop, or use the close button to close it.</p>
+					</NativeSheet.Body>
+					<NativeSheet.Footer>
+						<NativeSheet.Close asChild>
+							<Button type="button" appearance="outlined" intent="neutral">
+								Close
+							</Button>
+						</NativeSheet.Close>
+					</NativeSheet.Footer>
+				</NativeSheet.Content>
+			</NativeSheet.Root>
 		</PreviewCanvas>
 	);
 }

@@ -6,15 +6,19 @@
 export {
 	//,
 	Root,
-	Body,
 	Close,
 	CloseIconButton,
 	Content,
 	Description,
-	Footer,
-	Header,
 	Overlay,
 	Portal,
 	Title,
 	Trigger,
 } from "./dialog.js";
+
+export {
+	//,
+	Body,
+	Footer,
+	Header,
+} from "./presentation.js";
