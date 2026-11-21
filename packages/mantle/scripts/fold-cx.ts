@@ -1,5 +1,9 @@
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { type Argument, type ImportDeclaration, parseSync, Visitor } from "oxc-parser";
-import { mergeClassList } from "../src/utils/cx/merge.ts";
+
+/** Merges a class list the way `cx` does in the browser. */
+export type MergeClassList = (classList: string) => string;
 
 /** A static class value: a string, or a condition that picks between two static values. */
 type StaticValue = string | Choice;
@@ -55,17 +59,16 @@ function readStatic(node: Argument, code: string): StaticValue | null {
  * Writes an expression that evaluates each condition and returns the merged class list.
  * Each leaf is a string literal that the build merged.
  */
-function emitChoices(values: readonly StaticValue[]): string {
+function emitChoices(values: readonly StaticValue[], merge: MergeClassList): string {
 	const index = values.findIndex((value) => typeof value !== "string");
 	const choice = values[index];
 	if (choice == null || typeof choice === "string") {
-		return JSON.stringify(
-			mergeClassList(values.filter((value) => typeof value === "string").join(" ")),
-		);
+		return JSON.stringify(merge(values.filter((value) => typeof value === "string").join(" ")));
 	}
 	const branch = (value: StaticValue) => values.map((item, at) => (at === index ? value : item));
-	return `((${choice.condition}) ? ${emitChoices(branch(choice.whenTrue))} : ${emitChoices(
+	return `((${choice.condition}) ? ${emitChoices(branch(choice.whenTrue), merge)} : ${emitChoices(
 		branch(choice.whenFalse),
+		merge,
 	)})`;
 }
 
@@ -89,10 +92,10 @@ type Edit = { start: number; end: number; text: string };
  * point to the source line.
  *
  * @example
- * foldCx('import { cx } from "../../utils/cx/cx.js";\ncx("p-2 p-4", className);', "a.tsx");
+ * foldCx('import { cx } from "../../utils/cx/cx.js";\ncx("p-2 p-4", className);', "a.tsx", mergeClassList);
  * // => 'import { cx } from "../../utils/cx/cx.js"; import { cxFolded } from "../../utils/cx/cx.js";\ncxFolded("p-4", className);'
  */
-export function foldCx(code: string, id: string): string | null {
+export function foldCx(code: string, id: string, merge: MergeClassList): string | null {
 	if (!code.includes("cx(")) {
 		return null;
 	}
@@ -138,7 +141,7 @@ export function foldCx(code: string, id: string): string | null {
 			if (choices > MAX_CHOICES) {
 				return;
 			}
-			let text = emitChoices(values);
+			let text = emitChoices(values, merge);
 			if (dynamicLast != null) {
 				if (dynamicLast.type === "SpreadElement" || values.length === 0) {
 					return;
@@ -173,18 +176,32 @@ const FOLD_SOURCE_RE = /[\\/]src[\\/].+\.tsx?$/;
 /** Matches the modules the fold skips: tests, stories, declarations, and `cx` itself. */
 const FOLD_EXCLUDE_RE = /\.(?:test|bench|stories)\.tsx?$|\.d\.[cm]?ts$|[\\/]utils[\\/]cx[\\/]/;
 
+/** Loads mantle's merge from source. */
+export const loadMergeClassList = async (): Promise<MergeClassList> => {
+	// Why a runtime import: the node tsconfig must not include `src` modules. The main tsconfig
+	// references it, so an overlap makes the main project read the node project's stale output.
+	const module: { mergeClassList: MergeClassList } = await import(
+		pathToFileURL(path.join(import.meta.dirname, "../src/utils/cx/merge.ts")).href
+	);
+	return module.mergeClassList;
+};
+
 /**
  * A rolldown and Vite plugin that runs {@link foldCx} over mantle source. Put it before the
  * React Compiler pass, which must see the folded code.
  */
-export const foldCxPlugin = () => ({
-	name: "fold-cx",
-	enforce: "pre" as const,
-	transform: {
-		filter: { id: { include: FOLD_SOURCE_RE, exclude: FOLD_EXCLUDE_RE } },
-		handler: (code: string, id: string) => {
-			const folded = foldCx(code, id);
-			return folded == null ? null : { code: folded, map: null };
+export const foldCxPlugin = () => {
+	let merge: Promise<MergeClassList> | undefined;
+	return {
+		name: "fold-cx",
+		enforce: "pre" as const,
+		transform: {
+			filter: { id: { include: FOLD_SOURCE_RE, exclude: FOLD_EXCLUDE_RE } },
+			handler: async (code: string, id: string) => {
+				merge ??= loadMergeClassList();
+				const folded = foldCx(code, id, await merge);
+				return folded == null ? null : { code: folded, map: null };
+			},
 		},
-	},
-});
+	};
+};

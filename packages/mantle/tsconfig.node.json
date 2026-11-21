@@ -12,12 +12,5 @@
   },
   // Why a second config: the build tooling runs in Node, and `node` types in tsconfig.json would hide a stray `process` in browser source.
   // Why the emit: a referenced project may not disable emit, so it writes declarations to a cache directory.
-  // Why the cx modules: the build fold (`scripts/fold-cx.ts`) merges class names with them.
-  "include": [
-    "*.config.ts",
-    "scripts/**/*",
-    "src/utils/cx/clsx.ts",
-    "src/utils/cx/cx.ts",
-    "src/utils/cx/merge.ts"
-  ]
+  "include": ["*.config.ts", "scripts/**/*"]
 }

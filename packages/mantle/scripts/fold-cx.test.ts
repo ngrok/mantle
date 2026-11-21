@@ -1,13 +1,27 @@
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+
 import { describe, expect, it } from "vitest";
-import { cx, cxFolded } from "../src/utils/cx/cx.ts";
-import { foldCx } from "./fold-cx.ts";
+import { foldCx, loadMergeClassList } from "./fold-cx.ts";
+
+type ClassValue = string | null | undefined | boolean | number | Record<string, unknown>;
+type Cx = (...inputs: ClassValue[]) => string;
+
+// Why a runtime import: the node tsconfig, which holds this file, must not include `src` modules.
+const { cx, cxFolded }: { cx: Cx; cxFolded: (merged: string, className: ClassValue) => string } =
+	await import(pathToFileURL(path.join(import.meta.dirname, "../src/utils/cx/cx.ts")).href);
+const merge = await loadMergeClassList();
 
 const CX_IMPORT = 'import { cx } from "../../utils/cx/cx.js";';
 const FOLDED_IMPORT = ' import { cxFolded } from "../../utils/cx/cx.js";';
 
 /** Folds `body`, then compiles it as a function of `params` with the real `cx` helpers. */
 function compile(params: string[], body: string) {
-	const folded = foldCx(`${CX_IMPORT}\nconst result = ${body};`, "/m/src/components/a/a.tsx");
+	const folded = foldCx(
+		`${CX_IMPORT}\nconst result = ${body};`,
+		"/m/src/components/a/a.tsx",
+		merge,
+	);
 	expect(folded).not.toBeNull();
 	const code = (folded ?? "").replace(CX_IMPORT, "").replace(FOLDED_IMPORT, "");
 	// oxlint-disable-next-line no-new-func -- the test runs the code that the fold writes.
@@ -65,7 +79,7 @@ describe("foldCx", () => {
 
 	it("keeps each source line where it was", () => {
 		const source = `"use client";\n${CX_IMPORT}\nconst a = cx(\n\t"p-2",\n\tclassName,\n);\nconst b = 1;`;
-		const folded = foldCx(source, "/m/src/a.tsx") ?? "";
+		const folded = foldCx(source, "/m/src/a.tsx", merge) ?? "";
 		expect(folded.startsWith('"use client";\n')).toBe(true);
 		expect(folded.split("\n")).toHaveLength(source.split("\n").length);
 		expect(folded.split("\n")[6]).toBe("const b = 1;");
@@ -81,14 +95,16 @@ describe("foldCx", () => {
 			'cx(variants({ size }), "p-2")',
 			'cx(a && "a", b && "b", c && "c", d && "d")',
 		]) {
-			expect(foldCx(`${CX_IMPORT}\n${call};`, "/m/src/a.tsx")).toBeNull();
+			expect(foldCx(`${CX_IMPORT}\n${call};`, "/m/src/a.tsx", merge)).toBeNull();
 		}
 	});
 
 	it("folds only the cx that mantle's cx module exports", () => {
-		expect(foldCx('import { cx } from "classnames";\ncx("p-2");', "/m/src/a.tsx")).toBeNull();
 		expect(
-			foldCx('import { cx as merge } from "../utils/cx/cx.js";\ncx("p-2");', "/m/src/a.tsx"),
+			foldCx('import { cx } from "classnames";\ncx("p-2");', "/m/src/a.tsx", merge),
+		).toBeNull();
+		expect(
+			foldCx('import { cx as merge } from "../utils/cx/cx.js";\ncx("p-2");', "/m/src/a.tsx", merge),
 		).toBeNull();
 	});
 });
