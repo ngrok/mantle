@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 
+import { buildSiteAgentManifest } from "./agent-manifest.server";
 import { buildManifest, type ManifestComponent } from "./manifest.server";
 
 /**
@@ -68,5 +69,26 @@ it("component manifest matches the committed snapshot (regenerate with `pnpm -F 
 	// string, and oxfmt would collapse a short `aliases` array onto one line.
 	await expect(`${JSON.stringify(surface, null, 2)}\n`).toMatchFileSnapshot(
 		"./__snapshots__/components-surface.json",
+	);
+});
+
+// The MCP `find` and `get` tools serve these recipe records, and the tarball ships them
+// for an agent offline. The package's own test pins its build against the same file.
+it("recipe manifest matches the committed snapshot (regenerate with `pnpm -F @app/www test -u`)", async () => {
+	const manifest = await buildSiteAgentManifest();
+	const surface = (manifest.recipes ?? []).map(
+		({ name, slug, summary, useWhen, aliases, parts }) => ({
+			name,
+			slug,
+			summary,
+			useWhen,
+			aliases,
+			parts,
+		}),
+	);
+
+	expect(surface.length).toBeGreaterThan(0);
+	await expect(`${JSON.stringify(surface, null, 2)}\n`).toMatchFileSnapshot(
+		"./__snapshots__/recipes-surface.json",
 	);
 });
