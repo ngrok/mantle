@@ -1,0 +1,65 @@
+---
+title: Stone Palette Migration
+description: mantle.css no longer has the stone palette, so stone classes make no CSS. Use gray, or set the stone stops you need in your own @theme block.
+introducedIn: "0.95.0"
+---
+
+# Mantle Stone Palette Migration Guide
+
+`mantle.css` no longer has Tailwind's `stone` palette. No ngrok app used it. A `stone` class, such as `bg-stone-500` or `text-stone-700`, now makes no CSS, and `var(--color-stone-500)` resolves to nothing. Use `gray`, mantle's neutral palette, which flips with the theme. The same release declares the `gray` stops and the tokens that are the same in both themes once instead of twice. Their names and values do not change.
+
+**TL;DR:** Search your class strings and CSS for `stone-`. Replace each `stone` class with the `gray` class of the same step, such as `bg-stone-200` with `bg-gray-200`. An app that never used `stone` changes nothing.
+
+## Codemod
+
+Codemod: manual: `stone` appears in class strings and CSS, and the rules read TSX and TS syntax only. One text search finds each use.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Search every TSX, TS, MDX, and CSS file for `stone-`. Each match is a Tailwind class, such as `bg-stone-500`, `hover:border-stone-300`, or `from-stone-100`, or a `var(--color-stone-…)` read.
+2. Replace `stone` with `gray` and keep the step: `bg-stone-500` becomes `bg-gray-500`, and `var(--color-stone-300)` becomes `var(--color-gray-300)`. `gray` flips in the dark theme, as `stone` did.
+3. When a design needs stone's warm hue, set the stops it uses in your own `@theme` block instead, with the values from the [decision doc's catalog](https://github.com/ngrok/mantle/blob/main/decisions/2026-11-21-trim-unused-palettes.md#stone). Those stops do not flip in the dark theme.
+4. If a rule of yours sets a token on `:root` to override mantle, such as `:root { --border-color-card: red; }`, check the dark theme. It now applies there too.
+5. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why remove stone?** CSS blocks rendering, so each theme byte delays the first paint of every page. `mantle.css` restated each `stone` stop for the dark theme and for `invert-theme` islands, and an audit of mantle, the frontend apps, and the ngrok apps found no use of any stop. Mantle removes a palette only when no code uses it, and keeps each stop of a palette that is in use.
+
+---
+
+## Before → after
+
+### A class string
+
+```tsx
+// BEFORE
+<div className="bg-stone-100 text-stone-700 dark:bg-stone-800" />
+
+// AFTER
+<div className="bg-gray-100 text-gray-700 dark:bg-gray-800" />
+```
+
+### A `var()` read
+
+```css
+/* BEFORE */
+.badge {
+	border-color: var(--color-stone-300);
+}
+
+/* AFTER */
+.badge {
+	border-color: var(--color-gray-300);
+}
+```
+
+## Edge cases & gotchas
+
+- A `stone` class that you leave in place gives no error. Tailwind makes no CSS for it, so the element loses that color.
+- `gray` is mantle's neutral gray, not Tailwind's blue-gray. It matches `stone` closely except for the warm tint.
+
+## How to verify
+
+- `rg "stone-" src` finds no match.
+- Each page that used `stone` looks the same in the light and the dark theme.

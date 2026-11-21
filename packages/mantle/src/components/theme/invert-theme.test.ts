@@ -4,7 +4,6 @@ import mantleCss from "../../mantle.css?raw";
 import {
 	extractTopLevelRules,
 	parseDeclarationBlock,
-	parseDeclarations,
 	parseInvertThemeUtility,
 } from "../../test-utils/parse-theme-css.js";
 
@@ -36,11 +35,22 @@ const lightPageBlock = parseDeclarationBlock(
 const invertThemeUtility = parseInvertThemeUtility(mantleCss);
 const lightIslandBlock = invertThemeUtility.restore;
 /**
- * What an island on a dark page actually resolves: both rules match it, so the
- * completeness invariants below compare theme blocks against the union.
+ * The tokens with one expression in both themes, and the Shiki tokens: one rule
+ * for `:root` and every island, so each theme and each island resolves them.
  */
-const lightBlock = new Map([...lightIslandBlock, ...lightPageBlock]);
-const darkBlock = parseDeclarationBlock(mantleCss, (selector) => selector.includes(":root.dark"));
+const sharedBlock = parseDeclarationBlock(
+	mantleCss,
+	(selector) => selector === ":root, .invert-theme",
+);
+/**
+ * What an island on a dark page actually resolves: every one of these rules
+ * matches it, so the completeness invariants below compare against the union.
+ */
+const lightBlock = new Map([...lightIslandBlock, ...lightPageBlock, ...sharedBlock]);
+const darkThemeBlock = parseDeclarationBlock(mantleCss, (selector) =>
+	selector.includes(":root.dark"),
+);
+const darkBlock = new Map([...darkThemeBlock, ...sharedBlock]);
 const tailwindDefaults = parseDeclarationBlock(twThemeCss, (selector) =>
 	selector.includes("@theme default"),
 );
@@ -51,7 +61,8 @@ describe("cardinality floors", () => {
 	// parser regression could satisfy vacuously with empty maps. These floors
 	// make degenerate parses fail loudly.
 	test("the parsed blocks are non-degenerate", () => {
-		expect(lightPageBlock.size).toBeGreaterThan(80);
+		expect(lightPageBlock.size).toBeGreaterThan(40);
+		expect(sharedBlock.size).toBeGreaterThan(40);
 		expect(lightIslandBlock.size).toBeGreaterThan(200);
 		expect(lightBlock.size).toBeGreaterThan(250);
 		expect(darkBlock.size).toBeGreaterThan(250);
@@ -136,21 +147,21 @@ describe("theme block completeness", () => {
 		expect([...lightBlock.keys()].toSorted()).toEqual([...darkBlock.keys()].toSorted());
 	});
 
-	test("the dark block's focus ring and menu tokens match the light base expressions", () => {
-		const properties = [
-			"--ring-color-focus-neutral",
-			"--ring-color-focus-accent",
-			"--ring-color-focus-danger",
-			"--ring-color-focus-warning",
-			"--ring-color-focus-success",
-			"--color-active-menu-item",
-			"--color-selected-menu-item",
-			"--color-active-selected-menu-item",
-		];
-		const mismatches = properties.filter(
-			(property) => darkBlock.get(property) !== lightBlock.get(property),
+	test("the focus ring and menu tokens are shared, and no theme block restates a shared token", () => {
+		// a shared token restated in one theme block would override the shared rule
+		// in that theme only
+		expect(
+			[
+				"--ring-color-focus-neutral",
+				"--ring-color-focus-accent",
+				"--color-active-menu-item",
+				"--color-selected-menu-item",
+			].filter((property) => !sharedBlock.has(property)),
+		).toEqual([]);
+		const restated = [...sharedBlock.keys()].filter(
+			(property) => lightPageBlock.has(property) || darkThemeBlock.has(property),
 		);
-		expect(mismatches).toEqual([]);
+		expect(restated).toEqual([]);
 	});
 });
 
@@ -238,13 +249,8 @@ describe("the palette-alias re-resolution rule (mantle.css)", () => {
 
 describe("the Shiki/code-block token rule (mantle.css)", () => {
 	test("the Shiki tokens are declared on .invert-theme islands so they re-resolve against inverted ramps", () => {
-		const shikiRule = extractTopLevelRules(mantleCss).find(
-			({ selector }) => selector === ":root, .invert-theme",
-		);
-		expect(shikiRule).toBeDefined();
-		const shikiDeclarations = parseDeclarations(shikiRule?.body ?? "");
 		expect(
-			[...shikiDeclarations.keys()].filter((key) => key.startsWith("--shiki-")).length,
+			[...sharedBlock.keys()].filter((key) => key.startsWith("--shiki-")).length,
 		).toBeGreaterThan(10);
 	});
 });
