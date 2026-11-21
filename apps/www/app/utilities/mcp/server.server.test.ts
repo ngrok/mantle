@@ -393,6 +393,20 @@ describe("the mantle MCP server", () => {
 		expect(text).not.toContain("## Contract (docs for");
 	});
 
+	it("marks the docs props that the latest release lacks", async () => {
+		const deps = dependencies({
+			docsSourceHash: async () => "main-hash",
+			docsDeclaredWordsOf: async () => new Set(["title", "keyboardShortcut"]),
+			readDocs: async () =>
+				"# Dialog\n\n## API Reference\n\n| Prop | Type |\n| --- | --- |\n| `title` | `string` |\n| `keyboardShortcut` | `boolean` |",
+		});
+
+		const { text } = await callTool(deps, "get", { name: "dialog", sections: ["API Reference"] });
+
+		expect(text).toContain("| `keyboardShortcut` (not in 0.93.0) | `boolean` |");
+		expect(text).toContain("| `title` | `string` |");
+	});
+
 	it("labels read_docs prose when the docs build has unreleased changes", async () => {
 		const deps = dependencies({ docsSourceHash: async () => "main-hash" });
 

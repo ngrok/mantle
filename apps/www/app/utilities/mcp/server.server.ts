@@ -632,12 +632,18 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				);
 			}
 			const provenance = await provenanceFor(dependencies, data);
+			// Why only the latest release with unreleased changes: an older version can inherit a prop
+			// from a dependency that the docs build now declares itself, and its words cannot show that.
+			const unreleased =
+				dependencies.docsVersion === data.version && provenance.docsVersion !== data.version;
 			const body = getRecordText({
 				record,
 				data,
 				provenance,
 				docsMarkdown: await dependencies.readDocs(record.docsSlug),
-				docsWords: await dependencies.docsDeclaredWordsOf(record.importPath),
+				docsWords: unreleased
+					? await dependencies.docsDeclaredWordsOf(record.importPath)
+					: undefined,
 				sections,
 			});
 			return {
