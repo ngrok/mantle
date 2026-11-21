@@ -1,5 +1,176 @@
 # @ngrok/mantle
 
+## 0.95.0
+
+### Minor Changes
+
+- [#1720](https://github.com/ngrok/mantle/pull/1720) [`3fd5c5a`](https://github.com/ngrok/mantle/commit/3fd5c5a322c8006007cf19ba97e9c64b10b26fbd) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Rename the theme token `--container-side-panel-lane-icon-rail` to `--container-side-panel-lane-collapsed`. The default (`46.75rem`) and the job are the same: the narrowest `AppLayout.Workspace` row that holds a collapsed sidebar, the page, and an `AppLayout.SidePanel`. The Tailwind container variants change name with it: `@min-side-panel-lane-icon-rail` and `@max-side-panel-lane-icon-rail` are now `@min-side-panel-lane-collapsed` and `@max-side-panel-lane-collapsed`.
+
+  To migrate, replace `side-panel-lane-icon-rail` with `side-panel-lane-collapsed` in your CSS and your class strings. An app that never set the token changes nothing. See the [migration guide](https://mantle.ngrok.com/migrations/0016-side-panel-lane-collapsed-migration).
+
+  The docs and the JSDoc no longer say "rail" or "icon rail". The sidebar is "collapsed" or "expanded", the words that `data-state` on `Sidebar.Nav` uses.
+
+- [#1731](https://github.com/ngrok/mantle/pull/1731) [`586fb56`](https://github.com/ngrok/mantle/commit/586fb5614b4b211b8b8865c88e9c1e7e1ed3eb30) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `Typography` (`@ngrok/mantle/typography`): headings and paragraphs in the site's type scale, for JSX and for MDX.
+
+  - `Typography.H1` to `Typography.H6` render the heading element of their name. `Typography.P` renders a paragraph in the body text color.
+  - Each part renders the element it is named for, so an MDX `components` map assigns one part to each element: `{ h1: Typography.H1, p: Typography.P }`.
+  - Each part stamps a `data-slot`: `typography-h1` to `typography-h6`, and `typography-p`.
+  - The parts hold no state and use no hooks or context. Memoization saves them no work, so the React Compiler skips them, and their chunk ships with no compiler cache.
+
+  `mantle.css` adds type-role tokens in `@theme`, with steps that follow Tailwind's `text-*` scale: `--text-heading-xs` to `--text-heading-8xl`, `--text-paragraph-xs` to `--text-paragraph-xl`, and `--font-heading`. Each step has `--line-height`, `--letter-spacing`, and `--font-weight` sub-keys, and its default size matches the Tailwind class of its name. They make the `text-heading-*`, `text-paragraph-*`, and `font-heading` classes. `Typography.H1` to `Typography.H6` use the `5xl`, `3xl`, `2xl`, `xl`, `base`, and `xs` heading steps, and `Typography.P` uses `paragraph-base`. A site sets its own scale with a `@theme` block after the mantle import. It must set every sub-key of a step it changes, because a sub-key it leaves out keeps mantle's value.
+
+  `cx` now treats the type-role classes as font sizes. `cx("text-heading-3xl text-strong")` keeps both classes, and `cx("text-heading-3xl text-heading-xl")` keeps the last one.
+
+  See https://mantle.ngrok.com/components/data-display/typography and https://mantle.ngrok.com/base/typography.
+
+- [#1664](https://github.com/ngrok/mantle/pull/1664) [`2365dec`](https://github.com/ngrok/mantle/commit/2365dec926583ea2159b29816a60912a74c77f93) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `WorldMap` (preview) at `@ngrok/mantle/world-map`: a canvas-rendered world map that plots points by longitude and latitude on the Robinson projection, such as agents placed by their IP address.
+
+  - `WorldMap.Root` takes `data`, `longitudeKey`, an optional `labelKey` that names each point, an optional `sizeKey` that makes a point's area follow a count, and an optional `bounds` that zooms the map to one region.
+  - `WorldMap.Point` adds one series, reads its latitudes from `latitudeKey`, and takes a required `color`.
+  - `WorldMap.Graticule` draws meridians and parallels every 30°.
+  - `WorldMap.Connector` draws a great-circle line between two places, such as from a client to the ngrok edge.
+  - `WorldMap.Callout` keeps a card over one place without a hover. It carries `data-slot="world-map-callout"` and `data-side`. `data-side` names the side the callout sits on after placement, so it changes when the callout flips to the side with room.
+  - `WorldMap.Tooltip` customizes the readout. `WorldMap.Legend` names the series.
+
+  The map has the same interaction contract as the other charts. It is one Tab stop, and the arrow keys step from west to east. With `bounds`, the keyboard skips a point outside the plot, and the data table still lists it. The tooltip and the announcements name each point, and give its size value when `sizeKey` is set. Focus mounts an sr-only data table that lists the first 150 points from west to east. When new rows arrive, a point at a new place pulses once, except under reduced motion. Set `--world-map-land-color` and `--world-map-ocean-color` on the Root to restyle the map. Only `WorldMap` loads the projection and the land outline. The other charts grow by less than 1 KB gzip for the shared readout support.
+
+  Docs: https://mantle.ngrok.com/components/preview/world-map
+
+### Patch Changes
+
+- [#1733](https://github.com/ngrok/mantle/pull/1733) [`591a5c8`](https://github.com/ngrok/mantle/commit/591a5c806804e6721e9608728e61295c51e6362b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `dist/agent.json` now has a `sourceHash` of the package source and its dependency ranges. The mantle MCP server compares it with the hash of its docs build, and uses the docs as the contract of a version only when the two are equal. Before this change, the server used the docs on `main` as the contract of the latest release, so it showed props that the release did not have.
+
+- [#1725](https://github.com/ngrok/mantle/pull/1725) [`4d7eff5`](https://github.com/ngrok/mantle/commit/4d7eff560982d2e304f8ac0b7d26125ed08b3d27) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `AlertCenter.Bar` starts its exit in the render that removes the last alert. It no longer renders one more time from a layout effect. The bar looks and animates the same.
+
+- [#1714](https://github.com/ngrok/mantle/pull/1714) [`6cfbebe`](https://github.com/ngrok/mantle/commit/6cfbebe34a57dd76df713683bd80b9586371138f) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Keep space for the scrollbar in `AppLayout.Body` and `AppLayout.SidePanelBody` with `scrollbar-gutter-stable`. A page no longer moves sideways when it starts to overflow. This matches `Dialog.Body` and `Sheet.Body`. Browsers with overlay scrollbars, such as macOS by default, show no change.
+
+  `AppLayout.Body`, `AppLayout.SidePanelBody`, `Dialog.Body`, and `Sheet.Body` all set `scrollbar-gutter-stable`. If you pass `scrollbar-gutter-stable` in the `className` of one of these parts, remove it: it has no effect.
+
+- [#1664](https://github.com/ngrok/mantle/pull/1664) [`2365dec`](https://github.com/ngrok/mantle/commit/2365dec926583ea2159b29816a60912a74c77f93) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - When only the height of a dense `LineChart` or `AreaChart` changes, the chart no longer reads each row again. A dense chart has 4 or more rows for each device-pixel column. When the count of device-pixel columns changes, such as for a new width, the chart still samples the rows again.
+
+- [#1713](https://github.com/ngrok/mantle/pull/1713) [`00d4611`](https://github.com/ngrok/mantle/commit/00d46115971e68ee9b45ee207fcb0753d59cc027) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Make the chart enter animation easier to follow. When a `BarChart` first comes into view, its bars grow from the baseline one after another, in category order, instead of all at once. Each bar grows for 300ms, and the last bar starts at 300ms for any bar count, so the whole enter takes 600ms. A stacked column grows as one bar. A `LineChart` or an `AreaChart` series now sweeps in from the left over 600ms instead of 280ms, and a `ScatterPlot` series fades in over the same time. The enter uses the `ease-out-strong` curve. `prefers-reduced-motion` and `animate={false}` still show the chart at once.
+
+- [#1664](https://github.com/ngrok/mantle/pull/1664) [`2365dec`](https://github.com/ngrok/mantle/commit/2365dec926583ea2159b29816a60912a74c77f93) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - After an update animation ends, a chart no longer plays it again for equal data. A finished value tween could end one rounding step from its target. The next update with equal values, such as a poll that returns the same rows, then read as a change and ran a full tween that changed no pixel: 17 frames at 60 Hz. A finished tween now holds its exact target, and that update takes one frame. This applies to `AreaChart`, `BarChart`, `LineChart`, and `ScatterPlot`.
+
+- [#1664](https://github.com/ngrok/mantle/pull/1664) [`2365dec`](https://github.com/ngrok/mantle/commit/2365dec926583ea2159b29816a60912a74c77f93) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `LineChart` and `AreaChart` with string x values no longer animate an x domain that no paint reads. When a category came or went and the tick labels stayed, the chart painted the same picture 17 to 22 more times. It now paints one frame. A dense series, which draws one column for each device pixel, keeps its glide.
+
+- [#1664](https://github.com/ngrok/mantle/pull/1664) [`2365dec`](https://github.com/ngrok/mantle/commit/2365dec926583ea2159b29816a60912a74c77f93) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - A chart that is not on screen no longer animates a data update while the page prints. Between `beforeprint` and `afterprint`, each chart on the page played the full update animation for each data update (32 to 37 frames), also a chart far from the viewport. Such a chart then kept the rest of the animation for the moment it came into view. A chart that is not on screen now paints the new data at once, and a chart on screen keeps its motion. The print itself now shows an update that had not reached a frame yet, settled.
+
+- [#1664](https://github.com/ngrok/mantle/pull/1664) [`2365dec`](https://github.com/ngrok/mantle/commit/2365dec926583ea2159b29816a60912a74c77f93) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The `tickFormat` docs of the chart axes now say that the chart compares the function by identity, so a new function paints the chart again. With the React Compiler in your build, an inline function stays stable; without it, define the function outside the component. This applies to the `XAxis` and `YAxis` parts of `AreaChart`, `BarChart`, `LineChart`, and `ScatterPlot`.
+
+- [#1664](https://github.com/ngrok/mantle/pull/1664) [`2365dec`](https://github.com/ngrok/mantle/commit/2365dec926583ea2159b29816a60912a74c77f93) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Keep the chart tooltip inside the plot when neither side of the hovered point has room for it. Before, on a narrow chart such as one on a phone, the tooltip went past the plot's right edge and made the page scroll horizontally. This applies to `AreaChart`, `BarChart`, `LineChart`, and `ScatterPlot`.
+
+- [#1719](https://github.com/ngrok/mantle/pull/1719) [`fd5539a`](https://github.com/ngrok/mantle/commit/fd5539a7e9530b22cc9a8a186ea201b4ab9046af) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Make the fold toggle of a `CodeBlock` easier to tap. Its hit area is now 34px wide instead of 18px: it extends 12px into the empty space before the toggle and 4px into the gap after it. The toggle looks the same, and the layout does not change.
+
+- [#1721](https://github.com/ngrok/mantle/pull/1721) [`ac1ea8d`](https://github.com/ngrok/mantle/commit/ac1ea8db9f82b743c88e87b50609fa687ae53dec) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Give the fold toggles of a `CodeBlock` the spacing that WCAG 2.5.8 needs. A code block that has fold toggles now uses a 24px line height instead of 20px, and each toggle is 24px high, so the toggles of adjacent lines are 24px apart. A code block with no fold toggles shows no change.
+
+  The new `--mantle-code-fold-line-height` CSS variable holds the value. Set it to `1.25rem` on a code block to get the 20px lines again; the toggles of adjacent lines then fail the target-size check. A `leading-*` class on `CodeBlock.Code` also sets the line height, and each toggle fills its line.
+
+- [#1732](https://github.com/ngrok/mantle/pull/1732) [`c890589`](https://github.com/ngrok/mantle/commit/c8905894e6b20fe7703809a1f1a49a0af854d1a9) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - The React Compiler now compiles a component only when memoization can help it: when the component calls a hook or creates a function in render. About 240 components and parts that do neither, such as `Button`, `Card`, `Dialog.Header`, and `Table.Row`, now ship as written, without a memo cache. They render the same HTML and behave the same.
+
+  Each entry is up to 2.0 KB (gzip) smaller. For example, `Button` is 1.6 KB smaller, `Dialog` 1.5 KB, `Alert` 1.9 KB, and `Card` 0.3 KB. All of mantle's JavaScript is 17.0 KB (gzip, 7.0%) smaller.
+
+  A file with no compiled component and no `"use client"`, such as `Card` or `MediaObject`, now builds to a chunk with no `"use client"`, so a server component can render it.
+
+- [#1738](https://github.com/ngrok/mantle/pull/1738) [`ecd9a10`](https://github.com/ngrok/mantle/commit/ecd9a10f2ef674523ed97b8bf55903653c19d7de) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Mantle components merge their own static class names at build time. The published components call `cx` only when a consumer passes `className` or a class name is not known at build time. Of the 332 `cx` calls in mantle components, 19 become string literals and 267 merge only when `className` is set. The class names that the components render do not change.
+
+- [#1737](https://github.com/ngrok/mantle/pull/1737) [`1048268`](https://github.com/ngrok/mantle/commit/1048268b239cdf231eb51d5d5756e66bed5d806c) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `cx` resolves Tailwind CSS conflicts with mantle's own merge instead of a port of `tailwind-merge`. The `@ngrok/mantle/cx` bundle is about 9% smaller (8.3 KB gzip, from 9.1 KB). In V8 (Node 26), the first render of 400 `cx` calls takes about 30% less time, a call that misses the cache is about 2.4× faster, and `cx` keeps about 40% less memory.
+
+  The output is the same as before for the class strings in mantle and its main consumers. The output now matches `tailwind-merge` 3.7 where a shorthand utility sets the same CSS property as an earlier utility, which the old port missed:
+
+  - `place-items-*`, `place-content-*`, and `place-self-*` replace an earlier `items-*`, `content-*`, `self-*`, or `justify-*` class.
+  - `px-*`, `py-*`, `mx-*`, `my-*`, `scroll-mx-*`, `scroll-px-*`, `inset-x-*`, `inset-y-*`, and the `border-x-*` and `border-y-*` widths and colors replace their logical sides, such as `ps-*` or `border-s-*`.
+  - `mask-x-*` and `mask-y-*` gradient stops replace an earlier `mask-l-*`, `mask-r-*`, `mask-t-*`, or `mask-b-*` stop.
+  - `sr-only` replaces an earlier position, size, padding, margin, overflow, or `whitespace-*` class, because it sets each of them.
+  - The logical sizes (`inline-*`, `block-*`, `min-inline-*`, `max-block-*`, …) merge across all their values, such as `inline-1/2` and `inline-4xl`.
+  - `bg-conic` is a background image, so it keeps a background color. `shadow-inner` is a shadow size, so it keeps a shadow color.
+
+- [#1746](https://github.com/ngrok/mantle/pull/1746) [`fa9974d`](https://github.com/ngrok/mantle/commit/fa9974d3d8d29c087e4614c57c24952ade263c80) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Agents and people can now find Strata, Media Object, Choice, and App Layout by how designers describe them. `dist/agent.json` and the docs-site Model Context Protocol (MCP) `find` tool read these words:
+
+  - Strata has the aliases `form section`, `two-column form`, `two-column layout`, `description left controls right`, `label and description on the left`, and `group of info on the left form fields on the right`. Its `useWhen` now names long forms and the title and description on the left.
+  - Media Object has the aliases `icon on the left text on the right`, `image beside text`, and `avatar beside text`.
+  - Choice has the alias `checkbox on the left label on the right`, so a single control row still ranks Choice above Strata.
+  - The App Layout `useWhen` now says that the header holds the page heading and its actions.
+
+- [#1721](https://github.com/ngrok/mantle/pull/1721) [`ac1ea8d`](https://github.com/ngrok/mantle/commit/ac1ea8db9f82b743c88e87b50609fa687ae53dec) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add the `focus-ring` utility: the shared focus ring of mantle. It draws a 4px ring in a focus color, in place of the browser outline. Put a state variant before it, such as `focus-visible:focus-ring`. `focus-ring` is the accent ring; `focus-ring-danger`, `focus-ring-warning`, `focus-ring-success`, and `focus-ring-neutral` are the other tones. A `ring-focus-*` class or a `ring-*` width class on the same element overrides the tone or the width. The [Focus Ring](https://mantle.ngrok.com/base/focus-ring) page lists the rules.
+
+  The mantle controls now use the utility. Their focus rings do not change, with one exception: the focus ring of a fold toggle in a `CodeBlock` is now the mantle ring, not a 2px outline, and it shows above the adjacent lines.
+
+- [#1719](https://github.com/ngrok/mantle/pull/1719) [`fd5539a`](https://github.com/ngrok/mantle/commit/fd5539a7e9530b22cc9a8a186ea201b4ab9046af) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add the `hit-area` utility, an escape hatch for a control that must stay small. It gives the control a tap target of at least 44px by 44px with no change to its look or the layout. The hit area is an invisible `::after` pseudo-element, centered on the control. Set `--hit-area-size` for another minimum.
+
+  Do not use it by default: first make the control the correct size. The [Hit Area](https://mantle.ngrok.com/base/hit-area) page lists when to use it, when not to, and the risks.
+
+  The thumb of a `Slider` now uses `hit-area`. Its tap target is 44px wide instead of 34px. With more than one thumb, the tap target grows only across the track, so it does not cover an adjacent thumb.
+
+- [#1756](https://github.com/ngrok/mantle/pull/1756) [`06f8ee0`](https://github.com/ngrok/mantle/commit/06f8ee0334cf12f14b4c66d8c1d682837e73f7be) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `IconButton` now accepts `children` only with `asChild`. Before, `<IconButton …>Copy text</IconButton>` type-checked, and the button dropped the children at runtime and rendered the `icon` alone. Now that call site is a type error. With `asChild`, the one child is still the element that renders.
+
+  `Alert.DismissIconButton`, `Dialog.CloseIconButton`, `Sheet.CloseIconButton`, `Field.HelpTrigger`, and `DataTable.RowExpandButton` take the same rule. `SplitButton.MenuTrigger` takes no `children`. The change is to types only: the runtime code and the bundle do not change.
+
+  Two valid patterns can stop compiling:
+
+  - A wrapper typed `Omit<IconButtonProps, "icon">` or `Omit<ComponentProps<typeof IconButton>, "icon">` that spreads its props into `IconButton`. `Omit` merges the two branches of the `asChild` union. Use an `Omit` that keeps each branch:
+
+    ```ts
+    type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+
+    type MyIconButtonProps = DistributiveOmit<IconButtonProps, "icon">;
+    ```
+
+  - A dynamic `asChild={isLink}`. Render one `IconButton` for each case instead:
+
+    ```tsx
+    isLink ? (
+    	<IconButton asChild {...props}>
+    		<a href={href} />
+    	</IconButton>
+    ) : (
+    	<IconButton {...props} />
+    );
+    ```
+
+- [#1752](https://github.com/ngrok/mantle/pull/1752) [`c835d92`](https://github.com/ngrok/mantle/commit/c835d924ea301662d7870e7bdd15ac9d255a337e) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Ship the `invert-theme` island CSS only to pages that use it. `mantle.css` now declares the island's palette aliases and its light palette restore as `@utility invert-theme`, so Tailwind emits them only when a scanned file names the class. Before, every build shipped them.
+
+  With `mantleSourcesPlugin`, a marketing page without an island drops from 127.9 KB to 113.9 KB minified (21.8 KB to 18.4 KB gzipped), and from 103.4 KB to 92.8 KB with `mantleThemePrunePlugin`. With `source-all.css` and no plugin, the build scans `Sandbar`, so it still ships the island CSS.
+
+  What changes for an island:
+
+  - Write the bare class in full in a scanned file, such as `className="invert-theme"`. A name that only script builds, such as `"invert-" + theme`, gets no island palette. To keep one, add `@source inline("invert-theme");` to your stylesheet.
+  - Use the bare class only. Tailwind accepts `md:invert-theme`, `hover:invert-theme`, and `invert-theme!`, but they flip only the palette, not the semantic tokens.
+  - The island rules now sit in `@layer utilities`. Your own unlayered rule on the island element, and a utility that sets the same custom property, can now override them.
+
+  Every `invert-theme` use in ngrok's apps is a literal class in a scanned file.
+
+- [#1708](https://github.com/ngrok/mantle/pull/1708) [`2fdab59`](https://github.com/ngrok/mantle/commit/2fdab59e4213d4d8b6f9bc6752b936f0c3f69537) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add an opt-in `/` shortcut to `Query.Input`. Set `keyboardShortcut` to let `/` move focus into the field from anywhere on the page. The field then shows a `/` hint while it is empty and not focused, and the `<input>` carries `aria-keyshortcuts="/"`. The shortcut is off by default, because a page with many tables has many fields and `/` can focus only one. The key still types a slash in any text field.
+
+- [#1664](https://github.com/ngrok/mantle/pull/1664) [`2365dec`](https://github.com/ngrok/mantle/commit/2365dec926583ea2159b29816a60912a74c77f93) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Two `ScatterPlot` fixes:
+
+  - An `aria-labelledby` that names an ancestor of the chart no longer throws "Maximum update depth exceeded" when the chart takes focus. Before, the caption of the screen-reader data table read the text of that ancestor, which held the caption itself, so each render made the caption longer. The caption now skips the text of the data table.
+  - In forced-colors mode (Windows High Contrast), a color that the chart resolves through a hidden element inside `Root` keeps its own value: a `var()` with a fallback, a `var()` or a `currentColor` inside another function such as `color-mix()`, or `light-dark()`. Before, each such color painted as the system text color.
+
+- [#1664](https://github.com/ngrok/mantle/pull/1664) [`2365dec`](https://github.com/ngrok/mantle/commit/2365dec926583ea2159b29816a60912a74c77f93) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `ScatterPlot` draws a round point with about half the canvas work. Each circle recorded a `moveTo` before its `arc`, and Chromium then records the circle as a general path. A round point is now one bare `arc`. In headless Chromium 158 on an Apple M3 Max, one paint of 5,000 points with rings takes 2.5 ms in place of 4.7 ms, and one paint of 10,000 points takes 2.3 ms in place of 6.2 ms (a 960 by 400 canvas at a device pixel ratio of 2, median of 4 interleaved rounds). A 3D plot, which paints each frame of a rotation, gets the same gain. In Chromium, the edge pixels of a round point change: it has the antialiasing of a circle again, as before 0.94.0. The other point shapes paint the same pixels.
+
+- [#1720](https://github.com/ngrok/mantle/pull/1720) [`3fd5c5a`](https://github.com/ngrok/mantle/commit/3fd5c5a322c8006007cf19ba97e9c64b10b26fbd) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Sidebar` now yields its width to an open `AppLayout.SidePanel`. While the panel is open in a window narrower than the `--container-side-panel-lane` theme token (`56.5rem`), an expanded sidebar collapses, so the panel sits beside the page and does not float over it. When the panel closes, unmounts, or the window widens, a sidebar that the panel collapsed expands again. If the reader toggles the sidebar in between, their choice stands.
+
+  The behavior is built in. No prop turns it on, and `Sidebar.Root` and `AppLayout.SidePanelRoot` can nest in either order. `onOpenChange` reports only the reader's toggles, so a sidebar cookie keeps their preference. `useSidebar().open` reports the state on screen.
+
+  If you copied `AssistantSidebarRoot` from the Assistant Across Routes recipe, replace it with `Sidebar.Root` and delete your copy. The recipe no longer has that part.
+
+  Docs: https://mantle.ngrok.com/components/navigation/sidebar#yielding-to-a-side-panel
+
+- [#1742](https://github.com/ngrok/mantle/pull/1742) [`5167129`](https://github.com/ngrok/mantle/commit/5167129919742cc907b8aad192cefd15a7d34f7f) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `Table.Root` no longer tracks whether its content is scrolled to the start, which it never used. The React Compiler memoizes its overflow observer, so the observer no longer wraps its result in `useMemo`. Its data attributes and behavior do not change, and the `table` bundle is 23 bytes (gzip) smaller.
+
+- [#1733](https://github.com/ngrok/mantle/pull/1733) [`591a5c8`](https://github.com/ngrok/mantle/commit/591a5c806804e6721e9608728e61295c51e6362b) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - `DataTable` and `Table` now say that row expansion is a `DataTable` feature. The `@useWhen` text and the `@siblings` boundaries of both name a detail panel and sub-rows. The `Table` JSDoc names `renderExpanded` and `getSubRows`. An agent that reads `Table` switches to `DataTable` instead of building its own expandable rows.
+
+- [#1749](https://github.com/ngrok/mantle/pull/1749) [`7cfc95c`](https://github.com/ngrok/mantle/commit/7cfc95c888197f5f1ef1aaa0315538a09751b194) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Register the semantic color tokens with `@theme inline reference`. Tailwind no longer writes 73 `--token: var(--token)` declarations into `@layer theme`, so the compiled CSS is 4.0 KB smaller (minified). The utilities and the resolved colors do not change.
+
+  The removed declarations refer to themselves, so they were invalid. The theme rules override them on `:root`, so pages see no change. In a shadow root that adopts mantle's CSS, `:host` now inherits the page value of each token. Before, each token was invalid on the host.
+
+- [#1730](https://github.com/ngrok/mantle/pull/1730) [`920f52e`](https://github.com/ngrok/mantle/commit/920f52e5cbb6abf95c9c783632651fcc1d94c321) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Compound components now tree-shake: a bundle keeps only the parts an app reads. `DropdownMenu`, `Dialog`, `Field`, and the other 45 compound namespaces are ES module namespaces instead of objects. Imports, call sites, types, and editor hovers stay the same: `import { DropdownMenu } from "@ngrok/mantle/dropdown-menu"` and `<DropdownMenu.Item>` read as before.
+
+  In a Vite 8 build, a page that renders `Button` with a few parts each of `DropdownMenu`, `Tabs`, `Accordion`, `Card`, and `Dialog` ships 154.5 KB of mantle JavaScript instead of 185.9 KB (minified). `Field` with `Item`, `Label`, and `Control` drops from 124.2 KB to 38.0 KB, because the popover behind `Field.Help` no longer comes along.
+
+  A namespace is now a read-only module namespace object. Spreading or iterating one still works. Assigning to one of its parts (`Dialog.Root = …`) now throws at runtime, and TypeScript does not flag it.
+
 ## 0.94.1
 
 ### Patch Changes
