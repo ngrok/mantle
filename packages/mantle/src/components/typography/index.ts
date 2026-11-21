@@ -11,9 +11,7 @@ import * as TypographyParts from "./typography-parts.js";
  * so an MDX `components` map assigns one part to each element. Each part reads a type-role token
  * (`--text-heading-xs` to `--text-heading-8xl`, `--text-paragraph-xs` to `--text-paragraph-xl`,
  * and `--font-heading`), whose steps follow Tailwind's `text-*` scale. A site sets its own scale
- * in CSS, and the markup stays the same. The parts are server components: they use
- * no hooks and no context, and ship no `"use client"`. `asChild` renders `Slot`, which is a client
- * component.
+ * in CSS, and the markup stays the same. The parts hold no state and use no hooks or context.
  *
  * @useWhen Show a heading or a paragraph of copy in the site's type scale, in JSX or as the MDX
  * `h1` to `h6` and `p` elements.

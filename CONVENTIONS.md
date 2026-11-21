@@ -58,7 +58,7 @@ A rule tagged `(lint: name)` has an oxlint check, and the lint message says why 
 - Write code that the compiler can compile. When the build fails, rewrite the function to the [Rules of React](https://react.dev/reference/rules). Do not opt it out.
 - `"use no memo"` is a last resort, for two cases. Add a `Why` comment that names the case.
   - A library that the compiler cannot model (`list/virtual.tsx` and `@tanstack/react-virtual`).
-  - A part that a server component must render, so it ships with no hook and no `"use client"` (`typography/typography.tsx`). Compiled output imports a cache hook, and the build then marks the chunk `"use client"`.
+  - A component file that memoization does not help: its parts hold no state and pass props straight to one element, so compiled output adds a cache and saves no work (`typography/typography.tsx`). Put the directive at the top of the file.
 - oxlint turns on every rule that ports a compiler diagnostic, so the editor shows what the build rejects. Never disable a React hooks or React Compiler rule; restructure the code. (lint: `mantle/no-react-hooks-suppression`)
 - The usual fixes:
   - State that follows a prop: set it during render behind a condition, not in an effect.

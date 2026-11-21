@@ -1,5 +1,5 @@
-// Why "use no memo": these parts hold no state, and compiled output imports a cache hook. That
-// hook makes the build mark the chunk "use client", so a server component could not render them.
+// Why "use no memo": these parts hold no state and pass their props straight to one element, so
+// memoization saves no work. Compiled, the chunk adds a compiler cache and is almost twice the size.
 "use no memo";
 
 import type { ComponentProps } from "react";
