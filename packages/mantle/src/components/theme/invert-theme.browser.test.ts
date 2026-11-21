@@ -1,11 +1,16 @@
 import twThemeCss from "tailwindcss/theme.css?raw";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import mantleCss from "../../mantle.css?raw";
+import tailwindCss from "tailwindcss/index.css?raw";
 import {
+	compileInvertThemeUtility,
 	extractTopLevelRules,
 	parseDeclarationBlock,
 	parseDeclarations,
+	parseInvertThemeUtility,
 } from "../../test-utils/parse-theme-css.js";
+
+const invertThemeUtility = parseInvertThemeUtility(mantleCss);
 
 /**
  * End-to-end proof of the `invert-theme` contract in a real browser: for
@@ -49,10 +54,7 @@ function serializeThemeRules(css: string): string {
 // leave the ramps in the sweep only for as long as the dark block keeps
 // declaring them.
 const lightBlock = new Map([
-	...parseDeclarationBlock(
-		mantleCss,
-		(selector) => selector.startsWith(":root:is(") && selector.endsWith(".invert-theme"),
-	),
+	...invertThemeUtility.restore,
 	...parseDeclarationBlock(
 		mantleCss,
 		(selector) => selector.startsWith(":root,") && selector.includes(":root.light,"),
@@ -87,7 +89,7 @@ let pageProbe: HTMLDivElement;
 let islandProbe: HTMLDivElement;
 let nestedIslandProbe: HTMLDivElement;
 
-beforeAll(() => {
+beforeAll(async () => {
 	// Tailwind emits its default palette and mantle's @theme colors at :root;
 	// the consumer's build does this, so the test reproduces it.
 	const rootColorVariables = new Map(
@@ -100,14 +102,9 @@ beforeAll(() => {
 		serializeRule(":root", rootColorVariables),
 		// the light base block (with its dark-page island selector extension)
 		serializeThemeRules(mantleCss),
-		// the palette-alias re-resolution rule
-		serializeRule(
-			".invert-theme",
-			parseDeclarations(
-				extractTopLevelRules(mantleCss).find(({ selector }) => selector === ".invert-theme")
-					?.body ?? "",
-			),
-		),
+		// the invert-theme utility as Tailwind compiles it, in `@layer utilities`, so unlayered
+		// theme rules beat it as they do in a real build
+		await compileInvertThemeUtility(mantleCss, tailwindCss),
 	].join("\n");
 	document.head.appendChild(styleElement);
 

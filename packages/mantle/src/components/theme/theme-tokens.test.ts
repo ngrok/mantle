@@ -50,3 +50,21 @@ test("emits the tooltip colors when a plain stylesheet reads them", async () => 
 
 	expect(css).toMatch(/--background-color-tooltip:\s*#000;/);
 });
+
+// Why: `invert-theme` is a utility, so a page with no island ships none of the island CSS,
+// and a page with one gets the aliases and the light palette restore in `@layer utilities`.
+test("emits the island aliases and palette restore only for the invert-theme candidate", async () => {
+	const island = /\.invert-theme\s*\{\s*--color-accent-50:\s*var\(--color-sky-50\)/;
+	// Tailwind keeps the nested `&` rule; a minifier flattens it to `… .invert-theme`.
+	const restore =
+		/\[data-applied-theme="dark"\]\)\s*(?:&|\.invert-theme)\s*\{\s*--color-white:\s*oklch\(100% 0 0\)/;
+
+	const without = await buildMantleCss();
+	expect(without).not.toMatch(island);
+	expect(without).not.toMatch(restore);
+
+	const css = await buildMantleCss(["invert-theme"]);
+	const utilities = css.slice(css.indexOf("@layer utilities"));
+	expect(utilities).toMatch(island);
+	expect(utilities).toMatch(restore);
+});
