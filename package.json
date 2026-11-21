@@ -46,9 +46,9 @@
     "oxlint": "1.94.0",
     "oxlint-tsgolint": "7.0.2007",
     "tsrs": "0.25.0-ts7.1.0-beta",
-    "turbo": "2.11.11",
+    "turbo": "2.11.13",
     "typescript": "catalog:",
-    "vitest": "5.1.0"
+    "vitest": "5.1.1"
   },
   "engines": {
     "node": "^26.0.0"
