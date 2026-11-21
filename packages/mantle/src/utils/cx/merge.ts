@@ -227,8 +227,8 @@ const SAME_NAME_ROOTS = `aspect columns break-after break-before break-inside bo
 	overflow-y overscroll overscroll-x overscroll-y inset inset-x inset-y start end inset-bs inset-be top right bottom left z basis
 	grow shrink order grid-cols col-start col-end grid-rows row-start row-end grid-flow auto-cols auto-rows gap gap-x gap-y
 	justify-items justify-self place-content place-items place-self p px py ps pe pbs pbe pt pr pb pl m mx my ms me mbs mbe mt mr
-	mb ml space-x space-y size inline-size min-inline-size max-inline-size block-size min-block-size max-block-size w min-w max-w h
-	min-h max-h tracking line-clamp leading list-image indent tab-size whitespace wrap hyphens underline-offset bg-clip bg-origin
+	mb ml space-x space-y size w min-w max-w h
+	min-h max-h tracking line-clamp leading list-image indent whitespace wrap hyphens underline-offset bg-clip bg-origin
 	bg-size bg-position bg-blend mix-blend opacity brightness contrast grayscale hue-rotate invert saturate sepia backdrop-blur
 	backdrop-brightness backdrop-contrast backdrop-grayscale backdrop-hue-rotate backdrop-invert backdrop-opacity backdrop-saturate
 	backdrop-sepia border-spacing border-spacing-x border-spacing-y caption duration ease delay animate perspective
@@ -254,7 +254,7 @@ const BARE_ROOTS = new Set(
  * like `my-4` and `top-2`, so these roots check the value first.
  */
 const SPACING_VALUE =
-	/^(\d*\.?\d+|\d+\/\d+|px|auto|full|screen|[sld]?v[wh]|min|max|fit|em|lh|none|prose|screen-\w+|3xs|2xs|xs|sm|md|lg|\d*xl)$/;
+	/^(\d*\.?\d+|\d+\/\d+|px|auto|full|screen|[sld]?v[wh]|min|max|fit|em|lh|none|prose|screen-\w+|(\d+(\.\d+)?)?(xs|sm|md|lg|xl))$/;
 const VALUE_SHAPES: Record<string, { test: (value: string) => boolean } | undefined> =
 	Object.create(null);
 for (const root of "block inline min-block max-block min-inline max-inline p px py ps pe pbs pbe pt pr pb pl m mx my ms me mbs mbe mt mr mb ml gap gap-x gap-y inset inset-x inset-y inset-s inset-e start end top right bottom left space-x space-y w h size min-w min-h max-w max-h basis indent scroll-m scroll-mx scroll-my scroll-ms scroll-me scroll-mbs scroll-mbe scroll-mt scroll-mr scroll-mb scroll-ml scroll-p scroll-px scroll-py scroll-ps scroll-pe scroll-pbs scroll-pbe scroll-pt scroll-pr scroll-pb scroll-pl inset-bs inset-be translate translate-x translate-y translate-z border-spacing border-spacing-x border-spacing-y".split(
@@ -270,8 +270,6 @@ VALUE_SHAPES.order = /^(\d+|first|last|none)$/;
  * `roots:values`. Tokens: `#` a number, `#i` an integer, `/` a fraction, `%` a percent, `ts` a
  * T-shirt size, and `~` no value. An arbitrary value passes for each root.
  */
-const NUMBER_VALUE = /^\d*\.?\d+$/;
-const INTEGER_VALUE = /^\d+$/;
 const PERCENT_VALUE = /^\d*\.?\d+%$/;
 const POSITIONS =
 	"center top bottom left right top-left left-top top-right right-top bottom-right right-bottom bottom-left left-bottom";
@@ -316,8 +314,8 @@ for (const line of `self:auto ${SECONDARY_AXIS} baseline baseline-last|select:no
 	const shape = {
 		test: (value: string) =>
 			words.has(value) ||
-			(flags.has("#") && NUMBER_VALUE.test(value)) ||
-			(flags.has("#i") && INTEGER_VALUE.test(value)) ||
+			(flags.has("#") && isNumber(value)) ||
+			(flags.has("#i") && isInteger(value)) ||
 			(flags.has("/") && FRACTION.test(value)) ||
 			(flags.has("%") && PERCENT_VALUE.test(value)) ||
 			(flags.has("ts") && TSHIRT.test(value)),
@@ -330,7 +328,7 @@ VALUE_SHAPES.row = /^(auto|\d+|span-(full|\d+|\[.+\]|\(.+\)))$/;
 VALUE_SHAPES.col = VALUE_SHAPES.row;
 
 /** Mantle's type roles (packages/mantle/src/mantle.css): a font size, never a color. */
-const TYPE_ROLE = /^(heading|paragraph)-(base|\d*xs|sm|md|lg|\d*xl)$/;
+const TYPE_ROLE = /^(heading|paragraph)-(base|(\d+(\.\d+)?)?(xs|sm|md|lg|xl))$/;
 
 /** Roots whose class group depends on the value. */
 const VALUE_ROOTS: Record<string, ((value: string) => string | undefined) | undefined> =
@@ -349,7 +347,7 @@ const VALUE_ROOTS: Record<string, ((value: string) => string | undefined) | unde
 		font: (value: string) => {
 			// tailwind-merge reads an unlabeled arbitrary value or variable as a weight.
 			const isWeight =
-				/^(thin|extralight|light|normal|medium|semibold|bold|extrabold|black|\d+)$/.test(value) ||
+				/^(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)$/.test(value) ||
 				testValue(value, isWeightLabel, () => true) ||
 				testVariable(value, isWeightLabel, true);
 			if (isWeight) {
@@ -418,7 +416,7 @@ const VALUE_ROOTS: Record<string, ((value: string) => string | undefined) | unde
 		via: (value: string) => (isStopPosition(value) ? "gradient-via-pos" : "gradient-via"),
 		to: (value: string) => (isStopPosition(value) ? "gradient-to-pos" : "gradient-to"),
 		divide: (value: string) =>
-			/^(solid|dashed|dotted|double|none)$/.test(value) ? "divide-style" : "divide-color",
+			/^(solid|dashed|dotted|double|hidden|none)$/.test(value) ? "divide-style" : "divide-color",
 		flex: (value: string) =>
 			isNumber(value) ||
 			FRACTION.test(value) ||
@@ -814,7 +812,11 @@ const classIdOf = (
 	hasPostfix = slash > nameStart;
 	let group = hasPostfix ? classGroupIn(classList, nameStart, slash) : -1;
 	// A name such as `/sidebar` in `@container/sidebar` is part of the class, not a postfix.
-	if (group === CONTAINER_TYPE && slash + 1 < baseEnd) {
+	if (
+		group === CONTAINER_TYPE &&
+		slash + 1 < baseEnd &&
+		/^@container(-size|-normal)?$/.test(classList.slice(nameStart, slash))
+	) {
 		group = CONTAINER_NAMED;
 		hasPostfix = false;
 	} else if (group < 0) {

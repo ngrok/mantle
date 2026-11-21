@@ -256,3 +256,22 @@ test("keeps a variant class apart from plain classes when one merge has many var
 	const result = mergeClassList(["p-2", ...blocks, "data-[i=last]:p-4"].join(" "));
 	expect(result.startsWith("p-2 ")).toBe(true);
 });
+
+test("matches tailwind-merge on edge cases from review", () => {
+	for (const input of [
+		"divide-hidden divide-red-500",
+		"divide-solid divide-hidden",
+		"font-400 font-sans",
+		"font-400 font-bold",
+		"text-heading-2.5xl text-red-500",
+		"w-2 w-2.5xl",
+		"@container-[size]/sidebar @container",
+		"@container/sidebar @container",
+		"inline-size-card inline-4",
+		"tab-size-editor tab-4",
+		"grid-cols-2.0 grid-cols-3",
+		"opacity-1e2 opacity-50",
+	]) {
+		expect({ input, actual: mergeClassList(input) }).toEqual({ input, actual: oracle(input) });
+	}
+});

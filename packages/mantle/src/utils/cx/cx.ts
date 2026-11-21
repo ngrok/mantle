@@ -39,10 +39,10 @@ let buckets = new Map<string, ArgBucket>();
 let previousBuckets = new Map<string, ArgBucket>();
 let entryCount = 0;
 // A call is cached on its second sighting, so a `className` that changes on each call adds no
-// entry. This holds the joined arguments of the last miss for each first argument, in place of
-// an array, in two generations like the entries.
-let lastMisses = new Map<string, string>();
-let previousLastMisses = new Map<string, string>();
+// entry. This holds the joined arguments of each miss, in place of an array, in two generations
+// like the entries.
+let misses = new Set<string>();
+let previousMisses = new Set<string>();
 
 /** Counts one new entry, and starts a new generation when the current one is full. */
 const countEntry = () => {
@@ -84,16 +84,16 @@ const mergeStrings = (first: string, rest: ClassValue[]): string => {
 		}
 	}
 	const result = mergeClassList(joined);
-	if ((lastMisses.get(first) ?? previousLastMisses.get(first)) !== joined) {
-		if (lastMisses.size >= ENTRIES_PER_GENERATION) {
-			previousLastMisses = lastMisses;
-			lastMisses = new Map();
+	if (!misses.has(joined) && !previousMisses.has(joined)) {
+		if (misses.size >= ENTRIES_PER_GENERATION) {
+			previousMisses = misses;
+			misses = new Set();
 		}
-		lastMisses.set(first, joined);
+		misses.add(joined);
 		return result;
 	}
-	lastMisses.delete(first);
-	previousLastMisses.delete(first);
+	misses.delete(joined);
+	previousMisses.delete(joined);
 	let current = buckets.get(first);
 	if (current == null) {
 		current = { entries: [] };
