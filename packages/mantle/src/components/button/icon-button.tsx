@@ -1,3 +1,7 @@
+// Why "use no memo": a server component can render this file. A stateless part gains nothing from
+// the compiler, and its cache hook would make the build mark the chunk "use client".
+"use no memo";
+
 import { CircleNotchIcon } from "@phosphor-icons/react/dist/ssr/CircleNotch";
 import type { ComponentProps, ReactNode } from "react";
 import { Children, cloneElement, isValidElement } from "react";
@@ -9,7 +13,7 @@ import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { IconSwap } from "../icon/icon-swap.js";
 import { Slot } from "../slot/index.js";
-import { disabledChildProps } from "./button.js";
+import { DisabledLinkGuard } from "./disabled-link-guard.js";
 import type {
 	IconButtonAppearance,
 	IconButtonIntent,
@@ -114,6 +118,8 @@ type IconButtonProps = Omit<ComponentProps<"button">, "aria-label"> &
  * Under `asChild`, the child gets no `disabled` attribute, because it is inert
  * on an `<a>`: the child gets `aria-disabled="true"`, leaves the tab order
  * with `tabIndex={-1}`, and a click on it is cancelled before any handler runs.
+ * Only this case renders a client component; every other `IconButton` is a
+ * server component that ships no JavaScript.
  * An explicit `disabled` wins over `isLoading`, so `disabled={false}` keeps a
  * loading button enabled. `aria-disabled={false}` cannot re-enable the button.
  *
@@ -209,14 +215,17 @@ const IconButton = ({
 
 	if (asChild) {
 		invariant(
-			isValidElement(children) && Children.only(children),
+			isValidElement<{ tabIndex?: number }>(children) && Children.only(children),
 			"When using `asChild`, IconButton must be passed a single child as a JSX tag.",
 		);
 
 		return (
-			<Slot {...buttonProps}>
-				{cloneElement(children, disabled ? disabledChildProps : {}, innerChildren)}
-			</Slot>
+			<>
+				<Slot {...buttonProps}>
+					{cloneElement(children, disabled ? { tabIndex: -1 } : {}, innerChildren)}
+				</Slot>
+				{disabled && <DisabledLinkGuard />}
+			</>
 		);
 	}
 

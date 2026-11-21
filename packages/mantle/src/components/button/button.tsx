@@ -1,6 +1,10 @@
+// Why "use no memo": a server component can render this file. A stateless part gains nothing from
+// the compiler, and its cache hook would make the build mark the chunk "use client".
+"use no memo";
+
 import { CircleNotchIcon } from "@phosphor-icons/react/dist/ssr/CircleNotch";
 import { cva } from "class-variance-authority";
-import type { ComponentProps, MouseEvent, ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { Children, cloneElement, isValidElement } from "react";
 import invariant from "tiny-invariant";
 import { parseBooleanish } from "../../types/index.js";
@@ -13,6 +17,7 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 import { Icon } from "../icon/index.js";
 import { IconSwap } from "../icon/icon-swap.js";
 import { Slot } from "../slot/index.js";
+import { DisabledLinkGuard } from "./disabled-link-guard.js";
 import type { ButtonIntent } from "./intents.js";
 import type { ButtonSize } from "./sizes.js";
 
@@ -265,6 +270,8 @@ type ButtonProps = ComponentProps<"button"> &
  * Under `asChild`, the child gets no `disabled` attribute, because it is inert
  * on an `<a>`: the child gets `aria-disabled="true"`, leaves the tab order
  * with `tabIndex={-1}`, and a click on it is cancelled before any handler runs.
+ * Only this case renders a client component; every other `Button` is a server
+ * component that ships no JavaScript.
  * An explicit `disabled` wins over `isLoading`, so `disabled={false}` keeps a
  * loading button enabled. `aria-disabled={false}` cannot re-enable the button.
  * To gate a button on readiness and on a pending action, put both in
@@ -419,25 +426,29 @@ const Button = ({
 
 	if (asChild) {
 		invariant(
-			isValidElement<{ children?: ReactNode } & Partial<typeof disabledChildProps>>(children) &&
+			isValidElement<{ children?: ReactNode; tabIndex?: number }>(children) &&
 				Children.only(children),
 			"When using `asChild`, Button must be passed a single child as a JSX tag.",
 		);
 
 		return (
-			<Slot {...buttonProps}>
-				{cloneElement(
-					children,
-					disabled ? disabledChildProps : {},
-					<>
-						{icon}
-						{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
-						<span data-slot="button-label" className="contents">
-							{children.props.children}
-						</span>
-					</>,
-				)}
-			</Slot>
+			<>
+				<Slot {...buttonProps}>
+					{cloneElement(
+						children,
+						// Why on the child, not on the `Slot`: a child's own `tabIndex` wins over a slot prop.
+						disabled ? { tabIndex: -1 } : {},
+						<>
+							{icon}
+							{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+							<span data-slot="button-label" className="contents">
+								{children.props.children}
+							</span>
+						</>,
+					)}
+				</Slot>
+				{disabled && <DisabledLinkGuard />}
+			</>
 		);
 	}
 
@@ -453,28 +464,9 @@ const Button = ({
 	);
 };
 
-/**
- * Props that make a disabled `asChild` child inert. The native `disabled`
- * attribute does nothing on an `<a>`, so the child leaves the tab order and a
- * click is cancelled in the capture phase, before the child's own `onClick` or
- * a router's navigation runs.
- *
- * Why on the child through `cloneElement`, not on the `Slot`: Radix composes a
- * child handler ahead of a slot handler, so a child's own `onClickCapture`
- * would run before the blocker. Set on the child, these props replace it.
- */
-const disabledChildProps = {
-	tabIndex: -1,
-	onClickCapture: (event: MouseEvent<HTMLElement>) => {
-		event.preventDefault();
-		event.stopPropagation();
-	},
-} as const;
-
 export {
 	//,
 	Button,
-	disabledChildProps,
 };
 
 export type {

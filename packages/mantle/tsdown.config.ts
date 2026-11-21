@@ -175,6 +175,12 @@ export default defineConfig((options) => [
 				const owner = owningComponentDir(chunk.moduleIds);
 				return owner != null ? `${owner}-[hash].js` : "[name]-[hash].js";
 			},
+			// Why a group: rolldown puts the guard and `IconSwap` in one chunk, because the
+			// same entries import both. The guard is `"use client"`, so `IconSwap`, and with it
+			// `Button`, would ship as a client component.
+			codeSplitting: {
+				groups: [{ name: "disabled-link-guard", test: /[\\/]disabled-link-guard\.tsx$/ }],
+			},
 		},
 		entry: {
 			...componentPackages,
