@@ -80,7 +80,7 @@ type Candidate =
  * Whether the fixer owns a file: app or package source, but not `cx` or a
  * migration fixture.
  *
- * Why: `cx`, its vendored engine, and its tests read class names as data, so
+ * Why: `cx`, its merge tables, and its tests read class names as data, so
  * a legacy form such as `!p-4` is there on purpose. A migration fixture models
  * consumer code as the codemod finds it.
  *

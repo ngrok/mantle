@@ -524,6 +524,7 @@
 		"postcss": "8.5.33",
 		"react": "catalog:",
 		"react-dom": "catalog:",
+		"tailwind-merge": "3.7.1",
 		"tailwindcss": "catalog:",
 		"tsdown": "catalog:",
 		"typescript": "catalog:",

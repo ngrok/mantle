@@ -68,9 +68,43 @@ describe("cx", () => {
 	});
 
 	test("ease-out-strong can be overridden by ease-linear", () => {
-		// Why: `ease-out-strong` is mantle's own theme token, so the vendored
-		// config must list it or `cx` keeps both classes and the stylesheet order wins.
+		// Why: `ease-out-strong` is mantle's own theme token, so the merge
+		// must know it or `cx` keeps both classes and the stylesheet order wins.
 		expect(cx("ease-out-strong ease-linear")).toBe("ease-linear");
+	});
+});
+
+describe("cx: look-alike classes that set different properties", () => {
+	test("a mantle font size keeps a later text color", () => {
+		expect(cx("text-mono text-muted")).toBe("text-mono text-muted");
+		expect(cx("text-paragraph-sm text-strong")).toBe("text-paragraph-sm text-strong");
+	});
+
+	test("a text shadow keeps the text color and yields to a later text shadow", () => {
+		// Why: a merge that reads `text-shadow-lg` as a color drops `text-strong`.
+		expect(cx("text-strong text-shadow-lg")).toBe("text-strong text-shadow-lg");
+		expect(cx("text-shadow-sm text-strong text-shadow-lg")).toBe("text-strong text-shadow-lg");
+	});
+
+	test("a shadow size, a shadow color, and a shadow variable stay apart", () => {
+		expect(cx("shadow-lg shadow-accent-500/20")).toBe("shadow-lg shadow-accent-500/20");
+		expect(cx("shadow-(--card-shadow) shadow-accent-500")).toBe(
+			"shadow-(--card-shadow) shadow-accent-500",
+		);
+	});
+
+	test("a border width, style, and color stay apart", () => {
+		expect(cx("border border-dashed border-strong border-2")).toBe(
+			"border-dashed border-strong border-2",
+		);
+	});
+
+	test("a font size with a line height removes an earlier leading but keeps the color", () => {
+		expect(cx("leading-4 text-amber-700 text-sm/6")).toBe("text-amber-700 text-sm/6");
+	});
+
+	test("a custom class named like a utility does not merge", () => {
+		expect(cx("my-app top-ranked my-4 top-2")).toBe("my-app top-ranked my-4 top-2");
 	});
 });
 

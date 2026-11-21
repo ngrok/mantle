@@ -98,7 +98,7 @@ A rule tagged `(lint: name)` has an oxlint check, and the lint message says why 
 These rules are [ASD-STE100](https://www.asd-ste100.org/) Simplified Technical English, Issue 9, adapted to this repo. Claude Code surfaces the same rules as the `simplified-technical-english` skill; this section is the normative copy.
 
 - **In scope:** code comments, JSDoc, `.changeset/*.md` release notes, `decisions/*.md`, docs-page copy under `apps/www/app/docs/`, commit subjects and bodies, PR descriptions, and these agent docs.
-- **Out of scope:** chat replies, product copy, marketing text, vendored code (`packages/mantle/src/utils/cx/vendor/**`), and the generated code and config files [JSDoc](#jsdoc) already exempts.
+- **Out of scope:** chat replies, product copy, marketing text, and the generated code and config files [JSDoc](#jsdoc) already exempts.
 - **Identifier naming** stays with [Readability & Maintainability](#readability--maintainability).
 
 **Scope and status:** the stance is [COMPONENT_SPEC.md § Scope and status](./COMPONENT_SPEC.md#scope-and-status). This is the bar for prose you write or edit. Prose you touch comes up to the bar; the rest waits until someone opts into the work. An audit reports a prose gap; it does not open a migration inside an unrelated PR. Never reflow a verbatim quote, an ASCII composition tree, or an `@example`.
