@@ -224,9 +224,11 @@ win over the values inherited from `:root`.
 
 Things to know:
 
-- **Write the class name in full.** `invert-theme` is a Tailwind utility, so a page ships the
+- **Write the bare class name in full.** `invert-theme` is a Tailwind utility, so a page ships the
   island CSS only when a scanned file contains the class name. A name that only script builds,
-  such as `"invert-" + theme`, gets no island palette.
+  such as `"invert-" + theme`, gets no island palette; add `@source inline("invert-theme");` to
+  your stylesheet to keep one. Variants such as `md:invert-theme` are not supported: they flip
+  the palette but not the semantic tokens.
 - **Portals escape the island.** Floating content that portals to `<body>` (dropdown menus,
   tooltips, dialogs, …) renders in the page theme. Pass `invert-theme` in the floating part's
   `className` to invert it too.

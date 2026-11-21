@@ -6,6 +6,8 @@
  * computed inversion end-to-end).
  */
 
+import { compile } from "tailwindcss";
+
 /**
  * A parsed CSS rule: the full selector text and its raw body (declarations
  * and any nested rules, un-parsed).
@@ -189,6 +191,32 @@ function parseInvertThemeUtility(css: string) {
 	};
 }
 
+/**
+ * Compiles `mantle.css` with Tailwind for the `invert-theme` candidate, and returns the
+ * `@layer utilities` block it emits: the island CSS exactly as a consumer's build ships it.
+ *
+ * @example
+ * ```ts
+ * style.textContent = await compileInvertThemeUtility(mantleCss, tailwindCss);
+ * ```
+ */
+async function compileInvertThemeUtility(mantleCss: string, tailwindCss: string) {
+	const compiler = await compile(mantleCss, {
+		loadStylesheet: async (id, base) => ({
+			base,
+			content: id === "tailwindcss" ? tailwindCss : "",
+			path: id,
+		}),
+	});
+	const utilities = extractTopLevelRules(compiler.build(["invert-theme"])).find(
+		({ selector }) => selector === "@layer utilities",
+	);
+	if (utilities == null) {
+		throw new Error("parse-theme-css: Tailwind emitted no utilities for invert-theme");
+	}
+	return `@layer utilities {${utilities.body}}`;
+}
+
 const isDarkThemeRule = ({ selector }: CssRule) => selector.startsWith(":root.dark,");
 
 const serializeRules = (rules: CssRule[]) =>
@@ -220,6 +248,7 @@ function splitDarkThemeRule(css: string): { light: string; dark: string } {
 
 export {
 	//,
+	compileInvertThemeUtility,
 	extractTopLevelRules,
 	parseDeclarationBlock,
 	parseDeclarations,

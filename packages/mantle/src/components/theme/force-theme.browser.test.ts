@@ -1,14 +1,13 @@
 import twThemeCss from "tailwindcss/theme.css?raw";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import mantleCss from "../../mantle.css?raw";
+import tailwindCss from "tailwindcss/index.css?raw";
 import {
+	compileInvertThemeUtility,
 	extractTopLevelRules,
 	parseDeclarationBlock,
 	parseDeclarations,
-	parseInvertThemeUtility,
 } from "../../test-utils/parse-theme-css.js";
-
-const invertThemeUtility = parseInvertThemeUtility(mantleCss);
 
 /**
  * Regression proof for a forced page whose stored preference disagrees with it.
@@ -60,7 +59,7 @@ let styleElement: HTMLStyleElement;
 let pageProbe: HTMLDivElement;
 let islandProbe: HTMLDivElement;
 
-beforeAll(() => {
+beforeAll(async () => {
 	const rootColorVariables = new Map(
 		[...tailwindDefaults, ...mantleThemeBlock].filter(([property]) =>
 			property.startsWith("--color-"),
@@ -72,9 +71,9 @@ beforeAll(() => {
 	styleElement.textContent = [
 		serializeRule(":root", rootColorVariables),
 		serializeThemeRules(mantleCss),
-		// the invert-theme utility, in the layer Tailwind emits it into, so unlayered theme
-		// rules beat it as they do in a real build
-		`@layer utilities {\n${serializeRule(invertThemeUtility.restoreSelector, invertThemeUtility.restore)}\n${serializeRule(".invert-theme", invertThemeUtility.aliases)}\n}`,
+		// the invert-theme utility as Tailwind compiles it, in `@layer utilities`, so unlayered
+		// theme rules beat it as they do in a real build
+		await compileInvertThemeUtility(mantleCss, tailwindCss),
 	].join("\n");
 	document.head.appendChild(styleElement);
 

@@ -162,7 +162,8 @@ export default defineConfig({
 				// Why: the compiler adds the `react/compiler-runtime` import in the transform, so Vite's
 				// dependency scanner never sees it in source. Without this include, the first browser run
 				// discovers it mid-run, re-optimizes, reloads, and loads two copies of React.
-				optimizeDeps: { include: ["react/compiler-runtime"] },
+				// `tailwindcss` has the same first-run reload: the theme sweeps compile mantle.css with it.
+				optimizeDeps: { include: ["react/compiler-runtime", "tailwindcss"] },
 				test: {
 					name: "browser",
 					include: ["**/*.browser.test.{ts,tsx}"],
