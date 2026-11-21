@@ -1,6 +1,7 @@
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
+import { parseSync } from "oxc-parser";
 import { describe, expect, it } from "vitest";
 import { foldCx, loadMergeClassList } from "./fold-cx.ts";
 
@@ -13,7 +14,7 @@ const { cx, cxFolded }: { cx: Cx; cxFolded: (merged: string, className: ClassVal
 const merge = await loadMergeClassList();
 
 const CX_IMPORT = 'import { cx } from "../../utils/cx/cx.js";';
-const FOLDED_IMPORT = ' import { cxFolded } from "../../utils/cx/cx.js";';
+const FOLDED_IMPORT = 'import { cxFolded } from "../../utils/cx/cx.js"; ';
 
 /** Folds `body`, then compiles it as a function of `params` with the real `cx` helpers. */
 function compile(params: string[], body: string) {
@@ -31,7 +32,7 @@ function compile(params: string[], body: string) {
 
 describe("foldCx", () => {
 	it("folds static arguments into one merged string", () => {
-		const { code } = compile([], 'cx("p-2 flex", "p-4", null, undefined, false, `text-strong`)');
+		const { code } = compile([], 'cx("p-2 flex", "p-4", null, false, `text-strong`)');
 		expect(code).toBe('\nconst result = "flex p-4 text-strong";');
 	});
 
@@ -42,7 +43,7 @@ describe("foldCx", () => {
 
 	it("gives the runtime result for each condition and className", () => {
 		const body = `cx(
-			"p-2 text-paragraph-md",
+			"rounded",
 			a && "p-4",
 			b ? "text-heading-sm text-strong" : (a ? "text-mono" : "text-muted"),
 			className,
@@ -53,9 +54,15 @@ describe("foldCx", () => {
 		expect(code).not.toContain("cx(");
 		for (const a of [true, false, 0, "yes"]) {
 			for (const b of [true, false, null]) {
-				for (const className of [undefined, "", "p-1 text-body", { "text-xs": true }]) {
+				for (const className of [
+					undefined,
+					"",
+					"p-1 text-body",
+					"not-sr-only",
+					{ "text-xs": true },
+				]) {
 					const expected = cx(
-						"p-2 text-paragraph-md",
+						"rounded",
 						a && "p-4",
 						b ? "text-heading-sm text-strong" : fallback(a),
 						className,
@@ -83,6 +90,59 @@ describe("foldCx", () => {
 		expect(folded.startsWith('"use client";\n')).toBe(true);
 		expect(folded.split("\n")).toHaveLength(source.split("\n").length);
 		expect(folded.split("\n")[6]).toBe("const b = 1;");
+	});
+
+	it("leaves a call alone when the merge removes a static class before className", () => {
+		// `not-sr-only` removes `sr-only`, so `p-4` survives: `cx("p-4 sr-only", "not-sr-only")` is
+		// `"p-4 not-sr-only"`, while a merged prefix would have lost `p-4`.
+		expect(cx("p-4 sr-only", "not-sr-only")).toBe("p-4 not-sr-only");
+		expect(foldCx(`${CX_IMPORT}\ncx("p-4 sr-only", className);`, "/m/src/a.tsx", merge)).toBeNull();
+		expect(
+			foldCx(`${CX_IMPORT}\ncx("p-4", open && "sr-only", className);`, "/m/src/a.tsx", merge),
+		).toBeNull();
+	});
+
+	it("leaves a module alone when cx or cxFolded may name a local binding", () => {
+		for (const source of [
+			'function f(cx) { return cx("p-2", "p-4"); }',
+			'const f = (className, cxFolded) => cx("p-2", className);',
+			'export { cx as merge };\ncx("p-2");',
+		]) {
+			expect(foldCx(`${CX_IMPORT}\n${source}`, "/m/src/a.tsx", merge)).toBeNull();
+		}
+	});
+
+	it("reads undefined as a value, which a local binding can shadow", () => {
+		const folded = foldCx(
+			`${CX_IMPORT}\nfunction f(undefined) { return cx("p-2", undefined); }`,
+			"/m/src/a.tsx",
+			merge,
+		);
+		expect(folded).toContain('cxFolded("p-2", undefined)');
+	});
+
+	it("imports the helper from cx.js and keeps the module valid", () => {
+		const fromBarrel = foldCx(
+			'import { cx } from "../utils/cx/index.js";\ncx("p-2", className);',
+			"/m/src/a.tsx",
+			merge,
+		);
+		expect(fromBarrel).toContain('import { cxFolded } from "../utils/cx/cx.js";');
+		// An import may follow a statement that the fold shortens.
+		const importLast = foldCx(
+			`const a = cx("p-2   flex", className);\n${CX_IMPORT}`,
+			"/m/src/a.tsx",
+			merge,
+		);
+		expect(importLast).toContain(`${FOLDED_IMPORT}${CX_IMPORT}`);
+		expect(parseSync("a.tsx", importLast ?? "", { lang: "tsx" }).errors).toEqual([]);
+	});
+
+	it("counts the lines that an argument carries before it pads", () => {
+		const source = `${CX_IMPORT}\nconst a = cx("p-2", [\n"p-4"\n]);\nconst b = 1;`;
+		const folded = foldCx(source, "/m/src/a.tsx", merge) ?? "";
+		expect(folded.split("\n")).toHaveLength(source.split("\n").length);
+		expect(folded.split("\n")[4]).toBe("const b = 1;");
 	});
 
 	it("leaves calls that are not static alone", () => {

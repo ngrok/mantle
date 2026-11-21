@@ -200,9 +200,8 @@ export const cx: ClassNameFunction = (
  * value, it returns the merged list and does no work. Internal: the build fold
  * (`scripts/fold-cx.ts`) writes the calls, and the `utils/cx` entry does not export it.
  *
- * Why it gives the same result as `cx`: merging the static classes first removes only
- * classes that a later static class overrides, and that later class removes them again
- * when `className` overrides it.
+ * Why it gives the same result as `cx`: the fold writes a call only when the build merge
+ * removes no static class, so `merged` is the class list as written.
  *
  * @example
  * cxFolded("flex p-4", undefined); // → "flex p-4"

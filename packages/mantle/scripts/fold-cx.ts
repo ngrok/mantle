@@ -36,8 +36,6 @@ function readStatic(node: Argument, code: string): StaticValue | null {
 			return node.value == null || node.value === false ? "" : null;
 		case "TemplateLiteral":
 			return node.expressions.length === 0 ? (node.quasis[0]?.value.cooked ?? null) : null;
-		case "Identifier":
-			return node.name === "undefined" ? "" : null;
 		case "ConditionalExpression": {
 			const whenTrue = readStatic(node.consequent, code);
 			const whenFalse = readStatic(node.alternate, code);
@@ -57,20 +55,41 @@ function readStatic(node: Argument, code: string): StaticValue | null {
 
 /**
  * Writes an expression that evaluates each condition and returns the merged class list.
- * Each leaf is a string literal that the build merged.
+ * Each leaf is a string literal that the build merged. With `isExact`, it returns `null` when
+ * the merge removes a class from a leaf.
+ *
+ * Why `isExact` for a call with `className`: conflicts are not transitive. In
+ * `cx("p-4 sr-only", "not-sr-only")`, `not-sr-only` removes `sr-only`, so `sr-only` no longer
+ * removes `p-4`. A merged prefix would have lost `p-4` already.
  */
-function emitChoices(values: readonly StaticValue[], merge: MergeClassList): string {
+function emitChoices(
+	values: readonly StaticValue[],
+	merge: MergeClassList,
+	{ isExact }: { isExact: boolean },
+): string | null {
 	const index = values.findIndex((value) => typeof value !== "string");
 	const choice = values[index];
 	if (choice == null || typeof choice === "string") {
-		return JSON.stringify(merge(values.filter((value) => typeof value === "string").join(" ")));
+		const classList = values
+			.filter((value) => typeof value === "string")
+			.join(" ")
+			.trim()
+			.split(/\s+/)
+			.filter(Boolean)
+			.join(" ");
+		const merged = merge(classList);
+		return isExact && merged !== classList ? null : JSON.stringify(merged);
 	}
 	const branch = (value: StaticValue) => values.map((item, at) => (at === index ? value : item));
-	return `((${choice.condition}) ? ${emitChoices(branch(choice.whenTrue), merge)} : ${emitChoices(
-		branch(choice.whenFalse),
-		merge,
-	)})`;
+	const whenTrue = emitChoices(branch(choice.whenTrue), merge, { isExact });
+	const whenFalse = emitChoices(branch(choice.whenFalse), merge, { isExact });
+	return whenTrue == null || whenFalse == null
+		? null
+		: `((${choice.condition}) ? ${whenTrue} : ${whenFalse})`;
 }
+
+/** Counts the line breaks in `text`. */
+const countLines = (text: string) => text.split("\n").length - 1;
 
 /** One source edit: replace `[start, end)` with `text`. */
 type Edit = { start: number; end: number; text: string };
@@ -84,16 +103,18 @@ type Edit = { start: number; end: number; text: string };
  * - Static arguments with conditions become a conditional expression that picks a merged
  *   string literal, when the call has at most {@link MAX_CHOICES} results.
  * - Static arguments and one last dynamic argument, such as `className`, become
- *   `cxFolded("<merged>", className)`, which returns the merged string when `className`
- *   is empty and merges only when it is set.
+ *   `cxFolded("<merged>", className)` when the merge removes no static class.
+ *   `cxFolded` returns the string when `className` is empty and merges only when it is set.
+ *
+ * A module where `cx` or `cxFolded` may name a local binding stays as written.
  *
  * Why it is safe: a condition stays in the code and runs at runtime, so only the class
  * strings move to build time. Each edit keeps the line count, so stack traces in tests
  * point to the source line.
  *
  * @example
- * foldCx('import { cx } from "../../utils/cx/cx.js";\ncx("p-2 p-4", className);', "a.tsx", mergeClassList);
- * // => 'import { cx } from "../../utils/cx/cx.js"; import { cxFolded } from "../../utils/cx/cx.js";\ncxFolded("p-4", className);'
+ * foldCx('import { cx } from "../../utils/cx/cx.js";\ncx("flex  p-4", className);', "a.tsx", mergeClassList);
+ * // => 'import { cxFolded } from "../../utils/cx/cx.js"; import { cx } from "../../utils/cx/cx.js";\ncxFolded("flex p-4", className);'
  */
 export function foldCx(code: string, id: string, merge: MergeClassList): string | null {
 	if (!code.includes("cx(")) {
@@ -118,11 +139,27 @@ export function foldCx(code: string, id: string, merge: MergeClassList): string 
 		return null;
 	}
 	const edits: Edit[] = [];
-	let usesFolded = false;
+	// Identifiers that are the import or a callee. Any other `cx` may be a local binding that
+	// shadows the import, so the module stays as written.
+	const knownCx = new Set<number>();
+	for (const specifier of cxImport.specifiers) {
+		knownCx.add(specifier.local.start);
+		if (specifier.type === "ImportSpecifier") {
+			knownCx.add(specifier.imported.start);
+		}
+	}
+	let isShadowed = false;
 	new Visitor({
+		Identifier(node) {
+			// A local `cxFolded` would capture the helper that the fold calls.
+			isShadowed ||= node.name === "cxFolded" || (node.name === "cx" && !knownCx.has(node.start));
+		},
 		CallExpression(node) {
-			const isInsideEdit = edits.some((edit) => node.start >= edit.start && node.end <= edit.end);
-			if (isInsideEdit || node.callee.type !== "Identifier" || node.callee.name !== "cx") {
+			if (node.callee.type !== "Identifier" || node.callee.name !== "cx") {
+				return;
+			}
+			knownCx.add(node.callee.start);
+			if (edits.some((edit) => node.start >= edit.start && node.end <= edit.end)) {
 				return;
 			}
 			const last = node.arguments.at(-1);
@@ -141,33 +178,45 @@ export function foldCx(code: string, id: string, merge: MergeClassList): string 
 			if (choices > MAX_CHOICES) {
 				return;
 			}
-			let text = emitChoices(values, merge);
+			const merged = emitChoices(values, merge, { isExact: dynamicLast != null });
+			if (merged == null) {
+				return;
+			}
+			let text = merged;
 			if (dynamicLast != null) {
 				if (dynamicLast.type === "SpreadElement" || values.length === 0) {
 					return;
 				}
 				text = `cxFolded(${text}, ${code.slice(dynamicLast.start, dynamicLast.end)})`;
-				usesFolded = true;
 			}
-			const lines = code.slice(node.start, node.end).split("\n").length - 1;
-			edits.push({ start: node.start, end: node.end, text: text + "\n".repeat(lines) });
+			// A condition or the last argument can carry newlines into `text`. Pad the rest, and
+			// leave a call alone when `text` has more lines than the call it replaces.
+			const padding = countLines(code.slice(node.start, node.end)) - countLines(text);
+			if (padding < 0) {
+				return;
+			}
+			edits.push({ start: node.start, end: node.end, text: text + "\n".repeat(padding) });
 		},
 	}).visit(program);
 
-	if (edits.length === 0) {
+	if (isShadowed || edits.length === 0) {
 		return null;
 	}
+	if (edits.some((edit) => edit.text.startsWith("cxFolded("))) {
+		// Why `cx.js`: the `utils/cx` barrel does not export the helper. The import goes in front of
+		// the `cx` import, on the same line, so each later line keeps its number.
+		const specifier = JSON.stringify(cxImport.source.value.replace(/index\.js$/, "cx.js"));
+		edits.push({
+			start: cxImport.start,
+			end: cxImport.start,
+			text: `import { cxFolded } from ${specifier}; `,
+		});
+	}
 	let result = code;
-	// The visitor reaches calls in source order.
-	for (const edit of edits.toReversed()) {
+	for (const edit of edits.toSorted((first, second) => second.start - first.start)) {
 		result = result.slice(0, edit.start) + edit.text + result.slice(edit.end);
 	}
-	if (!usesFolded) {
-		return result;
-	}
-	// The fold edits only code after the imports, so the import's offset still holds.
-	const specifier = JSON.stringify(cxImport.source.value);
-	return `${result.slice(0, cxImport.end)} import { cxFolded } from ${specifier};${result.slice(cxImport.end)}`;
+	return result;
 }
 
 /** Matches the mantle source modules the fold transforms. */
