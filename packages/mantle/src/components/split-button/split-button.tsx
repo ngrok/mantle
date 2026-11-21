@@ -160,6 +160,11 @@ type MenuTriggerProps = Omit<
 	ComponentProps<typeof IconButton>,
 	"appearance" | "intent" | "size" | "asChild" | "children" | "icon"
 > & {
+	/**
+	 * Not part of the API: the trigger renders its icon alone. Typed `undefined`
+	 * so that a props spread with `children` is a type error too.
+	 */
+	children?: undefined;
 	icon?: ReactNode;
 };
 
