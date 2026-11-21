@@ -1,0 +1,159 @@
+[
+  {
+    "name": "Assistant Across Routes",
+    "slug": "recipes/assistant-across-routes",
+    "summary": "Render an assistant in main on its own route and in the AppLayout side panel on every other route, with one conversation above both and a 300ms View Transition that morphs the page into the panel.",
+    "useWhen": "Show an assistant as its own page on one route and in the side panel on every other route, with one conversation for both.",
+    "aliases": [
+      "assistant side panel",
+      "chat side panel"
+    ],
+    "parts": [
+      "AppLayout",
+      "Sidebar",
+      "TextArea",
+      "LiveRegion"
+    ]
+  },
+  {
+    "name": "Breadcrumbs from Routes",
+    "slug": "recipes/breadcrumbs-from-routes",
+    "summary": "Derive a breadcrumb trail from the matched route chain with React Router's route handles (no context, no effects, correct on the server and on first paint).",
+    "useWhen": "Build the header breadcrumb trail from the matched routes, so it renders on the server and on the first paint.",
+    "aliases": [
+      "route breadcrumbs",
+      "breadcrumb trail from routes"
+    ],
+    "parts": [
+      "Breadcrumb",
+      "AppLayout"
+    ]
+  },
+  {
+    "name": "Filter from a Value",
+    "slug": "recipes/filter-from-a-value",
+    "summary": "Turn a value in a table row into a Query filter with one click, and take it out with a second click, with toggleFacet.",
+    "useWhen": "Let a click on a value in a table row add that value to the list's Query filter, and a second click take it out.",
+    "aliases": [
+      "click to filter",
+      "filter by cell value"
+    ],
+    "parts": [
+      "DataTable",
+      "Query",
+      "query-filter"
+    ]
+  },
+  {
+    "name": "Header Actions from Routes",
+    "slug": "recipes/header-actions-from-routes",
+    "summary": "The documented deviation from the canonical route-owned header. A shell-owned header takes its actions from React Router route handles (derived state, so the server renders them and no page pushes anything up).",
+    "useWhen": "Put the page's actions in a header that the app shell owns. Use it only when no route needs page state in its actions; else each route renders its own AppLayout.Header.",
+    "aliases": [
+      "shell header actions"
+    ],
+    "parts": [
+      "AppLayout",
+      "Breadcrumb",
+      "DropdownMenu"
+    ]
+  },
+  {
+    "name": "List Page Loading States",
+    "slug": "recipes/list-page-loading-states",
+    "summary": "Render a list page's header, filters, and column headers on the first frame, then fill the table with skeleton rows that match the loaded rows, so nothing shifts when the data lands.",
+    "useWhen": "Build a list page whose heading, filters, and column headers paint on the first frame, while skeleton rows wait for the data.",
+    "aliases": [
+      "list page",
+      "table page",
+      "index page",
+      "table loading skeleton"
+    ],
+    "parts": [
+      "AppLayout",
+      "DataTable",
+      "Skeleton",
+      "Empty",
+      "LiveRegion"
+    ]
+  },
+  {
+    "name": "Natural Language Query",
+    "slug": "recipes/natural-language-query",
+    "summary": "Let people describe a filter in plain words, and turn the words into a Query filter on Enter, through ngrok.ai gateway inference.",
+    "useWhen": "Let people type a filter in plain words, and turn the words into a Query filter with model inference.",
+    "aliases": [
+      "ai search",
+      "natural language filter",
+      "plain language search"
+    ],
+    "parts": [
+      "Query",
+      "query-filter",
+      "DataTable",
+      "LiveRegion"
+    ]
+  },
+  {
+    "name": "Overlays + Async Data (React Query)",
+    "slug": "recipes/overlay-async",
+    "summary": "Render a Sheet, Dialog, or Alert Dialog immediately, then swap its body between pending, success, 404, and 500 states with TanStack Query.",
+    "useWhen": "Open a Sheet, Dialog, or Alert Dialog at once, then show its pending, loaded, not found, and error states as the data loads.",
+    "aliases": [
+      "dialog loading state",
+      "modal with async data",
+      "sheet with async data"
+    ],
+    "parts": [
+      "Dialog",
+      "Sheet",
+      "AlertDialog",
+      "Skeleton",
+      "Empty"
+    ]
+  },
+  {
+    "name": "Query from the URL",
+    "slug": "recipes/query-from-the-url",
+    "summary": "Keep the text of a Query field in the ?q= URL param, so a filtered list is shareable by its URL, with React Router or nuqs.",
+    "useWhen": "Keep the text of a list's Query filter in the URL, so a filtered list is shareable by its link.",
+    "aliases": [
+      "filter in the url",
+      "search params filter",
+      "shareable filter link"
+    ],
+    "parts": [
+      "Query",
+      "query-filter",
+      "DataTable"
+    ]
+  },
+  {
+    "name": "Route Announcer",
+    "slug": "recipes/route-announcer",
+    "summary": "Announce completed client-side navigations to screen readers by pairing a persistent LiveRegion with React Router's location, with page-name fallbacks and repeat-message handling.",
+    "useWhen": "Announce each client-side navigation to screen readers.",
+    "aliases": [
+      "announce page change",
+      "screen reader navigation announcement"
+    ],
+    "parts": [
+      "LiveRegion"
+    ]
+  },
+  {
+    "name": "Sparklines in a List",
+    "slug": "recipes/sparklines-in-a-list",
+    "summary": "Put two BarChart sparklines in every row of a DataTable, sized for a row, named for the row, with a compact total beside each one, and dormant until the reader scrolls near it.",
+    "useWhen": "Show a small trend chart in each row of a data table.",
+    "aliases": [
+      "sparkline",
+      "row trend chart",
+      "mini chart in a table"
+    ],
+    "parts": [
+      "DataTable",
+      "BarChart"
+    ]
+  }
+]

@@ -126,6 +126,33 @@ type AgentManifestUtility = {
 	examples?: string[];
 };
 
+/**
+ * One recipe entry: a docs page under `recipes/` that composes mantle parts
+ * with state, data, or routing. The MCP `find` and `get` tools read the same records.
+ */
+type AgentManifestRecipe = {
+	/** The page title (e.g. "Query from the URL"). */
+	name: string;
+	/** URL slug under the docs site (e.g. "recipes/query-from-the-url"). */
+	slug: string;
+	/** Absolute docs URL (HTML rendering). */
+	docsUrl: string;
+	/** Absolute docs URL serving plain markdown, with the full recipe code. */
+	markdownUrl: string;
+	/** One-line summary from the page's `description` frontmatter. */
+	summary?: string;
+	/** The situation the recipe is for, from the `useWhen` frontmatter. */
+	useWhen?: string;
+	/** Other names for the recipe, such as a designer's words, from the `aliases` frontmatter. */
+	aliases?: string[];
+	/**
+	 * The `name` of each component, layout, hook, or utility entry the recipe
+	 * composes, from the `parts` frontmatter. Matching ignores case, spaces, and
+	 * dashes, so `DataTable` names the "Data Table" entry.
+	 */
+	parts: string[];
+};
+
 /** The live endpoints that serve the same records, keyed by purpose. */
 type AgentManifestEndpoints = {
 	docs: string;
@@ -161,6 +188,8 @@ type AgentManifest = {
 	hooks: AgentManifestHook[];
 	/** Public utilities, sorted by name. */
 	utilities: AgentManifestUtility[];
+	/** Recipes, sorted by name. Older versions do not ship them. */
+	recipes?: AgentManifestRecipe[];
 	/**
 	 * The {@link sourceHash} of the package source the records come from.
 	 * Older versions do not ship it.
@@ -964,6 +993,52 @@ function utilityEntries(inputs: AgentManifestInputs): AgentManifestUtility[] {
 		.toSorted((a, b) => a.name.localeCompare(b.name));
 }
 
+/** A name with case, spaces, and dashes removed, so "Data Table" equals `DataTable`. */
+function compactName(name: string): string {
+	return name.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * Build the recipe entries from the pages under `recipes/`. Throws when a
+ * recipe lists no parts or names a part that no entry in `partNames` has.
+ */
+function recipeEntries(
+	inputs: AgentManifestInputs,
+	partNames: readonly string[],
+): AgentManifestRecipe[] {
+	const known = new Set(partNames.map(compactName));
+	return inputs.docs
+		.filter((doc) => doc.slug.startsWith("recipes/"))
+		.map(({ slug, frontmatter }): AgentManifestRecipe => {
+			const name = stringField(frontmatter, "title");
+			if (name == null) {
+				throw new Error(`The docs page ${slug} has no frontmatter title.`);
+			}
+			const parts = stringListField(frontmatter, "parts", slug);
+			if (parts == null) {
+				throw new Error(`The recipe ${slug} must list the mantle parts it composes in "parts".`);
+			}
+			const unknown = parts.filter((part) => !known.has(compactName(part)));
+			if (unknown.length > 0) {
+				throw new Error(`The recipe ${slug} names parts that mantle lacks: ${unknown.join(", ")}.`);
+			}
+			const summary = stringField(frontmatter, "description");
+			const useWhen = stringField(frontmatter, "useWhen");
+			const aliases = stringListField(frontmatter, "aliases", slug);
+			return {
+				name,
+				slug,
+				docsUrl: `${inputs.origin}/${slug}`,
+				markdownUrl: `${inputs.origin}/${slug}.md`,
+				...(summary == null ? {} : { summary }),
+				...(useWhen == null ? {} : { useWhen }),
+				...(aliases == null ? {} : { aliases }),
+				parts,
+			};
+		})
+		.toSorted((a, b) => a.name.localeCompare(b.name));
+}
+
 /** The live endpoints on `origin` that serve the same records. */
 function endpointsFor(origin: string): AgentManifestEndpoints {
 	return {
@@ -985,7 +1060,8 @@ function endpointsFor(origin: string): AgentManifestEndpoints {
 /**
  * Build the agent manifest from the docs pages and the package source. Throws
  * when a page names no importable module, a preview page declares no category,
- * or a `@siblings` item is malformed, so the build fails before a bad record ships.
+ * a `@siblings` item is malformed, or a recipe names a part that mantle lacks,
+ * so the build fails before a bad record ships.
  *
  * @example
  * const manifest = buildAgentManifest({
@@ -1004,6 +1080,11 @@ function buildAgentManifest(inputs: AgentManifestInputs): AgentManifest {
 	const components = componentPages(inputs.docs)
 		.map((doc) => componentEntry(doc, inputs, subpaths))
 		.toSorted((a, b) => a.name.localeCompare(b.name));
+	const hooks = hookEntries(inputs);
+	const utilities = utilityEntries(inputs);
+	const partNames = [components, hooks, utilities].flatMap((entries) =>
+		entries.map((entry) => entry.name),
+	);
 	return {
 		name: inputs.name,
 		version: inputs.version,
@@ -1011,8 +1092,9 @@ function buildAgentManifest(inputs: AgentManifestInputs): AgentManifest {
 		endpoints: endpointsFor(inputs.origin),
 		subpaths: [...inputs.subpaths].toSorted((a, b) => a.localeCompare(b)),
 		components,
-		hooks: hookEntries(inputs),
-		utilities: utilityEntries(inputs),
+		hooks,
+		utilities,
+		recipes: recipeEntries(inputs, partNames),
 		sourceHash: inputs.sourceHash,
 	};
 }
@@ -1035,7 +1117,8 @@ function indexLine(entry: {
 /**
  * Render the manifest as the `dist/llms.txt` index: every component, layout,
  * hook, and utility on one line each, with its import path and summary, so an
- * agent with no network can pick a module and then read its `.d.ts`.
+ * agent with no network can pick a module and then read its `.d.ts`. Each
+ * recipe line names its parts and its markdown URL.
  *
  * @example
  * renderLlmsTxt(manifest).startsWith("# @ngrok/mantle (0.89.0)"); // => true
@@ -1081,6 +1164,13 @@ function renderLlmsTxt(manifest: AgentManifest): string {
 		"",
 		...manifest.utilities.map(indexLine),
 		"",
+		"## Recipes",
+		"",
+		...(manifest.recipes ?? []).map(
+			(recipe) =>
+				`- **${recipe.name}** (${recipe.markdownUrl}): ${[recipe.useWhen ?? recipe.summary, `Parts: ${recipe.parts.join(", ")}.`].filter(Boolean).join(" ")}`,
+		),
+		"",
 		"## Importable subpaths",
 		"",
 		...manifest.subpaths.map((subpath) => `- \`${subpath}\``),
@@ -1107,6 +1197,7 @@ export type {
 	AgentManifestComponent,
 	AgentManifestHook,
 	AgentManifestInputs,
+	AgentManifestRecipe,
 	AgentManifestSibling,
 	AgentManifestUtility,
 	ComponentCategory,
