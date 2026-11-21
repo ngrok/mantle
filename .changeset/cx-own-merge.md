@@ -2,7 +2,7 @@
 "@ngrok/mantle": patch
 ---
 
-`cx` resolves Tailwind CSS conflicts with mantle's own merge instead of a port of `tailwind-merge`. The `@ngrok/mantle/cx` bundle is about 27% smaller (6.7 KB gzip, from 9.1 KB). In Chromium, the first render of 400 `cx` calls takes about half the time, a repeated call is faster, and a call that misses the cache is about 2.3× faster. `cx` also keeps about 65% less memory in V8.
+`cx` resolves Tailwind CSS conflicts with mantle's own merge instead of a port of `tailwind-merge`. The `@ngrok/mantle/cx` bundle is about 9% smaller (8.3 KB gzip, from 9.1 KB). In V8 (Node 26), the first render of 400 `cx` calls takes about 30% less time, a call that misses the cache is about 2.4× faster, and `cx` keeps about 40% less memory.
 
 The output is the same as before for the class strings in mantle and its main consumers. The output now matches `tailwind-merge` 3.7 where a shorthand utility sets the same CSS property as an earlier utility, which the old port missed:
 

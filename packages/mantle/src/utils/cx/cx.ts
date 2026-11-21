@@ -23,11 +23,8 @@ const isTemplateStringsArray = (
 /** One cached result: the arguments after the first, with falsy ones as `""`. */
 type ArgEntry = { rest: readonly string[]; result: string };
 
-/**
- * The cached results for one first argument, plus the arguments of its last miss. A call is
- * cached on its second sighting, so a `className` that changes on each call adds no entry.
- */
-type ArgBucket = { entries: ArgEntry[]; lastMiss: string | null };
+/** The cached results for one first argument. */
+type ArgBucket = { entries: ArgEntry[] };
 
 const NO_REST: readonly string[] = [];
 /** Entries kept for each first argument; the oldest drops first. */
@@ -41,6 +38,21 @@ const ENTRIES_PER_GENERATION = 500;
 let buckets = new Map<string, ArgBucket>();
 let previousBuckets = new Map<string, ArgBucket>();
 let entryCount = 0;
+// A call is cached on its second sighting, so a `className` that changes on each call adds no
+// entry. This holds the joined arguments of the last miss for each first argument, in place of
+// an array, in two generations like the entries.
+let lastMisses = new Map<string, string>();
+let previousLastMisses = new Map<string, string>();
+
+/** Counts one new entry, and starts a new generation when the current one is full. */
+const countEntry = () => {
+	entryCount += 1;
+	if (entryCount > ENTRIES_PER_GENERATION) {
+		entryCount = 0;
+		previousBuckets = buckets;
+		buckets = new Map();
+	}
+};
 
 /** Whether `restStrings` holds the same strings as `rest`, with falsy values as `""`. */
 const isSameRest = (restStrings: readonly string[], rest: ClassValue[]): boolean => {
@@ -72,29 +84,28 @@ const mergeStrings = (first: string, rest: ClassValue[]): string => {
 		}
 	}
 	const result = mergeClassList(joined);
-	let current = buckets.get(first);
-	if (current == null) {
-		current = { entries: [], lastMiss: null };
-		buckets.set(first, current);
-	}
-	// The joined string stands in for the arguments of the last miss, so a miss allocates no array.
-	if (bucket?.lastMiss !== joined) {
-		current.lastMiss = joined;
+	if ((lastMisses.get(first) ?? previousLastMisses.get(first)) !== joined) {
+		if (lastMisses.size >= ENTRIES_PER_GENERATION) {
+			previousLastMisses = lastMisses;
+			lastMisses = new Map();
+		}
+		lastMisses.set(first, joined);
 		return result;
 	}
-	current.lastMiss = null;
+	lastMisses.delete(first);
+	previousLastMisses.delete(first);
+	let current = buckets.get(first);
+	if (current == null) {
+		current = { entries: [] };
+		buckets.set(first, current);
+	}
 	if (current.entries.length >= ENTRIES_PER_FIRST) {
 		current.entries.shift();
 	}
 	const restStrings =
 		rest.length === 0 ? NO_REST : rest.map((value) => (typeof value === "string" ? value : ""));
 	current.entries.push({ rest: restStrings, result });
-	entryCount += 1;
-	if (entryCount > ENTRIES_PER_GENERATION) {
-		entryCount = 0;
-		previousBuckets = buckets;
-		buckets = new Map();
-	}
+	countEntry();
 	return result;
 };
 
