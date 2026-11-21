@@ -5,6 +5,7 @@ import {
 	extractTopLevelRules,
 	parseDeclarationBlock,
 	parseDeclarations,
+	parseInvertThemeUtility,
 } from "../../test-utils/parse-theme-css.js";
 
 /**
@@ -28,13 +29,12 @@ const lightPageBlock = parseDeclarationBlock(
 	(selector) => selector.startsWith(":root,") && selector.includes(":root.light,"),
 );
 /**
- * Tailwind's unmodified default ramps, restated for islands only. Kept out of
- * the page-level block so they cannot override a consumer's `@theme` palette.
+ * The `invert-theme` utility. Its nested rule restates Tailwind's unmodified
+ * default ramps for islands only, kept out of the page-level block so they
+ * cannot override a consumer's `@theme` palette.
  */
-const lightIslandBlock = parseDeclarationBlock(
-	mantleCss,
-	(selector) => selector.startsWith(":root:is(") && selector.endsWith(".invert-theme"),
-);
+const invertThemeUtility = parseInvertThemeUtility(mantleCss);
+const lightIslandBlock = invertThemeUtility.restore;
 /**
  * What an island on a dark page actually resolves: both rules match it, so the
  * completeness invariants below compare theme blocks against the union.
@@ -190,10 +190,7 @@ describe("the materialized default palette (mantle.css light base)", () => {
 		const pageRule = extractTopLevelRules(mantleCss).find(({ selector }) =>
 			selector.startsWith(":root,"),
 		);
-		const restoreRule = extractTopLevelRules(mantleCss).find(
-			({ selector }) => selector.startsWith(":root:is(") && selector.endsWith(".invert-theme"),
-		);
-		const restoreSelector = normalizeSelector(restoreRule?.selector);
+		const restoreSelector = normalizeSelector(invertThemeUtility.restoreSelector);
 		expect(restoreSelector).toBe(
 			':root:is(.dark, [data-theme="dark"]:not([data-applied-theme]), [data-applied-theme="dark"]) .invert-theme',
 		);
@@ -226,13 +223,7 @@ describe("the materialized default palette (mantle.css light base)", () => {
 });
 
 describe("the palette-alias re-resolution rule (mantle.css)", () => {
-	const aliasRule = extractTopLevelRules(mantleCss).find(
-		({ selector }) => selector === ".invert-theme",
-	);
-	if (aliasRule == null) {
-		throw new Error(".invert-theme alias rule not found in mantle.css");
-	}
-	const aliasDeclarations = parseDeclarations(aliasRule.body);
+	const aliasDeclarations = invertThemeUtility.aliases;
 
 	test("matches the @theme palette aliases exactly", () => {
 		const themeAliases = new Map(

@@ -5,7 +5,10 @@ import {
 	extractTopLevelRules,
 	parseDeclarationBlock,
 	parseDeclarations,
+	parseInvertThemeUtility,
 } from "../../test-utils/parse-theme-css.js";
+
+const invertThemeUtility = parseInvertThemeUtility(mantleCss);
 
 /**
  * End-to-end proof of the `invert-theme` contract in a real browser: for
@@ -49,10 +52,7 @@ function serializeThemeRules(css: string): string {
 // leave the ramps in the sweep only for as long as the dark block keeps
 // declaring them.
 const lightBlock = new Map([
-	...parseDeclarationBlock(
-		mantleCss,
-		(selector) => selector.startsWith(":root:is(") && selector.endsWith(".invert-theme"),
-	),
+	...invertThemeUtility.restore,
 	...parseDeclarationBlock(
 		mantleCss,
 		(selector) => selector.startsWith(":root,") && selector.includes(":root.light,"),
@@ -101,13 +101,9 @@ beforeAll(() => {
 		// the light base block (with its dark-page island selector extension)
 		serializeThemeRules(mantleCss),
 		// the palette-alias re-resolution rule
-		serializeRule(
-			".invert-theme",
-			parseDeclarations(
-				extractTopLevelRules(mantleCss).find(({ selector }) => selector === ".invert-theme")
-					?.body ?? "",
-			),
-		),
+		// the invert-theme utility: the light palette restore and the palette aliases
+		serializeRule(invertThemeUtility.restoreSelector, invertThemeUtility.restore),
+		serializeRule(".invert-theme", invertThemeUtility.aliases),
 	].join("\n");
 	document.head.appendChild(styleElement);
 

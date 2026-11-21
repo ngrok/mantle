@@ -161,6 +161,34 @@ function parseDeclarationBlock(
 	return parseDeclarations(rule.body);
 }
 
+/**
+ * Parse the `@utility invert-theme` rule: its own declarations (the palette
+ * aliases) and its one nested rule (the light palette restore), with `&`
+ * resolved to `.invert-theme`. Throws when the rule changed shape.
+ *
+ * @example
+ * ```ts
+ * const { aliases, restoreSelector, restore } = parseInvertThemeUtility(mantleCss);
+ * aliases.get("--color-accent-500"); // => "var(--color-sky-500)"
+ * ```
+ */
+function parseInvertThemeUtility(css: string) {
+	const utility = extractTopLevelRules(css).find(
+		({ selector }) => selector === "@utility invert-theme",
+	);
+	const nested = extractTopLevelRules(utility?.body ?? "");
+	const restore = nested[0];
+	if (utility == null || restore == null || nested.length !== 1) {
+		throw new Error("parse-theme-css: expected @utility invert-theme with one nested rule");
+	}
+	const aliasBody = utility.body.slice(0, utility.body.indexOf("{"));
+	return {
+		aliases: parseDeclarations(aliasBody.slice(0, aliasBody.lastIndexOf(";") + 1)),
+		restoreSelector: restore.selector.replace(/&$/, ".invert-theme"),
+		restore: parseDeclarations(restore.body),
+	};
+}
+
 const isDarkThemeRule = ({ selector }: CssRule) => selector.startsWith(":root.dark,");
 
 const serializeRules = (rules: CssRule[]) =>
@@ -195,5 +223,6 @@ export {
 	extractTopLevelRules,
 	parseDeclarationBlock,
 	parseDeclarations,
+	parseInvertThemeUtility,
 	splitDarkThemeRule,
 };

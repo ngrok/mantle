@@ -5,7 +5,10 @@ import {
 	extractTopLevelRules,
 	parseDeclarationBlock,
 	parseDeclarations,
+	parseInvertThemeUtility,
 } from "../../test-utils/parse-theme-css.js";
+
+const invertThemeUtility = parseInvertThemeUtility(mantleCss);
 
 /**
  * Regression proof for a forced page whose stored preference disagrees with it.
@@ -69,13 +72,9 @@ beforeAll(() => {
 	styleElement.textContent = [
 		serializeRule(":root", rootColorVariables),
 		serializeThemeRules(mantleCss),
-		serializeRule(
-			".invert-theme",
-			parseDeclarations(
-				extractTopLevelRules(mantleCss).find(({ selector }) => selector === ".invert-theme")
-					?.body ?? "",
-			),
-		),
+		// the invert-theme utility: the light palette restore and the palette aliases
+		serializeRule(invertThemeUtility.restoreSelector, invertThemeUtility.restore),
+		serializeRule(".invert-theme", invertThemeUtility.aliases),
 	].join("\n");
 	document.head.appendChild(styleElement);
 
