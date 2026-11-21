@@ -3,6 +3,7 @@
 import { XIcon } from "@phosphor-icons/react/X";
 import { type VariantProps, cva } from "class-variance-authority";
 import type { ComponentProps, HTMLAttributes } from "react";
+import type { SelfClosingWithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -456,7 +457,7 @@ const Content = ({
 };
 
 type SheetCloseIconButtonProps = Partial<
-	Omit<IconButtonProps, "icon" | "appearance" | "intent">
+	Omit<IconButtonProps, "icon" | "appearance" | "asChild" | "children" | "intent">
 > & {
 	/**
 	 * The visual style of the close icon button. Optional here:
@@ -474,7 +475,8 @@ type SheetCloseIconButtonProps = Partial<
 	 * @default "neutral"
 	 */
 	intent?: IconButtonIntent;
-} & WithDataSlot;
+} & SelfClosingWithAsChild &
+	WithDataSlot;
 
 /**
  * An icon button that closes the `Sheet` when clicked.

@@ -13,7 +13,7 @@ import { createContext, useContext, useEffect, useMemo, useRef } from "react";
 import invariant from "tiny-invariant";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import { $cssProperties } from "../../types/css-properties.js";
-import type { WithAsChild } from "../../types/as-child.js";
+import type { SelfClosingWithAsChild, WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -420,7 +420,7 @@ const alertControlHoverBgColor = (intent: AlertIntent) =>
 	`color-mix(in oklab, var(--color-${intent}-500) 10%, transparent)`;
 
 type AlertDismissIconButtonProps = Partial<
-	Omit<IconButtonProps, "appearance" | "icon" | "intent">
+	Omit<IconButtonProps, "appearance" | "asChild" | "children" | "icon" | "intent">
 > & {
 	/**
 	 * The visual style of the dismiss button. Optional here:
@@ -434,7 +434,8 @@ type AlertDismissIconButtonProps = Partial<
 	 * An optional icon to render inside the dismiss button. Defaults to an X icon.
 	 */
 	icon?: ReactNode;
-} & WithDataSlot;
+} & SelfClosingWithAsChild &
+	WithDataSlot;
 
 /**
  * Moves keyboard focus to the alert's nearest tabbable neighbor when the

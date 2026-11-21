@@ -158,8 +158,13 @@ const PrimaryAction = ({ "data-slot": dataSlot, ...props }: PrimaryActionProps) 
 
 type MenuTriggerProps = Omit<
 	ComponentProps<typeof IconButton>,
-	"appearance" | "intent" | "size" | "asChild" | "icon"
+	"appearance" | "intent" | "size" | "asChild" | "children" | "icon"
 > & {
+	/**
+	 * Not part of the API: the trigger renders its icon alone. Typed `undefined`
+	 * so that a props spread with `children` is a type error too.
+	 */
+	children?: undefined;
 	icon?: ReactNode;
 };
 
