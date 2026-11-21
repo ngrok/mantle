@@ -442,6 +442,10 @@ CONVENTIONS.md covers general style ([TypeScript](./CONVENTIONS.md#typescript),
   - It adds no event handler of its own.
   - It has no `"use client"`.
   - A page can render it from its own entry. An internal part of a client component gains nothing.
+- When one part needs state, move only that state into a `"use client"` file beside the server file, and let
+  the server part render it (`table/overflow-container.tsx`). Pass it finished values, such as a class string
+  that `cx` merged on the server, so the browser gets the state and not its inputs. The build gives a client
+  file beside a server file a chunk of its own.
 - The build fails when a file with the file-level `"use no memo"` lands in a `"use client"` chunk
   (`packages/mantle/scripts/preserve-use-client.ts`). A hook in such a file passes the build but breaks a server
   render, so the reviewer checks for one.

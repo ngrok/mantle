@@ -12,6 +12,31 @@ const PROLOGUE_TOKEN_RE = /\s+|\/\/[^\n]*|\/\*[\s\S]*?\*\/|"([^"\\\n]*)"\s*;?|'(
 const SOURCE_RE = /[\\/]src[\\/].+\.tsx?$/;
 const DECLARATION_RE = /\.d\.[cm]?ts$/;
 
+/** Captures the component directory of a source module. */
+const COMPONENT_DIR_RE = /[\\/]src[\\/]components[\\/][^\\/]+[\\/]/;
+
+/**
+ * Returns each client module in a component directory that also holds a server module.
+ *
+ * @example
+ * clientModulesBesideServerModules({
+ *   clientModuleIds: new Set(["/m/src/components/table/overflow-container.tsx", "/m/src/components/dialog/dialog.tsx"]),
+ *   serverModuleIds: new Set(["/m/src/components/table/table.tsx"]),
+ * }); // => ["/m/src/components/table/overflow-container.tsx"]
+ */
+function clientModulesBesideServerModules({
+	clientModuleIds,
+	serverModuleIds,
+}: {
+	clientModuleIds: ReadonlySet<string>;
+	serverModuleIds: ReadonlySet<string>;
+}): string[] {
+	const serverDirs = new Set(
+		[...serverModuleIds].map((id) => COMPONENT_DIR_RE.exec(id)?.[0]).filter((dir) => dir != null),
+	);
+	return [...clientModuleIds].filter((id) => serverDirs.has(COMPONENT_DIR_RE.exec(id)?.[0] ?? ""));
+}
+
 /**
  * Reads the directives at the top of a module, before its first statement that is not a string.
  *
@@ -76,7 +101,12 @@ function chunkNeedsUseClient({
 }
 
 /** An output chunk, as far as {@link findClientImport} reads it. */
-type OutputChunkLike = { type: string; code?: string; imports?: readonly string[] };
+type OutputChunkLike = {
+	type: string;
+	code?: string;
+	imports?: readonly string[];
+	moduleIds?: readonly string[];
+};
 
 /**
  * Finds a client chunk that a server-callable entry imports, directly or
@@ -138,12 +168,18 @@ function preserveUseClient({
 }) {
 	const clientModuleIds = new Set<string>();
 	const serverModuleIds = new Set<string>();
+	const emittedModuleIds = new Set<string>();
+	const emittedRefs: string[] = [];
 	return {
 		name: "preserve-use-client",
 		transform: {
 			order: "pre" as const,
 			filter: { id: { include: SOURCE_RE, exclude: DECLARATION_RE } },
-			handler: (code: string, id: string) => {
+			handler(
+				this: { emitFile: (file: { type: "chunk"; id: string }) => string },
+				code: string,
+				id: string,
+			) {
 				// Why delete as well as add: a watch rebuild transforms a changed module again, and an
 				// edit can remove its directive.
 				if (hasUseClientDirective(code)) {
@@ -155,6 +191,19 @@ function preserveUseClient({
 					serverModuleIds.add(id);
 				} else {
 					serverModuleIds.delete(id);
+				}
+				// Why: rolldown puts the modules that the same entries reach into one chunk. A
+				// server module and a client module of one component, such as `table.tsx` and
+				// `overflow-container.tsx`, would then share a `"use client"` chunk. An extra entry
+				// for the client module gives it a chunk of its own.
+				for (const clientId of clientModulesBesideServerModules({
+					clientModuleIds,
+					serverModuleIds,
+				})) {
+					if (!emittedModuleIds.has(clientId)) {
+						emittedModuleIds.add(clientId);
+						emittedRefs.push(this.emitFile({ type: "chunk", id: clientId }));
+					}
 				}
 				return null;
 			},
@@ -174,7 +223,26 @@ function preserveUseClient({
 			}
 			return `"use client";\n${code}`;
 		},
-		generateBundle: (_options: unknown, bundle: Record<string, OutputChunkLike>) => {
+		generateBundle(
+			this: { getFileName: (ref: string) => string },
+			_options: unknown,
+			bundle: Record<string, OutputChunkLike>,
+		) {
+			// Each extra entry is a facade that re-exports the client chunk, and no chunk imports
+			// it. Drop it, so the dist gains no file that `package.json` does not export.
+			for (const ref of emittedRefs) {
+				const fileName = this.getFileName(ref);
+				const chunk = bundle[fileName];
+				const importers = Object.values(bundle).filter((other) =>
+					other.imports?.includes(fileName),
+				);
+				if (chunk?.moduleIds?.length !== 0 || importers.length > 0) {
+					throw new Error(
+						`${fileName} is the extra entry for a client module beside a server module. It must be a facade that no chunk imports, so the build can drop it. Check which entries import that client module.`,
+					);
+				}
+				delete bundle[fileName];
+			}
 			for (const entry of serverEntries) {
 				const path = findClientImport(entry, bundle);
 				if (path != null) {
@@ -190,6 +258,7 @@ function preserveUseClient({
 export {
 	//,
 	chunkNeedsUseClient,
+	clientModulesBesideServerModules,
 	findClientImport,
 	hasFileUseNoMemoDirective,
 	hasUseClientDirective,

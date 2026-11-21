@@ -1,12 +1,14 @@
-"use client";
+// Why "use no memo": a server component can render this file. A stateless part gains nothing from
+// the compiler, and its cache hook would make the build mark the chunk "use client". `Root`
+// watches its scroll position through the client `OverflowContainer`, so a page that renders
+// `Table.Root` ships only that container.
+"use no memo";
 
-import type { ComponentProps, ComponentRef } from "react";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { flushSync } from "react-dom";
-import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
+import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { OverflowContainer } from "./overflow-container.js";
 
 /**
  * The `<Table.Root>` is the root container element for all `Table`s.
@@ -126,49 +128,18 @@ import { joinDataSlot } from "../../utils/data-slot.js";
  */
 const Root = ({
 	"data-slot": dataSlot,
-	children,
 	className,
-	ref,
 	...props
-}: ComponentProps<"div"> & WithDataSlot) => {
-	const horizontalOverflow = useHorizontalOverflowObserver<ComponentRef<"div">>();
-	const scrollContainerRef = useComposedRefs(horizontalOverflow.ref, ref);
-
-	return (
-		<div
-			data-slot={joinDataSlot(dataSlot, "table")}
-			className={cx(
-				"group/table relative w-full overflow-hidden rounded-lg border border-card bg-white dark:bg-gray-100",
-				className,
-			)}
-			data-sticky-active={
-				(horizontalOverflow.state.hasOverflow && !horizontalOverflow.state.scrolledToEnd) ||
-				undefined
-			}
-			data-x-overflow={horizontalOverflow.state.hasOverflow}
-			data-x-scroll-end={
-				horizontalOverflow.state.hasOverflow && horizontalOverflow.state.scrolledToEnd
-			}
-			{...props}
-		>
-			<div
-				className={cx(
-					"scrollbar scroll-fade-x overflow-x-auto overflow-y-clip overscroll-x-none",
-					// The edge fade is driven by the `scroll-fade-x` utility (a CSS
-					// scroll-driven animation). When the table contains a sticky right column
-					// (e.g., DataTable.ActionCell / DataTable.ActionHeader), suppress the
-					// container's right-side fade so the pinned column stays fully opaque. The
-					// pinned column draws its own left-side gradient for the scroll-under
-					// effect.
-					"has-data-mantle-table-sticky-right:[--_fade-right:black]",
-				)}
-				ref={scrollContainerRef}
-			>
-				{children}
-			</div>
-		</div>
-	);
-};
+}: ComponentProps<"div"> & WithDataSlot) => (
+	<OverflowContainer
+		data-slot={joinDataSlot(dataSlot, "table")}
+		className={cx(
+			"group/table relative w-full overflow-hidden rounded-lg border border-card bg-white dark:bg-gray-100",
+			className,
+		)}
+		{...props}
+	/>
+);
 
 /**
  * The `<Table.Element>` is a structured way to display data in rows and columns. The API
@@ -736,80 +707,3 @@ export {
 	Root,
 	Row,
 };
-
-/**
- * A custom hook that observes the horizontal overflow of an element and determines
- * if it has overflow and if it is scrolled to the end.
- *
- * @private
- */
-function useHorizontalOverflowObserver<T extends HTMLElement>() {
-	const ref = useRef<T | null>(null);
-	const [state, setState] = useState({
-		hasOverflow: false,
-		scrolledToStart: true,
-		scrolledToEnd: false,
-	});
-
-	useLayoutEffect(() => {
-		const element = ref.current;
-		if (!element) {
-			return;
-		}
-
-		let frameId = 0;
-
-		const checkState = () => {
-			const hasOverflow = element.scrollWidth > element.clientWidth;
-			const scrolledToStart = element.scrollLeft < 1;
-			const scrolledToEnd =
-				Math.abs(element.scrollWidth - element.scrollLeft - element.clientWidth) < 1;
-
-			setState((previous) => {
-				if (
-					previous.hasOverflow !== hasOverflow ||
-					previous.scrolledToStart !== scrolledToStart ||
-					previous.scrolledToEnd !== scrolledToEnd
-				) {
-					return { hasOverflow, scrolledToStart, scrolledToEnd };
-				}
-				return previous; // No state change
-			});
-		};
-
-		// Coalesce rapid-fire events (scroll, mutation) into a single
-		// layout read per animation frame to avoid redundant work.
-		const scheduleCheck = () => {
-			if (frameId === 0) {
-				frameId = requestAnimationFrame(() => {
-					frameId = 0;
-					checkState();
-				});
-			}
-		};
-
-		// Why the observer does the first read: inside this effect, a `scrollWidth`
-		// read forces a layout of the whole table during React's commit. `observe()`
-		// delivers one notification after the browser's own layout, so the same read
-		// there costs nothing. Observer callbacks run before paint, so `flushSync`
-		// lands the new attributes in the first painted frame.
-		const resizeObserver = new ResizeObserver(() => {
-			flushSync(checkState);
-		});
-		resizeObserver.observe(element);
-
-		const mutationObserver = new MutationObserver(scheduleCheck);
-		mutationObserver.observe(element, { childList: true, subtree: true });
-
-		element.addEventListener("scroll", scheduleCheck, { passive: true });
-
-		return () => {
-			cancelAnimationFrame(frameId);
-			resizeObserver.disconnect();
-			mutationObserver.disconnect();
-			element.removeEventListener("scroll", scheduleCheck);
-		};
-	}, []);
-
-	return useMemo(() => ({ ref, state }), [state]);
-}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	chunkNeedsUseClient,
+	clientModulesBesideServerModules,
 	findClientImport,
 	hasFileUseNoMemoDirective,
 	hasUseClientDirective,
@@ -48,6 +49,20 @@ describe("hasFileUseNoMemoDirective", () => {
 				'import { useVirtualizer } from "@tanstack/react-virtual";\nfunction useRows() {\n\t"use no memo";\n}',
 			),
 		).toBe(false);
+	});
+});
+
+describe("clientModulesBesideServerModules", () => {
+	it("returns only the client modules in a directory that holds a server module", () => {
+		expect(
+			clientModulesBesideServerModules({
+				clientModuleIds: new Set([
+					"/m/src/components/table/overflow-container.tsx",
+					"/m/src/components/data-table/data-table.tsx",
+				]),
+				serverModuleIds: new Set(["/m/src/components/table/table.tsx"]),
+			}),
+		).toEqual(["/m/src/components/table/overflow-container.tsx"]);
 	});
 });
 
@@ -108,10 +123,11 @@ describe("findClientImport", () => {
 
 describe("preserveUseClient", () => {
 	const id = "/m/src/components/card/card.tsx";
+	const context = { emitFile: () => "ref" };
 
 	it("fails a chunk that holds a file-level opt-out and client code", () => {
 		const plugin = preserveUseClient({ serverEntries: [] });
-		plugin.transform.handler('"use no memo";\nexport {};', id);
+		plugin.transform.handler.call(context, '"use no memo";\nexport {};', id);
 		expect(() =>
 			plugin.renderChunk('import{c}from"react/compiler-runtime";', {
 				fileName: "card.js",
@@ -122,8 +138,8 @@ describe("preserveUseClient", () => {
 
 	it("forgets an opt-out that a watch rebuild removes", () => {
 		const plugin = preserveUseClient({ serverEntries: [] });
-		plugin.transform.handler('"use no memo";\nexport {};', id);
-		plugin.transform.handler('"use client";\nexport {};', id);
+		plugin.transform.handler.call(context, '"use no memo";\nexport {};', id);
+		plugin.transform.handler.call(context, '"use client";\nexport {};', id);
 		expect(plugin.renderChunk("export {};", { fileName: "card.js", moduleIds: [id] })).toBe(
 			'"use client";\nexport {};',
 		);
