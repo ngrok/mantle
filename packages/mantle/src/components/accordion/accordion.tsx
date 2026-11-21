@@ -22,28 +22,21 @@ import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { Icon, type IconProps } from "../icon/icon.js";
 import { Slot } from "../slot/index.js";
-import { type AccordionType, isItemOpen, nextOpenValues, toOpenValues } from "./accordion-state.js";
+import {
+	accordionBodyClassName,
+	accordionRootClassName,
+	accordionTriggerClassName,
+	accordionTriggerIconClassName,
+} from "./accordion-classes.js";
+import {
+	type AccordionType,
+	type AccordionValueProps,
+	emitValueChange,
+	isItemOpen,
+	nextOpenValues,
+	toOpenValues,
+} from "./accordion-state.js";
 import { canUseDOM } from "../browser-only/can-use-dom.js";
-
-/**
- * Invokes the consumer's `onValueChange` with the correctly-typed value for the
- * current `type`. Kept as a standalone function so the discriminated-union
- * narrowing on `props.type` (and thus the matching `onValueChange` signature) is
- * preserved without a type assertion.
- *
- * @example
- * ```ts
- * emitValueChange({ type: "single", onValueChange }, ["a"]);        // onValueChange("a")
- * emitValueChange({ type: "multiple", onValueChange }, ["a", "b"]); // onValueChange(["a", "b"])
- * ```
- */
-function emitValueChange(props: AccordionRootProps, next: readonly string[]): void {
-	if (props.type === "single") {
-		props.onValueChange?.(next[0] ?? "");
-	} else {
-		props.onValueChange?.([...next]);
-	}
-}
 
 /**
  * Feature-detects support for `hidden="until-found"` + the `beforematch` event,
@@ -100,52 +93,6 @@ function useAccordionItemContext(component: string): AccordionItemContextValue {
 }
 
 /**
- * `"single"` mode props: at most one item open at a time. Opening a section
- * auto-closes the previously open one. This is the **opt-in** behavior; `type`
- * defaults to `"multiple"`, so you must set `type="single"` explicitly to get
- * the auto-close accordion. `value`/`defaultValue` are the open item's value
- * (`""` for none).
- */
-type AccordionSingleProps = {
-	/**
-	 * Keep at most one section open at a time: opening a section auto-closes the
-	 * previously open one. Must be set explicitly: the default is `"multiple"`,
-	 * where sections open independently.
-	 */
-	type: "single";
-	/** The controlled open item value (`""` for none). */
-	value?: string;
-	/** The initial open item value when uncontrolled. */
-	defaultValue?: string;
-	/** Called with the newly open item value (`""` when collapsed). */
-	onValueChange?: (value: string) => void;
-};
-
-/**
- * `"multiple"` mode props, the **default** when `type` is omitted. Any number
- * of items may be open at once, and opening one never closes another.
- * `value`/`defaultValue` are the list of open item values. Use `type="single"`
- * instead if you want opening a section to auto-close the others.
- */
-type AccordionMultipleProps = {
-	/**
-	 * Allow any number of sections open at once. This is the **default** when
-	 * `type` is omitted. Opening one section never collapses the others. Switch to
-	 * `type="single"` for the accordion that auto-closes the previously open
-	 * section.
-	 *
-	 * @default "multiple"
-	 */
-	type?: "multiple";
-	/** The controlled list of open item values. */
-	value?: string[];
-	/** The initial list of open item values when uncontrolled. */
-	defaultValue?: string[];
-	/** Called with the new list of open item values. */
-	onValueChange?: (value: string[]) => void;
-};
-
-/**
  * Props for {@link Root}. A discriminated union on `type` so `value`,
  * `defaultValue`, and `onValueChange` are typed as a single string in
  * `"single"` mode and a string array in `"multiple"` mode. `type` is optional
@@ -155,7 +102,7 @@ type AccordionMultipleProps = {
  * accordion that keeps at most one section open at a time. Also accepts all
  * standard `<div>` props (forwarded to the container) plus `asChild`.
  */
-type AccordionRootProps = (AccordionSingleProps | AccordionMultipleProps) &
+type AccordionRootProps = AccordionValueProps &
 	// `defaultValue` is omitted because the discriminated union above types it per
 	// `type` (a `string` or `string[]`), narrower than the DOM's `defaultValue`.
 	Omit<ComponentProps<"div">, "defaultValue"> &
@@ -264,10 +211,7 @@ const Root = (props: AccordionRootProps) => {
 	const containerProps = {
 		...domProps,
 		"data-slot": joinDataSlot(dataSlot, "accordion"),
-		// Dividers live on the root via `divide-y` (one border between adjacent items,
-		// none trailing) rather than a per-item `border-b` + `last:border-b-0`. The color
-		// is the shared `separator` token so dividers match `Separator` across the system.
-		className: cx("w-full divide-y divide-separator", className),
+		className: accordionRootClassName(className),
 	};
 
 	return (
@@ -395,19 +339,7 @@ const Trigger = ({
 			data-state={open ? "open" : "closed"}
 			aria-expanded={open}
 			aria-controls={contentId}
-			className={cx(
-				"group flex w-full cursor-pointer items-center justify-between gap-4 py-4 text-left font-medium outline-none",
-				// `-mx-2 px-2` gives the focus ring (and tap target) horizontal breathing room
-				// without shifting the trigger's content: the negative margin cancels the padding,
-				// the same trick the tabs trigger uses. `rounded-md` matches Button/IconButton.
-				"-mx-2 rounded-md px-2",
-				// Why the padding never changes with the open state: the trigger keeps one size,
-				// so its label, its focus ring, and the gap to the content stay still while only
-				// `Accordion.Content` moves. `Accordion.Body`'s `pt-1` keeps the `ring-4` focus
-				// ring off the body's first line.
-				"focus-visible:focus-ring",
-				className,
-			)}
+			className={accordionTriggerClassName(className)}
 			onClick={(event) => {
 				onClick?.(event);
 				setOpen(!open);
@@ -477,15 +409,7 @@ const TriggerIcon = ({
 		{...props}
 		data-slot={joinDataSlot(dataSlot, "accordion-trigger-icon")}
 		svg={svg}
-		// Why `self-start h-lh w-4`: the svg is one line tall at the top of the
-		// trigger, and its default `preserveAspectRatio` centers the 16px glyph in
-		// that line. When the label wraps, the icon stays on the first line. When the
-		// label is one line, the row is one line tall, so the trigger's `items-center`
-		// keeps the icon centered with shorter children, such as a `text-sm` label.
-		className={cx(
-			"h-lh w-4 shrink-0 self-start text-muted transition-transform duration-200 ease-out-strong group-data-state-open:rotate-180 motion-reduce:transition-none",
-			className,
-		)}
+		className={accordionTriggerIconClassName(className)}
 	/>
 );
 
@@ -681,7 +605,7 @@ const Body = ({
 		ref={ref}
 		{...props}
 		data-slot={joinDataSlot(dataSlot, "accordion-body")}
-		className={cx("pt-1 pb-4", className)}
+		className={accordionBodyClassName(className)}
 	/>
 );
 
