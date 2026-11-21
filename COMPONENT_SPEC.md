@@ -62,12 +62,16 @@ accessible, least surprising, fast, delightful, clean, and efficient.
    `<button>`, `Checkbox` a real `<input type="checkbox">`, `Kbd` a real `<kbd>`. Enhancement is layered on
    top and every enhancement names its fallback (`Accordion`'s `hidden="until-found"` and `interpolate-size`
    both degrade cleanly). If a component needs JavaScript to do what an element already does, start over.
-2. **The right foundation per problem.** Mantle is not "built on Radix." Hand-roll where the platform is
-   enough (`Accordion`, `Field`); wrap the best engine where the behavior is genuinely hard (Radix for
-   `Dialog`, Ariakit for `Combobox`, Headless UI for `RadioGroup`, cmdk for `Command`, TanStack Table for
-   `DataTable`, sonner for `Toast`). A consumer must not be able to tell which is which: every foundation is
-   normalized behind the same house API: flat namespace, `asChild`, `data-slot`, consumer `className` merged
-   last.
+   Enhance an element only when it does not meet a named product or site need. Native `<dialog>`,
+   `<details>`, and `<select>` do not meet them today, so `Dialog`, `Accordion`, and `Select` are mantle's own.
+2. **Own the behavior.** Hand-roll where the platform is enough (`Accordion`, `Field`). Where the behavior
+   is genuinely hard, put it in a mantle behavior hook that follows the APG pattern. Then mantle owns the
+   performance and accessibility contract. A component ships only the code it needs. Some components
+   still wrap a headless library (Radix for `Dialog`, Ariakit for `Combobox`, Headless UI for `RadioGroup`,
+   cmdk for `Command`). Each one is a migration to a hook, and new work adds no headless library. An engine
+   that renders no UI, such as TanStack Table for `DataTable`, can stay. A consumer must not be able to tell
+   which is which: every foundation is normalized behind the same house API: flat namespace, `asChild`,
+   `data-slot`, consumer `className` merged last.
 3. **One component per user intent.** Name the intent in a sentence. A variant is a prop or a sibling part,
    never a second public component ([§1.1](#11-one-component-per-user-intent)).
 4. **Composition over configuration.** Configuration props handle the common case; `asChild` and children
@@ -83,8 +87,9 @@ accessible, least surprising, fast, delightful, clean, and efficient.
    accessibility free. It is that mantle does the engineering so the consumer gets it free: `Field` threads
    ids through context, `IconButton` makes its screen-reader label required, virtualized rows announce
    `aria-posinset`/`aria-setsize`. Motion defaults are conservative ([§3.6](#36-accessibility-and-motion)).
-8. **The first paint is part of the API.** Mantle assumes a server. If a component renders wrong for one
-   frame, that is a bug ([§3.7](#37-ssr-and-first-paint)).
+8. **The first paint is part of the API.** Mantle assumes a server. A marketing site prerenders each page,
+   and a product app renders its first document on the server, then routes as a single-page app. If a
+   component renders wrong for one frame, that is a bug ([§3.7](#37-ssr-and-first-paint)).
 9. **Tailwind is the design language.** No theme object, no CSS-in-JS. One authored class must be correct in
    all four resolved themes ([§5.4](#54-design-tokens)). Consumer `className` always wins, via `cx`.
 10. **Performance happens before the browser.** Prefer work that never reaches the client (`CodeBlock`
@@ -565,7 +570,7 @@ Errors are control flow. `console.error` is not error handling.
   exit that mirrors its enter, and motion that a second input can interrupt.
 - At a 320px viewport, the component wraps, truncates, or scrolls in its own box. It never makes the page scroll
   sideways or clips content ([CONVENTIONS.md § Browser code](./CONVENTIONS.md#browser-code)).
-- Interactive state is styled through the custom Tailwind variants that match the DOM the headless layer
+- Interactive state is styled through the custom Tailwind variants that match the DOM the behavior layer
   actually emits (`data-state-*`, `aria-*`), not through JS-toggled classes.
 
 ### 3.7. SSR and first paint
@@ -575,6 +580,9 @@ Errors are control flow. `console.error` is not error handling.
 - Client-only work goes through `BrowserOnly` (children as a render function, so it cannot evaluate during
   SSR) or a browser-API hook that declares its server answer. `useIsHydrated` is the sanctioned escape hatch.
 - Never branch on `typeof window` inside render.
+- A part with no interaction adds no effect, subscription, listener, or state beyond what its accessibility
+  contract needs ([§3.6](#36-accessibility-and-motion)), such as the context read or the registration that
+  sets `aria-describedby`. A compound component keeps its static parts this lean beside its interactive parts.
 
 ### 3.8. Browser translation
 
@@ -659,8 +667,8 @@ cure. Read the roster there rather than restating it here, because an enumerated
   screen.
 - A leaf component imports no second component family, and no module has a side effect on import
   ([§1.7](#17-forbidden-api-shapes)).
-- Do not add `useMemo`, `useCallback`, or `memo` for speed. The React Compiler memoizes each component
-  ([CONVENTIONS.md § React Compiler](./CONVENTIONS.md#react-compiler)).
+- Do not add `useMemo`, `useCallback`, or `memo` for speed. Memoization belongs only where it pays.
+  [CONVENTIONS.md § React Compiler](./CONVENTIONS.md#react-compiler) owns where the compiler runs.
 - A claim of speed or size gives the base, the branch, the command, and the browser
   ([explain the number](./docs/principles/explain-the-number.md)). Run the base and the branch in turn.
 - Performance does not win against accessibility. Keep what assistive technology reads, and give the measured

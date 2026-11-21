@@ -1,10 +1,12 @@
 # Redesign before you cache
 
-Make the slow path fast before you add a cache. Add a cache only when a benchmark shows that it beats the best design with no cache. Then give it a size limit, and derive its key from each input of the result.
+First remove the runtime work: move it to the build or the server, or find a design that does not need it. Then make the slow path fast. A cache comes last. Add a cache only when a benchmark shows that it beats the best design with no cache. Then give it a size limit, and derive its key from each input of the result.
 
 **Why:** A cache does work of its own: it computes a key, finds the entry, and holds memory for the life of the page. That work can cost more than a design that is fast with no cache. A stale entry paints the wrong UI: a size from before a resize, or a color from the other theme. So a cache is a risk to correctness, not only a speedup.
 
-**Applies to:** code. A cache is each value that code keeps to skip work later: a module-level `Map`, a ref that holds a measurement, a memo, and state that copies a prop.
+Memory is a cost to the user as much as time. A cache trades one for the other, and each byte that a part holds for each instance limits how many instances a page can hold. A cache also hides the slow path, so the better design never gets built.
+
+**Applies to:** code. A cache is each value that code keeps to skip work later: a module-level `Map`, a ref that holds a measurement, a memo, the React Compiler's memo cache, and state that copies a prop.
 
 **Signs you missed it:**
 
@@ -14,6 +16,8 @@ Make the slow path fast before you add a cache. Add a cache only when a benchmar
 - State that copies a prop or a computed value. See [derive, don't sync](./derive-dont-sync.md).
 - A `memo` around a child to hide a parent that renders too often. Fix the parent.
 - A cache with no benchmark of the same path with no cache.
+- A cache on runtime work that the build or the server can do.
+- Compiler memoization that a benchmark shows saves no work. The cache code ships for nothing ([CONVENTIONS.md § React Compiler](../../CONVENTIONS.md#react-compiler)).
 
 **In this repo:**
 

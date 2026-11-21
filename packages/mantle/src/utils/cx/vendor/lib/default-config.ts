@@ -916,11 +916,15 @@ export const getDefaultConfig = () => {
        * Font Size
        * @see https://tailwindcss.com/docs/font-size
        */
-      // --- mantle override --- : `text-mono` + `text-size-inherit` join the font-size group so
-      // they conflict-resolve against `text-base`, `text-xl`, … Replaces the former
+      // --- mantle override --- : `text-mono`, `text-size-inherit`, and the type-role steps
+      // (`text-heading-xs` to `text-heading-8xl`, `text-paragraph-xs` to `text-paragraph-xl`) join
+      // the font-size group so they conflict-resolve against `text-base`, `text-xl`, … Without
+      // them an unknown `text-*` class reads as a color and drops `text-strong`. Replaces the former
       // `extendTailwindMerge({ extend: { classGroups: { "font-size": [...] } } })`.
       "font-size": [
         { text: ["base", themeText, isArbitraryVariableLength, isArbitraryLength] },
+        { "text-heading": ["base", isTshirtSize] },
+        { "text-paragraph": ["base", isTshirtSize] },
         "text-mono",
         "text-size-inherit",
       ],

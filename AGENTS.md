@@ -16,7 +16,7 @@ Each change meets all seven goals, for humans and agents alike. They have no ord
 - **Fast:** an answer in the next frame, a first paint that is final, and a measured cost for a page of many.
 - **Delightful:** for the user, the consumer, and the agent that reads the docs.
 - **Clean:** the smallest change that reads in one pass.
-- **Efficient:** few bytes, DOM nodes, layers, and listeners, and a small context window.
+- **Efficient:** few bytes, little memory, few DOM nodes, layers, and listeners, and a small context window.
 
 ## Route by task
 

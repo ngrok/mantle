@@ -432,6 +432,11 @@
 			"types": "./dist/truncated-text.d.ts",
 			"import": "./dist/truncated-text.js"
 		},
+		"./typography": {
+			"@ngrok/src-live-types": "./src/components/typography/index.ts",
+			"types": "./dist/typography.d.ts",
+			"import": "./dist/typography.js"
+		},
 		"./types": {
 			"@ngrok/src-live-types": "./src/types/index.ts",
 			"types": "./dist/types.d.ts",

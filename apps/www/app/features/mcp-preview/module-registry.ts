@@ -86,6 +86,7 @@ export const previewModules: Readonly<Record<string, () => Promise<unknown>>> = 
 	"@ngrok/mantle/tooltip": () => import("@ngrok/mantle/tooltip"),
 	"@ngrok/mantle/truncated-text": () => import("@ngrok/mantle/truncated-text"),
 	"@ngrok/mantle/types": () => import("@ngrok/mantle/types"),
+	"@ngrok/mantle/typography": () => import("@ngrok/mantle/typography"),
 	"@ngrok/mantle/utils": () => import("@ngrok/mantle/utils"),
 	"@ngrok/mantle/visually-hidden": () => import("@ngrok/mantle/visually-hidden"),
 	"@ngrok/mantle/well": () => import("@ngrok/mantle/well"),
