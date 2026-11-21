@@ -289,6 +289,8 @@ export default [
 	// chrome-less chart mount benchmark page, driven by apps/www/bench/. The id is
 	// required too: root.tsx matches on it to skip the site chrome.
 	route("bench/charts", "./routes/bench.charts.tsx", { id: "bench-charts" }),
+	// chrome-less sheet open benchmark page, driven by apps/www/bench/sheet.ts.
+	route("bench/sheet", "./routes/bench.sheet.tsx", { id: "bench-sheet" }),
 
 	// 404 + legacy redirects: splat catch-all for any unmatched URL. Matches
 	// (so ancestor loaders run) and 301s known pre-IA-reorg paths (e.g.

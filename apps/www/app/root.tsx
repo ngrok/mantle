@@ -119,14 +119,15 @@ const chromelessRouteIds = new Set([
 	//,
 	"preview-example",
 	"bench-charts",
+	"bench-sheet",
 	"mcp-preview",
 	"mcp-preview-frame",
 ]);
 
 /**
  * Whether the matched route is a chrome-less document: a framed example
- * preview (`/preview/*`), the chart benchmark page
- * (`/bench/charts`), or an MCP prototype preview (`/mcp/preview` and its
+ * preview (`/preview/*`), a benchmark page
+ * (`/bench/charts`, `/bench/sheet`), or an MCP prototype preview (`/mcp/preview` and its
  * frame). Matched on route identity, not pathname,
  * mirroring the `layouts-index` pattern in layouts-layout.tsx. Preview
  * documents render inside the docs pages' iframes, and the benchmark page
