@@ -436,7 +436,7 @@ CONVENTIONS.md covers general style ([TypeScript](./CONVENTIONS.md#typescript),
 ### 3.1. Required
 
 - `"use client";` on the first line when the file uses hooks, DOM event handlers, browser APIs, or context.
-  A file that uses none of them leaves it out ([§3.7](#37-ssr-and-first-paint)).
+  When in doubt, add it: the cost is negligible.
 - Named exports only, no default exports. Relative imports ending in `.js` (`../../utils/cx/cx.js`).
 - `type`, not `interface`. Props based on `ComponentProps<…>`, which already includes `ref`. Never
   `HTMLAttributes<…>` alone, which does not.
@@ -663,7 +663,8 @@ cure. Read the roster there rather than restating it here, because an enumerated
   screen.
 - A leaf component imports no second component family, and no module has a side effect on import
   ([§1.7](#17-forbidden-api-shapes)).
-- Do not add `useMemo`, `useCallback`, or `memo` for speed. The React Compiler memoizes each component
+- Do not add `useMemo`, `useCallback`, or `memo` for speed. The React Compiler memoizes where memoization
+  pays, and a file that gains nothing from it opts out
   ([CONVENTIONS.md § React Compiler](./CONVENTIONS.md#react-compiler)).
 - A claim of speed or size gives the base, the branch, the command, and the browser
   ([explain the number](./docs/principles/explain-the-number.md)). Run the base and the branch in turn.

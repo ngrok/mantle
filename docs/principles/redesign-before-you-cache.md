@@ -6,7 +6,7 @@ First remove the runtime work: move it to the build or the server, or find a des
 
 Memory is a cost to the user as much as time. A cache trades one for the other, and each byte that a part holds for each instance limits how many instances a page can hold. A cache also hides the slow path, so the better design never gets built.
 
-**Applies to:** code. A cache is each value that code keeps to skip work later: a module-level `Map`, a ref that holds a measurement, a memo, and state that copies a prop.
+**Applies to:** code. A cache is each value that code keeps to skip work later: a module-level `Map`, a ref that holds a measurement, a memo, the React Compiler's memo cache, and state that copies a prop.
 
 **Signs you missed it:**
 
@@ -17,6 +17,7 @@ Memory is a cost to the user as much as time. A cache trades one for the other, 
 - A `memo` around a child to hide a parent that renders too often. Fix the parent.
 - A cache with no benchmark of the same path with no cache.
 - A cache on runtime work that the build or the server can do.
+- Compiler memoization in a part that rebuilds its output on each render anyway, such as one that spreads its props onto one element. The cache code ships and saves nothing ([CONVENTIONS.md § React Compiler](../../CONVENTIONS.md#react-compiler)).
 
 **In this repo:**
 
