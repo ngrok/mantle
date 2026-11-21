@@ -106,6 +106,32 @@ describe("cx: look-alike classes that set different properties", () => {
 	test("a custom class named like a utility does not merge", () => {
 		expect(cx("my-app top-ranked my-4 top-2")).toBe("my-app top-ranked my-4 top-2");
 	});
+
+	test("the invert-theme island class keeps the invert filter", () => {
+		expect(cx("invert-theme invert")).toBe("invert-theme invert");
+		expect(cx("invert invert-theme")).toBe("invert invert-theme");
+	});
+
+	test("the tw-animate-css enter and exit scales stay apart and keep zoom", () => {
+		expect(cx("zoom-in-95 zoom-out-95 zoom-50")).toBe("zoom-in-95 zoom-out-95 zoom-50");
+	});
+});
+
+describe("cx: plugin and mantle classes that set the same property merge", () => {
+	test("a later tw-animate-css animation replaces an earlier one", () => {
+		expect(cx("data-state-open:animate-in data-state-open:animate-none")).toBe(
+			"data-state-open:animate-none",
+		);
+		expect(cx("animate-spin animate-in")).toBe("animate-in");
+	});
+
+	test("mantle's cursor-inherit replaces an earlier cursor", () => {
+		expect(cx("cursor-pointer cursor-inherit")).toBe("cursor-inherit");
+	});
+
+	test("an off-scale blur replaces an earlier blur", () => {
+		expect(cx("blur-[4px] blur-0")).toBe("blur-0");
+	});
 });
 
 describe("cx: value shapes (clsx parity)", () => {
