@@ -475,6 +475,7 @@
 	},
 	"scripts": {
 		"build": "NODE_OPTIONS='--max-old-space-size=16384' tsdown",
+		"check:bundle-budget": "node ./scripts/bundle-budget.ts",
 		"clean": "rm -rf dist",
 		"prebuild": "pnpm run clean",
 		"agent-artifacts": "node ./scripts/write-agent-artifacts.ts",
@@ -541,6 +542,7 @@
 		"tailwindcss": "catalog:",
 		"tsdown": "catalog:",
 		"typescript": "catalog:",
+		"vite": "catalog:",
 		"world-atlas": "2.0.2"
 	},
 	"peerDependencies": {
