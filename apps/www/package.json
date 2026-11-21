@@ -33,6 +33,7 @@
     "hono": "4.13.19",
     "isbot": "5.2.3",
     "match-sorter": "8.3.1",
+    "obscenity": "0.4.6",
     "oxc-parser": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",

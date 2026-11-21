@@ -37,8 +37,8 @@ import {
 	type VersionData,
 	type VersionDataLoader,
 } from "~/utilities/mcp/version-data.server";
-import { createLinearGaps, type LinearGaps } from "~/utilities/mcp/linear.server";
-import { clipMarkdown, gapIssueOf, mcpPulse } from "~/utilities/mcp/pulse.server";
+import { countUrls, hasProfanity } from "~/utilities/mcp/content-safety";
+import { clipMarkdown, mcpPulse } from "~/utilities/mcp/pulse.server";
 import { renderMdxToMarkdown } from "~/utilities/render-mdx-to-markdown.server";
 import { loadDeclarationFiles, loadSourceFiles } from "~/utilities/mantle-source.server";
 import { declaredWordsOf } from "~/utilities/mcp/declarations.server";
@@ -79,8 +79,6 @@ export type McpDependencies = {
 	frameOrigin: string;
 	/** Records one tool call. Never receives code or messages, and free text only as `scrubIntent` output. */
 	log: (event: ToolCallEvent) => void;
-	/** The gap issues in Linear. Without it, `report_gap` posts to Slack only. */
-	linear?: LinearGaps;
 };
 
 /** What a gap report says is missing. */
@@ -95,6 +93,9 @@ const GAP_KINDS = [
 
 /** The longest write-up that a gap report keeps, in characters. */
 const WRITEUP_LENGTH = 4_000;
+
+/** The most URLs that one gap report may hold. More is a spam signal. */
+const MAX_REPORT_URLS = 5;
 
 /** What the agent did when mantle had no fit. */
 const GAP_WORKAROUNDS = [
@@ -124,15 +125,20 @@ export type GapSignal = {
 	/** What the agent built instead. */
 	built?: string;
 	/**
-	 * The agent's long-form write-up in markdown. An ngrok caller's text is
-	 * kept as sent, code included; other callers' text is `scrubIntent` output.
+	 * The agent's long-form write-up in markdown. A call with a `source` keeps
+	 * its text as sent, code included; other calls keep `scrubIntent` output.
 	 */
 	writeup?: string;
-	/** The title of the work ticket in Linear. */
-	work?: string;
-	/** The MNTL issue that the server created, or added the report to as a comment. */
-	issue?: { key: string; action: "created" | "commented" };
 };
+
+/**
+ * The part of a gap write-up that the server keeps: the text as sent, cut to
+ * `WRITEUP_LENGTH`, when `raw`, else `scrubIntent` output. Why raw from an
+ * ngrok repo: its code sketch shows the API that the team should build.
+ */
+function keptWriteup(writeup: string, { raw }: { raw: boolean }): string | undefined {
+	return raw ? clipMarkdown(writeup.trim(), WRITEUP_LENGTH) || undefined : scrubIntent(writeup);
+}
 
 /**
  * Why a tool call failed:
@@ -172,10 +178,7 @@ export type ToolCallEvent = ToolCallOutcome & {
 	intent?: string;
 	/** The app or package that the agent changes, from `workspaceSlug`. Only a call with a `source` has one. */
 	workspace?: string;
-	/**
-	 * The Linear issue key of the work, from `ticketKey`. Only a call with a
-	 * `source`, or a `report_gap` call whose key is a real ngrok issue, has one.
-	 */
+	/** The Linear issue key of the work, from `ticketKey`. Only a call with a `source` has one. */
 	ticket?: string;
 	dataVersion?: string;
 	/** Allowlisted record names from `find` and `get`, and diagnostic codes from `check`. */
@@ -187,17 +190,8 @@ export type ToolCallEvent = ToolCallOutcome & {
 	gap?: GapSignal;
 };
 
-/**
- * The scrubbed attribution of a call, for a tool body. `ticket` is the issue
- * key with no source check; the body decides when to log it.
- */
-type CallContext = Pick<ToolCallEvent, "intent" | "workspace" | "ticket">;
-
-/** The fields that a tool body adds to its log event. A `ticket` replaces the attributed one. */
-type ToolCallFacts = Pick<
-	ToolCallEvent,
-	"dataVersion" | "ids" | "resultCount" | "gap" | "ticket"
-> & {
+/** The fields that a tool body adds to its log event. */
+type ToolCallFacts = Pick<ToolCallEvent, "dataVersion" | "ids" | "resultCount" | "gap"> & {
 	/** Set by `failure`; a tool error with no kind logs as `internal`. */
 	errorKind?: ToolErrorKind;
 };
@@ -209,13 +203,14 @@ function failure(errorKind: ToolErrorKind, message: string, facts: ToolCallFacts
 
 /**
  * The client name of a request: the first product token of its `User-Agent`
- * header, with any character outside `[\w./-]` removed. Most clients send no
+ * header, with any character outside `[\w./-]` removed, or `undefined` for
+ * profanity. Most clients send no
  * `clientInfo` on a stateless `tools/call`, so the header is the one signal.
  */
 function clientOf(request: Request | undefined): string | undefined {
 	const token = request?.headers.get("user-agent")?.trim().split(/\s+/)[0] ?? "";
 	const client = token.replace(/[^\w./-]/g, "").slice(0, 60);
-	return client === "" ? undefined : client;
+	return client === "" || hasProfanity(client) ? undefined : client;
 }
 
 /** The string at `key` in the raw arguments of a call, or `undefined`. */
@@ -260,7 +255,7 @@ function sourceOf(request: Request | undefined): McpSource | undefined {
 	const org = NGROK_ORGS.find((name) => name === owner);
 	return (
 		SOURCE_ALIASES.get(source) ??
-		(org != null && repo != null && rest.length === 0 && REPO_NAME.test(repo)
+		(org != null && repo != null && rest.length === 0 && REPO_NAME.test(repo) && !hasProfanity(repo)
 			? `${org}/${repo}`
 			: undefined)
 	);
@@ -482,16 +477,10 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 			tool: string,
 			body: (
 				args: Omit<Args, "intent" | "workspace" | "ticket">,
-				context: CallContext,
 			) => Promise<{ result: CallToolResult } & ToolCallFacts>,
 		) =>
 		async ({ intent, workspace, ticket, ...args }: Args): Promise<CallToolResult> => {
 			const started = performance.now();
-			const context: CallContext = {
-				intent: intent == null ? undefined : scrubIntent(intent),
-				workspace: attribution(workspace, null).workspace,
-				ticket: ticket == null ? undefined : ticketKey(ticket),
-			};
 			const finish = (
 				outcome: ToolCallOutcome,
 				result: CallToolResult,
@@ -507,7 +496,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					resultBytes: byteLength(resultText),
 					client,
 					source,
-					intent: context.intent,
+					intent: intent == null ? undefined : scrubIntent(intent),
 					...attribution(workspace, ticket),
 					...facts,
 				});
@@ -520,7 +509,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				);
 			}
 			try {
-				const { result, errorKind, ...facts } = await body(args, context);
+				const { result, errorKind, ...facts } = await body(args);
 				const outcome: ToolCallOutcome =
 					result.isError === true
 						? { outcome: "error", errorKind: errorKind ?? "internal" }
@@ -911,12 +900,6 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 						.describe(
 							`A long-form account in markdown, up to ${WRITEUP_LENGTH} characters. Say what you were building and for whom, each part and prop you tried and exactly why it fell short, the API you wish mantle had, and a short code sketch of it. Specific beats short.`,
 						),
-					matches: z
-						.string()
-						.optional()
-						.describe(
-							'Only when a report lists similar MNTL issues: the key of the same need, or "none".',
-						),
 					version: versionArgument,
 					intent: z
 						.string()
@@ -930,28 +913,34 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 			annotations: {
 				readOnlyHint: false,
 				destructiveHint: false,
-				// Why not idempotent: a repeated call can create a second issue or comment.
+				// Why not idempotent: a repeated call posts a second report.
 				idempotentHint: false,
 				openWorldHint: true,
 			},
 		},
 		run(
 			"report_gap",
-			async (
-				{
-					need,
-					kind,
-					workaround,
-					closestPart,
-					tried,
-					reflection,
-					built,
-					writeup,
-					matches,
-					version,
-				},
-				context,
-			) => {
+			async ({
+				need,
+				kind,
+				workaround,
+				closestPart,
+				tried,
+				reflection,
+				built,
+				writeup,
+				version,
+			}) => {
+				const prose = [need, tried, reflection, built, writeup].join("\n");
+				if (hasProfanity(prose)) {
+					return failure("invalid_argument", "Remove the offensive language and report again.");
+				}
+				if (countUrls(prose) > MAX_REPORT_URLS) {
+					return failure(
+						"invalid_argument",
+						`Keep the report to ${MAX_REPORT_URLS} links or fewer, and report again.`,
+					);
+				}
 				const tokens = gapTokens(need);
 				if (tokens.length === 0) {
 					return failure(
@@ -960,20 +949,10 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					);
 				}
 				const data = await dependencies.loader.load(version);
-				const { linear } = dependencies;
-				const work =
-					linear == null || context.ticket == null ? undefined : await linear.issue(context.ticket);
-				// Why: a real ngrok issue key marks an ngrok caller, as a source does.
-				const known = source != null || work != null;
-				// Why raw for ngrok: its code and words may go to its own Slack and Linear.
-				const writeupOf = (value: string) =>
-					known ? clipMarkdown(value.trim(), WRITEUP_LENGTH) || undefined : scrubIntent(value);
-				const report = {
-					client,
-					source,
-					workspace: context.workspace,
-					intent: context.intent,
-					ticket: known ? context.ticket : undefined,
+				return {
+					result: text(
+						`Reported: ${tokens.join(" ")}. Thank you. Do not report this need again in this task.`,
+					),
 					dataVersion: data.version,
 					gap: {
 						source: "report_gap",
@@ -985,70 +964,9 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 						tried: scrubIntent(tried),
 						reflection: scrubIntent(reflection),
 						built: built == null ? undefined : scrubIntent(built),
-						writeup: writeup == null ? undefined : writeupOf(writeup),
-						work: work?.title,
-					} satisfies GapSignal,
+						writeup: writeup == null ? undefined : keptWriteup(writeup, { raw: source != null }),
+					},
 				};
-				const reported = (message: string, issue?: GapSignal["issue"]) => ({
-					result: text(`${message} Thank you. Do not report this need again in this task.`),
-					dataVersion: data.version,
-					ticket: report.ticket,
-					gap: { ...report.gap, issue },
-				});
-				const plain = `Reported: ${tokens.join(" ")}.`;
-				if (linear == null || !known) {
-					return reported(plain);
-				}
-				const none = matches?.trim().toLowerCase() === "none";
-				const match = matches == null || none ? undefined : ticketKey(matches);
-				if (matches != null && !none && match?.startsWith("MNTL-") !== true) {
-					return failure(
-						"invalid_argument",
-						'Pass `matches` as an MNTL key from the list, such as "MNTL-121", or "none".',
-						{ dataVersion: data.version },
-					);
-				}
-				if (match != null) {
-					const found = await linear.issue(match);
-					// Why: an old key can resolve to an issue that moved to another team.
-					const issue = found?.key.startsWith("MNTL-") === true ? found : undefined;
-					const added =
-						issue != null &&
-						(await linear.comment(
-							issue.id,
-							`Another agent hit this gap.\n\n${gapIssueOf(report).description}`,
-						));
-					return added
-						? reported(`Added this report to ${issue.key}.`, {
-								key: issue.key,
-								action: "commented",
-							})
-						: reported(plain);
-				}
-				if (matches == null) {
-					const similar = await linear.similar(tokens);
-					// Why: a failed search cannot rule out a match, so create nothing.
-					if (similar == null) {
-						return reported(plain);
-					}
-					if (similar.length > 0) {
-						return {
-							result: text(
-								[
-									"Not reported yet. These MNTL issues may be the same need:",
-									...similar.map((issue) => `- ${issue.key}: ${issue.title}`),
-									'Call `report_gap` again with the same arguments and `matches`: the key of the issue for the same need, or "none".',
-								].join("\n"),
-							),
-							dataVersion: data.version,
-							ticket: report.ticket,
-						};
-					}
-				}
-				const key = await linear.create(gapIssueOf(report));
-				return key == null
-					? reported(plain)
-					: reported(`Reported as ${key}.`, { key, action: "created" });
 			},
 		),
 	);
@@ -1286,7 +1204,6 @@ async function loadDocsDeclaredWords(specifier: string): Promise<ReadonlySet<str
 }
 
 let loader: VersionDataLoader | undefined;
-let linear: LinearGaps | undefined;
 
 /**
  * The production dependencies: one version loader for the process. The
@@ -1303,7 +1220,6 @@ export function productionDependencies({
 	requestOrigin: string;
 }): McpDependencies {
 	loader ??= createVersionDataLoader();
-	linear ??= createLinearGaps({ apiKey: process.env.MANTLE_MCP_LINEAR_API_KEY });
 	const previewOrigin =
 		process.env.MANTLE_PREVIEW_ORIGIN ?? (import.meta.env.DEV ? requestOrigin : canonicalOrigin);
 	return {
@@ -1318,7 +1234,6 @@ export function productionDependencies({
 		flags,
 		previewOrigin,
 		frameOrigin: previewFrameOrigin() || previewOrigin,
-		linear,
 		log: (event) => {
 			console.info(JSON.stringify({ event: "mcp.tool_call", ...event }));
 			mcpPulse.record(event);
