@@ -398,7 +398,7 @@ export const recipeDescriptions = {
 	"Filter from a Value":
 		"Turn a value in a table row into a Query filter with one click, and take it out with a second click. One pure function, toggleFacet, does the edit.",
 	"Form Sections and Actions":
-		"Lay out a long form as Strata sections of Field rows, and end it with one actions row of Cancel and the primary button. Switch to a Sandbar when the form edits saved settings.",
+		"Place a form's Cancel and submit buttons in one actions row below its Strata sections of Field rows. Switch to a Sandbar when the form edits saved settings.",
 	"Header Actions from Routes":
 		"Put each route's actions in the app header's actions slot from a React Router route handle. The deepest route wins, the server renders them, and below the mobile breakpoint they collapse into one menu.",
 	"List Page Loading States":

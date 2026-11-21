@@ -1,7 +1,7 @@
 ---
 title: Form Sections and Actions
-description: Lay out a long form as Strata sections of Field rows, end it with one actions row of Cancel and the primary button, and switch to a Sandbar when the form edits saved settings.
-useWhen: Lay out a form in titled sections and place its Cancel and Save or Create buttons, or pick between an actions row and a save bar.
+description: Place a form's Cancel and submit buttons in one actions row below its Strata sections, and switch to a Sandbar when the form edits saved settings.
+useWhen: Place a form's Cancel and Save or Create buttons, or pick between an actions row and a save bar.
 parts: [Strata, Field, Button, Sandbar]
 aliases:
   [
@@ -41,93 +41,82 @@ function createEndpoint(): Promise<void> {
 }
 
 export function CreateEndpointForm() {
-	const [nameErrors, setNameErrors] = useState<string[]>([]);
 	const [isPending, setIsPending] = useState(false);
 
 	async function submit(event: SubmitEvent<HTMLFormElement>) {
 		event.preventDefault();
 		const form = event.currentTarget;
-		const name = new FormData(form).get("name");
-		if (typeof name !== "string" || name.trim() === "") {
-			setNameErrors(["Enter a name for the endpoint."]);
-			return;
-		}
-		setNameErrors([]);
 		setIsPending(true);
 		await createEndpoint().finally(() => setIsPending(false));
 		form.reset();
 	}
 
 	return (
-		<form
-			className="w-full"
-			noValidate
-			onSubmit={(event) => void submit(event)}
-			onReset={() => setNameErrors([])}
-		>
-			<Strata.Root>
-				<Strata.Section>
-					<Strata.Header>
-						<Strata.Title>General</Strata.Title>
-						<Strata.Description>How the endpoint shows in the dashboard.</Strata.Description>
-					</Strata.Header>
-					<Strata.Body>
-						<Field.Group>
-							<Field.Item name="name">
-								<Field.Label>Name</Field.Label>
+		<form className="w-full" onSubmit={(event) => void submit(event)}>
+			<Strata.Root asChild>
+				<fieldset disabled={isPending}>
+					<Strata.Section>
+						<Strata.Header>
+							<Strata.Title>General</Strata.Title>
+							<Strata.Description>How the endpoint shows in the dashboard.</Strata.Description>
+						</Strata.Header>
+						<Strata.Body>
+							<Field.Group>
+								<Field.Item name="name">
+									<Field.Label>Name</Field.Label>
+									<Field.Control>
+										<Input placeholder="api-staging" required />
+									</Field.Control>
+								</Field.Item>
+								<Field.Item name="description">
+									<Field.Label className="flex items-baseline gap-1">
+										Description <Field.Optional />
+									</Field.Label>
+									<Field.Control>
+										<TextArea placeholder="Staging API for the mobile app" />
+									</Field.Control>
+								</Field.Item>
+							</Field.Group>
+						</Strata.Body>
+					</Strata.Section>
+					<Strata.Section>
+						<Strata.Header>
+							<Strata.Title>Upstream</Strata.Title>
+							<Strata.Description>Where the endpoint forwards its traffic.</Strata.Description>
+						</Strata.Header>
+						<Strata.Body>
+							<Field.Item name="upstream">
+								<Field.Label>Upstream URL</Field.Label>
 								<Field.Control>
-									<Input placeholder="api-staging" />
+									<Input type="url" placeholder="http://localhost:8080" />
 								</Field.Control>
-								<Field.Errors messages={nameErrors} />
+								<Field.Description>A URL that your agent can reach.</Field.Description>
 							</Field.Item>
-							<Field.Item name="description">
-								<Field.Label className="flex items-baseline gap-1">
-									Description <Field.Optional />
-								</Field.Label>
-								<Field.Control>
-									<TextArea placeholder="Staging API for the mobile app" />
-								</Field.Control>
-							</Field.Item>
-						</Field.Group>
-					</Strata.Body>
-				</Strata.Section>
-				<Strata.Section>
-					<Strata.Header>
-						<Strata.Title>Upstream</Strata.Title>
-						<Strata.Description>Where the endpoint forwards its traffic.</Strata.Description>
-					</Strata.Header>
-					<Strata.Body>
-						<Field.Item name="upstream">
-							<Field.Label>Upstream URL</Field.Label>
-							<Field.Control>
-								<Input type="url" placeholder="http://localhost:8080" />
-							</Field.Control>
-							<Field.Description>A URL that your agent can reach.</Field.Description>
-						</Field.Item>
-					</Strata.Body>
-				</Strata.Section>
-				<Strata.Section>
-					<Strata.Header>
-						<Strata.Title>Access</Strata.Title>
-						<Strata.Description>Who can send traffic to the endpoint.</Strata.Description>
-					</Strata.Header>
-					<Strata.Body>
-						<Choice.Root name="requireSignIn">
-							<Choice.Indicator>
-								<Checkbox />
-							</Choice.Indicator>
-							<Choice.Content>
-								<Choice.Label>Require sign-in</Choice.Label>
-								<Choice.Description>
-									Visitors sign in with Google before their requests reach the upstream.
-								</Choice.Description>
-							</Choice.Content>
-						</Choice.Root>
-					</Strata.Body>
-				</Strata.Section>
+						</Strata.Body>
+					</Strata.Section>
+					<Strata.Section>
+						<Strata.Header>
+							<Strata.Title>Access</Strata.Title>
+							<Strata.Description>Who can send traffic to the endpoint.</Strata.Description>
+						</Strata.Header>
+						<Strata.Body>
+							<Choice.Root name="requireSignIn">
+								<Choice.Indicator>
+									<Checkbox />
+								</Choice.Indicator>
+								<Choice.Content>
+									<Choice.Label>Require sign-in</Choice.Label>
+									<Choice.Description>
+										Visitors sign in with Google before their requests reach the upstream.
+									</Choice.Description>
+								</Choice.Content>
+							</Choice.Root>
+						</Strata.Body>
+					</Strata.Section>
+				</fieldset>
 			</Strata.Root>
 			<div className="border-card-muted flex justify-end gap-2 border-t pt-6">
-				<Button type="reset" appearance="outlined" intent="neutral">
+				<Button type="reset" appearance="outlined" intent="neutral" disabled={isPending}>
 					Cancel
 				</Button>
 				<Button type="submit" appearance="filled" intent="neutral" isLoading={isPending}>
@@ -155,11 +144,12 @@ Each part already exists. [Strata](/components/structure/strata) lays out the se
 
 ## Actions
 
-- End the form with one actions row: Cancel, then the primary button, aligned to the end. The DOM order is the visual order, so the primary button sits on the right and gets focus last. `Dialog.Footer`, `Sheet.Footer`, and `AlertDialog.Footer` use the same order.
+- End the form with one actions row: Cancel, then the primary button, aligned to the end. The DOM order is the visual order, so the primary button sits on the right and gets focus last. `Dialog.Footer` and `Sheet.Footer` use the same order.
 - Make the primary button `type="submit"` with `appearance="filled"`, and name it for what it does: **Create endpoint**, not **Submit** or **OK**.
 - Make Cancel `type="button"` in your app, and send the person back where they came from. With a router, compose `<Button asChild>` around its `Link`. The demo uses `type="reset"` because a preview frame has nowhere to go back to.
 - Set `isLoading` on the primary button while the request runs. It shows a spinner and blocks a second submit, and the label stays the same.
-- Show a failed check on the field it belongs to, with `Field.Errors` (see [Field error messages](/components/forms/field#error-messages)). Keep the primary button enabled, so a click shows the person what to fix.
+- Disable the fields and Cancel while the request runs, so an edit can't land after the values went out. The demo composes `Strata.Root` onto a `<fieldset disabled>`, which disables every control inside it.
+- Let the browser check `required` and `type="url"` before your handler runs, and keep the primary button enabled, so a click shows the person what to fix. Show what the server rejects on the field it belongs to, with `Field.Errors` (see [Field error messages](/components/forms/field#error-messages)).
 
 ## Edit saved settings with a Sandbar
 

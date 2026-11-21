@@ -844,6 +844,8 @@ describe("the golden find queries", () => {
 		"form footer save cancel": "Form Sections and Actions",
 		"where do the save and cancel buttons go": "Form Sections and Actions",
 		"form layout": "Form Sections and Actions",
+		"form section title on left": "Strata",
+		"page header buttons": "App Layout",
 		forms: "Field",
 		"form field": "Field",
 		"dialog loading state pattern": "Overlays + Async Data (React Query)",

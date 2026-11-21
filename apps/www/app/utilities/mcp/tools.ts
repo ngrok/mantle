@@ -181,7 +181,7 @@ function hits(word: string, token: string): boolean {
 /**
  * The alias words of a record that score for a query. A whole alias scores
  * each word. A partial alias does not score a word from the name of a
- * different part or page. Why: "text" and "field" of the Text Area alias "multiline
+ * different record. Why: "text" and "field" of the Text Area alias "multiline
  * text field" must not rank Text Area above Field for "label a text field".
  */
 function aliasWords(
@@ -338,12 +338,7 @@ export function findRecords<T extends FindRecord>(
 	const tokens = keywordsFrom(query)
 		.filter((token) => !STOP_WORDS.has(token))
 		.map(singular);
-	// Why no recipes: a recipe title is a sentence, so "Form" in its title must not stop Field's "form field" alias from scoring.
-	const nameWords = new Set(
-		records
-			.filter((record) => record.kind !== "recipe")
-			.flatMap((record) => keywordsFrom(record.name).map(singular)),
-	);
+	const nameWords = new Set(records.flatMap((record) => keywordsFrom(record.name).map(singular)));
 	const partWords = new Set(
 		records
 			.filter((record) => !isDocPage(record))
