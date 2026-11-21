@@ -1,4 +1,5 @@
 import remapping from "@jridgewell/remapping";
+import MagicString from "magic-string";
 import { transform, type ReactCompilerOptions, type TransformResult } from "oxc-transform-react";
 import { markMemoFreeComponents } from "./scripts/mark-memo-free-components.ts";
 
@@ -72,13 +73,22 @@ async function compileReact(id: string, code: string) {
 	const validated = await transform(id, code, options);
 	assertCompiled(id, validated);
 	const marked = markMemoFreeComponents(id, code);
-	if (!marked.hasChanged()) {
-		return { code: validated.code, map: validated.map };
-	}
-	const result = await transform(id, marked.toString(), options);
+	const result = marked.hasChanged() ? await transform(id, marked.toString(), options) : validated;
 	assertCompiled(id, result);
-	const markMap = marked.generateMap({ source: id, hires: true, includeContent: true }).toString();
-	return { code: result.code, map: remapping([JSON.stringify(result.map), markMap], () => null) };
+	// Why strip: the compiler keeps each directive at the top of a function body in its output, and a
+	// directive is dead text there.
+	const stripped = new MagicString(result.code);
+	for (const match of result.code.matchAll(/(?<=\{\s*)"use (?:no )?memo";/g)) {
+		stripped.remove(match.index, match.index + match[0].length);
+	}
+	if (!stripped.hasChanged()) {
+		return { code: result.code, map: result.map };
+	}
+	const maps = [stripped.generateMap({ hires: true }).toString(), JSON.stringify(result.map)];
+	if (marked.hasChanged()) {
+		maps.push(marked.generateMap({ source: id, hires: true, includeContent: true }).toString());
+	}
+	return { code: stripped.toString(), map: remapping(maps, () => null).toString() };
 }
 
 export {

@@ -78,7 +78,10 @@ describe("compileReact", () => {
 		const { code: output, map } = await compileReact("/m/src/part.tsx", code);
 		const line = output.split("\n").findIndex((text) => text.includes("tail"));
 		const column = output.split("\n")[line]?.indexOf("tail") ?? -1;
-		const entry = new SourceMap(JSON.parse(JSON.stringify(map))).findEntry(line, column);
+		const entry = new SourceMap(typeof map === "string" ? JSON.parse(map) : map).findEntry(
+			line,
+			column,
+		);
 		expect("originalColumn" in entry && entry.originalColumn).toBe(code.indexOf("tail"));
 	});
 });
