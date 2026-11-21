@@ -5,15 +5,17 @@ description: The @ngrok/mantle-vite-plugins package. mantleSourcesPlugin trims m
 
 # Vite Plugins
 
-`@ngrok/mantle-vite-plugins` ships two build-time integrations for apps built with mantle:
+`@ngrok/mantle-vite-plugins` ships three build-time integrations for apps built with mantle:
 
 - [`mantleSourcesPlugin`](#mantlesourcesplugin) trims your production stylesheet to the mantle
   components your bundle contains. On an app that renders `Badge` alone, that's 71 KB of CSS
   instead of 181 KB.
+- [`mantleThemePrunePlugin`](#mantlethemepruneplugin) removes the theme CSS your build doesn't
+  use. On a marketing page, mantle's CSS drops from 128.6 KB to 104.1 KB.
 - [`mantleCodeBlockPlugins`](#mantlecodeblockplugins) highlights code at build time, so no
   highlighter runs in the browser.
 
-Both need Node.js 26 LTS, Vite 8.3 or later, and `@ngrok/mantle` in the same project. Install the package
+All of them need Node.js 26 LTS, Vite 8.3 or later, and `@ngrok/mantle` in the same project. Install the package
 as a dev dependency:
 
 ```sh
@@ -125,6 +127,57 @@ The error names the files and one of two causes:
   `@source` of your own that overlaps mantle's files loses the same neighbors.
 - A module that fails to parse holds the plugin's wait for the full `idleTimeoutMs`, so a syntax
   error surfaces up to 15 seconds later than it does without the plugin.
+
+## mantleThemePrunePlugin
+
+### Why it exists
+
+`mantle.css` flips each palette for the dark theme and for [`invert-theme`](/components/primitives/theme#inverted-theme-islands)
+islands. To do that, it restates every stop of every palette, about 240 of them, in its theme
+rules. Tailwind drops a stop your app never uses from the light theme, but it can't drop that
+stop from mantle's theme rules. Your stylesheet ships the dark value of every stop anyway.
+
+Tailwind's color-mix fallbacks add more. Each fallback repeats the long theme selector, once per
+token.
+
+### Setup
+
+Add the plugin next to the Tailwind plugin. Its position in the array doesn't matter, and it
+works with or without `mantleSourcesPlugin`.
+
+```ts
+// vite.config.ts
+import { mantleSourcesPlugin, mantleThemePrunePlugin } from "@ngrok/mantle-vite-plugins";
+import tailwindcss from "@tailwindcss/vite";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+	plugins: [tailwindcss(), mantleSourcesPlugin(), mantleThemePrunePlugin()],
+});
+```
+
+### What it does
+
+The plugin runs on each stylesheet after Tailwind compiles it, in `vite dev` and `vite build`:
+
+- It keeps a stop in mantle's theme rules only when Tailwind kept that stop in `@layer theme`.
+  Tailwind keeps a stop when a class, a `var()`, or a raw `--color-x-n` string in a scanned file
+  uses it.
+- It joins the pieces of each theme rule that the fallbacks split apart, so the theme selector
+  appears once per rule.
+
+No resolved color changes. A page that renders Button, Card, Tabs, Accordion, DropdownMenu,
+Dialog, and CodeBlock ships 128.6 KB of mantle CSS without the plugin and 104.1 KB with it
+(21.9 KB and 18.1 KB gzipped). Measured with Vite 8.3.8, mantle 0.94, Tailwind 4.3.5, and
+`mantleSourcesPlugin`.
+
+### Limits
+
+- A stop that only script reads, such as `style={{ color: "var(--color-pink-300)" }}` with no
+  class or `var()` for it in a scanned file, gets no dark value. It already gets no light value
+  without the plugin, because Tailwind drops it from `@layer theme`.
+- The plugin touches only rules whose selector names `data-applied-theme`, which every mantle
+  theme rule does. Your own rules stay as they are.
 
 ## mantleCodeBlockPlugins
 

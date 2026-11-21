@@ -1,0 +1,126 @@
+import { mkdir, mkdtemp, realpath, rm, symlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import tailwindcss from "@tailwindcss/vite";
+import postcss, { Rule } from "postcss";
+import { build, type Plugin } from "vite";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { mantleThemePrunePlugin, pruneThemeCss } from "./mantle-theme-prune-plugin.js";
+
+const packageRoot = path.resolve(import.meta.dirname, "..");
+const dark = ':root[data-applied-theme="dark"]';
+const supports = "@supports (color: color-mix(in lab, red, red))";
+
+describe("pruneThemeCss", () => {
+	test("drops a stop from the theme rules when @layer theme does not declare it", () => {
+		const css = `@layer theme { :root { --color-pink-300: pink; } }
+${dark} { --color-pink-50: a; --color-pink-300: b; --background-color-card: c; }`;
+
+		expect(pruneThemeCss(css)).toBe(`@layer theme { :root { --color-pink-300: pink; } }
+${dark} { --color-pink-300: b; --background-color-card: c; }`);
+	});
+
+	test("leaves a rule of the app alone, even when it declares a palette stop", () => {
+		const css = `@layer theme { :root { --color-sky-500: x; } }
+:root { --color-pink-50: a; --color-brand-500: b; }`;
+
+		expect(pruneThemeCss(css)).toBe(css);
+	});
+
+	test("joins the fragments of a theme rule around its color-mix fallbacks", () => {
+		const css = `${dark}{--a:1;--b:red}${supports}{${dark}{--b:color-mix(in oklab, red 50%, transparent)}}${dark}{--c:2}${supports}{${dark}{--d:color-mix(in oklab, blue 50%, transparent)}}`;
+
+		expect(pruneThemeCss(css)).toBe(
+			`${dark}{--a:1;--b:red;--c:2}${supports}{${dark}{--b:color-mix(in oklab, red 50%, transparent);--d:color-mix(in oklab, blue 50%, transparent)}}`,
+		);
+	});
+
+	test("does not join when a later fragment sets a property that an earlier fallback sets", () => {
+		const css = `${dark}{--b:red}${supports}{${dark}{--b:color-mix(in oklab, red 50%, transparent)}}${dark}{--b:blue}`;
+
+		expect(pruneThemeCss(css)).toBe(css);
+	});
+});
+
+describe("mantleThemePrunePlugin build", () => {
+	const roots: string[] = [];
+	let full: string;
+	let pruned: string;
+
+	afterAll(async () => {
+		await Promise.all(roots.map((root) => rm(root, { recursive: true, force: true })));
+	});
+
+	/** Builds an app that uses one palette stop, and returns its CSS. */
+	async function buildApp(plugins: Plugin[]) {
+		const root = await realpath(await mkdtemp(path.join(tmpdir(), "mantle-theme-prune-")));
+		roots.push(root);
+		for (const name of ["@ngrok/mantle", "@tailwindcss/vite", "tailwindcss"]) {
+			const link = path.join(root, "node_modules", name);
+			await mkdir(path.dirname(link), { recursive: true });
+			await symlink(await realpath(path.join(packageRoot, "node_modules", name)), link, "dir");
+		}
+		await mkdir(path.join(root, "src"));
+		await writeFile(
+			path.join(root, "index.html"),
+			'<div class="bg-pink-300"></div><script type="module" src="/src/main.ts"></script>',
+		);
+		await writeFile(
+			path.join(root, "src/app.css"),
+			'@import "tailwindcss";\n@import "@ngrok/mantle/mantle.css";\n',
+		);
+		await writeFile(path.join(root, "src/main.ts"), 'import "./app.css";');
+		const result = await build({
+			root,
+			configFile: false,
+			envDir: false,
+			logLevel: "silent",
+			build: { write: false },
+			plugins: [tailwindcss(), ...plugins],
+		});
+		if (Array.isArray(result) || !("output" in result)) {
+			throw new Error("expected one build output");
+		}
+		return result.output
+			.filter((output) => output.type === "asset" && output.fileName.endsWith(".css"))
+			.map((output) => (output.type === "asset" ? String(output.source) : ""))
+			.join("\n");
+	}
+
+	/** Every `property: value` the theme rules set, by selector, in each theme and fallback. */
+	function themeDeclarations(css: string, keep: (property: string) => boolean) {
+		const found = new Set<string>();
+		postcss.parse(css).walkDecls((declaration) => {
+			const rule = declaration.parent;
+			if (
+				rule instanceof Rule &&
+				rule.selector.includes("data-applied-theme") &&
+				keep(declaration.prop)
+			) {
+				const scope = rule.parent?.type === "atrule" ? "fallback" : "rule";
+				found.add(`${scope} ${rule.selector} ${declaration.prop}: ${declaration.value}`);
+			}
+		});
+		return found;
+	}
+
+	beforeAll(async () => {
+		[full, pruned] = await Promise.all([buildApp([]), buildApp([mantleThemePrunePlugin()])]);
+	});
+
+	test("keeps the dark value of a stop the app uses, and drops the stops it does not", () => {
+		const darkRule = (css: string) =>
+			[...themeDeclarations(css, (property) => property.startsWith("--color-pink-"))].join("\n");
+
+		expect(darkRule(full)).toContain("--color-pink-50:");
+		expect(darkRule(pruned)).toContain("--color-pink-300:");
+		expect(darkRule(pruned)).not.toContain("--color-pink-50:");
+	});
+
+	test("keeps every other theme declaration, with the same value, and ships less CSS", () => {
+		const notAStop = (property: string) => !/^--color-[a-z]+-\d+$/.test(property);
+
+		expect(themeDeclarations(pruned, notAStop)).toEqual(themeDeclarations(full, notAStop));
+		expect(pruned.length).toBeLessThan(full.length * 0.85);
+	});
+});

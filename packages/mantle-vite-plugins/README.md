@@ -63,6 +63,24 @@ The `source-all.css` import must sit in a CSS file Vite processes. An import cha
 | `verbose`       | `boolean`           | `false`   | Print every listed path.                                                                                                                                                                       |
 | `idleTimeoutMs` | `number`            | `15000`   | How long the CSS waits with no module event before it lists the files parsed so far. When one module, such as a `?worker` sub-build, takes longer, raise it; `Infinity` waits for events only. |
 
+### `mantleThemePrunePlugin()`
+
+Vite plugin that removes the mantle theme CSS a build does not use. It changes no resolved color.
+
+```ts
+import { mantleSourcesPlugin, mantleThemePrunePlugin } from "@ngrok/mantle-vite-plugins";
+import tailwindcss from "@tailwindcss/vite";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+	plugins: [tailwindcss(), mantleSourcesPlugin(), mantleThemePrunePlugin()],
+});
+```
+
+`mantle.css` restates every palette stop for the dark theme and for `invert-theme` islands. The plugin keeps a stop in those theme rules only when Tailwind kept it in `@layer theme`, that is, when a class, a `var()`, or a raw `--color-x-n` string in a scanned file uses it. It also joins the pieces of each theme rule that Tailwind's color-mix fallbacks split apart. It runs in `vite dev` and `vite build`, and its position in the array does not matter.
+
+A stop that only script reads, with no class or `var()` for it in a scanned file, gets no dark value. It already gets no light value, because Tailwind drops it from `@layer theme`.
+
 ### `mantleCodeBlockPlugins(options?)`
 
 Unified helper that returns plugin lists for both Vite and MDX integration surfaces: runtime tagged template transforms and rehype-based fenced code block highlighting.
