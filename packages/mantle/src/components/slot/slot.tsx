@@ -7,8 +7,6 @@ import {
 	isValidElement,
 	type ReactNode,
 	type Ref,
-	type RefCallback,
-	useCallback,
 } from "react";
 import type { WithStyleProps } from "../../types/with-style-props.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -71,33 +69,42 @@ const setRef = <T,>(ref: Ref<T> | undefined, node: T | null): (() => void) | und
 };
 
 /**
- * Composes the slot's ref and the child's ref into one stable callback. It
- * returns a single ref unchanged, so a child with no slot ref keeps its own.
+ * Composes the slot's ref and the child's ref. It returns a single ref
+ * unchanged, so a child with no slot ref keeps its own. Two refs compose into a
+ * new callback, which the compiled `Slot` keeps until a ref changes.
  */
-const useComposedRef = (
+const composeRefs = (
 	slotRef: Ref<HTMLElement> | undefined,
 	childRef: Ref<HTMLElement> | undefined,
 ): Ref<HTMLElement> | undefined => {
-	const composed: RefCallback<HTMLElement> = useCallback(
-		(node: HTMLElement | null) => {
-			const cleanups = [setRef(slotRef, node), setRef(childRef, node)];
-			return () => {
-				for (const [index, cleanup] of cleanups.entries()) {
-					if (cleanup == null) {
-						setRef(index === 0 ? slotRef : childRef, null);
-					} else {
-						cleanup();
-					}
-				}
-			};
-		},
-		[slotRef, childRef],
-	);
 	if (slotRef == null || childRef == null) {
 		return slotRef ?? childRef;
 	}
-	return composed;
+	return (node: HTMLElement | null) => {
+		const cleanups = [setRef(slotRef, node), setRef(childRef, node)];
+		return () => {
+			for (const [index, cleanup] of cleanups.entries()) {
+				if (cleanup == null) {
+					setRef(index === 0 ? slotRef : childRef, null);
+				} else {
+					cleanup();
+				}
+			}
+		};
+	};
 };
+
+/**
+ * Runs the child's handler, then the slot's. The child's handler sees the
+ * event first, and its return value wins.
+ */
+const composeHandlers =
+	(childHandler: AnyHandler, slotHandler: AnyHandler): AnyHandler =>
+	(...args) => {
+		const result = childHandler(...args);
+		slotHandler(...args);
+		return result;
+	};
 
 /**
  * Composes the slot's `className` with the child's, in this precedence
@@ -180,11 +187,10 @@ function composeStyle(
  * ```
  */
 const Slot = ({ children, className, "data-slot": dataSlot, ref, style, ...props }: Props) => {
-	// Why "use memo": for a render-prop child, `composeClassName` and `composeStyle` return new
-	// functions, and the child may compare them.
+	// Why "use memo": `composeRefs`, and `composeClassName` and `composeStyle` for a render-prop
+	// child, return new functions. React re-attaches a new ref, and the child may compare the others.
 	"use memo";
 	const child = isValidElement<ComposedChildProps>(children) ? children : null;
-	const composedRef = useComposedRef(ref, child?.props.ref);
 	if (child == null) {
 		return Children.only(children);
 	}
@@ -192,14 +198,8 @@ const Slot = ({ children, className, "data-slot": dataSlot, ref, style, ...props
 	const merged: Record<string, unknown> = { ...props };
 	for (const [key, childValue] of Object.entries(child.props)) {
 		const slotValue = merged[key];
-		// Why child first: the child's own handler sees the event before the part's,
-		// and its return value wins.
 		if (isHandler(key, childValue) && isHandler(key, slotValue)) {
-			merged[key] = (...args: unknown[]) => {
-				const result = childValue(...args);
-				slotValue(...args);
-				return result;
-			};
+			merged[key] = composeHandlers(childValue, slotValue);
 		} else if (!(/^on[A-Z]/.test(key) && childValue == null)) {
 			// A child prop wins, even when it is `undefined`; a missing child handler keeps the part's.
 			merged[key] = childValue;
@@ -210,7 +210,7 @@ const Slot = ({ children, className, "data-slot": dataSlot, ref, style, ...props
 		style: composeStyle(style, child.props.style),
 		"aria-describedby": joinIdLists(child.props["aria-describedby"], props["aria-describedby"]),
 		"data-slot": joinDataSlot(dataSlot, child.props["data-slot"]),
-		ref: child.type === Fragment ? undefined : composedRef,
+		ref: child.type === Fragment ? undefined : composeRefs(ref, child.props.ref),
 	};
 	// Why only when set: a component child spreads its props after its own
 	// defaults, so an explicit `undefined` erases one, such as its `data-slot`.
