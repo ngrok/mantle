@@ -60,6 +60,8 @@ describe("mantleThemePrunePlugin build", () => {
 	const roots: string[] = [];
 	let full: string;
 	let pruned: string;
+	const fullNames: string[] = [];
+	const prunedNames: string[] = [];
 	const warnings: string[] = [];
 
 	afterAll(async () => {
@@ -67,7 +69,7 @@ describe("mantleThemePrunePlugin build", () => {
 	});
 
 	/** Builds an app that uses a few palette stops, and returns its CSS. */
-	async function buildApp(plugins: Plugin[]) {
+	async function buildApp(plugins: Plugin[], cssNames: string[]) {
 		const root = await realpath(await mkdtemp(path.join(tmpdir(), "mantle-theme-prune-")));
 		roots.push(root);
 		for (const name of ["@ngrok/mantle", "@tailwindcss/vite", "tailwindcss"]) {
@@ -99,7 +101,14 @@ describe("mantleThemePrunePlugin build", () => {
 		);
 		await writeFile(
 			path.join(root, "src/main.ts"),
-			'import "./app.css";\nimport styles from "./box.module.css";\nimport { color } from "widget";\ndocument.body.className = styles.box;\ndocument.body.style.color = "var(--color-lime-700)";\ndocument.body.style.borderColor = color;\n',
+			'import "./app.css";\nimport styles from "./box.module.css";\nimport { color } from "widget";\ndocument.body.className = styles.box;\ndocument.body.style.color = "var(--color-lime-700)";\ndocument.body.style.borderColor = color;\nvoid import("./lazy.ts");\n',
+		);
+		// A lazy stylesheet that Tailwind does not scan reads a stop on a theme selector, but
+		// declares none.
+		await writeFile(path.join(root, "src/lazy.ts"), 'import "widget/widget.css";\n');
+		await writeFile(
+			path.join(widget, "widget.css"),
+			':root[data-applied-theme="dark"] .widget { background: var(--color-lime-800, pink); }\n',
 		);
 		const result = await build({
 			root,
@@ -121,8 +130,11 @@ describe("mantleThemePrunePlugin build", () => {
 		if (Array.isArray(result) || !("output" in result)) {
 			throw new Error("expected one build output");
 		}
-		return result.output
-			.filter((output) => output.type === "asset" && output.fileName.endsWith(".css"))
+		const sheets = result.output.filter(
+			(output) => output.type === "asset" && output.fileName.endsWith(".css"),
+		);
+		cssNames.push(...sheets.map((output) => output.fileName));
+		return sheets
 			.map((output) => (output.type === "asset" ? String(output.source) : ""))
 			.join("\n");
 	}
@@ -145,7 +157,10 @@ describe("mantleThemePrunePlugin build", () => {
 	}
 
 	beforeAll(async () => {
-		[full, pruned] = await Promise.all([buildApp([]), buildApp([mantleThemePrunePlugin()])]);
+		[full, pruned] = await Promise.all([
+			buildApp([], fullNames),
+			buildApp([mantleThemePrunePlugin()], prunedNames),
+		]);
 	});
 
 	test("keeps the dark value of a stop the app uses, and drops the stops it does not", () => {
@@ -168,6 +183,7 @@ describe("mantleThemePrunePlugin build", () => {
 
 	test("warns about a stop that only a file outside the stylesheet reads", () => {
 		expect(warnings.filter((warning) => warning.includes("--color-lime-900"))).toHaveLength(1);
+		expect(warnings.filter((warning) => warning.includes("--color-lime-800"))).toHaveLength(1);
 		expect(warnings.join("\n")).not.toContain("--color-lime-700");
 	});
 
@@ -176,5 +192,13 @@ describe("mantleThemePrunePlugin build", () => {
 
 		expect(themeDeclarations(pruned, notAStop)).toEqual(themeDeclarations(full, notAStop));
 		expect(pruned.length).toBeLessThan(full.length * 0.85);
+		expect(pruned).not.toContain("mantle-theme-prune");
+	});
+
+	test("gives the pruned stylesheet a different hashed name", () => {
+		// the app stylesheet and the lazy widget stylesheet
+		expect(fullNames).toHaveLength(2);
+		expect(prunedNames).toHaveLength(2);
+		expect(prunedNames.filter((name) => fullNames.includes(name))).toEqual([]);
 	});
 });

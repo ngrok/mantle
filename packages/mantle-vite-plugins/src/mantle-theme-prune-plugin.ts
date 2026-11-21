@@ -36,6 +36,10 @@ const MANTLE_THEME_SELECTORS = new Set(
 	].map(normalizeSelector),
 );
 
+/** Prefixes each stylesheet the plugin will prune. Change it when the pass changes its output. */
+const PRUNE_MARKER = "/*! mantle-theme-prune 1 */";
+const PRUNE_MARKER_WITH_SPACE = /\/\*! mantle-theme-prune \d+ \*\/\s*/g;
+
 const isThemeRule = (node: Node | undefined): node is Rule =>
 	node instanceof Rule && MANTLE_THEME_SELECTORS.has(normalizeSelector(node.selector));
 
@@ -62,9 +66,10 @@ const fallbackRuleOf = (node: Node | undefined): Rule | null =>
  * Why only this stylesheet: Vite fixes the hashed file name from the stylesheet's content before
  * this pass runs. So the result must depend on that content alone.
  *
- * @returns the pruned stylesheet and the names of the stops it removed.
+ * @returns the pruned stylesheet, the names of the stops it removed, and whether the stylesheet
+ * holds any mantle theme rule.
  */
-function pruneThemeCss(css: string): { css: string; removed: Set<string> } {
+function pruneThemeCss(css: string): { css: string; removed: Set<string>; themed: boolean } {
 	const root = postcss.parse(css);
 	const candidates: Declaration[] = [];
 	const read = new Set<string>();
@@ -73,8 +78,11 @@ function pruneThemeCss(css: string): { css: string; removed: Set<string> } {
 			read.add(name);
 		}
 	};
+	let themed = false;
 	root.walk((node) => {
-		if (node.type === "atrule") {
+		if (isThemeRule(node)) {
+			themed = true;
+		} else if (node.type === "atrule") {
 			addMentions(node.params);
 		} else if (node.type === "decl") {
 			if (isThemeRule(node.parent) && RAMP_STOP.test(node.prop)) {
@@ -110,7 +118,7 @@ function pruneThemeCss(css: string): { css: string; removed: Set<string> } {
 		}
 	});
 	joinThemeRuleFragments(root);
-	return { css: root.toString(), removed };
+	return { css: root.toString(), removed, themed };
 }
 
 /**
@@ -227,6 +235,15 @@ function mantleThemePrunePlugin(): Plugin {
 	return {
 		name: "@ngrok/mantle-vite-plugins:theme-prune",
 		apply: "build",
+		// Why: Vite hashes a stylesheet's name from its content before generateBundle. The marker
+		// makes that hash differ with the plugin on, and with each version of this pass, so a
+		// cached stylesheet at an old URL never gets other content.
+		transform: {
+			filter: { id: { include: /\.css(?:\?|$)/, exclude: /[?&](?:raw|inline|url)\b/ } },
+			handler(code) {
+				return code.includes("data-applied-theme") ? `${PRUNE_MARKER}\n${code}` : null;
+			},
+		},
 		generateBundle: {
 			order: "post",
 			handler(_options, bundle) {
@@ -239,28 +256,22 @@ function mantleThemePrunePlugin(): Plugin {
 						file.fileName.endsWith(".css") &&
 						// Why: a pass on a file with a source map would leave the map stale.
 						!(`${file.fileName}.map` in bundle) &&
-						String(file.source).includes("data-applied-theme")
+						String(file.source).includes(PRUNE_MARKER)
 					) {
-						themeSheets.add(file.fileName);
-						const result = pruneThemeCss(String(file.source));
+						const result = pruneThemeCss(String(file.source).replace(PRUNE_MARKER_WITH_SPACE, ""));
 						file.source = result.css;
+						if (result.themed) {
+							themeSheets.add(file.fileName);
+						}
 						for (const name of result.removed) {
 							removed.add(name);
 						}
 					}
 				}
-				// A stop that one theme stylesheet removes and another keeps still has its values.
-				for (const fileName of themeSheets) {
-					const file = bundle[fileName];
-					for (const name of (file?.type === "asset" ? String(file.source) : "").match(
-						RAMP_STOP_MENTION,
-					) ?? []) {
-						removed.delete(name);
-					}
-				}
 				// A read from another file cannot keep a stop: the pruned stylesheet would change
-				// under the same hashed name. Say which stops lost their dark value. Another theme
-				// stylesheet keeps each stop it reads itself.
+				// under the same hashed name. Warn about every read of a stop that any mantle
+				// stylesheet removed, because a page may load the reader without another stylesheet
+				// that keeps it.
 				for (const file of files.filter(({ fileName }) => !themeSheets.has(fileName))) {
 					const text = file.type === "chunk" ? file.code : String(file.source);
 					const lost = [...new Set(text.match(RAMP_STOP_MENTION))].filter((name) =>
@@ -268,7 +279,7 @@ function mantleThemePrunePlugin(): Plugin {
 					);
 					if (lost.length > 0) {
 						this.warn(
-							`${file.fileName} reads ${lost.join(", ")}, which no mantle stylesheet of this build reads, so they have no dark or island value. Name each one in a file that stylesheet scans, such as with @source inline("bg-pink-300") for --color-pink-300.`,
+							`${file.fileName} reads ${lost.join(", ")}, which a mantle stylesheet of this build does not read, so they can lose their dark and island values. Name each one in a file that stylesheet scans, such as with @source inline("bg-pink-300") for --color-pink-300.`,
 						);
 					}
 				}
