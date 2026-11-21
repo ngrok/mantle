@@ -15,9 +15,10 @@ export {
 
 /**
  * Use `DataTable` for INTERACTIVE tabular data: sorting, filtering, pagination,
- * row selection, and server-side or client-side data. Built on TanStack Table;
- * the consumer MUST construct a `useTable` instance from
- * `@tanstack/react-table` and pass it to `DataTable.Root` via the `table` prop.
+ * row selection, expandable rows (a detail panel or sub-rows), and server-side
+ * or client-side data. Built on TanStack Table; the consumer MUST construct a
+ * `useTable` instance from `@tanstack/react-table` and pass it to
+ * `DataTable.Root` via the `table` prop.
  * Every TanStack export (`useTable`, `tableFeatures`, `createColumnHelper`, the
  * `*Feature` objects, the `create*RowModel` factories, the `sortFn_*` and `filterFn_*` comparators,
  * …) is re-exported from `@ngrok/mantle/data-table` so a single import covers
@@ -38,10 +39,11 @@ export {
  * - Paginate before you virtualize. A page of 100 rows mounts fast, and the
  *   browser's find in page still sees every row on it.
  *
- * @useWhen Show rows of application data that the user sorts, filters, pages through, or selects.
+ * @useWhen Show rows of application data that the user sorts, filters, pages through, selects, or
+ * expands into a detail panel or sub-rows.
  *
  * @siblings
- * - `Table`: the data is static, with no sorting, filtering, pagination, or selection.
+ * - `Table`: the data is static, with no sorting, filtering, pagination, selection, or row expansion.
  * - `DescriptionList`: one record shows as label and value pairs.
  *
  * @see https://mantle.ngrok.com/components/data-display/data-table

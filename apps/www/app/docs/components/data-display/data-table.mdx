@@ -1,6 +1,6 @@
 ---
 title: Data Table
-description: Tables purposefully designed for dynamic, application data with features like sorting, filtering, and pagination.
+description: Tables purposefully designed for dynamic, application data with features like sorting, filtering, pagination, and expandable rows.
 aliases: [data grid, datagrid, grid, sortable table]
 ---
 
@@ -8,7 +8,7 @@ import { Example } from "~/components/example";
 
 # Data Table
 
-Tables purposefully designed for dynamic, application data with features like sorting, filtering, and pagination. Pass a TanStack Table instance from `useTable` to `DataTable.Root`, and render one `DataTable.Row` for each row.
+Tables purposefully designed for dynamic, application data with features like sorting, filtering, pagination, and expandable rows. Pass a TanStack Table instance from `useTable` to `DataTable.Root`, and render one `DataTable.Row` for each row.
 
 <Example name="components/data-display/data-table/overview" title="Data Table example">
 
@@ -85,6 +85,7 @@ function QuickStartExample() {
 ## When to use
 
 - Show application data that users sort, filter, page through, or select.
+- Show rows that expand into a [detail panel](#expandable-rows) or [sub-rows](#sub-rows).
 - Show rows that users click to open a record.
 - Prefer [`Table`](/components/data-display/table) for static, presentational tabular content, such as pricing matrices, reference tables, or invoice summaries.
 - Prefer [`DescriptionList`](/components/data-display/description-list) to show one record as label and value pairs.

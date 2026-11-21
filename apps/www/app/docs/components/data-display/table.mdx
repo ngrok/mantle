@@ -51,7 +51,7 @@ import { Table } from "@ngrok/mantle/table";
 ## When to use
 
 - Show static tabular content with a thin, semantic primitive: invoice summaries, pricing matrices, reference tables in documentation.
-- Prefer [`DataTable`](/components/data-display/data-table) for dynamic, application data: anywhere users need to sort, filter, paginate, select, or click rows. `DataTable` is built on top of `Table` and powered by [TanStack Table](https://tanstack.com/table/latest/docs/introduction).
+- Prefer [`DataTable`](/components/data-display/data-table) for dynamic, application data: anywhere users need to sort, filter, paginate, select, expand, or click rows. `DataTable` is built on top of `Table` and powered by [TanStack Table](https://tanstack.com/table/latest/docs/introduction).
 - Prefer [`DescriptionList`](/components/data-display/description-list) to show one record as label and value pairs.
 
 ## Composition
@@ -169,6 +169,8 @@ function PaginatedInvoices() {
 ## API Reference
 
 The `Table` is a structured way to display data in rows and columns. The API matches the HTML `table` element 1:1. It is composed of several sub-components.
+
+`Table` has no row expansion. For a detail panel or nested sub-rows, use [`DataTable`](/components/data-display/data-table#expandable-rows): `renderExpanded` on `DataTable.Row` with `DataTable.RowExpandButton`, or `getSubRows` on `useTable`.
 
 ### Table.Root
 
