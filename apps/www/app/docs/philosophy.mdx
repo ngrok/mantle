@@ -104,9 +104,9 @@ strips Radix's dangling `aria-describedby` when no description is mounted, and
 component's. If you understand how one Mantle component works, you can predict how the
 rest behave. Learn the system once; apply it everywhere.
 
-Wrapping a headless library is where Mantle is today, not where it stops. Hard behavior
-is moving into Mantle-owned behavior hooks that follow the ARIA patterns, so Mantle owns
-the performance and accessibility contract and each component ships only the code it
+Wrapping a headless library is where Mantle is today, not where it stops. Mantle moves
+hard behavior into its own behavior hooks that follow the ARIA patterns. Then Mantle owns
+the performance and accessibility contract, and each component ships only the code it
 needs. New work adds no headless library.
 
 ## One component per intent
@@ -218,7 +218,8 @@ faith from a vendor.
 Mantle assumes a server, and if it renders wrong for one frame, that's a bug. Marketing
 sites prerender each page; product apps render the first document on the server, then
 route as a single-page app. Either way the content is in the HTML, so search and answer
-engines read it with no script, and a part with no interaction ships no client JavaScript. The
+engines read it with no script. Where an app renders React Server Components, a part with
+no interaction aims to ship no client JavaScript. The
 [theme](/components/primitives/theme) preference persists in a cookie, not just localStorage, so SSR
 renders the correct `<html>` class; a blocking inline script (written as a plain
 TypeScript function and stringified into the `<head>`) resolves the cookie and OS
