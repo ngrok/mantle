@@ -156,8 +156,8 @@ const layoutsPages = ["app-layout", "centered-layout"];
 const recipesPages = [
 	"assistant-across-routes",
 	"breadcrumbs-from-routes",
+	"cancel-and-submit",
 	"filter-from-a-value",
-	"form-sections-and-actions",
 	"header-actions-from-routes",
 	"list-page-loading-states",
 	"natural-language-query",
