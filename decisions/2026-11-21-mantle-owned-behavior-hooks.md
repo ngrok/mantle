@@ -27,7 +27,8 @@ A prototype put Select and Combobox on one mantle listbox hook. The same page we
    - Nothing reads `window` or `document` during render.
 4. **A hook has no dependencies, and each hook is its own module**, so a page pays only for the hooks it renders.
 5. **The CI bundle budget guards the result.** `packages/mantle/bundle-budget.json` pins the gzip size of each affected component and of two page shapes. A step that removes a library lowers its numbers in the same change.
-6. **The migration goes from the cheapest step to the hardest.** Slot, then the leaf controls (Switch, Progress, RadioGroup), then Select, Combobox, and MultiSelect, then Tabs, the floating family, Dialog, Command, DropdownMenu, and Slider. Each step removes a dependency when it is done.
+6. **Fix the algorithm before you memoize, and keep the compiler only where it pays.** A closed popup renders no options. The React Compiler stays on a hook or part when a measurement shows a gain. The listbox hooks and the Select, Combobox, and MultiSelect parts keep it: without it, a parent render of an open list of 200 options costs 1.3 to 3.0 ms in place of 0.55 to 1.1 ms (Node, happy-dom, React production build). Without it, the bundle saves about 1.3 KB (gzip) per picker, and memory changes by less than 3%. A part that renders one element, such as `Switch` or `ProgressBar`, gains nothing from it. Do not optimize for React Server Components: a part is RSC-safe only when that costs nothing.
+7. **The migration goes from the cheapest step to the hardest.** Slot, then the leaf controls (Switch, Progress, RadioGroup), then Select, Combobox, and MultiSelect, then Tabs, the floating family, Dialog, Command, DropdownMenu, and Slider. Each step removes a dependency when it is done.
 
 ## Consequences
 

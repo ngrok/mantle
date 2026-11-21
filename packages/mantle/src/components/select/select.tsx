@@ -461,12 +461,13 @@ const Value = ({
 	...props
 }: SelectValueProps) => {
 	const { labelFor, listbox, value } = useSelectContext();
-	const selectedLabel = useStoreValue(listbox.store, (state) => state.selectedLabel);
+	let label = useStoreValue(listbox.store, (state) =>
+		state.itemLabel?.value === value ? state.itemLabel : null,
+	);
 	// Why `""` counts as no value: a cleared select shows its placeholder, as a native select does.
 	const hasValue = value != null && value !== "";
-	// Why the fallback: on the server and before the items mount, no item has
-	// reported its label yet, so the value reads it from the item elements.
-	let label = selectedLabel?.value === value ? selectedLabel : null;
+	// Why the fallback: on the server and while the list is closed, no item has
+	// reported its label, so the value reads it from the item elements.
 	if (label == null && hasValue && children == null) {
 		label = labelFor(value);
 	}
@@ -682,7 +683,7 @@ type SelectContentProps = Omit<ComponentProps<"div">, "dir"> &
  * | Data Attribute | Value                                          | Description                                                            |
  * | -------------- | ---------------------------------------------- | ---------------------------------------------------------------------- |
  * | `data-slot`    | `"select-content"`                             | On the content element.                                                |
- * | `data-state`   | `"open"` \| `"closed"`                         | Drives the open and close animations.                                  |
+ * | `data-state`   | `"open"`                                       | Drives the open animation. A closed list renders nothing.              |
  * | `data-side`    | `"top"` \| `"bottom"`                           | The side of the trigger the list opened on.                            |
  * | `data-align`   | `"start"`                                      | The alignment against the trigger.                                     |
  *
@@ -728,8 +729,11 @@ const Content = ({
 	});
 	const composedRef = useComposedRefs(ref, listbox.ref, popupRef);
 
+	// Why `open`: a closed list renders no options, so a page of closed
+	// selects holds no option elements in memory.
 	return (
 		host != null &&
+		open &&
 		createPortal(
 			<div
 				{...props}
@@ -737,7 +741,7 @@ const Content = ({
 				ref={composedRef}
 				dir={dir}
 				data-slot={joinDataSlot(dataSlot, "select-content")}
-				data-state={open ? "open" : "closed"}
+				data-state="open"
 				data-align="start"
 				className={cx(
 					"border-popover duration-200 ease-out-strong data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-top:slide-in-from-bottom-1 motion-reduce:animate-none! relative z-50 max-h-96 min-w-32 overflow-y-auto rounded-md border shadow-md",
@@ -895,16 +899,20 @@ const Item = ({
 	...props
 }: SelectItemProps) => {
 	const { listbox } = useSelectContext();
-	const { selected, optionProps } = useOption(listbox, { value, disabled, textValue });
+	const { active, selected, optionProps } = useOption(listbox, { value, disabled, textValue });
 	const label =
 		asChild && isValidElement<{ children?: ReactNode }>(children)
 			? children.props.children
 			: children;
+	const reportLabel = () => {
+		listbox.store.set({ itemLabel: { value, label, translate } });
+	};
 	const composedRef = useComposedRefs(ref, (node: HTMLElement | null) => {
-		// Why a ref callback: the selected item hands its label to `Select.Value`
-		// in the commit that mounts or selects it.
-		if (node != null && selected) {
-			listbox.store.set({ selectedLabel: { value, label, translate } });
+		// Why a ref callback: the selected or active item hands its label to
+		// `Select.Value` in the commit that mounts or highlights it. A pick closes
+		// the list, so the picked item has no later commit to report in.
+		if (node != null && (selected || active)) {
+			reportLabel();
 		}
 	});
 	const renderContent = (inner: ReactNode) => (
@@ -925,6 +933,11 @@ const Item = ({
 		<Component
 			{...props}
 			{...optionProps}
+			onClick={() => {
+				// Why: a tap can pick an item that no pointer move highlighted.
+				reportLabel();
+				optionProps.onClick();
+			}}
 			ref={composedRef}
 			data-slot={joinDataSlot(dataSlot, "select-item")}
 			translate={translate}

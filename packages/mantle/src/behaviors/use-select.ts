@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import type { KeyboardEvent } from "react";
+import { flushSync } from "react-dom";
 import { useControllableState } from "./use-controllable-state.js";
 import { useListbox } from "./use-listbox.js";
 import type { Listbox, MoveTarget } from "./use-listbox.js";
@@ -111,8 +112,12 @@ const useSelectTrigger = (select: SelectBehavior) => {
 	const { open, setOpen, listbox, disabled } = select;
 	const activeId = useStoreValue(listbox.store, (state) => state.activeId);
 
+	// Why flushSync: a closed list renders no options, so they exist only once
+	// React commits the open state.
 	const openTo = (target: MoveTarget) => {
-		setOpen(true);
+		flushSync(() => {
+			setOpen(true);
+		});
 		listbox.move(target);
 	};
 
@@ -160,7 +165,9 @@ const useSelectTrigger = (select: SelectBehavior) => {
 					return;
 				}
 				if (!event.altKey && !event.ctrlKey && !event.metaKey && key.length === 1) {
-					setOpen(true);
+					flushSync(() => {
+						setOpen(true);
+					});
 					listbox.typeahead(key);
 				}
 				return;

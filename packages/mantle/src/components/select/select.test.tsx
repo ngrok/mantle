@@ -1003,6 +1003,33 @@ describe("Select", () => {
 			expect(new FormData(form).get("fruit")).toBe("banana");
 		});
 
+		test("a closed list renders no options, and an item inside a wrapper component still labels the trigger after a keyboard pick", async () => {
+			const user = userEvent.setup();
+			// The trigger cannot find this label in Select.Root's children, so the item must report it.
+			const Fruit = ({ value, children }: { value: string; children: ReactNode }) => (
+				<Select.Item value={value}>{children}</Select.Item>
+			);
+			render(
+				<Select.Root>
+					<Select.Trigger>
+						<Select.Value placeholder="Pick a fruit" />
+					</Select.Trigger>
+					<Select.Content>
+						<Fruit value="apple">Apple</Fruit>
+						<Fruit value="banana">Banana</Fruit>
+					</Select.Content>
+				</Select.Root>,
+			);
+
+			const trigger = screen.getByRole("combobox");
+			expect(screen.queryAllByRole("option", { hidden: true })).toHaveLength(0);
+			await user.tab();
+			await user.keyboard("{ArrowDown}{ArrowDown}{Enter}");
+
+			expect(screen.queryAllByRole("option", { hidden: true })).toHaveLength(0);
+			expect(trigger).toHaveTextContent("Banana");
+		});
+
 		test("Select.Item renders its leading icon", async () => {
 			const user = userEvent.setup();
 			render(

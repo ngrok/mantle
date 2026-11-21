@@ -71,12 +71,11 @@ const followAnchor = (
 };
 
 /**
- * Owns a popup that stays mounted while it is closed: a stable portal host,
- * and a ref callback for the popup element that, while `open`, joins the host
- * to `container` and keeps the popup under `anchorRef`.
+ * Owns a popup: a stable portal host, and a ref callback for the popup
+ * element that, while `open`, joins the host to `container` and keeps the
+ * popup under `anchorRef`. Render the popup only while `open`.
  *
- * The popup's options keep their ids while it is closed, and a closed popup
- * costs no layout because its host is out of the document. On the server and
+ * A closed popup costs no layout because its host is out of the document. On the server and
  * during hydration `host` is `null`, so the server markup and the first client
  * render match; the popup mounts in the commit after hydration.
  *
@@ -86,7 +85,7 @@ const followAnchor = (
  * @example
  * ```tsx
  * const { host, popupRef } = usePopup({ open, anchorRef: triggerRef, container: useLayerContainer() });
- * return host != null && createPortal(<div ref={popupRef} role="listbox" />, host);
+ * return host != null && open && createPortal(<div ref={popupRef} role="listbox" />, host);
  * ```
  */
 const usePopup = ({
