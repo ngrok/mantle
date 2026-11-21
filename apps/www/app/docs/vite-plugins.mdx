@@ -5,15 +5,17 @@ description: The @ngrok/mantle-vite-plugins package. mantleSourcesPlugin trims m
 
 # Vite Plugins
 
-`@ngrok/mantle-vite-plugins` ships two build-time integrations for apps built with mantle:
+`@ngrok/mantle-vite-plugins` ships three build-time integrations for apps built with mantle:
 
 - [`mantleSourcesPlugin`](#mantlesourcesplugin) trims your production stylesheet to the mantle
   components your bundle contains. On an app that renders `Badge` alone, that's 71 KB of CSS
   instead of 181 KB.
+- [`mantleThemePrunePlugin`](#mantlethemepruneplugin) removes the theme CSS your build doesn't
+  read. On a marketing page, mantle's CSS drops from 128.6 KB to 104.1 KB.
 - [`mantleCodeBlockPlugins`](#mantlecodeblockplugins) highlights code at build time, so no
   highlighter runs in the browser.
 
-Both need Node.js 26 LTS, Vite 8.3 or later, and `@ngrok/mantle` in the same project. Install the package
+All of them need Node.js 26 LTS, Vite 8.3 or later, and `@ngrok/mantle` in the same project. Install the package
 as a dev dependency:
 
 ```sh
@@ -125,6 +127,60 @@ The error names the files and one of two causes:
   `@source` of your own that overlaps mantle's files loses the same neighbors.
 - A module that fails to parse holds the plugin's wait for the full `idleTimeoutMs`, so a syntax
   error surfaces up to 15 seconds later than it does without the plugin.
+
+## mantleThemePrunePlugin
+
+### Why it exists
+
+`mantle.css` flips each palette for the dark theme and for [`invert-theme`](/components/primitives/theme#inverted-theme-islands)
+islands. To do that, it restates every stop of every palette, about 240 of them, in its theme
+rules. Tailwind drops a stop your app never uses from the light theme, but it can't drop that
+stop from mantle's theme rules. Your stylesheet ships the dark value of every stop anyway.
+
+Tailwind's color-mix fallbacks add more. Each fallback repeats the long theme selector, once per
+token.
+
+### Setup
+
+Add the plugin next to the Tailwind plugin. Its position in the array doesn't matter, and it
+works with or without `mantleSourcesPlugin`.
+
+```ts
+// vite.config.ts
+import { mantleSourcesPlugin, mantleThemePrunePlugin } from "@ngrok/mantle-vite-plugins";
+import tailwindcss from "@tailwindcss/vite";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+	plugins: [tailwindcss(), mantleSourcesPlugin(), mantleThemePrunePlugin()],
+});
+```
+
+### What it does
+
+The plugin runs once on the finished bundle of `vite build`. `vite dev` serves the full CSS.
+
+- It keeps a stop in mantle's theme rules only when the same stylesheet reads it: a utility, a
+  `var()`, an at-rule condition, a CSS module merged into it, or `@layer theme`, where Tailwind
+  writes each stop that a scanned file names, such as a class or a raw `--color-pink-300` string.
+- It joins the pieces of each theme rule that the fallbacks split apart, so the theme selector
+  appears once per rule.
+
+It changes only mantle's own theme rules, which it finds by their exact selectors. A page that
+renders Button, Card, Tabs, Accordion, DropdownMenu, Dialog, and CodeBlock ships 128.6 KB of
+mantle CSS without the plugin and 104.1 KB with it (21.9 KB and 18.1 KB gzipped). Measured with
+Vite 8.3.8, mantle 0.94, Tailwind 4.3.5, and `mantleSourcesPlugin`.
+
+### Limits
+
+- A stop that only a file outside the stylesheet reads gets no dark or island value. For example,
+  a dependency Tailwind doesn't scan, a separate stylesheet, or CSS another app serves. The build
+  warns when another file of the build reads such a stop. Name the stop in a file the stylesheet
+  scans to keep it, such as with `@source inline("bg-pink-300")`.
+- Why only the same stylesheet: Vite fixes the stylesheet's hashed file name before the plugin
+  runs. A result that depended on other files could change under the same cached URL.
+- The warning is conservative. In a build with several mantle stylesheets, it warns about a stop
+  that one of them drops, even when a page also loads another that keeps it.
 
 ## mantleCodeBlockPlugins
 

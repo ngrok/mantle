@@ -8,6 +8,10 @@ export {
 	//,
 	mantleSourcesPlugin,
 } from "./mantle-sources-plugin.js";
+export {
+	//,
+	mantleThemePrunePlugin,
+} from "./mantle-theme-prune-plugin.js";
 
 export type {
 	//,

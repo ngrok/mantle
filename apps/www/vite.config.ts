@@ -2,7 +2,11 @@ import mdx from "@mdx-js/rollup";
 import { appServer } from "@ngrok/app-server/vite";
 import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
-import { mantleCodeBlockPlugins, mantleSourcesPlugin } from "@ngrok/mantle-vite-plugins";
+import {
+	mantleCodeBlockPlugins,
+	mantleSourcesPlugin,
+	mantleThemePrunePlugin,
+} from "@ngrok/mantle-vite-plugins";
 import path from "node:path";
 import rehypeSlug from "rehype-slug";
 import remarkFrontmatter from "remark-frontmatter";
@@ -78,6 +82,7 @@ export default defineConfig(({ command }) => ({
 		// the neighbors outside the client graph, such as test files, from that broad scan. The
 		// plugin runs here to prove the graph walk and the bundle check on a real React Router build.
 		mantleSourcesPlugin(),
+		mantleThemePrunePlugin(),
 		mdx({
 			// Only treat `.mdx` files as MDX. `.md` is left alone so `?raw`
 			// imports of plain markdown stay raw: `@mdx-js/rollup`'s filter

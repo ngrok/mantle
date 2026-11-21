@@ -42,7 +42,8 @@
   "dependencies": {
     "@ngrok/mantle-server-syntax-highlighter": "workspace:*",
     "magic-string": "catalog:",
-    "oxc-parser": "catalog:"
+    "oxc-parser": "catalog:",
+    "postcss": "8.5.33"
   },
   "devDependencies": {
     "@cfg/tsconfig": "workspace:*",

@@ -63,6 +63,24 @@ The `source-all.css` import must sit in a CSS file Vite processes. An import cha
 | `verbose`       | `boolean`           | `false`   | Print every listed path.                                                                                                                                                                       |
 | `idleTimeoutMs` | `number`            | `15000`   | How long the CSS waits with no module event before it lists the files parsed so far. When one module, such as a `?worker` sub-build, takes longer, raise it; `Infinity` waits for events only. |
 
+### `mantleThemePrunePlugin()`
+
+Vite plugin that removes the mantle theme CSS a production build does not read.
+
+```ts
+import { mantleSourcesPlugin, mantleThemePrunePlugin } from "@ngrok/mantle-vite-plugins";
+import tailwindcss from "@tailwindcss/vite";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+	plugins: [tailwindcss(), mantleSourcesPlugin(), mantleThemePrunePlugin()],
+});
+```
+
+`mantle.css` restates every palette stop for the dark theme and for `invert-theme` islands. The plugin runs once on the finished bundle of `vite build` and keeps a stop in those theme rules only when the same stylesheet reads it: a utility, a `var()`, an at-rule condition, a CSS module merged into it, or `@layer theme`, where Tailwind writes each stop that a scanned file names. It also joins the pieces of each theme rule that Tailwind's color-mix fallbacks split apart. It changes only mantle's own theme rules, found by their exact selectors. `vite dev` serves the full CSS, and the plugin's position in the array does not matter.
+
+A stop that only a file outside the stylesheet reads, such as a dependency Tailwind does not scan, gets no dark or island value, and the build warns when a file of the build reads one. Name the stop in a file the stylesheet scans to keep it, such as with `@source inline("bg-pink-300")`.
+
 ### `mantleCodeBlockPlugins(options?)`
 
 Unified helper that returns plugin lists for both Vite and MDX integration surfaces: runtime tagged template transforms and rehype-based fenced code block highlighting.
