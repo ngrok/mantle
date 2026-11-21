@@ -784,27 +784,33 @@ const Content = ({
 		host != null &&
 		open &&
 		createPortal(
-			<Component
-				{...props}
-				{...listbox.listboxProps}
-				aria-multiselectable
-				ref={composedRef}
-				data-slot={joinDataSlot(dataSlot, "multi-select-content")}
-				data-state="open"
-				className={cx(
-					"border-popover bg-popover relative z-50 max-h-96 max-h-(--available-height) min-w-32 scrollbar overflow-y-scroll overflow-x-hidden overscroll-y-none rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col gap-px outline-hidden",
-					sameWidth && "w-(--anchor-width)",
-					className,
-				)}
-				onKeyDown={(event) => {
-					// Why: a focused control in the footer, such as a button, closes the list on Escape too.
-					if (event.key === "Escape") {
-						setOpen(false);
-					}
-				}}
-			>
-				{children}
-			</Component>,
+			<>
+				{/* Why: a touch screen reader has no Escape key, and a pick keeps this list open. */}
+				<button type="button" tabIndex={-1} className="sr-only" onClick={() => setOpen(false)}>
+					Dismiss popup
+				</button>
+				<Component
+					{...props}
+					{...listbox.listboxProps}
+					aria-multiselectable
+					ref={composedRef}
+					data-slot={joinDataSlot(dataSlot, "multi-select-content")}
+					data-state="open"
+					className={cx(
+						"border-popover bg-popover relative z-50 max-h-96 max-h-(--available-height) min-w-32 scrollbar overflow-y-scroll overflow-x-hidden overscroll-y-none rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col gap-px outline-hidden",
+						sameWidth && "w-(--anchor-width)",
+						className,
+					)}
+					onKeyDown={(event) => {
+						// Why: a focused control in the footer, such as a button, closes the list on Escape too.
+						if (event.key === "Escape") {
+							setOpen(false);
+						}
+					}}
+				>
+					{children}
+				</Component>
+			</>,
 			host,
 		)
 	);

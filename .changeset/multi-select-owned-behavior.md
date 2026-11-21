@@ -13,3 +13,9 @@ Breaking changes. Follow the [migration guide](https://mantle.ngrok.com/migratio
 - `MultiSelect.Root` takes `inputValue`, `defaultInputValue`, and `setInputValue`. Ariakit's deprecated `value`, `defaultValue`, and `setValue` are gone.
 - The list is always modal, as Ariakit made it by default. `MultiSelect.Content` drops `modal`, `backdrop`, `preventBodyScroll`, `portalElement`, `unmountOnHide`, and the other Ariakit popover props, and portals into the nearest overlay's positioner, or into `document.body`.
 - `MultiSelect.Item` drops `focusOnHover`. The highlighted item carries `data-highlighted` in place of `data-active-item`.
+
+Other changes:
+
+- The list has `aria-multiselectable="true"`.
+- A visually hidden "Dismiss popup" button sits before the list, as with Ariakit, so a touch screen reader can close it.
+- The list no longer opens when focus arrives from outside the trigger, such as by Tab or a dialog's autofocus. A click, ArrowDown, or typing opens it.

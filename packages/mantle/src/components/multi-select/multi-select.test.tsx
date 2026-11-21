@@ -129,6 +129,27 @@ describe("MultiSelect", () => {
 		expect(screen.getByRole("list", { name: "Chosen fruits" })).toBeInTheDocument();
 	});
 
+	test("a hidden dismiss button outside the listbox closes the open list", async () => {
+		const user = userEvent.setup();
+		render(
+			<MultiSelect.Root>
+				<MultiSelect.Trigger>
+					<MultiSelect.Input aria-label="Fruits" />
+				</MultiSelect.Trigger>
+				<MultiSelect.Content>
+					<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+				</MultiSelect.Content>
+			</MultiSelect.Root>,
+		);
+		await user.click(screen.getByRole("combobox", { name: "Fruits" }));
+		const dismiss = screen.getByRole("button", { name: "Dismiss popup" });
+		expect(screen.getByRole("listbox")).not.toContainElement(dismiss);
+
+		await user.click(dismiss);
+
+		expect(screen.queryByRole("listbox")).toBeNull();
+	});
+
 	test("renders the empty state when popover is open", () => {
 		render(
 			<MultiSelect.Root open>

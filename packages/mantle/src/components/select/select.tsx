@@ -52,6 +52,10 @@ type SelectContextType = SelectBehavior &
 		 * children, before the items mount.
 		 */
 		labelFor: (value: string) => ItemLabel | null;
+		/**
+		 * Whether a value is required before the owning form submits.
+		 */
+		required?: boolean;
 	} & Pick<ComponentProps<"button">, "id">;
 
 /** The label that `Select.Value` shows for the selected item. */
@@ -289,9 +293,10 @@ const Root = ({
 			labelFor: (item: string) => findItemLabel(children, item),
 			onBlur,
 			ref,
+			required,
 			validation,
 		}),
-		[select, ariaInvalid, children, dir, id, onBlur, ref, validation],
+		[select, ariaInvalid, children, dir, id, onBlur, ref, required, validation],
 	);
 	return (
 		<SelectContext value={contextValue}>
@@ -626,6 +631,7 @@ const Trigger = ({
 			)}
 			data-validation={validation || undefined}
 			id={id}
+			aria-required={ctx.required || undefined}
 			ref={triggerRef}
 			{...props}
 			onClick={composeHandlers(onClick, triggerProps.onClick)}

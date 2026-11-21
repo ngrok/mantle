@@ -41,6 +41,21 @@ describe("enterModal", () => {
 		expect(document.documentElement.style.overflow).toBe("");
 	});
 
+	test("an ancestor's label, such as a dialog title, stays live", () => {
+		document.body.innerHTML = `
+			<div role="dialog" aria-labelledby="title"><h2 id="title">Edit</h2><p id="body">Body</p><button id="trigger">Pick</button></div>
+			<div id="popup"></div>`;
+		const trigger = document.getElementById("trigger");
+		const popup = document.getElementById("popup");
+		if (trigger == null || popup == null) {
+			throw new Error("No fixture");
+		}
+		const exit = enterModal([trigger, popup]);
+		expect(document.getElementById("title")?.inert).toBe(false);
+		expect(document.getElementById("body")?.inert).toBe(true);
+		exit();
+	});
+
 	test("an element that was inert before stays inert after", () => {
 		const { trigger, aside, popup } = page();
 		aside.inert = true;

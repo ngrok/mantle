@@ -21,6 +21,15 @@ const setStyle = (element: HTMLElement, property: string, value: string): (() =>
 	};
 };
 
+/** The elements that `element` names in `aria-labelledby` and `aria-describedby`. */
+const referencesOf = (element: Element): Element[] => {
+	const ids = `${element.getAttribute("aria-labelledby") ?? ""} ${element.getAttribute("aria-describedby") ?? ""}`;
+	return ids
+		.split(/\s+/)
+		.map((id) => (id === "" ? null : document.getElementById(id)))
+		.filter((referenced) => referenced != null);
+};
+
 /** The elements that name or describe a control inside `element`. */
 const labelsWithin = (element: Element): Element[] => {
 	const controls = [
@@ -36,13 +45,7 @@ const labelsWithin = (element: Element): Element[] => {
 				),
 			);
 		}
-		const ids = `${control.getAttribute("aria-labelledby") ?? ""} ${control.getAttribute("aria-describedby") ?? ""}`;
-		for (const id of ids.split(/\s+/)) {
-			const referenced = id === "" ? null : document.getElementById(id);
-			if (referenced != null) {
-				found.push(referenced);
-			}
-		}
+		found.push(...referencesOf(control));
 	}
 	return found;
 };
@@ -80,10 +83,19 @@ const enterModal = (keep: readonly Element[]): (() => void) => {
 	// Why walk from each kept element up: the siblings along the path are the
 	// rest of the page, and an ancestor of a kept element must stay live.
 	const exposed = new Set<Element>();
-	for (const element of [...keep, ...keep.flatMap(labelsWithin)]) {
+	const expose = (element: Element) => {
 		for (let node: Element | null = element; node != null && node !== document.body;) {
 			exposed.add(node);
 			node = node.parentElement;
+		}
+	};
+	for (const element of [...keep, ...keep.flatMap(labelsWithin)]) {
+		expose(element);
+	}
+	// Why: an ancestor, such as a dialog, keeps its name only while its title stays live.
+	for (const ancestor of exposed) {
+		for (const referenced of referencesOf(ancestor)) {
+			expose(referenced);
 		}
 	}
 	for (const node of exposed) {
