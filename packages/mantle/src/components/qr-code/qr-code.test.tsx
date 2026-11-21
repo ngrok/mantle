@@ -1,7 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import { describe, expect, test, vi } from "vitest";
-import { buildPath, QrCode } from "./qr-code.js";
+import * as QrCode from "./qr-code-parts.js";
+import { buildPath } from "./qr-code.js";
 
 /**
  * Renders the minimal valid composition used across most assertions.

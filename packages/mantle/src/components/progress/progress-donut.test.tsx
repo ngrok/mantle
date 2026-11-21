@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
-import { deriveStrokeWidthPx, ProgressDonut } from "./progress-donut.js";
+import * as ProgressDonut from "./progress-donut-parts.js";
+import { deriveStrokeWidthPx } from "./progress-donut.js";
 import type { ValueType } from "./types.js";
 
 describe("deriveStrokeWidthPx", () => {

@@ -3,7 +3,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { Dialog } from "./dialog.js";
+import * as Dialog from "./dialog-parts.js";
 
 /**
  * Real-browser geometry for `Dialog.Header`: the title and the description

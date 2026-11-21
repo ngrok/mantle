@@ -225,6 +225,24 @@ describe("no-display-name", () => {
 	});
 });
 
+describe("no-namespace-object", () => {
+	it("reports a compound namespace object", () => {
+		const source =
+			"const Root = () => null;\nconst Item = () => null;\nconst Menu = { Root, Option: Item } as const;\nexport { Menu };\n";
+
+		expect(lint({ rule: "no-namespace-object", fileName: "a.tsx", source })).toEqual([
+			"no-namespace-object",
+		]);
+	});
+
+	it("leaves an UPPER_SNAKE_CASE lookup and an object with a literal value alone", () => {
+		const source =
+			"const Root = 1;\nexport const SEVERITY = { Root };\nexport const Sizes = { Small: 1, Root };\n";
+
+		expect(lint({ rule: "no-namespace-object", fileName: "a.tsx", source })).toEqual([]);
+	});
+});
+
 describe("no-default-export", () => {
 	it("reports a default export", () => {
 		expect(

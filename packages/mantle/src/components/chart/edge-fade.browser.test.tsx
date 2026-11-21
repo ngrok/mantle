@@ -4,8 +4,8 @@ import { render, waitFor } from "@testing-library/react";
 import { CanvasAreaChartRoot, CanvasLineChartRoot } from "../../test-utils/canvas-chart-roots.js";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { AreaChart } from "../area-chart/index.js";
-import { LineChart } from "../line-chart/index.js";
+import * as AreaChart from "../area-chart/area-chart-parts.js";
+import * as LineChart from "../line-chart/line-chart-parts.js";
 
 /**
  * Real-browser canvas-pixel tests for the liveline-style left-edge scroll

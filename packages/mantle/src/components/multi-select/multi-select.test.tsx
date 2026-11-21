@@ -4,9 +4,9 @@ import type { ChangeEvent, ReactNode } from "react";
 import { createRef, useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
-import { Field } from "../field/field.js";
-import { Sheet } from "../sheet/sheet.js";
-import { MultiSelect } from "./multi-select.js";
+import * as Field from "../field/field-parts.js";
+import * as Sheet from "../sheet/sheet-parts.js";
+import * as MultiSelect from "./multi-select-parts.js";
 
 const snapshotAttributes = (element: HTMLElement) =>
 	new Map(Array.from(element.attributes, ({ name, value }) => [name, value]));

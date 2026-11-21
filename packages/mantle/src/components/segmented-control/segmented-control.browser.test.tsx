@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
-import { SegmentedControl } from "./segmented-control.js";
+import * as SegmentedControl from "./segmented-control-parts.js";
 
 let styleElement: HTMLStyleElement;
 

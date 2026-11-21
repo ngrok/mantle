@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { createRef } from "react";
 import { describe, expect, test } from "vitest";
-import { Strata } from "./strata.js";
+import * as Strata from "./strata-parts.js";
 
 type PartCase = {
 	/** The namespace member under test, for the generated test name. */

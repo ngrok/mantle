@@ -4,10 +4,10 @@ import { render, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterAll, beforeAll, describe, expect, onTestFinished, test, vi } from "vitest";
 import { cdp, commands } from "vitest/browser";
-import { AreaChart } from "../area-chart/index.js";
-import { BarChart } from "../bar-chart/index.js";
-import { LineChart } from "../line-chart/index.js";
-import { ScatterPlot } from "../scatter-plot/index.js";
+import * as AreaChart from "../area-chart/area-chart-parts.js";
+import * as BarChart from "../bar-chart/bar-chart-parts.js";
+import * as LineChart from "../line-chart/line-chart-parts.js";
+import * as ScatterPlot from "../scatter-plot/scatter-plot-parts.js";
 
 /**
  * Real-browser tests of touch on each 2D chart family. The families share one

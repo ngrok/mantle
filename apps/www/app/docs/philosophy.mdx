@@ -136,10 +136,10 @@ DropdownMenu with the seams styled.
 
 Multi-part components ship as flat, single-level namespaces (`Dialog.Root`,
 `Dialog.Content`, never `Command.Dialog.Root`) so the whole API surfaces in one
-autocomplete. That was a recorded trade: we gave up per-file tree-shaking of compound
-internals for discoverability, and kept leaf components like
-[Button](/components/actions/button) and [Icon](/components/data-display/icon) as standalone exports so they
-still shake cleanly.
+autocomplete. Each namespace is an ES module namespace, so a bundler keeps only the parts
+an app renders: a form that uses `Field.Label` does not ship the popover behind
+`Field.Help`. Leaf components like [Button](/components/actions/button) and
+[Icon](/components/data-display/icon) stay standalone exports.
 
 The exception is deliberate: a component takes a **data** prop instead of children only
 when its behavior must reach items that aren't rendered yet.
@@ -305,9 +305,9 @@ code with it.
 These principles are conclusions, not aspirations. Significant trade-offs land as
 decision records in the repository's
 [`decisions/`](https://github.com/ngrok/mantle/tree/main/decisions) directory, each with
-alternatives considered and honest negative consequences: the compound-namespace record
-admits the tree-shaking cost, and the button-type record names the silent non-submit
-footgun it accepts. Their conclusions are distilled into
+alternatives considered and honest negative consequences: the first compound-namespace
+record admits a tree-shaking cost that a later record removes, and the button-type record
+names the silent non-submit footgun it accepts. Their conclusions are distilled into
 [conventions](https://github.com/ngrok/mantle/blob/main/CONVENTIONS.md) that gate new
 work, so the next component starts where the last argument ended. Unstable surface says
 so out loud: [Calendar](/components/preview/calendar) ships flagged `@preview` with an

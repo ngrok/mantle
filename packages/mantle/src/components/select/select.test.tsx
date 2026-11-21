@@ -5,8 +5,8 @@ import type { ReactNode } from "react";
 import { createRef, useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
-import { Field } from "../field/field.js";
-import { Select } from "./select.js";
+import * as Field from "../field/field-parts.js";
+import * as Select from "./select-parts.js";
 
 describe("Select", () => {
 	test("Select.Root onBlur fires when the trigger blurs, after the trigger's own onBlur", async () => {

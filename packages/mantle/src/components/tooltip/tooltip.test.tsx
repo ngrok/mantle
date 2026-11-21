@@ -3,7 +3,8 @@ import { userEvent } from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { describe, expect, test } from "vitest";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
-import { Tooltip, TooltipProvider } from "./tooltip.js";
+import * as Tooltip from "./tooltip-parts.js";
+import { TooltipProvider } from "./tooltip.js";
 
 function CopyTooltip({ body }: { body: ReactNode }) {
 	return (

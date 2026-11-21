@@ -4,7 +4,7 @@ import { useState } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { isItemOpen, nextOpenValues, toOpenValues } from "./accordion-state.js";
-import { Accordion } from "./accordion.js";
+import * as Accordion from "./accordion-parts.js";
 
 describe("isItemOpen", () => {
 	test("returns true when the value is in the open set", () => {

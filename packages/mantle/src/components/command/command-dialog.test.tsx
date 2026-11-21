@@ -5,7 +5,7 @@ import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { useState } from "react";
 import { describe, expect, test } from "vitest";
-import { Command } from "./command.js";
+import * as Command from "./command-parts.js";
 
 /**
  * A minimal controlled `Command.DialogRoot` subject for open/close behavior.

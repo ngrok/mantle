@@ -6,10 +6,10 @@ import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import type * as CheckboxModule from "../checkbox/checkbox.js";
+import * as SelectableList from "./selectable-list-parts.js";
 import {
 	filterSelectableOptions,
 	optionLabelText,
-	SelectableList,
 	summarizeSelection,
 	toggleSelectionValue,
 } from "./selectable-list.js";

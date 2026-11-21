@@ -3,8 +3,8 @@
 import { render, waitFor } from "@testing-library/react";
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import type { MockInstance } from "vitest";
-import { BarChart } from "../bar-chart/index.js";
-import { LineChart } from "../line-chart/index.js";
+import * as BarChart from "../bar-chart/bar-chart-parts.js";
+import * as LineChart from "../line-chart/line-chart-parts.js";
 import type { YTickContext } from "./types.js";
 import { CanvasBarChartRoot, CanvasLineChartRoot } from "../../test-utils/canvas-chart-roots.js";
 

@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { type ComponentProps, createRef } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
-import { Avatar } from "./avatar.js";
+import * as Avatar from "./avatar-parts.js";
 
 describe("Avatar.Root", () => {
 	test("renders the documented composition, with the image over the fallback", () => {

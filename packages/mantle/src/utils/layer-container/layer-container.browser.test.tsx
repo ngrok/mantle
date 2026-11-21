@@ -4,10 +4,10 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { useState } from "react";
 import { afterAll, beforeAll, describe, expect, onTestFinished, test } from "vitest";
-import { Dialog } from "../../components/dialog/dialog.js";
-import { Popover } from "../../components/popover/popover.js";
-import { Sandbar } from "../../components/sandbar/sandbar.js";
-import { Sheet } from "../../components/sheet/sheet.js";
+import * as Dialog from "../../components/dialog/dialog-parts.js";
+import * as Popover from "../../components/popover/popover-parts.js";
+import * as Sandbar from "../../components/sandbar/sandbar-parts.js";
+import * as Sheet from "../../components/sheet/sheet-parts.js";
 import { makeToast, Toaster } from "../../components/toast/toast.js";
 
 /**

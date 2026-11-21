@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentProps, ReactElement } from "react";
-import { Dialog } from "../dialog/dialog.js";
+import * as Dialog from "../dialog/dialog-parts.js";
 import { Slot } from "../slot/index.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { useCommandDialogContext } from "./dialog-context.js";

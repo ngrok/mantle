@@ -1,6 +1,6 @@
 import { render, waitFor } from "@testing-library/react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { BarChart } from "../bar-chart/index.js";
+import * as BarChart from "../bar-chart/bar-chart-parts.js";
 import { paintTextureTile, TEXTURE_TILE_SIZE } from "./texture.js";
 import type { BarOrientation, BarTexture } from "./types.js";
 

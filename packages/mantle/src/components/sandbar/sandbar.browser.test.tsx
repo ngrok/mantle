@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { installShakeStyle, shakesOf } from "../../test-utils/shake-style.js";
 import type { SandbarHandle } from "./sandbar.js";
-import { Sandbar } from "./sandbar.js";
+import * as Sandbar from "./sandbar-parts.js";
 
 function getPanel(): HTMLElement {
 	const panel = document.querySelector('[data-slot="sandbar"]');

@@ -2,7 +2,7 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import { Table } from "./table.js";
+import * as Table from "./table-parts.js";
 
 // Why inline CSS: the browser project loads no stylesheet, and the overflow
 // state needs a scroller that clips its table. This mirrors the `overflow-x-auto`

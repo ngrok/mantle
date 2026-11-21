@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
-import { DescriptionList } from "./description-list.js";
+import * as DescriptionList from "./description-list-parts.js";
 
 /** The Tailwind `font-weight` utilities. */
 const FONT_WEIGHT = /^font-(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black)$/;

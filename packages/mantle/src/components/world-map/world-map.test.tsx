@@ -5,7 +5,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { engageChart } from "../../test-utils/engage-chart.js";
 import { createIntersectionObserverStub } from "../../test-utils/mock-intersection-observer.js";
 import type { ChartDatumEvent } from "./world-map.js";
-import { WorldMap } from "./world-map.js";
+import * as WorldMap from "./world-map-parts.js";
 
 // Rows out of west-to-east order, so the tests see the map sort them.
 const agents = [

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
-import { Field } from "../field/field.js";
+import * as Field from "../field/field-parts.js";
 import { Slider } from "./slider.js";
 
 describe("Slider", () => {

@@ -6,9 +6,9 @@ import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { Checkbox } from "../checkbox/checkbox.js";
 import { Input } from "../input/input.js";
-import { Select } from "../select/select.js";
+import * as Select from "../select/select-parts.js";
 import { FieldItemContext, type FieldControlAriaProps } from "./field-context.js";
-import { Field } from "./field.js";
+import * as Field from "./field-parts.js";
 
 /** The Tailwind `font-size` utilities. */
 const FONT_SIZE = /^text-(?:xs|sm|base|lg|\d?xl)$/;

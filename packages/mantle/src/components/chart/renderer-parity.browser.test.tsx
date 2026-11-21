@@ -9,9 +9,12 @@ import {
 	CanvasBarChartRoot,
 	CanvasLineChartRoot,
 } from "../../test-utils/canvas-chart-roots.js";
-import { AreaChart, type AreaChartRootProps } from "../area-chart/index.js";
-import { BarChart, type BarChartRootProps } from "../bar-chart/index.js";
-import { LineChart, type LineChartRootProps } from "../line-chart/index.js";
+import * as AreaChart from "../area-chart/area-chart-parts.js";
+import type { AreaChartRootProps } from "../area-chart/index.js";
+import * as BarChart from "../bar-chart/bar-chart-parts.js";
+import type { BarChartRootProps } from "../bar-chart/index.js";
+import * as LineChart from "../line-chart/line-chart-parts.js";
+import type { LineChartRootProps } from "../line-chart/index.js";
 import type { ChartDatum } from "./types.js";
 
 /**

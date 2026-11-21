@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
-import { SegmentedControl } from "./segmented-control.js";
+import * as SegmentedControl from "./segmented-control-parts.js";
 
 describe("SegmentedControl.Root", () => {
 	test("renders a named radio group and forwards className, data attributes, and ref", () => {

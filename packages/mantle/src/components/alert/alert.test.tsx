@@ -3,7 +3,8 @@ import { userEvent } from "@testing-library/user-event";
 import { useLayoutEffect, useRef, useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { $cssProperties } from "../../types/index.js";
-import { Alert, AlertContextProvider } from "./alert.js";
+import * as Alert from "./alert-parts.js";
+import { AlertContextProvider } from "./alert.js";
 
 function getAlertRoot(container: HTMLElement) {
 	return container.querySelector('[data-slot="alert"]');

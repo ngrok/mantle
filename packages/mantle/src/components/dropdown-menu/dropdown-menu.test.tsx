@@ -3,7 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import { createRef, type ReactNode } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
-import { DropdownMenu } from "./dropdown-menu.js";
+import * as DropdownMenu from "./dropdown-menu-parts.js";
 
 describe("DropdownMenu", () => {
 	test('Shortcut locks translate="no" even when a wider props object carries translate', () => {

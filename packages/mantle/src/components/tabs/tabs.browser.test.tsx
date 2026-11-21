@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { afterAll, beforeAll, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
-import { Tabs } from "./tabs.js";
+import * as Tabs from "./tabs-parts.js";
 
 /**
  * Mirrors the CSS Tailwind 4 emits for the utilities these tests read: the

@@ -5,7 +5,8 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { Tooltip, TooltipProvider } from "../tooltip/tooltip.js";
+import * as Tooltip from "../tooltip/tooltip-parts.js";
+import { TooltipProvider } from "../tooltip/tooltip.js";
 import { Button } from "./button.js";
 
 /**

@@ -7,7 +7,7 @@ import { commands } from "vitest/browser";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { fitBounds, toScreen, WORLD_BOUNDS } from "../chart/geo.js";
 import type { GeoBounds } from "./world-map.js";
-import { WorldMap } from "./world-map.js";
+import * as WorldMap from "./world-map-parts.js";
 
 /**
  * Real-browser tests for the world map's paint path: the land, the sized

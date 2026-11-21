@@ -4,7 +4,7 @@ import { render, waitFor } from "@testing-library/react";
 import { CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { BarChart } from "../bar-chart/index.js";
+import * as BarChart from "../bar-chart/bar-chart-parts.js";
 import { BAR_DENSE_THICKNESS, BAR_MAX_THICKNESS } from "./bar-geometry.js";
 
 /**

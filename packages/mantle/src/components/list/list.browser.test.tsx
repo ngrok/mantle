@@ -5,7 +5,7 @@ import { userEvent } from "@testing-library/user-event";
 import axe from "axe-core";
 import { useState } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { List } from "./list.js";
+import * as List from "./list-parts.js";
 
 const accounts = [
 	{ id: "a", name: "Alpha", plan: "All Subscription" },

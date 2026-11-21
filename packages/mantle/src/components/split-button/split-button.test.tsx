@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { describe, expect, test, vi } from "vitest";
-import { SplitButton } from "./split-button.js";
+import * as SplitButton from "./split-button-parts.js";
 
 function renderSplitButton(
 	props?: Pick<ComponentProps<typeof SplitButton.Root>, "size" | "open" | "onOpenChange">,

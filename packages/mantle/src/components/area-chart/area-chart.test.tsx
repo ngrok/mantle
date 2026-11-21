@@ -2,10 +2,10 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRef } from "react";
 import { describe, expect, test, vi } from "vitest";
-import { BarChart } from "../bar-chart/index.js";
+import * as BarChart from "../bar-chart/bar-chart-parts.js";
 import type { ChartDatumEvent } from "./area-chart.js";
 import { engageChart } from "../../test-utils/engage-chart.js";
-import { AreaChart } from "./area-chart.js";
+import * as AreaChart from "./area-chart-parts.js";
 
 // Keep the fixture under 4 rows: happy-dom never delivers a plot size, and a
 // zero-width plot decimates 4+ rows, which widens the keyboard arrow stride to

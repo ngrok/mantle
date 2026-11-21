@@ -188,6 +188,7 @@
       "rules": {
         "mantle/no-default-export": "error",
         "mantle/no-display-name": "error",
+        "mantle/no-namespace-object": "error",
         "no-restricted-imports": [
           "error",
           {

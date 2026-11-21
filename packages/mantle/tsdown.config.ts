@@ -3,6 +3,7 @@ import { transform } from "oxc-transform-react";
 import { defineConfig } from "tsdown";
 
 import { reactCompilerOptions } from "./react-compiler.config.ts";
+import { compoundNamespaces } from "./scripts/compound-namespaces.ts";
 import { preserveUseClient } from "./scripts/preserve-use-client.ts";
 
 const MANTLE_CSS_SRC = new URL("./src/mantle.css", import.meta.url);
@@ -47,6 +48,12 @@ const componentPackages = allComponents
  * should not be built as individual entry points.
  */
 const consolidatedIntoUtils = new Set<string>(["compose-refs", "sorting"]);
+
+/** Each compound component's parts entry and the plugin that keeps its namespace shakeable. */
+const compoundParts = compoundNamespaces({
+	componentsDir: "./src/components",
+	dirs: Object.keys(componentPackages),
+});
 
 const utilPackages = allUtils
 	.filter((name) => !consolidatedIntoUtils.has(name))
@@ -155,6 +162,7 @@ export default defineConfig((options) => [
 		fixedExtension: false,
 		format: "esm",
 		plugins: [
+			compoundParts.plugin,
 			preserveUseClient({ serverEntries: ["color.js", "cx.js", "types.js", "utils.js"] }),
 			reactCompiler(),
 		],
@@ -170,6 +178,7 @@ export default defineConfig((options) => [
 		},
 		entry: {
 			...componentPackages,
+			...compoundParts.entries,
 			...utilPackages,
 			"code-block_highlight-utils": "./src/components/code-block/highlight-utils.ts",
 			hooks: "./src/hooks/index.ts",

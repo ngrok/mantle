@@ -4,7 +4,7 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test } from "vitest";
 import mantleCss from "../../mantle.css?raw";
-import { CodeBlock } from "./code-block.js";
+import * as CodeBlock from "./code-block-parts.js";
 import { computeJsonFoldRanges, type FoldableRange } from "./compute-json-fold-ranges.js";
 import { decorateHighlightedHtml } from "./decorate-highlighted-html.js";
 import { createMantleCodeBlockValue } from "./mantle-code.js";

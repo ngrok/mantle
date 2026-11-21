@@ -3,7 +3,7 @@
 import { render, waitFor } from "@testing-library/react";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, expect, test, vi } from "vitest";
-import { LineChart } from "../line-chart/index.js";
+import * as LineChart from "../line-chart/line-chart-parts.js";
 import { CanvasLineChartRoot } from "../../test-utils/canvas-chart-roots.js";
 
 /**

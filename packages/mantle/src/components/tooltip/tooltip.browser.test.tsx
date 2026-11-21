@@ -1,7 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { afterAll, beforeAll, expect, test } from "vitest";
-import { Tooltip, TooltipProvider } from "./tooltip.js";
+import * as Tooltip from "./tooltip-parts.js";
+import { TooltipProvider } from "./tooltip.js";
 
 /**
  * Mirrors the CSS Tailwind 4 emits for the utilities this test reads. Inlined so

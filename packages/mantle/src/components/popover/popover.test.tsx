@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test } from "vitest";
-import { Popover } from "./popover.js";
+import * as Popover from "./popover-parts.js";
 
 describe("Popover", () => {
 	test("Trigger, Anchor, and Close join their data-slot with the asChild child's own", async () => {

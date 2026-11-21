@@ -4,8 +4,9 @@ import { StrictMode, createRef, useState } from "react";
 import { renderToString } from "react-dom/server";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
-import { RadioGroup } from "../radio-group/index.js";
-import { Tooltip, TooltipProvider } from "../tooltip/index.js";
+import * as RadioGroup from "../radio-group/radio-group-parts.js";
+import * as Tooltip from "../tooltip/tooltip-parts.js";
+import { TooltipProvider } from "../tooltip/index.js";
 import { TruncatedText, type TruncatedTextProps } from "./truncated-text.js";
 
 const url = "https://example.ngrok.app/api/items?filter=abc&limit=200";

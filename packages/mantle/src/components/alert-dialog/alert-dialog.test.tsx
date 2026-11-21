@@ -3,7 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps, ReactNode } from "react";
 import { describe, expect, test, vi } from "vitest";
 import type { ButtonIntent } from "../button/intents.js";
-import { AlertDialog } from "./alert-dialog.js";
+import * as AlertDialog from "./alert-dialog-parts.js";
 
 // AlertDialogIntent is not exported from the component module, so derive it
 // from the Root props to stay in sync with the real union.

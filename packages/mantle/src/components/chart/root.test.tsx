@@ -2,8 +2,8 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
-import { BarChart } from "../bar-chart/index.js";
-import { LineChart } from "../line-chart/index.js";
+import * as BarChart from "../bar-chart/bar-chart-parts.js";
+import * as LineChart from "../line-chart/line-chart-parts.js";
 import type { ChartDatumEvent } from "./types.js";
 
 /**

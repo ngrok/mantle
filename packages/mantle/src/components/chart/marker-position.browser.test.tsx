@@ -3,10 +3,10 @@
 import { render, waitFor } from "@testing-library/react";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { AreaChart } from "../area-chart/index.js";
-import { BarChart } from "../bar-chart/index.js";
-import { LineChart } from "../line-chart/index.js";
-import { ScatterPlot } from "../scatter-plot/index.js";
+import * as AreaChart from "../area-chart/area-chart-parts.js";
+import * as BarChart from "../bar-chart/bar-chart-parts.js";
+import * as LineChart from "../line-chart/line-chart-parts.js";
+import * as ScatterPlot from "../scatter-plot/scatter-plot-parts.js";
 import { POINT_SHAPE_CLIP_PATHS } from "./engine.js";
 import {
 	CanvasAreaChartRoot,

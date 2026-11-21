@@ -2,9 +2,9 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
 import { describe, expect, test, vi } from "vitest";
-import { Choice } from "../choice/choice.js";
-import { Field } from "../field/field.js";
-import { RadioGroup } from "./radio-group.js";
+import * as Choice from "../choice/choice-parts.js";
+import * as Field from "../field/field-parts.js";
+import * as RadioGroup from "./radio-group-parts.js";
 
 describe("RadioGroup", () => {
 	test("Field.Control wrapping RadioGroup.Root applies field ARIA wiring to each radio item", () => {

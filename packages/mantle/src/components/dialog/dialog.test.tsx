@@ -3,7 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { createRef, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { Dialog } from "./dialog.js";
+import * as Dialog from "./dialog-parts.js";
 import { isDialogOverlayTarget } from "./primitive.js";
 
 type DialogAppearance = "centered" | "full-page" | "full-bleed";

@@ -3,9 +3,9 @@ import { renderToString } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { useLocalStorage } from "../../hooks/use-local-storage.js";
-import { DropdownMenu } from "../dropdown-menu/index.js";
+import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
 import { TooltipProvider } from "../tooltip/index.js";
-import { Sidebar } from "./sidebar.js";
+import * as Sidebar from "./sidebar-parts.js";
 
 /**
  * Real-browser cascade for `Sidebar.Nav`'s hydration gates and for a row's

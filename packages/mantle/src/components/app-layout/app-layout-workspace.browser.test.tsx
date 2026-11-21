@@ -4,7 +4,7 @@ import { renderToString } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { TooltipProvider } from "../tooltip/index.js";
-import { AppLayout } from "./app-layout.js";
+import * as AppLayout from "./app-layout-parts.js";
 
 /**
  * Real-browser geometry for the workspace row and the side panel lane in it.

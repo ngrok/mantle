@@ -5,7 +5,7 @@ import { userEvent } from "@testing-library/user-event";
 import { createRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
-import { CodeBlock } from "./code-block.js";
+import * as CodeBlock from "./code-block-parts.js";
 import { createMantleCodeBlockValue } from "./mantle-code.js";
 
 function makeValue(code: string, preHtml?: string) {

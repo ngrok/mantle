@@ -4,8 +4,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, test } from "vitest";
-import { Alert } from "../alert/alert.js";
-import { AlertCenter } from "./alert-center.js";
+import * as Alert from "../alert/alert-parts.js";
+import * as AlertCenter from "./alert-center-parts.js";
 
 /**
  * These exercise the real-browser half of stable-host projection:

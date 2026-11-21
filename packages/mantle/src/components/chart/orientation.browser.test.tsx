@@ -4,7 +4,7 @@ import { render, waitFor } from "@testing-library/react";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import type { MockInstance } from "vitest";
-import { BarChart } from "../bar-chart/index.js";
+import * as BarChart from "../bar-chart/bar-chart-parts.js";
 import { CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
 
 /**

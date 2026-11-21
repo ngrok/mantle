@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import { describe, expect, test } from "vitest";
-import { Empty } from "./empty.js";
+import * as Empty from "./empty-parts.js";
 
 /** The Tailwind `font-size` utilities. */
 const FONT_SIZE = /^text-(?:xs|sm|base|lg|\d?xl)$/;

@@ -3,7 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import { act, useEffect, useRef, useState } from "react";
 import type { ComponentRef } from "react";
 import { describe, expect, test, vi } from "vitest";
-import { Field } from "../field/field.js";
+import * as Field from "../field/field-parts.js";
 import { Input, InputCapture } from "./input.js";
 
 /**

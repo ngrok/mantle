@@ -2,8 +2,8 @@ import { render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
-import { Field } from "../field/field.js";
-import { OtpInput } from "./otp-input.js";
+import * as Field from "../field/field-parts.js";
+import * as OtpInput from "./otp-input-parts.js";
 
 type RenderOtpProps = Pick<ComponentProps<typeof OtpInput.Root>, "aria-invalid" | "validation">;
 

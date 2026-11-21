@@ -4,9 +4,9 @@ import { createContext, createRef, useContext, useState } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
-import { Alert } from "../alert/alert.js";
+import * as Alert from "../alert/alert-parts.js";
+import * as AlertCenter from "./alert-center-parts.js";
 import {
-	AlertCenter,
 	AlertCenterStore,
 	alertsSummary,
 	alertTitleText,

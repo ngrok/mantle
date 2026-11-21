@@ -4,8 +4,8 @@ import invariant from "tiny-invariant";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import type { ButtonAppearance, ButtonIntent } from "../button/index.js";
+import * as DataTable from "./data-table-parts.js";
 import {
-	DataTable,
 	createColumnHelper,
 	createExpandedRowModel,
 	createSortedRowModel,

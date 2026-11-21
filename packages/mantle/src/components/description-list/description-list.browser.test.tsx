@@ -2,7 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { DescriptionList } from "./description-list.js";
+import * as DescriptionList from "./description-list-parts.js";
 
 /**
  * Real-browser geometry for the value column. The contract is that a long

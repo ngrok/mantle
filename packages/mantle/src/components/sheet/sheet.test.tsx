@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { Dialog } from "../dialog/dialog.js";
-import { Sheet } from "./sheet.js";
+import * as Dialog from "../dialog/dialog-parts.js";
+import * as Sheet from "./sheet-parts.js";
 
 describe("Sheet.Trigger and Sheet.Close", () => {
 	it("join their data-slot with the asChild child's own", async () => {

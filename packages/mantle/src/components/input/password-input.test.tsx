@@ -3,7 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import { Profiler, useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
-import { Field } from "../field/field.js";
+import * as Field from "../field/field-parts.js";
 import { PasswordInput } from "./password-input.js";
 
 // Why a spy: the icon tests pin whether the layout effect calls `animate()` and

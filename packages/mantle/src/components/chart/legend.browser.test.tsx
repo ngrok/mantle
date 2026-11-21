@@ -3,7 +3,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import { commands, userEvent } from "vitest/browser";
-import { BarChart } from "../bar-chart/index.js";
+import * as BarChart from "../bar-chart/bar-chart-parts.js";
 
 /**
  * Real-browser tests for the legend's height bound and its focus outline.

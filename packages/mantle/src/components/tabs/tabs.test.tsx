@@ -4,7 +4,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
-import { Tabs } from "./tabs.js";
+import * as Tabs from "./tabs-parts.js";
 
 describe("Tabs", () => {
 	describe("Root", () => {

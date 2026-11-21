@@ -4,7 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
 import { commands } from "vitest/browser";
 import { CanvasLineChartRoot } from "../../test-utils/canvas-chart-roots.js";
-import { LineChart } from "../line-chart/index.js";
+import * as LineChart from "../line-chart/line-chart-parts.js";
 
 /**
  * Real-browser visibility tests: a chart activates (builds its paint surface

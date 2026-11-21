@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
-import { CursorPagination } from "./cursor-pagination.js";
+import * as CursorPagination from "./cursor-pagination-parts.js";
 
 describe("CursorPagination", () => {
 	// Regression: `Select.Value` had no children, so Radix filled the trigger on

@@ -269,8 +269,8 @@ Two of these are non-obvious enough to justify:
 If the API shape was argued over, or a reviewer will ask "why not the obvious thing?", add
 `decisions/<YYYY-MM-DD>-<slug>.md` with the alternatives considered and the honest negative consequences, and
 link it from the JSDoc or docs page. Existing examples:
-`decisions/2025-07-16-compound-component-named-exports.md` (POJO namespaces, and the tree-shaking cost it
-accepts), `decisions/2026-07-04-list-family-api-design.md` (naming and composition),
+`decisions/2025-07-16-compound-component-named-exports.md` (namespaces over separate part imports),
+`decisions/2026-11-15-tree-shakeable-compound-components.md` (module namespaces, so an unused part tree-shakes), `decisions/2026-07-04-list-family-api-design.md` (naming and composition),
 `decisions/2026-07-08-docs-information-architecture.md` (docs categories),
 `decisions/2026-07-15-theme-switcher-compound-api.md` (parts over prop bags).
 
@@ -324,13 +324,14 @@ The nine every component ships:
 Plus the ones that are conditional or generated. These are the ones most often missed, and one of them fails
 _after_ all of [§9](#9-verification) passes:
 
-| Artifact                                                             | When                                                                                         | If omitted                                                                                      |
-| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `apps/www/app/utilities/__snapshots__/components-surface.json`       | always: any new component, or any edit to a docs `description`, JSDoc summary, or `@example` | CI's Vibe Check fails. Regenerate with `pnpm -F @app/www test -u` and commit it                 |
-| `doNotPublish` in `packages/mantle/tsdown.config.ts`                 | adding an internal engine _directory_ (`chart/`)                                             | tsdown publishes a subpath for a directory that must have none                                  |
-| `importPathOverrides` in `packages/mantle/scripts/agent-manifest.ts` | the docs slug is not also the export key ([§2.2](#22-naming))                                | the agent manifest build fails, because the slug names a subpath `package.json` does not export |
-| `previewExamples` in `apps/www/app/features/preview-registry.ts`     | the docs page runs a shell demo in an `Example`                                              | the `example` prop fails typecheck                                                              |
-| `apps/www/app/docs/<page>.examples.tsx`                              | the docs page has a page example ([§7.3](#73-examples-must-be-live-and-complete))            | `page-examples.test.tsx` fails, and the preview frame shows a 404                               |
+| Artifact                                                             | When                                                                                         | If omitted                                                                                               |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `apps/www/app/utilities/__snapshots__/components-surface.json`       | always: any new component, or any edit to a docs `description`, JSDoc summary, or `@example` | CI's Vibe Check fails. Regenerate with `pnpm -F @app/www test -u` and commit it                          |
+| `doNotPublish` in `packages/mantle/tsdown.config.ts`                 | adding an internal engine _directory_ (`chart/`)                                             | tsdown publishes a subpath for a directory that must have none                                           |
+| `importPathOverrides` in `packages/mantle/scripts/agent-manifest.ts` | the docs slug is not also the export key ([§2.2](#22-naming))                                | the agent manifest build fails, because the slug names a subpath `package.json` does not export          |
+| `previewExamples` in `apps/www/app/features/preview-registry.ts`     | the docs page runs a shell demo in an `Example`                                              | the `example` prop fails typecheck                                                                       |
+| `components/<component-name>/<component-name>-parts.ts`              | a compound component ([§3.4](#34-compound-namespace))                                        | the namespace has no parts module, and an object literal in its place fails `mantle/no-namespace-object` |
+| `apps/www/app/docs/<page>.examples.tsx`                              | the docs page has a page example ([§7.3](#73-examples-must-be-live-and-complete))            | `page-examples.test.tsx` fails, and the preview frame shows a 404                                        |
 
 ### 2.2. Naming
 
@@ -489,32 +490,52 @@ A part that renders no DOM at all (`BrowserOnly`, `Slot`) was never in scope, so
 
 ### 3.4. Compound namespace
 
+A compound component ships its parts as one ES module namespace, so a consumer bundle keeps only the parts it
+reads ([decision](./decisions/2026-11-15-tree-shakeable-compound-components.md)). Three files carry it:
+
 ```tsx
-// Exactly one level of properties. Every member is a directly-defined component.
-const MyComponent = {
+// my-component.tsx: each part is a top-level declaration with its own JSDoc (§4.2).
+export {
+	//,
 	Root,
 	Header,
-	Title,
-	Body,
-} as const;
+	MyComponentTitle,
+};
+
+// my-component-parts.ts: the namespace members and nothing else, by their namespace names.
+export {
+	//,
+	Root,
+	Header,
+	MyComponentTitle as Title,
+} from "./my-component.js";
+
+// index.ts: the namespace JSDoc sits on the alias.
+import * as MyComponentParts from "./my-component-parts.js";
+
+/** The namespace JSDoc (§4.2). */
+const MyComponent = MyComponentParts;
+
+export {
+	//,
+	MyComponent,
+};
 ```
 
+- Never write the namespace as an object literal. A bundler keeps every property of an object that the app
+  reads, so the app ships every part and its dependencies. (lint: `mantle/no-namespace-object`)
+- **Why the alias:** an editor shows the JSDoc of a `const` on hover, but not the JSDoc of an `export * as`
+  statement. The build rewrites the alias to a namespace import in the shipped JavaScript, and fails when a
+  component entry does not take its namespace from its parts entry (`packages/mantle/scripts/compound-namespaces.ts`).
+- Code inside mantle that renders another component's parts, and every test, imports the parts module:
+  `import * as Dialog from "../dialog/dialog-parts.js"`.
 - One level deep, always. No nested namespaces, no re-exported foreign namespaces
   ([§1.7](#17-forbidden-api-shapes)).
-- Each member is a directly-defined component whose type has an explicit name, not an inferred literal whose
-  shape depends on chasing types through external packages.
-- If any member's type comes from a third-party namespace, **annotate the namespace object explicitly**
-  (`const MyComponent: { Root: typeof Root; … } = { … }`) so `.d.ts` emit does not synthesize a non-portable
-  type. Without it an `@types/react` bump surfaces `TS2883` at build time, which is why
-  [§9](#9-verification) runs the build.
-- **The annotation costs every member's JSDoc.** The build emits the annotation in place of the object
-  literal, so each member's summary, `@see`, and `@example` drop out of the published `.d.ts`: the only
-  channel that feeds editor tooltips. The annotation also discards the `readonly` modifiers `as const` adds.
-  Reach for it only when a member's type comes from outside the package, because `as const` alone already
-  emits `readonly Root: typeof Root`.
-- Providers and standalone utilities stay as their own named exports beside the namespace, never folded in
-  (the Toast/Toaster pattern).
-- Leaf components (`Button`, `Icon`) stay standalone exports so they tree-shake cleanly.
+- Each part's type has an explicit name, not an inferred literal whose shape depends on chasing types through
+  external packages.
+- Providers and standalone utilities stay as their own named exports of `index.ts` beside the namespace, never
+  in the parts module (the Toast/Toaster pattern).
+- Leaf components (`Button`, `Icon`) stay standalone exports.
 
 ### 3.5. Errors and invariants
 
@@ -689,12 +710,13 @@ when the prop is required-with-no-default on purpose.
 
 ### 4.2. Compound components: the full-tree rule
 
-- The JSDoc on the **namespace declaration** carries two `@example` blocks, in order: a `Composition:` ASCII
-  tree in a plain fence, then a full-tree JSX usage example.
-- **Every namespace property _and_ every underlying part declaration repeats the full-tree JSX example**: all
-  commonly-used parts, not an abbreviated snippet. This is deliberate duplication: each is an entry point a
-  reader or agent may hover first, and each must show the whole shape. Never "de-duplicate" these examples. A
-  variant part may use a distinct full tree that demonstrates that variant.
+- The JSDoc on the **namespace alias** in `index.ts` ([§3.4](#34-compound-namespace)) carries two `@example`
+  blocks, in order: a `Composition:` ASCII tree in a plain fence, then a full-tree JSX usage example.
+- **Every part declaration repeats the full-tree JSX example**: all commonly-used parts, not an abbreviated
+  snippet. A hover on `MyComponent.Title` shows the JSDoc of its part declaration. This is deliberate
+  duplication: each is an entry point a reader or agent may hover first, and each must show the whole shape.
+  Never "de-duplicate" these examples. A variant part may use a distinct full tree that demonstrates that
+  variant.
 - The tree uses real box-drawing characters (`├` U+251C, `─` U+2500, `└` U+2514, `│` U+2502) with 4-char
   per-level indentation, and must match the docs page's `## Composition` tree exactly.
 
@@ -1021,7 +1043,8 @@ family-directory component, `components/<family>/<component-name>.tsx`;
 [§2.2](#22-naming)). Fall back to any `.tsx` in the directory when the filename differs
 (`icons/`, `pagination/`, `progress/`, `theme/` have no `<dir>/<dir>.tsx`).
 
-- Contains `const <ComponentName> = { … } as const` → **compound**; otherwise **simple**.
+- `index.ts` imports a `<name>-parts.ts` module ([§3.4](#34-compound-namespace)) → **compound**; otherwise
+  **simple**.
 - Detect `asChild` support (imports `Slot`, or accepts `asChild` on any part). It decides whether the docs
   page needs `## Polymorphism`.
 - Audit every directory with a `packages/mantle/package.json` export. Skip export-less directories (today only
@@ -1052,14 +1075,14 @@ beside it, because a wrapper makes the consumer's element a grandchild and break
 **Auto-fixable: apply directly.** These are mechanical and reversible:
 
 - Missing or incorrect `@see` URL, or a part-level `@see` missing its anchor.
-- Missing `Composition` `@example` tree on the namespace JSDoc → derive it from the namespace members and the
+- Missing `Composition` `@example` tree on the namespace JSDoc → derive it from the parts module and the
   existing JSX example, insert as the first `@example`.
 - Missing `## Composition` on the docs page → derive from the namespace, insert before `## Polymorphism` /
   `## API Reference`.
 - A section titled `Composition` that actually describes `asChild` → rename to `## Polymorphism`. Describing
   something else → rename to a content-accurate title (ask if unclear).
-- An abbreviated `@example` on a namespace property or part declaration → replace with the full-tree example
-  already present elsewhere in the same file.
+- An abbreviated `@example` on a part declaration → replace with the full-tree example already present
+  elsewhere in the same file.
 - Prose, a heading, a list, or a code block between the page title and the primary example → keep the lead
   ([§7.2](#72-required-structure-in-order) item 4), and move the rest below the primary example: short
   guidance into `## When to use`, and long guidance into its own optional section.
@@ -1079,7 +1102,7 @@ accessibility semantics:
 - Adding a `package.json` export. Publishing is irreversible ([§1.2](#12-ship-the-smallest-public-surface)).
   An export-less directory is usually internal on purpose, not an oversight.
 - A missing JSDoc description or `@example` where the content is non-obvious.
-- Refactoring a non-namespace exported object into the POJO namespace pattern.
+- Refactoring a non-namespace exported object into a compound namespace ([§3.4](#34-compound-namespace)).
 - Adding `asChild` to a part that lacks it, or adding a missing test file.
 - A part that renders an element beside the `children` it receives and does not wrap them
   ([§3.8](#38-browser-translation)). The wrapper is a DOM change: it makes a consumer's own element a
@@ -1121,7 +1144,7 @@ Run this against the diff before calling a component done. Each line is a defect
 - [ ] No unearned ARIA pattern word anywhere in the component or part names.
 - [ ] Props read as the ARIA/DOM they emit; no prop-bag passthrough props.
 - [ ] No data prop renders: rows, empty state, and footer are parts, and rows from data come from a function child.
-- [ ] Namespace is one level deep, annotated if any member's type is third-party.
+- [ ] Namespace is one level deep: a `<name>-parts.ts` module, aliased in `index.ts` ([§3.4](#34-compound-namespace)).
 - [ ] No `forwardRef`, no `React.FC`, no `displayName` assignment.
 - [ ] Mutually exclusive states are a discriminated union, not a boolean bag.
 - [ ] A breaking change ships its migration guide and codemod, or the guide says `manual:` with a reason
@@ -1159,7 +1182,7 @@ Run this against the diff before calling a component done. Each line is a defect
 
 - [ ] JSDoc on every export: contract description, `@see` (with part anchor), `@example`; per-prop docs with
       defaults.
-- [ ] Compound: composition tree first, then full-tree JSX, repeated on every namespace member and part.
+- [ ] Compound: composition tree first, then full-tree JSX, repeated on every part declaration.
 - [ ] Every public CSS variable documented in **both** the JSDoc and the docs-page API reference, with the
       default a consumer actually observes. Private variables use `--_` and stay undocumented.
 - [ ] Every `data-*` the component stamps for styling or coordination appears in the JSDoc and the API
@@ -1201,7 +1224,8 @@ Run this against the diff before calling a component done. Each line is a defect
 - [AGENTS.md](./AGENTS.md): the task router that sends component work here.
 - [Philosophy](./apps/www/app/docs/philosophy.mdx): the long-form rationale §0 distills.
 - `decisions/`: the argued-over decisions, including
-  `2025-07-16-compound-component-named-exports.md` (POJO namespaces),
+  `2025-07-16-compound-component-named-exports.md` (namespaces over separate part imports),
+  `2026-11-15-tree-shakeable-compound-components.md` (module namespaces),
   `2026-07-04-list-family-api-design.md` (naming and composition),
   `2026-07-08-docs-information-architecture.md` (categories),
   `2026-07-15-theme-switcher-compound-api.md` (parts over prop bags).
