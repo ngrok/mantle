@@ -518,7 +518,8 @@
     "aliases": [
       "checkbox with description",
       "radio with description",
-      "switch with description"
+      "switch with description",
+      "checkbox on the left label on the right"
     ],
     "siblings": [
       {
@@ -1226,7 +1227,7 @@
       "media block",
       "icon on the left text on the right",
       "image beside text",
-      "avatar beside name"
+      "avatar beside text"
     ],
     "siblings": [
       {
