@@ -2,7 +2,9 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { useState } from "react";
+import { startTransition, useState } from "react";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { commands, userEvent as browserUserEvent } from "vitest/browser";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import * as Accordion from "./accordion-native-parts.js";
@@ -20,6 +22,12 @@ const triggerFor = (label: string): HTMLElement => {
 	}
 	return trigger;
 };
+
+/** Resolves on the next animation frame. */
+const nextFrame = () =>
+	new Promise((resolve) => {
+		requestAnimationFrame(resolve);
+	});
 
 /** Whether the `<details>` of the trigger labeled `label` is open. */
 const isOpen = (label: string) => triggerFor(label).closest("details")?.open === true;
@@ -135,6 +143,104 @@ describe("native Accordion (browser)", () => {
 		expect(isOpen("Trigger B")).toBe(false);
 	});
 
+	test("a controlled value that commits later still gets one callback for each change", async () => {
+		const user = userEvent.setup();
+		const onValueChange = vi.fn<(value: string) => void>();
+		const Deferred = () => {
+			const [value, setValue] = useState("a");
+			return (
+				<Accordion.Root
+					type="single"
+					value={value}
+					onValueChange={(next) => {
+						onValueChange(next);
+						startTransition(() => setValue(next));
+					}}
+				>
+					{sections}
+				</Accordion.Root>
+			);
+		};
+		render(<Deferred />);
+
+		await user.click(triggerFor("Trigger B"));
+
+		await waitFor(() => expect(isOpen("Trigger B")).toBe(true));
+		// Why a frame: the `toggle` event of the item the group closes fires in a later task.
+		await nextFrame();
+		expect(onValueChange).toHaveBeenCalledTimes(1);
+		expect(onValueChange).toHaveBeenLastCalledWith("b");
+	});
+
+	test("a controlled value that rejects changes reports what the browser shows", async () => {
+		const user = userEvent.setup();
+		const onValueChange = vi.fn<(value: string[]) => void>();
+		render(
+			<Accordion.Root value={[]} onValueChange={onValueChange}>
+				{sections}
+			</Accordion.Root>,
+		);
+
+		await user.click(triggerFor("Trigger A"));
+		await waitFor(() => expect(onValueChange).toHaveBeenCalledTimes(1));
+		await user.click(triggerFor("Trigger B"));
+		await waitFor(() => expect(onValueChange).toHaveBeenCalledTimes(2));
+
+		expect(onValueChange).toHaveBeenLastCalledWith(["a", "b"]);
+	});
+
+	test("a section opened before hydration counts once the page hydrates", async () => {
+		const onValueChange = vi.fn<(value: string[]) => void>();
+		const app = <Accordion.Root onValueChange={onValueChange}>{sections}</Accordion.Root>;
+		const container = document.createElement("div");
+		container.innerHTML = renderToString(app);
+		document.body.appendChild(container);
+		const [itemA, itemB] = container.querySelectorAll("details");
+		if (itemA == null || itemB == null) {
+			throw new Error("expected two server-rendered items");
+		}
+		itemA.open = true;
+		await new Promise((resolve) => {
+			itemA.addEventListener("toggle", resolve, { once: true });
+		});
+
+		const root = hydrateRoot(container, app);
+		try {
+			await nextFrame();
+			itemB.querySelector("summary")?.click();
+
+			await waitFor(() => expect(onValueChange).toHaveBeenCalledTimes(1));
+			expect(onValueChange).toHaveBeenLastCalledWith(["a", "b"]);
+		} finally {
+			root.unmount();
+			container.remove();
+		}
+	});
+
+	test("an item that remounts reports its next change", async () => {
+		const user = userEvent.setup();
+		const onValueChange = vi.fn<(value: string[]) => void>();
+		const Toggleable = ({ showA }: { showA: boolean }) => (
+			<Accordion.Root onValueChange={onValueChange}>
+				{showA && (
+					<Accordion.Item value="a">
+						<Accordion.Trigger>Trigger A</Accordion.Trigger>
+					</Accordion.Item>
+				)}
+			</Accordion.Root>
+		);
+		const { rerender } = render(<Toggleable showA />);
+		await user.click(triggerFor("Trigger A"));
+		await waitFor(() => expect(onValueChange).toHaveBeenCalledTimes(1));
+
+		rerender(<Toggleable showA={false} />);
+		rerender(<Toggleable showA />);
+		await user.click(triggerFor("Trigger A"));
+
+		await waitFor(() => expect(onValueChange).toHaveBeenCalledTimes(2));
+		expect(onValueChange).toHaveBeenLastCalledWith(["a"]);
+	});
+
 	test("Item composes a consumer onToggle", async () => {
 		const user = userEvent.setup();
 		const onToggle = vi.fn<(open: boolean) => void>();
@@ -171,8 +277,37 @@ describe("native Accordion (browser)", () => {
 	describe("with the compiled Tailwind CSS", () => {
 		let styleElement: HTMLStyleElement | undefined;
 
-		afterEach(() => {
+		afterEach(async () => {
 			styleElement?.remove();
+			await commands.emulateMedia({ reducedMotion: "no-preference" });
+		});
+
+		test("with reduced motion, a section opens to its full height in the first frame", async () => {
+			styleElement = document.createElement("style");
+			styleElement.textContent = await commands.tailwindCss("./accordion-native.tsx");
+			document.head.appendChild(styleElement);
+			await commands.emulateMedia({ reducedMotion: "reduce" });
+			render(
+				<Accordion.Root>
+					<Accordion.Item value="a">
+						<Accordion.Trigger>Trigger A</Accordion.Trigger>
+						<Accordion.Content>
+							<div style={{ height: 200 }}>Body of section A</div>
+						</Accordion.Content>
+					</Accordion.Item>
+				</Accordion.Root>,
+			);
+			const item = triggerFor("Trigger A").closest("details");
+			if (item == null) {
+				throw new Error("expected a <details>");
+			}
+			const closedHeight = item.getBoundingClientRect().height;
+
+			item.open = true;
+			await nextFrame();
+
+			// Why a frame: without the reduced-motion gate, the slide starts the content at zero height.
+			expect(item.getBoundingClientRect().height).toBeGreaterThanOrEqual(closedHeight + 200);
 		});
 
 		test("TriggerIcon turns under an open section only, not under an open outer section", async () => {

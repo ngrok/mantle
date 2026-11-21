@@ -89,10 +89,12 @@ const SvgOnly = ({ "data-slot": dataSlot, className, style, svg, ref, ...props }
 
 export {
 	//,
+	hasAccessibleNaming,
 	SvgOnly,
 };
 
 export type {
 	//,
+	NamedSvgProps,
 	SvgOnlyProps,
 };
