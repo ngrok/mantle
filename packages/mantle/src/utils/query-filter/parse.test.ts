@@ -295,6 +295,15 @@ describe("parseFilterQuery with NOT and groups", () => {
 		expect(shape('"(" "-(x"')).toEqual(["text", "text"]);
 	});
 
+	test("nests groups 32 deep, and reads a deeper ( as text", () => {
+		const kinds = parseFilterQuery(testGrammar, `${"(".repeat(33)}a${")".repeat(33)}`).map(
+			(token) => token.kind,
+		);
+
+		expect(kinds.filter((kind) => kind === "group-start")).toHaveLength(32);
+		expect(kinds.filter((kind) => kind === "group-end")).toHaveLength(32);
+	});
+
 	test("reads NOT, !, and parentheses as text under the qualifiers syntax", () => {
 		const grammar = defineRemoteFilterGrammar({ keys: [{ key: "is", description: "State" }] });
 
@@ -387,6 +396,15 @@ describe("quoteFilterValue", () => {
 		]);
 	});
 
+	test("quotes a parenthesis, so it cannot close a group", () => {
+		expect(quoteFilterValue("fn(x)")).toBe('"fn(x)"');
+		expect(parseFilterQuery(testGrammar, `(name:${quoteFilterValue("fn(x)")})`)).toMatchObject([
+			{ kind: "group-start" },
+			{ kind: "facet", members: [{ value: "fn(x)" }] },
+			{ kind: "group-end" },
+		]);
+	});
+
 	test("escapes a quote and a backslash, so the value round-trips through the parser", () => {
 		expect(quoteFilterValue('/a"b')).toBe('"/a\\"b"');
 		expect(quoteFilterValue("a\\b")).toBe("a\\\\b");
@@ -460,6 +478,18 @@ describe("toggleFacet", () => {
 		expect(toggleFacet({ grammar: testGrammar, query: "NOT is:shared api", facet: shared })).toBe(
 			"api is:shared",
 		);
+	});
+
+	test("reads negation from each NOT and each negated group", () => {
+		expect(
+			toggleFacet({ grammar: testGrammar, query: "NOT NOT is:shared api", facet: shared }),
+		).toBe("api");
+		expect(toggleFacet({ grammar: testGrammar, query: "NOT (is:shared) api", facet: shared })).toBe(
+			"api is:shared",
+		);
+		expect(
+			toggleFacet({ grammar: testGrammar, query: "(is:shared OR is:new) api", facet: shared }),
+		).toBe("(is:new) api");
 	});
 
 	test("quotes a value that needs quotes", () => {

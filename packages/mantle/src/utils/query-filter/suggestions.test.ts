@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { defineRemoteFilterGrammar } from "./grammar.js";
+import { defineRemoteFilterGrammar, type FilterGrammar } from "./grammar.js";
 import { filterItemsByQuery } from "./match.js";
 import { getFilterSuggestions } from "./suggestions.js";
 import {
@@ -320,6 +320,37 @@ describe("typed key suggestions", () => {
 		]);
 		expect(rows("region:us").map((row) => row.label)).toEqual(["=us"]);
 		expect(rows("name:api*")).toEqual([]);
+	});
+
+	test("quotes a value that would split or close a group, and counts it", () => {
+		type Task = { name: string; state: string };
+		const grammar: FilterGrammar<Task> = {
+			syntax: "full",
+			keys: [
+				{ key: "name", description: "Name", type: "text", getValue: (item) => item.name },
+				{
+					key: "state",
+					description: "State",
+					type: "enum",
+					values: [{ value: "in progress" }],
+					getValue: (item) => item.state,
+				},
+			],
+			getSearchText: (item) => item.name,
+		};
+		const items = [{ name: "fn(x)", state: "in progress" }];
+		const suggest = (query: string, caretIndex = query.length) =>
+			getFilterSuggestions({ grammar, query, caretIndex, items }).items.map((row) => [
+				row.insertText,
+				row.matchCount,
+			]);
+
+		expect(suggest("state:")).toEqual([['"in progress"', 1]]);
+		expect(suggest('(name:"fn(x)")', 13)).toEqual([
+			['="fn(x)"', 1],
+			['"fn(x)"*', 1],
+			['*"fn(x)"', 1],
+		]);
 	});
 
 	test("offers true and false for a boolean key", () => {

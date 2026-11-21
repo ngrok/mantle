@@ -15,6 +15,6 @@ This is a breaking change:
 
 - `FilterToken` has three new kinds: `"not"`, `"group-start"`, and `"group-end"`. Handle them where you switch on `token.kind`.
 - `FilterKeyDefinition` is a union of a key with `matches` and a typed key with `getValue`. Narrow a key with `definition.matches != null` before you call `matches`.
-- Under the `"full"` and `"conjunction"` syntax, a term that starts with `!`, the bare word `NOT`, and a `(` or `)` at the edge of a term now parse as structure. Quote such a term to keep searching for it: `"!important"`.
+- Under the `"full"` and `"conjunction"` syntax, a term that starts with `!`, the bare word `NOT`, and a `(` or `)` at the edge of a term now parse as structure. Quote such a term to keep searching for it: `"!important"`. `quoteFilterValue` now quotes a value that holds a parenthesis, and groups nest 32 deep at most.
 
 See the [migration guide](https://mantle.ngrok.com/migrations/0032-query-filter-operators-migration).

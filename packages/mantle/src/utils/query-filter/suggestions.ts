@@ -306,10 +306,8 @@ function getValueSuggestions<Item extends object>(
 		)
 		.filter((candidate) => !pickedElsewhere.has(candidate.value.toLowerCase()))
 		.map((candidate): FilterSuggestion => {
-			// A `"qualifiers"` grammar reads quotes as literal text, and a typed
-			// value such as `>7d` needs none, so both take the value as is.
-			const insertText =
-				quotes && definition.type == null ? quoteFilterValue(candidate.value) : candidate.value;
+			// A `"qualifiers"` grammar reads quotes as literal text, so it takes the value as is.
+			const insertText = quotes ? quoteFilterValue(candidate.value) : candidate.value;
 
 			return {
 				section: "values",

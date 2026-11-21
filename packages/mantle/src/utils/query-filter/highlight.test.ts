@@ -122,6 +122,28 @@ describe("getHighlightSegments", () => {
 		]);
 	});
 
+	test("paints the negation of a key that cannot exclude, as the checker reads it", () => {
+		const kinds = (query: string) =>
+			getHighlightSegments(typedTestGrammar, query)
+				.filter((segment) => segment.kind !== "plain")
+				.map((segment) => `${segment.text}:${segment.kind}`);
+
+		expect(kinds("NOT canary:true")).toEqual([
+			"NOT:operator",
+			"canary:invalid",
+			"::syntax",
+			"true:value",
+		]);
+		expect(kinds("NOT -canary:true")).toEqual([
+			"NOT:operator",
+			"-:syntax",
+			"canary:key",
+			"::syntax",
+			"true:value",
+		]);
+		expect(kinds("-(-canary:true)")).toContain("-:syntax");
+	});
+
 	test("paints a typed value invalid when it does not parse or its operator is not accepted", () => {
 		const kinds = (query: string) =>
 			getHighlightSegments(typedTestGrammar, query)
