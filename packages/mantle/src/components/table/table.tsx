@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentProps, ComponentRef } from "react";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -745,11 +745,7 @@ export {
  */
 function useHorizontalOverflowObserver<T extends HTMLElement>() {
 	const ref = useRef<T | null>(null);
-	const [state, setState] = useState({
-		hasOverflow: false,
-		scrolledToStart: true,
-		scrolledToEnd: false,
-	});
+	const [state, setState] = useState({ hasOverflow: false, scrolledToEnd: false });
 
 	useLayoutEffect(() => {
 		const element = ref.current;
@@ -761,20 +757,14 @@ function useHorizontalOverflowObserver<T extends HTMLElement>() {
 
 		const checkState = () => {
 			const hasOverflow = element.scrollWidth > element.clientWidth;
-			const scrolledToStart = element.scrollLeft < 1;
 			const scrolledToEnd =
 				Math.abs(element.scrollWidth - element.scrollLeft - element.clientWidth) < 1;
 
-			setState((previous) => {
-				if (
-					previous.hasOverflow !== hasOverflow ||
-					previous.scrolledToStart !== scrolledToStart ||
-					previous.scrolledToEnd !== scrolledToEnd
-				) {
-					return { hasOverflow, scrolledToStart, scrolledToEnd };
-				}
-				return previous; // No state change
-			});
+			setState((previous) =>
+				previous.hasOverflow === hasOverflow && previous.scrolledToEnd === scrolledToEnd
+					? previous
+					: { hasOverflow, scrolledToEnd },
+			);
 		};
 
 		// Coalesce rapid-fire events (scroll, mutation) into a single
@@ -811,5 +801,5 @@ function useHorizontalOverflowObserver<T extends HTMLElement>() {
 		};
 	}, []);
 
-	return useMemo(() => ({ ref, state }), [state]);
+	return { ref, state };
 }
