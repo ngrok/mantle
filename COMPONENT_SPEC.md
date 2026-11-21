@@ -434,9 +434,10 @@ CONVENTIONS.md covers general style ([TypeScript](./CONVENTIONS.md#typescript),
   When in doubt, add it: the cost is negligible.
 - A stateless file starts with `"use no memo"` instead, and a `Why` comment, so a server component can render it
   (`media-object/media-object.tsx`). Compiled output imports a cache hook, so the build marks the chunk
-  `"use client"` and the part ships JavaScript. A part that spreads its props onto one element gets no
-  memoization from the compiler, because the rest object is new on each render. A file is stateless when each
-  component in it obeys all four rules; other files stay compiled.
+  `"use client"` and the part ships JavaScript. The compiler saves little in a part that spreads its props onto
+  one element: the rest object is new on each render, so it rebuilds the element each time and caches only small
+  calls such as `cx`. A file is stateless when each component in it obeys all four rules; other files stay
+  compiled.
   - It calls no hook, reads no context, and uses no browser API.
   - It adds no event handler of its own.
   - It has no `"use client"`.

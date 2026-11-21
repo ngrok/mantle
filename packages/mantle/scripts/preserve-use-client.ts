@@ -1,17 +1,34 @@
 /** Matches an import of the React Compiler runtime in an output chunk. */
 const COMPILER_RUNTIME_IMPORT_RE = /["']react\/compiler-runtime["']/;
 
-/** Builds a regex that matches a module whose directive prologue holds `directive`, after any comments. */
-const directiveRe = (directive: string) =>
-	new RegExp(
-		`^(?:\\s|//[^\\n]*\\n|/\\*[\\s\\S]*?\\*/|["']use [^"'\\n]+["'];?)*["']${directive}["']`,
-	);
-const USE_CLIENT_RE = directiveRe("use client");
-const USE_NO_MEMO_RE = directiveRe("use no memo");
+/**
+ * Matches one token of a directive prologue: whitespace, a comment, or a string statement.
+ * Why sticky (`y`): each match must start where the last one ended, so a lazy block comment
+ * stops at its first `*\/` and never spans code.
+ */
+const PROLOGUE_TOKEN_RE = /\s+|\/\/[^\n]*|\/\*[\s\S]*?\*\/|"([^"\\\n]*)"\s*;?|'([^'\\\n]*)'\s*;?/y;
 
 /** Matches the source modules that the build transforms, but not their declarations. */
 const SOURCE_RE = /[\\/]src[\\/].+\.tsx?$/;
 const DECLARATION_RE = /\.d\.[cm]?ts$/;
+
+/**
+ * Reads the directives at the top of a module, before its first statement that is not a string.
+ *
+ * @example
+ * readDirectives('// Note.\n"use no memo";\n"use client";\nexport {};'); // => ["use no memo", "use client"]
+ */
+function readDirectives(code: string): string[] {
+	const directives: string[] = [];
+	const tokenRe = new RegExp(PROLOGUE_TOKEN_RE);
+	for (let match = tokenRe.exec(code); match?.[0]; match = tokenRe.exec(code)) {
+		const directive = match[1] ?? match[2];
+		if (directive != null) {
+			directives.push(directive);
+		}
+	}
+	return directives;
+}
 
 /**
  * Reports whether a source module starts with the `"use client"` directive.
@@ -20,7 +37,7 @@ const DECLARATION_RE = /\.d\.[cm]?ts$/;
  * hasUseClientDirective('"use client";\nimport { useState } from "react";'); // => true
  */
 function hasUseClientDirective(code: string): boolean {
-	return USE_CLIENT_RE.test(code);
+	return readDirectives(code).includes("use client");
 }
 
 /**
@@ -31,7 +48,7 @@ function hasUseClientDirective(code: string): boolean {
  * hasFileUseNoMemoDirective('"use no memo";\nimport { cx } from "./cx.js";'); // => true
  */
 function hasFileUseNoMemoDirective(code: string): boolean {
-	return USE_NO_MEMO_RE.test(code);
+	return readDirectives(code).includes("use no memo");
 }
 
 /**
@@ -127,11 +144,17 @@ function preserveUseClient({
 			order: "pre" as const,
 			filter: { id: { include: SOURCE_RE, exclude: DECLARATION_RE } },
 			handler: (code: string, id: string) => {
+				// Why delete as well as add: a watch rebuild transforms a changed module again, and an
+				// edit can remove its directive.
 				if (hasUseClientDirective(code)) {
 					clientModuleIds.add(id);
+				} else {
+					clientModuleIds.delete(id);
 				}
 				if (hasFileUseNoMemoDirective(code)) {
 					serverModuleIds.add(id);
+				} else {
+					serverModuleIds.delete(id);
 				}
 				return null;
 			},
