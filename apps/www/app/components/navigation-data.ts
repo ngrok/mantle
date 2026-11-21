@@ -588,6 +588,14 @@ export const migrations = [
 			"Select no longer uses Radix Select. Select.Content drops its positioning props, the list is not modal, and the --radix-select-* CSS variables are gone.",
 		route: "/migrations/0017-select-owned-behavior-migration",
 	},
+	{
+		number: 18,
+		slug: "combobox-owned-behavior-migration",
+		title: "Combobox Owned Behavior",
+		description:
+			"Combobox no longer uses Ariakit. Its parts take a fixed set of props, Combobox.Content portals, and the highlighted item carries data-highlighted.",
+		route: "/migrations/0018-combobox-owned-behavior-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

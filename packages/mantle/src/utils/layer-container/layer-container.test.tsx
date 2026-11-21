@@ -672,11 +672,9 @@ describe("layer containers", () => {
 	});
 
 	describe("layers with their own placement rules", () => {
-		test("Combobox renders its popup in place, inside the dialog content element", async () => {
-			// The dialog primitive's Escape guard requires the popup to be a DOM
-			// descendant of the dialog content (`currentTarget.contains(popup)`),
-			// so `Combobox.Content` must never portal. Adding Ariakit's `portal`
-			// prop to it turns this red and breaks Escape inside dialogs.
+		test("Combobox portals its popup into the dialog's positioner, as Select does", async () => {
+			// The Escape guard of the dialog primitive needs the popup inside the
+			// dialog's layer container. combobox.browser.test.tsx covers the Escape.
 			const user = userEvent.setup();
 			render(
 				overlays[0].renderOpen(
@@ -693,8 +691,7 @@ describe("layer containers", () => {
 			await user.keyboard("App");
 			const popup = await screen.findByRole("listbox");
 
-			const dialogContent = getPositioner("dialog-content");
-			expect(dialogContent.contains(popup)).toBe(true);
+			expect(getPositioner("dialog-positioner").contains(popup)).toBe(true);
 		});
 
 		test("MultiSelect portals its popup into the dialog's `data-mantle-modal-content` element", async () => {
