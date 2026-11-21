@@ -89,10 +89,13 @@ find-in-page behavior above, and [Field](/components/forms/field) is real
 `<fieldset>`/`<legend>`/`<label>` elements with Mantle-owned wiring. Where the behavior
 is genuinely hard, Mantle wraps the best engine for that specific problem:
 [Radix](https://www.radix-ui.com) for [Dialog](/components/overlays/dialog),
-[Ariakit](https://ariakit.org) for [Combobox](/components/forms/combobox),
+[Ariakit](https://ariakit.org) for [MultiSelect](/components/forms/multi-select),
 cmdk for
 [Command](/components/navigation/command), TanStack Table for [DataTable](/components/data-display/data-table),
 sonner (mounted unstyled) for [Toast](/components/feedback/toast).
+[Select](/components/forms/select), [Combobox](/components/forms/combobox), and
+[RadioGroup](/components/forms/radio-group) run on Mantle's own behavior hooks, which follow
+the WAI-ARIA patterns. Select and Combobox share one listbox hook, so a page with both pays for it once.
 
 You can't tell which is which from the outside, and that's the point. Every foundation
 is normalized behind one house API: flat compound namespaces, `asChild` polymorphism, a
