@@ -225,7 +225,7 @@ const P = ({
 	return (
 		<Component
 			data-slot={joinDataSlot(dataSlot, "typography-p")}
-			className={cx("text-paragraph-base text-body text-pretty wrap-break-word", className)}
+			className={cx("text-paragraph-base text-body text-pretty wrap-anywhere", className)}
 			{...props}
 		/>
 	);

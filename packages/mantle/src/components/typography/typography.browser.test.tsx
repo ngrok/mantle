@@ -16,12 +16,14 @@ afterAll(() => {
 	styleElement.remove();
 });
 
-test("a heading with one long word wraps inside a narrow flex parent", () => {
+test.each([
+	["heading", Typography.H1],
+	["paragraph", Typography.P],
+])("a %s with one long word wraps inside a narrow flex parent", (_, Part) => {
 	render(
 		<div style={{ display: "flex", width: 120 }}>
-			<Typography.H1>SandboxedOnClickProvider</Typography.H1>
+			<Part data-testid="part">SandboxedOnClickProvider</Part>
 		</div>,
 	);
-	const heading = screen.getByRole("heading", { level: 1 });
-	expect(heading.getBoundingClientRect().width).toBeLessThanOrEqual(120);
+	expect(screen.getByTestId("part").getBoundingClientRect().width).toBeLessThanOrEqual(120);
 });
