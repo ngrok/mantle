@@ -1,8 +1,10 @@
 import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { createRef, useState } from "react";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import * as Field from "../field/field-parts.js";
@@ -239,8 +241,8 @@ describe("Select", () => {
 			const value = trigger.querySelector('[data-slot="select-value"]');
 			expect(value).toBeInTheDocument();
 			expect(value?.parentElement).toBe(triggerLabel);
-			// Radix portals the selected item's children into the value node, so
-			// the label span is the node it later removes.
+			// The value renders a copy of the selected item's label span, so the
+			// span is the node React later removes.
 			expect(value?.querySelector('[data-slot="select-item-label"]')).toHaveTextContent("Apple");
 
 			await user.click(trigger);
@@ -497,7 +499,7 @@ describe("Select", () => {
 			expect(banana).toHaveAttribute("data-state", "unchecked");
 			expect(cherry).toHaveAttribute("data-disabled", "");
 			expect(banana).not.toHaveAttribute("data-disabled");
-			// Radix focuses the selected item when the list opens, so it is highlighted.
+			// The list opens with the selected item highlighted.
 			expect(apple).toHaveAttribute("data-highlighted", "");
 			expect(banana).not.toHaveAttribute("data-highlighted");
 
@@ -525,13 +527,8 @@ describe("Select", () => {
 				</Select.Root>,
 			);
 
-			// Why this pins a missing attribute: Radix 2.3.7 hands `Slot` a keyed
-			// Fragment, so an `asChild` child receives none of the value's props, and
-			// the docs page marks the path unsupported. When this assertion fails,
-			// Radix fixed the Fragment wrap: drop the warning from the docs page and
-			// the JSDoc, and assert the joined slot here instead.
 			const value = screen.getByTestId("value");
-			expect(value).not.toHaveAttribute("data-slot");
+			expect(value).toHaveAttribute("data-slot", "select-value");
 			expect(value.parentElement).toBe(
 				screen.getByRole("combobox").querySelector('[data-slot="select-trigger-label"]'),
 			);
@@ -890,7 +887,7 @@ describe("Select", () => {
 
 			const label = option.querySelector('[data-slot="select-item-label"]');
 			expect(label).toHaveTextContent("Apple");
-			expect(label?.parentElement?.parentElement).toBe(option);
+			expect(label?.parentElement).toBe(option);
 			expect(option.querySelector("svg")).toBeInTheDocument();
 			expect(Array.from(option.childNodes).every((node) => node instanceof Element)).toBe(true);
 		});
@@ -913,14 +910,12 @@ describe("Select", () => {
 
 		/**
 		 * Translates both copies of the slotted option's label: the one in the list,
-		 * and the one Radix portals into `Select.Value`.
+		 * and the copy in `Select.Value`.
 		 */
 		function renderTranslatedSlottedPicker() {
 			const view = render(<SlottedPicker label="Apple" />);
 			const option = screen.getByRole("option", { name: "Apple" });
-			// Why `hidden`: while the list is open, Radix marks the rest of the page
-			// `aria-hidden`, and the trigger with it.
-			const trigger = screen.getByRole("combobox", { hidden: true });
+			const trigger = screen.getByRole("combobox");
 			translateTextNodes(option);
 			translateTextNodes(trigger);
 			expect(option).toHaveTextContent("[Apple-es]");
@@ -1033,5 +1028,45 @@ describe("Select", () => {
 				screen.getByRole("option", { name: "Banana" }).querySelector('[data-slot~="icon"]'),
 			).toBeNull();
 		});
+	});
+
+	test("hydrates server markup with no mismatch, then shows the selected item's text", () => {
+		const element = (
+			<form>
+				<Select.Root name="fruit" defaultValue="banana">
+					<Select.Trigger>
+						<Select.Value placeholder="Pick a fruit" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+						<Select.Item value="banana">Banana</Select.Item>
+					</Select.Content>
+				</Select.Root>
+			</form>
+		);
+		const container = document.createElement("div");
+		container.innerHTML = renderToString(element);
+		document.body.append(container);
+		const serverTrigger = container.querySelector('[role="combobox"]');
+		// Why: the items mount after hydration, so the server markup shows no item text,
+		// and a selected value never shows the placeholder.
+		expect(serverTrigger?.textContent).toBe("");
+		expect(serverTrigger).toHaveAttribute("aria-expanded", "false");
+		expect(container.querySelector("select")).toHaveValue("banana");
+		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		const onRecoverableError = vi.fn<(error: unknown) => void>();
+		let root: ReturnType<typeof hydrateRoot> | undefined;
+		act(() => {
+			root = hydrateRoot(container, element, { onRecoverableError });
+		});
+		expect(onRecoverableError).toHaveBeenCalledTimes(0);
+		expect(consoleError).toHaveBeenCalledTimes(0);
+		expect(container.querySelector('[role="combobox"]')).toBe(serverTrigger);
+		expect(serverTrigger).toHaveTextContent("Banana");
+		act(() => {
+			root?.unmount();
+		});
+		container.remove();
+		consoleError.mockRestore();
 	});
 });

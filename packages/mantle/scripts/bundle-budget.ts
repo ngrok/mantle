@@ -139,7 +139,7 @@ const main = async (): Promise<void> => {
 		}
 	}
 	if (update) {
-		fs.writeFileSync(BUDGET_FILE, `${JSON.stringify(budget, null, "\t")}\n`);
+		fs.writeFileSync(BUDGET_FILE, `${JSON.stringify(budget, null, 2)}\n`);
 		console.log(`Wrote ${path.relative(process.cwd(), BUDGET_FILE)}.`);
 		return;
 	}
