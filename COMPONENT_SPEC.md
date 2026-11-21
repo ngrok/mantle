@@ -437,9 +437,6 @@ CONVENTIONS.md covers general style ([TypeScript](./CONVENTIONS.md#typescript),
 
 - `"use client";` on the first line when the file uses hooks, DOM event handlers, browser APIs, or context.
   A file that uses none of them leaves it out ([§3.7](#37-ssr-and-first-paint)).
-- Stay safe for React Server Components where it costs nothing. Mantle apps do not use them, so they never
-  justify a change to client behavior, a new file or wrapper, or `"use no memo"`
-  ([CONVENTIONS.md § React Compiler](./CONVENTIONS.md#react-compiler)).
 - Named exports only, no default exports. Relative imports ending in `.js` (`../../utils/cx/cx.js`).
 - `type`, not `interface`. Props based on `ComponentProps<…>`, which already includes `ref`. Never
   `HTMLAttributes<…>` alone, which does not.
