@@ -323,10 +323,16 @@ in a plain stylesheet (a third-party widget override) resolves to nothing.
 	--text-mono: 0.8125rem;
 	--text-mono--line-height: 1.25rem;
 	--text-size-inherit: inherit;
+}
 
-	/* Semantic tokens - reference values defined in theme-specific :root blocks.
-	   Using @theme inline so Tailwind registers these for utility generation
-	   without emitting redundant CSS custom property declarations. */
+/*
+The semantic tokens. The theme blocks below set their values. This block only registers the
+names, so that Tailwind makes the utilities (`bg-card`, `text-muted`, …).
+Why `reference`: without it, Tailwind also writes each `--x: var(--x)` into `@layer theme`.
+That declaration is a cycle, so it is invalid. On `:root` the theme blocks override it. On a
+shadow `:host` it makes the token invalid, so the host does not inherit the page value.
+*/
+@theme inline reference {
 	--background-color-base: var(--background-color-base);
 	--background-color-card: var(--background-color-card);
 	--background-color-popover: var(--background-color-popover);

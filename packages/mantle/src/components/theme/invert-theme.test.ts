@@ -266,7 +266,7 @@ describe("the @theme inline resolution premise", () => {
 	test("every theme-block token registered in @theme inline is a var() reference to a theme-declared property", () => {
 		const inlineBlock = parseDeclarationBlock(
 			mantleCss,
-			(selector) => selector === "@theme inline",
+			(selector) => selector === "@theme inline reference",
 		);
 		const themeDeclared = new Set([...lightBlock.keys(), ...darkBlock.keys()]);
 		const covered = [...inlineBlock].filter(([property]) => themeDeclared.has(property));
