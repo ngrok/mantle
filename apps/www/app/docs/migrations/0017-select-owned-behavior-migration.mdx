@@ -1,6 +1,6 @@
 ---
 title: Select Owned Behavior Migration
-description: Select no longer uses Radix Select. Select.Content drops its positioning props, the list is not modal, and the --radix-select-* CSS variables are gone.
+description: Select no longer uses Radix Select. Select.Content drops its positioning props and Radix handlers, and the --radix-select-* CSS variables are gone.
 introducedIn: "0.95.0"
 ---
 
@@ -9,7 +9,7 @@ introducedIn: "0.95.0"
 `Select` no longer uses `@radix-ui/react-select`. Mantle's own behavior hooks drive it, and they follow the WAI-ARIA [select-only combobox](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-select-only/) pattern. The parts, the `value` and `open` props, the keyboard, and the data attributes stay the same. Three things change:
 
 - `Select.Content` takes no positioning props. The list opens below the trigger, or above it when the space below is too small.
-- The list is not modal. While it is open, the page keeps scrolling, and the rest of the page keeps its accessibility tree.
+- The list stays modal, as it was with Radix: the page does not scroll and the rest of the page is inert while it is open. Tab no longer moves focus out of an open list. Pick with Enter, or close with Escape.
 - The `--radix-select-*` CSS variables are gone. `--anchor-width`, `--anchor-height`, and `--available-height` replace them.
 
 `Select` costs 18.5 KB gzip in place of 43.2 KB (React external).
@@ -38,10 +38,10 @@ The rules apply step 2. They delete each positioning prop from `Select.Content`,
 2. Delete these props from `Select.Content`: `position`, `side`, `sideOffset`, `align`, `alignOffset`, `avoidCollisions`, `collisionBoundary`, `collisionPadding`, `arrowPadding`, `sticky`, `hideWhenDetached`, and `updatePositionStrategy`. Keep `width` and `className`.
 3. Find `onEscapeKeyDown`, `onPointerDownOutside`, `onInteractOutside`, `onFocusOutside`, `onCloseAutoFocus`, and `forceMount` on `Select.Content`. The type checker names each one. Delete each prop. When the handler ran code on close, move that code to `onOpenChange` on `Select.Root` and run it when `open` is `false`. When the handler called `event.preventDefault()` to keep the list open, control `open` instead.
 4. Search class strings and CSS for `--radix-select-`. Replace `--radix-select-trigger-width` with `--anchor-width`, `--radix-select-trigger-height` with `--anchor-height`, and `--radix-select-content-available-height` with `--available-height`. Delete a `--radix-select-content-transform-origin` read: no variable replaces it.
-5. In tests, find queries that pass `{ hidden: true }` only because an open select hid the rest of the page, such as `getByRole("combobox", { hidden: true })`. Delete the option. Also check a `data-side` assertion: it is now only `"top"` or `"bottom"`.
+5. In tests, find queries that pass `{ hidden: true }` only because Radix hid the trigger while the list was open, such as `getByRole("combobox", { hidden: true })`. Delete the option. Also check a `data-side` assertion: it is now only `"top"` or `"bottom"`.
 6. After editing, run the project's formatter, linter, type checker, and tests.
 
-> **Why own the behavior?** Radix Select and Ariakit's combobox each shipped their own selection state, focus, dismissal, and positioning, so a page with both paid for two copies. Mantle's `useListbox` hook now holds that behavior once for `Select`, and `Combobox` and `MultiSelect` move to it next. A select is a form control, not a dialog, so the list no longer locks scrolling or hides the page.
+> **Why own the behavior?** Radix Select and Ariakit's combobox each shipped their own selection state, focus, dismissal, and positioning, so a page with both paid for two copies. Mantle's `useListbox` hook now holds that behavior once for `Select`, and `Combobox` and `MultiSelect` move to it next. The list stays modal, and the page behind it is `inert`, so the trigger that keeps focus stays exposed to screen readers.
 
 ---
 
@@ -110,7 +110,7 @@ The rules apply step 2. They delete each positioning prop from `Select.Content`,
 ## Edge cases & gotchas
 
 - DOM focus stays on the trigger while the list is open. `aria-activedescendant` on the trigger names the highlighted option. A test that read `document.activeElement` as the highlighted option now reads the trigger: use `aria-activedescendant` or the option's `data-highlighted` instead.
-- The items mount after hydration. A server-rendered page shows no item text for a selected value until it hydrates. Pass the text as `children` of `Select.Value` when it must be in the first paint.
+- A server-rendered page now shows the selected item's text in its first paint. `Select.Value` reads it from the `Select.Item` elements. When a component of your own renders the item, pass the text as `children` of `Select.Value`.
 - `Select.Value asChild` now merges the value's props onto your element.
 - Inside a `Dialog`, the first Escape closes the list and the second closes the dialog, as before.
 

@@ -1043,7 +1043,7 @@ test("a click in a float composed in the bar leaves an open dialog open", async 
 	expect(onOpenChange).not.toHaveBeenCalled();
 });
 
-test("a MultiSelect composed in the bar opens and leaves page scroll alone", async () => {
+test("a MultiSelect composed in the bar still locks page scroll", async () => {
 	const user = userEvent.setup();
 	render(
 		<Sandbar.Root open>
@@ -1065,6 +1065,8 @@ test("a MultiSelect composed in the bar opens and leaves page scroll alone", asy
 	await user.click(screen.getByRole("combobox"));
 	await screen.findByRole("listbox");
 
-	// Why: the MultiSelect list is not modal, and the bar is not a modal either.
-	expect(document.documentElement.style.overflowY).toBe("");
+	// Why: the bar is not a modal, so no overlay locks scroll for the MultiSelect.
+	await waitFor(() => {
+		expect(document.documentElement.style.overflow).toBe("hidden");
+	});
 });

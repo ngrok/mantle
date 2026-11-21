@@ -13,6 +13,7 @@ import type {
 import { cloneElement, createContext, isValidElement, use, useId, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { composeHandlers } from "../../behaviors/compose-handlers.js";
+import { enterModal } from "../../behaviors/enter-modal.js";
 import { useStoreValue } from "../../behaviors/store.js";
 import { useOption } from "../../behaviors/use-listbox.js";
 import { usePopup } from "../../behaviors/use-popup.js";
@@ -45,7 +46,54 @@ type SelectContextType = SelectBehavior &
 		 * Event handler called when the trigger button blurs.
 		 */
 		onBlur?: (event: FocusEvent<HTMLButtonElement>) => void;
+		/**
+		 * Finds the label of the `Select.Item` with `value` among the root's
+		 * children, before the items mount.
+		 */
+		labelFor: (value: string) => ItemLabel | null;
 	} & Pick<ComponentProps<"button">, "id">;
+
+/** The label that `Select.Value` shows for the selected item. */
+type ItemLabel = { value: string; label: ReactNode; translate?: "yes" | "no" };
+
+type ItemElementProps = {
+	asChild?: boolean;
+	children?: ReactNode;
+	translate?: "yes" | "no";
+	value?: unknown;
+};
+
+/**
+ * Walks an element tree for the `Select.Item` with `value` and returns its
+ * label. It reads the elements that the caller wrote, so it works on the
+ * server, and it misses an item that a component of your own renders. It
+ * stops at the first match.
+ */
+const isNodeList = (node: ReactNode): node is readonly ReactNode[] => Array.isArray(node);
+
+const findItemLabel = (node: ReactNode, value: string): ItemLabel | null => {
+	if (isNodeList(node)) {
+		for (const child of node) {
+			const found = findItemLabel(child, value);
+			if (found != null) {
+				return found;
+			}
+		}
+		return null;
+	}
+	if (!isValidElement<ItemElementProps>(node)) {
+		return null;
+	}
+	const { asChild, children, translate } = node.props;
+	if (node.type === Item && node.props.value === value) {
+		const label =
+			asChild && isValidElement<{ children?: ReactNode }>(children)
+				? children.props.children
+				: children;
+		return { value, label, translate };
+	}
+	return findItemLabel(children, value);
+};
 
 const SelectContext = createContext<SelectContextType | null>(null);
 
@@ -232,8 +280,17 @@ const Root = ({
 		}
 	};
 	const contextValue = useMemo(
-		() => ({ ...select, "aria-invalid": ariaInvalid, dir, id, onBlur, ref, validation }),
-		[select, ariaInvalid, dir, id, onBlur, ref, validation],
+		() => ({
+			...select,
+			"aria-invalid": ariaInvalid,
+			dir,
+			id,
+			labelFor: (item: string) => findItemLabel(children, item),
+			onBlur,
+			ref,
+			validation,
+		}),
+		[select, ariaInvalid, children, dir, id, onBlur, ref, validation],
 	);
 	return (
 		<SelectContext value={contextValue}>
@@ -355,9 +412,10 @@ type SelectValueProps = Omit<ComponentProps<"span">, "placeholder"> &
  * a browser translation engine reparents text nodes, and a removal aimed at a
  * reparented text node does.
  *
- * **Server render.** The items mount after hydration, so the server markup
- * and the first client render show no item text for a selected value. Pass
- * `children` when the selected text must be in the first paint.
+ * **Server render.** Before the items mount, the value reads the selected
+ * item's text from the `Select.Item` elements under `Select.Root`, so the
+ * server markup shows it. When a component of your own renders the item,
+ * pass the text as `children`.
  *
  * **`asChild`.** The value's props merge onto your single child, which renders
  * as-is: no label span and no placeholder.
@@ -401,9 +459,16 @@ const Value = ({
 	ref,
 	...props
 }: SelectValueProps) => {
-	const { listbox, value } = useSelectContext();
+	const { labelFor, listbox, value } = useSelectContext();
 	const selectedLabel = useStoreValue(listbox.store, (state) => state.selectedLabel);
-	const label = selectedLabel?.value === value ? selectedLabel : null;
+	// Why `""` counts as no value: a cleared select shows its placeholder, as a native select does.
+	const hasValue = value != null && value !== "";
+	// Why the fallback: on the server and before the items mount, no item has
+	// reported its label yet, so the value reads it from the item elements.
+	let label = selectedLabel?.value === value ? selectedLabel : null;
+	if (label == null && hasValue && children == null) {
+		label = labelFor(value);
+	}
 	if (asChild) {
 		return (
 			<Slot ref={ref} data-slot={joinDataSlot(dataSlot, "select-value")} {...props}>
@@ -411,8 +476,6 @@ const Value = ({
 			</Slot>
 		);
 	}
-	// Why `""` counts as no value: a cleared select shows its placeholder, as a native select does.
-	const hasValue = value != null && value !== "";
 	return (
 		<span ref={ref} data-slot={joinDataSlot(dataSlot, "select-value")} {...props}>
 			{/* Why the spans: decisions/2026-08-04-translation-safe-label-wrappers.md */}
@@ -660,6 +723,7 @@ const Content = ({
 		open,
 		anchorRef: triggerRef,
 		container: useLayerContainer(),
+		modal: enterModal,
 	});
 	const composedRef = useComposedRefs(ref, listbox.ref, popupRef);
 

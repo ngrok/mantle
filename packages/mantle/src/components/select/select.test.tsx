@@ -1030,7 +1030,7 @@ describe("Select", () => {
 		});
 	});
 
-	test("hydrates server markup with no mismatch, then shows the selected item's text", () => {
+	test("server markup shows the selected item's text and hydrates with no mismatch", () => {
 		const element = (
 			<form>
 				<Select.Root name="fruit" defaultValue="banana">
@@ -1039,7 +1039,11 @@ describe("Select", () => {
 					</Select.Trigger>
 					<Select.Content>
 						<Select.Item value="apple">Apple</Select.Item>
-						<Select.Item value="banana">Banana</Select.Item>
+						<Select.Group>
+							<Select.Item value="banana" translate="no">
+								Banana
+							</Select.Item>
+						</Select.Group>
 					</Select.Content>
 				</Select.Root>
 			</form>
@@ -1048,9 +1052,13 @@ describe("Select", () => {
 		container.innerHTML = renderToString(element);
 		document.body.append(container);
 		const serverTrigger = container.querySelector('[role="combobox"]');
-		// Why: the items mount after hydration, so the server markup shows no item text,
-		// and a selected value never shows the placeholder.
-		expect(serverTrigger?.textContent).toBe("");
+		// Why: the items mount after hydration, so the value reads the selected
+		// item's label from the item elements, and the first paint shows it.
+		expect(serverTrigger?.textContent).toBe("Banana");
+		expect(serverTrigger?.querySelector('[data-slot="select-item-label"]')).toHaveAttribute(
+			"translate",
+			"no",
+		);
 		expect(serverTrigger).toHaveAttribute("aria-expanded", "false");
 		expect(container.querySelector("select")).toHaveValue("banana");
 		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});

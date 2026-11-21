@@ -11,5 +11,5 @@ Breaking changes. Follow the [migration guide](https://mantle.ngrok.com/migratio
 
 - Each part takes the props of its element plus a fixed set of its own, not every Ariakit prop.
 - `MultiSelect.Root` takes `inputValue`, `defaultInputValue`, and `setInputValue`. Ariakit's deprecated `value`, `defaultValue`, and `setValue` are gone.
-- The list is not modal. `MultiSelect.Content` drops `modal`, `backdrop`, `preventBodyScroll`, `portalElement`, `unmountOnHide`, and the other Ariakit popover props, and portals into the nearest overlay's positioner, or into `document.body`.
+- The list is always modal, as Ariakit made it by default. `MultiSelect.Content` drops `modal`, `backdrop`, `preventBodyScroll`, `portalElement`, `unmountOnHide`, and the other Ariakit popover props, and portals into the nearest overlay's positioner, or into `document.body`.
 - `MultiSelect.Item` drops `focusOnHover`. The highlighted item carries `data-highlighted` in place of `data-active-item`.

@@ -585,7 +585,7 @@ export const migrations = [
 		slug: "select-owned-behavior-migration",
 		title: "Select Owned Behavior",
 		description:
-			"Select no longer uses Radix Select. Select.Content drops its positioning props, the list is not modal, and the --radix-select-* CSS variables are gone.",
+			"Select no longer uses Radix Select. Select.Content drops its positioning props and Radix handlers, and the --radix-select-* CSS variables are gone.",
 		route: "/migrations/0017-select-owned-behavior-migration",
 	},
 	{
@@ -601,7 +601,7 @@ export const migrations = [
 		slug: "multi-select-owned-behavior-migration",
 		title: "MultiSelect Owned Behavior",
 		description:
-			"MultiSelect no longer uses Ariakit. Its parts take a fixed set of props, the list is not modal and portals into the layer container, and the highlighted item carries data-highlighted.",
+			"MultiSelect no longer uses Ariakit. Its parts take a fixed set of props, the list portals into the layer container, and the highlighted item carries data-highlighted.",
 		route: "/migrations/0019-multi-select-owned-behavior-migration",
 	},
 ] as const satisfies readonly Migration[];

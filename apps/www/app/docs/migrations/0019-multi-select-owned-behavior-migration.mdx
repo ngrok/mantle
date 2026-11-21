@@ -1,6 +1,6 @@
 ---
 title: MultiSelect Owned Behavior Migration
-description: MultiSelect no longer uses Ariakit. Its parts take a fixed set of props, the list is not modal and portals into the layer container, and the highlighted item carries data-highlighted.
+description: MultiSelect no longer uses Ariakit. Its parts take a fixed set of props, the list portals into the layer container, and the highlighted item carries data-highlighted.
 introducedIn: "0.95.0"
 ---
 
@@ -10,7 +10,7 @@ introducedIn: "0.95.0"
 
 - The parts no longer take every Ariakit prop. Each part takes the props of its element, plus the props on the [MultiSelect page](/components/forms/multi-select#api-reference).
 - `MultiSelect.Root` takes `inputValue`, `defaultInputValue`, and `setInputValue`. Ariakit's deprecated `value`, `defaultValue`, and `setValue` are gone.
-- The list is not modal. `MultiSelect.Content` drops `modal`, `backdrop`, `preventBodyScroll`, `portalElement`, `unmountOnHide`, and the other Ariakit popover props. It portals into the nearest overlay's positioner, or into `document.body`, as `Select.Content` does.
+- The list is always modal, as Ariakit made it by default. `MultiSelect.Content` drops `modal`, `backdrop`, `preventBodyScroll`, `portalElement`, `unmountOnHide`, and the other Ariakit popover props. It portals into the nearest overlay's positioner, or into `document.body`, as `Select.Content` does.
 - The highlighted item carries `data-highlighted` in place of `data-active-item`.
 - A closed list renders no items. The items mount when the list opens.
 
@@ -40,7 +40,7 @@ The rules apply steps 2 to 4. They rename the three text props on `MultiSelect.R
 2. On `MultiSelect.Root`, rename `value` to `inputValue`, `defaultValue` to `defaultInputValue`, and `setValue` to `setInputValue`. Keep `selectedValue`, `defaultSelectedValue`, `setSelectedValue`, `open`, `defaultOpen`, and `setOpen`.
 3. On `MultiSelect.Content`, delete `modal`, `backdrop`, `preventBodyScroll`, `portal`, `portalElement`, `unmountOnHide`, `gutter`, `shift`, `placement`, `fitViewport`, `flip`, `overflowPadding`, and `updatePosition`. Keep `sameWidth`, `asChild`, and `className`.
 4. On `MultiSelect.Item`, delete `focusOnHover`. An item always takes the highlight on hover.
-5. Run the type checker. For each Ariakit prop it names, delete the prop. A `useComboboxStore` from Ariakit has no replacement: control `inputValue`, `selectedValue`, and `open` on `MultiSelect.Root` instead. `hideOnInteractOutside` has no replacement: a press outside the trigger and the list always closes it.
+5. Run the type checker. For each Ariakit prop it names, delete the prop. A `useComboboxStore` from Ariakit has no replacement: control `inputValue`, `selectedValue`, and `open` on `MultiSelect.Root` instead. `hideOnInteractOutside` has no replacement: a press outside the trigger and the list always closes it. `modal={false}` has no replacement: the list is always modal.
 6. Search class strings, CSS, and tests for `data-active-item` and replace it with `data-highlighted`. Replace a `data-open` read on the list with `data-state="open"`.
 7. In tests, find code that expected the items in the DOM while the list was closed, or that read the list inside `[data-mantle-modal-content]`. Open the list first, and find the list inside the overlay's positioner (`[data-slot~="dialog-positioner"]`, `alert-dialog-positioner`, or `sheet-positioner`).
 8. After editing, run the project's formatter, linter, type checker, and tests.
@@ -60,7 +60,7 @@ The rules apply steps 2 to 4. They rename the three text props on `MultiSelect.R
 		<MultiSelect.TagValues />
 		<MultiSelect.Input placeholder="Select items..." />
 	</MultiSelect.Trigger>
-	<MultiSelect.Content modal={false} unmountOnHide={false}>
+	<MultiSelect.Content backdrop unmountOnHide={false}>
 		<MultiSelect.Item value="apple" focusOnHover>
 			Apple
 		</MultiSelect.Item>
