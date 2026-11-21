@@ -84,9 +84,22 @@ describe("findRecords", () => {
 		docsSlug: "recipes/list-page-loading-states",
 	};
 
-	it("calls a docs page weak when the query shares one title word, not its name", () => {
+	it("calls a pattern weak when the query shares one title word, not its name", () => {
 		expect(findRecords([listPage], { query: "page heading" })[0]?.strong).toBe(false);
-		expect(findRecords([listPage], { query: "list page loading" })[0]?.strong).toBe(true);
+		expect(findRecords([listPage], { query: "page" })[0]?.strong).toBe(false);
+		expect(findRecords([listPage], { query: "page loading states" })[0]?.strong).toBe(true);
+	});
+
+	it("calls a foundation page strong for an intent in its description", () => {
+		const colors: DocPageRecord = {
+			name: "Colors",
+			kind: "page",
+			summary: "Color system with automatic dark mode support",
+			docsUrl: "https://mantle.ngrok.com/base/colors",
+			docsSlug: "base/colors",
+		};
+
+		expect(findRecords([colors], { query: "dark mode" })[0]?.strong).toBe(true);
 	});
 
 	it("finds a pattern by an alias", () => {

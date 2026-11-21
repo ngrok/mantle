@@ -114,7 +114,7 @@ export type FindMatch<T extends FindRecord> = {
 	/**
 	 * Whether the record clearly answers the query: its name or an alias
 	 * matches, the query contains each word of its name and a second name or
-	 * alias word, or half the query words or more match. A docs page also needs
+	 * alias word, or half the query words or more match. A pattern also needs
 	 * the query to name it. When the top result is not strong, mantle may lack
 	 * a part for the query.
 	 */
@@ -243,14 +243,29 @@ function namedInQuery(record: FindRecord, queryWords: ReadonlySet<string>): bool
 }
 
 /**
- * Whether the query names a docs page: half or more of its title words, or
- * each word of one alias. Why: a page title is a sentence, so one shared word,
- * such as "page" in "List Page Loading States", is weak evidence.
+ * The title words of a pattern that no part names. Why: a pattern title is a
+ * sentence about parts. "Query" in "Query from the URL" names the Query part,
+ * so it must not rank the recipe above that part.
  */
-function namesPage(record: DocPageRecord, tokens: readonly string[]): boolean {
+function ownTitleWords(record: DocPageRecord, partWords: ReadonlySet<string>): string[] {
+	return keywordsFrom(record.name).filter(
+		(word) => !STOP_WORDS.has(word) && !partWords.has(singular(word)),
+	);
+}
+
+/**
+ * Whether the query names a pattern: half or more of its own title words, or
+ * each word of one alias. Why: one shared word, such as "page" in "List Page
+ * Loading States", is weak evidence.
+ */
+function namesPattern(
+	record: DocPageRecord,
+	tokens: readonly string[],
+	partWords: ReadonlySet<string>,
+): boolean {
 	const hitCount = (words: string[]) =>
 		words.filter((word) => tokens.some((token) => hits(word, token))).length;
-	const title = keywordsFrom(record.name).filter((word) => !STOP_WORDS.has(word));
+	const title = ownTitleWords(record, partWords);
 	if (title.length > 0 && hitCount(title) * 2 >= title.length) {
 		return true;
 	}
@@ -266,13 +281,26 @@ function weightedFields(
 	{
 		tokens,
 		nameWords,
+		partWords,
 		boundaries,
 	}: {
 		tokens: readonly string[];
 		nameWords: ReadonlySet<string>;
+		partWords: ReadonlySet<string>;
 		boundaries: ReadonlyMap<string, string[]>;
 	},
 ): [string[], number][] {
+	if (record.kind === "pattern") {
+		const own = ownTitleWords(record, partWords);
+		return [
+			[own, 10],
+			[keywordsFrom(record.name).filter((word) => !own.includes(word)), 3],
+			[aliasWords(record, tokens, nameWords), 8],
+			[keywordsFrom(record.useWhen), 4],
+			[keywordsFrom(record.docsSlug), 4],
+			[keywordsFrom(record.summary), 3],
+		];
+	}
 	if (isDocPage(record)) {
 		return [
 			[keywordsFrom(record.name), 10],
@@ -310,6 +338,11 @@ export function findRecords<T extends FindRecord>(
 		.filter((token) => !STOP_WORDS.has(token))
 		.map(singular);
 	const nameWords = new Set(records.flatMap((record) => keywordsFrom(record.name).map(singular)));
+	const partWords = new Set(
+		records
+			.filter((record) => !isDocPage(record))
+			.flatMap((record) => keywordsFrom(record.name).map(singular)),
+	);
 	const queryWords = new Set(wordsOf(query));
 	const boundaries = boundariesBySibling(records);
 
@@ -320,12 +353,12 @@ export function findRecords<T extends FindRecord>(
 			let nameScore = 0;
 			if (nameKeys.includes(wanted)) {
 				nameScore = 100;
-			} else if (wanted.length >= 3 && nameKeys[0]?.includes(wanted)) {
+			} else if (wanted.length >= 3 && record.kind !== "pattern" && nameKeys[0]?.includes(wanted)) {
 				nameScore = 40;
 			} else if (wanted.length >= 4 && nameKeys.some((key) => withinOneEdit(key, wanted))) {
 				nameScore = 30;
 			}
-			const fields = weightedFields(record, { tokens, nameWords, boundaries });
+			const fields = weightedFields(record, { tokens, nameWords, partWords, boundaries });
 			let wordScore = 0;
 			let matchedTokens = 0;
 			for (const token of tokens) {
@@ -343,7 +376,7 @@ export function findRecords<T extends FindRecord>(
 				namedInQuery(record, queryWords) ||
 				(wordScore >= STRONG_WORD_SCORE &&
 					matchedTokens * 2 >= tokens.length &&
-					(!isDocPage(record) || namesPage(record, tokens)));
+					(record.kind !== "pattern" || namesPattern(record, tokens, partWords)));
 			return { record, score: nameScore + wordScore, strong };
 		})
 		.filter(({ score }) => score > 0)
@@ -509,15 +542,22 @@ export function getPatternText({
 		.filter((line) => line != null)
 		.join("\n");
 	// Why the smaller budget: the header shares the result, and an outline beats a page cut mid-fence.
-	const page =
+	const fitted =
 		docsMarkdown == null
-			? ""
+			? undefined
 			: fitMarkdown({
 					markdown: docsMarkdown,
 					sections,
-					budgetBytes: RESULT_BUDGET_BYTES - new TextEncoder().encode(header).length - 2,
-				}).text.trim();
-	return truncate([header, page].filter(Boolean).join("\n\n"), RESULT_BUDGET_BYTES);
+					budgetBytes: RESULT_BUDGET_BYTES - new TextEncoder().encode(header).length - 200,
+				});
+	const missing =
+		fitted?.kind === "sections" && fitted.missing.length > 0
+			? `No heading matched: ${fitted.missing.join(", ")}.`
+			: undefined;
+	return truncate(
+		[header, fitted?.text.trim(), missing].filter(Boolean).join("\n\n"),
+		RESULT_BUDGET_BYTES,
+	);
 }
 
 /** Up to five record names close to `name`, for a miss. */

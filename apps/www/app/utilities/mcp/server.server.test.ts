@@ -457,6 +457,13 @@ describe("the mantle MCP server", () => {
 			"  - Dialog: `@ngrok/mantle/dialog`\n  - Toast: not in @ngrok/mantle@0.93.0",
 		);
 		expect(text).toContain("The code.");
+
+		const { text: missing } = await callTool(deps, "get", {
+			name: "Delete Flow",
+			sections: ["Usage"],
+		});
+
+		expect(missing).toContain("No heading matched: Usage.");
 	});
 
 	it("returns a tool error with close names for an unknown name, and logs it as not_found", async () => {
@@ -863,6 +870,10 @@ describe("the golden find queries", () => {
 		"skeleton rows while a table loads": "List Page Loading States",
 		"dialog loading state": "Overlays + Async Data (React Query)",
 		"sparkline in each table row": "Sparklines in a List",
+		"text search query": "Query",
+		"search filter": "Query",
+		"responsive adaptive layouts": "Breakpoints",
+		breadcrumbs: "Breadcrumb",
 	};
 
 	it.each(Object.entries(topResultByQuery))(
