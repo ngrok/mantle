@@ -1,0 +1,211 @@
+---
+title: Typography
+description: Headings and paragraphs in the site's type scale, for JSX and for MDX.
+aliases: [heading, paragraph, prose, h1, text]
+---
+
+import { Example } from "~/components/example";
+
+# Typography
+
+Headings and paragraphs in the site's type scale, for JSX and for MDX. Each part reads a type-role token, so a site sets its own scale in CSS and the markup stays the same.
+
+<Example name="components/data-display/typography/overview" title="Typography example">
+
+```tsx
+import { Typography } from "@ngrok/mantle/typography";
+
+<div className="flex flex-col items-start gap-4">
+	<Typography.H1>Endpoints</Typography.H1>
+	<Typography.P className="text-paragraph-lg">Each endpoint gets a public URL.</Typography.P>
+	<Typography.H2>Traffic policy</Typography.H2>
+	<Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
+</div>;
+```
+
+</Example>
+
+## When to use
+
+- Show a page title, a section heading, or a paragraph of copy in the site's type scale.
+- Render the `h1` to `h6` and `p` elements of MDX content: map each element to its part in your MDX `components`, as this docs site does.
+- Prefer `Card.Title` from [`Card`](/components/structure/card) for the title of a card.
+- Prefer `Dialog.Title` from [`Dialog`](/components/overlays/dialog) for the title of a dialog.
+- Prefer [`Code`](/components/data-display/code) for a fragment of code.
+
+## Headings
+
+`Typography.H1` through `Typography.H6` each render the heading element of their name. By default they use the `text-heading-5xl`, `3xl`, `2xl`, `xl`, `base`, and `xs` steps, the same steps as Tailwind's `text-*` scale. `Typography.H6` is also uppercase with wide letter spacing.
+
+<Example name="components/data-display/typography/headings" title="Typography headings example">
+
+```tsx
+import { Typography } from "@ngrok/mantle/typography";
+
+<div className="flex flex-col items-start gap-4">
+	<Typography.H1>Heading 1</Typography.H1>
+	<Typography.H2>Heading 2</Typography.H2>
+	<Typography.H3>Heading 3</Typography.H3>
+	<Typography.H4>Heading 4</Typography.H4>
+	<Typography.H5>Heading 5</Typography.H5>
+	<Typography.H6>Heading 6</Typography.H6>
+</div>;
+```
+
+</Example>
+
+## Another size
+
+The part sets the level in the document outline, and the step sets its size. To give a heading another size, pass a heading step in `className`, from `text-heading-xs` to `text-heading-8xl`. Your class replaces the part's own step. To change only the line height, add a `leading-*` class, such as `text-heading-xl leading-8`. Do not use the slash form `text-heading-xl/8`: Tailwind then sets only the size and the line height, so the heading loses the weight and letter spacing of its step.
+
+<Example name="components/data-display/typography/another-size" title="Typography heading with another size example">
+
+```tsx
+import { Typography } from "@ngrok/mantle/typography";
+
+<Typography.H2 className="text-heading-xl">Danger zone</Typography.H2>;
+```
+
+</Example>
+
+## Lead paragraph
+
+Pass `text-paragraph-lg` to `Typography.P` for the lead paragraph under a page title. Pass `text-paragraph-sm` for dense copy.
+
+<Example name="components/data-display/typography/lead-paragraph" title="Typography lead paragraph example">
+
+```tsx
+import { Typography } from "@ngrok/mantle/typography";
+
+<div className="flex flex-col items-start gap-2">
+	<Typography.P className="text-paragraph-lg">Put your app online in one command.</Typography.P>
+	<Typography.P>
+		ngrok gives each agent a public URL and forwards its traffic to your app.
+	</Typography.P>
+</div>;
+```
+
+</Example>
+
+## A scale for one section
+
+The type roles are CSS variables, so any element can set a different scale for the parts inside it. Set every sub-key of a step you change: a sub-key you leave out keeps the site's value. To set the scale for a whole site, see [Typography](/base/typography#set-a-sites-scale).
+
+<Example name="components/data-display/typography/a-scale-for-one-section" title="Typography scale for one section example">
+
+```tsx
+import { Typography } from "@ngrok/mantle/typography";
+
+<section className="[--text-heading-5xl--font-weight:700] [--text-heading-5xl--letter-spacing:-0.02em] [--text-heading-5xl--line-height:1] [--text-heading-5xl:4rem]">
+	<Typography.H1>Put your app online</Typography.H1>
+</section>;
+```
+
+</Example>
+
+## Composition
+
+The parts are siblings: none of them wraps another, so the namespace has no `Root`. Use each one where its element goes.
+
+```text showLineNumbers=false
+Typography
+├── Typography.H1
+├── Typography.H2
+├── Typography.H3
+├── Typography.H4
+├── Typography.H5
+├── Typography.H6
+└── Typography.P
+```
+
+## Polymorphism
+
+Every `Typography` part accepts an `asChild` prop. When `true`, the part renders its single child instead of its default element, and forwards its class names, `data-*` attributes, and ref onto that child. Use it on `Typography.P` to give a `figcaption` or a `blockquote` the paragraph style. Keep a heading part on a heading element, so the document outline stays correct.
+
+<Example name="components/data-display/typography/polymorphism" title="Typography polymorphism example">
+
+```tsx
+import { Code } from "@ngrok/mantle/code";
+import { Typography } from "@ngrok/mantle/typography";
+
+<figure className="flex flex-col items-start gap-2">
+	<Code>ngrok http 8080</Code>
+	<Typography.P asChild className="text-muted">
+		<figcaption>Start an agent endpoint for port 8080.</figcaption>
+	</Typography.P>
+</figure>;
+```
+
+</Example>
+
+## API Reference
+
+### Typography.H1
+
+A level-one heading, in the `text-heading-5xl` step by default. Renders an `h1`.
+
+All props from [h1](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                |
+| ---------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Typography.H1` styling onto alternative element types or your own React components. |
+
+### Typography.H2
+
+A level-two heading, in the `text-heading-3xl` step by default. Renders an `h2`.
+
+All props from [h2](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                |
+| ---------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Typography.H2` styling onto alternative element types or your own React components. |
+
+### Typography.H3
+
+A level-three heading, in the `text-heading-2xl` step by default. Renders an `h3`.
+
+All props from [h3](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                |
+| ---------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Typography.H3` styling onto alternative element types or your own React components. |
+
+### Typography.H4
+
+A level-four heading, in the `text-heading-xl` step by default. Renders an `h4`.
+
+All props from [h4](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                |
+| ---------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Typography.H4` styling onto alternative element types or your own React components. |
+
+### Typography.H5
+
+A level-five heading, in the `text-heading-base` step by default. Renders an `h5`.
+
+All props from [h5](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                |
+| ---------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Typography.H5` styling onto alternative element types or your own React components. |
+
+### Typography.H6
+
+A level-six heading, in the `text-heading-xs` step by default, in uppercase with wide letter spacing. Renders an `h6`.
+
+All props from [h6](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                                |
+| ---------- | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Typography.H6` styling onto alternative element types or your own React components. |
+
+### Typography.P
+
+A paragraph in the `text-paragraph-base` step and the body text color. Renders a `p`.
+
+All props from [p](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                                                               |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Typography.P` styling onto alternative element types or your own React components. |
