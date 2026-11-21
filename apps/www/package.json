@@ -15,7 +15,8 @@
     "bench:trace": "node bench/trace.ts",
     "bench:profile": "node bench/profile.ts",
     "bench:hover": "node bench/hover-trace.ts",
-    "bench:report": "node bench/report.ts"
+    "bench:report": "node bench/report.ts",
+    "bench:sheet": "node bench/sheet.ts"
   },
   "dependencies": {
     "@mdx-js/react": "3.1.1",

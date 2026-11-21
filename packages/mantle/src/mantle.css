@@ -1475,6 +1475,16 @@ MARK: CUSTOM VARIANTS
 	strong {
 		font-weight: 500;
 	}
+
+	/*
+	 * An open native dialog or sheet (`@ngrok/mantle/dialog/native`,
+	 * `@ngrok/mantle/sheet/native`) locks page scroll with CSS, not a script.
+	 * The stable gutter keeps the page from shifting when its scrollbar goes.
+	 */
+	:root:has(dialog:is([data-slot~="dialog-positioner"], [data-slot~="sheet-positioner"]):modal) {
+		overflow: hidden;
+		scrollbar-gutter: stable;
+	}
 }
 
 /**

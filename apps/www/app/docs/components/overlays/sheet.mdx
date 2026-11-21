@@ -84,6 +84,7 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 - Prefer [`Dialog`](/components/overlays/dialog) for a centered modal.
 - Prefer [`AlertDialog`](/components/overlays/alert-dialog) for a destructive or irreversible confirmation.
 - Prefer [`Sidebar`](/components/navigation/sidebar) for the persistent navigation of the app.
+- Prefer the [native sheet](#native-sheet) when the tap that opens the sheet must answer in one frame, such as a mobile menu, and the sheet holds no third-party frame.
 
 ## Layering and z-index
 
@@ -600,6 +601,59 @@ Sheet.Root
 `Sheet.Trigger asChild` is the most common: it makes your own `Button` open the sheet rather than nesting a button inside one. `Sheet.Close asChild` lets any element dismiss the sheet, which is handy for a "Cancel" button in `Sheet.Footer`, and `Sheet.Title asChild` adjusts the heading level to fit the page outline.
 
 `Sheet.Root` renders no DOM of its own, so it takes no `asChild`. `Sheet.Header`, `Sheet.Body`, `Sheet.Footer`, `Sheet.TitleGroup`, and `Sheet.Actions` are layout containers that do not currently accept it.
+
+## Native sheet
+
+`@ngrok/mantle/sheet/native` is the same `Sheet`, with the same parts and the same look, on the browser's modal `<dialog>`. Swap the import to move a sheet onto it. The browser traps focus, makes the page inert, closes the sheet on Escape, paints it in the top layer, and returns focus to the trigger. An uncontrolled tap opens it with a DOM call and no React render, so the open answers in the next frame on a slow phone. A mobile navigation menu is the use case it is for.
+
+Know these trade-offs before you swap:
+
+- The server renders the content and the page hydrates it, open or not. Opening costs almost nothing, but the page pays more HTML and more hydration at load.
+- Floats inside the sheet (`Popover`, `Select`, `MultiSelect`, `DropdownMenu`, `Tooltip`, `HoverCard`, `AlertDialog`) portal into the `<dialog>` and work as usual. Escape closes the innermost one first. Toasts move into the open sheet, so they paint above it.
+- A frame that a third-party script puts on `<body>` is inert under the sheet, and the browser gives no way out. Keep `@ngrok/mantle/sheet` for a form that embeds a captcha, a payment challenge, or a chat widget.
+- A controlled `open` works, but each change renders React. The fast path is the uncontrolled `Sheet.Trigger`.
+- The exit animates in Chromium only. Other browsers close the sheet at once.
+- Do not open a native sheet from inside a `@ngrok/mantle/dialog` or `@ngrok/mantle/sheet`. The Radix overlay takes Escape first and closes itself, not the native sheet. Move both onto the native backend.
+- CSS locks page scroll, not a script.
+- `Sheet.Content` takes none of the Radix event props: use a controlled `open` to keep the sheet open on Escape or on a backdrop click.
+
+<Example name="components/overlays/sheet/native-sheet" title="Native sheet example">
+
+```tsx
+import { Sheet } from "@ngrok/mantle/sheet/native";
+import { Button } from "@ngrok/mantle/button";
+
+<Sheet.Root>
+	<Sheet.Trigger asChild>
+		<Button type="button" appearance="filled" intent="neutral">
+			Open native sheet
+		</Button>
+	</Sheet.Trigger>
+	<Sheet.Content side="left">
+		<Sheet.Header>
+			<Sheet.TitleGroup>
+				<Sheet.Title>Menu</Sheet.Title>
+				<Sheet.Actions>
+					<Sheet.CloseIconButton />
+				</Sheet.Actions>
+			</Sheet.TitleGroup>
+			<Sheet.Description>The tap opened this sheet with no React render.</Sheet.Description>
+		</Sheet.Header>
+		<Sheet.Body>
+			<p>Press Escape, click the backdrop, or use the close button to close it.</p>
+		</Sheet.Body>
+		<Sheet.Footer>
+			<Sheet.Close asChild>
+				<Button type="button" appearance="outlined" intent="neutral">
+					Close
+				</Button>
+			</Sheet.Close>
+		</Sheet.Footer>
+	</Sheet.Content>
+</Sheet.Root>;
+```
+
+</Example>
 
 ## API Reference
 

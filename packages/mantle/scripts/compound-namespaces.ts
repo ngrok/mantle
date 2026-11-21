@@ -4,7 +4,10 @@ import fs from "node:fs";
  * A compound component namespace, read from the component's `index.ts`.
  */
 type CompoundNamespace = {
-	/** The component directory under `src/components`, such as `dropdown-menu`. */
+	/**
+	 * The component directory under `src/components`, such as `dropdown-menu`,
+	 * or a subpath directory inside one, such as `dialog/native`.
+	 */
 	dir: string;
 	/** The namespace identifier, such as `DropdownMenu`. */
 	name: string;
@@ -17,12 +20,32 @@ type CompoundNamespace = {
 /** Matches the parts import of a compound component's `index.ts`. */
 const PARTS_IMPORT_RE = /^import \* as (\w+)Parts from "\.\/([\w-]+)-parts\.js";$/gm;
 
-/** Matches a module id of a component's `index.ts`, and captures the component directory. */
-const COMPONENT_INDEX_RE = /[\\/]src[\\/]components[\\/]([^\\/]+)[\\/]index\.ts$/;
+/**
+ * Matches a module id of a component's `index.ts`, or of a subpath's
+ * `index.ts` one directory down, and captures the directory.
+ */
+const COMPONENT_INDEX_RE = /[\\/]src[\\/]components[\\/]([^\\/]+(?:[\\/][^\\/]+)?)[\\/]index\.ts$/;
 
 /** Matches a component's `index.ts` or the `index.d.ts` the declaration build derives from it. */
 const COMPONENT_INDEX_OR_DECLARATION_RE =
-	/[\\/]src[\\/]components[\\/]([^\\/]+)[\\/]index\.(?:d\.)?ts$/;
+	/[\\/]src[\\/]components[\\/]([^\\/]+(?:[\\/][^\\/]+)?)[\\/]index\.(?:d\.)?ts$/;
+
+/**
+ * The flat dist name of a component directory: `dialog/native` ships as
+ * `dialog-native.js`, so the per-component `@source "dialog-*.js"` glob and
+ * the `@source "../dist/*.js"` glob of `source-all.css` both match it.
+ *
+ * @example
+ * distName("dialog/native"); // => "dialog-native"
+ */
+function distName(dir: string): string {
+	return dir.replaceAll("\\", "/").replaceAll("/", "-");
+}
+
+/** The component directory a module id names, with `/` separators. */
+function dirOf(match: RegExpExecArray | null): string {
+	return (match?.[1] ?? "").replaceAll("\\", "/");
+}
 
 /**
  * Reads the compound namespaces that a component's `index.ts` declares. Each one
@@ -33,12 +56,13 @@ const COMPONENT_INDEX_OR_DECLARATION_RE =
  * // => [{ dir: "card", name: "Card", stem: "card", entry: "card-parts" }]
  */
 function compoundNamespacesIn(dir: string, indexSource: string): CompoundNamespace[] {
+	const prefix = distName(dir);
 	return [...indexSource.matchAll(PARTS_IMPORT_RE)].map(([, name = "", stem = ""]) => ({
 		dir,
 		name,
 		stem,
 		// Why the directory prefix: per-component `@source "<dir>-*.js"` globs must match the file.
-		entry: stem.startsWith(dir) ? `${stem}-parts` : `${dir}-${stem}-parts`,
+		entry: stem.startsWith(prefix) ? `${stem}-parts` : `${prefix}-${stem}-parts`,
 	}));
 }
 
@@ -98,7 +122,10 @@ function compoundNamespaces({
 }: {
 	/** The directory that holds the component directories. */
 	componentsDir: string;
-	/** The component directories to read. A directory with no `index.ts` is skipped. */
+	/**
+	 * The component directories to read, and subpath directories such as
+	 * `dialog/native`. A directory with no `index.ts` is skipped.
+	 */
 	dirs: readonly string[];
 }) {
 	const byDir = new Map<string, CompoundNamespace[]>();
@@ -121,29 +148,27 @@ function compoundNamespaces({
 		plugin: {
 			name: "compound-namespaces",
 			resolveId(source: string, importer: string | undefined) {
-				const dir =
-					importer == null ? undefined : COMPONENT_INDEX_OR_DECLARATION_RE.exec(importer)?.[1];
-				const namespace = byDir.get(dir ?? "")?.find(({ stem }) => source === `./${stem}-parts.js`);
+				const dir = importer == null ? "" : dirOf(COMPONENT_INDEX_OR_DECLARATION_RE.exec(importer));
+				const namespace = byDir.get(dir)?.find(({ stem }) => source === `./${stem}-parts.js`);
 				return namespace == null ? null : { id: `./${namespace.entry}.js`, external: true };
 			},
 			transform: {
 				order: "pre" as const,
 				filter: { id: { include: COMPONENT_INDEX_RE } },
 				handler(code: string, id: string) {
-					const dir = COMPONENT_INDEX_RE.exec(id)?.[1];
-					const namespaces = byDir.get(dir ?? "");
+					const namespaces = byDir.get(dirOf(COMPONENT_INDEX_RE.exec(id)));
 					return namespaces == null ? null : rewriteNamespaceAliases(code, namespaces);
 				},
 			},
 			generateBundle(_options: unknown, bundle: Record<string, { type: string; code?: string }>) {
 				for (const { dir, name, entry } of all) {
-					const code = bundle[`${dir}.js`]?.code ?? "";
+					const code = bundle[`${distName(dir)}.js`]?.code ?? "";
 					const namespaceImport = new RegExp(
 						`(?:export\\s*\\*\\s*as\\s+${name}|import\\s*\\*\\s*as\\s+[\\w$]+)\\s+from\\s*"\\./${entry}\\.js"`,
 					);
 					if (!namespaceImport.test(code)) {
 						throw new Error(
-							`${dir}.js must take ${name} from a namespace import of ./${entry}.js, so consumer bundlers drop unused parts.`,
+							`${distName(dir)}.js must take ${name} from a namespace import of ./${entry}.js, so consumer bundlers drop unused parts.`,
 						);
 					}
 				}
@@ -156,6 +181,7 @@ export {
 	//,
 	compoundNamespaces,
 	compoundNamespacesIn,
+	distName,
 	rewriteNamespaceAliases,
 };
 

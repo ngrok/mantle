@@ -10,9 +10,13 @@ import {
 	type ReactNode,
 	createContext,
 	useContext,
+	useLayoutEffect,
 	useMemo,
+	useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { Toaster as SonnerToaster, toast as sonnerToast } from "sonner";
+import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import type { WithStyleProps } from "../../types/with-style-props.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -20,8 +24,10 @@ import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { Icon as IconComponent } from "../icon/icon.js";
 import type { SvgOnlyProps } from "../icon/svg-only.js";
+import { canUseDOM } from "../browser-only/can-use-dom.js";
 import { Slot } from "../slot/index.js";
 import { useAppliedTheme } from "../theme/theme-provider.js";
+import { attachToasterHost } from "./toaster-host.js";
 
 type ToasterPrimitiveProps = ComponentProps<typeof SonnerToaster>;
 
@@ -61,6 +67,11 @@ function resolveToastDuration(duration_ms: number | undefined) {
  * Only one `<Toaster />` should be rendered in an app a time, preferably at the
  * root level of the app.
  *
+ * The toasts render after hydration, in a container on `<body>`. While a
+ * native modal dialog (`@ngrok/mantle/dialog/native`,
+ * `@ngrok/mantle/sheet/native`) is open, the container moves into it, so the
+ * toasts paint above the dialog and stay usable.
+ *
  * @see https://mantle.ngrok.com/components/feedback/toast#toaster
  *
  * @example
@@ -81,8 +92,18 @@ const Toaster = ({
 	style,
 }: ToasterProps) => {
 	const theme = useAppliedTheme();
+	const isHydrated = useIsHydrated();
+	// Why a host of its own: an open native modal `<dialog>` makes the rest of
+	// the page inert, so the host moves into it. React never moves a portal's
+	// container, so the move is safe.
+	const [host] = useState(() => (canUseDOM() ? document.createElement("div") : null));
+	useLayoutEffect(() => (host == null ? undefined : attachToasterHost(host)), [host]);
 
-	return (
+	if (!isHydrated || host == null) {
+		return null;
+	}
+
+	return createPortal(
 		<SonnerToaster
 			data-slot="toaster"
 			className={cx("toaster overlay-prompt pointer-events-auto *:duration-200", className)}
@@ -96,7 +117,8 @@ const Toaster = ({
 			toastOptions={{
 				unstyled: true,
 			}}
-		/>
+		/>,
+		host,
 	);
 };
 
