@@ -3,6 +3,7 @@ import { defineConfig } from "tsdown";
 
 import { compileReact } from "./react-compiler.config.ts";
 import { compoundNamespaces } from "./scripts/compound-namespaces.ts";
+import { foldCxPlugin } from "./scripts/fold-cx.ts";
 import { preserveUseClient } from "./scripts/preserve-use-client.ts";
 
 const MANTLE_CSS_SRC = new URL("./src/mantle.css", import.meta.url);
@@ -154,6 +155,8 @@ export default defineConfig((options) => [
 		plugins: [
 			compoundParts.plugin,
 			preserveUseClient({ serverEntries: ["color.js", "cx.js", "types.js", "utils.js"] }),
+			// Before the React Compiler: it must see the folded `cx` calls (see `scripts/fold-cx.ts`).
+			foldCxPlugin(),
 			reactCompiler(),
 		],
 		outputOptions: {

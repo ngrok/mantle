@@ -10,7 +10,6 @@ node_modules
 public
 */code-gen
 packages/mantle/package.json
-packages/mantle/src/utils/cx/vendor
 packages/mantle/src/utils/cx/__fixtures__
 apps/www/app/utilities/__snapshots__
 *.svg

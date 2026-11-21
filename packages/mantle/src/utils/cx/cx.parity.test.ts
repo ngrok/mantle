@@ -4,9 +4,8 @@ import fixtureData from "./__fixtures__/parity.json" with { type: "json" };
 
 type ParityCase = { args: ClassValue[]; expected: string };
 
-// `expected` was frozen by running the PREVIOUS implementation (clsx + extendTailwindMerge)
-// over a corpus harvested from this repo plus curated edge cases: the byte-for-byte oracle
-// the vendored engine must reproduce. See ./vendor/README.md.
+// `expected` holds the output of clsx + extendTailwindMerge over a corpus harvested from this
+// repo plus curated edge cases: the byte-for-byte oracle that `cx` must reproduce.
 const fixture: ParityCase[] = fixtureData;
 
 test("cx produces byte-identical output to the clsx + extendTailwindMerge oracle for every fixture case", () => {

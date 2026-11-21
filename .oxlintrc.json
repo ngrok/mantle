@@ -291,7 +291,6 @@
     "dist",
     "node_modules",
     "public",
-    "*/code-gen",
-    "packages/mantle/src/utils/cx/vendor"
+    "*/code-gen"
   ]
 }
