@@ -1,7 +1,6 @@
 import mantlePackageJson from "@ngrok/mantle/package.json" with { type: "json" };
 import { McpServer, ResourceTemplate, type CallToolResult } from "@modelcontextprotocol/server";
 import { z } from "zod";
-import { buildSiteAgentManifest } from "~/utilities/agent-manifest.server";
 import { canonicalHref, canonicalOrigin } from "~/utilities/canonical-origin";
 import { loadFrontmatter, rawDocContent, urlToFileMap } from "~/utilities/docs";
 import { checkCode } from "~/utilities/mcp/check.server";
@@ -38,6 +37,8 @@ import {
 import { createLinearGaps, type LinearGaps } from "~/utilities/mcp/linear.server";
 import { clipMarkdown, gapIssueOf, mcpPulse } from "~/utilities/mcp/pulse.server";
 import { renderMdxToMarkdown } from "~/utilities/render-mdx-to-markdown.server";
+import { loadSourceFiles } from "~/utilities/mantle-source.server";
+import { sourceHash } from "../../../../../packages/mantle/scripts/agent-manifest";
 
 /** The server instructions. The contract test caps their size. */
 export const MCP_INSTRUCTIONS = [
@@ -1196,6 +1197,17 @@ function loadDocPages(): Promise<DocPageRecord[]> {
 	return docPagesCache;
 }
 
+let docsSourceHashCache: Promise<string> | undefined;
+
+/** The source hash of the docs build: one hash for the process in production, a new one for each call in dev. */
+function loadDocsSourceHash(): Promise<string> {
+	if (!import.meta.env.PROD) {
+		return loadSourceFiles().then(sourceHash);
+	}
+	docsSourceHashCache ??= loadSourceFiles().then(sourceHash);
+	return docsSourceHashCache;
+}
+
 let loader: VersionDataLoader | undefined;
 let linear: LinearGaps | undefined;
 
@@ -1221,7 +1233,7 @@ export function productionDependencies({
 		loader,
 		docsVersion: mantlePackageJson.version,
 		docsCommit: process.env.COMMIT_SHA,
-		docsSourceHash: async () => (await buildSiteAgentManifest()).sourceHash,
+		docsSourceHash: loadDocsSourceHash,
 		readDocs,
 		migrations: loadMigrationGuides,
 		docPages: loadDocPages,

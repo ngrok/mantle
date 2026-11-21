@@ -57,11 +57,11 @@ function readSource(basePath: string): string | undefined {
 	return undefined;
 }
 
-/** Every package source file, keyed by its `src`-relative path with `/` separators. */
+/** Every `.ts` and `.tsx` file in the package source, keyed by its `src`-relative path with `/` separators. */
 function readSourceFiles(): Record<string, string> {
 	const files: Record<string, string> = {};
 	for (const entry of fs.readdirSync(srcDir, { recursive: true, withFileTypes: true })) {
-		if (entry.isFile()) {
+		if (entry.isFile() && /\.tsx?$/.test(entry.name)) {
 			const filePath = path.join(entry.parentPath, entry.name);
 			files[path.relative(srcDir, filePath).split(path.sep).join("/")] = fs.readFileSync(
 				filePath,

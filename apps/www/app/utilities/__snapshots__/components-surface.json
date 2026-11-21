@@ -2030,7 +2030,7 @@
     "siblings": [
       {
         "name": "DataTable",
-        "boundary": "the user sorts, filters, pages through, selects, or expands rows (detail panel or sub-rows)."
+        "boundary": "the user sorts, filters, pages through, selects, or expands rows (a detail panel or sub-rows)."
       },
       {
         "name": "DescriptionList",
