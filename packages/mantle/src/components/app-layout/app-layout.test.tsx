@@ -8,9 +8,9 @@ import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import * as Combobox from "../combobox/combobox-parts.js";
 import * as Sidebar from "../sidebar/sidebar-parts.js";
 import { TooltipProvider } from "../tooltip/index.js";
-import type { AppLayoutSidePanelState } from "./app-layout.js";
+import type { AppLayoutSidePanelState } from "./side-panel.js";
 import * as AppLayout from "./app-layout-parts.js";
-import { useSidePanel } from "./app-layout.js";
+import { useSidePanel } from "./side-panel.js";
 
 describe("AppLayout.Root", () => {
 	test("renders a div stamped data-slot app-layout", () => {

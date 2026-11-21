@@ -14,10 +14,13 @@ export {
 	HeaderContent,
 	HeaderActions,
 	Body,
+	SidePanelBody,
+	SidePanelFooter,
+} from "./app-layout.js";
+export {
+	//,
 	SidePanelRoot,
 	SidePanel,
 	SidePanelTrigger,
 	SidePanelHeader,
-	SidePanelBody,
-	SidePanelFooter,
-} from "./app-layout.js";
+} from "./side-panel.js";

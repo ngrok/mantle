@@ -6,15 +6,18 @@
 export {
 	//,
 	Root,
-	Actions,
-	Body,
 	Close,
 	CloseIconButton,
 	Content,
 	Description,
-	Footer,
-	Header,
 	Title,
-	TitleGroup,
 	Trigger,
 } from "./sheet.js";
+export {
+	//,
+	Actions,
+	Body,
+	Footer,
+	Header,
+	TitleGroup,
+} from "./sheet-layout.js";

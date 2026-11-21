@@ -21,7 +21,7 @@ import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import * as Alert from "../alert/alert-parts.js";
-import { AlertContextProvider } from "../alert/alert.js";
+import { AlertContextProvider } from "../alert/alert-context.js";
 
 /**
  * The tone an alert's color communicates, identical to `Alert`'s intent axis,

@@ -6,14 +6,17 @@
 export {
 	//,
 	Root,
-	Body,
 	Code,
 	CopyButton,
 	ExpanderButton,
-	Header,
-	CodeBlockIconComponent as Icon,
 	TabContent,
 	TabList,
 	TabTrigger,
-	Title,
 } from "./code-block.js";
+export {
+	//,
+	Body,
+	CodeBlockIconComponent as Icon,
+	Header,
+	Title,
+} from "./code-block-layout.js";

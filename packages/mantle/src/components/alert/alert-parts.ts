@@ -7,9 +7,15 @@ export {
 	//,
 	Root,
 	Content,
-	ExpandButton,
 	Description,
-	DismissIconButton,
-	Icon,
 	Title,
 } from "./alert.js";
+export {
+	//,
+	Icon,
+} from "./alert-context.js";
+export {
+	//,
+	DismissIconButton,
+	ExpandButton,
+} from "./alert-controls.js";

@@ -9,7 +9,7 @@ import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import type * as UseBreakpointModule from "../../hooks/use-breakpoint.js";
 import * as AppLayout from "../app-layout/app-layout-parts.js";
-import { useSidePanel } from "../app-layout/app-layout.js";
+import { useSidePanel } from "../app-layout/side-panel.js";
 import * as Command from "../command/command-parts.js";
 import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
 import { TooltipProvider } from "../tooltip/index.js";

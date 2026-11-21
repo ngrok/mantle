@@ -13,7 +13,7 @@ import * as AppLayoutParts from "./app-layout-parts.js";
 export {
 	//,
 	useSidePanel,
-} from "./app-layout.js";
+} from "./side-panel.js";
 
 /**
  * A viewport-locked application shell: an optional full-width
@@ -122,7 +122,7 @@ export type {
 	AppLayoutSidePanelRootProps,
 	AppLayoutSidePanelState,
 	AppLayoutSidePanelTriggerProps,
-} from "./app-layout.js";
+} from "./side-panel.js";
 
 export {
 	//,
