@@ -194,3 +194,18 @@ export const cx: ClassNameFunction = (
 	// An object or an array can change between calls with the same identity, so it is not cached.
 	return mergeClassList(resolveClassValue([first, ...rest]));
 };
+
+/**
+ * Merges a class list that the build already merged with one more class value. With no
+ * value, it returns the merged list and does no work. Internal: the build fold
+ * (`scripts/fold-cx.ts`) writes the calls, and the `utils/cx` entry does not export it.
+ *
+ * Why it gives the same result as `cx`: the fold writes a call only when the build merge
+ * removes no static class, so `merged` is the class list as written.
+ *
+ * @example
+ * cxFolded("flex p-4", undefined); // → "flex p-4"
+ * cxFolded("flex p-4", "p-2"); // → "flex p-2"
+ */
+export const cxFolded = (merged: string, className: ClassValue): string =>
+	className ? cx(merged, className) : merged;

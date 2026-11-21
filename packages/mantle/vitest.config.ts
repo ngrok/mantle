@@ -9,6 +9,7 @@ import { configDefaults, defineConfig } from "vitest/config";
 import type { BrowserCommand } from "vitest/node";
 
 import { reactCompilerOptions } from "./react-compiler.config.ts";
+import { foldCxPlugin } from "./scripts/fold-cx.ts";
 
 type ContextOptions = Pick<PlaywrightProviderOptions, "contextOptions">["contextOptions"];
 
@@ -119,7 +120,11 @@ const reactCompiler = () => ({
 
 // `MANTLE_REACT_COMPILER=off` runs the suite on uncompiled source: the way to bisect a failure to
 // the compiler, and the baseline arm when you profile the compiled output.
-const compilerPlugins = process.env.MANTLE_REACT_COMPILER === "off" ? [] : [reactCompiler()];
+// The fold runs first in each mode, because the dist ships folded `cx` calls (see `tsdown.config.ts`).
+const compilerPlugins =
+	process.env.MANTLE_REACT_COMPILER === "off"
+		? [foldCxPlugin()]
+		: [foldCxPlugin(), reactCompiler()];
 
 // Both projects inherit every option here (Vitest 5 defaults projects to `extends: true`), so a
 // hygiene or locale pin is written once and cannot drift between them.
