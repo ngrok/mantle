@@ -442,7 +442,7 @@ const Button = ({
 		);
 
 		return (
-			<ButtonSlot {...buttonProps} inert={disabled}>
+			<ButtonSlot {...buttonProps} isDisabled={disabled}>
 				{content}
 			</ButtonSlot>
 		);

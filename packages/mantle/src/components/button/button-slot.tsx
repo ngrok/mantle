@@ -30,13 +30,16 @@ type ButtonSlotProps = Omit<ComponentProps<typeof Slot>, "children"> & {
 	/**
 	 * Whether the button resolved disabled. When `true`, the child gets
 	 * `disabledChildProps`.
+	 *
+	 * Why not `inert`: that is an HTML attribute a consumer can set on the
+	 * button, and `Slot` forwards it to the child unchanged.
 	 */
-	inert: boolean;
+	isDisabled: boolean;
 };
 
 /**
- * The `Slot` of an `asChild` `Button` or `IconButton`. When `inert`, it makes
- * the child inert with `disabledChildProps`.
+ * The `Slot` of an `asChild` `Button` or `IconButton`. When `isDisabled`, it
+ * makes the child inert with `disabledChildProps`.
  *
  * Why a client component of its own: the click blocker is a function, and a
  * server component cannot pass a function to an element. A native `<button>`
@@ -48,11 +51,11 @@ type ButtonSlotProps = Omit<ComponentProps<typeof Slot>, "children"> & {
  * component the finished child, and the trigger's props would stop here.
  *
  * Why for every `asChild` child, not only a disabled one: a switch on
- * `inert` would remount the child when the button turns disabled, so the child
+ * `isDisabled` would remount the child when the button turns disabled, so the child
  * would lose focus and its translated text.
  */
-const ButtonSlot = ({ children, inert, ...props }: ButtonSlotProps) => (
-	<Slot {...props}>{inert ? cloneElement(children, disabledChildProps) : children}</Slot>
+const ButtonSlot = ({ children, isDisabled, ...props }: ButtonSlotProps) => (
+	<Slot {...props}>{isDisabled ? cloneElement(children, disabledChildProps) : children}</Slot>
 );
 
 export {

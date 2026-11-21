@@ -221,7 +221,7 @@ const IconButton = ({
 		const content = cloneElement(children, {}, innerChildren);
 
 		return (
-			<ButtonSlot {...buttonProps} inert={disabled}>
+			<ButtonSlot {...buttonProps} isDisabled={disabled}>
 				{content}
 			</ButtonSlot>
 		);

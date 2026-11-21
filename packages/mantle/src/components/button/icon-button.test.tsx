@@ -156,6 +156,25 @@ describe("IconButton", () => {
 	});
 
 	describe("disabled", () => {
+		test("forwards the HTML inert attribute to an asChild child", () => {
+			const { container } = render(
+				<IconButton
+					appearance="ghost"
+					intent="neutral"
+					asChild
+					inert
+					label="Home"
+					icon={<GlobeIcon />}
+				>
+					<a href="#yolo" />
+				</IconButton>,
+			);
+			// Why a selector: an inert element leaves the accessibility tree, so a role query misses it.
+			const link = container.querySelector('a[href="#yolo"]');
+			expect(link).toHaveAttribute("inert");
+			expect(link).not.toHaveAttribute("aria-disabled");
+		});
+
 		test("isLoading sets the native disabled attribute and aria-disabled", () => {
 			render(
 				<IconButton

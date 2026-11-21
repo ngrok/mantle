@@ -376,6 +376,19 @@ describe("Button", () => {
 	});
 
 	describe("disabled", () => {
+		test("forwards the HTML inert attribute to an asChild child", () => {
+			const { container } = render(
+				<Button appearance="filled" intent="neutral" asChild inert>
+					<a href="#yolo">Open</a>
+				</Button>,
+			);
+			// Why a selector: an inert element leaves the accessibility tree, so a role query misses it.
+			const link = container.querySelector('a[href="#yolo"]');
+			expect(link).toHaveAttribute("inert");
+			// `inert` is not `disabled`: the button keeps its enabled state.
+			expect(link).not.toHaveAttribute("aria-disabled");
+		});
+
 		test("disabled={false} keeps a loading button enabled and focusable", () => {
 			render(
 				<Button appearance="filled" intent="neutral" disabled={false} isLoading>
