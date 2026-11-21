@@ -580,6 +580,14 @@ export const migrations = [
 			"The theme token --container-side-panel-lane-icon-rail is now --container-side-panel-lane-collapsed. Rename it where you set it or read it.",
 		route: "/migrations/0016-side-panel-lane-collapsed-migration",
 	},
+	{
+		number: 17,
+		slug: "select-owned-behavior-migration",
+		title: "Select Owned Behavior",
+		description:
+			"Select no longer uses Radix Select. Select.Content drops its positioning props, the list is not modal, and the --radix-select-* CSS variables are gone.",
+		route: "/migrations/0017-select-owned-behavior-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */
