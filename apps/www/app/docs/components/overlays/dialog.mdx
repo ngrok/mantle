@@ -55,6 +55,7 @@ import { Button } from "@ngrok/mantle/button";
 - Prefer [`AlertDialog`](/components/overlays/alert-dialog) for a destructive or irreversible confirmation, such as a delete.
 - Prefer [`Sheet`](/components/overlays/sheet) for side-panel content, such as a filter panel, a detail view, or a navigation drawer.
 - Prefer [`Popover`](/components/overlays/popover) for small content that opens next to its trigger, with no modal backdrop.
+- Prefer the [native dialog](#native-dialog) when the tap that opens the dialog must answer in one frame, and the dialog holds no third-party frame.
 
 ## Layering and z-index
 
@@ -581,6 +582,59 @@ function Example() {
 `Dialog.Trigger asChild` is by far the most common: it makes your own `Button` open the dialog instead of nesting a button inside one. Use `Dialog.Close asChild` to let any element dismiss the dialog, and `Dialog.Title asChild` when the heading level must fit the surrounding page outline.
 
 `Dialog.Root` and `Dialog.Portal` render no DOM of their own (`Root` is a state provider and `Portal` only relocates its children), so neither takes `asChild`. `Dialog.Header`, `Dialog.Body`, and `Dialog.Footer` are plain layout `<div>`s that do not currently accept it.
+
+## Native dialog
+
+`@ngrok/mantle/dialog/native` is the same `Dialog`, with the same parts and the same look, on the browser's modal `<dialog>`. Swap the import to move a dialog onto it. The browser traps focus, makes the page inert, closes the dialog on Escape, paints it in the top layer, and returns focus to the trigger. An uncontrolled tap opens it with a DOM call and no React render, so the open answers in the next frame on a slow phone.
+
+Know these trade-offs before you swap:
+
+- The server renders the content and the page hydrates it, open or not. Opening costs almost nothing, but the page pays more HTML and more hydration at load.
+- Floats inside the dialog (`Popover`, `Select`, `MultiSelect`, `DropdownMenu`, `Tooltip`, `HoverCard`, `AlertDialog`) portal into the `<dialog>` and work as usual. Escape closes the innermost one first. Toasts move into the open dialog, so they paint above it.
+- A frame that a third-party script puts on `<body>` is inert under the dialog, and the browser gives no way out. Keep `@ngrok/mantle/dialog` for a form that embeds a captcha, a payment challenge, or a chat widget.
+- A controlled `open` works, but each change renders React. The fast path is the uncontrolled `Dialog.Trigger`.
+- The exit animates in Chromium only. Other browsers close the dialog at once.
+- CSS locks page scroll, not a script.
+- `Dialog.Portal` renders its children and `Dialog.Overlay` renders nothing, so markup written for `@ngrok/mantle/dialog` swaps unchanged. `Dialog.Content` takes none of the Radix event props: use a controlled `open` to keep the dialog open on Escape or on a backdrop click.
+
+<Example name="components/overlays/dialog/native-dialog" title="Native dialog example">
+
+```tsx
+import { Dialog } from "@ngrok/mantle/dialog/native";
+import { Button } from "@ngrok/mantle/button";
+
+<Dialog.Root>
+	<Dialog.Trigger asChild>
+		<Button type="button" appearance="filled" intent="neutral">
+			Open native dialog
+		</Button>
+	</Dialog.Trigger>
+	<Dialog.Content>
+		<Dialog.Header>
+			<Dialog.Title>Are you absolutely sure?</Dialog.Title>
+			<Dialog.CloseIconButton />
+		</Dialog.Header>
+		<Dialog.Body>
+			This action cannot be undone. This will permanently delete your account and remove your data
+			from our servers.
+		</Dialog.Body>
+		<Dialog.Footer>
+			<Dialog.Close asChild>
+				<Button type="button" intent="neutral" appearance="outlined">
+					Cancel
+				</Button>
+			</Dialog.Close>
+			<Dialog.Close asChild>
+				<Button type="button" intent="danger" appearance="filled">
+					Delete
+				</Button>
+			</Dialog.Close>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>;
+```
+
+</Example>
 
 ## API Reference
 

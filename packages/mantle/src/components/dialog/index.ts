@@ -20,6 +20,11 @@ import * as DialogParts from "./dialog-parts.js";
  * content. When multiple overlays are open, the most recently mounted overlay
  * renders on top.
  *
+ * `@ngrok/mantle/dialog/native` exports the same parts on the browser's modal
+ * `<dialog>`: an uncontrolled tap opens it with no React render. Its content
+ * renders and hydrates on every page, and a third-party frame on `<body>` is
+ * inert under it.
+ *
  * @useWhen Gather input or confirm a choice that is not destructive, in a modal window that blocks
  * the page.
  *
