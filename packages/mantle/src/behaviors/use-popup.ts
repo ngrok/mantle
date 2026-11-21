@@ -16,8 +16,23 @@ const VIEWPORT_PADDING = 8;
  * too small, and returns the cleanup that stops following the anchor. It
  * writes straight to the popup's style, so a scroll costs no React render.
  */
-const followAnchor = (anchor: Element, floating: HTMLElement, host: HTMLElement): (() => void) => {
+const followAnchor = (
+	anchorRef: RefObject<Element | null>,
+	floating: HTMLElement,
+	host: HTMLElement,
+): (() => void) => {
+	let observed: Element | null = null;
 	const place = () => {
+		// Why read the ref here: an anchor that renders after the popup attaches
+		// its ref later in the same commit. The first resize observation places it.
+		const anchor = anchorRef.current;
+		if (anchor == null) {
+			return;
+		}
+		if (observed !== anchor) {
+			observer.observe(anchor);
+			observed = anchor;
+		}
 		const anchorRect = anchor.getBoundingClientRect();
 		floating.style.position = "fixed";
 		floating.style.setProperty("--anchor-width", `${anchorRect.width}px`);
@@ -43,10 +58,9 @@ const followAnchor = (anchor: Element, floating: HTMLElement, host: HTMLElement)
 		floating.style.left = `${left - origin.left}px`;
 		floating.dataset.side = side;
 	};
-	place();
 	const observer = new ResizeObserver(place);
-	observer.observe(anchor);
 	observer.observe(floating);
+	place();
 	window.addEventListener("scroll", place, { capture: true, passive: true });
 	window.addEventListener("resize", place, { passive: true });
 	return () => {
@@ -90,19 +104,20 @@ const usePopup = ({
 			return null;
 		}
 		const element = document.createElement("div");
-		element.style.cssText = "position:fixed;top:0;left:0;width:0;height:0";
+		// Why pointer-events: a modal overlay sets `pointer-events: none` on the body,
+		// and a popup inside the overlay's layer container must stay clickable.
+		element.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;pointer-events:auto";
 		return element;
 	});
 	// Why a ref callback: React calls it again when `open` changes, so the host
 	// joins the document and the popup follows its anchor only while open, with
 	// no effect and no extra render.
 	const popupRef: RefCallback<HTMLElement> = (floating) => {
-		const anchor = anchorRef.current;
-		if (!open || floating == null || host == null || anchor == null) {
+		if (!open || floating == null || host == null) {
 			return;
 		}
 		(container ?? document.body).append(host);
-		const stopFollowing = followAnchor(anchor, floating, host);
+		const stopFollowing = followAnchor(anchorRef, floating, host);
 		return () => {
 			stopFollowing();
 			host.remove();
