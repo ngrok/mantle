@@ -437,6 +437,10 @@ CONVENTIONS.md covers general style ([TypeScript](./CONVENTIONS.md#typescript),
 
 - `"use client";` on the first line when the file uses hooks, DOM event handlers, browser APIs, or context.
   When in doubt, add it: the cost is negligible.
+- The build decides which components the React Compiler compiles. Write `"use no memo"` only for the library
+  case in [CONVENTIONS.md § React Compiler](./CONVENTIONS.md#react-compiler).
+- Keep a part safe for React Server Components only when that costs nothing. ngrok's apps do not use RSC, so
+  never add a client wrapper, a build special case, or a behavior change to get there.
 - Named exports only, no default exports. Relative imports ending in `.js` (`../../utils/cx/cx.js`).
 - `type`, not `interface`. Props based on `ComponentProps<…>`, which already includes `ref`. Never
   `HTMLAttributes<…>` alone, which does not.

@@ -1,7 +1,3 @@
-// Why "use no memo": these parts hold no state and pass their props straight to one element, so
-// memoization saves no work. Compiled, the chunk adds a compiler cache and is almost twice the size.
-"use no memo";
-
 import type { ComponentProps } from "react";
 import type { WithAsChild } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";

@@ -1,8 +1,7 @@
 import fs from "node:fs";
-import { transform } from "oxc-transform-react";
 import { defineConfig } from "tsdown";
 
-import { reactCompilerOptions } from "./react-compiler.config.ts";
+import { compileReact } from "./react-compiler.config.ts";
 import { compoundNamespaces } from "./scripts/compound-namespaces.ts";
 import { foldCxPlugin } from "./scripts/fold-cx.ts";
 import { preserveUseClient } from "./scripts/preserve-use-client.ts";
@@ -87,24 +86,15 @@ const DECLARATION_MODULE_RE = /\.d\.[cm]?ts$/;
  * Why `oxc-transform-react`: the Rust port of the compiler runs far faster
  * than the Babel plugin and strips TypeScript in the same pass. JSX stays in
  * the output (`jsx: "preserve"`), so rolldown's own JSX transform still runs
- * with the tsconfig settings. `reactCompilerOptions` holds the strict
- * settings that all three compiler passes share.
+ * with the tsconfig settings. `compileReact` holds the strict settings and
+ * the memo-free rule that all three compiler passes share.
  */
 const reactCompiler = () => ({
 	name: "react-compiler",
 	transform: {
 		filter: { id: { include: REACT_COMPILER_SOURCE_RE, exclude: DECLARATION_MODULE_RE } },
 		handler: async (code: string, id: string) => {
-			const result = await transform(id, code, {
-				jsx: "preserve",
-				sourcemap: true,
-				reactCompiler: reactCompilerOptions,
-			});
-			if (result.fatal) {
-				const messages = result.errors.map((error) => error.message).join("\n");
-				throw new Error(`The React Compiler pass failed for ${id}:\n${messages}`);
-			}
-			return { code: result.code, map: result.map };
+			return compileReact(id, code);
 		},
 	},
 });

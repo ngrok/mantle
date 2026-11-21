@@ -4,11 +4,10 @@ import path from "node:path";
 import { compile } from "@tailwindcss/node";
 import { Scanner } from "@tailwindcss/oxide";
 import { playwright, type PlaywrightProviderOptions } from "@vitest/browser-playwright";
-import { transform } from "oxc-transform-react";
 import { configDefaults, defineConfig } from "vitest/config";
 import type { BrowserCommand } from "vitest/node";
 
-import { reactCompilerOptions } from "./react-compiler.config.ts";
+import { compileReact } from "./react-compiler.config.ts";
 import { foldCxPlugin } from "./scripts/fold-cx.ts";
 
 type ContextOptions = Pick<PlaywrightProviderOptions, "contextOptions">["contextOptions"];
@@ -104,16 +103,7 @@ const reactCompiler = () => ({
 			},
 		},
 		handler: async (code: string, id: string) => {
-			const result = await transform(id, code, {
-				jsx: "preserve",
-				sourcemap: true,
-				reactCompiler: reactCompilerOptions,
-			});
-			if (result.fatal) {
-				const messages = result.errors.map((error) => error.message).join("\n");
-				throw new Error(`The React Compiler pass failed for ${id}:\n${messages}`);
-			}
-			return { code: result.code, map: result.map };
+			return compileReact(id, code);
 		},
 	},
 });

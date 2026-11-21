@@ -4,7 +4,6 @@ import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
 import { mantleCodeBlockPlugins, mantleSourcesPlugin } from "@ngrok/mantle-vite-plugins";
 import path from "node:path";
-import { transform } from "oxc-transform-react";
 import rehypeSlug from "rehype-slug";
 import remarkFrontmatter from "remark-frontmatter";
 import { remarkMdxGithubAlerts } from "@ngrok/remark-mdx-github-alerts";
@@ -13,7 +12,7 @@ import { defineConfig, type Plugin } from "vite";
 import devtoolsJson from "vite-plugin-devtools-json";
 
 import { remarkMdxNoParagraphWrap } from "@ngrok/remark-mdx-no-paragraph-wrap";
-import { reactCompilerOptions } from "../../packages/mantle/react-compiler.config.ts";
+import { compileReact } from "../../packages/mantle/react-compiler.config.ts";
 import { mantleChangelogMdx } from "./vite-plugins/mantle-changelog-mdx.ts";
 import { exampleHeights } from "./vite-plugins/example-heights.ts";
 import { mdxDocComponentImports } from "./vite-plugins/mdx-doc-component-imports.ts";
@@ -50,16 +49,7 @@ const reactCompiler = (): Plugin => ({
 			},
 		},
 		async handler(code, id) {
-			const result = await transform(id, code, {
-				jsx: "preserve",
-				sourcemap: true,
-				reactCompiler: reactCompilerOptions,
-			});
-			if (result.fatal) {
-				const messages = result.errors.map((error) => error.message).join("\n");
-				throw new Error(`The React Compiler pass failed for ${id}:\n${messages}`);
-			}
-			return { code: result.code, map: result.map };
+			return compileReact(id, code);
 		},
 	},
 });

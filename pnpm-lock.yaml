@@ -6,6 +6,9 @@ settings:
 
 catalogs:
   default:
+    '@jridgewell/remapping':
+      specifier: 2.3.5
+      version: 2.3.5
     '@phosphor-icons/react':
       specifier: 2.1.10
       version: 2.1.10
@@ -45,6 +48,9 @@ catalogs:
     happy-dom:
       specifier: 21.0.4
       version: 21.0.4
+    magic-string:
+      specifier: 1.4.5
+      version: 1.4.5
     oxc-parser:
       specifier: 0.159.0
       version: 0.159.0
@@ -394,6 +400,9 @@ importers:
       '@cfg/tsconfig':
         specifier: workspace:*
         version: link:../../config/tsconfig
+      '@jridgewell/remapping':
+        specifier: 'catalog:'
+        version: 2.3.5
       '@phosphor-icons/react':
         specifier: 'catalog:'
         version: 2.1.10(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -445,6 +454,9 @@ importers:
       happy-dom:
         specifier: 'catalog:'
         version: 21.0.4
+      magic-string:
+        specifier: 'catalog:'
+        version: 1.4.5
       oxc-parser:
         specifier: 'catalog:'
         version: 0.159.0
@@ -513,7 +525,7 @@ importers:
         specifier: workspace:*
         version: link:../mantle-server-syntax-highlighter
       magic-string:
-        specifier: 1.4.5
+        specifier: 'catalog:'
         version: 1.4.5
       oxc-parser:
         specifier: 'catalog:'
