@@ -1,6 +1,8 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { describe, expect, test } from "vitest";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
+import { describe, expect, test, vi } from "vitest";
 import * as Field from "../field/field-parts.js";
 import * as Combobox from "./combobox-parts.js";
 
@@ -88,8 +90,33 @@ describe("Combobox", () => {
 			expect(input).toHaveValue("Banana");
 		});
 
+		test("the highlighted option is the selected one, and the input names it only while open", async () => {
+			const user = userEvent.setup();
+			render(
+				<Combobox.Root>
+					<Combobox.Input aria-label="Fruit" />
+					<Combobox.Content>
+						<Combobox.Item value="Apple" />
+						<Combobox.Item value="Banana" />
+					</Combobox.Content>
+				</Combobox.Root>,
+			);
+			const input = screen.getByRole("combobox", { name: "Fruit" });
+			expect(input).not.toHaveAttribute("aria-controls");
+
+			await user.click(input);
+			await user.keyboard("{ArrowDown}{ArrowDown}");
+
+			expect(input).toHaveAttribute("aria-controls", screen.getByRole("listbox").id);
+			expect(screen.getByRole("option", { name: "Banana" })).toHaveAttribute(
+				"aria-selected",
+				"true",
+			);
+			expect(screen.getByRole("option", { name: "Apple" })).not.toHaveAttribute("aria-selected");
+		});
+
 		test("Combobox.ItemValue splits the item value around the typed text", async () => {
-			// `ItemValue` reads the item value from ariakit's own item context.
+			// `ItemValue` reads the item value from the item's context.
 			// Catches dropping `value` from the item, which leaves it nothing to split.
 			const user = userEvent.setup();
 			render(
@@ -115,5 +142,38 @@ describe("Combobox", () => {
 			expect(textOf("[data-user-value]")).toBe("Ba");
 			expect(textOf("[data-autocomplete-value]")).toBe("nana");
 		});
+	});
+
+	test("hydrates server markup with no mismatch", () => {
+		const element = (
+			<Combobox.Root defaultInputValue="acme">
+				<Combobox.Input aria-label="Domain" />
+				<Combobox.Content>
+					<Combobox.Item value="acme.ngrok.app">
+						<Combobox.ItemValue />
+					</Combobox.Item>
+				</Combobox.Content>
+			</Combobox.Root>
+		);
+		const container = document.createElement("div");
+		container.innerHTML = renderToString(element);
+		document.body.append(container);
+		const serverInput = container.querySelector("input");
+		expect(serverInput).toHaveValue("acme");
+		expect(serverInput).toHaveAttribute("aria-expanded", "false");
+		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		const onRecoverableError = vi.fn<(error: unknown) => void>();
+		let root: ReturnType<typeof hydrateRoot> | undefined;
+		act(() => {
+			root = hydrateRoot(container, element, { onRecoverableError });
+		});
+		expect(onRecoverableError).toHaveBeenCalledTimes(0);
+		expect(consoleError).toHaveBeenCalledTimes(0);
+		expect(container.querySelector("input")).toBe(serverInput);
+		act(() => {
+			root?.unmount();
+		});
+		container.remove();
+		consoleError.mockRestore();
 	});
 });

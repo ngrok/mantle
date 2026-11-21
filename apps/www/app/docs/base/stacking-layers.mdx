@@ -14,18 +14,13 @@ Every mantle surface that floats above the page stacks on one shared scale. Two 
 
 ## The tiers
 
-| Tier        | z-index     | Layers                                                                                                                                                                                                                 | Renders into                                                       |
-| ----------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Page chrome | `z-50`      | [Sandbar](/components/feedback/sandbar), [AlertCenter](/components/feedback/alert-center) banners, sticky headers                                                                                                      | In place, in the page's own stacking context                       |
-| Float       | `z-50`      | [Popover](/components/overlays/popover), [Tooltip](/components/overlays/tooltip), [Select](/components/forms/select), [DropdownMenu](/components/overlays/dropdown-menu), [HoverCard](/components/overlays/hover-card) | The nearest overlay's positioner, else `document.body`             |
-| Overlay     | `z-60`      | [Dialog](/components/overlays/dialog), [AlertDialog](/components/overlays/alert-dialog), [Sheet](/components/overlays/sheet), [Command](/components/navigation/command)'s palette                                      | The nearest overlay's positioner, else `document.body`             |
-| Toast       | `999999999` | [Toast](/components/feedback/toast) (sonner's own viewport)                                                                                                                                                            | In place where `<Toaster />` renders; painted above both tiers     |
-| Skip link   | `z-max`     | [SkipToMainLink](/components/primitives/skip-to-main-link)                                                                                                                                                             | In place; `--z-index-max` so nothing covers keyboard escape routes |
-
-Two components place themselves differently on purpose:
-
-- [Combobox](/components/forms/combobox)`.Content` renders in place at `z-50`: it does not portal, so the dialog primitive's Escape handling can see it.
-- [MultiSelect](/components/forms/multi-select)`.Content` portals into the closest `data-mantle-modal-content` element (an enclosing overlay's content), else the nearest overlay's positioner, else `document.body`.
+| Tier        | z-index     | Layers                                                                                                                                                                                                                                                                                                        | Renders into                                                       |
+| ----------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Page chrome | `z-50`      | [Sandbar](/components/feedback/sandbar), [AlertCenter](/components/feedback/alert-center) banners, sticky headers                                                                                                                                                                                             | In place, in the page's own stacking context                       |
+| Float       | `z-50`      | [Popover](/components/overlays/popover), [Tooltip](/components/overlays/tooltip), [Select](/components/forms/select), [Combobox](/components/forms/combobox), [MultiSelect](/components/forms/multi-select), [DropdownMenu](/components/overlays/dropdown-menu), [HoverCard](/components/overlays/hover-card) | The nearest overlay's positioner, else `document.body`             |
+| Overlay     | `z-60`      | [Dialog](/components/overlays/dialog), [AlertDialog](/components/overlays/alert-dialog), [Sheet](/components/overlays/sheet), [Command](/components/navigation/command)'s palette                                                                                                                             | The nearest overlay's positioner, else `document.body`             |
+| Toast       | `999999999` | [Toast](/components/feedback/toast) (sonner's own viewport)                                                                                                                                                                                                                                                   | In place where `<Toaster />` renders; painted above both tiers     |
+| Skip link   | `z-max`     | [SkipToMainLink](/components/primitives/skip-to-main-link)                                                                                                                                                                                                                                                    | In place; `--z-index-max` so nothing covers keyboard escape routes |
 
 ## Layer containers
 
@@ -197,7 +192,7 @@ Each float composed inside the dialog portals into the dialog's positioner, so i
 
 ### Pickers inside a sheet place themselves
 
-`Combobox.Content` renders in place and `MultiSelect.Content` portals into the sheet's content element, so both open above the sheet and scroll with it.
+`Combobox.Content` and `MultiSelect.Content` portal into the sheet's positioner, so both open above the sheet.
 
 <Example name="base/stacking-layers/pickers-inside-a-sheet-place-themselves" title="Stacking Layers pickers inside a sheet place themselves example">
 

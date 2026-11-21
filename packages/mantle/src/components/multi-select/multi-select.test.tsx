@@ -129,6 +129,27 @@ describe("MultiSelect", () => {
 		expect(screen.getByRole("list", { name: "Chosen fruits" })).toBeInTheDocument();
 	});
 
+	test("a hidden dismiss button outside the listbox closes the open list", async () => {
+		const user = userEvent.setup();
+		render(
+			<MultiSelect.Root>
+				<MultiSelect.Trigger>
+					<MultiSelect.Input aria-label="Fruits" />
+				</MultiSelect.Trigger>
+				<MultiSelect.Content>
+					<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+				</MultiSelect.Content>
+			</MultiSelect.Root>,
+		);
+		await user.click(screen.getByRole("combobox", { name: "Fruits" }));
+		const dismiss = screen.getByRole("button", { name: "Dismiss popup" });
+		expect(screen.getByRole("listbox")).not.toContainElement(dismiss);
+
+		await user.click(dismiss);
+
+		expect(screen.queryByRole("listbox")).toBeNull();
+	});
+
 	test("renders the empty state when popover is open", () => {
 		render(
 			<MultiSelect.Root open>
@@ -144,7 +165,7 @@ describe("MultiSelect", () => {
 		expect(screen.getByText("No results found")).toBeInTheDocument();
 	});
 
-	test("inside a modal sheet, portals the popover into the sheet content", async () => {
+	test("inside a modal sheet, portals the popover into the sheet's positioner", async () => {
 		const user = userEvent.setup();
 		const bodyAttributes = snapshotAttributes(document.body);
 		const documentElementAttributes = snapshotAttributes(document.documentElement);
@@ -173,9 +194,9 @@ describe("MultiSelect", () => {
 
 			await user.click(screen.getByRole("combobox"));
 			const listbox = await screen.findByRole("listbox");
-			const sheetContent = screen.getByRole("combobox").closest("[data-mantle-modal-content]");
+			const positioner = screen.getByRole("combobox").closest('[data-slot~="sheet-positioner"]');
 
-			expect(sheetContent?.contains(listbox)).toBe(true);
+			expect(positioner?.contains(listbox)).toBe(true);
 
 			await user.click(within(listbox).getByRole("option", { name: /Apple/ }));
 			expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
@@ -610,14 +631,13 @@ describe("MultiSelect", () => {
 
 		test("a lock reaches an Item that renders before TagValues", async () => {
 			const user = userEvent.setup();
-			// Why `portal={false}` and `open`: Ariakit's portal mounts the popover children
-			// one commit later, after `TagValues` publishes its locks. Rendering in place
-			// with the popover open puts the `Item` ahead of `TagValues` in the first commit.
+			// Why `open` and this order: the `Item` renders ahead of `TagValues`, so it
+			// reads a lock that `TagValues` publishes after the `Item` mounted.
 			const Subject = () => {
 				const [values, setValues] = useState(["apple"]);
 				return (
 					<MultiSelect.Root open selectedValue={values} setSelectedValue={setValues}>
-						<MultiSelect.Content portal={false}>{hoistedItems}</MultiSelect.Content>
+						<MultiSelect.Content>{hoistedItems}</MultiSelect.Content>
 						<MultiSelect.Trigger>
 							<MultiSelect.TagValues lockedValues={["apple"]} />
 							<MultiSelect.Input placeholder="Select items..." />

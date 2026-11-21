@@ -1067,6 +1067,6 @@ test("a MultiSelect composed in the bar still locks page scroll", async () => {
 
 	// Why: the bar is not a modal, so no overlay locks scroll for the MultiSelect.
 	await waitFor(() => {
-		expect(document.documentElement.style.overflowY).toBe("hidden");
+		expect(document.documentElement.style.overflow).toBe("hidden");
 	});
 });

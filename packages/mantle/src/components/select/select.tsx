@@ -1,25 +1,7 @@
 "use client";
 
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
-import { CaretUpIcon } from "@phosphor-icons/react/CaretUp";
 import { CheckIcon } from "@phosphor-icons/react/Check";
-import {
-	Content as SelectPrimitiveContent,
-	Group as SelectPrimitiveGroup,
-	Icon as SelectPrimitiveIcon,
-	Item as SelectPrimitiveItem,
-	ItemIndicator as SelectPrimitiveItemIndicator,
-	ItemText as SelectPrimitiveItemText,
-	Label as SelectPrimitiveLabel,
-	Portal as SelectPrimitivePortal,
-	Root as SelectPrimitiveRoot,
-	ScrollDownButton as SelectPrimitiveScrollDownButton,
-	ScrollUpButton as SelectPrimitiveScrollUpButton,
-	Trigger as SelectPrimitiveTrigger,
-	Value as SelectPrimitiveValue,
-	Viewport as SelectPrimitiveViewport,
-} from "@radix-ui/react-select";
-import { Slottable } from "@radix-ui/react-slot";
 import type {
 	ComponentProps,
 	FocusEvent,
@@ -28,24 +10,34 @@ import type {
 	Ref,
 	SelectHTMLAttributes,
 } from "react";
-import { createContext, useContext, useMemo } from "react";
+import { cloneElement, createContext, isValidElement, use, useId, useMemo } from "react";
+import { createPortal } from "react-dom";
+import { composeHandlers } from "../../behaviors/compose-handlers.js";
+import { enterModal } from "../../behaviors/enter-modal.js";
+import { useStoreValue } from "../../behaviors/store.js";
+import { useOption } from "../../behaviors/use-listbox.js";
+import { usePopup } from "../../behaviors/use-popup.js";
+import { useSelect, useSelectTrigger } from "../../behaviors/use-select.js";
+import type { SelectBehavior } from "../../behaviors/use-select.js";
+import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
-import {
-	useFloatEscapeKeyDown,
-	useLayerContainer,
-} from "../../utils/layer-container/layer-container.js";
+import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { parseValidation, useFieldValidation } from "../field/validation.js";
 import type { WithValidation } from "../field/validation.js";
 import { Icon } from "../icon/icon.js";
 import { Separator } from "../separator/separator.js";
+import { Slot } from "../slot/index.js";
 
 type WithAriaInvalid = Pick<SelectHTMLAttributes<HTMLSelectElement>, "aria-invalid">;
-type SelectContextType = WithValidation &
+
+type SelectContextType = SelectBehavior &
+	WithValidation &
 	WithAriaInvalid & {
+		dir?: "ltr" | "rtl";
 		/**
 		 * Ref for the trigger button.
 		 */
@@ -54,9 +46,81 @@ type SelectContextType = WithValidation &
 		 * Event handler called when the trigger button blurs.
 		 */
 		onBlur?: (event: FocusEvent<HTMLButtonElement>) => void;
+		/**
+		 * Finds the label of the `Select.Item` with `value` among the root's
+		 * children, before the items mount.
+		 */
+		labelFor: (value: string) => ItemLabel | null;
+		/**
+		 * Whether a value is required before the owning form submits.
+		 */
+		required?: boolean;
 	} & Pick<ComponentProps<"button">, "id">;
 
-const SelectContext = createContext<SelectContextType>({});
+/** The label that `Select.Value` shows for the selected item. */
+type ItemLabel = { value: string; label: ReactNode; translate?: "yes" | "no" };
+
+type ItemElementProps = {
+	asChild?: boolean;
+	children?: ReactNode;
+	translate?: "yes" | "no";
+	value?: unknown;
+};
+
+/**
+ * Walks an element tree for the `Select.Item` with `value` and returns its
+ * label. It reads the elements that the caller wrote, so it works on the
+ * server, and it misses an item that a component of your own renders. It
+ * stops at the first match.
+ */
+const isNodeList = (node: ReactNode): node is readonly ReactNode[] => Array.isArray(node);
+
+const findItemLabel = (node: ReactNode, value: string): ItemLabel | null => {
+	if (isNodeList(node)) {
+		for (const child of node) {
+			const found = findItemLabel(child, value);
+			if (found != null) {
+				return found;
+			}
+		}
+		return null;
+	}
+	if (!isValidElement<ItemElementProps>(node)) {
+		return null;
+	}
+	const { asChild, children, translate } = node.props;
+	if (node.type === Item && node.props.value === value) {
+		const label =
+			asChild && isValidElement<{ children?: ReactNode }>(children)
+				? children.props.children
+				: children;
+		return { value, label, translate };
+	}
+	return findItemLabel(children, value);
+};
+
+const SelectContext = createContext<SelectContextType | null>(null);
+
+const useSelectContext = (): SelectContextType => {
+	const context = use(SelectContext);
+	if (context == null) {
+		throw new Error("Select parts must be rendered inside Select.Root.");
+	}
+	return context;
+};
+
+/** Hides the native select that carries the value to the form, but keeps it in validation. */
+const visuallyHidden = {
+	position: "absolute",
+	border: 0,
+	width: 1,
+	height: 1,
+	padding: 0,
+	margin: -1,
+	overflow: "hidden",
+	clip: "rect(0, 0, 0, 0)",
+	whiteSpace: "nowrap",
+} as const;
 
 type SelectProps = PropsWithChildren & {
 	/**
@@ -73,7 +137,7 @@ type SelectProps = PropsWithChildren & {
 	 */
 	defaultValue?: string;
 	/**
-	 * The reading direction. When omitted, inherits from `DirectionProvider`.
+	 * The reading direction of the list.
 	 */
 	dir?: "ltr" | "rtl";
 	/**
@@ -131,7 +195,6 @@ type SelectProps = PropsWithChildren & {
 	value?: string;
 } & WithValidation &
 	WithAriaInvalid;
-
 /**
  * Displays a list of options for the user to pick from, triggered by a button.
  *
@@ -180,38 +243,93 @@ type SelectProps = PropsWithChildren & {
  * ```
  */
 const Root = ({
-	"aria-invalid": _ariaInvalid,
+	"aria-invalid": ariaInvalid,
+	autoComplete,
 	children,
+	defaultOpen,
+	defaultValue,
+	dir,
+	disabled,
+	form,
 	id,
-	validation,
+	name,
 	onBlur,
-	// oxlint-disable-next-line typescript/unbound-method -- Why: Radix types the callback in method syntax, and it never reads `this`.
-	onValueChange,
 	// oxlint-disable-next-line typescript/no-deprecated -- Why: Root still honors the deprecated `onChange` alias until a breaking release removes it.
 	onChange,
+	// oxlint-disable-next-line typescript/unbound-method -- Why: the prop types use method syntax, and the callback never reads `this`.
+	onOpenChange,
+	// oxlint-disable-next-line typescript/unbound-method -- Why: the prop types use method syntax, and the callback never reads `this`.
+	onValueChange,
+	open,
 	ref,
-	...props
+	required,
+	validation,
+	value,
 }: SelectProps) => {
+	const select = useSelect({
+		value,
+		defaultValue,
+		onValueChange: (next) => {
+			onChange?.(next);
+			onValueChange?.(next);
+		},
+		open,
+		defaultOpen,
+		onOpenChange,
+		disabled,
+	});
+	const resetToDefault = () => {
+		if (defaultValue != null) {
+			select.listbox.select(defaultValue);
+		}
+	};
 	const contextValue = useMemo(
 		() => ({
-			"aria-invalid": _ariaInvalid,
+			...select,
+			"aria-invalid": ariaInvalid,
+			dir,
 			id,
-			validation,
+			labelFor: (item: string) => findItemLabel(children, item),
 			onBlur,
 			ref,
+			required,
+			validation,
 		}),
-		[_ariaInvalid, id, validation, onBlur, ref],
+		[select, ariaInvalid, children, dir, id, onBlur, ref, required, validation],
 	);
 	return (
-		<SelectPrimitiveRoot
-			{...props}
-			onValueChange={(value) => {
-				onChange?.(value);
-				onValueChange?.(value);
-			}}
-		>
-			<SelectContext.Provider value={contextValue}>{children}</SelectContext.Provider>
-		</SelectPrimitiveRoot>
+		<SelectContext value={contextValue}>
+			{children}
+			{name != null && (
+				<select
+					aria-hidden
+					tabIndex={-1}
+					style={visuallyHidden}
+					name={name}
+					form={form}
+					autoComplete={autoComplete}
+					required={required}
+					disabled={disabled}
+					value={select.value ?? ""}
+					onChange={(event) => {
+						select.listbox.select(event.target.value);
+					}}
+					ref={(element) => {
+						// Why a ref callback: a form reset returns an uncontrolled select to
+						// `defaultValue`, and the listener lives as long as the element.
+						const owner = element?.form;
+						if (owner == null) {
+							return;
+						}
+						owner.addEventListener("reset", resetToDefault);
+						return () => owner.removeEventListener("reset", resetToDefault);
+					}}
+				>
+					<option value="" />
+					{select.value != null && <option value={select.value}>{select.value}</option>}
+				</select>
+			)}
+		</SelectContext>
 	);
 };
 
@@ -249,27 +367,46 @@ const Root = ({
  * ```
  */
 const Group = ({
+	asChild = false,
+	children,
 	className,
 	"data-slot": dataSlot,
 	ref,
 	...props
-}: ComponentProps<typeof SelectPrimitiveGroup> & WithDataSlot) => (
-	<SelectPrimitiveGroup
-		ref={ref}
-		data-slot={joinDataSlot(dataSlot, "select-group")}
-		className={cx("space-y-px", className)}
-		{...props}
-	/>
-);
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
+	const labelId = useId();
+	const Component = asChild ? Slot : "div";
+	return (
+		<GroupLabelContext value={labelId}>
+			<Component
+				role="group"
+				aria-labelledby={labelId}
+				ref={ref}
+				data-slot={joinDataSlot(dataSlot, "select-group")}
+				className={cx("space-y-px", className)}
+				{...props}
+			>
+				{children}
+			</Component>
+		</GroupLabelContext>
+	);
+};
 
-type SelectValueProps = ComponentProps<typeof SelectPrimitiveValue> & WithDataSlot;
+const GroupLabelContext = createContext<string | undefined>(undefined);
+
+type SelectValueProps = Omit<ComponentProps<"span">, "placeholder"> &
+	WithAsChild &
+	WithDataSlot & {
+		/**
+		 * The content to show while the select has no value.
+		 */
+		placeholder?: ReactNode;
+	};
 
 /**
  * The part that reflects the selected value. Renders the selected item's text
  * by default. For more control, control the select and pass your own children.
- * Do not style this part: under `Select.Content position="item-aligned"`, Radix
- * measures its box to align the open list over the selected item. Pass
- * `placeholder` for the text to show when the select has no value.
+ * Pass `placeholder` for the text to show when the select has no value.
  *
  * **Structure.** `placeholder` renders inside a
  * `<span data-slot="select-placeholder">`, your own `children` inside a
@@ -280,9 +417,13 @@ type SelectValueProps = ComponentProps<typeof SelectPrimitiveValue> & WithDataSl
  * a browser translation engine reparents text nodes, and a removal aimed at a
  * reparented text node does.
  *
- * **`asChild` is not supported.** Radix hands its `Slot` a keyed Fragment, so
- * your element receives none of the value's props and React warns. Pass
- * `children` instead.
+ * **Server render.** Before the items mount, the value reads the selected
+ * item's text from the `Select.Item` elements under `Select.Root`, so the
+ * server markup shows it. When a component of your own renders the item,
+ * pass the text as `children`.
+ *
+ * **`asChild`.** The value's props merge onto your single child, which renders
+ * as-is: no label span and no placeholder.
  *
  * | Data Attribute | Value                  | Description                                                                   |
  * | -------------- | ---------------------- | ----------------------------------------------------------------------------- |
@@ -316,43 +457,67 @@ type SelectValueProps = ComponentProps<typeof SelectPrimitiveValue> & WithDataSl
  * ```
  */
 const Value = ({
-	asChild,
+	asChild = false,
 	children,
 	"data-slot": dataSlot,
 	placeholder,
 	ref,
 	...props
-}: SelectValueProps) => (
-	<SelectPrimitiveValue
-		ref={ref}
-		asChild={asChild}
-		data-slot={joinDataSlot(dataSlot, "select-value")}
-		// Why the spans: decisions/2026-08-04-translation-safe-label-wrappers.md
-		placeholder={
-			placeholder != null && (
+}: SelectValueProps) => {
+	const { labelFor, listbox, value } = useSelectContext();
+	let label = useStoreValue(listbox.store, (state) =>
+		state.itemLabel?.value === value ? state.itemLabel : null,
+	);
+	// Why `""` counts as no value: a cleared select shows its placeholder, as a native select does.
+	const hasValue = value != null && value !== "";
+	// Why the fallback: on the server and while the list is closed, no item has
+	// reported its label, so the value reads it from the item elements.
+	if (label == null && hasValue && children == null) {
+		label = labelFor(value);
+	}
+	if (asChild) {
+		return (
+			<Slot ref={ref} data-slot={joinDataSlot(dataSlot, "select-value")} {...props}>
+				{children}
+			</Slot>
+		);
+	}
+	return (
+		<span ref={ref} data-slot={joinDataSlot(dataSlot, "select-value")} {...props}>
+			{/* Why the spans: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+			{hasValue && children != null && (
+				<span data-slot="select-value-label" className="contents">
+					{children}
+				</span>
+			)}
+			{hasValue && children == null && label != null && (
+				<span data-slot="select-item-label" className="contents" translate={label.translate}>
+					{label.label}
+				</span>
+			)}
+			{!hasValue && placeholder != null && (
 				<span data-slot="select-placeholder" className="contents">
 					{placeholder}
 				</span>
-			)
-		}
-		{...props}
-	>
-		{/* Why `== null` passes through: Radix reads `children !== undefined` to decide whether to portal the item text, so `undefined` must stay `undefined`. */}
-		{asChild || children == null ? (
-			children
-		) : (
-			<span data-slot="select-value-label" className="contents">
-				{children}
-			</span>
-		)}
-	</SelectPrimitiveValue>
+			)}
+		</span>
+	);
+};
+
+/** The trigger renders its label in a span, then the caret. */
+const renderTriggerContent = (label: ReactNode) => (
+	<>
+		{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+		<span data-slot="select-trigger-label" className="contents">
+			{label}
+		</span>
+		<Icon svg={<CaretDownIcon weight="bold" />} className="size-4" aria-hidden />
+	</>
 );
 
-/**
- * Props for `Select.Trigger`.
- */
-type SelectTriggerProps = ComponentProps<typeof SelectPrimitiveTrigger> &
+type SelectTriggerProps = ComponentProps<"button"> &
 	WithAriaInvalid &
+	WithAsChild &
 	WithDataSlot &
 	WithValidation;
 
@@ -373,7 +538,7 @@ type SelectTriggerProps = ComponentProps<typeof SelectPrimitiveTrigger> &
  * `Select.Value`. Match the part's own variant instead:
  * `[&>[data-slot=select-trigger-label]>span]:line-clamp-none`.
  *
- * **`asChild`.** Radix clones your single child as the trigger element. The label
+ * **`asChild`.** Your single child becomes the trigger element. The label
  * span and the caret move inside it, so the guarantee above holds on both paths.
  *
  * | Data Attribute     | Value                                   | Description                                                          |
@@ -412,18 +577,22 @@ type SelectTriggerProps = ComponentProps<typeof SelectPrimitiveTrigger> &
  */
 const Trigger = ({
 	"aria-invalid": ariaInValidProp,
+	asChild = false,
 	className,
 	children,
 	"data-slot": dataSlot,
 	id: propId,
 	onBlur,
+	onClick,
+	onKeyDown,
 	ref,
 	validation: propValidation,
 	...props
 }: SelectTriggerProps) => {
-	const ctx = useContext(SelectContext);
-	const fieldControl = useContext(FieldControlContext);
-	const triggerRef = useComposedRefs(ref, ctx.ref);
+	const ctx = useSelectContext();
+	const fieldControl = use(FieldControlContext);
+	const triggerProps = useSelectTrigger(ctx);
+	const triggerRef = useComposedRefs(ref, ctx.ref, triggerProps.ref);
 	const fieldValidation = useFieldValidation();
 	const rawAriaInvalid = fieldControl
 		? fieldControl["aria-invalid"]
@@ -437,10 +606,13 @@ const Trigger = ({
 		validation: rawValidation,
 	});
 	const id = fieldControl ? fieldControl.id : (ctx.id ?? propId);
+	const Component = asChild ? Slot : "button";
 
 	return (
-		<SelectPrimitiveTrigger
+		<Component
+			{...triggerProps}
 			data-slot={joinDataSlot(dataSlot, "select-trigger")}
+			data-placeholder={ctx.value == null || ctx.value === "" ? "" : undefined}
 			className={cx(
 				"h-9 text-sm",
 				"border-form bg-form text-strong font-sans placeholder:text-placeholder hover:bg-form-hover hover:text-strong flex w-full items-center justify-between gap-1.5 rounded-md border px-3 py-2 disabled:pointer-events-none disabled:opacity-50",
@@ -458,11 +630,15 @@ const Trigger = ({
 			)}
 			data-validation={validation || undefined}
 			id={id}
+			aria-required={ctx.required || undefined}
 			ref={triggerRef}
 			{...props}
-			onBlur={(event) => {
+			onClick={composeHandlers(onClick, triggerProps.onClick)}
+			onKeyDown={composeHandlers(onKeyDown, triggerProps.onKeyDown)}
+			onBlur={(event: FocusEvent<HTMLButtonElement>) => {
 				onBlur?.(event);
 				ctx.onBlur?.(event);
+				triggerProps.onBlur();
 			}}
 			{...(fieldControl
 				? {
@@ -472,65 +648,22 @@ const Trigger = ({
 				: undefined)}
 			aria-invalid={ariaInvalid}
 		>
-			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md
-			    Why `Slottable`: under `asChild` Radix clones the consumer's element and
-			    moves every sibling inside it, so the span and the caret keep their places. */}
-			<Slottable child={children}>
-				{(label) => (
-					<span data-slot="select-trigger-label" className="contents">
-						{label}
-					</span>
-				)}
-			</Slottable>
-			<SelectPrimitiveIcon asChild>
-				<Icon svg={<CaretDownIcon weight="bold" />} className="size-4" />
-			</SelectPrimitiveIcon>
-		</SelectPrimitiveTrigger>
+			{asChild ? slotContent(children, renderTriggerContent) : renderTriggerContent(children)}
+		</Component>
 	);
 };
 
 /**
- * The button that scrolls the select content up.
- * @private
+ * Under `asChild`, moves the part's own content inside the consumer's element:
+ * `render` gets the element's children and returns what the element renders.
+ * `Slot` then merges the part's props onto that element.
  */
-const SelectScrollUpButton = ({
-	className,
-	ref,
-	...props
-}: ComponentProps<typeof SelectPrimitiveScrollUpButton>) => (
-	<SelectPrimitiveScrollUpButton
-		ref={ref}
-		className={cx("flex cursor-default items-center justify-center py-1", className)}
-		{...props}
-	>
-		<Icon svg={<CaretUpIcon weight="bold" />} className="size-4" />
-	</SelectPrimitiveScrollUpButton>
-);
+const slotContent = (children: ReactNode, render: (inner: ReactNode) => ReactNode): ReactNode =>
+	isValidElement<{ children?: ReactNode }>(children)
+		? cloneElement(children, undefined, render(children.props.children))
+		: children;
 
-/**
- * The button that scrolls the select content down.
- * @private
- */
-const SelectScrollDownButton = ({
-	className,
-	ref,
-	...props
-}: ComponentProps<typeof SelectPrimitiveScrollDownButton>) => (
-	<SelectPrimitiveScrollDownButton
-		ref={ref}
-		className={cx("flex cursor-default items-center justify-center py-1", className)}
-		{...props}
-	>
-		<Icon svg={<CaretDownIcon weight="bold" />} className="size-4" />
-	</SelectPrimitiveScrollDownButton>
-);
-
-/**
- * Props for `Select.Content`. `asChild` is omitted: the content renders its
- * scroll buttons and viewport around `children`, so a slot would receive more
- * than one element and throw.
- */
-type SelectContentProps = Omit<ComponentProps<typeof SelectPrimitiveContent>, "asChild"> &
+type SelectContentProps = Omit<ComponentProps<"div">, "dir"> &
 	WithDataSlot & {
 		/**
 		 * The width of the content. Defaults to the width of the trigger.
@@ -542,9 +675,8 @@ type SelectContentProps = Omit<ComponentProps<typeof SelectPrimitiveContent>, "a
 
 /**
  * The component that pops out when the select is open as a portal adjacent to the trigger button.
- * It contains a scrolling viewport of the select items. `position` defaults to
- * `"popper"`, so the list opens below the trigger instead of over the selected
- * item.
+ * It contains a scrolling list of the select items, and opens below the
+ * trigger, or above it when the space below is too small.
  *
  * `Select.Content` renders at Tailwind `z-50`, Mantle's float tier. When
  * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
@@ -553,16 +685,12 @@ type SelectContentProps = Omit<ComponentProps<typeof SelectPrimitiveContent>, "a
  * (`z-60`). When sibling floats share a container, the most recently mounted
  * float paints on top.
  *
- * **Why no `asChild`:** the scroll buttons and the viewport sit around
- * `children`, so `Slot` would receive more than one element and throw. The
- * prop is omitted from the props type.
- *
  * | Data Attribute | Value                                          | Description                                                            |
  * | -------------- | ---------------------------------------------- | ---------------------------------------------------------------------- |
  * | `data-slot`    | `"select-content"`                             | On the content element.                                                |
- * | `data-state`   | `"open"` \| `"closed"`                         | Drives the open and close animations.                                  |
- * | `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | The side of the trigger the list opened on. `position="popper"` only.  |
- * | `data-align`   | `"start"` \| `"center"` \| `"end"`             | The alignment against the trigger. `position="popper"` only.           |
+ * | `data-state`   | `"open"`                                       | Drives the open animation. A closed list renders nothing.              |
+ * | `data-side`    | `"top"` \| `"bottom"`                           | The side of the trigger the list opened on.                            |
+ * | `data-align`   | `"start"`                                      | The alignment against the trigger.                                     |
  *
  * @see https://mantle.ngrok.com/components/forms/select#selectcontent
  *
@@ -593,44 +721,44 @@ const Content = ({
 	className,
 	children,
 	"data-slot": dataSlot,
-	onEscapeKeyDown,
-	position = "popper",
 	ref,
 	width = "trigger",
 	...props
 }: SelectContentProps) => {
-	const layerContainer = useLayerContainer();
-	const handleEscapeKeyDown = useFloatEscapeKeyDown(onEscapeKeyDown);
+	const { dir, listbox, open, triggerRef } = useSelectContext();
+	const { host, popupRef } = usePopup({
+		open,
+		anchorRef: triggerRef,
+		container: useLayerContainer(),
+		modal: enterModal,
+	});
+	const composedRef = useComposedRefs(ref, listbox.ref, popupRef);
 
+	// Why `open`: a closed list renders no options, so a page of closed
+	// selects holds no option elements in memory.
 	return (
-		<SelectPrimitivePortal container={layerContainer}>
-			<SelectPrimitiveContent
-				ref={ref}
+		host != null &&
+		open &&
+		createPortal(
+			<div
+				{...props}
+				{...listbox.listboxProps}
+				ref={composedRef}
+				dir={dir}
 				data-slot={joinDataSlot(dataSlot, "select-content")}
+				data-state="open"
+				data-align="start"
 				className={cx(
-					"border-popover data-side-bottom:slide-in-from-top-1 data-side-left:slide-in-from-right-1 data-side-right:slide-in-from-left-1 data-side-top:slide-in-from-bottom-1 data-side-bottom:slide-out-to-top-1 data-side-left:slide-out-to-right-1 data-side-right:slide-out-to-left-1 data-side-top:slide-out-to-bottom-1 duration-200 ease-out-strong data-state-closed:duration-150 data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 motion-reduce:animate-none! relative z-50 max-h-96 min-w-32 overflow-hidden rounded-md border shadow-md",
-					"bg-popover font-sans",
-					position === "popper" &&
-						"data-side-bottom:translate-y-2 data-side-left:-translate-x-2 data-side-right:translate-x-2 data-side-top:-translate-y-2 max-h-(--radix-select-content-available-height)",
-					width === "trigger" && "w-(--radix-select-trigger-width)",
+					"border-popover duration-200 ease-out-strong data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-top:slide-in-from-bottom-1 motion-reduce:animate-none! relative z-50 max-h-96 min-w-32 overflow-y-auto rounded-md border shadow-md",
+					"bg-popover font-sans p-1 space-y-px max-h-(--available-height) outline-hidden",
+					width === "trigger" && "w-(--anchor-width)",
 					className,
 				)}
-				onEscapeKeyDown={handleEscapeKeyDown}
-				position={position}
-				{...props}
 			>
-				<SelectScrollUpButton />
-				<SelectPrimitiveViewport
-					className={cx(
-						"p-1 space-y-px",
-						position === "popper" && "h-(--radix-select-trigger-height) w-full",
-					)}
-				>
-					{children}
-				</SelectPrimitiveViewport>
-				<SelectScrollDownButton />
-			</SelectPrimitiveContent>
-		</SelectPrimitivePortal>
+				{children}
+			</div>,
+			host,
+		)
 	);
 };
 
@@ -667,28 +795,44 @@ const Content = ({
  * ```
  */
 const Label = ({
+	asChild = false,
 	className,
 	"data-slot": dataSlot,
 	ref,
 	...props
-}: ComponentProps<typeof SelectPrimitiveLabel> & WithDataSlot) => (
-	<SelectPrimitiveLabel
-		ref={ref}
-		data-slot={joinDataSlot(dataSlot, "select-label")}
-		className={cx("px-2 py-1.5 text-sm font-medium", className)}
-		{...props}
-	/>
-);
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
+	const Component = asChild ? Slot : "div";
+	return (
+		<Component
+			id={use(GroupLabelContext)}
+			ref={ref}
+			data-slot={joinDataSlot(dataSlot, "select-label")}
+			className={cx("px-2 py-1.5 text-sm font-medium", className)}
+			{...props}
+		/>
+	);
+};
 
-/**
- * Props for `Select.Item`.
- */
-type SelectItemProps = ComponentProps<typeof SelectPrimitiveItem> &
+type SelectItemProps = Omit<ComponentProps<"div">, "children"> &
+	WithAsChild &
 	WithDataSlot & {
+		children?: ReactNode;
 		/**
-		 * An optional icon rendered before the item text.
+		 * Whether the option is inert.
+		 */
+		disabled?: boolean;
+		/**
+		 * An optional icon to display before the item text.
 		 */
 		icon?: ReactNode;
+		/**
+		 * The text that typeahead matches. Defaults to the item's text content.
+		 */
+		textValue?: string;
+		/**
+		 * The value the select takes when the user picks this item.
+		 */
+		value: string;
 	};
 
 /**
@@ -699,7 +843,7 @@ type SelectItemProps = ComponentProps<typeof SelectPrimitiveItem> &
  * before the text.
  *
  * **Structure.** `children` render inside a `<span data-slot="select-item-label">`.
- * Radix portals that span into `Select.Value` while the item is selected and
+ * `Select.Value` renders a copy of that span while the item is selected and
  * removes it when the selection changes. The span exists so the node React
  * removes is an element: a browser translation engine reparents text nodes,
  * and a removal aimed at one throws. The span is `display: contents`, so it
@@ -710,7 +854,7 @@ type SelectItemProps = ComponentProps<typeof SelectPrimitiveItem> &
  * key, set `translate="no"` on the item. The attribute also rides on the label
  * span, so the copy the trigger shows stays untranslated too.
  *
- * **`asChild`.** Radix clones your single child as the option element. The label
+ * **`asChild`.** Your single child becomes the option element. The label
  * span and the indicator move inside it, so the guarantee above holds on both paths.
  *
  * | Data Attribute     | Value                        | Description                                                          |
@@ -747,48 +891,74 @@ type SelectItemProps = ComponentProps<typeof SelectPrimitiveItem> &
  * ```
  */
 const Item = ({
+	asChild = false,
 	className,
 	children,
 	"data-slot": dataSlot,
+	disabled,
 	icon,
 	ref,
+	textValue,
 	translate,
+	value,
 	...props
-}: SelectItemProps) => (
-	<SelectPrimitiveItem
-		ref={ref}
-		data-slot={joinDataSlot(dataSlot, "select-item")}
-		translate={translate}
-		className={cx(
-			"relative flex gap-2 w-full cursor-pointer select-none items-center rounded-md py-1.5 pl-2 pr-8 text-strong text-sm outline-hidden",
-			"focus:bg-active-menu-item",
-			"data-disabled:pointer-events-none data-disabled:opacity-50",
-			"data-state-checked:bg-selected-menu-item",
-			"focus:data-state-checked:bg-active-selected-menu-item",
-			className,
-		)}
-		{...props}
-	>
-		{icon && <Icon svg={icon} />}
-		{/* Why `Slottable`: under `asChild` Radix clones the consumer's element and
-		    moves every sibling inside it. `ItemText` rides inside the render function
-		    because Radix only finds a `Slottable` among the item's direct children. */}
-		<Slottable child={children}>
-			{(label) => (
-				<SelectPrimitiveItemText>
-					{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
-					{/* Why `translate` repeats: Radix portals this span into the trigger, out of the item's subtree, so the item's attribute never reaches that copy. */}
-					<span data-slot="select-item-label" className="contents" translate={translate}>
-						{label}
-					</span>
-				</SelectPrimitiveItemText>
+}: SelectItemProps) => {
+	const { listbox } = useSelectContext();
+	const { active, selected, optionProps } = useOption(listbox, { value, disabled, textValue });
+	const label =
+		asChild && isValidElement<{ children?: ReactNode }>(children)
+			? children.props.children
+			: children;
+	const reportLabel = () => {
+		listbox.store.set({ itemLabel: { value, label, translate } });
+	};
+	const composedRef = useComposedRefs(ref, (node: HTMLElement | null) => {
+		// Why a ref callback: the selected or active item hands its label to
+		// `Select.Value` in the commit that mounts or highlights it. A pick closes
+		// the list, so the picked item has no later commit to report in.
+		if (node != null && (selected || active)) {
+			reportLabel();
+		}
+	});
+	const renderContent = (inner: ReactNode) => (
+		<>
+			{icon && <Icon svg={icon} />}
+			<span data-slot="select-item-label" className="contents" translate={translate}>
+				{inner}
+			</span>
+			{selected && (
+				<span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
+					<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
+				</span>
 			)}
-		</Slottable>
-		<SelectPrimitiveItemIndicator className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
-			<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
-		</SelectPrimitiveItemIndicator>
-	</SelectPrimitiveItem>
-);
+		</>
+	);
+	const Component = asChild ? Slot : "div";
+	return (
+		<Component
+			{...props}
+			{...optionProps}
+			onClick={() => {
+				// Why: a tap can pick an item that no pointer move highlighted.
+				reportLabel();
+				optionProps.onClick();
+			}}
+			ref={composedRef}
+			data-slot={joinDataSlot(dataSlot, "select-item")}
+			translate={translate}
+			className={cx(
+				"relative flex gap-2 w-full cursor-pointer select-none items-center rounded-md py-1.5 pl-2 pr-8 text-strong text-sm outline-hidden",
+				"data-highlighted:bg-active-menu-item",
+				"data-disabled:pointer-events-none data-disabled:opacity-50",
+				"data-state-checked:bg-selected-menu-item",
+				"data-highlighted:data-state-checked:bg-active-selected-menu-item",
+				className,
+			)}
+		>
+			{asChild ? slotContent(children, renderContent) : renderContent(children)}
+		</Component>
+	);
+};
 
 /**
  * Used to visually separate items or groups of items in the select content.

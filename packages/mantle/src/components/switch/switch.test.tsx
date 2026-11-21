@@ -134,4 +134,50 @@ describe("Switch", () => {
 			expect(handleClick.mock.lastCall?.[0].target).toBe(toggle);
 		});
 	});
+
+	describe("state and forms", () => {
+		test("Space toggles the focused switch and reports each change once", async () => {
+			const user = userEvent.setup();
+			const onCheckedChange = vi.fn<(checked: boolean) => void>();
+			render(<Switch aria-label="Alerts" onCheckedChange={onCheckedChange} />);
+			screen.getByRole("switch", { name: "Alerts" }).focus();
+			await user.keyboard(" ");
+			expect(screen.getByRole("switch", { name: "Alerts" })).toHaveAttribute(
+				"aria-checked",
+				"true",
+			);
+			expect(onCheckedChange).toHaveBeenCalledTimes(1);
+			expect(onCheckedChange).toHaveBeenLastCalledWith(true);
+		});
+
+		test("a controlled switch shows the parent's state and only asks to change it", async () => {
+			const user = userEvent.setup();
+			const onCheckedChange = vi.fn<(checked: boolean) => void>();
+			render(<Switch aria-label="Alerts" checked={false} onCheckedChange={onCheckedChange} />);
+			const toggle = screen.getByRole("switch", { name: "Alerts" });
+			await user.click(toggle);
+			expect(onCheckedChange).toHaveBeenLastCalledWith(true);
+			expect(toggle).toHaveAttribute("aria-checked", "false");
+		});
+
+		test("submits its value under name while on, and a form reset returns it to defaultChecked", async () => {
+			const user = userEvent.setup();
+			render(
+				<form aria-label="Settings">
+					<Switch aria-label="Alerts" name="alerts" value="yes" defaultChecked />
+					<button type="reset">Reset</button>
+				</form>,
+			);
+			const form = screen.getByRole("form", { name: "Settings" });
+			const toggle = screen.getByRole("switch", { name: "Alerts" });
+			const formData = () =>
+				form instanceof HTMLFormElement ? new FormData(form).get("alerts") : null;
+			expect(formData()).toBe("yes");
+			await user.click(toggle);
+			expect(formData()).toBeNull();
+			await user.click(screen.getByRole("button", { name: "Reset" }));
+			expect(toggle).toHaveAttribute("aria-checked", "true");
+			expect(formData()).toBe("yes");
+		});
+	});
 });

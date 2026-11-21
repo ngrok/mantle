@@ -580,6 +580,30 @@ export const migrations = [
 			"The theme token --container-side-panel-lane-icon-rail is now --container-side-panel-lane-collapsed. Rename it where you set it or read it.",
 		route: "/migrations/0016-side-panel-lane-collapsed-migration",
 	},
+	{
+		number: 17,
+		slug: "select-owned-behavior-migration",
+		title: "Select Owned Behavior",
+		description:
+			"Select no longer uses Radix Select. Select.Content drops its positioning props and Radix handlers, and the --radix-select-* CSS variables are gone.",
+		route: "/migrations/0017-select-owned-behavior-migration",
+	},
+	{
+		number: 18,
+		slug: "combobox-owned-behavior-migration",
+		title: "Combobox Owned Behavior",
+		description:
+			"Combobox no longer uses Ariakit. Its parts take a fixed set of props, Combobox.Content portals, and the highlighted item carries data-highlighted.",
+		route: "/migrations/0018-combobox-owned-behavior-migration",
+	},
+	{
+		number: 19,
+		slug: "multi-select-owned-behavior-migration",
+		title: "MultiSelect Owned Behavior",
+		description:
+			"MultiSelect no longer uses Ariakit. Its parts take a fixed set of props, the list portals into the layer container, and the highlighted item carries data-highlighted.",
+		route: "/migrations/0019-multi-select-owned-behavior-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */
