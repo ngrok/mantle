@@ -1,6 +1,7 @@
 import mantlePackageJson from "@ngrok/mantle/package.json" with { type: "json" };
 import { McpServer, ResourceTemplate, type CallToolResult } from "@modelcontextprotocol/server";
 import { z } from "zod";
+import { buildSiteAgentManifest } from "~/utilities/agent-manifest.server";
 import { canonicalHref, canonicalOrigin } from "~/utilities/canonical-origin";
 import { loadFrontmatter, rawDocContent, urlToFileMap } from "~/utilities/docs";
 import { checkCode } from "~/utilities/mcp/check.server";
@@ -1127,41 +1128,59 @@ export async function loadMigrationGuides(): Promise<MigrationGuide[]> {
 	);
 }
 
-const docPageFrontmatter = z.object({
-	title: z.string(),
-	description: z.string().optional(),
-	aliases: z.array(z.string()).optional(),
-	useWhen: z.string().optional(),
-	parts: z.array(z.string()).optional(),
-});
+const docPageFrontmatter = z.object({ title: z.string(), description: z.string().optional() });
 
-/** Whether `find` searches a docs page. `migrate` covers the guides, and the rest are indexes. */
+/**
+ * Whether `find` searches a docs page. `migrate` covers the guides, the
+ * manifest owns the recipes, and the rest are indexes.
+ */
 function isFindablePage(slug: string): boolean {
-	return !slug.startsWith("migrations/") && slug !== "changelog" && slug !== "index";
+	return (
+		!slug.startsWith("migrations/") &&
+		!slug.startsWith("recipes/") &&
+		slug !== "changelog" &&
+		slug !== "index"
+	);
 }
 
-/** Each findable docs page with a title. `find` drops the pages that an API record owns. */
+/**
+ * Each findable docs page with a title, and each recipe. `find` drops the
+ * pages that an API record owns. Why the manifest for recipes: `dist/agent.json`
+ * ships the same records, so an agent offline finds what `find` finds.
+ */
 async function readDocPages(): Promise<DocPageRecord[]> {
-	const pages = await Promise.all(
-		Array.from(urlToFileMap)
-			.filter(([slug]) => isFindablePage(slug))
-			.map(async ([slug, filePath]): Promise<DocPageRecord | undefined> => {
-				const frontmatter = docPageFrontmatter.safeParse(await loadFrontmatter(filePath));
-				return frontmatter.success
-					? {
-							name: frontmatter.data.title,
-							kind: slug.startsWith("recipes/") ? "recipe" : "page",
-							summary: frontmatter.data.description,
-							aliases: frontmatter.data.aliases,
-							useWhen: frontmatter.data.useWhen,
-							parts: frontmatter.data.parts,
-							docsUrl: canonicalHref(`/${slug}`),
-							docsSlug: slug,
-						}
-					: undefined;
-			}),
+	const [pages, manifest] = await Promise.all([
+		Promise.all(
+			Array.from(urlToFileMap)
+				.filter(([slug]) => isFindablePage(slug))
+				.map(async ([slug, filePath]): Promise<DocPageRecord | undefined> => {
+					const frontmatter = docPageFrontmatter.safeParse(await loadFrontmatter(filePath));
+					return frontmatter.success
+						? {
+								name: frontmatter.data.title,
+								kind: "page",
+								summary: frontmatter.data.description,
+								docsUrl: canonicalHref(`/${slug}`),
+								docsSlug: slug,
+							}
+						: undefined;
+				}),
+		),
+		buildSiteAgentManifest(),
+	]);
+	const recipes = (manifest.recipes ?? []).map(
+		({ name, slug, docsUrl, summary, useWhen, aliases, parts }): DocPageRecord => ({
+			name,
+			kind: "recipe",
+			summary,
+			aliases,
+			useWhen,
+			parts,
+			docsUrl,
+			docsSlug: slug,
+		}),
 	);
-	return pages.filter((page) => page != null);
+	return [...pages.filter((page) => page != null), ...recipes];
 }
 
 let docPagesCache: Promise<DocPageRecord[]> | undefined;

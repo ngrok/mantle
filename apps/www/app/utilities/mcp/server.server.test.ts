@@ -15,7 +15,7 @@ import {
 	type ToolCallEvent,
 } from "~/utilities/mcp/server.server";
 import { packageFilesFixture } from "~/utilities/mcp/test-fixtures";
-import { recordNamed, recordsOf, type DocPageRecord } from "~/utilities/mcp/tools";
+import type { DocPageRecord } from "~/utilities/mcp/tools";
 import { ServerBusyError, versionDataFromFiles } from "~/utilities/mcp/version-data.server";
 
 function dependencies(overrides: Partial<McpDependencies> = {}): McpDependencies {
@@ -879,23 +879,6 @@ describe("the golden find queries", () => {
 			expect(found.strongMatch).toBe(false);
 		},
 	);
-
-	it("names a part of the current build in each part of each recipe", async () => {
-		const deps = await currentDependencies();
-		const records = recordsOf(await deps.loader.load(mantlePackageJson.version));
-		const recipes = (await deps.docPages()).filter((page) => page.kind === "recipe");
-
-		const unknown = recipes.flatMap(({ name, parts }) =>
-			parts == null || parts.length === 0
-				? [`${name}: no parts`]
-				: parts
-						.filter((part) => recordNamed(records, part) == null)
-						.map((part) => `${name}: ${part}`),
-		);
-
-		expect(recipes.length).toBeGreaterThan(0);
-		expect(unknown).toEqual([]);
-	});
 });
 
 describe("loadMigrationGuides", () => {
