@@ -2,6 +2,7 @@ import type { AgentManifest } from "../../../../../packages/mantle/scripts/agent
 import {
 	declarationEntryFor,
 	declarationsOf,
+	declaredWordsOf,
 	exportNamesOf,
 	type SubpathExports,
 } from "~/utilities/mcp/declarations.server";
@@ -27,6 +28,8 @@ export type VersionData = {
 	llmsTxt: string | undefined;
 	/** The declaration source of `names` as `specifier` exports them, and the declarations they refer to. */
 	declarationsOf: (specifier: string, names: readonly string[]) => string | undefined;
+	/** Each identifier in the declarations that `specifier` reaches, such as the name of each prop. */
+	declaredWordsOf: (specifier: string) => ReadonlySet<string>;
 };
 
 /** A version argument the caller can act on: why the server cannot answer for it. */
@@ -103,6 +106,8 @@ export function versionDataFromFiles(version: string, files: PackageFiles): Vers
 		exportsBySpecifier.set(specifier, exportNamesOf(files, entry));
 	}
 
+	const wordsBySpecifier = new Map<string, ReadonlySet<string>>();
+
 	return {
 		version,
 		manifest,
@@ -112,6 +117,15 @@ export function versionDataFromFiles(version: string, files: PackageFiles): Vers
 		declarationsOf: (specifier, names) => {
 			const entry = entryBySpecifier.get(specifier);
 			return entry == null ? undefined : declarationsOf(files, entry, names);
+		},
+		declaredWordsOf: (specifier) => {
+			const entry = entryBySpecifier.get(specifier);
+			let words = wordsBySpecifier.get(specifier);
+			if (words == null) {
+				words = entry == null ? new Set() : declaredWordsOf(files, entry);
+				wordsBySpecifier.set(specifier, words);
+			}
+			return words;
 		},
 	};
 }

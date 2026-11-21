@@ -107,6 +107,7 @@ describe("the site's agent manifest", () => {
 			exportsBySpecifier: new Map(),
 			llmsTxt: undefined,
 			declarationsOf: () => undefined,
+			declaredWordsOf: () => new Set(),
 		});
 
 		const [top] = findRecords(records, {
@@ -130,6 +131,7 @@ describe("the site's agent manifest", () => {
 			exportsBySpecifier: new Map(),
 			llmsTxt: undefined,
 			declarationsOf: () => undefined,
+			declaredWordsOf: () => new Set(),
 		});
 
 		const misses = manifest.components.flatMap((component) =>
@@ -151,6 +153,7 @@ describe("the site's agent manifest", () => {
 			exportsBySpecifier: new Map(),
 			llmsTxt: undefined,
 			declarationsOf: () => undefined,
+			declaredWordsOf: () => new Set(),
 		});
 
 		const names = findRecords(records, { query: "text label" }).map(({ record }) => record.name);
@@ -175,6 +178,7 @@ describe("the site's agent manifest", () => {
 			exportsBySpecifier: new Map(),
 			llmsTxt: undefined,
 			declarationsOf: () => undefined,
+			declaredWordsOf: () => new Set(),
 		});
 
 		expect(findRecords(records, { query })[0]).toEqual(
@@ -195,6 +199,7 @@ describe("the site's agent manifest", () => {
 			exportsBySpecifier: new Map(),
 			llmsTxt: undefined,
 			declarationsOf: () => undefined,
+			declaredWordsOf: () => new Set(),
 		});
 
 		expect(findRecords(records, { query })[0]?.strong).toBe(false);
@@ -212,6 +217,7 @@ describe("the site's agent manifest", () => {
 			exportsBySpecifier: new Map(),
 			llmsTxt: undefined,
 			declarationsOf: () => undefined,
+			declaredWordsOf: () => new Set(),
 		});
 
 		expect(findRecords(records, { query })[0]?.record.name).toBe(name);

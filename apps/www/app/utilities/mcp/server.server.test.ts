@@ -28,6 +28,7 @@ function dependencies(overrides: Partial<McpDependencies> = {}): McpDependencies
 		},
 		docsVersion: "0.93.0",
 		docsSourceHash: async () => "release-hash",
+		docsDeclaredWordsOf: async () => undefined,
 		readDocs: async (slug) =>
 			slug === "components/overlays/dialog" ? "# Dialog\n\n## API Reference\n\nProps." : undefined,
 		migrations: async () => [],
@@ -390,6 +391,20 @@ describe("the mantle MCP server", () => {
 		expect(text).toContain("docsVersion: 0.93.0 with unreleased changes (commit abc1234)");
 		expect(text).toContain("## Contract (declarations of @ngrok/mantle@0.93.0)");
 		expect(text).not.toContain("## Contract (docs for");
+	});
+
+	it("marks the docs props that the latest release lacks", async () => {
+		const deps = dependencies({
+			docsSourceHash: async () => "main-hash",
+			docsDeclaredWordsOf: async () => new Set(["title", "keyboardShortcut"]),
+			readDocs: async () =>
+				"# Dialog\n\n## API Reference\n\n| Prop | Type |\n| --- | --- |\n| `title` | `string` |\n| `keyboardShortcut` | `boolean` |",
+		});
+
+		const { text } = await callTool(deps, "get", { name: "dialog", sections: ["API Reference"] });
+
+		expect(text).toContain("| `keyboardShortcut` (not in 0.93.0) | `boolean` |");
+		expect(text).toContain("| `title` | `string` |");
 	});
 
 	it("labels read_docs prose when the docs build has unreleased changes", async () => {

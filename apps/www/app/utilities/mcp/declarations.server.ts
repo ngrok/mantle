@@ -341,3 +341,33 @@ export function declarationsOf(
 	}
 	return texts.join("\n\n");
 }
+
+/**
+ * Each identifier outside comments and strings in an entry's declaration file
+ * and in the `dist` files it imports, such as each prop name the entry's
+ * components take.
+ *
+ * @example
+ * declaredWordsOf(files, "dist/button.d.ts").has("intent"); // true
+ */
+export function declaredWordsOf(files: PackageFiles, entryPath: string): Set<string> {
+	const words = new Set<string>();
+	const pending = [entryPath];
+	const seen = new Set(pending);
+	for (let path = pending.pop(); path != null; path = pending.pop()) {
+		const source = files.get(path) ?? "";
+		// Why strip comments and strings: a word in JSDoc prose or a string type is not a declared name.
+		const code = source.replace(/\/\*[\s\S]*?\*\/|\/\/.*$|"[^"\n]*"|'[^'\n]*'/gm, " ");
+		for (const [word] of code.matchAll(/[A-Za-z_$][\w$]*/g)) {
+			words.add(word);
+		}
+		for (const [, request] of source.matchAll(/from\s+["']([^"']+)["']/g)) {
+			const target = request == null ? undefined : resolveDeclarationPath(path, request);
+			if (target != null && !seen.has(target)) {
+				seen.add(target);
+				pending.push(target);
+			}
+		}
+	}
+	return words;
+}

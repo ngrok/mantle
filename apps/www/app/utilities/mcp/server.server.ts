@@ -37,7 +37,8 @@ import {
 import { createLinearGaps, type LinearGaps } from "~/utilities/mcp/linear.server";
 import { clipMarkdown, gapIssueOf, mcpPulse } from "~/utilities/mcp/pulse.server";
 import { renderMdxToMarkdown } from "~/utilities/render-mdx-to-markdown.server";
-import { loadSourceFiles } from "~/utilities/mantle-source.server";
+import { loadDeclarationFiles, loadSourceFiles } from "~/utilities/mantle-source.server";
+import { declaredWordsOf } from "~/utilities/mcp/declarations.server";
 import { sourceHash } from "../../../../../packages/mantle/scripts/agent-manifest";
 
 /** The server instructions. The contract test caps their size. */
@@ -62,6 +63,8 @@ export type McpDependencies = {
 	docsCommit?: string;
 	/** The `sourceHash` of the docs build's package source. */
 	docsSourceHash: () => Promise<string | undefined>;
+	/** Each identifier in the docs build's declarations that `specifier` reaches, when the build has them. */
+	docsDeclaredWordsOf: (specifier: string) => Promise<ReadonlySet<string> | undefined>;
 	readDocs: (slug: string) => Promise<string | undefined>;
 	migrations: () => Promise<MigrationGuide[]>;
 	/** The docs pages with no API record, such as foundations and recipes. */
@@ -629,11 +632,18 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				);
 			}
 			const provenance = await provenanceFor(dependencies, data);
+			// Why only the latest release with unreleased changes: an older version can inherit a prop
+			// from a dependency that the docs build now declares itself, and its words cannot show that.
+			const unreleased =
+				dependencies.docsVersion === data.version && provenance.docsVersion !== data.version;
 			const body = getRecordText({
 				record,
 				data,
 				provenance,
 				docsMarkdown: await dependencies.readDocs(record.docsSlug),
+				docsWords: unreleased
+					? await dependencies.docsDeclaredWordsOf(record.importPath)
+					: undefined,
 				sections,
 			});
 			return {
@@ -1219,6 +1229,23 @@ function loadDocsSourceHash(): Promise<string> {
 	return docsSourceHashCache;
 }
 
+let declarationFilesCache: Promise<ReadonlyMap<string, string>> | undefined;
+
+/** Each identifier in the docs build's declarations that `specifier` reaches. */
+async function loadDocsDeclaredWords(specifier: string): Promise<ReadonlySet<string> | undefined> {
+	const files = import.meta.env.PROD
+		? (declarationFilesCache ??= loadDeclarationFiles())
+		: loadDeclarationFiles();
+	// Why `types`: the workspace `exports` holds condition objects; only the published copy holds paths.
+	const target = Object.entries(mantlePackageJson.exports).find(
+		([subpath]) => subpath === `./${specifier.replace(/^@ngrok\/mantle\//, "")}`,
+	)?.[1];
+	const entry =
+		typeof target === "object" && "types" in target ? target.types.replace(/^\.\//, "") : undefined;
+	const loaded = await files;
+	return entry == null || !loaded.has(entry) ? undefined : declaredWordsOf(loaded, entry);
+}
+
 let loader: VersionDataLoader | undefined;
 let linear: LinearGaps | undefined;
 
@@ -1245,6 +1272,7 @@ export function productionDependencies({
 		docsVersion: mantlePackageJson.version,
 		docsCommit: process.env.COMMIT_SHA,
 		docsSourceHash: loadDocsSourceHash,
+		docsDeclaredWordsOf: loadDocsDeclaredWords,
 		readDocs,
 		migrations: loadMigrationGuides,
 		docPages: loadDocPages,

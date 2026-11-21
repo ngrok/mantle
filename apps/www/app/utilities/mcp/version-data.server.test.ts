@@ -7,7 +7,11 @@ import {
 	readTarEntries,
 	type PackageFiles,
 } from "~/utilities/mcp/npm-tarball.server";
-import { declarationsOf, exportNamesOf } from "~/utilities/mcp/declarations.server";
+import {
+	declarationsOf,
+	declaredWordsOf,
+	exportNamesOf,
+} from "~/utilities/mcp/declarations.server";
 import { packageFilesFixture, tarOf } from "~/utilities/mcp/test-fixtures";
 import {
 	createVersionDataLoader,
@@ -72,6 +76,26 @@ describe("exportNamesOf", () => {
 			names: new Set(["DataTable"]),
 			externalStars: ["@tanstack/react-table"],
 		});
+	});
+});
+
+describe("declaredWordsOf", () => {
+	it("reads the names of the files an entry imports, but not their comments or strings", () => {
+		const files = new Map([
+			["dist/query.d.ts", 'import { t as Props } from "./props-AbC.js";\nexport { Props };\n'],
+			[
+				"dist/props-AbC.d.ts",
+				'/** Opens the menu. */\ntype Props = { value: string; mode: "open" };\nexport { Props as t };\n',
+			],
+			["dist/other.d.ts", "type Other = { keyboardShortcut: boolean };\n"],
+		]);
+
+		const words = declaredWordsOf(files, "dist/query.d.ts");
+
+		expect(words.has("value")).toBe(true);
+		expect(words.has("Opens")).toBe(false);
+		expect(words.has("open")).toBe(false);
+		expect(words.has("keyboardShortcut")).toBe(false);
 	});
 });
 
