@@ -443,7 +443,7 @@ CONVENTIONS.md covers general style ([TypeScript](./CONVENTIONS.md#typescript),
   - It has no `"use client"`.
   - A page can render it from its own entry. An internal part of a client component gains nothing.
 - When only one case of a part needs a hook or a handler, move that behavior to its own `"use client"` file, and
-  render it only in that case (`button/disabled-link-guard.tsx`). If the build puts that file in the chunk of a
+  render it only on that path (`button/button-slot.tsx`, for `asChild`). If the build puts that file in the chunk of a
   stateless file, give it a `codeSplitting` group in `packages/mantle/tsdown.config.ts`.
 - The build fails when a file with the file-level `"use no memo"` lands in a `"use client"` chunk
   (`packages/mantle/scripts/preserve-use-client.ts`). A hook in such a file passes the build but breaks a server

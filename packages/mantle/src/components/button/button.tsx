@@ -1,4 +1,4 @@
-// Why "use no memo": a server component can render this file. A stateless part gains nothing from
+// Why "use no memo": a server component can render this file. A stateless part gains little from
 // the compiler, and its cache hook would make the build mark the chunk "use client".
 "use no memo";
 
@@ -17,7 +17,7 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 import { Icon } from "../icon/index.js";
 import { IconSwap } from "../icon/icon-swap.js";
 import { Slot } from "../slot/index.js";
-import { DisabledLinkGuard } from "./disabled-link-guard.js";
+import { ButtonSlot } from "./button-slot.js";
 import type { ButtonIntent } from "./intents.js";
 import type { ButtonSize } from "./sizes.js";
 
@@ -270,8 +270,6 @@ type ButtonProps = ComponentProps<"button"> &
  * Under `asChild`, the child gets no `disabled` attribute, because it is inert
  * on an `<a>`: the child gets `aria-disabled="true"`, leaves the tab order
  * with `tabIndex={-1}`, and a click on it is cancelled before any handler runs.
- * Only this case renders a client component; every other `Button` is a server
- * component that ships no JavaScript.
  * An explicit `disabled` wins over `isLoading`, so `disabled={false}` keeps a
  * loading button enabled. `aria-disabled={false}` cannot re-enable the button.
  * To gate a button on readiness and on a pending action, put both in
@@ -426,29 +424,26 @@ const Button = ({
 
 	if (asChild) {
 		invariant(
-			isValidElement<{ children?: ReactNode; tabIndex?: number }>(children) &&
-				Children.only(children),
+			isValidElement<{ children?: ReactNode }>(children) && Children.only(children),
 			"When using `asChild`, Button must be passed a single child as a JSX tag.",
 		);
 
-		return (
+		const content = cloneElement(
+			children,
+			{},
 			<>
-				<Slot {...buttonProps}>
-					{cloneElement(
-						children,
-						// Why on the child, not on the `Slot`: a child's own `tabIndex` wins over a slot prop.
-						disabled ? { tabIndex: -1 } : {},
-						<>
-							{icon}
-							{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
-							<span data-slot="button-label" className="contents">
-								{children.props.children}
-							</span>
-						</>,
-					)}
-				</Slot>
-				{disabled && <DisabledLinkGuard />}
-			</>
+				{icon}
+				{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
+				<span data-slot="button-label" className="contents">
+					{children.props.children}
+				</span>
+			</>,
+		);
+
+		return (
+			<ButtonSlot inert={disabled}>
+				<Slot {...buttonProps}>{content}</Slot>
+			</ButtonSlot>
 		);
 	}
 

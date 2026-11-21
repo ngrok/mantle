@@ -3,6 +3,9 @@ import { PlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { act, useState } from "react";
+import { flushSync } from "react-dom";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
@@ -464,7 +467,7 @@ describe("Button", () => {
 			expect(window.location.hash).toBe("");
 		});
 
-		test("a disabled asChild anchor runs none of its own capture handlers", async () => {
+		test("a disabled asChild anchor drops its own onClickCapture, which Radix would run first", async () => {
 			const user = userEvent.setup();
 			const handleClickCapture = vi.fn<() => void>();
 			render(
@@ -479,6 +482,31 @@ describe("Button", () => {
 
 			expect(handleClickCapture).toHaveBeenCalledTimes(0);
 			expect(window.location.hash).toBe("");
+		});
+
+		test("a disabled asChild anchor cancels the click that lands as it hydrates", () => {
+			const handleClick = vi.fn<() => void>();
+			const tree = (
+				<Button appearance="filled" intent="neutral" asChild disabled>
+					<a href="#yolo" onClick={handleClick}>
+						Open
+					</a>
+				</Button>
+			);
+			const container = document.createElement("div");
+			container.innerHTML = renderToString(tree);
+			document.body.append(container);
+
+			// Why no `act`: a click right after hydration lands before effects run, so the
+			// blocker must be part of the hydrated element, not an effect.
+			hydrateRoot(container, tree);
+			flushSync(() => {});
+			const click = new MouseEvent("click", { bubbles: true, cancelable: true });
+			container.querySelector("a")?.dispatchEvent(click);
+
+			expect(click.defaultPrevented).toBe(true);
+			expect(handleClick).toHaveBeenCalledTimes(0);
+			container.remove();
 		});
 
 		test("a loading asChild anchor is inert: aria-disabled, out of the tab order, click cancelled", async () => {

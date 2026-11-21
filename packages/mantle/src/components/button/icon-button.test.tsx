@@ -272,7 +272,7 @@ describe("IconButton", () => {
 			expect(button).not.toHaveAttribute("data-loading");
 		});
 
-		test("a disabled asChild anchor runs none of its own capture handlers", async () => {
+		test("a disabled asChild anchor drops its own onClickCapture, which Radix would run first", async () => {
 			const user = userEvent.setup();
 			const handleClickCapture = vi.fn<() => void>();
 			render(
