@@ -199,10 +199,10 @@ MARK: THEME
 	--text-heading-8xl--line-height: 1;
 	--text-heading-8xl--letter-spacing: normal;
 	--text-heading-8xl--font-weight: 500;
-	--text-heading-9xl: clamp(6.4rem, 7.4rem + 0.75vw, 8rem);
-	--text-heading-9xl--line-height: 1;
-	--text-heading-9xl--letter-spacing: normal;
-	--text-heading-9xl--font-weight: 500;
+	--text-paragraph-xs: 0.75rem;
+	--text-paragraph-xs--line-height: 1.625;
+	--text-paragraph-xs--letter-spacing: normal;
+	--text-paragraph-xs--font-weight: 400;
 	--text-paragraph-sm: 0.875rem;
 	--text-paragraph-sm--line-height: 1.625;
 	--text-paragraph-sm--letter-spacing: normal;
@@ -215,6 +215,10 @@ MARK: THEME
 	--text-paragraph-lg--line-height: 1.625;
 	--text-paragraph-lg--letter-spacing: normal;
 	--text-paragraph-lg--font-weight: 400;
+	--text-paragraph-xl: clamp(1.1rem, 0.8rem + 0.75vw, 1.25rem);
+	--text-paragraph-xl--line-height: 1.625;
+	--text-paragraph-xl--letter-spacing: normal;
+	--text-paragraph-xl--font-weight: 400;
 }
 
 /*

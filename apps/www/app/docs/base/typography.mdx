@@ -11,7 +11,7 @@ The type scale, text colors, and fonts for mantle UI.
 
 ## Scale
 
-The type scale has two sets of steps: heading steps and paragraph steps. The steps follow Tailwind's `text-*` scale, from `xs` to `9xl`, and each step has the same default size as the Tailwind class of its name. Each step is a `text-*` class that sets the font size, line height, letter spacing, and weight together. A step is separate from the markup, so an `<h2>` can use any heading step. The [`Typography`](/components/data-display/typography) parts use these steps.
+The type scale has two sets of steps: heading steps and paragraph steps. The steps follow Tailwind's `text-*` scale, from `xs` to `8xl`, and each step has the same default size as the Tailwind class of its name. Each step is a `text-*` class that sets the font size, line height, letter spacing, and weight together. A step is separate from the markup, so an `<h2>` can use any heading step. The [`Typography`](/components/data-display/typography) parts use these steps.
 
 <p className="mt-4 text-heading-5xl font-heading">Heading 5xl</p>
 <p className="mt-4 text-heading-3xl font-heading">Heading 3xl</p>
@@ -19,14 +19,16 @@ The type scale has two sets of steps: heading steps and paragraph steps. The ste
 <p className="mt-4 text-heading-xl font-heading">Heading xl</p>
 <p className="mt-4 text-heading-base font-heading">Heading base</p>
 <p className="mt-4 text-heading-xs font-heading uppercase tracking-widest">Heading xs</p>
+<p className="mt-4 text-paragraph-xl">Paragraph xl</p>
 <p className="mt-4 text-paragraph-lg">Paragraph lg</p>
 <p className="mt-4 text-paragraph-base">Paragraph base</p>
 <p className="mt-4 text-paragraph-sm">Paragraph sm</p>
+<p className="mt-4 text-paragraph-xs">Paragraph xs</p>
 
 | Steps                                     | Classes                                    | Weight | Line height               | Default part                                                                |
 | ----------------------------------------- | ------------------------------------------ | ------ | ------------------------- | --------------------------------------------------------------------------- |
-| Heading `xs`, `sm`, `base`, `lg` to `9xl` | `text-heading-xs` to `text-heading-9xl`    | 500    | Tailwind's, for each step | `H1`: `5xl`, `H2`: `3xl`, `H3`: `2xl`, `H4`: `xl`, `H5`: `base`, `H6`: `xs` |
-| Paragraph `sm`, `base`, `lg`              | `text-paragraph-sm` to `text-paragraph-lg` | 400    | 1.625                     | `P`: `base`. Use `lg` for a lead paragraph.                                 |
+| Heading `xs`, `sm`, `base`, `lg` to `8xl` | `text-heading-xs` to `text-heading-8xl`    | 500    | Tailwind's, for each step | `H1`: `5xl`, `H2`: `3xl`, `H3`: `2xl`, `H4`: `xl`, `H5`: `base`, `H6`: `xs` |
+| Paragraph `xs`, `sm`, `base`, `lg`, `xl`  | `text-paragraph-xs` to `text-paragraph-xl` | 400    | 1.625                     | `P`: `base`. Use `lg` for a lead paragraph.                                 |
 
 `Typography.H6` also sets `uppercase` and `tracking-widest`.
 

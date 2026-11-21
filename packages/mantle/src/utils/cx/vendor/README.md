@@ -32,7 +32,7 @@ marked with `--- mantle override ---`. They bake in what `cx` previously did via
 1. **`em` spacing scale** — `em` is appended to `theme.spacing`, so `w-em`, `h-em`, `p-em`,
    `gap-em`, … are recognized spacing utilities and conflict-resolve against `w-4`, `p-2`, ….
 2. **`text-mono` / `text-size-inherit` / the type-role tokens** (`text-heading-xs` to
-   `text-heading-9xl`, `text-paragraph-sm` to `text-paragraph-lg`) — appended to the `font-size` class group, so
+   `text-heading-8xl`, `text-paragraph-xs` to `text-paragraph-xl`) — appended to the `font-size` class group, so
    they conflict-resolve against `text-base`, `text-xl`, ….
 
 ## Normalization applied on vendoring

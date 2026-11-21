@@ -2,10 +2,10 @@ import { expect, test } from "vitest";
 import mantleCss from "../../mantle.css?raw";
 
 const roles = [
-	...["xs", "sm", "base", "lg", "xl", "2xl", "3xl", "4xl", "5xl", "6xl", "7xl", "8xl", "9xl"].map(
+	...["xs", "sm", "base", "lg", "xl", "2xl", "3xl", "4xl", "5xl", "6xl", "7xl", "8xl"].map(
 		(step) => `heading-${step}`,
 	),
-	...["sm", "base", "lg"].map((step) => `paragraph-${step}`),
+	...["xs", "sm", "base", "lg", "xl"].map((step) => `paragraph-${step}`),
 ];
 
 // Why: Tailwind emits a declaration only for a sub-key that the theme declares, so a step that
