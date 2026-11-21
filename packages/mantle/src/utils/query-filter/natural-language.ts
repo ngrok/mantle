@@ -10,7 +10,7 @@ import {
 	getFilterSyntax,
 	getFilterValueType,
 } from "./grammar.js";
-import { type FacetValueMember, parseFilterQuery } from "./parse.js";
+import { type FacetValueMember, getEffectiveNegations, parseFilterQuery } from "./parse.js";
 
 /**
  * The helpers a natural-language search needs: a description of the filter
@@ -244,23 +244,10 @@ function toMemberProblem<Item>(
 function checkFilterQuery<Item>(grammar: FilterGrammar<Item>, query: string): FilterQueryProblem[] {
 	const problems: FilterQueryProblem[] = [];
 	const syntax = getFilterSyntax(grammar);
-	// Why a stack: a `NOT` or `-` before a group negates each qualifier inside it.
-	const groupNegations: boolean[] = [];
-	let pendingNot = false;
+	const tokens = parseFilterQuery(grammar, query);
+	const negations = getEffectiveNegations(tokens);
 
-	for (const token of parseFilterQuery(grammar, query)) {
-		const inherited = groupNegations.at(-1) ?? false;
-		const negated = (inherited !== pendingNot) !== token.negated;
-		pendingNot = token.kind === "not" && !pendingNot;
-
-		if (token.kind === "group-start") {
-			groupNegations.push(negated);
-			continue;
-		}
-		if (token.kind === "group-end") {
-			groupNegations.pop();
-			continue;
-		}
+	for (const [index, token] of tokens.entries()) {
 		if (token.kind === "text") {
 			const { start, end } = token;
 			const bodyStart = start + (token.negated ? 1 : 0);
@@ -285,7 +272,7 @@ function checkFilterQuery<Item>(grammar: FilterGrammar<Item>, query: string): Fi
 		if (definition == null) {
 			continue;
 		}
-		if (negated && definition.negatable === false) {
+		if (negations[index] === true && definition.negatable === false) {
 			problems.push({ kind: "not-negatable", key: token.key, start: token.start, end: token.end });
 		}
 		for (const member of token.members) {

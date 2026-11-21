@@ -27,6 +27,12 @@ describe("parseFilterExpression", () => {
 		expect(parseFilterExpression(testGrammar, "NOT")).toBeNull();
 	});
 
+	test("returns a tree for a query nested past the group limit", () => {
+		const deep = `${"(".repeat(10_000)}a${")".repeat(10_000)}`;
+
+		expect(parseFilterExpression(testGrammar, deep)).toMatchObject({ kind: "and" });
+	});
+
 	test("binds AND tighter than OR", () => {
 		expect(parseFilterExpression(testGrammar, "a OR b c")).toEqual({
 			kind: "or",

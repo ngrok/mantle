@@ -1,5 +1,5 @@
 import { type FilterGrammar, getFilterKeyDefinition, getFilterSyntax } from "./grammar.js";
-import { parseFilterQuery } from "./parse.js";
+import { getEffectiveNegations, parseFilterQuery } from "./parse.js";
 
 /**
  * Splits a filter query into coloured runs for the overlay that sits behind the
@@ -20,8 +20,9 @@ type HighlightSegmentKind =
 	/**
 	 * A qualifier value that matches no alias, so the filter matches nothing.
 	 * Also a value that does not parse for its key's type, or an operator the
-	 * key does not accept. Under the `"conjunction"` syntax, also a run the
-	 * executor cannot run: a bare term, or a `-` on a key that is not negatable.
+	 * key does not accept. Also the negation of a key that is not negatable:
+	 * its `-`, or its key when a `NOT` or a group negates it. Under the
+	 * `"conjunction"` syntax, also a bare term, which the executor cannot run.
 	 */
 	| "invalid"
 	/** A bare search term. */
@@ -70,7 +71,10 @@ function getHighlightSegments<Item>(
 		cursor = end;
 	}
 
-	for (const token of parseFilterQuery(grammar, query)) {
+	const tokens = parseFilterQuery(grammar, query);
+	const negations = getEffectiveNegations(tokens);
+
+	for (const [index, token] of tokens.entries()) {
 		push(token.start, "plain");
 
 		if (token.kind === "group-start" && token.negated) {
@@ -88,14 +92,18 @@ function getHighlightSegments<Item>(
 			continue;
 		}
 
+		// Why effective negation: `NOT -key:value` cancels out, and `NOT key:value`
+		// negates a key with no `-` of its own. The checker reads negation the same way.
+		const forbidden =
+			token.kind === "facet" &&
+			negations[index] === true &&
+			getFilterKeyDefinition(grammar, token.key)?.negatable === false;
 		if (token.negated) {
-			const negatable =
-				token.kind !== "facet" || getFilterKeyDefinition(grammar, token.key)?.negatable !== false;
-			push(token.start + 1, negatable ? "syntax" : "invalid");
+			push(token.start + 1, forbidden ? "invalid" : "syntax");
 		}
 
 		if (token.kind === "facet") {
-			push(token.colonIndex, "key");
+			push(token.colonIndex, forbidden && !token.negated ? "invalid" : "key");
 			push(token.colonIndex + 1, "syntax");
 			for (const member of token.members) {
 				// The gap before a member is its separating comma.
