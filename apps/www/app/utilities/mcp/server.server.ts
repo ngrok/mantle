@@ -12,9 +12,12 @@ import {
 	closeNames,
 	findRecords,
 	gapTokens,
+	getPatternText,
 	getRecordText,
+	isDocPage,
 	migrateText,
 	migrationsBetween,
+	patternNamed,
 	recordNamed,
 	recordsOf,
 	scrubIntent,
@@ -313,10 +316,14 @@ function provenanceLine(provenance: Provenance): string {
 
 /** One `find` result as markdown. */
 function findResultText(record: FindRecord): string {
-	if (record.kind === "page") {
+	if (isDocPage(record)) {
 		return [
-			`- ${record.name} (docs page): \`read_docs\` path "${record.docsSlug}"`,
+			record.kind === "pattern"
+				? `- ${record.name} (pattern): \`get\` "${record.name}"`
+				: `- ${record.name} (docs page): \`read_docs\` path "${record.docsSlug}"`,
+			record.useWhen == null ? undefined : `  Use when: ${record.useWhen}`,
 			record.summary == null ? undefined : `  ${record.summary}`,
+			record.parts == null ? undefined : `  Parts: ${record.parts.join(", ")}`,
 			`  Docs: ${record.docsUrl}`,
 		]
 			.filter((line) => line != null)
@@ -487,12 +494,12 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 		"find",
 		{
 			title: "Find mantle parts",
-			description: `Ranks mantle components, layouts, hooks, utilities, and docs pages (foundations such as colors, and recipes) for an intent ("confirm before delete") or a name from another library ("modal"). Returns up to 8 results with import paths, and says when no result is a strong match. Supports ${MIN_SUPPORTED_VERSION} and later.`,
+			description: `Ranks mantle components, layouts, hooks, utilities, patterns (recipes that compose parts), and docs pages (foundations such as colors) for an intent ("confirm before delete") or a name from another library ("modal"). Returns up to 8 results with import paths, and says when no result is a strong match. Supports ${MIN_SUPPORTED_VERSION} and later.`,
 			inputSchema: logInvalid(
 				"find",
 				z.object({
 					query: z.string().min(1).max(200).describe("An intent or a component name."),
-					kind: z.enum(["component", "layout", "hook", "utility", "page"]).optional(),
+					kind: z.enum(["component", "layout", "hook", "utility", "pattern", "page"]).optional(),
 					version: versionArgument,
 					intent: intentArgument,
 					workspace: workspaceArgument,
@@ -535,7 +542,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 						results: found.map(({ record, score }) => ({
 							name: record.name,
 							kind: record.kind,
-							importPath: record.kind === "page" ? undefined : record.importPath,
+							importPath: isDocPage(record) ? undefined : record.importPath,
 							docsUrl: record.docsUrl,
 							score,
 						})),
@@ -553,7 +560,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 		"get",
 		{
 			title: "Get a mantle part",
-			description: `Returns one component, layout, hook, or utility: its import, examples, and prop contract for the selected version. Supports ${MIN_SUPPORTED_VERSION} and later.`,
+			description: `Returns one component, layout, hook, or utility: its import, examples, and prop contract for the selected version. For a pattern, returns its parts and its docs page. Supports ${MIN_SUPPORTED_VERSION} and later.`,
 			inputSchema: logInvalid(
 				"get",
 				z.object({
@@ -576,6 +583,23 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 			const records = recordsOf(data);
 			const record = recordNamed(records, name);
 			if (record == null) {
+				const pattern = patternNamed(await dependencies.docPages(), name);
+				if (pattern != null) {
+					const body = getPatternText({
+						pattern,
+						records,
+						dataVersion: data.version,
+						docsMarkdown: await dependencies.readDocs(pattern.docsSlug),
+						sections,
+					});
+					return {
+						result: text(
+							`dataVersion: ${data.version}; docsVersion: ${dependencies.docsVersion} (latest)\n\n${body}`,
+						),
+						dataVersion: data.version,
+						ids: [pattern.name],
+					};
+				}
 				const close = closeNames(records, name);
 				const hint =
 					close.length > 0 ? ` Close matches: ${close.join(", ")}.` : " Call `find` first.";
@@ -1087,7 +1111,13 @@ export async function loadMigrationGuides(): Promise<MigrationGuide[]> {
 	);
 }
 
-const docPageFrontmatter = z.object({ title: z.string(), description: z.string().optional() });
+const docPageFrontmatter = z.object({
+	title: z.string(),
+	description: z.string().optional(),
+	aliases: z.array(z.string()).optional(),
+	useWhen: z.string().optional(),
+	parts: z.array(z.string()).optional(),
+});
 
 /** Whether `find` searches a docs page. `migrate` covers the guides, and the rest are indexes. */
 function isFindablePage(slug: string): boolean {
@@ -1104,8 +1134,11 @@ async function readDocPages(): Promise<DocPageRecord[]> {
 				return frontmatter.success
 					? {
 							name: frontmatter.data.title,
-							kind: "page",
+							kind: slug.startsWith("recipes/") ? "pattern" : "page",
 							summary: frontmatter.data.description,
+							aliases: frontmatter.data.aliases,
+							useWhen: frontmatter.data.useWhen,
+							parts: frontmatter.data.parts,
 							docsUrl: canonicalHref(`/${slug}`),
 							docsSlug: slug,
 						}

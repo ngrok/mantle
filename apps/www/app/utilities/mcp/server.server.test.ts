@@ -16,6 +16,7 @@ import {
 } from "~/utilities/mcp/server.server";
 import type { LinearGaps, LinearIssue } from "~/utilities/mcp/linear.server";
 import { packageFilesFixture } from "~/utilities/mcp/test-fixtures";
+import { recordNamed, recordsOf, type DocPageRecord } from "~/utilities/mcp/tools";
 import { ServerBusyError, versionDataFromFiles } from "~/utilities/mcp/version-data.server";
 
 function dependencies(overrides: Partial<McpDependencies> = {}): McpDependencies {
@@ -325,6 +326,31 @@ describe("the mantle MCP server", () => {
 				ids: ["Dialog"],
 			}),
 		);
+	});
+
+	it("answers get for a pattern alias with its parts at the selected version and its docs page", async () => {
+		const pattern: DocPageRecord = {
+			name: "Delete Flow",
+			kind: "pattern",
+			aliases: ["remove with confirmation"],
+			parts: ["Dialog", "Toast"],
+			docsUrl: "https://mantle.ngrok.com/recipes/delete-flow",
+			docsSlug: "recipes/delete-flow",
+		};
+		const deps = dependencies({
+			docPages: async () => [pattern],
+			readDocs: async (slug) =>
+				slug === pattern.docsSlug ? "# Delete Flow\n\nThe code." : undefined,
+		});
+
+		const { text, isError } = await callTool(deps, "get", { name: "Remove with confirmation" });
+
+		expect(isError).toBe(false);
+		expect(text).toContain("# Delete Flow");
+		expect(text).toContain(
+			"  - Dialog: `@ngrok/mantle/dialog`\n  - Toast: not in @ngrok/mantle@0.93.0",
+		);
+		expect(text).toContain("The code.");
 	});
 
 	it("returns a tool error with close names for an unknown name, and logs it as not_found", async () => {
@@ -726,6 +752,11 @@ describe("the golden find queries", () => {
 		"avatar initials from name": "Avatar",
 		"app shell sidebar header": "App Layout",
 		"centered login page": "Centered Layout",
+		"page heading with actions": "App Layout",
+		"list page with filters and a table": "List Page Loading States",
+		"skeleton rows while a table loads": "List Page Loading States",
+		"dialog loading state": "Overlays + Async Data (React Query)",
+		"sparkline in each table row": "Sparklines in a List",
 	};
 
 	it.each(Object.entries(topResultByQuery))(
@@ -744,6 +775,36 @@ describe("the golden find queries", () => {
 			expect(found.results[0]?.name).toBe(name);
 		},
 	);
+
+	it.each(["stepper", "file drop zone"])(
+		'calls "%s" weak, so find reports the gap',
+		async (query) => {
+			const { result } = await rpc(await currentDependencies(), "tools/call", {
+				name: "find",
+				arguments: { query },
+			});
+			const found = result?.structuredContent as { strongMatch: boolean };
+
+			expect(found.strongMatch).toBe(false);
+		},
+	);
+
+	it("names a part of the current build in each part of each pattern", async () => {
+		const deps = await currentDependencies();
+		const records = recordsOf(await deps.loader.load(mantlePackageJson.version));
+		const patterns = (await deps.docPages()).filter((page) => page.kind === "pattern");
+
+		const unknown = patterns.flatMap(({ name, parts }) =>
+			parts == null || parts.length === 0
+				? [`${name}: no parts`]
+				: parts
+						.filter((part) => recordNamed(records, part) == null)
+						.map((part) => `${name}: ${part}`),
+		);
+
+		expect(patterns.length).toBeGreaterThan(0);
+		expect(unknown).toEqual([]);
+	});
 });
 
 describe("loadMigrationGuides", () => {

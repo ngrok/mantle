@@ -1,6 +1,9 @@
 ---
 title: List Page Loading States
 description: Render a list page's header, filters, and column headers on the first frame, then fill the table with skeleton rows that match the loaded rows, so nothing shifts when the data lands.
+useWhen: Build a list page whose heading, filters, and column headers paint on the first frame, while skeleton rows wait for the data.
+parts: [AppLayout, DataTable, Skeleton, Empty, LiveRegion]
+aliases: [list page, table page, index page, table loading skeleton]
 ---
 
 import { Example } from "~/components/example";
