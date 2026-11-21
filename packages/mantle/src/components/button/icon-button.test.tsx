@@ -448,6 +448,8 @@ describe("IconButton", () => {
  * and then render neutral. `aria-label` is typed `never`, so `label` is the single
  * naming interface. TypeScript skips excess-attribute checks for hyphenated JSX
  * attributes, and the `never` type is what makes the call site an error anyway.
+ * `children` type-checks only with `asChild`: without it, `IconButton` renders the
+ * `icon` alone and drops any children.
  */
 export function typeLevelContracts() {
 	return (
@@ -468,6 +470,13 @@ export function typeLevelContracts() {
 				aria-label="globe"
 				icon={<GlobeIcon />}
 			/>
+			{/* @ts-expect-error -- children need `asChild`; IconButton renders the icon alone */}
+			<IconButton appearance="ghost" intent="neutral" label="Copy" icon={<GlobeIcon />}>
+				Copy text
+			</IconButton>
+			<IconButton asChild appearance="ghost" intent="neutral" label="Globe" icon={<GlobeIcon />}>
+				<a href="/globe">Globe</a>
+			</IconButton>
 		</>
 	);
 }

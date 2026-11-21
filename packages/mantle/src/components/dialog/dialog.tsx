@@ -1,5 +1,6 @@
 import { XIcon } from "@phosphor-icons/react/X";
 import type { ComponentProps } from "react";
+import type { SelfClosingWithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -497,7 +498,9 @@ const Header = ({
 	</div>
 );
 
-type CloseIconButtonProps = Partial<Omit<IconButtonProps, "appearance" | "icon" | "intent">> & {
+type CloseIconButtonProps = Partial<
+	Omit<IconButtonProps, "appearance" | "asChild" | "children" | "icon" | "intent">
+> & {
 	/**
 	 * The visual style of the close icon button. Optional here:
 	 * `Dialog.CloseIconButton` defaults to `"ghost"` so the close affordance
@@ -515,7 +518,8 @@ type CloseIconButtonProps = Partial<Omit<IconButtonProps, "appearance" | "icon" 
 	 * @default "neutral"
 	 */
 	intent?: IconButtonIntent;
-} & WithDataSlot;
+} & SelfClosingWithAsChild &
+	WithDataSlot;
 
 /**
  * An icon button that closes the dialog when clicked.

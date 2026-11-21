@@ -2,7 +2,7 @@ import { CircleNotchIcon } from "@phosphor-icons/react/CircleNotch";
 import type { ComponentProps, ReactNode } from "react";
 import { Children, cloneElement, isValidElement } from "react";
 import invariant from "tiny-invariant";
-import type { WithAsChild } from "../../types/index.js";
+import type { SelfClosingWithAsChild } from "../../types/as-child.js";
 import { parseBooleanish } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -20,8 +20,8 @@ import { iconButtonVariants } from "./icon-button-variants.js";
 /**
  * The props for the `IconButton` component.
  */
-type IconButtonProps = Omit<ComponentProps<"button">, "aria-label"> &
-	WithAsChild &
+type IconButtonProps = Omit<ComponentProps<"button">, "aria-label" | "children"> &
+	SelfClosingWithAsChild &
 	Omit<IconButtonVariants, "appearance" | "intent"> & {
 		/**
 		 * Not part of the API: `label` is the single way to name the button.
@@ -104,6 +104,9 @@ type IconButtonProps = Omit<ComponentProps<"button">, "aria-label"> &
  * the union: an icon-only link has no text to read as a link. The accent and
  * danger tones stay off `intent`: an icon carries no text to name the action
  * a tone colors.
+ *
+ * `children` type-check only with `asChild`, where the one child is the element
+ * that renders. Without `asChild`, the button renders the `icon` alone.
  *
  * The border radius is driven by the `--icon-button-border-radius` CSS
  * variable (default: `0.375rem`). Wrappers can set it to slot icon buttons

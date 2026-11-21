@@ -48,6 +48,7 @@ import {
 	useState,
 } from "react";
 import invariant from "tiny-invariant";
+import type { SelfClosingWithAsChild } from "../../types/as-child.js";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -1749,7 +1750,14 @@ type DataTableRowExpandButtonProps<
 	TData extends RowData,
 > = Omit<
 	ComponentProps<typeof IconButton>,
-	"appearance" | "aria-controls" | "aria-expanded" | "icon" | "intent" | "label"
+	| "appearance"
+	| "aria-controls"
+	| "aria-expanded"
+	| "asChild"
+	| "children"
+	| "icon"
+	| "intent"
+	| "label"
 > & {
 	/**
 	 * The visual style of the expand toggle. Optional: the row expand button's
@@ -1786,7 +1794,8 @@ type DataTableRowExpandButtonProps<
 	 * @default <MinusIcon weight="bold" />
 	 */
 	collapseIcon?: ReactNode;
-} & WithDataSlot;
+} & SelfClosingWithAsChild &
+	WithDataSlot;
 
 /**
  * An accessible +/- toggle that expands or collapses a row's detail panel or

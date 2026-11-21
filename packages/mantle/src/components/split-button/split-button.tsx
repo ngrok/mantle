@@ -158,7 +158,7 @@ const PrimaryAction = ({ "data-slot": dataSlot, ...props }: PrimaryActionProps) 
 
 type MenuTriggerProps = Omit<
 	ComponentProps<typeof IconButton>,
-	"appearance" | "intent" | "size" | "asChild" | "icon"
+	"appearance" | "intent" | "size" | "asChild" | "children" | "icon"
 > & {
 	icon?: ReactNode;
 };

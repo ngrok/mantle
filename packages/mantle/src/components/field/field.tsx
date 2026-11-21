@@ -15,7 +15,7 @@ import {
 } from "react";
 import invariant from "tiny-invariant";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
-import type { WithAsChild } from "../../types/as-child.js";
+import type { SelfClosingWithAsChild, WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -347,7 +347,7 @@ const defaultHelpTriggerIcon = <QuestionIcon />;
  * so repeated help affordances do not all share the same accessible name.
  */
 type FieldHelpTriggerProps = Partial<
-	Omit<IconButtonProps, "appearance" | "icon" | "intent" | "label">
+	Omit<IconButtonProps, "appearance" | "asChild" | "children" | "icon" | "intent" | "label">
 > &
 	Pick<IconButtonProps, "label"> & {
 		/**
@@ -371,7 +371,7 @@ type FieldHelpTriggerProps = Partial<
 		 * @default "neutral"
 		 */
 		intent?: IconButtonIntent;
-	};
+	} & SelfClosingWithAsChild;
 
 /**
  * The trigger for a `Field.Help` popover: a `Popover.Trigger` wired to a
