@@ -32,26 +32,28 @@ describe("Typography", () => {
 		expect(ref.current).toBe(paragraph);
 	});
 
-	test("Root asChild renders the child with its class, data attributes, and ref", () => {
-		const ref = createRef<HTMLDivElement>();
+	test("P asChild renders the child with its class, data attributes, and ref", () => {
+		const ref = createRef<HTMLParagraphElement>();
 		render(
-			<Typography.Root asChild ref={ref} className="custom" data-testid="root">
-				<article aria-label="Post" className="child" />
-			</Typography.Root>,
+			<figure>
+				<Typography.P asChild ref={ref} className="custom" data-testid="caption">
+					<figcaption className="child">Traffic by region</figcaption>
+				</Typography.P>
+			</figure>,
 		);
-		const article = screen.getByRole("article", { name: "Post" });
-		expect(article).toHaveAttribute("data-slot", "typography");
-		expect(article).toHaveAttribute("data-testid", "root");
-		expect(article).toHaveClass("type-prose", "custom", "child");
-		expect(ref.current).toBe(article);
+		const caption = screen.getByTestId("caption");
+		expect(caption.tagName).toBe("FIGCAPTION");
+		expect(caption).toHaveAttribute("data-slot", "typography-p");
+		expect(caption).toHaveClass("custom", "child");
+		expect(ref.current).toBe(caption);
 	});
 
 	test("a heading composed with asChild joins the data-slot chain", () => {
 		render(
-			<Typography.Root asChild>
-				<Typography.H2 data-testid="heading">Traffic policy</Typography.H2>
-			</Typography.Root>,
+			<Typography.H2 asChild data-slot="card-title">
+				<h2 data-testid="heading">Traffic policy</h2>
+			</Typography.H2>,
 		);
-		expect(screen.getByTestId("heading")).toHaveAttribute("data-slot", "typography typography-h2");
+		expect(screen.getByTestId("heading")).toHaveAttribute("data-slot", "card-title typography-h2");
 	});
 });

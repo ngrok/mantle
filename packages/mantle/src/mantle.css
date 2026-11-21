@@ -1445,54 +1445,6 @@ MARK: UTILITIES
 	}
 }
 
-/*
-Styles headings, paragraphs, and lists in HTML that no one maps to components, such as CMS or MDX
-output, with the type-role tokens.
-Why direct children only: a component inside the container, such as a Card with its own title,
-keeps its own styles. Why `:where()` on both sides: a class on a child wins over these styles.
-*/
-@utility type-prose {
-	:where(&) > :where(h1, h2, h3, h4, h5, h6) {
-		@apply font-heading text-strong mt-12 mb-4 text-balance wrap-anywhere;
-	}
-	:where(&) > :where(h1) {
-		@apply text-heading-1;
-	}
-	:where(&) > :where(h2) {
-		@apply text-heading-2;
-	}
-	:where(&) > :where(h3) {
-		@apply text-heading-3;
-	}
-	:where(&) > :where(h4) {
-		@apply text-heading-4;
-	}
-	:where(&) > :where(h5) {
-		@apply text-heading-5;
-	}
-	:where(&) > :where(h6) {
-		@apply text-heading-6 uppercase;
-	}
-	:where(&) > :where(p, ul, ol) {
-		@apply text-paragraph text-body mb-4;
-	}
-	:where(&) > :where(p) {
-		@apply text-pretty wrap-break-word;
-	}
-	:where(&) > :where(ul) {
-		@apply list-disc pl-6;
-	}
-	:where(&) > :where(ol) {
-		@apply list-decimal pl-6;
-	}
-	:where(&) > :where(h1, h2, h3, h4, h5, h6) + :where(h1, h2, h3, h4, h5, h6) {
-		@apply mt-6;
-	}
-	:where(&) > :where(:first-child) {
-		@apply mt-0;
-	}
-}
-
 @utility cursor-inherit {
 	cursor: inherit;
 }

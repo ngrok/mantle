@@ -1,52 +1,13 @@
+// Why "use no memo": these parts hold no state, and compiled output imports a cache hook. That
+// hook makes the build mark the chunk "use client", so a server component could not render them.
+"use no memo";
+
 import type { ComponentProps } from "react";
 import type { WithAsChild } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { Slot } from "../slot/index.js";
-
-type TypographyRootProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
-
-/**
- * A container that styles the headings, paragraphs, and lists directly inside it with the
- * type-role tokens. Use it for HTML that no one maps to components, such as CMS or MDX output.
- * It renders a `div` with the `type-prose` utility; pass `asChild` to render an `article`.
- *
- * The container styles only its direct children, so a component inside it keeps its own
- * styles. The prose styles have no specificity, so a class on a child wins.
- *
- * @see https://mantle.ngrok.com/components/data-display/typography#typographyroot
- *
- * @example
- * ```tsx
- * <Typography.Root>
- *   <Typography.H1>Endpoints</Typography.H1>
- *   <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
- *   <Typography.H2>Traffic policy</Typography.H2>
- *   <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
- * </Typography.Root>
- *
- * <Typography.Root asChild>
- *   <article dangerouslySetInnerHTML={{ __html: post.html }} />
- * </Typography.Root>
- * ```
- */
-const Root = ({
-	"data-slot": dataSlot,
-	asChild = false,
-	className,
-	...props
-}: TypographyRootProps) => {
-	const Component = asChild ? Slot : "div";
-
-	return (
-		<Component
-			data-slot={joinDataSlot(dataSlot, "typography")}
-			className={cx("type-prose", className)}
-			{...props}
-		/>
-	);
-};
 
 type TypographyHeadingProps = ComponentProps<"h1"> & WithAsChild & WithDataSlot;
 
@@ -96,12 +57,15 @@ const Heading = ({
  *
  * @example
  * ```tsx
- * <Typography.Root>
- *   <Typography.H1>Endpoints</Typography.H1>
- *   <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
- *   <Typography.H2>Traffic policy</Typography.H2>
- *   <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
- * </Typography.Root>
+ * <Typography.H1>Endpoints</Typography.H1>
+ * <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
+ * <Typography.H2>Traffic policy</Typography.H2>
+ * <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
+ *
+ * // MDX: map each element to its part.
+ * <MDXProvider components={{ h1: Typography.H1, h2: Typography.H2, p: Typography.P }}>
+ *   <Content />
+ * </MDXProvider>
  * ```
  */
 const H1 = (props: TypographyHeadingProps) => (
@@ -116,12 +80,15 @@ const H1 = (props: TypographyHeadingProps) => (
  *
  * @example
  * ```tsx
- * <Typography.Root>
- *   <Typography.H1>Endpoints</Typography.H1>
- *   <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
- *   <Typography.H2>Traffic policy</Typography.H2>
- *   <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
- * </Typography.Root>
+ * <Typography.H1>Endpoints</Typography.H1>
+ * <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
+ * <Typography.H2>Traffic policy</Typography.H2>
+ * <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
+ *
+ * // MDX: map each element to its part.
+ * <MDXProvider components={{ h1: Typography.H1, h2: Typography.H2, p: Typography.P }}>
+ *   <Content />
+ * </MDXProvider>
  * ```
  */
 const H2 = (props: TypographyHeadingProps) => (
@@ -136,12 +103,15 @@ const H2 = (props: TypographyHeadingProps) => (
  *
  * @example
  * ```tsx
- * <Typography.Root>
- *   <Typography.H1>Endpoints</Typography.H1>
- *   <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
- *   <Typography.H2>Traffic policy</Typography.H2>
- *   <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
- * </Typography.Root>
+ * <Typography.H1>Endpoints</Typography.H1>
+ * <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
+ * <Typography.H2>Traffic policy</Typography.H2>
+ * <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
+ *
+ * // MDX: map each element to its part.
+ * <MDXProvider components={{ h1: Typography.H1, h2: Typography.H2, p: Typography.P }}>
+ *   <Content />
+ * </MDXProvider>
  * ```
  */
 const H3 = (props: TypographyHeadingProps) => (
@@ -156,12 +126,15 @@ const H3 = (props: TypographyHeadingProps) => (
  *
  * @example
  * ```tsx
- * <Typography.Root>
- *   <Typography.H1>Endpoints</Typography.H1>
- *   <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
- *   <Typography.H2>Traffic policy</Typography.H2>
- *   <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
- * </Typography.Root>
+ * <Typography.H1>Endpoints</Typography.H1>
+ * <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
+ * <Typography.H2>Traffic policy</Typography.H2>
+ * <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
+ *
+ * // MDX: map each element to its part.
+ * <MDXProvider components={{ h1: Typography.H1, h2: Typography.H2, p: Typography.P }}>
+ *   <Content />
+ * </MDXProvider>
  * ```
  */
 const H4 = (props: TypographyHeadingProps) => (
@@ -176,12 +149,15 @@ const H4 = (props: TypographyHeadingProps) => (
  *
  * @example
  * ```tsx
- * <Typography.Root>
- *   <Typography.H1>Endpoints</Typography.H1>
- *   <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
- *   <Typography.H2>Traffic policy</Typography.H2>
- *   <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
- * </Typography.Root>
+ * <Typography.H1>Endpoints</Typography.H1>
+ * <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
+ * <Typography.H2>Traffic policy</Typography.H2>
+ * <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
+ *
+ * // MDX: map each element to its part.
+ * <MDXProvider components={{ h1: Typography.H1, h2: Typography.H2, p: Typography.P }}>
+ *   <Content />
+ * </MDXProvider>
  * ```
  */
 const H5 = (props: TypographyHeadingProps) => (
@@ -196,12 +172,15 @@ const H5 = (props: TypographyHeadingProps) => (
  *
  * @example
  * ```tsx
- * <Typography.Root>
- *   <Typography.H1>Endpoints</Typography.H1>
- *   <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
- *   <Typography.H2>Traffic policy</Typography.H2>
- *   <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
- * </Typography.Root>
+ * <Typography.H1>Endpoints</Typography.H1>
+ * <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
+ * <Typography.H2>Traffic policy</Typography.H2>
+ * <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
+ *
+ * // MDX: map each element to its part.
+ * <MDXProvider components={{ h1: Typography.H1, h2: Typography.H2, p: Typography.P }}>
+ *   <Content />
+ * </MDXProvider>
  * ```
  */
 const H6 = (props: TypographyHeadingProps) => (
@@ -223,12 +202,15 @@ type TypographyParagraphProps = ComponentProps<"p"> & WithAsChild & WithDataSlot
  *
  * @example
  * ```tsx
- * <Typography.Root>
- *   <Typography.H1>Endpoints</Typography.H1>
- *   <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
- *   <Typography.H2>Traffic policy</Typography.H2>
- *   <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
- * </Typography.Root>
+ * <Typography.H1>Endpoints</Typography.H1>
+ * <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
+ * <Typography.H2>Traffic policy</Typography.H2>
+ * <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
+ *
+ * // MDX: map each element to its part.
+ * <MDXProvider components={{ h1: Typography.H1, h2: Typography.H2, p: Typography.P }}>
+ *   <Content />
+ * </MDXProvider>
  * ```
  */
 const P = ({
@@ -250,7 +232,6 @@ const P = ({
 
 export {
 	//,
-	Root,
 	H1,
 	H2,
 	H3,
@@ -264,5 +245,4 @@ export type {
 	//,
 	TypographyHeadingProps,
 	TypographyParagraphProps,
-	TypographyRootProps,
 };

@@ -7,14 +7,15 @@
 import * as TypographyParts from "./typography-parts.js";
 
 /**
- * Headings and paragraphs in mantle's type roles, plus a container for HTML that no one maps
- * to components. Each part reads a type-role token (`--text-heading-1` to `--text-heading-6`,
- * `--text-paragraph`, `--font-heading`), so a site sets its own scale in CSS and the markup
- * stays the same. The parts use no context, so they need no provider, and HTML with no React gets
- * the same styles from the classes.
+ * Headings and paragraphs in mantle's type roles. Each part renders the element it is named for,
+ * so an MDX `components` map assigns one part to each element. Each part reads a type-role token
+ * (`--text-heading-1` to `--text-heading-6`, `--text-paragraph`, `--font-heading`), so a site sets
+ * its own scale in CSS and the markup stays the same. The parts are server components: they use
+ * no hooks and no context, and ship no `"use client"`. `asChild` renders `Slot`, which is a client
+ * component.
  *
- * @useWhen Show a heading or a paragraph of copy in the site's type scale, or style CMS or MDX
- * HTML with it.
+ * @useWhen Show a heading or a paragraph of copy in the site's type scale, in JSX or as the MDX
+ * `h1` to `h6` and `p` elements.
  *
  * @siblings
  * - `Card`: the heading is the title of a card; use `Card.Title`.
@@ -26,7 +27,7 @@ import * as TypographyParts from "./typography-parts.js";
  * @example
  * Composition:
  * ```
- * Typography.Root
+ * Typography
  * ├── Typography.H1
  * ├── Typography.H2
  * ├── Typography.H3
@@ -38,12 +39,15 @@ import * as TypographyParts from "./typography-parts.js";
  *
  * @example
  * ```tsx
- * <Typography.Root>
- *   <Typography.H1>Endpoints</Typography.H1>
- *   <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
- *   <Typography.H2>Traffic policy</Typography.H2>
- *   <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
- * </Typography.Root>
+ * <Typography.H1>Endpoints</Typography.H1>
+ * <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
+ * <Typography.H2>Traffic policy</Typography.H2>
+ * <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
+ *
+ * // MDX: map each element to its part.
+ * <MDXProvider components={{ h1: Typography.H1, h2: Typography.H2, p: Typography.P }}>
+ *   <Content />
+ * </MDXProvider>
  * ```
  */
 const Typography = TypographyParts;
@@ -57,5 +61,4 @@ export type {
 	//,
 	TypographyHeadingProps,
 	TypographyParagraphProps,
-	TypographyRootProps,
 } from "./typography.js";

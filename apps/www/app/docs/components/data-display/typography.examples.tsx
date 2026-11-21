@@ -1,3 +1,4 @@
+import { Code } from "@ngrok/mantle/code";
 import { Typography } from "@ngrok/mantle/typography";
 
 import { PreviewCanvas } from "~/components/preview-canvas";
@@ -5,13 +6,11 @@ import { PreviewCanvas } from "~/components/preview-canvas";
 /** The first example on the Typography docs page. */
 export function OverviewExample() {
 	return (
-		<PreviewCanvas>
-			<Typography.Root>
-				<Typography.H1>Endpoints</Typography.H1>
-				<Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
-				<Typography.H2>Traffic policy</Typography.H2>
-				<Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
-			</Typography.Root>
+		<PreviewCanvas className="flex-col items-start gap-4">
+			<Typography.H1>Endpoints</Typography.H1>
+			<Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
+			<Typography.H2>Traffic policy</Typography.H2>
+			<Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
 		</PreviewCanvas>
 	);
 }
@@ -51,25 +50,11 @@ export function LeadParagraphExample() {
 	);
 }
 
-/** The "HTML from a CMS" example on the Typography docs page. */
-export function HtmlFromACmsExample() {
-	const html =
-		"<h2>Install the agent</h2><p>Download the agent for your platform.</p><ul><li>macOS</li><li>Linux</li><li>Windows</li></ul>";
-
-	return (
-		<PreviewCanvas>
-			<Typography.Root asChild>
-				<article dangerouslySetInnerHTML={{ __html: html }} />
-			</Typography.Root>
-		</PreviewCanvas>
-	);
-}
-
 /** The "A scale for one section" example on the Typography docs page. */
 export function AScaleForOneSectionExample() {
 	return (
 		<PreviewCanvas>
-			<section className="[--text-heading-1--font-weight:700] [--text-heading-1--line-height:1] [--text-heading-1:4rem]">
+			<section className="[--text-heading-1--font-weight:700] [--text-heading-1--letter-spacing:-0.02em] [--text-heading-1--line-height:1] [--text-heading-1:4rem]">
 				<Typography.H1>Put your app online</Typography.H1>
 			</section>
 		</PreviewCanvas>
@@ -80,12 +65,12 @@ export function AScaleForOneSectionExample() {
 export function PolymorphismExample() {
 	return (
 		<PreviewCanvas>
-			<Typography.Root asChild>
-				<article>
-					<Typography.H2>Release notes</Typography.H2>
-					<Typography.P>This release adds traffic policy support to agent endpoints.</Typography.P>
-				</article>
-			</Typography.Root>
+			<figure className="flex flex-col items-start gap-2">
+				<Code>ngrok http 8080</Code>
+				<Typography.P asChild className="text-muted">
+					<figcaption>Start an agent endpoint for port 8080.</figcaption>
+				</Typography.P>
+			</figure>
 		</PreviewCanvas>
 	);
 }

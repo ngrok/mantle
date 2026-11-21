@@ -2239,11 +2239,11 @@
     "category": "Data Display",
     "status": "stable",
     "importPath": "@ngrok/mantle/typography",
-    "summary": "Headings and paragraphs in the site's type scale, plus a container that styles HTML from a CMS or MDX.",
-    "jsdoc": "Headings and paragraphs in mantle's type roles, plus a container for HTML that no one maps to components.",
+    "summary": "Headings and paragraphs in the site's type scale, for JSX and for MDX.",
+    "jsdoc": "Headings and paragraphs in mantle's type roles.",
     "examples": [
-      "Composition:\n```\nTypography.Root\n├── Typography.H1\n├── Typography.H2\n├── Typography.H3\n├── Typography.H4\n├── Typography.H5\n├── Typography.H6\n└── Typography.P\n```",
-      "```tsx\n<Typography.Root>\n  <Typography.H1>Endpoints</Typography.H1>\n  <Typography.P className=\"text-lead\">Each endpoint gets a public URL.</Typography.P>\n  <Typography.H2>Traffic policy</Typography.H2>\n  <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>\n</Typography.Root>\n```"
+      "Composition:\n```\nTypography\n├── Typography.H1\n├── Typography.H2\n├── Typography.H3\n├── Typography.H4\n├── Typography.H5\n├── Typography.H6\n└── Typography.P\n```",
+      "```tsx\n<Typography.H1>Endpoints</Typography.H1>\n<Typography.P className=\"text-lead\">Each endpoint gets a public URL.</Typography.P>\n<Typography.H2>Traffic policy</Typography.H2>\n<Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>\n\n// MDX: map each element to its part.\n<MDXProvider components={{ h1: Typography.H1, h2: Typography.H2, p: Typography.P }}>\n  <Content />\n</MDXProvider>\n```"
     ],
     "aliases": [
       "heading",
@@ -2266,7 +2266,7 @@
         "boundary": "the text is a fragment of code."
       }
     ],
-    "useWhen": "Show a heading or a paragraph of copy in the site's type scale, or style CMS or MDX HTML with it."
+    "useWhen": "Show a heading or a paragraph of copy in the site's type scale, in JSX or as the MDX `h1` to `h6` and `p` elements."
   },
   {
     "name": "Visually Hidden",

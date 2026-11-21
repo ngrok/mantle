@@ -1,6 +1,6 @@
 ---
 title: Typography
-description: Headings and paragraphs in the site's type scale, plus a container that styles HTML from a CMS or MDX.
+description: Headings and paragraphs in the site's type scale, for JSX and for MDX.
 aliases: [heading, paragraph, prose, h1, text]
 ---
 
@@ -8,19 +8,19 @@ import { Example } from "~/components/example";
 
 # Typography
 
-Headings and paragraphs in the site's type scale, plus a container that styles HTML from a CMS or MDX. Each part reads a type-role token, so a site sets its own scale in CSS and the markup stays the same.
+Headings and paragraphs in the site's type scale, for JSX and for MDX. Each part reads a type-role token, so a site sets its own scale in CSS and the markup stays the same.
 
 <Example name="components/data-display/typography/overview" title="Typography example">
 
 ```tsx
 import { Typography } from "@ngrok/mantle/typography";
 
-<Typography.Root>
+<div className="flex flex-col items-start gap-4">
 	<Typography.H1>Endpoints</Typography.H1>
 	<Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
 	<Typography.H2>Traffic policy</Typography.H2>
 	<Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
-</Typography.Root>;
+</div>;
 ```
 
 </Example>
@@ -28,7 +28,7 @@ import { Typography } from "@ngrok/mantle/typography";
 ## When to use
 
 - Show a page title, a section heading, or a paragraph of copy in the site's type scale.
-- Style HTML that you can't map to components, such as CMS or MDX output, with `Typography.Root`.
+- Render the `h1` to `h6` and `p` elements of MDX content: map each element to its part in your MDX `components`, as this docs site does.
 - Prefer `Card.Title` from [`Card`](/components/structure/card) for the title of a card.
 - Prefer `Dialog.Title` from [`Dialog`](/components/overlays/dialog) for the title of a dialog.
 - Prefer [`Code`](/components/data-display/code) for a fragment of code.
@@ -87,25 +87,6 @@ import { Typography } from "@ngrok/mantle/typography";
 
 </Example>
 
-## HTML from a CMS
-
-`Typography.Root` styles the headings, paragraphs, and lists directly inside it. Use it for HTML that you can't map to components. It styles direct children only, so a component inside it keeps its own styles, and a class on a child wins over the container's styles.
-
-<Example name="components/data-display/typography/html-from-a-cms" title="Typography HTML from a CMS example">
-
-```tsx
-import { Typography } from "@ngrok/mantle/typography";
-
-const html =
-	"<h2>Install the agent</h2><p>Download the agent for your platform.</p><ul><li>macOS</li><li>Linux</li><li>Windows</li></ul>";
-
-<Typography.Root asChild>
-	<article dangerouslySetInnerHTML={{ __html: html }} />
-</Typography.Root>;
-```
-
-</Example>
-
 ## A scale for one section
 
 The type roles are CSS variables, so any element can set a different scale for the parts inside it. Set every sub-key of a role you change: a sub-key you leave out keeps the site's value. To set the scale for a whole site, see [Typography](/base/typography#set-a-sites-scale).
@@ -115,7 +96,7 @@ The type roles are CSS variables, so any element can set a different scale for t
 ```tsx
 import { Typography } from "@ngrok/mantle/typography";
 
-<section className="[--text-heading-1--font-weight:700] [--text-heading-1--line-height:1] [--text-heading-1:4rem]">
+<section className="[--text-heading-1--font-weight:700] [--text-heading-1--letter-spacing:-0.02em] [--text-heading-1--line-height:1] [--text-heading-1:4rem]">
 	<Typography.H1>Put your app online</Typography.H1>
 </section>;
 ```
@@ -124,10 +105,10 @@ import { Typography } from "@ngrok/mantle/typography";
 
 ## Composition
 
-Each part works on its own. `Typography.Root` is optional: use it when HTML inside it needs the type scale.
+The parts are siblings: none of them wraps another, so the namespace has no `Root`. Use each one where its element goes.
 
 ```text showLineNumbers=false
-Typography.Root
+Typography
 ├── Typography.H1
 ├── Typography.H2
 ├── Typography.H3
@@ -139,34 +120,25 @@ Typography.Root
 
 ## Polymorphism
 
-Every `Typography` part accepts an `asChild` prop. When `true`, the part renders its single child instead of its default element, and forwards its class names, `data-*` attributes, and ref onto that child. Use it on `Typography.Root` to render an `article` or a `section`. Keep a heading part on a heading element, so the document outline stays correct.
+Every `Typography` part accepts an `asChild` prop. When `true`, the part renders its single child instead of its default element, and forwards its class names, `data-*` attributes, and ref onto that child. Use it on `Typography.P` to give a `figcaption` or a `blockquote` the paragraph style. Keep a heading part on a heading element, so the document outline stays correct.
 
 <Example name="components/data-display/typography/polymorphism" title="Typography polymorphism example">
 
 ```tsx
+import { Code } from "@ngrok/mantle/code";
 import { Typography } from "@ngrok/mantle/typography";
 
-<Typography.Root asChild>
-	<article>
-		<Typography.H2>Release notes</Typography.H2>
-		<Typography.P>This release adds traffic policy support to agent endpoints.</Typography.P>
-	</article>
-</Typography.Root>;
+<figure className="flex flex-col items-start gap-2">
+	<Code>ngrok http 8080</Code>
+	<Typography.P asChild className="text-muted">
+		<figcaption>Start an agent endpoint for port 8080.</figcaption>
+	</Typography.P>
+</figure>;
 ```
 
 </Example>
 
 ## API Reference
-
-### Typography.Root
-
-A container that styles the headings, paragraphs, and lists directly inside it with the type-role tokens. It renders a `div` with the `type-prose` utility.
-
-All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
-
-| Prop       | Type      | Default | Description                                                                                                                  |
-| ---------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `asChild?` | `boolean` | `false` | Use the `asChild` prop to compose the `Typography.Root` styling onto alternative element types or your own React components. |
 
 ### Typography.H1
 
