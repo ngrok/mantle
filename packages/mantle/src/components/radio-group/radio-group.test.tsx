@@ -1,6 +1,8 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import * as Choice from "../choice/choice-parts.js";
 import * as Field from "../field/field-parts.js";
@@ -37,8 +39,6 @@ describe("RadioGroup", () => {
 		const description = screen.getByTestId("desc");
 		expect(basic).toHaveAttribute("aria-invalid", "true");
 		expect(basic).toHaveAttribute("aria-errormessage", errors.id);
-		// Headless UI's Radio writes its own `aria-describedby` over the caller's
-		// props, so the item stamps the field's ids on the element it renders.
 		expect(basic).toHaveAttribute("aria-describedby", `${description.id} ${errors.id}`);
 		expect(screen.getByTestId("pro")).toHaveAttribute(
 			"aria-describedby",
@@ -458,5 +458,107 @@ describe("RadioGroup.ItemContent", () => {
 		// Why tagName: the JSDoc documents a <div>, and the slot cannot tell the elements apart.
 		expect(content.tagName).toBe("DIV");
 		expect(content).toHaveAttribute("data-slot", "radio-group-item-content");
+	});
+});
+
+describe("RadioGroup keyboard and focus contract", () => {
+	const Plans = ({
+		defaultValue,
+		onChange,
+	}: {
+		defaultValue?: string;
+		onChange?: (value: string) => void;
+	}) => (
+		<form aria-label="Plan form">
+			<RadioGroup.Root
+				aria-label="Plan"
+				name="plan"
+				defaultValue={defaultValue}
+				onChange={onChange}
+			>
+				<RadioGroup.Item value="free" aria-label="Free" />
+				<RadioGroup.Item value="team" aria-label="Team" disabled />
+				<RadioGroup.Item value="pro" aria-label="Pro" />
+				<RadioGroup.Item value="enterprise" aria-label="Enterprise" />
+			</RadioGroup.Root>
+			<button type="reset">Reset</button>
+		</form>
+	);
+
+	const tabStops = () =>
+		screen
+			.getAllByRole("radio")
+			.filter((radio) => radio.tabIndex === 0)
+			.map((radio) => radio.getAttribute("aria-label"));
+
+	test("with nothing checked, only the first enabled item takes Tab; once checked, only that item does", async () => {
+		const user = userEvent.setup();
+		render(<Plans />);
+		expect(tabStops()).toEqual(["Free"]);
+		await user.click(screen.getByRole("radio", { name: "Pro" }));
+		expect(tabStops()).toEqual(["Pro"]);
+	});
+
+	test("arrow keys move focus and check, skip a disabled item, and wrap at both ends", async () => {
+		const user = userEvent.setup();
+		const onChange = vi.fn<(value: string) => void>();
+		render(<Plans defaultValue="free" onChange={onChange} />);
+		screen.getByRole("radio", { name: "Free" }).focus();
+
+		await user.keyboard("{ArrowDown}");
+		expect(screen.getByRole("radio", { name: "Pro" })).toHaveFocus();
+		expect(screen.getByRole("radio", { name: "Pro" })).toBeChecked();
+		expect(onChange).toHaveBeenLastCalledWith("pro");
+
+		await user.keyboard("{ArrowRight}{ArrowRight}");
+		expect(screen.getByRole("radio", { name: "Free" })).toBeChecked();
+
+		await user.keyboard("{ArrowUp}");
+		expect(screen.getByRole("radio", { name: "Enterprise" })).toHaveFocus();
+		expect(screen.getByRole("radio", { name: "Enterprise" })).toBeChecked();
+		expect(onChange).toHaveBeenCalledTimes(4);
+	});
+
+	test("Space checks the focused item when nothing is checked yet", async () => {
+		const user = userEvent.setup();
+		render(<Plans />);
+		screen.getByRole("radio", { name: "Free" }).focus();
+		await user.keyboard(" ");
+		expect(screen.getByRole("radio", { name: "Free" })).toBeChecked();
+	});
+
+	test("submits the checked value under name, and a form reset returns to defaultValue", async () => {
+		const user = userEvent.setup();
+		render(<Plans defaultValue="free" />);
+		const form = screen.getByRole("form", { name: "Plan form" });
+		const plan = () => (form instanceof HTMLFormElement ? new FormData(form).get("plan") : null);
+		expect(plan()).toBe("free");
+		await user.click(screen.getByRole("radio", { name: "Enterprise" }));
+		expect(plan()).toBe("enterprise");
+		await user.click(screen.getByRole("button", { name: "Reset" }));
+		expect(screen.getByRole("radio", { name: "Free" })).toBeChecked();
+		expect(plan()).toBe("free");
+	});
+
+	test("hydrates server markup with no mismatch, then gives the first enabled item the Tab stop", () => {
+		const element = <Plans />;
+		const container = document.createElement("div");
+		container.innerHTML = renderToString(element);
+		document.body.append(container);
+		// Why: before hydration, the server markup has no Tab stop yet, because the DOM decides it.
+		expect(container.querySelectorAll('[role="radio"][tabindex="0"]')).toHaveLength(0);
+		const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+		const onRecoverableError = vi.fn<(error: unknown) => void>();
+		let root: ReturnType<typeof hydrateRoot> | undefined;
+		act(() => {
+			root = hydrateRoot(container, element, { onRecoverableError });
+		});
+		expect(onRecoverableError).toHaveBeenCalledTimes(0);
+		expect(consoleError).toHaveBeenCalledTimes(0);
+		expect(tabStops()).toEqual(["Free"]);
+		act(() => {
+			root?.unmount();
+		});
+		container.remove();
 	});
 });

@@ -192,12 +192,12 @@ The `ProgressBar.Root` accepts the following props in addition to the [standard 
 | `max`   | `number`                      | `100`   | The maximum value of the progress bar. Must have a value greater than 0.                                                                                                                            |
 | `value` | `number` \| `"indeterminate"` | `0`     | The current value of the progress bar. Must be between 0 and `max`; a value outside that range renders as indeterminate. If set to `"indeterminate"`, the progress bar is considered indeterminate. |
 
-| Data Attribute | Value                                            | Description                          |
-| -------------- | ------------------------------------------------ | ------------------------------------ |
-| `data-slot`    | `"progress-bar"`                                 | The root element.                    |
-| `data-state`   | `"complete"` \| `"indeterminate"` \| `"loading"` | Set by Radix from `value` and `max`. |
-| `data-value`   | the current value                                | Absent while indeterminate.          |
-| `data-max`     | the maximum                                      |                                      |
+| Data Attribute | Value                                            | Description                 |
+| -------------- | ------------------------------------------------ | --------------------------- |
+| `data-slot`    | `"progress-bar"`                                 | The root element.           |
+| `data-state`   | `"complete"` \| `"indeterminate"` \| `"loading"` | Set from `value` and `max`. |
+| `data-value`   | the current value                                | Absent while indeterminate. |
+| `data-max`     | the maximum                                      |                             |
 
 ### ProgressBar.Indicator
 
