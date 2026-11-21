@@ -1,11 +1,11 @@
 {
   "button": {
     "entry": "import { Button } from \"@ngrok/mantle/button\"; export default [Button];",
-    "maxGzipBytes": 15053
+    "maxGzipBytes": 14248
   },
   "slot": {
     "entry": "import { Slot } from \"@ngrok/mantle/slot\"; export default [Slot];",
-    "maxGzipBytes": 10882
+    "maxGzipBytes": 10045
   },
   "switch": {
     "entry": "import { Switch } from \"@ngrok/mantle/switch\"; export default [Switch];",
@@ -21,19 +21,19 @@
   },
   "select": {
     "entry": "import { Select } from \"@ngrok/mantle/select\"; export default [Select.Root, Select.Trigger, Select.Value, Select.Content, Select.Item];",
-    "maxGzipBytes": 44212
+    "maxGzipBytes": 44245
   },
   "combobox": {
     "entry": "import { Combobox } from \"@ngrok/mantle/combobox\"; export default [Combobox.Root, Combobox.Input, Combobox.Content, Combobox.Item];",
-    "maxGzipBytes": 55453
+    "maxGzipBytes": 54718
   },
   "multi-select": {
     "entry": "import { MultiSelect } from \"@ngrok/mantle/multi-select\"; export default [MultiSelect.Root, MultiSelect.Trigger, MultiSelect.Input, MultiSelect.Content, MultiSelect.Item];",
-    "maxGzipBytes": 59312
+    "maxGzipBytes": 58609
   },
   "tabs": {
     "entry": "import { Tabs } from \"@ngrok/mantle/tabs\"; export default [Tabs.Root, Tabs.List, Tabs.Trigger, Tabs.Content];",
-    "maxGzipBytes": 21533
+    "maxGzipBytes": 21598
   },
   "tooltip": {
     "entry": "import { Tooltip } from \"@ngrok/mantle/tooltip\"; export default [Tooltip.Root, Tooltip.Trigger, Tooltip.Content];",
@@ -41,7 +41,7 @@
   },
   "popover": {
     "entry": "import { Popover } from \"@ngrok/mantle/popover\"; export default [Popover.Root, Popover.Trigger, Popover.Content];",
-    "maxGzipBytes": 33665
+    "maxGzipBytes": 33949
   },
   "hover-card": {
     "entry": "import { HoverCard } from \"@ngrok/mantle/hover-card\"; export default [HoverCard.Root, HoverCard.Trigger, HoverCard.Content];",
@@ -49,15 +49,15 @@
   },
   "dropdown-menu": {
     "entry": "import { DropdownMenu } from \"@ngrok/mantle/dropdown-menu\"; export default [DropdownMenu.Root, DropdownMenu.Trigger, DropdownMenu.Content, DropdownMenu.Item];",
-    "maxGzipBytes": 39449
+    "maxGzipBytes": 39442
   },
   "dialog": {
     "entry": "import { Dialog } from \"@ngrok/mantle/dialog\"; export default [Dialog.Root, Dialog.Trigger, Dialog.Content, Dialog.Header, Dialog.Title, Dialog.Body, Dialog.Footer];",
-    "maxGzipBytes": 25872
+    "maxGzipBytes": 25864
   },
   "command": {
     "entry": "import { Command } from \"@ngrok/mantle/command\"; export default [Command.DialogRoot, Command.DialogContent, Command.Input, Command.List, Command.Item];",
-    "maxGzipBytes": 36474
+    "maxGzipBytes": 36700
   },
   "slider": {
     "entry": "import { Slider } from \"@ngrok/mantle/slider\"; export default [Slider];",
@@ -65,10 +65,10 @@
   },
   "marketing-page": {
     "entry": "import { Button } from \"@ngrok/mantle/button\"; import { DropdownMenu } from \"@ngrok/mantle/dropdown-menu\"; import { Dialog } from \"@ngrok/mantle/dialog\"; import { Tooltip } from \"@ngrok/mantle/tooltip\"; import { Tabs } from \"@ngrok/mantle/tabs\"; import { Accordion } from \"@ngrok/mantle/accordion\"; export default [Button, DropdownMenu.Root, DropdownMenu.Trigger, DropdownMenu.Content, DropdownMenu.Item, Dialog.Root, Dialog.Trigger, Dialog.Content, Dialog.Title, Tooltip.Root, Tooltip.Trigger, Tooltip.Content, Tabs.Root, Tabs.List, Tabs.Trigger, Tabs.Content, Accordion.Root, Accordion.Item, Accordion.Trigger, Accordion.Content];",
-    "maxGzipBytes": 54813
+    "maxGzipBytes": 55083
   },
   "form-page": {
     "entry": "import { Button } from \"@ngrok/mantle/button\"; import { Field } from \"@ngrok/mantle/field\"; import { Select } from \"@ngrok/mantle/select\"; import { Combobox } from \"@ngrok/mantle/combobox\"; export default [Button, Field.Item, Field.Label, Field.Control, Select.Root, Select.Trigger, Select.Value, Select.Content, Select.Item, Combobox.Root, Combobox.Input, Combobox.Content, Combobox.Item];",
-    "maxGzipBytes": 87754
+    "maxGzipBytes": 88022
   }
 }
