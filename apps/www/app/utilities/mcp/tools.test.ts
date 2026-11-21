@@ -76,7 +76,7 @@ describe("findRecords", () => {
 
 	const listPage: DocPageRecord = {
 		name: "List Page Loading States",
-		kind: "pattern",
+		kind: "recipe",
 		summary: "Render a list page's header and filters on the first frame.",
 		aliases: ["table page"],
 		useWhen: "Build a list page whose heading paints on the first frame.",
@@ -84,7 +84,7 @@ describe("findRecords", () => {
 		docsSlug: "recipes/list-page-loading-states",
 	};
 
-	it("calls a pattern weak when the query shares one title word, not its name", () => {
+	it("calls a recipe weak when the query shares one title word, not its name", () => {
 		expect(findRecords([listPage], { query: "page heading" })[0]?.strong).toBe(false);
 		expect(findRecords([listPage], { query: "page" })[0]?.strong).toBe(false);
 		expect(findRecords([listPage], { query: "page loading states" })[0]?.strong).toBe(true);
@@ -102,7 +102,7 @@ describe("findRecords", () => {
 		expect(findRecords([colors], { query: "dark mode" })[0]?.strong).toBe(true);
 	});
 
-	it("finds a pattern by an alias", () => {
+	it("finds a recipe by an alias", () => {
 		const [match] = findRecords([...records, listPage], { query: "table page" });
 
 		expect(match).toEqual(expect.objectContaining({ record: listPage, strong: true }));

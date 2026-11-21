@@ -117,6 +117,30 @@ describe("the mantle MCP server", () => {
 		).toEqual(["report_gap"]);
 	});
 
+	it("lists recipe as a find kind, and maps a pattern kind filter to recipes", async () => {
+		const recipe: DocPageRecord = {
+			name: "Delete Flow",
+			kind: "recipe",
+			summary: "Confirm, then delete.",
+			docsUrl: "https://mantle.ngrok.com/recipes/delete-flow",
+			docsSlug: "recipes/delete-flow",
+		};
+		const deps = dependencies({ docPages: async () => [recipe] });
+		const { result } = await rpc(deps, "tools/list");
+		const find = ((result?.tools ?? []) as { name: string; inputSchema: unknown }[]).find(
+			(tool) => tool.name === "find",
+		);
+		const kinds = JSON.stringify(find?.inputSchema);
+
+		const { text, isError } = await callTool(deps, "find", { query: "delete", kind: "pattern" });
+
+		expect(kinds).toContain('"recipe"');
+		expect(kinds).not.toContain('"pattern"');
+		expect(isError).toBe(false);
+		expect(text).toContain('- Delete Flow (recipe): `get` "Delete Flow"');
+		expect(text).not.toContain("Dialog");
+	});
+
 	it("finds a docs page next to the API records", async () => {
 		const { text } = await callTool(dependencies(), "find", { query: "colors" });
 
@@ -434,19 +458,19 @@ describe("the mantle MCP server", () => {
 		);
 	});
 
-	it("answers get for a pattern alias with its parts at the selected version and its docs page", async () => {
-		const pattern: DocPageRecord = {
+	it("answers get for a recipe alias with its parts at the selected version and its docs page", async () => {
+		const recipe: DocPageRecord = {
 			name: "Delete Flow",
-			kind: "pattern",
+			kind: "recipe",
 			aliases: ["remove with confirmation"],
 			parts: ["Dialog", "Toast"],
 			docsUrl: "https://mantle.ngrok.com/recipes/delete-flow",
 			docsSlug: "recipes/delete-flow",
 		};
 		const deps = dependencies({
-			docPages: async () => [pattern],
+			docPages: async () => [recipe],
 			readDocs: async (slug) =>
-				slug === pattern.docsSlug ? "# Delete Flow\n\nThe code." : undefined,
+				slug === recipe.docsSlug ? "# Delete Flow\n\nThe code." : undefined,
 		});
 
 		const { text, isError } = await callTool(deps, "get", { name: "Remove with confirmation" });
@@ -870,6 +894,7 @@ describe("the golden find queries", () => {
 		"skeleton rows while a table loads": "List Page Loading States",
 		"dialog loading state": "Overlays + Async Data (React Query)",
 		"sparkline in each table row": "Sparklines in a List",
+		"dialog loading state pattern": "Overlays + Async Data (React Query)",
 		"text search query": "Query",
 		"search filter": "Query",
 		"responsive adaptive layouts": "Breakpoints",
@@ -906,12 +931,12 @@ describe("the golden find queries", () => {
 		},
 	);
 
-	it("names a part of the current build in each part of each pattern", async () => {
+	it("names a part of the current build in each part of each recipe", async () => {
 		const deps = await currentDependencies();
 		const records = recordsOf(await deps.loader.load(mantlePackageJson.version));
-		const patterns = (await deps.docPages()).filter((page) => page.kind === "pattern");
+		const recipes = (await deps.docPages()).filter((page) => page.kind === "recipe");
 
-		const unknown = patterns.flatMap(({ name, parts }) =>
+		const unknown = recipes.flatMap(({ name, parts }) =>
 			parts == null || parts.length === 0
 				? [`${name}: no parts`]
 				: parts
@@ -919,7 +944,7 @@ describe("the golden find queries", () => {
 						.map((part) => `${name}: ${part}`),
 		);
 
-		expect(patterns.length).toBeGreaterThan(0);
+		expect(recipes.length).toBeGreaterThan(0);
 		expect(unknown).toEqual([]);
 	});
 });

@@ -79,14 +79,14 @@ export function recordsOf(data: VersionData): ApiRecord[] {
 }
 
 /**
- * A docs page with no API record. A recipe is a `pattern`: a composition of
- * mantle parts that `get` returns. Other pages, such as Colors or a guide,
+ * A docs page with no API record. A page under `recipes/` is a `recipe`: a
+ * composition of mantle parts that `get` returns. Other pages, such as Colors or a guide,
  * are a `page` that `read_docs` returns.
  */
 export type DocPageRecord = {
 	/** The page title. */
 	name: string;
-	kind: "page" | "pattern";
+	kind: "page" | "recipe";
 	/** The page description. */
 	summary?: string;
 	/** The `aliases` frontmatter: other names for the page, such as a designer's words. */
@@ -104,7 +104,7 @@ export type FindRecord = ApiRecord | DocPageRecord;
 
 /** Whether a record is a docs page, not an API record. */
 export function isDocPage(record: FindRecord): record is DocPageRecord {
-	return record.kind === "page" || record.kind === "pattern";
+	return record.kind === "page" || record.kind === "recipe";
 }
 
 /** One ranked `find` result. */
@@ -114,7 +114,7 @@ export type FindMatch<T extends FindRecord> = {
 	/**
 	 * Whether the record clearly answers the query: its name or an alias
 	 * matches, the query contains each word of its name and a second name or
-	 * alias word, or half the query words or more match. A pattern also needs
+	 * alias word, or half the query words or more match. A recipe also needs
 	 * the query to name it. When the top result is not strong, mantle may lack
 	 * a part for the query.
 	 */
@@ -135,7 +135,7 @@ const STOP_WORDS = new Set(
 	`about above after against along also although among and are around because been before behind
 	being below beside between beyond but can component components could did does during either for
 	from had has have her here him his how into its let lets like may might must need needs neither
-	nor onto other our over per shall she should since such than that the their them then there
+	nor onto other our over pattern patterns per shall she should since such than that the their them then there
 	these they this those though through toward towards under unless until upon use used user users
 	using via want wants was were what when where whether which while who whom whose why will with
 	within without would yet you your`.split(/\s+/),
@@ -243,7 +243,7 @@ function namedInQuery(record: FindRecord, queryWords: ReadonlySet<string>): bool
 }
 
 /**
- * The title words of a pattern that no part names. Why: a pattern title is a
+ * The title words of a recipe that no part names. Why: a recipe title is a
  * sentence about parts. "Query" in "Query from the URL" names the Query part,
  * so it must not rank the recipe above that part.
  */
@@ -254,11 +254,11 @@ function ownTitleWords(record: DocPageRecord, partWords: ReadonlySet<string>): s
 }
 
 /**
- * Whether the query names a pattern: half or more of its own title words, or
+ * Whether the query names a recipe: half or more of its own title words, or
  * each word of one alias. Why: one shared word, such as "page" in "List Page
  * Loading States", is weak evidence.
  */
-function namesPattern(
+function namesRecipe(
 	record: DocPageRecord,
 	tokens: readonly string[],
 	partWords: ReadonlySet<string>,
@@ -290,7 +290,7 @@ function weightedFields(
 		boundaries: ReadonlyMap<string, string[]>;
 	},
 ): [string[], number][] {
-	if (record.kind === "pattern") {
+	if (record.kind === "recipe") {
 		const own = ownTitleWords(record, partWords);
 		return [
 			[own, 10],
@@ -353,7 +353,7 @@ export function findRecords<T extends FindRecord>(
 			let nameScore = 0;
 			if (nameKeys.includes(wanted)) {
 				nameScore = 100;
-			} else if (wanted.length >= 3 && record.kind !== "pattern" && nameKeys[0]?.includes(wanted)) {
+			} else if (wanted.length >= 3 && record.kind !== "recipe" && nameKeys[0]?.includes(wanted)) {
 				nameScore = 40;
 			} else if (wanted.length >= 4 && nameKeys.some((key) => withinOneEdit(key, wanted))) {
 				nameScore = 30;
@@ -376,7 +376,7 @@ export function findRecords<T extends FindRecord>(
 				namedInQuery(record, queryWords) ||
 				(wordScore >= STRONG_WORD_SCORE &&
 					matchedTokens * 2 >= tokens.length &&
-					(record.kind !== "pattern" || namesPattern(record, tokens, partWords)));
+					(record.kind !== "recipe" || namesRecipe(record, tokens, partWords)));
 			return { record, score: nameScore + wordScore, strong };
 		})
 		.filter(({ score }) => score > 0)
@@ -490,53 +490,53 @@ export function recordNamed(records: readonly ApiRecord[], name: string): ApiRec
 	return records.find((record) => compact(record.name) === wanted);
 }
 
-/** The pattern named `name`, by title or alias. */
-export function patternNamed(
+/** The recipe named `name`, by title or alias. */
+export function recipeNamed(
 	pages: readonly DocPageRecord[],
 	name: string,
 ): DocPageRecord | undefined {
 	const wanted = compact(name);
 	return pages.find(
 		(page) =>
-			page.kind === "pattern" &&
+			page.kind === "recipe" &&
 			[page.name, ...(page.aliases ?? [])].some((key) => compact(key) === wanted),
 	);
 }
 
 /**
- * Builds the `get` result for a pattern: its parts with their imports at the
+ * Builds the `get` result for a recipe: its parts with their imports at the
  * selected version, then its docs page. The docs are the latest build, so a
  * part that the selected version lacks says so.
  *
  * @example
- * getPatternText({ pattern, records, dataVersion: "0.94.1", docsMarkdown });
+ * getRecipeText({ recipe, records, dataVersion: "0.94.1", docsMarkdown });
  */
-export function getPatternText({
-	pattern,
+export function getRecipeText({
+	recipe,
 	records,
 	dataVersion,
 	docsMarkdown,
 	sections,
 }: {
-	pattern: DocPageRecord;
+	recipe: DocPageRecord;
 	records: readonly ApiRecord[];
 	dataVersion: string;
 	docsMarkdown: string | undefined;
 	sections?: readonly string[];
 }): string {
-	const parts = (pattern.parts ?? []).map((name) => {
+	const parts = (recipe.parts ?? []).map((name) => {
 		const record = recordNamed(records, name);
 		return record == null
 			? `  - ${name}: not in @ngrok/mantle@${dataVersion}`
 			: `  - ${record.name}: \`${record.importPath}\``;
 	});
 	const header = [
-		`# ${pattern.name}`,
+		`# ${recipe.name}`,
 		"",
-		"- Kind: pattern (a composition of mantle parts)",
-		pattern.useWhen == null ? undefined : `- Use when: ${pattern.useWhen}`,
-		pattern.summary == null ? undefined : `- Summary: ${pattern.summary}`,
-		`- Docs: ${pattern.docsUrl}`,
+		"- Kind: recipe (a composition of mantle parts)",
+		recipe.useWhen == null ? undefined : `- Use when: ${recipe.useWhen}`,
+		recipe.summary == null ? undefined : `- Summary: ${recipe.summary}`,
+		`- Docs: ${recipe.docsUrl}`,
 		...(parts.length === 0 ? [] : ["- Parts:", ...parts]),
 	]
 		.filter((line) => line != null)

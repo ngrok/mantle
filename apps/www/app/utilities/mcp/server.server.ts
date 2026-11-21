@@ -12,12 +12,12 @@ import {
 	closeNames,
 	findRecords,
 	gapTokens,
-	getPatternText,
+	getRecipeText,
 	getRecordText,
 	isDocPage,
 	migrateText,
 	migrationsBetween,
-	patternNamed,
+	recipeNamed,
 	recordNamed,
 	recordsOf,
 	scrubIntent,
@@ -364,8 +364,8 @@ function provenanceLine(provenance: Provenance): string {
 function findResultText(record: FindRecord): string {
 	if (isDocPage(record)) {
 		return [
-			record.kind === "pattern"
-				? `- ${record.name} (pattern): \`get\` "${record.name}"`
+			record.kind === "recipe"
+				? `- ${record.name} (recipe): \`get\` "${record.name}"`
 				: `- ${record.name} (docs page): \`read_docs\` path "${record.docsSlug}"`,
 			record.useWhen == null ? undefined : `  Use when: ${record.useWhen}`,
 			record.summary == null ? undefined : `  ${record.summary}`,
@@ -540,12 +540,18 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 		"find",
 		{
 			title: "Find mantle parts",
-			description: `Ranks mantle components, layouts, hooks, utilities, patterns (recipes that compose parts), and docs pages (foundations such as colors) for an intent ("confirm before delete") or a name from another library ("modal"). Returns up to 8 results with import paths, and says when no result is a strong match. Supports ${MIN_SUPPORTED_VERSION} and later.`,
+			description: `Ranks mantle components, layouts, hooks, utilities, recipes (compositions of parts), and docs pages (foundations such as colors) for an intent ("confirm before delete") or a name from another library ("modal"). Returns up to 8 results with import paths, and says when no result is a strong match. Supports ${MIN_SUPPORTED_VERSION} and later.`,
 			inputSchema: logInvalid(
 				"find",
 				z.object({
 					query: z.string().min(1).max(200).describe("An intent or a component name."),
-					kind: z.enum(["component", "layout", "hook", "utility", "pattern", "page"]).optional(),
+					// Why "pattern": agents say it for a recipe. It maps to `recipe` and stays out of the schema.
+					kind: z
+						.preprocess(
+							(value) => (value === "pattern" ? "recipe" : value),
+							z.enum(["component", "layout", "hook", "utility", "recipe", "page"]),
+						)
+						.optional(),
 					version: versionArgument,
 					intent: intentArgument,
 					workspace: workspaceArgument,
@@ -606,7 +612,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 		"get",
 		{
 			title: "Get a mantle part",
-			description: `Returns one component, layout, hook, or utility: its import, examples, and prop contract for the selected version. For a pattern, returns its parts and its docs page. Supports ${MIN_SUPPORTED_VERSION} and later.`,
+			description: `Returns one component, layout, hook, or utility: its import, examples, and prop contract for the selected version. For a recipe, returns its parts and its docs page. Supports ${MIN_SUPPORTED_VERSION} and later.`,
 			inputSchema: logInvalid(
 				"get",
 				z.object({
@@ -629,13 +635,13 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 			const records = recordsOf(data);
 			const record = recordNamed(records, name);
 			if (record == null) {
-				const pattern = patternNamed(await dependencies.docPages(), name);
-				if (pattern != null) {
-					const body = getPatternText({
-						pattern,
+				const recipe = recipeNamed(await dependencies.docPages(), name);
+				if (recipe != null) {
+					const body = getRecipeText({
+						recipe,
 						records,
 						dataVersion: data.version,
-						docsMarkdown: await dependencies.readDocs(pattern.docsSlug),
+						docsMarkdown: await dependencies.readDocs(recipe.docsSlug),
 						sections,
 					});
 					return {
@@ -643,7 +649,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 							`dataVersion: ${data.version}; docsVersion: ${dependencies.docsVersion} (latest)\n\n${body}`,
 						),
 						dataVersion: data.version,
-						ids: [pattern.name],
+						ids: [recipe.name],
 					};
 				}
 				const close = closeNames(records, name);
@@ -1226,7 +1232,7 @@ async function readDocPages(): Promise<DocPageRecord[]> {
 				return frontmatter.success
 					? {
 							name: frontmatter.data.title,
-							kind: slug.startsWith("recipes/") ? "pattern" : "page",
+							kind: slug.startsWith("recipes/") ? "recipe" : "page",
 							summary: frontmatter.data.description,
 							aliases: frontmatter.data.aliases,
 							useWhen: frontmatter.data.useWhen,
