@@ -158,11 +158,11 @@ export default defineConfig({
 
 ### What it does
 
-The plugin runs once on the finished bundle of `vite build`, so it sees every stylesheet, CSS
-module, and script chunk of the build. `vite dev` serves the full CSS.
+The plugin runs once on the finished bundle of `vite build`. `vite dev` serves the full CSS.
 
-- It keeps a stop in mantle's theme rules only when a file of the build mentions it outside those
-  rules: a utility, a `var()`, a CSS module, another stylesheet, or a string in a script chunk.
+- It keeps a stop in mantle's theme rules only when the same stylesheet reads it: a utility, a
+  `var()`, an at-rule condition, a CSS module merged into it, or `@layer theme`, where Tailwind
+  writes each stop that a scanned file names, such as a class or a raw `--color-pink-300` string.
 - It joins the pieces of each theme rule that the fallbacks split apart, so the theme selector
   appears once per rule.
 
@@ -173,11 +173,12 @@ Vite 8.3.8, mantle 0.94, Tailwind 4.3.5, and `mantleSourcesPlugin`.
 
 ### Limits
 
-- A stop that only CSS from outside the build reads, such as a stylesheet another app serves or
-  a string your app fetches at runtime, gets no dark value. Name the stop in a file of the build,
-  such as a class or a `var()`, to keep it.
-- When two stylesheets of one build both hold mantle's theme, each keeps every stop the other
-  mentions.
+- A stop that only a file outside the stylesheet reads gets no dark or island value. For example,
+  a dependency Tailwind doesn't scan, a separate stylesheet, or CSS another app serves. The build
+  warns when another file of the build reads such a stop. Name the stop in a file the stylesheet
+  scans to keep it, such as with `@source inline("bg-pink-300")`.
+- Why only the same stylesheet: Vite fixes the stylesheet's hashed file name before the plugin
+  runs. A result that depended on other files could change under the same cached URL.
 
 ## mantleCodeBlockPlugins
 

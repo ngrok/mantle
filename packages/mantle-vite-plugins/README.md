@@ -77,9 +77,9 @@ export default defineConfig({
 });
 ```
 
-`mantle.css` restates every palette stop for the dark theme and for `invert-theme` islands. The plugin runs once on the finished bundle of `vite build` and keeps a stop in those theme rules only when a file of the build mentions it outside them: a utility, a `var()`, a CSS module, another stylesheet, or a string in a script chunk. It also joins the pieces of each theme rule that Tailwind's color-mix fallbacks split apart. It changes only mantle's own theme rules, found by their exact selectors. `vite dev` serves the full CSS, and the plugin's position in the array does not matter.
+`mantle.css` restates every palette stop for the dark theme and for `invert-theme` islands. The plugin runs once on the finished bundle of `vite build` and keeps a stop in those theme rules only when the same stylesheet reads it: a utility, a `var()`, an at-rule condition, a CSS module merged into it, or `@layer theme`, where Tailwind writes each stop that a scanned file names. It also joins the pieces of each theme rule that Tailwind's color-mix fallbacks split apart. It changes only mantle's own theme rules, found by their exact selectors. `vite dev` serves the full CSS, and the plugin's position in the array does not matter.
 
-A stop that only CSS from outside the build reads, such as a stylesheet another app serves, gets no dark value. Name the stop in a file of the build to keep it.
+A stop that only a file outside the stylesheet reads, such as a dependency Tailwind does not scan, gets no dark or island value, and the build warns when a file of the build reads one. Name the stop in a file the stylesheet scans to keep it, such as with `@source inline("bg-pink-300")`.
 
 ### `mantleCodeBlockPlugins(options?)`
 

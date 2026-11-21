@@ -13,12 +13,13 @@ const dark =
 const supports = "@supports (color:color-mix(in lab, red, red))";
 
 describe("pruneThemeCss", () => {
-	test("drops a stop from the theme rules when no file of the build mentions it", () => {
+	test("drops a stop from the theme rules when the stylesheet does not read it", () => {
 		const css = `@layer theme { :root { --color-pink-300: pink; } }
+@container style(--color-lime-200: c) { .x { color: red; } }
 ${dark} { --color-pink-50: a; --color-pink-300: b; --color-lime-200: c; --background-color-card: var(--color-pink-950); --color-pink-950: d; }`;
 
-		expect(pruneThemeCss(css, new Set(["--color-lime-200"])))
-			.toBe(`@layer theme { :root { --color-pink-300: pink; } }
+		expect(pruneThemeCss(css).css).toBe(`@layer theme { :root { --color-pink-300: pink; } }
+@container style(--color-lime-200: c) { .x { color: red; } }
 ${dark} { --color-pink-300: b; --color-lime-200: c; --background-color-card: var(--color-pink-950); --color-pink-950: d; }`);
 	});
 
@@ -26,13 +27,13 @@ ${dark} { --color-pink-300: b; --color-lime-200: c; --background-color-card: var
 		const css = `:root[data-applied-theme="dark"] { --color-pink-300: deeppink; }
 :root { --color-pink-50: a; }`;
 
-		expect(pruneThemeCss(css)).toBe(css);
+		expect(pruneThemeCss(css).css).toBe(css);
 	});
 
 	test("joins the fragments of a theme rule around its color-mix fallbacks", () => {
 		const css = `${dark}{--a:1;--b:red}${supports}{${dark}{--b:color-mix(in oklab, red 50%, transparent)}}${dark}{--c:2}${supports}{${dark}{--d:color-mix(in oklab, blue 50%, transparent)}}`;
 
-		expect(pruneThemeCss(css)).toBe(
+		expect(pruneThemeCss(css).css).toBe(
 			`${dark}{--a:1;--b:red;--c:2}${supports}{${dark}{--b:color-mix(in oklab, red 50%, transparent);--d:color-mix(in oklab, blue 50%, transparent)}}`,
 		);
 	});
@@ -51,7 +52,7 @@ ${dark} { --color-pink-300: b; --color-lime-200: c; --background-color-card: var
 			`${dark}{margin:10px}${supports}{${dark}{margin-top:20px}}${dark}{margin:0}`,
 		],
 	])("does not join when %s", (_case, css) => {
-		expect(pruneThemeCss(css)).toBe(css);
+		expect(pruneThemeCss(css).css).toBe(css);
 	});
 });
 
@@ -59,6 +60,7 @@ describe("mantleThemePrunePlugin build", () => {
 	const roots: string[] = [];
 	let full: string;
 	let pruned: string;
+	const warnings: string[] = [];
 
 	afterAll(async () => {
 		await Promise.all(roots.map((root) => rm(root, { recursive: true, force: true })));
@@ -82,21 +84,36 @@ describe("mantleThemePrunePlugin build", () => {
 			path.join(root, "src/app.css"),
 			'@import "tailwindcss";\n@import "@ngrok/mantle/mantle.css";\n',
 		);
-		// Stops that only a CSS module and a script read, outside the stylesheet that holds mantle.
+		// A CSS module, a scanned script, and a dependency that Tailwind does not scan read stops
+		// that no class names.
+		const widget = path.join(root, "node_modules/widget");
+		await mkdir(widget, { recursive: true });
+		await writeFile(path.join(widget, "package.json"), '{"name":"widget","main":"index.js"}');
+		await writeFile(
+			path.join(widget, "index.js"),
+			'export const color = "var(--color-lime-900, green)";\n',
+		);
 		await writeFile(
 			path.join(root, "src/box.module.css"),
 			'@reference "./app.css";\n.box { @apply bg-lime-200; }\n',
 		);
 		await writeFile(
 			path.join(root, "src/main.ts"),
-			'import "./app.css";\nimport styles from "./box.module.css";\ndocument.body.className = styles.box;\ndocument.body.style.color = "var(--color-lime-700)";\n',
+			'import "./app.css";\nimport styles from "./box.module.css";\nimport { color } from "widget";\ndocument.body.className = styles.box;\ndocument.body.style.color = "var(--color-lime-700)";\ndocument.body.style.borderColor = color;\n',
 		);
 		const result = await build({
 			root,
 			configFile: false,
 			envDir: false,
 			logLevel: "silent",
-			build: { write: false },
+			build: {
+				write: false,
+				rolldownOptions: {
+					onwarn: (warning) => {
+						warnings.push(warning.message);
+					},
+				},
+			},
 			plugins: [tailwindcss(), ...plugins],
 		});
 		if (Array.isArray(result) || !("output" in result)) {
@@ -138,13 +155,18 @@ describe("mantleThemePrunePlugin build", () => {
 		expect(darkRule(pruned)).not.toContain("--color-pink-50:");
 	});
 
-	test("keeps the dark value of a stop that only a CSS module or a script reads", () => {
+	test("keeps the dark value of a stop that only a CSS module or a scanned script reads", () => {
 		const darkRule = (css: string) =>
 			[...themeDeclarations(css, (property) => property.startsWith("--color-lime-"))].join("\n");
 
 		expect(darkRule(pruned)).toContain("--color-lime-200:");
 		expect(darkRule(pruned)).toContain("--color-lime-700:");
 		expect(darkRule(pruned)).not.toContain("--color-lime-50:");
+	});
+
+	test("warns about a stop that only a file outside the stylesheet reads", () => {
+		expect(warnings.filter((warning) => warning.includes("--color-lime-900"))).toHaveLength(1);
+		expect(warnings.join("\n")).not.toContain("--color-lime-700");
 	});
 
 	test("keeps every other theme declaration, with the same value, and ships less CSS", () => {

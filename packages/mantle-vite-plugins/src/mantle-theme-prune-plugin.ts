@@ -53,43 +53,50 @@ const fallbackRuleOf = (node: Node | undefined): Rule | null =>
 		: null;
 
 /**
- * Removes the palette stops from mantle's theme rules that no file of the build reads.
+ * Removes the palette stops from mantle's theme rules that this stylesheet does not read.
  *
- * A stop is read when its name appears anywhere in the build outside its own theme declarations:
- * in a utility, a `var()`, `@layer theme`, a CSS module, another stylesheet, or a script. A theme
- * declaration that stays reads the stops in its value. A theme declaration of an unread stop is
- * dead, because nothing resolves it.
+ * A stop is read when its name appears in the stylesheet outside its own theme declarations: in
+ * a utility, a `var()`, an at-rule condition, or `@layer theme`, where Tailwind writes each stop
+ * that a scanned file names. A theme declaration that stays reads the stops in its value.
  *
- * @param css - one compiled stylesheet of the build.
- * @param mentions - the stop names the other files of the build mention.
+ * Why only this stylesheet: Vite fixes the hashed file name from the stylesheet's content before
+ * this pass runs. So the result must depend on that content alone.
+ *
+ * @returns the pruned stylesheet and the names of the stops it removed.
  */
-function pruneThemeCss(css: string, mentions: ReadonlySet<string> = new Set()): string {
+function pruneThemeCss(css: string): { css: string; removed: Set<string> } {
 	const root = postcss.parse(css);
 	const candidates: Declaration[] = [];
-	const read = new Set(mentions);
-	root.walkDecls((declaration) => {
-		if (isThemeRule(declaration.parent) && RAMP_STOP.test(declaration.prop)) {
-			candidates.push(declaration);
-		} else {
-			for (const name of `${declaration.prop}:${declaration.value}`.match(RAMP_STOP_MENTION) ??
-				[]) {
-				read.add(name);
+	const read = new Set<string>();
+	const addMentions = (text: string) => {
+		for (const name of text.match(RAMP_STOP_MENTION) ?? []) {
+			read.add(name);
+		}
+	};
+	root.walk((node) => {
+		if (node.type === "atrule") {
+			addMentions(node.params);
+		} else if (node.type === "decl") {
+			if (isThemeRule(node.parent) && RAMP_STOP.test(node.prop)) {
+				candidates.push(node);
+			} else {
+				addMentions(`${node.prop}:${node.value}`);
 			}
 		}
 	});
 	// A kept stop can read another stop, such as `--color-gray-50: var(--color-neutral-50)`.
-	let kept: Declaration[] = [];
 	for (let size = -1; size !== read.size;) {
 		size = read.size;
-		kept = candidates.filter((declaration) => read.has(declaration.prop));
-		for (const declaration of kept) {
-			for (const name of declaration.value.match(RAMP_STOP_MENTION) ?? []) {
-				read.add(name);
+		for (const declaration of candidates) {
+			if (read.has(declaration.prop)) {
+				addMentions(declaration.value);
 			}
 		}
 	}
+	const removed = new Set<string>();
 	for (const declaration of candidates) {
 		if (!read.has(declaration.prop)) {
+			removed.add(declaration.prop);
 			declaration.remove();
 		}
 	}
@@ -103,7 +110,7 @@ function pruneThemeCss(css: string, mentions: ReadonlySet<string> = new Set()): 
 		}
 	});
 	joinThemeRuleFragments(root);
-	return root.toString();
+	return { css: root.toString(), removed };
 }
 
 /**
@@ -193,13 +200,15 @@ function canJoin(run: ChildNode[]) {
  * Vite plugin that removes mantle theme CSS a production build does not read.
  *
  * - `mantle.css` restates every palette stop for the dark theme and for `invert-theme` islands.
- *   The plugin keeps a stop in those rules only when a file of the build mentions it outside
- *   them: a stylesheet, a CSS module, or a script chunk.
+ *   The plugin keeps a stop in those rules only when the same stylesheet reads it: a utility, a
+ *   `var()`, a CSS module merged into it, or `@layer theme`, where Tailwind writes each stop
+ *   that a scanned file names.
  * - Tailwind's color-mix fallbacks split each theme rule into many fragments that repeat the
  *   theme selector. The plugin joins them.
  *
- * It runs once on the finished bundle, so it sees every stylesheet and chunk of the build. It
- * changes only mantle's own theme rules, and `vite dev` serves the full CSS.
+ * It runs once on the finished bundle of `vite build` and changes only mantle's own theme rules.
+ * When another file of the build reads a stop that the stylesheet does not, it warns. `vite dev`
+ * serves the full CSS.
  *
  * @see https://mantle.ngrok.com/vite-plugins#mantlethemepruneplugin
  * @example
@@ -222,33 +231,45 @@ function mantleThemePrunePlugin(): Plugin {
 			order: "post",
 			handler(_options, bundle) {
 				const files = Object.values(bundle);
-				const isThemeSheet = (file: (typeof files)[number]) =>
-					file.type === "asset" &&
-					file.fileName.endsWith(".css") &&
-					// Why: a pass on a file with a source map would leave the map stale.
-					!(`${file.fileName}.map` in bundle) &&
-					String(file.source).includes("data-applied-theme");
-				const mentions = new Set<string>();
+				const removed = new Set<string>();
+				const themeSheets = new Set<string>();
 				for (const file of files) {
-					if (!isThemeSheet(file)) {
-						const text = file.type === "chunk" ? file.code : String(file.source);
-						for (const name of text.match(RAMP_STOP_MENTION) ?? []) {
-							mentions.add(name);
+					if (
+						file.type === "asset" &&
+						file.fileName.endsWith(".css") &&
+						// Why: a pass on a file with a source map would leave the map stale.
+						!(`${file.fileName}.map` in bundle) &&
+						String(file.source).includes("data-applied-theme")
+					) {
+						themeSheets.add(file.fileName);
+						const result = pruneThemeCss(String(file.source));
+						file.source = result.css;
+						for (const name of result.removed) {
+							removed.add(name);
 						}
 					}
 				}
-				for (const file of files) {
-					if (file.type === "asset" && isThemeSheet(file)) {
-						// A stop that another theme sheet of the build mentions stays too.
-						const others = new Set(mentions);
-						for (const other of files) {
-							if (other !== file && other.type === "asset" && isThemeSheet(other)) {
-								for (const name of String(other.source).match(RAMP_STOP_MENTION) ?? []) {
-									others.add(name);
-								}
-							}
-						}
-						file.source = pruneThemeCss(String(file.source), others);
+				// A stop that one theme stylesheet removes and another keeps still has its values.
+				for (const fileName of themeSheets) {
+					const file = bundle[fileName];
+					for (const name of (file?.type === "asset" ? String(file.source) : "").match(
+						RAMP_STOP_MENTION,
+					) ?? []) {
+						removed.delete(name);
+					}
+				}
+				// A read from another file cannot keep a stop: the pruned stylesheet would change
+				// under the same hashed name. Say which stops lost their dark value. Another theme
+				// stylesheet keeps each stop it reads itself.
+				for (const file of files.filter(({ fileName }) => !themeSheets.has(fileName))) {
+					const text = file.type === "chunk" ? file.code : String(file.source);
+					const lost = [...new Set(text.match(RAMP_STOP_MENTION))].filter((name) =>
+						removed.has(name),
+					);
+					if (lost.length > 0) {
+						this.warn(
+							`${file.fileName} reads ${lost.join(", ")}, which no mantle stylesheet of this build reads, so they have no dark or island value. Name each one in a file that stylesheet scans, such as with @source inline("bg-pink-300") for --color-pink-300.`,
+						);
 					}
 				}
 			},
