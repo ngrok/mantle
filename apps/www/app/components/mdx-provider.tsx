@@ -112,9 +112,7 @@ const components = {
 	},
 	p: (props) => {
 		const { node: _node, className, ...rest } = props;
-		return (
-			<Typography.P className={cx("mb-4 wrap-break-word md:text-wrap", className)} {...rest} />
-		);
+		return <Typography.P className={cx("mb-4 md:text-wrap", className)} {...rest} />;
 	},
 	pre: (props: ComponentProps<"pre"> & CodeBlockPreElementInput) => {
 		const { children, className, indentation: _indentation, ...rawProps } = props;
@@ -274,9 +272,7 @@ function MdxHeading({ as: Component, children, className, id, ...props }: MdxHea
 		<HashLinkHeading id={id}>
 			<Heading
 				className={cx(
-					// Why wrap-anywhere: one long identifier (`SandboxedOnClick`) is wider
-					// than a 320px screen, and `break-word` does not shrink a `w-fit` box.
-					"mt-12 mb-4 wrap-anywhere [:is(h1,h2,h3,h4,h5,h6)+&]:mt-6",
+					"mt-12 mb-4 [:is(h1,h2,h3,h4,h5,h6)+&]:mt-6",
 					Component === "h1" && "mt-0",
 					className,
 				)}

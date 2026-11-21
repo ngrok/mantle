@@ -59,7 +59,11 @@ type HeadingProps = TypographyHeadingProps & {
 	roleClassName: string;
 };
 
-/** The render body that every heading part shares. */
+/**
+ * The render body that every heading part shares. Why `wrap-anywhere`: one long word, such as
+ * `SandboxedOnClick`, is wider than a 320px screen, and `break-word` does not shrink a flex or
+ * `w-fit` parent.
+ */
 const Heading = ({
 	"data-slot": dataSlot,
 	asChild = false,
@@ -74,7 +78,11 @@ const Heading = ({
 	return (
 		<Component
 			data-slot={joinDataSlot(dataSlot, slotName)}
-			className={cx("font-heading text-strong text-balance", roleClassName, className)}
+			className={cx(
+				"font-heading text-strong text-balance wrap-anywhere",
+				roleClassName,
+				className,
+			)}
 			{...props}
 		/>
 	);
@@ -234,7 +242,7 @@ const P = ({
 	return (
 		<Component
 			data-slot={joinDataSlot(dataSlot, "typography-p")}
-			className={cx("text-paragraph text-body text-pretty", className)}
+			className={cx("text-paragraph text-body text-pretty wrap-break-word", className)}
 			{...props}
 		/>
 	);

@@ -30,8 +30,8 @@ The type scale is a set of type roles, one for each heading level plus paragraph
 | Heading 4 | `text-heading-4` | `text-xl`                             | 500    |                            |
 | Heading 5 | `text-heading-5` | `text-base`                           | 500    |                            |
 | Heading 6 | `text-heading-6` | `text-xs`                             | 500    | `uppercase`, 0.1em spacing |
-| Lead      | `text-lead`      | `text-lg`                             |        |                            |
-| Paragraph | `text-paragraph` | `text-base`, with a 1.625 line height |        |                            |
+| Lead      | `text-lead`      | `text-lg`                             | 400    |                            |
+| Paragraph | `text-paragraph` | `text-base`, with a 1.625 line height | 400    |                            |
 
 Headings use the `font-heading` class. It's the page font (`font-sans`) unless a site sets its own.
 
@@ -51,7 +51,7 @@ Each role is a theme variable, so a site sets its own scale in its stylesheet, a
 }
 ```
 
-Set every sub-key of a role you change: `--line-height`, `--font-weight`, and for Heading 6, `--letter-spacing`. A sub-key you leave out keeps mantle's value, so a 4.5rem heading would keep a line height made for 3rem. To change the scale for one section of a page instead, set the same variables on that section's element.
+Set all three sub-keys of a role you change: `--line-height`, `--letter-spacing`, and `--font-weight`. A sub-key you leave out keeps mantle's value, so a 4.5rem heading would keep a line height made for 3rem. To change the scale for one section of a page instead, set the same variables on that section's element.
 
 ## Colors
 
