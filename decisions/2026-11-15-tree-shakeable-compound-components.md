@@ -38,5 +38,5 @@ A prototype checked which `dist` shape lets a consumer drop a part that it does 
 
 - One migration moves all 48 namespace objects, so the library never has two shapes for one job. The build check above guards `dist`, and the lint rule `mantle/no-namespace-object` rejects a new namespace object.
 - Measured on the migrated `dist` with React left out, for a page that renders `Button` and the parts a marketing page uses of `DropdownMenu`, `Tabs`, `Accordion`, `Card`, and `Dialog`: Vite 8 goes from 185.9 KB to 154.5 KB minified (58.0 KB to 51.1 KB gzip), and webpack 5 from 195.5 KB to 161.3 KB. `Field` with `Item`, `Label`, and `Control` goes from 124.2 KB to 38.0 KB in Vite 8.
-- esbuild does not drop a part that reaches it through `export * as`. Mantle anchors on Vite, so mantle ships no esbuild workaround.
+- Mantle's bundler contract is Vite and Rolldown, and the guarantee holds for them. esbuild does not drop a part that reaches it through `export * as`. It is outside the contract, so mantle ships no esbuild workaround.
 - `Field` without `Help` drops `Popover`, and `Alert` without `DismissIconButton` drops the button graph. An app that uses those parts elsewhere pays nothing new and saves nothing.

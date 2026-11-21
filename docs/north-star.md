@@ -72,7 +72,7 @@ The change is the smallest that meets the task, and each part reads in one pass.
 
 ## Efficient
 
-Mantle uses few resources outside the interaction too: the JavaScript and the CSS that an app ships, DOM nodes, compositor layers, listeners, memory, the build time, and the context window of the next agent. With Vite or webpack, a component, or a part of a compound component, that an app does not use costs that app nothing ([decision](../decisions/2026-11-15-tree-shakeable-compound-components.md)). In a host that renders React Server Components, a part with no interaction ships no client JavaScript.
+Mantle uses few resources outside the interaction too: the JavaScript and the CSS that an app ships, DOM nodes, compositor layers, listeners, memory, the build time, and the context window of the next agent. Mantle's bundler contract is Vite and Rolldown. With them, a component, or a part of a compound component, that an app does not use costs that app nothing ([decision](../decisions/2026-11-15-tree-shakeable-compound-components.md)). In a host that renders React Server Components, a part with no interaction ships no client JavaScript.
 
 Memory is a cost as real as time. Each byte that a part holds for each instance limits how much a page can show and do, so a part holds only what its job needs. The best runtime cost is zero: move the work to the build or the server, then find a cheaper design, and add a cache last. A cost that grows with the page, such as with each row or each chart, has a measured limit.
 
