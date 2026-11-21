@@ -1,11 +1,15 @@
-import { createSlot } from "@radix-ui/react-slot";
 import {
 	Children,
-	type ComponentProps,
+	cloneElement,
 	type CSSProperties,
-	createElement,
+	Fragment,
 	type HTMLAttributes,
 	isValidElement,
+	type ReactNode,
+	type Ref,
+	type RefCallback,
+	use,
+	useCallback,
 } from "react";
 import type { WithStyleProps } from "../../types/with-style-props.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -21,34 +25,106 @@ import { joinDataSlot } from "../../utils/data-slot.js";
  */
 type RenderProp<TValue> = (...args: unknown[]) => TValue | undefined;
 
-/**
- * The child props `Slot` composes itself, because Radix's prop merging would
- * destroy a render prop it finds in them. They are the only two: a handler Radix
- * composes correctly already, and every other prop it forwards whole, so a render
- * prop anywhere else survives untouched and has nothing to compose.
- */
+/** The child props that `Slot` composes in its own way. */
 type ComposedChildProps = WithDataSlot & {
 	className?: string | RenderProp<string>;
+	ref?: Ref<HTMLElement>;
 	style?: CSSProperties | RenderProp<CSSProperties>;
+	"aria-describedby"?: string;
 };
-
-/**
- * Radix's `Slot`, retyped to carry a composed render prop. `createSlot`'s props
- * generic is Radix's own way to type a slot whose child is not a DOM element; it
- * replaces the default `HTMLAttributes` rather than extending it, so the DOM
- * attributes are re-added here minus the two props composed above.
- */
-const SlotPrimitive = createSlot<
-	HTMLElement,
-	Omit<HTMLAttributes<HTMLElement>, "className" | "style"> & ComposedChildProps
->("Slot");
 
 /**
  * `Slot`'s own `className` and `style` stay plain values. A render prop is only
  * meaningful on the child that knows how to call it, so accepting one here would
  * admit a value nothing ever resolves.
  */
-type Props = Omit<ComponentProps<typeof SlotPrimitive>, "className" | "style"> & WithStyleProps;
+type Props = Omit<HTMLAttributes<HTMLElement>, "className" | "style"> &
+	WithDataSlot &
+	WithStyleProps & {
+		children?: ReactNode;
+		ref?: Ref<HTMLElement>;
+	};
+
+type AnyHandler = (...args: unknown[]) => unknown;
+
+const isHandler = (key: string, value: unknown): value is AnyHandler =>
+	/^on[A-Z]/.test(key) && typeof value === "function";
+
+const REACT_LAZY_TYPE = Symbol.for("react.lazy");
+
+type LazyElement = { $$typeof: symbol; _payload: PromiseLike<ReactNode> };
+
+const isLazyElement = (value: unknown): value is LazyElement =>
+	typeof value === "object" &&
+	value != null &&
+	"$$typeof" in value &&
+	value.$$typeof === REACT_LAZY_TYPE &&
+	"_payload" in value;
+
+/**
+ * Resolves a lazy child, such as a client reference that a server component
+ * passes as `children`, so `Slot` merges onto the element and not the wrapper.
+ */
+const useUnwrappedLazy = (value: ReactNode): ReactNode => {
+	let unwrapped: unknown = value;
+	while (isLazyElement(unwrapped)) {
+		unwrapped = use(unwrapped._payload);
+	}
+	// Why the assertion is safe: `use` resolves a lazy payload to the node it wraps.
+	// oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Why: React types a lazy payload as unknown.
+	return unwrapped as ReactNode;
+};
+
+/** Joins two `aria-describedby` id lists, without duplicates. */
+const joinIdLists = (first: string | undefined, second: string | undefined): string | undefined => {
+	const ids = new Set(`${first ?? ""} ${second ?? ""}`.split(/\s+/).filter(Boolean));
+	return ids.size > 0 ? [...ids].join(" ") : undefined;
+};
+
+/**
+ * Sets a ref of either kind. A React 19 ref callback can return a cleanup; it
+ * is returned so the composed callback can run it.
+ */
+const setRef = <T,>(ref: Ref<T> | undefined, node: T | null): (() => void) | undefined => {
+	if (typeof ref === "function") {
+		const cleanup = ref(node);
+		return typeof cleanup === "function" ? cleanup : undefined;
+	}
+	if (ref != null) {
+		ref.current = node;
+	}
+	return undefined;
+};
+
+/**
+ * Composes the slot's ref and the child's ref into one stable callback. It
+ * returns a single ref unchanged, so a child with no slot ref keeps its own.
+ * `useCallback` runs in the `react-server` build, so `Slot` stays a server part.
+ */
+const useComposedRef = (
+	slotRef: Ref<HTMLElement> | undefined,
+	childRef: Ref<HTMLElement> | undefined,
+): Ref<HTMLElement> | undefined => {
+	const composed: RefCallback<HTMLElement> = useCallback(
+		(node: HTMLElement | null) => {
+			const cleanups = [setRef(slotRef, node), setRef(childRef, node)];
+			return () => {
+				for (const [index, cleanup] of cleanups.entries()) {
+					if (cleanup == null) {
+						setRef(index === 0 ? slotRef : childRef, null);
+					} else {
+						cleanup();
+					}
+				}
+			};
+		},
+		[slotRef, childRef],
+	);
+	if (slotRef == null || childRef == null) {
+		return slotRef ?? childRef;
+	}
+	return composed;
+};
 
 /**
  * Composes the slot's `className` with the child's, in this precedence
@@ -130,51 +206,58 @@ function composeStyle(
  * </Slot>
  * ```
  */
-const Slot = ({ children, className, "data-slot": dataSlot, ref, style, ...props }: Props) => {
+const Slot = ({
+	children: slotChildren,
+	className,
+	"data-slot": dataSlot,
+	ref,
+	style,
+	...props
+}: Props) => {
 	// Why "use memo": for a render-prop child, `composeClassName` and `composeStyle` return new
 	// functions, and the child may compare them.
 	"use memo";
-	if (!isValidElement<ComposedChildProps>(children)) {
+	const children = useUnwrappedLazy(slotChildren);
+	const child = isValidElement<ComposedChildProps>(children) ? children : null;
+	const composedRef = useComposedRef(ref, child?.props.ref);
+	if (child == null) {
 		return Children.only(children);
 	}
 
-	const {
-		className: childClassName,
-		style: childStyle,
-		"data-slot": childDataSlot,
-		...childProps
-	} = children.props;
-	const joinedDataSlot = joinDataSlot(dataSlot, childDataSlot);
-
-	return (
-		<SlotPrimitive
-			ref={ref}
-			{...props}
-			className={composeClassName(className, childClassName)}
-			style={composeStyle(style, childStyle)}
-		>
-			{/*
-			 * The child is rebuilt without the composed props rather than cloned with
-			 * them, because a composed value may be a function. Radix's `mergeProps`
-			 * (`@radix-ui/react-slot` 1.3.3) walks the child's own prop keys and rewrites
-			 * `className` with `join(" ")` and `style` with an object spread (which
-			 * stringifies one function and empties the other), while it forwards a slot
-			 * prop the child does not declare untouched. Withholding the props from the
-			 * child is what lets a render prop reach the element that calls it, and the
-			 * render-prop tests pin that contract against a Radix upgrade.
-			 */}
-			{createElement(children.type, {
-				...childProps,
-				// Why only when set: a component child spreads its props after its own
-				// `data-slot`, so an explicit `undefined` here erases that slot.
-				...(joinedDataSlot != null && { "data-slot": joinedDataSlot }),
-				// `cloneElement` preserved the child's key; the rebuild carries it
-				// explicitly. `?? undefined` because `createElement` stringifies any
-				// non-`undefined` key, which would turn `null` into the key `"null"`.
-				key: children.key ?? undefined,
-			})}
-		</SlotPrimitive>
-	);
+	const merged: Record<string, unknown> = { ...props };
+	for (const [key, childValue] of Object.entries(child.props)) {
+		const slotValue = merged[key];
+		// Why child first: the child's own handler sees the event before the part's,
+		// and its return value wins.
+		if (isHandler(key, childValue) && isHandler(key, slotValue)) {
+			merged[key] = (...args: unknown[]) => {
+				const result = childValue(...args);
+				slotValue(...args);
+				return result;
+			};
+		} else if (!(/^on[A-Z]/.test(key) && childValue == null)) {
+			// A child prop wins, even when it is `undefined`; a missing child handler keeps the part's.
+			merged[key] = childValue;
+		}
+	}
+	const composed = {
+		className: composeClassName(className, child.props.className),
+		style: composeStyle(style, child.props.style),
+		"aria-describedby": joinIdLists(child.props["aria-describedby"], props["aria-describedby"]),
+		"data-slot": joinDataSlot(dataSlot, child.props["data-slot"]),
+		ref: child.type === Fragment ? undefined : composedRef,
+	};
+	// Why only when set: a component child spreads its props after its own
+	// defaults, so an explicit `undefined` erases one, such as its `data-slot`.
+	// It also keeps the props out of a server component's payload.
+	for (const [key, value] of Object.entries(composed)) {
+		if (value === undefined || value === "") {
+			delete merged[key];
+		} else {
+			merged[key] = value;
+		}
+	}
+	return cloneElement(child, merged);
 };
 
 export {

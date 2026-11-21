@@ -116,7 +116,7 @@ A function `children` is forwarded untouched, so `NavLink`'s `children={({ isAct
 
 Merges its props onto its immediate child element. Automatically handles className merging with Tailwind CSS merge logic.
 
-Based on [Radix UI Slot](https://www.radix-ui.com/primitives/docs/utilities/slot).
+The child's event handler runs before the `Slot`'s, refs from both sides receive the element, and `aria-describedby` ids from both sides are joined. `Slot` has no state and renders in a server component.
 
 | Prop         | Type            | Default | Description                                                                                                                                                                                        |
 | :----------- | :-------------- | :------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

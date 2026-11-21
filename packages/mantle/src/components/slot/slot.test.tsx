@@ -1,4 +1,3 @@
-import { createSlot } from "@radix-ui/react-slot";
 import { render } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import {
@@ -151,8 +150,7 @@ describe("Slot", () => {
 
 		await user.click(button);
 
-		// Radix Slot semantics: both handlers run, and neither is invoked twice by
-		// the composition. A double-fire here would break every `asChild` consumer.
+		// Both handlers run once. A double-fire here would break every `asChild` consumer.
 		expect(slotOnClick).toHaveBeenCalledTimes(1);
 		expect(childOnClick).toHaveBeenCalledTimes(1);
 		expect(slotOnClick).toHaveBeenLastCalledWith(
@@ -360,8 +358,6 @@ describe("Slot render-prop className and style", () => {
 	});
 
 	it("composes the Slot's ref with the child's own ref", () => {
-		// The child element is rebuilt to compose render props, so its own props
-		// (`ref` included) have to survive that rebuild.
 		const slotRef = createRef<HTMLAnchorElement>();
 		const childRef = createRef<HTMLAnchorElement>();
 
@@ -377,34 +373,60 @@ describe("Slot render-prop className and style", () => {
 		expect(slotRef.current).toBe(link);
 		expect(childRef.current).toBe(link);
 	});
-});
 
-describe("Radix prop-merging contract", () => {
-	it("forwards a slot prop the child does not declare untouched", () => {
-		/**
-		 * The one assumption `Slot`'s render-prop composition rests on, asserted
-		 * directly rather than through mantle's output. Radix rewrites `className` and
-		 * `style` only for keys it finds on the child element. That is why `Slot`
-		 * withholds them from the child and hands the composed value to the slot
-		 * instead. If a Radix upgrade starts touching props the child does not declare,
-		 * this fails naming the contract, instead of a `NavLink` somewhere losing its
-		 * highlight.
-		 */
-		const TripwireSlot = createSlot<HTMLElement, { className?: () => string }>("Tripwire");
-		const received: Array<(() => string) | undefined> = [];
-		const renderProp = () => "resolved-by-the-child";
-
-		function ClassNameProbe({ className }: { className?: () => string }) {
-			received.push(className);
-			return <a href="/endpoints">Endpoints</a>;
-		}
-
-		render(
-			<TripwireSlot className={renderProp}>
-				<ClassNameProbe />
-			</TripwireSlot>,
+	it("runs the child's handler before the Slot's", async () => {
+		const user = userEvent.setup();
+		const calls: string[] = [];
+		const { getByRole } = render(
+			<Slot onClick={() => calls.push("slot")}>
+				<button type="button" onClick={() => calls.push("child")}>
+					Save
+				</button>
+			</Slot>,
 		);
+		await user.click(getByRole("button", { name: "Save" }));
+		expect(calls).toEqual(["child", "slot"]);
+	});
 
-		expect(received).toEqual([renderProp]);
+	it("joins the child's and the Slot's aria-describedby ids without duplicates", () => {
+		const { getByRole } = render(
+			<Slot aria-describedby="help shared">
+				<input aria-label="Name" aria-describedby="shared error" />
+			</Slot>,
+		);
+		expect(getByRole("textbox", { name: "Name" })).toHaveAttribute(
+			"aria-describedby",
+			"shared error help",
+		);
+	});
+
+	it("runs the cleanup a child ref callback returns, and clears the Slot's ref, on unmount", () => {
+		const slotRef = createRef<HTMLAnchorElement>();
+		const cleanup = vi.fn<() => void>();
+		const { getByRole, unmount } = render(
+			<Slot ref={slotRef}>
+				<a href="/endpoints" ref={() => cleanup}>
+					Endpoints
+				</a>
+			</Slot>,
+		);
+		expect(slotRef.current).toBe(getByRole("link"));
+		unmount();
+		expect(cleanup).toHaveBeenCalledTimes(1);
+		expect(slotRef.current).toBeNull();
+	});
+
+	it("lets a child's own prop win over the Slot's, even when the child sets it to undefined", () => {
+		// Why: Button sets `tabIndex={-1}` on a disabled `asChild` child and relies on this order.
+		const { getByRole } = render(
+			<Slot tabIndex={0} title="slot title">
+				<a href="/docs" tabIndex={-1} title={undefined}>
+					Docs
+				</a>
+			</Slot>,
+		);
+		const link = getByRole("link", { name: "Docs" });
+		expect(link).toHaveAttribute("tabindex", "-1");
+		expect(link).not.toHaveAttribute("title");
 	});
 });
