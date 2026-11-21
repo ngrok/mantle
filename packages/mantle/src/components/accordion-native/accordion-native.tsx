@@ -21,6 +21,7 @@ import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
 import {
 	accordionBodyClassName,
 	accordionRootClassName,
@@ -31,11 +32,11 @@ import {
 	type AccordionValueProps,
 	emitValueChange,
 	isItemOpen,
-	nextOpenValues,
+	sameOpenValues,
 	toOpenValues,
 } from "../accordion/accordion-state.js";
 import type { IconProps } from "../icon/icon.js";
-import type { SvgAttributes } from "../icon/types.js";
+import { hasAccessibleNaming, type NamedSvgProps } from "../icon/svg-only.js";
 import { Slot } from "../slot/index.js";
 
 type AccordionContextValue = {
@@ -43,7 +44,9 @@ type AccordionContextValue = {
 	name: string | undefined;
 	/** The open item values that `Item` writes to `open`: the controlled `value`, else the `defaultValue`. */
 	openValues: readonly string[];
-	/** Reports one `<details>` element's `toggle` event to the consumer's `onValueChange`. */
+	/** Adds an item's `<details>` element, so a `toggle` reads what the browser shows. Returns the removal. */
+	registerItem: (details: HTMLDetailsElement, itemValue: string) => () => void;
+	/** Reports a `toggle` event of one item to the consumer's `onValueChange`. */
 	onItemToggle: (options: { itemValue: string; open: boolean }) => void;
 };
 
@@ -124,9 +127,10 @@ const Root = (props: AccordionRootProps) => {
 	// Why state and not a fresh read of `defaultValue`: an uncontrolled `open` must never change
 	// after the first render, so React never writes over the open state the browser owns.
 	const [defaultOpenValues] = useState(() => toOpenValues(defaultValue));
-	// Why a ref: the browser owns the uncontrolled open state, so a re-render has nothing to show.
-	// The `toggle` handler reads and writes it to compute the next `onValueChange` value.
-	const uncontrolledOpenValuesRef = useRef<readonly string[] | null>(null);
+	const [items] = useState(() => new Map<HTMLDetailsElement, string>());
+	// Why per element: the open state each element last reported. An element that a re-render
+	// attaches again keeps it, and an item that remounts starts from what it renders.
+	const [reportedOpen] = useState(() => new WeakMap<HTMLDetailsElement, boolean>());
 	// Why the memo: `toOpenValues` wraps a controlled single `value` in a fresh array, and a fresh
 	// array on every render misses the context memo below.
 	const openValues = useMemo(
@@ -144,21 +148,40 @@ const Root = (props: AccordionRootProps) => {
 		() => ({
 			name: type === "single" ? name : undefined,
 			openValues,
-			// Why no guard for the item a `<details name>` group closes: its `toggle` event fires
-			// after the opened item's, so `current` no longer holds it and nothing changes.
+			registerItem: (details, itemValue) => {
+				items.set(details, itemValue);
+				if (!reportedOpen.has(details)) {
+					reportedOpen.set(details, details.open);
+				}
+				return () => {
+					items.delete(details);
+				};
+			},
+			// Why the open values come from the elements: the browser can change them before
+			// hydration, after a rejected or deferred `value`, and in an item that remounts.
 			onItemToggle: ({ itemValue, open }) => {
-				const current = isControlled
-					? openValues
-					: (uncontrolledOpenValuesRef.current ?? defaultOpenValues);
-				const next = nextOpenValues({ openValues: current, value: itemValue, open, type });
-				if (next === current) {
+				const entries = [...items];
+				// Why the toggled item in single mode: a browser without `<details name>` keeps the
+				// other item open, and the opened item is the one to report.
+				const next =
+					open && type === "single"
+						? [itemValue]
+						: entries.filter(([details]) => details.open).map(([, item]) => item);
+				const last = entries
+					.filter(([details]) => reportedOpen.get(details))
+					.map(([, item]) => item);
+				for (const [details] of entries) {
+					reportedOpen.set(details, details.open);
+				}
+				// Why both checks: a `<details name>` group closes one item after another opens, and
+				// a new controlled `value` toggles items. Neither is a new change.
+				if (sameOpenValues(next, last) || (isControlled && sameOpenValues(next, openValues))) {
 					return;
 				}
-				uncontrolledOpenValuesRef.current = next;
 				emitValueChange(propsRef.current, next);
 			},
 		}),
-		[type, name, openValues, isControlled, defaultOpenValues],
+		[type, name, openValues, items, reportedOpen, isControlled],
 	);
 
 	const containerProps = {
@@ -221,11 +244,13 @@ const Item = ({
 	/** The unique value identifying this item within its accordion. */
 	value: string;
 } & WithDataSlot) => {
-	const { name, openValues, onItemToggle } = useAccordionContext("Accordion.Item");
+	const { name, openValues, registerItem, onItemToggle } = useAccordionContext("Accordion.Item");
 
 	return (
 		<details
-			ref={ref}
+			ref={composeRefs(ref, (details) =>
+				details == null ? undefined : registerItem(details, value),
+			)}
 			{...props}
 			name={name}
 			open={isItemOpen(openValues, value)}
@@ -297,9 +322,9 @@ const defaultTriggerIcon = <CaretDownIcon weight="bold" />;
 /**
  * The icon that shows the open or closed state of its {@link Trigger}. Defaults to a downward
  * caret that turns 180° while its section is open. Pass `svg` to override it with any icon
- * (the turn still applies; override `className` to change it). It renders the svg itself with
- * `aria-hidden`, so its `data-slot` is `accordion-trigger-icon` alone; pass `aria-hidden={false}`
- * with a label to announce it.
+ * (the turn still applies; override `className` to change it). Like `Icon`, it hides an unnamed
+ * svg from assistive technology. It renders the svg itself, so its `data-slot` is
+ * `accordion-trigger-icon` alone.
  *
  * @see https://mantle.ngrok.com/components/data-display/accordion-native#accordiontriggericon
  *
@@ -323,6 +348,7 @@ const defaultTriggerIcon = <CaretDownIcon weight="bold" />;
 const TriggerIcon = ({
 	"data-slot": dataSlot,
 	className,
+	style,
 	svg = defaultTriggerIcon,
 	...props
 }: Omit<IconProps, "svg"> & {
@@ -330,18 +356,22 @@ const TriggerIcon = ({
 	svg?: IconProps["svg"];
 } & WithDataSlot) => {
 	invariant(
-		isValidElement<SvgAttributes>(svg),
+		isValidElement<NamedSvgProps>(svg),
 		"`Accordion.TriggerIcon` must be passed a single SVG icon as a JSX tag.",
 	);
 	// Why `cloneElement` and not `Icon`: the `Icon` and `SvgOnly` layers add about 9 ms to the
 	// hydration of 40 items at a 4x CPU throttle, and a long page is this component's use case.
+	const decorative = !hasAccessibleNaming(props) && !hasAccessibleNaming(svg.props);
 	return cloneElement(svg, {
-		"aria-hidden": true,
+		// Why before the spread: an explicit `aria-hidden` wins, and a named svg stays announced.
+		...(decorative && { "aria-hidden": true }),
 		...props,
 		"data-slot": joinDataSlot(dataSlot, "accordion-trigger-icon"),
 		className: accordionTriggerIconClassName(
 			svg.props.className == null ? className : cx(className, svg.props.className),
 		),
+		// Why the check: an svg with no `style` prop needs no new style object.
+		style: style == null ? svg.props.style : { ...style, ...svg.props.style },
 	});
 };
 

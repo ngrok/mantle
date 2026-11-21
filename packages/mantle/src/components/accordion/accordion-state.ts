@@ -161,3 +161,14 @@ export function emitValueChange(props: AccordionValueProps, next: readonly strin
 		props.onValueChange?.([...next]);
 	}
 }
+
+/**
+ * Whether two lists of open item values hold the same values, in any order.
+ *
+ * @example
+ * sameOpenValues(["a", "b"], ["b", "a"]); // => true
+ * sameOpenValues(["a"], ["a", "b"]);      // => false
+ */
+export function sameOpenValues(a: readonly string[], b: readonly string[]): boolean {
+	return a.length === b.length && a.every((value) => b.includes(value));
+}

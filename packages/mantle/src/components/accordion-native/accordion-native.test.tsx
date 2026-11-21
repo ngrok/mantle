@@ -114,6 +114,26 @@ describe("native Accordion", () => {
 		expect(icon).toHaveAttribute("data-slot", "accordion-trigger-icon");
 	});
 
+	test("TriggerIcon keeps a named svg announced and merges its inline style", () => {
+		render(
+			<Accordion.Root>
+				<Accordion.Item value="a">
+					<Accordion.Trigger>
+						Named icon
+						<Accordion.TriggerIcon
+							style={{ opacity: 0.5 }}
+							svg={<svg aria-label="Expand" style={{ color: "red" }} />}
+						/>
+					</Accordion.Trigger>
+				</Accordion.Item>
+			</Accordion.Root>,
+		);
+		const icon = screen.getByLabelText("Expand");
+
+		expect(icon).not.toHaveAttribute("aria-hidden");
+		expect(icon).toHaveStyle({ opacity: "0.5", color: "red" });
+	});
+
 	test("Item throws outside of Root", () => {
 		expect(() => render(<Accordion.Item value="orphan">orphan</Accordion.Item>)).toThrow(
 			/must be rendered within `Accordion.Root`/,
