@@ -10,23 +10,39 @@ import { englishDataset, englishRecommendedTransformers, RegExpMatcher } from "o
  * characters. It does not classify meaning, so treat it as one layer.
  */
 
-/** Absolute `http(s)` URLs and bare `www.` hosts. */
-const URL_PATTERN = /(?:https?:\/\/|www\.)\S+/gi;
+/**
+ * Absolute `http(s)` URLs and bare `www.` hosts. A URL ends at the next URL or
+ * at a character that closes it in Markdown or JSON, so `[a](…)[b](…)` counts 2.
+ */
+const URL_PATTERN = /(?:https?:\/\/|www\.)[^\s)\]"'<>,]+?(?=https?:\/\/|www\.|[\s)\]"'<>,]|$)/gi;
+
+/**
+ * Hex literals, such as the color `#a55` or `0xa55`. Why: leet-speak reads
+ * their digits as letters, so a code sketch would fail the check.
+ */
+const HEX_LITERAL = /#[\da-f]{3,8}\b|\b0x[\da-f]+\b/gi;
+
+/**
+ * A camelCase boundary: two lowercase letters, then a capital that starts a
+ * word. `useAnalytics` splits; `fUcK` does not, so mixed case cannot hide a term.
+ */
+const CAMEL_BOUNDARY = /(\p{Ll}{2})(\p{Lu}\p{Ll})/gu;
 
 // Why lazy: the matcher compiles many regexes, and most calls never report a gap.
 let matcher: RegExpMatcher | undefined;
 
 /**
  * Whether `text` holds a term from the `obscenity` English dataset, with
- * evasions such as leet-speak and repeated characters. A camelCase name reads
- * as separate words, so `useAnalytics` does not match.
+ * evasions such as leet-speak, mixed case, and repeated characters. A camelCase
+ * name reads as separate words, so `useAnalytics` does not match, and a hex
+ * literal such as `#a55` is not read as text.
  *
  * @example
  * hasProfanity("Settings page needs a stepper with a done state"); // false
  */
 export function hasProfanity(text: string): boolean {
 	matcher ??= new RegExpMatcher({ ...englishDataset.build(), ...englishRecommendedTransformers });
-	return matcher.hasMatch(text.replace(/(\p{Ll})(\p{Lu})/gu, "$1 $2"));
+	return matcher.hasMatch(text.replace(HEX_LITERAL, " ").replace(CAMEL_BOUNDARY, "$1 $2"));
 }
 
 /**

@@ -280,14 +280,19 @@ describe("the mantle MCP server", () => {
 			expect(kept.endsWith("…\n```")).toBe(true);
 		});
 
-		it("rejects a report with profanity in any field, and logs no gap", async () => {
+		it("rejects a report with profanity in any field, in any case, and logs no gap", async () => {
 			const log = vi.fn<(event: ToolCallEvent) => void>();
 
 			const result = await callToolFromFrontend(dependencies({ log }), "report_gap", {
 				...gap,
 				writeup: `This ${profanity} stepper`,
 			});
+			const mixedCase = await callToolFromFrontend(dependencies(), "report_gap", {
+				...gap,
+				need: atob("ZlVjSw=="),
+			});
 
+			expect(mixedCase.isError).toBe(true);
 			expect(result).toEqual({
 				text: "Remove the offensive language and report again.",
 				isError: true,
@@ -296,9 +301,21 @@ describe("the mantle MCP server", () => {
 			expect(log.mock.lastCall?.[0].gap).toBeUndefined();
 		});
 
+		it("keeps a code sketch with a hex color that reads as leet-speak", async () => {
+			const result = await callToolFromFrontend(dependencies(), "report_gap", {
+				...gap,
+				writeup: '```tsx\n<rect fill="#a55" />\n```',
+			});
+
+			expect(result.isError).toBe(false);
+		});
+
 		it("rejects a report with more than five links, and keeps one with five", async () => {
+			// Why no spaces: Markdown links side by side must count one each.
 			const links = (count: number) =>
-				Array.from({ length: count }, (_, index) => `https://spam.example/${index}`).join(" ");
+				Array.from({ length: count }, (_, index) => `[ref](https://spam.example/${index})`).join(
+					"",
+				);
 
 			const five = await callToolFromFrontend(dependencies(), "report_gap", {
 				...gap,

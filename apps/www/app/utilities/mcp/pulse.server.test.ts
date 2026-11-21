@@ -296,6 +296,28 @@ describe("createPulse", () => {
 		expect(posts[1]).toContain("ngrok-private/frontend › blog");
 	});
 
+	it("posts the same need once for each ticket in the same hour", () => {
+		const { pulse, posts } = testPulse();
+
+		pulse.record(detailedGap);
+		pulse.record({ ...detailedGap, ticket: "FEP-2" });
+
+		expect(posts).toHaveLength(2);
+		expect(posts[1]).toContain("FEP-2");
+	});
+
+	it("posts a gap report after other alerts used up their cap", () => {
+		const { pulse, posts } = testPulse();
+
+		for (let index = 0; index < 31; index += 1) {
+			pulse.record(event({ tool: `tool${index}`, outcome: "error", errorKind: "internal" }));
+		}
+		pulse.record(gapReport);
+
+		expect(posts).toHaveLength(31);
+		expect(posts.at(-1)).toContain(":jigsaw:");
+	});
+
 	it("holds back alerts over 30 an hour and counts them in the digest", async () => {
 		const { pulse, posts } = testPulse();
 
@@ -305,7 +327,9 @@ describe("createPulse", () => {
 		await pulse.flush("interval");
 
 		expect(posts).toHaveLength(31);
-		expect(posts.at(-1)).toContain("*Held back:* 2 alerts over the cap of 30 an hour.");
+		expect(posts.at(-1)).toContain(
+			"*Held back:* 2 alerts over the caps of 60 gap reports and 30 other alerts an hour.",
+		);
 	});
 
 	it("posts the digest at a flush, then starts a new one", async () => {

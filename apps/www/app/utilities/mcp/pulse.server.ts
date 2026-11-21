@@ -6,7 +6,12 @@ const HOUR_MS = 3_600_000;
 /** How often the digest posts while the process runs. A shutdown posts it too. */
 export const DIGEST_INTERVAL_MS = 24 * HOUR_MS;
 
-/** The most alerts that one process posts in an hour. The digest counts the rest. */
+/**
+ * The most gap reports, and the most other alerts, that one process posts in
+ * an hour. The digest counts the rest. Why two caps: Slack is the only record
+ * of a report, so weak finds and errors must not use up its budget.
+ */
+const GAPS_PER_HOUR = 60;
 const ALERTS_PER_HOUR = 30;
 
 /** The longest wait for Slack. A post must not hold a shutdown. */
@@ -220,7 +225,8 @@ export function alertOf(event: ToolCallEvent): Alert | undefined {
 	if (gap?.source === "report_gap") {
 		const need = escape(gap.tokens.join(" "));
 		return {
-			key: keyOf(`gap:${need}`, event),
+			// Why the ticket: two tickets that need the same part are two reports.
+			key: keyOf(event.ticket == null ? `gap:${need}` : `gap:${need} ${event.ticket}`, event),
 			text: sections(
 				`:jigsaw: *Gap reported: "${need}"*`,
 				escape(gapSummary(gap)),
@@ -432,7 +438,7 @@ export function digestText(
 			: lines("*Recent goals*", bullets(digest.goals.map(escape))),
 		digest.heldAlerts === 0
 			? undefined
-			: `*Held back:* ${count(digest.heldAlerts)} alerts over the cap of ${ALERTS_PER_HOUR} an hour.`,
+			: `*Held back:* ${count(digest.heldAlerts)} alerts over the caps of ${GAPS_PER_HOUR} gap reports and ${ALERTS_PER_HOUR} other alerts an hour.`,
 		`_${reason === "shutdown" ? "Posted at shutdown" : "Daily digest"} from ${escape(host)}. Each server counts its own calls._`,
 	);
 }
@@ -483,7 +489,7 @@ export function createPulse({
 	let digest = emptyDigest(now());
 	const lastSent = new Map<string, number>();
 	let windowStart = now();
-	let sentInWindow = 0;
+	const sentInWindow = { gap: 0, other: 0 };
 	/** The posts and the interval flushes that are not done. */
 	const pending = new Set<Promise<unknown>>();
 	let inFlight = 0;
@@ -572,13 +578,15 @@ export function createPulse({
 			}
 			if (time - windowStart >= HOUR_MS) {
 				windowStart = time;
-				sentInWindow = 0;
+				sentInWindow.gap = 0;
+				sentInWindow.other = 0;
 			}
-			if (sentInWindow >= ALERTS_PER_HOUR) {
+			const budget = alert.key.startsWith("gap:") ? "gap" : "other";
+			if (sentInWindow[budget] >= (budget === "gap" ? GAPS_PER_HOUR : ALERTS_PER_HOUR)) {
 				digest.heldAlerts += 1;
 				return;
 			}
-			sentInWindow += 1;
+			sentInWindow[budget] += 1;
 			lastSent.set(alert.key, time);
 			void track(postAlert(alert, time));
 		},
