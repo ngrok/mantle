@@ -39,7 +39,7 @@ export {
  * column instead; see the docs' "Sizing a page to the card".
  *
  * @useWhen Frame a signed-in app with navigation that persists across routes: a sidebar, a header
- * toolbar, and one scrolling content card.
+ * that holds the page heading and its actions, and one scrolling content card.
  *
  * @siblings
  * - `CenteredLayout`: the page is one focused flow with no sidebar, such as sign-in, onboarding, or a 404 page.

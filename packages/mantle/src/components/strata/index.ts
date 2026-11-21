@@ -23,8 +23,8 @@ import * as StrataParts from "./strata-parts.js";
  * [DescriptionList](https://mantle.ngrok.com/components/data-display/description-list)
  * when the pairs are read-only term/value data rather than headed sections.
  *
- * @useWhen Lay out a settings page or a configuration editor as titled sections, each one explained
- * beside its controls.
+ * @useWhen Lay out a settings page, a configuration editor, or a long form as titled sections, each
+ * one explained beside its controls: the title and description on the left, the form fields on the right.
  *
  * @siblings
  * - `Card`: a group needs a raised surface of its own.

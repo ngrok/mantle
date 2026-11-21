@@ -183,7 +183,7 @@
         "boundary": "the page is one focused flow with no sidebar, such as sign-in, onboarding, or a 404 page."
       }
     ],
-    "useWhen": "Frame a signed-in app with navigation that persists across routes: a sidebar, a header toolbar, and one scrolling content card."
+    "useWhen": "Frame a signed-in app with navigation that persists across routes: a sidebar, a header that holds the page heading and its actions, and one scrolling content card."
   },
   {
     "name": "Area Chart",
@@ -1223,7 +1223,10 @@
       "```tsx\nimport { Avatar } from \"@ngrok/mantle/avatar\";\nimport { MediaObject } from \"@ngrok/mantle/media-object\";\n\n<MediaObject.Root>\n  <MediaObject.Media>\n    <Avatar.Root>\n      <Avatar.Image src={user.avatarUrl} alt=\"\" />\n      <Avatar.Fallback name={user.name} />\n    </Avatar.Root>\n  </MediaObject.Media>\n  <MediaObject.Content>\n    <p className=\"font-medium\">{user.name}</p>\n    <p className=\"text-muted text-sm\">{comment}</p>\n  </MediaObject.Content>\n</MediaObject.Root>\n```"
     ],
     "aliases": [
-      "media block"
+      "media block",
+      "icon on the left text on the right",
+      "image beside text",
+      "avatar beside name"
     ],
     "siblings": [
       {
@@ -1960,7 +1963,13 @@
     ],
     "aliases": [
       "settings page",
-      "settings layout"
+      "settings layout",
+      "form section",
+      "two-column form",
+      "two-column layout",
+      "description left controls right",
+      "label and description on the left",
+      "group of info on the left form fields on the right"
     ],
     "siblings": [
       {
@@ -1976,7 +1985,7 @@
         "boundary": "the pairs are read-only label and value data, not headed sections."
       }
     ],
-    "useWhen": "Lay out a settings page or a configuration editor as titled sections, each one explained beside its controls."
+    "useWhen": "Lay out a settings page, a configuration editor, or a long form as titled sections, each one explained beside its controls: the title and description on the left, the form fields on the right."
   },
   {
     "name": "Switch",
