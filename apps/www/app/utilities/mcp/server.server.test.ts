@@ -797,6 +797,46 @@ describe("the documented find examples", () => {
 	);
 });
 
+/**
+ * Golden queries: how designers and agents describe a need, and the record
+ * that must answer it. Each one came from a real search, such as Ricky's
+ * words for Strata in Slack. Add a query when a weak find turns out to be a
+ * find bug, not a gap.
+ */
+describe("the golden find queries", () => {
+	const topResultByQuery = {
+		"form sections (our 2column layouts with label/description on left, inputs or controls on right)":
+			"Strata",
+		"this group of info on left, form fields on right": "Strata",
+		"form section with label and description on the left": "Strata",
+		"description left controls right": "Strata",
+		"two-column settings layout": "Strata",
+		"settings page": "Strata",
+		"icon on the left text on the right": "Media Object",
+		"checkbox on the left label and description on the right": "Choice",
+		"avatar initials from name": "Avatar",
+		"app shell sidebar header": "App Layout",
+		"centered login page": "Centered Layout",
+	};
+
+	it.each(Object.entries(topResultByQuery))(
+		'finds "%s" as a strong match to %s first',
+		async (query, name) => {
+			const { result } = await rpc(await currentDependencies(), "tools/call", {
+				name: "find",
+				arguments: { query },
+			});
+			const found = result?.structuredContent as {
+				strongMatch: boolean;
+				results: { name: string }[];
+			};
+
+			expect(found.strongMatch).toBe(true);
+			expect(found.results[0]?.name).toBe(name);
+		},
+	);
+});
+
 describe("loadMigrationGuides", () => {
 	it("reads introducedIn from every migration guide", async () => {
 		const guides = await loadMigrationGuides();
