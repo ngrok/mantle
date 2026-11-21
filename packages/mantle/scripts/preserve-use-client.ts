@@ -1,8 +1,13 @@
 /** Matches an import of the React Compiler runtime in an output chunk. */
 const COMPILER_RUNTIME_IMPORT_RE = /["']react\/compiler-runtime["']/;
 
-/** Matches a module whose first statement is `"use client"`, after any comments. */
-const USE_CLIENT_RE = /^(?:\s|\/\/[^\n]*\n|\/\*[\s\S]*?\*\/)*["']use client["']/;
+/** Builds a regex that matches a module whose directive prologue holds `directive`, after any comments. */
+const directiveRe = (directive: string) =>
+	new RegExp(
+		`^(?:\\s|//[^\\n]*\\n|/\\*[\\s\\S]*?\\*/|["']use [^"'\\n]+["'];?)*["']${directive}["']`,
+	);
+const USE_CLIENT_RE = directiveRe("use client");
+const USE_NO_MEMO_RE = directiveRe("use no memo");
 
 /** Matches the source modules that the build transforms, but not their declarations. */
 const SOURCE_RE = /[\\/]src[\\/].+\.tsx?$/;
@@ -16,6 +21,17 @@ const DECLARATION_RE = /\.d\.[cm]?ts$/;
  */
 function hasUseClientDirective(code: string): boolean {
 	return USE_CLIENT_RE.test(code);
+}
+
+/**
+ * Reports whether a source module opts out of the React Compiler for the whole file. A
+ * `"use no memo"` inside one function does not count.
+ *
+ * @example
+ * hasFileUseNoMemoDirective('"use no memo";\nimport { cx } from "./cx.js";'); // => true
+ */
+function hasFileUseNoMemoDirective(code: string): boolean {
+	return USE_NO_MEMO_RE.test(code);
 }
 
 /**
@@ -90,6 +106,10 @@ function findClientImport(
  * server component. A chunk with no client code, such as `cx`, stays free of
  * the directive, so server code can still call it.
  *
+ * A module with a file-level `"use no memo"` is a server component (CONVENTIONS.md
+ * § React Compiler). The build fails when one lands in a `"use client"` chunk, because a
+ * server component would then silently render it as a client component.
+ *
  * @example
  * defineConfig({ plugins: [preserveUseClient({ serverEntries: ["cx.js"] })] });
  */
@@ -100,6 +120,7 @@ function preserveUseClient({
 	serverEntries: readonly string[];
 }) {
 	const clientModuleIds = new Set<string>();
+	const serverModuleIds = new Set<string>();
 	return {
 		name: "preserve-use-client",
 		transform: {
@@ -108,6 +129,9 @@ function preserveUseClient({
 			handler: (code: string, id: string) => {
 				if (hasUseClientDirective(code)) {
 					clientModuleIds.add(id);
+				}
+				if (hasFileUseNoMemoDirective(code)) {
+					serverModuleIds.add(id);
 				}
 				return null;
 			},
@@ -118,6 +142,12 @@ function preserveUseClient({
 			}
 			if (!chunkNeedsUseClient({ code, moduleIds: chunk.moduleIds, clientModuleIds })) {
 				return null;
+			}
+			const serverModuleId = chunk.moduleIds.find((moduleId) => serverModuleIds.has(moduleId));
+			if (serverModuleId != null) {
+				throw new Error(
+					`${serverModuleId} has a file-level "use no memo" so server components can render it, but its chunk ${chunk.fileName} holds a "use client" or compiled module. Remove "use client" from that file, or keep compiled modules out of its chunk.`,
+				);
 			}
 			return `"use client";\n${code}`;
 		},
@@ -138,6 +168,7 @@ export {
 	//,
 	chunkNeedsUseClient,
 	findClientImport,
+	hasFileUseNoMemoDirective,
 	hasUseClientDirective,
 	preserveUseClient,
 };

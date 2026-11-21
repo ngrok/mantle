@@ -56,7 +56,9 @@ A rule tagged `(lint: name)` has an oxlint check, and the lint message says why 
 
 - The React Compiler runs in strict mode by default. The tsdown build, the vitest suite, and the docs site share `packages/mantle/react-compiler.config.ts`. It sets `panicThreshold: "all_errors"` and turns on every compiler validation, so a function that the compiler cannot compile or validate fails the build.
 - Write code that the compiler can compile. When the build fails, rewrite the function to the [Rules of React](https://react.dev/reference/rules). Do not opt it out.
-- `"use no memo"` is a last resort, for a library that the compiler cannot model (`list/virtual.tsx` and `@tanstack/react-virtual`). Add a `Why` comment that names the library.
+- `"use no memo"` has two uses. Add a `Why` comment that names the use.
+  - A library that the compiler cannot model: a directive in the one function that calls it (`list/virtual.tsx` and `@tanstack/react-virtual`).
+  - A stateless component file that a server component can render: a directive at the top of the file. [COMPONENT_SPEC.md §3.1](./COMPONENT_SPEC.md#31-required) has the rules.
 - oxlint turns on every rule that ports a compiler diagnostic, so the editor shows what the build rejects. Never disable a React hooks or React Compiler rule; restructure the code. (lint: `mantle/no-react-hooks-suppression`)
 - The usual fixes:
   - State that follows a prop: set it during render behind a condition, not in an effect.

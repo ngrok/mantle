@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	chunkNeedsUseClient,
 	findClientImport,
+	hasFileUseNoMemoDirective,
 	hasUseClientDirective,
 } from "./preserve-use-client.ts";
 
@@ -14,6 +15,26 @@ describe("hasUseClientDirective", () => {
 
 	it("ignores the words after the first statement", () => {
 		expect(hasUseClientDirective('import { cx } from "./cx.js";\n"use client";')).toBe(false);
+	});
+
+	it("finds the directive after another directive", () => {
+		expect(hasUseClientDirective('"use no memo";\n"use client";\nexport {};')).toBe(true);
+	});
+});
+
+describe("hasFileUseNoMemoDirective", () => {
+	it("finds a file-level directive after a Why comment", () => {
+		expect(
+			hasFileUseNoMemoDirective('// Why "use no memo": a note.\n"use no memo";\nexport {};'),
+		).toBe(true);
+	});
+
+	it("ignores a directive inside one function", () => {
+		expect(
+			hasFileUseNoMemoDirective(
+				'import { useVirtualizer } from "@tanstack/react-virtual";\nfunction useRows() {\n\t"use no memo";\n}',
+			),
+		).toBe(false);
 	});
 });
 

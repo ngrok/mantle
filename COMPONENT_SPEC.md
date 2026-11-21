@@ -432,6 +432,18 @@ CONVENTIONS.md covers general style ([TypeScript](./CONVENTIONS.md#typescript),
 
 - `"use client";` on the first line when the file uses hooks, DOM event handlers, browser APIs, or context.
   When in doubt, add it: the cost is negligible.
+- A stateless file starts with `"use no memo"` instead, and a `Why` comment, so a server component can render it
+  (`media-object/media-object.tsx`). Compiled output imports a cache hook, so the build marks the chunk
+  `"use client"` and the part ships JavaScript. A part that spreads its props onto one element gets no
+  memoization from the compiler, because the rest object is new on each render. A file is stateless when each
+  component in it obeys all four rules; other files stay compiled.
+  - It calls no hook, reads no context, and uses no browser API.
+  - It adds no event handler of its own.
+  - It has no `"use client"`.
+  - A page can render it from its own entry. An internal part of a client component gains nothing.
+- The build fails when a file with the file-level `"use no memo"` lands in a `"use client"` chunk
+  (`packages/mantle/scripts/preserve-use-client.ts`). A hook in such a file passes the build but breaks a server
+  render, so the reviewer checks for one.
 - Named exports only, no default exports. Relative imports ending in `.js` (`../../utils/cx/cx.js`).
 - `type`, not `interface`. Props based on `ComponentProps<…>`, which already includes `ref`. Never
   `HTMLAttributes<…>` alone, which does not.
@@ -1154,7 +1166,7 @@ Run this against the diff before calling a component done. Each line is a defect
 
 **Code**
 
-- [ ] `"use client"` where required; named exports; `.js`-suffixed relative imports; `ComponentProps<…>`-based
+- [ ] `"use client"` where required, or a file-level `"use no memo"` on a stateless file; named exports; `.js`-suffixed relative imports; `ComponentProps<…>`-based
       props.
 - [ ] `data-slot` on every part, joined where wrapping.
 - [ ] `asChild` on every DOM-rendering part (`SelfClosingWithAsChild` where there are no children), or a

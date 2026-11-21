@@ -1,3 +1,7 @@
+// Why "use no memo": a server component can render this file. A stateless part gains nothing from
+// the compiler, and its cache hook would make the build mark the chunk "use client".
+"use no memo";
+
 import { Children, type ComponentProps, type ReactNode, cloneElement, isValidElement } from "react";
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
