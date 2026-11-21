@@ -1,17 +1,20 @@
 ---
 title: Vite Plugins
-description: The @ngrok/mantle-vite-plugins package. mantleSourcesPlugin trims mantle's Tailwind scan to the files your client bundle contains. mantleCodeBlockPlugins highlights code blocks at build time.
+description: The @ngrok/mantle-vite-plugins package. mantleSourcesPlugin trims mantle's Tailwind scan to the files your client bundle contains. mantlePhosphorPrunePlugin removes the Phosphor icon weights a build never renders. mantleCodeBlockPlugins highlights code blocks at build time.
 ---
 
 # Vite Plugins
 
-`@ngrok/mantle-vite-plugins` ships three build-time integrations for apps built with mantle:
+`@ngrok/mantle-vite-plugins` ships four build-time integrations for apps built with mantle:
 
 - [`mantleSourcesPlugin`](#mantlesourcesplugin) trims your production stylesheet to the mantle
   components your bundle contains. On an app that renders `Badge` alone, that's 71 KB of CSS
   instead of 181 KB.
 - [`mantleThemePrunePlugin`](#mantlethemepruneplugin) removes the theme CSS your build doesn't
   read. On a marketing page, mantle's CSS drops from 128.6 KB to 104.1 KB.
+- [`mantlePhosphorPrunePlugin`](#mantlephosphorpruneplugin) removes the Phosphor icon weights
+  your build never renders. On a marketing page, Phosphor's icon data drops from 42.1 KB to
+  11.1 KB gzipped.
 - [`mantleCodeBlockPlugins`](#mantlecodeblockplugins) highlights code at build time, so no
   highlighter runs in the browser.
 
@@ -181,6 +184,59 @@ Vite 8.3.8, mantle 0.94, Tailwind 4.3.5, and `mantleSourcesPlugin`.
   runs. A result that depended on other files could change under the same cached URL.
 - The warning is conservative. In a build with several mantle stylesheets, it warns about a stop
   that one of them drops, even when a page also loads another that keeps it.
+
+## mantlePhosphorPrunePlugin
+
+### Why it exists
+
+Each `@phosphor-icons/react` icon holds the paths of all six weights (`thin`, `light`, `regular`,
+`bold`, `fill`, and `duotone`) in one `Map`. A bundler can't tell which entry a render reads, so
+it ships all six, even when every render of the icon uses one weight. Most apps render one or
+two weights, so most of the icon data is dead code.
+
+mantle's own icons don't need the plugin. The published package already ships each icon with
+only the weights mantle renders.
+
+### Setup
+
+Add the plugin to your Vite config. Its position in the array doesn't matter.
+
+```ts
+// vite.config.ts
+import { mantlePhosphorPrunePlugin } from "@ngrok/mantle-vite-plugins";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+	plugins: [mantlePhosphorPrunePlugin()],
+});
+```
+
+It also works as a Rolldown or tsdown plugin, for a library that bundles its icons.
+
+### What it does
+
+The plugin runs on `vite build`. `vite dev` serves every weight.
+
+- It reads which weights each module renders: the `weight` prop in JSX, and in `jsx()` and
+  `createElement()` calls of compiled dependencies.
+- An icon without a `weight` renders the `IconContext` weight. The plugin keeps `regular`, plus
+  each weight an `IconContext` value of the build sets.
+- After it reads every module, it keeps each weight of an icon that some module renders, and
+  removes the rest. A kept weight renders the same markup as before.
+
+An ngrok.com-like page that renders 53 icons ships 42.1 KB of Phosphor icon data without the
+plugin and 11.1 KB with it, gzipped. The page's JavaScript drops from 144.7 KB to 113.6 KB.
+Measured with Vite 8.3.8 and `@phosphor-icons/react` 2.1.10.
+
+### Limits
+
+- When the plugin can't read a weight, it keeps every weight of that icon. That happens with a
+  `weight` that is not a string literal or a choice between two, a spread of props, and an icon
+  passed as a value, such as in an array.
+- A namespace import, such as `import * as Icons from "@phosphor-icons/react"`, keeps every
+  weight of every icon. The build warns.
+- The plugin knows the module shape of `@phosphor-icons/react` 2.x. If an icon has another
+  shape, the build warns and keeps all six weights of that icon.
 
 ## mantleCodeBlockPlugins
 

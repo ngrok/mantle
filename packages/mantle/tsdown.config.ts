@@ -1,6 +1,9 @@
 import fs from "node:fs";
 import { defineConfig } from "tsdown";
 
+// Why a relative path: `@ngrok/mantle-vite-plugins` depends on `@ngrok/mantle`, so a package
+// dependency here would make a build cycle.
+import { mantlePhosphorPrunePlugin } from "../mantle-vite-plugins/src/mantle-phosphor-prune-plugin.ts";
 import { compileReact } from "./react-compiler.config.ts";
 import { compoundNamespaces, distName } from "./scripts/compound-namespaces.ts";
 import { foldCxPlugin } from "./scripts/fold-cx.ts";
@@ -118,6 +121,25 @@ const reactCompiler = () => ({
 	},
 });
 
+/** An import from a Phosphor icon module of its shared runtime, such as `../lib/IconBase.es.js`. */
+const PHOSPHOR_ICON_MODULE_RE = /[\\/]@phosphor-icons[\\/]react[\\/]dist[\\/](?:csr|ssr)[\\/]/;
+const PHOSPHOR_RUNTIME_IMPORT_RE = /^\.\.\/lib\/(\w+)\.es\.js$/;
+
+/**
+ * Keeps Phosphor's runtime (`IconBase` and `IconContext`) an import of the peer dependency, while
+ * the build bundles the icon modules that `mantlePhosphorPrunePlugin` trims to the weights mantle
+ * renders. Why: an app's `IconContext` and its own icons then share one runtime with mantle's icons.
+ */
+const phosphorRuntimeExternal = () => ({
+	name: "phosphor-runtime-external",
+	resolveId(source: string, importer: string | undefined) {
+		const runtime = PHOSPHOR_RUNTIME_IMPORT_RE.exec(source);
+		return importer != null && runtime != null && PHOSPHOR_ICON_MODULE_RE.test(importer)
+			? { id: `@phosphor-icons/react/dist/lib/${runtime[1]}`, external: true }
+			: null;
+	},
+});
+
 /** Extracts the owning component directory from a module id. */
 const COMPONENT_DIR_RE = /[\\/]src[\\/]components[\\/]([^\\/]+)[\\/]/;
 
@@ -171,7 +193,15 @@ export default defineConfig((options) => [
 		tsconfig: "tsconfig.build.json",
 		fixedExtension: false,
 		format: "esm",
+		deps: {
+			// Why: the bundle holds each icon with only the weights mantle renders (see phosphorRuntimeExternal).
+			alwaysBundle: [/^@phosphor-icons\/react\/(?!dist\/lib\/)/],
+			onlyBundle: ["@phosphor-icons/react"],
+			dts: { alwaysBundle: [] },
+		},
 		plugins: [
+			phosphorRuntimeExternal(),
+			mantlePhosphorPrunePlugin(),
 			compoundParts.plugin,
 			preserveUseClient({ serverEntries: ["color.js", "cx.js", "types.js", "utils.js"] }),
 			// Before the React Compiler: it must see the folded `cx` calls (see `scripts/fold-cx.ts`).
