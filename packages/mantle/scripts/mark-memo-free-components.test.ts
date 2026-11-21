@@ -73,6 +73,15 @@ describe("compileReact", () => {
 		).rejects.toThrow(/impure/i);
 	});
 
+	it("keeps directive text inside a string, template, or regex literal", async () => {
+		const code =
+			'export const text = `{"use memo";}`;\nexport const pattern = /{"use no memo";}/;\nexport const Part = () => <p />;';
+		const { code: output } = await compileReact("/m/src/part.tsx", code);
+		expect(output).toContain('`{"use memo";}`');
+		expect(output).toContain('/{"use no memo";}/');
+		expect(output).not.toMatch(/=> \{\s*"use no memo"/);
+	});
+
 	it("maps the output back to the columns of the original source", async () => {
 		const code = "export const Part = () => <span />; export const tail = 3;";
 		const { code: output, map } = await compileReact("/m/src/part.tsx", code);

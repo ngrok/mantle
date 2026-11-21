@@ -77,7 +77,7 @@ const isInside = (span: Span, outer: Span) => span.start >= outer.start && span.
  * Adds `"use no memo"` to each top-level component that memoization cannot help, so the React
  * Compiler leaves it as written. Such a component calls no hook and creates no function in render,
  * its parameter defaults included: it holds no state, runs no effect, and passes no callback that a
- * child compares. Its compiled output adds a cache and saves no work. A component that starts with
+ * child compares. Its compiled output adds a cache that saves little. A component that starts with
  * `"use memo"` stays compiled. The edits add no line.
  *
  * @example

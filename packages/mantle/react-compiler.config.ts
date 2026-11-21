@@ -1,5 +1,6 @@
 import remapping from "@jridgewell/remapping";
 import MagicString from "magic-string";
+import { parseSync, Visitor } from "oxc-parser";
 import { transform, type ReactCompilerOptions, type TransformResult } from "oxc-transform-react";
 import { markMemoFreeComponents } from "./scripts/mark-memo-free-components.ts";
 
@@ -75,12 +76,15 @@ async function compileReact(id: string, code: string) {
 	const marked = markMemoFreeComponents(id, code);
 	const result = marked.hasChanged() ? await transform(id, marked.toString(), options) : validated;
 	assertCompiled(id, result);
-	// Why strip: the compiler keeps each directive at the top of a function body in its output, and a
-	// directive is dead text there.
+	// Why strip: the compiler keeps each directive in its output, and a directive is dead text there.
 	const stripped = new MagicString(result.code);
-	for (const match of result.code.matchAll(/(?<=\{\s*)"use (?:no )?memo";/g)) {
-		stripped.remove(match.index, match.index + match[0].length);
-	}
+	new Visitor({
+		ExpressionStatement: (node) => {
+			if (node.directive === "use memo" || node.directive === "use no memo") {
+				stripped.remove(node.start, node.end);
+			}
+		},
+	}).visit(parseSync(id, result.code).program);
 	if (!stripped.hasChanged()) {
 		return { code: result.code, map: result.map };
 	}
