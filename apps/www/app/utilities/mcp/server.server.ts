@@ -35,7 +35,7 @@ import {
 	type VersionDataLoader,
 } from "~/utilities/mcp/version-data.server";
 import { createLinearGaps, type LinearGaps } from "~/utilities/mcp/linear.server";
-import { gapIssueOf, mcpPulse } from "~/utilities/mcp/pulse.server";
+import { clipMarkdown, gapIssueOf, mcpPulse } from "~/utilities/mcp/pulse.server";
 import { renderMdxToMarkdown } from "~/utilities/render-mdx-to-markdown.server";
 
 /** The server instructions. The contract test caps their size. */
@@ -899,7 +899,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				const known = source != null || work != null;
 				// Why raw for ngrok: its code and words may go to its own Slack and Linear.
 				const writeupOf = (value: string) =>
-					known ? value.trim().slice(0, WRITEUP_LENGTH) || undefined : scrubIntent(value);
+					known ? clipMarkdown(value.trim(), WRITEUP_LENGTH) || undefined : scrubIntent(value);
 				const report = {
 					client,
 					source,
@@ -941,7 +941,9 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					);
 				}
 				if (match != null) {
-					const issue = await linear.issue(match);
+					const found = await linear.issue(match);
+					// Why: an old key can resolve to an issue that moved to another team.
+					const issue = found?.key.startsWith("MNTL-") === true ? found : undefined;
 					const added =
 						issue != null &&
 						(await linear.comment(

@@ -305,6 +305,35 @@ describe("the mantle MCP server", () => {
 			expect(log.mock.lastCall?.[0].gap?.writeup).toBe("I want a stepper, see");
 		});
 
+		it("adds nothing to an issue that an old MNTL key resolves to in another team", async () => {
+			const linear = fakeLinear();
+			linear.issue.mockImplementation(async (key) =>
+				key === "MNTL-121" ? { id: "u3", key: "CDATA-9", title: "Moved" } : issues[key],
+			);
+
+			const { text } = await callTool(dependencies({ linear }), "report_gap", {
+				...gap,
+				matches: "MNTL-121",
+			});
+
+			expect(text).toContain("Reported: stepper.");
+			expect(linear.comment).not.toHaveBeenCalled();
+		});
+
+		it("closes a code fence that the write-up limit cuts", async () => {
+			const log = vi.fn<(event: ToolCallEvent) => void>();
+			const writeup = `\`\`\`tsx\n${"step one\n".repeat(450)}\`\`\``;
+
+			await callTool(dependencies({ log, linear: fakeLinear() }), "report_gap", {
+				...gap,
+				writeup,
+			});
+			const kept = log.mock.lastCall?.[0].gap?.writeup ?? "";
+
+			expect(kept.length).toBeLessThan(4_010);
+			expect(kept.endsWith("…\n```")).toBe(true);
+		});
+
 		it("asks again for a matches value that is not an MNTL key or none", async () => {
 			const linear = fakeLinear();
 

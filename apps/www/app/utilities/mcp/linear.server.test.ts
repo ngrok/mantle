@@ -29,13 +29,14 @@ describe("createLinearGaps", () => {
 					node("MNTL-1", "Badge: add a dismiss button"),
 					node("MNTL-2", "Button loading state"),
 					node("MNTL-3", "Removable badge"),
+					node("MNTL-4", "Badge: dismiss"),
 				],
 			},
 		}));
 
 		const similar = await linear?.similar(["removable", "badge", "dismiss", "button"]);
 
-		expect(similar?.map((issue) => issue.key)).toEqual(["MNTL-1", "MNTL-3"]);
+		expect(similar?.map((issue) => issue.key)).toEqual(["MNTL-1", "MNTL-3", "MNTL-4"]);
 		expect(calls[0]?.variables).toMatchObject({ term: "removable badge dismiss button" });
 	});
 

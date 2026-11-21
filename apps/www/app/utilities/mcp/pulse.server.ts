@@ -201,14 +201,17 @@ export function gapIssueOf(event: GapReport & { gap: GapSignal }): {
 }
 
 /**
- * The first `SLACK_WRITEUP_LENGTH` characters of a write-up. A cut inside a
- * code fence closes the fence, so the rest of the post keeps its format.
+ * The first `length` characters of markdown. A cut inside a code fence closes
+ * the fence, so the text after it keeps its format.
+ *
+ * @example
+ * clipMarkdown("```tsx\n<Steps />\n```", 12); // "```tsx\n<Step…\n```"
  */
-function clipWriteup(writeup: string): string {
-	if (writeup.length <= SLACK_WRITEUP_LENGTH) {
-		return writeup;
+export function clipMarkdown(markdown: string, length: number): string {
+	if (markdown.length <= length) {
+		return markdown;
 	}
-	const clipped = `${writeup.slice(0, SLACK_WRITEUP_LENGTH).trimEnd()}…`;
+	const clipped = `${markdown.slice(0, length).trimEnd()}…`;
 	return (clipped.match(/```/g)?.length ?? 0) % 2 === 1 ? `${clipped}\n\`\`\`` : clipped;
 }
 
@@ -245,7 +248,9 @@ export function alertOf(event: ToolCallEvent): Alert | undefined {
 				`:jigsaw: *Gap reported: "${need}"*${issue}`,
 				escape(gapSummary(gap, (part) => `*${part}*`)),
 				quoted.length === 0 ? undefined : lines(...quoted),
-				gap.writeup == null ? undefined : `*Write-up*\n${escape(clipWriteup(gap.writeup))}`,
+				gap.writeup == null
+					? undefined
+					: `*Write-up*\n${escape(clipMarkdown(gap.writeup, SLACK_WRITEUP_LENGTH))}`,
 				footer(event, { ticket: false }),
 			),
 		};

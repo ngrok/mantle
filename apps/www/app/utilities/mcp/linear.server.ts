@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { gapTokens } from "~/utilities/mcp/tools";
 
 const HOUR_MS = 3_600_000;
 
@@ -153,7 +152,9 @@ export function createLinearGaps({
 			return data.searchIssues.nodes
 				.map(issueOf)
 				.filter((issue) => {
-					const shared = gapTokens(issue.title).filter((word) => wanted.has(word)).length;
+					// Why not `gapTokens`: it drops a word with a colon, such as "Stepper:" in a title.
+					const words = new Set(issue.title.toLowerCase().split(/[^a-z0-9]+/));
+					const shared = Array.from(words).filter((word) => wanted.has(word)).length;
 					return shared > 0 && shared * 2 >= wanted.size;
 				})
 				.slice(0, 3);
