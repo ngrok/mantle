@@ -1,7 +1,7 @@
-import { CreateEndpointForm } from "~/features/form-sections-and-actions-demo";
+import { CreateEndpointForm } from "~/features/cancel-and-submit-demo";
 import { PreviewCanvas } from "~/components/preview-canvas";
 
-/** The first example on the Form Sections and Actions docs page. */
+/** The first example on the Cancel and Submit docs page. */
 export function OverviewExample() {
 	return (
 		<PreviewCanvas>

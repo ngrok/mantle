@@ -10,9 +10,9 @@ import { describe, expect, it } from "vitest";
  * If this fails, the fix is to re-copy the file into the fence, never to loosen
  * the assertion.
  */
-const RECIPE = "app/docs/recipes/form-sections-and-actions.mdx";
+const RECIPE = "app/docs/recipes/cancel-and-submit.mdx";
 
-const FENCED_FILES = ["app/features/form-sections-and-actions-demo.tsx"] as const;
+const FENCED_FILES = ["app/features/cancel-and-submit-demo.tsx"] as const;
 
 /** This file's own location, two directories below the app root. */
 const APP_ROOT = new URL("../../", import.meta.url);
@@ -37,7 +37,7 @@ function fencedBlocks(markdown: string): ReadonlyArray<string> {
 	return blocks;
 }
 
-describe("form sections and actions recipe fences", () => {
+describe("cancel and submit recipe fences", () => {
 	const blocks = fencedBlocks(readFromAppRoot(RECIPE));
 
 	it.for(FENCED_FILES)("%s appears verbatim in the recipe", (path) => {
