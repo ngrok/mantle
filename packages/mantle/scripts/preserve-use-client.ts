@@ -168,18 +168,34 @@ function preserveUseClient({
 }) {
 	const clientModuleIds = new Set<string>();
 	const serverModuleIds = new Set<string>();
-	const emittedModuleIds = new Set<string>();
-	const emittedRefs: string[] = [];
+	let emittedModuleIds = new Set<string>();
+	let emittedRefs: string[] = [];
+	type EmitContext = { emitFile: (file: { type: "chunk"; id: string }) => string };
+	// Why: rolldown puts the modules that the same entries reach into one chunk. A server module
+	// and a client module of one component, such as `table.tsx` and `overflow-container.tsx`,
+	// would then share a `"use client"` chunk. An extra entry for the client module gives it a
+	// chunk of its own.
+	const emitClientEntries = (context: EmitContext) => {
+		for (const clientId of clientModulesBesideServerModules({ clientModuleIds, serverModuleIds })) {
+			if (!emittedModuleIds.has(clientId)) {
+				emittedModuleIds.add(clientId);
+				emittedRefs.push(context.emitFile({ type: "chunk", id: clientId }));
+			}
+		}
+	};
 	return {
 		name: "preserve-use-client",
+		// A watch rebuild needs its extra entries again, and it may not transform an unchanged
+		// module, so it emits the entries that the last build found.
+		buildStart(this: EmitContext) {
+			emittedModuleIds = new Set();
+			emittedRefs = [];
+			emitClientEntries(this);
+		},
 		transform: {
 			order: "pre" as const,
 			filter: { id: { include: SOURCE_RE, exclude: DECLARATION_RE } },
-			handler(
-				this: { emitFile: (file: { type: "chunk"; id: string }) => string },
-				code: string,
-				id: string,
-			) {
+			handler(this: EmitContext, code: string, id: string) {
 				// Why delete as well as add: a watch rebuild transforms a changed module again, and an
 				// edit can remove its directive.
 				if (hasUseClientDirective(code)) {
@@ -192,19 +208,7 @@ function preserveUseClient({
 				} else {
 					serverModuleIds.delete(id);
 				}
-				// Why: rolldown puts the modules that the same entries reach into one chunk. A
-				// server module and a client module of one component, such as `table.tsx` and
-				// `overflow-container.tsx`, would then share a `"use client"` chunk. An extra entry
-				// for the client module gives it a chunk of its own.
-				for (const clientId of clientModulesBesideServerModules({
-					clientModuleIds,
-					serverModuleIds,
-				})) {
-					if (!emittedModuleIds.has(clientId)) {
-						emittedModuleIds.add(clientId);
-						emittedRefs.push(this.emitFile({ type: "chunk", id: clientId }));
-					}
-				}
+				emitClientEntries(this);
 				return null;
 			},
 		},
