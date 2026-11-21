@@ -88,3 +88,76 @@ export function toOpenValues(value: string | readonly string[] | undefined): rea
 	}
 	return value;
 }
+
+/**
+ * `"single"` mode props: at most one item open at a time. Opening a section
+ * auto-closes the previously open one. This is the **opt-in** behavior; `type`
+ * defaults to `"multiple"`, so you must set `type="single"` explicitly to get
+ * the auto-close accordion. `value`/`defaultValue` are the open item's value
+ * (`""` for none).
+ */
+type AccordionSingleProps = {
+	/**
+	 * Keep at most one section open at a time: opening a section auto-closes the
+	 * previously open one. Must be set explicitly: the default is `"multiple"`,
+	 * where sections open independently.
+	 */
+	type: "single";
+	/** The controlled open item value (`""` for none). */
+	value?: string;
+	/** The initial open item value when uncontrolled. */
+	defaultValue?: string;
+	/** Called with the newly open item value (`""` when collapsed). */
+	onValueChange?: (value: string) => void;
+};
+
+/**
+ * `"multiple"` mode props, the **default** when `type` is omitted. Any number
+ * of items may be open at once, and opening one never closes another.
+ * `value`/`defaultValue` are the list of open item values. Use `type="single"`
+ * instead if you want opening a section to auto-close the others.
+ */
+type AccordionMultipleProps = {
+	/**
+	 * Allow any number of sections open at once. This is the **default** when
+	 * `type` is omitted. Opening one section never collapses the others. Switch to
+	 * `type="single"` for the accordion that auto-closes the previously open
+	 * section.
+	 *
+	 * @default "multiple"
+	 */
+	type?: "multiple";
+	/** The controlled list of open item values. */
+	value?: string[];
+	/** The initial list of open item values when uncontrolled. */
+	defaultValue?: string[];
+	/** Called with the new list of open item values. */
+	onValueChange?: (value: string[]) => void;
+};
+
+/**
+ * The `type`, `value`, `defaultValue`, and `onValueChange` props of an accordion `Root`: a
+ * discriminated union on `type`, so the value is a `string` in `"single"` mode and a
+ * `string[]` in `"multiple"` mode.
+ */
+export type AccordionValueProps = AccordionSingleProps | AccordionMultipleProps;
+
+/**
+ * Invokes the consumer's `onValueChange` with the correctly-typed value for the
+ * current `type`. Kept as a standalone function so the discriminated-union
+ * narrowing on `props.type` (and thus the matching `onValueChange` signature) is
+ * preserved without a type assertion.
+ *
+ * @example
+ * ```ts
+ * emitValueChange({ type: "single", onValueChange }, ["a"]);        // onValueChange("a")
+ * emitValueChange({ type: "multiple", onValueChange }, ["a", "b"]); // onValueChange(["a", "b"])
+ * ```
+ */
+export function emitValueChange(props: AccordionValueProps, next: readonly string[]): void {
+	if (props.type === "single") {
+		props.onValueChange?.(next[0] ?? "");
+	} else {
+		props.onValueChange?.([...next]);
+	}
+}

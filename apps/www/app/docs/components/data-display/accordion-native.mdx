@@ -1,0 +1,328 @@
+---
+title: Accordion Native
+description: The Accordion parts and props on native details and summary elements, for long pages where load time matters most.
+aliases: [details, summary, disclosure, faq]
+---
+
+import { PageHeader } from "~/components/page-header";
+import { Example } from "~/components/example";
+
+<PageHeader id="accordion-native">Accordion Native</PageHeader>
+
+The [Accordion](/components/data-display/accordion) parts and props on native `<details>` and `<summary>` elements, for long pages where load time matters most. To swap, change the import to `@ngrok/mantle/accordion/native`: the browser owns each section's open state, so the accordion ships no open-state JavaScript and a section opens before the page hydrates.
+
+<Example name="components/data-display/accordion-native/overview" title="Accordion Native example">
+
+```tsx
+import { Accordion } from "@ngrok/mantle/accordion/native";
+
+<Accordion.Root defaultValue={["dns"]} className="max-w-xl">
+	<Accordion.Item value="dns">
+		<Accordion.Trigger>
+			How do I point my custom domain at an ngrok endpoint?
+			<Accordion.TriggerIcon />
+		</Accordion.Trigger>
+		<Accordion.Content>
+			<Accordion.Body>
+				Add a CNAME record at your DNS provider that targets the CNAME value shown on your reserved
+				domain, then start your tunnel with the matching <code translate="no">--domain</code> flag.
+			</Accordion.Body>
+		</Accordion.Content>
+	</Accordion.Item>
+	<Accordion.Item value="webhooks">
+		<Accordion.Trigger>
+			Can I verify inbound webhook signatures?
+			<Accordion.TriggerIcon />
+		</Accordion.Trigger>
+		<Accordion.Content>
+			<Accordion.Body>
+				Yes. ngrok can validate webhook signatures from providers like Stripe, GitHub, and Slack at
+				the edge before the request ever reaches your service.
+			</Accordion.Body>
+		</Accordion.Content>
+	</Accordion.Item>
+	<Accordion.Item value="pricing">
+		<Accordion.Trigger>
+			Is there a free tier for development?
+			<Accordion.TriggerIcon />
+		</Accordion.Trigger>
+		<Accordion.Content>
+			<Accordion.Body>
+				The free plan includes ephemeral endpoints and one reserved domain: enough to demo a
+				deployment or prototype an integration.
+			</Accordion.Body>
+		</Accordion.Content>
+	</Accordion.Item>
+</Accordion.Root>;
+```
+
+</Example>
+
+## When to use
+
+- Stack many titled sections on a page where load time matters, such as a long FAQ or a mobile navigation menu.
+- Prefer [`Accordion`](/components/data-display/accordion) when a header row holds a control beside the trigger: here the header is the `<summary>` itself.
+- Prefer [`Accordion`](/components/data-display/accordion) when the app must own the open state: here the browser changes `open` first, and `onValueChange` reports the change after it happens.
+- Prefer [`Accordion`](/components/data-display/accordion) when one section must stay open in every browser: `type="single"` needs `<details name>`, and older browsers let several sections open at once.
+- Prefer [`Tabs`](/components/navigation/tabs) to switch between views of the same region, one at a time.
+
+## One section open at a time
+
+Set `type="single"` to keep at most one section open. Every item gets the same `<details name>`, so the browser closes the open section when a user opens another one. Browsers before Chrome 120, Safari 17.2, and Firefox 130 ignore `name` and let several sections open at once.
+
+<Example name="components/data-display/accordion-native/one-section-open-at-a-time" title="Accordion Native one section open at a time example">
+
+```tsx
+import { Accordion } from "@ngrok/mantle/accordion/native";
+
+<Accordion.Root type="single" defaultValue="dns" className="max-w-xl">
+	<Accordion.Item value="dns">
+		<Accordion.Trigger>
+			How do I point my custom domain at an ngrok endpoint?
+			<Accordion.TriggerIcon />
+		</Accordion.Trigger>
+		<Accordion.Content>
+			<Accordion.Body>
+				Add a CNAME record at your DNS provider that targets the CNAME value shown on your reserved
+				domain, then start your tunnel with the matching <code translate="no">--domain</code> flag.
+			</Accordion.Body>
+		</Accordion.Content>
+	</Accordion.Item>
+	<Accordion.Item value="webhooks">
+		<Accordion.Trigger>
+			Can I verify inbound webhook signatures?
+			<Accordion.TriggerIcon />
+		</Accordion.Trigger>
+		<Accordion.Content>
+			<Accordion.Body>
+				Yes. ngrok can validate webhook signatures from providers like Stripe, GitHub, and Slack at
+				the edge before the request ever reaches your service.
+			</Accordion.Body>
+		</Accordion.Content>
+	</Accordion.Item>
+	<Accordion.Item value="pricing">
+		<Accordion.Trigger>
+			Is there a free tier for development?
+			<Accordion.TriggerIcon />
+		</Accordion.Trigger>
+		<Accordion.Content>
+			<Accordion.Body>
+				The free plan includes ephemeral endpoints and one reserved domain: enough to demo a
+				deployment or prototype an integration.
+			</Accordion.Body>
+		</Accordion.Content>
+	</Accordion.Item>
+</Accordion.Root>;
+```
+
+</Example>
+
+## Controlled
+
+Pass `value` and `onValueChange` to read and set the open sections. A new `value` opens and closes sections the same way it does in `Accordion`. A click is different: the browser changes `open` first, then the `toggle` event calls `onValueChange`. If the app keeps the old `value`, the section stays the way the click left it.
+
+<Example name="components/data-display/accordion-native/controlled" title="Accordion Native controlled example">
+
+```tsx
+import { Accordion } from "@ngrok/mantle/accordion/native";
+import { Button } from "@ngrok/mantle/button";
+import { useState } from "react";
+
+function ControlledAccordion() {
+	const [value, setValue] = useState("dns");
+	return (
+		<div className="flex flex-col gap-3">
+			<Accordion.Root type="single" value={value} onValueChange={setValue} className="max-w-xl">
+				<Accordion.Item value="dns">
+					<Accordion.Trigger>
+						How do I point my custom domain at an ngrok endpoint?
+						<Accordion.TriggerIcon />
+					</Accordion.Trigger>
+					<Accordion.Content>
+						<Accordion.Body>
+							Add a CNAME record at your DNS provider that targets the CNAME value shown on your
+							reserved domain, then start your tunnel with the matching{" "}
+							<code translate="no">--domain</code> flag.
+						</Accordion.Body>
+					</Accordion.Content>
+				</Accordion.Item>
+				<Accordion.Item value="webhooks">
+					<Accordion.Trigger>
+						Can I verify inbound webhook signatures?
+						<Accordion.TriggerIcon />
+					</Accordion.Trigger>
+					<Accordion.Content>
+						<Accordion.Body>
+							Yes. ngrok can validate webhook signatures from providers like Stripe, GitHub, and
+							Slack at the edge before the request ever reaches your service.
+						</Accordion.Body>
+					</Accordion.Content>
+				</Accordion.Item>
+				<Accordion.Item value="pricing">
+					<Accordion.Trigger>
+						Is there a free tier for development?
+						<Accordion.TriggerIcon />
+					</Accordion.Trigger>
+					<Accordion.Content>
+						<Accordion.Body>
+							The free plan includes ephemeral endpoints and one reserved domain: enough to demo a
+							deployment or prototype an integration.
+						</Accordion.Body>
+					</Accordion.Content>
+				</Accordion.Item>
+			</Accordion.Root>
+			<p className="text-muted text-sm">
+				Open section: <code translate="no">{value || "none"}</code>
+			</p>
+			<div className="flex gap-2">
+				<Button
+					type="button"
+					appearance="outlined"
+					intent="neutral"
+					onClick={() => setValue("pricing")}
+				>
+					Open “Pricing”
+				</Button>
+				<Button type="button" appearance="outlined" intent="neutral" onClick={() => setValue("")}>
+					Collapse all
+				</Button>
+			</div>
+		</div>
+	);
+}
+```
+
+</Example>
+
+## Composition
+
+The parts and the tree are the parts and the tree of `Accordion`:
+
+```text showLineNumbers=false
+Accordion.Root
+└── Accordion.Item
+    ├── Accordion.Trigger
+    │   └── Accordion.TriggerIcon
+    └── Accordion.Content
+        └── Accordion.Body
+```
+
+## Polymorphism
+
+`Accordion.Root` accepts an `asChild` prop. When `true`, the root renders its single child element instead of the default `<div>`, and forwards its class names, `data-*` attributes, and `ref` onto that child. Use it when the accordion is a landmark such as a `<section>`. The other parts take no `asChild`: the browser toggles a `<details>` only from its own `<summary>`.
+
+<Example name="components/data-display/accordion-native/polymorphism" title="Accordion Native polymorphism example">
+
+```tsx
+import { Accordion } from "@ngrok/mantle/accordion/native";
+
+<Accordion.Root asChild defaultValue={["dns"]} className="max-w-xl">
+	<section aria-label="Frequently asked questions">
+		<Accordion.Item value="dns">
+			<Accordion.Trigger>
+				How do I point my custom domain at an ngrok endpoint?
+				<Accordion.TriggerIcon />
+			</Accordion.Trigger>
+			<Accordion.Content>
+				<Accordion.Body>
+					Add a CNAME record at your DNS provider that targets the CNAME value shown on your
+					reserved domain, then start your tunnel with the matching{" "}
+					<code translate="no">--domain</code> flag.
+				</Accordion.Body>
+			</Accordion.Content>
+		</Accordion.Item>
+		<Accordion.Item value="webhooks">
+			<Accordion.Trigger>
+				Can I verify inbound webhook signatures?
+				<Accordion.TriggerIcon />
+			</Accordion.Trigger>
+			<Accordion.Content>
+				<Accordion.Body>
+					Yes. ngrok can validate webhook signatures from providers like Stripe, GitHub, and Slack
+					at the edge before the request ever reaches your service.
+				</Accordion.Body>
+			</Accordion.Content>
+		</Accordion.Item>
+		<Accordion.Item value="pricing">
+			<Accordion.Trigger>
+				Is there a free tier for development?
+				<Accordion.TriggerIcon />
+			</Accordion.Trigger>
+			<Accordion.Content>
+				<Accordion.Body>
+					The free plan includes ephemeral endpoints and one reserved domain: enough to demo a
+					deployment or prototype an integration.
+				</Accordion.Body>
+			</Accordion.Content>
+		</Accordion.Item>
+	</section>
+</Accordion.Root>;
+```
+
+</Example>
+
+## Swap from Accordion
+
+The parts and the `data-slot` values are the ones `Accordion` uses, and the two share their class recipes, so a swap changes the import and nothing else. The types leave out what a native `<details>` cannot do, so a swap that depends on it fails typecheck:
+
+- `Accordion.Trigger` takes `<summary>` props, so `disabled`, `value`, and the other `<button>` props are gone.
+- `Accordion.Item` takes `<details>` props, without `open` and `name`: the accordion sets both.
+- `Accordion.Trigger` must be the first child of `Accordion.Item`. A header row with a control beside the trigger does not work.
+
+No part stamps `data-state`. Style the open state from the native `open` attribute on `Accordion.Item`, with Tailwind's `open:` variant. `Accordion.TriggerIcon` renders its svg directly, so the svg carries `data-slot="accordion-trigger-icon"` without the `icon` and `svg-only` slots.
+
+## Browser support
+
+Mantle supports browsers from March 2023 (Chrome 111, Safari 16.4, Firefox 111) and tests against the last two years.
+
+| Feature                                | Supported in                         | Without it                                  |
+| :------------------------------------- | :----------------------------------- | :------------------------------------------ |
+| `<details>` and `<summary>`            | every supported browser              |                                             |
+| `<details name>` (one section open)    | Chrome 120, Safari 17.2, Firefox 130 | several sections can open at once           |
+| `::details-content` (the open slide)   | Chrome 131, Safari 18.4, Firefox 143 | sections open and close with no motion      |
+| `interpolate-size` (a slide to `auto`) | Chromium                             | sections open and close with no motion      |
+| Find-in-page opens a closed section    | Chrome 97, Safari 26.2, Firefox 148  | find-in-page does not match closed sections |
+
+`Accordion` has the same limits for the slide and for find-in-page. The open slide and the fade respect `prefers-reduced-motion`.
+
+## API Reference
+
+### Accordion.Root
+
+Renders a wrapping `<div>` (or your own element through `asChild`) and passes the open state to its items. The props are the props of [`Accordion.Root`](/components/data-display/accordion#accordionroot). Accepts all `<div>` props, plus:
+
+| Prop             | Type                                                   | Default      | Description                                                                                                                                   |
+| :--------------- | :----------------------------------------------------- | :----------- | :-------------------------------------------------------------------------------------------------------------------------------------------- |
+| `type?`          | `"single" \| "multiple"`                               | `"multiple"` | `"single"` sets one `<details name>` on every item, so the browser keeps one section open. `"multiple"` opens sections independently.         |
+| `value?`         | `string \| string[]`                                   |              | The controlled open value(s). A `string` in `single` mode, a `string[]` in `multiple` mode.                                                   |
+| `defaultValue?`  | `string \| string[]`                                   |              | The initial open value(s) when uncontrolled. Typed per `type`, like `value`.                                                                  |
+| `onValueChange?` | `(value: string) => void \| (value: string[]) => void` |              | Called from the `toggle` event after the browser opens or closes a section. Receives a `string` in `single` mode, a `string[]` in `multiple`. |
+| `asChild?`       | `boolean`                                              | `false`      | Render the single child element as the container instead of a `<div>`, and merge the container props onto it.                                 |
+
+### Accordion.Item
+
+A single collapsible section, rendered as a `<details>`. The browser sets its `open` attribute; style the open state with `open:`. Its first child must be the `Accordion.Trigger`. Accepts all `<details>` props except `open` and `name`, plus:
+
+| Prop    | Type     | Default | Description                                                         |
+| :------ | :------- | :------ | :------------------------------------------------------------------ |
+| `value` | `string` |         | **Required.** Unique identifier for this item within its accordion. |
+
+### Accordion.Trigger
+
+The header that toggles its section, rendered as a `<summary>`. The browser gives it the button role, the expanded state, and the <kbd>Enter</kbd> and <kbd>Space</kbd> keys. Accepts all `<summary>` props.
+
+### Accordion.TriggerIcon
+
+The indicator icon. Defaults to a downward caret that turns 180° while its section is open. Accepts all [`Icon`](/components/data-display/icon) props, plus:
+
+| Prop   | Type        | Default          | Description                                                                    |
+| :----- | :---------- | :--------------- | :----------------------------------------------------------------------------- |
+| `svg?` | `ReactNode` | a downward caret | The icon to render. The turn still applies. Override `className` to change it. |
+
+### Accordion.Content
+
+The collapsible region, rendered as a `<div>`. The browser hides it while its section is closed, and it fades in with the slide. Put the section's content inside an `Accordion.Body`. Accepts all `<div>` props.
+
+### Accordion.Body
+
+The padded inner region of a `Content`. Override `className` to change the padding (e.g. `pb-0` or `px-6`). Accepts all `<div>` props.

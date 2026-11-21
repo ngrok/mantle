@@ -20,6 +20,10 @@
     ],
     "siblings": [
       {
+        "name": "Accordion Native",
+        "boundary": "a long page needs a faster load more than a custom header row."
+      },
+      {
         "name": "Tabs",
         "boundary": "one section shows at a time, and a row of tabs switches between them."
       },
@@ -29,6 +33,37 @@
       }
     ],
     "useWhen": "Stack titled sections that each expand and collapse in place, such as questions and answers or a group of advanced settings."
+  },
+  {
+    "name": "Accordion Native",
+    "slug": "components/data-display/accordion-native",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/accordion/native",
+    "summary": "The Accordion parts and props on native details and summary elements, for long pages where load time matters most.",
+    "jsdoc": "A vertically stacked set of disclosure sections on native `<details>` and `<summary>` elements, with the part names and props of `Accordion` from `@ngrok/mantle/accordion`.",
+    "examples": [
+      "Composition:\n```\nAccordion.Root\n└── Accordion.Item\n    ├── Accordion.Trigger\n    │   └── Accordion.TriggerIcon\n    └── Accordion.Content\n        └── Accordion.Body\n```",
+      "```tsx\nimport { Accordion } from \"@ngrok/mantle/accordion/native\";\n\n<Accordion.Root type=\"single\" defaultValue=\"item-1\">\n  <Accordion.Item value=\"item-1\">\n    <Accordion.Trigger>\n      Is it accessible?\n      <Accordion.TriggerIcon />\n    </Accordion.Trigger>\n    <Accordion.Content>\n      <Accordion.Body>Yes. It is a native disclosure widget.</Accordion.Body>\n    </Accordion.Content>\n  </Accordion.Item>\n</Accordion.Root>\n```"
+    ],
+    "aliases": [
+      "details",
+      "summary",
+      "disclosure",
+      "faq"
+    ],
+    "siblings": [
+      {
+        "name": "Accordion",
+        "boundary": "a header row holds a control beside the trigger, or the app must own the open state."
+      },
+      {
+        "name": "Tabs",
+        "boundary": "one section shows at a time, and a row of tabs switches between them."
+      }
+    ],
+    "useWhen": "Stack many titled sections, such as a long FAQ or a mobile navigation menu, on a page where load time matters more than a custom header row or a section that cannot close."
   },
   {
     "name": "Alert",

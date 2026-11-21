@@ -230,6 +230,7 @@ function sourceHash(
  * component ships from a sibling's module.
  */
 const importPathOverrides: Record<string, string> = {
+	"components/data-display/accordion-native": "@ngrok/mantle/accordion/native",
 	"components/actions/icon-button": "@ngrok/mantle/button",
 	"components/forms/password-input": "@ngrok/mantle/input",
 	"components/feedback/progress-bar": "@ngrok/mantle/progress",
@@ -791,8 +792,13 @@ function componentEntry(
 		);
 	}
 
-	const dir = importPath.replace(/^@ngrok\/mantle\//, "");
-	const candidates = [leafToPascal(leaf), name.replace(/\s+/g, "")];
+	const subpath = importPath.replace(/^@ngrok\/mantle\//, "");
+	// Why: a nested subpath such as `accordion/native` ships from the `accordion-native`
+	// directory and exports its family's namespace, `Accordion`.
+	const [family = subpath, variant] = subpath.split("/");
+	const dir = variant == null ? subpath : `${family}-${variant}`;
+	const candidates =
+		variant == null ? [leafToPascal(leaf), name.replace(/\s+/g, "")] : [leafToPascal(family)];
 	let fields: JsDocFields = {};
 	for (const basePath of [
 		joinPath("components", dir, leaf),

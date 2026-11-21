@@ -54,6 +54,7 @@ const docsPages = [
 	"components/charts/scatter-plot",
 	// data display
 	"components/data-display/accordion",
+	"components/data-display/accordion-native",
 	"components/data-display/avatar",
 	"components/data-display/badge",
 	"components/data-display/code",

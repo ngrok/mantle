@@ -9,6 +9,7 @@ export const previewModules: Readonly<Record<string, () => Promise<unknown>>> = 
 	"react/jsx-runtime": () => import("react/jsx-runtime"),
 	"react-dom": () => import("react-dom"),
 	"@ngrok/mantle/accordion": () => import("@ngrok/mantle/accordion"),
+	"@ngrok/mantle/accordion/native": () => import("@ngrok/mantle/accordion/native"),
 	"@ngrok/mantle/alert": () => import("@ngrok/mantle/alert"),
 	"@ngrok/mantle/alert-center": () => import("@ngrok/mantle/alert-center"),
 	"@ngrok/mantle/alert-dialog": () => import("@ngrok/mantle/alert-dialog"),
