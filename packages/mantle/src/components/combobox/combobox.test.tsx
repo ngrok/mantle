@@ -90,6 +90,31 @@ describe("Combobox", () => {
 			expect(input).toHaveValue("Banana");
 		});
 
+		test("the highlighted option is the selected one, and the input names it only while open", async () => {
+			const user = userEvent.setup();
+			render(
+				<Combobox.Root>
+					<Combobox.Input aria-label="Fruit" />
+					<Combobox.Content>
+						<Combobox.Item value="Apple" />
+						<Combobox.Item value="Banana" />
+					</Combobox.Content>
+				</Combobox.Root>,
+			);
+			const input = screen.getByRole("combobox", { name: "Fruit" });
+			expect(input).not.toHaveAttribute("aria-controls");
+
+			await user.click(input);
+			await user.keyboard("{ArrowDown}{ArrowDown}");
+
+			expect(input).toHaveAttribute("aria-controls", screen.getByRole("listbox").id);
+			expect(screen.getByRole("option", { name: "Banana" })).toHaveAttribute(
+				"aria-selected",
+				"true",
+			);
+			expect(screen.getByRole("option", { name: "Apple" })).not.toHaveAttribute("aria-selected");
+		});
+
 		test("Combobox.ItemValue splits the item value around the typed text", async () => {
 			// `ItemValue` reads the item value from the item's context.
 			// Catches dropping `value` from the item, which leaves it nothing to split.

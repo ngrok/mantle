@@ -12,3 +12,7 @@ Breaking changes. Follow the [migration guide](https://mantle.ngrok.com/migratio
 - `Combobox.Item` drops `focusOnHover`. The highlighted item carries `data-highlighted` in place of `data-active-item`.
 - `Combobox.Input` drops `autoComplete`: it always uses list autocomplete.
 - `Combobox.ItemValue` drops `asChild`.
+
+Other changes:
+
+- The highlighted item has `aria-selected="true"`, as in the WAI-ARIA combobox pattern. No other item has the attribute.

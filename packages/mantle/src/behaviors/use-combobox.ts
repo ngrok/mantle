@@ -140,7 +140,7 @@ const useComboboxInput = (
 		autoComplete: "off",
 		"aria-autocomplete": "list" as const,
 		"aria-expanded": open,
-		"aria-controls": listbox.id,
+		"aria-controls": open ? listbox.id : undefined,
 		"aria-activedescendant": open && activeId != null ? activeId : undefined,
 		value: inputValue,
 		onChange: (event: ChangeEvent<HTMLInputElement>) => {

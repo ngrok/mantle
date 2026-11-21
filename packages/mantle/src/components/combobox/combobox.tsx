@@ -304,7 +304,7 @@ const Item = ({
 	...props
 }: ComboboxItemProps) => {
 	const { listbox } = useComboboxContext();
-	const { optionProps } = useOption(listbox, {
+	const { active, optionProps } = useOption(listbox, {
 		value: value ?? "",
 		disabled: disabled || value == null,
 	});
@@ -314,6 +314,8 @@ const Item = ({
 			<Component
 				{...props}
 				{...optionProps}
+				// Why: in the APG combobox pattern, the highlighted option is the selected one, and no other option has the attribute.
+				aria-selected={active || undefined}
 				ref={ref}
 				data-slot={joinDataSlot(dataSlot, "combobox-item")}
 				className={cx(

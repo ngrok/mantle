@@ -1030,6 +1030,18 @@ describe("Select", () => {
 			expect(trigger).toHaveTextContent("Banana");
 		});
 
+		test("required marks the trigger aria-required", () => {
+			render(
+				<Select.Root required>
+					<Select.Trigger aria-label="Fruit" />
+				</Select.Root>,
+			);
+			expect(screen.getByRole("combobox", { name: "Fruit" })).toHaveAttribute(
+				"aria-required",
+				"true",
+			);
+		});
+
 		test("Select.Item renders its leading icon", async () => {
 			const user = userEvent.setup();
 			render(

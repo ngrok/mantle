@@ -138,7 +138,7 @@ const useSelectTrigger = (select: SelectBehavior) => {
 		disabled,
 		"aria-haspopup": "listbox" as const,
 		"aria-expanded": open,
-		"aria-controls": listbox.id,
+		"aria-controls": open ? listbox.id : undefined,
 		"aria-activedescendant": open && activeId != null ? activeId : undefined,
 		"data-state": open ? "open" : "closed",
 		"data-disabled": disabled ? "" : undefined,
