@@ -14,7 +14,6 @@ import {
 	type McpDependencies,
 	type ToolCallEvent,
 } from "~/utilities/mcp/server.server";
-import type { LinearGaps, LinearIssue } from "~/utilities/mcp/linear.server";
 import { packageFilesFixture } from "~/utilities/mcp/test-fixtures";
 import { recordNamed, recordsOf, type DocPageRecord } from "~/utilities/mcp/tools";
 import { ServerBusyError, versionDataFromFiles } from "~/utilities/mcp/version-data.server";
@@ -238,22 +237,7 @@ describe("the mantle MCP server", () => {
 		);
 	});
 
-	describe("report_gap with Linear", () => {
-		const issues: Record<string, LinearIssue> = {
-			"CDATA-1234": { id: "u1", key: "CDATA-1234", title: "Usage page: cost breakdown" },
-			"MNTL-121": { id: "u2", key: "MNTL-121", title: "Stepper component" },
-		};
-
-		/** A fake Linear with `issues`, the `similar` results, and spies on the writes. */
-		function fakeLinear(similar: LinearIssue[] = []) {
-			return {
-				issue: vi.fn<LinearGaps["issue"]>(async (key) => issues[key]),
-				similar: vi.fn<LinearGaps["similar"]>(async () => similar),
-				create: vi.fn<LinearGaps["create"]>(async () => "MNTL-130"),
-				comment: vi.fn<LinearGaps["comment"]>(async () => true),
-			};
-		}
-
+	describe("report_gap content", () => {
 		const gap = {
 			need: "stepper",
 			kind: "component",
@@ -264,140 +248,71 @@ describe("the mantle MCP server", () => {
 			ticket: "cdata-1234",
 		};
 
-		it("creates an MNTL issue for a novel gap from a real ngrok ticket, and logs the ticket", async () => {
+		// Why base64: the repo holds no profane terms, in source or in tests.
+		const profanity = atob("ZnVjaw==");
+
+		it("keeps the write-up of a call from an ngrok repo with its code, and scrubs another call's", async () => {
 			const log = vi.fn<(event: ToolCallEvent) => void>();
-			const linear = fakeLinear();
-
-			const { text } = await callTool(dependencies({ log, linear }), "report_gap", gap);
-
-			expect(text).toBe(
-				"Reported as MNTL-130. Thank you. Do not report this need again in this task.",
-			);
-			expect(linear.create.mock.lastCall?.[0].description).toContain(
-				"- **Working on:** [CDATA-1234](https://linear.app/ngrok/issue/CDATA-1234) Usage page: cost breakdown",
-			);
-			expect(log.mock.lastCall?.[0]).toMatchObject({
-				source: undefined,
-				ticket: "CDATA-1234",
-				gap: { work: "Usage page: cost breakdown", issue: { key: "MNTL-130", action: "created" } },
-			});
-		});
-
-		it("lists similar MNTL issues and writes nothing until the agent picks one", async () => {
-			const log = vi.fn<(event: ToolCallEvent) => void>();
-			const linear = fakeLinear([issues["MNTL-121"] as LinearIssue]);
-
-			const first = await callTool(dependencies({ log, linear }), "report_gap", gap);
-			const firstEvent = log.mock.lastCall?.[0];
-			const second = await callTool(dependencies({ log, linear }), "report_gap", {
-				...gap,
-				matches: "MNTL-121",
-			});
-
-			expect(first.text).toContain("- MNTL-121: Stepper component");
-			expect(firstEvent?.gap).toBeUndefined();
-			expect(second.text).toContain("Added this report to MNTL-121.");
-			expect(linear.comment).toHaveBeenCalledWith("u2", expect.stringContaining("**Tried:**"));
-			expect(linear.create).not.toHaveBeenCalled();
-			expect(log.mock.lastCall?.[0].gap?.issue).toEqual({ key: "MNTL-121", action: "commented" });
-		});
-
-		it('creates a new issue when the agent answers "none"', async () => {
-			const linear = fakeLinear([issues["MNTL-121"] as LinearIssue]);
-
-			const { text } = await callTool(dependencies({ linear }), "report_gap", {
-				...gap,
-				matches: "none",
-			});
-
-			expect(text).toContain("Reported as MNTL-130.");
-			expect(linear.similar).not.toHaveBeenCalled();
-		});
-
-		it("keeps an ngrok caller's write-up with its code, and scrubs another caller's", async () => {
-			const log = vi.fn<(event: ToolCallEvent) => void>();
-			const linear = fakeLinear();
 			const writeup = "I want a stepper.\n\n```tsx\n<Stepper.Root current={2} />\n```";
 
-			await callTool(dependencies({ log, linear }), "report_gap", { ...gap, writeup });
-			const fromNgrok = log.mock.lastCall?.[0].gap?.writeup;
-			await callTool(dependencies({ log, linear }), "report_gap", {
+			await callToolFromFrontend(dependencies({ log }), "report_gap", { ...gap, writeup });
+			const fromNgrok = log.mock.lastCall?.[0];
+			await callTool(dependencies({ log }), "report_gap", {
 				...gap,
-				ticket: "none",
 				writeup: "I want a stepper, see acme.example.com",
 			});
 
-			expect(fromNgrok).toBe(writeup);
-			expect(linear.create.mock.calls[0]?.[0].description).toContain(`## Write-up\n\n${writeup}`);
-			expect(log.mock.lastCall?.[0].gap?.writeup).toBe("I want a stepper, see");
-		});
-
-		it("adds nothing to an issue that an old MNTL key resolves to in another team", async () => {
-			const linear = fakeLinear();
-			linear.issue.mockImplementation(async (key) =>
-				key === "MNTL-121" ? { id: "u3", key: "CDATA-9", title: "Moved" } : issues[key],
-			);
-
-			const { text } = await callTool(dependencies({ linear }), "report_gap", {
-				...gap,
-				matches: "MNTL-121",
+			expect(fromNgrok).toMatchObject({ ticket: "CDATA-1234", gap: { writeup } });
+			expect(log.mock.lastCall?.[0]).toMatchObject({
+				ticket: undefined,
+				gap: { writeup: "I want a stepper, see" },
 			});
-
-			expect(text).toContain("Reported: stepper.");
-			expect(linear.comment).not.toHaveBeenCalled();
 		});
 
 		it("closes a code fence that the write-up limit cuts", async () => {
 			const log = vi.fn<(event: ToolCallEvent) => void>();
 			const writeup = `\`\`\`tsx\n${"step one\n".repeat(450)}\`\`\``;
 
-			await callTool(dependencies({ log, linear: fakeLinear() }), "report_gap", {
-				...gap,
-				writeup,
-			});
+			await callToolFromFrontend(dependencies({ log }), "report_gap", { ...gap, writeup });
 			const kept = log.mock.lastCall?.[0].gap?.writeup ?? "";
 
 			expect(kept.length).toBeLessThan(4_010);
 			expect(kept.endsWith("…\n```")).toBe(true);
 		});
 
-		it("asks again for a matches value that is not an MNTL key or none", async () => {
-			const linear = fakeLinear();
-
-			const result = await callTool(dependencies({ linear }), "report_gap", {
-				...gap,
-				matches: "https://linear.app/ngrok/issue/MNTL-121",
-			});
-
-			expect(result.isError).toBe(true);
-			expect(linear.create).not.toHaveBeenCalled();
-			expect(linear.comment).not.toHaveBeenCalled();
-		});
-
-		it("creates no issue when the search for similar issues fails", async () => {
-			const linear = fakeLinear();
-			linear.similar.mockResolvedValue(undefined);
-
-			const { text } = await callTool(dependencies({ linear }), "report_gap", gap);
-
-			expect(text).toContain("Reported: stepper.");
-			expect(linear.create).not.toHaveBeenCalled();
-		});
-
-		it("writes nothing to Linear and logs no ticket for a caller that is not ngrok", async () => {
+		it("rejects a report with profanity in any field, and logs no gap", async () => {
 			const log = vi.fn<(event: ToolCallEvent) => void>();
-			const linear = fakeLinear();
 
-			const { text } = await callTool(dependencies({ log, linear }), "report_gap", {
+			const result = await callToolFromFrontend(dependencies({ log }), "report_gap", {
 				...gap,
-				ticket: "ACME-77",
+				writeup: `This ${profanity} stepper`,
 			});
 
-			expect(text).toContain("Reported: stepper.");
-			expect(linear.create).not.toHaveBeenCalled();
-			expect(log.mock.lastCall?.[0]).toMatchObject({
-				ticket: undefined,
-				gap: { issue: undefined },
+			expect(result).toEqual({
+				text: "Remove the offensive language and report again.",
+				isError: true,
+			});
+			expect(log.mock.lastCall?.[0]).toMatchObject({ errorKind: "invalid_argument" });
+			expect(log.mock.lastCall?.[0].gap).toBeUndefined();
+		});
+
+		it("rejects a report with more than five links, and keeps one with five", async () => {
+			const links = (count: number) =>
+				Array.from({ length: count }, (_, index) => `https://spam.example/${index}`).join(" ");
+
+			const five = await callToolFromFrontend(dependencies(), "report_gap", {
+				...gap,
+				writeup: links(5),
+			});
+			const six = await callToolFromFrontend(dependencies(), "report_gap", {
+				...gap,
+				writeup: links(6),
+			});
+
+			expect(five.isError).toBe(false);
+			expect(six).toEqual({
+				text: "Keep the report to 5 links or fewer, and report again.",
+				isError: true,
 			});
 		});
 	});

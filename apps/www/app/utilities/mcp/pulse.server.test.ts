@@ -5,7 +5,6 @@ import {
 	createPulse,
 	digestText,
 	emptyDigest,
-	gapIssueOf,
 } from "~/utilities/mcp/pulse.server";
 import type { GapSignal, ToolCallEvent } from "~/utilities/mcp/server.server";
 
@@ -44,8 +43,6 @@ const detailedSignal: GapSignal = {
 	tried: "find stepper, find wizard, get Tabs, get Strata",
 	reflection: "I would use Tabs, but it switches panels and has no numbered steps or done state.",
 	built: "a vertical list of numbered circles joined by a line",
-	work: "Usage page: show the cost breakdown",
-	issue: { key: "MNTL-130", action: "created" },
 };
 
 const detailedGap = event({
@@ -55,6 +52,11 @@ const detailedGap = event({
 	ticket: "FEP-1867",
 	gap: detailedSignal,
 });
+
+/** The contents of each Slack code block in `text`, in order. */
+function codeBlocks(text: string): string[] {
+	return Array.from(text.matchAll(/```\n([\s\S]*?)\n```/g), (match) => match[1] ?? "");
+}
 
 const weakFind = event({
 	ids: ["DatePicker", "Calendar", "Popover", "Select"],
@@ -90,51 +92,46 @@ function testPulse({
 }
 
 describe("alertOf", () => {
-	it("says what a gap report needed, what the agent did, and why", () => {
-		expect(alertOf(gapReport)?.text).toBe(
+	it("says what a gap report needed and what the agent did, then its fields as JSON", () => {
+		const text = alertOf(gapReport)?.text ?? "";
+
+		expect(text.slice(0, text.indexOf("```"))).toBe(
 			[
 				':jigsaw: *Gap reported: "stepper"*',
 				"",
 				"An agent needed a component.",
 				"It composed mantle parts instead.",
-				"The closest part was *Tabs*.",
-				"",
-				"> *Use case:* settings page with a danger zone",
+				"The closest part was Tabs.",
 				"",
 				"_claude-code · mantle 0.93.0_",
+				"",
+				"",
 			].join("\n"),
 		);
+		expect(codeBlocks(text)).toHaveLength(1);
 	});
 
-	it("quotes the use case, what the agent tried, its take, and what it built", () => {
-		expect(alertOf(detailedGap)?.text).toBe(
-			[
-				':jigsaw: *Gap reported: "stepper"* · new <https://linear.app/ngrok/issue/MNTL-130|MNTL-130>',
-				"",
-				"An agent needed a component.",
-				"It composed mantle parts instead.",
-				"The closest part was *Tabs*.",
-				"",
-				"> *Working on:* <https://linear.app/ngrok/issue/FEP-1867|FEP-1867> Usage page: show the cost breakdown",
-				"> *Use case:* settings page with a danger zone",
-				"> *Tried:* find stepper, find wizard, get Tabs, get Strata",
-				"> *Agent's take:* I would use Tabs, but it switches panels and has no numbered steps or done state.",
-				"> *Built instead:* a vertical list of numbered circles joined by a line",
-				"",
-				"_claude-code · ngrok-private/frontend › dashboard · mantle 0.93.0_",
-			].join("\n"),
-		);
-	});
+	it("puts the provenance and the free text of a report in one JSON block", () => {
+		const [record = ""] = codeBlocks(alertOf(detailedGap)?.text ?? "");
 
-	it("says when the report went to an MNTL issue as new evidence", () => {
-		const text = alertOf({
-			...detailedGap,
-			gap: { ...detailedSignal, issue: { key: "MNTL-121", action: "commented" } },
-		})?.text;
-
-		expect(text?.split("\n")[0]).toBe(
-			':jigsaw: *Gap reported: "stepper"* · +evidence on <https://linear.app/ngrok/issue/MNTL-121|MNTL-121>',
-		);
+		// Why a literal: the aggregator that files the reports in Linear parses these keys.
+		expect(JSON.parse(record)).toEqual({
+			schema: "mantle-gap/1",
+			need: "stepper",
+			kind: "component",
+			workaround: "composed-mantle-parts",
+			closestPart: "Tabs",
+			ticket: "FEP-1867",
+			client: "claude-code/2.1.3",
+			source: "ngrok-private/frontend",
+			workspace: "dashboard",
+			dataVersion: "0.93.0",
+			intent: "settings page with a danger zone",
+			tried: "find stepper, find wizard, get Tabs, get Strata",
+			reflection:
+				"I would use Tabs, but it switches panels and has no numbered steps or done state.",
+			built: "a vertical list of numbered circles joined by a line",
+		});
 	});
 
 	it("names the top three guesses of a find with no strong match", () => {
@@ -195,57 +192,25 @@ describe("alertOf", () => {
 		);
 	});
 
-	it("escapes Slack markup, so an intent cannot ping or link", () => {
-		const text = alertOf({ ...gapReport, intent: "<!channel> & <https://x.test|y>" })?.text;
+	it("keeps Slack markup and code fences out of the JSON block, and parses back to the text", () => {
+		const intent = "<!channel> & <https://x.test|y> ```";
+		const text = alertOf({ ...gapReport, intent })?.text ?? "";
+		const [record = ""] = codeBlocks(text);
 
-		expect(text).toContain("> *Use case:* &lt;!channel&gt; &amp; &lt;https://x.test|y&gt;");
+		expect(record).not.toMatch(/[<>&`]/);
+		expect((JSON.parse(record) as { intent: string }).intent).toBe(intent);
 	});
 });
 
 describe("write-up", () => {
-	const longWriteup = `I need numbered steps.\n\n\`\`\`tsx\n${"step one\n".repeat(120)}\`\`\``;
-	const withWriteup = event({
-		...detailedGap,
-		gap: { ...detailedSignal, writeup: longWriteup },
-	});
+	it("shows the whole write-up in its own code block, defanged and escaped", () => {
+		const writeup = `See https://x.test/a <!here>\n\n\`\`\`tsx\n<Steps />\n\`\`\`\n${"step\n".repeat(700)}`;
+		const text = alertOf({ ...detailedGap, gap: { ...detailedSignal, writeup } })?.text ?? "";
+		const [, shown = ""] = codeBlocks(text);
 
-	it("shows the first 700 characters in Slack and closes a cut code fence", () => {
-		const text = alertOf(withWriteup)?.text ?? "";
-		const shown = text.slice(
-			text.indexOf("*Write-up*\n") + "*Write-up*\n".length,
-			text.lastIndexOf("\n\n_"),
-		);
-
-		expect(shown.startsWith("I need numbered steps.")).toBe(true);
-		expect(shown.endsWith("…\n```")).toBe(true);
-		expect(shown.length).toBeLessThan(720);
-	});
-
-	it("puts the full write-up in the MNTL issue", () => {
-		expect(
-			gapIssueOf({ ...withWriteup, gap: { ...detailedSignal, writeup: longWriteup } }).description,
-		).toContain(`## Write-up\n\n${longWriteup}\n\nReported through`);
-	});
-});
-
-describe("gapIssueOf", () => {
-	it("writes the gap report as an MNTL issue in markdown", () => {
-		expect(gapIssueOf({ ...detailedGap, gap: detailedSignal })).toEqual({
-			title: "MCP gap: stepper",
-			description: [
-				"An agent needed a component.",
-				"It composed mantle parts instead.",
-				"The closest part was **Tabs**.",
-				"",
-				"- **Working on:** [FEP-1867](https://linear.app/ngrok/issue/FEP-1867) Usage page: show the cost breakdown",
-				"- **Use case:** settings page with a danger zone",
-				"- **Tried:** find stepper, find wizard, get Tabs, get Strata",
-				"- **Agent's take:** I would use Tabs, but it switches panels and has no numbered steps or done state.",
-				"- **Built instead:** a vertical list of numbered circles joined by a line",
-				"",
-				"Reported through the mantle MCP server: claude-code · ngrok-private/frontend › dashboard · mantle 0.93.0",
-			].join("\n"),
-		});
+		expect(text).toContain("*Write-up*\n```\nSee hxxps://x.test/a &lt;!here&gt;");
+		expect(shown).toContain("\u02cb\u02cb\u02cbtsx\n&lt;Steps /&gt;\n\u02cb\u02cb\u02cb");
+		expect(shown.match(/step\n/g)).toHaveLength(700);
 	});
 });
 

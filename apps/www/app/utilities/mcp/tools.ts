@@ -1,5 +1,6 @@
 import type { AgentManifestSibling } from "../../../../../packages/mantle/scripts/agent-manifest";
 import { keywordsFrom } from "~/utilities/search-index.server";
+import { hasProfanity } from "~/utilities/mcp/content-safety";
 import { fitMarkdown, RESULT_BUDGET_BYTES, truncate } from "~/utilities/mcp/markdown-budget";
 import { compareVersions, type VersionData } from "~/utilities/mcp/version-data.server";
 
@@ -395,12 +396,16 @@ export function findRecords<T extends FindRecord>(
 /**
  * The words of a query that are safe to log as a gap signal: lowercase words
  * with no digits, at most six. A word with `@`, `.`, `:`, or a slash goes, so
- * URLs, domains, emails, and paths do not survive, and neither do IDs.
+ * URLs, domains, emails, and paths do not survive, and neither do IDs. A
+ * query with profanity has no safe words.
  *
  * @example
  * gapTokens("Date range picker for https://dashboard.ngrok.com/x/123"); // ["date", "range", "picker"]
  */
 export function gapTokens(query: string): string[] {
+	if (hasProfanity(query)) {
+		return [];
+	}
 	const words = query
 		.toLowerCase()
 		.replace(/\S*[@.:/\\]\S*/g, " ")
@@ -430,7 +435,7 @@ const UNSAFE_WORD = /[\p{N}@:/\\<>()[\]_$#]|\p{L}\.\p{L}|^\p{P}*\./u;
  * Backticks around a span go first, so "get `Tabs`" logs as "get Tabs". Text
  * that still holds code (a tag, a call, or an assignment) is not logged. In other text, a word goes when it matches `UNSAFE_WORD`, so URLs,
  * emails, paths, domains, dotfiles, and IDs do not survive, in any script.
- * Returns `undefined` when no word is left.
+ * Text with profanity is not logged. Returns `undefined` when no word is left.
  *
  * @example
  * scrubIntent("Settings page for acme.example.com with a danger zone, ticket 4412");
@@ -438,7 +443,7 @@ const UNSAFE_WORD = /[\p{N}@:/\\<>()[\]_$#]|\p{L}\.\p{L}|^\p{P}*\./u;
  */
 export function scrubIntent(intent: string): string | undefined {
 	const unwrapped = intent.replace(/`([^`]+)`/g, "$1");
-	if (CODE_SIGNAL.test(unwrapped)) {
+	if (CODE_SIGNAL.test(unwrapped) || hasProfanity(unwrapped)) {
 		return undefined;
 	}
 	const kept = unwrapped

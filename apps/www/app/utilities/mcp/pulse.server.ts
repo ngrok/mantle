@@ -34,9 +34,6 @@ const KIND_LABELS: Record<NonNullable<GapSignal["kind"]>, string> = {
 	other: "something else",
 };
 
-/** The most characters of a write-up that Slack shows. The MNTL issue holds the full text. */
-const SLACK_WRITEUP_LENGTH = 700;
-
 const WORKAROUND_LABELS: Record<NonNullable<GapSignal["workaround"]>, string> = {
 	"built-custom": "It built its own instead.",
 	"composed-mantle-parts": "It composed mantle parts instead.",
@@ -135,69 +132,61 @@ function versionOf(event: GapReport): string | undefined {
 }
 
 /** The client, where the call came from, the Linear issue of its work, and the data version. */
-function footer(event: ToolCallEvent, { ticket = true } = {}): string {
-	const link = ticket && event.ticket != null ? slackLink(event.ticket) : undefined;
+function footer(event: ToolCallEvent): string {
+	const link = event.ticket != null ? slackLink(event.ticket) : undefined;
 	return `_${[escape(clientName(event.client)), origin(event), link, versionOf(event)].filter(Boolean).join(" · ")}_`;
 }
 
-/** What a gap report needed, what the agent did instead, and the closest part, with `strong` for the part name. */
-function gapSummary(gap: GapSignal, strong: (text: string) => string): string {
+/** What a gap report needed, what the agent did instead, and the closest part. */
+function gapSummary(gap: GapSignal): string {
 	return lines(
 		`An agent needed ${gap.kind == null ? "something" : KIND_LABELS[gap.kind]}.`,
 		gap.workaround == null ? undefined : WORKAROUND_LABELS[gap.workaround],
-		gap.closestPart == null ? undefined : `The closest part was ${strong(gap.closestPart)}.`,
+		gap.closestPart == null ? undefined : `The closest part was ${gap.closestPart}.`,
 	);
-}
-
-/** The free text of a gap report, labeled, in the order a person reads it. */
-function gapFields(event: GapReport): Array<[label: string, value: string]> {
-	const fields: Array<[string, string | undefined]> = [
-		["Use case", event.intent],
-		["Tried", event.gap?.tried],
-		["Agent's take", event.gap?.reflection],
-		["Built instead", event.gap?.built],
-	];
-	return fields.filter((field): field is [string, string] => field[1] != null);
-}
-
-/** The work ticket of a gap report, linked, then its Linear title. */
-function workOf(event: GapReport, link: (key: string) => string, text: (value: string) => string) {
-	if (event.ticket == null) {
-		return undefined;
-	}
-	const title = event.gap?.work == null ? "" : ` ${text(event.gap.work)}`;
-	return `${link(event.ticket)}${title}`;
 }
 
 /**
- * The MNTL issue of a gap report, in markdown. A comment that adds the report
- * to an issue uses the same description.
- *
- * @example
- * gapIssueOf(report).title; // "MCP gap: stepper"
+ * The fields of a gap report as pretty JSON, for the aggregator that reads
+ * the channel. `<`, `>`, `&`, and backticks are JSON escapes, so the text has
+ * no Slack markup and cannot close its code block.
  */
-export function gapIssueOf(event: GapReport & { gap: GapSignal }): {
-	title: string;
-	description: string;
-} {
-	const work = workOf(
-		event,
-		(key) => `[${key}](${issueUrl(key)})`,
-		(value) => value,
-	);
-	const from = [clientName(event.client), origin(event), versionOf(event)];
-	return {
-		title: `MCP gap: ${event.gap.tokens.join(" ")}`,
-		description: sections(
-			gapSummary(event.gap, (part) => `**${part}**`),
-			[
-				...(work == null ? [] : [`- **Working on:** ${work}`]),
-				...gapFields(event).map(([label, value]) => `- **${label}:** ${value}`),
-			].join("\n") || undefined,
-			event.gap.writeup == null ? undefined : `## Write-up\n\n${event.gap.writeup}`,
-			`Reported through the mantle MCP server: ${from.filter(Boolean).join(" · ")}`,
-		),
+function gapRecord(event: GapReport & { gap: GapSignal }): string {
+	const { gap } = event;
+	const record = {
+		schema: "mantle-gap/1",
+		need: gap.tokens.join(" "),
+		kind: gap.kind,
+		workaround: gap.workaround,
+		closestPart: gap.closestPart,
+		ticket: event.ticket,
+		client: event.client,
+		source: event.source,
+		workspace: event.workspace,
+		dataVersion: event.dataVersion,
+		intent: event.intent,
+		tried: gap.tried,
+		reflection: gap.reflection,
+		built: gap.built,
 	};
+	return JSON.stringify(record, null, 2).replace(
+		/[<>&`]/g,
+		(character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`,
+	);
+}
+
+/**
+ * A Slack code block, where text shows as typed: no link, mention, or format
+ * renders. A run of three backticks turns into look-alike characters, so the
+ * text cannot close the block.
+ */
+function codeBlock(text: string): string {
+	return `\`\`\`\n${text.replace(/`{3,}/g, (run) => "\u02cb".repeat(run.length))}\n\`\`\``;
+}
+
+/** Text with `http://` and `https://` defanged to `hxxp://` and `hxxps://`, so no reader fetches a link. */
+function defang(text: string): string {
+	return text.replace(/\bhttp(s?):\/\//gi, "hxxp$1://");
 }
 
 /**
@@ -215,11 +204,6 @@ export function clipMarkdown(markdown: string, length: number): string {
 	return (clipped.match(/```/g)?.length ?? 0) % 2 === 1 ? `${clipped}\n\`\`\`` : clipped;
 }
 
-const ISSUE_ACTIONS: Record<NonNullable<GapSignal["issue"]>["action"], string> = {
-	created: "new",
-	commented: "+evidence on",
-};
-
 /**
  * The Slack alert for a call that a person must see now, or `undefined`:
  *
@@ -229,29 +213,22 @@ const ISSUE_ACTIONS: Record<NonNullable<GapSignal["issue"]>["action"], string> =
  *
  * @example
  * alertOf({ tool: "report_gap", outcome: "ok", latencyMs: 4, resultBytes: 60, gap: { source: "report_gap", tokens: ["stepper"], kind: "component", workaround: "composed-mantle-parts" } });
- * // { key: "gap:stepper", text: ':jigsaw: *Gap reported: "stepper"*\n\nAn agent needed a component.\nIt composed mantle parts instead.\n\n_unknown client_' }
+ * // { key: "gap:stepper", text: ':jigsaw: *Gap reported: "stepper"*\n\nAn agent needed a component.\nIt composed mantle parts instead.\n\n_unknown client_\n\n```\n{\n  "schema": "mantle-gap/1", …\n}\n```' }
  */
 export function alertOf(event: ToolCallEvent): Alert | undefined {
 	const { gap } = event;
 	if (gap?.source === "report_gap") {
 		const need = escape(gap.tokens.join(" "));
-		const issue =
-			gap.issue == null ? "" : ` · ${ISSUE_ACTIONS[gap.issue.action]} ${slackLink(gap.issue.key)}`;
-		const work = workOf(event, slackLink, escape);
-		const quoted = [
-			...(work == null ? [] : [`*Working on:* ${work}`]),
-			...gapFields(event).map(([label, value]) => `*${label}:* ${escape(value)}`),
-		].map((line) => `> ${line}`);
 		return {
 			key: keyOf(`gap:${need}`, event),
 			text: sections(
-				`:jigsaw: *Gap reported: "${need}"*${issue}`,
-				escape(gapSummary(gap, (part) => `*${part}*`)),
-				quoted.length === 0 ? undefined : lines(...quoted),
+				`:jigsaw: *Gap reported: "${need}"*`,
+				escape(gapSummary(gap)),
+				footer(event),
+				codeBlock(gapRecord({ ...event, gap })),
 				gap.writeup == null
 					? undefined
-					: `*Write-up*\n${escape(clipMarkdown(gap.writeup, SLACK_WRITEUP_LENGTH))}`,
-				footer(event, { ticket: false }),
+					: lines("*Write-up*", codeBlock(escape(defang(gap.writeup)))),
 			),
 		};
 	}

@@ -185,6 +185,11 @@ describe("gapTokens", () => {
 	it("keeps at most six words", () => {
 		expect(gapTokens("one two three four five six seven eight")).toHaveLength(6);
 	});
+
+	it("keeps no word of a query with profanity", () => {
+		// Why base64: the repo holds no profane terms, in source or in tests.
+		expect(gapTokens(`date ${atob("ZnVjaw==")} picker`)).toEqual([]);
+	});
 });
 
 describe("recordNamed and closeNames", () => {
@@ -428,6 +433,14 @@ describe("scrubIntent", () => {
 		["two statements on one line", "Call reset;restart"],
 	])("logs no intent that holds %s", (_, intent) => {
 		expect(scrubIntent(intent)).toBeUndefined();
+	});
+
+	it("logs no intent with profanity, and reads a camelCase name as separate words", () => {
+		// Why base64: the repo holds no profane terms, in source or in tests.
+		expect(scrubIntent(`settings page, ${atob("ZnVjaw==")} this`)).toBeUndefined();
+		expect(scrubIntent("dashboard page, wire useAnalytics")).toBe(
+			"dashboard page, wire useAnalytics",
+		);
 	});
 
 	it("keeps the words of a code span and a prose semicolon", () => {
