@@ -4,12 +4,12 @@ import { expect, test } from "vitest";
 import mantleCss from "../../mantle.css?raw";
 
 /**
- * Compiles `mantle.css` the way a consumer's Tailwind build does, for the given
- * candidates. `tw-animate-css` is stubbed out: it declares none of the tokens
+ * Compiles `mantle.css`, then `appCss`, the way a consumer's Tailwind build does,
+ * for the given candidates. `tw-animate-css` is stubbed out: it declares none of the tokens
  * these tests read.
  */
-async function buildMantleCss(candidates: string[] = []) {
-	const compiler = await compile(mantleCss, {
+async function buildMantleCss(candidates: string[] = [], appCss = "") {
+	const compiler = await compile(`${mantleCss}\n${appCss}`, {
 		loadStylesheet: async (id, base) => ({
 			base,
 			content: id === "tailwindcss" ? tailwindCss : "",
@@ -38,4 +38,15 @@ test("the semantic utilities read the theme tokens, and no token is declared as 
 	expect(css).toMatch(/\.text-muted\s*\{\s*color:\s*var\(--text-color-muted\)/);
 	const selfReferences = [...css.matchAll(/(--[\w-]+):\s*var\(\1\)/g)].map(([, name]) => name);
 	expect(selfReferences).toEqual([]);
+});
+
+// Why: no theme rule declares the tooltip colors; `@theme` is their only definition.
+// A plain stylesheet that reads them must still find a value.
+test("emits the tooltip colors when a plain stylesheet reads them", async () => {
+	const css = await buildMantleCss(
+		[],
+		".probe { background-color: var(--background-color-tooltip); }",
+	);
+
+	expect(css).toMatch(/--background-color-tooltip:\s*#000;/);
 });
