@@ -66,7 +66,7 @@ accessible, least surprising, fast, delightful, clean, and efficient.
    `<details>`, and `<select>` do not meet them today, so `Dialog`, `Accordion`, and `Select` are mantle's own.
 2. **Own the behavior.** Hand-roll where the platform is enough (`Accordion`, `Field`). Where the behavior
    is genuinely hard, put it in a mantle behavior hook that follows the APG pattern. Then mantle owns the
-   performance and accessibility contract, and a component ships only the code it needs. Some components
+   performance and accessibility contract. A component ships only the code it needs. Some components
    still wrap a headless library (Radix for `Dialog`, Ariakit for `Combobox`, Headless UI for `RadioGroup`,
    cmdk for `Command`). Each one is a migration to a hook, and new work adds no headless library. An engine
    that renders no UI, such as TanStack Table for `DataTable`, can stay. A consumer must not be able to tell
@@ -576,8 +576,9 @@ Errors are control flow. `console.error` is not error handling.
 - Client-only work goes through `BrowserOnly` (children as a render function, so it cannot evaluate during
   SSR) or a browser-API hook that declares its server answer. `useIsHydrated` is the sanctioned escape hatch.
 - Never branch on `typeof window` inside render.
-- A part with no interaction uses no hooks, event handlers, or browser APIs, so it adds no client work. A
-  compound component keeps its static parts free of them beside its interactive parts.
+- A part with no interaction adds no effect, subscription, listener, or state. It may read context for its
+  accessibility contract ([§3.6](#36-accessibility-and-motion)), such as an ID for `aria-describedby`. A
+  compound component keeps its static parts this lean beside its interactive parts.
 
 ### 3.8. Browser translation
 
