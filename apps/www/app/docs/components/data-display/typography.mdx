@@ -17,7 +17,7 @@ import { Typography } from "@ngrok/mantle/typography";
 
 <div className="flex flex-col items-start gap-4">
 	<Typography.H1>Endpoints</Typography.H1>
-	<Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
+	<Typography.P className="text-paragraph-lg">Each endpoint gets a public URL.</Typography.P>
 	<Typography.H2>Traffic policy</Typography.H2>
 	<Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
 </div>;
@@ -35,7 +35,7 @@ import { Typography } from "@ngrok/mantle/typography";
 
 ## Headings
 
-`Typography.H1` through `Typography.H6` each render the heading element of their name in its type role. `Typography.H6` is uppercase.
+`Typography.H1` through `Typography.H6` each render the heading element of their name. By default they use the `text-heading-5xl`, `3xl`, `2xl`, `xl`, `base`, and `xs` steps, the same steps as Tailwind's `text-*` scale. `Typography.H6` is also uppercase with wide letter spacing.
 
 <Example name="components/data-display/typography/headings" title="Typography headings example">
 
@@ -54,23 +54,23 @@ import { Typography } from "@ngrok/mantle/typography";
 
 </Example>
 
-## Another level's look
+## Another size
 
-The part sets the level in the document outline. To give it the look of another level, pass that level's type role in `className`. Your class replaces the part's own role.
+The part sets the level in the document outline, and the step sets its size. To give a heading another size, pass a heading step in `className`, from `text-heading-xs` to `text-heading-9xl`. Your class replaces the part's own step.
 
-<Example name="components/data-display/typography/another-levels-look" title="Typography heading with another level's look example">
+<Example name="components/data-display/typography/another-size" title="Typography heading with another size example">
 
 ```tsx
 import { Typography } from "@ngrok/mantle/typography";
 
-<Typography.H2 className="text-heading-4">Danger zone</Typography.H2>;
+<Typography.H2 className="text-heading-xl">Danger zone</Typography.H2>;
 ```
 
 </Example>
 
 ## Lead paragraph
 
-Pass `text-lead` to `Typography.P` for the larger paragraph under a page title.
+Pass `text-paragraph-lg` to `Typography.P` for the lead paragraph under a page title. Pass `text-paragraph-sm` for dense copy.
 
 <Example name="components/data-display/typography/lead-paragraph" title="Typography lead paragraph example">
 
@@ -78,7 +78,7 @@ Pass `text-lead` to `Typography.P` for the larger paragraph under a page title.
 import { Typography } from "@ngrok/mantle/typography";
 
 <div className="flex flex-col items-start gap-2">
-	<Typography.P className="text-lead">Put your app online in one command.</Typography.P>
+	<Typography.P className="text-paragraph-lg">Put your app online in one command.</Typography.P>
 	<Typography.P>
 		ngrok gives each agent a public URL and forwards its traffic to your app.
 	</Typography.P>
@@ -89,14 +89,14 @@ import { Typography } from "@ngrok/mantle/typography";
 
 ## A scale for one section
 
-The type roles are CSS variables, so any element can set a different scale for the parts inside it. Set every sub-key of a role you change: a sub-key you leave out keeps the site's value. To set the scale for a whole site, see [Typography](/base/typography#set-a-sites-scale).
+The type roles are CSS variables, so any element can set a different scale for the parts inside it. Set every sub-key of a step you change: a sub-key you leave out keeps the site's value. To set the scale for a whole site, see [Typography](/base/typography#set-a-sites-scale).
 
 <Example name="components/data-display/typography/a-scale-for-one-section" title="Typography scale for one section example">
 
 ```tsx
 import { Typography } from "@ngrok/mantle/typography";
 
-<section className="[--text-heading-1--font-weight:700] [--text-heading-1--letter-spacing:-0.02em] [--text-heading-1--line-height:1] [--text-heading-1:4rem]">
+<section className="[--text-heading-5xl--font-weight:700] [--text-heading-5xl--letter-spacing:-0.02em] [--text-heading-5xl--line-height:1] [--text-heading-5xl:4rem]">
 	<Typography.H1>Put your app online</Typography.H1>
 </section>;
 ```
@@ -142,7 +142,7 @@ import { Typography } from "@ngrok/mantle/typography";
 
 ### Typography.H1
 
-A level-one heading in the `text-heading-1` type role. Renders an `h1`.
+A level-one heading, in the `text-heading-5xl` step by default. Renders an `h1`.
 
 All props from [h1](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements#attributes), plus:
 
@@ -152,7 +152,7 @@ All props from [h1](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/He
 
 ### Typography.H2
 
-A level-two heading in the `text-heading-2` type role. Renders an `h2`.
+A level-two heading, in the `text-heading-3xl` step by default. Renders an `h2`.
 
 All props from [h2](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements#attributes), plus:
 
@@ -162,7 +162,7 @@ All props from [h2](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/He
 
 ### Typography.H3
 
-A level-three heading in the `text-heading-3` type role. Renders an `h3`.
+A level-three heading, in the `text-heading-2xl` step by default. Renders an `h3`.
 
 All props from [h3](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements#attributes), plus:
 
@@ -172,7 +172,7 @@ All props from [h3](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/He
 
 ### Typography.H4
 
-A level-four heading in the `text-heading-4` type role. Renders an `h4`.
+A level-four heading, in the `text-heading-xl` step by default. Renders an `h4`.
 
 All props from [h4](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements#attributes), plus:
 
@@ -182,7 +182,7 @@ All props from [h4](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/He
 
 ### Typography.H5
 
-A level-five heading in the `text-heading-5` type role. Renders an `h5`.
+A level-five heading, in the `text-heading-base` step by default. Renders an `h5`.
 
 All props from [h5](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements#attributes), plus:
 
@@ -192,7 +192,7 @@ All props from [h5](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/He
 
 ### Typography.H6
 
-A level-six heading in the `text-heading-6` type role, in uppercase. Renders an `h6`.
+A level-six heading, in the `text-heading-xs` step by default, in uppercase with wide letter spacing. Renders an `h6`.
 
 All props from [h6](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements#attributes), plus:
 
@@ -202,7 +202,7 @@ All props from [h6](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/He
 
 ### Typography.P
 
-A paragraph in the `text-paragraph` type role and the body text color. Renders a `p`.
+A paragraph in the `text-paragraph-base` step and the body text color. Renders a `p`.
 
 All props from [p](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/p#attributes), plus:
 

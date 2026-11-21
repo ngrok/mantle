@@ -8,7 +8,7 @@ export function OverviewExample() {
 	return (
 		<PreviewCanvas className="flex-col items-start gap-4">
 			<Typography.H1>Endpoints</Typography.H1>
-			<Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
+			<Typography.P className="text-paragraph-lg">Each endpoint gets a public URL.</Typography.P>
 			<Typography.H2>Traffic policy</Typography.H2>
 			<Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
 		</PreviewCanvas>
@@ -29,11 +29,11 @@ export function HeadingsExample() {
 	);
 }
 
-/** The "Another level's look" example on the Typography docs page. */
-export function AnotherLevelsLookExample() {
+/** The "Another size" example on the Typography docs page. */
+export function AnotherSizeExample() {
 	return (
 		<PreviewCanvas>
-			<Typography.H2 className="text-heading-4">Danger zone</Typography.H2>
+			<Typography.H2 className="text-heading-xl">Danger zone</Typography.H2>
 		</PreviewCanvas>
 	);
 }
@@ -42,7 +42,7 @@ export function AnotherLevelsLookExample() {
 export function LeadParagraphExample() {
 	return (
 		<PreviewCanvas className="flex-col items-start gap-2">
-			<Typography.P className="text-lead">Put your app online in one command.</Typography.P>
+			<Typography.P className="text-paragraph-lg">Put your app online in one command.</Typography.P>
 			<Typography.P>
 				ngrok gives each agent a public URL and forwards its traffic to your app.
 			</Typography.P>
@@ -54,7 +54,7 @@ export function LeadParagraphExample() {
 export function AScaleForOneSectionExample() {
 	return (
 		<PreviewCanvas>
-			<section className="[--text-heading-1--font-weight:700] [--text-heading-1--letter-spacing:-0.02em] [--text-heading-1--line-height:1] [--text-heading-1:4rem]">
+			<section className="[--text-heading-5xl--font-weight:700] [--text-heading-5xl--letter-spacing:-0.02em] [--text-heading-5xl--line-height:1] [--text-heading-5xl:4rem]">
 				<Typography.H1>Put your app online</Typography.H1>
 			</section>
 		</PreviewCanvas>

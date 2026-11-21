@@ -9,8 +9,9 @@ import * as TypographyParts from "./typography-parts.js";
 /**
  * Headings and paragraphs in mantle's type roles. Each part renders the element it is named for,
  * so an MDX `components` map assigns one part to each element. Each part reads a type-role token
- * (`--text-heading-1` to `--text-heading-6`, `--text-paragraph`, `--font-heading`), so a site sets
- * its own scale in CSS and the markup stays the same. The parts are server components: they use
+ * (`--text-heading-xs` to `--text-heading-9xl`, `--text-paragraph-sm` to `--text-paragraph-lg`,
+ * and `--font-heading`), whose steps follow Tailwind's `text-*` scale. A site sets its own scale
+ * in CSS, and the markup stays the same. The parts are server components: they use
  * no hooks and no context, and ship no `"use client"`. `asChild` renders `Slot`, which is a client
  * component.
  *
@@ -40,7 +41,7 @@ import * as TypographyParts from "./typography-parts.js";
  * @example
  * ```tsx
  * <Typography.H1>Endpoints</Typography.H1>
- * <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
+ * <Typography.P className="text-paragraph-lg">Each endpoint gets a public URL.</Typography.P>
  * <Typography.H2>Traffic policy</Typography.H2>
  * <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
  *

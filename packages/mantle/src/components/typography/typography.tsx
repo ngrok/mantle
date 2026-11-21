@@ -50,15 +50,15 @@ const Heading = ({
 };
 
 /**
- * A level-one heading in the `text-heading-1` type role. Renders an `h1`. To give it the look
- * of another level, pass that role in `className`, such as `text-heading-3`.
+ * A level-one heading, in the `text-heading-5xl` step by default. Renders an `h1`.
+ * To set another size, pass a heading step in `className`, such as `text-heading-2xl`.
  *
  * @see https://mantle.ngrok.com/components/data-display/typography#typographyh1
  *
  * @example
  * ```tsx
  * <Typography.H1>Endpoints</Typography.H1>
- * <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
+ * <Typography.P className="text-paragraph-lg">Each endpoint gets a public URL.</Typography.P>
  * <Typography.H2>Traffic policy</Typography.H2>
  * <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
  *
@@ -69,19 +69,19 @@ const Heading = ({
  * ```
  */
 const H1 = (props: TypographyHeadingProps) => (
-	<Heading element="h1" slotName="typography-h1" roleClassName="text-heading-1" {...props} />
+	<Heading element="h1" slotName="typography-h1" roleClassName="text-heading-5xl" {...props} />
 );
 
 /**
- * A level-two heading in the `text-heading-2` type role. Renders an `h2`. To give it the look
- * of another level, pass that role in `className`, such as `text-heading-4`.
+ * A level-two heading, in the `text-heading-3xl` step by default. Renders an `h2`.
+ * To set another size, pass a heading step in `className`, such as `text-heading-xl`.
  *
  * @see https://mantle.ngrok.com/components/data-display/typography#typographyh2
  *
  * @example
  * ```tsx
  * <Typography.H1>Endpoints</Typography.H1>
- * <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
+ * <Typography.P className="text-paragraph-lg">Each endpoint gets a public URL.</Typography.P>
  * <Typography.H2>Traffic policy</Typography.H2>
  * <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
  *
@@ -92,19 +92,19 @@ const H1 = (props: TypographyHeadingProps) => (
  * ```
  */
 const H2 = (props: TypographyHeadingProps) => (
-	<Heading element="h2" slotName="typography-h2" roleClassName="text-heading-2" {...props} />
+	<Heading element="h2" slotName="typography-h2" roleClassName="text-heading-3xl" {...props} />
 );
 
 /**
- * A level-three heading in the `text-heading-3` type role. Renders an `h3`. To give it the
- * look of another level, pass that role in `className`, such as `text-heading-4`.
+ * A level-three heading, in the `text-heading-2xl` step by default. Renders an `h3`.
+ * To set another size, pass a heading step in `className`, such as `text-heading-xl`.
  *
  * @see https://mantle.ngrok.com/components/data-display/typography#typographyh3
  *
  * @example
  * ```tsx
  * <Typography.H1>Endpoints</Typography.H1>
- * <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
+ * <Typography.P className="text-paragraph-lg">Each endpoint gets a public URL.</Typography.P>
  * <Typography.H2>Traffic policy</Typography.H2>
  * <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
  *
@@ -115,19 +115,19 @@ const H2 = (props: TypographyHeadingProps) => (
  * ```
  */
 const H3 = (props: TypographyHeadingProps) => (
-	<Heading element="h3" slotName="typography-h3" roleClassName="text-heading-3" {...props} />
+	<Heading element="h3" slotName="typography-h3" roleClassName="text-heading-2xl" {...props} />
 );
 
 /**
- * A level-four heading in the `text-heading-4` type role. Renders an `h4`. To give it the look
- * of another level, pass that role in `className`, such as `text-heading-5`.
+ * A level-four heading, in the `text-heading-xl` step by default. Renders an `h4`.
+ * To set another size, pass a heading step in `className`, such as `text-heading-base`.
  *
  * @see https://mantle.ngrok.com/components/data-display/typography#typographyh4
  *
  * @example
  * ```tsx
  * <Typography.H1>Endpoints</Typography.H1>
- * <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
+ * <Typography.P className="text-paragraph-lg">Each endpoint gets a public URL.</Typography.P>
  * <Typography.H2>Traffic policy</Typography.H2>
  * <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
  *
@@ -138,19 +138,19 @@ const H3 = (props: TypographyHeadingProps) => (
  * ```
  */
 const H4 = (props: TypographyHeadingProps) => (
-	<Heading element="h4" slotName="typography-h4" roleClassName="text-heading-4" {...props} />
+	<Heading element="h4" slotName="typography-h4" roleClassName="text-heading-xl" {...props} />
 );
 
 /**
- * A level-five heading in the `text-heading-5` type role. Renders an `h5`. To give it the look
- * of another level, pass that role in `className`, such as `text-heading-4`.
+ * A level-five heading, in the `text-heading-base` step by default. Renders an `h5`.
+ * To set another size, pass a heading step in `className`, such as `text-heading-xl`.
  *
  * @see https://mantle.ngrok.com/components/data-display/typography#typographyh5
  *
  * @example
  * ```tsx
  * <Typography.H1>Endpoints</Typography.H1>
- * <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
+ * <Typography.P className="text-paragraph-lg">Each endpoint gets a public URL.</Typography.P>
  * <Typography.H2>Traffic policy</Typography.H2>
  * <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
  *
@@ -161,19 +161,19 @@ const H4 = (props: TypographyHeadingProps) => (
  * ```
  */
 const H5 = (props: TypographyHeadingProps) => (
-	<Heading element="h5" slotName="typography-h5" roleClassName="text-heading-5" {...props} />
+	<Heading element="h5" slotName="typography-h5" roleClassName="text-heading-base" {...props} />
 );
 
 /**
- * A level-six heading in the `text-heading-6` type role, in uppercase. Renders an `h6`. To
- * give it the look of another level, pass that role in `className`, such as `text-heading-5`.
+ * A level-six heading, in the `text-heading-xs` step by default, in uppercase with wide letter spacing. Renders an `h6`.
+ * To set another size, pass a heading step in `className`, such as `text-heading-sm`.
  *
  * @see https://mantle.ngrok.com/components/data-display/typography#typographyh6
  *
  * @example
  * ```tsx
  * <Typography.H1>Endpoints</Typography.H1>
- * <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
+ * <Typography.P className="text-paragraph-lg">Each endpoint gets a public URL.</Typography.P>
  * <Typography.H2>Traffic policy</Typography.H2>
  * <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
  *
@@ -187,7 +187,7 @@ const H6 = (props: TypographyHeadingProps) => (
 	<Heading
 		element="h6"
 		slotName="typography-h6"
-		roleClassName="text-heading-6 uppercase"
+		roleClassName="text-heading-xs uppercase tracking-widest"
 		{...props}
 	/>
 );
@@ -195,15 +195,16 @@ const H6 = (props: TypographyHeadingProps) => (
 type TypographyParagraphProps = ComponentProps<"p"> & WithAsChild & WithDataSlot;
 
 /**
- * A paragraph in the `text-paragraph` type role and the body text color. Renders a `p`. Pass
- * `text-lead` in `className` for the larger lead paragraph under a page title.
+ * A paragraph in the `text-paragraph-base` step and the body text color. Renders a `p`. Pass
+ * `text-paragraph-lg` in `className` for the lead paragraph under a page title, or
+ * `text-paragraph-sm` for dense copy.
  *
  * @see https://mantle.ngrok.com/components/data-display/typography#typographyp
  *
  * @example
  * ```tsx
  * <Typography.H1>Endpoints</Typography.H1>
- * <Typography.P className="text-lead">Each endpoint gets a public URL.</Typography.P>
+ * <Typography.P className="text-paragraph-lg">Each endpoint gets a public URL.</Typography.P>
  * <Typography.H2>Traffic policy</Typography.H2>
  * <Typography.P>Attach a traffic policy to filter, route, or rewrite requests.</Typography.P>
  *
@@ -224,7 +225,7 @@ const P = ({
 	return (
 		<Component
 			data-slot={joinDataSlot(dataSlot, "typography-p")}
-			className={cx("text-paragraph text-body text-pretty wrap-break-word", className)}
+			className={cx("text-paragraph-base text-body text-pretty wrap-break-word", className)}
 			{...props}
 		/>
 	);
