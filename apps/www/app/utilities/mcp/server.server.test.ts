@@ -392,6 +392,14 @@ describe("the mantle MCP server", () => {
 		expect(text).not.toContain("## Contract (docs for");
 	});
 
+	it("labels read_docs prose when the docs build has unreleased changes", async () => {
+		const deps = dependencies({ docsSourceHash: async () => "main-hash" });
+
+		const { text } = await callTool(deps, "read_docs", { path: "components/overlays/dialog" });
+
+		expect(text).toMatch(/^docsVersion: 0\.93\.0 with unreleased changes \(latest\)/);
+	});
+
 	it("answers get with the record and the docs contract, and logs the record name", async () => {
 		const log = vi.fn<(event: ToolCallEvent) => void>();
 

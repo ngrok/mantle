@@ -199,17 +199,23 @@ type AgentManifestInputs = {
 };
 
 /**
- * Hash the package source, keyed by its `packages/mantle/src`-relative path.
- * Only `.ts` and `.tsx` files count, and test files do not. A docs build and
- * a published version with the same hash have the same API, even when the
- * docs build carries unreleased changes under the same version number.
+ * Hash the package source, keyed by its `packages/mantle/src`-relative path,
+ * and the dependency ranges of `package.json`. Only `.ts` and `.tsx` files
+ * count, and test files do not. A docs build and a published version
+ * with the same hash have the same API, even when the docs build carries
+ * unreleased changes under the same version number.
  *
  * @example
- * sourceHash({ "components/button/button.tsx": "export function Button() {}" });
+ * sourceHash({ "components/button/button.tsx": "export function Button() {}" }, packageJson);
  * // => "3f1c…" (64 hex characters)
  */
-function sourceHash(files: Readonly<Record<string, string>>): string {
+function sourceHash(
+	files: Readonly<Record<string, string>>,
+	packageJson: { dependencies?: object; peerDependencies?: object },
+): string {
 	const hash = createHash("sha256");
+	// Why the dependencies: a part such as `Calendar` inherits the props of a dependency.
+	hash.update(`${JSON.stringify([packageJson.dependencies, packageJson.peerDependencies])}\0`);
 	const paths = Object.keys(files).filter(
 		(filePath) => /\.tsx?$/.test(filePath) && !/\.test\.tsx?$/.test(filePath),
 	);
@@ -989,7 +995,7 @@ function endpointsFor(origin: string): AgentManifestEndpoints {
  *   subpaths: importableSubpaths(packageJson.exports),
  *   docs: [{ slug: "components/actions/button", frontmatter: { title: "Button" } }],
  *   readSource: (basePath) => sources[basePath],
- *   sourceHash: sourceHash(sources),
+ *   sourceHash: sourceHash(sources, packageJson),
  * });
  * manifest.components[0]?.importPath; // => "@ngrok/mantle/button"
  */

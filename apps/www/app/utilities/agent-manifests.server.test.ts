@@ -1,4 +1,5 @@
 import { readFileSync, readdirSync } from "node:fs";
+import mantlePackageJson from "@ngrok/mantle/package.json" with { type: "json" };
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -47,7 +48,7 @@ describe("the site's agent manifest", () => {
 		}
 		const manifest = await buildSiteAgentManifest();
 
-		expect(manifest.sourceHash).toBe(sourceHash(files));
+		expect(manifest.sourceHash).toBe(sourceHash(files, mantlePackageJson));
 	});
 
 	// The manifest reads the docs tree; the sidebar lists pages by hand. A page

@@ -533,10 +533,14 @@ export function getRecordText({
 				`## Contract (declarations of @ngrok/mantle@${provenance.dataVersion})`,
 				"",
 				"```ts",
-				(identifier == null
-					? undefined
-					: data.declarationsOf(record.importPath, [identifier, `${identifier}Props`])) ??
-					`// ${record.importPath} has no single declaration for ${record.name}. The docs below name its exports.`,
+				// Why every export: a utility module, such as `color`, has no one declaration that names the record.
+				data.declarationsOf(
+					record.importPath,
+					identifier == null
+						? Array.from(data.exportsBySpecifier.get(record.importPath)?.names ?? [])
+						: [identifier, `${identifier}Props`],
+				) ??
+					`// ${record.importPath} has no declarations for ${record.name}. The docs name its exports.`,
 				"```",
 			];
 	const extraContext = docsMatchData
@@ -544,18 +548,18 @@ export function getRecordText({
 		: [
 				`## Extra context: docs prose for ${provenance.docsVersion}, not ${provenance.dataVersion}`,
 				"",
-				"This prose can name props that the selected version does not have. The declarations above are the contract.",
+				"This prose can name props that the selected version does not have. The declarations section is the contract.",
 				"",
 				proseText,
 			].join("\n");
 
-	return truncate(
-		// Why this order: the budget cuts from the end, so the contract goes first.
-		[header, contract.join("\n"), examples && `## Examples\n\n${examples}`, extraContext]
-			.filter(Boolean)
-			.join("\n\n"),
-		RESULT_BUDGET_BYTES,
-	);
+	// Why this order: the budget cuts from the end, so the contract goes first.
+	// Requested sections go first instead, because a large declaration can fill the budget.
+	const parts =
+		sections == null
+			? [header, contract.join("\n"), examples && `## Examples\n\n${examples}`, extraContext]
+			: [header, extraContext, contract.join("\n"), examples && `## Examples\n\n${examples}`];
+	return truncate(parts.filter(Boolean).join("\n\n"), RESULT_BUDGET_BYTES);
 }
 
 /** The migration facts that a guide's frontmatter carries. */

@@ -30,7 +30,7 @@ async function build(): Promise<AgentManifest> {
 		subpaths: importableSubpaths(mantlePackageJson.exports),
 		docs,
 		readSource: sourceReader(sourceFiles),
-		sourceHash: sourceHash(sourceFiles),
+		sourceHash: sourceHash(sourceFiles, mantlePackageJson),
 	});
 }
 

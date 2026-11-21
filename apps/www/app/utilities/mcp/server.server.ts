@@ -338,6 +338,17 @@ async function provenanceFor(
 	};
 }
 
+/** The docs version as `provenanceFor` labels it against the latest release. */
+async function latestDocsVersion(dependencies: McpDependencies): Promise<string> {
+	try {
+		return (await provenanceFor(dependencies, await dependencies.loader.load(undefined)))
+			.docsVersion;
+	} catch {
+		// Why: `read_docs` needs no release data, so a registry failure keeps the bare version.
+		return dependencies.docsVersion;
+	}
+}
+
 function provenanceLine(provenance: Provenance): string {
 	const commit = provenance.docsCommit == null ? "" : ` (commit ${provenance.docsCommit})`;
 	return `dataVersion: ${provenance.dataVersion}; docsVersion: ${provenance.docsVersion}${commit}`;
@@ -671,7 +682,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					: "";
 			return {
 				result: text(
-					`docsVersion: ${dependencies.docsVersion} (latest)\n\n${fitted.text}${missing}`,
+					`docsVersion: ${await latestDocsVersion(dependencies)} (latest)\n\n${fitted.text}${missing}`,
 				),
 			};
 		}),
@@ -1202,9 +1213,9 @@ let docsSourceHashCache: Promise<string> | undefined;
 /** The source hash of the docs build: one hash for the process in production, a new one for each call in dev. */
 function loadDocsSourceHash(): Promise<string> {
 	if (!import.meta.env.PROD) {
-		return loadSourceFiles().then(sourceHash);
+		return loadSourceFiles().then((files) => sourceHash(files, mantlePackageJson));
 	}
-	docsSourceHashCache ??= loadSourceFiles().then(sourceHash);
+	docsSourceHashCache ??= loadSourceFiles().then((files) => sourceHash(files, mantlePackageJson));
 	return docsSourceHashCache;
 }
 

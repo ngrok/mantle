@@ -684,7 +684,10 @@
       "data grid",
       "datagrid",
       "grid",
-      "sortable table"
+      "sortable table",
+      "expandable rows",
+      "row expansion",
+      "sub-rows"
     ],
     "siblings": [
       {
@@ -2037,7 +2040,7 @@
         "boundary": "one record shows as label and value pairs."
       }
     ],
-    "useWhen": "Show static rows and columns of data, such as a read-only data dump, with no sorting, filtering, pagination, or row expansion."
+    "useWhen": "Show static rows and columns of data, such as a read-only data dump, with no sorting, filtering, or pagination."
   },
   {
     "name": "Tabs",

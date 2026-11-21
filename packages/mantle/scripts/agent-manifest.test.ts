@@ -304,7 +304,7 @@ function inputs(overrides: Partial<AgentManifestInputs> = {}): AgentManifestInpu
 			{ slug: "base/colors", frontmatter: { title: "Colors" } },
 		],
 		readSource: (basePath) => sources[`${basePath}.tsx`] ?? sources[`${basePath}.ts`],
-		sourceHash: sourceHash(sources),
+		sourceHash: sourceHash(sources, {}),
 		...overrides,
 	};
 }

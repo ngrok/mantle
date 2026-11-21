@@ -82,8 +82,13 @@ function readSourceFiles(): Record<string, string> {
  * manifest.components.some((entry) => entry.name === "Button"); // => true
  */
 function buildAgentManifestFromFilesystem(): AgentManifest {
-	const packageJson: { name: string; version: string; exports: Record<string, unknown> } =
-		JSON.parse(fs.readFileSync(path.join(packageDir, "package.json"), "utf8"));
+	const packageJson: {
+		name: string;
+		version: string;
+		exports: Record<string, unknown>;
+		dependencies?: Record<string, string>;
+		peerDependencies?: Record<string, string>;
+	} = JSON.parse(fs.readFileSync(path.join(packageDir, "package.json"), "utf8"));
 	return buildAgentManifest({
 		name: packageJson.name,
 		version: packageJson.version,
@@ -91,7 +96,7 @@ function buildAgentManifestFromFilesystem(): AgentManifest {
 		subpaths: importableSubpaths(packageJson.exports),
 		docs: readDocs(docsDir),
 		readSource,
-		sourceHash: sourceHash(readSourceFiles()),
+		sourceHash: sourceHash(readSourceFiles(), packageJson),
 	});
 }
 
