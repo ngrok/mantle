@@ -1,8 +1,8 @@
 "use client";
 
-import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
-import { CaretUpIcon } from "@phosphor-icons/react/CaretUp";
-import { CheckIcon } from "@phosphor-icons/react/Check";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/ssr/CaretDown";
+import { CaretUpIcon } from "@phosphor-icons/react/dist/ssr/CaretUp";
+import { CheckIcon } from "@phosphor-icons/react/dist/ssr/Check";
 import {
 	Content as SelectPrimitiveContent,
 	Group as SelectPrimitiveGroup,

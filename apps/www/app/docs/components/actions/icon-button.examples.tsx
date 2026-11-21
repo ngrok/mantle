@@ -1,6 +1,6 @@
 import { IconButton } from "@ngrok/mantle/button";
 import { Tooltip } from "@ngrok/mantle/tooltip";
-import { GlobeIcon } from "@phosphor-icons/react/Globe";
+import { GlobeIcon } from "@phosphor-icons/react/dist/ssr/Globe";
 import { Link, href } from "react-router";
 
 import { PreviewCanvas } from "~/components/preview-canvas";

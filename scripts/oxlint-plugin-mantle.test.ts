@@ -68,6 +68,26 @@ describe("multiline-exports", () => {
 	});
 });
 
+describe("no-barrel-imports", () => {
+	it("allows only one icon module of the phosphor server build", () => {
+		const report = (source: string) =>
+			lint({ rule: "no-barrel-imports", fileName: "a.ts", source });
+
+		expect(report('import { CheckIcon } from "@phosphor-icons/react/dist/ssr/Check";\n')).toEqual(
+			[],
+		);
+		expect(report('import { CheckIcon } from "@phosphor-icons/react/Check";\n')).toEqual([
+			"no-barrel-imports",
+		]);
+		expect(report('import { CheckIcon } from "@phosphor-icons/react/dist/ssr";\n')).toEqual([
+			"no-barrel-imports",
+		]);
+		expect(report('import { CheckIcon } from "@phosphor-icons/react/dist/csr/Check";\n')).toEqual([
+			"no-barrel-imports",
+		]);
+	});
+});
+
 describe("no-jsx-null-ternary", () => {
 	it("reports a ternary with a null arm inside JSX", () => {
 		const source =

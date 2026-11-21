@@ -14,7 +14,7 @@ Decorates an svg icon with automatic sizing. Useful when applying base styles to
 
 ```tsx
 import { Icon } from "@ngrok/mantle/icon";
-import { FireIcon } from "@phosphor-icons/react/Fire";
+import { FireIcon } from "@phosphor-icons/react/dist/ssr/Fire";
 
 <Icon svg={<FireIcon />} />
 <Icon className="text-danger-600" svg={<FireIcon weight="fill" />} />
@@ -53,7 +53,7 @@ The `Icon` merges `className` selectors with the following order of precedence (
 
 ```tsx
 import { Icon } from "@ngrok/mantle/icon";
-import { FireIcon } from "@phosphor-icons/react/Fire";
+import { FireIcon } from "@phosphor-icons/react/dist/ssr/Fire";
 
 <Icon svg={<FireIcon />} />
 <Icon svg={<FireIcon className="size-12 sm:size-16" />} />

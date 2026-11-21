@@ -3,8 +3,8 @@ import { IconButton } from "@ngrok/mantle/button";
 import { cx } from "@ngrok/mantle/cx";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { Tooltip } from "@ngrok/mantle/tooltip";
-import { PencilSimpleLineIcon } from "@phosphor-icons/react/PencilSimpleLine";
-import { XIcon } from "@phosphor-icons/react/X";
+import { PencilSimpleLineIcon } from "@phosphor-icons/react/dist/ssr/PencilSimpleLine";
+import { XIcon } from "@phosphor-icons/react/dist/ssr/X";
 import type { ComponentProps } from "react";
 import {
 	AssistantComposer,

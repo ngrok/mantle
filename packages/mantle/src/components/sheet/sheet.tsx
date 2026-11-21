@@ -1,6 +1,6 @@
 "use client";
 
-import { XIcon } from "@phosphor-icons/react/X";
+import { XIcon } from "@phosphor-icons/react/dist/ssr/X";
 import { type VariantProps, cva } from "class-variance-authority";
 import type { ComponentProps, HTMLAttributes } from "react";
 import { cx } from "../../utils/cx/cx.js";

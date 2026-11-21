@@ -1,8 +1,8 @@
 import { Command, MetaKey } from "@ngrok/mantle/command";
-import { CalculatorIcon } from "@phosphor-icons/react/Calculator";
-import { CalendarIcon } from "@phosphor-icons/react/Calendar";
-import { SmileyIcon } from "@phosphor-icons/react/Smiley";
-import { UserIcon } from "@phosphor-icons/react/User";
+import { CalculatorIcon } from "@phosphor-icons/react/dist/ssr/Calculator";
+import { CalendarIcon } from "@phosphor-icons/react/dist/ssr/Calendar";
+import { SmileyIcon } from "@phosphor-icons/react/dist/ssr/Smiley";
+import { UserIcon } from "@phosphor-icons/react/dist/ssr/User";
 
 import { CommandDialogDemo, CommandSearchTriggerDemo } from "~/features/command-demos";
 

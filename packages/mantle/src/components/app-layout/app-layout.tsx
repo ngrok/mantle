@@ -1,6 +1,6 @@
 "use client";
 
-import { SidebarSimpleIcon } from "@phosphor-icons/react/SidebarSimple";
+import { SidebarSimpleIcon } from "@phosphor-icons/react/dist/ssr/SidebarSimple";
 import type { ComponentProps, ReactNode, RefObject } from "react";
 import {
 	createContext,

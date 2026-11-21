@@ -1,7 +1,7 @@
 import { IconButton } from "@ngrok/mantle/button";
 import { Calendar, type DateRange } from "@ngrok/mantle/calendar";
 import { Popover } from "@ngrok/mantle/popover";
-import { CalendarIcon } from "@phosphor-icons/react/Calendar";
+import { CalendarIcon } from "@phosphor-icons/react/dist/ssr/Calendar";
 import { useState } from "react";
 
 /**

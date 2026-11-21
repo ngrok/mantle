@@ -6,9 +6,9 @@ import {
 	ThemeIcon,
 	TrafficPolicyFileIcon,
 } from "@ngrok/mantle/icons";
-import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
-import { WarningIcon } from "@phosphor-icons/react/Warning";
-import { XCircleIcon } from "@phosphor-icons/react/XCircle";
+import { CheckCircleIcon } from "@phosphor-icons/react/dist/ssr/CheckCircle";
+import { WarningIcon } from "@phosphor-icons/react/dist/ssr/Warning";
+import { XCircleIcon } from "@phosphor-icons/react/dist/ssr/XCircle";
 
 import { Icon } from "@ngrok/mantle/icon";
 

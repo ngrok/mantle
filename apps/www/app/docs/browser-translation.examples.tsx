@@ -1,6 +1,6 @@
 import { Button } from "@ngrok/mantle/button";
-import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
-import { PlusIcon } from "@phosphor-icons/react/Plus";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/ssr/CaretDown";
+import { PlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
 
 import { PreviewCanvas } from "~/components/preview-canvas";
 

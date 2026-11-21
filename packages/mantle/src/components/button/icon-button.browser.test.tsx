@@ -1,6 +1,6 @@
 "use client";
 
-import { GlobeIcon } from "@phosphor-icons/react/Globe";
+import { GlobeIcon } from "@phosphor-icons/react/dist/ssr/Globe";
 import { render, screen } from "@testing-library/react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { IconButton } from "./icon-button.js";

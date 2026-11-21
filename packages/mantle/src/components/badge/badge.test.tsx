@@ -1,4 +1,4 @@
-import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
+import { CheckCircleIcon } from "@phosphor-icons/react/dist/ssr/CheckCircle";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, test } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";

@@ -1,9 +1,9 @@
 "use client";
 
-import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
-import { InfoIcon } from "@phosphor-icons/react/Info";
-import { WarningIcon } from "@phosphor-icons/react/Warning";
-import { WarningDiamondIcon } from "@phosphor-icons/react/WarningDiamond";
+import { CheckCircleIcon } from "@phosphor-icons/react/dist/ssr/CheckCircle";
+import { InfoIcon } from "@phosphor-icons/react/dist/ssr/Info";
+import { WarningIcon } from "@phosphor-icons/react/dist/ssr/Warning";
+import { WarningDiamondIcon } from "@phosphor-icons/react/dist/ssr/WarningDiamond";
 import {
 	type ComponentProps,
 	type MouseEvent,

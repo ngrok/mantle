@@ -4,15 +4,15 @@ import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { useLocalStorage } from "@ngrok/mantle/hooks";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
-import { BookOpenIcon } from "@phosphor-icons/react/BookOpen";
-import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
-import { GearIcon } from "@phosphor-icons/react/Gear";
-import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
-import { GraphIcon } from "@phosphor-icons/react/Graph";
-import { HashIcon } from "@phosphor-icons/react/Hash";
-import { QuestionIcon } from "@phosphor-icons/react/Question";
-import { SignOutIcon } from "@phosphor-icons/react/SignOut";
-import { UserIcon } from "@phosphor-icons/react/User";
+import { BookOpenIcon } from "@phosphor-icons/react/dist/ssr/BookOpen";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/ssr/CaretDown";
+import { GearIcon } from "@phosphor-icons/react/dist/ssr/Gear";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/dist/ssr/GlobeHemisphereWest";
+import { GraphIcon } from "@phosphor-icons/react/dist/ssr/Graph";
+import { HashIcon } from "@phosphor-icons/react/dist/ssr/Hash";
+import { QuestionIcon } from "@phosphor-icons/react/dist/ssr/Question";
+import { SignOutIcon } from "@phosphor-icons/react/dist/ssr/SignOut";
+import { UserIcon } from "@phosphor-icons/react/dist/ssr/User";
 import { useState } from "react";
 
 /**

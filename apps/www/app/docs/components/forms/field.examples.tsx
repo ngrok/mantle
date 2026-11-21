@@ -2,7 +2,7 @@ import { Button } from "@ngrok/mantle/button";
 import { Field, toErrorMessages } from "@ngrok/mantle/field";
 import { Input, PasswordInput } from "@ngrok/mantle/input";
 import { RadioGroup } from "@ngrok/mantle/radio-group";
-import { InfoIcon } from "@phosphor-icons/react/Info";
+import { InfoIcon } from "@phosphor-icons/react/dist/ssr/Info";
 import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
 

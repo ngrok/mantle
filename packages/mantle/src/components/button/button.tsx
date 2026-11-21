@@ -1,4 +1,4 @@
-import { CircleNotchIcon } from "@phosphor-icons/react/CircleNotch";
+import { CircleNotchIcon } from "@phosphor-icons/react/dist/ssr/CircleNotch";
 import { cva } from "class-variance-authority";
 import type { ComponentProps, MouseEvent, ReactNode } from "react";
 import { Children, cloneElement, isValidElement } from "react";

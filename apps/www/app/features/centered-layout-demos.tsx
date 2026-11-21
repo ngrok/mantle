@@ -6,9 +6,9 @@ import { Label } from "@ngrok/mantle/label";
 import { Main } from "@ngrok/mantle/main";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
-import { CheckIcon } from "@phosphor-icons/react/Check";
-import { WarningCircleIcon } from "@phosphor-icons/react/WarningCircle";
-import { XIcon } from "@phosphor-icons/react/X";
+import { CheckIcon } from "@phosphor-icons/react/dist/ssr/Check";
+import { WarningCircleIcon } from "@phosphor-icons/react/dist/ssr/WarningCircle";
+import { XIcon } from "@phosphor-icons/react/dist/ssr/X";
 import { useState } from "react";
 
 function SignInCard() {

@@ -3,8 +3,8 @@ import { Badge } from "@ngrok/mantle/badge";
 import { Button } from "@ngrok/mantle/button";
 import { Card } from "@ngrok/mantle/card";
 import { Separator } from "@ngrok/mantle/separator";
-import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
-import { PlusIcon } from "@phosphor-icons/react/Plus";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/ssr/CaretRight";
+import { PlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
 import { useState } from "react";
 
 import { PreviewCanvas } from "~/components/preview-canvas";

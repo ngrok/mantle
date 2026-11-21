@@ -88,7 +88,7 @@ A button with an icon tightens the padding on the icon's side by `0.125rem`, so 
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
-import { FireIcon } from "@phosphor-icons/react/Fire";
+import { FireIcon } from "@phosphor-icons/react/dist/ssr/Fire";
 
 <Button appearance="outlined" intent="neutral" icon={<FireIcon weight="fill" />}>
 	Icon start
@@ -108,7 +108,7 @@ An icon-only button is not a `Button`: use [`IconButton`](/components/actions/ic
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
-import { CopyIcon } from "@phosphor-icons/react/Copy";
+import { CopyIcon } from "@phosphor-icons/react/dist/ssr/Copy";
 
 // ❌ Wrong: an icon-only Button has no accessible name and text-shaped padding
 <Button appearance="outlined" intent="neutral" icon={<CopyIcon />} onClick={copyPage} />;
@@ -118,7 +118,7 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
-import { CopyIcon } from "@phosphor-icons/react/Copy";
+import { CopyIcon } from "@phosphor-icons/react/dist/ssr/Copy";
 
 // ✅ Correct: IconButton has a required screen-reader label and a square box
 <IconButton
@@ -140,7 +140,7 @@ The one exception is a **second** icon, such as a trailing caret, because the bu
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
-import { PlusIcon } from "@phosphor-icons/react/Plus";
+import { PlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
 
 // ❌ Wrong: the icon keeps its own size, and `isLoading` renders a second glyph beside it
 <Button appearance="filled" intent="neutral">
@@ -153,7 +153,7 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
-import { PlusIcon } from "@phosphor-icons/react/Plus";
+import { PlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
 
 // ✅ Correct: `icon` gets its own slot beside the label
 <Button appearance="filled" intent="neutral" icon={<PlusIcon />}>
@@ -171,7 +171,7 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
-import { FireIcon } from "@phosphor-icons/react/Fire";
+import { FireIcon } from "@phosphor-icons/react/dist/ssr/Fire";
 
 <Button appearance="outlined" intent="neutral">
 	No Icon + Idle
@@ -248,9 +248,9 @@ Style the label by styling your own child, not the slot. A label that has to shr
 
 ```tsx
 import { ButtonGroup, IconButton } from "@ngrok/mantle/button";
-import { TextBIcon } from "@phosphor-icons/react/TextB";
-import { TextItalicIcon } from "@phosphor-icons/react/TextItalic";
-import { TextUnderlineIcon } from "@phosphor-icons/react/TextUnderline";
+import { TextBIcon } from "@phosphor-icons/react/dist/ssr/TextB";
+import { TextItalicIcon } from "@phosphor-icons/react/dist/ssr/TextItalic";
+import { TextUnderlineIcon } from "@phosphor-icons/react/dist/ssr/TextUnderline";
 
 <ButtonGroup appearance="panel">
 	<IconButton appearance="ghost" intent="neutral" icon={<TextBIcon />} label="Bold" />
@@ -271,7 +271,7 @@ A disabled or loading `Button` under `asChild` gets no `disabled` attribute, bec
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
-import { FireIcon } from "@phosphor-icons/react/Fire";
+import { FireIcon } from "@phosphor-icons/react/dist/ssr/Fire";
 import { Link, href } from "react-router";
 
 <Button appearance="filled" intent="neutral" icon={<FireIcon weight="fill" />} asChild>

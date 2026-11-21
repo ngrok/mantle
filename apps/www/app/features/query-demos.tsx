@@ -7,8 +7,8 @@ import {
 	filterItemsByQuery,
 } from "@ngrok/mantle/query-filter";
 import { Query } from "@ngrok/mantle/query";
-import { CopyIcon } from "@phosphor-icons/react/Copy";
-import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
+import { CopyIcon } from "@phosphor-icons/react/dist/ssr/Copy";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
 import { useDeferredValue, useState } from "react";
 
 export type Project = {

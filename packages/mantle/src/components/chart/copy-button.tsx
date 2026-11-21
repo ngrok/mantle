@@ -1,7 +1,7 @@
 "use client";
 
-import { CheckIcon } from "@phosphor-icons/react/Check";
-import { CopyIcon } from "@phosphor-icons/react/Copy";
+import { CheckIcon } from "@phosphor-icons/react/dist/ssr/Check";
+import { CopyIcon } from "@phosphor-icons/react/dist/ssr/Copy";
 import type { ComponentProps } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useCopyToClipboard } from "../../hooks/use-copy-to-clipboard.js";

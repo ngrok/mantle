@@ -21,7 +21,7 @@ describe("loadPreviewModule", () => {
 	// Why the long timeout: the barrel holds every phosphor icon, and its first import
 	// takes seconds when the full suite runs in parallel.
 	it("loads a phosphor icon subpath from the barrel", { timeout: 30_000 }, async () => {
-		const icons = await loadPreviewModule("@phosphor-icons/react/Trash");
+		const icons = await loadPreviewModule("@phosphor-icons/react/dist/ssr/Trash");
 		expect(icons).toHaveProperty("TrashIcon");
 	});
 

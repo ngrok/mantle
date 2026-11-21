@@ -1,7 +1,7 @@
 "use client";
 
-import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
-import { CheckIcon } from "@phosphor-icons/react/Check";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/ssr/CaretRight";
+import { CheckIcon } from "@phosphor-icons/react/dist/ssr/Check";
 import {
 	CheckboxItem as DropdownMenuPrimitiveCheckboxItem,
 	Content as DropdownMenuPrimitiveContent,

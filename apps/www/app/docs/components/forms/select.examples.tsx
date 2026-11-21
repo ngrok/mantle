@@ -2,7 +2,7 @@ import { Button } from "@ngrok/mantle/button";
 import { Field, toErrorMessages } from "@ngrok/mantle/field";
 import { Icon } from "@ngrok/mantle/icon";
 import { Select } from "@ngrok/mantle/select";
-import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/dist/ssr/GlobeHemisphereWest";
 import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 import { z } from "zod";

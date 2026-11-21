@@ -4,15 +4,15 @@ import { Button, IconButton } from "@ngrok/mantle/button";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { TextArea } from "@ngrok/mantle/text-area";
-import { ArrowLeftIcon } from "@phosphor-icons/react/ArrowLeft";
-import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
-import { CopyIcon } from "@phosphor-icons/react/Copy";
-import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
-import { GraphIcon } from "@phosphor-icons/react/Graph";
-import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
-import { TrashIcon } from "@phosphor-icons/react/Trash";
-import { WarningCircleIcon } from "@phosphor-icons/react/WarningCircle";
-import { XIcon } from "@phosphor-icons/react/X";
+import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr/ArrowLeft";
+import { CheckCircleIcon } from "@phosphor-icons/react/dist/ssr/CheckCircle";
+import { CopyIcon } from "@phosphor-icons/react/dist/ssr/Copy";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/dist/ssr/GlobeHemisphereWest";
+import { GraphIcon } from "@phosphor-icons/react/dist/ssr/Graph";
+import { SparkleIcon } from "@phosphor-icons/react/dist/ssr/Sparkle";
+import { TrashIcon } from "@phosphor-icons/react/dist/ssr/Trash";
+import { WarningCircleIcon } from "@phosphor-icons/react/dist/ssr/WarningCircle";
+import { XIcon } from "@phosphor-icons/react/dist/ssr/X";
 import { Fragment, useLayoutEffect, useRef, useState } from "react";
 
 /**

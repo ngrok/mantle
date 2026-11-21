@@ -1,7 +1,7 @@
 import { Select } from "@ngrok/mantle/select";
 import { $theme, isTheme, useTheme } from "@ngrok/mantle/theme";
 import { ThemeSwitcher } from "@ngrok/mantle/theme-switcher";
-import { SunIcon } from "@phosphor-icons/react/Sun";
+import { SunIcon } from "@phosphor-icons/react/dist/ssr/Sun";
 
 import { PreviewCanvas } from "~/components/preview-canvas";
 

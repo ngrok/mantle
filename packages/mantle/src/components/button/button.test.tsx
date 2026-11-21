@@ -1,5 +1,5 @@
-import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
-import { PlusIcon } from "@phosphor-icons/react/Plus";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/ssr/CaretDown";
+import { PlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { act, useState } from "react";

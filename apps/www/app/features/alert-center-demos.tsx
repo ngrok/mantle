@@ -7,11 +7,11 @@ import { Button } from "@ngrok/mantle/button";
 import { useSessionStorage } from "@ngrok/mantle/hooks";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
-import { GearIcon } from "@phosphor-icons/react/Gear";
-import { GraphIcon } from "@phosphor-icons/react/Graph";
-import { HashIcon } from "@phosphor-icons/react/Hash";
-import { LightbulbIcon } from "@phosphor-icons/react/Lightbulb";
-import { TerminalWindowIcon } from "@phosphor-icons/react/TerminalWindow";
+import { GearIcon } from "@phosphor-icons/react/dist/ssr/Gear";
+import { GraphIcon } from "@phosphor-icons/react/dist/ssr/Graph";
+import { HashIcon } from "@phosphor-icons/react/dist/ssr/Hash";
+import { LightbulbIcon } from "@phosphor-icons/react/dist/ssr/Lightbulb";
+import { TerminalWindowIcon } from "@phosphor-icons/react/dist/ssr/TerminalWindow";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 

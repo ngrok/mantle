@@ -2,12 +2,12 @@ import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { Button, IconButton } from "@ngrok/mantle/button";
 import { makeToast, Toast } from "@ngrok/mantle/toast";
-import { ArrowLeftIcon } from "@phosphor-icons/react/ArrowLeft";
-import { ArrowsClockwiseIcon } from "@phosphor-icons/react/ArrowsClockwise";
-import { BookOpenIcon } from "@phosphor-icons/react/BookOpen";
-import { CopyIcon } from "@phosphor-icons/react/Copy";
-import { PlusIcon } from "@phosphor-icons/react/Plus";
-import { TrashIcon } from "@phosphor-icons/react/Trash";
+import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr/ArrowLeft";
+import { ArrowsClockwiseIcon } from "@phosphor-icons/react/dist/ssr/ArrowsClockwise";
+import { BookOpenIcon } from "@phosphor-icons/react/dist/ssr/BookOpen";
+import { CopyIcon } from "@phosphor-icons/react/dist/ssr/Copy";
+import { PlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
+import { TrashIcon } from "@phosphor-icons/react/dist/ssr/Trash";
 import { Fragment, useState } from "react";
 import {
 	findHeaderActions,

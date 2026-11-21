@@ -62,28 +62,28 @@ import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { ThemeDropdownMenuItem } from "@ngrok/mantle/theme-switcher";
 import { Tooltip } from "@ngrok/mantle/tooltip";
-import { ArrowLeftIcon } from "@phosphor-icons/react/ArrowLeft";
-import { ArrowsClockwiseIcon } from "@phosphor-icons/react/ArrowsClockwise";
-import { BellIcon } from "@phosphor-icons/react/Bell";
-import { BookOpenIcon } from "@phosphor-icons/react/BookOpen";
-import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
-import { CaretUpDownIcon } from "@phosphor-icons/react/CaretUpDown";
-import { CreditCardIcon } from "@phosphor-icons/react/CreditCard";
-import { DotsThreeIcon } from "@phosphor-icons/react/DotsThree";
-import { GearIcon } from "@phosphor-icons/react/Gear";
-import { GlobeIcon } from "@phosphor-icons/react/Globe";
-import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
-import { GraphIcon } from "@phosphor-icons/react/Graph";
-import { MegaphoneIcon } from "@phosphor-icons/react/Megaphone";
-import { QuestionIcon } from "@phosphor-icons/react/Question";
-import { SignOutIcon } from "@phosphor-icons/react/SignOut";
-import { SlidersHorizontalIcon } from "@phosphor-icons/react/SlidersHorizontal";
-import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
-import { SpeedometerIcon } from "@phosphor-icons/react/Speedometer";
-import { UserIcon } from "@phosphor-icons/react/User";
-import { UserCircleIcon } from "@phosphor-icons/react/UserCircle";
-import { UsersThreeIcon } from "@phosphor-icons/react/UsersThree";
-import { WarningIcon } from "@phosphor-icons/react/Warning";
+import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr/ArrowLeft";
+import { ArrowsClockwiseIcon } from "@phosphor-icons/react/dist/ssr/ArrowsClockwise";
+import { BellIcon } from "@phosphor-icons/react/dist/ssr/Bell";
+import { BookOpenIcon } from "@phosphor-icons/react/dist/ssr/BookOpen";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/ssr/CaretDown";
+import { CaretUpDownIcon } from "@phosphor-icons/react/dist/ssr/CaretUpDown";
+import { CreditCardIcon } from "@phosphor-icons/react/dist/ssr/CreditCard";
+import { DotsThreeIcon } from "@phosphor-icons/react/dist/ssr/DotsThree";
+import { GearIcon } from "@phosphor-icons/react/dist/ssr/Gear";
+import { GlobeIcon } from "@phosphor-icons/react/dist/ssr/Globe";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/dist/ssr/GlobeHemisphereWest";
+import { GraphIcon } from "@phosphor-icons/react/dist/ssr/Graph";
+import { MegaphoneIcon } from "@phosphor-icons/react/dist/ssr/Megaphone";
+import { QuestionIcon } from "@phosphor-icons/react/dist/ssr/Question";
+import { SignOutIcon } from "@phosphor-icons/react/dist/ssr/SignOut";
+import { SlidersHorizontalIcon } from "@phosphor-icons/react/dist/ssr/SlidersHorizontal";
+import { SparkleIcon } from "@phosphor-icons/react/dist/ssr/Sparkle";
+import { SpeedometerIcon } from "@phosphor-icons/react/dist/ssr/Speedometer";
+import { UserIcon } from "@phosphor-icons/react/dist/ssr/User";
+import { UserCircleIcon } from "@phosphor-icons/react/dist/ssr/UserCircle";
+import { UsersThreeIcon } from "@phosphor-icons/react/dist/ssr/UsersThree";
+import { WarningIcon } from "@phosphor-icons/react/dist/ssr/Warning";
 import type { ReactElement, ReactNode } from "react";
 import { useState } from "react";
 
@@ -886,9 +886,9 @@ embedded and has no sidebar, so a back link takes the start slot that `Sidebar.T
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { Button, IconButton } from "@ngrok/mantle/button";
-import { ArrowLeftIcon } from "@phosphor-icons/react/ArrowLeft";
-import { CopyIcon } from "@phosphor-icons/react/Copy";
-import { TrashIcon } from "@phosphor-icons/react/Trash";
+import { ArrowLeftIcon } from "@phosphor-icons/react/dist/ssr/ArrowLeft";
+import { CopyIcon } from "@phosphor-icons/react/dist/ssr/Copy";
+import { TrashIcon } from "@phosphor-icons/react/dist/ssr/Trash";
 import { Fragment, useState } from "react";
 
 /** The crumbs the header-slots example grows through, outermost first. */
@@ -1108,10 +1108,10 @@ import { Button, IconButton } from "@ngrok/mantle/button";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { TextArea } from "@ngrok/mantle/text-area";
-import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
-import { GraphIcon } from "@phosphor-icons/react/Graph";
-import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
-import { XIcon } from "@phosphor-icons/react/X";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/dist/ssr/GlobeHemisphereWest";
+import { GraphIcon } from "@phosphor-icons/react/dist/ssr/Graph";
+import { SparkleIcon } from "@phosphor-icons/react/dist/ssr/Sparkle";
+import { XIcon } from "@phosphor-icons/react/dist/ssr/X";
 
 /** The jobs the assistant offers on an empty conversation. */
 const assistantStarters = [
@@ -1250,8 +1250,8 @@ import {
 } from "@ngrok/mantle/app-layout";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
-import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
-import { XIcon } from "@phosphor-icons/react/X";
+import { SparkleIcon } from "@phosphor-icons/react/dist/ssr/Sparkle";
+import { XIcon } from "@phosphor-icons/react/dist/ssr/X";
 import { Outlet } from "react-router";
 import type { Route } from "./+types/root";
 
@@ -1441,7 +1441,7 @@ there. Nothing in the shell knows the sidebar exists; the pairing above is compo
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Button } from "@ngrok/mantle/button";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
-import { WarningCircleIcon } from "@phosphor-icons/react/WarningCircle";
+import { WarningCircleIcon } from "@phosphor-icons/react/dist/ssr/WarningCircle";
 import { useState } from "react";
 
 export function Shell() {
@@ -1508,7 +1508,7 @@ root. The example embeds the shell rather than pinning it with `fixed inset-0`, 
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Button } from "@ngrok/mantle/button";
-import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
+import { CheckCircleIcon } from "@phosphor-icons/react/dist/ssr/CheckCircle";
 import { useState } from "react";
 
 const pageShapes = [
@@ -1666,11 +1666,11 @@ import { Button, ButtonGroup, IconButton } from "@ngrok/mantle/button";
 import { Separator } from "@ngrok/mantle/separator";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
-import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
-import { CopyIcon } from "@phosphor-icons/react/Copy";
-import { DownloadSimpleIcon } from "@phosphor-icons/react/DownloadSimple";
-import { GraphIcon } from "@phosphor-icons/react/Graph";
-import { ShieldCheckIcon } from "@phosphor-icons/react/ShieldCheck";
+import { CheckCircleIcon } from "@phosphor-icons/react/dist/ssr/CheckCircle";
+import { CopyIcon } from "@phosphor-icons/react/dist/ssr/Copy";
+import { DownloadSimpleIcon } from "@phosphor-icons/react/dist/ssr/DownloadSimple";
+import { GraphIcon } from "@phosphor-icons/react/dist/ssr/Graph";
+import { ShieldCheckIcon } from "@phosphor-icons/react/dist/ssr/ShieldCheck";
 import { useState } from "react";
 
 export function EditorPage() {
@@ -1828,7 +1828,7 @@ sticky bar do the whole job, and the body stays the one scroll region:
 ```tsx
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Button } from "@ngrok/mantle/button";
-import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
+import { CheckCircleIcon } from "@phosphor-icons/react/dist/ssr/CheckCircle";
 import { useState } from "react";
 
 export function PolicyPage() {
@@ -1910,7 +1910,7 @@ import { Badge } from "@ngrok/mantle/badge";
 import { Button } from "@ngrok/mantle/button";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { Tabs } from "@ngrok/mantle/tabs";
-import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
+import { CheckCircleIcon } from "@phosphor-icons/react/dist/ssr/CheckCircle";
 import { Outlet } from "react-router";
 
 const endpoint = {

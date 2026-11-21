@@ -1,4 +1,4 @@
-import { XIcon } from "@phosphor-icons/react/X";
+import { XIcon } from "@phosphor-icons/react/dist/ssr/X";
 import { PreviewCanvas } from "~/components/preview-canvas";
 
 /** The "Hit Area" example on the Hit Area docs page. */

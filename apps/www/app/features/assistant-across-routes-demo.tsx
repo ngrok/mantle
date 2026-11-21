@@ -6,10 +6,10 @@ import { cx } from "@ngrok/mantle/cx";
 import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { Table } from "@ngrok/mantle/table";
-import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
-import { GraphIcon } from "@phosphor-icons/react/Graph";
-import { PlusIcon } from "@phosphor-icons/react/Plus";
-import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/dist/ssr/GlobeHemisphereWest";
+import { GraphIcon } from "@phosphor-icons/react/dist/ssr/Graph";
+import { PlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
+import { SparkleIcon } from "@phosphor-icons/react/dist/ssr/Sparkle";
 import { useState, type ReactNode } from "react";
 import { flushSync } from "react-dom";
 import {

@@ -1,6 +1,6 @@
 import { Code } from "@ngrok/mantle/code";
 import { Icon } from "@ngrok/mantle/icon";
-import { FireIcon } from "@phosphor-icons/react/Fire";
+import { FireIcon } from "@phosphor-icons/react/dist/ssr/Fire";
 
 import { PreviewCanvas } from "~/components/preview-canvas";
 

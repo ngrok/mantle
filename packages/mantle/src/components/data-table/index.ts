@@ -153,8 +153,8 @@ export {
  * import { CursorPagination, PaginationRange } from "@ngrok/mantle/pagination";
  * import { Empty } from "@ngrok/mantle/empty";
  * import { Input } from "@ngrok/mantle/input";
- * import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
- * import { TrayIcon } from "@phosphor-icons/react/Tray";
+ * import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
+ * import { TrayIcon } from "@phosphor-icons/react/dist/ssr/Tray";
  * import { useState } from "react";
  *
  * type Payment = { id: string; amount: number; status: "pending" | "succeeded" | "failed"; email: string };
@@ -323,7 +323,7 @@ export {
  * import { DataTable, createColumnHelper } from "@ngrok/mantle/data-table";
  * import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
  * import { IconButton } from "@ngrok/mantle/button";
- * import { DotsThreeVerticalIcon } from "@phosphor-icons/react/DotsThreeVertical";
+ * import { DotsThreeVerticalIcon } from "@phosphor-icons/react/dist/ssr/DotsThreeVertical";
  *
  * const columnHelper = createColumnHelper<typeof features, Payment>();
  *

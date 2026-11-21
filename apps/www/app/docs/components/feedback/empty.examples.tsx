@@ -1,9 +1,9 @@
 import { Empty } from "@ngrok/mantle/empty";
 import { Button } from "@ngrok/mantle/button";
-import { GhostIcon } from "@phosphor-icons/react/Ghost";
-import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
-import { PlusIcon } from "@phosphor-icons/react/Plus";
-import { SmileyMeltingIcon } from "@phosphor-icons/react/SmileyMelting";
+import { GhostIcon } from "@phosphor-icons/react/dist/ssr/Ghost";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
+import { PlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
+import { SmileyMeltingIcon } from "@phosphor-icons/react/dist/ssr/SmileyMelting";
 
 import { PreviewCanvas } from "~/components/preview-canvas";
 

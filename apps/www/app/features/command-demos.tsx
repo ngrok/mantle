@@ -5,17 +5,17 @@ import { Button } from "@ngrok/mantle/button";
 import { Command, MetaKey } from "@ngrok/mantle/command";
 import { Kbd } from "@ngrok/mantle/kbd";
 import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
-import { CalculatorIcon } from "@phosphor-icons/react/Calculator";
-import { CalendarIcon } from "@phosphor-icons/react/Calendar";
-import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
-import { CreditCardIcon } from "@phosphor-icons/react/CreditCard";
-import { GearIcon } from "@phosphor-icons/react/Gear";
-import { GlobeIcon } from "@phosphor-icons/react/Globe";
-import { GraphIcon } from "@phosphor-icons/react/Graph";
-import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
-import { ShieldCheckIcon } from "@phosphor-icons/react/ShieldCheck";
-import { SmileyIcon } from "@phosphor-icons/react/Smiley";
-import { UserIcon } from "@phosphor-icons/react/User";
+import { CalculatorIcon } from "@phosphor-icons/react/dist/ssr/Calculator";
+import { CalendarIcon } from "@phosphor-icons/react/dist/ssr/Calendar";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/ssr/CaretDown";
+import { CreditCardIcon } from "@phosphor-icons/react/dist/ssr/CreditCard";
+import { GearIcon } from "@phosphor-icons/react/dist/ssr/Gear";
+import { GlobeIcon } from "@phosphor-icons/react/dist/ssr/Globe";
+import { GraphIcon } from "@phosphor-icons/react/dist/ssr/Graph";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
+import { ShieldCheckIcon } from "@phosphor-icons/react/dist/ssr/ShieldCheck";
+import { SmileyIcon } from "@phosphor-icons/react/dist/ssr/Smiley";
+import { UserIcon } from "@phosphor-icons/react/dist/ssr/User";
 import type { ReactNode } from "react";
 
 /**

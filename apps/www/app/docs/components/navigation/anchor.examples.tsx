@@ -1,6 +1,6 @@
 import { Anchor } from "@ngrok/mantle/anchor";
-import { BookIcon } from "@phosphor-icons/react/Book";
-import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
+import { BookIcon } from "@phosphor-icons/react/dist/ssr/Book";
+import { ShrimpIcon } from "@phosphor-icons/react/dist/ssr/Shrimp";
 import { Link, href } from "react-router";
 
 import { PreviewCanvas } from "~/components/preview-canvas";

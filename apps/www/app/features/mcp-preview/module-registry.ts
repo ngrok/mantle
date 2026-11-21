@@ -97,7 +97,7 @@ const phosphorPackage = "@phosphor-icons/react";
 /**
  * Loads the module for one import specifier, or returns `null` when a
  * prototype cannot import it. Phosphor icons load from the package barrel:
- * a prototype imports icons the way an app does (`@phosphor-icons/react/Trash`),
+ * a prototype imports icons the way an app does (`@phosphor-icons/react/dist/ssr/Trash`),
  * and one barrel chunk serves every icon.
  *
  * @example

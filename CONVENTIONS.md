@@ -12,7 +12,7 @@ A rule tagged `(lint: name)` has an oxlint check, and the lint message says why 
 - ESM only: `import`/`export`, `const`, `async`/`await`, arrow functions.
 - Prefer named exports. Use `import type` for type-only imports.
 - Relative imports in `/packages`, `~/` aliases in `/apps`.
-- Import one phosphor icon per module: `@phosphor-icons/react/Check`, never the barrel or the `ssr` variants. (lint: `mantle/no-barrel-imports`)
+- Import one phosphor icon per module from the server build: `@phosphor-icons/react/dist/ssr/Check`, never the barrel or the default `@phosphor-icons/react/Check`. The default build reads `IconContext`, so a React Server Component cannot render it, and nothing in mantle or its apps sets one. (lint: `mantle/no-barrel-imports`)
 
 ## Formatting & Linting
 

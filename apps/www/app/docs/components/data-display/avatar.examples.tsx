@@ -1,6 +1,6 @@
 import { Avatar } from "@ngrok/mantle/avatar";
 import { MediaObject } from "@ngrok/mantle/media-object";
-import { UserIcon } from "@phosphor-icons/react/User";
+import { UserIcon } from "@phosphor-icons/react/dist/ssr/User";
 
 import { PreviewCanvas } from "~/components/preview-canvas";
 

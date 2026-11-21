@@ -1,6 +1,6 @@
 import { Icon } from "@ngrok/mantle/icon";
 import { List } from "@ngrok/mantle/list";
-import { ArrowRightIcon } from "@phosphor-icons/react/ArrowRight";
+import { ArrowRightIcon } from "@phosphor-icons/react/dist/ssr/ArrowRight";
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 

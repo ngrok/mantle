@@ -35,7 +35,7 @@ type IconProps = Omit<SvgAttributes, "children"> & {
  *
  * @example
  * ```tsx
- * import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
+ * import { ShrimpIcon } from "@phosphor-icons/react/dist/ssr/Shrimp";
  *
  * // Decorative: renders aria-hidden="true".
  * <Icon svg={<ShrimpIcon />} />

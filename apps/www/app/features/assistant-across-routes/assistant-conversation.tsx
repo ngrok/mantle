@@ -3,12 +3,12 @@ import { cx } from "@ngrok/mantle/cx";
 import { Icon } from "@ngrok/mantle/icon";
 import { LiveRegion } from "@ngrok/mantle/live-region";
 import { TextArea } from "@ngrok/mantle/text-area";
-import { ArrowUpIcon } from "@phosphor-icons/react/ArrowUp";
-import { BroadcastIcon } from "@phosphor-icons/react/Broadcast";
-import { GaugeIcon } from "@phosphor-icons/react/Gauge";
-import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
-import { ShieldCheckIcon } from "@phosphor-icons/react/ShieldCheck";
-import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
+import { ArrowUpIcon } from "@phosphor-icons/react/dist/ssr/ArrowUp";
+import { BroadcastIcon } from "@phosphor-icons/react/dist/ssr/Broadcast";
+import { GaugeIcon } from "@phosphor-icons/react/dist/ssr/Gauge";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/dist/ssr/GlobeHemisphereWest";
+import { ShieldCheckIcon } from "@phosphor-icons/react/dist/ssr/ShieldCheck";
+import { SparkleIcon } from "@phosphor-icons/react/dist/ssr/Sparkle";
 import {
 	createContext,
 	useCallback,

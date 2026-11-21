@@ -6,12 +6,12 @@ import { Separator } from "@ngrok/mantle/separator";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { Tabs } from "@ngrok/mantle/tabs";
-import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
-import { CopyIcon } from "@phosphor-icons/react/Copy";
-import { DownloadSimpleIcon } from "@phosphor-icons/react/DownloadSimple";
-import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
-import { GraphIcon } from "@phosphor-icons/react/Graph";
-import { ShieldCheckIcon } from "@phosphor-icons/react/ShieldCheck";
+import { CheckCircleIcon } from "@phosphor-icons/react/dist/ssr/CheckCircle";
+import { CopyIcon } from "@phosphor-icons/react/dist/ssr/Copy";
+import { DownloadSimpleIcon } from "@phosphor-icons/react/dist/ssr/DownloadSimple";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/dist/ssr/GlobeHemisphereWest";
+import { GraphIcon } from "@phosphor-icons/react/dist/ssr/Graph";
+import { ShieldCheckIcon } from "@phosphor-icons/react/dist/ssr/ShieldCheck";
 import { useState } from "react";
 
 /**

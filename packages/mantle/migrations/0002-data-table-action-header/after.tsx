@@ -8,7 +8,7 @@ import {
 } from "@ngrok/mantle/data-table";
 import { Table } from "@ngrok/mantle/table";
 import { Table as PlainTable } from "@acme/ui";
-import { DotsThreeIcon } from "@phosphor-icons/react/DotsThree";
+import { DotsThreeIcon } from "@phosphor-icons/react/dist/ssr/DotsThree";
 
 type Payment = { id: string; amount: number };
 

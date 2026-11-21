@@ -3,7 +3,7 @@ import { DataTable, createColumnHelper, tableFeatures, useTable } from "@ngrok/m
 import { Empty } from "@ngrok/mantle/empty";
 import { filterItemsByQuery } from "@ngrok/mantle/query-filter";
 import { Query } from "@ngrok/mantle/query";
-import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
 import { useDeferredValue } from "react";
 import { type Project, projectFilterGrammar, projects } from "~/features/query-demos";
 import { useQueryParamInput } from "~/features/query-url-state";

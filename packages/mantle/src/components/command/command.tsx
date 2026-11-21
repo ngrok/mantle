@@ -1,6 +1,6 @@
 "use client";
 
-import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
 import { Command as CommandPrimitive, useCommandState } from "cmdk";
 
 import type { ComponentProps, ComponentPropsWithoutRef, ReactNode, Ref } from "react";

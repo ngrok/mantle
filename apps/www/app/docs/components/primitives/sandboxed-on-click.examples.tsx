@@ -1,7 +1,7 @@
 import { IconButton } from "@ngrok/mantle/button";
 import { SandboxedOnClick } from "@ngrok/mantle/sandboxed-on-click";
 import { Table } from "@ngrok/mantle/table";
-import { BookIcon } from "@phosphor-icons/react/Book";
+import { BookIcon } from "@phosphor-icons/react/dist/ssr/Book";
 
 import { PreviewCanvas } from "~/components/preview-canvas";
 

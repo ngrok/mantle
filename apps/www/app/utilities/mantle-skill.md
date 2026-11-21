@@ -72,7 +72,7 @@ Use the first source that you can reach.
 
 - Use `asChild` to render a part as another element, such as a router `Link`, and keep its styles and behavior. Do not wrap the part in another element for this.
 - Compose `className` with `cx` from `@ngrok/mantle/cx`. Do not use `clsx`, `classnames`, or string interpolation in `className`.
-- Import one Phosphor icon per module: `import { FireIcon } from "@phosphor-icons/react/Fire";`. Do not import the `@phosphor-icons/react` barrel. ngrok's own icons come from `@ngrok/mantle/icons`.
+- Import one Phosphor icon per module: `import { FireIcon } from "@phosphor-icons/react/dist/ssr/Fire";`. Do not import the `@phosphor-icons/react` barrel. ngrok's own icons come from `@ngrok/mantle/icons`.
 
 ## App setup
 

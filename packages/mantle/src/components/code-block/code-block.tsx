@@ -1,10 +1,10 @@
 "use client";
 
-import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
-import { CheckIcon } from "@phosphor-icons/react/Check";
-import { CopyIcon } from "@phosphor-icons/react/Copy";
-import { FileTextIcon } from "@phosphor-icons/react/FileText";
-import { TerminalIcon } from "@phosphor-icons/react/Terminal";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/ssr/CaretDown";
+import { CheckIcon } from "@phosphor-icons/react/dist/ssr/Check";
+import { CopyIcon } from "@phosphor-icons/react/dist/ssr/Copy";
+import { FileTextIcon } from "@phosphor-icons/react/dist/ssr/FileText";
+import { TerminalIcon } from "@phosphor-icons/react/dist/ssr/Terminal";
 import type { ComponentProps, Dispatch, ReactNode, SetStateAction } from "react";
 import {
 	createContext,

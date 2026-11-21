@@ -1,9 +1,9 @@
 import { Button, IconButton } from "@ngrok/mantle/button";
 import { Separator } from "@ngrok/mantle/separator";
 import { Sheet } from "@ngrok/mantle/sheet";
-import { ListMagnifyingGlassIcon } from "@phosphor-icons/react/ListMagnifyingGlass";
-import { TerminalWindowIcon } from "@phosphor-icons/react/TerminalWindow";
-import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
+import { ListMagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/ListMagnifyingGlass";
+import { TerminalWindowIcon } from "@phosphor-icons/react/dist/ssr/TerminalWindow";
+import { TrashSimpleIcon } from "@phosphor-icons/react/dist/ssr/TrashSimple";
 import { useState } from "react";
 
 import { PaymentPopupDemo } from "~/examples/sheet/sheet-payment-popup-demo";

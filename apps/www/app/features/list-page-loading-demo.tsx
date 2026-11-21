@@ -17,9 +17,9 @@ import { Select } from "@ngrok/mantle/select";
 import { Skeleton } from "@ngrok/mantle/skeleton";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { Table } from "@ngrok/mantle/table";
-import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
-import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
-import { WarningCircleIcon } from "@phosphor-icons/react/WarningCircle";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/dist/ssr/GlobeHemisphereWest";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
+import { WarningCircleIcon } from "@phosphor-icons/react/dist/ssr/WarningCircle";
 import {
 	keepPreviousData,
 	useQuery,

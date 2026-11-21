@@ -1,12 +1,12 @@
 "use client";
 
-import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
-import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
-import { InfoIcon } from "@phosphor-icons/react/Info";
-import { MegaphoneIcon } from "@phosphor-icons/react/Megaphone";
-import { WarningIcon } from "@phosphor-icons/react/Warning";
-import { WarningDiamondIcon } from "@phosphor-icons/react/WarningDiamond";
-import { XIcon } from "@phosphor-icons/react/X";
+import { CheckCircleIcon } from "@phosphor-icons/react/dist/ssr/CheckCircle";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/ssr/CaretDown";
+import { InfoIcon } from "@phosphor-icons/react/dist/ssr/Info";
+import { MegaphoneIcon } from "@phosphor-icons/react/dist/ssr/Megaphone";
+import { WarningIcon } from "@phosphor-icons/react/dist/ssr/Warning";
+import { WarningDiamondIcon } from "@phosphor-icons/react/dist/ssr/WarningDiamond";
+import { XIcon } from "@phosphor-icons/react/dist/ssr/X";
 import { cva } from "class-variance-authority";
 import type { ComponentProps, ReactNode, RefObject } from "react";
 import { createContext, useContext, useEffect, useMemo, useRef } from "react";

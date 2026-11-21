@@ -1,8 +1,8 @@
 import { Well } from "@ngrok/mantle/well";
 import { Empty } from "@ngrok/mantle/empty";
 import { Button } from "@ngrok/mantle/button";
-import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
-import { PlusIcon } from "@phosphor-icons/react/Plus";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
+import { PlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
 
 import { PreviewCanvas } from "~/components/preview-canvas";
 

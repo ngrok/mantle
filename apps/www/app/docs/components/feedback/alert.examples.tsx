@@ -1,7 +1,7 @@
 import { Alert } from "@ngrok/mantle/alert";
 import { Card } from "@ngrok/mantle/card";
 import { $cssProperties } from "@ngrok/mantle/types";
-import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
+import { ShrimpIcon } from "@phosphor-icons/react/dist/ssr/Shrimp";
 
 import { DismissibleAlertDemo, DynamicAlertDemo } from "~/features/alert-demos";
 import { PreviewCanvas } from "~/components/preview-canvas";

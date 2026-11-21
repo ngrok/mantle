@@ -1,11 +1,11 @@
 import { cx } from "@ngrok/mantle/cx";
 import { MediaObject } from "@ngrok/mantle/media-object";
 import { List } from "@ngrok/mantle/list";
-import { BuildingsIcon } from "@phosphor-icons/react/Buildings";
-import { FingerprintIcon } from "@phosphor-icons/react/Fingerprint";
-import { KeyIcon } from "@phosphor-icons/react/Key";
-import { LockKeyIcon } from "@phosphor-icons/react/LockKey";
-import { ShieldCheckIcon } from "@phosphor-icons/react/ShieldCheck";
+import { BuildingsIcon } from "@phosphor-icons/react/dist/ssr/Buildings";
+import { FingerprintIcon } from "@phosphor-icons/react/dist/ssr/Fingerprint";
+import { KeyIcon } from "@phosphor-icons/react/dist/ssr/Key";
+import { LockKeyIcon } from "@phosphor-icons/react/dist/ssr/LockKey";
+import { ShieldCheckIcon } from "@phosphor-icons/react/dist/ssr/ShieldCheck";
 import { useState } from "react";
 
 import { PreviewCanvas } from "~/components/preview-canvas";

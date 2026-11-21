@@ -1,7 +1,7 @@
 "use client";
 
-import { CaretLeftIcon } from "@phosphor-icons/react/CaretLeft";
-import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
+import { CaretLeftIcon } from "@phosphor-icons/react/dist/ssr/CaretLeft";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/ssr/CaretRight";
 import type { ComponentProps } from "react";
 import { useMemo } from "react";
 import type { ChevronProps, ClassNames } from "react-day-picker";

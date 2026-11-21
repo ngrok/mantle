@@ -1,11 +1,11 @@
 import { Button, ButtonGroup, IconButton } from "@ngrok/mantle/button";
-import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
-import { CopyIcon } from "@phosphor-icons/react/Copy";
-import { FireIcon } from "@phosphor-icons/react/Fire";
-import { PlusIcon } from "@phosphor-icons/react/Plus";
-import { TextBIcon } from "@phosphor-icons/react/TextB";
-import { TextItalicIcon } from "@phosphor-icons/react/TextItalic";
-import { TextUnderlineIcon } from "@phosphor-icons/react/TextUnderline";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/ssr/CaretDown";
+import { CopyIcon } from "@phosphor-icons/react/dist/ssr/Copy";
+import { FireIcon } from "@phosphor-icons/react/dist/ssr/Fire";
+import { PlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
+import { TextBIcon } from "@phosphor-icons/react/dist/ssr/TextB";
+import { TextItalicIcon } from "@phosphor-icons/react/dist/ssr/TextItalic";
+import { TextUnderlineIcon } from "@phosphor-icons/react/dist/ssr/TextUnderline";
 import { Link, href } from "react-router";
 
 import { PreviewCanvas } from "~/components/preview-canvas";

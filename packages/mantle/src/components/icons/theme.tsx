@@ -1,8 +1,8 @@
 "use client";
 
-import { DesktopIcon } from "@phosphor-icons/react/Desktop";
-import { MoonIcon } from "@phosphor-icons/react/Moon";
-import { SunIcon } from "@phosphor-icons/react/Sun";
+import { DesktopIcon } from "@phosphor-icons/react/dist/ssr/Desktop";
+import { MoonIcon } from "@phosphor-icons/react/dist/ssr/Moon";
+import { SunIcon } from "@phosphor-icons/react/dist/ssr/Sun";
 import type { SvgAttributes } from "../icon/types.js";
 import { useAppliedTheme } from "../theme/theme-provider.js";
 import type { Theme } from "../theme/themes.js";

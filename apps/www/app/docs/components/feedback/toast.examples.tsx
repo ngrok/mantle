@@ -3,7 +3,7 @@ import { Button, IconButton } from "@ngrok/mantle/button";
 import { Dialog } from "@ngrok/mantle/dialog";
 import { Sheet } from "@ngrok/mantle/sheet";
 import { Toast, makeToast } from "@ngrok/mantle/toast";
-import { XIcon } from "@phosphor-icons/react/X";
+import { XIcon } from "@phosphor-icons/react/dist/ssr/X";
 import { useState } from "react";
 import invariant from "tiny-invariant";
 import { PreviewCanvas } from "~/components/preview-canvas";

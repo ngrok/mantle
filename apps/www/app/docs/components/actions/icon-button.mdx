@@ -14,7 +14,7 @@ Initiates an action, such as completing a task or submitting information. Render
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
-import { GlobeIcon } from "@phosphor-icons/react/Globe";
+import { GlobeIcon } from "@phosphor-icons/react/dist/ssr/Globe";
 
 <IconButton appearance="ghost" intent="neutral" label="prestige worldwide" icon={<GlobeIcon />} />
 <IconButton appearance="filled" intent="neutral" label="prestige worldwide" icon={<GlobeIcon />} />
@@ -44,7 +44,7 @@ Use the `size` prop to control the box size of the icon button, default `md`. Th
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
-import { GlobeIcon } from "@phosphor-icons/react/Globe";
+import { GlobeIcon } from "@phosphor-icons/react/dist/ssr/Globe";
 
 <IconButton appearance="ghost" intent="neutral" label="prestige worldwide" size="2xs" icon={<GlobeIcon />} />
 <IconButton appearance="filled" intent="neutral" label="prestige worldwide" size="2xs" icon={<GlobeIcon />} />
@@ -85,7 +85,7 @@ Like [`Button`](/components/actions/button#type), `IconButton` defaults to **`ty
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
-import { GlobeIcon } from "@phosphor-icons/react/Globe";
+import { GlobeIcon } from "@phosphor-icons/react/dist/ssr/Globe";
 
 <IconButton appearance="ghost" intent="neutral" label="prestige worldwide" icon={<GlobeIcon />} />
 <IconButton appearance="outlined" intent="neutral" label="prestige worldwide" icon={<GlobeIcon />} />
@@ -106,7 +106,7 @@ A disabled or loading `IconButton` under `asChild` gets no `disabled` attribute,
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
-import { GlobeIcon } from "@phosphor-icons/react/Globe";
+import { GlobeIcon } from "@phosphor-icons/react/dist/ssr/Globe";
 import { Link, href } from "react-router";
 
 <IconButton

@@ -46,7 +46,7 @@ Every color, with and without an `icon`:
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";
-import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/dist/ssr/GlobeHemisphereWest";
 
 <Badge appearance="muted" color="neutral">
 	Muted neutral
@@ -66,7 +66,7 @@ To render _something else_ as a `Badge`, use the `asChild` prop to compose. This
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";
-import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/dist/ssr/GlobeHemisphereWest";
 import { Link, href } from "react-router";
 
 <Badge appearance="muted" asChild color="pink" icon={<GlobeHemisphereWestIcon />}>

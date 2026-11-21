@@ -9,8 +9,8 @@ import { SegmentedControl } from "@ngrok/mantle/segmented-control";
 import { Separator } from "@ngrok/mantle/separator";
 import { Sheet } from "@ngrok/mantle/sheet";
 import { Skeleton } from "@ngrok/mantle/skeleton";
-import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
-import { SmileyMeltingIcon } from "@phosphor-icons/react/SmileyMelting";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
+import { SmileyMeltingIcon } from "@phosphor-icons/react/dist/ssr/SmileyMelting";
 import {
 	useQuery,
 	useQueryClient,

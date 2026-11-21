@@ -1,7 +1,7 @@
-import { CopyIcon } from "@phosphor-icons/react/Copy";
-import { FileTextIcon } from "@phosphor-icons/react/FileText";
-import { PlusIcon } from "@phosphor-icons/react/Plus";
-import { DownloadIcon } from "@phosphor-icons/react/Download";
+import { CopyIcon } from "@phosphor-icons/react/dist/ssr/Copy";
+import { FileTextIcon } from "@phosphor-icons/react/dist/ssr/FileText";
+import { PlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
+import { DownloadIcon } from "@phosphor-icons/react/dist/ssr/Download";
 import { Icon } from "@ngrok/mantle/icon";
 import { SplitButton } from "@ngrok/mantle/split-button";
 

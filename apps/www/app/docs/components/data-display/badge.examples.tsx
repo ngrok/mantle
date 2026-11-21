@@ -1,6 +1,6 @@
 import { Badge } from "@ngrok/mantle/badge";
 import { colors } from "@ngrok/mantle/color";
-import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/dist/ssr/GlobeHemisphereWest";
 import { Link, href } from "react-router";
 
 import { PreviewCanvas } from "~/components/preview-canvas";

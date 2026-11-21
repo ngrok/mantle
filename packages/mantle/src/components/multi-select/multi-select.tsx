@@ -19,9 +19,9 @@ import type {
 	ComboboxProviderProps as AriakitComboboxProviderProps,
 } from "@ariakit/react/combobox";
 import { useStoreState as useAriakitStoreState } from "@ariakit/react/store";
-import { CheckIcon } from "@phosphor-icons/react/Check";
-import { LockIcon } from "@phosphor-icons/react/Lock";
-import { XIcon } from "@phosphor-icons/react/X";
+import { CheckIcon } from "@phosphor-icons/react/dist/ssr/Check";
+import { LockIcon } from "@phosphor-icons/react/dist/ssr/Lock";
+import { XIcon } from "@phosphor-icons/react/dist/ssr/X";
 import type {
 	ComponentProps,
 	Dispatch,

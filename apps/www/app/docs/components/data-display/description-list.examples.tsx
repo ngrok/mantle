@@ -1,6 +1,6 @@
 import { IconButton } from "@ngrok/mantle/button";
 import { DescriptionList } from "@ngrok/mantle/description-list";
-import { CopyIcon } from "@phosphor-icons/react/Copy";
+import { CopyIcon } from "@phosphor-icons/react/dist/ssr/Copy";
 
 import { PreviewCanvas } from "~/components/preview-canvas";
 

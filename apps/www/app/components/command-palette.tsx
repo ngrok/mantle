@@ -2,7 +2,7 @@ import { Button, IconButton } from "@ngrok/mantle/button";
 import { MetaKey } from "@ngrok/mantle/command";
 import { Kbd } from "@ngrok/mantle/kbd";
 import { Toast, makeToast } from "@ngrok/mantle/toast";
-import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
 import { Component, lazy, startTransition, Suspense, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useHotkeys } from "react-hotkeys-hook";

@@ -4,7 +4,7 @@ import { IconButton } from "@ngrok/mantle/button";
 import { Card } from "@ngrok/mantle/card";
 import { Checkbox } from "@ngrok/mantle/checkbox";
 import { Tooltip } from "@ngrok/mantle/tooltip";
-import { DotsThreeIcon } from "@phosphor-icons/react/DotsThree";
+import { DotsThreeIcon } from "@phosphor-icons/react/dist/ssr/DotsThree";
 import type { CSSProperties } from "react";
 import type { Config } from "./config";
 import type { Row } from "./data";

@@ -1,4 +1,4 @@
-import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
+import { CheckCircleIcon } from "@phosphor-icons/react/dist/ssr/CheckCircle";
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ReactNode } from "react";

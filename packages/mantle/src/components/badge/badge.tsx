@@ -82,7 +82,7 @@ type BadgeProps = ComponentProps<"span"> &
  * @example
  * ```tsx
  * import { Badge } from "@ngrok/mantle/badge";
- * import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
+ * import { CheckCircleIcon } from "@phosphor-icons/react/dist/ssr/CheckCircle";
  *
  * <Badge appearance="muted" color="success" icon={<CheckCircleIcon />}>
  *   Succeeded

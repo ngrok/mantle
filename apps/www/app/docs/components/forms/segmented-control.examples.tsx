@@ -1,8 +1,8 @@
 import { Button } from "@ngrok/mantle/button";
 import { Field, toErrorMessages } from "@ngrok/mantle/field";
 import { SegmentedControl } from "@ngrok/mantle/segmented-control";
-import { ListIcon } from "@phosphor-icons/react/List";
-import { SquaresFourIcon } from "@phosphor-icons/react/SquaresFour";
+import { ListIcon } from "@phosphor-icons/react/dist/ssr/List";
+import { SquaresFourIcon } from "@phosphor-icons/react/dist/ssr/SquaresFour";
 import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 import { z } from "zod";

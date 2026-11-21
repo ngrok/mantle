@@ -1,6 +1,6 @@
 "use client";
 
-import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/ssr/CaretDown";
 import { createContext, useContext, useMemo, type ComponentProps, type ReactNode } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";

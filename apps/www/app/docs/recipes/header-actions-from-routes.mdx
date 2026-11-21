@@ -73,7 +73,7 @@ Its shape here is one property:
 ```tsx
 // app/routes/endpoints.tsx
 import type { BreadcrumbHandle } from "@ngrok/mantle/breadcrumb";
-import { PlusIcon } from "@phosphor-icons/react/Plus";
+import { PlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
 import { type HeaderActionsHandle, PageActions } from "~/features/header-actions/header-actions";
 
 export const handle = {
@@ -109,8 +109,8 @@ data. If the actions must read the page component's own state, use the canonical
 
 ```tsx
 // app/features/playground/playground-actions.tsx
-import { PlusIcon } from "@phosphor-icons/react/Plus";
-import { SidebarSimpleIcon } from "@phosphor-icons/react/SidebarSimple";
+import { PlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
+import { SidebarSimpleIcon } from "@phosphor-icons/react/dist/ssr/SidebarSimple";
 import { useNavigate, useSearchParams } from "react-router";
 import { PageActions } from "~/features/header-actions/header-actions";
 
@@ -260,7 +260,7 @@ Pick a URL. The actions follow the deepest route that declares any:
 import { IconButton } from "@ngrok/mantle/button";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { Tooltip } from "@ngrok/mantle/tooltip";
-import { DotsThreeIcon } from "@phosphor-icons/react/DotsThree";
+import { DotsThreeIcon } from "@phosphor-icons/react/dist/ssr/DotsThree";
 import { isValidElement, type ReactElement } from "react";
 import { useMatches } from "react-router";
 

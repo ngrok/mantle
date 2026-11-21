@@ -2,8 +2,8 @@ import { cx } from "@ngrok/mantle/cx";
 import { useCopyToClipboard } from "@ngrok/mantle/hooks";
 import { Icon } from "@ngrok/mantle/icon";
 import { Slot } from "@ngrok/mantle/slot";
-import { CheckIcon } from "@phosphor-icons/react/Check";
-import { LinkIcon } from "@phosphor-icons/react/Link";
+import { CheckIcon } from "@phosphor-icons/react/dist/ssr/Check";
+import { LinkIcon } from "@phosphor-icons/react/dist/ssr/Link";
 import {
 	Children,
 	type ComponentProps,

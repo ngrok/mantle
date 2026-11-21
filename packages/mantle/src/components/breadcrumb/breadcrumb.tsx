@@ -1,6 +1,6 @@
 "use client";
 
-import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/ssr/CaretRight";
 import type { ComponentProps, ReactNode } from "react";
 import { cloneElement, isValidElement, useEffect, useRef } from "react";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";

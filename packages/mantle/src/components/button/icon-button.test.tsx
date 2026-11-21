@@ -1,4 +1,4 @@
-import { GlobeIcon } from "@phosphor-icons/react/Globe";
+import { GlobeIcon } from "@phosphor-icons/react/dist/ssr/Globe";
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";

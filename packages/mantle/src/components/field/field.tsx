@@ -1,6 +1,6 @@
 "use client";
 
-import { QuestionIcon } from "@phosphor-icons/react/Question";
+import { QuestionIcon } from "@phosphor-icons/react/dist/ssr/Question";
 import {
 	cloneElement,
 	type ComponentProps,

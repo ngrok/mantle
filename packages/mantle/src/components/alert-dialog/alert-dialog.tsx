@@ -1,7 +1,7 @@
 "use client";
 
-import { InfoIcon } from "@phosphor-icons/react/Info";
-import { WarningIcon } from "@phosphor-icons/react/Warning";
+import { InfoIcon } from "@phosphor-icons/react/dist/ssr/Info";
+import { WarningIcon } from "@phosphor-icons/react/dist/ssr/Warning";
 import { type ComponentProps, type ReactNode, createContext, useContext, useMemo } from "react";
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";

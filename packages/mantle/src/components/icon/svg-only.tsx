@@ -58,7 +58,7 @@ const hasAccessibleNaming = (props: NamedSvgProps) =>
  *
  * @example
  * ```tsx
- * import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
+ * import { ShrimpIcon } from "@phosphor-icons/react/dist/ssr/Shrimp";
  *
  * // Decorative: renders aria-hidden="true".
  * <SvgOnly svg={<ShrimpIcon />} />

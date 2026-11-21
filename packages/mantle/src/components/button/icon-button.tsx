@@ -1,4 +1,4 @@
-import { CircleNotchIcon } from "@phosphor-icons/react/CircleNotch";
+import { CircleNotchIcon } from "@phosphor-icons/react/dist/ssr/CircleNotch";
 import type { ComponentProps, ReactNode } from "react";
 import { Children, cloneElement, isValidElement } from "react";
 import invariant from "tiny-invariant";

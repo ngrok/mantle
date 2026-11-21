@@ -1,7 +1,7 @@
 import { IconButton } from "@ngrok/mantle/button";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { Tooltip } from "@ngrok/mantle/tooltip";
-import { DotsThreeIcon } from "@phosphor-icons/react/DotsThree";
+import { DotsThreeIcon } from "@phosphor-icons/react/dist/ssr/DotsThree";
 import { isValidElement, type ReactElement } from "react";
 import { useMatches } from "react-router";
 

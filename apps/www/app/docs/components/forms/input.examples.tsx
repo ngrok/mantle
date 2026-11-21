@@ -1,8 +1,8 @@
 import { Button } from "@ngrok/mantle/button";
 import { Field, toErrorMessages } from "@ngrok/mantle/field";
 import { Input, InputCapture } from "@ngrok/mantle/input";
-import { InfoIcon } from "@phosphor-icons/react/Info";
-import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
+import { InfoIcon } from "@phosphor-icons/react/dist/ssr/Info";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
 import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
 

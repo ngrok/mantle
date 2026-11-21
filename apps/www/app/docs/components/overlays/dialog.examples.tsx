@@ -3,7 +3,7 @@ import { Code } from "@ngrok/mantle/code";
 import { Dialog } from "@ngrok/mantle/dialog";
 import { Sheet } from "@ngrok/mantle/sheet";
 import { Tooltip } from "@ngrok/mantle/tooltip";
-import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
+import { TrashSimpleIcon } from "@phosphor-icons/react/dist/ssr/TrashSimple";
 
 import { FullPageDialogDemo } from "~/examples/dialog/dialog-full-page-demo";
 import { TanStackFormDemo } from "~/examples/dialog/dialog-tanstack-form-demo";

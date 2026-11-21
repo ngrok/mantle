@@ -101,7 +101,7 @@ type AnchorProps = Omit<ComponentProps<"a">, "rel"> &
  * @example
  * ```tsx
  * import { Anchor } from "@ngrok/mantle/anchor";
- * import { BookIcon } from "@phosphor-icons/react/Book";
+ * import { BookIcon } from "@phosphor-icons/react/dist/ssr/Book";
  * import { Link } from "react-router";
  *
  * // Basic external link.

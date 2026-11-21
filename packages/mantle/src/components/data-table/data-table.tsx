@@ -12,8 +12,8 @@
 // re-runs the part as well. Parts that read the React-facing `table` from
 // context need no boundary: `useTable` returns a new value with each state
 // change the consumer's selector includes and with each new options object.
-import { MinusIcon } from "@phosphor-icons/react/Minus";
-import { PlusIcon } from "@phosphor-icons/react/Plus";
+import { MinusIcon } from "@phosphor-icons/react/dist/ssr/Minus";
+import { PlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
 import {
 	type CellData,
 	type Column,
@@ -1295,8 +1295,8 @@ type DataTableEmptyRowProps = ComponentProps<typeof Table.Row> & WithDataSlot;
  * import { DataTable } from "@ngrok/mantle/data-table";
  * import { Empty } from "@ngrok/mantle/empty";
  * import { Button } from "@ngrok/mantle/button";
- * import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
- * import { TrayIcon } from "@phosphor-icons/react/Tray";
+ * import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
+ * import { TrayIcon } from "@phosphor-icons/react/dist/ssr/Tray";
  *
  * // `table` is your useTable instance; derive everything else from it.
  * const rows = table.getRowModel().rows;

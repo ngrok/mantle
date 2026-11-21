@@ -15,7 +15,7 @@ A succinct message that appears temporarily. Render one `Toaster` at the root of
 ```tsx
 import { Button, IconButton } from "@ngrok/mantle/button";
 import { makeToast, Toast, Toaster } from "@ngrok/mantle/toast";
-import { XIcon } from "@phosphor-icons/react/X";
+import { XIcon } from "@phosphor-icons/react/dist/ssr/X";
 
 // Only one <Toaster /> should be rendered at a time
 // add it to the root of your app
@@ -73,7 +73,7 @@ import { Button, IconButton } from "@ngrok/mantle/button";
 import { Dialog } from "@ngrok/mantle/dialog";
 import { Sheet } from "@ngrok/mantle/sheet";
 import { makeToast, Toast } from "@ngrok/mantle/toast";
-import { XIcon } from "@phosphor-icons/react/X";
+import { XIcon } from "@phosphor-icons/react/dist/ssr/X";
 
 function showToast(intent: "danger" | "success" | "warning") {
 	makeToast(

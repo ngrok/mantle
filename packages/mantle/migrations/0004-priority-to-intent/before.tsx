@@ -4,8 +4,8 @@ import { Badge } from "@ngrok/mantle/badge";
 import { Button, Button as MantleButton, IconButton } from "@ngrok/mantle/button";
 import { Toast } from "@ngrok/mantle/toast";
 import { Button as AntButton } from "antd";
-import { CopyIcon } from "@phosphor-icons/react/Copy";
-import { XIcon } from "@phosphor-icons/react/X";
+import { CopyIcon } from "@phosphor-icons/react/dist/ssr/Copy";
+import { XIcon } from "@phosphor-icons/react/dist/ssr/X";
 
 declare const tone: "neutral" | "danger";
 declare const legacyTone: "default" | "danger";

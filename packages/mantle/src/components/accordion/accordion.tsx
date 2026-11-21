@@ -1,6 +1,6 @@
 "use client";
 
-import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/ssr/CaretDown";
 import {
 	type ComponentProps,
 	type ComponentRef,
@@ -449,7 +449,7 @@ const defaultTriggerIcon = <CaretDownIcon weight="bold" />;
  * @example
  * ```tsx
  * // Custom icon
- * import { PlusIcon } from "@phosphor-icons/react/Plus";
+ * import { PlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
  *
  * <Accordion.Root type="single" defaultValue="item-1">
  *   <Accordion.Item value="item-1">

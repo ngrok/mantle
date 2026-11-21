@@ -3,7 +3,7 @@ import { Button } from "@ngrok/mantle/button";
 import { Empty } from "@ngrok/mantle/empty";
 import { Input } from "@ngrok/mantle/input";
 import { Well } from "@ngrok/mantle/well";
-import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
 import { useRef, useState } from "react";
 import { DocIndexList } from "~/components/doc-index-list";
 import {

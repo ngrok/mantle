@@ -2,8 +2,8 @@ import { Icon } from "@ngrok/mantle/icon";
 import { SplitButton } from "@ngrok/mantle/split-button";
 import { Toast, makeToast } from "@ngrok/mantle/toast";
 import { copyToClipboard } from "@ngrok/mantle/utils";
-import { CopyIcon } from "@phosphor-icons/react/Copy";
-import { FileTextIcon } from "@phosphor-icons/react/FileText";
+import { CopyIcon } from "@phosphor-icons/react/dist/ssr/Copy";
+import { FileTextIcon } from "@phosphor-icons/react/dist/ssr/FileText";
 import { useLocation } from "react-router";
 
 type Props = {

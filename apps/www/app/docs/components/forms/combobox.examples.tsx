@@ -1,7 +1,7 @@
 import { Button } from "@ngrok/mantle/button";
 import { Combobox } from "@ngrok/mantle/combobox";
 import { Field, toErrorMessages } from "@ngrok/mantle/field";
-import { CirclesThreePlusIcon } from "@phosphor-icons/react/CirclesThreePlus";
+import { CirclesThreePlusIcon } from "@phosphor-icons/react/dist/ssr/CirclesThreePlus";
 import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
 

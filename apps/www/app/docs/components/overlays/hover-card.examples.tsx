@@ -1,8 +1,8 @@
 import { Button } from "@ngrok/mantle/button";
 import { HoverCard } from "@ngrok/mantle/hover-card";
 import { Icon } from "@ngrok/mantle/icon";
-import { CalendarIcon } from "@phosphor-icons/react/Calendar";
-import { ShrimpIcon } from "@phosphor-icons/react/Shrimp";
+import { CalendarIcon } from "@phosphor-icons/react/dist/ssr/Calendar";
+import { ShrimpIcon } from "@phosphor-icons/react/dist/ssr/Shrimp";
 
 import { PreviewCanvas } from "~/components/preview-canvas";
 

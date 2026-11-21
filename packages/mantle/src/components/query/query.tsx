@@ -1,7 +1,7 @@
 "use client";
 
-import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
-import { XIcon } from "@phosphor-icons/react/X";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
+import { XIcon } from "@phosphor-icons/react/dist/ssr/X";
 import type {
 	ComponentProps,
 	Dispatch,

@@ -1,4 +1,4 @@
-import { WarningIcon } from "@phosphor-icons/react/Warning";
+import { WarningIcon } from "@phosphor-icons/react/dist/ssr/Warning";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 import { SvgOnly } from "./svg-only.js";

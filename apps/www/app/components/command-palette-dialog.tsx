@@ -1,11 +1,11 @@
 import { Command } from "@ngrok/mantle/command";
 import type { ResolvedTheme } from "@ngrok/mantle/theme";
 import { useAppliedTheme, useTheme } from "@ngrok/mantle/theme";
-import { ArrowRightIcon } from "@phosphor-icons/react/ArrowRight";
-import { ArrowSquareOutIcon } from "@phosphor-icons/react/ArrowSquareOut";
-import { CheckIcon } from "@phosphor-icons/react/Check";
-import { MoonIcon } from "@phosphor-icons/react/Moon";
-import { SunIcon } from "@phosphor-icons/react/Sun";
+import { ArrowRightIcon } from "@phosphor-icons/react/dist/ssr/ArrowRight";
+import { ArrowSquareOutIcon } from "@phosphor-icons/react/dist/ssr/ArrowSquareOut";
+import { CheckIcon } from "@phosphor-icons/react/dist/ssr/Check";
+import { MoonIcon } from "@phosphor-icons/react/dist/ssr/Moon";
+import { SunIcon } from "@phosphor-icons/react/dist/ssr/Sun";
 import type { PropsWithChildren, ReactNode } from "react";
 import { Fragment, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";

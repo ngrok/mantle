@@ -111,10 +111,10 @@ import {
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { Empty } from "@ngrok/mantle/empty";
 import { Icon } from "@ngrok/mantle/icon";
-import { DotsThreeIcon } from "@phosphor-icons/react/DotsThree";
-import { PencilSimpleIcon } from "@phosphor-icons/react/PencilSimple";
-import { TrashIcon } from "@phosphor-icons/react/Trash";
-import { TrayIcon } from "@phosphor-icons/react/Tray";
+import { DotsThreeIcon } from "@phosphor-icons/react/dist/ssr/DotsThree";
+import { PencilSimpleIcon } from "@phosphor-icons/react/dist/ssr/PencilSimple";
+import { TrashIcon } from "@phosphor-icons/react/dist/ssr/Trash";
+import { TrayIcon } from "@phosphor-icons/react/dist/ssr/Tray";
 import { href, useNavigate } from "react-router";
 
 type Payment = {
@@ -439,8 +439,8 @@ Type into the filter below to see the "no results" branch and its working `Clear
 import { Button } from "@ngrok/mantle/button";
 import { DataTable } from "@ngrok/mantle/data-table";
 import { Empty } from "@ngrok/mantle/empty";
-import { MagnifyingGlassIcon } from "@phosphor-icons/react/MagnifyingGlass";
-import { TrayIcon } from "@phosphor-icons/react/Tray";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
+import { TrayIcon } from "@phosphor-icons/react/dist/ssr/Tray";
 
 const rows = table.getRowModel().rows;
 const isFiltered = globalFilter.trim() !== ""; // or table.state.columnFilters.length > 0
@@ -499,7 +499,7 @@ With no data at all, the table shows the first branch:
 import { Button } from "@ngrok/mantle/button";
 import { DataTable, useTable } from "@ngrok/mantle/data-table";
 import { Empty } from "@ngrok/mantle/empty";
-import { TrayIcon } from "@phosphor-icons/react/Tray";
+import { TrayIcon } from "@phosphor-icons/react/dist/ssr/Tray";
 
 const noPayments: Payment[] = [];
 
@@ -622,9 +622,9 @@ import { IconButton } from "@ngrok/mantle/button";
 import { DataTable } from "@ngrok/mantle/data-table";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { Icon } from "@ngrok/mantle/icon";
-import { DotsThreeIcon } from "@phosphor-icons/react/DotsThree";
-import { PencilSimpleIcon } from "@phosphor-icons/react/PencilSimple";
-import { TrashIcon } from "@phosphor-icons/react/Trash";
+import { DotsThreeIcon } from "@phosphor-icons/react/dist/ssr/DotsThree";
+import { PencilSimpleIcon } from "@phosphor-icons/react/dist/ssr/PencilSimple";
+import { TrashIcon } from "@phosphor-icons/react/dist/ssr/Trash";
 
 columnHelper.display({
 	id: "actions",
@@ -1155,8 +1155,8 @@ import {
 	useTable,
 } from "@ngrok/mantle/data-table";
 import { SandboxedOnClick } from "@ngrok/mantle/sandboxed-on-click";
-import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
-import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/ssr/CaretDown";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/ssr/CaretRight";
 import { useState } from "react";
 import { Link, href, useNavigate } from "react-router";
 

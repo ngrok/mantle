@@ -1,7 +1,7 @@
 import { Icon } from "@ngrok/mantle/icon";
 import { cx } from "@ngrok/mantle/cx";
-import { CheckIcon } from "@phosphor-icons/react/Check";
-import { XIcon } from "@phosphor-icons/react/X";
+import { CheckIcon } from "@phosphor-icons/react/dist/ssr/Check";
+import { XIcon } from "@phosphor-icons/react/dist/ssr/X";
 
 type VariantIndicatorProps = {
 	/**

@@ -4,7 +4,7 @@ import { useCopyToClipboard } from "@ngrok/mantle/hooks";
 import { Icon } from "@ngrok/mantle/icon";
 import { Input } from "@ngrok/mantle/input";
 import { Label } from "@ngrok/mantle/label";
-import { CheckIcon } from "@phosphor-icons/react/Check";
+import { CheckIcon } from "@phosphor-icons/react/dist/ssr/Check";
 import { useEffect, useRef, useState } from "react";
 import { type IconData, iconData } from "~/features/icons/icon-data";
 import { rankIcons } from "~/features/icons/rank-icons";
