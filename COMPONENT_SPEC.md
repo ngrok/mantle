@@ -437,6 +437,9 @@ CONVENTIONS.md covers general style ([TypeScript](./CONVENTIONS.md#typescript),
 
 - `"use client";` on the first line when the file uses hooks, DOM event handlers, browser APIs, or context.
   A file that uses none of them leaves it out ([§3.7](#37-ssr-and-first-paint)).
+- Stay safe for React Server Components where it costs nothing. Mantle apps do not use them, so they never
+  justify a change to client behavior, a new file or wrapper, or `"use no memo"`
+  ([CONVENTIONS.md § React Compiler](./CONVENTIONS.md#react-compiler)).
 - Named exports only, no default exports. Relative imports ending in `.js` (`../../utils/cx/cx.js`).
 - `type`, not `interface`. Props based on `ComponentProps<…>`, which already includes `ref`. Never
   `HTMLAttributes<…>` alone, which does not.
@@ -576,12 +579,8 @@ Errors are control flow. `console.error` is not error handling.
 - Client-only work goes through `BrowserOnly` (children as a render function, so it cannot evaluate during
   SSR) or a browser-API hook that declares its server answer. `useIsHydrated` is the sanctioned escape hatch.
 - Never branch on `typeof window` inside render.
-- A part with no interaction aims to ship no client JavaScript, so it uses no hooks, event handlers, or
-  browser APIs. A compound component keeps its static parts free of them beside its interactive parts.
-- Leaving out `"use client"` is not enough. The build adds the directive to each chunk that the React
-  Compiler compiled (`packages/mantle/scripts/preserve-use-client.ts`), and an import from a client module
-  puts the part in the client graph. Only a host that renders React Server Components can skip the part's
-  code. Plain SSR with hydration ships it.
+- A part with no interaction uses no hooks, event handlers, or browser APIs, so it adds no client work. A
+  compound component keeps its static parts free of them beside its interactive parts.
 
 ### 3.8. Browser translation
 

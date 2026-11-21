@@ -16,7 +16,7 @@ Do each piece of work at the earliest place that can do it: the build, then the 
 - Runtime work on a value that the build knows.
 - A module side effect on import, which a bundler cannot remove.
 - An import that pulls a second component family into a leaf component.
-- `"use client"` or a hook in a part that only renders markup. The part cannot stay a server component, so it ships client JavaScript for nothing.
+- A hook or `"use client"` in a part that only renders markup. The part adds client work for nothing.
 
 **In this repo:**
 

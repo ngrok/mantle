@@ -218,8 +218,8 @@ faith from a vendor.
 Mantle assumes a server, and if it renders wrong for one frame, that's a bug. Marketing
 sites prerender each page; product apps render the first document on the server, then
 route as a single-page app. Either way the content is in the HTML, so search and answer
-engines read it with no script. Where an app renders React Server Components, a part with
-no interaction aims to ship no client JavaScript. The
+engines read it with no script. Mantle components stay safe for React Server Components
+where that costs nothing, but nothing in Mantle bends for them. The
 [theme](/components/primitives/theme) preference persists in a cookie, not just localStorage, so SSR
 renders the correct `<html>` class; a blocking inline script (written as a plain
 TypeScript function and stringified into the `<head>`) resolves the cookie and OS
