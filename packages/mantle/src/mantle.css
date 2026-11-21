@@ -324,9 +324,20 @@ in a plain stylesheet (a third-party widget override) resolves to nothing.
 	--text-mono--line-height: 1.25rem;
 	--text-size-inherit: inherit;
 
-	/* Semantic tokens - reference values defined in theme-specific :root blocks.
-	   Using @theme inline so Tailwind registers these for utility generation
-	   without emitting redundant CSS custom property declarations. */
+	/* The tooltip colors are literals, so no theme rule declares them. Keep them out of the
+	   `reference` block below, so a plain stylesheet can still read them with `var()`. */
+	--background-color-tooltip: #000;
+	--text-color-tooltip: #fff;
+}
+
+/*
+The semantic tokens. The theme blocks below set their values. This block only registers the
+names, so that Tailwind makes the utilities (`bg-card`, `text-muted`, …).
+Why `reference`: without it, Tailwind also writes each `--x: var(--x)` into `@layer theme`.
+That declaration is a cycle, so it is invalid. On `:root` the theme blocks override it. On a
+shadow `:host` it makes the token invalid, so the host does not inherit the page value.
+*/
+@theme inline reference {
 	--background-color-base: var(--background-color-base);
 	--background-color-card: var(--background-color-card);
 	--background-color-popover: var(--background-color-popover);
@@ -366,9 +377,6 @@ in a plain stylesheet (a third-party widget override) resolves to nothing.
 	--text-color-muted: var(--text-color-muted);
 	--text-color-placeholder: var(--text-color-placeholder);
 	--text-color-on-filled: var(--text-color-on-filled);
-
-	--background-color-tooltip: #000;
-	--text-color-tooltip: #fff;
 
 	--background-color-filled-neutral: var(--background-color-filled-neutral);
 	--background-color-filled-accent: var(--background-color-filled-accent);
