@@ -31,7 +31,11 @@ const KIND_LABELS: Record<NonNullable<GapSignal["kind"]>, string> = {
 	"hook-or-utility": "a hook or utility",
 	pattern: "a pattern",
 	docs: "docs",
+	other: "something else",
 };
+
+/** The most characters of a write-up that Slack shows. The MNTL issue holds the full text. */
+const SLACK_WRITEUP_LENGTH = 700;
 
 const WORKAROUND_LABELS: Record<NonNullable<GapSignal["workaround"]>, string> = {
 	"built-custom": "It built its own instead.",
@@ -94,13 +98,18 @@ function goal(event: ToolCallEvent): string | undefined {
 	return event.intent == null ? undefined : `> Goal: ${escape(event.intent)}`;
 }
 
+/** The fields of a call that a gap report renders. */
+type GapReport = Pick<
+	ToolCallEvent,
+	"client" | "source" | "workspace" | "ticket" | "intent" | "dataVersion" | "gap"
+>;
+
 /**
  * Where the call came from: the ngrok repo of its `source`, then its
- * workspace, such as `ngrok/frontend › dashboard`.
+ * workspace, such as `ngrok-private/frontend › dashboard`.
  */
-function origin(event: ToolCallEvent): string | undefined {
-	const repo = event.source == null ? undefined : `ngrok/${event.source}`;
-	return [repo, event.workspace].filter(Boolean).join(" › ") || undefined;
+function origin(event: GapReport): string | undefined {
+	return [event.source, event.workspace].filter(Boolean).join(" › ") || undefined;
 }
 
 /**
@@ -112,18 +121,104 @@ function keyOf(base: string, event: ToolCallEvent): string {
 	return from == null ? base : `${base} @ ${from}`;
 }
 
-/** A Slack link to the Linear issue of the call. `ticketKey` lets no markup through. */
-function ticketLink(event: ToolCallEvent): string | undefined {
-	return event.ticket == null
-		? undefined
-		: `<https://linear.app/ngrok/issue/${event.ticket}|${event.ticket}>`;
+/** The Linear URL of an issue key. `ticketKey` lets no markup through. */
+function issueUrl(key: string): string {
+	return `https://linear.app/ngrok/issue/${key}`;
 }
 
-/** The client, where the call came from, its Linear issue, and the data version. */
-function footer(event: ToolCallEvent): string {
-	const version = event.dataVersion == null ? undefined : `mantle ${event.dataVersion}`;
-	return `_${[escape(clientName(event.client)), origin(event), ticketLink(event), version].filter(Boolean).join(" · ")}_`;
+function slackLink(key: string): string {
+	return `<${issueUrl(key)}|${key}>`;
 }
+
+function versionOf(event: GapReport): string | undefined {
+	return event.dataVersion == null ? undefined : `mantle ${event.dataVersion}`;
+}
+
+/** The client, where the call came from, the Linear issue of its work, and the data version. */
+function footer(event: ToolCallEvent, { ticket = true } = {}): string {
+	const link = ticket && event.ticket != null ? slackLink(event.ticket) : undefined;
+	return `_${[escape(clientName(event.client)), origin(event), link, versionOf(event)].filter(Boolean).join(" · ")}_`;
+}
+
+/** What a gap report needed, what the agent did instead, and the closest part, with `strong` for the part name. */
+function gapSummary(gap: GapSignal, strong: (text: string) => string): string {
+	return lines(
+		`An agent needed ${gap.kind == null ? "something" : KIND_LABELS[gap.kind]}.`,
+		gap.workaround == null ? undefined : WORKAROUND_LABELS[gap.workaround],
+		gap.closestPart == null ? undefined : `The closest part was ${strong(gap.closestPart)}.`,
+	);
+}
+
+/** The free text of a gap report, labeled, in the order a person reads it. */
+function gapFields(event: GapReport): Array<[label: string, value: string]> {
+	const fields: Array<[string, string | undefined]> = [
+		["Use case", event.intent],
+		["Tried", event.gap?.tried],
+		["Agent's take", event.gap?.reflection],
+		["Built instead", event.gap?.built],
+	];
+	return fields.filter((field): field is [string, string] => field[1] != null);
+}
+
+/** The work ticket of a gap report, linked, then its Linear title. */
+function workOf(event: GapReport, link: (key: string) => string, text: (value: string) => string) {
+	if (event.ticket == null) {
+		return undefined;
+	}
+	const title = event.gap?.work == null ? "" : ` ${text(event.gap.work)}`;
+	return `${link(event.ticket)}${title}`;
+}
+
+/**
+ * The MNTL issue of a gap report, in markdown. A comment that adds the report
+ * to an issue uses the same description.
+ *
+ * @example
+ * gapIssueOf(report).title; // "MCP gap: stepper"
+ */
+export function gapIssueOf(event: GapReport & { gap: GapSignal }): {
+	title: string;
+	description: string;
+} {
+	const work = workOf(
+		event,
+		(key) => `[${key}](${issueUrl(key)})`,
+		(value) => value,
+	);
+	const from = [clientName(event.client), origin(event), versionOf(event)];
+	return {
+		title: `MCP gap: ${event.gap.tokens.join(" ")}`,
+		description: sections(
+			gapSummary(event.gap, (part) => `**${part}**`),
+			[
+				...(work == null ? [] : [`- **Working on:** ${work}`]),
+				...gapFields(event).map(([label, value]) => `- **${label}:** ${value}`),
+			].join("\n") || undefined,
+			event.gap.writeup == null ? undefined : `## Write-up\n\n${event.gap.writeup}`,
+			`Reported through the mantle MCP server: ${from.filter(Boolean).join(" · ")}`,
+		),
+	};
+}
+
+/**
+ * The first `length` characters of markdown. A cut inside a code fence closes
+ * the fence, so the text after it keeps its format.
+ *
+ * @example
+ * clipMarkdown("```tsx\n<Steps />\n```", 12); // "```tsx\n<Step…\n```"
+ */
+export function clipMarkdown(markdown: string, length: number): string {
+	if (markdown.length <= length) {
+		return markdown;
+	}
+	const clipped = `${markdown.slice(0, length).trimEnd()}…`;
+	return (clipped.match(/```/g)?.length ?? 0) % 2 === 1 ? `${clipped}\n\`\`\`` : clipped;
+}
+
+const ISSUE_ACTIONS: Record<NonNullable<GapSignal["issue"]>["action"], string> = {
+	created: "new",
+	commented: "+evidence on",
+};
 
 /**
  * The Slack alert for a call that a person must see now, or `undefined`:
@@ -140,17 +235,23 @@ export function alertOf(event: ToolCallEvent): Alert | undefined {
 	const { gap } = event;
 	if (gap?.source === "report_gap") {
 		const need = escape(gap.tokens.join(" "));
-		const needed = gap.kind == null ? "something" : KIND_LABELS[gap.kind];
-		const workaround = gap.workaround == null ? undefined : WORKAROUND_LABELS[gap.workaround];
-		const closest =
-			gap.closestPart == null ? undefined : `The closest part was *${escape(gap.closestPart)}*.`;
+		const issue =
+			gap.issue == null ? "" : ` · ${ISSUE_ACTIONS[gap.issue.action]} ${slackLink(gap.issue.key)}`;
+		const work = workOf(event, slackLink, escape);
+		const quoted = [
+			...(work == null ? [] : [`*Working on:* ${work}`]),
+			...gapFields(event).map(([label, value]) => `*${label}:* ${escape(value)}`),
+		].map((line) => `> ${line}`);
 		return {
 			key: keyOf(`gap:${need}`, event),
 			text: sections(
-				`:jigsaw: *Gap reported: "${need}"*`,
-				lines(`An agent needed ${needed}.`, workaround, closest),
-				goal(event),
-				footer(event),
+				`:jigsaw: *Gap reported: "${need}"*${issue}`,
+				escape(gapSummary(gap, (part) => `*${part}*`)),
+				quoted.length === 0 ? undefined : lines(...quoted),
+				gap.writeup == null
+					? undefined
+					: `*Write-up*\n${escape(clipMarkdown(gap.writeup, SLACK_WRITEUP_LENGTH))}`,
+				footer(event, { ticket: false }),
 			),
 		};
 	}

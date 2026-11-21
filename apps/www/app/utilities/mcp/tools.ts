@@ -340,8 +340,11 @@ export function gapTokens(query: string): string[] {
 /** The longest intent that the log keeps, in characters. */
 const INTENT_LOG_LENGTH = 500;
 
-/** A code span, a tag, a call, or an assignment. An intent with one is not logged. */
-const CODE_SIGNAL = /[`{};=]|<\/?\p{L}|\p{L}\(/u;
+/**
+ * A code span, a tag, a call, an assignment, or a semicolon with no space
+ * after it. An intent with one is not logged. Why the space: prose uses `; `.
+ */
+const CODE_SIGNAL = /[`{}=]|;(?!\s|$)|<\/?\p{L}|\p{L}\(/u;
 
 /**
  * A number, `@`, `:`, a slash, a bracket, `_`, `$`, `#`, a dot inside a word,
@@ -350,10 +353,10 @@ const CODE_SIGNAL = /[`{};=]|<\/?\p{L}|\p{L}\(/u;
 const UNSAFE_WORD = /[\p{N}@:/\\<>()[\]_$#]|\p{L}\.\p{L}|^\p{P}*\./u;
 
 /**
- * The part of an agent's `intent` that is safe to log. An intent that holds
- * code (a code span, a tag, a call, or an assignment) is not logged. In other
- * intents, a word goes when it matches `UNSAFE_WORD`, so URLs, emails, paths,
- * domains, dotfiles, and IDs do not survive, in any script.
+ * The part of an agent's free text, such as `intent`, that is safe to log.
+ * Backticks around a span go first, so "get `Tabs`" logs as "get Tabs". Text
+ * that still holds code (a tag, a call, or an assignment) is not logged. In other text, a word goes when it matches `UNSAFE_WORD`, so URLs,
+ * emails, paths, domains, dotfiles, and IDs do not survive, in any script.
  * Returns `undefined` when no word is left.
  *
  * @example
@@ -361,10 +364,11 @@ const UNSAFE_WORD = /[\p{N}@:/\\<>()[\]_$#]|\p{L}\.\p{L}|^\p{P}*\./u;
  * // "Settings page for with a danger zone, ticket"
  */
 export function scrubIntent(intent: string): string | undefined {
-	if (CODE_SIGNAL.test(intent)) {
+	const unwrapped = intent.replace(/`([^`]+)`/g, "$1");
+	if (CODE_SIGNAL.test(unwrapped)) {
 		return undefined;
 	}
-	const kept = intent
+	const kept = unwrapped
 		.split(/\s+/)
 		.filter((word) => word !== "" && !UNSAFE_WORD.test(word))
 		.join(" ")

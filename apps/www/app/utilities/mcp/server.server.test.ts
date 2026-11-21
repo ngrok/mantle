@@ -14,6 +14,7 @@ import {
 	type McpDependencies,
 	type ToolCallEvent,
 } from "~/utilities/mcp/server.server";
+import type { LinearGaps, LinearIssue } from "~/utilities/mcp/linear.server";
 import { packageFilesFixture } from "~/utilities/mcp/test-fixtures";
 import { ServerBusyError, versionDataFromFiles } from "~/utilities/mcp/version-data.server";
 
@@ -147,7 +148,7 @@ describe("the mantle MCP server", () => {
 		expect(log.mock.lastCall?.[0].gap).toBeUndefined();
 	});
 
-	it("logs a gap report with an allowlisted closest part", async () => {
+	it("logs a gap report with an allowlisted closest part and scrubbed context", async () => {
 		const log = vi.fn<(event: ToolCallEvent) => void>();
 
 		const { text } = await callTool(dependencies({ log }), "report_gap", {
@@ -156,6 +157,10 @@ describe("the mantle MCP server", () => {
 			kind: "component",
 			workaround: "composed-mantle-parts",
 			closestPart: "dialog",
+			intent: "onboarding page, add a setup checklist, need numbered steps",
+			tried: "find `stepper`, find wizard, get Tabs, see src/steps.tsx",
+			reflection: "I would use Tabs, but it has no numbered steps or a done state",
+			built: "Render <Steps current={2} />",
 		});
 
 		expect(text).toBe("Reported: stepper. Thank you. Do not report this need again in this task.");
@@ -168,6 +173,9 @@ describe("the mantle MCP server", () => {
 					kind: "component",
 					workaround: "composed-mantle-parts",
 					closestPart: "Dialog",
+					tried: "find stepper, find wizard, get Tabs, see",
+					reflection: "I would use Tabs, but it has no numbered steps or a done state",
+					built: undefined,
 				},
 			}),
 		);
@@ -175,7 +183,14 @@ describe("the mantle MCP server", () => {
 
 	it("requires a ticket on report_gap, and logs none as no ticket", async () => {
 		const log = vi.fn<(event: ToolCallEvent) => void>();
-		const gap = { need: "stepper", kind: "component", workaround: "built-custom" };
+		const gap = {
+			need: "stepper",
+			kind: "component",
+			workaround: "built-custom",
+			intent: "onboarding page, need steps",
+			tried: "find stepper",
+			reflection: "I would use Tabs, but it has no steps",
+		};
 
 		const missing = await callToolFromFrontend(dependencies({ log }), "report_gap", gap);
 		const missingEvent = log.mock.lastCall?.[0];
@@ -188,8 +203,176 @@ describe("the mantle MCP server", () => {
 		expect(missingEvent).toMatchObject({ errorKind: "validation", invalidFields: ["ticket"] });
 		expect(none.isError).toBe(false);
 		expect(log).toHaveBeenLastCalledWith(
-			expect.objectContaining({ outcome: "ok", source: "frontend", ticket: undefined }),
+			expect.objectContaining({
+				outcome: "ok",
+				source: "ngrok-private/frontend",
+				ticket: undefined,
+			}),
 		);
+	});
+
+	describe("report_gap with Linear", () => {
+		const issues: Record<string, LinearIssue> = {
+			"CDATA-1234": { id: "u1", key: "CDATA-1234", title: "Usage page: cost breakdown" },
+			"MNTL-121": { id: "u2", key: "MNTL-121", title: "Stepper component" },
+		};
+
+		/** A fake Linear with `issues`, the `similar` results, and spies on the writes. */
+		function fakeLinear(similar: LinearIssue[] = []) {
+			return {
+				issue: vi.fn<LinearGaps["issue"]>(async (key) => issues[key]),
+				similar: vi.fn<LinearGaps["similar"]>(async () => similar),
+				create: vi.fn<LinearGaps["create"]>(async () => "MNTL-130"),
+				comment: vi.fn<LinearGaps["comment"]>(async () => true),
+			};
+		}
+
+		const gap = {
+			need: "stepper",
+			kind: "component",
+			workaround: "built-custom",
+			intent: "usage page, add a setup checklist, need numbered steps",
+			tried: "find stepper, get Tabs",
+			reflection: "I would use Tabs, but it has no numbered steps",
+			ticket: "cdata-1234",
+		};
+
+		it("creates an MNTL issue for a novel gap from a real ngrok ticket, and logs the ticket", async () => {
+			const log = vi.fn<(event: ToolCallEvent) => void>();
+			const linear = fakeLinear();
+
+			const { text } = await callTool(dependencies({ log, linear }), "report_gap", gap);
+
+			expect(text).toBe(
+				"Reported as MNTL-130. Thank you. Do not report this need again in this task.",
+			);
+			expect(linear.create.mock.lastCall?.[0].description).toContain(
+				"- **Working on:** [CDATA-1234](https://linear.app/ngrok/issue/CDATA-1234) Usage page: cost breakdown",
+			);
+			expect(log.mock.lastCall?.[0]).toMatchObject({
+				source: undefined,
+				ticket: "CDATA-1234",
+				gap: { work: "Usage page: cost breakdown", issue: { key: "MNTL-130", action: "created" } },
+			});
+		});
+
+		it("lists similar MNTL issues and writes nothing until the agent picks one", async () => {
+			const log = vi.fn<(event: ToolCallEvent) => void>();
+			const linear = fakeLinear([issues["MNTL-121"] as LinearIssue]);
+
+			const first = await callTool(dependencies({ log, linear }), "report_gap", gap);
+			const firstEvent = log.mock.lastCall?.[0];
+			const second = await callTool(dependencies({ log, linear }), "report_gap", {
+				...gap,
+				matches: "MNTL-121",
+			});
+
+			expect(first.text).toContain("- MNTL-121: Stepper component");
+			expect(firstEvent?.gap).toBeUndefined();
+			expect(second.text).toContain("Added this report to MNTL-121.");
+			expect(linear.comment).toHaveBeenCalledWith("u2", expect.stringContaining("**Tried:**"));
+			expect(linear.create).not.toHaveBeenCalled();
+			expect(log.mock.lastCall?.[0].gap?.issue).toEqual({ key: "MNTL-121", action: "commented" });
+		});
+
+		it('creates a new issue when the agent answers "none"', async () => {
+			const linear = fakeLinear([issues["MNTL-121"] as LinearIssue]);
+
+			const { text } = await callTool(dependencies({ linear }), "report_gap", {
+				...gap,
+				matches: "none",
+			});
+
+			expect(text).toContain("Reported as MNTL-130.");
+			expect(linear.similar).not.toHaveBeenCalled();
+		});
+
+		it("keeps an ngrok caller's write-up with its code, and scrubs another caller's", async () => {
+			const log = vi.fn<(event: ToolCallEvent) => void>();
+			const linear = fakeLinear();
+			const writeup = "I want a stepper.\n\n```tsx\n<Stepper.Root current={2} />\n```";
+
+			await callTool(dependencies({ log, linear }), "report_gap", { ...gap, writeup });
+			const fromNgrok = log.mock.lastCall?.[0].gap?.writeup;
+			await callTool(dependencies({ log, linear }), "report_gap", {
+				...gap,
+				ticket: "none",
+				writeup: "I want a stepper, see acme.example.com",
+			});
+
+			expect(fromNgrok).toBe(writeup);
+			expect(linear.create.mock.calls[0]?.[0].description).toContain(`## Write-up\n\n${writeup}`);
+			expect(log.mock.lastCall?.[0].gap?.writeup).toBe("I want a stepper, see");
+		});
+
+		it("adds nothing to an issue that an old MNTL key resolves to in another team", async () => {
+			const linear = fakeLinear();
+			linear.issue.mockImplementation(async (key) =>
+				key === "MNTL-121" ? { id: "u3", key: "CDATA-9", title: "Moved" } : issues[key],
+			);
+
+			const { text } = await callTool(dependencies({ linear }), "report_gap", {
+				...gap,
+				matches: "MNTL-121",
+			});
+
+			expect(text).toContain("Reported: stepper.");
+			expect(linear.comment).not.toHaveBeenCalled();
+		});
+
+		it("closes a code fence that the write-up limit cuts", async () => {
+			const log = vi.fn<(event: ToolCallEvent) => void>();
+			const writeup = `\`\`\`tsx\n${"step one\n".repeat(450)}\`\`\``;
+
+			await callTool(dependencies({ log, linear: fakeLinear() }), "report_gap", {
+				...gap,
+				writeup,
+			});
+			const kept = log.mock.lastCall?.[0].gap?.writeup ?? "";
+
+			expect(kept.length).toBeLessThan(4_010);
+			expect(kept.endsWith("…\n```")).toBe(true);
+		});
+
+		it("asks again for a matches value that is not an MNTL key or none", async () => {
+			const linear = fakeLinear();
+
+			const result = await callTool(dependencies({ linear }), "report_gap", {
+				...gap,
+				matches: "https://linear.app/ngrok/issue/MNTL-121",
+			});
+
+			expect(result.isError).toBe(true);
+			expect(linear.create).not.toHaveBeenCalled();
+			expect(linear.comment).not.toHaveBeenCalled();
+		});
+
+		it("creates no issue when the search for similar issues fails", async () => {
+			const linear = fakeLinear();
+			linear.similar.mockResolvedValue(undefined);
+
+			const { text } = await callTool(dependencies({ linear }), "report_gap", gap);
+
+			expect(text).toContain("Reported: stepper.");
+			expect(linear.create).not.toHaveBeenCalled();
+		});
+
+		it("writes nothing to Linear and logs no ticket for a caller that is not ngrok", async () => {
+			const log = vi.fn<(event: ToolCallEvent) => void>();
+			const linear = fakeLinear();
+
+			const { text } = await callTool(dependencies({ log, linear }), "report_gap", {
+				...gap,
+				ticket: "ACME-77",
+			});
+
+			expect(text).toContain("Reported: stepper.");
+			expect(linear.create).not.toHaveBeenCalled();
+			expect(log.mock.lastCall?.[0]).toMatchObject({
+				ticket: undefined,
+				gap: { issue: undefined },
+			});
+		});
 	});
 
 	it("keeps the instructions under 1 KB", () => {
@@ -291,12 +474,28 @@ describe("the mantle MCP server", () => {
 		});
 
 		expect(log).toHaveBeenLastCalledWith(
-			expect.objectContaining({ source: "frontend", workspace: "dashboard" }),
+			expect.objectContaining({ source: "ngrok-private/frontend", workspace: "dashboard" }),
 		);
 	});
 
 	it.each([
+		["a repo in an ngrok org", "ngrok-adhoc/Demo-App", "ngrok-adhoc/demo-app"],
+		["a repo in ngrok-private", "ngrok-private/frontend", "ngrok-private/frontend"],
+		["a short name from before org/repo", "mantle", "ngrok/mantle"],
+	])("logs the source of %s as org/repo", async (_, source, logged) => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+
+		const call = callToolAt(`https://mantle.example/mcp?source=${encodeURIComponent(source)}`);
+		await call(dependencies({ log }), "find", { query: "modal" });
+
+		expect(log).toHaveBeenLastCalledWith(expect.objectContaining({ source: logged }));
+	});
+
+	it.each([
 		["an unknown repo and a path", "acme", "apps/dashboard"],
+		["an external org and a path", "acme/frontend", "apps/dashboard"],
+		["an ngrok org with no repo", "ngrok-private", "dashboard!"],
+		["a nested path", "ngrok/mantle/apps", "a b"],
 		["a name and an email", "Jane Doe", "jane@example.com"],
 		["markup and a long value", "<!channel>", "a".repeat(33)],
 	])("logs no source or workspace for %s", async (_, source, workspace) => {
@@ -365,7 +564,7 @@ describe("the mantle MCP server", () => {
 		expect(log).toHaveBeenLastCalledWith(
 			expect.objectContaining({
 				errorKind: "validation",
-				source: "frontend",
+				source: "ngrok-private/frontend",
 				workspace: "blog",
 				ticket: "FEP-1867",
 			}),
