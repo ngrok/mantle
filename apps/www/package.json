@@ -29,7 +29,7 @@
     "@tailwindcss/browser": "4.3.5",
     "@tanstack/react-form": "1.33.5",
     "@tanstack/react-query": "5.107.1",
-    "@tanstack/react-query-devtools": "5.107.1",
+    "@tanstack/react-query-devtools": "5.108.0",
     "hono": "4.13.19",
     "isbot": "5.2.3",
     "match-sorter": "8.3.1",
