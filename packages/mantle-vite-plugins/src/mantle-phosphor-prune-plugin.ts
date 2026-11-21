@@ -31,17 +31,17 @@ const PHOSPHOR_IMPORT_RE = /^@phosphor-icons\/react(?:\/(.+))?$/;
 const ICON_SUBPATH_RE = /^(?:dist\/(?:csr|ssr|defs)\/)?([A-Z]\w*?)(?:\.es\.js)?$/;
 const BARREL_SUBPATHS = new Set([undefined, "ssr", "dist/ssr", "dist/index.es.js"]);
 const LIB_SUBPATH_RE = /^(?:lib|dist\/lib(?:\/\w+)?)$/;
-const JSX_FACTORIES = new Set([
-	"jsx",
-	"jsxs",
-	"jsxDEV",
-	"createElement",
-	"_jsx",
-	"_jsxs",
-	"_jsxDEV",
+/** The React calls the analysis reads, by what each one does with an icon or `IconContext`. */
+const REACT_CALLS = new Map<string, "render" | "clone" | "read">([
+	["jsx", "render"],
+	["jsxs", "render"],
+	["jsxDEV", "render"],
+	["createElement", "render"],
+	["cloneElement", "clone"],
+	["useContext", "read"],
+	["use", "read"],
 ]);
-const JSX_RUNTIMES = new Set(["react", "react/jsx-runtime", "react/jsx-dev-runtime"]);
-const CONTEXT_READERS = new Set(["useContext", "use"]);
+const REACT_MODULES = new Set(["react", "react/jsx-runtime", "react/jsx-dev-runtime"]);
 
 /** The weights one render of an icon can select. */
 type WeightSet = { kind: "implicit" } | { kind: "some"; weights: string[] } | { kind: "all" };
@@ -58,6 +58,8 @@ type ModuleUsage = {
 	icons: Map<string, IconUsage>;
 	contextWeights: Set<string>;
 	contextAll: boolean;
+	/** The weights a `cloneElement()` call sets, which can reach any icon element. */
+	cloneWeights: Set<string>;
 	/** The module uses Phosphor in a way the analysis cannot follow, such as a namespace import. */
 	all: boolean;
 };
@@ -66,6 +68,7 @@ const emptyUsage = (): ModuleUsage => ({
 	icons: new Map(),
 	contextWeights: new Set(),
 	contextAll: false,
+	cloneWeights: new Set(),
 	all: false,
 });
 
@@ -191,7 +194,10 @@ function argumentContextWeights(argument: Argument | undefined): WeightSet {
 	for (const property of props.properties) {
 		if (property.type === "SpreadElement" || property.computed) {
 			result = { kind: "all" };
-		} else if (property.key.type === "Identifier" && property.key.name === "value") {
+		} else if (
+			(property.key.type === "Identifier" && property.key.name === "value") ||
+			(property.key.type === "Literal" && property.key.value === "value")
+		) {
 			result = contextValueWeights(property.value);
 		}
 	}
@@ -206,17 +212,24 @@ function langOf(path: string): "ts" | "tsx" | "jsx" {
 	return /\.[cm]?ts$/.test(path) ? "ts" : "jsx";
 }
 
-/** The name a call reads: `jsx` for `jsx()`, `React.jsx()`, and the compiled `(0, r.jsx)()`. */
-function calledName(callee: Expression): string | null {
+/**
+ * What a call does when it is a React call: an imported `jsx`, `createElement`, `cloneElement`,
+ * `use`, or `useContext`, or a member call such as `React.createElement()` or the compiled
+ * `(0, r.jsx)()`. A local function with the same name is not a React call.
+ */
+function reactCall(
+	callee: Expression,
+	bindings: Map<string, "render" | "clone" | "read">,
+): "render" | "clone" | "read" | null {
 	const node = unwrap(callee);
 	if (node.type === "Identifier") {
-		return node.name;
+		return bindings.get(node.name) ?? null;
 	}
 	if (node.type === "MemberExpression" && !node.computed && node.property.type === "Identifier") {
-		return node.property.name;
+		return REACT_CALLS.get(node.property.name) ?? null;
 	}
 	const last = node.type === "SequenceExpression" ? node.expressions.at(-1) : undefined;
-	return last == null ? null : calledName(last);
+	return last == null ? null : reactCall(last, bindings);
 }
 
 const iconName = (subpath: string | undefined, importedName: string): string | null => {
@@ -229,24 +242,26 @@ const iconName = (subpath: string | undefined, importedName: string): string | n
 /**
  * Reads which Phosphor icons a module renders and with which weights.
  *
- * It follows icons in JSX and in `jsx()` and `createElement()` calls, and `IconContext` values. Any
- * other reference keeps every weight of that icon, and a namespace import keeps every weight of
- * every icon.
+ * It follows icons in JSX and in `jsx()` and `createElement()` calls, `IconContext` values, and the
+ * `weight` of `cloneElement()` calls. Any other reference keeps every weight of that icon, and a
+ * namespace import keeps every weight of every icon.
  *
- * @returns null when the module does not import `@phosphor-icons/react`.
+ * @returns null when the module neither imports `@phosphor-icons/react` nor sets a weight with
+ * `cloneElement()`.
  */
 function collectUsage(code: string, id: string): ModuleUsage | null {
 	const path = id.split("?")[0] ?? id;
 	const { program, errors } = parseSync(path, code, { lang: langOf(path), sourceType: "module" });
 	const usage = emptyUsage();
 	if (errors.length > 0) {
+		// Why: only a module that imports Phosphor can hide a render the analysis must see.
 		usage.all = true;
-		return usage;
+		return code.includes("@phosphor-icons/react") ? usage : null;
 	}
 	/** The icons each local binding names: an import, or a `const` alias such as `open ? A : B`. */
 	const icons = new Map<string, string[]>();
 	const contexts = new Set<string>();
-	const factories = new Set<string>();
+	const reactBindings = new Map<string, "render" | "clone" | "read">();
 	let imports = false;
 
 	const icon = (name: string) => {
@@ -284,15 +299,15 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 		if (
 			statement.type === "ImportDeclaration" &&
 			statement.importKind !== "type" &&
-			JSX_RUNTIMES.has(statement.source.value)
+			REACT_MODULES.has(statement.source.value)
 		) {
 			for (const specifier of statement.specifiers) {
-				if (
-					specifier.type === "ImportSpecifier" &&
-					specifier.imported.type === "Identifier" &&
-					JSX_FACTORIES.has(specifier.imported.name)
-				) {
-					factories.add(specifier.local.name);
+				const kind =
+					specifier.type === "ImportSpecifier" && specifier.imported.type === "Identifier"
+						? REACT_CALLS.get(specifier.imported.name)
+						: undefined;
+				if (kind != null) {
+					reactBindings.set(specifier.local.name, kind);
 				}
 			}
 		}
@@ -364,6 +379,11 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 			if (specifier.type || specifier.imported === "IconBase" || specifier.imported === "SSRBase") {
 				continue;
 			}
+			if (specifier.imported === "SSR") {
+				// Why: the `SSR` export of the barrel is a namespace of every icon.
+				usage.all = true;
+				continue;
+			}
 			if (specifier.imported === "IconContext") {
 				if (specifier.local == null) {
 					usage.contextAll = true;
@@ -386,11 +406,14 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 	}
 
 	const handled = new Set<unknown>();
-	/** The icon bindings an alias initializer reads, or null when it reads anything else. */
+	// Why imports only: the analysis has no scopes, so an alias of an alias can read a binding of
+	// another scope. Such a read stays a plain reference, which keeps every weight.
+	const imported = new Set(icons.keys());
+	/** The imported icons an alias initializer reads, or null when it reads anything else. */
 	const aliasedIcons = (init: Expression): Expression[] | null => {
 		const node = unwrap(init);
 		if (node.type === "Identifier") {
-			return icons.has(node.name) ? [node] : null;
+			return imported.has(node.name) ? [node] : null;
 		}
 		if (node.type === "ConditionalExpression") {
 			const consequent = aliasedIcons(node.consequent);
@@ -399,9 +422,18 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 		}
 		return null;
 	};
+	// Why: an exported alias lets another module render the icon, so it stays a plain reference.
+	const exported = new Set(
+		program.body.flatMap((statement) =>
+			statement.type === "ExportNamedDeclaration" && statement.declaration != null
+				? [statement.declaration]
+				: [],
+		),
+	);
 	new Visitor({
 		VariableDeclaration(node) {
-			for (const declaration of node.kind === "const" ? node.declarations : []) {
+			const declarations = node.kind === "const" && !exported.has(node) ? node.declarations : [];
+			for (const declaration of declarations) {
 				const reads = declaration.init == null ? null : aliasedIcons(declaration.init);
 				if (reads != null && declaration.id.type === "Identifier") {
 					// Why the merge: the analysis has no scopes, so two aliases with one name keep both icons.
@@ -419,10 +451,6 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 			}
 		},
 	}).visit(program);
-	const isFactory = (callee: Expression) => {
-		const name = calledName(callee);
-		return name != null && (factories.has(name) || JSX_FACTORIES.has(name));
-	};
 	/** Reads a rendered element type: an icon, or `IconContext` and `IconContext.Provider`. */
 	const renderedType = (
 		name: JSXElementName | Expression,
@@ -492,15 +520,33 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 			if (first == null || first.type === "SpreadElement") {
 				return;
 			}
-			const calleeName = calledName(node.callee);
-			if (calleeName != null && CONTEXT_READERS.has(calleeName)) {
+			const kind = reactCall(node.callee, reactBindings);
+			if (kind === "read") {
 				const target = unwrap(first);
 				if (target.type === "Identifier" && contexts.has(target.name)) {
 					handled.add(target);
 				}
 				return;
 			}
-			if (!isFactory(node.callee)) {
+			if (kind === "clone") {
+				const props = second == null || second.type === "SpreadElement" ? null : unwrap(second);
+				for (const property of props?.type === "ObjectExpression" ? props.properties : []) {
+					const weights =
+						property.type === "Property" &&
+						((property.key.type === "Identifier" && property.key.name === "weight") ||
+							(property.key.type === "Literal" && property.key.value === "weight"))
+							? staticStrings(property.value)
+							: [];
+					if (weights == null) {
+						usage.all = true;
+					}
+					for (const weight of weights ?? []) {
+						usage.cloneWeights.add(weight);
+					}
+				}
+				return;
+			}
+			if (kind !== "render") {
 				return;
 			}
 			const type = renderedType(unwrap(first));
@@ -542,7 +588,7 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 		},
 	}).visit(program);
 
-	return imports ? usage : null;
+	return imports || usage.cloneWeights.size > 0 || usage.all ? usage : null;
 }
 
 /**
@@ -633,14 +679,32 @@ function stripWeights(
 			if (marks.length === 0 || marks.some((mark) => mark == null)) {
 				return;
 			}
-			const kept = node.elements.flatMap((entry, index) => {
+			// Why removals: the kept entries stay in place, so their source map stays exact.
+			const entries = node.elements.flatMap((entry) =>
+				entry?.type === "ArrayExpression" ? [entry] : [],
+			);
+			let previous: (typeof entries)[number] | null = null;
+			let dropFrom: number | null = null;
+			for (const [index, entry] of entries.entries()) {
 				const mark = marks[index];
-				const [weight, value] = entry?.type === "ArrayExpression" ? entry.elements : [];
-				return mark != null && weight != null && value != null && keep(mark.icon, mark.weight)
-					? [`[${code.slice(weight.start, value.end)}]`]
-					: [];
-			});
-			string.overwrite(node.start, node.end, `[${kept.join(", ")}]`);
+				const [, value, marker] = entry.elements;
+				if (mark != null && value != null && marker != null && keep(mark.icon, mark.weight)) {
+					// Why from the entry start: the comma after the kept entry before the drop stays.
+					if (dropFrom != null) {
+						string.remove(dropFrom, entry.start);
+						dropFrom = null;
+					}
+					string.remove(value.end, marker.end);
+					previous = entry;
+				} else {
+					dropFrom ??= entry.start;
+				}
+			}
+			const last = entries.at(-1);
+			if (dropFrom != null && last != null) {
+				// Why from the kept entry end: the trailing drop takes the comma before it.
+				string.remove(previous?.end ?? dropFrom, last.end);
+			}
 			rewritten += marks.length;
 		},
 	}).visit(program);
@@ -658,6 +722,7 @@ function stripWeights(
 function keeper(usages: Iterable<ModuleUsage>): (icon: string, weight: string) => boolean {
 	const icons = new Map<string, IconUsage>();
 	const contextWeights = new Set([DEFAULT_CONTEXT_WEIGHT]);
+	const cloneWeights = new Set<string>();
 	let contextAll = false;
 	for (const usage of usages) {
 		if (usage.all) {
@@ -666,6 +731,9 @@ function keeper(usages: Iterable<ModuleUsage>): (icon: string, weight: string) =
 		contextAll ||= usage.contextAll;
 		for (const weight of usage.contextWeights) {
 			contextWeights.add(weight);
+		}
+		for (const weight of usage.cloneWeights) {
+			cloneWeights.add(weight);
 		}
 		for (const [name, entry] of usage.icons) {
 			const joined = icons.get(name) ?? { weights: new Set<string>(), implicit: false, all: false };
@@ -683,6 +751,7 @@ function keeper(usages: Iterable<ModuleUsage>): (icon: string, weight: string) =
 			entry == null ||
 			entry.all ||
 			entry.weights.has(weight) ||
+			cloneWeights.has(weight) ||
 			(entry.implicit && (contextAll || contextWeights.has(weight)))
 		);
 	};
@@ -695,9 +764,13 @@ function keeper(usages: Iterable<ModuleUsage>): (icon: string, weight: string) =
  *   bundler keeps every weight. The plugin keeps a weight of an icon only when a module of the
  *   build renders the icon with it.
  * - It reads `weight` in JSX and in `jsx()` and `createElement()` calls. An icon without a
- *   `weight` keeps the `IconContext` weights of the build, which start at `regular`.
+ *   `weight` keeps the `IconContext` weights of the build, which start at `regular`. A `weight`
+ *   that a `cloneElement()` call sets stays for every icon.
  * - A `weight` it cannot read, a spread of props, or an icon passed as a value keeps every weight
- *   of that icon. A namespace import keeps every weight of every icon.
+ *   of that icon, and so does a dynamic import or an import path the plugin does not read. A
+ *   namespace import, or an icon imported by another name such as `ActivityIcon`, keeps every
+ *   weight of every icon. A `cloneElement()` call with spread props can set a weight the plugin
+ *   does not see.
  *
  * It runs on `vite build` and on a Rolldown or tsdown build. When the installed Phosphor has a
  * weight module of another shape, it warns and keeps every weight of that icon. `vite dev` serves
@@ -716,22 +789,44 @@ function keeper(usages: Iterable<ModuleUsage>): (icon: string, weight: string) =
  * ```
  */
 function mantlePhosphorPrunePlugin(): Plugin {
-	// Why per module: a watch rebuild skips the transform of an unchanged module, so its usage
-	// must survive from the build before.
-	const usages = new Map<string, ModuleUsage>();
+	/** The state of each build, by Vite environment, because environments can build at once. */
+	const builds = new Map<
+		string,
+		{ usages: Map<string, ModuleUsage>; icons: Map<string, string> }
+	>();
+	const build = (environment: { name: string } | undefined) => {
+		const name = environment?.name ?? "";
+		const existing = builds.get(name);
+		if (existing != null) {
+			return existing;
+		}
+		// The usage of each module, and the weight module of each icon.
+		const created = { usages: new Map<string, ModuleUsage>(), icons: new Map<string, string>() };
+		builds.set(name, created);
+		return created;
+	};
 	return {
 		name: "@ngrok/mantle-vite-plugins:phosphor-prune",
 		apply: "build",
 		// Why post: Vite runs this after the transforms that turn MDX or other sources into JavaScript.
 		enforce: "post",
+		buildStart() {
+			// Why: a watch rebuild runs the transform of every module again.
+			builds.delete(this.environment?.name ?? "");
+		},
 		transform: {
 			// Why the exclude: tsdown runs declaration modules through the same hooks, and their types
 			// render nothing.
-			filter: { id: { exclude: /\.d\.[cm]?ts(?:\?|$)/ }, code: /@phosphor-icons\/react|"duotone"/ },
+			filter: {
+				id: { exclude: /\.d\.[cm]?ts(?:\?|$)/ },
+				code: /@phosphor-icons\/react|"duotone"|cloneElement/,
+			},
 			handler(code, id) {
+				const { usages, icons } = build(this.environment);
 				const weightModule = WEIGHT_MODULE_RE.exec(id);
 				if (weightModule != null) {
 					const icon = weightModule[1] ?? "";
+					icons.set(icon, id);
 					const marked = markWeights(code, icon);
 					if (marked == null) {
 						this.warn(
@@ -750,7 +845,7 @@ function mantlePhosphorPrunePlugin(): Plugin {
 				} else {
 					if (usage.all) {
 						this.warn(
-							`${id} uses @phosphor-icons/react in a way this plugin cannot read, such as a namespace import or a parse error, so the build keeps every Phosphor weight.`,
+							`${id} uses Phosphor icons in a way this plugin cannot read, such as a namespace import, a computed cloneElement() weight, or a parse error, so the build keeps every Phosphor weight.`,
 						);
 					}
 					usages.set(id, usage);
@@ -762,8 +857,47 @@ function mantlePhosphorPrunePlugin(): Plugin {
 			if (!code.includes(MARKER)) {
 				return null;
 			}
+			const { usages, icons } = build(this.environment);
 			const live = new Set(this.getModuleIds());
-			const keep = keeper([...usages].filter(([id]) => live.has(id)).map(([, usage]) => usage));
+			const liveUsages = [...usages].filter(([id]) => live.has(id)).map(([, usage]) => usage);
+			const joined = keeper(liveUsages);
+			/**
+			 * The icons that keep every weight: those a dynamic import or an unread module reaches, such
+			 * as one that imports Phosphor through a `resolve.alias`. The walk crosses Phosphor's barrels.
+			 */
+			const unread = new Set<string>();
+			for (const [icon, weightModule] of icons) {
+				// Why a set: its loop also visits the barrels the walk adds.
+				const queue = new Set(this.getModuleInfo(weightModule)?.importers);
+				for (const id of queue) {
+					const info = this.getModuleInfo(id);
+					if (info == null || !live.has(id)) {
+						continue;
+					}
+					if (info.dynamicImporters.length > 0) {
+						unread.add(icon);
+					}
+					for (const importer of info.importers) {
+						if (PHOSPHOR_FILE_RE.test(importer)) {
+							queue.add(importer);
+						} else if (!usages.has(importer)) {
+							unread.add(icon);
+						}
+					}
+				}
+			}
+			// Why: a name that is not an icon of the build is an export with another name, such as
+			// `ActivityIcon` for `PulseIcon`, so the analysis cannot tell which icon it renders.
+			const unknown = liveUsages.flatMap((usage) =>
+				[...usage.icons.keys()].filter((name) => !icons.has(name)),
+			);
+			if (unknown.length > 0) {
+				this.warn(
+					`${unknown.map((name) => `${name}Icon`).join(", ")} is another name of a Phosphor icon, so the build keeps every Phosphor weight. Import the icon by its own name.`,
+				);
+			}
+			const keep = (icon: string, weight: string) =>
+				unknown.length > 0 || unread.has(icon) || joined(icon, weight);
 			try {
 				return stripWeights(code, keep);
 			} catch (error) {

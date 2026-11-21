@@ -92,6 +92,8 @@ describe("markWeights and stripWeights", () => {
 	});
 });
 
+// Each icon here has a probe without a `weight`, so a test can read every weight under its own
+// `IconContext`. No module sets a weight for every icon, so each icon keeps only what it renders.
 const APP = `import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { CheckIcon } from "@phosphor-icons/react/Check";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
@@ -99,7 +101,8 @@ import { EyeIcon } from "@phosphor-icons/react/Eye";
 import { EyeClosedIcon } from "@phosphor-icons/react/EyeClosed";
 import { GearIcon } from "@phosphor-icons/react/Gear";
 import { GlobeIcon } from "@phosphor-icons/react/Globe";
-import { IconContext, InfoIcon } from "@phosphor-icons/react";
+import { HeartIcon } from "@phosphor-icons/react/Heart";
+import { StarIcon } from "@phosphor-icons/react/Star";
 import { XIcon } from "@phosphor-icons/react/X";
 import { filledInfo, renderInfo } from "./vendor.js";
 
@@ -119,11 +122,10 @@ export const Second = () => {
 	const Icon = GlobeIcon;
 	return <Icon weight="light" />;
 };
-export const Themed = () => (
-	<IconContext.Provider value={{ weight: "duotone" }}>
-		<InfoIcon />
-	</IconContext.Provider>
-);
+export const CustomStar = StarIcon;
+export const BoldStar = () => <StarIcon weight="bold" />;
+const createElement = (Icon) => Icon;
+export const made = createElement(HeartIcon, { weight: "bold" });
 export { filledInfo };
 export const probes = {
 	CaretDown: () => <CaretDownIcon />,
@@ -132,7 +134,9 @@ export const probes = {
 	Eye: () => <EyeIcon />,
 	Gear: () => <GearIcon />,
 	Globe: () => <GlobeIcon />,
+	Heart: () => <HeartIcon />,
 	Info: renderInfo,
+	Star: () => <StarIcon />,
 	X: () => <XIcon />,
 };
 `;
@@ -145,6 +149,72 @@ import { InfoIcon } from "@phosphor-icons/react/Info";
 export const renderInfo = () => _jsx(InfoIcon, {});
 export const filledInfo = () => _jsx(InfoIcon, { weight: "fill" });
 export const base = IconBase;
+`;
+
+// Weights that reach icons the module does not name: two `IconContext` values and a clone.
+const OVERRIDES = `import { CheckIcon } from "@phosphor-icons/react/Check";
+import { IconContext } from "@phosphor-icons/react";
+import { jsx as _jsx } from "react/jsx-runtime";
+import { boldClone } from "./clone.js";
+
+export const Bold = () => <CheckIcon weight="bold" />;
+export const Themed = ({ children }) => (
+	<IconContext.Provider value={{ weight: "duotone" }}>{children}</IconContext.Provider>
+);
+export const Compiled = ({ children }) => _jsx(IconContext.Provider, { "value": { weight: "thin" }, children });
+export { boldClone };
+export const probes = { Check: () => <CheckIcon /> };
+`;
+
+// A wrapper that never imports Phosphor, but sets a weight on whatever icon it gets.
+const CLONE = `import { cloneElement } from "react";
+
+export const boldClone = (icon) => cloneElement(icon, { weight: "fill" });
+`;
+
+// References the analysis cannot read: an import by file path, a dynamic import that the bundler
+// resolves, and an alias of an alias that names a binding of another scope.
+const REACH = `import { BellIcon } from "@phosphor-icons/react/Bell";
+import { LightningIcon } from "@phosphor-icons/react/Lightning";
+import { MoonIcon } from "@phosphor-icons/react/Moon";
+import { SunIcon } from "@phosphor-icons/react/Sun";
+import { pathBell } from "./path.js";
+
+export const Bold = () => <BellIcon weight="bold" />;
+export const BoldLightning = () => <LightningIcon weight="bold" />;
+export const load = () => import("@phosphor-icons/react/" + "Lightning");
+export const Early = () => {
+	const Mark = MoonIcon;
+	return <Mark />;
+};
+export const Late = () => {
+	const Inner = () => {
+		const Shown = Mark;
+		return <Shown weight="bold" />;
+	};
+	const Mark = SunIcon;
+	return <Inner />;
+};
+export { pathBell };
+export const probes = {
+	Bell: () => <BellIcon />,
+	Lightning: () => <LightningIcon />,
+	Sun: () => <SunIcon />,
+};
+`;
+
+// Imports an icon by file path, as an app with a `resolve.alias` for Phosphor would.
+const PATH = `import { jsx as _jsx } from "react/jsx-runtime";
+import { BellIcon } from "../node_modules/@phosphor-icons/react/dist/csr/Bell.es.js";
+
+export const pathBell = () => _jsx(BellIcon, { weight: "thin" });
+`;
+
+// Phosphor exports `PulseIcon` also as `ActivityIcon`.
+const RENAMED = `import { ActivityIcon, PulseIcon } from "@phosphor-icons/react";
+
+export const Bold = () => <ActivityIcon weight="bold" />;
+export const probes = { Pulse: () => <PulseIcon /> };
 `;
 
 /** Keeps Phosphor's runtime external, so the output and this test share one `IconContext`. */
@@ -230,33 +300,39 @@ describe("mantlePhosphorPrunePlugin build", () => {
 	};
 
 	describe.each(Object.entries(bundlers))("with %s", (_name, bundle) => {
-		let probes: Record<string, React.ComponentType>;
-		let warnings: string[];
+		const apps: Record<
+			string,
+			{ probes: Record<string, React.ComponentType>; warnings: string[] }
+		> = {};
 
-		beforeAll(async () => {
-			const root = await makeRoot({ "src/app.jsx": APP, "src/vendor.js": VENDOR }, [
-				"react",
-				"react-dom",
-				"@phosphor-icons/react",
-			]);
+		/** Builds one fixture app and imports its output. */
+		async function buildApp(files: Record<string, string>) {
+			const root = await makeRoot(files, ["react", "react-dom", "@phosphor-icons/react"]);
 			const output = await bundle(root);
-			warnings = output.warnings;
 			const app: { probes: Record<string, React.ComponentType> } = await import(
 				pathToFileURL(output.file).href
 			);
-			probes = app.probes;
-		});
+			return { probes: app.probes, warnings: output.warnings };
+		}
+
+		// Why the 60-second timeout: the renamed fixture imports the barrel, which loads every icon.
+		beforeAll(async () => {
+			apps.local = await buildApp({ "src/app.jsx": APP, "src/vendor.js": VENDOR });
+			apps.overrides = await buildApp({ "src/app.jsx": OVERRIDES, "src/clone.js": CLONE });
+			apps.reach = await buildApp({ "src/app.jsx": REACH, "src/path.js": PATH });
+			apps.renamed = await buildApp({ "src/app.jsx": RENAMED });
+		}, 60_000);
 
 		/**
 		 * The weights a probe still renders. A kept weight must render the markup Phosphor renders, and a
 		 * removed weight must render no path.
 		 */
-		async function renderedWeights(icon: string) {
+		async function renderedWeights(app: string, icon: string) {
 			const module: Record<string, React.ComponentType> = await import(
 				`@phosphor-icons/react/${icon}`
 			);
 			const original = module[`${icon}Icon`];
-			const probe = probes[icon];
+			const probe = apps[app]?.probes[icon];
 			if (original == null || probe == null) {
 				throw new Error(`no probe for ${icon}`);
 			}
@@ -274,33 +350,122 @@ describe("mantlePhosphorPrunePlugin build", () => {
 			});
 		}
 
-		test("keeps the weight of each literal, plus the context weights for an icon without one", async () => {
-			// `IconContext.Provider value={{ weight: "duotone" }}` adds duotone to `regular`.
-			expect(await renderedWeights("Check")).toEqual(["bold", "duotone", "regular"]);
+		test("keeps the weight of each literal, plus regular for an icon without one", async () => {
+			expect(await renderedWeights("local", "Check")).toEqual(["bold", "regular"]);
 		});
 
 		test("keeps both weights of a conditional", async () => {
-			expect(await renderedWeights("X")).toEqual(["duotone", "fill", "regular", "thin"]);
+			expect(await renderedWeights("local", "X")).toEqual(["fill", "regular", "thin"]);
 		});
 
 		test("keeps every weight of an icon that gets spread props or is passed as a value", async () => {
-			expect(await renderedWeights("CaretDown")).toEqual([...WEIGHTS]);
-			expect(await renderedWeights("Copy")).toEqual([...WEIGHTS]);
+			expect(await renderedWeights("local", "CaretDown")).toEqual([...WEIGHTS]);
+			expect(await renderedWeights("local", "Copy")).toEqual([...WEIGHTS]);
+		});
+
+		test("keeps every weight of an icon that an exported alias or a local helper receives", async () => {
+			expect(await renderedWeights("local", "Star")).toEqual([...WEIGHTS]);
+			expect(await renderedWeights("local", "Heart")).toEqual([...WEIGHTS]);
 		});
 
 		test("follows a const alias to each icon it can name", async () => {
-			expect(await renderedWeights("Eye")).toEqual(["duotone", "light", "regular"]);
+			expect(await renderedWeights("local", "Eye")).toEqual(["light", "regular"]);
 		});
 
 		test("keeps the icons of two aliases that share a name in different scopes", async () => {
-			expect(await renderedWeights("Gear")).toContain("fill");
-			expect(await renderedWeights("Globe")).toContain("light");
+			expect(await renderedWeights("local", "Gear")).toContain("fill");
+			expect(await renderedWeights("local", "Globe")).toContain("light");
 		});
 
 		test("reads compiled jsx() calls in a dependency that imports Phosphor's runtime", async () => {
-			expect(await renderedWeights("Info")).toEqual(["duotone", "fill", "regular"]);
-			expect(warnings).toEqual([]);
+			expect(await renderedWeights("local", "Info")).toEqual(["fill", "regular"]);
+			expect(apps.local?.warnings).toEqual([]);
 		});
+
+		test("keeps the weights that IconContext values and cloneElement() set", async () => {
+			// `duotone` from JSX, `thin` from a compiled provider, and `fill` from a clone in a module
+			// that does not import Phosphor.
+			expect(await renderedWeights("overrides", "Check")).toEqual([
+				"bold",
+				"duotone",
+				"fill",
+				"regular",
+				"thin",
+			]);
+		});
+
+		test("keeps every weight of an icon that an unread module or a dynamic import reaches", async () => {
+			expect(await renderedWeights("reach", "Bell")).toEqual([...WEIGHTS]);
+			expect(await renderedWeights("reach", "Lightning")).toEqual([...WEIGHTS]);
+		});
+
+		test("keeps every weight of an icon that an alias of an alias can name", async () => {
+			expect(await renderedWeights("reach", "Sun")).toEqual([...WEIGHTS]);
+		});
+
+		test("keeps every weight when a module imports an icon by another name", async () => {
+			expect(await renderedWeights("renamed", "Pulse")).toEqual([...WEIGHTS]);
+		});
+	});
+
+	test("warns about an icon imported by another name", async () => {
+		const root = await makeRoot({ "src/app.jsx": RENAMED }, [
+			"react",
+			"react-dom",
+			"@phosphor-icons/react",
+		]);
+		const output = await bundlers.vite(root);
+
+		expect(output.warnings).toContainEqual(
+			expect.stringContaining("ActivityIcon is another name of a Phosphor icon"),
+		);
+	}, 30_000);
+
+	test("keeps the usage of each Vite environment apart", async () => {
+		const plugin = mantlePhosphorPrunePlugin();
+		const transform = plugin.transform;
+		const renderChunk = plugin.renderChunk;
+		if (typeof transform !== "object" || typeof renderChunk !== "function") {
+			throw new TypeError("the plugin has no transform or renderChunk hook");
+		}
+		const weightModule = path.join(
+			await realpath(path.join(packageRoot, "node_modules/@phosphor-icons/react")),
+			"dist/defs/Check.es.js",
+		);
+		const app = path.join(packageRoot, "app.jsx");
+		/** A hook context of one environment, with only the members the plugin reads. */
+		const context = (name: string) =>
+			({
+				environment: { name },
+				getModuleIds: () => [weightModule, app].values(),
+				getModuleInfo: () => null,
+				warn: () => {},
+			}) as never;
+		const source = (weight: string) =>
+			`import { CheckIcon } from "@phosphor-icons/react/Check";\nexport const a = <CheckIcon weight="${weight}" />;\n`;
+		const defs = await readFile(weightModule, "utf8");
+		/** The code of a hook result. */
+		const codeOf = (result: unknown) =>
+			typeof result === "object" && result != null && "code" in result ? String(result.code) : "";
+		let marked = "";
+		// Why interleaved: Vite can build two environments at once with one plugin instance.
+		for (const [name, weight] of [
+			["client", "bold"],
+			["ssr", "thin"],
+		] as const) {
+			const result = await transform.handler.call(context(name), defs, weightModule);
+			marked = codeOf(result) || marked;
+			await transform.handler.call(context(name), source(weight), app);
+		}
+		const kept = async (name: string) => {
+			const result = await renderChunk.call(context(name), marked, {} as never, {} as never, {
+				chunks: {},
+			});
+			return [...codeOf(result).matchAll(/\[\s*"(\w+)"/g)].map((match) => match[1]);
+		};
+
+		expect(await kept("client")).toEqual(["bold"]);
+		expect(await kept("ssr")).toEqual(["thin"]);
 	});
 
 	test("warns and keeps every weight when a weight module has another shape", async () => {

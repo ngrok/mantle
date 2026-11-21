@@ -94,9 +94,9 @@ export default defineConfig({
 });
 ```
 
-Each `@phosphor-icons/react` icon holds the paths of all six weights in one `Map`, so a bundler ships all six. The plugin reads the `weight` each module renders, in JSX and in compiled `jsx()` and `createElement()` calls, and keeps only those weights. An icon without a `weight` keeps `regular` and each weight an `IconContext` value of the build sets. A kept weight renders the same markup as before. `vite dev` serves every weight, and the plugin's position in the array does not matter.
+Each `@phosphor-icons/react` icon holds the paths of all six weights in one `Map`, so a bundler ships all six. The plugin reads the `weight` each module renders, in JSX and in compiled `jsx()` and `createElement()` calls, and keeps only those weights. A `weight` that a `cloneElement()` call sets stays for every icon. An icon without a `weight` keeps `regular` and each weight an `IconContext` value of the build sets. A kept weight renders the same markup as before. `vite dev` serves every weight, and the plugin's position in the array does not matter.
 
-When the plugin cannot read a weight (a computed `weight`, a spread of props, or an icon passed as a value), it keeps every weight of that icon. A namespace import keeps every weight of every icon, and the build warns. If an icon module of the installed Phosphor has a shape the plugin does not know, the build warns and keeps all six weights of that icon. mantle's own icons ship trimmed already.
+When the plugin cannot read a weight (a computed `weight`, a spread of props, or an icon passed as a value), it keeps every weight of that icon. It does not see a `weight` that `cloneElement()` gets in spread props. A namespace import keeps every weight of every icon, and the build warns. An icon that a dynamic import or an unread import path, such as a `resolve.alias`, reaches keeps every weight. An icon imported by another name, such as `ActivityIcon` for `PulseIcon`, keeps every weight of every icon, and the build warns. If an icon module of the installed Phosphor has a shape the plugin does not know, the build warns and keeps all six weights of that icon. mantle's own icons ship trimmed already.
 
 ### `mantleCodeBlockPlugins(options?)`
 
