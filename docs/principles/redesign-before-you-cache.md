@@ -17,7 +17,7 @@ Memory is a cost to the user as much as time. A cache trades one for the other, 
 - A `memo` around a child to hide a parent that renders too often. Fix the parent.
 - A cache with no benchmark of the same path with no cache.
 - A cache on runtime work that the build or the server can do.
-- Compiler memoization in a part that rebuilds its output on each render anyway, such as one that spreads its props onto one element. The cache code ships and saves nothing ([CONVENTIONS.md § React Compiler](../../CONVENTIONS.md#react-compiler)).
+- Compiler memoization that a benchmark shows saves no work. The cache code ships for nothing ([CONVENTIONS.md § React Compiler](../../CONVENTIONS.md#react-compiler)).
 
 **In this repo:**
 

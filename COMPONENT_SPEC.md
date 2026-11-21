@@ -576,9 +576,9 @@ Errors are control flow. `console.error` is not error handling.
 - Client-only work goes through `BrowserOnly` (children as a render function, so it cannot evaluate during
   SSR) or a browser-API hook that declares its server answer. `useIsHydrated` is the sanctioned escape hatch.
 - Never branch on `typeof window` inside render.
-- A part with no interaction adds no effect, subscription, listener, or state. It may read context for its
-  accessibility contract ([§3.6](#36-accessibility-and-motion)), such as an ID for `aria-describedby`. A
-  compound component keeps its static parts this lean beside its interactive parts.
+- A part with no interaction adds no effect, subscription, listener, or state beyond what its accessibility
+  contract needs ([§3.6](#36-accessibility-and-motion)), such as the context read or the registration that
+  sets `aria-describedby`. A compound component keeps its static parts this lean beside its interactive parts.
 
 ### 3.8. Browser translation
 
@@ -663,9 +663,8 @@ cure. Read the roster there rather than restating it here, because an enumerated
   screen.
 - A leaf component imports no second component family, and no module has a side effect on import
   ([§1.7](#17-forbidden-api-shapes)).
-- Do not add `useMemo`, `useCallback`, or `memo` for speed. The React Compiler memoizes where memoization
-  pays, and a file that gains nothing from it opts out
-  ([CONVENTIONS.md § React Compiler](./CONVENTIONS.md#react-compiler)).
+- Do not add `useMemo`, `useCallback`, or `memo` for speed. Memoization belongs only where it pays.
+  [CONVENTIONS.md § React Compiler](./CONVENTIONS.md#react-compiler) owns where the compiler runs.
 - A claim of speed or size gives the base, the branch, the command, and the browser
   ([explain the number](./docs/principles/explain-the-number.md)). Run the base and the branch in turn.
 - Performance does not win against accessibility. Keep what assistive technology reads, and give the measured

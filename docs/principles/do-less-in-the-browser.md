@@ -16,7 +16,7 @@ Do each piece of work at the earliest place that can do it: the build, then the 
 - Runtime work on a value that the build knows.
 - A module side effect on import, which a bundler cannot remove.
 - An import that pulls a second component family into a leaf component.
-- An effect, a subscription, or a listener in a part that only renders markup. The part does client work for nothing.
+- An effect, a subscription, or a listener in a part that only renders markup, when its accessibility contract does not need it. The part does client work for nothing.
 
 **In this repo:**
 
