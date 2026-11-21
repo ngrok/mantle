@@ -36,19 +36,35 @@ type FilterMatchContext = {
 	now: number;
 };
 
-/** One qualifier key of a grammar. */
-type FilterKeyDefinition<Item> = {
+/**
+ * The type of a key's value. It decides which values parse and which
+ * operators a query can write before them.
+ *
+ * - `"text"`: any text. `key:a` contains (or is exactly, on a key that does
+ *   not accept contains), `key:=a` is exactly, `key:a*` starts with, and
+ *   `key:*a` ends with.
+ * - `"enum"`: one of the key's `values`. `key:a` and `key:=a` are equal.
+ * - `"number"`: a decimal such as `3` or `-1.5`.
+ * - `"date"`: an ISO 8601 date (`2026-01-31`) or date and time
+ *   (`2026-01-31T12:00Z`, UTC without an offset). A duration such as `7d`
+ *   counts back from the clock, so `key:>7d` keeps the last 7 days.
+ * - `"duration"`: a number with a unit (`ms`, `s`, `m`, `h`, `d`, `w`), such
+ *   as `250ms` or `1h30m`.
+ * - `"boolean"`: `true` or `false`.
+ *
+ * A number, a date, and a duration take `>`, `>=`, `<`, `<=`, `=`, and a
+ * range `a..b` with both ends included.
+ */
+type FilterValueType = "text" | "enum" | "number" | "date" | "duration" | "boolean";
+
+/** The fields every qualifier key has, whatever its type. */
+type FilterKeyBase = {
 	/** The canonical key, as it is written before the `:`. */
 	key: string;
 	/** One-line explanation for the suggestion list and the builder menu. */
 	description: string;
 	/** Accepted alternative spellings, matched case-insensitively. */
 	aliases?: readonly string[];
-	/**
-	 * The fixed values, in the order the UI shows them. Omit for a free-text
-	 * key. A written value that matches no entry matches no item.
-	 */
-	values?: readonly FilterValueDefinition[];
 	/**
 	 * Prose keys keep commas as content. Every other key splits an unquoted
 	 * comma list into OR members (`is:active,pending`).
@@ -59,12 +75,99 @@ type FilterKeyDefinition<Item> = {
 	 * offer no `-key:` row, and a typed `-` paints invalid. Defaults to true.
 	 */
 	negatable?: boolean;
+};
+
+/**
+ * The value side of a typed key: an `"enum"` key lists its values, and no
+ * other type has them.
+ */
+type FilterTypedValue =
+	| {
+			/** The type of the key's value. */
+			type: "enum";
+			/** The fixed values, in the order the UI shows them. */
+			values: readonly FilterValueDefinition[];
+	  }
+	| {
+			/** The type of the key's value. */
+			type: Exclude<FilterValueType, "enum">;
+			values?: never;
+	  };
+
+/**
+ * The operators a typed key accepts. Omit for every operator its type
+ * accepts. A written operator outside the list paints invalid and matches
+ * no item, so list only what the executor runs.
+ */
+type FilterOperatorsOption = {
+	operators?: readonly FilterOperator[];
+};
+
+/**
+ * A key that tests items with its own function. It has no type, so the query
+ * writes no operator: the matcher gets the value as written, or the canonical
+ * value of `values`.
+ */
+type MatchedFilterKeyDefinition<Item> = FilterKeyBase & {
+	type?: never;
+	operators?: never;
+	getValue?: never;
+	/**
+	 * The fixed values, in the order the UI shows them. Omit for a free-text
+	 * key. A written value that matches no entry matches no item.
+	 */
+	values?: readonly FilterValueDefinition[];
 	/**
 	 * Tests one canonical value of this key against one item. A matcher that
 	 * compares a date against the clock reads `context.now`, never `Date.now()`.
 	 */
 	matches: (item: Item, value: string, context: FilterMatchContext) => boolean;
 };
+
+/**
+ * A key the engine tests: it reads one field of each item and compares it
+ * with the parsed value and operator.
+ */
+type TypedFilterKeyDefinition<Item> = FilterKeyBase &
+	FilterTypedValue &
+	FilterOperatorsOption & {
+		matches?: never;
+		/**
+		 * Reads the field this key compares. Return a string for `"text"` and
+		 * `"enum"`, a number for `"number"`, milliseconds for `"duration"`, and a
+		 * boolean for `"boolean"`. A `"date"` takes a `Date`, epoch milliseconds,
+		 * or an ISO 8601 string; milliseconds are the fastest. A `null` or
+		 * `undefined` field matches no value.
+		 */
+		getValue: (item: Item) => FilterFieldValue;
+	};
+
+/** The field a typed key reads from one item. */
+type FilterFieldValue = string | number | boolean | Date | null | undefined;
+
+/** One qualifier key of a grammar. */
+type FilterKeyDefinition<Item> = MatchedFilterKeyDefinition<Item> | TypedFilterKeyDefinition<Item>;
+
+/**
+ * The comparison a qualifier member asks for.
+ *
+ * - `"contains"`, `"starts-with"`, and `"ends-with"`: text match modes.
+ * - `"equals"`: the value is the operand. A key with no type always reads
+ *   `"equals"`; its matcher, or the app that runs the query, decides what
+ *   equal means.
+ * - `"gt"`, `"gte"`, `"lt"`, and `"lte"`: `>`, `>=`, `<`, and `<=`.
+ * - `"range"`: `a..b`, both ends included.
+ */
+type FilterOperator =
+	| "contains"
+	| "equals"
+	| "starts-with"
+	| "ends-with"
+	| "gt"
+	| "gte"
+	| "lt"
+	| "lte"
+	| "range";
 
 /**
  * How much of the shared syntax a grammar honours.
@@ -244,38 +347,76 @@ function acceptsValueList<Item>(
 	return getFilterSyntax(grammar) !== "qualifiers" && definition.prose !== true;
 }
 
+/** The operators each value type accepts, in the order the suggestions offer them. */
+const operatorsByType = {
+	text: ["contains", "equals", "starts-with", "ends-with"],
+	enum: ["equals"],
+	number: ["equals", "gt", "gte", "lt", "lte", "range"],
+	date: ["equals", "gt", "gte", "lt", "lte", "range"],
+	duration: ["equals", "gt", "gte", "lt", "lte", "range"],
+	boolean: ["equals"],
+} as const satisfies Record<FilterValueType, readonly FilterOperator[]>;
+
+/** The value shape of a key, as the type helpers read it. */
+type FilterValueShape = {
+	type?: FilterValueType;
+	values?: readonly FilterValueDefinition[];
+	operators?: readonly FilterOperator[];
+};
+
+/**
+ * Reads the type of a key's value. A key with no type reads as `"enum"` when
+ * it lists values, and as `"text"` otherwise.
+ *
+ * @example
+ * ```ts
+ * getFilterValueType({ type: "date", … }); // => "date"
+ * getFilterValueType({ values: [{ value: "active" }], … }); // => "enum"
+ * ```
+ */
+function getFilterValueType(definition: FilterValueShape): FilterValueType {
+	return definition.type ?? (definition.values == null ? "text" : "enum");
+}
+
+/**
+ * Lists the operators a key accepts. A key with no type accepts only
+ * `"equals"`, because its matcher reads the value as written.
+ *
+ * @example
+ * ```ts
+ * getFilterOperators({ type: "number", … }); // => ["equals", "gt", "gte", "lt", "lte", "range"]
+ * getFilterOperators({ type: "duration", operators: ["gt"], … }); // => ["gt"]
+ * getFilterOperators({ matches, … }); // => ["equals"]
+ * ```
+ */
+function getFilterOperators(definition: FilterValueShape): readonly FilterOperator[] {
+	if (definition.type == null) {
+		return operatorsByType.enum;
+	}
+	return definition.operators ?? operatorsByType[definition.type];
+}
+
 /** One qualifier of a remote grammar: a key definition without the client-side test. */
-type RemoteFilterKeyDefinition = Omit<FilterKeyDefinition<never>, "matches">;
+type RemoteFilterKeyDefinition =
+	| (FilterKeyBase & {
+			type?: never;
+			operators?: never;
+			/**
+			 * The fixed values, in the order the UI shows them. Omit for a free-text
+			 * key. A written value that matches no entry matches no item.
+			 */
+			values?: readonly FilterValueDefinition[];
+	  })
+	| (FilterKeyBase & FilterTypedValue & FilterOperatorsOption);
 
 /** Options for {@link defineRemoteFilterGrammar}. */
 type RemoteFilterGrammarOptions = {
 	/** The qualifier keys, in the order the UI lists them. */
 	keys: readonly RemoteFilterKeyDefinition[];
 	/** The syntax the executor reads. Defaults to `"qualifiers"`. */
-	syntax?: Exclude<FilterSyntax, "full">;
+	syntax?: FilterSyntax;
 };
 
-/**
- * Declares the vocabulary of a query another system executes.
- *
- * The input highlights and suggests from it like any grammar, but nothing
- * tests items on the client: the matcher treats every qualifier and term as
- * matching nothing. The syntax keeps the painted structure to what the
- * executor reads: bare `key:value` tokens under `"qualifiers"`, or one AND
- * group of exclusions, comma lists, and the `OR` the consumer accepts under
- * `"conjunction"`.
- *
- * Under `"qualifiers"`, it drops each value and value alias that contains
- * whitespace, because no query can express it. Set `syntax: "conjunction"`,
- * which reads quotes, to keep such values.
- *
- * @example
- * ```ts
- * const accountSearchGrammar = defineRemoteFilterGrammar({
- *   keys: [{ key: "is", description: "Account state", values: [{ value: "suspended" }] }],
- * });
- * ```
- */
 /** Whether a spelling has no whitespace, so a `"qualifiers"` query can carry it. */
 function isBareSpelling(spelling: string) {
 	return !/\s/.test(spelling);
@@ -300,6 +441,33 @@ function withoutWhitespaceSpellings(
 	};
 }
 
+/**
+ * Declares the vocabulary of a query another system executes.
+ *
+ * The input highlights and suggests from it like any grammar, but nothing
+ * tests items on the client: the matcher treats every qualifier and term as
+ * matching nothing. The syntax keeps the painted structure to what the
+ * executor reads:
+ *
+ * - `"qualifiers"`: bare `key:value` tokens.
+ * - `"conjunction"`: one AND group of exclusions, comma lists, and the `OR`
+ *   the consumer accepts.
+ * - `"full"`: the whole language, free text and groups included.
+ *
+ * Under `"qualifiers"`, it drops each value and value alias that contains
+ * whitespace, because no query can express it. Set a syntax that reads
+ * quotes to keep such values.
+ *
+ * @example
+ * ```ts
+ * const accountSearchGrammar = defineRemoteFilterGrammar({
+ *   keys: [
+ *     { key: "is", description: "Account state", values: [{ value: "suspended" }] },
+ *     { key: "created", description: "When the account was created", type: "date" },
+ *   ],
+ * });
+ * ```
+ */
 function defineRemoteFilterGrammar({
 	keys,
 	syntax = "qualifiers",
@@ -311,7 +479,11 @@ function defineRemoteFilterGrammar({
 	const expressibleKeys = syntax === "qualifiers" ? keys.map(withoutWhitespaceSpellings) : keys;
 
 	return {
-		keys: expressibleKeys.map((definition) => ({ ...definition, matches: () => false })),
+		keys: expressibleKeys.map((definition): FilterKeyDefinition<never> =>
+			definition.type == null
+				? { ...definition, matches: () => false }
+				: { ...definition, getValue: () => undefined },
+		),
 		getSearchText: () => "",
 		syntax,
 	};
@@ -322,18 +494,23 @@ export {
 	acceptsValueList,
 	defineRemoteFilterGrammar,
 	getFilterKeyDefinition,
+	getFilterOperators,
 	getFilterSyntax,
+	getFilterValueType,
 	resolveFilterKey,
 	resolveFilterValue,
 };
 
 export type {
 	//,
+	FilterFieldValue,
 	FilterGrammar,
 	FilterKeyDefinition,
 	FilterMatchContext,
+	FilterOperator,
 	FilterSyntax,
 	FilterValueDefinition,
+	FilterValueType,
 	RemoteFilterGrammarOptions,
 	RemoteFilterKeyDefinition,
 };

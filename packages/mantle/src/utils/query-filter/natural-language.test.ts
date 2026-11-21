@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { defineRemoteFilterGrammar } from "./grammar.js";
 import { checkFilterQuery, describeFilterGrammar } from "./natural-language.js";
-import { testGrammar } from "./test-grammar.js";
+import { testGrammar, typedTestGrammar } from "./test-grammar.js";
 
 describe("describeFilterGrammar", () => {
 	test("describes each key with its canonical values and what it accepts", () => {
@@ -64,6 +64,38 @@ describe("describeFilterGrammar", () => {
 	});
 });
 
+describe("describeFilterGrammar with typed keys", () => {
+	test("describes the type and the operators of each key", () => {
+		const { keys } = describeFilterGrammar(typedTestGrammar);
+
+		expect(keys.find((key) => key.key === "latency")).toMatchObject({
+			type: "duration",
+			operators: ["gt", "gte"],
+		});
+		expect(keys.find((key) => key.key === "state")).toMatchObject({
+			type: "enum",
+			operators: ["equals"],
+		});
+		// A key with no type takes no operator: its matcher reads the value as written.
+		expect(describeFilterGrammar(testGrammar).keys[0]).toMatchObject({
+			type: "text",
+			operators: ["equals"],
+		});
+	});
+
+	test("states the operator, date, and duration rules only for a grammar that has them", () => {
+		const typedRules = describeFilterGrammar(typedTestGrammar).rules.join(" ");
+		const untypedRules = describeFilterGrammar(testGrammar).rules.join(" ");
+
+		expect(typedRules).toContain("`key:>a`");
+		expect(typedRules).toContain("`key:>7d` keeps the last 7 days");
+		expect(typedRules).toContain("`key:a*` starts with a");
+		expect(untypedRules).not.toMatch(/key:>a|7d|starts with/);
+		expect(untypedRules).toContain("`NOT key:value`");
+		expect(untypedRules).toContain("Parentheses group");
+	});
+});
+
 describe("checkFilterQuery", () => {
 	test("finds nothing wrong in a clean query", () => {
 		expect(checkFilterQuery(testGrammar, 'is:shared -name:staging "a:b" api')).toEqual([]);
@@ -120,5 +152,24 @@ describe("checkFilterQuery", () => {
 		expect(checkFilterQuery(grammar, "-is:active")).toEqual([
 			{ kind: "not-negatable", key: "is", start: 0, end: 10 },
 		]);
+	});
+
+	test("names what is wrong with a typed value", () => {
+		expect(checkFilterQuery(typedTestGrammar, "replicas:many latency:<1s state:bogus")).toEqual([
+			{ kind: "invalid-value", key: "replicas", value: "many", start: 9, end: 13 },
+			{ kind: "unsupported-operator", key: "latency", operator: "lt", start: 22, end: 25 },
+			{ kind: "unknown-value", key: "state", value: "bogus", start: 32, end: 37 },
+		]);
+	});
+
+	test("reports an exclusion through NOT or a negated group, and not a double negation", () => {
+		const kinds = (query: string) =>
+			checkFilterQuery(typedTestGrammar, query).map(
+				(problem) => `${problem.kind}@${problem.start}`,
+			);
+
+		expect(kinds("NOT canary:true")).toEqual(["not-negatable@4"]);
+		expect(kinds("-(name:web canary:true) canary:false")).toEqual(["not-negatable@11"]);
+		expect(kinds("NOT NOT canary:true !(NOT canary:true)")).toEqual([]);
 	});
 });

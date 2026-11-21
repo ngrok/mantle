@@ -1,0 +1,116 @@
+---
+title: Query Filter Operators Migration
+description: The query-filter language now reads NOT, !, parentheses, and typed comparisons. Handle the new token kinds, and narrow a key before you call its matches.
+introducedIn: "0.95.0"
+---
+
+# Mantle Query Filter Operators Migration Guide
+
+`@ngrok/mantle/query-filter` now reads more of a query as structure. Under the `"full"` and `"conjunction"` syntax, `NOT` and a leading `!` exclude, as `-` does, and `(` and `)` group. A key with a `type` takes operators such as `>3`, `2..5`, and `api*`. `FilterToken` has three new kinds: `"not"`, `"group-start"`, and `"group-end"`. `FilterKeyDefinition` is now a union of a key with `matches` and a typed key with `getValue`, so `matches` is optional on the union. `parseFilterExpression` returns the query as a tree.
+
+**TL;DR:** Handle the three new token kinds wherever you switch on `token.kind`. Narrow a key with `definition.matches != null` before you call `matches`. Read a group or an `OR` from `parseFilterExpression`, not from the token list. A grammar that only declares keys and a list that only calls `filterItemsByQuery` change nothing.
+
+## Codemod
+
+Codemod: manual: each step depends on what the call site does with a token or a key, and a query string that now parses differently is data, not syntax.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Search for `parseFilterQuery(` and for the `FilterToken` type. Where code switches on `token.kind` or compares it with `"or"` or `"and"`, decide what `"not"`, `"group-start"`, and `"group-end"` mean there. A check that a query holds only qualifiers keeps working: it already rejects every kind but `"facet"`.
+2. Where code rebuilds the `OR` groups from the token list, replace that code with `parseFilterExpression(grammar, query)` and walk its `and`, `or`, `not`, `facet`, and `text` nodes. The tree has the grouping and the negation of `NOT`, `!`, and parentheses already applied.
+3. Search for `.matches(` on a value typed `FilterKeyDefinition`. Narrow it first: `if (definition.matches != null) { definition.matches(item, value, context) }`. A key literal in a grammar needs no change.
+4. Search stored queries, saved views, and `?q=` links for a term that starts with `!`, the bare word `NOT`, and a term that starts with `(` or ends with `)`. Each one now parses as structure. To keep one as a search term, quote it: `"!important"`, `"NOT"`, `"(beta)"`.
+5. Leave a grammar under the `"qualifiers"` syntax alone. It reads `NOT`, `!`, and parentheses as text, as it reads `-`.
+6. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why change the language?** A list could not say "created in the last 7 days", "3 or more replicas", or "name starts with api-" in a way the field could check, suggest, and paint. Each app parsed its own operators out of the value. The operators, the typed keys, and the tree now live in the language, so every list and every backend reads one query the same way.
+
+---
+
+## Before → after
+
+### A switch on the token kind
+
+```ts
+// BEFORE
+for (const token of parseFilterQuery(grammar, query)) {
+	switch (token.kind) {
+		case "facet":
+		case "text":
+			terms.push(token);
+			break;
+		case "or":
+		case "and":
+			break;
+	}
+}
+
+// AFTER
+for (const token of parseFilterQuery(grammar, query)) {
+	switch (token.kind) {
+		case "facet":
+		case "text":
+			terms.push(token);
+			break;
+		case "or":
+		case "and":
+		case "not":
+		case "group-start":
+		case "group-end":
+			break;
+	}
+}
+```
+
+### OR groups rebuilt from the tokens
+
+```ts
+// BEFORE
+const groups: FilterToken[][] = [[]];
+for (const token of parseFilterQuery(grammar, query)) {
+	if (token.kind === "or") {
+		groups.push([]);
+	} else if (token.kind !== "and") {
+		groups.at(-1)?.push(token);
+	}
+}
+const filter = groups.map(compileGroup).join(" || ");
+
+// AFTER
+const expression = parseFilterExpression(grammar, query);
+const filter = expression == null ? null : compileExpression(expression);
+```
+
+### A call to a key's matcher
+
+```ts
+// BEFORE
+const definition = getFilterKeyDefinition(grammar, key);
+const matched = definition?.matches(item, value, context) ?? false;
+
+// AFTER
+const definition = getFilterKeyDefinition(grammar, key);
+const matched = definition?.matches != null ? definition.matches(item, value, context) : false;
+```
+
+### A stored query with a literal `!`
+
+```ts
+// BEFORE: searched for the text "!important"
+const savedQuery = "!important is:open";
+
+// AFTER: quote the term to keep searching for it
+const savedQuery = '"!important" is:open';
+```
+
+## Edge cases & gotchas
+
+- A key with no `type` takes no operator. `name:>3` on a key with `matches` still reaches the matcher as the value `>3`.
+- Inside a group, a `)` ends the token. Quote a value that holds one: `(name:"fn(x)" OR api)`.
+- A `-`, `!`, or `NOT` on a key with `negatable: false` matches no item, also when it negates a whole group that holds the key.
+
+## How to verify
+
+Run the type checker: a `switch` on `token.kind` with an exhaustive check names each missing kind, and a call to `matches` on the union names each missing narrow. Then run `checkFilterQuery(grammar, query)` on each stored query from step 4. It must report nothing new.

@@ -1,8 +1,12 @@
 import {
 	type FilterGrammar,
 	type FilterKeyDefinition,
+	type FilterOperator,
+	type FilterValueDefinition,
+	type FilterValueType,
 	acceptsValueList,
 	getFilterKeyDefinition,
+	getFilterOperators,
 	getFilterSyntax,
 	resolveFilterKey,
 	resolveFilterValue,
@@ -126,24 +130,61 @@ type ValueCandidate = {
 	description?: string;
 };
 
+/** The recent windows a date key offers, newest first. */
+const recentDateCandidates: readonly ValueCandidate[] = [
+	{ value: ">24h", description: "In the last 24 hours" },
+	{ value: ">7d", description: "In the last 7 days" },
+	{ value: ">30d", description: "In the last 30 days" },
+];
+
+const booleanCandidates: readonly ValueCandidate[] = [{ value: "true" }, { value: "false" }];
+
 /**
- * Lists the values a qualifier can take from its definition. The
- * filter-builder menu shares this, so the two surfaces can never disagree.
+ * Lists the values a qualifier can take from its definition: the listed
+ * values, `true` and `false` for a `"boolean"` key, and recent windows such
+ * as `>7d` for a `"date"` key that accepts `>`. The filter-builder menu shares
+ * this, so the two surfaces can never disagree.
  *
  * @example
  * ```ts
  * getValueCandidates(isDefinition); // => [{ value: "active", description: "…" }, …]
+ * getValueCandidates({ type: "date" }); // => [{ value: ">24h", description: "In the last 24 hours" }, …]
  * getValueCandidates(descriptionDefinition); // => [] (free text)
  * ```
  */
-function getValueCandidates(
-	definition: Pick<FilterKeyDefinition<unknown>, "values">,
-): ValueCandidate[] {
-	const vocabulary = definition.values;
-	return vocabulary == null
-		? []
-		: vocabulary.map(({ value, description }) => ({ value, description }));
+function getValueCandidates(definition: {
+	type?: FilterValueType;
+	values?: readonly FilterValueDefinition[];
+	operators?: readonly FilterOperator[];
+}): ValueCandidate[] {
+	if (definition.values != null) {
+		return definition.values.map(({ value, description }) => ({ value, description }));
+	}
+	if (definition.type === "boolean") {
+		return [...booleanCandidates];
+	}
+	if (definition.type === "date" && getFilterOperators(definition).includes("gt")) {
+		return [...recentDateCandidates];
+	}
+	return [];
 }
+
+/** The symbol each comparison operator writes. */
+const comparisonSymbols = { gt: ">", gte: ">=", lt: "<", lte: "<=" } as const;
+
+/** What each comparison symbol reads as, per ordered type. */
+const comparisonDescriptions = {
+	number: { gt: "More than", gte: "At least", lt: "Less than", lte: "At most" },
+	date: { gt: "After", gte: "On or after", lt: "Before", lte: "On or before" },
+	duration: { gt: "Longer than", gte: "At least", lt: "Shorter than", lte: "At most" },
+} as const;
+
+/** The text match modes a typed word can switch to, with what each one reads as. */
+const textModes = [
+	{ operator: "equals", description: "Is exactly", write: (value: string) => `=${value}` },
+	{ operator: "starts-with", description: "Starts with", write: (value: string) => `${value}*` },
+	{ operator: "ends-with", description: "Ends with", write: (value: string) => `*${value}` },
+] as const;
 
 /** The span a value suggestion replaces, and the value text already inside it. */
 type ValueEdit = {
@@ -232,10 +273,13 @@ function getValueSuggestions<Item extends object>(
 			.map((member) => member.value.toLowerCase()),
 	);
 
-	// Every row rewrites only this token. Without an `OR`, the query is one AND
-	// group, so the rest of it filters the items once for all the rows.
+	// Every row rewrites only this token. Without an `OR`, a `NOT`, or a group,
+	// the query is one AND group, so the rest of it filters the items once for
+	// all the rows.
 	const restQuery = `${query.slice(0, token.start)} ${query.slice(token.end)}`;
-	const isOneGroup = !parseFilterQuery(grammar, query).some((other) => other.kind === "or");
+	const isOneGroup = parseFilterQuery(grammar, query).every(
+		(other) => other.kind === "facet" || other.kind === "text" || other.kind === "and",
+	);
 	const quotes = getFilterSyntax(grammar) !== "qualifiers";
 
 	function countAccepted(insertText: string) {
@@ -278,7 +322,60 @@ function getValueSuggestions<Item extends object>(
 			};
 		});
 
-	return { replaceStart, replaceEnd, items: rows, key: definition.key };
+	const operatorRows = getOperatorRows({ definition, typed, quotes, countAccepted });
+	return { replaceStart, replaceEnd, items: [...rows, ...operatorRows], key: definition.key };
+}
+
+/**
+ * Builds the operator rows of a typed key. An empty number, date, or duration
+ * value offers `>`, `>=`, `<`, and `<=`; picking one keeps the value open. A
+ * plain word on a `"text"` key offers its exact, prefix, and suffix forms,
+ * each with its count.
+ */
+function getOperatorRows<Item>({
+	definition,
+	typed,
+	quotes,
+	countAccepted,
+}: {
+	definition: FilterKeyDefinition<Item>;
+	typed: string;
+	quotes: boolean;
+	countAccepted: (insertText: string) => number | undefined;
+}): FilterSuggestion[] {
+	const { type } = definition;
+	const operators = getFilterOperators(definition);
+
+	if ((type === "number" || type === "date" || type === "duration") && typed === "") {
+		return (["gt", "gte", "lt", "lte"] as const)
+			.filter((operator) => operators.includes(operator))
+			.map((operator) => ({
+				section: "values",
+				label: comparisonSymbols[operator],
+				description: comparisonDescriptions[type][operator],
+				insertText: comparisonSymbols[operator],
+				completes: false,
+			}));
+	}
+
+	// A word that already carries an operator or a wildcard has picked its mode.
+	if (type !== "text" || typed === "" || /^[=*]/.test(typed) || typed.endsWith("*")) {
+		return [];
+	}
+	const value = quotes ? quoteFilterValue(typed) : typed;
+	return textModes
+		.filter((mode) => operators.includes(mode.operator))
+		.map((mode) => {
+			const insertText = mode.write(value);
+			return {
+				section: "values",
+				label: insertText,
+				description: mode.description,
+				matchCount: countAccepted(insertText),
+				insertText,
+				completes: true,
+			};
+		});
 }
 
 /** The span a qualifier suggestion replaces, and the key text already inside it. */
@@ -295,7 +392,8 @@ type KeyEdit = {
 
 /** Works out what part of the query a qualifier suggestion would rewrite. */
 function getKeyEdit(query: string, caretIndex: number, token: FilterToken | undefined): KeyEdit {
-	if (token == null) {
+	// A caret against a parenthesis starts a new token beside it.
+	if (token == null || token.kind === "group-start" || token.kind === "group-end") {
 		return { replaceStart: caretIndex, replaceEnd: caretIndex, typed: "", negated: false };
 	}
 
