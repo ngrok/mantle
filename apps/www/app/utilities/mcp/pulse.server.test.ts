@@ -5,8 +5,9 @@ import {
 	createPulse,
 	digestText,
 	emptyDigest,
+	gapIssueOf,
 } from "~/utilities/mcp/pulse.server";
-import type { ToolCallEvent } from "~/utilities/mcp/server.server";
+import type { GapSignal, ToolCallEvent } from "~/utilities/mcp/server.server";
 
 const HOUR_MS = 3_600_000;
 
@@ -32,6 +33,27 @@ const gapReport = event({
 		workaround: "composed-mantle-parts",
 		closestPart: "Tabs",
 	},
+});
+
+const detailedSignal: GapSignal = {
+	source: "report_gap",
+	tokens: ["stepper"],
+	kind: "component",
+	workaround: "composed-mantle-parts",
+	closestPart: "Tabs",
+	tried: "find stepper, find wizard, get Tabs, get Strata",
+	reflection: "I would use Tabs, but it switches panels and has no numbered steps or done state.",
+	built: "a vertical list of numbered circles joined by a line",
+	work: "Usage page: show the cost breakdown",
+	issue: { key: "MNTL-130", action: "created" },
+};
+
+const detailedGap = event({
+	...gapReport,
+	source: "ngrok-private/frontend",
+	workspace: "dashboard",
+	ticket: "FEP-1867",
+	gap: detailedSignal,
 });
 
 const weakFind = event({
@@ -77,10 +99,41 @@ describe("alertOf", () => {
 				"It composed mantle parts instead.",
 				"The closest part was *Tabs*.",
 				"",
-				"> Goal: settings page with a danger zone",
+				"> *Use case:* settings page with a danger zone",
 				"",
 				"_claude-code · mantle 0.93.0_",
 			].join("\n"),
+		);
+	});
+
+	it("quotes the use case, what the agent tried, its take, and what it built", () => {
+		expect(alertOf(detailedGap)?.text).toBe(
+			[
+				':jigsaw: *Gap reported: "stepper"* · new <https://linear.app/ngrok/issue/MNTL-130|MNTL-130>',
+				"",
+				"An agent needed a component.",
+				"It composed mantle parts instead.",
+				"The closest part was *Tabs*.",
+				"",
+				"> *Working on:* <https://linear.app/ngrok/issue/FEP-1867|FEP-1867> Usage page: show the cost breakdown",
+				"> *Use case:* settings page with a danger zone",
+				"> *Tried:* find stepper, find wizard, get Tabs, get Strata",
+				"> *Agent's take:* I would use Tabs, but it switches panels and has no numbered steps or done state.",
+				"> *Built instead:* a vertical list of numbered circles joined by a line",
+				"",
+				"_claude-code · ngrok-private/frontend › dashboard · mantle 0.93.0_",
+			].join("\n"),
+		);
+	});
+
+	it("says when the report went to an MNTL issue as new evidence", () => {
+		const text = alertOf({
+			...detailedGap,
+			gap: { ...detailedSignal, issue: { key: "MNTL-121", action: "commented" } },
+		})?.text;
+
+		expect(text?.split("\n")[0]).toBe(
+			':jigsaw: *Gap reported: "stepper"* · +evidence on <https://linear.app/ngrok/issue/MNTL-121|MNTL-121>',
 		);
 	});
 
@@ -119,25 +172,54 @@ describe("alertOf", () => {
 	});
 
 	it("names the ngrok repo and the workspace of a call in the footer", () => {
-		const fromFrontend = alertOf({ ...weakFind, source: "frontend", workspace: "dashboard" });
+		const fromFrontend = alertOf({
+			...weakFind,
+			source: "ngrok-private/frontend",
+			workspace: "dashboard",
+		});
 
 		expect(fromFrontend?.text).toContain(
-			"_claude-code · ngrok/frontend › dashboard · mantle 0.93.0_",
+			"_claude-code · ngrok-private/frontend › dashboard · mantle 0.93.0_",
 		);
 	});
 
 	it("links the Linear issue of a call in the footer", () => {
-		const text = alertOf({ ...weakFind, source: "frontend", ticket: "FEP-1867" })?.text;
+		const text = alertOf({
+			...weakFind,
+			source: "ngrok-private/frontend",
+			ticket: "FEP-1867",
+		})?.text;
 
 		expect(text).toContain(
-			"_claude-code · ngrok/frontend · <https://linear.app/ngrok/issue/FEP-1867|FEP-1867> · mantle 0.93.0_",
+			"_claude-code · ngrok-private/frontend · <https://linear.app/ngrok/issue/FEP-1867|FEP-1867> · mantle 0.93.0_",
 		);
 	});
 
 	it("escapes Slack markup, so an intent cannot ping or link", () => {
 		const text = alertOf({ ...gapReport, intent: "<!channel> & <https://x.test|y>" })?.text;
 
-		expect(text).toContain("> Goal: &lt;!channel&gt; &amp; &lt;https://x.test|y&gt;");
+		expect(text).toContain("> *Use case:* &lt;!channel&gt; &amp; &lt;https://x.test|y&gt;");
+	});
+});
+
+describe("gapIssueOf", () => {
+	it("writes the gap report as an MNTL issue in markdown", () => {
+		expect(gapIssueOf({ ...detailedGap, gap: detailedSignal })).toEqual({
+			title: "MCP gap: stepper",
+			description: [
+				"An agent needed a component.",
+				"It composed mantle parts instead.",
+				"The closest part was **Tabs**.",
+				"",
+				"- **Working on:** [FEP-1867](https://linear.app/ngrok/issue/FEP-1867) Usage page: show the cost breakdown",
+				"- **Use case:** settings page with a danger zone",
+				"- **Tried:** find stepper, find wizard, get Tabs, get Strata",
+				"- **Agent's take:** I would use Tabs, but it switches panels and has no numbered steps or done state.",
+				"- **Built instead:** a vertical list of numbered circles joined by a line",
+				"",
+				"Reported through the mantle MCP server: claude-code · ngrok-private/frontend › dashboard · mantle 0.93.0",
+			].join("\n"),
+		});
 	});
 });
 
@@ -209,14 +291,18 @@ describe("createPulse", () => {
 
 	it("posts the same need once for each app in the same hour", () => {
 		const { pulse, posts } = testPulse();
-		const fromDashboard = { ...gapReport, source: "frontend", workspace: "dashboard" } as const;
+		const fromDashboard = {
+			...gapReport,
+			source: "ngrok-private/frontend",
+			workspace: "dashboard",
+		} as const;
 
 		pulse.record(fromDashboard);
 		pulse.record({ ...fromDashboard, workspace: "blog" });
 		pulse.record(fromDashboard);
 
 		expect(posts).toHaveLength(2);
-		expect(posts[1]).toContain("ngrok/frontend › blog");
+		expect(posts[1]).toContain("ngrok-private/frontend › blog");
 	});
 
 	it("holds back alerts over 30 an hour and counts them in the digest", async () => {

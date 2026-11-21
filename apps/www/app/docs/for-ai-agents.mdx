@@ -58,7 +58,7 @@ The server tells the agent when to call each tool, so you don't have to:
 | `check`      | Checks one TSX file for wrong import paths and names, other UI libraries, and `className` strings built by hand.           |
 | `preview`    | Returns a link that renders one TSX file in a sandbox. The code travels in the link fragment, so the server never sees it. |
 | `migrate`    | Lists the migration guides and codemods between two versions, in order.                                                    |
-| `report_gap` | Tells the mantle team that mantle has no part for a need. It keeps only generic words, such as "stepper".                  |
+| `report_gap` | Tells the mantle team that mantle has no part for a need, the use case, what the agent tried, and why it fell short.       |
 
 Pass the exact installed version (from `node_modules/@ngrok/mantle/package.json` or the lockfile), not the range in `package.json`. The server supports 0.90.0 and later.
 
@@ -66,11 +66,12 @@ Each tool takes an optional `intent`: the goal of the call in generic words, suc
 
 - the tool name, the outcome, and the error kind
 - the client name from the `User-Agent` header
-- the `source` query parameter of the MCP URL, when it names an ngrok repo
+- the `source` query parameter of the MCP URL, when it names a repo in an ngrok GitHub org as `org/repo`, such as `?source=ngrok-private/frontend`
 - the names of the parts that the tool returned
-- the intent, with each word that holds a URL, an email, a path, or a number removed. Words in quotes stay. The server drops an intent that holds a code span, a tag, a call, or an assignment.
+- the intent, with each word that holds a URL, an email, a path, or a number removed. Words in quotes and in backticks stay. The server drops an intent that holds a tag, a call, or an assignment.
+- for `report_gap`, the generic words of the need, and `tried`, `reflection`, and `built`, scrubbed as the intent. For a call from an ngrok repo or with a real ngrok ticket, the server files the report in the Mantle Linear team: it lists similar open issues first, and the agent picks one with `matches` or answers "none".
 - the workspace, when it is a slug of up to 32 lowercase letters, digits, and hyphens and the MCP URL has a `source`
-- the ticket, when it is an issue key and the MCP URL has a `source`
+- the ticket, when it is an issue key and the MCP URL has a `source`, or when a `report_gap` ticket is a real ngrok Linear issue
 
 The server never logs the code that you send to `check` or `preview`.
 

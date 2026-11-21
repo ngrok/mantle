@@ -34,7 +34,8 @@ import {
 	type VersionData,
 	type VersionDataLoader,
 } from "~/utilities/mcp/version-data.server";
-import { mcpPulse } from "~/utilities/mcp/pulse.server";
+import { createLinearGaps, type LinearGaps } from "~/utilities/mcp/linear.server";
+import { gapIssueOf, mcpPulse } from "~/utilities/mcp/pulse.server";
 import { renderMdxToMarkdown } from "~/utilities/render-mdx-to-markdown.server";
 
 /** The server instructions. The contract test caps their size. */
@@ -68,6 +69,8 @@ export type McpDependencies = {
 	frameOrigin: string;
 	/** Records one tool call. Never receives code or messages, and free text only as `scrubIntent` output. */
 	log: (event: ToolCallEvent) => void;
+	/** The gap issues in Linear. Without it, `report_gap` posts to Slack only. */
+	linear?: LinearGaps;
 };
 
 /** What a gap report says is missing. */
@@ -84,7 +87,7 @@ const GAP_WORKAROUNDS = [
 /**
  * A sign that mantle lacks something. `find` sends one for each weak result,
  * and `report_gap` sends one with what the agent did instead. It holds
- * scrubbed words and enums only, never free text.
+ * scrubbed words, enums, and free text only as `scrubIntent` output.
  */
 export type GapSignal = {
 	source: "find" | "report_gap";
@@ -94,6 +97,16 @@ export type GapSignal = {
 	workaround?: (typeof GAP_WORKAROUNDS)[number];
 	/** An allowlisted record name: the part the agent used or nearly used. */
 	closestPart?: string;
+	/** The `find` queries and `get` parts that the agent tried. */
+	tried?: string;
+	/** The agent's own take, such as "I would use Tabs, but it has no done state". */
+	reflection?: string;
+	/** What the agent built instead. */
+	built?: string;
+	/** The title of the work ticket in Linear. */
+	work?: string;
+	/** The MNTL issue that the server created, or added the report to as a comment. */
+	issue?: { key: string; action: "created" | "commented" };
 };
 
 /**
@@ -128,13 +141,16 @@ export type ToolCallEvent = ToolCallOutcome & {
 	resultBytes: number;
 	/** The first product token of the `User-Agent` header, such as `claude-code/2.1.3`. */
 	client?: string;
-	/** The internal repo that the call came from, from the `source` query parameter. */
+	/** The ngrok repo that the call came from, from the `source` query parameter. */
 	source?: McpSource;
 	/** The agent's reason for the call, from `scrubIntent`. */
 	intent?: string;
 	/** The app or package that the agent changes, from `workspaceSlug`. Only a call with a `source` has one. */
 	workspace?: string;
-	/** The Linear issue key of the work, from `ticketKey`. Only a call with a `source` has one. */
+	/**
+	 * The Linear issue key of the work, from `ticketKey`. Only a call with a
+	 * `source`, or a `report_gap` call whose key is a real ngrok issue, has one.
+	 */
 	ticket?: string;
 	dataVersion?: string;
 	/** Allowlisted record names from `find` and `get`, and diagnostic codes from `check`. */
@@ -146,8 +162,17 @@ export type ToolCallEvent = ToolCallOutcome & {
 	gap?: GapSignal;
 };
 
-/** The fields that a tool body adds to its log event. */
-type ToolCallFacts = Pick<ToolCallEvent, "dataVersion" | "ids" | "resultCount" | "gap"> & {
+/**
+ * The scrubbed attribution of a call, for a tool body. `ticket` is the issue
+ * key with no source check; the body decides when to log it.
+ */
+type CallContext = Pick<ToolCallEvent, "intent" | "workspace" | "ticket">;
+
+/** The fields that a tool body adds to its log event. A `ticket` replaces the attributed one. */
+type ToolCallFacts = Pick<
+	ToolCallEvent,
+	"dataVersion" | "ids" | "resultCount" | "gap" | "ticket"
+> & {
 	/** Set by `failure`; a tool error with no kind logs as `internal`. */
 	errorKind?: ToolErrorKind;
 };
@@ -177,24 +202,43 @@ function rawString(value: unknown, key: "intent" | "workspace" | "ticket"): stri
 	return typeof field === "string" ? field : undefined;
 }
 
+/** The GitHub orgs of ngrok. Only ngrok uses mantle. */
+const NGROK_ORGS = ["ngrok", "ngrok-private", "ngrok-adhoc"] as const;
+
 /**
- * The internal repos that add `?source=<repo>` to the MCP URL in their agent
- * config, such as `https://mantle.ngrok.com/mcp?source=frontend`. A source
- * marks ngrok staff traffic and names no person.
+ * An ngrok repo that calls the MCP server, as `org/repo`. Its agent config
+ * adds `?source=org/repo` to the MCP URL, such as
+ * `https://mantle.ngrok.com/mcp?source=ngrok-private/frontend`. A source marks
+ * ngrok staff traffic and names no person.
  */
-const MCP_SOURCES = ["frontend", "mantle", "ngrok"] as const;
+export type McpSource = `${(typeof NGROK_ORGS)[number]}/${string}`;
 
-/** An internal repo that calls the MCP server. */
-export type McpSource = (typeof MCP_SOURCES)[number];
+/** The repo names that a source took before `org/repo`. Agent configs still send them. */
+const SOURCE_ALIASES = new Map<string, McpSource>([
+	["frontend", "ngrok-private/frontend"],
+	["ngrok", "ngrok-private/ngrok"],
+	["mantle", "ngrok/mantle"],
+]);
+
+/** A GitHub repo name, in lowercase. */
+const REPO_NAME = /^[a-z0-9][a-z0-9._-]{0,99}$/;
 
 /**
- * The `source` query parameter of a request, or `undefined` when it is not in
- * `MCP_SOURCES`. Why an allowlist: the server is public, and the value goes
- * into Slack.
+ * The `source` query parameter of a request, or `undefined` when it names no
+ * repo in an ngrok org. Why an allowlist: the server is public, and the value
+ * goes into Slack.
  */
 function sourceOf(request: Request | undefined): McpSource | undefined {
 	const value = request == null ? null : new URL(request.url).searchParams.get("source");
-	return MCP_SOURCES.find((source) => source === value);
+	const source = value?.trim().toLowerCase() ?? "";
+	const [owner, repo, ...rest] = source.split("/");
+	const org = NGROK_ORGS.find((name) => name === owner);
+	return (
+		SOURCE_ALIASES.get(source) ??
+		(org != null && repo != null && rest.length === 0 && REPO_NAME.test(repo)
+			? `${org}/${repo}`
+			: undefined)
+	);
 }
 
 const versionArgument = z
@@ -241,7 +285,7 @@ const ticketArgument = z
 const requiredTicketArgument = z
 	.string()
 	.describe(
-		`${TICKET_TEXT} Send "none" when you do not know it, and do not ask the user only for this.`,
+		'The Linear issue key of the product work, such as "CDATA-1234", from the task, branch, PR, or commits. Never invent one. Send "none" when you do not know it.',
 	);
 
 const readOnly = { readOnlyHint: true, idempotentHint: true, openWorldHint: false } as const;
@@ -385,10 +429,16 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 			tool: string,
 			body: (
 				args: Omit<Args, "intent" | "workspace" | "ticket">,
+				context: CallContext,
 			) => Promise<{ result: CallToolResult } & ToolCallFacts>,
 		) =>
 		async ({ intent, workspace, ticket, ...args }: Args): Promise<CallToolResult> => {
 			const started = performance.now();
+			const context: CallContext = {
+				intent: intent == null ? undefined : scrubIntent(intent),
+				workspace: attribution(workspace, null).workspace,
+				ticket: ticket == null ? undefined : ticketKey(ticket),
+			};
 			const finish = (
 				outcome: ToolCallOutcome,
 				result: CallToolResult,
@@ -404,7 +454,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					resultBytes: byteLength(resultText),
 					client,
 					source,
-					intent: intent == null ? undefined : scrubIntent(intent),
+					intent: context.intent,
 					...attribution(workspace, ticket),
 					...facts,
 				});
@@ -417,7 +467,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				);
 			}
 			try {
-				const { result, errorKind, ...facts } = await body(args);
+				const { result, errorKind, ...facts } = await body(args, context);
 				const outcome: ToolCallOutcome =
 					result.isError === true
 						? { outcome: "error", errorKind: errorKind ?? "internal" }
@@ -741,7 +791,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 		{
 			title: "Report a mantle gap",
 			description:
-				'Tells the mantle team that mantle lacks something you needed, so they can add it. Call it once for each need, after `find` and `get` found no fit. Name the need in generic words, such as "stepper" or "date range picker". The server keeps only those words and the enums. Never send code, file paths, product names, or customer data. Always send `ticket`: the Linear issue key of the work, or "none". The mantle team uses it to find the work that needs the part.',
+				'Tells the mantle team that mantle lacks something you needed, so they can add it. Call it once for each need, after `find` and `get` found no fit. Name the need in generic words, such as "stepper". Plain words only: no code, file paths, or customer data. Always send `ticket`: the Linear issue key of the work, or "none".',
 			inputSchema: logInvalid(
 				"report_gap",
 				z.object({
@@ -750,15 +800,37 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 						.min(3)
 						.max(60)
 						.describe('Generic words for what you needed, such as "stepper".'),
-					kind: z.enum(GAP_KINDS).describe("What is missing."),
+					kind: z.enum(GAP_KINDS).describe("The kind of part that is missing."),
 					workaround: z.enum(GAP_WORKAROUNDS).describe("What you did instead."),
 					closestPart: z
 						.string()
 						.max(100)
 						.optional()
 						.describe("The mantle part you used or nearly used, such as Tabs."),
+					// Why no max on the free text: a long field must not fail the call. `scrubIntent` cuts it.
+					tried: z
+						.string()
+						.describe(
+							'The `find` queries and `get` parts you tried, such as "find stepper, get Tabs".',
+						),
+					reflection: z
+						.string()
+						.describe(
+							'Your take in one or two sentences, such as "I would use Tabs, but it has no numbered steps or done state."',
+						),
+					built: z.string().optional().describe("What you built instead."),
+					matches: z
+						.string()
+						.optional()
+						.describe(
+							'Only when a report lists similar MNTL issues: the key of the same need, or "none".',
+						),
 					version: versionArgument,
-					intent: intentArgument,
+					intent: z
+						.string()
+						.describe(
+							'The use case: the screen or feature, the change, and where mantle fell short, such as "onboarding page, add a setup checklist, need numbered steps with a done state".',
+						),
 					workspace: workspaceArgument,
 					ticket: requiredTicketArgument,
 				}),
@@ -770,25 +842,93 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				openWorldHint: true,
 			},
 		},
-		run("report_gap", async ({ need, kind, workaround, closestPart, version }) => {
-			const tokens = gapTokens(need);
-			if (tokens.length === 0) {
-				return failure(
-					"invalid_argument",
-					'Name the need in generic words of three letters or more, such as "stepper".',
-				);
-			}
-			const data = await dependencies.loader.load(version);
-			const closest =
-				closestPart == null ? undefined : recordNamed(recordsOf(data), closestPart)?.name;
-			return {
-				result: text(
-					`Reported: ${tokens.join(" ")}. Thank you. Do not report this need again in this task.`,
-				),
-				dataVersion: data.version,
-				gap: { source: "report_gap", tokens, kind, workaround, closestPart: closest },
-			};
-		}),
+		run(
+			"report_gap",
+			async (
+				{ need, kind, workaround, closestPart, tried, reflection, built, matches, version },
+				context,
+			) => {
+				const tokens = gapTokens(need);
+				if (tokens.length === 0) {
+					return failure(
+						"invalid_argument",
+						'Name the need in generic words of three letters or more, such as "stepper".',
+					);
+				}
+				const data = await dependencies.loader.load(version);
+				const { linear } = dependencies;
+				const work =
+					linear == null || context.ticket == null ? undefined : await linear.issue(context.ticket);
+				// Why: a real ngrok issue key marks an ngrok caller, as a source does.
+				const known = source != null || work != null;
+				const report = {
+					client,
+					source,
+					workspace: context.workspace,
+					intent: context.intent,
+					ticket: known ? context.ticket : undefined,
+					dataVersion: data.version,
+					gap: {
+						source: "report_gap",
+						tokens,
+						kind,
+						workaround,
+						closestPart:
+							closestPart == null ? undefined : recordNamed(recordsOf(data), closestPart)?.name,
+						tried: scrubIntent(tried),
+						reflection: scrubIntent(reflection),
+						built: built == null ? undefined : scrubIntent(built),
+						work: work?.title,
+					} satisfies GapSignal,
+				};
+				const reported = (message: string, issue?: GapSignal["issue"]) => ({
+					result: text(`${message} Thank you. Do not report this need again in this task.`),
+					dataVersion: data.version,
+					ticket: report.ticket,
+					gap: { ...report.gap, issue },
+				});
+				const plain = `Reported: ${tokens.join(" ")}.`;
+				if (linear == null || !known) {
+					return reported(plain);
+				}
+				const match = matches == null ? undefined : ticketKey(matches);
+				if (match?.startsWith("MNTL-") === true) {
+					const issue = await linear.issue(match);
+					const added =
+						issue != null &&
+						(await linear.comment(
+							issue.id,
+							`Another agent hit this gap.\n\n${gapIssueOf(report).description}`,
+						));
+					return added
+						? reported(`Added this report to ${issue.key}.`, {
+								key: issue.key,
+								action: "commented",
+							})
+						: reported(plain);
+				}
+				if (matches == null) {
+					const similar = await linear.similar(tokens);
+					if (similar.length > 0) {
+						return {
+							result: text(
+								[
+									"Not reported yet. These MNTL issues may be the same need:",
+									...similar.map((issue) => `- ${issue.key}: ${issue.title}`),
+									'Call `report_gap` again with the same arguments and `matches`: the key of the issue for the same need, or "none".',
+								].join("\n"),
+							),
+							dataVersion: data.version,
+							ticket: report.ticket,
+						};
+					}
+				}
+				const key = await linear.create(gapIssueOf(report));
+				return key == null
+					? reported(plain)
+					: reported(`Reported as ${key}.`, { key, action: "created" });
+			},
+		),
 	);
 
 	server.registerResource(
@@ -987,6 +1127,7 @@ function loadDocPages(): Promise<DocPageRecord[]> {
 }
 
 let loader: VersionDataLoader | undefined;
+let linear: LinearGaps | undefined;
 
 /**
  * The production dependencies: one version loader for the process. The
@@ -1003,6 +1144,7 @@ export function productionDependencies({
 	requestOrigin: string;
 }): McpDependencies {
 	loader ??= createVersionDataLoader();
+	linear ??= createLinearGaps({ apiKey: process.env.MANTLE_MCP_LINEAR_API_KEY });
 	const previewOrigin =
 		process.env.MANTLE_PREVIEW_ORIGIN ?? (import.meta.env.DEV ? requestOrigin : canonicalOrigin);
 	return {
@@ -1015,6 +1157,7 @@ export function productionDependencies({
 		flags,
 		previewOrigin,
 		frameOrigin: previewFrameOrigin() || previewOrigin,
+		linear,
 		log: (event) => {
 			console.info(JSON.stringify({ event: "mcp.tool_call", ...event }));
 			mcpPulse.record(event);

@@ -334,8 +334,16 @@ describe("scrubIntent", () => {
 		["a JSX tag", 'Render <Button variant="danger">Delete Acme</Button>'],
 		["an assignment", "Set const plan = premium"],
 		["a block", "Handle if (isOpen) { return null }"],
+		["a call in a code span", "Read `getCustomer()` first"],
+		["two statements on one line", "Call reset;restart"],
 	])("logs no intent that holds %s", (_, intent) => {
 		expect(scrubIntent(intent)).toBeUndefined();
+	});
+
+	it("keeps the words of a code span and a prose semicolon", () => {
+		expect(scrubIntent("find `date range`, get `Tabs`; no fit")).toBe(
+			"find date range, get Tabs; no fit",
+		);
 	});
 
 	it("keeps quotes and apostrophes", () => {
