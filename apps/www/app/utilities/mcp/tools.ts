@@ -78,19 +78,34 @@ export function recordsOf(data: VersionData): ApiRecord[] {
 	];
 }
 
-/** A docs page with no API record: a foundation such as Colors, a recipe, or a guide. */
+/**
+ * A docs page with no API record. A page under `recipes/` is a `recipe`: a
+ * composition of mantle parts that `get` returns. Other pages, such as Colors or a guide,
+ * are a `page` that `read_docs` returns.
+ */
 export type DocPageRecord = {
 	/** The page title. */
 	name: string;
-	kind: "page";
+	kind: "page" | "recipe";
 	/** The page description. */
 	summary?: string;
+	/** The `aliases` frontmatter: other names for the page, such as a designer's words. */
+	aliases?: string[];
+	/** The `useWhen` frontmatter. */
+	useWhen?: string;
+	/** The `parts` frontmatter: the mantle record names that the page composes. */
+	parts?: string[];
 	docsUrl: string;
 	docsSlug: string;
 };
 
 /** One record that `find` can return. */
 export type FindRecord = ApiRecord | DocPageRecord;
+
+/** Whether a record is a docs page, not an API record. */
+export function isDocPage(record: FindRecord): record is DocPageRecord {
+	return record.kind === "page" || record.kind === "recipe";
+}
 
 /** One ranked `find` result. */
 export type FindMatch<T extends FindRecord> = {
@@ -99,8 +114,9 @@ export type FindMatch<T extends FindRecord> = {
 	/**
 	 * Whether the record clearly answers the query: its name or an alias
 	 * matches, the query contains each word of its name and a second name or
-	 * alias word, or half the query words or more match. When the top result is
-	 * not strong, mantle may lack a part for the query.
+	 * alias word, or half the query words or more match. A recipe also needs
+	 * the query to name it. When the top result is not strong, mantle may lack
+	 * a part for the query.
 	 */
 	strong: boolean;
 };
@@ -119,7 +135,7 @@ const STOP_WORDS = new Set(
 	`about above after against along also although among and are around because been before behind
 	being below beside between beyond but can component components could did does during either for
 	from had has have her here him his how into its let lets like may might must need needs neither
-	nor onto other our over per shall she should since such than that the their them then there
+	nor onto other our over pattern patterns per shall she should since such than that the their them then there
 	these they this those though through toward towards under unless until upon use used user users
 	using via want wants was were what when where whether which while who whom whose why will with
 	within without would yet you your`.split(/\s+/),
@@ -168,7 +184,7 @@ function hits(word: string, token: string): boolean {
  * text field" must not rank Text Area above Field for "label a text field".
  */
 function aliasWords(
-	record: ApiRecord,
+	record: FindRecord,
 	tokens: readonly string[],
 	nameWords: ReadonlySet<string>,
 ): string[] {
@@ -191,7 +207,7 @@ function aliasWords(
 function boundariesBySibling(records: readonly FindRecord[]): Map<string, string[]> {
 	const boundaries = new Map<string, string[]>();
 	for (const record of records) {
-		for (const sibling of record.kind === "page" ? [] : (record.siblings ?? [])) {
+		for (const sibling of isDocPage(record) ? [] : (record.siblings ?? [])) {
 			const key = compact(sibling.name);
 			boundaries.set(key, [...(boundaries.get(key) ?? []), sibling.boundary]);
 		}
@@ -216,7 +232,7 @@ function wordsOf(text: string): string[] {
  * count: their titles are sentences, not part names.
  */
 function namedInQuery(record: FindRecord, queryWords: ReadonlySet<string>): boolean {
-	if (record.kind === "page") {
+	if (isDocPage(record)) {
 		return false;
 	}
 	const words = wordsOf(record.name);
@@ -226,22 +242,70 @@ function namedInQuery(record: FindRecord, queryWords: ReadonlySet<string>): bool
 	return words.length > 0 && words.every((word) => queryWords.has(word)) && named.size >= 2;
 }
 
+/**
+ * The title words of a recipe that no part names. Why: a recipe title is a
+ * sentence about parts. "Query" in "Query from the URL" names the Query part,
+ * so it must not rank the recipe above that part.
+ */
+function ownTitleWords(record: DocPageRecord, partWords: ReadonlySet<string>): string[] {
+	return keywordsFrom(record.name).filter(
+		(word) => !STOP_WORDS.has(word) && !partWords.has(singular(word)),
+	);
+}
+
+/**
+ * Whether the query names a recipe: half or more of its own title words, or
+ * each word of one alias. Why: one shared word, such as "page" in "List Page
+ * Loading States", is weak evidence.
+ */
+function namesRecipe(
+	record: DocPageRecord,
+	tokens: readonly string[],
+	partWords: ReadonlySet<string>,
+): boolean {
+	const hitCount = (words: string[]) =>
+		words.filter((word) => tokens.some((token) => hits(word, token))).length;
+	const title = ownTitleWords(record, partWords);
+	if (title.length > 0 && hitCount(title) * 2 >= title.length) {
+		return true;
+	}
+	return (record.aliases ?? []).some((alias) => {
+		const words = keywordsFrom(alias).filter((word) => !STOP_WORDS.has(word));
+		return words.length > 0 && hitCount(words) === words.length;
+	});
+}
+
 /** The words of each field that `find` searches, with the weight of a hit. */
 function weightedFields(
 	record: FindRecord,
 	{
 		tokens,
 		nameWords,
+		partWords,
 		boundaries,
 	}: {
 		tokens: readonly string[];
 		nameWords: ReadonlySet<string>;
+		partWords: ReadonlySet<string>;
 		boundaries: ReadonlyMap<string, string[]>;
 	},
 ): [string[], number][] {
-	if (record.kind === "page") {
+	if (record.kind === "recipe") {
+		const own = ownTitleWords(record, partWords);
+		return [
+			[own, 10],
+			[keywordsFrom(record.name).filter((word) => !own.includes(word)), 3],
+			[aliasWords(record, tokens, nameWords), 8],
+			[keywordsFrom(record.useWhen), 4],
+			[keywordsFrom(record.docsSlug), 4],
+			[keywordsFrom(record.summary), 3],
+		];
+	}
+	if (isDocPage(record)) {
 		return [
 			[keywordsFrom(record.name), 10],
+			[aliasWords(record, tokens, nameWords), 8],
+			[keywordsFrom(record.useWhen), 4],
 			[keywordsFrom(record.docsSlug), 4],
 			[keywordsFrom(record.summary), 3],
 		];
@@ -274,24 +338,27 @@ export function findRecords<T extends FindRecord>(
 		.filter((token) => !STOP_WORDS.has(token))
 		.map(singular);
 	const nameWords = new Set(records.flatMap((record) => keywordsFrom(record.name).map(singular)));
+	const partWords = new Set(
+		records
+			.filter((record) => !isDocPage(record))
+			.flatMap((record) => keywordsFrom(record.name).map(singular)),
+	);
 	const queryWords = new Set(wordsOf(query));
 	const boundaries = boundariesBySibling(records);
 
 	const scored = records
 		.filter((record) => kind == null || record.kind === kind)
 		.map((record) => {
-			const nameKeys = [record.name, ...(record.kind === "page" ? [] : (record.aliases ?? []))].map(
-				compact,
-			);
+			const nameKeys = [record.name, ...(record.aliases ?? [])].map(compact);
 			let nameScore = 0;
 			if (nameKeys.includes(wanted)) {
 				nameScore = 100;
-			} else if (wanted.length >= 3 && nameKeys[0]?.includes(wanted)) {
+			} else if (wanted.length >= 3 && record.kind !== "recipe" && nameKeys[0]?.includes(wanted)) {
 				nameScore = 40;
 			} else if (wanted.length >= 4 && nameKeys.some((key) => withinOneEdit(key, wanted))) {
 				nameScore = 30;
 			}
-			const fields = weightedFields(record, { tokens, nameWords, boundaries });
+			const fields = weightedFields(record, { tokens, nameWords, partWords, boundaries });
 			let wordScore = 0;
 			let matchedTokens = 0;
 			for (const token of tokens) {
@@ -307,7 +374,9 @@ export function findRecords<T extends FindRecord>(
 			const strong =
 				nameScore > 0 ||
 				namedInQuery(record, queryWords) ||
-				(wordScore >= STRONG_WORD_SCORE && matchedTokens * 2 >= tokens.length);
+				(wordScore >= STRONG_WORD_SCORE &&
+					matchedTokens * 2 >= tokens.length &&
+					(record.kind !== "recipe" || namesRecipe(record, tokens, partWords)));
 			return { record, score: nameScore + wordScore, strong };
 		})
 		.filter(({ score }) => score > 0)
@@ -419,6 +488,76 @@ export function ticketKey(ticket: string): string | undefined {
 export function recordNamed(records: readonly ApiRecord[], name: string): ApiRecord | undefined {
 	const wanted = compact(name);
 	return records.find((record) => compact(record.name) === wanted);
+}
+
+/** The recipe named `name`, by title or alias. */
+export function recipeNamed(
+	pages: readonly DocPageRecord[],
+	name: string,
+): DocPageRecord | undefined {
+	const wanted = compact(name);
+	return pages.find(
+		(page) =>
+			page.kind === "recipe" &&
+			[page.name, ...(page.aliases ?? [])].some((key) => compact(key) === wanted),
+	);
+}
+
+/**
+ * Builds the `get` result for a recipe: its parts with their imports at the
+ * selected version, then its docs page. The docs are the latest build, so a
+ * part that the selected version lacks says so.
+ *
+ * @example
+ * getRecipeText({ recipe, records, dataVersion: "0.94.1", docsMarkdown });
+ */
+export function getRecipeText({
+	recipe,
+	records,
+	dataVersion,
+	docsMarkdown,
+	sections,
+}: {
+	recipe: DocPageRecord;
+	records: readonly ApiRecord[];
+	dataVersion: string;
+	docsMarkdown: string | undefined;
+	sections?: readonly string[];
+}): string {
+	const parts = (recipe.parts ?? []).map((name) => {
+		const record = recordNamed(records, name);
+		return record == null
+			? `  - ${name}: not in @ngrok/mantle@${dataVersion}`
+			: `  - ${record.name}: \`${record.importPath}\``;
+	});
+	const header = [
+		`# ${recipe.name}`,
+		"",
+		"- Kind: recipe (a composition of mantle parts)",
+		recipe.useWhen == null ? undefined : `- Use when: ${recipe.useWhen}`,
+		recipe.summary == null ? undefined : `- Summary: ${recipe.summary}`,
+		`- Docs: ${recipe.docsUrl}`,
+		...(parts.length === 0 ? [] : ["- Parts:", ...parts]),
+	]
+		.filter((line) => line != null)
+		.join("\n");
+	// Why the smaller budget: the header shares the result, and an outline beats a page cut mid-fence.
+	const fitted =
+		docsMarkdown == null
+			? undefined
+			: fitMarkdown({
+					markdown: docsMarkdown,
+					sections,
+					budgetBytes: RESULT_BUDGET_BYTES - new TextEncoder().encode(header).length - 200,
+				});
+	const missing =
+		fitted?.kind === "sections" && fitted.missing.length > 0
+			? `No heading matched: ${fitted.missing.join(", ")}.`
+			: undefined;
+	return truncate(
+		[header, fitted?.text.trim(), missing].filter(Boolean).join("\n\n"),
+		RESULT_BUDGET_BYTES,
+	);
 }
 
 /** Up to five record names close to `name`, for a miss. */

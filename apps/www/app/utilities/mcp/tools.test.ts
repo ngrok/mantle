@@ -74,6 +74,40 @@ describe("findRecords", () => {
 		expect(match).toEqual(expect.objectContaining({ record: page, strong: true }));
 	});
 
+	const listPage: DocPageRecord = {
+		name: "List Page Loading States",
+		kind: "recipe",
+		summary: "Render a list page's header and filters on the first frame.",
+		aliases: ["table page"],
+		useWhen: "Build a list page whose heading paints on the first frame.",
+		docsUrl: "https://mantle.ngrok.com/recipes/list-page-loading-states",
+		docsSlug: "recipes/list-page-loading-states",
+	};
+
+	it("calls a recipe weak when the query shares one title word, not its name", () => {
+		expect(findRecords([listPage], { query: "page heading" })[0]?.strong).toBe(false);
+		expect(findRecords([listPage], { query: "page" })[0]?.strong).toBe(false);
+		expect(findRecords([listPage], { query: "page loading states" })[0]?.strong).toBe(true);
+	});
+
+	it("calls a foundation page strong for an intent in its description", () => {
+		const colors: DocPageRecord = {
+			name: "Colors",
+			kind: "page",
+			summary: "Color system with automatic dark mode support",
+			docsUrl: "https://mantle.ngrok.com/base/colors",
+			docsSlug: "base/colors",
+		};
+
+		expect(findRecords([colors], { query: "dark mode" })[0]?.strong).toBe(true);
+	});
+
+	it("finds a recipe by an alias", () => {
+		const [match] = findRecords([...records, listPage], { query: "table page" });
+
+		expect(match).toEqual(expect.objectContaining({ record: listPage, strong: true }));
+	});
+
 	it("calls a match weak when fewer than half the query words match", () => {
 		const [top] = findRecords(records, { query: "rich action editor" });
 

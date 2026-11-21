@@ -16,6 +16,7 @@ import {
 } from "~/utilities/mcp/server.server";
 import type { LinearGaps, LinearIssue } from "~/utilities/mcp/linear.server";
 import { packageFilesFixture } from "~/utilities/mcp/test-fixtures";
+import { recordNamed, recordsOf, type DocPageRecord } from "~/utilities/mcp/tools";
 import { ServerBusyError, versionDataFromFiles } from "~/utilities/mcp/version-data.server";
 
 function dependencies(overrides: Partial<McpDependencies> = {}): McpDependencies {
@@ -114,6 +115,30 @@ describe("the mantle MCP server", () => {
 		expect(
 			tools.filter((tool) => tool.annotations?.readOnlyHint !== true).map((tool) => tool.name),
 		).toEqual(["report_gap"]);
+	});
+
+	it("lists recipe as a find kind, and maps a pattern kind filter to recipes", async () => {
+		const recipe: DocPageRecord = {
+			name: "Delete Flow",
+			kind: "recipe",
+			summary: "Confirm, then delete.",
+			docsUrl: "https://mantle.ngrok.com/recipes/delete-flow",
+			docsSlug: "recipes/delete-flow",
+		};
+		const deps = dependencies({ docPages: async () => [recipe] });
+		const { result } = await rpc(deps, "tools/list");
+		const find = ((result?.tools ?? []) as { name: string; inputSchema: unknown }[]).find(
+			(tool) => tool.name === "find",
+		);
+		const kinds = JSON.stringify(find?.inputSchema);
+
+		const { text, isError } = await callTool(deps, "find", { query: "delete", kind: "pattern" });
+
+		expect(kinds).toContain('"recipe"');
+		expect(kinds).not.toContain('"pattern"');
+		expect(isError).toBe(false);
+		expect(text).toContain('- Delete Flow (recipe): `get` "Delete Flow"');
+		expect(text).not.toContain("Dialog");
 	});
 
 	it("finds a docs page next to the API records", async () => {
@@ -431,6 +456,38 @@ describe("the mantle MCP server", () => {
 				ids: ["Dialog"],
 			}),
 		);
+	});
+
+	it("answers get for a recipe alias with its parts at the selected version and its docs page", async () => {
+		const recipe: DocPageRecord = {
+			name: "Delete Flow",
+			kind: "recipe",
+			aliases: ["remove with confirmation"],
+			parts: ["Dialog", "Toast"],
+			docsUrl: "https://mantle.ngrok.com/recipes/delete-flow",
+			docsSlug: "recipes/delete-flow",
+		};
+		const deps = dependencies({
+			docPages: async () => [recipe],
+			readDocs: async (slug) =>
+				slug === recipe.docsSlug ? "# Delete Flow\n\nThe code." : undefined,
+		});
+
+		const { text, isError } = await callTool(deps, "get", { name: "Remove with confirmation" });
+
+		expect(isError).toBe(false);
+		expect(text).toContain("# Delete Flow");
+		expect(text).toContain(
+			"  - Dialog: `@ngrok/mantle/dialog`\n  - Toast: not in @ngrok/mantle@0.93.0",
+		);
+		expect(text).toContain("The code.");
+
+		const { text: missing } = await callTool(deps, "get", {
+			name: "Delete Flow",
+			sections: ["Usage"],
+		});
+
+		expect(missing).toContain("No heading matched: Usage.");
 	});
 
 	it("returns a tool error with close names for an unknown name, and logs it as not_found", async () => {
@@ -832,6 +889,19 @@ describe("the golden find queries", () => {
 		"avatar initials from name": "Avatar",
 		"app shell sidebar header": "App Layout",
 		"centered login page": "Centered Layout",
+		"page heading with actions": "App Layout",
+		"list page with filters and a table": "List Page Loading States",
+		"skeleton rows while a table loads": "List Page Loading States",
+		"dialog loading state": "Overlays + Async Data (React Query)",
+		"sparkline in each table row": "Sparklines in a List",
+		"dialog loading state pattern": "Overlays + Async Data (React Query)",
+		"table sub-rows": "Data Table",
+		"expandable row detail": "Data Table",
+		"nested rows in a table": "Data Table",
+		"text search query": "Query",
+		"search filter": "Query",
+		"responsive adaptive layouts": "Breakpoints",
+		breadcrumbs: "Breadcrumb",
 	};
 
 	it.each(Object.entries(topResultByQuery))(
@@ -850,6 +920,36 @@ describe("the golden find queries", () => {
 			expect(found.results[0]?.name).toBe(name);
 		},
 	);
+
+	it.each(["stepper", "file drop zone"])(
+		'calls "%s" weak, so find reports the gap',
+		async (query) => {
+			const { result } = await rpc(await currentDependencies(), "tools/call", {
+				name: "find",
+				arguments: { query },
+			});
+			const found = result?.structuredContent as { strongMatch: boolean };
+
+			expect(found.strongMatch).toBe(false);
+		},
+	);
+
+	it("names a part of the current build in each part of each recipe", async () => {
+		const deps = await currentDependencies();
+		const records = recordsOf(await deps.loader.load(mantlePackageJson.version));
+		const recipes = (await deps.docPages()).filter((page) => page.kind === "recipe");
+
+		const unknown = recipes.flatMap(({ name, parts }) =>
+			parts == null || parts.length === 0
+				? [`${name}: no parts`]
+				: parts
+						.filter((part) => recordNamed(records, part) == null)
+						.map((part) => `${name}: ${part}`),
+		);
+
+		expect(recipes.length).toBeGreaterThan(0);
+		expect(unknown).toEqual([]);
+	});
 });
 
 describe("loadMigrationGuides", () => {
