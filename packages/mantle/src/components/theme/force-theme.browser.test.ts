@@ -47,7 +47,10 @@ function serializeThemeRules(css: string): string {
 		.join("\n");
 }
 
-const mantleThemeBlock = parseDeclarationBlock(mantleCss, (selector) => selector === "@theme");
+const mantleThemeBlock = parseDeclarationBlock(
+	mantleCss,
+	(selector) => selector === "@theme" || selector === "@theme static",
+);
 const tailwindDefaults = parseDeclarationBlock(twThemeCss, (selector) =>
 	selector.includes("@theme default"),
 );

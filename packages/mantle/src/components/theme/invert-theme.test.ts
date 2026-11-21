@@ -54,7 +54,10 @@ const darkBlock = new Map([...darkThemeBlock, ...sharedBlock]);
 const tailwindDefaults = parseDeclarationBlock(twThemeCss, (selector) =>
 	selector.includes("@theme default"),
 );
-const mantleThemeBlock = parseDeclarationBlock(mantleCss, (selector) => selector === "@theme");
+const mantleThemeBlock = parseDeclarationBlock(
+	mantleCss,
+	(selector) => selector === "@theme" || selector === "@theme static",
+);
 
 describe("cardinality floors", () => {
 	// Every other invariant in this suite is a set/equality comparison that a

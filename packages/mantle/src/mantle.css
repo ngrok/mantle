@@ -141,19 +141,6 @@ MARK: THEME
 	--color-important-900: var(--color-purple-900);
 	--color-important-950: var(--color-purple-950);
 
-	/* gray is identical to neutral in both themes */
-	--color-gray-50: var(--color-neutral-50);
-	--color-gray-100: var(--color-neutral-100);
-	--color-gray-200: var(--color-neutral-200);
-	--color-gray-300: var(--color-neutral-300);
-	--color-gray-400: var(--color-neutral-400);
-	--color-gray-500: var(--color-neutral-500);
-	--color-gray-600: var(--color-neutral-600);
-	--color-gray-700: var(--color-neutral-700);
-	--color-gray-800: var(--color-neutral-800);
-	--color-gray-900: var(--color-neutral-900);
-	--color-gray-950: var(--color-neutral-950);
-
 	/* no ngrok surface uses stone; see decisions/2026-11-21-trim-unused-palettes.md */
 	--color-stone-*: initial;
 
@@ -243,6 +230,21 @@ and the shadow utilities inline their values. Without `static`, `var(--shadow-md
 in a plain stylesheet (a third-party widget override) resolves to nothing.
 */
 @theme static {
+	/* gray is identical to neutral in both themes. Static for the same reason: the
+	   light theme rule declared these on every page before, so a runtime-only read,
+	   such as `style={{ color: "var(--color-gray-100)" }}`, kept working. */
+	--color-gray-50: var(--color-neutral-50);
+	--color-gray-100: var(--color-neutral-100);
+	--color-gray-200: var(--color-neutral-200);
+	--color-gray-300: var(--color-neutral-300);
+	--color-gray-400: var(--color-neutral-400);
+	--color-gray-500: var(--color-neutral-500);
+	--color-gray-600: var(--color-neutral-600);
+	--color-gray-700: var(--color-neutral-700);
+	--color-gray-800: var(--color-neutral-800);
+	--color-gray-900: var(--color-neutral-900);
+	--color-gray-950: var(--color-neutral-950);
+
 	--shadow-sm: 0px 1px 2px 0 --alpha(var(--shadow-color) / var(--shadow-first-opacity));
 	--shadow:
 		0px 1px 2px -1px --alpha(var(--shadow-color) / var(--shadow-second-opacity)),

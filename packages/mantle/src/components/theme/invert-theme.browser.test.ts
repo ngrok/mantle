@@ -61,7 +61,10 @@ const lightBlock = new Map([
 	),
 ]);
 const darkBlock = parseDeclarationBlock(mantleCss, (selector) => selector.includes(":root.dark"));
-const mantleThemeBlock = parseDeclarationBlock(mantleCss, (selector) => selector === "@theme");
+const mantleThemeBlock = parseDeclarationBlock(
+	mantleCss,
+	(selector) => selector === "@theme" || selector === "@theme static",
+);
 // the shared theme tokens and the Shiki/code-block tokens are declared on
 // `:root, .invert-theme` so their var() references re-resolve inside islands
 const shikiBlock = parseDeclarationBlock(

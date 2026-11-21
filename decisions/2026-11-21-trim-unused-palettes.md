@@ -11,7 +11,7 @@ CSS blocks rendering, so each byte of `mantle.css` delays the first paint of eve
 ## Decision
 
 1. **Remove a palette only when no code uses any of its stops.** Cody Price set the rule on 2026-11-21: keep every stop of a palette in use, and every stop of the semantic ramps (`accent`, `info`, `danger`, `warning`, `success`, `important`), even a stop such as `danger-300` that no code uses yet. Only `stone` meets the rule. `@theme` sets `--color-stone-*: initial`, so Tailwind makes no `stone` utility, and the dark theme and the island restore no longer declare it.
-2. **Gray is an alias of neutral in both themes.** The light theme already aliased each gray stop to its neutral stop, and the dark theme declared the same literal for gray and neutral. `@theme` now aliases `--color-gray-*` to `--color-neutral-*`, like `accent` to `sky`, and the `invert-theme` utility re-declares the aliases on islands. No resolved color changes.
+2. **Gray is an alias of neutral in both themes.** The light theme already aliased each gray stop to its neutral stop, and the dark theme declared the same literal for gray and neutral. `@theme static` now aliases `--color-gray-*` to `--color-neutral-*`, like `accent` to `sky`, and the `invert-theme` utility re-declares the aliases on islands. `static` keeps every alias on every page, as the light theme rule did, so a gray stop that only script reads keeps its value. No resolved color changes.
 3. **A token with one expression in both themes is declared once.** The 41 tokens below had the same value in the light and the dark theme rules. One `:root, .invert-theme` rule declares them, so each theme and each island resolves them against its own ramps. No resolved color changes.
 4. **The theme rules no longer declare `--divide-color-card` and `--divide-color-card-muted`.** `@theme inline reference` registers the `divide-card` utilities with `var(--border-color-card)` and `var(--border-color-card-muted)`, so nothing read the theme declarations.
 
@@ -23,9 +23,10 @@ CSS blocks rendering, so each byte of `mantle.css` delays the first paint of eve
 
 ## Consequences
 
-- Measured with Tailwind 4.3.5 and the files that `mantleSourcesPlugin` lists, a marketing page without an island drops from 113.9 KB to 102.0 KB minified (18.4 KB to 17.9 KB gzipped), and a product page from 172.2 KB to 160.3 KB. With `mantleThemePrunePlugin`, the marketing page drops from 92.8 KB to 90.3 KB.
+- Measured with Tailwind 4.3.5 and the files that `mantleSourcesPlugin` lists, a marketing page without an island drops from 113.9 KB to 102.2 KB minified (18.4 KB to 18.0 KB gzipped), and a product page from 172.2 KB to 160.4 KB. With `mantleThemePrunePlugin`, the marketing page drops from 92.8 KB to 90.6 KB.
 - A `stone` class, such as `bg-stone-500`, no longer makes CSS. The [0017 migration guide](https://mantle.ngrok.com/migrations/0017-stone-palette-migration) gives the replacement.
-- A consumer rule such as `:root { --border-color-card: red }` now applies in the dark theme too, because no `:root.dark` rule declares that token any more.
+- A consumer override can now win where it lost before. A later `:root { --border-color-card: red }` applies in every theme, also on a page with an explicit or forced theme, because no theme selector declares that token any more. A later `.invert-theme { … }` override applies on every island. An `@theme` override of `--color-gray-*` takes effect, because no unlayered light rule declares gray any more.
+- `var(--divide-color-card)` and `var(--divide-color-card-muted)` resolve to nothing at runtime. The `divide-card` classes keep working, because they inline `var(--border-color-card)` and `var(--border-color-card-muted)`.
 - To restore a palette or a declaration, copy its values from the catalog below into the same rules.
 
 ## Catalog of removed tokens
