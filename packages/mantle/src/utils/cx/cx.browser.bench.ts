@@ -2,13 +2,12 @@ import { expect, test } from "vitest";
 import { cx } from "./cx.js";
 
 /**
- * Real-browser (Chromium/V8) benchmarks for `cx`. `cx` layers three caches over the vendored
- * merge engine: a whole-string result cache (`./vendor/lib/tw-merge.ts`), a per-call-site cache
- * for the tagged-template form (`./vendor/lib/merge-template.ts`), and a V8-only arg-sequence
- * cache (`./cx.ts`). The test registers a cold merge and one workload per cache through the
- * `bench` fixture, then asserts each cache hit is faster than the cold merge with
- * `toBeFasterThan`. Vitest owns the sampling and the comparison, so the file carries no
- * wall-clock threshold.
+ * Real-browser (Chromium/V8) benchmarks for `cx`. `cx` keeps two caches over the merge in
+ * `./merge.ts`, which itself caches nothing: an argument cache keyed on the first argument
+ * (`./cx.ts`) and a per-call-site cache for the tagged-template form. The test registers a cold
+ * merge and one workload per cache through the `bench` fixture, then asserts each cache hit is
+ * faster than the cold merge with `toBeFasterThan`. Vitest owns the sampling and the comparison,
+ * so the file carries no wall-clock threshold.
  */
 
 // Realistic, conflict-bearing class lists in the spirit of mantle components.
@@ -24,8 +23,8 @@ const SAMPLES = [
 ];
 
 test("cache hits and tagged templates beat a cold merge", async ({ bench }) => {
-	// Why a 3000-string pool: the whole-string LRU cannot hold it, so each cold call pays a
-	// full split and conflict resolution.
+	// Why a 3000-string pool: each string is new to the caches, so each cold call pays a full
+	// merge.
 	const coldPool: string[] = [];
 	for (let index = 0; index < 3000; index++) {
 		coldPool.push(`${SAMPLES[index % SAMPLES.length]} mt-${index} pb-${index % 97}`);
@@ -37,10 +36,9 @@ test("cache hits and tagged templates beat a cold merge", async ({ bench }) => {
 
 	const result = await bench.compare(
 		bench("cold (unique strings, full merge)", () => cx(coldPool[coldIndex++ % coldPool.length])),
-		// The same string every call, so the whole-string cache hits after the first.
+		// The same string every call, so the argument cache hits after the second.
 		bench("cached (repeated string)", () => cx(cachedInput)),
-		// Stable base classes plus a toggled variant, so the V8 arg-sequence cache hits with no
-		// re-hash of the joined string.
+		// Stable base classes plus a toggled variant, so the argument cache hits with no join.
 		bench("variadic (stable args, arg cache)", () =>
 			cx("flex items-center px-4 py-2", variadicIndex++ % 2 === 0 && "bg-blue-500", "text-sm")),
 		// One stable call site that cycles a boolean, so the call-site cache hits.

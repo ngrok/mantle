@@ -1,6 +1,13 @@
-MIT License
+`clsx.ts` follows clsx, and the class group names and the conflict table in `merge.ts` follow
+tailwind-merge. Both are distributed under the MIT License:
 
-Copyright (c) 2026 Aiden Bai
+clsx — Copyright (c) Luke Edwards <luke.edwards05@gmail.com> (lukeed.com)
+https://github.com/lukeed/clsx
+
+tailwind-merge — Copyright (c) 2021 Dany Castillo
+https://github.com/dcastil/tailwind-merge
+
+MIT License
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,16 +26,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
--------------------------------------------------------------------------------
-
-cnfast bundles and adapts code from the following MIT-licensed projects:
-
-clsx — Copyright (c) Luke Edwards <luke.edwards05@gmail.com> (lukeed.com)
-https://github.com/lukeed/clsx
-
-tailwind-merge — Copyright (c) 2021 Dany Castillo
-https://github.com/dcastil/tailwind-merge
-
-Both are distributed under the MIT License, the full text of which is identical
-to the license above (with their respective copyright holders).
