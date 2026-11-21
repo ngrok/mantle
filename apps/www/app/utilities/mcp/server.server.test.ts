@@ -287,6 +287,47 @@ describe("the mantle MCP server", () => {
 			expect(linear.similar).not.toHaveBeenCalled();
 		});
 
+		it("keeps an ngrok caller's write-up with its code, and scrubs another caller's", async () => {
+			const log = vi.fn<(event: ToolCallEvent) => void>();
+			const linear = fakeLinear();
+			const writeup = "I want a stepper.\n\n```tsx\n<Stepper.Root current={2} />\n```";
+
+			await callTool(dependencies({ log, linear }), "report_gap", { ...gap, writeup });
+			const fromNgrok = log.mock.lastCall?.[0].gap?.writeup;
+			await callTool(dependencies({ log, linear }), "report_gap", {
+				...gap,
+				ticket: "none",
+				writeup: "I want a stepper, see acme.example.com",
+			});
+
+			expect(fromNgrok).toBe(writeup);
+			expect(linear.create.mock.calls[0]?.[0].description).toContain(`## Write-up\n\n${writeup}`);
+			expect(log.mock.lastCall?.[0].gap?.writeup).toBe("I want a stepper, see");
+		});
+
+		it("asks again for a matches value that is not an MNTL key or none", async () => {
+			const linear = fakeLinear();
+
+			const result = await callTool(dependencies({ linear }), "report_gap", {
+				...gap,
+				matches: "https://linear.app/ngrok/issue/MNTL-121",
+			});
+
+			expect(result.isError).toBe(true);
+			expect(linear.create).not.toHaveBeenCalled();
+			expect(linear.comment).not.toHaveBeenCalled();
+		});
+
+		it("creates no issue when the search for similar issues fails", async () => {
+			const linear = fakeLinear();
+			linear.similar.mockResolvedValue(undefined);
+
+			const { text } = await callTool(dependencies({ linear }), "report_gap", gap);
+
+			expect(text).toContain("Reported: stepper.");
+			expect(linear.create).not.toHaveBeenCalled();
+		});
+
 		it("writes nothing to Linear and logs no ticket for a caller that is not ngrok", async () => {
 			const log = vi.fn<(event: ToolCallEvent) => void>();
 			const linear = fakeLinear();

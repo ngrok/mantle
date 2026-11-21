@@ -69,7 +69,7 @@ Each tool takes an optional `intent`: the goal of the call in generic words, suc
 - the `source` query parameter of the MCP URL, when it names a repo in an ngrok GitHub org as `org/repo`, such as `?source=ngrok-private/frontend`
 - the names of the parts that the tool returned
 - the intent, with each word that holds a URL, an email, a path, or a number removed. Words in quotes and in backticks stay. The server drops an intent that holds a tag, a call, or an assignment.
-- for `report_gap`, the generic words of the need, and `tried`, `reflection`, and `built`, scrubbed as the intent. For a call from an ngrok repo or with a real ngrok ticket, the server files the report in the Mantle Linear team: it lists similar open issues first, and the agent picks one with `matches` or answers "none".
+- for `report_gap`, the generic words of the need, and `tried`, `reflection`, and `built`, scrubbed as the intent. The long-form `writeup` stays as sent, code included, for a call from an ngrok repo or with a real ngrok ticket; for other calls the server scrubs it as the intent. For a call from an ngrok repo or with a real ngrok ticket, the server files the report in the Mantle Linear team: it lists similar open issues first, and the agent picks one with `matches` or answers "none".
 - the workspace, when it is a slug of up to 32 lowercase letters, digits, and hyphens and the MCP URL has a `source`
 - the ticket, when it is an issue key and the MCP URL has a `source`, or when a `report_gap` ticket is a real ngrok Linear issue
 

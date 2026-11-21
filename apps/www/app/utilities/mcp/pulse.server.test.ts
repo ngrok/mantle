@@ -202,6 +202,32 @@ describe("alertOf", () => {
 	});
 });
 
+describe("write-up", () => {
+	const longWriteup = `I need numbered steps.\n\n\`\`\`tsx\n${"step one\n".repeat(120)}\`\`\``;
+	const withWriteup = event({
+		...detailedGap,
+		gap: { ...detailedSignal, writeup: longWriteup },
+	});
+
+	it("shows the first 700 characters in Slack and closes a cut code fence", () => {
+		const text = alertOf(withWriteup)?.text ?? "";
+		const shown = text.slice(
+			text.indexOf("*Write-up*\n") + "*Write-up*\n".length,
+			text.lastIndexOf("\n\n_"),
+		);
+
+		expect(shown.startsWith("I need numbered steps.")).toBe(true);
+		expect(shown.endsWith("…\n```")).toBe(true);
+		expect(shown.length).toBeLessThan(720);
+	});
+
+	it("puts the full write-up in the MNTL issue", () => {
+		expect(
+			gapIssueOf({ ...withWriteup, gap: { ...detailedSignal, writeup: longWriteup } }).description,
+		).toContain(`## Write-up\n\n${longWriteup}\n\nReported through`);
+	});
+});
+
 describe("gapIssueOf", () => {
 	it("writes the gap report as an MNTL issue in markdown", () => {
 		expect(gapIssueOf({ ...detailedGap, gap: detailedSignal })).toEqual({

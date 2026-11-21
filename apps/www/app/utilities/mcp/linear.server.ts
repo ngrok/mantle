@@ -22,8 +22,12 @@ export type LinearIssue = { id: string; key: string; title: string };
 export type LinearGaps = {
 	/** The issue with the key `key`, in any team. */
 	issue: (key: string) => Promise<LinearIssue | undefined>;
-	/** Up to three open MNTL issues whose titles share at least half of the words of `need`. */
-	similar: (need: readonly string[]) => Promise<LinearIssue[]>;
+	/**
+	 * Up to three open MNTL issues whose titles share at least half of the
+	 * words of `need`. Resolves to `undefined` when the search fails, so the
+	 * caller cannot read a failure as "no match".
+	 */
+	similar: (need: readonly string[]) => Promise<LinearIssue[] | undefined>;
 	/** Creates a gap issue, and resolves to its key. */
 	create: (issue: { title: string; description: string }) => Promise<string | undefined>;
 	/** Adds a comment to the issue with the UUID `id`. */
@@ -65,7 +69,7 @@ export function createLinearGaps({
 	}
 	let windowStart = now();
 	let writes = 0;
-	let labelId: Promise<string | undefined> | undefined;
+	let labelId: string | undefined;
 
 	/** Runs one GraphQL request, and resolves to its parsed `data`, or `undefined`. */
 	const request = async <Data>(
@@ -107,12 +111,21 @@ export function createLinearGaps({
 		return true;
 	};
 
-	const gapLabelId = () => {
-		labelId ??= request(
-			`query ($name: String!) { issueLabels(filter: { name: { eq: $name } }, first: 1) { nodes { id } } }`,
-			{ name: GAP_LABEL },
-			z.object({ issueLabels: z.object({ nodes: z.array(z.object({ id: z.string() })) }) }),
-		).then((data) => data?.issueLabels.nodes[0]?.id);
+	/**
+	 * The ID of the gap label of MNTL or of the workspace. Why only those: an
+	 * issue takes only labels that its team can use. A failed lookup is not
+	 * kept, so the next issue tries again.
+	 */
+	const gapLabelId = async () => {
+		labelId ??= (
+			await request(
+				`query ($name: String!) {
+					issueLabels(filter: { name: { eq: $name }, or: [{ team: { null: true } }, { team: { key: { eq: "MNTL" } } }] }, first: 1) { nodes { id } }
+				}`,
+				{ name: GAP_LABEL },
+				z.object({ issueLabels: z.object({ nodes: z.array(z.object({ id: z.string() })) }) }),
+			)
+		)?.issueLabels.nodes[0]?.id;
 		return labelId;
 	};
 
@@ -133,8 +146,11 @@ export function createLinearGaps({
 				{ term: need.join(" "), teamId: MANTLE_TEAM_ID },
 				z.object({ searchIssues: z.object({ nodes: z.array(issueNode) }) }),
 			);
+			if (data == null) {
+				return undefined;
+			}
 			const wanted = new Set(need);
-			return (data?.searchIssues.nodes ?? [])
+			return data.searchIssues.nodes
 				.map(issueOf)
 				.filter((issue) => {
 					const shared = gapTokens(issue.title).filter((word) => wanted.has(word)).length;

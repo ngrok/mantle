@@ -59,6 +59,36 @@ describe("createLinearGaps", () => {
 		error.mockRestore();
 	});
 
+	it("reports a failed search as no answer, not as no match", async () => {
+		const error = vi.spyOn(console, "error").mockImplementation(() => {});
+		const { linear } = testLinear(() => null);
+
+		await expect(linear?.similar(["stepper"])).resolves.toBeUndefined();
+		error.mockRestore();
+	});
+
+	it("looks up the gap label of MNTL or the workspace again after a failed lookup", async () => {
+		const error = vi.spyOn(console, "error").mockImplementation(() => {});
+		let labelCalls = 0;
+		const { linear, calls } = testLinear((call) => {
+			if (call.query.includes("issueLabels")) {
+				labelCalls += 1;
+				return labelCalls === 1 ? null : { issueLabels: { nodes: [{ id: "label-1" }] } };
+			}
+			return { issueCreate: { issue: { identifier: "MNTL-130" } } };
+		});
+
+		await linear?.create({ title: "MCP gap: stepper", description: "text" });
+		await linear?.create({ title: "MCP gap: stepper", description: "text" });
+
+		expect(labelCalls).toBe(2);
+		expect(calls.find((call) => call.query.includes("issueLabels"))?.query).toContain(
+			'{ team: { key: { eq: "MNTL" } } }',
+		);
+		expect(calls.at(-1)?.variables).toMatchObject({ input: { labelIds: ["label-1"] } });
+		error.mockRestore();
+	});
+
 	it("resolves to nothing when Linear answers with an error", async () => {
 		const error = vi.spyOn(console, "error").mockImplementation(() => {});
 		const { linear } = testLinear(() => null);

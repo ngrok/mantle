@@ -31,7 +31,11 @@ const KIND_LABELS: Record<NonNullable<GapSignal["kind"]>, string> = {
 	"hook-or-utility": "a hook or utility",
 	pattern: "a pattern",
 	docs: "docs",
+	other: "something else",
 };
+
+/** The most characters of a write-up that Slack shows. The MNTL issue holds the full text. */
+const SLACK_WRITEUP_LENGTH = 700;
 
 const WORKAROUND_LABELS: Record<NonNullable<GapSignal["workaround"]>, string> = {
 	"built-custom": "It built its own instead.",
@@ -190,9 +194,22 @@ export function gapIssueOf(event: GapReport & { gap: GapSignal }): {
 				...(work == null ? [] : [`- **Working on:** ${work}`]),
 				...gapFields(event).map(([label, value]) => `- **${label}:** ${value}`),
 			].join("\n") || undefined,
+			event.gap.writeup == null ? undefined : `## Write-up\n\n${event.gap.writeup}`,
 			`Reported through the mantle MCP server: ${from.filter(Boolean).join(" · ")}`,
 		),
 	};
+}
+
+/**
+ * The first `SLACK_WRITEUP_LENGTH` characters of a write-up. A cut inside a
+ * code fence closes the fence, so the rest of the post keeps its format.
+ */
+function clipWriteup(writeup: string): string {
+	if (writeup.length <= SLACK_WRITEUP_LENGTH) {
+		return writeup;
+	}
+	const clipped = `${writeup.slice(0, SLACK_WRITEUP_LENGTH).trimEnd()}…`;
+	return (clipped.match(/```/g)?.length ?? 0) % 2 === 1 ? `${clipped}\n\`\`\`` : clipped;
 }
 
 const ISSUE_ACTIONS: Record<NonNullable<GapSignal["issue"]>["action"], string> = {
@@ -228,6 +245,7 @@ export function alertOf(event: ToolCallEvent): Alert | undefined {
 				`:jigsaw: *Gap reported: "${need}"*${issue}`,
 				escape(gapSummary(gap, (part) => `*${part}*`)),
 				quoted.length === 0 ? undefined : lines(...quoted),
+				gap.writeup == null ? undefined : `*Write-up*\n${escape(clipWriteup(gap.writeup))}`,
 				footer(event, { ticket: false }),
 			),
 		};

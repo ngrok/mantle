@@ -74,7 +74,17 @@ export type McpDependencies = {
 };
 
 /** What a gap report says is missing. */
-const GAP_KINDS = ["component", "variant-or-prop", "hook-or-utility", "pattern", "docs"] as const;
+const GAP_KINDS = [
+	"component",
+	"variant-or-prop",
+	"hook-or-utility",
+	"pattern",
+	"docs",
+	"other",
+] as const;
+
+/** The longest write-up that a gap report keeps, in characters. */
+const WRITEUP_LENGTH = 4_000;
 
 /** What the agent did when mantle had no fit. */
 const GAP_WORKAROUNDS = [
@@ -103,6 +113,11 @@ export type GapSignal = {
 	reflection?: string;
 	/** What the agent built instead. */
 	built?: string;
+	/**
+	 * The agent's long-form write-up in markdown. An ngrok caller's text is
+	 * kept as sent, code included; other callers' text is `scrubIntent` output.
+	 */
+	writeup?: string;
 	/** The title of the work ticket in Linear. */
 	work?: string;
 	/** The MNTL issue that the server created, or added the report to as a comment. */
@@ -791,15 +806,17 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 		{
 			title: "Report a mantle gap",
 			description:
-				'Tells the mantle team that mantle lacks something you needed, so they can add it. Call it once for each need, after `find` and `get` found no fit. Name the need in generic words, such as "stepper". Plain words only: no code, file paths, or customer data. Always send `ticket`: the Linear issue key of the work, or "none".',
+				'Tells the mantle team that mantle lacks something you needed, so they can build it. Call it once for each need, after `find` and `get` found no fit. Be specific: the team reads every report, and `writeup` takes a long-form account. No secrets or customer data. Always send `ticket`: the Linear issue key of the work, or "none".',
 			inputSchema: logInvalid(
 				"report_gap",
 				z.object({
 					need: z
 						.string()
 						.min(3)
-						.max(60)
-						.describe('Generic words for what you needed, such as "stepper".'),
+						.max(120)
+						.describe(
+							'A short name for what you needed, such as "stepper" or "date range picker". Put the detail in the other fields.',
+						),
 					kind: z.enum(GAP_KINDS).describe("The kind of part that is missing."),
 					workaround: z.enum(GAP_WORKAROUNDS).describe("What you did instead."),
 					closestPart: z
@@ -811,14 +828,21 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					tried: z
 						.string()
 						.describe(
-							'The `find` queries and `get` parts you tried, such as "find stepper, get Tabs".',
+							'Each `find` query and `get` part you tried, and what each lacked, such as "find stepper found nothing, get Tabs has no step state".',
 						),
 					reflection: z
 						.string()
 						.describe(
-							'Your take in one or two sentences, such as "I would use Tabs, but it has no numbered steps or done state."',
+							'Your honest take, such as "I would use Tabs, but it has no numbered steps or done state, so I built my own."',
 						),
 					built: z.string().optional().describe("What you built instead."),
+					// Why no max: a long write-up must not fail the call. The server cuts it.
+					writeup: z
+						.string()
+						.optional()
+						.describe(
+							`A long-form account in markdown, up to ${WRITEUP_LENGTH} characters. Say what you were building and for whom, each part and prop you tried and exactly why it fell short, the API you wish mantle had, and a short code sketch of it. Specific beats short.`,
+						),
 					matches: z
 						.string()
 						.optional()
@@ -838,14 +862,26 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 			annotations: {
 				readOnlyHint: false,
 				destructiveHint: false,
-				idempotentHint: true,
+				// Why not idempotent: a repeated call can create a second issue or comment.
+				idempotentHint: false,
 				openWorldHint: true,
 			},
 		},
 		run(
 			"report_gap",
 			async (
-				{ need, kind, workaround, closestPart, tried, reflection, built, matches, version },
+				{
+					need,
+					kind,
+					workaround,
+					closestPart,
+					tried,
+					reflection,
+					built,
+					writeup,
+					matches,
+					version,
+				},
 				context,
 			) => {
 				const tokens = gapTokens(need);
@@ -861,6 +897,9 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					linear == null || context.ticket == null ? undefined : await linear.issue(context.ticket);
 				// Why: a real ngrok issue key marks an ngrok caller, as a source does.
 				const known = source != null || work != null;
+				// Why raw for ngrok: its code and words may go to its own Slack and Linear.
+				const writeupOf = (value: string) =>
+					known ? value.trim().slice(0, WRITEUP_LENGTH) || undefined : scrubIntent(value);
 				const report = {
 					client,
 					source,
@@ -878,6 +917,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 						tried: scrubIntent(tried),
 						reflection: scrubIntent(reflection),
 						built: built == null ? undefined : scrubIntent(built),
+						writeup: writeup == null ? undefined : writeupOf(writeup),
 						work: work?.title,
 					} satisfies GapSignal,
 				};
@@ -891,8 +931,16 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				if (linear == null || !known) {
 					return reported(plain);
 				}
-				const match = matches == null ? undefined : ticketKey(matches);
-				if (match?.startsWith("MNTL-") === true) {
+				const none = matches?.trim().toLowerCase() === "none";
+				const match = matches == null || none ? undefined : ticketKey(matches);
+				if (matches != null && !none && match?.startsWith("MNTL-") !== true) {
+					return failure(
+						"invalid_argument",
+						'Pass `matches` as an MNTL key from the list, such as "MNTL-121", or "none".',
+						{ dataVersion: data.version },
+					);
+				}
+				if (match != null) {
 					const issue = await linear.issue(match);
 					const added =
 						issue != null &&
@@ -909,6 +957,10 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				}
 				if (matches == null) {
 					const similar = await linear.similar(tokens);
+					// Why: a failed search cannot rule out a match, so create nothing.
+					if (similar == null) {
+						return reported(plain);
+					}
 					if (similar.length > 0) {
 						return {
 							result: text(
