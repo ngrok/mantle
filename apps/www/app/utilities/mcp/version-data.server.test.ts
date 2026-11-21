@@ -95,6 +95,35 @@ describe("declarationsOf", () => {
 		expect(declaration).toContain("type ContentProps = { title: string };");
 	});
 
+	it("adds the parts of a compound namespace that a module namespace import holds", () => {
+		const files = new Map([
+			[
+				"dist/menu.d.ts",
+				[
+					'import * as MenuParts from "./menu-parts.js";',
+					"/** A menu of actions. */",
+					"declare const Menu: typeof MenuParts;",
+					"export { Menu };",
+				].join("\n"),
+			],
+			["dist/menu-parts.d.ts", 'import { t as Item } from "./menu-Abc.js";\nexport { Item };\n'],
+			[
+				"dist/menu-Abc.d.ts",
+				[
+					"type ItemProps = { inset: boolean };",
+					"declare function Item(props: ItemProps): unknown;",
+					"export { Item as t };",
+				].join("\n"),
+			],
+		]);
+
+		const declaration = declarationsOf(files, "dist/menu.d.ts", ["Menu"]);
+
+		expect(declaration).toContain("declare const Menu: typeof MenuParts;");
+		expect(declaration).toContain("declare function Item(props: ItemProps): unknown;");
+		expect(declaration).toContain("type ItemProps = { inset: boolean };");
+	});
+
 	it("drops the @example blocks of the JSDoc and keeps the other tags", () => {
 		const files = new Map([
 			[
