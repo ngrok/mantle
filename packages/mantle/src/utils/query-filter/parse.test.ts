@@ -396,8 +396,18 @@ describe("quoteFilterValue", () => {
 		]);
 	});
 
+	test("quotes an operator character at the edge, so a typed key reads it as text", () => {
+		expect([quoteFilterValue("=draft"), quoteFilterValue("*a"), quoteFilterValue("a*")]).toEqual([
+			'"=draft"',
+			'"*a"',
+			'"a*"',
+		]);
+		expect(quoteFilterValue("a*b")).toBe("a*b");
+	});
+
 	test("quotes a parenthesis, so it cannot close a group", () => {
 		expect(quoteFilterValue("fn(x)")).toBe('"fn(x)"');
+		expect(quoteFilterValue("fn(")).toBe('"fn("');
 		expect(parseFilterQuery(testGrammar, `(name:${quoteFilterValue("fn(x)")})`)).toMatchObject([
 			{ kind: "group-start" },
 			{ kind: "facet", members: [{ value: "fn(x)" }] },

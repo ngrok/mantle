@@ -332,20 +332,26 @@ describe("typed key suggestions", () => {
 					key: "state",
 					description: "State",
 					type: "enum",
-					values: [{ value: "in progress" }],
+					values: [{ value: "in progress" }, { value: "=draft" }],
 					getValue: (item) => item.state,
 				},
 			],
 			getSearchText: (item) => item.name,
 		};
-		const items = [{ name: "fn(x)", state: "in progress" }];
+		const items = [
+			{ name: "fn(x)", state: "in progress" },
+			{ name: "b", state: "=draft" },
+		];
 		const suggest = (query: string, caretIndex = query.length) =>
 			getFilterSuggestions({ grammar, query, caretIndex, items }).items.map((row) => [
 				row.insertText,
 				row.matchCount,
 			]);
 
-		expect(suggest("state:")).toEqual([['"in progress"', 1]]);
+		expect(suggest("state:")).toEqual([
+			['"in progress"', 1],
+			['"=draft"', 1],
+		]);
 		expect(suggest('(name:"fn(x)")', 13)).toEqual([
 			['="fn(x)"', 1],
 			['"fn(x)"*', 1],

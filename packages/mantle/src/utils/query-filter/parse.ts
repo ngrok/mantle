@@ -539,20 +539,23 @@ function queryUsesQualifiers<Item>(grammar: FilterGrammar<Item>, query: string) 
 
 /**
  * Writes a value so it parses back to itself: quoted when it would otherwise
- * split into several tokens, with each quote and backslash escaped.
+ * split into several tokens, close a group, or read as an operator of a typed
+ * key, with each quote and backslash escaped.
  *
  * @example
  * ```ts
  * quoteFilterValue("staging api"); // => "\"staging api\""
+ * quoteFilterValue("=draft"); // => "\"=draft\""
  * quoteFilterValue("acme"); // => "acme"
  * quoteFilterValue('/a"b'); // => "\"/a\\\"b\""
  * ```
  */
 function quoteFilterValue(value: string) {
 	const escaped = value.replaceAll(/["\\]/g, (character) => `\\${character}`);
-	// A comma needs quotes too, or a list key would split the value in two, and
-	// a parenthesis needs them so that it cannot open or close a group.
-	const needsQuotes = value === "" || /[\s",()]/.test(value);
+	// A comma needs quotes too, or a list key would split the value in two. A
+	// parenthesis needs them so that it cannot close a group, and a leading `=`
+	// or `*` or a trailing `*` so that a typed key reads no operator.
+	const needsQuotes = value === "" || /[\s",()]|^[=*]|\*$/.test(value);
 	return needsQuotes ? `"${escaped}"` : escaped;
 }
 
