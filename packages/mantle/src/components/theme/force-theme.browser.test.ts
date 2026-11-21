@@ -72,9 +72,9 @@ beforeAll(() => {
 	styleElement.textContent = [
 		serializeRule(":root", rootColorVariables),
 		serializeThemeRules(mantleCss),
-		// the invert-theme utility: the light palette restore and the palette aliases
-		serializeRule(invertThemeUtility.restoreSelector, invertThemeUtility.restore),
-		serializeRule(".invert-theme", invertThemeUtility.aliases),
+		// the invert-theme utility, in the layer Tailwind emits it into, so unlayered theme
+		// rules beat it as they do in a real build
+		`@layer utilities {\n${serializeRule(invertThemeUtility.restoreSelector, invertThemeUtility.restore)}\n${serializeRule(".invert-theme", invertThemeUtility.aliases)}\n}`,
 	].join("\n");
 	document.head.appendChild(styleElement);
 
