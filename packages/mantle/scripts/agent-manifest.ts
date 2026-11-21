@@ -1008,7 +1008,7 @@ function recipeEntries(
 ): AgentManifestRecipe[] {
 	const known = new Set(partNames.map(compactName));
 	return inputs.docs
-		.filter((doc) => /^recipes\/[^/]+$/.test(doc.slug))
+		.filter((doc) => doc.slug.startsWith("recipes/"))
 		.map(({ slug, frontmatter }): AgentManifestRecipe => {
 			const name = stringField(frontmatter, "title");
 			if (name == null) {

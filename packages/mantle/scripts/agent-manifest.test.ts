@@ -468,6 +468,16 @@ describe("buildAgentManifest", () => {
 		);
 	});
 
+	it("reads a recipe from a nested page under recipes/", () => {
+		const docs = [
+			{ slug: "recipes/tables/loading", frontmatter: { title: "Loading", parts: ["cx"] } },
+		];
+
+		expect(buildAgentManifest(inputs({ docs })).recipes?.map(({ slug }) => slug)).toEqual([
+			"recipes/tables/loading",
+		]);
+	});
+
 	it("throws when a recipe lists no parts", () => {
 		const docs = [{ slug: "recipes/stepper", frontmatter: { title: "Stepper", parts: [] } }];
 

@@ -1128,7 +1128,12 @@ export async function loadMigrationGuides(): Promise<MigrationGuide[]> {
 	);
 }
 
-const docPageFrontmatter = z.object({ title: z.string(), description: z.string().optional() });
+const docPageFrontmatter = z.object({
+	title: z.string(),
+	description: z.string().optional(),
+	aliases: z.array(z.string()).optional(),
+	useWhen: z.string().optional(),
+});
 
 /**
  * Whether `find` searches a docs page. `migrate` covers the guides, the
@@ -1160,6 +1165,8 @@ async function readDocPages(): Promise<DocPageRecord[]> {
 								name: frontmatter.data.title,
 								kind: "page",
 								summary: frontmatter.data.description,
+								aliases: frontmatter.data.aliases,
+								useWhen: frontmatter.data.useWhen,
 								docsUrl: canonicalHref(`/${slug}`),
 								docsSlug: slug,
 							}

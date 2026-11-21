@@ -867,6 +867,14 @@ describe("the golden find queries", () => {
 		},
 	);
 
+	// A version that lacks a part's API record still finds the part's docs page by its aliases.
+	it("keeps the aliases of a component's docs page", async () => {
+		const pages = await (await currentDependencies()).docPages();
+		const page = pages.find(({ docsSlug }) => docsSlug === "components/forms/segmented-control");
+
+		expect(page).toMatchObject({ kind: "page", aliases: expect.arrayContaining(["toggle group"]) });
+	});
+
 	it.each(["stepper", "file drop zone"])(
 		'calls "%s" weak, so find reports the gap',
 		async (query) => {

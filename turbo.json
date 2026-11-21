@@ -47,6 +47,7 @@
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/apps/www/app/docs/**",
         "$TURBO_ROOT$/apps/www/app/utilities/__snapshots__/components-surface.json",
+        "$TURBO_ROOT$/apps/www/app/utilities/__snapshots__/recipes-surface.json",
         "$TURBO_ROOT$/docs/charts.md"
       ]
     },
