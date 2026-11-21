@@ -9,6 +9,8 @@
  * module is pure: it never touches the filesystem, so both callers share it.
  */
 
+import { createHash } from "node:crypto";
+
 /** The docs sidebar categories, in the order the site lists them. */
 const componentCategories = [
 	"Actions",
@@ -159,6 +161,11 @@ type AgentManifest = {
 	hooks: AgentManifestHook[];
 	/** Public utilities, sorted by name. */
 	utilities: AgentManifestUtility[];
+	/**
+	 * The {@link sourceHash} of the package source the records come from.
+	 * Older versions do not ship it.
+	 */
+	sourceHash?: string;
 };
 
 /** A docs page as the builder reads it: its URL slug and its parsed frontmatter. */
@@ -187,7 +194,30 @@ type AgentManifestInputs = {
 	 * file does not exist.
 	 */
 	readSource: (basePath: string) => string | undefined;
+	/** The {@link sourceHash} of the same source that `readSource` reads. */
+	sourceHash: string;
 };
+
+/**
+ * Hash the package source, keyed by its `packages/mantle/src`-relative path.
+ * Only `.ts` and `.tsx` files count, and test files do not. A docs build and
+ * a published version with the same hash have the same API, even when the
+ * docs build carries unreleased changes under the same version number.
+ *
+ * @example
+ * sourceHash({ "components/button/button.tsx": "export function Button() {}" });
+ * // => "3f1c…" (64 hex characters)
+ */
+function sourceHash(files: Readonly<Record<string, string>>): string {
+	const hash = createHash("sha256");
+	const paths = Object.keys(files).filter(
+		(filePath) => /\.tsx?$/.test(filePath) && !/\.test\.tsx?$/.test(filePath),
+	);
+	for (const filePath of paths.toSorted()) {
+		hash.update(`${filePath}\0${files[filePath]}\0`);
+	}
+	return hash.digest("hex");
+}
 
 /**
  * Docs pages whose import subpath differs from their slug leaf, because the
@@ -959,6 +989,7 @@ function endpointsFor(origin: string): AgentManifestEndpoints {
  *   subpaths: importableSubpaths(packageJson.exports),
  *   docs: [{ slug: "components/actions/button", frontmatter: { title: "Button" } }],
  *   readSource: (basePath) => sources[basePath],
+ *   sourceHash: sourceHash(sources),
  * });
  * manifest.components[0]?.importPath; // => "@ngrok/mantle/button"
  */
@@ -976,6 +1007,7 @@ function buildAgentManifest(inputs: AgentManifestInputs): AgentManifest {
 		components,
 		hooks: hookEntries(inputs),
 		utilities: utilityEntries(inputs),
+		sourceHash: inputs.sourceHash,
 	};
 }
 
@@ -1060,6 +1092,7 @@ export {
 	parseFrontmatter,
 	renderLlmsTxt,
 	siblingsFromJsDoc,
+	sourceHash,
 	whenToUseFromJsDoc,
 };
 

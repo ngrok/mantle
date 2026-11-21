@@ -1,6 +1,7 @@
 import mantlePackageJson from "@ngrok/mantle/package.json" with { type: "json" };
 import { McpServer, ResourceTemplate, type CallToolResult } from "@modelcontextprotocol/server";
 import { z } from "zod";
+import { buildSiteAgentManifest } from "~/utilities/agent-manifest.server";
 import { canonicalHref, canonicalOrigin } from "~/utilities/canonical-origin";
 import { loadFrontmatter, rawDocContent, urlToFileMap } from "~/utilities/docs";
 import { checkCode } from "~/utilities/mcp/check.server";
@@ -58,6 +59,8 @@ export type McpDependencies = {
 	docsVersion: string;
 	/** The commit of the docs build, when known. */
 	docsCommit?: string;
+	/** The `sourceHash` of the docs build's package source. */
+	docsSourceHash: () => Promise<string | undefined>;
 	readDocs: (slug: string) => Promise<string | undefined>;
 	migrations: () => Promise<MigrationGuide[]>;
 	/** The docs pages with no API record, such as foundations and recipes. */
@@ -313,11 +316,24 @@ function byteLength(body: string): number {
 	return new TextEncoder().encode(body).length;
 }
 
-function provenanceFor(dependencies: McpDependencies, data: VersionData): Provenance {
+async function provenanceFor(
+	dependencies: McpDependencies,
+	data: VersionData,
+): Promise<Provenance> {
+	const { docsVersion, docsCommit } = dependencies;
+	if (docsVersion !== data.version) {
+		return { dataVersion: data.version, docsVersion, docsCommit };
+	}
+	// Why the hash: main keeps the released version number until the next
+	// release, so the docs build can document props that version does not have.
+	const docsSourceHash = await dependencies.docsSourceHash();
+	if (docsSourceHash != null && docsSourceHash === data.manifest.sourceHash) {
+		return { dataVersion: data.version, docsVersion };
+	}
 	return {
 		dataVersion: data.version,
-		docsVersion: dependencies.docsVersion,
-		docsCommit: dependencies.docsVersion === data.version ? undefined : dependencies.docsCommit,
+		docsVersion: `${docsVersion} with unreleased changes`,
+		docsCommit,
 	};
 }
 
@@ -533,7 +549,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				? "Call `get` with a name for its examples and props, or `read_docs` with a page path."
 				: "No result is a strong match, so mantle may have no part for this. Check that a result fits before you use it. If none fits, compose mantle parts, then call `report_gap`.";
 			const body = [
-				provenanceLine(provenanceFor(dependencies, data)),
+				provenanceLine(await provenanceFor(dependencies, data)),
 				"",
 				...found.map(({ record }) => findResultText(record)),
 				...(found.length === 0 ? ["No mantle part or docs page matches."] : []),
@@ -600,7 +616,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					{ dataVersion: data.version },
 				);
 			}
-			const provenance = provenanceFor(dependencies, data);
+			const provenance = await provenanceFor(dependencies, data);
 			const body = getRecordText({
 				record,
 				data,
@@ -739,7 +755,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					content: [
 						{
 							type: "text",
-							text: `${provenanceLine(provenanceFor(dependencies, data))}\n\n${summary}\n\n${JSON.stringify(diagnostics, null, 1)}`,
+							text: `${provenanceLine(await provenanceFor(dependencies, data))}\n\n${summary}\n\n${JSON.stringify(diagnostics, null, 1)}`,
 						},
 					],
 					structuredContent: { dataVersion: data.version, diagnostics },
@@ -1205,6 +1221,7 @@ export function productionDependencies({
 		loader,
 		docsVersion: mantlePackageJson.version,
 		docsCommit: process.env.COMMIT_SHA,
+		docsSourceHash: async () => (await buildSiteAgentManifest()).sourceHash,
 		readDocs,
 		migrations: loadMigrationGuides,
 		docPages: loadDocPages,

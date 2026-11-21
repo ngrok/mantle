@@ -5,6 +5,7 @@ import {
 	importableSubpaths,
 	parseFrontmatter,
 	renderLlmsTxt,
+	sourceHash,
 	type AgentManifest,
 	type DocPage,
 } from "./agent-manifest.ts";
@@ -56,6 +57,21 @@ function readSource(basePath: string): string | undefined {
 	return undefined;
 }
 
+/** Every package source file, keyed by its `src`-relative path with `/` separators. */
+function readSourceFiles(): Record<string, string> {
+	const files: Record<string, string> = {};
+	for (const entry of fs.readdirSync(srcDir, { recursive: true, withFileTypes: true })) {
+		if (entry.isFile()) {
+			const filePath = path.join(entry.parentPath, entry.name);
+			files[path.relative(srcDir, filePath).split(path.sep).join("/")] = fs.readFileSync(
+				filePath,
+				"utf8",
+			);
+		}
+	}
+	return files;
+}
+
 /**
  * Build the agent manifest from the filesystem: the docs tree in `apps/www`,
  * the package source, and `package.json`. The pack step calls this; a test
@@ -75,6 +91,7 @@ function buildAgentManifestFromFilesystem(): AgentManifest {
 		subpaths: importableSubpaths(packageJson.exports),
 		docs: readDocs(docsDir),
 		readSource,
+		sourceHash: sourceHash(readSourceFiles()),
 	});
 }
 

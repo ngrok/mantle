@@ -27,6 +27,7 @@ function dependencies(overrides: Partial<McpDependencies> = {}): McpDependencies
 			load: async () => data,
 		},
 		docsVersion: "0.93.0",
+		docsSourceHash: async () => "release-hash",
 		readDocs: async (slug) =>
 			slug === "components/overlays/dialog" ? "# Dialog\n\n## API Reference\n\nProps." : undefined,
 		migrations: async () => [],
@@ -377,6 +378,18 @@ describe("the mantle MCP server", () => {
 
 	it("keeps the instructions under 1 KB", () => {
 		expect(new TextEncoder().encode(MCP_INSTRUCTIONS).length).toBeLessThan(1024);
+	});
+
+	// Regression: main keeps the released version number until the next release,
+	// and `get Query` at 0.94.1 served an unreleased prop as that version's contract.
+	it("answers get with the declarations when the docs build has unreleased changes", async () => {
+		const deps = dependencies({ docsSourceHash: async () => "main-hash", docsCommit: "abc1234" });
+
+		const { text } = await callTool(deps, "get", { name: "dialog" });
+
+		expect(text).toContain("docsVersion: 0.93.0 with unreleased changes (commit abc1234)");
+		expect(text).toContain("## Contract (declarations of @ngrok/mantle@0.93.0)");
+		expect(text).not.toContain("## Contract (docs for");
 	});
 
 	it("answers get with the record and the docs contract, and logs the record name", async () => {

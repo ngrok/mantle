@@ -7,9 +7,13 @@ import { compareVersions, type VersionData } from "~/utilities/mcp/version-data.
 export type Provenance = {
 	/** The published version of the API data: records, exports, and declarations. */
 	dataVersion: string;
-	/** The version of the docs prose. The prose is always the latest docs build. */
+	/**
+	 * The version of the docs prose. The prose is always the latest docs build.
+	 * It differs from `dataVersion` when the build is not that release, even
+	 * when the version numbers match.
+	 */
 	docsVersion: string;
-	/** The commit of the docs build, when the docs are ahead of the latest release. */
+	/** The commit of the docs build, when the docs are not the selected release. */
 	docsCommit?: string;
 };
 

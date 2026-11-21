@@ -1,3 +1,5 @@
+import { readFileSync, readdirSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -7,6 +9,7 @@ import {
 	prodReadyComponents,
 } from "~/components/navigation-data";
 import { canonicalHref } from "~/utilities/canonical-origin";
+import { sourceHash } from "../../../../packages/mantle/scripts/agent-manifest";
 import { buildSiteAgentManifest } from "./agent-manifest.server";
 import { findRecords, recordsOf } from "./mcp/tools";
 import { buildSearchEntries } from "./search-index.server";
@@ -26,6 +29,25 @@ describe("the site's agent manifest", () => {
 		});
 		expect(useBreakpoint?.docsUrl).toBe(canonicalHref("/hooks"));
 		expect(cx?.markdownUrl).toBe(canonicalHref("/utils/cx.md"));
+	});
+
+	// The MCP serves the docs as a version's contract only when the hashes
+	// match, so the site's bundled source must hash the same as the files under
+	// `src` that the package build reads from disk.
+	it("hashes the same source as the package build", async () => {
+		const srcDir = path.resolve(import.meta.dirname, "../../../../packages/mantle/src");
+		const files: Record<string, string> = {};
+		for (const filePath of readdirSync(srcDir, { recursive: true, encoding: "utf8" })) {
+			if (/\.tsx?$/.test(filePath)) {
+				files[filePath.split(path.sep).join("/")] = readFileSync(
+					path.join(srcDir, filePath),
+					"utf8",
+				);
+			}
+		}
+		const manifest = await buildSiteAgentManifest();
+
+		expect(manifest.sourceHash).toBe(sourceHash(files));
 	});
 
 	// The manifest reads the docs tree; the sidebar lists pages by hand. A page
