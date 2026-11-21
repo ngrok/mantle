@@ -205,6 +205,30 @@ describe("getRecordText", () => {
 		expect(text).toContain("## Extra context: docs prose for 0.94.0, not 0.93.0");
 	});
 
+	// Regression: `get Query` at 0.94.1 showed the unreleased `keyboardShortcut` prop with no mark.
+	it("marks docs props that the version does not declare", () => {
+		const text = getRecordText({
+			record,
+			data,
+			provenance: { dataVersion: "0.93.0", docsVersion: "0.93.0 with unreleased changes" },
+			docsMarkdown: [
+				"## API Reference",
+				"",
+				"| Prop | Type |",
+				"| --- | --- |",
+				"| `intent` | `neutral` |",
+				"| `keyboardShortcut?` | `boolean` |",
+				"| `onOpenChange` | `function` |",
+			].join("\n"),
+			docsWords: new Set(["intent", "keyboardShortcut"]),
+		});
+
+		expect(text).toContain("| `intent` | `neutral` |");
+		expect(text).toContain("| `keyboardShortcut?` (not in 0.93.0) | `boolean` |");
+		// A prop that neither build declares comes from a dependency, so it stays unmarked.
+		expect(text).toContain("| `onOpenChange` | `function` |");
+	});
+
 	// Why: the budget cuts from the end, and a large declaration cut off the sections the caller asked for.
 	it("puts requested sections before the version's declarations", () => {
 		const text = getRecordText({

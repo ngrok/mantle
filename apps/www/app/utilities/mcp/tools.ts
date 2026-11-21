@@ -475,6 +475,30 @@ function contractProse({
 }
 
 /**
+ * Marks each docs table row whose first cell names an identifier that the docs
+ * build declares and `version` does not, such as a prop added after it. A prop
+ * that both inherit from a dependency, such as a Radix prop, is in neither.
+ *
+ * @example
+ * markUndeclared("| `keyboardShortcut` | `boolean` |", { version: "0.94.1", versionWords, docsWords });
+ * // => "| `keyboardShortcut` (not in 0.94.1) | `boolean` |"
+ */
+function markUndeclared(
+	markdown: string,
+	{
+		version,
+		versionWords,
+		docsWords,
+	}: { version: string; versionWords: ReadonlySet<string>; docsWords: ReadonlySet<string> },
+): string {
+	return markdown.replace(
+		/^\|\s*`([A-Za-z_$][\w$]*)\??`(?=\s*\|)/gm,
+		(cell: string, name: string) =>
+			docsWords.has(name) && !versionWords.has(name) ? `${cell} (not in ${version})` : cell,
+	);
+}
+
+/**
  * Builds the `get` result: the record, its examples, and its contract.
  *
  * - When the docs build is the selected version, the contract is the docs API
@@ -490,12 +514,15 @@ export function getRecordText({
 	data,
 	provenance,
 	docsMarkdown,
+	docsWords,
 	sections,
 }: {
 	record: ApiRecord;
 	data: VersionData;
 	provenance: Provenance;
 	docsMarkdown: string | undefined;
+	/** Each identifier in the docs build's declarations for the record, when the build has them. */
+	docsWords?: ReadonlySet<string>;
 	sections?: readonly string[];
 }): string {
 	const identifier = identifierOf(record, data);
@@ -548,9 +575,15 @@ export function getRecordText({
 		: [
 				`## Extra context: docs prose for ${provenance.docsVersion}, not ${provenance.dataVersion}`,
 				"",
-				"This prose can name props that the selected version does not have. The declarations section is the contract.",
+				`This prose can name props that the selected version does not have. A table row marked "not in ${provenance.dataVersion}" names one. The declarations section is the contract.`,
 				"",
-				proseText,
+				docsWords == null
+					? proseText
+					: markUndeclared(proseText, {
+							version: data.version,
+							versionWords: data.declaredWordsOf(record.importPath),
+							docsWords,
+						}),
 			].join("\n");
 
 	// Why this order: the budget cuts from the end, so the contract goes first.

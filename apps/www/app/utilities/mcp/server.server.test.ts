@@ -28,6 +28,7 @@ function dependencies(overrides: Partial<McpDependencies> = {}): McpDependencies
 		},
 		docsVersion: "0.93.0",
 		docsSourceHash: async () => "release-hash",
+		docsDeclaredWordsOf: async () => undefined,
 		readDocs: async (slug) =>
 			slug === "components/overlays/dialog" ? "# Dialog\n\n## API Reference\n\nProps." : undefined,
 		migrations: async () => [],

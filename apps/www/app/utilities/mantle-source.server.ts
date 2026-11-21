@@ -76,8 +76,41 @@ function sourceReader(files: Record<string, string>): (basePath: string) => stri
 	};
 }
 
+/**
+ * Lazy importers for the built declaration files. The build runs after the
+ * package build, so `dist` holds the declarations of the same source.
+ */
+const declarationImporters: Record<string, () => Promise<string>> = import.meta.glob<string>(
+	"../../../../packages/mantle/dist/*.d.ts",
+	{ import: "default", query: "?raw" },
+);
+
+const distPrefix = "../../../../packages/mantle/";
+
+/**
+ * Load every built declaration file, keyed as a tarball keys it, such as
+ * `dist/button.d.ts`. Empty when the package has no build.
+ *
+ * @example
+ * const files = await loadDeclarationFiles();
+ * files.get("dist/button.d.ts")?.includes("ButtonProps"); // => true
+ */
+async function loadDeclarationFiles(): Promise<ReadonlyMap<string, string>> {
+	return new Map(
+		await Promise.all(
+			Object.entries(declarationImporters).map(
+				async ([filePath, importer]): Promise<[string, string]> => [
+					filePath.slice(distPrefix.length),
+					await importer(),
+				],
+			),
+		),
+	);
+}
+
 export {
 	//,
+	loadDeclarationFiles,
 	loadSourceFiles,
 	sourceReader,
 };
