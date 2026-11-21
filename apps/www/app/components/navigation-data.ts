@@ -580,6 +580,14 @@ export const migrations = [
 			"The theme token --container-side-panel-lane-icon-rail is now --container-side-panel-lane-collapsed. Rename it where you set it or read it.",
 		route: "/migrations/0016-side-panel-lane-collapsed-migration",
 	},
+	{
+		number: 17,
+		slug: "stone-palette-migration",
+		title: "Stone Palette",
+		description:
+			"mantle.css no longer has the stone palette, so stone classes make no CSS. Use gray, or set the stone stops you need in your own @theme block.",
+		route: "/migrations/0017-stone-palette-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

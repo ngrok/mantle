@@ -1,0 +1,74 @@
+---
+title: Stone Palette Migration
+description: mantle.css no longer has the stone palette, so stone classes make no CSS. Use gray, or set the stone stops you need in your own @theme block.
+introducedIn: "0.95.0"
+---
+
+# Mantle Stone Palette Migration Guide
+
+`mantle.css` no longer has Tailwind's `stone` palette. No ngrok app used it. A `stone` class, such as `bg-stone-500` or `text-stone-700`, now makes no CSS, and `var(--color-stone-500)` resolves to nothing. Use `gray`, mantle's neutral palette, which flips with the theme. The same release declares the `gray` stops and the tokens that are the same in both themes once instead of twice. Their names and values do not change, but your own overrides of them can now win where they did not before.
+
+**TL;DR:** Search your class strings and CSS for `stone-`. Replace each `stone` class with the `gray` class of the same step, such as `bg-stone-200` with `bg-gray-200`. Then check your CSS for overrides of mantle's theme tokens, of `--color-gray-*`, and for reads of `--divide-color-card*` (steps 4 to 6). An app with none of these changes nothing.
+
+## Codemod
+
+Codemod: manual: `stone` appears in class strings and CSS, and the rules read TSX and TS syntax only. One text search finds each use.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Search every TSX, TS, MDX, and CSS file for `stone-`. Each match is a Tailwind class, such as `bg-stone-500`, `hover:border-stone-300`, or `from-stone-100`, or a `var(--color-stone-…)` read.
+2. Replace `stone` with `gray` and keep the step: `bg-stone-500` becomes `bg-gray-500`, and `var(--color-stone-300)` becomes `var(--color-gray-300)`. `gray` flips in the dark theme, as `stone` did.
+3. When a design needs stone's warm hue, set the stops it uses in your own `@theme` block instead, with the values from the [decision doc's catalog](https://github.com/ngrok/mantle/blob/main/decisions/2026-11-21-trim-unused-palettes.md#stone). Those stops do not flip in the dark theme.
+4. Search your CSS for overrides of the 41 tokens that the [decision doc](https://github.com/ngrok/mantle/blob/main/decisions/2026-11-21-trim-unused-palettes.md#tokens-moved-to-the-shared-rule) lists as moved, such as `--border-color-card`, `--ring-color-focus-accent`, or `--background-color-filled-accent`. Mantle now declares them in one `:root, .invert-theme` rule, which a later rule of yours beats:
+   - A `:root { … }` override now applies on every page: light, dark, and a page with a forced theme. Before, mantle's theme selectors beat it on a page with an explicit theme.
+   - A `.invert-theme { … }` override now applies on every island, in both themes, also on a nested or portaled island.
+   - A more specific override, such as `:root.dark { … }` or `:root .invert-theme { … }`, now applies even when it sits before mantle's import.
+     Keep each override that you meant for every theme. Scope one that you meant for one theme to that theme, such as `:root.dark { … }`.
+5. Search your CSS for `@theme` overrides of `--color-gray-*`. Mantle now declares gray in `@theme` too, so your override takes effect. Before, mantle's light theme rule beat it. Remove an override that you do not want.
+6. Search for `var(--divide-color-card)` and `var(--divide-color-card-muted)`. Mantle no longer declares them at runtime. Read `var(--border-color-card)` and `var(--border-color-card-muted)` instead, which have the same values. The `divide-card` and `divide-card-muted` classes keep working.
+7. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why remove stone?** CSS blocks rendering, so each theme byte delays the first paint of every page. `mantle.css` restated each `stone` stop for the dark theme and for `invert-theme` islands, and an audit of mantle, the frontend apps, and the ngrok apps found no use of any stop. Mantle removes a palette only when no code uses it, and keeps each stop of a palette that is in use.
+
+---
+
+## Before → after
+
+### A class string
+
+```tsx
+// BEFORE
+<div className="bg-stone-100 text-stone-700 dark:bg-stone-800" />
+
+// AFTER
+<div className="bg-gray-100 text-gray-700 dark:bg-gray-800" />
+```
+
+### A `var()` read
+
+```css
+/* BEFORE */
+.badge {
+	border-color: var(--color-stone-300);
+}
+
+/* AFTER */
+.badge {
+	border-color: var(--color-gray-300);
+}
+```
+
+## Edge cases & gotchas
+
+- A `stone` class that you leave in place gives no error. Tailwind makes no CSS for it, so the element loses that color.
+- `gray` is mantle's neutral gray, not Tailwind's blue-gray. It matches `stone` closely except for the warm tint.
+- Specificity decides more than source order. An override of a moved token with the same specificity as `:root` that sits before mantle's import still loses, as before. A more specific one now wins wherever it sits, because no mantle theme selector declares the token any more. For example, an earlier `:root.dark { --border-color-card: red; }` or `:root .invert-theme { … }` now applies, where it lost before.
+- An override in a lower cascade layer, such as `@layer base`, still loses to mantle's unlayered rule.
+
+## How to verify
+
+- `rg "stone-" src` finds no match.
+- `rg "divide-color-card" src` finds no `var()` read.
+- Each page that used `stone` looks the same in the light and the dark theme.
