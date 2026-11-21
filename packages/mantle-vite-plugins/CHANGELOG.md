@@ -1,5 +1,23 @@
 # @ngrok/mantle-vite-plugins
 
+## 1.2.11
+
+### Patch Changes
+
+- [#1751](https://github.com/ngrok/mantle/pull/1751) [`d94b7ee`](https://github.com/ngrok/mantle/commit/d94b7eecfc33a1fab38d699c792a5d46b3eb999d) Thanks [@cody-dot-js](https://github.com/cody-dot-js)! - Add `mantleThemePrunePlugin`. It removes the mantle theme CSS that a production build does not read. It runs once on the finished bundle of `vite build` and changes only mantle's own theme rules:
+
+  - `mantle.css` restates every palette stop for the dark theme and for `invert-theme` islands. The plugin keeps a stop in those rules only when the same stylesheet reads it, including `@layer theme`, where Tailwind writes each stop that a scanned file names. The build warns when another file reads a stop that the stylesheet drops.
+  - Tailwind's color-mix fallbacks split each theme rule into pieces that repeat the theme selector. The plugin joins them.
+
+  On a marketing page, mantle's CSS drops from 128.6 KB to 104.1 KB minified (21.9 KB to 18.1 KB gzipped).
+
+  ```ts
+  plugins: [tailwindcss(), mantleSourcesPlugin(), mantleThemePrunePlugin()],
+  ```
+
+- Updated dependencies []:
+  - @ngrok/mantle-server-syntax-highlighter@1.1.23
+
 ## 1.2.10
 
 ### Patch Changes
