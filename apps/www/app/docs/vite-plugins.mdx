@@ -11,7 +11,7 @@ description: The @ngrok/mantle-vite-plugins package. mantleSourcesPlugin trims m
   components your bundle contains. On an app that renders `Badge` alone, that's 71 KB of CSS
   instead of 181 KB.
 - [`mantleThemePrunePlugin`](#mantlethemepruneplugin) removes the theme CSS your build doesn't
-  use. On a marketing page, mantle's CSS drops from 128.6 KB to 104.1 KB.
+  read. On a marketing page, mantle's CSS drops from 128.6 KB to 104.1 KB.
 - [`mantleCodeBlockPlugins`](#mantlecodeblockplugins) highlights code at build time, so no
   highlighter runs in the browser.
 
@@ -158,26 +158,26 @@ export default defineConfig({
 
 ### What it does
 
-The plugin runs on each stylesheet after Tailwind compiles it, in `vite dev` and `vite build`:
+The plugin runs once on the finished bundle of `vite build`, so it sees every stylesheet, CSS
+module, and script chunk of the build. `vite dev` serves the full CSS.
 
-- It keeps a stop in mantle's theme rules only when Tailwind kept that stop in `@layer theme`.
-  Tailwind keeps a stop when a class, a `var()`, or a raw `--color-x-n` string in a scanned file
-  uses it.
+- It keeps a stop in mantle's theme rules only when a file of the build mentions it outside those
+  rules: a utility, a `var()`, a CSS module, another stylesheet, or a string in a script chunk.
 - It joins the pieces of each theme rule that the fallbacks split apart, so the theme selector
   appears once per rule.
 
-No resolved color changes. A page that renders Button, Card, Tabs, Accordion, DropdownMenu,
-Dialog, and CodeBlock ships 128.6 KB of mantle CSS without the plugin and 104.1 KB with it
-(21.9 KB and 18.1 KB gzipped). Measured with Vite 8.3.8, mantle 0.94, Tailwind 4.3.5, and
-`mantleSourcesPlugin`.
+It changes only mantle's own theme rules, which it finds by their exact selectors. A page that
+renders Button, Card, Tabs, Accordion, DropdownMenu, Dialog, and CodeBlock ships 128.6 KB of
+mantle CSS without the plugin and 104.1 KB with it (21.9 KB and 18.1 KB gzipped). Measured with
+Vite 8.3.8, mantle 0.94, Tailwind 4.3.5, and `mantleSourcesPlugin`.
 
 ### Limits
 
-- A stop that only script reads, such as `style={{ color: "var(--color-pink-300)" }}` with no
-  class or `var()` for it in a scanned file, gets no dark value. It already gets no light value
-  without the plugin, because Tailwind drops it from `@layer theme`.
-- The plugin touches only rules whose selector names `data-applied-theme`, which every mantle
-  theme rule does. Your own rules stay as they are.
+- A stop that only CSS from outside the build reads, such as a stylesheet another app serves or
+  a string your app fetches at runtime, gets no dark value. Name the stop in a file of the build,
+  such as a class or a `var()`, to keep it.
+- When two stylesheets of one build both hold mantle's theme, each keeps every stop the other
+  mentions.
 
 ## mantleCodeBlockPlugins
 

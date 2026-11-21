@@ -65,7 +65,7 @@ The `source-all.css` import must sit in a CSS file Vite processes. An import cha
 
 ### `mantleThemePrunePlugin()`
 
-Vite plugin that removes the mantle theme CSS a build does not use. It changes no resolved color.
+Vite plugin that removes the mantle theme CSS a production build does not read.
 
 ```ts
 import { mantleSourcesPlugin, mantleThemePrunePlugin } from "@ngrok/mantle-vite-plugins";
@@ -77,9 +77,9 @@ export default defineConfig({
 });
 ```
 
-`mantle.css` restates every palette stop for the dark theme and for `invert-theme` islands. The plugin keeps a stop in those theme rules only when Tailwind kept it in `@layer theme`, that is, when a class, a `var()`, or a raw `--color-x-n` string in a scanned file uses it. It also joins the pieces of each theme rule that Tailwind's color-mix fallbacks split apart. It runs in `vite dev` and `vite build`, and its position in the array does not matter.
+`mantle.css` restates every palette stop for the dark theme and for `invert-theme` islands. The plugin runs once on the finished bundle of `vite build` and keeps a stop in those theme rules only when a file of the build mentions it outside them: a utility, a `var()`, a CSS module, another stylesheet, or a string in a script chunk. It also joins the pieces of each theme rule that Tailwind's color-mix fallbacks split apart. It changes only mantle's own theme rules, found by their exact selectors. `vite dev` serves the full CSS, and the plugin's position in the array does not matter.
 
-A stop that only script reads, with no class or `var()` for it in a scanned file, gets no dark value. It already gets no light value, because Tailwind drops it from `@layer theme`.
+A stop that only CSS from outside the build reads, such as a stylesheet another app serves, gets no dark value. Name the stop in a file of the build to keep it.
 
 ### `mantleCodeBlockPlugins(options?)`
 
