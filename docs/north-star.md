@@ -2,6 +2,8 @@
 
 These are the goals of each change to mantle: a component, a prop, a default, a token, a motion, an error, and a docs page. They are not negotiable, and they apply at all times. No task, deadline, or diff size is a reason to skip one. [AGENTS.md](../AGENTS.md#north-star) lists them, so each human and each agent reads them before the first edit.
 
+Mantle exists for pages that are expressive and rich in capability, with no cost to Core Web Vitals, search engine optimization (SEO), or answer engine optimization (AEO). The seven goals are how mantle gets there.
+
 The goals have no order. They work together: a change that meets six goals and fails one is not done.
 
 ## How to use the goals
@@ -41,17 +43,18 @@ A component does what a consumer expects from its name, its props, and its JSDoc
 
 ## Fast
 
-The user never waits for mantle.
+The user never waits for mantle, and the Core Web Vitals hold: Interaction to Next Paint (INP), Largest Contentful Paint (LCP), and Cumulative Layout Shift (CLS).
 
 - **An input gets its answer in the next frame.** A press, a key, and a hover change what the user sees before any other work. Motion follows [docs/motion.md](./motion.md), and it never delays the change of state.
 - **The first paint is the final paint.** No layout shift, no flash of the wrong theme, and no script that the first paint waits for. The one exception is the inline theme script, which sets the theme before the first paint.
+- **The server sends the page.** A marketing site prerenders each page. A product app renders its first document on the server, then routes as a single-page app after hydration. The content is in that HTML, so a search engine and an answer engine read it with no script.
 - **Continuous input stays smooth.** A scroll, a resize, a drag, and a pointer move do layout work one time for each frame at most.
 - **A page of many stays fast.** The ngrok dashboard is the consumer that matters most, and its pages hold many instances of one component: the rows of a table, the cards of a list. Measure the page of many first. Content that is off screen costs nothing until the user gets near it.
 
 A claim of speed needs a measurement of the base and of the branch.
 
 - **Served by:** [do less in the browser](./principles/do-less-in-the-browser.md), [keep the hot path lean](./principles/keep-the-hot-path-lean.md), [redesign before you cache](./principles/redesign-before-you-cache.md), and [explain the number](./principles/explain-the-number.md).
-- **Signs you missed it:** a claim of speed with no measurement, a scroll listener for an effect that CSS can do, a layout read for each item of a list, or state that an effect sets on mount when render can compute it.
+- **Signs you missed it:** content that only a script renders, a claim of speed with no measurement, a scroll listener for an effect that CSS can do, a layout read for each item of a list, or state that an effect sets on mount when render can compute it.
 
 ## Delightful
 
@@ -69,7 +72,9 @@ The change is the smallest that meets the task, and each part reads in one pass.
 
 ## Efficient
 
-Mantle uses few resources outside the interaction too: the JavaScript and the CSS that an app ships, DOM nodes, compositor layers, listeners, memory, the build time, and the context window of the next agent. A component that an app does not import costs that app nothing. A cost that grows with the page, such as with each row or each chart, has a measured limit.
+Mantle uses few resources outside the interaction too: the JavaScript and the CSS that an app ships, DOM nodes, compositor layers, listeners, memory, the build time, and the context window of the next agent. A component, or a part of a compound component, that an app does not use costs that app nothing. A part with no interaction ships no client JavaScript.
+
+Memory is a cost as real as time. Each byte that a part holds for each instance limits how much a page can show and do, so a part holds only what its job needs. The best runtime cost is zero: move the work to the build or the server, then find a cheaper design, and add a cache last. A cost that grows with the page, such as with each row or each chart, has a measured limit.
 
 - **Served by:** [do less in the browser](./principles/do-less-in-the-browser.md), [keep the hot path lean](./principles/keep-the-hot-path-lean.md), [redesign before you cache](./principles/redesign-before-you-cache.md), [explain the number](./principles/explain-the-number.md), and [guard the context window](./principles/guard-the-context-window.md).
-- **Signs you missed it:** an import that pulls a second component family into a leaf, one listener for each instance when one shared listener serves the page, a module side effect that a bundler cannot remove, or a doc that each task loads but few tasks need.
+- **Signs you missed it:** a cache that hides a slow design, client JavaScript for a part that only renders markup, an import that pulls a second component family into a leaf, one listener for each instance when one shared listener serves the page, a module side effect that a bundler cannot remove, or a doc that each task loads but few tasks need.

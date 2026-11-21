@@ -13,7 +13,8 @@ docs themselves.
 
 ## The north star
 
-Every change to Mantle has to meet seven goals. They have no order, and a change that
+Mantle exists for pages that are expressive and rich in capability, with no cost to Core
+Web Vitals, search, or answer engines. Every change to Mantle has to meet seven goals. They have no order, and a change that
 meets six of them isn't done.
 
 - **Correct.** Right in light and dark, on the server and after hydration, at every width,
@@ -27,7 +28,7 @@ meets six of them isn't done.
 - **Delightful.** For the person who uses the page, the developer who writes it, and the
   agent that reads the docs.
 - **Clean.** The smallest change that reads in one pass.
-- **Efficient.** Few bytes, DOM nodes, compositor layers, and listeners.
+- **Efficient.** Few bytes, little memory, and few DOM nodes, compositor layers, and listeners.
 
 When two goals pull apart, we look for the design that meets both. Performance never wins
 against accessibility. The principles below are how the goals get met, and the full text
@@ -54,6 +55,11 @@ is a plain `href="#main"` anchor that works with JavaScript disabled, then enhan
 `history.replaceState` and scroll-free focus. The [scroll fade](/base/scroll-fade)
 utilities are pure CSS scroll-driven animations: where a browser lacks support, the fade
 is absent and content is never clipped. Every enhancement names its fallback.
+
+We enhance only where the element falls short of what a product or a site needs, and we
+name the gap. Native `<dialog>`, `<details>`, and `<select>` fall short today, so
+[Dialog](/components/overlays/dialog), [Accordion](/components/data-display/accordion), and
+[Select](/components/forms/select) are Mantle's own.
 
 This extends to how components are _named_. Parts take the web platform's vocabulary for
 what they actually render: a [List](/components/data-display/list) contains `Item`s because `<li>` is
@@ -97,6 +103,11 @@ strips Radix's dangling `aria-describedby` when no description is mounted, and
 [Slot](/components/primitives/slot) re-implements Radix's className merge so your classes beat the
 component's. If you understand how one Mantle component works, you can predict how the
 rest behave. Learn the system once; apply it everywhere.
+
+Wrapping a headless library is where Mantle is today, not where it stops. Hard behavior
+is moving into Mantle-owned behavior hooks that follow the ARIA patterns, so Mantle owns
+the performance and accessibility contract and each component ships only the code it
+needs. New work adds no headless library.
 
 ## One component per intent
 
@@ -204,7 +215,10 @@ faith from a vendor.
 
 ## The first paint is part of the API
 
-Mantle assumes a server, and if it renders wrong for one frame, that's a bug. The
+Mantle assumes a server, and if it renders wrong for one frame, that's a bug. Marketing
+sites prerender each page; product apps render the first document on the server, then
+route as a single-page app. Either way the content is in the HTML, so search and answer
+engines read it with no script, and a part with no interaction ships no client JavaScript. The
 [theme](/components/primitives/theme) preference persists in a cookie, not just localStorage, so SSR
 renders the correct `<html>` class; a blocking inline script (written as a plain
 TypeScript function and stringified into the `<head>`) resolves the cookie and OS
@@ -260,6 +274,12 @@ before the frame paints. And
 [`useBreakpoint`](/hooks) shares a single app-wide set of `matchMedia` subscriptions
 across every caller. It caches its subscribe functions because unstable references
 measurably made window resizing sluggish.
+
+A cache is the last resort, not the first. It spends memory to save time, and it hides
+the slow design that deserved the fix. Memory counts as much as wall-clock time: the less
+each component holds, the more a page can show and the more it can do. So we move work to
+the build or the server first, then find a cheaper design, and cache only when a benchmark
+shows the best design still loses.
 
 A page of many is the case we measure first, because a dashboard holds hundreds of rows
 and cards. A chart activates only when it gets near the viewport, and it builds its hover
