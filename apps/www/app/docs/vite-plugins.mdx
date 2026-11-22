@@ -235,8 +235,8 @@ Measured with Vite 8.3.8 and `@phosphor-icons/react` 2.1.10.
 - When the plugin can't read a weight, it keeps every weight of that icon. That happens with a
   `weight` that is not a string literal or a choice between two, a spread of props, and an icon
   passed as a value, such as in an array or an exported alias.
-- The plugin doesn't see a `weight` that a `cloneElement()` call passes in spread props. Write
-  that `weight` as its own prop.
+- The plugin doesn't see a `weight` that a `cloneElement()` call passes in spread props or in a
+  props object it doesn't write inline, such as a variable. Write that `weight` as its own prop.
 - A namespace import, such as `import * as Icons from "@phosphor-icons/react"`, keeps every
   weight of every icon. The build warns.
 - An icon that a dynamic import reaches, or that a module imports by a path the plugin doesn't

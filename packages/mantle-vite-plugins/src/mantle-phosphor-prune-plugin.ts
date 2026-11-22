@@ -4,9 +4,11 @@ import {
 	Visitor,
 	type Argument,
 	type ArrayExpression,
+	type BindingPattern,
 	type Expression,
 	type JSXAttributeItem,
 	type JSXElementName,
+	type ParamPattern,
 	type ObjectPropertyKind,
 } from "oxc-parser";
 import type { Plugin } from "vite";
@@ -26,6 +28,7 @@ const MARKER = "@ngrok/mantle-vite-plugins:phosphor-weight:";
 /** A weight module of `@phosphor-icons/react` 2.x, which holds the paths of all six weights. */
 const WEIGHT_MODULE_RE = /[\\/]@phosphor-icons[\\/]react[\\/]dist[\\/]defs[\\/](\w+)\.es\.js$/;
 const PHOSPHOR_FILE_RE = /[\\/]@phosphor-icons[\\/]react[\\/]/;
+const CONTEXT_MODULE_RE = /[\\/]@phosphor-icons[\\/]react[\\/]dist[\\/]lib[\\/]context\.es\.js$/;
 const PHOSPHOR_IMPORT_RE = /^@phosphor-icons\/react(?:\/(.+))?$/;
 /** An icon subpath, such as `Check`, `dist/csr/Check`, or `dist/ssr/Check`. */
 const ICON_SUBPATH_RE = /^(?:dist\/(?:csr|ssr|defs)\/)?([A-Z]\w*?)(?:\.es\.js)?$/;
@@ -62,6 +65,8 @@ type ModuleUsage = {
 	cloneWeights: Set<string>;
 	/** The module uses Phosphor in a way the analysis cannot follow, such as a namespace import. */
 	all: boolean;
+	/** The import sources that do not name Phosphor, which can still resolve to it, such as an alias. */
+	sources: string[];
 };
 
 const emptyUsage = (): ModuleUsage => ({
@@ -70,6 +75,7 @@ const emptyUsage = (): ModuleUsage => ({
 	contextAll: false,
 	cloneWeights: new Set(),
 	all: false,
+	sources: [],
 });
 
 const unwrap = (node: Expression): Expression =>
@@ -204,6 +210,30 @@ function argumentContextWeights(argument: Argument | undefined): WeightSet {
 	return result;
 }
 
+/** The names a binding pattern declares, such as `a` and `b` in `{ a, b: [c = 1] }` with `c`. */
+function patternNames(pattern: BindingPattern | ParamPattern | null | undefined): string[] {
+	switch (pattern?.type) {
+		case "Identifier":
+			return [pattern.name];
+		case "ObjectPattern":
+			return pattern.properties.flatMap((property) =>
+				patternNames(property.type === "RestElement" ? property.argument : property.value),
+			);
+		case "ArrayPattern":
+			return pattern.elements.flatMap((element) =>
+				patternNames(element?.type === "RestElement" ? element.argument : element),
+			);
+		case "AssignmentPattern":
+			return patternNames(pattern.left);
+		case "RestElement":
+			return patternNames(pattern.argument);
+		case "TSParameterProperty":
+			return patternNames(pattern.parameter);
+		default:
+			return [];
+	}
+}
+
 /** The parser language of a module path; any other source parses as JavaScript with JSX. */
 function langOf(path: string): "ts" | "tsx" | "jsx" {
 	if (path.endsWith(".tsx")) {
@@ -213,23 +243,33 @@ function langOf(path: string): "ts" | "tsx" | "jsx" {
 }
 
 /**
- * What a call does when it is a React call: an imported `jsx`, `createElement`, `cloneElement`,
- * `use`, or `useContext`, or a member call such as `React.createElement()` or the compiled
- * `(0, r.jsx)()`. A local function with the same name is not a React call.
+ * The function a call runs: its callee, or the last item of a compiled `(0, r.jsx)` callee.
  */
-function reactCall(
-	callee: Expression,
-	bindings: Map<string, "render" | "clone" | "read">,
-): "render" | "clone" | "read" | null {
+function calleeOf(callee: Expression): Expression {
 	const node = unwrap(callee);
+	const last = node.type === "SequenceExpression" ? node.expressions.at(-1) : undefined;
+	return last == null ? node : calleeOf(last);
+}
+
+/**
+ * What a function does when it is a React function: an imported `jsx`, `createElement`,
+ * `cloneElement`, `use`, or `useContext`, or a member of a React namespace import, such as
+ * `React.createElement` or the compiled `r.jsx`. A local function with the same name is not one.
+ */
+function reactFunction(
+	node: Expression,
+	bindings: Map<string, "render" | "clone" | "read">,
+	namespaces: Set<string>,
+): "render" | "clone" | "read" | null {
 	if (node.type === "Identifier") {
 		return bindings.get(node.name) ?? null;
 	}
-	if (node.type === "MemberExpression" && !node.computed && node.property.type === "Identifier") {
-		return REACT_CALLS.get(node.property.name) ?? null;
-	}
-	const last = node.type === "SequenceExpression" ? node.expressions.at(-1) : undefined;
-	return last == null ? null : reactCall(last, bindings);
+	return node.type === "MemberExpression" &&
+		!node.computed &&
+		node.object.type === "Identifier" &&
+		namespaces.has(node.object.name)
+		? (REACT_CALLS.get(node.property.name) ?? null)
+		: null;
 }
 
 const iconName = (subpath: string | undefined, importedName: string): string | null => {
@@ -262,6 +302,7 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 	const icons = new Map<string, string[]>();
 	const contexts = new Set<string>();
 	const reactBindings = new Map<string, "render" | "clone" | "read">();
+	const reactNamespaces = new Set<string>();
 	let imports = false;
 
 	const icon = (name: string) => {
@@ -308,6 +349,8 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 						: undefined;
 				if (kind != null) {
 					reactBindings.set(specifier.local.name, kind);
+				} else if (specifier.type !== "ImportSpecifier") {
+					reactNamespaces.add(specifier.local.name);
 				}
 			}
 		}
@@ -318,13 +361,16 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 		) {
 			continue;
 		}
-		const source =
-			statement.source == null ? null : PHOSPHOR_IMPORT_RE.exec(statement.source.value);
 		if (
-			source == null ||
+			statement.source == null ||
 			(statement.type === "ImportDeclaration" ? statement.importKind : statement.exportKind) ===
 				"type"
 		) {
+			continue;
+		}
+		const source = PHOSPHOR_IMPORT_RE.exec(statement.source.value);
+		if (source == null) {
+			usage.sources.push(statement.source.value);
 			continue;
 		}
 		imports = true;
@@ -405,6 +451,35 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 		}
 	}
 
+	// Why: the analysis has no scopes, and a minifier reuses short names, so a React import whose
+	// name the module declares again can be another function in some scope. Its calls are no
+	// renders, so the icons they get keep every weight. A clone call still adds its weights.
+	const declared = new Set<string>();
+	const declare = (patterns: Array<BindingPattern | ParamPattern | null | undefined>) => {
+		for (const name of patterns.flatMap(patternNames)) {
+			declared.add(name);
+		}
+	};
+	new Visitor({
+		VariableDeclarator: (node) => declare([node.id]),
+		FunctionDeclaration: (node) => declare([node.id, ...node.params]),
+		FunctionExpression: (node) => declare([node.id, ...node.params]),
+		ArrowFunctionExpression: (node) => declare(node.params),
+		ClassDeclaration: (node) => declare([node.id]),
+		ClassExpression: (node) => declare([node.id]),
+		CatchClause: (node) => declare([node.param]),
+	}).visit(program);
+	for (const name of reactNamespaces) {
+		if (declared.has(name)) {
+			reactNamespaces.delete(name);
+		}
+	}
+	for (const [name, kind] of reactBindings) {
+		if (declared.has(name) && kind !== "clone") {
+			reactBindings.delete(name);
+		}
+	}
+
 	const handled = new Set<unknown>();
 	// Why imports only: the analysis has no scopes, so an alias of an alias can read a binding of
 	// another scope. Such a read stays a plain reference, which keeps every weight.
@@ -435,7 +510,13 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 			const declarations = node.kind === "const" && !exported.has(node) ? node.declarations : [];
 			for (const declaration of declarations) {
 				const reads = declaration.init == null ? null : aliasedIcons(declaration.init);
-				if (reads != null && declaration.id.type === "Identifier") {
+				// Why not an import name: the analysis has no scopes, so it would read the alias as
+				// the import everywhere. Such an alias stays a plain reference to the icons it reads.
+				if (
+					reads != null &&
+					declaration.id.type === "Identifier" &&
+					!imported.has(declaration.id.name)
+				) {
 					// Why the merge: the analysis has no scopes, so two aliases with one name keep both icons.
 					icons.set(declaration.id.name, [
 						...(icons.get(declaration.id.name) ?? []),
@@ -498,6 +579,10 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 			if (!node.computed) {
 				handled.add(node.property);
 			}
+			// Why: a clone function in a variable can set a weight that the analysis does not see.
+			if (!handled.has(node) && reactFunction(node, reactBindings, reactNamespaces) === "clone") {
+				usage.all = true;
+			}
 		},
 		Property(node) {
 			if (!node.computed && !node.shorthand) {
@@ -520,7 +605,11 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 			if (first == null || first.type === "SpreadElement") {
 				return;
 			}
-			const kind = reactCall(node.callee, reactBindings);
+			const callee = calleeOf(node.callee);
+			const kind = reactFunction(callee, reactBindings, reactNamespaces);
+			if (kind != null) {
+				handled.add(callee);
+			}
 			if (kind === "read") {
 				const target = unwrap(first);
 				if (target.type === "Identifier" && contexts.has(target.name)) {
@@ -576,6 +665,9 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 		Identifier(node) {
 			if (handled.has(node)) {
 				return;
+			}
+			if (reactBindings.get(node.name) === "clone" && !declared.has(node.name)) {
+				usage.all = true;
 			}
 			const names = icons.get(node.name);
 			if (names != null) {
@@ -769,8 +861,8 @@ function keeper(usages: Iterable<ModuleUsage>): (icon: string, weight: string) =
  * - A `weight` it cannot read, a spread of props, or an icon passed as a value keeps every weight
  *   of that icon, and so does a dynamic import or an import path the plugin does not read. A
  *   namespace import, or an icon imported by another name such as `ActivityIcon`, keeps every
- *   weight of every icon. A `cloneElement()` call with spread props can set a weight the plugin
- *   does not see.
+ *   weight of every icon. A `cloneElement()` call can set a weight the plugin does not see in
+ *   spread props or in a props object that is not written inline.
  *
  * It runs on `vite build` and on a Rolldown or tsdown build. When the installed Phosphor has a
  * weight module of another shape, it warns and keeps every weight of that icon. `vite dev` serves
@@ -821,7 +913,7 @@ function mantlePhosphorPrunePlugin(): Plugin {
 				id: { exclude: /\.d\.[cm]?ts(?:\?|$)/ },
 				code: /@phosphor-icons\/react|"duotone"|cloneElement/,
 			},
-			handler(code, id) {
+			async handler(code, id) {
 				const { usages, icons } = build(this.environment);
 				const weightModule = WEIGHT_MODULE_RE.exec(id);
 				if (weightModule != null) {
@@ -841,15 +933,21 @@ function mantlePhosphorPrunePlugin(): Plugin {
 				}
 				const usage = collectUsage(code, id);
 				if (usage == null) {
-					usages.delete(id);
-				} else {
-					if (usage.all) {
-						this.warn(
-							`${id} uses Phosphor icons in a way this plugin cannot read, such as a namespace import, a computed cloneElement() weight, or a parse error, so the build keeps every Phosphor weight.`,
-						);
-					}
-					usages.set(id, usage);
+					return null;
 				}
+				// Why: an import that reaches Phosphor by another path, such as a `resolve.alias`, renders
+				// icons that the analysis did not read.
+				for (const source of usage.sources) {
+					if (PHOSPHOR_FILE_RE.test((await this.resolve(source, id))?.id ?? "")) {
+						usage.all = true;
+					}
+				}
+				if (usage.all) {
+					this.warn(
+						`${id} uses Phosphor icons in a way this plugin cannot read, such as a namespace import, an import by another path, an aliased or computed cloneElement(), or a parse error, so the build keeps every Phosphor weight.`,
+					);
+				}
+				usages.set(id, usage);
 				return null;
 			},
 		},
@@ -860,31 +958,37 @@ function mantlePhosphorPrunePlugin(): Plugin {
 			const { usages, icons } = build(this.environment);
 			const live = new Set(this.getModuleIds());
 			const liveUsages = [...usages].filter(([id]) => live.has(id)).map(([, usage]) => usage);
-			const joined = keeper(liveUsages);
 			/**
-			 * The icons that keep every weight: those a dynamic import or an unread module reaches, such
-			 * as one that imports Phosphor through a `resolve.alias`. The walk crosses Phosphor's barrels.
+			 * Whether a dynamic import or an unread module reaches a Phosphor module, such as a module
+			 * that imports Phosphor through a `resolve.alias`. The walk crosses Phosphor's own modules.
 			 */
-			const unread = new Set<string>();
-			for (const [icon, weightModule] of icons) {
-				// Why a set: its loop also visits the barrels the walk adds.
-				const queue = new Set(this.getModuleInfo(weightModule)?.importers);
+			const reachedUnread = (start: string) => {
+				// Why a set: its loop also visits the modules the walk adds.
+				const queue = new Set([start]);
 				for (const id of queue) {
 					const info = this.getModuleInfo(id);
 					if (info == null || !live.has(id)) {
 						continue;
 					}
 					if (info.dynamicImporters.length > 0) {
-						unread.add(icon);
+						return true;
 					}
 					for (const importer of info.importers) {
 						if (PHOSPHOR_FILE_RE.test(importer)) {
 							queue.add(importer);
 						} else if (!usages.has(importer)) {
-							unread.add(icon);
+							return true;
 						}
 					}
 				}
+				return false;
+			};
+			const unread = new Set(
+				[...icons].filter(([, id]) => reachedUnread(id)).map(([icon]) => icon),
+			);
+			// Why: an unread module can set any `IconContext` weight.
+			if ([...live].some((id) => CONTEXT_MODULE_RE.test(id) && reachedUnread(id))) {
+				liveUsages.push({ ...emptyUsage(), contextAll: true });
 			}
 			// Why: a name that is not an icon of the build is an export with another name, such as
 			// `ActivityIcon` for `PulseIcon`, so the analysis cannot tell which icon it renders.
@@ -896,6 +1000,7 @@ function mantlePhosphorPrunePlugin(): Plugin {
 					`${unknown.map((name) => `${name}Icon`).join(", ")} is another name of a Phosphor icon, so the build keeps every Phosphor weight. Import the icon by its own name.`,
 				);
 			}
+			const joined = keeper(liveUsages);
 			const keep = (icon: string, weight: string) =>
 				unknown.length > 0 || unread.has(icon) || joined(icon, weight);
 			try {

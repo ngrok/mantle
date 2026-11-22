@@ -105,6 +105,7 @@ import { HeartIcon } from "@phosphor-icons/react/Heart";
 import { StarIcon } from "@phosphor-icons/react/Star";
 import { XIcon } from "@phosphor-icons/react/X";
 import { filledInfo, renderInfo } from "./vendor.js";
+import { warning } from "./minified.js";
 
 export const Bold = () => <CheckIcon weight="bold" />;
 export const Either = ({ open }) => <XIcon weight={open ? "fill" : "thin"} />;
@@ -137,8 +138,22 @@ export const probes = {
 	Heart: () => <HeartIcon />,
 	Info: renderInfo,
 	Star: () => <StarIcon />,
+	Warning: warning,
 	X: () => <XIcon />,
 };
+`;
+
+// Minified code that reuses the names of its React imports for local functions and parameters.
+const MINIFIED = `import { cloneElement as l } from "react";
+import { jsx as e } from "react/jsx-runtime";
+import { WarningIcon } from "@phosphor-icons/react/Warning";
+
+export const clone = (child) => l(child, {});
+export const local = (l) => {
+	const e = (Icon) => Icon;
+	return e(WarningIcon, { weight: "bold" });
+};
+export const warning = () => e(WarningIcon, {});
 `;
 
 // A dependency that ships compiled JSX, and imports Phosphor's runtime as a prebuilt mantle does.
@@ -173,11 +188,14 @@ export const boldClone = (icon) => cloneElement(icon, { weight: "fill" });
 `;
 
 // References the analysis cannot read: an import by file path, a dynamic import that the bundler
-// resolves, and an alias of an alias that names a binding of another scope.
+// resolves, an alias of an alias or of a shadowed import, and a factory that is not React.
 const REACH = `import { BellIcon } from "@phosphor-icons/react/Bell";
+import { CheckIcon } from "@phosphor-icons/react/Check";
 import { LightningIcon } from "@phosphor-icons/react/Lightning";
 import { MoonIcon } from "@phosphor-icons/react/Moon";
+import { PlusIcon } from "@phosphor-icons/react/Plus";
 import { SunIcon } from "@phosphor-icons/react/Sun";
+import { TrashIcon } from "@phosphor-icons/react/Trash";
 import { pathBell } from "./path.js";
 
 export const Bold = () => <BellIcon weight="bold" />;
@@ -195,11 +213,25 @@ export const Late = () => {
 	const Mark = SunIcon;
 	return <Inner />;
 };
+export const Shadow = () => {
+	const Callback = () => {
+		const Icon = CheckIcon;
+		return <Icon weight="thin" />;
+	};
+	const CheckIcon = PlusIcon;
+	return <Callback />;
+};
+export const BoldPlus = () => <PlusIcon weight="bold" />;
+const factory = { createElement: (Icon) => Icon };
+export const made = factory.createElement(TrashIcon, { weight: "bold" });
 export { pathBell };
 export const probes = {
 	Bell: () => <BellIcon />,
+	Check: () => <CheckIcon />,
 	Lightning: () => <LightningIcon />,
+	Plus: () => <PlusIcon />,
 	Sun: () => <SunIcon />,
+	Trash: () => <TrashIcon />,
 };
 `;
 
@@ -208,6 +240,19 @@ const PATH = `import { jsx as _jsx } from "react/jsx-runtime";
 import { BellIcon } from "../node_modules/@phosphor-icons/react/dist/csr/Bell.es.js";
 
 export const pathBell = () => _jsx(BellIcon, { weight: "thin" });
+`;
+
+// An `IconContext` provider that imports the context by file path.
+const CONTEXT = `import { CheckIcon } from "@phosphor-icons/react/Check";
+import "./provider.js";
+
+export const Bold = () => <CheckIcon weight="bold" />;
+export const probes = { Check: () => <CheckIcon /> };
+`;
+const PROVIDER = `import { jsx as _jsx } from "react/jsx-runtime";
+import { IconContext } from "../node_modules/@phosphor-icons/react/dist/lib/context.es.js";
+
+export const Thin = ({ children }) => _jsx(IconContext.Provider, { value: { weight: "thin" }, children });
 `;
 
 // Phosphor exports `PulseIcon` also as `ActivityIcon`.
@@ -317,10 +362,15 @@ describe("mantlePhosphorPrunePlugin build", () => {
 
 		// Why the 60-second timeout: the renamed fixture imports the barrel, which loads every icon.
 		beforeAll(async () => {
-			apps.local = await buildApp({ "src/app.jsx": APP, "src/vendor.js": VENDOR });
+			apps.local = await buildApp({
+				"src/app.jsx": APP,
+				"src/vendor.js": VENDOR,
+				"src/minified.js": MINIFIED,
+			});
 			apps.overrides = await buildApp({ "src/app.jsx": OVERRIDES, "src/clone.js": CLONE });
 			apps.reach = await buildApp({ "src/app.jsx": REACH, "src/path.js": PATH });
 			apps.renamed = await buildApp({ "src/app.jsx": RENAMED });
+			apps.context = await buildApp({ "src/app.jsx": CONTEXT, "src/provider.js": PROVIDER });
 		}, 60_000);
 
 		/**
@@ -377,6 +427,10 @@ describe("mantlePhosphorPrunePlugin build", () => {
 			expect(await renderedWeights("local", "Globe")).toContain("light");
 		});
 
+		test("keeps every weight of an icon that a local function with a React import's name gets", async () => {
+			expect(await renderedWeights("local", "Warning")).toEqual([...WEIGHTS]);
+		});
+
 		test("reads compiled jsx() calls in a dependency that imports Phosphor's runtime", async () => {
 			expect(await renderedWeights("local", "Info")).toEqual(["fill", "regular"]);
 			expect(apps.local?.warnings).toEqual([]);
@@ -399,8 +453,17 @@ describe("mantlePhosphorPrunePlugin build", () => {
 			expect(await renderedWeights("reach", "Lightning")).toEqual([...WEIGHTS]);
 		});
 
-		test("keeps every weight of an icon that an alias of an alias can name", async () => {
+		test("keeps every weight of an icon that an alias of an alias or of a shadowed import can name", async () => {
 			expect(await renderedWeights("reach", "Sun")).toEqual([...WEIGHTS]);
+			expect(await renderedWeights("reach", "Plus")).toEqual([...WEIGHTS]);
+		});
+
+		test("keeps every weight of an icon that a factory other than React receives", async () => {
+			expect(await renderedWeights("reach", "Trash")).toEqual([...WEIGHTS]);
+		});
+
+		test("keeps every IconContext weight when an unread module imports IconContext", async () => {
+			expect(await renderedWeights("context", "Check")).toEqual([...WEIGHTS]);
 		});
 
 		test("keeps every weight when a module imports an icon by another name", async () => {
@@ -420,6 +483,24 @@ describe("mantlePhosphorPrunePlugin build", () => {
 			expect.stringContaining("ActivityIcon is another name of a Phosphor icon"),
 		);
 	}, 30_000);
+
+	test("keeps every weight and warns for an aliased import or cloneElement() in a read module", async () => {
+		const root = await makeRoot(
+			{
+				"src/app.jsx": `export { Mixed } from "./mixed.jsx";\nexport { Cloned } from "./cloned.jsx";\n`,
+				"src/mixed.jsx": `import { CheckIcon } from "@phosphor-icons/react/Check";\nimport { CheckIcon as Same } from "../node_modules/@phosphor-icons/react/dist/csr/Check.es.js";\n\nexport const Mixed = () => [<CheckIcon weight="bold" />, <Same weight="thin" />];\n`,
+				"src/cloned.jsx": `import { cloneElement } from "react";\nimport { CheckIcon } from "@phosphor-icons/react/Check";\n\nconst duplicate = cloneElement;\nexport const Cloned = () => duplicate(<CheckIcon weight="bold" />, { weight: "fill" });\n`,
+			},
+			["react", "react-dom", "@phosphor-icons/react"],
+		);
+		const output = await bundlers.vite(root);
+
+		for (const file of ["src/mixed.jsx", "src/cloned.jsx"]) {
+			expect(output.warnings).toContainEqual(
+				expect.stringContaining(`${file} uses Phosphor icons in a way this plugin cannot read`),
+			);
+		}
+	});
 
 	test("keeps the usage of each Vite environment apart", async () => {
 		const plugin = mantlePhosphorPrunePlugin();
