@@ -10,13 +10,14 @@ import {
 	type ReactNode,
 	createContext,
 	useContext,
+	useEffect,
 	useLayoutEffect,
 	useMemo,
 	useState,
+	useSyncExternalStore,
 } from "react";
 import { createPortal } from "react-dom";
-import { Toaster as SonnerToaster, toast as sonnerToast } from "sonner";
-import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
+import type * as Sonner from "sonner";
 import type { WithAsChild } from "../../types/as-child.js";
 import type { WithStyleProps } from "../../types/with-style-props.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -29,7 +30,7 @@ import { Slot } from "../slot/index.js";
 import { useAppliedTheme } from "../theme/theme-provider.js";
 import { attachToasterHost } from "./toaster-host.js";
 
-type ToasterPrimitiveProps = ComponentProps<typeof SonnerToaster>;
+type ToasterPrimitiveProps = ComponentProps<typeof Sonner.Toaster>;
 
 type ToasterProps = WithStyleProps &
 	Pick<ToasterPrimitiveProps, "containerAriaLabel" | "dir" | "position"> & {
@@ -62,15 +63,80 @@ function resolveToastDuration(duration_ms: number | undefined) {
 }
 
 /**
+ * The sonner module once its chunk loads. A toast renders only after it loads,
+ * so the parts inside a toast read it without a wait.
+ */
+let sonner: typeof Sonner | undefined;
+let isLoadingSonner = false;
+/** The toasts that `makeToast` created before sonner loaded, in call order. */
+const pendingToasts: ((module: typeof Sonner) => void)[] = [];
+const sonnerListeners = new Set<() => void>();
+
+/**
+ * Starts the sonner chunk load, once. When it loads, the pending toasts go to
+ * sonner in call order, and each mounted `Toaster` renders.
+ *
+ * @example
+ * ```ts
+ * void loadSonner(); // the first call starts the load; later calls do nothing
+ * ```
+ */
+async function loadSonner(): Promise<void> {
+	if (sonner != null || isLoadingSonner) {
+		return;
+	}
+	isLoadingSonner = true;
+	try {
+		sonner = await import("sonner");
+	} catch {
+		// Why no rethrow: a chunk that fails to load must not crash the page.
+		// The toasts stay pending, and the next `makeToast` call loads the chunk again.
+		isLoadingSonner = false;
+		return;
+	}
+	for (const show of pendingToasts.splice(0)) {
+		show(sonner);
+	}
+	for (const listener of sonnerListeners) {
+		listener();
+	}
+}
+
+/**
+ * Subscribes a `Toaster` to the sonner load. Returns the function that
+ * removes the subscription.
+ */
+function subscribeToSonner(onLoad: () => void): () => void {
+	sonnerListeners.add(onLoad);
+	return () => {
+		sonnerListeners.delete(onLoad);
+	};
+}
+
+/** The sonner module, or `undefined` until it loads. */
+function getSonner(): typeof Sonner | undefined {
+	return sonner;
+}
+
+/**
+ * The sonner module during server rendering and the hydration pass: always
+ * `undefined`, so the client renders nothing in that pass, as the server did.
+ */
+function getServerSonner(): undefined {
+	return undefined;
+}
+
+/**
  * A container for displaying all toasts.
  *
  * Only one `<Toaster />` should be rendered in an app a time, preferably at the
  * root level of the app.
  *
- * The toasts render after hydration, in a container on `<body>`. While a
- * native modal dialog (`@ngrok/mantle/dialog/native`,
- * `@ngrok/mantle/sheet/native`) is open, the container moves into it, so the
- * toasts paint above the dialog and stay usable.
+ * The toasts render in a container on `<body>`. The toast code loads in its
+ * own chunk when the browser is idle after hydration, or on the first
+ * `makeToast` call if that comes first. While a native modal dialog
+ * (`@ngrok/mantle/dialog/native`, `@ngrok/mantle/sheet/native`) is open, the
+ * container moves into it, so the toasts paint above the dialog and stay usable.
  *
  * @see https://mantle.ngrok.com/components/feedback/toast#toaster
  *
@@ -92,19 +158,30 @@ const Toaster = ({
 	style,
 }: ToasterProps) => {
 	const theme = useAppliedTheme();
-	const isHydrated = useIsHydrated();
+	const loadedSonner = useSyncExternalStore(subscribeToSonner, getSonner, getServerSonner);
 	// Why a host of its own: an open native modal `<dialog>` makes the rest of
 	// the page inert, so the host moves into it. React never moves a portal's
 	// container, so the move is safe.
 	const [host] = useState(() => (canUseDOM() ? document.createElement("div") : null));
 	useLayoutEffect(() => (host == null ? undefined : attachToasterHost(host)), [host]);
+	// Why idle: sonner stays off the critical path. A `makeToast` call that
+	// comes first starts the load sooner.
+	useEffect(() => {
+		if (typeof requestIdleCallback === "function") {
+			const handle = requestIdleCallback(() => void loadSonner());
+			return () => cancelIdleCallback(handle);
+		}
+		// Why the fallback: Safari has no `requestIdleCallback`.
+		const handle = setTimeout(() => void loadSonner(), 0);
+		return () => clearTimeout(handle);
+	}, []);
 
-	if (!isHydrated || host == null) {
+	if (loadedSonner == null || host == null) {
 		return null;
 	}
 
 	return createPortal(
-		<SonnerToaster
+		<loadedSonner.Toaster
 			data-slot="toaster"
 			className={cx("toaster overlay-prompt pointer-events-auto *:duration-200", className)}
 			containerAriaLabel={containerAriaLabel}
@@ -124,6 +201,8 @@ const Toaster = ({
 
 const ToastIdContext = createContext<string | number>("");
 
+let toastCount = 0;
+
 type MakeToastOptions = {
 	/**
 	 * Time in milliseconds that should elapse before automatically closing the toast.
@@ -140,7 +219,10 @@ type MakeToastOptions = {
 
 /**
  * Create a toast. Pass a `<Toast.Root>` component as the `children` to render
- * inside the `<Toaster />` section.
+ * inside the `<Toaster />` section. Returns the toast's ID.
+ *
+ * A toast made before the toast code loads waits for it, and the waiting
+ * toasts show in call order. This includes a toast made before hydration.
  *
  * @see https://mantle.ngrok.com/components/feedback/toast#maketoast
  *
@@ -168,18 +250,25 @@ type MakeToastOptions = {
  */
 function makeToast(children: ReactNode, options?: MakeToastOptions) {
 	const duration = resolveToastDuration(options?.duration_ms);
+	// Why mantle picks the ID: the toast can wait for sonner, and the caller needs
+	// its ID now. Sonner's own IDs are numbers, so a string never collides with one.
+	const id = options?.id ? options.id : `mantle-toast-${++toastCount}`;
+	const show = (module: typeof Sonner) => {
+		module.toast.custom(
+			(toastId) => <ToastIdContext.Provider value={toastId}>{children}</ToastIdContext.Provider>,
+			{ duration, id, unstyled: true },
+		);
+	};
 
-	return sonnerToast.custom(
-		(toastId) => <ToastIdContext.Provider value={toastId}>{children}</ToastIdContext.Provider>,
-		{
-			//
-			duration,
-			// If a caller passes a custom ID, use it, else use the toastId from the sonner library
-			// don't set an ID to `undefined` as it breaks the sonner library
-			...(options?.id ? { id: options.id } : {}),
-			unstyled: true,
-		},
-	);
+	// Why no queue on the server: no toast renders there, and the queue would
+	// keep the toasts of each request.
+	if (sonner != null) {
+		show(sonner);
+	} else if (canUseDOM()) {
+		pendingToasts.push(show);
+		void loadSonner();
+	}
+	return id;
 }
 
 const intents = [
@@ -399,7 +488,7 @@ const Action = ({
 				if (event.defaultPrevented) {
 					return;
 				}
-				sonnerToast.dismiss(ctx);
+				sonner?.toast.dismiss(ctx);
 			}}
 			ref={ref}
 			{...props}

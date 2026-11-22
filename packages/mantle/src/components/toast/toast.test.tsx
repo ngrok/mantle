@@ -2,7 +2,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { MouseEvent, ReactNode } from "react";
 import { toast as sonnerToast } from "sonner";
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { preventCloseOnPromptInteraction } from "./prevent-close-on-prompt-interaction.js";
 import * as Toast from "./toast-parts.js";
@@ -71,34 +71,89 @@ describe("Toast", () => {
 	});
 
 	describe("makeToast", () => {
-		const toastNode = (
-			<Toast.Root intent="info">
-				<Toast.Message>message</Toast.Message>
-			</Toast.Root>
-		);
-
-		test("omits the `id` key when no custom id is given", () => {
-			const custom = vi.spyOn(sonnerToast, "custom").mockReturnValue("stub-toast");
-
-			expect(makeToast(toastNode)).toBe("stub-toast");
-
-			expect(custom).toHaveBeenCalledTimes(1);
-			// Why `toStrictEqual`: an explicit `id: undefined` breaks sonner's toast
-			// identity, so the key must be absent rather than undefined.
-			expect(custom.mock.lastCall?.[1]).toStrictEqual({ duration: undefined, unstyled: true });
+		/**
+		 * A copy of `toast.js` whose sonner chunk has not loaded. sonner itself
+		 * loads once per worker, so each message is unique to its test.
+		 */
+		// Why: sonner keeps each active toast, and a later `Toaster` would show it again.
+		afterEach(() => {
+			sonnerToast.dismiss();
 		});
 
-		test("forwards a custom id", () => {
-			const custom = vi.spyOn(sonnerToast, "custom").mockReturnValue("billing-warning");
+		async function importUnloadedToast() {
+			vi.resetModules();
+			return import("./toast.js");
+		}
 
-			makeToast(toastNode, { id: "billing-warning" });
+		function toastTexts() {
+			return Array.from(
+				document.querySelectorAll('[data-slot="toast"]'),
+				(toast) => toast.textContent,
+			);
+		}
 
-			expect(custom).toHaveBeenCalledTimes(1);
-			expect(custom.mock.lastCall?.[1]).toStrictEqual({
-				duration: undefined,
-				id: "billing-warning",
-				unstyled: true,
+		test("shows the toasts made before the chunk loads and while it loads, in call order", async () => {
+			const unloaded = await importUnloadedToast();
+			const toast = (message: string) => (
+				<unloaded.Root intent="info">
+					<unloaded.Message>{message}</unloaded.Message>
+				</unloaded.Root>
+			);
+
+			// The first call starts the load, so the second waits for the chunk.
+			unloaded.makeToast(toast("Queued first"));
+			unloaded.makeToast(toast("Queued second"));
+			render(<unloaded.Toaster />);
+			unloaded.makeToast(toast("Queued third"));
+
+			// sonner stacks the newest toast first.
+			await waitFor(() => {
+				expect(toastTexts().filter((text) => text?.startsWith("Queued"))).toEqual([
+					"Queued third",
+					"Queued second",
+					"Queued first",
+				]);
 			});
+		});
+
+		test("updates a waiting toast in place when a later call reuses its id", async () => {
+			const unloaded = await importUnloadedToast();
+
+			expect(unloaded.makeToast(<p>Uploading</p>, { id: "upload" })).toBe("upload");
+			unloaded.makeToast(<p>Uploaded</p>, { id: "upload" });
+			render(<unloaded.Toaster />);
+
+			expect(await screen.findByText("Uploaded")).toBeInTheDocument();
+			expect(screen.queryByText("Uploading")).toBeNull();
+		});
+
+		test("keeps the page and the waiting toasts when the chunk fails to load", async () => {
+			vi.doMock("sonner", () => {
+				throw new Error("Failed to fetch dynamically imported module");
+			});
+			const unloaded = await importUnloadedToast();
+			render(<unloaded.Toaster />);
+
+			// Why no assertion on the throw: a rejection that escapes fails the run.
+			unloaded.makeToast(<p>Saved before the outage</p>);
+			await vi.dynamicImportSettled();
+			expect(screen.queryByRole("region")).toBeNull();
+
+			vi.doUnmock("sonner");
+			unloaded.makeToast(<p>Saved after the outage</p>);
+
+			expect(await screen.findByText("Saved after the outage")).toBeInTheDocument();
+			expect(screen.getByText("Saved before the outage")).toBeInTheDocument();
+		});
+
+		test("renders the notifications landmark before the first toast", async () => {
+			const unloaded = await importUnloadedToast();
+			render(<unloaded.Toaster />);
+
+			// Why the hotkey in the name: sonner appends it, so the label pins Alt+T too.
+			expect(
+				await screen.findByRole("region", { name: "Notifications alt+T" }),
+			).toBeInTheDocument();
 		});
 	});
 
