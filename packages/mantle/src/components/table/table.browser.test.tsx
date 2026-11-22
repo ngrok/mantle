@@ -151,7 +151,7 @@ describe("Table.Root overflow observer", () => {
 
 	test("a column appended while parked at the right edge re-evaluates the scroll position", async () => {
 		// The scroller is already overflowing and `scrollLeft` does not move, so the
-		// scroll listener cannot cover this. Only the MutationObserver notices the
+		// scroll listener cannot cover this. Only the observed table notices the
 		// wider content; without it the pinned column's fade stays off with content
 		// still to scroll under it.
 		const { rerender } = render(<ColumnsTable columns={3} />);
@@ -179,6 +179,41 @@ describe("Table.Root overflow observer", () => {
 		expect(scroller.scrollWidth - scroller.clientWidth).toBeGreaterThan(scrollLeftAtEdge);
 	});
 
+	test("a table that replaces another one keeps the overflow state current as it grows", async () => {
+		// Why grow the new table: the root starts to observe before the new table
+		// mounts, and a wider table at the same height leaves the scroll container
+		// at its size.
+		function SwappedTable({ generation, width }: { generation: number; width: number }) {
+			return (
+				<Table.Root data-testid="root" style={{ width: 400 }}>
+					<Table.Element key={generation} style={{ width }}>
+						<Table.Body>
+							<Table.Row>
+								<Table.Cell>INV001</Table.Cell>
+							</Table.Row>
+						</Table.Body>
+					</Table.Element>
+				</Table.Root>
+			);
+		}
+		const { rerender } = render(<SwappedTable generation={1} width={200} />);
+		const root = screen.getByTestId("root");
+		const firstTable = screen.getByRole("table");
+		rerender(<SwappedTable generation={2} width={200} />);
+		expect(screen.getByRole("table")).not.toBe(firstTable);
+		// Two frames: the swap settles, with each notification it causes.
+		await new Promise(requestAnimationFrame);
+		await new Promise(requestAnimationFrame);
+		expect(root).toHaveAttribute("data-x-overflow", "false");
+
+		rerender(<SwappedTable generation={2} width={800} />);
+
+		await waitFor(() => {
+			expect(root).toHaveAttribute("data-x-overflow", "true");
+		});
+		expect(root).toHaveAttribute("data-sticky-active", "true");
+	});
+
 	test("shrinking the container re-evaluates overflow", async () => {
 		const scrollWidth = vi.spyOn(Element.prototype, "scrollWidth", "get");
 		renderTable({ rootWidth: 800, tableWidth: 400 });
@@ -190,15 +225,33 @@ describe("Table.Root overflow observer", () => {
 		});
 		expect(root).toHaveAttribute("data-x-overflow", "false");
 
-		// Resized outside React, as an attribute mutation on an ancestor: invisible
-		// to the `{ childList, subtree }` MutationObserver on the scroller, so only
-		// the ResizeObserver can catch it.
+		// Resized outside React, as a style change on an ancestor, so only the
+		// scroll container's own resize can show it.
 		root.style.width = "200px";
 
 		await waitFor(() => {
 			expect(root).toHaveAttribute("data-x-overflow", "true");
 		});
 		expect(root).toHaveAttribute("data-sticky-active", "true");
+	});
+
+	test("a cell edit that keeps the table's size does no layout read", async () => {
+		// Why: a live table edits cells many times per second. Each edit that
+		// leaves the table's size alone cannot change the overflow state, so it
+		// must not force a layout.
+		renderTable({ rootWidth: 200, tableWidth: 800 });
+		const root = screen.getByTestId("root");
+		await waitFor(() => {
+			expect(root).toHaveAttribute("data-sticky-active", "true");
+		});
+		const scrollWidth = vi.spyOn(Element.prototype, "scrollWidth", "get");
+
+		screen.getByText("INV001").textContent = "INV002";
+		// Two frames: the edit, then the frame a coalesced check would read in.
+		await new Promise(requestAnimationFrame);
+		await new Promise(requestAnimationFrame);
+
+		expect(scrollWidth).not.toHaveBeenCalled();
 	});
 
 	test("a table that fits reports no overflow after the first read", async () => {

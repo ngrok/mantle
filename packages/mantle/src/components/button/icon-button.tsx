@@ -7,7 +7,7 @@ import { parseBooleanish } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { IconSwap } from "../icon/icon-swap.js";
+import { Icon } from "../icon/icon.js";
 import { Slot } from "../slot/index.js";
 import { disabledChildProps } from "./button.js";
 import type {
@@ -203,11 +203,30 @@ const IconButton = ({
 		"aria-label": label,
 	};
 
+	// Why no `IconSwap`: the spinner mounts only while loading, so an idle button
+	// renders one icon. The spinner is an absolute flex child, so it sits over the
+	// centered icon, and the icon keeps its place in the box.
 	const innerChildren = (
-		<IconSwap
-			active={isLoading ? "loading" : "idle"}
-			icons={{ idle: propIcon, loading: <CircleNotchIcon className="animate-spin" /> }}
-		/>
+		<>
+			<Icon
+				svg={propIcon}
+				className={cx(
+					"motion-safe:transition-[opacity,scale,filter,visibility] motion-safe:duration-200 motion-safe:ease-out-strong",
+					isLoading &&
+						"invisible opacity-0 motion-safe:scale-50 motion-safe:blur-[2px] motion-safe:duration-150",
+				)}
+			/>
+			{isLoading && (
+				<Icon
+					svg={<CircleNotchIcon className="animate-spin" />}
+					className={cx(
+						"absolute",
+						"motion-safe:transition-[opacity,scale,filter] motion-safe:duration-200 motion-safe:ease-out-strong",
+						"starting:opacity-0 motion-safe:starting:scale-50 motion-safe:starting:blur-[2px]",
+					)}
+				/>
+			)}
+		</>
 	);
 
 	if (asChild) {
