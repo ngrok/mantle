@@ -1150,6 +1150,24 @@ describe("Select", () => {
 			},
 		);
 
+		test("a form reset keeps the submitted default of an unchanged named select", async () => {
+			const user = userEvent.setup();
+			render(
+				<form aria-label="fruit form">
+					<Select.Root name="fruit" defaultValue="banana">
+						<Select.Trigger aria-label="Fruit" />
+						<Select.Content>
+							<Select.Item value="banana">Banana</Select.Item>
+						</Select.Content>
+					</Select.Root>
+					<button type="reset">Reset</button>
+				</form>,
+			);
+			const form = screen.getByRole<HTMLFormElement>("form", { name: "fruit form" });
+			await user.click(screen.getByRole("button", { name: "Reset" }));
+			expect(new FormData(form).get("fruit")).toBe("banana");
+		});
+
 		test("a pick reaches the form's onChange", async () => {
 			const user = userEvent.setup();
 			const onFormChange = vi.fn<(event: unknown) => void>();

@@ -172,6 +172,11 @@ const useComboboxInput = (
 			if (event.nativeEvent.isComposing) {
 				return;
 			}
+			// Why: Shift, Ctrl, or Meta with an arrow selects or moves through the text.
+			const arrow = event.key === "ArrowDown" || event.key === "ArrowUp";
+			if (arrow && (event.shiftKey || event.ctrlKey || event.metaKey)) {
+				return;
+			}
 			switch (event.key) {
 				case "ArrowDown": {
 					event.preventDefault();

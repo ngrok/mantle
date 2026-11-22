@@ -242,6 +242,41 @@ describe("Combobox", () => {
 			expect(input).toHaveValue("Banana");
 		});
 
+		test("a list that opens from defaultOpen focuses the input, so Escape closes it", async () => {
+			const user = userEvent.setup();
+			render(
+				<Combobox.Root defaultOpen>
+					<Combobox.Input aria-label="Fruit" />
+					<Combobox.Content>
+						<Combobox.Item value="Apple" />
+					</Combobox.Content>
+				</Combobox.Root>,
+			);
+			const input = screen.getByRole("combobox", { name: "Fruit" });
+			await screen.findByRole("option", { name: "Apple" });
+			expect(input).toHaveFocus();
+			await user.keyboard("{Escape}");
+			expect(input).toHaveAttribute("aria-expanded", "false");
+		});
+
+		test("Shift with an arrow selects text and leaves the list closed", async () => {
+			const user = userEvent.setup();
+			render(
+				<Combobox.Root defaultInputValue="Apple">
+					<Combobox.Input aria-label="Fruit" />
+					<Combobox.Content>
+						<Combobox.Item value="Apple" />
+					</Combobox.Content>
+				</Combobox.Root>,
+			);
+			const input = screen.getByRole("combobox", { name: "Fruit" });
+			act(() => {
+				input.focus();
+			});
+			await user.keyboard("{Shift>}{ArrowUp}{/Shift}");
+			expect(input).toHaveAttribute("aria-expanded", "false");
+		});
+
 		test("preventDefault on an asChild item's own onClick cancels the pick", async () => {
 			const user = userEvent.setup();
 			render(

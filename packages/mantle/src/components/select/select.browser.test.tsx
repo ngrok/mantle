@@ -178,6 +178,27 @@ const axeViolations = async () => {
 };
 
 describe("Select keyboard, focus, and ARIA contract", () => {
+	test("an option under a group label stays live and clickable while the list is modal", async () => {
+		render(
+			<Select.Root>
+				<Select.Trigger aria-label="Fruit">
+					<Select.Value />
+				</Select.Trigger>
+				<Select.Content>
+					<Select.Group>
+						<Select.Label>Fruits</Select.Label>
+						<Select.Item value="apple">Apple</Select.Item>
+					</Select.Group>
+				</Select.Content>
+			</Select.Root>,
+		);
+		const trigger = screen.getByRole("combobox", { name: "Fruit" });
+		await userEvent.click(trigger);
+		const apple = await screen.findByRole("option", { name: "Apple" });
+		expect(apple.closest("[inert]")).toBeNull();
+		await userEvent.click(apple);
+		expect(trigger).toHaveTextContent("Apple");
+	});
 	test("keyboard opens on the selected option, moves, skips disabled, and picks with focus on the trigger", async () => {
 		const onValueChange = vi.fn<(value: string) => void>();
 		render(<FruitSelect onValueChange={onValueChange} />);

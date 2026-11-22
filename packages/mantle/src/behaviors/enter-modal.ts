@@ -89,7 +89,10 @@ const enterModal = (keep: readonly Element[]): (() => void) => {
 			node = node.parentElement;
 		}
 	};
-	for (const element of [...keep, ...keep.flatMap(labelsWithin)]) {
+	// Why only labels outside: a label inside a kept popup, such as a group
+	// label, would otherwise make its sibling options inert.
+	const outside = (element: Element) => !keep.some((kept) => kept.contains(element));
+	for (const element of [...keep, ...keep.flatMap(labelsWithin).filter(outside)]) {
 		expose(element);
 	}
 	// Why: an ancestor, such as a dialog, keeps its name only while its title stays live.

@@ -56,6 +56,28 @@ const axeViolations = async () => {
 };
 
 describe("Combobox keyboard, focus, and ARIA contract", () => {
+	test("a scrolled list keeps its scroll position", async () => {
+		const fruits = Array.from({ length: 80 }, (_, index) => `Fruit ${index}`);
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Fruit" />
+				<Combobox.Content style={{ maxHeight: "var(--available-height)", overflowY: "auto" }}>
+					{fruits.map((fruit) => (
+						<Combobox.Item key={fruit} value={fruit} />
+					))}
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
+		const listbox = await screen.findByRole("listbox");
+		listbox.scrollTop = 300;
+		// Why: a page scroll places the list again, which measures it.
+		window.dispatchEvent(new Event("scroll"));
+		await new Promise((resolve) => {
+			requestAnimationFrame(() => requestAnimationFrame(resolve));
+		});
+		expect(listbox.scrollTop).toBe(300);
+	});
 	test("a list taller than both sides opens above a low input inside the viewport", async () => {
 		const fruits = Array.from({ length: 60 }, (_, index) => `Fruit ${index}`);
 		render(

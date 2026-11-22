@@ -41,11 +41,11 @@ const followAnchor = (
 		// origin of `position: fixed`, and the host sits at that origin. The offset
 		// sizes ignore the open animation's scale.
 		const origin = host.getBoundingClientRect();
-		// Why remove the cap first: a list that grew while open would otherwise
-		// measure at the old cap and keep a side that no longer fits best.
-		floating.style.removeProperty("--available-height");
+		// Why the scroll height: it is the full height of a list that the cap
+		// clips, so a list that grew while open picks the side that fits best.
+		// Removing the cap to measure would reset the list's scroll position.
 		const width = floating.offsetWidth;
-		const height = floating.offsetHeight;
+		const height = floating.scrollHeight + floating.offsetHeight - floating.clientHeight;
 		const viewportHeight = document.documentElement.clientHeight;
 		const below = viewportHeight - anchorRect.bottom - OFFSET - VIEWPORT_PADDING;
 		const above = anchorRect.top - OFFSET - VIEWPORT_PADDING;
@@ -67,11 +67,17 @@ const followAnchor = (
 	const observer = new ResizeObserver(place);
 	observer.observe(floating);
 	place();
-	window.addEventListener("scroll", place, { capture: true, passive: true });
+	// Why the check: a scroll inside the popup does not move its anchor.
+	const onScroll = (event: Event) => {
+		if (!(event.target instanceof Node && floating.contains(event.target))) {
+			place();
+		}
+	};
+	window.addEventListener("scroll", onScroll, { capture: true, passive: true });
 	window.addEventListener("resize", place, { passive: true });
 	return () => {
 		observer.disconnect();
-		window.removeEventListener("scroll", place, { capture: true });
+		window.removeEventListener("scroll", onScroll, { capture: true });
 		window.removeEventListener("resize", place);
 	};
 };

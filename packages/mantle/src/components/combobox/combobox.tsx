@@ -234,6 +234,7 @@ const Content = ({
 	const { host, popupRef } = usePopup({
 		open,
 		anchorRef: inputRef,
+		ownerRef: inputRef,
 		container: useLayerContainer(),
 	});
 	const composedRef = useComposedRefs(ref, listbox.listboxProps.ref, popupRef);

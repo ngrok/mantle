@@ -350,6 +350,11 @@ const Root = ({
 								if (!(native instanceof HTMLSelectElement) || option == null) {
 									return;
 								}
+								// Why: a native form reset selects the option marked as the default,
+								// and a client render marks none.
+								if (option.value === defaultValue) {
+									option.setAttribute("selected", "");
+								}
 								const previous = committedValues.get(native);
 								committedValues.set(native, option.value);
 								if (previous != null && previous !== option.value) {

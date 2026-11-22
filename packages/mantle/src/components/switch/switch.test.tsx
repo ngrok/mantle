@@ -200,6 +200,23 @@ describe("Switch", () => {
 			expect(alerts).toHaveAttribute("aria-checked", "true");
 		});
 
+		test("an ancestor sees one click for each toggle", async () => {
+			const user = userEvent.setup();
+			const onFormClick = vi.fn<(event: unknown) => void>();
+			render(
+				// oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- Why: the form only counts the clicks that bubble.
+				<form aria-label="Settings" onClick={onFormClick}>
+					<Switch aria-label="Alerts" name="alerts" />
+				</form>,
+			);
+			await user.click(screen.getByRole("switch", { name: "Alerts" }));
+			expect(screen.getByRole("switch", { name: "Alerts" })).toHaveAttribute(
+				"aria-checked",
+				"true",
+			);
+			expect(onFormClick).toHaveBeenCalledTimes(1);
+		});
+
 		test("a toggle reaches the form's onChange once", async () => {
 			const user = userEvent.setup();
 			const onFormChange = vi.fn<(event: unknown) => void>();
