@@ -85,11 +85,12 @@ porting from the ecosystem; vocabulary is re-derived from what the component emi
 
 Mantle isn't "built on Radix." Where the platform is enough, components are native:
 Accordion is hand-rolled precisely because a headless collapsible would lose the
-find-in-page behavior above, and [Field](/components/forms/field) is real
-`<fieldset>`/`<legend>`/`<label>` elements with Mantle-owned wiring. Where the behavior
+find-in-page behavior above, [Field](/components/forms/field) is real
+`<fieldset>`/`<legend>`/`<label>` elements with Mantle-owned wiring, and
+[RadioGroup](/components/forms/radio-group) is native radios inside labels. Where the behavior
 is genuinely hard, Mantle wraps the best engine for that specific problem:
 [Radix](https://www.radix-ui.com) for [Dialog](/components/overlays/dialog),
-[Headless UI](https://headlessui.com) for [RadioGroup](/components/forms/radio-group), cmdk for
+cmdk for
 [Command](/components/navigation/command), TanStack Table for [DataTable](/components/data-display/data-table),
 sonner (mounted unstyled) for [Toast](/components/feedback/toast).
 [Select](/components/forms/select), [Combobox](/components/forms/combobox),

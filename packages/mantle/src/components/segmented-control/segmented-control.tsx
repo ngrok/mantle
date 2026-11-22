@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useId, useRef } from "react";
+import type { RefObject } from "react";
 import invariant from "tiny-invariant";
 import { $cssProperties } from "../../types/index.js";
 import { useComposedRefs } from "../../utils/compose-refs/index.js";
@@ -14,7 +15,7 @@ const InsideRootContext = createContext(false);
 
 /**
  * The props of `SegmentedControl.Root`: the same props as `RadioGroup.Root`,
- * including `value`, `defaultValue`, `onChange`, `name`, `form`, and
+ * including `value`, `defaultValue`, `onValueChange`, `name`, `form`, and
  * `disabled`.
  */
 type SegmentedControlRootProps = RadioPrimitive.RootProps;
@@ -27,9 +28,9 @@ type SegmentedControlItemProps = RadioPrimitive.ItemProps;
 
 /**
  * A row of segments, one checked at a time, on a dim track. A raised thumb
- * slides to the checked `SegmentedControl.Item`. It is a radio group: it
- * renders `role="radiogroup"`, arrow keys move the checked item, and with a
- * `name` it submits its value in a form.
+ * slides to the checked `SegmentedControl.Item`. It is a radio group of
+ * native radios: it renders `role="radiogroup"`, arrow keys move the checked
+ * item, and with a `name` it submits its value in a form.
  *
  * Name it with `aria-label`, or with `aria-labelledby` that points at a
  * visible label. A mouse or a finger can drag the thumb. A sideways drag on
@@ -52,9 +53,10 @@ type SegmentedControlItemProps = RadioPrimitive.ItemProps;
  * </SegmentedControl.Root>
  * ```
  */
-// Why no asChild: Headless UI renders the group and owns its roving focus and arrow keys.
+// Why no asChild: the group owns the native radios that carry the arrow keys and the form value.
 const Root = ({
 	"data-slot": dataSlot,
+	children,
 	className,
 	ref,
 	style,
@@ -65,7 +67,6 @@ const Root = ({
 	const thumbAnchor = `--segmented-control-thumb${useId().replaceAll(/[^\w-]/g, "")}`;
 	const groupRef = useRef<HTMLElement>(null);
 	const composedRef = useComposedRefs(ref, groupRef);
-	useSegmentedThumb(groupRef);
 	return (
 		<InsideRootContext.Provider value>
 			<RadioPrimitive.Root
@@ -83,25 +84,36 @@ const Root = ({
 					// Why a private variable: during a drag, the thumb follows the pointer off its anchor.
 					"before:translate-x-(--_segmented-control-thumb-offset,0px) data-dragging:cursor-grabbing",
 					// Why: a white thumb cannot get lighter, so hover on it lifts the shadow.
-					"has-[[aria-checked=true]:not([aria-disabled]):hover]:before:shadow",
+					"has-[>*:hover>input:checked:enabled]:before:shadow",
 					className,
 				)}
 				style={{ ...$cssProperties({ "--_segmented-control-thumb": thumbAnchor }), ...style }}
 				{...props}
 				ref={composedRef}
-			/>
+			>
+				{children}
+				<Thumb groupRef={groupRef} />
+			</RadioPrimitive.Root>
 		</InsideRootContext.Provider>
 	);
 };
 
+/** Slides the thumb of the group around it to the checked value. Renders nothing. */
+const Thumb = ({ groupRef }: { groupRef: RefObject<HTMLElement | null> }) => {
+	useSegmentedThumb(groupRef, RadioPrimitive.useRadioGroupValue());
+	return null;
+};
+
 /**
- * One segment of a `SegmentedControl.Root`: a `role="radio"` item that grows
- * to share the row and keeps its label on one line. Keep the label to one or
+ * One segment of a `SegmentedControl.Root`: a `<div>` with a native
+ * radio that grows to share the row and keeps its label on one line. Keep the label to one or
  * two words. An icon-only item needs its name in `sr-only` text or
  * `aria-label`.
  *
  * Inside `Field.Control`, the item picks up `aria-invalid`,
  * `aria-errormessage`, and `aria-describedby`.
+ * Style its state with `has-[>input:checked]:`, `has-[>input:disabled]:`,
+ * and `has-[>input:focus-visible]:`.
  *
  * | Data Attribute    | Value                 | Description                                 |
  * | ----------------- | --------------------- | ------------------------------------------- |
@@ -118,36 +130,35 @@ const Root = ({
  * </SegmentedControl.Root>
  * ```
  */
-// Why no asChild: the item takes Headless UI's `as`, which keeps its radio wiring.
-const Item = ({ "data-slot": dataSlot, className, ref, ...props }: SegmentedControlItemProps) => {
+// Why no asChild: the item is the `<div>` that holds its native radio.
+const Item = ({ className, ...props }: SegmentedControlItemProps) => {
 	invariant(
 		useContext(InsideRootContext),
 		"SegmentedControl.Item must be rendered inside SegmentedControl.Root.",
 	);
 	return (
 		<RadioPrimitive.Item
-			data-slot={joinDataSlot(dataSlot, "segmented-control-item")}
+			part="segmented-control-item"
 			className={cx(
 				"group/radio [&_label]:cursor-inherit relative flex flex-1 select-none items-center justify-center gap-2 rounded-md px-3 text-sm",
 				// Why nowrap: `SegmentedControl.Root` has a fixed height, so a wrapped label spills out of the item.
 				"whitespace-nowrap",
-				"focus-visible:focus-ring focus-visible:z-1",
-				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
-				"text-muted not-aria-disabled:hover:text-strong aria-disabled:opacity-50",
+				"has-[>input:focus-visible]:focus-ring has-[>input:focus-visible]:z-1",
+				"cursor-pointer has-[>input:disabled]:cursor-default",
+				"text-muted not-has-[>input:disabled]:hover:text-strong has-[>input:disabled]:opacity-50",
 				// Why a lighter tint: hover moves an item toward the raised thumb in both themes.
-				"not-aria-disabled:hover:bg-white/60 dark:not-aria-disabled:hover:bg-neutral-500/10",
+				"not-has-[>input:disabled]:hover:bg-white/60 dark:not-has-[>input:disabled]:hover:bg-neutral-500/10",
 				// Why an anchor: the thumb slides under the checked item.
-				"aria-checked:not-in-data-dragging:text-strong aria-checked:[anchor-name:var(--_segmented-control-thumb)]",
+				"has-[>input:checked]:not-in-data-dragging:text-strong has-[>input:checked]:[anchor-name:var(--_segmented-control-thumb)]",
 				// Why: during a drag, the label under the thumb is strong, and the checked item can be away from it.
 				"data-thumb-over:text-strong",
 				// Why pan-y: a sideways swipe on the checked item drags the thumb, and the page still scrolls.
-				"aria-checked:touch-pan-y",
+				"has-[>input:checked]:touch-pan-y",
 				// Why: a browser with no anchor positioning draws no thumb, so the item raises itself.
-				"not-supports-[anchor-name:--a]:aria-checked:bg-card not-supports-[anchor-name:--a]:aria-checked:shadow-sm dark:not-supports-[anchor-name:--a]:aria-checked:bg-neutral-300",
+				"not-supports-[anchor-name:--a]:has-[>input:checked]:bg-card not-supports-[anchor-name:--a]:has-[>input:checked]:shadow-sm dark:not-supports-[anchor-name:--a]:has-[>input:checked]:bg-neutral-300",
 				className,
 			)}
 			{...props}
-			ref={ref}
 		/>
 	);
 };

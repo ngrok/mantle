@@ -191,6 +191,7 @@ const migrationsPages = [
 	"0018-combobox-owned-behavior-migration",
 	"0019-multi-select-owned-behavior-migration",
 	"0020-native-floats-migration",
+	"0021-native-radio-group-migration",
 ];
 
 export default [

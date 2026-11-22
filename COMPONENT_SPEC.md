@@ -64,11 +64,11 @@ accessible, least surprising, fast, delightful, clean, and efficient.
    both degrade cleanly). If a component needs JavaScript to do what an element already does, start over.
    Enhance an element only when it does not meet a named product or site need. Native `<dialog>`,
    `<details>`, and `<select>` do not meet them today, so `Dialog`, `Accordion`, and `Select` are mantle's own.
-2. **Own the behavior.** Hand-roll where the platform is enough (`Accordion`, `Field`). Where the behavior
-   is genuinely hard, put it in a mantle behavior hook that follows the APG pattern. Then mantle owns the
-   performance and accessibility contract. A component ships only the code it needs. Some components
-   still wrap a headless library (Radix for `Dialog`, Ariakit for `Combobox`, Headless UI for `RadioGroup`,
-   cmdk for `Command`). Each one is a migration to a hook, and new work adds no headless library. An engine
+2. **Own the behavior.** Hand-roll where the platform is enough (`Accordion`, `Field`, `RadioGroup`). Where
+   the behavior is genuinely hard, put it in a mantle behavior hook that follows the APG pattern. Then mantle
+   owns the performance and accessibility contract. A component ships only the code it needs. Some
+   components still wrap a headless library (Radix for `Dialog`, Ariakit for `Combobox`, cmdk for
+   `Command`). Each one is a migration to a hook, and new work adds no headless library. An engine
    that renders no UI, such as TanStack Table for `DataTable`, can stay. A consumer must not be able to tell
    which is which: every foundation is normalized behind the same house API: flat namespace, `asChild`,
    `data-slot`, consumer `className` merged last.

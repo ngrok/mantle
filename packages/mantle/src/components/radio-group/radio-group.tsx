@@ -1,22 +1,27 @@
 "use client";
 
-import { Children, cloneElement, isValidElement, useContext, useRef } from "react";
-import type { HTMLAttributes, ReactNode } from "react";
+import { Children, cloneElement, isValidElement, useContext } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { isInput } from "../input/is-input.js";
+import { isInteractiveTarget } from "../../utils/interactive-target.js";
 import { Slot } from "../slot/index.js";
 import * as RadioPrimitive from "./primitive.js";
-import { RadioStateContext, type RadioStateContextValue } from "./primitive.js";
+import { RadioStateContext } from "./primitive.js";
+import { RadioItemContext } from "./radio-item-context.js";
+import type { RadioStateContextValue } from "./primitive.js";
 
 type RadioGroupProps = RadioPrimitive.RootProps;
 
 /**
  * A group of radio items. It manages the state of the children radios. Unstyled and simple.
  * Used as the root component for grouping related radio items where only one can be selected.
+ * Each item holds a native `<input type="radio">`, so the browser owns the one Tab
+ * stop, Space, and the form contract: `name`, `required`, `form`, and reset. The root moves the
+ * arrow keys, so they wrap at either end in every browser.
  *
  * The recommended Field composition is `Field.Set` + `Field.Legend` + `RadioGroup.Root`,
  * which uses fieldset semantics so all radios share a single accessible name from the
@@ -29,7 +34,7 @@ type RadioGroupProps = RadioPrimitive.RootProps;
  *
  * @example
  * ```tsx
- * <RadioGroup.Root value={value} onChange={setValue}>
+ * <RadioGroup.Root value={value} onValueChange={setValue}>
  *   <RadioGroup.Item value="option1">
  *     <RadioGroup.Indicator />
  *     <span>Option 1</span>
@@ -51,6 +56,10 @@ type RadioItemProps = RadioPrimitive.ItemProps;
  * A simple radio item that can be used inside a radio group. The "conventional" use-case.
  * Must be a child of `RadioGroup`.
  *
+ * It renders a `<div>` with a native radio that covers it. Style its state with
+ * `has-[>input:checked]:`, `has-[>input:disabled]:`, and
+ * `has-[>input:focus-visible]:`.
+ *
  * When rendered inside `Field.Control` (an alternative to the recommended
  * `Field.Set` / `Field.Legend` composition), picks up `aria-invalid`,
  * `aria-errormessage`, and `aria-describedby` from `FieldControlContext`. A
@@ -62,7 +71,7 @@ type RadioItemProps = RadioPrimitive.ItemProps;
  *
  * @example
  * ```tsx
- * <RadioGroup.Root value={value} onChange={setValue}>
+ * <RadioGroup.Root value={value} onValueChange={setValue}>
  *   <RadioGroup.Item value="option1">
  *     <RadioGroup.Indicator />
  *     <span>Option 1</span>
@@ -70,65 +79,54 @@ type RadioItemProps = RadioPrimitive.ItemProps;
  * </RadioGroup.Root>
  * ```
  */
-const Item = ({
-	"data-slot": dataSlot,
-	as: tag,
-	children,
-	className,
-	ref,
-	...props
-}: RadioItemProps) => {
-	return (
-		<RadioPrimitive.Item
-			data-slot={joinDataSlot(dataSlot, "radio-group-item")}
-			className={cx(
-				"group/radio cursor-pointer aria-disabled:cursor-default [&_label]:cursor-inherit flex gap-2 py-1 text-sm focus:outline-hidden",
-				// Why the gate: the default indicator draws the focus ring on its circle.
-				// An item with a custom indicator, or none, has no other focus treatment.
-				"not-has-data-radio-default-indicator:focus-visible:focus-ring not-has-data-radio-default-indicator:focus-visible:rounded-md",
-				className,
-			)}
-			{...props}
-			as={tag}
-			ref={ref}
-		>
-			{children}
-		</RadioPrimitive.Item>
-	);
-};
+const Item = ({ className, ...props }: RadioItemProps) => (
+	<RadioPrimitive.Item
+		part="radio-group-item"
+		className={cx(
+			"group/radio cursor-pointer has-[>input:disabled]:cursor-default [&_label]:cursor-inherit flex gap-2 py-1 text-sm",
+			// Why the gate: the default indicator draws the focus ring on its circle.
+			// An item with a custom indicator, or none, has no other focus treatment.
+			"not-has-data-radio-default-indicator:has-[>input:focus-visible]:focus-ring not-has-data-radio-default-indicator:has-[>input:focus-visible]:rounded-md",
+			className,
+		)}
+		{...props}
+	/>
+);
 
-type RadioIndicatorProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
+type RadioIndicatorProps = Omit<ComponentProps<"span">, "children"> & {
 	children?: ReactNode | ((context: RadioStateContextValue) => ReactNode);
 	/**
 	 * Never rendered. `Choice.Indicator` injects the field's `name` for a
-	 * control, and a `<div>` has no `name` attribute.
+	 * control, and a `<span>` has no `name` attribute.
 	 */
 	name?: string;
 } & WithDataSlot;
 
 /**
  * The circle `RadioGroup.Indicator` draws when a consumer passes no children.
+ * It reads the item's native radio through the `group/radio` item, so it is
+ * right before hydration.
  * @private
  */
-const DefaultRadioIndicator = ({ checked, disabled, focus, hover }: RadioStateContextValue) => (
+const DefaultRadioIndicator = () => (
 	<span
 		// Why: `RadioGroup.Item` reads this attribute to skip its own focus ring.
 		data-radio-default-indicator=""
 		className={cx(
 			"flex size-4 items-center justify-center rounded-full border shrink-0",
-			disabled && "cursor-default opacity-50",
 			// Why an outline when unchecked: a solid gray circle reads as disabled.
+			"bg-form border-form",
 			// Why a transparent border when checked: forced-colors mode removes the fill and
 			// paints this border in a system color, so the circle keeps its outline.
-			checked ? "bg-filled-accent border-transparent" : "bg-form border-form",
-			hover && !disabled && (checked ? "bg-filled-accent-hover" : "border-neutral-400"),
-			focus && !disabled && "focus-ring",
+			"group-has-[>input:checked]/radio:bg-filled-accent group-has-[>input:checked]/radio:border-transparent",
+			"group-hover/radio:group-has-[>input:enabled:not(:checked)]/radio:border-neutral-400",
+			"group-hover/radio:group-has-[>input:enabled:checked]/radio:bg-filled-accent-hover",
+			"group-has-[>input:disabled]/radio:cursor-default group-has-[>input:disabled]/radio:opacity-50",
+			"group-has-[>input:focus-visible]/radio:focus-ring",
 		)}
 	>
 		{/* Why the forced-colors classes: forced-colors mode removes the fill, so the dot keeps a system color. */}
-		{checked && (
-			<span className="size-2 rounded-full bg-white shrink-0 forced-colors:forced-color-adjust-none forced-colors:bg-[CanvasText]" />
-		)}
+		<span className="hidden group-has-[>input:checked]/radio:block size-2 rounded-full bg-white shrink-0 forced-colors:forced-color-adjust-none forced-colors:bg-[CanvasText]" />
 	</span>
 );
 
@@ -138,7 +136,9 @@ const DefaultRadioIndicator = ({ checked, disabled, focus, hover }: RadioStateCo
  * By default, it's a circle that changes color when checked.
  * You can customize the indicator by passing children:
  * - a different component
- * - a render-props function that receives the radio state context and should return a component.
+ * - a render-props function that receives `{ checked, disabled }` and returns a component.
+ *   For hover and keyboard focus, style with `group-hover/radio:` and
+ *   `group-has-[>input:focus-visible]/radio:`.
  *
  * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupindicator
  *
@@ -161,7 +161,8 @@ const Indicator = ({
 	const indicator = typeof children === "function" ? children(ctx) : children;
 
 	return (
-		<div
+		// Why a span: `Choice.Indicator` is a `<span>`, and a `<div>` inside it is invalid HTML.
+		<span
 			data-slot={joinDataSlot(dataSlot, "radio-group-indicator")}
 			className={cx(
 				"radio-indicator inline-flex size-5 select-none items-center justify-center shrink-0",
@@ -169,8 +170,8 @@ const Indicator = ({
 			)}
 			{...props}
 		>
-			{children == null ? <DefaultRadioIndicator {...ctx} /> : indicator}
-		</div>
+			{children == null ? <DefaultRadioIndicator /> : indicator}
+		</span>
 	);
 };
 
@@ -218,6 +219,10 @@ type RadioListItemProps = RadioItemProps & WithDataSlot;
 /**
  * A radio list item that is used inside a `RadioGroup.List`.
  *
+ * It renders a `<div>` with a native radio that covers it. Style its state with
+ * `has-[>input:checked]:`, `has-[>input:disabled]:`, and
+ * `has-[>input:focus-visible]:`.
+ *
  * When rendered inside `Field.Control` (an alternative to the recommended
  * `Field.Set` / `Field.Legend` composition), picks up `aria-invalid`,
  * `aria-errormessage`, and `aria-describedby` from `FieldControlContext`. A
@@ -247,41 +252,32 @@ type RadioListItemProps = RadioItemProps & WithDataSlot;
  * </RadioGroup.Root>
  * ```
  */
-const ListItem = ({
-	"data-slot": dataSlot,
-	as: tag,
-	children,
-	className,
-	ref,
-	...props
-}: RadioListItemProps) => {
-	return (
-		<RadioPrimitive.Item
-			data-slot={joinDataSlot(dataSlot, "radio-group-list-item")}
-			className={cx(
-				"group/radio [&_label]:cursor-inherit relative flex select-none gap-2 rounded-md px-3 py-2 text-sm",
-				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
-				"focus-visible:focus-ring focus-visible:z-1",
-				"not-aria-disabled:hover:bg-active-menu-item",
-				"aria-checked:bg-selected-menu-item not-aria-disabled:hover:aria-checked:bg-active-selected-menu-item",
-				"has-[.radio-indicator:first-child]:pl-2 has-[.radio-indicator:last-child]:pr-2",
-				className,
-			)}
-			{...props}
-			as={tag}
-			ref={ref}
-		>
-			{children}
-		</RadioPrimitive.Item>
-	);
-};
+const ListItem = ({ className, ...props }: RadioListItemProps) => (
+	<RadioPrimitive.Item
+		part="radio-group-list-item"
+		className={cx(
+			"group/radio [&_label]:cursor-inherit relative flex select-none gap-2 rounded-md px-3 py-2 text-sm",
+			"cursor-pointer has-[>input:disabled]:cursor-default",
+			"has-[>input:focus-visible]:focus-ring has-[>input:focus-visible]:z-1",
+			"not-has-[>input:disabled]:hover:bg-active-menu-item",
+			"has-[>input:checked]:bg-selected-menu-item not-has-[>input:disabled]:hover:has-[>input:checked]:bg-active-selected-menu-item",
+			"has-[.radio-indicator:first-child]:pl-2 has-[.radio-indicator:last-child]:pr-2",
+			className,
+		)}
+		{...props}
+	/>
+);
 
-type RadioItemContentProps = HTMLAttributes<HTMLDivElement> & WithAsChild & WithDataSlot;
+type RadioItemContentProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 type RadioCardProps = RadioItemProps & WithDataSlot;
 
 /**
  * A radio card item. Use it as a child of `RadioGroup`
+ *
+ * It renders a `<div>` with a native radio that covers it. Style its state with
+ * `has-[>input:checked]:`, `has-[>input:disabled]:`, and
+ * `has-[>input:focus-visible]:`.
  *
  * When rendered inside `Field.Control` (an alternative to the recommended
  * `Field.Set` / `Field.Legend` composition), picks up `aria-invalid`,
@@ -312,34 +308,21 @@ type RadioCardProps = RadioItemProps & WithDataSlot;
  * </RadioGroup.Root>
  * ```
  */
-const Card = ({
-	"data-slot": dataSlot,
-	as: tag,
-	children,
-	className,
-	ref,
-	...props
-}: RadioCardProps) => {
-	return (
-		<RadioPrimitive.Item
-			data-slot={joinDataSlot(dataSlot, "radio-group-card")}
-			className={clsx(
-				"group/radio border-card bg-card [&_label]:cursor-inherit relative rounded-md border p-4 text-sm",
-				"cursor-pointer aria-disabled:cursor-default focus:outline-hidden",
-				"focus-visible:focus-ring",
-				"first-of-type:rounded-tl-md first-of-type:rounded-tr-md last-of-type:rounded-bl-md last-of-type:rounded-br-md",
-				"aria-disabled:border-form/50 not-aria-disabled:hover:bg-card-hover",
-				"aria-checked:border-accent-500/50 aria-checked:bg-selected-menu-item not-aria-disabled:hover:aria-checked:bg-active-selected-menu-item",
-				className,
-			)}
-			{...props}
-			as={tag}
-			ref={ref}
-		>
-			{children}
-		</RadioPrimitive.Item>
-	);
-};
+const Card = ({ className, ...props }: RadioCardProps) => (
+	<RadioPrimitive.Item
+		part="radio-group-card"
+		className={clsx(
+			"group/radio border-card bg-card [&_label]:cursor-inherit relative block rounded-md border p-4 text-sm",
+			"cursor-pointer has-[>input:disabled]:cursor-default",
+			"has-[>input:focus-visible]:focus-ring",
+			"first-of-type:rounded-tl-md first-of-type:rounded-tr-md last-of-type:rounded-bl-md last-of-type:rounded-br-md",
+			"has-[>input:disabled]:border-form/50 not-has-[>input:disabled]:hover:bg-card-hover",
+			"has-[>input:checked]:border-accent-500/50 has-[>input:checked]:bg-selected-menu-item not-has-[>input:disabled]:hover:has-[>input:checked]:bg-active-selected-menu-item",
+			className,
+		)}
+		{...props}
+	/>
+);
 
 /**
  * The content of any radio item. Use it to wrap any labels, descriptions, or content of a radio item.
@@ -367,13 +350,12 @@ const ItemContent = ({
 	className,
 	...props
 }: RadioItemContentProps) => {
-	const ctx = useContext(RadioStateContext);
 	const Component = asChild ? Slot : "div";
 
 	return (
 		<Component
 			data-slot={joinDataSlot(dataSlot, "radio-group-item-content")}
-			className={clsx("min-w-0 flex-1", ctx.disabled && "opacity-50", className)}
+			className={clsx("min-w-0 flex-1 group-has-[>input:disabled]/radio:opacity-50", className)}
 			{...props}
 		>
 			{children}
@@ -381,14 +363,12 @@ const ItemContent = ({
 	);
 };
 
-type RadioInputSandboxProps = HTMLAttributes<HTMLDivElement> & WithDataSlot;
+type RadioInputSandboxProps = ComponentProps<"div"> & WithDataSlot;
 
 /**
  * A sandbox container for input elements composed within radio group items.
- * A click inside it still selects the radio, then focus returns to the input.
- * Keys other than Enter and Tab stop here, so typing does not move the
- * selection. When the item is disabled or unchecked, the input leaves the tab
- * order.
+ * A click on the input checks the radio and leaves focus on the input. When
+ * the item is disabled or unchecked, the input leaves the tab order.
  *
  * @see https://mantle.ngrok.com/components/forms/radio-group#radiogroupinputsandbox
  *
@@ -411,11 +391,10 @@ const InputSandbox = ({
 	"data-slot": dataSlot,
 	children,
 	onClick,
-	onKeyDown,
 	...props
 }: RadioInputSandboxProps) => {
-	const ref = useRef<HTMLDivElement>(null);
 	const ctx = useContext(RadioStateContext);
+	const radioItem = useContext(RadioItemContext);
 
 	const singleChild = Children.only(children);
 
@@ -426,35 +405,30 @@ const InputSandbox = ({
 		<div
 			role="none"
 			data-slot={joinDataSlot(dataSlot, "radio-group-input-sandbox")}
-			ref={ref}
-			onKeyDown={(event) => {
-				if (ctx.disabled) {
-					event.stopPropagation();
-					event.preventDefault();
-					return;
-				}
-				switch (event.key) {
-					case "Enter":
-					case "Tab":
-						break;
-					default:
-						event.stopPropagation();
-				}
-				onKeyDown?.(event);
-			}}
 			onClick={(event) => {
 				if (ctx.disabled) {
 					event.stopPropagation();
 					event.preventDefault();
 					return;
 				}
-				const target = event.target;
-				if (isInput(target)) {
-					window.requestAnimationFrame(() => {
-						target.focus();
-					});
-				}
 				onClick?.(event);
+				if (event.defaultPrevented) {
+					return;
+				}
+				if (!radioItem) {
+					return;
+				}
+				if (!ctx.checked) {
+					event.currentTarget.ownerDocument.getElementById(radioItem.radioId)?.click();
+				}
+				// Why: a click on the sandbox around its control, such as the border of an `Input`, focuses the
+				// control. The default is prevented, so the item does not move focus to its radio.
+				if (!isInteractiveTarget(event.target, event.currentTarget)) {
+					event.preventDefault();
+					event.currentTarget
+						.querySelector<HTMLElement>("input, select, textarea, button, [contenteditable]")
+						?.focus();
+				}
 			}}
 			{...props}
 		>

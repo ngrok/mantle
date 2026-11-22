@@ -676,7 +676,7 @@ export function UserOverlayDemo() {
 					aria-labelledby={overlayPickerLabelId}
 					className="w-fit"
 					value={overlay}
-					onChange={(value: string) => {
+					onValueChange={(value: string) => {
 						if (isOverlayKind(value)) {
 							setOverlay(value);
 						}

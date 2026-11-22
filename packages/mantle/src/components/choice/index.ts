@@ -17,7 +17,7 @@ import * as ChoiceParts from "./choice-parts.js";
  * control's value. Drop your own control into `Choice.Indicator`. Pick
  * `Choice.Label` (a real `<label>`) when the `Choice` owns the labeling, or
  * `Choice.Title` (label-less text) when an ancestor (a clickable row or a
- * Headless radio item) already does.
+ * `RadioGroup` item) already does. Put one `Choice` in each radio item.
  *
  * **Use it for choice-like layouts:** a checkbox or radio input that needs an
  * associated label and an optional supplementary description. It is not a

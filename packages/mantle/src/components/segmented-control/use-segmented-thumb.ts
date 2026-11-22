@@ -1,7 +1,8 @@
 "use client";
 
 import type { RefObject } from "react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import { rubberBand } from "../../hooks/use-swipe-to-dismiss.js";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 
@@ -124,13 +125,24 @@ type DragSession = {
  * The thumb then follows the pointer. Past either end, it meets rubber-band
  * resistance and stays inside the group's padding. On release, the thumb
  * slides to the nearest enabled segment, carried ahead by a flick, and that
- * segment's click commits the value. A new `value` during a drag does not
+ * segment's click commits the value. A new `value` of the group tells the
+ * hook to slide. A new `value` during a drag does not
  * slide the thumb: it stays under the pointer. A gesture that travels further up or
  * down than sideways never starts, so the page still scrolls. While the drag
  * runs, the group carries `data-dragging` and the segment under the thumb
  * carries `data-thumb-over`.
  */
-function useSegmentedThumb(groupRef: RefObject<HTMLElement | null>): void {
+function useSegmentedThumb(
+	groupRef: RefObject<HTMLElement | null>,
+	value: string | undefined,
+): void {
+	const syncRef = useRef<(() => void) | null>(null);
+
+	// Why a layout effect: a form reset or a new controlled `value` changes the checked radio with no event, and the slide must start before paint.
+	useIsomorphicLayoutEffect(() => {
+		syncRef.current?.();
+	}, [value]);
+
 	useEffect(() => {
 		const group = groupRef.current;
 		if (group == null) {
@@ -141,7 +153,8 @@ function useSegmentedThumb(groupRef: RefObject<HTMLElement | null>): void {
 		let slide: Animation | null = null;
 
 		const readChecked = () =>
-			group.querySelector<HTMLElement>(":scope > [role='radio'][aria-checked='true']");
+			group.querySelector<HTMLInputElement>(":scope > * > input:checked")?.parentElement ?? null;
+		const isDisabled = (segment: Element) => segment.matches(":has(> input:disabled)");
 		// Why the computed value: it holds a running slide's current frame, so a
 		// new slide or a drag starts where the thumb is, with no jump.
 		const readTranslate = () =>
@@ -179,7 +192,7 @@ function useSegmentedThumb(groupRef: RefObject<HTMLElement | null>): void {
 		};
 
 		let lastChecked = readChecked();
-		const observer = new MutationObserver(() => {
+		const sync = () => {
 			const checked = readChecked();
 			if (checked === lastChecked) {
 				return;
@@ -201,8 +214,8 @@ function useSegmentedThumb(groupRef: RefObject<HTMLElement | null>): void {
 			if (previous?.isConnected) {
 				slideFrom(previous.getBoundingClientRect().left + readTranslate());
 			}
-		});
-		observer.observe(group, { attributeFilter: ["aria-checked"], subtree: true });
+		};
+		syncRef.current = sync;
 
 		const clearDrag = (finished: DragSession) => {
 			group.removeAttribute("data-dragging");
@@ -223,23 +236,22 @@ function useSegmentedThumb(groupRef: RefObject<HTMLElement | null>): void {
 			if (!event.isPrimary || event.button !== 0 || session != null) {
 				return;
 			}
-			const checked =
-				event.target instanceof Element ? event.target.closest("[role='radio']") : null;
-			if (
-				!(checked instanceof HTMLElement) ||
-				checked.parentElement !== group ||
-				checked.getAttribute("aria-checked") !== "true" ||
-				checked.getAttribute("aria-disabled") === "true"
-			) {
+			let checked = event.target instanceof Element ? event.target : null;
+			while (checked != null && checked.parentElement !== group) {
+				checked = checked.parentElement;
+			}
+			if (!(checked instanceof HTMLElement) || !checked.matches(":has(> input:checked:enabled)")) {
 				return;
 			}
-			const segments = Array.from(group.querySelectorAll<HTMLElement>(":scope > [role='radio']"));
+			const segments = Array.from(
+				group.querySelectorAll<HTMLElement>(":scope > :has(> input[type=radio])"),
+			);
 			const boxes = segments.map((segment) => {
 				const rect = segment.getBoundingClientRect();
 				return {
 					left: rect.left,
 					right: rect.right,
-					disabled: segment.getAttribute("aria-disabled") === "true",
+					disabled: isDisabled(segment),
 				};
 			});
 			// Why the extremes and not the first and last segment: in RTL, the
@@ -345,7 +357,7 @@ function useSegmentedThumb(groupRef: RefObject<HTMLElement | null>): void {
 			const projected = checkedCenter + finished.offset + velocity * flickProjectionMs;
 			const target = finished.segments[nearestSegment(finished.boxes, projected)];
 			if (target != null && target !== finished.checked) {
-				target.click();
+				target.querySelector<HTMLInputElement>(":scope > input")?.click();
 			}
 			// Why after the commit: the flag must swallow the click the browser
 			// sends after the release, not the commit's own click.
@@ -369,7 +381,7 @@ function useSegmentedThumb(groupRef: RefObject<HTMLElement | null>): void {
 		// must still not send it to the segment under the release.
 		group.addEventListener("click", handleClick, true);
 		return () => {
-			observer.disconnect();
+			syncRef.current = null;
 			slide?.cancel();
 			if (session?.dragging) {
 				clearDrag(session);

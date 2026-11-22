@@ -42,10 +42,8 @@ describe("UserOverlayDemo", () => {
 	it("defaults the overlay picker to Sheet", () => {
 		renderDemo();
 
-		expect(screen.getByRole("radio", { name: "Sheet" }).getAttribute("aria-checked")).toBe("true");
-		expect(screen.getByRole("radio", { name: "Dialog" }).getAttribute("aria-checked")).toBe(
-			"false",
-		);
+		expect(screen.getByRole("radio", { name: "Sheet" })).toHaveProperty("checked", true);
+		expect(screen.getByRole("radio", { name: "Dialog" })).toHaveProperty("checked", false);
 	});
 
 	it("opens an overlay immediately on scenario click, before data resolves", () => {

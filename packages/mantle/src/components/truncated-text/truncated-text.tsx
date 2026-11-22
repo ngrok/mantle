@@ -710,7 +710,7 @@ function lineWidths(element: HTMLElement, scale: number): number[] {
  * them is content of that control, so it takes no tab stop and no tooltip.
  */
 const controlSelector =
-	'a[href], button, input, select, textarea, summary, [contenteditable=""], [contenteditable="true"], [role="button"], [role="checkbox"], [role="link"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="radio"], [role="switch"], [role="tab"], [role="treeitem"]';
+	'a[href], button, input, select, textarea, summary, :has(> input[type="radio"]), [contenteditable=""], [contenteditable="true"], [role="button"], [role="checkbox"], [role="link"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="radio"], [role="switch"], [role="tab"], [role="treeitem"]';
 
 /**
  * Whether an element sits inside a control. Starts from the parent, so a root
