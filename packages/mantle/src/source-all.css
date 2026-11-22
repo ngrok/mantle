@@ -9,8 +9,12 @@
  * migration files hold JSDoc examples, so a scan of them emits CSS that no
  * component renders.
  *
+ * The scan also skips `cx-merge-*.js`. Its class-merge tables list every Tailwind
+ * keyword, so a scan of them emits CSS that no component renders.
+ *
  * Usage:
  *   @import "@ngrok/mantle/mantle.css";
  *   @import "@ngrok/mantle/source-all.css";
  */
 @source "../dist/*.js";
+@source not "../dist/cx-merge-*.js";

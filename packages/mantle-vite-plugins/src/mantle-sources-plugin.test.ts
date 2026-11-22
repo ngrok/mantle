@@ -718,6 +718,15 @@ describe("mantleSourcesPlugin build", () => {
 		expect(listed.some((file) => /^cx-[\w-]+\.js$/.test(path.basename(file)))).toBe(true);
 	});
 
+	test("skips the cx-merge chunk, whose tables render no class", () => {
+		expect(readdirSync(mantleDist).some((name) => /^cx-merge-[\w-]+\.js$/.test(name))).toBe(true);
+		expect(listed.filter((file) => path.basename(file).startsWith("cx-merge-"))).toEqual([]);
+		// Why `table-footer-group`: only the merge tables name it, so it shows whether a build
+		// scanned them. `full` builds through `source-all.css`, `trimmed` through the plugin.
+		expect(full.css).not.toContain(".table-footer-group");
+		expect(trimmed.css).not.toContain(".table-footer-group");
+	});
+
 	test("drops every utility only an unreached file carries", () => {
 		expect(unreachedUtilities.length).toBeGreaterThan(0);
 		expect(utilitiesIn(trimmed.css, unreachedUtilities)).toEqual([]);

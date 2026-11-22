@@ -43,6 +43,13 @@ type MantleSourcesPluginOptions = {
 const MANTLE_PACKAGE_NAME = "@ngrok/mantle";
 
 /**
+ * Matches mantle's class-merge module: the `cx-merge-<hash>.js` chunk, or its source when an
+ * app resolves mantle to `src`. Its tables list every Tailwind keyword and render none, so the
+ * CSS never scans it. `source-all.css` skips the chunk the same way.
+ */
+const MANTLE_UNSCANNED_FILE_PATTERN = /\/(?:dist\/cx-merge-[\w-]+\.js|src\/utils\/cx\/merge\.ts)$/;
+
+/**
  * The stylesheet whose import the plugin replaces.
  */
 const SOURCE_ALL_FILENAME = "source-all.css";
@@ -785,6 +792,9 @@ function mantleSourcesPlugin(options: MantleSourcesPluginOptions = {}): Plugin {
 			return null;
 		}
 		const info = packageOf(file);
+		if (info?.name === MANTLE_PACKAGE_NAME && MANTLE_UNSCANNED_FILE_PATTERN.test(toPosix(file))) {
+			return null;
+		}
 		return info != null && listedPackages.has(info.name) ? file : null;
 	}
 

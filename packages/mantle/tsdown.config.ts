@@ -176,6 +176,32 @@ function owningComponentDir(moduleIds: readonly string[]): string | null {
 	return owner;
 }
 
+/** Matches the class-merge module, whose class-group tables read as class names to Tailwind. */
+const CX_MERGE_MODULE_RE = /[\\/]src[\\/]utils[\\/]cx[\\/]merge\.ts$/;
+/** Matches the modules of `utils/cx`, which hold no class names that a component renders. */
+const CX_MODULE_RE = /[\\/]src[\\/]utils[\\/]cx[\\/][^\\/]+\.ts$/;
+
+/**
+ * Names the chunk with the class-merge module `cx-merge-<hash>.js`, so `source-all.css` and
+ * `mantleSourcesPlugin` can keep Tailwind from scanning it.
+ *
+ * Why: the merge tables list every Tailwind keyword (`table-footer-group`, `snap-mandatory`,
+ * `container`), and a scan of them emitted about 13 KB of minified CSS that no component renders.
+ * The build fails when another module joins the chunk, because the scan would then skip its classes.
+ */
+function cxMergeChunkName(moduleIds: readonly string[]): string | null {
+	if (!moduleIds.some((moduleId) => CX_MERGE_MODULE_RE.test(moduleId))) {
+		return null;
+	}
+	const others = moduleIds.filter((moduleId) => !CX_MODULE_RE.test(moduleId));
+	if (others.length > 0) {
+		throw new Error(
+			`The cx-merge chunk must hold only utils/cx modules, because Tailwind does not scan it. It also holds:\n${others.join("\n")}`,
+		);
+	}
+	return "cx-merge-[hash].js";
+}
+
 export default defineConfig((options) => [
 	{
 		dts: true,
@@ -224,6 +250,10 @@ export default defineConfig((options) => [
 			// their name up to the first `~`: an `entriesAware` chunk group appends
 			// `~<entry>` for each entry, which would repeat in every import of it.
 			chunkFileNames: (chunk) => {
+				const cxMerge = cxMergeChunkName(chunk.moduleIds);
+				if (cxMerge != null) {
+					return cxMerge;
+				}
 				const owner = owningComponentDir(chunk.moduleIds);
 				if (owner != null) {
 					return `${owner}-[hash].js`;
