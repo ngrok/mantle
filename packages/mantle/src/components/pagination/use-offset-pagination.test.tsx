@@ -1,6 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
-import { getOffsetPaginatedSlice, useOffsetPagination } from "./use-offset-pagination.js";
+import { getOffsetPaginatedSlice } from "./offset-paginated-slice.js";
+import { useOffsetPagination } from "./use-offset-pagination.js";
 
 describe("useOffsetPagination", () => {
 	test("given a list size of zero", () => {

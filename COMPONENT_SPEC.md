@@ -441,6 +441,8 @@ CONVENTIONS.md covers general style ([TypeScript](./CONVENTIONS.md#typescript),
   case in [CONVENTIONS.md § React Compiler](./CONVENTIONS.md#react-compiler).
 - Keep a part safe for React Server Components only when that costs nothing. ngrok's apps do not use RSC, so
   never add a client wrapper, a build special case, or a behavior change to get there.
+- Put a plain helper (no hooks, context, or browser-only API) in a module without `"use client"`, so server code
+  can call it. The build fails when a subpath exports one from a client chunk.
 - Named exports only, no default exports. Relative imports ending in `.js` (`../../utils/cx/cx.js`).
 - `type`, not `interface`. Props based on `ComponentProps<…>`, which already includes `ref`. Never
   `HTMLAttributes<…>` alone, which does not.

@@ -1,3 +1,5 @@
+"use client";
+
 import { canUseDOM } from "../components/browser-only/can-use-dom.js";
 import { useMatchesMediaQuery } from "./use-matches-media-query.js";
 

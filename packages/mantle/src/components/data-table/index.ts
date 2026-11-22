@@ -8,10 +8,7 @@ import * as DataTableParts from "./data-table-parts.js";
 
 export * from "@tanstack/react-table";
 
-export {
-	//,
-	expandedRowId,
-} from "./data-table.js";
+export { expandedRowId } from "./expanded-row-id.js";
 
 /**
  * Use `DataTable` for INTERACTIVE tabular data: sorting, filtering, pagination,

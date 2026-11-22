@@ -11,7 +11,8 @@ import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { passwordManagerIgnoreProps } from "../input/password-manager-ignore.js";
-import { parseValidation, useFieldValidation } from "../field/validation.js";
+import { parseValidation } from "../field/validation.js";
+import { useFieldValidation } from "../field/validation-context.js";
 import type { Validation, WithValidation } from "../field/validation.js";
 import { Slot as AsChildSlot } from "../slot/index.js";
 
@@ -478,10 +479,3 @@ export {
 	OtpInputSlotImpl,
 	Separator,
 };
-
-export {
-	//,
-	REGEXP_ONLY_CHARS,
-	REGEXP_ONLY_DIGITS,
-	REGEXP_ONLY_DIGITS_AND_CHARS,
-} from "input-otp";

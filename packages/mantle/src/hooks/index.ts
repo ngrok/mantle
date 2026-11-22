@@ -4,16 +4,16 @@
  * @see https://mantle.ngrok.com/hooks
  */
 
-export {
-	//,
-	breakpoints,
-	useBreakpoint,
-	useIsBelowBreakpoint,
-} from "./use-breakpoint.js";
+export { breakpoints } from "./breakpoints.js";
 export type {
 	//,
 	Breakpoint,
 	TailwindBreakpoint,
+} from "./breakpoints.js";
+export {
+	//,
+	useBreakpoint,
+	useIsBelowBreakpoint,
 } from "./use-breakpoint.js";
 
 export { useCallbackRef } from "./use-callback-ref.js";

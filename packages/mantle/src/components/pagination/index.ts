@@ -55,11 +55,8 @@ export {
 	PaginationRange,
 } from "./pagination-range.js";
 
-export {
-	//,
-	getOffsetPaginatedSlice,
-	useOffsetPagination,
-} from "./use-offset-pagination.js";
+export { getOffsetPaginatedSlice } from "./offset-paginated-slice.js";
+export { useOffsetPagination } from "./use-offset-pagination.js";
 
 export type {
 	//,

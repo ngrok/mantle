@@ -9,16 +9,18 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { canUseDOM } from "../browser-only/can-use-dom.js";
 import {
-	extractThemeCookie,
-	getStoredTheme,
 	PreventWrongThemeFlashScript,
-	preventWrongThemeFlashScriptContent,
 	ThemeProvider,
 	themeCookieDomain,
 	useAppliedTheme,
 	useInitialHtmlThemeProps,
 	useTheme,
 } from "./theme-provider.js";
+import {
+	extractThemeCookie,
+	getStoredTheme,
+	preventWrongThemeFlashScriptContent,
+} from "./theme-storage.js";
 import { resolvedThemes, themes, type Theme } from "./themes.js";
 
 const THEME_COOKIE = "mantle-ui-theme";

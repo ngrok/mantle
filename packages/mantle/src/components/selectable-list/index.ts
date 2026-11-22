@@ -12,7 +12,7 @@ export {
 	optionLabelText,
 	summarizeSelection,
 	toggleSelectionValue,
-} from "./selectable-list.js";
+} from "./selection.js";
 
 /**
  * A filterable, multi-select **grid** of checkbox rows, the inline

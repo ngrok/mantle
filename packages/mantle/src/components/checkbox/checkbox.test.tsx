@@ -4,7 +4,8 @@ import { useLayoutEffect, useRef } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { describe, expect, test, vi } from "vitest";
 import * as Field from "../field/field-parts.js";
-import { Checkbox, selectAllChecked } from "./checkbox.js";
+import { Checkbox } from "./checkbox.js";
+import { selectAllChecked } from "./select-all-checked.js";
 import type { CheckedState } from "./checkbox.js";
 
 type IndeterminateProbeProps = {

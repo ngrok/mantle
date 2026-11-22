@@ -1,9 +1,11 @@
 import { render, screen } from "@testing-library/react";
+import * as InputOtp from "input-otp";
 import type { ComponentProps } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import * as Field from "../field/field-parts.js";
 import * as OtpInput from "./otp-input-parts.js";
+import * as patterns from "./patterns.js";
 
 type RenderOtpProps = Pick<ComponentProps<typeof OtpInput.Root>, "aria-invalid" | "validation">;
 
@@ -264,5 +266,13 @@ describe("OtpInput", () => {
 
 			expect(screen.getByTestId("slot")).toHaveAttribute("translate", "no");
 		});
+	});
+});
+
+test("the pattern constants equal the ones input-otp exports", () => {
+	expect({ ...patterns }).toEqual({
+		REGEXP_ONLY_CHARS: InputOtp.REGEXP_ONLY_CHARS,
+		REGEXP_ONLY_DIGITS: InputOtp.REGEXP_ONLY_DIGITS,
+		REGEXP_ONLY_DIGITS_AND_CHARS: InputOtp.REGEXP_ONLY_DIGITS_AND_CHARS,
 	});
 });

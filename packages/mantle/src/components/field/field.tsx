@@ -40,7 +40,8 @@ import {
 	normalizeErrorMessages,
 	type FieldErrorMessage,
 } from "./error-helpers.js";
-import { FieldValidationProvider, resolveValidation, type WithValidation } from "./validation.js";
+import { resolveValidation, type WithValidation } from "./validation.js";
+import { FieldValidationProvider } from "./validation-context.js";
 
 /**
  * Renders a semantic `<fieldset>` for grouping related controls under a
