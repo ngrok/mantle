@@ -1413,6 +1413,8 @@ MARK: CUSTOM VARIANTS
 */
 @custom-variant light (&:where(.light, .light *, [data-theme="light"]:not([data-applied-theme]), [data-applied-theme="light"]));
 @custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"]:not([data-applied-theme]), [data-applied-theme="dark"]));
+/* `dark` on the root only, spelled as the dark theme block reads it: a `.dark` class on any other ancestor does not match. */
+@custom-variant root-dark (:root:is(.dark, [data-theme="dark"]:not([data-applied-theme]), [data-applied-theme="dark"]) &);
 
 @custom-variant aria-collapsed (&[aria-expanded="false"]);
 @custom-variant aria-invalid (&[aria-invalid="true"]);
@@ -2074,6 +2076,37 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 	display: block;
 	min-width: 0;
 	flex: 1 1 auto;
+}
+
+/*
+ * The accessible name of `ThemeSwitcher`: the theme its next click shows. CSS
+ * writes it from the theme on `<html>`, so the name is correct before
+ * hydration and with no JavaScript. Generated content keeps it out of the page
+ * text that crawlers read. A pinned preference that differs from the OS gets
+ * " (system default)", because the click then stores `"system"`.
+ */
+@utility theme-switcher-name {
+	&::before {
+		content: "Switch to dark theme";
+	}
+
+	@variant root-dark {
+		&::before {
+			content: "Switch to light theme";
+		}
+	}
+
+	@media (prefers-color-scheme: dark) {
+		:root[data-theme="light"] &::after {
+			content: " (system default)";
+		}
+	}
+
+	@media (prefers-color-scheme: light) {
+		:root[data-theme="dark"] &::after {
+			content: " (system default)";
+		}
+	}
 }
 
 /*

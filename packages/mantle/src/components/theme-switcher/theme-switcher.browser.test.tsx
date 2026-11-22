@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { renderToString } from "react-dom/server";
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
@@ -9,6 +10,7 @@ import { commands } from "vitest/browser";
 import mantleCss from "../../mantle.css?raw";
 import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
 import * as Dialog from "../dialog/dialog-parts.js";
+import { ThemeIcon } from "../icons/theme.js";
 import { ThemeProvider, useTheme } from "../theme/theme-provider.js";
 import {
 	ThemeDropdownMenuItem,
@@ -19,8 +21,9 @@ import {
 
 /**
  * The theme-swap rules from `mantle.css`, a probe whose color follows the
- * theme through a slow transition, a slow icon swap, and a slow dialog overlay exit animation. Browser tests load no Tailwind, so only
- * these rules apply.
+ * theme through a slow transition, a slow icon swap, and a slow dialog overlay
+ * exit animation. `beforeAll` adds the compiled utilities of the switcher and
+ * of `IconSwap`, which show the icon and write the name.
  */
 const STYLE = `
 ${mantleCss.match(/[^{}]*\[data-theme-transition(?:-many)?\][^{]*\{[^}]*\}/g)?.join("\n") ?? ""}
@@ -36,9 +39,13 @@ ${mantleCss.match(/[^{}]*\[data-theme-transition(?:-many)?\][^{]*\{[^}]*\}/g)?.j
 
 let styleElement: HTMLStyleElement;
 
-beforeAll(() => {
+beforeAll(async () => {
 	styleElement = document.createElement("style");
-	styleElement.textContent = STYLE;
+	styleElement.textContent = [
+		await commands.tailwindCss("../icon/icon-swap.tsx"),
+		await commands.tailwindCss("./theme-switcher.tsx"),
+		STYLE,
+	].join("\n");
 	document.head.appendChild(styleElement);
 });
 
@@ -54,7 +61,7 @@ afterEach(async () => {
 		}
 	});
 	document.cookie = "mantle-ui-theme=; max-age=0; path=/";
-	await commands.emulateMedia({ reducedMotion: "no-preference" });
+	await commands.emulateMedia({ colorScheme: "light", reducedMotion: "no-preference" });
 });
 
 function renderSwitcher({ rows = 0 }: { rows?: number } = {}) {
@@ -71,6 +78,108 @@ function renderSwitcher({ rows = 0 }: { rows?: number } = {}) {
 	);
 	return screen.getByRole("button", { name: "Switch to dark theme" });
 }
+
+/** The glyph of each theme icon, from the first `<path>` of its single-path svg. */
+const glyphs = Object.fromEntries(
+	(["light", "dark"] as const).map((theme) => {
+		const template = document.createElement("template");
+		template.innerHTML = renderToString(<ThemeIcon theme={theme} />);
+		return [theme, template.content.querySelector("path")?.getAttribute("d")];
+	}),
+);
+
+/** The glyphs of the icons that paint inside `element`. */
+function shownGlyphs(element: Element) {
+	return [...element.querySelectorAll("svg")]
+		.filter((svg) => svg.checkVisibility({ opacityProperty: true, visibilityProperty: true }))
+		.map((svg) => svg.querySelector("path")?.getAttribute("d"));
+}
+
+function getSwitcherIcon() {
+	const icon = document.querySelector('[data-slot~="theme-switcher-icon"]');
+	if (icon == null) {
+		throw new Error("no ThemeSwitcherIcon is rendered");
+	}
+	return icon;
+}
+
+describe("ThemeSwitcher name and icon from the theme on <html>", () => {
+	test.each([
+		{ stored: "system", os: "light", shown: "light", name: "Switch to dark theme" },
+		{ stored: "system", os: "dark", shown: "dark", name: "Switch to light theme" },
+		{ stored: "light", os: "dark", shown: "light", name: "Switch to dark theme (system default)" },
+		{ stored: "dark", os: "light", shown: "dark", name: "Switch to light theme (system default)" },
+		{ stored: "dark", os: "dark", shown: "dark", name: "Switch to light theme" },
+	] as const)(
+		"with $stored stored on a $os OS, the switcher is named $name and both parts show the $shown icon",
+		async ({ stored, os, shown, name }) => {
+			document.cookie = `mantle-ui-theme=${stored}; path=/`;
+			await commands.emulateMedia({ colorScheme: os });
+			render(
+				<ThemeProvider>
+					<ThemeSwitcher />
+					<ThemeSwitcherIcon />
+				</ThemeProvider>,
+			);
+
+			const button = screen.getByRole("button", { name });
+			expect(shownGlyphs(button)).toEqual([glyphs[shown]]);
+			expect(shownGlyphs(getSwitcherIcon())).toEqual([glyphs[shown]]);
+		},
+	);
+
+	test("an OS change renames the switcher and swaps its icon", async () => {
+		renderSwitcher();
+		await commands.emulateMedia({ colorScheme: "dark" });
+
+		const button = await screen.findByRole("button", { name: "Switch to light theme" });
+		await expect.poll(() => shownGlyphs(button)).toEqual([glyphs.dark]);
+	});
+
+	test("each click names the theme the next click shows", async () => {
+		await commands.emulateMedia({ reducedMotion: "reduce" });
+		const button = renderSwitcher();
+
+		// Why `getByRole`: jest-dom's name matcher reads no `::before` content.
+		await userEvent.click(button);
+		expect(screen.getByRole("button", { name: "Switch to light theme (system default)" })).toBe(
+			button,
+		);
+		// Why no poll: under reduced motion the icons swap with no transition.
+		expect(shownGlyphs(button)).toEqual([glyphs.dark]);
+
+		await userEvent.click(button);
+		expect(screen.getByRole("button", { name: "Switch to dark theme" })).toBe(button);
+	});
+
+	test("a .dark class on an ancestor other than <html> changes neither the name nor the icon", () => {
+		render(
+			<div className="dark">
+				<ThemeProvider>
+					<ThemeSwitcher />
+					<ThemeSwitcherIcon />
+				</ThemeProvider>
+			</div>,
+		);
+
+		const button = screen.getByRole("button", { name: "Switch to dark theme" });
+		expect(shownGlyphs(button)).toEqual([glyphs.light]);
+		expect(shownGlyphs(getSwitcherIcon())).toEqual([glyphs.light]);
+	});
+
+	test("under forceTheme, both parts show the forced icon", () => {
+		render(
+			<ThemeProvider forceTheme="dark">
+				<ThemeSwitcher />
+				<ThemeSwitcherIcon />
+			</ThemeProvider>,
+		);
+
+		const button = screen.getByRole("button", { name: "Theme set by this page" });
+		expect(shownGlyphs(button)).toEqual([glyphs.dark]);
+		expect(shownGlyphs(getSwitcherIcon())).toEqual([glyphs.dark]);
+	});
+});
 
 /** Waits for a reveal animation on the new snapshot of the root, other than `except`. */
 async function revealAnimation({ except }: { except?: Animation } = {}) {
