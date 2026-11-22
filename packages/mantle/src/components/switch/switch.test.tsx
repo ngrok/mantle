@@ -179,5 +179,25 @@ describe("Switch", () => {
 			expect(toggle).toHaveAttribute("aria-checked", "true");
 			expect(formData()).toBe("yes");
 		});
+
+		test("with no name, required still blocks the submit while off, and a reset still restores defaultChecked", async () => {
+			const user = userEvent.setup();
+			render(
+				<form aria-label="Terms">
+					<Switch aria-label="Accept" required />
+					<Switch aria-label="Alerts" defaultChecked />
+					<button type="reset">Reset</button>
+				</form>,
+			);
+			const form = screen.getByRole("form", { name: "Terms" });
+			expect(form instanceof HTMLFormElement && form.checkValidity()).toBe(false);
+			await user.click(screen.getByRole("switch", { name: "Accept" }));
+			expect(form instanceof HTMLFormElement && form.checkValidity()).toBe(true);
+
+			const alerts = screen.getByRole("switch", { name: "Alerts" });
+			await user.click(alerts);
+			await user.click(screen.getByRole("button", { name: "Reset" }));
+			expect(alerts).toHaveAttribute("aria-checked", "true");
+		});
 	});
 });

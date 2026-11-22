@@ -2,6 +2,7 @@
 
 import type { ComponentProps } from "react";
 import { useControllableState } from "../../behaviors/use-controllable-state.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { parseBooleanish } from "../../types/booleanish.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -29,7 +30,7 @@ type SwitchProps = Omit<ComponentProps<"button">, "value"> &
 		form?: string;
 		/**
 		 * The name of a hidden checkbox that submits the value with its form. With
-		 * no `name`, the switch renders no hidden checkbox.
+		 * no `name` and no `required`, the switch renders no hidden checkbox.
 		 */
 		name?: string;
 		/**
@@ -111,6 +112,17 @@ const Switch = ({
 	});
 	const state = checked ? "checked" : "unchecked";
 	const resetToDefault = () => setChecked(defaultChecked);
+	const composedRef = useComposedRefs(ref, (button: HTMLButtonElement | null) => {
+		// Why a ref callback on the button: a form reset returns an uncontrolled switch to
+		// `defaultChecked`, with or without a hidden checkbox, and the listener lives as
+		// long as the button.
+		const owner = button?.form;
+		if (owner == null) {
+			return;
+		}
+		owner.addEventListener("reset", resetToDefault);
+		return () => owner.removeEventListener("reset", resetToDefault);
+	});
 
 	return (
 		<>
@@ -126,6 +138,7 @@ const Switch = ({
 				data-state={state}
 				data-validation={validation || undefined}
 				disabled={disabled}
+				form={form}
 				value={value}
 				className={cx(
 					"peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full outline-hidden",
@@ -148,7 +161,7 @@ const Switch = ({
 						setChecked(!checked);
 					}
 				}}
-				ref={ref}
+				ref={composedRef}
 				{...props}
 			>
 				<span
@@ -160,7 +173,8 @@ const Switch = ({
 					)}
 				/>
 			</button>
-			{name != null && (
+			{/* Why `required` too: the checkbox blocks the submit of an unchecked required switch. */}
+			{(name != null || required) && (
 				<input
 					type="checkbox"
 					aria-hidden
@@ -172,18 +186,9 @@ const Switch = ({
 					required={required}
 					disabled={disabled}
 					checked={checked}
-					// Why readOnly: the switch owns the state; the checkbox only carries it to the form.
-					readOnly
-					ref={(input) => {
-						// Why a ref callback: a form reset returns an uncontrolled switch to
-						// `defaultChecked`, and the listener lives as long as the checkbox.
-						const owner = input?.form;
-						if (owner == null) {
-							return;
-						}
-						owner.addEventListener("reset", resetToDefault);
-						return () => owner.removeEventListener("reset", resetToDefault);
-					}}
+					// Why onChange and not readOnly: a read-only control skips constraint
+					// validation, so `required` would never block the submit.
+					onChange={(event) => setChecked(event.target.checked)}
 				/>
 			)}
 		</>
