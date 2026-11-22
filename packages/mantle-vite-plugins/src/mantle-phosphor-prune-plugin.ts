@@ -1003,7 +1003,8 @@ function keeper(usages: Iterable<ModuleUsage>): (icon: string, weight: string) =
  *   of that icon, and so does a dynamic import or an import path the plugin does not read. A
  *   namespace import, or an icon imported by another name such as `ActivityIcon`, keeps every
  *   weight of every icon. A `cloneElement()` call can set a weight the plugin does not see in
- *   spread props or in a props object that is not written inline.
+ *   spread props, in a props object that is not written inline, or through a React namespace
+ *   passed as a value.
  *
  * It runs on `vite build` and on a Rolldown or tsdown build. When the installed Phosphor has a
  * weight module of another shape, it warns and keeps every weight of that icon. `vite dev` serves
