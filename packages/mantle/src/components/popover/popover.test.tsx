@@ -4,6 +4,8 @@ import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { describe, expect, onTestFinished, test, vi } from "vitest";
 import type { Side } from "../../utils/float/position.js";
+import { useState } from "react";
+import * as Accordion from "../accordion/accordion-parts.js";
 import * as Popover from "./popover-parts.js";
 
 describe("Popover", () => {
@@ -288,5 +290,55 @@ describe("Popover", () => {
 
 		expect(await screen.findByText("Products")).toBeInTheDocument();
 		expect(onRecoverableError).not.toHaveBeenCalled();
+	});
+
+	test("Escape from an expanded accordion trigger inside closes the popover", async () => {
+		const user = userEvent.setup();
+		render(
+			<Popover.Root>
+				<Popover.Trigger>Open</Popover.Trigger>
+				<Popover.Content>
+					<Accordion.Root type="single" defaultValue="a">
+						<Accordion.Item value="a">
+							<Accordion.Trigger>Options</Accordion.Trigger>
+							<Accordion.Content>Details</Accordion.Content>
+						</Accordion.Item>
+					</Accordion.Root>
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		const trigger = screen.getByRole("button", { name: "Open" });
+		await user.click(trigger);
+		(await screen.findByRole("button", { name: "Options" })).focus();
+
+		await user.keyboard("{Escape}");
+		expect(trigger).toHaveAttribute("aria-expanded", "false");
+	});
+
+	test("onOpenAutoFocus sees the render that opened the popover", async () => {
+		const user = userEvent.setup();
+		const Controlled = () => {
+			const [open, setOpen] = useState(false);
+			return (
+				<Popover.Root open={open} onOpenChange={setOpen}>
+					<Popover.Trigger>Open</Popover.Trigger>
+					<Popover.Content
+						onOpenAutoFocus={(event) => {
+							if (open) {
+								event.preventDefault();
+							}
+						}}
+					>
+						<input aria-label="Name" />
+					</Popover.Content>
+				</Popover.Root>
+			);
+		};
+		render(<Controlled />);
+		const trigger = screen.getByRole("button", { name: "Open" });
+
+		await user.click(trigger);
+		await screen.findByRole("textbox", { name: "Name" });
+		expect(trigger).toHaveFocus();
 	});
 });

@@ -33,6 +33,7 @@ type HoverCardState = {
 	cancelPending: () => void;
 	contentId: string;
 	triggerRef: RefObject<HTMLElement | null>;
+	contentRef: RefObject<HTMLElement | null>;
 };
 
 const HoverCardContext = createContext<HoverCardState | null>(null);
@@ -104,6 +105,7 @@ function Root({
 	const open = openProp ?? uncontrolledOpen;
 	const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 	const triggerRef = useRef<HTMLElement | null>(null);
+	const contentRef = useRef<HTMLElement | null>(null);
 	useEffect(() => () => clearTimeout(timer.current), []);
 
 	const contentId = useId();
@@ -130,7 +132,7 @@ function Root({
 				timer.current = setTimeout(() => {
 					// Why: closing would clear text the user selected in the card. An
 					// outside press clears the selection and closes the card.
-					const content = triggerRef.current?.ownerDocument.getElementById(contentId);
+					const content = contentRef.current;
 					const selection = content?.ownerDocument.getSelection();
 					if (
 						content != null &&
@@ -146,6 +148,7 @@ function Root({
 			cancelPending: () => clearTimeout(timer.current),
 			contentId,
 			triggerRef,
+			contentRef,
 		};
 	}, [closeDelay, contentId, onOpenChange, open, openDelay, openProp]);
 	return <HoverCardContext.Provider value={state}>{children}</HoverCardContext.Provider>;
@@ -307,7 +310,7 @@ const Content = ({
 		sideOffset,
 		onEscapeKeyDown,
 	});
-	const composedRef = useComposedRefs(ref, floatingRef);
+	const composedRef = useComposedRefs(ref, floatingRef, state.contentRef);
 
 	return (
 		portalTarget != null &&

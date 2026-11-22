@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useInsertionEffect, useRef, useState } from "react";
 import type { RefCallback } from "react";
 import { canUseDOM } from "../../components/browser-only/can-use-dom.js";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
@@ -69,10 +69,11 @@ const openFloats: OpenFloat[] = [];
 
 /**
  * A layer that a float holds and that handles its own Escape: a Radix popper,
- * an overlay, or a popup owner such as a combobox input.
+ * an overlay, or an expanded popup owner such as a combobox input. An expanded
+ * accordion trigger also sets `aria-controls`, but it does not take Escape.
  */
 const nestedLayerSelector =
-	"[data-radix-popper-content-wrapper], [data-mantle-modal-content], [aria-expanded='true'][aria-controls]";
+	"[data-radix-popper-content-wrapper], [data-mantle-modal-content], [aria-expanded='true'][aria-controls]:is([role='combobox'], [aria-haspopup]:not([aria-haspopup='false']))";
 
 /** Whether an Escape at `target` belongs to a layer inside `floating`. */
 function belongsToNestedLayer(floating: HTMLElement, target: EventTarget | null): boolean {
@@ -226,8 +227,14 @@ function useFloat({
 	const pointerDownOutside = useCallbackRef(onPointerDownOutside);
 	const focusOutside = useCallbackRef(onFocusOutside);
 	const interactOutside = useCallbackRef(onInteractOutside);
-	const show = useCallbackRef(onShow);
-	const hide = useCallbackRef(onHide);
+	// Why an insertion effect: the ref callback calls these during this commit,
+	// before a passive effect would update them, so they must be this render's.
+	const latestShow = useRef(onShow);
+	const latestHide = useRef(onHide);
+	useInsertionEffect(() => {
+		latestShow.current = onShow;
+		latestHide.current = onHide;
+	});
 	const anchorOf = useCallbackRef(getAnchor);
 	const insideElementsOf = useCallbackRef(getInsideElements);
 
@@ -347,7 +354,7 @@ function useFloat({
 			document.addEventListener("focusin", onFocusIn);
 		}
 		if (!continuing) {
-			show(floating);
+			latestShow.current?.(floating);
 		}
 
 		return () => {
@@ -367,7 +374,7 @@ function useFloat({
 				}
 				floatSessions.delete(floating);
 				session.popEscape();
-				hide(floating, focusWasInside);
+				latestHide.current?.(floating, focusWasInside);
 				if (shown && hasPopoverApi) {
 					shown = false;
 					floating.hidePopover();

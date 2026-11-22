@@ -55,6 +55,13 @@ export const InProp = (
 	/>
 );
 
+export const InPropSpread = (
+	<Popover.Content
+		// oxlint-disable-next-line react/no-children-prop -- the case is an element in a prop
+		children={<RadixPopover.Content {...{ className: "w-(--radix-popover-trigger-width)" }} />}
+	/>
+);
+
 // Negative case: a parameter under the import's name shadows it.
 export function Shadowed({ Popover }: { Popover: typeof RadixPopover }) {
 	return (

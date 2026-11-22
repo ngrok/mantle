@@ -770,11 +770,15 @@ rule:
   # Why only on the content's own props: in a file that also uses Radix
   # Popover, a variable in another string can belong to the Radix content,
   # which still sets it. Strings outside the element stay manual.
-  # Why stop at the first attribute: an element passed in a prop, such as
-  # `children={<Radix.Content className="…" />}`, owns its own attributes.
+  # Why stop at the first attribute or element: an element passed in a prop,
+  # such as `children={<Radix.Content className="…" />}`, owns its own
+  # attributes and spreads.
   inside:
     stopBy:
-      kind: jsx_attribute
+      any:
+        - kind: jsx_attribute
+        - kind: jsx_opening_element
+        - kind: jsx_self_closing_element
     kind: jsx_attribute
     inside:
       any:
