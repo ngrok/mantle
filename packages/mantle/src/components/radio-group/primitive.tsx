@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useId, useMemo, useRef } from "react";
 import type { ComponentProps, ReactNode, Ref } from "react";
 import invariant from "tiny-invariant";
 import { useRadioGroup } from "../../behaviors/use-radio-group.js";
@@ -283,12 +283,8 @@ const Item = ({
 	const titleId = `${generatedId}-title`;
 	const descriptionId = `${generatedId}-description`;
 	const contentId = `${generatedId}-content`;
-	// The id of the `Choice.Title` in the item, which registers itself.
-	const [registeredTitleId, setRegisteredTitleId] = useState<string | null>(null);
 	const radioRef = useRef<HTMLInputElement | null>(null);
 	const forwardingClick = useRef(false);
-	// Whether a `<label>` in the item, such as `Choice.Label`, names the radio.
-	const [hasLabel, setHasLabel] = useState(false);
 	const {
 		checked,
 		disabled,
@@ -299,8 +295,8 @@ const Item = ({
 		disabled: disabledProp,
 	});
 	const itemContext = useMemo(
-		() => ({ titleId, descriptionId, radioId, registerTitle: setRegisteredTitleId }),
-		[titleId, descriptionId, radioId],
+		() => ({ titleId, descriptionId, radioId, contentId }),
+		[titleId, descriptionId, radioId, contentId],
 	);
 	const state = useMemo(() => ({ checked, disabled }), [checked, disabled]);
 
@@ -345,10 +341,7 @@ const Item = ({
 						// oxlint-disable-next-line jsx-a11y/role-supports-aria-props -- Why: see `aria-errormessage` above.
 						aria-invalid={fieldControl?.["aria-invalid"] ?? ariaInvalid}
 						aria-label={ariaLabel}
-						aria-labelledby={
-							ariaLabelledBy ??
-							(ariaLabel == null && !hasLabel ? (registeredTitleId ?? contentId) : undefined)
-						}
+						aria-labelledby={ariaLabelledBy ?? (ariaLabel == null ? contentId : undefined)}
 						// oxlint-disable-next-line jsx-a11y/no-autofocus -- Why: the item passes the consumer's own `autoFocus` to its radio.
 						autoFocus={autoFocus}
 						{...radioProps}
@@ -369,10 +362,14 @@ const Item = ({
 							if (input.checked && !checked) {
 								check();
 							}
-							// Why: a label in the item is its title line, so it alone names the radio.
-							const labelled = (input.labels?.length ?? 0) > 0;
-							if (labelled !== hasLabel) {
-								setHasLabel(labelled);
+							// Why: a label in the item is its title line, so it alone names the radio. The DOM
+							// write needs no render, and React writes the attribute only when its prop changes.
+							// Why the item and not `input.labels`: `labels` searches the whole document for each radio.
+							if (
+								input.getAttribute("aria-labelledby") === contentId &&
+								input.parentElement?.querySelector(`label[for="${CSS.escape(radioId)}"]`) != null
+							) {
+								input.removeAttribute("aria-labelledby");
 							}
 						}}
 						required={group.required}

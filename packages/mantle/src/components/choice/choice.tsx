@@ -3,6 +3,7 @@
 import {
 	cloneElement,
 	createContext,
+	useCallback,
 	isValidElement,
 	useContext,
 	useId,
@@ -12,7 +13,6 @@ import {
 import type { ComponentProps, MouseEvent, ReactNode, RefObject } from "react";
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
-import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -426,17 +426,31 @@ const Title = ({
 	const radioItem = useContext(RadioItemContext);
 	const generatedId = useId();
 	const titleId = id ?? radioItem?.titleId ?? generatedId;
-	const registerTitle = radioItem?.registerTitle;
-	// Why a layout effect: the radio item renders before its title, and its name must be the title before paint.
-	useIsomorphicLayoutEffect(() => {
-		registerTitle?.(titleId);
-		return () => registerTitle?.(null);
-	}, [registerTitle, titleId]);
+	const radioId = radioItem?.radioId;
+	const contentId = radioItem?.contentId;
+	// Why a ref callback that writes the DOM: the radio's name becomes the title with no
+	// second render of the item. It changes only a name the item set from its own text.
+	const nameRadio = useCallback(
+		(title: HTMLElement | null) => {
+			const radio = radioId == null ? null : title?.ownerDocument.getElementById(radioId);
+			if (radio == null || radio.getAttribute("aria-labelledby") !== contentId) {
+				return;
+			}
+			radio.setAttribute("aria-labelledby", titleId);
+			return () => {
+				if (radio.getAttribute("aria-labelledby") === titleId && contentId != null) {
+					radio.setAttribute("aria-labelledby", contentId);
+				}
+			};
+		},
+		[radioId, contentId, titleId],
+	);
+	const composedRef = useComposedRefs(ref, nameRadio);
 	const Comp = asChild ? Slot : "p";
 
 	return (
 		<Comp
-			ref={ref}
+			ref={composedRef}
 			data-slot={joinDataSlot(dataSlot, "choice-title")}
 			className={cx(
 				"text-strong text-sm font-medium font-sans",
