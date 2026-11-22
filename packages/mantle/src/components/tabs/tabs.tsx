@@ -1,7 +1,7 @@
 "use client";
 
 import { cva } from "class-variance-authority";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, FocusEvent, ReactNode } from "react";
 import { Children, cloneElement, createContext, isValidElement, useContext, useMemo } from "react";
 import invariant from "tiny-invariant";
 import { composeHandlers } from "../../behaviors/compose-handlers.js";
@@ -17,7 +17,6 @@ import { parseBooleanish } from "../../types/booleanish.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import type { ScrollBehavior } from "../../hooks/use-scroll-behavior.js";
@@ -31,6 +30,9 @@ type TabsContextValue = TabsBehavior & {
 };
 
 const TabsContext = createContext<TabsContextValue | null>(null);
+
+/** The `loop` prop of the nearest `Tabs.List`, which each trigger's arrow keys read. */
+const TabsLoopContext = createContext(true);
 
 /**
  * Reads the root's tab state and `appearance` for a part. Throws with the
@@ -105,7 +107,10 @@ const Root = ({
 		/** The value of the active tab. Pass it with `onValueChange` to control the root. */
 		value?: string;
 		/** Called with the tab's value when a tab activates. Fires once per activation. */
-		onValueChange?: (value: string) => void;
+		/** Called with the tab's value when a tab activates. Fires once per activation. */
+		// Why the method type: its parameter is bivariant, so a handler typed with
+		// a union of tab values still type-checks, as it did with Radix.
+		onValueChange?: { bivarianceHack(value: string): void }["bivarianceHack"];
 		/**
 		 * The axis of the list. It decides which arrow keys move focus.
 		 * @default "horizontal"
@@ -187,6 +192,52 @@ const listVariants = cva("flex", {
 	],
 });
 
+// Why: a pointer press focuses the trigger before `click` fires. If that
+// focus scrolled the list, an off-center trigger would move out from under the
+// pointer and the click, and with it a link's navigation, would never happen.
+// So the scroll below runs for keyboard focus only. React delegates these
+// handlers, so a list adds no DOM listener.
+let focusFromPointer = false;
+const markPointerFocus = () => {
+	focusFromPointer = true;
+};
+const clearPointerFocus = () => {
+	focusFromPointer = false;
+};
+// Why a timeout: a link trigger takes focus in its click handler, which runs
+// after `pointerup` in the same task.
+const clearPointerFocusSoon = () => {
+	setTimeout(clearPointerFocus);
+};
+
+/**
+ * Keeps a keyboard-focused trigger in view in a horizontal list: `focus()`
+ * does not always scroll its target into view inside an overflow container.
+ * The edge fade is the `scroll-fade-x` utility, a CSS scroll-driven animation.
+ */
+const scrollFocusedTab = (event: FocusEvent<HTMLElement>) => {
+	const list = event.currentTarget;
+	if (
+		focusFromPointer ||
+		event.target === list ||
+		list.getAttribute("aria-orientation") !== "horizontal"
+	) {
+		return;
+	}
+	const behavior: ScrollBehavior = getPrefersReducedMotion() ? "auto" : "smooth";
+	// "center" rather than "nearest" so the focused tab lands in the middle of
+	// the visible area, giving the user context on both sides.
+	event.target.scrollIntoView({ behavior, inline: "center", block: "nearest" });
+};
+
+/** Runs the consumer's handler, then the part's, whatever the consumer did. */
+const chain =
+	<E,>(consumer: ((event: E) => void) | undefined, own: (event: E) => void) =>
+	(event: E) => {
+		consumer?.(event);
+		own(event);
+	};
+
 /**
  * Contains the triggers that are aligned along the edge of the active content.
  * The list draws no border of its own: compose `Tabs.Separator` after it for
@@ -219,8 +270,12 @@ const List = ({
 	asChild = false,
 	className,
 	"data-slot": dataSlot,
-	loop,
+	loop = true,
+	onFocus,
 	onKeyDown,
+	onPointerCancel,
+	onPointerDown,
+	onPointerUp,
 	ref,
 	...props
 }: ComponentProps<"div"> &
@@ -234,78 +289,26 @@ const List = ({
 	}) => {
 	const tabs = useTabsState("Tabs.List");
 	const { orientation, appearance } = tabs;
-	const listProps = getTabListProps(tabs, { loop });
+	const listProps = getTabListProps(tabs);
 
-	const scrollRef = (element: HTMLDivElement | null) => {
-		if (!element || orientation !== "horizontal") {
-			return;
-		}
-
-		const abortController = new AbortController();
-		const { signal } = abortController;
-
-		// Why: a pointer press focuses the trigger before `click` fires. If that
-		// focus scrolled the list, an off-center trigger would move out from under
-		// the pointer and the click, and with it a link's navigation, would never
-		// happen. So the scroll below runs for keyboard focus only.
-		let focusFromPointer = false;
-		element.addEventListener(
-			"pointerdown",
-			() => {
-				focusFromPointer = true;
-			},
-			{ signal },
-		);
-		const clearPointerFlag = () => {
-			focusFromPointer = false;
-		};
-		// Why a timeout: a link trigger takes focus in its click handler, which runs
-		// after `pointerup` in the same task.
-		element.addEventListener("pointerup", () => setTimeout(clearPointerFlag), { signal });
-		element.addEventListener("pointercancel", clearPointerFlag, { signal });
-		element.addEventListener("keydown", clearPointerFlag, { signal });
-
-		// The edge fade is handled declaratively by the `scroll-fade-x` utility
-		// (a CSS scroll-driven animation), so the only thing left for JS here is
-		// keeping a keyboard-focused trigger scrolled into view: `focus()` does not
-		// always scroll its target into view inside an overflow container. One
-		// delegated listener serves every trigger.
-		element.addEventListener(
-			"focusin",
-			(event) => {
-				if (focusFromPointer) {
-					return;
-				}
-				if (event.target instanceof Element && event.target !== element) {
-					const scrollBehavior: ScrollBehavior = getPrefersReducedMotion() ? "auto" : "smooth";
-					event.target.scrollIntoView({
-						behavior: scrollBehavior,
-						// "center" rather than "nearest" so the focused tab lands in the middle
-						// of the visible area, giving the user context on both sides.
-						inline: "center",
-						block: "nearest",
-					});
-				}
-			},
-			{ signal },
-		);
-
-		return () => {
-			abortController.abort();
-		};
-	};
-	const composedRef = useComposedRefs(scrollRef, ref);
+	const composedRef = useComposedRefs(listProps.ref, ref);
 	const Component = asChild ? Slot : "div";
 
 	return (
-		<Component
-			{...listProps}
-			data-slot={joinDataSlot(dataSlot, "tabs-list")}
-			className={cx(listVariants({ orientation, appearance }), className)}
-			ref={composedRef}
-			{...props}
-			onKeyDown={composeHandlers(onKeyDown, listProps.onKeyDown)}
-		/>
+		<TabsLoopContext.Provider value={loop}>
+			<Component
+				{...listProps}
+				data-slot={joinDataSlot(dataSlot, "tabs-list")}
+				className={cx(listVariants({ orientation, appearance }), className)}
+				ref={composedRef}
+				{...props}
+				onPointerDown={chain(onPointerDown, markPointerFocus)}
+				onPointerUp={chain(onPointerUp, clearPointerFocusSoon)}
+				onPointerCancel={chain(onPointerCancel, clearPointerFocus)}
+				onKeyDown={chain(onKeyDown, clearPointerFocus)}
+				onFocus={chain(onFocus, composeHandlers(scrollFocusedTab, listProps.onFocus))}
+			/>
+		</TabsLoopContext.Provider>
 	);
 };
 
@@ -395,30 +398,6 @@ type TabsTriggerProps = ComponentProps<"button"> &
 	};
 
 /**
- * Variants for the TabsTriggerDecoration component
- */
-const triggerDecorationVariants = cva("absolute z-0", {
-	variants: {
-		orientation: {
-			horizontal: "bottom-0 left-0 right-0 h-0.75",
-			vertical: "-right-px bottom-0 top-0 w-0.75",
-		} as const satisfies Record<Orientation, string>,
-		appearance: {
-			classic: "group-data-state-active/tab-trigger:bg-neutral-950",
-			pill: "hidden",
-		} as const satisfies Record<Appearance, string>,
-	},
-});
-
-const TabsTriggerDecoration = () => {
-	const { orientation, appearance } = useTabsState("Tabs.Trigger");
-
-	return (
-		<span aria-hidden className={clsx(triggerDecorationVariants({ orientation, appearance }))} />
-	);
-};
-
-/**
  * Variants for the Trigger component
  */
 const triggerVariants = cva(
@@ -436,11 +415,13 @@ const triggerVariants = cva(
 	{
 		variants: {
 			orientation: {
-				horizontal: "rounded-tl-md rounded-tr-md",
-				vertical: "rounded-bl-md rounded-tl-md pr-3",
+				horizontal: "rounded-tl-md rounded-tr-md after:inset-x-0 after:bottom-0 after:h-0.75",
+				vertical: "rounded-bl-md rounded-tl-md pr-3 after:inset-y-0 after:-right-px after:w-0.75",
 			} as const satisfies Record<Orientation, string>,
 			appearance: {
+				// Why a pseudo-element: the active-tab bar costs no element and no render.
 				classic: cx(
+					"after:absolute after:z-0 data-state-active:after:bg-neutral-950",
 					"not-aria-disabled:hover:data-state-active:text-strong",
 					"data-state-active:text-strong",
 				),
@@ -461,10 +442,8 @@ const triggerVariants = cva(
  *
  * **Structure.** `children` render inside a
  * `<span data-slot="tabs-trigger-label">`, on the plain path and the `asChild`
- * path alike. The active-tab decoration is a permanent element sibling, so
- * without the span a bare text label is never a lone child: a browser
- * translation engine reparents that text node, and the removal React runs when
- * the label changes shape or goes away throws. The span is `display: contents`,
+ * path alike. The active-tab bar of the classic appearance is the trigger's
+ * `::after`. The span is `display: contents`,
  * so the icon, the label, and `Tabs.Badge` stay flex items of the trigger and
  * keep its `gap`. A `[&>svg]` class of your own no longer reaches an icon you
  * pass as a child, because that icon is now a grandchild. Match the part's own
@@ -519,7 +498,7 @@ const Trigger = ({
 	const tabs = useTabsState("Tabs.Trigger");
 	const { orientation, appearance } = tabs;
 	const disabled = parseBooleanish(_ariaDisabled ?? _disabled);
-	const tabProps = getTabProps(tabs, { value, disabled });
+	const tabProps = getTabProps(tabs, { value, disabled, loop: useContext(TabsLoopContext) });
 
 	const triggerProps = {
 		...tabProps,
@@ -527,7 +506,9 @@ const Trigger = ({
 		className: cx(triggerVariants({ orientation, appearance }), className),
 		"data-slot": joinDataSlot(dataSlot, "tabs-trigger"),
 		...props,
-		onClick: composeHandlers(onClick, tabProps.onClick),
+		// Why only `asChild`: the click handler serves a link child. React gives an
+		// element with `onClick` a DOM listener of its own.
+		onClick: asChild ? composeHandlers(onClick, tabProps.onClick) : onClick,
 		onFocus: composeHandlers(onFocus, tabProps.onFocus),
 		onKeyDown: composeHandlers(onKeyDown, tabProps.onKeyDown),
 		onMouseDown: composeHandlers(onMouseDown, tabProps.onMouseDown),
@@ -548,17 +529,15 @@ const Trigger = ({
 		const cloneProps = disabled ? { href: undefined, to: undefined } : {};
 
 		return (
-			<Slot {...triggerProps}>
+			// Why `type`: a `<button>` child inside a form would submit it. The
+			// child's own `type` wins.
+			<Slot type="button" {...triggerProps}>
 				{cloneElement(
 					disabled ? <button type="button" /> : singleChild,
 					cloneProps,
-					<>
-						<TabsTriggerDecoration />
-						{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
-						<span data-slot="tabs-trigger-label" className="contents">
-							{grandchildren}
-						</span>
-					</>,
+					<span data-slot="tabs-trigger-label" className="contents">
+						{grandchildren}
+					</span>,
 				)}
 			</Slot>
 		);
@@ -566,8 +545,6 @@ const Trigger = ({
 
 	return (
 		<button type="button" {...triggerProps}>
-			<TabsTriggerDecoration />
-			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
 			<span data-slot="tabs-trigger-label" className="contents">
 				{children}
 			</span>
@@ -682,12 +659,12 @@ const Content = ({
 		hiddenUntilFound?: boolean;
 	}) => {
 	const tabs = useTabsState("Tabs.Content");
-	const { shown, panelProps, beforeMatchRef } = getTabPanelProps(tabs, {
+	const { shown, panelProps, revealRef } = getTabPanelProps(tabs, {
 		value,
 		forceMount,
 		hiddenUntilFound,
 	});
-	const composedRef = useComposedRefs(ref, beforeMatchRef);
+	const composedRef = useComposedRefs(ref, revealRef);
 	// Why: an `asChild` panel has no element of its own to leave empty.
 	if (asChild && !shown) {
 		return null;

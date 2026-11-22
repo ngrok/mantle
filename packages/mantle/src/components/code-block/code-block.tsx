@@ -71,6 +71,27 @@ function useCodeBlockTabs(partName: string): TabsBehavior {
 	return tabs;
 }
 
+/**
+ * Owns the tab state of a tabbed `CodeBlock.Root`. It mounts when the root
+ * first gets `defaultTab` or `activeTab`, so a default that arrives later
+ * still applies.
+ */
+const CodeBlockTabs = ({
+	activeTab,
+	children,
+	defaultTab,
+	onActiveTabChange,
+}: Pick<CodeBlockRootProps, "activeTab" | "defaultTab" | "onActiveTabChange"> & {
+	children: ReactNode;
+}) => {
+	const tabs = useTabs({
+		value: activeTab,
+		defaultValue: defaultTab,
+		onValueChange: onActiveTabChange,
+	});
+	return <CodeBlockTabsContext.Provider value={tabs}>{children}</CodeBlockTabsContext.Provider>;
+};
+
 /** Returns the nearest `CodeBlock` context, throwing if called outside a `CodeBlock.Root`. */
 function useCodeBlockContext(): CodeBlockContextType {
 	const context = useContext(CodeBlockContext);
@@ -167,16 +188,12 @@ const Root = ({
 	);
 
 	const hasTabs = defaultTab != null || activeTab != null;
-	const tabs = useTabs({
-		value: activeTab,
-		defaultValue: defaultTab,
-		onValueChange: onActiveTabChange,
-	});
 	const Component = asChild ? Slot : "div";
 
 	const tree = (
 		<Component
 			data-slot={joinDataSlot(dataSlot, "code-block")}
+			data-orientation={hasTabs ? "horizontal" : undefined}
 			className={cx(
 				"text-mono w-full overflow-hidden rounded-md border border-gray-300 bg-base font-mono",
 				"[&_svg]:shrink-0",
@@ -189,9 +206,17 @@ const Root = ({
 
 	return (
 		<CodeBlockContext.Provider value={context}>
-			<CodeBlockTabsContext.Provider value={hasTabs ? tabs : null}>
-				{tree}
-			</CodeBlockTabsContext.Provider>
+			{hasTabs ? (
+				<CodeBlockTabs
+					activeTab={activeTab}
+					defaultTab={defaultTab}
+					onActiveTabChange={onActiveTabChange}
+				>
+					{tree}
+				</CodeBlockTabs>
+			) : (
+				tree
+			)}
 		</CodeBlockContext.Provider>
 	);
 };
@@ -948,12 +973,14 @@ type CodeBlockTabListProps = ComponentProps<"div"> & WithDataSlot;
 const TabList = ({
 	"data-slot": dataSlot,
 	className,
-	onKeyDown,
+	onFocus,
+	ref,
 	...props
 }: CodeBlockTabListProps) => {
 	const listProps = getTabListProps(useCodeBlockTabs("CodeBlock.TabList"));
+	const composedRef = useComposedRefs(listProps.ref, ref);
 	return (
-		// oxlint-disable-next-line jsx-a11y/interactive-supports-focus -- Why: the tabs take focus, not the list; the list only handles the arrow keys that bubble from them (WAI-ARIA tabs pattern).
+		// oxlint-disable-next-line jsx-a11y/interactive-supports-focus -- Why: the tabs take focus, not the list; the list takes focus only while no tab is a Tab stop (WAI-ARIA tabs pattern).
 		<div
 			{...listProps}
 			role="tablist"
@@ -967,8 +994,9 @@ const TabList = ({
 				"-m-1 p-1",
 				className,
 			)}
+			ref={composedRef}
 			{...props}
-			onKeyDown={composeHandlers(onKeyDown, listProps.onKeyDown)}
+			onFocus={composeHandlers(onFocus, listProps.onFocus)}
 		/>
 	);
 };
@@ -1019,7 +1047,7 @@ const TabTrigger = ({
 				className,
 			)}
 			{...props}
-			onClick={composeHandlers(onClick, tabProps.onClick)}
+			onClick={onClick}
 			onFocus={composeHandlers(onFocus, tabProps.onFocus)}
 			onKeyDown={composeHandlers(onKeyDown, tabProps.onKeyDown)}
 			onMouseDown={composeHandlers(onMouseDown, tabProps.onMouseDown)}

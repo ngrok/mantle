@@ -1,5 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import axe from "axe-core";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import * as Tabs from "./tabs-parts.js";
@@ -655,5 +657,262 @@ describe("Tabs keyboard, focus, and ARIA contract", () => {
 		expect(panelB).not.toHaveAttribute("hidden");
 		expect(onValueChange.mock.calls).toEqual([["b"]]);
 		history.replaceState(null, "", window.location.pathname);
+	});
+
+	test("an asChild button tab inside a form selects without submitting", async () => {
+		const onSubmit = vi.fn<() => void>();
+		render(
+			<form
+				onSubmit={(event) => {
+					event.preventDefault();
+					onSubmit();
+				}}
+			>
+				<Tabs.Root defaultValue="a">
+					<Tabs.List aria-label="Form tabs">
+						<Tabs.Trigger value="a">A</Tabs.Trigger>
+						<Tabs.Trigger value="b" asChild>
+							{/* oxlint-disable-next-line react/button-has-type -- Why: the test needs a child with no type of its own. */}
+							<button>B</button>
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+			</form>,
+		);
+
+		await userEvent.click(tab("B"));
+
+		expect(tab("B")).toHaveAttribute("aria-selected", "true");
+		expect(onSubmit).not.toHaveBeenCalled();
+	});
+
+	test("in manual mode, Tab leaves the list from the focused tab", async () => {
+		render(<FourTabs activationMode="manual" />);
+		tab("B").focus();
+
+		await userEvent.keyboard("{ArrowLeft}{Tab}");
+
+		expect(screen.getByRole("tabpanel")).toHaveFocus();
+		await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+		expect(tab("A")).toHaveFocus();
+	});
+
+	test("when the selected tab is disabled, Tab reaches the first enabled tab", async () => {
+		render(<FourTabs defaultValue="c" activationMode="manual" />);
+		await vi.waitFor(() => {
+			expect(screen.getByRole("tablist")).toHaveAttribute("tabindex", "0");
+		});
+
+		await userEvent.click(screen.getByRole("button", { name: "Before" }));
+		await userEvent.keyboard("{Tab}");
+
+		expect(tab("A")).toHaveFocus();
+		await vi.waitFor(() => {
+			expect(screen.getByRole("tablist")).not.toHaveAttribute("tabindex");
+		});
+		await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+		expect(screen.getByRole("button", { name: "Before" })).toHaveFocus();
+	});
+
+	test("a click selects a tab whose focus handler prevents focus activation", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(
+			<Tabs.Root value="a" onValueChange={onValueChange}>
+				<Tabs.List aria-label="Prevented">
+					<Tabs.Trigger value="a">A</Tabs.Trigger>
+					<Tabs.Trigger value="b" onFocus={(event) => event.preventDefault()}>
+						B
+					</Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root>,
+		);
+
+		await userEvent.click(tab("B"));
+
+		expect(onValueChange.mock.calls).toEqual([["b"]]);
+	});
+
+	test("a tab that stops key propagation still moves with the arrows", async () => {
+		render(
+			<Tabs.Root defaultValue="a">
+				<Tabs.List aria-label="Stopped">
+					<Tabs.Trigger value="a" onKeyDown={(event) => event.stopPropagation()}>
+						A
+					</Tabs.Trigger>
+					<Tabs.Trigger value="b">B</Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root>,
+		);
+		tab("A").focus();
+
+		await userEvent.keyboard("{ArrowRight}");
+
+		expect(tab("B")).toHaveFocus();
+	});
+
+	test("the arrows skip a tab that cannot take focus", async () => {
+		render(
+			<Tabs.Root defaultValue="a">
+				<Tabs.List aria-label="Hidden tab">
+					<Tabs.Trigger value="a">A</Tabs.Trigger>
+					<Tabs.Trigger value="b" style={{ display: "none" }}>
+						B
+					</Tabs.Trigger>
+					<Tabs.Trigger value="c">C</Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root>,
+		);
+		tab("A").focus();
+
+		await userEvent.keyboard("{ArrowRight}");
+
+		expect(tab("C")).toHaveFocus();
+	});
+
+	test("Space on a link tab activates it without scrolling the page", async () => {
+		render(
+			<Tabs.Root defaultValue="a" activationMode="manual">
+				<Tabs.List aria-label="Links">
+					<Tabs.Trigger value="a">A</Tabs.Trigger>
+					<Tabs.Trigger value="b" asChild>
+						<a href="#b">B</a>
+					</Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root>,
+		);
+		tab("B").focus();
+		// Why the default: Space on a link scrolls the page unless a handler cancels it.
+		let scrolls = true;
+		const record = (event: KeyboardEvent) => {
+			scrolls = !event.defaultPrevented;
+		};
+		window.addEventListener("keydown", record);
+
+		await userEvent.keyboard(" ");
+
+		window.removeEventListener("keydown", record);
+		expect(tab("B")).toHaveAttribute("aria-selected", "true");
+		expect(scrolls).toBe(false);
+	});
+
+	test("Space in a field inside an asChild tab does not activate the tab", async () => {
+		render(
+			<Tabs.Root defaultValue="a" activationMode="manual">
+				<Tabs.List aria-label="Field tab">
+					<Tabs.Trigger value="a">A</Tabs.Trigger>
+					<Tabs.Trigger value="b" asChild>
+						<div>
+							B <input aria-label="Filter" />
+						</div>
+					</Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root>,
+		);
+		screen.getByRole("textbox", { name: "Filter" }).focus();
+
+		await userEvent.keyboard(" ");
+
+		expect(tab("A")).toHaveAttribute("aria-selected", "true");
+	});
+
+	const UntilFound = ({
+		value,
+		onValueChange,
+		inner = false,
+	}: {
+		value?: string;
+		onValueChange?: (value: string) => void;
+		inner?: boolean;
+	}) => (
+		<Tabs.Root
+			defaultValue={value == null ? "a" : undefined}
+			value={value}
+			onValueChange={onValueChange}
+		>
+			<Tabs.List aria-label="Docs">
+				<Tabs.Trigger value="a">A</Tabs.Trigger>
+				<Tabs.Trigger value="b">B</Tabs.Trigger>
+			</Tabs.List>
+			<Tabs.Content value="a" hiddenUntilFound>
+				Panel A
+			</Tabs.Content>
+			<Tabs.Content value="b" hiddenUntilFound>
+				{inner ? (
+					<Tabs.Root defaultValue="x">
+						<Tabs.List aria-label="Inner">
+							<Tabs.Trigger value="x">X</Tabs.Trigger>
+							<Tabs.Trigger value="y">Y</Tabs.Trigger>
+						</Tabs.List>
+						<Tabs.Content value="x" hiddenUntilFound>
+							Panel X
+						</Tabs.Content>
+						<Tabs.Content value="y" hiddenUntilFound>
+							<p id="deep-inner">Panel Y</p>
+						</Tabs.Content>
+					</Tabs.Root>
+				) : (
+					<p id="deep-b">Panel B</p>
+				)}
+			</Tabs.Content>
+		</Tabs.Root>
+	);
+
+	test("a controlled root that keeps its tab hides a revealed panel again", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(<UntilFound value="a" onValueChange={onValueChange} />);
+		const panelB = screen.getByText("Panel B").parentElement;
+
+		window.location.hash = "#deep-b";
+
+		await vi.waitFor(() => {
+			expect(onValueChange.mock.calls).toEqual([["b"]]);
+		});
+		expect(tab("A")).toHaveAttribute("aria-selected", "true");
+		expect(panelB).toHaveAttribute("hidden", "until-found");
+		history.replaceState(null, "", window.location.pathname);
+	});
+
+	test("a reveal of a nested panel selects each tab once", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(
+			<Tabs.Root defaultValue="outer">
+				<Tabs.List aria-label="Outer">
+					<Tabs.Trigger value="outer">Outer</Tabs.Trigger>
+				</Tabs.List>
+				<Tabs.Content value="outer">
+					<UntilFound inner onValueChange={onValueChange} />
+				</Tabs.Content>
+			</Tabs.Root>,
+		);
+
+		window.location.hash = "#deep-inner";
+
+		await vi.waitFor(() => {
+			expect(tab("Y")).toHaveAttribute("aria-selected", "true");
+		});
+		expect(tab("B")).toHaveAttribute("aria-selected", "true");
+		expect(onValueChange.mock.calls).toEqual([["b"]]);
+		history.replaceState(null, "", window.location.pathname);
+	});
+
+	test("a panel revealed before hydration selects its tab once hydrated", async () => {
+		const container = document.createElement("div");
+		container.innerHTML = renderToString(<UntilFound />);
+		document.body.append(container);
+		// The browser revealed the panel, as a fragment link does before hydration.
+		container.querySelector("#deep-b")?.parentElement?.removeAttribute("hidden");
+		const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+
+		const root = await act(async () => hydrateRoot(container, <UntilFound />));
+
+		await vi.waitFor(() => {
+			expect(tab("B")).toHaveAttribute("aria-selected", "true");
+		});
+		expect(container.querySelector('[role="tabpanel"]')).toHaveAttribute("hidden", "until-found");
+		act(() => {
+			root.unmount();
+		});
+		container.remove();
+		errors.mockRestore();
 	});
 });

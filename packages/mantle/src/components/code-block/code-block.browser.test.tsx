@@ -3,6 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import axe from "axe-core";
+import { useState } from "react";
 import type { CSSProperties } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import mantleCss from "../../mantle.css?raw";
@@ -601,4 +602,41 @@ describe("CodeBlock (browser)", () => {
 			expect(tabList.scrollLeft).toBe(40);
 		});
 	});
+});
+
+test("a tabbed root applies a defaultTab that arrives after the first render", async () => {
+	const LateTabs = () => {
+		const [loaded, setLoaded] = useState(false);
+		return (
+			<>
+				<button type="button" onClick={() => setLoaded(true)}>
+					Load
+				</button>
+				<CodeBlock.Root defaultTab={loaded ? "json" : undefined}>
+					{loaded && (
+						<CodeBlock.Header>
+							<CodeBlock.TabList aria-label="Format">
+								<CodeBlock.TabTrigger value="yml">policy.yml</CodeBlock.TabTrigger>
+								<CodeBlock.TabTrigger value="json">policy.json</CodeBlock.TabTrigger>
+							</CodeBlock.TabList>
+						</CodeBlock.Header>
+					)}
+					<CodeBlock.Body>
+						{loaded && (
+							<>
+								<CodeBlock.TabContent value="yml">YAML</CodeBlock.TabContent>
+								<CodeBlock.TabContent value="json">JSON</CodeBlock.TabContent>
+							</>
+						)}
+					</CodeBlock.Body>
+				</CodeBlock.Root>
+			</>
+		);
+	};
+	render(<LateTabs />);
+
+	await userEvent.click(screen.getByRole("button", { name: "Load" }));
+
+	expect(screen.getByRole("tab", { name: "policy.json" })).toHaveAttribute("aria-selected", "true");
+	expect(screen.getByRole("tabpanel")).toHaveTextContent("JSON");
 });

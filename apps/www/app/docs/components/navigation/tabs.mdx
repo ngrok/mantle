@@ -594,7 +594,7 @@ import { Tabs } from "@ngrok/mantle/tabs";
 - **Tab** moves focus into the list and lands on the active tab. Only the active tab is a Tab stop, so the next **Tab** leaves the list. This holds for `asChild` triggers too, so a list of router links is one Tab stop, not one per link.
 - **ArrowLeft** / **ArrowRight** (or **ArrowUp** / **ArrowDown** when vertical) move focus between the enabled tabs and activate the focused tab. They wrap at the ends unless `Tabs.List` has `loop={false}`. In a right-to-left page, **ArrowLeft** moves to the next tab. **Home** and **End** jump to the first and last tab.
 - With `activationMode="manual"`, the arrows only move focus, and **Enter** or **Space** activates the focused tab.
-- The active tab is a Tab stop in the server HTML, so the keyboard reaches it before hydration. With no active tab, every tab is a Tab stop until one activates.
+- The active tab is a Tab stop in the server HTML, so the keyboard reaches it before hydration. After that, the last focused tab is the Tab stop. When no enabled tab is one, such as with no active tab, the list takes the focus and moves it to the first enabled tab.
 - When a horizontal list overflows, keyboard focus scrolls the focused tab to the center of the visible area. A pointer click never scrolls the list, so the tab you press stays under the pointer.
 - A `disabled` trigger carries `aria-disabled`. With `asChild`, it also drops the child's `href`, so a disabled link cannot navigate.
 
@@ -690,7 +690,7 @@ The hairline between the list and the content, in the `separator` color. Compose
 
 The button that activates its associated content.
 
-`children` render inside a `<span data-slot="tabs-trigger-label">`, on the plain path and the `asChild` path alike. The active-tab decoration is a permanent element sibling, so without the span a bare text label is never a lone child: a browser translation engine reparents that text node, and the removal React runs when the label changes shape or goes away throws. The span is `display: contents`, so the icon, the label, and `Tabs.Badge` stay flex items of the trigger and keep its `gap`. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
+`children` render inside a `<span data-slot="tabs-trigger-label">`, on the plain path and the `asChild` path alike. The active-tab bar of the classic appearance is the trigger's `::after`, so it adds no element. The span is `display: contents`, so the icon, the label, and `Tabs.Badge` stay flex items of the trigger and keep its `gap`.
 
 An icon you pass as a child is now a grandchild of the trigger, so a `[&>svg]` class of your own no longer reaches it. Match the part's own variant instead: `[&>[data-slot=tabs-trigger-label]>svg]:size-4`. A `[&_svg]` class or a class on the icon itself loses to the trigger's default, which carries one more attribute selector.
 
