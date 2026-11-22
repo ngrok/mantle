@@ -265,6 +265,7 @@ function preserveUseClient({
 }) {
 	const clientModuleIds = new Set<string>();
 	const importedIdsById = new Map<string, readonly string[]>();
+	const entryModuleIds = new Set<string>();
 	let clientDependencyIds: Set<string> | undefined;
 	/** The modules that a client module imports, directly or through other modules. */
 	const isClientDependency = (moduleId: string) => {
@@ -285,8 +286,16 @@ function preserveUseClient({
 	return {
 		name: "preserve-use-client",
 		// After the transforms, so it sees the React Compiler output and only the imports that run.
-		moduleParsed: (info: { id: string; code: string | null; importedIds: readonly string[] }) => {
+		moduleParsed: (info: {
+			id: string;
+			code: string | null;
+			importedIds: readonly string[];
+			isEntry: boolean;
+		}) => {
 			importedIdsById.set(info.id, info.importedIds);
+			if (info.isEntry) {
+				entryModuleIds.add(info.id);
+			}
 			if (
 				SOURCE_RE.test(info.id) &&
 				!DECLARATION_RE.test(info.id) &&
@@ -314,6 +323,8 @@ function preserveUseClient({
 						test: (moduleId: string) =>
 							SOURCE_RE.test(moduleId) &&
 							!clientModuleIds.has(moduleId) &&
+							// An entry module cannot leave its entry chunk, so a group with it would pull its pure dependencies in.
+							!entryModuleIds.has(moduleId) &&
 							isClientDependency(moduleId),
 						entriesAware: true,
 						includeDependenciesRecursively: false,

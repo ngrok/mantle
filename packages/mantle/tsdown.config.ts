@@ -195,7 +195,13 @@ export default defineConfig((options) => [
 			// `~<entry>` for each entry, which would repeat in every import of it.
 			chunkFileNames: (chunk) => {
 				const owner = owningComponentDir(chunk.moduleIds);
-				return `${owner ?? chunk.name.split("~")[0]}-[hash].js`;
+				if (owner != null) {
+					return `${owner}-[hash].js`;
+				}
+				// The `[name]` pattern, not the name itself: rolldown-plugin-dts rewrites it for declaration chunks.
+				return chunk.name.includes("~")
+					? `${chunk.name.split("~")[0]}-[hash].js`
+					: "[name]-[hash].js";
 			},
 		},
 		entry: {
