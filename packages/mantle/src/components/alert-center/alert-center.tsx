@@ -419,7 +419,7 @@ class AlertCenterStore {
 	getContentMounted = (): boolean => this.#contentMounted;
 
 	#serverAlertsById = new Map<string, AlertCenterRegisteredAlert>();
-	#serverBarClassName: string | undefined;
+	#serverBarProps: Omit<AlertCenterBarProps, "ref"> = {};
 	#serverShownId: string | null = null;
 
 	/**
@@ -443,16 +443,16 @@ class AlertCenterStore {
 	}
 
 	/**
-	 * Bar-side, server render and hydration pass only: publish the bar's
-	 * `className`, so an item's server copy of the bar matches the client bar.
-	 * The bar renders before the items it precedes, so they read it in time.
+	 * Bar-side, server render and hydration pass only: publish the bar's props,
+	 * so an item's server copy of the bar renders the same chrome as the client
+	 * bar. The bar renders before the items it precedes, so they read it in time.
 	 */
-	setServerBarClassName(className: string | undefined): void {
-		this.#serverBarClassName = className;
+	setServerBarProps(props: Omit<AlertCenterBarProps, "ref">): void {
+		this.#serverBarProps = props;
 	}
 
-	/** The bar's `className` for the server copy of the bar. */
-	getServerBarClassName = (): string | undefined => this.#serverBarClassName;
+	/** The bar's props for the server copy of the bar. */
+	getServerBarProps = (): Omit<AlertCenterBarProps, "ref"> => this.#serverBarProps;
 
 	/**
 	 * Item-side: report that the server HTML showed this id in the bar. The
@@ -793,8 +793,8 @@ type AlertCenterItemProps = {
  * and only when it follows `AlertCenter.Bar` in the same parent. At hydration
  * the client bar replaces it at the same height, with no enter animation. An
  * item authored anywhere else renders a hidden copy and enters after
- * hydration. Prefetch the data your items read in the root loader, so the
- * items exist during the server render.
+ * hydration, and so do the expansion rows. Prefetch the data your items read
+ * in the root loader, so the items exist during the server render.
  *
  * **Structure.** `children` render inside a
  * `<div data-slot="alert-center-item-label">`, the only node the portal puts
@@ -812,6 +812,7 @@ type AlertCenterItemProps = {
  * | `data-slot` | `alert-center-item-label` | On the layout-transparent element inside the host that wraps the item's children. |
  * | `data-alert-host` | the item's `id` | On that same host: which alert's projected children it holds. |
  * | `data-slot` | `alert-center-server-bar` | Before hydration only: on the item's copy of the bar, around the same chrome the bar renders. |
+ * | `data-alert-center-server-item` | present | Before hydration only: on the copy, or on a hidden element when the item renders no copy. |
  *
  * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenteritem
  *
@@ -892,23 +893,34 @@ const Item = ({ children, className, id, intent, order }: AlertCenterItemProps) 
 	if (host != null) {
 		return createPortal(content, host);
 	}
-	if (!rendersServerBar) {
+	if (isHydrated) {
 		return null;
+	}
+	if (!rendersServerBar) {
+		// Tells the server copy of the bar that another alert exists, so it
+		// reserves the room of the expand control the client bar adds.
+		return <span hidden data-alert-center-server-item="" />;
 	}
 	// The same chrome the client bar renders, so the client bar replaces it at
 	// the same height.
+	const {
+		className: barClassName,
+		"data-slot": barDataSlot,
+		...barProps
+	} = store.getServerBarProps();
 	return (
-		<div ref={serverBarRef} data-slot="alert-center-server-bar" className={serverBarClassName}>
+		<div
+			ref={serverBarRef}
+			data-slot="alert-center-server-bar"
+			data-alert-center-server-item=""
+			className={serverBarClassName}
+		>
 			<Alert.Root
 				appearance="banner"
 				intent={intent}
-				className={cx(
-					chromeClassName,
-					singleLineBarControls,
-					store.getServerBarClassName(),
-					className,
-				)}
-				data-slot="alert-center-bar"
+				className={cx(chromeClassName, singleLineBarControls, barClassName, className)}
+				{...barProps}
+				data-slot={joinDataSlot(barDataSlot, "alert-center-bar")}
 				data-placement="bar"
 				data-alert-id={id}
 			>
@@ -1042,9 +1054,17 @@ const barEnter = "starting:h-0 starting:opacity-0";
  * keeps its copy hidden and enters after hydration. Of the copies there, only
  * the last shows: each copy outranks every item rendered before it (see
  * {@link AlertCenterStore.claimServerBar}).
+ *
+ * The client bar adds an expand control when `AlertCenter.Content` is composed
+ * and another alert exists, and `Alert` makes room for it with content
+ * padding. The copy reserves that padding when it follows the content's server
+ * anchor and has another item beside it, so no line wraps at hydration.
+ *
+ * The selectors read siblings, and `AlertCenter.Root` renders no element, so
+ * compose one center per parent.
  */
 const serverBarClassName =
-	"hidden shrink-0 overflow-hidden [[data-slot=alert-center-bar-anchor]~&]:block [[data-slot=alert-center-bar-anchor]~&:has(~[data-slot=alert-center-server-bar])]:hidden";
+	"hidden shrink-0 overflow-hidden [[data-slot=alert-center-bar-anchor]~&]:block [[data-slot=alert-center-bar-anchor]~&:has(~[data-slot=alert-center-server-bar])]:hidden [&:is([data-slot=alert-center-content-anchor]~*):is(:has(~[data-alert-center-server-item]),[data-alert-center-server-item]~*)]:**:data-[slot~=alert-content]:pr-16 md:[&:is([data-slot=alert-center-content-anchor]~*):is(:has(~[data-alert-center-server-item]),[data-alert-center-server-item]~*)]:**:data-[slot~=alert-content]:pr-24";
 
 /** How long to keep the bar mounted for its exit slide if no `transitionend`
  * fires (reduced motion, engines that snap, a tab backgrounded mid-transition).
@@ -1412,7 +1432,7 @@ const Bar = ({ className, "data-slot": dataSlot, ref, ...props }: AlertCenterBar
 	const { isMounted, dataState, onExitTransitionEnd } = useBarPresence({ present });
 	const isHydrated = useIsHydrated();
 	if (!isHydrated) {
-		store.setServerBarClassName(className);
+		store.setServerBarProps({ ...props, className, "data-slot": dataSlot });
 	}
 
 	// Retain the last alert so the collapsing bar keeps its chrome through the
@@ -1621,6 +1641,7 @@ type AlertCenterContentProps = Omit<ComponentProps<"div">, "children" | "id"> &
  * | `data-placement` | `"list"` | On each row's chrome: where that item's children are currently rendering. |
  * | `data-alert-id` | the row item's `id` | On each row's chrome; per-alert styling and testing hook. |
  * | `data-alert-mount` | the row item's `id` | On the row's layout-transparent mount point: the element that item's host is adopted into. |
+ * | `data-slot` | `alert-center-content-anchor` | Before hydration only: on a hidden element that tells the server copy of the bar to reserve room for the expand control. |
  *
  * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcentercontent
  *
@@ -1660,6 +1681,7 @@ const Content = ({
 	const { store, contentId } = useAlertCenterContext("AlertCenter.Content");
 	const { isExpanded, setExpanded } = useAlertCenterExpansion("AlertCenter.Content");
 	const alerts = useRankedAlerts(store);
+	const isHydrated = useIsHydrated();
 	const additionalAlerts = alerts.slice(1);
 	const hasRows = additionalAlerts.length > 0;
 
@@ -1780,8 +1802,10 @@ const Content = ({
 	// Nothing is hidden behind the bar → there's no expansion to render or
 	// animate, and the bar shows no expand control. (This stays unmounted rather
 	// than collapsing to zero height, so the shell sits flush against the bar.)
+	// Before hydration, render the anchor that tells the server copy of the bar
+	// to reserve room for the expand control (see `serverBarClassName`).
 	if (additionalAlerts.length === 0) {
-		return null;
+		return isHydrated ? null : <span hidden data-slot="alert-center-content-anchor" />;
 	}
 
 	return (

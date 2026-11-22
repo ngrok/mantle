@@ -673,7 +673,8 @@ client bar replaces that copy at the same height, with no enter animation, so th
 
 Without the prefetch, the server has no items. The bar then enters with its height animation after
 hydration and pushes the page down, which counts toward Cumulative Layout Shift. An item authored in a
-route, away from the bar, also enters after hydration.
+route, away from the bar, also enters after hydration, and so do the expansion rows of a `Root` that
+starts open. The server HTML places the copy by its siblings, so compose one `AlertCenter.Root` per parent.
 
 Render on the server only the alerts the server can decide. A dismissal kept in `sessionStorage` is unknown
 on the server, so an item it hides would show in the server HTML and then leave at hydration. Keep those

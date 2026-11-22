@@ -105,14 +105,14 @@ describe("AlertCenter server render (browser)", () => {
 	 * The dashboard shape: the items exist during SSR and follow the bar in the
 	 * same parent. The warning comes first, so the server copy must rank, not
 	 * take authored order. StrictMode double-renders each item, which must not
-	 * change its claim.
+	 * change its claim. The bar's `style` must reach the server copy.
 	 */
 	function Page() {
 		return (
 			<StrictMode>
 				<AlertCenter.Root>
 					<div className="flex flex-col">
-						<AlertCenter.Bar />
+						<AlertCenter.Bar style={{ minHeight: 160 }} />
 						<AlertCenter.Content />
 						<AlertCenter.Item id="transfer" intent="warning">
 							<Alert.Icon />
@@ -157,7 +157,13 @@ describe("AlertCenter server render (browser)", () => {
 		expect(screen.getByText("Transfer limit")).not.toBeVisible();
 		const main = screen.getByRole("main");
 		const serverTop = main.getBoundingClientRect().top;
-		expect(serverTop).toBeGreaterThan(0);
+		expect(serverTop).toBeGreaterThanOrEqual(160);
+		// the room for the client bar's expand control, so no line wraps at hydration
+		const contentPadding = () =>
+			getComputedStyle(
+				screen.getByText("Payment failed").closest('[data-slot~="alert-content"]') ?? document.body,
+			).paddingRight;
+		const serverPadding = contentPadding();
 
 		const errors: unknown[] = [];
 		const root = await act(async () =>
@@ -167,6 +173,8 @@ describe("AlertCenter server render (browser)", () => {
 
 		expect(errors).toEqual([]);
 		expect(container.querySelector('[data-slot="alert-center-server-bar"]')).toBeNull();
+		expect(screen.getByRole("button", { name: /1 more/ })).toBeVisible();
+		expect(contentPadding()).toBe(serverPadding);
 		expect(document.querySelector('[data-slot~="alert-center-bar"]')).toHaveAttribute(
 			"data-alert-id",
 			"payment",

@@ -2174,6 +2174,6 @@ test("the server render shows the top item in a bar copy, with the empty announc
 	expect(copies.at(-1)).toHaveAttribute("data-placement", "bar");
 	expect(copies.at(-1)?.textContent).toContain("Payment failed");
 	expect(html).not.toContain("Usage tip");
-	expect(html).not.toContain("alert-center-content");
+	expect(html).not.toContain('data-slot="alert-center-content"');
 	expect(html).not.toContain("alert-center-item-host");
 });
