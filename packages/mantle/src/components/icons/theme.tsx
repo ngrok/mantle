@@ -41,13 +41,14 @@ type ThemeIconProps = SvgAttributes & { theme: Theme };
  * ```
  */
 function ThemeIcon({ theme, ...props }: ThemeIconProps) {
+	// Why the weight after the spread: the published build then keeps only the regular paths.
 	switch (theme) {
 		case "system":
-			return <DesktopIcon {...props} />;
+			return <DesktopIcon {...props} weight="regular" />;
 		case "light":
-			return <SunIcon {...props} />;
+			return <SunIcon {...props} weight="regular" />;
 		case "dark":
-			return <MoonIcon {...props} />;
+			return <MoonIcon {...props} weight="regular" />;
 	}
 }
 export {

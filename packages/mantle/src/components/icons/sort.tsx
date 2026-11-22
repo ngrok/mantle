@@ -46,11 +46,12 @@ type Props = SvgAttributes &
 const SortIcon = ({ mode, direction, ...props }: Props) => {
 	switch (mode) {
 		case "alphanumeric": {
+			// Why the weight after the spread: the published build then keeps only the regular paths.
 			switch (direction) {
 				case "asc":
-					return <SortAscendingIcon {...props} />;
+					return <SortAscendingIcon {...props} weight="regular" />;
 				case "desc":
-					return <SortDescendingIcon {...props} />;
+					return <SortDescendingIcon {...props} weight="regular" />;
 				default:
 					throw new Error(`Invalid alphanumeric sorting direction given: "${String(direction)}"`);
 			}
@@ -60,9 +61,9 @@ const SortIcon = ({ mode, direction, ...props }: Props) => {
 
 			switch (timeSortingDirection) {
 				case "oldest-to-newest":
-					return <SortDescendingIcon {...props} />;
+					return <SortDescendingIcon {...props} weight="regular" />;
 				case "newest-to-oldest":
-					return <SortAscendingIcon {...props} />;
+					return <SortAscendingIcon {...props} weight="regular" />;
 				default:
 					throw new Error(`Invalid time sorting direction given: "${direction}"`);
 			}

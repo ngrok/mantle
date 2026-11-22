@@ -14,7 +14,7 @@ description: The @ngrok/mantle-vite-plugins package. mantleSourcesPlugin trims m
   read. On a marketing page, mantle's CSS drops from 128.6 KB to 104.1 KB.
 - [`mantlePhosphorPrunePlugin`](#mantlephosphorpruneplugin) removes the Phosphor icon weights
   your build never renders. On a marketing page, Phosphor's icon data drops from 42.1 KB to
-  11.1 KB gzipped.
+  9.6 KB gzipped.
 - [`mantleCodeBlockPlugins`](#mantlecodeblockplugins) highlights code at build time, so no
   highlighter runs in the browser.
 
@@ -227,7 +227,7 @@ The plugin runs on `vite build`. `vite dev` serves every weight.
   removes the rest. A kept weight renders the same markup as before.
 
 An ngrok.com-like page that renders 53 icons ships 42.1 KB of Phosphor icon data without the
-plugin and 11.1 KB with it, gzipped. The page's JavaScript drops from 144.7 KB to 113.6 KB.
+plugin and 9.6 KB with it, gzipped. The page's JavaScript drops from 144.7 KB to 112.3 KB.
 Measured with Vite 8.3.8 and `@phosphor-icons/react` 2.1.10.
 
 ### Limits

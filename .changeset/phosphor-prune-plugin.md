@@ -10,7 +10,7 @@ Add `mantlePhosphorPrunePlugin`. It removes the `@phosphor-icons/react` icon wei
 - An icon imported by another name, such as `ActivityIcon` for `PulseIcon`, keeps every weight of every icon, and the build warns.
 - If an icon module of the installed Phosphor has a shape that the plugin does not know, the build warns and keeps all six weights of that icon.
 
-It runs on `vite build` and as a Rolldown or tsdown plugin. On an ngrok.com-like page with 53 icons, Phosphor's icon data drops from 42.1 KB to 11.1 KB gzipped.
+It runs on `vite build` and as a Rolldown or tsdown plugin. On an ngrok.com-like page with 53 icons, Phosphor's icon data drops from 42.1 KB to 9.6 KB gzipped.
 
 ```ts
 plugins: [mantlePhosphorPrunePlugin()],
