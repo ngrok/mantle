@@ -138,12 +138,16 @@ const Trigger = ({
 	"aria-invalid": _ariaInvalid,
 	className,
 	children,
+	onBlur,
+	onKeyDown,
 	onMouseDown,
 	ref,
 	validation: _validation,
 	...props
 }: MultiSelectTriggerProps) => {
-	const { inputRef, triggerRef } = useMultiSelectContext();
+	const { inputRef, open, setOpen, tags, triggerRef } = useMultiSelectContext();
+	const inTag = (target: EventTarget) =>
+		target instanceof Node && [...tags.values()].some((tag) => tag.contains(target));
 	const fieldValidation = useFieldValidation();
 	const { ariaInvalid, validation } = parseValidation({
 		"aria-invalid": _ariaInvalid,
@@ -182,6 +186,24 @@ const Trigger = ({
 					}
 					onMouseDown?.(event);
 				}}
+				// Why on the trigger: a tag keeps the list open while it has focus, so
+				// the trigger closes it when a tag gets Escape or focus leaves the
+				// component. The input handles both for itself.
+				onKeyDown={composeHandlers(onKeyDown, (event) => {
+					if (event.key === "Escape" && open && inTag(event.target)) {
+						event.preventDefault();
+						setOpen(false);
+					}
+				})}
+				onBlur={composeHandlers(onBlur, (event) => {
+					const { relatedTarget } = event;
+					if (
+						inTag(event.target) &&
+						!(relatedTarget instanceof Node && event.currentTarget.contains(relatedTarget))
+					) {
+						setOpen(false);
+					}
+				})}
 				ref={composeRefs(triggerRef, ref)}
 				{...props}
 			>
@@ -720,7 +742,16 @@ const Input = ({
 					: undefined)}
 			/>
 			{name != null &&
-				selected.map((value) => <input key={value} type="hidden" name={name} value={value} />)}
+				selected.map((value) => (
+					<input
+						key={value}
+						type="hidden"
+						name={name}
+						value={value}
+						form={props.form}
+						disabled={props.disabled}
+					/>
+				))}
 		</>
 	);
 };
@@ -773,10 +804,11 @@ const Content = ({
 	sameWidth = true,
 	...props
 }: MultiSelectContentProps) => {
-	const { listbox, open, setOpen, triggerRef } = useMultiSelectContext();
+	const { inputRef, listbox, open, setOpen, triggerRef } = useMultiSelectContext();
 	const { host, popupRef } = usePopup({
 		open,
 		anchorRef: triggerRef,
+		ownerRef: inputRef,
 		container: useLayerContainer(),
 		modal: enterModal,
 	});

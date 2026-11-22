@@ -1,6 +1,6 @@
 /**
  * Runs a consumer's event handler, then the behavior's handler unless the
- * consumer called `event.preventDefault()`. A default that an outer listener
+ * consumer called `event.preventDefault()`. An Escape that an outer listener
  * prevented before the consumer ran does not count, because a modal layer
  * prevents the Escape that a nested popup owns.
  *
@@ -10,14 +10,14 @@
  * ```
  */
 const composeHandlers =
-	<E extends { defaultPrevented: boolean }>(
+	<E extends { defaultPrevented: boolean; key?: string }>(
 		consumer: ((event: E) => void) | undefined,
 		own: (event: E) => void,
 	) =>
 	(event: E): void => {
-		const prevented = event.defaultPrevented;
+		const outerEscape = event.defaultPrevented && event.key === "Escape";
 		consumer?.(event);
-		if (prevented || !event.defaultPrevented) {
+		if (outerEscape || !event.defaultPrevented) {
 			own(event);
 		}
 	};

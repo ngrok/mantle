@@ -1030,6 +1030,146 @@ describe("Select", () => {
 			expect(trigger).toHaveTextContent("Banana");
 		});
 
+		test("a press of ArrowUp from the selected item labels the trigger with the highlighted one", async () => {
+			const user = userEvent.setup();
+			// The trigger cannot find these labels in Select.Root's children.
+			const Items = () => (
+				<>
+					<Select.Item value="apple">Apple</Select.Item>
+					<Select.Item value="banana">Banana</Select.Item>
+				</>
+			);
+			render(
+				<Select.Root defaultValue="banana">
+					<Select.Trigger>
+						<Select.Value placeholder="Pick a fruit" />
+					</Select.Trigger>
+					<Select.Content>
+						<Items />
+					</Select.Content>
+				</Select.Root>,
+			);
+
+			await user.tab();
+			await user.keyboard("{Enter}");
+			await user.keyboard("{ArrowUp}{Enter}");
+
+			expect(screen.getByRole("combobox")).toHaveTextContent("Apple");
+		});
+
+		test("a closed select shows the current text of the selected item", async () => {
+			const user = userEvent.setup();
+			const Picker = ({ label }: { label: string }) => (
+				<Select.Root defaultValue="apple">
+					<Select.Trigger>
+						<Select.Value placeholder="Pick a fruit" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple">{label}</Select.Item>
+					</Select.Content>
+				</Select.Root>
+			);
+			const { rerender } = render(<Picker label="Apple" />);
+
+			await user.click(screen.getByRole("combobox"));
+			await user.keyboard("{Escape}");
+			rerender(<Picker label="Pomme" />);
+
+			expect(screen.getByRole("combobox")).toHaveTextContent("Pomme");
+		});
+
+		test("a list that opens from defaultOpen focuses the trigger, so Escape closes it", async () => {
+			const user = userEvent.setup();
+			render(
+				<Select.Root defaultOpen>
+					<Select.Trigger aria-label="Fruit" />
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+
+			const trigger = screen.getByRole("combobox", { name: "Fruit" });
+			await screen.findByRole("option", { name: "Apple" });
+			expect(trigger).toHaveFocus();
+			await user.keyboard("{Escape}");
+			expect(trigger).toHaveAttribute("aria-expanded", "false");
+		});
+
+		test("an unnamed required select blocks its form until it has a value", async () => {
+			const user = userEvent.setup();
+			render(
+				<form aria-label="fruit form">
+					<Select.Root required>
+						<Select.Trigger aria-label="Fruit" />
+						<Select.Content>
+							<Select.Item value="apple">Apple</Select.Item>
+						</Select.Content>
+					</Select.Root>
+				</form>,
+			);
+
+			const form = screen.getByRole<HTMLFormElement>("form", { name: "fruit form" });
+			expect(form.checkValidity()).toBe(false);
+			await user.click(screen.getByRole("combobox", { name: "Fruit" }));
+			await user.click(await screen.findByRole("option", { name: "Apple" }));
+			expect(form.checkValidity()).toBe(true);
+		});
+
+		test.each([
+			{ name: "fruit", defaultValue: undefined, text: "Pick a fruit", submitted: "" },
+			{ name: undefined, defaultValue: "banana", text: "Banana", submitted: null },
+		])(
+			"a form reset returns a select named $name to $defaultValue",
+			async ({ name, defaultValue, text, submitted }) => {
+				const user = userEvent.setup();
+				render(
+					<form aria-label="fruit form">
+						<Select.Root name={name} defaultValue={defaultValue}>
+							<Select.Trigger>
+								<Select.Value placeholder="Pick a fruit" />
+							</Select.Trigger>
+							<Select.Content>
+								<Select.Item value="apple">Apple</Select.Item>
+								<Select.Item value="banana">Banana</Select.Item>
+							</Select.Content>
+						</Select.Root>
+						<button type="reset">Reset</button>
+					</form>,
+				);
+
+				const trigger = screen.getByRole("combobox");
+				await user.click(trigger);
+				await user.click(await screen.findByRole("option", { name: "Apple" }));
+				expect(trigger).toHaveTextContent("Apple");
+				await user.click(screen.getByRole("button", { name: "Reset" }));
+
+				expect(trigger).toHaveTextContent(text);
+				const form = screen.getByRole<HTMLFormElement>("form", { name: "fruit form" });
+				expect(new FormData(form).get("fruit")).toBe(submitted);
+			},
+		);
+
+		test("a pick reaches the form's onChange", async () => {
+			const user = userEvent.setup();
+			const onFormChange = vi.fn<(event: unknown) => void>();
+			render(
+				<form onChange={onFormChange}>
+					<Select.Root name="fruit">
+						<Select.Trigger aria-label="Fruit" />
+						<Select.Content>
+							<Select.Item value="apple">Apple</Select.Item>
+						</Select.Content>
+					</Select.Root>
+				</form>,
+			);
+
+			await user.click(screen.getByRole("combobox", { name: "Fruit" }));
+			await user.click(await screen.findByRole("option", { name: "Apple" }));
+
+			expect(onFormChange).toHaveBeenCalledTimes(1);
+		});
+
 		test("required marks the trigger aria-required", () => {
 			render(
 				<Select.Root required>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import type { ComponentProps } from "react";
 import { useControllableState } from "../../behaviors/use-controllable-state.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
@@ -111,6 +112,7 @@ const Switch = ({
 		validation: _validation ?? fieldValidation,
 	});
 	const state = checked ? "checked" : "unchecked";
+	const checkboxRef = useRef<HTMLInputElement | null>(null);
 	const resetToDefault = () => setChecked(defaultChecked);
 	const composedRef = useComposedRefs(ref, (button: HTMLButtonElement | null) => {
 		// Why a ref callback on the button: a form reset returns an uncontrolled switch to
@@ -157,9 +159,20 @@ const Switch = ({
 						return;
 					}
 					onClick?.(event);
-					if (!event.defaultPrevented) {
-						setChecked(!checked);
+					if (event.defaultPrevented) {
+						return;
 					}
+					const checkbox = checkboxRef.current;
+					if (checkbox == null) {
+						setChecked(!checked);
+						return;
+					}
+					// Why a click on the checkbox: React derives a checkbox's change from
+					// its click, so a `<form onChange>` sees the toggle, and the checkbox's
+					// own onChange sets the state. The prototype's setter skips React's value
+					// tracker, so React sees the click as a change.
+					Reflect.set(HTMLInputElement.prototype, "checked", !checked, checkbox);
+					checkbox.dispatchEvent(new Event("click", { bubbles: true }));
 				}}
 				ref={composedRef}
 				{...props}
@@ -176,6 +189,7 @@ const Switch = ({
 			{/* Why `required` too: the checkbox blocks the submit of an unchecked required switch. */}
 			{(name != null || required) && (
 				<input
+					ref={checkboxRef}
 					type="checkbox"
 					aria-hidden
 					tabIndex={-1}

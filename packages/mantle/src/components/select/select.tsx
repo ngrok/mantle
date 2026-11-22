@@ -20,6 +20,7 @@ import { usePopup } from "../../behaviors/use-popup.js";
 import { useSelect, useSelectTrigger } from "../../behaviors/use-select.js";
 import type { SelectBehavior } from "../../behaviors/use-select.js";
 import type { WithAsChild } from "../../types/as-child.js";
+import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -56,6 +57,14 @@ type SelectContextType = SelectBehavior &
 		 * Whether a value is required before the owning form submits.
 		 */
 		required?: boolean;
+		/**
+		 * The `id` of the form the select belongs to, when it is not an ancestor.
+		 */
+		form?: string;
+		/**
+		 * Returns the select to `defaultValue`, or to no value, on a form reset.
+		 */
+		reset: () => void;
 	} & Pick<ComponentProps<"button">, "id">;
 
 /** The label that `Select.Value` shows for the selected item. */
@@ -109,6 +118,13 @@ const useSelectContext = (): SelectContextType => {
 	}
 	return context;
 };
+
+/**
+ * The last value each native select reported to its form. An option that
+ * mounts with another value dispatches a change. It holds nothing once the
+ * select is gone.
+ */
+const committedValues = new WeakMap<HTMLSelectElement, string>();
 
 /** Hides the native select that carries the value to the form, but keeps it in validation. */
 const visuallyHidden = {
@@ -279,29 +295,27 @@ const Root = ({
 		onOpenChange,
 		disabled,
 	});
-	const resetToDefault = () => {
-		if (defaultValue != null) {
-			select.listbox.select(defaultValue);
-		}
-	};
 	const contextValue = useMemo(
 		() => ({
 			...select,
 			"aria-invalid": ariaInvalid,
 			dir,
 			id,
+			form,
 			labelFor: (item: string) => findItemLabel(children, item),
 			onBlur,
 			ref,
 			required,
+			reset: () => select.listbox.select(defaultValue ?? ""),
 			validation,
 		}),
-		[select, ariaInvalid, children, dir, id, onBlur, ref, required, validation],
+		[select, ariaInvalid, children, defaultValue, dir, form, id, onBlur, ref, required, validation],
 	);
 	return (
 		<SelectContext value={contextValue}>
 			{children}
-			{name != null && (
+			{/* Why `required` too: the native select blocks the submit of an empty required select. */}
+			{(name != null || required) && (
 				<select
 					aria-hidden
 					tabIndex={-1}
@@ -313,21 +327,39 @@ const Root = ({
 					disabled={disabled}
 					value={select.value ?? ""}
 					onChange={(event) => {
+						// Why: the browser already dispatched this change.
+						committedValues.set(event.currentTarget, event.target.value);
 						select.listbox.select(event.target.value);
 					}}
 					ref={(element) => {
-						// Why a ref callback: a form reset returns an uncontrolled select to
-						// `defaultValue`, and the listener lives as long as the element.
-						const owner = element?.form;
-						if (owner == null) {
-							return;
+						if (element != null && !committedValues.has(element)) {
+							committedValues.set(element, element.value);
 						}
-						owner.addEventListener("reset", resetToDefault);
-						return () => owner.removeEventListener("reset", resetToDefault);
 					}}
 				>
 					<option value="" />
-					{select.value != null && <option value={select.value}>{select.value}</option>}
+					{select.value != null && (
+						<option
+							key={select.value}
+							value={select.value}
+							ref={(option) => {
+								// Why a ref callback on a keyed option: it mounts in the commit that
+								// gives the native select a new value. The bubbling change lets a
+								// `<form onChange>` see it, as a native select does.
+								const native = option?.parentElement;
+								if (!(native instanceof HTMLSelectElement) || option == null) {
+									return;
+								}
+								const previous = committedValues.get(native);
+								committedValues.set(native, option.value);
+								if (previous != null && previous !== option.value) {
+									native.dispatchEvent(new Event("change", { bubbles: true }));
+								}
+							}}
+						>
+							{select.value}
+						</option>
+					)}
 				</select>
 			)}
 		</SelectContext>
@@ -466,16 +498,15 @@ const Value = ({
 	...props
 }: SelectValueProps) => {
 	const { labelFor, listbox, value } = useSelectContext();
-	let label = useStoreValue(listbox.store, (state) =>
+	const reported = useStoreValue(listbox.store, (state) =>
 		state.itemLabel?.value === value ? state.itemLabel : null,
 	);
 	// Why `""` counts as no value: a cleared select shows its placeholder, as a native select does.
 	const hasValue = value != null && value !== "";
-	// Why the fallback: on the server and while the list is closed, no item has
-	// reported its label, so the value reads it from the item elements.
-	if (label == null && hasValue && children == null) {
-		label = labelFor(value);
-	}
+	// Why the item elements first: they render on the server and carry the
+	// current text while the list is closed. The reported label covers an item
+	// that a component of your own renders.
+	const label = hasValue && children == null ? (labelFor(value) ?? reported) : null;
 	if (asChild) {
 		return (
 			<Slot ref={ref} data-slot={joinDataSlot(dataSlot, "select-value")} {...props}>
@@ -593,7 +624,21 @@ const Trigger = ({
 	const ctx = useSelectContext();
 	const fieldControl = use(FieldControlContext);
 	const triggerProps = useSelectTrigger(ctx);
-	const triggerRef = useComposedRefs(ref, ctx.ref, triggerProps.ref);
+	const triggerRef = useComposedRefs(
+		ref,
+		triggerProps.ref,
+		composeRefs(ctx.ref, (node: HTMLElement | null) => {
+			// Why the trigger: a form reset returns the select to its default with or
+			// without a native select, and the listener lives as long as the trigger.
+			const owner =
+				ctx.form == null ? node?.closest("form") : node?.ownerDocument.getElementById(ctx.form);
+			if (!(owner instanceof HTMLFormElement)) {
+				return;
+			}
+			owner.addEventListener("reset", ctx.reset);
+			return () => owner.removeEventListener("reset", ctx.reset);
+		}),
+	);
 	const fieldValidation = useFieldValidation();
 	const rawAriaInvalid = fieldControl
 		? fieldControl["aria-invalid"]
@@ -730,6 +775,7 @@ const Content = ({
 	const { host, popupRef } = usePopup({
 		open,
 		anchorRef: triggerRef,
+		ownerRef: triggerRef,
 		container: useLayerContainer(),
 		modal: enterModal,
 	});
@@ -924,10 +970,11 @@ const Item = ({
 		listbox.store.set({ itemLabel: { value, label, translate } });
 	};
 	const composedRef = useComposedRefs(ref, (node: HTMLElement | null) => {
-		// Why a ref callback: the selected or active item hands its label to
-		// `Select.Value` in the commit that mounts or highlights it. A pick closes
-		// the list, so the picked item has no later commit to report in.
-		if (node != null && (selected || active)) {
+		// Why a ref callback: the active item hands its label to `Select.Value`
+		// in the commit that highlights it. A pick closes the list, so the picked
+		// item has no later commit to report in. The selected item reports only
+		// while no item is active, so it cannot overwrite the active one.
+		if (node != null && (active || (selected && listbox.store.get().activeId == null))) {
 			reportLabel();
 		}
 	});

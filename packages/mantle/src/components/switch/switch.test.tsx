@@ -199,5 +199,19 @@ describe("Switch", () => {
 			await user.click(screen.getByRole("button", { name: "Reset" }));
 			expect(alerts).toHaveAttribute("aria-checked", "true");
 		});
+
+		test("a toggle reaches the form's onChange once", async () => {
+			const user = userEvent.setup();
+			const onFormChange = vi.fn<(event: unknown) => void>();
+			render(
+				<form aria-label="Settings" onChange={onFormChange}>
+					<Switch aria-label="Alerts" name="alerts" />
+				</form>,
+			);
+			const toggle = screen.getByRole("switch", { name: "Alerts" });
+			await user.click(toggle);
+			expect(toggle).toHaveAttribute("aria-checked", "true");
+			expect(onFormChange).toHaveBeenCalledTimes(1);
+		});
 	});
 });

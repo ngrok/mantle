@@ -35,3 +35,11 @@ export const Unrelated = (
 
 // A parameter under the import's name shadows it.
 export const Shadowed = ({ Combobox }: { Combobox: typeof Other }) => <Combobox.Root value="a" />;
+
+// A named class expression's own name shadows the import inside the class.
+export const ClassShadowed = class Combobox {
+	static Root = Other.Root;
+	render() {
+		return <Combobox.Root value="a" />;
+	}
+};

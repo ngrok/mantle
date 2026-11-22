@@ -241,6 +241,55 @@ describe("Combobox", () => {
 			await user.click(screen.getByRole("option", { name: "Banana" }));
 			expect(input).toHaveValue("Banana");
 		});
+
+		test("preventDefault on an asChild item's own onClick cancels the pick", async () => {
+			const user = userEvent.setup();
+			render(
+				<Combobox.Root>
+					<Combobox.Input aria-label="Fruit" />
+					<Combobox.Content>
+						<Combobox.Item value="Apple" asChild>
+							<a href="#apple" onClick={(event) => event.preventDefault()}>
+								Apple
+							</a>
+						</Combobox.Item>
+					</Combobox.Content>
+				</Combobox.Root>,
+			);
+			const input = screen.getByRole("combobox", { name: "Fruit" });
+			await user.click(input);
+			await user.click(screen.getByRole("option", { name: "Apple" }));
+			expect(input).toHaveValue("");
+			expect(input).toHaveAttribute("aria-expanded", "true");
+		});
+
+		test("a selection and options that change in one update move the highlight to a live option", async () => {
+			const user = userEvent.setup();
+			let swap = () => {};
+			const Swapping = () => {
+				const [fruit, setFruit] = useState("Apple");
+				swap = () => setFruit("Banana");
+				return (
+					<Combobox.Root selectedValue={fruit}>
+						<Combobox.Input aria-label="Fruit" />
+						<Combobox.Content>
+							<Combobox.Item key={fruit} value={fruit} />
+						</Combobox.Content>
+					</Combobox.Root>
+				);
+			};
+			render(<Swapping />);
+			const input = screen.getByRole("combobox", { name: "Fruit" });
+			await user.click(input);
+			act(() => {
+				swap();
+			});
+			await vi.waitFor(() => {
+				expect(screen.getByRole("option", { name: "Banana" })).toHaveAttribute("data-highlighted");
+			});
+			await user.keyboard("{Enter}");
+			expect(input).toHaveValue("Banana");
+		});
 	});
 
 	test("hydrates server markup with no mismatch", () => {

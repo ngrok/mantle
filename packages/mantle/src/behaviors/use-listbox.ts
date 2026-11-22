@@ -183,14 +183,19 @@ const useListbox = ({
 				// Why an observer: options can mount after the move that needed them, such
 				// as async results, or replace the active option. The highlight then
 				// moves when the options change, with no effect and no extra render.
-				const observer = new MutationObserver(() => {
+				const reconcile = () => {
 					const { activeId } = store.get();
 					const stale = activeId != null && !node.contains(document.getElementById(activeId));
 					if (pendingMove.current != null || stale) {
 						move(pendingMove.current ?? "first");
 					}
-				});
+				};
+				const observer = new MutationObserver(reconcile);
 				observer.observe(node, { childList: true, subtree: true });
+				// Why now too: React calls this again when `move` changes, and the
+				// commit that changed it can also replace the options before the new
+				// observer starts.
+				reconcile();
 				return () => {
 					observer.disconnect();
 					ref.current = null;

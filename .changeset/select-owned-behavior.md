@@ -15,4 +15,5 @@ Other changes:
 - A server-rendered or prerendered select shows the selected item's text in its first paint. `Select.Value` reads it from the `Select.Item` elements while the list is closed.
 - `Select.Value asChild` merges the value's props onto your element.
 - A value of `""` shows the placeholder.
-- A form reset returns an uncontrolled select to `defaultValue`.
+- A form reset returns a select to `defaultValue`, or to no value when it has none, with or without a `name`.
+- A `required` select blocks its form until it has a value, with or without a `name`.

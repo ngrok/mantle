@@ -14,6 +14,7 @@ utils:
       - kind: arrow_function
       - kind: method_definition
       - kind: class_body
+      - kind: class
       - kind: for_statement
       - kind: for_in_statement
       - kind: catch_clause
@@ -37,7 +38,9 @@ utils:
           - inside: { kind: arrow_function, field: parameter }
           - inside: { kind: catch_clause, field: parameter }
       - kind: type_identifier
-        inside: { kind: class_declaration, field: name }
+        any:
+          - inside: { kind: class_declaration, field: name }
+          - inside: { kind: class, field: name }
   # A function declaration opens a scope, so the search above stops at it and
   # never reads its name. This matches the declaration itself instead.
   function-declaration:

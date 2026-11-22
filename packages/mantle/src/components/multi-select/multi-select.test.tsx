@@ -324,6 +324,61 @@ describe("MultiSelect", () => {
 		});
 	});
 
+	describe("review fixes", () => {
+		const Fruits = ({ disabled, form }: { disabled?: boolean; form?: string }) => (
+			<MultiSelect.Root defaultSelectedValue={["apple", "banana"]}>
+				<MultiSelect.Trigger>
+					<MultiSelect.TagValues />
+					<MultiSelect.Input aria-label="Fruits" name="fruits" form={form} disabled={disabled} />
+				</MultiSelect.Trigger>
+				<MultiSelect.Content>
+					<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+					<MultiSelect.Item value="banana">Banana</MultiSelect.Item>
+				</MultiSelect.Content>
+			</MultiSelect.Root>
+		);
+
+		test("Escape on a tag closes the list, and so does focus that leaves a tag", async () => {
+			const user = userEvent.setup();
+			render(<Fruits />);
+			const input = screen.getByRole("combobox", { name: "Fruits" });
+			await user.click(input);
+			await user.keyboard("{ArrowLeft}");
+			expect(input).toHaveAttribute("aria-expanded", "true");
+			await user.keyboard("{Escape}");
+			expect(input).toHaveAttribute("aria-expanded", "false");
+
+			await user.keyboard("{ArrowLeft}");
+			expect(input).toHaveAttribute("aria-expanded", "true");
+			act(() => {
+				if (document.activeElement instanceof HTMLElement) {
+					document.activeElement.blur();
+				}
+			});
+			expect(input).toHaveAttribute("aria-expanded", "false");
+		});
+
+		test("the submitted values follow the input's form and disabled", () => {
+			const { unmount } = render(
+				<>
+					<form id="external" aria-label="external" />
+					<Fruits form="external" />
+				</>,
+			);
+			const external = screen.getByRole<HTMLFormElement>("form", { name: "external" });
+			expect(new FormData(external).getAll("fruits")).toEqual(["apple", "banana"]);
+			unmount();
+
+			render(
+				<form aria-label="disabled">
+					<Fruits disabled />
+				</form>,
+			);
+			const form = screen.getByRole<HTMLFormElement>("form", { name: "disabled" });
+			expect(new FormData(form).getAll("fruits")).toEqual([]);
+		});
+	});
+
 	describe("keyboard navigation", () => {
 		/**
 		 * Stateful wrapper for keyboard nav tests. It uses useState so that

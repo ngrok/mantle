@@ -56,6 +56,23 @@ const axeViolations = async () => {
 };
 
 describe("Combobox keyboard, focus, and ARIA contract", () => {
+	test("a list taller than both sides opens above a low input inside the viewport", async () => {
+		const fruits = Array.from({ length: 60 }, (_, index) => `Fruit ${index}`);
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Fruit" style={{ position: "fixed", bottom: 40 }} />
+				<Combobox.Content>
+					{fruits.map((fruit) => (
+						<Combobox.Item key={fruit} value={fruit} />
+					))}
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
+		const listbox = await screen.findByRole("listbox");
+		expect(listbox).toHaveAttribute("data-side", "top");
+		expect(listbox.getBoundingClientRect().top).toBeGreaterThanOrEqual(8);
+	});
 	test("typing filters and highlights the first match; arrows move; Enter fills the input", async () => {
 		const onPick = vi.fn<(value: string) => void>();
 		render(<DomainCombobox onPick={onPick} />);

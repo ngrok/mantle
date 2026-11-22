@@ -51,3 +51,11 @@ export const Trigger = (
 		<Select.Trigger data-side="left" />
 	</Select.Root>
 );
+
+// A named class expression's own name shadows the import inside the class.
+export const ClassShadowed = class Select {
+	static Content = Other.Content;
+	render() {
+		return <Select.Content position="popper" />;
+	}
+};

@@ -38,3 +38,11 @@ export const Unrelated = (
 export const Shadowed = ({ MultiSelect }: { MultiSelect: typeof Other }) => (
 	<MultiSelect.Root value="a" />
 );
+
+// A named class expression's own name shadows the import inside the class.
+export const ClassShadowed = class MultiSelect {
+	static Root = Other.Root;
+	render() {
+		return <MultiSelect.Root value="a" />;
+	}
+};

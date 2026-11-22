@@ -50,13 +50,16 @@ const followAnchor = (
 		const below = viewportHeight - anchorRect.bottom - OFFSET - VIEWPORT_PADDING;
 		const above = anchorRect.top - OFFSET - VIEWPORT_PADDING;
 		const side = height > below && above > below ? "top" : "bottom";
-		const top = side === "bottom" ? anchorRect.bottom + OFFSET : anchorRect.top - OFFSET - height;
+		const available = Math.max(side === "bottom" ? below : above, 0);
+		// Why the capped height: the popup renders at most `available` tall, so a
+		// top popup sits that far above the anchor, not its full content height.
+		const top =
+			side === "bottom"
+				? anchorRect.bottom + OFFSET
+				: anchorRect.top - OFFSET - Math.min(height, available);
 		const maxLeft = document.documentElement.clientWidth - VIEWPORT_PADDING - width;
 		const left = Math.max(VIEWPORT_PADDING, Math.min(anchorRect.left, maxLeft));
-		floating.style.setProperty(
-			"--available-height",
-			`${Math.max(side === "bottom" ? below : above, 0)}px`,
-		);
+		floating.style.setProperty("--available-height", `${available}px`);
 		floating.style.top = `${top - origin.top}px`;
 		floating.style.left = `${left - origin.left}px`;
 		floating.dataset.side = side;
@@ -94,11 +97,19 @@ const followAnchor = (
 const usePopup = ({
 	open,
 	anchorRef,
+	ownerRef,
 	container,
 	modal,
 }: {
 	open: boolean;
 	anchorRef: RefObject<Element | null>;
+	/**
+	 * The control that keeps DOM focus while the popup is open, such as a
+	 * select trigger. A popup that opens while focus is outside the anchor,
+	 * such as from `defaultOpen`, focuses it, because its Escape and blur
+	 * close the popup.
+	 */
+	ownerRef?: RefObject<HTMLElement | null>;
 	container: Element | DocumentFragment | null;
 	/**
 	 * Makes the page behind the open popup inert, such as `enterModal`, and
@@ -128,6 +139,12 @@ const usePopup = ({
 		const stopFollowing = followAnchor(anchorRef, floating, host);
 		const anchor = anchorRef.current;
 		const exitModal = modal != null && anchor != null ? modal([anchor, host]) : undefined;
+		// Why the anchor: focus on another part of the control, such as a tag,
+		// already keeps the popup's Escape and blur.
+		const owner = ownerRef?.current;
+		if (owner != null && !anchor?.contains(document.activeElement)) {
+			owner.focus({ preventScroll: true });
+		}
 		return () => {
 			exitModal?.();
 			stopFollowing();
