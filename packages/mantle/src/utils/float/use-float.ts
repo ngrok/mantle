@@ -27,9 +27,12 @@ const EXIT_DURATION = 150;
  * not know `:popover-open` and has no top layer. There the float is a plain
  * fixed box at the float tier, as before mantle used the popover API. The top
  * layer ignores `z-index`.
+ *
+ * Why `pointer-events-auto`: a modal Radix menu sets `pointer-events: none` on
+ * `<body>`, and a float that portals there would inherit it.
  */
 const floatClassName =
-	"fixed z-50 m-0 inset-auto overflow-visible starting:opacity-0 starting:scale-95 data-state-closed:opacity-0 data-state-closed:scale-95 transition-[opacity,scale,display,overlay] transition-discrete duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:transition-none";
+	"pointer-events-auto fixed z-50 m-0 inset-auto overflow-visible starting:opacity-0 starting:scale-95 data-state-closed:opacity-0 data-state-closed:scale-95 transition-[opacity,scale,display,overlay] transition-discrete duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:transition-none";
 
 /**
  * Whether the browser has the popover API. Without it, `useFloat` shows the
@@ -121,7 +124,9 @@ function resolvePortalTarget(
 		return document.body;
 	}
 	if (layerContainer instanceof Element) {
-		return layerContainer.querySelector("[data-mantle-modal-content]") ?? layerContainer;
+		// Why a child: an overlay's content is a child of its positioner. A dialog
+		// further down, such as one opened from a popover, does not hold the float.
+		return layerContainer.querySelector(":scope > [data-mantle-modal-content]") ?? layerContainer;
 	}
 	return layerContainer;
 }
@@ -297,7 +302,14 @@ function useFloat({
 		if (!continuing && hasPopoverApi) {
 			floating.showPopover();
 		}
-		const stopTracking = trackFloat({ align, anchor, floating, side, sideOffset });
+		const stopTracking = trackFloat({
+			align,
+			anchor,
+			floating,
+			side,
+			sideOffset,
+			releaseAnchorAfter: EXIT_DURATION,
+		});
 
 		const isInside = (target: EventTarget | null) =>
 			target instanceof Node &&

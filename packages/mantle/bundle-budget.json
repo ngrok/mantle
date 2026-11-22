@@ -37,15 +37,15 @@
   },
   "tooltip": {
     "entry": "import { Tooltip } from \"@ngrok/mantle/tooltip\"; export default [Tooltip.Root, Tooltip.Trigger, Tooltip.Content];",
-    "maxGzipBytes": 28687
+    "maxGzipBytes": 16516
   },
   "popover": {
     "entry": "import { Popover } from \"@ngrok/mantle/popover\"; export default [Popover.Root, Popover.Trigger, Popover.Content];",
-    "maxGzipBytes": 33039
+    "maxGzipBytes": 15741
   },
   "hover-card": {
     "entry": "import { HoverCard } from \"@ngrok/mantle/hover-card\"; export default [HoverCard.Root, HoverCard.Trigger, HoverCard.Content];",
-    "maxGzipBytes": 26754
+    "maxGzipBytes": 15517
   },
   "dropdown-menu": {
     "entry": "import { DropdownMenu } from \"@ngrok/mantle/dropdown-menu\"; export default [DropdownMenu.Root, DropdownMenu.Trigger, DropdownMenu.Content, DropdownMenu.Item];",
@@ -65,7 +65,7 @@
   },
   "marketing-page": {
     "entry": "import { Button } from \"@ngrok/mantle/button\"; import { DropdownMenu } from \"@ngrok/mantle/dropdown-menu\"; import { Dialog } from \"@ngrok/mantle/dialog\"; import { Tooltip } from \"@ngrok/mantle/tooltip\"; import { Tabs } from \"@ngrok/mantle/tabs\"; import { Accordion } from \"@ngrok/mantle/accordion\"; export default [Button, DropdownMenu.Root, DropdownMenu.Trigger, DropdownMenu.Content, DropdownMenu.Item, Dialog.Root, Dialog.Trigger, Dialog.Content, Dialog.Title, Tooltip.Root, Tooltip.Trigger, Tooltip.Content, Tabs.Root, Tabs.List, Tabs.Trigger, Tabs.Content, Accordion.Root, Accordion.Item, Accordion.Trigger, Accordion.Content];",
-    "maxGzipBytes": 52522
+    "maxGzipBytes": 55323
   },
   "form-page": {
     "entry": "import { Button } from \"@ngrok/mantle/button\"; import { Field } from \"@ngrok/mantle/field\"; import { Select } from \"@ngrok/mantle/select\"; import { Combobox } from \"@ngrok/mantle/combobox\"; export default [Button, Field.Item, Field.Label, Field.Control, Select.Root, Select.Trigger, Select.Value, Select.Content, Select.Item, Combobox.Root, Combobox.Input, Combobox.Content, Combobox.Item];",

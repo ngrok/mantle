@@ -212,6 +212,25 @@ function findFixedContainingBlock(element: HTMLElement): HTMLElement | null {
 	return null;
 }
 
+/**
+ * Converts a viewport point to the coordinates that `left` and `top` take in a
+ * fixed element's containing block: from its padding box, after its scroll
+ * and its scale.
+ */
+function toLocalPoint(
+	containingBlock: HTMLElement,
+	x: number,
+	y: number,
+): { x: number; y: number } {
+	const box = containingBlock.getBoundingClientRect();
+	const scaleX = containingBlock.offsetWidth === 0 ? 1 : box.width / containingBlock.offsetWidth;
+	const scaleY = containingBlock.offsetHeight === 0 ? 1 : box.height / containingBlock.offsetHeight;
+	return {
+		x: (x - box.left) / scaleX - containingBlock.clientLeft + containingBlock.scrollLeft,
+		y: (y - box.top) / scaleY - containingBlock.clientTop + containingBlock.scrollTop,
+	};
+}
+
 let anchorCount = 0;
 
 /**
@@ -232,7 +251,7 @@ let anchorCount = 0;
  *
  * @example
  * ```ts
- * const stop = trackFloat({ anchor: trigger, floating: content, side: "bottom", align: "start", sideOffset: 4 });
+ * const stop = trackFloat({ anchor: trigger, floating: content, side: "bottom", align: "start", sideOffset: 4, releaseAnchorAfter: 150 });
  * // later, when the float closes
  * stop();
  * ```
@@ -241,12 +260,15 @@ function trackFloat({
 	align: logicalAlign,
 	anchor,
 	floating,
+	releaseAnchorAfter,
 	side,
 	sideOffset,
 }: {
 	align: Align;
 	anchor: HTMLElement;
 	floating: HTMLElement;
+	/** How long after the cleanup the float keeps its anchor, in milliseconds, so its exit transition plays in place. */
+	releaseAnchorAfter: number;
 	side: Side;
 	sideOffset: number;
 }): () => void {
@@ -264,6 +286,10 @@ function trackFloat({
 	// anchor, so `sideOffset` is the gap between its tip and the anchor.
 	const gap = sideOffset + (arrow?.offsetHeight ?? 0);
 	floating.style.inset = "auto";
+	// Why: a float that is placed again keeps the margins of its last placement.
+	for (const edge of ["top", "right", "bottom", "left"] as const) {
+		floating.style.removeProperty(`margin-${edge}`);
+	}
 	if (supportsAnchorPositioning) {
 		// Why a list: one element can anchor two floats, such as a tooltip on a popover trigger.
 		const names = anchor.style.getPropertyValue("anchor-name");
@@ -337,11 +363,12 @@ function trackFloat({
 			};
 		} else {
 			const containingBlock = inTopLayer ? null : findFixedContainingBlock(floating);
-			const origin = containingBlock?.getBoundingClientRect();
-			const originX = origin == null ? 0 : origin.left + (containingBlock?.clientLeft ?? 0);
-			const originY = origin == null ? 0 : origin.top + (containingBlock?.clientTop ?? 0);
-			floating.style.left = `${placed.x - originX}px`;
-			floating.style.top = `${placed.y - originY}px`;
+			const local =
+				containingBlock == null
+					? { x: placed.x, y: placed.y }
+					: toLocalPoint(containingBlock, placed.x, placed.y);
+			floating.style.left = `${local.x}px`;
+			floating.style.top = `${local.y}px`;
 		}
 		const anchorCenterX = anchorBox.left + anchorBox.width / 2 - placed.x;
 		const anchorCenterY = anchorBox.top + anchorBox.height / 2 - placed.y;
@@ -394,6 +421,20 @@ function trackFloat({
 	// Why: an overlay's open animation moves the anchor with no resize or scroll.
 	window.addEventListener("transitionend", schedule, { capture: true, passive: true });
 	window.addEventListener("animationend", schedule, { capture: true, passive: true });
+
+	const releaseAnchorName = () => {
+		// Why a filter: another float on the same anchor can close after this one.
+		const otherNames = anchor.style
+			.getPropertyValue("anchor-name")
+			.split(",")
+			.map((name) => name.trim())
+			.filter((name) => name !== "" && name !== anchorName);
+		if (otherNames.length === 0) {
+			anchor.style.removeProperty("anchor-name");
+		} else {
+			anchor.style.setProperty("anchor-name", otherNames.join(", "));
+		}
+	};
 	return () => {
 		cancelAnimationFrame(frame);
 		observer.disconnect();
@@ -401,22 +442,10 @@ function trackFloat({
 		window.removeEventListener("resize", schedule);
 		window.removeEventListener("transitionend", schedule, { capture: true });
 		window.removeEventListener("animationend", schedule, { capture: true });
-		// Why: the next placement of the same float sets only the margins it needs.
-		for (const edge of ["top", "right", "bottom", "left"] as const) {
-			floating.style.removeProperty(`margin-${edge}`);
-		}
 		if (supportsAnchorPositioning) {
-			// Why a filter: another float on the same anchor can close after this one.
-			const otherNames = anchor.style
-				.getPropertyValue("anchor-name")
-				.split(",")
-				.map((name) => name.trim())
-				.filter((name) => name !== "" && name !== anchorName);
-			if (otherNames.length === 0) {
-				anchor.style.removeProperty("anchor-name");
-			} else {
-				anchor.style.setProperty("anchor-name", otherNames.join(", "));
-			}
+			// Why later: Chromium paints a closing float through its exit
+			// transition, and without the anchor it would jump to the corner.
+			setTimeout(releaseAnchorName, releaseAnchorAfter);
 		}
 	};
 }

@@ -424,13 +424,15 @@ function Trigger({
 				state.close();
 				pressed.current = true;
 				// Why the owner document: a press can end outside the trigger, or in a frame.
-				event.currentTarget.ownerDocument.addEventListener(
-					"pointerup",
-					() => {
-						pressed.current = false;
-					},
-					{ once: true },
-				);
+				// Why `pointercancel` too: a touch scroll ends with it, not with `pointerup`.
+				const document = event.currentTarget.ownerDocument;
+				const release = () => {
+					pressed.current = false;
+					document.removeEventListener("pointerup", release);
+					document.removeEventListener("pointercancel", release);
+				};
+				document.addEventListener("pointerup", release);
+				document.addEventListener("pointercancel", release);
 			}}
 			onFocus={(event: FocusEvent<HTMLButtonElement>) => {
 				onFocus?.(event);

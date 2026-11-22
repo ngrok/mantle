@@ -114,6 +114,42 @@ describe("a browser with no popover API and no anchor positioning", () => {
 		});
 	});
 
+	test("places a popover inside a scrolled, transformed popover next to its own trigger", async () => {
+		const user = userEvent.setup();
+		render(
+			<div style={{ padding: 100 }}>
+				<Popover.Root>
+					<Popover.Trigger>Outer</Popover.Trigger>
+					<Popover.Content
+						data-testid="outer"
+						style={{ transform: "translateX(10px)", height: 160, overflow: "auto" }}
+					>
+						<div style={{ height: 80 }} />
+						<Popover.Root>
+							<Popover.Trigger>Inner</Popover.Trigger>
+							<Popover.Content>Inner content</Popover.Content>
+						</Popover.Root>
+						<div style={{ height: 500 }} />
+					</Popover.Content>
+				</Popover.Root>
+			</div>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "Outer" }));
+		const outer = await screen.findByTestId("outer");
+		outer.scrollTop = 50;
+		const inner = screen.getByRole("button", { name: "Inner" });
+		await user.click(inner);
+		const content = (await screen.findByText("Inner content")).closest<HTMLElement>(
+			"[data-slot='popover-content']",
+		);
+
+		await waitFor(() => {
+			const anchor = inner.getBoundingClientRect();
+			expect(content?.getBoundingClientRect().top).toBeCloseTo(anchor.bottom + 4, 0);
+		});
+	});
+
 	test("flips a popover above its trigger when only that side fits", async () => {
 		const user = userEvent.setup();
 		render(

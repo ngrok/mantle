@@ -159,4 +159,51 @@ describe("Popover.Content placement", () => {
 			);
 		});
 	});
+
+	test("stays next to its trigger while its exit transition plays", async () => {
+		const user = userEvent.setup();
+		render(
+			<div style={{ padding: 120 }}>
+				<Popover.Root>
+					<Popover.Trigger>Open</Popover.Trigger>
+					<Popover.Content>
+						<Popover.Close>Done</Popover.Close>
+					</Popover.Content>
+				</Popover.Root>
+			</div>,
+		);
+		const trigger = screen.getByRole("button", { name: "Open" });
+		await user.click(trigger);
+		const content = await screen.findByRole("dialog");
+		await waitFor(() => expect(getComputedStyle(content).opacity).toBe("1"));
+		const openTop = content.getBoundingClientRect().top;
+
+		await user.click(screen.getByRole("button", { name: "Done" }));
+		await new Promise(requestAnimationFrame);
+
+		// Why only while painted: Chromium keeps a closing popover in the top
+		// layer for its exit; Firefox and Safari hide it at once.
+		const paintedTop = content.checkVisibility() ? content.getBoundingClientRect().top : openTop;
+		expect(paintedTop).toBeCloseTo(openTop, 0);
+	});
+
+	test("takes pointer input when a modal menu turns off pointer events on the body", async () => {
+		const user = userEvent.setup();
+		render(
+			<Popover.Root>
+				<Popover.Trigger>Open</Popover.Trigger>
+				<Popover.Content>
+					<button type="button">Inside</button>
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		await user.click(screen.getByRole("button", { name: "Open" }));
+		const content = await screen.findByRole("dialog");
+		document.body.style.pointerEvents = "none";
+		try {
+			expect(getComputedStyle(content).pointerEvents).toBe("auto");
+		} finally {
+			document.body.style.removeProperty("pointer-events");
+		}
+	});
 });

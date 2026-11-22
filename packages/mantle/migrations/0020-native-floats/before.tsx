@@ -50,11 +50,16 @@ export const Hint = (
 // Negative cases: another library's Popover keeps its props and its variable.
 export const Untouched = (
 	<RadixPopover.Root modal>
-		<RadixPopover.Content
-			collisionPadding={16}
-			className="w-(--radix-popover-trigger-width)"
-		/>
+		<RadixPopover.Content collisionPadding={16} className="w-(--radix-popover-trigger-width)" />
 	</RadixPopover.Root>
+);
+
+// Negative case: an element in a prop of the content owns its own variable.
+export const InProp = (
+	<Popover.Content
+		// oxlint-disable-next-line react/no-children-prop -- the case is an element in a prop
+		children={<RadixPopover.Content className="w-(--radix-popover-trigger-width)" />}
+	/>
 );
 
 // Negative case: a parameter under the import's name shadows it.

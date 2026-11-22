@@ -479,6 +479,38 @@ describe("layer containers", () => {
 			});
 		}
 
+		test("a popover beside a dialog inside a popover portals into the popover, not the dialog", async () => {
+			const user = userEvent.setup();
+			const Host = ({ siblingOpen }: { siblingOpen: boolean }) => (
+				<Popover.Root>
+					<Popover.Trigger>Open host</Popover.Trigger>
+					<Popover.Content>
+						<p>host content</p>
+						<Dialog.Root open>
+							<Dialog.Content>
+								<Dialog.Title>Nested dialog</Dialog.Title>
+							</Dialog.Content>
+						</Dialog.Root>
+						<Popover.Root open={siblingOpen}>
+							<Popover.Trigger>Sibling</Popover.Trigger>
+							<Popover.Content>sibling content</Popover.Content>
+						</Popover.Root>
+					</Popover.Content>
+				</Popover.Root>
+			);
+			const { rerender } = render(<Host siblingOpen={false} />);
+			await user.click(screen.getByRole("button", { name: "Open host" }));
+			await screen.findByRole("heading", { name: "Nested dialog" });
+
+			// The sibling opens while the dialog is open.
+			rerender(<Host siblingOpen />);
+			const sibling = await screen.findByText("sibling content");
+
+			expect(sibling.closest("[data-mantle-modal-content]")).toBeNull();
+			const host = screen.getByText("host content").closest("[data-slot='popover-content']");
+			expect(host?.contains(sibling)).toBe(true);
+		});
+
 		test("a Select inside a popover inside a dialog portals into the dialog's positioner", async () => {
 			const user = userEvent.setup();
 			render(
