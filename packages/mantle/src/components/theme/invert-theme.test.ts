@@ -95,7 +95,10 @@ describe("theme block selector extensions", () => {
 		// force-theme.browser.test.ts proves the computed outcome; this pins the
 		// spelling in mantle.css so a new selector cannot reintroduce it.
 		const sheets = {
-			"mantle.css": mantleCss,
+			// Why drop `theme-switcher-name`: it reads the stored preference on purpose,
+			// to name a click that returns to "system". It paints no theme, and the
+			// switcher renders it on no forced page.
+			"mantle.css": mantleCss.replace(/^@utility theme-switcher-name \{[\s\S]*?^\}/m, ""),
 		};
 		const unguarded: string[] = [];
 		let guarded = 0;

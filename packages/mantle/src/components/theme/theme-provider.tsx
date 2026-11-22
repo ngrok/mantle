@@ -357,6 +357,19 @@ function useTheme(): ThemeProviderState {
 }
 
 /**
+ * Returns the `setTheme` of the nearest {@link ThemeProvider} without a
+ * subscription to the theme. Internal: a control that shows the theme with CSS,
+ * such as `ThemeSwitcher`, then never renders again when the theme changes.
+ */
+function useSetTheme(): ThemeProviderState[1] {
+	const context = useContext(ThemeProviderContext);
+
+	invariant(context, "useSetTheme must be used within a ThemeProvider");
+
+	return context.setTheme;
+}
+
+/**
  * Reads the theme of the nearest {@link ThemeProvider}, or `"system"` outside
  * one. During hydration it returns the theme the server rendered.
  */
@@ -737,6 +750,7 @@ export {
 	useAppliedTheme,
 	useForcedTheme,
 	useInitialHtmlThemeProps,
+	useSetTheme,
 	useTheme,
 };
 

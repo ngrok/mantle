@@ -2077,6 +2077,37 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 }
 
 /*
+ * The accessible name of `ThemeSwitcher`: the theme its next click shows. CSS
+ * writes it from the theme on `<html>`, so the name is correct before
+ * hydration and with no JavaScript. Generated content keeps it out of the page
+ * text that crawlers read. A pinned preference that differs from the OS gets
+ * " (system default)", because the click then stores `"system"`.
+ */
+@utility theme-switcher-name {
+	&::before {
+		content: "Switch to dark theme";
+	}
+
+	@variant dark {
+		&::before {
+			content: "Switch to light theme";
+		}
+	}
+
+	@media (prefers-color-scheme: dark) {
+		:root[data-theme="light"] &::after {
+			content: " (system default)";
+		}
+	}
+
+	@media (prefers-color-scheme: light) {
+		:root[data-theme="dark"] &::after {
+			content: " (system default)";
+		}
+	}
+}
+
+/*
  * The theme swap that `ThemeSwitcher` starts. The new theme grows in a circle
  * from the button over the old one, so neither snapshot fades or blends: the
  * default crossfade adds the two images together inside the circle.

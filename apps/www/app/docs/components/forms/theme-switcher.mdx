@@ -189,9 +189,9 @@ export function ThemeItem() {
 
 ## Accessibility
 
-- When `label` is omitted, the accessible name says which theme the next click shows: "Switch to dark theme", "Switch to light theme", or "Switch to light theme (system default)" when the click returns to the OS setting. The server can't read the OS setting, so the name is "Toggle theme" until hydration.
+- When `label` is omitted, the accessible name says which theme the next click shows: "Switch to dark theme", "Switch to light theme", or "Switch to light theme (system default)" when the click returns to the OS setting. CSS writes the name from the theme on `<html>`, so it's correct before hydration and with no JavaScript.
 - The circular reveal is movement, so it does not run under `prefers-reduced-motion: reduce`.
-- The icon mirrors the applied theme (a sun or a moon). It's SSR-safe: a `Skeleton` placeholder renders until hydration, then the icon appears.
+- The icon mirrors the applied theme (a sun or a moon). CSS picks it from the theme class on `<html>`, so the first paint shows the right icon, with no placeholder.
 - `ThemeDropdownMenuItem` is a `role="menuitem"`. When `label` is omitted, its accessible name starts with the visible "Theme" and says which theme the next press shows, such as "Theme: Switch to dark theme". When `label` is set, the label is the name. When `children` is set, the children are the name. Under `forceTheme`, the item is disabled.
 - `ThemeSwitcherIcon` is decorative, so it has `aria-hidden`.
 
@@ -199,9 +199,9 @@ export function ThemeItem() {
 
 ### ThemeSwitcher
 
-The light/dark toggle: an `IconButton` with an SSR-safe themed icon. Requires a [`ThemeProvider`](/components/primitives/theme) ancestor.
+The light/dark toggle: an icon button whose icon and name CSS picks from the theme on `<html>`. Requires a [`ThemeProvider`](/components/primitives/theme) ancestor.
 
-All props from [`IconButton`](/components/actions/icon-button) except `icon`, `intent`, `asChild`, and `children` (the switcher renders only its icon and `aria-label`), plus:
+All props from [`IconButton`](/components/actions/icon-button) except `icon`, `intent`, `asChild`, and `children` (the switcher renders only its icon and its name), plus:
 
 | Prop          | Type                                | Default                         | Description                                                                 |
 | ------------- | ----------------------------------- | ------------------------------- | --------------------------------------------------------------------------- |

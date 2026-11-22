@@ -96,6 +96,25 @@ function stubPrefersDarkMode(prefersDarkMode: boolean) {
 	}));
 }
 
+/**
+ * The switcher button. Why by slot: CSS writes its default name, and happy-dom
+ * loads no CSS, so the browser tests own the name.
+ */
+function getSwitcher(): HTMLButtonElement {
+	const button = document.querySelector('[data-slot~="theme-switcher"]');
+	if (!(button instanceof HTMLButtonElement)) {
+		throw new Error("No ThemeSwitcher button is rendered.");
+	}
+	return button;
+}
+
+/** The server HTML of `element` under a provider seeded with each stored theme. */
+function serverHtmlForEachTheme(element: ReactElement) {
+	return ["light", "dark", "system"].map((theme) =>
+		renderToString(<ThemeProvider ssrCookie={`mantle-ui-theme=${theme}`}>{element}</ThemeProvider>),
+	);
+}
+
 const renderSwitcher = (props: ComponentProps<typeof ThemeSwitcher> = {}) =>
 	render(
 		<ThemeProvider>
@@ -105,52 +124,40 @@ const renderSwitcher = (props: ComponentProps<typeof ThemeSwitcher> = {}) =>
 	);
 
 describe("ThemeSwitcher", () => {
-	test("the server render puts a <span> skeleton inside the button, never a <div>", () => {
-		const html = renderToString(
-			<ThemeProvider>
-				<ThemeSwitcher />
-			</ThemeProvider>,
-		);
+	test("the server render is the same for every stored theme, holds both icons, and adds no page text", () => {
+		const [light, dark, system] = serverHtmlForEachTheme(<ThemeSwitcher />);
+		expect(dark).toBe(light);
+		expect(system).toBe(light);
 		const template = document.createElement("template");
-		template.innerHTML = html;
+		template.innerHTML = light ?? "";
 		const button = template.content.querySelector("button");
-		const skeleton = button?.querySelector('[data-slot="skeleton"]');
-		expect(skeleton?.tagName).toBe("SPAN");
-		expect(button?.querySelector("div")).toBeNull();
-		// Why only inactive: the button keeps its hidden loading spinner mounted.
-		for (const svg of template.content.querySelectorAll("svg")) {
-			expect(svg.closest("[data-state='inactive']")).not.toBeNull();
-		}
-	});
-
-	test("the server render uses a generic name, because the OS preference is unknown", () => {
-		const html = renderToString(
-			<ThemeProvider>
-				<ThemeSwitcher />
-			</ThemeProvider>,
+		const glyphs = [...(button?.querySelectorAll("path") ?? [])].map((path) =>
+			path.getAttribute("d"),
 		);
-		expect(html).toContain('aria-label="Toggle theme"');
+		expect(glyphs).toContain(glyphOf(<ThemeIcon theme="light" />));
+		expect(glyphs).toContain(glyphOf(<ThemeIcon theme="dark" />));
+		expect(button?.querySelector('[data-slot="skeleton"]')).toBeNull();
+		// Why: CSS writes the name, so the page text that crawlers read stays empty.
+		expect(button).not.toHaveAttribute("aria-label");
+		expect(button?.textContent).toBe("");
 	});
 
 	test("on a light OS, a click from system pins dark, and a second click returns to system", () => {
 		stubPrefersDarkMode(false);
 		renderSwitcher();
-		const button = screen.getByRole("button", { name: "Switch to dark theme" });
 
-		fireEvent.click(button);
+		fireEvent.click(getSwitcher());
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
-		expect(button).toHaveAccessibleName("Switch to light theme (system default)");
 
-		fireEvent.click(button);
+		fireEvent.click(getSwitcher());
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
-		expect(button).toHaveAccessibleName("Switch to dark theme");
 	});
 
 	test("on a dark OS, a click from system pins light", () => {
 		stubPrefersDarkMode(true);
 		renderSwitcher();
 
-		fireEvent.click(screen.getByRole("button", { name: "Switch to light theme" }));
+		fireEvent.click(getSwitcher());
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("light");
 	});
 
@@ -160,7 +167,7 @@ describe("ThemeSwitcher", () => {
 		renderSwitcher();
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
 
-		fireEvent.click(screen.getByRole("button", { name: "Switch to light theme" }));
+		fireEvent.click(getSwitcher());
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("light");
 	});
 
@@ -168,7 +175,7 @@ describe("ThemeSwitcher", () => {
 		stubPrefersDarkMode(false);
 		renderSwitcher({ onClick: (event) => event.preventDefault() });
 
-		fireEvent.click(screen.getByRole("button", { name: "Switch to dark theme" }));
+		fireEvent.click(getSwitcher());
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
 	});
 
@@ -231,21 +238,6 @@ describe("ThemeSwitcher", () => {
 		const ref = createRef<HTMLButtonElement>();
 		renderSwitcher({ ref });
 		expect(ref.current).toBe(screen.getByRole("button"));
-	});
-
-	test("swaps its icon to the applied theme and keeps the previous icon mounted", () => {
-		stubPrefersDarkMode(false);
-		renderSwitcher();
-		const button = screen.getByRole("button");
-		expect(button.querySelector('[data-slot="skeleton"]')).toBeNull();
-		const sunIcon = shownIcon(button);
-		expect(glyphOf(sunIcon)).toBe(glyphOf(<ThemeIcon theme="light" />));
-
-		fireEvent.click(button);
-
-		expect(glyphOf(shownIcon(button))).toBe(glyphOf(<ThemeIcon theme="dark" />));
-		expect(button).toContainElement(sunIcon);
-		expect(sunIcon.parentElement).toHaveAttribute("data-state", "inactive");
 	});
 
 	test("a loading switcher hides its theme icon behind the spinner", () => {
@@ -316,13 +308,11 @@ describe("ThemeSwitcher theme swap", () => {
 		mockMatchMedia({ "(prefers-reduced-motion: no-preference)": true });
 		const { finish, startViewTransition } = stubViewTransition();
 		renderSwitcher();
-		const button = screen.getByRole("button", { name: "Switch to dark theme" });
 
-		fireEvent.click(button);
+		fireEvent.click(getSwitcher());
 		expect(startViewTransition).toHaveBeenCalledOnce();
-		// The theme and the name change on the click, not when the motion ends.
+		// The theme changes on the click, not when the motion ends.
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
-		expect(button).toHaveAccessibleName("Switch to light theme (system default)");
 		expect(document.documentElement).toHaveAttribute("data-theme-transition");
 
 		finish();
@@ -335,7 +325,7 @@ describe("ThemeSwitcher theme swap", () => {
 		mockMatchMedia({ "(prefers-reduced-motion: no-preference)": true });
 		const { finish, skipTransition } = stubViewTransition();
 		renderSwitcher();
-		const button = screen.getByRole("button", { name: "Switch to dark theme" });
+		const button = getSwitcher();
 		fireEvent.click(button);
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
 
@@ -365,7 +355,7 @@ describe("ThemeSwitcher theme swap", () => {
 				</button>
 			</ThemeProvider>,
 		);
-		fireEvent.click(screen.getByRole("button", { name: "Switch to dark theme" }));
+		fireEvent.click(getSwitcher());
 
 		vi.spyOn(document, "elementFromPoint").mockReturnValue(
 			screen.getByRole("button", { name: "Other" }),
@@ -383,7 +373,7 @@ describe("ThemeSwitcher theme swap", () => {
 		mockMatchMedia({ "(prefers-reduced-motion: no-preference)": true });
 		const { finish, runUpdates, startViewTransition } = stubViewTransition({ deferUpdate: true });
 		renderSwitcher();
-		const button = screen.getByRole("button", { name: "Switch to dark theme" });
+		const button = getSwitcher();
 
 		// A key press targets the focused button, not <html>, as this click does.
 		fireEvent.click(button);
@@ -402,7 +392,7 @@ describe("ThemeSwitcher theme swap", () => {
 		mockMatchMedia({ "(prefers-reduced-motion: no-preference)": true });
 		const { finish, runUpdates, startViewTransition } = stubViewTransition({ deferUpdate: true });
 		renderSwitcher();
-		const button = screen.getByRole("button", { name: "Switch to dark theme" });
+		const button = getSwitcher();
 		fireEvent.click(button);
 
 		vi.spyOn(document, "elementFromPoint").mockReturnValue(button);
@@ -428,7 +418,7 @@ describe("ThemeSwitcher theme swap", () => {
 		const { startViewTransition } = stubViewTransition();
 		renderSwitcher();
 
-		fireEvent.click(screen.getByRole("button", { name: "Switch to dark theme" }));
+		fireEvent.click(getSwitcher());
 		expect(startViewTransition).not.toHaveBeenCalled();
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("dark");
 		expect(document.documentElement).not.toHaveAttribute("data-theme-transition");
@@ -459,15 +449,6 @@ describe("ThemeDropdownMenuItem", () => {
 		const item = screen.getByRole("menuitem", { name: "Tema" });
 		expect(item.querySelector('[data-slot="theme-dropdown-menu-item-label"]')).toHaveTextContent(
 			"Tema",
-		);
-	});
-
-	test("the icon shows the applied theme", () => {
-		stubPrefersDarkMode(false);
-		document.cookie = "mantle-ui-theme=dark; path=/";
-		renderMenuItem();
-		expect(glyphOf(shownIcon(screen.getByRole("menuitem")))).toBe(
-			glyphOf(<ThemeIcon theme="dark" />),
 		);
 	});
 
@@ -504,7 +485,7 @@ describe("ThemeDropdownMenuItem", () => {
 		expect(screen.getByRole("menuitem")).toBeInTheDocument();
 	});
 
-	test("under forceTheme, the item shows the forced theme and is disabled", () => {
+	test("under forceTheme, the item is disabled", () => {
 		render(
 			<ThemeProvider forceTheme="dark">
 				<DropdownMenu.Root open>
@@ -517,7 +498,6 @@ describe("ThemeDropdownMenuItem", () => {
 		);
 		const item = screen.getByRole("menuitem");
 		expect(item).toHaveAttribute("aria-disabled", "true");
-		expect(glyphOf(shownIcon(item))).toBe(glyphOf(<ThemeIcon theme="dark" />));
 	});
 
 	test("has data-slot and merges className and style", () => {
@@ -564,22 +544,21 @@ describe("ThemeDropdownMenuItem with children", () => {
 });
 
 describe("ThemeSwitcherIcon", () => {
-	test("the server render shows a skeleton, because the OS preference is unknown", () => {
-		const html = renderToString(
-			<ThemeProvider>
-				<ThemeSwitcherIcon />
-			</ThemeProvider>,
-		);
+	test("the server render is the same for every stored theme and holds both icons", () => {
+		const [light, dark, system] = serverHtmlForEachTheme(<ThemeSwitcherIcon />);
+		expect(dark).toBe(light);
+		expect(system).toBe(light);
 		const template = document.createElement("template");
-		template.innerHTML = html;
-		const icon = template.content.querySelector('[data-slot="theme-switcher-icon"]');
-		expect(icon?.querySelector('[data-slot="skeleton"]')).not.toBeNull();
-		expect(icon?.querySelector("svg")).toBeNull();
+		template.innerHTML = light ?? "";
+		const glyphs = [...template.content.querySelectorAll("path")].map((path) =>
+			path.getAttribute("d"),
+		);
+		expect(glyphs).toHaveLength(2);
+		expect(glyphs).toContain(glyphOf(<ThemeIcon theme="light" />));
+		expect(glyphs).toContain(glyphOf(<ThemeIcon theme="dark" />));
 	});
 
-	test("shows the applied theme and is hidden from assistive technology", () => {
-		stubPrefersDarkMode(false);
-		document.cookie = "mantle-ui-theme=dark; path=/";
+	test("is hidden from assistive technology and merges className", () => {
 		const { container } = render(
 			<ThemeProvider>
 				<ThemeSwitcherIcon className="custom-icon-class" />
@@ -590,8 +569,8 @@ describe("ThemeSwitcherIcon", () => {
 			throw new Error("ThemeSwitcherIcon renders no slot");
 		}
 		expect(icon).toHaveAttribute("aria-hidden", "true");
+		// Why the class check: the tailwind-merge contract puts the consumer's class beside the defaults.
 		expect(icon.className).toContain("custom-icon-class");
-		expect(glyphOf(shownIcon(icon))).toBe(glyphOf(<ThemeIcon theme="dark" />));
 	});
 });
 

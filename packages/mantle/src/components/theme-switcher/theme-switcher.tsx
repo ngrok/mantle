@@ -1,34 +1,56 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
+import { CircleNotchIcon } from "@phosphor-icons/react/CircleNotch";
+import { MoonIcon } from "@phosphor-icons/react/Moon";
+import { SunIcon } from "@phosphor-icons/react/Sun";
+import type { ComponentProps, ReactNode } from "react";
 import { useMatchesMediaQuery } from "../../hooks/use-matches-media-query.js";
+import { parseBooleanish } from "../../types/index.js";
 import type { WithStyleProps } from "../../types/with-style-props.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { cx } from "../../utils/cx/cx.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { BrowserOnly } from "../browser-only/browser-only.js";
-import {
-	IconButton,
-	type IconButtonAppearance,
-	type IconButtonProps,
-} from "../button/icon-button.js";
+import type { IconButtonAppearance, IconButtonProps } from "../button/icon-button.js";
+import { iconButtonVariants } from "../button/icon-button-variants.js";
 import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
 import { IconSwap } from "../icon/icon-swap.js";
-import { ThemeIcon } from "../icons/theme.js";
-import { Skeleton } from "../skeleton/index.js";
-import { useAppliedTheme, useForcedTheme, useTheme } from "../theme/theme-provider.js";
-import type { ResolvedTheme, Theme } from "../theme/themes.js";
+import { useForcedTheme, useSetTheme, useTheme } from "../theme/theme-provider.js";
+import type { Theme } from "../theme/themes.js";
 import { getToggledTheme } from "../theme/themes.js";
 
 /**
- * The switcher icon for each applied theme. The switcher keeps each icon
- * mounted, so a theme change swaps the icon with a transition.
+ * The transition each icon of `AppliedThemeIcon` runs when the theme changes.
  */
-const appliedThemeIcons = {
-	light: <ThemeIcon theme="light" />,
-	dark: <ThemeIcon theme="dark" />,
-} satisfies Record<ResolvedTheme, ReactNode>;
+const appliedThemeIconItem =
+	"col-start-1 row-start-1 grid place-items-center motion-safe:transition-[opacity,scale,filter,visibility] motion-safe:duration-200 motion-safe:ease-out-strong";
+
+/**
+ * The sun and the moon in one cell. CSS shows the icon of the theme on
+ * `<html>`, which the pre-paint script and `ThemeProvider` set, so the server
+ * HTML is final and a theme change renders nothing.
+ */
+function AppliedThemeIcon({ className, ...props }: ComponentProps<"span">) {
+	return (
+		<span className={cx("inline-grid shrink-0 place-items-center", className)} {...props}>
+			<span
+				className={cx(
+					appliedThemeIconItem,
+					"dark:invisible dark:opacity-0 motion-safe:dark:scale-50 motion-safe:dark:blur-[2px] motion-safe:dark:duration-150",
+				)}
+			>
+				<SunIcon className="size-5" />
+			</span>
+			<span
+				className={cx(
+					appliedThemeIconItem,
+					"not-dark:invisible not-dark:opacity-0 motion-safe:not-dark:scale-50 motion-safe:not-dark:blur-[2px] motion-safe:not-dark:duration-150",
+				)}
+			>
+				<MoonIcon className="size-5" />
+			</span>
+		</span>
+	);
+}
 
 /**
  * The props for the `ThemeSwitcherIcon` component.
@@ -41,10 +63,11 @@ type ThemeSwitcherIconProps = WithStyleProps;
  * `children` of a `ThemeDropdownMenuItem`, or of a `DropdownMenu.Item` that
  * uses `useThemeToggle`, and the new theme grows in a circle from it.
  *
- * Reads the applied theme via `useAppliedTheme`, so it must render inside a
- * `ThemeProvider`. It is decorative (`aria-hidden`). Its box is the size of an
- * `Icon`, so it lines up with the icons of other menu rows. It is SSR-safe: a
- * `Skeleton` renders until hydration, then the icon of the applied theme.
+ * CSS shows the icon of the theme class on `<html>`, which
+ * `PreventWrongThemeFlashScript` and `ThemeProvider` set. The server HTML is
+ * therefore final, and a theme change renders nothing. It is decorative
+ * (`aria-hidden`). Its box is the size of an `Icon`, so it lines up with the
+ * icons of other menu rows.
  *
  * **Data attributes:**
  *
@@ -64,8 +87,6 @@ type ThemeSwitcherIconProps = WithStyleProps;
  */
 // Why no asChild: the part owns its only content, the icon swap.
 function ThemeSwitcherIcon({ className, style }: ThemeSwitcherIconProps) {
-	const appliedTheme = useAppliedTheme();
-
 	return (
 		<span
 			aria-hidden
@@ -73,15 +94,7 @@ function ThemeSwitcherIcon({ className, style }: ThemeSwitcherIconProps) {
 			className={cx("flex shrink-0 items-center justify-center text-muted", className)}
 			style={style}
 		>
-			<BrowserOnly
-				fallback={
-					<Skeleton asChild className="rounded-full size-5">
-						<span />
-					</Skeleton>
-				}
-			>
-				{() => <IconSwap active={appliedTheme} icons={appliedThemeIcons} />}
-			</BrowserOnly>
+			<AppliedThemeIcon />
 		</span>
 	);
 }
@@ -268,11 +281,10 @@ function ThemeDropdownMenuItem({ children, className, label, style }: ThemeDropd
 }
 
 /**
- * The props for the `ThemeSwitcher` component. Forwards `IconButton`'s props,
- * except the parts the switcher owns: `icon` (the SSR-safe themed icon) and
- * `intent` (always `"neutral"`). `asChild` and `children` are removed: the
- * switcher renders only its icon (the `label` renders as `aria-label`), so
- * both would be silently meaningless. `appearance` and `label` become optional
+ * The props for the `ThemeSwitcher` component. Takes `IconButton`'s props,
+ * except the parts the switcher owns: `icon` (the themed icon) and `intent`
+ * (always `"neutral"`). `asChild` and `children` are removed: the switcher
+ * renders only its icon and its name, so both would be silently meaningless. `appearance` and `label` become optional
  * with theme-switcher defaults.
  */
 type ThemeSwitcherProps = Omit<
@@ -289,15 +301,15 @@ type ThemeSwitcherProps = Omit<
 		appearance?: IconButtonAppearance;
 		/**
 		 * The accessible name of the button, rendered as its `aria-label`. When
-		 * omitted, the name says which theme the next click shows, such as
-		 * "Switch to dark theme" or "Switch to light theme (system default)".
-		 * Set it for localization.
+		 * omitted, CSS writes a name that says which theme the next click shows,
+		 * such as "Switch to dark theme" or "Switch to light theme (system
+		 * default)". Set it for localization.
 		 */
 		label?: string;
 	};
 
 /**
- * The canonical theme control for headers and toolbars: an `IconButton`
+ * The canonical theme control for headers and toolbars: an icon button
  * (ghost by default) that shows the applied theme and flips between light and
  * dark on each click. The new theme grows in a circle from the button in a
  * view transition, and swaps at once under reduced motion. It stores three
@@ -306,11 +318,13 @@ type ThemeSwitcherProps = Omit<
  * pin when that opposite matches the OS preference. So a second click always
  * returns the user to the OS default.
  *
- * Reads and writes the theme via `useTheme`, so it must render inside a
- * `ThemeProvider`. Under a provider with `forceTheme`, it shows the forced
- * theme and is disabled, because a click cannot change what the page shows. The icon is SSR-safe: a `Skeleton` renders until
- * hydration, then the icon of the applied theme. To put the same control in
- * an existing menu, use `ThemeDropdownMenuItem`.
+ * Writes the theme via `useTheme`'s setter, so it must render inside a
+ * `ThemeProvider`. CSS shows the icon and writes the name from the theme on
+ * `<html>`, so the server HTML is final, the control works before hydration
+ * and with no JavaScript, and a theme change renders nothing. Under a
+ * provider with `forceTheme`, it shows the forced theme and is disabled,
+ * because a click cannot change what the page shows. To put the same control
+ * in an existing menu, use `ThemeDropdownMenuItem`.
  *
  * @useWhen Let the user switch between light and dark mode from a header, a toolbar, or an account
  * menu.
@@ -336,53 +350,70 @@ type ThemeSwitcherProps = Omit<
  * ```
  */
 function ThemeSwitcher({
+	"aria-disabled": ariaDisabled,
 	appearance = "ghost",
+	className,
 	"data-slot": dataSlot,
-	disabled,
+	disabled: disabledProp,
+	isLoading = false,
 	label,
 	onClick,
+	size = "md",
+	type,
 	...props
 }: ThemeSwitcherProps) {
-	const [theme, setTheme] = useTheme();
-	const appliedTheme = useAppliedTheme();
+	const setTheme = useSetTheme();
 	const forcedTheme = useForcedTheme();
-	const prefersDarkMode = useMatchesMediaQuery("(prefers-color-scheme: dark)");
-	// Why gate on hydration: the server cannot read the OS preference, so the
-	// default name stays generic until the client knows which theme comes next.
-	const isHydrated = useIsHydrated();
-	const nextTheme = getToggledTheme({ theme, prefersDarkMode });
-	const defaultLabel = isHydrated ? toggleLabel(nextTheme, { prefersDarkMode }) : "Toggle theme";
+	const ariaLabel = label ?? (forcedTheme != null ? "Theme set by this page" : undefined);
+	const disabled =
+		forcedTheme != null ||
+		parseBooleanish(disabledProp ?? isLoading) ||
+		parseBooleanish(ariaDisabled);
 
 	return (
-		<IconButton
-			appearance={appearance}
-			data-slot={joinDataSlot(dataSlot, "theme-switcher")}
-			disabled={forcedTheme != null || disabled}
-			intent="neutral"
-			icon={
-				<BrowserOnly
-					fallback={
-						// Why a span: the fallback renders inside a <button>, whose content
-						// model forbids a <div>.
-						<Skeleton asChild className="rounded-full size-5">
-							<span />
-						</Skeleton>
-					}
-				>
-					{() => <IconSwap active={appliedTheme} icons={appliedThemeIcons} />}
-				</BrowserOnly>
-			}
-			label={label ?? (forcedTheme != null ? "Theme set by this page" : defaultLabel)}
+		<button
+			aria-disabled={disabled}
+			className={cx(
+				iconButtonVariants({ appearance, intent: "neutral", isLoading, size }),
+				className,
+			)}
+			data-appearance={appearance}
+			data-disabled={disabled ? "" : undefined}
+			data-icon-button
+			data-intent="neutral"
+			data-loading={isLoading ? "" : undefined}
+			data-size={size}
+			data-slot={joinDataSlot(dataSlot, "theme-switcher", "icon-button")}
+			{...props}
+			// Why after the spread, and none by default: CSS writes the name from the
+			// theme on `<html>`, and any `aria-label` would replace it.
+			aria-label={ariaLabel}
+			disabled={disabled}
+			// oxlint-disable-next-line react/button-has-type -- `type` defaults to "button" at runtime via the `?? "button"` fallback; the static analyzer can't resolve that expression.
+			type={type ?? "button"}
 			onClick={(event) => {
 				onClick?.(event);
 				if (!event.defaultPrevented) {
+					// Why read the OS preference here: the click is the only reader, so the
+					// switcher holds no media query list between clicks.
+					const prefersDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
 					setTheme((current) => getToggledTheme({ theme: current, prefersDarkMode }), {
 						origin: event.currentTarget,
 					});
 				}
 			}}
-			{...props}
-		/>
+		>
+			<IconSwap
+				active={isLoading ? "loading" : "idle"}
+				icons={{
+					idle: <AppliedThemeIcon />,
+					loading: <CircleNotchIcon className="animate-spin" />,
+				}}
+			/>
+			{/* Why CSS content: the name follows the theme with no render, and the
+			page text that crawlers read holds no copy of it. */}
+			{ariaLabel == null && <span className="sr-only theme-switcher-name" />}
+		</button>
 	);
 }
 

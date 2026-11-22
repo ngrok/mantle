@@ -3,7 +3,7 @@
 /// <reference types="@vitest/browser-playwright" />
 import "@testing-library/jest-dom/vitest";
 import type { TestingLibraryMatchers } from "@testing-library/jest-dom/matchers";
-import { cleanup } from "@testing-library/react";
+import { cleanup, configure } from "@testing-library/react";
 import { afterEach } from "vitest";
 import { createIntersectionObserverStub } from "./src/test-utils/mock-intersection-observer.js";
 import { canUseDOM } from "./src/components/browser-only/can-use-dom.js";
@@ -25,6 +25,7 @@ declare module "vitest/browser" {
 		 * registers the command.
 		 */
 		emulateMedia: (options: {
+			colorScheme?: "light" | "dark";
 			reducedMotion?: "reduce" | "no-preference";
 			forcedColors?: "active" | "none";
 		}) => Promise<void>;
@@ -42,6 +43,12 @@ declare module "vitest/browser" {
 // view inside `observe()`, and the guard keeps Chromium's observer in the browser project.
 if (canUseDOM() && "happyDOM" in window) {
 	globalThis.IntersectionObserver = createIntersectionObserverStub({ intersecting: true }).Observer;
+}
+
+// Why: Chromium computes `::before` and `::after` content, which can name an element
+// (`ThemeSwitcher`). Testing Library reads it only when told; happy-dom computes none.
+if (canUseDOM() && !("happyDOM" in window)) {
+	configure({ computedStyleSupportsPseudoElements: true });
 }
 
 afterEach(() => {

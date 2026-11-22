@@ -26,6 +26,7 @@ const contextOptions = {
  * A feature left out keeps its current emulation.
  */
 type EmulatedMedia = {
+	colorScheme?: "light" | "dark";
 	reducedMotion?: "reduce" | "no-preference";
 	forcedColors?: "active" | "none";
 };
@@ -52,15 +53,15 @@ const mantleCustomVariants = async (): Promise<string> => {
 };
 
 /**
- * The `focus-ring` utilities of `mantle.css`. Without them, Tailwind compiles
- * `focus-visible:focus-ring` to nothing, and a focused element keeps the
- * browser outline.
+ * The `focus-ring` and `theme-switcher-name` utilities of `mantle.css`.
+ * Without them, Tailwind compiles `focus-visible:focus-ring` to nothing, so a
+ * focused element keeps the browser outline, and a `ThemeSwitcher` has no name.
  */
-const mantleFocusRingUtilities = async (): Promise<string> => {
+const mantleUtilities = async (): Promise<string> => {
 	const css = await readFile(path.join(import.meta.dirname, "src/mantle.css"), "utf8");
-	const rules = css.match(/^@utility focus-ring[^{]*\{[\s\S]*?^\}/gm);
+	const rules = css.match(/^@utility (?:focus-ring|theme-switcher-name)[^{]*\{[\s\S]*?^\}/gm);
 	if (rules == null) {
-		throw new Error("mantle.css holds no focus-ring utilities.");
+		throw new Error("mantle.css holds no focus-ring or theme-switcher-name utilities.");
 	}
 	return rules.join("\n");
 };
@@ -78,7 +79,7 @@ const tailwindCss: BrowserCommand<[sourceFile: string]> = async ({ testPath }, s
 		.getCandidatesWithPositions({ content, extension: path.extname(file).slice(1) })
 		.map(({ candidate }) => candidate);
 	const compiler = await compile(
-		`@import "tailwindcss/theme"; @import "tailwindcss/utilities";\n${await mantleCustomVariants()}\n${await mantleFocusRingUtilities()}`,
+		`@import "tailwindcss/theme"; @import "tailwindcss/utilities";\n${await mantleCustomVariants()}\n${await mantleUtilities()}`,
 		{
 			base: import.meta.dirname,
 			onDependency: () => {},
