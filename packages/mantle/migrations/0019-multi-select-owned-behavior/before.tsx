@@ -6,7 +6,7 @@ import { MultiSelect as Other } from "@acme/multi-select";
 export const Controlled = () => {
 	const [query, setQuery] = useState("");
 	return (
-		<MultiSelect.Root value={query} setValue={setQuery}>
+		<MultiSelect.Root value={query} setValue={setQuery} selectedValue={["apple"]} setSelectedValue={() => {}} setOpen={() => {}}>
 			<MultiSelect.Trigger>
 				<MultiSelect.Input aria-label="Fruit" />
 			</MultiSelect.Trigger>
@@ -20,7 +20,7 @@ export const Controlled = () => {
 
 // The aliased import is the same part. An item keeps its own value.
 export const Aliased = (
-	<Picker.Root defaultValue="app">
+	<Picker.Root defaultValue="app" defaultSelectedValue={["apple"]}>
 		<Picker.Content portalElement={() => document.body}>
 			<Picker.Item value="apple">Apple</Picker.Item>
 		</Picker.Content>
@@ -46,3 +46,7 @@ export const ClassShadowed = class MultiSelect {
 		return <MultiSelect.Root value="a" />;
 	}
 };
+
+// A lone value or defaultValue is ambiguous: it set the text before and sets
+// the picked value now, so the rules report it and leave it.
+export const Lone = <MultiSelect.Root defaultValue="app" />;

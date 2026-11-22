@@ -81,16 +81,14 @@ function Example() {
 
 	return (
 		<MultiSelect.Root
-			setOpen={() => {
+			onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+			onOpenChange={() => {
 				setSearchValue("");
 			}}
 		>
 			<MultiSelect.Trigger>
 				<MultiSelect.TagValues />
-				<MultiSelect.Input
-					onValueChange={(value) => startTransition(() => setSearchValue(value))}
-					placeholder="Select fruits..."
-				/>
+				<MultiSelect.Input placeholder="Select fruits..." />
 			</MultiSelect.Trigger>
 			<MultiSelect.Content aria-busy={isPending}>
 				{matches.map((value) => (
@@ -117,7 +115,7 @@ function Example() {
 
 ### Controlled
 
-Use `selectedValue` and `setSelectedValue` to control the selected values.
+Use `value` and `onValueChange` to control the selected values.
 
 <Example name="components/forms/multi-select/controlled" title="Multi Select controlled example">
 
@@ -134,18 +132,16 @@ function Example() {
 
 	return (
 		<MultiSelect.Root
-			selectedValue={selected}
-			setOpen={() => {
+			onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+			value={selected}
+			onOpenChange={() => {
 				setSearchValue("");
 			}}
-			setSelectedValue={setSelected}
+			onValueChange={setSelected}
 		>
 			<MultiSelect.Trigger>
 				<MultiSelect.TagValues />
-				<MultiSelect.Input
-					onValueChange={(value) => startTransition(() => setSearchValue(value))}
-					placeholder="Select fruits..."
-				/>
+				<MultiSelect.Input placeholder="Select fruits..." />
 			</MultiSelect.Trigger>
 			<MultiSelect.Content aria-busy={isPending}>
 				{matches.map((value) => (
@@ -243,18 +239,16 @@ const filteredVeggies = useMemo(
 							<Field.Label>Fruits</Field.Label>
 							<Field.Control>
 								<MultiSelect.Root
-									selectedValue={field.state.value}
-									setSelectedValue={field.handleChange}
-									setOpen={() => {
+									onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+									value={field.state.value}
+									onValueChange={field.handleChange}
+									onOpenChange={() => {
 										setSearchValue("");
 									}}
 								>
 									<MultiSelect.Trigger onBlur={field.handleBlur}>
 										<MultiSelect.TagValues />
-										<MultiSelect.Input
-											onValueChange={(value) => startTransition(() => setSearchValue(value))}
-											placeholder="Select fruits and vegetables..."
-										/>
+										<MultiSelect.Input placeholder="Select fruits and vegetables..." />
 									</MultiSelect.Trigger>
 									<MultiSelect.Content aria-busy={isPending}>
 										{filteredFruits.length > 0 && (
@@ -342,18 +336,16 @@ function Example() {
 
 	return (
 		<MultiSelect.Root
-			selectedValue={selected}
-			setOpen={() => {
+			onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+			value={selected}
+			onOpenChange={() => {
 				setSearchValue("");
 			}}
-			setSelectedValue={setSelected}
+			onValueChange={setSelected}
 		>
 			<MultiSelect.Trigger>
 				<MultiSelect.TagValues lockedValues={["apple", "cherry"]} />
-				<MultiSelect.Input
-					onValueChange={(value) => startTransition(() => setSearchValue(value))}
-					placeholder="Select fruits..."
-				/>
+				<MultiSelect.Input placeholder="Select fruits..." />
 			</MultiSelect.Trigger>
 			<MultiSelect.Content aria-busy={isPending}>
 				{matches.map((value) => (
@@ -393,21 +385,19 @@ function Example() {
 
 	return (
 		<MultiSelect.Root
-			selectedValue={selected}
-			setOpen={() => {
+			onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+			value={selected}
+			onOpenChange={() => {
 				setSearchValue("");
 			}}
-			setSelectedValue={(values) => {
+			onValueChange={(values) => {
 				setSelected(values);
 				startTransition(() => setSearchValue(""));
 			}}
 		>
 			<MultiSelect.Trigger>
 				<MultiSelect.TagValues />
-				<MultiSelect.Input
-					onValueChange={(value) => startTransition(() => setSearchValue(value))}
-					placeholder="Select or create fruits..."
-				/>
+				<MultiSelect.Input placeholder="Select or create fruits..." />
 			</MultiSelect.Trigger>
 			<MultiSelect.Content aria-busy={isPending}>
 				{matches.map((value) => (
@@ -456,16 +446,14 @@ function Example() {
 
 	return (
 		<MultiSelect.Root
-			setOpen={() => {
+			onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+			onOpenChange={() => {
 				setSearchValue("");
 			}}
 		>
 			<MultiSelect.Trigger>
 				<MultiSelect.TagValues />
-				<MultiSelect.Input
-					onValueChange={(value) => startTransition(() => setSearchValue(value))}
-					placeholder="Select items..."
-				/>
+				<MultiSelect.Input placeholder="Select items..." />
 			</MultiSelect.Trigger>
 			<MultiSelect.Content aria-busy={isPending}>
 				{filteredFruits.length > 0 && (
@@ -502,7 +490,7 @@ function Example() {
 
 ### With TanStack Form
 
-Use `@tanstack/react-form` with `zod` to wire selected values into form state. Pass `field.state.value` to `selectedValue` and `field.handleChange` to `setSelectedValue`.
+Use `@tanstack/react-form` with `zod` to wire selected values into form state. Pass `field.state.value` to `value` and `field.handleChange` to `onValueChange`.
 
 <Example name="components/forms/multi-select/with-tanstack-form" title="Multi Select With TanStack Form example">
 
@@ -549,10 +537,7 @@ function Example() {
 					<Field.Item name={field.name}>
 						<Field.Label>Favorites</Field.Label>
 						<Field.Control>
-							<MultiSelect.Root
-								selectedValue={field.state.value}
-								setSelectedValue={field.handleChange}
-							>
+							<MultiSelect.Root value={field.state.value} onValueChange={field.handleChange}>
 								<MultiSelect.Trigger onBlur={field.handleBlur}>
 									<MultiSelect.TagValues />
 									<MultiSelect.Input placeholder="Select fruits..." />
@@ -660,18 +645,16 @@ function Example() {
 			<Field.Label>Resolves to</Field.Label>
 			<Field.Control>
 				<MultiSelect.Root
-					selectedValue={selected}
-					setOpen={() => {
+					onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+					value={selected}
+					onOpenChange={() => {
 						setSearchValue("");
 					}}
-					setSelectedValue={setSelected}
+					onValueChange={setSelected}
 				>
 					<MultiSelect.Trigger>
 						<MultiSelect.TagValues />
-						<MultiSelect.Input
-							onValueChange={(value) => startTransition(() => setSearchValue(value))}
-							placeholder="Select regions..."
-						/>
+						<MultiSelect.Input placeholder="Select regions..." />
 						{/* Input is flex-1 so this sibling is pushed to the right */}
 						<Anchor className="shrink-0 whitespace-nowrap text-xs" href="#">
 							Requires upgrade
@@ -805,13 +788,16 @@ Root component for a multi-select combobox. Owns the selected values and the typ
 
 `MultiSelect.Content` renders at Tailwind `z-50`. Inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`).
 
-`MultiSelect.Root` also takes `inputValue`, `defaultInputValue`, `setInputValue`, `open`, `defaultOpen`, and `setOpen`, as `Combobox.Root` does, plus:
+`MultiSelect.Root` also takes `open`, `defaultOpen`, and `onOpenChange`, as `Combobox.Root` does, plus:
 
-| Prop                    | Type                        | Default | Description                                           |
-| :---------------------- | :-------------------------- | :------ | :---------------------------------------------------- |
-| `selectedValue?`        | `string[]`                  | `[]`    | The controlled selected values.                       |
-| `setSelectedValue?`     | `(value: string[]) => void` |         | Event handler called when the selected values change. |
-| `defaultSelectedValue?` | `string[]`                  | `[]`    | The default selected values for uncontrolled usage.   |
+| Prop                  | Type                           | Default | Description                                                                                                   |
+| :-------------------- | :----------------------------- | :------ | :------------------------------------------------------------------------------------------------------------ |
+| `value?`              | `string[]`                     |         | The controlled selected values. Pair with `onValueChange`.                                                    |
+| `defaultValue?`       | `string[]`                     | `[]`    | The selected values on first render.                                                                          |
+| `onValueChange?`      | `(value: string[]) => void`    |         | Called when the user picks or removes a value.                                                                |
+| `inputValue?`         | `string`                       |         | The controlled filter text. Pair with `onInputValueChange`.                                                   |
+| `defaultInputValue?`  | `string`                       | `""`    | The filter text on first render.                                                                              |
+| `onInputValueChange?` | `(inputValue: string) => void` |         | Called with the whole filter text on each change. Use it to filter the items, for example with `matchSorter`. |
 
 ### MultiSelect.Trigger
 
@@ -850,11 +836,10 @@ The combobox input for filtering items. Place this inside `MultiSelect.Trigger`,
 
 All props of an `<input>` except `value`, `defaultValue`, and `autoComplete`. Key props:
 
-| Prop             | Type                      | Default | Description                                                                                                                                                                      |
-| :--------------- | :------------------------ | :------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `onValueChange?` | `(value: string) => void` |         | Called with the raw string value whenever the input text changes. Use this to drive external filtering (e.g. with `matchSorter`). A convenience alternative to `onChange`.       |
-| `placeholder?`   | `string`                  |         | Placeholder text shown when no values are selected.                                                                                                                              |
-| `name?`          | `string`                  |         | Form-value name for the selection. Applied to one hidden input per selected value, not to this input, whose value is the filter text. Flowed automatically from `Field.Control`. |
+| Prop           | Type     | Default | Description                                                                                                                                                                      |
+| :------------- | :------- | :------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `placeholder?` | `string` |         | Placeholder text shown when no values are selected.                                                                                                                              |
+| `name?`        | `string` |         | Form-value name for the selection. Applied to one hidden input per selected value, not to this input, whose value is the filter text. Flowed automatically from `Field.Control`. |
 
 ### MultiSelect.Tag
 

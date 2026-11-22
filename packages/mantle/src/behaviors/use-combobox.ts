@@ -9,24 +9,24 @@ import { useListbox } from "./use-listbox.js";
 import type { Listbox } from "./use-listbox.js";
 
 type UseComboboxProps = {
-	/** The controlled text of the input. Pair with `setInputValue`. */
+	/** The controlled text of the input. Pair with `onInputValueChange`. */
 	inputValue?: string;
 	/** The text of the input on first render. Use for uncontrolled text. */
 	defaultInputValue?: string;
 	/** Called when the text of the input changes. */
-	setInputValue?: (value: string) => void;
-	/** The controlled value of the picked option. Pair with `setSelectedValue`. */
-	selectedValue?: string;
+	onInputValueChange?: (inputValue: string) => void;
+	/** The controlled value of the picked option. Pair with `onValueChange`. */
+	value?: string;
 	/** The value of the picked option on first render. */
-	defaultSelectedValue?: string;
+	defaultValue?: string;
 	/** Called when the user picks an option. */
-	setSelectedValue?: (value: string) => void;
-	/** The controlled open state. Pair with `setOpen`. */
+	onValueChange?: (value: string) => void;
+	/** The controlled open state. Pair with `onOpenChange`. */
 	open?: boolean;
 	/** Whether the list is open on first render. */
 	defaultOpen?: boolean;
 	/** Called when the open state changes. */
-	setOpen?: (open: boolean) => void;
+	onOpenChange?: (open: boolean) => void;
 };
 
 /**
@@ -60,25 +60,31 @@ type ComboboxBehavior = {
 const useCombobox = ({
 	inputValue: inputValueProp,
 	defaultInputValue = "",
-	setInputValue: onInputValueChange,
-	selectedValue: selectedProp,
-	defaultSelectedValue,
-	setSelectedValue: onSelectedChange,
+	onInputValueChange,
+	value: valueProp,
+	defaultValue,
+	onValueChange,
 	open: openProp,
 	defaultOpen = false,
-	setOpen: onOpenChange,
-}: UseComboboxProps): ComboboxBehavior => {
+	onOpenChange,
+}: UseComboboxProps): ComboboxBehavior & {
+	/** The value of the picked option. */
+	value: string | undefined;
+	setValue: (value: string) => void;
+	/** Returns the value and the text to their defaults, such as on a form reset. */
+	reset: () => void;
+} => {
 	const [inputValue, setInputValue] = useControllableState({
 		value: inputValueProp,
 		defaultValue: defaultInputValue,
 		onChange: onInputValueChange,
 	});
-	const [selected, setSelected] = useControllableState({
-		value: selectedProp,
-		defaultValue: defaultSelectedValue,
+	const [value, setValue] = useControllableState({
+		value: valueProp,
+		defaultValue,
 		onChange: (next: string | undefined) => {
 			if (next != null) {
-				onSelectedChange?.(next);
+				onValueChange?.(next);
 			}
 		},
 	});
@@ -89,14 +95,18 @@ const useCombobox = ({
 	});
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const listbox = useListbox({
-		selected: selected == null ? [] : [selected],
+		selected: value == null ? [] : [value],
 		onSelect: (next) => {
-			setSelected(next);
+			setValue(next);
 			setInputValue(next);
 			setOpen(false);
 		},
 	});
-	return { open, setOpen, inputValue, setInputValue, listbox, inputRef };
+	const reset = () => {
+		setValue(defaultValue ?? "");
+		setInputValue(defaultInputValue);
+	};
+	return { value, setValue, reset, open, setOpen, inputValue, setInputValue, listbox, inputRef };
 };
 
 /**

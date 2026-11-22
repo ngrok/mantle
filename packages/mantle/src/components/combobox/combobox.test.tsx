@@ -145,6 +145,67 @@ describe("Combobox", () => {
 		});
 	});
 
+	describe("forms", () => {
+		const Fruits = (props: { name?: string; required?: boolean; defaultValue?: string }) => (
+			<form aria-label="fruit form">
+				<Combobox.Root {...props}>
+					<Combobox.Input aria-label="Fruit" />
+					<Combobox.Content>
+						<Combobox.Item value="Apple" />
+						<Combobox.Item value="Banana" />
+					</Combobox.Content>
+				</Combobox.Root>
+				<button type="reset">Reset</button>
+			</form>
+		);
+		const fruitForm = () => screen.getByRole<HTMLFormElement>("form", { name: "fruit form" });
+
+		test("the picked value submits under name, and the typed text does not", async () => {
+			const user = userEvent.setup();
+			render(<Fruits name="fruit" />);
+			const input = screen.getByRole("combobox", { name: "Fruit" });
+			await user.type(input, "Ban");
+			expect(new FormData(fruitForm()).get("fruit")).toBe("");
+			await user.click(screen.getByRole("option", { name: "Banana" }));
+			expect(input).toHaveValue("Banana");
+			expect([...new FormData(fruitForm()).entries()]).toEqual([["fruit", "Banana"]]);
+		});
+
+		test("a form reset returns the pick and the text to their defaults", async () => {
+			const user = userEvent.setup();
+			render(<Fruits name="fruit" defaultValue="Apple" />);
+			const input = screen.getByRole("combobox", { name: "Fruit" });
+			await user.click(input);
+			await user.click(screen.getByRole("option", { name: "Banana" }));
+			await user.click(screen.getByRole("button", { name: "Reset" }));
+			expect(input).toHaveValue("");
+			expect(new FormData(fruitForm()).get("fruit")).toBe("Apple");
+		});
+
+		test("required blocks the submit until an item is picked, with or without a name", async () => {
+			const user = userEvent.setup();
+			render(<Fruits required />);
+			expect(fruitForm().checkValidity()).toBe(false);
+			const input = screen.getByRole("combobox", { name: "Fruit" });
+			await user.type(input, "Apple");
+			expect(fruitForm().checkValidity()).toBe(false);
+			await user.keyboard("{Enter}");
+			expect(fruitForm().checkValidity()).toBe(true);
+		});
+
+		test("the picked item carries data-selected, and aria-selected follows the highlight", async () => {
+			const user = userEvent.setup();
+			render(<Fruits defaultValue="Banana" />);
+			await user.click(screen.getByRole("combobox", { name: "Fruit" }));
+			const apple = screen.getByRole("option", { name: "Apple" });
+			const banana = screen.getByRole("option", { name: "Banana" });
+			expect(apple).toHaveAttribute("aria-selected", "true");
+			expect(apple).not.toHaveAttribute("data-selected");
+			expect(banana).toHaveAttribute("data-selected", "");
+			expect(banana).not.toHaveAttribute("aria-selected");
+		});
+	});
+
 	describe("review fixes", () => {
 		test("options that arrive after the keystroke still get the highlight, so Enter picks the first", async () => {
 			const user = userEvent.setup();
@@ -305,7 +366,7 @@ describe("Combobox", () => {
 				const [fruit, setFruit] = useState("Apple");
 				swap = () => setFruit("Banana");
 				return (
-					<Combobox.Root selectedValue={fruit}>
+					<Combobox.Root value={fruit}>
 						<Combobox.Input aria-label="Fruit" />
 						<Combobox.Content>
 							<Combobox.Item key={fruit} value={fruit} />

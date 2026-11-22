@@ -604,14 +604,8 @@ const TagValues = ({
 type MultiSelectInputProps = Omit<
 	ComponentProps<"input">,
 	"value" | "defaultValue" | "autoComplete"
-> & {
-	/**
-	 * Called with the raw string value whenever the input text changes.
-	 * Use this to drive external filtering (e.g. with matchSorter) without
-	 * having to unwrap the DOM event. A convenience alternative to `onChange`.
-	 */
-	onValueChange?: (value: string) => void;
-} & WithDataSlot;
+> &
+	WithDataSlot;
 
 /**
  * The combobox input for filtering items. Place this inside `MultiSelect.Trigger`,
@@ -651,7 +645,6 @@ const Input = ({
 	onClick,
 	onFocus,
 	onKeyDown,
-	onValueChange,
 	placeholder,
 	ref,
 	...props
@@ -678,10 +671,7 @@ const Input = ({
 					className,
 				)}
 				placeholder={selected.length > 0 ? undefined : placeholder}
-				onChange={composeHandlers(onChange, (event) => {
-					onValueChange?.(event.target.value);
-					inputProps.onChange(event);
-				})}
+				onChange={composeHandlers(onChange, inputProps.onChange)}
 				onClick={composeHandlers(onClick, inputProps.onClick)}
 				onFocus={composeHandlers(onFocus, (event) => {
 					// Why only from a tag: focus that returns from a tag keeps the list

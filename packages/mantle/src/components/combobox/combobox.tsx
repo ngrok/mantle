@@ -5,7 +5,7 @@ import { createContext, use, useId } from "react";
 import { createPortal } from "react-dom";
 import { composeHandlers } from "../../behaviors/compose-handlers.js";
 import { useCombobox, useComboboxInput } from "../../behaviors/use-combobox.js";
-import type { ComboboxBehavior, UseComboboxProps } from "../../behaviors/use-combobox.js";
+import type { UseComboboxProps } from "../../behaviors/use-combobox.js";
 import { childId, useOption } from "../../behaviors/use-listbox.js";
 import { usePopup } from "../../behaviors/use-popup.js";
 import type { WithAsChild } from "../../types/as-child.js";
@@ -20,9 +20,9 @@ import type { WithValidation } from "../field/validation.js";
 import { Separator } from "../separator/separator.js";
 import { Slot } from "../slot/index.js";
 
-const ComboboxContext = createContext<ComboboxBehavior | null>(null);
+const ComboboxContext = createContext<ReturnType<typeof useCombobox> | null>(null);
 
-const useComboboxContext = (): ComboboxBehavior => {
+const useComboboxContext = (): ReturnType<typeof useCombobox> => {
 	const context = use(ComboboxContext);
 	if (context == null) {
 		throw new Error("Combobox parts must be rendered inside Combobox.Root.");
@@ -38,6 +38,15 @@ const GroupLabelContext = createContext<string | undefined>(undefined);
 
 type ComboboxProps = UseComboboxProps & {
 	children?: ReactNode;
+	/**
+	 * The name the picked value submits under with its form. The text in
+	 * `Combobox.Input` does not submit.
+	 */
+	name?: string;
+	/** The `id` of the form the picked value submits with, when it is not an ancestor. */
+	form?: string;
+	/** Whether a pick is required before the form submits. */
+	required?: boolean;
 };
 
 /**
@@ -54,7 +63,7 @@ type ComboboxProps = UseComboboxProps & {
  *
  * The list opens on each keystroke. While it is open, Enter in `Combobox.Input`
  * never submits a parent form. If you render `Combobox.Content` conditionally, control `open`
- * and `setOpen` with the same condition, so the open state matches what the user sees.
+ * and `onOpenChange` with the same condition, so the open state matches what the user sees.
  *
  * @see https://mantle.ngrok.com/components/forms/combobox#comboboxroot
  *
@@ -69,9 +78,26 @@ type ComboboxProps = UseComboboxProps & {
  * </Combobox.Root>
  * ```
  */
-const Root = ({ children, ...props }: ComboboxProps) => {
+const Root = ({ children, name, form, required, ...props }: ComboboxProps) => {
 	const combobox = useCombobox(props);
-	return <ComboboxContext value={combobox}>{children}</ComboboxContext>;
+	return (
+		<ComboboxContext value={combobox}>
+			{children}
+			{/* Why not type="hidden": a hidden input skips `required`. */}
+			{(name != null || required) && (
+				<input
+					aria-hidden
+					tabIndex={-1}
+					className="sr-only"
+					name={name}
+					form={form}
+					required={required}
+					value={combobox.value ?? ""}
+					onChange={(event) => combobox.setValue(event.target.value)}
+				/>
+			)}
+		</ComboboxContext>
+	);
 };
 
 type ComboboxInputProps = Omit<ComponentProps<"input">, "value" | "defaultValue" | "autoComplete"> &
@@ -111,7 +137,7 @@ type ComboboxInputProps = Omit<ComponentProps<"input">, "value" | "defaultValue"
  * Free-text entry: Enter submits the typed text unless the user moved to a suggestion or an input method is still composing text.
  * ```tsx
  * <form onSubmit={handleSubmit}>
- *   <Combobox.Root inputValue={name} setInputValue={setName}>
+ *   <Combobox.Root inputValue={name} onInputValueChange={setName}>
  *     <Combobox.Input
  *       autoSelect={false}
  *       onKeyDown={(event) => {
@@ -145,7 +171,16 @@ const Input = ({
 }: ComboboxInputProps) => {
 	const combobox = useComboboxContext();
 	const inputProps = useComboboxInput(combobox, { autoSelect });
-	const composedRef = useComposedRefs(ref, inputProps.ref);
+	const composedRef = useComposedRefs(ref, inputProps.ref, (input: HTMLInputElement | null) => {
+		// Why a ref callback: a form reset returns the pick and the text to their
+		// defaults, and the listener lives as long as the input.
+		const owner = input?.form;
+		if (owner == null) {
+			return;
+		}
+		owner.addEventListener("reset", combobox.reset);
+		return () => owner.removeEventListener("reset", combobox.reset);
+	});
 	const fieldValidation = useFieldValidation();
 	const { ariaInvalid, validation } = parseValidation({
 		"aria-invalid": _ariaInvalid,
@@ -309,7 +344,7 @@ const Item = ({
 	...props
 }: ComboboxItemProps) => {
 	const { listbox } = useComboboxContext();
-	const { active, optionProps } = useOption(listbox, {
+	const { active, selected, optionProps } = useOption(listbox, {
 		value: value ?? "",
 		disabled: disabled || value == null,
 		id: childId({ asChild, children, id: props.id }),
@@ -324,6 +359,8 @@ const Item = ({
 				onPointerMove={composeHandlers(onPointerMove, optionProps.onPointerMove)}
 				// Why: in the APG combobox pattern, the highlighted option is the selected one, and no other option has the attribute.
 				aria-selected={active || undefined}
+				// Why `data-selected`: `aria-selected` follows the highlight, so the picked option needs its own attribute.
+				data-selected={selected ? "" : undefined}
 				ref={ref}
 				data-slot={joinDataSlot(dataSlot, "combobox-item")}
 				className={cx(

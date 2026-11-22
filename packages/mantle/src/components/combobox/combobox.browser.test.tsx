@@ -22,8 +22,8 @@ const DomainCombobox = ({
 			<label htmlFor="domain">Domain</label>
 			<Combobox.Root
 				inputValue={inputValue}
-				setInputValue={setInputValue}
-				setSelectedValue={onPick}
+				onInputValueChange={setInputValue}
+				onValueChange={onPick}
 			>
 				<Combobox.Input id="domain" autoSelect={autoSelect} />
 				<Combobox.Content>

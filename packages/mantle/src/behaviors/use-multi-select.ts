@@ -8,16 +8,13 @@ import type { ComboboxBehavior, UseComboboxProps } from "./use-combobox.js";
 import { useControllableState } from "./use-controllable-state.js";
 import { getOptions, useListbox } from "./use-listbox.js";
 
-type UseMultiSelectProps = Omit<
-	UseComboboxProps,
-	"selectedValue" | "defaultSelectedValue" | "setSelectedValue"
-> & {
-	/** The controlled picked values. Pair with `setSelectedValue`. */
-	selectedValue?: readonly string[];
+type UseMultiSelectProps = Omit<UseComboboxProps, "value" | "defaultValue" | "onValueChange"> & {
+	/** The controlled picked values. Pair with `onValueChange`. */
+	value?: readonly string[];
 	/** The picked values on first render. */
-	defaultSelectedValue?: readonly string[];
+	defaultValue?: readonly string[];
 	/** Called when the user picks or removes a value. */
-	setSelectedValue?: (value: string[]) => void;
+	onValueChange?: (value: string[]) => void;
 };
 
 /**
@@ -49,25 +46,25 @@ const EMPTY: readonly string[] = [];
  *
  * @example
  * ```tsx
- * const multiSelect = useMultiSelect({ defaultSelectedValue: ["us"] });
+ * const multiSelect = useMultiSelect({ defaultValue: ["us"] });
  * return <MultiSelectContext value={multiSelect}>{children}</MultiSelectContext>;
  * ```
  */
 const useMultiSelect = ({
-	selectedValue,
-	defaultSelectedValue = EMPTY,
-	setSelectedValue,
+	value: valueProp,
+	defaultValue = EMPTY,
+	onValueChange,
 	inputValue: inputValueProp,
 	defaultInputValue = "",
-	setInputValue: onInputValueChange,
+	onInputValueChange,
 	open: openProp,
 	defaultOpen = false,
-	setOpen: onOpenChange,
+	onOpenChange,
 }: UseMultiSelectProps): MultiSelectBehavior => {
 	const [selected, setSelected] = useControllableState<readonly string[]>({
-		value: selectedValue,
-		defaultValue: defaultSelectedValue,
-		onChange: (next) => setSelectedValue?.([...next]),
+		value: valueProp,
+		defaultValue,
+		onChange: (next) => onValueChange?.([...next]),
 	});
 	const [inputValue, setInputValue] = useControllableState({
 		value: inputValueProp,

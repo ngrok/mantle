@@ -7,7 +7,7 @@
 Breaking changes. Follow the [migration guide](https://mantle.ngrok.com/migrations/0018-combobox-owned-behavior-migration); `pnpm -w run migrate 0018` applies the prop renames and deletions.
 
 - Each part takes the props of its element plus a fixed set of its own, not every Ariakit prop.
-- `Combobox.Root` takes `inputValue`, `defaultInputValue`, and `setInputValue`. Ariakit's deprecated `value`, `defaultValue`, and `setValue` are gone.
+- `Combobox.Root` uses mantle's selection names: `value` / `defaultValue` / `onValueChange` for the picked value, `inputValue` / `defaultInputValue` / `onInputValueChange` for the text, and `open` / `defaultOpen` / `onOpenChange`. Ariakit's `selectedValue` / `defaultSelectedValue` / `setSelectedValue`, `setValue`, and `setOpen` are gone, and `value` and `defaultValue` now set the picked value, not the text.
 - `Combobox.Content` portals into the nearest overlay's positioner, or into `document.body`. It drops `unmountOnHide` and the Ariakit popover props, and keeps `sameWidth` and `asChild`.
 - `Combobox.Item` drops `focusOnHover`. The highlighted item carries `data-highlighted` in place of `data-active-item`.
 - `Combobox.Input` drops `autoComplete`: it always uses list autocomplete.
@@ -16,3 +16,5 @@ Breaking changes. Follow the [migration guide](https://mantle.ngrok.com/migratio
 Other changes:
 
 - The highlighted item has `aria-selected="true"`, as in the WAI-ARIA combobox pattern. No other item has the attribute.
+- `Combobox.Root` takes `name`, `form`, and `required`. The picked value submits under `name` through a hidden input, a form reset returns the pick to `defaultValue` and the text to `defaultInputValue`, and `required` blocks the submit until an item is picked.
+- The picked item carries `data-selected`, because `aria-selected` follows the highlight.

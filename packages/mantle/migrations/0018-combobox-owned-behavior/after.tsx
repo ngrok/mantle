@@ -6,7 +6,13 @@ import { Combobox as Other } from "@acme/combobox";
 export const Controlled = () => {
 	const [query, setQuery] = useState("");
 	return (
-		<Combobox.Root inputValue={query} setInputValue={setQuery}>
+		<Combobox.Root
+			inputValue={query}
+			onInputValueChange={setQuery}
+			value="Apple"
+			onValueChange={() => {}}
+			onOpenChange={() => {}}
+		>
 			<Combobox.Input aria-label="Fruit" />
 			<Combobox.Content sameWidth>
 				<Combobox.Item value="Apple" />
@@ -18,7 +24,7 @@ export const Controlled = () => {
 
 // The aliased import is the same part. An item keeps its own value.
 export const Aliased = (
-	<Picker.Root defaultInputValue="App">
+	<Picker.Root defaultInputValue="App" defaultValue="Apple">
 		<Picker.Input aria-label="Fruit" />
 		<Picker.Content>
 			<Picker.Item value="Apple" />
@@ -43,3 +49,7 @@ export const ClassShadowed = class Combobox {
 		return <Combobox.Root value="a" />;
 	}
 };
+
+// A lone value or defaultValue is ambiguous: it set the text before and sets
+// the picked value now, so the rules report it and leave it.
+export const Lone = <Combobox.Root defaultValue="App" />;

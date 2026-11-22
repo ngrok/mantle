@@ -149,7 +149,7 @@ function Example() {
 						<Field.Label>Region</Field.Label>
 						<Combobox.Root
 							inputValue={field.state.value}
-							setInputValue={(value) => {
+							onInputValueChange={(value) => {
 								field.handleChange(value);
 							}}
 						>
@@ -227,17 +227,22 @@ The outermost part of a combobox. It holds the query text, the open state, and t
 
 `Combobox.Content` renders at Tailwind `z-50`, Mantle's float tier. Inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). It opens below the input, or above it when the space below is too small.
 
-| Prop                    | Type                      | Default | Description                                                            |
-| :---------------------- | :------------------------ | :------ | :--------------------------------------------------------------------- |
-| `inputValue?`           | `string`                  |         | The controlled text of the input. Pair with `setInputValue`.           |
-| `defaultInputValue?`    | `string`                  | `""`    | The text of the input on first render.                                 |
-| `setInputValue?`        | `(value: string) => void` |         | Called when the text of the input changes.                             |
-| `selectedValue?`        | `string`                  |         | The controlled value of the picked item. Pair with `setSelectedValue`. |
-| `defaultSelectedValue?` | `string`                  |         | The value of the picked item on first render.                          |
-| `setSelectedValue?`     | `(value: string) => void` |         | Called when the user picks an item.                                    |
-| `open?`                 | `boolean`                 |         | The controlled open state. Pair with `setOpen`.                        |
-| `defaultOpen?`          | `boolean`                 | `false` | Whether the list is open on first render.                              |
-| `setOpen?`              | `(open: boolean) => void` |         | Called when the open state changes.                                    |
+| Prop                  | Type                           | Default | Description                                                                            |
+| :-------------------- | :----------------------------- | :------ | :------------------------------------------------------------------------------------- |
+| `value?`              | `string`                       |         | The controlled value of the picked item. Pair with `onValueChange`.                    |
+| `defaultValue?`       | `string`                       |         | The value of the picked item on first render.                                          |
+| `onValueChange?`      | `(value: string) => void`      |         | Called when the user picks an item.                                                    |
+| `inputValue?`         | `string`                       |         | The controlled text of the input. Pair with `onInputValueChange`.                      |
+| `defaultInputValue?`  | `string`                       | `""`    | The text of the input on first render.                                                 |
+| `onInputValueChange?` | `(inputValue: string) => void` |         | Called when the text of the input changes.                                             |
+| `open?`               | `boolean`                      |         | The controlled open state. Pair with `onOpenChange`.                                   |
+| `defaultOpen?`        | `boolean`                      | `false` | Whether the list is open on first render.                                              |
+| `onOpenChange?`       | `(open: boolean) => void`      |         | Called when the open state changes.                                                    |
+| `name?`               | `string`                       |         | The name the picked value submits under. The text in `Combobox.Input` does not submit. |
+| `form?`               | `string`                       |         | The `id` of the form the picked value submits with, when it is not an ancestor.        |
+| `required?`           | `boolean`                      |         | Whether a pick is required before the form submits.                                    |
+
+A form reset returns the pick to `defaultValue` and the text to `defaultInputValue`. The picked item carries `data-selected`. `aria-selected` follows the highlight, as the APG combobox pattern asks.
 
 ### Combobox.Input
 

@@ -10,7 +10,8 @@
 Breaking changes. Follow the [migration guide](https://mantle.ngrok.com/migrations/0019-multi-select-owned-behavior-migration); `pnpm -w run migrate 0019` applies the prop renames and deletions.
 
 - Each part takes the props of its element plus a fixed set of its own, not every Ariakit prop.
-- `MultiSelect.Root` takes `inputValue`, `defaultInputValue`, and `setInputValue`. Ariakit's deprecated `value`, `defaultValue`, and `setValue` are gone.
+- `MultiSelect.Root` uses mantle's selection names: `value` / `defaultValue` / `onValueChange` for the picked values, `inputValue` / `defaultInputValue` / `onInputValueChange` for the text, and `open` / `defaultOpen` / `onOpenChange`. Ariakit's `selectedValue` / `defaultSelectedValue` / `setSelectedValue`, `setValue`, and `setOpen` are gone, and `value` and `defaultValue` now set the picked values, not the text.
+- `MultiSelect.Input` drops `onValueChange`. Use `onInputValueChange` on `MultiSelect.Root`.
 - The list is always modal, as Ariakit made it by default. `MultiSelect.Content` drops `modal`, `backdrop`, `preventBodyScroll`, `portalElement`, `unmountOnHide`, and the other Ariakit popover props, and portals into the nearest overlay's positioner, or into `document.body`.
 - `MultiSelect.Item` drops `focusOnHover`. The highlighted item carries `data-highlighted` in place of `data-active-item`.
 

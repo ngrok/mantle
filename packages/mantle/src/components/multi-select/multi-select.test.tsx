@@ -56,7 +56,7 @@ describe("MultiSelect", () => {
 
 	test("renders selected values as tags", () => {
 		render(
-			<MultiSelect.Root selectedValue={["apple", "banana"]} setSelectedValue={() => {}}>
+			<MultiSelect.Root value={["apple", "banana"]} onValueChange={() => {}}>
 				<MultiSelect.Trigger>
 					<MultiSelect.TagValues />
 					<MultiSelect.Input placeholder="Select items..." />
@@ -73,7 +73,7 @@ describe("MultiSelect", () => {
 
 	test("hides placeholder when values are selected", () => {
 		render(
-			<MultiSelect.Root selectedValue={["apple"]} setSelectedValue={() => {}}>
+			<MultiSelect.Root value={["apple"]} onValueChange={() => {}}>
 				<MultiSelect.Trigger>
 					<MultiSelect.TagValues />
 					<MultiSelect.Input placeholder="Select items..." />
@@ -88,7 +88,7 @@ describe("MultiSelect", () => {
 
 	test("renders the tags as a named list of listitems, with no option outside a listbox", () => {
 		render(
-			<MultiSelect.Root selectedValue={["apple", "banana"]} setSelectedValue={() => {}}>
+			<MultiSelect.Root value={["apple", "banana"]} onValueChange={() => {}}>
 				<MultiSelect.Trigger>
 					<MultiSelect.TagValues />
 					<MultiSelect.Input placeholder="Select items..." />
@@ -109,7 +109,7 @@ describe("MultiSelect", () => {
 
 	test("renders no tag list while nothing is selected, and honors a custom list name", () => {
 		const { rerender } = render(
-			<MultiSelect.Root selectedValue={[]} setSelectedValue={() => {}}>
+			<MultiSelect.Root value={[]} onValueChange={() => {}}>
 				<MultiSelect.Trigger>
 					<MultiSelect.TagValues aria-label="Chosen fruits" />
 					<MultiSelect.Input placeholder="Select items..." />
@@ -119,7 +119,7 @@ describe("MultiSelect", () => {
 		expect(screen.queryByRole("list")).not.toBeInTheDocument();
 
 		rerender(
-			<MultiSelect.Root selectedValue={["apple"]} setSelectedValue={() => {}}>
+			<MultiSelect.Root value={["apple"]} onValueChange={() => {}}>
 				<MultiSelect.Trigger>
 					<MultiSelect.TagValues aria-label="Chosen fruits" />
 					<MultiSelect.Input placeholder="Select items..." />
@@ -208,19 +208,15 @@ describe("MultiSelect", () => {
 	});
 
 	describe("typeahead filtering", () => {
-		test("Input reports each keystroke through onValueChange and still calls onChange", async () => {
+		test("Root reports each keystroke through onInputValueChange and Input still calls onChange", async () => {
 			const user = userEvent.setup();
-			const onValueChange = vi.fn<(value: string) => void>();
+			const onInputValueChange = vi.fn<(value: string) => void>();
 			const onChange = vi.fn<(event: ChangeEvent<HTMLInputElement>) => void>();
 			render(
-				<MultiSelect.Root>
+				<MultiSelect.Root onInputValueChange={onInputValueChange}>
 					<MultiSelect.Trigger>
 						<MultiSelect.TagValues />
-						<MultiSelect.Input
-							onChange={onChange}
-							onValueChange={onValueChange}
-							placeholder="Select items..."
-						/>
+						<MultiSelect.Input onChange={onChange} placeholder="Select items..." />
 					</MultiSelect.Trigger>
 					<MultiSelect.Content>
 						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
@@ -232,17 +228,17 @@ describe("MultiSelect", () => {
 			await user.type(screen.getByRole("combobox"), "ban");
 
 			// One call per keystroke, with the whole input value, not the typed char.
-			expect(onValueChange.mock.calls).toEqual([["b"], ["ba"], ["ban"]]);
+			expect(onInputValueChange.mock.calls).toEqual([["b"], ["ba"], ["ban"]]);
 			// The raw event handler is composed, not replaced.
 			expect(onChange).toHaveBeenCalledTimes(3);
 			expect(onChange.mock.lastCall?.[0].target).toBe(screen.getByRole("combobox"));
 		});
 
-		test("filtering the items from onValueChange narrows the listbox and reveals Empty", async () => {
+		test("filtering the items from onInputValueChange narrows the listbox and reveals Empty", async () => {
 			const user = userEvent.setup();
 			/**
 			 * The documented filtering shape: the consumer owns the query and the
-			 * rendered items, driven entirely by `onValueChange`.
+			 * rendered items, driven entirely by `onInputValueChange`.
 			 */
 			const FilteringSubject = () => {
 				const [query, setQuery] = useState("");
@@ -251,10 +247,10 @@ describe("MultiSelect", () => {
 				);
 
 				return (
-					<MultiSelect.Root>
+					<MultiSelect.Root onInputValueChange={setQuery}>
 						<MultiSelect.Trigger>
 							<MultiSelect.TagValues />
-							<MultiSelect.Input onValueChange={setQuery} placeholder="Select items..." />
+							<MultiSelect.Input placeholder="Select items..." />
 						</MultiSelect.Trigger>
 						<MultiSelect.Content>
 							{matches.length === 0 && <MultiSelect.Empty>No results found</MultiSelect.Empty>}
@@ -290,7 +286,7 @@ describe("MultiSelect", () => {
 	describe("trigger mousedown", () => {
 		const renderTrigger = (selectedValue: string[]) =>
 			render(
-				<MultiSelect.Root selectedValue={selectedValue} setSelectedValue={() => {}}>
+				<MultiSelect.Root value={selectedValue} onValueChange={() => {}}>
 					<MultiSelect.Trigger data-testid="trigger">
 						<MultiSelect.TagValues />
 						<MultiSelect.Input placeholder="Select items..." />
@@ -326,7 +322,7 @@ describe("MultiSelect", () => {
 
 	describe("review fixes", () => {
 		const Fruits = ({ disabled, form }: { disabled?: boolean; form?: string }) => (
-			<MultiSelect.Root defaultSelectedValue={["apple", "banana"]}>
+			<MultiSelect.Root defaultValue={["apple", "banana"]}>
 				<MultiSelect.Trigger>
 					<MultiSelect.TagValues />
 					<MultiSelect.Input aria-label="Fruits" name="fruits" form={form} disabled={disabled} />
@@ -391,7 +387,7 @@ describe("MultiSelect", () => {
 		}) => {
 			const [values, setValues] = useState(initialValues);
 			return (
-				<MultiSelect.Root selectedValue={values} setSelectedValue={setValues}>
+				<MultiSelect.Root value={values} onValueChange={setValues}>
 					<MultiSelect.Trigger>
 						<MultiSelect.TagValues />
 						<MultiSelect.Input placeholder="Select items..." />
@@ -438,7 +434,7 @@ describe("MultiSelect", () => {
 			const user = userEvent.setup();
 			const handleBlur = vi.fn<() => void>();
 			render(
-				<MultiSelect.Root selectedValue={["apple", "banana"]} setSelectedValue={() => {}}>
+				<MultiSelect.Root value={["apple", "banana"]} onValueChange={() => {}}>
 					<MultiSelect.Trigger>
 						<MultiSelect.TagValues />
 						<MultiSelect.Input placeholder="Select items..." onBlur={handleBlur} />
@@ -606,7 +602,7 @@ describe("MultiSelect", () => {
 		}) => {
 			const [values, setValues] = useState(initialValues);
 			return (
-				<MultiSelect.Root selectedValue={values} setSelectedValue={setValues}>
+				<MultiSelect.Root value={values} onValueChange={setValues}>
 					<MultiSelect.Trigger>
 						<MultiSelect.TagValues lockedValues={lockedValues} />
 						<MultiSelect.Input placeholder="Select items..." />
@@ -665,7 +661,7 @@ describe("MultiSelect", () => {
 			const Subject = ({ showTags }: { showTags: boolean }) => {
 				const [values, setValues] = useState(["apple"]);
 				return (
-					<MultiSelect.Root selectedValue={values} setSelectedValue={setValues}>
+					<MultiSelect.Root value={values} onValueChange={setValues}>
 						<MultiSelect.Trigger>
 							{showTags && <MultiSelect.TagValues lockedValues={["apple"]} />}
 							<MultiSelect.Input placeholder="Select items..." />
@@ -691,7 +687,7 @@ describe("MultiSelect", () => {
 			const Subject = () => {
 				const [values, setValues] = useState(["apple"]);
 				return (
-					<MultiSelect.Root open selectedValue={values} setSelectedValue={setValues}>
+					<MultiSelect.Root open value={values} onValueChange={setValues}>
 						<MultiSelect.Content>{hoistedItems}</MultiSelect.Content>
 						<MultiSelect.Trigger>
 							<MultiSelect.TagValues lockedValues={["apple"]} />
@@ -713,10 +709,7 @@ describe("MultiSelect", () => {
 		const user = userEvent.setup();
 		const setSelectedValue = vi.fn<(value: string[]) => void>();
 		const Subject = ({ showTags }: { showTags: boolean }) => (
-			<MultiSelect.Root
-				defaultSelectedValue={["apple", "banana"]}
-				setSelectedValue={setSelectedValue}
-			>
+			<MultiSelect.Root defaultValue={["apple", "banana"]} onValueChange={setSelectedValue}>
 				<MultiSelect.Trigger>
 					{showTags && <MultiSelect.TagValues />}
 					<MultiSelect.Input placeholder="Select items..." />
@@ -746,7 +739,7 @@ describe("MultiSelect", () => {
 		}) => {
 			const [values, setValues] = useState(initialValues);
 			return (
-				<MultiSelect.Root selectedValue={values} setSelectedValue={setValues}>
+				<MultiSelect.Root value={values} onValueChange={setValues}>
 					<MultiSelect.Trigger>
 						<MultiSelect.TagValues lockedValues={lockedValues}>
 							{(props) => <MultiSelect.Tag key={props.value} {...props} />}
