@@ -89,11 +89,11 @@ find-in-page behavior above, and [Field](/components/forms/field) is real
 `<fieldset>`/`<legend>`/`<label>` elements with Mantle-owned wiring. Where the behavior
 is genuinely hard, Mantle wraps the best engine for that specific problem:
 [Radix](https://www.radix-ui.com) for [Dialog](/components/overlays/dialog),
-cmdk for
+[Headless UI](https://headlessui.com) for [RadioGroup](/components/forms/radio-group), cmdk for
 [Command](/components/navigation/command), TanStack Table for [DataTable](/components/data-display/data-table),
 sonner (mounted unstyled) for [Toast](/components/feedback/toast).
 [Select](/components/forms/select), [Combobox](/components/forms/combobox),
-[MultiSelect](/components/forms/multi-select), and [RadioGroup](/components/forms/radio-group)
+and [MultiSelect](/components/forms/multi-select)
 run on Mantle's own behavior hooks, which follow the WAI-ARIA patterns. The three pickers share
 one listbox hook, so a page with all of them pays for it once.
 

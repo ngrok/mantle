@@ -52,7 +52,7 @@ type SegmentedControlItemProps = RadioPrimitive.ItemProps;
  * </SegmentedControl.Root>
  * ```
  */
-// Why no asChild: the radio group primitive renders the group and owns its roving focus and arrow keys.
+// Why no asChild: Headless UI renders the group and owns its roving focus and arrow keys.
 const Root = ({
 	"data-slot": dataSlot,
 	className,
@@ -118,7 +118,7 @@ const Root = ({
  * </SegmentedControl.Root>
  * ```
  */
-// Why no asChild: the item takes the primitive's `as`, which keeps its radio wiring.
+// Why no asChild: the item takes Headless UI's `as`, which keeps its radio wiring.
 const Item = ({ "data-slot": dataSlot, className, ref, ...props }: SegmentedControlItemProps) => {
 	invariant(
 		useContext(InsideRootContext),
