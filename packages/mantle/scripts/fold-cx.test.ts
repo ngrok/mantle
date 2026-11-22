@@ -179,7 +179,8 @@ describe("foldCx", () => {
 			"switch/switch.tsx",
 		]) {
 			const id = path.join(import.meta.dirname, "../src/components", file);
-			const folded = foldCx(readFileSync(id, "utf8"), id, merge) ?? "";
+			const source = readFileSync(id, "utf8");
+			const folded = foldCx(source, id, merge) ?? source;
 			expect({ file, calls: folded.match(/(?<![\w.])cx\(/g) ?? [] }).toEqual({ file, calls: [] });
 		}
 	});
