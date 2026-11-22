@@ -14,14 +14,14 @@ Every mantle surface that floats above the page stacks on one shared scale. Two 
 
 ## The tiers
 
-| Tier         | z-index     | Layers                                                                                                                                                                            | Renders into                                                        |
-| ------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Page chrome  | `z-50`      | [Sandbar](/components/feedback/sandbar), [AlertCenter](/components/feedback/alert-center) banners, sticky headers                                                                 | In place, in the page's own stacking context                        |
-| Float        | `z-50`      | [Select](/components/forms/select), [Combobox](/components/forms/combobox), [MultiSelect](/components/forms/multi-select), [DropdownMenu](/components/overlays/dropdown-menu)     | The nearest layer container, else `document.body`                   |
-| Native float | top layer   | [Popover](/components/overlays/popover), [Tooltip](/components/overlays/tooltip), [HoverCard](/components/overlays/hover-card)                                                    | The content of the nearest overlay or popover, else `document.body` |
-| Overlay      | `z-60`      | [Dialog](/components/overlays/dialog), [AlertDialog](/components/overlays/alert-dialog), [Sheet](/components/overlays/sheet), [Command](/components/navigation/command)'s palette | The nearest overlay's positioner, else `document.body`              |
-| Toast        | `999999999` | [Toast](/components/feedback/toast) (sonner's own viewport)                                                                                                                       | In place where `<Toaster />` renders; painted above both tiers      |
-| Skip link    | `z-max`     | [SkipToMainLink](/components/primitives/skip-to-main-link)                                                                                                                        | In place; `--z-index-max` so nothing covers keyboard escape routes  |
+| Tier         | z-index     | Layers                                                                                                                                                                            | Renders into                                                                                   |
+| ------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Page chrome  | `z-50`      | [Sandbar](/components/feedback/sandbar), [AlertCenter](/components/feedback/alert-center) banners, sticky headers                                                                 | In place, in the page's own stacking context                                                   |
+| Float        | `z-50`      | [Select](/components/forms/select), [Combobox](/components/forms/combobox), [MultiSelect](/components/forms/multi-select), [DropdownMenu](/components/overlays/dropdown-menu)     | The nearest layer container, else `document.body`                                              |
+| Native float | top layer   | [Popover](/components/overlays/popover), [Tooltip](/components/overlays/tooltip), [HoverCard](/components/overlays/hover-card)                                                    | The content of the nearest overlay or popover, else `document.body`                            |
+| Overlay      | `z-60`      | [Dialog](/components/overlays/dialog), [AlertDialog](/components/overlays/alert-dialog), [Sheet](/components/overlays/sheet), [Command](/components/navigation/command)'s palette | The nearest overlay's positioner, else `document.body`                                         |
+| Toast        | `999999999` | [Toast](/components/feedback/toast) (sonner's own viewport)                                                                                                                       | In place where `<Toaster />` renders; painted above both `z-index` tiers, under a native float |
+| Skip link    | `z-max`     | [SkipToMainLink](/components/primitives/skip-to-main-link)                                                                                                                        | In place; `--z-index-max` so nothing covers keyboard escape routes                             |
 
 ## Layer containers
 
@@ -326,7 +326,7 @@ An overlay opened from inside another overlay portals into the outer overlay's p
 
 ### Toasts clear every tier
 
-A toast fired from inside an overlay renders in sonner's viewport, far above both tiers, so results stay visible no matter what is open.
+A toast fired from inside an overlay renders in sonner's viewport, far above both tiers, so results stay visible no matter what is open. A native float paints in the top layer, above a toast: keep popovers away from the toast corner.
 
 <Example name="base/stacking-layers/toasts-clear-every-tier" title="Stacking Layers toasts clear every tier example">
 

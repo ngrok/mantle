@@ -1,8 +1,9 @@
 "use client";
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { commands } from "vitest/browser";
 import * as Popover from "./popover-parts.js";
 
 /**
@@ -92,5 +93,70 @@ describe("Popover.Arrow", () => {
 		// One border width, so the arrow's fill covers the border across its base and
 		// no line cuts the tip off the content. Less would leave that line showing.
 		expect(baseOverlap()).toBeCloseTo(1, 1);
+	});
+});
+
+describe("Popover.Content placement", () => {
+	let placementStyle: HTMLStyleElement;
+
+	beforeAll(async () => {
+		placementStyle = document.createElement("style");
+		placementStyle.textContent = await commands.tailwindCss("../../utils/float/use-float.ts");
+		document.head.appendChild(placementStyle);
+	});
+
+	afterAll(() => {
+		placementStyle.remove();
+	});
+
+	test("aligns to the trigger's start edge after it changes from center", async () => {
+		const user = userEvent.setup();
+		const Aligned = ({ align }: { align: "center" | "start" }) => (
+			<div style={{ padding: 120 }}>
+				<Popover.Root>
+					<Popover.Trigger>Open</Popover.Trigger>
+					<Popover.Content align={align}>
+						<p style={{ width: 120 }}>Wider than the trigger</p>
+					</Popover.Content>
+				</Popover.Root>
+			</div>
+		);
+		const { rerender } = render(<Aligned align="center" />);
+		const trigger = screen.getByRole("button", { name: "Open" });
+		await user.click(trigger);
+		const content = await screen.findByRole("dialog");
+
+		rerender(<Aligned align="start" />);
+
+		await waitFor(() => {
+			expect(content.getBoundingClientRect().left).toBeCloseTo(
+				trigger.getBoundingClientRect().left,
+				0,
+			);
+		});
+	});
+
+	test("aligns start to the trigger's right edge in a right-to-left document", async () => {
+		const user = userEvent.setup();
+		render(
+			<div dir="rtl" style={{ padding: 120 }}>
+				<Popover.Root>
+					<Popover.Trigger>Open</Popover.Trigger>
+					<Popover.Content align="start">
+						<p style={{ width: 120 }}>Wider than the trigger</p>
+					</Popover.Content>
+				</Popover.Root>
+			</div>,
+		);
+		const trigger = screen.getByRole("button", { name: "Open" });
+		await user.click(trigger);
+		const content = await screen.findByRole("dialog");
+
+		await waitFor(() => {
+			expect(content.getBoundingClientRect().right).toBeCloseTo(
+				trigger.getBoundingClientRect().right,
+				0,
+			);
+		});
 	});
 });

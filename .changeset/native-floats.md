@@ -7,6 +7,9 @@
 Breaking changes (migration guide and codemod: https://mantle.ngrok.com/migrations/0020-native-floats-migration):
 
 - `Popover.Content`, `Tooltip.Content`, and `HoverCard.Content` no longer take `collisionPadding`, `collisionBoundary`, `sticky`, `avoidCollisions`, `alignOffset`, `hideWhenDetached`, `forceMount`, `updatePositionStrategy`, or `arrowPadding`. The content flips to the opposite side when only that side fits, and shifts to stay inside the viewport.
+- `Popover.Content` and `HoverCard.Content` no longer take `asChild`. Move the child's props onto the content.
+- `Tooltip.Content` no longer takes `id`. The trigger's `aria-describedby` points at the id that `Tooltip.Root` owns.
+- A float in the top layer paints above toasts.
 - `Popover.Root` no longer takes `modal`. Use `Dialog` for a task that blocks the page.
 - `HoverCard.Portal` is gone. `HoverCard.Content` portals by itself.
 - `Popover.Content` sets `--anchor-width` and `--available-height` in place of `--radix-popover-trigger-width` and `--radix-popover-content-available-height`.

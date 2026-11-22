@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { describe, expect, test } from "vitest";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import * as Tooltip from "./tooltip-parts.js";
@@ -79,5 +80,54 @@ describe("Tooltip.Content", () => {
 
 			expect(tooltip).toHaveTextContent("");
 		});
+	});
+});
+
+describe("Tooltip.Trigger", () => {
+	test("keeps its own aria-describedby next to the open tooltip's id", async () => {
+		const user = userEvent.setup();
+		render(
+			<>
+				<p id="help">Copies the URL</p>
+				<Tooltip.Root>
+					<Tooltip.Trigger aria-describedby="help">Copy</Tooltip.Trigger>
+					<Tooltip.Content>Copy to clipboard</Tooltip.Content>
+				</Tooltip.Root>
+			</>,
+		);
+		const trigger = screen.getByRole("button", { name: "Copy" });
+		expect(trigger).toHaveAttribute("aria-describedby", "help");
+
+		await user.hover(trigger);
+		const tooltip = await screen.findByRole("tooltip");
+		expect(trigger.getAttribute("aria-describedby")?.split(" ")).toEqual(["help", tooltip.id]);
+	});
+});
+
+describe("Tooltip.Root", () => {
+	test("a tooltip that its parent closes brings back the next tooltip's delay", async () => {
+		const user = userEvent.setup();
+		const Tips = ({ forceClosed }: { forceClosed: boolean }) => {
+			const [open, setOpen] = useState(false);
+			return (
+				<TooltipProvider delayDuration={1000} skipDelayDuration={0}>
+					<Tooltip.Root open={open && !forceClosed} onOpenChange={setOpen}>
+						<Tooltip.Trigger>First</Tooltip.Trigger>
+						<Tooltip.Content>First tip</Tooltip.Content>
+					</Tooltip.Root>
+					<Tooltip.Root>
+						<Tooltip.Trigger>Second</Tooltip.Trigger>
+						<Tooltip.Content>Second tip</Tooltip.Content>
+					</Tooltip.Root>
+				</TooltipProvider>
+			);
+		};
+		const { rerender } = render(<Tips forceClosed={false} />);
+		await user.hover(screen.getByRole("button", { name: "First" }));
+		await screen.findByText("First tip", undefined, { timeout: 2000 });
+
+		rerender(<Tips forceClosed />);
+		await user.hover(screen.getByRole("button", { name: "Second" }));
+		expect(screen.queryByText("Second tip")).not.toBeInTheDocument();
 	});
 });

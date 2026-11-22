@@ -1,6 +1,9 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { describe, expect, test } from "vitest";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
+import { describe, expect, onTestFinished, test, vi } from "vitest";
+import type { Side } from "../../utils/float/position.js";
 import * as Popover from "./popover-parts.js";
 
 describe("Popover", () => {
@@ -153,25 +156,29 @@ describe("Popover", () => {
 		});
 	});
 
-	test("Escape closes only the popover that opened last", async () => {
+	test("Escape closes only the popover that opened last, after the outer one moves", async () => {
 		const user = userEvent.setup();
-		render(
+		const Nested = ({ side }: { side: Side }) => (
 			<Popover.Root>
 				<Popover.Trigger>Outer</Popover.Trigger>
-				<Popover.Content>
+				<Popover.Content side={side}>
 					<Popover.Root>
 						<Popover.Trigger>Inner</Popover.Trigger>
 						<Popover.Content>Inner content</Popover.Content>
 					</Popover.Root>
 				</Popover.Content>
-			</Popover.Root>,
+			</Popover.Root>
 		);
+		const { rerender } = render(<Nested side="bottom" />);
 		const outer = screen.getByRole("button", { name: "Outer" });
 
 		await user.click(outer);
 		const inner = await screen.findByRole("button", { name: "Inner" });
 		await user.click(inner);
 		await screen.findByText("Inner content");
+		// A new placement for the outer popover keeps its place under the inner one.
+		rerender(<Nested side="top" />);
+		await act(async () => {});
 
 		await user.keyboard("{Escape}");
 		expect(inner).toHaveAttribute("aria-expanded", "false");
@@ -181,17 +188,17 @@ describe("Popover", () => {
 		expect(outer).toHaveAttribute("aria-expanded", "false");
 	});
 
-	test("a press outside closes the popover unless onInteractOutside prevents it", async () => {
+	test("a press outside closes the popover unless onInteractOutside prevents it for its target", async () => {
 		const user = userEvent.setup();
-		let keepOpen = true;
 		render(
 			<>
+				<button type="button">Keep open</button>
 				<button type="button">Elsewhere</button>
 				<Popover.Root>
 					<Popover.Trigger>Open</Popover.Trigger>
 					<Popover.Content
 						onInteractOutside={(event) => {
-							if (keepOpen) {
+							if (event.target === screen.getByRole("button", { name: "Keep open" })) {
 								event.preventDefault();
 							}
 						}}
@@ -205,13 +212,81 @@ describe("Popover", () => {
 		const elsewhere = screen.getByRole("button", { name: "Elsewhere" });
 
 		await user.click(trigger);
-		await user.click(elsewhere);
+		await user.click(screen.getByRole("button", { name: "Keep open" }));
 		expect(trigger).toHaveAttribute("aria-expanded", "true");
 
-		keepOpen = false;
 		await user.click(elsewhere);
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
 		// Focus stays where the user put it.
 		expect(elsewhere).toHaveFocus();
+	});
+
+	test("an asChild trigger and close inside a form do not submit it", async () => {
+		const user = userEvent.setup();
+		const onSubmit = vi.fn<(event: { preventDefault: () => void }) => void>((event) =>
+			event.preventDefault(),
+		);
+		render(
+			<form onSubmit={onSubmit}>
+				<Popover.Root>
+					<Popover.Trigger asChild>
+						{/* oxlint-disable-next-line react/button-has-type -- the test needs a button with no type */}
+						<button>Open</button>
+					</Popover.Trigger>
+					<Popover.Content>
+						<Popover.Close asChild>
+							{/* oxlint-disable-next-line react/button-has-type -- the test needs a button with no type */}
+							<button>Done</button>
+						</Popover.Close>
+					</Popover.Content>
+				</Popover.Root>
+			</form>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "Open" }));
+		await user.click(await screen.findByRole("button", { name: "Done" }));
+		expect(onSubmit).not.toHaveBeenCalled();
+	});
+
+	test("opening focuses the first control that takes focus", async () => {
+		const user = userEvent.setup();
+		render(
+			<Popover.Root>
+				<Popover.Trigger>Open</Popover.Trigger>
+				<Popover.Content>
+					<button type="button" hidden>
+						Hidden
+					</button>
+					<button type="button" tabIndex={-1}>
+						Not in the tab order
+					</button>
+					<input aria-label="Name" />
+				</Popover.Content>
+			</Popover.Root>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "Open" }));
+		await waitFor(() => expect(screen.getByRole("textbox", { name: "Name" })).toHaveFocus());
+	});
+
+	test("an open popover hydrates with no mismatch", async () => {
+		const tree = (
+			<Popover.Root defaultOpen>
+				<Popover.Trigger>Open</Popover.Trigger>
+				<Popover.Content>Products</Popover.Content>
+			</Popover.Root>
+		);
+		const container = document.createElement("div");
+		container.innerHTML = renderToString(tree);
+		document.body.append(container);
+		const onRecoverableError = vi.fn<(error: unknown) => void>();
+		const root = await act(async () => hydrateRoot(container, tree, { onRecoverableError }));
+		onTestFinished(() => {
+			act(() => root.unmount());
+			container.remove();
+		});
+
+		expect(await screen.findByText("Products")).toBeInTheDocument();
+		expect(onRecoverableError).not.toHaveBeenCalled();
 	});
 });

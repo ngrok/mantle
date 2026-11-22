@@ -127,7 +127,21 @@ function Root({
 			},
 			closeSoon: () => {
 				clearTimeout(timer.current);
-				timer.current = setTimeout(() => setOpen(false), closeDelay);
+				timer.current = setTimeout(() => {
+					// Why: closing would clear text the user selected in the card. An
+					// outside press clears the selection and closes the card.
+					const content = triggerRef.current?.ownerDocument.getElementById(contentId);
+					const selection = content?.ownerDocument.getSelection();
+					if (
+						content != null &&
+						selection != null &&
+						!selection.isCollapsed &&
+						content.contains(selection.anchorNode)
+					) {
+						return;
+					}
+					setOpen(false);
+				}, closeDelay);
 			},
 			cancelPending: () => clearTimeout(timer.current),
 			contentId,
@@ -304,6 +318,7 @@ const Content = ({
 				popover="hint"
 				data-slot={joinDataSlot(dataSlot, "hover-card-content")}
 				data-state={state.open ? "open" : "closed"}
+				inert={!state.open}
 				className={cx(
 					floatClassName,
 					"bg-popover border-popover w-64 rounded-md border p-4 shadow-md outline-hidden",

@@ -43,7 +43,7 @@ export const Hint = (
 // Negative cases: another library's Popover keeps its props and its variable.
 export const Untouched = (
 	<RadixPopover.Root modal>
-		<RadixPopover.Content collisionPadding={16} />
+		<RadixPopover.Content collisionPadding={16} className="w-(--radix-popover-trigger-width)" />
 	</RadixPopover.Root>
 );
 
@@ -51,7 +51,10 @@ export const Untouched = (
 export function Shadowed({ Popover }: { Popover: typeof RadixPopover }) {
 	return (
 		<Popover.Root modal>
-			<Popover.Content collisionPadding={16} />
+			<Popover.Content
+				collisionPadding={16}
+				className="max-h-(--radix-popover-content-available-height)"
+			/>
 		</Popover.Root>
 	);
 }

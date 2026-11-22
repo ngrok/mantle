@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { RefCallback } from "react";
 import { canUseDOM } from "../../components/browser-only/can-use-dom.js";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
+import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import { useIsCoveredByOverlay, useLayerContainer } from "../layer-container/layer-container.js";
 import { trackFloat } from "./position.js";
 import type { Align, Side } from "./position.js";
@@ -56,6 +57,7 @@ type DismissReason = "escape" | "outside" | "browser" | "covered";
 /** An open float that can take Escape. */
 type OpenFloat = {
 	element: HTMLElement;
+	/** Replaced when the float's ref callback runs again, so the float keeps its place in the stack. */
 	escape: (event: KeyboardEvent) => void;
 };
 
@@ -92,7 +94,7 @@ function handleEscape(event: KeyboardEvent): void {
 	top.escape(event);
 }
 
-/** Adds `float` to the Escape stack and returns the cleanup. */
+/** Adds `float` to the top of the Escape stack and returns the cleanup. */
 function pushOpenFloat(float: OpenFloat): () => void {
 	if (openFloats.length === 0) {
 		window.addEventListener("keydown", handleEscape, { capture: true });
@@ -127,9 +129,13 @@ function resolvePortalTarget(
 /**
  * The session of each shown float. A ref callback that runs again while the
  * float stays open, such as for a new placement, continues the session, so the
- * float does not hide, show, or move focus again.
+ * float does not hide, show, move focus, or move in the Escape stack again.
  */
-const floatSessions = new WeakMap<HTMLElement, object>();
+type FloatSession = {
+	entry: OpenFloat;
+	popEscape: () => void;
+};
+const floatSessions = new WeakMap<HTMLElement, FloatSession>();
 
 /** Whether a native modal `<dialog>` that does not hold `element` is open: the float would paint over it. */
 function isUnderNativeModal(element: HTMLElement): boolean {
@@ -202,6 +208,7 @@ function useFloat({
 	floatingRef: RefCallback<HTMLElement>;
 } {
 	const layerContainer = useLayerContainer();
+	const hydrated = useIsHydrated();
 	const floatElement = useRef<HTMLElement | null>(null);
 	const covered = useIsCoveredByOverlay(layerContainer, floatElement);
 	const [present, setPresent] = useState(open);
@@ -268,24 +275,29 @@ function useFloat({
 				dismissOnce("browser");
 			}
 		};
-		const session = {};
-		const continuing = floatSessions.has(floating);
+		const onEscape = (event: KeyboardEvent) => {
+			escape(event);
+			if (!event.defaultPrevented) {
+				event.preventDefault();
+				dismissOnce("escape");
+			}
+		};
+		const previous = floatSessions.get(floating);
+		const continuing = previous != null;
+		let session: FloatSession;
+		if (previous == null) {
+			const entry = { element: floating, escape: onEscape };
+			session = { entry, popEscape: pushOpenFloat(entry) };
+		} else {
+			previous.entry.escape = onEscape;
+			session = { entry: previous.entry, popEscape: previous.popEscape };
+		}
 		floatSessions.set(floating, session);
 		floating.addEventListener("beforetoggle", onBeforeToggle);
 		if (!continuing && hasPopoverApi) {
 			floating.showPopover();
 		}
 		const stopTracking = trackFloat({ align, anchor, floating, side, sideOffset });
-		const popEscape = pushOpenFloat({
-			element: floating,
-			escape: (event) => {
-				escape(event);
-				if (!event.defaultPrevented) {
-					event.preventDefault();
-					dismissOnce("escape");
-				}
-			},
-		});
 
 		const isInside = (target: EventTarget | null) =>
 			target instanceof Node &&
@@ -295,15 +307,22 @@ function useFloat({
 			originalEvent: TEvent,
 			handler: (event: CustomEvent<{ originalEvent: TEvent }>) => void,
 		) => {
-			if (isInside(originalEvent.target)) {
+			const target = originalEvent.target;
+			if (target == null || isInside(target)) {
 				return;
 			}
 			const event = new CustomEvent("mantle.float.outside", {
 				cancelable: true,
 				detail: { originalEvent },
 			});
-			handler(event);
-			interactOutside(event);
+			// Why dispatch on the target: a handler reads `event.target` to keep the
+			// float open for one outside control, as it could with Radix.
+			const runHandlers = () => {
+				handler(event);
+				interactOutside(event);
+			};
+			target.addEventListener(event.type, runHandlers, { once: true });
+			target.dispatchEvent(event);
 			if (!event.defaultPrevented) {
 				dismissOnce("outside");
 			}
@@ -322,9 +341,11 @@ function useFloat({
 		return () => {
 			document.removeEventListener("pointerdown", onPointerDown);
 			document.removeEventListener("focusin", onFocusIn);
-			popEscape();
 			stopTracking();
 			floating.removeEventListener("beforetoggle", onBeforeToggle);
+			// Why now: the closed float turns `inert` in this commit, and the browser
+			// then moves focus out of it.
+			const focusWasInside = floating.contains(document.activeElement);
 			// Why a microtask: React runs this cleanup inside its commit, and at the
 			// end of the commit it moves focus back to the element that had it
 			// before. A focus move here would not hold.
@@ -333,7 +354,8 @@ function useFloat({
 					return;
 				}
 				floatSessions.delete(floating);
-				hide(floating, floating.contains(document.activeElement));
+				session.popEscape();
+				hide(floating, focusWasInside);
 				if (shown && hasPopoverApi) {
 					shown = false;
 					floating.hidePopover();
@@ -344,7 +366,9 @@ function useFloat({
 
 	return {
 		present,
-		portalTarget: present && canUseDOM() ? resolvePortalTarget(layerContainer) : null,
+		// Why after hydration: the server renders no portal, so a float that is
+		// open on the first render portals one render later instead of mismatching.
+		portalTarget: present && hydrated ? resolvePortalTarget(layerContainer) : null,
 		floatingRef,
 	};
 }

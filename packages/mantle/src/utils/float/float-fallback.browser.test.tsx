@@ -80,6 +80,40 @@ describe("a browser with no popover API and no anchor positioning", () => {
 		expect(screen.getByRole("button", { name: "Inside" })).toHaveFocus();
 	});
 
+	test("places a popover inside a popover next to its own trigger", async () => {
+		// The outer content's transform, like a centered dialog's, makes it the
+		// containing block of the fixed inner content, because no top layer lifts
+		// the inner one out.
+		const user = userEvent.setup();
+		render(
+			<div style={{ padding: 100 }}>
+				<Popover.Root>
+					<Popover.Trigger>Outer</Popover.Trigger>
+					<Popover.Content style={{ transform: "translateX(10px)" }}>
+						<Popover.Root>
+							<Popover.Trigger>Inner</Popover.Trigger>
+							<Popover.Content>Inner content</Popover.Content>
+						</Popover.Root>
+					</Popover.Content>
+				</Popover.Root>
+			</div>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "Outer" }));
+		const inner = await screen.findByRole("button", { name: "Inner" });
+		await user.click(inner);
+		const content = (await screen.findByText("Inner content")).closest<HTMLElement>(
+			"[data-slot='popover-content']",
+		);
+		await waitFor(() => expect(content?.getBoundingClientRect().width).toBeGreaterThan(0));
+
+		await waitFor(() => {
+			const anchor = inner.getBoundingClientRect();
+			const box = content?.getBoundingClientRect();
+			expect(box?.top).toBeCloseTo(anchor.bottom + 4, 0);
+		});
+	});
+
 	test("flips a popover above its trigger when only that side fits", async () => {
 		const user = userEvent.setup();
 		render(

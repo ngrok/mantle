@@ -11,6 +11,7 @@ import type {
 import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import invariant from "tiny-invariant";
+import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -22,8 +23,8 @@ import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import { Slot } from "../slot/index.js";
 
 /**
- * How long a closed tooltip lets the next one open without the delay, and how
- * long a pointer may take to cross from the trigger onto the content, in milliseconds.
+ * The open delay, how long a closed tooltip lets the next one open without the
+ * delay, and whether a pointer can move onto the content.
  */
 type TooltipTiming = {
 	delayDuration: number;
@@ -147,11 +148,17 @@ function useTooltipState(part: string): TooltipState {
 	return state;
 }
 
-/**
- * How long a pointer that leaves the trigger may take to reach the content
- * before the tooltip closes, in milliseconds.
- */
-const HOVER_GRACE = 100;
+/** Whether the pointer is inside the smallest box that holds both elements. */
+function isInsideBoth(event: globalThis.PointerEvent, a: Element, b: Element): boolean {
+	const boxA = a.getBoundingClientRect();
+	const boxB = b.getBoundingClientRect();
+	return (
+		event.clientX >= Math.min(boxA.left, boxB.left) &&
+		event.clientX <= Math.max(boxA.right, boxB.right) &&
+		event.clientY >= Math.min(boxA.top, boxB.top) &&
+		event.clientY <= Math.max(boxA.bottom, boxB.bottom)
+	);
+}
 
 type TooltipRootProps = {
 	children?: ReactNode;
@@ -208,10 +215,47 @@ function Root({
 	const [openedAfterDelay, setOpenedAfterDelay] = useState(true);
 	const open = openProp ?? uncontrolledOpen;
 	const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+	const stopGrace = useRef<(() => void) | undefined>(undefined);
+	// Why a ref: a timer can open the tooltip, and a press can close it before
+	// React renders the open state. `setOpen` skips only a request that matches
+	// both the rendered state and the latest request.
+	const requestedOpen = useRef(open);
+	useEffect(() => {
+		requestedOpen.current = open;
+	}, [open]);
 	const triggerRef = useRef<HTMLElement | null>(null);
-	useEffect(() => () => clearTimeout(timer.current), []);
+	useEffect(
+		() => () => {
+			clearTimeout(timer.current);
+			stopGrace.current?.();
+		},
+		[],
+	);
 
 	const contentId = useId();
+	const closeFromOther = useCallbackRef(() => {
+		if (openProp === undefined) {
+			setUncontrolledOpen(false);
+		}
+		onOpenChange?.(false);
+	});
+	// Why an effect: it follows every way the tooltip opens and closes, including
+	// a parent that closes a controlled tooltip and an unmount while open.
+	useEffect(() => {
+		if (!open) {
+			return;
+		}
+		const entry = { id: contentId, close: closeFromOther };
+		openTooltip = entry;
+		skipNextDelays(timing);
+		return () => {
+			if (openTooltip === entry) {
+				openTooltip = undefined;
+			}
+			restoreDelaysSoon(timing);
+		};
+	}, [closeFromOther, contentId, open, timing]);
+
 	let openState: TooltipOpenState = "closed";
 	if (open) {
 		openState = openedAfterDelay ? "delayed-open" : "instant-open";
@@ -219,31 +263,13 @@ function Root({
 	const state = useMemo<TooltipState>(() => {
 		const setOpen = (next: boolean) => {
 			clearTimeout(timer.current);
-			if (next === open) {
+			stopGrace.current?.();
+			if (next === open && next === requestedOpen.current) {
 				return;
 			}
-			if (next) {
-				if (openTooltip?.id !== contentId) {
-					openTooltip?.close();
-				}
-				// Why no open check in `close`: another tooltip calls it after this
-				// render, and `openTooltip` holds this tooltip only while it is open.
-				openTooltip = {
-					id: contentId,
-					close: () => {
-						openTooltip = undefined;
-						if (openProp === undefined) {
-							setUncontrolledOpen(false);
-						}
-						onOpenChange?.(false);
-					},
-				};
-				skipNextDelays(timing);
-			} else {
-				if (openTooltip?.id === contentId) {
-					openTooltip = undefined;
-				}
-				restoreDelaysSoon(timing);
+			requestedOpen.current = next;
+			if (next && openTooltip != null && openTooltip.id !== contentId) {
+				openTooltip.close();
 			}
 			if (openProp === undefined) {
 				setUncontrolledOpen(next);
@@ -258,6 +284,7 @@ function Root({
 			triggerRef,
 			onTriggerEnter: () => {
 				clearTimeout(timer.current);
+				stopGrace.current?.();
 				if (open) {
 					return;
 				}
@@ -273,13 +300,36 @@ function Root({
 			},
 			onTriggerLeave: () => {
 				clearTimeout(timer.current);
-				if (disableHoverableContent ?? timing.disableHoverableContent) {
+				stopGrace.current?.();
+				const trigger = triggerRef.current;
+				const content = trigger?.ownerDocument.getElementById(contentId);
+				if (
+					(disableHoverableContent ?? timing.disableHoverableContent) ||
+					trigger == null ||
+					content == null
+				) {
 					setOpen(false);
 					return;
 				}
-				timer.current = setTimeout(close, HOVER_GRACE);
+				// Why a box and not a deadline: a slow pointer on its way from the
+				// trigger to the content keeps the tooltip open. It closes when the
+				// pointer leaves the box that holds both.
+				const document = trigger.ownerDocument;
+				const onMove = (event: globalThis.PointerEvent) => {
+					if (!isInsideBoth(event, trigger, content)) {
+						close();
+					}
+				};
+				document.addEventListener("pointermove", onMove);
+				stopGrace.current = () => {
+					document.removeEventListener("pointermove", onMove);
+					stopGrace.current = undefined;
+				};
 			},
-			onContentEnter: () => clearTimeout(timer.current),
+			onContentEnter: () => {
+				clearTimeout(timer.current);
+				stopGrace.current?.();
+			},
 			open: () => {
 				setOpenedAfterDelay(false);
 				setOpen(true);
@@ -320,6 +370,7 @@ function Root({
  * ```
  */
 function Trigger({
+	"aria-describedby": ariaDescribedBy,
 	asChild = false,
 	"data-slot": dataSlot,
 	onBlur,
@@ -338,11 +389,16 @@ function Trigger({
 	const Component = asChild ? Slot : "button";
 	return (
 		<Component
-			aria-describedby={state.state === "closed" ? undefined : state.contentId}
+			aria-describedby={
+				state.state === "closed"
+					? ariaDescribedBy
+					: [ariaDescribedBy, state.contentId].filter(Boolean).join(" ")
+			}
 			data-slot={joinDataSlot(dataSlot, "tooltip-trigger")}
 			data-state={state.state}
 			ref={composedRef}
-			type={asChild ? undefined : "button"}
+			// Why also under `asChild`: a slotted `<button>` with no type would submit its form.
+			type="button"
 			{...props}
 			onPointerMove={(event: PointerEvent<HTMLButtonElement>) => {
 				onPointerMove?.(event);
@@ -400,10 +456,11 @@ function Trigger({
 
 /**
  * Props for `Tooltip.Content`. `asChild` is omitted: the content renders its own
- * arrow next to `children`, so a slot would receive more than one element. A
- * `data-slot` from a composing part joins ahead of `tooltip-content`.
+ * arrow next to `children`, so a slot would receive more than one element.
+ * `id` is omitted: the trigger's `aria-describedby` points at the id the root
+ * owns. A `data-slot` from a composing part joins ahead of `tooltip-content`.
  */
-type TooltipContentProps = ComponentProps<"div"> &
+type TooltipContentProps = Omit<ComponentProps<"div">, "id"> &
 	WithDataSlot & {
 		/**
 		 * The side of the trigger the tooltip prefers. It flips to the opposite
@@ -484,7 +541,10 @@ function Content({
 		open: state.state !== "closed",
 		onDismiss: state.close,
 		getAnchor: () => state.triggerRef.current,
-		dismissOnOutside: false,
+		getInsideElements: () => [state.triggerRef.current],
+		// Why: a browser without `popover="hint"` treats the tooltip as `manual`,
+		// which an outside press does not close.
+		dismissOnOutside: true,
 		dismissWhenCovered: true,
 		side,
 		align,
@@ -503,6 +563,7 @@ function Content({
 				role="tooltip"
 				data-slot={joinDataSlot(dataSlot, "tooltip-content")}
 				data-state={state.state}
+				inert={state.state === "closed"}
 				className={cx(
 					floatClassName,
 					"bg-tooltip text-tooltip max-w-72 wrap-break-word rounded-md px-3 py-1.5 text-sm font-sans shadow",

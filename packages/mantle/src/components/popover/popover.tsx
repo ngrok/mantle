@@ -135,7 +135,8 @@ const Trigger = ({
 			data-slot={joinDataSlot(dataSlot, "popover-trigger")}
 			data-state={state.open ? "open" : "closed"}
 			ref={composedRef}
-			type={asChild ? undefined : "button"}
+			// Why also under `asChild`: a slotted `<button>` with no type would submit its form.
+			type="button"
 			{...props}
 			onClick={(event: MouseEvent<HTMLButtonElement>) => {
 				onClick?.(event);
@@ -220,7 +221,8 @@ const Close = ({
 	return (
 		<Component
 			data-slot={joinDataSlot(dataSlot, "popover-close")}
-			type={asChild ? undefined : "button"}
+			// Why also under `asChild`: a slotted `<button>` with no type would submit its form.
+			type="button"
 			{...props}
 			onClick={(event: MouseEvent<HTMLButtonElement>) => {
 				onClick?.(event);
@@ -383,6 +385,7 @@ const Content = ({
 				tabIndex={-1}
 				data-slot={joinDataSlot(dataSlot, "popover-content")}
 				data-state={state.open ? "open" : "closed"}
+				inert={!state.open}
 				className={cx(
 					floatClassName,
 					"text-popover-foreground border-popover bg-popover rounded-md border p-4 shadow-md outline-hidden",

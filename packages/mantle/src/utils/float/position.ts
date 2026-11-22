@@ -178,13 +178,48 @@ const arrowStyles = {
 	},
 } as const satisfies Record<Side, { edge: Side; origin: string; transform: string }>;
 
+const oppositeAlign = { start: "end", end: "start" } as const;
+
+/** The properties that make an element the containing block of a `position: fixed` descendant when they are set. */
+const containingBlockProperties = [
+	"transform",
+	"scale",
+	"translate",
+	"rotate",
+	"filter",
+	"perspective",
+	"backdrop-filter",
+	"-webkit-backdrop-filter",
+];
+
+/**
+ * The nearest ancestor that a `position: fixed` element measures `left` and
+ * `top` from, such as one with a transform or a filter, else `null` for the viewport.
+ */
+function findFixedContainingBlock(element: HTMLElement): HTMLElement | null {
+	for (let parent = element.parentElement; parent != null; parent = parent.parentElement) {
+		const style = getComputedStyle(parent);
+		// Why `getPropertyValue`: an old browser returns "" for a property it does not know.
+		const sets = (property: string) => !["", "none"].includes(style.getPropertyValue(property));
+		if (
+			containingBlockProperties.some(sets) ||
+			/paint|layout|strict|content/.test(style.getPropertyValue("contain")) ||
+			/transform|filter|perspective/.test(style.getPropertyValue("will-change"))
+		) {
+			return parent;
+		}
+	}
+	return null;
+}
+
 let anchorCount = 0;
 
 /**
  * Keeps an open float next to `anchor` and returns the cleanup. After each
- * scroll, resize, and size change, `computePlacement` picks the side. With CSS
- * anchor positioning, the browser places the float on that side and keeps it
- * there between frames. Without it, this places the float.
+ * scroll, resize, size change, and end of a transition or animation,
+ * `computePlacement` picks the side. With CSS anchor positioning, the browser
+ * places the float on that side and keeps it there between frames. Without it,
+ * this places the float.
  *
  * Why not `position-try-fallbacks`: WebKit drops the registered custom
  * properties of a float that takes a fallback, so Tailwind's border and shadow
@@ -203,7 +238,7 @@ let anchorCount = 0;
  * ```
  */
 function trackFloat({
-	align,
+	align: logicalAlign,
 	anchor,
 	floating,
 	side,
@@ -216,6 +251,14 @@ function trackFloat({
 	sideOffset: number;
 }): () => void {
 	const anchorName = `--mantle-float-${++anchorCount}`;
+	// Why: `start` and `end` follow the text direction, as they did with Radix.
+	// Above or below the anchor in a right-to-left document, `start` is the right edge.
+	const align =
+		(side === "top" || side === "bottom") &&
+		logicalAlign !== "center" &&
+		getComputedStyle(anchor).direction === "rtl"
+			? oppositeAlign[logicalAlign]
+			: logicalAlign;
 	const arrow = floating.querySelector<HTMLElement>(":scope > [data-float-arrow]");
 	// Why the arrow's height: the arrow sticks out of the float toward the
 	// anchor, so `sideOffset` is the gap between its tip and the anchor.
@@ -259,6 +302,12 @@ function trackFloat({
 		setCssSide(side);
 	}
 
+	// Why: with no popover API the float is not in the top layer, so a
+	// transformed overlay or float that holds it is its containing block, and
+	// `left` and `top` start at that element. An open animation sets and clears
+	// the transform, so each placement looks again.
+	const inTopLayer = "togglePopover" in HTMLElement.prototype;
+
 	let frame = 0;
 	const place = () => {
 		const anchorBox = anchor.getBoundingClientRect();
@@ -287,8 +336,12 @@ function trackFloat({
 				y: (box.top + box.bottom) / 2 - height / 2,
 			};
 		} else {
-			floating.style.left = `${placed.x}px`;
-			floating.style.top = `${placed.y}px`;
+			const containingBlock = inTopLayer ? null : findFixedContainingBlock(floating);
+			const origin = containingBlock?.getBoundingClientRect();
+			const originX = origin == null ? 0 : origin.left + (containingBlock?.clientLeft ?? 0);
+			const originY = origin == null ? 0 : origin.top + (containingBlock?.clientTop ?? 0);
+			floating.style.left = `${placed.x - originX}px`;
+			floating.style.top = `${placed.y - originY}px`;
 		}
 		const anchorCenterX = anchorBox.left + anchorBox.width / 2 - placed.x;
 		const anchorCenterY = anchorBox.top + anchorBox.height / 2 - placed.y;
@@ -338,11 +391,20 @@ function trackFloat({
 	place();
 	window.addEventListener("scroll", schedule, { capture: true, passive: true });
 	window.addEventListener("resize", schedule, { passive: true });
+	// Why: an overlay's open animation moves the anchor with no resize or scroll.
+	window.addEventListener("transitionend", schedule, { capture: true, passive: true });
+	window.addEventListener("animationend", schedule, { capture: true, passive: true });
 	return () => {
 		cancelAnimationFrame(frame);
 		observer.disconnect();
 		window.removeEventListener("scroll", schedule, { capture: true });
 		window.removeEventListener("resize", schedule);
+		window.removeEventListener("transitionend", schedule, { capture: true });
+		window.removeEventListener("animationend", schedule, { capture: true });
+		// Why: the next placement of the same float sets only the margins it needs.
+		for (const edge of ["top", "right", "bottom", "left"] as const) {
+			floating.style.removeProperty(`margin-${edge}`);
+		}
 		if (supportsAnchorPositioning) {
 			// Why a filter: another float on the same anchor can close after this one.
 			const otherNames = anchor.style

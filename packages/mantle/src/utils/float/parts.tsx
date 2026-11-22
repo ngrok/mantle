@@ -1,19 +1,10 @@
 import type { ComponentProps } from "react";
+import { findTabbableDescendants } from "../../components/alert/tabbable-neighbors.js";
 import { cx } from "../cx/cx.js";
 
-const tabbableSelector = [
-	"a[href]",
-	"button:not(:disabled)",
-	"input:not(:disabled):not([type='hidden'])",
-	"select:not(:disabled)",
-	"textarea:not(:disabled)",
-	"[contenteditable]:not([contenteditable='false'])",
-	"[tabindex]:not([tabindex='-1'])",
-].join(", ");
-
 /**
- * Moves focus to the first element in `container` that Tab reaches, else to
- * `container` itself. The page does not scroll to it.
+ * Moves focus to the first element in `container` that Tab reaches and that
+ * takes focus, else to `container` itself. The page does not scroll to it.
  *
  * @example
  * ```ts
@@ -21,8 +12,13 @@ const tabbableSelector = [
  * ```
  */
 function focusFirst(container: HTMLElement): void {
-	const first = container.querySelector<HTMLElement>(tabbableSelector);
-	(first ?? container).focus({ preventScroll: true });
+	for (const candidate of findTabbableDescendants(container)) {
+		candidate.focus({ preventScroll: true });
+		if (container.ownerDocument.activeElement === candidate) {
+			return;
+		}
+	}
+	container.focus({ preventScroll: true });
 }
 
 type FloatArrowProps = Omit<ComponentProps<"svg">, "children" | "width" | "height"> & {
