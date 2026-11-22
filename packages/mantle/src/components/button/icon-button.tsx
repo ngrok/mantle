@@ -203,19 +203,21 @@ const IconButton = ({
 		"aria-label": label,
 	};
 
-	// Why no `IconSwap`: the spinner mounts only while loading, so an idle button
-	// renders one icon. The spinner is an absolute flex child, so it sits over the
-	// centered icon, and the icon keeps its place in the box.
+	// Why a wrapper: the fade must not replace a transition the icon has, such as
+	// a rotating caret, and it must hide an icon that drops `className`. The
+	// spinner mounts only while loading, as an absolute flex child over the icon.
 	const innerChildren = (
 		<>
-			<Icon
-				svg={propIcon}
+			<span
 				className={cx(
+					"grid place-items-center",
 					"motion-safe:transition-[opacity,scale,filter,visibility] motion-safe:duration-200 motion-safe:ease-out-strong",
 					isLoading &&
 						"invisible opacity-0 motion-safe:scale-50 motion-safe:blur-[2px] motion-safe:duration-150",
 				)}
-			/>
+			>
+				<Icon svg={propIcon} />
+			</span>
 			{isLoading && (
 				<Icon
 					svg={<CircleNotchIcon className="animate-spin" />}

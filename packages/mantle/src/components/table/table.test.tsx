@@ -188,6 +188,30 @@ describe("Table", () => {
 		expect(removeListener).toHaveBeenCalledWith("scroll", scrollListener);
 	});
 
+	test("a replaced Table.Element leaves the observer", () => {
+		const unobserve = vi.spyOn(ResizeObserver.prototype, "unobserve");
+		function SwappedTable({ generation }: { generation: number }) {
+			return (
+				<Table.Root>
+					<Table.Element key={generation}>
+						<Table.Body>
+							<Table.Row>
+								<Table.Cell>INV001</Table.Cell>
+							</Table.Row>
+						</Table.Body>
+					</Table.Element>
+				</Table.Root>
+			);
+		}
+		const { rerender } = render(<SwappedTable generation={1} />);
+		const firstTable = screen.getByRole("table");
+
+		rerender(<SwappedTable generation={2} />);
+
+		expect(unobserve).toHaveBeenCalledTimes(1);
+		expect(unobserve).toHaveBeenLastCalledWith(firstTable);
+	});
+
 	test("a consumer className beats each part's defaults", () => {
 		// tailwind-merge override contract: the consumer's class replaces the
 		// part's conflicting default instead of landing beside it.

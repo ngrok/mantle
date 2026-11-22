@@ -44,7 +44,7 @@ describe("IconButton", () => {
 		expect(button).toHaveClass("rounded-(--icon-button-border-radius,0.375rem)");
 	});
 
-	test("renders the icon through Icon as the button's only child, with no spinner while idle", () => {
+	test("renders the icon through Icon, with no spinner while idle", () => {
 		render(
 			<IconButton
 				appearance="outlined"
@@ -55,8 +55,8 @@ describe("IconButton", () => {
 		);
 		const button = screen.getByRole("button", { name: "globe" });
 		const icon = screen.getByTestId("icon");
-		expect(button.childNodes).toHaveLength(1);
-		expect(button.firstChild).toBe(icon);
+		expect(button.querySelectorAll("svg")).toHaveLength(1);
+		expect(button.firstElementChild).toContainElement(icon);
 		expect(icon).toHaveAttribute("data-slot", "icon svg-only");
 	});
 
@@ -352,7 +352,7 @@ describe("IconButton", () => {
 			expect(button).toHaveAttribute("data-loading", "");
 			const [firstChild, spinner] = button.children;
 			expect(button.children).toHaveLength(2);
-			expect(firstChild).toBe(icon);
+			expect(firstChild).toContainElement(icon);
 			expect(spinner?.tagName).toBe("svg");
 
 			rerender(
@@ -391,7 +391,7 @@ describe("IconButton", () => {
 			expect(link).toHaveAttribute("tabindex", "-1");
 			const [firstChild, spinner] = link.children;
 			expect(link.children).toHaveLength(2);
-			expect(firstChild).toBe(screen.getByTestId("icon"));
+			expect(firstChild).toContainElement(screen.getByTestId("icon"));
 			expect(spinner?.tagName).toBe("svg");
 		});
 	});

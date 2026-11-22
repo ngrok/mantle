@@ -214,6 +214,35 @@ describe("Table.Root overflow observer", () => {
 		expect(root).toHaveAttribute("data-sticky-active", "true");
 	});
 
+	test("a table inside a wrapper keeps the overflow state current as it grows", async () => {
+		function WrappedTable({ width }: { width: number }) {
+			return (
+				<Table.Root data-testid="root" style={{ width: 400 }}>
+					<div>
+						<Table.Element style={{ width }}>
+							<Table.Body>
+								<Table.Row>
+									<Table.Cell>INV001</Table.Cell>
+								</Table.Row>
+							</Table.Body>
+						</Table.Element>
+					</div>
+				</Table.Root>
+			);
+		}
+		const { rerender } = render(<WrappedTable width={200} />);
+		const root = screen.getByTestId("root");
+		await new Promise(requestAnimationFrame);
+		await new Promise(requestAnimationFrame);
+		expect(root).toHaveAttribute("data-x-overflow", "false");
+
+		rerender(<WrappedTable width={800} />);
+
+		await waitFor(() => {
+			expect(root).toHaveAttribute("data-x-overflow", "true");
+		});
+	});
+
 	test("shrinking the container re-evaluates overflow", async () => {
 		const scrollWidth = vi.spyOn(Element.prototype, "scrollWidth", "get");
 		renderTable({ rootWidth: 800, tableWidth: 400 });

@@ -10,6 +10,8 @@ introducedIn: "0.91.0"
 
 **TL;DR:** On a `Button` with an `icon` prop, and on every `IconButton`, replace each `[&>svg]` variant in `className` with `[&_svg]`. Better: delete the variant and put the class on the icon element (`icon={<PlusIcon className="size-3.5" />}`). Leave `[&>svg]` on every other part alone.
 
+> **Later change:** `IconButton` no longer renders `icon-swap` markup. It wraps its icon in one span and mounts the spinner only while loading. The `[&_svg]` selector still works. In a test, query the `IconButton` icon as `svg`, not through `icon-swap-item`.
+
 ## Codemod
 
 Codemod: manual: the change is a Tailwind variant inside a class string, and a rule cannot tell which `[&>svg]` targets the button's own icon.
@@ -23,7 +25,7 @@ Codemod: manual: the change is a Tailwind variant inside a class string, and a r
 3. In the `className` of each one, find a `[&>svg]` variant (`[&>svg]:size-3.5`, `[&>svg]:shrink-0`, `[&>svg]:text-muted`). Also find the spelled-out form `[&_>_svg]`, and a `> svg` selector in CSS that targets a button.
 4. Replace `[&>svg]` with `[&_svg]`. When the variant only sets the icon's size or color, you can instead delete it and pass the class to the icon element: `icon={<PlusIcon className="size-3.5" />}`, or `<IconButton icon={<TrashIcon className="size-3.5" />} />`.
 5. Leave `[&>svg]` on every other part alone: `Select.Trigger`, `Tabs.Trigger`, `DropdownMenu.Item`, and plain elements did not change.
-6. Find a test that reads the button's icon as a direct child (`button.querySelector(":scope > svg")`, `button.firstElementChild`). Query `svg` as a descendant instead, or query `[data-slot="icon-swap-item"][data-state="active"] svg` for the icon that shows.
+6. Find a test that reads the button's icon as a direct child (`button.querySelector(":scope > svg")`, `button.firstElementChild`). Query `svg` as a descendant instead. On a `Button`, you can also query `[data-slot="icon-swap-item"][data-state="active"] svg` for the icon that shows.
 7. After editing, run the project's formatter, linter, type checker, and tests.
 
 > **Why a wrapper?** A swap that mounts one icon and unmounts the other is a hard cut: the new icon pops in. To blur and fade between them, both icons must stay mounted in one grid cell while a CSS transition runs. Each icon gets its own wrapper, so the swap owns the wrapper's `transition` and the icon keeps its own (a rotating caret, for example).

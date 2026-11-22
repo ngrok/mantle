@@ -743,8 +743,7 @@ export {
 };
 
 /**
- * Lets a `Table.Element` that mounts inside a mounted `Table.Root` add itself to
- * the root's `ResizeObserver`.
+ * Lets each `Table.Element` add itself to its `Table.Root`'s `ResizeObserver`.
  *
  * @private
  */
@@ -761,16 +760,18 @@ function useHorizontalOverflowObserver<T extends HTMLElement>() {
 	const observerRef = useRef<ResizeObserver | null>(null);
 	const [state, setState] = useState({ hasOverflow: false, scrolledToEnd: false });
 
-	// Why a ref callback and not only the loop in the effect: a table that replaces
-	// another one, such as after a loading state, is not a child at effect time.
+	// Why a set: a table mounts before the effect makes the observer, and a table
+	// can sit inside a wrapper or replace another one later.
+	const tablesRef = useRef(new Set<HTMLTableElement>());
 	const observeContent = useCallback((content: HTMLTableElement | null) => {
-		const observer = observerRef.current;
-		if (content == null || observer == null) {
+		if (content == null) {
 			return;
 		}
-		observer.observe(content);
+		tablesRef.current.add(content);
+		observerRef.current?.observe(content);
 		return () => {
-			observer.unobserve(content);
+			tablesRef.current.delete(content);
+			observerRef.current?.unobserve(content);
 		};
 	}, []);
 
@@ -814,10 +815,10 @@ function useHorizontalOverflowObserver<T extends HTMLElement>() {
 			flushSync(checkState);
 		});
 		resizeObserver.observe(element);
-		// Why the children too: wider content changes the scroll width but not the
-		// size of the scroll container.
-		for (const child of element.children) {
-			resizeObserver.observe(child);
+		// Why the tables too: a wider table changes the scroll width but not the size
+		// of the scroll container.
+		for (const table of tablesRef.current) {
+			resizeObserver.observe(table);
 		}
 		observerRef.current = resizeObserver;
 

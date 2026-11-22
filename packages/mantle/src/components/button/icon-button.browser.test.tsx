@@ -26,6 +26,8 @@ beforeAll(async () => {
 	styleElement = document.createElement("style");
 	styleElement.textContent = [
 		STYLE,
+		// Why first: Tailwind puts a `motion-safe:` rule after the plain utilities.
+		await commands.tailwindCss("./icon-button.browser.test.tsx"),
 		await commands.tailwindCss("./icon-button.tsx"),
 		await commands.tailwindCss("./icon-button-variants.ts"),
 	].join("\n");
@@ -94,5 +96,37 @@ describe("IconButton loading", () => {
 		expect(button.getBoundingClientRect().toJSON()).toEqual(idleBox);
 		expect(centerOf(spinner)).toEqual(idleIconCenter);
 		expect(centerOf(button.firstElementChild)).toEqual(idleIconCenter);
+	});
+
+	test("an icon that drops `className` still hides while loading", async () => {
+		function DroppedClassNameIcon() {
+			return <GlobeIcon data-testid="icon" />;
+		}
+		render(
+			<IconButton
+				appearance="outlined"
+				intent="neutral"
+				label="Save"
+				icon={<DroppedClassNameIcon />}
+				isLoading
+			/>,
+		);
+
+		const icon = screen.getByTestId("icon");
+		await expect.poll(() => getComputedStyle(icon).visibility).toBe("hidden");
+	});
+
+	test("the icon keeps its own transition", async () => {
+		await commands.emulateMedia({ reducedMotion: "no-preference" });
+		render(
+			<IconButton
+				appearance="outlined"
+				intent="neutral"
+				label="Open menu"
+				icon={<GlobeIcon data-testid="icon" className="transition-[rotate]" />}
+			/>,
+		);
+
+		expect(getComputedStyle(screen.getByTestId("icon")).transitionProperty).toBe("rotate");
 	});
 });
