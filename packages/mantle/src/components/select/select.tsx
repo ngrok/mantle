@@ -1,7 +1,5 @@
 "use client";
 
-import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
-import { CheckIcon } from "@phosphor-icons/react/Check";
 import type {
 	ComponentProps,
 	FocusEvent,
@@ -506,15 +504,12 @@ const Value = ({
 	...props
 }: SelectValueProps) => {
 	const { labelFor, listbox, value } = useSelectContext();
-	const reported = useStoreValue(listbox.store, (state) =>
-		state.itemLabel?.value === value ? state.itemLabel : null,
-	);
 	// Why `""` counts as no value: a cleared select shows its placeholder, as a native select does.
 	const hasValue = value != null && value !== "";
 	// Why the item elements first: they render on the server and carry the
-	// current text while the list is closed. The reported label covers an item
+	// current text while the list is closed. `ReportedLabel` covers an item
 	// that a component of your own renders.
-	const label = hasValue && children == null ? (labelFor(value) ?? reported) : null;
+	const label = hasValue && children == null ? labelFor(value) : null;
 	if (asChild) {
 		return (
 			<Slot ref={ref} data-slot={joinDataSlot(dataSlot, "select-value")} {...props}>
@@ -530,10 +525,9 @@ const Value = ({
 					{children}
 				</span>
 			)}
-			{hasValue && children == null && label != null && (
-				<span data-slot="select-item-label" className="contents" translate={label.translate}>
-					{label.label}
-				</span>
+			{label != null && renderItemLabel(label)}
+			{hasValue && children == null && label == null && (
+				<ReportedLabel listbox={listbox} value={value} />
 			)}
 			{!hasValue && placeholder != null && (
 				<span data-slot="select-placeholder" className="contents">
@@ -544,6 +538,31 @@ const Value = ({
 	);
 };
 
+/** The selected item's text, in the span that `Select.Item` also renders. */
+const renderItemLabel = (label: ItemLabel) => (
+	<span data-slot="select-item-label" className="contents" translate={label.translate}>
+		{label.label}
+	</span>
+);
+
+/**
+ * The label that an open item reported for `value`. Only a value whose item
+ * the root cannot find renders it, so other closed selects hold no
+ * subscription to the store.
+ */
+const ReportedLabel = ({
+	listbox,
+	value,
+}: {
+	listbox: SelectBehavior["listbox"];
+	value: string;
+}) => {
+	const reported = useStoreValue(listbox.getStore(), (state) =>
+		state.itemLabel?.value === value ? state.itemLabel : null,
+	);
+	return reported != null && renderItemLabel(reported);
+};
+
 /** The trigger renders its label in a span, then the caret. */
 const renderTriggerContent = (label: ReactNode) => (
 	<>
@@ -551,7 +570,16 @@ const renderTriggerContent = (label: ReactNode) => (
 		<span data-slot="select-trigger-label" className="contents">
 			{label}
 		</span>
-		<Icon svg={<CaretDownIcon weight="bold" />} className="size-4" aria-hidden />
+		{/* Why an inline svg: one host element in place of four parts for each closed select. */}
+		<svg
+			aria-hidden
+			data-slot="icon svg-only"
+			viewBox="0 0 256 256"
+			fill="currentColor"
+			className="size-4 shrink-0"
+		>
+			<path d="M216.49,104.49l-80,80a12,12,0,0,1-17,0l-80-80a12,12,0,0,1,17-17L128,159l71.51-71.52a12,12,0,0,1,17,17Z" />
+		</svg>
 	</>
 );
 
@@ -771,7 +799,11 @@ type SelectContentProps = Omit<ComponentProps<"div">, "dir"> &
  * </Select.Root>
  * ```
  */
-const Content = ({
+const Content = (props: SelectContentProps) =>
+	useSelectContext().open && <OpenContent {...props} />;
+
+/** The open list. A closed select mounts none of it: no popup, store, or listener. */
+const OpenContent = ({
 	className,
 	children,
 	"data-slot": dataSlot,
@@ -779,9 +811,9 @@ const Content = ({
 	width = "trigger",
 	...props
 }: SelectContentProps) => {
-	const { dir, listbox, open, triggerRef } = useSelectContext();
+	const { dir, listbox, triggerRef } = useSelectContext();
 	const { host, popupRef } = usePopup({
-		open,
+		open: true,
 		anchorRef: triggerRef,
 		ownerRef: triggerRef,
 		container: useLayerContainer(),
@@ -789,11 +821,8 @@ const Content = ({
 	});
 	const composedRef = useComposedRefs(ref, listbox.listboxProps.ref, popupRef);
 
-	// Why `open`: a closed list renders no options, so a page of closed
-	// selects holds no option elements in memory.
 	return (
 		host != null &&
-		open &&
 		createPortal(
 			<div
 				{...props}
@@ -807,7 +836,7 @@ const Content = ({
 				data-state="open"
 				data-align="start"
 				className={cx(
-					"border-popover duration-200 ease-out-strong data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-top:slide-in-from-bottom-1 motion-reduce:animate-none! relative z-50 max-h-96 min-w-32 overflow-y-auto rounded-md border shadow-md",
+					"border-popover duration-200 ease-out-strong data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-top:slide-in-from-bottom-1 motion-reduce:animate-none! relative z-50 min-w-32 overflow-y-auto rounded-md border shadow-md",
 					"bg-popover font-sans p-1 space-y-px max-h-(--available-height) outline-hidden",
 					width === "trigger" && "w-(--anchor-width)",
 					className,
@@ -975,14 +1004,14 @@ const Item = ({
 			? children.props.children
 			: children;
 	const reportLabel = () => {
-		listbox.store.set({ itemLabel: { value, label, translate } });
+		listbox.getStore().set({ itemLabel: { value, label, translate } });
 	};
 	const composedRef = useComposedRefs(ref, (node: HTMLElement | null) => {
 		// Why a ref callback: the active item hands its label to `Select.Value`
 		// in the commit that highlights it. A pick closes the list, so the picked
 		// item has no later commit to report in. The selected item reports only
 		// while no item is active, so it cannot overwrite the active one.
-		if (node != null && (active || (selected && listbox.store.get().activeId == null))) {
+		if (node != null && (active || (selected && listbox.getStore().get().activeId == null))) {
 			reportLabel();
 		}
 	});
@@ -994,7 +1023,15 @@ const Item = ({
 			</span>
 			{selected && (
 				<span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
-					<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
+					<svg
+						aria-hidden
+						data-slot="icon svg-only"
+						viewBox="0 0 256 256"
+						fill="currentColor"
+						className="size-4 shrink-0 text-accent-600"
+					>
+						<path d="M232.49,80.49l-128,128a12,12,0,0,1-17,0l-56-56a12,12,0,1,1,17-17L96,183,215.51,63.51a12,12,0,0,1,17,17Z" />
+					</svg>
 				</span>
 			)}
 		</>

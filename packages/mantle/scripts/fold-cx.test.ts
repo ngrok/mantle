@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -166,5 +167,20 @@ describe("foldCx", () => {
 		expect(
 			foldCx('import { cx as merge } from "../utils/cx/cx.js";\ncx("p-2");', "/m/src/a.tsx", merge),
 		).toBeNull();
+	});
+
+	// Why these modules: a page holds many of them, and a call that stays `cx` merges at runtime
+	// on each first and second open, such as when a conflicting class blocks the fold.
+	it("folds every cx call in the pickers and Switch", () => {
+		for (const file of [
+			"select/select.tsx",
+			"combobox/combobox.tsx",
+			"multi-select/multi-select.tsx",
+			"switch/switch.tsx",
+		]) {
+			const id = path.join(import.meta.dirname, "../src/components", file);
+			const folded = foldCx(readFileSync(id, "utf8"), id, merge) ?? "";
+			expect({ file, calls: folded.match(/(?<![\w.])cx\(/g) ?? [] }).toEqual({ file, calls: [] });
+		}
 	});
 });

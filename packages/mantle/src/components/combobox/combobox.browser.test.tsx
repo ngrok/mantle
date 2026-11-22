@@ -177,8 +177,11 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		render(<DomainCombobox />);
 		const input = screen.getByRole("combobox", { name: "Domain" });
 		await userEvent.click(input);
-		await userEvent.keyboard("acme{Escape}");
+		await userEvent.keyboard("acme");
+		expect(activeOption(input)).toHaveRole("option");
+		await userEvent.keyboard("{Escape}");
 		expect(input).toHaveAttribute("aria-expanded", "false");
+		expect(input).not.toHaveAttribute("aria-activedescendant");
 		expect(input).toHaveValue("acme");
 		await userEvent.keyboard("{ArrowDown}");
 		expect(input).toHaveAttribute("aria-expanded", "true");

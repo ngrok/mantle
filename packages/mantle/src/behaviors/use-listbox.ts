@@ -1,6 +1,6 @@
 "use client";
 
-import { isValidElement, useId, useRef, useState } from "react";
+import { isValidElement, useId, useState } from "react";
 import type { HTMLAttributes, MouseEventHandler, ReactNode, RefCallback, RefObject } from "react";
 import { createStore, useStoreValue } from "./store.js";
 import type { Store } from "./store.js";
@@ -26,7 +26,8 @@ type MoveTarget = "next" | "previous" | "first" | "last" | "selected";
  */
 type Listbox = {
 	id: string;
-	store: Store<ListboxState>;
+	/** The store of the hot state. The first call creates it. */
+	getStore: () => Store<ListboxState>;
 	ref: RefObject<HTMLElement | null>;
 	selected: readonly string[];
 	select: (value: string) => void;
@@ -87,43 +88,62 @@ const findTarget = <T>({
 };
 
 /**
+ * The parts of a listbox that live as long as its owner: the element refs,
+ * the list ref, the typeahead text, a pending move, and the store. The store starts on its
+ * first read, which an open list makes, so a closed picker holds none.
+ */
+const createListboxState = () => {
+	let store: Store<ListboxState> | null = null;
+	return {
+		ref: { current: null as HTMLElement | null },
+		searchRef: { current: { text: "", time: 0 } },
+		// A move that found no options, such as before async results arrive.
+		pendingMoveRef: { current: null as MoveTarget | null },
+		getStore: (): Store<ListboxState> => {
+			store ??= createStore<ListboxState>({ activeId: null, itemLabel: null });
+			return store;
+		},
+	};
+};
+
+/**
  * Owns the WAI-ARIA listbox pattern with `aria-activedescendant`: the active
  * option, selection, and typeahead. DOM focus stays on the element that owns
  * the listbox, such as a select trigger or a combobox input.
  *
  * It holds no open state and renders nothing. `useSelect` and `useCombobox`
- * compose it, and `useOption` reads it in each option.
+ * compose it, and `useOption` reads it in each option. The open list writes
+ * the `aria-activedescendant` of `ownerRef`, so a closed owner holds no
+ * subscription, and a move of the highlight renders no owner.
  *
  * @see https://www.w3.org/WAI/ARIA/apg/patterns/listbox/
  *
  * @example
  * ```ts
- * const listbox = useListbox({ selected: value == null ? [] : [value], onSelect: setValue });
+ * const listbox = useListbox({ selected: value == null ? [] : [value], onSelect: setValue, ownerRef: triggerRef });
  * ```
  */
 const useListbox = ({
 	selected,
 	onSelect,
+	ownerRef,
 }: {
 	selected: readonly string[];
 	onSelect: (value: string) => void;
+	ownerRef: RefObject<HTMLElement | null>;
 }): Listbox => {
 	const id = useId();
-	const ref = useRef<HTMLElement | null>(null);
-	const [store] = useState(() => createStore<ListboxState>({ activeId: null, itemLabel: null }));
-	const search = useRef({ text: "", time: 0 });
-	// A move that found no options, such as before async results arrive.
-	const pendingMove = useRef<MoveTarget | null>(null);
+	const [{ ref, searchRef, pendingMoveRef, getStore }] = useState(createListboxState);
 
 	const activate = (option: HTMLElement | null) => {
-		store.set({ activeId: option?.id ?? null });
+		getStore().set({ activeId: option?.id ?? null });
 		option?.scrollIntoView({ block: "nearest" });
 	};
 
 	const move = (target: MoveTarget) => {
 		const options = getOptions(ref.current);
-		pendingMove.current = options.length === 0 ? target : null;
-		const activeId = store.get().activeId;
+		pendingMoveRef.current = options.length === 0 ? target : null;
+		const activeId = getStore().get().activeId;
 		const next = findTarget({
 			options,
 			activeIndex: options.findIndex((option) => option.id === activeId),
@@ -140,15 +160,15 @@ const useListbox = ({
 			return false;
 		}
 		const now = Date.now();
-		const previous = search.current;
+		const previous = searchRef.current;
 		const searching = now - previous.time <= TYPEAHEAD_RESET_MS;
 		if (key === " " && !searching) {
 			return false;
 		}
 		const text = now - previous.time > TYPEAHEAD_RESET_MS ? key : previous.text + key;
-		search.current = { text, time: now };
+		searchRef.current = { text, time: now };
 		const options = getOptions(ref.current);
-		const activeIndex = options.findIndex((option) => option.id === store.get().activeId);
+		const activeIndex = options.findIndex((option) => option.id === getStore().get().activeId);
 		// Why the repeat check: pressing one letter again cycles through the
 		// options that start with it, like a native select.
 		const repeated = text.length > 1 && text === text.charAt(0).repeat(text.length);
@@ -166,7 +186,7 @@ const useListbox = ({
 
 	return {
 		id,
-		store,
+		getStore,
 		ref,
 		selected,
 		select: onSelect,
@@ -180,24 +200,40 @@ const useListbox = ({
 				if (node == null) {
 					return;
 				}
+				const store = getStore();
 				// Why an observer: options can mount after the move that needed them, such
 				// as async results, or replace the active option. The highlight then
 				// moves when the options change, with no effect and no extra render.
 				const reconcile = () => {
 					const { activeId } = store.get();
 					const stale = activeId != null && !node.contains(document.getElementById(activeId));
-					if (pendingMove.current != null || stale) {
-						move(pendingMove.current ?? "first");
+					if (pendingMoveRef.current != null || stale) {
+						move(pendingMoveRef.current ?? "first");
 					}
 				};
 				const observer = new MutationObserver(reconcile);
 				observer.observe(node, { childList: true, subtree: true });
+				// Why the open list writes the attribute: the owner then needs no
+				// subscription while closed, and a move renders no owner.
+				const owner = ownerRef.current;
+				const showActive = () => {
+					const { activeId } = store.get();
+					if (activeId == null) {
+						owner?.removeAttribute("aria-activedescendant");
+						return;
+					}
+					owner?.setAttribute("aria-activedescendant", activeId);
+				};
+				const unsubscribe = store.subscribe(showActive);
+				showActive();
 				// Why now too: React calls this again when `move` changes, and the
 				// commit that changed it can also replace the options before the new
 				// observer starts.
 				reconcile();
 				return () => {
 					observer.disconnect();
+					unsubscribe();
+					owner?.removeAttribute("aria-activedescendant");
 					ref.current = null;
 				};
 			},
@@ -254,7 +290,7 @@ const useOption = (
 ) => {
 	const generatedId = useId();
 	const id = idProp ?? generatedId;
-	const active = useStoreValue(listbox.store, (state) => state.activeId === id);
+	const active = useStoreValue(listbox.getStore(), (state) => state.activeId === id);
 	const selected = listbox.selected.includes(value);
 	return {
 		active,
@@ -272,7 +308,7 @@ const useOption = (
 			onPointerMove: (event: { currentTarget: HTMLElement }) => {
 				// Why not `activate`: a hover must not scroll a half-visible option.
 				if (!disabled && !active) {
-					listbox.store.set({ activeId: event.currentTarget.id });
+					listbox.getStore().set({ activeId: event.currentTarget.id });
 				}
 			},
 			onClick: () => {

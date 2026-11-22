@@ -6,7 +6,6 @@ import { flushSync } from "react-dom";
 import { useControllableState } from "./use-controllable-state.js";
 import { useListbox } from "./use-listbox.js";
 import type { Listbox, MoveTarget } from "./use-listbox.js";
-import { useStoreValue } from "./store.js";
 
 type UseSelectProps = {
 	value?: string;
@@ -75,6 +74,7 @@ const useSelect = ({
 			setValue(next);
 			setOpen(false);
 		},
+		ownerRef: triggerRef,
 	});
 	return { open, setOpen, value, disabled, listbox, triggerRef };
 };
@@ -98,9 +98,10 @@ const moveKeys: Record<string, MoveTarget> = {
 };
 
 /**
- * Wires the trigger of a select: `role="combobox"`, the expanded state, the
- * active descendant, and the keyboard contract of the select-only combobox
- * pattern. DOM focus stays on the trigger while the list is open.
+ * Wires the trigger of a select: `role="combobox"`, the expanded state, and
+ * the keyboard contract of the select-only combobox pattern. DOM focus stays
+ * on the trigger while the list is open, and the open list sets the
+ * trigger's `aria-activedescendant`.
  *
  * @example
  * ```tsx
@@ -110,7 +111,6 @@ const moveKeys: Record<string, MoveTarget> = {
  */
 const useSelectTrigger = (select: SelectBehavior) => {
 	const { open, setOpen, listbox, disabled } = select;
-	const activeId = useStoreValue(listbox.store, (state) => state.activeId);
 
 	// Why flushSync: a closed list renders no options, so they exist only once
 	// React commits the open state.
@@ -123,6 +123,7 @@ const useSelectTrigger = (select: SelectBehavior) => {
 
 	const pickActive = () => {
 		// Why a click: it runs the item's own handlers, as with a pointer.
+		const { activeId } = listbox.getStore().get();
 		const active = activeId == null ? null : document.getElementById(activeId);
 		if (active?.dataset.value != null && active.getAttribute("aria-disabled") !== "true") {
 			active.click();
@@ -139,7 +140,6 @@ const useSelectTrigger = (select: SelectBehavior) => {
 		"aria-haspopup": "listbox" as const,
 		"aria-expanded": open,
 		"aria-controls": open ? listbox.id : undefined,
-		"aria-activedescendant": open && activeId != null ? activeId : undefined,
 		"data-state": open ? "open" : "closed",
 		"data-disabled": disabled ? "" : undefined,
 		onClick: () => {

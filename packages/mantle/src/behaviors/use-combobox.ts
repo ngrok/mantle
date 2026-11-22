@@ -3,7 +3,6 @@
 import { useRef } from "react";
 import type { ChangeEvent, KeyboardEvent } from "react";
 import { flushSync } from "react-dom";
-import { useStoreValue } from "./store.js";
 import { useControllableState } from "./use-controllable-state.js";
 import { useListbox } from "./use-listbox.js";
 import type { Listbox } from "./use-listbox.js";
@@ -101,6 +100,7 @@ const useCombobox = ({
 			setInputValue(next);
 			setOpen(false);
 		},
+		ownerRef: inputRef,
 	});
 	const reset = () => {
 		setValue(defaultValue ?? "");
@@ -111,9 +111,9 @@ const useCombobox = ({
 
 /**
  * Wires the input of a combobox: `role="combobox"`, `aria-autocomplete`, the
- * expanded state, the active descendant, and the keyboard contract of the
- * editable combobox pattern. The input keeps Home, End, and the other
- * editing keys.
+ * expanded state, and the keyboard contract of the editable combobox pattern.
+ * The input keeps Home, End, and the other editing keys. The open list sets
+ * the input's `aria-activedescendant`.
  *
  * `autoSelect` gives the first option the highlight as the text changes, so
  * Enter picks it. `"always"` also highlights it when the list opens.
@@ -129,7 +129,6 @@ const useComboboxInput = (
 	{ autoSelect = "always" }: { autoSelect?: boolean | "always" } = {},
 ) => {
 	const { open, setOpen, listbox, inputValue, setInputValue } = combobox;
-	const activeId = useStoreValue(listbox.store, (state) => state.activeId);
 
 	const openTo = (target: "first" | "last" | null) => {
 		// Why flushSync: a closed list renders no options, so they exist only
@@ -151,7 +150,6 @@ const useComboboxInput = (
 		"aria-autocomplete": "list" as const,
 		"aria-expanded": open,
 		"aria-controls": open ? listbox.id : undefined,
-		"aria-activedescendant": open && activeId != null ? activeId : undefined,
 		value: inputValue,
 		onChange: (event: ChangeEvent<HTMLInputElement>) => {
 			const next = event.target.value;
@@ -215,6 +213,7 @@ const useComboboxInput = (
 					event.preventDefault();
 					// Why a click: it runs the item's own handlers, and an `asChild` link
 					// navigates, as with a pointer.
+					const { activeId } = listbox.getStore().get();
 					const active = activeId == null ? null : document.getElementById(activeId);
 					if (active?.dataset.value != null && active.getAttribute("aria-disabled") !== "true") {
 						active.click();
