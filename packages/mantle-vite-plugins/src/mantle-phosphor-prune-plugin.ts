@@ -4,6 +4,7 @@ import {
 	Visitor,
 	type Argument,
 	type ArrayExpression,
+	type BindingIdentifier,
 	type BindingPattern,
 	type Expression,
 	type IdentifierName,
@@ -215,25 +216,27 @@ function argumentContextWeights(argument: Argument | undefined): WeightSet {
 	return result;
 }
 
-/** The names a binding pattern declares, such as `a` and `b` in `{ a, b: [c = 1] }` with `c`. */
-function patternNames(pattern: BindingPattern | ParamPattern | null | undefined): string[] {
+/** The identifiers a binding pattern declares, such as `a` and `c` in `{ a, b: [c = 1] }`. */
+function patternBindings(
+	pattern: BindingPattern | ParamPattern | null | undefined,
+): BindingIdentifier[] {
 	switch (pattern?.type) {
 		case "Identifier":
-			return [pattern.name];
+			return [pattern];
 		case "ObjectPattern":
 			return pattern.properties.flatMap((property) =>
-				patternNames(property.type === "RestElement" ? property.argument : property.value),
+				patternBindings(property.type === "RestElement" ? property.argument : property.value),
 			);
 		case "ArrayPattern":
 			return pattern.elements.flatMap((element) =>
-				patternNames(element?.type === "RestElement" ? element.argument : element),
+				patternBindings(element?.type === "RestElement" ? element.argument : element),
 			);
 		case "AssignmentPattern":
-			return patternNames(pattern.left);
+			return patternBindings(pattern.left);
 		case "RestElement":
-			return patternNames(pattern.argument);
+			return patternBindings(pattern.argument);
 		case "TSParameterProperty":
-			return patternNames(pattern.parameter);
+			return patternBindings(pattern.parameter);
 		default:
 			return [];
 	}
@@ -471,7 +474,7 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 		start: number,
 		end: number,
 	) => {
-		for (const name of patterns.flatMap(patternNames)) {
+		for (const { name } of patterns.flatMap(patternBindings)) {
 			if (importNames.has(name)) {
 				shadows.set(name, [...(shadows.get(name) ?? []), [start, end]]);
 			}
@@ -536,6 +539,16 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 		!(shadows.get(node.name) ?? []).some(([start, end]) => start <= node.start && node.start < end);
 	/** The local names that a destructuring of a React namespace binds to `cloneElement`. */
 	const clones = new Set<string>();
+	/** The local names that copy a React namespace, such as `const SafeReact = { ...React }`. */
+	const copies = new Set<string>();
+	/** Whether an expression is a React namespace, also in a compiled `(0, React)`. */
+	const isNamespace = (expression: Expression | null | undefined) => {
+		const node = expression == null ? null : calleeOf(expression);
+		return (
+			node?.type === "Identifier" &&
+			(copies.has(node.name) || (reactNamespaces.has(node.name) && isImport(node)))
+		);
+	};
 
 	/**
 	 * What a function does when it is a React function: an imported `jsx`, `createElement`,
@@ -549,12 +562,7 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 			}
 			return isImport(node) ? (reactBindings.get(node.name) ?? null) : null;
 		}
-		if (
-			node.type !== "MemberExpression" ||
-			node.object.type !== "Identifier" ||
-			!reactNamespaces.has(node.object.name) ||
-			!isImport(node.object)
-		) {
+		if (node.type !== "MemberExpression" || !isNamespace(node.object)) {
 			return null;
 		}
 		const key = keyNames({ key: node.property, computed: node.computed });
@@ -563,7 +571,18 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 	new Visitor({
 		VariableDeclarator(node) {
 			const init = node.init == null ? null : unwrap(node.init);
-			if (init?.type !== "Identifier" || !reactNamespaces.has(init.name) || !isImport(init)) {
+			if (
+				node.id.type === "Identifier" &&
+				(isNamespace(init) ||
+					(init?.type === "ObjectExpression" &&
+						init.properties.some(
+							(property) => property.type === "SpreadElement" && isNamespace(property.argument),
+						)))
+			) {
+				copies.add(node.id.name);
+				return;
+			}
+			if (!isNamespace(init)) {
 				return;
 			}
 			// Why: `const { cloneElement: copy } = React` makes `copy` a clone function. Another
@@ -573,8 +592,8 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 				if (key?.length !== 1) {
 					usage.all = true;
 				} else if (REACT_CALLS.get(key[0] ?? "") === "clone" && property?.type === "Property") {
-					for (const name of patternNames(property.value)) {
-						clones.add(name);
+					for (const binding of patternBindings(property.value)) {
+						clones.add(binding.name);
 					}
 				}
 			}
@@ -674,6 +693,12 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 	};
 
 	new Visitor({
+		VariableDeclarator(node) {
+			// Why: a declared name is no reference, such as `copy` in `{ cloneElement: copy }`.
+			for (const binding of patternBindings(node.id)) {
+				handled.add(binding);
+			}
+		},
 		ImportDeclaration(node) {
 			for (const specifier of node.specifiers) {
 				handled.add(specifier.local);
@@ -689,9 +714,6 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 		MemberExpression(node) {
 			if (!node.computed) {
 				handled.add(node.property);
-			}
-			if (node.object.type === "Identifier" && reactNamespaces.has(node.object.name)) {
-				handled.add(node.object);
 			}
 			// Why: a clone function in a variable can set a weight that the analysis does not see.
 			if (!handled.has(node) && reactFunction(node) === "clone") {
@@ -782,13 +804,10 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 			if (handled.has(node)) {
 				return;
 			}
-			// Why: a clone function or a React namespace in a variable can set a weight that the
-			// analysis does not see.
-			if (
-				clones.has(node.name) ||
-				((reactBindings.get(node.name) === "clone" || reactNamespaces.has(node.name)) &&
-					isImport(node))
-			) {
+			// Why: a clone function in a variable can set a weight that the analysis does not see. A
+			// React namespace in a variable is common, such as in a library that copies it, so it
+			// keeps no weights; the analysis follows only `const` copies of it.
+			if (clones.has(node.name) || (reactBindings.get(node.name) === "clone" && isImport(node))) {
 				usage.all = true;
 			}
 			const names = iconsOf(node);

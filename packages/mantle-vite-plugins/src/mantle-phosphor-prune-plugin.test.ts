@@ -152,6 +152,7 @@ import { WarningIcon } from "@phosphor-icons/react/Warning";
 
 const use = t[" use ".trim().toString()];
 export { use as t };
+export const copy = Object.assign({}, t);
 
 export const clone = (child) => l(child, {});
 export const local = (l) => {
@@ -186,10 +187,14 @@ export { boldClone };
 export const probes = { Check: () => <CheckIcon /> };
 `;
 
-// A wrapper that never imports Phosphor, but sets a weight on whatever icon it gets.
-const CLONE = `import { cloneElement } from "react";
+// Wrappers that never import Phosphor, but set a weight on whatever icon they get, one through a
+// copy of the React namespace.
+const CLONE = `import * as React from "react";
+import { cloneElement } from "react";
 
+const SafeReact = { ...React };
 export const boldClone = (icon) => cloneElement(icon, { weight: "fill" });
+export const lightClone = (icon) => SafeReact.cloneElement(icon, { weight: "light" });
 `;
 
 // References the analysis cannot read: an import by file path, a dynamic import that the bundler
@@ -261,7 +266,7 @@ export const Thin = ({ children }) => _jsx(IconContext.Provider, { value: { weig
 `;
 
 // Clone calls that each set one more weight: through a React namespace that a parameter shadows, a
-// computed member, a destructured function, and a computed key.
+// computed member, a destructured function, a computed key, and a compiled `(0, r)` namespace.
 const CLONES = `import * as r from "react";
 import { cloneElement } from "react";
 import { CheckIcon } from "@phosphor-icons/react/Check";
@@ -269,11 +274,18 @@ import { CheckIcon } from "@phosphor-icons/react/Check";
 const { cloneElement: copy } = r;
 export const identity = (r) => r;
 export const thin = (child) => r.cloneElement(child, { weight: "thin" });
-export const filled = (child) => r["cloneElement"](child, { weight: "fill" });
 export const light = (child) => copy(child, { weight: "light" });
 export const duotone = (child, key) => cloneElement(child, { [key]: "duotone" });
-export const Bold = () => <CheckIcon weight="bold" />;
+export { bold, filled } from "./compiled.js";
 export const probes = { Check: () => <CheckIcon /> };
+`;
+
+// A prebuilt dependency calls React as `(0, r).cloneElement()` and `r["cloneElement"]()`, which Vite
+// does not transform.
+const COMPILED = `import * as r from "react";
+
+export const bold = (child) => (0, r).cloneElement(child, { weight: "bold" });
+export const filled = (child) => r["cloneElement"](child, { weight: "fill" });
 `;
 
 // An inner alias that reuses the name of the `IconContext` import.
@@ -418,7 +430,7 @@ describe("mantlePhosphorPrunePlugin build", () => {
 			apps.reach = await buildApp({ "src/app.jsx": REACH, "src/path.js": PATH });
 			apps.renamed = await buildApp({ "src/app.jsx": RENAMED });
 			apps.context = await buildApp({ "src/app.jsx": CONTEXT, "src/provider.js": PROVIDER });
-			apps.clones = await buildApp({ "src/app.jsx": CLONES });
+			apps.clones = await buildApp({ "src/app.jsx": CLONES, "src/compiled.js": COMPILED });
 			apps.scoped = await buildApp({ "src/app.jsx": SCOPED });
 			const phosphor = await realpath(path.join(packageRoot, "node_modules/@phosphor-icons/react"));
 			const copy = "copy/node_modules/@phosphor-icons/react/dist";
@@ -457,6 +469,15 @@ describe("mantlePhosphorPrunePlugin build", () => {
 			});
 		}
 
+		test("reads every fixture that expects pruning", () => {
+			// Why: a fixture the plugin cannot read keeps every weight, so its other tests would pass
+			// without testing anything.
+			for (const name of ["local", "overrides", "reach", "context", "clones", "scoped", "copies"]) {
+				const unread = apps[name]?.warnings.filter((warning) => warning.includes("cannot read"));
+				expect({ name, unread }).toEqual({ name, unread: [] });
+			}
+		});
+
 		test("keeps the weight of each literal, plus regular for an icon without one", async () => {
 			expect(await renderedWeights("local", "Check")).toEqual(["bold", "regular"]);
 		});
@@ -494,15 +515,9 @@ describe("mantlePhosphorPrunePlugin build", () => {
 		});
 
 		test("keeps the weights that IconContext values and cloneElement() set", async () => {
-			// `duotone` from JSX, `thin` from a compiled provider, and `fill` from a clone in a module
-			// that does not import Phosphor.
-			expect(await renderedWeights("overrides", "Check")).toEqual([
-				"bold",
-				"duotone",
-				"fill",
-				"regular",
-				"thin",
-			]);
+			// `duotone` from JSX, `thin` from a compiled provider, and `fill` and `light` from clones in
+			// a module that does not import Phosphor.
+			expect(await renderedWeights("overrides", "Check")).toEqual([...WEIGHTS]);
 		});
 
 		test("keeps every weight of an icon that an unread module or a dynamic import reaches", async () => {
