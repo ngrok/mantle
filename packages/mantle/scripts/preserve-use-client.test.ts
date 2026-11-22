@@ -77,6 +77,13 @@ describe("findClientImport", () => {
 describe("isClientModule", () => {
 	it("marks a module that imports a Phosphor icon or the React Compiler runtime", () => {
 		expect(isClientModule({ code: "", importedIds: ["@phosphor-icons/react/Check"] })).toBe(true);
+		// The build bundles icons, so it hands over the resolved path, not the specifier.
+		expect(
+			isClientModule({
+				code: "",
+				importedIds: ["/m/node_modules/@phosphor-icons/react/dist/csr/Check.es.js"],
+			}),
+		).toBe(true);
 		expect(isClientModule({ code: "", importedIds: ["react/compiler-runtime"] })).toBe(true);
 	});
 

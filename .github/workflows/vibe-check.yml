@@ -162,6 +162,10 @@ jobs:
       - name: Bundle Budget 📦
         run: pnpm run check:bundle-budget
 
+      # Why: server rendering that externalizes @ngrok/mantle loads the dist in Node with no bundler.
+      - name: Dist Loads in Node 🔁
+        run: pnpm run check:dist
+
   typecheck:
     runs-on: ubuntu-latest
     timeout-minutes: 20

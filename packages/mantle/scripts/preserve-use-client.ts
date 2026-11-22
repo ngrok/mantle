@@ -10,6 +10,13 @@ const USE_CLIENT_RE = /^(?:\s|\/\/[^\n]*\n|\/\*[\s\S]*?\*\/)*["']use client["']/
 const SOURCE_RE = /[\\/]src[\\/].+\.tsx?$/;
 const DECLARATION_RE = /\.d\.[cm]?ts$/;
 
+/** Matches a Phosphor import as written, such as `@phosphor-icons/react/Check`, or as bundled from `node_modules`. */
+const PHOSPHOR_RE = /(?:^|[\\/])@phosphor-icons[\\/]react[\\/]/;
+
+/** Captures the icon name of a bundled Phosphor module, such as `Check` for `dist/csr/Check.es.js`. */
+const PHOSPHOR_ICON_RE =
+	/[\\/]@phosphor-icons[\\/]react[\\/]dist[\\/](?:csr|defs|ssr)[\\/](\w+)\.es\.js$/;
+
 /**
  * Reports whether a source module starts with the `"use client"` directive.
  *
@@ -113,9 +120,7 @@ function isClientModule({
 }): boolean {
 	return (
 		hasUseClientDirective(code) ||
-		importedIds.some(
-			(id) => id === "react/compiler-runtime" || id.startsWith("@phosphor-icons/react/"),
-		)
+		importedIds.some((id) => id === "react/compiler-runtime" || PHOSPHOR_RE.test(id))
 	);
 }
 
@@ -308,6 +313,14 @@ function preserveUseClient({
 			...options,
 			codeSplitting: {
 				groups: [
+					{
+						// Why: an icon left out of the groups goes into the one entry chunk that reaches it, and a
+						// client chunk that renders the icon imports that entry back. One chunk for each icon,
+						// not one for each component, so a consumer bundle drops each icon that it never renders.
+						debugName: "Phosphor icons",
+						name: (moduleId: string) => PHOSPHOR_ICON_RE.exec(moduleId)?.[1] ?? "phosphor",
+						test: PHOSPHOR_ICON_RE,
+					},
 					{
 						debugName: "client modules",
 						name: chunkGroupName,

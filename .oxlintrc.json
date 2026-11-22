@@ -1,6 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": [
+    "import",
     "jsdoc",
     "jsx-a11y",
     "promise",
@@ -26,6 +27,13 @@
     "eqeqeq": ["error", "always", { "null": "never" }],
     "eslint/no-shadow": "off",
     "eslint/no-underscore-dangle": "off",
+    // Why off: the import plugin is on for `import/no-cycle` (the packages/mantle/src
+    // override). These rules flag only migration fixtures, side-effect CSS imports,
+    // and default imports that the libraries document.
+    "import/namespace": "off",
+    "import/no-named-as-default": "off",
+    "import/no-named-as-default-member": "off",
+    "import/no-unassigned-import": "off",
     "jsdoc/check-property-names": "error",
     "mantle/descriptive-names": "error",
     "mantle/img-dimensions": "error",
@@ -186,6 +194,9 @@
       // See docs/framework-boundary.md.
       "files": ["packages/mantle/src/**"],
       "rules": {
+        // Why: a source cycle can become a dist chunk cycle, which throws a
+        // `ReferenceError` when Node loads the entry with no bundler.
+        "import/no-cycle": "error",
         "mantle/no-default-export": "error",
         "mantle/no-display-name": "error",
         "mantle/no-namespace-object": "error",

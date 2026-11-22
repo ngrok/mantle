@@ -8,6 +8,7 @@
     "check:agent-docs": "node ./scripts/check-agent-docs.ts",
     "check:bundle-budget": "pnpm -F @ngrok/mantle run check:bundle-budget",
     "check:changed": "node ./scripts/check-changed.ts",
+    "check:dist": "pnpm -F @ngrok/mantle run check:dist",
     "check:doc-links": "node ./scripts/check-doc-links.ts",
     "check:prose": "node ./scripts/check-prose.ts",
     "start": "turbo run start",
