@@ -6,6 +6,10 @@ export {
 } from "./mantle-code-block-plugins.js";
 export {
 	//,
+	mantlePhosphorPrunePlugin,
+} from "./mantle-phosphor-prune-plugin.js";
+export {
+	//,
 	mantleSourcesPlugin,
 } from "./mantle-sources-plugin.js";
 export {

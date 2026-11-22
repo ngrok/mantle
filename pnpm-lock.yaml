@@ -543,6 +543,9 @@ importers:
       '@ngrok/mantle':
         specifier: workspace:*
         version: link:../mantle
+      '@phosphor-icons/react':
+        specifier: 'catalog:'
+        version: 2.1.10(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@tailwindcss/oxide':
         specifier: 'catalog:'
         version: 4.3.5
@@ -552,6 +555,18 @@ importers:
       '@types/node':
         specifier: 26.6.6
         version: 26.6.6
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.1
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.1(react@19.3.1)
       tailwindcss:
         specifier: 'catalog:'
         version: 4.3.5

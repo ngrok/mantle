@@ -81,6 +81,23 @@ export default defineConfig({
 
 A stop that only a file outside the stylesheet reads, such as a dependency Tailwind does not scan, gets no dark or island value, and the build warns when a file of the build reads one. Name the stop in a file the stylesheet scans to keep it, such as with `@source inline("bg-pink-300")`.
 
+### `mantlePhosphorPrunePlugin()`
+
+Vite and Rolldown plugin that removes the Phosphor icon weights a build never renders.
+
+```ts
+import { mantlePhosphorPrunePlugin } from "@ngrok/mantle-vite-plugins";
+import { defineConfig } from "vite";
+
+export default defineConfig({
+	plugins: [mantlePhosphorPrunePlugin()],
+});
+```
+
+Each `@phosphor-icons/react` icon holds the paths of all six weights in one `Map`, so a bundler ships all six. The plugin reads the `weight` each module renders, in JSX and in compiled `jsx()` and `createElement()` calls, and keeps only those weights. A `weight` that a `cloneElement()` call sets stays for every icon. An icon without a `weight` keeps `regular` and each weight an `IconContext` value of the build sets. A kept weight renders the same markup as before. `vite dev` serves every weight, and the plugin's position in the array does not matter.
+
+When the plugin cannot read a weight (a computed `weight`, a spread of props, or an icon passed as a value), it keeps every weight of that icon. It does not see a `weight` that `cloneElement()` gets in spread props or in a props object it does not write inline, such as a variable, or a clone through a React namespace passed as a value. A namespace import keeps every weight of every icon, and the build warns. An icon that a dynamic import or an unread import path, such as a `resolve.alias`, reaches keeps every weight. An icon imported by another name, such as `ActivityIcon` for `PulseIcon`, keeps every weight of every icon, and the build warns. If an icon module of the installed Phosphor has a shape the plugin does not know, the build warns and keeps all six weights of that icon. mantle's own icons ship trimmed already.
+
 ### `mantleCodeBlockPlugins(options?)`
 
 Unified helper that returns plugin lists for both Vite and MDX integration surfaces: runtime tagged template transforms and rehype-based fenced code block highlighting.

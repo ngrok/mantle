@@ -12,6 +12,18 @@
       "dependsOn": ["^build"],
       "outputs": ["**/build/**", "**/dist/**", "!**/node_modules/**"]
     },
+    "@ngrok/mantle#build": {
+      "cache": true,
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*",
+        "!**/*.test.*",
+        "$TURBO_ROOT$/packages/mantle-vite-plugins/src/mantle-phosphor-prune-plugin.ts"
+      ],
+      "env": ["MEASURE_EXAMPLE_HEIGHTS"],
+      "dependsOn": ["^build"],
+      "outputs": ["**/build/**", "**/dist/**", "!**/node_modules/**"]
+    },
     "clean": {
       "cache": false
     },

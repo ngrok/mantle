@@ -7,10 +7,16 @@
     "emitDeclarationOnly": true,
     "noEmit": false,
     "outDir": "node_modules/.cache/tsconfig.node",
+    "rootDir": "../..",
     "tsBuildInfoFile": "node_modules/.cache/tsconfig.node/tsbuildinfo",
     "types": ["node"]
   },
   // Why a second config: the build tooling runs in Node, and `node` types in tsconfig.json would hide a stray `process` in browser source.
   // Why the emit: a referenced project may not disable emit, so it writes declarations to a cache directory.
-  "include": ["*.config.ts", "scripts/**/*"]
+  // Why the plugin file: `tsdown.config.ts` imports it by path (see the comment there).
+  "include": [
+    "*.config.ts",
+    "scripts/**/*",
+    "../mantle-vite-plugins/src/mantle-phosphor-prune-plugin.ts"
+  ]
 }
