@@ -9,6 +9,7 @@ import {
 	useContext,
 	useEffect,
 	useId,
+	useInsertionEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -232,34 +233,46 @@ const Root = (props: AccordionRootProps) => {
 		[isControlled, value, internalOpenValues],
 	);
 
-	// Why a ref: `emitValueChange` needs the whole discriminated `props` for its
-	// `onValueChange` typing. `props` is a new object on every render. As a memo
-	// dependency it re-creates `setItemOpen` on every parent render. Every
-	// `Content` then re-subscribes to `beforematch`. `setItemOpen` only runs
-	// from event handlers, which fire after the layout effect writes the ref, so
-	// it always reads the current `onValueChange`.
-	// Why not `useCallbackRef`: it writes its ref in a passive effect. A commit
-	// from a non-discrete update defers passive effects to a later task, and a
-	// click in that gap reads the previous render's `onValueChange`. The layout
-	// effect closes the gap.
-	const propsRef = useRef(props);
-	useIsomorphicLayoutEffect(() => {
-		propsRef.current = props;
+	// Why a ref: `setItemOpen` reads the latest render through it, so it stays one
+	// function for the life of the accordion. A new `setItemOpen` gives every item
+	// a new context, so each `Item` hands its `Trigger` and `Content` a new item
+	// context and a tap re-renders all of them, not only the sections it opens or
+	// closes.
+	// Why an insertion effect: it writes the ref in the mutation phase, before any
+	// layout effect or ref callback in the same commit. A descendant's layout
+	// effect that clicks a `Trigger` then reads this render's open values. A
+	// passive effect (`useCallbackRef`) runs later still: a commit from a
+	// non-discrete update defers it to a later task, and a click in that gap reads
+	// the previous render.
+	const latestRef = useRef({ props, openValues });
+	useInsertionEffect(() => {
+		latestRef.current = { props, openValues };
 	});
 
-	const context = useMemo<AccordionContextValue>(() => {
-		const setItemOpen = ({ itemValue, open }: { itemValue: string; open: boolean }) => {
-			const next = nextOpenValues({ openValues, value: itemValue, open, type });
-			if (next === openValues) {
-				return;
-			}
-			if (!isControlled) {
-				setInternalOpenValues(next);
-			}
-			emitValueChange(propsRef.current, next);
-		};
-		return { type, openValues, setItemOpen };
-	}, [type, openValues, isControlled]);
+	const [setItemOpen] = useState(
+		() =>
+			({ itemValue, open }: { itemValue: string; open: boolean }) => {
+				const { props: latestProps, openValues: current } = latestRef.current;
+				const next = nextOpenValues({
+					openValues: current,
+					value: itemValue,
+					open,
+					type: latestProps.type ?? "multiple",
+				});
+				if (next === current) {
+					return;
+				}
+				if (latestProps.value == null) {
+					setInternalOpenValues(next);
+				}
+				emitValueChange(latestProps, next);
+			},
+	);
+
+	const context = useMemo<AccordionContextValue>(
+		() => ({ type, openValues, setItemOpen }),
+		[type, openValues, setItemOpen],
+	);
 
 	const containerProps = {
 		...domProps,
