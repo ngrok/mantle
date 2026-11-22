@@ -1,8 +1,5 @@
 "use client";
 
-import { CheckIcon } from "@phosphor-icons/react/Check";
-import { LockIcon } from "@phosphor-icons/react/Lock";
-import { XIcon } from "@phosphor-icons/react/X";
 import type { ComponentProps, KeyboardEvent, PropsWithChildren, ReactNode } from "react";
 import { cloneElement, createContext, isValidElement, use, useId, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
@@ -25,12 +22,17 @@ import { FieldControlContext } from "../field/field-context.js";
 import { parseValidation } from "../field/validation.js";
 import { useFieldValidation } from "../field/validation-context.js";
 import type { AriaInvalid, WithValidation } from "../field/validation.js";
-import { Icon } from "../icon/icon.js";
 import { Separator } from "../separator/separator.js";
 import { Slot } from "../slot/index.js";
 import invariant from "tiny-invariant";
 
 const EMPTY_ARRAY: readonly string[] = [];
+
+/** Phosphor's `Lock` (regular) and `X` (bold) paths, for the tag's remove button. */
+const LOCK_PATH =
+	"M208,80H176V56a48,48,0,0,0-96,0V80H48A16,16,0,0,0,32,96V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V96A16,16,0,0,0,208,80ZM96,56a32,32,0,0,1,64,0V80H96ZM208,208H48V96H208V208Zm-68-56a12,12,0,1,1-12-12A12,12,0,0,1,140,152Z";
+const X_PATH =
+	"M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l63.51-63.52a12,12,0,0,1,17,17L145,128Z";
 
 /** Whether two arrays hold the same items in the same order. */
 const haveSameItems = (first: readonly string[], second: readonly string[]): boolean =>
@@ -346,7 +348,16 @@ const Tag = ({
 					event.preventDefault();
 				}}
 			>
-				<Icon svg={locked ? <LockIcon /> : <XIcon weight="bold" />} className="size-4" />
+				{/* Why inline svgs: one host element in place of four parts for each tag. */}
+				<svg
+					aria-hidden
+					data-slot="icon svg-only"
+					viewBox="0 0 256 256"
+					fill="currentColor"
+					className="size-4 shrink-0"
+				>
+					<path d={locked ? LOCK_PATH : X_PATH} />
+				</svg>
 			</button>
 		</span>
 	);
@@ -798,7 +809,11 @@ type MultiSelectContentProps = ComponentProps<"div"> &
  * </MultiSelect.Root>
  * ```
  */
-const Content = ({
+const Content = (props: MultiSelectContentProps) =>
+	useMultiSelectContext().open && <OpenContent {...props} />;
+
+/** The open list. A closed multi-select mounts none of it: no popup, store, or listener. */
+const OpenContent = ({
 	"data-slot": dataSlot,
 	asChild = false,
 	children,
@@ -807,9 +822,9 @@ const Content = ({
 	sameWidth = true,
 	...props
 }: MultiSelectContentProps) => {
-	const { inputRef, listbox, open, setOpen, triggerRef } = useMultiSelectContext();
+	const { inputRef, listbox, setOpen, triggerRef } = useMultiSelectContext();
 	const { host, popupRef } = usePopup({
-		open,
+		open: true,
 		anchorRef: triggerRef,
 		ownerRef: inputRef,
 		container: useLayerContainer(),
@@ -817,11 +832,8 @@ const Content = ({
 	});
 	const composedRef = useComposedRefs(ref, listbox.listboxProps.ref, popupRef);
 	const Component = asChild ? Slot : "div";
-	// Why `open`: a closed list renders no options, so a page of closed
-	// pickers holds no option elements in memory.
 	return (
 		host != null &&
-		open &&
 		createPortal(
 			<>
 				{/* Why: a touch screen reader has no Escape key, and a pick keeps this list open. */}
@@ -837,7 +849,7 @@ const Content = ({
 					data-slot={joinDataSlot(dataSlot, "multi-select-content")}
 					data-state="open"
 					className={cx(
-						"border-popover bg-popover relative z-50 max-h-96 max-h-(--available-height) min-w-32 scrollbar overflow-y-scroll overflow-x-hidden overscroll-y-none rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col gap-px outline-hidden",
+						"border-popover bg-popover relative z-50 max-h-(--available-height) min-w-32 scrollbar overflow-y-scroll overflow-x-hidden overscroll-y-none rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col gap-px outline-hidden",
 						sameWidth && "w-(--anchor-width)",
 						className,
 					)}
@@ -958,7 +970,15 @@ const Item = ({
 
 	const check = selected && (
 		<span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
-			<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
+			<svg
+				aria-hidden
+				data-slot="icon svg-only"
+				viewBox="0 0 256 256"
+				fill="currentColor"
+				className="size-4 shrink-0 text-accent-600"
+			>
+				<path d="M232.49,80.49l-128,128a12,12,0,0,1-17,0l-56-56a12,12,0,1,1,17-17L96,183,215.51,63.51a12,12,0,0,1,17,17Z" />
+			</svg>
 		</span>
 	);
 

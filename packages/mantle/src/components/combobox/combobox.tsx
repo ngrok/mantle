@@ -274,7 +274,11 @@ type ComboboxContentProps = ComponentProps<"div"> &
  * </Combobox.Root>
  * ```
  */
-const Content = ({
+const Content = (props: ComboboxContentProps) =>
+	useComboboxContext().open && <OpenContent {...props} />;
+
+/** The open list. A closed combobox mounts none of it: no popup, store, or listener. */
+const OpenContent = ({
 	"data-slot": dataSlot,
 	asChild = false,
 	children,
@@ -283,20 +287,17 @@ const Content = ({
 	sameWidth = true,
 	...props
 }: ComboboxContentProps) => {
-	const { inputRef, listbox, open } = useComboboxContext();
+	const { inputRef, listbox } = useComboboxContext();
 	const { host, popupRef } = usePopup({
-		open,
+		open: true,
 		anchorRef: inputRef,
 		ownerRef: inputRef,
 		container: useLayerContainer(),
 	});
 	const composedRef = useComposedRefs(ref, listbox.listboxProps.ref, popupRef);
 	const Component = asChild ? Slot : "div";
-	// Why `open`: a closed list renders no options, so a page of closed
-	// pickers holds no option elements in memory.
 	return (
 		host != null &&
-		open &&
 		createPortal(
 			<Component
 				{...props}
@@ -306,7 +307,7 @@ const Content = ({
 				data-slot={joinDataSlot(dataSlot, "combobox-content")}
 				data-state="open"
 				className={cx(
-					"border-popover bg-popover relative z-50 max-h-96 max-h-(--available-height) min-w-32 scrollbar overflow-y-auto overflow-x-hidden rounded-md border shadow-md p-1 space-y-px font-sans outline-hidden",
+					"border-popover bg-popover relative z-50 max-h-(--available-height) min-w-32 scrollbar overflow-y-auto overflow-x-hidden rounded-md border shadow-md p-1 space-y-px font-sans outline-hidden",
 					sameWidth && "w-(--anchor-width)",
 					className,
 				)}

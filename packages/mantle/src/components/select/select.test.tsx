@@ -1030,6 +1030,27 @@ describe("Select", () => {
 			expect(trigger).toHaveTextContent("Banana");
 		});
 
+		test("the trigger names the highlighted option while open, even after a Content that mounts first, and keeps no consumer value", async () => {
+			const user = userEvent.setup();
+			render(
+				<Select.Root defaultOpen>
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+						<Select.Item value="banana">Banana</Select.Item>
+					</Select.Content>
+					<Select.Trigger aria-label="Fruit" aria-activedescendant="custom" />
+				</Select.Root>,
+			);
+			const trigger = screen.getByRole("combobox", { name: "Fruit" });
+			expect(trigger).not.toHaveAttribute("aria-activedescendant");
+			trigger.focus();
+			await user.keyboard("{ArrowDown}");
+			const apple = screen.getByRole("option", { name: "Apple" });
+			expect(trigger).toHaveAttribute("aria-activedescendant", apple.id);
+			await user.keyboard("{Escape}");
+			expect(trigger).not.toHaveAttribute("aria-activedescendant");
+		});
+
 		test("a press of ArrowUp from the selected item labels the trigger with the highlighted one", async () => {
 			const user = userEvent.setup();
 			// The trigger cannot find these labels in Select.Root's children.

@@ -262,8 +262,11 @@ describe("Select keyboard, focus, and ARIA contract", () => {
 		const trigger = screen.getByRole("combobox", { name: "Fruit" });
 		await userEvent.click(trigger);
 		expect(trigger).toHaveAttribute("aria-expanded", "true");
-		await userEvent.keyboard("{ArrowDown}{Escape}");
+		await userEvent.keyboard("{ArrowDown}");
+		expect(activeOption(trigger)).toHaveRole("option");
+		await userEvent.keyboard("{Escape}");
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
+		expect(trigger).not.toHaveAttribute("aria-activedescendant");
 		await userEvent.click(trigger);
 		// Why force: the open list makes the page inert, so the press lands on the root.
 		await userEvent.click(document.body, { force: true });

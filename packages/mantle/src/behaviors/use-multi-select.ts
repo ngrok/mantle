@@ -90,6 +90,7 @@ const useMultiSelect = ({
 	};
 
 	const listbox = useListbox({
+		ownerRef: inputRef,
 		selected,
 		onSelect: (value) => {
 			if (selected.includes(value)) {
