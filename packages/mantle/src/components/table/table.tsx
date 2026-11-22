@@ -1,7 +1,7 @@
 "use client";
 
-import type { ComponentProps, ComponentRef } from "react";
-import { useLayoutEffect, useRef, useState } from "react";
+import type { ComponentProps, ComponentRef, RefCallback } from "react";
+import { createContext, useCallback, useContext, useLayoutEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -164,7 +164,9 @@ const Root = ({
 				)}
 				ref={scrollContainerRef}
 			>
-				{children}
+				<ObserveContentContext value={horizontalOverflow.observeContent}>
+					{children}
+				</ObserveContentContext>
 			</div>
 		</div>
 	);
@@ -242,10 +244,13 @@ const Element = ({
 	ref,
 	...props
 }: ComponentProps<"table"> & WithDataSlot) => {
+	const observeContent = useContext(ObserveContentContext);
+	const composedRef = useComposedRefs(ref, observeContent);
+
 	return (
 		<table
 			data-slot={joinDataSlot(dataSlot, "table-element")}
-			ref={ref}
+			ref={composedRef}
 			className={cx(
 				"table-auto border-separate border-spacing-0 caption-bottom w-full min-w-full text-left",
 				className,
@@ -738,6 +743,13 @@ export {
 };
 
 /**
+ * Lets each `Table.Element` add itself to its `Table.Root`'s `ResizeObserver`.
+ *
+ * @private
+ */
+const ObserveContentContext = createContext<RefCallback<HTMLTableElement> | undefined>(undefined);
+
+/**
  * A custom hook that observes the horizontal overflow of an element and determines
  * if it has overflow and if it is scrolled to the end.
  *
@@ -745,7 +757,23 @@ export {
  */
 function useHorizontalOverflowObserver<T extends HTMLElement>() {
 	const ref = useRef<T | null>(null);
+	const observerRef = useRef<ResizeObserver | null>(null);
 	const [state, setState] = useState({ hasOverflow: false, scrolledToEnd: false });
+
+	// Why a set: a table mounts before the effect makes the observer, and a table
+	// can sit inside a wrapper or replace another one later.
+	const tablesRef = useRef(new Set<HTMLTableElement>());
+	const observeContent = useCallback((content: HTMLTableElement | null) => {
+		if (content == null) {
+			return;
+		}
+		tablesRef.current.add(content);
+		observerRef.current?.observe(content);
+		return () => {
+			tablesRef.current.delete(content);
+			observerRef.current?.unobserve(content);
+		};
+	}, []);
 
 	useLayoutEffect(() => {
 		const element = ref.current;
@@ -767,8 +795,8 @@ function useHorizontalOverflowObserver<T extends HTMLElement>() {
 			);
 		};
 
-		// Coalesce rapid-fire events (scroll, mutation) into a single
-		// layout read per animation frame to avoid redundant work.
+		// Coalesce rapid-fire scroll events into a single layout read per
+		// animation frame to avoid redundant work.
 		const scheduleCheck = () => {
 			if (frameId === 0) {
 				frameId = requestAnimationFrame(() => {
@@ -787,19 +815,22 @@ function useHorizontalOverflowObserver<T extends HTMLElement>() {
 			flushSync(checkState);
 		});
 		resizeObserver.observe(element);
-
-		const mutationObserver = new MutationObserver(scheduleCheck);
-		mutationObserver.observe(element, { childList: true, subtree: true });
+		// Why the tables too: a wider table changes the scroll width but not the size
+		// of the scroll container.
+		for (const table of tablesRef.current) {
+			resizeObserver.observe(table);
+		}
+		observerRef.current = resizeObserver;
 
 		element.addEventListener("scroll", scheduleCheck, { passive: true });
 
 		return () => {
 			cancelAnimationFrame(frameId);
+			observerRef.current = null;
 			resizeObserver.disconnect();
-			mutationObserver.disconnect();
 			element.removeEventListener("scroll", scheduleCheck);
 		};
 	}, []);
 
-	return { ref, state };
+	return { observeContent, ref, state };
 }

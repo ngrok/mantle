@@ -7,7 +7,7 @@ import { parseBooleanish } from "../../types/index.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { IconSwap } from "../icon/icon-swap.js";
+import { Icon } from "../icon/icon.js";
 import { Slot } from "../slot/index.js";
 import { disabledChildProps } from "./button.js";
 import type {
@@ -203,11 +203,32 @@ const IconButton = ({
 		"aria-label": label,
 	};
 
+	// Why a wrapper: the fade must not replace a transition the icon has, such as
+	// a rotating caret, and it must hide an icon that drops `className`. The
+	// spinner mounts only while loading, as an absolute flex child over the icon.
 	const innerChildren = (
-		<IconSwap
-			active={isLoading ? "loading" : "idle"}
-			icons={{ idle: propIcon, loading: <CircleNotchIcon className="animate-spin" /> }}
-		/>
+		<>
+			<span
+				className={cx(
+					"grid place-items-center",
+					"motion-safe:transition-[opacity,scale,filter,visibility] motion-safe:duration-200 motion-safe:ease-out-strong",
+					isLoading &&
+						"invisible opacity-0 motion-safe:scale-50 motion-safe:blur-[2px] motion-safe:duration-150",
+				)}
+			>
+				<Icon svg={propIcon} />
+			</span>
+			{isLoading && (
+				<Icon
+					svg={<CircleNotchIcon className="animate-spin" />}
+					className={cx(
+						"absolute",
+						"motion-safe:transition-[opacity,scale,filter] motion-safe:duration-200 motion-safe:ease-out-strong",
+						"starting:opacity-0 motion-safe:starting:scale-50 motion-safe:starting:blur-[2px]",
+					)}
+				/>
+			)}
+		</>
 	);
 
 	if (asChild) {

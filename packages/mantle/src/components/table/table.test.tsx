@@ -148,9 +148,8 @@ describe("Table", () => {
 		expect(root).not.toHaveAttribute("data-sticky-active");
 	});
 
-	test("unmounting Table.Root disconnects both observers and removes its scroll listener", () => {
+	test("unmounting Table.Root disconnects its observer and removes its scroll listener", () => {
 		const resizeDisconnect = vi.spyOn(ResizeObserver.prototype, "disconnect");
-		const mutationDisconnect = vi.spyOn(MutationObserver.prototype, "disconnect");
 		const addListener = vi.spyOn(HTMLElement.prototype, "addEventListener");
 
 		const ref = createRef<HTMLDivElement>();
@@ -179,16 +178,38 @@ describe("Table", () => {
 			throw new Error("expected Table.Root to subscribe to the scroll container's scroll event");
 		}
 		expect(resizeDisconnect).not.toHaveBeenCalled();
-		expect(mutationDisconnect).not.toHaveBeenCalled();
 
 		const removeListener = vi.spyOn(HTMLElement.prototype, "removeEventListener");
 		unmount();
 
 		expect(resizeDisconnect).toHaveBeenCalledTimes(1);
-		expect(mutationDisconnect).toHaveBeenCalledTimes(1);
 		// The exact listener instance: tearing down with a fresh closure would leave
 		// the real subscription live.
 		expect(removeListener).toHaveBeenCalledWith("scroll", scrollListener);
+	});
+
+	test("a replaced Table.Element leaves the observer", () => {
+		const unobserve = vi.spyOn(ResizeObserver.prototype, "unobserve");
+		function SwappedTable({ generation }: { generation: number }) {
+			return (
+				<Table.Root>
+					<Table.Element key={generation}>
+						<Table.Body>
+							<Table.Row>
+								<Table.Cell>INV001</Table.Cell>
+							</Table.Row>
+						</Table.Body>
+					</Table.Element>
+				</Table.Root>
+			);
+		}
+		const { rerender } = render(<SwappedTable generation={1} />);
+		const firstTable = screen.getByRole("table");
+
+		rerender(<SwappedTable generation={2} />);
+
+		expect(unobserve).toHaveBeenCalledTimes(1);
+		expect(unobserve).toHaveBeenLastCalledWith(firstTable);
 	});
 
 	test("a consumer className beats each part's defaults", () => {

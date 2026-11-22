@@ -6,8 +6,8 @@ import {
 	Thumb as SliderPrimitiveThumb,
 	Track as SliderPrimitiveTrack,
 } from "@radix-ui/react-slider";
-import type { ComponentProps } from "react";
-import { useContext } from "react";
+import type { ComponentProps, CSSProperties } from "react";
+import { Fragment, useContext } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -128,10 +128,12 @@ function Slider({
 	color = "bg-accent-600",
 	defaultValue,
 	id,
+	inverted = false,
 	max = 100,
 	min = 0,
 	minStepsBetweenThumbs = 1,
 	name,
+	orientation = "horizontal",
 	step = 1,
 	showTicks = false,
 	value,
@@ -156,13 +158,15 @@ function Slider({
 						"aria-invalid": ariaInvalid,
 						id,
 					})}
+			inverted={inverted}
 			min={min}
 			minStepsBetweenThumbs={minStepsBetweenThumbs}
 			max={max}
 			name={name}
+			orientation={orientation}
 			step={step}
 			className={cx(
-				"[--slider-thumb-size:--spacing(4.5)]",
+				"group/slider [--slider-thumb-size:--spacing(4.5)]",
 				"data-orientation-vertical:min-h-40 relative flex w-full touch-none items-center select-none data-disabled:opacity-50 data-orientation-vertical:h-full data-orientation-vertical:w-auto data-orientation-vertical:flex-col",
 				tickCount > 0 && "mb-3",
 				className,
@@ -185,37 +189,48 @@ function Slider({
 					)}
 				/>
 			</SliderPrimitiveTrack>
-			{Array.from({ length: values.length }, (_, index) => (
-				<SliderPrimitiveThumb
-					data-slot="slider-thumb"
-					key={index}
-					aria-describedby={fieldControl?.["aria-describedby"] ?? ariaDescribedBy}
-					aria-errormessage={fieldControl?.["aria-errormessage"] ?? ariaErrorMessage}
-					aria-invalid={fieldControl?.["aria-invalid"] ?? ariaInvalid}
-					aria-label={resolveThumbAriaLabel({
-						ariaLabel,
-						index,
-						thumbCount: values.length,
-					})}
-					aria-labelledby={ariaLabelledBy}
-					// Only the first thumb receives the field-generated id so
-					// Field.Label's htmlFor lands on a unique element. Range/
-					// multi-thumb sliders share the surrounding aria wiring.
-					id={index === 0 ? fieldControl?.id : undefined}
-					className={cx(
-						"bg-static-white border-card hit-area size-(--slider-thumb-size) rounded-full border",
-						"shadow-md transition-[color,box-shadow]",
-						// Why: a press on a thumb moves that thumb. With more than one thumb, a hit
-						// area that is wider than the thumb along the track covers an adjacent
-						// thumb. A press beside a thumb then goes to the root, which moves the
-						// nearest thumb.
-						values.length > 1 &&
-							"data-orientation-horizontal:after:w-full data-orientation-vertical:after:h-full",
-						"focus-visible:ring-3 focus-visible:ring-accent-500/20 focus-visible:outline-hidden",
-						"block shrink-0 cursor-pointer select-none",
-						"data-disabled:pointer-events-none data-disabled:cursor-default",
-					)}
-				/>
+			{values.map((thumbValue, index) => (
+				// oxlint-disable-next-line react/no-array-index-key -- Why: a thumb is its position, and Radix reads each thumb's value by index.
+				<Fragment key={index}>
+					{/* Why: Radix hides each thumb until hydration, because it finds a thumb's
+					    index from its DOM node. This copy shows the thumb at its value in the
+					    server HTML, and hides once Radix gives a thumb `aria-valuenow`. */}
+					<span
+						data-slot="slider-thumb-placeholder"
+						aria-hidden="true"
+						className={cx(thumbShapeClasses, "absolute group-has-aria-[valuenow]/slider:hidden")}
+						style={thumbPlaceholderStyle({ inverted, max, min, orientation, value: thumbValue })}
+					/>
+					<SliderPrimitiveThumb
+						data-slot="slider-thumb"
+						aria-describedby={fieldControl?.["aria-describedby"] ?? ariaDescribedBy}
+						aria-errormessage={fieldControl?.["aria-errormessage"] ?? ariaErrorMessage}
+						aria-invalid={fieldControl?.["aria-invalid"] ?? ariaInvalid}
+						aria-label={resolveThumbAriaLabel({
+							ariaLabel,
+							index,
+							thumbCount: values.length,
+						})}
+						aria-labelledby={ariaLabelledBy}
+						// Only the first thumb receives the field-generated id so
+						// Field.Label's htmlFor lands on a unique element. Range/
+						// multi-thumb sliders share the surrounding aria wiring.
+						id={index === 0 ? fieldControl?.id : undefined}
+						className={cx(
+							thumbShapeClasses,
+							"hit-area transition-[color,box-shadow]",
+							// Why: a press on a thumb moves that thumb. With more than one thumb, a hit
+							// area that is wider than the thumb along the track covers an adjacent
+							// thumb. A press beside a thumb then goes to the root, which moves the
+							// nearest thumb.
+							values.length > 1 &&
+								"data-orientation-horizontal:after:w-full data-orientation-vertical:after:h-full",
+							"focus-visible:ring-3 focus-visible:ring-accent-500/20 focus-visible:outline-hidden",
+							"block shrink-0 cursor-pointer select-none",
+							"data-disabled:pointer-events-none data-disabled:cursor-default",
+						)}
+					/>
+				</Fragment>
 			))}
 			{tickCount > 0 && (
 				<div
@@ -236,6 +251,43 @@ export { Slider };
 export type { SliderProps };
 
 // MARK: - Private
+
+/** The look that a thumb and its server-rendered placeholder share. */
+const thumbShapeClasses =
+	"bg-static-white border-card size-(--slider-thumb-size) rounded-full border shadow-md";
+
+/**
+ * Places a thumb placeholder where Radix places the thumb after hydration: the
+ * thumb stays inside the track, so its start edge moves across the track width
+ * less one thumb. The start edge follows `orientation`, `inverted`, and the
+ * `dir` attribute that Radix sets on the root.
+ *
+ * @example
+ * ```ts
+ * thumbPlaceholderStyle({ inverted: false, max: 100, min: 0, orientation: "horizontal", value: 25 });
+ * // { insetInlineStart: "calc((100% - var(--slider-thumb-size)) * 0.25)" }
+ * ```
+ */
+function thumbPlaceholderStyle({
+	inverted,
+	max,
+	min,
+	orientation,
+	value,
+}: {
+	inverted: boolean;
+	max: number;
+	min: number;
+	orientation: "horizontal" | "vertical";
+	value: number;
+}): CSSProperties {
+	const fraction = Math.min(Math.max((value - min) / (max - min), 0), 1);
+	const offset = `calc((100% - var(--slider-thumb-size)) * ${fraction})`;
+	if (orientation === "vertical") {
+		return inverted ? { top: offset } : { bottom: offset };
+	}
+	return inverted ? { insetInlineEnd: offset } : { insetInlineStart: offset };
+}
 
 /** Wraps a single slider value in an array; an array passes through, and a nullish value stays `undefined`. */
 function toValueArray(value: number | number[] | undefined): number[] | undefined {

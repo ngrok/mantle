@@ -1,5 +1,7 @@
-import { render, screen } from "@testing-library/react";
-import type { CSSProperties } from "react";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import type { ComponentProps, CSSProperties } from "react";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
 import mantleCss from "../../mantle.css?raw";
@@ -114,4 +116,57 @@ describe("Slider thumb hit area (browser)", () => {
 		expect(hitFromCenter(upper, 0, 0)).toBe(upper);
 		expect(hitFromCenter(upper, 0, -20)).toBe(upper);
 	});
+});
+
+/** The thumbs a person sees inside `container`: shown thumbs and placeholders. */
+function shownThumbs(container: HTMLElement): Element[] {
+	return [...container.querySelectorAll("[data-slot^='slider-thumb']")].filter(
+		(element) => getComputedStyle(element).display !== "none",
+	);
+}
+
+/** An element's box, rounded to the pixel that it paints on. */
+function boxOf(element: Element) {
+	const { left, top, width, height } = element.getBoundingClientRect();
+	return { left: Math.round(left), top: Math.round(top), width, height };
+}
+
+describe("Slider server HTML (browser)", () => {
+	test.each<{
+		name: string;
+		props: Pick<ComponentProps<typeof Slider>, "dir" | "inverted" | "orientation">;
+	}>([
+		{ name: "horizontal", props: {} },
+		{ name: "horizontal, inverted", props: { inverted: true } },
+		{ name: "horizontal, right to left", props: { dir: "rtl" } },
+		{ name: "vertical", props: { orientation: "vertical" } },
+		{ name: "vertical, inverted", props: { orientation: "vertical", inverted: true } },
+	])(
+		"$name: each thumb shows at its value before hydration, where Radix puts it after",
+		async ({ props }) => {
+			const app = (
+				<div style={{ padding: 40, width: 280, height: 200 }}>
+					<Slider aria-label="Price" defaultValue={[20, 70]} {...props} />
+				</div>
+			);
+			const container = document.createElement("div");
+			container.innerHTML = renderToString(app);
+			document.body.append(container);
+
+			const serverBoxes = shownThumbs(container).map(boxOf);
+			const root = await act(() => hydrateRoot(container, app));
+			await waitFor(() => {
+				expect(container.querySelector("[role='slider']")).toHaveAttribute("aria-valuenow", "20");
+			});
+			const hydratedThumbs = shownThumbs(container);
+			const hydratedRoles = hydratedThumbs.map((thumb) => thumb.getAttribute("role"));
+			const hydratedBoxes = hydratedThumbs.map(boxOf);
+			act(() => root.unmount());
+			container.remove();
+
+			expect(serverBoxes).toHaveLength(2);
+			expect(hydratedRoles).toEqual(["slider", "slider"]);
+			expect(serverBoxes).toEqual(hydratedBoxes);
+		},
+	);
 });
