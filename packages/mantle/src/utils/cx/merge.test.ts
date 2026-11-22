@@ -93,7 +93,7 @@ test("merges the arbitrary values that mantle and its apps use like tailwind-mer
 	const tailwindClasses = await loadTailwindClasses();
 	const values: Record<string, string[]> = {
 		text: ["[1.5rem]", "[.5em]", "[12px]", "[2cqi]", "[#fff]", "(--x)"],
-		bg: ["[#fff]", "[Highlight]", "(--x)"],
+		bg: ["[#fff]", "[Highlight]", "[radial-gradient(red_1px,transparent_1px)]", "(--x)"],
 		shadow: ["[inset_0_0_2px_2px_var(--x)]", "[0_1px_0_rgb(0_0_0/0.1)]", "(--x)"],
 		"drop-shadow": ["[0_1px_2px_rgb(0_0_0/0.1)]"],
 		ring: ["(--x)"],

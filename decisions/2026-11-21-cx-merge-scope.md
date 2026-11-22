@@ -42,7 +42,8 @@ None of the 14.5k real strings merge differently from #1737. Of the 554,676 real
   - mantle's `cursor-inherit` sets `cursor`, so it replaces `cursor-pointer`.
   - `blur-0` and `blur-[4px]` set the blur, so the later one wins. `tailwind-merge` keeps both, because `blur-0` is not on its scale.
 - **Arbitrary lengths with units outside the list.** `text-[2cap]`, `text-[2vi]`, `text-[3svb]`, and `text-[--spacing(4)]` read as a color, so they do not replace `text-2xl`. The same applies to `[0]` on `text`.
-- **Labels that name no kind that the root reads.** On `text`, `[percentage:50%]`, `(percentage:--x)`, `[size:2px]`, `(size:--x)`, `[number:3]`, `(number:--x)`, `[position:10px]`, and the other labels read as a color. `tailwind-merge` gives each one its own class group.
+- **Labels that name no kind that the root reads.** On `text`, `[number:3]`, `(number:--x)`, `[position:10px]`, `[image:url(a)]`, `[shadow:a]`, `[weight:600]`, `[family-name:x]`, and the other labels except `length`, `percentage`, and `size` read as a color. `tailwind-merge` gives each one its own class group.
+- **`percentage` and `size` labels on `text`.** `text-[percentage:50%]`, `text-[size:2px]`, and their `(…:--x)` forms read as a font size, so they replace `text-2xl`. `tailwind-merge` keeps both.
 - **Image functions outside the list.** `image-set()`, `cross-fade()`, and `element()` read as a color, not an image.
 - **Shadows that start with a fraction.** `[.5px_1px_2px_black]` is not a shadow, so `shadow-[.5px_1px_2px_black]` reads as a shadow color.
 - **Unlabeled arbitrary font values.** `font-(--x)` and `font-[Inter]` read as a font family. `tailwind-merge` reads them as a weight.
