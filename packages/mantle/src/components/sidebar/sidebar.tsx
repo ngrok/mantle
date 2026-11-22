@@ -914,10 +914,8 @@ const TooltipLabel = ({ label, shortcut }: { label: ReactNode; shortcut: ReactNo
  * sidebar can collapse, or users have no way to reopen it.
  *
  * The button is icon-only at every breakpoint, so it always renders a tooltip
- * showing `label` (plus the optional `shortcut` chips). **That means it requires
- * a `TooltipProvider` ancestor, like any `Tooltip.Root`, and throws without
- * one.** Mount a single provider at your app root, decoupled from the sidebar,
- * so the app-wide delay and hover settings stay app-wide.
+ * showing `label` (plus the optional `shortcut` chips). A `TooltipProvider`
+ * ancestor, when there is one, sets its delay.
  *
  * It also stamps `aria-keyshortcuts` for the `⌘B` / `Ctrl+B` chord the root
  * binds. The server cannot know the host, so the server HTML and the hydration
@@ -1041,9 +1039,7 @@ const Trigger = ({
 	return (
 		// Unlike `Sidebar.Tooltip`, this label is not gated on the sidebar state: the
 		// trigger is an icon-only button at every breakpoint, so a pointer user has
-		// nothing else to read. Requires a `TooltipProvider` ancestor, like any
-		// `Tooltip.Root`. Mount one at your app root, decoupled from the sidebar,
-		// so the app-wide delay and hover settings stay app-wide.
+		// nothing else to read.
 		<Tooltip.Root>
 			<Tooltip.Trigger asChild>
 				<IconButton
@@ -2366,9 +2362,8 @@ type SidebarTooltipProps = Omit<ComponentProps<typeof Tooltip.Content>, "childre
  * toggling the sidebar dismisses whatever was showing, so collapsing the panel
  * cannot pop a label under a pointer that has already moved on.
  *
- * **Requires a `TooltipProvider` ancestor**, like any `Tooltip.Root`. Mount one
- * at your app root. This part deliberately does not mount its own, so the
- * app-wide tooltip delay stays app-wide rather than being overridden per row.
+ * This part does not mount its own `TooltipProvider`, so an app-wide provider
+ * sets the delay for each row.
  * The one provider setting it does override is hoverable content: a row label
  * holds nothing to hover into, so the pointer leaving the row closes it.
  *
@@ -2467,22 +2462,22 @@ const SidebarTooltip = ({
 	const [labelOpen, setLabelOpen] = useState(false);
 	const [previousCollapsedSidebar, setPreviousCollapsedSidebar] = useState(isCollapsedSidebar);
 
-	// A sidebar toggle drops the label. Radix opens on the pointer entering the trigger
+	// A sidebar toggle drops the label. The tooltip opens on the pointer entering the trigger
 	// and on focus reaching it, both of which can happen in a sidebar state that has
 	// no business showing a label; without this, the next flip cashes that pending
 	// state in and a tooltip appears under a pointer that is somewhere else
 	// entirely. Reset during render (React's sanctioned "adjust state when a prop
-	// changes" pattern) so Radix never sees the stale value.
+	// changes" pattern) so the tooltip never sees the stale value.
 	if (previousCollapsedSidebar !== isCollapsedSidebar) {
 		setPreviousCollapsedSidebar(isCollapsedSidebar);
 		setLabelOpen(false);
 	}
 
 	/**
-	 * Mirrors Radix's open state, clamped so it can only ever hold `true` in the
+	 * Mirrors the tooltip's open state, clamped so it can only ever hold `true` in the
 	 * one sidebar state that shows a label.
 	 *
-	 * The clamp is required, not belt-and-braces. Radix reports every open it
+	 * The clamp is required, not belt-and-braces. The tooltip reports every open it
 	 * wants, including ones the veto below discards, so an unclamped mirror holds
 	 * `true` through the whole expanded panel. A repeat `open` (a menu on the
 	 * row closing and restoring focus to it, say) then sets the mirror to a value
@@ -2497,7 +2492,7 @@ const SidebarTooltip = ({
 	return (
 		/*
 		 * The sidebar state vetoes the open state rather than withholding the Content:
-		 * Radix's own pointer close path lives inside `Tooltip.Content`, so a Root
+		 * The tooltip's own pointer close path lives inside `Tooltip.Content`, so a Root
 		 * left to its own devices while the Content is unmounted latches open with
 		 * nothing to close it. Meanwhile it points the row's `aria-describedby` at
 		 * an id that is not in the document. Owning `open` keeps the expanded panel

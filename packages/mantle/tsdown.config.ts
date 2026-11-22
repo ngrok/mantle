@@ -33,9 +33,11 @@ const allComponents = fs
 	.filter((dirent) => dirent.isDirectory())
 	.map((dirent) => dirent.name);
 
+// Why the index check: a util directory with no `index.ts`, such as `float`,
+// is internal and builds into the components that import it.
 const allUtils = fs
 	.readdirSync("src/utils", { withFileTypes: true })
-	.filter((dirent) => dirent.isDirectory())
+	.filter((dirent) => dirent.isDirectory() && fs.existsSync(utilPath(dirent.name)))
 	.map((dirent) => dirent.name);
 
 const componentPackages = allComponents

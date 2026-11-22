@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test } from "vitest";
 import * as Popover from "./popover-parts.js";
@@ -145,7 +145,73 @@ describe("Popover", () => {
 		expect(trigger).toHaveAttribute("aria-expanded", "true");
 
 		await user.keyboard("{Escape}");
-		expect(screen.queryByText("Products moved up here")).not.toBeInTheDocument();
+		expect(trigger).toHaveAttribute("aria-expanded", "false");
 		expect(trigger).toHaveFocus();
+		// The content stays mounted while its exit transition plays.
+		await waitFor(() => {
+			expect(screen.queryByText("Products moved up here")).not.toBeInTheDocument();
+		});
+	});
+
+	test("Escape closes only the popover that opened last", async () => {
+		const user = userEvent.setup();
+		render(
+			<Popover.Root>
+				<Popover.Trigger>Outer</Popover.Trigger>
+				<Popover.Content>
+					<Popover.Root>
+						<Popover.Trigger>Inner</Popover.Trigger>
+						<Popover.Content>Inner content</Popover.Content>
+					</Popover.Root>
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		const outer = screen.getByRole("button", { name: "Outer" });
+
+		await user.click(outer);
+		const inner = await screen.findByRole("button", { name: "Inner" });
+		await user.click(inner);
+		await screen.findByText("Inner content");
+
+		await user.keyboard("{Escape}");
+		expect(inner).toHaveAttribute("aria-expanded", "false");
+		expect(outer).toHaveAttribute("aria-expanded", "true");
+
+		await user.keyboard("{Escape}");
+		expect(outer).toHaveAttribute("aria-expanded", "false");
+	});
+
+	test("a press outside closes the popover unless onInteractOutside prevents it", async () => {
+		const user = userEvent.setup();
+		let keepOpen = true;
+		render(
+			<>
+				<button type="button">Elsewhere</button>
+				<Popover.Root>
+					<Popover.Trigger>Open</Popover.Trigger>
+					<Popover.Content
+						onInteractOutside={(event) => {
+							if (keepOpen) {
+								event.preventDefault();
+							}
+						}}
+					>
+						Products
+					</Popover.Content>
+				</Popover.Root>
+			</>,
+		);
+		const trigger = screen.getByRole("button", { name: "Open" });
+		const elsewhere = screen.getByRole("button", { name: "Elsewhere" });
+
+		await user.click(trigger);
+		await user.click(elsewhere);
+		expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+		keepOpen = false;
+		await user.click(elsewhere);
+		expect(trigger).toHaveAttribute("aria-expanded", "false");
+		// Focus stays where the user put it.
+		expect(elsewhere).toHaveFocus();
 	});
 });

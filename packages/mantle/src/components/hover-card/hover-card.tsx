@@ -1,32 +1,82 @@
 "use client";
 
-import {
-	Arrow as HoverCardPrimitiveArrow,
-	Content as HoverCardPrimitiveContent,
-	Portal as HoverCardPrimitivePortal,
-	Root as HoverCardPrimitiveRoot,
-	Trigger as HoverCardPrimitiveTrigger,
-} from "@radix-ui/react-hover-card";
-import type { ComponentProps } from "react";
+import type {
+	ComponentProps,
+	FocusEvent,
+	PointerEvent,
+	TouchEvent,
+	ReactNode,
+	RefObject,
+} from "react";
+import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import invariant from "tiny-invariant";
+import type { WithAsChild } from "../../types/as-child.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import {
-	LayerContainerContext,
-	useFloatEscapeKeyDown,
-	useLayerContainer,
-} from "../../utils/layer-container/layer-container.js";
+import { FloatArrow } from "../../utils/float/parts.js";
+import type { Align, Side } from "../../utils/float/position.js";
+import { floatClassName, useFloat } from "../../utils/float/use-float.js";
+import { LayerContainer } from "../../utils/layer-container/layer-container.js";
+import { Slot } from "../slot/index.js";
+
+type HoverCardState = {
+	open: boolean;
+	setOpen: (open: boolean) => void;
+	/** Opens after `openDelay`. */
+	openSoon: () => void;
+	/** Closes after `closeDelay`. */
+	closeSoon: () => void;
+	/** Stops a pending open or close. */
+	cancelPending: () => void;
+	contentId: string;
+	triggerRef: RefObject<HTMLElement | null>;
+};
+
+const HoverCardContext = createContext<HoverCardState | null>(null);
+
+function useHoverCardState(part: string): HoverCardState {
+	const state = useContext(HoverCardContext);
+	invariant(state != null, `\`HoverCard.${part}\` must be rendered inside \`HoverCard.Root\`.`);
+	return state;
+}
+
+type HoverCardRootProps = {
+	children?: ReactNode;
+	/** The open state, for a controlled hover card. Pair it with `onOpenChange`. */
+	open?: boolean;
+	/**
+	 * The open state on the first render, for an uncontrolled hover card.
+	 * @default false
+	 */
+	defaultOpen?: boolean;
+	/** Runs when the hover card opens or closes. */
+	onOpenChange?: (open: boolean) => void;
+	/**
+	 * How long the pointer or focus rests on the trigger before the card opens, in milliseconds.
+	 * @default 100
+	 */
+	openDelay?: number;
+	/**
+	 * How long the card stays open after the pointer or focus leaves, in milliseconds.
+	 * @default 300
+	 */
+	closeDelay?: number;
+};
 
 /**
- * A floating card that appears when a user hovers over a trigger element.
- * This is the root, stateful component that manages the open/closed state of the hover card.
+ * A card that previews the content behind a link when a pointer rests on the
+ * link or the link takes focus. This is the root, stateful part that owns the
+ * open state and the delays. It renders no element.
  *
- * `HoverCard.Content` renders at Tailwind `z-50`, Mantle's float tier. When
- * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
- * that overlay's positioner and paints above the overlay that owns it. Outside
- * every overlay, it portals to `document.body`, below the overlay tier
- * (`z-60`). When sibling floats share a container, the most recently mounted
- * float paints on top.
+ * Use it for sighted pointer users only: a touch never opens it, and a screen
+ * reader does not announce it. Keep everything it shows reachable from the link.
+ *
+ * `HoverCard.Content` is a native `popover="hint"` in the browser's top layer,
+ * so it paints above the page and every overlay, and no `overflow` or `z-index`
+ * clips it. It closes when an overlay that does not hold it opens.
  *
  * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardroot
  *
@@ -34,26 +84,61 @@ import {
  * ```tsx
  * <HoverCard.Root>
  *   <HoverCard.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="neutral">
- *       Hover me
- *     </Button>
+ *     <a href="https://ngrok.com">ngrok</a>
  *   </HoverCard.Trigger>
  *   <HoverCard.Content>
- *     <p>This is the hover card content.</p>
+ *     <p>Unified ingress for developers.</p>
  *   </HoverCard.Content>
  * </HoverCard.Root>
  * ```
  */
-const Root = ({
+function Root({
+	children,
 	closeDelay = 300,
+	defaultOpen = false,
+	onOpenChange,
+	open: openProp,
 	openDelay = 100,
-	...props
-}: ComponentProps<typeof HoverCardPrimitiveRoot>) => (
-	<HoverCardPrimitiveRoot closeDelay={closeDelay} openDelay={openDelay} {...props} />
-);
+}: HoverCardRootProps) {
+	const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+	const open = openProp ?? uncontrolledOpen;
+	const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+	const triggerRef = useRef<HTMLElement | null>(null);
+	useEffect(() => () => clearTimeout(timer.current), []);
+
+	const contentId = useId();
+	const state = useMemo<HoverCardState>(() => {
+		const setOpen = (next: boolean) => {
+			clearTimeout(timer.current);
+			if (next === open) {
+				return;
+			}
+			if (openProp === undefined) {
+				setUncontrolledOpen(next);
+			}
+			onOpenChange?.(next);
+		};
+		return {
+			open,
+			setOpen,
+			openSoon: () => {
+				clearTimeout(timer.current);
+				timer.current = setTimeout(() => setOpen(true), openDelay);
+			},
+			closeSoon: () => {
+				clearTimeout(timer.current);
+				timer.current = setTimeout(() => setOpen(false), closeDelay);
+			},
+			cancelPending: () => clearTimeout(timer.current),
+			contentId,
+			triggerRef,
+		};
+	}, [closeDelay, contentId, onOpenChange, open, openDelay, openProp]);
+	return <HoverCardContext.Provider value={state}>{children}</HoverCardContext.Provider>;
+}
 
 /**
- * The trigger element that opens the hover card when hovered.
+ * The link that opens the hover card when a pointer rests on it or it takes focus.
  *
  * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardtrigger
  *
@@ -61,78 +146,112 @@ const Root = ({
  * ```tsx
  * <HoverCard.Root>
  *   <HoverCard.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="neutral">
- *       Hover me
- *     </Button>
+ *     <a href="https://ngrok.com">ngrok</a>
  *   </HoverCard.Trigger>
  *   <HoverCard.Content>
- *     <p>This is the hover card content.</p>
+ *     <p>Unified ingress for developers.</p>
  *   </HoverCard.Content>
  * </HoverCard.Root>
  * ```
  */
 const Trigger = ({
+	asChild = false,
 	"data-slot": dataSlot,
+	onBlur,
+	onFocus,
+	onPointerEnter,
+	onPointerLeave,
+	onTouchStart,
+	ref,
 	...props
-}: ComponentProps<typeof HoverCardPrimitiveTrigger> & WithDataSlot) => (
-	<HoverCardPrimitiveTrigger data-slot={joinDataSlot(dataSlot, "hover-card-trigger")} {...props} />
-);
-
-/**
- * The portal container for rendering hover card content outside the normal DOM tree.
- * `HoverCard.Content` already renders inside this portal internally, so you typically
- * do not need to use `HoverCard.Portal` directly. Use it only when you need to
- * customize portal placement (e.g., pass a `container` prop) or wrap multiple
- * `HoverCard.Content` instances in a shared portal.
- *
- * When `container` is omitted, content mounts into the nearest layer container:
- * an enclosing overlay's positioner when one is open, else `document.body`.
- *
- * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardportal
- *
- * @example
- * ```tsx
- * <HoverCard.Root>
- *   <HoverCard.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="neutral">
- *       Hover me
- *     </Button>
- *   </HoverCard.Trigger>
- *   <HoverCard.Portal>
- *     <HoverCard.Content>
- *       <p>This is the hover card content.</p>
- *     </HoverCard.Content>
- *   </HoverCard.Portal>
- * </HoverCard.Root>
- * ```
- */
-const Portal = ({ container, ...props }: ComponentProps<typeof HoverCardPrimitivePortal>) => {
-	const layerContainer = useLayerContainer();
-	const resolvedContainer = container ?? layerContainer;
-
-	// Why the provider: `HoverCard.Content` portals again internally, so the
-	// resolved container must also become the layer container for the wrapped
-	// subtree; otherwise the inner portal would ignore an explicit `container`.
+}: ComponentProps<"a"> & WithAsChild & WithDataSlot) => {
+	const state = useHoverCardState("Trigger");
+	const composedRef = useComposedRefs(ref, state.triggerRef);
+	const Component = asChild ? Slot : "a";
 	return (
-		<LayerContainerContext.Provider value={resolvedContainer}>
-			<HoverCardPrimitivePortal container={resolvedContainer} {...props} />
-		</LayerContainerContext.Provider>
+		<Component
+			data-slot={joinDataSlot(dataSlot, "hover-card-trigger")}
+			data-state={state.open ? "open" : "closed"}
+			ref={composedRef}
+			{...props}
+			onPointerEnter={(event: PointerEvent<HTMLAnchorElement>) => {
+				onPointerEnter?.(event);
+				if (event.defaultPrevented) {
+					return;
+				}
+				if (event.pointerType !== "touch") {
+					state.openSoon();
+				}
+			}}
+			onPointerLeave={(event: PointerEvent<HTMLAnchorElement>) => {
+				onPointerLeave?.(event);
+				if (event.defaultPrevented) {
+					return;
+				}
+				if (event.pointerType !== "touch") {
+					state.closeSoon();
+				}
+			}}
+			onFocus={(event: FocusEvent<HTMLAnchorElement>) => {
+				onFocus?.(event);
+				if (!event.defaultPrevented) {
+					state.openSoon();
+				}
+			}}
+			onBlur={(event: FocusEvent<HTMLAnchorElement>) => {
+				onBlur?.(event);
+				if (!event.defaultPrevented) {
+					state.closeSoon();
+				}
+			}}
+			// Why: a touch would focus the link and open the card, and the card is for pointers.
+			onTouchStart={(event: TouchEvent<HTMLAnchorElement>) => {
+				onTouchStart?.(event);
+				if (event.defaultPrevented) {
+					return;
+				}
+				event.preventDefault();
+			}}
+		/>
 	);
 };
 
+type HoverCardContentProps = ComponentProps<"div"> &
+	WithDataSlot & {
+		/**
+		 * The side of the trigger the card prefers. It flips to the opposite side
+		 * when only that side has room.
+		 * @default "bottom"
+		 */
+		side?: Side;
+		/**
+		 * How the card lines up with the trigger along `side`.
+		 * @default "center"
+		 */
+		align?: Align;
+		/**
+		 * The gap between the trigger and the card, in pixels.
+		 * @default 4
+		 */
+		sideOffset?: number;
+		/** Runs on Escape while the card is the top float. Call `event.preventDefault()` to keep it open. */
+		onEscapeKeyDown?: (event: KeyboardEvent) => void;
+	};
+
 /**
- * The content to render inside the hover card.
+ * The card. It mounts while the hover card is open, as a `popover="hint"`
+ * element in the top layer next to `HoverCard.Trigger`. A pointer that moves
+ * from the trigger onto the card keeps it open. It closes on Escape and on a
+ * press outside it. It portals into the overlay or float that holds it, else
+ * into `document.body`.
  *
- * `HoverCard.Content` renders at Tailwind `z-50`, Mantle's float tier. When
- * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
- * that overlay's positioner and paints above the overlay that owns it. Outside
- * every overlay, it portals to `document.body`, below the overlay tier
- * (`z-60`). When sibling floats share a container, the most recently mounted
- * float paints on top.
+ * **Data attributes:**
  *
- * It sets `position: relative`, so `HoverCard.Arrow`'s absolutely-positioned
- * wrapper keeps one containing block through the open animation. An
- * absolutely-positioned child of the content therefore anchors to the content.
+ * | Data Attribute | Value                                          | Description                                     |
+ * | -------------- | ---------------------------------------------- | ----------------------------------------------- |
+ * | `data-slot`    | `"hover-card-content"`                         | On the card, with any composing part's chain ahead of it. |
+ * | `data-state`   | `"open"` \| `"closed"`                         | `"closed"` while the exit transition plays.     |
+ * | `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | The side of the trigger the card resolved to.   |
  *
  * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardcontent
  *
@@ -140,70 +259,103 @@ const Portal = ({ container, ...props }: ComponentProps<typeof HoverCardPrimitiv
  * ```tsx
  * <HoverCard.Root>
  *   <HoverCard.Trigger asChild>
- *     <Button type="button" appearance="outlined" intent="neutral">
- *       Hover me
- *     </Button>
+ *     <a href="https://ngrok.com">ngrok</a>
  *   </HoverCard.Trigger>
  *   <HoverCard.Content>
- *     <p>This is the hover card content.</p>
+ *     <p>Unified ingress for developers.</p>
  *   </HoverCard.Content>
  * </HoverCard.Root>
  * ```
  */
 const Content = ({
-	"data-slot": dataSlot,
+	align = "center",
 	className,
+	"data-slot": dataSlot,
 	onClick,
 	onEscapeKeyDown,
-	align = "center",
+	onPointerEnter,
+	onPointerLeave,
+	ref,
+	side = "bottom",
 	sideOffset = 4,
 	...props
-}: ComponentProps<typeof HoverCardPrimitiveContent> & WithDataSlot) => {
-	const handleEscapeKeyDown = useFloatEscapeKeyDown(onEscapeKeyDown);
+}: HoverCardContentProps) => {
+	const state = useHoverCardState("Content");
+	const { portalTarget, floatingRef } = useFloat({
+		open: state.open,
+		onDismiss: () => state.setOpen(false),
+		getAnchor: () => state.triggerRef.current,
+		getInsideElements: () => [state.triggerRef.current],
+		dismissOnOutside: true,
+		dismissWhenCovered: true,
+		side,
+		align,
+		sideOffset,
+		onEscapeKeyDown,
+	});
+	const composedRef = useComposedRefs(ref, floatingRef);
 
 	return (
-		<Portal>
-			<HoverCardPrimitiveContent
+		portalTarget != null &&
+		createPortal(
+			<LayerContainer
+				modal={false}
+				id={state.contentId}
+				popover="hint"
 				data-slot={joinDataSlot(dataSlot, "hover-card-content")}
-				align={align}
-				sideOffset={sideOffset}
+				data-state={state.open ? "open" : "closed"}
 				className={cx(
-					// Why relative: `HoverCard.Arrow`'s wrapper is absolutely positioned, and
-					// the open animation's `scale` makes this element its containing block for
-					// one frame, then drops it, moving the arrow 1px. Positioning this element
-					// keeps that containing block the same before, during, and after.
-					"relative",
-					"bg-popover border-popover z-50 w-64 rounded-md border p-4 shadow-md outline-hidden",
-					"data-state-open:animate-in data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:fade-in-0 data-state-closed:zoom-out-95 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-left:slide-in-from-right-1 data-side-right:slide-in-from-left-1 data-side-top:slide-in-from-bottom-1 data-side-bottom:slide-out-to-top-1 data-side-left:slide-out-to-right-1 data-side-right:slide-out-to-left-1 data-side-top:slide-out-to-bottom-1 duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none!",
+					floatClassName,
+					"bg-popover border-popover w-64 rounded-md border p-4 shadow-md outline-hidden",
 					className,
 				)}
+				ref={composedRef}
+				{...props}
 				onClick={(event) => {
-					/**
-					 * Prevent the click event from propagating up to parent/containing elements
-					 */
+					// Why: a click in the card must not reach a clickable parent of the trigger.
 					event.stopPropagation();
 					onClick?.(event);
 				}}
-				onEscapeKeyDown={handleEscapeKeyDown}
-				{...props}
-			/>
-		</Portal>
+				onPointerEnter={(event) => {
+					onPointerEnter?.(event);
+					if (!event.defaultPrevented) {
+						state.cancelPending();
+					}
+				}}
+				onPointerLeave={(event) => {
+					onPointerLeave?.(event);
+					if (event.defaultPrevented) {
+						return;
+					}
+					if (event.pointerType !== "touch") {
+						state.closeSoon();
+					}
+				}}
+			/>,
+			portalTarget,
+		)
 	);
 };
 
-type HoverCardArrowProps = Omit<
-	ComponentProps<typeof HoverCardPrimitiveArrow>,
-	"asChild" | "children"
-> &
-	WithDataSlot;
+type HoverCardArrowProps = Omit<ComponentProps<"svg">, "children" | "width" | "height"> &
+	WithDataSlot & {
+		/**
+		 * The width of the arrow, in pixels.
+		 * @default 14
+		 */
+		width?: number;
+		/**
+		 * The height of the arrow, in pixels.
+		 * @default 7
+		 */
+		height?: number;
+	};
 
 /**
- * An optional tip that points from `HoverCard.Content` at its trigger. Render it
- * as a child of `HoverCard.Content`. Radix positions it with floating-ui's arrow
- * middleware, so it stays centered on the trigger when collision detection shifts
- * or flips the content. It also repaints `HoverCard.Content`'s fill and border
- * across its base, so the two edges read as one line, and carries its own shadow,
- * clipped at that base so it never darkens the content's interior.
+ * An optional tip that points from `HoverCard.Content` at its trigger. Render
+ * it as a direct child of `HoverCard.Content`. It moves to the edge of the card
+ * that faces the trigger and centers on the trigger, also after the card flips
+ * or shifts.
  *
  * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardarrow
  *
@@ -211,68 +363,17 @@ type HoverCardArrowProps = Omit<
  * ```tsx
  * <HoverCard.Root>
  *   <HoverCard.Trigger asChild>
- *     <Button type="button" appearance="link" intent="accent">@username</Button>
+ *     <a href="https://ngrok.com">ngrok</a>
  *   </HoverCard.Trigger>
  *   <HoverCard.Content>
  *     <HoverCard.Arrow />
- *     <p>This is the hover card content.</p>
+ *     <p>Unified ingress for developers.</p>
  *   </HoverCard.Content>
  * </HoverCard.Root>
  * ```
  */
-const Arrow = ({
-	"data-slot": dataSlot,
-	className,
-	height = 7,
-	width = 14,
-	...props
-}: HoverCardArrowProps) => (
-	// Why no asChild prop: a swapped element loses the two-layer shape (a filled
-	// polygon, plus a polyline that strokes the slanted edges only) that continues
-	// `HoverCard.Content`'s border. `HoverCardArrowProps` omits the prop, so restyle
-	// with `className` instead. The `asChild` below is mantle's own, and hands that
-	// shape to the primitive.
-	<HoverCardPrimitiveArrow
-		aria-hidden="true"
-		asChild
-		data-slot={joinDataSlot(dataSlot, "hover-card-arrow")}
-		height={height}
-		width={width}
-		{...props}
-	>
-		<svg
-			className={cx(
-				// `HoverCard.Content` is the wrapper's containing block, so Radix's own
-				// `0` offset resolves to that content's padding box: the base lands 1px
-				// inside the border box, and the fill covers the border it sits on.
-				"fill-(--background-color-popover)",
-				// Why filter and clip-path: `HoverCard.Content`'s `shadow-md` stops at
-				// its own border, so an unshadowed tip reads as pasted on. The filter
-				// casts the tip's own shadow, and the clip trims it at the base, because
-				// the arrow paints above the content and the shadow would otherwise
-				// darken the content's interior. One wide, faint layer only, matching
-				// what the content's shadow leaves along the edge the tip grows out of.
-				// A tighter layer muddies a shape this small. The offsets stay symmetric,
-				// since Radix rotates the wrapper per side and would swing an offset.
-				"[clip-path:inset(0_-200%_-200%_-200%)]",
-				"filter-[drop-shadow(0_0_4px_color-mix(in_oklab,var(--shadow-color)_var(--shadow-first-opacity),transparent))]",
-				className,
-			)}
-		>
-			<polygon points="0,0 30,0 15,10" />
-			<polyline
-				className="stroke-(--border-color-popover)"
-				fill="none"
-				points="0,0 15,10 30,0"
-				// Why 1.5 against the content's 1px border: antialiasing spreads a
-				// diagonal hairline across two device rows at partial coverage, so a
-				// geometric 1px reads thinner than the content's axis-aligned edge.
-				// Measured against that edge at 1x and 2x, 1.5 matches it.
-				strokeWidth={1.5}
-				vectorEffect="non-scaling-stroke"
-			/>
-		</svg>
-	</HoverCardPrimitiveArrow>
+const Arrow = ({ "data-slot": dataSlot, ...props }: HoverCardArrowProps) => (
+	<FloatArrow data-slot={joinDataSlot(dataSlot, "hover-card-arrow")} {...props} />
 );
 
 export {
@@ -280,6 +381,5 @@ export {
 	Root,
 	Arrow,
 	Content,
-	Portal,
 	Trigger,
 };

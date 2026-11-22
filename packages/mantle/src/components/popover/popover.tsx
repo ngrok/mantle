@@ -1,35 +1,58 @@
 "use client";
 
-import {
-	Anchor as PopoverPrimitiveAnchor,
-	Arrow as PopoverPrimitiveArrow,
-	Close as PopoverPrimitiveClose,
-	Content as PopoverPrimitiveContent,
-	Portal as PopoverPrimitivePortal,
-	Root as PopoverPrimitiveRoot,
-	Trigger as PopoverPrimitiveTrigger,
-} from "@radix-ui/react-popover";
-import type { ComponentProps } from "react";
+import type { ComponentProps, MouseEvent, ReactNode, RefObject } from "react";
+import { createContext, useContext, useId, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import invariant from "tiny-invariant";
+import type { WithAsChild } from "../../types/as-child.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import {
-	useFloatEscapeKeyDown,
-	useFloatOpenAutoFocus,
-	useLayerContainer,
-} from "../../utils/layer-container/layer-container.js";
+import { FloatArrow, focusFirst } from "../../utils/float/parts.js";
+import type { Align, Side } from "../../utils/float/position.js";
+import { floatClassName, useFloat } from "../../utils/float/use-float.js";
+import type { OutsideHandlers } from "../../utils/float/use-float.js";
+import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import { Slot } from "../slot/index.js";
 
+type PopoverState = {
+	open: boolean;
+	setOpen: (open: boolean) => void;
+	contentId: string;
+	triggerRef: RefObject<HTMLElement | null>;
+	anchorRef: RefObject<HTMLElement | null>;
+};
+
+const PopoverContext = createContext<PopoverState | null>(null);
+
+function usePopoverState(part: string): PopoverState {
+	const state = useContext(PopoverContext);
+	invariant(state != null, `\`Popover.${part}\` must be rendered inside \`Popover.Root\`.`);
+	return state;
+}
+
+type PopoverRootProps = {
+	children?: ReactNode;
+	/** The open state, for a controlled popover. Pair it with `onOpenChange`. */
+	open?: boolean;
+	/**
+	 * The open state on the first render, for an uncontrolled popover.
+	 * @default false
+	 */
+	defaultOpen?: boolean;
+	/** Runs when the popover opens or closes. */
+	onOpenChange?: (open: boolean) => void;
+};
+
 /**
- * A floating overlay that displays rich content in a portal, triggered by a button.
- * This is the root, stateful component that manages the open/closed state of the popover.
+ * A floating panel with rich content, which a button opens next to itself.
+ * This is the root, stateful part that owns the open state. It renders no element.
  *
- * `Popover.Content` renders at Tailwind `z-50`, Mantle's float tier. When
- * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
- * that overlay's positioner and paints above the overlay that owns it. Outside
- * every overlay, it portals to `document.body`, below the overlay tier
- * (`z-60`). When sibling floats share a container, the most recently mounted
- * float paints on top.
+ * `Popover.Content` is a native `popover` in the browser's top layer, so it
+ * paints above the page and every overlay, and no `overflow` or `z-index`
+ * clips it. It does not open while an overlay that does not hold it is open,
+ * because the top layer would paint it over that overlay.
  *
  * @see https://mantle.ngrok.com/components/overlays/popover#popoverroot
  *
@@ -47,10 +70,35 @@ import { Slot } from "../slot/index.js";
  * </Popover.Root>
  * ```
  */
-const Root = PopoverPrimitiveRoot;
+function Root({ children, defaultOpen = false, onOpenChange, open: openProp }: PopoverRootProps) {
+	const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+	const open = openProp ?? uncontrolledOpen;
+	const triggerRef = useRef<HTMLElement | null>(null);
+	const anchorRef = useRef<HTMLElement | null>(null);
+	const contentId = useId();
+	const state = useMemo<PopoverState>(
+		() => ({
+			open,
+			setOpen: (next) => {
+				if (next === open) {
+					return;
+				}
+				if (openProp === undefined) {
+					setUncontrolledOpen(next);
+				}
+				onOpenChange?.(next);
+			},
+			contentId,
+			triggerRef,
+			anchorRef,
+		}),
+		[contentId, onOpenChange, open, openProp],
+	);
+	return <PopoverContext.Provider value={state}>{children}</PopoverContext.Provider>;
+}
 
 /**
- * The trigger button that opens the popover.
+ * The button that opens and closes the popover.
  *
  * @see https://mantle.ngrok.com/components/overlays/popover#popovertrigger
  *
@@ -69,23 +117,42 @@ const Root = PopoverPrimitiveRoot;
  * ```
  */
 const Trigger = ({
-	asChild,
+	asChild = false,
 	children,
 	"data-slot": dataSlot,
+	onClick,
+	ref,
 	...props
-}: ComponentProps<typeof PopoverPrimitiveTrigger> & WithDataSlot) => {
-	const slot = joinDataSlot(dataSlot, "popover-trigger");
-	// Why mantle's `Slot` under `asChild`: Radix's merge lets the child's own
-	// `data-slot` replace this one, and `Slot` joins the two.
+}: ComponentProps<"button"> & WithAsChild & WithDataSlot) => {
+	const state = usePopoverState("Trigger");
+	const composedRef = useComposedRefs(ref, state.triggerRef);
+	const Component = asChild ? Slot : "button";
 	return (
-		<PopoverPrimitiveTrigger asChild={asChild} data-slot={slot} {...props}>
-			{asChild ? <Slot data-slot={slot}>{children}</Slot> : children}
-		</PopoverPrimitiveTrigger>
+		<Component
+			aria-controls={state.open ? state.contentId : undefined}
+			aria-expanded={state.open}
+			aria-haspopup="dialog"
+			data-slot={joinDataSlot(dataSlot, "popover-trigger")}
+			data-state={state.open ? "open" : "closed"}
+			ref={composedRef}
+			type={asChild ? undefined : "button"}
+			{...props}
+			onClick={(event: MouseEvent<HTMLButtonElement>) => {
+				onClick?.(event);
+				if (event.defaultPrevented) {
+					return;
+				}
+				state.setOpen(!state.open);
+			}}
+		>
+			{children}
+		</Component>
 	);
 };
 
 /**
- * An optional element to position the PopoverContent against. If this part is not used, the content will position alongside the PopoverTrigger.
+ * An optional element to position `Popover.Content` against. Without it, the
+ * content sits next to `Popover.Trigger`.
  *
  * @see https://mantle.ngrok.com/components/overlays/popover#popoveranchor
  *
@@ -107,16 +174,16 @@ const Trigger = ({
  * ```
  */
 const Anchor = ({
-	asChild,
-	children,
+	asChild = false,
 	"data-slot": dataSlot,
+	ref,
 	...props
-}: ComponentProps<typeof PopoverPrimitiveAnchor> & WithDataSlot) => {
-	const slot = joinDataSlot(dataSlot, "popover-anchor");
+}: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
+	const state = usePopoverState("Anchor");
+	const composedRef = useComposedRefs(ref, state.anchorRef);
+	const Component = asChild ? Slot : "div";
 	return (
-		<PopoverPrimitiveAnchor asChild={asChild} data-slot={slot} {...props}>
-			{asChild ? <Slot data-slot={slot}>{children}</Slot> : children}
-		</PopoverPrimitiveAnchor>
+		<Component data-slot={joinDataSlot(dataSlot, "popover-anchor")} ref={composedRef} {...props} />
 	);
 };
 
@@ -143,44 +210,88 @@ const Anchor = ({
  * ```
  */
 const Close = ({
-	asChild,
-	children,
+	asChild = false,
 	"data-slot": dataSlot,
+	onClick,
 	...props
-}: ComponentProps<typeof PopoverPrimitiveClose> & WithDataSlot) => {
-	const slot = joinDataSlot(dataSlot, "popover-close");
+}: ComponentProps<"button"> & WithAsChild & WithDataSlot) => {
+	const state = usePopoverState("Close");
+	const Component = asChild ? Slot : "button";
 	return (
-		<PopoverPrimitiveClose asChild={asChild} data-slot={slot} {...props}>
-			{asChild ? <Slot data-slot={slot}>{children}</Slot> : children}
-		</PopoverPrimitiveClose>
+		<Component
+			data-slot={joinDataSlot(dataSlot, "popover-close")}
+			type={asChild ? undefined : "button"}
+			{...props}
+			onClick={(event: MouseEvent<HTMLButtonElement>) => {
+				onClick?.(event);
+				if (event.defaultPrevented) {
+					return;
+				}
+				state.setOpen(false);
+			}}
+		/>
 	);
 };
 
-type PopoverContentProps = ComponentProps<typeof PopoverPrimitiveContent> & {
-	/**
-	 * The preferred width of the `PopoverContent` as a tailwind `max-w-` class.
-	 *
-	 * By default, a `Popover`'s content width is responsive with a default
-	 * preferred width: the maximum width of the `PopoverContent`
-	 *
-	 * @default `max-w-72`
-	 */
-	preferredWidth?: `max-w-${string}`;
-} & WithDataSlot;
+type PopoverContentProps = ComponentProps<"div"> &
+	OutsideHandlers &
+	WithDataSlot & {
+		/**
+		 * The side of the anchor the content prefers. It flips to the opposite
+		 * side when only that side has room.
+		 * @default "bottom"
+		 */
+		side?: Side;
+		/**
+		 * How the content lines up with the anchor along `side`.
+		 * @default "center"
+		 */
+		align?: Align;
+		/**
+		 * The gap between the anchor and the content, in pixels.
+		 * @default 4
+		 */
+		sideOffset?: number;
+		/**
+		 * The preferred width of the content, as a Tailwind `max-w-` class.
+		 * @default "max-w-72"
+		 */
+		preferredWidth?: `max-w-${string}`;
+		/**
+		 * Runs after the content opens, before focus moves to its first
+		 * focusable element. Call `event.preventDefault()` to keep focus where it is.
+		 */
+		onOpenAutoFocus?: (event: Event) => void;
+		/**
+		 * Runs as the content closes, before focus returns to the trigger. Call
+		 * `event.preventDefault()` to move focus yourself.
+		 */
+		onCloseAutoFocus?: (event: Event) => void;
+		/** Runs on Escape while the popover is the top float. Call `event.preventDefault()` to keep it open. */
+		onEscapeKeyDown?: (event: KeyboardEvent) => void;
+	};
 
 /**
- * The content to render inside the popover.
+ * The content of the popover. It mounts while the popover is open, as a
+ * `popover="manual"` element in the top layer, next to `Popover.Anchor` or
+ * `Popover.Trigger`.
  *
- * `Popover.Content` renders at Tailwind `z-50`, Mantle's float tier. When
- * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
- * that overlay's positioner and paints above the overlay that owns it. Outside
- * every overlay, it portals to `document.body`, below the overlay tier
- * (`z-60`). When sibling floats share a container, the most recently mounted
- * float paints on top.
+ * It closes on Escape, on a press or a focus move outside it and its trigger,
+ * and from `Popover.Close`. It moves focus to its first focusable element when it
+ * opens, and back to the trigger when it closes. It portals into the overlay or
+ * float that holds it, else into `document.body`, and a float composed inside
+ * it portals into it.
  *
- * It sets `position: relative`, so `Popover.Arrow`'s absolutely-positioned
- * wrapper keeps one containing block through the open animation. An
- * absolutely-positioned child of the content therefore anchors to the content.
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value                                          | Description                                        |
+ * | -------------- | ---------------------------------------------- | -------------------------------------------------- |
+ * | `data-slot`    | `"popover-content"`                            | On the content, with any composing part's chain ahead of it. |
+ * | `data-state`   | `"open"` \| `"closed"`                         | `"closed"` while the exit transition plays.        |
+ * | `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | The side of the anchor the content resolved to.    |
+ *
+ * The content sets the CSS variables `--anchor-width` (the anchor's width)
+ * and `--available-height` (the room between the anchor and the viewport edge).
  *
  * @see https://mantle.ngrok.com/components/overlays/popover#popovercontent
  *
@@ -199,68 +310,119 @@ type PopoverContentProps = ComponentProps<typeof PopoverPrimitiveContent> & {
  * ```
  */
 const Content = ({
-	"data-slot": dataSlot,
-	//,
 	align = "center",
 	className,
+	"data-slot": dataSlot,
 	onClick,
+	onCloseAutoFocus,
 	onEscapeKeyDown,
+	onFocusOutside,
+	onInteractOutside,
 	onOpenAutoFocus,
+	onPointerDownOutside,
 	preferredWidth = "max-w-72",
 	ref,
+	side = "bottom",
 	sideOffset = 4,
 	...props
 }: PopoverContentProps) => {
-	const layerContainer = useLayerContainer();
-	const handleEscapeKeyDown = useFloatEscapeKeyDown(onEscapeKeyDown);
-	const handleOpenAutoFocus = useFloatOpenAutoFocus(onOpenAutoFocus);
+	const state = usePopoverState("Content");
+	const closedFromOutside = useRef(false);
+	const { portalTarget, floatingRef } = useFloat({
+		open: state.open,
+		onDismiss: (reason) => {
+			closedFromOutside.current = reason === "outside";
+			state.setOpen(false);
+		},
+		getAnchor: () => state.anchorRef.current ?? state.triggerRef.current,
+		getInsideElements: () => [state.triggerRef.current, state.anchorRef.current],
+		dismissOnOutside: true,
+		dismissWhenCovered: false,
+		side,
+		align,
+		sideOffset,
+		onEscapeKeyDown,
+		onFocusOutside,
+		onInteractOutside,
+		onPointerDownOutside,
+		onShow: (floating) => {
+			closedFromOutside.current = false;
+			const event = new Event("mantle.popover.openAutoFocus", { cancelable: true });
+			onOpenAutoFocus?.(event);
+			if (!event.defaultPrevented) {
+				focusFirst(floating);
+			}
+		},
+		onHide: (floating, focusWasInside) => {
+			const event = new Event("mantle.popover.closeAutoFocus", { cancelable: true });
+			onCloseAutoFocus?.(event);
+			const activeElement = floating.ownerDocument.activeElement;
+			if (event.defaultPrevented) {
+				// Why the blur: the browser returns focus to where it was before the
+				// popover opened when focus is inside it as it hides.
+				if (activeElement instanceof HTMLElement && floating.contains(activeElement)) {
+					activeElement.blur();
+				}
+				return;
+			}
+			if (focusWasInside && !closedFromOutside.current) {
+				state.triggerRef.current?.focus();
+			}
+		},
+	});
+	const composedRef = useComposedRefs(ref, floatingRef);
 
 	return (
-		<PopoverPrimitivePortal container={layerContainer}>
-			<PopoverPrimitiveContent
-				align={align}
+		portalTarget != null &&
+		createPortal(
+			<LayerContainer
+				modal={false}
+				id={state.contentId}
+				popover="manual"
+				role="dialog"
+				tabIndex={-1}
 				data-slot={joinDataSlot(dataSlot, "popover-content")}
+				data-state={state.open ? "open" : "closed"}
 				className={cx(
-					// Why relative: `Popover.Arrow`'s wrapper is absolutely positioned, and the
-					// open animation's `scale` makes this element its containing block for one
-					// frame, then drops it and moves the arrow 1px. Positioning this element
-					// keeps that containing block the same before, during, and after.
-					"relative",
-					"text-popover-foreground border-popover bg-popover data-side-bottom:slide-in-from-top-1 data-side-left:slide-in-from-right-1 data-side-right:slide-in-from-left-1 data-side-top:slide-in-from-bottom-1 data-side-bottom:slide-out-to-top-1 data-side-left:slide-out-to-right-1 data-side-right:slide-out-to-left-1 data-side-top:slide-out-to-bottom-1 duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none! data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 z-50 rounded-md border p-4 shadow-md outline-hidden",
+					floatClassName,
+					"text-popover-foreground border-popover bg-popover rounded-md border p-4 shadow-md outline-hidden",
 					preferredWidth,
 					className,
 				)}
+				ref={composedRef}
+				{...props}
 				onClick={(event) => {
-					/**
-					 * Prevent the click event from propagating up to parent/containing elements
-					 * of the PopoverContent
-					 */
+					// Why: a click in the content must not reach a clickable parent of the trigger.
 					event.stopPropagation();
 					onClick?.(event);
 				}}
-				onEscapeKeyDown={handleEscapeKeyDown}
-				onOpenAutoFocus={handleOpenAutoFocus}
-				ref={ref}
-				sideOffset={sideOffset}
-				{...props}
-			/>
-		</PopoverPrimitivePortal>
+			/>,
+			portalTarget,
+		)
 	);
 };
 
-type PopoverArrowProps = Omit<
-	ComponentProps<typeof PopoverPrimitiveArrow>,
-	"asChild" | "children"
-> &
-	WithDataSlot;
+type PopoverArrowProps = Omit<ComponentProps<"svg">, "children" | "width" | "height"> &
+	WithDataSlot & {
+		/**
+		 * The width of the arrow, in pixels.
+		 * @default 14
+		 */
+		width?: number;
+		/**
+		 * The height of the arrow, in pixels.
+		 * @default 7
+		 */
+		height?: number;
+	};
 
 /**
- * An optional tip that points from `Popover.Content` at its anchor. Render it as
- * a child of `Popover.Content`. Radix positions it with floating-ui's arrow
- * middleware, so it stays centered on the anchor when collision detection shifts
- * or flips the content. It also repaints `Popover.Content`'s fill and border
- * across its base, so the two edges read as one line, and carries its own shadow,
- * clipped at that base so it never darkens the content's interior.
+ * An optional tip that points from `Popover.Content` at its anchor. Render it
+ * as a direct child of `Popover.Content`. It moves to the edge of the content
+ * that faces the anchor and centers on the anchor, also after the content
+ * flips or shifts. It repaints the content's fill and border across its base,
+ * so the two edges read as one line, and casts its own shadow, clipped at
+ * that base.
  *
  * @see https://mantle.ngrok.com/components/overlays/popover#popoverarrow
  *
@@ -279,59 +441,8 @@ type PopoverArrowProps = Omit<
  * </Popover.Root>
  * ```
  */
-const Arrow = ({
-	"data-slot": dataSlot,
-	className,
-	height = 7,
-	width = 14,
-	...props
-}: PopoverArrowProps) => (
-	// Why no asChild prop: a swapped element loses the two-layer shape (a filled
-	// polygon, plus a polyline that strokes the slanted edges only) that continues
-	// `Popover.Content`'s border. `PopoverArrowProps` omits the prop, so restyle with
-	// `className` instead. The `asChild` below is mantle's own, and hands that shape
-	// to the primitive.
-	<PopoverPrimitiveArrow
-		aria-hidden="true"
-		asChild
-		data-slot={joinDataSlot(dataSlot, "popover-arrow")}
-		height={height}
-		width={width}
-		{...props}
-	>
-		<svg
-			className={cx(
-				// `Popover.Content` is the wrapper's containing block, so Radix's own
-				// `0` offset resolves to that content's padding box: the base lands 1px
-				// inside the border box, and the fill covers the border it sits on.
-				"fill-(--background-color-popover)",
-				// Why filter and clip-path: `Popover.Content`'s `shadow-md` stops at its
-				// own border, so an unshadowed tip reads as pasted on. The filter casts
-				// the tip's own shadow, and the clip trims it at the base, because the
-				// arrow paints above the content and the shadow would otherwise darken
-				// the content's interior. One wide, faint layer only, matching what the
-				// content's shadow leaves along the edge the tip grows out of. A tighter
-				// layer muddies a shape this small. The offsets stay symmetric, since
-				// Radix rotates the wrapper per side and would swing an offset with it.
-				"[clip-path:inset(0_-200%_-200%_-200%)]",
-				"filter-[drop-shadow(0_0_4px_color-mix(in_oklab,var(--shadow-color)_var(--shadow-first-opacity),transparent))]",
-				className,
-			)}
-		>
-			<polygon points="0,0 30,0 15,10" />
-			<polyline
-				className="stroke-(--border-color-popover)"
-				fill="none"
-				points="0,0 15,10 30,0"
-				// Why 1.5 against the content's 1px border: antialiasing spreads a
-				// diagonal hairline across two device rows at partial coverage, so a
-				// geometric 1px reads thinner than the content's axis-aligned edge.
-				// Measured against that edge at 1x and 2x, 1.5 matches it.
-				strokeWidth={1.5}
-				vectorEffect="non-scaling-stroke"
-			/>
-		</svg>
-	</PopoverPrimitiveArrow>
+const Arrow = ({ "data-slot": dataSlot, ...props }: PopoverArrowProps) => (
+	<FloatArrow data-slot={joinDataSlot(dataSlot, "popover-arrow")} {...props} />
 );
 
 export {

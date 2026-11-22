@@ -14,13 +14,14 @@ Every mantle surface that floats above the page stacks on one shared scale. Two 
 
 ## The tiers
 
-| Tier        | z-index     | Layers                                                                                                                                                                                                                                                                                                        | Renders into                                                       |
-| ----------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Page chrome | `z-50`      | [Sandbar](/components/feedback/sandbar), [AlertCenter](/components/feedback/alert-center) banners, sticky headers                                                                                                                                                                                             | In place, in the page's own stacking context                       |
-| Float       | `z-50`      | [Popover](/components/overlays/popover), [Tooltip](/components/overlays/tooltip), [Select](/components/forms/select), [Combobox](/components/forms/combobox), [MultiSelect](/components/forms/multi-select), [DropdownMenu](/components/overlays/dropdown-menu), [HoverCard](/components/overlays/hover-card) | The nearest overlay's positioner, else `document.body`             |
-| Overlay     | `z-60`      | [Dialog](/components/overlays/dialog), [AlertDialog](/components/overlays/alert-dialog), [Sheet](/components/overlays/sheet), [Command](/components/navigation/command)'s palette                                                                                                                             | The nearest overlay's positioner, else `document.body`             |
-| Toast       | `999999999` | [Toast](/components/feedback/toast) (sonner's own viewport)                                                                                                                                                                                                                                                   | In place where `<Toaster />` renders; painted above both tiers     |
-| Skip link   | `z-max`     | [SkipToMainLink](/components/primitives/skip-to-main-link)                                                                                                                                                                                                                                                    | In place; `--z-index-max` so nothing covers keyboard escape routes |
+| Tier         | z-index     | Layers                                                                                                                                                                            | Renders into                                                        |
+| ------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Page chrome  | `z-50`      | [Sandbar](/components/feedback/sandbar), [AlertCenter](/components/feedback/alert-center) banners, sticky headers                                                                 | In place, in the page's own stacking context                        |
+| Float        | `z-50`      | [Select](/components/forms/select), [Combobox](/components/forms/combobox), [MultiSelect](/components/forms/multi-select), [DropdownMenu](/components/overlays/dropdown-menu)     | The nearest layer container, else `document.body`                   |
+| Native float | top layer   | [Popover](/components/overlays/popover), [Tooltip](/components/overlays/tooltip), [HoverCard](/components/overlays/hover-card)                                                    | The content of the nearest overlay or popover, else `document.body` |
+| Overlay      | `z-60`      | [Dialog](/components/overlays/dialog), [AlertDialog](/components/overlays/alert-dialog), [Sheet](/components/overlays/sheet), [Command](/components/navigation/command)'s palette | The nearest overlay's positioner, else `document.body`              |
+| Toast        | `999999999` | [Toast](/components/feedback/toast) (sonner's own viewport)                                                                                                                       | In place where `<Toaster />` renders; painted above both tiers      |
+| Skip link    | `z-max`     | [SkipToMainLink](/components/primitives/skip-to-main-link)                                                                                                                        | In place; `--z-index-max` so nothing covers keyboard escape routes  |
 
 ## Layer containers
 
@@ -32,9 +33,9 @@ Each overlay renders a **positioner**: the fixed element that lays out its conte
 | `AlertDialog` | `data-slot="alert-dialog-positioner"` |
 | `Sheet`       | `data-slot="sheet-positioner"`        |
 
-Ownership comes from composition, not timing. A float rendered inside `Dialog.Content` belongs to that dialog and paints above it. A float rendered outside stays at `document.body` and paints below every overlay, even when it opens later. Without the tiers, mount order alone would decide. A popover that opens late, such as an onboarding popover after hydration, would then paint over an open full-bleed dialog.
+Ownership comes from composition, not timing. A float rendered inside `Dialog.Content` belongs to that dialog and paints above it. A float rendered outside stays at `document.body` and paints below every overlay, even when it opens later. A native float paints in the browser's top layer, above every `z-index`, so it does not show while an overlay that does not hold it is open: a tooltip or hover card closes, and a popover waits until the overlay closes. Without the tiers, mount order alone would decide. A popover that opens late, such as an onboarding popover after hydration, would then paint over an open full-bleed dialog.
 
-Floats do not register a container of their own. A select opened from inside a popover shares the popover's container and paints above the popover by mount order: the right rule for layers the user opened in sequence.
+`Popover.Content` is a layer container too. A select, menu, tooltip, or popover opened from inside a popover portals into it, so it paints above the popover. Other floats do not register a container of their own.
 
 Escape follows the same order. While focus is in an overlay, Escape closes that overlay, even when a float outside it opened later. The float stays open under it.
 
@@ -46,7 +47,7 @@ Each example below shows one rule from this page.
 
 ### A base float never paints above an overlay
 
-The overlay tier exists for this case: an announcement popover opens on its own while a takeover dialog covers its anchor. Open the takeover, then trigger the late announcement from inside it: the announcement stays under the dialog. Press Escape to close the dialog, and the announcement waits on the page.
+The overlay tier exists for this case: an announcement popover opens on its own while a takeover dialog covers its anchor. Open the takeover, then trigger the late announcement from inside it: the announcement does not show over the dialog. Press Escape to close the dialog, and the announcement shows on the page.
 
 <Example name="base/stacking-layers/a-base-float-never-paints-above-an-overlay" title="Stacking Layers a base float never paints above an overlay example">
 
@@ -238,9 +239,9 @@ Each float composed inside the dialog portals into the dialog's positioner, so i
 
 </Example>
 
-### Floats inside a float stack by mount order
+### Floats inside a popover paint above it
 
-A float does not register a layer container, so a select opened from a popover shares the popover's container and paints above the popover that spawned it.
+`Popover.Content` is a layer container, so a select opened from a popover portals into the popover and paints above it.
 
 <Example name="base/stacking-layers/floats-inside-a-float-stack-by-mount-order" title="Stacking Layers floats inside a float stack by mount order example">
 
@@ -369,7 +370,7 @@ A toast fired from inside an overlay renders in sonner's viewport, far above bot
 - **Chrome that floats above page content but under overlays** (a fixed action bar, a floating panel): use `z-50` in the page, the same tier as page chrome. An open dialog covers it.
 - **UI that must paint above open overlays**: use `z-60` and mount it after the overlay, or render it inside the overlay's content so it joins the overlay's layer. Use this rarely. Only toasts and the skip link belong above the overlay tier.
 - **Never out-stack toasts.** Toasts announce results of actions taken anywhere, including inside overlays.
-- **Custom portals inside an overlay**: pass the overlay's positioner as the portal target (query the `data-slot` above), or compose a mantle float, which resolves it automatically. `Dialog.Portal` and `HoverCard.Portal` accept a `container` prop when you need explicit control.
+- **Custom portals inside an overlay**: pass the overlay's positioner as the portal target (query the `data-slot` above), or compose a mantle float, which resolves it automatically. `Dialog.Portal` accepts a `container` prop when you need explicit control.
 - **Do not select a float's portal as a direct `body` child** (`body > [data-radix-popper-content-wrapper]`). Inside an overlay the float lives in the positioner. Target the float's `data-slot` instead.
 
 The [floating layer tiers decision doc](https://github.com/ngrok/mantle/blob/main/decisions/2026-08-11-floating-layer-tiers.md) has the full rationale, the alternatives, and the paint-order test matrix.

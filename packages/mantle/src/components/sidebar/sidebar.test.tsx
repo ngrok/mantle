@@ -1892,7 +1892,8 @@ describe("Sidebar.Tooltip", () => {
 		await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
 
 		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
-		expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+		// Why wait: the toggle's own tooltip, closed by the press, plays its exit first.
+		await waitFor(() => expect(screen.queryByRole("tooltip")).not.toBeInTheDocument());
 	});
 
 	test("stays closed when the sidebar collapses while the row holds focus", async () => {
@@ -1996,12 +1997,11 @@ describe("Sidebar.Tooltip", () => {
 		expect(ref.current).toBe(tooltip);
 	});
 
-	// avoidCollisions is off in both side tests so the placed side is exactly the
-	// requested one: happy-dom lays nothing out, so Radix's flip middleware would
-	// otherwise pick a side from zero-sized rects.
+	// happy-dom lays nothing out, so no side fits better than another and the
+	// tooltip keeps the side it asked for.
 	test("side defaults to right, pointing the tooltip away from the sidebar", async () => {
 		const tooltip = await hoverRowTooltip(
-			<Sidebar.Tooltip avoidCollisions={false} label="Endpoints">
+			<Sidebar.Tooltip label="Endpoints">
 				<Sidebar.ItemButton>Endpoints</Sidebar.ItemButton>
 			</Sidebar.Tooltip>,
 		);
@@ -2010,7 +2010,7 @@ describe("Sidebar.Tooltip", () => {
 
 	test("side can be overridden", async () => {
 		const tooltip = await hoverRowTooltip(
-			<Sidebar.Tooltip avoidCollisions={false} label="Endpoints" side="top">
+			<Sidebar.Tooltip label="Endpoints" side="top">
 				<Sidebar.ItemButton>Endpoints</Sidebar.ItemButton>
 			</Sidebar.Tooltip>,
 		);
@@ -2116,6 +2116,8 @@ type PartCase = {
 	name: string;
 	/** The part's own `data-slot` name, joined after the incoming chain. */
 	slot: string;
+	/** The slot of a part that wraps this one from outside, such as `Tooltip.Trigger`, joined ahead of the chain. */
+	wrapperSlot?: string;
 	/** The tag the probe must land on, which is what proves *which* element rendered. */
 	tagName: string;
 	/** Renders the part, probe props applied, inside whatever ancestors it requires. */
@@ -2127,7 +2129,7 @@ type PartCase = {
  * that rendered, the consumer's class, an arbitrary `data-*`, the joined
  * `data-slot` chain, and the `ref`.
  */
-function expectPartForwarding({ renderPart, slot, tagName }: PartCase): void {
+function expectPartForwarding({ renderPart, slot, tagName, wrapperSlot }: PartCase): void {
 	const refTarget: { current: HTMLElement | null } = { current: null };
 	render(
 		renderPart({
@@ -2147,7 +2149,10 @@ function expectPartForwarding({ renderPart, slot, tagName }: PartCase): void {
 	expect(element).toHaveAttribute("data-flavor", "primary");
 	// Ancestors first, then the part's own name, then the slot of the mantle
 	// part it renders: a join, never a replacement.
-	expect(element).toHaveAttribute("data-slot", `outer ${slot}`);
+	expect(element).toHaveAttribute(
+		"data-slot",
+		wrapperSlot == null ? `outer ${slot}` : `${wrapperSlot} outer ${slot}`,
+	);
 	expect(refTarget.current).toBe(element);
 }
 
@@ -2167,6 +2172,8 @@ const defaultElementCases: Array<PartCase> = [
 		name: "Trigger",
 		// The trigger is an `IconButton`, which joins its own slot after the part's.
 		slot: "sidebar-trigger icon-button",
+		// `Tooltip.Trigger asChild` wraps the `IconButton`, so its slot comes first.
+		wrapperSlot: "tooltip-trigger",
 		tagName: "BUTTON",
 		renderPart: (probe) => (
 			<Sidebar.Root>

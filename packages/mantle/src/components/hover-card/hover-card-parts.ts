@@ -8,6 +8,5 @@ export {
 	Root,
 	Arrow,
 	Content,
-	Portal,
 	Trigger,
 } from "./hover-card.js";

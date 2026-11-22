@@ -10,13 +10,13 @@ import * as Popover from "./popover-parts.js";
  * on. We inline it instead of importing the full mantle stylesheet so the test
  * stays hermetic and needs no Tailwind build step.
  *
- * `.relative` is deliberately written as Tailwind's own utility rather than a
- * rule aimed at `[data-slot="popover-content"]`. The component has to emit the
- * class for the rule to match, so the assertion still fails if it stops doing so.
+ * `.block` is written as Tailwind's own utility rather than a rule aimed at the
+ * arrow. The arrow has to emit the class for the rule to match, and an inline
+ * `svg` adds a line box that moves the tip off the edge.
  */
 const STYLE = `
 @layer utilities {
-	.relative { position: relative; }
+	.block { display: block; }
 }
 [data-slot="popover-content"] {
 	background: #fff;
@@ -48,7 +48,7 @@ function baseOverlap() {
 }
 
 describe("Popover.Arrow", () => {
-	test("keeps its offset when the content becomes a containing block", async () => {
+	test("keeps its offset through the open animation's scale", async () => {
 		const user = userEvent.setup();
 		render(
 			<Popover.Root>
@@ -64,12 +64,9 @@ describe("Popover.Arrow", () => {
 		await screen.findByRole("dialog");
 		const settled = baseOverlap();
 
-		// The open animation scales the content, and a scale makes the element a
-		// containing block for the arrow's absolutely-positioned wrapper. `scale: 1`
-		// reproduces that with no visual change, so this isolates the containing
-		// block from the motion. Without `relative` on the content, the wrapper's `0`
-		// offset moves from the border box to the padding box and the arrow jumps by
-		// the content's border width.
+		// The open animation scales the content. `scale: 1` sets the property with
+		// no visual change, so this isolates the property from the motion. The
+		// content is `fixed`, so it is the arrow's containing block either way.
 		const content = screen.getByRole("dialog");
 		content.style.scale = "1";
 		content.getBoundingClientRect();

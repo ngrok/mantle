@@ -18,16 +18,15 @@ import * as PopoverParts from "./popover-parts.js";
  * `Popover` is a non-modal dialog by default: focus moves into the content
  * when it opens, `Escape` closes and returns focus to the trigger, clicking
  * outside dismisses, and the page (body and any scroll containers) continues
- * to scroll normally. Pass `modal` on `Popover.Root` to trap focus inside
- * the content, block interaction with the rest of the page, and lock body
- * scroll while the popover is open.
+ * to scroll normally. For a task that must block the page, use `Dialog`.
  *
- * `Popover.Content` renders at Tailwind `z-50`, Mantle's float tier. When
- * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
- * that overlay's positioner and paints above the overlay that owns it. Outside
- * every overlay, it portals to `document.body`, below the overlay tier
- * (`z-60`). When sibling floats share a container, the most recently mounted
- * float paints on top.
+ * `Popover.Content` is a native `popover` in the browser's top layer, so it paints
+ * above the page with no `z-index`. It portals into the content of the open
+ * `Dialog`, `AlertDialog`, `Sheet`, or `Popover` that holds it, else into
+ * `document.body`. It does not show while an overlay that does not hold it
+ * is open. CSS anchor positioning places it; where the browser has none, a
+ * script places it. Where the browser has no popover API, it is a fixed box
+ * at `z-50`.
  *
  * @useWhen Show interactive content, such as a small form, a settings menu, or a color picker, that
  * the user opens from a button.

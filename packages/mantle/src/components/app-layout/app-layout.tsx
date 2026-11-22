@@ -1618,9 +1618,6 @@ const defaultSidePanelTriggerIcon = <SidebarSimpleIcon mirrored />;
  * it keeps the panel where it is.
  *
  * The button is icon-only, so it always renders a tooltip showing `label`.
- * **That means it requires a `TooltipProvider` ancestor, like any
- * `Tooltip.Root`, and throws without one.** Mount a single provider at your app
- * root.
  *
  * **Data attributes (public API):**
  *
@@ -1695,8 +1692,7 @@ const SidePanelTrigger = ({
 
 	return (
 		// The label is not gated on the panel state: the trigger is an icon-only
-		// button, so a pointer user has nothing else to read. Requires a
-		// `TooltipProvider` ancestor, like any `Tooltip.Root`.
+		// button, so a pointer user has nothing else to read.
 		<Tooltip.Root>
 			<Tooltip.Trigger asChild>
 				<IconButton

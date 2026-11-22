@@ -40,7 +40,7 @@ import { Tooltip } from "@ngrok/mantle/tooltip";
 
 ## Layering and z-index
 
-`Tooltip.Content` renders at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
+`Tooltip.Content` is a native [`popover="hint"`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/popover) in the browser's top layer, so it paints above the page with no `z-index`. It portals into the content of the open `Dialog`, `AlertDialog`, `Sheet`, or `Popover` that holds it, else into `document.body`. It closes while an overlay that does not hold it is open. See [Stacking layers](/base/stacking-layers).
 
 `Tooltip` does not render a backdrop. Modal layers such as `Dialog`, `Sheet`, and `AlertDialog` do render backdrops, so stacking those layers compounds the dim and blur effect on the layers underneath.
 
@@ -73,11 +73,11 @@ Tooltip.Root
 ## API Reference
 
 > [!NOTE]
-> Wrap your app with `TooltipProvider` once at the root to share global tooltip behavior (such as consistent delay and hover settings) across your application.
+> `TooltipProvider` is optional. Mount one at the root to set the delay for every tooltip in your app.
 
 ### TooltipProvider
 
-Wraps your app to set shared global behavior for your tooltips, such as consistent delay and hover settings. Mount exactly one instance, preferably at the root of your app. A nested provider applies its own timing props to its subtree. It also tracks `skipDelayDuration` separately, so a pointer that moves from one provider's trigger to the other's waits the delay again.
+Sets shared timing for the tooltips inside it. A tooltip with no provider uses the defaults below. A nested provider applies its own timing props to its subtree. It also tracks `skipDelayDuration` separately, so a pointer that moves from one provider's trigger to the other's waits the delay again.
 
 | Prop                       | Type      | Default | Description                                                                                                  |
 | -------------------------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------ |
@@ -87,9 +87,7 @@ Wraps your app to set shared global behavior for your tooltips, such as consiste
 
 ### Tooltip.Root
 
-The root component that manages the open/closed state of the tooltip. Wrap your app in `TooltipProvider` when you want shared app-wide delay and hover settings.
-
-`Tooltip.Content` renders at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
+The root component that manages the open/closed state of the tooltip. It renders no DOM. Only one tooltip is open at a time.
 
 | Prop                       | Type                      | Default | Description                                                                                                             |
 | -------------------------- | ------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------- |
@@ -111,18 +109,14 @@ The button that toggles the tooltip. By default, the `Tooltip.Content` will posi
 
 The component that pops out when the tooltip is open.
 
-`Tooltip.Content` renders at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
-
 `children` render inside a `<div data-slot="tooltip-label">`. The arrow is a permanent element sibling, so without the wrapper a bare text body is never a lone child: a browser translation engine reparents that text node, and the removal React runs when the body changes shape or goes away throws. The wrapper is a `<div>` because a tooltip body is often a `<p>`, which a `<span>` may not contain. It is `display: contents`, so it adds no box and every child of your body stays a layout child of the surface. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
 
-| Prop               | Type                                     | Default    | Description                                                                                                                             |
-| ------------------ | ---------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `side?`            | `"top" \| "right" \| "bottom" \| "left"` | `"top"`    | The preferred side of the trigger to render against when open. Will be reversed when collisions occur and `avoidCollisions` is enabled. |
-| `sideOffset?`      | `number`                                 | `4`        | The distance in pixels from the trigger.                                                                                                |
-| `align?`           | `"start" \| "center" \| "end"`           | `"center"` | The preferred alignment against the trigger. May change when collisions occur.                                                          |
-| `alignOffset?`     | `number`                                 | `0`        | An offset in pixels from the `start` or `end` alignment options.                                                                        |
-| `avoidCollisions?` | `boolean`                                | `true`     | When `true`, overrides the `side` and `align` preferences to prevent collisions with boundary edges.                                    |
-| `data-slot?`       | `string`                                 |            | A composing part's `data-slot` chain, joined ahead of this part's own `tooltip-content` rather than replacing it.                       |
+| Prop          | Type                                     | Default    | Description                                                                                                       |
+| ------------- | ---------------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------- |
+| `side?`       | `"top" \| "right" \| "bottom" \| "left"` | `"top"`    | The preferred side of the trigger. The tooltip flips to the opposite side when only that side fits.               |
+| `sideOffset?` | `number`                                 | `4`        | The distance in pixels from the trigger.                                                                          |
+| `align?`      | `"start" \| "center" \| "end"`           | `"center"` | The alignment against the trigger. The tooltip shifts along the side to stay in the viewport.                     |
+| `data-slot?`  | `string`                                 |            | A composing part's `data-slot` chain, joined ahead of this part's own `tooltip-content` rather than replacing it. |
 
 #### Data attributes
 
@@ -130,5 +124,5 @@ The component that pops out when the tooltip is open.
 | -------------- | -------------------------------------------------- | -------------------------------------------------------------------- |
 | `data-slot`    | `"tooltip-content"`                                | On the tooltip surface, with any composing part's chain ahead of it. |
 | `data-slot`    | `"tooltip-label"`                                  | On the `<div>` wrapping `children`.                                  |
-| `data-state`   | `"delayed-open"` \| `"instant-open"` \| `"closed"` | The open state Radix stamps on the surface.                          |
+| `data-state`   | `"delayed-open"` \| `"instant-open"` \| `"closed"` | The open state. `"closed"` while the exit transition plays.          |
 | `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"`     | Which side of the trigger the surface resolved to.                   |

@@ -1,0 +1,364 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import type { RefCallback } from "react";
+import { canUseDOM } from "../../components/browser-only/can-use-dom.js";
+import { useCallbackRef } from "../../hooks/use-callback-ref.js";
+import { useIsCoveredByOverlay, useLayerContainer } from "../layer-container/layer-container.js";
+import { trackFloat } from "./position.js";
+import type { Align, Side } from "./position.js";
+
+/**
+ * How long a closed float stays mounted for its exit transition, in
+ * milliseconds. It matches `data-state-closed:duration-150` in `floatClassName`.
+ */
+const EXIT_DURATION = 150;
+
+/**
+ * The classes every native float shares. The float is a `popover` in the top
+ * layer: these classes undo the browser's centered `[popover]` box. It fades
+ * and scales in from `@starting-style` and out on `data-state="closed"`.
+ * Chromium keeps the float in the top layer for the exit (`overlay`). Firefox
+ * and Safari hide it at once, because they do not transition `overlay`.
+ *
+ * Why `data-state`, `fixed`, and `z-50`, not `:popover-open`: a browser with no
+ * popover API (Safari before 17, Chrome before 114, Firefox before 125) does
+ * not know `:popover-open` and has no top layer. There the float is a plain
+ * fixed box at the float tier, as before mantle used the popover API. The top
+ * layer ignores `z-index`.
+ */
+const floatClassName =
+	"fixed z-50 m-0 inset-auto overflow-visible starting:opacity-0 starting:scale-95 data-state-closed:opacity-0 data-state-closed:scale-95 transition-[opacity,scale,display,overlay] transition-discrete duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:transition-none";
+
+/**
+ * Whether the browser has the popover API. Without it, `useFloat` shows the
+ * float as a plain fixed box and runs every behavior from script.
+ */
+const hasPopoverApi = canUseDOM() && "togglePopover" in HTMLElement.prototype;
+
+/** A pointer press or a focus move outside a float, which closes it unless a handler prevents that. */
+type PointerDownOutsideEvent = CustomEvent<{ originalEvent: PointerEvent }>;
+type FocusOutsideEvent = CustomEvent<{ originalEvent: FocusEvent }>;
+
+/** The handlers a float that closes on an outside press or focus move takes. */
+type OutsideHandlers = {
+	/** Runs when a pointer press starts outside the float. Call `event.preventDefault()` to keep it open. */
+	onPointerDownOutside?: (event: PointerDownOutsideEvent) => void;
+	/** Runs when focus moves outside the float. Call `event.preventDefault()` to keep it open. */
+	onFocusOutside?: (event: FocusOutsideEvent) => void;
+	/** Runs for both an outside press and an outside focus move. Call `event.preventDefault()` to keep it open. */
+	onInteractOutside?: (event: PointerDownOutsideEvent | FocusOutsideEvent) => void;
+};
+
+/** Why a float closed without the caller asking. */
+type DismissReason = "escape" | "outside" | "browser" | "covered";
+
+/** An open float that can take Escape. */
+type OpenFloat = {
+	element: HTMLElement;
+	escape: (event: KeyboardEvent) => void;
+};
+
+/** The open floats in the order they opened. The last one takes Escape. */
+const openFloats: OpenFloat[] = [];
+
+/**
+ * A layer that a float holds and that handles its own Escape: a Radix popper,
+ * an overlay, or a popup owner such as a combobox input.
+ */
+const nestedLayerSelector =
+	"[data-radix-popper-content-wrapper], [data-mantle-modal-content], [aria-expanded='true'][aria-controls]";
+
+/** Whether an Escape at `target` belongs to a layer inside `floating`. */
+function belongsToNestedLayer(floating: HTMLElement, target: EventTarget | null): boolean {
+	if (!(target instanceof Element) || !floating.contains(target)) {
+		return false;
+	}
+	const layer = target.closest(nestedLayerSelector);
+	return layer != null && layer !== floating && floating.contains(layer);
+}
+
+/**
+ * Gives Escape to the float that opened last. Why the capture phase on
+ * `window`: it runs before the document listeners of a Radix overlay under the
+ * float, and a prevented Escape keeps that overlay and the browser's own close
+ * request from closing anything else.
+ */
+function handleEscape(event: KeyboardEvent): void {
+	const top = openFloats.at(-1);
+	if (event.key !== "Escape" || top == null || belongsToNestedLayer(top.element, event.target)) {
+		return;
+	}
+	top.escape(event);
+}
+
+/** Adds `float` to the Escape stack and returns the cleanup. */
+function pushOpenFloat(float: OpenFloat): () => void {
+	if (openFloats.length === 0) {
+		window.addEventListener("keydown", handleEscape, { capture: true });
+	}
+	openFloats.push(float);
+	return () => {
+		openFloats.splice(openFloats.indexOf(float), 1);
+		if (openFloats.length === 0) {
+			window.removeEventListener("keydown", handleEscape, { capture: true });
+		}
+	};
+}
+
+/**
+ * Where a float portals: into the content of the overlay that holds it, so the
+ * overlay's focus trap and outside-press check count the float as inside; into
+ * the float that holds it; else into `document.body`. The float paints in the
+ * top layer wherever it sits in the DOM.
+ */
+function resolvePortalTarget(
+	layerContainer: Element | DocumentFragment | null,
+): Element | DocumentFragment {
+	if (layerContainer == null) {
+		return document.body;
+	}
+	if (layerContainer instanceof Element) {
+		return layerContainer.querySelector("[data-mantle-modal-content]") ?? layerContainer;
+	}
+	return layerContainer;
+}
+
+/**
+ * The session of each shown float. A ref callback that runs again while the
+ * float stays open, such as for a new placement, continues the session, so the
+ * float does not hide, show, or move focus again.
+ */
+const floatSessions = new WeakMap<HTMLElement, object>();
+
+/** Whether a native modal `<dialog>` that does not hold `element` is open: the float would paint over it. */
+function isUnderNativeModal(element: HTMLElement): boolean {
+	return Array.from(element.ownerDocument.querySelectorAll("dialog[open]")).some(
+		(dialog) => !dialog.contains(element) && dialog.matches(":modal"),
+	);
+}
+
+type UseFloatOptions = OutsideHandlers & {
+	/** Whether the float is open. */
+	open: boolean;
+	/** Closes the float, with the reason: Escape, an outside interaction, the browser hid it, or an overlay covers it. */
+	onDismiss: (reason: DismissReason) => void;
+	/** The element the float sits next to. */
+	getAnchor: () => HTMLElement | null;
+	/** Elements a press or a focus move may reach without closing the float, such as its trigger. */
+	getInsideElements?: () => readonly (Element | null)[];
+	/** Whether outside presses and focus moves close the float. */
+	dismissOnOutside: boolean;
+	/** Whether the float closes, rather than hides until it shows again, when an overlay covers it. */
+	dismissWhenCovered: boolean;
+	side: Side;
+	align: Align;
+	sideOffset: number;
+	/** Runs on Escape while the float is on top. Call `event.preventDefault()` to keep it open. */
+	onEscapeKeyDown?: (event: KeyboardEvent) => void;
+	/** Runs after the float shows. */
+	onShow?: (floating: HTMLElement) => void;
+	/** Runs before the float hides, with whether focus was inside it. */
+	onHide?: (floating: HTMLElement, focusWasInside: boolean) => void;
+};
+
+/**
+ * Runs a native float: a `popover` element in the top layer next to its
+ * anchor. The caller renders the float only while `present`, into `portalTarget`, with
+ * `floatingRef`, and owns the open state.
+ *
+ * While the float is open, it shows in the top layer, follows its anchor
+ * (`trackFloat`), takes Escape when it opened last, and calls `onDismiss` for
+ * each way it closes that the caller did not ask for. It stays mounted for
+ * `EXIT_DURATION` after it closes, so its exit transition can play. While an
+ * overlay covers its anchor, it does not show, because the top layer would
+ * paint it over that overlay.
+ *
+ * @example
+ * ```tsx
+ * const { present, portalTarget, floatingRef } = useFloat({ open, onDismiss: () => setOpen(false), ... });
+ * return present && portalTarget != null && createPortal(<div popover="manual" ref={floatingRef} />, portalTarget);
+ * ```
+ */
+function useFloat({
+	align,
+	dismissOnOutside,
+	dismissWhenCovered,
+	getAnchor,
+	getInsideElements,
+	onDismiss,
+	onEscapeKeyDown,
+	onFocusOutside,
+	onHide,
+	onInteractOutside,
+	onPointerDownOutside,
+	onShow,
+	open,
+	side,
+	sideOffset,
+}: UseFloatOptions): {
+	present: boolean;
+	portalTarget: Element | DocumentFragment | null;
+	floatingRef: RefCallback<HTMLElement>;
+} {
+	const layerContainer = useLayerContainer();
+	const floatElement = useRef<HTMLElement | null>(null);
+	const covered = useIsCoveredByOverlay(layerContainer, floatElement);
+	const [present, setPresent] = useState(open);
+	if (open && !present) {
+		setPresent(true);
+	}
+
+	const dismiss = useCallbackRef(onDismiss);
+	const escape = useCallbackRef(onEscapeKeyDown);
+	const pointerDownOutside = useCallbackRef(onPointerDownOutside);
+	const focusOutside = useCallbackRef(onFocusOutside);
+	const interactOutside = useCallbackRef(onInteractOutside);
+	const show = useCallbackRef(onShow);
+	const hide = useCallbackRef(onHide);
+	const anchorOf = useCallbackRef(getAnchor);
+	const insideElementsOf = useCallbackRef(getInsideElements);
+
+	useEffect(() => {
+		if (open || !present) {
+			return;
+		}
+		const timer = setTimeout(() => setPresent(false), EXIT_DURATION);
+		return () => clearTimeout(timer);
+	}, [open, present]);
+
+	useEffect(() => {
+		if (open && covered && dismissWhenCovered) {
+			dismiss("covered");
+		}
+	}, [covered, dismiss, dismissWhenCovered, open]);
+
+	const visible = open && !covered;
+
+	// Why a ref callback: React calls it again when `visible` or the placement
+	// changes, so the float shows and follows its anchor only while visible.
+	const floatingRef: RefCallback<HTMLElement> = (floating) => {
+		floatElement.current = floating;
+		const anchor = anchorOf();
+		if (!visible || floating == null || anchor == null) {
+			return;
+		}
+		// Why only with the popover API: without it the float has no top layer,
+		// so it paints under a modal dialog anyway.
+		if (hasPopoverApi && isUnderNativeModal(floating)) {
+			if (dismissWhenCovered) {
+				dismiss("covered");
+			}
+			return;
+		}
+		let shown = true;
+		let dismissed = false;
+		// Why once: the browser can hide a `hint` float on the same press that the outside check sees.
+		const dismissOnce = (reason: DismissReason) => {
+			if (!dismissed) {
+				dismissed = true;
+				dismiss(reason);
+			}
+		};
+		// Why: the browser hides a `hint` float when the user presses outside it,
+		// presses Escape, or opens another one.
+		const onBeforeToggle = (event: Event) => {
+			if (shown && Reflect.get(event, "newState") === "closed") {
+				shown = false;
+				dismissOnce("browser");
+			}
+		};
+		const session = {};
+		const continuing = floatSessions.has(floating);
+		floatSessions.set(floating, session);
+		floating.addEventListener("beforetoggle", onBeforeToggle);
+		if (!continuing && hasPopoverApi) {
+			floating.showPopover();
+		}
+		const stopTracking = trackFloat({ align, anchor, floating, side, sideOffset });
+		const popEscape = pushOpenFloat({
+			element: floating,
+			escape: (event) => {
+				escape(event);
+				if (!event.defaultPrevented) {
+					event.preventDefault();
+					dismissOnce("escape");
+				}
+			},
+		});
+
+		const isInside = (target: EventTarget | null) =>
+			target instanceof Node &&
+			(floating.contains(target) ||
+				(insideElementsOf()?.some((element) => element?.contains(target) === true) ?? false));
+		const onOutside = <TEvent extends PointerEvent | FocusEvent>(
+			originalEvent: TEvent,
+			handler: (event: CustomEvent<{ originalEvent: TEvent }>) => void,
+		) => {
+			if (isInside(originalEvent.target)) {
+				return;
+			}
+			const event = new CustomEvent("mantle.float.outside", {
+				cancelable: true,
+				detail: { originalEvent },
+			});
+			handler(event);
+			interactOutside(event);
+			if (!event.defaultPrevented) {
+				dismissOnce("outside");
+			}
+		};
+		const onPointerDown = (event: PointerEvent) => onOutside(event, pointerDownOutside);
+		const onFocusIn = (event: FocusEvent) => onOutside(event, focusOutside);
+		const document = floating.ownerDocument;
+		if (dismissOnOutside) {
+			document.addEventListener("pointerdown", onPointerDown);
+			document.addEventListener("focusin", onFocusIn);
+		}
+		if (!continuing) {
+			show(floating);
+		}
+
+		return () => {
+			document.removeEventListener("pointerdown", onPointerDown);
+			document.removeEventListener("focusin", onFocusIn);
+			popEscape();
+			stopTracking();
+			floating.removeEventListener("beforetoggle", onBeforeToggle);
+			// Why a microtask: React runs this cleanup inside its commit, and at the
+			// end of the commit it moves focus back to the element that had it
+			// before. A focus move here would not hold.
+			queueMicrotask(() => {
+				if (floatSessions.get(floating) !== session) {
+					return;
+				}
+				floatSessions.delete(floating);
+				hide(floating, floating.contains(document.activeElement));
+				if (shown && hasPopoverApi) {
+					shown = false;
+					floating.hidePopover();
+				}
+			});
+		};
+	};
+
+	return {
+		present,
+		portalTarget: present && canUseDOM() ? resolvePortalTarget(layerContainer) : null,
+		floatingRef,
+	};
+}
+
+export {
+	//,
+	floatClassName,
+	useFloat,
+};
+
+export type {
+	//,
+	DismissReason,
+	FocusOutsideEvent,
+	OutsideHandlers,
+	PointerDownOutsideEvent,
+};
