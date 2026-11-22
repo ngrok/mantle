@@ -361,7 +361,7 @@ const Item = ({
 	...props
 }: ComboboxItemProps) => {
 	const { listbox } = useComboboxContext();
-	const { active, selected, optionProps } = useOption(listbox, {
+	const { selected, optionProps } = useOption(listbox, {
 		value: value ?? "",
 		disabled: disabled || value == null,
 		id: childId({ asChild, children, id: props.id }),
@@ -374,8 +374,9 @@ const Item = ({
 				{...optionProps}
 				onClick={composeHandlers(onClick, optionProps.onClick)}
 				onPointerMove={composeHandlers(onPointerMove, optionProps.onPointerMove)}
-				// Why: in the APG combobox pattern, the highlighted option is the selected one, and no other option has the attribute.
-				aria-selected={active || undefined}
+				// Why: in the APG combobox pattern, the highlighted option is the selected
+				// one, and the open list writes the attribute with the highlight.
+				aria-selected={undefined}
 				// Why `data-selected`: `aria-selected` follows the highlight, so the picked option needs its own attribute.
 				data-selected={selected ? "" : undefined}
 				ref={ref}

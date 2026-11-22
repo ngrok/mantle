@@ -987,7 +987,7 @@ const Item = ({
 	...props
 }: SelectItemProps) => {
 	const { listbox } = useSelectContext();
-	const { active, selected, optionProps } = useOption(listbox, {
+	const { selected, optionProps } = useOption(listbox, {
 		value,
 		disabled,
 		textValue,
@@ -1001,11 +1001,10 @@ const Item = ({
 		listbox.getStore().set({ itemLabel: { value, label, translate } });
 	};
 	const composedRef = useComposedRefs(ref, (node: HTMLElement | null) => {
-		// Why a ref callback: the active item hands its label to `Select.Value`
-		// in the commit that highlights it. A pick closes the list, so the picked
-		// item has no later commit to report in. The selected item reports only
-		// while no item is active, so it cannot overwrite the active one.
-		if (node != null && (active || (selected && listbox.getStore().get().activeId == null))) {
+		// Why a ref callback: the selected item hands its label to `Select.Value`
+		// when the list opens, and a pick reports in its click handler, which
+		// Enter and Alt+ArrowUp also run.
+		if (node != null && selected) {
 			reportLabel();
 		}
 	});

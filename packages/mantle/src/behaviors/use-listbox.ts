@@ -2,7 +2,7 @@
 
 import { isValidElement, useCallback, useId, useInsertionEffect, useRef, useState } from "react";
 import type { HTMLAttributes, MouseEventHandler, ReactNode, RefCallback, RefObject } from "react";
-import { createStore, useStoreValue } from "./store.js";
+import { createStore } from "./store.js";
 import type { Store } from "./store.js";
 
 /** How long a typeahead search keeps the characters typed before it, in ms. */
@@ -17,8 +17,6 @@ type ListboxState = {
 	activeId: string | null;
 	/** The label of the last selected or active option, so a closed select can show it. */
 	itemLabel: { value: string; label: ReactNode; translate?: "yes" | "no" } | null;
-	/** The option the last open moves to, so the selected option can render highlighted in the opening render. */
-	openTarget: MoveTarget | null;
 };
 
 type MoveTarget = "next" | "previous" | "first" | "last" | "selected";
@@ -125,7 +123,7 @@ const createListboxState = () => {
 		// A move that found no options, such as before async results arrive.
 		pendingMoveRef: { current: null as MoveTarget | null },
 		getStore: (): Store<ListboxState> => {
-			store ??= createStore<ListboxState>({ activeId: null, itemLabel: null, openTarget: null });
+			store ??= createStore<ListboxState>({ activeId: null, itemLabel: null });
 			return store;
 		},
 	};
@@ -137,9 +135,10 @@ const createListboxState = () => {
  * the listbox, such as a select trigger or a combobox input.
  *
  * It holds no open state and renders nothing. `useSelect` and `useCombobox`
- * compose it, and `useOption` reads it in each option. The open list writes
- * the `aria-activedescendant` of `ownerRef`, so a closed owner holds no
- * subscription, and a move of the highlight renders no owner.
+ * compose it, and `useOption` wires each option. The open list writes the
+ * owner's `aria-activedescendant` and the highlighted option's
+ * `data-highlighted` (and `aria-selected`, with `selectionFollowsHighlight`)
+ * straight to the DOM, so a move of the highlight renders nothing.
  *
  * @see https://www.w3.org/WAI/ARIA/apg/patterns/listbox/
  *
@@ -152,10 +151,13 @@ const useListbox = ({
 	selected,
 	onSelect,
 	ownerRef,
+	selectionFollowsHighlight = false,
 }: {
 	selected: readonly string[];
 	onSelect: (value: string) => void;
 	ownerRef: RefObject<HTMLElement | null>;
+	/** Whether the highlighted option is the one with `aria-selected`, as in the APG combobox pattern. */
+	selectionFollowsHighlight?: boolean;
 }): Listbox => {
 	const id = useId();
 	const [{ ref, searchRef, pendingMoveRef, getStore }] = useState(createListboxState);
@@ -169,7 +171,7 @@ const useListbox = ({
 
 	const moveOnOpen = (target: MoveTarget) => {
 		pendingMoveRef.current = target;
-		getStore().set({ activeId: null, openTarget: target });
+		getStore().set({ activeId: null });
 	};
 
 	const move = (target: MoveTarget) => {
@@ -240,23 +242,35 @@ const useListbox = ({
 				if (pendingMoveRef.current != null || stale) {
 					moveRef.current(pendingMoveRef.current ?? "first");
 				}
+				// Why: React can replace the highlighted option's element and keep its id.
+				showActive();
 			};
 			const observer = new MutationObserver(reconcile);
 			observer.observe(node, { childList: true, subtree: true });
-			// Why the open list writes the attribute: the owner needs no subscription
-			// while closed. Each write reads the ref, because the list can attach
-			// first, and the cleanup removes it from the element it wrote to, because
-			// the owner's ref can be detached in the commit that closes the list.
-			let written: HTMLElement | null = null;
+			// Why the open list writes these attributes: no part subscribes, so a
+			// move renders nothing. Each write reads the owner ref, because the list
+			// can attach first, and the cleanup removes the attribute from the owner
+			// it wrote to, because the owner's ref can detach in the closing commit.
+			let owner: HTMLElement | null = null;
+			let highlighted: HTMLElement | null = null;
 			const showActive = () => {
-				const owner = ownerRef.current ?? written;
 				const { activeId } = store.get();
+				const option = activeId == null ? null : document.getElementById(activeId);
+				if (option !== highlighted) {
+					highlighted?.removeAttribute("data-highlighted");
+					option?.setAttribute("data-highlighted", "");
+					if (selectionFollowsHighlight) {
+						highlighted?.removeAttribute("aria-selected");
+						option?.setAttribute("aria-selected", "true");
+					}
+					highlighted = option;
+				}
+				owner = ownerRef.current ?? owner;
 				if (activeId == null) {
 					owner?.removeAttribute("aria-activedescendant");
-					return;
+				} else {
+					owner?.setAttribute("aria-activedescendant", activeId);
 				}
-				owner?.setAttribute("aria-activedescendant", activeId);
-				written = owner;
 			};
 			const unsubscribe = store.subscribe(showActive);
 			showActive();
@@ -266,11 +280,11 @@ const useListbox = ({
 			return () => {
 				observer.disconnect();
 				unsubscribe();
-				written?.removeAttribute("aria-activedescendant");
+				owner?.removeAttribute("aria-activedescendant");
 				ref.current = null;
 			};
 		},
-		[ref, getStore, pendingMoveRef, ownerRef],
+		[ref, getStore, pendingMoveRef, ownerRef, selectionFollowsHighlight],
 	);
 
 	return {
@@ -314,7 +328,8 @@ const childId = ({
 /**
  * Wires one option into its listbox: an `id`, `role="option"`,
  * `aria-selected`, highlight on hover, and selection on click. The option
- * re-renders only when its own highlight or selection changes.
+ * holds no subscription: the open list writes its `data-highlighted`, so it
+ * re-renders only when its selection changes.
  *
  * @example
  * ```tsx
@@ -340,20 +355,7 @@ const useOption = (
 	const generatedId = useId();
 	const id = idProp ?? generatedId;
 	const selected = listbox.selected.includes(value);
-	// Why the open target: an open to the selected option highlights it in the
-	// opening render, so the move that follows changes no option.
-	const active = useStoreValue(
-		listbox.getStore(),
-		(state) =>
-			state.activeId === id ||
-			(state.activeId == null &&
-				state.openTarget === "selected" &&
-				selected &&
-				!disabled &&
-				listbox.selected.length === 1),
-	);
 	return {
-		active,
 		selected,
 		optionProps: {
 			id,
@@ -362,12 +364,11 @@ const useOption = (
 			"aria-disabled": disabled || undefined,
 			"data-value": value,
 			"data-text-value": textValue,
-			"data-highlighted": active ? "" : undefined,
 			"data-state": selected ? "checked" : "unchecked",
 			"data-disabled": disabled ? "" : undefined,
 			onPointerMove: (event: { currentTarget: HTMLElement }) => {
 				// Why not `activate`: a hover must not scroll a half-visible option.
-				if (!disabled && !active) {
+				if (!disabled) {
 					listbox.getStore().set({ activeId: event.currentTarget.id });
 				}
 			},

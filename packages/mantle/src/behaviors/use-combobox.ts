@@ -101,6 +101,7 @@ const useCombobox = ({
 			setOpen(false);
 		},
 		ownerRef: inputRef,
+		selectionFollowsHighlight: true,
 	});
 	const reset = () => {
 		setValue(defaultValue ?? "");
