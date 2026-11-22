@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
@@ -46,10 +47,14 @@ function findCycles(imports: ReadonlyMap<string, readonly string[]>): string[][]
 	return cycles;
 }
 
-/** Reads the static relative imports and re-exports of each dist chunk. */
+/**
+ * Reads the static relative imports and re-exports of each dist chunk, keyed by
+ * its path relative to `dist`, such as `field-parts.js`.
+ */
 function readChunkImports(dist: string): Map<string, string[]> {
 	const imports = new Map<string, string[]>();
-	for (const file of fs.readdirSync(dist).filter((name) => name.endsWith(".js"))) {
+	const files = fs.readdirSync(dist, { recursive: true, encoding: "utf8" });
+	for (const file of files.filter((name) => name.endsWith(".js"))) {
 		const { module } = parseSync(file, fs.readFileSync(path.join(dist, file), "utf8"));
 		const sources = [
 			...module.staticImports.map((entry) => entry.moduleRequest.value),
@@ -57,15 +62,30 @@ function readChunkImports(dist: string): Map<string, string[]> {
 				entry.entries.map((exported) => exported.moduleRequest?.value),
 			),
 		];
+		const relativeSources = sources.filter((source) => source?.startsWith(".") === true);
 		imports.set(file, [
-			...new Set(
-				sources
-					.filter((source) => source?.startsWith("./") === true)
-					.map((source) => path.basename(source ?? "")),
-			),
+			...new Set(relativeSources.map((source) => path.join(path.dirname(file), source ?? ""))),
 		]);
 	}
 	return imports;
+}
+
+/**
+ * Imports one subpath in a new Node process, and returns its error message, or
+ * `undefined` when it loads. Why a new process: Node caches a module that
+ * throws, so a shared process blames each later subpath that imports it.
+ */
+function loadError(subpath: string): string | undefined {
+	const result = spawnSync(
+		process.execPath,
+		["--input-type=module", "--eval", `await import(${JSON.stringify(subpath)});`],
+		{ cwd: PACKAGE_ROOT, encoding: "utf8" },
+	);
+	if (result.status === 0) {
+		return undefined;
+	}
+	const errorLine = result.stderr.split("\n").find((line) => /^\w*Error\b/.test(line));
+	return errorLine ?? result.stderr.trim();
 }
 
 /** Lists each public JavaScript subpath of the package, such as `@ngrok/mantle/field`. */
@@ -82,7 +102,7 @@ function publicSubpaths(): string[] {
  * in plain Node ESM, with no bundler. Server rendering that externalizes
  * `@ngrok/mantle` loads the dist this way.
  */
-const main = async (): Promise<void> => {
+const main = (): void => {
 	if (!fs.existsSync(DIST)) {
 		throw new Error("No dist: run `pnpm -F @ngrok/mantle run build` first.");
 	}
@@ -94,11 +114,10 @@ const main = async (): Promise<void> => {
 	}
 	const subpaths = publicSubpaths();
 	for (const subpath of subpaths) {
-		try {
-			await import(subpath);
-		} catch (error) {
+		const error = loadError(subpath);
+		if (error != null) {
 			failed = true;
-			console.log(`✗ ${subpath}: ${error instanceof Error ? error.message : String(error)}`);
+			console.log(`✗ ${subpath}: ${error}`);
 		}
 	}
 	if (failed) {
@@ -112,7 +131,7 @@ const main = async (): Promise<void> => {
 };
 
 if (import.meta.main) {
-	await main();
+	main();
 }
 
 export {

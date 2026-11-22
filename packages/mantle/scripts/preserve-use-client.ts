@@ -318,8 +318,8 @@ function preserveUseClient({
 						// client chunk that renders the icon imports that entry back. One chunk for each icon,
 						// not one for each component, so a consumer bundle drops each icon that it never renders.
 						debugName: "Phosphor icons",
-						name: (moduleId: string) => PHOSPHOR_ICON_RE.exec(moduleId)?.[1] ?? "phosphor",
-						test: PHOSPHOR_ICON_RE,
+						// A `null` name leaves the module out of this group.
+						name: (moduleId: string) => PHOSPHOR_ICON_RE.exec(moduleId)?.[1] ?? null,
 					},
 					{
 						debugName: "client modules",
