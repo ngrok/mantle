@@ -78,6 +78,7 @@ describe("Toast", () => {
 		// Why: sonner keeps each active toast, and a later `Toaster` would show it again.
 		afterEach(() => {
 			sonnerToast.dismiss();
+			vi.doUnmock("sonner");
 		});
 
 		async function importUnloadedToast() {
@@ -127,17 +128,23 @@ describe("Toast", () => {
 			expect(screen.queryByText("Uploading")).toBeNull();
 		});
 
-		test("keeps the page and the waiting toasts when the chunk fails to load", async () => {
+		test("keeps the page, the landmark, and the waiting toasts when the chunk fails to load", async () => {
+			const chunkError = new Error("Failed to fetch dynamically imported module");
 			vi.doMock("sonner", () => {
-				throw new Error("Failed to fetch dynamically imported module");
+				throw chunkError;
 			});
+			// Why the stub: happy-dom has no `reportError`, and the report is the only trace of the failure.
+			const reportError = vi.fn<(error: unknown) => void>();
+			vi.stubGlobal("reportError", reportError);
 			const unloaded = await importUnloadedToast();
-			render(<unloaded.Toaster />);
 
-			// Why no assertion on the throw: a rejection that escapes fails the run.
 			unloaded.makeToast(<p>Saved before the outage</p>);
 			await vi.dynamicImportSettled();
-			expect(screen.queryByRole("region")).toBeNull();
+			expect(reportError).toHaveBeenCalledTimes(1);
+			// Why `cause`: vitest wraps the error that a mock factory throws.
+			expect(reportError).toHaveBeenLastCalledWith(expect.objectContaining({ cause: chunkError }));
+			render(<unloaded.Toaster />);
+			expect(screen.getByRole("region", { name: "Notifications alt+T" })).toBeInTheDocument();
 
 			vi.doUnmock("sonner");
 			unloaded.makeToast(<p>Saved after the outage</p>);
@@ -146,14 +153,41 @@ describe("Toast", () => {
 			expect(screen.getByText("Saved before the outage")).toBeInTheDocument();
 		});
 
-		test("renders the notifications landmark before the first toast", async () => {
+		test("renders the notifications landmark while the chunk loads", async () => {
+			vi.doMock("sonner", () => new Promise(() => {}));
 			const unloaded = await importUnloadedToast();
 			render(<unloaded.Toaster />);
 
-			// Why the hotkey in the name: sonner appends it, so the label pins Alt+T too.
-			expect(
-				await screen.findByRole("region", { name: "Notifications alt+T" }),
-			).toBeInTheDocument();
+			// Why the hotkey in the name: sonner's section uses the same label, Alt+T included.
+			expect(screen.getByRole("region", { name: "Notifications alt+T" })).toBeInTheDocument();
+		});
+
+		test("loads the chunk when the browser is idle, before the first toast", async () => {
+			const unloaded = await importUnloadedToast();
+			render(<unloaded.Toaster />);
+			await waitFor(() => {
+				expect(document.querySelector("section[data-react-aria-top-layer]")).not.toBeNull();
+			});
+			// Why the spy: once the chunk is in, a toast reaches sonner in the same call.
+			const custom = vi.spyOn(sonnerToast, "custom");
+
+			unloaded.makeToast(<p>Copied</p>);
+
+			expect(custom).toHaveBeenCalledTimes(1);
+		});
+
+		test("gives every generated id a value no other toast holds, across module copies", async () => {
+			const first = await importUnloadedToast();
+			const second = await importUnloadedToast();
+			render(<first.Toaster />);
+
+			const firstId = first.makeToast(<p>From copy one</p>);
+			second.makeToast(<p>From copy two</p>);
+			first.makeToast(<p>With a look-alike custom id</p>, { id: String(firstId) });
+
+			expect(await screen.findByText("With a look-alike custom id")).toBeInTheDocument();
+			expect(screen.getByText("From copy one")).toBeInTheDocument();
+			expect(screen.getByText("From copy two")).toBeInTheDocument();
 		});
 	});
 

@@ -17,6 +17,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import type * as Sonner from "sonner";
+import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import type { WithStyleProps } from "../../types/with-style-props.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -86,10 +87,11 @@ async function loadSonner(): Promise<void> {
 	isLoadingSonner = true;
 	try {
 		sonner = await import("sonner");
-	} catch {
-		// Why no rethrow: a chunk that fails to load must not crash the page.
-		// The toasts stay pending, and the next `makeToast` call loads the chunk again.
+	} catch (error) {
+		// Why no rethrow: a chunk that fails to load must not crash the page. The toasts
+		// stay pending, and the next `makeToast` call tries again; a browser that caches failed module fetches fails it again.
 		isLoadingSonner = false;
+		reportError(error);
 		return;
 	}
 	for (const show of pendingToasts.splice(0)) {
@@ -114,14 +116,6 @@ function subscribeToSonner(onLoad: () => void): () => void {
 /** The sonner module, or `undefined` until it loads. */
 function getSonner(): typeof Sonner | undefined {
 	return sonner;
-}
-
-/**
- * The sonner module during server rendering and the hydration pass: always
- * `undefined`, so the client renders nothing in that pass, as the server did.
- */
-function getServerSonner(): undefined {
-	return undefined;
 }
 
 /**
@@ -155,7 +149,8 @@ const Toaster = ({
 	position = "top-center",
 	style,
 }: ToasterProps) => {
-	const loadedSonner = useSyncExternalStore(subscribeToSonner, getSonner, getServerSonner);
+	const isHydrated = useIsHydrated();
+	const loadedSonner = useSyncExternalStore(subscribeToSonner, getSonner, getSonner);
 	// Why a host of its own: an open native modal `<dialog>` makes the rest of
 	// the page inert, so the host moves into it. React never moves a portal's
 	// container, so the move is safe.
@@ -173,8 +168,23 @@ const Toaster = ({
 		return () => clearTimeout(handle);
 	}, []);
 
-	if (loadedSonner == null || host == null) {
+	if (!isHydrated || host == null) {
 		return null;
+	}
+
+	// Why the placeholder: assistive technology finds the notifications landmark
+	// from hydration on, as with sonner's own section, which replaces it on load.
+	if (loadedSonner == null) {
+		return createPortal(
+			<section
+				aria-label={`${containerAriaLabel ?? "Notifications"} alt+T`}
+				aria-live="polite"
+				aria-relevant="additions text"
+				aria-atomic="false"
+				tabIndex={-1}
+			/>,
+			host,
+		);
 	}
 
 	return createPortal(
@@ -197,7 +207,21 @@ const Toaster = ({
 
 const ToastIdContext = createContext<string | number>("");
 
-let toastCount = 0;
+/**
+ * The key of the generated toast ID counter on `globalThis`. Every copy of this
+ * module (a second install, a hot reload) shares sonner's one toast store, so
+ * the copies share one counter.
+ */
+const TOAST_COUNT_KEY = Symbol.for("@ngrok/mantle/toast-count");
+// Why the assertion: `globalThis` has no type for a symbol key.
+const toastCountStore = globalThis as typeof globalThis & { [TOAST_COUNT_KEY]?: number };
+
+/** Returns the next generated toast ID: `-1`, then `-2`, and so on, page-wide. */
+function nextGeneratedToastId(): number {
+	const id = (toastCountStore[TOAST_COUNT_KEY] ?? 0) - 1;
+	toastCountStore[TOAST_COUNT_KEY] = id;
+	return id;
+}
 
 type MakeToastOptions = {
 	/**
@@ -246,9 +270,9 @@ type MakeToastOptions = {
  */
 function makeToast(children: ReactNode, options?: MakeToastOptions) {
 	const duration = resolveToastDuration(options?.duration_ms);
-	// Why mantle picks the ID: the toast can wait for sonner, and the caller needs
-	// its ID now. Sonner's own IDs are numbers, so a string never collides with one.
-	const id = options?.id ? options.id : `mantle-toast-${++toastCount}`;
+	// Why negative numbers: the caller needs the ID before sonner loads. A custom ID
+	// is a string and sonner counts up from 1, so neither can match one.
+	const id = options?.id ? options.id : nextGeneratedToastId();
 	const show = (module: typeof Sonner) => {
 		module.toast.custom(
 			(toastId) => <ToastIdContext.Provider value={toastId}>{children}</ToastIdContext.Provider>,
