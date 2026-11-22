@@ -1,30 +1,24 @@
 import { compile } from "tailwindcss";
-import tailwindCss from "tailwindcss/index.css?raw";
 import { describe, expect, test } from "vitest";
 import mantleCss from "../../mantle.css?raw";
+import { loadMantleImport } from "../../test-utils/parse-theme-css.js";
 
 /**
  * Compiles `mantle.css` the way a consumer's Tailwind build does.
  * `tw-animate-css` is stubbed out: it declares no ring utilities.
  */
 async function buildMantleCss(candidates: string[]) {
-	const compiler = await compile(mantleCss, {
-		loadStylesheet: async (id, base) => ({
-			base,
-			content: id === "tailwindcss" ? tailwindCss : "",
-			path: id,
-		}),
-	});
+	const compiler = await compile(mantleCss, { loadStylesheet: loadMantleImport });
 	return compiler.build(candidates);
 }
 
 /** The body of the rule for `selector`, such as `.focus-ring`. */
 function ruleOf(css: string, selector: string): string {
-	const start = css.indexOf(`\n  ${selector} {`);
-	if (start === -1) {
+	const match = new RegExp(String.raw`\n( *)${RegExp.escape(selector)} \{`).exec(css);
+	if (match == null) {
 		throw new Error(`The compiled CSS holds no rule for ${selector}.`);
 	}
-	return css.slice(start, css.indexOf("\n  }", start));
+	return css.slice(match.index, css.indexOf(`\n${match[1]}}`, match.index));
 }
 
 describe("focus-ring", () => {

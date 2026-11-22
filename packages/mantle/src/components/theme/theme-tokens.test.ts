@@ -1,7 +1,7 @@
 import { compile } from "tailwindcss";
-import tailwindCss from "tailwindcss/index.css?raw";
 import { expect, test } from "vitest";
 import mantleCss from "../../mantle.css?raw";
+import { loadMantleImport } from "../../test-utils/parse-theme-css.js";
 
 /**
  * Compiles `mantle.css`, then `appCss`, the way a consumer's Tailwind build does,
@@ -9,13 +9,7 @@ import mantleCss from "../../mantle.css?raw";
  * these tests read.
  */
 async function buildMantleCss(candidates: string[] = [], appCss = "") {
-	const compiler = await compile(`${mantleCss}\n${appCss}`, {
-		loadStylesheet: async (id, base) => ({
-			base,
-			content: id === "tailwindcss" ? tailwindCss : "",
-			path: id,
-		}),
-	});
+	const compiler = await compile(`${mantleCss}\n${appCss}`, { loadStylesheet: loadMantleImport });
 	return compiler.build(candidates);
 }
 
@@ -38,6 +32,15 @@ test("the semantic utilities read the theme tokens, and no token is declared as 
 	expect(css).toMatch(/\.text-muted\s*\{\s*color:\s*var\(--text-color-muted\)/);
 	const selfReferences = [...css.matchAll(/(--[\w-]+):\s*var\(\1\)/g)].map(([, name]) => name);
 	expect(selfReferences).toEqual([]);
+});
+
+// Why: Tailwind adds a fallback and an `@supports` block for each `color-mix()` that reads a
+// `var()`. They apply only below mantle's browser floor and cost 1.9 KB gz on each page.
+test("emits no color-mix fallbacks for the theme tokens or the utilities", async () => {
+	const css = await buildMantleCss(["bg-neutral-500/20", "shadow-sm", "focus-ring", "scrollbar"]);
+
+	expect(css).toContain("color-mix(in oklab, var(--color-neutral-500) 20%, transparent)");
+	expect(css).not.toContain("@supports (color: color-mix(in lab, red, red)) {");
 });
 
 // Why: no theme rule declares the tooltip colors; `@theme` is their only definition.
