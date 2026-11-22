@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentProps, ReactNode } from "react";
-import { createContext, use, useId } from "react";
+import { createContext, use, useId, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { composeHandlers } from "../../behaviors/compose-handlers.js";
 import { useCombobox, useComboboxInput } from "../../behaviors/use-combobox.js";
@@ -20,9 +20,12 @@ import type { WithValidation } from "../field/validation.js";
 import { Separator } from "../separator/separator.js";
 import { Slot } from "../slot/index.js";
 
-const ComboboxContext = createContext<ReturnType<typeof useCombobox> | null>(null);
+const ComboboxContext = createContext<ComboboxContextValue | null>(null);
 
-const useComboboxContext = (): ReturnType<typeof useCombobox> => {
+type ComboboxContextValue = ReturnType<typeof useCombobox> &
+	Pick<ComboboxProps, "name" | "form" | "disabled">;
+
+const useComboboxContext = (): ComboboxContextValue => {
 	const context = use(ComboboxContext);
 	if (context == null) {
 		throw new Error("Combobox parts must be rendered inside Combobox.Root.");
@@ -47,6 +50,8 @@ type ComboboxProps = UseComboboxProps & {
 	form?: string;
 	/** Whether a pick is required before the form submits. */
 	required?: boolean;
+	/** Whether the combobox is disabled. Its input takes no input, and the pick does not submit. */
+	disabled?: boolean;
 };
 
 /**
@@ -78,10 +83,14 @@ type ComboboxProps = UseComboboxProps & {
  * </Combobox.Root>
  * ```
  */
-const Root = ({ children, name, form, required, ...props }: ComboboxProps) => {
+const Root = ({ children, name, form, required, disabled, ...props }: ComboboxProps) => {
 	const combobox = useCombobox(props);
+	const contextValue = useMemo(
+		() => ({ ...combobox, name, form, disabled }),
+		[combobox, name, form, disabled],
+	);
 	return (
-		<ComboboxContext value={combobox}>
+		<ComboboxContext value={contextValue}>
 			{children}
 			{/* Why not type="hidden": a hidden input skips `required`. */}
 			{(name != null || required) && (
@@ -92,8 +101,12 @@ const Root = ({ children, name, form, required, ...props }: ComboboxProps) => {
 					name={name}
 					form={form}
 					required={required}
+					disabled={disabled}
 					value={combobox.value ?? ""}
 					onChange={(event) => combobox.setValue(event.target.value)}
+					// Why: a failed `required` check focuses this input, and the user
+					// must land on the visible one.
+					onFocus={() => combobox.inputRef.current?.focus()}
 				/>
 			)}
 		</ComboboxContext>
@@ -173,9 +186,11 @@ const Input = ({
 	const inputProps = useComboboxInput(combobox, { autoSelect });
 	const composedRef = useComposedRefs(ref, inputProps.ref, (input: HTMLInputElement | null) => {
 		// Why a ref callback: a form reset returns the pick and the text to their
-		// defaults, and the listener lives as long as the input.
-		const owner = input?.form;
-		if (owner == null) {
+		// defaults, and the listener lives as long as the input. Root's `form`
+		// names the form the pick belongs to.
+		const owner =
+			combobox.form == null ? input?.form : input?.ownerDocument.getElementById(combobox.form);
+		if (!(owner instanceof HTMLFormElement)) {
 			return;
 		}
 		owner.addEventListener("reset", combobox.reset);
@@ -191,6 +206,9 @@ const Input = ({
 		<input
 			{...props}
 			{...inputProps}
+			// Why: with a Root `name`, the pick submits under it, and the typed text must not.
+			name={combobox.name == null ? props.name : undefined}
+			disabled={props.disabled ?? combobox.disabled}
 			aria-invalid={ariaInvalid}
 			data-slot={joinDataSlot(dataSlot, "combobox-input")}
 			className={cx(

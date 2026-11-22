@@ -354,6 +354,33 @@ describe("MultiSelect", () => {
 			expect(input).toHaveAttribute("aria-expanded", "false");
 		});
 
+		test("Tab reaches a footer control, and focus that leaves it closes the list", async () => {
+			const user = userEvent.setup();
+			render(
+				<MultiSelect.Root>
+					<MultiSelect.Trigger>
+						<MultiSelect.Input aria-label="Fruits" />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+						<MultiSelect.ContentFooter>
+							<button type="button">Upgrade</button>
+						</MultiSelect.ContentFooter>
+					</MultiSelect.Content>
+				</MultiSelect.Root>,
+			);
+			const input = screen.getByRole("combobox", { name: "Fruits" });
+			await user.click(input);
+			await user.keyboard("{Tab}");
+			const upgrade = screen.getByRole("button", { name: "Upgrade" });
+			expect(upgrade).toHaveFocus();
+			expect(input).toHaveAttribute("aria-expanded", "true");
+			act(() => {
+				upgrade.blur();
+			});
+			expect(input).toHaveAttribute("aria-expanded", "false");
+		});
+
 		test("the submitted values follow the input's form and disabled", () => {
 			const { unmount } = render(
 				<>

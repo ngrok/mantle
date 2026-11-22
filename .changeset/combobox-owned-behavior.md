@@ -16,5 +16,5 @@ Breaking changes. Follow the [migration guide](https://mantle.ngrok.com/migratio
 Other changes:
 
 - The highlighted item has `aria-selected="true"`, as in the WAI-ARIA combobox pattern. No other item has the attribute.
-- `Combobox.Root` takes `name`, `form`, and `required`. The picked value submits under `name` through a hidden input, a form reset returns the pick to `defaultValue` and the text to `defaultInputValue`, and `required` blocks the submit until an item is picked.
+- `Combobox.Root` takes `name`, `form`, `required`, and `disabled`. The picked value submits under `name` through a hidden input, a form reset returns the pick to `defaultValue` and the text to `defaultInputValue`, `required` blocks the submit until an item is picked, and `disabled` keeps the pick out of the form. With a root `name`, the typed text does not submit.
 - The picked item carries `data-selected`, because `aria-selected` follows the highlight.

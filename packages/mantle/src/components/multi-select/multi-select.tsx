@@ -55,6 +55,10 @@ const TriggerAriaInvalidContext = createContext<AriaInvalid>(undefined);
 /** The `id` of the closest `MultiSelect.Group`'s label. */
 const GroupLabelContext = createContext<string | undefined>(undefined);
 
+/** The controls in the list that Tab can reach, such as a footer button. */
+const TABBABLE =
+	'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
+
 /** Shakes the tag of `value` to show that a removal is blocked. */
 const shakeTag = (tags: Map<string, HTMLElement>, value: string) => {
 	const tag = tags.get(value);
@@ -682,10 +686,15 @@ const Input = ({
 					}
 				})}
 				onBlur={composeHandlers(onBlur, (event) => {
-					// Why: focus that moves to a tag or a remove button stays in the
-					// component, so the list stays open.
+					// Why: focus that moves to a tag, a remove button, or a control in the
+					// list stays in the component, so the list stays open.
 					const trigger = event.currentTarget.closest('[data-slot~="multi-select-trigger"]');
-					if (!(event.relatedTarget instanceof Node && trigger?.contains(event.relatedTarget))) {
+					const { relatedTarget } = event;
+					const inside =
+						relatedTarget instanceof Node &&
+						(trigger?.contains(relatedTarget) ||
+							multiSelect.listbox.ref.current?.contains(relatedTarget));
+					if (!inside) {
 						inputProps.onBlur();
 					}
 				})}
@@ -694,9 +703,13 @@ const Input = ({
 					if (event.nativeEvent.isComposing) {
 						return;
 					}
-					// Why: the open list is modal, so focus stays until Escape closes it.
+					// Why: the open list is modal, so Tab moves only to a control in the
+					// list, such as a footer button, and focus stays until Escape closes it.
 					if (event.key === "Tab" && multiSelect.open) {
 						event.preventDefault();
+						if (!event.shiftKey) {
+							multiSelect.listbox.ref.current?.querySelector<HTMLElement>(TABBABLE)?.focus();
+						}
 						return;
 					}
 					const input = event.currentTarget;
@@ -831,6 +844,18 @@ const Content = ({
 					onKeyDown={composeHandlers(props.onKeyDown, (event) => {
 						// Why: a focused control in the footer, such as a button, closes the list on Escape too.
 						if (event.key === "Escape") {
+							setOpen(false);
+						}
+					})}
+					onBlur={composeHandlers(props.onBlur, (event) => {
+						// Why: focus that leaves a control in the list for outside the
+						// component closes the list, as it does from the input.
+						const { relatedTarget } = event;
+						const inside =
+							relatedTarget instanceof Element &&
+							(event.currentTarget.contains(relatedTarget) ||
+								relatedTarget.closest('[data-slot~="multi-select-trigger"]') != null);
+						if (!inside) {
 							setOpen(false);
 						}
 					})}

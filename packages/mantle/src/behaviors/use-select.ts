@@ -122,10 +122,10 @@ const useSelectTrigger = (select: SelectBehavior) => {
 	};
 
 	const pickActive = () => {
+		// Why a click: it runs the item's own handlers, as with a pointer.
 		const active = activeId == null ? null : document.getElementById(activeId);
-		const value = active?.dataset.value;
-		if (value != null && active?.getAttribute("aria-disabled") !== "true") {
-			listbox.select(value);
+		if (active?.dataset.value != null && active.getAttribute("aria-disabled") !== "true") {
+			active.click();
 			return;
 		}
 		setOpen(false);

@@ -23,6 +23,18 @@ const page = () => {
 };
 
 describe("enterModal", () => {
+	test("an element that mounts beside the page while the popup is open is inert too", async () => {
+		const { trigger, popup } = page();
+		const exit = enterModal([trigger, popup]);
+		const toast = document.createElement("div");
+		document.body.append(toast);
+		// Why: a MutationObserver reports in a microtask.
+		await Promise.resolve();
+		expect(toast.inert).toBe(true);
+		exit();
+		expect(toast.inert).toBe(false);
+	});
+
 	test("makes everything but the owner, its label, its ancestors, and the popup inert, and undoes it", () => {
 		const { trigger, next, aside, popup } = page();
 		const label = document.querySelector("label");

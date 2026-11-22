@@ -326,6 +326,9 @@ const Root = ({
 					required={required}
 					disabled={disabled}
 					value={select.value ?? ""}
+					// Why: a failed `required` check focuses this select, and the user must
+					// land on the trigger.
+					onFocus={() => select.triggerRef.current?.focus()}
 					onChange={(event) => {
 						// Why: the browser already dispatched this change.
 						committedValues.set(event.currentTarget, event.target.value);

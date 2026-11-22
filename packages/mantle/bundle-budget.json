@@ -21,15 +21,15 @@
   },
   "select": {
     "entry": "import { Select } from \"@ngrok/mantle/select\"; export default [Select.Root, Select.Trigger, Select.Value, Select.Content, Select.Item];",
-    "maxGzipBytes": 19337
+    "maxGzipBytes": 19380
   },
   "combobox": {
     "entry": "import { Combobox } from \"@ngrok/mantle/combobox\"; export default [Combobox.Root, Combobox.Input, Combobox.Content, Combobox.Item];",
-    "maxGzipBytes": 16352
+    "maxGzipBytes": 16531
   },
   "multi-select": {
     "entry": "import { MultiSelect } from \"@ngrok/mantle/multi-select\"; export default [MultiSelect.Root, MultiSelect.Trigger, MultiSelect.Input, MultiSelect.Content, MultiSelect.Item];",
-    "maxGzipBytes": 19355
+    "maxGzipBytes": 19564
   },
   "tabs": {
     "entry": "import { Tabs } from \"@ngrok/mantle/tabs\"; export default [Tabs.Root, Tabs.List, Tabs.Trigger, Tabs.Content];",
@@ -69,6 +69,6 @@
   },
   "form-page": {
     "entry": "import { Button } from \"@ngrok/mantle/button\"; import { Field } from \"@ngrok/mantle/field\"; import { Select } from \"@ngrok/mantle/select\"; import { Combobox } from \"@ngrok/mantle/combobox\"; export default [Button, Field.Item, Field.Label, Field.Control, Select.Root, Select.Trigger, Select.Value, Select.Content, Select.Item, Combobox.Root, Combobox.Input, Combobox.Content, Combobox.Item];",
-    "maxGzipBytes": 25223
+    "maxGzipBytes": 25423
   }
 }

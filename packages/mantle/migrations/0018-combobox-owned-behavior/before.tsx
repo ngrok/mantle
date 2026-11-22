@@ -47,3 +47,6 @@ export const ClassShadowed = class Combobox {
 // A lone value or defaultValue is ambiguous: it set the text before and sets
 // the picked value now, so the rules report it and leave it.
 export const Lone = <Combobox.Root defaultValue="App" />;
+
+// mantle's own text setter is an Ariakit name too.
+export const TextSetter = <Combobox.Root inputValue="a" setInputValue={() => {}} />;

@@ -465,6 +465,122 @@ rule:
       matches: multi-select-root
 fix: onInputValueChange
 ---
+id: multi-select-root-set-input-value
+language: tsx
+message: MultiSelect.Root takes onInputValueChange in place of setInputValue
+utils:
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: class
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        any:
+          - inside: { kind: class_declaration, field: name }
+          - inside: { kind: class, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  multi-select-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/multi-select["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^MultiSelect$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $MULTI
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $MULTI
+  multi-select-root:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    has:
+      field: name
+      kind: member_expression
+      all:
+        - has:
+            field: object
+            pattern: $MULTI
+        - has:
+            field: property
+            regex: ^Root$
+        - inside:
+            stopBy: end
+            kind: program
+            has:
+              matches: multi-select-import
+        # Why: a parameter or a local under the import's name shadows it, and the
+        # rules cannot tell which binding the element reads.
+        - not:
+            inside:
+              stopBy: end
+              matches: scope
+              has:
+                stopBy:
+                  matches: scope
+                any:
+                  - matches: binding-name
+                    pattern: $MULTI
+                  - matches: function-declaration
+                    has:
+                      field: name
+                      pattern: $MULTI
+rule:
+  kind: property_identifier
+  regex: ^setInputValue$
+  inside:
+    kind: jsx_attribute
+    inside:
+      matches: multi-select-root
+fix: onInputValueChange
+---
 id: multi-select-root-set-open
 language: tsx
 message: MultiSelect.Root takes onOpenChange in place of setOpen
@@ -699,7 +815,7 @@ rule:
         kind: jsx_attribute
         has:
           kind: property_identifier
-          regex: ^(setValue|selectedValue|defaultSelectedValue|setSelectedValue|setOpen)$
+          regex: ^(setValue|setInputValue|selectedValue|defaultSelectedValue|setSelectedValue|setOpen)$
 fix: inputValue
 ---
 id: multi-select-root-value-check
@@ -821,7 +937,7 @@ rule:
           kind: jsx_attribute
           has:
             kind: property_identifier
-            regex: ^(setValue|selectedValue|defaultSelectedValue|setSelectedValue|setOpen|onValueChange|inputValue|defaultInputValue|onInputValueChange|onOpenChange)$
+            regex: ^(setValue|setInputValue|selectedValue|defaultSelectedValue|setSelectedValue|setOpen|onValueChange|inputValue|defaultInputValue|onInputValueChange|onOpenChange)$
 ---
 id: multi-select-root-default-value-text
 language: tsx
@@ -941,7 +1057,7 @@ rule:
         kind: jsx_attribute
         has:
           kind: property_identifier
-          regex: ^(setValue|selectedValue|defaultSelectedValue|setSelectedValue|setOpen)$
+          regex: ^(setValue|setInputValue|selectedValue|defaultSelectedValue|setSelectedValue|setOpen)$
 fix: defaultInputValue
 ---
 id: multi-select-root-default-value-check
@@ -1063,7 +1179,7 @@ rule:
           kind: jsx_attribute
           has:
             kind: property_identifier
-            regex: ^(setValue|selectedValue|defaultSelectedValue|setSelectedValue|setOpen|onValueChange|inputValue|defaultInputValue|onInputValueChange|onOpenChange)$
+            regex: ^(setValue|setInputValue|selectedValue|defaultSelectedValue|setSelectedValue|setOpen|onValueChange|inputValue|defaultInputValue|onInputValueChange|onOpenChange)$
 ---
 id: multi-select-content-popover-props
 language: tsx

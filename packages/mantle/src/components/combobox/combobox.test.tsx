@@ -193,6 +193,94 @@ describe("Combobox", () => {
 			expect(fruitForm().checkValidity()).toBe(true);
 		});
 
+		test("with a Root name, only the pick submits, not the typed text", async () => {
+			const user = userEvent.setup();
+			render(
+				<form aria-label="fruit form">
+					<Combobox.Root name="fruit">
+						<Combobox.Input aria-label="Fruit" name="fruit" />
+						<Combobox.Content>
+							<Combobox.Item value="Apple" />
+						</Combobox.Content>
+					</Combobox.Root>
+				</form>,
+			);
+			await user.type(screen.getByRole("combobox", { name: "Fruit" }), "App");
+			expect(new FormData(fruitForm()).getAll("fruit")).toEqual([""]);
+		});
+
+		test("a disabled combobox neither submits nor blocks the form", () => {
+			render(
+				<form aria-label="fruit form">
+					<Combobox.Root name="fruit" required disabled defaultValue="Apple">
+						<Combobox.Input aria-label="Fruit" />
+					</Combobox.Root>
+				</form>,
+			);
+			expect(screen.getByRole("combobox", { name: "Fruit" })).toBeDisabled();
+			expect(new FormData(fruitForm()).getAll("fruit")).toEqual([]);
+			expect(fruitForm().checkValidity()).toBe(true);
+		});
+
+		test("a failed required check lands focus on the visible input", () => {
+			render(<Fruits name="fruit" required />);
+			const hidden = fruitForm().querySelector<HTMLInputElement>('input[name="fruit"]');
+			act(() => {
+				hidden?.focus();
+			});
+			expect(screen.getByRole("combobox", { name: "Fruit" })).toHaveFocus();
+		});
+
+		test("a reset of the form that Root's form names restores the defaults", async () => {
+			const user = userEvent.setup();
+			render(
+				<>
+					<form id="outside" aria-label="outside">
+						<button type="reset">Reset</button>
+					</form>
+					<Combobox.Root form="outside" name="fruit" defaultValue="Apple" defaultInputValue="App">
+						<Combobox.Input aria-label="Fruit" />
+						<Combobox.Content>
+							<Combobox.Item value="Apple" />
+							<Combobox.Item value="Banana" />
+						</Combobox.Content>
+					</Combobox.Root>
+				</>,
+			);
+			const input = screen.getByRole("combobox", { name: "Fruit" });
+			await user.clear(input);
+			await user.type(input, "Ban");
+			await user.click(screen.getByRole("option", { name: "Banana" }));
+			await user.click(screen.getByRole("button", { name: "Reset" }));
+			expect(input).toHaveValue("App");
+			const outside = screen.getByRole<HTMLFormElement>("form", { name: "outside" });
+			expect(new FormData(outside).get("fruit")).toBe("Apple");
+		});
+
+		test("Enter runs the item's own onClick, so a preventDefault there cancels the pick", async () => {
+			const user = userEvent.setup();
+			const onClick = vi.fn<(event: unknown) => void>();
+			render(
+				<Combobox.Root>
+					<Combobox.Input aria-label="Fruit" />
+					<Combobox.Content>
+						<Combobox.Item
+							value="Apple"
+							onClick={(event) => {
+								onClick(event);
+								event.preventDefault();
+							}}
+						/>
+					</Combobox.Content>
+				</Combobox.Root>,
+			);
+			const input = screen.getByRole("combobox", { name: "Fruit" });
+			await user.click(input);
+			await user.keyboard("{Enter}");
+			expect(onClick).toHaveBeenCalledTimes(1);
+			expect(input).toHaveValue("");
+		});
+
 		test("the picked item carries data-selected, and aria-selected follows the highlight", async () => {
 			const user = userEvent.setup();
 			render(<Fruits defaultValue="Banana" />);

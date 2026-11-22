@@ -213,10 +213,11 @@ const useComboboxInput = (
 						return;
 					}
 					event.preventDefault();
+					// Why a click: it runs the item's own handlers, and an `asChild` link
+					// navigates, as with a pointer.
 					const active = activeId == null ? null : document.getElementById(activeId);
-					const picked = active?.dataset.value;
-					if (picked != null && active?.getAttribute("aria-disabled") !== "true") {
-						listbox.select(picked);
+					if (active?.dataset.value != null && active.getAttribute("aria-disabled") !== "true") {
+						active.click();
 					}
 					return;
 				}

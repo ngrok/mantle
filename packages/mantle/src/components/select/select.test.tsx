@@ -1168,6 +1168,23 @@ describe("Select", () => {
 			expect(new FormData(form).get("fruit")).toBe("banana");
 		});
 
+		test("a failed required check lands focus on the trigger", () => {
+			render(
+				<form aria-label="fruit form">
+					<Select.Root name="fruit" required>
+						<Select.Trigger aria-label="Fruit" />
+					</Select.Root>
+				</form>,
+			);
+			act(() => {
+				screen
+					.getByRole<HTMLFormElement>("form", { name: "fruit form" })
+					.querySelector("select")
+					?.focus();
+			});
+			expect(screen.getByRole("combobox", { name: "Fruit" })).toHaveFocus();
+		});
+
 		test("a pick reaches the form's onChange", async () => {
 			const user = userEvent.setup();
 			const onFormChange = vi.fn<(event: unknown) => void>();

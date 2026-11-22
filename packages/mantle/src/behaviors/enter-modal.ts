@@ -57,7 +57,7 @@ const labelsWithin = (element: Element): Element[] => {
  * - The page does not scroll. The root keeps its scrollbar gutter, so the
  *   layout does not shift.
  * - Each element outside `keep`, their labels, and their ancestors gets
- *   `inert`. A screen reader reads only the popup and the control that owns
+ *   `inert`, including one that mounts while the popup is open. A screen reader reads only the popup and the control that owns
  *   it, Tab cannot reach the rest of the page, and a press there activates
  *   nothing: it lands on an ancestor, so the owner blurs and the popup closes.
  *
@@ -101,17 +101,39 @@ const enterModal = (keep: readonly Element[]): (() => void) => {
 			expose(referenced);
 		}
 	}
+	const hide = (sibling: Node) => {
+		if (!(sibling instanceof HTMLElement) || exposed.has(sibling) || sibling.inert) {
+			return;
+		}
+		sibling.inert = true;
+		cleanups.push(() => {
+			sibling.inert = false;
+		});
+	};
+	const parents = new Set<Element>();
 	for (const node of exposed) {
-		for (const sibling of node.parentElement?.children ?? []) {
-			if (exposed.has(sibling) || !(sibling instanceof HTMLElement) || sibling.inert) {
-				continue;
-			}
-			sibling.inert = true;
-			cleanups.push(() => {
-				sibling.inert = false;
-			});
+		if (node.parentElement != null) {
+			parents.add(node.parentElement);
 		}
 	}
+	for (const parent of parents) {
+		for (const sibling of parent.children) {
+			hide(sibling);
+		}
+	}
+	// Why an observer: an element that mounts beside the path later, such as a
+	// toast, is part of the page behind the popup too.
+	const observer = new MutationObserver((records) => {
+		for (const record of records) {
+			for (const added of record.addedNodes) {
+				hide(added);
+			}
+		}
+	});
+	for (const parent of parents) {
+		observer.observe(parent, { childList: true });
+	}
+	cleanups.push(() => observer.disconnect());
 	const exit = () => {
 		for (const cleanup of cleanups.toReversed()) {
 			cleanup();

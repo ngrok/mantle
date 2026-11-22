@@ -18,5 +18,6 @@ Breaking changes. Follow the [migration guide](https://mantle.ngrok.com/migratio
 Other changes:
 
 - The list has `aria-multiselectable="true"`.
+- Tab from the open input reaches a control in the list, such as a button in `MultiSelect.ContentFooter`.
 - A visually hidden "Dismiss popup" button sits before the list, as with Ariakit, so a touch screen reader can close it.
 - The list no longer opens when focus arrives from outside the trigger, such as by Tab or a dialog's autofocus. A click, ArrowDown, or typing opens it.

@@ -51,15 +51,15 @@ const followAnchor = (
 		const above = anchorRect.top - OFFSET - VIEWPORT_PADDING;
 		const side = height > below && above > below ? "top" : "bottom";
 		const available = Math.max(side === "bottom" ? below : above, 0);
-		// Why the capped height: the popup renders at most `available` tall, so a
-		// top popup sits that far above the anchor, not its full content height.
+		floating.style.setProperty("--available-height", `${available}px`);
+		// Why read the height again: CSS can cap the popup below `available`, and a
+		// top popup sits its rendered height above the anchor.
 		const top =
 			side === "bottom"
 				? anchorRect.bottom + OFFSET
-				: anchorRect.top - OFFSET - Math.min(height, available);
+				: anchorRect.top - OFFSET - floating.offsetHeight;
 		const maxLeft = document.documentElement.clientWidth - VIEWPORT_PADDING - width;
 		const left = Math.max(VIEWPORT_PADDING, Math.min(anchorRect.left, maxLeft));
-		floating.style.setProperty("--available-height", `${available}px`);
 		floating.style.top = `${top - origin.top}px`;
 		floating.style.left = `${left - origin.left}px`;
 		floating.dataset.side = side;

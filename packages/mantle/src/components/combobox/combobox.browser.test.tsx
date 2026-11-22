@@ -56,6 +56,25 @@ const axeViolations = async () => {
 };
 
 describe("Combobox keyboard, focus, and ARIA contract", () => {
+	test("a list that CSS caps below the space above sits right above its input", async () => {
+		const fruits = Array.from({ length: 50 }, (_, index) => `Fruit ${index}`);
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Fruit" style={{ position: "fixed", bottom: 40 }} />
+				<Combobox.Content style={{ maxHeight: 100, overflowY: "auto" }}>
+					{fruits.map((fruit) => (
+						<Combobox.Item key={fruit} value={fruit} />
+					))}
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Fruit" });
+		await userEvent.click(input);
+		const listbox = await screen.findByRole("listbox");
+		const gap = input.getBoundingClientRect().top - listbox.getBoundingClientRect().bottom;
+		expect(gap).toBeCloseTo(8, 0);
+	});
+
 	test("a scrolled list keeps its scroll position", async () => {
 		const fruits = Array.from({ length: 80 }, (_, index) => `Fruit ${index}`);
 		render(
@@ -83,7 +102,8 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		render(
 			<Combobox.Root>
 				<Combobox.Input aria-label="Fruit" style={{ position: "fixed", bottom: 40 }} />
-				<Combobox.Content>
+				{/* Why the style: this page loads no Tailwind, and the real class caps the list the same way. */}
+				<Combobox.Content style={{ maxHeight: "var(--available-height)", overflowY: "auto" }}>
 					{fruits.map((fruit) => (
 						<Combobox.Item key={fruit} value={fruit} />
 					))}
