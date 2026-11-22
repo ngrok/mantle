@@ -150,6 +150,8 @@ const useComboboxInput = (
 		"aria-autocomplete": "list" as const,
 		"aria-expanded": open,
 		"aria-controls": open ? listbox.id : undefined,
+		// Why: the open list writes this attribute, so no consumer value may render over it.
+		"aria-activedescendant": undefined,
 		value: inputValue,
 		onChange: (event: ChangeEvent<HTMLInputElement>) => {
 			const next = event.target.value;

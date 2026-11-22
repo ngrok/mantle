@@ -213,16 +213,20 @@ const useListbox = ({
 				};
 				const observer = new MutationObserver(reconcile);
 				observer.observe(node, { childList: true, subtree: true });
-				// Why the open list writes the attribute: the owner then needs no
-				// subscription while closed, and a move renders no owner.
-				const owner = ownerRef.current;
+				// Why the open list writes the attribute: the owner needs no subscription
+				// while closed. Each write reads the ref, because the list can attach
+				// first, and the cleanup removes it from the element it wrote to, because
+				// the owner's ref can be detached in the commit that closes the list.
+				let written: HTMLElement | null = null;
 				const showActive = () => {
+					const owner = ownerRef.current ?? written;
 					const { activeId } = store.get();
 					if (activeId == null) {
 						owner?.removeAttribute("aria-activedescendant");
 						return;
 					}
 					owner?.setAttribute("aria-activedescendant", activeId);
+					written = owner;
 				};
 				const unsubscribe = store.subscribe(showActive);
 				showActive();
@@ -233,7 +237,7 @@ const useListbox = ({
 				return () => {
 					observer.disconnect();
 					unsubscribe();
-					owner?.removeAttribute("aria-activedescendant");
+					written?.removeAttribute("aria-activedescendant");
 					ref.current = null;
 				};
 			},

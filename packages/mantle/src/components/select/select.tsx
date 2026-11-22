@@ -729,6 +729,7 @@ const Trigger = ({
 					}
 				: undefined)}
 			aria-invalid={ariaInvalid}
+			aria-activedescendant={triggerProps["aria-activedescendant"]}
 		>
 			{asChild ? slotContent(children, renderTriggerContent) : renderTriggerContent(children)}
 		</Component>
