@@ -114,6 +114,44 @@ describe("RadioGroup keyboard", () => {
 	});
 });
 
+describe("RadioGroup item clicks", () => {
+	test("a click on item text checks and focuses the radio; a link and a label keep their clicks", async () => {
+		const onItemClick = vi.fn<(event: MouseEvent) => void>();
+		const onLinkClick = vi.fn<(event: MouseEvent) => void>((event) => event.preventDefault());
+		render(
+			<RadioGroup.Root aria-label="Plan" defaultValue="free">
+				<RadioGroup.Card value="free">Free</RadioGroup.Card>
+				<RadioGroup.Card value="pro" id="pro-radio" onClick={onItemClick}>
+					<RadioGroup.ItemContent>
+						<label htmlFor="pro-radio">Pro</label>
+						<p>
+							Read the{" "}
+							<a href="#terms" onClick={onLinkClick}>
+								terms
+							</a>
+							.
+						</p>
+					</RadioGroup.ItemContent>
+				</RadioGroup.Card>
+			</RadioGroup.Root>,
+		);
+		const pro = screen.getByRole("radio", { name: "Pro" });
+
+		await userEvent.click(screen.getByRole("link", { name: "terms" }));
+		expect(onLinkClick).toHaveBeenCalledTimes(1);
+		expect(screen.getByRole("radio", { name: "Free" })).toBeChecked();
+
+		await userEvent.click(screen.getByText("Read the", { exact: false }));
+		expect(pro).toBeChecked();
+		expect(pro).toHaveFocus();
+		expect(onItemClick).toHaveBeenCalledTimes(2);
+
+		await userEvent.click(screen.getByText("Free"));
+		await userEvent.click(screen.getByText("Pro"));
+		expect(pro).toBeChecked();
+	});
+});
+
 describe("RadioGroup forms", () => {
 	test("required blocks the form until a radio is checked", async () => {
 		render(

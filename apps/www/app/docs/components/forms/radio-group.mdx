@@ -153,7 +153,7 @@ import { RadioGroup } from "@ngrok/mantle/radio-group";
 
 </Example>
 
-Use **`Choice.Title`** here, not `Choice.Label`: each radio item is a `<label>` already, and one label cannot sit inside another. Inside any radio item (`Item`, `ListItem`, `Card`, or `SegmentedControl.Item`), the item gives `Choice.Title` and `Choice.Description` their ids. The native radio's `aria-labelledby` points at the title, so the option's accessible name is the title alone, and its `aria-describedby` points at the description. Without that wiring, the label would put both texts into one name. A plain `RadioGroup.ItemContent` has no title or description part, so its text reads as one name; use `Choice` when the option carries helper text.
+Name the option with **`Choice.Title`** or **`Choice.Label`**. Inside any radio item (`Item`, `ListItem`, `Card`, or `SegmentedControl.Item`), `Choice.Title` registers its id with the radio, and `Choice.Label` is a `<label>` for the radio: either way, the option's accessible name is the title alone. `Choice.Description` takes the id that the radio's `aria-describedby` points at. A plain item with neither reads all of its text as one name.
 
 Give the `RadioGroup` itself an accessible name (an `aria-label`, as above, or a `Field.Set` / `Field.Legend` wrapper) so the group is announced as a named set rather than an anonymous `radiogroup`.
 
@@ -298,9 +298,9 @@ RadioGroup.Root
 
 ## Polymorphism
 
-`RadioGroup.ItemContent` accepts `asChild`. When `true` it renders its single child instead of its default `<div>`, forwarding class names, `data-*` attributes, and `ref` onto that child. Use it when the title-and-description block beside a radio needs to be a specific element, such as a `<p>`. Do not use a `<label>`: each item is a `<label>` already, and its text is the radio's accessible name.
+`RadioGroup.ItemContent` accepts `asChild`. When `true` it renders its single child instead of its default `<div>`, forwarding class names, `data-*` attributes, and `ref` onto that child. Use it when the title-and-description block beside a radio needs to be a specific element, such as a `<p>`. To name the radio with a title line, put a `<label htmlFor>` with the item's `id` in it, or use `Choice.Label`.
 
-The rest of the family does not take `asChild`. `RadioGroup.Root` and `List` render the `role="radiogroup"` element. `Item`, `ListItem`, and `Card` each render a `<label>` around a native `<input type="radio">`, and `Indicator` paints the control itself. The radios of one group share a `name`, so the browser owns the one tab stop and Space. The root moves the arrow keys, so they wrap at either end in every browser. With a `name`, a form submits the checked value; without one, the group submits nothing. For a richer option layout, compose [`Choice`](/components/forms/choice) inside `RadioGroup.Item` (see [Rich option layout with `Choice`](#rich-option-layout-with-choice)) rather than swapping these elements out.
+The rest of the family does not take `asChild`. `RadioGroup.Root` and `List` render the `role="radiogroup"` element. `Item`, `ListItem`, and `Card` each render a `<div>` with a native `<input type="radio">` that covers it, and `Indicator` paints the control itself. A click anywhere on the item checks the radio; links, buttons, labels, and form controls in it keep their own clicks. The radios of one group share a `name`, so the browser owns the one tab stop and Space. The root moves the arrow keys, so they wrap at either end in every browser. With a `name`, a form submits the checked value; without one, the group submits nothing. For a richer option layout, compose [`Choice`](/components/forms/choice) inside `RadioGroup.Item` (see [Rich option layout with `Choice`](#rich-option-layout-with-choice)) rather than swapping these elements out.
 
 ## API Reference
 
@@ -324,14 +324,14 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 A simple radio item. The conventional use-case for basic radio options. Must be a child of `RadioGroup.Root`. Inside `Field.Control`, the item picks up `aria-invalid`, `aria-errormessage`, and `aria-describedby`. A `Choice.Title` inside names it through `aria-labelledby`, and a `Choice.Description` describes it through `aria-describedby`.
 
-All props from [label](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/label#attributes), plus the props below. `id`, `autoFocus`, `aria-label`, `aria-labelledby`, `aria-describedby`, `aria-invalid`, and `aria-errormessage` go to the native radio; the rest go to the `<label>`.
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus the props below. `id`, `autoFocus`, `aria-label`, `aria-labelledby`, `aria-describedby`, `aria-invalid`, and `aria-errormessage` go to the native radio; the rest go to the item's `<div>`.
 
 | Prop        | Type      | Default | Description                                                    |
 | :---------- | :-------- | :------ | :------------------------------------------------------------- |
 | `value`     | `string`  |         | The unique value of the radio item.                            |
 | `disabled?` | `boolean` |         | When `true`, prevents the user from interacting with the item. |
 
-Each item is a `<label>` around a native `<input type="radio">`. The radio carries the state, so style the item with these variants:
+Each item is a `<div>` with a native `<input type="radio">` as its first child. The radio carries the state, so style the item with these variants:
 
 | Variant                       | Matches                       |
 | :---------------------------- | :---------------------------- |

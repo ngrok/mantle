@@ -24,7 +24,7 @@ describe("SegmentedControl.Root", () => {
 		expect(control).toHaveAttribute("data-testid", "view");
 		expect(control).toHaveClass("w-fit");
 		expect(refSpy).toHaveBeenLastCalledWith(control);
-		const item = screen.getByRole("radio", { name: "List" }).closest("label");
+		const item = screen.getByRole("radio", { name: "List" }).parentElement;
 		expect(item).toHaveAttribute("data-slot", "segmented-control-item");
 		expect(screen.getByText("List")).toHaveAttribute("data-slot", "segmented-control-item-label");
 	});

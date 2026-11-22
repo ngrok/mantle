@@ -58,6 +58,51 @@ describe("RadioGroup", () => {
 		expect(screen.getByRole("radio", { name: "Basic" })).toHaveAccessibleDescription("");
 	});
 
+	test("a label title line names the radio alone, and no label wraps the radio", () => {
+		render(
+			<RadioGroup.Root aria-label="Plan" defaultValue="basic">
+				<RadioGroup.Item value="basic" id="plan-basic">
+					<RadioGroup.Indicator />
+					<RadioGroup.ItemContent>
+						<label htmlFor="plan-basic">Basic</label>
+						<p>For side projects.</p>
+					</RadioGroup.ItemContent>
+				</RadioGroup.Item>
+				<RadioGroup.Item value="pro">
+					<Choice.Root>
+						<Choice.Indicator>
+							<RadioGroup.Indicator />
+						</Choice.Indicator>
+						<Choice.Content>
+							<Choice.Label>Pro</Choice.Label>
+							<Choice.Description>For teams.</Choice.Description>
+						</Choice.Content>
+					</Choice.Root>
+				</RadioGroup.Item>
+			</RadioGroup.Root>,
+		);
+
+		const basic = screen.getByRole("radio", { name: "Basic" });
+		const pro = screen.getByRole("radio", { name: "Pro" });
+		expect(pro).toHaveAccessibleDescription("For teams.");
+		for (const radio of [basic, pro]) {
+			expect(radio.closest("label")).toBeNull();
+			expect(radio.parentElement?.querySelectorAll("label")).toHaveLength(1);
+		}
+	});
+
+	test("aria-label on an item names its radio", () => {
+		render(
+			<RadioGroup.Root aria-label="Plan">
+				<RadioGroup.Item value="basic" aria-label="Basic plan">
+					Basic
+				</RadioGroup.Item>
+			</RadioGroup.Root>,
+		);
+
+		expect(screen.getByRole("radio", { name: "Basic plan" })).toBeInTheDocument();
+	});
+
 	test("inside Field.Control, the radio lists the field's ids before the Choice description", () => {
 		render(
 			<Field.Item name="plan">

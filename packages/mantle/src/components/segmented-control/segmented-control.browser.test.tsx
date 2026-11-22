@@ -3,6 +3,15 @@ import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vite
 import { commands, userEvent } from "vitest/browser";
 import * as SegmentedControl from "./segmented-control-parts.js";
 
+/** The item of the radio named `name`, the element a user's click on the item hits. */
+function item(name: string): HTMLElement {
+	const element = screen.getByRole("radio", { name }).parentElement;
+	if (element == null) {
+		throw new Error(`The radio "${name}" has no item.`);
+	}
+	return element;
+}
+
 let styleElement: HTMLStyleElement;
 
 // Why the compiled CSS: the browser project loads no stylesheet. Without the
@@ -38,7 +47,7 @@ describe("SegmentedControl.Item", () => {
 			</div>,
 		);
 
-		const item = screen.getByRole("radio", { name: /last week/ }).closest("label");
+		const item = screen.getByRole("radio", { name: /last week/ }).parentElement;
 		if (item == null) {
 			throw new Error("The radio has no item label.");
 		}
@@ -70,7 +79,7 @@ describe("SegmentedControl thumb", () => {
 	test("a click slides the thumb to the checked item", async () => {
 		const thumbAnimations = renderForSlide();
 
-		await userEvent.click(screen.getByText("Dev"));
+		await userEvent.click(item("Dev"));
 
 		expect(thumbAnimations()).toHaveLength(1);
 	});
@@ -113,7 +122,7 @@ describe("SegmentedControl thumb", () => {
 						animation.effect instanceof KeyframeEffect &&
 						animation.effect.pseudoElement === "::before",
 				);
-		await userEvent.click(screen.getByText("Dev"));
+		await userEvent.click(item("Dev"));
 		await Promise.all(slides().map((slide) => slide.finished));
 
 		form.reset();
@@ -123,7 +132,7 @@ describe("SegmentedControl thumb", () => {
 		});
 		await Promise.all(slides().map((slide) => slide.finished));
 
-		await userEvent.click(screen.getByText("Dev"));
+		await userEvent.click(item("Dev"));
 		expect(slides()).toHaveLength(1);
 	});
 
@@ -131,7 +140,7 @@ describe("SegmentedControl thumb", () => {
 		await commands.emulateMedia({ reducedMotion: "reduce" });
 		const thumbAnimations = renderForSlide();
 
-		await userEvent.click(screen.getByText("Dev"));
+		await userEvent.click(item("Dev"));
 
 		expect(screen.getByRole("radio", { name: "Dev" })).toBeChecked();
 		expect(thumbAnimations()).toHaveLength(0);

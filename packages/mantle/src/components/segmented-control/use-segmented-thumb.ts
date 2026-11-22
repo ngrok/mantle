@@ -153,8 +153,7 @@ function useSegmentedThumb(
 		let slide: Animation | null = null;
 
 		const readChecked = () =>
-			group.querySelector<HTMLInputElement>(":scope > label > input:checked")?.parentElement ??
-			null;
+			group.querySelector<HTMLInputElement>(":scope > * > input:checked")?.parentElement ?? null;
 		const isDisabled = (segment: Element) => segment.matches(":has(> input:disabled)");
 		// Why the computed value: it holds a running slide's current frame, so a
 		// new slide or a drag starts where the thumb is, with no jump.
@@ -237,15 +236,16 @@ function useSegmentedThumb(
 			if (!event.isPrimary || event.button !== 0 || session != null) {
 				return;
 			}
-			const checked = event.target instanceof Element ? event.target.closest("label") : null;
-			if (
-				checked == null ||
-				checked.parentElement !== group ||
-				!checked.matches(":has(> input:checked:enabled)")
-			) {
+			let checked = event.target instanceof Element ? event.target : null;
+			while (checked != null && checked.parentElement !== group) {
+				checked = checked.parentElement;
+			}
+			if (!(checked instanceof HTMLElement) || !checked.matches(":has(> input:checked:enabled)")) {
 				return;
 			}
-			const segments = Array.from(group.querySelectorAll<HTMLElement>(":scope > label"));
+			const segments = Array.from(
+				group.querySelectorAll<HTMLElement>(":scope > :has(> input[type=radio])"),
+			);
 			const boxes = segments.map((segment) => {
 				const rect = segment.getBoundingClientRect();
 				return {
@@ -357,7 +357,7 @@ function useSegmentedThumb(
 			const projected = checkedCenter + finished.offset + velocity * flickProjectionMs;
 			const target = finished.segments[nearestSegment(finished.boxes, projected)];
 			if (target != null && target !== finished.checked) {
-				target.click();
+				target.querySelector<HTMLInputElement>(":scope > input")?.click();
 			}
 			// Why after the commit: the flag must swallow the click the browser
 			// sends after the release, not the commit's own click.

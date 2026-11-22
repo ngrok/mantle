@@ -84,7 +84,7 @@ const Root = ({
 					// Why a private variable: during a drag, the thumb follows the pointer off its anchor.
 					"before:translate-x-(--_segmented-control-thumb-offset,0px) data-dragging:cursor-grabbing",
 					// Why: a white thumb cannot get lighter, so hover on it lifts the shadow.
-					"has-[>label:hover>input:checked:enabled]:before:shadow",
+					"has-[>*:hover>input:checked:enabled]:before:shadow",
 					className,
 				)}
 				style={{ ...$cssProperties({ "--_segmented-control-thumb": thumbAnchor }), ...style }}
@@ -105,7 +105,7 @@ const Thumb = ({ groupRef }: { groupRef: RefObject<HTMLElement | null> }) => {
 };
 
 /**
- * One segment of a `SegmentedControl.Root`: a `<label>` around a native
+ * One segment of a `SegmentedControl.Root`: a `<div>` with a native
  * radio that grows to share the row and keeps its label on one line. Keep the label to one or
  * two words. An icon-only item needs its name in `sr-only` text or
  * `aria-label`.
@@ -130,7 +130,7 @@ const Thumb = ({ groupRef }: { groupRef: RefObject<HTMLElement | null> }) => {
  * </SegmentedControl.Root>
  * ```
  */
-// Why no asChild: the item is the `<label>` that wraps its native radio.
+// Why no asChild: the item is the `<div>` that holds its native radio.
 const Item = ({ className, ...props }: SegmentedControlItemProps) => {
 	invariant(
 		useContext(InsideRootContext),

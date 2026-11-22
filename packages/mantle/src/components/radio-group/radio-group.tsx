@@ -7,9 +7,11 @@ import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { isInteractiveTarget } from "../../utils/interactive-target.js";
 import { Slot } from "../slot/index.js";
 import * as RadioPrimitive from "./primitive.js";
 import { RadioStateContext } from "./primitive.js";
+import { RadioItemContext } from "./radio-item-context.js";
 import type { RadioStateContextValue } from "./primitive.js";
 
 type RadioGroupProps = RadioPrimitive.RootProps;
@@ -17,7 +19,7 @@ type RadioGroupProps = RadioPrimitive.RootProps;
 /**
  * A group of radio items. It manages the state of the children radios. Unstyled and simple.
  * Used as the root component for grouping related radio items where only one can be selected.
- * Each item is a native `<input type="radio">` inside a `<label>`, so the browser owns the one Tab
+ * Each item holds a native `<input type="radio">`, so the browser owns the one Tab
  * stop, Space, and the form contract: `name`, `required`, `form`, and reset. The root moves the
  * arrow keys, so they wrap at either end in every browser.
  *
@@ -54,7 +56,7 @@ type RadioItemProps = RadioPrimitive.ItemProps;
  * A simple radio item that can be used inside a radio group. The "conventional" use-case.
  * Must be a child of `RadioGroup`.
  *
- * It renders a `<label>` around a native radio. Style its state with
+ * It renders a `<div>` with a native radio that covers it. Style its state with
  * `has-[>input:checked]:`, `has-[>input:disabled]:`, and
  * `has-[>input:focus-visible]:`.
  *
@@ -91,11 +93,11 @@ const Item = ({ className, ...props }: RadioItemProps) => (
 	/>
 );
 
-type RadioIndicatorProps = Omit<ComponentProps<"div">, "children"> & {
+type RadioIndicatorProps = Omit<ComponentProps<"span">, "children"> & {
 	children?: ReactNode | ((context: RadioStateContextValue) => ReactNode);
 	/**
 	 * Never rendered. `Choice.Indicator` injects the field's `name` for a
-	 * control, and a `<div>` has no `name` attribute.
+	 * control, and a `<span>` has no `name` attribute.
 	 */
 	name?: string;
 } & WithDataSlot;
@@ -159,7 +161,8 @@ const Indicator = ({
 	const indicator = typeof children === "function" ? children(ctx) : children;
 
 	return (
-		<div
+		// Why a span: `Choice.Indicator` is a `<span>`, and a `<div>` inside it is invalid HTML.
+		<span
 			data-slot={joinDataSlot(dataSlot, "radio-group-indicator")}
 			className={cx(
 				"radio-indicator inline-flex size-5 select-none items-center justify-center shrink-0",
@@ -168,7 +171,7 @@ const Indicator = ({
 			{...props}
 		>
 			{children == null ? <DefaultRadioIndicator /> : indicator}
-		</div>
+		</span>
 	);
 };
 
@@ -216,7 +219,7 @@ type RadioListItemProps = RadioItemProps & WithDataSlot;
 /**
  * A radio list item that is used inside a `RadioGroup.List`.
  *
- * It renders a `<label>` around a native radio. Style its state with
+ * It renders a `<div>` with a native radio that covers it. Style its state with
  * `has-[>input:checked]:`, `has-[>input:disabled]:`, and
  * `has-[>input:focus-visible]:`.
  *
@@ -272,7 +275,7 @@ type RadioCardProps = RadioItemProps & WithDataSlot;
 /**
  * A radio card item. Use it as a child of `RadioGroup`
  *
- * It renders a `<label>` around a native radio. Style its state with
+ * It renders a `<div>` with a native radio that covers it. Style its state with
  * `has-[>input:checked]:`, `has-[>input:disabled]:`, and
  * `has-[>input:focus-visible]:`.
  *
@@ -384,9 +387,6 @@ type RadioInputSandboxProps = ComponentProps<"div"> & WithDataSlot;
  * </RadioGroup.Root>
  * ```
  */
-/** The elements that take a click inside a `<label>` themselves. */
-const interactiveSelector = "a[href], button, input, select, textarea";
-
 const InputSandbox = ({
 	"data-slot": dataSlot,
 	children,
@@ -394,6 +394,7 @@ const InputSandbox = ({
 	...props
 }: RadioInputSandboxProps) => {
 	const ctx = useContext(RadioStateContext);
+	const radioItem = useContext(RadioItemContext);
 
 	const singleChild = Children.only(children);
 
@@ -414,14 +415,19 @@ const InputSandbox = ({
 				if (event.defaultPrevented) {
 					return;
 				}
-				const target = event.target instanceof Element ? event.target : null;
-				// Why: a click on interactive content inside a label skips the label's activation. A click
-				// elsewhere in the sandbox must skip it too, or the label moves focus to the radio.
-				if (target?.closest(interactiveSelector) == null) {
-					event.preventDefault();
+				if (!radioItem) {
+					return;
 				}
 				if (!ctx.checked) {
-					event.currentTarget.closest("label")?.control?.click();
+					event.currentTarget.ownerDocument.getElementById(radioItem.radioId)?.click();
+				}
+				// Why: a click on the sandbox around its control, such as the border of an `Input`, focuses the
+				// control. The default is prevented, so the item does not move focus to its radio.
+				if (!isInteractiveTarget(event.target, event.currentTarget)) {
+					event.preventDefault();
+					event.currentTarget
+						.querySelector<HTMLElement>("input, select, textarea, button, [contenteditable]")
+						?.focus();
 				}
 			}}
 			{...props}

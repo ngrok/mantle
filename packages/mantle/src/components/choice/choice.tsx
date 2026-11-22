@@ -12,6 +12,7 @@ import {
 import type { ComponentProps, MouseEvent, ReactNode, RefObject } from "react";
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
+import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -340,11 +341,11 @@ type ChoiceLabelProps = Omit<ComponentProps<typeof Label>, "htmlFor" | "disabled
  *
  * It is the mantle {@link Label} (not a re-implementation), so it keeps every
  * base-label behavior (cursor, the double-click text-selection guard, and the
- * auto `font-medium`). `Field.Label` reuses `Label` the same way. When an
- * ancestor already owns the labeling and click target (a fully-clickable list
- * row or a `RadioGroup` item, which is a `<label>` already), use
- * `Choice.Title` instead: a label-less `<p>` that accepts `asChild`, so
- * labels never nest or compete.
+ * auto `font-medium`). `Field.Label` reuses `Label` the same way. Inside a
+ * `RadioGroup` item, it labels the item's radio. When an ancestor already owns
+ * the labeling and click target (a fully-clickable list row that is a
+ * `<label>`), use `Choice.Title` instead: a label-less `<p>` that accepts
+ * `asChild`, so labels never nest or compete.
  *
  * @see https://mantle.ngrok.com/components/forms/choice
  *
@@ -363,6 +364,8 @@ type ChoiceLabelProps = Omit<ComponentProps<typeof Label>, "htmlFor" | "disabled
  */
 const ChoiceLabel = ({ "data-slot": dataSlot, className, ref, ...props }: ChoiceLabelProps) => {
 	const { controlId, disabled, labelRef } = useChoiceContext("Label");
+	// Why: in a radio item, the label is the title line of the item's native radio.
+	const radioId = useContext(RadioItemContext)?.radioId;
 	// `Choice.Description` clicks this element to reach the control.
 	const composedRef = useComposedRefs(labelRef, ref);
 
@@ -375,7 +378,7 @@ const ChoiceLabel = ({ "data-slot": dataSlot, className, ref, ...props }: Choice
 			data-slot={joinDataSlot(dataSlot, "choice-label")}
 			className={cx(disabled && "opacity-50", className)}
 			{...props}
-			htmlFor={controlId}
+			htmlFor={radioId ?? controlId}
 			disabled={disabled}
 		/>
 	);
@@ -385,7 +388,7 @@ const ChoiceLabel = ({ "data-slot": dataSlot, className, ref, ...props }: Choice
  * The emphasized title of a `Choice`, label-styled but **not** a `<label>`:
  * renders a `<p>`. Mirrors `Field.LabelText`. Use this when something else owns
  * the control's labeling and click target: a fully-clickable list row or a
- * `RadioGroup` item. It avoids nesting two `<label>`s or splitting
+ * `RadioGroup` item, where it registers itself as the radio's name. It avoids nesting two `<label>`s or splitting
  * the click target. Pass `asChild` to supply your own element. For a standalone
  * control (or inside a `Field`) where the title can be the label, use
  * `Choice.Label`.
@@ -423,6 +426,12 @@ const Title = ({
 	const radioItem = useContext(RadioItemContext);
 	const generatedId = useId();
 	const titleId = id ?? radioItem?.titleId ?? generatedId;
+	const registerTitle = radioItem?.registerTitle;
+	// Why a layout effect: the radio item renders before its title, and its name must be the title before paint.
+	useIsomorphicLayoutEffect(() => {
+		registerTitle?.(titleId);
+		return () => registerTitle?.(null);
+	}, [registerTitle, titleId]);
 	const Comp = asChild ? Slot : "p";
 
 	return (

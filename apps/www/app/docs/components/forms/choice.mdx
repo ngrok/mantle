@@ -77,8 +77,8 @@ import { Field } from "@ngrok/mantle/field";
 
 Both render the emphasized title with identical typography; they differ in **who labels the control**:
 
-- **`Choice.Label`** renders a real `<label htmlFor>`: the title _is_ the control's accessible name, and clicking it toggles the control. Use it for a standalone control (no `Field.Label`, no clickable row).
-- **`Choice.Title`** renders label-less text (a `<p>`): use it when an ancestor already owns the labeling and click target, such as a fully-clickable row or a `RadioGroup` item. This avoids nesting two `<label>`s or splitting the click target. (Inside a `Field` you usually still want `Choice.Label`, since it merges with the field's id and stays clickable.)
+- **`Choice.Label`** renders a real `<label htmlFor>`: the title _is_ the control's accessible name, and clicking it toggles the control. Use it for a standalone control (no `Field.Label`, no clickable row). Inside a `RadioGroup` item, it labels the item's radio.
+- **`Choice.Title`** renders label-less text (a `<p>`): use it when an ancestor already owns the labeling and click target, such as a fully-clickable row or a `RadioGroup` item. This avoids nesting two `<label>`s or splitting the click target. Inside a `RadioGroup` item, it registers itself as the radio's name. (Inside a `Field` you usually still want `Choice.Label`, since it merges with the field's id and stays clickable.)
 
 The example below is a fully-clickable row: the row's own `<label>` (sharing the control's `id`) owns the click, so the title is a `Choice.Title`.
 
