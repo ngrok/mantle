@@ -143,10 +143,15 @@ export const probes = {
 };
 `;
 
-// Minified code that reuses the names of its React imports for local functions and parameters.
-const MINIFIED = `import { cloneElement as l } from "react";
+// Minified code that reuses the names of its React imports for local functions, parameters, and
+// export names, and reads a React function by a computed key, as Radix does.
+const MINIFIED = `import * as t from "react";
+import { cloneElement as l } from "react";
 import { jsx as e } from "react/jsx-runtime";
 import { WarningIcon } from "@phosphor-icons/react/Warning";
+
+const use = t[" use ".trim().toString()];
+export { use as t };
 
 export const clone = (child) => l(child, {});
 export const local = (l) => {
@@ -253,6 +258,48 @@ const PROVIDER = `import { jsx as _jsx } from "react/jsx-runtime";
 import { IconContext } from "../node_modules/@phosphor-icons/react/dist/lib/context.es.js";
 
 export const Thin = ({ children }) => _jsx(IconContext.Provider, { value: { weight: "thin" }, children });
+`;
+
+// Clone calls that each set one more weight: through a React namespace that a parameter shadows, a
+// computed member, a destructured function, and a computed key.
+const CLONES = `import * as r from "react";
+import { cloneElement } from "react";
+import { CheckIcon } from "@phosphor-icons/react/Check";
+
+const { cloneElement: copy } = r;
+export const identity = (r) => r;
+export const thin = (child) => r.cloneElement(child, { weight: "thin" });
+export const filled = (child) => r["cloneElement"](child, { weight: "fill" });
+export const light = (child) => copy(child, { weight: "light" });
+export const duotone = (child, key) => cloneElement(child, { [key]: "duotone" });
+export const Bold = () => <CheckIcon weight="bold" />;
+export const probes = { Check: () => <CheckIcon /> };
+`;
+
+// An inner alias that reuses the name of the `IconContext` import.
+const SCOPED = `import { createElement as h } from "react";
+import { CheckIcon } from "@phosphor-icons/react/Check";
+import { IconContext as C } from "@phosphor-icons/react";
+
+export const Inner = () => {
+	const C = CheckIcon;
+	return h(C, { weight: "bold" });
+};
+export const Thin = () => h(C, { value: { weight: "thin" } }, h(CheckIcon, {}));
+export const probes = { Check: () => <CheckIcon /> };
+`;
+
+// Two installed copies of Phosphor. A module the analysis cannot read renders the first.
+const COPIES = `import { probe } from "./unread.js";
+import { CheckIcon } from "@phosphor-icons/react/Check";
+
+export const Bold = () => <CheckIcon weight="bold" />;
+export const probes = { Check: probe };
+`;
+const UNREAD = `import { jsx as _jsx } from "react/jsx-runtime";
+import { CheckIcon } from "../copy/node_modules/@phosphor-icons/react/dist/csr/Check.es.js";
+
+export const probe = () => _jsx(CheckIcon, {});
 `;
 
 // Phosphor exports `PulseIcon` also as `ActivityIcon`.
@@ -371,6 +418,16 @@ describe("mantlePhosphorPrunePlugin build", () => {
 			apps.reach = await buildApp({ "src/app.jsx": REACH, "src/path.js": PATH });
 			apps.renamed = await buildApp({ "src/app.jsx": RENAMED });
 			apps.context = await buildApp({ "src/app.jsx": CONTEXT, "src/provider.js": PROVIDER });
+			apps.clones = await buildApp({ "src/app.jsx": CLONES });
+			apps.scoped = await buildApp({ "src/app.jsx": SCOPED });
+			const phosphor = await realpath(path.join(packageRoot, "node_modules/@phosphor-icons/react"));
+			const copy = "copy/node_modules/@phosphor-icons/react/dist";
+			apps.copies = await buildApp({
+				"src/app.jsx": COPIES,
+				"src/unread.js": UNREAD,
+				[`${copy}/csr/Check.es.js`]: await readFile(`${phosphor}/dist/csr/Check.es.js`, "utf8"),
+				[`${copy}/defs/Check.es.js`]: await readFile(`${phosphor}/dist/defs/Check.es.js`, "utf8"),
+			});
 		}, 60_000);
 
 		/**
@@ -462,6 +519,18 @@ describe("mantlePhosphorPrunePlugin build", () => {
 			expect(await renderedWeights("reach", "Trash")).toEqual([...WEIGHTS]);
 		});
 
+		test("keeps the weights of clone calls through any React binding the module holds", async () => {
+			expect(await renderedWeights("clones", "Check")).toEqual([...WEIGHTS]);
+		});
+
+		test("reads an IconContext provider whose name an inner alias reuses", async () => {
+			expect(await renderedWeights("scoped", "Check")).toContain("thin");
+		});
+
+		test("keeps every weight of an icon that an unread module renders from another Phosphor copy", async () => {
+			expect(await renderedWeights("copies", "Check")).toEqual([...WEIGHTS]);
+		});
+
 		test("keeps every IconContext weight when an unread module imports IconContext", async () => {
 			expect(await renderedWeights("context", "Check")).toEqual([...WEIGHTS]);
 		});
@@ -487,7 +556,8 @@ describe("mantlePhosphorPrunePlugin build", () => {
 	test("keeps every weight and warns for an aliased import or cloneElement() in a read module", async () => {
 		const root = await makeRoot(
 			{
-				"src/app.jsx": `export { Mixed } from "./mixed.jsx";\nexport { Cloned } from "./cloned.jsx";\n`,
+				"src/app.jsx": `export { Mixed } from "./mixed.jsx";\nexport { Cloned } from "./cloned.jsx";\nexport { Shadowed } from "./shadowed.jsx";\n`,
+				"src/shadowed.jsx": `import { cloneElement as l } from "react";\nimport { CheckIcon } from "@phosphor-icons/react/Check";\n\nconst copy = l;\nexport const identity = (l) => l;\nexport const Shadowed = () => copy(<CheckIcon weight="bold" />, { weight: "fill" });\n`,
 				"src/mixed.jsx": `import { CheckIcon } from "@phosphor-icons/react/Check";\nimport { CheckIcon as Same } from "../node_modules/@phosphor-icons/react/dist/csr/Check.es.js";\n\nexport const Mixed = () => [<CheckIcon weight="bold" />, <Same weight="thin" />];\n`,
 				"src/cloned.jsx": `import { cloneElement } from "react";\nimport { CheckIcon } from "@phosphor-icons/react/Check";\n\nconst duplicate = cloneElement;\nexport const Cloned = () => duplicate(<CheckIcon weight="bold" />, { weight: "fill" });\n`,
 			},
@@ -495,7 +565,7 @@ describe("mantlePhosphorPrunePlugin build", () => {
 		);
 		const output = await bundlers.vite(root);
 
-		for (const file of ["src/mixed.jsx", "src/cloned.jsx"]) {
+		for (const file of ["src/mixed.jsx", "src/cloned.jsx", "src/shadowed.jsx"]) {
 			expect(output.warnings).toContainEqual(
 				expect.stringContaining(`${file} uses Phosphor icons in a way this plugin cannot read`),
 			);

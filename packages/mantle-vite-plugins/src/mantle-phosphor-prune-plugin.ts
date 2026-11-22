@@ -6,9 +6,11 @@ import {
 	type ArrayExpression,
 	type BindingPattern,
 	type Expression,
+	type IdentifierName,
 	type JSXAttributeItem,
 	type JSXElementName,
 	type ParamPattern,
+	type PrivateIdentifier,
 	type ObjectPropertyKind,
 } from "oxc-parser";
 import type { Plugin } from "vite";
@@ -87,7 +89,10 @@ const unwrap = (node: Expression): Expression =>
 		: node;
 
 /** The strings an expression can evaluate to, or null when it is not a static string. */
-function staticStrings(expression: Expression): string[] | null {
+function staticStrings(expression: Expression | PrivateIdentifier): string[] | null {
+	if (expression.type === "PrivateIdentifier") {
+		return null;
+	}
 	const node = unwrap(expression);
 	if (node.type === "Literal") {
 		return typeof node.value === "string" ? [node.value] : null;
@@ -234,6 +239,26 @@ function patternNames(pattern: BindingPattern | ParamPattern | null | undefined)
 	}
 }
 
+/**
+ * The names a property or member key can be: its name, its string, or the strings a computed key
+ * evaluates to. Null when a computed key is not static.
+ */
+function keyNames({
+	key,
+	computed,
+}: {
+	key: Expression | IdentifierName | PrivateIdentifier;
+	computed: boolean;
+}): string[] | null {
+	if (computed && key.type !== "Identifier") {
+		return staticStrings(key);
+	}
+	if (key.type === "Identifier") {
+		return computed ? null : [key.name];
+	}
+	return key.type === "Literal" ? [String(key.value)] : null;
+}
+
 /** The parser language of a module path; any other source parses as JavaScript with JSX. */
 function langOf(path: string): "ts" | "tsx" | "jsx" {
 	if (path.endsWith(".tsx")) {
@@ -249,27 +274,6 @@ function calleeOf(callee: Expression): Expression {
 	const node = unwrap(callee);
 	const last = node.type === "SequenceExpression" ? node.expressions.at(-1) : undefined;
 	return last == null ? node : calleeOf(last);
-}
-
-/**
- * What a function does when it is a React function: an imported `jsx`, `createElement`,
- * `cloneElement`, `use`, or `useContext`, or a member of a React namespace import, such as
- * `React.createElement` or the compiled `r.jsx`. A local function with the same name is not one.
- */
-function reactFunction(
-	node: Expression,
-	bindings: Map<string, "render" | "clone" | "read">,
-	namespaces: Set<string>,
-): "render" | "clone" | "read" | null {
-	if (node.type === "Identifier") {
-		return bindings.get(node.name) ?? null;
-	}
-	return node.type === "MemberExpression" &&
-		!node.computed &&
-		node.object.type === "Identifier" &&
-		namespaces.has(node.object.name)
-		? (REACT_CALLS.get(node.property.name) ?? null)
-		: null;
 }
 
 const iconName = (subpath: string | undefined, importedName: string): string | null => {
@@ -451,44 +455,144 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 		}
 	}
 
-	// Why: the analysis has no scopes, and a minifier reuses short names, so a React import whose
-	// name the module declares again can be another function in some scope. Its calls are no
-	// renders, so the icons they get keep every weight. A clone call still adds its weights.
-	const declared = new Set<string>();
-	const declare = (patterns: Array<BindingPattern | ParamPattern | null | undefined>) => {
+	/**
+	 * The source ranges of the scopes that declare an import name again, such as a parameter that
+	 * reuses the short name of a minified React import. A reference in such a range is not the import.
+	 */
+	const importNames = new Set([
+		...icons.keys(),
+		...contexts,
+		...reactBindings.keys(),
+		...reactNamespaces,
+	]);
+	const shadows = new Map<string, Array<[number, number]>>();
+	const shadow = (
+		patterns: Array<BindingPattern | ParamPattern | null | undefined>,
+		start: number,
+		end: number,
+	) => {
 		for (const name of patterns.flatMap(patternNames)) {
-			declared.add(name);
+			if (importNames.has(name)) {
+				shadows.set(name, [...(shadows.get(name) ?? []), [start, end]]);
+			}
 		}
 	};
+	const scopes: Array<{ start: number; end: number; function: boolean }> = [];
+	const declarations: Array<{ patterns: BindingPattern[]; at: number; var: boolean }> = [];
+	const scope = (node: { start: number; end: number }) => {
+		scopes.push({ start: node.start, end: node.end, function: false });
+	};
 	new Visitor({
-		VariableDeclarator: (node) => declare([node.id]),
-		FunctionDeclaration: (node) => declare([node.id, ...node.params]),
-		FunctionExpression: (node) => declare([node.id, ...node.params]),
-		ArrowFunctionExpression: (node) => declare(node.params),
-		ClassDeclaration: (node) => declare([node.id]),
-		ClassExpression: (node) => declare([node.id]),
-		CatchClause: (node) => declare([node.param]),
+		FunctionDeclaration(node) {
+			scopes.push({ start: node.start, end: node.end, function: true });
+			shadow(node.params, node.start, node.end);
+			declarations.push({ patterns: node.id == null ? [] : [node.id], at: node.start, var: false });
+		},
+		FunctionExpression(node) {
+			scopes.push({ start: node.start, end: node.end, function: true });
+			shadow([node.id, ...node.params], node.start, node.end);
+		},
+		ArrowFunctionExpression(node) {
+			scopes.push({ start: node.start, end: node.end, function: true });
+			shadow(node.params, node.start, node.end);
+		},
+		BlockStatement: scope,
+		StaticBlock: scope,
+		SwitchStatement: scope,
+		ForStatement: scope,
+		ForInStatement: scope,
+		ForOfStatement: scope,
+		CatchClause: (node) => shadow([node.param], node.start, node.end),
+		ClassDeclaration: (node) =>
+			declarations.push({ patterns: node.id == null ? [] : [node.id], at: node.start, var: false }),
+		ClassExpression: (node) => shadow([node.id], node.start, node.end),
+		VariableDeclaration: (node) =>
+			declarations.push({
+				patterns: node.declarations.map((declaration) => declaration.id),
+				at: node.start,
+				var: node.kind === "var",
+			}),
 	}).visit(program);
-	for (const name of reactNamespaces) {
-		if (declared.has(name)) {
-			reactNamespaces.delete(name);
+	for (const declaration of declarations) {
+		// The nearest scope that holds the declaration: a function for `var`, else any block. A
+		// declaration at the top level names the import itself, which is a syntax error.
+		let nearest: { start: number; end: number } | null = null;
+		for (const candidate of scopes) {
+			if (
+				candidate.start < declaration.at &&
+				declaration.at < candidate.end &&
+				(candidate.function || !declaration.var) &&
+				(nearest == null || candidate.end - candidate.start < nearest.end - nearest.start)
+			) {
+				nearest = candidate;
+			}
+		}
+		if (nearest != null) {
+			shadow(declaration.patterns, nearest.start, nearest.end);
 		}
 	}
-	for (const [name, kind] of reactBindings) {
-		if (declared.has(name) && kind !== "clone") {
-			reactBindings.delete(name);
+	/** Whether a reference reads the import of its name, not a binding of an inner scope. */
+	const isImport = (node: { name: string; start: number }) =>
+		!(shadows.get(node.name) ?? []).some(([start, end]) => start <= node.start && node.start < end);
+	/** The local names that a destructuring of a React namespace binds to `cloneElement`. */
+	const clones = new Set<string>();
+
+	/**
+	 * What a function does when it is a React function: an imported `jsx`, `createElement`,
+	 * `cloneElement`, `use`, or `useContext`, or a member of a React namespace import, such as
+	 * `React.createElement` or the compiled `r.jsx`. A member the analysis cannot name is unknown.
+	 */
+	const reactFunction = (node: Expression): "render" | "clone" | "read" | "unknown" | null => {
+		if (node.type === "Identifier") {
+			if (clones.has(node.name)) {
+				return "clone";
+			}
+			return isImport(node) ? (reactBindings.get(node.name) ?? null) : null;
 		}
-	}
+		if (
+			node.type !== "MemberExpression" ||
+			node.object.type !== "Identifier" ||
+			!reactNamespaces.has(node.object.name) ||
+			!isImport(node.object)
+		) {
+			return null;
+		}
+		const key = keyNames({ key: node.property, computed: node.computed });
+		return key?.length === 1 ? (REACT_CALLS.get(key[0] ?? "") ?? null) : "unknown";
+	};
+	new Visitor({
+		VariableDeclarator(node) {
+			const init = node.init == null ? null : unwrap(node.init);
+			if (init?.type !== "Identifier" || !reactNamespaces.has(init.name) || !isImport(init)) {
+				return;
+			}
+			// Why: `const { cloneElement: copy } = React` makes `copy` a clone function. Another
+			// pattern can hold any React function, so the analysis cannot follow it.
+			for (const property of node.id.type === "ObjectPattern" ? node.id.properties : [null]) {
+				const key = property?.type === "Property" ? keyNames(property) : null;
+				if (key?.length !== 1) {
+					usage.all = true;
+				} else if (REACT_CALLS.get(key[0] ?? "") === "clone" && property?.type === "Property") {
+					for (const name of patternNames(property.value)) {
+						clones.add(name);
+					}
+				}
+			}
+		},
+	}).visit(program);
 
 	const handled = new Set<unknown>();
-	// Why imports only: the analysis has no scopes, so an alias of an alias can read a binding of
+	// Why imports only: aliases merge by name, so an alias of an alias can read a binding of
 	// another scope. Such a read stays a plain reference, which keeps every weight.
 	const imported = new Set(icons.keys());
+	/** The icons a reference names: an imported icon, or an alias by its name. */
+	const iconsOf = (node: { name: string; start: number }) =>
+		!imported.has(node.name) || isImport(node) ? icons.get(node.name) : undefined;
 	/** The imported icons an alias initializer reads, or null when it reads anything else. */
 	const aliasedIcons = (init: Expression): Expression[] | null => {
 		const node = unwrap(init);
 		if (node.type === "Identifier") {
-			return imported.has(node.name) ? [node] : null;
+			return imported.has(node.name) && isImport(node) ? [node] : null;
 		}
 		if (node.type === "ConditionalExpression") {
 			const consequent = aliasedIcons(node.consequent);
@@ -510,14 +614,14 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 			const declarations = node.kind === "const" && !exported.has(node) ? node.declarations : [];
 			for (const declaration of declarations) {
 				const reads = declaration.init == null ? null : aliasedIcons(declaration.init);
-				// Why not an import name: the analysis has no scopes, so it would read the alias as
-				// the import everywhere. Such an alias stays a plain reference to the icons it reads.
+				// Why not an import name: aliases merge by name, so the alias would read as the import
+				// in every scope. Such an alias stays a plain reference to the icons it reads.
 				if (
 					reads != null &&
 					declaration.id.type === "Identifier" &&
-					!imported.has(declaration.id.name)
+					!importNames.has(declaration.id.name)
 				) {
-					// Why the merge: the analysis has no scopes, so two aliases with one name keep both icons.
+					// Why the merge: aliases have no scopes, so two aliases with one name keep both icons.
 					icons.set(declaration.id.name, [
 						...(icons.get(declaration.id.name) ?? []),
 						...reads.flatMap((read) =>
@@ -537,14 +641,16 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 		name: JSXElementName | Expression,
 	): { kind: "icon"; names: string[] } | { kind: "context" } | null => {
 		const names =
-			name.type === "JSXIdentifier" || name.type === "Identifier"
-				? icons.get(name.name)
-				: undefined;
+			name.type === "JSXIdentifier" || name.type === "Identifier" ? iconsOf(name) : undefined;
 		if (names != null) {
 			handled.add(name);
 			return { kind: "icon", names };
 		}
-		if ((name.type === "JSXIdentifier" || name.type === "Identifier") && contexts.has(name.name)) {
+		if (
+			(name.type === "JSXIdentifier" || name.type === "Identifier") &&
+			contexts.has(name.name) &&
+			isImport(name)
+		) {
 			handled.add(name);
 			return { kind: "context" };
 		}
@@ -558,7 +664,8 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 		if (
 			member != null &&
 			(member.type === "JSXIdentifier" || member.type === "Identifier") &&
-			contexts.has(member.name)
+			contexts.has(member.name) &&
+			isImport(member)
 		) {
 			handled.add(member);
 			return { kind: "context" };
@@ -575,12 +682,19 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 				}
 			}
 		},
+		ExportSpecifier(node) {
+			// Why: the exported name is no reference to a binding.
+			handled.add(node.exported);
+		},
 		MemberExpression(node) {
 			if (!node.computed) {
 				handled.add(node.property);
 			}
+			if (node.object.type === "Identifier" && reactNamespaces.has(node.object.name)) {
+				handled.add(node.object);
+			}
 			// Why: a clone function in a variable can set a weight that the analysis does not see.
-			if (!handled.has(node) && reactFunction(node, reactBindings, reactNamespaces) === "clone") {
+			if (!handled.has(node) && reactFunction(node) === "clone") {
 				usage.all = true;
 			}
 		},
@@ -606,24 +720,26 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 				return;
 			}
 			const callee = calleeOf(node.callee);
-			const kind = reactFunction(callee, reactBindings, reactNamespaces);
+			const kind = reactFunction(callee);
 			if (kind != null) {
 				handled.add(callee);
 			}
 			if (kind === "read") {
 				const target = unwrap(first);
-				if (target.type === "Identifier" && contexts.has(target.name)) {
+				if (target.type === "Identifier" && contexts.has(target.name) && isImport(target)) {
 					handled.add(target);
 				}
 				return;
 			}
-			if (kind === "clone") {
+			// Why unknown: a call such as `React[name](child, props)` can be a clone. Code such as
+			// Radix reads `React[" use ".trim()]`, so a read alone does not keep every weight.
+			if (kind === "clone" || kind === "unknown") {
 				const props = second == null || second.type === "SpreadElement" ? null : unwrap(second);
 				for (const property of props?.type === "ObjectExpression" ? props.properties : []) {
+					// Why: a computed key that the analysis cannot read can be `weight`.
+					const key = property.type === "Property" ? keyNames(property) : [];
 					const weights =
-						property.type === "Property" &&
-						((property.key.type === "Identifier" && property.key.name === "weight") ||
-							(property.key.type === "Literal" && property.key.value === "weight"))
+						property.type === "Property" && (key == null || key.includes("weight"))
 							? staticStrings(property.value)
 							: [];
 					if (weights == null) {
@@ -666,15 +782,21 @@ function collectUsage(code: string, id: string): ModuleUsage | null {
 			if (handled.has(node)) {
 				return;
 			}
-			if (reactBindings.get(node.name) === "clone" && !declared.has(node.name)) {
+			// Why: a clone function or a React namespace in a variable can set a weight that the
+			// analysis does not see.
+			if (
+				clones.has(node.name) ||
+				((reactBindings.get(node.name) === "clone" || reactNamespaces.has(node.name)) &&
+					isImport(node))
+			) {
 				usage.all = true;
 			}
-			const names = icons.get(node.name);
+			const names = iconsOf(node);
 			if (names != null) {
 				for (const name of names) {
 					addIconWeights(name, { kind: "all" });
 				}
-			} else if (contexts.has(node.name)) {
+			} else if (contexts.has(node.name) && isImport(node)) {
 				usage.contextAll = true;
 			}
 		},
@@ -884,7 +1006,7 @@ function mantlePhosphorPrunePlugin(): Plugin {
 	/** The state of each build, by Vite environment, because environments can build at once. */
 	const builds = new Map<
 		string,
-		{ usages: Map<string, ModuleUsage>; icons: Map<string, string> }
+		{ usages: Map<string, ModuleUsage>; icons: Map<string, string[]> }
 	>();
 	const build = (environment: { name: string } | undefined) => {
 		const name = environment?.name ?? "";
@@ -892,8 +1014,8 @@ function mantlePhosphorPrunePlugin(): Plugin {
 		if (existing != null) {
 			return existing;
 		}
-		// The usage of each module, and the weight module of each icon.
-		const created = { usages: new Map<string, ModuleUsage>(), icons: new Map<string, string>() };
+		// The usage of each module, and the weight modules of each icon, one for each Phosphor copy.
+		const created = { usages: new Map<string, ModuleUsage>(), icons: new Map<string, string[]>() };
 		builds.set(name, created);
 		return created;
 	};
@@ -918,7 +1040,7 @@ function mantlePhosphorPrunePlugin(): Plugin {
 				const weightModule = WEIGHT_MODULE_RE.exec(id);
 				if (weightModule != null) {
 					const icon = weightModule[1] ?? "";
-					icons.set(icon, id);
+					icons.set(icon, [...(icons.get(icon) ?? []), id]);
 					const marked = markWeights(code, icon);
 					if (marked == null) {
 						this.warn(
@@ -984,7 +1106,7 @@ function mantlePhosphorPrunePlugin(): Plugin {
 				return false;
 			};
 			const unread = new Set(
-				[...icons].filter(([, id]) => reachedUnread(id)).map(([icon]) => icon),
+				[...icons].filter(([, ids]) => ids.some(reachedUnread)).map(([icon]) => icon),
 			);
 			// Why: an unread module can set any `IconContext` weight.
 			if ([...live].some((id) => CONTEXT_MODULE_RE.test(id) && reachedUnread(id))) {
