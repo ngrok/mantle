@@ -693,8 +693,11 @@ describe("AppLayout.SidePanel", () => {
 			</TooltipProvider>,
 		);
 		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
-		// The part's slot, then IconButton's own.
-		expect(trigger).toHaveAttribute("data-slot", "app-layout-side-panel-trigger icon-button");
+		// Tooltip.Trigger's slot, the part's slot, then IconButton's own.
+		expect(trigger).toHaveAttribute(
+			"data-slot",
+			"tooltip-trigger app-layout-side-panel-trigger icon-button",
+		);
 		expect(trigger).toHaveAttribute("data-appearance", "ghost");
 		expect(trigger).toHaveAttribute("data-intent", "neutral");
 		// Why "sm": the part overrides IconButton's own "md" default, so the
@@ -743,8 +746,8 @@ describe("AppLayout.SidePanel", () => {
 		);
 		expect(screen.getByRole("button", { name: "Toggle the assistant" })).toHaveAttribute(
 			"data-slot",
-			// The ancestor's chain, the part's slot, then IconButton's own.
-			"app-shell app-layout-side-panel-trigger icon-button",
+			// Tooltip.Trigger's slot, the ancestor's chain, the part's slot, then IconButton's own.
+			"tooltip-trigger app-shell app-layout-side-panel-trigger icon-button",
 		);
 	});
 

@@ -13,12 +13,14 @@ let styleElement: HTMLStyleElement;
 // component's real utilities, the segments lay out as plain inline text.
 beforeAll(async () => {
 	styleElement = document.createElement("style");
-	// Why border-box: Tailwind's preflight sets it, and the tooltip's `max-width`
-	// holds its padding only under it.
+	// Why border-box and no border: Tailwind's preflight sets both. The tooltip's
+	// `max-width` holds its padding only under border-box, and the browser gives
+	// a `[popover]` a border of its own.
 	styleElement.textContent = [
-		"*, ::before, ::after { box-sizing: border-box; }",
+		"*, ::before, ::after { box-sizing: border-box; border: 0 solid; }",
 		await commands.tailwindCss("./truncated-text.tsx"),
 		await commands.tailwindCss("../tooltip/tooltip.tsx"),
+		await commands.tailwindCss("../../utils/float/use-float.ts"),
 	].join("\n");
 	document.head.appendChild(styleElement);
 });

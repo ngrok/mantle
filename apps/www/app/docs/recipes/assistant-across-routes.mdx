@@ -184,9 +184,8 @@ export default function Layout({ loaderData }: Route.ComponentProps) {
 }
 ```
 
-`Sidebar.Tooltip` and the panel's tooltips need a
-[`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) ancestor, so mount one at the app root,
-above this layout. `Tooltip.Root` throws without it.
+A [`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) at the app root sets the delay for
+`Sidebar.Tooltip` and the panel's tooltips. It is optional.
 
 The assistant's route module renders the page and nothing else. A product page renders
 `AppLayout.SidePanelTrigger` in its `AppLayout.HeaderActions`, the way the

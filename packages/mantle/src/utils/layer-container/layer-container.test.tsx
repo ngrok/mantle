@@ -391,33 +391,6 @@ describe("layer containers", () => {
 	});
 
 	describe("explicit container escape hatches", () => {
-		test("HoverCard.Portal's container prop wins over the layer container", async () => {
-			const external = document.createElement("div");
-			external.dataset.testid = "external";
-			document.body.appendChild(external);
-
-			render(
-				<Dialog.Root open>
-					<Dialog.Content>
-						<Dialog.Title>Overlay</Dialog.Title>
-						<Dialog.Body>
-							<HoverCard.Root open>
-								<HoverCard.Trigger>anchor</HoverCard.Trigger>
-								<HoverCard.Portal container={external}>
-									<HoverCard.Content>float content</HoverCard.Content>
-								</HoverCard.Portal>
-							</HoverCard.Root>
-						</Dialog.Body>
-					</Dialog.Content>
-				</Dialog.Root>,
-			);
-
-			const floatContent = await screen.findByText("float content");
-			expect(external.contains(floatContent)).toBe(true);
-
-			external.remove();
-		});
-
 		test("Dialog.Portal's container prop wins over the layer container", async () => {
 			const external = document.createElement("div");
 			document.body.appendChild(external);
@@ -438,124 +411,104 @@ describe("layer containers", () => {
 	});
 
 	describe("floats inside a Popover", () => {
-		// Floats do not register a layer container of their own, so a float
-		// composed inside a popover shares the popover's container. It mounts
-		// later, so within that shared container it paints above the popover.
+		// Popover.Content is a layer container: it paints in the top layer, so a
+		// float composed inside it must portal into it. A Radix float at `z-50`
+		// on `document.body` would paint under the top layer.
+		const nestedFloats = [
+			...floats.map((float) => ({
+				name: float.name,
+				render: float.render,
+				open: float.open,
+				findContent: float.findContent,
+			})),
+			{
+				name: "MultiSelect",
+				render: () => (
+					<MultiSelect.Root>
+						<MultiSelect.Trigger>
+							<MultiSelect.TagValues />
+							<MultiSelect.Input placeholder="Select items..." />
+						</MultiSelect.Trigger>
+						<MultiSelect.Content>
+							<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+						</MultiSelect.Content>
+					</MultiSelect.Root>
+				),
+				open: async (user: ReturnType<typeof userEvent.setup>) => {
+					await user.click(await screen.findByPlaceholderText("Select items..."));
+				},
+				findContent: () => screen.findByRole("listbox"),
+			},
+			{
+				name: "Combobox",
+				render: () => (
+					<Combobox.Root>
+						<Combobox.Input aria-label="Fruit" />
+						<Combobox.Content>
+							<Combobox.Item value="Apple" />
+						</Combobox.Content>
+					</Combobox.Root>
+				),
+				open: async (user: ReturnType<typeof userEvent.setup>) => {
+					await user.click(screen.getByRole("combobox", { name: "Fruit" }));
+					await user.keyboard("App");
+				},
+				findContent: () => screen.findByRole("listbox"),
+			},
+		];
 
-		test("a Select inside a base popover shares the popover's container and follows it", async () => {
-			const user = userEvent.setup();
-			render(
-				<Popover.Root>
-					<Popover.Trigger>Open host</Popover.Trigger>
-					<Popover.Content>
-						<Select.Root>
-							<Select.Trigger aria-label="Open float" />
-							<Select.Content>
-								<Select.Item value="a">float content</Select.Item>
-							</Select.Content>
-						</Select.Root>
-					</Popover.Content>
-				</Popover.Root>,
-			);
-
-			await user.click(screen.getByRole("button", { name: "Open host" }));
-			await user.click(await screen.findByRole("combobox", { name: "Open float" }));
-			const listbox = await screen.findByRole("listbox");
-
-			const popoverContent = getPositioner("popover-content");
-			expect(popoverContent.contains(listbox)).toBe(false);
-			// Later body sibling at the same tier: the select paints above the
-			// popover that spawned it.
-			expect(
-				popoverContent.compareDocumentPosition(listbox) & Node.DOCUMENT_POSITION_FOLLOWING,
-			).toBeTruthy();
-		});
-
-		test("a DropdownMenu inside a base popover shares the popover's container and follows it", async () => {
-			const user = userEvent.setup();
-			render(
-				<Popover.Root>
-					<Popover.Trigger>Open host</Popover.Trigger>
-					<Popover.Content>
-						<DropdownMenu.Root>
-							<DropdownMenu.Trigger>Open float</DropdownMenu.Trigger>
-							<DropdownMenu.Content>
-								<DropdownMenu.Item>float content</DropdownMenu.Item>
-							</DropdownMenu.Content>
-						</DropdownMenu.Root>
-					</Popover.Content>
-				</Popover.Root>,
-			);
-
-			await user.click(screen.getByRole("button", { name: "Open host" }));
-			await user.click(await screen.findByRole("button", { name: "Open float" }));
-			const menu = await screen.findByRole("menu");
-
-			const popoverContent = getPositioner("popover-content");
-			expect(popoverContent.contains(menu)).toBe(false);
-			expect(
-				popoverContent.compareDocumentPosition(menu) & Node.DOCUMENT_POSITION_FOLLOWING,
-			).toBeTruthy();
-		});
-
-		test("a Tooltip inside a base popover shares the popover's container and follows it", async () => {
-			const user = userEvent.setup();
-			render(
-				<TooltipProvider>
+		for (const float of nestedFloats) {
+			test(`a ${float.name} inside a popover portals into the popover content`, async () => {
+				const user = userEvent.setup();
+				render(
 					<Popover.Root>
 						<Popover.Trigger>Open host</Popover.Trigger>
 						<Popover.Content>
-							<Tooltip.Root open>
-								<Tooltip.Trigger>anchor</Tooltip.Trigger>
-								<Tooltip.Content>float content</Tooltip.Content>
-							</Tooltip.Root>
+							<p>host content</p>
+							{float.render()}
 						</Popover.Content>
-					</Popover.Root>
-				</TooltipProvider>,
-			);
+					</Popover.Root>,
+				);
 
-			await user.click(screen.getByRole("button", { name: "Open host" }));
-			const contents = await screen.findAllByText("float content");
-			const tooltipContent = contents.find((element) =>
-				element.closest("[data-slot='tooltip-content']"),
-			);
-			if (tooltipContent == null) {
-				throw new Error("no tooltip content with data-slot rendered");
-			}
+				await user.click(screen.getByRole("button", { name: "Open host" }));
+				await float.open(user);
+				const floatContent = await float.findContent();
 
-			const popoverContent = getPositioner("popover-content");
-			expect(popoverContent.contains(tooltipContent)).toBe(false);
-			expect(
-				popoverContent.compareDocumentPosition(tooltipContent) & Node.DOCUMENT_POSITION_FOLLOWING,
-			).toBeTruthy();
-		});
+				const host = screen.getByText("host content").closest("[data-slot='popover-content']");
+				expect(host?.contains(floatContent)).toBe(true);
+			});
+		}
 
-		test("a Popover inside a popover shares the outer popover's container and follows it", async () => {
+		test("a popover beside a dialog inside a popover portals into the popover, not the dialog", async () => {
 			const user = userEvent.setup();
-			render(
+			const Host = ({ siblingOpen }: { siblingOpen: boolean }) => (
 				<Popover.Root>
 					<Popover.Trigger>Open host</Popover.Trigger>
 					<Popover.Content>
-						<Popover.Root>
-							<Popover.Trigger>Open float</Popover.Trigger>
-							<Popover.Content>float content</Popover.Content>
+						<p>host content</p>
+						<Dialog.Root open>
+							<Dialog.Content>
+								<Dialog.Title>Nested dialog</Dialog.Title>
+							</Dialog.Content>
+						</Dialog.Root>
+						<Popover.Root open={siblingOpen}>
+							<Popover.Trigger>Sibling</Popover.Trigger>
+							<Popover.Content>sibling content</Popover.Content>
 						</Popover.Root>
 					</Popover.Content>
-				</Popover.Root>,
+				</Popover.Root>
 			);
-
+			const { rerender } = render(<Host siblingOpen={false} />);
 			await user.click(screen.getByRole("button", { name: "Open host" }));
-			await user.click(await screen.findByRole("button", { name: "Open float" }));
-			const innerContent = await screen.findByText("float content");
+			await screen.findByRole("heading", { name: "Nested dialog" });
 
-			const contents = document.querySelectorAll("[data-slot='popover-content']");
-			expect(contents).toHaveLength(2);
-			const outer = contents[0];
-			expect(outer != null && outer.contains(innerContent)).toBe(false);
-			expect(
-				outer != null &&
-					(outer.compareDocumentPosition(innerContent) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0,
-			).toBe(true);
+			// The sibling opens while the dialog is open.
+			rerender(<Host siblingOpen />);
+			const sibling = await screen.findByText("sibling content");
+
+			expect(sibling.closest("[data-mantle-modal-content]")).toBeNull();
+			const host = screen.getByText("host content").closest("[data-slot='popover-content']");
+			expect(host?.contains(sibling)).toBe(true);
 		});
 
 		test("a Select inside a popover inside a dialog portals into the dialog's positioner", async () => {
@@ -586,56 +539,6 @@ describe("layer containers", () => {
 			expect(
 				popoverContent.compareDocumentPosition(listbox) & Node.DOCUMENT_POSITION_FOLLOWING,
 			).toBeTruthy();
-		});
-
-		test("a HoverCard inside a base popover shares the popover's container and follows it", async () => {
-			const user = userEvent.setup();
-			render(
-				<Popover.Root>
-					<Popover.Trigger>Open host</Popover.Trigger>
-					<Popover.Content>
-						<HoverCard.Root open>
-							<HoverCard.Trigger>anchor</HoverCard.Trigger>
-							<HoverCard.Content>float content</HoverCard.Content>
-						</HoverCard.Root>
-					</Popover.Content>
-				</Popover.Root>,
-			);
-
-			await user.click(screen.getByRole("button", { name: "Open host" }));
-			const hoverCardContent = await screen.findByText("float content");
-
-			const popoverContent = getPositioner("popover-content");
-			expect(popoverContent.contains(hoverCardContent)).toBe(false);
-			expect(
-				popoverContent.compareDocumentPosition(hoverCardContent) & Node.DOCUMENT_POSITION_FOLLOWING,
-			).toBeTruthy();
-		});
-
-		test("a MultiSelect inside a base popover portals to document.body", async () => {
-			const user = userEvent.setup();
-			render(
-				<Popover.Root>
-					<Popover.Trigger>Open host</Popover.Trigger>
-					<Popover.Content>
-						<MultiSelect.Root>
-							<MultiSelect.Trigger>
-								<MultiSelect.TagValues />
-								<MultiSelect.Input placeholder="Select items..." />
-							</MultiSelect.Trigger>
-							<MultiSelect.Content>
-								<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
-							</MultiSelect.Content>
-						</MultiSelect.Root>
-					</Popover.Content>
-				</Popover.Root>,
-			);
-
-			await user.click(screen.getByRole("button", { name: "Open host" }));
-			await user.click(await screen.findByPlaceholderText("Select items..."));
-			const popup = await screen.findByRole("listbox");
-
-			expect(getPositioner("popover-content").contains(popup)).toBe(false);
 		});
 
 		test("a MultiSelect inside a popover inside a dialog portals into the dialog's positioner", async () => {

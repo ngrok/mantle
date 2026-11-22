@@ -3,10 +3,12 @@
 import {
 	createContext,
 	type ComponentProps,
+	type RefObject,
 	useContext,
 	useEffect,
 	useLayoutEffect,
 	useState,
+	useSyncExternalStore,
 } from "react";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { useComposedRefs } from "../compose-refs/use-composed-refs.js";
@@ -129,6 +131,16 @@ type OpenOverlay = {
  */
 const openOverlays: OpenOverlay[] = [];
 
+/** Listeners that run when an overlay opens or closes. */
+const overlayListeners = new Set<() => void>();
+
+function subscribeToOverlays(listener: () => void): () => void {
+	overlayListeners.add(listener);
+	return () => {
+		overlayListeners.delete(listener);
+	};
+}
+
 /**
  * Registers an open overlay, so a float it covers can hand it Escape, and so
  * the overlay on top can find a frame that covers it. Pass `null` for
@@ -152,10 +164,46 @@ function useRegisterOverlay({
 		}
 		const overlay: OpenOverlay = { container, content, escape: stableEscape };
 		openOverlays.push(overlay);
+		for (const listener of overlayListeners) {
+			listener();
+		}
 		return () => {
 			openOverlays.splice(openOverlays.indexOf(overlay), 1);
+			for (const listener of overlayListeners) {
+				listener();
+			}
 		};
 	}, [container, content, stableEscape]);
+}
+
+/**
+ * Whether the top open overlay covers a float that sits in `floatContainer`.
+ * A native float paints in the top layer, above every overlay, so a covered
+ * float must not show: it would paint over a dialog that hides its anchor. An
+ * overlay that opened from inside the float (`float`) does not cover it.
+ *
+ * @example
+ * ```tsx
+ * const covered = useIsCoveredByOverlay(useLayerContainer(), floatRef);
+ * const visible = open && !covered;
+ * ```
+ */
+function useIsCoveredByOverlay(
+	floatContainer: Element | DocumentFragment | null,
+	float: RefObject<HTMLElement | null>,
+): boolean {
+	return useSyncExternalStore(
+		subscribeToOverlays,
+		() => {
+			const topOverlay = openOverlays.at(-1);
+			return (
+				topOverlay != null &&
+				coversFloat(topOverlay, floatContainer) &&
+				float.current?.contains(topOverlay.container) !== true
+			);
+		},
+		() => false,
+	);
 }
 
 /**
@@ -387,6 +435,7 @@ export {
 	LayerContainerContext,
 	useFloatEscapeKeyDown,
 	useFloatOpenAutoFocus,
+	useIsCoveredByOverlay,
 	useIsInsideModalLayer,
 	useLayerContainer,
 	useRegisterOverlay,

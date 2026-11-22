@@ -32,7 +32,7 @@ in `AppLayout.HeaderStart`. The
 business: the shell markup does not change, and the sidebar shares the shell's `bg-base` surface, so the card
 gutter shows no seam. Every row here is wrapped in
 [`Sidebar.Tooltip`](/components/navigation/sidebar#sidebartooltip), which is what labels the sidebar for
-pointer users once it collapses; it needs a `TooltipProvider` ancestor, which a real app mounts at its root.
+pointer users once it collapses.
 The demo runs in its own framed document, exactly like a real app: collapse
 the sidebar to its icons with the trigger (or <kbd translate="no">⌘B</kbd>/<kbd translate="no">Ctrl+B</kbd>; the shortcut binds to
 the frame, not this page), hover a row to see its tooltip, and reopen it the same way, toggle the
@@ -496,9 +496,7 @@ function PageActions({ actions }: { actions: ReadonlyArray<PageAction> }) {
 export function Shell() {
 	// the framed examples fake a router so they can be embedded; a real app
 	// renders react-router `Link`s through `asChild` and derives both `current`
-	// and which section is showing from `useLocation()`. The rows'
-	// `Sidebar.Tooltip`s need a `TooltipProvider` ancestor. The docs site mounts
-	// one at its root, so mount one at yours too.
+	// and which section is showing from `useLocation()`.
 	const [pathname, setPathname] = useState("/endpoints");
 	// where the settings section's back link returns to: the product page you
 	// left. A real app reads this from router history or a fixed section parent.
@@ -2503,9 +2501,7 @@ toggles the sidebar. Renders a small ghost neutral [`IconButton`](/components/ac
 to open the panel, and one more in `AppLayout.SidePanelHeader` with a close icon to close it from inside:
 when that one closes the panel, the root moves focus to the one outside.
 
-The button is icon-only, so it always renders a tooltip showing `label`. **That means it requires a
-`TooltipProvider` ancestor, like any `Tooltip.Root`, and throws without one.** Mount a single provider at
-your app root. It does not take `asChild`; a custom trigger composes the same state from
+The button is icon-only, so it always renders a tooltip showing `label`. It does not take `asChild`; a custom trigger composes the same state from
 [`useSidePanel`](#usesidepanel).
 
 All props from [`IconButton`](/components/actions/icon-button#api-reference) except `asChild` and `children`, with these defaults:

@@ -604,6 +604,14 @@ export const migrations = [
 			"MultiSelect no longer uses Ariakit. Its parts take a fixed set of props, the list portals into the layer container, and the highlighted item carries data-highlighted.",
 		route: "/migrations/0019-multi-select-owned-behavior-migration",
 	},
+	{
+		number: 20,
+		slug: "native-floats-migration",
+		title: "Native Floats",
+		description:
+			"Popover, Tooltip, and HoverCard are native popovers placed by CSS anchor positioning. The Radix positioning props, Popover.Root modal, and HoverCard.Portal are gone, and --anchor-width and --available-height replace the Radix CSS variables.",
+		route: "/migrations/0020-native-floats-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */
