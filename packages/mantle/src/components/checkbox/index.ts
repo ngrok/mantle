@@ -4,11 +4,8 @@
  * @see https://mantle.ngrok.com/components/forms/checkbox
  */
 
-export {
-	//,
-	Checkbox,
-	selectAllChecked,
-} from "./checkbox.js";
+export { Checkbox } from "./checkbox.js";
+export { selectAllChecked } from "./select-all-checked.js";
 
 export type {
 	//,

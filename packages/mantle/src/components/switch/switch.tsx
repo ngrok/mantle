@@ -7,7 +7,8 @@ import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { parseValidation, useFieldValidation } from "../field/validation.js";
+import { parseValidation } from "../field/validation.js";
+import { useFieldValidation } from "../field/validation-context.js";
 import type { WithValidation } from "../field/validation.js";
 
 type SwitchProps = ComponentProps<typeof SwitchPrimitiveRoot> &

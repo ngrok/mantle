@@ -3,7 +3,7 @@
  * parses cookies.
  *
  * Three call sites share this: `extractThemeCookie` and `getStoredTheme`
- * (`components/theme/theme-provider.tsx`) and `extractSidebarStateCookie`
+ * (`components/theme/theme-storage.ts`) and `extractSidebarStateCookie`
  * (`components/sidebar/sidebar-state-cookie.ts`). They read the same format for
  * the same reason, so they change for the same reason too.
  *

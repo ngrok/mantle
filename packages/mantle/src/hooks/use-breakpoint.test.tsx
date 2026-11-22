@@ -2,7 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { mockMatchMedia } from "../test-utils/mock-match-media.js";
-import type { Breakpoint, TailwindBreakpoint } from "./use-breakpoint.js";
+import type { Breakpoint, TailwindBreakpoint } from "./breakpoints.js";
 
 // Why a fresh module per test: the hooks cache their `MediaQueryList`s, the
 // last breakpoint, and the per-breakpoint subscribe functions at module level,

@@ -54,7 +54,8 @@ import {
 } from "../../utils/layer-container/layer-container.js";
 import { shakeElement } from "../../utils/shake.js";
 import { FieldControlContext } from "../field/field-context.js";
-import { parseValidation, useFieldValidation } from "../field/validation.js";
+import { parseValidation } from "../field/validation.js";
+import { useFieldValidation } from "../field/validation-context.js";
 import type { AriaInvalid, WithValidation } from "../field/validation.js";
 import { Icon } from "../icon/icon.js";
 import { Separator } from "../separator/separator.js";

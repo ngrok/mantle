@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
 	chunkNeedsUseClient,
+	findClientHelperExports,
 	findClientImport,
 	hasUseClientDirective,
+	isClientModule,
 } from "./preserve-use-client.ts";
 
 describe("hasUseClientDirective", () => {
@@ -69,5 +71,81 @@ describe("findClientImport", () => {
 				"clsx.js": { type: "chunk", code: "export {};", imports: [] },
 			}),
 		).toBeUndefined();
+	});
+});
+
+describe("isClientModule", () => {
+	it("marks a module that imports a Phosphor icon or the React Compiler runtime", () => {
+		expect(isClientModule({ code: "", importedIds: ["@phosphor-icons/react/Check"] })).toBe(true);
+		expect(isClientModule({ code: "", importedIds: ["react/compiler-runtime"] })).toBe(true);
+	});
+
+	it("ignores an import that only a comment shows", () => {
+		expect(
+			isClientModule({
+				code: '/** import { CheckIcon } from "@phosphor-icons/react/Check"; */\nexport {};',
+				importedIds: ["tiny-invariant"],
+			}),
+		).toBe(false);
+	});
+});
+
+describe("findClientHelperExports", () => {
+	const clientChunk = {
+		type: "chunk",
+		code: '"use client";\nconst t=()=>1;export{t};',
+		imports: [],
+	};
+
+	it("follows re-exports through server chunks to the client chunk", () => {
+		expect(
+			findClientHelperExports({
+				bundle: {
+					"theme.js": {
+						type: "chunk",
+						isEntry: true,
+						code: 'import{t as e}from"./shared.js";export{e as extractThemeCookie};',
+						exports: ["extractThemeCookie"],
+					},
+					"shared.js": { type: "chunk", code: 'export{t}from"./client.js";' },
+					"client.js": clientChunk,
+				},
+				browserOnlyExports: [],
+			}),
+		).toEqual(["theme.js: extractThemeCookie comes from client.js"]);
+	});
+
+	it("checks constants but not components, hooks, or browser-only helpers", () => {
+		expect(
+			findClientHelperExports({
+				bundle: {
+					"otp.js": {
+						type: "chunk",
+						isEntry: true,
+						code: '"use client";\nconst a=1,b=()=>{},c=()=>{},d=()=>{};export{a as REGEXP_ONLY_DIGITS,b as OtpInput,c as useOtp,d as readOtp};',
+						exports: ["REGEXP_ONLY_DIGITS", "OtpInput", "useOtp", "readOtp"],
+					},
+				},
+				browserOnlyExports: ["readOtp"],
+			}),
+		).toEqual(["otp.js: REGEXP_ONLY_DIGITS comes from otp.js"]);
+	});
+
+	it("passes a helper that a server chunk declares", () => {
+		expect(
+			findClientHelperExports({
+				bundle: {
+					"pagination.js": {
+						type: "chunk",
+						isEntry: true,
+						code: 'import{t as e}from"./slice.js";import{t as n}from"./client.js";export{n as Pagination,e as getOffsetPaginatedSlice};',
+						exports: ["Pagination", "getOffsetPaginatedSlice"],
+					},
+					"slice.js": { type: "chunk", code: "const t=()=>[];export{t};" },
+					"client.js": clientChunk,
+				},
+				browserOnlyExports: [],
+			}),
+		).toEqual([]);
 	});
 });

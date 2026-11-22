@@ -15,8 +15,12 @@ export {
 	//,
 	extractThemeCookie,
 	getStoredTheme,
-	PreventWrongThemeFlashScript,
 	preventWrongThemeFlashScriptContent,
+} from "./theme-storage.js";
+
+export {
+	//,
+	PreventWrongThemeFlashScript,
 	readThemeFromHtmlElement,
 	ThemeProvider,
 	useAppliedTheme,

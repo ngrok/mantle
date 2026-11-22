@@ -12,7 +12,7 @@ import {
 	optionLabelText,
 	summarizeSelection,
 	toggleSelectionValue,
-} from "./selectable-list.js";
+} from "./selection.js";
 import type { SelectableListOption } from "./selectable-list.js";
 
 const checkboxRenders = vi.hoisted(() => ({ count: 0 }));

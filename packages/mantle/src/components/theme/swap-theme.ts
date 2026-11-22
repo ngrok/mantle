@@ -1,3 +1,5 @@
+"use client";
+
 import { flushSync } from "react-dom";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 

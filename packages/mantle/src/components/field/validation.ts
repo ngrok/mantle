@@ -1,12 +1,4 @@
-"use client";
-
-import {
-	createContext,
-	createElement,
-	useContext,
-	type AriaAttributes,
-	type ReactNode,
-} from "react";
+import type { AriaAttributes } from "react";
 
 /**
  * The shared validation state vocabulary for Mantle form controls.
@@ -90,26 +82,6 @@ type ParsedValidation = {
 	validation: ValidationState | undefined;
 };
 
-const FieldValidationContext = createContext<ValidationState | undefined>(undefined);
-
-/**
- * Provides a resolved field validation state to Mantle controls rendered
- * inside a `Field.Item` or `Field.Control`.
- */
-const FieldValidationProvider = ({
-	children,
-	validation,
-}: {
-	children?: ReactNode;
-	validation?: ValidationState;
-}) => createElement(FieldValidationContext.Provider, { value: validation }, children);
-
-/**
- * Reads the nearest resolved field validation state, when a Mantle control is
- * composed inside `Field.Item` / `Field.Control`.
- */
-const useFieldValidation = () => useContext(FieldValidationContext);
-
 /**
  * Returns `true` when an `aria-invalid` value represents an invalid control.
  * ARIA treats any value except `false` as an invalid state, including
@@ -165,11 +137,9 @@ const parseValidation = ({
 
 export {
 	//,
-	FieldValidationProvider,
 	isAriaInvalid,
 	parseValidation,
 	resolveValidation,
-	useFieldValidation,
 };
 export type {
 	//,

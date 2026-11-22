@@ -11,7 +11,7 @@ export {
 	REGEXP_ONLY_CHARS,
 	REGEXP_ONLY_DIGITS,
 	REGEXP_ONLY_DIGITS_AND_CHARS,
-} from "./otp-input.js";
+} from "./patterns.js";
 
 /**
  * Compound component for capturing one-time passcodes (OTP). Combines a

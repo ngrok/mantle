@@ -5,7 +5,7 @@ import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import * as Field from "../field/field-parts.js";
 import * as OtpInput from "./otp-input-parts.js";
-import { REGEXP_ONLY_DIGITS } from "./otp-input.js";
+import { REGEXP_ONLY_DIGITS } from "./patterns.js";
 
 /**
  * Render a default 6-slot OTP input. Returns the hidden input that accepts

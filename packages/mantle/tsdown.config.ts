@@ -173,7 +173,16 @@ export default defineConfig((options) => [
 		format: "esm",
 		plugins: [
 			compoundParts.plugin,
-			preserveUseClient({ serverEntries: ["color.js", "cx.js", "types.js", "utils.js"] }),
+			preserveUseClient({
+				serverEntries: ["color.js", "cx.js", "types.js", "utils.js"],
+				browserOnlyExports: [
+					//,
+					"getPrefersReducedMotion", // window.matchMedia
+					"isDialogOverlayTarget", // HTMLElement
+					"makeToast", // the sonner toast store
+					"readThemeFromHtmlElement", // document
+				],
+			}),
 			// Before the React Compiler: it must see the folded `cx` calls (see `scripts/fold-cx.ts`).
 			foldCxPlugin(),
 			reactCompiler(),
@@ -182,10 +191,17 @@ export default defineConfig((options) => [
 			// Name shared chunks after their owning component directory so
 			// per-component `@source "<name>-*.js"` globs match them (see
 			// owningComponentDir). Chunks without a single owning component keep
-			// rolldown's default `[name]-[hash].js` naming.
+			// their name up to the first `~`: an `entriesAware` chunk group appends
+			// `~<entry>` for each entry, which would repeat in every import of it.
 			chunkFileNames: (chunk) => {
 				const owner = owningComponentDir(chunk.moduleIds);
-				return owner != null ? `${owner}-[hash].js` : "[name]-[hash].js";
+				if (owner != null) {
+					return `${owner}-[hash].js`;
+				}
+				// The `[name]` pattern, not the name itself: rolldown-plugin-dts rewrites it for declaration chunks.
+				return chunk.name.includes("~")
+					? `${chunk.name.split("~")[0]}-[hash].js`
+					: "[name]-[hash].js";
 			},
 		},
 		entry: {

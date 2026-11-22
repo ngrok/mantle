@@ -2,7 +2,8 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRef, type MouseEvent } from "react";
 import { describe, expect, test, vi } from "vitest";
-import { SandboxedOnClick, sandboxedOnClickProps } from "./sandboxed-on-click.js";
+import { SandboxedOnClick } from "./sandboxed-on-click.js";
+import { sandboxedOnClickProps } from "./sandboxed-on-click-props.js";
 
 describe("SandboxedOnClick", () => {
 	test("the default div is presentational and stops the click from bubbling", async () => {
