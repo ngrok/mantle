@@ -16,6 +16,23 @@ const oppositeSide = {
 	left: "right",
 } as const satisfies Record<Side, Side>;
 
+/**
+ * The side a float takes when neither its preferred side nor the opposite one
+ * fits: the preferred side, or the side with more room, such as for a list
+ * that its `--available-height` caps.
+ */
+type Fallback = "preferred" | "larger";
+
+/** The room on `side` of `anchor` inside the viewport, in pixels. */
+function roomOn(anchor: Box, side: Side, viewport: { width: number; height: number }): number {
+	return {
+		top: anchor.top,
+		bottom: viewport.height - anchor.bottom,
+		left: anchor.left,
+		right: viewport.width - anchor.right,
+	}[side];
+}
+
 type Box = Pick<DOMRect, "top" | "right" | "bottom" | "left" | "width" | "height">;
 
 type Placement = {
@@ -78,7 +95,8 @@ function alignOnAxis({
 
 /**
  * Places a float of `size` next to `anchor`. It flips to the opposite side
- * when the preferred side does not fit and the opposite side does, and it
+ * when the preferred side does not fit and the opposite side does, or, with
+ * `fallback: "larger"`, when neither fits and the opposite side has more room. It
  * shifts along the side to stay `VIEWPORT_PADDING` inside the viewport. The
  * CSS path takes the side it picks.
  *
@@ -97,6 +115,7 @@ function alignOnAxis({
 function computePlacement({
 	align,
 	anchor,
+	fallback = "preferred",
 	side,
 	sideOffset,
 	size,
@@ -104,17 +123,19 @@ function computePlacement({
 }: {
 	align: Align;
 	anchor: Box;
+	fallback?: Fallback;
 	side: Side;
 	sideOffset: number;
 	size: { width: number; height: number };
 	viewport: { width: number; height: number };
 }): Placement {
 	const flipped = oppositeSide[side];
-	const placedSide =
-		fits({ anchor, side, sideOffset, size, viewport }) ||
-		!fits({ anchor, side: flipped, sideOffset, size, viewport })
-			? side
-			: flipped;
+	const flips =
+		!fits({ anchor, side, sideOffset, size, viewport }) &&
+		(fits({ anchor, side: flipped, sideOffset, size, viewport }) ||
+			(fallback === "larger" &&
+				roomOn(anchor, flipped, viewport) > roomOn(anchor, side, viewport)));
+	const placedSide = flips ? flipped : side;
 	if (placedSide === "top" || placedSide === "bottom") {
 		return {
 			side: placedSide,
@@ -244,8 +265,12 @@ let anchorCount = 0;
  * properties of a float that takes a fallback, so Tailwind's border and shadow
  * utilities paint nothing.
  *
+ * With `fallback: "larger"`, it sizes the float by its content height
+ * (`scrollHeight`), so a list that `--available-height` caps can still move
+ * to the side with more room.
+ *
  * Each frame it writes on the float `data-side` (the side it resolved to),
- * `--anchor-width`, `--available-height`, and a `transform-origin` at the
+ * `--anchor-width`, `--anchor-height`, `--available-height`, and a `transform-origin` at the
  * anchor. A child with `data-float-arrow` moves to the edge that faces the
  * anchor and centers on the anchor.
  *
@@ -259,20 +284,31 @@ let anchorCount = 0;
 function trackFloat({
 	align: logicalAlign,
 	anchor,
+	fallback = "preferred",
 	floating,
+	placeWith = "css",
 	releaseAnchorAfter,
 	side,
 	sideOffset,
 }: {
 	align: Align;
 	anchor: HTMLElement;
+	fallback?: Fallback;
 	floating: HTMLElement;
+	/**
+	 * Who places the float where the browser has CSS anchor positioning.
+	 * Why `"script"` for the picker lists: on a page of 50 pickers, Chromium
+	 * recalculated style and layout on each frame of an anchor-positioned
+	 * list's open, and the open took about 80 ms longer than from script.
+	 */
+	placeWith?: "css" | "script";
 	/** How long after the cleanup the float keeps its anchor, in milliseconds, so its exit transition plays in place. */
 	releaseAnchorAfter: number;
 	side: Side;
 	sideOffset: number;
 }): () => void {
 	const anchorName = `--mantle-float-${++anchorCount}`;
+	const css = supportsAnchorPositioning && placeWith === "css";
 	// Why: `start` and `end` follow the text direction, as they did with Radix.
 	// Above or below the anchor in a right-to-left document, `start` is the right edge.
 	const align =
@@ -290,7 +326,7 @@ function trackFloat({
 	for (const edge of ["top", "right", "bottom", "left"] as const) {
 		floating.style.removeProperty(`margin-${edge}`);
 	}
-	if (supportsAnchorPositioning) {
+	if (css) {
 		// Why a list: one element can anchor two floats, such as a tooltip on a popover trigger.
 		const names = anchor.style.getPropertyValue("anchor-name");
 		anchor.style.setProperty("anchor-name", names === "" ? anchorName : `${names}, ${anchorName}`);
@@ -324,7 +360,7 @@ function trackFloat({
 		floating.style.setProperty("position-area", positionArea[next][align]);
 		floating.style.setProperty(`margin-${oppositeSide[next]}`, `${gap}px`);
 	};
-	if (supportsAnchorPositioning) {
+	if (css) {
 		setCssSide(side);
 	}
 
@@ -339,6 +375,8 @@ function trackFloat({
 		const anchorBox = anchor.getBoundingClientRect();
 		const width = floating.offsetWidth;
 		const height = floating.offsetHeight;
+		const contentHeight =
+			fallback === "larger" ? floating.scrollHeight + height - floating.clientHeight : height;
 		const viewport = {
 			width: document.documentElement.clientWidth,
 			height: document.documentElement.clientHeight,
@@ -346,12 +384,23 @@ function trackFloat({
 		let placed = computePlacement({
 			align,
 			anchor: anchorBox,
+			fallback,
 			side,
 			sideOffset: gap,
-			size: { width, height },
+			size: { width, height: contentHeight },
 			viewport,
 		});
-		if (supportsAnchorPositioning) {
+		const availableHeight = {
+			top: anchorBox.top - gap,
+			bottom: viewport.height - anchorBox.bottom - gap,
+			left: viewport.height,
+			right: viewport.height,
+		}[placed.side];
+		floating.style.setProperty(
+			"--available-height",
+			`${Math.max(availableHeight - VIEWPORT_PADDING, 0)}px`,
+		);
+		if (css) {
 			setCssSide(placed.side);
 			// Why the center: the open animation scales the float around its center,
 			// so the box edges move while the layout size stays.
@@ -362,6 +411,11 @@ function trackFloat({
 				y: (box.top + box.bottom) / 2 - height / 2,
 			};
 		} else {
+			// Why read the height again: the new `--available-height` can cap a list
+			// that sits its rendered height above the anchor.
+			if (fallback === "larger" && placed.side === "top") {
+				placed = { ...placed, y: anchorBox.top - gap - floating.offsetHeight };
+			}
 			const containingBlock = inTopLayer ? null : findFixedContainingBlock(floating);
 			const local =
 				containingBlock == null
@@ -372,18 +426,9 @@ function trackFloat({
 		}
 		const anchorCenterX = anchorBox.left + anchorBox.width / 2 - placed.x;
 		const anchorCenterY = anchorBox.top + anchorBox.height / 2 - placed.y;
-		const availableHeight = {
-			top: anchorBox.top - gap,
-			bottom: viewport.height - anchorBox.bottom - gap,
-			left: viewport.height,
-			right: viewport.height,
-		}[placed.side];
 		floating.dataset.side = placed.side;
 		floating.style.setProperty("--anchor-width", `${anchorBox.width}px`);
-		floating.style.setProperty(
-			"--available-height",
-			`${Math.max(availableHeight - VIEWPORT_PADDING, 0)}px`,
-		);
+		floating.style.setProperty("--anchor-height", `${anchorBox.height}px`);
 		floating.style.transformOrigin = {
 			top: `${anchorCenterX}px 100%`,
 			bottom: `${anchorCenterX}px 0`,
@@ -442,7 +487,7 @@ function trackFloat({
 		window.removeEventListener("resize", schedule);
 		window.removeEventListener("transitionend", schedule, { capture: true });
 		window.removeEventListener("animationend", schedule, { capture: true });
-		if (supportsAnchorPositioning) {
+		if (css) {
 			// Why later: Chromium paints a closing float through its exit
 			// transition, and without the anchor it would jump to the corner.
 			setTimeout(releaseAnchorName, releaseAnchorAfter);
@@ -460,5 +505,6 @@ export {
 export type {
 	//,
 	Align,
+	Fallback,
 	Side,
 };

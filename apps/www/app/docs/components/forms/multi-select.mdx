@@ -107,7 +107,7 @@ function Example() {
 
 ## Layering and z-index
 
-`MultiSelect.Content` renders at Tailwind `z-50`. Inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`).
+`MultiSelect.Content` is a `popover="manual"` element in the top layer, so it paints above the page and every overlay. It portals into the overlay or float that holds it, such as an open `Dialog` or `Popover.Content`, else into `document.body`. In a browser with no popover API, it is a fixed box at Tailwind `z-50`.
 
 `MultiSelect` does not render a backdrop by default. Modal layers such as `Dialog`, `Sheet`, and `AlertDialog` do render backdrops, so stacking those layers compounds the dim and blur effect on the layers underneath.
 
@@ -786,7 +786,7 @@ Inside a field, `Field.Control` puts the generated `id`, `aria-describedby`, `ar
 
 Root component for a multi-select combobox. Owns the selected values and the typeahead query.
 
-`MultiSelect.Content` renders at Tailwind `z-50`. Inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`).
+`MultiSelect.Content` is a `popover="manual"` element in the top layer, so it paints above the page and every overlay. It portals into the overlay or float that holds it, such as an open `Dialog` or `Popover.Content`, else into `document.body`. In a browser with no popover API, it is a fixed box at Tailwind `z-50`.
 
 `MultiSelect.Root` also takes `open`, `defaultOpen`, and `onOpenChange`, as `Combobox.Root` does, plus:
 
@@ -866,7 +866,7 @@ Also accepts all standard `span` element props (except `children`). The `onKeyDo
 
 Renders a popover that contains multi-select content.
 
-`MultiSelect.Content` renders at Tailwind `z-50`. Inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`).
+`MultiSelect.Content` is a `popover="manual"` element in the top layer, so it paints above the page and every overlay. It portals into the overlay or float that holds it, such as an open `Dialog` or `Popover.Content`, else into `document.body`. In a browser with no popover API, it is a fixed box at Tailwind `z-50`.
 
 All props of a `<div>`, plus:
 

@@ -22,7 +22,6 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
-import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { parseValidation } from "../field/validation.js";
 import { useFieldValidation } from "../field/validation-context.js";
@@ -224,12 +223,11 @@ type SelectProps = PropsWithChildren & {
  * state; suppress the inferred error by passing `validation` on `Field.Item`
  * if a non-error `Select.Root` state needs to win in that case.
  *
- * `Select.Content` renders at Tailwind `z-50`, Mantle's float tier. When
- * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
- * that overlay's positioner and paints above the overlay that owns it. Outside
- * every overlay, it portals to `document.body`, below the overlay tier
- * (`z-60`). When sibling floats share a container, the most recently mounted
- * float paints on top.
+ * `Select.Content` is a `popover="manual"` element in the top layer, so it paints
+ * above the page and every overlay. It portals into the overlay or float that
+ * holds it, such as an open `Dialog` or `Popover.Content`, else into
+ * `document.body`. In a browser with no popover API, it is a fixed box at
+ * Tailwind `z-50`.
  *
  * @see https://mantle.ngrok.com/components/forms/select#selectroot
  *
@@ -758,12 +756,11 @@ type SelectContentProps = Omit<ComponentProps<"div">, "dir"> &
  * It contains a scrolling list of the select items, and opens below the
  * trigger, or above it when the space below is too small.
  *
- * `Select.Content` renders at Tailwind `z-50`, Mantle's float tier. When
- * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
- * that overlay's positioner and paints above the overlay that owns it. Outside
- * every overlay, it portals to `document.body`, below the overlay tier
- * (`z-60`). When sibling floats share a container, the most recently mounted
- * float paints on top.
+ * `Select.Content` is a `popover="manual"` element in the top layer, so it paints
+ * above the page and every overlay. It portals into the overlay or float that
+ * holds it, such as an open `Dialog` or `Popover.Content`, else into
+ * `document.body`. In a browser with no popover API, it is a fixed box at
+ * Tailwind `z-50`.
  *
  * | Data Attribute | Value                                          | Description                                                            |
  * | -------------- | ---------------------------------------------- | ---------------------------------------------------------------------- |
@@ -810,21 +807,20 @@ const OpenContent = ({
 	...props
 }: SelectContentProps) => {
 	const { dir, listbox, triggerRef } = useSelectContext();
-	const { host, popupRef } = usePopup({
-		open: true,
+	const { portalTarget, popupRef } = usePopup({
 		anchorRef: triggerRef,
 		ownerRef: triggerRef,
-		container: useLayerContainer(),
 		modal: enterModal,
 	});
-	const composedRef = useComposedRefs(ref, listbox.listboxProps.ref, popupRef);
+	const composedRef = useComposedRefs(ref, popupRef, listbox.listboxProps.ref);
 
 	return (
-		host != null &&
+		portalTarget != null &&
 		createPortal(
 			<div
 				{...props}
 				{...listbox.listboxProps}
+				popover="manual"
 				role="listbox"
 				tabIndex={-1}
 				onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
@@ -834,7 +830,7 @@ const OpenContent = ({
 				data-state="open"
 				data-align="start"
 				className={cx(
-					"border-popover duration-200 ease-out-strong data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-top:slide-in-from-bottom-1 motion-reduce:animate-none! relative z-50 min-w-32 overflow-y-auto rounded-md border shadow-md",
+					"border-popover duration-200 ease-out-strong data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-top:slide-in-from-bottom-1 motion-reduce:animate-none! fixed inset-auto z-50 m-0 text-inherit min-w-32 overflow-y-auto rounded-md border shadow-md",
 					"bg-popover font-sans p-1 space-y-px max-h-(--available-height) outline-hidden",
 					width === "trigger" && "w-(--anchor-width)",
 					className,
@@ -842,7 +838,7 @@ const OpenContent = ({
 			>
 				{children}
 			</div>,
-			host,
+			portalTarget,
 		)
 	);
 };

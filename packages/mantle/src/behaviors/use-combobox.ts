@@ -130,17 +130,15 @@ const useComboboxInput = (
 ) => {
 	const { open, setOpen, listbox, inputValue, setInputValue } = combobox;
 
+	// Why no flushSync: the list moves to `target` when it mounts, in the
+	// commit that opens it.
 	const openTo = (target: "first" | "last" | null) => {
-		// Why flushSync: a closed list renders no options, so they exist only
-		// once React commits the open state.
-		flushSync(() => {
-			setOpen(true);
-		});
 		if (target == null) {
 			listbox.activate(null);
-			return;
+		} else {
+			listbox.moveOnOpen(target);
 		}
-		listbox.move(target);
+		setOpen(true);
 	};
 
 	return {

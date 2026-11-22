@@ -15,7 +15,6 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
 import { shakeElement } from "../../utils/shake.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { parseValidation } from "../field/validation.js";
@@ -88,10 +87,11 @@ type MultiSelectProps = UseMultiSelectProps & {
  * combobox input, so a native form submit sends the selected values, not the
  * typeahead filter text.
  *
- * `MultiSelect.Content` renders at Tailwind `z-50`. Inside an open `Dialog`,
- * `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and
- * paints above the overlay that owns it. Outside every overlay, it portals to
- * `document.body`, below the overlay tier (`z-60`).
+ * `MultiSelect.Content` is a `popover="manual"` element in the top layer, so it paints
+ * above the page and every overlay. It portals into the overlay or float that
+ * holds it, such as an open `Dialog` or `Popover.Content`, else into
+ * `document.body`. In a browser with no popover API, it is a fixed box at
+ * Tailwind `z-50`.
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectroot
  *
@@ -788,10 +788,11 @@ type MultiSelectContentProps = ComponentProps<"div"> &
  * Renders a popover that contains multi-select content, such as items, groups,
  * and separators. Opens below the trigger.
  *
- * `MultiSelect.Content` renders at Tailwind `z-50`. Inside an open `Dialog`,
- * `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and
- * paints above the overlay that owns it. Outside every overlay, it portals to
- * `document.body`, below the overlay tier (`z-60`).
+ * `MultiSelect.Content` is a `popover="manual"` element in the top layer, so it paints
+ * above the page and every overlay. It portals into the overlay or float that
+ * holds it, such as an open `Dialog` or `Popover.Content`, else into
+ * `document.body`. In a browser with no popover API, it is a fixed box at
+ * Tailwind `z-50`.
  *
  * The list is modal: while it is open, the page does not scroll, the rest of
  * the page is inert, and a press outside the trigger and the list closes it.
@@ -826,21 +827,27 @@ const OpenContent = ({
 	...props
 }: MultiSelectContentProps) => {
 	const { inputRef, listbox, setOpen, triggerRef } = useMultiSelectContext();
-	const { host, popupRef } = usePopup({
-		open: true,
+	const dismissRef = useRef<HTMLButtonElement>(null);
+	const { portalTarget, popupRef } = usePopup({
 		anchorRef: triggerRef,
 		ownerRef: inputRef,
-		container: useLayerContainer(),
-		modal: enterModal,
+		// Why the dismiss button: it sits beside the list, so it must stay live too.
+		modal: (keep) => enterModal(dismissRef.current == null ? keep : [...keep, dismissRef.current]),
 	});
-	const composedRef = useComposedRefs(ref, listbox.listboxProps.ref, popupRef);
+	const composedRef = useComposedRefs(ref, popupRef, listbox.listboxProps.ref);
 	const Component = asChild ? Slot : "div";
 	return (
-		host != null &&
+		portalTarget != null &&
 		createPortal(
 			<>
 				{/* Why: a touch screen reader has no Escape key, and a pick keeps this list open. */}
-				<button type="button" tabIndex={-1} className="sr-only" onClick={() => setOpen(false)}>
+				<button
+					ref={dismissRef}
+					type="button"
+					tabIndex={-1}
+					className="sr-only"
+					onClick={() => setOpen(false)}
+				>
 					Dismiss popup
 				</button>
 				<Component
@@ -848,11 +855,12 @@ const OpenContent = ({
 					{...listbox.listboxProps}
 					onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
 					aria-multiselectable
+					popover="manual"
 					ref={composedRef}
 					data-slot={joinDataSlot(dataSlot, "multi-select-content")}
 					data-state="open"
 					className={cx(
-						"border-popover bg-popover relative z-50 max-h-(--available-height) min-w-32 scrollbar overflow-y-scroll overflow-x-hidden overscroll-y-none rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col gap-px outline-hidden",
+						"border-popover bg-popover fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 scrollbar overflow-y-scroll overflow-x-hidden overscroll-y-none rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col gap-px outline-hidden",
 						sameWidth && "w-(--anchor-width)",
 						className,
 					)}
@@ -878,7 +886,7 @@ const OpenContent = ({
 					{children}
 				</Component>
 			</>,
-			host,
+			portalTarget,
 		)
 	);
 };

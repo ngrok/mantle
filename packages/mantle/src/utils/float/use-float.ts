@@ -395,6 +395,8 @@ function useFloat({
 export {
 	//,
 	floatClassName,
+	hasPopoverApi,
+	resolvePortalTarget,
 	useFloat,
 };
 

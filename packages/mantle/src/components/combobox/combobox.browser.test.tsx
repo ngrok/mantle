@@ -102,8 +102,14 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		render(
 			<Combobox.Root>
 				<Combobox.Input aria-label="Fruit" style={{ position: "fixed", bottom: 40 }} />
-				{/* Why the style: this page loads no Tailwind, and the real class caps the list the same way. */}
-				<Combobox.Content style={{ maxHeight: "var(--available-height)", overflowY: "auto" }}>
+				{/* Why the style: this page loads no Tailwind, and the real classes cap the list and size its box the same way. */}
+				<Combobox.Content
+					style={{
+						maxHeight: "var(--available-height)",
+						overflowY: "auto",
+						boxSizing: "border-box",
+					}}
+				>
 					{fruits.map((fruit) => (
 						<Combobox.Item key={fruit} value={fruit} />
 					))}

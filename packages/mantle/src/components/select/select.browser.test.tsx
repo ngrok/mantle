@@ -235,6 +235,36 @@ describe("Select keyboard, focus, and ARIA contract", () => {
 		expect(form instanceof HTMLFormElement && new FormData(form).get("fruit")).toBe("apple");
 	});
 
+	test("the list opens in the top layer and scrolls the highlighted option into view", async () => {
+		const fruits = Array.from({ length: 40 }, (_, index) => `Fruit ${index}`);
+		render(
+			<Select.Root defaultValue="Fruit 30">
+				<Select.Trigger aria-label="Fruit" />
+				{/* Why the style: this page loads no Tailwind, and the real classes cap the list the same way. */}
+				<Select.Content style={{ maxHeight: 120, overflowY: "auto", boxSizing: "border-box" }}>
+					{fruits.map((fruit) => (
+						<Select.Item key={fruit} value={fruit}>
+							{fruit}
+						</Select.Item>
+					))}
+				</Select.Content>
+			</Select.Root>,
+		);
+		const trigger = screen.getByRole("combobox", { name: "Fruit" });
+		const inView = (option: HTMLElement) => {
+			const list = screen.getByRole("listbox").getBoundingClientRect();
+			const box = option.getBoundingClientRect();
+			return box.top >= list.top - 0.5 && box.bottom <= list.bottom + 0.5;
+		};
+		await userEvent.click(trigger);
+		expect(screen.getByRole("listbox").matches(":popover-open")).toBe(true);
+		expect(inView(screen.getByRole("option", { name: "Fruit 30" }))).toBe(true);
+		await userEvent.keyboard("{Home}");
+		expect(inView(screen.getByRole("option", { name: "Fruit 0" }))).toBe(true);
+		await userEvent.keyboard("{End}");
+		expect(inView(screen.getByRole("option", { name: "Fruit 39" }))).toBe(true);
+	});
+
 	test("typeahead opens a closed select, matches a prefix, and cycles on a repeated letter", async () => {
 		render(<FruitSelect />);
 		const trigger = screen.getByRole("combobox", { name: "Fruit" });

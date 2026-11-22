@@ -17,6 +17,8 @@ type ListboxState = {
 	activeId: string | null;
 	/** The label of the last selected or active option, so a closed select can show it. */
 	itemLabel: { value: string; label: ReactNode; translate?: "yes" | "no" } | null;
+	/** The option the last open moves to, so the selected option can render highlighted in the opening render. */
+	openTarget: MoveTarget | null;
 };
 
 type MoveTarget = "next" | "previous" | "first" | "last" | "selected";
@@ -33,6 +35,8 @@ type Listbox = {
 	select: (value: string) => void;
 	activate: (option: HTMLElement | null) => void;
 	move: (target: MoveTarget) => void;
+	/** Call before the owner opens a closed list: the list moves to `target` when it mounts. */
+	moveOnOpen: (target: MoveTarget) => void;
 	typeahead: (key: string) => boolean;
 	listboxProps: HTMLAttributes<HTMLElement> & {
 		ref: RefCallback<HTMLElement>;
@@ -47,6 +51,27 @@ const getOptions = (listbox: HTMLElement | null): HTMLElement[] =>
 		: Array.from(
 				listbox.querySelectorAll<HTMLElement>('[role="option"]:not([aria-disabled="true"])'),
 			);
+
+/**
+ * Scrolls `list` so that `option` shows in full. It moves no other scroll
+ * container, and it reads offsets, so the open animation's scale changes nothing.
+ */
+const scrollIntoList = (list: HTMLElement, option: HTMLElement): void => {
+	let top = 0;
+	for (
+		let node: Element | null = option;
+		node instanceof HTMLElement && node !== list;
+		node = node.offsetParent
+	) {
+		top += node.offsetTop;
+	}
+	top -= list.clientTop;
+	if (top < list.scrollTop) {
+		list.scrollTop = top;
+	} else if (top + option.offsetHeight > list.scrollTop + list.clientHeight) {
+		list.scrollTop = top + option.offsetHeight - list.clientHeight;
+	}
+};
 
 /**
  * Finds the option to move to, wrapping at neither end. Pure, so the keyboard
@@ -100,7 +125,7 @@ const createListboxState = () => {
 		// A move that found no options, such as before async results arrive.
 		pendingMoveRef: { current: null as MoveTarget | null },
 		getStore: (): Store<ListboxState> => {
-			store ??= createStore<ListboxState>({ activeId: null, itemLabel: null });
+			store ??= createStore<ListboxState>({ activeId: null, itemLabel: null, openTarget: null });
 			return store;
 		},
 	};
@@ -137,7 +162,14 @@ const useListbox = ({
 
 	const activate = (option: HTMLElement | null) => {
 		getStore().set({ activeId: option?.id ?? null });
-		option?.scrollIntoView({ block: "nearest" });
+		if (option != null && ref.current != null) {
+			scrollIntoList(ref.current, option);
+		}
+	};
+
+	const moveOnOpen = (target: MoveTarget) => {
+		pendingMoveRef.current = target;
+		getStore().set({ activeId: null, openTarget: target });
 	};
 
 	const move = (target: MoveTarget) => {
@@ -249,6 +281,7 @@ const useListbox = ({
 		select: onSelect,
 		activate,
 		move,
+		moveOnOpen,
 		typeahead,
 		listboxProps: {
 			id,
@@ -306,8 +339,19 @@ const useOption = (
 ) => {
 	const generatedId = useId();
 	const id = idProp ?? generatedId;
-	const active = useStoreValue(listbox.getStore(), (state) => state.activeId === id);
 	const selected = listbox.selected.includes(value);
+	// Why the open target: an open to the selected option highlights it in the
+	// opening render, so the move that follows changes no option.
+	const active = useStoreValue(
+		listbox.getStore(),
+		(state) =>
+			state.activeId === id ||
+			(state.activeId == null &&
+				state.openTarget === "selected" &&
+				selected &&
+				!disabled &&
+				listbox.selected.length === 1),
+	);
 	return {
 		active,
 		selected,

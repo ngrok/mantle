@@ -112,13 +112,11 @@ const moveKeys: Record<string, MoveTarget> = {
 const useSelectTrigger = (select: SelectBehavior) => {
 	const { open, setOpen, listbox, disabled } = select;
 
-	// Why flushSync: a closed list renders no options, so they exist only once
-	// React commits the open state.
+	// Why no flushSync: the list moves to `target` when it mounts, in the
+	// commit that opens it.
 	const openTo = (target: MoveTarget) => {
-		flushSync(() => {
-			setOpen(true);
-		});
-		listbox.move(target);
+		listbox.moveOnOpen(target);
+		setOpen(true);
 	};
 
 	const pickActive = () => {
