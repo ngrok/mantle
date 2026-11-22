@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { isItemOpen, nextOpenValues, toOpenValues } from "./accordion-state.js";
@@ -580,6 +580,44 @@ describe("Accordion Root context", () => {
 		expect(first).toHaveBeenCalledTimes(0);
 		expect(second).toHaveBeenCalledTimes(1);
 		expect(second).toHaveBeenLastCalledWith("b");
+	});
+
+	test("a click from a layout effect reads the open values of the same commit", async () => {
+		const user = userEvent.setup();
+		const onValueChange = vi.fn<(value: string[]) => void>();
+		// Opens section C from a layout effect in the commit that opens section B.
+		const OpenCWhenBOpens = ({ open }: { open: boolean }) => {
+			useLayoutEffect(() => {
+				if (open) {
+					screen.getByRole("button", { name: "Trigger C" }).click();
+				}
+			}, [open]);
+			return null;
+		};
+		const Controlled = () => {
+			const [value, setValue] = useState(["a"]);
+			return (
+				<>
+					<button type="button" onClick={() => setValue(["a", "b"])}>
+						Open B
+					</button>
+					<Accordion.Root value={value} onValueChange={onValueChange}>
+						{["a", "b", "c"].map((item) => (
+							<Accordion.Item key={item} value={item}>
+								<Accordion.Trigger>{`Trigger ${item.toUpperCase()}`}</Accordion.Trigger>
+								<Accordion.Content>
+									{item === "b" && <OpenCWhenBOpens open={value.includes("b")} />}
+								</Accordion.Content>
+							</Accordion.Item>
+						))}
+					</Accordion.Root>
+				</>
+			);
+		};
+		render(<Controlled />);
+
+		await user.click(screen.getByRole("button", { name: "Open B" }));
+		expect(onValueChange).toHaveBeenLastCalledWith(["a", "b", "c"]);
 	});
 
 	// happy-dom has no `beforematch`, so `supportsBeforeMatch()` reads false in

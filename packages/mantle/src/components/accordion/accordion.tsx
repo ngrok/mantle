@@ -3,10 +3,13 @@
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import {
 	type ComponentProps,
+	type ComponentRef,
 	createContext,
 	useCallback,
 	useContext,
+	useEffect,
 	useId,
+	useInsertionEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -14,7 +17,7 @@ import {
 import invariant from "tiny-invariant";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { WithAsChild } from "../../types/as-child.js";
-import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -55,78 +58,6 @@ function emitValueChange(props: AccordionRootProps, next: readonly string[]): vo
  */
 function supportsBeforeMatch(): boolean {
 	return canUseDOM() && document.body != null && "onbeforematch" in document.body;
-}
-
-/**
- * The ref callback body of {@link Content}: where the browser supports it, swaps the
- * server's `inert` for `hidden="until-found"` while the section is closed, and opens the
- * section when find-in-page reveals a match in it. Returns the cleanup that removes the
- * `beforematch` listener.
- *
- * Why a ref callback and not effects: it runs in the same commit phase as a layout effect,
- * so the collapsed content is hidden before the first paint, and it costs each item no hook.
- * Why imperative: React types `hidden` as boolean-only (no `"until-found"`) and has no
- * `onBeforeMatch`.
- *
- * @example
- * ```tsx
- * <div ref={(node) => findInPage(node, { open, setOpen })} />
- * ```
- */
-function findInPage(
-	node: HTMLDivElement | null,
-	{ open, setOpen }: Pick<AccordionItemContextValue, "open" | "setOpen">,
-): (() => void) | undefined {
-	// Why the `null` check: `composeRefs` passes `null` on detach when this call returned
-	// no cleanup.
-	if (node == null || !supportsBeforeMatch()) {
-		// Why: the JSX `inert` already takes the collapsed region out of the
-		// accessibility tree and the tab order in this browser.
-		return;
-	}
-	// Why: `inert` also hides content from find-in-page, and `hidden="until-found"`
-	// already removes it from the accessibility tree, so the two never coexist.
-	node.removeAttribute("inert");
-	if (open) {
-		node.removeAttribute("hidden");
-		return;
-	}
-	node.setAttribute("hidden", "until-found");
-	// Drop the inline height and opacity a find-in-page reveal set so the
-	// class-driven `h-0 ↔ h-auto` slide and fade take over again.
-	node.style.height = "";
-	node.style.opacity = "";
-
-	const handleBeforeMatch = () => {
-		// The browser reveals and highlights the match synchronously right after
-		// this event, but our React-driven height (`data-state-open:h-auto`) only
-		// applies a tick later. Without expanding now, the box is still
-		// `h-0 overflow-hidden` when the browser paints its find highlight, so the
-		// match opens but its highlight is clipped to zero height and lost. Removing
-		// `hidden` restores `content-visibility`, so setting `height: auto` lays the
-		// text out at full height before the highlight paints. The closed state is
-		// also transparent, so show the content at full opacity for the same paint.
-		// The height transition would start the box at zero and slide it open, so
-		// the highlight would still be clipped when it paints: turn the transition
-		// off, force a style and layout flush so the box settles at its end values,
-		// then restore the consumer's inline value. Override only the
-		// `transition-property` longhand: the `transition` shorthand reads as empty
-		// when only some longhands are set, so restoring it would delete them. The
-		// closed branch above clears the inline height and opacity so the slide and
-		// the fade resume.
-		const { transitionProperty } = node.style;
-		node.removeAttribute("hidden");
-		node.style.transitionProperty = "none";
-		node.style.height = "auto";
-		node.style.opacity = "1";
-		node.getBoundingClientRect();
-		node.style.transitionProperty = transitionProperty;
-		setOpen(true);
-	};
-	node.addEventListener("beforematch", handleBeforeMatch);
-	return () => {
-		node.removeEventListener("beforematch", handleBeforeMatch);
-	};
 }
 
 type AccordionContextValue = {
@@ -304,15 +235,17 @@ const Root = (props: AccordionRootProps) => {
 
 	// Why a ref: `setItemOpen` reads the latest render through it, so it stays one
 	// function for the life of the accordion. A new `setItemOpen` gives every item
-	// a new context, so a tap re-renders all of them instead of the ones it opens
-	// or closes. `setItemOpen` only runs from event handlers, which fire after the
-	// layout effect writes the ref.
-	// Why not `useCallbackRef`: it writes its ref in a passive effect. A commit
-	// from a non-discrete update defers passive effects to a later task, and a
-	// click in that gap reads the previous render's `onValueChange`. The layout
-	// effect closes the gap.
+	// a new context, so each `Item` hands its `Trigger` and `Content` a new item
+	// context and a tap re-renders all of them, not only the sections it opens or
+	// closes.
+	// Why an insertion effect: it writes the ref in the mutation phase, before any
+	// layout effect or ref callback in the same commit. A descendant's layout
+	// effect that clicks a `Trigger` then reads this render's open values. A
+	// passive effect (`useCallbackRef`) runs later still: a commit from a
+	// non-discrete update defers it to a later task, and a click in that gap reads
+	// the previous render.
 	const latestRef = useRef({ props, openValues });
-	useIsomorphicLayoutEffect(() => {
+	useInsertionEffect(() => {
 		latestRef.current = { props, openValues };
 	});
 
@@ -607,20 +540,95 @@ const Content = ({
 	ref,
 	...props
 }: Omit<ComponentProps<"div">, "id"> & WithDataSlot) => {
-	const item = useAccordionItemContext("Accordion.Content");
-	const { open, contentId } = item;
+	const { open, setOpen, contentId } = useAccordionItemContext("Accordion.Content");
+	// Track the node ourselves (for the find-in-page reveal effects below) while
+	// still forwarding it to any ref the consumer passes.
+	const nodeRef = useRef<ComponentRef<"div">>(null);
+	const composedRef = useComposedRefs(nodeRef, ref);
+
+	// When the browser is about to reveal a find-in-page match inside this
+	// (collapsed) region, open the item so our state agrees and it stays open.
+	useEffect(() => {
+		const node = nodeRef.current;
+		if (!node || !supportsBeforeMatch()) {
+			return;
+		}
+		const handleBeforeMatch = () => {
+			// The browser reveals and highlights the match synchronously right after
+			// this event, but our React-driven height (`data-state-open:h-auto`) only
+			// applies a tick later. Without expanding now, the box is still
+			// `h-0 overflow-hidden` when the browser paints its find highlight, so the
+			// match opens but its highlight is clipped to zero height and lost. Removing
+			// `hidden` restores `content-visibility`, so setting `height: auto` lays the
+			// text out at full height before the highlight paints. The closed state is
+			// also transparent, so show the content at full opacity for the same paint.
+			// The height transition would start the box at zero and slide it open, so
+			// the highlight would still be clipped when it paints: turn the transition
+			// off, force a style and layout flush so the box settles at its end values,
+			// then restore the consumer's inline value. Override only the
+			// `transition-property` longhand: the `transition` shorthand reads as empty
+			// when only some longhands are set, so restoring it would delete them. The
+			// close branch of the effect below clears the inline height and opacity so
+			// the slide and the fade resume.
+			const { transitionProperty } = node.style;
+			node.removeAttribute("hidden");
+			node.style.transitionProperty = "none";
+			node.style.height = "auto";
+			node.style.opacity = "1";
+			node.getBoundingClientRect();
+			node.style.transitionProperty = transitionProperty;
+			setOpen(true);
+		};
+
+		node.addEventListener("beforematch", handleBeforeMatch);
+
+		return () => {
+			node.removeEventListener("beforematch", handleBeforeMatch);
+		};
+	}, [setOpen]);
+
+	// Toggle `hidden="until-found"` with the open state, imperatively: React types
+	// `hidden` as boolean-only (no `"until-found"`) and has no `onBeforeMatch`, so
+	// going through the JSX attribute is impossible without a type assertion.
+	// Layout effect so the collapsed item is hidden before first paint (no flash).
+	useIsomorphicLayoutEffect(() => {
+		const node = nodeRef.current;
+		if (!node) {
+			return;
+		}
+
+		if (!supportsBeforeMatch()) {
+			// Why: the JSX `inert` below already takes the collapsed region out of
+			// the accessibility tree and the tab order in this browser.
+			return;
+		}
+
+		// Why: `inert` also hides content from find-in-page, and `hidden="until-found"`
+		// already removes it from the accessibility tree, so the two never coexist.
+		node.removeAttribute("inert");
+
+		if (open) {
+			node.removeAttribute("hidden");
+		} else {
+			node.setAttribute("hidden", "until-found");
+			// Drop the inline height and opacity a find-in-page reveal set so the
+			// class-driven `h-0 ↔ h-auto` slide and fade take over again.
+			node.style.height = "";
+			node.style.opacity = "";
+		}
+	}, [open]);
 
 	return (
 		<div
-			ref={composeRefs(ref, (node: HTMLDivElement | null) => findInPage(node, item))}
+			ref={composedRef}
 			{...props}
 			// Why after the spread: `Trigger` is a sibling and reads the same id from
 			// `Item`, so a wider props object must not carry an `id` past the type.
 			id={contentId}
 			// Why: the server and browsers without `beforematch` need the collapsed
 			// region out of the accessibility tree and the tab order, and `inert`
-			// does that without stopping the height animation. `findInPage` removes
-			// it where `hidden="until-found"` takes over.
+			// does that without stopping the height animation. The layout effect
+			// above removes it where `hidden="until-found"` takes over.
 			inert={!open}
 			data-slot={joinDataSlot(dataSlot, "accordion-content")}
 			data-state={open ? "open" : "closed"}
