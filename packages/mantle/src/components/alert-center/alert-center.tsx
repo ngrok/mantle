@@ -425,12 +425,14 @@ class AlertCenterStore {
 	/**
 	 * Server render and hydration pass only: record an item in render order and
 	 * return whether it outranks every item recorded before it. Each item that
-	 * returns `true` renders a server copy of the bar. A later claimant outranks
-	 * the earlier ones, so CSS shows only the last one (see
-	 * {@link serverBarClassName}). The hydration pass renders in the same order
-	 * with a new store, so it makes the same claims and the HTML matches.
-	 * Recording an id again keeps its first position, so StrictMode's double
-	 * render claims the same way.
+	 * returns `true` marks its server copy of the bar as a claim. A later claim
+	 * outranks the earlier ones, so CSS shows only the last one (see
+	 * {@link serverBarClassName}). Recording an id again keeps its first
+	 * position, so StrictMode's double render claims the same way.
+	 *
+	 * The claim is only an attribute: selective hydration can render items in
+	 * another order than the server did (a `Suspense` boundary hydrates later),
+	 * and React keeps a mismatched attribute instead of discarding the HTML.
 	 */
 	claimServerBar(alert: Omit<AlertCenterRegisteredAlert, "sequence">): boolean {
 		const sequence = this.#serverAlertsById.get(alert.id)?.sequence ?? this.#serverAlertsById.size;
@@ -787,14 +789,17 @@ type AlertCenterItemProps = {
  * expansion is not composed), its children stay mounted on a detached host:
  * React renders them, and they add nothing to the document.
  *
- * **Server rendering.** There is no portal before hydration, so an item that
- * outranks every item rendered before it renders a copy of the bar in place,
- * with `data-slot="alert-center-server-bar"`. CSS shows only the last copy,
- * and only when it follows `AlertCenter.Bar` in the same parent. At hydration
- * the client bar replaces it at the same height, with no enter animation. An
- * item authored anywhere else renders a hidden copy and enters after
- * hydration, and so do the expansion rows. Prefetch the data your items read
- * in the root loader, so the items exist during the server render.
+ * **Server rendering.** There is no portal before hydration, so each item
+ * renders its children in a copy of the bar in place, with
+ * `data-slot="alert-center-server-bar"`. CSS shows only the top copy, and
+ * only when it follows `AlertCenter.Bar` in the same parent. At hydration the
+ * client bar replaces it at the same height, with no enter animation, and the
+ * children mount again in the portal. An item authored anywhere else keeps a
+ * hidden copy and enters after hydration, and so do the expansion rows.
+ * Prefetch the data your items read in the root loader, so the items exist
+ * during the server render. Children render on the server, so gate a child
+ * that reads browser-only state, or an item that only the browser can decide,
+ * with `useIsHydrated`.
  *
  * **Structure.** `children` render inside a
  * `<div data-slot="alert-center-item-label">`, the only node the portal puts
@@ -812,7 +817,7 @@ type AlertCenterItemProps = {
  * | `data-slot` | `alert-center-item-label` | On the layout-transparent element inside the host that wraps the item's children. |
  * | `data-alert-host` | the item's `id` | On that same host: which alert's projected children it holds. |
  * | `data-slot` | `alert-center-server-bar` | Before hydration only: on the item's copy of the bar, around the same chrome the bar renders. |
- * | `data-alert-center-server-item` | present | Before hydration only: on the copy, or on a hidden element when the item renders no copy. |
+ * | `data-alert-center-server-claim` | present | Before hydration only: on a copy that outranks every item rendered before it. CSS shows the last claim after the bar. |
  *
  * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenteritem
  *
@@ -840,8 +845,8 @@ const Item = ({ children, className, id, intent, order }: AlertCenterItemProps) 
 	// or unrank its host, and loop the projection forever. Fail fast instead.
 	const isInsideItem = useContext(AlertCenterItemContext);
 	invariant(!isInsideItem, "AlertCenter.Item cannot be rendered inside another item's children.");
-	// The server render and the hydration pass have no portal, so the item
-	// that ranks first so far renders a server copy of the bar in place.
+	// The server render and the hydration pass have no portal, so each item
+	// renders a server copy of the bar in place, and CSS shows the top one.
 	const isHydrated = useIsHydrated();
 	const rendersServerBar = !isHydrated && store.claimServerBar({ id, intent, className, order });
 	const serverBarRef = useRef<HTMLDivElement | null>(null);
@@ -896,13 +901,9 @@ const Item = ({ children, className, id, intent, order }: AlertCenterItemProps) 
 	if (isHydrated) {
 		return null;
 	}
-	if (!rendersServerBar) {
-		// Tells the server copy of the bar that another alert exists, so it
-		// reserves the room of the expand control the client bar adds.
-		return <span hidden data-alert-center-server-item="" />;
-	}
 	// The same chrome the client bar renders, so the client bar replaces it at
-	// the same height.
+	// the same height. Every item renders the same element, so a claim that
+	// differs at hydration changes only an attribute.
 	const {
 		className: barClassName,
 		"data-slot": barDataSlot,
@@ -912,7 +913,7 @@ const Item = ({ children, className, id, intent, order }: AlertCenterItemProps) 
 		<div
 			ref={serverBarRef}
 			data-slot="alert-center-server-bar"
-			data-alert-center-server-item=""
+			data-alert-center-server-claim={rendersServerBar ? "" : undefined}
 			className={serverBarClassName}
 		>
 			<Alert.Root
@@ -1057,14 +1058,14 @@ const barEnter = "starting:h-0 starting:opacity-0";
  *
  * The client bar adds an expand control when `AlertCenter.Content` is composed
  * and another alert exists, and `Alert` makes room for it with content
- * padding. The copy reserves that padding when it follows the content's server
- * anchor and has another item beside it, so no line wraps at hydration.
+ * padding. The copy reserves that padding when it follows the content's
+ * anchor and has another copy beside it, so no line wraps at hydration.
  *
  * The selectors read siblings, and `AlertCenter.Root` renders no element, so
  * compose one center per parent.
  */
 const serverBarClassName =
-	"hidden shrink-0 overflow-hidden [[data-slot=alert-center-bar-anchor]~&]:block [[data-slot=alert-center-bar-anchor]~&:has(~[data-slot=alert-center-server-bar])]:hidden [&:is([data-slot=alert-center-content-anchor]~*):is(:has(~[data-alert-center-server-item]),[data-alert-center-server-item]~*)]:**:data-[slot~=alert-content]:pr-16 md:[&:is([data-slot=alert-center-content-anchor]~*):is(:has(~[data-alert-center-server-item]),[data-alert-center-server-item]~*)]:**:data-[slot~=alert-content]:pr-24";
+	"hidden shrink-0 overflow-hidden [[data-slot=alert-center-bar-anchor]~&[data-alert-center-server-claim]]:block [[data-slot=alert-center-bar-anchor]~&[data-alert-center-server-claim]:has(~[data-alert-center-server-claim])]:hidden [&:is([data-slot=alert-center-content-anchor]~*):is(:has(~[data-slot=alert-center-server-bar]),[data-slot=alert-center-server-bar]~*)]:**:data-[slot~=alert-content]:pr-16 md:[&:is([data-slot=alert-center-content-anchor]~*):is(:has(~[data-slot=alert-center-server-bar]),[data-slot=alert-center-server-bar]~*)]:**:data-[slot~=alert-content]:pr-24";
 
 /** How long to keep the bar mounted for its exit slide if no `transitionend`
  * fires (reduced motion, engines that snap, a tab backgrounded mid-transition).
@@ -1377,7 +1378,7 @@ const singleLineBarControls =
  * | `data-slot` | `alert-center-bar-wrapper` | On the presence wrapper that owns the enter/exit animation. |
  * | `data-slot` | `alert-center-bar alert` | On the banner chrome the top item's children render inside, joined ahead of `Alert.Root`'s own slot. |
  * | `data-slot` | `alert-center-bar-mount` | On the layout-transparent element the top item's host is adopted into. |
- * | `data-slot` | `alert-center-bar-anchor` | Before hydration only: on a hidden element that marks where the items' server copies of the bar may show. |
+ * | `data-slot` | `alert-center-bar-anchor` | While no bar shows: on a hidden element that marks where the items' server copies of the bar may show. |
  * | `data-state` | `"open"` \| `"closed"` | On the wrapper; drives the enter/exit transition, and stays `closed` while the exit plays. |
  * | `data-placement` | `"bar"` | On the chrome: where the top item's children are currently rendering. |
  * | `data-alert-id` | the top item's `id` | On the chrome; per-alert styling and testing hook. |
@@ -1539,21 +1540,27 @@ const Bar = ({ className, "data-slot": dataSlot, ref, ...props }: AlertCenterBar
 		};
 	}, [store]);
 
-	// When the server HTML already shows this alert, the bar takes over at full
-	// height. Clear the hand-off once the bar mounts, so a later arrival of the
-	// same id enters with its animation.
-	const entersFromServer = alert != null && store.getServerShownId() === alert.id;
+	// When the server HTML already shows a copy of the bar, the bar takes over
+	// at full height. Any shown copy counts, not only this id's: an item
+	// authored away from the bar can outrank the copy the page shows, and the
+	// bar still replaces a box. Why clear on exit, not on mount: a render after
+	// the mount would add the enter classes before the first style pass, and
+	// the bar would grow from zero. A later arrival enters with its animation.
+	const entersFromServer = store.getServerShownId() != null;
+	const wasMountedRef = useRef(isMounted);
 	useIsomorphicLayoutEffect(() => {
-		if (isMounted) {
+		if (wasMountedRef.current && !isMounted) {
 			store.setServerShownId(null);
 		}
+		wasMountedRef.current = isMounted;
 	}, [store, isMounted]);
 
-	// Nothing showing and nothing left to animate out. Before hydration no item
-	// has registered: render the anchor that places the items' server copies
-	// (see `serverBarClassName`).
+	// Nothing showing and nothing left to animate out. Render the anchor that
+	// places the items' server copies (see `serverBarClassName`). Why also
+	// after hydration: an item in a `Suspense` boundary that hydrates later
+	// keeps its copy until then, and the copy shows only after the anchor.
 	if (!isMounted || alert == null) {
-		return isHydrated ? null : <span hidden data-slot="alert-center-bar-anchor" />;
+		return <span hidden data-slot="alert-center-bar-anchor" />;
 	}
 
 	const remaining = present ? alerts.length - 1 : 0;
@@ -1641,7 +1648,7 @@ type AlertCenterContentProps = Omit<ComponentProps<"div">, "children" | "id"> &
  * | `data-placement` | `"list"` | On each row's chrome: where that item's children are currently rendering. |
  * | `data-alert-id` | the row item's `id` | On each row's chrome; per-alert styling and testing hook. |
  * | `data-alert-mount` | the row item's `id` | On the row's layout-transparent mount point: the element that item's host is adopted into. |
- * | `data-slot` | `alert-center-content-anchor` | Before hydration only: on a hidden element that tells the server copy of the bar to reserve room for the expand control. |
+ * | `data-slot` | `alert-center-content-anchor` | While no row shows: on a hidden element that tells a server copy of the bar to reserve room for the expand control. |
  *
  * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcentercontent
  *
@@ -1681,7 +1688,6 @@ const Content = ({
 	const { store, contentId } = useAlertCenterContext("AlertCenter.Content");
 	const { isExpanded, setExpanded } = useAlertCenterExpansion("AlertCenter.Content");
 	const alerts = useRankedAlerts(store);
-	const isHydrated = useIsHydrated();
 	const additionalAlerts = alerts.slice(1);
 	const hasRows = additionalAlerts.length > 0;
 
@@ -1802,10 +1808,11 @@ const Content = ({
 	// Nothing is hidden behind the bar → there's no expansion to render or
 	// animate, and the bar shows no expand control. (This stays unmounted rather
 	// than collapsing to zero height, so the shell sits flush against the bar.)
-	// Before hydration, render the anchor that tells the server copy of the bar
-	// to reserve room for the expand control (see `serverBarClassName`).
+	// Render the anchor that tells a server copy of the bar to reserve room for
+	// the expand control (see `serverBarClassName`). It stays after hydration
+	// for the same reason as the bar's anchor.
 	if (additionalAlerts.length === 0) {
-		return isHydrated ? null : <span hidden data-slot="alert-center-content-anchor" />;
+		return <span hidden data-slot="alert-center-content-anchor" />;
 	}
 
 	return (

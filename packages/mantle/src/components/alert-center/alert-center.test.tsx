@@ -2131,12 +2131,12 @@ describe("AlertCenter host projection", () => {
 });
 
 test("the server render shows the top item in a bar copy, with the empty announcer and no expansion", () => {
-	// Each item that outranks every item rendered before it emits a server copy
-	// of the bar. CSS shows only the last copy (see the browser test), so the
-	// danger item authored second must emit one, and the info item none. The
-	// live region must already be in this HTML: a polite region announces
-	// reliably only when it exists in the accessibility tree before its text
-	// changes.
+	// Each item renders a server copy of the bar. A copy that outranks every
+	// item rendered before it carries a claim, and CSS shows the last claim (see
+	// the browser test), so the danger item authored second must claim, and the
+	// info item must not. The live region must already be in this HTML: a
+	// polite region announces reliably only when it exists in the
+	// accessibility tree before its text changes.
 	const html = renderToString(
 		<AlertCenter.Root defaultOpen>
 			<AlertCenter.Bar />
@@ -2164,16 +2164,18 @@ test("the server render shows the top item in a bar copy, with the empty announc
 	expect(announcer).toHaveAttribute("aria-live", "polite");
 	expect(announcer?.textContent).toBe("");
 
-	const copies = [
-		...template.content.querySelectorAll('[data-slot="alert-center-server-bar"]'),
+	const claims = [
+		...template.content.querySelectorAll(
+			'[data-slot="alert-center-server-bar"][data-alert-center-server-claim]',
+		),
 	].map((copy) => copy.querySelector('[data-slot~="alert-center-bar"]'));
-	expect(copies.map((chrome) => chrome?.getAttribute("data-alert-id"))).toEqual([
+	expect(claims.map((chrome) => chrome?.getAttribute("data-alert-id"))).toEqual([
 		"transfer-limit",
 		"payment-failed",
 	]);
+	const copies = claims;
 	expect(copies.at(-1)).toHaveAttribute("data-placement", "bar");
 	expect(copies.at(-1)?.textContent).toContain("Payment failed");
-	expect(html).not.toContain("Usage tip");
 	expect(html).not.toContain('data-slot="alert-center-content"');
 	expect(html).not.toContain("alert-center-item-host");
 });

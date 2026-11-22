@@ -1,0 +1,78 @@
+---
+title: Alert Center Server Render Migration
+description: AlertCenter items now render their children on the server, and the top item shows in the server HTML. Gate items and children that only the browser can decide with useIsHydrated, and prefetch the alert data in the root loader.
+introducedIn: "0.95.0"
+---
+
+# Mantle Alert Center Server Render Migration Guide
+
+`AlertCenter.Item` used to render nothing until hydration, so its children never ran on the server, and the bar entered after hydration and pushed the page down. Now each item renders its children in a copy of the bar during the server render and the hydration pass, and the server HTML shows the top item. At hydration the client bar replaces the copy at the same height, so the page does not shift.
+
+**TL;DR:** Prefetch the data your alert items read in the root loader, so the items exist during the server render. Then find each item whose children read browser-only state during render, and each item that only the browser can decide (such as one hidden by a dismissal in `sessionStorage`). Render those only after `useIsHydrated()` returns `true`.
+
+## Codemod
+
+Codemod: manual: which children read browser-only state, and which items depend on browser storage, is a semantic question that no syntax rule can answer.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find every `AlertCenter.Item`, including items authored inside your own components, and the code that decides whether each one mounts.
+2. If that decision reads `sessionStorage`, `localStorage`, or any state that the server cannot read (such as a dismissed set from `useSessionStorage`), render the item only after `useIsHydrated()` from `@ngrok/mantle/hooks` returns `true`. Items that the server can decide, such as an alert the user cannot dismiss, need no gate.
+3. If an item's children read `window`, `document`, `localStorage`, the current time, or another browser-only value during render, move that read into an effect, or gate the child with `useIsHydrated()`.
+4. In your root loader, prefetch the data your items read, such as your notifications or account notices query, and seed your data cache with it. Without it, the server has no items, and the bar still enters after hydration.
+5. Keep the items after `AlertCenter.Bar` in the same parent, and compose one `AlertCenter.Root` for each parent.
+6. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why render on the server?** A bar that appears after hydration pushes the whole app down, which counts toward Cumulative Layout Shift. A copy of the bar in the server HTML takes its place from the first paint.
+
+---
+
+## Before → after
+
+### An item hidden by a dismissal in `sessionStorage`
+
+```tsx
+// BEFORE
+const [dismissed] = useSessionStorage("dismissed-alerts", "[]");
+return alerts
+	.filter((alert) => !dismissed.includes(alert.id))
+	.map((alert) => <AccountAlertItem key={alert.id} alert={alert} />);
+
+// AFTER
+const isHydrated = useIsHydrated();
+const [dismissed] = useSessionStorage("dismissed-alerts", "[]");
+return alerts
+	.filter((alert) => (isHydrated ? !dismissed.includes(alert.id) : !alert.dismissable))
+	.map((alert) => <AccountAlertItem key={alert.id} alert={alert} />);
+```
+
+### A child that reads the window during render
+
+```tsx
+// BEFORE
+<AlertCenter.Item id="screen" intent="info">
+	<Alert.Title>Your screen is {window.innerWidth}px wide</Alert.Title>
+</AlertCenter.Item>;
+
+// AFTER
+const isHydrated = useIsHydrated();
+{
+	isHydrated && (
+		<AlertCenter.Item id="screen" intent="info">
+			<Alert.Title>Your screen is {window.innerWidth}px wide</Alert.Title>
+		</AlertCenter.Item>
+	);
+}
+```
+
+## Edge cases & gotchas
+
+- Items that already render only after hydration change nothing. They enter after hydration, as before.
+- At hydration the item's children mount again in the bar, so their mount effects run twice in production.
+- An item authored away from the bar keeps a hidden copy and enters after hydration. With `defaultOpen`, the expansion rows also enter after hydration.
+
+## How to verify
+
+Render a page with an active alert on the server, and read the HTML: it holds an element with `data-slot="alert-center-server-bar"` and the alert's title. Load the page with hydration slowed down, and check that the page does not move when hydration runs.

@@ -394,7 +394,7 @@ the condition cleared. Reload the page mid-session and acknowledged alerts stay 
 import { Alert } from "@ngrok/mantle/alert";
 import type { AlertCenterIntent } from "@ngrok/mantle/alert-center";
 import { AlertCenter } from "@ngrok/mantle/alert-center";
-import { useSessionStorage } from "@ngrok/mantle/hooks";
+import { useIsHydrated, useSessionStorage } from "@ngrok/mantle/hooks";
 import { useEffect, useMemo } from "react";
 
 type ServerAlert = {
@@ -404,6 +404,11 @@ type ServerAlert = {
 	cta: string;
 	href: string;
 };
+
+/** This app's dismissability policy, applied in one place: its danger alerts don't offer dismissal. */
+function isDismissable(alert: ServerAlert): boolean {
+	return alert.intent !== "danger";
+}
 
 /** Decode the sessionStorage entry (a JSON array of alert ids); corrupt entries mean "nothing dismissed". */
 function parseDismissedIds(raw: string): ReadonlyArray<string> {
@@ -422,6 +427,9 @@ export function AccountAlerts({ serverAlerts }: { serverAlerts: ReadonlyArray<Se
 	const [dismissedRaw, setDismissedRaw] = useSessionStorage("dismissed-alerts", "[]");
 	const dismissed = useMemo(() => new Set(parseDismissedIds(dismissedRaw)), [dismissedRaw]);
 	const dismiss = (id: string) => setDismissedRaw(JSON.stringify([...dismissed, id]));
+	// The server cannot read sessionStorage, so before hydration render only the
+	// alerts no one can dismiss. The rest arrive once the dismissed set is known.
+	const isHydrated = useIsHydrated();
 
 	// Reconcile: a dismissal only suppresses the occurrence the server is still
 	// reporting. When a condition clears server-side, forget its dismissal so a
@@ -439,7 +447,7 @@ export function AccountAlerts({ serverAlerts }: { serverAlerts: ReadonlyArray<Se
 			<AlertCenter.Bar />
 			<AlertCenter.Content />
 			{serverAlerts
-				.filter((alert) => !dismissed.has(alert.id))
+				.filter((alert) => (isHydrated ? !dismissed.has(alert.id) : !isDismissable(alert)))
 				.map((alert) => (
 					<AlertCenter.Item key={alert.id} id={alert.id} intent={alert.intent}>
 						<Alert.Icon />
@@ -447,8 +455,7 @@ export function AccountAlerts({ serverAlerts }: { serverAlerts: ReadonlyArray<Se
 							<Alert.Title>
 								{alert.title} <a href={alert.href}>{alert.cta}</a>
 							</Alert.Title>
-							{/* this app's dismissability policy, applied in one place: its danger alerts don't offer dismissal */}
-							{alert.intent !== "danger" && (
+							{isDismissable(alert) && (
 								<AlertCenter.DismissIconButton onClick={() => dismiss(alert.id)} />
 							)}
 						</Alert.Content>
@@ -668,17 +675,24 @@ The server HTML shows the top alert in the bar when two things are true:
   as your notifications or account notices query, so the server renders the same items as the client.
 - **The items follow `AlertCenter.Bar` in the same parent,** as in every example on this page.
 
-Before hydration there is no portal, so the top item renders a copy of the bar in place. At hydration the
-client bar replaces that copy at the same height, with no enter animation, so the page does not shift.
+Before hydration there is no portal, so each item renders its children in a copy of the bar in place, and CSS
+shows the top one. At hydration the client bar replaces that copy at the same height, with no enter
+animation, so the page does not shift. The children then mount again in the bar.
+
+Because children render on the server, render an item only after
+[`useIsHydrated`](/hooks#useishydrated) returns `true` when its children read browser-only state during
+render.
 
 Without the prefetch, the server has no items. The bar then enters with its height animation after
 hydration and pushes the page down, which counts toward Cumulative Layout Shift. An item authored in a
 route, away from the bar, also enters after hydration, and so do the expansion rows of a `Root` that
-starts open. The server HTML places the copy by its siblings, so compose one `AlertCenter.Root` per parent.
+starts open. When such an item outranks the copy the server shows, the bar keeps its height but changes
+its alert at hydration. The server HTML places the copy by its siblings, so compose one `AlertCenter.Root` per parent.
 
 Render on the server only the alerts the server can decide. A dismissal kept in `sessionStorage` is unknown
 on the server, so an item it hides would show in the server HTML and then leave at hydration. Keep those
-dismissals in a cookie the loader reads, or mount the items they hide after hydration.
+dismissals in a cookie the loader reads, or mount the items they hide after hydration, as the
+[persisting dismissals](#persisting-dismissals) example does.
 
 ## Custom content
 

@@ -192,6 +192,7 @@ const migrationsPages = [
 	"0019-multi-select-owned-behavior-migration",
 	"0020-native-floats-migration",
 	"0021-native-radio-group-migration",
+	"0022-alert-center-server-render-migration",
 ];
 
 export default [
