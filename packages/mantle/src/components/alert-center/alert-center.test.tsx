@@ -2130,24 +2130,28 @@ describe("AlertCenter host projection", () => {
 	});
 });
 
-test("the server render emits only the empty announcer: no bar, no expansion, no item DOM", () => {
-	// Items resolve their host and register from layout effects, so the server
-	// never reaches `createPortal` (which throws in `renderToString`). With no
-	// registrations, the bar and the expansion render nothing. The live region
-	// must already be in this HTML: a polite region announces reliably only
-	// when it exists in the accessibility tree before its text changes.
+test("the server render shows the top item in a bar copy, with the empty announcer and no expansion", () => {
+	// Each item that outranks every item rendered before it emits a server copy
+	// of the bar. CSS shows only the last copy (see the browser test), so the
+	// danger item authored second must emit one, and the info item none. The
+	// live region must already be in this HTML: a polite region announces
+	// reliably only when it exists in the accessibility tree before its text
+	// changes.
 	const html = renderToString(
 		<AlertCenter.Root defaultOpen>
 			<AlertCenter.Bar />
 			<AlertCenter.Content />
+			<AlertCenter.Item id="transfer-limit" intent="warning">
+				<Alert.Title>Transfer limit</Alert.Title>
+			</AlertCenter.Item>
 			<AlertCenter.Item id="payment-failed" intent="danger">
 				<Alert.Content>
 					<Alert.Title>Payment failed</Alert.Title>
 					<AlertCenter.DismissIconButton onClick={() => {}} />
 				</Alert.Content>
 			</AlertCenter.Item>
-			<AlertCenter.Item id="transfer-limit" intent="warning">
-				<Alert.Title>Transfer limit</Alert.Title>
+			<AlertCenter.Item id="usage-tip" intent="info">
+				<Alert.Title>Usage tip</Alert.Title>
 			</AlertCenter.Item>
 		</AlertCenter.Root>,
 	);
@@ -2160,11 +2164,16 @@ test("the server render emits only the empty announcer: no bar, no expansion, no
 	expect(announcer).toHaveAttribute("aria-live", "polite");
 	expect(announcer?.textContent).toBe("");
 
-	expect(html).not.toContain("alert-center-bar");
+	const copies = [
+		...template.content.querySelectorAll('[data-slot="alert-center-server-bar"]'),
+	].map((copy) => copy.querySelector('[data-slot~="alert-center-bar"]'));
+	expect(copies.map((chrome) => chrome?.getAttribute("data-alert-id"))).toEqual([
+		"transfer-limit",
+		"payment-failed",
+	]);
+	expect(copies.at(-1)).toHaveAttribute("data-placement", "bar");
+	expect(copies.at(-1)?.textContent).toContain("Payment failed");
+	expect(html).not.toContain("Usage tip");
 	expect(html).not.toContain("alert-center-content");
 	expect(html).not.toContain("alert-center-item-host");
-	expect(html).not.toContain("alert-center-item-label");
-	expect(html).not.toContain("data-alert-id");
-	expect(html).not.toContain("Payment failed");
-	expect(html).not.toContain("Transfer limit");
 });

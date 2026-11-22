@@ -546,9 +546,8 @@ and shows it only in a row; `in-data-[placement=list]:hidden` does the reverse.
 
 A mounted item's children always render (React-wise), even while they rank nowhere visible (e.g. below
 the bar with no expansion composed, where the host stays detached from the document). Because items
-register from effects, avoid authoring them inside `Suspense` boundaries that can hide them (hiding
-unregisters the alert and the bar animates out), and server-rendered HTML contains no bar: it enters with
-its height animation after hydration, the same entrance every arriving alert gets by design.
+register from effects, avoid authoring them inside `Suspense` boundaries that can hide them: hiding
+unregisters the alert, and the bar animates out.
 
 ### Where `AlertCenter.Root` goes
 
@@ -660,6 +659,25 @@ One consequence worth knowing: `AlertCenter.Root` renders the `sr-only` live reg
 in the tree, so hoisting it also moves that element out of the notice slot. It is visually hidden either way,
 and it must stay mounted to announce anything, so this is harmless. But it is why `Root` is renderless rather
 than a wrapper you can style.
+
+## Server rendering
+
+The server HTML shows the top alert in the bar when two things are true:
+
+- **The items exist during the server render.** Prefetch the data your items read in the root loader, such
+  as your notifications or account notices query, so the server renders the same items as the client.
+- **The items follow `AlertCenter.Bar` in the same parent,** as in every example on this page.
+
+Before hydration there is no portal, so the top item renders a copy of the bar in place. At hydration the
+client bar replaces that copy at the same height, with no enter animation, so the page does not shift.
+
+Without the prefetch, the server has no items. The bar then enters with its height animation after
+hydration and pushes the page down, which counts toward Cumulative Layout Shift. An item authored in a
+route, away from the bar, also enters after hydration.
+
+Render on the server only the alerts the server can decide. A dismissal kept in `sessionStorage` is unknown
+on the server, so an item it hides would show in the server HTML and then leave at hydration. Keep those
+dismissals in a cookie the loader reads, or mount the items they hide after hydration.
 
 ## Custom content
 

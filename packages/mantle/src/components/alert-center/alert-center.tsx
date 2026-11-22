@@ -15,6 +15,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import invariant from "tiny-invariant";
+import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -130,8 +131,7 @@ function normalizeText(text: string): string {
  * back to the full title text when the title is entirely links; empty when
  * the banner rendered no title. Deriving from the committed DOM (instead of
  * requiring a duplicated plain-text prop) keeps accessible strings in
- * lockstep with the visible copy, and is safe because the center renders
- * exclusively client-side.
+ * lockstep with the visible copy, and is safe because only effects call it.
  *
  * @example
  * ```ts
@@ -418,6 +418,54 @@ class AlertCenterStore {
 	/** Whether an `AlertCenter.Content` is composed under this Root. */
 	getContentMounted = (): boolean => this.#contentMounted;
 
+	#serverAlertsById = new Map<string, AlertCenterRegisteredAlert>();
+	#serverBarClassName: string | undefined;
+	#serverShownId: string | null = null;
+
+	/**
+	 * Server render and hydration pass only: record an item in render order and
+	 * return whether it outranks every item recorded before it. Each item that
+	 * returns `true` renders a server copy of the bar. A later claimant outranks
+	 * the earlier ones, so CSS shows only the last one (see
+	 * {@link serverBarClassName}). The hydration pass renders in the same order
+	 * with a new store, so it makes the same claims and the HTML matches.
+	 * Recording an id again keeps its first position, so StrictMode's double
+	 * render claims the same way.
+	 */
+	claimServerBar(alert: Omit<AlertCenterRegisteredAlert, "sequence">): boolean {
+		const sequence = this.#serverAlertsById.get(alert.id)?.sequence ?? this.#serverAlertsById.size;
+		const registration: AlertCenterRegisteredAlert = { ...alert, sequence };
+		this.#serverAlertsById.set(alert.id, registration);
+		const earlier = [...this.#serverAlertsById.values()].filter(
+			(recorded) => recorded.sequence < sequence,
+		);
+		return rankAlerts([...earlier, registration])[0] === registration;
+	}
+
+	/**
+	 * Bar-side, server render and hydration pass only: publish the bar's
+	 * `className`, so an item's server copy of the bar matches the client bar.
+	 * The bar renders before the items it precedes, so they read it in time.
+	 */
+	setServerBarClassName(className: string | undefined): void {
+		this.#serverBarClassName = className;
+	}
+
+	/** The bar's `className` for the server copy of the bar. */
+	getServerBarClassName = (): string | undefined => this.#serverBarClassName;
+
+	/**
+	 * Item-side: report that the server HTML showed this id in the bar. The
+	 * client bar then mounts at full height, with no enter animation, so it
+	 * replaces the server copy with no layout shift.
+	 */
+	setServerShownId(id: string | null): void {
+		this.#serverShownId = id;
+	}
+
+	/** The id the server HTML showed in the bar, until the client bar takes over. */
+	getServerShownId = (): string | null => this.#serverShownId;
+
 	/**
 	 * Content-side: report that an expansion surface exists. The Bar renders
 	 * the expand control only while one is mounted, so its `aria-controls`
@@ -599,9 +647,12 @@ type AlertCenterRootProps = {
  * (and `Content`) inside `AppLayout.Notice`, alongside any other window-level
  * notice, so all top-of-viewport messaging shares one layout slot.
  *
- * Items register client-side (from layout effects), so server-rendered HTML
- * contains no bar; it enters with its height animation after hydration, the
- * same entrance every arriving alert gets by design.
+ * Server-rendered HTML shows the top item in the bar when the items exist
+ * during the server render and follow `AlertCenter.Bar` in the same parent.
+ * The client bar then takes over at the same height, so hydration shifts no
+ * layout. Prefetch the data your items read in the root loader: without it,
+ * the server has no items, and the bar enters with its height animation after
+ * hydration and pushes the page down.
  *
  * **Data attributes:**
  *
@@ -736,8 +787,14 @@ type AlertCenterItemProps = {
  * expansion is not composed), its children stay mounted on a detached host:
  * React renders them, and they add nothing to the document.
  *
- * Server rendering emits no alert DOM. The bar enters after hydration with
- * its height animation, the same entrance every arriving alert gets.
+ * **Server rendering.** There is no portal before hydration, so an item that
+ * outranks every item rendered before it renders a copy of the bar in place,
+ * with `data-slot="alert-center-server-bar"`. CSS shows only the last copy,
+ * and only when it follows `AlertCenter.Bar` in the same parent. At hydration
+ * the client bar replaces it at the same height, with no enter animation. An
+ * item authored anywhere else renders a hidden copy and enters after
+ * hydration. Prefetch the data your items read in the root loader, so the
+ * items exist during the server render.
  *
  * **Structure.** `children` render inside a
  * `<div data-slot="alert-center-item-label">`, the only node the portal puts
@@ -754,6 +811,7 @@ type AlertCenterItemProps = {
  * | `data-slot` | `alert-center-item-host` | On the stable per-id host element the item's children portal into. |
  * | `data-slot` | `alert-center-item-label` | On the layout-transparent element inside the host that wraps the item's children. |
  * | `data-alert-host` | the item's `id` | On that same host: which alert's projected children it holds. |
+ * | `data-slot` | `alert-center-server-bar` | Before hydration only: on the item's copy of the bar, around the same chrome the bar renders. |
  *
  * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcenteritem
  *
@@ -781,11 +839,21 @@ const Item = ({ children, className, id, intent, order }: AlertCenterItemProps) 
 	// or unrank its host, and loop the projection forever. Fail fast instead.
 	const isInsideItem = useContext(AlertCenterItemContext);
 	invariant(!isInsideItem, "AlertCenter.Item cannot be rendered inside another item's children.");
-	// The host is created client-side in an effect (SSR emits nothing), then
-	// the portal renders into it. Facts re-register only when they change;
-	// children updates flow through the portal like any other render.
+	// The server render and the hydration pass have no portal, so the item
+	// that ranks first so far renders a server copy of the bar in place.
+	const isHydrated = useIsHydrated();
+	const rendersServerBar = !isHydrated && store.claimServerBar({ id, intent, className, order });
+	const serverBarRef = useRef<HTMLDivElement | null>(null);
+	// The host is created client-side in an effect, then the portal renders
+	// into it. Facts re-register only when they change; children updates flow
+	// through the portal like any other render.
 	const [host, setHost] = useState<HTMLElement | null>(null);
 	useIsomorphicLayoutEffect(() => {
+		// Read before the portal replaces the server copy: CSS shows at most one
+		// copy, so a copy with a box is the bar the page already shows.
+		if ((serverBarRef.current?.getClientRects().length ?? 0) > 0) {
+			store.setServerShownId(id);
+		}
 		setHost(store.getHost(id));
 	}, [store, id]);
 	useIsomorphicLayoutEffect(
@@ -798,9 +866,6 @@ const Item = ({ children, className, id, intent, order }: AlertCenterItemProps) 
 	useIsomorphicLayoutEffect(() => {
 		store.captureHostSnapshot(id);
 	});
-	if (host == null) {
-		return null;
-	}
 	// The chrome `Alert.Root` is only a DOM ancestor of the portaled children.
 	// React context can't cross a portal from the DOM side, so the item
 	// provides the same Alert context (same `intent`) the chrome renders with.
@@ -809,7 +874,7 @@ const Item = ({ children, className, id, intent, order }: AlertCenterItemProps) 
 	// main landmark when none is left. `Alert.DismissIconButton`'s own move
 	// would run first and land on the bar's expand control; the focus tracker
 	// would read that as a deliberate move and skip the redirect.
-	return createPortal(
+	const content = (
 		<AlertContextProvider intent={intent} redirectDismissFocus={false}>
 			<AlertCenterItemContext.Provider value={true}>
 				{/* Why the wrapper: a portal owns no node of its own, so React removes
@@ -822,8 +887,34 @@ const Item = ({ children, className, id, intent, order }: AlertCenterItemProps) 
 					{children}
 				</div>
 			</AlertCenterItemContext.Provider>
-		</AlertContextProvider>,
-		host,
+		</AlertContextProvider>
+	);
+	if (host != null) {
+		return createPortal(content, host);
+	}
+	if (!rendersServerBar) {
+		return null;
+	}
+	// The same chrome the client bar renders, so the client bar replaces it at
+	// the same height.
+	return (
+		<div ref={serverBarRef} data-slot="alert-center-server-bar" className={serverBarClassName}>
+			<Alert.Root
+				appearance="banner"
+				intent={intent}
+				className={cx(
+					chromeClassName,
+					singleLineBarControls,
+					store.getServerBarClassName(),
+					className,
+				)}
+				data-slot="alert-center-bar"
+				data-placement="bar"
+				data-alert-id={id}
+			>
+				{content}
+			</Alert.Root>
+		</div>
 	);
 };
 
@@ -933,14 +1024,27 @@ type AlertCenterBarProps = Omit<
  * wrapper carries no padding (like `Accordion.Content`), so its height
  * reaches a true zero that the banner's own `py-2` would otherwise clamp, and
  * the opacity fade hides the opening/closing frame. `@starting-style` (the
- * `starting:` variant) supplies the pre-insertion state so the enter runs on
- * mount; the exit is driven by `data-state="closed"` while the wrapper stays
+ * `starting:` variant in {@link barEnter}) supplies the pre-insertion state so
+ * the enter runs on mount; the exit is driven by `data-state="closed"` while the wrapper stays
  * mounted (see {@link useBarPresence}). `interpolate-size:allow-keywords`
  * makes the `auto` keyword animatable (Chromium only; other engines snap, a fine
  * progressive enhancement).
  */
 const barAnimation =
-	"shrink-0 overflow-hidden transition-[height,opacity] duration-200 ease-out [interpolate-size:allow-keywords] starting:h-0 starting:opacity-0 data-state-closed:h-0 data-state-closed:opacity-0 data-state-closed:duration-150 motion-reduce:transition-none";
+	"shrink-0 overflow-hidden transition-[height,opacity] duration-200 ease-out [interpolate-size:allow-keywords] data-state-closed:h-0 data-state-closed:opacity-0 data-state-closed:duration-150 motion-reduce:transition-none";
+
+/** The enter half of {@link barAnimation}. A bar that replaces the server copy skips it. */
+const barEnter = "starting:h-0 starting:opacity-0";
+
+/**
+ * Shows an item's server copy of the bar only where the bar renders: after
+ * the bar's server anchor, in the same parent. An item authored anywhere else
+ * keeps its copy hidden and enters after hydration. Of the copies there, only
+ * the last shows: each copy outranks every item rendered before it (see
+ * {@link AlertCenterStore.claimServerBar}).
+ */
+const serverBarClassName =
+	"hidden shrink-0 overflow-hidden [[data-slot=alert-center-bar-anchor]~&]:block [[data-slot=alert-center-bar-anchor]~&:has(~[data-slot=alert-center-server-bar])]:hidden";
 
 /** How long to keep the bar mounted for its exit slide if no `transitionend`
  * fires (reduced motion, engines that snap, a tab backgrounded mid-transition).
@@ -1253,6 +1357,7 @@ const singleLineBarControls =
  * | `data-slot` | `alert-center-bar-wrapper` | On the presence wrapper that owns the enter/exit animation. |
  * | `data-slot` | `alert-center-bar alert` | On the banner chrome the top item's children render inside, joined ahead of `Alert.Root`'s own slot. |
  * | `data-slot` | `alert-center-bar-mount` | On the layout-transparent element the top item's host is adopted into. |
+ * | `data-slot` | `alert-center-bar-anchor` | Before hydration only: on a hidden element that marks where the items' server copies of the bar may show. |
  * | `data-state` | `"open"` \| `"closed"` | On the wrapper; drives the enter/exit transition, and stays `closed` while the exit plays. |
  * | `data-placement` | `"bar"` | On the chrome: where the top item's children are currently rendering. |
  * | `data-alert-id` | the top item's `id` | On the chrome; per-alert styling and testing hook. |
@@ -1305,6 +1410,10 @@ const Bar = ({ className, "data-slot": dataSlot, ref, ...props }: AlertCenterBar
 	const topAlert = alerts[0] ?? null;
 	const present = topAlert != null;
 	const { isMounted, dataState, onExitTransitionEnd } = useBarPresence({ present });
+	const isHydrated = useIsHydrated();
+	if (!isHydrated) {
+		store.setServerBarClassName(className);
+	}
 
 	// Retain the last alert so the collapsing bar keeps its chrome through the
 	// exit slide instead of a blank strip the instant the alerts empty. When
@@ -1410,9 +1519,21 @@ const Bar = ({ className, "data-slot": dataSlot, ref, ...props }: AlertCenterBar
 		};
 	}, [store]);
 
-	// Nothing showing and nothing left to animate out.
+	// When the server HTML already shows this alert, the bar takes over at full
+	// height. Clear the hand-off once the bar mounts, so a later arrival of the
+	// same id enters with its animation.
+	const entersFromServer = alert != null && store.getServerShownId() === alert.id;
+	useIsomorphicLayoutEffect(() => {
+		if (isMounted) {
+			store.setServerShownId(null);
+		}
+	}, [store, isMounted]);
+
+	// Nothing showing and nothing left to animate out. Before hydration no item
+	// has registered: render the anchor that places the items' server copies
+	// (see `serverBarClassName`).
 	if (!isMounted || alert == null) {
-		return null;
+		return isHydrated ? null : <span hidden data-slot="alert-center-bar-anchor" />;
 	}
 
 	const remaining = present ? alerts.length - 1 : 0;
@@ -1428,7 +1549,9 @@ const Bar = ({ className, "data-slot": dataSlot, ref, ...props }: AlertCenterBar
 			// testing for the exit slide (pointer-events alone wouldn't stop a
 			// second Enter on the still-focused dismiss button).
 			inert={!present}
-			className={barAnimation}
+			// Why no enter: the server copy already shows this alert at full
+			// height, so growing from zero would shift the page.
+			className={cx(barAnimation, !entersFromServer && barEnter)}
 			data-state={dataState}
 			onTransitionEnd={onExitTransitionEnd}
 		>
