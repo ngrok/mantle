@@ -2,7 +2,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { MouseEvent, ReactNode } from "react";
 import { toast as sonnerToast } from "sonner";
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { preventCloseOnPromptInteraction } from "./prevent-close-on-prompt-interaction.js";
 import * as Toast from "./toast-parts.js";
@@ -71,34 +71,123 @@ describe("Toast", () => {
 	});
 
 	describe("makeToast", () => {
-		const toastNode = (
-			<Toast.Root intent="info">
-				<Toast.Message>message</Toast.Message>
-			</Toast.Root>
-		);
-
-		test("omits the `id` key when no custom id is given", () => {
-			const custom = vi.spyOn(sonnerToast, "custom").mockReturnValue("stub-toast");
-
-			expect(makeToast(toastNode)).toBe("stub-toast");
-
-			expect(custom).toHaveBeenCalledTimes(1);
-			// Why `toStrictEqual`: an explicit `id: undefined` breaks sonner's toast
-			// identity, so the key must be absent rather than undefined.
-			expect(custom.mock.lastCall?.[1]).toStrictEqual({ duration: undefined, unstyled: true });
+		/**
+		 * A copy of `toast.js` whose sonner chunk has not loaded. sonner itself
+		 * loads once per worker, so each message is unique to its test.
+		 */
+		// Why: sonner keeps each active toast, and a later `Toaster` would show it again.
+		afterEach(() => {
+			sonnerToast.dismiss();
+			vi.doUnmock("sonner");
 		});
 
-		test("forwards a custom id", () => {
-			const custom = vi.spyOn(sonnerToast, "custom").mockReturnValue("billing-warning");
+		async function importUnloadedToast() {
+			vi.resetModules();
+			return import("./toast.js");
+		}
 
-			makeToast(toastNode, { id: "billing-warning" });
+		function toastTexts() {
+			return Array.from(
+				document.querySelectorAll('[data-slot="toast"]'),
+				(toast) => toast.textContent,
+			);
+		}
+
+		test("shows the toasts made before the chunk loads and while it loads, in call order", async () => {
+			const unloaded = await importUnloadedToast();
+			const toast = (message: string) => (
+				<unloaded.Root intent="info">
+					<unloaded.Message>{message}</unloaded.Message>
+				</unloaded.Root>
+			);
+
+			// The first call starts the load, so the second waits for the chunk.
+			unloaded.makeToast(toast("Queued first"));
+			unloaded.makeToast(toast("Queued second"));
+			render(<unloaded.Toaster />);
+			unloaded.makeToast(toast("Queued third"));
+
+			// sonner stacks the newest toast first.
+			await waitFor(() => {
+				expect(toastTexts().filter((text) => text?.startsWith("Queued"))).toEqual([
+					"Queued third",
+					"Queued second",
+					"Queued first",
+				]);
+			});
+		});
+
+		test("updates a waiting toast in place when a later call reuses its id", async () => {
+			const unloaded = await importUnloadedToast();
+
+			expect(unloaded.makeToast(<p>Uploading</p>, { id: "upload" })).toBe("upload");
+			unloaded.makeToast(<p>Uploaded</p>, { id: "upload" });
+			render(<unloaded.Toaster />);
+
+			expect(await screen.findByText("Uploaded")).toBeInTheDocument();
+			expect(screen.queryByText("Uploading")).toBeNull();
+		});
+
+		test("keeps the page, the landmark, and the waiting toasts when the chunk fails to load", async () => {
+			const chunkError = new Error("Failed to fetch dynamically imported module");
+			vi.doMock("sonner", () => {
+				throw chunkError;
+			});
+			// Why the stub: happy-dom has no `reportError`, and the report is the only trace of the failure.
+			const reportError = vi.fn<(error: unknown) => void>();
+			vi.stubGlobal("reportError", reportError);
+			const unloaded = await importUnloadedToast();
+
+			unloaded.makeToast(<p>Saved before the outage</p>);
+			await vi.dynamicImportSettled();
+			expect(reportError).toHaveBeenCalledTimes(1);
+			// Why `cause`: vitest wraps the error that a mock factory throws.
+			expect(reportError).toHaveBeenLastCalledWith(expect.objectContaining({ cause: chunkError }));
+			render(<unloaded.Toaster />);
+			expect(screen.getByRole("region", { name: "Notifications alt+T" })).toBeInTheDocument();
+
+			vi.doUnmock("sonner");
+			unloaded.makeToast(<p>Saved after the outage</p>);
+
+			expect(await screen.findByText("Saved after the outage")).toBeInTheDocument();
+			expect(screen.getByText("Saved before the outage")).toBeInTheDocument();
+		});
+
+		test("renders the notifications landmark while the chunk loads", async () => {
+			vi.doMock("sonner", () => new Promise(() => {}));
+			const unloaded = await importUnloadedToast();
+			render(<unloaded.Toaster />);
+
+			// Why the hotkey in the name: sonner's section uses the same label, Alt+T included.
+			expect(screen.getByRole("region", { name: "Notifications alt+T" })).toBeInTheDocument();
+		});
+
+		test("loads the chunk when the browser is idle, before the first toast", async () => {
+			const unloaded = await importUnloadedToast();
+			render(<unloaded.Toaster />);
+			await waitFor(() => {
+				expect(document.querySelector("section[data-react-aria-top-layer]")).not.toBeNull();
+			});
+			// Why the spy: once the chunk is in, a toast reaches sonner in the same call.
+			const custom = vi.spyOn(sonnerToast, "custom");
+
+			unloaded.makeToast(<p>Copied</p>);
 
 			expect(custom).toHaveBeenCalledTimes(1);
-			expect(custom.mock.lastCall?.[1]).toStrictEqual({
-				duration: undefined,
-				id: "billing-warning",
-				unstyled: true,
-			});
+		});
+
+		test("gives every generated id a value no other toast holds, across module copies", async () => {
+			const first = await importUnloadedToast();
+			const second = await importUnloadedToast();
+			render(<first.Toaster />);
+
+			const firstId = first.makeToast(<p>From copy one</p>);
+			second.makeToast(<p>From copy two</p>);
+			first.makeToast(<p>With a look-alike custom id</p>, { id: String(firstId) });
+
+			expect(await screen.findByText("With a look-alike custom id")).toBeInTheDocument();
+			expect(screen.getByText("From copy one")).toBeInTheDocument();
+			expect(screen.getByText("From copy two")).toBeInTheDocument();
 		});
 	});
 
