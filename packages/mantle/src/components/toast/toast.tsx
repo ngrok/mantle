@@ -12,7 +12,6 @@ import {
 	useContext,
 	useEffect,
 	useLayoutEffect,
-	useMemo,
 	useState,
 	useSyncExternalStore,
 } from "react";
@@ -27,7 +26,6 @@ import { Icon as IconComponent } from "../icon/icon.js";
 import type { SvgOnlyProps } from "../icon/svg-only.js";
 import { canUseDOM } from "../browser-only/can-use-dom.js";
 import { Slot } from "../slot/index.js";
-import { useAppliedTheme } from "../theme/theme-provider.js";
 import { attachToasterHost } from "./toaster-host.js";
 
 type ToasterPrimitiveProps = ComponentProps<typeof Sonner.Toaster>;
@@ -157,7 +155,6 @@ const Toaster = ({
 	position = "top-center",
 	style,
 }: ToasterProps) => {
-	const theme = useAppliedTheme();
 	const loadedSonner = useSyncExternalStore(subscribeToSonner, getSonner, getServerSonner);
 	// Why a host of its own: an open native modal `<dialog>` makes the rest of
 	// the page inert, so the host moves into it. React never moves a portal's
@@ -190,7 +187,6 @@ const Toaster = ({
 			gap={12}
 			position={position ?? "top-center"}
 			style={style}
-			theme={theme}
 			toastOptions={{
 				unstyled: true,
 			}}
@@ -284,13 +280,8 @@ const intents = [
  */
 type ToastIntent = (typeof intents)[number];
 
-type ToastState = {
-	intent: ToastIntent;
-};
-
-const ToastStateContext = createContext<ToastState>({
-	intent: "info",
-});
+/** The intent of the nearest `Toast.Root`, which `Toast.Icon` reads. */
+const ToastIntentContext = createContext<ToastIntent>("info");
 
 /**
  * Props for `Toast.Root`. `asChild` is omitted: the root renders the intent
@@ -344,10 +335,8 @@ const Root = ({
 	ref,
 	...props
 }: ToastProps) => {
-	const contextValue = useMemo(() => ({ intent }), [intent]);
-
 	return (
-		<ToastStateContext.Provider value={contextValue}>
+		<ToastIntentContext.Provider value={intent}>
 			<div
 				data-slot={joinDataSlot(dataSlot, "toast")}
 				className={cx(
@@ -372,7 +361,7 @@ const Root = ({
 					{children}
 				</div>
 			</div>
-		</ToastStateContext.Provider>
+		</ToastIntentContext.Provider>
 	);
 };
 
@@ -394,52 +383,18 @@ type ToastIconProps = Partial<SvgOnlyProps> & WithDataSlot;
  * ```
  */
 const Icon = ({ "data-slot": dataSlot, className, svg, ref, ...props }: ToastIconProps) => {
-	const ctx = useContext(ToastStateContext);
+	const intent = useContext(ToastIntentContext);
+	const icon = intentIcons[intent];
 
-	switch (ctx.intent) {
-		case "danger":
-			return (
-				<IconComponent
-					data-slot={joinDataSlot(dataSlot, "toast-icon")}
-					className={cx("text-danger-600", className)}
-					ref={ref}
-					svg={svg ?? <WarningIcon weight="fill" />}
-					{...props}
-				/>
-			);
-		case "warning":
-			return (
-				<IconComponent
-					data-slot={joinDataSlot(dataSlot, "toast-icon")}
-					className={cx("text-warning-600", className)}
-					ref={ref}
-					svg={svg ?? <WarningDiamondIcon weight="fill" />}
-					{...props}
-				/>
-			);
-		case "success":
-			return (
-				<IconComponent
-					data-slot={joinDataSlot(dataSlot, "toast-icon")}
-					className={cx("text-success-600", className)}
-					ref={ref}
-					svg={svg ?? <CheckCircleIcon weight="fill" />}
-					{...props}
-				/>
-			);
-		case "info":
-			return (
-				<IconComponent
-					data-slot={joinDataSlot(dataSlot, "toast-icon")}
-					className={cx("text-accent-600", className)}
-					ref={ref}
-					svg={svg ?? <InfoIcon weight="fill" />}
-					{...props}
-				/>
-			);
-		default:
-			throw new Error(`Unreachable Case: ${String(ctx.intent)}`);
-	}
+	return (
+		<IconComponent
+			data-slot={joinDataSlot(dataSlot, "toast-icon")}
+			className={cx(icon.className, className)}
+			ref={ref}
+			svg={svg ?? icon.svg}
+			{...props}
+		/>
+	);
 };
 
 type ToastActionProps = ComponentProps<"button"> & WithAsChild & WithDataSlot;
@@ -547,6 +502,14 @@ export type {
 	//,
 	ToastIntent,
 };
+
+/** The default icon and its tone class for each intent. */
+const intentIcons = {
+	danger: { className: "text-danger-600", svg: <WarningIcon weight="fill" /> },
+	info: { className: "text-accent-600", svg: <InfoIcon weight="fill" /> },
+	success: { className: "text-success-600", svg: <CheckCircleIcon weight="fill" /> },
+	warning: { className: "text-warning-600", svg: <WarningDiamondIcon weight="fill" /> },
+} as const satisfies Record<ToastIntent, { className: string; svg: ReactNode }>;
 
 const intentBackgroundColor = {
 	info: "bg-accent-600",
