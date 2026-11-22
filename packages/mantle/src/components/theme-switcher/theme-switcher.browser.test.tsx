@@ -145,10 +145,26 @@ describe("ThemeSwitcher name and icon from the theme on <html>", () => {
 		expect(screen.getByRole("button", { name: "Switch to light theme (system default)" })).toBe(
 			button,
 		);
-		await expect.poll(() => shownGlyphs(button)).toEqual([glyphs.dark]);
+		// Why no poll: under reduced motion the icons swap with no transition.
+		expect(shownGlyphs(button)).toEqual([glyphs.dark]);
 
 		await userEvent.click(button);
 		expect(screen.getByRole("button", { name: "Switch to dark theme" })).toBe(button);
+	});
+
+	test("a .dark class on an ancestor other than <html> changes neither the name nor the icon", () => {
+		render(
+			<div className="dark">
+				<ThemeProvider>
+					<ThemeSwitcher />
+					<ThemeSwitcherIcon />
+				</ThemeProvider>
+			</div>,
+		);
+
+		const button = screen.getByRole("button", { name: "Switch to dark theme" });
+		expect(shownGlyphs(button)).toEqual([glyphs.light]);
+		expect(shownGlyphs(getSwitcherIcon())).toEqual([glyphs.light]);
 	});
 
 	test("under forceTheme, both parts show the forced icon", () => {

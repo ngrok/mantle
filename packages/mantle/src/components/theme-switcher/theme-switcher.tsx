@@ -35,7 +35,7 @@ function AppliedThemeIcon({ className, ...props }: ComponentProps<"span">) {
 			<span
 				className={cx(
 					appliedThemeIconItem,
-					"dark:invisible dark:opacity-0 motion-safe:dark:scale-50 motion-safe:dark:blur-[2px] motion-safe:dark:duration-150",
+					"root-dark:invisible root-dark:opacity-0 motion-safe:root-dark:scale-50 motion-safe:root-dark:blur-[2px] motion-safe:root-dark:duration-150",
 				)}
 			>
 				<SunIcon className="size-5" />
@@ -43,7 +43,7 @@ function AppliedThemeIcon({ className, ...props }: ComponentProps<"span">) {
 			<span
 				className={cx(
 					appliedThemeIconItem,
-					"not-dark:invisible not-dark:opacity-0 motion-safe:not-dark:scale-50 motion-safe:not-dark:blur-[2px] motion-safe:not-dark:duration-150",
+					"not-root-dark:invisible not-root-dark:opacity-0 motion-safe:not-root-dark:scale-50 motion-safe:not-root-dark:blur-[2px] motion-safe:not-root-dark:duration-150",
 				)}
 			>
 				<MoonIcon className="size-5" />
@@ -320,8 +320,8 @@ type ThemeSwitcherProps = Omit<
  *
  * Writes the theme via `useTheme`'s setter, so it must render inside a
  * `ThemeProvider`. CSS shows the icon and writes the name from the theme on
- * `<html>`, so the server HTML is final, the control works before hydration
- * and with no JavaScript, and a theme change renders nothing. Under a
+ * `<html>`, so the server HTML is final, the icon and the name are correct
+ * before hydration, and a theme change renders nothing. A click needs React. Under a
  * provider with `forceTheme`, it shows the forced theme and is disabled,
  * because a click cannot change what the page shows. To put the same control
  * in an existing menu, use `ThemeDropdownMenuItem`.
