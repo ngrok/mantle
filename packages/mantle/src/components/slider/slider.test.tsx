@@ -363,6 +363,17 @@ describe("Slider", () => {
 		});
 	});
 
+	test("an id lands on the first thumb, so a label names it", () => {
+		render(
+			<>
+				<label htmlFor="price">Price</label>
+				<Slider defaultValue={[10, 90]} id="price" />
+			</>,
+		);
+
+		expect(screen.getAllByRole("slider")[0]).toHaveAccessibleName("Price");
+	});
+
 	test("the root carries data-orientation, and each thumb its aria-orientation", () => {
 		render(<Slider aria-label="Height" defaultValue={30} orientation="vertical" />);
 

@@ -1,14 +1,14 @@
 "use client";
 
-import type { ComponentProps, CSSProperties } from "react";
-import { useContext } from "react";
+import type { ComponentProps } from "react";
 import { composeHandlers } from "../../behaviors/compose-handlers.js";
-import { useSlider } from "../../behaviors/use-slider.js";
-import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
+import { sliderBehavior, sliderStyles } from "../../behaviors/slider.js";
+import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
+import { $cssProperties } from "../../types/css-properties.js";
+import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { FieldControlContext } from "../field/field-context.js";
 
 type SliderBaseProps = Omit<ComponentProps<"span">, "defaultValue" | "dir" | "value"> & {
 	/**
@@ -134,12 +134,13 @@ type SliderProps = SliderBaseProps &
  *
  * Each thumb is a native `<input type="range">`, so the server HTML already
  * holds each thumb at its value, and assistive technology reads and sets it
- * with no JavaScript.
+ * with no JavaScript. An uncontrolled slider keeps its values in the DOM and
+ * renders nothing while the user drags.
  *
- * When composing with `Field.Item`, wrap `Slider` in `Field.Control`.
- * `Field.Control` flows `aria-invalid`, `aria-describedby`, and
- * `aria-errormessage` onto each thumb via `FieldControlContext`, and its id
- * onto the first thumb. Pass `aria-label` or `aria-labelledby` to `Slider`;
+ * `aria-invalid`, `aria-describedby`, and `aria-errormessage` go onto each
+ * thumb, and `id` onto the first thumb, so a `<label htmlFor>` focuses it.
+ * When composing with `Field.Item`, wrap `Slider` in `Field.Control`, which
+ * passes those props. Pass `aria-label` or `aria-labelledby` to `Slider`;
  * Mantle forwards those labels to the rendered thumb(s). `aria-label` derives a
  * distinct name per thumb ("Minimum Price", "Maximum Price"). `aria-labelledby`
  * names every thumb with the same text, so prefer `aria-label` for a range
@@ -220,15 +221,14 @@ function Slider({
 	ref,
 	step = 1,
 	showTicks = false,
+	style,
 	value,
 	...props
 }: SliderProps) {
-	const fieldControl = useContext(FieldControlContext);
-	const { values, rootProps, getInputProps } = useSlider({
-		value: toValueArray(value),
-		defaultValue: toValueArray(defaultValue) ?? [min],
-		onValueChange,
-		onValueCommit,
+	const controlled = value !== undefined;
+	const values = toValueArray(value) ?? toValueArray(defaultValue) ?? [min];
+	const { rootProps, inputProps } = sliderBehavior({
+		controlled,
 		min,
 		max,
 		step,
@@ -238,8 +238,10 @@ function Slider({
 		inverted,
 		dir,
 		disabled,
+		onValueChange,
+		onValueCommit,
 	});
-	const composedRef = useComposedRefs(ref, rootProps.ref);
+	const styles = sliderStyles(values, min);
 	const tickCount = computeTickCount({ showTicks, min, max, step });
 	const inputName = name != null && values.length > 1 ? `${name}[]` : name;
 
@@ -250,14 +252,6 @@ function Slider({
 			data-orientation={orientation}
 			data-disabled={disabled ? "" : undefined}
 			dir={dir}
-			{...(fieldControl
-				? {}
-				: {
-						"aria-describedby": ariaDescribedBy,
-						"aria-errormessage": ariaErrorMessage,
-						"aria-invalid": ariaInvalid,
-						id,
-					})}
 			className={cx(
 				"group/slider [--slider-thumb-size:--spacing(4.5)]",
 				"relative flex w-full touch-none items-center select-none data-disabled:opacity-50",
@@ -265,8 +259,9 @@ function Slider({
 				tickCount > 0 && "mb-3",
 				className,
 			)}
+			style={$cssProperties({ "--_min": min, "--_max": max, "--_inv": inverted ? 1 : 0, ...style })}
 			{...props}
-			ref={composedRef}
+			ref={composeRefs(ref, rootProps.ref)}
 			onKeyDown={composeHandlers(onKeyDown, rootProps.onKeyDown)}
 			onPointerDown={composeHandlers(onPointerDown, rootProps.onPointerDown)}
 			onPointerMove={composeHandlers(onPointerMove, rootProps.onPointerMove)}
@@ -274,21 +269,24 @@ function Slider({
 		>
 			<span
 				data-slot="slider-track"
-				className={cx(
-					"bg-neutral-300 rounded-full relative grow overflow-hidden",
-					"h-1.5 w-full group-data-orientation-vertical/slider:h-full group-data-orientation-vertical/slider:w-1.5",
-				)}
+				className="bg-neutral-300 rounded-full relative grow overflow-hidden h-1.5 w-full group-data-orientation-vertical/slider:h-full group-data-orientation-vertical/slider:w-1.5"
 			>
 				<span
 					data-slot="slider-range"
-					className={cx(
+					className={clsx(
 						"absolute h-full select-none group-data-orientation-vertical/slider:h-auto group-data-orientation-vertical/slider:w-full",
+						// Why `--_s` and `--_e`: the insets of the start and the end edge, as
+						// fractions of the track. `--_inv` swaps the ends of an inverted track.
+						"[--_a:clamp(0,(var(--_start)_-_var(--_min))/(var(--_max)_-_var(--_min)),1)] [--_b:clamp(0,(var(--_end)_-_var(--_min))/(var(--_max)_-_var(--_min)),1)]",
+						"[--_s:calc(var(--_inv)_*_(1_-_var(--_b))_+_(1_-_var(--_inv))_*_var(--_a))] [--_e:calc(var(--_inv)_*_var(--_a)_+_(1_-_var(--_inv))_*_(1_-_var(--_b)))]",
+						"group-data-orientation-horizontal/slider:inset-s-[calc(var(--_s)*100%)] group-data-orientation-horizontal/slider:inset-e-[calc(var(--_e)*100%)]",
+						"group-data-orientation-vertical/slider:bottom-[calc(var(--_s)*100%)] group-data-orientation-vertical/slider:top-[calc(var(--_e)*100%)]",
 						color,
 					)}
-					style={rangeStyle({ inverted, max, min, orientation, values })}
+					style={$cssProperties(styles.range)}
 				/>
 			</span>
-			{values.map((thumbValue, index) => (
+			{values.map((_thumbValue, index) => (
 				<span
 					// oxlint-disable-next-line react/no-array-index-key -- Why: a thumb is its position, and the values stay sorted.
 					key={index}
@@ -296,6 +294,11 @@ function Slider({
 					className={cx(
 						"bg-static-white border-card size-(--slider-thumb-size) rounded-full border shadow-md",
 						"hit-area absolute block shrink-0 cursor-pointer transition-[color,box-shadow] select-none",
+						// Why `--_f`: the thumb's inset from the start edge, as a fraction of the
+						// track less one thumb, so the thumb stays inside the track.
+						"[--_f:calc(var(--_inv)_+_(1_-_var(--_inv)_*_2)_*_clamp(0,(var(--_value)_-_var(--_min))/(var(--_max)_-_var(--_min)),1))]",
+						"group-data-orientation-horizontal/slider:inset-s-[calc(var(--_f)*(100%-var(--slider-thumb-size)))]",
+						"group-data-orientation-vertical/slider:bottom-[calc(var(--_f)*(100%-var(--slider-thumb-size)))]",
 						// Why: a press on a thumb grabs that thumb. With more than one thumb, a hit
 						// area that is wider than the thumb along the track covers an adjacent
 						// thumb. A press beside a thumb then goes to the root, which moves the
@@ -305,19 +308,16 @@ function Slider({
 						"has-focus-visible:ring-3 has-focus-visible:ring-accent-500/20",
 						"group-data-disabled/slider:pointer-events-none group-data-disabled/slider:cursor-default",
 					)}
-					style={thumbStyle({ inverted, max, min, orientation, value: thumbValue })}
+					style={$cssProperties(styles.thumbs[index] ?? {})}
 				>
 					<input
 						type="range"
 						data-slot="slider-input"
-						className={cx(
-							"pointer-events-none absolute inset-0 m-0 size-full appearance-none opacity-0",
-							// Why: Chromium reads a range input's orientation from its writing mode, not `aria-orientation`.
-							"group-data-orientation-vertical/slider:[writing-mode:vertical-lr]",
-						)}
-						aria-describedby={fieldControl?.["aria-describedby"] ?? ariaDescribedBy}
-						aria-errormessage={fieldControl?.["aria-errormessage"] ?? ariaErrorMessage}
-						aria-invalid={fieldControl?.["aria-invalid"] ?? ariaInvalid}
+						// Why the writing mode: Chromium reads a range input's orientation from it, not from `aria-orientation`.
+						className="pointer-events-none absolute inset-0 m-0 size-full appearance-none opacity-0 group-data-orientation-vertical/slider:[writing-mode:vertical-lr]"
+						aria-describedby={ariaDescribedBy}
+						aria-errormessage={ariaErrorMessage}
+						aria-invalid={ariaInvalid}
 						aria-label={resolveThumbAriaLabel({
 							ariaLabel,
 							index,
@@ -327,15 +327,15 @@ function Slider({
 						aria-orientation={orientation}
 						disabled={disabled}
 						form={form}
-						// Only the first thumb receives the field-generated id so
-						// Field.Label's htmlFor lands on a unique element. Range/
-						// multi-thumb sliders share the surrounding aria wiring.
-						id={index === 0 ? fieldControl?.id : undefined}
+						// Why the first thumb: an `id` names one element, so a `<label htmlFor>`
+						// or `Field.Label` focuses the first thumb.
+						id={index === 0 ? id : undefined}
 						max={max}
 						min={min}
 						name={inputName}
 						step={step}
-						{...getInputProps(index)}
+						{...(controlled ? { value: values[index] } : { defaultValue: values[index] })}
+						onChange={inputProps.onChange}
 					/>
 				</span>
 			))}
@@ -358,68 +358,6 @@ export { Slider };
 export type { SliderProps };
 
 // MARK: - Private
-
-type Placement = {
-	inverted: boolean;
-	max: number;
-	min: number;
-	orientation: "horizontal" | "vertical";
-};
-
-/** The fraction of the way from `min` to `max` that `value` sits, from 0 to 1. */
-function fractionOf({ max, min }: Placement, value: number): number {
-	const fraction = (value - min) / (max - min);
-	return Number.isFinite(fraction) ? Math.min(Math.max(fraction, 0), 1) : 0;
-}
-
-/** The edge of the track where `min` sits, as a CSS inset property. */
-function startEdge({ inverted, orientation }: Placement) {
-	if (orientation === "vertical") {
-		return inverted ? "top" : "bottom";
-	}
-	return inverted ? "insetInlineEnd" : "insetInlineStart";
-}
-
-/** The end edge of the track, opposite {@link startEdge}. */
-function endEdge({ inverted, orientation }: Placement) {
-	if (orientation === "vertical") {
-		return inverted ? "bottom" : "top";
-	}
-	return inverted ? "insetInlineStart" : "insetInlineEnd";
-}
-
-/**
- * Places a thumb at its value. The thumb stays inside the track, so its start
- * edge moves across the track length less one thumb. CSS logical insets follow
- * the `dir` the slider inherits, so the server HTML is the final paint.
- *
- * @example
- * ```ts
- * thumbStyle({ inverted: false, max: 100, min: 0, orientation: "horizontal", value: 25 });
- * // { insetInlineStart: "calc((100% - var(--slider-thumb-size)) * 0.25)" }
- * ```
- */
-function thumbStyle(placement: Placement & { value: number }): CSSProperties {
-	const offset = `calc((100% - var(--slider-thumb-size)) * ${fractionOf(placement, placement.value)})`;
-	return { [startEdge(placement)]: offset };
-}
-
-/**
- * Places the range: from the lowest thumb to the highest, or from the start of
- * the track to the only thumb.
- *
- * @example
- * ```ts
- * rangeStyle({ inverted: false, max: 100, min: 0, orientation: "horizontal", values: [20, 70] });
- * // { insetInlineStart: "20%", insetInlineEnd: "30%" }
- * ```
- */
-function rangeStyle(placement: Placement & { values: number[] }): CSSProperties {
-	const fractions = placement.values.map((value) => fractionOf(placement, value));
-	const start = fractions.length > 1 ? Math.min(...fractions) : 0;
-	const end = 1 - Math.max(...fractions);
-	return { [startEdge(placement)]: `${start * 100}%`, [endEdge(placement)]: `${end * 100}%` };
-}
 
 /** Wraps a single slider value in an array; an array passes through, and a nullish value stays `undefined`. */
 function toValueArray(value: number | number[] | undefined): number[] | undefined {
