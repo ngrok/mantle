@@ -10,9 +10,7 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 import { isInteractiveTarget } from "../../utils/interactive-target.js";
 import { Slot } from "../slot/index.js";
 import * as RadioPrimitive from "./primitive.js";
-import { RadioStateContext } from "./primitive.js";
 import { RadioItemContext } from "./radio-item-context.js";
-import type { RadioStateContextValue } from "./primitive.js";
 
 type RadioGroupProps = RadioPrimitive.RootProps;
 
@@ -93,8 +91,14 @@ const Item = ({ className, ...props }: RadioItemProps) => (
 	/>
 );
 
+/** The state of the radio item that a render-props `RadioGroup.Indicator` receives. */
+type RadioIndicatorState = {
+	checked: boolean;
+	disabled: boolean;
+};
+
 type RadioIndicatorProps = Omit<ComponentProps<"span">, "children"> & {
-	children?: ReactNode | ((context: RadioStateContextValue) => ReactNode);
+	children?: ReactNode | ((state: RadioIndicatorState) => ReactNode);
 	/**
 	 * Never rendered. `Choice.Indicator` injects the field's `name` for a
 	 * control, and a `<span>` has no `name` attribute.
@@ -105,10 +109,11 @@ type RadioIndicatorProps = Omit<ComponentProps<"span">, "children"> & {
 /**
  * The circle `RadioGroup.Indicator` draws when a consumer passes no children.
  * It reads the item's native radio through the `group/radio` item, so it is
- * right before hydration.
+ * right before hydration. Why one element and not a component: it has no
+ * props or state, so every indicator shares it and React skips its subtree.
  * @private
  */
-const DefaultRadioIndicator = () => (
+const defaultRadioIndicator = (
 	<span
 		// Why: `RadioGroup.Item` reads this attribute to skip its own focus ring.
 		data-radio-default-indicator=""
@@ -157,8 +162,11 @@ const Indicator = ({
 	name: _name,
 	...props
 }: RadioIndicatorProps) => {
-	const ctx = useContext(RadioStateContext);
-	const indicator = typeof children === "function" ? children(ctx) : children;
+	const item = useContext(RadioItemContext);
+	const indicator =
+		typeof children === "function"
+			? children({ checked: item?.checked ?? false, disabled: item?.disabled ?? false })
+			: children;
 
 	return (
 		// Why a span: `Choice.Indicator` is a `<span>`, and a `<div>` inside it is invalid HTML.
@@ -170,7 +178,7 @@ const Indicator = ({
 			)}
 			{...props}
 		>
-			{children == null ? <DefaultRadioIndicator /> : indicator}
+			{children == null ? defaultRadioIndicator : indicator}
 		</span>
 	);
 };
@@ -393,8 +401,8 @@ const InputSandbox = ({
 	onClick,
 	...props
 }: RadioInputSandboxProps) => {
-	const ctx = useContext(RadioStateContext);
 	const radioItem = useContext(RadioItemContext);
+	const ctx = { checked: radioItem?.checked ?? false, disabled: radioItem?.disabled ?? false };
 
 	const singleChild = Children.only(children);
 
