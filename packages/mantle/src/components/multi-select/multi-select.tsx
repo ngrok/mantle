@@ -9,7 +9,7 @@ import { createPortal, flushSync } from "react-dom";
 import { composeHandlers } from "../../behaviors/compose-handlers.js";
 import { enterModal } from "../../behaviors/enter-modal.js";
 import { useComboboxInput } from "../../behaviors/use-combobox.js";
-import { useOption } from "../../behaviors/use-listbox.js";
+import { childId, useOption } from "../../behaviors/use-listbox.js";
 import { useMultiSelect } from "../../behaviors/use-multi-select.js";
 import type { MultiSelectBehavior, UseMultiSelectProps } from "../../behaviors/use-multi-select.js";
 import { usePopup } from "../../behaviors/use-popup.js";
@@ -678,6 +678,10 @@ const Input = ({
 					}
 				})}
 				onKeyDown={composeHandlers(onKeyDown, (event) => {
+					// Why: an input method uses these keys for its own candidates.
+					if (event.nativeEvent.isComposing) {
+						return;
+					}
 					// Why: the open list is modal, so focus stays until Escape closes it.
 					if (event.key === "Tab" && multiSelect.open) {
 						event.preventDefault();
@@ -776,7 +780,7 @@ const Content = ({
 		container: useLayerContainer(),
 		modal: enterModal,
 	});
-	const composedRef = useComposedRefs(ref, listbox.ref, popupRef);
+	const composedRef = useComposedRefs(ref, listbox.listboxProps.ref, popupRef);
 	const Component = asChild ? Slot : "div";
 	// Why `open`: a closed list renders no options, so a page of closed
 	// pickers holds no option elements in memory.
@@ -792,6 +796,7 @@ const Content = ({
 				<Component
 					{...props}
 					{...listbox.listboxProps}
+					onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
 					aria-multiselectable
 					ref={composedRef}
 					data-slot={joinDataSlot(dataSlot, "multi-select-content")}
@@ -801,12 +806,12 @@ const Content = ({
 						sameWidth && "w-(--anchor-width)",
 						className,
 					)}
-					onKeyDown={(event) => {
+					onKeyDown={composeHandlers(props.onKeyDown, (event) => {
 						// Why: a focused control in the footer, such as a button, closes the list on Escape too.
 						if (event.key === "Escape") {
 							setOpen(false);
 						}
-					}}
+					})}
 				>
 					{children}
 				</Component>
@@ -891,12 +896,18 @@ const Item = ({
 	children,
 	className,
 	disabled,
+	onClick,
+	onPointerMove,
 	value,
 	ref,
 	...props
 }: MultiSelectItemProps) => {
 	const { listbox } = useMultiSelectContext();
-	const { selected, optionProps } = useOption(listbox, { value, disabled });
+	const { selected, optionProps } = useOption(listbox, {
+		value,
+		disabled,
+		id: childId({ asChild, children, id: props.id }),
+	});
 
 	const check = selected && (
 		<span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
@@ -934,6 +945,8 @@ const Item = ({
 		<Component
 			{...props}
 			{...optionProps}
+			onClick={composeHandlers(onClick, optionProps.onClick)}
+			onPointerMove={composeHandlers(onPointerMove, optionProps.onPointerMove)}
 			data-slot={joinDataSlot(dataSlot, "multi-select-item")}
 			className={cx(
 				"relative mx-1 cursor-pointer rounded-md pl-2 pr-8 py-1.5 text-strong text-sm font-normal flex min-w-0 items-center gap-2",

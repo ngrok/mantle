@@ -1,7 +1,7 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
-import type { HTMLAttributes, ReactNode, RefObject } from "react";
+import { isValidElement, useId, useRef, useState } from "react";
+import type { HTMLAttributes, MouseEventHandler, ReactNode, RefCallback, RefObject } from "react";
 import { createStore, useStoreValue } from "./store.js";
 import type { Store } from "./store.js";
 
@@ -34,7 +34,8 @@ type Listbox = {
 	move: (target: MoveTarget) => void;
 	typeahead: (key: string) => boolean;
 	listboxProps: HTMLAttributes<HTMLElement> & {
-		ref: RefObject<HTMLElement | null>;
+		ref: RefCallback<HTMLElement>;
+		onMouseDown: MouseEventHandler<HTMLElement>;
 	};
 };
 
@@ -111,6 +112,8 @@ const useListbox = ({
 	const ref = useRef<HTMLElement | null>(null);
 	const [store] = useState(() => createStore<ListboxState>({ activeId: null, itemLabel: null }));
 	const search = useRef({ text: "", time: 0 });
+	// A move that found no options, such as before async results arrive.
+	const pendingMove = useRef<MoveTarget | null>(null);
 
 	const activate = (option: HTMLElement | null) => {
 		store.set({ activeId: option?.id ?? null });
@@ -119,6 +122,7 @@ const useListbox = ({
 
 	const move = (target: MoveTarget) => {
 		const options = getOptions(ref.current);
+		pendingMove.current = options.length === 0 ? target : null;
 		const activeId = store.get().activeId;
 		const next = findTarget({
 			options,
@@ -171,7 +175,27 @@ const useListbox = ({
 		typeahead,
 		listboxProps: {
 			id,
-			ref,
+			ref: (node) => {
+				ref.current = node;
+				if (node == null) {
+					return;
+				}
+				// Why an observer: options can mount after the move that needed them, such
+				// as async results, or replace the active option. The highlight then
+				// moves when the options change, with no effect and no extra render.
+				const observer = new MutationObserver(() => {
+					const { activeId } = store.get();
+					const stale = activeId != null && !node.contains(document.getElementById(activeId));
+					if (pendingMove.current != null || stale) {
+						move(pendingMove.current ?? "first");
+					}
+				});
+				observer.observe(node, { childList: true, subtree: true });
+				return () => {
+					observer.disconnect();
+					ref.current = null;
+				};
+			},
 			role: "listbox",
 			tabIndex: -1,
 			// Why: a press inside the list must not move DOM focus off the owner.
@@ -181,6 +205,21 @@ const useListbox = ({
 		},
 	};
 };
+
+/**
+ * The id an option renders with: under `asChild`, the child's own `id` wins
+ * over the part's, as `Slot` merges it.
+ */
+const childId = ({
+	asChild,
+	children,
+	id,
+}: {
+	asChild: boolean;
+	children: ReactNode;
+	id: string | undefined;
+}): string | undefined =>
+	asChild && isValidElement<{ id?: string }>(children) ? (children.props.id ?? id) : id;
 
 /**
  * Wires one option into its listbox: an `id`, `role="option"`,
@@ -199,13 +238,17 @@ const useOption = (
 		value,
 		disabled = false,
 		textValue,
+		id: idProp,
 	}: {
 		value: string;
 		disabled?: boolean;
 		textValue?: string;
+		/** The id the option renders with, such as an `asChild` child's own `id`. */
+		id?: string;
 	},
 ) => {
-	const id = useId();
+	const generatedId = useId();
+	const id = idProp ?? generatedId;
 	const active = useStoreValue(listbox.store, (state) => state.activeId === id);
 	const selected = listbox.selected.includes(value);
 	return {
@@ -238,6 +281,7 @@ const useOption = (
 
 export {
 	//,
+	childId,
 	findTarget,
 	getOptions,
 	useListbox,

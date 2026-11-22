@@ -15,7 +15,7 @@ import { createPortal } from "react-dom";
 import { composeHandlers } from "../../behaviors/compose-handlers.js";
 import { enterModal } from "../../behaviors/enter-modal.js";
 import { useStoreValue } from "../../behaviors/store.js";
-import { useOption } from "../../behaviors/use-listbox.js";
+import { childId, useOption } from "../../behaviors/use-listbox.js";
 import { usePopup } from "../../behaviors/use-popup.js";
 import { useSelect, useSelectTrigger } from "../../behaviors/use-select.js";
 import type { SelectBehavior } from "../../behaviors/use-select.js";
@@ -733,7 +733,7 @@ const Content = ({
 		container: useLayerContainer(),
 		modal: enterModal,
 	});
-	const composedRef = useComposedRefs(ref, listbox.ref, popupRef);
+	const composedRef = useComposedRefs(ref, listbox.listboxProps.ref, popupRef);
 
 	// Why `open`: a closed list renders no options, so a page of closed
 	// selects holds no option elements in memory.
@@ -744,6 +744,9 @@ const Content = ({
 			<div
 				{...props}
 				{...listbox.listboxProps}
+				role="listbox"
+				tabIndex={-1}
+				onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
 				ref={composedRef}
 				dir={dir}
 				data-slot={joinDataSlot(dataSlot, "select-content")}
@@ -898,6 +901,8 @@ const Item = ({
 	"data-slot": dataSlot,
 	disabled,
 	icon,
+	onClick,
+	onPointerMove,
 	ref,
 	textValue,
 	translate,
@@ -905,7 +910,12 @@ const Item = ({
 	...props
 }: SelectItemProps) => {
 	const { listbox } = useSelectContext();
-	const { active, selected, optionProps } = useOption(listbox, { value, disabled, textValue });
+	const { active, selected, optionProps } = useOption(listbox, {
+		value,
+		disabled,
+		textValue,
+		id: childId({ asChild, children, id: props.id }),
+	});
 	const label =
 		asChild && isValidElement<{ children?: ReactNode }>(children)
 			? children.props.children
@@ -939,11 +949,12 @@ const Item = ({
 		<Component
 			{...props}
 			{...optionProps}
-			onClick={() => {
+			onClick={composeHandlers(onClick, () => {
 				// Why: a tap can pick an item that no pointer move highlighted.
 				reportLabel();
 				optionProps.onClick();
-			}}
+			})}
+			onPointerMove={composeHandlers(onPointerMove, optionProps.onPointerMove)}
 			ref={composedRef}
 			data-slot={joinDataSlot(dataSlot, "select-item")}
 			translate={translate}

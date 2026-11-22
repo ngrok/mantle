@@ -2,6 +2,7 @@ import { act, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
+import { useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import * as Field from "../field/field-parts.js";
 import * as Combobox from "./combobox-parts.js";
@@ -141,6 +142,104 @@ describe("Combobox", () => {
 				Array.from(option.querySelectorAll(selector), (span) => span.textContent).join("");
 			expect(textOf("[data-user-value]")).toBe("Ba");
 			expect(textOf("[data-autocomplete-value]")).toBe("nana");
+		});
+	});
+
+	describe("review fixes", () => {
+		test("options that arrive after the keystroke still get the highlight, so Enter picks the first", async () => {
+			const user = userEvent.setup();
+			let resolve = (_items: string[]) => {};
+			const Async = () => {
+				const [items, setItems] = useState<string[]>([]);
+				resolve = (next) => setItems(next);
+				return (
+					<Combobox.Root>
+						<Combobox.Input aria-label="Fruit" />
+						<Combobox.Content>
+							{items.map((item) => (
+								<Combobox.Item key={item} value={item} />
+							))}
+						</Combobox.Content>
+					</Combobox.Root>
+				);
+			};
+			render(<Async />);
+			const input = screen.getByRole("combobox", { name: "Fruit" });
+			await user.type(input, "b");
+			await act(async () => {
+				resolve(["Banana", "Blueberry"]);
+			});
+			await vi.waitFor(() => {
+				expect(screen.getByRole("option", { name: "Banana" })).toHaveAttribute("data-highlighted");
+			});
+			await user.keyboard("{Enter}");
+			expect(input).toHaveValue("Banana");
+		});
+
+		test("while an input method composes, the arrows and Escape belong to it", async () => {
+			const user = userEvent.setup();
+			render(
+				<Combobox.Root>
+					<Combobox.Input aria-label="Fruit" />
+					<Combobox.Content>
+						<Combobox.Item value="Apple" />
+					</Combobox.Content>
+				</Combobox.Root>,
+			);
+			const input = screen.getByRole("combobox", { name: "Fruit" });
+			await user.click(input);
+			const composing = new KeyboardEvent("keydown", {
+				key: "Escape",
+				bubbles: true,
+				cancelable: true,
+				isComposing: true,
+			});
+			act(() => {
+				input.dispatchEvent(composing);
+			});
+			expect(composing.defaultPrevented).toBe(false);
+			expect(input).toHaveAttribute("aria-expanded", "true");
+		});
+
+		test("an asChild item with its own id still takes the highlight", async () => {
+			const user = userEvent.setup();
+			render(
+				<Combobox.Root>
+					<Combobox.Input aria-label="Fruit" />
+					<Combobox.Content>
+						<Combobox.Item value="Apple" asChild>
+							<a id="apple-link" href="#apple">
+								Apple
+							</a>
+						</Combobox.Item>
+					</Combobox.Content>
+				</Combobox.Root>,
+			);
+			await user.click(screen.getByRole("combobox", { name: "Fruit" }));
+			const apple = screen.getByRole("option", { name: "Apple" });
+			expect(apple).toHaveAttribute("id", "apple-link");
+			expect(apple).toHaveAttribute("data-highlighted");
+		});
+
+		test("consumer onClick and onMouseDown run, and preventDefault in onClick cancels the pick", async () => {
+			const user = userEvent.setup();
+			const onMouseDown = vi.fn<() => void>();
+			render(
+				<Combobox.Root>
+					<Combobox.Input aria-label="Fruit" />
+					<Combobox.Content onMouseDown={onMouseDown}>
+						<Combobox.Item value="Apple" onClick={(event) => event.preventDefault()} />
+						<Combobox.Item value="Banana" />
+					</Combobox.Content>
+				</Combobox.Root>,
+			);
+			const input = screen.getByRole("combobox", { name: "Fruit" });
+			await user.click(input);
+			await user.click(screen.getByRole("option", { name: "Apple" }));
+			expect(onMouseDown).toHaveBeenCalledTimes(1);
+			expect(input).toHaveValue("");
+			await user.click(screen.getByRole("option", { name: "Banana" }));
+			expect(input).toHaveValue("Banana");
 		});
 	});
 

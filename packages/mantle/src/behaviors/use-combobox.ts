@@ -168,6 +168,10 @@ const useComboboxInput = (
 			setOpen(false);
 		},
 		onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => {
+			// Why: an input method uses the arrows, Enter, and Escape for its own candidates.
+			if (event.nativeEvent.isComposing) {
+				return;
+			}
 			switch (event.key) {
 				case "ArrowDown": {
 					event.preventDefault();
@@ -189,8 +193,8 @@ const useComboboxInput = (
 				}
 				case "Enter": {
 					// Why: while the list is open, Enter picks or does nothing. It never
-					// submits the form, and it waits for an input method to finish.
-					if (!open || event.nativeEvent.isComposing) {
+					// submits the form.
+					if (!open) {
 						return;
 					}
 					event.preventDefault();

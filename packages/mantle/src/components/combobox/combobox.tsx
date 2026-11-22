@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { composeHandlers } from "../../behaviors/compose-handlers.js";
 import { useCombobox, useComboboxInput } from "../../behaviors/use-combobox.js";
 import type { ComboboxBehavior, UseComboboxProps } from "../../behaviors/use-combobox.js";
-import { useOption } from "../../behaviors/use-listbox.js";
+import { childId, useOption } from "../../behaviors/use-listbox.js";
 import { usePopup } from "../../behaviors/use-popup.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
@@ -236,7 +236,7 @@ const Content = ({
 		anchorRef: inputRef,
 		container: useLayerContainer(),
 	});
-	const composedRef = useComposedRefs(ref, listbox.ref, popupRef);
+	const composedRef = useComposedRefs(ref, listbox.listboxProps.ref, popupRef);
 	const Component = asChild ? Slot : "div";
 	// Why `open`: a closed list renders no options, so a page of closed
 	// pickers holds no option elements in memory.
@@ -247,6 +247,7 @@ const Content = ({
 			<Component
 				{...props}
 				{...listbox.listboxProps}
+				onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
 				ref={composedRef}
 				data-slot={joinDataSlot(dataSlot, "combobox-content")}
 				data-state="open"
@@ -300,6 +301,8 @@ const Item = ({
 	children,
 	className,
 	disabled,
+	onClick,
+	onPointerMove,
 	ref,
 	value,
 	...props
@@ -308,6 +311,7 @@ const Item = ({
 	const { active, optionProps } = useOption(listbox, {
 		value: value ?? "",
 		disabled: disabled || value == null,
+		id: childId({ asChild, children, id: props.id }),
 	});
 	const Component = asChild ? Slot : "div";
 	return (
@@ -315,6 +319,8 @@ const Item = ({
 			<Component
 				{...props}
 				{...optionProps}
+				onClick={composeHandlers(onClick, optionProps.onClick)}
+				onPointerMove={composeHandlers(onPointerMove, optionProps.onPointerMove)}
 				// Why: in the APG combobox pattern, the highlighted option is the selected one, and no other option has the attribute.
 				aria-selected={active || undefined}
 				ref={ref}

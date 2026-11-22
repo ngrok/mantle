@@ -41,6 +41,9 @@ const followAnchor = (
 		// origin of `position: fixed`, and the host sits at that origin. The offset
 		// sizes ignore the open animation's scale.
 		const origin = host.getBoundingClientRect();
+		// Why remove the cap first: a list that grew while open would otherwise
+		// measure at the old cap and keep a side that no longer fits best.
+		floating.style.removeProperty("--available-height");
 		const width = floating.offsetWidth;
 		const height = floating.offsetHeight;
 		const viewportHeight = document.documentElement.clientHeight;
