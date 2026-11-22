@@ -274,23 +274,17 @@ Keep the `Field.Legend` self-contained: it is the accessible name for the group.
 <Field.Set>
 	<Field.Legend>Notification frequency</Field.Legend>
 	<RadioGroup.Root name="frequency" defaultValue="daily">
-		<RadioGroup.Item value="daily" id="freq-daily">
+		<RadioGroup.Item value="daily">
 			<RadioGroup.Indicator />
-			<RadioGroup.ItemContent asChild>
-				<label htmlFor="freq-daily">Daily</label>
-			</RadioGroup.ItemContent>
+			<RadioGroup.ItemContent>Daily</RadioGroup.ItemContent>
 		</RadioGroup.Item>
-		<RadioGroup.Item value="weekly" id="freq-weekly">
+		<RadioGroup.Item value="weekly">
 			<RadioGroup.Indicator />
-			<RadioGroup.ItemContent asChild>
-				<label htmlFor="freq-weekly">Weekly</label>
-			</RadioGroup.ItemContent>
+			<RadioGroup.ItemContent>Weekly</RadioGroup.ItemContent>
 		</RadioGroup.Item>
-		<RadioGroup.Item value="never" id="freq-never">
+		<RadioGroup.Item value="never">
 			<RadioGroup.Indicator />
-			<RadioGroup.ItemContent asChild>
-				<label htmlFor="freq-never">Never</label>
-			</RadioGroup.ItemContent>
+			<RadioGroup.ItemContent>Never</RadioGroup.ItemContent>
 		</RadioGroup.Item>
 	</RadioGroup.Root>
 </Field.Set>

@@ -12,6 +12,7 @@ beforeAll(async () => {
 	styleElement.textContent = [
 		"*, ::before, ::after { box-sizing: border-box; }",
 		await commands.tailwindCss("./segmented-control.tsx"),
+		await commands.tailwindCss("../radio-group/primitive.tsx"),
 	].join("\n");
 	document.head.appendChild(styleElement);
 });
@@ -37,7 +38,10 @@ describe("SegmentedControl.Item", () => {
 			</div>,
 		);
 
-		const item = screen.getByRole("radio", { name: /last week/ });
+		const item = screen.getByRole("radio", { name: /last week/ }).closest("label");
+		if (item == null) {
+			throw new Error("The radio has no item label.");
+		}
 		expect(item.scrollHeight).toBeLessThanOrEqual(item.clientHeight);
 		expect(item.scrollWidth).toBeLessThanOrEqual(item.clientWidth);
 	});
@@ -66,16 +70,68 @@ describe("SegmentedControl thumb", () => {
 	test("a click slides the thumb to the checked item", async () => {
 		const thumbAnimations = renderForSlide();
 
-		await userEvent.click(screen.getByRole("radio", { name: "Dev" }));
+		await userEvent.click(screen.getByText("Dev"));
 
 		expect(thumbAnimations()).toHaveLength(1);
+	});
+
+	test("a new controlled value slides the thumb", () => {
+		const { setValue } = renderEnvironments();
+		const group = screen.getByRole("radiogroup", { name: "Environment" });
+
+		setValue("dev");
+
+		// Why skip CSS transitions: the thumb's width transition runs too, because the items differ in width.
+		const slides = group
+			.getAnimations({ subtree: true })
+			.filter(
+				(animation) =>
+					!(animation instanceof CSSTransition) &&
+					animation.effect instanceof KeyframeEffect &&
+					animation.effect.pseudoElement === "::before",
+			);
+		expect(slides).toHaveLength(1);
+	});
+
+	test("a form reset slides the thumb back, and the next click slides it again", async () => {
+		render(
+			<form aria-label="Environment form" style={{ width: 300 }}>
+				<SegmentedControl.Root aria-label="Environment" name="env" defaultValue="prod">
+					<SegmentedControl.Item value="dev">Dev</SegmentedControl.Item>
+					<SegmentedControl.Item value="prod">Prod</SegmentedControl.Item>
+				</SegmentedControl.Root>
+			</form>,
+		);
+		const form = screen.getByRole<HTMLFormElement>("form", { name: "Environment form" });
+		const control = screen.getByRole("radiogroup", { name: "Environment" });
+		const slides = () =>
+			control
+				.getAnimations({ subtree: true })
+				.filter(
+					(animation) =>
+						!(animation instanceof CSSTransition) &&
+						animation.effect instanceof KeyframeEffect &&
+						animation.effect.pseudoElement === "::before",
+				);
+		await userEvent.click(screen.getByText("Dev"));
+		await Promise.all(slides().map((slide) => slide.finished));
+
+		form.reset();
+		await vi.waitFor(() => {
+			expect(screen.getByRole("radio", { name: "Prod" })).toBeChecked();
+			expect(slides()).toHaveLength(1);
+		});
+		await Promise.all(slides().map((slide) => slide.finished));
+
+		await userEvent.click(screen.getByText("Dev"));
+		expect(slides()).toHaveLength(1);
 	});
 
 	test("with reduced motion, the thumb moves at once", async () => {
 		await commands.emulateMedia({ reducedMotion: "reduce" });
 		const thumbAnimations = renderForSlide();
 
-		await userEvent.click(screen.getByRole("radio", { name: "Dev" }));
+		await userEvent.click(screen.getByText("Dev"));
 
 		expect(screen.getByRole("radio", { name: "Dev" })).toBeChecked();
 		expect(thumbAnimations()).toHaveLength(0);
@@ -99,7 +155,7 @@ function renderEnvironments({
 				aria-label="Environment"
 				defaultValue="prod"
 				value={value}
-				onChange={onChange}
+				onValueChange={onChange}
 			>
 				<SegmentedControl.Item value="dev">Dev</SegmentedControl.Item>
 				<SegmentedControl.Item value="staging" disabled={stagingDisabled}>
@@ -193,7 +249,7 @@ describe("SegmentedControl drag", () => {
 		expect(onChange).toHaveBeenLastCalledWith("dev");
 	});
 
-	test("a new value during a drag keeps the thumb under the pointer", async () => {
+	test("a new value during a drag keeps the thumb under the pointer", () => {
 		const { send, setValue, start } = renderEnvironments();
 		const group = screen.getByRole("radiogroup", { name: "Environment" });
 		const prodLeft = screen.getByRole("radio", { name: "Prod" }).getBoundingClientRect().left;
@@ -206,9 +262,6 @@ describe("SegmentedControl drag", () => {
 		send({ type: "pointerdown", clientX: start, timeStamp: 0 });
 		send({ type: "pointermove", clientX: start - 60, timeStamp: 16 });
 		setValue("dev");
-		// Why one microtask: the hook sees the new `value` through a
-		// MutationObserver, whose callback the DOM change queued first.
-		await Promise.resolve();
 		send({ type: "pointermove", clientX: start - 150, timeStamp: 32 });
 
 		expect(thumbLeft()).toBeCloseTo(prodLeft - 150, 0);

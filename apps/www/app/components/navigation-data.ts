@@ -612,6 +612,14 @@ export const migrations = [
 			"Popover, Tooltip, and HoverCard are native popovers placed by CSS anchor positioning. The Radix positioning props, Popover.Root modal, and HoverCard.Portal are gone, and --anchor-width and --available-height replace the Radix CSS variables.",
 		route: "/migrations/0020-native-floats-migration",
 	},
+	{
+		number: 21,
+		slug: "native-radio-group-migration",
+		title: "Native Radio Group",
+		description:
+			"RadioGroup and SegmentedControl items are now a label around a native radio. Style item state with has-[>input:checked], has-[>input:disabled], and has-[>input:focus-visible] in place of aria-checked, aria-disabled, and focus-visible.",
+		route: "/migrations/0021-native-radio-group-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

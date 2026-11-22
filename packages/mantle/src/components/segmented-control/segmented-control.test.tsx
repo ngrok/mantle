@@ -24,17 +24,16 @@ describe("SegmentedControl.Root", () => {
 		expect(control).toHaveAttribute("data-testid", "view");
 		expect(control).toHaveClass("w-fit");
 		expect(refSpy).toHaveBeenLastCalledWith(control);
-		expect(screen.getByRole("radio", { name: "List" })).toHaveAttribute(
-			"data-slot",
-			"segmented-control-item",
-		);
+		const item = screen.getByRole("radio", { name: "List" }).closest("label");
+		expect(item).toHaveAttribute("data-slot", "segmented-control-item");
+		expect(screen.getByText("List")).toHaveAttribute("data-slot", "segmented-control-item-label");
 	});
 
 	test("arrow keys check the next enabled item and report its value", async () => {
 		const user = userEvent.setup();
 		const onChange = vi.fn<(value: string) => void>();
 		render(
-			<SegmentedControl.Root aria-label="Environment" defaultValue="dev" onChange={onChange}>
+			<SegmentedControl.Root aria-label="Environment" defaultValue="dev" onValueChange={onChange}>
 				<SegmentedControl.Item value="dev">Dev</SegmentedControl.Item>
 				<SegmentedControl.Item value="staging" disabled>
 					Staging

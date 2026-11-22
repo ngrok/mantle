@@ -1,0 +1,130 @@
+---
+title: Native Radio Group Migration
+description: RadioGroup and SegmentedControl items are now a label around a native radio. Style item state with has-[>input:checked], has-[>input:disabled], and has-[>input:focus-visible] in place of aria-checked, aria-disabled, and focus-visible.
+introducedIn: "0.95.0"
+---
+
+# Mantle Native Radio Group Migration Guide
+
+`RadioGroup` and `SegmentedControl` no longer use Headless UI. Each item (`RadioGroup.Item`, `RadioGroup.ListItem`, `RadioGroup.Card`, and `SegmentedControl.Item`) is now a `<label>` around a native `<input type="radio">`. The browser owns the one tab stop, Space, and the form contract, and the root moves the arrow keys. The accessibility tree and the look stay the same. The keyboard behavior stays the same in Chromium and Firefox; Safari differs, as the edge cases below say. What changes is the element that carries the state: the radio inside the item, not the item itself. A class on an item that reads `aria-checked`, `aria-disabled`, or `focus-visible` no longer matches.
+
+**TL;DR:** In the `className` of a radio item, replace `aria-checked:` with `has-[>input:checked]:`, `aria-disabled:` with `has-[>input:disabled]:`, and `focus-visible:` with `has-[>input:focus-visible]:`. From a child of the item, replace `group-aria-checked/radio:` with `group-has-[>input:checked]/radio:`. Rename `onChange` to `onValueChange` on `RadioGroup.Root`, `RadioGroup.List`, and `SegmentedControl.Root`. Remove `as` and `by` from radio parts, and read only `checked` and `disabled` from `RadioGroup.Indicator` render props.
+
+## Codemod
+
+From a mantle checkout:
+
+```sh
+pnpm -w run migrate 0021 <path>
+```
+
+In a project that installs `@ngrok/mantle`:
+
+```sh
+npx --yes --package=@ast-grep/cli@0.51.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0021-native-radio-group.yml --update-all <path>
+```
+
+The codemod renames `onChange` to `onValueChange` on the roots and removes `as` from radio items and `by` from the roots (step 5). Do the other steps by hand: each one is a class string, often built in a constant away from the item, or a render-prop field.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find every file that imports `RadioGroup` from `@ngrok/mantle/radio-group` or `SegmentedControl` from `@ngrok/mantle/segmented-control`, under any local name.
+2. In those files, find the class strings that reach `RadioGroup.Item`, `RadioGroup.ListItem`, `RadioGroup.Card`, or `SegmentedControl.Item`: the `className` prop itself and any constant or `cx(...)` call that feeds it. Rewrite each variant:
+   - `aria-checked:` → `has-[>input:checked]:`
+   - `not-aria-checked:` → `not-has-[>input:checked]:`
+   - `aria-disabled:` → `has-[>input:disabled]:`
+   - `not-aria-disabled:` → `not-has-[>input:disabled]:`
+   - `focus-visible:` → `has-[>input:focus-visible]:`
+   - `data-checked:`, `data-focus:`, `data-hover:`, and `data-disabled:` (Headless UI attributes) → the same `has-[>input:…]` forms, and `hover:` for `data-hover:`
+3. In elements inside an item, rewrite `group-aria-checked/radio:` to `group-has-[>input:checked]/radio:` and `group-aria-disabled/radio:` to `group-has-[>input:disabled]/radio:`. Leave a `group/radio` that your own element sets alone.
+4. Leave `aria-checked:` alone on every other element, such as a `Switch` or a `DropdownMenu.CheckboxItem`.
+5. Rename `onChange` to `onValueChange` on `RadioGroup.Root`, `RadioGroup.List`, and `SegmentedControl.Root`. The handler still receives the value string. `onChange` on a root is now the DOM `change` event of the `<div>`, the same name every selection component in mantle uses. Remove the `as` prop from radio items and the `by` prop from `RadioGroup.Root` and `SegmentedControl.Root`. Values are strings, so `by` compared strings only. The codemod does this step.
+6. In a `RadioGroup.Indicator` render-props function, keep `checked` and `disabled`. Replace `focus` with a `group-has-[>input:focus-visible]/radio:` class, `hover` with a `group-hover/radio:` class, and drop `autofocus`.
+7. Remove a `<label>` or `htmlFor` that you put inside a radio item: the item is a `<label>` now, and a label inside a label is invalid HTML. Use plain text, `Choice.Title`, or `Choice.Description`.
+8. A `ref` on a radio item now points at its `<label>`, which cannot take focus. To focus the radio, use `ref.current.control`, or pass `autoFocus` to the item.
+9. In tests, `getByRole("radio")` now returns the `<input>`. Query the item through the radio's label (`radio.closest("label")`) when the test needs the item's `data-slot`, class, or layout. Click the item's text, not the radio: the radio is invisible and lets the pointer through to the label.
+10. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why native radios?** A native radio group needs no JavaScript for the tab stop, Space, or form submission, and it works before the page hydrates. Headless UI also patched `HTMLElement.prototype.focus` and added document listeners on every page that used a radio. The `RadioGroup` entry is about 8.6 KB smaller (gzip), and a page of radios hydrates in less than half the time.
+
+---
+
+## Before → after
+
+### The value handler
+
+```tsx
+// BEFORE
+<SegmentedControl.Root aria-label="View" value={view} onChange={setView}>
+
+// AFTER
+<SegmentedControl.Root aria-label="View" value={view} onValueChange={setView}>
+```
+
+### A checked and disabled style on an item
+
+```tsx
+// BEFORE
+<RadioGroup.Card
+	value="pro"
+	className="aria-checked:border-accent-600 not-aria-disabled:hover:bg-accent-500/10 focus-visible:ring-2"
+>
+	…
+</RadioGroup.Card>
+
+// AFTER
+<RadioGroup.Card
+	value="pro"
+	className="has-[>input:checked]:border-accent-600 not-has-[>input:disabled]:hover:bg-accent-500/10 has-[>input:focus-visible]:ring-2"
+>
+	…
+</RadioGroup.Card>
+```
+
+### A style on a child that reads the item
+
+```tsx
+// BEFORE
+<RadioGroup.Item value="pro">
+	<span className="group-aria-checked/radio:text-strong">Pro</span>
+</RadioGroup.Item>
+
+// AFTER
+<RadioGroup.Item value="pro">
+	<span className="group-has-[>input:checked]/radio:text-strong">Pro</span>
+</RadioGroup.Item>
+```
+
+### A custom indicator
+
+```tsx
+// BEFORE
+<RadioGroup.Indicator>
+	{({ checked, focus }) => <Dot checked={checked} ring={focus} />}
+</RadioGroup.Indicator>
+
+// AFTER
+<RadioGroup.Indicator className="group-has-[>input:focus-visible]/radio:focus-ring">
+	{({ checked }) => <Dot checked={checked} />}
+</RadioGroup.Indicator>
+```
+
+## Edge cases & gotchas
+
+- `onClick` on an item runs twice for one click on the item's text: once for the click on the label, and once for the click the label sends to its radio. Use `onValueChange` on the root for the value. To run code on a click, check `event.target` for the radio.
+- A group with no `name`, or an empty one, submits nothing, as before. Its radios share a generated name, so the arrow keys still move between them.
+- `required` and `form` are new on `RadioGroup.Root` and `SegmentedControl.Root`. They go to each radio, and they need a `name`: a group with no name has no form owner.
+- A form reset returns the group to `defaultValue` and calls `onValueChange` with it. A controlled group keeps its `value` until the parent changes it.
+- An `onClick` on `RadioGroup.InputSandbox` runs first. Call `event.preventDefault()` in it to keep the radio unchecked.
+- Put one `Choice` in each radio item. Its title and description take the ids that the radio reads.
+- Safari moves Tab to radios only when "Press Tab to highlight each item" is on, or with Option-Tab. This is the same rule Safari applies to every native button and checkbox.
+- With no checked item, Shift+Tab into the group lands on the last radio, the native behavior. Tab still lands on the first.
+- `Choice.Title` inside a radio item takes the id that the radio reads. A custom `id` on it there makes the whole item text the radio's name.
+
+## How to verify
+
+- Run `rg 'aria-checked:|aria-disabled:|group-aria-checked/radio|data-headlessui' <path>` in the files from step 1, and confirm that each remaining match is on an element that is not a radio item.
+- Check a checked, a disabled, and a keyboard-focused item in the browser in both themes.
+- Run the type checker: it reports each removed `as` or `by` prop, each removed render-prop field, and each root `onChange` whose handler takes a string.

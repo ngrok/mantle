@@ -27,9 +27,7 @@ describe("Example", () => {
 	it("defaults to the desktop viewport", () => {
 		render(<Example name="centered-layout" title="Centered layout demo" />);
 
-		expect(
-			screen.getByRole("radio", { name: "Desktop viewport" }).getAttribute("aria-checked"),
-		).toBe("true");
+		expect(screen.getByRole("radio", { name: "Desktop viewport" })).toHaveProperty("checked", true);
 		// Why a class-token check: the wrapper emits no data attribute, so the width class is the
 		// only observable of the `viewportWidthClasses` lookup. `max-w-full` contains `w-full`, so a
 		// substring match cannot tell the presets apart.

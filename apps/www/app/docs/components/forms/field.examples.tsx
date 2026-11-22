@@ -301,23 +301,17 @@ export function RadioAndCheckboxGroupsExample() {
 			<Field.Set className="max-w-80">
 				<Field.Legend>Notification frequency</Field.Legend>
 				<RadioGroup.Root name="frequency" defaultValue="daily">
-					<RadioGroup.Item value="daily" id="field-freq-daily">
+					<RadioGroup.Item value="daily">
 						<RadioGroup.Indicator />
-						<RadioGroup.ItemContent asChild>
-							<label htmlFor="field-freq-daily">Daily</label>
-						</RadioGroup.ItemContent>
+						<RadioGroup.ItemContent>Daily</RadioGroup.ItemContent>
 					</RadioGroup.Item>
-					<RadioGroup.Item value="weekly" id="field-freq-weekly">
+					<RadioGroup.Item value="weekly">
 						<RadioGroup.Indicator />
-						<RadioGroup.ItemContent asChild>
-							<label htmlFor="field-freq-weekly">Weekly</label>
-						</RadioGroup.ItemContent>
+						<RadioGroup.ItemContent>Weekly</RadioGroup.ItemContent>
 					</RadioGroup.Item>
-					<RadioGroup.Item value="never" id="field-freq-never">
+					<RadioGroup.Item value="never">
 						<RadioGroup.Indicator />
-						<RadioGroup.ItemContent asChild>
-							<label htmlFor="field-freq-never">Never</label>
-						</RadioGroup.ItemContent>
+						<RadioGroup.ItemContent>Never</RadioGroup.ItemContent>
 					</RadioGroup.Item>
 				</RadioGroup.Root>
 			</Field.Set>

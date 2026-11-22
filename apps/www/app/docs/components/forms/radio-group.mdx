@@ -153,7 +153,7 @@ import { RadioGroup } from "@ngrok/mantle/radio-group";
 
 </Example>
 
-Use **`Choice.Title`** here, not `Choice.Label`: the whole `RadioGroup.Item` is the click target, and a `<label htmlFor>` can't associate with the radio's `role="radio"` element. Inside any radio item (`Item`, `ListItem`, `Card`, or `Button`), `Choice.Title` and `Choice.Description` register their ids with the radio. The radio's `aria-labelledby` points at the title, so the option's accessible name is the title alone, and its `aria-describedby` points at the description. Without that wiring, `role="radio"` would flatten both texts into one name. A plain `RadioGroup.ItemContent` has no title or description part to register, so its text still reads as one name; reach for `Choice` when the option carries helper text.
+Use **`Choice.Title`** here, not `Choice.Label`: each radio item is a `<label>` already, and one label cannot sit inside another. Inside any radio item (`Item`, `ListItem`, `Card`, or `SegmentedControl.Item`), the item gives `Choice.Title` and `Choice.Description` their ids. The native radio's `aria-labelledby` points at the title, so the option's accessible name is the title alone, and its `aria-describedby` points at the description. Without that wiring, the label would put both texts into one name. A plain `RadioGroup.ItemContent` has no title or description part, so its text reads as one name; use `Choice` when the option carries helper text.
 
 Give the `RadioGroup` itself an accessible name (an `aria-label`, as above, or a `Field.Set` / `Field.Legend` wrapper) so the group is announced as a named set rather than an anonymous `radiogroup`.
 
@@ -234,7 +234,7 @@ function Example() {
 						<RadioGroup.Root
 							name={field.name}
 							value={field.state.value}
-							onChange={field.handleChange}
+							onValueChange={field.handleChange}
 						>
 							<RadioGroup.Item value="default">
 								<RadioGroup.Indicator />
@@ -298,9 +298,9 @@ RadioGroup.Root
 
 ## Polymorphism
 
-`RadioGroup.ItemContent` accepts `asChild`. When `true` it renders its single child instead of its default `<div>`, forwarding class names, `data-*` attributes, and `ref` onto that child. Reach for it when the title-and-description block beside a radio needs to be a specific element, such as a `<p>` or a link wrapping the whole content area. Do not reach for a `<label htmlFor>`: each item is a `div[role="radio"]`, which `for` cannot bind, and the item's text content is already its accessible name.
+`RadioGroup.ItemContent` accepts `asChild`. When `true` it renders its single child instead of its default `<div>`, forwarding class names, `data-*` attributes, and `ref` onto that child. Use it when the title-and-description block beside a radio needs to be a specific element, such as a `<p>`. Do not use a `<label>`: each item is a `<label>` already, and its text is the radio's accessible name.
 
-The rest of the family deliberately does not take `asChild`. `RadioGroup.Root` and `List` own the group's roving-focus and arrow-key contract; `Item`, `ListItem`, and `Card` each render a `div[role="radio"]` with its keyboard handling, and `Indicator` paints the control itself. When the group has a `name`, Headless UI renders one hidden `<input type="radio">` for form submission. For a richer option layout, compose [`Choice`](/components/forms/choice) inside `RadioGroup.Item` (see [Rich option layout with `Choice`](#rich-option-layout-with-choice)) rather than swapping these elements out.
+The rest of the family does not take `asChild`. `RadioGroup.Root` and `List` render the `role="radiogroup"` element. `Item`, `ListItem`, and `Card` each render a `<label>` around a native `<input type="radio">`, and `Indicator` paints the control itself. The radios of one group share a `name`, so the browser owns the one tab stop and Space. The root moves the arrow keys, so they wrap at either end in every browser. With a `name`, a form submits the checked value; without one, the group submits nothing. For a richer option layout, compose [`Choice`](/components/forms/choice) inside `RadioGroup.Item` (see [Rich option layout with `Choice`](#rich-option-layout-with-choice)) rather than swapping these elements out.
 
 ## API Reference
 
@@ -308,30 +308,49 @@ The rest of the family deliberately does not take `asChild`. `RadioGroup.Root` a
 
 A group of radio items. Manages state so only one item can be selected at a time. Unstyled and simple.
 
-All props from [Headless UI RadioGroup](https://headlessui.com/react/radio-group), including:
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
-| Prop            | Type                      | Default | Description                                                    |
-| :-------------- | :------------------------ | :------ | :------------------------------------------------------------- |
-| `value?`        | `string`                  |         | The controlled value of the selected radio item.               |
-| `defaultValue?` | `string`                  |         | The default value when uncontrolled.                           |
-| `onChange?`     | `(value: string) => void` |         | Event handler called when the selected value changes.          |
-| `disabled?`     | `boolean`                 | `false` | When `true`, prevents interaction with all items in the group. |
-| `name?`         | `string`                  |         | The name used when using the radio group inside a form.        |
+| Prop             | Type                      | Default | Description                                                               |
+| :--------------- | :------------------------ | :------ | :------------------------------------------------------------------------ |
+| `value?`         | `string`                  |         | The controlled value of the selected radio item.                          |
+| `defaultValue?`  | `string`                  |         | The default value when uncontrolled. A form reset returns to it.          |
+| `onValueChange?` | `(value: string) => void` |         | Event handler called when the selected value changes.                     |
+| `disabled?`      | `boolean`                 | `false` | When `true`, disables every radio in the group.                           |
+| `name?`          | `string`                  |         | The form field name. With a name, a form submits the checked value.       |
+| `required?`      | `boolean`                 | `false` | When `true`, a form submits only when an item is checked. Needs a `name`. |
+| `form?`          | `string`                  |         | The `id` of the form the radios belong to. Needs a `name`.                |
 
 ### RadioGroup.Item
 
 A simple radio item. The conventional use-case for basic radio options. Must be a child of `RadioGroup.Root`. Inside `Field.Control`, the item picks up `aria-invalid`, `aria-errormessage`, and `aria-describedby`. A `Choice.Title` inside names it through `aria-labelledby`, and a `Choice.Description` describes it through `aria-describedby`.
+
+All props from [label](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/label#attributes), plus the props below. `id`, `autoFocus`, `aria-label`, `aria-labelledby`, `aria-describedby`, `aria-invalid`, and `aria-errormessage` go to the native radio; the rest go to the `<label>`.
 
 | Prop        | Type      | Default | Description                                                    |
 | :---------- | :-------- | :------ | :------------------------------------------------------------- |
 | `value`     | `string`  |         | The unique value of the radio item.                            |
 | `disabled?` | `boolean` |         | When `true`, prevents the user from interacting with the item. |
 
+Each item is a `<label>` around a native `<input type="radio">`. The radio carries the state, so style the item with these variants:
+
+| Variant                       | Matches                       |
+| :---------------------------- | :---------------------------- |
+| `has-[>input:checked]:`       | The item is checked.          |
+| `has-[>input:disabled]:`      | The item is disabled.         |
+| `has-[>input:focus-visible]:` | The radio has keyboard focus. |
+
+From a child, use the `group/radio` name the item sets: `group-has-[>input:checked]/radio:`.
+
+| Data Attribute | Value                      | Description                                             |
+| :------------- | :------------------------- | :------------------------------------------------------ |
+| `data-slot`    | `"radio-group-item"`       | The item. `ListItem` and `Card` use their own names.    |
+| `data-slot`    | `"radio-group-item-label"` | The `display: contents` wrapper of the item's children. |
+
 ### RadioGroup.Indicator
 
 The selection indicator for any radio item. By default, renders a circle that changes color when checked. Use as a child of `RadioGroup.Item`, `RadioGroup.ListItem`, or `RadioGroup.Card`.
 
-Accepts a render-props function `(context) => ReactNode` as children for custom indicators. The context includes `checked`, `disabled`, `focus`, `hover`, and `autofocus`.
+Accepts a render-props function `(context) => ReactNode` as children for custom indicators. The context includes `checked` and `disabled`. For hover and keyboard focus, style the custom indicator with `group-hover/radio:` and `group-has-[>input:focus-visible]/radio:`.
 
 ### RadioGroup.ItemContent
 
@@ -369,7 +388,7 @@ A radio card item with enhanced styling for card-based radio options. Inside `Fi
 
 ### RadioGroup.InputSandbox
 
-A sandbox container for input elements composed within radio group items. A click inside it still selects the radio, then focus returns to the input. Keys other than Enter and Tab stop here, so typing does not move the selection. When the item is disabled or unchecked, the input leaves the tab order.
+A sandbox container for input elements composed within radio group items. A click anywhere in the sandbox checks the radio and leaves focus where the click put it. Its `onClick` runs first; `event.preventDefault()` keeps the radio unchecked. When the item is disabled or unchecked, the input leaves the tab order.
 
 | Prop       | Type        | Default | Description                                          |
 | :--------- | :---------- | :------ | :--------------------------------------------------- |

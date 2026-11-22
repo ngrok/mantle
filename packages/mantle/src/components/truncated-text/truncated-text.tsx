@@ -710,7 +710,7 @@ function lineWidths(element: HTMLElement, scale: number): number[] {
  * them is content of that control, so it takes no tab stop and no tooltip.
  */
 const controlSelector =
-	'a[href], button, input, select, textarea, summary, [contenteditable=""], [contenteditable="true"], [role="button"], [role="checkbox"], [role="link"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="radio"], [role="switch"], [role="tab"], [role="treeitem"]';
+	'a[href], button, input, label, select, textarea, summary, [contenteditable=""], [contenteditable="true"], [role="button"], [role="checkbox"], [role="link"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="radio"], [role="switch"], [role="tab"], [role="treeitem"]';
 
 /**
  * Whether an element sits inside a control. Starts from the parent, so a root
@@ -901,9 +901,9 @@ function assignRef(ref: Ref<HTMLElement> | undefined, node: HTMLElement | null) 
  * reader announces the whole value, and the tooltip opens. A value that fits is
  * not a tab stop. A `tabIndex` prop wins in both states.
  *
- * Inside a control (a `<button>`, an `<a href>`, a radio, a menu item, a tab)
- * the root takes no tab stop and opens no tooltip, because a control cannot
- * hold a second one. The segments still clip, `data-truncated` still lands,
+ * Inside a control (a `<button>`, an `<a href>`, a `<label>`, a radio, a
+ * menu item, a tab) the root takes no tab stop and opens no tooltip, because
+ * a control cannot hold a second one. The segments still clip, `data-truncated` still lands,
  * and the hidden copy gives the control's accessible name the whole value.
  * Wrap the control in `Tooltip` when a sighted reader needs the full value.
  * The server render and the first client render assume no control, like they

@@ -35,7 +35,7 @@ import { SegmentedControl } from "@ngrok/mantle/segmented-control";
 
 ## Controlled
 
-Pass `value` and `onChange` to keep the checked segment in your own state. The control reports the new value on a click, a key, and a drag.
+Pass `value` and `onValueChange` to keep the checked segment in your own state. The control reports the new value on a click, a key, and a drag.
 
 <Example name="components/forms/segmented-control/controlled" title="Segmented Control controlled example">
 
@@ -48,7 +48,7 @@ function ControlledExample() {
 
 	return (
 		<div className="flex flex-col items-center gap-3">
-			<SegmentedControl.Root aria-label="View" value={view} onChange={setView}>
+			<SegmentedControl.Root aria-label="View" value={view} onValueChange={setView}>
 				<SegmentedControl.Item value="list">List</SegmentedControl.Item>
 				<SegmentedControl.Item value="board">Board</SegmentedControl.Item>
 				<SegmentedControl.Item value="calendar">Calendar</SegmentedControl.Item>
@@ -129,7 +129,7 @@ function TanStackFormExample() {
 						<SegmentedControl.Root
 							name={field.name}
 							value={field.state.value}
-							onChange={field.handleChange}
+							onValueChange={field.handleChange}
 						>
 							<SegmentedControl.Item value="us">US</SegmentedControl.Item>
 							<SegmentedControl.Item value="eu">EU</SegmentedControl.Item>
@@ -158,7 +158,7 @@ SegmentedControl.Root
 
 ## Radio semantics
 
-`SegmentedControl` is a radio group underneath. It shares its primitive with [`RadioGroup`](/components/forms/radio-group), so it has the same contract: `role="radiogroup"`, one tab stop, arrow keys that move the checked segment, and a hidden `<input type="radio">` for form submission when it has a `name`.
+`SegmentedControl` is a radio group of native radios. It shares its primitive with [`RadioGroup`](/components/forms/radio-group), so it has the same contract: `role="radiogroup"`, one tab stop, arrow keys that move the checked segment, and form submission when it has a `name`. Each segment is a `<label>` around an `<input type="radio">`, so style a segment's state with `has-[>input:checked]:`, `has-[>input:disabled]:`, and `has-[>input:focus-visible]:`.
 
 To change the value, click a segment, use the arrow keys, or drag the thumb with a mouse or a finger.
 
@@ -174,16 +174,18 @@ The thumb slides on every change: a click, a key, a drag, or a new `value`. With
 
 The row of segments. It renders the radio group itself, so use it in place of `RadioGroup.Root`, never inside one.
 
-All props from [Headless UI RadioGroup](https://headlessui.com/react/radio-group), including:
+The same props as [`RadioGroup.Root`](/components/forms/radio-group#radiogrouproot), including:
 
-| Prop            | Type                      | Default | Description                                                 |
-| :-------------- | :------------------------ | :------ | :---------------------------------------------------------- |
-| `value?`        | `string`                  |         | The controlled value of the checked segment.                |
-| `defaultValue?` | `string`                  |         | The value checked at first, when uncontrolled.              |
-| `onChange?`     | `(value: string) => void` |         | Called with the new value when the checked segment changes. |
-| `disabled?`     | `boolean`                 | `false` | When `true`, prevents interaction with every segment.       |
-| `name?`         | `string`                  |         | The name of the hidden radio input that a form submits.     |
-| `aria-label?`   | `string`                  |         | The name of the control. Set it, or set `aria-labelledby`.  |
+| Prop             | Type                      | Default | Description                                                 |
+| :--------------- | :------------------------ | :------ | :---------------------------------------------------------- |
+| `value?`         | `string`                  |         | The controlled value of the checked segment.                |
+| `defaultValue?`  | `string`                  |         | The value checked at first, when uncontrolled.              |
+| `onValueChange?` | `(value: string) => void` |         | Called with the new value when the checked segment changes. |
+| `disabled?`      | `boolean`                 | `false` | When `true`, prevents interaction with every segment.       |
+| `name?`          | `string`                  |         | The form field name. With a name, a form submits the value. |
+| `required?`      | `boolean`                 | `false` | When `true`, a form submits only when a segment is checked. |
+| `form?`          | `string`                  |         | The `id` of the form the radios belong to.                  |
+| `aria-label?`    | `string`                  |         | The name of the control. Set it, or set `aria-labelledby`.  |
 
 | Data Attribute  | Value                 | Description                                   |
 | :-------------- | :-------------------- | :-------------------------------------------- |
@@ -199,7 +201,8 @@ One segment. It grows to share the row and keeps its label on one line, so keep 
 | `value`     | `string`  |         | The value the control reports when this segment is checked. |
 | `disabled?` | `boolean` |         | When `true`, the segment cannot be checked.                 |
 
-| Data Attribute    | Value                      | Description                                    |
-| :---------------- | :------------------------- | :--------------------------------------------- |
-| `data-slot`       | `"segmented-control-item"` | The segment.                                   |
-| `data-thumb-over` | present during a drag      | The thumb is over this segment. Presence-only. |
+| Data Attribute    | Value                            | Description                                                |
+| :---------------- | :------------------------------- | :--------------------------------------------------------- |
+| `data-slot`       | `"segmented-control-item"`       | The segment: a `<label>` around its radio.                 |
+| `data-slot`       | `"segmented-control-item-label"` | The `display: contents` wrapper of the segment's children. |
+| `data-thumb-over` | present during a drag            | The thumb is over this segment. Presence-only.             |
