@@ -1,25 +1,18 @@
 "use client";
 
-import {
-	Content as TabsPrimitiveContent,
-	List as TabsPrimitiveList,
-	Root as TabsPrimitiveRoot,
-	Trigger as TabsPrimitiveTrigger,
-} from "@radix-ui/react-tabs";
 import { cva } from "class-variance-authority";
-import type { ComponentProps, ComponentRef, MouseEvent as ReactMouseEvent } from "react";
-import {
-	Children,
-	cloneElement,
-	createContext,
-	isValidElement,
-	useContext,
-	useEffect,
-	useMemo,
-	useRef,
-} from "react";
+import type { ComponentProps, ReactNode } from "react";
+import { Children, cloneElement, createContext, isValidElement, useContext, useMemo } from "react";
 import invariant from "tiny-invariant";
-import type { SelfClosingWithAsChild } from "../../types/as-child.js";
+import { composeHandlers } from "../../behaviors/compose-handlers.js";
+import {
+	getTabListProps,
+	getTabPanelProps,
+	getTabProps,
+	useTabs,
+} from "../../behaviors/use-tabs.js";
+import type { ActivationMode, Orientation, TabsBehavior } from "../../behaviors/use-tabs.js";
+import type { SelfClosingWithAsChild, WithAsChild } from "../../types/as-child.js";
 import { parseBooleanish } from "../../types/booleanish.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -29,23 +22,22 @@ import { cx } from "../../utils/cx/cx.js";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import type { ScrollBehavior } from "../../hooks/use-scroll-behavior.js";
 import { Separator } from "../separator/separator.js";
+import { Slot } from "../slot/index.js";
 
-type Orientation = "horizontal" | "vertical";
 type Appearance = "classic" | "pill";
 
-type TabsStateContextValue = {
-	orientation: Orientation;
+type TabsContextValue = TabsBehavior & {
 	appearance: Appearance;
 };
 
-const TabsStateContext = createContext<TabsStateContextValue | null>(null);
+const TabsContext = createContext<TabsContextValue | null>(null);
 
 /**
- * Reads the root's `orientation` and `appearance` for a part. Throws with the
+ * Reads the root's tab state and `appearance` for a part. Throws with the
  * part's name when the part renders outside `Tabs.Root`.
  */
-function useTabsState(partName: string): TabsStateContextValue {
-	const context = useContext(TabsStateContext);
+function useTabsState(partName: string): TabsContextValue {
+	const context = useContext(TabsContext);
 	invariant(context != null, `${partName} must be rendered inside Tabs.Root.`);
 	return context;
 }
@@ -55,17 +47,16 @@ function useTabsState(partName: string): TabsStateContextValue {
  * The outermost part; it owns `orientation` and `appearance`. It stamps both as
  * `data-orientation` and `data-appearance` for the parts below to style against.
  *
- * `onValueChange` fires once per activation. Radix activates a trigger on
- * mousedown and again on the focus it moves there, before a controlled root
- * re-renders, so the root passes the second call through only when its value
- * differs from the first.
+ * It follows the WAI-ARIA tabs pattern: the arrow keys move focus between
+ * the enabled triggers, Home and End move to the ends, and only the active
+ * trigger is a Tab stop. `onValueChange` fires once per activation.
  *
  * **Data attributes:**
  *
  * | Data Attribute     | Value                          | Description                                               |
  * | ------------------ | ------------------------------ | --------------------------------------------------------- |
  * | `data-slot`        | `"tabs"`                       | On the root element.                                      |
- * | `data-orientation` | `"horizontal"` \| `"vertical"` | The `orientation` prop. Set by Radix.                     |
+ * | `data-orientation` | `"horizontal"` \| `"vertical"` | The `orientation` prop.                                   |
  * | `data-appearance`  | `"classic"` \| `"pill"`        | The `appearance` prop. Descendant parts style against it. |
  *
  * **CSS variables:**
@@ -94,45 +85,60 @@ function useTabsState(partName: string): TabsStateContextValue {
  * ```
  */
 const Root = ({
+	activationMode,
+	appearance = "classic",
+	asChild = false,
 	className,
 	children,
 	"data-slot": dataSlot,
+	defaultValue,
+	dir,
 	onValueChange,
 	orientation = "horizontal",
-	appearance = "classic",
+	value,
 	...props
-}: ComponentProps<typeof TabsPrimitiveRoot> &
+}: Omit<ComponentProps<"div">, "defaultValue" | "dir"> &
+	WithAsChild &
 	WithDataSlot & {
+		/** The value of the tab to activate when the root is uncontrolled. */
+		defaultValue?: string;
+		/** The value of the active tab. Pass it with `onValueChange` to control the root. */
+		value?: string;
+		/** Called with the tab's value when a tab activates. Fires once per activation. */
+		onValueChange?: (value: string) => void;
+		/**
+		 * The axis of the list. It decides which arrow keys move focus.
+		 * @default "horizontal"
+		 */
+		orientation?: Orientation;
+		/**
+		 * `automatic` activates a tab when it gets focus. `manual` activates it on
+		 * Enter, Space, or a press.
+		 * @default "automatic"
+		 */
+		activationMode?: ActivationMode;
+		/**
+		 * The reading direction, set as the root's `dir`. A right-to-left list
+		 * swaps the left and right arrow keys. When unset, the list inherits it.
+		 */
+		dir?: "ltr" | "rtl";
 		/**
 		 * The appearance of the tabs. Classic appearance shows the tab
 		 * list with an underline; pill appearance shows each tab as a pill.
 		 * @default "classic"
 		 */
-		appearance?: "classic" | "pill";
+		appearance?: Appearance;
 	}) => {
-	const contextValue = useMemo(() => ({ orientation, appearance }), [orientation, appearance]);
-	// Why a ref and a microtask: the trigger's mousedown and the focus it moves
-	// both activate the same value inside one dispatch, and the microtask runs
-	// after that dispatch, so a later press on the same trigger fires again.
-	const requestedValue = useRef<string | null>(null);
-	const handleValueChange = (value: string) => {
-		if (value === requestedValue.current) {
-			return;
-		}
-		requestedValue.current = value;
-		queueMicrotask(() => {
-			requestedValue.current = null;
-		});
-		onValueChange?.(value);
-	};
-	// Why the provider wraps the Radix root: with `asChild` Radix clones its only
-	// child, so a provider in that position takes the root's attributes and ref
-	// and the consumer's element gets none of them.
+	const tabs = useTabs({ value, defaultValue, onValueChange, orientation, activationMode });
+	const contextValue = useMemo(() => ({ ...tabs, appearance }), [tabs, appearance]);
+	const Component = asChild ? Slot : "div";
 	return (
-		<TabsStateContext.Provider value={contextValue}>
-			<TabsPrimitiveRoot
+		<TabsContext.Provider value={contextValue}>
+			<Component
 				data-slot={joinDataSlot(dataSlot, "tabs")}
 				data-appearance={appearance}
+				data-orientation={orientation}
+				dir={dir}
 				className={cx(
 					// Why a variable: `Tabs.Separator` reads `--tabs-gap` to cancel this gap
 					// and sit flush against the list, so both must move together.
@@ -140,13 +146,11 @@ const Root = ({
 					orientation === "horizontal" ? "flex-col" : "flex-row",
 					className,
 				)}
-				orientation={orientation}
-				onValueChange={handleValueChange}
 				{...props}
 			>
 				{children}
-			</TabsPrimitiveRoot>
-		</TabsStateContext.Provider>
+			</Component>
+		</TabsContext.Provider>
 	);
 };
 
@@ -193,7 +197,7 @@ const listVariants = cva("flex", {
  * | Data Attribute     | Value                          | Description                           |
  * | ------------------ | ------------------------------ | ------------------------------------- |
  * | `data-slot`        | `"tabs-list"`                  | On the tablist element.               |
- * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. Set by Radix. |
+ * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.               |
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabslist
  *
@@ -212,17 +216,27 @@ const listVariants = cva("flex", {
  * ```
  */
 const List = ({
+	asChild = false,
 	className,
 	"data-slot": dataSlot,
+	loop,
+	onKeyDown,
 	ref,
 	...props
-}: ComponentProps<typeof TabsPrimitiveList> & WithDataSlot) => {
-	const { orientation, appearance } = useTabsState("Tabs.List");
-	const scrollRef = useRef<ComponentRef<typeof TabsPrimitiveList>>(null);
-	const composedRef = useComposedRefs(scrollRef, ref);
+}: ComponentProps<"div"> &
+	WithAsChild &
+	WithDataSlot & {
+		/**
+		 * Whether the arrow keys wrap from the last tab to the first, and back.
+		 * @default true
+		 */
+		loop?: boolean;
+	}) => {
+	const tabs = useTabsState("Tabs.List");
+	const { orientation, appearance } = tabs;
+	const listProps = getTabListProps(tabs, { loop });
 
-	useEffect(() => {
-		const element = scrollRef.current;
+	const scrollRef = (element: HTMLDivElement | null) => {
 		if (!element || orientation !== "horizontal") {
 			return;
 		}
@@ -253,12 +267,9 @@ const List = ({
 
 		// The edge fade is handled declaratively by the `scroll-fade-x` utility
 		// (a CSS scroll-driven animation), so the only thing left for JS here is
-		// keeping a keyboard-focused trigger scrolled into view.
-		//
-		// When Radix moves focus via arrow keys it calls element.focus(), which doesn't
-		// always scroll the target into view inside an overflow container. We handle it
-		// explicitly here via event delegation so every trigger gets this behavior with
-		// a single listener rather than one per trigger.
+		// keeping a keyboard-focused trigger scrolled into view: `focus()` does not
+		// always scroll its target into view inside an overflow container. One
+		// delegated listener serves every trigger.
 		element.addEventListener(
 			"focusin",
 			(event) => {
@@ -282,15 +293,18 @@ const List = ({
 		return () => {
 			abortController.abort();
 		};
-	}, [orientation]);
+	};
+	const composedRef = useComposedRefs(scrollRef, ref);
+	const Component = asChild ? Slot : "div";
 
 	return (
-		<TabsPrimitiveList
-			aria-orientation={orientation}
+		<Component
+			{...listProps}
 			data-slot={joinDataSlot(dataSlot, "tabs-list")}
 			className={cx(listVariants({ orientation, appearance }), className)}
 			ref={composedRef}
 			{...props}
+			onKeyDown={composeHandlers(onKeyDown, listProps.onKeyDown)}
 		/>
 	);
 };
@@ -373,7 +387,12 @@ const TabsSeparator = ({ className, "data-slot": dataSlot, ...props }: TabsSepar
 	);
 };
 
-type TabsTriggerProps = ComponentProps<typeof TabsPrimitiveTrigger> & WithDataSlot;
+type TabsTriggerProps = ComponentProps<"button"> &
+	WithAsChild &
+	WithDataSlot & {
+		/** The value that joins the trigger to its `Tabs.Content`. */
+		value: string;
+	};
 
 /**
  * Variants for the TabsTriggerDecoration component
@@ -463,9 +482,9 @@ const triggerVariants = cva(
  * | -------------- | ------------------------ | ------------------------------------ |
  * | `data-slot`    | `"tabs-trigger"`         | On the trigger element.              |
  * | `data-slot`    | `"tabs-trigger-label"`   | On the `<span>` wrapping `children`. |
- * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. Set by Radix. |
- * | `data-state`   | `"active"` \| `"inactive"` | Whether the trigger's panel is shown. Set by Radix. |
- * | `data-disabled` | present when `disabled` | Presence-only. Set by Radix. |
+ * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.               |
+ * | `data-state`   | `"active"` \| `"inactive"` | Whether the trigger's panel is shown. |
+ * | `data-disabled` | present when `disabled` | Presence-only. |
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabstrigger
  *
@@ -491,71 +510,33 @@ const Trigger = ({
 	"data-slot": dataSlot,
 	disabled: _disabled,
 	onClick,
+	onFocus,
+	onKeyDown,
 	onMouseDown,
-	ref,
+	value,
 	...props
 }: TabsTriggerProps) => {
-	const { orientation, appearance } = useTabsState("Tabs.Trigger");
+	const tabs = useTabsState("Tabs.Trigger");
+	const { orientation, appearance } = tabs;
 	const disabled = parseBooleanish(_ariaDisabled ?? _disabled);
-	const replayingPress = useRef(false);
+	const tabProps = getTabProps(tabs, { value, disabled });
 
-	const tabsTriggerProps = {
+	const triggerProps = {
+		...tabProps,
 		"aria-disabled": _ariaDisabled ?? _disabled,
 		className: cx(triggerVariants({ orientation, appearance }), className),
 		"data-slot": joinDataSlot(dataSlot, "tabs-trigger"),
-		disabled,
-		onClick: (event: ReactMouseEvent<HTMLButtonElement>) => {
-			onClick?.(event);
-			// Why: a click with a modifier opens the link elsewhere.
-			if (
-				event.defaultPrevented ||
-				disabled ||
-				!event.currentTarget.matches("a[href]") ||
-				event.button !== 0 ||
-				event.altKey ||
-				event.ctrlKey ||
-				event.metaKey ||
-				event.shiftKey
-			) {
-				return;
-			}
-			const trigger = event.currentTarget;
-			trigger.focus({ focusVisible: false });
-			// Why: a link trigger skips the press, and the focus activates only an
-			// unfocused trigger in automatic mode. This replayed press runs the Radix
-			// activation, and the root drops the second call for the same value.
-			replayingPress.current = true;
-			trigger.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
-			replayingPress.current = false;
-		},
-		onMouseDown: (event: ReactMouseEvent<HTMLButtonElement>) => {
-			if (replayingPress.current) {
-				return;
-			}
-			onMouseDown?.(event);
-			if (event.defaultPrevented || disabled) {
-				return;
-			}
-			// Why: a link follows only a press released on it, so a link trigger
-			// waits for the click. The cancel skips the Radix handler and the link drag.
-			if (event.currentTarget.matches("a[href]")) {
-				event.preventDefault();
-				return;
-			}
-			// Why: Radix focuses the trigger from script on this press, and Chromium
-			// gives that focus the ring of the element that had focus before. A focus
-			// here comes first, so the Radix call finds the trigger already focused.
-			if (event.button === 0 && !event.ctrlKey) {
-				event.currentTarget.focus({ focusVisible: false });
-			}
-		},
 		...props,
+		onClick: composeHandlers(onClick, tabProps.onClick),
+		onFocus: composeHandlers(onFocus, tabProps.onFocus),
+		onKeyDown: composeHandlers(onKeyDown, tabProps.onKeyDown),
+		onMouseDown: composeHandlers(onMouseDown, tabProps.onMouseDown),
 	};
 
 	if (asChild) {
 		const singleChild = Children.only(children);
 		invariant(
-			isValidElement<TabsTriggerProps>(singleChild),
+			isValidElement<{ children?: ReactNode }>(singleChild),
 			"When using `asChild`, TabsTrigger must be passed a single child as a JSX tag.",
 		);
 		const grandchildren = singleChild.props?.children;
@@ -564,14 +545,10 @@ const Trigger = ({
 		// removing their href/to props. `<a>` has no `disabled` attribute and
 		// would stay navigable. `pointer-events-none` would also block tooltip
 		// interactions, which may be surprising, so it is not the default.
-		//
-		// Why no `tabIndex` when enabled: Radix rotates `tabIndex` between the
-		// triggers so only the active tab is a Tab stop, and a cloned `tabIndex`
-		// would win over it and put every tab in the Tab order.
 		const cloneProps = disabled ? { href: undefined, to: undefined } : {};
 
 		return (
-			<TabsPrimitiveTrigger asChild {...tabsTriggerProps} ref={ref}>
+			<Slot {...triggerProps}>
 				{cloneElement(
 					disabled ? <button type="button" /> : singleChild,
 					cloneProps,
@@ -583,18 +560,18 @@ const Trigger = ({
 						</span>
 					</>,
 				)}
-			</TabsPrimitiveTrigger>
+			</Slot>
 		);
 	}
 
 	return (
-		<TabsPrimitiveTrigger ref={ref} {...tabsTriggerProps}>
+		<button type="button" {...triggerProps}>
 			<TabsTriggerDecoration />
 			{/* Why the label span: decisions/2026-08-04-translation-safe-label-wrappers.md */}
 			<span data-slot="tabs-trigger-label" className="contents">
 				{children}
 			</span>
-		</TabsPrimitiveTrigger>
+		</button>
 	);
 };
 
@@ -644,15 +621,17 @@ const Badge = ({
 
 /**
  * Contains the content associated with each trigger.
- * It renders when that trigger is active.
+ * It renders when that trigger is active. `forceMount` keeps it mounted;
+ * `hiddenUntilFound` keeps it mounted as `hidden="until-found"`, so
+ * find-in-page reveals it and activates its trigger.
  *
  * **Data attributes:**
  *
  * | Data Attribute     | Value                          | Description                               |
  * | ------------------ | ------------------------------ | ----------------------------------------- |
  * | `data-slot`        | `"tabs-content"`               | On the panel element.                     |
- * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. Set by Radix.     |
- * | `data-state`       | `"active"` \| `"inactive"`     | Whether the panel is shown. Set by Radix. |
+ * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.                   |
+ * | `data-state`       | `"active"` \| `"inactive"`     | Whether the panel is shown.               |
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabscontent
  *
@@ -674,16 +653,64 @@ const Badge = ({
  * ```
  */
 const Content = ({
+	asChild = false,
+	children,
 	className,
 	"data-slot": dataSlot,
+	forceMount,
+	hiddenUntilFound = false,
+	ref,
+	value,
 	...props
-}: ComponentProps<typeof TabsPrimitiveContent> & WithDataSlot) => (
-	<TabsPrimitiveContent
-		data-slot={joinDataSlot(dataSlot, "tabs-content")}
-		className={cx("focus-visible:focus-ring outline-hidden", className)}
-		{...props}
-	/>
-);
+}: ComponentProps<"div"> &
+	WithAsChild &
+	WithDataSlot & {
+		/** The value of the trigger that shows this panel. */
+		value: string;
+		/**
+		 * Keeps the panel mounted while its tab is inactive. Hide an inactive
+		 * panel yourself, such as with `data-[state=inactive]:hidden`.
+		 */
+		forceMount?: true;
+		/**
+		 * Keeps the panel mounted while its tab is inactive, as
+		 * `hidden="until-found"`. Find-in-page and a fragment link reveal the
+		 * text and activate the tab. Implies `forceMount`. Do not hide the panel
+		 * with a `display: none` class: it blocks the search.
+		 * @default false
+		 */
+		hiddenUntilFound?: boolean;
+	}) => {
+	const tabs = useTabsState("Tabs.Content");
+	const { shown, panelProps, beforeMatchRef } = getTabPanelProps(tabs, {
+		value,
+		forceMount,
+		hiddenUntilFound,
+	});
+	const composedRef = useComposedRefs(ref, beforeMatchRef);
+	// Why: an `asChild` panel has no element of its own to leave empty.
+	if (asChild && !shown) {
+		return null;
+	}
+	const Component = asChild ? Slot : "div";
+	return (
+		<Component
+			{...panelProps}
+			data-slot={joinDataSlot(dataSlot, "tabs-content")}
+			className={cx(
+				"focus-visible:focus-ring outline-hidden",
+				// Why: `until-found` hides only the panel's contents. Its own padding,
+				// border, and the root's gap would still take space.
+				"[[hidden=until-found]]:sr-only",
+				className,
+			)}
+			ref={composedRef}
+			{...props}
+		>
+			{shown && children}
+		</Component>
+	);
+};
 
 export {
 	//,

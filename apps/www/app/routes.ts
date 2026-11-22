@@ -193,6 +193,7 @@ const migrationsPages = [
 	"0020-native-floats-migration",
 	"0021-native-radio-group-migration",
 	"0022-alert-center-server-render-migration",
+	"0023-tabs-owned-behavior-migration",
 ];
 
 export default [

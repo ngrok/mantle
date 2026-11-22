@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps, ReactNode } from "react";
+import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
@@ -751,6 +752,38 @@ describe("Tabs", () => {
 			const trigger = screen.getByRole("tab");
 			expect(trigger.className).toContain("[&>[data-slot=tabs-trigger-label]>svg]:size-4");
 			expect(trigger.className).not.toContain("[&>[data-slot=tabs-trigger-label]>svg]:size-5");
+		});
+	});
+
+	describe("Content", () => {
+		test("the server HTML renders an inactive panel hidden until found with its text, and a plain one empty", () => {
+			const html = renderToString(
+				<Tabs.Root defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger value="a">A</Tabs.Trigger>
+						<Tabs.Trigger value="b">B</Tabs.Trigger>
+					</Tabs.List>
+					<Tabs.Content value="a" hiddenUntilFound>
+						Panel A
+					</Tabs.Content>
+					<Tabs.Content value="b" hiddenUntilFound>
+						Panel B
+					</Tabs.Content>
+					<Tabs.Content value="c">Panel C</Tabs.Content>
+				</Tabs.Root>,
+			);
+			// Why lower case: React writes the attribute name as given, and the HTML parser lowercases it.
+			const panels = [...html.matchAll(/<div role="tabpanel"[^>]*>/g)].map(([tag]) =>
+				tag.toLowerCase(),
+			);
+
+			expect(panels).toHaveLength(3);
+			expect(panels[0]).not.toContain(" hidden=");
+			expect(panels[1]).toContain('hidden="until-found"');
+			// A plain inactive panel stays an empty `hidden` element, so its tab's `aria-controls` resolves.
+			expect(panels[2]).toContain('hidden=""');
+			expect(html).toContain("Panel B");
+			expect(html).not.toContain("Panel C");
 		});
 	});
 });

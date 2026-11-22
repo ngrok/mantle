@@ -1,0 +1,80 @@
+---
+title: Tabs Owned Behavior Migration
+description: Tabs and the CodeBlock tabs no longer use Radix. A Radix Tabs part inside a mantle Tabs.Root has no context and throws. Use Tabs.Trigger instead.
+introducedIn: "0.95.0"
+---
+
+# Mantle Tabs Owned Behavior Migration Guide
+
+`@ngrok/mantle`'s `Tabs` and the `CodeBlock` tab parts no longer use `@radix-ui/react-tabs`. Mantle owns the WAI-ARIA tabs behavior. The parts, their props, and their `data-*` attributes stay the same. A Radix Tabs part that you render inside a mantle `Tabs.Root` no longer finds a Radix context, so it throws on render.
+
+**TL;DR:** Find each `Trigger`, `List`, or `Content` from `@radix-ui/react-tabs` (or a local wrapper around one) that renders inside a mantle `Tabs.Root` or `CodeBlock.Root`. Replace it with the mantle part: `Tabs.Trigger`, `Tabs.List`, or `Tabs.Content`. Keep your classes. Then remove `@radix-ui/react-tabs` from your dependencies if nothing else imports it.
+
+## Codemod
+
+Codemod: manual: the Radix part usually sits in a local wrapper component, and a rule cannot see that the wrapper renders inside a mantle `Tabs.Root`.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find every import from `@radix-ui/react-tabs`. Include a namespace import (`import * as Tabs from "@radix-ui/react-tabs"`) and a local wrapper that renders a Radix part, such as a `TabsTrigger` in `~/components/tabs-trigger`.
+2. Keep only the parts that render inside a mantle `Tabs.Root` (from `@ngrok/mantle/tabs`) or `CodeBlock.Root` (from `@ngrok/mantle/code-block`). A Radix part inside a Radix `Root` still works. Leave it alone.
+3. Replace each Radix `Trigger` with `Tabs.Trigger`. Keep `value`, `disabled`, `id`, `className`, and the children. `Tabs.Trigger` already focuses a pressed tab without the focus ring, so delete a wrapper's `onMouseDown` that calls `focus({ focusVisible: false })`.
+4. `Tabs.Trigger` adds mantle's trigger classes and an underline decoration for the `classic` appearance. Your `className` merges after them, so a conflicting class of yours wins. To drop the underline, set `appearance="pill"` on the root and give each trigger its own classes. `data-state="active"` and `data-state="inactive"` stay on the trigger, so `data-state-active:` and `data-[state=active]:` classes keep working.
+5. Replace a Radix `List` or `Content` the same way, with `Tabs.List` or `Tabs.Content`.
+6. Delete the wrapper file when nothing imports it. Remove `@radix-ui/react-tabs` from `package.json` when nothing imports it.
+7. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why own the behavior?** Radix Tabs shipped its own roving focus, collection, and presence code for a pattern that needs one key handler and two ids per tab. On its own, the `Tabs` entry now ships 6 KB (gzip) less. The mantle version also puts the active tab in the Tab order in the server HTML, follows a right-to-left page's arrow keys, and adds `hiddenUntilFound` for find-in-page.
+
+---
+
+## Before → after
+
+### A Radix trigger wrapper inside mantle Tabs
+
+```tsx
+// BEFORE: the app's own Radix trigger, styled by hand
+import { Tabs } from "@ngrok/mantle/tabs";
+import { TabsTrigger } from "~/components/tabs-trigger"; // wraps @radix-ui/react-tabs Trigger
+
+<Tabs.Root appearance="pill" defaultValue="clone">
+	<Tabs.List>
+		<TabsTrigger
+			value="clone"
+			className="rounded-full px-3 py-1.5 data-[state=active]:bg-neutral-500/30!"
+		>
+			Clone Repo
+		</TabsTrigger>
+	</Tabs.List>
+</Tabs.Root>;
+```
+
+```tsx
+// AFTER: mantle's trigger, with the same classes
+import { Tabs } from "@ngrok/mantle/tabs";
+
+<Tabs.Root appearance="pill" defaultValue="clone">
+	<Tabs.List>
+		<Tabs.Trigger
+			value="clone"
+			className="rounded-full px-3 py-1.5 data-[state=active]:bg-neutral-500/30!"
+		>
+			Clone Repo
+		</Tabs.Trigger>
+	</Tabs.List>
+</Tabs.Root>;
+```
+
+## Edge cases & gotchas
+
+- **Right-to-left pages.** Radix set `dir="ltr"` on the root, so the arrow keys moved left to right in a right-to-left page. The root now sets `dir` only when you pass it, and in a right-to-left page **ArrowLeft** moves to the next tab.
+- **Tab order before hydration.** The server HTML now puts the active tab in the Tab order. The tab list itself is no longer a Tab stop.
+- **Force-mounted panels for crawlers.** A page that force-mounts every panel and hides the inactive ones with `data-[state=inactive]:hidden` can use `<Tabs.Content hiddenUntilFound>` instead. The text stays in the HTML, and find-in-page reveals it. Delete the `hidden` class: `display: none` blocks the search.
+
+## How to verify
+
+- The page renders with no "must be used within `Tabs`" error.
+- `getAllByRole("tab")` finds every trigger, and the arrow keys move between them.
+- Nothing imports `@radix-ui/react-tabs`, or only code inside a Radix `Root` does.

@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { afterAll, beforeAll, expect, test, vi } from "vitest";
+import axe from "axe-core";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import * as Tabs from "./tabs-parts.js";
 
@@ -39,6 +40,8 @@ const TABS_LAYOUT_STYLE = `
 	.-mx-1 { margin-inline: calc(var(--spacing) * -1); }
 	[data-slot~=tabs] > .\\[\\[data-slot\\~\\=tabs\\]\\>\\&\\]\\:-mt-\\(--tabs-gap\\) { margin-top: calc(var(--tabs-gap) * -1); }
 	[data-slot~=tabs] > .\\[\\[data-slot\\~\\=tabs\\]\\>\\&\\]\\:-ml-\\(--tabs-gap\\) { margin-left: calc(var(--tabs-gap) * -1); }
+	.\\[\\[hidden\\=until-found\\]\\]\\:sr-only[hidden=until-found] { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
+	.p-6 { padding: 1.5rem; }
 	.tabs-trigger { display: flex; align-items: center; gap: 0.5rem; }
 	.tabs-trigger > [data-slot="tabs-trigger-label"] > svg { width: 1.25rem; height: 1.25rem; }
 }
@@ -461,4 +464,196 @@ test("a selection across the tabs copies the panel text and no tab label", () =>
 	document.getSelection()?.selectAllChildren(container);
 
 	expect(document.getSelection()?.toString()).toBe("Panel A");
+});
+
+const axeViolations = async () => {
+	// Why WCAG tags only: `region` is a best practice for whole pages, and a test page has no landmarks.
+	// Why no `target-size`: the test page loads no Tailwind, so a trigger is one bare line of text.
+	const results = await axe.run(document.body, {
+		resultTypes: ["violations"],
+		rules: { "target-size": { enabled: false } },
+		runOnly: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"],
+	});
+	return results.violations.map((violation) => violation.id);
+};
+
+const tab = (name: string) => screen.getByRole("tab", { name });
+
+describe("Tabs keyboard, focus, and ARIA contract", () => {
+	const FourTabs = (props: Partial<Parameters<typeof Tabs.Root>[0]> & { loop?: boolean }) => {
+		const { loop, ...rootProps } = props;
+		return (
+			<>
+				<button type="button">Before</button>
+				<Tabs.Root defaultValue="b" {...rootProps}>
+					<Tabs.List aria-label="Settings" loop={loop}>
+						<Tabs.Trigger value="a">A</Tabs.Trigger>
+						<Tabs.Trigger value="b">B</Tabs.Trigger>
+						<Tabs.Trigger value="c" disabled>
+							C
+						</Tabs.Trigger>
+						<Tabs.Trigger value="d">D</Tabs.Trigger>
+					</Tabs.List>
+					{["a", "b", "c", "d"].map((value) => (
+						<Tabs.Content key={value} value={value}>
+							Panel {value.toUpperCase()}
+						</Tabs.Content>
+					))}
+				</Tabs.Root>
+			</>
+		);
+	};
+
+	test("joins each tab to its panel, and only the active tab is a Tab stop", async () => {
+		render(<FourTabs />);
+		const panel = screen.getByRole("tabpanel");
+
+		expect(tab("B")).toHaveAttribute("aria-selected", "true");
+		expect(tab("A")).toHaveAttribute("aria-selected", "false");
+		expect(tab("B").getAttribute("aria-controls")).toBe(panel.id);
+		expect(panel).toHaveAccessibleName("B");
+		expect(screen.getByRole("tablist")).toHaveAttribute("aria-orientation", "horizontal");
+		expect(await axeViolations()).toEqual([]);
+
+		await userEvent.click(screen.getByRole("button", { name: "Before" }));
+		await userEvent.keyboard("{Tab}");
+		expect(tab("B")).toHaveFocus();
+		await userEvent.keyboard("{Tab}");
+		expect(panel).toHaveFocus();
+	});
+
+	test("the arrow keys skip a disabled tab, wrap, and activate in automatic mode", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(<FourTabs onValueChange={onValueChange} />);
+		tab("B").focus();
+
+		await userEvent.keyboard("{ArrowRight}");
+		expect(tab("D")).toHaveFocus();
+		expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel D");
+		await userEvent.keyboard("{ArrowRight}");
+		expect(tab("A")).toHaveFocus();
+		await userEvent.keyboard("{ArrowLeft}");
+		expect(tab("D")).toHaveFocus();
+		await userEvent.keyboard("{Home}");
+		expect(tab("A")).toHaveFocus();
+		await userEvent.keyboard("{End}");
+		expect(tab("D")).toHaveFocus();
+		// A horizontal list ignores the vertical arrows.
+		await userEvent.keyboard("{ArrowDown}");
+		expect(tab("D")).toHaveFocus();
+		expect(onValueChange.mock.calls).toEqual([["d"], ["a"], ["d"], ["a"], ["d"]]);
+	});
+
+	test("without loop, the arrow keys stop at the ends", async () => {
+		render(<FourTabs loop={false} />);
+		tab("B").focus();
+
+		await userEvent.keyboard("{ArrowLeft}{ArrowLeft}");
+		expect(tab("A")).toHaveFocus();
+		await userEvent.keyboard("{End}{ArrowRight}");
+		expect(tab("D")).toHaveFocus();
+	});
+
+	test("a vertical list moves with the up and down arrows only", async () => {
+		render(<FourTabs orientation="vertical" />);
+		tab("B").focus();
+
+		await userEvent.keyboard("{ArrowRight}");
+		expect(tab("B")).toHaveFocus();
+		await userEvent.keyboard("{ArrowUp}");
+		expect(tab("A")).toHaveFocus();
+		await userEvent.keyboard("{ArrowDown}{ArrowDown}");
+		expect(tab("D")).toHaveFocus();
+	});
+
+	test("a right-to-left list swaps the left and right arrows", async () => {
+		render(
+			<div dir="rtl">
+				<FourTabs />
+			</div>,
+		);
+		tab("B").focus();
+
+		await userEvent.keyboard("{ArrowLeft}");
+		expect(tab("D")).toHaveFocus();
+		await userEvent.keyboard("{ArrowRight}");
+		expect(tab("B")).toHaveFocus();
+	});
+
+	test("manual mode moves focus with the arrows and activates on Enter or Space", async () => {
+		render(<FourTabs activationMode="manual" />);
+		tab("B").focus();
+
+		await userEvent.keyboard("{ArrowLeft}");
+		expect(tab("A")).toHaveFocus();
+		expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel B");
+		await userEvent.keyboard("{Enter}");
+		expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel A");
+		await userEvent.keyboard("{End} ");
+		expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel D");
+	});
+
+	test("with no active tab, Tab reaches the first tab and its focus activates it", async () => {
+		render(<FourTabs defaultValue={undefined} />);
+
+		expect(screen.queryByRole("tabpanel")).toBeNull();
+		await userEvent.click(screen.getByRole("button", { name: "Before" }));
+		await userEvent.keyboard("{Tab}");
+		expect(tab("A")).toHaveFocus();
+		expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel A");
+	});
+
+	test("Enter on a link tab fires onValueChange once on a controlled root", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(
+			<Tabs.Root value="a" onValueChange={onValueChange} activationMode="manual">
+				<Tabs.List aria-label="Pages">
+					<Tabs.Trigger value="a">A</Tabs.Trigger>
+					<Tabs.Trigger value="b" asChild>
+						<a href="#b">B</a>
+					</Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root>,
+		);
+		tab("A").focus();
+
+		await userEvent.keyboard("{ArrowRight}{Enter}");
+
+		expect(tab("B")).toHaveFocus();
+		expect(onValueChange.mock.calls).toEqual([["b"]]);
+		history.replaceState(null, "", window.location.pathname);
+	});
+
+	test("a panel hidden until found reveals and activates its tab on a fragment link", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(
+			<Tabs.Root defaultValue="a" onValueChange={onValueChange}>
+				<Tabs.List aria-label="Docs">
+					<Tabs.Trigger value="a">A</Tabs.Trigger>
+					<Tabs.Trigger value="b">B</Tabs.Trigger>
+				</Tabs.List>
+				<Tabs.Content value="a" hiddenUntilFound>
+					Panel A
+				</Tabs.Content>
+				<Tabs.Content value="b" hiddenUntilFound className="p-6">
+					<p id="deep-link-target">Panel B</p>
+				</Tabs.Content>
+			</Tabs.Root>,
+		);
+		const panelB = screen.getByText("Panel B").parentElement;
+		expect(panelB).toHaveAttribute("hidden", "until-found");
+		// The hidden panel's own padding and the root's gap take no space.
+		expect(panelB?.getBoundingClientRect().height).toBeLessThanOrEqual(1);
+		expect(getComputedStyle(panelB as HTMLElement).position).toBe("absolute");
+		expect(screen.getByText("Panel A").closest("[hidden]")).toBeNull();
+
+		window.location.hash = "#deep-link-target";
+
+		await vi.waitFor(() => {
+			expect(tab("B")).toHaveAttribute("aria-selected", "true");
+		});
+		expect(panelB).not.toHaveAttribute("hidden");
+		expect(onValueChange.mock.calls).toEqual([["b"]]);
+		history.replaceState(null, "", window.location.pathname);
+	});
 });

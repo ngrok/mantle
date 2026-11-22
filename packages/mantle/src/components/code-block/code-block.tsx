@@ -17,13 +17,15 @@ import {
 	useRef,
 	useState,
 } from "react";
-import {
-	Content as RadixTabsContent,
-	List as RadixTabsList,
-	Root as RadixTabsRoot,
-	Trigger as RadixTabsTrigger,
-} from "@radix-ui/react-tabs";
 import assert from "tiny-invariant";
+import { composeHandlers } from "../../behaviors/compose-handlers.js";
+import {
+	getTabListProps,
+	getTabPanelProps,
+	getTabProps,
+	useTabs,
+} from "../../behaviors/use-tabs.js";
+import type { TabsBehavior } from "../../behaviors/use-tabs.js";
 import { useCopyToClipboard } from "../../hooks/use-copy-to-clipboard.js";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { SelfClosingWithAsChild, WithAsChild } from "../../types/as-child.js";
@@ -56,6 +58,18 @@ type CodeBlockContextType = {
 };
 
 const CodeBlockContext = createContext<CodeBlockContextType | null>(null);
+
+const CodeBlockTabsContext = createContext<TabsBehavior | null>(null);
+
+/** Returns the root's tab state, throwing when the root has no `defaultTab` or `activeTab`. */
+function useCodeBlockTabs(partName: string): TabsBehavior {
+	const tabs = useContext(CodeBlockTabsContext);
+	assert(
+		tabs != null,
+		`${partName} must be rendered within a <CodeBlock.Root> that has \`defaultTab\` or \`activeTab\`.`,
+	);
+	return tabs;
+}
 
 /** Returns the nearest `CodeBlock` context, throwing if called outside a `CodeBlock.Root`. */
 function useCodeBlockContext(): CodeBlockContextType {
@@ -153,6 +167,11 @@ const Root = ({
 	);
 
 	const hasTabs = defaultTab != null || activeTab != null;
+	const tabs = useTabs({
+		value: activeTab,
+		defaultValue: defaultTab,
+		onValueChange: onActiveTabChange,
+	});
 	const Component = asChild ? Slot : "div";
 
 	const tree = (
@@ -170,18 +189,9 @@ const Root = ({
 
 	return (
 		<CodeBlockContext.Provider value={context}>
-			{hasTabs ? (
-				<RadixTabsRoot
-					asChild
-					defaultValue={defaultTab}
-					value={activeTab}
-					onValueChange={onActiveTabChange}
-				>
-					{tree}
-				</RadixTabsRoot>
-			) : (
-				tree
-			)}
+			<CodeBlockTabsContext.Provider value={hasTabs ? tabs : null}>
+				{tree}
+			</CodeBlockTabsContext.Provider>
 		</CodeBlockContext.Provider>
 	);
 };
@@ -899,12 +909,11 @@ function CodeBlockIconComponent({
 	);
 }
 
-type CodeBlockTabListProps = Omit<ComponentProps<typeof RadixTabsList>, "asChild" | "loop"> &
-	WithDataSlot;
+type CodeBlockTabListProps = ComponentProps<"div"> & WithDataSlot;
 
 /**
  * A tab list for the `CodeBlock` header. Renders pill-styled tab triggers
- * that switch which code is displayed. Built on Radix Tabs primitives.
+ * that switch which code is displayed. It follows the WAI-ARIA tabs pattern.
  *
  * Place this inside `CodeBlock.Header` and pair with `CodeBlock.TabContent`
  * in `CodeBlock.Body` to conditionally render code based on the active tab.
@@ -936,25 +945,39 @@ type CodeBlockTabListProps = Omit<ComponentProps<typeof RadixTabsList>, "asChild
  * </CodeBlock.Root>
  * ```
  */
-const TabList = ({ "data-slot": dataSlot, className, ref, ...props }: CodeBlockTabListProps) => (
-	<RadixTabsList
-		data-slot={joinDataSlot(dataSlot, "code-block-tab-list")}
-		className={cx(
-			"scroll-fade-x flex min-w-0 items-center gap-1 overflow-x-auto overscroll-x-none",
-			// Reserve room inside the scroll box for each trigger's focus ring: `overflow-x-auto`
-			// promotes `overflow-y` to `auto`, which would otherwise clip the `ring-4` box-shadow.
-			// The negative margin cancels the padding so the header layout is unchanged. `min-w-0`
-			// lets the list shrink (and thus scroll) inside the flex `CodeBlock.Header`.
-			"-m-1 p-1",
-			className,
-		)}
-		ref={ref}
-		{...props}
-	/>
-);
+const TabList = ({
+	"data-slot": dataSlot,
+	className,
+	onKeyDown,
+	...props
+}: CodeBlockTabListProps) => {
+	const listProps = getTabListProps(useCodeBlockTabs("CodeBlock.TabList"));
+	return (
+		// oxlint-disable-next-line jsx-a11y/interactive-supports-focus -- Why: the tabs take focus, not the list; the list only handles the arrow keys that bubble from them (WAI-ARIA tabs pattern).
+		<div
+			{...listProps}
+			role="tablist"
+			data-slot={joinDataSlot(dataSlot, "code-block-tab-list")}
+			className={cx(
+				"scroll-fade-x flex min-w-0 items-center gap-1 overflow-x-auto overscroll-x-none",
+				// Reserve room inside the scroll box for each trigger's focus ring: `overflow-x-auto`
+				// promotes `overflow-y` to `auto`, which would otherwise clip the `ring-4` box-shadow.
+				// The negative margin cancels the padding so the header layout is unchanged. `min-w-0`
+				// lets the list shrink (and thus scroll) inside the flex `CodeBlock.Header`.
+				"-m-1 p-1",
+				className,
+			)}
+			{...props}
+			onKeyDown={composeHandlers(onKeyDown, listProps.onKeyDown)}
+		/>
+	);
+};
 
-type CodeBlockTabTriggerProps = Omit<ComponentProps<typeof RadixTabsTrigger>, "asChild"> &
-	WithDataSlot;
+type CodeBlockTabTriggerProps = ComponentProps<"button"> &
+	WithDataSlot & {
+		/** The value that joins the trigger to its `CodeBlock.TabContent`. */
+		value: string;
+	};
 
 /**
  * A pill-styled tab trigger for the `CodeBlock` header.
@@ -973,29 +996,42 @@ type CodeBlockTabTriggerProps = Omit<ComponentProps<typeof RadixTabsTrigger>, "a
 const TabTrigger = ({
 	"data-slot": dataSlot,
 	className,
-	ref,
+	disabled = false,
+	onClick,
+	onFocus,
+	onKeyDown,
+	onMouseDown,
+	value,
 	...props
-}: CodeBlockTabTriggerProps) => (
-	<RadixTabsTrigger
-		data-slot={joinDataSlot(dataSlot, "code-block-tab-trigger")}
-		className={cx(
-			"shrink-0 cursor-pointer rounded px-1.5 py-0.5 font-sans text-xs font-medium whitespace-nowrap",
-			"text-gray-600 outline-hidden",
-			"hover:text-gray-900",
-			"data-[state=active]:bg-neutral-500/15 data-[state=active]:text-strong",
-			"focus-visible:focus-ring",
-			className,
-		)}
-		ref={ref}
-		{...props}
-	/>
-);
+}: CodeBlockTabTriggerProps) => {
+	const tabProps = getTabProps(useCodeBlockTabs("CodeBlock.TabTrigger"), { value, disabled });
+	return (
+		<button
+			type="button"
+			{...tabProps}
+			data-slot={joinDataSlot(dataSlot, "code-block-tab-trigger")}
+			className={cx(
+				"shrink-0 cursor-pointer rounded px-1.5 py-0.5 font-sans text-xs font-medium whitespace-nowrap",
+				"text-gray-600 outline-hidden",
+				"hover:text-gray-900",
+				"data-[state=active]:bg-neutral-500/15 data-[state=active]:text-strong",
+				"focus-visible:focus-ring",
+				className,
+			)}
+			{...props}
+			onClick={composeHandlers(onClick, tabProps.onClick)}
+			onFocus={composeHandlers(onFocus, tabProps.onFocus)}
+			onKeyDown={composeHandlers(onKeyDown, tabProps.onKeyDown)}
+			onMouseDown={composeHandlers(onMouseDown, tabProps.onMouseDown)}
+		/>
+	);
+};
 
-type CodeBlockTabContentProps = Omit<
-	ComponentProps<typeof RadixTabsContent>,
-	"asChild" | "forceMount"
-> &
-	WithDataSlot;
+type CodeBlockTabContentProps = ComponentProps<"div"> &
+	WithDataSlot & {
+		/** The value of the trigger that shows this content. */
+		value: string;
+	};
 
 /**
  * Conditionally renders its children when the associated tab is active.
@@ -1017,9 +1053,21 @@ type CodeBlockTabContentProps = Omit<
  * </CodeBlock.Body>
  * ```
  */
-const TabContent = ({ "data-slot": dataSlot, ...props }: CodeBlockTabContentProps) => (
-	<RadixTabsContent data-slot={joinDataSlot(dataSlot, "code-block-tab-content")} {...props} />
-);
+const TabContent = ({
+	children,
+	"data-slot": dataSlot,
+	value,
+	...props
+}: CodeBlockTabContentProps) => {
+	const { shown, panelProps } = getTabPanelProps(useCodeBlockTabs("CodeBlock.TabContent"), {
+		value,
+	});
+	return (
+		<div {...panelProps} data-slot={joinDataSlot(dataSlot, "code-block-tab-content")} {...props}>
+			{shown && children}
+		</div>
+	);
+};
 
 export {
 	//,

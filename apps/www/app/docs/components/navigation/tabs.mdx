@@ -141,6 +141,34 @@ import { Tabs } from "@ngrok/mantle/tabs";
 
 </Example>
 
+## Find in page
+
+Pass `hiddenUntilFound` to a `Tabs.Content` to keep its text in the HTML while its tab is inactive. The panel renders `hidden="until-found"`, so the browser's find-in-page and a link to a fragment inside it reveal the text and activate its tab. Use it for pages that crawlers and agents read, such as install instructions. It implies `forceMount`.
+
+Do not hide the panel with a `display: none` class, such as `data-[state=inactive]:hidden`: it blocks the search. A browser without `until-found` treats the panel as plain `hidden`.
+
+<Example name="components/navigation/tabs/hidden-until-found" title="Tabs find in page example">
+
+```tsx
+import { Tabs } from "@ngrok/mantle/tabs";
+
+<Tabs.Root defaultValue="npm">
+	<Tabs.List>
+		<Tabs.Trigger value="npm">npm</Tabs.Trigger>
+		<Tabs.Trigger value="pnpm">pnpm</Tabs.Trigger>
+	</Tabs.List>
+	<Tabs.Separator />
+	<Tabs.Content value="npm" hiddenUntilFound>
+		npm install @ngrok/mantle
+	</Tabs.Content>
+	<Tabs.Content value="pnpm" hiddenUntilFound>
+		pnpm add @ngrok/mantle
+	</Tabs.Content>
+</Tabs.Root>;
+```
+
+</Example>
+
 ## Vertical orientation
 
 Set `orientation="vertical"` on `Tabs.Root` to stack the tabs beside the content.
@@ -200,7 +228,7 @@ A link tab activates on click, not on the press, so a press released off the lin
 
 `Tabs.Separator` accepts `asChild` too. When `true`, it composes the hairline's styling and attributes onto your own element instead of rendering its own `<div>`.
 
-`Tabs.Root`, `Tabs.List`, and `Tabs.Content` accept `asChild` through Radix. Each composes its part's attributes and behavior onto your own element instead of rendering its own `<div>`.
+`Tabs.Root`, `Tabs.List`, and `Tabs.Content` accept `asChild` too. Each composes its part's attributes and behavior onto your own element instead of rendering its own `<div>`.
 
 <Example name="components/navigation/tabs/polymorphism" title="Tabs polymorphism example">
 
@@ -561,10 +589,12 @@ import { Tabs } from "@ngrok/mantle/tabs";
 
 ## Accessibility
 
-`Tabs` follows the [WAI-ARIA tabs pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/) through Radix: the list is a `role="tablist"`, each trigger is a `role="tab"` with `aria-selected` and `aria-controls`, and each content panel is a `role="tabpanel"` labelled by its tab.
+`Tabs` follows the [WAI-ARIA tabs pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/): the list is a `role="tablist"`, each trigger is a `role="tab"` with `aria-selected` and `aria-controls`, and each content panel is a `role="tabpanel"` labelled by its tab.
 
 - **Tab** moves focus into the list and lands on the active tab. Only the active tab is a Tab stop, so the next **Tab** leaves the list. This holds for `asChild` triggers too, so a list of router links is one Tab stop, not one per link.
-- **ArrowLeft** / **ArrowRight** (or **ArrowUp** / **ArrowDown** when vertical) move focus between tabs and activate the focused tab. **Home** and **End** jump to the first and last tab.
+- **ArrowLeft** / **ArrowRight** (or **ArrowUp** / **ArrowDown** when vertical) move focus between the enabled tabs and activate the focused tab. They wrap at the ends unless `Tabs.List` has `loop={false}`. In a right-to-left page, **ArrowLeft** moves to the next tab. **Home** and **End** jump to the first and last tab.
+- With `activationMode="manual"`, the arrows only move focus, and **Enter** or **Space** activates the focused tab.
+- The active tab is a Tab stop in the server HTML, so the keyboard reaches it before hydration. With no active tab, every tab is a Tab stop until one activates.
 - When a horizontal list overflows, keyboard focus scrolls the focused tab to the center of the visible area. A pointer click never scrolls the list, so the tab you press stays under the pointer.
 - A `disabled` trigger carries `aria-disabled`. With `asChild`, it also drops the child's `href`, so a disabled link cannot navigate.
 
@@ -573,11 +603,11 @@ import { Tabs } from "@ngrok/mantle/tabs";
 | Data Attribute     | Value                                                                                                                                         | Description                                                                                                    |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `data-slot`        | `"tabs"` \| `"tabs-list"` \| `"tabs-trigger"` \| `"tabs-trigger-label"` \| `"tabs-badge"` \| `"tabs-separator separator"` \| `"tabs-content"` | Names each part, plus the trigger's label wrapper. The separator carries `Separator`'s own slot after its own. |
-| `data-orientation` | `"horizontal"` \| `"vertical"`                                                                                                                | On the root, list, triggers, separator, and content. Radix sets it on all but the separator.                   |
+| `data-orientation` | `"horizontal"` \| `"vertical"`                                                                                                                | On the root, list, triggers, separator, and content.                                                           |
 | `data-appearance`  | `"classic"` \| `"pill"`                                                                                                                       | On the root. Descendant parts style against it.                                                                |
 | `data-separator`   | present                                                                                                                                       | Presence-only, on the separator. Set by the mantle `Separator`.                                                |
-| `data-state`       | `"active"` \| `"inactive"`                                                                                                                    | On each trigger and content panel. Set by Radix.                                                               |
-| `data-disabled`    | present when `disabled`                                                                                                                       | Presence-only, on a trigger. Set by Radix.                                                                     |
+| `data-state`       | `"active"` \| `"inactive"`                                                                                                                    | On each trigger and content panel.                                                                             |
+| `data-disabled`    | present when `disabled`                                                                                                                       | Presence-only, on a trigger.                                                                                   |
 
 ## API Reference
 
@@ -585,17 +615,19 @@ The `Tabs` components accept the following props.
 
 ### Tabs.Root
 
-Layered sections of content, called tab panels, that show one at a time. The outermost part; it owns `orientation` and `appearance`. It stamps both as `data-orientation` and `data-appearance` for the parts below to style against. Based on [Radix Tabs Root](https://www.radix-ui.com/primitives/docs/components/tabs#root).
+Layered sections of content, called tab panels, that show one at a time. The outermost part; it owns `orientation` and `appearance`. It stamps both as `data-orientation` and `data-appearance` for the parts below to style against.
 
-| Prop             | Type                           | Default        | Description                                                                                                                                              |
-| ---------------- | ------------------------------ | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `defaultValue?`  | `string`                       |                | The value of the tab that should be active when initially rendered. Use when you do not need to control the state of the tabs.                           |
-| `value?`         | `string`                       |                | The controlled value of the tab to activate. Should be used in conjunction with `onValueChange`.                                                         |
-| `onValueChange?` | `(value: string) => void`      |                | Event handler called when the value changes. Fires once per activation, although Radix activates a trigger on mousedown and again on the focus it moves. |
-| `orientation?`   | `"horizontal"` \| `"vertical"` | `"horizontal"` | The orientation of the tabs.                                                                                                                             |
-| `appearance?`    | `"classic"` \| `"pill"`        | `"classic"`    | The appearance of the tabs. Classic appearance shows the tab list with an underline; pill appearance shows each tab as a pill.                           |
-| `asChild?`       | `boolean`                      | `false`        | When `true`, renders the single child instead of its own `<div>` and forwards the root's attributes and behavior onto it.                                |
-| `className?`     | `string`                       |                | Additional CSS classes to apply to the tabs root element.                                                                                                |
+| Prop              | Type                           | Default        | Description                                                                                                                                    |
+| ----------------- | ------------------------------ | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `defaultValue?`   | `string`                       |                | The value of the tab that should be active when initially rendered. Use when you do not need to control the state of the tabs.                 |
+| `value?`          | `string`                       |                | The controlled value of the tab to activate. Should be used in conjunction with `onValueChange`.                                               |
+| `onValueChange?`  | `(value: string) => void`      |                | Event handler called when the value changes. Fires once per activation.                                                                        |
+| `orientation?`    | `"horizontal"` \| `"vertical"` | `"horizontal"` | The orientation of the tabs.                                                                                                                   |
+| `activationMode?` | `"automatic"` \| `"manual"`    | `"automatic"`  | `automatic` activates a tab when it gets focus. `manual` activates it on **Enter**, **Space**, or a press.                                     |
+| `dir?`            | `"ltr"` \| `"rtl"`             |                | The reading direction, set as the root's `dir`. A right-to-left list swaps **ArrowLeft** and **ArrowRight**. When unset, the root inherits it. |
+| `appearance?`     | `"classic"` \| `"pill"`        | `"classic"`    | The appearance of the tabs. Classic appearance shows the tab list with an underline; pill appearance shows each tab as a pill.                 |
+| `asChild?`        | `boolean`                      | `false`        | When `true`, renders the single child instead of its own `<div>` and forwards the root's attributes and behavior onto it.                      |
+| `className?`      | `string`                       |                | Additional CSS classes to apply to the tabs root element.                                                                                      |
 
 #### CSS variables
 
@@ -608,26 +640,27 @@ Layered sections of content, called tab panels, that show one at a time. The out
 | Data Attribute     | Value                          | Description                                               |
 | ------------------ | ------------------------------ | --------------------------------------------------------- |
 | `data-slot`        | `"tabs"`                       | On the root element.                                      |
-| `data-orientation` | `"horizontal"` \| `"vertical"` | The `orientation` prop. Set by Radix.                     |
+| `data-orientation` | `"horizontal"` \| `"vertical"` | The `orientation` prop.                                   |
 | `data-appearance`  | `"classic"` \| `"pill"`        | The `appearance` prop. Descendant parts style against it. |
 
 ### Tabs.List
 
-Contains the triggers that are aligned along the edge of the active content. Based on [Radix Tabs List](https://www.radix-ui.com/primitives/docs/components/tabs#list).
+Contains the triggers that are aligned along the edge of the active content.
 
 The list draws no border of its own. Compose [`Tabs.Separator`](#tabsseparator) after it for the hairline between the triggers and the content.
 
 | Prop         | Type      | Default | Description                                                                                                                  |
 | ------------ | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `loop?`      | `boolean` | `true`  | When `true`, the arrow keys wrap from the last tab to the first, and back.                                                   |
 | `asChild?`   | `boolean` | `false` | When `true`, renders the single child instead of its own `<div>` and forwards the tablist's attributes and behavior onto it. |
 | `className?` | `string`  |         | Additional CSS classes to apply to the tabs list element.                                                                    |
 
 #### Data attributes
 
-| Data Attribute     | Value                          | Description                           |
-| ------------------ | ------------------------------ | ------------------------------------- |
-| `data-slot`        | `"tabs-list"`                  | On the tablist element.               |
-| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. Set by Radix. |
+| Data Attribute     | Value                          | Description             |
+| ------------------ | ------------------------------ | ----------------------- |
+| `data-slot`        | `"tabs-list"`                  | On the tablist element. |
+| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. |
 
 ### Tabs.Separator
 
@@ -655,7 +688,7 @@ The hairline between the list and the content, in the `separator` color. Compose
 
 ### Tabs.Trigger
 
-The button that activates its associated content. Based on [Radix Tabs Trigger](https://www.radix-ui.com/primitives/docs/components/tabs#trigger).
+The button that activates its associated content.
 
 `children` render inside a `<span data-slot="tabs-trigger-label">`, on the plain path and the `asChild` path alike. The active-tab decoration is a permanent element sibling, so without the span a bare text label is never a lone child: a browser translation engine reparents that text node, and the removal React runs when the label changes shape or goes away throws. The span is `display: contents`, so the icon, the label, and `Tabs.Badge` stay flex items of the trigger and keep its `gap`. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
 
@@ -670,31 +703,33 @@ An icon you pass as a child is now a grandchild of the trigger, so a `[&>svg]` c
 
 #### Data attributes
 
-| Data Attribute     | Value                          | Description                                         |
-| ------------------ | ------------------------------ | --------------------------------------------------- |
-| `data-slot`        | `"tabs-trigger"`               | On the trigger element.                             |
-| `data-slot`        | `"tabs-trigger-label"`         | On the `<span>` wrapping `children`.                |
-| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. Set by Radix.               |
-| `data-state`       | `"active"` \| `"inactive"`     | Whether the trigger's panel is shown. Set by Radix. |
-| `data-disabled`    | present when `disabled`        | Presence-only. Set by Radix.                        |
+| Data Attribute     | Value                          | Description                           |
+| ------------------ | ------------------------------ | ------------------------------------- |
+| `data-slot`        | `"tabs-trigger"`               | On the trigger element.               |
+| `data-slot`        | `"tabs-trigger-label"`         | On the `<span>` wrapping `children`.  |
+| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.               |
+| `data-state`       | `"active"` \| `"inactive"`     | Whether the trigger's panel is shown. |
+| `data-disabled`    | present when `disabled`        | Presence-only.                        |
 
 ### Tabs.Content
 
-Contains the content associated with each trigger. Based on [Radix Tabs Content](https://www.radix-ui.com/primitives/docs/components/tabs#content).
+Contains the content associated with each trigger.
 
-| Prop         | Type      | Default | Description                                                                                                                |
-| ------------ | --------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `value`      | `string`  |         | A unique value that associates the content with a trigger.                                                                 |
-| `asChild?`   | `boolean` | `false` | When `true`, renders the single child instead of its own `<div>` and forwards the panel's attributes and behavior onto it. |
-| `className?` | `string`  |         | Additional CSS classes to apply to the content element.                                                                    |
+| Prop                | Type      | Default | Description                                                                                                                                                                                          |
+| ------------------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `value`             | `string`  |         | A unique value that associates the content with a trigger.                                                                                                                                           |
+| `forceMount?`       | `true`    |         | Keeps the panel's children mounted while its tab is inactive. Hide an inactive panel yourself, such as with `data-[state=inactive]:hidden`.                                                          |
+| `hiddenUntilFound?` | `boolean` | `false` | Keeps the panel's children mounted as `hidden="until-found"` while its tab is inactive, so find-in-page reveals them and activates the tab. Implies `forceMount`. See [Find in page](#find-in-page). |
+| `asChild?`          | `boolean` | `false` | When `true`, renders the single child instead of its own `<div>` and forwards the panel's attributes and behavior onto it.                                                                           |
+| `className?`        | `string`  |         | Additional CSS classes to apply to the content element.                                                                                                                                              |
 
 #### Data attributes
 
-| Data Attribute     | Value                          | Description                               |
-| ------------------ | ------------------------------ | ----------------------------------------- |
-| `data-slot`        | `"tabs-content"`               | On the panel element.                     |
-| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. Set by Radix.     |
-| `data-state`       | `"active"` \| `"inactive"`     | Whether the panel is shown. Set by Radix. |
+| Data Attribute     | Value                          | Description                 |
+| ------------------ | ------------------------------ | --------------------------- |
+| `data-slot`        | `"tabs-content"`               | On the panel element.       |
+| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.     |
+| `data-state`       | `"active"` \| `"inactive"`     | Whether the panel is shown. |
 
 ### Tabs.Badge
 
