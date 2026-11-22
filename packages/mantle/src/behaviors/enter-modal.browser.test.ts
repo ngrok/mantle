@@ -23,6 +23,18 @@ const page = () => {
 };
 
 describe("enterModal", () => {
+	test("a nested modal's popup that mounts later stays live", async () => {
+		const { trigger, next, popup } = page();
+		const exitOuter = enterModal([trigger, popup]);
+		const nested = document.createElement("div");
+		document.body.append(nested);
+		const exitNested = enterModal([next, nested]);
+		await Promise.resolve();
+		expect(nested.inert).toBe(false);
+		exitNested();
+		exitOuter();
+	});
+
 	test("an element that mounts beside the page while the popup is open is inert too", async () => {
 		const { trigger, popup } = page();
 		const exit = enterModal([trigger, popup]);

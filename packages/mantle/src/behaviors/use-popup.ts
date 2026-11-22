@@ -154,6 +154,11 @@ const usePopup = ({
 		return () => {
 			exitModal?.();
 			stopFollowing();
+			// Why: focus on a control in the popup, such as a footer button, would
+			// fall to the body when the popup unmounts.
+			if (host.contains(document.activeElement)) {
+				ownerRef?.current?.focus({ preventScroll: true });
+			}
 			host.remove();
 		};
 	};

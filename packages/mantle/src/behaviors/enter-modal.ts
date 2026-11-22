@@ -121,9 +121,18 @@ const enterModal = (keep: readonly Element[]): (() => void) => {
 			hide(sibling);
 		}
 	}
+	const exit = () => {
+		for (const cleanup of cleanups.toReversed()) {
+			cleanup();
+		}
+	};
 	// Why an observer: an element that mounts beside the path later, such as a
-	// toast, is part of the page behind the popup too.
+	// toast, is part of the page behind the popup too. A nested modal that
+	// opens later owns the elements it mounts, such as its popup.
 	const observer = new MutationObserver((records) => {
+		if (stack.at(-1) !== exit) {
+			return;
+		}
 		for (const record of records) {
 			for (const added of record.addedNodes) {
 				hide(added);
@@ -134,11 +143,6 @@ const enterModal = (keep: readonly Element[]): (() => void) => {
 		observer.observe(parent, { childList: true });
 	}
 	cleanups.push(() => observer.disconnect());
-	const exit = () => {
-		for (const cleanup of cleanups.toReversed()) {
-			cleanup();
-		}
-	};
 	stack.push(exit);
 	return () => {
 		// Why the stack: an inner modal that exits after an outer one would put

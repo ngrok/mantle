@@ -57,7 +57,7 @@ const GroupLabelContext = createContext<string | undefined>(undefined);
 
 /** The controls in the list that Tab can reach, such as a footer button. */
 const TABBABLE =
-	'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
+	'a[href], button:not(:disabled), input:not([type="hidden"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
 
 /** Shakes the tag of `value` to show that a removal is blocked. */
 const shakeTag = (tags: Map<string, HTMLElement>, value: string) => {

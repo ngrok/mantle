@@ -364,6 +364,7 @@ describe("MultiSelect", () => {
 					<MultiSelect.Content>
 						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
 						<MultiSelect.ContentFooter>
+							<input type="hidden" name="action" value="upgrade" />
 							<button type="button">Upgrade</button>
 						</MultiSelect.ContentFooter>
 					</MultiSelect.Content>
@@ -379,6 +380,12 @@ describe("MultiSelect", () => {
 				upgrade.blur();
 			});
 			expect(input).toHaveAttribute("aria-expanded", "false");
+
+			await user.click(input);
+			await user.keyboard("{Tab}");
+			await user.keyboard("{Escape}");
+			expect(input).toHaveAttribute("aria-expanded", "false");
+			expect(input).toHaveFocus();
 		});
 
 		test("the submitted values follow the input's form and disabled", () => {
