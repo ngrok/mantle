@@ -24,11 +24,9 @@ To learn more about the design principles and architectural decisions that guide
 [Philosophy](/philosophy) page.
 
 All of Mantle's components are styled using [Tailwind](https://tailwindcss.com). and we compose
-around the following unstyled primitive component libraries:
+around [Radix](https://www.radix-ui.com) and [Headless UI](https://headlessui.com/) for some unstyled primitives.
 
-- [Radix](https://www.radix-ui.com)
-- [Ariakit](https://ariakit.org/components)
-- [Headless UI](https://headlessui.com/)
+Mantle is moving these patterns onto its own behavior hooks. `Slot`, `Switch`, `ProgressBar`, `Select`, `Combobox`, and `MultiSelect` already use no third-party primitive.
 
 Mantle uses [Phosphor Icons](https://phosphoricons.com/) as the primary icon library, a versatile
 and consistent set of icons. In addition, custom-designed icons tailored to ngrok's

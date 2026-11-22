@@ -17,6 +17,18 @@ describe("ProgressBar.Root", () => {
 		expect(bar.querySelector('[data-slot="progress-bar-indicator"]')).not.toBeNull();
 	});
 
+	test("states the percent in aria-valuetext and marks the bar loading, then complete at max", () => {
+		const { rerender } = render(
+			<ProgressBar.Root aria-label="Upload progress" value={50} max={200} />,
+		);
+		const bar = screen.getByRole("progressbar");
+		expect(bar).toHaveAttribute("aria-valuetext", "25%");
+		expect(bar).toHaveAttribute("data-state", "loading");
+		rerender(<ProgressBar.Root aria-label="Upload progress" value={200} max={200} />);
+		expect(bar).toHaveAttribute("aria-valuetext", "100%");
+		expect(bar).toHaveAttribute("data-state", "complete");
+	});
+
 	test("respects a custom max", () => {
 		render(<ProgressBar.Root aria-label="Upload progress" value={150} max={200} />);
 		const bar = screen.getByRole("progressbar");
@@ -52,7 +64,6 @@ describe("ProgressBar.Root", () => {
 		);
 		const bar = screen.getByRole("progressbar");
 		expect(bar).not.toHaveAttribute("aria-valuenow");
-		// Why the Indicator: Radix re-runs the same range guard and drops aria-valuenow itself, so only the Indicator shows mantle's rejection.
 		const indicator = bar.querySelector<HTMLElement>('[data-slot="progress-bar-indicator"]');
 		expect(indicator).not.toBeNull();
 		expect(indicator?.style.transform).toBe("translateX(-100%)");

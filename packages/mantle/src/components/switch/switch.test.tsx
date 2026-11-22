@@ -134,4 +134,101 @@ describe("Switch", () => {
 			expect(handleClick.mock.lastCall?.[0].target).toBe(toggle);
 		});
 	});
+
+	describe("state and forms", () => {
+		test("Space toggles the focused switch and reports each change once", async () => {
+			const user = userEvent.setup();
+			const onCheckedChange = vi.fn<(checked: boolean) => void>();
+			render(<Switch aria-label="Alerts" onCheckedChange={onCheckedChange} />);
+			screen.getByRole("switch", { name: "Alerts" }).focus();
+			await user.keyboard(" ");
+			expect(screen.getByRole("switch", { name: "Alerts" })).toHaveAttribute(
+				"aria-checked",
+				"true",
+			);
+			expect(onCheckedChange).toHaveBeenCalledTimes(1);
+			expect(onCheckedChange).toHaveBeenLastCalledWith(true);
+		});
+
+		test("a controlled switch shows the parent's state and only asks to change it", async () => {
+			const user = userEvent.setup();
+			const onCheckedChange = vi.fn<(checked: boolean) => void>();
+			render(<Switch aria-label="Alerts" checked={false} onCheckedChange={onCheckedChange} />);
+			const toggle = screen.getByRole("switch", { name: "Alerts" });
+			await user.click(toggle);
+			expect(onCheckedChange).toHaveBeenLastCalledWith(true);
+			expect(toggle).toHaveAttribute("aria-checked", "false");
+		});
+
+		test("submits its value under name while on, and a form reset returns it to defaultChecked", async () => {
+			const user = userEvent.setup();
+			render(
+				<form aria-label="Settings">
+					<Switch aria-label="Alerts" name="alerts" value="yes" defaultChecked />
+					<button type="reset">Reset</button>
+				</form>,
+			);
+			const form = screen.getByRole("form", { name: "Settings" });
+			const toggle = screen.getByRole("switch", { name: "Alerts" });
+			const formData = () =>
+				form instanceof HTMLFormElement ? new FormData(form).get("alerts") : null;
+			expect(formData()).toBe("yes");
+			await user.click(toggle);
+			expect(formData()).toBeNull();
+			await user.click(screen.getByRole("button", { name: "Reset" }));
+			expect(toggle).toHaveAttribute("aria-checked", "true");
+			expect(formData()).toBe("yes");
+		});
+
+		test("with no name, required still blocks the submit while off, and a reset still restores defaultChecked", async () => {
+			const user = userEvent.setup();
+			render(
+				<form aria-label="Terms">
+					<Switch aria-label="Accept" required />
+					<Switch aria-label="Alerts" defaultChecked />
+					<button type="reset">Reset</button>
+				</form>,
+			);
+			const form = screen.getByRole("form", { name: "Terms" });
+			expect(form instanceof HTMLFormElement && form.checkValidity()).toBe(false);
+			await user.click(screen.getByRole("switch", { name: "Accept" }));
+			expect(form instanceof HTMLFormElement && form.checkValidity()).toBe(true);
+
+			const alerts = screen.getByRole("switch", { name: "Alerts" });
+			await user.click(alerts);
+			await user.click(screen.getByRole("button", { name: "Reset" }));
+			expect(alerts).toHaveAttribute("aria-checked", "true");
+		});
+
+		test("an ancestor sees one click for each toggle", async () => {
+			const user = userEvent.setup();
+			const onFormClick = vi.fn<(event: unknown) => void>();
+			render(
+				// oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- Why: the form only counts the clicks that bubble.
+				<form aria-label="Settings" onClick={onFormClick}>
+					<Switch aria-label="Alerts" name="alerts" />
+				</form>,
+			);
+			await user.click(screen.getByRole("switch", { name: "Alerts" }));
+			expect(screen.getByRole("switch", { name: "Alerts" })).toHaveAttribute(
+				"aria-checked",
+				"true",
+			);
+			expect(onFormClick).toHaveBeenCalledTimes(1);
+		});
+
+		test("a toggle reaches the form's onChange once", async () => {
+			const user = userEvent.setup();
+			const onFormChange = vi.fn<(event: unknown) => void>();
+			render(
+				<form aria-label="Settings" onChange={onFormChange}>
+					<Switch aria-label="Alerts" name="alerts" />
+				</form>,
+			);
+			const toggle = screen.getByRole("switch", { name: "Alerts" });
+			await user.click(toggle);
+			expect(toggle).toHaveAttribute("aria-checked", "true");
+			expect(onFormChange).toHaveBeenCalledTimes(1);
+		});
+	});
 });

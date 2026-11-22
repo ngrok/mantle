@@ -1,51 +1,74 @@
 "use client";
 
-import {
-	Combobox as AriakitCombobox,
-	ComboboxGroup as AriakitComboboxGroup,
-	ComboboxGroupLabel as AriakitComboboxGroupLabel,
-	ComboboxItem as AriakitComboboxItem,
-	ComboboxItemValue as AriakitComboboxItemValue,
-	ComboboxPopover as AriakitComboboxPopover,
-	ComboboxProvider as AriakitComboboxProvider,
-} from "@ariakit/react/combobox";
-import type {
-	ComboboxGroupLabelProps as AriakitComboboxGroupLabelProps,
-	ComboboxGroupProps as AriakitComboboxGroupProps,
-	ComboboxItemProps as AriakitComboboxItemProps,
-	ComboboxItemValueProps as AriakitComboboxItemValueProps,
-	ComboboxPopoverProps as AriakitComboboxPopoverProps,
-	ComboboxProps as AriakitComboboxProps,
-	ComboboxProviderProps as AriakitComboboxProviderProps,
-} from "@ariakit/react/combobox";
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
+import { createContext, use, useId, useMemo } from "react";
+import { createPortal } from "react-dom";
+import { composeHandlers } from "../../behaviors/compose-handlers.js";
+import { useCombobox, useComboboxInput } from "../../behaviors/use-combobox.js";
+import type { UseComboboxProps } from "../../behaviors/use-combobox.js";
+import { childId, useOption } from "../../behaviors/use-listbox.js";
+import { usePopup } from "../../behaviors/use-popup.js";
 import type { WithAsChild } from "../../types/as-child.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
 import { parseValidation } from "../field/validation.js";
 import { useFieldValidation } from "../field/validation-context.js";
 import type { WithValidation } from "../field/validation.js";
 import { Separator } from "../separator/separator.js";
 import { Slot } from "../slot/index.js";
 
-type ComboboxProps = AriakitComboboxProviderProps;
+const ComboboxContext = createContext<ComboboxContextValue | null>(null);
+
+type ComboboxContextValue = ReturnType<typeof useCombobox> &
+	Pick<ComboboxProps, "name" | "form" | "disabled">;
+
+const useComboboxContext = (): ComboboxContextValue => {
+	const context = use(ComboboxContext);
+	if (context == null) {
+		throw new Error("Combobox parts must be rendered inside Combobox.Root.");
+	}
+	return context;
+};
+
+/** The value of the closest `Combobox.Item`, for `Combobox.ItemValue`. */
+const ItemValueContext = createContext<string | undefined>(undefined);
+
+/** The `id` of the closest `Combobox.Group`'s label. */
+const GroupLabelContext = createContext<string | undefined>(undefined);
+
+type ComboboxProps = UseComboboxProps & {
+	children?: ReactNode;
+	/**
+	 * The name the picked value submits under with its form. The text in
+	 * `Combobox.Input` does not submit.
+	 */
+	name?: string;
+	/** The `id` of the form the picked value submits with, when it is not an ancestor. */
+	form?: string;
+	/** Whether a pick is required before the form submits. */
+	required?: boolean;
+	/** Whether the combobox is disabled. Its input takes no input, and the pick does not submit. */
+	disabled?: boolean;
+};
 
 /**
- * The outermost part of a combobox. It owns the ariakit store that holds the query text, the open state, and the selection.
+ * The outermost part of a combobox. It holds the query text, the open state, and the selection.
  *
  * Use Combobox for a list of options where the user types to filter: large static lists,
  * async/server-side data, or any single-select where search is helpful. For very small
  * finite lists with no filtering, prefer Select. For multi-selection, prefer MultiSelect.
  *
- * `Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier.
- * It does not portal, so the dialog primitive's Escape guard can see it. Inside
- * an overlay it paints with the overlay's content. Outside one, an open overlay
- * (`z-60`) covers it.
+ * `Combobox.Content` renders at Tailwind `z-50`, Mantle's float tier. Inside an
+ * open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's
+ * positioner and paints above the overlay that owns it. Outside every overlay,
+ * it portals to `document.body`, below the overlay tier (`z-60`).
  *
- * The store opens on each keystroke. While it is open, Enter in `Combobox.Input`
+ * The list opens on each keystroke. While it is open, Enter in `Combobox.Input`
  * never submits a parent form. If you render `Combobox.Content` conditionally, control `open`
- * and `setOpen` with the same condition, so the store state matches what the user sees.
+ * and `onOpenChange` with the same condition, so the open state matches what the user sees.
  *
  * @see https://mantle.ngrok.com/components/forms/combobox#comboboxroot
  *
@@ -60,16 +83,46 @@ type ComboboxProps = AriakitComboboxProviderProps;
  * </Combobox.Root>
  * ```
  */
-const Root = ({ children, ...props }: ComboboxProps) => {
-	return <AriakitComboboxProvider {...props}>{children}</AriakitComboboxProvider>;
+const Root = ({ children, name, form, required, disabled, ...props }: ComboboxProps) => {
+	const combobox = useCombobox(props);
+	const contextValue = useMemo(
+		() => ({ ...combobox, name, form, disabled }),
+		[combobox, name, form, disabled],
+	);
+	return (
+		<ComboboxContext value={contextValue}>
+			{children}
+			{/* Why not type="hidden": a hidden input skips `required`. */}
+			{(name != null || required) && (
+				<input
+					aria-hidden
+					tabIndex={-1}
+					className="sr-only"
+					name={name}
+					form={form}
+					required={required}
+					disabled={disabled}
+					value={combobox.value ?? ""}
+					onChange={(event) => combobox.setValue(event.target.value)}
+					// Why: a failed `required` check focuses this input, and the user
+					// must land on the visible one.
+					onFocus={() => combobox.inputRef.current?.focus()}
+				/>
+			)}
+		</ComboboxContext>
+	);
 };
 
-type ComboboxInputProps = Omit<
-	AriakitComboboxProps,
-	"render" // we don't support a render prop for the combobox input
-> &
+type ComboboxInputProps = Omit<ComponentProps<"input">, "value" | "defaultValue" | "autoComplete"> &
 	WithValidation &
-	WithDataSlot;
+	WithDataSlot & {
+		/**
+		 * Whether the first option gets the highlight as the text changes, so Enter
+		 * picks it. `"always"` also highlights it when the list opens.
+		 * @default "always"
+		 */
+		autoSelect?: boolean | "always";
+	};
 
 /**
  * Renders a combobox input element for filtering a list of items.
@@ -97,7 +150,7 @@ type ComboboxInputProps = Omit<
  * Free-text entry: Enter submits the typed text unless the user moved to a suggestion or an input method is still composing text.
  * ```tsx
  * <form onSubmit={handleSubmit}>
- *   <Combobox.Root inputValue={name} setInputValue={setName}>
+ *   <Combobox.Root inputValue={name} onInputValueChange={setName}>
  *     <Combobox.Input
  *       autoSelect={false}
  *       onKeyDown={(event) => {
@@ -117,15 +170,32 @@ type ComboboxInputProps = Omit<
  * ```
  */
 const Input = ({
-	"data-slot": dataSlot,
 	"aria-invalid": _ariaInvalid,
-	autoComplete = "list",
 	autoSelect = "always",
 	className,
+	"data-slot": dataSlot,
+	onBlur,
+	onChange,
+	onClick,
+	onKeyDown,
 	ref,
 	validation: _validation,
 	...props
 }: ComboboxInputProps) => {
+	const combobox = useComboboxContext();
+	const inputProps = useComboboxInput(combobox, { autoSelect });
+	const composedRef = useComposedRefs(ref, inputProps.ref, (input: HTMLInputElement | null) => {
+		// Why a ref callback: a form reset returns the pick and the text to their
+		// defaults, and the listener lives as long as the input. Root's `form`
+		// names the form the pick belongs to.
+		const owner =
+			combobox.form == null ? input?.form : input?.ownerDocument.getElementById(combobox.form);
+		if (!(owner instanceof HTMLFormElement)) {
+			return;
+		}
+		owner.addEventListener("reset", combobox.reset);
+		return () => owner.removeEventListener("reset", combobox.reset);
+	});
 	const fieldValidation = useFieldValidation();
 	const { ariaInvalid, validation } = parseValidation({
 		"aria-invalid": _ariaInvalid,
@@ -133,16 +203,19 @@ const Input = ({
 	});
 
 	return (
-		<AriakitCombobox
+		<input
+			{...props}
+			{...inputProps}
+			// Why: with a Root `name`, the pick submits under it, and the typed text must not.
+			name={combobox.name == null ? props.name : undefined}
+			disabled={props.disabled ?? combobox.disabled}
 			aria-invalid={ariaInvalid}
-			autoComplete={autoComplete}
-			autoSelect={autoSelect}
 			data-slot={joinDataSlot(dataSlot, "combobox-input")}
 			className={cx(
 				"pointer-coarse:text-base h-9 text-sm",
 				"bg-form relative block w-full rounded-md border px-3 py-2 border-form text-strong font-sans",
 				"placeholder:text-placeholder",
-				"aria-disabled:opacity-50",
+				"aria-disabled:opacity-50 disabled:opacity-50",
 				"hover:border-neutral-400",
 				"focus:focus-ring aria-expanded:focus-ring",
 				"focus:border-accent-600 aria-expanded:border-accent-600",
@@ -153,23 +226,34 @@ const Input = ({
 				className,
 			)}
 			data-validation={validation || undefined}
-			ref={ref}
-			{...props}
+			ref={composedRef}
+			onBlur={composeHandlers(onBlur, inputProps.onBlur)}
+			onChange={composeHandlers(onChange, inputProps.onChange)}
+			onClick={composeHandlers(onClick, inputProps.onClick)}
+			onKeyDown={composeHandlers(onKeyDown, inputProps.onKeyDown)}
 		/>
 	);
 };
 
-type ComboboxContentProps = Omit<AriakitComboboxPopoverProps, "render"> &
+type ComboboxContentProps = ComponentProps<"div"> &
 	WithAsChild &
-	WithDataSlot;
+	WithDataSlot & {
+		/**
+		 * Whether the popover is as wide as the input. When `false`, it takes the
+		 * width of its widest item.
+		 * @default true
+		 */
+		sameWidth?: boolean;
+	};
 
 /**
  * Renders a popover that contains combobox content, e.g. Combobox.Items, Combobox.Groups, and Combobox.Separators.
  *
- * `Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier.
- * It does not portal, so the dialog primitive's Escape guard can see it. Inside
- * an overlay it paints with the overlay's content. Outside one, an open overlay
- * (`z-60`) covers it.
+ * `Combobox.Content` renders at Tailwind `z-50`, Mantle's float tier. Inside an
+ * open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's
+ * positioner and paints above the overlay that owns it. Outside every overlay,
+ * it portals to `document.body`, below the overlay tier (`z-60`). It opens below
+ * the input, or above it when the space below is too small.
  *
  * The popover has `role="listbox"`, so its children must be `Combobox.Item`,
  * `Combobox.Group`, or `Combobox.Separator`. Render an empty-state or "create" row as a
@@ -197,28 +281,56 @@ const Content = ({
 	className,
 	ref,
 	sameWidth = true,
-	unmountOnHide = true,
 	...props
 }: ComboboxContentProps) => {
+	const { inputRef, listbox, open } = useComboboxContext();
+	const { host, popupRef } = usePopup({
+		open,
+		anchorRef: inputRef,
+		ownerRef: inputRef,
+		container: useLayerContainer(),
+	});
+	const composedRef = useComposedRefs(ref, listbox.listboxProps.ref, popupRef);
+	const Component = asChild ? Slot : "div";
+	// Why `open`: a closed list renders no options, so a page of closed
+	// pickers holds no option elements in memory.
 	return (
-		<AriakitComboboxPopover
-			data-slot={joinDataSlot(dataSlot, "combobox-content")}
-			className={cx(
-				"border-popover bg-popover relative z-50 max-h-96 min-w-32 scrollbar overflow-y-scroll overflow-x-hidden rounded-md border shadow-md p-1 my-2 space-y-px font-sans focus:outline-hidden",
-				className,
-			)}
-			ref={ref}
-			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
-			sameWidth={sameWidth}
-			unmountOnHide={unmountOnHide}
-			{...props}
-		>
-			{children}
-		</AriakitComboboxPopover>
+		host != null &&
+		open &&
+		createPortal(
+			<Component
+				{...props}
+				{...listbox.listboxProps}
+				onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
+				ref={composedRef}
+				data-slot={joinDataSlot(dataSlot, "combobox-content")}
+				data-state="open"
+				className={cx(
+					"border-popover bg-popover relative z-50 max-h-96 max-h-(--available-height) min-w-32 scrollbar overflow-y-auto overflow-x-hidden rounded-md border shadow-md p-1 space-y-px font-sans outline-hidden",
+					sameWidth && "w-(--anchor-width)",
+					className,
+				)}
+			>
+				{children}
+			</Component>,
+			host,
+		)
 	);
 };
 
-type ComboboxItemProps = Omit<AriakitComboboxItemProps, "render"> & WithAsChild & WithDataSlot;
+type ComboboxItemProps = Omit<ComponentProps<"div">, "value"> &
+	WithAsChild &
+	WithDataSlot & {
+		/**
+		 * Whether the item is inert.
+		 */
+		disabled?: boolean;
+		/**
+		 * The value that picking the item writes into the input. An item with no
+		 * value is static text that the keyboard skips.
+		 */
+		value?: string;
+	};
 
 /**
  * Renders a combobox item inside a Combobox.Content component.
@@ -242,32 +354,47 @@ const Item = ({
 	asChild = false,
 	children,
 	className,
-	focusOnHover = true,
+	disabled,
+	onClick,
+	onPointerMove,
 	ref,
 	value,
 	...props
 }: ComboboxItemProps) => {
+	const { listbox } = useComboboxContext();
+	const { active, selected, optionProps } = useOption(listbox, {
+		value: value ?? "",
+		disabled: disabled || value == null,
+		id: childId({ asChild, children, id: props.id }),
+	});
+	const Component = asChild ? Slot : "div";
 	return (
-		<AriakitComboboxItem
-			data-slot={joinDataSlot(dataSlot, "combobox-item")}
-			className={cx(
-				"cursor-pointer rounded-md px-2 py-1.5 text-strong text-sm flex min-w-0 gap-2 items-center [&>svg]:size-5 [&_svg]:shrink-0",
-				"data-active-item:bg-active-menu-item",
-				"aria-disabled:opacity-50",
-				className,
-			)}
-			focusOnHover={focusOnHover}
-			ref={ref}
-			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
-			value={value}
-			{...props}
-		>
-			{children}
-		</AriakitComboboxItem>
+		<ItemValueContext value={value}>
+			<Component
+				{...props}
+				{...optionProps}
+				onClick={composeHandlers(onClick, optionProps.onClick)}
+				onPointerMove={composeHandlers(onPointerMove, optionProps.onPointerMove)}
+				// Why: in the APG combobox pattern, the highlighted option is the selected one, and no other option has the attribute.
+				aria-selected={active || undefined}
+				// Why `data-selected`: `aria-selected` follows the highlight, so the picked option needs its own attribute.
+				data-selected={selected ? "" : undefined}
+				ref={ref}
+				data-slot={joinDataSlot(dataSlot, "combobox-item")}
+				className={cx(
+					"cursor-pointer rounded-md px-2 py-1.5 text-strong text-sm flex min-w-0 gap-2 items-center [&>svg]:size-5 [&_svg]:shrink-0",
+					"data-highlighted:bg-active-menu-item",
+					"aria-disabled:opacity-50",
+					className,
+				)}
+			>
+				{children ?? value}
+			</Component>
+		</ItemValueContext>
 	);
 };
 
-type ComboboxGroupProps = Omit<AriakitComboboxGroupProps, "render"> & WithAsChild & WithDataSlot;
+type ComboboxGroupProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 /**
  * Renders a group for Combobox.Item elements.
@@ -300,22 +427,25 @@ const Group = ({
 	ref,
 	...props
 }: ComboboxGroupProps) => {
+	const labelId = useId();
+	const Component = asChild ? Slot : "div";
 	return (
-		<AriakitComboboxGroup
-			data-slot={joinDataSlot(dataSlot, "combobox-group")}
-			className={cx("space-y-px", className)}
-			ref={ref}
-			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
-			{...props}
-		>
-			{children}
-		</AriakitComboboxGroup>
+		<GroupLabelContext value={labelId}>
+			<Component
+				role="group"
+				aria-labelledby={labelId}
+				data-slot={joinDataSlot(dataSlot, "combobox-group")}
+				className={cx("space-y-px", className)}
+				ref={ref}
+				{...props}
+			>
+				{children}
+			</Component>
+		</GroupLabelContext>
 	);
 };
 
-type ComboboxGroupLabelProps = Omit<AriakitComboboxGroupLabelProps, "render"> &
-	WithAsChild &
-	WithDataSlot;
+type ComboboxGroupLabelProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 /**
  * Renders a label in a combobox group.
@@ -348,22 +478,31 @@ const GroupLabel = ({
 	ref,
 	...props
 }: ComboboxGroupLabelProps) => {
+	const Component = asChild ? Slot : "div";
 	return (
-		<AriakitComboboxGroupLabel
+		<Component
+			id={use(GroupLabelContext)}
 			data-slot={joinDataSlot(dataSlot, "combobox-group-label")}
 			className={cx("text-muted px-2 py-1 text-xs font-medium", className)}
 			ref={ref}
-			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
 			{...props}
 		>
 			{children}
-		</AriakitComboboxGroupLabel>
+		</Component>
 	);
 };
 
-type ComboboxItemValueProps = Omit<AriakitComboboxItemValueProps, "render"> &
-	WithAsChild &
-	WithDataSlot;
+type ComboboxItemValueProps = Omit<ComponentProps<"span">, "children"> &
+	WithDataSlot & {
+		/**
+		 * The text to split. Defaults to the closest `Combobox.Item`'s value.
+		 */
+		value?: string;
+		/**
+		 * The text to find in `value`. Defaults to the text of `Combobox.Input`.
+		 */
+		userValue?: string;
+	};
 
 /**
  * Highlights the match between the current Combobox.Input value (userValue) and parent Combobox.Item value.
@@ -374,7 +513,7 @@ type ComboboxItemValueProps = Omit<AriakitComboboxItemValueProps, "render"> &
  *
  * Should only be used as a child of Combobox.Item.
  * The item value is automatically set to the value of the closest Combobox.Item component's value prop.
- * The user input value is automatically set to the combobox store's value state.
+ * The user input value is automatically set to the text of `Combobox.Input`.
  * Passing `value` or `userValue` overrides them, respectively.
  *
  * @see https://mantle.ngrok.com/components/forms/combobox#comboboxitemvalue
@@ -398,22 +537,39 @@ type ComboboxItemValueProps = Omit<AriakitComboboxItemValueProps, "render"> &
  */
 const ItemValue = ({
 	"data-slot": dataSlot,
-	asChild = false,
 	className,
 	ref,
+	userValue: userValueProp,
+	value: valueProp,
 	...props
 }: ComboboxItemValueProps) => {
+	const contextItemValue = use(ItemValueContext);
+	const { inputValue } = useComboboxContext();
+	const itemValue = valueProp ?? contextItemValue ?? "";
+	const userValue = userValueProp ?? inputValue;
+	const start = userValue === "" ? -1 : itemValue.toLowerCase().indexOf(userValue.toLowerCase());
+	const end = start + userValue.length;
 	return (
-		<AriakitComboboxItemValue
+		<span
 			data-slot={joinDataSlot(dataSlot, "combobox-item-value")}
 			className={cx(
 				"*:data-user-value:font-medium flex-1 shrink-0 text-strong font-normal",
 				className,
 			)}
 			ref={ref}
-			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
 			{...props}
-		/>
+		>
+			{start === -1 ? (
+				<span data-autocomplete-value="">{itemValue}</span>
+			) : (
+				<>
+					{/* Why a span for each slice: docs/browser-translation.md */}
+					{start > 0 && <span data-autocomplete-value="">{itemValue.slice(0, start)}</span>}
+					<span data-user-value="">{itemValue.slice(start, end)}</span>
+					{end < itemValue.length && <span data-autocomplete-value="">{itemValue.slice(end)}</span>}
+				</>
+			)}
+		</span>
 	);
 };
 

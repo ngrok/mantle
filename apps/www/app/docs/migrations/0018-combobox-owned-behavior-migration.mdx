@@ -1,0 +1,103 @@
+---
+title: Combobox Owned Behavior Migration
+description: Combobox no longer uses Ariakit. Its parts take a fixed set of props, Combobox.Content portals, and the highlighted item carries data-highlighted.
+introducedIn: "0.95.0"
+---
+
+# Mantle Combobox Owned Behavior Migration Guide
+
+`Combobox` no longer uses `@ariakit/react`. Mantle's own behavior hooks drive it, the same `useListbox` hook that drives `Select`, and they follow the WAI-ARIA [editable combobox with list autocomplete](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-autocomplete-list/) pattern. The parts, the keyboard, and `autoSelect` stay the same. These things change:
+
+- The parts no longer take every Ariakit prop. Each part takes the props of its element, plus the props on the [Combobox page](/components/forms/combobox#api-reference).
+- `Combobox.Root` uses mantle's selection names: `value`, `defaultValue`, and `onValueChange` for the picked value; `inputValue`, `defaultInputValue`, and `onInputValueChange` for the text; and `open`, `defaultOpen`, and `onOpenChange`. Ariakit's `value`, `defaultValue`, and `setValue` set the text, so `value` and `defaultValue` now mean something else. `Combobox.Root` also takes `name`, `form`, and `required`, so the picked value submits with its form.
+- `Combobox.Content` portals into the nearest overlay's positioner, or into `document.body`, as `Select.Content` does. It opens below the input, or above it when the space below is too small.
+- The highlighted item carries `data-highlighted` in place of `data-active-item`. The open list carries `data-state="open"` in place of `data-open`.
+- `Combobox.ItemValue` takes no `asChild`.
+
+`Combobox` costs 16.1 KB gzip in place of 53.4 KB (React external).
+
+**TL;DR:** On `Combobox.Root`, rename the text props `value`, `defaultValue`, and `setValue` to `inputValue`, `defaultInputValue`, and `onInputValueChange`. Then rename `selectedValue`, `defaultSelectedValue`, and `setSelectedValue` to `value`, `defaultValue`, and `onValueChange`, and `setOpen` to `onOpenChange`. Delete Ariakit popover props from `Combobox.Content` and `focusOnHover` from `Combobox.Item`. Replace `data-active-item` with `data-highlighted` in class strings, CSS, and tests. Then run the type checker: it names each Ariakit prop that a part no longer takes.
+
+## Codemod
+
+From a mantle checkout:
+
+```sh
+pnpm -w run migrate 0018 <path>
+```
+
+In a project that installs `@ngrok/mantle`:
+
+```sh
+npx --yes --package=@ast-grep/cli@0.51.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0018-combobox-owned-behavior.yml --update-all <path>
+```
+
+The rules apply steps 2 to 4. They rename the text, selection, and open props on `Combobox.Root`, and delete the popover props from `Combobox.Content` and `focusOnHover` from `Combobox.Item`, for a `Combobox` import from `@ngrok/mantle/combobox` under its own name or an alias. A function that binds `Combobox` to a parameter or a local shadows the import, so the rules leave that function alone. Steps 5 to 7 stay manual: an Ariakit store or prop has no one-to-one replacement, and a data attribute in a class string, CSS, or a test is a string, not syntax. A `value` or `defaultValue` on a root with no other Ariakit prop is ambiguous, so the codemod reports it and leaves it: rename it to `inputValue` or `defaultInputValue` when it set the text. The codemod is safe to run more than once. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find every part of `@ngrok/mantle`'s `Combobox` (`Combobox.Root`, `Input`, `Content`, `Item`, `ItemValue`, `Group`, `GroupLabel`). Search for the names, and for a renamed import (`import { Combobox as MantleCombobox }`).
+2. On `Combobox.Root`, rename the text props first: `value` to `inputValue`, `defaultValue` to `defaultInputValue`, and `setValue` or `setInputValue` to `onInputValueChange`. Then rename `selectedValue` to `value`, `defaultSelectedValue` to `defaultValue`, `setSelectedValue` to `onValueChange`, and `setOpen` to `onOpenChange`. Keep `open` and `defaultOpen`.
+3. On `Combobox.Content`, delete `unmountOnHide`, `gutter`, `shift`, `placement`, `portal`, `fitViewport`, `flip`, `overflowPadding`, and `updatePosition`. Keep `sameWidth`, `asChild`, and `className`.
+4. On `Combobox.Item`, delete `focusOnHover`. An item always takes the highlight on hover.
+5. Run the type checker. For each Ariakit prop it names, delete the prop:
+   - `store`, `activeId`, `focusLoop`, `virtualFocus`, or `resetValueOnHide` on `Combobox.Root`. A `useComboboxStore` from Ariakit has no replacement: control `inputValue`, `value`, and `open` instead.
+   - `autoComplete`, `showOnClick`, `showOnChange`, `showOnKeyPress`, `setValueOnChange`, or `blurActiveItemOnClick` on `Combobox.Input`. The input always uses list autocomplete and opens on a click, a keystroke, or ArrowDown.
+   - `hideOnClick`, `setValueOnClick`, or `selectValueOnClick` on `Combobox.Item`. A click always writes the item's value into the input, picks it, and closes the list. To run code on a pick, use `onValueChange` on `Combobox.Root`.
+   - `asChild` on `Combobox.ItemValue`. Wrap it in your own element instead.
+6. Search class strings, CSS, and tests for `data-active-item` and replace it with `data-highlighted` (for example, `data-active-item:bg-…` becomes `data-highlighted:bg-…`). Replace a `data-open` read on the list with `data-state="open"`.
+7. In tests, find code that read `document.activeElement` as the highlighted item. DOM focus stays on the input: read `aria-activedescendant` on the input, or `data-highlighted` on the item.
+8. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why own the behavior?** Ariakit's combobox and Radix Select each shipped their own selection state, focus, dismissal, and positioning, so a page with both paid for two copies. One `useListbox` hook now holds that behavior for `Select` and `Combobox`, so the second component costs only its own parts.
+
+---
+
+## Before → after
+
+### The root props
+
+```tsx
+// BEFORE
+<Combobox.Root value={query} setValue={setQuery} setSelectedValue={setPicked} setOpen={setOpen}>
+	<Combobox.Input aria-label="Fruit" />
+	<Combobox.Content unmountOnHide={false} gutter={4}>
+		<Combobox.Item value="Apple" focusOnHover />
+	</Combobox.Content>
+</Combobox.Root>
+```
+
+```tsx
+// AFTER
+<Combobox.Root
+	inputValue={query}
+	onInputValueChange={setQuery}
+	onValueChange={setPicked}
+	onOpenChange={setOpen}
+>
+	<Combobox.Input aria-label="Fruit" />
+	<Combobox.Content>
+		<Combobox.Item value="Apple" />
+	</Combobox.Content>
+</Combobox.Root>
+```
+
+### The highlight style
+
+```tsx
+// BEFORE
+<Combobox.Item value="Apple" className="data-active-item:bg-accent-100" />
+
+// AFTER
+<Combobox.Item value="Apple" className="data-highlighted:bg-accent-100" />
+```
+
+## Edge cases & gotchas
+
+- While the list is open, Enter picks the highlighted item or does nothing. It never submits the form, as before. With `autoSelect={false}`, submit in `onKeyDown` when the input has no `aria-activedescendant`, as the [free-text example](/components/forms/combobox) does.
+- Inside a `Dialog`, the first Escape closes the list and the second closes the dialog, as before.
+- `MultiSelect` moves to the same hooks in the same release. The [MultiSelect migration](/migrations/0019-multi-select-owned-behavior-migration) covers it.
+
+## How to verify
+
+Run `rg "data-active-item"` in the app. It must find nothing that styles or queries a `Combobox`. Run the type checker, which names each Ariakit prop that a part no longer takes. Type in each combobox: the first match takes the highlight, the arrow keys move it, and Enter writes it into the input.

@@ -639,10 +639,8 @@ describe("layer containers", () => {
 		});
 
 		test("a MultiSelect inside a popover inside a dialog portals into the dialog's positioner", async () => {
-			// The trigger sits in a float portaled into the positioner, so
-			// `closest("[data-mantle-modal-content]")` cannot reach the dialog
-			// content. Without the layer-container fallback the popup lands on
-			// `document.body` at `z-50`, under the `z-60` dialog.
+			// Without the layer container the popup lands on `document.body` at
+			// `z-50`, under the `z-60` dialog.
 			const user = userEvent.setup();
 			render(
 				overlays[0].renderOpen(
@@ -672,11 +670,9 @@ describe("layer containers", () => {
 	});
 
 	describe("layers with their own placement rules", () => {
-		test("Combobox renders its popup in place, inside the dialog content element", async () => {
-			// The dialog primitive's Escape guard requires the popup to be a DOM
-			// descendant of the dialog content (`currentTarget.contains(popup)`),
-			// so `Combobox.Content` must never portal. Adding Ariakit's `portal`
-			// prop to it turns this red and breaks Escape inside dialogs.
+		test("Combobox portals its popup into the dialog's positioner, as Select does", async () => {
+			// The Escape guard of the dialog primitive needs the popup inside the
+			// dialog's layer container. combobox.browser.test.tsx covers the Escape.
 			const user = userEvent.setup();
 			render(
 				overlays[0].renderOpen(
@@ -693,85 +689,32 @@ describe("layer containers", () => {
 			await user.keyboard("App");
 			const popup = await screen.findByRole("listbox");
 
-			const dialogContent = getPositioner("dialog-content");
-			expect(dialogContent.contains(popup)).toBe(true);
+			expect(getPositioner("dialog-positioner").contains(popup)).toBe(true);
 		});
 
-		test("MultiSelect portals its popup into the dialog's `data-mantle-modal-content` element", async () => {
-			// Both sides of the cross-file contract in one render: the dialog
-			// stamps `data-mantle-modal-content` on its content, and
-			// `MultiSelect.Content` resolves its Ariakit `portalElement` to the
-			// closest one so the Escape guard still contains the popup.
-			const user = userEvent.setup();
-			render(
-				overlays[0].renderOpen(
-					<MultiSelect.Root>
-						<MultiSelect.Trigger>
-							<MultiSelect.TagValues />
-							<MultiSelect.Input placeholder="Select items..." />
-						</MultiSelect.Trigger>
-						<MultiSelect.Content>
-							<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
-						</MultiSelect.Content>
-					</MultiSelect.Root>,
-				),
-			);
+		for (const overlay of overlays) {
+			test(`MultiSelect portals its popup into the ${overlay.name} positioner, as Select does`, async () => {
+				const user = userEvent.setup();
+				render(
+					overlay.renderOpen(
+						<MultiSelect.Root>
+							<MultiSelect.Trigger>
+								<MultiSelect.TagValues />
+								<MultiSelect.Input placeholder="Select items..." />
+							</MultiSelect.Trigger>
+							<MultiSelect.Content>
+								<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+							</MultiSelect.Content>
+						</MultiSelect.Root>,
+					),
+				);
 
-			await user.click(screen.getByPlaceholderText("Select items..."));
-			const popup = await screen.findByRole("listbox");
+				await user.click(screen.getByPlaceholderText("Select items..."));
+				const popup = await screen.findByRole("listbox");
 
-			const dialogContent = getPositioner("dialog-content");
-			expect(dialogContent.hasAttribute("data-mantle-modal-content")).toBe(true);
-			expect(dialogContent.contains(popup)).toBe(true);
-		});
-
-		test("MultiSelect portals its popup into the alert dialog's `data-mantle-modal-content` element", async () => {
-			const user = userEvent.setup();
-			render(
-				overlays[1].renderOpen(
-					<MultiSelect.Root>
-						<MultiSelect.Trigger>
-							<MultiSelect.TagValues />
-							<MultiSelect.Input placeholder="Select items..." />
-						</MultiSelect.Trigger>
-						<MultiSelect.Content>
-							<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
-						</MultiSelect.Content>
-					</MultiSelect.Root>,
-				),
-			);
-
-			await user.click(screen.getByPlaceholderText("Select items..."));
-			const popup = await screen.findByRole("listbox");
-
-			const alertDialogContent = getPositioner("alert-dialog-content");
-			expect(alertDialogContent.hasAttribute("data-mantle-modal-content")).toBe(true);
-			expect(alertDialogContent.contains(popup)).toBe(true);
-		});
-
-		test("MultiSelect portals its popup into the sheet's `data-mantle-modal-content` element", async () => {
-			const user = userEvent.setup();
-			render(
-				overlays[2].renderOpen(
-					<MultiSelect.Root>
-						<MultiSelect.Trigger>
-							<MultiSelect.TagValues />
-							<MultiSelect.Input placeholder="Select items..." />
-						</MultiSelect.Trigger>
-						<MultiSelect.Content>
-							<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
-						</MultiSelect.Content>
-					</MultiSelect.Root>,
-				),
-			);
-
-			await user.click(screen.getByPlaceholderText("Select items..."));
-			const popup = await screen.findByRole("listbox");
-
-			const sheetContent = getPositioner("sheet-content");
-			expect(sheetContent.hasAttribute("data-mantle-modal-content")).toBe(true);
-			expect(sheetContent.contains(popup)).toBe(true);
-		});
+				expect(getPositioner(overlay.positionerSlot).contains(popup)).toBe(true);
+			});
+		}
 
 		test("a toast fired while a dialog is open renders in sonner's viewport, not the positioner", async () => {
 			render(

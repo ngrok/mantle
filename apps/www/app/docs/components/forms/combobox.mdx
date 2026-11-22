@@ -99,7 +99,7 @@ import { CirclesThreePlusIcon } from "@phosphor-icons/react/CirclesThreePlus";
 
 ## Layering and z-index
 
-`Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier. It does not portal, so the dialog primitive's Escape guard can see it. Inside an overlay it paints with the overlay's content. Outside one, an open overlay (`z-60`) covers it.
+`Combobox.Content` renders at Tailwind `z-50`, Mantle's float tier. Inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). It opens below the input, or above it when the space below is too small.
 
 `Combobox` does not render a backdrop. Modal layers such as `Dialog`, `Sheet`, and `AlertDialog` do render backdrops, so stacking those layers compounds the dim and blur effect on the layers underneath.
 
@@ -149,7 +149,7 @@ function Example() {
 						<Field.Label>Region</Field.Label>
 						<Combobox.Root
 							inputValue={field.state.value}
-							setInputValue={(value) => {
+							onInputValueChange={(value) => {
 								field.handleChange(value);
 							}}
 						>
@@ -193,7 +193,7 @@ Combobox.Root
 
 ## Polymorphism
 
-`Combobox.Content`, `Combobox.Item`, `Combobox.Group`, `Combobox.GroupLabel`, and `Combobox.ItemValue` support `asChild` to render as a different element or your own component while keeping the combobox behavior and styling.
+`Combobox.Content`, `Combobox.Item`, `Combobox.Group`, and `Combobox.GroupLabel` support `asChild` to render as a different element or your own component while keeping the combobox behavior and styling.
 
 <Example name="components/forms/combobox/polymorphism" title="Combobox polymorphism example">
 
@@ -217,72 +217,86 @@ import { Combobox } from "@ngrok/mantle/combobox";
 
 ## Accessibility
 
-`Combobox` follows the [WAI-ARIA Combobox Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) and builds on the [ariakit Combobox](https://ariakit.org/components/combobox). Inside a field, `Field.Control` puts the generated `id`, `name`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` on the focusable input.
+`Combobox` follows the [WAI-ARIA Combobox Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) with list autocomplete. DOM focus stays on the input, and `aria-activedescendant` names the highlighted option. Inside a field, `Field.Control` puts the generated `id`, `name`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` on the focusable input.
 
 ## API Reference
 
-The `Combobox` components are built on top of [ariakit Combobox](https://ariakit.org/components/combobox).
-
 ### Combobox.Root
 
-The outermost part of a combobox. It owns the ariakit store that holds the query text, the open state, and the selection.
+The outermost part of a combobox. It holds the query text, the open state, and the selection.
 
-`Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier. It does not portal, so the dialog primitive's Escape guard can see it. Inside an overlay it paints with the overlay's content. Outside one, an open overlay (`z-60`) covers it.
+`Combobox.Content` renders at Tailwind `z-50`, Mantle's float tier. Inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). It opens below the input, or above it when the space below is too small.
 
-All props from ariakit [ComboboxProvider](https://ariakit.org/reference/combobox-provider).
+| Prop                  | Type                           | Default | Description                                                                               |
+| :-------------------- | :----------------------------- | :------ | :---------------------------------------------------------------------------------------- |
+| `value?`              | `string`                       |         | The controlled value of the picked item. Pair with `onValueChange`.                       |
+| `defaultValue?`       | `string`                       |         | The value of the picked item on first render.                                             |
+| `onValueChange?`      | `(value: string) => void`      |         | Called when the user picks an item.                                                       |
+| `inputValue?`         | `string`                       |         | The controlled text of the input. Pair with `onInputValueChange`.                         |
+| `defaultInputValue?`  | `string`                       | `""`    | The text of the input on first render.                                                    |
+| `onInputValueChange?` | `(inputValue: string) => void` |         | Called when the text of the input changes.                                                |
+| `open?`               | `boolean`                      |         | The controlled open state. Pair with `onOpenChange`.                                      |
+| `defaultOpen?`        | `boolean`                      | `false` | Whether the list is open on first render.                                                 |
+| `onOpenChange?`       | `(open: boolean) => void`      |         | Called when the open state changes.                                                       |
+| `name?`               | `string`                       |         | The name the picked value submits under. The text in `Combobox.Input` does not submit.    |
+| `form?`               | `string`                       |         | The `id` of the form the picked value submits with, when it is not an ancestor.           |
+| `required?`           | `boolean`                      |         | Whether a pick is required before the form submits.                                       |
+| `disabled?`           | `boolean`                      |         | Whether the combobox is disabled. The input takes no input, and the pick does not submit. |
+
+A form reset returns the pick to `defaultValue` and the text to `defaultInputValue`. With a `name` on `Combobox.Root`, a `name` on `Combobox.Input` is ignored, so only the pick submits. The picked item carries `data-selected`. `aria-selected` follows the highlight, as the APG combobox pattern asks.
 
 ### Combobox.Input
 
 Renders a combobox input element for filtering a list of items.
 
-All props from ariakit [Combobox](https://ariakit.org/reference/combobox), plus:
+All props of an `<input>` except `value`, `defaultValue`, and `autoComplete`, plus:
 
-| Prop            | Type                                                                                               | Default    | Description                                           |
-| :-------------- | :------------------------------------------------------------------------------------------------- | :--------- | :---------------------------------------------------- |
-| `autoComplete?` | `string`                                                                                           | `"list"`   | The autocomplete behavior of the input.               |
-| `autoSelect?`   | `boolean \| "always"`                                                                              | `"always"` | How the first item is automatically selected.         |
-| `validation?`   | `"error" \| "success" \| "warning" \| false \| (() => "error" \| "success" \| "warning" \| false)` |            | Validation state that changes the border and outline. |
+| Prop          | Type                                                                                               | Default    | Description                                                                                                                          |
+| :------------ | :------------------------------------------------------------------------------------------------- | :--------- | :----------------------------------------------------------------------------------------------------------------------------------- |
+| `autoSelect?` | `boolean \| "always"`                                                                              | `"always"` | Whether the first item gets the highlight as the text changes, so Enter picks it. `"always"` also highlights it when the list opens. |
+| `validation?` | `"error" \| "success" \| "warning" \| false \| (() => "error" \| "success" \| "warning" \| false)` |            | Validation state that changes the border and outline.                                                                                |
 
 ### Combobox.Content
 
 Renders a popover that contains combobox content, e.g. items, groups, and separators.
 
-`Combobox.Content` renders in place at Tailwind `z-50`, Mantle's float tier. It does not portal, so the dialog primitive's Escape guard can see it. Inside an overlay it paints with the overlay's content. Outside one, an open overlay (`z-60`) covers it.
+`Combobox.Content` renders at Tailwind `z-50`, Mantle's float tier. Inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). It opens below the input, or above it when the space below is too small.
 
-All props from ariakit [ComboboxPopover](https://ariakit.org/reference/combobox-popover), plus:
+All props of a `<div>`, plus:
 
-| Prop             | Type      | Default | Description                                                           |
-| :--------------- | :-------- | :------ | :-------------------------------------------------------------------- |
-| `asChild?`       | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
-| `sameWidth?`     | `boolean` | `true`  | Whether the popover should be the same width as the input.            |
-| `unmountOnHide?` | `boolean` | `true`  | Whether the popover should unmount when hidden.                       |
+| Prop         | Type      | Default | Description                                                           |
+| :----------- | :-------- | :------ | :-------------------------------------------------------------------- |
+| `asChild?`   | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
+| `sameWidth?` | `boolean` | `true`  | Whether the popover should be the same width as the input.            |
 
 ### Combobox.Item
 
 Renders a combobox item inside a `Combobox.Content` component.
 
-All props from ariakit [ComboboxItem](https://ariakit.org/reference/combobox-item), plus:
+All props of a `<div>`, plus:
 
-| Prop            | Type      | Default | Description                                                           |
-| :-------------- | :-------- | :------ | :-------------------------------------------------------------------- |
-| `asChild?`      | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
-| `focusOnHover?` | `boolean` | `true`  | Whether the item should receive focus on hover.                       |
+| Prop        | Type      | Default | Description                                                                                                          |
+| :---------- | :-------- | :------ | :------------------------------------------------------------------------------------------------------------------- |
+| `asChild?`  | `boolean` | `false` | Compose onto an alternative element type or your own React component.                                                |
+| `disabled?` | `boolean` |         | Whether the item is inert.                                                                                           |
+| `value?`    | `string`  |         | The value that picking the item writes into the input. An item with no value is static text that the keyboard skips. |
 
 ### Combobox.ItemValue
 
 Highlights the match between the current `Combobox.Input` value and parent `Combobox.Item` value. Should only be used as a child of `Combobox.Item`.
 
-All props from ariakit [ComboboxItemValue](https://ariakit.org/reference/combobox-item-value), plus:
+All props of a `<span>` except `children`, plus:
 
-| Prop       | Type      | Default | Description                                                           |
-| :--------- | :-------- | :------ | :-------------------------------------------------------------------- |
-| `asChild?` | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
+| Prop         | Type     | Default                             | Description                  |
+| :----------- | :------- | :---------------------------------- | :--------------------------- |
+| `value?`     | `string` | the closest `Combobox.Item`'s value | The text to split.           |
+| `userValue?` | `string` | the text of `Combobox.Input`        | The text to find in `value`. |
 
 ### Combobox.Group
 
 Renders a group for `Combobox.Item` elements. Optionally, compose a `Combobox.GroupLabel` as a child to label the group.
 
-All props from ariakit [ComboboxGroup](https://ariakit.org/reference/combobox-group), plus:
+All props of a `<div>`, plus:
 
 | Prop       | Type      | Default | Description                                                           |
 | :--------- | :-------- | :------ | :-------------------------------------------------------------------- |
@@ -292,7 +306,7 @@ All props from ariakit [ComboboxGroup](https://ariakit.org/reference/combobox-gr
 
 Renders a label in a combobox group. Should be wrapped with `Combobox.Group` so the `aria-labelledby` is correctly set on the group element.
 
-All props from ariakit [ComboboxGroupLabel](https://ariakit.org/reference/combobox-group-label), plus:
+All props of a `<div>`, plus:
 
 | Prop       | Type      | Default | Description                                                           |
 | :--------- | :-------- | :------ | :-------------------------------------------------------------------- |

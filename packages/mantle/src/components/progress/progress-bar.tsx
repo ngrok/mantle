@@ -1,14 +1,11 @@
 "use client";
 
-import {
-	Indicator as ProgressPrimitiveIndicator,
-	Root as ProgressPrimitiveRoot,
-} from "@radix-ui/react-progress";
-
 import { type ComponentProps, createContext, useContext, useMemo } from "react";
+import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { Slot } from "../slot/index.js";
 import { isNumber, isValidMaxNumber, isValidValueNumber } from "./math.js";
 import type { ValueType } from "./types.js";
 
@@ -50,6 +47,14 @@ type RootProps = ComponentProps<"div"> & {
 	value?: ValueType | undefined;
 } & WithDataSlot;
 
+/** The `data-state` of a bar and its indicator. */
+function progressState(valueNow: number | undefined, max: number) {
+	if (valueNow == null) {
+		return "indeterminate";
+	}
+	return valueNow === max ? "complete" : "loading";
+}
+
 /** Resolves the `value` prop: a number in [0, `max`] stays, a nullish value is 0, and anything else is indeterminate. */
 function resolveValue(value: ValueType | undefined, max: number): ValueType {
 	if (isValidValueNumber(value, max)) {
@@ -72,7 +77,7 @@ function resolveValue(value: ValueType | undefined, max: number): ValueType {
  * | Data Attribute | Value                                                  | Description                                  |
  * | -------------- | ------------------------------------------------------ | -------------------------------------------- |
  * | `data-slot`    | `"progress-bar"`                                       | The root element.                            |
- * | `data-state`   | `"complete"` \| `"indeterminate"` \| `"loading"`       | Set by Radix from `value` and `max`.         |
+ * | `data-state`   | `"complete"` \| `"indeterminate"` \| `"loading"`       | Set from `value` and `max`.                  |
  * | `data-value`   | the current value                                      | Absent while indeterminate.                  |
  * | `data-max`     | the maximum                                            |                                              |
  *
@@ -117,22 +122,28 @@ function Root({
 
 	return (
 		<ProgressContext.Provider value={ctx}>
-			<ProgressPrimitiveRoot
+			<div
+				role="progressbar"
+				aria-valuemax={max}
+				aria-valuemin={0}
+				aria-valuenow={valueNow}
+				aria-valuetext={valueNow == null ? undefined : `${Math.round((valueNow / max) * 100)}%`}
+				data-state={progressState(valueNow, max)}
+				data-value={valueNow}
+				data-max={max}
 				data-slot={joinDataSlot(dataSlot, "progress-bar")}
 				className={cx(
 					"bg-base-hover dark:bg-base shadow-inner relative h-3 w-full overflow-hidden rounded-md",
 					className,
 				)}
-				value={valueNow}
-				max={max}
 				{...props}
 			>
 				{children}
-			</ProgressPrimitiveRoot>
+			</div>
 		</ProgressContext.Provider>
 	);
 }
-type IndicatorProps = ComponentProps<typeof ProgressPrimitiveIndicator> & WithDataSlot;
+type IndicatorProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 /**
  * Displays the progress indicator, which visually represents the completion progress of a task.
@@ -154,14 +165,24 @@ type IndicatorProps = ComponentProps<typeof ProgressPrimitiveIndicator> & WithDa
  * </ProgressBar.Root>
  * ```
  */
-function Indicator({ "data-slot": dataSlot, className, style, ...props }: IndicatorProps) {
+function Indicator({
+	asChild = false,
+	"data-slot": dataSlot,
+	className,
+	style,
+	...props
+}: IndicatorProps) {
 	const ctx = useContext(ProgressContext);
 	const { max } = ctx;
-	const value = ctx.value === "indeterminate" ? 0 : ctx.value;
-	const translatePercent = ((max - value) / max) * 100;
+	const valueNow = isNumber(ctx.value) ? ctx.value : undefined;
+	const translatePercent = ((max - (valueNow ?? 0)) / max) * 100;
+	const Component = asChild ? Slot : "div";
 
 	return (
-		<ProgressPrimitiveIndicator
+		<Component
+			data-state={progressState(valueNow, max)}
+			data-value={valueNow}
+			data-max={max}
 			data-slot={joinDataSlot(dataSlot, "progress-bar-indicator")}
 			className={cx(
 				"bg-accent-600 h-full w-full flex-1 transition-transform duration-200 ease-out-strong motion-reduce:transition-none",

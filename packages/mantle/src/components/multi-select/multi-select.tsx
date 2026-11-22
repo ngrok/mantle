@@ -1,57 +1,25 @@
 "use client";
 
-import {
-	Combobox as AriakitCombobox,
-	ComboboxGroup as AriakitComboboxGroup,
-	ComboboxGroupLabel as AriakitComboboxGroupLabel,
-	ComboboxItem as AriakitComboboxItem,
-	ComboboxItemCheck as AriakitComboboxItemCheck,
-	ComboboxPopover as AriakitComboboxPopover,
-	ComboboxProvider as AriakitComboboxProvider,
-	useComboboxContext as useAriakitComboboxContext,
-} from "@ariakit/react/combobox";
-import type {
-	ComboboxGroupLabelProps as AriakitComboboxGroupLabelProps,
-	ComboboxGroupProps as AriakitComboboxGroupProps,
-	ComboboxItemProps as AriakitComboboxItemProps,
-	ComboboxPopoverProps as AriakitComboboxPopoverProps,
-	ComboboxProps as AriakitComboboxProps,
-	ComboboxProviderProps as AriakitComboboxProviderProps,
-} from "@ariakit/react/combobox";
-import { useStoreState as useAriakitStoreState } from "@ariakit/react/store";
 import { CheckIcon } from "@phosphor-icons/react/Check";
 import { LockIcon } from "@phosphor-icons/react/Lock";
 import { XIcon } from "@phosphor-icons/react/X";
-import type {
-	ComponentProps,
-	Dispatch,
-	KeyboardEvent,
-	PropsWithChildren,
-	ReactNode,
-	RefObject,
-	SetStateAction,
-} from "react";
-import {
-	cloneElement,
-	createContext,
-	isValidElement,
-	useCallback,
-	useContext,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import type { ComponentProps, KeyboardEvent, PropsWithChildren, ReactNode } from "react";
+import { cloneElement, createContext, isValidElement, use, useId, useRef, useState } from "react";
+import { createPortal, flushSync } from "react-dom";
+import { composeHandlers } from "../../behaviors/compose-handlers.js";
+import { enterModal } from "../../behaviors/enter-modal.js";
+import { useComboboxInput } from "../../behaviors/use-combobox.js";
+import { childId, useOption } from "../../behaviors/use-listbox.js";
+import { useMultiSelect } from "../../behaviors/use-multi-select.js";
+import type { MultiSelectBehavior, UseMultiSelectProps } from "../../behaviors/use-multi-select.js";
+import { usePopup } from "../../behaviors/use-popup.js";
 import type { WithAsChild } from "../../types/as-child.js";
-import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import {
-	useIsInsideModalLayer,
-	useLayerContainer,
-} from "../../utils/layer-container/layer-container.js";
+import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
 import { shakeElement } from "../../utils/shake.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { parseValidation } from "../field/validation.js";
@@ -62,18 +30,21 @@ import { Separator } from "../separator/separator.js";
 import { Slot } from "../slot/index.js";
 import invariant from "tiny-invariant";
 
-/** Type guard to safely narrow Ariakit store state to `string[]` without `as` assertions. */
-const isStringArray = (value: unknown): value is string[] =>
-	Array.isArray(value) && value.every((item) => typeof item === "string");
-
-/** Stable empty array used as a fallback for `selectedValues` to avoid creating new arrays on every render. */
-const EMPTY_ARRAY: string[] = [];
+const EMPTY_ARRAY: readonly string[] = [];
 
 /** Whether two arrays hold the same items in the same order. */
 const haveSameItems = (first: readonly string[], second: readonly string[]): boolean =>
 	first.length === second.length && first.every((item, index) => item === second[index]);
 
-const TriggerRefContext = createContext<RefObject<HTMLDivElement | null>>({ current: null });
+const MultiSelectContext = createContext<MultiSelectBehavior | null>(null);
+
+const useMultiSelectContext = (): MultiSelectBehavior => {
+	const context = use(MultiSelectContext);
+	if (context == null) {
+		throw new Error("MultiSelect parts must be rendered inside MultiSelect.Root.");
+	}
+	return context;
+};
 
 /**
  * The `aria-invalid` that `Trigger` resolves from its `validation` and `aria-invalid` props.
@@ -81,34 +52,24 @@ const TriggerRefContext = createContext<RefObject<HTMLDivElement | null>>({ curr
  */
 const TriggerAriaInvalidContext = createContext<AriaInvalid>(undefined);
 
-/**
- * The `lockedValues` that `TagValues` publishes, read by `Item` to keep a locked value
- * selected when the user clicks it in the popover. `Root` owns the state, so a change
- * re-renders every `Item`, even one whose element a memoized consumer keeps across renders.
- */
-const LockedValuesContext = createContext<string[]>(EMPTY_ARRAY);
+/** The `id` of the closest `MultiSelect.Group`'s label. */
+const GroupLabelContext = createContext<string | undefined>(undefined);
 
-/**
- * Bridges `TagValues` with `Input` and `Item`. The three render in other branches of the
- * tree, so none of them can provide the context: it must come from the shared ancestor
- * (`Root`). One part writes each member, and another reads it:
- *   - `onInputKeyDownRef`: `TagValues` writes it in a layout effect, `Input` calls it on keydown
- *   - `inputRef`: `Input` registers its DOM node, `TagValues` reads it to focus the input
- *   - `setLockedValues`: `TagValues` publishes its `lockedValues` prop into `LockedValuesContext`
- */
-type TagBridgeContextValue = {
-	onInputKeyDownRef: { current: ((event: KeyboardEvent<HTMLInputElement>) => void) | undefined };
-	inputRef: { current: HTMLInputElement | null };
-	setLockedValues: Dispatch<SetStateAction<string[]>>;
+/** The controls in the list that Tab can reach, such as a footer button. */
+const TABBABLE =
+	'a[href], button:not(:disabled), input:not([type="hidden"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
+
+/** Shakes the tag of `value` to show that a removal is blocked. */
+const shakeTag = (tags: Map<string, HTMLElement>, value: string) => {
+	const tag = tags.get(value);
+	if (tag != null) {
+		shakeElement(tag);
+	}
 };
 
-const TagBridgeContext = createContext<TagBridgeContextValue>({
-	onInputKeyDownRef: { current: undefined },
-	inputRef: { current: null },
-	setLockedValues: () => {},
-});
-
-type MultiSelectProps = AriakitComboboxProviderProps<string[]>;
+type MultiSelectProps = UseMultiSelectProps & {
+	children?: ReactNode;
+};
 
 /**
  * Root component for a multi-select combobox. Owns the selected values and the
@@ -126,11 +87,10 @@ type MultiSelectProps = AriakitComboboxProviderProps<string[]>;
  * combobox input, so a native form submit sends the selected values, not the
  * typeahead filter text.
  *
- * `MultiSelect.Content` renders at Tailwind `z-50` and portals into the closest
- * `data-mantle-modal-content` element (an enclosing overlay's content), else
- * the nearest overlay's positioner, else `document.body`. Inside an overlay it
- * paints above the content that contains it. Outside one, an open overlay
- * (`z-60`) covers it.
+ * `MultiSelect.Content` renders at Tailwind `z-50`. Inside an open `Dialog`,
+ * `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and
+ * paints above the overlay that owns it. Outside every overlay, it portals to
+ * `document.body`, below the overlay tier (`z-60`).
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectroot
  *
@@ -148,26 +108,9 @@ type MultiSelectProps = AriakitComboboxProviderProps<string[]>;
  * </MultiSelect.Root>
  * ```
  */
-const Root = ({ children, defaultSelectedValue = EMPTY_ARRAY, ...props }: MultiSelectProps) => {
-	const triggerRef = useRef<HTMLDivElement | null>(null);
-	const onInputKeyDownRef = useRef<((event: KeyboardEvent<HTMLInputElement>) => void) | undefined>(
-		undefined,
-	);
-	const inputRef = useRef<HTMLInputElement | null>(null);
-	const [lockedValues, setLockedValues] = useState<string[]>(EMPTY_ARRAY);
-	const tagBridge = useMemo(() => ({ onInputKeyDownRef, inputRef, setLockedValues }), []);
-
-	return (
-		<TriggerRefContext.Provider value={triggerRef}>
-			<TagBridgeContext.Provider value={tagBridge}>
-				<LockedValuesContext.Provider value={lockedValues}>
-					<AriakitComboboxProvider<string[]> defaultSelectedValue={defaultSelectedValue} {...props}>
-						{children}
-					</AriakitComboboxProvider>
-				</LockedValuesContext.Provider>
-			</TagBridgeContext.Provider>
-		</TriggerRefContext.Provider>
-	);
+const Root = ({ children, ...props }: MultiSelectProps) => {
+	const multiSelect = useMultiSelect(props);
+	return <MultiSelectContext value={multiSelect}>{children}</MultiSelectContext>;
 };
 
 type MultiSelectTriggerProps = ComponentProps<"div"> & WithValidation & WithDataSlot;
@@ -199,15 +142,16 @@ const Trigger = ({
 	"aria-invalid": _ariaInvalid,
 	className,
 	children,
+	onBlur,
 	onKeyDown,
 	onMouseDown,
 	ref,
 	validation: _validation,
 	...props
 }: MultiSelectTriggerProps) => {
-	const triggerRef = useContext(TriggerRefContext);
-	const { inputRef } = useContext(TagBridgeContext);
-	const store = useAriakitComboboxContext();
+	const { inputRef, open, setOpen, tags, triggerRef } = useMultiSelectContext();
+	const inTag = (target: EventTarget) =>
+		target instanceof Node && [...tags.values()].some((tag) => tag.contains(target));
 	const fieldValidation = useFieldValidation();
 	const { ariaInvalid, validation } = parseValidation({
 		"aria-invalid": _ariaInvalid,
@@ -215,7 +159,7 @@ const Trigger = ({
 	});
 
 	return (
-		<TriggerAriaInvalidContext.Provider value={ariaInvalid}>
+		<TriggerAriaInvalidContext value={ariaInvalid}>
 			<div
 				// Why presentation: the handlers below only forward focus to the input;
 				// the container itself is not a control, and the input and the tag list
@@ -233,13 +177,6 @@ const Trigger = ({
 					className,
 				)}
 				data-validation={validation || undefined}
-				onKeyDown={(event) => {
-					if (event.key === "Escape" && store?.getState().open) {
-						event.preventDefault();
-						store.hide();
-					}
-					onKeyDown?.(event);
-				}}
 				onMouseDown={(event) => {
 					// When clicking on non-interactive areas (padding, flex gaps between tags), prevent the
 					// default mousedown behavior (which would cause text selection) and explicitly focus the
@@ -253,12 +190,30 @@ const Trigger = ({
 					}
 					onMouseDown?.(event);
 				}}
+				// Why on the trigger: a tag keeps the list open while it has focus, so
+				// the trigger closes it when a tag gets Escape or focus leaves the
+				// component. The input handles both for itself.
+				onKeyDown={composeHandlers(onKeyDown, (event) => {
+					if (event.key === "Escape" && open && inTag(event.target)) {
+						event.preventDefault();
+						setOpen(false);
+					}
+				})}
+				onBlur={composeHandlers(onBlur, (event) => {
+					const { relatedTarget } = event;
+					if (
+						inTag(event.target) &&
+						!(relatedTarget instanceof Node && event.currentTarget.contains(relatedTarget))
+					) {
+						setOpen(false);
+					}
+				})}
 				ref={composeRefs(triggerRef, ref)}
 				{...props}
 			>
 				{children}
 			</div>
-		</TriggerAriaInvalidContext.Provider>
+		</TriggerAriaInvalidContext>
 	);
 };
 
@@ -440,7 +395,7 @@ type MultiSelectTagValuesProps = {
 	 * The `locked` state is also forwarded to the render function via `props.locked`
 	 * so custom tag components receive it automatically.
 	 */
-	lockedValues?: string[];
+	lockedValues?: readonly string[];
 	/**
 	 * Optional render function for each tag. Receives `{ value, onRemove, locked, ref, onKeyDown, onClick }`.
 	 * Spread these onto `MultiSelect.Tag` (or your own element) for full keyboard-nav support.
@@ -487,76 +442,16 @@ const TagValues = ({
 	children,
 	lockedValues = EMPTY_ARRAY,
 }: MultiSelectTagValuesProps) => {
-	const store = useAriakitComboboxContext();
-	const rawSelectedValue = useAriakitStoreState(store, "selectedValue");
-	const selectedValues = isStringArray(rawSelectedValue) ? rawSelectedValue : undefined;
-	const selectedArray = selectedValues ?? EMPTY_ARRAY;
-	// Why a layout effect: the `requestAnimationFrame` callbacks below run after the
-	// removal commits and must read the committed array, not the one from the render
-	// that scheduled them.
-	const selectedArrayRef = useRef<string[]>(selectedArray);
-	useIsomorphicLayoutEffect(() => {
-		selectedArrayRef.current = selectedArray;
-	}, [selectedArray]);
-	const lockedValuesSet = useMemo(() => new Set(lockedValues), [lockedValues]);
-	const tagRefs = useRef<Map<string, HTMLSpanElement>>(new Map());
-	const { onInputKeyDownRef, inputRef, setLockedValues } = useContext(TagBridgeContext);
-	// Why publish through `Root` state: `lockedValues` is a prop of this part. `Item`
-	// renders in another branch of the tree, so only shared state reaches it. The updater
-	// keeps the previous array when the items match, so an inline `lockedValues` literal
-	// does not re-render every `Item` on each consumer render.
-	useIsomorphicLayoutEffect(() => {
-		setLockedValues((previous) =>
-			haveSameItems(previous, lockedValues) ? previous : lockedValues,
-		);
-	}, [lockedValues, setLockedValues]);
-	// Why its own effect: the locks leave with the tag list that owns them. A cleanup on
-	// the publish effect resets the state on every change and defeats the bail-out.
-	useIsomorphicLayoutEffect(
-		() => () => {
-			setLockedValues(EMPTY_ARRAY);
-		},
-		[setLockedValues],
-	);
-	// Track pending rAF IDs so we can cancel them on unmount and avoid calling
-	// focus() on detached DOM nodes if the component unmounts mid-frame.
-	const pendingRafsRef = useRef<Set<number>>(new Set());
-	useEffect(
-		() => () => {
-			pendingRafsRef.current.forEach(cancelAnimationFrame);
-		},
-		[],
-	);
-	const raf = (callback: () => void): void => {
-		const id = requestAnimationFrame(() => {
-			// Remove the id once the rAF has fired so the set doesn't grow unbounded.
-			pendingRafsRef.current.delete(id);
-			callback();
-		});
-		pendingRafsRef.current.add(id);
-	};
-
-	const removeValue = (value: string) => {
-		if (store) {
-			const selected = store.getState().selectedValue;
-			if (!isStringArray(selected)) {
-				return;
-			}
-			store.setSelectedValue(selected.filter((v) => v !== value));
-		}
-	};
+	const multiSelect = useMultiSelectContext();
+	const { inputRef, listbox, locked, remove, selected, setOpen, tags } = multiSelect;
 
 	const focusTag = (index: number) => {
-		const value = selectedArrayRef.current[index];
-		if (value == null) {
-			return;
-		}
-		const tagElement = tagRefs.current.get(value);
-		if (tagElement) {
-			tagElement.focus();
-			// Keep the popover open while a tag is focused. Ariakit closes the
-			// popover when the combobox input loses focus, so we reopen it here.
-			store?.show();
+		const value = selected[index];
+		const tag = value == null ? null : tags.get(value);
+		if (tag != null) {
+			tag.focus();
+			// Keep the list open while a tag has focus.
+			setOpen(true);
 		}
 	};
 
@@ -564,8 +459,37 @@ const TagValues = ({
 		inputRef.current?.focus();
 	};
 
+	/**
+	 * Removes the value at `index`, or shakes its tag when it is locked, then
+	 * focuses the tag at `next` in the new list, else the input.
+	 */
+	const removeAt = (index: number, next: (remaining: number) => number) => {
+		const value = selected[index];
+		if (value == null) {
+			return;
+		}
+		// Why flushSync: the next tag to focus exists only once React commits the removal.
+		let removed = false;
+		flushSync(() => {
+			removed = remove(value);
+		});
+		if (!removed) {
+			shakeTag(tags, value);
+			return;
+		}
+		const remaining = selected.length - 1;
+		const target = next(remaining);
+		const targetValue = selected.filter((item) => item !== value)[target];
+		const tag = targetValue == null ? null : tags.get(targetValue);
+		if (tag == null) {
+			focusInput();
+			return;
+		}
+		tag.focus();
+		setOpen(true);
+	};
+
 	const handleTagKeyDown = (event: KeyboardEvent<HTMLSpanElement>, index: number) => {
-		const value = selectedArray[index];
 		switch (event.key) {
 			case "ArrowLeft": {
 				event.preventDefault();
@@ -576,72 +500,35 @@ const TagValues = ({
 			}
 			case "ArrowRight": {
 				event.preventDefault();
-				if (index < selectedArray.length - 1) {
+				if (index < selected.length - 1) {
 					focusTag(index + 1);
 				} else {
 					focusInput();
 				}
 				break;
 			}
-			case "Backspace":
+			case "Backspace": {
+				event.preventDefault();
+				// Focus the previous tag, or the new first tag.
+				removeAt(index, () => Math.max(index - 1, 0));
+				break;
+			}
 			case "Delete": {
 				event.preventDefault();
-				if (value != null) {
-					// Respect locked values: shake instead of removing when locked.
-					if (lockedValuesSet.has(value)) {
-						const tagElement = tagRefs.current.get(value);
-						if (tagElement) {
-							shakeElement(tagElement);
-						}
-						break;
-					}
-					removeValue(value);
-					// After removal, the array shifts. Focus the next logical tag or the input.
-					if (event.key === "Backspace") {
-						if (index > 0) {
-							// Why `raf`: focus lands on the previous tag only after React commits the removal.
-							const prevIndex = index - 1;
-							raf(() => focusTag(prevIndex));
-						} else {
-							raf(() => {
-								if (selectedArrayRef.current.length > 0) {
-									focusTag(0);
-								} else {
-									focusInput();
-								}
-							});
-						}
-					} else {
-						// Delete: move focus right
-						raf(() => {
-							// index stays the same since the item at `index` was removed and the next one slides in
-							if (index < selectedArrayRef.current.length) {
-								focusTag(index);
-							} else {
-								focusInput();
-							}
-						});
-					}
-				}
+				// The next tag slides into this index.
+				removeAt(index, () => index);
 				break;
 			}
 			case "ArrowUp":
 			case "ArrowDown": {
-				// Don't scroll the page. Instead, focus the input and forward the key
-				// to Ariakit so it navigates the popover list.
+				// Don't scroll the page. Move the highlight in the list instead.
 				event.preventDefault();
 				focusInput();
-				inputRef.current?.dispatchEvent(
-					new KeyboardEvent("keydown", {
-						key: event.key,
-						bubbles: true,
-						cancelable: true,
-						shiftKey: event.shiftKey,
-						ctrlKey: event.ctrlKey,
-						metaKey: event.metaKey,
-						altKey: event.altKey,
-					}),
-				);
+				// Why flushSync: a closed list renders no options until React commits.
+				flushSync(() => {
+					setOpen(true);
+				});
+				listbox.move(event.key === "ArrowDown" ? "next" : "previous");
 				break;
 			}
 			default: {
@@ -654,77 +541,57 @@ const TagValues = ({
 		}
 	};
 
-	const handleInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-		if (
-			event.key === "ArrowLeft" &&
-			event.currentTarget.selectionStart === 0 &&
-			event.currentTarget.selectionEnd === 0 &&
-			selectedArray.length > 0
-		) {
-			event.preventDefault();
-			focusTag(selectedArray.length - 1);
-			return;
-		}
-		if (event.key === "Backspace" && event.currentTarget.value === "" && selectedArray.length > 0) {
-			const lastValue = selectedArray[selectedArray.length - 1];
-			if (lastValue != null) {
-				if (lockedValuesSet.has(lastValue)) {
-					// The last tag is locked. Shake it to signal that removal is blocked.
-					const tagElement = tagRefs.current.get(lastValue);
-					if (tagElement) {
-						shakeElement(tagElement);
-					}
-				} else {
-					removeValue(lastValue);
-				}
-			}
-		}
-	};
-
-	// Why a layout effect with a cleanup: the bridge must hold the latest handler before
-	// the next keydown. It must drop the handler when this part unmounts, so `Input` never
-	// calls a closure over a stale selection.
-	useIsomorphicLayoutEffect(() => {
-		onInputKeyDownRef.current = handleInputKeyDown;
-		return () => {
-			onInputKeyDownRef.current = undefined;
-		};
-	});
-
-	if (selectedArray.length === 0) {
+	if (selected.length === 0) {
 		return null;
 	}
 
 	return (
 		// Why `contents`: the list must not take the tags out of the trigger's
 		// flex `gap`; the element exists for the `role="list"` alone.
-		<span role="list" aria-label={ariaLabel} data-slot="multi-select-tag-list" className="contents">
-			{selectedArray.map((value, index) => {
+		<span
+			role="list"
+			aria-label={ariaLabel}
+			data-slot="multi-select-tag-list"
+			className="contents"
+			ref={() => {
+				// Why a ref callback: the locks live in the store while this list is
+				// mounted, and `Item` reads them in another branch of the tree. The
+				// store keeps the old array when the items match, so an inline
+				// `lockedValues` literal re-renders no `Item`.
+				if (!haveSameItems(locked.get().values, lockedValues)) {
+					locked.set({ values: lockedValues });
+				}
+				return () => {
+					locked.set({ values: EMPTY_ARRAY });
+				};
+			}}
+		>
+			{selected.map((value, index) => {
+				const isLocked = lockedValues.includes(value);
 				const tagOptionProps: TagRenderProps = {
 					value,
-					locked: lockedValuesSet.has(value),
+					locked: isLocked,
 					onRemove: () => {
 						// Respect locked values: shake instead of removing when locked.
 						// This guards custom tag renderers that call onRemove directly.
-						if (lockedValuesSet.has(value)) {
-							const tagElement = tagRefs.current.get(value);
-							if (tagElement) {
-								shakeElement(tagElement);
-							}
+						if (isLocked) {
+							shakeTag(tags, value);
 							return;
 						}
-						removeValue(value);
+						remove(value);
 					},
 					ref: (node: HTMLSpanElement | null) => {
-						if (node) {
-							tagRefs.current.set(value, node);
-						} else {
-							tagRefs.current.delete(value);
+						if (node == null) {
+							return;
 						}
+						tags.set(value, node);
+						return () => {
+							tags.delete(value);
+						};
 					},
 					onKeyDown: (event: KeyboardEvent<HTMLSpanElement>) => handleTagKeyDown(event, index),
-					// A tag click opens the popover, or keeps it open, including
-					// when the component was fully blurred before the click.
+					// A tag click opens the list, or keeps it open, including when the
+					// component was fully blurred before the click.
 					onClick: () => focusTag(index),
 				};
 
@@ -738,14 +605,11 @@ const TagValues = ({
 	);
 };
 
-type MultiSelectInputProps = Omit<AriakitComboboxProps, "render"> & {
-	/**
-	 * Called with the raw string value whenever the input text changes.
-	 * Use this to drive external filtering (e.g. with matchSorter) without
-	 * having to unwrap the DOM event. A convenience alternative to `onChange`.
-	 */
-	onValueChange?: (value: string) => void;
-} & WithDataSlot;
+type MultiSelectInputProps = Omit<
+	ComponentProps<"input">,
+	"value" | "defaultValue" | "autoComplete"
+> &
+	WithDataSlot;
 
 /**
  * The combobox input for filtering items. Place this inside `MultiSelect.Trigger`,
@@ -779,94 +643,144 @@ type MultiSelectInputProps = Omit<AriakitComboboxProps, "render"> & {
 const Input = ({
 	"data-slot": dataSlot,
 	className,
+	name: nameProp,
 	onBlur,
 	onChange,
+	onClick,
 	onFocus,
 	onKeyDown,
-	onValueChange,
 	placeholder,
 	ref,
 	...props
 }: MultiSelectInputProps) => {
-	const store = useAriakitComboboxContext();
-	const { onInputKeyDownRef, inputRef } = useContext(TagBridgeContext);
-	const fieldControl = useContext(FieldControlContext);
-	const triggerAriaInvalid = useContext(TriggerAriaInvalidContext);
-	const rawSelectedValue = useAriakitStoreState(store, "selectedValue");
-	const selectedValues = isStringArray(rawSelectedValue) ? rawSelectedValue : undefined;
-	const hasSelectedValues = (selectedValues?.length ?? 0) > 0;
+	const multiSelect = useMultiSelectContext();
+	const { locked, remove, selected, setOpen, tags } = multiSelect;
+	const inputProps = useComboboxInput(multiSelect, { autoSelect: true });
+	const composedRef = useComposedRefs(ref, inputProps.ref);
+	const fieldControl = use(FieldControlContext);
+	const triggerAriaInvalid = use(TriggerAriaInvalidContext);
+	const name = fieldControl?.name ?? nameProp;
 
 	return (
-		<AriakitCombobox
-			autoSelect
-			aria-invalid={triggerAriaInvalid}
-			data-slot={joinDataSlot(dataSlot, "multi-select-input")}
-			className={cx(
-				"pointer-coarse:text-base min-w-20 flex-1 select-text border-0 bg-transparent text-sm outline-hidden",
-				"placeholder:select-none placeholder:text-placeholder",
-				className,
-			)}
-			onChange={(event) => {
-				onValueChange?.(event.target.value);
-				onChange?.(event);
-			}}
-			onKeyDown={(event) => {
-				onInputKeyDownRef.current?.(event);
-				onKeyDown?.(event);
-			}}
-			onBlur={(event) => {
-				// When focus moves from the input to a tag, Ariakit would normally
-				// close the popover because the combobox input lost focus. Keep it
-				// open so the user can see the list while navigating tags.
-				if (
-					event.relatedTarget instanceof HTMLElement &&
-					event.relatedTarget.closest('[data-slot~="multi-select-tag"]')
-				) {
-					store?.show();
-				}
-				onBlur?.(event);
-			}}
-			onFocus={(event) => {
-				// Ariakit doesn't always open the popover on focus when the input is
-				// already mounted (e.g. returning focus from a tag). Force it open.
-				store?.show();
-				onFocus?.(event);
-			}}
-			placeholder={hasSelectedValues ? undefined : placeholder}
-			// Register the input's DOM node in the bridge so TagValues can focus it for keyboard nav.
-			ref={composeRefs(inputRef, ref)}
-			{...props}
-			{...(fieldControl
-				? {
-						"aria-describedby": fieldControl["aria-describedby"],
-						"aria-errormessage": fieldControl["aria-errormessage"],
-						"aria-invalid": fieldControl["aria-invalid"],
-						id: fieldControl.id,
-						name: fieldControl.name,
+		<>
+			<input
+				aria-invalid={triggerAriaInvalid}
+				{...props}
+				{...inputProps}
+				ref={composedRef}
+				data-slot={joinDataSlot(dataSlot, "multi-select-input")}
+				className={cx(
+					"pointer-coarse:text-base min-w-20 flex-1 select-text border-0 bg-transparent text-sm outline-hidden",
+					"placeholder:select-none placeholder:text-placeholder",
+					className,
+				)}
+				placeholder={selected.length > 0 ? undefined : placeholder}
+				onChange={composeHandlers(onChange, inputProps.onChange)}
+				onClick={composeHandlers(onClick, inputProps.onClick)}
+				onFocus={composeHandlers(onFocus, (event) => {
+					// Why only from a tag: focus that returns from a tag keeps the list
+					// open. Focus from outside, such as a dialog's autofocus, opens nothing.
+					const trigger = event.currentTarget.closest('[data-slot~="multi-select-trigger"]');
+					if (event.relatedTarget instanceof Node && trigger?.contains(event.relatedTarget)) {
+						setOpen(true);
 					}
-				: undefined)}
-		/>
+				})}
+				onBlur={composeHandlers(onBlur, (event) => {
+					// Why: focus that moves to a tag, a remove button, or a control in the
+					// list stays in the component, so the list stays open.
+					const trigger = event.currentTarget.closest('[data-slot~="multi-select-trigger"]');
+					const { relatedTarget } = event;
+					const inside =
+						relatedTarget instanceof Node &&
+						(trigger?.contains(relatedTarget) ||
+							multiSelect.listbox.ref.current?.contains(relatedTarget));
+					if (!inside) {
+						inputProps.onBlur();
+					}
+				})}
+				onKeyDown={composeHandlers(onKeyDown, (event) => {
+					// Why: an input method uses these keys for its own candidates.
+					if (event.nativeEvent.isComposing) {
+						return;
+					}
+					// Why: the open list is modal, so Tab moves only to a control in the
+					// list, such as a footer button, and focus stays until Escape closes it.
+					if (event.key === "Tab" && multiSelect.open) {
+						event.preventDefault();
+						if (!event.shiftKey) {
+							multiSelect.listbox.ref.current?.querySelector<HTMLElement>(TABBABLE)?.focus();
+						}
+						return;
+					}
+					const input = event.currentTarget;
+					const last = selected.at(-1);
+					if (
+						event.key === "ArrowLeft" &&
+						input.selectionStart === 0 &&
+						input.selectionEnd === 0 &&
+						last != null &&
+						tags.has(last)
+					) {
+						event.preventDefault();
+						tags.get(last)?.focus();
+						setOpen(true);
+						return;
+					}
+					// Why `tags.has`: Backspace removes a tag only while the tag list renders it.
+					if (event.key === "Backspace" && input.value === "" && last != null && tags.has(last)) {
+						if (locked.get().values.includes(last) || !remove(last)) {
+							shakeTag(tags, last);
+						}
+						return;
+					}
+					inputProps.onKeyDown(event);
+				})}
+				{...(fieldControl
+					? {
+							"aria-describedby": fieldControl["aria-describedby"],
+							"aria-errormessage": fieldControl["aria-errormessage"],
+							"aria-invalid": fieldControl["aria-invalid"],
+							id: fieldControl.id,
+						}
+					: undefined)}
+			/>
+			{name != null &&
+				selected.map((value) => (
+					<input
+						key={value}
+						type="hidden"
+						name={name}
+						value={value}
+						form={props.form}
+						disabled={props.disabled}
+					/>
+				))}
+		</>
 	);
 };
 
-type MultiSelectContentProps = Omit<AriakitComboboxPopoverProps, "render"> &
+type MultiSelectContentProps = ComponentProps<"div"> &
 	WithAsChild &
-	WithDataSlot;
+	WithDataSlot & {
+		/**
+		 * Whether the list is as wide as the trigger. When `false`, it takes the
+		 * width of its widest item.
+		 * @default true
+		 */
+		sameWidth?: boolean;
+	};
 
 /**
  * Renders a popover that contains multi-select content, such as items, groups,
  * and separators. Opens below the trigger.
  *
- * `MultiSelect.Content` renders at Tailwind `z-50` and portals into the closest
- * `data-mantle-modal-content` element (an enclosing overlay's content), else
- * the nearest overlay's positioner, else `document.body`. Inside an overlay it
- * paints above the content that contains it. Outside one, an open overlay
- * (`z-60`) covers it.
+ * `MultiSelect.Content` renders at Tailwind `z-50`. Inside an open `Dialog`,
+ * `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and
+ * paints above the overlay that owns it. Outside every overlay, it portals to
+ * `document.body`, below the overlay tier (`z-60`).
  *
- * By default, mantle disables Ariakit's body scroll lock when the trigger is
- * inside a mantle modal (`Dialog`, `Sheet`, `AlertDialog`), and enables it
- * otherwise. The modal already locks body scroll. Pass `preventBodyScroll` to
- * override.
+ * The list is modal: while it is open, the page does not scroll, the rest of
+ * the page is inert, and a press outside the trigger and the list closes it.
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectcontent
  *
@@ -887,88 +801,70 @@ type MultiSelectContentProps = Omit<AriakitComboboxPopoverProps, "render"> &
 const Content = ({
 	"data-slot": dataSlot,
 	asChild = false,
-	backdrop = false,
 	children,
 	className,
-	modal = true,
-	portalElement,
-	preventBodyScroll,
 	ref,
 	sameWidth = true,
-	unmountOnHide = true,
 	...props
 }: MultiSelectContentProps) => {
-	const triggerRef = useContext(TriggerRefContext);
-	const layerContainer = useLayerContainer();
-
-	// Why the modal layer decides: every mantle overlay (`Dialog`, `Sheet`,
-	// `AlertDialog`) renders its content inside a modal `LayerContainer` and
-	// already locks body scroll. Ariakit's own lock must stay off inside one. It snapshots
-	// body's inline style, including the overlay's transient `pointer-events: none`,
-	// and re-applies that stale snapshot on an animation frame after unmount. That
-	// re-apply freezes the page (see the regression test in
-	// `multi-select.browser.test.tsx`).
-	const isInsideModal = useIsInsideModalLayer();
-
-	const getAnchorRect = useCallback(() => {
-		return triggerRef.current?.getBoundingClientRect() ?? null;
-	}, [triggerRef]);
-
-	const getPortalElement = useCallback(
-		(element: HTMLElement) => {
-			if (typeof portalElement === "function") {
-				return portalElement(element);
-			}
-
-			// Why the layer-container fallback: when the trigger sits in a float
-			// portaled into an overlay's positioner, `closest` cannot reach the
-			// overlay's content element, so the popup would land on `document.body`
-			// at `z-50`, under the overlay tier.
-			return (
-				portalElement ??
-				triggerRef.current?.closest<HTMLElement>("[data-mantle-modal-content]") ??
-				(layerContainer instanceof HTMLElement ? layerContainer : null) ??
-				element.ownerDocument.body
-			);
-		},
-		[layerContainer, portalElement, triggerRef],
-	);
-
-	const hideOnInteractOutside = useCallback(
-		(event: Event) => {
-			// Keep the popover open when interacting with any part of the trigger
-			// (tags, buttons, input, padding). Ariakit would otherwise close on any
-			// mousedown outside the popover, including tag clicks.
-			if (event.target instanceof Node && triggerRef.current?.contains(event.target)) {
-				return false;
-			}
-			return true;
-		},
-		[triggerRef],
-	);
-
+	const { inputRef, listbox, open, setOpen, triggerRef } = useMultiSelectContext();
+	const { host, popupRef } = usePopup({
+		open,
+		anchorRef: triggerRef,
+		ownerRef: inputRef,
+		container: useLayerContainer(),
+		modal: enterModal,
+	});
+	const composedRef = useComposedRefs(ref, listbox.listboxProps.ref, popupRef);
+	const Component = asChild ? Slot : "div";
+	// Why `open`: a closed list renders no options, so a page of closed
+	// pickers holds no option elements in memory.
 	return (
-		<AriakitComboboxPopover
-			data-slot={joinDataSlot(dataSlot, "multi-select-content")}
-			className={cx(
-				"border-popover bg-popover relative z-50 max-h-96 min-w-32 scrollbar overflow-y-scroll overflow-x-hidden overscroll-y-none rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col gap-px focus:outline-hidden",
-				className,
-			)}
-			backdrop={backdrop}
-			getAnchorRect={getAnchorRect}
-			gutter={4}
-			hideOnInteractOutside={hideOnInteractOutside}
-			modal={modal}
-			portalElement={getPortalElement}
-			preventBodyScroll={preventBodyScroll ?? !isInsideModal}
-			ref={ref}
-			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
-			sameWidth={sameWidth}
-			unmountOnHide={unmountOnHide}
-			{...props}
-		>
-			{children}
-		</AriakitComboboxPopover>
+		host != null &&
+		open &&
+		createPortal(
+			<>
+				{/* Why: a touch screen reader has no Escape key, and a pick keeps this list open. */}
+				<button type="button" tabIndex={-1} className="sr-only" onClick={() => setOpen(false)}>
+					Dismiss popup
+				</button>
+				<Component
+					{...props}
+					{...listbox.listboxProps}
+					onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
+					aria-multiselectable
+					ref={composedRef}
+					data-slot={joinDataSlot(dataSlot, "multi-select-content")}
+					data-state="open"
+					className={cx(
+						"border-popover bg-popover relative z-50 max-h-96 max-h-(--available-height) min-w-32 scrollbar overflow-y-scroll overflow-x-hidden overscroll-y-none rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col gap-px outline-hidden",
+						sameWidth && "w-(--anchor-width)",
+						className,
+					)}
+					onKeyDown={composeHandlers(props.onKeyDown, (event) => {
+						// Why: a focused control in the footer, such as a button, closes the list on Escape too.
+						if (event.key === "Escape") {
+							setOpen(false);
+						}
+					})}
+					onBlur={composeHandlers(props.onBlur, (event) => {
+						// Why: focus that leaves a control in the list for outside the
+						// component closes the list, as it does from the input.
+						const { relatedTarget } = event;
+						const inside =
+							relatedTarget instanceof Element &&
+							(event.currentTarget.contains(relatedTarget) ||
+								relatedTarget.closest('[data-slot~="multi-select-trigger"]') != null);
+						if (!inside) {
+							setOpen(false);
+						}
+					})}
+				>
+					{children}
+				</Component>
+			</>,
+			host,
+		)
 	);
 };
 
@@ -988,7 +884,18 @@ const renderItemLabel = (label: ReactNode) => (
 /**
  * Props for `MultiSelect.Item`.
  */
-type MultiSelectItemProps = Omit<AriakitComboboxItemProps, "render"> & WithAsChild & WithDataSlot;
+type MultiSelectItemProps = Omit<ComponentProps<"div">, "value"> &
+	WithAsChild &
+	WithDataSlot & {
+		/**
+		 * Whether the item is inert.
+		 */
+		disabled?: boolean;
+		/**
+		 * The value that the item adds to or removes from the selection.
+		 */
+		value: string;
+	};
 
 /**
  * Renders a selectable item inside a `MultiSelect.Content` component.
@@ -1035,26 +942,30 @@ const Item = ({
 	asChild = false,
 	children,
 	className,
-	focusOnHover = true,
-	value,
+	disabled,
 	onClick,
+	onPointerMove,
+	value,
 	ref,
 	...props
 }: MultiSelectItemProps) => {
-	const lockedValues = useContext(LockedValuesContext);
-	const isLocked = value != null && lockedValues.includes(value);
+	const { listbox } = useMultiSelectContext();
+	const { selected, optionProps } = useOption(listbox, {
+		value,
+		disabled,
+		id: childId({ asChild, children, id: props.id }),
+	});
 
-	const check = (
-		<AriakitComboboxItemCheck className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
+	const check = selected && (
+		<span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
 			<Icon svg={<CheckIcon weight="bold" />} className="size-4 text-accent-600" />
-		</AriakitComboboxItemCheck>
+		</span>
 	);
 
 	let content: ReactNode;
 	if (asChild) {
-		// Why clone here and not in `render`: Ariakit hands `render` one element, and
-		// mantle's `Slot` takes one. The consumer's element becomes that one, with the
-		// label div and the check inside it, so both keep their places.
+		// Why clone here: the consumer's element becomes the option, with the label
+		// div and the check inside it, so both keep their places.
 		invariant(
 			isValidElement<PropsWithChildren>(children),
 			"When using `asChild`, MultiSelect.Item must be passed a single child as a JSX tag.",
@@ -1076,39 +987,30 @@ const Item = ({
 		);
 	}
 
+	const Component = asChild ? Slot : "div";
 	return (
-		<AriakitComboboxItem
+		<Component
+			{...props}
+			{...optionProps}
+			onClick={composeHandlers(onClick, optionProps.onClick)}
+			onPointerMove={composeHandlers(onPointerMove, optionProps.onPointerMove)}
 			data-slot={joinDataSlot(dataSlot, "multi-select-item")}
 			className={cx(
 				"relative mx-1 cursor-pointer rounded-md pl-2 pr-8 py-1.5 text-strong text-sm font-normal flex min-w-0 items-center gap-2",
 				"[[role=option]+&]:mt-px",
-				"data-active-item:bg-active-menu-item",
+				"data-highlighted:bg-active-menu-item",
 				"aria-disabled:opacity-50",
-				"aria-selected:bg-selected-menu-item aria-selected:data-active-item:bg-active-selected-menu-item",
+				"aria-selected:bg-selected-menu-item aria-selected:data-highlighted:bg-active-selected-menu-item",
 				className,
 			)}
-			focusOnHover={focusOnHover}
-			onClick={(event) => {
-				// Prevent Ariakit from toggling off a locked value.
-				// Ariakit checks event.defaultPrevented before executing its selection logic.
-				if (isLocked) {
-					event.preventDefault();
-					return;
-				}
-				onClick?.(event);
-			}}
 			ref={ref}
-			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
-			resetValueOnSelect
-			value={value}
-			{...props}
 		>
 			{content}
-		</AriakitComboboxItem>
+		</Component>
 	);
 };
 
-type MultiSelectGroupProps = Omit<AriakitComboboxGroupProps, "render"> & WithAsChild & WithDataSlot;
+type MultiSelectGroupProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 /**
  * Renders a group for MultiSelect.Item elements.
@@ -1140,22 +1042,25 @@ const Group = ({
 	ref,
 	...props
 }: MultiSelectGroupProps) => {
+	const labelId = useId();
+	const Component = asChild ? Slot : "div";
 	return (
-		<AriakitComboboxGroup
-			data-slot={joinDataSlot(dataSlot, "multi-select-group")}
-			className={cx("mx-1", className)}
-			ref={ref}
-			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
-			{...props}
-		>
-			{children}
-		</AriakitComboboxGroup>
+		<GroupLabelContext value={labelId}>
+			<Component
+				role="group"
+				aria-labelledby={labelId}
+				data-slot={joinDataSlot(dataSlot, "multi-select-group")}
+				className={cx("mx-1", className)}
+				ref={ref}
+				{...props}
+			>
+				{children}
+			</Component>
+		</GroupLabelContext>
 	);
 };
 
-type MultiSelectGroupLabelProps = Omit<AriakitComboboxGroupLabelProps, "render"> &
-	WithAsChild &
-	WithDataSlot;
+type MultiSelectGroupLabelProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
 /**
  * Renders a label in a multi-select group.
@@ -1186,16 +1091,17 @@ const GroupLabel = ({
 	ref,
 	...props
 }: MultiSelectGroupLabelProps) => {
+	const Component = asChild ? Slot : "div";
 	return (
-		<AriakitComboboxGroupLabel
+		<Component
+			id={use(GroupLabelContext)}
 			data-slot={joinDataSlot(dataSlot, "multi-select-group-label")}
 			className={cx("text-muted px-2 py-1 text-xs font-medium", className)}
 			ref={ref}
-			render={asChild ? ({ ref, ...childProps }) => <Slot ref={ref} {...childProps} /> : undefined}
 			{...props}
 		>
 			{children}
-		</AriakitComboboxGroupLabel>
+		</Component>
 	);
 };
 

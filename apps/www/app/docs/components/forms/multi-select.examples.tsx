@@ -35,16 +35,14 @@ export function BasicDemo() {
 			<Field.Label>Fruits</Field.Label>
 			<Field.Control>
 				<MultiSelect.Root
-					setOpen={() => {
+					onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+					onOpenChange={() => {
 						setSearchValue("");
 					}}
 				>
 					<MultiSelect.Trigger>
 						<MultiSelect.TagValues />
-						<MultiSelect.Input
-							onValueChange={(value) => startTransition(() => setSearchValue(value))}
-							placeholder="Select fruits..."
-						/>
+						<MultiSelect.Input placeholder="Select fruits..." />
 					</MultiSelect.Trigger>
 					<MultiSelect.Content aria-busy={isPending}>
 						{matches.map((value) => (
@@ -74,16 +72,14 @@ export function GroupedDemo() {
 			<Field.Label>Produce</Field.Label>
 			<Field.Control>
 				<MultiSelect.Root
-					setOpen={() => {
+					onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+					onOpenChange={() => {
 						setSearchValue("");
 					}}
 				>
 					<MultiSelect.Trigger>
 						<MultiSelect.TagValues />
-						<MultiSelect.Input
-							onValueChange={(value) => startTransition(() => setSearchValue(value))}
-							placeholder="Select items..."
-						/>
+						<MultiSelect.Input placeholder="Select items..." />
 					</MultiSelect.Trigger>
 					<MultiSelect.Content aria-busy={isPending}>
 						{filteredFruits.length > 0 && (
@@ -128,18 +124,16 @@ export function ControlledDemo() {
 			<Field.Label>Fruits</Field.Label>
 			<Field.Control>
 				<MultiSelect.Root
-					selectedValue={selected}
-					setOpen={() => {
+					onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+					value={selected}
+					onOpenChange={() => {
 						setSearchValue("");
 					}}
-					setSelectedValue={setSelected}
+					onValueChange={setSelected}
 				>
 					<MultiSelect.Trigger>
 						<MultiSelect.TagValues />
-						<MultiSelect.Input
-							onValueChange={(value) => startTransition(() => setSearchValue(value))}
-							placeholder="Select fruits..."
-						/>
+						<MultiSelect.Input placeholder="Select fruits..." />
 					</MultiSelect.Trigger>
 					<MultiSelect.Content aria-busy={isPending}>
 						{matches.map((value) => (
@@ -170,21 +164,19 @@ export function CreatableDemo() {
 			<Field.Label>Fruits</Field.Label>
 			<Field.Control>
 				<MultiSelect.Root
-					selectedValue={selected}
-					setOpen={() => {
+					onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+					value={selected}
+					onOpenChange={() => {
 						setSearchValue("");
 					}}
-					setSelectedValue={(values) => {
+					onValueChange={(values) => {
 						setSelected(values);
 						startTransition(() => setSearchValue(""));
 					}}
 				>
 					<MultiSelect.Trigger>
 						<MultiSelect.TagValues />
-						<MultiSelect.Input
-							onValueChange={(value) => startTransition(() => setSearchValue(value))}
-							placeholder="Select or create fruits..."
-						/>
+						<MultiSelect.Input placeholder="Select or create fruits..." />
 					</MultiSelect.Trigger>
 					<MultiSelect.Content aria-busy={isPending}>
 						{matches.map((value) => (
@@ -227,18 +219,16 @@ export function LockedValuesDemo() {
 			<Field.Label>Fruits</Field.Label>
 			<Field.Control>
 				<MultiSelect.Root
-					selectedValue={selected}
-					setOpen={() => {
+					onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+					value={selected}
+					onOpenChange={() => {
 						setSearchValue("");
 					}}
-					setSelectedValue={setSelected}
+					onValueChange={setSelected}
 				>
 					<MultiSelect.Trigger>
 						<MultiSelect.TagValues lockedValues={["apple", "cherry"]} />
-						<MultiSelect.Input
-							onValueChange={(value) => startTransition(() => setSearchValue(value))}
-							placeholder="Select fruits..."
-						/>
+						<MultiSelect.Input placeholder="Select fruits..." />
 					</MultiSelect.Trigger>
 					<MultiSelect.Content aria-busy={isPending}>
 						{matches.map((value) => (
@@ -265,16 +255,14 @@ export function ValidationDemo() {
 				<Field.Label>Fruits (error)</Field.Label>
 				<Field.Control>
 					<MultiSelect.Root
-						setOpen={() => {
+						onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+						onOpenChange={() => {
 							setSearchValue("");
 						}}
 					>
 						<MultiSelect.Trigger validation="error">
 							<MultiSelect.TagValues />
-							<MultiSelect.Input
-								onValueChange={(value) => startTransition(() => setSearchValue(value))}
-								placeholder="Error state..."
-							/>
+							<MultiSelect.Input placeholder="Error state..." />
 						</MultiSelect.Trigger>
 						<MultiSelect.Content aria-busy={isPending}>
 							{matches.map((value) => (
@@ -290,16 +278,14 @@ export function ValidationDemo() {
 				<Field.Label>Fruits (success)</Field.Label>
 				<Field.Control>
 					<MultiSelect.Root
-						setOpen={() => {
+						onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+						onOpenChange={() => {
 							setSearchValue("");
 						}}
 					>
 						<MultiSelect.Trigger validation="success">
 							<MultiSelect.TagValues />
-							<MultiSelect.Input
-								onValueChange={(value) => startTransition(() => setSearchValue(value))}
-								placeholder="Success state..."
-							/>
+							<MultiSelect.Input placeholder="Success state..." />
 						</MultiSelect.Trigger>
 						<MultiSelect.Content aria-busy={isPending}>
 							{matches.map((value) => (
@@ -315,16 +301,14 @@ export function ValidationDemo() {
 				<Field.Label>Fruits (warning)</Field.Label>
 				<Field.Control>
 					<MultiSelect.Root
-						setOpen={() => {
+						onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+						onOpenChange={() => {
 							setSearchValue("");
 						}}
 					>
 						<MultiSelect.Trigger validation="warning">
 							<MultiSelect.TagValues />
-							<MultiSelect.Input
-								onValueChange={(value) => startTransition(() => setSearchValue(value))}
-								placeholder="Warning state..."
-							/>
+							<MultiSelect.Input placeholder="Warning state..." />
 						</MultiSelect.Trigger>
 						<MultiSelect.Content aria-busy={isPending}>
 							{matches.map((value) => (

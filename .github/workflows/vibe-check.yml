@@ -158,6 +158,10 @@ jobs:
       - name: Build 🏗️
         run: pnpm run build
 
+      # Why after the build: the budget measures the published dist, after the React Compiler pass.
+      - name: Bundle Budget 📦
+        run: pnpm run check:bundle-budget
+
   typecheck:
     runs-on: ubuntu-latest
     timeout-minutes: 20
