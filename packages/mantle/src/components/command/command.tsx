@@ -21,6 +21,7 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { observeScrollEdges } from "../../utils/scroll-edges.js";
 import * as Dialog from "../dialog/dialog-parts.js";
 import { Separator } from "../separator/separator.js";
 import { Slot } from "../slot/index.js";
@@ -800,7 +801,8 @@ const CommandList = ({
 		label?: string;
 	}) => {
 	const { command, listboxId, listboxRef } = useCommandContext("Command.List");
-	const composedRef = useComposedRefs(listboxRef, command.attachList, ref);
+	const listRef = useComposedRefs(listboxRef, observeScrollEdges);
+	const composedRef = useComposedRefs(listRef, command.attachList, ref);
 	return (
 		<div
 			{...props}
@@ -814,8 +816,8 @@ const CommandList = ({
 				// Why relative: the list scrolls an option into view from its offset, which needs the list as its offset parent.
 				"relative max-h-75 scroll-py-6 overflow-x-hidden overflow-y-auto",
 				// Why: the list scrolls by wheel, touch, and keyboard with no visible bar, and a scroll at its end neither bounces nor moves the page.
-				// The edge fade is the cue that more items are past an edge.
-				"scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-fade-y",
+				// The `scroll-cue-y` fade is the cue that more items are past an edge.
+				"scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y",
 				className,
 			)}
 			onMouseDown={composeHandlers(onMouseDown, (event) => {

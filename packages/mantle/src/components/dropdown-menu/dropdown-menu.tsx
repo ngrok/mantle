@@ -40,6 +40,7 @@ import {
 } from "../../utils/float/use-float.js";
 import type { OutsideHandlers } from "../../utils/float/use-float.js";
 import { LayerContainerContext } from "../../utils/layer-container/layer-container.js";
+import { observeScrollEdges } from "../../utils/scroll-edges.js";
 import { Icon } from "../icon/icon.js";
 import { Separator } from "../separator/separator.js";
 import { Slot, slotContent } from "../slot/slot.js";
@@ -810,20 +811,25 @@ const panelClassName =
 
 /**
  * How the element that scrolls a menu's items scrolls. Why `scroll-py-6`: a
- * focused item scrolls clear of the 1.5rem `scroll-fade-y` fade at each edge.
+ * focused item scrolls clear of the 1.5rem `scroll-cue-y` fade at each edge.
  */
 const scrollClassName =
 	"scrollbar-none [&::-webkit-scrollbar]:hidden min-h-0 overflow-auto overscroll-none scroll-py-6 p-1.25 space-y-px";
 
 /**
- * Puts a menu panel's items in an element that scrolls them. Why a separate
- * element: the `scroll-fade-y` mask fades the edges of the element that has
- * it, and on the panel it would fade the border and shadow too. Why not under
- * `asChild`: a custom panel can render items of its own beside its children,
- * so the panel scrolls itself, with no fade.
+ * Puts a menu panel's items in an element that scrolls them, with the
+ * `scroll-cue-y` fade at each edge that has more items past it. Why the
+ * offsets: sticky offsets start inside the padding, so the cue moves out by
+ * the 1.25 padding to meet the edge. Why not under `asChild`: a custom panel
+ * can render items of its own beside its children, so the panel scrolls
+ * itself, with no cue.
  */
 const renderScroller = (items: ReactNode) => (
-	<div data-slot="dropdown-menu-viewport" className={cx("scroll-fade-y", scrollClassName)}>
+	<div
+		ref={observeScrollEdges}
+		data-slot="dropdown-menu-viewport"
+		className={cx("scroll-cue-y before:-top-1.25 after:-bottom-1.25", scrollClassName)}
+	>
 		{items}
 	</div>
 );

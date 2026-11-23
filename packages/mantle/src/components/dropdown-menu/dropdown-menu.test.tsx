@@ -370,10 +370,10 @@ function getItem(slot: string): HTMLElement {
 	return item;
 }
 
-// Cross-file spelling pin: `scroll-fade-y` is the @utility declared in
+// Cross-file spelling pin: `scroll-cue-y` is the @utility declared in
 // packages/mantle/src/mantle.css that fades the scrolled edges. It belongs on
-// the element that scrolls, not the menu, where the mask would fade the border.
-test("the scrolling element in the menu carries the scroll-fade-y edge mask", async () => {
+// the element that scrolls, which `observeScrollEdges` marks.
+test("the scrolling element in the menu carries the scroll-cue-y edge cue", async () => {
 	render(
 		<DropdownMenu.Root defaultOpen>
 			<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
@@ -385,9 +385,9 @@ test("the scrolling element in the menu carries the scroll-fade-y edge mask", as
 	const menu = await screen.findByRole("menu");
 	const scroller = screen.getByRole("menuitem").parentElement;
 
-	expect(scroller?.className).toContain("scroll-fade-y");
+	expect(scroller?.className).toContain("scroll-cue-y");
 	expect(scroller?.parentElement).toBe(menu);
-	expect(menu.className).not.toContain("scroll-fade-y");
+	expect(menu.className).not.toContain("scroll-cue-y");
 });
 
 describe.each([{ asChild: false }, { asChild: true }])(
