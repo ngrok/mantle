@@ -202,28 +202,15 @@ const createCommand = (initialValue: string) => {
 
 	/**
 	 * Puts each container's children back in the order they had before the
-	 * first sort. The children that mounted during the search after every saved
-	 * child stay at the end.
+	 * first sort. It moves only the children that the sort moved, so the
+	 * children that mounted during the search stay where they are.
 	 */
 	const restore = () => {
 		for (const [container, order] of natural) {
-			let anchor: Element | null = null;
-			for (
-				let node = container.lastElementChild;
-				node != null && !order.has(node);
-				node = node.previousElementSibling
-			) {
-				anchor = node;
-			}
-			for (const node of [...order.keys()].toReversed()) {
-				if (node.parentElement !== container) {
-					continue;
-				}
-				if (node.nextElementSibling !== anchor) {
-					container.insertBefore(node, anchor);
-				}
-				anchor = node;
-			}
+			place(
+				container,
+				[...order.keys()].filter((node) => node.parentElement === container),
+			);
 		}
 		natural.clear();
 	};
