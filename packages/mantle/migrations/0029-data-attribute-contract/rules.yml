@@ -281,8 +281,6 @@ rule:
     - matches: trigger-class
     - not:
         matches: radix-file
-    - not:
-        matches: own-state-class
 transform:
   T1:
     replace:
@@ -676,8 +674,6 @@ rule:
     - matches: select-item-class
     - not:
         matches: radix-file
-    - not:
-        matches: own-state-class
 transform:
   T1:
     replace:
@@ -855,8 +851,6 @@ rule:
     - matches: checkbox-item-class
     - not:
         matches: radix-file
-    - not:
-        matches: own-state-class
 transform:
   T1:
     replace:
@@ -1029,8 +1023,6 @@ rule:
     - matches: tab-list-class
     - not:
         matches: radix-file
-    - not:
-        matches: own-state-class
 transform:
   T1:
     replace:
@@ -1203,6 +1195,14 @@ rule:
     - not:
         matches: radix-file
     - matches: own-state-class
+    - not:
+        matches: trigger-class
+    - not:
+        matches: select-item-class
+    - not:
+        matches: checkbox-item-class
+    - not:
+        matches: tab-list-class
 transform:
   # Why only an unprefixed variant: the element's own data-state is what it
   # reads. A group- or peer- variant reads another element, so the general map

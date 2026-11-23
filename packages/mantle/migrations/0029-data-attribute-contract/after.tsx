@@ -102,6 +102,7 @@ export function OwnState({ open }: { open: boolean }) {
 				data-state="open"
 				className="group-data-open:rotate-90 hover:data-[state~=closed]:p-1"
 			/>
+			<Tabs.List data-state="idle" className="aria-[orientation=vertical]:pl-4" />
 			<Popover.Content className="not-data-open:opacity-0" />
 		</div>
 	);
