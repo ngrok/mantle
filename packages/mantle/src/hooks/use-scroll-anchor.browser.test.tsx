@@ -260,11 +260,50 @@ describe("useScrollAnchor", () => {
 		// A wheel turn, then the scroll it makes.
 		region().dispatchEvent(new WheelEvent("wheel", { bubbles: true }));
 		region().scrollTop -= 50;
-		const scrollTop = region().scrollTop;
 		view.rerender(<Region anchorRef={anchorRef} width={360} />);
 		await nextFrame();
 
-		expect(region().scrollTop).toBe(scrollTop);
+		// The browser's own scroll anchoring may move the region; the hold must not.
+		expect(Math.abs(stepTwelveOffset())).toBeGreaterThan(1);
+	});
+
+	test("stops holding the place when the app scrolls in the frame the width changes", async () => {
+		const anchorRef = { current: null };
+		const first = render(<Region anchorRef={anchorRef} width={240} />);
+		region().scrollTop += stepTwelveOffset();
+		first.unmount();
+
+		const view = render(<Region anchorRef={anchorRef} width={720} />);
+		view.rerender(<Region anchorRef={anchorRef} width={360} />);
+		// A transcript that scrolls to its newest message, with no reader event.
+		region().scrollTop = region().scrollHeight;
+		await nextFrame();
+
+		expect(region().scrollTop).toBe(region().scrollHeight - region().clientHeight);
+	});
+
+	test("leaves the page alone when text clipped in a nested scroller reaches past the region", () => {
+		const anchorRef = { current: null };
+		function Page({ width }: { width: number }) {
+			const anchorContent = useScrollAnchor({ anchorRef });
+			return (
+				<div style={{ minHeight: 2000, paddingTop: 100 }}>
+					<div data-testid="region" style={{ width, height: 300, overflowY: "auto" }}>
+						<div ref={anchorContent}>
+							<pre style={{ height: 180, overflow: "auto", margin: 0 }}>{"line\n".repeat(100)}</pre>
+							<p>{paragraphs.slice(0, 3).join(" ")}</p>
+						</div>
+					</div>
+				</div>
+			);
+		}
+		const first = render(<Page width={240} />);
+		region().scrollTop = 60;
+		first.unmount();
+
+		render(<Page width={720} />);
+
+		expect(window.scrollY).toBe(0);
 	});
 
 	test("leaves the page alone when the content now fits its fixed-height region", () => {

@@ -137,15 +137,15 @@ const readerScrollEvents = ["wheel", "touchstart", "pointerdown", "keydown"] as 
  * after layout and before paint, so each new width shows the place at once. A
  * change in height at the same width is new content, such as a streaming
  * reply, and it scrolls the way the content decides. A reader's wheel, touch,
- * press, or key ends the hold. So does a scroll by code: a scroll event, or
- * the detach, finds the region away from where the hold last put it.
+ * press, or key ends the hold, and so does any move of the region that the
+ * hold did not make, such as an app that scrolls to its newest message.
  */
 function holdAnchor(content: HTMLElement, anchor: Omit<ScrollAnchor, "key">): () => boolean {
 	let region = scrollToAnchor(content, anchor);
 	if (typeof ResizeObserver === "undefined") {
 		return () => false;
 	}
-	let expected = region.scrollTop;
+	let expected = 0;
 	let holding = true;
 	let size = content.getBoundingClientRect();
 	const moved = () => Math.abs(region.scrollTop - expected) > 1;
@@ -156,16 +156,29 @@ function holdAnchor(content: HTMLElement, anchor: Omit<ScrollAnchor, "key">): ()
 			release();
 		}
 	};
-	// The first call reports the size at `observe`, which changes nothing. Why a
-	// new width places the anchor again even when the region moved: the browser's
-	// own scroll anchoring moves it during the reflow, not the reader.
+	let unpin: (() => void) | undefined;
+	// Why pin: the browser's own scroll anchoring moves the region when the text
+	// reflows. With it off, only the reader or the app moves the region, and a
+	// move ends the hold.
+	const pin = (next: HTMLElement) => {
+		scrollTarget().removeEventListener("scroll", onScroll);
+		unpin?.();
+		region = next;
+		const overflowAnchor = next.style.overflowAnchor;
+		next.style.overflowAnchor = "none";
+		unpin = () => {
+			next.style.overflowAnchor = overflowAnchor;
+		};
+		expected = next.scrollTop;
+		scrollTarget().addEventListener("scroll", onScroll, { passive: true });
+	};
+	// The first call reports the size at `observe`, which changes nothing.
 	const observer = new ResizeObserver(() => {
 		const next = content.getBoundingClientRect();
-		if (next.width !== size.width) {
-			scrollTarget().removeEventListener("scroll", onScroll);
-			region = scrollToAnchor(content, anchor);
-			expected = region.scrollTop;
-			scrollTarget().addEventListener("scroll", onScroll, { passive: true });
+		if (moved()) {
+			release();
+		} else if (next.width !== size.width) {
+			pin(scrollToAnchor(content, anchor));
 		} else if (next.height !== size.height) {
 			release();
 		}
@@ -176,13 +189,14 @@ function holdAnchor(content: HTMLElement, anchor: Omit<ScrollAnchor, "key">): ()
 		holding = false;
 		observer.disconnect();
 		scrollTarget().removeEventListener("scroll", onScroll);
+		unpin?.();
 		for (const type of readerScrollEvents) {
 			window.removeEventListener(type, release, true);
 		}
 		return held;
 	};
+	pin(region);
 	observer.observe(content);
-	scrollTarget().addEventListener("scroll", onScroll, { passive: true });
 	for (const type of readerScrollEvents) {
 		window.addEventListener(type, release, { capture: true, passive: true });
 	}
@@ -226,13 +240,16 @@ function hasRoomBelow(element: HTMLElement): boolean {
 		element.getBoundingClientRect().bottom -
 		Number.parseFloat(style.borderBottomWidth) -
 		Number.parseFloat(style.paddingBottom);
-	// Why a range: it measures the element's own text too, which has no box.
-	const range = document.createRange();
-	range.selectNodeContents(element);
-	let contentBottom = Math.max(
-		element.getBoundingClientRect().top + Number.parseFloat(style.borderTopWidth),
-		range.getClientRects().length > 0 ? range.getBoundingClientRect().bottom : -Infinity,
-	);
+	let contentBottom = element.getBoundingClientRect().top + Number.parseFloat(style.borderTopWidth);
+	// Why a range for each text node: the element's own text has no box. Only its
+	// own: text clipped inside a nested scroller reaches past what it shows.
+	for (const node of element.childNodes) {
+		if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) {
+			const range = document.createRange();
+			range.selectNodeContents(node);
+			contentBottom = Math.max(contentBottom, range.getBoundingClientRect().bottom);
+		}
+	}
 	let last = Array.from(element.children).findLast(scrollsWithText);
 	while (last != null) {
 		contentBottom = Math.max(
