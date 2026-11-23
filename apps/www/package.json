@@ -9,6 +9,7 @@
     "serve": "app-server serve",
     "start": "app-server start",
     "test": "vitest run --passWithNoTests",
+    "eval:find": "vitest run app/utilities/mcp/find-golden.server.test.ts",
     "test:watch": "vitest watch",
     "typecheck": "react-router typegen && tsrs",
     "bench": "node bench/run.ts",

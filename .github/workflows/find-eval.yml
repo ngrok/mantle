@@ -1,0 +1,68 @@
+name: Find Eval
+
+# The golden-query eval for the MCP `find` tool. It runs when a change can move a
+# ranking: docs and recipe frontmatter, JSDoc in the mantle source, the manifest
+# builder, or the scorer. The run page shows a table of each regression.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths: &paths
+      - "apps/www/app/docs/**"
+      - "apps/www/app/utilities/mcp/**"
+      - "apps/www/app/utilities/agent-manifest.server.ts"
+      - "apps/www/app/utilities/docs.ts"
+      - "apps/www/app/utilities/mantle-source.server.ts"
+      - "packages/mantle/src/**"
+      - "packages/mantle/scripts/agent-manifest.ts"
+      - ".github/workflows/find-eval.yml"
+  push:
+    branches: [main]
+    paths: *paths
+  workflow_dispatch:
+
+concurrency:
+  group: find-eval-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+env:
+  DO_NOT_TRACK: 1
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  TURBO_TELEMETRY_DISABLED: 1
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_API: https://turborepo-ci.corp.ngrok.com
+
+jobs:
+  find-golden-queries:
+    name: find golden queries
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Install pnpm 📦
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: Install Dependencies 📥
+        run: pnpm install --frozen-lockfile
+
+      # Why: the docs site's Vite config loads the built workspace plugins.
+      - name: Build the docs site's workspace dependencies 🏗️
+        run: pnpm exec turbo run build --filter='@app/www^...'
+
+      - name: Rank the golden queries 🎯
+        run: FIND_EVAL_REPORT="${GITHUB_STEP_SUMMARY}" pnpm -F @app/www run eval:find
