@@ -50,8 +50,8 @@ if (canUseDOM() && "happyDOM" in window) {
 }
 
 // Why: Chromium computes `::before` and `::after` content, which can name an element
-// (`ThemeSwitcher`). Testing Library reads it only when told; happy-dom computes none.
-if (canUseDOM() && !("happyDOM" in window)) {
+// (`ThemeSwitcher`). Testing Library reads it only when told; happy-dom and jsdom compute none.
+if (canUseDOM() && !("happyDOM" in window) && !navigator.userAgent.includes("jsdom")) {
 	configure({ computedStyleSupportsPseudoElements: true });
 }
 

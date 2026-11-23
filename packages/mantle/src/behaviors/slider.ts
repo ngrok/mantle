@@ -145,7 +145,8 @@ function sliderBehavior({
 			) {
 				return;
 			}
-			target.setPointerCapture(event.pointerId);
+			// Why optional: jsdom has no pointer capture, and a consumer test must still press.
+			target.setPointerCapture?.(event.pointerId);
 			// Why: a press neither selects text nor moves focus to the root.
 			event.preventDefault();
 			const edge = edgeOfMin(root);

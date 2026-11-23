@@ -20,16 +20,24 @@
  * `not.toBeVisible()` stays legal. `.oxlintrc.json` turns the rule off for
  * `*.browser.test.*`.
  *
+ * `require-force-reason`: `{ force: true }` skips the checks that a user's
+ * pointer would fail, so it can hide a part that a consumer cannot click.
+ * Put a `Why` comment in the same paragraph, the lines above it up to a blank
+ * line (COMPONENT_SPEC.md §3.6).
+ *
  * @example
  * // ❌ Incorrect
  * test("loads", () => { expect(result).toBeDefined(); });
  * afterEach(() => { vi.restoreAllMocks(); });
  * process.env.NODE_ENV = "test";
  * expect(screen.getByRole("heading")).toBeVisible(); // in happy-dom
+ * await userEvent.click(row, { force: true });
  *
  * // ✅ Correct
  * vi.stubEnv("NODE_ENV", "test");
  * expect(screen.getByRole("heading")).toBeInTheDocument();
+ * // Why force: the radio covers its text, so the pointer lands on the radio.
+ * await userEvent.click(screen.getByText("Pro"), { force: true });
  */
 
 const TEST_FUNCTION_NAMES = new Set(["it", "test"]);
@@ -274,6 +282,59 @@ const noProcessEnvWrite = {
 	},
 };
 
+/** The pointer actions of Testing Library `user` and Vitest browser `userEvent` that take a `force` option. */
+const POINTER_ACTIONS = new Set([
+	"check",
+	"click",
+	"dblClick",
+	"dragAndDrop",
+	"fill",
+	"hover",
+	"selectOptions",
+	"tripleClick",
+	"uncheck",
+	"unhover",
+]);
+const WHY = /\/\/.*\bWhy\b|\/\*.*\bWhy\b/;
+
+const requireForceReason = {
+	meta: {},
+	create(context) {
+		const { lines } = context.sourceCode;
+		return {
+			Property(node) {
+				if (
+					node.computed ||
+					node.key.type !== "Identifier" ||
+					node.key.name !== "force" ||
+					node.value.type !== "Literal" ||
+					node.value.value !== true ||
+					node.parent.parent?.type !== "CallExpression" ||
+					node.parent.parent.callee.type !== "MemberExpression" ||
+					!POINTER_ACTIONS.has(node.parent.parent.callee.property.name)
+				) {
+					return;
+				}
+				// Why walk up from the end line: the reason can sit beside the call or above it.
+				for (let line = node.loc.end.line; line >= 1; line--) {
+					const text = lines[line - 1] ?? "";
+					if (WHY.test(text)) {
+						return;
+					}
+					if (line < node.loc.start.line && text.trim() === "") {
+						break;
+					}
+				}
+				context.report({
+					message:
+						"Explain `force: true` with a `// Why force:` comment in the same paragraph. A consumer's pointer gets no `force`, so the part must take a real click (COMPONENT_SPEC.md §3.6).",
+					node,
+				});
+			},
+		};
+	},
+};
+
 const plugin = {
 	meta: { name: "mantle" },
 	rules: {
@@ -281,6 +342,7 @@ const plugin = {
 		"no-happy-dom-to-be-visible": noHappyDomToBeVisible,
 		"no-only-to-be-defined": noOnlyToBeDefined,
 		"no-process-env-write": noProcessEnvWrite,
+		"require-force-reason": requireForceReason,
 	},
 };
 

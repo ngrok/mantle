@@ -528,7 +528,8 @@ function ThemeSwitcher({
 				if (!event.defaultPrevented) {
 					// Why read the OS preference here: the click is the only reader, so the
 					// switcher holds no media query list between clicks.
-					const prefersDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
+					const prefersDarkMode =
+						window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
 					const status = themeStatuses.get(statusContainer(event.currentTarget));
 					setTheme(
 						(current) => {

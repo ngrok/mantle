@@ -307,6 +307,7 @@ describe("RadioGroup item clicks", () => {
 		expect(pro).toHaveFocus();
 		expect(onItemClick).toHaveBeenCalledTimes(2);
 
+		// Why force: the radio covers its text here too.
 		await userEvent.click(screen.getByText("Free"), { force: true });
 		await userEvent.click(screen.getByText("Pro"), { force: true });
 		expect(pro).toBeChecked();

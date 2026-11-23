@@ -529,6 +529,7 @@
 		"d3-scale": "4.0.3",
 		"d3-shape": "3.2.1",
 		"happy-dom": "catalog:",
+		"jsdom": "catalog:",
 		"magic-string": "catalog:",
 		"oxc-parser": "catalog:",
 		"oxc-transform-react": "catalog:",
