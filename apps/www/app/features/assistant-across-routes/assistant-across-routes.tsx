@@ -1,11 +1,10 @@
 import { AppLayout, useSidePanel } from "@ngrok/mantle/app-layout";
 import { IconButton } from "@ngrok/mantle/button";
-import { cx } from "@ngrok/mantle/cx";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { Tooltip } from "@ngrok/mantle/tooltip";
 import { PencilSimpleLineIcon } from "@phosphor-icons/react/PencilSimpleLine";
 import { XIcon } from "@phosphor-icons/react/X";
-import type { ComponentProps } from "react";
+import { type ComponentProps, type ReactNode, ViewTransition } from "react";
 import {
 	AssistantComposer,
 	AssistantTranscript,
@@ -51,28 +50,51 @@ function isAssistantPath(pathname: string): boolean {
 }
 
 /**
- * Returns true when a navigation enters or leaves the assistant's route. Those
- * are the only navigations that move the conversation between `main` and the
- * panel, so they are the only ones that run the view transition.
- *
- * @example
- * ```ts
- * crossesAssistant("/assistant", "/endpoints"); // true
- * crossesAssistant("/endpoints", "/domains"); // false
- * ```
+ * The `<ViewTransition>` name the assistant's two homes share.
+ * `AssistantContentCard` gives it to `AppLayout.Content` on the assistant's
+ * route, and `AssistantPanel` gives it to the open panel on every other route,
+ * so each state names exactly one element and React morphs the one into the
+ * other. Mantle styles the morph: both cards carry
+ * `view-transition-class: app-layout-card`.
  */
-function crossesAssistant(from: string, to: string): boolean {
-	return isAssistantPath(from) !== isAssistantPath(to);
-}
+const assistantViewTransitionName = "assistant";
 
 /**
- * The `view-transition-name` the assistant's two homes share, as a class.
- * `AppLayout.Content` carries it on the assistant route and the open panel
- * carries it on every other route, so each state names exactly one element.
- * A name on two elements at once makes the browser skip the whole transition.
- * `assistant-view-transition.css` times the group by this name.
+ * The shell's content card. On the assistant's route it carries the
+ * assistant's view transition name, so the page morphs into the panel when the
+ * reader leaves. Elsewhere it has no name, so the page fades out under the
+ * assistant as it grows and fades back in as it shrinks: React does not
+ * crossfade the rest of the document on its own.
+ *
+ * Why the key: React morphs a name only from a boundary that unmounts to one
+ * that mounts, so the card remounts when a navigation crosses the assistant's
+ * route. `update="none"`: a navigation between two product pages does not fade.
+ *
+ * @example
+ * ```tsx
+ * <AssistantContentCard onAssistantPage={isAssistantPath(pathname)}>
+ *   <Outlet />
+ * </AssistantContentCard>
+ * ```
  */
-const assistantViewTransitionClassName = "[view-transition-name:assistant]";
+function AssistantContentCard({
+	onAssistantPage,
+	children,
+}: {
+	/** True on the assistant's route. Read it with `isAssistantPath`. */
+	onAssistantPage: boolean;
+	children: ReactNode;
+}) {
+	return (
+		<ViewTransition
+			key={onAssistantPage ? "assistant" : "page"}
+			name={onAssistantPage ? assistantViewTransitionName : undefined}
+			update="none"
+		>
+			<AppLayout.Content>{children}</AppLayout.Content>
+		</ViewTransition>
+	);
+}
 
 /** The control that starts a new conversation, in both headers. */
 function NewConversationButton() {
@@ -151,9 +173,9 @@ function AssistantPage() {
  * ```tsx
  * <AppLayout.Workspace>
  *   <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
- *   <AppLayout.Content className={cx(onAssistantPage && assistantViewTransitionClassName)}>
+ *   <AssistantContentCard onAssistantPage={onAssistantPage}>
  *     <Outlet />
- *   </AppLayout.Content>
+ *   </AssistantContentCard>
  *   {!onAssistantPage && <AssistantPanel />}
  * </AppLayout.Workspace>
  * ```
@@ -167,34 +189,37 @@ function AssistantPanel({
 	const { open } = useSidePanel();
 
 	return (
-		<AppLayout.SidePanel
-			aria-label="Assistant"
-			mobileBreakpoint={mobileBreakpoint}
-			// Why only when open: a closed panel is a zero-width box, and a morph
+		<ViewTransition
+			name={assistantViewTransitionName}
+			// Why "none" when closed: a closed panel is a zero-width box, and a morph
 			// from the page into it reads as the conversation folding into nothing.
-			className={cx(open && assistantViewTransitionClassName)}
+			default={open ? "auto" : "none"}
+			// Why: a reply that streams inside the panel must not fade it.
+			update="none"
 		>
-			<AppLayout.SidePanelHeader>
-				<h2 className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</h2>
-				<NewConversationButton />
-				<AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
-			</AppLayout.SidePanelHeader>
-			<AppLayout.SidePanelBody>
-				<AssistantTranscript />
-			</AppLayout.SidePanelBody>
-			<AppLayout.SidePanelFooter>
-				<AssistantComposer />
-			</AppLayout.SidePanelFooter>
-		</AppLayout.SidePanel>
+			<AppLayout.SidePanel aria-label="Assistant" mobileBreakpoint={mobileBreakpoint}>
+				<AppLayout.SidePanelHeader>
+					<h2 className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</h2>
+					<NewConversationButton />
+					<AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
+				</AppLayout.SidePanelHeader>
+				<AppLayout.SidePanelBody>
+					<AssistantTranscript />
+				</AppLayout.SidePanelBody>
+				<AppLayout.SidePanelFooter>
+					<AssistantComposer />
+				</AppLayout.SidePanelFooter>
+			</AppLayout.SidePanel>
+		</ViewTransition>
 	);
 }
 
 export {
 	//,
+	AssistantContentCard,
 	AssistantPage,
 	AssistantPanel,
 	assistantPath,
-	assistantViewTransitionClassName,
-	crossesAssistant,
+	assistantViewTransitionName,
 	isAssistantPath,
 };

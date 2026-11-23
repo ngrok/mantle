@@ -6,10 +6,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AssistantAcrossRoutesDemo } from "~/features/assistant-across-routes-demo";
 
 // Why a stub: happy-dom has no View Transitions. It runs the update at once,
-// the way react-router falls back in a browser without them, and the count is
-// the only trace of which navigations asked for one.
-const startViewTransition = vi.fn<(update: () => void) => ViewTransition>((update) => {
-	update();
+// the way React falls back in a browser without them, and the count is the
+// only trace of which navigations asked for one. React passes an options
+// object with the update in it.
+const startViewTransition = vi.fn<
+	(update: (() => void) | { update: () => void }) => ViewTransition
+>((update) => {
+	if (typeof update === "function") {
+		update();
+	} else {
+		update.update();
+	}
 	return {
 		finished: Promise.resolve(),
 		ready: Promise.resolve(),

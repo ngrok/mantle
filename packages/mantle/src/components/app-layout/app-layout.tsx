@@ -289,6 +289,13 @@ const Workspace = ({
  * against the card instead of escaping to `AppLayout.Root` and painting across
  * the sidebar.
  *
+ * It carries `view-transition-class: app-layout-card`, and so does
+ * `AppLayout.SidePanel`. When an app gives the card and the panel the same
+ * `view-transition-name`, such as an assistant that is the page on its own
+ * route and the panel on every other one, a navigation between them morphs
+ * one card into the other. `mantle.css` styles the morph; the app only names
+ * the cards. See the Assistant Across Routes recipe.
+ *
  * **CSS variables (public API):**
  *
  * | CSS Variable | Default | Description |
@@ -349,6 +356,9 @@ const Content = ({
 				// scrollbar, so a long toolbar lets focus scroll the card sideways.
 				// That translates the header and the page off-screen with no way back.
 				"overflow-clip",
+				// The morph to and from `AppLayout.SidePanel` in `mantle.css`. A class
+				// does nothing until the app names the card.
+				"[view-transition-class:app-layout-card]",
 				className,
 			)}
 			{...props}
@@ -1213,6 +1223,11 @@ type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
  *   width, so the content never reflows or shifts.
  * - The box's start edge sweeps across the card.
  *
+ * It carries `view-transition-class: app-layout-card`, the same as
+ * `AppLayout.Content`, so a panel and a card with the same
+ * `view-transition-name` morph into each other on a navigation that swaps
+ * them. `mantle.css` styles the morph.
+ *
  * A CSS transition reverses from wherever it is, so a second click mid-flight
  * turns the panel around. `motion-reduce:transition-none` turns the slide into
  * a cut. `not-data-hydrated:transition-none` holds the transition until one
@@ -1448,6 +1463,9 @@ const SidePanel = ({
 				// Why isolate: a page's sticky rows carry their own z-index, and the
 				// panel's children must stack inside the panel, not against them.
 				"isolate",
+				// The morph to and from `AppLayout.Content` in `mantle.css`. A class
+				// does nothing until the app names the panel.
+				"[view-transition-class:app-layout-card]",
 				// Why clip on the inline axis only: the sweep is horizontal, and a
 				// clip on both axes would cut the card's shadow at the top and bottom.
 				"overflow-x-clip",

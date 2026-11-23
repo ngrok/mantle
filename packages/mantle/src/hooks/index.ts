@@ -35,6 +35,12 @@ export {
 	getPrefersReducedMotion,
 	usePrefersReducedMotion,
 } from "./use-prefers-reduced-motion.js";
+export { useScrollAnchor } from "./use-scroll-anchor.js";
+export type {
+	//,
+	ScrollAnchor,
+	UseScrollAnchorOptions,
+} from "./use-scroll-anchor.js";
 export { useScrollBehavior } from "./use-scroll-behavior.js";
 export { useSwipeToDismiss } from "./use-swipe-to-dismiss.js";
 export type {

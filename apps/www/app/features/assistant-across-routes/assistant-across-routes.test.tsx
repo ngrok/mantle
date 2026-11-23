@@ -7,9 +7,6 @@ import { userEvent } from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	AssistantPage,
-	AssistantPanel,
-	assistantViewTransitionClassName,
-	crossesAssistant,
 	isAssistantPath,
 } from "~/features/assistant-across-routes/assistant-across-routes";
 import {
@@ -45,17 +42,6 @@ describe("isAssistantPath", () => {
 		["/endpoints", false],
 	])("%s → %s", (pathname, expected) => {
 		expect(isAssistantPath(pathname)).toBe(expected);
-	});
-});
-
-describe("crossesAssistant", () => {
-	it.each([
-		["/assistant", "/endpoints", true],
-		["/endpoints", "/assistant", true],
-		["/endpoints", "/domains", false],
-		["/assistant", "/assistant/c_123", false],
-	])("%s → %s crosses: %s", (from, to, expected) => {
-		expect(crossesAssistant(from, to)).toBe(expected);
 	});
 });
 
@@ -183,35 +169,5 @@ describe("AssistantPage", () => {
 		await user.click(screen.getByRole("button", { name: firstStarter }));
 
 		expect(trigger.getAttribute("aria-expanded")).toBe("true");
-	});
-});
-
-describe("AssistantPanel", () => {
-	function renderPanel({ open }: { open: boolean }) {
-		render(
-			<TooltipProvider>
-				<AssistantConversationProvider>
-					<AppLayout.SidePanelRoot defaultOpen={open}>
-						<AssistantPanel />
-					</AppLayout.SidePanelRoot>
-				</AssistantConversationProvider>
-			</TooltipProvider>,
-		);
-		return screen.getByRole("complementary", { name: "Assistant" });
-	}
-
-	// Why a class assertion: the name is a contract that crosses files. The
-	// assistant route puts the same class on `AppLayout.Content`, and
-	// `assistant-view-transition.css` times `::view-transition-group(assistant)`.
-	it("names the open panel for the view transition", () => {
-		const panel = renderPanel({ open: true });
-		expect(panel.classList.contains(assistantViewTransitionClassName)).toBe(true);
-	});
-
-	// Why assert the absence: a named closed panel beside a named page is the
-	// one duplicate that makes the browser skip the transition.
-	it("leaves the closed panel unnamed", () => {
-		const panel = renderPanel({ open: false });
-		expect(panel.classList.contains(assistantViewTransitionClassName)).toBe(false);
 	});
 });
