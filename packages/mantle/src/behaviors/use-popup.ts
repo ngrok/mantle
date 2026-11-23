@@ -89,8 +89,6 @@ const usePopup = ({
 					align: "start",
 					sideOffset: OFFSET,
 					fallback: "larger",
-					placeWith: "script",
-					releaseAnchorAfter: 0,
 				});
 				const document = floating.ownerDocument;
 				const onPointerDown = (event: PointerEvent) => {

@@ -1369,6 +1369,7 @@ describe("Sheet positioning", () => {
 			await commands.tailwindCss("./native-primitive.tsx"),
 			await commands.tailwindCss("../sheet/sheet.tsx"),
 			await commands.tailwindCss("../sheet/presentation.tsx"),
+			await commands.tailwindCss("../../utils/float/use-float.ts"),
 		].join("\n");
 		document.head.append(style);
 		onTestFinished(() => style.remove());
@@ -1389,6 +1390,8 @@ describe("Sheet positioning", () => {
 		const trigger = screen.getByRole("button", { name: "Open float" });
 		await userEvent.click(trigger);
 		const content = await screen.findByText("float content");
+		// Why: the open transition scales the box.
+		await Promise.all(content.getAnimations().map((animation) => animation.finished));
 
 		const triggerRect = trigger.getBoundingClientRect();
 		const contentRect = content.getBoundingClientRect();

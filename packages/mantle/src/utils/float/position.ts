@@ -1,5 +1,3 @@
-import { canUseDOM } from "../../components/browser-only/can-use-dom.js";
-
 /** The side of the anchor that a float sits on. */
 type Side = "top" | "right" | "bottom" | "left";
 
@@ -163,24 +161,6 @@ function computePlacement({
 }
 
 /**
- * Whether the browser places floats with CSS anchor positioning. Safari before
- * 26 and Firefox before 147 do not, so `trackFloat` places floats from script there.
- */
-const supportsAnchorPositioning =
-	canUseDOM() &&
-	typeof CSS !== "undefined" &&
-	CSS.supports("anchor-name: --a") &&
-	CSS.supports("position-area: top");
-
-/** The `position-area` for each side and alignment, in physical keywords so it matches `computePlacement`. */
-const positionArea = {
-	top: { start: "top span-right", center: "top", end: "top span-left" },
-	bottom: { start: "bottom span-right", center: "bottom", end: "bottom span-left" },
-	left: { start: "left span-bottom", center: "left", end: "left span-top" },
-	right: { start: "right span-bottom", center: "right", end: "right span-top" },
-} as const satisfies Record<Side, Record<Align, string>>;
-
-/**
  * Where an arrow sits for each side the float resolves to. The arrow points
  * down at rest; each side moves it to the edge that faces the anchor and turns it.
  */
@@ -252,18 +232,16 @@ function toLocalPoint(
 	};
 }
 
-let anchorCount = 0;
-
 /**
  * Keeps an open float next to `anchor` and returns the cleanup. After each
- * scroll, resize, size change, and end of a transition or animation,
- * `computePlacement` picks the side. With CSS anchor positioning, the browser
- * places the float on that side and keeps it there between frames. Without it,
- * this places the float.
+ * scroll, resize, size change, and end of a transition or animation, it
+ * places the float with `left` and `top` on the side that `computePlacement`
+ * picks.
  *
- * Why not `position-try-fallbacks`: WebKit drops the registered custom
- * properties of a float that takes a fallback, so Tailwind's border and shadow
- * utilities paint nothing.
+ * Why not CSS anchor positioning: Chromium recalculates style and layout of
+ * an anchor-positioned element on each frame of a transition on it, even an
+ * opacity transition, so each open fade costs a layout per frame. The script
+ * places the float once for each change.
  *
  * With `fallback: "larger"`, it sizes the float by its content height
  * (`scrollHeight`), so a list that `--available-height` caps can still move
@@ -276,7 +254,7 @@ let anchorCount = 0;
  *
  * @example
  * ```ts
- * const stop = trackFloat({ anchor: trigger, floating: content, side: "bottom", align: "start", sideOffset: 4, releaseAnchorAfter: 150 });
+ * const stop = trackFloat({ anchor: trigger, floating: content, side: "bottom", align: "start", sideOffset: 4 });
  * // later, when the float closes
  * stop();
  * ```
@@ -287,8 +265,6 @@ function trackFloat({
 	fallback = "preferred",
 	dir,
 	floating,
-	placeWith = "css",
-	releaseAnchorAfter,
 	side,
 	sideOffset,
 }: {
@@ -298,20 +274,9 @@ function trackFloat({
 	/** The reading direction that `start` and `end` follow. Defaults to the anchor's direction. */
 	dir?: "ltr" | "rtl";
 	floating: HTMLElement;
-	/**
-	 * Who places the float where the browser has CSS anchor positioning.
-	 * Why `"script"` for the picker lists: on a page of 50 pickers, Chromium
-	 * recalculated style and layout on each frame of an anchor-positioned
-	 * list's open, and the open took about 80 ms longer than from script.
-	 */
-	placeWith?: "css" | "script";
-	/** How long after the cleanup the float keeps its anchor, in milliseconds, so its exit transition plays in place. */
-	releaseAnchorAfter: number;
 	side: Side;
 	sideOffset: number;
 }): () => void {
-	const anchorName = `--mantle-float-${++anchorCount}`;
-	const css = supportsAnchorPositioning && placeWith === "css";
 	// Why: `start` and `end` follow the text direction, as they did with Radix.
 	// Above or below the anchor in a right-to-left document, `start` is the right edge.
 	const align =
@@ -321,52 +286,7 @@ function trackFloat({
 			? oppositeAlign[logicalAlign]
 			: logicalAlign;
 	const arrow = floating.querySelector<HTMLElement>(":scope > [data-float-arrow]");
-	// Why the arrow's height: the arrow sticks out of the float toward the
-	// anchor, so `sideOffset` is the gap between its tip and the anchor.
-	let gap = sideOffset + (arrow?.offsetHeight ?? 0);
 	floating.style.inset = "auto";
-	// Why: a float that is placed again keeps the margins of its last placement.
-	for (const edge of ["top", "right", "bottom", "left"] as const) {
-		floating.style.removeProperty(`margin-${edge}`);
-	}
-	if (css) {
-		// Why a list: one element can anchor two floats, such as a tooltip on a popover trigger.
-		const names = anchor.style.getPropertyValue("anchor-name");
-		anchor.style.setProperty("anchor-name", names === "" ? anchorName : `${names}, ${anchorName}`);
-		floating.style.setProperty("position-anchor", anchorName);
-		// Why margins across the side: the browser shifts a float that overflows
-		// the viewport back inside its margin box, so these keep it
-		// `VIEWPORT_PADDING` from the edge, as `computePlacement` does. The edge
-		// that the float aligns to takes none, so the alignment holds.
-		const [crossStart, crossEnd] =
-			side === "top" || side === "bottom"
-				? (["left", "right"] as const)
-				: (["top", "bottom"] as const);
-		if (align !== "start") {
-			floating.style.setProperty(`margin-${crossStart}`, `${VIEWPORT_PADDING}px`);
-		}
-		if (align !== "end") {
-			floating.style.setProperty(`margin-${crossEnd}`, `${VIEWPORT_PADDING}px`);
-		}
-	}
-
-	let cssSide: Side | null = null;
-	/** Puts a float placed by CSS on `next`, `gap` away from the anchor. */
-	const setCssSide = (next: Side) => {
-		if (next === cssSide) {
-			return;
-		}
-		if (cssSide != null) {
-			floating.style.removeProperty(`margin-${oppositeSide[cssSide]}`);
-		}
-		cssSide = next;
-		floating.style.setProperty("position-area", positionArea[next][align]);
-		floating.style.setProperty(`margin-${oppositeSide[next]}`, `${gap}px`);
-	};
-	if (css) {
-		setCssSide(side);
-	}
-
 	// Why: with no popover API the float is not in the top layer, so a
 	// transformed overlay or float that holds it is its containing block, and
 	// `left` and `top` start at that element. An open animation sets and clears
@@ -375,14 +295,10 @@ function trackFloat({
 
 	let frame = 0;
 	const place = () => {
-		// Why again: the arrow can change size while the float is open.
-		const nextGap = sideOffset + (arrow?.offsetHeight ?? 0);
-		if (nextGap !== gap) {
-			gap = nextGap;
-			if (cssSide != null) {
-				floating.style.setProperty(`margin-${oppositeSide[cssSide]}`, `${gap}px`);
-			}
-		}
+		// Why the arrow's height, read on each placement: the arrow sticks out of
+		// the float toward the anchor, so `sideOffset` is the gap between its tip
+		// and the anchor, and the arrow can change size while the float is open.
+		const gap = sideOffset + (arrow?.offsetHeight ?? 0);
 		const anchorBox = anchor.getBoundingClientRect();
 		// Why before the reads: a float sized by the anchor, such as a picker list,
 		// takes its final width and wrapped height in this placement.
@@ -415,30 +331,18 @@ function trackFloat({
 			"--available-height",
 			`${Math.max(availableHeight - VIEWPORT_PADDING, 0)}px`,
 		);
-		if (css) {
-			setCssSide(placed.side);
-			// Why the center: the open animation scales the float around its center,
-			// so the box edges move while the layout size stays.
-			const box = floating.getBoundingClientRect();
-			placed = {
-				side: placed.side,
-				x: (box.left + box.right) / 2 - width / 2,
-				y: (box.top + box.bottom) / 2 - height / 2,
-			};
-		} else {
-			// Why read the height again: the new `--available-height` can cap a list
-			// that sits its rendered height above the anchor.
-			if (fallback === "larger" && placed.side === "top") {
-				placed = { ...placed, y: anchorBox.top - gap - floating.offsetHeight };
-			}
-			const containingBlock = inTopLayer ? null : findFixedContainingBlock(floating);
-			const local =
-				containingBlock == null
-					? { x: placed.x, y: placed.y }
-					: toLocalPoint(containingBlock, placed.x, placed.y);
-			floating.style.left = `${local.x}px`;
-			floating.style.top = `${local.y}px`;
+		// Why read the height again: the new `--available-height` can cap a list
+		// that sits its rendered height above the anchor.
+		if (fallback === "larger" && placed.side === "top") {
+			placed = { ...placed, y: anchorBox.top - gap - floating.offsetHeight };
 		}
+		const containingBlock = inTopLayer ? null : findFixedContainingBlock(floating);
+		const local =
+			containingBlock == null
+				? { x: placed.x, y: placed.y }
+				: toLocalPoint(containingBlock, placed.x, placed.y);
+		floating.style.left = `${local.x}px`;
+		floating.style.top = `${local.y}px`;
 		const anchorCenterX = anchorBox.left + anchorBox.width / 2 - placed.x;
 		const anchorCenterY = anchorBox.top + anchorBox.height / 2 - placed.y;
 		floating.dataset.side = placed.side;
@@ -483,19 +387,6 @@ function trackFloat({
 	window.addEventListener("transitionend", schedule, { capture: true, passive: true });
 	window.addEventListener("animationend", schedule, { capture: true, passive: true });
 
-	const releaseAnchorName = () => {
-		// Why a filter: another float on the same anchor can close after this one.
-		const otherNames = anchor.style
-			.getPropertyValue("anchor-name")
-			.split(",")
-			.map((name) => name.trim())
-			.filter((name) => name !== "" && name !== anchorName);
-		if (otherNames.length === 0) {
-			anchor.style.removeProperty("anchor-name");
-		} else {
-			anchor.style.setProperty("anchor-name", otherNames.join(", "));
-		}
-	};
 	return () => {
 		cancelAnimationFrame(frame);
 		observer.disconnect();
@@ -503,18 +394,12 @@ function trackFloat({
 		window.removeEventListener("resize", schedule);
 		window.removeEventListener("transitionend", schedule, { capture: true });
 		window.removeEventListener("animationend", schedule, { capture: true });
-		if (css) {
-			// Why later: Chromium paints a closing float through its exit
-			// transition, and without the anchor it would jump to the corner.
-			setTimeout(releaseAnchorName, releaseAnchorAfter);
-		}
 	};
 }
 
 export {
 	//,
 	computePlacement,
-	supportsAnchorPositioning,
 	trackFloat,
 };
 
