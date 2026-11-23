@@ -35,11 +35,6 @@ export type {
 
 export {
 	//,
-	useFollowStream,
-} from "./use-follow-stream.js";
-
-export {
-	//,
 	useMarkdownStream,
 } from "./use-markdown-stream.js";
 

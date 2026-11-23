@@ -1,10 +1,5 @@
 import { PreviewCanvas } from "~/components/preview-canvas";
-import {
-	FollowStreamDemo,
-	MathDemo,
-	StaticAnswerDemo,
-	StreamingAnswerDemo,
-} from "~/features/markdown-demos";
+import { MathDemo, StaticAnswerDemo, StreamingAnswerDemo } from "~/features/markdown-demos";
 
 /** The first example on the Markdown docs page. */
 export function OverviewExample() {
@@ -20,15 +15,6 @@ export function CompleteAnswersExample() {
 	return (
 		<PreviewCanvas>
 			<StaticAnswerDemo />
-		</PreviewCanvas>
-	);
-}
-
-/** The "Follow the stream" example on the Markdown docs page. */
-export function FollowTheStreamExample() {
-	return (
-		<PreviewCanvas className="items-start">
-			<FollowStreamDemo />
 		</PreviewCanvas>
 	);
 }

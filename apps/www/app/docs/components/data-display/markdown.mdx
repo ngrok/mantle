@@ -113,30 +113,6 @@ function Answer({ id, partial }: { id: string; partial: string }) {
 }
 ```
 
-## Follow the stream
-
-`useFollowStream` keeps a scroll box at its end while the answer grows. When the reader scrolls up, the box stays where the reader put it. When the reader scrolls back to the end, it follows again. Put the returned ref on the element that scrolls.
-
-<Example name="components/data-display/markdown/follow-the-stream" title="Markdown follow the stream example">
-
-```tsx
-import { Card } from "@ngrok/mantle/card";
-import { Markdown, useFollowStream } from "@ngrok/mantle/markdown";
-
-function Transcript({ answer, isStreaming }: { answer: string; isStreaming: boolean }) {
-	const scrollRef = useFollowStream<HTMLDivElement>();
-	return (
-		<Card.Root>
-			<div ref={scrollRef} className="scrollbar h-80 overflow-y-auto p-4">
-				<Markdown streaming={isStreaming}>{answer}</Markdown>
-			</div>
-		</Card.Root>
-	);
-}
-```
-
-</Example>
-
 ## Math
 
 Pass `markdownMath()` in `extensions` to read TeX math: `$$…$$` and `\[…\]` as display math, and `$…$` and `\(…\)` as inline math. A `$` that reads as a price, such as in `$5 and $10`, stays text. Render each formula with a `math` component, such as with KaTeX. Without one, a formula shows its TeX source as code.
@@ -237,10 +213,6 @@ Other props go to the root `<div>`.
 | `retries`     | `number`                                                     | `3`     | How many times to open the stream again after it fails, from 500 ms, doubling. |
 
 It returns `{ text, status, error }`. `status` is `"streaming"`, `"done"`, or `"error"`.
-
-### useFollowStream
-
-Returns a ref for the element that scrolls. It takes no options.
 
 ### markdownMath
 

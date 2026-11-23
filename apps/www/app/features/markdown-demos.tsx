@@ -1,11 +1,6 @@
 import { Button } from "@ngrok/mantle/button";
 import { Card } from "@ngrok/mantle/card";
-import {
-	Markdown,
-	markdownMath,
-	useFollowStream,
-	type MarkdownComponents,
-} from "@ngrok/mantle/markdown";
+import { Markdown, markdownMath, type MarkdownComponents } from "@ngrok/mantle/markdown";
 import { useEffect, useState } from "react";
 
 /** A model's answer about ngrok endpoints, with each kind of block the demos show. */
@@ -101,30 +96,6 @@ function StaticAnswerDemo() {
 	);
 }
 
-/** A scroll box that follows the answer as it streams, until the reader scrolls up. */
-function FollowStreamDemo() {
-	const { text, isStreaming, restart } = useSimulatedStream(endpointAnswer);
-	const scrollRef = useFollowStream<HTMLDivElement>();
-	return (
-		<div className="flex w-full max-w-2xl flex-col gap-4">
-			<Button
-				type="button"
-				appearance="outlined"
-				intent="neutral"
-				className="self-start"
-				onClick={restart}
-			>
-				Stream again
-			</Button>
-			<Card.Root>
-				<div ref={scrollRef} className="scrollbar h-80 overflow-y-auto p-4">
-					<Markdown streaming={isStreaming}>{text}</Markdown>
-				</div>
-			</Card.Root>
-		</div>
-	);
-}
-
 const mathExtensions = [markdownMath()];
 
 /** Renders each formula as its TeX source in a styled box. An app renders it with KaTeX instead. */
@@ -151,7 +122,6 @@ function MathDemo() {
 
 export {
 	//,
-	FollowStreamDemo,
 	MathDemo,
 	StaticAnswerDemo,
 	StreamingAnswerDemo,
