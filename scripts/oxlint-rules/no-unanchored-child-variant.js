@@ -8,6 +8,11 @@
  * the anchor. The specificity is the same; Tailwind orders arbitrary variants
  * last.
  *
+ * It also flags the `space-*` and `divide-*` utilities, which compile to
+ * `:where(.space-y-2 > :not(:last-child))`. Mantle's `between:` variant
+ * compiles to `:where(.between\:mb-2) > :where(:not(:last-child))`, with the
+ * same zero specificity and the class outside.
+ *
  * Scope: every static string in a file, so a class list in a `cx()` call, a
  * `className`, or a variants object is covered.
  *
@@ -15,10 +20,12 @@
  * // ❌ Incorrect
  * cx("*:pointer-events-auto **:data-[slot=icon]:shrink-0");
  * cx("[&_[data-a],&_[data-b]]:top-1/2");
+ * cx("space-y-px divide-y divide-separator");
  *
  * // ✅ Correct
  * cx("[&>*]:pointer-events-auto [&_[data-slot=icon]]:shrink-0");
  * cx("[&_[data-a]]:top-1/2 [&_[data-b]]:top-1/2");
+ * cx("between:mb-px between:border-b between:border-separator");
  */
 
 /** The message for a variant, with the fix it names. */
@@ -82,11 +89,31 @@ export function unanchoredVariants(token) {
 	return found;
 }
 
+/** The message for a `space-*` or `divide-*` utility. */
+const betweenHint =
+	"Tailwind puts the class of `space-*` and `divide-*` inside `:where()`, so Chromium tries the rule on each element of the page on each style pass. Use mantle's `between:` variant: `between:mb-2` for `space-y-2`, `between:me-2` for `space-x-2`, `between:border-b` for `divide-y`, and `between:border-<color>` for `divide-<color>`.";
+
+/**
+ * Whether a Tailwind class is a `space-*` or `divide-*` utility, under any variants.
+ *
+ * @example
+ * isSpaceOrDivide("sm:space-x-2"); // => true
+ * isSpaceOrDivide("between:mb-2"); // => false
+ */
+export function isSpaceOrDivide(token) {
+	const offsets = topLevelOffsets(token, ":");
+	const utility = token.slice((offsets.at(-1) ?? -1) + 1).replace(/^-/, "");
+	return /^(?:space-[xy]-\S|divide-\S)/.test(utility);
+}
+
 const noUnanchoredChildVariant = {
 	meta: {},
 	create(context) {
 		function check(node, value) {
 			for (const token of value.split(/\s+/)) {
+				if (isSpaceOrDivide(token)) {
+					context.report({ message: `\`${token}\`: ${betweenHint}`, node });
+				}
 				for (const variant of unanchoredVariants(token)) {
 					context.report({ message: `\`${variant}\` in \`${token}\`: ${fixHint}`, node });
 				}

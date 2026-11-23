@@ -125,9 +125,7 @@ test("merges the arbitrary values that mantle and its apps use like tailwind-mer
 			"hover:before:p-4",
 			"[&>*]:hover:p-2",
 			"hover:[&>*]:p-4",
-			// oxlint-disable-next-line mantle/no-unanchored-child-variant -- Why: the test pins how cx merges the `*` variant; it emits no CSS.
 			"*:hover:p-1",
-			// oxlint-disable-next-line mantle/no-unanchored-child-variant -- Why: the test pins how cx merges the `*` variant; it emits no CSS.
 			"hover:*:p-3",
 		],
 	];

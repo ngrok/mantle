@@ -310,7 +310,7 @@ const OpenContent = ({
 				data-slot={joinDataSlot(dataSlot, "combobox-content")}
 				data-open=""
 				className={cx(
-					"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 rounded-md border shadow-md p-1 space-y-px font-sans outline-hidden",
+					"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 rounded-md border shadow-md p-1 between:mb-px font-sans outline-hidden",
 					sameWidth && "w-(--anchor-width)",
 					className,
 				)}
@@ -452,7 +452,7 @@ const Group = ({
 				role="group"
 				aria-labelledby={labelId}
 				data-slot={joinDataSlot(dataSlot, "combobox-group")}
-				className={cx("space-y-px", className)}
+				className={cx("between:mb-px", className)}
 				ref={ref}
 				{...props}
 			>

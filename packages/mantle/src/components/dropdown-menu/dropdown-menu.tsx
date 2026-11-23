@@ -637,7 +637,7 @@ const Group = ({
 		<Component
 			data-slot={joinDataSlot(dataSlot, "dropdown-menu-group")}
 			role="group"
-			className={cx("space-y-px", className)}
+			className={cx("between:mb-px", className)}
 			{...props}
 		/>
 	);
@@ -788,7 +788,7 @@ const RadioGroup = ({
 			<Component
 				data-slot={joinDataSlot(dataSlot, "dropdown-menu-radio-group")}
 				role="group"
-				className={cx("space-y-px", className)}
+				className={cx("between:mb-px", className)}
 				{...props}
 			/>
 		</RadioGroupContext.Provider>
@@ -817,7 +817,7 @@ const panelClassName =
  * focused item scrolls clear of the 1.5rem `scroll-cue-y` fade at each edge.
  */
 const scrollClassName =
-	"scrollbar-none [&::-webkit-scrollbar]:hidden min-h-0 overflow-auto overscroll-none scroll-py-6 p-1.25 space-y-px";
+	"scrollbar-none [&::-webkit-scrollbar]:hidden min-h-0 overflow-auto overscroll-none scroll-py-6 p-1.25 between:mb-px";
 
 /**
  * Puts a menu panel's items in an element that scrolls them, with the

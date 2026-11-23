@@ -1,0 +1,65 @@
+# Rewrites `space-*` and `divide-*` in the className of a mantle part whose own
+# spacing or dividers now use the `between:` variant, so that `cx` replaces the
+# part's class again. Classes on other elements stay: Tailwind's utilities still
+# work there.
+id: space-divide-to-between
+language: tsx
+message: the part spaces or divides its children with `between:`; write the override with `between:` so `cx` replaces it
+utils:
+  mantle-file:
+    inside:
+      stopBy: end
+      kind: program
+      has:
+        kind: import_statement
+        has:
+          field: source
+          regex: ^["']@ngrok/mantle/
+  part-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: ^(Accordion\.Root|Strata\.Root|AlertDialog\.(Body|Header|Footer)|Empty\.Description|Select\.(Group|Content)|DropdownMenu\.(Group|RadioGroup|Content|SubContent)|MultiSelect\.Content|Combobox\.(Content|Group)|Sidebar\.(Body|List))$
+rule:
+  kind: string_fragment
+  regex: '(^|[\s:])-?(space-[xy]-|divide-)'
+  pattern: $F
+  all:
+    - matches: part-class
+    - matches: mantle-file
+transform:
+  T1:
+    replace:
+      source: $F
+      replace: '(^|[\s:])space-y-'
+      by: "${1}between:mb-"
+  T2:
+    replace:
+      source: $T1
+      replace: '(^|[\s:])space-x-'
+      by: "${1}between:me-"
+  T3:
+    replace:
+      source: $T2
+      replace: '(^|[\s:])divide-y(-|\s|!|$)'
+      by: "${1}between:border-b${2}"
+  T4:
+    replace:
+      source: $T3
+      replace: '(^|[\s:])divide-x(-|\s|!|$)'
+      by: "${1}between:border-e${2}"
+  T5:
+    replace:
+      source: $T4
+      replace: '(^|[\s:])divide-'
+      by: "${1}between:border-"
+fix: $T5

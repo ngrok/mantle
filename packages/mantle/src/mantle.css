@@ -1364,6 +1364,12 @@ MARK: CUSTOM VARIANTS
 @custom-variant aria-unchecked (&[aria-checked="false"]);
 
 @custom-variant where (:where(&));
+/*
+ * Each child of the element except the last, at zero specificity, as Tailwind's
+ * `space-*` and `divide-*` match. Why not those: they put the class inside
+ * `:where()`, so Chromium tries the rule on each element of the page.
+ */
+@custom-variant between (:where(&) > :where(:not(:last-child)));
 
 @custom-variant hover-hover {
 	@media (hover: hover) {

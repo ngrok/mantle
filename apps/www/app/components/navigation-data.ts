@@ -693,6 +693,14 @@ export const migrations = [
 			"Mantle's data attributes follow one small contract. Triggers, tabs, options, and checkable items use ARIA state, a boolean state is a presence attribute such as data-open, and mantle.css registers no data-* variants, so style with Tailwind's built-in forms.",
 		route: "/migrations/0029-data-attribute-contract-migration",
 	},
+	{
+		number: 30,
+		slug: "between-variant-migration",
+		title: "Between Variant",
+		description:
+			"Mantle's parts space and divide their children with the new between: variant, not space-* or divide-*. Write an override on those parts with between: too, such as between:border-b-0 on Accordion.Root.",
+		route: "/migrations/0030-between-variant-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

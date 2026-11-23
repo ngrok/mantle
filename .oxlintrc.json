@@ -232,6 +232,13 @@
       }
     },
     {
+      // Why: `cx` and its tests read class names as data, and they emit no CSS.
+      "files": ["packages/mantle/src/utils/cx/**"],
+      "rules": {
+        "mantle/no-unanchored-child-variant": "off"
+      }
+    },
+    {
       "files": ["**/*.test.{ts,tsx}", "**/*.browser.test.{ts,tsx}"],
       "rules": {
         "react/no-object-type-as-default-prop": "off",
