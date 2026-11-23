@@ -45,39 +45,44 @@ describe("OverlayPrompt over an open modal dialog", () => {
 		expect(dialog.querySelector(".overlay-prompt")).toBeNull();
 	});
 
-	test("keeps a frame loaded while it moves into a dialog and back", async () => {
-		const loads = vi.fn<() => void>();
-		render(
-			<>
-				<OverlayPrompt>
-					<iframe
-						title="Chat"
-						sandbox=""
-						srcDoc="<p>Hi</p>"
-						onLoad={loads}
-						style={{ position: "fixed", right: 0, bottom: 0, width: 80, height: 60 }}
-					/>
-				</OverlayPrompt>
-				<Dialog.Root>
-					<Dialog.Trigger>Open</Dialog.Trigger>
-					<Dialog.Content>
-						<Dialog.Title>Details</Dialog.Title>
-						<Dialog.CloseIconButton />
-					</Dialog.Content>
-				</Dialog.Root>
-			</>,
-		);
-		await waitFor(() => expect(loads).toHaveBeenCalledTimes(1));
-		const frame = screen.getByTitle("Chat");
+	// Why only with `moveBefore`: a plain move reloads a frame, as documented
+	// for Safari.
+	test.runIf("moveBefore" in Element.prototype)(
+		"keeps a frame loaded while it moves into a dialog and back",
+		async () => {
+			const loads = vi.fn<() => void>();
+			render(
+				<>
+					<OverlayPrompt>
+						<iframe
+							title="Chat"
+							sandbox=""
+							srcDoc="<p>Hi</p>"
+							onLoad={loads}
+							style={{ position: "fixed", right: 0, bottom: 0, width: 80, height: 60 }}
+						/>
+					</OverlayPrompt>
+					<Dialog.Root>
+						<Dialog.Trigger>Open</Dialog.Trigger>
+						<Dialog.Content>
+							<Dialog.Title>Details</Dialog.Title>
+							<Dialog.CloseIconButton />
+						</Dialog.Content>
+					</Dialog.Root>
+				</>,
+			);
+			await waitFor(() => expect(loads).toHaveBeenCalledTimes(1));
+			const frame = screen.getByTitle("Chat");
 
-		await userEvent.click(screen.getByRole("button", { name: "Open" }));
-		const dialog = screen.getByRole("dialog", { name: "Details" });
-		await waitFor(() => expect(dialog.contains(frame)).toBe(true));
-		await userEvent.keyboard("{Escape}");
-		await waitFor(() => expect(frame.closest("dialog")).toBeNull());
+			await userEvent.click(screen.getByRole("button", { name: "Open" }));
+			const dialog = screen.getByRole("dialog", { name: "Details" });
+			await waitFor(() => expect(dialog.contains(frame)).toBe(true));
+			await userEvent.keyboard("{Escape}");
+			await waitFor(() => expect(frame.closest("dialog")).toBeNull());
 
-		expect(loads).toHaveBeenCalledTimes(1);
-	});
+			expect(loads).toHaveBeenCalledTimes(1);
+		},
+	);
 
 	test("opens a popover from the content in the dialog, and a dialog with no control in its panel keeps focus", async () => {
 		const onPick = vi.fn<() => void>();
