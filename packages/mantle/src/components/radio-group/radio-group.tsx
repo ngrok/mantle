@@ -402,19 +402,20 @@ const InputSandbox = ({
 	...props
 }: RadioInputSandboxProps) => {
 	const radioItem = useContext(RadioItemContext);
-	const ctx = { checked: radioItem?.checked ?? false, disabled: radioItem?.disabled ?? false };
+	const checked = radioItem?.checked ?? false;
+	const disabled = radioItem?.disabled ?? false;
 
 	const singleChild = Children.only(children);
 
 	// Prevent the child input from receiving focus when the parent radio group item is disabled or unchecked.
-	const shouldPreventTabIndex = ctx.disabled || !ctx.checked;
+	const shouldPreventTabIndex = disabled || !checked;
 
 	return (
 		<div
 			role="none"
 			data-slot={joinDataSlot(dataSlot, "radio-group-input-sandbox")}
 			onClick={(event) => {
-				if (ctx.disabled) {
+				if (disabled) {
 					event.stopPropagation();
 					event.preventDefault();
 					return;
@@ -426,7 +427,7 @@ const InputSandbox = ({
 				if (!radioItem) {
 					return;
 				}
-				if (!ctx.checked) {
+				if (!checked) {
 					event.currentTarget.ownerDocument.getElementById(radioItem.radioId)?.click();
 				}
 				// Why: a click on the sandbox around its control, such as the border of an `Input`, focuses the
@@ -442,7 +443,7 @@ const InputSandbox = ({
 		>
 			{isValidElement<HTMLInputElement>(singleChild) &&
 				cloneElement(singleChild, {
-					disabled: ctx.disabled || singleChild.props.disabled,
+					disabled: disabled || singleChild.props.disabled,
 					tabIndex: shouldPreventTabIndex ? -1 : singleChild.props.tabIndex,
 				})}
 		</div>
