@@ -356,7 +356,9 @@ const Item = ({
 					onChange={check}
 					// Why it covers the item over the content: assistive technology outlines the whole item, and a
 					// click on the item lands on the radio itself. `mantle.css` lifts the content's controls over it.
-					className="absolute inset-0 z-1 m-0 size-full cursor-inherit opacity-0"
+					// Why no pointer events when disabled: a link in a disabled item's dimmed content, which stacks under
+					// the radio, keeps its click.
+					className="absolute inset-0 z-1 m-0 size-full cursor-inherit opacity-0 disabled:pointer-events-none"
 					disabled={disabled}
 					form={group.form}
 					id={radioId}
@@ -400,13 +402,9 @@ const Item = ({
 					required={group.required}
 				/>
 				{/* Why a wrapper: a lone text child beside the radio would lose React's repair after a browser translation. */}
-				{/* Why aria-hidden: the radio reads this text as its name, so a screen reader in browse mode does not stop on it again. */}
-				<div
-					id={contentId}
-					data-slot={`${part}-label`}
-					aria-hidden
-					className="radio-item-content contents"
-				>
+				{/* Why the radio's ref sets aria-hidden here: the radio reads this text as its name, so a screen reader in
+				browse mode does not stop on it again. Before hydration, a control in the text stays reachable. */}
+				<div id={contentId} data-slot={`${part}-label`} className="radio-item-content contents">
 					{children}
 				</div>
 			</div>

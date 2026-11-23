@@ -17,7 +17,7 @@
   },
   "radio-group": {
     "entry": "import { RadioGroup } from \"@ngrok/mantle/radio-group\"; export default [RadioGroup.Root, RadioGroup.Item, RadioGroup.Indicator];",
-    "maxGzipBytes": 9247
+    "maxGzipBytes": 9359
   },
   "otp-input": {
     "entry": "import { OtpInput } from \"@ngrok/mantle/otp-input\"; export default [OtpInput.Root, OtpInput.Group, OtpInput.Slot, OtpInput.Separator];",

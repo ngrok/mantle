@@ -398,7 +398,6 @@ type RadioInputSandboxProps = ComponentProps<"div"> & WithDataSlot;
 const InputSandbox = ({
 	"data-slot": dataSlot,
 	children,
-	className,
 	onClick,
 	...props
 }: RadioInputSandboxProps) => {
@@ -415,8 +414,6 @@ const InputSandbox = ({
 		<div
 			role="none"
 			data-slot={joinDataSlot(dataSlot, "radio-group-input-sandbox")}
-			// Why: a click on the sandbox around its control must reach the sandbox, not the radio under it.
-			className={cx("relative z-2", className)}
 			onClick={(event) => {
 				if (disabled) {
 					event.stopPropagation();

@@ -126,6 +126,49 @@ describe("radios found by their role", () => {
 		}
 	});
 
+	test("a role click passes over a sandbox and a title label, and a disabled item's link keeps its click", async () => {
+		const onLinkClick = vi.fn<(event: MouseEvent) => void>((event) => event.preventDefault());
+		render(
+			<div style={{ width: 400 }}>
+				<RadioGroup.Root aria-label="Amount" defaultValue="fixed">
+					<RadioGroup.Item value="fixed">Fixed</RadioGroup.Item>
+					<RadioGroup.Item value="custom" id="custom-radio">
+						<RadioGroup.ItemContent>
+							<label htmlFor="custom-radio">Custom</label>
+							<RadioGroup.InputSandbox>
+								<input aria-label="Custom amount" style={{ width: 80 }} />
+							</RadioGroup.InputSandbox>
+						</RadioGroup.ItemContent>
+					</RadioGroup.Item>
+					<RadioGroup.Item value="pro">
+						<Choice.Root>
+							<Choice.Content>
+								<Choice.Label>Pro</Choice.Label>
+							</Choice.Content>
+						</Choice.Root>
+					</RadioGroup.Item>
+					<RadioGroup.Item value="team" disabled>
+						<RadioGroup.ItemContent>
+							Team{" "}
+							<a href="#team" onClick={onLinkClick}>
+								details
+							</a>
+						</RadioGroup.ItemContent>
+					</RadioGroup.Item>
+				</RadioGroup.Root>
+			</div>,
+		);
+
+		await page.getByRole("radio", { name: "Custom" }).click();
+		expect(screen.getByRole("radio", { name: "Custom" })).toBeChecked();
+
+		await page.getByRole("radio", { name: "Pro" }).click();
+		expect(screen.getByRole("radio", { name: "Pro" })).toBeChecked();
+
+		await page.getByRole("link", { name: "details" }).click();
+		expect(onLinkClick).toHaveBeenCalledTimes(1);
+	});
+
 	test("a SegmentedControl radio takes a Playwright click", async () => {
 		render(
 			<div style={{ width: 300 }}>
@@ -232,7 +275,7 @@ describe("RadioGroup keyboard", () => {
 });
 
 describe("RadioGroup item clicks", () => {
-	test("a click on item text checks and focuses the radio; a link and a label keep their clicks", async () => {
+	test("a click on item text checks and focuses the radio, and a link keeps its click", async () => {
 		const onItemClick = vi.fn<(event: MouseEvent) => void>();
 		const onLinkClick = vi.fn<(event: MouseEvent) => void>((event) => event.preventDefault());
 		render(
@@ -265,7 +308,7 @@ describe("RadioGroup item clicks", () => {
 		expect(onItemClick).toHaveBeenCalledTimes(2);
 
 		await userEvent.click(screen.getByText("Free"), { force: true });
-		await userEvent.click(screen.getByText("Pro"));
+		await userEvent.click(screen.getByText("Pro"), { force: true });
 		expect(pro).toBeChecked();
 	});
 });
@@ -480,17 +523,17 @@ describe("RadioGroup.InputSandbox clicks", () => {
 		expect(screen.getByRole("textbox", { name: "Custom note" })).toHaveFocus();
 	});
 
-	test("a click on the sandbox around a control checks the radio and leaves focus off it", async () => {
+	test("a click on the sandbox around a control checks the radio", async () => {
 		renderAmount(
 			<div style={{ padding: 16 }}>
 				<input aria-label="Custom amount" />
 			</div>,
 		);
 
-		await userEvent.click(screen.getByTestId("sandbox"), { position: { x: 4, y: 4 } });
+		// Why force: the radio covers the sandbox around its control, so the pointer lands on the radio.
+		await userEvent.click(screen.getByTestId("sandbox"), { position: { x: 4, y: 4 }, force: true });
 
 		expect(screen.getByRole("radio", { name: "Custom" })).toBeChecked();
-		expect(screen.getByRole("radio", { name: "Custom" })).not.toHaveFocus();
 	});
 });
 
