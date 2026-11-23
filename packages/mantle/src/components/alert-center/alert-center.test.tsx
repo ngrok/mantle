@@ -658,7 +658,8 @@ describe("AlertCenter.Bar", () => {
 		// `data-alert-dismiss`, `data-alert-expand`, and `data-slot="alert-description"`,
 		// which `Alert` emits in alert.tsx.
 		expect(bar).toHaveClass(
-			"not-has-data-[slot=alert-description]:[&_[data-alert-dismiss],&_[data-alert-expand]]:top-1/2",
+			"not-has-data-[slot=alert-description]:[&_[data-alert-dismiss]]:top-1/2",
+			"not-has-data-[slot=alert-description]:[&_[data-alert-expand]]:top-1/2",
 		);
 		expect(screen.getByRole("button", { name: "Dismiss Payment failed" })).toHaveAttribute(
 			"data-alert-dismiss",

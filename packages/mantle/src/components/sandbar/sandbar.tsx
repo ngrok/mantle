@@ -597,9 +597,9 @@ const Root = ({
 			    overlay tier), as a toast does.
 			    Why a layer container: a float composed in the bar (a menu, a
 			    tooltip) portals in here and paints above the bar, not under it at
-			    `z-50`. `*:pointer-events-auto` keeps those floats clickable. */}
+			    `z-50`. `[&>*]:pointer-events-auto` keeps those floats clickable. */}
 			<LayerContainer
-				className="pointer-events-none fixed inset-x-0 bottom-4 z-70 flex justify-center px-4 *:pointer-events-auto sm:bottom-10"
+				className="pointer-events-none fixed inset-x-0 bottom-4 z-70 flex justify-center px-4 [&>*]:pointer-events-auto sm:bottom-10"
 				modal={false}
 				onBlur={handleFocusOut}
 				onFocus={handleFocusIn}

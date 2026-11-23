@@ -201,6 +201,7 @@
         "mantle/no-display-name": "error",
         "mantle/no-namespace-object": "error",
         "mantle/no-structural-combinator": "error",
+        "mantle/no-unanchored-child-variant": "error",
         "no-restricted-imports": [
           "error",
           {

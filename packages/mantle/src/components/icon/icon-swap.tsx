@@ -65,7 +65,7 @@ const IconSwap = <Key extends string>({
 						// layer while it paints. The transition holds `visible` to the end of the exit.
 						"aria-hidden:invisible",
 						// Why paused: a spinner that is not shown must not keep a running animation.
-						"aria-hidden:*:paused",
+						"aria-hidden:[&>*]:paused",
 					)}
 				>
 					<Icon svg={svg} />

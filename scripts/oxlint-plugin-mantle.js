@@ -12,6 +12,7 @@ import noClsxClassnames from "./oxlint-rules/no-clsx-classnames.js";
 import noEmDashComment from "./oxlint-rules/no-em-dash-comment.js";
 import noReactHooksSuppression from "./oxlint-rules/no-react-hooks-suppression.js";
 import noStructuralCombinator from "./oxlint-rules/no-structural-combinator.js";
+import noUnanchoredChildVariant from "./oxlint-rules/no-unanchored-child-variant.js";
 import preferCanUseDom from "./oxlint-rules/prefer-can-use-dom.js";
 import preferTypeAlias from "./oxlint-rules/prefer-type-alias.js";
 import requireSuppressionReason from "./oxlint-rules/require-suppression-reason.js";
@@ -317,6 +318,7 @@ export default {
 		...noEmDashComment.rules,
 		...noReactHooksSuppression.rules,
 		...noStructuralCombinator.rules,
+		...noUnanchoredChildVariant.rules,
 		...preferCanUseDom.rules,
 		...preferTypeAlias.rules,
 		...requireSuppressionReason.rules,
