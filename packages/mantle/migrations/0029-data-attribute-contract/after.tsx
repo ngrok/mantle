@@ -3,6 +3,7 @@ import { Dialog } from "@ngrok/mantle/dialog";
 import { Icon } from "@ngrok/mantle/icon";
 import { DropdownMenu } from "@ngrok/mantle/dropdown-menu";
 import { Popover } from "@ngrok/mantle/popover";
+import { Select } from "@ngrok/mantle/select";
 import { Switch } from "@ngrok/mantle/switch";
 import { Tabs } from "@ngrok/mantle/tabs";
 import { cx } from "@ngrok/mantle/cx";
@@ -70,6 +71,9 @@ export function Settings({ invalid }: { invalid: boolean }) {
 					Panel
 				</Tabs.Content>
 			</Tabs.Root>
+			<Select.Item value="a" className="aria-selected:font-bold not-aria-selected:opacity-50">
+				Apple
+			</Select.Item>
 			<input className={cx("border", invalid && "data-[validation=error]:border-danger-600")} />
 		</>
 	);

@@ -837,6 +837,17 @@ describe("Sidebar.Nav (mobile)", () => {
 		useIsBelowBreakpointMock.mockReturnValue(true);
 	});
 
+	test("the sheet stays expanded while the desktop panel is collapsed", () => {
+		// Why: the descendants' collapsed styles key off a missing `data-expanded`,
+		// and the sheet is always at full width.
+		render(
+			<Sidebar.Root defaultOpen={false} openMobile>
+				<Sidebar.Nav data-testid="panel">content</Sidebar.Nav>
+			</Sidebar.Root>,
+		);
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-expanded", "");
+	});
+
 	test("hides the nav until the trigger opens the sheet, and keeps the same nav", async () => {
 		const user = userEvent.setup();
 		render(
@@ -854,9 +865,8 @@ describe("Sidebar.Nav (mobile)", () => {
 		const panel = screen.getByTestId("panel");
 		expect(panel).toHaveAttribute("data-slot", "sidebar-nav");
 		expect(panel).toHaveAttribute("data-mobile");
-		// The `<dialog>` owns `data-open`: the desktop `data-expanded` does not reach the sheet.
 		expect(panel).toHaveAttribute("data-open");
-		expect(panel).not.toHaveAttribute("data-expanded");
+		expect(panel).toHaveAttribute("data-expanded", "");
 		const nav = screen.getByRole("navigation", { name: "Main" });
 		expect(nav).toHaveTextContent("content");
 		// The open moved the nav into view, it did not mount a second one.

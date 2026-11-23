@@ -33,7 +33,7 @@ npx --yes --package=@ast-grep/cli@0.51.3 ast-grep scan --rule node_modules/@ngro
 The rules apply steps 2 and 4. They rewrite class strings in JSX, `cx` and `cva` calls, template strings, and constants:
 
 - `data-state-open:` becomes `aria-expanded:` in the `className` of a part whose name ends in `Trigger` and of the `asChild` element inside it. `group-data-state-open:` becomes `group-aria-expanded:` inside that part's children. Everywhere else, `data-state-open:` becomes `data-open:` and `data-state-closed:` becomes `not-data-open:`.
-- `data-state-checked:` becomes `aria-checked:`, `data-state-active:` becomes `aria-selected:`, `data-state-selected:` becomes `data-selected:`, and `data-state-indeterminate:` becomes `data-indeterminate:`.
+- `data-state-checked:` becomes `aria-checked:` (`aria-selected:` on a `Select.Item`), `data-state-active:` becomes `aria-selected:`, `data-state-selected:` becomes `data-selected:`, and `data-state-indeterminate:` becomes `data-indeterminate:`.
 - `data-side-*:`, `data-orientation-*:`, and `data-validation-*:` become the bracket form, such as `data-[side=top]:`. `data-active-item:` becomes `data-highlighted:`.
 - In a file that imports `@radix-ui/*`, every `data-state-*:` becomes `data-[state~=*]:`, so classes on your own Radix parts keep their match.
 - `expect(el).toHaveAttribute("data-state", "open")` becomes `toHaveAttribute("data-open")`, and `"closed"` becomes `.not.toHaveAttribute("data-open")`. `"expanded"` and `"collapsed"` map to `data-expanded` the same way.
@@ -157,7 +157,7 @@ expect(screen.getByRole("dialog")).not.toHaveAttribute("data-open");
 
 - `data-slot` does not change. Selectors such as `[data-slot~="dialog-content"]` keep working.
 - `data-open` goes away when the exit starts, so `not-data-open:` styles the exit frame of a floating part. The part unmounts after its exit animation.
-- `Sidebar.Nav` has `data-expanded` only on the desktop panel. The mobile sheet has `data-open` and `data-closing`.
+- `Sidebar.Nav` in the mobile sheet always has `data-expanded`, because the sheet is always at full width. The sheet also has `data-open` and `data-closing`.
 - A Tooltip or HoverCard trigger carries no state attribute: it does not expand anything.
 - A `Tabs.Content` with `hiddenUntilFound` gets `hidden="until-found"` while inactive, so find-in-page can reach it. A `hidden` class (`display: none`) on that panel blocks the search.
 - `Combobox.Item` keeps `aria-selected` on the highlighted row, as the ARIA combobox pattern requires. The chosen row has `data-selected`.

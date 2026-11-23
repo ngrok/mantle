@@ -415,9 +415,12 @@ const getTabPanelProps = (
 					// Why an observer and not `beforematch`: the browser removes `hidden`
 					// after `beforematch`, and it can do so before hydration. A change
 					// to `hidden` on an inactive panel covers both.
-					// Why `tabIndex`: it is -1 only while this panel is inactive, so the
-					// DOM tells the current state without a data attribute of its own.
-					const isInactive = () => panel.tabIndex === -1;
+					// Why the tab's `aria-selected`: it is the selected state that
+					// mantle writes, and `flushSync` below updates it before the reread.
+					const isInactive = () =>
+						panel.ownerDocument
+							.getElementById(tabId(tabs, value))
+							?.getAttribute("aria-selected") !== "true";
 					const reconcile = () => {
 						if (!isInactive() || panel.hasAttribute("hidden")) {
 							return;

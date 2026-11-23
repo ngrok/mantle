@@ -162,7 +162,7 @@ const STYLE = `
 			.sm\\:\\@min-side-panel-lane\\/app-layout-workspace\\:not-data-open\\:basis-0:not([data-open]) { flex-basis: 0px; }
 		}
 		@container app-layout-workspace (width >= 46.75rem) {
-			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-expanded])) .sm\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-expanded\\]\\)\\)_\\&\\]\\:\\@min-side-panel-lane-collapsed\\/app-layout-workspace\\:not-data-open\\:basis-0:not([data-open]) { flex-basis: 0px; }
+			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))) .sm\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-expanded\\]\\:not\\(\\[data-mobile\\]\\)\\)\\)_\\&\\]\\:\\@min-side-panel-lane-collapsed\\/app-layout-workspace\\:not-data-open\\:basis-0:not([data-open]) { flex-basis: 0px; }
 		}
 	}
 	@media (width >= 48rem) {
@@ -170,7 +170,7 @@ const STYLE = `
 			.md\\:\\@min-side-panel-lane\\/app-layout-workspace\\:not-data-open\\:basis-0:not([data-open]) { flex-basis: 0px; }
 		}
 		@container app-layout-workspace (width >= 46.75rem) {
-			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-expanded])) .md\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-expanded\\]\\)\\)_\\&\\]\\:\\@min-side-panel-lane-collapsed\\/app-layout-workspace\\:not-data-open\\:basis-0:not([data-open]) { flex-basis: 0px; }
+			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))) .md\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-expanded\\]\\:not\\(\\[data-mobile\\]\\)\\)\\)_\\&\\]\\:\\@min-side-panel-lane-collapsed\\/app-layout-workspace\\:not-data-open\\:basis-0:not([data-open]) { flex-basis: 0px; }
 		}
 	}
 	@media (width >= 64rem) {
@@ -178,7 +178,7 @@ const STYLE = `
 			.lg\\:\\@min-side-panel-lane\\/app-layout-workspace\\:not-data-open\\:basis-0:not([data-open]) { flex-basis: 0px; }
 		}
 		@container app-layout-workspace (width >= 46.75rem) {
-			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-expanded])) .lg\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-expanded\\]\\)\\)_\\&\\]\\:\\@min-side-panel-lane-collapsed\\/app-layout-workspace\\:not-data-open\\:basis-0:not([data-open]) { flex-basis: 0px; }
+			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))) .lg\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-expanded\\]\\:not\\(\\[data-mobile\\]\\)\\)\\)_\\&\\]\\:\\@min-side-panel-lane-collapsed\\/app-layout-workspace\\:not-data-open\\:basis-0:not([data-open]) { flex-basis: 0px; }
 		}
 	}
 	@media (width < 64rem) {

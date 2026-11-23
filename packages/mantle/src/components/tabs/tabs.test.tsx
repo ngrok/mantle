@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps, ReactNode } from "react";
 import { renderToString } from "react-dom/server";
@@ -785,6 +785,35 @@ describe("Tabs", () => {
 			expect(panels[2]).toContain('hidden=""');
 			expect(html).toContain("Panel B");
 			expect(html).not.toContain("Panel C");
+		});
+
+		// Why a consumer tabIndex: the panel forwards it, so the reveal cannot read
+		// the selected state from the panel's own `tabIndex`.
+		test("a revealed panel with a consumer tabIndex selects its tab and stays shown", async () => {
+			render(
+				<Tabs.Root defaultValue="a">
+					<Tabs.List>
+						<Tabs.Trigger value="a">A</Tabs.Trigger>
+						<Tabs.Trigger value="b">B</Tabs.Trigger>
+					</Tabs.List>
+					<Tabs.Content value="a">Panel A</Tabs.Content>
+					<Tabs.Content value="b" hiddenUntilFound tabIndex={-1}>
+						Panel B
+					</Tabs.Content>
+				</Tabs.Root>,
+			);
+			const panel = screen.getByText("Panel B");
+			expect(panel).toHaveAttribute("hidden", "until-found");
+
+			// The browser removes `hidden` when find-in-page reaches the panel.
+			act(() => {
+				panel.removeAttribute("hidden");
+			});
+
+			await waitFor(() => {
+				expect(screen.getByRole("tab", { name: "B" })).toHaveAttribute("aria-selected", "true");
+			});
+			expect(panel).not.toHaveAttribute("hidden");
 		});
 	});
 });

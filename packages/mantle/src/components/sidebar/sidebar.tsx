@@ -742,7 +742,7 @@ type SidebarNavProps = ComponentProps<"div"> & WithDataSlot;
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-expanded` | present while expanded | Presence-only, desktop panel surface. Mirrors the root's expanded state; its absence drives the width collapse to its icons. Descendant parts style off it with `group-data-expanded/sidebar-nav:` and `group-not-data-expanded/sidebar-nav:`. |
+ * | `data-expanded` | present while expanded | Presence-only. On the desktop panel it mirrors the root's expanded state, and its absence drives the width collapse to its icons. The mobile sheet always has it. Descendant parts style off it with `group-data-expanded/sidebar-nav:` and `group-not-data-expanded/sidebar-nav:`. |
  * | `data-hydrated` | present one frame after hydration | Presence-only, desktop panel surface. The panel's pre-hydration visibility gate, its width transition, and descendant collapse transitions all key off its absence in CSS (`not-data-hydrated:`, `group-not-data-hydrated/sidebar-nav:`). The stamp waits one frame, so an SSR state correction paints first and snaps instead of animating on page load. |
  * | `data-mobile` | present in the mobile sheet | Presence-only. Marks the sheet presentation used below the root's `mobileBreakpoint`. |
  * | `data-open` | present while the sheet is open | Presence-only, in the mobile sheet only: the sheet's open state, not the desktop expanded state. |
@@ -855,9 +855,10 @@ const Nav = ({
 			{...props}
 			// Why after the spread: a wider props object can carry `data-expanded` or
 			// `data-hydrated` past the type, and a consumer value would desync the
-			// collapse from `open` or release the gate. In the sheet the
-			// `<dialog>` writes `data-open` itself.
-			data-expanded={!isMobile && open ? "" : undefined}
+			// collapse from `open` or release the gate. The sheet is always at full
+			// width, so its descendants never match the collapsed styles. In the
+			// sheet the `<dialog>` writes `data-open` itself.
+			data-expanded={isMobile || open ? "" : undefined}
 			data-mobile={isMobile ? "" : undefined}
 			// Why data-hydrated: the first-paint gates above and the descendants'
 			// collapse transitions key off this attribute in CSS, so an SSR state
