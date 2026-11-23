@@ -250,6 +250,10 @@ export default defineConfig({
 				test: {
 					name: "browser",
 					include: ["**/*.browser.test.{ts,tsx}"],
+					// Why: `VITEST_MAX_WORKERS` marks a small machine, such as an Amp orb. There, Chromium
+					// and the unit forks at the same time run out of memory, so this project starts after
+					// the unit project ends.
+					sequence: { groupOrder: process.env.VITEST_MAX_WORKERS ? 1 : 0 },
 					// Why a bench project: the `bench` test-context fixture refuses to run in a regular
 					// project, so this derives a `browser (chromium) (bench)` project that runs
 					// `*.browser.bench.ts` under `vitest run`. CI selects both with `--project='browser*'`.
