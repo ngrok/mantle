@@ -410,6 +410,94 @@ describe("DropdownMenu modal (browser)", () => {
 		},
 	);
 
+	test("a touch scroll that starts outside keeps the menu open, and a tap outside closes it", async () => {
+		render(<FruitMenu />);
+		const trigger = screen.getByRole("button", { name: "Open" });
+		const outside = screen.getByRole("button", { name: "Outside" });
+		await browserUser.click(trigger);
+		await screen.findByRole("menu");
+		const touch = { bubbles: true, pointerId: 7, pointerType: "touch", isPrimary: true, button: 0 };
+
+		// Why `pointercancel`: the browser cancels a touch press when it turns into a scroll.
+		outside.dispatchEvent(new PointerEvent("pointerdown", touch));
+		outside.dispatchEvent(new PointerEvent("pointercancel", touch));
+		await new Promise(requestAnimationFrame);
+		expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+		outside.dispatchEvent(new PointerEvent("pointerdown", touch));
+		outside.dispatchEvent(new PointerEvent("pointerup", touch));
+		await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "false"));
+	});
+
+	test("an outside press closes the menu when the page stops its pointerup, and a press that ends in the menu does not", async () => {
+		render(
+			<>
+				<FruitMenu />
+				<button type="button" onPointerUp={(event) => event.stopPropagation()}>
+					Stops pointerup
+				</button>
+			</>,
+		);
+		const trigger = screen.getByRole("button", { name: "Open" });
+		const outside = screen.getByRole("button", { name: "Outside" });
+		await browserUser.click(trigger);
+		const menu = await screen.findByRole("menu");
+		const mouse = { bubbles: true, pointerId: 1, pointerType: "mouse", isPrimary: true, button: 0 };
+
+		// Why the menu, not an item: a release on an item selects it.
+		outside.dispatchEvent(new PointerEvent("pointerdown", mouse));
+		menu.dispatchEvent(new PointerEvent("pointerup", mouse));
+		await new Promise(requestAnimationFrame);
+		expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+		await browserUser.click(screen.getByRole("button", { name: "Stops pointerup" }));
+		await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "false"));
+	});
+
+	test("a controlled menu that refuses to close is asked again on the next outside press", async () => {
+		const changes: boolean[] = [];
+		render(
+			<>
+				<DropdownMenu.Root open onOpenChange={(open) => changes.push(open)}>
+					<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+					<DropdownMenu.Content>
+						<DropdownMenu.Item>Apple</DropdownMenu.Item>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
+				<div>Blank</div>
+			</>,
+		);
+		await screen.findByRole("menu");
+
+		await browserUser.click(screen.getByText("Blank"));
+		await browserUser.click(screen.getByText("Blank"));
+
+		expect(changes).toEqual([false, false]);
+	});
+
+	test("a controlled menu that refuses to close lets the outside click land", async () => {
+		const clicks: string[] = [];
+		render(
+			<>
+				<DropdownMenu.Root open onOpenChange={() => {}}>
+					<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+					<DropdownMenu.Content>
+						<DropdownMenu.Item>Apple</DropdownMenu.Item>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
+				<button type="button" onClick={() => clicks.push("outside")}>
+					Outside
+				</button>
+			</>,
+		);
+		await screen.findByRole("menu");
+
+		await browserUser.click(screen.getByRole("button", { name: "Outside" }));
+
+		expect(clicks).toEqual(["outside"]);
+		expect(screen.getByRole("menu")).toBeInTheDocument();
+	});
+
 	test.each(["focus move", "handler focus"])(
 		"a press that the consumer keeps from closing the menu still clicks what is under it (%s)",
 		async (closer) => {
