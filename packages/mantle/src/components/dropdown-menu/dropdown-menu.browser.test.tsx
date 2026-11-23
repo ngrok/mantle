@@ -1346,6 +1346,9 @@ describe("DropdownMenu with its CSS (browser)", () => {
 				</DropdownMenu.Root>,
 			);
 			const menu = await screen.findByRole("menu");
+			// Why wait for the animations: the open scale moves the box's left edge,
+			// and a loaded runner can run it past a poll's timeout.
+			await Promise.all(menu.getAnimations().map((animation) => animation.finished));
 			await waitFor(() => expect(menu.getBoundingClientRect().left).toBeCloseTo(180, 0));
 			const first = screen.getByRole("button", { name: "Open" });
 
@@ -1390,6 +1393,7 @@ describe("DropdownMenu with its CSS (browser)", () => {
 			</DropdownMenu.Root>,
 		);
 		const submenu = await screen.findByRole("menu", { name: "More" });
+		await Promise.all(submenu.getAnimations().map((animation) => animation.finished));
 		await waitFor(() => expect(submenu.getBoundingClientRect().left).toBeCloseTo(152, 0));
 
 		await act(async () => control.replaceElement());

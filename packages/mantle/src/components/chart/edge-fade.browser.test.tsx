@@ -441,8 +441,13 @@ describe("left-edge scroll mask on the SVG renderer", () => {
 		// The production default eases: the decay must keep scheduling frames
 		// until the mask is gone, or a stopped stream stays faded.
 		await vi.advanceTimersByTimeAsync(LINGER_MS);
-		await waitFor(() => {
-			expect(svgLeftEdgeOpacity(container)).toBe(1);
-		});
+		// Why a longer timeout: the eased decay takes about 640ms, and a slow frame
+		// slows it. A pass returns as soon as the mask is gone.
+		await waitFor(
+			() => {
+				expect(svgLeftEdgeOpacity(container)).toBe(1);
+			},
+			{ timeout: 3000 },
+		);
 	});
 });

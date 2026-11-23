@@ -1,8 +1,9 @@
 "use client";
 
-import { render, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { userEvent } from "vitest/browser";
 import * as AreaChart from "../area-chart/area-chart-parts.js";
 import * as BarChart from "../bar-chart/bar-chart-parts.js";
 import { CanvasAreaChartRoot, CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
@@ -1215,20 +1216,26 @@ describe("tooltip placement", () => {
 		// `transform !== ""` only proves the engine ran. Two hovers a known
 		// distance apart are what pin the follow itself.
 		const { container } = render(
-			<div style={{ width: 600, height: 400 }}>
-				<CanvasBarChartRoot
-					data={threeEqualSegments}
-					xKey="day"
-					stacked
-					animate={false}
-					aria-label="Three segments"
-				>
-					<BarChart.Bar dataKey="bottom" label="Bottom" color="blue" />
-					<BarChart.Bar dataKey="middle" label="Middle" color="emerald" />
-					<BarChart.Bar dataKey="top" label="Top" color="pink" />
-				</CanvasBarChartRoot>
-			</div>,
+			<>
+				<div style={{ width: 600, height: 400 }}>
+					<CanvasBarChartRoot
+						data={threeEqualSegments}
+						xKey="day"
+						stacked
+						animate={false}
+						aria-label="Three segments"
+					>
+						<BarChart.Bar dataKey="bottom" label="Bottom" color="blue" />
+						<BarChart.Bar dataKey="middle" label="Middle" color="emerald" />
+						<BarChart.Bar dataKey="top" label="Top" color="pink" />
+					</CanvasBarChartRoot>
+				</div>
+				<p>Below the chart</p>
+			</>,
 		);
+		// Why move the real mouse off the plot: an earlier test can leave it there,
+		// and Firefox then sends its own pointer moves, which pull the readout to it.
+		await userEvent.hover(screen.getByText("Below the chart"));
 		const canvas = await findChartCanvas(container);
 		await waitForPlot(canvas);
 		const overlay = overlayOf(container);

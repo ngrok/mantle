@@ -297,17 +297,23 @@ jobs:
   # Browser-mode tests only. Launches a local headless browser from a cached
   # browser build instead of installing Playwright in every unit shard. Each
   # engine runs in its own job, in parallel, so a second and third engine add
-  # little wall time.
+  # little wall time. Firefox runs one file at a time (see vitest.config.ts),
+  # so it takes two shards.
   browser-test:
-    name: browser-test (${{ matrix.browser }})
+    name: browser-test (${{ matrix.browser }} ${{ matrix.shard }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        browser: [chromium, firefox, webkit]
+        include:
+          - { browser: chromium, shard: 1/1 }
+          - { browser: firefox, shard: 1/2 }
+          - { browser: firefox, shard: 2/2 }
+          - { browser: webkit, shard: 1/1 }
     env:
       MANTLE_BROWSERS: ${{ matrix.browser }}
+      SHARD: ${{ matrix.shard }}
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -388,7 +394,7 @@ jobs:
             --concurrency="${TURBO_TEST_CONCURRENCY}" \
             --continue=always \
             --filter='@ngrok/mantle' \
-            -- --project='browser*' --maxWorkers="${TURBO_TEST_CONCURRENCY}"
+            -- --project='browser*' --maxWorkers="${TURBO_TEST_CONCURRENCY}" --shard="${SHARD}"
 
   # GitHub scopes an Actions cache to the ref that saved it, and a PR run reads only its
   # own caches and the caches of `main`. So this job saves the Vitest module cache from

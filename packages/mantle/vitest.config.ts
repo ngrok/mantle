@@ -19,7 +19,7 @@ type Engine = "chromium" | "firefox" | "webkit";
  * The engines this run uses: `MANTLE_BROWSERS`, a comma-separated list, or
  * Chromium alone. CI runs one job for each engine, in parallel.
  */
-const engines = (process.env.MANTLE_BROWSERS ?? "chromium").split(",").map((name): Engine => {
+const engines = (process.env.MANTLE_BROWSERS || "chromium").split(",").map((name): Engine => {
 	const engine = name.trim();
 	if (engine !== "chromium" && engine !== "firefox" && engine !== "webkit") {
 		throw new Error(`MANTLE_BROWSERS takes chromium, firefox, or webkit, not "${engine}".`);
@@ -115,12 +115,18 @@ const mantleUtilities = async (): Promise<string> => {
  */
 const mantleAnimations = async (): Promise<string> => {
 	const css = await readFile(path.join(import.meta.dirname, "src/mantle.css"), "utf8");
-	const tokens = css.match(/^\t--animate-[\w-]+:.*$/gm);
-	const keyframes = css.match(/^\t@keyframes [\s\S]*?^\t\}/gm);
-	if (tokens == null || keyframes == null) {
-		throw new Error("mantle.css holds no --animate-* tokens with keyframes.");
+	const tokens = [...css.matchAll(/^\t--animate-([\w-]+):[^;]*;/gm)];
+	if (tokens.length === 0) {
+		throw new Error("mantle.css holds no --animate-* tokens.");
 	}
-	return `@theme inline {\n${[...tokens, ...keyframes].join("\n")}\n}`;
+	const rules = tokens.map(([token, name]) => {
+		const keyframes = new RegExp(`^\\t@keyframes ${name} \\{[\\s\\S]*?^\\t\\}`, "m").exec(css);
+		if (keyframes == null) {
+			throw new Error(`mantle.css holds no keyframes for --animate-${name}.`);
+		}
+		return `${token}\n${keyframes[0]}`;
+	});
+	return `@theme inline {\n${rules.join("\n")}\n}`;
 };
 
 // Why a command: a browser test asserts layout, so it needs the CSS that Tailwind
@@ -240,9 +246,13 @@ export default defineConfig({
 							!process.env.DISABLE_HEADLESS ||
 							process.env.CI === "1" ||
 							/true/i.test(process.env.CI ?? ""),
+						// Why Firefox runs one file at a time: Firefox keeps mouse capture and
+						// drag state for the whole browser, so a real drag in one page breaks a
+						// drag or a selection in another. CI splits Firefox into shards instead.
 						instances: engines.map((engine) => ({
 							browser: engine,
 							provider: providerFor(engine),
+							...(engine === "firefox" ? { fileParallelism: false } : {}),
 						})),
 						commands: { emulateMedia, tailwindCss },
 					},

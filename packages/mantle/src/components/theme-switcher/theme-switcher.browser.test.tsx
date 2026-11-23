@@ -145,7 +145,15 @@ describe("ThemeSwitcher name and icon from the theme on <html>", () => {
 		await commands.emulateMedia({ colorScheme: "dark" });
 
 		const button = await screen.findByRole("button", { name: "Switch to light theme" });
-		await expect.poll(() => shownGlyphs(button)).toEqual([glyphs.dark]);
+		// Why wait for the swap: both icons paint while it crossfades, and a loaded
+		// runner can run it past a poll's timeout.
+		await Promise.all(
+			button
+				.getAnimations({ subtree: true })
+				.filter((animation) => animation instanceof CSSTransition)
+				.map((animation) => animation.finished),
+		);
+		expect(shownGlyphs(button)).toEqual([glyphs.dark]);
 	});
 
 	test("each click names the theme the next click shows", async () => {

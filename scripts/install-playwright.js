@@ -21,7 +21,7 @@ if (process.env.PLAYWRIGHT_WS_ENDPOINT) {
 	process.exit(0);
 }
 
-const browsers = (process.env.MANTLE_BROWSERS ?? "chromium")
+const browsers = (process.env.MANTLE_BROWSERS || "chromium")
 	.split(",")
 	.map((browser) => browser.trim())
 	.join(" ");
