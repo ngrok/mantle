@@ -53,18 +53,17 @@ type TimeZoneProviderProps = PropsWithChildren<{
  * ```
  */
 function TimeZoneProvider({ timeZone, children }: TimeZoneProviderProps) {
-	const zone = useSyncExternalStore(
-		subscribe,
-		getBrowserTimeZone,
-		() => timeZone ?? fallbackTimeZone,
-	);
-	return <TimeZoneContext value={zone}>{children}</TimeZoneContext>;
+	// Why the server zone, not the resolved zone: a subtree that hydrates later,
+	// such as one behind `Suspense`, must render its hydration pass in the server
+	// zone too. `useTimeZone` resolves the browser zone in each consumer.
+	return <TimeZoneContext value={timeZone ?? fallbackTimeZone}>{children}</TimeZoneContext>;
 }
 
 /**
  * Returns the visitor's IANA time zone, such as `America/Chicago`: the
  * cookie's zone on the server and in the hydration render, then the browser's
- * zone. Returns `"UTC"` outside a `TimeZoneProvider`.
+ * zone. Outside a `TimeZoneProvider`, the server and the hydration render use
+ * `"UTC"`.
  *
  * @see https://mantle.ngrok.com/components/preview/time-zone#usetimezone
  *
@@ -79,7 +78,8 @@ function TimeZoneProvider({ timeZone, children }: TimeZoneProviderProps) {
  * ```
  */
 function useTimeZone(): string {
-	return use(TimeZoneContext);
+	const serverTimeZone = use(TimeZoneContext);
+	return useSyncExternalStore(subscribe, getBrowserTimeZone, () => serverTimeZone);
 }
 
 const defaultFormat = { dateStyle: "medium", timeStyle: "short" } as const;

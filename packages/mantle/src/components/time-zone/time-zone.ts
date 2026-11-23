@@ -13,27 +13,27 @@ const timeZoneCookieName = "mantle-tz";
 const fallbackTimeZone = "UTC";
 
 /**
- * Reports whether `value` is a time zone that `Intl` accepts, such as
- * `America/Chicago` or `UTC`.
+ * Returns the canonical spelling of a time zone that `Intl` accepts, such as
+ * `America/Chicago` for `america/chicago`, or `undefined` for any other value.
  */
-function isTimeZone(value: string): boolean {
+function canonicalTimeZone(value: string): string | undefined {
 	// Why the length cap: a cookie is client input, and no IANA name is this long.
 	if (value.length === 0 || value.length > 64) {
-		return false;
+		return undefined;
 	}
 	// Why not `Intl.supportedValuesOf`: it omits aliases, such as `Asia/Calcutta`,
 	// that a browser can still report as its own zone.
 	try {
-		return new Intl.DateTimeFormat("en-US", { timeZone: value }).resolvedOptions().timeZone !== "";
+		return new Intl.DateTimeFormat("en-US", { timeZone: value }).resolvedOptions().timeZone;
 	} catch {
-		return false;
+		return undefined;
 	}
 }
 
 /**
- * Reads the visitor's time zone from a raw `Cookie` header. Returns
- * `undefined` when the cookie is absent or does not name a time zone that
- * `Intl` accepts. Safe to call on the server.
+ * Reads the visitor's time zone from a raw `Cookie` header, in its canonical
+ * spelling. Returns `undefined` when the cookie is absent or does not name a
+ * time zone that `Intl` accepts. Safe to call on the server.
  *
  * Call it once where the request enters, such as a root loader, and pass the
  * result to `TimeZoneProvider`. It returns only the zone name, so loader data
@@ -53,7 +53,9 @@ function isTimeZone(value: string): boolean {
  */
 function readTimeZoneCookie(cookieHeader: string | null | undefined): string | undefined {
 	const value = readCookie(cookieHeader, timeZoneCookieName);
-	return value != null && isTimeZone(value) ? value : undefined;
+	// Why canonical: the formatter cache keys on the zone, so each spelling of
+	// one zone would add a cache entry.
+	return value == null ? undefined : canonicalTimeZone(value);
 }
 
 /**

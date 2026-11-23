@@ -191,7 +191,7 @@ Renders a `<time>` element. Accepts every `<time>` prop except `children` and `d
 
 ### useTimeZone
 
-`useTimeZone(): string` returns the visitor's IANA zone, such as `America/Chicago`. It returns the cookie's zone on the server and in the hydration render, then the browser's zone. Outside a `TimeZoneProvider`, it returns `"UTC"`.
+`useTimeZone(): string` returns the visitor's IANA zone, such as `America/Chicago`. It returns the cookie's zone on the server and in the hydration render, then the browser's zone. Outside a `TimeZoneProvider`, the server and the hydration render use `"UTC"`.
 
 ```tsx
 import { formatDateTime, useTimeZone } from "@ngrok/mantle/time-zone";
@@ -204,7 +204,7 @@ function RenewalDate({ date }: { date: Date }) {
 
 ### readTimeZoneCookie
 
-`readTimeZoneCookie(cookieHeader: string | null | undefined): string | undefined` reads the `mantle-tz` cookie from a raw `Cookie` header. It returns `undefined` when the cookie is absent or doesn't name a zone that `Intl` accepts. Safe to call on the server.
+`readTimeZoneCookie(cookieHeader: string | null | undefined): string | undefined` reads the `mantle-tz` cookie from a raw `Cookie` header and returns the zone's canonical name, such as `America/Chicago` for `america/chicago`. It returns `undefined` when the cookie is absent or doesn't name a zone that `Intl` accepts. Safe to call on the server.
 
 ### formatDateTime
 

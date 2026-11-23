@@ -1,4 +1,5 @@
 import { act, render, screen } from "@testing-library/react";
+import { Suspense } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test } from "vitest";
@@ -11,7 +12,8 @@ const createdAt = new Date("2026-11-23T16:04:00Z");
 describe("readTimeZoneCookie", () => {
 	test.each([
 		["a=1; mantle-tz=America%2FChicago; b=2", "America/Chicago"],
-		["mantle-tz=Asia%2FCalcutta", "Asia/Calcutta"],
+		// One cache entry for each zone: every spelling reads as the canonical name.
+		["mantle-tz=america%2Fchicago", "America/Chicago"],
 		["mantle-tz=Mars%2FOlympus_Mons", undefined],
 		["mantle-tz=%E0%A4%A", undefined],
 		[`mantle-tz=${"A".repeat(65)}`, undefined],
@@ -110,6 +112,50 @@ describe("LocalTime", () => {
 		container.remove();
 	});
 
+	test("a subtree that hydrates after the provider still hydrates in the server zone", async () => {
+		let suspend = false;
+		let resume = () => {};
+		const resumed = new Promise<void>((done) => {
+			resume = done;
+		});
+		// Suspends in the hydration render, so this subtree hydrates after the
+		// provider has committed and switched to the browser zone.
+		function Deferred() {
+			if (suspend) {
+				throw resumed;
+			}
+			return <LocalTime date={createdAt} format={{ timeStyle: "short" }} />;
+		}
+		const page = (
+			<TimeZoneProvider timeZone="America/Chicago">
+				<Suspense fallback={null}>
+					<Deferred />
+				</Suspense>
+			</TimeZoneProvider>
+		);
+		const container = document.createElement("div");
+		container.innerHTML = renderToString(page);
+		document.body.append(container);
+		const serverTime = container.querySelector("time");
+		expect(serverTime).toHaveTextContent("10:04 AM");
+		const errors: unknown[] = [];
+
+		suspend = true;
+		await act(async () => {
+			hydrateRoot(container, page, { onRecoverableError: (error) => errors.push(error) });
+		});
+		suspend = false;
+		await act(async () => {
+			resume();
+			await resumed;
+		});
+
+		expect(errors).toEqual([]);
+		expect(container.querySelector("time")).toBe(serverTime);
+		expect(serverTime).toHaveTextContent("4:04 PM");
+		container.remove();
+	});
+
 	test("className and data-* reach the <time>, and data-slot joins an incoming chain", () => {
 		render(
 			<LocalTime
@@ -126,7 +172,7 @@ describe("LocalTime", () => {
 });
 
 describe("useTimeZone", () => {
-	test("returns the browser zone after mount, and UTC outside a provider", () => {
+	test("returns the browser zone after mount, inside and outside a provider", () => {
 		function Zone() {
 			return <span>{useTimeZone()}</span>;
 		}
