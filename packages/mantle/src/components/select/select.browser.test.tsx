@@ -300,6 +300,8 @@ describe("Select keyboard, focus, and ARIA contract", () => {
 		await userEvent.click(trigger);
 		await userEvent.click(document.body);
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
+		// Why: as with a native select and 0.94.1, a press on blank space keeps focus on the trigger.
+		expect(trigger).toHaveFocus();
 		expect(onValueChange).toHaveBeenCalledTimes(0);
 	});
 
