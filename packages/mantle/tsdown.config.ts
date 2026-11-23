@@ -222,6 +222,9 @@ export default defineConfig((options) => [
 			...compoundParts.entries,
 			...utilPackages,
 			"code-block_highlight-utils": "./src/components/code-block/highlight-utils.ts",
+			// Why: `package.json#imports` maps `#qr-code-encoder` to one of these two files by the `browser` condition.
+			"qr-code-encoder": "./src/components/qr-code/qr-code-encoder.ts",
+			"qr-code-encoder.browser": "./src/components/qr-code/qr-code-encoder.browser.ts",
 			hooks: "./src/hooks/index.ts",
 			types: "./src/types/index.ts",
 			utils: "./src/utils/index.ts",
