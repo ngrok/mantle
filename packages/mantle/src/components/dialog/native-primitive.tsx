@@ -93,6 +93,9 @@ const keptMounted = new WeakSet<HTMLDialogElement>();
 /** The `<dialog>` elements that open with `show()`, not as a modal. */
 const nonModal = new WeakSet<HTMLDialogElement>();
 
+/** The panels that `writeOpenState` made inert. */
+let inertPanels = new Set<HTMLElement>();
+
 /** The documents that `trackInput` listens to. */
 const trackedDocuments = new WeakSet<Document>();
 /**
@@ -173,12 +176,22 @@ function writeOpenState({ dialog, open }: { dialog: HTMLDialogElement; open: boo
 	// Why: WebKit keeps the content of an open dialog under the top modal
 	// focusable from script when the top one opened in a later frame, so the
 	// panel of each dialog under the top modal takes `inert` too.
+	const covered = new Set<HTMLElement>();
 	for (const each of openDialogs) {
 		const panel = each.querySelector("[data-mantle-modal-content]");
-		if (panel instanceof HTMLElement) {
-			panel.inert = top != null && each !== top && !top.contains(each);
+		if (top != null && each !== top && !top.contains(each) && panel instanceof HTMLElement) {
+			covered.add(panel);
 		}
 	}
+	// Why the set: a panel can lose its marker before its dialog closes, as the
+	// Sidebar nav does at the breakpoint, so a query would not find it again.
+	for (const panel of inertPanels) {
+		panel.inert = covered.has(panel);
+	}
+	for (const panel of covered) {
+		panel.inert = true;
+	}
+	inertPanels = covered;
 }
 
 /** The open modal dialogs that hold the page scroll lock. */
