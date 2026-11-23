@@ -14,13 +14,6 @@ const oppositeSide = {
 	left: "right",
 } as const satisfies Record<Side, Side>;
 
-/**
- * The side a float takes when neither its preferred side nor the opposite one
- * fits: the preferred side, or the side with more room, such as for a list
- * that its `--available-height` caps.
- */
-type Fallback = "preferred" | "larger";
-
 /** The room on `side` of `anchor` inside the viewport, in pixels. */
 function roomOn(anchor: Box, side: Side, viewport: { width: number; height: number }): number {
 	return {
@@ -93,10 +86,9 @@ function alignOnAxis({
 
 /**
  * Places a float of `size` next to `anchor`. It flips to the opposite side
- * when the preferred side does not fit and the opposite side does, or, with
- * `fallback: "larger"`, when neither fits and the opposite side has more room. It
- * shifts along the side to stay `VIEWPORT_PADDING` inside the viewport. The
- * CSS path takes the side it picks.
+ * when the preferred side does not fit and the opposite side does, or when
+ * neither fits and the opposite side has more room, as Radix's `bestFit` did.
+ * It shifts along the side to stay `VIEWPORT_PADDING` inside the viewport.
  *
  * @example
  * ```ts
@@ -113,7 +105,6 @@ function alignOnAxis({
 function computePlacement({
 	align,
 	anchor,
-	fallback = "preferred",
 	side,
 	sideOffset,
 	size,
@@ -121,7 +112,6 @@ function computePlacement({
 }: {
 	align: Align;
 	anchor: Box;
-	fallback?: Fallback;
 	side: Side;
 	sideOffset: number;
 	size: { width: number; height: number };
@@ -131,8 +121,7 @@ function computePlacement({
 	const flips =
 		!fits({ anchor, side, sideOffset, size, viewport }) &&
 		(fits({ anchor, side: flipped, sideOffset, size, viewport }) ||
-			(fallback === "larger" &&
-				roomOn(anchor, flipped, viewport) > roomOn(anchor, side, viewport)));
+			roomOn(anchor, flipped, viewport) > roomOn(anchor, side, viewport));
 	const placedSide = flips ? flipped : side;
 	if (placedSide === "top" || placedSide === "bottom") {
 		return {
@@ -261,6 +250,10 @@ const keyOf = (rect: DOMRect): string =>
  * crops to the new box again.
  */
 function observeMove(element: HTMLElement, onMove: () => void): () => void {
+	// Why: jsdom has neither observer. The float then places on scroll and resize only.
+	if (typeof IntersectionObserver === "undefined" || typeof ResizeObserver === "undefined") {
+		return () => {};
+	}
 	let observer: IntersectionObserver | undefined;
 	let stopped = false;
 	const watch = (threshold = 1) => {
@@ -326,9 +319,9 @@ function observeMove(element: HTMLElement, onMove: () => void): () => void {
  * opacity transition, so each open fade costs a layout per frame. The script
  * places the float once for each change.
  *
- * With `fallback: "larger"`, it sizes the float by its content height
- * (`scrollHeight`), so a list that `--available-height` caps can still move
- * to the side with more room.
+ * A float that scrolls, such as a list that `--available-height` caps, is
+ * sized by its content height (`scrollHeight`), so it can still move to the
+ * side with more room.
  *
  * Each frame it writes on the float `data-side` (the side it resolved to),
  * `--anchor-width`, `--anchor-height`, `--available-height`, and a `transform-origin` at the
@@ -345,7 +338,6 @@ function observeMove(element: HTMLElement, onMove: () => void): () => void {
 function trackFloat({
 	align: logicalAlign,
 	anchor,
-	fallback = "preferred",
 	dir,
 	floating,
 	side,
@@ -353,7 +345,6 @@ function trackFloat({
 }: {
 	align: Align;
 	anchor: HTMLElement;
-	fallback?: Fallback;
 	/** The reading direction that `start` and `end` follow. Defaults to the anchor's direction. */
 	dir?: "ltr" | "rtl";
 	floating: HTMLElement;
@@ -375,6 +366,12 @@ function trackFloat({
 	// `left` and `top` start at that element. An open animation sets and clears
 	// the transform, so each placement looks again.
 	const inTopLayer = "togglePopover" in HTMLElement.prototype;
+	// Why only a float that scrolls: in one that does not, `scrollHeight` also
+	// counts an arrow that sticks out below it, which the gap already counts.
+	// Why only above or below: beside the anchor, the height only aligns the
+	// float, and the rendered height is the one to align.
+	const sizeByContent =
+		(side === "top" || side === "bottom") && getComputedStyle(floating).overflowY !== "visible";
 
 	/** The anchor box and viewport size of the last placement, to see a move. */
 	let placedFor = "";
@@ -405,8 +402,9 @@ function trackFloat({
 		floating.style.setProperty("--anchor-height", `${anchorBox.height}px`);
 		const width = floating.offsetWidth;
 		const height = floating.offsetHeight;
-		const contentHeight =
-			fallback === "larger" ? floating.scrollHeight + height - floating.clientHeight : height;
+		const contentHeight = sizeByContent
+			? floating.scrollHeight + height - floating.clientHeight
+			: height;
 		const viewport = {
 			width: document.documentElement.clientWidth / zoom,
 			height: document.documentElement.clientHeight / zoom,
@@ -414,7 +412,6 @@ function trackFloat({
 		let placed = computePlacement({
 			align,
 			anchor: anchorBox,
-			fallback,
 			side,
 			sideOffset: gap,
 			size: { width, height: contentHeight },
@@ -480,13 +477,17 @@ function trackFloat({
 			}
 		});
 	};
-	const resizeObserver = new ResizeObserver(() => {
-		resized = true;
-		schedule();
-	});
-	resizeObserver.observe(floating);
+	// Why the check: jsdom has no `ResizeObserver`, and a throw here would break the open in a consumer's test.
+	const resizeObserver =
+		typeof ResizeObserver === "undefined"
+			? undefined
+			: new ResizeObserver(() => {
+					resized = true;
+					schedule();
+				});
+	resizeObserver?.observe(floating);
 	if (arrow != null) {
-		resizeObserver.observe(arrow);
+		resizeObserver?.observe(arrow);
 	}
 	// Why the listeners too: the observer reports after a paint, and a scroll
 	// or resize places the float before the paint, so it does not lag a frame.
@@ -496,7 +497,7 @@ function trackFloat({
 
 	return () => {
 		cancelAnimationFrame(frame);
-		resizeObserver.disconnect();
+		resizeObserver?.disconnect();
 		stopObservingMove();
 		window.removeEventListener("scroll", schedule, { capture: true });
 		window.removeEventListener("resize", schedule);
@@ -512,6 +513,5 @@ export {
 export type {
 	//,
 	Align,
-	Fallback,
 	Side,
 };

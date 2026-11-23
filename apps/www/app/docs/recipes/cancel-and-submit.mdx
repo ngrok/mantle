@@ -1,0 +1,164 @@
+---
+title: Cancel and Submit Actions
+description: Put a form's Cancel and submit buttons in one actions row, and switch to a Sandbar when the form edits saved settings.
+useWhen: Place a form's Cancel and submit buttons, or pick between an actions row and a save bar.
+parts:
+  - Strata
+  - Field
+  - Button
+  - Sandbar
+aliases:
+  - form actions
+  - form footer
+  - form buttons
+  - save and cancel buttons
+---
+
+import { Example } from "~/components/example";
+
+# Cancel and Submit Actions
+
+[Field](/components/forms/field) is the forms page: labels, errors, help text, groups, and TanStack Form. Start there for anything inside one field. This recipe covers what goes around the fields: the buttons that end the form, and the sections above them.
+
+<Example name="recipes/cancel-and-submit/overview" title="Cancel and Submit Actions example">
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Checkbox } from "@ngrok/mantle/checkbox";
+import { Choice } from "@ngrok/mantle/choice";
+import { Field } from "@ngrok/mantle/field";
+import { Input } from "@ngrok/mantle/input";
+import { Strata } from "@ngrok/mantle/strata";
+import { TextArea } from "@ngrok/mantle/text-area";
+import { type SubmitEvent, useState } from "react";
+
+/** Stands in for your API call. */
+function createEndpoint(): Promise<void> {
+	return new Promise((resolve) => {
+		setTimeout(resolve, 1000);
+	});
+}
+
+export function CreateEndpointForm() {
+	const [isPending, setIsPending] = useState(false);
+
+	async function submit(event: SubmitEvent<HTMLFormElement>) {
+		event.preventDefault();
+		const form = event.currentTarget;
+		setIsPending(true);
+		await createEndpoint().finally(() => setIsPending(false));
+		form.reset();
+	}
+
+	return (
+		<form className="w-full" onSubmit={(event) => void submit(event)}>
+			<Strata.Root asChild>
+				<fieldset disabled={isPending}>
+					<Strata.Section>
+						<Strata.Header>
+							<Strata.Title>General</Strata.Title>
+							<Strata.Description>How the endpoint shows in the dashboard.</Strata.Description>
+						</Strata.Header>
+						<Strata.Body>
+							<Field.Group>
+								<Field.Item name="name">
+									<Field.Label>Name</Field.Label>
+									<Field.Control>
+										<Input placeholder="api-staging" required />
+									</Field.Control>
+								</Field.Item>
+								<Field.Item name="description">
+									<Field.Label className="flex items-baseline gap-1">
+										Description <Field.Optional />
+									</Field.Label>
+									<Field.Control>
+										<TextArea placeholder="Staging API for the mobile app" />
+									</Field.Control>
+								</Field.Item>
+							</Field.Group>
+						</Strata.Body>
+					</Strata.Section>
+					<Strata.Section>
+						<Strata.Header>
+							<Strata.Title>Upstream</Strata.Title>
+							<Strata.Description>Where the endpoint forwards its traffic.</Strata.Description>
+						</Strata.Header>
+						<Strata.Body>
+							<Field.Item name="upstream">
+								<Field.Label>Upstream URL</Field.Label>
+								<Field.Control>
+									<Input type="url" placeholder="http://localhost:8080" />
+								</Field.Control>
+								<Field.Description>A URL that your agent can reach.</Field.Description>
+							</Field.Item>
+						</Strata.Body>
+					</Strata.Section>
+					<Strata.Section>
+						<Strata.Header>
+							<Strata.Title>Access</Strata.Title>
+							<Strata.Description>Who can send traffic to the endpoint.</Strata.Description>
+						</Strata.Header>
+						<Strata.Body>
+							<Choice.Root name="requireSignIn">
+								<Choice.Indicator>
+									<Checkbox />
+								</Choice.Indicator>
+								<Choice.Content>
+									<Choice.Label>Require sign-in</Choice.Label>
+									<Choice.Description>
+										Visitors sign in with Google before their requests reach the upstream.
+									</Choice.Description>
+								</Choice.Content>
+							</Choice.Root>
+						</Strata.Body>
+					</Strata.Section>
+				</fieldset>
+			</Strata.Root>
+			<div className="border-card-muted flex justify-end gap-2 border-t pt-6">
+				<Button type="reset" appearance="outlined" intent="neutral" disabled={isPending}>
+					Cancel
+				</Button>
+				<Button type="submit" appearance="filled" intent="neutral" isLoading={isPending}>
+					Create endpoint
+				</Button>
+			</div>
+		</form>
+	);
+}
+```
+
+</Example>
+
+## Why a recipe, not a component
+
+Each part already exists. [Strata](/components/structure/strata) lays out the sections, `Field` wires each control to its label and errors, and [Button](/components/actions/button) submits. What joins them is your form: its state, its validation, and the request it sends. A `Form` component would have to own all three, so mantle leaves the `<form>` to you.
+
+## Sections
+
+- Put the `<form>` around `Strata.Root` and the actions row. The row then sits below the last section, inside the form, where the submit button needs to be.
+- Give each group of fields that needs its own sentence a `Strata.Section`. The `Strata.Title` names the group, and the `Strata.Description` says what its controls do.
+- Put one `Field.Item` per control in `Strata.Body`, and stack several in a `Field.Group`.
+- Give every control its own `Field.Label`. A `Strata.Title` is a heading, so it names the section and not the control (see [Strata accessibility](/components/structure/strata#accessibility)).
+- Skip Strata for a short form with one group. A `Field.Group` and the actions row below it are enough.
+
+## Actions
+
+- End the form with one actions row: Cancel, then the primary button, aligned to the end. The DOM order is the visual order, so the primary button sits on the right and gets focus last. `Dialog.Footer` and `Sheet.Footer` use the same order.
+- Make the primary button `type="submit"` with `appearance="filled"`, and name it for what it does: **Create endpoint**, not **Submit** or **OK**.
+- Make Cancel `type="button"` in your app, and send the person back where they came from. With a router, compose `<Button asChild>` around its `Link`. The demo uses `type="reset"` because a preview frame has nowhere to go back to.
+- Set `isLoading` on the primary button while the request runs. It shows a spinner and blocks a second submit, and the label stays the same.
+- Disable the fields and Cancel while the request runs, so an edit can't land after the values went out. The demo composes `Strata.Root` onto a `<fieldset disabled>`, which disables every control inside it.
+- Let the browser check `required` and `type="url"` before your handler runs, and keep the primary button enabled, so a click shows the person what to fix. Show what the server rejects on the field it belongs to, with `Field.Errors` (see [Field error messages](/components/forms/field#error-messages)).
+
+## Edit saved settings with a Sandbar
+
+A settings page edits values that already saved. Leave the actions row out, and show a [Sandbar](/components/feedback/sandbar) while the form has unsaved changes. Its **Save changes** and **Discard** buttons replace the actions row, and it stays in view however long the page is.
+
+- Keep `Sandbar.Root` mounted, and set its `open` prop from whether the form differs from what saved.
+- Render it inside the form, or right after it, so Tab moves from the last field to its buttons.
+
+The [Sandbar](/components/feedback/sandbar) page has the full form, a failed save, and how to block navigation while changes are unsaved.
+
+## Destructive actions
+
+Keep **Delete** out of the actions row. Give it its own last section, as in the [Strata danger zone example](/components/structure/strata#polymorphism), and confirm it with an [AlertDialog](/components/overlays/alert-dialog) before it runs. Beside **Save**, a destructive button is one slip away from the wrong click.

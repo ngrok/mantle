@@ -425,7 +425,7 @@ const Root = ({
 							if (
 								event.defaultPrevented ||
 								input.readOnly ||
-								(pasteTransformer == null && !CSS.supports("-webkit-touch-callout", "none"))
+								(pasteTransformer == null && !CSS.supports?.("-webkit-touch-callout", "none"))
 							) {
 								return;
 							}

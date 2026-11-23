@@ -110,6 +110,9 @@ function sliderBehavior({
 		if (result == null) {
 			return index;
 		}
+		// Why after the check: only a press on the track glides, and a move that changes no value
+		// must not stop the thumb's glide while the range's runs on.
+		root.removeAttribute(TRACK_PRESS);
 		parts.inputs[result.index]?.focus({ preventScroll: true, focusVisible: keyboard });
 		if (!controlled) {
 			paint(parts, result.values, min);
@@ -160,7 +163,8 @@ function sliderBehavior({
 					rect,
 					before: values,
 					edge,
-					offset: pressed - thumbValue,
+					// Why no offset during a glide: the thumb shows short of its value, under the pointer.
+					offset: root.hasAttribute(TRACK_PRESS) ? 0 : pressed - thumbValue,
 				});
 				return;
 			}
@@ -171,6 +175,7 @@ function sliderBehavior({
 				commit: false,
 				keyboard: false,
 			});
+			glide(root);
 			slides.set(root, {
 				pointerId: event.pointerId,
 				index,
@@ -252,6 +257,7 @@ function sliderBehavior({
 			const { inputs, values } = partsOf(root);
 			if (resetting) {
 				const next = inputs.map((each) => each.valueAsNumber);
+				root.removeAttribute(TRACK_PRESS);
 				for (const [index, each] of inputs.entries()) {
 					each.step = onStepGrid(next[index] ?? min, { min, step }) ? String(step) : "any";
 				}
@@ -324,6 +330,27 @@ function stopNativeTouch(event: TouchEvent) {
 	if (event.target instanceof HTMLInputElement) {
 		event.preventDefault();
 	}
+}
+
+/** The root attribute that lets the thumbs and the range glide to the value of a press on the track. */
+const TRACK_PRESS = "data-track-press";
+
+/** The timer that ends the glide on each root. */
+const glides = new WeakMap<Element, ReturnType<typeof setTimeout>>();
+
+/**
+ * Lets the thumbs and the range of `root` glide to their new values. The
+ * attribute goes 250ms later, after `duration-200` and a busy frame, so a later
+ * change of a controlled value or a form reset moves at once. Why a timer: an
+ * interrupted transition fires no `transitionend`.
+ */
+function glide(root: Element) {
+	root.setAttribute(TRACK_PRESS, "");
+	clearTimeout(glides.get(root));
+	glides.set(
+		root,
+		setTimeout(() => root.removeAttribute(TRACK_PRESS), 250),
+	);
 }
 
 /** Whether `value` sits on the grid of `step`s that starts at `min`. */

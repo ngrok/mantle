@@ -317,6 +317,40 @@ describe("Select keyboard, focus, and ARIA contract", () => {
 		}
 	});
 
+	test("a group label past the top edge cues that edge", async () => {
+		const style = document.createElement("style");
+		style.textContent = await commands.tailwindCss("./select.tsx");
+		document.head.append(style);
+		try {
+			render(
+				<Select.Root>
+					<Select.Trigger aria-label="Fruit" />
+					{/* Why the style: the compiled CSS holds only the classes in select.tsx. */}
+					<Select.Content style={{ maxHeight: 160 }}>
+						<Select.Group>
+							<Select.Label>Fruits</Select.Label>
+							{Array.from({ length: 20 }, (_, index) => (
+								<Select.Item key={index} value={`Fruit ${index}`}>
+									{`Fruit ${index}`}
+								</Select.Item>
+							))}
+						</Select.Group>
+					</Select.Content>
+				</Select.Root>,
+			);
+			await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
+			const list = screen.getByRole("listbox");
+			await expect.poll(() => list.hasAttribute("data-overflow-bottom")).toBe(true);
+			expect(list.hasAttribute("data-overflow-top")).toBe(false);
+			// Why: the label scrolls out of view while the first option still shows in full.
+			const label = screen.getByText("Fruits");
+			list.scrollTop = label.offsetHeight;
+			await expect.poll(() => list.hasAttribute("data-overflow-top")).toBe(true);
+		} finally {
+			style.remove();
+		}
+	});
+
 	test("a list too short for the cue padding still shows the highlighted option in full", async () => {
 		const style = document.createElement("style");
 		style.textContent = await commands.tailwindCss("./select.tsx");

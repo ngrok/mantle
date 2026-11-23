@@ -1003,6 +1003,27 @@ describe("Select", () => {
 			expect(new FormData(form).get("fruit")).toBe("banana");
 		});
 
+		test("picks an item by its role with no IntersectionObserver or ResizeObserver, as in jsdom", async () => {
+			vi.stubGlobal("IntersectionObserver", undefined);
+			vi.stubGlobal("ResizeObserver", undefined);
+			const user = userEvent.setup();
+			render(
+				<Select.Root>
+					<Select.Trigger aria-label="Fruit">
+						<Select.Value />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+
+			await user.click(screen.getByRole("combobox", { name: "Fruit" }));
+			await user.click(await screen.findByRole("option", { name: "Apple" }));
+
+			expect(screen.getByRole("combobox", { name: "Fruit" })).toHaveTextContent("Apple");
+		});
+
 		test("a closed list renders no options, and an item inside a wrapper component still labels the trigger after a keyboard pick", async () => {
 			const user = userEvent.setup();
 			// The trigger cannot find this label in Select.Root's children, so the item must report it.
