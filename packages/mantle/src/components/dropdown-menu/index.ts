@@ -9,12 +9,13 @@ import * as DropdownMenuParts from "./dropdown-menu-parts.js";
 /**
  * A menu of options or actions, triggered by a button.
  *
- * `DropdownMenu.Content` and `DropdownMenu.SubContent` render at Tailwind
- * `z-50`, Mantle's float tier. When composed inside an open `Dialog`,
- * `AlertDialog`, or `Sheet`, they portal into that overlay's positioner and
- * paint above the overlay that owns them. Outside every overlay, they portal to
- * `document.body`, below the overlay tier (`z-60`). When sibling floats share a
- * container, the most recently mounted float paints on top.
+ * `DropdownMenu.Content` and `DropdownMenu.SubContent` are native `popover`
+ * elements in the browser's top layer, so they paint above the page with no
+ * `z-index`. They portal into the content of the open `Dialog`, `AlertDialog`,
+ * `Sheet`, or `Popover` that holds them, else into `document.body`. They do not
+ * show while an overlay that does not hold them is open. CSS anchor
+ * positioning places them; where the browser has none, a script places them.
+ * Where the browser has no popover API, they are fixed boxes at `z-50`.
  *
  * @useWhen Show a menu of actions or options when the user clicks a button.
  *

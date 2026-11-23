@@ -206,4 +206,31 @@ describe("Popover.Content placement", () => {
 			document.body.style.removeProperty("pointer-events");
 		}
 	});
+
+	test("does not place the open content again when it renders again", async () => {
+		const user = userEvent.setup();
+		const tree = (label: string) => (
+			<Popover.Root>
+				<Popover.Trigger>Open</Popover.Trigger>
+				<Popover.Content>
+					<p>{label}</p>
+				</Popover.Content>
+			</Popover.Root>
+		);
+		const { rerender } = render(tree("First"));
+		await user.click(screen.getByRole("button", { name: "Open" }));
+		const content = await screen.findByRole("dialog");
+		await waitFor(() => expect(getComputedStyle(content).opacity).toBe("1"));
+		const observer = new MutationObserver(() => {});
+		observer.observe(content, { attributeFilter: ["style"] });
+
+		rerender(tree("Second"));
+		// Why right after the render: a placement in its commit writes the style at
+		// once. A later write comes from the open transition's end, not the render.
+		const styleWrites = observer.takeRecords();
+		observer.disconnect();
+
+		expect(screen.getByText("Second")).toBeInTheDocument();
+		expect(styleWrites).toHaveLength(0);
+	});
 });

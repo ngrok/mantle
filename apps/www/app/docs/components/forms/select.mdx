@@ -81,7 +81,7 @@ Select.Root
 
 `Select.Root` is a state provider that renders no DOM, so it takes no `asChild`.
 
-`Select.Content` takes no `asChild`. It is the popup that holds the listbox the trigger controls. Style it with `className` instead.
+`Select.Content` takes no `asChild`. It is the listbox that the trigger controls, and it holds your items. Style it with `className` instead.
 
 `Select.Value asChild` merges the value's props onto your element and renders it as-is, with no label span and no placeholder. To render a custom value inside the default span, pass `children` instead, as the [custom selected value](#custom-selected-value) example does.
 
@@ -428,7 +428,6 @@ All props of a `<div>`, plus:
 | Data Attribute | Value                 | Description                                               |
 | -------------- | --------------------- | --------------------------------------------------------- |
 | `data-slot`    | `"select-content"`    | On the content element.                                   |
-| `data-slot`    | `"select-viewport"`   | On the listbox inside it, which scrolls and fades.        |
 | `data-state`   | `"open"`              | Drives the open animation. A closed list renders nothing. |
 | `data-side`    | `"top"` \| `"bottom"` | The side of the trigger the list opened on.               |
 | `data-align`   | `"start"`             | The alignment against the trigger.                        |

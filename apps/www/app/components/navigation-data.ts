@@ -644,6 +644,22 @@ export const migrations = [
 			"Command no longer uses cmdk. Its parts drop the cmdk-* attributes for data-slot, a filtered item stays mounted with hidden, and groups sort by their best match.",
 		route: "/migrations/0024-command-owned-behavior-migration",
 	},
+	{
+		number: 25,
+		slug: "stone-palette-migration",
+		title: "Stone Palette",
+		description:
+			"mantle.css no longer has the stone palette, so stone classes make no CSS. Use gray, or set the stone stops you need in your own @theme block.",
+		route: "/migrations/0025-stone-palette-migration",
+	},
+	{
+		number: 26,
+		slug: "native-dropdown-menu-migration",
+		title: "Native Dropdown Menu",
+		description:
+			"DropdownMenu is built on native popovers placed by CSS anchor positioning. The Radix positioning props are gone, --anchor-width and --available-height replace the Radix CSS variables, and a modal menu makes the page inert.",
+		route: "/migrations/0026-native-dropdown-menu-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

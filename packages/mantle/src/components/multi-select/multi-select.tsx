@@ -21,7 +21,6 @@ import { useFieldValidation } from "../field/validation-context.js";
 import type { AriaInvalid, WithValidation } from "../field/validation.js";
 import { Separator } from "../separator/separator.js";
 import { Slot } from "../slot/index.js";
-import { slotContent } from "../slot/slot.js";
 import invariant from "tiny-invariant";
 
 const EMPTY_ARRAY: readonly string[] = [];
@@ -819,11 +818,6 @@ const Content = (props: MultiSelectContentProps) =>
 
 /** The open list. A closed multi-select mounts none of it: no popup, store, or listener. */
 const OpenContent = ({
-	"aria-label": ariaLabel,
-	"aria-labelledby": ariaLabelledBy,
-	"aria-describedby": ariaDescribedBy,
-	onScroll,
-	onScrollEnd,
 	"data-slot": dataSlot,
 	asChild = false,
 	children,
@@ -841,29 +835,6 @@ const OpenContent = ({
 
 	const composedRef = useComposedRefs(ref, popupRef, listbox.listboxProps.ref);
 	const Component = asChild ? Slot : "div";
-	// Why the listbox is a viewport inside the popup: the fade masks it, so the border and the shadow stay whole.
-	// Why only the top edge fades with a footer: the sticky footer sits on the bottom edge.
-	const renderViewport = (inner: ReactNode) => (
-		<div
-			id={listbox.id}
-			role="listbox"
-			tabIndex={-1}
-			aria-label={ariaLabel}
-			aria-labelledby={ariaLabelledBy}
-			aria-describedby={ariaDescribedBy}
-			// Why: the viewport scrolls, and scroll events do not bubble.
-			onScroll={onScroll}
-			onScrollEnd={onScrollEnd}
-			aria-multiselectable
-			// Why: a dialog lets the list take Escape only while the controlled element is open.
-			data-state="open"
-			data-slot="multi-select-viewport"
-			data-float-viewport
-			className="relative min-h-0 overflow-y-auto overflow-x-hidden scroll-fade-y has-data-content-footer:scroll-fade-t scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-py-6 pt-1 pb-1 has-data-content-footer:pb-0 flex flex-col gap-px"
-		>
-			{inner}
-		</div>
-	);
 	return (
 		portalTarget != null &&
 		createPortal(
@@ -874,13 +845,15 @@ const OpenContent = ({
 				</button>
 				<Component
 					{...props}
+					{...listbox.listboxProps}
 					onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
+					aria-multiselectable
 					popover="manual"
 					ref={composedRef}
 					data-slot={joinDataSlot(dataSlot, "multi-select-content")}
 					data-state="open"
 					className={cx(
-						"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 flex flex-col rounded-md border shadow-md font-sans outline-hidden",
+						"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col gap-px outline-hidden",
 						sameWidth && "w-(--anchor-width)",
 						className,
 					)}
@@ -902,7 +875,7 @@ const OpenContent = ({
 							const root = event.currentTarget.getRootNode();
 							const input =
 								root instanceof Document || root instanceof ShadowRoot
-									? root.querySelector<HTMLElement>(`[aria-controls="${listbox.id}"]`)
+									? root.querySelector<HTMLElement>(`[aria-controls="${event.currentTarget.id}"]`)
 									: null;
 							if (input != null) {
 								event.preventDefault();
@@ -923,7 +896,7 @@ const OpenContent = ({
 						}
 					})}
 				>
-					{asChild ? slotContent(children, renderViewport) : renderViewport(children)}
+					{children}
 				</Component>
 			</>,
 			portalTarget,

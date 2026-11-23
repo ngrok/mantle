@@ -8,7 +8,7 @@ import type {
 	Ref,
 	SelectHTMLAttributes,
 } from "react";
-import { createContext, isValidElement, use, useEffect, useId, useMemo } from "react";
+import { cloneElement, createContext, isValidElement, use, useEffect, useId, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { composeHandlers } from "../../behaviors/compose-handlers.js";
 import { useStoreValue } from "../../behaviors/store.js";
@@ -28,7 +28,6 @@ import type { WithValidation } from "../field/validation.js";
 import { Icon } from "../icon/icon.js";
 import { Separator } from "../separator/separator.js";
 import { Slot } from "../slot/index.js";
-import { slotContent } from "../slot/slot.js";
 
 type WithAriaInvalid = Pick<SelectHTMLAttributes<HTMLSelectElement>, "aria-invalid">;
 
@@ -731,6 +730,16 @@ const Trigger = ({
 	);
 };
 
+/**
+ * Under `asChild`, moves the part's own content inside the consumer's element:
+ * `render` gets the element's children and returns what the element renders.
+ * `Slot` then merges the part's props onto that element.
+ */
+const slotContent = (children: ReactNode, render: (inner: ReactNode) => ReactNode): ReactNode =>
+	isValidElement<{ children?: ReactNode }>(children)
+		? cloneElement(children, undefined, render(children.props.children))
+		: children;
+
 type SelectContentProps = Omit<ComponentProps<"div">, "dir"> &
 	WithDataSlot & {
 		/**
@@ -755,7 +764,6 @@ type SelectContentProps = Omit<ComponentProps<"div">, "dir"> &
  * | Data Attribute | Value                                          | Description                                                            |
  * | -------------- | ---------------------------------------------- | ---------------------------------------------------------------------- |
  * | `data-slot`    | `"select-content"`                             | On the content element.                                                |
- * | `data-slot`    | `"select-viewport"`                            | On the listbox inside it, which scrolls and fades.                     |
  * | `data-state`   | `"open"`                                       | Drives the open animation. A closed list renders nothing.              |
  * | `data-side`    | `"top"` \| `"bottom"`                           | The side of the trigger the list opened on.                            |
  * | `data-align`   | `"start"`                                      | The alignment against the trigger.                                     |
@@ -790,11 +798,6 @@ const Content = (props: SelectContentProps) =>
 
 /** The open list. A closed select mounts none of it: no popup, store, or listener. */
 const OpenContent = ({
-	"aria-label": ariaLabel,
-	"aria-labelledby": ariaLabelledBy,
-	"aria-describedby": ariaDescribedBy,
-	onScroll,
-	onScrollEnd,
 	className,
 	children,
 	"data-slot": dataSlot,
@@ -802,58 +805,37 @@ const OpenContent = ({
 	width = "trigger",
 	...props
 }: SelectContentProps) => {
-	const {
-		dir,
-		listbox: { listboxProps },
-		setOpen,
-		triggerRef,
-	} = useSelectContext();
+	const { dir, listbox, setOpen, triggerRef } = useSelectContext();
 	const { portalTarget, popupRef } = usePopup({
 		anchorRef: triggerRef,
 		ownerRef: triggerRef,
 		onOutsidePress: () => setOpen(false),
 	});
-	const composedRef = useComposedRefs(ref, popupRef, listboxProps.ref);
+	const composedRef = useComposedRefs(ref, popupRef, listbox.listboxProps.ref);
 
 	return (
 		portalTarget != null &&
 		createPortal(
 			<div
 				{...props}
-				role="presentation"
+				{...listbox.listboxProps}
 				popover="manual"
-				onMouseDown={composeHandlers(props.onMouseDown, listboxProps.onMouseDown)}
+				role="listbox"
+				tabIndex={-1}
+				onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
 				ref={composedRef}
 				dir={dir}
 				data-slot={joinDataSlot(dataSlot, "select-content")}
 				data-state="open"
 				data-align="start"
 				className={cx(
-					"border-popover duration-200 ease-out-strong data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-top:slide-in-from-bottom-1 motion-reduce:animate-none! pointer-events-auto fixed inset-auto z-50 m-0 text-inherit min-w-32 flex flex-col rounded-md border shadow-md",
-					"bg-popover font-sans max-h-(--available-height) outline-hidden",
+					"border-popover duration-200 ease-out-strong data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-top:slide-in-from-bottom-1 motion-reduce:animate-none! pointer-events-auto fixed inset-auto z-50 m-0 text-inherit min-w-32 overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none rounded-md border shadow-md",
+					"bg-popover font-sans p-1 space-y-px max-h-(--available-height) outline-hidden",
 					width === "trigger" && "w-(--anchor-width)",
 					className,
 				)}
 			>
-				{/* Why the listbox is a viewport inside the popup: the fade masks it, so the border, the shadow, and the open animation stay whole. */}
-				<div
-					id={listboxProps.id}
-					role="listbox"
-					tabIndex={-1}
-					aria-label={ariaLabel}
-					aria-labelledby={ariaLabelledBy}
-					aria-describedby={ariaDescribedBy}
-					// Why: the viewport scrolls, and scroll events do not bubble.
-					onScroll={onScroll}
-					onScrollEnd={onScrollEnd}
-					// Why: a dialog lets the list take Escape only while the controlled element is open.
-					data-state="open"
-					data-slot="select-viewport"
-					data-float-viewport
-					className="relative min-h-0 overflow-y-auto overflow-x-hidden scroll-fade-y scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-py-6 p-1 space-y-px"
-				>
-					{children}
-				</div>
+				{children}
 			</div>,
 			portalTarget,
 		)

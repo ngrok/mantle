@@ -634,7 +634,7 @@ describe("MultiSelect.Item label slot (browser)", () => {
 		expect(screen.getByTestId("row").parentElement).toBe(label);
 	});
 
-	test("the open list scrolls in a faded viewport with no scrollbar or overscroll", async () => {
+	test("the open list hides its scrollbar and stops overscroll", async () => {
 		// Why the compiled CSS: this page loads no Tailwind, and the test checks the real utilities.
 		const style = document.createElement("style");
 		style.textContent = await commands.tailwindCss("./multi-select.tsx");
@@ -652,17 +652,12 @@ describe("MultiSelect.Item label slot (browser)", () => {
 				</MultiSelect.Root>,
 			);
 			await user.click(screen.getByRole("combobox", { name: "Fruits" }));
-			const viewport = await screen.findByRole("listbox");
-			const list = viewport.closest("[popover]") ?? viewport;
-			expect(viewport).toHaveAttribute("data-slot", "multi-select-viewport");
-			expect(getComputedStyle(viewport)).toMatchObject({
+			const list = await screen.findByRole("listbox");
+			expect(getComputedStyle(list)).toMatchObject({
 				overflowY: "auto",
 				overscrollBehaviorY: "none",
 				scrollbarWidth: "none",
-				maskImage: expect.stringContaining("linear-gradient"),
 			});
-			// Why: the fade masks only the listbox viewport, so the popup's border and shadow stay whole.
-			expect(getComputedStyle(list).maskImage).toBe("none");
 		} finally {
 			style.remove();
 		}
