@@ -17,7 +17,7 @@ const OFFSET = 8;
 /**
  * Owns an open popup: a `popover="manual"` element in the top layer that
  * follows its anchor. Render the popup only while it is open, into
- * `portalTarget`, with `popupRef` and `popover="manual"`.
+ * `portalTarget`, with `popupRef`, and with `popover="manual"` when `hasPopoverApi` is true.
  *
  * `trackFloat` places the popup from script below its anchor, or above it
  * when it does not fit below and the space above is larger. The popup gets `data-side` (`bottom` or `top`)
@@ -32,7 +32,7 @@ const OFFSET = 8;
  * @example
  * ```tsx
  * const { portalTarget, popupRef } = usePopup({ anchorRef: triggerRef });
- * return portalTarget != null && createPortal(<div popover="manual" ref={popupRef} role="listbox" />, portalTarget);
+ * return portalTarget != null && createPortal(<div popover={hasPopoverApi ? "manual" : undefined} ref={popupRef} role="listbox" />, portalTarget);
  * ```
  */
 const usePopup = ({
