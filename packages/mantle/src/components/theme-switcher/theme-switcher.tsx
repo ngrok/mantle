@@ -530,20 +530,24 @@ function ThemeSwitcher({
 					// Why read the OS preference here: the click is the only reader, so the
 					// switcher holds no media query list between clicks.
 					const prefersDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
-					// Why: a screen reader does not read a focused button again when its
-					// name changes, so the live region says what the press did.
-					const stored = document.documentElement.dataset.theme;
-					const next = getToggledTheme({
-						theme: isTheme(stored) ? stored : "system",
-						prefersDarkMode,
-					});
 					const status = themeStatuses.get(statusContainer(event.currentTarget));
-					if (status != null) {
-						status.element.textContent = themeMessage(next, { prefersDarkMode });
-					}
-					setTheme((current) => getToggledTheme({ theme: current, prefersDarkMode }), {
-						origin: event.currentTarget,
-					});
+					setTheme(
+						(current) => {
+							const next = getToggledTheme({ theme: current, prefersDarkMode });
+							// Why: a screen reader does not read a focused button again when its
+							// name changes, so the live region says what the press did. Why in
+							// the updater: the provider calls it last when it applies the theme,
+							// so rapid presses end on the theme that shows. Why compare: the
+							// provider can call it twice for one press, and a rewrite of the
+							// same text can be read twice.
+							const message = themeMessage(next, { prefersDarkMode });
+							if (status != null && status.element.textContent !== message) {
+								status.element.textContent = message;
+							}
+							return next;
+						},
+						{ origin: event.currentTarget },
+					);
 					// Why here and not only in the observer: with no view transition,
 					// `<html>` changes during the click, and the observer renames the
 					// switcher one microtask later. A read right after the click must

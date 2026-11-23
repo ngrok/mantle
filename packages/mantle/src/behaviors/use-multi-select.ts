@@ -82,17 +82,25 @@ const useMultiSelect = ({
 	const [tags] = useState(() => new Map<string, HTMLElement>());
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const triggerRef = useRef<HTMLElement | null>(null);
-	const [removal, setRemoval] = useState("");
+	const [removed, setRemoved] = useState<string | null>(null);
+	// Why derive: a controlled parent can keep the value, and then nothing was removed.
+	// The message also clears when the value comes back, so a later removal of it is a change.
+	const removal = removed != null && !selected.includes(removed) ? `Removed ${removed}` : "";
 
-	const remove = (value: string): boolean => {
+	const deselect = (value: string): boolean => {
 		if (locked.get().values.includes(value)) {
 			return false;
 		}
 		setSelected(selected.filter((item) => item !== value));
-		const message = `Removed ${value}`;
-		// Why the space: a live region speaks only a change, so a repeat of the same message must differ.
-		setRemoval((current) => (current === message ? `${message} ` : message));
 		return true;
+	};
+
+	const remove = (value: string): boolean => {
+		const done = deselect(value);
+		if (done) {
+			setRemoved(value);
+		}
+		return done;
 	};
 
 	const listbox = useListbox({
@@ -100,7 +108,8 @@ const useMultiSelect = ({
 		selected,
 		onSelect: (value) => {
 			if (selected.includes(value)) {
-				if (!remove(value)) {
+				// Why not `remove`: the option already says it is not selected.
+				if (!deselect(value)) {
 					return;
 				}
 			} else {
