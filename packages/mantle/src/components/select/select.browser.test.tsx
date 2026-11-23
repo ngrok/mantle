@@ -491,6 +491,32 @@ describe("Select keyboard, focus, and ARIA contract", () => {
 		}
 	});
 
+	test("a failed required check after a mouse submit lands on the trigger with the ring", async () => {
+		const style = document.createElement("style");
+		style.textContent = await commands.tailwindCss("./select.tsx");
+		document.head.append(style);
+		try {
+			render(
+				<form aria-label="fruit form" onSubmit={(event) => event.preventDefault()}>
+					<Select.Root name="fruit" required>
+						<Select.Trigger aria-label="Fruit" />
+						<Select.Content>
+							<Select.Item value="apple">Apple</Select.Item>
+						</Select.Content>
+					</Select.Root>
+					<button type="submit">Submit</button>
+				</form>,
+			);
+			const trigger = screen.getByRole("combobox", { name: "Fruit" });
+			await userEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+			expect(trigger).toHaveFocus();
+			expect(getComputedStyle(trigger).boxShadow).toContain(" 4px");
+		} finally {
+			style.remove();
+		}
+	});
+
 	test("has no axe violations closed or open", async () => {
 		render(<FruitSelect />);
 		expect(await axeViolations()).toEqual([]);

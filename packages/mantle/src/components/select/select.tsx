@@ -321,8 +321,8 @@ const Root = ({
 					disabled={disabled}
 					value={select.value ?? ""}
 					// Why: a failed `required` check focuses this select, and the user must
-					// land on the trigger.
-					onFocus={() => select.triggerRef.current?.focus()}
+					// land on the trigger. `focusVisible` shows the ring after a mouse submit too.
+					onFocus={() => select.triggerRef.current?.focus({ focusVisible: true })}
 					onChange={(event) => {
 						// Why: the browser already dispatched this change.
 						committedValues.set(event.currentTarget, event.target.value);
@@ -698,7 +698,7 @@ const Trigger = ({
 				"[&>[data-slot=select-trigger-label]>span]:line-clamp-1 [&>[data-slot=select-trigger-label]>span]:text-left",
 				"hover:border-neutral-400",
 				// Why `focus-visible`: the trigger acts like a button. A pointer open shows no ring.
-				// A key press, such as an arrow key in the open list, shows it.
+				// In Chromium, a key press such as an arrow key in the open list shows it.
 				"focus-visible:focus-ring",
 				"focus-visible:border-accent-600 aria-expanded:border-accent-600",
 				"data-validation-success:border-success-600 data-validation-success:focus-visible:border-success-600 data-validation-success:focus-visible:ring-focus-success data-validation-success:aria-expanded:border-success-600",
