@@ -23,15 +23,16 @@ export {
  * content (forms, settings, color pickers), use `Popover`. For non-essential
  * preview cards (user/repo previews, link previews), use `HoverCard`.
  *
- * Mount a `<TooltipProvider>` once at the app root when you want shared
- * tooltip behavior such as consistent delay and hover settings.
+ * A `<TooltipProvider>` is optional. Mount one to set the open delay for the
+ * tooltips inside it.
  *
- * `Tooltip.Content` renders at Tailwind `z-50`, Mantle's float tier. When
- * composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into
- * that overlay's positioner and paints above the overlay that owns it. Outside
- * every overlay, it portals to `document.body`, below the overlay tier
- * (`z-60`). When sibling floats share a container, the most recently mounted
- * float paints on top.
+ * `Tooltip.Content` is a native `popover` in the browser's top layer, so it paints
+ * above the page with no `z-index`. It portals into the content of the open
+ * `Dialog`, `AlertDialog`, `Sheet`, or `Popover` that holds it, else into
+ * `document.body`. It does not show while an overlay that does not hold it
+ * is open. CSS anchor positioning places it; where the browser has none, a
+ * script places it. Where the browser has no popover API, it is a fixed box
+ * at `z-50`.
  *
  * @useWhen Show a short, non-interactive hint for an element on hover or focus, such as the meaning
  * of an icon button.

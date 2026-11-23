@@ -40,10 +40,7 @@ export function TanStackFormDemo() {
 					<Field.Item name={field.name}>
 						<Field.Label>Favorites</Field.Label>
 						<Field.Control>
-							<MultiSelect.Root
-								selectedValue={field.state.value}
-								setSelectedValue={field.handleChange}
-							>
+							<MultiSelect.Root value={field.state.value} onValueChange={field.handleChange}>
 								<MultiSelect.Trigger onBlur={field.handleBlur}>
 									<MultiSelect.TagValues />
 									<MultiSelect.Input placeholder="Select fruits..." />

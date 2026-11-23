@@ -46,7 +46,7 @@ describe("MultiSelect (browser)", () => {
 	}) => {
 		const [values, setValues] = useState(initialValues);
 		return (
-			<MultiSelect.Root selectedValue={values} setSelectedValue={setValues}>
+			<MultiSelect.Root value={values} onValueChange={setValues}>
 				<MultiSelect.Trigger>
 					<MultiSelect.TagValues lockedValues={lockedValues} />
 					<MultiSelect.Input placeholder="Select items..." />
@@ -449,7 +449,7 @@ describe("MultiSelect (browser)", () => {
 			}) => {
 				const [values, setValues] = useState(initialValues);
 				return (
-					<MultiSelect.Root selectedValue={values} setSelectedValue={setValues}>
+					<MultiSelect.Root value={values} onValueChange={setValues}>
 						<MultiSelect.Trigger>
 							<MultiSelect.TagValues lockedValues={lockedValues}>
 								{({ value, onRemove, ref, onKeyDown }) => (

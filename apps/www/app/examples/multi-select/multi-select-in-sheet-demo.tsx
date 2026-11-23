@@ -70,18 +70,16 @@ export function InSheetDemo() {
 									<Field.Label>Fruits</Field.Label>
 									<Field.Control>
 										<MultiSelect.Root
-											selectedValue={field.state.value}
-											setSelectedValue={field.handleChange}
-											setOpen={() => {
+											onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+											value={field.state.value}
+											onValueChange={field.handleChange}
+											onOpenChange={() => {
 												setSearchValue("");
 											}}
 										>
 											<MultiSelect.Trigger onBlur={field.handleBlur}>
 												<MultiSelect.TagValues />
-												<MultiSelect.Input
-													onValueChange={(value) => startTransition(() => setSearchValue(value))}
-													placeholder="Select fruits and vegetables..."
-												/>
+												<MultiSelect.Input placeholder="Select fruits and vegetables..." />
 											</MultiSelect.Trigger>
 											<MultiSelect.Content aria-busy={isPending}>
 												{filteredFruits.length > 0 && (

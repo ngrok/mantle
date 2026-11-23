@@ -580,6 +580,46 @@ export const migrations = [
 			"The theme token --container-side-panel-lane-icon-rail is now --container-side-panel-lane-collapsed. Rename it where you set it or read it.",
 		route: "/migrations/0016-side-panel-lane-collapsed-migration",
 	},
+	{
+		number: 17,
+		slug: "select-owned-behavior-migration",
+		title: "Select Owned Behavior",
+		description:
+			"Select no longer uses Radix Select. Select.Content drops its positioning props and Radix handlers, and the --radix-select-* CSS variables are gone.",
+		route: "/migrations/0017-select-owned-behavior-migration",
+	},
+	{
+		number: 18,
+		slug: "combobox-owned-behavior-migration",
+		title: "Combobox Owned Behavior",
+		description:
+			"Combobox no longer uses Ariakit. Its parts take a fixed set of props, Combobox.Content portals, and the highlighted item carries data-highlighted.",
+		route: "/migrations/0018-combobox-owned-behavior-migration",
+	},
+	{
+		number: 19,
+		slug: "multi-select-owned-behavior-migration",
+		title: "MultiSelect Owned Behavior",
+		description:
+			"MultiSelect no longer uses Ariakit. Its parts take a fixed set of props, the list portals into the layer container, and the highlighted item carries data-highlighted.",
+		route: "/migrations/0019-multi-select-owned-behavior-migration",
+	},
+	{
+		number: 20,
+		slug: "native-floats-migration",
+		title: "Native Floats",
+		description:
+			"Popover, Tooltip, and HoverCard are native popovers placed by CSS anchor positioning. The Radix positioning props, Popover.Root modal, and HoverCard.Portal are gone, and --anchor-width and --available-height replace the Radix CSS variables.",
+		route: "/migrations/0020-native-floats-migration",
+	},
+	{
+		number: 21,
+		slug: "native-radio-group-migration",
+		title: "Native Radio Group",
+		description:
+			"RadioGroup and SegmentedControl items are now a label around a native radio. Style item state with has-[>input:checked], has-[>input:disabled], and has-[>input:focus-visible] in place of aria-checked, aria-disabled, and focus-visible.",
+		route: "/migrations/0021-native-radio-group-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

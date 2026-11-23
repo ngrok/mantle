@@ -1,10 +1,6 @@
 "use client";
 
 import {
-	Root as TooltipPrimitiveRoot,
-	Trigger as TooltipPrimitiveTrigger,
-} from "@radix-ui/react-tooltip";
-import {
 	Children,
 	type ComponentProps,
 	cloneElement,
@@ -652,14 +648,30 @@ function unobserve(target: MeasureTarget) {
 }
 
 /**
- * Narrows a block of wrapped text to its longest line, so the box around it
- * shrinks too. `text-wrap: balance` evens the lines but leaves the box at its
- * full width.
+ * Narrows a block of wrapped text to its longest line once the text has a
+ * box, so the box around it shrinks too. `text-wrap: balance` evens the lines
+ * but leaves the box at its full width.
+ *
+ * Why a microtask: the tooltip shows after React attaches the refs of its
+ * children, so the text has no box until the commit ends.
  */
-function fitToLongestLine(element: HTMLElement | null) {
+function fitToLongestLineWhenShown(element: HTMLElement | null) {
 	if (element == null) {
 		return;
 	}
+	let attached = true;
+	queueMicrotask(() => {
+		if (attached) {
+			fitToLongestLine(element);
+		}
+	});
+	return () => {
+		attached = false;
+	};
+}
+
+/** Narrows a block of wrapped text to its longest line. */
+function fitToLongestLine(element: HTMLElement) {
 	// Why the reset: a second call, such as the StrictMode replay of a ref,
 	// must measure the lines at the tooltip's full width again.
 	element.style.width = "";
@@ -698,7 +710,7 @@ function lineWidths(element: HTMLElement, scale: number): number[] {
  * them is content of that control, so it takes no tab stop and no tooltip.
  */
 const controlSelector =
-	'a[href], button, input, select, textarea, summary, [contenteditable=""], [contenteditable="true"], [role="button"], [role="checkbox"], [role="link"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="radio"], [role="switch"], [role="tab"], [role="treeitem"]';
+	'a[href], button, input, select, textarea, summary, :has(> input[type="radio"]), [contenteditable=""], [contenteditable="true"], [role="button"], [role="checkbox"], [role="link"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"], [role="radio"], [role="switch"], [role="tab"], [role="treeitem"]';
 
 /**
  * Whether an element sits inside a control. Starts from the parent, so a root
@@ -751,15 +763,15 @@ const headCapClassName = "w-[calc(round(up,var(--_head-cap)-0.5px,1ch)+0.5px)]";
 const tailClassName =
 	"inline-block overflow-hidden whitespace-nowrap text-left align-bottom min-w-(--_tail-width) [[data-truncated]>&]:min-w-0 [[data-truncated]>&]:max-w-[calc(round(down,100%_-_1ch_-_var(--_tail-width),1ch)_+_var(--_tail-width))] [[data-truncated]>:empty+&]:max-w-[calc(round(down,100%_-_var(--_tail-width),1ch)_+_var(--_tail-width)_+_0.5px)] [[data-truncated]>:empty+&]:text-ellipsis";
 
-/** The Radix trigger handlers that the root calls with its own events. */
+/** The `Tooltip.Trigger` handlers that the root calls with its own events. */
 type TriggerHandlers = Pick<
 	ComponentProps<"span">,
 	"onBlur" | "onClick" | "onFocus" | "onPointerDown" | "onPointerLeave" | "onPointerMove"
 >;
 
-/** What Radix's trigger merges onto its child, which the root takes in its place. */
+/** What `Tooltip.Trigger` merges onto its child, which the root takes in its place. */
 type TriggerBinding = {
-	/** Radix's composed ref: its trigger node, its popper anchor, and its own ref. */
+	/** The trigger's composed ref: the tooltip's anchor and its own ref. */
 	ref: Ref<HTMLElement> | undefined;
 	handlers: TriggerHandlers;
 	/** The tooltip state for `data-state`. */
@@ -775,7 +787,7 @@ type TriggerBridgeProps = TriggerHandlers & {
 };
 
 /**
- * Renders nothing. It takes the props Radix's trigger merges onto its child and
+ * Renders nothing. It takes the props `Tooltip.Trigger` merges onto its child and
  * hands them to the root, so the tooltip anchors to the root and listens on it.
  *
  * Why it drops `aria-describedby`: the tooltip's text is the root's own content,
@@ -882,9 +894,8 @@ function assignRef(ref: Ref<HTMLElement> | undefined, node: HTMLElement | null) 
  * **Tooltip.** The tooltip shows the full value and opens only while the value
  * overflows. The tooltip is up to 24rem wide, so a resource ID fits on one
  * line. A longer value breaks into lines of near-equal length, and the tooltip
- * narrows to the longest line. It needs a `TooltipProvider` ancestor, like
- * every mantle tooltip, and throws without one when it first mounts. The
- * server render and the first client render assume no overflow; the
+ * narrows to the longest line. A `TooltipProvider` ancestor, when there is one,
+ * sets its delay. The server render and the first client render assume no overflow; the
  * measurement after mount adds `data-truncated`.
  * While the value overflows, the root is focusable, so Tab reaches it, a screen
  * reader announces the whole value, and the tooltip opens. A value that fits is
@@ -1132,8 +1143,8 @@ const TruncatedText = ({
 		ref: composedRef,
 		"aria-describedby": describedBy,
 		"data-slot": joinDataSlot(dataSlot, "truncated-text"),
-		// Why "closed" before the tooltip mounts: Radix stamps the state once it
-		// mounts, and the attribute stays a stable styling hook in both states.
+		// Why "closed" before the tooltip mounts: the trigger stamps the state once
+		// it mounts, and the attribute stays a stable styling hook in both states.
 		"data-state": insideControl ? undefined : "closed",
 		// Why `ltr`: a URL, an ID, or a token reads left to right on an RTL page
 		// too, so the tail stays on the right and the head clips at its end.
@@ -1147,8 +1158,8 @@ const TruncatedText = ({
 		// Why only the consumer's: the batch sets the tab stop on the DOM while
 		// the value overflows, so a resize never renders the component.
 		tabIndex,
-		// Why the open events pass only while the value overflows: Radix closes
-		// every other tooltip on the page before it reads `open`.
+		// Why the open events pass only while the value overflows: a tooltip that
+		// opens closes every other tooltip on the page before it reads `open`.
 		onPointerMove: (event: PointerEvent<HTMLSpanElement>) => {
 			onPointerMove?.(event);
 			if (event.pointerType === "touch" || !canOpen(event.currentTarget)) {
@@ -1174,7 +1185,7 @@ const TruncatedText = ({
 				triggerRef.current?.handlers.onPointerDown?.(event);
 				return;
 			}
-			// Why: a focus that a press causes opens no tooltip, like Radix's own trigger.
+			// Why: a focus that a press causes opens no tooltip, like `Tooltip.Trigger` itself.
 			// Why `pointercancel` too: a touch that scrolls ends with no `pointerup`.
 			// Why the owner document: a frame's events do not reach the page's document.
 			pointerDownRef.current = true;
@@ -1226,22 +1237,22 @@ const TruncatedText = ({
 		root = <span {...rootProps}>{segments}</span>;
 	}
 
-	// Why the tooltip is a sibling and mounts on first use: Radix's root and
-	// trigger cost more to mount than the rest of the component, and a table
-	// mounts one for each row. As a sibling, it mounts without a remount of the root.
+	// Why the tooltip is a sibling and mounts on first use: its root and trigger
+	// add state and timers to each row of a table, and most rows never open one.
+	// As a sibling, it mounts without a remount of the root.
 	// Why not inside a control: a control cannot hold a second tab stop or tooltip.
 	return (
 		<>
 			{root}
 			{armed && !insideControl && (
-				<TooltipPrimitiveRoot
+				<Tooltip.Root
 					open={open}
 					onOpenChange={(next) => {
 						const element = targetRef.current?.root;
 						setOpen(next && element != null && isTruncated(element));
 					}}
 				>
-					<TooltipPrimitiveTrigger asChild>
+					<Tooltip.Trigger asChild>
 						<TriggerBridge
 							onBind={(binding) => {
 								const previous = triggerRef.current;
@@ -1262,9 +1273,9 @@ const TruncatedText = ({
 									return;
 								}
 								pendingEventRef.current = null;
-								// Why a microtask: Radix starts its open-delay timer here, and in
-								// development StrictMode reruns Radix's effects after this one, which
-								// clears that timer. The microtask runs after the commit.
+								// Why a microtask: the replayed handler starts the open-delay timer,
+								// and the microtask runs it after the commit, so a StrictMode rerun
+								// of the effects does not clear that timer.
 								queueMicrotask(() => {
 									const handlers = triggerRef.current?.handlers;
 									if (pending.type === "pointermove") {
@@ -1275,7 +1286,7 @@ const TruncatedText = ({
 								});
 							}}
 						/>
-					</TooltipPrimitiveTrigger>
+					</Tooltip.Trigger>
 					{/* Why 24rem: a resource ID fits on one line, so only a longer value wraps.
 					    Why `text-balance`: `break-all` fills each line to the edge, so a value a
 					    little wider than the tooltip leaves one or two characters on the last line.
@@ -1284,11 +1295,11 @@ const TruncatedText = ({
 						className="max-w-[min(24rem,calc(100vw-2rem))] break-all text-balance"
 						translate={translate}
 					>
-						<span key={value} ref={fitToLongestLine} className="block">
+						<span key={value} ref={fitToLongestLineWhenShown} className="block">
 							{value}
 						</span>
 					</Tooltip.Content>
-				</TooltipPrimitiveRoot>
+				</Tooltip.Root>
 			)}
 		</>
 	);

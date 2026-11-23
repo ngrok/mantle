@@ -1,0 +1,823 @@
+# Every rule binds the local name of a part's import from its
+# `@ngrok/mantle/<subpath>`, so an aliased import matches and another
+# library's part of the same name does not.
+id: popover-content-drop-radix-props
+language: tsx
+message: Popover.Content no longer takes the Radix positioning props; the browser places the content
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  popover-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/popover["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Popover$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $POPOVER
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $POPOVER
+  part-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $POPOVER
+      - has:
+          field: property
+          regex: ^Content$
+rule:
+  kind: jsx_attribute
+  has:
+    kind: property_identifier
+    regex: ^(collisionPadding|collisionBoundary|sticky|avoidCollisions|alignOffset|hideWhenDetached|forceMount|updatePositionStrategy|arrowPadding)$
+  inside:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    all:
+      - has:
+          field: name
+          matches: part-name
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: popover-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $POPOVER
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $POPOVER
+fix: ""
+---
+id: popover-root-drop-modal
+language: tsx
+message: Popover.Root no longer takes modal; use Dialog for a task that blocks the page
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  popover-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/popover["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Popover$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $POPOVER
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $POPOVER
+  part-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $POPOVER
+      - has:
+          field: property
+          regex: ^Root$
+rule:
+  kind: jsx_attribute
+  has:
+    kind: property_identifier
+    regex: ^(modal)$
+  inside:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    all:
+      - has:
+          field: name
+          matches: part-name
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: popover-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $POPOVER
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $POPOVER
+fix: ""
+---
+id: hover-card-content-drop-radix-props
+language: tsx
+message: HoverCard.Content no longer takes the Radix positioning props; the browser places the card
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  hover-card-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/hover-card["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^HoverCard$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $HOVERCARD
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $HOVERCARD
+  part-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $HOVERCARD
+      - has:
+          field: property
+          regex: ^Content$
+rule:
+  kind: jsx_attribute
+  has:
+    kind: property_identifier
+    regex: ^(collisionPadding|collisionBoundary|sticky|avoidCollisions|alignOffset|hideWhenDetached|forceMount|updatePositionStrategy|arrowPadding)$
+  inside:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    all:
+      - has:
+          field: name
+          matches: part-name
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: hover-card-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $HOVERCARD
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $HOVERCARD
+fix: ""
+---
+id: tooltip-content-drop-radix-props
+language: tsx
+message: Tooltip.Content no longer takes the Radix positioning props; the browser places the tooltip
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  tooltip-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/tooltip["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Tooltip$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $TOOLTIP
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $TOOLTIP
+  part-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $TOOLTIP
+      - has:
+          field: property
+          regex: ^Content$
+rule:
+  kind: jsx_attribute
+  has:
+    kind: property_identifier
+    regex: ^(collisionPadding|collisionBoundary|sticky|avoidCollisions|alignOffset|hideWhenDetached|forceMount|updatePositionStrategy|arrowPadding)$
+  inside:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    all:
+      - has:
+          field: name
+          matches: part-name
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: tooltip-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $TOOLTIP
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $TOOLTIP
+fix: ""
+---
+id: hover-card-unwrap-portal-open
+language: tsx
+message: HoverCard.Portal is gone; HoverCard.Content portals by itself
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  hover-card-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/hover-card["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^HoverCard$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $HOVERCARD
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $HOVERCARD
+  part-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $HOVERCARD
+      - has:
+          field: property
+          regex: ^Portal$
+rule:
+  kind: jsx_opening_element
+  all:
+    - has:
+        field: name
+        matches: part-name
+    - inside:
+        stopBy: end
+        kind: program
+        has:
+          matches: hover-card-import
+    # Why: a parameter or a local under the import's name shadows it, and the
+    # rules cannot tell which binding the element reads.
+    - not:
+        inside:
+          stopBy: end
+          matches: scope
+          has:
+            stopBy:
+              matches: scope
+            any:
+              - matches: binding-name
+                pattern: $HOVERCARD
+              - matches: function-declaration
+                has:
+                  field: name
+                  pattern: $HOVERCARD
+fix: "<>"
+---
+id: hover-card-unwrap-portal-close
+language: tsx
+message: HoverCard.Portal is gone; HoverCard.Content portals by itself
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  hover-card-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/hover-card["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^HoverCard$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $HOVERCARD
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $HOVERCARD
+  part-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $HOVERCARD
+      - has:
+          field: property
+          regex: ^Portal$
+rule:
+  kind: jsx_closing_element
+  all:
+    - has:
+        field: name
+        matches: part-name
+    - inside:
+        stopBy: end
+        kind: program
+        has:
+          matches: hover-card-import
+    # Why: a parameter or a local under the import's name shadows it, and the
+    # rules cannot tell which binding the element reads.
+    - not:
+        inside:
+          stopBy: end
+          matches: scope
+          has:
+            stopBy:
+              matches: scope
+            any:
+              - matches: binding-name
+                pattern: $HOVERCARD
+              - matches: function-declaration
+                has:
+                  field: name
+                  pattern: $HOVERCARD
+fix: "</>"
+---
+id: popover-css-variables
+language: tsx
+message: Popover.Content sets --anchor-width and --available-height in place of the Radix variables
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+      - kind: type_identifier
+        inside: { kind: class_declaration, field: name }
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  popover-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/popover["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^Popover$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $POPOVER
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $POPOVER
+  part-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $POPOVER
+      - has:
+          field: property
+          regex: ^Content$
+rule:
+  kind: string_fragment
+  pattern: $TEXT
+  regex: --radix-popover-(trigger-width|content-available-height)
+  # Why only on the content's own props: in a file that also uses Radix
+  # Popover, a variable in another string can belong to the Radix content,
+  # which still sets it. Strings outside the element stay manual.
+  # Why stop at the first attribute or element: an element passed in a prop,
+  # such as `children={<Radix.Content className="…" />}`, owns its own
+  # attributes and spreads.
+  inside:
+    stopBy:
+      any:
+        - kind: jsx_attribute
+        - kind: jsx_opening_element
+        - kind: jsx_self_closing_element
+    kind: jsx_attribute
+    inside:
+      any:
+        - kind: jsx_opening_element
+        - kind: jsx_self_closing_element
+      all:
+        - has:
+            field: name
+            matches: part-name
+        - inside:
+            stopBy: end
+            kind: program
+            has:
+              matches: popover-import
+        # Why: a parameter or a local under the import's name shadows it, and the
+        # rules cannot tell which binding the element reads.
+        - not:
+            inside:
+              stopBy: end
+              matches: scope
+              has:
+                stopBy:
+                  matches: scope
+                any:
+                  - matches: binding-name
+                    pattern: $POPOVER
+                  - matches: function-declaration
+                    has:
+                      field: name
+                      pattern: $POPOVER
+transform:
+  TRIGGER:
+    replace:
+      source: $TEXT
+      replace: --radix-popover-trigger-width
+      by: --anchor-width
+  NEW:
+    replace:
+      source: $TRIGGER
+      replace: --radix-popover-content-available-height
+      by: --available-height
+fix: $NEW

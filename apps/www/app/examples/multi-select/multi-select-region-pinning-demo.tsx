@@ -55,20 +55,18 @@ export function RegionPinningDemo() {
 			<Field.Label>Resolves to</Field.Label>
 			<Field.Control>
 				<MultiSelect.Root
-					selectedValue={selected}
-					setOpen={() => {
+					onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+					value={selected}
+					onOpenChange={() => {
 						setSearchValue("");
 					}}
-					setSelectedValue={(values) => {
+					onValueChange={(values) => {
 						setSelected(values.includes("global") ? values : ["global", ...values]);
 					}}
 				>
 					<MultiSelect.Trigger>
 						<MultiSelect.TagValues lockedValues={["global"]} />
-						<MultiSelect.Input
-							onValueChange={(value) => startTransition(() => setSearchValue(value))}
-							placeholder="Select regions..."
-						/>
+						<MultiSelect.Input placeholder="Select regions..." />
 						{/* Input is flex-1 so this sibling is pushed to the right */}
 						<span className="text-accent-600 mr-2 shrink-0 whitespace-nowrap text-xs">
 							Requires upgrade

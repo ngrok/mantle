@@ -158,6 +158,14 @@ jobs:
       - name: Build 🏗️
         run: pnpm run build
 
+      # Why after the build: the budget measures the published dist, after the React Compiler pass.
+      - name: Bundle Budget 📦
+        run: pnpm run check:bundle-budget
+
+      # Why: server rendering that externalizes @ngrok/mantle loads the dist in Node with no bundler.
+      - name: Dist Loads in Node 🔁
+        run: pnpm run check:dist
+
   typecheck:
     runs-on: ubuntu-latest
     timeout-minutes: 20

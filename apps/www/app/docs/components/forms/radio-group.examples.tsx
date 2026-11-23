@@ -41,7 +41,7 @@ export function TanStackFormExample() {
 						<RadioGroup.Root
 							name={field.name}
 							value={field.state.value}
-							onChange={field.handleChange}
+							onValueChange={field.handleChange}
 						>
 							<RadioGroup.Item value="default">
 								<RadioGroup.Indicator />

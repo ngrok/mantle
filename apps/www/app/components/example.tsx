@@ -89,7 +89,7 @@ function Frame({ name, title, height }: FrameProps) {
 					aria-label="Preview viewport"
 					className="w-fit"
 					value={viewport}
-					onChange={(value: string) => {
+					onValueChange={(value: string) => {
 						if (isViewport(value)) {
 							setViewport(value);
 						}

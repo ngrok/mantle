@@ -14,7 +14,7 @@ export function ControlledDemo() {
 
 	return (
 		<div className="flex flex-col items-center gap-3">
-			<SegmentedControl.Root aria-label="View" value={view} onChange={setView}>
+			<SegmentedControl.Root aria-label="View" value={view} onValueChange={setView}>
 				<SegmentedControl.Item value="list">List</SegmentedControl.Item>
 				<SegmentedControl.Item value="board">Board</SegmentedControl.Item>
 				<SegmentedControl.Item value="calendar">Calendar</SegmentedControl.Item>
@@ -55,7 +55,7 @@ export function TanStackFormExample() {
 						<SegmentedControl.Root
 							name={field.name}
 							value={field.state.value}
-							onChange={field.handleChange}
+							onValueChange={field.handleChange}
 						>
 							<SegmentedControl.Item value="us">US</SegmentedControl.Item>
 							<SegmentedControl.Item value="eu">EU</SegmentedControl.Item>

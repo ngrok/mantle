@@ -8,11 +8,9 @@ import { AppShellDemo } from "./app-shell-demo";
 
 /**
  * Renders a shell demo the way the app does. The providers are not optional
- * scaffolding: every sidebar row is wrapped in `Sidebar.Tooltip`, which
- * composes `Tooltip.Root` and throws without a `TooltipProvider` ancestor, and
- * the account menu's `ThemeDropdownMenuItem` throws without a `ThemeProvider`.
- * The docs site mounts both in `root.tsx`, so a bare `render()` here would be
- * testing a composition no page actually ships.
+ * scaffolding: the account menu's `ThemeDropdownMenuItem` throws without a
+ * `ThemeProvider`. The docs site mounts both providers in `root.tsx`, so a bare
+ * `render()` here would be testing a composition no page actually ships.
  */
 function renderShell(Demo: ComponentType) {
 	return render(

@@ -69,9 +69,9 @@ import { Popover } from "@ngrok/mantle/popover";
 
 ## Arrow
 
-Render `Popover.Arrow` as a child of `Popover.Content` when the popover explains one specific control and needs a tip pointing at it. Radix positions the arrow with floating-ui's arrow middleware, so it stays centered on the anchor when collision detection shifts or flips the content. A hand-rolled tip is a fixed offset and drifts off the anchor as soon as the content moves. The arrow's fill and border repaint `Popover.Content`'s own edge across its base, so the two edges read as one line. The tip also casts its own shadow, because `shadow-md` on `Popover.Content` stops at that content's border and an unshadowed tip reads as pasted on. That shadow is clipped at the base, so it never darkens the content's interior.
+Render `Popover.Arrow` as a child of `Popover.Content` when the popover explains one specific control and needs a tip pointing at it. The arrow moves to the edge that faces the anchor, so it stays centered on the anchor when the content shifts or flips. A hand-rolled tip is a fixed offset and drifts off the anchor as soon as the content moves. The arrow's fill and border repaint `Popover.Content`'s own edge across its base, so the two edges read as one line. The tip also casts its own shadow, because `shadow-md` on `Popover.Content` stops at that content's border and an unshadowed tip reads as pasted on. That shadow is clipped at the base, so it never darkens the content's interior.
 
-`Popover.Arrow` takes no `asChild`. The shape is two layers (a filled polygon, plus a polyline that strokes the slanted edges only), and a swapped element loses the border. Restyle it with `className` instead: `fill-*` for the surface and a `stroke-*` on the arrow's `polyline` child for the edge, since Radix renders the arrow as an `svg` where `bg-*` paints nothing.
+`Popover.Arrow` takes no `asChild`. The shape is two layers (a filled polygon, plus a polyline that strokes the slanted edges only), and a swapped element loses the border. Restyle it with `className` instead: `fill-*` for the surface and a `stroke-*` on the arrow's `polyline` child for the edge, since the arrow is an `svg` where `bg-*` paints nothing.
 
 <Example name="components/overlays/popover/arrow" title="Popover arrow example">
 
@@ -96,7 +96,7 @@ import { Popover } from "@ngrok/mantle/popover";
 
 ## Layering and z-index
 
-`Popover.Content` renders at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
+`Popover.Content` is a native [`popover`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/popover) in the browser's top layer, so it paints above the page with no `z-index`. It portals into the content of the open `Dialog`, `AlertDialog`, `Sheet`, or `Popover` that holds it, else into `document.body`. A `Select`, `DropdownMenu`, or other float inside it portals into it. It hides while an overlay that does not hold it is open, and shows again when that overlay closes. See [Stacking layers](/base/stacking-layers).
 
 `Popover` does not render a backdrop by default. Modal layers such as `Dialog`, `Sheet`, and `AlertDialog` do render backdrops, so stacking those layers compounds the dim and blur effect on the layers underneath.
 
@@ -113,36 +113,29 @@ Popover.Root
     └── Popover.Close
 ```
 
-## Modal and non-modal
+## Focus and dismissal
 
-A `Popover` is a non-modal dialog by default. Focus moves into the content on open. `Escape` closes it and returns focus to the trigger, and a click outside dismisses it. The page (body and any scroll containers) continues to scroll normally.
-
-Pass `modal` on `Popover.Root` to trap focus inside the content, block interaction with the rest of the page, and lock body scroll while the popover is open (the [WAI-ARIA dialog pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/)).
+A `Popover` is a non-modal dialog. Focus moves to the first focusable element in the content on open. `Escape` closes it and returns focus to the trigger. A press or a focus move outside closes it and leaves focus where the user put it. The page (body and any scroll containers) continues to scroll normally. For a task that must block the page, use [`Dialog`](/components/overlays/dialog).
 
 ## API Reference
 
-The `Popover` components are built on top of [Radix Popover](https://www.radix-ui.com/primitives/docs/components/popover).
+The `Popover` components are built on the native [popover API](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API) and CSS anchor positioning. Where the browser has no anchor positioning, a script places the content. Where it has no popover API, the content is a fixed box at `z-50`.
 
 ### Popover.Root
 
 The root, stateful component that manages the open/closed state of the popover.
 
-`Popover.Content` renders at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
-
-All props from Radix [Popover.Root](https://www.radix-ui.com/primitives/docs/components/popover#root).
-
-| Prop            | Type                      | Default | Description                                                                              |
-| :-------------- | :------------------------ | :------ | :--------------------------------------------------------------------------------------- |
-| `defaultOpen?`  | `boolean`                 | `false` | The open state when initially rendered. Use when you do not need to control the state.   |
-| `open?`         | `boolean`                 |         | Controlled open state. Must be used with `onOpenChange`.                                 |
-| `onOpenChange?` | `(open: boolean) => void` |         | Event handler called when the open state changes.                                        |
-| `modal?`        | `boolean`                 | `false` | The modality of the popover. When `true`, interaction with outside elements is disabled. |
+| Prop            | Type                      | Default | Description                                                                            |
+| :-------------- | :------------------------ | :------ | :------------------------------------------------------------------------------------- |
+| `defaultOpen?`  | `boolean`                 | `false` | The open state when initially rendered. Use when you do not need to control the state. |
+| `open?`         | `boolean`                 |         | Controlled open state. Must be used with `onOpenChange`.                               |
+| `onOpenChange?` | `(open: boolean) => void` |         | Event handler called when the open state changes.                                      |
 
 ### Popover.Trigger
 
 The button that toggles the popover.
 
-All props from Radix [Popover.Trigger](https://www.radix-ui.com/primitives/docs/components/popover#trigger).
+All props of a `<button>`. It sets `aria-haspopup="dialog"`, `aria-expanded`, and, while open, `aria-controls`.
 
 | Prop       | Type      | Default | Description                                                           |
 | :--------- | :-------- | :------ | :-------------------------------------------------------------------- |
@@ -152,24 +145,28 @@ All props from Radix [Popover.Trigger](https://www.radix-ui.com/primitives/docs/
 
 The content to render inside the popover. Appears in a portal with styling and animations.
 
-`Popover.Content` renders at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
+`Popover.Content` is `position: fixed`, so an absolutely-positioned child of the content anchors to the content. It sets the CSS variables `--anchor-width` (the width of the anchor) and `--available-height` (the room between the anchor and the edge of the viewport), for example `w-(--anchor-width)`.
 
-`Popover.Content` sets `position: relative`, so `Popover.Arrow`'s absolutely-positioned wrapper keeps one containing block through the open animation. An absolutely-positioned child of the content therefore anchors to the content.
+All props of a `<div>`, plus:
 
-All props from Radix [Popover.Content](https://www.radix-ui.com/primitives/docs/components/popover#content), plus:
-
-| Prop              | Type                                     | Default      | Description                                          |
-| :---------------- | :--------------------------------------- | :----------- | :--------------------------------------------------- |
-| `preferredWidth?` | `` `max-w-${string}` ``                  | `"max-w-72"` | The preferred width as a Tailwind `max-w-` class.    |
-| `side?`           | `"top" \| "right" \| "bottom" \| "left"` | `"bottom"`   | The preferred side of the trigger to render against. |
-| `sideOffset?`     | `number`                                 | `4`          | The distance in pixels from the trigger.             |
-| `align?`          | `"start" \| "center" \| "end"`           | `"center"`   | The preferred alignment against the trigger.         |
+| Prop                    | Type                                     | Default      | Description                                                                                                                             |
+| :---------------------- | :--------------------------------------- | :----------- | :-------------------------------------------------------------------------------------------------------------------------------------- |
+| `preferredWidth?`       | `` `max-w-${string}` ``                  | `"max-w-72"` | The preferred width as a Tailwind `max-w-` class.                                                                                       |
+| `side?`                 | `"top" \| "right" \| "bottom" \| "left"` | `"bottom"`   | The preferred side of the anchor. The content flips to the opposite side when only that side fits.                                      |
+| `sideOffset?`           | `number`                                 | `4`          | The distance in pixels from the anchor.                                                                                                 |
+| `align?`                | `"start" \| "center" \| "end"`           | `"center"`   | The alignment against the anchor. The content shifts along the side to stay in the viewport.                                            |
+| `onOpenAutoFocus?`      | `(event: Event) => void`                 |              | Runs before focus moves into the content on open. Call `event.preventDefault()` to keep focus where it is.                              |
+| `onCloseAutoFocus?`     | `(event: Event) => void`                 |              | Runs before focus returns to the trigger on close. Call `event.preventDefault()` to move focus yourself.                                |
+| `onEscapeKeyDown?`      | `(event: KeyboardEvent) => void`         |              | Runs on `Escape`. Call `event.preventDefault()` to keep the popover open.                                                               |
+| `onPointerDownOutside?` | `(event: CustomEvent) => void`           |              | Runs on a press outside. `event.detail.originalEvent` is the pointer event. Call `event.preventDefault()` to keep the popover open.     |
+| `onFocusOutside?`       | `(event: CustomEvent) => void`           |              | Runs when focus moves outside. `event.detail.originalEvent` is the focus event. Call `event.preventDefault()` to keep the popover open. |
+| `onInteractOutside?`    | `(event: CustomEvent) => void`           |              | Runs for both. Call `event.preventDefault()` to keep the popover open.                                                                  |
 
 ### Popover.Anchor
 
 An optional element to position the `Popover.Content` against. If not used, the content will position alongside the `Popover.Trigger`.
 
-All props from Radix [Popover.Anchor](https://www.radix-ui.com/primitives/docs/components/popover#anchor).
+All props of a `<div>`.
 
 | Prop       | Type      | Default | Description                                                           |
 | :--------- | :-------- | :------ | :-------------------------------------------------------------------- |
@@ -179,7 +176,7 @@ All props from Radix [Popover.Anchor](https://www.radix-ui.com/primitives/docs/c
 
 A button that closes an open popover.
 
-All props from Radix [Popover.Close](https://www.radix-ui.com/primitives/docs/components/popover#close).
+All props of a `<button>`.
 
 | Prop       | Type      | Default | Description                                                           |
 | :--------- | :-------- | :------ | :-------------------------------------------------------------------- |
@@ -187,14 +184,14 @@ All props from Radix [Popover.Close](https://www.radix-ui.com/primitives/docs/co
 
 ### Popover.Arrow
 
-An optional tip that points from `Popover.Content` at its anchor. Render it as a child of `Popover.Content`. Radix renders it as an `svg`, so `fill-*` paints the surface and `bg-*` paints nothing.
+An optional tip that points from `Popover.Content` at its anchor. Render it as a direct child of `Popover.Content`. It renders an `svg`, so `fill-*` paints the surface and `bg-*` paints nothing.
 
 It takes no `asChild`: the shape is a filled polygon plus a polyline that strokes the slanted edges, and a swapped element loses the border that continues `Popover.Content`'s edge.
 
-All props from Radix [Popover.Arrow](https://www.radix-ui.com/primitives/docs/components/popover#arrow) except `asChild` and `children`, plus:
+All props of an `svg` except `children`, plus:
 
 | Prop        | Type     | Default | Description                                                                                                                                                                               |
 | :---------- | :------- | :------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `width?`    | `number` | `14`    | The width of the arrow in pixels.                                                                                                                                                         |
-| `height?`   | `number` | `7`     | The height of the arrow in pixels. Radix adds this to `sideOffset`, so the tip lands `sideOffset` pixels from the anchor.                                                                 |
+| `height?`   | `number` | `7`     | The height of the arrow in pixels. It adds to `sideOffset`, so the tip lands `sideOffset` pixels from the anchor.                                                                         |
 | `className` | `string` |         | Classes for the `svg`. Reach for `fill-*` for the surface, and target the `polyline` child for the edge: `[&>polyline]:…`. The part already sets `filter` and `clip-path` for its shadow. |

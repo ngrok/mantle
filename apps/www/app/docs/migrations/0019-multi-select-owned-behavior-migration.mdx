@@ -1,0 +1,96 @@
+---
+title: MultiSelect Owned Behavior Migration
+description: MultiSelect no longer uses Ariakit. Its parts take a fixed set of props, the list portals into the layer container, and the highlighted item carries data-highlighted.
+introducedIn: "0.95.0"
+---
+
+# Mantle MultiSelect Owned Behavior Migration Guide
+
+`MultiSelect` no longer uses `@ariakit/react`, and mantle no longer depends on Ariakit. The `useListbox` hook that drives `Select` and `Combobox` now drives `MultiSelect` too. The parts, the tags, `lockedValues`, the keyboard, and the hidden form inputs stay the same. These things change:
+
+- The parts no longer take every Ariakit prop. Each part takes the props of its element, plus the props on the [MultiSelect page](/components/forms/multi-select#api-reference).
+- `MultiSelect.Root` uses mantle's selection names: `value`, `defaultValue`, and `onValueChange` for the picked values; `inputValue`, `defaultInputValue`, and `onInputValueChange` for the text; and `open`, `defaultOpen`, and `onOpenChange`. Ariakit's `value`, `defaultValue`, and `setValue` set the text, so `value` and `defaultValue` now mean something else. `MultiSelect.Input` drops `onValueChange`: use `onInputValueChange` on `MultiSelect.Root`.
+- The list is always modal, as Ariakit made it by default. `MultiSelect.Content` drops `modal`, `backdrop`, `preventBodyScroll`, `portalElement`, `unmountOnHide`, and the other Ariakit popover props. It portals into the nearest overlay's positioner, or into `document.body`, as `Select.Content` does.
+- The highlighted item carries `data-highlighted` in place of `data-active-item`.
+- A closed list renders no items. The items mount when the list opens.
+
+`MultiSelect` costs 18.9 KB gzip in place of 57.2 KB (React external). In a heap measurement of 300 mounted instances, each one holds about half the memory it held before, and mounts in less than half the time.
+
+**TL;DR:** On `MultiSelect.Root`, rename the text props `value`, `defaultValue`, and `setValue` to `inputValue`, `defaultInputValue`, and `onInputValueChange`. Then rename `selectedValue`, `defaultSelectedValue`, and `setSelectedValue` to `value`, `defaultValue`, and `onValueChange`, and `setOpen` to `onOpenChange`. Delete the Ariakit popover props from `MultiSelect.Content` and `focusOnHover` from `MultiSelect.Item`. Replace `data-active-item` with `data-highlighted`. Then run the type checker: it names each Ariakit prop that a part no longer takes.
+
+## Codemod
+
+From a mantle checkout:
+
+```sh
+pnpm -w run migrate 0019 <path>
+```
+
+In a project that installs `@ngrok/mantle`:
+
+```sh
+npx --yes --package=@ast-grep/cli@0.51.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0019-multi-select-owned-behavior.yml --update-all <path>
+```
+
+The rules apply steps 2 to 4. They rename the text, selection, and open props on `MultiSelect.Root`, and delete the popover props from `MultiSelect.Content` and `focusOnHover` from `MultiSelect.Item`, for a `MultiSelect` import from `@ngrok/mantle/multi-select` under its own name or an alias. A function that binds `MultiSelect` to a parameter or a local shadows the import, so the rules leave that function alone. Steps 5 to 7 stay manual: an Ariakit store or prop has no one-to-one replacement, and a data attribute in a class string, CSS, or a test is a string, not syntax. A `value` or `defaultValue` on a root with no other Ariakit prop is ambiguous, so the codemod reports it and leaves it: rename it to `inputValue` or `defaultInputValue` when it set the text. The codemod is safe to run more than once. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find every part of `@ngrok/mantle`'s `MultiSelect`. Search for the name, and for a renamed import (`import { MultiSelect as MantleMultiSelect }`).
+2. On `MultiSelect.Root`, rename the text props first: `value` to `inputValue`, `defaultValue` to `defaultInputValue`, and `setValue` or `setInputValue` to `onInputValueChange`. Then rename `selectedValue` to `value`, `defaultSelectedValue` to `defaultValue`, `setSelectedValue` to `onValueChange`, and `setOpen` to `onOpenChange`. Keep `open` and `defaultOpen`. Move an `onValueChange` from `MultiSelect.Input` to `onInputValueChange` on `MultiSelect.Root`: it gets the whole filter text, as before.
+3. On `MultiSelect.Content`, delete `modal`, `backdrop`, `preventBodyScroll`, `portal`, `portalElement`, `unmountOnHide`, `gutter`, `shift`, `placement`, `fitViewport`, `flip`, `overflowPadding`, and `updatePosition`. Keep `sameWidth`, `asChild`, and `className`.
+4. On `MultiSelect.Item`, delete `focusOnHover`. An item always takes the highlight on hover.
+5. Run the type checker. For each Ariakit prop it names, delete the prop. A `useComboboxStore` from Ariakit has no replacement: control `inputValue`, `value`, and `open` on `MultiSelect.Root` instead. `hideOnInteractOutside` has no replacement: a press outside the trigger and the list always closes it. `modal={false}` has no replacement: the list is always modal.
+6. Search class strings, CSS, and tests for `data-active-item` and replace it with `data-highlighted`. Replace a `data-open` read on the list with `data-state="open"`.
+7. In tests, find code that expected the items in the DOM while the list was closed, or that read the list inside `[data-mantle-modal-content]`. Open the list first, and find the list inside the overlay's positioner (`[data-slot~="dialog-positioner"]`, `alert-dialog-positioner`, or `sheet-positioner`).
+8. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why own the behavior?** Ariakit shipped its own store, focus, dismissal, and positioning, which `Select` and `Combobox` already own in mantle's hooks. With all three pickers on one `useListbox` hook, a page pays for that behavior once, and mantle drops a dependency.
+
+---
+
+## Before → after
+
+### The text and popover props
+
+```tsx
+// BEFORE
+<MultiSelect.Root value={query} setValue={setQuery} setSelectedValue={setPicked} setOpen={setOpen}>
+	<MultiSelect.Trigger>
+		<MultiSelect.TagValues />
+		<MultiSelect.Input placeholder="Select items..." />
+	</MultiSelect.Trigger>
+	<MultiSelect.Content backdrop unmountOnHide={false}>
+		<MultiSelect.Item value="apple" focusOnHover>
+			Apple
+		</MultiSelect.Item>
+	</MultiSelect.Content>
+</MultiSelect.Root>
+```
+
+```tsx
+// AFTER
+<MultiSelect.Root
+	inputValue={query}
+	onInputValueChange={setQuery}
+	onValueChange={setPicked}
+	onOpenChange={setOpen}
+>
+	<MultiSelect.Trigger>
+		<MultiSelect.TagValues />
+		<MultiSelect.Input placeholder="Select items..." />
+	</MultiSelect.Trigger>
+	<MultiSelect.Content>
+		<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+	</MultiSelect.Content>
+</MultiSelect.Root>
+```
+
+## Edge cases & gotchas
+
+- Inside a `Dialog`, `AlertDialog`, or `Sheet`, the first Escape closes the list and the second closes the overlay, as before.
+- `MultiSelect.Item asChild` with a bare text child now throws when the list opens, as before, because the items mount on open.
+
+## How to verify
+
+Run `rg "data-active-item"` in the app. It must find nothing. Run the type checker, which names each Ariakit prop that a part no longer takes. Open each multi-select, pick and remove values with the mouse and the keyboard, and check that a press outside closes the list.

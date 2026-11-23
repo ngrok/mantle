@@ -55,7 +55,6 @@ import { Kbd } from "../kbd/kbd.js";
 import * as Popover from "../popover/popover-parts.js";
 import { Slot } from "../slot/index.js";
 import * as Tooltip from "../tooltip/tooltip-parts.js";
-import { TooltipProvider } from "../tooltip/tooltip.js";
 
 /** Headings for the suggestion groups. */
 const sectionHeadings = {
@@ -837,27 +836,23 @@ function isTextControl(target: EventTarget | null): boolean {
  * query has text.
  */
 function ClearButton({ label, onClear }: { label: string; onClear: () => void }) {
-	// Why a local provider: Radix throws for a tooltip with no provider above it,
-	// and the field must not ask the app to mount one.
 	return (
-		<TooltipProvider>
-			<Tooltip.Root>
-				<Tooltip.Trigger asChild>
-					<IconButton
-						type="button"
-						appearance="ghost"
-						intent="neutral"
-						size="xs"
-						label={label}
-						icon={<XIcon />}
-						// Keep focus in the input, so a click does not close the suggestions.
-						onMouseDown={(event) => event.preventDefault()}
-						onClick={onClear}
-					/>
-				</Tooltip.Trigger>
-				<Tooltip.Content>{label}</Tooltip.Content>
-			</Tooltip.Root>
-		</TooltipProvider>
+		<Tooltip.Root>
+			<Tooltip.Trigger asChild>
+				<IconButton
+					type="button"
+					appearance="ghost"
+					intent="neutral"
+					size="xs"
+					label={label}
+					icon={<XIcon />}
+					// Keep focus in the input, so a click does not close the suggestions.
+					onMouseDown={(event) => event.preventDefault()}
+					onClick={onClear}
+				/>
+			</Tooltip.Trigger>
+			<Tooltip.Content>{label}</Tooltip.Content>
+		</Tooltip.Root>
 	);
 }
 
@@ -892,7 +887,7 @@ type QueryContentProps = Omit<
  * | Attribute    | Value                  | Description                                 |
  * | ------------ | ---------------------- | ------------------------------------------- |
  * | `data-slot`  | `"query-content"`      | On the popover, beside `"popover-content"`. |
- * | `data-state` | `"open"` \| `"closed"` | On the popover, from Radix.                 |
+ * | `data-state` | `"open"` \| `"closed"` | On the popover, from `Popover.Content`.     |
  * | `data-side`  | `"top"` \| `"bottom"`  | On the popover: the side it opened on.      |
  * | `data-align` | `"start"`              | On the popover.                             |
  *
@@ -915,7 +910,7 @@ type QueryContentProps = Omit<
  * </Query.Root>
  * ```
  */
-// Why no asChild: the part wraps `Popover.Content`, whose element Radix positions.
+// Why no asChild: the part wraps `Popover.Content`, whose element the float positions.
 function Content({ "data-slot": dataSlot, children, className, ref, ...props }: QueryContentProps) {
 	const context = useQueryContext("Query.Content");
 	const { anchorRef, contentRef } = useQueryRefs("Query.Content");
@@ -933,20 +928,19 @@ function Content({ "data-slot": dataSlot, children, className, ref, ...props }: 
 			ref={composedRef}
 			data-slot={joinDataSlot(dataSlot, "query-content")}
 			align="start"
-			className={cx("w-(--radix-popover-trigger-width) p-1", className)}
+			className={cx("w-(--anchor-width) p-1", className)}
 			preferredWidth="max-w-none"
 			// Why presentation: the popup is the listbox inside, which the `<input>`
-			// controls. Radix's default `role="dialog"` adds an unnamed dialog around it.
+			// controls. The default `role="dialog"` adds an unnamed dialog around it.
 			role="presentation"
 			// Focus never leaves the input: the active option is announced through
 			// `aria-activedescendant` instead.
 			onOpenAutoFocus={(event) => event.preventDefault()}
 			onCloseAutoFocus={(event) => event.preventDefault()}
 			onInteractOutside={(event) => {
-				// The input sits outside the popover, so Radix reads a click into it
-				// as an outside interaction. Radix reports a mouse press after the
-				// click, so the clear button can be gone by then: a detached target
-				// is a control that the press itself removed.
+				// The input sits outside the popover, so a press on it is an outside
+				// interaction. A detached target is a control that the press itself
+				// removed, such as the clear button.
 				const target = event.detail.originalEvent.target;
 				if (
 					target instanceof Node &&

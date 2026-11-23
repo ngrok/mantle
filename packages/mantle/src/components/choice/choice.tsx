@@ -3,6 +3,7 @@
 import {
 	cloneElement,
 	createContext,
+	useCallback,
 	isValidElement,
 	useContext,
 	useId,
@@ -11,7 +12,6 @@ import {
 } from "react";
 import type { ComponentProps, MouseEvent, ReactNode, RefObject } from "react";
 import invariant from "tiny-invariant";
-import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -154,8 +154,11 @@ const Root = ({
 	const fieldDescribedBy = fieldControl?.["aria-describedby"];
 	const fieldAriaInvalid = fieldControl?.["aria-invalid"];
 	const fieldErrorMessage = fieldControl?.["aria-errormessage"];
+	const radioItem = useContext(RadioItemContext);
 	const generatedId = useId();
-	const descriptionId = useId();
+	const generatedDescriptionId = useId();
+	// Why the radio item's id: its native radio already points `aria-describedby` at it.
+	const descriptionId = radioItem?.descriptionId ?? generatedDescriptionId;
 	const labelRef = useRef<HTMLLabelElement>(null);
 	const controlId = fieldId ?? id ?? generatedId;
 	// Reference our own description slot and append any inherited describedby
@@ -338,10 +341,11 @@ type ChoiceLabelProps = Omit<ComponentProps<typeof Label>, "htmlFor" | "disabled
  *
  * It is the mantle {@link Label} (not a re-implementation), so it keeps every
  * base-label behavior (cursor, the double-click text-selection guard, and the
- * auto `font-medium`). `Field.Label` reuses `Label` the same way. When an
- * ancestor already owns the labeling and click target (a fully-clickable list
- * row or a Headless radio item), use `Choice.Title` instead: a label-less `<p>`
- * that accepts `asChild`, so labels never nest or compete.
+ * auto `font-medium`). `Field.Label` reuses `Label` the same way. Inside a
+ * `RadioGroup` item, it labels the item's radio. When an ancestor already owns
+ * the labeling and click target (a fully-clickable list row that is a
+ * `<label>`), use `Choice.Title` instead: a label-less `<p>` that accepts
+ * `asChild`, so labels never nest or compete.
  *
  * @see https://mantle.ngrok.com/components/forms/choice
  *
@@ -360,6 +364,8 @@ type ChoiceLabelProps = Omit<ComponentProps<typeof Label>, "htmlFor" | "disabled
  */
 const ChoiceLabel = ({ "data-slot": dataSlot, className, ref, ...props }: ChoiceLabelProps) => {
 	const { controlId, disabled, labelRef } = useChoiceContext("Label");
+	// Why: in a radio item, the label is the title line of the item's native radio.
+	const radioId = useContext(RadioItemContext)?.radioId;
 	// `Choice.Description` clicks this element to reach the control.
 	const composedRef = useComposedRefs(labelRef, ref);
 
@@ -372,7 +378,7 @@ const ChoiceLabel = ({ "data-slot": dataSlot, className, ref, ...props }: Choice
 			data-slot={joinDataSlot(dataSlot, "choice-label")}
 			className={cx(disabled && "opacity-50", className)}
 			{...props}
-			htmlFor={controlId}
+			htmlFor={radioId ?? controlId}
 			disabled={disabled}
 		/>
 	);
@@ -382,14 +388,16 @@ const ChoiceLabel = ({ "data-slot": dataSlot, className, ref, ...props }: Choice
  * The emphasized title of a `Choice`, label-styled but **not** a `<label>`:
  * renders a `<p>`. Mirrors `Field.LabelText`. Use this when something else owns
  * the control's labeling and click target: a fully-clickable list row or a
- * Headless radio item. It avoids nesting two `<label>`s or splitting
+ * `RadioGroup` item, where it registers itself as the radio's name. It avoids nesting two `<label>`s or splitting
  * the click target. Pass `asChild` to supply your own element. For a standalone
  * control (or inside a `Field`) where the title can be the label, use
  * `Choice.Label`.
  *
- * Inside a `RadioGroup` item, the title registers its id with the radio, so the
- * option's `aria-labelledby` names it by the title alone. The description stays
- * out of the name. The `id` defaults to a generated one.
+ * Inside a radio item, the title takes the id that the item's radio points
+ * `aria-labelledby` at, so the title alone names the option. The description
+ * stays out of the name. Leave `id` unset there: a custom id falls back to
+ * the whole item text as the name. Elsewhere, the `id` defaults to a
+ * generated one.
  *
  * @see https://mantle.ngrok.com/components/forms/choice
  *
@@ -417,15 +425,32 @@ const Title = ({
 	const { disabled } = useChoiceContext("Title");
 	const radioItem = useContext(RadioItemContext);
 	const generatedId = useId();
-	const titleId = id ?? generatedId;
-	// Why a layout effect: the radio stamps `aria-labelledby` in the same commit,
-	// so no paint carries the flattened title-plus-description name.
-	useIsomorphicLayoutEffect(() => radioItem?.registerLabelId(titleId), [radioItem, titleId]);
+	const titleId = id ?? radioItem?.titleId ?? generatedId;
+	const radioId = radioItem?.radioId;
+	const contentId = radioItem?.contentId;
+	// Why a ref callback that writes the DOM: the radio's name becomes the title with no
+	// second render of the item. It changes only a name the item set from its own text.
+	const nameRadio = useCallback(
+		(title: HTMLElement | null) => {
+			const radio = radioId == null ? null : title?.ownerDocument.getElementById(radioId);
+			if (radio == null || radio.getAttribute("aria-labelledby") !== contentId) {
+				return;
+			}
+			radio.setAttribute("aria-labelledby", titleId);
+			return () => {
+				if (radio.getAttribute("aria-labelledby") === titleId && contentId != null) {
+					radio.setAttribute("aria-labelledby", contentId);
+				}
+			};
+		},
+		[radioId, contentId, titleId],
+	);
+	const composedRef = useComposedRefs(ref, nameRadio);
 	const Comp = asChild ? Slot : "p";
 
 	return (
 		<Comp
-			ref={ref}
+			ref={composedRef}
 			data-slot={joinDataSlot(dataSlot, "choice-title")}
 			className={cx(
 				"text-strong text-sm font-medium font-sans",
@@ -470,8 +495,8 @@ function shouldForwardDescriptionClick(event: MouseEvent<HTMLElement>): boolean 
  * `Choice.Title`, the description forwards nothing, because an ancestor owns
  * that click.
  *
- * Inside a `RadioGroup` item, the description registers its id with the radio,
- * so the option's `aria-describedby` points here.
+ * Inside a radio item, the description takes the id that the item's radio
+ * points `aria-describedby` at.
  *
  * @see https://mantle.ngrok.com/components/forms/choice
  *
@@ -497,11 +522,6 @@ const Description = ({
 	...props
 }: Omit<ComponentProps<"p">, "id"> & WithAsChild & WithDataSlot) => {
 	const { descriptionId, disabled, labelRef } = useChoiceContext("Description");
-	const radioItem = useContext(RadioItemContext);
-	useIsomorphicLayoutEffect(
-		() => radioItem?.registerDescriptionId(descriptionId),
-		[radioItem, descriptionId],
-	);
 	const Comp = asChild ? Slot : "p";
 
 	return (

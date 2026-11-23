@@ -40,7 +40,7 @@ export function TanStackFormExample() {
 						<Field.Label>Region</Field.Label>
 						<Combobox.Root
 							inputValue={field.state.value}
-							setInputValue={(value) => {
+							onInputValueChange={(value) => {
 								field.handleChange(value);
 							}}
 						>

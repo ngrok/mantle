@@ -33,7 +33,7 @@ export function StrataExample() {
 							aria-label="Provider scope"
 							className="grid grid-cols-1 gap-2 sm:grid-cols-2"
 							value={providerScope}
-							onChange={setProviderScope}
+							onValueChange={setProviderScope}
 						>
 							<RadioGroup.Card className="flex" value="allow-all">
 								<RadioGroup.ItemContent className="flex-1 space-y-1 text-sm">

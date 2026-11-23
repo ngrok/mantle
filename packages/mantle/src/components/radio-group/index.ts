@@ -52,7 +52,7 @@ import * as RadioGroupParts from "./radio-group-parts.js";
  *
  * @example
  * ```tsx
- * <RadioGroup.Root value={value} onChange={setValue}>
+ * <RadioGroup.Root value={value} onValueChange={setValue}>
  *   <RadioGroup.Item value="option1">
  *     <RadioGroup.Indicator />
  *     <span>Option 1</span>

@@ -310,7 +310,7 @@ const LabelRow = ({
  * `Field.HelpTrigger` (renders a default question-mark `IconButton`) and
  * `Field.HelpContent` (the popover body) to drop a help button into a
  * `Field.LabelRow` without manually wiring `Popover` + `IconButton` +
- * `QuestionIcon`. All `Popover.Root` props are forwarded: pass `modal`,
+ * `QuestionIcon`. All `Popover.Root` props are forwarded: pass `open`,
  * `defaultOpen`, etc. as needed.
  *
  * Popover (not Tooltip) so the affordance is reachable on touch devices.

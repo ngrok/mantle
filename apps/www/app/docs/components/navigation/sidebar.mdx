@@ -965,7 +965,6 @@ import { QuestionIcon } from "@phosphor-icons/react/Question";
 
 export function LabeledCollapsedSidebar() {
 	return (
-		// the rows' tooltips need a `TooltipProvider` ancestor, mounted at your app root
 		<Sidebar.Root defaultOpen={false} mobileBreakpoint="sm">
 			<div className="border-card-muted bg-base flex h-72 w-full max-w-lg overflow-hidden rounded-lg border">
 				<Sidebar.Nav aria-label="Main">
@@ -1030,9 +1029,8 @@ state rather than withholding its content: the expanded panel and the mobile she
 collapsing the panel cannot pop a label under a pointer that has already moved on. `Tooltip.Root` itself stays
 mounted at every sidebar state, which keeps the row (and its focus) through a collapse.
 
-It needs a `TooltipProvider` ancestor, like any `Tooltip.Root`: mount one at your app root. The part
-deliberately does not mount its own, so your app-wide tooltip delay still applies. The one provider setting
-it does override is hoverable content: a row label holds nothing to hover into, so the label closes when the
+The part does not mount its own `TooltipProvider`, so an app-wide provider still sets the delay. The one
+provider setting it does override is hoverable content: a row label holds nothing to hover into, so the label closes when the
 pointer leaves the row instead of waiting for the pointer to leave the label too.
 
 For a row that also opens a menu (the **Help** row above), keep `DropdownMenu.Root` **outside** the tooltip:
@@ -1696,10 +1694,9 @@ except `asChild` and `children`, with sidebar defaults:
 | `shortcut?`   | `ReactNode`                            |                         | Chord chips rendered after the label in the tooltip, usually `<><MetaKey /><Kbd>B</Kbd></>`. Dropped under `Sidebar.Root keyboardShortcut={false}`, and `aria-hidden` because `aria-keyshortcuts` already announces the chord. |
 | `size?`       | `"xs" \| "sm" \| "md" \| "lg" \| "xl"` | `"sm"`                  | The size of the trigger. Small, so it sits level with the other `size="sm"` controls in an `AppLayout.Header` row.                                                                                                             |
 
-The button is icon-only at every breakpoint, so it always renders a tooltip showing `label`. **That means it
-requires a [`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) ancestor, like any
-`Tooltip.Root`, and throws without one.** Mount a single provider at your app root, decoupled from the
-sidebar, so the app-wide delay and hover settings stay app-wide. It also stamps `aria-keyshortcuts`
+The button is icon-only at every breakpoint, so it always renders a tooltip showing `label`. A
+[`TooltipProvider`](/components/overlays/tooltip#tooltipprovider) ancestor, when there is one, sets its delay.
+It also stamps `aria-keyshortcuts`
 (`"Meta+B"` on Apple platforms, `"Control+B"` elsewhere), omitted along with the chips under
 `Sidebar.Root keyboardShortcut={false}`. The server cannot know the host, so the server HTML and the
 hydration render carry `"Control+B"`. React corrects it once after hydration. A trigger that mounts
@@ -1957,7 +1954,7 @@ owns, plus:
 `asChild` is not accepted. `Tooltip.Content` omits it because its arrow is a permanent sibling of the body, so
 a slot would receive two elements. See [Polymorphism](#polymorphism).
 
-Every remaining `Tooltip.Content` prop (`style`, `ref`, `align`, `sideOffset`, `collisionPadding`, any
+Every remaining `Tooltip.Content` prop (`style`, `ref`, `align`, `sideOffset`, any
 `data-*`) lands on the tooltip surface as usual, and so do the attributes
 [Tooltip](/components/overlays/tooltip#tooltipcontent) itself emits there (`data-state`, `data-side`). The
 four in the table above are the exceptions: this part reads them itself.

@@ -81,16 +81,14 @@ function Example() {
 
 	return (
 		<MultiSelect.Root
-			setOpen={() => {
+			onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+			onOpenChange={() => {
 				setSearchValue("");
 			}}
 		>
 			<MultiSelect.Trigger>
 				<MultiSelect.TagValues />
-				<MultiSelect.Input
-					onValueChange={(value) => startTransition(() => setSearchValue(value))}
-					placeholder="Select fruits..."
-				/>
+				<MultiSelect.Input placeholder="Select fruits..." />
 			</MultiSelect.Trigger>
 			<MultiSelect.Content aria-busy={isPending}>
 				{matches.map((value) => (
@@ -109,7 +107,7 @@ function Example() {
 
 ## Layering and z-index
 
-`MultiSelect.Content` renders at Tailwind `z-50` and portals into the closest `data-mantle-modal-content` element (an enclosing overlay's content), else the nearest overlay's positioner, else `document.body`. Inside an overlay it paints above the content that contains it. Outside one, an open overlay (`z-60`) covers it.
+`MultiSelect.Content` renders at Tailwind `z-50`. Inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`).
 
 `MultiSelect` does not render a backdrop by default. Modal layers such as `Dialog`, `Sheet`, and `AlertDialog` do render backdrops, so stacking those layers compounds the dim and blur effect on the layers underneath.
 
@@ -117,7 +115,7 @@ function Example() {
 
 ### Controlled
 
-Use `selectedValue` and `setSelectedValue` to control the selected values.
+Use `value` and `onValueChange` to control the selected values.
 
 <Example name="components/forms/multi-select/controlled" title="Multi Select controlled example">
 
@@ -134,18 +132,16 @@ function Example() {
 
 	return (
 		<MultiSelect.Root
-			selectedValue={selected}
-			setOpen={() => {
+			onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+			value={selected}
+			onOpenChange={() => {
 				setSearchValue("");
 			}}
-			setSelectedValue={setSelected}
+			onValueChange={setSelected}
 		>
 			<MultiSelect.Trigger>
 				<MultiSelect.TagValues />
-				<MultiSelect.Input
-					onValueChange={(value) => startTransition(() => setSearchValue(value))}
-					placeholder="Select fruits..."
-				/>
+				<MultiSelect.Input placeholder="Select fruits..." />
 			</MultiSelect.Trigger>
 			<MultiSelect.Content aria-busy={isPending}>
 				{matches.map((value) => (
@@ -243,18 +239,16 @@ const filteredVeggies = useMemo(
 							<Field.Label>Fruits</Field.Label>
 							<Field.Control>
 								<MultiSelect.Root
-									selectedValue={field.state.value}
-									setSelectedValue={field.handleChange}
-									setOpen={() => {
+									onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+									value={field.state.value}
+									onValueChange={field.handleChange}
+									onOpenChange={() => {
 										setSearchValue("");
 									}}
 								>
 									<MultiSelect.Trigger onBlur={field.handleBlur}>
 										<MultiSelect.TagValues />
-										<MultiSelect.Input
-											onValueChange={(value) => startTransition(() => setSearchValue(value))}
-											placeholder="Select fruits and vegetables..."
-										/>
+										<MultiSelect.Input placeholder="Select fruits and vegetables..." />
 									</MultiSelect.Trigger>
 									<MultiSelect.Content aria-busy={isPending}>
 										{filteredFruits.length > 0 && (
@@ -342,18 +336,16 @@ function Example() {
 
 	return (
 		<MultiSelect.Root
-			selectedValue={selected}
-			setOpen={() => {
+			onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+			value={selected}
+			onOpenChange={() => {
 				setSearchValue("");
 			}}
-			setSelectedValue={setSelected}
+			onValueChange={setSelected}
 		>
 			<MultiSelect.Trigger>
 				<MultiSelect.TagValues lockedValues={["apple", "cherry"]} />
-				<MultiSelect.Input
-					onValueChange={(value) => startTransition(() => setSearchValue(value))}
-					placeholder="Select fruits..."
-				/>
+				<MultiSelect.Input placeholder="Select fruits..." />
 			</MultiSelect.Trigger>
 			<MultiSelect.Content aria-busy={isPending}>
 				{matches.map((value) => (
@@ -393,21 +385,19 @@ function Example() {
 
 	return (
 		<MultiSelect.Root
-			selectedValue={selected}
-			setOpen={() => {
+			onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+			value={selected}
+			onOpenChange={() => {
 				setSearchValue("");
 			}}
-			setSelectedValue={(values) => {
+			onValueChange={(values) => {
 				setSelected(values);
 				startTransition(() => setSearchValue(""));
 			}}
 		>
 			<MultiSelect.Trigger>
 				<MultiSelect.TagValues />
-				<MultiSelect.Input
-					onValueChange={(value) => startTransition(() => setSearchValue(value))}
-					placeholder="Select or create fruits..."
-				/>
+				<MultiSelect.Input placeholder="Select or create fruits..." />
 			</MultiSelect.Trigger>
 			<MultiSelect.Content aria-busy={isPending}>
 				{matches.map((value) => (
@@ -456,16 +446,14 @@ function Example() {
 
 	return (
 		<MultiSelect.Root
-			setOpen={() => {
+			onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+			onOpenChange={() => {
 				setSearchValue("");
 			}}
 		>
 			<MultiSelect.Trigger>
 				<MultiSelect.TagValues />
-				<MultiSelect.Input
-					onValueChange={(value) => startTransition(() => setSearchValue(value))}
-					placeholder="Select items..."
-				/>
+				<MultiSelect.Input placeholder="Select items..." />
 			</MultiSelect.Trigger>
 			<MultiSelect.Content aria-busy={isPending}>
 				{filteredFruits.length > 0 && (
@@ -502,7 +490,7 @@ function Example() {
 
 ### With TanStack Form
 
-Use `@tanstack/react-form` with `zod` to wire selected values into form state. Pass `field.state.value` to `selectedValue` and `field.handleChange` to `setSelectedValue`.
+Use `@tanstack/react-form` with `zod` to wire selected values into form state. Pass `field.state.value` to `value` and `field.handleChange` to `onValueChange`.
 
 <Example name="components/forms/multi-select/with-tanstack-form" title="Multi Select With TanStack Form example">
 
@@ -549,10 +537,7 @@ function Example() {
 					<Field.Item name={field.name}>
 						<Field.Label>Favorites</Field.Label>
 						<Field.Control>
-							<MultiSelect.Root
-								selectedValue={field.state.value}
-								setSelectedValue={field.handleChange}
-							>
+							<MultiSelect.Root value={field.state.value} onValueChange={field.handleChange}>
 								<MultiSelect.Trigger onBlur={field.handleBlur}>
 									<MultiSelect.TagValues />
 									<MultiSelect.Input placeholder="Select fruits..." />
@@ -660,18 +645,16 @@ function Example() {
 			<Field.Label>Resolves to</Field.Label>
 			<Field.Control>
 				<MultiSelect.Root
-					selectedValue={selected}
-					setOpen={() => {
+					onInputValueChange={(value) => startTransition(() => setSearchValue(value))}
+					value={selected}
+					onOpenChange={() => {
 						setSearchValue("");
 					}}
-					setSelectedValue={setSelected}
+					onValueChange={setSelected}
 				>
 					<MultiSelect.Trigger>
 						<MultiSelect.TagValues />
-						<MultiSelect.Input
-							onValueChange={(value) => startTransition(() => setSearchValue(value))}
-							placeholder="Select regions..."
-						/>
+						<MultiSelect.Input placeholder="Select regions..." />
 						{/* Input is flex-1 so this sibling is pushed to the right */}
 						<Anchor className="shrink-0 whitespace-nowrap text-xs" href="#">
 							Requires upgrade
@@ -789,31 +772,32 @@ MultiSelect.Root
 
 The trigger-side parts (`MultiSelect.Root`, `Trigger`, `Input`, `Tag`, `TagValues`) own input and tag behavior that depends on the elements they render, so they do not accept `asChild`.
 
-`MultiSelect.Item asChild` clones your single child as the option element and moves the label div and the check indicator inside it, so the [translation guarantee](/browser-translation) holds on both paths. To give an option a custom layout inside the default element, pass it as `children` (a [`MediaObject`](/components/structure/media-object) with an avatar, say), which is unrestricted.
+`MultiSelect.Item asChild` makes your single child the option element and moves the label div and the check indicator inside it, so the [translation guarantee](/browser-translation) holds on both paths. To give an option a custom layout inside the default element, pass it as `children` (a [`MediaObject`](/components/structure/media-object) with an avatar, say), which is unrestricted.
 
 ## Accessibility
 
-`MultiSelect` builds on the [ariakit Combobox](https://ariakit.org/components/combobox), with full keyboard support, and follows the [WAI-ARIA Combobox Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/).
+`MultiSelect` follows the [WAI-ARIA Combobox Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) with a multi-selectable listbox. DOM focus stays on the input or a tag, and `aria-activedescendant` on the input names the highlighted item. The list is modal, as it was with Ariakit: while it is open, the page does not scroll, the rest of the page is inert (hidden from screen readers and closed to the pointer and to Tab), and a press outside the trigger and the list closes it.
 
 Inside a field, `Field.Control` puts the generated `id`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` on the focusable `MultiSelect.Input` through `FieldControlContext`. The field `name` goes through too, but it lands on one hidden input for each selected value, not on the combobox input. The value of the combobox input is the typeahead filter text, so a native form submit sends the selected values and not the text the user typed.
 
 ## API Reference
 
-The `MultiSelect` components are built on top of [ariakit Combobox](https://ariakit.org/components/combobox).
-
 ### MultiSelect.Root
 
 Root component for a multi-select combobox. Owns the selected values and the typeahead query.
 
-`MultiSelect.Content` renders at Tailwind `z-50` and portals into the closest `data-mantle-modal-content` element (an enclosing overlay's content), else the nearest overlay's positioner, else `document.body`. Inside an overlay it paints above the content that contains it. Outside one, an open overlay (`z-60`) covers it.
+`MultiSelect.Content` renders at Tailwind `z-50`. Inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`).
 
-All props from ariakit [ComboboxProvider](https://ariakit.org/reference/combobox-provider) (typed to `string[]` for multi-select), plus:
+`MultiSelect.Root` also takes `open`, `defaultOpen`, and `onOpenChange`, as `Combobox.Root` does, plus:
 
-| Prop                    | Type                        | Default | Description                                           |
-| :---------------------- | :-------------------------- | :------ | :---------------------------------------------------- |
-| `selectedValue?`        | `string[]`                  | `[]`    | The controlled selected values.                       |
-| `setSelectedValue?`     | `(value: string[]) => void` |         | Event handler called when the selected values change. |
-| `defaultSelectedValue?` | `string[]`                  | `[]`    | The default selected values for uncontrolled usage.   |
+| Prop                  | Type                           | Default | Description                                                                                                   |
+| :-------------------- | :----------------------------- | :------ | :------------------------------------------------------------------------------------------------------------ |
+| `value?`              | `string[]`                     |         | The controlled selected values. Pair with `onValueChange`.                                                    |
+| `defaultValue?`       | `string[]`                     | `[]`    | The selected values on first render.                                                                          |
+| `onValueChange?`      | `(value: string[]) => void`    |         | Called when the user picks or removes a value.                                                                |
+| `inputValue?`         | `string`                       |         | The controlled filter text. Pair with `onInputValueChange`.                                                   |
+| `defaultInputValue?`  | `string`                       | `""`    | The filter text on first render.                                                                              |
+| `onInputValueChange?` | `(inputValue: string) => void` |         | Called with the whole filter text on each change. Use it to filter the items, for example with `matchSorter`. |
 
 ### MultiSelect.Trigger
 
@@ -850,13 +834,12 @@ The tags render inside a `role="list"` named "Selected values" (override it with
 
 The combobox input for filtering items. Place this inside `MultiSelect.Trigger`, after `MultiSelect.TagValues`.
 
-All props from ariakit [Combobox](https://ariakit.org/reference/combobox). Key props:
+All props of an `<input>` except `value`, `defaultValue`, and `autoComplete`. Key props:
 
-| Prop             | Type                      | Default | Description                                                                                                                                                                      |
-| :--------------- | :------------------------ | :------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `onValueChange?` | `(value: string) => void` |         | Called with the raw string value whenever the input text changes. Use this to drive external filtering (e.g. with `matchSorter`). A convenience alternative to `onChange`.       |
-| `placeholder?`   | `string`                  |         | Placeholder text shown when no values are selected.                                                                                                                              |
-| `name?`          | `string`                  |         | Form-value name for the selection. Applied to one hidden input per selected value, not to this input, whose value is the filter text. Flowed automatically from `Field.Control`. |
+| Prop           | Type     | Default | Description                                                                                                                                                                      |
+| :------------- | :------- | :------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `placeholder?` | `string` |         | Placeholder text shown when no values are selected.                                                                                                                              |
+| `name?`        | `string` |         | Form-value name for the selection. Applied to one hidden input per selected value, not to this input, whose value is the filter text. Flowed automatically from `Field.Control`. |
 
 ### MultiSelect.Tag
 
@@ -883,17 +866,14 @@ Also accepts all standard `span` element props (except `children`). The `onKeyDo
 
 Renders a popover that contains multi-select content.
 
-`MultiSelect.Content` renders at Tailwind `z-50` and portals into the closest `data-mantle-modal-content` element (an enclosing overlay's content), else the nearest overlay's positioner, else `document.body`. Inside an overlay it paints above the content that contains it. Outside one, an open overlay (`z-60`) covers it.
+`MultiSelect.Content` renders at Tailwind `z-50`. Inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`).
 
-All props from ariakit [ComboboxPopover](https://ariakit.org/reference/combobox-popover), plus:
+All props of a `<div>`, plus:
 
-| Prop             | Type      | Default | Description                                                                                                                 |
-| :--------------- | :-------- | :------ | :-------------------------------------------------------------------------------------------------------------------------- |
-| `asChild?`       | `boolean` | `false` | Compose onto an alternative element type or your own React component.                                                       |
-| `backdrop?`      | `boolean` | `false` | Whether to render a backdrop behind the popover.                                                                            |
-| `modal?`         | `boolean` | `true`  | Renders the popover as a modal layer: Escape and a click outside close it. Focus stays on the input, so Tab is not trapped. |
-| `sameWidth?`     | `boolean` | `true`  | Whether the popover should be the same width as the trigger.                                                                |
-| `unmountOnHide?` | `boolean` | `true`  | Whether the popover should unmount when hidden.                                                                             |
+| Prop         | Type      | Default | Description                                                           |
+| :----------- | :-------- | :------ | :-------------------------------------------------------------------- |
+| `asChild?`   | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
+| `sameWidth?` | `boolean` | `true`  | Whether the popover should be the same width as the trigger.          |
 
 ### MultiSelect.Item
 
@@ -901,12 +881,11 @@ Renders a selectable item with a checkbox indicator inside a `MultiSelect.Conten
 
 `children` render inside a `<div data-slot="multi-select-item-label">`. The selected-state check is a permanent element sibling, so without the wrapper a bare text label is never a lone child: a browser translation engine reparents that text node, and the removal React runs when the label changes shape or goes away throws. The wrapper is a `<div>` because a custom option layout is often a `MediaObject`, whose root is a `<div>` that a `<span>` may not contain. It is `display: contents`, so a child of your own stays a flex item of the option and any `flex-1` on it still resolves. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
 
-All props from ariakit [ComboboxItem](https://ariakit.org/reference/combobox-item), except `render`, plus:
+All props of a `<div>`, plus `value`, `disabled`, and:
 
-| Prop            | Type      | Default | Description                                                           |
-| :-------------- | :-------- | :------ | :-------------------------------------------------------------------- |
-| `asChild?`      | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
-| `focusOnHover?` | `boolean` | `true`  | Whether the item should receive focus on hover.                       |
+| Prop       | Type      | Default | Description                                                           |
+| :--------- | :-------- | :------ | :-------------------------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
 
 | Data Attribute | Value                       | Description                         |
 | :------------- | :-------------------------- | :---------------------------------- |
@@ -917,7 +896,7 @@ All props from ariakit [ComboboxItem](https://ariakit.org/reference/combobox-ite
 
 Renders a group for `MultiSelect.Item` elements. Optionally, render a `MultiSelect.GroupLabel` as a child to label the group.
 
-All props from ariakit [ComboboxGroup](https://ariakit.org/reference/combobox-group), plus:
+All props of a `<div>`, plus:
 
 | Prop       | Type      | Default | Description                                                           |
 | :--------- | :-------- | :------ | :-------------------------------------------------------------------- |
@@ -927,7 +906,7 @@ All props from ariakit [ComboboxGroup](https://ariakit.org/reference/combobox-gr
 
 Renders a label in a multi-select group. Should be wrapped with `MultiSelect.Group` so the `aria-labelledby` is correctly set on the group element.
 
-All props from ariakit [ComboboxGroupLabel](https://ariakit.org/reference/combobox-group-label), plus:
+All props of a `<div>`, plus:
 
 | Prop       | Type      | Default | Description                                                           |
 | :--------- | :-------- | :------ | :-------------------------------------------------------------------- |

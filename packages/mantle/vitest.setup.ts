@@ -5,6 +5,7 @@ import "@testing-library/jest-dom/vitest";
 import type { TestingLibraryMatchers } from "@testing-library/jest-dom/matchers";
 import { cleanup, configure } from "@testing-library/react";
 import { afterEach } from "vitest";
+import { installPopoverApi } from "./src/test-utils/install-popover-api.js";
 import { createIntersectionObserverStub } from "./src/test-utils/mock-intersection-observer.js";
 import { canUseDOM } from "./src/components/browser-only/can-use-dom.js";
 
@@ -43,6 +44,7 @@ declare module "vitest/browser" {
 // view inside `observe()`, and the guard keeps Chromium's observer in the browser project.
 if (canUseDOM() && "happyDOM" in window) {
 	globalThis.IntersectionObserver = createIntersectionObserverStub({ intersecting: true }).Observer;
+	installPopoverApi();
 }
 
 // Why: Chromium computes `::before` and `::after` content, which can name an element

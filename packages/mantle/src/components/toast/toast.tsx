@@ -10,12 +10,13 @@ import {
 	type ReactNode,
 	createContext,
 	useContext,
+	useEffect,
 	useLayoutEffect,
-	useMemo,
 	useState,
+	useSyncExternalStore,
 } from "react";
 import { createPortal } from "react-dom";
-import { Toaster as SonnerToaster, toast as sonnerToast } from "sonner";
+import type * as Sonner from "sonner";
 import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import type { WithStyleProps } from "../../types/with-style-props.js";
@@ -26,10 +27,9 @@ import { Icon as IconComponent } from "../icon/icon.js";
 import type { SvgOnlyProps } from "../icon/svg-only.js";
 import { canUseDOM } from "../browser-only/can-use-dom.js";
 import { Slot } from "../slot/index.js";
-import { useAppliedTheme } from "../theme/theme-provider.js";
 import { attachToasterHost } from "./toaster-host.js";
 
-type ToasterPrimitiveProps = ComponentProps<typeof SonnerToaster>;
+type ToasterPrimitiveProps = ComponentProps<typeof Sonner.Toaster>;
 
 type ToasterProps = WithStyleProps &
 	Pick<ToasterPrimitiveProps, "containerAriaLabel" | "dir" | "position"> & {
@@ -62,15 +62,73 @@ function resolveToastDuration(duration_ms: number | undefined) {
 }
 
 /**
+ * The sonner module once its chunk loads. A toast renders only after it loads,
+ * so the parts inside a toast read it without a wait.
+ */
+let sonner: typeof Sonner | undefined;
+let isLoadingSonner = false;
+/** The toasts that `makeToast` created before sonner loaded, in call order. */
+const pendingToasts: ((module: typeof Sonner) => void)[] = [];
+const sonnerListeners = new Set<() => void>();
+
+/**
+ * Starts the sonner chunk load, once. When it loads, the pending toasts go to
+ * sonner in call order, and each mounted `Toaster` renders.
+ *
+ * @example
+ * ```ts
+ * void loadSonner(); // the first call starts the load; later calls do nothing
+ * ```
+ */
+async function loadSonner(): Promise<void> {
+	if (sonner != null || isLoadingSonner) {
+		return;
+	}
+	isLoadingSonner = true;
+	try {
+		sonner = await import("sonner");
+	} catch (error) {
+		// Why no rethrow: a chunk that fails to load must not crash the page. The toasts
+		// stay pending, and the next `makeToast` call tries again; a browser that caches failed module fetches fails it again.
+		isLoadingSonner = false;
+		reportError(error);
+		return;
+	}
+	for (const show of pendingToasts.splice(0)) {
+		show(sonner);
+	}
+	for (const listener of sonnerListeners) {
+		listener();
+	}
+}
+
+/**
+ * Subscribes a `Toaster` to the sonner load. Returns the function that
+ * removes the subscription.
+ */
+function subscribeToSonner(onLoad: () => void): () => void {
+	sonnerListeners.add(onLoad);
+	return () => {
+		sonnerListeners.delete(onLoad);
+	};
+}
+
+/** The sonner module, or `undefined` until it loads. */
+function getSonner(): typeof Sonner | undefined {
+	return sonner;
+}
+
+/**
  * A container for displaying all toasts.
  *
  * Only one `<Toaster />` should be rendered in an app a time, preferably at the
  * root level of the app.
  *
- * The toasts render after hydration, in a container on `<body>`. While a
- * native modal dialog (`@ngrok/mantle/dialog/native`,
- * `@ngrok/mantle/sheet/native`) is open, the container moves into it, so the
- * toasts paint above the dialog and stay usable.
+ * The toasts render in a container on `<body>`. The toast code loads in its
+ * own chunk when the browser is idle after hydration, or on the first
+ * `makeToast` call if that comes first. While a native modal dialog
+ * (`@ngrok/mantle/dialog/native`, `@ngrok/mantle/sheet/native`) is open, the
+ * container moves into it, so the toasts paint above the dialog and stay usable.
  *
  * @see https://mantle.ngrok.com/components/feedback/toast#toaster
  *
@@ -91,20 +149,46 @@ const Toaster = ({
 	position = "top-center",
 	style,
 }: ToasterProps) => {
-	const theme = useAppliedTheme();
 	const isHydrated = useIsHydrated();
+	const loadedSonner = useSyncExternalStore(subscribeToSonner, getSonner, getSonner);
 	// Why a host of its own: an open native modal `<dialog>` makes the rest of
 	// the page inert, so the host moves into it. React never moves a portal's
 	// container, so the move is safe.
 	const [host] = useState(() => (canUseDOM() ? document.createElement("div") : null));
 	useLayoutEffect(() => (host == null ? undefined : attachToasterHost(host)), [host]);
+	// Why idle: sonner stays off the critical path. A `makeToast` call that
+	// comes first starts the load sooner.
+	useEffect(() => {
+		if (typeof requestIdleCallback === "function") {
+			const handle = requestIdleCallback(() => void loadSonner());
+			return () => cancelIdleCallback(handle);
+		}
+		// Why the fallback: Safari has no `requestIdleCallback`.
+		const handle = setTimeout(() => void loadSonner(), 0);
+		return () => clearTimeout(handle);
+	}, []);
 
 	if (!isHydrated || host == null) {
 		return null;
 	}
 
+	// Why the placeholder: assistive technology finds the notifications landmark
+	// from hydration on, as with sonner's own section, which replaces it on load.
+	if (loadedSonner == null) {
+		return createPortal(
+			<section
+				aria-label={`${containerAriaLabel ?? "Notifications"} alt+T`}
+				aria-live="polite"
+				aria-relevant="additions text"
+				aria-atomic="false"
+				tabIndex={-1}
+			/>,
+			host,
+		);
+	}
+
 	return createPortal(
-		<SonnerToaster
+		<loadedSonner.Toaster
 			data-slot="toaster"
 			className={cx("toaster overlay-prompt pointer-events-auto *:duration-200", className)}
 			containerAriaLabel={containerAriaLabel}
@@ -113,7 +197,6 @@ const Toaster = ({
 			gap={12}
 			position={position ?? "top-center"}
 			style={style}
-			theme={theme}
 			toastOptions={{
 				unstyled: true,
 			}}
@@ -123,6 +206,22 @@ const Toaster = ({
 };
 
 const ToastIdContext = createContext<string | number>("");
+
+/**
+ * The key of the generated toast ID counter on `globalThis`. Every copy of this
+ * module (a second install, a hot reload) shares sonner's one toast store, so
+ * the copies share one counter.
+ */
+const TOAST_COUNT_KEY = Symbol.for("@ngrok/mantle/toast-count");
+// Why the assertion: `globalThis` has no type for a symbol key.
+const toastCountStore = globalThis as typeof globalThis & { [TOAST_COUNT_KEY]?: number };
+
+/** Returns the next generated toast ID: `-1`, then `-2`, and so on, page-wide. */
+function nextGeneratedToastId(): number {
+	const id = (toastCountStore[TOAST_COUNT_KEY] ?? 0) - 1;
+	toastCountStore[TOAST_COUNT_KEY] = id;
+	return id;
+}
 
 type MakeToastOptions = {
 	/**
@@ -140,7 +239,10 @@ type MakeToastOptions = {
 
 /**
  * Create a toast. Pass a `<Toast.Root>` component as the `children` to render
- * inside the `<Toaster />` section.
+ * inside the `<Toaster />` section. Returns the toast's ID.
+ *
+ * A toast made before the toast code loads waits for it, and the waiting
+ * toasts show in call order. This includes a toast made before hydration.
  *
  * @see https://mantle.ngrok.com/components/feedback/toast#maketoast
  *
@@ -168,18 +270,25 @@ type MakeToastOptions = {
  */
 function makeToast(children: ReactNode, options?: MakeToastOptions) {
 	const duration = resolveToastDuration(options?.duration_ms);
+	// Why negative numbers: the caller needs the ID before sonner loads. A custom ID
+	// is a string and sonner counts up from 1, so neither can match one.
+	const id = options?.id ? options.id : nextGeneratedToastId();
+	const show = (module: typeof Sonner) => {
+		module.toast.custom(
+			(toastId) => <ToastIdContext.Provider value={toastId}>{children}</ToastIdContext.Provider>,
+			{ duration, id, unstyled: true },
+		);
+	};
 
-	return sonnerToast.custom(
-		(toastId) => <ToastIdContext.Provider value={toastId}>{children}</ToastIdContext.Provider>,
-		{
-			//
-			duration,
-			// If a caller passes a custom ID, use it, else use the toastId from the sonner library
-			// don't set an ID to `undefined` as it breaks the sonner library
-			...(options?.id ? { id: options.id } : {}),
-			unstyled: true,
-		},
-	);
+	// Why no queue on the server: no toast renders there, and the queue would
+	// keep the toasts of each request.
+	if (sonner != null) {
+		show(sonner);
+	} else if (canUseDOM()) {
+		pendingToasts.push(show);
+		void loadSonner();
+	}
+	return id;
 }
 
 const intents = [
@@ -195,13 +304,8 @@ const intents = [
  */
 type ToastIntent = (typeof intents)[number];
 
-type ToastState = {
-	intent: ToastIntent;
-};
-
-const ToastStateContext = createContext<ToastState>({
-	intent: "info",
-});
+/** The intent of the nearest `Toast.Root`, which `Toast.Icon` reads. */
+const ToastIntentContext = createContext<ToastIntent>("info");
 
 /**
  * Props for `Toast.Root`. `asChild` is omitted: the root renders the intent
@@ -255,10 +359,8 @@ const Root = ({
 	ref,
 	...props
 }: ToastProps) => {
-	const contextValue = useMemo(() => ({ intent }), [intent]);
-
 	return (
-		<ToastStateContext.Provider value={contextValue}>
+		<ToastIntentContext.Provider value={intent}>
 			<div
 				data-slot={joinDataSlot(dataSlot, "toast")}
 				className={cx(
@@ -283,7 +385,7 @@ const Root = ({
 					{children}
 				</div>
 			</div>
-		</ToastStateContext.Provider>
+		</ToastIntentContext.Provider>
 	);
 };
 
@@ -305,52 +407,18 @@ type ToastIconProps = Partial<SvgOnlyProps> & WithDataSlot;
  * ```
  */
 const Icon = ({ "data-slot": dataSlot, className, svg, ref, ...props }: ToastIconProps) => {
-	const ctx = useContext(ToastStateContext);
+	const intent = useContext(ToastIntentContext);
+	const icon = intentIcons[intent];
 
-	switch (ctx.intent) {
-		case "danger":
-			return (
-				<IconComponent
-					data-slot={joinDataSlot(dataSlot, "toast-icon")}
-					className={cx("text-danger-600", className)}
-					ref={ref}
-					svg={svg ?? <WarningIcon weight="fill" />}
-					{...props}
-				/>
-			);
-		case "warning":
-			return (
-				<IconComponent
-					data-slot={joinDataSlot(dataSlot, "toast-icon")}
-					className={cx("text-warning-600", className)}
-					ref={ref}
-					svg={svg ?? <WarningDiamondIcon weight="fill" />}
-					{...props}
-				/>
-			);
-		case "success":
-			return (
-				<IconComponent
-					data-slot={joinDataSlot(dataSlot, "toast-icon")}
-					className={cx("text-success-600", className)}
-					ref={ref}
-					svg={svg ?? <CheckCircleIcon weight="fill" />}
-					{...props}
-				/>
-			);
-		case "info":
-			return (
-				<IconComponent
-					data-slot={joinDataSlot(dataSlot, "toast-icon")}
-					className={cx("text-accent-600", className)}
-					ref={ref}
-					svg={svg ?? <InfoIcon weight="fill" />}
-					{...props}
-				/>
-			);
-		default:
-			throw new Error(`Unreachable Case: ${String(ctx.intent)}`);
-	}
+	return (
+		<IconComponent
+			data-slot={joinDataSlot(dataSlot, "toast-icon")}
+			className={cx(icon.className, className)}
+			ref={ref}
+			svg={svg ?? icon.svg}
+			{...props}
+		/>
+	);
 };
 
 type ToastActionProps = ComponentProps<"button"> & WithAsChild & WithDataSlot;
@@ -399,7 +467,7 @@ const Action = ({
 				if (event.defaultPrevented) {
 					return;
 				}
-				sonnerToast.dismiss(ctx);
+				sonner?.toast.dismiss(ctx);
 			}}
 			ref={ref}
 			{...props}
@@ -458,6 +526,14 @@ export type {
 	//,
 	ToastIntent,
 };
+
+/** The default icon and its tone class for each intent. */
+const intentIcons = {
+	danger: { className: "text-danger-600", svg: <WarningIcon weight="fill" /> },
+	info: { className: "text-accent-600", svg: <InfoIcon weight="fill" /> },
+	success: { className: "text-success-600", svg: <CheckCircleIcon weight="fill" /> },
+	warning: { className: "text-warning-600", svg: <WarningDiamondIcon weight="fill" /> },
+} as const satisfies Record<ToastIntent, { className: string; svg: ReactNode }>;
 
 const intentBackgroundColor = {
 	info: "bg-accent-600",

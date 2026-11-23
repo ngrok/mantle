@@ -56,7 +56,7 @@ describe("MultiSelect", () => {
 
 	test("renders selected values as tags", () => {
 		render(
-			<MultiSelect.Root selectedValue={["apple", "banana"]} setSelectedValue={() => {}}>
+			<MultiSelect.Root value={["apple", "banana"]} onValueChange={() => {}}>
 				<MultiSelect.Trigger>
 					<MultiSelect.TagValues />
 					<MultiSelect.Input placeholder="Select items..." />
@@ -73,7 +73,7 @@ describe("MultiSelect", () => {
 
 	test("hides placeholder when values are selected", () => {
 		render(
-			<MultiSelect.Root selectedValue={["apple"]} setSelectedValue={() => {}}>
+			<MultiSelect.Root value={["apple"]} onValueChange={() => {}}>
 				<MultiSelect.Trigger>
 					<MultiSelect.TagValues />
 					<MultiSelect.Input placeholder="Select items..." />
@@ -88,7 +88,7 @@ describe("MultiSelect", () => {
 
 	test("renders the tags as a named list of listitems, with no option outside a listbox", () => {
 		render(
-			<MultiSelect.Root selectedValue={["apple", "banana"]} setSelectedValue={() => {}}>
+			<MultiSelect.Root value={["apple", "banana"]} onValueChange={() => {}}>
 				<MultiSelect.Trigger>
 					<MultiSelect.TagValues />
 					<MultiSelect.Input placeholder="Select items..." />
@@ -109,7 +109,7 @@ describe("MultiSelect", () => {
 
 	test("renders no tag list while nothing is selected, and honors a custom list name", () => {
 		const { rerender } = render(
-			<MultiSelect.Root selectedValue={[]} setSelectedValue={() => {}}>
+			<MultiSelect.Root value={[]} onValueChange={() => {}}>
 				<MultiSelect.Trigger>
 					<MultiSelect.TagValues aria-label="Chosen fruits" />
 					<MultiSelect.Input placeholder="Select items..." />
@@ -119,7 +119,7 @@ describe("MultiSelect", () => {
 		expect(screen.queryByRole("list")).not.toBeInTheDocument();
 
 		rerender(
-			<MultiSelect.Root selectedValue={["apple"]} setSelectedValue={() => {}}>
+			<MultiSelect.Root value={["apple"]} onValueChange={() => {}}>
 				<MultiSelect.Trigger>
 					<MultiSelect.TagValues aria-label="Chosen fruits" />
 					<MultiSelect.Input placeholder="Select items..." />
@@ -127,6 +127,27 @@ describe("MultiSelect", () => {
 			</MultiSelect.Root>,
 		);
 		expect(screen.getByRole("list", { name: "Chosen fruits" })).toBeInTheDocument();
+	});
+
+	test("a hidden dismiss button outside the listbox closes the open list", async () => {
+		const user = userEvent.setup();
+		render(
+			<MultiSelect.Root>
+				<MultiSelect.Trigger>
+					<MultiSelect.Input aria-label="Fruits" />
+				</MultiSelect.Trigger>
+				<MultiSelect.Content>
+					<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+				</MultiSelect.Content>
+			</MultiSelect.Root>,
+		);
+		await user.click(screen.getByRole("combobox", { name: "Fruits" }));
+		const dismiss = screen.getByRole("button", { name: "Dismiss popup" });
+		expect(screen.getByRole("listbox")).not.toContainElement(dismiss);
+
+		await user.click(dismiss);
+
+		expect(screen.queryByRole("listbox")).toBeNull();
 	});
 
 	test("renders the empty state when popover is open", () => {
@@ -144,7 +165,7 @@ describe("MultiSelect", () => {
 		expect(screen.getByText("No results found")).toBeInTheDocument();
 	});
 
-	test("inside a modal sheet, portals the popover into the sheet content", async () => {
+	test("inside a modal sheet, portals the popover into the sheet's positioner", async () => {
 		const user = userEvent.setup();
 		const bodyAttributes = snapshotAttributes(document.body);
 		const documentElementAttributes = snapshotAttributes(document.documentElement);
@@ -173,9 +194,9 @@ describe("MultiSelect", () => {
 
 			await user.click(screen.getByRole("combobox"));
 			const listbox = await screen.findByRole("listbox");
-			const sheetContent = screen.getByRole("combobox").closest("[data-mantle-modal-content]");
+			const positioner = screen.getByRole("combobox").closest('[data-slot~="sheet-positioner"]');
 
-			expect(sheetContent?.contains(listbox)).toBe(true);
+			expect(positioner?.contains(listbox)).toBe(true);
 
 			await user.click(within(listbox).getByRole("option", { name: /Apple/ }));
 			expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
@@ -187,19 +208,15 @@ describe("MultiSelect", () => {
 	});
 
 	describe("typeahead filtering", () => {
-		test("Input reports each keystroke through onValueChange and still calls onChange", async () => {
+		test("Root reports each keystroke through onInputValueChange and Input still calls onChange", async () => {
 			const user = userEvent.setup();
-			const onValueChange = vi.fn<(value: string) => void>();
+			const onInputValueChange = vi.fn<(value: string) => void>();
 			const onChange = vi.fn<(event: ChangeEvent<HTMLInputElement>) => void>();
 			render(
-				<MultiSelect.Root>
+				<MultiSelect.Root onInputValueChange={onInputValueChange}>
 					<MultiSelect.Trigger>
 						<MultiSelect.TagValues />
-						<MultiSelect.Input
-							onChange={onChange}
-							onValueChange={onValueChange}
-							placeholder="Select items..."
-						/>
+						<MultiSelect.Input onChange={onChange} placeholder="Select items..." />
 					</MultiSelect.Trigger>
 					<MultiSelect.Content>
 						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
@@ -211,17 +228,17 @@ describe("MultiSelect", () => {
 			await user.type(screen.getByRole("combobox"), "ban");
 
 			// One call per keystroke, with the whole input value, not the typed char.
-			expect(onValueChange.mock.calls).toEqual([["b"], ["ba"], ["ban"]]);
+			expect(onInputValueChange.mock.calls).toEqual([["b"], ["ba"], ["ban"]]);
 			// The raw event handler is composed, not replaced.
 			expect(onChange).toHaveBeenCalledTimes(3);
 			expect(onChange.mock.lastCall?.[0].target).toBe(screen.getByRole("combobox"));
 		});
 
-		test("filtering the items from onValueChange narrows the listbox and reveals Empty", async () => {
+		test("filtering the items from onInputValueChange narrows the listbox and reveals Empty", async () => {
 			const user = userEvent.setup();
 			/**
 			 * The documented filtering shape: the consumer owns the query and the
-			 * rendered items, driven entirely by `onValueChange`.
+			 * rendered items, driven entirely by `onInputValueChange`.
 			 */
 			const FilteringSubject = () => {
 				const [query, setQuery] = useState("");
@@ -230,10 +247,10 @@ describe("MultiSelect", () => {
 				);
 
 				return (
-					<MultiSelect.Root>
+					<MultiSelect.Root onInputValueChange={setQuery}>
 						<MultiSelect.Trigger>
 							<MultiSelect.TagValues />
-							<MultiSelect.Input onValueChange={setQuery} placeholder="Select items..." />
+							<MultiSelect.Input placeholder="Select items..." />
 						</MultiSelect.Trigger>
 						<MultiSelect.Content>
 							{matches.length === 0 && <MultiSelect.Empty>No results found</MultiSelect.Empty>}
@@ -269,7 +286,7 @@ describe("MultiSelect", () => {
 	describe("trigger mousedown", () => {
 		const renderTrigger = (selectedValue: string[]) =>
 			render(
-				<MultiSelect.Root selectedValue={selectedValue} setSelectedValue={() => {}}>
+				<MultiSelect.Root value={selectedValue} onValueChange={() => {}}>
 					<MultiSelect.Trigger data-testid="trigger">
 						<MultiSelect.TagValues />
 						<MultiSelect.Input placeholder="Select items..." />
@@ -303,6 +320,95 @@ describe("MultiSelect", () => {
 		});
 	});
 
+	describe("review fixes", () => {
+		const Fruits = ({ disabled, form }: { disabled?: boolean; form?: string }) => (
+			<MultiSelect.Root defaultValue={["apple", "banana"]}>
+				<MultiSelect.Trigger>
+					<MultiSelect.TagValues />
+					<MultiSelect.Input aria-label="Fruits" name="fruits" form={form} disabled={disabled} />
+				</MultiSelect.Trigger>
+				<MultiSelect.Content>
+					<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+					<MultiSelect.Item value="banana">Banana</MultiSelect.Item>
+				</MultiSelect.Content>
+			</MultiSelect.Root>
+		);
+
+		test("Escape on a tag closes the list, and so does focus that leaves a tag", async () => {
+			const user = userEvent.setup();
+			render(<Fruits />);
+			const input = screen.getByRole("combobox", { name: "Fruits" });
+			await user.click(input);
+			await user.keyboard("{ArrowLeft}");
+			expect(input).toHaveAttribute("aria-expanded", "true");
+			await user.keyboard("{Escape}");
+			expect(input).toHaveAttribute("aria-expanded", "false");
+
+			await user.keyboard("{ArrowLeft}");
+			expect(input).toHaveAttribute("aria-expanded", "true");
+			act(() => {
+				if (document.activeElement instanceof HTMLElement) {
+					document.activeElement.blur();
+				}
+			});
+			expect(input).toHaveAttribute("aria-expanded", "false");
+		});
+
+		test("Tab reaches a footer control, and focus that leaves it closes the list", async () => {
+			const user = userEvent.setup();
+			render(
+				<MultiSelect.Root>
+					<MultiSelect.Trigger>
+						<MultiSelect.Input aria-label="Fruits" />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+						<MultiSelect.ContentFooter>
+							<input type="hidden" name="action" value="upgrade" />
+							<button type="button">Upgrade</button>
+						</MultiSelect.ContentFooter>
+					</MultiSelect.Content>
+				</MultiSelect.Root>,
+			);
+			const input = screen.getByRole("combobox", { name: "Fruits" });
+			await user.click(input);
+			await user.keyboard("{Tab}");
+			const upgrade = screen.getByRole("button", { name: "Upgrade" });
+			expect(upgrade).toHaveFocus();
+			expect(input).toHaveAttribute("aria-expanded", "true");
+			act(() => {
+				upgrade.blur();
+			});
+			expect(input).toHaveAttribute("aria-expanded", "false");
+
+			await user.click(input);
+			await user.keyboard("{Tab}");
+			await user.keyboard("{Escape}");
+			expect(input).toHaveAttribute("aria-expanded", "false");
+			expect(input).toHaveFocus();
+		});
+
+		test("the submitted values follow the input's form and disabled", () => {
+			const { unmount } = render(
+				<>
+					<form id="external" aria-label="external" />
+					<Fruits form="external" />
+				</>,
+			);
+			const external = screen.getByRole<HTMLFormElement>("form", { name: "external" });
+			expect(new FormData(external).getAll("fruits")).toEqual(["apple", "banana"]);
+			unmount();
+
+			render(
+				<form aria-label="disabled">
+					<Fruits disabled />
+				</form>,
+			);
+			const form = screen.getByRole<HTMLFormElement>("form", { name: "disabled" });
+			expect(new FormData(form).getAll("fruits")).toEqual([]);
+		});
+	});
+
 	describe("keyboard navigation", () => {
 		/**
 		 * Stateful wrapper for keyboard nav tests. It uses useState so that
@@ -315,7 +421,7 @@ describe("MultiSelect", () => {
 		}) => {
 			const [values, setValues] = useState(initialValues);
 			return (
-				<MultiSelect.Root selectedValue={values} setSelectedValue={setValues}>
+				<MultiSelect.Root value={values} onValueChange={setValues}>
 					<MultiSelect.Trigger>
 						<MultiSelect.TagValues />
 						<MultiSelect.Input placeholder="Select items..." />
@@ -362,7 +468,7 @@ describe("MultiSelect", () => {
 			const user = userEvent.setup();
 			const handleBlur = vi.fn<() => void>();
 			render(
-				<MultiSelect.Root selectedValue={["apple", "banana"]} setSelectedValue={() => {}}>
+				<MultiSelect.Root value={["apple", "banana"]} onValueChange={() => {}}>
 					<MultiSelect.Trigger>
 						<MultiSelect.TagValues />
 						<MultiSelect.Input placeholder="Select items..." onBlur={handleBlur} />
@@ -530,7 +636,7 @@ describe("MultiSelect", () => {
 		}) => {
 			const [values, setValues] = useState(initialValues);
 			return (
-				<MultiSelect.Root selectedValue={values} setSelectedValue={setValues}>
+				<MultiSelect.Root value={values} onValueChange={setValues}>
 					<MultiSelect.Trigger>
 						<MultiSelect.TagValues lockedValues={lockedValues} />
 						<MultiSelect.Input placeholder="Select items..." />
@@ -589,7 +695,7 @@ describe("MultiSelect", () => {
 			const Subject = ({ showTags }: { showTags: boolean }) => {
 				const [values, setValues] = useState(["apple"]);
 				return (
-					<MultiSelect.Root selectedValue={values} setSelectedValue={setValues}>
+					<MultiSelect.Root value={values} onValueChange={setValues}>
 						<MultiSelect.Trigger>
 							{showTags && <MultiSelect.TagValues lockedValues={["apple"]} />}
 							<MultiSelect.Input placeholder="Select items..." />
@@ -610,14 +716,13 @@ describe("MultiSelect", () => {
 
 		test("a lock reaches an Item that renders before TagValues", async () => {
 			const user = userEvent.setup();
-			// Why `portal={false}` and `open`: Ariakit's portal mounts the popover children
-			// one commit later, after `TagValues` publishes its locks. Rendering in place
-			// with the popover open puts the `Item` ahead of `TagValues` in the first commit.
+			// Why `open` and this order: the `Item` renders ahead of `TagValues`, so it
+			// reads a lock that `TagValues` publishes after the `Item` mounted.
 			const Subject = () => {
 				const [values, setValues] = useState(["apple"]);
 				return (
-					<MultiSelect.Root open selectedValue={values} setSelectedValue={setValues}>
-						<MultiSelect.Content portal={false}>{hoistedItems}</MultiSelect.Content>
+					<MultiSelect.Root open value={values} onValueChange={setValues}>
+						<MultiSelect.Content>{hoistedItems}</MultiSelect.Content>
 						<MultiSelect.Trigger>
 							<MultiSelect.TagValues lockedValues={["apple"]} />
 							<MultiSelect.Input placeholder="Select items..." />
@@ -638,10 +743,7 @@ describe("MultiSelect", () => {
 		const user = userEvent.setup();
 		const setSelectedValue = vi.fn<(value: string[]) => void>();
 		const Subject = ({ showTags }: { showTags: boolean }) => (
-			<MultiSelect.Root
-				defaultSelectedValue={["apple", "banana"]}
-				setSelectedValue={setSelectedValue}
-			>
+			<MultiSelect.Root defaultValue={["apple", "banana"]} onValueChange={setSelectedValue}>
 				<MultiSelect.Trigger>
 					{showTags && <MultiSelect.TagValues />}
 					<MultiSelect.Input placeholder="Select items..." />
@@ -671,7 +773,7 @@ describe("MultiSelect", () => {
 		}) => {
 			const [values, setValues] = useState(initialValues);
 			return (
-				<MultiSelect.Root selectedValue={values} setSelectedValue={setValues}>
+				<MultiSelect.Root value={values} onValueChange={setValues}>
 					<MultiSelect.Trigger>
 						<MultiSelect.TagValues lockedValues={lockedValues}>
 							{(props) => <MultiSelect.Tag key={props.value} {...props} />}

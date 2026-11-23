@@ -166,8 +166,6 @@ export function SidebarWidthExample() {
  */
 export function SidebarCollapsedTooltipExample() {
 	return (
-		// the rows' tooltips need a `TooltipProvider` ancestor. The docs site
-		// mounts one at its root, so mount one at yours too
 		<Sidebar.Root defaultOpen={false} mobileBreakpoint="sm">
 			<div className="border-card-muted bg-base flex h-72 w-full max-w-lg overflow-hidden rounded-lg border">
 				<Sidebar.Nav aria-label="Main">
