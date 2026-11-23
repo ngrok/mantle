@@ -103,12 +103,15 @@ describe("enterModal", () => {
 	test("a modal that exits under two later modals leaves the newest one live", () => {
 		const { trigger, next, aside, popup } = page();
 		const exitFirst = enterModal([trigger, popup]);
-		enterModal([next]);
+		const exitMiddle = enterModal([next]);
 		const exitNewest = enterModal([aside]);
 		exitFirst();
 		expect(aside.inert).toBe(false);
 		expect(popup.inert).toBe(true);
 		exitNewest();
+		exitMiddle();
+		expect(document.querySelector("[inert]")).toBeNull();
+		expect(document.documentElement.style.overflow).toBe("");
 	});
 
 	test("a modal's popup that an older modal made inert before it entered is live", () => {
