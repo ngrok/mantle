@@ -123,14 +123,18 @@ describe("SegmentedControl thumb", () => {
 						animation.effect.pseudoElement === "::before",
 				);
 		await userEvent.click(item("Dev"));
-		await Promise.all(slides().map((slide) => slide.finished));
+		for (const slide of slides()) {
+			slide.finish();
+		}
 
 		form.reset();
 		await vi.waitFor(() => {
 			expect(screen.getByRole("radio", { name: "Prod" })).toBeChecked();
 			expect(slides()).toHaveLength(1);
 		});
-		await Promise.all(slides().map((slide) => slide.finished));
+		for (const slide of slides()) {
+			slide.finish();
+		}
 
 		await userEvent.click(item("Dev"));
 		expect(slides()).toHaveLength(1);
@@ -291,6 +295,7 @@ describe("SegmentedControl drag", () => {
 
 		send({ type: "pointerdown", clientX: start, timeStamp: 0 });
 		send({ type: "pointermove", clientX: start - 200, timeStamp: 16 });
+		expect(group).toHaveAttribute("data-dragging");
 		send({ type: "pointerup", clientX: start - 200, timeStamp: 200, target: document.body });
 		send({ type: "pointermove", clientX: start, timeStamp: 216 });
 
@@ -305,6 +310,7 @@ describe("SegmentedControl drag", () => {
 
 		send({ type: "pointerdown", clientX: start, timeStamp: 0 });
 		send({ type: "pointermove", clientX: start - 60, timeStamp: 16 });
+		expect(group).toHaveAttribute("data-dragging");
 		const hover = new PointerEvent("pointermove", {
 			pointerId: 1,
 			isPrimary: true,

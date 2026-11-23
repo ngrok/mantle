@@ -3,7 +3,7 @@
 import { render, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterAll, beforeAll, expect, test } from "vitest";
-import { page } from "vitest/browser";
+import { page, server } from "vitest/browser";
 import {
 	CanvasAreaChartRoot,
 	CanvasBarChartRoot,
@@ -353,7 +353,11 @@ test("axis labels sit in the same box through both backends", async () => {
 	}
 });
 
-test.each(scenes)(
+// Why not WebKit: its SVG and canvas rasterizers antialias a fractional edge
+// differently (a column that one paints at 240 the other leaves white), so a
+// per-pixel count measures the engine, not the geometry. Chromium and Firefox
+// pin the geometry here; the label-box test above still runs in WebKit.
+test.skipIf(server.browser === "webkit").each(scenes)(
 	"$name paints the same pixels through both backends",
 	async ({ scene, tolerance }) => {
 		const painted = await paintBoth(scene);

@@ -1,8 +1,12 @@
 import { describe, expect, test, vi } from "vitest";
+import { server } from "vitest/browser";
 import { copyToClipboard } from "./copy-to-clipboard.js";
 
 describe("copyToClipboard (browser)", () => {
-	test("writes the value to the clipboard", async () => {
+	// Why Chromium only: reading the clipboard back needs the `clipboard-read`
+	// permission, which only Chromium can grant a Playwright context. The other
+	// tests stub `writeText` and run in every engine.
+	test.runIf(server.browser === "chromium")("writes the value to the clipboard", async () => {
 		// Why focus: when the document lacks focus, Chromium rejects `writeText` with
 		// `NotAllowedError`. The test iframe has none until something inside it takes focus.
 		window.focus();

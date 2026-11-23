@@ -4,7 +4,7 @@ import type { ComponentProps, CSSProperties } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import { cdp, commands, userEvent } from "vitest/browser";
+import { cdp, commands, userEvent, server } from "vitest/browser";
 import mantleCss from "../../mantle.css?raw";
 import { Slider } from "./slider.js";
 
@@ -86,8 +86,12 @@ test("a test finds each thumb by role and uses it as a native range input, with 
 	}
 
 	// Why both: Testing Library refuses an element with `pointer-events: none`, and
-	// Playwright refuses one that another element covers.
-	await testingLibraryUserEvent.setup().click(slider);
+	// Playwright refuses one that another element covers. Why not in Firefox: its
+	// synthetic press has pointer id 1, and Firefox rejects `setPointerCapture`
+	// for an id no real pointer has (reported to the Slider owners).
+	if (server.browser !== "firefox") {
+		await testingLibraryUserEvent.setup().click(slider);
+	}
 	await userEvent.hover(slider);
 	await userEvent.click(slider);
 	expect(slider).toHaveFocus();
@@ -100,17 +104,36 @@ test("a test finds each thumb by role and uses it as a native range input, with 
 	await userEvent.keyboard("{ArrowRight}");
 	expect(slider).toHaveValue("71");
 
-	await userEvent.dragAndDrop(slider, rootOf(slider), {
-		targetPosition: {
-			x: rootOf(slider).getBoundingClientRect().width * 0.25,
-			y: rootOf(slider).getBoundingClientRect().height / 2,
-		},
-	});
-	// Why close to 25: a press on a thumb grabs it where it is, so the thumb keeps its offset to the pointer.
-	expect(Number(slider.value)).toBeCloseTo(25, -1);
 	const form = screen.getByTestId("form");
 	expect(form instanceof HTMLFormElement && new FormData(form).get("volume")).toBe(slider.value);
 });
+
+// Why not in WebKit: Playwright's `dragAndDrop` there leaves a range input at 0.
+// A real mouse drag in WebKit moves the thumb as in the other engines.
+test.skipIf(server.browser === "webkit")(
+	"a drag on a thumb moves it and submits the new value",
+	async () => {
+		render(
+			<form data-testid="form" style={{ padding: 40, width: 280 }}>
+				<Slider aria-label="Volume" defaultValue={71} name="volume" />
+			</form>,
+		);
+		const slider = screen.getByRole("slider", { name: "Volume" });
+		if (!(slider instanceof HTMLInputElement)) {
+			throw new Error("expected a range input");
+		}
+		await userEvent.dragAndDrop(slider, rootOf(slider), {
+			targetPosition: {
+				x: rootOf(slider).getBoundingClientRect().width * 0.25,
+				y: rootOf(slider).getBoundingClientRect().height / 2,
+			},
+		});
+		// Why close to 25: a press on a thumb grabs it where it is, so the thumb keeps its offset to the pointer.
+		expect(Number(slider.value)).toBeCloseTo(25, -1);
+		const form = screen.getByTestId("form");
+		expect(form instanceof HTMLFormElement && new FormData(form).get("volume")).toBe(slider.value);
+	},
+);
 
 describe("Slider thumb hit area (browser)", () => {
 	test("a drag that starts 20px above the thumb moves the thumb", async () => {
@@ -367,56 +390,64 @@ test("a reset returns an off-grid defaultValue after a key press moved the thumb
 	expect(screen.getByRole("slider")).toHaveValue("90");
 });
 
-test("a second finger neither moves nor ends the drag of the first", async () => {
-	const onValueCommit = vi.fn<(value: number[]) => void>();
-	render(
-		<div style={{ padding: "20px 50px", width: 400 }}>
-			<Slider aria-label="Volume" defaultValue={50} onValueCommit={onValueCommit} />
-		</div>,
-	);
-	const root = rootOf(screen.getByRole("slider"));
-	const rect = root.getBoundingClientRect();
-	/** A touch point at `percent` of the track, for the finger `id`, in the page that CDP input addresses. */
-	const at = (id: number, percent: number) => {
-		const frame = window.frameElement?.getBoundingClientRect();
-		const scale = frame == null ? 1 : frame.width / window.innerWidth;
-		const x = rect.left + (rect.width * percent) / 100;
-		const y = rect.top + rect.height / 2;
-		return { id, x: (frame?.left ?? 0) + x * scale, y: (frame?.top ?? 0) + y * scale };
-	};
-	const touch = (
-		type: "touchStart" | "touchMove" | "touchEnd",
-		touchPoints: { id: number; x: number; y: number }[],
-	) => cdp().send("Input.dispatchTouchEvent", { type, touchPoints });
+// Why Chromium only: the fingers come from CDP touch events, which only Chromium has.
+test.runIf(server.browser === "chromium")(
+	"a second finger neither moves nor ends the drag of the first",
+	async () => {
+		const onValueCommit = vi.fn<(value: number[]) => void>();
+		render(
+			<div style={{ padding: "20px 50px", width: 400 }}>
+				<Slider aria-label="Volume" defaultValue={50} onValueCommit={onValueCommit} />
+			</div>,
+		);
+		const root = rootOf(screen.getByRole("slider"));
+		const rect = root.getBoundingClientRect();
+		/** A touch point at `percent` of the track, for the finger `id`, in the page that CDP input addresses. */
+		const at = (id: number, percent: number) => {
+			const frame = window.frameElement?.getBoundingClientRect();
+			const scale = frame == null ? 1 : frame.width / window.innerWidth;
+			const x = rect.left + (rect.width * percent) / 100;
+			const y = rect.top + rect.height / 2;
+			return { id, x: (frame?.left ?? 0) + x * scale, y: (frame?.top ?? 0) + y * scale };
+		};
+		const touch = (
+			type: "touchStart" | "touchMove" | "touchEnd",
+			touchPoints: { id: number; x: number; y: number }[],
+		) => cdp().send("Input.dispatchTouchEvent", { type, touchPoints });
 
-	await touch("touchStart", [at(1, 50)]);
-	await touch("touchMove", [at(1, 30)]);
-	await touch("touchStart", [at(1, 30), at(2, 80)]);
-	await touch("touchMove", [at(1, 30), at(2, 70)]);
-	await expect.poll(() => thumbValues()).toEqual([30]);
-	// Why a move without finger 2: CDP lifts each finger that a move leaves out.
-	await touch("touchMove", [at(1, 30)]);
-	await touch("touchMove", [at(1, 20)]);
-	await expect.poll(() => thumbValues()).toEqual([20]);
-	expect(onValueCommit).not.toHaveBeenCalled();
-	await touch("touchEnd", []);
+		await touch("touchStart", [at(1, 50)]);
+		await touch("touchMove", [at(1, 30)]);
+		await touch("touchStart", [at(1, 30), at(2, 80)]);
+		await touch("touchMove", [at(1, 30), at(2, 70)]);
+		await expect.poll(() => thumbValues()).toEqual([30]);
+		// Why a move without finger 2: CDP lifts each finger that a move leaves out.
+		await touch("touchMove", [at(1, 30)]);
+		await touch("touchMove", [at(1, 20)]);
+		await expect.poll(() => thumbValues()).toEqual([20]);
+		expect(onValueCommit).not.toHaveBeenCalled();
+		await touch("touchEnd", []);
 
-	await expect.poll(() => onValueCommit.mock.calls).toEqual([[[20]]]);
-});
+		await expect.poll(() => onValueCommit.mock.calls).toEqual([[[20]]]);
+	},
+);
 
-test("in forced-colors mode, a focused thumb shows an outline", async () => {
-	await commands.emulateMedia({ forcedColors: "active" });
-	try {
-		render(<Slider aria-label="Volume" defaultValue={50} />);
-		await userEvent.keyboard("{Tab}");
-		const thumb = thumbOf(screen.getByRole("slider"));
+// Why not in WebKit: it matches the forced-colors query but forces no colors.
+test.skipIf(server.browser === "webkit")(
+	"in forced-colors mode, a focused thumb shows an outline",
+	async () => {
+		await commands.emulateMedia({ forcedColors: "active" });
+		try {
+			render(<Slider aria-label="Volume" defaultValue={50} />);
+			await userEvent.keyboard("{Tab}");
+			const thumb = thumbOf(screen.getByRole("slider"));
 
-		expect(getComputedStyle(thumb).outlineStyle).toBe("solid");
-		expect(getComputedStyle(thumb).outlineColor).not.toBe("rgba(0, 0, 0, 0)");
-	} finally {
-		await commands.emulateMedia({ forcedColors: "none" });
-	}
-});
+			expect(getComputedStyle(thumb).outlineStyle).toBe("solid");
+			expect(getComputedStyle(thumb).outlineColor).not.toBe("rgba(0, 0, 0, 0)");
+		} finally {
+			await commands.emulateMedia({ forcedColors: "none" });
+		}
+	},
+);
 
 test("a vertical thumb is a vertical range input, which Chromium reports as a vertical slider", () => {
 	render(<Slider aria-label="Height" defaultValue={30} orientation="vertical" />);

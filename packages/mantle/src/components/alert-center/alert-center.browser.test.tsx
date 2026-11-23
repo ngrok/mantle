@@ -6,7 +6,7 @@ import { StrictMode, useState } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { describe, expect, onTestFinished, test } from "vitest";
-import { commands } from "vitest/browser";
+import { commands, server } from "vitest/browser";
 import * as Alert from "../alert/alert-parts.js";
 import * as AlertCenter from "./alert-center-parts.js";
 
@@ -66,38 +66,43 @@ describe("AlertCenter host projection (browser)", () => {
 		);
 	}
 
-	test("demoting an alert moves its host in place, so a scrolled region inside it keeps its offset", async () => {
-		const user = userEvent.setup();
-		// the branch under test only exists here: assert the API is present so
-		// this file can never silently degrade into the fallback path
-		expect("moveBefore" in Element.prototype).toBe(true);
-		render(<DemotionHarness />);
+	// Why not WebKit: Safari has no `Element.moveBefore`, so its demotion takes the
+	// `appendChild` fallback, which drops the scroll offset by design.
+	test.skipIf(server.browser === "webkit")(
+		"demoting an alert moves its host in place, so a scrolled region inside it keeps its offset",
+		async () => {
+			const user = userEvent.setup();
+			// the branch under test only exists here: assert the API is present so
+			// this file can never silently degrade into the fallback path
+			expect("moveBefore" in Element.prototype).toBe(true);
+			render(<DemotionHarness />);
 
-		// the first adoption of each host happens while it is still parentless,
-		// which `moveBefore` is spec'd to reject. The placement below only holds
-		// because `adoptHost` recovers from that.
-		const flag = screen.getByRole("button", { name: "flag payment" });
-		expect(flag.closest("[data-placement]")).toHaveAttribute("data-placement", "bar");
-		const notes = screen.getByRole("region", { name: "Release notes" });
-		notes.scrollTop = 50;
-		expect(notes.scrollTop).toBe(50);
+			// the first adoption of each host happens while it is still parentless,
+			// which `moveBefore` is spec'd to reject. The placement below only holds
+			// because `adoptHost` recovers from that.
+			const flag = screen.getByRole("button", { name: "flag payment" });
+			expect(flag.closest("[data-placement]")).toHaveAttribute("data-placement", "bar");
+			const notes = screen.getByRole("region", { name: "Release notes" });
+			notes.scrollTop = 50;
+			expect(notes.scrollTop).toBe(50);
 
-		await user.click(flag);
+			await user.click(flag);
 
-		// the tip demoted into a row, carrying the very same elements
-		await waitFor(() => {
-			expect(flag.closest("[data-placement]")).toHaveAttribute("data-placement", "list");
-		});
-		expect(document.querySelector('[data-slot~="alert-center-bar"]')).toHaveAttribute(
-			"data-alert-id",
-			"payment",
-		);
-		// The scroll offset lives on the layout box. The `appendChild` fallback
-		// drops the box with the removal, so the region comes back at 0 and no
-		// focus redirect can restore it; the move keeps the box.
-		expect(notes.scrollTop).toBe(50);
-		expect(flag).toHaveFocus();
-	});
+			// the tip demoted into a row, carrying the very same elements
+			await waitFor(() => {
+				expect(flag.closest("[data-placement]")).toHaveAttribute("data-placement", "list");
+			});
+			expect(document.querySelector('[data-slot~="alert-center-bar"]')).toHaveAttribute(
+				"data-alert-id",
+				"payment",
+			);
+			// The scroll offset lives on the layout box. The `appendChild` fallback
+			// drops the box with the removal, so the region comes back at 0 and no
+			// focus redirect can restore it; the move keeps the box.
+			expect(notes.scrollTop).toBe(50);
+			expect(flag).toHaveFocus();
+		},
+	);
 });
 
 describe("AlertCenter server render (browser)", () => {
@@ -179,13 +184,14 @@ describe("AlertCenter server render (browser)", () => {
 			"data-alert-id",
 			"payment",
 		);
-		// Sample past the bar's 200ms enter transition: an enter from zero
-		// height would pull the page up, then push it back down.
-		for (let frame = 0; frame < 20; frame++) {
+		// Sample each frame until the bar's enter transition ends: an enter from
+		// zero height would pull the page up, then push it back down.
+		do {
 			expect(main.getBoundingClientRect().top).toBe(serverTop);
 			await new Promise((resolve) => {
 				requestAnimationFrame(resolve);
 			});
-		}
+		} while (document.getAnimations().some((animation) => animation.playState === "running"));
+		expect(main.getBoundingClientRect().top).toBe(serverTop);
 	});
 });

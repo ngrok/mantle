@@ -52,8 +52,21 @@ afterAll(() => {
 	styleElement.remove();
 });
 
+/** Ends a running theme swap's view transition at once. */
+function finishSwap() {
+	for (const animation of document.getAnimations()) {
+		if (
+			animation.effect instanceof KeyframeEffect &&
+			animation.effect.pseudoElement?.startsWith("::view-transition")
+		) {
+			animation.finish();
+		}
+	}
+}
+
 afterEach(async () => {
 	// Why wait: a running view transition holds the next test's clicks.
+	finishSwap();
 	await waitFor(() => {
 		if (document.documentElement.hasAttribute("data-theme-transition")) {
 			throw new Error("the theme swap still runs");
@@ -132,7 +145,15 @@ describe("ThemeSwitcher name and icon from the theme on <html>", () => {
 		await commands.emulateMedia({ colorScheme: "dark" });
 
 		const button = await screen.findByRole("button", { name: "Switch to light theme" });
-		await expect.poll(() => shownGlyphs(button)).toEqual([glyphs.dark]);
+		// Why wait for the swap: both icons paint while it crossfades, and a loaded
+		// runner can run it past a poll's timeout.
+		await Promise.all(
+			button
+				.getAnimations({ subtree: true })
+				.filter((animation) => animation instanceof CSSTransition)
+				.map((animation) => animation.finished),
+		);
+		expect(shownGlyphs(button)).toEqual([glyphs.dark]);
 	});
 
 	test("each click names the theme the next click shows", async () => {
@@ -226,7 +247,7 @@ describe("ThemeSwitcher theme swap in Chromium", () => {
 		expect(to.radius).toBeGreaterThan(Math.hypot(window.innerWidth, window.innerHeight) / 2);
 		expect(document.documentElement).toHaveClass("dark");
 
-		await reveal.finished;
+		reveal.finish();
 		await waitFor(() =>
 			expect(document.documentElement).not.toHaveAttribute("data-theme-transition"),
 		);
@@ -260,6 +281,7 @@ describe("ThemeSwitcher theme swap in Chromium", () => {
 		expect(getComputedStyle(probe).color).toBe("rgb(255, 255, 255)");
 		expect(getComputedStyle(probe).transitionDuration).toBe("0s");
 
+		finishSwap();
 		await waitFor(() =>
 			expect(document.documentElement).not.toHaveAttribute("data-theme-transition"),
 		);
@@ -339,8 +361,6 @@ describe("ThemeDropdownMenuItem theme swap in Chromium", () => {
 		expect(document.documentElement).toHaveClass("dark");
 		expect(item).toHaveAccessibleName("Theme: Switch to light theme (system default)");
 		expect(screen.getByRole("menu")).toBeInTheDocument();
-
-		await reveal.finished;
 	});
 });
 
@@ -395,8 +415,6 @@ describe("useThemeToggle theme swap in Chromium", () => {
 					animation.effect.target === swap,
 			);
 		expect(iconMotion.map((animation) => animation.playState)).toEqual(["running"]);
-
-		await reveal.finished;
 	});
 });
 
@@ -444,7 +462,5 @@ describe("setTheme theme swap in Chromium", () => {
 		expect(document.documentElement).toHaveClass("dark");
 		// An exit animation of the panel or the backdrop would leave the dialog in the old snapshot.
 		expect(document.querySelector('[data-slot~="dialog-positioner"]')).toBeNull();
-
-		await reveal.finished;
 	});
 });

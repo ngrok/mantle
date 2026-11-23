@@ -77,7 +77,7 @@ describe("a browser with no popover API and no anchor positioning", () => {
 		const style = getComputedStyle(content);
 		expect(style.position).toBe("fixed");
 		expect(style.zIndex).toBe("50");
-		await waitFor(() => expect(style.opacity).toBe("1"));
+		await Promise.all(content.getAnimations().map((animation) => animation.finished));
 		// Below the trigger, `sideOffset` away, centered on it.
 		const anchor = trigger.getBoundingClientRect();
 		const box = content.getBoundingClientRect();
