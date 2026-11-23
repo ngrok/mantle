@@ -333,7 +333,7 @@ Match what the native element does unless a named product need says otherwise
 ### 1.11. Prop vocabulary
 
 A consumer who knows one mantle component can predict the props of the next. Each kind of state in a new
-or changed API takes one triple of names:
+or changed API takes one triple of names (lint: `mantle/prop-vocabulary`):
 
 | State                     | Controlled   | Uncontrolled        | Change callback      |
 | ------------------------- | ------------ | ------------------- | -------------------- |
