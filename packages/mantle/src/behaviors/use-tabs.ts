@@ -102,15 +102,23 @@ const panelId = (tabs: TabsBehavior, value: string) => `${tabs.baseId}-content-$
 const enabledTabs = (list: Element | null): HTMLElement[] =>
 	list == null ? [] : Array.from(list.querySelectorAll<HTMLElement>('[role="tab"]:not(:disabled)'));
 
-/** Focuses the first element of `order` that takes focus, such as one without `display: none`. */
-const focusFirst = (order: HTMLElement[]) => {
+/**
+ * Focuses the first element of `order` that takes focus, such as one without
+ * `display: none`. It stops once the candidate has focus or focus leaves
+ * `from`, also when a consumer's focus handler sent it somewhere else.
+ */
+const focusFirst = (from: HTMLElement, order: HTMLElement[]) => {
 	for (const candidate of order) {
 		candidate.focus();
-		if (candidate.ownerDocument.activeElement === candidate) {
+		const active = from.ownerDocument.activeElement;
+		if (active === candidate || active !== from) {
 			return;
 		}
 	}
 };
+
+/** The lists that a Shift+Tab took out of the Tab order until focus leaves them. */
+const exitingLists = new WeakSet<HTMLElement>();
 
 /**
  * Makes the list the entry point for a Tab forward, as in Radix: the list
@@ -118,21 +126,28 @@ const focusFirst = (order: HTMLElement[]) => {
  * takes focus. The server HTML leaves it out, so the selected tab is the Tab
  * stop before hydration. A Shift+Tab from a tab takes the list out of the Tab
  * order until focus leaves, so focus does not come back to the tab.
+ *
+ * Why the checks: a consumer's `tabIndex`, and the `-1` of a Shift+Tab, must
+ * survive a ref that attaches again. A list with no enabled tab stays out of
+ * the Tab order.
  */
 const enableListEntry = (list: HTMLElement | null) => {
-	if (list != null) {
+	if (list != null && !list.hasAttribute("tabindex") && enabledTabs(list).length > 0) {
 		list.tabIndex = 0;
 	}
 };
 
 const enterList = (event: FocusEvent<HTMLElement>) => {
-	if (event.target !== event.currentTarget) {
+	const list = event.currentTarget;
+	// Why `:focus-visible`: a click on the list's blank space focuses the list,
+	// and only keyboard entry moves on to a tab.
+	if (event.target !== list || !list.matches(":focus-visible")) {
 		return;
 	}
 	// Why this order: the APG enters on the selected tab, then the last focused
 	// tab. A tab that cannot take focus, such as one hidden by CSS, is skipped.
-	const tabs = enabledTabs(event.currentTarget);
-	focusFirst([
+	const tabs = enabledTabs(list);
+	focusFirst(list, [
 		...tabs.filter((tab) => tab.getAttribute("aria-selected") === "true"),
 		...tabs.filter((tab) => tab.tabIndex === 0),
 		...tabs,
@@ -209,7 +224,7 @@ const moveFocus = (
 			...(loop ? enabled.slice(index + 1).toReversed() : []),
 		];
 	}
-	focusFirst(order);
+	focusFirst(tab, order);
 	return true;
 };
 
@@ -287,8 +302,9 @@ const getTabProps = (
 			const tab = event.currentTarget;
 			if (event.key === "Tab" && event.shiftKey) {
 				const list = tab.closest<HTMLElement>('[role="tablist"]');
-				if (list != null) {
+				if (list?.getAttribute("tabindex") === "0") {
 					list.tabIndex = -1;
+					exitingLists.add(list);
 				}
 				return;
 			}
@@ -327,7 +343,9 @@ const getTabProps = (
 			const list = event.currentTarget.closest<HTMLElement>('[role="tablist"]');
 			const to = event.relatedTarget;
 			if (list != null && !(to instanceof Node && list.contains(to))) {
-				list.tabIndex = 0;
+				if (exitingLists.delete(list)) {
+					list.tabIndex = 0;
+				}
 				tabs.leaveList();
 			}
 		},

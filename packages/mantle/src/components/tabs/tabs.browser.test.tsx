@@ -547,6 +547,15 @@ describe("Tabs keyboard, focus, and ARIA contract", () => {
 		expect(onValueChange.mock.calls).toEqual([["d"], ["a"], ["d"], ["a"], ["d"]]);
 	});
 
+	test("Home on the first tab keeps focus there", async () => {
+		render(<FourTabs />);
+		tab("A").focus();
+
+		await userEvent.keyboard("{Home}");
+
+		expect(tab("A")).toHaveFocus();
+	});
+
 	test("without loop, the arrow keys stop at the ends", async () => {
 		render(<FourTabs loop={false} />);
 		tab("B").focus();
@@ -897,6 +906,116 @@ describe("Tabs keyboard, focus, and ARIA contract", () => {
 		await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
 
 		expect(screen.getByRole("button", { name: "Before" })).toHaveFocus();
+	});
+
+	test("Shift+Tab leaves a list whose inline ref attaches again on each key", async () => {
+		const Rerendering = () => {
+			const [, setKeys] = useState(0);
+			return (
+				<>
+					<button type="button">Before</button>
+					<Tabs.Root defaultValue="a">
+						<Tabs.List
+							aria-label="Inline ref"
+							ref={(node) => void node}
+							onKeyDown={() => setKeys((keys) => keys + 1)}
+						>
+							<Tabs.Trigger value="a">A</Tabs.Trigger>
+							<Tabs.Trigger value="b">B</Tabs.Trigger>
+						</Tabs.List>
+					</Tabs.Root>
+				</>
+			);
+		};
+		render(<Rerendering />);
+		tab("A").focus();
+
+		await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+
+		expect(screen.getByRole("button", { name: "Before" })).toHaveFocus();
+	});
+
+	test("Tab entry follows a focus handler that sends focus elsewhere", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(
+			<>
+				<button type="button">Before</button>
+				<Tabs.Root defaultValue="a" onValueChange={onValueChange}>
+					<Tabs.List aria-label="Redirect">
+						<Tabs.Trigger
+							value="a"
+							onFocus={() => screen.getByRole("button", { name: "Elsewhere" }).focus()}
+						>
+							A
+						</Tabs.Trigger>
+						<Tabs.Trigger value="b">B</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+				<button type="button">Elsewhere</button>
+			</>,
+		);
+
+		await userEvent.click(screen.getByRole("button", { name: "Before" }));
+		await userEvent.keyboard("{Tab}");
+
+		expect(screen.getByRole("button", { name: "Elsewhere" })).toHaveFocus();
+		expect(onValueChange).not.toHaveBeenCalled();
+	});
+
+	test("a click on the list's blank space activates no tab", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(
+			<Tabs.Root value="" onValueChange={onValueChange}>
+				<Tabs.List aria-label="Blank" style={{ paddingLeft: "4rem" }}>
+					<Tabs.Trigger value="a">A</Tabs.Trigger>
+					<Tabs.Trigger value="b">B</Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root>,
+		);
+
+		await userEvent.click(screen.getByRole("tablist"), { position: { x: 8, y: 8 } });
+
+		expect(onValueChange).not.toHaveBeenCalled();
+		expect(tab("A")).not.toHaveFocus();
+	});
+
+	test("Tab passes a list with no enabled tab", async () => {
+		render(
+			<>
+				<button type="button">Before</button>
+				<Tabs.Root>
+					<Tabs.List aria-label="All disabled">
+						<Tabs.Trigger value="a" disabled>
+							A
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+				<button type="button">After</button>
+			</>,
+		);
+
+		await userEvent.click(screen.getByRole("button", { name: "Before" }));
+		await userEvent.keyboard("{Tab}");
+
+		expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
+	});
+
+	test("a list keeps the tabIndex its consumer sets", async () => {
+		render(
+			<>
+				<Tabs.Root defaultValue="a">
+					<Tabs.List aria-label="Explicit" tabIndex={-1}>
+						<Tabs.Trigger value="a">A</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+				<button type="button">After</button>
+			</>,
+		);
+
+		expect(screen.getByRole("tablist")).toHaveAttribute("tabindex", "-1");
+		tab("A").focus();
+		await userEvent.keyboard("{Tab}");
+		expect(screen.getByRole("tablist")).toHaveAttribute("tabindex", "-1");
 	});
 
 	test("when the selected tab is disabled, Tab reaches the first enabled tab", async () => {
