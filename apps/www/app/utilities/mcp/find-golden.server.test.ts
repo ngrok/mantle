@@ -122,8 +122,6 @@ const knownMisses: Record<string, string | readonly string[]> = {
 	"selectable radio card grid icon": ["Radio Group", "Choice"],
 	"banner explaining degraded data source list": "Alert",
 	"inline alert": "Alert",
-	"mark inline search keyword match highlight": "highlight-utils",
-	"highlight text react named highlightedtext matching": "highlight-utils",
 	"chip shows one word text colored": "Badge",
 	"status badge unknown unavailable state": "Badge",
 	"select expiry duration": "Select",
@@ -155,6 +153,8 @@ const weakFinds: Record<string, string> = {
 	"vertical timeline steps icons joining line": "timeline",
 	"bounding box image region overlay": "image annotation",
 	"availability uptime bar status history": "status history strip",
+	"mark inline search keyword match highlight": "text match highlight",
+	"highlight text react named highlightedtext matching": "text match highlight",
 };
 
 type Found = { strongMatch: boolean; results: { name: string; score: number }[] };
@@ -178,11 +178,27 @@ beforeAll(async () => {
 });
 
 async function find(query: string): Promise<Found> {
-	const { result } = await rpc(dependencies, "tools/call", {
+	const { result, error } = await rpc(dependencies, "tools/call", {
 		name: "find",
 		arguments: { query },
 	});
-	return result?.structuredContent as Found;
+	if (result?.structuredContent == null || result.isError === true) {
+		throw new Error(`find "${query}" failed: ${error?.message ?? JSON.stringify(result?.content)}`);
+	}
+	return result.structuredContent as Found;
+}
+
+/** Runs `work`, and records a call that throws as a regression, so the report counts it. */
+async function orRegression<T>(
+	row: Pick<Row, "section" | "query" | "want">,
+	work: () => Promise<T>,
+): Promise<T> {
+	try {
+		return await work();
+	} catch (error) {
+		rows.push({ ...row, got: String(error), wantRank: "", status: "regression" });
+		throw error;
+	}
 }
 
 /** Ranks `query`, and records how it went against `wanted` for the report. */
@@ -217,7 +233,10 @@ describe("the golden find queries", () => {
 	it.each(cases)(
 		'$section: ranks $wanted first for "$query"',
 		async ({ section, query, wanted }) => {
-			const { hit, row } = await rank(section, query, wanted);
+			const { hit, row } = await orRegression(
+				{ section, query, want: [wanted].flat().join(" or ") },
+				() => rank(section, query, wanted),
+			);
 			rows.push({ ...row, status: hit ? "pass" : "regression" });
 
 			expect(hit, `find "${query}" wants ${row.want} first and strong, got ${row.got}`).toBe(true);
@@ -227,7 +246,10 @@ describe("the golden find queries", () => {
 
 describe("the known find misses", () => {
 	it.each(Object.entries(knownMisses))('still misses %s for "%s"', async (query, wanted) => {
-		const { hit, row } = await rank("Known misses", query, wanted);
+		const { hit, row } = await orRegression(
+			{ section: "Known misses", query, want: [wanted].flat().join(" or ") },
+			() => rank("Known misses", query, wanted),
+		);
 		rows.push({ ...row, status: hit ? "fixed" : "miss" });
 
 		expect(
@@ -241,7 +263,9 @@ describe("the real gaps", () => {
 	it.each(Object.entries(weakFinds))(
 		'calls "%s" weak, so the agent reports %s',
 		async (query, gap) => {
-			const found = await find(query);
+			const found = await orRegression({ section: "Real gaps", query, want: `weak (${gap})` }, () =>
+				find(query),
+			);
 			const top = found.results[0];
 			rows.push({
 				section: "Real gaps",

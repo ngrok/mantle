@@ -12,6 +12,7 @@ on:
       - "apps/www/app/utilities/agent-manifest.server.ts"
       - "apps/www/app/utilities/docs.ts"
       - "apps/www/app/utilities/mantle-source.server.ts"
+      - "apps/www/app/utilities/search-index.server.ts"
       - "packages/mantle/src/**"
       - "packages/mantle/scripts/agent-manifest.ts"
       - ".github/workflows/find-eval.yml"
