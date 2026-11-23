@@ -405,6 +405,9 @@ The trigger keeps the same size when its section opens, so the header never move
 and opacity ease open over 200 ms with a strong ease-out (in browsers that support `interpolate-size`; others open at
 once), and the caret turns with the same curve.
 
+The trigger shows the [focus ring](/base/focus-ring) for keyboard focus only. Its `-mx-2 px-2` gives the ring space
+around the label, and the label stays aligned with the content.
+
 ## Composition
 
 The styling follows the shadcn and ngrok.com accordions. Compose the parts of an `Accordion` together to build your own:

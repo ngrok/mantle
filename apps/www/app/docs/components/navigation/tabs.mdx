@@ -595,6 +595,7 @@ import { Tabs } from "@ngrok/mantle/tabs";
 - **ArrowLeft** / **ArrowRight** (or **ArrowUp** / **ArrowDown** when vertical) move focus between the enabled tabs and activate the focused tab. They wrap at the ends unless `Tabs.List` has `loop={false}`. In a right-to-left page, **ArrowLeft** moves to the next tab. **Home** and **End** jump to the first and last tab.
 - With `activationMode="manual"`, the arrows only move focus, and **Enter** or **Space** activates the focused tab.
 - The active tab is a Tab stop in the server HTML, so the keyboard reaches it before hydration. After hydration, a forward **Tab** enters on the active tab, or on the first enabled tab that can take focus. **Shift+Tab** comes back to the last focused tab, unless the selection changed after focus left.
+- A trigger shows the [focus ring](/base/focus-ring) for keyboard focus only. A horizontal list scrolls, so it carries `px-1 -mx-1 pt-1 -mt-1` (and `pb-1 -mb-1` for the pill appearance) to keep the ring inside its scroll box. See [Give the ring room](/base/focus-ring#give-the-ring-room).
 - When a horizontal list overflows, keyboard focus scrolls the focused tab to the center of the visible area. A pointer click never scrolls the list, so the tab you press stays under the pointer.
 - A `disabled` trigger carries `aria-disabled`. With `asChild`, it also drops the child's `href`, so a disabled link cannot navigate.
 
