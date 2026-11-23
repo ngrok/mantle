@@ -825,6 +825,8 @@ describe("Sidebar.Nav on the native <dialog>", () => {
 			expect(screen.getByPlaceholderText("Type a command…")).toBe(input);
 			expect(input).toHaveValue("abc");
 			expect(document.activeElement).toBe(input);
+			// The closed sheet's nav is not left inert under the palette.
+			expect(document.querySelector('[data-slot~="sidebar-nav"]')?.closest("[inert]")).toBeNull();
 		},
 	);
 

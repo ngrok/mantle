@@ -190,6 +190,134 @@ function referencedNames(statement: Statement): string[] {
 	return names;
 }
 
+/** What a declaration statement declares: a runtime value, or a type. */
+type DeclarationKind = "value" | "type";
+
+/** How deep a lookup already is in the re-export chain, and what kind of name it wants. */
+type Lookup = { depth?: number; kind?: DeclarationKind };
+
+/** Whether `statement` declares a name of `kind`. A class or enum declares both. */
+function declaresKind(statement: Statement, kind: DeclarationKind | undefined): boolean {
+	const declaration =
+		statement.type === "ExportNamedDeclaration" && statement.declaration != null
+			? statement.declaration
+			: statement;
+	if (
+		kind == null ||
+		declaration.type === "ClassDeclaration" ||
+		declaration.type === "TSEnumDeclaration"
+	) {
+		return true;
+	}
+	const isType =
+		declaration.type === "TSTypeAliasDeclaration" || declaration.type === "TSInterfaceDeclaration";
+	return kind === "type" ? isType : !isType;
+}
+
+/**
+ * Finds declarations across the `dist` files of one package: an export by
+ * name through the re-export chain, a local name through the chunk imports,
+ * and the module of a namespace import. Parses each file once.
+ */
+export function createResolver(files: PackageFiles) {
+	const parse = createParser(files);
+
+	const find = (
+		path: string,
+		exportedName: string,
+		{ depth = 0, kind }: Lookup = {},
+	): LocatedStatement | undefined => {
+		const parsed = parse(path);
+		if (parsed == null || depth > MAX_REEXPORT_DEPTH) {
+			return undefined;
+		}
+		for (const statement of parsed.module.staticExports) {
+			for (const entry of statement.entries) {
+				const target =
+					entry.moduleRequest == null
+						? undefined
+						: resolveDeclarationPath(path, entry.moduleRequest.value);
+				if (hasKind(entry.exportName, "None") && target != null) {
+					const found = find(target, exportedName, { depth: depth + 1, kind });
+					if (found != null) {
+						return found;
+					}
+					continue;
+				}
+				if (entry.exportName.name !== exportedName) {
+					continue;
+				}
+				if (target != null && hasKind(entry.importName, "Name") && entry.importName.name != null) {
+					return find(target, entry.importName.name, { depth: depth + 1, kind });
+				}
+				const localName = entry.localName.name ?? exportedName;
+				return localDeclaration(path, localName, { depth, kind });
+			}
+		}
+		return localDeclaration(path, exportedName, { depth, kind });
+	};
+
+	const localDeclaration = (
+		path: string,
+		localName: string,
+		{ depth = 0, kind }: Lookup = {},
+	): LocatedStatement | undefined => {
+		const parsed = parse(path);
+		if (parsed == null) {
+			return undefined;
+		}
+		for (const statement of parsed.program.body) {
+			if (declaredNames(statement).includes(localName) && declaresKind(statement, kind)) {
+				return { path, parsed, statement };
+			}
+		}
+		for (const statement of parsed.module.staticImports) {
+			const imported = statement.entries.find((entry) => entry.localName.value === localName);
+			const target = resolveDeclarationPath(path, statement.moduleRequest.value);
+			if (
+				imported != null &&
+				hasKind(imported.importName, "Name") &&
+				imported.importName.name != null &&
+				target != null
+			) {
+				return find(target, imported.importName.name, { depth: depth + 1, kind });
+			}
+		}
+		return undefined;
+	};
+
+	/** The file that `import * as <localName>` reads, when the local is a namespace import. */
+	const namespaceImportPath = (path: string, localName: string): string | undefined => {
+		for (const statement of parse(path)?.module.staticImports ?? []) {
+			const imported = statement.entries.find((entry) => entry.localName.value === localName);
+			if (imported != null && hasKind(imported.importName, "NamespaceObject")) {
+				return resolveDeclarationPath(path, statement.moduleRequest.value);
+			}
+		}
+		return undefined;
+	};
+
+	/** The package and name of an import from outside `dist`, such as `ComponentProps` from `react`. */
+	const externalImport = (
+		path: string,
+		localName: string,
+	): { module: string; name: string | undefined } | undefined => {
+		for (const statement of parse(path)?.module.staticImports ?? []) {
+			const imported = statement.entries.find((entry) => entry.localName.value === localName);
+			const request = statement.moduleRequest.value;
+			if (imported != null && resolveDeclarationPath(path, request) == null) {
+				return { module: request, name: imported.importName.name ?? undefined };
+			}
+		}
+		return undefined;
+	};
+
+	return { files, find, localDeclaration, namespaceImportPath, externalImport };
+}
+
+/** A resolver over the `dist` files of one package. */
+export type Resolver = ReturnType<typeof createResolver>;
+
 /** The most declarations that one `declarationsOf` call returns. */
 const MAX_DECLARATIONS = 24;
 
@@ -209,82 +337,7 @@ export function declarationsOf(
 	entryPath: string,
 	names: readonly string[],
 ): string | undefined {
-	const parse = createParser(files);
-
-	const find = (
-		path: string,
-		exportedName: string,
-		depth: number,
-	): LocatedStatement | undefined => {
-		const parsed = parse(path);
-		if (parsed == null || depth > MAX_REEXPORT_DEPTH) {
-			return undefined;
-		}
-		for (const statement of parsed.module.staticExports) {
-			for (const entry of statement.entries) {
-				const target =
-					entry.moduleRequest == null
-						? undefined
-						: resolveDeclarationPath(path, entry.moduleRequest.value);
-				if (hasKind(entry.exportName, "None") && target != null) {
-					const found = find(target, exportedName, depth + 1);
-					if (found != null) {
-						return found;
-					}
-					continue;
-				}
-				if (entry.exportName.name !== exportedName) {
-					continue;
-				}
-				if (target != null && hasKind(entry.importName, "Name") && entry.importName.name != null) {
-					return find(target, entry.importName.name, depth + 1);
-				}
-				const localName = entry.localName.name ?? exportedName;
-				return localDeclaration(path, localName, depth);
-			}
-		}
-		return localDeclaration(path, exportedName, depth);
-	};
-
-	const localDeclaration = (
-		path: string,
-		localName: string,
-		depth: number,
-	): LocatedStatement | undefined => {
-		const parsed = parse(path);
-		if (parsed == null) {
-			return undefined;
-		}
-		for (const statement of parsed.program.body) {
-			if (declaredNames(statement).includes(localName)) {
-				return { path, parsed, statement };
-			}
-		}
-		for (const statement of parsed.module.staticImports) {
-			const imported = statement.entries.find((entry) => entry.localName.value === localName);
-			const target = resolveDeclarationPath(path, statement.moduleRequest.value);
-			if (
-				imported != null &&
-				hasKind(imported.importName, "Name") &&
-				imported.importName.name != null &&
-				target != null
-			) {
-				return find(target, imported.importName.name, depth + 1);
-			}
-		}
-		return undefined;
-	};
-
-	/** The file that `import * as <localName>` reads, when the local is a namespace import. */
-	const namespaceImportPath = (path: string, localName: string): string | undefined => {
-		for (const statement of parse(path)?.module.staticImports ?? []) {
-			const imported = statement.entries.find((entry) => entry.localName.value === localName);
-			if (imported != null && hasKind(imported.importName, "NamespaceObject")) {
-				return resolveDeclarationPath(path, statement.moduleRequest.value);
-			}
-		}
-		return undefined;
-	};
+	const { find, localDeclaration, namespaceImportPath } = createResolver(files);
 
 	const seen = new Set<string>();
 	const queue: LocatedStatement[] = [];
@@ -308,7 +361,7 @@ export function declarationsOf(
 	};
 
 	for (const name of names) {
-		add(find(entryPath, name, 0));
+		add(find(entryPath, name));
 	}
 	if (texts.length === 0) {
 		return undefined;
@@ -317,13 +370,13 @@ export function declarationsOf(
 		for (const reference of referencedNames(located.statement)) {
 			const namespacePath = namespaceImportPath(located.path, reference);
 			if (namespacePath == null) {
-				add(localDeclaration(located.path, reference, 0));
+				add(localDeclaration(located.path, reference));
 				continue;
 			}
 			// Why: a compound namespace is `typeof <Name>Parts`, so its parts are the exports of that module.
 			const parts = [...exportNamesOf(files, namespacePath).names].map((part) => ({
 				part,
-				statement: find(namespacePath, part, 0),
+				statement: find(namespacePath, part),
 			}));
 			// Why the member map: a part declaration keeps its local name (`FieldLabel`), so only this
 			// map tells a reader that `Field.Label` is `FieldLabel`.

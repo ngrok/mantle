@@ -1,7 +1,12 @@
 import { createHash } from "node:crypto";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { gzipSync } from "node:zlib";
 import { describe, expect, it, vi } from "vitest";
 import {
 	isApiDataFile,
+	localTarballRegistry,
 	matchesIntegrity,
 	parsePackument,
 	readTarEntries,
@@ -104,7 +109,7 @@ describe("declarationsOf", () => {
 		const declaration = declarationsOf(packageFilesFixture(), "dist/button.d.ts", ["ButtonProps"]);
 
 		expect(declaration).toBe(
-			'/** The props of `Button`. */\ntype ButtonProps = { intent: "neutral" | "danger" };',
+			'/** The props of `Button`. */\ntype ButtonProps = ComponentProps<"button"> & { intent: "neutral" | "danger" };',
 		);
 	});
 
@@ -253,6 +258,18 @@ describe("createVersionDataLoader", () => {
 		await loader.load("0.93.0");
 
 		expect(fetchPackageFiles).toHaveBeenCalledTimes(1);
+	});
+
+	it("serves a packed tarball as the latest version", async () => {
+		const path = join(mkdtempSync(join(tmpdir(), "mantle-pack-")), "ngrok-mantle-0.94.1.tgz");
+		writeFileSync(path, gzipSync(tarOf(Object.fromEntries(packageFilesFixture("0.94.1")))));
+		const loader = createVersionDataLoader({ registry: localTarballRegistry(path) });
+
+		const data = await loader.load(undefined);
+
+		expect(data.version).toBe("0.94.1");
+		expect(data.exportsBySpecifier.has("@ngrok/mantle/button")).toBe(true);
+		await expect(loader.load("0.93.0")).rejects.toThrow("is not a published version");
 	});
 
 	it("evicts the least recent version when the cache is over its byte budget", async () => {
