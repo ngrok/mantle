@@ -418,6 +418,13 @@ describe("DataTable row motion (browser)", () => {
 		const shownBefore = { b: shownTop("b"), tail: shownTop("tail") };
 		// Run to the first collapse's commit only.
 		await act(() => vi.advanceTimersByTimeAsync(100));
+		// Why rewind the new slides: WebKit can run frames of them before the read.
+		for (const animation of document.getAnimations()) {
+			if (animation.playState !== "paused") {
+				animation.pause();
+				animation.currentTime = 0;
+			}
+		}
 
 		expect(screen.queryByText("a-1")).not.toBeInTheDocument();
 		expect(screen.getByText("b-1")).toBeInTheDocument();
