@@ -237,7 +237,6 @@ function Slider({
 		orientation,
 		inverted,
 		dir,
-		disabled,
 		onValueChange,
 		onValueCommit,
 	});
@@ -305,7 +304,8 @@ function Slider({
 						// nearest thumb.
 						values.length > 1 &&
 							"group-data-orientation-horizontal/slider:after:w-full group-data-orientation-vertical/slider:after:h-full",
-						"has-focus-visible:ring-3 has-focus-visible:ring-accent-500/20",
+						// Why the outline: forced-colors mode drops the ring's box shadow and paints the transparent outline.
+						"has-focus-visible:ring-3 has-focus-visible:ring-accent-500/20 has-focus-visible:outline-hidden",
 						"group-data-disabled/slider:pointer-events-none group-data-disabled/slider:cursor-default",
 					)}
 					style={$cssProperties(styles.thumbs[index] ?? {})}
@@ -333,7 +333,9 @@ function Slider({
 						max={max}
 						min={min}
 						name={inputName}
-						step={step}
+						// Why "any" off the grid: the browser snaps a value to `step`, and then the
+						// value it reads out and submits differs from the thumb.
+						step={onStepGrid(values[index] ?? min, { min, step }) ? step : "any"}
 						{...(controlled ? { value: values[index] } : { defaultValue: values[index] })}
 						onChange={inputProps.onChange}
 					/>
@@ -358,6 +360,12 @@ export { Slider };
 export type { SliderProps };
 
 // MARK: - Private
+
+/** Whether `value` sits on the grid of `step`s that starts at `min`. */
+function onStepGrid(value: number, { min, step }: { min: number; step: number }): boolean {
+	const steps = (value - min) / step;
+	return Math.abs(steps - Math.round(steps)) < 1e-9;
+}
 
 /** Wraps a single slider value in an array; an array passes through, and a nullish value stays `undefined`. */
 function toValueArray(value: number | number[] | undefined): number[] | undefined {

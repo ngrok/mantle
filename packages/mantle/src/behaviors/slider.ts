@@ -14,7 +14,6 @@ type SliderBehaviorOptions = {
 	inverted: boolean;
 	/** The text direction. When omitted, the root's computed `direction` decides. */
 	dir: "ltr" | "rtl" | undefined;
-	disabled: boolean;
 	onValueChange: ((value: number[]) => void) | undefined;
 	/** Called once for each keyboard step, and at the end of a drag that changed a value. */
 	onValueCommit: ((value: number[]) => void) | undefined;
@@ -71,7 +70,6 @@ function sliderBehavior({
 	orientation,
 	inverted,
 	dir,
-	disabled,
 	onValueChange,
 	onValueCommit,
 }: SliderBehaviorOptions) {
@@ -149,7 +147,13 @@ function sliderBehavior({
 		onPointerDown: (event: PointerEvent<HTMLSpanElement>) => {
 			const root = event.currentTarget;
 			const target = event.target;
-			if (disabled || event.button !== 0 || !(target instanceof Element)) {
+			const { inputs, values } = partsOf(root);
+			// Why `:disabled`: a disabled `<fieldset>` disables the inputs but not the slider prop.
+			if (
+				event.button !== 0 ||
+				!(target instanceof Element) ||
+				inputs[0]?.matches(":disabled") !== false
+			) {
 				return;
 			}
 			target.setPointerCapture(event.pointerId);
@@ -157,7 +161,6 @@ function sliderBehavior({
 			event.preventDefault();
 			const edge = edgeOfMin(root);
 			const rect = root.getBoundingClientRect();
-			const { inputs, values } = partsOf(root);
 			const pressed = valueAtPoint({ event, rect, edge, min, max });
 			const thumbIndex = inputs.findIndex((input) => input.parentElement === target);
 			const thumbValue = values[thumbIndex];
@@ -221,7 +224,7 @@ function sliderBehavior({
 			const { inputs, values } = partsOf(root);
 			const index = inputs.findIndex((input) => input === event.target);
 			const current = values[index];
-			if (disabled || current == null) {
+			if (current == null) {
 				return;
 			}
 			const minDistance = minStepsBetweenThumbs * step;
@@ -434,7 +437,7 @@ function nextValues({
 	minStepsBetweenThumbs: number;
 	preserveThumbOrder: boolean;
 }): { values: number[]; index: number } | null {
-	const decimals = decimalCount(step);
+	const decimals = Math.max(decimalCount(step), decimalCount(min));
 	const snapped = clamp(round(Math.round((next - min) / step) * step + min, decimals), min, max);
 	const minDistance = minStepsBetweenThumbs * step;
 	const value = preserveThumbOrder
@@ -468,7 +471,7 @@ function nextStepValue(
 		multiplier,
 	}: { min: number; step: number; direction: 1 | -1; multiplier: number },
 ): number {
-	const decimals = decimalCount(step);
+	const decimals = Math.max(decimalCount(step), decimalCount(min));
 	const stepsFromMin = (value - min) / step;
 	const nearest = Math.round(stepsFromMin);
 	const aligned = round(nearest * step + min, decimals) === round(value, decimals);

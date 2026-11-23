@@ -200,6 +200,7 @@ describe("Slider", () => {
 			{ keys: "{ArrowLeft}", props: { defaultValue: 0 }, expected: 0 },
 			{ keys: "{ArrowRight}", props: { defaultValue: 53, step: 10 }, expected: 60 },
 			{ keys: "{ArrowRight}", props: { defaultValue: 0.2, max: 1, step: 0.1 }, expected: 0.3 },
+			{ keys: "{ArrowRight}", props: { defaultValue: 0.5, min: 0.5, step: 1 }, expected: 1.5 },
 		] satisfies { keys: string; props: PressProps; expected: number }[])(
 			"$keys with $props moves the thumb to $expected",
 			async ({ keys, props, expected }) => {
@@ -361,6 +362,21 @@ describe("Slider", () => {
 			expect(onValueChange).toHaveBeenCalledTimes(1);
 			expect(lower).toHaveValue("25");
 		});
+	});
+
+	test("a value off the step grid reads out and submits as rendered", () => {
+		render(
+			<form data-testid="form">
+				<Slider aria-label="Volume" defaultValue={53} name="volume" step={10} />
+			</form>,
+		);
+		const form = screen.getByTestId("form");
+		if (!(form instanceof HTMLFormElement)) {
+			throw new Error("expected a form");
+		}
+
+		expect(screen.getByRole("slider")).toHaveValue("53");
+		expect(new FormData(form).get("volume")).toBe("53");
 	});
 
 	test("an id lands on the first thumb, so a label names it", () => {

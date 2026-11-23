@@ -238,6 +238,20 @@ describe("Slider pointer (browser)", () => {
 		expect(thumbValues()).toEqual([59, 60]);
 	});
 
+	test("a slider in a disabled fieldset ignores a press on the track", async () => {
+		const onValueChange = vi.fn<(value: number[]) => void>();
+		render(
+			<fieldset disabled style={{ padding: 40, width: 280 }}>
+				<Slider aria-label="Level" defaultValue={50} onValueChange={onValueChange} />
+			</fieldset>,
+		);
+
+		await pressTrack(0.25);
+
+		expect(onValueChange).toHaveBeenCalledTimes(0);
+		expect(thumbValues()).toEqual([50]);
+	});
+
 	test("a disabled slider ignores a press on the track", async () => {
 		const onValueChange = vi.fn<(value: number[]) => void>();
 		render(
@@ -251,6 +265,20 @@ describe("Slider pointer (browser)", () => {
 		expect(onValueChange).toHaveBeenCalledTimes(0);
 		expect(thumbValues()).toEqual([50]);
 	});
+});
+
+test("in forced-colors mode, a focused thumb shows an outline", async () => {
+	await commands.emulateMedia({ forcedColors: "active" });
+	try {
+		render(<Slider aria-label="Volume" defaultValue={50} />);
+		await userEvent.keyboard("{Tab}");
+		const thumb = thumbOf(screen.getByRole("slider"));
+
+		expect(getComputedStyle(thumb).outlineStyle).toBe("solid");
+		expect(getComputedStyle(thumb).outlineColor).not.toBe("rgba(0, 0, 0, 0)");
+	} finally {
+		await commands.emulateMedia({ forcedColors: "none" });
+	}
 });
 
 test("a vertical thumb is a vertical range input, which Chromium reports as a vertical slider", () => {
