@@ -27,7 +27,7 @@ import { Icon as IconComponent } from "../icon/icon.js";
 import type { SvgOnlyProps } from "../icon/svg-only.js";
 import { canUseDOM } from "../browser-only/can-use-dom.js";
 import { Slot } from "../slot/index.js";
-import { attachToasterHost } from "./toaster-host.js";
+import { attachPromptHost } from "./toaster-host.js";
 
 type ToasterPrimitiveProps = ComponentProps<typeof Sonner.Toaster>;
 
@@ -155,7 +155,7 @@ const Toaster = ({
 	// the page inert, so the host moves into it. React never moves a portal's
 	// container, so the move is safe.
 	const [host] = useState(() => (canUseDOM() ? document.createElement("div") : null));
-	useLayoutEffect(() => (host == null ? undefined : attachToasterHost(host)), [host]);
+	useLayoutEffect(() => (host == null ? undefined : attachPromptHost(host)), [host]);
 	// Why idle: sonner stays off the critical path. A `makeToast` call that
 	// comes first starts the load sooner.
 	useEffect(() => {

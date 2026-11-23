@@ -19,6 +19,6 @@ Breaking changes:
 - `role="dialog"` is on the `<dialog>` (`data-slot="dialog-positioner"`). The props of `Content` go to the panel inside it, which keeps `data-slot="dialog-content"`, `data-state`, and `data-mantle-modal-content`.
 - `Content` takes no `asChild` and no `role`: it renders the `<dialog>`, which takes the role, and the panel inside it. `Content` has no `onFocusOutside`: focus cannot leave a modal dialog, and a non-modal dialog closes on Escape and a press outside, not on a focus move. `Title` takes no `id`: the dialog names itself from the id it gives the title.
 - The close completes after the exit animation, so a test waits for it.
-- `overlay-prompt` UI outside the dialog takes no input while a modal is open, and `Sandbar` sits under the backdrop. `Toaster` moves its toasts into the open dialog.
+- `overlay-prompt` UI outside the dialog takes no input while a modal is open. `Toaster` and `Sandbar` move into the open dialog.
 
 Migration guide: https://mantle.ngrok.com/migrations/0027-native-dialog-migration
