@@ -34,8 +34,8 @@ A Vite 8 production build of each entry, React external, minified, gzip `-9`. Ea
 | `@radix-ui/react-tabs` 1.2.1 |     8.8 KB |                      +8.6 KB |
 | `HeadlessTabs`               |    10.2 KB |                      +2.8 KB |
 | `Tabs` before this change    |    11.2 KB |                            – |
-| `Tabs`                       |    11.3 KB |                      +3.9 KB |
-| `Tabs` and `HeadlessTabs`    |    11.3 KB |                      +3.9 KB |
+| `Tabs`                       |    11.3 KB |                      +3.8 KB |
+| `Tabs` and `HeadlessTabs`    |    11.3 KB |                      +3.8 KB |
 
 - On a page that has `cx` and `Slot`, `HeadlessTabs` costs 5.8 KB less than Radix. Alone, it costs more than Radix, because `Slot` brings `cx` (6.7 KB). A page with no other mantle part is not a case that ngrok has today.
 - The 2.2 KB over the hand-written baseline buys the fixes listed in Context, manual activation, disabled tabs, right-to-left keys, and `asChild`.
