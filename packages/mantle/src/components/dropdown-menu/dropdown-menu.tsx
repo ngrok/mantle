@@ -24,6 +24,7 @@ import {
 import { createPortal } from "react-dom";
 import invariant from "tiny-invariant";
 import { enterModal } from "../../behaviors/enter-modal.js";
+import { swallowOutsideClick } from "../../behaviors/swallow-outside-click.js";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
@@ -458,7 +459,7 @@ const Root = ({
 	children,
 	defaultOpen = false,
 	dir,
-	modal = true,
+	modal = false,
 	onOpenChange,
 	open: openProp,
 }: {
@@ -474,8 +475,11 @@ const Root = ({
 	onOpenChange?: (open: boolean) => void;
 	/**
 	 * Whether the page behind the open menu is inert: it does not scroll, take
-	 * focus, take pointer input, or reach a screen reader.
-	 * @default true
+	 * focus, take pointer input, or reach a screen reader. By default the page
+	 * stays live, as with a native popover and the WAI-ARIA menu button pattern.
+	 * A press that ends outside still closes the menu, and its primary click
+	 * (left button, no Ctrl) does not activate what is under it.
+	 * @default false
 	 */
 	modal?: boolean;
 	/** The reading direction. It decides which arrow key opens and closes a submenu. Defaults to the trigger's direction. */
@@ -918,13 +922,22 @@ const Content = ({
 	const { onMenuKeyDown, isTyping, resetTyping } = useMenuKeyboard(loop);
 	const { portalTarget, floatingRef, reconcile } = useFloat({
 		open: state.open,
-		onDismiss: (reason) => {
+		onDismiss: (reason, outside) => {
 			// Why: in a modal menu the page is inert, so an outside press puts focus
 			// nowhere and it returns to the trigger. A right click, or any outside
 			// interaction with a menu that is not modal, leaves focus where it lands.
 			outsideFocus.current = null;
 			if (reason === "outside") {
 				outsideFocus.current = !state.modal || outsideRightClick.current ? "keep" : "restore";
+				// Why: the primary press that closes the menu must not also activate
+				// what is under it, as with the pickers. A focus move that closes it
+				// does not count. A modal menu's inert page takes no click.
+				const press = outside?.detail.originalEvent;
+				if (!state.modal && press instanceof MouseEvent && press.button === 0 && !press.ctrlKey) {
+					// Why the check at the click: a controlled menu can refuse to close,
+					// and then the click lands.
+					swallowOutsideClick(() => menuRef.current?.dataset.state !== "open");
+				}
 			}
 			state.setOpen(false);
 		},

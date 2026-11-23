@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	addToDigest,
 	alertOf,
@@ -17,6 +17,7 @@ function event(overrides: Partial<ToolCallEvent> = {}): ToolCallEvent {
 		latencyMs: 40,
 		resultBytes: 900,
 		client: "claude-code/2.1.3",
+		caller: "agent-a",
 		dataVersion: "0.93.0",
 		...overrides,
 	} as ToolCallEvent;
@@ -87,6 +88,7 @@ function testPulse({
 		fetch,
 		advance: (ms: number) => {
 			time += ms;
+			vi.advanceTimersByTime(ms);
 		},
 	};
 }
@@ -217,27 +219,51 @@ describe("write-up", () => {
 describe("digestText", () => {
 	it("sums the calls since the last digest for a person to read", () => {
 		const digest = emptyDigest(0);
-		addToDigest(digest, gapReport);
-		addToDigest(digest, weakFind);
-		addToDigest(digest, { ...weakFind, client: "cursor/1.0", intent: "booking form" });
+		addToDigest(digest, { ...gapReport, source: "ngrok-private/frontend" }, { id: 1 });
+		addToDigest(digest, weakFind, { id: 2, opening: "find" });
+		addToDigest(
+			digest,
+			{ ...weakFind, client: "cursor/1.0", intent: "booking form" },
+			{ id: 3, opening: "find" },
+		);
 		addToDigest(
 			digest,
 			event({ tool: "get", outcome: "error", errorKind: "not_found", latencyMs: 400 }),
+			{ id: 4, opening: "check" },
+		);
+		const badQuery = event({
+			outcome: "error",
+			errorKind: "validation",
+			invalidArguments: [{ argument: "query", problem: "too long" }],
+		});
+		addToDigest(digest, badQuery, { id: 2, opening: "find" });
+		addToDigest(digest, badQuery, { id: 2, opening: "find" });
+		addToDigest(
+			digest,
+			event({
+				tool: "get",
+				outcome: "error",
+				errorKind: "validation",
+				invalidArguments: [{ argument: "name", problem: "missing" }],
+			}),
+			{ id: 2, opening: "find" },
 		);
 
 		expect(digestText(digest, { now: 6 * HOUR_MS, reason: "shutdown", host: "www-1" })).toBe(
 			[
-				":bar_chart: *mantle MCP: 4 calls in the last 6 h*",
+				":bar_chart: *mantle MCP: 7 calls in the last 6 h*",
 				"",
-				"*Tools:* find 2 · report_gap 1 · get 1",
-				"*Clients:* claude-code 75% · cursor 25%",
-				"*Slowest:* get averages 400 ms (max 400 ms)",
+				"*Tools:* find 4 · get 2 · report_gap 1",
+				"*Sources:* untagged 86% · ngrok-private/frontend 14%",
+				"*Clients:* claude-code 86% · cursor 14%",
+				"*Sessions:* 4 · 2 called find before any check · 1 called check before any find",
+				"*Slowest:* get averages 220 ms (max 400 ms)",
 				"",
-				"*Errors:* 1 of 4 calls (25.0%)",
+				"*Errors:* 4 of 7 calls (57.1%)",
+				"• 3 bad arguments: find query too long ×2 · get name missing",
 				"• 1 not found",
 				"",
-				"*Gaps:* 1 reported, 2 finds with no strong match",
-				'• "date range picker" ×2',
+				"*Gaps:* 1 reported, 0 finds with no strong match",
 				'• "stepper"',
 				"",
 				"*Recent goals*",
@@ -269,6 +295,207 @@ describe("digestText", () => {
 });
 
 describe("createPulse", () => {
+	beforeEach(() => {
+		vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	// Why 0 ms: the get starts at the tick that the find ends, as a sequential call does.
+	const getPart = (part: string, caller = "agent-a") =>
+		event({ tool: "get", ids: [part], caller, latencyMs: 0 });
+
+	it("counts a weak find in the digest only when its session gets the top guess", async () => {
+		const { pulse, posts } = testPulse();
+
+		pulse.record(weakFind);
+		pulse.record(getPart("DatePicker"));
+		await pulse.flush("shutdown");
+
+		expect(posts).toHaveLength(1);
+		expect(posts[0]).toContain(
+			"*Gaps:* 0 reported, 1 finds with no strong match (1 then got the top guess)",
+		);
+		expect(posts[0]).toContain('*Top guess was right:* "date range picker" → DatePicker');
+		expect(posts[0]).not.toContain('• "date range picker"');
+	});
+
+	it("posts a weak find when its own session gets another part, with the part's rank", async () => {
+		const { pulse, posts } = testPulse();
+
+		pulse.record(weakFind);
+		pulse.record(getPart("DatePicker", "agent-b"));
+		pulse.record(getPart("Calendar"));
+		await pulse.flush("shutdown");
+
+		expect(posts[0]).toContain("*Then:* get Calendar (result 2)");
+		expect(posts[1]).toContain('• "date range picker"');
+	});
+
+	it("posts a weak find with the steps of its session after 10 min with no get", () => {
+		const { pulse, posts, advance } = testPulse();
+
+		pulse.record(weakFind);
+		pulse.record(event({ tool: "check" }));
+		pulse.record(event({ tool: "check", outcome: "error", errorKind: "too_large" }));
+		advance(10 * 60_000 - 1);
+		const beforeWait = posts.length;
+		advance(1);
+
+		expect(beforeWait).toBe(0);
+		expect(posts).toHaveLength(1);
+		expect(posts[0]).toContain("*Then:* check → check (too large), no get in 10 min");
+	});
+
+	it("shows at most 8 steps after a weak find, then how many more", () => {
+		const { pulse, posts, advance } = testPulse();
+
+		pulse.record(weakFind);
+		for (let index = 0; index < 20; index += 1) {
+			pulse.record(event({ tool: index % 2 === 0 ? "check" : "read_docs" }));
+		}
+		advance(10 * 60_000);
+
+		expect(posts[0]).toContain(
+			"*Then:* check → read_docs → check → read_docs → check → read_docs → check → read_docs → … 12 more, no get in 10 min",
+		);
+	});
+
+	it("counts a weak find in the digest of its outcome, after an interval flush", async () => {
+		const { pulse, posts } = testPulse();
+
+		pulse.record(weakFind);
+		await pulse.flush("interval");
+		pulse.record(getPart("DatePicker"));
+		await pulse.flush("shutdown");
+
+		expect(posts).toHaveLength(2);
+		expect(posts[1]).toContain(
+			"*Gaps:* 0 reported, 1 finds with no strong match (1 then got the top guess)",
+		);
+	});
+
+	it("keeps the finds of another workspace or ticket out of a session", () => {
+		const { pulse, posts, advance } = testPulse();
+		const frontend = { source: "ngrok-private/frontend" } as const;
+
+		pulse.record({ ...weakFind, ...frontend, workspace: "dashboard", ticket: "FEP-1" });
+		pulse.record({ ...getPart("DatePicker"), ...frontend, workspace: "blog", ticket: "FEP-2" });
+		advance(10 * 60_000);
+
+		expect(posts).toHaveLength(1);
+		expect(posts[0]).toContain("*Then:* no call in 10 min");
+	});
+
+	it("waits on each weak find of a session, also when two have the same words", async () => {
+		const { pulse, posts } = testPulse();
+
+		pulse.record(weakFind);
+		pulse.record({ ...weakFind, ids: ["DataTable", "Calendar"] });
+		pulse.record(getPart("DataTable"));
+		await pulse.flush("shutdown");
+
+		expect(posts[0]).toContain("*Then:* get DataTable (not in the results)");
+		expect(posts[1]).toContain('*Top guess was right:* "date range picker" → DataTable');
+	});
+
+	it("counts the opening of a session by when its calls started, not when they ended", async () => {
+		const { pulse, posts } = testPulse();
+
+		pulse.record(event({ tool: "check", latencyMs: 10 }));
+		pulse.record(event({ tool: "find", ids: ["Dialog"], latencyMs: 500 }));
+		await pulse.flush("shutdown");
+
+		expect(posts[0]).toContain("*Sessions:* 1 · 1 called find before any check");
+	});
+
+	it("posts a waiting weak find at shutdown, after the digest", async () => {
+		const { pulse, posts } = testPulse();
+
+		pulse.record(weakFind);
+		await pulse.flush("shutdown");
+
+		expect(posts[0]).toContain('• "date range picker"');
+		expect(posts[1]).toContain("*Then:* no call before the server stopped");
+	});
+
+	it("posts the need of a weak find that ends its wait in a digest with no calls", async () => {
+		const { pulse, posts, advance } = testPulse();
+
+		pulse.record(weakFind);
+		await pulse.flush("interval");
+		advance(10 * 60_000);
+		await pulse.flush("shutdown");
+
+		expect(posts.at(-1)).toContain("*mantle MCP: 0 calls in the last 10 min*");
+		expect(posts.at(-1)).toContain('• "date range picker"');
+	});
+
+	it("does not count a get that started before the weak find ended", async () => {
+		const { pulse, posts, advance } = testPulse();
+
+		pulse.record({ ...weakFind, latencyMs: 10 });
+		advance(100);
+		pulse.record({ ...getPart("DatePicker"), latencyMs: 200 });
+		await pulse.flush("shutdown");
+
+		expect(posts[1]).toContain("*Then:* get DatePicker, no get before the server stopped");
+	});
+
+	it("follows a weak find through after its session is evicted", async () => {
+		const { pulse, posts } = testPulse();
+
+		pulse.record(weakFind);
+		for (let index = 0; index < 1_000; index += 1) {
+			pulse.record(event({ tool: "check", caller: `agent-${index}` }));
+		}
+		pulse.record(getPart("DatePicker"));
+		await pulse.flush("shutdown");
+
+		expect(posts).toHaveLength(1);
+		expect(posts[0]).toContain("(1 then got the top guess)");
+	});
+
+	it("counts each right top guess, past the cap on the named ones", async () => {
+		const { pulse, posts } = testPulse();
+
+		for (let index = 0; index < 201; index += 1) {
+			pulse.record({ ...weakFind, gap: { source: "find", tokens: [`need${index}`] } });
+			pulse.record(getPart("DatePicker"));
+		}
+		await pulse.flush("shutdown");
+
+		expect(posts[0]).toContain("201 finds with no strong match (201 then got the top guess)");
+	});
+
+	it("starts a new session when a caller makes no call for 30 min", async () => {
+		const { pulse, posts, advance } = testPulse();
+
+		pulse.record(event({ tool: "find", ids: ["Dialog"] }));
+		advance(30 * 60_000 - 1);
+		pulse.record(event({ tool: "check" }));
+		advance(30 * 60_000);
+		pulse.record(event({ tool: "check" }));
+		pulse.record(event({ tool: "find", ids: ["Dialog"] }));
+		await pulse.flush("shutdown");
+
+		expect(posts[0]).toContain(
+			"*Sessions:* 2 · 1 called find before any check · 1 called check before any find",
+		);
+	});
+
+	it("shows the calls of the session before a gap report", () => {
+		const { pulse, posts } = testPulse();
+
+		pulse.record(event({ tool: "find", ids: ["Dialog"] }));
+		pulse.record(event({ tool: "find", ids: ["Tabs"] }));
+		pulse.record(getPart("Tabs"));
+		pulse.record(gapReport);
+
+		expect(posts[0]).toContain("*Session:* find ×2 → get Tabs\n");
+	});
 	it("posts an alert once an hour for the same need", () => {
 		const { pulse, posts, advance } = testPulse();
 
@@ -278,6 +505,20 @@ describe("createPulse", () => {
 		pulse.record(gapReport);
 
 		expect(posts).toHaveLength(2);
+	});
+
+	it("posts nothing for the agent eval, and leaves it out of the digest", async () => {
+		const { pulse, posts } = testPulse();
+		const weakFind = event({ gap: { source: "find", tokens: ["stepper"] } });
+
+		pulse.record({ ...weakFind, source: "ngrok/mantle-agent-eval" });
+		await pulse.flush("shutdown");
+		const evalPosts = [...posts];
+		pulse.record(weakFind);
+		await pulse.flush("shutdown");
+
+		expect(evalPosts).toEqual([]);
+		expect(posts.join("\n")).toContain("stepper");
 	});
 
 	it("posts the same need once for each app in the same hour", () => {

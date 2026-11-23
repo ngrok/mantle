@@ -1,6 +1,7 @@
 {
   "extends": "@cfg/tsconfig/tsconfig.client-package.json",
   "compilerOptions": {
+    "customConditions": ["@ngrok/src-live-types"],
     "types": ["@cfg/tsconfig/css.d.ts", "@cfg/tsconfig/reset.d.ts", "@cfg/tsconfig/svg.d.ts"]
   },
   "include": ["src/**/*", "vitest.setup.ts", "vitest.setup-file-reset.ts"],

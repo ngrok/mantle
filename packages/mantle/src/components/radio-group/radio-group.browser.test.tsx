@@ -5,11 +5,21 @@ import { useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
+import mantleCss from "../../mantle.css?raw";
 import * as Choice from "../choice/choice-parts.js";
 import * as SegmentedControl from "../segmented-control/segmented-control-parts.js";
 import * as RadioGroup from "./radio-group-parts.js";
 
 let styleElement: HTMLStyleElement;
+
+/** The `mantle.css` rule that lifts the controls in an item's content over its radio. */
+function radioItemContentRule(): string {
+	const rule = /:where\(\.radio-item-content\)[^{]*\{[^}]*\}/.exec(mantleCss)?.[0];
+	if (rule == null) {
+		throw new Error("mantle.css holds no radio-item-content rule.");
+	}
+	return rule;
+}
 
 // Why the compiled CSS: which element takes a click depends on the real layout of the item and
 // its radio. Without the utilities, the radio is in the flow and every click reaches it.
@@ -20,6 +30,7 @@ beforeAll(async () => {
 		await commands.tailwindCss("./radio-group.tsx"),
 		await commands.tailwindCss("../choice/choice.tsx"),
 		await commands.tailwindCss("../segmented-control/segmented-control.tsx"),
+		radioItemContentRule(),
 	].join("\n");
 	document.head.appendChild(styleElement);
 });
@@ -84,7 +95,78 @@ describe("radios found by their role", () => {
 
 		await userEvent.click(screen.getByRole("radio", { name: "Free" }));
 		expect(screen.getByRole("radio", { name: "Free" })).toBeChecked();
-		expect(onChange.mock.calls.map(([value]) => value)).toEqual(["pro", "team", "free"]);
+
+		// Why: Testing Library sends a click to the element it names, so a click on the text still checks.
+		await testingLibraryUserEvent.setup().click(screen.getByText("Pro"));
+		expect(screen.getByRole("radio", { name: "Pro" })).toBeChecked();
+		expect(onChange.mock.calls.map(([value]) => value)).toEqual(["pro", "team", "free", "pro"]);
+	});
+
+	test("each radio covers its item, so assistive technology outlines the whole item", () => {
+		render(
+			<div style={{ width: 300 }}>
+				<RadioGroup.Root aria-label="Plan" defaultValue="free">
+					<RadioGroup.Item value="free">
+						<RadioGroup.Indicator />
+						Free
+					</RadioGroup.Item>
+				</RadioGroup.Root>
+				<SegmentedControl.Root aria-label="Environment" defaultValue="dev">
+					<SegmentedControl.Item value="dev">Dev</SegmentedControl.Item>
+				</SegmentedControl.Root>
+			</div>,
+		);
+
+		for (const name of ["Free", "Dev"]) {
+			const radio = screen.getByRole("radio", { name });
+			const radioBox = radio.getBoundingClientRect();
+			const itemBox = radio.parentElement?.getBoundingClientRect();
+			expect([radioBox.width, radioBox.height]).toEqual([itemBox?.width, itemBox?.height]);
+			expect(radioBox.width).toBeGreaterThan(20);
+		}
+	});
+
+	test("a role click passes over a sandbox and a title label, and a disabled item's link keeps its click", async () => {
+		const onLinkClick = vi.fn<(event: MouseEvent) => void>((event) => event.preventDefault());
+		render(
+			<div style={{ width: 400 }}>
+				<RadioGroup.Root aria-label="Amount" defaultValue="fixed">
+					<RadioGroup.Item value="fixed">Fixed</RadioGroup.Item>
+					<RadioGroup.Item value="custom" id="custom-radio">
+						<RadioGroup.ItemContent>
+							<label htmlFor="custom-radio">Custom</label>
+							<RadioGroup.InputSandbox>
+								<input aria-label="Custom amount" style={{ width: 80 }} />
+							</RadioGroup.InputSandbox>
+						</RadioGroup.ItemContent>
+					</RadioGroup.Item>
+					<RadioGroup.Item value="pro">
+						<Choice.Root>
+							<Choice.Content>
+								<Choice.Label>Pro</Choice.Label>
+							</Choice.Content>
+						</Choice.Root>
+					</RadioGroup.Item>
+					<RadioGroup.Item value="team" disabled>
+						<RadioGroup.ItemContent>
+							Team{" "}
+							<a href="#team" onClick={onLinkClick}>
+								details
+							</a>
+						</RadioGroup.ItemContent>
+					</RadioGroup.Item>
+				</RadioGroup.Root>
+			</div>,
+		);
+
+		await page.getByRole("radio", { name: "Custom" }).click();
+		expect(screen.getByRole("radio", { name: "Custom" })).toBeChecked();
+
+		await page.getByRole("radio", { name: "Pro" }).click();
+		expect(screen.getByRole("radio", { name: "Pro" })).toBeChecked();
+
+		await page.getByRole("link", { name: "details" }).click();
+		expect(onLinkClick).toHaveBeenCalledTimes(1);
 	});
 
 	test("a SegmentedControl radio takes a Playwright click", async () => {
@@ -182,7 +264,9 @@ describe("RadioGroup keyboard", () => {
 	test("a click on the item text checks and focuses its radio, so arrows continue from it", async () => {
 		renderPlans({ defaultValue: "free" });
 
-		await userEvent.click(screen.getByText("Pro"));
+		// Why force: the radio covers the text, so the pointer lands on the radio, as a user's does.
+		// Playwright's check that the text itself takes the click would fail.
+		await userEvent.click(screen.getByText("Pro"), { force: true });
 		expect(screen.getByRole("radio", { name: "Pro" })).toBeChecked();
 
 		await userEvent.keyboard("{ArrowDown}");
@@ -191,7 +275,7 @@ describe("RadioGroup keyboard", () => {
 });
 
 describe("RadioGroup item clicks", () => {
-	test("a click on item text checks and focuses the radio; a link and a label keep their clicks", async () => {
+	test("a click on item text checks and focuses the radio, and a link keeps its click", async () => {
 		const onItemClick = vi.fn<(event: MouseEvent) => void>();
 		const onLinkClick = vi.fn<(event: MouseEvent) => void>((event) => event.preventDefault());
 		render(
@@ -217,13 +301,14 @@ describe("RadioGroup item clicks", () => {
 		expect(onLinkClick).toHaveBeenCalledTimes(1);
 		expect(screen.getByRole("radio", { name: "Free" })).toBeChecked();
 
-		await userEvent.click(screen.getByText("Read the", { exact: false }));
+		// Why force: see "a click on the item text checks and focuses its radio".
+		await userEvent.click(screen.getByText("Read the", { exact: false }), { force: true });
 		expect(pro).toBeChecked();
 		expect(pro).toHaveFocus();
 		expect(onItemClick).toHaveBeenCalledTimes(2);
 
-		await userEvent.click(screen.getByText("Free"));
-		await userEvent.click(screen.getByText("Pro"));
+		await userEvent.click(screen.getByText("Free"), { force: true });
+		await userEvent.click(screen.getByText("Pro"), { force: true });
 		expect(pro).toBeChecked();
 	});
 });
@@ -241,7 +326,7 @@ describe("RadioGroup forms", () => {
 		const form = screen.getByRole<HTMLFormElement>("form", { name: "Plan form" });
 		expect(form.checkValidity()).toBe(false);
 
-		await userEvent.click(screen.getByText("Pro"));
+		await userEvent.click(screen.getByRole("radio", { name: "Pro" }));
 
 		expect(form.checkValidity()).toBe(true);
 		expect(new FormData(form).getAll("plan")).toEqual(["pro"]);
@@ -258,7 +343,7 @@ describe("RadioGroup forms", () => {
 		);
 		const form = screen.getByRole<HTMLFormElement>("form", { name: "Plan form" });
 
-		await userEvent.click(screen.getByText("Free"));
+		await userEvent.click(screen.getByRole("radio", { name: "Free" }));
 		await userEvent.keyboard("{ArrowDown}");
 
 		expect(screen.getByRole("radio", { name: "Pro" })).toBeChecked();
@@ -291,7 +376,7 @@ describe("RadioGroup forms", () => {
 		);
 		const form = screen.getByRole<HTMLFormElement>("form", { name: "Plan form" });
 
-		await userEvent.click(screen.getByText("Pro"));
+		await userEvent.click(screen.getByRole("radio", { name: "Pro" }));
 		expect(new FormData(form).getAll("plan")).toEqual(["pro"]);
 
 		form.reset();
@@ -339,7 +424,7 @@ describe("RadioGroup reset", () => {
 		}
 		const { rerender } = render(<Uncontrolled />);
 		rerender(<Uncontrolled defaultValue="pro" />);
-		await userEvent.click(screen.getByText("Basic"));
+		await userEvent.click(screen.getByRole("radio", { name: "Basic" }));
 
 		await userEvent.click(screen.getByRole("button", { name: "Reset" }));
 
@@ -363,7 +448,7 @@ describe("RadioGroup reset", () => {
 		}
 		render(<ResetToBasic />);
 		const form = screen.getByRole<HTMLFormElement>("form", { name: "Plan form" });
-		await userEvent.click(screen.getByText("Pro"));
+		await userEvent.click(screen.getByRole("radio", { name: "Pro" }));
 
 		await userEvent.click(screen.getByRole("button", { name: "Reset" }));
 
@@ -389,7 +474,7 @@ describe("RadioGroup reset", () => {
 			</form>,
 		);
 		const form = screen.getByRole<HTMLFormElement>("form", { name: "Plan form" });
-		await userEvent.click(screen.getByText("Pro"));
+		await userEvent.click(screen.getByRole("radio", { name: "Pro" }));
 		form.addEventListener("reset", (event) => event.preventDefault());
 		vi.useFakeTimers({ toFake: ["setTimeout"] });
 
@@ -438,17 +523,17 @@ describe("RadioGroup.InputSandbox clicks", () => {
 		expect(screen.getByRole("textbox", { name: "Custom note" })).toHaveFocus();
 	});
 
-	test("a click on the sandbox around a control checks the radio and leaves focus off it", async () => {
+	test("a click on the sandbox around a control checks the radio", async () => {
 		renderAmount(
 			<div style={{ padding: 16 }}>
 				<input aria-label="Custom amount" />
 			</div>,
 		);
 
-		await userEvent.click(screen.getByTestId("sandbox"), { position: { x: 4, y: 4 } });
+		// Why force: the radio covers the sandbox around its control, so the pointer lands on the radio.
+		await userEvent.click(screen.getByTestId("sandbox"), { position: { x: 4, y: 4 }, force: true });
 
 		expect(screen.getByRole("radio", { name: "Custom" })).toBeChecked();
-		expect(screen.getByRole("radio", { name: "Custom" })).not.toHaveFocus();
 	});
 });
 

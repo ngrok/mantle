@@ -14,12 +14,20 @@ An input where the user selects a value from within a given range. Pass `aria-la
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
-import { Slider } from "@ngrok/mantle/slider";
+import { Slider, SliderValue } from "@ngrok/mantle/slider";
 
 <Field.Item name="volume">
 	<Field.Label>Volume</Field.Label>
 	<Field.Control>
-		<Slider aria-label="Volume" defaultValue={67} max={100} step={1} />
+		<Slider
+			aria-label="Volume"
+			defaultValue={67}
+			max={100}
+			step={1}
+			formatValue={(value) => `${value}%`}
+		>
+			<SliderValue />
+		</Slider>
 	</Field.Control>
 	<Field.Description>Drag to adjust playback volume.</Field.Description>
 </Field.Item>;
@@ -204,6 +212,27 @@ import { Slider } from "@ngrok/mantle/slider";
 
 </Example>
 
+### Value while dragging
+
+Place `SliderValue` inside `Slider` to show the value in a small label while a pointer or a finger drags a thumb. It sits above each thumb and follows it, or with `placement="track"`, above the center of the track with every value of a range. It hides at rest. `formatValue` sets the text, and screen readers hear the same text through `aria-valuetext`.
+
+<Example name="components/forms/slider/value" title="Slider value example">
+
+```tsx
+import { Slider, SliderValue } from "@ngrok/mantle/slider";
+
+<Slider aria-label="Volume" defaultValue={40} formatValue={(value) => `${value}%`}>
+	<SliderValue />
+</Slider>
+<Slider aria-label="Price" defaultValue={[20, 80]} formatValue={(value) => `$${value}`}>
+	<SliderValue placement="track" />
+</Slider>
+```
+
+</Example>
+
+The label does not show under keyboard focus. A keyboard user sees the thumb move, and a label on each focus covers content as the user tabs through a form.
+
 ## API Reference
 
 ### Slider
@@ -215,6 +244,7 @@ Each thumb of `Slider` is a native `<input type="range">`. The root is a `<span>
 | Prop                    | Type                           | Default           | Description                                                                                                    |
 | :---------------------- | :----------------------------- | :---------------- | :------------------------------------------------------------------------------------------------------------- |
 | `color`                 | `` `bg-${string}` ``           | `"bg-accent-600"` | The color of the slider range. Accepts any Tailwind `bg-*` class.                                              |
+| `formatValue`           | `(value: number) => string`    |                   | The text of a value: `aria-valuetext` on each thumb and the text of each `SliderValue`.                        |
 | `aria-label`            | `string`                       |                   | Accessible name forwarded to the rendered thumb. Range sliders derive per-thumb labels from it.                |
 | `aria-labelledby`       | `string`                       |                   | IDREF forwarded to every thumb, so a range slider names both thumbs with the same text. Prefer `aria-label`.   |
 | `defaultValue`          | `number` \| `number[]`         |                   | The value of the slider when initially rendered. Use when you do not need to control the state of the slider.  |
@@ -239,6 +269,19 @@ Each thumb of `Slider` is a native `<input type="range">`. The root is a `<span>
 | `data-orientation` | `"horizontal"` \| `"vertical"` | On the root. Mirrors `orientation`.                                         |
 | `data-disabled`    | present when disabled          | On the root. Presence-only. Style with `data-disabled:`.                    |
 | `data-track-press` | present during a glide         | On the root while a thumb glides after a press on the track. Presence-only. |
+| `data-dragging`    | present during a drag          | On the root while a pointer drags a thumb. Presence-only.                   |
+
+### SliderValue
+
+A label with the slider's value that shows while a pointer drags a thumb. It renders a `<span>`, which assistive technology does not read, and accepts its props.
+
+| Prop        | Type                   | Default   | Description                                                                |
+| :---------- | :--------------------- | :-------- | :------------------------------------------------------------------------- |
+| `placement` | `"thumb"` \| `"track"` | `"thumb"` | Above each thumb, which it follows, or once above the center of the track. |
+
+| Data Attribute   | Value                  | Description          |
+| :--------------- | :--------------------- | :------------------- |
+| `data-placement` | `"thumb"` \| `"track"` | Mirrors `placement`. |
 
 ### Keyboard
 

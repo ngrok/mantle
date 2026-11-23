@@ -22,6 +22,9 @@ const packageInputFile = /\.(?:[cm]?[jt]sx?|mdx|css|jsonc?|ya?ml)$/;
 // Why the whole repo: a new rule or a plugin change can fail a file that did not change.
 const lintConfigFile =
 	/^(?:\.oxlintrc\.json|scripts\/oxlint-plugin-mantle\.js|scripts\/oxlint-rules\/[^/]+\.js)$/;
+// The stylesheets `check-css-selectors.ts` reads, and the files that define its check.
+const cssSelectorFile =
+	/^packages\/mantle\/src\/.+\.css$|^scripts\/check-css-selectors\.ts$|^scripts\/oxlint-rules\/no-structural-combinator\.js$/;
 // The files `check-prose.ts` reads: prose and stylesheets.
 const proseFile = /\.(md|mdx|css)$/;
 
@@ -33,7 +36,7 @@ const rootTaskInputFile =
  * Plan the checks for a set of changed files, cheapest first.
  *
  * Format, the Tailwind class check, lint, the markdown link check, and the prose check read only the changed files that still
- * exist. A change to a stylesheet, the lockfile, or the Tailwind fixer checks the classes in every file.
+ * exist. A change to a mantle stylesheet runs the CSS selector check on every mantle stylesheet. A change to a stylesheet, the lockfile, or the Tailwind fixer checks the classes in every file.
  * Typecheck and tests run through turbo for each package that changed since `base`, plus the packages that depend on
  * it. A deleted file still schedules them, because a deletion can break an import. A lint config change lints the whole repo, and a change to a
  * script, a hook, a migration, or a changeset runs the root `typecheck:scripts` and `test:scripts` tasks.
@@ -102,6 +105,13 @@ export function planChecks({
 	}
 	if (prose.length > 0) {
 		steps.push({ name: "prose", command: "node", args: ["./scripts/check-prose.ts", ...prose] });
+	}
+	if (files.some((file) => cssSelectorFile.test(file))) {
+		steps.push({
+			name: "css selectors",
+			command: "node",
+			args: ["./scripts/check-css-selectors.ts"],
+		});
 	}
 	if (touchesPackage) {
 		const filter = `--filter=...[${base}]`;

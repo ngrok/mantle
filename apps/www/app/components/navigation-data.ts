@@ -113,6 +113,7 @@ export const componentsByCategory = {
 		"Browser Only",
 		"Live Region",
 		"Main",
+		"Overlay Prompt",
 		"SandboxedOnClick",
 		"Skip to Main Link",
 		"Slot",
@@ -144,6 +145,7 @@ export const prodReadyComponents: readonly ProdReadyComponent[] = componentCateg
 export const previewComponents = [
 	//,
 	"Calendar",
+	"Time Zone",
 	"World Map",
 ] as const;
 
@@ -189,6 +191,7 @@ export const prodReadyComponentRouteLookup = {
 	"Media Object": "/components/structure/media-object",
 	"Multi Select": "/components/forms/multi-select",
 	"OTP Input": "/components/forms/otp-input",
+	"Overlay Prompt": "/components/primitives/overlay-prompt",
 	Pagination: "/components/navigation/pagination",
 	"Password Input": "/components/forms/password-input",
 	Popover: "/components/overlays/popover",
@@ -229,6 +232,7 @@ export const prodReadyComponentRouteLookup = {
 /** Route lookup for preview component pages. */
 export const previewComponentsRouteLookup = {
 	Calendar: "/components/preview/calendar",
+	"Time Zone": "/components/preview/time-zone",
 	"World Map": "/components/preview/world-map",
 } as const satisfies Record<(typeof previewComponents)[number], Route>;
 
@@ -239,6 +243,7 @@ export const previewComponentsRouteLookup = {
  */
 export const previewComponentCategoryLookup = {
 	Calendar: "Forms",
+	"Time Zone": "Primitives",
 	"World Map": "Charts",
 } as const satisfies Record<(typeof previewComponents)[number], ComponentCategory>;
 
@@ -661,7 +666,7 @@ export const migrations = [
 		slug: "native-dropdown-menu-migration",
 		title: "Native Dropdown Menu",
 		description:
-			"DropdownMenu is built on native popovers in the top layer. The Radix positioning props are gone, --anchor-width and --available-height replace the Radix CSS variables, and a modal menu makes the page inert.",
+			"DropdownMenu is built on native popovers in the top layer. The Radix positioning props are gone, --anchor-width and --available-height replace the Radix CSS variables, and a menu is not modal by default.",
 		route: "/migrations/0026-native-dropdown-menu-migration",
 	},
 	{
