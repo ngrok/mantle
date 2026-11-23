@@ -195,6 +195,25 @@ mantle uses this fix in its own components:
 - `Accordion.Trigger` uses `-mx-2 px-2`, so the ring has space around the label
   and the label stays aligned with the content.
 
+### Draw the ring inside
+
+Some controls meet the clip edge and the ancestor cannot take padding, such as a
+full-width button at the bottom of a rounded card with `overflow-hidden`. Draw
+the ring inside the control instead:
+
+```tsx
+<button
+	type="button"
+	className="w-full focus-visible:focus-ring focus-visible:ring-inset focus-visible:-outline-offset-2"
+>
+	Show more
+</button>
+```
+
+`ring-inset` moves the ring inside the border. `-outline-offset-2` moves the
+[forced-colors](#forced-colors) outline inside too. `CodeBlock.ExpanderButton`
+uses this fix.
+
 ### A covered ring
 
 An adjacent element that is later in the DOM can paint over the ring. Add
