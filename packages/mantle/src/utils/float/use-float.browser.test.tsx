@@ -217,6 +217,66 @@ describe("useFloat placement while open", () => {
 	);
 });
 
+describe("useFloat placement when neither side fits", () => {
+	test.each(families)("%s takes the side with more room", async (_name, Parts) => {
+		render(
+			<Parts.Root open>
+				<Parts.Trigger style={{ ...anchorStyle, top: 520 }}>Open</Parts.Trigger>
+				<Parts.Content data-testid="panel" side="bottom" style={{ ...panelStyle, height: 600 }}>
+					Content
+				</Parts.Content>
+			</Parts.Root>,
+		);
+		const panel = await screen.findByTestId("panel");
+
+		// Why top: 520 px of room above the trigger, and the rest of the viewport below it.
+		await waitFor(() => expect(panel.dataset.side).toBe("top"));
+	});
+});
+
+describe("useFloat placement near the edge of the room", () => {
+	test("a scrolling popover beside its trigger lines up with the trigger", async () => {
+		render(
+			<Popover.Root open>
+				<Popover.Trigger style={anchorStyle}>Open</Popover.Trigger>
+				<Popover.Content
+					data-testid="panel"
+					side="right"
+					align="start"
+					style={{ ...panelStyle, overflowY: "auto" }}
+				>
+					<div style={{ height: 1000 }}>Long content</div>
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		const panel = await screen.findByTestId("panel");
+
+		await waitFor(() => expect(panel.getBoundingClientRect().top).toBeCloseTo(200, 0));
+	});
+
+	test("a popover with an arrow keeps its side as its trigger moves a pixel", async () => {
+		const tree = (top: number) => (
+			<Popover.Root open>
+				<Popover.Trigger style={{ ...anchorStyle, top }}>Open</Popover.Trigger>
+				<Popover.Content data-testid="panel" side="top" style={panelStyle}>
+					<Popover.Arrow />
+				</Popover.Content>
+			</Popover.Root>
+		);
+		// Why 102: 80 px of panel, a 4 px offset, a 7 px arrow, and 8 px of padding fit with 3 px to spare.
+		const { rerender } = render(tree(102));
+		const panel = await screen.findByTestId("panel");
+		await waitFor(() => expect(panel.dataset.side).toBe("top"));
+
+		for (const top of [103, 102, 103]) {
+			rerender(tree(top));
+			await new Promise(requestAnimationFrame);
+			await new Promise(requestAnimationFrame);
+			expect(panel.dataset.side).toBe("top");
+		}
+	});
+});
+
 describe("useFloat placement as the anchor moves", () => {
 	/** Two frames: the frame that sees the move, and the one that paints it. */
 	const nextFrames = async () => {
