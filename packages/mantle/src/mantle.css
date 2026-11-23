@@ -1593,6 +1593,63 @@ MARK: UTILITIES
 	}
 }
 
+/*
+ * The native input of `OtpInput.Root`. It lies over the slots and takes the
+ * pointer, the focus, the selection, and the fill, and it paints none of them.
+ * `--_otp-badge-gutter` widens it past the last slot for a password manager badge.
+ */
+@utility otp-input-overlay {
+	position: absolute;
+	inset: 0;
+	width: calc(100% + var(--_otp-badge-gutter, 0px));
+	height: 100%;
+	clip-path: inset(0 var(--_otp-badge-gutter) 0 0);
+	border: 0;
+	background: transparent;
+	color: transparent;
+	caret-color: transparent;
+	box-shadow: none;
+	outline: none;
+	pointer-events: auto;
+	/* Why left to right: a click past the text then puts the caret after it, also on a right-to-left page. */
+	direction: ltr;
+	/* A font as tall as the slots, with negative letter spacing, keeps the invisible text inside the input. */
+	font-family: monospace;
+	font-size: 100cqh;
+	font-variant-numeric: tabular-nums;
+	line-height: 1;
+	letter-spacing: -0.5em;
+
+	&::selection {
+		background: transparent;
+		color: transparent;
+	}
+
+	/* A browser paints its own autofill colors over a transparent input. */
+	&:autofill {
+		background: transparent;
+		color: transparent;
+		opacity: 0;
+		box-shadow: none;
+		-webkit-text-fill-color: transparent;
+	}
+
+	/* iOS Safari gets a narrower text box. */
+	@supports (-webkit-touch-callout: none) {
+		left: -1px;
+		right: 1px;
+		letter-spacing: -0.6em;
+		font-weight: 100;
+		font-stretch: ultra-condensed;
+		font-optical-sizing: none;
+	}
+
+	/* A password manager badge that follows the input takes the pointer. */
+	& + * {
+		pointer-events: auto;
+	}
+}
+
 @utility scroll-shadow {
 	/* Shadow Cover TOP */
 	background:

@@ -3,19 +3,17 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
+import { userEvent as browserUser } from "vitest/browser";
 import * as Field from "../field/field-parts.js";
 import * as OtpInput from "./otp-input-parts.js";
 import { REGEXP_ONLY_DIGITS } from "./patterns.js";
 
 /**
- * Render a default 6-slot OTP input. Returns the hidden input that accepts
- * keystrokes/paste; input-otp renders a real `<input>` we can target via
- * the textbox role.
+ * Render a default 6-slot OTP input. Returns the native input that takes
+ * keystrokes and paste, and the six slots.
  */
-// Loosely-typed root props for the test helper: the real `OtpInput.Root`
-// type is a discriminated union (render | children) which doesn't compose
-// cleanly with `Partial<>`. The runtime contract is the same.
 type RenderOtpProps = {
+	defaultValue?: string;
 	maxLength?: number;
 	disabled?: boolean;
 	pattern?: string;
@@ -42,7 +40,7 @@ function renderOtp(props: RenderOtpProps = {}) {
 	);
 
 	const input = screen.getByRole<HTMLInputElement>("textbox", { name: "otp" });
-	const slots = screen.getAllByText("", { selector: '[data-slot="otp-input-slot"]' });
+	const slots = [...result.container.querySelectorAll('[data-slot="otp-input-slot"]')];
 
 	return { ...result, input, slots };
 }
@@ -189,8 +187,8 @@ describe("OtpInput (browser)", () => {
 			await user.click(input);
 			await user.paste("abc");
 
-			// input-otp rejects pastes that don't satisfy the pattern, so the
-			// value stays empty.
+			// A paste that does not satisfy the pattern is rejected, so the value
+			// stays empty.
 			expect(input).toHaveValue("");
 		});
 
@@ -222,6 +220,77 @@ describe("OtpInput (browser)", () => {
 		expect(slots[0]).not.toHaveAttribute("data-active");
 		expect(slots[1]).not.toHaveAttribute("data-active");
 	});
+
+	describe("selection", () => {
+		// Why the vitest/browser keyboard: an arrow key must move the native selection.
+		test("a caret on a filled slot selects that slot, so typing replaces its character", async () => {
+			const { input, slots } = renderOtp({ defaultValue: "123456" });
+
+			await browserUser.click(input);
+			await expect.poll(() => slots[5]?.hasAttribute("data-active")).toBe(true);
+			await browserUser.keyboard("{ArrowLeft}");
+			await expect.poll(() => slots[4]?.hasAttribute("data-active")).toBe(true);
+			expect(slots[5]).not.toHaveAttribute("data-active");
+
+			await browserUser.keyboard("9");
+			expect(input).toHaveValue("123496");
+			expect(slots[4]).toHaveTextContent("9");
+		});
+
+		// Why the vitest/browser click: `@testing-library/user-event` wraps the value setter of an
+		// input it focuses, and the browser then fires no `selectionchange` for React's write.
+		test("a controlled reset while focused moves the active slot to the first slot", async () => {
+			const subject = (value: string) => (
+				<OtpInput.Root maxLength={3} aria-label="otp" value={value} onChange={() => {}}>
+					<OtpInput.Group>
+						<OtpInput.Slot index={0} />
+						<OtpInput.Slot index={1} />
+						<OtpInput.Slot index={2} />
+					</OtpInput.Group>
+				</OtpInput.Root>
+			);
+			const { container, rerender } = render(subject("12"));
+			const slots = [...container.querySelectorAll('[data-slot="otp-input-slot"]')];
+
+			const input = screen.getByRole<HTMLInputElement>("textbox", { name: "otp" });
+			await browserUser.click(input);
+			input.setSelectionRange(2, 2);
+			await expect.poll(() => slots[2]?.hasAttribute("data-active")).toBe(true);
+
+			rerender(subject(""));
+
+			await expect.poll(() => slots[0]?.hasAttribute("data-active")).toBe(true);
+			expect(slots[2]).not.toHaveAttribute("data-active");
+		});
+	});
+
+	// Why the inline style: the browser project loads no mantle.css, so the
+	// test reads the variable that `otp-input-overlay` widens the input with.
+	test.each([
+		["fits", 300, "40px"],
+		["does not fit", 220, ""],
+	])(
+		"focus widens the input for a password manager badge only when the gutter %s",
+		async (_case, clipWidth, gutter) => {
+			const user = userEvent.setup();
+			render(
+				<div style={{ width: clipWidth, overflow: "hidden" }}>
+					<div style={{ width: 200 }}>
+						<OtpInput.Root maxLength={1} aria-label="otp">
+							<OtpInput.Group>
+								<OtpInput.Slot index={0} />
+							</OtpInput.Group>
+						</OtpInput.Root>
+					</div>
+				</div>,
+			);
+			const input = screen.getByRole("textbox", { name: "otp" });
+
+			await user.click(input);
+
+			expect(input.style.getPropertyValue("--_otp-badge-gutter")).toBe(gutter);
+		},
+	);
 
 	// `data-otp-state` is what every conditional slot/group style keys off, and it
 	// is derived from the count of active slots. Needs real selection APIs, so it
