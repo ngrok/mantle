@@ -190,6 +190,34 @@ describe("DropdownMenu", () => {
 		});
 	});
 
+	test("Enter on the trigger focuses the first item with no scrollIntoView, as in jsdom", async () => {
+		const saved = Object.getOwnPropertyDescriptor(Element.prototype, "scrollIntoView");
+		Object.defineProperty(Element.prototype, "scrollIntoView", {
+			configurable: true,
+			value: undefined,
+		});
+		try {
+			const user = userEvent.setup();
+			render(
+				<DropdownMenu.Root>
+					<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+					<DropdownMenu.Content>
+						<DropdownMenu.Item>Rename</DropdownMenu.Item>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>,
+			);
+
+			screen.getByRole("button", { name: "Open" }).focus();
+			await user.keyboard("{Enter}");
+
+			expect(await screen.findByRole("menuitem", { name: "Rename" })).toHaveFocus();
+		} finally {
+			if (saved != null) {
+				Object.defineProperty(Element.prototype, "scrollIntoView", saved);
+			}
+		}
+	});
+
 	describe("loop", () => {
 		// Radix defaults `loop` to false; the wrap-around is mantle's default.
 		test("ArrowDown from the last item wraps to the first", async () => {

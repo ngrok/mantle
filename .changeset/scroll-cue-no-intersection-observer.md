@@ -2,4 +2,4 @@
 "@ngrok/mantle": patch
 ---
 
-`Select`, `Combobox`, `MultiSelect`, `DropdownMenu`, and `Command` work again where `IntersectionObserver` is missing, such as jsdom. Their lists threw on open there. The list now shows no edge cue in that case.
+Floats, picker lists, and `OtpInput` work again in jsdom, which has no `IntersectionObserver`, `ResizeObserver`, `scrollIntoView`, or `CSS.supports`. `Select`, `Combobox`, `MultiSelect`, `DropdownMenu`, `Popover`, `Tooltip`, `HoverCard`, and `Command` threw when they opened. `DropdownMenu` threw on a keyboard open, and `OtpInput` threw on paste. Where an API is missing, a float places itself only on scroll and resize, and a list shows no edge cue.

@@ -36,9 +36,13 @@ const ROWS = [
  * ```
  */
 const observeScrollEdges = (list: HTMLElement | null): (() => void) | undefined => {
-	// Why the `IntersectionObserver` check: jsdom has none, and a throw here
-	// would break the whole list in a consumer's test. The list then shows no cue.
-	if (list == null || typeof IntersectionObserver === "undefined") {
+	// Why the observer checks: jsdom has neither, and a throw here would break
+	// the whole list in a consumer's test. The list then shows no cue.
+	if (
+		list == null ||
+		typeof IntersectionObserver === "undefined" ||
+		typeof ResizeObserver === "undefined"
+	) {
 		return undefined;
 	}
 	let first: Element | undefined;

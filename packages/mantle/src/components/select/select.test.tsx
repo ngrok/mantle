@@ -1003,8 +1003,9 @@ describe("Select", () => {
 			expect(new FormData(form).get("fruit")).toBe("banana");
 		});
 
-		test("picks an item by its role where IntersectionObserver is missing, as in jsdom", async () => {
+		test("picks an item by its role with no IntersectionObserver or ResizeObserver, as in jsdom", async () => {
 			vi.stubGlobal("IntersectionObserver", undefined);
+			vi.stubGlobal("ResizeObserver", undefined);
 			const user = userEvent.setup();
 			render(
 				<Select.Root>
