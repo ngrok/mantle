@@ -393,7 +393,7 @@ useHotkeys("mod+k", () => setOpen(true), { preventDefault: true });
 
 The inline palette, wrapping `Command.Input` and `Command.List`. It owns the filtering and the active item for every part below it. `Command.DialogContent` renders one itself, so a modal palette does not add it.
 
-A query hides each item that scores 0 and moves the matches into score order: in each group the items, and in the list the items outside a group, then the groups by their best item. An empty query puts every item back in its first order.
+A query hides each item that scores 0 and moves the matches into score order: in each group the items, and in the list the items outside a group, then the groups by their best item. An empty query puts the items back in the order they had before the search, and an item appended during the search stays at the end.
 
 | Prop                       | Type                                                             | Default | Description                                                                                       |
 | :------------------------- | :--------------------------------------------------------------- | :------ | :------------------------------------------------------------------------------------------------ |
@@ -515,11 +515,12 @@ A labeled section of items; the `heading` prop names it. A query that matches no
 | `value?`      | `string`    |         | A value for the group, written to `data-value`.       |
 | `forceMount?` | `boolean`   | `false` | Whether the group and its items show for every query. |
 
-| Data Attribute | Value                     | Description                                      |
-| :------------- | :------------------------ | :----------------------------------------------- |
-| `data-slot`    | `"command-group"`         | The group.                                       |
-| `data-slot`    | `"command-group-heading"` | The heading, hidden from assistive technology.   |
-| `data-slot`    | `"command-group-items"`   | The `role="group"` element that holds the items. |
+| Data Attribute     | Value                     | Description                                      |
+| :----------------- | :------------------------ | :----------------------------------------------- |
+| `data-slot`        | `"command-group"`         | The group.                                       |
+| `data-slot`        | `"command-group-heading"` | The heading, hidden from assistive technology.   |
+| `data-slot`        | `"command-group-items"`   | The `role="group"` element that holds the items. |
+| `data-force-mount` | `""`                      | Present when the group has `forceMount`.         |
 
 ### Command.Item
 

@@ -142,6 +142,8 @@ const createCommand = (initialValue: string) => {
 	let counted = false;
 	let scheduled = false;
 	let highlighted: HTMLElement | null = null;
+	/** True while the root applies its controlled `value`, which must not echo through `onValueChange`. */
+	let syncing = false;
 
 	const emit = () => {
 		for (const listener of listeners) {
@@ -196,11 +198,19 @@ const createCommand = (initialValue: string) => {
 	/**
 	 * Puts each container's children back in the order they had before the
 	 * first sort. A child that mounted during the search keeps its place before
-	 * the next child it stands in front of.
+	 * the next child it stands in front of, and the children appended at the end
+	 * stay at the end.
 	 */
 	const restore = () => {
 		for (const [container, order] of natural) {
 			let anchor: Element | null = null;
+			for (
+				let node = container.lastElementChild;
+				node != null && !order.has(node);
+				node = node.previousElementSibling
+			) {
+				anchor = node;
+			}
 			for (const node of [...order.keys()].toReversed()) {
 				if (node.parentElement !== container) {
 					continue;
@@ -303,7 +313,10 @@ const createCommand = (initialValue: string) => {
 
 		for (const group of list.querySelectorAll<HTMLElement>(GROUP_SELECTOR)) {
 			const items = group.querySelector(GROUP_ITEMS_SELECTOR);
-			const visible = !filtering || items?.querySelector('[role="option"]:not([hidden])') != null;
+			const visible =
+				!filtering ||
+				group.hasAttribute("data-force-mount") ||
+				items?.querySelector('[role="option"]:not([hidden])') != null;
 			if (filtering && visible && items != null) {
 				state.filtered.groups.add(items.id);
 			}
@@ -359,7 +372,9 @@ const createCommand = (initialValue: string) => {
 		const value = active?.dataset.value ?? "";
 		if (value !== state.value) {
 			state.value = value;
-			optionsRef.current.onValueChange?.(value);
+			if (!syncing) {
+				optionsRef.current.onValueChange?.(value);
+			}
 		}
 		emit();
 	};
@@ -416,9 +431,15 @@ const createCommand = (initialValue: string) => {
 		setValue: (value: string) => {
 			state.value = value;
 			const match = findByValue(value);
+			syncing = true;
 			if (match != null) {
 				focusOption(match);
+			} else {
+				// Why: a value with no item leaves no item active, so `Enter` cannot run the item that was active before.
+				listboxRef.current?.activate(null);
 			}
+			syncing = false;
+			state.value = value;
 			emit();
 		},
 		/**
@@ -455,11 +476,10 @@ const createCommand = (initialValue: string) => {
 			}
 			const unsubscribe = listbox.getStore().subscribe(showActive);
 			refresh({ selectFirst: false });
+			// Why keep `highlighted` and `natural`: StrictMode and an inline `ref` detach and attach the same list, and a reset would leave a second `data-selected` row and lose the order to restore.
 			return () => {
 				unsubscribe();
 				list = null;
-				highlighted = null;
-				natural.clear();
 			};
 		},
 		moveBy,

@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import type { ComponentProps } from "react";
+import { StrictMode, type ComponentProps } from "react";
 import { describe, expect, test, vi } from "vitest";
 import * as Command from "./command-parts.js";
 import { useCommandState } from "./command.js";
@@ -105,6 +105,28 @@ describe("Command.Root filtering", () => {
 		expect(active()).toHaveTextContent("Calendar");
 	});
 
+	test("an item appended during a query stays after the others when the query clears", async () => {
+		const user = userEvent.setup();
+		const Items = ({ names }: { names: string[] }) => (
+			<Command.Root>
+				<Command.Input />
+				<Command.List>
+					{names.map((name) => (
+						<Command.Item key={name}>{name}</Command.Item>
+					))}
+				</Command.List>
+			</Command.Root>
+		);
+		const { rerender } = render(<Items names={["Xa", "Ab"]} />);
+		await user.type(input(), "a");
+		expect(optionNames()).toEqual(["Ab", "Xa"]);
+
+		rerender(<Items names={["Xa", "Ab", "Zed"]} />);
+		await user.clear(input());
+
+		await vi.waitFor(() => expect(optionNames()).toEqual(["Xa", "Ab", "Zed"]));
+	});
+
 	test("shows the empty state and counts no match for a query that matches nothing", async () => {
 		const user = userEvent.setup();
 		const Count = () => (
@@ -141,6 +163,25 @@ describe("Command.Root filtering", () => {
 
 		expect(optionNames()).toEqual(["Search everything"]);
 		expect(screen.getByText("No results found.")).toBeInTheDocument();
+	});
+
+	test("a forceMount group stays visible for every query, with no matching item", async () => {
+		const user = userEvent.setup();
+		render(
+			<Command.Root>
+				<Command.Input />
+				<Command.List>
+					<Command.Item>Calendar</Command.Item>
+					<Command.Group heading="Results" forceMount>
+						<div>Loading…</div>
+					</Command.Group>
+				</Command.List>
+			</Command.Root>,
+		);
+
+		await user.type(input(), "zzz");
+
+		expect(screen.getByRole("group", { name: "Results" })).toBeInTheDocument();
 	});
 
 	test("an item that mounts during a query is filtered against it", async () => {
@@ -185,6 +226,20 @@ test("the empty state shows once the last item unmounts", async () => {
 });
 
 describe("Command.Root keyboard", () => {
+	test("in StrictMode, only the active item has data-selected", async () => {
+		const user = userEvent.setup();
+		render(
+			<StrictMode>
+				<Palette />
+			</StrictMode>,
+		);
+
+		await user.type(input(), "{ArrowDown}");
+
+		const selected = document.querySelectorAll('[data-selected="true"]');
+		expect(Array.from(selected, (option) => option.textContent)).toEqual(["Search Emoji"]);
+	});
+
 	test("the arrows move the active item and skip a disabled one, with no wrap", async () => {
 		const user = userEvent.setup();
 		render(<Palette />);
@@ -316,5 +371,21 @@ describe("Command.Root value", () => {
 		rerender(<Palette value="Billing" />);
 
 		expect(active()).toHaveTextContent("Billing");
+	});
+
+	test("a controlled value with no item leaves no item active, so Enter selects nothing", async () => {
+		const user = userEvent.setup();
+		const onSelect = vi.fn<(value: string) => void>();
+		const onValueChange = vi.fn<(value: string) => void>();
+		const { rerender } = render(
+			<Palette value="Billing" onValueChange={onValueChange} onSelect={onSelect} />,
+		);
+
+		rerender(<Palette value="Nothing" onValueChange={onValueChange} onSelect={onSelect} />);
+		await user.type(input(), "{Enter}");
+
+		expect(active()).toBeNull();
+		expect(onSelect).not.toHaveBeenCalled();
+		expect(onValueChange).not.toHaveBeenCalled();
 	});
 });

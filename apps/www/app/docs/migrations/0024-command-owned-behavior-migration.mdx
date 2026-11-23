@@ -24,7 +24,7 @@ In a project that installs `@ngrok/mantle`:
 npx --yes --package=@ast-grep/cli@0.51.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0024-command-owned-behavior.yml --update-all <path>
 ```
 
-The codemod does step 2 in the string literals of each file that imports `@ngrok/mantle/command`. It runs again safely. Pass `--dry-run` first, and run your formatter after. Do the other steps by hand: a selector in a `.css` file, a test query, and a choice about order are not syntax that a rule can read.
+The codemod does step 2 in the string literals of each file that imports or re-exports `@ngrok/mantle/command`. It also rewrites the valued form, such as `[cmdk-item=""]`. A file that loads the palette with a dynamic `import()` is not covered; edit it by hand. It runs again safely. Pass `--dry-run` first, and run your formatter after. Do the other steps by hand: a selector in a `.css` file, a test query, and a choice about order are not syntax that a rule can read.
 
 ---
 
@@ -41,6 +41,7 @@ The codemod does step 2 in the string literals of each file that imports `@ngrok
    - `[cmdk-item]` → `[data-slot~=command-item]`
    - `[cmdk-separator]` → `[data-slot~=command-separator]`
    - `[cmdk-empty]` → `[data-slot~=command-empty]`
+   - A valued form, such as `[cmdk-item=""]`, moves the same way.
 3. Delete selectors for `[cmdk-label]` and `[cmdk-list-sizer]`, which have no part now. `Command.Root`'s `label` sets the input's `aria-label`, and `Command.List` holds its children directly. Remove uses of `--cmdk-list-height`, which nothing sets now.
 4. Replace `data-[disabled=false]` and `data-[selected=false]` on `Command.Item`. An item has `data-disabled="true"` only when it is disabled, and `data-selected="true"` only while it is active, so use `not-data-[disabled=true]:` and `not-data-[selected=true]:`.
 5. In tests, a filtered item stays in the DOM with the `hidden` attribute. `queryByText("Calendar")` still finds it, so assert `queryByRole("option", { name: "Calendar" })`, which skips a hidden element. An item no longer unmounts when the query filters it out, so its state and effects stay.

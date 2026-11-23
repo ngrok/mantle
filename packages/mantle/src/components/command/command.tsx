@@ -888,13 +888,14 @@ const CommandEmpty = ({
 
 /**
  * A labeled section of items; the `heading` prop names it. A query that
- * matches none of its items writes `hidden` on it.
+ * matches none of its items writes `hidden` on it, unless it has `forceMount`.
  *
- * | Data Attribute | Value                     | Description                                      |
- * | -------------- | ------------------------- | ------------------------------------------------ |
- * | `data-slot`    | `"command-group"`         | The group.                                       |
- * | `data-slot`    | `"command-group-heading"` | The heading, hidden from assistive technology.   |
- * | `data-slot`    | `"command-group-items"`   | The `role="group"` element that holds the items. |
+ * | Data Attribute     | Value                     | Description                                      |
+ * | ------------------ | ------------------------- | ------------------------------------------------ |
+ * | `data-slot`        | `"command-group"`         | The group.                                       |
+ * | `data-slot`        | `"command-group-heading"` | The heading, hidden from assistive technology.   |
+ * | `data-slot`        | `"command-group-items"`   | The `role="group"` element that holds the items. |
+ * | `data-force-mount` | `""`                      | Present when the group has `forceMount`.         |
  *
  * @see https://mantle.ngrok.com/components/navigation/command#commandgroup
  *
@@ -959,6 +960,7 @@ const CommandGroup = ({
 			{...props}
 			role="presentation"
 			data-value={value}
+			data-force-mount={forceMount ? "" : undefined}
 			data-slot={joinDataSlot(dataSlot, "command-group")}
 			className={cx(
 				"*:data-[slot=command-group-heading]:text-muted overflow-hidden p-1 *:data-[slot=command-group-heading]:px-2 *:data-[slot=command-group-heading]:py-1.5 *:data-[slot=command-group-heading]:text-xs *:data-[slot=command-group-heading]:font-medium",

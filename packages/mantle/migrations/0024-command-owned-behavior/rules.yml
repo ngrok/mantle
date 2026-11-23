@@ -1,28 +1,36 @@
 # `Command` no longer renders cmdk's `cmdk-*` attributes. Each part carries a
 # `data-slot`, so an attribute selector in a class string or a CSS-in-JS string
 # moves to that slot. The rule rewrites only files that import
-# `@ngrok/mantle/command`, so a file that uses cmdk itself keeps its selectors.
+# or re-export `@ngrok/mantle/command`, so a file that uses cmdk itself keeps
+# its selectors. `[cmdk-root]` moves to the root's `command` slot.
 id: command-cmdk-attribute-to-data-slot
 language: tsx
 message: "`cmdk-*` attributes are gone: select the part's `data-slot`"
 rule:
   all:
     - kind: string_fragment
-    - regex: \[cmdk-(root|input|list|group|group-heading|group-items|item|separator|empty)\]
+    - regex: \[cmdk-(root|input|list|group|group-heading|group-items|item|separator|empty)(=""|='')?\]
     - pattern: $FRAGMENT
     - inside:
         kind: program
         stopBy: end
         has:
-          kind: import_statement
+          any:
+            - kind: import_statement
+            - kind: export_statement
           has:
             field: source
             regex: ^["']@ngrok/mantle/command["']$
 transform:
-  SELECTOR:
+  ROOT:
     replace:
       source: $FRAGMENT
-      replace: \[cmdk-(?<part>root|input|list|group-heading|group-items|group|item|separator|empty)\]
+      replace: \[cmdk-root(=""|='')?\]
+      by: "[data-slot~=command]"
+  SELECTOR:
+    replace:
+      source: $ROOT
+      replace: \[cmdk-(?<part>input|list|group-heading|group-items|group|item|separator|empty)(=""|='')?\]
       by: "[data-slot~=command-$part]"
 fix: $SELECTOR
 ---
@@ -32,20 +40,27 @@ message: "`cmdk-*` attributes are gone: select the part's `data-slot`"
 rule:
   all:
     - kind: string_fragment
-    - regex: \[cmdk-(root|input|list|group|group-heading|group-items|item|separator|empty)\]
+    - regex: \[cmdk-(root|input|list|group|group-heading|group-items|item|separator|empty)(=""|='')?\]
     - pattern: $FRAGMENT
     - inside:
         kind: program
         stopBy: end
         has:
-          kind: import_statement
+          any:
+            - kind: import_statement
+            - kind: export_statement
           has:
             field: source
             regex: ^["']@ngrok/mantle/command["']$
 transform:
-  SELECTOR:
+  ROOT:
     replace:
       source: $FRAGMENT
-      replace: \[cmdk-(?<part>root|input|list|group-heading|group-items|group|item|separator|empty)\]
+      replace: \[cmdk-root(=""|='')?\]
+      by: "[data-slot~=command]"
+  SELECTOR:
+    replace:
+      source: $ROOT
+      replace: \[cmdk-(?<part>input|list|group-heading|group-items|group|item|separator|empty)(=""|='')?\]
       by: "[data-slot~=command-$part]"
 fix: $SELECTOR

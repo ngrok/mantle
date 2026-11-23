@@ -16,7 +16,7 @@ Breaking changes. Follow the [migration guide](https://mantle.ngrok.com/migratio
 
 Other changes:
 
-- An empty query puts each item back in its first order. With `cmdk`, the order after a search stayed shuffled.
+- An empty query puts the items back in the order they had before the search, and an item appended during the search stays at the end. With `cmdk`, the order after a search stayed shuffled.
 - Items with the same score keep their first order.
 - The empty state shows when the last item unmounts, and an item that mounts during a query is filtered against it.
 - `Command.List` scrolls with no visible scrollbar, fades its edges where more items are past them, and does not bounce or scroll the page at its end.
