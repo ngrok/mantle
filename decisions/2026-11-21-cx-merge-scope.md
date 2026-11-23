@@ -23,27 +23,30 @@ The evidence for real use: 14.5k class strings from mantle, ngrok-private/fronte
 
 ## Decision
 
-1. **Remove the per-root value lists.** A class with a Tailwind root, such as `animate-in` or `items-brand`, now merges with the Tailwind utilities of that root. The spacing roots (`p`, `m`, `w`, `inset`, …) and `z`, `order`, `self`, `select`, `whitespace`, `row`, `col`, and `scheme` keep their value checks, so `my-app` and `top-ranked` still do not merge.
+1. **Remove the per-root value lists.** A class with a Tailwind root, such as `animate-in` or `items-brand`, now merges with the Tailwind utilities of that root. Only the spacing roots (`p`, `m`, `w`, `inset`, …) and `row` and `col` keep their value checks. The spacing checks keep `my-app` and `top-ranked` apart from `my-4` and `top-2`. The `col` check keeps Bootstrap's `col-md-6` and `col-md-offset-1` apart in the ngrok agent's web UI. With no check on `z`, mantle's `z-max` now replaces an earlier `z-10`, because both set `z-index`.
 2. **Go back to one arbitrary-value classifier.** The merge reads the kind of an arbitrary value (a length, a color, an image, a shadow, or a label) once, with a short list of units and functions.
-3. **Remove the value checks on `flex`, `transition`, `object`, `list`, and `scrollbar`.**
+3. **Remove the value checks on `flex`, `transition`, `object`, `list`, `scrollbar`, `z`, `order`, `self`, `select`, `whitespace`, and `scheme`.** No real class needs them. The real tokens they kept apart are data-slot names and words in text, such as `select-trigger` and `self-hosted`.
 4. **Keep** the container and filter fixes, the cache fix, the slot limits, the full 3.7.1 conflict table, the mask groups, the type roles, and the build-time fold. Real code uses each of them.
 5. **Two named exceptions remain:**
    - `invert-theme` is mantle's theme island class (Sandbar, the frontend consent banner). It sets the theme variables, not the `invert` filter, so it is a keyword with its own class group.
    - `zoom` takes only an integer. tw-animate-css `zoom-in-95` and `zoom-out-95` set the enter and exit scales, so they stay apart from each other and from Tailwind's `zoom-50`.
 
-The bundle is 6.8 KB gzip (19.2 KB minified), from 8.3 KB. In V8 (Node 26), the first render of 400 calls and a cache miss take the same time as before, and `cx` keeps about 90 KB less memory after the renders.
+The bundle is 6.7 KB gzip (18.9 KB minified), from 8.3 KB. In V8 (Node 26), the first render of 400 calls and a cache miss take the same time as before, and `cx` keeps about 90 KB less memory after the renders.
 
-## The classes that now merge differently from tailwind-merge
+## Examples of classes that merge differently from tailwind-merge
 
-None of the 14.5k real strings merge differently from #1737. Of the 554,676 real pairs, 97 merge differently. These are the kinds of class where the merge and `tailwind-merge` do not agree:
+None of the 14.5k real strings merge differently from #1737. Of the 554,676 real pairs, 250 merge differently: the merges listed below, `z-max`, and pairs of tokens that are not classes. These are the kinds of class where the merge and `tailwind-merge` do not agree. The list gives examples; it does not hold every input:
 
 - **A custom or plugin class with a Tailwind root.** Examples: `items-brand`, `flex-brand`, `cursor-brand`, `rounded-brand`, `animate-brand`, `leading-brand`, and 178 more roots in the old probe test. The class merges with the Tailwind utility of its root. For the plugin and mantle classes that apps use, this is correct by the CSS, because they set the same property:
   - tw-animate-css `animate-in` and `animate-out` set `animation`, so `data-state-open:animate-none` removes `data-state-open:animate-in`.
   - mantle's `cursor-inherit` sets `cursor`, so it replaces `cursor-pointer`.
   - `blur-0` and `blur-[4px]` set the blur, so the later one wins. `tailwind-merge` keeps both, because `blur-0` is not on its scale.
 - **Arbitrary lengths with units outside the list.** `text-[2cap]`, `text-[2vi]`, `text-[3svb]`, and `text-[--spacing(4)]` read as a color, so they do not replace `text-2xl`. The same applies to `[0]` on `text`.
-- **Labels that name no kind that the root reads.** On `text`, `[number:3]`, `(number:--x)`, `[position:10px]`, `[image:url(a)]`, `[shadow:a]`, `[weight:600]`, `[family-name:x]`, and the other labels except `length`, `percentage`, and `size` read as a color. `tailwind-merge` gives each one its own class group.
-- **`percentage` and `size` labels on `text`.** `text-[percentage:50%]`, `text-[size:2px]`, and their `(…:--x)` forms read as a font size, so they replace `text-2xl`. `tailwind-merge` keeps both.
+- **Labels that name no kind that the root reads.** On `text`, `[size:2px]`, `[number:3]`, `(number:--x)`, `[position:10px]`, `[image:url(a)]`, `[shadow:a]`, `[weight:600]`, `[family-name:x]`, and the other labels except `length` and `percentage` read as a color. On `bg`, `[length:2px]` and `(percentage:--x)` read as a color, so they replace `bg-red-500`. `tailwind-merge` gives each one its own class group.
+- **`percentage` labels on `text`.** `text-[percentage:50%]` and `text-(percentage:--x)` read as a font size, so they replace `text-2xl`. `tailwind-merge` keeps both.
+- **Labeled variables on the shadow roots.** On `shadow`, `inset-shadow`, `text-shadow`, and `drop-shadow`, each `(…)` value reads as a shadow size, so `shadow-(color:--x)` merges with `shadow-lg`.
+- **Unitless arbitrary numbers on width roots.** On `border`, `ring`, `outline`, and `decoration`, `[12]`, `[1.5]`, `[number:3]`, and `(number:--x)` read as a width, so `border-[12]` merges with `border-2`. Units outside the list, such as `[2cap]`, read as a color on these roots too.
+- **Tailwind's legacy `flex-grow` and `flex-shrink` classes.** Tailwind's class list leaves them out. They read as `flex`, so `shrink-0 flex-grow` merges to `flex-grow`. Use `grow` and `shrink`.
 - **Image functions outside the list.** `image-set()`, `cross-fade()`, and `element()` read as a color, not an image.
 - **Shadows that start with a fraction.** `[.5px_1px_2px_black]` is not a shadow, so `shadow-[.5px_1px_2px_black]` reads as a shadow color.
 - **Unlabeled arbitrary font values.** `font-(--x)` and `font-[Inter]` read as a font family. `tailwind-merge` reads them as a weight.
@@ -61,7 +64,7 @@ Each case is a small change in `packages/mantle/src/utils/cx/merge.ts`. Add the 
 
 ## Alternatives considered
 
-- **Keep tailwind-merge parity.** Rejected: 1.5 KB gzip on each page that uses `cx`, for classes that no app writes. The per-root lists also kept `animate-in` and `animate-none` apart, which is wrong by the CSS.
+- **Keep tailwind-merge parity.** Rejected: about 1.6 KB gzip on each page that uses `cx`, for classes that no app writes. The per-root lists also kept `animate-in` and `animate-none` apart, which is wrong by the CSS.
 - **Keep the 3.7.1 validators and remove only the per-root lists (7.1 KB).** Rejected: the validators change no real pair.
 
 ## Consequences

@@ -22,7 +22,6 @@ const ARBITRARY_SHADOW = /^(inset_)?-?\d.*_/;
 
 type ValueKind =
 	| "color"
-	| "family"
 	| "image"
 	| "length"
 	| "number"
@@ -35,7 +34,6 @@ type ValueKind =
 /** The value kind that each `[label:…]` or `(label:…)` names. */
 const LABEL_KINDS: Record<string, ValueKind | undefined> = {
 	color: "color",
-	"family-name": "family",
 	image: "image",
 	length: "length",
 	number: "number",
@@ -245,17 +243,11 @@ for (const root of "block inline min-block max-block min-inline max-inline p px 
 )) {
 	VALUE_SHAPES[root] = SPACING_VALUE;
 }
-VALUE_SHAPES.z = /^(\d+|auto)$/;
 // tw-animate-css `zoom-in-95` and `zoom-out-95` set the enter and exit scales, not `zoom`.
 VALUE_SHAPES.zoom = /^\d+$/;
-VALUE_SHAPES.self =
-	/^(auto|start|end|center|stretch|baseline|baseline-last|last-baseline|(end|center)-safe)$/;
-VALUE_SHAPES.select = /^(none|text|all|auto)$/;
-VALUE_SHAPES.whitespace = /^(normal|nowrap|pre|pre-line|pre-wrap|break-spaces)$/;
-VALUE_SHAPES.row = /^(auto|\d+|span-(\d+|full))$/;
+// Bootstrap's `col-md-6` and `col-md-offset-1` in the ngrok agent's web UI set different properties.
+VALUE_SHAPES.row = /^(auto|\d+|span-(full|\d+|\[.+\]|\(.+\)))$/;
 VALUE_SHAPES.col = VALUE_SHAPES.row;
-VALUE_SHAPES.order = /^(\d+|first|last|none)$/;
-VALUE_SHAPES.scheme = /^(normal|dark|light|light-dark|only-dark|only-light)$/;
 
 /** Mantle's type roles (packages/mantle/src/mantle.css): a font size, never a color. */
 const TYPE_ROLE = /^(heading|paragraph)-(base|(\d+(\.\d+)?)?(xs|sm|md|lg|xl))$/;
@@ -271,8 +263,7 @@ const VALUE_ROOTS: Record<string, ((value: string) => string | undefined) | unde
 				return "text-wrap";
 			}
 			const kind = arbitraryKind(value);
-			const isSize =
-				TSHIRT.test(value) || TYPE_ROLE.test(value) || kind === "length" || kind === "size";
+			const isSize = TSHIRT.test(value) || TYPE_ROLE.test(value) || kind === "length";
 			return isSize ? "font-size" : "text-color";
 		},
 		font: (value: string) => {

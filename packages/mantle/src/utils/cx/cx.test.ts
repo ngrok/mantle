@@ -112,6 +112,11 @@ describe("cx: look-alike classes that set different properties", () => {
 		expect(cx("invert invert-theme")).toBe("invert invert-theme");
 	});
 
+	test("Bootstrap grid columns stay apart", () => {
+		expect(cx("col-md-6 col-md-offset-1")).toBe("col-md-6 col-md-offset-1");
+		expect(cx("col-span-[2] col-span-2")).toBe("col-span-2");
+	});
+
 	test("the tw-animate-css enter and exit scales stay apart and keep zoom", () => {
 		expect(cx("zoom-in-95 zoom-out-95 zoom-50")).toBe("zoom-in-95 zoom-out-95 zoom-50");
 	});
@@ -127,6 +132,10 @@ describe("cx: plugin and mantle classes that set the same property merge", () =>
 
 	test("mantle's cursor-inherit replaces an earlier cursor", () => {
 		expect(cx("cursor-pointer cursor-inherit")).toBe("cursor-inherit");
+	});
+
+	test("mantle's z-max replaces an earlier z-index", () => {
+		expect(cx("z-10 z-max")).toBe("z-max");
 	});
 
 	test("an off-scale blur replaces an earlier blur", () => {
