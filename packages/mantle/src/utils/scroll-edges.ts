@@ -12,7 +12,9 @@ const BOTTOM = "data-overflow-bottom";
  * `MutationObserver` watches again when the options change, such as when a
  * filter drops or hides some. Hidden options do not count. The cleanup
  * disconnects both and keeps the attributes, so a ref that attaches again
- * to the same list does not blink the cue off for a frame.
+ * to the same list does not blink the cue off for a frame. An option taller
+ * than the list never shows in full, so its edge keeps the state it had when
+ * it came into view.
  *
  * @example
  * ```tsx

@@ -75,10 +75,16 @@ const scrollIntoList = (list: HTMLElement, option: HTMLElement): void => {
 	// Why: a list with `scroll-cue-y` sets `scroll-py-6`, so an option the
 	// keyboard reaches stays out of the faded edges. `auto` parses to 0. A list
 	// too short for both paddings shares the room left, so the option still shows.
+	// A percentage resolves against the list height, as for `scrollIntoView`.
 	const style = getComputedStyle(list);
 	const room = Math.max((list.clientHeight - option.offsetHeight) / 2, 0);
-	const paddingTop = Math.min(Number.parseFloat(style.scrollPaddingTop) || 0, room);
-	const paddingBottom = Math.min(Number.parseFloat(style.scrollPaddingBottom) || 0, room);
+	const padding = (value: string) =>
+		Math.min(
+			(Number.parseFloat(value) || 0) * (value.endsWith("%") ? list.clientHeight / 100 : 1),
+			room,
+		);
+	const paddingTop = padding(style.scrollPaddingTop);
+	const paddingBottom = padding(style.scrollPaddingBottom);
 	if (top - paddingTop < list.scrollTop) {
 		list.scrollTop = top - paddingTop;
 	} else if (top + option.offsetHeight + paddingBottom > list.scrollTop + list.clientHeight) {
