@@ -229,6 +229,179 @@ describe("Slider thumb hit area (browser)", () => {
 	});
 });
 
+describe("Slider track press (browser)", () => {
+	/** The running transitions of the thumb's and the range's position. */
+	function glides(): { property: string; duration: unknown; easing: string }[] {
+		return document
+			.getAnimations()
+			.filter((animation) => animation instanceof CSSTransition)
+			.filter((transition) => /inset|left|right|top|bottom/.test(transition.transitionProperty))
+			.map((transition) => ({
+				property: transition.transitionProperty,
+				duration: transition.effect?.getTiming().duration,
+				easing: transition.effect?.getTiming().easing ?? "",
+			}));
+	}
+
+	function renderSlider() {
+		render(
+			<div style={{ padding: 40, width: 280 }}>
+				<Slider aria-label="Level" defaultValue={0} />
+			</div>,
+		);
+		const slider = screen.getByRole("slider");
+		return { slider, root: rootOf(slider) };
+	}
+
+	test("a press 10px beside the thin track still moves the thumb", async () => {
+		const { slider, root } = renderSlider();
+		const rect = root.getBoundingClientRect();
+
+		await userEvent.click(root, { position: { x: rect.width * 0.75, y: rect.height / 2 - 10 } });
+
+		expect(Number((slider as HTMLInputElement).value)).toBeGreaterThan(60);
+	});
+
+	test("a press on the track glides the thumb and the range on ease-out-strong in 200ms", async () => {
+		const { slider, root } = renderSlider();
+		const rect = root.getBoundingClientRect();
+
+		await userEvent.click(root, { position: { x: rect.width - 1, y: rect.height / 2 } });
+
+		expect(slider).toHaveValue("100");
+		const curve = "cubic-bezier(0.23, 1, 0.32, 1)";
+		expect(glides()).toEqual(
+			expect.arrayContaining([
+				{ property: "left", duration: 200, easing: curve },
+				{ property: "right", duration: 200, easing: curve },
+			]),
+		);
+	});
+
+	test("a move of the pointer that changes no value keeps the thumb and the range gliding together", async () => {
+		const { root } = renderSlider();
+		const rect = root.getBoundingClientRect();
+		const at = { x: rect.width * 0.8, y: rect.height / 2 };
+
+		await userEvent.dragAndDrop(root, root, {
+			sourcePosition: at,
+			targetPosition: { ...at, y: at.y + 1 },
+		});
+
+		expect(glides().map(({ property }) => property)).toEqual(
+			expect.arrayContaining(["left", "right"]),
+		);
+	});
+
+	test("a reset during a glide moves the thumb at once", async () => {
+		render(
+			<form style={{ padding: 40, width: 280 }}>
+				<Slider aria-label="Level" defaultValue={0} />
+				<button type="reset" style={{ marginTop: 40 }}>
+					Reset
+				</button>
+			</form>,
+		);
+		const slider = screen.getByRole("slider");
+		const root = rootOf(slider);
+		const rect = root.getBoundingClientRect();
+		const reset = screen.getByRole("button", { name: "Reset" });
+
+		await userEvent.click(root, { position: { x: rect.width - 1, y: rect.height / 2 } });
+		reset.click();
+
+		await expect
+			.poll(() => getComputedStyle(thumbOf(slider)).getPropertyValue("--_value"))
+			.toBe("0");
+		expect(root).not.toHaveAttribute("data-track-press");
+		expect(glides()).toEqual([]);
+	});
+
+	// Why Chromium only: the test sends trusted mouse input through CDP.
+	test.runIf(server.browser === "chromium")(
+		"a thumb grabbed during its glide follows the pointer from where it shows",
+		async () => {
+			const { slider, root } = renderSlider();
+			const rect = root.getBoundingClientRect();
+			const thumb = thumbOf(slider);
+
+			/** Sends one trusted mouse event at a viewport point, in the page that CDP input addresses. */
+			const mouse = (
+				type: "mousePressed" | "mouseMoved" | "mouseReleased",
+				x: number,
+				y: number,
+			) => {
+				const frame = window.frameElement?.getBoundingClientRect();
+				const scale = frame == null ? 1 : frame.width / window.innerWidth;
+				return cdp().send("Input.dispatchMouseEvent", {
+					type,
+					x: (frame?.left ?? 0) + x * scale,
+					y: (frame?.top ?? 0) + y * scale,
+					button: "left",
+					buttons: type === "mouseReleased" ? 0 : 1,
+					clickCount: 1,
+				});
+			};
+			const y = rect.top + rect.height / 2;
+			await mouse("mousePressed", rect.right - 1, y);
+			await mouse("mouseReleased", rect.right - 1, y);
+			const shown = thumb.getBoundingClientRect();
+			const x = shown.left + shown.width / 2;
+			await mouse("mousePressed", x, y);
+			await mouse("mouseMoved", x - 20, y);
+			await mouse("mouseReleased", x - 20, y);
+
+			// Why 5px: the thumb ends 20px left of where it showed, give or take the thumb inset along the track.
+			expect(thumb.getBoundingClientRect().left).toBeCloseTo(shown.left - 20, -1);
+		},
+	);
+
+	test("the hit area of the next slider leaves this slider's thumb clickable", async () => {
+		render(
+			<div style={{ padding: 40, width: 280 }}>
+				<Slider aria-label="Treble" defaultValue={50} />
+				<Slider aria-label="Bass" defaultValue={50} disabled />
+			</div>,
+		);
+		const treble = screen.getByRole("slider", { name: "Treble" });
+
+		await userEvent.click(treble);
+
+		expect(treble).toHaveFocus();
+	});
+
+	test("a key press and a drag move the thumb at once", async () => {
+		const { slider, root } = renderSlider();
+		const rect = root.getBoundingClientRect();
+		slider.focus();
+		await userEvent.keyboard("{PageUp}");
+		expect(glides()).toEqual([]);
+
+		await userEvent.dragAndDrop(root, root, {
+			sourcePosition: { x: rect.width * 0.25, y: rect.height / 2 },
+			targetPosition: { x: rect.width * 0.75, y: rect.height / 2 },
+		});
+
+		expect(Number((slider as HTMLInputElement).value)).toBeGreaterThan(60);
+		expect(glides()).toEqual([]);
+	});
+
+	test("with reduced motion, a press on the track moves the thumb at once", async () => {
+		await commands.emulateMedia({ reducedMotion: "reduce" });
+		try {
+			const { slider, root } = renderSlider();
+			const rect = root.getBoundingClientRect();
+
+			await userEvent.click(root, { position: { x: rect.width - 1, y: rect.height / 2 } });
+
+			expect(slider).toHaveValue("100");
+			expect(glides()).toEqual([]);
+		} finally {
+			await commands.emulateMedia({ reducedMotion: "no-preference" });
+		}
+	});
+});
+
 describe("Slider pointer (browser)", () => {
 	/** Presses the track of the only slider at `fraction` of its length from the top left, and drags to `to`. */
 	async function pressTrack(fraction: number, to = fraction) {

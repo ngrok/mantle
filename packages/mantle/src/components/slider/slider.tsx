@@ -151,6 +151,7 @@ type SliderProps = SliderBaseProps &
  * | ------------------ | ------------------------------ | ---------------------------------------------- |
  * | `data-orientation` | `"horizontal"` \| `"vertical"` | On the root. Mirrors `orientation`.            |
  * | `data-disabled`    | present when disabled          | On the root. Presence-only. Style with `data-disabled:`. |
+ * | `data-track-press` | present during a glide         | On the root while a thumb glides after a press on the track. Presence-only. |
  *
  * @useWhen Pick a number, or a range between two numbers, with a thumb that moves along a track.
  *
@@ -259,6 +260,11 @@ function Slider({
 			className={cx(
 				"group/slider [--slider-thumb-size:--spacing(4.5)]",
 				"relative flex w-full touch-none items-center select-none data-disabled:opacity-50",
+				// Why a `::before`: it paints under the track and the thumbs with no stacking context,
+				// so each thumb's input stays above the hit area of an adjacent slider too. It is 24px
+				// for a mouse (the WCAG minimum target) and 44px for a finger, because it covers what
+				// sits beside the track.
+				"before:absolute before:top-1/2 before:left-1/2 before:-translate-1/2 before:size-[max(100%,--spacing(6))] pointer-coarse:before:size-[max(100%,--spacing(11))] data-disabled:before:pointer-events-none",
 				"data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-40 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
 				tickCount > 0 && "mb-3",
 				className,
@@ -285,6 +291,7 @@ function Slider({
 						"[--_s:calc(var(--_inv)_*_(1_-_var(--_b))_+_(1_-_var(--_inv))_*_var(--_a))] [--_e:calc(var(--_inv)_*_var(--_a)_+_(1_-_var(--_inv))_*_(1_-_var(--_b)))]",
 						"group-data-[orientation=horizontal]/slider:inset-s-[calc(var(--_s)*100%)] group-data-[orientation=horizontal]/slider:inset-e-[calc(var(--_e)*100%)]",
 						"group-data-[orientation=vertical]/slider:bottom-[calc(var(--_s)*100%)] group-data-[orientation=vertical]/slider:top-[calc(var(--_e)*100%)]",
+						"group-data-track-press/slider:motion-safe:transition-[inset-inline-start,inset-inline-end,top,bottom] group-data-track-press/slider:motion-safe:duration-200 group-data-track-press/slider:motion-safe:ease-out-strong",
 						color,
 					)}
 					style={$cssProperties(styles.range)}
@@ -311,6 +318,8 @@ function Slider({
 							"group-data-[orientation=horizontal]/slider:after:w-full group-data-[orientation=vertical]/slider:after:h-full",
 						// Why the outline: forced-colors mode drops the ring's box shadow and paints the transparent outline.
 						"has-focus-visible:ring-3 has-focus-visible:ring-accent-500/20 has-focus-visible:outline-hidden",
+						// Why only on a press of the track: a drag and a key must move at once.
+						"group-data-track-press/slider:motion-safe:transition-[color,box-shadow,inset-inline-start,bottom] group-data-track-press/slider:motion-safe:duration-200 group-data-track-press/slider:motion-safe:ease-out-strong",
 						"group-data-disabled/slider:pointer-events-none group-data-disabled/slider:cursor-default",
 					)}
 					style={$cssProperties(styles.thumbs[index] ?? {})}

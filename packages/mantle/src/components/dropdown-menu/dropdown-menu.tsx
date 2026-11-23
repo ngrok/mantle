@@ -221,7 +221,8 @@ function focusFirst(items: readonly HTMLElement[]): boolean {
 		focusWithoutScroll(item);
 		const after = item.ownerDocument.activeElement;
 		if (after === item) {
-			item.scrollIntoView({ block: "nearest" });
+			// Why optional: jsdom has no `scrollIntoView`.
+			item.scrollIntoView?.({ block: "nearest" });
 			return true;
 		}
 		// Why stop: a consumer's focus handler sent focus somewhere else on purpose.

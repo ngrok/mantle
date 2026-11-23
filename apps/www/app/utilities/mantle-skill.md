@@ -25,8 +25,8 @@ Use the first source that you can reach.
    To connect it in Claude Code: `claude mcp add --transport http mantle https://mantle.ngrok.com/mcp`.
 
 2. **The installed package**, with no network:
-   - `node_modules/@ngrok/mantle/dist/agent.json`: every component, hook, and utility with its import path, examples, aliases, and sibling boundaries (`useWhen`, `siblings`).
-   - `node_modules/@ngrok/mantle/dist/llms.txt`: one line for each module, with its import path and summary.
+   - `node_modules/@ngrok/mantle/dist/agent.json`: every component, hook, and utility with its import path, examples, aliases, and sibling boundaries (`useWhen`, `siblings`). Its `recipes` compose those parts: each one has `aliases`, `useWhen`, the `parts` it composes, and the `markdownUrl` of its full code.
+   - `node_modules/@ngrok/mantle/dist/llms.txt`: one line for each module, with its import path and summary, and one for each recipe, with its parts.
    - The type declarations, with JSDoc, for each subpath: the `types` path of that subpath in `node_modules/@ngrok/mantle/package.json#exports`. Most are `dist/<name>.d.ts`, but `@ngrok/mantle/highlight-utils` is `dist/code-block_highlight-utils.d.ts`.
    - `node_modules/@ngrok/mantle/dist/migrations/`: the codemods that the migration guides name.
 
@@ -38,11 +38,12 @@ Use the first source that you can reach.
 
 ## Workflow
 
-1. **Find the part.** Call `find` with the user's goal, or search `agent.json` by `name`, `aliases`, and `summary`. Pick a component from its `useWhen` and `siblings` boundary, not from its name alone.
+1. **Find the part.** Call `find` with the user's goal, or search `agent.json` by `name`, `aliases`, `useWhen`, and `summary`. Pick a component from its `useWhen` and `siblings` boundary, not from its name alone. When a recipe matches, start from its `parts`.
 2. **Read the contract.** Call `get`, or read the part's type declarations (see the `types` path above) and its `.md` docs page. Copy the import path from `importPath`. Do not guess props.
 3. **Compose.** Follow the import rules and the part tree in the examples.
 4. **Check.** Call `check` on each TSX file that you change, and fix what it reports. Without the server, compare each import with `importPath` and each prop with the type declarations.
-5. **Upgrade.** Before you change the mantle version, call `migrate` (or read `https://mantle.ngrok.com/migrations`) and run each guide and codemod in order.
+5. **Disclose.** In your final reply, list each part that you built instead of a mantle part, and why. Name the gap report when you filed one. Claim a mantle part only with evidence: its import and the JSX that renders it. An import alone is not evidence.
+6. **Upgrade.** Before you change the mantle version, call `migrate` (or read `https://mantle.ngrok.com/migrations`) and run each guide and codemod in order.
 
 ## Import rules
 
