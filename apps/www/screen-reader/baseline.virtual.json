@@ -775,12 +775,12 @@
         },
         {
           "label": "reader next",
-          "spoken": ["Comfortable"],
-          "failed": ["missing /compact/", "missing /radio( button)?/"]
+          "spoken": ["radio, Compact, checked, position 3, set size 3"],
+          "failed": []
         },
         {
           "label": "reader next",
-          "spoken": ["radio, Compact, checked, position 3, set size 3"],
+          "spoken": ["end of radiogroup"],
           "failed": []
         }
       ]
@@ -808,13 +808,13 @@
         },
         {
           "label": "reader next",
-          "spoken": ["Dev"],
-          "failed": ["missing /staging/", "missing /dimmed|unavailable|disabled/"]
+          "spoken": ["radio, Staging, not checked, disabled, position 2, set size 3"],
+          "failed": []
         },
         {
           "label": "reader next",
-          "spoken": ["radio, Staging, not checked, disabled, position 2, set size 3"],
-          "failed": ["missing /prod/"]
+          "spoken": ["radio, Prod, checked, position 3, set size 3"],
+          "failed": []
         }
       ]
     },
@@ -1044,7 +1044,10 @@
       "steps": [
         {
           "label": "press Tab",
-          "spoken": ["button, not disabled", "focus: button \"Switch to dark theme\""],
+          "spoken": [
+            "button, Switch to dark theme, not disabled",
+            "focus: button \"Switch to dark theme\""
+          ],
           "failed": []
         },
         {
