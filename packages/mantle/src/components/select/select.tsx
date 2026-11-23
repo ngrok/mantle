@@ -8,7 +8,7 @@ import type {
 	Ref,
 	SelectHTMLAttributes,
 } from "react";
-import { cloneElement, createContext, isValidElement, use, useEffect, useId, useMemo } from "react";
+import { createContext, isValidElement, use, useEffect, useId, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { composeHandlers } from "../../behaviors/compose-handlers.js";
 import { useStoreValue } from "../../behaviors/store.js";
@@ -28,7 +28,7 @@ import { useFieldValidation } from "../field/validation-context.js";
 import type { WithValidation } from "../field/validation.js";
 import { Icon } from "../icon/icon.js";
 import { Separator } from "../separator/separator.js";
-import { Slot } from "../slot/index.js";
+import { Slot, slotContent } from "../slot/slot.js";
 
 type WithAriaInvalid = Pick<SelectHTMLAttributes<HTMLSelectElement>, "aria-invalid">;
 
@@ -730,16 +730,6 @@ const Trigger = ({
 		</Component>
 	);
 };
-
-/**
- * Under `asChild`, moves the part's own content inside the consumer's element:
- * `render` gets the element's children and returns what the element renders.
- * `Slot` then merges the part's props onto that element.
- */
-const slotContent = (children: ReactNode, render: (inner: ReactNode) => ReactNode): ReactNode =>
-	isValidElement<{ children?: ReactNode }>(children)
-		? cloneElement(children, undefined, render(children.props.children))
-		: children;
 
 type SelectContentProps = Omit<ComponentProps<"div">, "dir"> &
 	WithDataSlot & {
