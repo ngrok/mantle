@@ -5,122 +5,102 @@
  * keyword, or a color), so two classes that look alike but set different CSS properties stay
  * apart: `text-heading-xl` sets the font size and `text-strong` sets the color. The class group
  * ids and the conflict table follow `tailwind-merge` (MIT, Dany Castillo), which the tests use as
- * the oracle.
+ * the oracle for the classes that mantle and its apps write. The merge does not match it for
+ * classes no app writes: decisions/2026-11-21-cx-merge-scope.md lists them.
  */
 
-// --- Value validators ----------------------------------------------------------------------
-// They follow `tailwind-merge` 3.7.1 (`src/lib/validators.ts`). A label such as `length:` in
-// `[length:2px]` means a different class group for each root, so each root asks its own question.
+// --- Value kinds ---------------------------------------------------------------------------
 
-const ARBITRARY_VALUE = /^\[(?:(\w[\w-]*):)?(.+)\]$/i;
-const ARBITRARY_VARIABLE = /^\((?:(\w[\w-]*):)?(.+)\)$/i;
-const FRACTION = /^\d+(?:\.\d+)?\/\d+(?:\.\d+)?$/;
-const TSHIRT = /^(\d+(\.\d+)?)?(xs|sm|md|lg|xl)$/;
-const LENGTH_UNIT =
-	/\d+(%|px|r?em|[sdl]?v([hwib]|min|max)|pt|pc|in|cm|mm|Q|cap|ch|ex|r?lh|cq(w|h|i|b|min|max))|\b(calc|min|max|clamp)\(.+\)|^--spacing\(.+\)|^0$/;
-const COLOR_FUNCTION =
-	/^(rgba?|hsla?|hwb|(ok)?(lab|lch)|color-mix|color|light-dark|contrast-color|device-cmyk|--alpha)\(.+\)$/i;
-const MASK_POSITION =
-	/^(?:_*[+-]?(?:\d|\.\d)|[\w-]+\(|_*(?:inherit|initial|revert(?:-layer)?|unset)_*$)/i;
-const SHADOW = /^(inset_)?-?((\d+)?\.?(\d+)[a-z]+|0)_-?((\d+)?\.?(\d+)[a-z]+|0)/;
-const IMAGE =
-	/^(url|image|image-set|cross-fade|element|(repeating-)?(linear|radial|conic)-gradient)\(.+\)$/;
+const NUMBER = /^\d*\.?\d+$/;
+const FRACTION = /^\d+\/\d+$/;
+const TSHIRT = /^(\d*xs|sm|md|lg|\d*xl|base)$/;
+const ARBITRARY_LENGTH =
+	/^-?(\d*\.?\d+(px|r?em|%|[dsl]?v[hw]|ch|ex|r?lh|cq[whib]|cqmin|cqmax|vmin|vmax|pt|pc|in|cm|mm|q)?|(calc|min|max|clamp)\(.*)$/;
+const ARBITRARY_COLOR = /^(#|rgba?\(|hsla?\(|hwb\(|(ok)?lab\(|(ok)?lch\(|color(-mix)?\()/;
+const ARBITRARY_IMAGE = /^(url|image|(repeating-)?(linear|radial|conic)-gradient)\(/;
+const ARBITRARY_SHADOW = /^(inset_)?-?\d.*_/;
 
-const isNumber = (value: string) => value !== "" && !Number.isNaN(Number(value));
-const isInteger = (value: string) => value !== "" && Number.isInteger(Number(value));
-const isPercent = (value: string) => value.endsWith("%") && isNumber(value.slice(0, -1));
-// Why char codes first: most values are theme values, and `[` (91) or `(` (40) rules them out
-// with no regex run.
-const isArbitrary = (value: string) =>
-	(value.charCodeAt(0) === 91 && ARBITRARY_VALUE.test(value)) ||
-	(value.charCodeAt(0) === 40 && ARBITRARY_VARIABLE.test(value));
+type ValueKind =
+	| "color"
+	| "image"
+	| "length"
+	| "number"
+	| "other"
+	| "position"
+	| "shadow"
+	| "size"
+	| "weight";
+
+/** The value kind that each `[label:…]` or `(label:…)` names. */
+const LABEL_KINDS: Record<string, ValueKind | undefined> = {
+	color: "color",
+	image: "image",
+	length: "length",
+	number: "number",
+	percentage: "length",
+	position: "position",
+	shadow: "shadow",
+	size: "size",
+	url: "image",
+	weight: "weight",
+};
 
 /**
- * Tests an arbitrary value, `[label:value]` or `[value]`: the label when it has one, else the
- * value. A theme value such as `red-500` fails.
+ * Reads the kind of an arbitrary value, `[…]` or `(--var)`, from its label or its content.
+ * Returns `undefined` for a theme value such as `red-500`.
  */
-const testValue = (
-	value: string,
-	testLabel: (label: string) => boolean,
-	testContent: (content: string) => boolean,
-) => {
-	const match = value.charCodeAt(0) === 91 ? ARBITRARY_VALUE.exec(value) : null;
-	if (match == null) {
-		return false;
+const arbitraryKind = (value: string): ValueKind | undefined => {
+	const open = value.charCodeAt(0);
+	const close = value.charCodeAt(value.length - 1);
+	// Why char codes: `[` is 91, `]` is 93, `(` is 40, and `)` is 41.
+	if (!((open === 91 && close === 93) || (open === 40 && close === 41))) {
+		return undefined;
 	}
-	return match[1] ? testLabel(match[1]) : testContent(match[2] ?? "");
+	const inner = value.slice(1, -1);
+	const label = /^([a-z-]+):/.exec(inner)?.[1];
+	if (label != null) {
+		return LABEL_KINDS[label] ?? "other";
+	}
+	// An unlabeled CSS variable can hold anything, so it takes the catch-all group, as in
+	// tailwind-merge.
+	if (open === 40) {
+		return "other";
+	}
+	if (ARBITRARY_LENGTH.test(inner)) {
+		return NUMBER.test(inner) ? "number" : "length";
+	}
+	if (ARBITRARY_COLOR.test(inner)) {
+		return "color";
+	}
+	if (ARBITRARY_IMAGE.test(inner)) {
+		return "image";
+	}
+	if (ARBITRARY_SHADOW.test(inner)) {
+		return "shadow";
+	}
+	return "other";
 };
 
-/** Tests an arbitrary variable, `(label:--var)` or `(--var)`: the label, or `isUnlabeled`. */
-const testVariable = (
-	value: string,
-	testLabel: (label: string) => boolean,
-	isUnlabeled = false,
-) => {
-	const match = value.charCodeAt(0) === 40 ? ARBITRARY_VARIABLE.exec(value) : null;
-	if (match == null) {
-		return false;
-	}
-	return match[1] ? testLabel(match[1]) : isUnlabeled;
-};
+const isLengthKind = (kind: ValueKind | undefined) => kind === "length" || kind === "number";
 
-const never = () => false;
-const isLengthLabel = (label: string) => label === "length";
-const isSizeLabel = (label: string) =>
-	label === "length" || label === "size" || label === "bg-size";
-const isPositionLabel = (label: string) => label === "position" || label === "percentage";
-const isImageLabel = (label: string) => label === "image" || label === "url";
-const isShadowLabel = (label: string) => label === "shadow";
-const isWeightLabel = (label: string) => label === "number" || label === "weight";
-const isFamilyLabel = (label: string) => label === "family-name";
-// Why the color check: a color function such as `hsl(0 0% 0%)` holds a percent.
-const isLengthContent = (content: string) =>
-	LENGTH_UNIT.test(content) && !COLOR_FUNCTION.test(content);
+/** Whether a value is a width, such as `2`, `px`, `1/2`, or `[3px]`. */
+const isLength = (value: string) =>
+	NUMBER.test(value) ||
+	FRACTION.test(value) ||
+	value === "px" ||
+	isLengthKind(arbitraryKind(value));
 
-/** An arbitrary length, such as `[2px]`, `[2cap]`, `[0]`, `[length:x]`, or `(length:--x)`. */
-const isArbitraryLength = (value: string) =>
-	testValue(value, isLengthLabel, isLengthContent) || testVariable(value, isLengthLabel);
+/** Whether a value is a percent stop, such as `10%` or `[12px]`. */
+const isPosition = (value: string) => value.endsWith("%") || arbitraryKind(value) === "length";
 
-/** A border, ring, or outline width, such as `2`, `[2px]`, or `(length:--w)`. */
-const isBorderWidth = (value: string) => isNumber(value) || isArbitraryLength(value);
-
-/** A gradient stop position, such as `10%` or `[12px]`. */
-const isStopPosition = (value: string) => isPercent(value) || isArbitraryLength(value);
-
-/** A mask gradient stop position, such as `10`, `10%`, `[12px]`, or `(--x)`. */
-const isMaskStopPosition = (value: string) =>
-	isNumber(value) ||
-	isPercent(value) ||
-	testValue(
-		value,
-		(label) => label !== "color",
-		(content) => MASK_POSITION.test(content) && !COLOR_FUNCTION.test(content),
-	) ||
-	testVariable(value, (label) => label !== "color", true);
-
-const BG_POSITION =
-	/^(center|top|bottom|left|right|top-left|left-top|top-right|right-top|bottom-right|right-bottom|bottom-left|left-bottom)$/;
-
-/** A background or mask position, such as `center` or `[position:10px]`. */
-const isBgPosition = (value: string) =>
-	BG_POSITION.test(value) ||
-	testValue(value, isPositionLabel, never) ||
-	testVariable(value, isPositionLabel) ||
-	(value.startsWith("position-") && isArbitrary(value.slice(9)));
-
-/** A background or mask size, such as `cover` or `[length:200px]`. */
-const isBgSize = (value: string) =>
-	/^(auto|cover|contain)$/.test(value) ||
-	testValue(value, isSizeLabel, never) ||
-	testVariable(value, isSizeLabel) ||
-	(value.startsWith("size-") && isArbitrary(value.slice(5)));
-
-/** A shadow size, such as `lg`, `none`, `[0_1px_2px_black]`, or `(--shadow)`. */
+/** Whether a value is a shadow size, such as `lg`, `none`, or `[0_1px_2px_black]`. */
 const isShadowSize = (value: string) =>
+	value === "" ||
 	value === "none" ||
+	value === "inner" ||
 	TSHIRT.test(value) ||
-	testValue(value, isShadowLabel, (content) => SHADOW.test(content)) ||
-	testVariable(value, isShadowLabel, true);
+	value.charCodeAt(0) === 40 ||
+	arbitraryKind(value) === "shadow";
 
 // --- Class tables ----------------------------------------------------------------------------
 
@@ -187,6 +167,8 @@ for (const [group, words] of [
 	["scroll-behavior", "scroll-auto scroll-smooth"],
 	// Mantle's own font-size utilities (packages/mantle/src/mantle.css).
 	["font-size", "text-mono text-size-inherit"],
+	// Mantle's theme island class: it sets the theme variables, not the `invert` filter.
+	["invert-theme", "invert-theme"],
 ] as const) {
 	for (const word of words.split(" ")) {
 		KEYWORDS[word] = group;
@@ -255,75 +237,15 @@ const BARE_ROOTS = new Set(
  */
 const SPACING_VALUE =
 	/^(\d*\.?\d+|\d+\/\d+|px|auto|full|screen|[sld]?v[wh]|min|max|fit|em|lh|none|prose|screen-\w+|(\d+(\.\d+)?)?(xs|sm|md|lg|xl))$/;
-const VALUE_SHAPES: Record<string, { test: (value: string) => boolean } | undefined> =
-	Object.create(null);
+const VALUE_SHAPES: Record<string, RegExp | undefined> = Object.create(null);
 for (const root of "block inline min-block max-block min-inline max-inline p px py ps pe pbs pbe pt pr pb pl m mx my ms me mbs mbe mt mr mb ml gap gap-x gap-y inset inset-x inset-y inset-s inset-e start end top right bottom left space-x space-y w h size min-w min-h max-w max-h basis indent scroll-m scroll-mx scroll-my scroll-ms scroll-me scroll-mbs scroll-mbe scroll-mt scroll-mr scroll-mb scroll-ml scroll-p scroll-px scroll-py scroll-ps scroll-pe scroll-pbs scroll-pbe scroll-pt scroll-pr scroll-pb scroll-pl inset-bs inset-be translate translate-x translate-y translate-z border-spacing border-spacing-x border-spacing-y".split(
 	" ",
 )) {
 	VALUE_SHAPES[root] = SPACING_VALUE;
 }
-VALUE_SHAPES.z = /^(\d+|auto)$/;
-VALUE_SHAPES.order = /^(\d+|first|last|none)$/;
-
-/**
- * The values of the other roots that check theirs, from `tailwind-merge` 3.7.1. Each line is
- * `roots:values`. Tokens: `#` a number, `#i` an integer, `/` a fraction, `%` a percent, `ts` a
- * T-shirt size, and `~` no value. An arbitrary value passes for each root.
- */
-const PERCENT_VALUE = /^\d*\.?\d+%$/;
-const POSITIONS =
-	"center top bottom left right top-left left-top top-right right-top bottom-right right-bottom bottom-left left-bottom";
-const BLEND_MODES =
-	"normal multiply screen overlay darken lighten color-dodge color-burn hard-light soft-light difference exclusion hue saturation color luminosity";
-const SECONDARY_AXIS = "start end center stretch center-safe end-safe";
-const PRIMARY_AXIS = `${SECONDARY_AXIS} between around evenly baseline`;
-for (const line of `self:auto ${SECONDARY_AXIS} baseline baseline-last|select:none text all auto
-	|whitespace:normal nowrap pre pre-line pre-wrap break-spaces
-	|scheme:normal dark light light-dark only-dark only-light|align:baseline top middle bottom text-top text-bottom sub super
-	|animate:none spin ping pulse bounce|appearance:none auto|aspect:auto square video /
-	|auto-cols auto-rows:auto min max fr|blur backdrop-blur:~ none ts
-	|brightness contrast hue-rotate saturate backdrop-brightness backdrop-contrast backdrop-hue-rotate backdrop-saturate backdrop-opacity opacity delay outline-offset:#
-	|grayscale invert sepia backdrop-grayscale backdrop-invert backdrop-sepia grow shrink:~ #
-	|bg-blend:${BLEND_MODES}|mix-blend:${BLEND_MODES} plus-darker plus-lighter|bg-clip:border padding content text
-	|bg-origin:border padding content|mask-clip mask-origin:border padding content fill stroke view|box-decoration:slice clone
-	|break-after break-before:auto avoid all avoid-page page left right column|break-inside:auto avoid avoid-page avoid-column
-	|caption:top bottom|clear:left right both none start end|float:right left none start end|columns:# auto ts
-	|cursor:auto default pointer wait text move help not-allowed none context-menu progress cell crosshair vertical-text alias copy no-drop grab grabbing all-scroll col-resize row-resize n-resize e-resize s-resize w-resize ne-resize nw-resize se-resize sw-resize ew-resize ns-resize nesw-resize nwse-resize zoom-in zoom-out
-	|duration:# initial|ease:linear initial in out in-out out-strong
-	|font-stretch:% ultra-condensed extra-condensed condensed semi-condensed normal semi-expanded expanded extra-expanded ultra-expanded
-	|grid-cols grid-rows:#i none subgrid|grid-flow:row col dense row-dense col-dense|col-start col-end row-start row-end:#i auto
-	|hyphens:none manual auto|items:${SECONDARY_AXIS} baseline baseline-last|justify:${PRIMARY_AXIS} normal
-	|justify-items:${SECONDARY_AXIS} normal|justify-self place-self:auto ${SECONDARY_AXIS}|place-content:${PRIMARY_AXIS}
-	|place-items:${SECONDARY_AXIS} baseline|leading:none tight snug normal relaxed loose px em #|line-clamp:# none
-	|overflow overflow-x overflow-y:auto hidden clip visible scroll|overscroll overscroll-x overscroll-y:auto contain none
-	|perspective:dramatic near normal midrange distant none|pointer-events:auto none|resize:none ~ y x
-	|rounded rounded-s rounded-e rounded-t rounded-r rounded-b rounded-l rounded-ss rounded-se rounded-ee rounded-es rounded-tl rounded-tr rounded-br rounded-bl:~ none full ts
-	|rotate rotate-x rotate-y rotate-z scale scale-x scale-y scale-z:none #|skew skew-x skew-y:#
-	|tracking:tighter tight normal wide wider widest|will-change:auto scroll contents transform|wrap:break-word anywhere normal
-	|zoom:#i|underline-offset:# auto|origin perspective-origin:${POSITIONS}
-	|divide-x divide-y:~ #|list-image:none|scrollbar-gutter:auto stable both
-	|filter backdrop-filter:none|@container:normal size`.split("|")) {
-	const [roots = "", values = ""] = line.split(":");
-	// Why a set and flags over one regex per line: V8 compiles each regex it runs, and a set of
-	// the words the source already holds costs less memory.
-	const words = new Set<string>();
-	const flags = new Set<string>();
-	for (const token of values.trim().split(" ")) {
-		(/^(#|#i|\/|%|ts)$/.test(token) ? flags : words).add(token === "~" ? "" : token);
-	}
-	const shape = {
-		test: (value: string) =>
-			words.has(value) ||
-			(flags.has("#") && isNumber(value)) ||
-			(flags.has("#i") && isInteger(value)) ||
-			(flags.has("/") && FRACTION.test(value)) ||
-			(flags.has("%") && PERCENT_VALUE.test(value)) ||
-			(flags.has("ts") && TSHIRT.test(value)),
-	};
-	for (const root of roots.trim().split(" ")) {
-		VALUE_SHAPES[root] = shape;
-	}
-}
+// tw-animate-css `zoom-in-95` and `zoom-out-95` set the enter and exit scales, not `zoom`.
+VALUE_SHAPES.zoom = /^\d+$/;
+// Bootstrap's `col-md-6` and `col-md-offset-1` in the ngrok agent's web UI set different properties.
 VALUE_SHAPES.row = /^(auto|\d+|span-(full|\d+|\[.+\]|\(.+\)))$/;
 VALUE_SHAPES.col = VALUE_SHAPES.row;
 
@@ -340,145 +262,116 @@ const VALUE_ROOTS: Record<string, ((value: string) => string | undefined) | unde
 			if (/^(wrap|nowrap|balance|pretty)$/.test(value)) {
 				return "text-wrap";
 			}
-			const isSize =
-				value === "base" || TSHIRT.test(value) || TYPE_ROLE.test(value) || isArbitraryLength(value);
+			const kind = arbitraryKind(value);
+			const isSize = TSHIRT.test(value) || TYPE_ROLE.test(value) || kind === "length";
 			return isSize ? "font-size" : "text-color";
 		},
 		font: (value: string) => {
-			// tailwind-merge reads an unlabeled arbitrary value or variable as a weight.
+			const kind = arbitraryKind(value);
 			const isWeight =
-				/^(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)$/.test(value) ||
-				testValue(value, isWeightLabel, () => true) ||
-				testVariable(value, isWeightLabel, true);
-			if (isWeight) {
-				return "font-weight";
-			}
-			// Any other label, such as `[length:2px]`, names no font utility.
-			return isArbitrary(value) &&
-				!testValue(value, isFamilyLabel, never) &&
-				!testVariable(value, isFamilyLabel)
-				? undefined
-				: "font-family";
+				/^(thin|extralight|light|normal|medium|semibold|bold|extrabold|black|\d+)$/.test(value) ||
+				kind === "number" ||
+				kind === "weight";
+			return isWeight ? "font-weight" : "font-family";
 		},
 		bg: (value: string) => {
-			if (isBgPosition(value)) {
-				return "bg-position";
-			}
-			if (isBgSize(value)) {
-				return "bg-size";
-			}
-			const isImage =
-				value === "none" ||
-				/^(linear-to-(t|tr|r|br|b|bl|l|tl)|(linear|conic)-\d+|(radial|conic)|(linear|radial|conic)-(\[.+\]|\(.+\)))$/.test(
+			const kind = arbitraryKind(value);
+			if (
+				/^(top|bottom|left|right|center|(left|right)-(top|bottom)|(top|bottom)-(left|right))$/.test(
 					value,
 				) ||
-				testValue(value, isImageLabel, (content) => IMAGE.test(content)) ||
-				testVariable(value, isImageLabel);
-			return isImage ? "bg-image" : "bg-color";
+				kind === "position"
+			) {
+				return "bg-position";
+			}
+			if (/^(auto|cover|contain)$/.test(value) || kind === "size") {
+				return "bg-size";
+			}
+			if (value === "none" || /^(linear|radial|conic)(-|$)/.test(value) || kind === "image") {
+				return "bg-image";
+			}
+			return "bg-color";
 		},
 		decoration: (value: string) => {
 			if (/^(solid|double|dotted|dashed|wavy)$/.test(value)) {
 				return "text-decoration-style";
 			}
-			const isThickness =
-				isNumber(value) ||
-				value === "auto" ||
-				value === "from-font" ||
-				isArbitraryLength(value) ||
-				testVariable(value, isPositionLabel);
-			return isThickness ? "text-decoration-thickness" : "text-decoration-color";
+			return isLength(value) || /^(auto|from-font)$/.test(value)
+				? "text-decoration-thickness"
+				: "text-decoration-color";
 		},
-		shadow: (value: string) =>
-			value === "" || value === "inner" || isShadowSize(value) ? "shadow" : "shadow-color",
+		shadow: (value: string) => (isShadowSize(value) ? "shadow" : "shadow-color"),
 		"inset-shadow": (value: string) =>
 			isShadowSize(value) ? "inset-shadow" : "inset-shadow-color",
 		"text-shadow": (value: string) => (isShadowSize(value) ? "text-shadow" : "text-shadow-color"),
-		"drop-shadow": (value: string) =>
-			value === "" || isShadowSize(value) ? "drop-shadow" : "drop-shadow-color",
-		ring: (value: string) => (value === "" || isBorderWidth(value) ? "ring-w" : "ring-color"),
+		"drop-shadow": (value: string) => (isShadowSize(value) ? "drop-shadow" : "drop-shadow-color"),
+		ring: (value: string) => (value === "" || isLength(value) ? "ring-w" : "ring-color"),
 		"inset-ring": (value: string) =>
-			value === "" || isBorderWidth(value) ? "inset-ring-w" : "inset-ring-color",
-		"ring-offset": (value: string) =>
-			isNumber(value) || testValue(value, isLengthLabel, isLengthContent)
-				? "ring-offset-w"
-				: "ring-offset-color",
+			value === "" || isLength(value) ? "inset-ring-w" : "inset-ring-color",
+		"ring-offset": (value: string) => (isLength(value) ? "ring-offset-w" : "ring-offset-color"),
 		outline: (value: string) => {
 			if (/^(solid|dashed|dotted|double|none|hidden)$/.test(value)) {
 				return "outline-style";
 			}
-			return value === "" || isBorderWidth(value) ? "outline-w" : "outline-color";
+			return value === "" || isLength(value) ? "outline-w" : "outline-color";
 		},
-		stroke: (value: string) =>
-			isBorderWidth(value) || testValue(value, (label) => label === "number", isNumber)
-				? "stroke-w"
-				: "stroke",
-		from: (value: string) => (isStopPosition(value) ? "gradient-from-pos" : "gradient-from"),
-		via: (value: string) => (isStopPosition(value) ? "gradient-via-pos" : "gradient-via"),
-		to: (value: string) => (isStopPosition(value) ? "gradient-to-pos" : "gradient-to"),
+		stroke: (value: string) => (isLength(value) ? "stroke-w" : "stroke"),
+		from: (value: string) => (isPosition(value) ? "gradient-from-pos" : "gradient-from"),
+		via: (value: string) => (isPosition(value) ? "gradient-via-pos" : "gradient-via"),
+		to: (value: string) => (isPosition(value) ? "gradient-to-pos" : "gradient-to"),
 		divide: (value: string) =>
 			/^(solid|dashed|dotted|double|hidden|none)$/.test(value) ? "divide-style" : "divide-color",
-		flex: (value: string) =>
-			isNumber(value) ||
-			FRACTION.test(value) ||
-			/^(auto|initial|none)$/.test(value) ||
-			isArbitrary(value)
-				? "flex"
-				: undefined,
-		transition: (value: string) =>
-			/^(|all|colors|opacity|shadow|transform|none)$/.test(value) || isArbitrary(value)
-				? "transition"
-				: undefined,
-		transform: (value: string) => (isArbitrary(value) ? "transform" : undefined),
-		object: (value: string) => {
-			if (/^(contain|cover|fill|none|scale-down)$/.test(value)) {
-				return "object-fit";
-			}
-			return BG_POSITION.test(value) || isArbitrary(value) ? "object-position" : undefined;
-		},
-		list: (value: string) =>
-			/^(disc|decimal|none)$/.test(value) || isArbitrary(value) ? "list-style-type" : undefined,
-		content: (value: string) => {
-			if (
-				/^(normal|center|start|end|between|around|evenly|baseline|stretch|(center|end)-safe)$/.test(
-					value,
-				)
-			) {
-				return "align-content";
-			}
-			return value === "none" || isArbitrary(value) ? "content" : undefined;
-		},
+		flex: () => "flex",
+		transition: () => "transition",
+		transform: (value: string) => (arbitraryKind(value) == null ? undefined : "transform"),
+		object: (value: string) =>
+			/^(contain|cover|fill|none|scale-down)$/.test(value) ? "object-fit" : "object-position",
+		list: (value: string) => (value.startsWith("image-") ? "list-image" : "list-style-type"),
+		content: (value: string) =>
+			/^(normal|center|start|end|between|around|evenly|baseline|stretch|(center|end)-safe)$/.test(
+				value,
+			)
+				? "align-content"
+				: "content",
 		mask: (value: string) => {
 			const stop = /^(linear|radial|conic|[trblxy])-(from|to)-(.+)$/.exec(value);
 			if (stop != null) {
 				const [, direction, edge, stopValue = ""] = stop;
-				const kind = isMaskStopPosition(stopValue) ? "pos" : "color";
-				return `mask-image-${direction}-${edge}-${kind}`;
+				const isStopPosition =
+					NUMBER.test(stopValue) ||
+					stopValue.endsWith("%") ||
+					isLengthKind(arbitraryKind(stopValue));
+				return `mask-image-${direction}-${edge}-${isStopPosition ? "pos" : "color"}`;
 			}
-			if (/^(linear|conic)-\d*\.?\d+$/.test(value)) {
+			if (/^(linear|conic)-\d+$/.test(value)) {
 				return value.startsWith("linear") ? "mask-image-linear-pos" : "mask-image-conic-pos";
 			}
 			if (value.startsWith("radial-at-")) {
-				return BG_POSITION.test(value.slice(10)) ? "mask-image-radial-pos" : undefined;
+				return "mask-image-radial-pos";
 			}
 			if (/^radial-(closest|farthest)-(side|corner)$/.test(value)) {
 				return "mask-image-radial-size";
 			}
 			if (value.startsWith("radial-")) {
-				return isArbitrary(value.slice(7)) ? "mask-image-radial" : undefined;
+				return "mask-image-radial";
 			}
 			if (/^(circle|ellipse)$/.test(value)) {
 				return "mask-image-radial-shape";
 			}
-			if (isBgPosition(value)) {
+			if (
+				/^(top|bottom|left|right|center|(left|right)-(top|bottom)|(top|bottom)-(left|right))$/.test(
+					value,
+				)
+			) {
 				return "mask-position";
 			}
-			if (isBgSize(value)) {
+			if (/^(auto|cover|contain)$/.test(value) || value.startsWith("size-")) {
 				return "mask-size";
 			}
 			if (value === "no-clip") {
 				return "mask-clip";
 			}
-			return value === "none" || isArbitrary(value) ? "mask-image" : undefined;
+			return "mask-image";
 		},
 		touch: (value: string) => {
 			if (/^pan-(x|left|right)$/.test(value)) {
@@ -487,13 +380,11 @@ const VALUE_ROOTS: Record<string, ((value: string) => string | undefined) | unde
 			if (/^pan-(y|up|down)$/.test(value)) {
 				return "touch-y";
 			}
-			if (value === "pinch-zoom") {
-				return "touch-pz";
-			}
-			return /^(auto|none|manipulation)$/.test(value) ? "touch" : undefined;
+			return value === "pinch-zoom" ? "touch-pz" : "touch";
 		},
-		scrollbar: (value: string) => (/^(auto|thin|none)$/.test(value) ? "scrollbar-w" : undefined),
-		tab: (value: string) => (isInteger(value) || isArbitrary(value) ? "tab-size" : undefined),
+		scrollbar: () => "scrollbar-w",
+		tab: (value: string) =>
+			NUMBER.test(value) || arbitraryKind(value) != null ? "tab-size" : undefined,
 	});
 
 /** `border`, `border-x`, … : a width, a style, or a color. */
@@ -503,14 +394,12 @@ const borderGroup = (value: string) => {
 	const side = dash < 0 ? value : value.slice(0, dash);
 	if (BORDER_SIDES.has(side)) {
 		const sideValue = dash < 0 ? "" : value.slice(dash + 1);
-		return sideValue === "" || isBorderWidth(sideValue)
-			? `border-w-${side}`
-			: `border-color-${side}`;
+		return sideValue === "" || isLength(sideValue) ? `border-w-${side}` : `border-color-${side}`;
 	}
 	if (/^(solid|dashed|dotted|double|hidden|none)$/.test(value)) {
 		return "border-style";
 	}
-	return value === "" || isBorderWidth(value) ? "border-w" : "border-color";
+	return value === "" || isLength(value) ? "border-w" : "border-color";
 };
 
 // --- Conflicts -------------------------------------------------------------------------------
@@ -632,7 +521,7 @@ for (const root in ROOTS) {
 	lexemeOf(root).rootGroup =
 		shape == null
 			? () => group
-			: (value) => (shape.test(value) || isArbitrary(value) ? group : undefined);
+			: (value) => (shape.test(value) || arbitraryKind(value) != null ? group : undefined);
 }
 for (const root in VALUE_ROOTS) {
 	lexemeOf(root).rootGroup = VALUE_ROOTS[root] ?? null;

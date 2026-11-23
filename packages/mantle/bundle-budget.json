@@ -1,74 +1,74 @@
 {
   "button": {
     "entry": "import { Button } from \"@ngrok/mantle/button\"; export default [Button];",
-    "maxGzipBytes": 11980
+    "maxGzipBytes": 10385
   },
   "slot": {
     "entry": "import { Slot } from \"@ngrok/mantle/slot\"; export default [Slot];",
-    "maxGzipBytes": 9139
+    "maxGzipBytes": 7537
   },
   "switch": {
     "entry": "import { Switch } from \"@ngrok/mantle/switch\"; export default [Switch];",
-    "maxGzipBytes": 10917
+    "maxGzipBytes": 9318
   },
   "progress": {
     "entry": "import { ProgressBar } from \"@ngrok/mantle/progress\"; export default [ProgressBar.Root, ProgressBar.Indicator];",
-    "maxGzipBytes": 10338
+    "maxGzipBytes": 8749
   },
   "radio-group": {
     "entry": "import { RadioGroup } from \"@ngrok/mantle/radio-group\"; export default [RadioGroup.Root, RadioGroup.Item, RadioGroup.Indicator];",
-    "maxGzipBytes": 12854
+    "maxGzipBytes": 11265
   },
   "select": {
     "entry": "import { Select } from \"@ngrok/mantle/select\"; export default [Select.Root, Select.Trigger, Select.Value, Select.Content, Select.Item];",
-    "maxGzipBytes": 19121
+    "maxGzipBytes": 17491
   },
   "combobox": {
     "entry": "import { Combobox } from \"@ngrok/mantle/combobox\"; export default [Combobox.Root, Combobox.Input, Combobox.Content, Combobox.Item];",
-    "maxGzipBytes": 16375
+    "maxGzipBytes": 14754
   },
   "multi-select": {
     "entry": "import { MultiSelect } from \"@ngrok/mantle/multi-select\"; export default [MultiSelect.Root, MultiSelect.Trigger, MultiSelect.Input, MultiSelect.Content, MultiSelect.Item];",
-    "maxGzipBytes": 18902
+    "maxGzipBytes": 17218
   },
   "tabs": {
     "entry": "import { Tabs } from \"@ngrok/mantle/tabs\"; export default [Tabs.Root, Tabs.List, Tabs.Trigger, Tabs.Content];",
-    "maxGzipBytes": 20584
+    "maxGzipBytes": 18947
   },
   "tooltip": {
     "entry": "import { Tooltip } from \"@ngrok/mantle/tooltip\"; export default [Tooltip.Root, Tooltip.Trigger, Tooltip.Content];",
-    "maxGzipBytes": 16587
+    "maxGzipBytes": 15000
   },
   "popover": {
     "entry": "import { Popover } from \"@ngrok/mantle/popover\"; export default [Popover.Root, Popover.Trigger, Popover.Content];",
-    "maxGzipBytes": 15813
+    "maxGzipBytes": 14222
   },
   "hover-card": {
     "entry": "import { HoverCard } from \"@ngrok/mantle/hover-card\"; export default [HoverCard.Root, HoverCard.Trigger, HoverCard.Content];",
-    "maxGzipBytes": 15517
+    "maxGzipBytes": 13980
   },
   "dropdown-menu": {
     "entry": "import { DropdownMenu } from \"@ngrok/mantle/dropdown-menu\"; export default [DropdownMenu.Root, DropdownMenu.Trigger, DropdownMenu.Content, DropdownMenu.Item];",
-    "maxGzipBytes": 38424
+    "maxGzipBytes": 36817
   },
   "dialog": {
     "entry": "import { Dialog } from \"@ngrok/mantle/dialog\"; export default [Dialog.Root, Dialog.Trigger, Dialog.Content, Dialog.Header, Dialog.Title, Dialog.Body, Dialog.Footer];",
-    "maxGzipBytes": 24385
+    "maxGzipBytes": 22809
   },
   "command": {
     "entry": "import { Command } from \"@ngrok/mantle/command\"; export default [Command.DialogRoot, Command.DialogContent, Command.Input, Command.List, Command.Item];",
-    "maxGzipBytes": 32981
+    "maxGzipBytes": 31237
   },
   "slider": {
     "entry": "import { Slider } from \"@ngrok/mantle/slider\"; export default [Slider];",
-    "maxGzipBytes": 19775
+    "maxGzipBytes": 18160
   },
   "marketing-page": {
     "entry": "import { Button } from \"@ngrok/mantle/button\"; import { DropdownMenu } from \"@ngrok/mantle/dropdown-menu\"; import { Dialog } from \"@ngrok/mantle/dialog\"; import { Tooltip } from \"@ngrok/mantle/tooltip\"; import { Tabs } from \"@ngrok/mantle/tabs\"; import { Accordion } from \"@ngrok/mantle/accordion\"; export default [Button, DropdownMenu.Root, DropdownMenu.Trigger, DropdownMenu.Content, DropdownMenu.Item, Dialog.Root, Dialog.Trigger, Dialog.Content, Dialog.Title, Tooltip.Root, Tooltip.Trigger, Tooltip.Content, Tabs.Root, Tabs.List, Tabs.Trigger, Tabs.Content, Accordion.Root, Accordion.Item, Accordion.Trigger, Accordion.Content];",
-    "maxGzipBytes": 55400
+    "maxGzipBytes": 53776
   },
   "form-page": {
     "entry": "import { Button } from \"@ngrok/mantle/button\"; import { Field } from \"@ngrok/mantle/field\"; import { Select } from \"@ngrok/mantle/select\"; import { Combobox } from \"@ngrok/mantle/combobox\"; export default [Button, Field.Item, Field.Label, Field.Control, Select.Root, Select.Trigger, Select.Value, Select.Content, Select.Item, Combobox.Root, Combobox.Input, Combobox.Content, Combobox.Item];",
-    "maxGzipBytes": 25086
+    "maxGzipBytes": 23561
   }
 }
