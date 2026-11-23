@@ -98,6 +98,10 @@ export function OwnState({ open }: { open: boolean }) {
 			data-state={open ? "open" : "closed"}
 			className="data-[state~=closed]:opacity-0 data-[state~=open]:duration-400 data-[side=top]:mb-2"
 		>
+			<span
+				data-state="open"
+				className="group-data-open:rotate-90 hover:data-[state~=closed]:p-1"
+			/>
 			<Popover.Content className="not-data-open:opacity-0" />
 		</div>
 	);
