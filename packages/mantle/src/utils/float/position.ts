@@ -285,6 +285,7 @@ function trackFloat({
 	align: logicalAlign,
 	anchor,
 	fallback = "preferred",
+	dir,
 	floating,
 	placeWith = "css",
 	releaseAnchorAfter,
@@ -294,6 +295,8 @@ function trackFloat({
 	align: Align;
 	anchor: HTMLElement;
 	fallback?: Fallback;
+	/** The reading direction that `start` and `end` follow. Defaults to the anchor's direction. */
+	dir?: "ltr" | "rtl";
 	floating: HTMLElement;
 	/**
 	 * Who places the float where the browser has CSS anchor positioning.
@@ -314,7 +317,7 @@ function trackFloat({
 	const align =
 		(side === "top" || side === "bottom") &&
 		logicalAlign !== "center" &&
-		getComputedStyle(anchor).direction === "rtl"
+		(dir ?? getComputedStyle(anchor).direction) === "rtl"
 			? oppositeAlign[logicalAlign]
 			: logicalAlign;
 	const arrow = floating.querySelector<HTMLElement>(":scope > [data-float-arrow]");

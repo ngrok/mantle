@@ -470,7 +470,7 @@ in this repo:
 ```tsx
 // @vitest-environment happy-dom
 import { TooltipProvider } from "@ngrok/mantle/tooltip";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRoutesStub, Outlet } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -591,7 +591,8 @@ describe("PageActions", () => {
 		await user.click(screen.getByRole("menuitem", { name: "New endpoint" }));
 
 		expect(onSelect).toHaveBeenCalledTimes(1);
-		expect(screen.queryByRole("menu")).toBeNull();
+		// Why waitFor: the closed menu stays mounted for its exit transition.
+		await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
 	});
 
 	it("keeps focus on a desktop button whose label changes", async () => {

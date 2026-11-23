@@ -262,9 +262,9 @@ describe("DropdownMenu", () => {
 
 	describe("width", () => {
 		// Why the class assertion: `width="trigger"` emits no data attribute. Its only
-		// observable is the utility that reads the `--radix-dropdown-menu-trigger-width`
-		// variable Radix publishes on the positioner.
-		const triggerWidthClass = "w-(--radix-dropdown-menu-trigger-width)";
+		// observable is the utility that reads the `--anchor-width`
+		// variable the float positioner publishes on the content.
+		const triggerWidthClass = "w-(--anchor-width)";
 
 		test('width="trigger" sizes the content from the trigger width variable', () => {
 			render(

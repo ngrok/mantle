@@ -1,0 +1,341 @@
+# Every rule binds the local name of a part's import from its
+# `@ngrok/mantle/<subpath>`, so an aliased import matches and another
+# library's part of the same name does not.
+id: dropdown-menu-content-drop-radix-props
+language: tsx
+message: DropdownMenu.Content and DropdownMenu.SubContent no longer take the Radix positioning props; the browser places the menu
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: class
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+          - inside: { kind: for_in_statement, field: left }
+      - kind: type_identifier
+        any:
+          - inside: { kind: class_declaration, field: name }
+          - inside: { kind: class, field: name }
+  # A function, or the file: the scope of a `var` declaration.
+  var-scope:
+    any:
+      - kind: program
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  menu-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/dropdown-menu["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^DropdownMenu$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $MENU
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $MENU
+  part-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $MENU
+      - has:
+          field: property
+          regex: ^(Content|SubContent)$
+rule:
+  kind: jsx_attribute
+  has:
+    kind: property_identifier
+    regex: ^(collisionPadding|collisionBoundary|sticky|avoidCollisions|alignOffset|hideWhenDetached|forceMount|updatePositionStrategy|arrowPadding)$
+  inside:
+    any:
+      - kind: jsx_opening_element
+      - kind: jsx_self_closing_element
+    all:
+      - has:
+          field: name
+          matches: part-name
+      - inside:
+          stopBy: end
+          kind: program
+          has:
+            matches: menu-import
+      # Why: a parameter or a local under the import's name shadows it, and the
+      # rules cannot tell which binding the element reads.
+      - not:
+          inside:
+            stopBy: end
+            matches: scope
+            has:
+              stopBy:
+                matches: scope
+              any:
+                - matches: binding-name
+                  pattern: $MENU
+                - matches: function-declaration
+                  has:
+                    field: name
+                    pattern: $MENU
+      # Why: a `var` in a nested block binds the name in its whole function.
+      - not:
+          inside:
+            stopBy: end
+            matches: var-scope
+            has:
+              stopBy:
+                matches: var-scope
+              any:
+                - kind: variable_declaration
+                  has:
+                    kind: variable_declarator
+                    has:
+                      field: name
+                      any:
+                        - pattern: $MENU
+                        - has:
+                            stopBy: end
+                            matches: binding-name
+                            pattern: $MENU
+                - kind: for_in_statement
+                  all:
+                    - has:
+                        field: kind
+                        regex: ^var$
+                    - has:
+                        field: left
+                        pattern: $MENU
+fix: ""
+---
+id: dropdown-menu-css-variables
+language: tsx
+message: DropdownMenu.Content sets --anchor-width and --available-height in place of the Radix variables
+utils:
+  # A node that opens a lexical scope. The shadow search below stops at a
+  # nested one, so a sibling function's local name does not count.
+  scope:
+    any:
+      - kind: statement_block
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+      - kind: class_body
+      - kind: class
+      - kind: for_statement
+      - kind: for_in_statement
+      - kind: catch_clause
+  # An identifier in a binding position: a parameter, a destructured name, a
+  # local variable, a function name, or a class name.
+  binding-name:
+    any:
+      - kind: shorthand_property_identifier_pattern
+      - kind: identifier
+        any:
+          - inside: { kind: variable_declarator, field: name }
+          - inside: { kind: function_declaration, field: name }
+          - inside: { kind: generator_function_declaration, field: name }
+          - inside: { kind: function_expression, field: name }
+          - inside: { kind: required_parameter, field: pattern }
+          - inside: { kind: optional_parameter, field: pattern }
+          - inside: { kind: assignment_pattern, field: left }
+          - inside: { kind: pair_pattern, field: value }
+          - inside: { kind: array_pattern }
+          - inside: { kind: rest_pattern }
+          - inside: { kind: arrow_function, field: parameter }
+          - inside: { kind: catch_clause, field: parameter }
+          - inside: { kind: for_in_statement, field: left }
+      - kind: type_identifier
+        any:
+          - inside: { kind: class_declaration, field: name }
+          - inside: { kind: class, field: name }
+  # A function, or the file: the scope of a `var` declaration.
+  var-scope:
+    any:
+      - kind: program
+      - kind: function_declaration
+      - kind: generator_function_declaration
+      - kind: function_expression
+      - kind: generator_function
+      - kind: arrow_function
+      - kind: method_definition
+  # A function declaration opens a scope, so the search above stops at it and
+  # never reads its name. This matches the declaration itself instead.
+  function-declaration:
+    any:
+      - kind: function_declaration
+      - kind: generator_function_declaration
+  menu-import:
+    kind: import_statement
+    all:
+      - has:
+          field: source
+          regex: ^["']@ngrok/mantle/dropdown-menu["']$
+      - has:
+          stopBy: end
+          kind: import_specifier
+          has:
+            field: name
+            regex: ^DropdownMenu$
+          any:
+            - kind: import_specifier
+              has:
+                field: alias
+                pattern: $MENU
+            - kind: import_specifier
+              not:
+                has:
+                  field: alias
+                  kind: identifier
+              has:
+                field: name
+                pattern: $MENU
+  part-name:
+    kind: member_expression
+    all:
+      - has:
+          field: object
+          pattern: $MENU
+      - has:
+          field: property
+          regex: ^(Content|SubContent)$
+rule:
+  kind: string_fragment
+  pattern: $TEXT
+  regex: --radix-dropdown-menu-(trigger-width|content-available-height)
+  # Why only on the content's own props: in a file that also uses Radix
+  # DropdownMenu, a variable in another string can belong to the Radix content,
+  # which still sets it. Strings outside the element stay manual.
+  # Why stop at the first attribute or element: an element passed in a prop,
+  # such as `children={<Radix.Content className="…" />}`, owns its own
+  # attributes and spreads.
+  inside:
+    stopBy:
+      any:
+        - kind: jsx_attribute
+        - kind: jsx_opening_element
+        - kind: jsx_self_closing_element
+    kind: jsx_attribute
+    inside:
+      any:
+        - kind: jsx_opening_element
+        - kind: jsx_self_closing_element
+      all:
+        - has:
+            field: name
+            matches: part-name
+        - inside:
+            stopBy: end
+            kind: program
+            has:
+              matches: menu-import
+        # Why: a parameter or a local under the import's name shadows it, and the
+        # rules cannot tell which binding the element reads.
+        - not:
+            inside:
+              stopBy: end
+              matches: scope
+              has:
+                stopBy:
+                  matches: scope
+                any:
+                  - matches: binding-name
+                    pattern: $MENU
+                  - matches: function-declaration
+                    has:
+                      field: name
+                      pattern: $MENU
+        # Why: a `var` in a nested block binds the name in its whole function.
+        - not:
+            inside:
+              stopBy: end
+              matches: var-scope
+              has:
+                stopBy:
+                  matches: var-scope
+                any:
+                  - kind: variable_declaration
+                    has:
+                      kind: variable_declarator
+                      has:
+                        field: name
+                        any:
+                          - pattern: $MENU
+                          - has:
+                              stopBy: end
+                              matches: binding-name
+                              pattern: $MENU
+                  - kind: for_in_statement
+                    all:
+                      - has:
+                          field: kind
+                          regex: ^var$
+                      - has:
+                          field: left
+                          pattern: $MENU
+transform:
+  TRIGGER:
+    replace:
+      source: $TEXT
+      replace: --radix-dropdown-menu-trigger-width
+      by: --anchor-width
+  NEW:
+    replace:
+      source: $TRIGGER
+      replace: --radix-dropdown-menu-content-available-height
+      by: --available-height
+fix: $NEW

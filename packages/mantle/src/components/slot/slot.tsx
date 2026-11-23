@@ -239,7 +239,23 @@ const Slot = ({ children, className, "data-slot": dataSlot, ref, style, ...props
 	return cloneElement(child, merged);
 };
 
+/**
+ * Under `asChild`, moves a part's own content inside the consumer's element:
+ * `render` gets the element's children and returns what the element renders.
+ * `Slot` then merges the part's props onto that element.
+ *
+ * @example
+ * ```tsx
+ * <Component>{asChild ? slotContent(children, renderContent) : renderContent(children)}</Component>
+ * ```
+ */
+const slotContent = (children: ReactNode, render: (inner: ReactNode) => ReactNode): ReactNode =>
+	isValidElement<{ children?: ReactNode }>(children)
+		? cloneElement(children, undefined, render(children.props.children))
+		: children;
+
 export {
 	//,
 	Slot,
+	slotContent,
 };

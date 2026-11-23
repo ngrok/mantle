@@ -628,6 +628,14 @@ export const migrations = [
 			"AlertCenter items now render their children on the server, and the top item shows in the server HTML. Gate items and children that only the browser can decide with useIsHydrated, and prefetch the alert data in the root loader.",
 		route: "/migrations/0022-alert-center-server-render-migration",
 	},
+	{
+		number: 23,
+		slug: "native-dropdown-menu-migration",
+		title: "Native Dropdown Menu",
+		description:
+			"DropdownMenu is built on native popovers placed by CSS anchor positioning. The Radix positioning props are gone, --anchor-width and --available-height replace the Radix CSS variables, and a modal menu makes the page inert.",
+		route: "/migrations/0023-native-dropdown-menu-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

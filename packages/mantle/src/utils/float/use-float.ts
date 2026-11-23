@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useInsertionEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useInsertionEffect, useRef, useState } from "react";
 import type { RefCallback } from "react";
 import { canUseDOM } from "../../components/browser-only/can-use-dom.js";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
@@ -166,6 +166,8 @@ type UseFloatOptions = OutsideHandlers & {
 	side: Side;
 	align: Align;
 	sideOffset: number;
+	/** The reading direction that `start` and `end` follow. Defaults to the anchor's direction. */
+	dir?: "ltr" | "rtl";
 	/** Runs on Escape while the float is on top. Call `event.preventDefault()` to keep it open. */
 	onEscapeKeyDown?: (event: KeyboardEvent) => void;
 	/** Runs after the float shows. */
@@ -194,6 +196,7 @@ type UseFloatOptions = OutsideHandlers & {
  */
 function useFloat({
 	align,
+	dir,
 	dismissOnOutside,
 	dismissWhenCovered,
 	getAnchor,
@@ -256,132 +259,153 @@ function useFloat({
 
 	// Why a ref callback: React calls it again when `visible` or the placement
 	// changes, so the float shows and follows its anchor only while visible.
-	const floatingRef: RefCallback<HTMLElement> = (floating) => {
-		floatElement.current = floating;
-		const anchor = anchorOf();
-		if (!visible || floating == null || anchor == null) {
-			return;
-		}
-		// Why only with the popover API: without it the float has no top layer,
-		// so it paints under a modal dialog anyway.
-		if (hasPopoverApi && isUnderNativeModal(floating)) {
-			if (dismissWhenCovered) {
-				dismiss("covered");
-			}
-			return;
-		}
-		let shown = true;
-		let dismissed = false;
-		// Why once: the browser can hide a `hint` float on the same press that the outside check sees.
-		const dismissOnce = (reason: DismissReason) => {
-			if (!dismissed) {
-				dismissed = true;
-				dismiss(reason);
-			}
-		};
-		// Why: the browser hides a `hint` float when the user presses outside it,
-		// presses Escape, or opens another one.
-		const onBeforeToggle = (event: Event) => {
-			if (shown && Reflect.get(event, "newState") === "closed") {
-				shown = false;
-				dismissOnce("browser");
-			}
-		};
-		const onEscape = (event: KeyboardEvent) => {
-			escape(event);
-			if (!event.defaultPrevented) {
-				event.preventDefault();
-				dismissOnce("escape");
-			}
-		};
-		const previous = floatSessions.get(floating);
-		const continuing = previous != null;
-		let session: FloatSession;
-		if (previous == null) {
-			const entry = { element: floating, escape: onEscape };
-			session = { entry, popEscape: pushOpenFloat(entry) };
-		} else {
-			previous.entry.escape = onEscape;
-			session = { entry: previous.entry, popEscape: previous.popEscape };
-		}
-		floatSessions.set(floating, session);
-		floating.addEventListener("beforetoggle", onBeforeToggle);
-		if (!continuing && hasPopoverApi) {
-			floating.showPopover();
-		}
-		const stopTracking = trackFloat({
-			align,
-			anchor,
-			floating,
-			side,
-			sideOffset,
-			releaseAnchorAfter: EXIT_DURATION,
-		});
-
-		const isInside = (target: EventTarget | null) =>
-			target instanceof Node &&
-			(floating.contains(target) ||
-				(insideElementsOf()?.some((element) => element?.contains(target) === true) ?? false));
-		const onOutside = <TEvent extends PointerEvent | FocusEvent>(
-			originalEvent: TEvent,
-			handler: (event: CustomEvent<{ originalEvent: TEvent }>) => void,
-		) => {
-			const target = originalEvent.target;
-			if (target == null || isInside(target)) {
+	// Why `useCallback`: a new callback on each render would place the open
+	// float again, with a forced layout, each time its owner renders.
+	const floatingRef = useCallback<RefCallback<HTMLElement>>(
+		(floating) => {
+			floatElement.current = floating;
+			const anchor = anchorOf();
+			if (!visible || floating == null || anchor == null) {
 				return;
 			}
-			const event = new CustomEvent("mantle.float.outside", {
-				cancelable: true,
-				detail: { originalEvent },
-			});
-			// Why dispatch on the target: a handler reads `event.target` to keep the
-			// float open for one outside control, as it could with Radix.
-			const runHandlers = () => {
-				handler(event);
-				interactOutside(event);
-			};
-			target.addEventListener(event.type, runHandlers, { once: true });
-			target.dispatchEvent(event);
-			if (!event.defaultPrevented) {
-				dismissOnce("outside");
+			// Why only with the popover API: without it the float has no top layer,
+			// so it paints under a modal dialog anyway.
+			if (hasPopoverApi && isUnderNativeModal(floating)) {
+				if (dismissWhenCovered) {
+					dismiss("covered");
+				}
+				return;
 			}
-		};
-		const onPointerDown = (event: PointerEvent) => onOutside(event, pointerDownOutside);
-		const onFocusIn = (event: FocusEvent) => onOutside(event, focusOutside);
-		const document = floating.ownerDocument;
-		if (dismissOnOutside) {
-			document.addEventListener("pointerdown", onPointerDown);
-			document.addEventListener("focusin", onFocusIn);
-		}
-		if (!continuing) {
-			latestShow.current?.(floating);
-		}
+			let shown = true;
+			let dismissed = false;
+			// Why once: the browser can hide a `hint` float on the same press that the outside check sees.
+			const dismissOnce = (reason: DismissReason) => {
+				if (!dismissed) {
+					dismissed = true;
+					dismiss(reason);
+				}
+			};
+			// Why: the browser hides a `hint` float when the user presses outside it,
+			// presses Escape, or opens another one.
+			const onBeforeToggle = (event: Event) => {
+				if (shown && Reflect.get(event, "newState") === "closed") {
+					shown = false;
+					dismissOnce("browser");
+				}
+			};
+			const onEscape = (event: KeyboardEvent) => {
+				escape(event);
+				if (!event.defaultPrevented) {
+					event.preventDefault();
+					dismissOnce("escape");
+				}
+			};
+			const previous = floatSessions.get(floating);
+			const continuing = previous != null;
+			let session: FloatSession;
+			if (previous == null) {
+				const entry = { element: floating, escape: onEscape };
+				session = { entry, popEscape: pushOpenFloat(entry) };
+			} else {
+				previous.entry.escape = onEscape;
+				session = { entry: previous.entry, popEscape: previous.popEscape };
+			}
+			floatSessions.set(floating, session);
+			floating.addEventListener("beforetoggle", onBeforeToggle);
+			if (!continuing && hasPopoverApi) {
+				floating.showPopover();
+			}
+			const stopTracking = trackFloat({
+				align,
+				anchor,
+				dir,
+				floating,
+				side,
+				sideOffset,
+				releaseAnchorAfter: EXIT_DURATION,
+			});
 
-		return () => {
-			document.removeEventListener("pointerdown", onPointerDown);
-			document.removeEventListener("focusin", onFocusIn);
-			stopTracking();
-			floating.removeEventListener("beforetoggle", onBeforeToggle);
-			// Why now: the closed float turns `inert` in this commit, and the browser
-			// then moves focus out of it.
-			const focusWasInside = floating.contains(document.activeElement);
-			// Why a microtask: React runs this cleanup inside its commit, and at the
-			// end of the commit it moves focus back to the element that had it
-			// before. A focus move here would not hold.
-			queueMicrotask(() => {
-				if (floatSessions.get(floating) !== session) {
+			const isInside = (target: EventTarget | null) =>
+				target instanceof Node &&
+				(floating.contains(target) ||
+					(insideElementsOf()?.some((element) => element?.contains(target) === true) ?? false));
+			const onOutside = <TEvent extends PointerEvent | FocusEvent>(
+				originalEvent: TEvent,
+				handler: (event: CustomEvent<{ originalEvent: TEvent }>) => void,
+			) => {
+				const target = originalEvent.target;
+				if (target == null || isInside(target)) {
 					return;
 				}
-				floatSessions.delete(floating);
-				session.popEscape();
-				latestHide.current?.(floating, focusWasInside);
-				if (shown && hasPopoverApi) {
-					shown = false;
-					floating.hidePopover();
+				const event = new CustomEvent("mantle.float.outside", {
+					cancelable: true,
+					detail: { originalEvent },
+				});
+				// Why dispatch on the target: a handler reads `event.target` to keep the
+				// float open for one outside control, as it could with Radix.
+				const runHandlers = () => {
+					handler(event);
+					interactOutside(event);
+				};
+				target.addEventListener(event.type, runHandlers, { once: true });
+				target.dispatchEvent(event);
+				if (!event.defaultPrevented) {
+					dismissOnce("outside");
 				}
-			});
-		};
-	};
+			};
+			const onPointerDown = (event: PointerEvent) => onOutside(event, pointerDownOutside);
+			const onFocusIn = (event: FocusEvent) => onOutside(event, focusOutside);
+			const document = floating.ownerDocument;
+			if (dismissOnOutside) {
+				document.addEventListener("pointerdown", onPointerDown);
+				document.addEventListener("focusin", onFocusIn);
+			}
+			if (!continuing) {
+				latestShow.current?.(floating);
+			}
+
+			return () => {
+				document.removeEventListener("pointerdown", onPointerDown);
+				document.removeEventListener("focusin", onFocusIn);
+				stopTracking();
+				floating.removeEventListener("beforetoggle", onBeforeToggle);
+				// Why now: the closed float turns `inert` in this commit, and the browser
+				// then moves focus out of it.
+				const focusWasInside = floating.contains(document.activeElement);
+				// Why a microtask: React runs this cleanup inside its commit, and at the
+				// end of the commit it moves focus back to the element that had it
+				// before. A focus move here would not hold.
+				queueMicrotask(() => {
+					if (floatSessions.get(floating) !== session) {
+						return;
+					}
+					floatSessions.delete(floating);
+					session.popEscape();
+					latestHide.current?.(floating, focusWasInside);
+					if (shown && hasPopoverApi) {
+						shown = false;
+						floating.hidePopover();
+					}
+				});
+			};
+		},
+		[
+			align,
+			anchorOf,
+			dir,
+			dismiss,
+			dismissOnOutside,
+			dismissWhenCovered,
+			escape,
+			focusOutside,
+			insideElementsOf,
+			interactOutside,
+			pointerDownOutside,
+			side,
+			sideOffset,
+			visible,
+		],
+	);
 
 	return {
 		present,

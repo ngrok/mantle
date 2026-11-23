@@ -206,4 +206,30 @@ describe("Popover.Content placement", () => {
 			document.body.style.removeProperty("pointer-events");
 		}
 	});
+
+	test("does not place the open content again when it renders again", async () => {
+		const user = userEvent.setup();
+		const tree = (label: string) => (
+			<Popover.Root>
+				<Popover.Trigger>Open</Popover.Trigger>
+				<Popover.Content>
+					<p>{label}</p>
+				</Popover.Content>
+			</Popover.Root>
+		);
+		const { rerender } = render(tree("First"));
+		await user.click(screen.getByRole("button", { name: "Open" }));
+		const content = await screen.findByRole("dialog");
+		await waitFor(() => expect(getComputedStyle(content).opacity).toBe("1"));
+		const styleWrites: MutationRecord[] = [];
+		const observer = new MutationObserver((records) => styleWrites.push(...records));
+		observer.observe(content, { attributeFilter: ["style"] });
+
+		rerender(tree("Second"));
+		await screen.findByText("Second");
+		await new Promise(requestAnimationFrame);
+		observer.disconnect();
+
+		expect(styleWrites).toHaveLength(0);
+	});
 });

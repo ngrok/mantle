@@ -20,6 +20,7 @@ const supports = vi.spyOn(CSS, "supports").mockReturnValue(false);
 
 const Popover = await import("../../components/popover/popover-parts.js");
 const Tooltip = await import("../../components/tooltip/tooltip-parts.js");
+const DropdownMenu = await import("../../components/dropdown-menu/dropdown-menu-parts.js");
 
 let styleElement: HTMLStyleElement;
 
@@ -34,6 +35,7 @@ beforeAll(async () => {
 		await commands.tailwindCss("./use-float.ts"),
 		await commands.tailwindCss("../../components/popover/popover.tsx"),
 		await commands.tailwindCss("../../components/tooltip/tooltip.tsx"),
+		await commands.tailwindCss("../../components/dropdown-menu/dropdown-menu.tsx"),
 	].join("\n");
 	document.head.appendChild(styleElement);
 });
@@ -220,5 +222,49 @@ describe("a browser with no popover API and no anchor positioning", () => {
 		expect(tooltip.getBoundingClientRect().bottom).toBeLessThanOrEqual(
 			trigger.getBoundingClientRect().top,
 		);
+	});
+
+	test("opens a dropdown menu and its submenu next to their triggers, with keyboard focus", async () => {
+		const user = userEvent.setup();
+		render(
+			<div style={{ padding: 100 }}>
+				<DropdownMenu.Root>
+					<DropdownMenu.Trigger>Actions</DropdownMenu.Trigger>
+					<DropdownMenu.Content>
+						<DropdownMenu.Item>Rename</DropdownMenu.Item>
+						<DropdownMenu.Sub>
+							<DropdownMenu.SubTrigger>Share</DropdownMenu.SubTrigger>
+							<DropdownMenu.SubContent>
+								<DropdownMenu.Item>Copy link</DropdownMenu.Item>
+							</DropdownMenu.SubContent>
+						</DropdownMenu.Sub>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
+			</div>,
+		);
+		const trigger = screen.getByRole("button", { name: "Actions" });
+		trigger.focus();
+
+		await user.keyboard("{ArrowDown}");
+		const menu = await screen.findByRole("menu");
+		await waitFor(() => expect(screen.getByRole("menuitem", { name: "Rename" })).toHaveFocus());
+		expect(menu.checkVisibility()).toBe(true);
+		expect(getComputedStyle(menu).position).toBe("fixed");
+		expect(menu.getBoundingClientRect().top).toBeCloseTo(
+			trigger.getBoundingClientRect().bottom + 8,
+			0,
+		);
+
+		await user.keyboard("{ArrowDown}{ArrowRight}");
+		await waitFor(() => expect(screen.getByRole("menuitem", { name: "Copy link" })).toHaveFocus());
+		const subTrigger = screen.getByRole("menuitem", { name: "Share" });
+		const subMenu = screen.getByRole("menu", { name: "Share" });
+		expect(subMenu.getBoundingClientRect().left).toBeGreaterThanOrEqual(
+			subTrigger.getBoundingClientRect().right,
+		);
+
+		await user.keyboard("{Escape}");
+		await waitFor(() => expect(trigger).toHaveFocus());
+		expect(trigger).toHaveAttribute("aria-expanded", "false");
 	});
 });
