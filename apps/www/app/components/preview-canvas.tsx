@@ -10,7 +10,8 @@ type Props = PropsWithChildren & WithStyleProps;
  * `Example` grows its frame to this element's height, so put a `min-h-*`
  * class on it when the demo opens an overlay that needs room. The frame does
  * not scroll, so when the overlay opens below a trigger and does not fit
- * below the center, add `items-start` to put the trigger at the top.
+ * below the center, put the trigger at the top: add `items-start` to a row,
+ * or `justify-start` to a `flex-col` canvas.
  *
  * @example
  * ```tsx
