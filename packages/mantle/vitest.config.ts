@@ -259,10 +259,18 @@ export default defineConfig({
 						// Why Firefox runs one file at a time: Firefox keeps mouse capture and
 						// drag state for the whole browser, so a real drag in one page breaks a
 						// drag or a selection in another. CI splits Firefox into shards instead.
+						// Why a WebKit setup file: see `vitest.setup-webkit.ts`.
 						instances: engines.map((engine) => ({
 							browser: engine,
 							provider: providerFor(engine),
 							...(engine === "firefox" ? { fileParallelism: false } : {}),
+							...(engine === "webkit"
+								? {
+										setupFiles: ["vitest.setup.ts", "vitest.setup-webkit.ts"].map((file) =>
+											path.join(import.meta.dirname, file),
+										),
+									}
+								: {}),
 						})),
 						commands: { emulateMedia, tailwindCss },
 					},
