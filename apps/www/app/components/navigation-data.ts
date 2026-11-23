@@ -668,6 +668,14 @@ export const migrations = [
 			"Dialog, AlertDialog, and Sheet render the browser's modal <dialog> in place of Radix Dialog. Set modal={false} on an overlay that holds a third-party frame, and read the backdrop and the panel from their new elements.",
 		route: "/migrations/0027-native-dialog-migration",
 	},
+	{
+		number: 28,
+		slug: "native-slider-migration",
+		title: "Native Slider",
+		description:
+			"Each Slider thumb is now a native range input inside the thumb span. Target the input for focus, keys, ids, and test queries, and expect a disabled slider to submit no value.",
+		route: "/migrations/0028-native-slider-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

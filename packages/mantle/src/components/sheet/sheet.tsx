@@ -260,18 +260,17 @@ type SheetContentProps = Omit<
  * the content. When multiple overlays are open, the most recently mounted
  * overlay renders on top.
  *
- * UI that must take clicks above the open sheet, such as a consent banner,
- * carries the `overlay-prompt` class: a click inside it does not count as an
- * outside click. Add `pointer-events-auto` too, because the open sheet sets
- * `pointer-events: none` on `<body>`. mantle's `Toaster` does both.
+ * A modal sheet makes the rest of the page inert, so UI outside it takes no
+ * input while it is open. mantle's `Toaster` and `Sandbar` move into the open
+ * sheet, so they stay usable. With `modal={false}`, UI with the
+ * `overlay-prompt` class takes clicks above the sheet: a click inside it does
+ * not count as an outside click.
  *
- * The class reaches pointer input only. The open sheet makes outside
- * content inert, so no keyboard focus or assistive technology reaches it.
- * Put a control that every user must reach inside the content.
- *
- * A script can show its own popup in a frame on `<body>`, above the sheet,
- * such as the 3-D Secure challenge of a payment script. While that frame is
- * on top at the center of the viewport, the sheet yields to the popup:
+ * A script can show its own popup in a frame on `<body>`, such as the 3-D
+ * Secure challenge of a payment script. Set `modal={false}` on a sheet that
+ * holds such a flow: a modal sheet makes the frame inert and covers it.
+ * While that frame is on top at the center of the viewport, a non-modal
+ * sheet yields to the popup:
  *
  * - Focus that a script moves into the popup stays there.
  * - Escape moves focus into the popup and does not close the sheet.

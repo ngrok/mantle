@@ -322,8 +322,10 @@ const Head = ({
 		className={cx(
 			//,
 			// In border-separate, <tr>/<thead> borders don't render, so apply
-			// dividers directly to cells.
-			"[&>tr:last-child>*]:border-b [&>tr:last-child>*]:border-card-muted",
+			// dividers directly to cells. Why `:not(:has(+tr))` and not `:last-child`:
+			// a structural pseudo-class before `>*` makes Chromium restyle the whole
+			// page each time a portal is appended to `<body>`.
+			"[&>tr:not(:has(+tr))>*]:border-b [&>tr:not(:has(+tr))>*]:border-card-muted",
 			"[&>tr+tr>*]:border-t [&>tr+tr>*]:border-card-muted",
 			"text-muted bg-base",
 			"[&>tr]:bg-base", // Row styling
@@ -469,9 +471,8 @@ const Foot = ({
 			//,
 			"font-medium text-body",
 			// In border-separate, <tr>/<tfoot> borders don't render, so apply
-			// dividers directly to cells.
-			"[&>tr:first-child>*]:border-t [&>tr:first-child>*]:border-card-muted",
-			"[&>tr+tr>*]:border-t [&>tr+tr>*]:border-card-muted",
+			// dividers directly to cells. Why each row and not `:first-child`: see `Head`.
+			"[&>tr>*]:border-t [&>tr>*]:border-card-muted",
 			"[&>tr]:bg-gray-50/50 [&>tr]:hover:bg-card-hover", // Row styling
 			className,
 		)}

@@ -265,6 +265,95 @@ describe("Select keyboard, focus, and ARIA contract", () => {
 		expect(inView(screen.getByRole("option", { name: "Fruit 39" }))).toBe(true);
 	});
 
+	test("a long list cues each edge with more options, and the highlight stays clear of the cue", async () => {
+		// Why the compiled CSS: `scroll-cue-y` and `scroll-py-6` place the cue and the highlight.
+		const style = document.createElement("style");
+		style.textContent = await commands.tailwindCss("./select.tsx");
+		document.head.append(style);
+		try {
+			const fruits = Array.from({ length: 40 }, (_, index) => `Fruit ${index}`);
+			render(
+				<Select.Root defaultValue="Fruit 30">
+					<Select.Trigger aria-label="Fruit" />
+					{/* Why the style: the compiled CSS holds only the classes in select.tsx. */}
+					<Select.Content style={{ maxHeight: 160 }}>
+						{fruits.map((fruit) => (
+							<Select.Item key={fruit} value={fruit}>
+								{fruit}
+							</Select.Item>
+						))}
+					</Select.Content>
+				</Select.Root>,
+			);
+			await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
+			const list = screen.getByRole("listbox");
+			const edges = () =>
+				[list.hasAttribute("data-overflow-top"), list.hasAttribute("data-overflow-bottom")].join();
+			// Why 24: the cue is 1.5rem tall. At either end of the list that edge has no cue.
+			const clearOfCue = (name: string) => {
+				const box = list.getBoundingClientRect();
+				const option = screen.getByRole("option", { name }).getBoundingClientRect();
+				const top = list.hasAttribute("data-overflow-top") ? 24 : 0;
+				const bottom = list.hasAttribute("data-overflow-bottom") ? 24 : 0;
+				return option.top >= box.top + top - 0.5 && option.bottom <= box.bottom - bottom + 0.5;
+			};
+			await expect.poll(edges).toBe("true,true");
+			expect(getComputedStyle(list, "::before").opacity).toBe("1");
+			expect(clearOfCue("Fruit 30")).toBe(true);
+			await userEvent.keyboard("{Home}");
+			await expect.poll(edges).toBe("false,true");
+			expect(getComputedStyle(list, "::before").opacity).toBe("0");
+			expect(clearOfCue("Fruit 0")).toBe(true);
+			await userEvent.keyboard("{End}");
+			await expect.poll(edges).toBe("true,false");
+			expect(clearOfCue("Fruit 39")).toBe(true);
+			for (let step = 0; step < 12; step++) {
+				await userEvent.keyboard("{ArrowUp}");
+			}
+			await expect.poll(edges).toBe("true,true");
+			expect(clearOfCue("Fruit 27")).toBe(true);
+		} finally {
+			style.remove();
+		}
+	});
+
+	test("a list too short for the cue padding still shows the highlighted option in full", async () => {
+		const style = document.createElement("style");
+		style.textContent = await commands.tailwindCss("./select.tsx");
+		document.head.append(style);
+		try {
+			const fruits = Array.from({ length: 10 }, (_, index) => `Fruit ${index}`);
+			render(
+				<Select.Root>
+					<Select.Trigger aria-label="Fruit" />
+					{/* Why the style: the compiled CSS holds only the classes in select.tsx. */}
+					<Select.Content style={{ maxHeight: 44 }}>
+						{fruits.map((fruit) => (
+							<Select.Item key={fruit} value={fruit}>
+								{fruit}
+							</Select.Item>
+						))}
+					</Select.Content>
+				</Select.Root>,
+			);
+			await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
+			const list = screen.getByRole("listbox");
+			const inFull = (name: string) => {
+				const box = list.getBoundingClientRect();
+				const option = screen.getByRole("option", { name }).getBoundingClientRect();
+				return option.top >= box.top - 0.5 && option.bottom <= box.bottom + 0.5;
+			};
+			for (let step = 0; step < 5; step++) {
+				await userEvent.keyboard("{ArrowDown}");
+			}
+			expect(inFull("Fruit 5")).toBe(true);
+			await userEvent.keyboard("{ArrowUp}{ArrowUp}");
+			expect(inFull("Fruit 3")).toBe(true);
+		} finally {
+			style.remove();
+		}
+	});
+
 	test("typeahead opens a closed select, matches a prefix, and cycles on a repeated letter", async () => {
 		render(<FruitSelect />);
 		const trigger = screen.getByRole("combobox", { name: "Fruit" });

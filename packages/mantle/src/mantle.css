@@ -1798,6 +1798,50 @@ MARK: UTILITIES
 	}
 }
 
+@utility scroll-cue-y {
+	/*
+	 * Fades the top and bottom edges of a vertical scroll container while it has
+	 * more content past them. A script marks the edges: `observeScrollEdges` sets
+	 * `data-overflow-top` and `data-overflow-bottom` only when an edge flips, so
+	 * a scroll frame runs no style work. Each fade is a sticky gradient in
+	 * `--scroll-cue-color` (the popover background by default) laid over the
+	 * content: it masks nothing and has no children, so showing it restyles
+	 * one box. Sticky offsets start inside the padding, so a container with
+	 * vertical padding moves them out by it, such as `before:-top-1 after:-bottom-1`.
+	 */
+	&::before,
+	&::after {
+		content: "";
+		position: sticky;
+		z-index: 1;
+		display: block;
+		flex: none;
+		height: 1.5rem;
+		pointer-events: none;
+		opacity: 0;
+	}
+	&::before {
+		top: 0;
+		margin-bottom: -1.5rem;
+		background: linear-gradient(
+			var(--scroll-cue-color, var(--background-color-popover)),
+			transparent
+		);
+	}
+	&::after {
+		bottom: 0;
+		margin-top: -1.5rem;
+		background: linear-gradient(
+			transparent,
+			var(--scroll-cue-color, var(--background-color-popover))
+		);
+	}
+	&[data-overflow-top]::before,
+	&[data-overflow-bottom]::after {
+		opacity: 1;
+	}
+}
+
 @utility nav-scroll-shadow {
 	/* Shadow Cover TOP */
 	background:

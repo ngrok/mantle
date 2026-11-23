@@ -111,6 +111,23 @@ describe("Popover.Content placement", () => {
 		placementStyle.remove();
 	});
 
+	test("content that scrolls does not bounce or scroll the page at its ends", async () => {
+		const user = userEvent.setup();
+		render(
+			<Popover.Root>
+				<Popover.Trigger>Open</Popover.Trigger>
+				<Popover.Content style={{ maxHeight: 60, overflowY: "auto" }}>
+					<p style={{ height: 200 }}>Tall content</p>
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		await user.click(screen.getByRole("button", { name: "Open" }));
+		const content = await screen.findByRole("dialog");
+
+		expect(content.scrollHeight).toBeGreaterThan(content.clientHeight);
+		expect(getComputedStyle(content).overscrollBehaviorY).toBe("none");
+	});
+
 	test("aligns to the trigger's start edge after it changes from center", async () => {
 		const user = userEvent.setup();
 		const Aligned = ({ align }: { align: "center" | "start" }) => (

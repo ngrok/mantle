@@ -289,6 +289,10 @@ Every `Button` states what it means. `appearance` sets the visual weight, and `i
 
 Use `appearance="filled" intent="neutral"` for the primary action. This is the default primary action of the system. Use `intent="accent"` only for deliberate brand emphasis.
 
+## Focus ring
+
+`Button` shows the [focus ring](/base/focus-ring) for keyboard focus only (`:focus-visible`), so a click shows no ring. `intent="danger"` uses the danger tone. The ring paints 4px outside the button, so a scroll container or an `overflow-hidden` ancestor can clip it. See [A clipped ring](/base/focus-ring#a-clipped-ring).
+
 ## API Reference
 
 ### Button

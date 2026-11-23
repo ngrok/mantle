@@ -6,7 +6,7 @@ introducedIn: "0.95.0"
 
 # Mantle Native Radio Group Migration Guide
 
-`RadioGroup` and `SegmentedControl` no longer use Headless UI. Each item (`RadioGroup.Item`, `RadioGroup.ListItem`, `RadioGroup.Card`, and `SegmentedControl.Item`) is still a `<div>`, and it now holds a native `<input type="radio">` that covers it. The browser owns the one tab stop, Space, and the form contract, and the root moves the arrow keys. The accessibility tree and the look stay the same. The keyboard behavior stays the same in Chromium and Firefox; Safari differs, as the edge cases below say. What changes is the element that carries the state: the radio inside the item, not the item itself. A class on an item that reads `aria-checked`, `aria-disabled`, or `focus-visible` no longer matches.
+`RadioGroup` and `SegmentedControl` no longer use Headless UI. Each item (`RadioGroup.Item`, `RadioGroup.ListItem`, `RadioGroup.Card`, and `SegmentedControl.Item`) is still a `<div>`, and it now holds an invisible native `<input type="radio">`. The browser owns the one tab stop, Space, and the form contract, and the root moves the arrow keys. The roles, names, and states in the accessibility tree and the look stay the same. The keyboard behavior stays the same in Chromium and Firefox; Safari differs, as the edge cases below say. What changes is the element that carries the state: the radio inside the item, not the item itself. A class on an item that reads `aria-checked`, `aria-disabled`, or `focus-visible` no longer matches.
 
 **TL;DR:** In the `className` of a radio item, replace `aria-checked:` with `has-[>input:checked]:`, `aria-disabled:` with `has-[>input:disabled]:`, and `focus-visible:` with `has-[>input:focus-visible]:`. From a child of the item, replace `group-aria-checked/radio:` with `group-has-[>input:checked]/radio:`. Rename `onChange` to `onValueChange` on `RadioGroup.Root`, `RadioGroup.List`, and `SegmentedControl.Root`. Remove `as` and `by` from radio parts, and read only `checked` and `disabled` from `RadioGroup.Indicator` render props.
 
@@ -42,7 +42,7 @@ The codemod renames `onChange` to `onValueChange` on the roots and removes `as` 
 4. Leave `aria-checked:` alone on every other element, such as a `Switch` or a `DropdownMenu.CheckboxItem`.
 5. Rename `onChange` to `onValueChange` on `RadioGroup.Root`, `RadioGroup.List`, and `SegmentedControl.Root`. The handler still receives the value string. `onChange` on a root is now the DOM `change` event of the `<div>`, the same name every selection component in mantle uses. Remove the `as` prop from radio items and the `by` prop from `RadioGroup.Root` and `SegmentedControl.Root`. Values are strings, so `by` compared strings only. The codemod does this step.
 6. In a `RadioGroup.Indicator` render-props function, keep `checked` and `disabled`. Replace `focus` with a `group-has-[>input:focus-visible]/radio:` class, `hover` with a `group-hover/radio:` class, and drop `autofocus`.
-7. In tests, `getByRole("radio")` now returns the `<input>`. Query the item with `radio.parentElement` when the test needs the item's `data-slot`, class, or layout.
+7. In tests, `getByRole("radio")` now returns the `<input>`. A Playwright `click()` or `check()` on it, and a Testing Library `user.click()`, work as on a native radio. Query the item with `radio.parentElement` when the test needs the item's `data-slot`, class, or layout. The input has no text content and no `aria-checked` or `aria-disabled`: read its label with `toHaveAccessibleName`, and its state with `toBeChecked()`, `toBeDisabled()`, or the `checked` property. A `not.toHaveAttribute("aria-checked", "true")` assertion now passes on a checked radio too, so replace it.
 8. After editing, run the project's formatter, linter, type checker, and tests.
 
 > **Why native radios?** A native radio group needs no JavaScript for the tab stop, Space, or form submission. Headless UI also patched `HTMLElement.prototype.focus` and added document listeners on every page that used a radio. The `RadioGroup` entry is about 8.6 KB smaller (gzip), and a page of radios hydrates in less than half the time.
@@ -119,7 +119,6 @@ The codemod renames `onChange` to `onValueChange` on the roots and removes `as` 
 - Safari moves Tab to radios only when "Press Tab to highlight each item" is on, or with Option-Tab. This is the same rule Safari applies to every native button and checkbox.
 - With no checked item, Shift+Tab into the group lands on the last radio, the native behavior. Tab still lands on the first.
 - A radio item takes no function `className` and no `refName`. Style its state with the `has-[>input:…]` variants.
-- In Playwright, or in Vitest browser mode with the Playwright provider, `getByRole("radio").click()` and `check()` time out. The radio takes no pointer events, so the item under it gets the click. Click the item's text, such as `getByText("Pro").click()`, or call `check({ force: true })`.
 - A `Choice.Title`, a `Choice.Label`, or a `<label htmlFor>` with the item's `id` names the radio alone. Without one, all of the item's text is the radio's name, as before.
 
 ## How to verify
