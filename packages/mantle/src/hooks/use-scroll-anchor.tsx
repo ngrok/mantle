@@ -57,7 +57,7 @@ type UseScrollAnchorOptions = {
  * attaches, it scrolls back to that place before the first paint.
  *
  * The region it scrolls is the element itself or its nearest ancestor that
- * scrolls up and down, such as `AppLayout.Body` or `AppLayout.SidePanelBody`,
+ * can scroll up and down, such as `AppLayout.Body` or `AppLayout.SidePanelBody`,
  * else the document. Fixed and sticky children do not count as the place,
  * and the restore is instant even under `scroll-behavior: smooth`.
  * Put the ref on an element whose subtree is the same in every place the
@@ -116,10 +116,12 @@ function useScrollAnchor({ anchorRef, key }: UseScrollAnchorOptions): RefCallbac
 }
 
 /**
- * The element that scrolls `content`: itself or its nearest ancestor that
- * scrolls on the block axis now, else the document. Why the scroll range: a
- * wrapper with `overflow: auto` that grows with its content, or that scrolls
- * only sideways, never moves the text up or down.
+ * The element that scrolls `content`: itself or its nearest ancestor that can
+ * scroll on the block axis, else the document. An element with
+ * `overflow: auto` counts when it scrolls now, or when it is taller than what
+ * it holds, as a fixed-height region is when wider text fits it. Why not every
+ * one: a wrapper that grows with its content, or that scrolls only sideways,
+ * never moves the text up or down.
  */
 function scrollRegionOf(content: HTMLElement): HTMLElement {
 	let element: HTMLElement | null = content;
@@ -127,7 +129,7 @@ function scrollRegionOf(content: HTMLElement): HTMLElement {
 		const { overflowY } = getComputedStyle(element);
 		if (
 			(overflowY === "auto" || overflowY === "scroll") &&
-			element.scrollHeight > element.clientHeight
+			(element.scrollHeight > element.clientHeight || hasRoomBelow(element))
 		) {
 			return element;
 		}
@@ -139,11 +141,48 @@ function scrollRegionOf(content: HTMLElement): HTMLElement {
 }
 
 /**
+ * Whether `element` is taller than what it holds: space is left below the end
+ * of its content, inside its padding. A wrapper that grows with its content
+ * has none. Why down the chain of last children: a bottom margin collapses
+ * through a parent, so the content ends at the lowest margin edge on it.
+ */
+function hasRoomBelow(element: HTMLElement): boolean {
+	const style = getComputedStyle(element);
+	const innerBottom =
+		element.getBoundingClientRect().bottom -
+		Number.parseFloat(style.borderBottomWidth) -
+		Number.parseFloat(style.paddingBottom);
+	let contentBottom = element.getBoundingClientRect().top + Number.parseFloat(style.borderTopWidth);
+	let last = Array.from(element.children).findLast(scrollsWithText);
+	while (last != null) {
+		contentBottom = Math.max(
+			contentBottom,
+			last.getBoundingClientRect().bottom + Number.parseFloat(getComputedStyle(last).marginBottom),
+		);
+		last = Array.from(last.children).findLast(scrollsWithText);
+	}
+	return innerBottom - contentBottom > 1;
+}
+
+/**
  * The region's top edge in the viewport. The document's scrolling element
  * moves with the page, so its box is not where the reader's edge is.
  */
 function topEdgeOf(region: HTMLElement): number {
 	return region === document.scrollingElement ? 0 : region.getBoundingClientRect().top;
+}
+
+/**
+ * The box `element` lays out its text in. For the region itself, that is its
+ * whole scrolled content, so text-only content that scrolls itself still has
+ * a place.
+ */
+function textBoxOf(element: Element, region: HTMLElement): { top: number; height: number } {
+	if (element === region) {
+		return { top: topEdgeOf(region) - region.scrollTop, height: region.scrollHeight };
+	}
+	const { top, height } = element.getBoundingClientRect();
+	return { top, height };
 }
 
 /**
@@ -156,18 +195,27 @@ function scrollsWithText(child: Element): boolean {
 	return position !== "absolute" && position !== "fixed" && position !== "sticky";
 }
 
+/** Whether `element` has text of its own, beside its child elements. */
+function hasOwnText(element: Element): boolean {
+	return Array.from(element.childNodes).some(
+		(node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
+	);
+}
+
 /**
  * Reads where the reader is in `content`. From the content down, it goes into
  * the first child that scrolls with the text and reaches below the edge.
  *
  * - When that child holds the edge, it goes on into the child's children.
- * - When the edge is in a gap above that child, after an earlier child, it
- *   anchors the child and the gap in pixels.
- * - When the edge is above the first such child, the edge is in the element's
- *   own text or padding, and the element is the anchor.
+ * - When the edge is above that child and the element has text of its own,
+ *   or the child is the first, the edge is in that text or the padding, and
+ *   the element is the anchor. Its text reflows with it.
+ * - Else the edge is in a gap between two children: it anchors the next one
+ *   and the gap in pixels, because a gap does not reflow.
  */
 function readAnchor(content: HTMLElement): Omit<ScrollAnchor, "key"> {
-	const edge = topEdgeOf(scrollRegionOf(content));
+	const region = scrollRegionOf(content);
+	const edge = topEdgeOf(region);
 	const path: Array<number> = [];
 	let element: Element = content;
 	for (;;) {
@@ -179,7 +227,7 @@ function readAnchor(content: HTMLElement): Omit<ScrollAnchor, "key"> {
 			break;
 		}
 		const { top } = child.getBoundingClientRect();
-		if (top > edge && next === 0) {
+		if (top > edge && (next === 0 || hasOwnText(element))) {
 			break;
 		}
 		path.push(children.indexOf(child));
@@ -188,7 +236,7 @@ function readAnchor(content: HTMLElement): Omit<ScrollAnchor, "key"> {
 			return { path, fraction: 0, offset: edge - top };
 		}
 	}
-	const { top, height } = element.getBoundingClientRect();
+	const { top, height } = textBoxOf(element, region);
 	return { path, fraction: height > 0 ? (edge - top) / height : 0, offset: 0 };
 }
 
@@ -212,7 +260,7 @@ function scrollToAnchor(content: HTMLElement, anchor: Omit<ScrollAnchor, "key">)
 		}
 		element = child;
 	}
-	const { top, height } = element.getBoundingClientRect();
+	const { top, height } = textBoxOf(element, region);
 	region.scrollTo({
 		top: region.scrollTop + top + fraction * height + offset - topEdgeOf(region),
 		behavior: "instant",

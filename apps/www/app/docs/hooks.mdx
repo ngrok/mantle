@@ -447,7 +447,7 @@ function Transcript() {
 }
 ```
 
-The region it scrolls is the element itself or its nearest ancestor that scrolls up and down, such as
+The region it scrolls is the element itself or its nearest ancestor that can scroll up and down, such as
 `AppLayout.Body` or `AppLayout.SidePanelBody`, else the document. Fixed and sticky children do not count as
 the place, and the restore is instant even under `scroll-behavior: smooth`. Put the ref on an element whose subtree is the same in each
 home, such as the list of messages, so the place reads the same in each. Content that scrolls to its end
