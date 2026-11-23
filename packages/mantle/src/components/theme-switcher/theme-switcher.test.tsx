@@ -97,8 +97,8 @@ function stubPrefersDarkMode(prefersDarkMode: boolean) {
 }
 
 /**
- * The switcher button. Why by slot: CSS writes its default name, and happy-dom
- * loads no CSS, so the browser tests own the name.
+ * The switcher button. Why by slot: these tests are about the theme, not the
+ * name, which the role tests pin.
  */
 function getSwitcher(): HTMLButtonElement {
 	const button = document.querySelector('[data-slot~="theme-switcher"]');
@@ -177,6 +177,37 @@ describe("ThemeSwitcher", () => {
 
 		fireEvent.click(getSwitcher());
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
+	});
+
+	test("a test finds the switcher by its role and default name, and the name follows each click", async () => {
+		stubPrefersDarkMode(false);
+		renderSwitcher();
+
+		fireEvent.click(screen.getByRole("button", { name: "Switch to dark theme" }));
+
+		fireEvent.click(
+			await screen.findByRole("button", { name: "Switch to light theme (system default)" }),
+		);
+		expect(await screen.findByRole("button", { name: "Switch to dark theme" })).toBeInTheDocument();
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
+	});
+
+	test("a removed label gives the switcher its default name again", () => {
+		stubPrefersDarkMode(false);
+		const { rerender } = render(
+			<ThemeProvider>
+				<ThemeSwitcher label="Cambiar tema" />
+			</ThemeProvider>,
+		);
+		expect(screen.getByRole("button", { name: "Cambiar tema" })).toBeInTheDocument();
+
+		rerender(
+			<ThemeProvider>
+				<ThemeSwitcher />
+			</ThemeProvider>,
+		);
+
+		expect(screen.getByRole("button", { name: "Switch to dark theme" })).toBeInTheDocument();
 	});
 
 	test("custom label overrides the accessible name", () => {
