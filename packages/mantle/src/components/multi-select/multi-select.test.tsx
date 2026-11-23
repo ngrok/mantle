@@ -1173,3 +1173,36 @@ describe("MultiSelect.Item asChild", () => {
 		);
 	});
 });
+
+describe("MultiSelect.Item function child", () => {
+	test("renders the returned element as the option, with the label and check inside, and reports the highlight", async () => {
+		const user = userEvent.setup();
+		render(
+			<MultiSelect.Root defaultValue={["apple"]}>
+				<MultiSelect.Trigger aria-label="Fruits">
+					<MultiSelect.TagValues />
+					<MultiSelect.Input aria-label="Search fruits" />
+				</MultiSelect.Trigger>
+				<MultiSelect.Content>
+					{["apple", "banana"].map((fruit) => (
+						<MultiSelect.Item key={fruit} value={fruit}>
+							{(props, { highlighted }) => (
+								<div {...props} data-row-highlighted={String(highlighted)}>
+									{fruit}
+								</div>
+							)}
+						</MultiSelect.Item>
+					))}
+				</MultiSelect.Content>
+			</MultiSelect.Root>,
+		);
+
+		await user.click(screen.getByRole("combobox", { name: "Search fruits" }));
+		const banana = await screen.findByRole("option", { name: "banana" });
+		await user.hover(banana);
+
+		expect(banana).toHaveAttribute("data-row-highlighted", "true");
+		expect(banana.querySelector("[data-slot=multi-select-item-label]")).toHaveTextContent("banana");
+		expect(screen.getByRole("option", { name: "apple" }).querySelector("svg")).not.toBeNull();
+	});
+});

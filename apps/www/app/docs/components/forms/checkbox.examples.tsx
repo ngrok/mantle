@@ -72,7 +72,7 @@ export function SelectAllExample() {
 				<Checkbox
 					aria-label="Select all rows"
 					checked={selectAllChecked({ allSelected, someSelected })}
-					onChange={(event) => setSelected(event.target.checked ? [...rows] : [])}
+					onCheckedChange={(checked) => setSelected(checked ? [...rows] : [])}
 				/>
 				Select all
 			</Label>
@@ -80,9 +80,9 @@ export function SelectAllExample() {
 				<Label key={row} className="flex items-center gap-2 pl-6">
 					<Checkbox
 						checked={selected.includes(row)}
-						onChange={(event) =>
+						onCheckedChange={(checked) =>
 							setSelected((prev) =>
-								event.target.checked ? [...prev, row] : prev.filter((value) => value !== row),
+								checked ? [...prev, row] : prev.filter((value) => value !== row),
 							)
 						}
 					/>

@@ -195,6 +195,8 @@ Combobox.Root
 
 `Combobox.Content`, `Combobox.Item`, `Combobox.Group`, and `Combobox.GroupLabel` support `asChild` to render as a different element or your own component while keeping the combobox behavior and styling.
 
+`Combobox.Item` also takes a function child, `(props, { highlighted }) => element`, for a row that renders different content while highlighted, such as a preview. Only a row that uses one re-renders when the highlight moves. To only restyle the highlighted row, use the `data-highlighted:` variant, or `in-data-highlighted:` from a child, which needs no JavaScript. Anything you write after `{...props}` wins, so join a class with `cx(props.className, "…")`, and set `id` on the item, not on your element.
+
 <Example name="components/forms/combobox/polymorphism" title="Combobox polymorphism example">
 
 ```tsx
@@ -275,11 +277,12 @@ Renders a combobox item inside a `Combobox.Content` component.
 
 All props of a `<div>`, plus:
 
-| Prop        | Type      | Default | Description                                                                                                          |
-| :---------- | :-------- | :------ | :------------------------------------------------------------------------------------------------------------------- |
-| `asChild?`  | `boolean` | `false` | Compose onto an alternative element type or your own React component.                                                |
-| `disabled?` | `boolean` |         | Whether the item is inert.                                                                                           |
-| `value?`    | `string`  |         | The value that picking the item writes into the input. An item with no value is static text that the keyboard skips. |
+| Prop        | Type                                                      | Default | Description                                                                                                                                                     |
+| :---------- | :-------------------------------------------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `asChild?`  | `boolean`                                                 | `false` | Compose onto an alternative element type or your own React component.                                                                                           |
+| `children?` | `ReactNode` \| `(props, { highlighted }) => ReactElement` | `value` | The item's content. A function renders the item as the element it returns, with the item's props and whether it is highlighted. Spread `props` on that element. |
+| `disabled?` | `boolean`                                                 |         | Whether the item is inert.                                                                                                                                      |
+| `value?`    | `string`                                                  |         | The value that picking the item writes into the input. An item with no value is static text that the keyboard skips.                                            |
 
 ### Combobox.ItemValue
 

@@ -509,3 +509,38 @@ describe("Combobox", () => {
 		consoleError.mockRestore();
 	});
 });
+
+describe("Combobox.Item function child", () => {
+	test("renders the returned element as the option and reports the highlight", async () => {
+		const user = userEvent.setup();
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Fruit" />
+				<Combobox.Content>
+					{["Apple", "Banana"].map((fruit) => (
+						<Combobox.Item key={fruit} value={fruit}>
+							{(props, { highlighted }) => (
+								<div {...props}>
+									{fruit}
+									{highlighted && <span data-testid="preview">{`${fruit} preview`}</span>}
+								</div>
+							)}
+						</Combobox.Item>
+					))}
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Fruit" });
+
+		await user.click(input);
+		await user.keyboard("{ArrowDown}");
+		const banana = await screen.findByRole("option", { name: /Banana/ });
+		await user.hover(banana);
+
+		expect(screen.getByTestId("preview")).toHaveTextContent("Banana preview");
+
+		await user.click(banana);
+
+		expect(input).toHaveValue("Banana");
+	});
+});

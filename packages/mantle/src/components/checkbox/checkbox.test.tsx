@@ -181,3 +181,45 @@ describe("selectAllChecked", () => {
 		expect(selectAllChecked({ allSelected: true, someSelected: true })).toBe(true);
 	});
 });
+
+describe("Checkbox onCheckedChange", () => {
+	test("runs with the new checked state after onChange, and an indeterminate box becomes checked", async () => {
+		const user = userEvent.setup();
+		const calls: string[] = [];
+		const onCheckedChange = vi.fn<(checked: boolean) => void>((checked) => {
+			calls.push(`checked:${checked}`);
+		});
+		render(
+			<Checkbox
+				aria-label="Select all"
+				defaultChecked="indeterminate"
+				onChange={() => calls.push("change")}
+				onCheckedChange={onCheckedChange}
+			/>,
+		);
+		const checkbox = screen.getByRole("checkbox", { name: "Select all" });
+
+		await user.click(checkbox);
+
+		expect(onCheckedChange).toHaveBeenCalledTimes(1);
+		expect(onCheckedChange).toHaveBeenLastCalledWith(true);
+
+		await user.click(checkbox);
+
+		expect(onCheckedChange).toHaveBeenCalledTimes(2);
+		expect(onCheckedChange).toHaveBeenLastCalledWith(false);
+		expect(calls).toEqual(["change", "checked:true", "change", "checked:false"]);
+	});
+
+	test("does not run on a read-only box", async () => {
+		const user = userEvent.setup();
+		const onCheckedChange = vi.fn<(checked: boolean) => void>();
+		render(<Checkbox aria-label="Locked" readOnly onCheckedChange={onCheckedChange} />);
+		const checkbox = screen.getByRole("checkbox", { name: "Locked" });
+
+		await user.click(checkbox);
+
+		expect(checkbox).not.toBeChecked();
+		expect(onCheckedChange).not.toHaveBeenCalled();
+	});
+});
