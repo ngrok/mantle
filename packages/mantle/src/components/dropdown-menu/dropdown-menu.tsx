@@ -147,31 +147,36 @@ function openSetter({
 
 const itemSelector = "[role='menuitem'], [role='menuitemcheckbox'], [role='menuitemradio']";
 
-/** The enabled, rendered items of `menu`, in order, without the items of a submenu inside it. */
+/** The enabled items of `menu`, in order, without the items of a submenu inside it. */
 function itemsOf(menu: HTMLElement): HTMLElement[] {
 	return Array.from(menu.querySelectorAll<HTMLElement>(itemSelector)).filter(
 		(item) =>
-			item.closest("[role='menu']") === menu &&
-			item.getAttribute("aria-disabled") !== "true" &&
-			// Why: an item that CSS hides, such as with `display: none`, has no box and cannot take focus.
-			item.getClientRects().length > 0,
+			item.closest("[role='menu']") === menu && item.getAttribute("aria-disabled") !== "true",
 	);
 }
 
-/** The open menu and the cleanup of the inert boundary that a modal menu puts around it. */
-type ModalBoundary = { shown: HTMLElement | null; exit: (() => void) | undefined };
+/** The shown menu element, and the inert boundary that a modal menu holds around one element. */
+type ModalBoundary = {
+	shown: HTMLElement | null;
+	held: { element: HTMLElement; exit: () => void } | null;
+};
 
-/** Makes the page inert around a shown modal menu, and lets it go when the menu hides or stops being modal. */
+/**
+ * Makes the page inert around a shown modal menu, and lets it go when the menu
+ * hides or stops being modal. Why for each element: an `asChild` menu can get a
+ * new element while it stays open, and the boundary moves to it.
+ */
 function syncModal(
 	boundary: ModalBoundary,
 	{ modal, trigger }: { modal: boolean; trigger: HTMLElement | null },
 ): void {
-	if (modal && boundary.shown != null && trigger != null) {
-		boundary.exit ??= enterModal([trigger, boundary.shown]);
-	} else {
-		boundary.exit?.();
-		boundary.exit = undefined;
+	const element = modal && trigger != null ? boundary.shown : null;
+	if ((boundary.held?.element ?? null) === element) {
+		return;
 	}
+	boundary.held?.exit();
+	boundary.held =
+		element == null || trigger == null ? null : { element, exit: enterModal([trigger, element]) };
 }
 
 /** Moves focus to an item or the menu, with no scroll jump. */
@@ -179,10 +184,20 @@ function focusWithoutScroll(element: HTMLElement | null | undefined): void {
 	element?.focus({ preventScroll: true });
 }
 
-/** Moves keyboard focus to an item and scrolls the menu so the item shows. */
-function focusItem(item: HTMLElement | null | undefined): void {
-	focusWithoutScroll(item);
-	item?.scrollIntoView({ block: "nearest" });
+/**
+ * Moves keyboard focus to the first of `items` that takes it, and scrolls the
+ * menu so the item shows. Why try each: an item that CSS hides, that is
+ * `inert`, or that is a disabled button cannot take focus, as with Radix.
+ */
+function focusFirst(items: readonly HTMLElement[]): boolean {
+	for (const item of items) {
+		focusWithoutScroll(item);
+		if (item.ownerDocument.activeElement === item) {
+			item.scrollIntoView({ block: "nearest" });
+			return true;
+		}
+	}
+	return false;
 }
 
 /**
@@ -196,14 +211,46 @@ function isMenuKey(menu: HTMLElement, target: EventTarget): target is HTMLElemen
 	);
 }
 
+/**
+ * The items that a navigation key tries, in order, from the item at `current`
+ * (-1 for none). Returns `null` for a key that does not navigate.
+ */
+function navigationOrder({
+	key,
+	items,
+	current,
+	loop,
+}: {
+	key: string;
+	items: HTMLElement[];
+	current: number;
+	loop: boolean;
+}): HTMLElement[] | null {
+	const after = items.slice(current + 1);
+	const before = current === -1 ? [] : items.slice(0, current);
+	switch (key) {
+		case "ArrowDown":
+			return current === -1 ? items : [...after, ...(loop ? before : [])];
+		case "ArrowUp":
+			return current === -1 ? items.toReversed() : [...(loop ? after : []), ...before].toReversed();
+		case "Home":
+		case "PageUp":
+			return items;
+		case "End":
+		case "PageDown":
+			return items.toReversed();
+		default:
+			return null;
+	}
+}
+
 /** Moves focus as the menu opens: to its first item, its last item, or the menu itself. */
 function focusOnOpen(menu: HTMLElement, focus: OpenFocus): void {
 	const items = itemsOf(menu);
-	if (focus === "first" && items.length > 0) {
-		focusItem(items[0]);
-	} else if (focus === "last" && items.length > 0) {
-		focusItem(items.at(-1));
-	} else {
+	const moved =
+		(focus === "first" && focusFirst(items)) ||
+		(focus === "last" && focusFirst(items.toReversed()));
+	if (!moved) {
 		focusWithoutScroll(menu);
 	}
 }
@@ -255,9 +302,11 @@ const TYPEAHEAD_RESET = 1000;
 function useMenuKeyboard(loop: boolean): {
 	onMenuKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
 	isTyping: () => boolean;
+	resetTyping: () => void;
 } {
 	const search = useRef("");
 	const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+	useEffect(() => () => clearTimeout(searchTimer.current), []);
 	return useMemo(() => {
 		const onMenuKeyDown = (event: KeyboardEvent<HTMLElement>) => {
 			const menu = event.currentTarget;
@@ -265,49 +314,21 @@ function useMenuKeyboard(loop: boolean): {
 			if (!isMenuKey(menu, target)) {
 				return;
 			}
+			if (event.key === "Tab") {
+				// Why: a menu keeps focus until it closes, as a native menu does.
+				event.preventDefault();
+				return;
+			}
 			const items = itemsOf(menu);
 			const current = items.indexOf(target);
-			const move = (index: number) => {
-				event.preventDefault();
-				focusItem(items[index]);
-			};
-			switch (event.key) {
-				case "ArrowDown": {
-					if (current === -1) {
-						move(0);
-					} else if (current < items.length - 1 || loop) {
-						move((current + 1) % items.length);
-					} else {
-						event.preventDefault();
-					}
-					return;
-				}
-				case "ArrowUp": {
-					if (current === -1) {
-						move(items.length - 1);
-					} else if (current > 0 || loop) {
-						move((current - 1 + items.length) % items.length);
-					} else {
-						event.preventDefault();
-					}
-					return;
-				}
-				case "Home":
-				case "PageUp": {
-					move(0);
-					return;
-				}
-				case "End":
-				case "PageDown": {
-					move(items.length - 1);
-					return;
-				}
-				case "Tab": {
-					// Why: a menu keeps focus until it closes, as a native menu does.
+			const move = navigationOrder({ key: event.key, items, current, loop });
+			// Why not with a modifier: as with Radix, Shift or Ctrl with an arrow key is the page's.
+			if (move != null) {
+				if (!event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
 					event.preventDefault();
-					return;
+					focusFirst(move);
 				}
-				default:
+				return;
 			}
 			const isCharacter =
 				event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey;
@@ -325,12 +346,21 @@ function useMenuKeyboard(loop: boolean): {
 			const query = isRepeat ? search.current.charAt(0) : search.current;
 			const start = isRepeat ? current + 1 : Math.max(current, 0);
 			const ordered = [...items.slice(start), ...items.slice(0, start)];
-			const match = ordered.find((item) =>
-				(item.dataset.textValue ?? item.textContent ?? "").trim().toLowerCase().startsWith(query),
+			focusFirst(
+				ordered.filter((item) =>
+					(item.dataset.textValue ?? item.textContent ?? "").trim().toLowerCase().startsWith(query),
+				),
 			);
-			focusItem(match);
 		};
-		return { onMenuKeyDown, isTyping: () => search.current !== "" };
+		return {
+			onMenuKeyDown,
+			isTyping: () => search.current !== "",
+			// Why: a menu that opens again starts a new search, as with Radix.
+			resetTyping: () => {
+				clearTimeout(searchTimer.current);
+				search.current = "";
+			},
+		};
 	}, [loop]);
 }
 
@@ -717,7 +747,7 @@ type MenuPanelProps = ComponentProps<"div"> &
 	};
 
 const panelClassName =
-	"scrollbar text-popover-foreground border-popover bg-popover p-1.25 min-w-32 max-h-(--available-height) overflow-auto rounded-md border shadow-xl outline-hidden space-y-px font-sans";
+	"scrollbar-none text-popover-foreground border-popover bg-popover p-1.25 min-w-32 max-h-(--available-height) overflow-auto overscroll-none rounded-md border shadow-xl outline-hidden space-y-px font-sans";
 
 type DropdownMenuContentProps = MenuPanelProps & {
 	/**
@@ -797,9 +827,9 @@ const Content = ({
 	/** How the last outside interaction left focus: where it landed (`keep`), or back to the trigger (`restore`). */
 	const outsideFocus = useRef<"keep" | "restore" | null>(null);
 	const outsideRightClick = useRef(false);
-	const modalBoundary = useRef<ModalBoundary>({ shown: null, exit: undefined });
+	const modalBoundary = useRef<ModalBoundary>({ shown: null, held: null });
 	const [menu, setMenu] = useState<HTMLElement | null>(null);
-	const { onMenuKeyDown, isTyping } = useMenuKeyboard(loop);
+	const { onMenuKeyDown, isTyping, resetTyping } = useMenuKeyboard(loop);
 	const { portalTarget, floatingRef } = useFloat({
 		open: state.open,
 		onDismiss: (reason) => {
@@ -835,7 +865,11 @@ const Content = ({
 			focusOnOpen(floating, state.takeOpenFocus());
 		},
 		onHide: (floating, focusWasInside) => {
-			modalBoundary.current.shown = null;
+			resetTyping();
+			// Why the check: a new `asChild` element shows before the old one hides.
+			if (modalBoundary.current.shown === floating) {
+				modalBoundary.current.shown = null;
+			}
 			syncModal(modalBoundary.current, { modal: state.modal, trigger: state.triggerRef.current });
 			const event = new Event("mantle.dropdown-menu.closeAutoFocus", { cancelable: true });
 			onCloseAutoFocus?.(event);
@@ -1271,7 +1305,7 @@ const SubTrigger = ({
 						sub.setOpenFocus("first");
 						if (sub.open) {
 							const subMenu = event.currentTarget.ownerDocument.getElementById(sub.contentId);
-							focusItem(subMenu == null ? null : itemsOf(subMenu)[0]);
+							focusFirst(subMenu == null ? [] : itemsOf(subMenu));
 						} else {
 							sub.setOpen(true);
 						}
@@ -1406,7 +1440,7 @@ const SubContent = ({
 	const menuRef = useRef<HTMLElement | null>(null);
 	const { isInSubmenuPath, setSubmenuPath, clearSubmenuPath } = useSubmenuPath();
 	const [menu, setMenu] = useState<HTMLElement | null>(null);
-	const { onMenuKeyDown, isTyping } = useMenuKeyboard(loop);
+	const { onMenuKeyDown, isTyping, resetTyping } = useMenuKeyboard(loop);
 	const trigger = sub.triggerRef.current;
 	// Why the trigger's direction: the keyboard opens the submenu with the arrow
 	// key of the menu's direction, so the submenu opens on that side too.
@@ -1440,6 +1474,7 @@ const SubContent = ({
 			}
 		},
 		onHide: (_floating, focusWasInside) => {
+			resetTyping();
 			if (focusWasInside) {
 				focusWithoutScroll(sub.triggerRef.current);
 			}

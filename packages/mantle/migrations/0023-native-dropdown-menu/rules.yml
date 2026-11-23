@@ -156,7 +156,12 @@ rule:
                         regex: ^var$
                     - has:
                         field: left
-                        pattern: $MENU
+                        any:
+                          - pattern: $MENU
+                          - has:
+                              stopBy: end
+                              matches: binding-name
+                              pattern: $MENU
 fix: ""
 ---
 id: dropdown-menu-css-variables
@@ -326,7 +331,12 @@ rule:
                           regex: ^var$
                       - has:
                           field: left
-                          pattern: $MENU
+                          any:
+                            - pattern: $MENU
+                            - has:
+                                stopBy: end
+                                matches: binding-name
+                                pattern: $MENU
 transform:
   TRIGGER:
     replace:

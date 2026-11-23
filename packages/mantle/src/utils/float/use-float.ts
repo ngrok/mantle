@@ -5,6 +5,7 @@ import type { RefCallback } from "react";
 import { canUseDOM } from "../../components/browser-only/can-use-dom.js";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
+import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import { useIsCoveredByOverlay, useLayerContainer } from "../layer-container/layer-container.js";
 import { trackFloat } from "./position.js";
 import type { Align, Side } from "./position.js";
@@ -55,6 +56,13 @@ type OutsideHandlers = {
 };
 
 /** Why a float closed without the caller asking. */
+/** The anchor that an open float is placed against, its direction when the placement reads it, and the call that places it again. */
+type PlacedFor = {
+	anchor: HTMLElement;
+	rtl: boolean | null;
+	retrack: (anchor: HTMLElement) => void;
+};
+
 type DismissReason = "escape" | "outside" | "browser" | "covered";
 
 /** An open float that can take Escape. */
@@ -256,6 +264,24 @@ function useFloat({
 	}, [covered, dismiss, dismissWhenCovered, open]);
 
 	const visible = open && !covered;
+	/** What the open float is placed against, and the call that places it again. */
+	const placedFor = useRef<PlacedFor | null>(null);
+	// Why: the ref callback keeps one identity while the float is open, so it
+	// does not see a new anchor element, such as a replaced trigger, or a new
+	// inherited direction. This places the float again only when one changes.
+	useIsomorphicLayoutEffect(() => {
+		const placed = placedFor.current;
+		const anchor = anchorOf();
+		if (placed == null || anchor == null) {
+			return;
+		}
+		if (
+			anchor !== placed.anchor ||
+			(placed.rtl != null && (getComputedStyle(anchor).direction === "rtl") !== placed.rtl)
+		) {
+			placed.retrack(anchor);
+		}
+	});
 
 	// Why a ref callback: React calls it again when `visible` or the placement
 	// changes, so the float shows and follows its anchor only while visible.
@@ -276,6 +302,9 @@ function useFloat({
 				}
 				return;
 			}
+			// Why only for `start` and `end` above or below: only that placement follows the direction.
+			const readsDirection =
+				dir == null && align !== "center" && (side === "top" || side === "bottom");
 			let shown = true;
 			let dismissed = false;
 			// Why once: the browser can hide a `hint` float on the same press that the outside check sees.
@@ -315,15 +344,28 @@ function useFloat({
 			if (!continuing && hasPopoverApi) {
 				floating.showPopover();
 			}
-			const stopTracking = trackFloat({
-				align,
+			const track = (target: HTMLElement) =>
+				trackFloat({
+					align,
+					anchor: target,
+					dir,
+					floating,
+					side,
+					sideOffset,
+					releaseAnchorAfter: EXIT_DURATION,
+				});
+			let stopTracking = track(anchor);
+			const placed: PlacedFor = {
 				anchor,
-				dir,
-				floating,
-				side,
-				sideOffset,
-				releaseAnchorAfter: EXIT_DURATION,
-			});
+				rtl: readsDirection ? getComputedStyle(anchor).direction === "rtl" : null,
+				retrack: (next) => {
+					stopTracking();
+					stopTracking = track(next);
+					placed.anchor = next;
+					placed.rtl = readsDirection ? getComputedStyle(next).direction === "rtl" : null;
+				},
+			};
+			placedFor.current = placed;
 
 			const isInside = (target: EventTarget | null) =>
 				target instanceof Node &&
@@ -365,6 +407,7 @@ function useFloat({
 			}
 
 			return () => {
+				placedFor.current = null;
 				document.removeEventListener("pointerdown", onPointerDown);
 				document.removeEventListener("focusin", onFocusIn);
 				stopTracking();

@@ -976,6 +976,111 @@ describe("DropdownMenu parity with Radix (browser)", () => {
 			await waitFor(() => expect(outside.closest("[inert]") == null).toBe(initialModal));
 		},
 	);
+
+	test.each(["visibility", "disabled-button", "inert"])(
+		"keyboard entry skips a first item that cannot take focus (%s)",
+		async (mode) => {
+			const user = userEvent.setup();
+			render(
+				<DropdownMenu.Root modal={false}>
+					<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+					<DropdownMenu.Content>
+						{mode === "visibility" && (
+							<DropdownMenu.Item style={{ visibility: "hidden" }}>Unavailable</DropdownMenu.Item>
+						)}
+						{mode === "disabled-button" && (
+							<DropdownMenu.Item asChild>
+								<button type="button" disabled>
+									Unavailable
+								</button>
+							</DropdownMenu.Item>
+						)}
+						{mode === "inert" && (
+							<div inert>
+								<DropdownMenu.Item>Unavailable</DropdownMenu.Item>
+							</div>
+						)}
+						<DropdownMenu.Item>Apple</DropdownMenu.Item>
+						<DropdownMenu.Item>Banana</DropdownMenu.Item>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>,
+			);
+			screen.getByRole("button", { name: "Open" }).focus();
+			await user.keyboard("{ArrowDown}");
+
+			await waitFor(() => expect(item("Apple")).toHaveFocus());
+		},
+	);
+
+	test("reopening the menu starts a new typeahead search", async () => {
+		const user = userEvent.setup();
+		const selected: string[] = [];
+		render(
+			<DropdownMenu.Root modal={false}>
+				<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+				<DropdownMenu.Content>
+					<DropdownMenu.Item onSelect={() => selected.push("apple")}>Apple</DropdownMenu.Item>
+					<DropdownMenu.Item onSelect={() => selected.push("banana")}>Banana</DropdownMenu.Item>
+				</DropdownMenu.Content>
+			</DropdownMenu.Root>,
+		);
+		screen.getByRole("button", { name: "Open" }).focus();
+		await user.keyboard("{ArrowDown}b");
+		await waitFor(() => expect(item("Banana")).toHaveFocus());
+		await user.keyboard("{Escape}");
+		await waitFor(() => expect(screen.queryByText("Apple")).toBeNull());
+		await user.keyboard("{ArrowDown}");
+		await waitFor(() => expect(item("Apple")).toHaveFocus());
+
+		await user.keyboard(" ");
+
+		expect(selected).toEqual(["apple"]);
+	});
+
+	test("a modified arrow key does not move focus", async () => {
+		const user = userEvent.setup();
+		render(<FruitMenu />);
+		screen.getByRole("button", { name: "Open" }).focus();
+		await user.keyboard("{ArrowDown}");
+		const first = screen.getAllByRole("menuitem")[0];
+		await waitFor(() => expect(first).toHaveFocus());
+
+		await user.keyboard("{Shift>}{ArrowDown}{/Shift}");
+
+		expect(first).toHaveFocus();
+	});
+
+	test("a new asChild host for an open modal menu keeps the page inert", async () => {
+		const tree = (section: boolean) => (
+			<>
+				<button type="button">Outside</button>
+				<DropdownMenu.Root defaultOpen>
+					<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+					<DropdownMenu.Content asChild>
+						{section ? (
+							<section>
+								<DropdownMenu.Item>Apple</DropdownMenu.Item>
+							</section>
+						) : (
+							<div>
+								<DropdownMenu.Item>Apple</DropdownMenu.Item>
+							</div>
+						)}
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
+			</>
+		);
+		const { rerender } = render(tree(false));
+		await screen.findByRole("menu");
+		const outside = screen.getByText("Outside");
+		await waitFor(() => expect(outside.closest("[inert]")).not.toBeNull());
+
+		rerender(tree(true));
+		await act(async () => {});
+
+		expect(screen.getByRole("menu").tagName).toBe("SECTION");
+		expect(outside.closest("[inert]")).not.toBeNull();
+	});
 });
 
 /** A consumer panel for `asChild` that adds an item of its own before its children. */

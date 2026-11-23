@@ -88,6 +88,24 @@ export function VarDestructureShadow(flag: boolean) {
 	return <DropdownMenu.Content className="w-(--radix-dropdown-menu-trigger-width)" />;
 }
 
+export function VarDestructureLoopShadow(menus: Array<{ menu: typeof RadixMenu }>) {
+	// oxlint-disable-next-line no-var, vars-on-top -- the case is a hoisted `var`
+	for (var { menu: DropdownMenu } of menus) {
+		break;
+	}
+	// oxlint-disable-next-line block-scoped-var -- the case reads the hoisted `var`
+	return <DropdownMenu.Content collisionPadding={16} />;
+}
+
+export function VarArrayLoopShadow(menus: Array<[typeof RadixMenu]>) {
+	// oxlint-disable-next-line no-var, vars-on-top -- the case is a hoisted `var`
+	for (var [DropdownMenu] of menus) {
+		break;
+	}
+	// oxlint-disable-next-line block-scoped-var -- the case reads the hoisted `var`
+	return <DropdownMenu.Content className="w-(--radix-dropdown-menu-trigger-width)" />;
+}
+
 export const NamedClassShadow = class DropdownMenu {
 	static Content = RadixMenu.Content;
 	render() {

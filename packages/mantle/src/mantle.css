@@ -1566,6 +1566,19 @@ MARK: UTILITIES
 	--tw-ring-color: --value(--ring-color-focus-*);
 }
 
+/*
+ * Hides the scrollbar of a scroll container. The container still scrolls by
+ * wheel, touch, and keyboard. Why the pseudo-element: Safari before 18.2 and
+ * Chrome before 121 have no `scrollbar-width`.
+ */
+@utility scrollbar-none {
+	scrollbar-width: none;
+
+	&::-webkit-scrollbar {
+		display: none;
+	}
+}
+
 @utility scrollbar {
 	scrollbar-color: --alpha(var(--color-neutral-800) / 50%) transparent;
 
