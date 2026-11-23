@@ -15,7 +15,6 @@ const RECIPE = "app/docs/recipes/assistant-across-routes.mdx";
 const FENCED_FILES = [
 	"app/features/assistant-across-routes/assistant-across-routes.tsx",
 	"app/features/assistant-across-routes/assistant-conversation.tsx",
-	"app/features/assistant-across-routes/assistant-view-transition.css",
 	"app/features/assistant-across-routes/assistant-across-routes.test.tsx",
 ] as const;
 

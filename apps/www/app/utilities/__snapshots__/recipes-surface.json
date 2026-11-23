@@ -2,7 +2,7 @@
   {
     "name": "Assistant Across Routes",
     "slug": "recipes/assistant-across-routes",
-    "summary": "Render an assistant in main on its own route and in the AppLayout side panel on every other route, with one conversation above both and a 300ms View Transition that morphs the page into the panel.",
+    "summary": "Render an assistant in main on its own route and in the AppLayout side panel on every other route, with one conversation above both, a 300ms View Transition that morphs the page into the panel, and the reader's place kept across the switch.",
     "useWhen": "Show an assistant as its own page on one route and in the side panel on every other route, with one conversation for both.",
     "aliases": [
       "assistant side panel",
