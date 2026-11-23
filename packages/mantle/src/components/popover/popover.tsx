@@ -9,6 +9,7 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { findTabbableDescendants } from "../alert/tabbable-neighbors.js";
 import { FloatArrow, focusFirst } from "../../utils/float/parts.js";
 import type { Align, Side } from "../../utils/float/position.js";
 import {
@@ -350,6 +351,7 @@ const Content = ({
 	onEscapeKeyDown,
 	onFocusOutside,
 	onInteractOutside,
+	onKeyDown,
 	onOpenAutoFocus,
 	onPointerDownOutside,
 	preferredWidth = "max-w-72",
@@ -430,6 +432,32 @@ const Content = ({
 					// Why: a click in the content must not reach a clickable parent of the trigger.
 					event.stopPropagation();
 					onClick?.(event);
+				}}
+				onKeyDown={(event) => {
+					onKeyDown?.(event);
+					const content = event.currentTarget;
+					// Why the `:modal` check: a Dialog opened from the content portals
+					// into it, and that dialog keeps its own Tab order.
+					if (
+						event.key !== "Tab" ||
+						event.defaultPrevented ||
+						!(event.target instanceof Element) ||
+						!content.contains(event.target) ||
+						event.target.closest("dialog:modal") !== content.closest("dialog:modal")
+					) {
+						return;
+					}
+					// Why wrap: the content portals to the end of the body, so Tab on its
+					// last stop leaves the page. As Radix `FocusScope` did, Tab wraps only
+					// from the first or last stop, and the browser moves focus otherwise.
+					const tabStops = findTabbableDescendants(content);
+					const first = tabStops[0];
+					const last = tabStops[tabStops.length - 1];
+					const focused = content.ownerDocument.activeElement;
+					if (first == null ? focused === content : focused === (event.shiftKey ? first : last)) {
+						event.preventDefault();
+						(event.shiftKey ? last : first)?.focus();
+					}
 				}}
 			/>,
 			portalTarget,
