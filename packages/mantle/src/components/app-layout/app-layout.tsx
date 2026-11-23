@@ -865,33 +865,6 @@ function isSidePanelFloating(panel: HTMLElement | null): boolean {
 }
 
 /**
- * Parses a computed `transition-duration` or `transition-delay` list into
- * seconds, one entry per comma. An entry that does not parse is `0`.
- */
-function toSeconds(times: string): number[] {
-	return times.split(",").map((time) => Number.parseFloat(time) || 0);
-}
-
-/**
- * The milliseconds until every transition on `panel` ends: the longest
- * duration plus delay of one `transition-property` entry. The duration and
- * delay lists repeat to the length of the property list, as CSS repeats them.
- * It reads the computed style, so a consumer `duration-*` sets the wait.
- */
-function readSidePanelTransitionMs(panel: HTMLElement): number {
-	const style = getComputedStyle(panel);
-	const durations = toSeconds(style.transitionDuration);
-	const delays = toSeconds(style.transitionDelay);
-	const ends = style.transitionProperty
-		.split(",")
-		.map(
-			(_, index) =>
-				(durations[index % durations.length] ?? 0) + (delays[index % delays.length] ?? 0),
-		);
-	return Math.max(0, ...ends) * 1000;
-}
-
-/**
  * The state and actions shared by every part under an
  * `AppLayout.SidePanelRoot`, returned by {@link useSidePanel}. Use it to build
  * a custom trigger, a close control, or close-on-navigate behavior.
@@ -1393,8 +1366,26 @@ const SidePanel = ({
 		if (panel == null) {
 			return;
 		}
-		const timer = setTimeout(() => setCloseEnded(true), readSidePanelTransitionMs(panel));
-		return () => clearTimeout(timer);
+		// Why the transitions and not a timer: the slide starts a frame after this
+		// effect, so a timer set to its length shuts the gate before it ends. A
+		// consumer `duration-*` or `delay-*` sets the wait. Why transitions only: a
+		// consumer animation on the panel can run forever.
+		// Why the guard: jsdom has no Web Animations API.
+		const transitions =
+			typeof panel.getAnimations === "function"
+				? panel.getAnimations().filter((animation) => animation instanceof CSSTransition)
+				: [];
+		let cancelled = false;
+		const shut = async () => {
+			await Promise.allSettled(transitions.map((transition) => transition.finished));
+			if (!cancelled) {
+				setCloseEnded(true);
+			}
+		};
+		void shut();
+		return () => {
+			cancelled = true;
+		};
 	}, [open, panelRef]);
 
 	// Why a viewport query and not the computed position: the cover is the one
