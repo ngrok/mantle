@@ -106,6 +106,13 @@ function Region({
 	);
 }
 
+/** Resolves after the next frame has laid out, so resize observers have run. */
+function nextFrame() {
+	return new Promise((resolve) => {
+		requestAnimationFrame(() => requestAnimationFrame(resolve));
+	});
+}
+
 function region() {
 	return screen.getByTestId("region");
 }
@@ -184,6 +191,80 @@ describe("useScrollAnchor", () => {
 		render(<Region anchorRef={anchorRef} width={720} autoWrapper />);
 
 		expect(Math.abs(stepTwelveOffset())).toBeLessThanOrEqual(1);
+	});
+
+	test("scrolls the region that moves the text, not a text-only overflow wrapper that grows with it", () => {
+		const anchorRef = { current: null };
+		function Log() {
+			const anchorContent = useScrollAnchor({ anchorRef });
+			return (
+				<div data-testid="region" style={{ height: 300, overflowY: "auto" }}>
+					<div ref={anchorContent} style={{ overflow: "auto", whiteSpace: "pre-wrap" }}>
+						{Array.from({ length: 80 }, (_, index) => `Log entry ${index}`).join("\n")}
+					</div>
+				</div>
+			);
+		}
+		const first = render(<Log />);
+		region().scrollTop = 440;
+		first.unmount();
+
+		render(<Log />);
+
+		expect(Math.abs(region().scrollTop - 440)).toBeLessThanOrEqual(1);
+	});
+
+	test("keeps the place when the new region changes width after it mounts", async () => {
+		const anchorRef = { current: null };
+		const first = render(<Region anchorRef={anchorRef} width={240} />);
+		region().scrollTop += stepTwelveOffset();
+		first.unmount();
+
+		// A sidebar that expands again on the page narrows the region a frame later.
+		const view = render(<Region anchorRef={anchorRef} width={720} />);
+		view.rerender(<Region anchorRef={anchorRef} width={360} />);
+		await nextFrame();
+
+		expect(Math.abs(stepTwelveOffset())).toBeLessThanOrEqual(1);
+	});
+
+	test("keeps the place, not the clamped position, when the content detaches before the region can reach it", async () => {
+		const anchorRef = { current: null };
+		const stepTwentySix = () =>
+			screen.getByText(paragraphs[25] ?? "").getBoundingClientRect().top -
+			region().getBoundingClientRect().top;
+		const first = render(<Region anchorRef={anchorRef} width={240} />);
+		region().scrollTop += stepTwentySix();
+		expect(Math.abs(stepTwentySix())).toBeLessThanOrEqual(1);
+		first.unmount();
+
+		// At 720px the content is too short for step 26 to reach the top edge.
+		const view = render(<Region anchorRef={anchorRef} width={720} />);
+		expect(stepTwentySix()).toBeGreaterThan(1);
+		// A Suspense boundary that hides and shows the content detaches it once.
+		view.rerender(<Region anchorRef={anchorRef} width={720} showContent={false} />);
+		view.rerender(<Region anchorRef={anchorRef} width={720} />);
+		view.rerender(<Region anchorRef={anchorRef} width={240} />);
+		await nextFrame();
+
+		expect(Math.abs(stepTwentySix())).toBeLessThanOrEqual(1);
+	});
+
+	test("stops holding the place once the reader scrolls", async () => {
+		const anchorRef = { current: null };
+		const first = render(<Region anchorRef={anchorRef} width={240} />);
+		region().scrollTop += stepTwelveOffset();
+		first.unmount();
+
+		const view = render(<Region anchorRef={anchorRef} width={720} />);
+		// A wheel turn, then the scroll it makes.
+		region().dispatchEvent(new WheelEvent("wheel", { bubbles: true }));
+		region().scrollTop -= 50;
+		const scrollTop = region().scrollTop;
+		view.rerender(<Region anchorRef={anchorRef} width={360} />);
+		await nextFrame();
+
+		expect(region().scrollTop).toBe(scrollTop);
 	});
 
 	test("leaves the page alone when the content now fits its fixed-height region", () => {

@@ -449,7 +449,8 @@ function Transcript() {
 
 The region it scrolls is the element itself or its nearest ancestor that can scroll up and down, such as
 `AppLayout.Body` or `AppLayout.SidePanelBody`, else the document. Fixed and sticky children do not count as
-the place, and the restore is instant even under `scroll-behavior: smooth`. Put the ref on an element whose subtree is the same in each
+the place, and the restore is instant even under `scroll-behavior: smooth`. Until the reader scrolls, a later change of the
+content's width, such as a sidebar that expands again, restores the place again. Put the ref on an element whose subtree is the same in each
 home, such as the list of messages, so the place reads the same in each. Content that scrolls to its end
 when it changes must skip that scroll on mount, or the scroll overrides the place.
 

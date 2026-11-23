@@ -60,6 +60,8 @@ type UseScrollAnchorOptions = {
  * can scroll up and down, such as `AppLayout.Body` or `AppLayout.SidePanelBody`,
  * else the document. Fixed and sticky children do not count as the place,
  * and the restore is instant even under `scroll-behavior: smooth`.
+ * Until the reader scrolls, a later change of the content's width, such as a
+ * sidebar that expands again, restores the place again.
  * Put the ref on an element whose subtree is the same in every place the
  * content shows, such as a transcript's list, so the place reads the same in
  * each.
@@ -104,15 +106,87 @@ function useScrollAnchor({ anchorRef, key }: UseScrollAnchorOptions): RefCallbac
 				return;
 			}
 			const anchor = anchorRef.current;
-			if (anchor != null && anchor.key === key) {
-				scrollToAnchor(content, anchor);
-			}
+			const release =
+				anchor != null && anchor.key === key ? holdAnchor(content, anchor) : () => false;
 			return () => {
-				anchorRef.current = { key, ...readAnchor(content) };
+				// Why keep a held place: the reader has not moved from it, and a region
+				// that cannot reach it yet shows a clamped place that is not theirs.
+				const place = release() && anchor != null ? anchor : readAnchor(content);
+				anchorRef.current = { ...place, key };
 			};
 		},
 		[anchorRef, key],
 	);
+}
+
+/**
+ * The events a reader scrolls with: a wheel, a touch, a press on a scrollbar,
+ * or a key. They end a hold at once, before the scroll they start.
+ */
+const readerScrollEvents = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
+
+/**
+ * Scrolls `content` to `anchor` now, and again each time its width changes
+ * until the reader scrolls or the content changes height at the same width.
+ * Returns the function that ends the hold. It returns true when the reader
+ * has not scrolled since, so their place is still `anchor`.
+ *
+ * Why hold: the layout can settle at another width a frame after the content
+ * attaches, such as when a sidebar that yielded to a side panel expands again
+ * on the page, and the text reflows under the reader. A resize observer runs
+ * after layout and before paint, so each new width shows the place at once. A
+ * change in height at the same width is new content, such as a streaming
+ * reply, and it scrolls the way the content decides. A reader's wheel, touch,
+ * press, or key ends the hold. So does a scroll by code: a scroll event, or
+ * the detach, finds the region away from where the hold last put it.
+ */
+function holdAnchor(content: HTMLElement, anchor: Omit<ScrollAnchor, "key">): () => boolean {
+	let region = scrollToAnchor(content, anchor);
+	if (typeof ResizeObserver === "undefined") {
+		return () => false;
+	}
+	let expected = region.scrollTop;
+	let holding = true;
+	let size = content.getBoundingClientRect();
+	const moved = () => Math.abs(region.scrollTop - expected) > 1;
+	// The document scrolls the window, so its scroll events fire there.
+	const scrollTarget = () => (region === document.scrollingElement ? window : region);
+	const onScroll = () => {
+		if (moved()) {
+			release();
+		}
+	};
+	// The first call reports the size at `observe`, which changes nothing. Why a
+	// new width places the anchor again even when the region moved: the browser's
+	// own scroll anchoring moves it during the reflow, not the reader.
+	const observer = new ResizeObserver(() => {
+		const next = content.getBoundingClientRect();
+		if (next.width !== size.width) {
+			scrollTarget().removeEventListener("scroll", onScroll);
+			region = scrollToAnchor(content, anchor);
+			expected = region.scrollTop;
+			scrollTarget().addEventListener("scroll", onScroll, { passive: true });
+		} else if (next.height !== size.height) {
+			release();
+		}
+		size = next;
+	});
+	const release = () => {
+		const held = holding && !moved();
+		holding = false;
+		observer.disconnect();
+		scrollTarget().removeEventListener("scroll", onScroll);
+		for (const type of readerScrollEvents) {
+			window.removeEventListener(type, release, true);
+		}
+		return held;
+	};
+	observer.observe(content);
+	scrollTarget().addEventListener("scroll", onScroll, { passive: true });
+	for (const type of readerScrollEvents) {
+		window.addEventListener(type, release, { capture: true, passive: true });
+	}
+	return release;
 }
 
 /**
@@ -152,7 +226,13 @@ function hasRoomBelow(element: HTMLElement): boolean {
 		element.getBoundingClientRect().bottom -
 		Number.parseFloat(style.borderBottomWidth) -
 		Number.parseFloat(style.paddingBottom);
-	let contentBottom = element.getBoundingClientRect().top + Number.parseFloat(style.borderTopWidth);
+	// Why a range: it measures the element's own text too, which has no box.
+	const range = document.createRange();
+	range.selectNodeContents(element);
+	let contentBottom = Math.max(
+		element.getBoundingClientRect().top + Number.parseFloat(style.borderTopWidth),
+		range.getClientRects().length > 0 ? range.getBoundingClientRect().bottom : -Infinity,
+	);
 	let last = Array.from(element.children).findLast(scrollsWithText);
 	while (last != null) {
 		contentBottom = Math.max(
@@ -245,9 +325,9 @@ function readAnchor(content: HTMLElement): Omit<ScrollAnchor, "key"> {
  * once. Why not a `scrollTop` write: it follows `scroll-behavior: smooth`, and
  * a smooth scroll ends after the paint. When the path ends early, because the
  * content has fewer elements than when it was read, it scrolls to the top of
- * the deepest element it reached.
+ * the deepest element it reached. Returns the region.
  */
-function scrollToAnchor(content: HTMLElement, anchor: Omit<ScrollAnchor, "key">) {
+function scrollToAnchor(content: HTMLElement, anchor: Omit<ScrollAnchor, "key">): HTMLElement {
 	const region = scrollRegionOf(content);
 	let element: Element = content;
 	let { fraction, offset } = anchor;
@@ -265,6 +345,7 @@ function scrollToAnchor(content: HTMLElement, anchor: Omit<ScrollAnchor, "key">)
 		top: region.scrollTop + top + fraction * height + offset - topEdgeOf(region),
 		behavior: "instant",
 	});
+	return region;
 }
 
 export {
