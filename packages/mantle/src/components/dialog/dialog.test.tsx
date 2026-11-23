@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { createRef, useState } from "react";
@@ -166,6 +166,136 @@ describe("Dialog.Content", () => {
 			await user.keyboard("{Escape}");
 
 			expect(screen.queryByRole("dialog")).toBeNull();
+		});
+
+		// Why no `Dialog.Trigger`: Radix returns focus only to its trigger, and a
+		// palette that opens from its own buttons or a shortcut has none.
+		it("returns focus to the element focused before a trigger-less open", async () => {
+			const user = userEvent.setup();
+			function SearchDialog() {
+				const [isOpen, setIsOpen] = useState(false);
+				return (
+					<>
+						<button type="button" onClick={() => setIsOpen(true)}>
+							Search
+						</button>
+						<Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
+							<Dialog.Content>
+								<Dialog.Title>Search</Dialog.Title>
+								<input aria-label="Query" />
+							</Dialog.Content>
+						</Dialog.Root>
+					</>
+				);
+			}
+			render(<SearchDialog />);
+			await user.click(screen.getByRole("button", { name: "Search" }));
+			await screen.findByRole("dialog");
+
+			await user.keyboard("{Escape}");
+
+			expect(screen.queryByRole("dialog")).toBeNull();
+			await waitFor(() => {
+				expect(screen.getByRole("button", { name: "Search" })).toHaveFocus();
+			});
+		});
+
+		it("returns focus to the element focused at open, not the trigger", async () => {
+			const user = userEvent.setup();
+			function ShortcutDialog() {
+				const [isOpen, setIsOpen] = useState(false);
+				return (
+					<>
+						<button type="button" onClick={() => setIsOpen(true)}>
+							Shortcut
+						</button>
+						<Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
+							<Dialog.Trigger asChild>
+								<button type="button">Open</button>
+							</Dialog.Trigger>
+							<Dialog.Content>
+								<Dialog.Title>Search</Dialog.Title>
+							</Dialog.Content>
+						</Dialog.Root>
+					</>
+				);
+			}
+			render(<ShortcutDialog />);
+			await user.click(screen.getByRole("button", { name: "Shortcut" }));
+			await screen.findByRole("dialog");
+
+			await user.keyboard("{Escape}");
+
+			await waitFor(() => {
+				expect(screen.getByRole("button", { name: "Shortcut" })).toHaveFocus();
+			});
+		});
+
+		// Why wait on `onCloseAutoFocus`: the focus return runs in the same call,
+		// after Radix's close timer, so focus is final once the spy has run.
+		it("keeps focus where the user moved it when a non-modal dialog closes", async () => {
+			const user = userEvent.setup();
+			const onCloseAutoFocus = vi.fn<(event: Event) => void>();
+			function NonModalDialog() {
+				const [isOpen, setIsOpen] = useState(false);
+				return (
+					<>
+						<button type="button" onClick={() => setIsOpen(true)}>
+							Open
+						</button>
+						<input aria-label="Filter" />
+						<Dialog.Root open={isOpen} onOpenChange={setIsOpen} modal={false}>
+							<Dialog.Content onCloseAutoFocus={onCloseAutoFocus}>
+								<Dialog.Title>Details</Dialog.Title>
+							</Dialog.Content>
+						</Dialog.Root>
+					</>
+				);
+			}
+			render(<NonModalDialog />);
+			await user.click(screen.getByRole("button", { name: "Open" }));
+			await screen.findByRole("dialog");
+
+			await user.click(screen.getByRole("textbox", { name: "Filter" }));
+
+			await waitFor(() => {
+				expect(onCloseAutoFocus).toHaveBeenCalledTimes(1);
+			});
+			expect(screen.getByRole("textbox", { name: "Filter" })).toHaveFocus();
+		});
+
+		// Why focus nothing: a consumer can cancel to keep focus off the page, such
+		// as to keep a phone's keyboard closed.
+		it("returns no focus when a consumer onCloseAutoFocus prevents the default", async () => {
+			const user = userEvent.setup();
+			const onCloseAutoFocus = vi.fn<(event: Event) => void>((event) => {
+				event.preventDefault();
+			});
+			function ConsumerFocusDialog() {
+				const [isOpen, setIsOpen] = useState(false);
+				return (
+					<>
+						<button type="button" onClick={() => setIsOpen(true)}>
+							Create
+						</button>
+						<Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
+							<Dialog.Content onCloseAutoFocus={onCloseAutoFocus}>
+								<Dialog.Title>Create</Dialog.Title>
+							</Dialog.Content>
+						</Dialog.Root>
+					</>
+				);
+			}
+			render(<ConsumerFocusDialog />);
+			await user.click(screen.getByRole("button", { name: "Create" }));
+			await screen.findByRole("dialog");
+
+			await user.keyboard("{Escape}");
+
+			await waitFor(() => {
+				expect(onCloseAutoFocus).toHaveBeenCalledTimes(1);
+			});
+			expect(screen.getByRole("button", { name: "Create" })).not.toHaveFocus();
 		});
 
 		it("names the close icon button from its label prop", async () => {

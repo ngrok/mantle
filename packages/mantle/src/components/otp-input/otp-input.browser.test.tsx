@@ -1,21 +1,20 @@
 "use client";
 
 import { render, screen } from "@testing-library/react";
+import type { ClipboardEvent } from "react";
 import { userEvent } from "@testing-library/user-event";
-import { describe, expect, test, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import { commands, userEvent as browserUser } from "vitest/browser";
 import * as Field from "../field/field-parts.js";
 import * as OtpInput from "./otp-input-parts.js";
 import { REGEXP_ONLY_DIGITS } from "./patterns.js";
 
 /**
- * Render a default 6-slot OTP input. Returns the hidden input that accepts
- * keystrokes/paste; input-otp renders a real `<input>` we can target via
- * the textbox role.
+ * Render a default 6-slot OTP input. Returns the native input that takes
+ * keystrokes and paste, and the six slots.
  */
-// Loosely-typed root props for the test helper: the real `OtpInput.Root`
-// type is a discriminated union (render | children) which doesn't compose
-// cleanly with `Partial<>`. The runtime contract is the same.
 type RenderOtpProps = {
+	defaultValue?: string;
 	maxLength?: number;
 	disabled?: boolean;
 	pattern?: string;
@@ -42,7 +41,7 @@ function renderOtp(props: RenderOtpProps = {}) {
 	);
 
 	const input = screen.getByRole<HTMLInputElement>("textbox", { name: "otp" });
-	const slots = screen.getAllByText("", { selector: '[data-slot="otp-input-slot"]' });
+	const slots = [...result.container.querySelectorAll('[data-slot="otp-input-slot"]')];
 
 	return { ...result, input, slots };
 }
@@ -182,6 +181,65 @@ describe("OtpInput (browser)", () => {
 			expect(input).toHaveValue("123456");
 		});
 
+		test("a controlled parent that keeps its value keeps the input on that value after a transformed paste", async () => {
+			const user = userEvent.setup();
+			const { container } = render(
+				<OtpInput.Root
+					maxLength={3}
+					aria-label="otp"
+					value="123"
+					onChange={() => {}}
+					pasteTransformer={(pasted) => pasted.trim()}
+				>
+					<OtpInput.Group>
+						<OtpInput.Slot index={0} />
+						<OtpInput.Slot index={1} />
+						<OtpInput.Slot index={2} />
+					</OtpInput.Group>
+				</OtpInput.Root>,
+			);
+			const input = screen.getByRole("textbox", { name: "otp" });
+
+			await user.click(input);
+			await user.paste(" 9 ");
+
+			expect(input).toHaveValue("123");
+			expect(container.querySelectorAll('[data-slot="otp-input-slot"]')[2]).toHaveTextContent("3");
+		});
+
+		test.each([
+			["the input is read-only", { readOnly: true }],
+			[
+				"the consumer's onPaste cancels the paste",
+				{ onPaste: (event: ClipboardEvent<HTMLInputElement>) => event.preventDefault() },
+			],
+		])("a transformed paste changes nothing when %s", async (_case, props) => {
+			const user = userEvent.setup();
+			const handleChange = vi.fn<(value: string) => void>();
+			render(
+				<OtpInput.Root
+					maxLength={3}
+					aria-label="otp"
+					onChange={handleChange}
+					pasteTransformer={(pasted) => pasted.trim()}
+					{...props}
+				>
+					<OtpInput.Group>
+						<OtpInput.Slot index={0} />
+						<OtpInput.Slot index={1} />
+						<OtpInput.Slot index={2} />
+					</OtpInput.Group>
+				</OtpInput.Root>,
+			);
+			const input = screen.getByRole("textbox", { name: "otp" });
+
+			await user.click(input);
+			await user.paste("42");
+
+			expect(input).toHaveValue("");
+			expect(handleChange).toHaveBeenCalledTimes(0);
+		});
+
 		test("pasting characters that don't match `pattern` rejects the paste", async () => {
 			const user = userEvent.setup();
 			const { input } = renderOtp({ pattern: REGEXP_ONLY_DIGITS });
@@ -189,8 +247,8 @@ describe("OtpInput (browser)", () => {
 			await user.click(input);
 			await user.paste("abc");
 
-			// input-otp rejects pastes that don't satisfy the pattern, so the
-			// value stays empty.
+			// A paste that does not satisfy the pattern is rejected, so the value
+			// stays empty.
 			expect(input).toHaveValue("");
 		});
 
@@ -221,6 +279,105 @@ describe("OtpInput (browser)", () => {
 		expect(slots[2]).toHaveAttribute("data-active");
 		expect(slots[0]).not.toHaveAttribute("data-active");
 		expect(slots[1]).not.toHaveAttribute("data-active");
+	});
+
+	describe("selection", () => {
+		// Why the vitest/browser keyboard: an arrow key must move the native selection.
+		test("a caret on a filled slot selects that slot, so typing replaces its character", async () => {
+			const { input, slots } = renderOtp({ defaultValue: "123456" });
+
+			await browserUser.click(input);
+			await expect.poll(() => slots[5]?.hasAttribute("data-active")).toBe(true);
+			await browserUser.keyboard("{ArrowLeft}");
+			await expect.poll(() => slots[4]?.hasAttribute("data-active")).toBe(true);
+			expect(slots[5]).not.toHaveAttribute("data-active");
+
+			await browserUser.keyboard("9");
+			expect(input).toHaveValue("123496");
+			expect(slots[4]).toHaveTextContent("9");
+		});
+
+		// Why the vitest/browser click: `@testing-library/user-event` wraps the value setter of an
+		// input it focuses, and the browser then fires no `selectionchange` for React's write.
+		test("a controlled reset while focused moves the active slot to the first slot", async () => {
+			const subject = (value: string) => (
+				<OtpInput.Root maxLength={3} aria-label="otp" value={value} onChange={() => {}}>
+					<OtpInput.Group>
+						<OtpInput.Slot index={0} />
+						<OtpInput.Slot index={1} />
+						<OtpInput.Slot index={2} />
+					</OtpInput.Group>
+				</OtpInput.Root>
+			);
+			const { container, rerender } = render(subject("12"));
+			const slots = [...container.querySelectorAll('[data-slot="otp-input-slot"]')];
+
+			const input = screen.getByRole<HTMLInputElement>("textbox", { name: "otp" });
+			await browserUser.click(input);
+			input.setSelectionRange(2, 2);
+			await expect.poll(() => slots[2]?.hasAttribute("data-active")).toBe(true);
+
+			rerender(subject(""));
+
+			await expect.poll(() => slots[0]?.hasAttribute("data-active")).toBe(true);
+			expect(slots[2]).not.toHaveAttribute("data-active");
+		});
+	});
+
+	describe("password manager badge gutter", () => {
+		let styleElement: HTMLStyleElement;
+
+		beforeAll(async () => {
+			styleElement = document.createElement("style");
+			// Why the reset: mantle.css ships Tailwind's preflight, which the browser project does not load.
+			styleElement.textContent = [
+				"*, ::before, ::after { box-sizing: border-box; border: 0 solid; margin: 0; padding: 0; }",
+				await commands.tailwindCss("./otp-input.tsx"),
+			].join("\n");
+			document.head.append(styleElement);
+		});
+
+		afterAll(() => {
+			styleElement.remove();
+		});
+
+		test.each([
+			["fits", 300, 40],
+			["does not fit", 220, 0],
+		])(
+			"the input covers the slots, and focus widens it past the last slot when the gutter %s",
+			async (_case, clipWidth, gutter) => {
+				const user = userEvent.setup();
+				render(
+					<div style={{ width: clipWidth, overflow: "hidden" }}>
+						<div style={{ width: 200 }}>
+							<OtpInput.Root maxLength={3} aria-label="otp">
+								<OtpInput.Group>
+									<OtpInput.Slot index={0} />
+									<OtpInput.Slot index={1} />
+									<OtpInput.Slot index={2} />
+								</OtpInput.Group>
+							</OtpInput.Root>
+						</div>
+					</div>,
+				);
+				const input = screen.getByRole("textbox", { name: "otp" });
+				const slots = input.closest("[data-input-otp-container]");
+				if (slots == null) {
+					throw new Error("OtpInput.Root rendered no container.");
+				}
+
+				await user.click(input);
+
+				const inputBox = input.getBoundingClientRect();
+				const slotsBox = slots.getBoundingClientRect();
+				expect(slotsBox.height).toBe(40);
+				expect(inputBox.top).toBe(slotsBox.top);
+				expect(inputBox.height).toBe(slotsBox.height);
+				expect(inputBox.left).toBe(slotsBox.left);
+				expect(inputBox.width).toBe(slotsBox.width + gutter);
+			},
+		);
 	});
 
 	// `data-otp-state` is what every conditional slot/group style keys off, and it
