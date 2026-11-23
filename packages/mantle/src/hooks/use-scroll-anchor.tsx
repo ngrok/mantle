@@ -1,8 +1,7 @@
 "use client";
 
 import type { RefCallback, RefObject } from "react";
-import { useCallback, useRef } from "react";
-import { useIsomorphicLayoutEffect } from "./use-isomorphic-layout-effect.js";
+import { useCallback } from "react";
 
 /**
  * Where a reader is in some content: the child indexes from the content's
@@ -21,6 +20,8 @@ type ScrollAnchor = {
 	key: string | number | undefined;
 	path: Array<number>;
 	fraction: number;
+	/** Pixels from the element's top edge, for an edge in a gap above it. */
+	offset: number;
 };
 
 /**
@@ -55,8 +56,10 @@ type UseScrollAnchorOptions = {
  * detaches, the hook writes the reader's place to `anchorRef`; when an element
  * attaches, it scrolls back to that place before the first paint.
  *
- * The region it scrolls is the element itself when it scrolls, or its nearest
- * scrolling ancestor, such as `AppLayout.Body` or `AppLayout.SidePanelBody`.
+ * The region it scrolls is the element itself or its nearest ancestor that
+ * scrolls up and down, such as `AppLayout.Body` or `AppLayout.SidePanelBody`,
+ * else the document. Fixed and sticky children do not count as the place,
+ * and the restore is instant even under `scroll-behavior: smooth`.
  * Put the ref on an element whose subtree is the same in every place the
  * content shows, such as a transcript's list, so the place reads the same in
  * each.
@@ -89,39 +92,43 @@ type UseScrollAnchorOptions = {
  * ```
  */
 function useScrollAnchor({ anchorRef, key }: UseScrollAnchorOptions): RefCallback<HTMLElement> {
-	// Why a ref: the detach runs after the last render and saves that render's key.
-	const keyRef = useRef(key);
-	useIsomorphicLayoutEffect(() => {
-		keyRef.current = key;
-	});
-
 	// Why a callback ref with a cleanup: it runs when the element attaches and
 	// detaches, also when content swaps the element in after the first render.
 	// React runs it in the commit, before paint, and the detach while the element
-	// still has its layout.
+	// still has its layout. Why `key` is a dependency: a new key detaches and
+	// attaches again, so the place is written with the old key and not restored,
+	// and an attach in the same commit as a key change reads the new key.
 	return useCallback(
 		(content: HTMLElement | null) => {
 			if (content == null) {
 				return;
 			}
 			const anchor = anchorRef.current;
-			if (anchor != null && anchor.key === keyRef.current) {
+			if (anchor != null && anchor.key === key) {
 				scrollToAnchor(content, anchor);
 			}
 			return () => {
-				anchorRef.current = { key: keyRef.current, ...readAnchor(content) };
+				anchorRef.current = { key, ...readAnchor(content) };
 			};
 		},
-		[anchorRef],
+		[anchorRef, key],
 	);
 }
 
-/** The element that scrolls `content`: itself when it scrolls, else its nearest scrolling ancestor. */
+/**
+ * The element that scrolls `content`: itself or its nearest ancestor that
+ * scrolls on the block axis now, else the document. Why the scroll range: a
+ * wrapper with `overflow: auto` that grows with its content, or that scrolls
+ * only sideways, never moves the text up or down.
+ */
 function scrollRegionOf(content: HTMLElement): HTMLElement {
 	let element: HTMLElement | null = content;
 	while (element != null) {
 		const { overflowY } = getComputedStyle(element);
-		if (overflowY === "auto" || overflowY === "scroll") {
+		if (
+			(overflowY === "auto" || overflowY === "scroll") &&
+			element.scrollHeight > element.clientHeight
+		) {
 			return element;
 		}
 		element = element.parentElement;
@@ -132,51 +139,84 @@ function scrollRegionOf(content: HTMLElement): HTMLElement {
 }
 
 /**
- * Reads where the reader is in `content`: from the content down, the first
- * child in the flow that reaches below the region's top edge, until an
- * element with no such child. Why in the flow: visually hidden text is
- * positioned out of it, so its box is not where the text reads.
+ * The region's top edge in the viewport. The document's scrolling element
+ * moves with the page, so its box is not where the reader's edge is.
  */
-function readAnchor(content: HTMLElement): Pick<ScrollAnchor, "path" | "fraction"> {
-	const edge = scrollRegionOf(content).getBoundingClientRect().top;
-	const path: Array<number> = [];
-	let element: Element = content;
-	for (;;) {
-		const index = Array.from(element.children).findIndex(
-			(child) =>
-				getComputedStyle(child).position !== "absolute" &&
-				child.getBoundingClientRect().bottom > edge,
-		);
-		const child = element.children[index];
-		if (child == null) {
-			break;
-		}
-		path.push(index);
-		element = child;
-	}
-	const { top, height } = element.getBoundingClientRect();
-	return { path, fraction: height > 0 ? (edge - top) / height : 0 };
+function topEdgeOf(region: HTMLElement): number {
+	return region === document.scrollingElement ? 0 : region.getBoundingClientRect().top;
 }
 
 /**
- * Scrolls the region of `content` so its top edge is at `anchor` again. When
- * the path ends early, because the content has fewer elements than when it was
- * read, it scrolls to the top of the deepest element it reached.
+ * Whether a child scrolls with the text. Visually hidden text is positioned
+ * out of the flow, and a fixed or sticky child stays at the edge while the
+ * text scrolls under it, so its box is not where the text reads.
  */
-function scrollToAnchor(content: HTMLElement, anchor: Pick<ScrollAnchor, "path" | "fraction">) {
+function scrollsWithText(child: Element): boolean {
+	const { position } = getComputedStyle(child);
+	return position !== "absolute" && position !== "fixed" && position !== "sticky";
+}
+
+/**
+ * Reads where the reader is in `content`. From the content down, it goes into
+ * the first child that scrolls with the text and reaches below the edge.
+ *
+ * - When that child holds the edge, it goes on into the child's children.
+ * - When the edge is in a gap above that child, after an earlier child, it
+ *   anchors the child and the gap in pixels.
+ * - When the edge is above the first such child, the edge is in the element's
+ *   own text or padding, and the element is the anchor.
+ */
+function readAnchor(content: HTMLElement): Omit<ScrollAnchor, "key"> {
+	const edge = topEdgeOf(scrollRegionOf(content));
+	const path: Array<number> = [];
+	let element: Element = content;
+	for (;;) {
+		const children = Array.from(element.children);
+		const candidates = children.filter(scrollsWithText);
+		const next = candidates.findIndex((child) => child.getBoundingClientRect().bottom > edge);
+		const child = candidates[next];
+		if (child == null) {
+			break;
+		}
+		const { top } = child.getBoundingClientRect();
+		if (top > edge && next === 0) {
+			break;
+		}
+		path.push(children.indexOf(child));
+		element = child;
+		if (top > edge) {
+			return { path, fraction: 0, offset: edge - top };
+		}
+	}
+	const { top, height } = element.getBoundingClientRect();
+	return { path, fraction: height > 0 ? (edge - top) / height : 0, offset: 0 };
+}
+
+/**
+ * Scrolls the region of `content` so its top edge is at `anchor` again, at
+ * once. Why not a `scrollTop` write: it follows `scroll-behavior: smooth`, and
+ * a smooth scroll ends after the paint. When the path ends early, because the
+ * content has fewer elements than when it was read, it scrolls to the top of
+ * the deepest element it reached.
+ */
+function scrollToAnchor(content: HTMLElement, anchor: Omit<ScrollAnchor, "key">) {
 	const region = scrollRegionOf(content);
 	let element: Element = content;
-	let fraction = anchor.fraction;
+	let { fraction, offset } = anchor;
 	for (const index of anchor.path) {
 		const child = element.children[index];
 		if (child == null) {
 			fraction = 0;
+			offset = 0;
 			break;
 		}
 		element = child;
 	}
 	const { top, height } = element.getBoundingClientRect();
-	region.scrollTop += top + fraction * height - region.getBoundingClientRect().top;
+	region.scrollTo({
+		top: region.scrollTop + top + fraction * height + offset - topEdgeOf(region),
+		behavior: "instant",
+	});
 }
 
 export {
