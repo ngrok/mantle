@@ -8,7 +8,9 @@ type Props = PropsWithChildren & WithStyleProps;
  * The root of a docs example inside its preview document. It centers the demo
  * and pads it, and a demo wider than the frame scrolls from its start edge.
  * `Example` grows its frame to this element's height, so put a `min-h-*`
- * class on it when the demo opens an overlay that needs room.
+ * class on it when the demo opens an overlay that needs room. The frame does
+ * not scroll, so when the overlay opens below a trigger and does not fit
+ * below the center, add `items-start` to put the trigger at the top.
  *
  * @example
  * ```tsx
