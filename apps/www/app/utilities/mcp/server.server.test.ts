@@ -352,6 +352,13 @@ describe("the mantle MCP server", () => {
 		expect(new TextEncoder().encode(MCP_INSTRUCTIONS).length).toBeLessThan(1024);
 	});
 
+	// Why: a client loads tools/list in each session, and shared argument text repeats in each tool.
+	it("keeps tools/list under 9 KB", async () => {
+		const { result } = await rpc(dependencies(), "tools/list");
+
+		expect(new TextEncoder().encode(JSON.stringify(result)).length).toBeLessThan(9 * 1024);
+	});
+
 	// Regression: main keeps the released version number until the next release,
 	// and `get Query` at 0.94.1 served an unreleased prop as that version's contract.
 	it("answers get with the declarations when the docs build has unreleased changes", async () => {

@@ -267,50 +267,46 @@ const versionArgument = z
 	.string()
 	.optional()
 	.describe(
-		`The exact installed @ngrok/mantle version, MAJOR.MINOR.PATCH, ${MIN_SUPPORTED_VERSION} or later. Defaults to the latest published version.`,
+		`Exact installed @ngrok/mantle version, ${MIN_SUPPORTED_VERSION} or later. Defaults to the latest.`,
 	);
 
 const sectionsArgument = z
 	.array(z.string().max(120))
 	.max(12)
 	.optional()
-	.describe("Docs headings to return, such as `API Reference`. Omit for the default.");
+	.describe("Docs headings to return, such as `API Reference`.");
 
+// Why one line each: every tool repeats these three, and tools/list loads in each session.
+// The For AI Agents page holds the full rules.
 // Why no max: a long intent must not fail the call. `scrubIntent` cuts it for the log.
 const intentArgument = z
 	.string()
 	.optional()
 	.describe(
-		'Why you call this tool: the screen or feature, the change you make to it, and what this call must answer, such as "endpoints list page, add bulk delete, need a confirm step for a destructive action". No code, URLs, paths, names of people, or customer data.',
+		'The screen, change, and question, such as "endpoints list, bulk delete, need a confirm". No code, paths, URLs, names, or customer data.',
 	);
 
 // Why no schema check: a bad workspace must not fail the call. `workspaceSlug` drops it from the log.
 const workspaceArgument = z
 	.string()
 	.nullish()
-	.describe(
-		'The app or package that you change, as a short lowercase slug: its folder name in a monorepo, such as "dashboard" for apps/dashboard. Never send a person\'s name or email.',
-	);
+	.describe('App or package folder slug, such as "dashboard". No names.');
 
 // Why no schema check: a bad ticket must not fail the call. `ticketKey` drops it from the log.
-const TICKET_TEXT =
-	'The Linear issue key of the work: the team key in capitals, a hyphen, and a number, such as "FEP-1867" or "MNTL-59". Each team has its own key. Look for it in the conversation, the branch name, the commits, and the task. Send the key only, never the title or a URL, and never invent a key.';
-
 const ticketArgument = z
 	.string()
 	.nullish()
-	.describe(
-		`${TICKET_TEXT} When you know it, send it on each call. Omit it when you do not know it, and do not ask the user only for this.`,
-	);
+	.describe('Linear issue key, such as "MNTL-59", if known. Never invent or ask for one.');
 
 // Why required: an agent fills each required argument, so it looks for the issue before it reports a gap.
 const requiredTicketArgument = z
 	.string()
 	.describe(
-		'The Linear issue key of the product work, such as "CDATA-1234", from the task, branch, PR, or commits. Never invent one. Send "none" when you do not know it.',
+		'The Linear issue key of the work, such as "CDATA-1234", from the task, branch, or commits. Never invent one. Send "none" if unknown.',
 	);
 
-const readOnly = { readOnlyHint: true, idempotentHint: true, openWorldHint: false } as const;
+// Why no idempotentHint: MCP reads it only when readOnlyHint is false.
+const readOnly = { readOnlyHint: true, openWorldHint: false } as const;
 
 function text(body: string, isError = false): CallToolResult {
 	return { content: [{ type: "text", text: body }], isError };
@@ -464,6 +460,14 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 						? result.then((settled) => report(value, settled))
 						: report(value, result);
 				},
+				// Why drop `$schema`: MCP reads a schema without it as 2020-12, and each tool repeats it in tools/list.
+				jsonSchema: {
+					...standard.jsonSchema,
+					input: () => {
+						const { $schema: _, ...json } = z.toJSONSchema(schema, { io: "input" });
+						return json;
+					},
+				},
 			},
 		};
 	};
@@ -531,7 +535,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 		"find",
 		{
 			title: "Find mantle parts",
-			description: `Ranks mantle components, layouts, hooks, utilities, recipes (compositions of parts), and docs pages (foundations such as colors) for an intent ("confirm before delete") or a name from another library ("modal"). Returns up to 8 results with import paths, and says when no result is a strong match. Supports ${MIN_SUPPORTED_VERSION} and later.`,
+			description: `Ranks mantle components, layouts, hooks, utilities, recipes, and docs pages for an intent ("confirm before delete") or another library's name ("modal"). Returns up to 8 with import paths, and says when none is a strong match.`,
 			inputSchema: logInvalid(
 				"find",
 				z.object({
@@ -603,7 +607,8 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 		"get",
 		{
 			title: "Get a mantle part",
-			description: `Returns one component, layout, hook, or utility: its import, examples, and prop contract for the selected version. For a recipe, returns its parts and its docs page. Supports ${MIN_SUPPORTED_VERSION} and later.`,
+			description:
+				"Returns one part's import, examples, and prop contract for the selected version, or a recipe's parts and docs page.",
 			inputSchema: logInvalid(
 				"get",
 				z.object({
@@ -680,7 +685,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 		{
 			title: "Read a mantle docs page",
 			description:
-				"Returns a docs page as markdown, or an outline when the page is long. The docs are always the latest build.",
+				"Returns a docs page of the latest build as markdown, or an outline when the page is long.",
 			inputSchema: logInvalid(
 				"read_docs",
 				z.object({
@@ -865,7 +870,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 		{
 			title: "Report a mantle gap",
 			description:
-				'Tells the mantle team that mantle lacks something you needed, so they can build it. Call it once for each need, after `find` and `get` found no fit. Be specific: the team reads every report, and `writeup` takes a long-form account. No secrets or customer data. Always send `ticket`: the Linear issue key of the work, or "none".',
+				"Tells the mantle team what mantle lacked, so they can build it. Call it once for each need, after `find` and `get` found no fit. The team reads every report: be specific, and put the long account in `writeup`. No secrets or customer data.",
 			inputSchema: logInvalid(
 				"report_gap",
 				z.object({
@@ -874,7 +879,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 						.min(3)
 						.max(120)
 						.describe(
-							'A short name for what you needed, such as "stepper" or "date range picker". Put the detail in the other fields.',
+							'A short name for the need, such as "stepper" or "date range picker". Put detail in the other fields.',
 						),
 					kind: z.enum(GAP_KINDS).describe("The kind of part that is missing."),
 					workaround: z.enum(GAP_WORKAROUNDS).describe("What you did instead."),
@@ -906,7 +911,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					intent: z
 						.string()
 						.describe(
-							'The use case: the screen or feature, the change, and where mantle fell short, such as "onboarding page, add a setup checklist, need numbered steps with a done state".',
+							'The screen, the change, and where mantle fell short, such as "onboarding page, add a setup checklist, need numbered steps with a done state".',
 						),
 					workspace: workspaceArgument,
 					ticket: requiredTicketArgument,
