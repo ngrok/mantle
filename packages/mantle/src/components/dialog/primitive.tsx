@@ -12,11 +12,12 @@ import {
 	Trigger as DialogPrimitiveTrigger,
 } from "@radix-ui/react-dialog";
 import type { ComponentProps, ComponentPropsWithoutRef, Ref } from "react";
-import { createContext, useContext, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useInsertionEffect, useMemo, useRef, useState } from "react";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { Slot } from "../slot/index.js";
 import { preventCloseOnPromptInteraction } from "../toast/prevent-close-on-prompt-interaction.js";
+import { getTopModal, modalHostAttribute } from "../toast/toaster-host.js";
 import { parseBooleanish } from "../../types/booleanish.js";
 import {
 	getCoveringFrame,
@@ -101,13 +102,51 @@ const Root = ({
 const Trigger = DialogPrimitiveTrigger;
 
 /**
+ * The host `<div>` of a dialog that opens while a native modal `<dialog>` is
+ * on top, or `null` when none is on top. Each open takes a new host in the top
+ * modal, and the dialog portals into it. When that modal closes, it moves the
+ * host on (`moveModalHosts` in `native-primitive.tsx`), so the dialog stays
+ * mounted, visible, and focused.
+ */
+function useModalHost(open: boolean): HTMLElement | null {
+	const [host, setHost] = useState<HTMLElement | null>(null);
+	const [wasOpen, setWasOpen] = useState(false);
+	if (open !== wasOpen) {
+		setWasOpen(open);
+		if (open) {
+			setHost(getTopModal() && document.createElement("div"));
+		}
+	}
+	// Why an insertion effect: it runs after the portal places the content in
+	// the host and before any layout effect, so `autoFocus` and the content's
+	// own effects find it in the page.
+	useInsertionEffect(() => {
+		if (host == null) {
+			return;
+		}
+		host.setAttribute(modalHostAttribute, "");
+		// Why `<body>` too: the modal can close in the same commit, before this effect.
+		(getTopModal() ?? host.ownerDocument.body).append(host);
+		return () => host.remove();
+	}, [host]);
+	return host;
+}
+
+/**
  * Mounts dialog layers into the nearest layer container: an enclosing
- * overlay's positioner when one is open, else `document.body`. An explicit
- * `container` prop wins over both.
+ * overlay's positioner when one is open, else a host in the native modal
+ * `<dialog>` that was on top when the dialog opened, else `document.body`. An explicit
+ * `container` prop wins over all.
  */
 const Portal = ({ container, ...props }: ComponentProps<typeof DialogPrimitivePortal>) => {
 	const layerContainer = useLayerContainer();
-	const resolvedContainer = container ?? layerContainer;
+	// Why the top modal: a native modal `<dialog>` makes the rest of the page
+	// inert, so a dialog whose content renders outside it, opened from a trigger
+	// inside it, must mount in it to show and take input.
+	const open = useDialogRootState(props)?.open ?? false;
+	// Why only with no other container: an unused host would stay in the modal.
+	const modalHost = useModalHost(open && container == null && layerContainer == null);
+	const resolvedContainer = container ?? layerContainer ?? modalHost;
 
 	// Why the provider: `Dialog.Content` portals again internally, so the
 	// resolved container must also become the layer container for the wrapped

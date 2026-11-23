@@ -1,11 +1,16 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { Profiler, type ReactNode, useEffect, useState } from "react";
+import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterAll, afterEach, beforeAll, expect, test } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, onTestFinished, test, vi } from "vitest";
 import { commands, page, userEvent } from "vitest/browser";
 import { useLocalStorage } from "../../hooks/use-local-storage.js";
+import mantleCss from "../../mantle.css?raw";
+import * as Command from "../command/command-parts.js";
 import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
 import { TooltipProvider } from "../tooltip/index.js";
 import * as Sidebar from "./sidebar-parts.js";
+import { useSidebar } from "./sidebar.js";
 
 /**
  * Real-browser cascade for `Sidebar.Nav`'s hydration gates and for a row's
@@ -430,4 +435,461 @@ test("a row inside Sidebar.Tooltip keeps its open highlight while its menu is op
 	// The premise: the row carries the tooltip's `data-state`, not the menu's.
 	expect(row).toHaveAttribute("data-state", "closed");
 	expect(getComputedStyle(row).color).toBe("rgb(17, 24, 39)");
+});
+
+describe("Sidebar.Nav on the native <dialog>", () => {
+	let sheetStyle: HTMLStyleElement;
+
+	beforeAll(async () => {
+		// Why the scroll lock from `mantle.css`: it is the one rule there that this
+		// part relies on, and Tailwind compiles none of it.
+		const scrollLock = mantleCss.match(
+			/:root:has\(dialog\[data-slot~="sidebar-positioner"\]:modal\)\s*\{[^}]*\}/,
+		)?.[0];
+		if (scrollLock == null) {
+			throw new Error("mantle.css holds no scroll lock rule for open native dialogs.");
+		}
+		sheetStyle = document.createElement("style");
+		sheetStyle.textContent = [
+			await commands.tailwindCss("./sidebar.tsx"),
+			await commands.tailwindCss("../sheet/presentation.tsx"),
+			await commands.tailwindCss("../dialog/native-primitive.tsx"),
+			scrollLock,
+		].join("\n");
+		document.head.append(sheetStyle);
+	});
+
+	afterAll(() => {
+		sheetStyle.remove();
+	});
+
+	afterEach(() => {
+		// Why: Escape and clicks leave an open `<dialog>` in the top layer between tests.
+		for (const dialog of document.querySelectorAll("dialog")) {
+			dialog.close();
+		}
+	});
+
+	/** The `<dialog>` of the one rendered `Sidebar.Nav`. */
+	const sheetDialog = (): HTMLDialogElement => {
+		const dialog = document.querySelector('dialog[data-slot~="sidebar-positioner"]');
+		if (!(dialog instanceof HTMLDialogElement)) {
+			throw new Error("No Sidebar.Nav <dialog> is rendered.");
+		}
+		return dialog;
+	};
+
+	/** Waits until `isMobile` has corrected and the panel is the sheet. */
+	const waitForSheet = () =>
+		waitFor(() => {
+			expect(document.querySelector('[data-slot~="sidebar-nav"]')).toHaveAttribute("data-mobile");
+		});
+
+	function MobileShell({ children, onMount }: { children?: ReactNode; onMount?: () => void }) {
+		return (
+			<TooltipProvider>
+				<Sidebar.Root>
+					<Sidebar.Nav>
+						<Sidebar.Body>
+							<MountProbe onMount={onMount} />
+							<Sidebar.List>
+								<Sidebar.Item>
+									<Sidebar.ItemButton asChild>
+										<a href="#endpoints">Endpoints</a>
+									</Sidebar.ItemButton>
+								</Sidebar.Item>
+							</Sidebar.List>
+							{children}
+						</Sidebar.Body>
+					</Sidebar.Nav>
+					<Sidebar.Trigger />
+				</Sidebar.Root>
+			</TooltipProvider>
+		);
+	}
+
+	function MountProbe({ onMount }: { onMount?: () => void }) {
+		useEffect(() => onMount?.(), [onMount]);
+		return null;
+	}
+
+	test("on a phone, hydration keeps the server nav, and the switch to the sheet mounts nothing again", async () => {
+		await page.viewport(414, 896);
+		const onMount = vi.fn<() => void>();
+		const host = document.createElement("div");
+		host.innerHTML = renderToString(<MobileShell onMount={onMount} />);
+		document.body.append(host);
+		onTestFinished(() => host.remove());
+		const serverNav = host.querySelector("nav");
+
+		const root = await act(async () => hydrateRoot(host, <MobileShell onMount={onMount} />));
+		onTestFinished(() => root.unmount());
+		await waitForSheet();
+
+		expect(host.querySelector("nav")).toBe(serverNav);
+		expect(onMount).toHaveBeenCalledOnce();
+		// Closed, the sheet shows nothing.
+		expect(serverNav?.checkVisibility()).toBe(false);
+	});
+
+	test("a tap opens the modal sheet before any React render, and Escape closes it", async () => {
+		await page.viewport(414, 896);
+		let commits = 0;
+		let paletteCommits = 0;
+		render(
+			<Profiler id="shell" onRender={() => commits++}>
+				<MobileShell>
+					{/* Why a closed palette: a closed dialog must not render when the sheet opens. */}
+					<Profiler id="palette" onRender={() => paletteCommits++}>
+						<Command.DialogRoot keyboardShortcut={false}>
+							<Command.DialogContent title="Palette">
+								<Command.Input placeholder="Type a command…" />
+							</Command.DialogContent>
+						</Command.DialogRoot>
+					</Profiler>
+				</MobileShell>
+			</Profiler>,
+		);
+		await waitForSheet();
+		const trigger = screen.getByRole("button", { name: "Toggle Sidebar" });
+		const dialog = sheetDialog();
+		commits = 0;
+		paletteCommits = 0;
+
+		// Why focus first: a pointer press focuses the button, and the `<dialog>`
+		// returns focus to the element that had it when it opened.
+		trigger.focus();
+		trigger.click();
+
+		// The open is a DOM call in the click handler; the state render comes later.
+		expect(dialog.matches(":modal")).toBe(true);
+		expect(commits).toBe(0);
+		// Why a microtask: a store update renders there, on the sync lane, before
+		// the paint. The state render that follows is a transition, after it.
+		await Promise.resolve();
+		expect(paletteCommits).toBe(0);
+		await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "true"));
+
+		expect(screen.getByRole("dialog", { name: "Main" })).toBe(dialog);
+		expect(dialog.contains(document.activeElement)).toBe(true);
+		// The page behind is inert, and its scroll is locked.
+		trigger.focus();
+		expect(document.activeElement).not.toBe(trigger);
+		expect(getComputedStyle(document.documentElement).overflow).toBe("hidden");
+		// No gutter: in an app shell whose root does not scroll, one would narrow the shell.
+		expect(getComputedStyle(document.documentElement).scrollbarGutter).toBe("auto");
+		// The panel slides in to the left edge at `--sidebar-width-mobile`.
+		const panel = dialog.querySelector('[data-slot~="sidebar-nav"]');
+		await Promise.all(panel?.getAnimations().map((animation) => animation.finished) ?? []);
+		expect(panel?.getBoundingClientRect().left).toBe(0);
+		expect(panel == null ? null : getComputedStyle(panel).width).toBe("288px");
+
+		await userEvent.keyboard("{Escape}");
+		expect(dialog.open).toBe(false);
+		await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "false"));
+		expect(document.activeElement).toBe(trigger);
+		expect(getComputedStyle(document.documentElement).overflow).not.toBe("hidden");
+	});
+
+	test("a controlled sheet asks its owner on Escape and stays open while the owner keeps it", async () => {
+		await page.viewport(414, 896);
+		const onOpenMobileChange = vi.fn<(open: boolean) => void>();
+		render(
+			<Sidebar.Root openMobile onOpenMobileChange={onOpenMobileChange}>
+				<Sidebar.Nav>
+					<a href="#endpoints">Endpoints</a>
+				</Sidebar.Nav>
+			</Sidebar.Root>,
+		);
+		await waitForSheet();
+		await waitFor(() => expect(sheetDialog().matches(":modal")).toBe(true));
+
+		await userEvent.keyboard("{Escape}");
+
+		expect(onOpenMobileChange).toHaveBeenCalledExactlyOnceWith(false);
+		expect(sheetDialog().matches(":modal")).toBe(true);
+	});
+
+	test("on desktop the <dialog> is inline: no dialog role, and a menu in the nav portals to the body", async () => {
+		await page.viewport(1280, 800);
+		render(
+			<div style={{ display: "flex", height: 400 }}>
+				<Sidebar.Root>
+					<Sidebar.Nav data-testid="panel">
+						<DropdownMenu.Root>
+							<DropdownMenu.Trigger>Account</DropdownMenu.Trigger>
+							<DropdownMenu.Content>
+								<DropdownMenu.Item>Settings</DropdownMenu.Item>
+							</DropdownMenu.Content>
+						</DropdownMenu.Root>
+					</Sidebar.Nav>
+				</Sidebar.Root>
+			</div>,
+		);
+		const dialog = sheetDialog();
+		expect(dialog).toHaveAttribute("role", "generic");
+		expect(dialog).not.toHaveAttribute("aria-label");
+		expect(dialog).not.toHaveAttribute("aria-labelledby");
+		expect(screen.queryByRole("dialog")).toBeNull();
+		expect(screen.getByRole("navigation", { name: "Main" }).checkVisibility()).toBe(true);
+		expect(screen.getByTestId("panel").getBoundingClientRect().width).toBe(208);
+
+		await userEvent.click(screen.getByRole("button", { name: "Account" }));
+
+		const menu = await screen.findByRole("menu");
+		expect(menu.closest("dialog")).toBeNull();
+	});
+
+	test("a palette that a shortcut opens from inside the closed sheet shows on the page", async () => {
+		// The closed sheet keeps the nav mounted, so a palette root inside it still
+		// binds its shortcut, and its dialog must not mount in the hidden sheet.
+		await page.viewport(414, 896);
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav>
+					<Command.DialogRoot>
+						<Command.DialogContent title="Palette">
+							<Command.Input placeholder="Type a command…" />
+						</Command.DialogContent>
+					</Command.DialogRoot>
+				</Sidebar.Nav>
+			</Sidebar.Root>,
+		);
+		await waitForSheet();
+
+		await userEvent.keyboard("{Control>}k{/Control}");
+
+		const input = await screen.findByPlaceholderText("Type a command…");
+		expect(input.closest("dialog")).toBeNull();
+		await waitFor(() => expect(input.checkVisibility()).toBe(true));
+	});
+
+	test("a palette root in the nav that closes the sheet as it opens shows on the page", async () => {
+		function Search() {
+			const { setOpenMobile } = useSidebar();
+			return (
+				<Command.DialogRoot
+					keyboardShortcut={false}
+					onOpenChange={(open) => {
+						if (open) {
+							setOpenMobile(false);
+						}
+					}}
+				>
+					<Command.SearchTrigger>
+						<Sidebar.SearchTrigger>Search</Sidebar.SearchTrigger>
+					</Command.SearchTrigger>
+					<Command.DialogContent title="Palette">
+						<Command.Input placeholder="Type a command…" />
+					</Command.DialogContent>
+				</Command.DialogRoot>
+			);
+		}
+		await page.viewport(414, 896);
+		render(
+			<TooltipProvider>
+				<Sidebar.Root>
+					<Sidebar.Nav>
+						<Sidebar.Header>
+							<Search />
+						</Sidebar.Header>
+					</Sidebar.Nav>
+					<Sidebar.Trigger />
+				</Sidebar.Root>
+			</TooltipProvider>,
+		);
+		await waitForSheet();
+		await userEvent.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
+		await waitFor(() => expect(sheetDialog().matches(":modal")).toBe(true));
+		// Why a record: a palette that mounts in the closing sheet moves to the
+		// body a render later, so only the history shows it.
+		const mountedInSheet: Node[] = [];
+		const observer = new MutationObserver((records) => {
+			mountedInSheet.push(...records.flatMap((record) => [...record.addedNodes]));
+		});
+		observer.observe(sheetDialog(), { childList: true, subtree: true });
+		onTestFinished(() => observer.disconnect());
+		await userEvent.click(screen.getByRole("button", { name: "Search" }));
+
+		expect(sheetDialog().open).toBe(false);
+		const input = await screen.findByPlaceholderText("Type a command…");
+		expect(input.closest("dialog")).toBeNull();
+		expect(mountedInSheet).toEqual([]);
+		await waitFor(() => expect(document.activeElement).toBe(input));
+		expect(input.checkVisibility()).toBe(true);
+	});
+
+	test("a palette that a row of the open sheet opens paints above the sheet and takes input", async () => {
+		// The dashboard composes it this way: the palette's content renders outside
+		// `Sidebar.Nav`, and its trigger is a row of the nav.
+		await page.viewport(414, 896);
+		render(
+			<TooltipProvider>
+				<Sidebar.Root>
+					<Command.DialogRoot keyboardShortcut={false}>
+						<Sidebar.Nav>
+							<Sidebar.Header>
+								<Command.SearchTrigger>
+									<Sidebar.SearchTrigger>Search</Sidebar.SearchTrigger>
+								</Command.SearchTrigger>
+							</Sidebar.Header>
+						</Sidebar.Nav>
+						<Command.DialogContent title="Palette">
+							<Command.Input placeholder="Type a command…" />
+						</Command.DialogContent>
+					</Command.DialogRoot>
+					<Sidebar.Trigger />
+				</Sidebar.Root>
+			</TooltipProvider>,
+		);
+		await waitForSheet();
+		await userEvent.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
+		await userEvent.click(screen.getByRole("button", { name: "Search" }));
+
+		const input = await screen.findByPlaceholderText("Type a command…");
+		await waitFor(() => expect(document.activeElement).toBe(input));
+		const box = input.getBoundingClientRect();
+		const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+		expect(hit === input || input.contains(hit)).toBe(true);
+		await userEvent.keyboard("abc");
+		expect(input).toHaveValue("abc");
+
+		// The first Escape closes the palette alone; the second closes the sheet.
+		await userEvent.keyboard("{Escape}");
+		await waitFor(() => expect(screen.queryByPlaceholderText("Type a command…")).toBeNull());
+		expect(sheetDialog().matches(":modal")).toBe(true);
+		await userEvent.keyboard("{Escape}");
+		expect(sheetDialog().open).toBe(false);
+	});
+
+	test.each([
+		"the viewport crosses the breakpoint",
+		"setOpenMobile(false) runs on a phone",
+	] as const)(
+		"a palette open over the sheet keeps its node, text, and focus when %s",
+		async (closer) => {
+			const sidebar = { setOpenMobile: (_open: boolean) => {} };
+			function CaptureSetOpenMobile() {
+				const { setOpenMobile } = useSidebar();
+				useEffect(() => {
+					sidebar.setOpenMobile = setOpenMobile;
+				}, [setOpenMobile]);
+				return null;
+			}
+			await page.viewport(414, 896);
+			render(
+				<TooltipProvider>
+					<Sidebar.Root>
+						<CaptureSetOpenMobile />
+						<Command.DialogRoot keyboardShortcut={false}>
+							<Sidebar.Nav>
+								<Sidebar.Header>
+									<Command.SearchTrigger>
+										<Sidebar.SearchTrigger>Search</Sidebar.SearchTrigger>
+									</Command.SearchTrigger>
+								</Sidebar.Header>
+							</Sidebar.Nav>
+							<Command.DialogContent title="Palette">
+								<Command.Input placeholder="Type a command…" />
+							</Command.DialogContent>
+						</Command.DialogRoot>
+						<Sidebar.Trigger />
+					</Sidebar.Root>
+				</TooltipProvider>,
+			);
+			await waitForSheet();
+			await userEvent.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
+			await userEvent.click(screen.getByRole("button", { name: "Search" }));
+			const input = await screen.findByPlaceholderText("Type a command…");
+			await waitFor(() => expect(document.activeElement).toBe(input));
+			await userEvent.keyboard("abc");
+
+			// Why both: on a phone the closed `<dialog>` hides the panel, and its
+			// close returns focus to the trigger.
+			if (closer === "the viewport crosses the breakpoint") {
+				await page.viewport(1280, 800);
+			} else {
+				act(() => sidebar.setOpenMobile(false));
+			}
+
+			await waitFor(() => expect(sheetDialog().open).toBe(false));
+			await waitFor(() => expect(input.checkVisibility()).toBe(true));
+			expect(screen.getByPlaceholderText("Type a command…")).toBe(input);
+			expect(input).toHaveValue("abc");
+			expect(document.activeElement).toBe(input);
+		},
+	);
+
+	test.each([
+		"a controlled sheet that its owner closes in the handler",
+		"a sheet that an effect closes",
+	] as const)(
+		"a palette that opens from %s moves out of the closed sheet and takes input",
+		async (closer) => {
+			// Why: both close the `<dialog>` after the render that mounts the palette
+			// in it, as the close-on-navigation pattern does.
+			const controlled = closer === "a controlled sheet that its owner closes in the handler";
+			function CloseSheetWhenOpen({ open }: { open: boolean }) {
+				const { setOpenMobile } = useSidebar();
+				useEffect(() => {
+					if (open && !controlled) {
+						setOpenMobile(false);
+					}
+				}, [open, setOpenMobile]);
+				return null;
+			}
+			function Shell() {
+				const [openMobile, setOpenMobile] = useState(false);
+				const [paletteOpen, setPaletteOpen] = useState(false);
+				return (
+					<TooltipProvider>
+						<Sidebar.Root
+							{...(controlled ? { openMobile, onOpenMobileChange: setOpenMobile } : null)}
+						>
+							<Command.DialogRoot
+								keyboardShortcut={false}
+								open={paletteOpen}
+								onOpenChange={(open) => {
+									setPaletteOpen(open);
+									if (open && controlled) {
+										setOpenMobile(false);
+									}
+								}}
+							>
+								<CloseSheetWhenOpen open={paletteOpen} />
+								<Sidebar.Nav>
+									<Sidebar.Header>
+										<Command.SearchTrigger>
+											<Sidebar.SearchTrigger>Search</Sidebar.SearchTrigger>
+										</Command.SearchTrigger>
+									</Sidebar.Header>
+								</Sidebar.Nav>
+								<Command.DialogContent title="Palette">
+									<Command.Input placeholder="Type a command…" />
+								</Command.DialogContent>
+							</Command.DialogRoot>
+							<Sidebar.Trigger />
+						</Sidebar.Root>
+					</TooltipProvider>
+				);
+			}
+			await page.viewport(414, 896);
+			render(<Shell />);
+			await waitForSheet();
+			await userEvent.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
+			await waitFor(() => expect(sheetDialog().matches(":modal")).toBe(true));
+			await userEvent.click(screen.getByRole("button", { name: "Search" }));
+
+			await waitFor(() => expect(sheetDialog().open).toBe(false));
+			await waitFor(() => {
+				const input = screen.getByPlaceholderText("Type a command…");
+				expect(input.closest("dialog")).toBeNull();
+				expect(input.checkVisibility()).toBe(true);
+			});
+			const input = screen.getByPlaceholderText("Type a command…");
+			await waitFor(() => expect(document.activeElement).toBe(input));
+			await userEvent.keyboard("abc");
+			expect(input).toHaveValue("abc");
+		},
+	);
 });

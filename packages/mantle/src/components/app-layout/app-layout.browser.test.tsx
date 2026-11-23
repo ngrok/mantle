@@ -60,10 +60,10 @@ const STYLE = `
 		}
 	}
 	@container app-layout-workspace (width < 56.5rem) {
-		[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed])) .\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:absolute {
+		[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-state~=expanded]) .\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-state\\~\\=expanded\\]\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:absolute {
 			position: absolute;
 		}
-		[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed])) .\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:right-\\(--app-layout-card-gutter\\,0\\.5rem\\) {
+		[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-state~=expanded]) .\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-state\\~\\=expanded\\]\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:right-\\(--app-layout-card-gutter\\,0\\.5rem\\) {
 			right: var(--app-layout-card-gutter, 0.5rem);
 		}
 	}
@@ -74,7 +74,7 @@ const STYLE = `
 			}
 		}
 		@container app-layout-workspace (width < 56.5rem) {
-			[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed])) .sm\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100cqw-5rem\\)\\)\\] {
+			[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-state~=expanded]) .sm\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-state\\~\\=expanded\\]\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100cqw-5rem\\)\\)\\] {
 				width: min(24rem, calc(100cqw - 5rem));
 			}
 		}

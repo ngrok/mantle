@@ -388,6 +388,44 @@ describe("Dialog (native)", () => {
 		await userEvent.click(screen.getByRole("button", { name: "Open dialog" }));
 		expect(screen.getByRole("dialog", { name: "Confirm" }).matches(":modal")).toBe(true);
 	});
+
+	test("an AlertDialog that opens again mounts in the native dialog now on top", async () => {
+		render(
+			<AlertDialog.Root intent="danger">
+				<SheetNative.Root open>
+					<SheetNative.Content>
+						<SheetNative.Title>Filters</SheetNative.Title>
+						<AlertDialog.Trigger>Confirm from sheet</AlertDialog.Trigger>
+						<Dialog.Root>
+							<Dialog.Trigger>Open inner</Dialog.Trigger>
+							<Dialog.Content>
+								<Dialog.Title>Inner</Dialog.Title>
+								<AlertDialog.Trigger>Confirm from inner</AlertDialog.Trigger>
+							</Dialog.Content>
+						</Dialog.Root>
+					</SheetNative.Content>
+				</SheetNative.Root>
+				<AlertDialog.Content>
+					<AlertDialog.Body>
+						<AlertDialog.Title>Discard filters</AlertDialog.Title>
+						<AlertDialog.Footer>
+							<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+						</AlertDialog.Footer>
+					</AlertDialog.Body>
+				</AlertDialog.Content>
+			</AlertDialog.Root>,
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Confirm from sheet" }));
+		await userEvent.click(await screen.findByRole("button", { name: "Cancel" }));
+		await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+		await userEvent.click(screen.getByRole("button", { name: "Open inner" }));
+		await userEvent.click(screen.getByRole("button", { name: "Confirm from inner" }));
+
+		const alert = await screen.findByRole("alertdialog", { name: "Discard filters" });
+		expect(alert.closest("dialog")).toBe(screen.getByRole("dialog", { name: "Inner" }));
+		await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+		await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+	});
 });
 
 /** Each native overlay, rendered with a trigger and `children` in its body. */

@@ -162,7 +162,7 @@ const STYLE = `
 			.sm\\:\\@min-side-panel-lane\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
 		}
 		@container app-layout-workspace (width >= 46.75rem) {
-			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed]))) .sm\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)\\)_\\&\\]\\:\\@min-side-panel-lane-collapsed\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-state~=expanded])) .sm\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-state\\~\\=expanded\\]\\)\\)_\\&\\]\\:\\@min-side-panel-lane-collapsed\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
 		}
 	}
 	@media (width >= 48rem) {
@@ -170,7 +170,7 @@ const STYLE = `
 			.md\\:\\@min-side-panel-lane\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
 		}
 		@container app-layout-workspace (width >= 46.75rem) {
-			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed]))) .md\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)\\)_\\&\\]\\:\\@min-side-panel-lane-collapsed\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-state~=expanded])) .md\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-state\\~\\=expanded\\]\\)\\)_\\&\\]\\:\\@min-side-panel-lane-collapsed\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
 		}
 	}
 	@media (width >= 64rem) {
@@ -178,7 +178,7 @@ const STYLE = `
 			.lg\\:\\@min-side-panel-lane\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
 		}
 		@container app-layout-workspace (width >= 46.75rem) {
-			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed]))) .lg\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)\\)_\\&\\]\\:\\@min-side-panel-lane-collapsed\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-state~=expanded])) .lg\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-state\\~\\=expanded\\]\\)\\)_\\&\\]\\:\\@min-side-panel-lane-collapsed\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
 		}
 	}
 	@media (width < 64rem) {

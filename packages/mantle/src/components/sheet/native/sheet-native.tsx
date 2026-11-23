@@ -19,8 +19,8 @@ import {
 	CloseIconButtonView,
 	contentSurfaceClassName,
 	descriptionClassName,
+	nativeSlideClassName,
 	type SheetLayoutProps,
-	type SheetSide,
 	titleClassName,
 } from "../presentation.js";
 
@@ -211,17 +211,6 @@ const Close = ({
 	<NativeClose scope={scope} data-slot={joinDataSlot(dataSlot, "sheet-close")} {...props} />
 );
 
-/**
- * The slide each {@link SheetSide} enters and exits with. It keys on the
- * `<dialog>`'s `[open]` and ends at `translate: none`, so a float that the
- * sheet holds positions against the viewport once the sheet is in.
- */
-const motionClassName: Record<SheetSide, string> = {
-	left: "group-not-open/native-dialog:-translate-x-full starting:group-open/native-dialog:-translate-x-full",
-	right:
-		"group-not-open/native-dialog:translate-x-full starting:group-open/native-dialog:translate-x-full",
-};
-
 type ContentProps = Omit<
 	ComponentProps<typeof NativeContent>,
 	"positionerClassName" | "positionerSlot" | "scope"
@@ -310,8 +299,7 @@ const Content = ({
 		data-slot={joinDataSlot(dataSlot, "sheet-content")}
 		className={cx(
 			contentSurfaceClassName({ side, preferredWidth }),
-			"transition-[translate] duration-200 ease-out-strong group-not-open/native-dialog:duration-150 motion-reduce:transition-none",
-			motionClassName[side],
+			nativeSlideClassName[side],
 			className,
 		)}
 		{...props}

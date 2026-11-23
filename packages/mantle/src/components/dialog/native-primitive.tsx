@@ -9,7 +9,7 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import { Slot } from "../slot/index.js";
-import { setTopModal } from "../toast/toaster-host.js";
+import { modalHostAttribute, setTopModal } from "../toast/toaster-host.js";
 
 /**
  * The behavior that `@ngrok/mantle/dialog/native` and
@@ -81,12 +81,42 @@ function writeOpenState({ dialog, open }: { dialog: HTMLDialogElement; open: boo
 		}
 	}
 	const index = openDialogs.indexOf(dialog);
-	if (open && index === -1) {
+	if (open === (index !== -1)) {
+		return;
+	}
+	if (open) {
 		openDialogs.push(dialog);
-	} else if (!open && index !== -1) {
+	} else {
 		openDialogs.splice(index, 1);
+		moveModalHosts(dialog);
 	}
 	setTopModal(openDialogs.at(-1) ?? null);
+}
+
+/**
+ * Moves the hosts of the dialogs that opened over `dialog`, such as a
+ * `Command` palette, to the top open modal outside `dialog`, else `<body>`,
+ * and keeps the focus that was in them. Closes the native dialogs in each
+ * host first, as a parent closes its nested dialogs: a moved `<dialog>` leaves
+ * the top layer, and a new top modal inside a host cannot take that host.
+ *
+ * Why a move and not a new container: a portal into a new container remounts
+ * its content, and the dialog would lose its state. Why before `close()`: the
+ * close returns focus to the element that opened `dialog`, outside the moved
+ * dialog.
+ */
+function moveModalHosts(dialog: HTMLDialogElement): void {
+	const hosts = [...dialog.querySelectorAll(`:scope > [${modalHostAttribute}]`)];
+	for (const host of hosts) {
+		closeNested(host);
+	}
+	const focused = dialog.ownerDocument.activeElement;
+	const target =
+		openDialogs.findLast((open) => !dialog.contains(open)) ?? dialog.ownerDocument.body;
+	target.append(...hosts);
+	if (focused instanceof HTMLElement && hosts.some((host) => host.contains(focused))) {
+		focused.focus({ preventScroll: true });
+	}
 }
 
 /**
@@ -111,9 +141,13 @@ function moveDialog({ dialog, open }: { dialog: HTMLDialogElement; open: boolean
  * `dialog` closes: an open child stays modal inside its hidden parent and
  * blocks the page, and each close returns focus to the element that opened it.
  */
-function closeNested(dialog: HTMLDialogElement): void {
+function closeNested(dialog: Element): void {
 	for (const child of [...dialog.querySelectorAll("dialog[open]")].toReversed()) {
 		if (child instanceof HTMLDialogElement) {
+			// Why the write first: it takes the child out of the stack of open
+			// dialogs now, so a dialog that opens in the same event mounts on the
+			// true top modal, not in the closed child.
+			writeOpenState({ dialog: child, open: false });
 			child.close();
 		}
 	}
@@ -274,8 +308,30 @@ const positionerBaseClassName = cx(
 	"not-open:backdrop:opacity-0 not-open:backdrop:duration-150 starting:open:backdrop:opacity-0 motion-reduce:backdrop:transition-none",
 );
 
+/** The style of an inline `<dialog>`, which has no box of its own. */
+const inlineStyle = { display: "contents" } as const;
+
 type ContentProps = ComponentProps<"div"> &
 	ScopeProps & {
+		/**
+		 * Whether the closed `<dialog>` shows its panel in the page, as
+		 * `Sidebar.Nav` does above its breakpoint. An inline `<dialog>` has no
+		 * box (`display: contents`), and it is neither a dialog nor a layer: it
+		 * takes `role="generic"` and no name or description, and the floats
+		 * inside portal as if it were not there. A change keeps the children
+		 * mounted.
+		 *
+		 * @default false
+		 */
+		inline?: boolean;
+		/**
+		 * Whether the floats inside portal into the `<dialog>`. Pass `false`
+		 * while a `<dialog>` that stays mounted is closed, so a float that a
+		 * shortcut opens there portals to the body and shows.
+		 *
+		 * @default true
+		 */
+		layer?: boolean;
 		/** The classes of the `<dialog>`, which positions the panel. */
 		positionerClassName: string;
 		/** The `data-slot` of the `<dialog>`. */
@@ -294,6 +350,8 @@ const Content = ({
 	"aria-label": ariaLabel,
 	"aria-labelledby": ariaLabelledBy,
 	children,
+	inline = false,
+	layer = true,
 	positionerClassName,
 	positionerSlot,
 	ref,
@@ -380,9 +438,17 @@ const Content = ({
 		<dialog
 			ref={attach}
 			id={root.contentId}
-			aria-describedby={ariaDescribedBy}
-			aria-label={ariaLabel}
-			aria-labelledby={ariaLabelledBy ?? (ariaLabel == null ? root.titleId : undefined)}
+			// Why `generic`: Chromium ignores `none` and `presentation` on a
+			// `<dialog>`. ARIA prohibits a name on `generic`.
+			// Why an inline `display`: the browser's own style hides a closed
+			// `<dialog>`, and the panel must show before any stylesheet loads.
+			{...(inline
+				? { role: "generic", style: inlineStyle }
+				: {
+						"aria-describedby": ariaDescribedBy,
+						"aria-label": ariaLabel,
+						"aria-labelledby": ariaLabelledBy ?? (ariaLabel == null ? root.titleId : undefined),
+					})}
 			className={cx(positionerBaseClassName, positionerClassName)}
 			data-slot={positionerSlot}
 			data-state="closed"
@@ -424,8 +490,15 @@ const Content = ({
 				}
 			}}
 		>
-			<LayerContainer className="contents">
-				<div ref={ref} data-mantle-modal-content data-state="closed" {...props}>
+			<LayerContainer active={layer && !inline} className="contents">
+				{/* Why no marker inline: the panel is not an overlay's content, and
+				    the close must not write `data-state` over the inline panel's own. */}
+				<div
+					ref={ref}
+					data-mantle-modal-content={inline ? undefined : ""}
+					data-state="closed"
+					{...props}
+				>
 					{children}
 				</div>
 			</LayerContainer>
@@ -477,6 +550,7 @@ export {
 	Content,
 	createScope,
 	Description,
+	moveDialog,
 	Root,
 	Title,
 	Trigger,

@@ -176,11 +176,9 @@ describe("Sidebar.Nav (desktop)", () => {
 		);
 	});
 
-	test("Trigger omits aria-controls while the mobile sheet is closed", async () => {
-		// Regression: the mobile nav lives inside a Sheet whose content Radix
-		// unmounts while closed, so a permanent aria-controls would reference an
-		// element that is not in the document.
-		const user = userEvent.setup();
+	test("Trigger names the nav in aria-controls while the mobile sheet is closed", () => {
+		// The closed sheet keeps the nav in the document, so the reference
+		// resolves at every state.
 		useIsBelowBreakpointMock.mockReturnValue(true);
 		render(
 			<Sidebar.Root>
@@ -190,11 +188,8 @@ describe("Sidebar.Nav (desktop)", () => {
 		);
 		const trigger = screen.getByRole("button", { name: "Toggle Sidebar" });
 		expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
-		expect(trigger).not.toHaveAttribute("aria-controls");
-
-		await user.click(trigger);
-		const nav = screen.getByRole("navigation", { name: "Main" });
-		expect(trigger).toHaveAttribute("aria-controls", nav.id);
+		const controlled = document.getElementById(trigger.getAttribute("aria-controls") ?? "");
+		expect(controlled?.tagName).toBe("NAV");
 	});
 
 	test("Trigger's aria-expanded and data-state mirror the mobile sheet, not the desktop panel", async () => {
@@ -846,25 +841,30 @@ describe("Sidebar.Nav (mobile)", () => {
 		useIsBelowBreakpointMock.mockReturnValue(true);
 	});
 
-	test("renders nothing until the trigger opens the sheet", async () => {
+	test("hides the nav until the trigger opens the sheet, and keeps the same nav", async () => {
 		const user = userEvent.setup();
 		render(
 			<Sidebar.Root>
-				<Sidebar.Nav>content</Sidebar.Nav>
+				<Sidebar.Nav data-testid="panel">content</Sidebar.Nav>
 				<Sidebar.Trigger />
 			</Sidebar.Root>,
 		);
 		expect(screen.queryByRole("navigation", { name: "Main" })).not.toBeInTheDocument();
+		const closedNav = document.querySelector("nav");
 
 		await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
 		const sheet = screen.getByRole("dialog", { name: "Main" });
-		// The sheet is `Sheet.Content`, which joins its own slot after the part's.
-		expect(sheet).toHaveAttribute("data-slot", "sidebar-nav sheet-content");
-		expect(sheet).toHaveAttribute("data-mobile");
-		// Radix owns the value: the sheet's content element is the panel, so a
-		// mantle `data-state` stamped after the spread would clobber it.
-		expect(sheet).toHaveAttribute("data-state", "open");
-		expect(screen.getByRole("navigation", { name: "Main" })).toHaveTextContent("content");
+		expect(sheet).toHaveAttribute("data-slot", "sidebar-positioner");
+		const panel = screen.getByTestId("panel");
+		expect(panel).toHaveAttribute("data-slot", "sidebar-nav");
+		expect(panel).toHaveAttribute("data-mobile");
+		// The `<dialog>` owns the value: a mantle `data-state` stamped after the
+		// spread must not clobber it.
+		expect(panel).toHaveAttribute("data-state", "open");
+		const nav = screen.getByRole("navigation", { name: "Main" });
+		expect(nav).toHaveTextContent("content");
+		// The open moved the nav into view, it did not mount a second one.
+		expect(nav).toBe(closedNav);
 	});
 
 	test("consumer aria-labelledby names the sheet dialog and the nav consistently", () => {
@@ -880,19 +880,14 @@ describe("Sidebar.Nav (mobile)", () => {
 		expect(screen.getByRole("navigation", { name: "Product areas" })).toBeInTheDocument();
 	});
 
-	test("controlled openMobile opens the sheet and reports closes", async () => {
-		const user = userEvent.setup();
-		const onOpenMobileChange = vi.fn<(open: boolean) => void>();
+	test("controlled openMobile opens the sheet", () => {
+		// Escape and the controlled close are real-browser behavior; see
+		// `sidebar.browser.test.tsx`.
 		render(
-			<Sidebar.Root openMobile onOpenMobileChange={onOpenMobileChange}>
+			<Sidebar.Root openMobile>
 				<Sidebar.Nav>content</Sidebar.Nav>
 			</Sidebar.Root>,
 		);
-		expect(screen.getByRole("dialog", { name: "Main" })).toBeInTheDocument();
-
-		await user.keyboard("{Escape}");
-		expect(onOpenMobileChange).toHaveBeenCalledExactlyOnceWith(false);
-		// Controlled: the parent kept `openMobile`, so the sheet stays mounted.
 		expect(screen.getByRole("dialog", { name: "Main" })).toBeInTheDocument();
 	});
 
@@ -940,9 +935,14 @@ describe("Sidebar.Nav (mobile)", () => {
 				<Sidebar.Trigger />
 			</Sidebar.Root>,
 		);
-		expect(onOpenMobileChange).toHaveBeenCalledTimes(2);
+		// The `<dialog>` reports its close from a mutation observer, after the commit.
+		await waitFor(() => expect(onOpenMobileChange).toHaveBeenCalledTimes(2));
 		expect(onOpenMobileChange).toHaveBeenLastCalledWith(false);
-		expect(screen.queryByRole("dialog", { name: "Main" })).not.toBeInTheDocument();
+		expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+		expect(screen.getByRole("navigation", { name: "Main" }).parentElement).toHaveAttribute(
+			"data-state",
+			"expanded",
+		);
 	});
 });
 
