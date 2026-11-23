@@ -600,6 +600,8 @@ describe("MultiSelect", () => {
 			await user.click(screen.getByRole("combobox"));
 			await user.keyboard("{Backspace}");
 			expect(screen.queryByLabelText("Remove cherry")).not.toBeInTheDocument();
+			// Why: no focus or option changes, so only the status says which value went.
+			expect(screen.getByRole("status")).toHaveTextContent("Removed cherry");
 		});
 
 		test("Backspace on the first tag with remaining tags focuses the new first tag", async () => {

@@ -42,6 +42,8 @@ const TAB = "\\btab\\b";
 const CHECKED = "(?<!not |un)checked|(?<!not )selected|(?:^|\\| )on\\b";
 const UNCHECKED = "not checked|unchecked|\\boff\\b|not selected";
 const INVALID = "invalid|error";
+/** Speech that says "Toggle Sidebar" twice, as a name and again as the description. */
+const NAME_TWICE = "(toggle sidebar).*\\1";
 
 export const flows: Flow[] = [
 	{
@@ -158,7 +160,8 @@ export const flows: Flow[] = [
 		path: "components/overlays/popover/overview",
 		steps: [
 			{ key: "Tab", expect: ["open popover"] },
-			{ key: "Enter", expect: ["width"] },
+			// The dialog says its name, from its heading.
+			{ key: "Enter", expect: ["width", 'dialog,? "?dimensions|dimensions,? (web )?dialog'] },
 			{ key: "Escape", expect: ["open popover"] },
 		],
 	},
@@ -241,11 +244,11 @@ export const flows: Flow[] = [
 			{ key: "Tab" },
 			{ key: "Tab" },
 			{ key: "Tab" },
-			// Submit the empty form: each invalid field says it is invalid and why, on focus or at once.
-			{ key: "Enter", wait: 1000 },
-			{ key: "Shift+Tab", expect: ["cancel"] },
-			{ key: "Shift+Tab", expect: ["role", INVALID, "choose a role"] },
-			{ key: "Shift+Tab", expect: ["email", INVALID, "valid email"] },
+			// Submit the empty form: focus moves to the first invalid field, which says why.
+			{ key: "Enter", wait: 1000, expect: ["email", INVALID, "valid email"] },
+			{ key: "Tab", expect: ["role", INVALID, "choose a role"] },
+			// A field that renders on blur, such as Role clearing its error, does not cancel the move.
+			{ key: "Shift+Tab", expect: ["email"] },
 		],
 	},
 	{
@@ -281,7 +284,12 @@ export const flows: Flow[] = [
 		path: "components/navigation/tabs/overview",
 		steps: [
 			{ key: "Tab", expect: ["account", TAB, "selected", "1 of 2|position 1, set size 2"] },
-			{ key: "ArrowRight", expect: ["password", TAB, "selected", "2 of 2|position 2, set size 2"] },
+			{
+				key: "ArrowRight",
+				expect: ["password", TAB, "selected", "2 of 2|position 2, set size 2"],
+				// The tab is read once, not again when its selection changes.
+				reject: ["(password\\W+tab\\W+selected).*\\1"],
+			},
 			{ key: "Tab", expect: ["password"] },
 		],
 	},
@@ -356,13 +364,21 @@ export const flows: Flow[] = [
 		path: "components/forms/theme-switcher/overview",
 		steps: [
 			{ key: "Tab", expect: ["switch to (dark|light) theme"] },
-			{ key: "Enter", expect: ["switch to (dark|light) theme"] },
+			// The status says the theme the press applied.
+			{ key: "Enter", expect: ["(?<!to )(dark|light) theme"] },
 		],
 	},
 	{
 		id: "sidebar",
 		component: "Sidebar",
 		path: "sidebar-persistence",
-		steps: [{ key: "Tab" }, { key: "Tab" }, { key: "Tab" }, { key: "Tab" }, { key: "Enter" }],
+		// The trigger's tooltip is not read as a second copy of its name.
+		steps: [
+			{ key: "Tab", reject: [NAME_TWICE] },
+			{ key: "Tab", reject: [NAME_TWICE] },
+			{ key: "Tab", reject: [NAME_TWICE] },
+			{ key: "Tab", reject: [NAME_TWICE] },
+			{ key: "Enter", reject: [NAME_TWICE] },
+		],
 	},
 ];

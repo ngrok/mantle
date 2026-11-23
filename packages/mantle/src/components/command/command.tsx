@@ -64,6 +64,8 @@ type CommandRootProps = Omit<ComponentProps<"div">, "defaultValue" | "onChange">
 	WithDataSlot & {
 		/**
 		 * The accessible name of `Command.Input`. Not shown.
+		 *
+		 * @default "Search", unless the input has its own `aria-label` or `aria-labelledby`
 		 */
 		label?: string;
 		/**
@@ -727,7 +729,10 @@ const CommandInput = ({
 				aria-autocomplete="list"
 				aria-expanded
 				aria-controls={listboxId}
-				aria-label={label ?? props["aria-label"]}
+				// Why "Search" last: a combobox needs a name, and a placeholder is not one.
+				aria-label={
+					label ?? props["aria-label"] ?? (props["aria-labelledby"] == null ? "Search" : undefined)
+				}
 				// Why: the list writes this attribute, so no consumer value may render over it.
 				aria-activedescendant={undefined}
 				value={resolvedValue}

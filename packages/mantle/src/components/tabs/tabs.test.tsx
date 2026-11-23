@@ -273,6 +273,35 @@ describe("Tabs", () => {
 			expect(scrollIntoView).toHaveBeenCalledTimes(2);
 		});
 
+		test("an arrow key selects the next tab before focus reaches it", async () => {
+			const user = userEvent.setup();
+			const onValueChange = vi.fn<(value: string) => void>();
+			let selectedOnFocus: string | null = null;
+			render(
+				<Tabs.Root defaultValue="a" onValueChange={onValueChange}>
+					<Tabs.List>
+						<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+						<Tabs.Trigger
+							value="b"
+							onFocus={(event) => {
+								selectedOnFocus = event.currentTarget.getAttribute("aria-selected");
+							}}
+						>
+							Tab B
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			await user.tab();
+			await user.keyboard("{ArrowRight}");
+
+			// Why: NVDA reads a tab on focus and again when its selection changes.
+			expect(selectedOnFocus).toBe("true");
+			expect(onValueChange).toHaveBeenCalledTimes(1);
+			expect(onValueChange).toHaveBeenLastCalledWith("b");
+		});
+
 		test("keyboard focus in a vertical tablist does not scroll the trigger into view", async () => {
 			const user = userEvent.setup();
 			// Why a spy: happy-dom lays out nothing, so the `scrollIntoView` call is the

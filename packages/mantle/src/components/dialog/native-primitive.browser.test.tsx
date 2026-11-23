@@ -218,6 +218,35 @@ describe("Dialog", () => {
 		await waitFor(() => expect(dialogElement()).toHaveFocus());
 	});
 
+	test("Shift+Tab reaches the previous field when the field it leaves renders on blur", async () => {
+		function ErrorOnBlurDialog() {
+			const [error, setError] = useState(true);
+			return (
+				<ExampleDialog open>
+					<input aria-label="Email" />
+					<button type="button" onBlur={() => setError(false)}>
+						Role
+					</button>
+					{error && <p>Choose a role.</p>}
+				</ExampleDialog>
+			);
+		}
+		// Why fake timers: the dialog takes focus back a task after a change, so a
+		// check at once passes either way. Running the timers first makes it count.
+		vi.useFakeTimers({ shouldAdvanceTime: true });
+		onTestFinished(() => {
+			vi.useRealTimers();
+		});
+		render(<ErrorOnBlurDialog />);
+		screen.getByRole("button", { name: "Role" }).focus();
+
+		await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+
+		expect(screen.queryByText("Choose a role.")).toBeNull();
+		await vi.runOnlyPendingTimersAsync();
+		expect(screen.getByRole("textbox", { name: "Email" })).toHaveFocus();
+	});
+
 	test("the dialog stays modal with `data-state` closed through its exit, then unmounts", async () => {
 		const style = document.createElement("style");
 		style.textContent = `

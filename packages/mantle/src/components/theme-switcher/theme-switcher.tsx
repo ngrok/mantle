@@ -342,6 +342,51 @@ const nameSwitcher: RefCallback<HTMLButtonElement> = (button) => {
 	};
 };
 
+/** The page's one live region that says the theme a switcher press applied. */
+let themeStatus: HTMLSpanElement | null = null;
+let themeStatusUsers = 0;
+
+/**
+ * A ref callback that keeps the theme live region on the page while a
+ * switcher is mounted. Why on mount: a screen reader announces a change only
+ * in a live region that existed before it.
+ *
+ * Why on `<body>` and not in the switcher: the button's content is its name,
+ * and an element next to the button could change a consumer's layout.
+ */
+const mountThemeStatus: RefCallback<HTMLButtonElement> = (button) => {
+	if (button == null) {
+		return undefined;
+	}
+	themeStatusUsers += 1;
+	if (themeStatus == null) {
+		themeStatus = document.createElement("span");
+		themeStatus.setAttribute("role", "status");
+		themeStatus.setAttribute("aria-live", "polite");
+		themeStatus.className = "sr-only";
+		themeStatus.dataset.slot = "theme-switcher-status";
+		document.body.append(themeStatus);
+	}
+	return () => {
+		themeStatusUsers -= 1;
+		if (themeStatusUsers === 0) {
+			themeStatus?.remove();
+			themeStatus = null;
+		}
+	};
+};
+
+/**
+ * Says the theme that a press shows, such as "Dark theme" or
+ * "Light theme (system default)".
+ */
+function themeMessage(theme: Theme, { prefersDarkMode }: { prefersDarkMode: boolean }) {
+	if (theme === "system") {
+		return prefersDarkMode ? "Dark theme (system default)" : "Light theme (system default)";
+	}
+	return theme === "dark" ? "Dark theme" : "Light theme";
+}
+
 /**
  * The props for the `ThemeSwitcher` component. Takes `IconButton`'s props,
  * except the parts the switcher owns: `icon` (the themed icon) and `intent`
@@ -436,7 +481,7 @@ function ThemeSwitcher({
 		(button) => (ariaLabel == null ? nameSwitcher(button) : undefined),
 		[ariaLabel],
 	);
-	const composedRef = useComposedRefs(ref, defaultName);
+	const composedRef = useComposedRefs(ref, defaultName, mountThemeStatus);
 	const disabled =
 		forcedTheme != null ||
 		parseBooleanish(disabledProp ?? isLoading) ||
@@ -470,6 +515,16 @@ function ThemeSwitcher({
 					// Why read the OS preference here: the click is the only reader, so the
 					// switcher holds no media query list between clicks.
 					const prefersDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
+					// Why: a screen reader does not read a focused button again when its
+					// name changes, so the live region says what the press did.
+					const stored = document.documentElement.dataset.theme;
+					const next = getToggledTheme({
+						theme: isTheme(stored) ? stored : "system",
+						prefersDarkMode,
+					});
+					if (themeStatus != null) {
+						themeStatus.textContent = themeMessage(next, { prefersDarkMode });
+					}
 					setTheme((current) => getToggledTheme({ theme: current, prefersDarkMode }), {
 						origin: event.currentTarget,
 					});

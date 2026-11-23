@@ -234,7 +234,31 @@ const moveFocus = (
 			...(loop ? enabled.slice(index + 1).toReversed() : []),
 		];
 	}
-	focusFirst(tab, order);
+	// Why select before focus: NVDA reads a tab when it takes focus, and again
+	// when its selection changes. A tab that is already selected is read once.
+	const target =
+		tabs.activationMode === "automatic"
+			? order.find(
+					(candidate) =>
+						typeof candidate.checkVisibility !== "function" || candidate.checkVisibility(),
+				)
+			: null;
+	const prefix = `${tabs.baseId}-trigger-`;
+	if (target == null || !target.id.startsWith(prefix)) {
+		focusFirst(tab, order);
+		return true;
+	}
+	flushSync(() => {
+		tabs.select(target.id.slice(prefix.length));
+	});
+	// Why: the tab's focus must not select it a second time.
+	const outer = pressedTab;
+	pressedTab = target;
+	try {
+		focusFirst(tab, order);
+	} finally {
+		pressedTab = outer;
+	}
 	return true;
 };
 

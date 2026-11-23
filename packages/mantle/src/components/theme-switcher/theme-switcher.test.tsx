@@ -171,6 +171,20 @@ describe("ThemeSwitcher", () => {
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("light");
 	});
 
+	test("a click says the theme it applied in a status", () => {
+		stubPrefersDarkMode(false);
+		renderSwitcher();
+
+		// Why not `getByRole("status")`: the theme probe is an `<output>`, a status too.
+		const status = () =>
+			screen.getAllByRole("status").find((element) => element.tagName !== "OUTPUT");
+		fireEvent.click(getSwitcher());
+		expect(status()).toHaveTextContent("Dark theme");
+
+		fireEvent.click(getSwitcher());
+		expect(status()).toHaveTextContent("Light theme (system default)");
+	});
+
 	test("an onClick that calls preventDefault keeps the theme", () => {
 		stubPrefersDarkMode(false);
 		renderSwitcher({ onClick: (event) => event.preventDefault() });

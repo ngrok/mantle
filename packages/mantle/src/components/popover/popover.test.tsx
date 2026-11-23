@@ -130,6 +130,27 @@ describe("Popover", () => {
 		});
 	});
 
+	test("the content dialog takes its name from the trigger, unless it has its own", async () => {
+		const user = userEvent.setup();
+		render(
+			<>
+				<Popover.Root>
+					<Popover.Trigger>Filters</Popover.Trigger>
+					<Popover.Content>Pick filters</Popover.Content>
+				</Popover.Root>
+				<Popover.Root>
+					<Popover.Trigger>Share</Popover.Trigger>
+					<Popover.Content aria-label="Share settings">Share with</Popover.Content>
+				</Popover.Root>
+			</>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "Filters" }));
+		expect(await screen.findByRole("dialog", { name: "Filters" })).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Share" }));
+		expect(await screen.findByRole("dialog", { name: "Share settings" })).toBeInTheDocument();
+	});
+
 	test("opens on trigger click and closes on Escape, returning focus to the trigger", async () => {
 		const user = userEvent.setup();
 		render(

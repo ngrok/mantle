@@ -48,6 +48,23 @@ const active = () => {
 	return id == null ? null : document.getElementById(id);
 };
 
+describe("Command.Input name", () => {
+	test("is Search with no label, and the input's own name replaces it", () => {
+		render(
+			<>
+				<Command.Root>
+					<Command.Input />
+				</Command.Root>
+				<Command.Root>
+					<Command.Input aria-label="Find a command" />
+				</Command.Root>
+			</>,
+		);
+		expect(screen.getByRole("combobox", { name: "Search" })).toBeInTheDocument();
+		expect(screen.getByRole("combobox", { name: "Find a command" })).toBeInTheDocument();
+	});
+});
+
 describe("Command.Root filtering", () => {
 	test("hides the items and groups that the query does not match, and names the active item", async () => {
 		const user = userEvent.setup();

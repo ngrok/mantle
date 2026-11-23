@@ -25,6 +25,8 @@ type MultiSelectBehavior = ComboboxBehavior & {
 	selected: readonly string[];
 	/** Removes `value`, unless it is locked. Returns whether it removed it. */
 	remove: (value: string) => boolean;
+	/** Says which value the last removal took out, such as "Removed apple", for a live region. */
+	removal: string;
 	/** The values that a pick, a click, or a key cannot remove. */
 	locked: Store<{ values: readonly string[] }>;
 	/** The trigger that holds the tags and the input, and anchors the list. */
@@ -80,12 +82,14 @@ const useMultiSelect = ({
 	const [tags] = useState(() => new Map<string, HTMLElement>());
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const triggerRef = useRef<HTMLElement | null>(null);
+	const [removal, setRemoval] = useState("");
 
 	const remove = (value: string): boolean => {
 		if (locked.get().values.includes(value)) {
 			return false;
 		}
 		setSelected(selected.filter((item) => item !== value));
+		setRemoval(`Removed ${value}`);
 		return true;
 	};
 
@@ -120,6 +124,7 @@ const useMultiSelect = ({
 		inputRef,
 		selected,
 		remove,
+		removal,
 		locked,
 		triggerRef,
 		tags,
