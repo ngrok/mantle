@@ -343,14 +343,23 @@ describe("Slider track press (browser)", () => {
 			const y = rect.top + rect.height / 2;
 			await mouse("mousePressed", rect.right - 1, y);
 			await mouse("mouseReleased", rect.right - 1, y);
+			// Why hold the glide: a thumb that glides on past the next press is missed, and the
+			// press lands on the track. Why set `currentTime`: `pause()` waits for the next frame.
+			for (const animation of document.getAnimations()) {
+				const time = animation.currentTime;
+				animation.pause();
+				animation.currentTime = time;
+			}
 			const shown = thumb.getBoundingClientRect();
 			const x = shown.left + shown.width / 2;
 			await mouse("mousePressed", x, y);
 			await mouse("mouseMoved", x - 20, y);
 			await mouse("mouseReleased", x - 20, y);
 
-			// Why 5px: the thumb ends 20px left of where it showed, give or take the thumb inset along the track.
-			expect(thumb.getBoundingClientRect().left).toBeCloseTo(shown.left - 20, -1);
+			// Why the value and one step: a pixel read adds the thumb inset, and the
+			// value snaps to a step. A grab at the value, not where it shows, ends near 90.
+			const value = ((x - 20 - rect.left) / rect.width) * 100;
+			expect(Math.abs(Number((slider as HTMLInputElement).value) - value)).toBeLessThanOrEqual(1);
 		},
 	);
 
