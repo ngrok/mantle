@@ -97,8 +97,8 @@ function stubPrefersDarkMode(prefersDarkMode: boolean) {
 }
 
 /**
- * The switcher button. Why by slot: CSS writes its default name, and happy-dom
- * loads no CSS, so the browser tests own the name.
+ * The switcher button. Why by slot: these tests are about the theme, not the
+ * name, which the role tests pin.
  */
 function getSwitcher(): HTMLButtonElement {
 	const button = document.querySelector('[data-slot~="theme-switcher"]');
@@ -177,6 +177,73 @@ describe("ThemeSwitcher", () => {
 
 		fireEvent.click(getSwitcher());
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
+	});
+
+	test("a test finds the switcher by its role and default name, and the name follows each click", async () => {
+		stubPrefersDarkMode(false);
+		renderSwitcher();
+
+		fireEvent.click(screen.getByRole("button", { name: "Switch to dark theme" }));
+
+		// Why `getByRole` with no wait: the name must be current as soon as the
+		// click returns.
+		fireEvent.click(screen.getByRole("button", { name: "Switch to light theme (system default)" }));
+		expect(screen.getByRole("button", { name: "Switch to dark theme" })).toBeInTheDocument();
+		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
+	});
+
+	test("a removed label gives the switcher its default name again", () => {
+		stubPrefersDarkMode(false);
+		const { rerender } = render(
+			<ThemeProvider>
+				<ThemeSwitcher label="Cambiar tema" />
+			</ThemeProvider>,
+		);
+		expect(screen.getByRole("button", { name: "Cambiar tema" })).toBeInTheDocument();
+
+		rerender(
+			<ThemeProvider>
+				<ThemeSwitcher />
+			</ThemeProvider>,
+		);
+
+		expect(screen.getByRole("button", { name: "Switch to dark theme" })).toBeInTheDocument();
+	});
+
+	test("a theme set by another control renames the switcher after another switcher unmounts and after a remount", async () => {
+		stubPrefersDarkMode(false);
+		function DarkButton() {
+			const [, setTheme] = useTheme();
+			return (
+				<button type="button" onClick={() => setTheme("dark")}>
+					Use dark
+				</button>
+			);
+		}
+		const page = (switchers: number) => (
+			<ThemeProvider>
+				<DarkButton />
+				{Array.from({ length: switchers }, (_, index) => (
+					<ThemeSwitcher key={index} />
+				))}
+			</ThemeProvider>
+		);
+		const { rerender, unmount } = render(page(2));
+		rerender(page(1));
+
+		fireEvent.click(screen.getByRole("button", { name: "Use dark" }));
+		expect(
+			await screen.findByRole("button", { name: "Switch to light theme (system default)" }),
+		).toBeInTheDocument();
+
+		unmount();
+		document.cookie = "mantle-ui-theme=system; path=/";
+		render(page(1));
+		expect(screen.getByRole("button", { name: "Switch to dark theme" })).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Use dark" }));
+		expect(
+			await screen.findByRole("button", { name: "Switch to light theme (system default)" }),
+		).toBeInTheDocument();
 	});
 
 	test("custom label overrides the accessible name", () => {

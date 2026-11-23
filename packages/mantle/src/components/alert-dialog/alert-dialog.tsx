@@ -181,11 +181,13 @@ type AlertDialogContentProps = Omit<
  * above the content. When multiple overlays are open, the most recently mounted
  * overlay renders on top.
  *
- * A modal alert dialog makes the rest of the page inert, so UI outside it
- * takes no input while it is open. mantle's `Toaster` and `Sandbar` move into
- * the open alert dialog, so they stay usable. With `modal={false}`, UI with the
- * `overlay-prompt` class takes clicks above the alert dialog: a click inside it
- * does not count as an outside click.
+ * A modal alert dialog makes the rest of the page inert. To keep app UI usable
+ * above it, such as a consent banner, wrap the UI in `OverlayPrompt`: while
+ * the alert dialog is open, it moves into the alert dialog, so it takes clicks and focus,
+ * and a press in it does not close the alert dialog. mantle's `Toaster` and
+ * `Sandbar` use it. With `modal={false}`, UI with the `overlay-prompt`
+ * class takes clicks above the alert dialog: a click inside it does not count as
+ * an outside click.
  *
  * A script can show its own popup in a frame on `<body>`, such as the 3-D
  * Secure challenge of a payment script. Set `modal={false}` on an alert dialog

@@ -10,7 +10,7 @@ import path from "node:path";
  *
  * The `clean` command applies these transformations:
  *
- * 1. Remove custom export conditions (e.g. `@ngrok/src-live-types`). They
+ * 1. Remove custom export and import conditions (e.g. `@ngrok/src-live-types`). They
  *    only exist so workspace apps can resolve live source files during local
  *    development and would point npm consumers at `./src/...` paths that are
  *    excluded from the tarball.
@@ -191,6 +191,9 @@ function clean() {
 	packageJson.exports = Object.fromEntries(
 		Object.entries(pruned).map(([subpath, entry]) => [subpath, collapseRedundantConditions(entry)]),
 	);
+	if (packageJson.imports != null) {
+		packageJson.imports = pruneCustomConditions(packageJson.imports, []);
+	}
 	delete packageJson.devDependencies;
 	delete packageJson.scripts;
 

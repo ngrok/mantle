@@ -855,15 +855,16 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `ref`             | `Ref<HTMLDivElement>` |                 | Forwarded to the expansion wrapper.                                                                                                                     |
 | `children`        | `never`               |                 | Not accepted. The rows are the registered items' authored children.                                                                                     |
 
-| Data Attribute     | Value                         | Description                                                                                            |
-| ------------------ | ----------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `data-slot`        | `alert-center-content`        | On the expansion wrapper that owns the collapse animation.                                             |
-| `data-slot`        | `alert-center-item alert`     | On each row's banner chrome, joined ahead of `Alert.Root`'s own slot.                                  |
-| `data-open`        | present while expanded        | Presence-only, on the wrapper; drives the collapse transition.                                         |
-| `data-placement`   | `"list"`                      | On each row's chrome: where that item's children are currently rendering.                              |
-| `data-alert-id`    | the row item's `id`           | On each row's chrome; per-alert styling and testing hook.                                              |
-| `data-alert-mount` | the row item's `id`           | On the row's layout-transparent mount point: the element that item's host is adopted into.             |
-| `data-slot`        | `alert-center-content-anchor` | While no row shows: on a hidden element that tells a server copy to reserve the expand control's room. |
+| Data Attribute                     | Value                         | Description                                                                                            |
+| ---------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `data-slot`                        | `alert-center-content`        | On the expansion wrapper that owns the collapse animation.                                             |
+| `data-slot`                        | `alert-center-item alert`     | On each row's banner chrome, joined ahead of `Alert.Root`'s own slot.                                  |
+| `data-open`                        | present while expanded        | Presence-only, on the wrapper; drives the collapse transition.                                         |
+| `data-placement`                   | `"list"`                      | On each row's chrome: where that item's children are currently rendering.                              |
+| `data-alert-id`                    | the row item's `id`           | On each row's chrome; per-alert styling and testing hook.                                              |
+| `data-alert-mount`                 | the row item's `id`           | On the row's layout-transparent mount point: the element that item's host is adopted into.             |
+| `data-slot`                        | `alert-center-content-anchor` | While no row shows: on a hidden element that tells a server copy to reserve the expand control's room. |
+| `data-alert-center-content-anchor` | present                       | On the same hidden element. The server copy's CSS keys off this attribute.                             |
 
 ### AlertCenter.Item
 

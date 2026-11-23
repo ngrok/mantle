@@ -260,11 +260,13 @@ type SheetContentProps = Omit<
  * the content. When multiple overlays are open, the most recently mounted
  * overlay renders on top.
  *
- * A modal sheet makes the rest of the page inert, so UI outside it takes no
- * input while it is open. mantle's `Toaster` and `Sandbar` move into the open
- * sheet, so they stay usable. With `modal={false}`, UI with the
- * `overlay-prompt` class takes clicks above the sheet: a click inside it does
- * not count as an outside click.
+ * A modal sheet makes the rest of the page inert. To keep app UI usable
+ * above it, such as a consent banner, wrap the UI in `OverlayPrompt`: while
+ * the sheet is open, it moves into the sheet, so it takes clicks and focus,
+ * and a press in it does not close the sheet. mantle's `Toaster` and
+ * `Sandbar` use it. With `modal={false}`, UI with the `overlay-prompt`
+ * class takes clicks above the sheet: a click inside it does not count as
+ * an outside click.
  *
  * A script can show its own popup in a frame on `<body>`, such as the 3-D
  * Secure challenge of a payment script. Set `modal={false}` on a sheet that

@@ -26,7 +26,7 @@ import {
 } from "../../utils/layer-container/layer-container.js";
 import { Slot } from "../slot/index.js";
 import { preventCloseOnPromptInteraction } from "../toast/prevent-close-on-prompt-interaction.js";
-import { setTopModal } from "../toast/toaster-host.js";
+import { setTopModal } from "../overlay-prompt/host.js";
 import { escapeBelongsToNestedPopup } from "./targets.js";
 
 /**
@@ -92,6 +92,9 @@ const keptMounted = new WeakSet<HTMLDialogElement>();
 
 /** The `<dialog>` elements that open with `show()`, not as a modal. */
 const nonModal = new WeakSet<HTMLDialogElement>();
+
+/** The panels that `writeOpenState` made inert. */
+let inertPanels = new Set<HTMLElement>();
 
 /** The documents that `trackInput` listens to. */
 const trackedDocuments = new WeakSet<Document>();
@@ -164,7 +167,37 @@ function writeOpenState({ dialog, open }: { dialog: HTMLDialogElement; open: boo
 	} else if (!open && index !== -1) {
 		openDialogs.splice(index, 1);
 	}
-	setTopModal(openDialogs.findLast((each) => !nonModal.has(each)) ?? null);
+	const top = openDialogs.findLast((each) => !nonModal.has(each)) ?? null;
+	setTopModal(top);
+	// Why: WebKit keeps the content of an open dialog under the top modal
+	// focusable from script when the top one opened in a later frame, so the
+	// panel of each dialog under the top modal takes `inert` too.
+	const covered = new Set<HTMLElement>();
+	for (const each of openDialogs) {
+		const panel = each.querySelector("[data-mantle-modal-content]");
+		// Why the inert check: a panel that its owner made inert stays the owner's.
+		// Why the containment check: a kept-mounted dialog renders in the panel
+		// of its parent, and an inert ancestor makes the top modal inert too.
+		if (
+			top != null &&
+			each !== top &&
+			!top.contains(each) &&
+			panel instanceof HTMLElement &&
+			!panel.contains(top) &&
+			(inertPanels.has(panel) || !panel.inert)
+		) {
+			covered.add(panel);
+		}
+	}
+	// Why the set: a panel can lose its marker before its dialog closes, as the
+	// Sidebar nav does at the breakpoint, so a query would not find it again.
+	for (const panel of inertPanels) {
+		panel.inert = covered.has(panel);
+	}
+	for (const panel of covered) {
+		panel.inert = true;
+	}
+	inertPanels = covered;
 }
 
 /** The open modal dialogs that hold the page scroll lock. */
@@ -207,6 +240,15 @@ function moveDialog({
 	modal?: boolean;
 	open: boolean;
 }): void {
+	// Why: jsdom has no dialog methods. Without them, a consumer test that
+	// opens a dialog by its role throws. The `open` attribute is enough there.
+	if (typeof dialog.showModal !== "function") {
+		dialog.show = dialog.showModal = () => dialog.setAttribute("open", "");
+		dialog.close = () => {
+			dialog.removeAttribute("open");
+			dialog.dispatchEvent(new Event("close"));
+		};
+	}
 	if (open === dialog.open) {
 		// Why: a reopen during the exit keeps the dialog open, and the pending
 		// close sees the state and stops.
@@ -730,7 +772,13 @@ const Content = ({
 	});
 	const pressOutside = useCallbackRef((originalEvent: PointerEvent): boolean => {
 		const outside = createPointerDownOutsideEvent(originalEvent);
-		preventCloseOnPromptInteraction(outside);
+		// Why the check: a dialog composed in a prompt sits in the prompt, and a
+		// press on its own backdrop is still outside it.
+		if (
+			!(originalEvent.target instanceof Node && dialogRef.current?.contains(originalEvent.target))
+		) {
+			preventCloseOnPromptInteraction(outside);
+		}
 		onPointerDownOutside?.(outside);
 		onInteractOutside?.(outside);
 		return !outside.defaultPrevented;
@@ -742,19 +790,33 @@ const Content = ({
 	const openerRing = useRef(false);
 	/** Runs `onOpenAutoFocus` on an open `dialog`. */
 	const openAutoFocus = useCallbackRef((dialog: HTMLDialogElement) => {
+		// Why: the content of each `OverlayPrompt` moved into the dialog before
+		// it opened. With no control in the panel, the browser picks a control
+		// of a prompt, so the dialog takes focus itself, as with no prompt.
+		const browserPick = dialog.ownerDocument.activeElement;
+		if (
+			browserPick !== dialog &&
+			dialog.contains(browserPick) &&
+			panelRef.current?.contains(browserPick) === false
+		) {
+			dialog.focus({ preventScroll: true });
+		}
 		// Why: WebKit shows a focus ring on the browser's pick after a press, and
 		// the script focus of a Radix dialog showed none. A text field always
-		// shows one.
+		// shows one. Firefox shows none after a key when the opener showed none,
+		// such as a trigger that got focus back from a dialog that a press opened.
 		// Why the opener's ring as a fallback: a dialog that mounts on the press
 		// that opens it starts `trackInput` after that press.
 		const picked = dialog.ownerDocument.activeElement;
-		if (
-			(pressedLast ?? !openerRing.current) &&
-			picked instanceof HTMLElement &&
-			picked.matches(":focus-visible:not(:read-write)")
-		) {
-			picked.blur();
-			picked.focus({ focusVisible: false, preventScroll: true });
+		if (picked instanceof HTMLElement) {
+			const ring = picked.matches(":focus-visible");
+			const wrong = ring
+				? (pressedLast ?? !openerRing.current) && !picked.matches(":read-write")
+				: pressedLast === false;
+			if (wrong) {
+				picked.blur();
+				picked.focus({ focusVisible: !ring, preventScroll: true });
+			}
 		}
 		if (onOpenAutoFocus == null) {
 			return;
@@ -934,8 +996,6 @@ const Content = ({
 	});
 
 	// Why the `command` listener: it routes each trigger and close button.
-	// A modal that stays mounted lets the browser open it, with the state
-	// written first, so the attributes join the browser's style pass.
 	// Why a callback ref: the listener must read the root of the latest
 	// render. A dialog that mounts on open attaches before that render's
 	// effects run, and a tap sends its command after the dialog mounts.
@@ -951,12 +1011,6 @@ const Content = ({
 		const open = command === "show-modal";
 		if (open && insideHiddenDialog(dialog)) {
 			event.preventDefault();
-			return;
-		}
-		if (open && keepMounted && !root.controlled && root.modal) {
-			nonModal.delete(dialog);
-			lockPageScroll({ dialog, lock: true });
-			writeOpenState({ dialog, open });
 			return;
 		}
 		event.preventDefault();

@@ -89,6 +89,9 @@ jobs:
       - name: Prose 🖊️
         run: pnpm run check:prose
 
+      - name: CSS Selectors 🎯
+        run: pnpm run check:css-selectors
+
   mise-lock-check:
     name: Mise Lockfile
     runs-on: ubuntu-latest

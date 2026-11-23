@@ -1071,13 +1071,16 @@ const barEnter = "starting:h-0 starting:opacity-0";
  * The client bar adds an expand control when `AlertCenter.Content` is composed
  * and another alert exists, and `Alert` makes room for it with content
  * padding. The copy reserves that padding when it follows the content's
- * anchor and has another copy beside it, so no line wraps at hydration.
+ * anchor and its parent holds another copy, so no line wraps at hydration.
+ * Why `data-alert-center-content-anchor` and not the anchor's `data-slot`: a
+ * `[data-slot]~` rule that reaches descendants makes Chromium restyle the
+ * following siblings' subtrees each time any `data-slot` element is inserted.
  *
  * The selectors read siblings, and `AlertCenter.Root` renders no element, so
  * compose one center per parent.
  */
 const serverBarClassName =
-	"hidden shrink-0 overflow-hidden [[data-slot=alert-center-bar-anchor]~&[data-alert-center-server-claim]]:block [[data-slot=alert-center-bar-anchor]~&[data-alert-center-server-claim]:has(~[data-alert-center-server-claim])]:hidden [&:is([data-slot=alert-center-content-anchor]~*):is(:has(~[data-slot=alert-center-server-bar]),[data-slot=alert-center-server-bar]~*)]:**:data-[slot~=alert-content]:pr-16 md:[&:is([data-slot=alert-center-content-anchor]~*):is(:has(~[data-slot=alert-center-server-bar]),[data-slot=alert-center-server-bar]~*)]:**:data-[slot~=alert-content]:pr-24";
+	"hidden shrink-0 overflow-hidden [[data-slot=alert-center-bar-anchor]~&[data-alert-center-server-claim]]:block [[data-slot=alert-center-bar-anchor]~&[data-alert-center-server-claim]:has(~[data-alert-center-server-claim])]:hidden [:has(>[data-slot=alert-center-server-bar]~[data-slot=alert-center-server-bar])>[data-alert-center-content-anchor]~&]:**:data-[slot~=alert-content]:pr-16 md:[:has(>[data-slot=alert-center-server-bar]~[data-slot=alert-center-server-bar])>[data-alert-center-content-anchor]~&]:**:data-[slot~=alert-content]:pr-24";
 
 /** How long to keep the bar mounted for its exit slide if no `transitionend`
  * fires (reduced motion, engines that snap, a tab backgrounded mid-transition).
@@ -1663,6 +1666,7 @@ type AlertCenterContentProps = Omit<ComponentProps<"div">, "children" | "id"> &
  * | `data-alert-id` | the row item's `id` | On each row's chrome; per-alert styling and testing hook. |
  * | `data-alert-mount` | the row item's `id` | On the row's layout-transparent mount point: the element that item's host is adopted into. |
  * | `data-slot` | `alert-center-content-anchor` | While no row shows: on a hidden element that tells a server copy of the bar to reserve room for the expand control. |
+ * | `data-alert-center-content-anchor` | present | On the same hidden element. The server copy's CSS keys off this attribute. |
  *
  * @see https://mantle.ngrok.com/components/feedback/alert-center#alertcentercontent
  *
@@ -1826,7 +1830,9 @@ const Content = ({
 	// the expand control (see `serverBarClassName`). It stays after hydration
 	// for the same reason as the bar's anchor.
 	if (additionalAlerts.length === 0) {
-		return <span hidden data-slot="alert-center-content-anchor" />;
+		return (
+			<span hidden data-slot="alert-center-content-anchor" data-alert-center-content-anchor="" />
+		);
 	}
 
 	return (

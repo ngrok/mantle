@@ -516,6 +516,25 @@ describe("Dialog.Trigger", () => {
 	});
 });
 
+describe("a DOM with no dialog methods, such as jsdom", () => {
+	it("opens and closes from a click", async () => {
+		const proto = HTMLDialogElement.prototype;
+		const methods = Object.getOwnPropertyDescriptors(proto);
+		for (const name of ["close", "show", "showModal"] as const) {
+			// Why: jsdom's HTMLDialogElement has none of these.
+			Reflect.deleteProperty(proto, name);
+		}
+		try {
+			const { user } = await open();
+			expect(screen.getByRole("dialog", { name: "Request log" })).toBeInTheDocument();
+			await user.click(screen.getByRole("button", { name: "Close Dialog" }));
+			await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		} finally {
+			Object.defineProperties(proto, methods);
+		}
+	});
+});
+
 describe("isDialogOverlayTarget", () => {
 	it("is true for the <dialog>, which a press on the backdrop targets", async () => {
 		const { wrapper } = await open();

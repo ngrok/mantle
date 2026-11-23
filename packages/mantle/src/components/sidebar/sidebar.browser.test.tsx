@@ -582,6 +582,12 @@ describe("Sidebar.Nav on the native <dialog>", () => {
 		expect(panel == null ? null : getComputedStyle(panel).width).toBe("288px");
 
 		await userEvent.keyboard("{Escape}");
+		// Why wait on the exit: the dialog closes when its exit animations end. A
+		// `waitFor` gives up after 1 s, and WebKit in CI can skip frames that long.
+		await waitFor(() => expect(dialog).not.toHaveAttribute("data-open"));
+		await Promise.allSettled(
+			dialog.getAnimations({ subtree: true }).map((animation) => animation.finished),
+		);
 		await waitFor(() => expect(dialog.open).toBe(false));
 		await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "false"));
 		expect(document.activeElement).toBe(trigger);
@@ -814,6 +820,8 @@ describe("Sidebar.Nav on the native <dialog>", () => {
 			expect(screen.getByPlaceholderText("Type a command…")).toBe(input);
 			expect(input).toHaveValue("abc");
 			expect(document.activeElement).toBe(input);
+			// The closed sheet's nav is not left inert under the palette.
+			expect(document.querySelector('[data-slot~="sidebar-nav"]')?.closest("[inert]")).toBeNull();
 		},
 	);
 

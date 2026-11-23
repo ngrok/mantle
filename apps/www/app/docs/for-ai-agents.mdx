@@ -50,15 +50,15 @@ url = "https://mantle.ngrok.com/mcp"
 
 The server tells the agent when to call each tool, so you don't have to:
 
-| Tool         | What it does                                                                                                                      |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| `find`       | Ranks components, layouts, hooks, utilities, recipes, and docs pages for an intent ("confirm before delete") or a name ("modal"). |
-| `get`        | Returns one part's import, examples, and prop contract for the version you pass, or one recipe's parts and its docs page.         |
-| `read_docs`  | Returns a docs page as markdown, or an outline when the page is long.                                                             |
-| `check`      | Checks one TSX file for wrong import paths and names, other UI libraries, and `className` strings built by hand.                  |
-| `preview`    | Returns a link that renders one TSX file in a sandbox. The code travels in the link fragment, so the server never sees it.        |
-| `migrate`    | Lists the migration guides and codemods between two versions, in order.                                                           |
-| `report_gap` | Tells the mantle team that mantle has no part for a need, the use case, what the agent tried, and why it fell short.              |
+| Tool         | What it does                                                                                                                                                                                   |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `find`       | Ranks components, layouts, hooks, utilities, recipes, and docs pages for an intent ("confirm before delete") or a name ("modal").                                                              |
+| `get`        | Returns one part's import, examples, and prop contract for the version you pass, or one recipe's parts and its docs page.                                                                      |
+| `read_docs`  | Returns a docs page as markdown, or an outline when the page is long.                                                                                                                          |
+| `check`      | Checks one TSX file against the version you pass: import paths and names, props each part lacks or requires, dialogs with no title, other UI libraries, and `className` strings built by hand. |
+| `preview`    | Returns a link that renders one TSX file in a sandbox. The code travels in the link fragment, so the server never sees it.                                                                     |
+| `migrate`    | Lists the migration guides and codemods between two versions, in order.                                                                                                                        |
+| `report_gap` | Tells the mantle team that mantle has no part for a need, the use case, what the agent tried, and why it fell short.                                                                           |
 
 Pass the exact installed version (from `node_modules/@ngrok/mantle/package.json` or the lockfile), not the range in `package.json`. The server supports 0.90.0 and later.
 
@@ -246,7 +246,7 @@ Every mantle component is built on semantic HTML and tested ARIA patterns. Agent
   - `Button` takes `"accent"`, `"danger"`, or `"neutral"`. Use `intent="neutral"` when no tone is implied. Reserve `intent="accent"` for deliberate brand emphasis: an action that should carry the accent color.
   - `IconButton` takes `"neutral"` alone. Reach for `Button` where the tone carries meaning.
 - If choosing between `Tooltip`, `Popover`, and `HoverCard`, follow [the JSDoc guidance](https://mantle.ngrok.com/components/overlays/tooltip): `Tooltip` for short label hints, `Popover` for interactive content, `HoverCard` for non-essential preview cards.
-- If choosing between `DataTable` and `Table`: `DataTable` for dynamic, sortable, filterable, paginated tabular data; `Table` for static layout.
+- If choosing between `DataTable` and `Table`: `DataTable` for rows that the user sorts, filters, pages through, selects, or expands into a detail panel or sub-rows; `Table` for static rows, with no row expansion.
 - When uncertain, prefer to fetch the relevant `/<page>.md` and read the full doc rather than guessing.
 
 ## Versioning

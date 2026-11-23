@@ -393,6 +393,30 @@ describe("RadioGroup forms", () => {
 		container.remove();
 	});
 
+	test("the server HTML keeps a link in an item reachable, and hydration hides only text that names a radio", async () => {
+		const plans = (
+			<RadioGroup.Root aria-label="Plan" defaultValue="basic">
+				<RadioGroup.Item value="basic">Basic</RadioGroup.Item>
+				<RadioGroup.Item value="pro">
+					Pro <a href="#pro">details</a>
+				</RadioGroup.Item>
+			</RadioGroup.Root>
+		);
+		const container = document.createElement("div");
+		container.innerHTML = renderToString(plans);
+		document.body.append(container);
+		expect(container.querySelector("[aria-hidden]")).toBeNull();
+
+		await act(async () => {
+			hydrateRoot(container, plans);
+		});
+
+		expect(screen.getByRole("radio", { name: "Basic" })).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: "details" })).toBeInTheDocument();
+		expect(container.querySelectorAll("[aria-hidden=true]")).toHaveLength(1);
+		container.remove();
+	});
+
 	test("required and disabled reach every radio", () => {
 		renderPlanForm({ name: "plan", required: true, disabled: true });
 
