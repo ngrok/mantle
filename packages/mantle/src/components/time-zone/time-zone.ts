@@ -82,6 +82,10 @@ type FormatDateTimeOptions = Intl.DateTimeFormatOptions & {
 // a table formats one timestamp for each row with the same options.
 const formatters = new Map<string, Intl.DateTimeFormat>();
 
+// Why a limit: a server can format with a locale from each request, so the keys
+// are not a fixed set. A page uses a few formats, far fewer than this.
+const maxFormatters = 128;
+
 /**
  * Formats a date in an explicit time zone. A pure function, safe to call on
  * the server: a loader, a server render, and the browser produce the same text
@@ -104,6 +108,9 @@ function formatDateTime(date: Date, { locale = "en-US", ...options }: FormatDate
 	const key = `${locale}|${JSON.stringify(options)}`;
 	let formatter = formatters.get(key);
 	if (formatter == null) {
+		if (formatters.size >= maxFormatters) {
+			formatters.clear();
+		}
 		formatter = new Intl.DateTimeFormat(locale, options);
 		formatters.set(key, formatter);
 	}

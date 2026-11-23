@@ -2,7 +2,7 @@ import { act, render, screen } from "@testing-library/react";
 import { Suspense } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { formatDateTime, readTimeZoneCookie, timeZoneScript } from "./time-zone.js";
 import { LocalTime, TimeZoneProvider, useTimeZone } from "./time-zone-provider.js";
 
@@ -41,6 +41,23 @@ describe("formatDateTime", () => {
 			formatDateTime(createdAt, { timeZone: "Europe/London", locale: "en-GB", dateStyle: "long" }),
 		).toBe("23 November 2026");
 	});
+});
+
+test("formatDateTime keeps at most 128 formatters", () => {
+	const constructor = vi.spyOn(Intl, "DateTimeFormat");
+	const format = (key: number) =>
+		formatDateTime(createdAt, { timeZone: "UTC", locale: `en-US-u-nu-latn-x-k${key}` });
+	format(0);
+	format(0);
+	expect(constructor).toHaveBeenCalledTimes(1);
+	for (let key = 1; key <= 128; key += 1) {
+		format(key);
+	}
+	constructor.mockClear();
+	// 129 keys overfill the cache, so it cleared, and the first key builds again.
+	format(0);
+	expect(constructor).toHaveBeenCalledTimes(1);
+	constructor.mockRestore();
 });
 
 describe("timeZoneScript", () => {
