@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import axe from "axe-core";
 import { useState } from "react";
 import { describe, expect, test, vi } from "vitest";
-import { userEvent } from "vitest/browser";
+import { commands, userEvent } from "vitest/browser";
 import * as Dialog from "../dialog/dialog-parts.js";
 import * as Combobox from "./combobox-parts.js";
 
@@ -223,6 +223,32 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		expect(screen.getByRole("dialog", { name: "Settings" })).toBeInTheDocument();
 		await userEvent.keyboard("{Escape}");
 		expect(screen.queryByRole("dialog", { name: "Settings" })).not.toBeInTheDocument();
+	});
+
+	test("the open list hides its scrollbar and stops overscroll", async () => {
+		// Why the compiled CSS: this page loads no Tailwind, and the test checks the real utilities.
+		const style = document.createElement("style");
+		style.textContent = await commands.tailwindCss("./combobox.tsx");
+		document.head.append(style);
+		try {
+			render(
+				<Combobox.Root>
+					<Combobox.Input aria-label="Fruit" />
+					<Combobox.Content>
+						<Combobox.Item value="Apple" />
+					</Combobox.Content>
+				</Combobox.Root>,
+			);
+			await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
+			const list = await screen.findByRole("listbox");
+			expect(getComputedStyle(list)).toMatchObject({
+				overflowY: "auto",
+				overscrollBehaviorY: "none",
+				scrollbarWidth: "none",
+			});
+		} finally {
+			style.remove();
+		}
 	});
 
 	test("has no axe violations closed or open", async () => {

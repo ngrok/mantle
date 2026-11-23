@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import { PointerEventsCheckLevel, userEvent } from "@testing-library/user-event";
 import { type ReactNode, useState } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { commands } from "vitest/browser";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { installShakeStyle } from "../../test-utils/shake-style.js";
 import * as AlertDialog from "../alert-dialog/alert-dialog-parts.js";
@@ -631,5 +632,34 @@ describe("MultiSelect.Item label slot (browser)", () => {
 		// A `<div>` may legally hold the `<div>` a `MediaObject` child renders.
 		expect(label.tagName).toBe("DIV");
 		expect(screen.getByTestId("row").parentElement).toBe(label);
+	});
+
+	test("the open list hides its scrollbar and stops overscroll", async () => {
+		// Why the compiled CSS: this page loads no Tailwind, and the test checks the real utilities.
+		const style = document.createElement("style");
+		style.textContent = await commands.tailwindCss("./multi-select.tsx");
+		document.head.append(style);
+		try {
+			const user = setupUser();
+			render(
+				<MultiSelect.Root>
+					<MultiSelect.Trigger>
+						<MultiSelect.Input aria-label="Fruits" />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+					</MultiSelect.Content>
+				</MultiSelect.Root>,
+			);
+			await user.click(screen.getByRole("combobox", { name: "Fruits" }));
+			const list = await screen.findByRole("listbox");
+			expect(getComputedStyle(list)).toMatchObject({
+				overflowY: "auto",
+				overscrollBehaviorY: "none",
+				scrollbarWidth: "none",
+			});
+		} finally {
+			style.remove();
+		}
 	});
 });
