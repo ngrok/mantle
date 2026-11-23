@@ -1,7 +1,10 @@
 /**
  * Cancels the click that follows an outside press that closes a popup, so the
  * press does not also activate what is under it. Call it from the press's
- * `pointerdown`. A cancelled press or the next press lets the next click through.
+ * `pointerdown` or `pointerup`. A cancelled press or the next press lets the
+ * next click through, and so does `shouldSwallow` when it returns `false` at
+ * the click, such as for a popup that refused to close. A popup that closes
+ * after the click, such as in a transition, reads as refused, and the click lands.
  *
  * Why on the window: the press closes the popup before its click arrives.
  * Why skip `detail` 0: a keyboard or script click has no press, so a press that
@@ -17,14 +20,17 @@
  * }, { capture: true });
  * ```
  */
-function swallowOutsideClick(): void {
+function swallowOutsideClick(shouldSwallow?: () => boolean): void {
 	const swallow = (click: MouseEvent) => {
 		if (click.detail === 0) {
 			return;
 		}
+		release();
+		if (shouldSwallow?.() === false) {
+			return;
+		}
 		click.preventDefault();
 		click.stopPropagation();
-		release();
 	};
 	const release = () => {
 		window.removeEventListener("click", swallow, { capture: true });
