@@ -2154,6 +2154,34 @@
     "useWhen": "Let the user switch between light and dark mode from a header, a toolbar, or an account menu."
   },
   {
+    "name": "Time Zone",
+    "slug": "components/preview/time-zone",
+    "kind": "component",
+    "category": "Primitives",
+    "status": "preview",
+    "importPath": "@ngrok/mantle/time-zone",
+    "summary": "Server-rendered dates in the visitor's time zone, with no hydration mismatch.",
+    "jsdoc": "Re-exports for Time Zone: server-rendered dates in the visitor's time zone.",
+    "aliases": [
+      "timezone",
+      "tz",
+      "local time",
+      "date format",
+      "time element"
+    ],
+    "siblings": [
+      {
+        "name": "BrowserOnly",
+        "boundary": "the text depends on other browser state, such as the clock for a \"5m ago\" label."
+      },
+      {
+        "name": "Calendar",
+        "boundary": "the user picks a date from a month grid."
+      }
+    ],
+    "useWhen": "Show a timestamp in the visitor's time zone on a server-rendered page, with no hydration mismatch and no text that pops in after hydration."
+  },
+  {
     "name": "Toast",
     "slug": "components/feedback/toast",
     "kind": "component",

@@ -117,6 +117,7 @@ const docsPages = [
 	"components/overlays/tooltip",
 	// preview (lifecycle namespace, not a category)
 	"components/preview/calendar",
+	"components/preview/time-zone",
 	"components/preview/world-map",
 	// primitives
 	"components/primitives/browser-only",
