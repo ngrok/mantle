@@ -809,7 +809,12 @@ const OpenContent = ({
 	const { portalTarget, popupRef } = usePopup({
 		anchorRef: triggerRef,
 		ownerRef: triggerRef,
-		onOutsidePress: () => setOpen(false),
+		onOutsidePress: (event) => {
+			// Why: as with a native select and 0.94.1, the press that closes the
+			// list leaves focus on the trigger, even on blank space.
+			event.preventDefault();
+			setOpen(false);
+		},
 	});
 	const composedRef = useComposedRefs(ref, popupRef, listbox.listboxProps.ref);
 

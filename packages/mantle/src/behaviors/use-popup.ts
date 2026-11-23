@@ -51,8 +51,9 @@ const usePopup = ({
 	/**
 	 * Closes the popup on a primary press outside the anchor and the popup.
 	 * The click of that press does not reach the page, as with a native select.
+	 * It gets the `pointerdown`, so a call to `preventDefault` keeps focus where it is.
 	 */
-	onOutsidePress?: () => void;
+	onOutsidePress?: (event: PointerEvent) => void;
 }): { portalTarget: Element | DocumentFragment | null; popupRef: RefCallback<HTMLElement> } => {
 	const layerContainer = useLayerContainer();
 	const outsidePress = useCallbackRef(onOutsidePress);
@@ -123,7 +124,7 @@ const usePopup = ({
 					window.addEventListener("pointerdown", release, { capture: true });
 					// Why close here, not only on blur: a press that keeps focus, such as on a
 					// toolbar button that cancels `mousedown`, would leave the popup open.
-					outsidePress();
+					outsidePress(event);
 				};
 				if (closesOnOutsidePress) {
 					document.addEventListener("pointerdown", onPointerDown, { capture: true });

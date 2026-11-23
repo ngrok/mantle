@@ -148,7 +148,7 @@ const useSelectTrigger = (select: SelectBehavior) => {
 				return;
 			}
 			// Why focus: Safari does not focus a clicked button, and the trigger's
-			// blur is what closes the list on a press outside.
+			// blur closes the list when focus leaves, such as on Tab.
 			select.triggerRef.current?.focus();
 			openTo("selected");
 		},
