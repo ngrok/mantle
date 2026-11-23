@@ -177,7 +177,10 @@ const Content = ({
 				onCloseAutoFocus?.(event);
 				// Why: Radix focuses only a `Dialog.Trigger` on close. A dialog opened
 				// from a shortcut or a frame then drops focus on the trigger or `<body>`.
-				if (!event.defaultPrevented && returnFocus(focusedBeforeOpenRef.current)) {
+				// Why only from `<body>`: focus that moved elsewhere on close stays there.
+				const focused = document.activeElement;
+				const focusIsFree = focused == null || focused === document.body;
+				if (!event.defaultPrevented && focusIsFree && returnFocus(focusedBeforeOpenRef.current)) {
 					event.preventDefault();
 				}
 			}}
@@ -377,7 +380,7 @@ function returnFocus(element: Element | null): boolean {
 	if (!isHTMLElement(element) || element === element.ownerDocument.body || !element.isConnected) {
 		return false;
 	}
-	element.focus({ preventScroll: true });
+	element.focus();
 	return element.ownerDocument.activeElement === element;
 }
 

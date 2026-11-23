@@ -86,6 +86,22 @@ describe("forwardPreviewShortcutsScript", () => {
 		expect(document.activeElement).toBe(button);
 	});
 
+	it("leaves focus alone when the frame's own focus is already on an element", () => {
+		document.body.innerHTML = "<button>Open</button><input />";
+		const button = document.body.querySelector("button");
+		const input = document.body.querySelector("input");
+		if (button == null || input == null) {
+			throw new Error("The fixture renders no button or input.");
+		}
+		button.focus();
+		pressModK(button);
+		input.focus();
+
+		window.dispatchEvent(new FocusEvent("focus"));
+
+		expect(document.activeElement).toBe(input);
+	});
+
 	it.each([
 		{ name: "a keypress with no modifier", html: "<button>Open</button>", init: {} },
 		{ name: "a held ⌘K", html: "<button>Open</button>", init: { metaKey: true, repeat: true } },
