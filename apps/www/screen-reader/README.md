@@ -27,6 +27,6 @@ node apps/www/screen-reader/report.ts --head=/tmp/head.json --base=apps/www/scre
 
 ## CI
 
-[screen-reader.yml](../../../.github/workflows/screen-reader.yml) runs the virtual reader on each PR that touches a component or the docs site, and compares it with [baseline.virtual.json](./baseline.virtual.json). It runs NVDA and VoiceOver on the PR head and the last release on a weekly schedule, on a manual run, and on a PR with the `screen-reader` label. All jobs report only.
+[screen-reader.yml](../../../.github/workflows/screen-reader.yml) runs the virtual reader on each PR that touches a component, the docs site, or a dependency, and compares it with [baseline.virtual.json](./baseline.virtual.json). It runs NVDA and VoiceOver on the PR head and the last release on a weekly schedule, on a manual run, and on a PR with the `screen-reader` label that matches the same paths. All jobs report only.
 
-When a change to the spoken output is intended, update the baseline from a run of the virtual reader on the change. To make the check blocking, remove `continue-on-error` from the job and pass `--strict` to `report.ts`; it then exits 1 on an unmet expectation.
+When a change to the spoken output is intended, update the baseline from a run of the virtual reader on the change. To make the check blocking, remove `continue-on-error` from the job's steps and pass `--strict` to `report.ts`. With `--base`, it exits 1 only on an expectation that the base run met, so a gap that the release already had does not block a PR.

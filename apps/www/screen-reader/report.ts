@@ -7,7 +7,8 @@
  * node apps/www/screen-reader/report.ts --head=main.json --base=release.json > report.md
  * ```
  *
- * `--strict` exits 1 when a step breaks an expectation, for a blocking job.
+ * `--strict` exits 1 for a blocking job: when a step breaks an expectation, or,
+ * with `--base`, only when it breaks one that the base run met.
  */
 import { readFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
@@ -47,60 +48,95 @@ const load = async (file: string): Promise<RunResult> =>
 const head = await load(values.head);
 const base = values.base == null ? null : await load(values.base);
 
+if (base != null && base.reader !== head.reader) {
+	throw new Error(
+		`--base ran ${base.reader} and --head ran ${head.reader}; compare runs of one reader`,
+	);
+}
+
 const cell = (spoken: string[] | undefined): string => {
 	if (spoken == null) {
 		return "—";
 	}
-	return spoken.length === 0 ? "(silent)" : spoken.join("<br>").replaceAll("|", "\\|");
+	return spoken.length === 0 ? "(silent)" : escape(spoken.join("<br>"));
 };
+
+/** Why: a `|` or a line break in speech would end the table cell or row. */
+const escape = (text: string) => text.replaceAll("|", "\\|").replaceAll(/\r?\n/g, "<br>");
 
 /** A step's speech without the punctuation and spacing a reader varies from run to run. */
 const words = (spoken: string[] | undefined) =>
 	(spoken ?? []).join(" ").toLowerCase().replaceAll(/[.,]/g, "").replaceAll(/\s+/g, " ").trim();
 
-const differs = (before: string[] | undefined, after: string[]): boolean =>
+const differs = (before: string[] | undefined, after: string[] | undefined): boolean =>
 	words(before) !== words(after);
 
-const unmet = (flow: FlowResult) =>
-	flow.steps.reduce((sum, step) => sum + step.failed.length, 0) + (flow.error ? 1 : 0);
+/** The unmet expectations of a flow, as `<step index>:<pattern>` keys; `error` marks a flow that threw. */
+const unmetKeys = (flow: FlowResult | undefined): string[] =>
+	flow == null
+		? []
+		: [
+				...flow.steps.flatMap((step, index) => step.failed.map((failure) => `${index}:${failure}`)),
+				...(flow.error ? ["error"] : []),
+			];
+
+const ids = [...new Set([...head.flows, ...(base?.flows ?? [])].map((flow) => flow.id))];
+const flowIn = (run: RunResult | null, id: string) => run?.flows.find((flow) => flow.id === id);
+const total = head.flows.reduce((sum, flow) => sum + unmetKeys(flow).length, 0);
+/** Why only new failures with a base: a gap the release already had is a follow-up, not a regression. */
+const regressions = ids.reduce((sum, id) => {
+	const old = new Set(unmetKeys(flowIn(base, id)));
+	return sum + unmetKeys(flowIn(head, id)).filter((key) => base == null || !old.has(key)).length;
+}, 0);
 
 const lines: string[] = [];
-const total = head.flows.reduce((sum, flow) => sum + unmet(flow), 0);
 lines.push(`## Screen reader check: ${head.reader}`, "");
 lines.push(
-	`${head.flows.length} flows, ${total} unmet expectation(s).${values.strict ? "" : " Report only: this check does not fail the build."}`,
+	`${head.flows.length} flows, ${total} unmet expectation(s)${base ? `, ${regressions} new since base` : ""}.${values.strict ? "" : " Report only: this check does not fail the build."}`,
 	"",
 );
 
-for (const flow of head.flows) {
-	const before = base?.flows.find((candidate) => candidate.id === flow.id);
-	const changed = flow.steps.filter(
-		(step, index) => before != null && differs(before.steps[index]?.spoken, step.spoken),
+for (const id of ids) {
+	const flow = flowIn(head, id);
+	const before = flowIn(base, id);
+	const shown = flow ?? before;
+	if (shown == null) {
+		continue;
+	}
+	const steps = Math.max(flow?.steps.length ?? 0, before?.steps.length ?? 0);
+	const indexes = Array.from({ length: steps }, (_, index) => index);
+	const changed = indexes.filter(
+		(index) => base != null && differs(before?.steps[index]?.spoken, flow?.steps[index]?.spoken),
 	).length;
+	const unmet = unmetKeys(flow).length;
 	const marks = [
-		unmet(flow) > 0 ? `${unmet(flow)} unmet` : "ok",
+		flow == null ? "only in base" : null,
+		flow != null && before == null && base ? "only in head" : null,
+		unmet > 0 ? `${unmet} unmet` : "ok",
 		base ? `${changed} changed` : null,
 	].filter(Boolean);
-	lines.push(`### ${flow.component} — \`${flow.id}\` (${marks.join(", ")})`, "");
-	if (flow.error) {
-		lines.push(`Error: ${flow.error}`, "");
+	lines.push(`### ${shown.component} — \`${id}\` (${marks.join(", ")})`, "");
+	if (flow?.error) {
+		lines.push(`Error: ${escape(flow.error)}`, "");
 	}
 	lines.push(base ? "| Step | Base | Head | Unmet |" : "| Step | Spoken | Unmet |");
 	lines.push(base ? "| --- | --- | --- | --- |" : "| --- | --- | --- |");
-	flow.steps.forEach((step, index) => {
-		const old = before?.steps[index]?.spoken;
-		const mark = base && differs(old, step.spoken) ? "Δ " : "";
-		const failed = step.failed.join("<br>").replaceAll("|", "\\|");
+	for (const index of indexes) {
+		const step = flow?.steps[index];
+		const old = before?.steps[index];
+		const label = step?.label ?? old?.label ?? "";
+		const failed = escape((step?.failed ?? []).join("<br>"));
+		const mark = base && differs(old?.spoken, step?.spoken) ? "Δ " : "";
 		lines.push(
 			base
-				? `| ${mark}${step.label} | ${cell(old)} | ${cell(step.spoken)} | ${failed} |`
-				: `| ${step.label} | ${cell(step.spoken)} | ${failed} |`,
+				? `| ${mark}${label} | ${cell(old?.spoken)} | ${cell(step?.spoken)} | ${failed} |`
+				: `| ${label} | ${cell(step?.spoken)} | ${failed} |`,
 		);
-	});
+	}
 	lines.push("");
 }
 
 process.stdout.write(`${lines.join("\n")}\n`);
-if (values.strict && total > 0) {
+if (values.strict && regressions > 0) {
 	process.exitCode = 1;
 }

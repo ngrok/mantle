@@ -39,7 +39,7 @@ const MENUITEM = "menu ?item|menuitem";
 const RADIO = "radio( button)?";
 const SWITCH = "switch|toggle button";
 const TAB = "\\btab\\b";
-const CHECKED = "(?<!not |un)checked|(?<!not )selected|\\bon\\b";
+const CHECKED = "(?<!not |un)checked|(?<!not )selected|(?:^|\\| )on\\b";
 const UNCHECKED = "not checked|unchecked|\\boff\\b|not selected";
 const INVALID = "invalid|error";
 
