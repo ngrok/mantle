@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { selectorProblems } from "./check-css-selectors.ts";
+import { customDataVariants, selectorProblems } from "./check-css-selectors.ts";
 
 describe("selectorProblems", () => {
 	it("flags a structural pseudo-class before a combinator, with its line", () => {
@@ -43,5 +43,21 @@ describe("selectorProblems", () => {
 			"/* structural-selector-ok: the subtree is one icon. */\n.a:first-child > svg { color: red; }\n/* structural-selector-ok: */\n.b:first-child > svg { color: red; }\n";
 
 		expect(selectorProblems(css)).toEqual([{ line: 4, selector: ".b:first-child > svg" }]);
+	});
+});
+
+describe("customDataVariants", () => {
+	it("flags a data-* custom variant and leaves other custom variants alone", () => {
+		const css =
+			"@custom-variant dark (&:where(.dark, .dark *));\n@custom-variant data-side-start (&[data-side=start]);\n";
+
+		expect(customDataVariants(css)).toEqual([2]);
+	});
+
+	it("skips a commented-out variant and finds one split across lines", () => {
+		const css =
+			"/*\n@custom-variant data-open (&[data-open]);\n*/\n@custom-variant\n  data-side-start (&[data-side=start]);\n";
+
+		expect(customDataVariants(css)).toEqual([4]);
 	});
 });

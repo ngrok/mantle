@@ -193,7 +193,7 @@ type SelectProps = PropsWithChildren & {
 	 * Event handler called when the value changes.
 	 * @deprecated Use `onValueChange` instead.
 	 */
-	onChange?: (value: string) => void;
+	onChange?: (value: string) => void; // oxlint-disable-line mantle/prop-vocabulary -- Why: a deprecated alias of `onValueChange`; its removal is a breaking change.
 	/**
 	 * Event handler called when the open state changes.
 	 */
