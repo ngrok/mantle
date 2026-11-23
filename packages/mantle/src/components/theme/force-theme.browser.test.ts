@@ -1,7 +1,6 @@
 import twThemeCss from "tailwindcss/theme.css?raw";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import mantleCss from "../../mantle.css?raw";
-import tailwindCss from "tailwindcss/index.css?raw";
 import {
 	compileInvertThemeUtility,
 	extractTopLevelRules,
@@ -73,7 +72,7 @@ beforeAll(async () => {
 		serializeThemeRules(mantleCss),
 		// the invert-theme utility as Tailwind compiles it, in `@layer utilities`, so unlayered
 		// theme rules beat it as they do in a real build
-		await compileInvertThemeUtility(mantleCss, tailwindCss),
+		await compileInvertThemeUtility(mantleCss),
 	].join("\n");
 	document.head.appendChild(styleElement);
 

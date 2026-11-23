@@ -897,7 +897,11 @@ function scopeOf(node: ChildNode): keyof Declarations | undefined {
  */
 function collectDeclarations(css: string): Declarations {
 	const declarations: Declarations = { theme: new Map(), root: new Map(), dark: new Map() };
-	for (const node of parse(css).nodes) {
+	// Why flatten `@supports`: mantle.css wraps theme rules in one that every browser passes (see the note at its top).
+	const nodes = parse(css).nodes.flatMap((node) =>
+		node.type === "atrule" && node.name === "supports" ? (node.nodes ?? []) : [node],
+	);
+	for (const node of nodes) {
 		const scope = scopeOf(node);
 		if (scope == null || !("nodes" in node)) {
 			continue;

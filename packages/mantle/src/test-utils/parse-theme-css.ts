@@ -7,6 +7,8 @@
  */
 
 import { compile } from "tailwindcss";
+import tailwindThemeCss from "tailwindcss/theme.css?raw";
+import tailwindUtilitiesCss from "tailwindcss/utilities.css?raw";
 
 /**
  * A parsed CSS rule: the full selector text and its raw body (declarations
@@ -75,7 +77,9 @@ function findMatchingCloseBrace(source: string, openIndex: number): number {
 
 /**
  * Extract every top-level rule from a CSS string, comment-stripped, in source
- * order. Nested rules stay inside their parent's `body`.
+ * order. Nested rules stay inside their parent's `body`. The rules inside a
+ * top-level `@supports` block count as top-level: mantle.css wraps theme rules
+ * in one that every browser passes (see the note at its top).
  *
  * @example
  * ```ts
@@ -102,7 +106,12 @@ function extractTopLevelRules(css: string): CssRule[] {
 			.replace(/\s+/g, " ")
 			.trim();
 		const closeIndex = findMatchingCloseBrace(source, braceIndex);
-		rules.push({ selector, body: source.slice(braceIndex + 1, closeIndex) });
+		const body = source.slice(braceIndex + 1, closeIndex);
+		if (selector.startsWith("@supports")) {
+			rules.push(...extractTopLevelRules(body));
+		} else {
+			rules.push({ selector, body });
+		}
 		searchFrom = closeIndex + 1;
 	}
 }
@@ -191,23 +200,36 @@ function parseInvertThemeUtility(css: string) {
 	};
 }
 
+/** The Tailwind stylesheets that `mantle.css` imports, by import id. */
+const tailwindStylesheets: Record<string, string> = {
+	"tailwindcss/theme.css": tailwindThemeCss,
+	"tailwindcss/utilities.css": tailwindUtilitiesCss,
+};
+
+/**
+ * Loads a stylesheet that `mantle.css` imports, for Tailwind's `compile`. The preflight and
+ * `tw-animate-css` load empty: they declare no token or utility that a test reads.
+ *
+ * @example
+ * ```ts
+ * const compiler = await compile(mantleCss, { loadStylesheet: loadMantleImport });
+ * ```
+ */
+async function loadMantleImport(id: string, base: string) {
+	return { base, content: tailwindStylesheets[id] ?? "", path: id };
+}
+
 /**
  * Compiles `mantle.css` with Tailwind for the `invert-theme` candidate, and returns the
  * `@layer utilities` block it emits: the island CSS exactly as a consumer's build ships it.
  *
  * @example
  * ```ts
- * style.textContent = await compileInvertThemeUtility(mantleCss, tailwindCss);
+ * style.textContent = await compileInvertThemeUtility(mantleCss);
  * ```
  */
-async function compileInvertThemeUtility(mantleCss: string, tailwindCss: string) {
-	const compiler = await compile(mantleCss, {
-		loadStylesheet: async (id, base) => ({
-			base,
-			content: id === "tailwindcss" ? tailwindCss : "",
-			path: id,
-		}),
-	});
+async function compileInvertThemeUtility(mantleCss: string) {
+	const compiler = await compile(mantleCss, { loadStylesheet: loadMantleImport });
 	const utilities = extractTopLevelRules(compiler.build(["invert-theme"])).find(
 		({ selector }) => selector === "@layer utilities",
 	);
@@ -250,6 +272,7 @@ export {
 	//,
 	compileInvertThemeUtility,
 	extractTopLevelRules,
+	loadMantleImport,
 	parseDeclarationBlock,
 	parseDeclarations,
 	parseInvertThemeUtility,

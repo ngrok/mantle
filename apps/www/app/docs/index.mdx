@@ -84,7 +84,11 @@ section below says where the file lives.
 @import "@ngrok/mantle/source-all.css";
 ```
 
-`mantle.css` imports Tailwind and the theme tokens for both themes. `source-all.css` holds one
+`mantle.css` imports Tailwind and the theme tokens for both themes, so don't add your own
+`@import "tailwindcss"`. With one, Tailwind writes a fallback for each color with an opacity
+modifier, such as `bg-accent-500/20`, that only browsers older than Tailwind's floor (Safari 16.4,
+Chrome 111, Firefox 128) apply. Your own `@apply` rules keep their fallbacks either way.
+`source-all.css` holds one
 `@source` directive that points Tailwind at mantle's `dist/` directory. Tailwind 4 skips
 `node_modules` when it scans for class names, so without that directive it generates none of the
 classes mantle's components use. The components then render without their styles: an open
