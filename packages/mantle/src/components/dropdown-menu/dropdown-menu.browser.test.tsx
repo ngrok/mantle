@@ -1311,6 +1311,45 @@ describe("DropdownMenu with its CSS (browser)", () => {
 		);
 	});
 
+	test("a long menu cues each edge with more items, and the focused item stays clear of the cue", async () => {
+		const user = userEvent.setup();
+		render(
+			<DropdownMenu.Root modal={false}>
+				<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+				<DropdownMenu.Content style={{ maxHeight: 176 }}>
+					{Array.from({ length: 20 }, (_, index) => (
+						<DropdownMenu.Item key={index}>{`Action ${index + 1}`}</DropdownMenu.Item>
+					))}
+				</DropdownMenu.Content>
+			</DropdownMenu.Root>,
+		);
+		screen.getByRole("button", { name: "Open" }).focus();
+		await user.keyboard("{ArrowDown}");
+		await waitFor(() => expect(item("Action 1")).toHaveFocus());
+		const scroller = item("Action 1").parentElement as HTMLElement;
+		const edges = () =>
+			[
+				scroller.hasAttribute("data-overflow-top"),
+				scroller.hasAttribute("data-overflow-bottom"),
+			].join();
+		await expect.poll(edges).toBe("false,true");
+		expect(getComputedStyle(scroller, "::after").opacity).toBe("1");
+
+		await user.keyboard("{End}");
+
+		await expect.poll(edges).toBe("true,false");
+		expect(getComputedStyle(scroller, "::before").opacity).toBe("1");
+		expect(getComputedStyle(scroller, "::after").opacity).toBe("0");
+		// Why 24: the cue is 1.5rem tall, and the focused item must sit below it.
+		await user.keyboard("{ArrowUp}{ArrowUp}{ArrowUp}{ArrowUp}{ArrowUp}{ArrowUp}");
+		await expect.poll(edges).toBe("true,true");
+		// Why: the open animation scales the menu, which shrinks the measured gap.
+		await Promise.all(document.getAnimations().map((animation) => animation.finished));
+		const box = scroller.getBoundingClientRect();
+		const focused = item("Action 14").getBoundingClientRect();
+		expect(focused.top).toBeGreaterThanOrEqual(box.top + 24 - 0.5);
+	});
+
 	test.each([false, true])(
 		"a custom trigger that replaces its own element updates the open menu (modal: %s)",
 		async (modal) => {
