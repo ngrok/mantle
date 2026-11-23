@@ -323,7 +323,12 @@ function ThemeProvider({ children, forceTheme, ssrCookie }: ThemeProviderProps) 
  * @example
  * ```tsx
  * const [theme, setTheme] = useTheme();
- * <Button type="button" onClick={(event) => setTheme("dark", { origin: event.currentTarget })}>
+ * <Button
+ *   type="button"
+ *   appearance="outlined"
+ *   intent="neutral"
+ *   onClick={(event) => setTheme("dark", { origin: event.currentTarget })}
+ * >
  *   Dark
  * </Button>;
  * ```
