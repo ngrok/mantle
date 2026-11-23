@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import * as Dialog from "../dialog/dialog-parts.js";
+import * as Popover from "../popover/popover-parts.js";
 import { OverlayPrompt } from "./overlay-prompt.js";
 
 function Banner({ onAccept }: { onAccept: () => void }) {
@@ -76,5 +77,39 @@ describe("OverlayPrompt over an open modal dialog", () => {
 		await waitFor(() => expect(frame.closest("dialog")).toBeNull());
 
 		expect(loads).toHaveBeenCalledTimes(1);
+	});
+
+	test("opens a popover from the content in the dialog, and a dialog with no control in its panel keeps focus", async () => {
+		const onPick = vi.fn<() => void>();
+		render(
+			<>
+				<OverlayPrompt>
+					<div style={{ position: "fixed", bottom: 0 }}>
+						<Popover.Root>
+							<Popover.Trigger>Manage</Popover.Trigger>
+							<Popover.Content>
+								<button type="button" onClick={onPick}>
+									Analytics
+								</button>
+							</Popover.Content>
+						</Popover.Root>
+					</div>
+				</OverlayPrompt>
+				<Dialog.Root>
+					<Dialog.Trigger>Open</Dialog.Trigger>
+					<Dialog.Content>
+						<Dialog.Title>Loading</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+			</>,
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Open" }));
+		const dialog = screen.getByRole("dialog", { name: "Loading" });
+		expect(dialog).toHaveFocus();
+
+		await userEvent.click(screen.getByRole("button", { name: "Manage" }));
+		await userEvent.click(await screen.findByRole("button", { name: "Analytics" }));
+		expect(onPick).toHaveBeenCalledTimes(1);
+		expect(dialog).toHaveAttribute("open");
 	});
 });

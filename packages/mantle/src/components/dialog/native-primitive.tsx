@@ -232,6 +232,14 @@ function moveDialog({
 		if (modal) {
 			lockPageScroll({ dialog, lock: true });
 			dialog.showModal();
+			// Why: the content of each `OverlayPrompt` moved into the dialog before
+			// it opened. With no control in the panel, the browser picks a control
+			// of a prompt, so the dialog takes focus itself, as with no prompt.
+			if (
+				dialog.ownerDocument.activeElement?.closest(".overlay-prompt")?.parentElement === dialog
+			) {
+				dialog.focus({ preventScroll: true });
+			}
 		} else {
 			dialog.show();
 		}

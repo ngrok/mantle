@@ -1,11 +1,12 @@
 "use client";
 
-import { type ComponentProps, useLayoutEffect, useRef, useState } from "react";
+import { type ComponentProps, type ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import { canUseDOM } from "../browser-only/can-use-dom.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { joinDataSlot, type WithDataSlot } from "../../utils/data-slot.js";
+import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import { attachPromptHost } from "./host.js";
 
 /** Props for `OverlayPrompt`. */
@@ -74,20 +75,40 @@ function createHost(): HTMLDivElement {
 function OverlayPrompt({ children, "data-slot": dataSlot, ref }: OverlayPromptProps) {
 	const isHydrated = useIsHydrated();
 	const [host] = useState(() => (canUseDOM() ? createHost() : null));
+	// Why: the content mounts once the host is in the document, so its layout
+	// effects and `autoFocus` run on connected elements.
+	const [attached, setAttached] = useState(false);
 	const homeRef = useRef<HTMLDivElement>(null);
 	const composedRef = useComposedRefs(homeRef, ref);
 	useLayoutEffect(() => {
 		const home = homeRef.current;
-		return host == null || home == null ? undefined : attachPromptHost(host, home);
+		if (host == null || home == null) {
+			return undefined;
+		}
+		const detach = attachPromptHost(host, home);
+		setAttached(true);
+		return detach;
 	}, [host]);
 
+	// Why a layer container: a float composed in the content, such as a
+	// popover, portals in here, so it moves with the content and paints above
+	// the dialog.
+	const content = (
+		<LayerContainer className="contents" modal={false}>
+			{children}
+		</LayerContainer>
+	);
+	let rendered: ReactNode = content;
+	if (isHydrated && host != null) {
+		rendered = attached ? createPortal(content, host) : null;
+	}
 	return (
 		<div
 			className="contents"
 			data-slot={joinDataSlot(dataSlot, "overlay-prompt")}
 			ref={composedRef}
 		>
-			{isHydrated && host != null ? createPortal(children, host) : children}
+			{rendered}
 		</div>
 	);
 }
