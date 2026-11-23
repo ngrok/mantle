@@ -1671,46 +1671,67 @@ MARK: UTILITIES
 }
 
 /*
- * The `scroll-fade-*` utilities mask each edge with its own layer: a gradient
- * one fade zone longer than the box. Its position puts the fade past the box
- * edge or inside it, and a scroll-driven animation moves it. With two edges,
- * the end edge animates its size instead, because two animations of one
- * property do not combine. `mask-position` and `mask-size` are plain
- * properties, so a scroll frame restyles only the container, not its content.
- * Where `animation-timeline: scroll()` is unsupported, or nothing overflows,
- * the base value holds each fade past the edge: no fade, and nothing clipped.
- *
- * With two edges, each layer is opaque only on its own half of the box, plus
- * an overlap, and the default `add` composite joins the halves. Why not
- * `mask-composite: intersect` over two full layers: in Chromium, it made a
- * picker list open about 25ms slower at 4x CPU.
- *
- * Each edge gets its own animation and scroll range, so both edges can fade at
- * once. A percentage position aligns the oversized layer's far edge with the
- * box edge, so one pair of keyframes serves both axes.
+ * Animatable mask-edge colors for the `scroll-fade-*` utilities. Registered as
+ * <color> so they can be animated by a scroll-driven animation; default black
+ * means "fully opaque in the mask" = no fade, which is also the resting value
+ * wherever `animation-timeline: scroll()` is unsupported.
  */
-@keyframes scroll-fade-start {
-	to {
-		mask-position: 0 0;
-	}
+@property --_scroll-fade-left {
+	syntax: "<color>";
+	inherits: false;
+	initial-value: black;
 }
-@keyframes scroll-fade-end {
+@property --_scroll-fade-right {
+	syntax: "<color>";
+	inherits: false;
+	initial-value: black;
+}
+@property --_scroll-fade-top {
+	syntax: "<color>";
+	inherits: false;
+	initial-value: black;
+}
+@property --_scroll-fade-bottom {
+	syntax: "<color>";
+	inherits: false;
+	initial-value: black;
+}
+
+/*
+ * Each edge gets its own keyframe + scroll range so both edges can fade
+ * independently (e.g. both faded mid-scroll). Black <-> transparent only
+ * changes the mask alpha.
+ */
+@keyframes scroll-fade-x-start {
 	from {
-		mask-position: 100% 100%;
+		--_scroll-fade-left: black;
+	}
+	to {
+		--_scroll-fade-left: transparent;
 	}
 }
 @keyframes scroll-fade-x-end {
 	from {
-		mask-size:
-			calc(100% + 40px) 100%,
-			100% 100%;
+		--_scroll-fade-right: transparent;
+	}
+	to {
+		--_scroll-fade-right: black;
+	}
+}
+@keyframes scroll-fade-y-start {
+	from {
+		--_scroll-fade-top: black;
+	}
+	to {
+		--_scroll-fade-top: transparent;
 	}
 }
 @keyframes scroll-fade-y-end {
 	from {
-		mask-size:
-			100% calc(100% + 1.5rem),
-			100% 100%;
+		--_scroll-fade-bottom: transparent;
+	}
+	to {
+		--_scroll-fade-bottom: black;
 	}
 }
 
@@ -1719,24 +1740,27 @@ MARK: UTILITIES
 	 * Fades the inline-start/end edges of a horizontally-scrolling container to
 	 * signal more content in that direction. The element is its own scroll
 	 * timeline, so an edge with nothing beyond it (at the start, at the end, or
-	 * with no overflow at all) renders cleanly with no fade.
+	 * with no overflow at all: inactive timeline => initial value) renders
+	 * cleanly with no fade. Consumers can pin an edge opaque by overriding
+	 * `--_fade-left` / `--_fade-right` (the animation drives the upstream
+	 * `--_scroll-fade-*` vars, so a static override always wins).
 	 *
 	 * The mask covers the whole box, borders included. A hairline that must stay
 	 * solid belongs on a sibling outside the container, as `Tabs.Separator` does.
 	 */
-	mask-image:
-		linear-gradient(to right, transparent, black 40px, black calc(50% + 40px), transparent 0),
-		linear-gradient(to left, transparent, black 40px, black calc(50% + 40px), transparent 0);
-	mask-repeat: no-repeat;
-	mask-position:
-		100% 100%,
-		0 0;
-	mask-size:
-		calc(100% + 40px) 100%,
-		calc(100% + 40px) 100%;
+	--_fade-left: var(--_scroll-fade-left);
+	--_fade-right: var(--_scroll-fade-right);
+
+	mask-image: linear-gradient(
+		to right,
+		var(--_fade-left),
+		black 40px,
+		black calc(100% - 40px),
+		var(--_fade-right)
+	);
 
 	@supports (animation-timeline: scroll()) {
-		animation-name: scroll-fade-start, scroll-fade-x-end;
+		animation-name: scroll-fade-x-start, scroll-fade-x-end;
 		animation-fill-mode: both;
 		/* Linear so the fade tracks scroll position 1:1 across the range. */
 		animation-timing-function: linear;
@@ -1752,19 +1776,19 @@ MARK: UTILITIES
 
 @utility scroll-fade-y {
 	/* Vertical sibling of `scroll-fade-x`; see it for how the masking works. */
-	mask-image:
-		linear-gradient(to bottom, transparent, black 1.5rem, black calc(50% + 1.5rem), transparent 0),
-		linear-gradient(to top, transparent, black 1.5rem, black calc(50% + 1.5rem), transparent 0);
-	mask-repeat: no-repeat;
-	mask-position:
-		100% 100%,
-		0 0;
-	mask-size:
-		100% calc(100% + 1.5rem),
-		100% calc(100% + 1.5rem);
+	--_fade-top: var(--_scroll-fade-top);
+	--_fade-bottom: var(--_scroll-fade-bottom);
+
+	mask-image: linear-gradient(
+		to bottom,
+		var(--_fade-top),
+		black 1.5rem,
+		black calc(100% - 1.5rem),
+		var(--_fade-bottom)
+	);
 
 	@supports (animation-timeline: scroll()) {
-		animation-name: scroll-fade-start, scroll-fade-y-end;
+		animation-name: scroll-fade-y-start, scroll-fade-y-end;
 		animation-fill-mode: both;
 		animation-timing-function: linear;
 		animation-range:
@@ -1778,18 +1802,17 @@ MARK: UTILITIES
 /*
  * Single-edge variants of `scroll-fade-x` / `scroll-fade-y`, for when only one
  * edge should fade (e.g. a sidebar that fades content scrolling under a sticky
- * header but stays flush at the bottom). Each has one mask layer; the
- * opposite edge stays fully opaque. Same scroll-driven mechanics and fallback behavior as the axis
- * utilities; see `scroll-fade-x` for details.
+ * header but stays flush at the bottom). Each masks and drives only its own
+ * edge; the opposite edge stays fully opaque. Same scroll-driven mechanics and
+ * fallback behavior as the axis utilities; see `scroll-fade-x` for details.
  */
 @utility scroll-fade-t {
-	mask-image: linear-gradient(to bottom, transparent, black 1.5rem);
-	mask-repeat: no-repeat;
-	mask-position: 100% 100%;
-	mask-size: 100% calc(100% + 1.5rem);
+	--_fade-top: var(--_scroll-fade-top);
+
+	mask-image: linear-gradient(to bottom, var(--_fade-top), black 1.5rem);
 
 	@supports (animation-timeline: scroll()) {
-		animation-name: scroll-fade-start;
+		animation-name: scroll-fade-y-start;
 		animation-fill-mode: both;
 		animation-timing-function: linear;
 		animation-range: 0 2px;
@@ -1799,13 +1822,12 @@ MARK: UTILITIES
 }
 
 @utility scroll-fade-b {
-	mask-image: linear-gradient(to top, transparent, black 1.5rem);
-	mask-repeat: no-repeat;
-	mask-position: 0 0;
-	mask-size: 100% calc(100% + 1.5rem);
+	--_fade-bottom: var(--_scroll-fade-bottom);
+
+	mask-image: linear-gradient(to bottom, black calc(100% - 1.5rem), var(--_fade-bottom));
 
 	@supports (animation-timeline: scroll()) {
-		animation-name: scroll-fade-end;
+		animation-name: scroll-fade-y-end;
 		animation-fill-mode: both;
 		animation-timing-function: linear;
 		animation-range: calc(100% - 2px) 100%;
@@ -1815,13 +1837,12 @@ MARK: UTILITIES
 }
 
 @utility scroll-fade-l {
-	mask-image: linear-gradient(to right, transparent, black 40px);
-	mask-repeat: no-repeat;
-	mask-position: 100% 100%;
-	mask-size: calc(100% + 40px) 100%;
+	--_fade-left: var(--_scroll-fade-left);
+
+	mask-image: linear-gradient(to right, var(--_fade-left), black 40px);
 
 	@supports (animation-timeline: scroll()) {
-		animation-name: scroll-fade-start;
+		animation-name: scroll-fade-x-start;
 		animation-fill-mode: both;
 		animation-timing-function: linear;
 		animation-range: 0 2px;
@@ -1831,13 +1852,12 @@ MARK: UTILITIES
 }
 
 @utility scroll-fade-r {
-	mask-image: linear-gradient(to left, transparent, black 40px);
-	mask-repeat: no-repeat;
-	mask-position: 0 0;
-	mask-size: calc(100% + 40px) 100%;
+	--_fade-right: var(--_scroll-fade-right);
+
+	mask-image: linear-gradient(to right, black calc(100% - 40px), var(--_fade-right));
 
 	@supports (animation-timeline: scroll()) {
-		animation-name: scroll-fade-end;
+		animation-name: scroll-fade-x-end;
 		animation-fill-mode: both;
 		animation-timing-function: linear;
 		animation-range: calc(100% - 2px) 100%;

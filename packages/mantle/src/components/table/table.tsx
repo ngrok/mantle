@@ -156,10 +156,11 @@ const Root = ({
 					"scrollbar scroll-fade-x overflow-x-auto overflow-y-clip overscroll-x-none",
 					// The edge fade is driven by the `scroll-fade-x` utility (a CSS
 					// scroll-driven animation). When the table contains a sticky right column
-					// (e.g., DataTable.ActionCell / DataTable.ActionHeader), fade only the
-					// left edge so the pinned column stays fully opaque. The pinned column
-					// draws its own left-side gradient for the scroll-under effect.
-					"has-data-mantle-table-sticky-right:scroll-fade-l",
+					// (e.g., DataTable.ActionCell / DataTable.ActionHeader), suppress the
+					// container's right-side fade so the pinned column stays fully opaque. The
+					// pinned column draws its own left-side gradient for the scroll-under
+					// effect.
+					"has-data-mantle-table-sticky-right:[--_fade-right:black]",
 				)}
 				ref={scrollContainerRef}
 			>
