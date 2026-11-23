@@ -520,18 +520,23 @@ function sliderValueRef(label: HTMLSpanElement | null) {
 	if (label == null || root == null || scope == null) {
 		return;
 	}
-	const thumbs =
-		scope === root
-			? root.querySelectorAll<HTMLElement>(":scope > [data-slot='slider-thumb']")
-			: [scope];
 	const write = () => {
-		label.textContent = [...thumbs]
+		// Why each time: a controlled slider can add or remove thumbs.
+		const thumbs =
+			scope === root
+				? root.querySelectorAll<HTMLElement>(":scope > [data-slot='slider-thumb']")
+				: [scope];
+		const text = [...thumbs]
 			.map(
 				(thumb) =>
 					thumb.querySelector("input")?.getAttribute("aria-valuetext") ??
 					thumb.style.getPropertyValue("--_value"),
 			)
 			.join(" – ");
+		// Why the check: a thumb that did not move gets the same text, and a write would lay out the label.
+		if (label.textContent !== text) {
+			label.textContent = text;
+		}
 	};
 	write();
 	// Why the thumb's style: React writes a controlled value there after its render, and the slider

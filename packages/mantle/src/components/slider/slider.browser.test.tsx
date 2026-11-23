@@ -839,6 +839,21 @@ describe("SliderValue (browser)", () => {
 		}
 	});
 
+	test("a label above the track follows a controlled slider that adds a thumb", () => {
+		const { rerender } = render(
+			<Slider aria-label="Price" value={[50]} onValueChange={() => {}}>
+				<SliderValue placement="track" />
+			</Slider>,
+		);
+		rerender(
+			<Slider aria-label="Price" value={[50, 80]} onValueChange={() => {}}>
+				<SliderValue placement="track" />
+			</Slider>,
+		);
+
+		return expect.poll(() => labels().at(-1)?.textContent).toBe("50 – 80");
+	});
+
 	test("a label wrapped in another element still reads its value, and a child of false is no label", () => {
 		const show = false;
 		render(

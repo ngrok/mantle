@@ -474,7 +474,9 @@ function paint(
 	for (const [index, thumb] of thumbs.entries()) {
 		const value = values[index] ?? min;
 		thumb.style.setProperty(VALUE_PROPERTY, String(value));
-		if (formatValue != null) {
+		if (formatValue == null) {
+			inputs[index]?.removeAttribute("aria-valuetext");
+		} else {
 			inputs[index]?.setAttribute("aria-valuetext", formatValue(value));
 		}
 	}
