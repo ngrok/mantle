@@ -214,7 +214,7 @@ function arrowTarget({
  * visible to assistive technology. `mantle.css` lifts the same list.
  */
 const CONTENT_CONTROL_SELECTOR =
-	'a[href], button, details, input, select, textarea, label, [tabindex], [contenteditable="true"]';
+	'a[href], button, details, input, select, textarea, label, [role="button"], [role="link"], [role="menuitem"], [tabindex]:not([tabindex="-1"]), [contenteditable="true"]';
 
 /** Joins element ids into one IDREF list, or `undefined` when there are none. */
 function joinIds(ids: readonly (string | undefined)[]): string | undefined {
@@ -251,7 +251,8 @@ type PrimitiveItemProps = ItemProps & {
  * a test clicks the radio itself. Links, buttons, labels, and form controls in
  * the children sit over the radio and keep their own clicks. When the
  * children have none, assistive technology skips their text, which already
- * names the radio, so it stops once on each item. The radio takes its name from a
+ * names the radio, so it stops once on each item. Render a control with the
+ * item: the item looks for one only when it renders itself. The radio takes its name from a
  * `<label>` in the item (the title line, such as `Choice.Label`), from a
  * `Choice.Title`, or else from all of the item's text. The caller
  * sets the styles; read the radio's state with `has-[>input:checked]:`,
@@ -319,7 +320,7 @@ const Item = ({
 					if (event.target === radio) {
 						// Why: Safari does not focus a radio on a pointer click. A click that a part sends with
 						// `click()` has no `detail`, and it keeps focus where the part put it.
-						if (event.detail > 0) {
+						if (event.detail > 0 && !event.defaultPrevented) {
 							radio.focus({ preventScroll: true });
 						}
 						return;
@@ -383,11 +384,17 @@ const Item = ({
 							input.removeAttribute("aria-labelledby");
 						}
 						// Why: hidden content still names the radio, but a control in it must stay reachable.
+						// The item's own title label is not a control: it only names the radio.
 						const content = input.nextElementSibling;
-						if (content?.querySelector(CONTENT_CONTROL_SELECTOR) == null) {
+						const hasControl = Array.from(
+							content?.querySelectorAll(CONTENT_CONTROL_SELECTOR) ?? [],
+						).some(
+							(control) => !(control instanceof HTMLLabelElement && control.htmlFor === radioId),
+						);
+						if (!hasControl) {
 							content?.setAttribute("aria-hidden", "true");
 						} else {
-							content.removeAttribute("aria-hidden");
+							content?.removeAttribute("aria-hidden");
 						}
 					}}
 					required={group.required}

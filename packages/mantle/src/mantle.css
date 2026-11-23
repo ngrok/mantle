@@ -1455,7 +1455,10 @@ MARK: CUSTOM VARIANTS
 			select,
 			textarea,
 			label,
-			[tabindex],
+			[role="button"],
+			[role="link"],
+			[role="menuitem"],
+			[tabindex]:not([tabindex="-1"]),
 			[contenteditable="true"]
 		) {
 		position: relative;
