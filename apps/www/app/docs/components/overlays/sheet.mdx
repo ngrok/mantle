@@ -87,7 +87,7 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 
 ## Layering and z-index
 
-`Sheet.Content` renders the browser's modal `<dialog>` (`data-slot="sheet-positioner"`), so it paints in the top layer, above the page and every float outside it. The browser traps focus in it, makes the page behind it inert, closes it on Escape, and returns focus to the trigger. Floats composed inside the content portal into the `<dialog>` and paint above the content. A sheet or dialog that opens from inside another one paints above it.
+`Sheet.Content` renders the browser's modal `<dialog>` (`data-slot="sheet-positioner"`), so it paints in the top layer, above the page and every float outside it. The browser makes the page behind it inert, closes it on Escape, and returns focus to the trigger. Floats composed inside the content portal into the `<dialog>` and paint above the content. A sheet or dialog that opens from inside another one paints above it.
 
 `Sheet`, `Dialog`, and `AlertDialog` each draw their own backdrop, so stacking modal layers compounds the dim and blur effect on the layers underneath.
 

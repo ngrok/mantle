@@ -15,8 +15,8 @@ import * as SheetParts from "./sheet-parts.js";
  * interrupts the user, use `Dialog` (or `AlertDialog` for destructive
  * confirmations).
  *
- * `Sheet` runs on the browser's modal `<dialog>`: the browser traps focus,
- * makes the page inert, closes it on Escape, paints it in the top layer, and
+ * `Sheet` runs on the browser's modal `<dialog>`: the browser makes
+ * the page inert, closes it on Escape, paints it in the top layer, and
  * returns focus to the trigger. Floats composed inside the content portal into
  * the `<dialog>` (`data-slot="sheet-positioner"`) and paint above it. The
  * content mounts when the sheet opens; `forceMount` keeps it mounted and
