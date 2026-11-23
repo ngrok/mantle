@@ -40,6 +40,7 @@ import {
 	type VersionDataLoader,
 } from "~/utilities/mcp/version-data.server";
 import { countUrls, hasProfanity } from "~/utilities/mcp/content-safety";
+import { localTarballRegistry } from "~/utilities/mcp/npm-tarball.server";
 import { clipMarkdown, mcpPulse } from "~/utilities/mcp/pulse.server";
 import { renderMdxToMarkdown } from "~/utilities/render-mdx-to-markdown.server";
 import { loadDeclarationFiles, loadSourceFiles } from "~/utilities/mantle-source.server";
@@ -1323,7 +1324,11 @@ export function productionDependencies({
 	flags: () => McpFlags;
 	requestOrigin: string;
 }): McpDependencies {
-	loader ??= createVersionDataLoader();
+	// Why: the agent eval's branch mode serves the branch's packed tarball (docs/mcp-evals.md).
+	const localTarball = process.env.MANTLE_MCP_LOCAL_TARBALL;
+	loader ??= createVersionDataLoader(
+		localTarball == null ? {} : { registry: localTarballRegistry(localTarball) },
+	);
 	const previewOrigin =
 		process.env.MANTLE_PREVIEW_ORIGIN ?? (import.meta.env.DEV ? requestOrigin : canonicalOrigin);
 	return {
