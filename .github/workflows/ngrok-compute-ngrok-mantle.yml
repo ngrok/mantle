@@ -1,63 +1,74 @@
 # ngrok-ship: pipeline-updates disabled
 #
 # The line above turns off ngrok ship pipeline updates for this file. Ship opens
-# no pull request to rewrite it, so dependabot's action version bumps stay.
-# Remove the line to let ship manage the file again.
+# no pull request to rewrite it, so the change check and the commit-pinned
+# action versions stay. Remove the line to let ship manage the file again.
+#
+# ngrok/ship-action builds the image and reports it to ship. A pull request
+# gets a preview only when the action runs, so the step runs only when the PR
+# changes @app/www, a package it depends on, or this file. A push to `main`
+# deploys the `main` environment the same way.
 
-name: "Build and Push Container (ngrok-mantle / app_3FsBBr2ai9ocPOzjWWaBDBf9Pna)"
+# Do not start the name with "Build and Push Container". Ship reads a run with
+# that name at this path as a run of its old workflow, and looks for an image
+# artifact that this workflow does not upload.
+name: "ngrok ship (ngrok-mantle / app_3FsBBr2ai9ocPOzjWWaBDBf9Pna)"
 
 on:
   push:
-    branches: ["**"]
+    branches: ["main"]
+  pull_request:
+    types: [opened, synchronize, reopened]
+  # A manual run skips the change check and deploys the branch.
   workflow_dispatch:
 
-env:
-  IMAGE_REFERENCE: "registry.ship.ngrok.com/ac_1gbcp4ul5rptr9eqgwj21icgsux/app_3fsbbr2ai9ocpozjwwabdbf9pna"
-  NGROK_APP_ID: "app_3FsBBr2ai9ocPOzjWWaBDBf9Pna"
+concurrency:
+  # A second push to the same ref makes the in-flight image obsolete before it lands.
+  group: ship-mantle-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  # The action authenticates to ship with a GitHub OIDC token.
+  id-token: write
 
 jobs:
-  build-and-push:
-    runs-on: "ubuntu-latest"
-    permissions:
-      contents: "read"
+  build:
+    # A pull request from a fork gets no OIDC token, so the action cannot run for it.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
     steps:
-      - uses: "actions/checkout@v7.0.1"
-
-      - uses: "docker/login-action@v4.8.0"
+      # The default ref is the merge of the PR into its base, which ship expects.
+      # HEAD^1 is then the base. On a push to `main`, it is the previous commit.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          registry: "registry.ship.ngrok.com"
-          username: "creg_3Fpsi82fNgKVILsGzy3HzE5JA28"
-          password: "${{ secrets.NGROK_REGISTRY_PASSWORD_CREG_3FPSI82FNGKVILSGZY3HZE5JA28 }}"
+          fetch-depth: 2
 
-      - id: "meta"
-        uses: "docker/metadata-action@v6.2.0"
+      - name: Check for changes in @app/www
+        id: app
+        if: github.event_name != 'workflow_dispatch'
+        uses: Trampoline-CX/action-turbo-changed@56210b7f3e17e539416f61ef93dde2ff22337525 # v2.0.1
         with:
-          images: "${{ env.IMAGE_REFERENCE }}"
-          tags: |
-            type=sha,format=long,prefix=
+          workspace: "@app/www"
+          from: HEAD^1
 
-      - name: "Read the Node version from .nvmrc"
-        id: "node"
-        run: 'echo "version=$(cat .nvmrc)" >> "$GITHUB_OUTPUT"'
+      - name: Check for changes to this workflow
+        id: workflow
+        if: github.event_name != 'workflow_dispatch'
+        run: |
+          if git diff --quiet HEAD^1 -- .github/workflows/ngrok-compute-ngrok-mantle.yml; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
 
-      - uses: "docker/build-push-action@v7.4.0"
+      - name: Read the Node version from .nvmrc
+        id: node
+        run: echo "version=$(cat .nvmrc)" >> "$GITHUB_OUTPUT"
+
+      - uses: ngrok/ship-action@ce608ca50086eeaa02bb54783633d6e3a31004d7 # v1.0.0
+        if: github.event_name == 'workflow_dispatch' || steps.app.outputs.changed == 'true' || steps.workflow.outputs.changed == 'true'
         with:
-          context: "."
-          file: "apps/www/Dockerfile"
-          push: true
-          tags: "${{ steps.meta.outputs.tags }}"
-          labels: "${{ steps.meta.outputs.labels }}"
+          app-id: "app_3FsBBr2ai9ocPOzjWWaBDBf9Pna"
           build-args: |
             NODE_VERSION=${{ steps.node.outputs.version }}
-            COMMIT_SHA=${{ github.sha }}
-
-      - name: "Write image reference"
-        run: |
-          cat <<EOF > ngrok-image.json
-          {"image":"${{ steps.meta.outputs.tags }}","commit_sha":"${{ github.sha }}"}
-          EOF
-
-      - uses: "actions/upload-artifact@v7.0.2"
-        with:
-          name: "ngrok-compute-image"
-          path: "ngrok-image.json"
