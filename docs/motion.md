@@ -78,6 +78,10 @@ value with a comment that names the token.
 - `DataTable` expand and collapse: `starting:` for the enter, a FLIP slide of the rows below, and an exit that
   fades the rows while the rows below slide over them.
 - `Sidebar`: a width transition on `ease-out-strong`.
+- `AppLayout.Content` and `AppLayout.SidePanel` (`mantle.css`, `app-layout-card`): a view transition class. A
+  card and a panel with the same `view-transition-name` morph into each other in 300ms on `ease-out-strong`.
+  The group clips at the card's radius, and each snapshot keeps its own width, so text does not stretch.
+  `useScrollAnchor` puts the new home's scroll position in place before the browser snapshots it.
 - `ThemeSwitcher` and every `setTheme` call (`theme/swap-theme.ts`): a view transition that animates `clip-path` on `::view-transition-new(root)` with the Web
   Animations API. While a view transition runs, the browser sends each click to `<html>`, so the switcher
   ends the transition on a click and sends the click to the element under the pointer.

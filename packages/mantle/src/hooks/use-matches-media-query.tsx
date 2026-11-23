@@ -22,7 +22,7 @@ import { useCallback, useRef, useSyncExternalStore } from "react";
  * // Detect if the user prefers a dark color scheme
  * const prefersDark = useMatchesMediaQuery("(prefers-color-scheme: dark)");
  *
- * return <div className={prefersDark ? "dark" : "light"}>Hello</div>;
+ * return <div className={cx(prefersDark ? "dark" : "light")}>Hello</div>;
  *
  * @example
  * // Show a different layout on portrait orientation

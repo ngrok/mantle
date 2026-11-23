@@ -91,6 +91,23 @@ export function Settings({ invalid }: { invalid: boolean }) {
 // A class string outside JSX follows the same map.
 export const sheetClassName = `bg-base not-data-open:animate-none data-open:animate-none ${extra}`;
 
+// An element that sets its own data-state keeps matching it through the bracket form.
+export function OwnState({ open }: { open: boolean }) {
+	return (
+		<div
+			data-state={open ? "open" : "closed"}
+			className="data-[state~=closed]:opacity-0 data-[state~=open]:duration-400 data-[side=top]:mb-2"
+		>
+			<span
+				data-state="open"
+				className="group-data-open:rotate-90 hover:data-[state~=closed]:p-1"
+			/>
+			<Tabs.List data-state="idle" className="aria-[orientation=vertical]:pl-4" />
+			<Popover.Content className="not-data-open:opacity-0" />
+		</div>
+	);
+}
+
 // Negative cases: built-in and bracket forms, other words, and other attributes stay as written.
 export function Untouched() {
 	return (

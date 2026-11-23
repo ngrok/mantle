@@ -17,6 +17,25 @@ utils:
         has:
           field: source
           regex: ^["']@radix-ui/
+  # A class on an element that sets its own `data-state`, such as an app's own
+  # component. Mantle did not write that value, so the class keeps matching it
+  # through the bracket form.
+  own-state-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          kind: jsx_attribute
+          has:
+            kind: property_identifier
+            regex: ^data-state$
   # A class on a part whose name ends in `Trigger`: the trigger now carries
   # `aria-expanded`, not `data-state`.
   trigger-class:
@@ -163,6 +182,25 @@ utils:
         has:
           field: source
           regex: ^["']@radix-ui/
+  # A class on an element that sets its own `data-state`, such as an app's own
+  # component. Mantle did not write that value, so the class keeps matching it
+  # through the bracket form.
+  own-state-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          kind: jsx_attribute
+          has:
+            kind: property_identifier
+            regex: ^data-state$
   # A class on a part whose name ends in `Trigger`: the trigger now carries
   # `aria-expanded`, not `data-state`.
   trigger-class:
@@ -336,6 +374,25 @@ utils:
         has:
           field: source
           regex: ^["']@radix-ui/
+  # A class on an element that sets its own `data-state`, such as an app's own
+  # component. Mantle did not write that value, so the class keeps matching it
+  # through the bracket form.
+  own-state-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          kind: jsx_attribute
+          has:
+            kind: property_identifier
+            regex: ^data-state$
   # A class on a part whose name ends in `Trigger`: the trigger now carries
   # `aria-expanded`, not `data-state`.
   trigger-class:
@@ -418,6 +475,8 @@ rule:
         matches: trigger-class
     - not:
         matches: radix-file
+    - not:
+        matches: own-state-class
 transform:
   T1:
     replace:
@@ -516,6 +575,25 @@ utils:
         has:
           field: source
           regex: ^["']@radix-ui/
+  # A class on an element that sets its own `data-state`, such as an app's own
+  # component. Mantle did not write that value, so the class keeps matching it
+  # through the bracket form.
+  own-state-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          kind: jsx_attribute
+          has:
+            kind: property_identifier
+            regex: ^data-state$
   # A class on a part whose name ends in `Trigger`: the trigger now carries
   # `aria-expanded`, not `data-state`.
   trigger-class:
@@ -674,6 +752,25 @@ utils:
         has:
           field: source
           regex: ^["']@radix-ui/
+  # A class on an element that sets its own `data-state`, such as an app's own
+  # component. Mantle did not write that value, so the class keeps matching it
+  # through the bracket form.
+  own-state-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          kind: jsx_attribute
+          has:
+            kind: property_identifier
+            regex: ^data-state$
   # A class on a part whose name ends in `Trigger`: the trigger now carries
   # `aria-expanded`, not `data-state`.
   trigger-class:
@@ -827,6 +924,25 @@ utils:
         has:
           field: source
           regex: ^["']@radix-ui/
+  # A class on an element that sets its own `data-state`, such as an app's own
+  # component. Mantle did not write that value, so the class keeps matching it
+  # through the bracket form.
+  own-state-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          kind: jsx_attribute
+          has:
+            kind: property_identifier
+            regex: ^data-state$
   # A class on a part whose name ends in `Trigger`: the trigger now carries
   # `aria-expanded`, not `data-state`.
   trigger-class:
@@ -965,9 +1081,9 @@ transform:
       by: "data-highlighted${1}:"
 fix: $T11
 ---
-id: class-variant
+id: class-variant-own-state
 language: tsx
-message: mantle registers no data-* custom variants; state variants follow the mantle data attribute contract
+message: an element that sets its own data-state keeps matching it through the bracket form
 utils:
   # A file that imports Radix renders Radix's own `data-state` values, so its
   # classes keep matching them through the bracket form.
@@ -980,6 +1096,25 @@ utils:
         has:
           field: source
           regex: ^["']@radix-ui/
+  # A class on an element that sets its own `data-state`, such as an app's own
+  # component. Mantle did not write that value, so the class keeps matching it
+  # through the bracket form.
+  own-state-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          kind: jsx_attribute
+          has:
+            kind: property_identifier
+            regex: ^data-state$
   # A class on a part whose name ends in `Trigger`: the trigger now carries
   # `aria-expanded`, not `data-state`.
   trigger-class:
@@ -1059,6 +1194,191 @@ rule:
   all:
     - not:
         matches: radix-file
+    - matches: own-state-class
+    - not:
+        matches: trigger-class
+    - not:
+        matches: select-item-class
+    - not:
+        matches: checkbox-item-class
+    - not:
+        matches: tab-list-class
+transform:
+  # Why only an unprefixed variant: the element's own data-state is what it
+  # reads. A group- or peer- variant reads another element, so the general map
+  # below rewrites it.
+  T1:
+    replace:
+      source: $F
+      replace: '(^|[\s:])data-state-([a-z]+)(/[\w-]+)?:'
+      by: "${1}data-[state~=${2}]${3}:"
+  T2:
+    replace:
+      source: $T1
+      replace: '\bdata-state-open(/[\w-]+)?:'
+      by: "data-open${1}:"
+  T3:
+    replace:
+      source: $T2
+      replace: '\bdata-state-closed(/[\w-]+)?:'
+      by: "not-data-open${1}:"
+  T4:
+    replace:
+      source: $T3
+      replace: '\bdata-state-checked(/[\w-]+)?:'
+      by: "aria-checked${1}:"
+  T5:
+    replace:
+      source: $T4
+      replace: '\bdata-state-unchecked(/[\w-]+)?:'
+      by: "not-aria-checked${1}:"
+  T6:
+    replace:
+      source: $T5
+      replace: '\bdata-state-active(/[\w-]+)?:'
+      by: "aria-selected${1}:"
+  T7:
+    replace:
+      source: $T6
+      replace: '\bdata-state-selected(/[\w-]+)?:'
+      by: "data-selected${1}:"
+  T8:
+    replace:
+      source: $T7
+      replace: '\bdata-state-indeterminate(/[\w-]+)?:'
+      by: "data-indeterminate${1}:"
+  T9:
+    replace:
+      source: $T8
+      replace: '\bdata-state-(inactive|idle|pending|submitting)(/[\w-]+)?:'
+      by: "data-[state~=${1}]${2}:"
+  T10:
+    replace:
+      source: $T9
+      replace: '\bdata-(side|orientation|validation)-([a-z]+)(/[\w-]+)?:'
+      by: "data-[${1}=${2}]${3}:"
+  T11:
+    replace:
+      source: $T10
+      replace: '\bdata-active-item(/[\w-]+)?:'
+      by: "data-highlighted${1}:"
+fix: $T11
+---
+id: class-variant
+language: tsx
+message: mantle registers no data-* custom variants; state variants follow the mantle data attribute contract
+utils:
+  # A file that imports Radix renders Radix's own `data-state` values, so its
+  # classes keep matching them through the bracket form.
+  radix-file:
+    inside:
+      stopBy: end
+      kind: program
+      has:
+        kind: import_statement
+        has:
+          field: source
+          regex: ^["']@radix-ui/
+  # A class on an element that sets its own `data-state`, such as an app's own
+  # component. Mantle did not write that value, so the class keeps matching it
+  # through the bracket form.
+  own-state-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          kind: jsx_attribute
+          has:
+            kind: property_identifier
+            regex: ^data-state$
+  # A class on a part whose name ends in `Trigger`: the trigger now carries
+  # `aria-expanded`, not `data-state`.
+  trigger-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Trigger$
+  # A class on a Select item, which carries `aria-selected`, not `aria-checked`.
+  select-item-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Select\.Item$
+  # A class on a menu checkbox item, which marks indeterminate with `aria-checked="mixed"`.
+  checkbox-item-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: CheckboxItem$
+  # A class on a tab list, which carries `aria-orientation`, not `data-orientation`.
+  tab-list-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Tabs\.List$
+  # A class inside a trigger's children, where a `group-` variant reads the trigger.
+  trigger-child-class:
+    inside:
+      stopBy: end
+      kind: jsx_element
+      has:
+        field: open_tag
+        kind: jsx_opening_element
+        has:
+          field: name
+          regex: Trigger$
+rule:
+  kind: string_fragment
+  regex: '\bdata-(state-(open|closed|checked|unchecked|active|inactive|selected|indeterminate|idle|pending|submitting)|side-(top|right|bottom|left)|orientation-(horizontal|vertical)|validation-(success|warning|error)|active-item)(/[\w-]+)?:'
+  pattern: $F
+  all:
+    - not:
+        matches: radix-file
+    - not:
+        matches: own-state-class
     - not:
         matches: trigger-class
     - not:

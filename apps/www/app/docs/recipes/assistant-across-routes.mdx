@@ -1,6 +1,6 @@
 ---
 title: Assistant Across Routes
-description: Render an assistant in main on its own route and in the AppLayout side panel on every other route, with one conversation above both and a 300ms View Transition that morphs the page into the panel.
+description: Render an assistant in main on its own route and in the AppLayout side panel on every other route, with one conversation above both, a 300ms View Transition that morphs the page into the panel, and the reader's place kept across the switch.
 layout: full
 useWhen: Show an assistant as its own page on one route and in the side panel on every other route, with one conversation for both.
 parts: [AppLayout, Sidebar, TextArea, LiveRegion]
@@ -15,7 +15,8 @@ An assistant has two homes. On its own route the conversation is the page: it fi
 its transcript is the `main` landmark. On every other route it is a companion beside the page, in
 [`AppLayout.SidePanel`](/layouts/app-layout#side-panel), the `complementary` landmark. This recipe renders
 one conversation in both, keeps it in one store above the shell, and runs a View Transition when a
-navigation crosses between them, so the page folds into the panel with the reply still streaming.
+navigation crosses between them, so the page folds into the panel with the reply still streaming and the
+same text at the top of the transcript.
 
 Start a conversation, then click Endpoints. Click Assistant to bring it back.
 
@@ -23,9 +24,9 @@ Start a conversation, then click Endpoints. Click Assistant to bring it back.
 
 > [!NOTE]
 > The demo fakes its router, because a preview is a document inside this site's own router and React
-> Router permits one router per tree. It keeps a pathname in state and calls
-> `document.startViewTransition` itself on a crossing, which is the one call React Router's
-> `viewTransition` makes for you. The pieces below are the real ones; only the shell's links differ.
+> Router permits one router per tree. It keeps a pathname in state and sets it inside `startTransition`,
+> which is what React Router does with every navigation. The pieces below are the real ones; only the
+> shell's links differ.
 
 ## Why the aside never becomes the page
 
@@ -48,6 +49,13 @@ owns the messages, the composer's draft, and the reply in flight, on a timer the
 change unmounts one home and mounts the other. Both read the same store, so the transcript, the half-typed
 draft, and the streaming reply are all there in the new home, and the View Transition hides the remount.
 
+The reader's place persists too. The provider holds a `scrollAnchorRef`, and the transcript passes it to
+[`useScrollAnchor`](/hooks#usescrollanchor) on its list of messages. When the old home unmounts, the hook
+writes down which text is at the top edge of the scroll region; when the new home mounts, it scrolls that
+text back to the top edge before the first paint, at the new width. The browser snapshots the new home
+already in place, so the morph does not jump. A new message drops the place, and the transcript skips
+its scroll to the newest message on mount, or that scroll would override the place.
+
 Put the provider above every shell the conversation must survive. A dashboard whose settings zone renders
 a shell of its own loses an in-memory conversation at that crossing unless the provider sits above both.
 
@@ -59,18 +67,18 @@ app/routes/layouts/app.tsx                     the layout route that owns the sh
 └── AppLayout.SidePanelRoot                    open state, read from the cookie in the loader
     └── Sidebar.Root                           yields its width while the panel needs the lane
         └── AppLayout.Workspace
-            ├── Sidebar.Nav                    <Link viewTransition={crossesAssistant(pathname, to)}>
-            ├── AppLayout.Content              named on /assistant
+            ├── Sidebar.Nav                    <Link to={item.path}>, committed in startTransition
+            ├── AssistantContentCard           AppLayout.Content in a <ViewTransition>, named on /assistant
             │   └── <Outlet />
             │       └── AssistantPage          /assistant: the toolbar, main, the composer
-            └── AssistantPanel                 every other route: the aside, named while open
+            └── AssistantPanel                 every other route: the aside in a named <ViewTransition>
 ```
 
 ## The route decides
 
-The shell reads the pathname once and makes three decisions from it: whether the content card is named,
-whether the panel renders, and which links run the transition. Here is a react-router 7 layout route,
-complete as written:
+The shell reads the pathname once and makes two decisions from it: whether the content card carries the
+assistant's name, and whether the panel renders. Here is a React Router 8 layout route, complete as
+written:
 
 ```tsx
 // app/routes/layouts/app.tsx
@@ -79,7 +87,6 @@ import {
 	extractSidePanelStateCookie,
 	serializeSidePanelStateCookie,
 } from "@ngrok/mantle/app-layout";
-import { cx } from "@ngrok/mantle/cx";
 import {
 	extractSidebarStateCookie,
 	serializeSidebarStateCookie,
@@ -92,10 +99,9 @@ import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
 import { useEffect } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import {
+	AssistantContentCard,
 	AssistantPanel,
 	assistantPath,
-	assistantViewTransitionClassName,
-	crossesAssistant,
 	isAssistantPath,
 } from "~/features/assistant-across-routes/assistant-across-routes";
 import { AssistantConversationProvider } from "~/features/assistant-across-routes/assistant-conversation";
@@ -154,10 +160,7 @@ export default function Layout({ loaderData }: Route.ComponentProps) {
 												<Sidebar.Item key={item.path}>
 													<Sidebar.Tooltip label={item.label}>
 														<Sidebar.ItemButton asChild current={pathname === item.path}>
-															<Link
-																to={item.path}
-																viewTransition={crossesAssistant(pathname, item.path)}
-															>
+															<Link to={item.path}>
 																{item.icon}
 																{item.label}
 															</Link>
@@ -169,11 +172,9 @@ export default function Layout({ loaderData }: Route.ComponentProps) {
 									</Sidebar.Group>
 								</Sidebar.Body>
 							</Sidebar.Nav>
-							<AppLayout.Content
-								className={cx(onAssistantPage && assistantViewTransitionClassName)}
-							>
+							<AssistantContentCard onAssistantPage={onAssistantPage}>
 								<Outlet />
-							</AppLayout.Content>
+							</AssistantContentCard>
 							{!onAssistantPage && <AssistantPanel />}
 						</AppLayout.Workspace>
 					</AppLayout.Root>
@@ -202,9 +203,10 @@ export default function AssistantRoute() {
 
 Three rules keep the transition running:
 
-- **Name exactly one element per state.** The content card carries `assistantViewTransitionClassName`
-  only on the assistant's route, and the panel carries it only while open. If two elements share a
-  `view-transition-name` in one state, the browser skips the whole transition and logs nothing.
+- **Name exactly one element per state.** `AssistantContentCard` names the card
+  `assistantViewTransitionName` only on the assistant's route, and `AssistantPanel` names the panel on
+  every other route. React morphs a name from the boundary that unmounts to the one that mounts. If two
+  mounted boundaries share a name, React warns and the browser skips the whole transition.
   `isAssistantPath` reads the pathname the way the router matches it, decoded and case-insensitive, so
   `/Assistant` never renders the page and the panel together.
 - **Do not render the panel on the assistant's route.** A closed panel is still an `<aside>` with the
@@ -216,31 +218,36 @@ Three rules keep the transition running:
 
 The panel mounts open when the reader leaves the assistant's route, so its own 200ms slide never runs:
 there is no closed state to slide from. The morph is the only animation. The same holds in reverse: the
-panel unmounts, and the page is named. Nothing merges `transition-none`.
+panel unmounts, and the page is named. Nothing merges `transition-none`. A closed panel's boundary
+does not animate, so leaving the assistant's route with the panel closed fades the page out instead of
+folding the conversation into a box with no width.
 
 ## The link
 
-Pass `viewTransition` on a crossing and on nothing else:
+A link needs nothing:
 
 ```tsx
 <Sidebar.ItemButton asChild current={pathname === item.path}>
-	<Link to={item.path} viewTransition={crossesAssistant(pathname, item.path)}>
+	<Link to={item.path}>
 		{item.icon}
 		{item.label}
 	</Link>
 </Sidebar.ItemButton>
 ```
 
-`crossesAssistant` is true when one side of the navigation is the assistant's route and the other is not.
-A navigation between two product pages is the most frequent thing a reader does in a dashboard, many
-times a day, and it gets no animation at all: the page swaps in one frame, as it does today. The crossing
-is occasional, so it gets the standard animation. Nothing here is rare enough to earn more.
+React Router 8 commits every navigation inside `startTransition`, and React runs a View Transition for a
+transition that mounts or unmounts a `<ViewTransition>` boundary. A crossing does both: the card
+remounts under a new key, and the panel mounts or unmounts. Back and Forward are navigations too, so they
+cross the same way.
 
-`useViewTransitionState` is not needed. The names are static, and a link runs the transition only on a
-crossing. History is the one exception: React Router remembers which entries arrived with
-`viewTransition` and runs the transition again on Back and Forward to them. Between two product pages
-that is a 300ms crossfade of the page with no morph, because both states name the panel in the same
-place.
+A navigation between two product pages is the most frequent thing a reader does in a dashboard, many
+times a day, and it gets no animation at all: the card keeps its key, both boundaries set
+`update="none"`, and the page swaps in one frame, as it does today. The crossing is occasional, so it
+gets the standard animation. Nothing here is rare enough to earn more.
+
+Leave out React Router's `viewTransition` prop and `useViewTransitionState`. The prop starts a
+transition of the whole document around every navigation it is on, and the boundaries already decide
+what animates.
 
 ## Duration
 
@@ -255,36 +262,13 @@ set for any UI animation.
 | Modals, drawers                   | 200–300ms |
 | Page transitions                  | 300–400ms |
 
-The browser's default is 250ms with `ease`. The stylesheet below sets the group named `assistant` and the
-`root` crossfade to 300ms on mantle's `--ease-out-strong`, the curve the panel's own slide uses. Under
-`prefers-reduced-motion: reduce` every View Transition is a cut, the same as every `motion-reduce:` rule
-in mantle. Import it from your app's stylesheet:
-
-```css
-/*
- * The assistant's view transition is a page transition, so it runs for 300ms:
- * the floor of the 300–400ms band for page transitions, and the ceiling for a
- * UI animation. The group is the element named `assistant`; `root` is the rest
- * of the page, which crossfades underneath it on the same clock.
- */
-::view-transition-group(assistant),
-::view-transition-old(assistant),
-::view-transition-new(assistant),
-::view-transition-old(root),
-::view-transition-new(root) {
-	animation-duration: 300ms;
-	animation-timing-function: var(--ease-out-strong);
-}
-
-/* A cut, the same as every `motion-reduce:` rule in mantle. */
-@media (prefers-reduced-motion: reduce) {
-	::view-transition-group(*),
-	::view-transition-old(*),
-	::view-transition-new(*) {
-		animation: none;
-	}
-}
-```
+Mantle owns these numbers. `AppLayout.Content` and `AppLayout.SidePanel` both carry
+`view-transition-class: app-layout-card`, and `mantle.css` styles that class: 300ms on mantle's
+ease-out-strong curve, the curve the panel's own slide uses, with the frame clipped to the card's rounded
+corners and each snapshot at its own width, so the text crossfades instead of stretching. Under
+`prefers-reduced-motion: reduce` the morph is a cut, the same as every `motion-reduce:` rule in mantle.
+There is no stylesheet to import. The class does nothing until a card has a name, so a page that names no
+card never takes part.
 
 ## Server rendering
 
@@ -330,20 +314,19 @@ The demo narrows both to `md`; most apps keep the `lg` default.
 
 ## The files
 
-Two files to copy, and the stylesheet above. `assistant-across-routes.tsx` is the two homes, the sidebar
-that yields to the panel, and the two path helpers; nothing in it touches the router.
+Two files to copy. `assistant-across-routes.tsx` is the two homes, the content card, and the path
+helpers; nothing in it touches the router.
 `assistant-conversation.tsx` is the store and the two pieces of chat UI; nothing in it knows where it
 renders.
 
 ````tsx
 import { AppLayout, useSidePanel } from "@ngrok/mantle/app-layout";
 import { IconButton } from "@ngrok/mantle/button";
-import { cx } from "@ngrok/mantle/cx";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { Tooltip } from "@ngrok/mantle/tooltip";
 import { PencilSimpleLineIcon } from "@phosphor-icons/react/PencilSimpleLine";
 import { XIcon } from "@phosphor-icons/react/X";
-import type { ComponentProps } from "react";
+import { type ComponentProps, type ReactNode, ViewTransition } from "react";
 import {
 	AssistantComposer,
 	AssistantTranscript,
@@ -389,28 +372,51 @@ function isAssistantPath(pathname: string): boolean {
 }
 
 /**
- * Returns true when a navigation enters or leaves the assistant's route. Those
- * are the only navigations that move the conversation between `main` and the
- * panel, so they are the only ones that run the view transition.
- *
- * @example
- * ```ts
- * crossesAssistant("/assistant", "/endpoints"); // true
- * crossesAssistant("/endpoints", "/domains"); // false
- * ```
+ * The `<ViewTransition>` name the assistant's two homes share.
+ * `AssistantContentCard` gives it to `AppLayout.Content` on the assistant's
+ * route, and `AssistantPanel` gives it to the open panel on every other route,
+ * so each state names exactly one element and React morphs the one into the
+ * other. Mantle styles the morph: both cards carry
+ * `view-transition-class: app-layout-card`.
  */
-function crossesAssistant(from: string, to: string): boolean {
-	return isAssistantPath(from) !== isAssistantPath(to);
-}
+const assistantViewTransitionName = "assistant";
 
 /**
- * The `view-transition-name` the assistant's two homes share, as a class.
- * `AppLayout.Content` carries it on the assistant route and the open panel
- * carries it on every other route, so each state names exactly one element.
- * A name on two elements at once makes the browser skip the whole transition.
- * `assistant-view-transition.css` times the group by this name.
+ * The shell's content card. On the assistant's route it carries the
+ * assistant's view transition name, so the page morphs into the panel when the
+ * reader leaves. Elsewhere it has no name, so the page fades out under the
+ * assistant as it grows and fades back in as it shrinks: React does not
+ * crossfade the rest of the document on its own.
+ *
+ * Why the key: React morphs a name only from a boundary that unmounts to one
+ * that mounts, so the card remounts when a navigation crosses the assistant's
+ * route. `update="none"`: a navigation between two product pages does not fade.
+ *
+ * @example
+ * ```tsx
+ * <AssistantContentCard onAssistantPage={isAssistantPath(pathname)}>
+ *   <Outlet />
+ * </AssistantContentCard>
+ * ```
  */
-const assistantViewTransitionClassName = "[view-transition-name:assistant]";
+function AssistantContentCard({
+	onAssistantPage,
+	children,
+}: {
+	/** True on the assistant's route. Read it with `isAssistantPath`. */
+	onAssistantPage: boolean;
+	children: ReactNode;
+}) {
+	return (
+		<ViewTransition
+			key={onAssistantPage ? "assistant" : "page"}
+			name={onAssistantPage ? assistantViewTransitionName : undefined}
+			update="none"
+		>
+			<AppLayout.Content>{children}</AppLayout.Content>
+		</ViewTransition>
+	);
+}
 
 /** The control that starts a new conversation, in both headers. */
 function NewConversationButton() {
@@ -489,9 +495,9 @@ function AssistantPage() {
  * ```tsx
  * <AppLayout.Workspace>
  *   <Sidebar.Nav aria-label="Main">…</Sidebar.Nav>
- *   <AppLayout.Content className={cx(onAssistantPage && assistantViewTransitionClassName)}>
+ *   <AssistantContentCard onAssistantPage={onAssistantPage}>
  *     <Outlet />
- *   </AppLayout.Content>
+ *   </AssistantContentCard>
  *   {!onAssistantPage && <AssistantPanel />}
  * </AppLayout.Workspace>
  * ```
@@ -505,35 +511,38 @@ function AssistantPanel({
 	const { open } = useSidePanel();
 
 	return (
-		<AppLayout.SidePanel
-			aria-label="Assistant"
-			mobileBreakpoint={mobileBreakpoint}
-			// Why only when open: a closed panel is a zero-width box, and a morph
+		<ViewTransition
+			name={assistantViewTransitionName}
+			// Why "none" when closed: a closed panel is a zero-width box, and a morph
 			// from the page into it reads as the conversation folding into nothing.
-			className={cx(open && assistantViewTransitionClassName)}
+			default={open ? "auto" : "none"}
+			// Why: a reply that streams inside the panel must not fade it.
+			update="none"
 		>
-			<AppLayout.SidePanelHeader>
-				<h2 className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</h2>
-				<NewConversationButton />
-				<AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
-			</AppLayout.SidePanelHeader>
-			<AppLayout.SidePanelBody>
-				<AssistantTranscript />
-			</AppLayout.SidePanelBody>
-			<AppLayout.SidePanelFooter>
-				<AssistantComposer />
-			</AppLayout.SidePanelFooter>
-		</AppLayout.SidePanel>
+			<AppLayout.SidePanel aria-label="Assistant" mobileBreakpoint={mobileBreakpoint}>
+				<AppLayout.SidePanelHeader>
+					<h2 className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</h2>
+					<NewConversationButton />
+					<AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
+				</AppLayout.SidePanelHeader>
+				<AppLayout.SidePanelBody>
+					<AssistantTranscript />
+				</AppLayout.SidePanelBody>
+				<AppLayout.SidePanelFooter>
+					<AssistantComposer />
+				</AppLayout.SidePanelFooter>
+			</AppLayout.SidePanel>
+		</ViewTransition>
 	);
 }
 
 export {
 	//,
+	AssistantContentCard,
 	AssistantPage,
 	AssistantPanel,
 	assistantPath,
-	assistantViewTransitionClassName,
-	crossesAssistant,
+	assistantViewTransitionName,
 	isAssistantPath,
 };
 ````
@@ -541,6 +550,7 @@ export {
 ````tsx
 import { Button, IconButton } from "@ngrok/mantle/button";
 import { cx } from "@ngrok/mantle/cx";
+import { type ScrollAnchor, useScrollAnchor } from "@ngrok/mantle/hooks";
 import { Icon } from "@ngrok/mantle/icon";
 import { LiveRegion } from "@ngrok/mantle/live-region";
 import { TextArea } from "@ngrok/mantle/text-area";
@@ -559,6 +569,7 @@ import {
 	useRef,
 	useState,
 	type ReactNode,
+	type RefObject,
 } from "react";
 
 /** One turn of the conversation. */
@@ -579,6 +590,11 @@ type AssistantConversation = {
 	draft: string;
 	/** True from a send until the reply has arrived in full. */
 	isReplying: boolean;
+	/**
+	 * The reader's place in the transcript. Held here so a route change keeps
+	 * it: the transcript passes it to `useScrollAnchor` in each home.
+	 */
+	scrollAnchorRef: RefObject<ScrollAnchor | null>;
 	setDraft: (draft: string) => void;
 	/**
 	 * Appends the user's message and starts the reply. Returns `false`, and
@@ -665,6 +681,7 @@ function AssistantConversationProvider({ children }: { children: ReactNode }) {
 	const [messages, setMessages] = useState<ReadonlyArray<AssistantMessage>>([]);
 	const [draft, setDraft] = useState("");
 	const [isReplying, setIsReplying] = useState(false);
+	const scrollAnchorRef = useRef<ScrollAnchor | null>(null);
 	const replyTimer = useRef<number | null>(null);
 	const replyCount = useRef(0);
 
@@ -720,7 +737,7 @@ function AssistantConversationProvider({ children }: { children: ReactNode }) {
 	}, [stopReply]);
 
 	const conversation = useMemo<AssistantConversation>(
-		() => ({ messages, draft, isReplying, setDraft, send, reset }),
+		() => ({ messages, draft, isReplying, scrollAnchorRef, setDraft, send, reset }),
 		[messages, draft, isReplying, send, reset],
 	);
 
@@ -780,13 +797,21 @@ function AssistantTranscript({
 	/** Runs after a starter prompt is accepted. The assistant's page opens the companion here. */
 	onSend?: () => void;
 }) {
-	const { messages, isReplying, send } = useAssistantConversation();
+	const { messages, isReplying, scrollAnchorRef, send } = useAssistantConversation();
 	const endRef = useRef<HTMLDivElement>(null);
+	// Why: each home mounts its own transcript at its own width. The list writes
+	// the reader's place to the conversation when it detaches, and the next home
+	// scrolls back to it before its first paint. A new message drops the place.
+	const anchorList = useScrollAnchor({ anchorRef: scrollAnchorRef, key: messages.at(-1)?.id });
+	// The messages the transcript mounted with. A host that mounts mid-
+	// conversation keeps the reader's place (`useScrollAnchor`), so only a
+	// change after the mount scrolls to the end.
+	const mountedMessages = useRef(messages);
 
 	// Why an effect: the newest text must stay in view while a reply grows. The
 	// scroll region is the host's, so the sentinel finds it and scrolls it.
 	useEffect(() => {
-		if (messages.length > 0 && endRef.current != null) {
+		if (messages !== mountedMessages.current && messages.length > 0 && endRef.current != null) {
 			scrollHostToEnd(endRef.current);
 		}
 	}, [messages]);
@@ -847,7 +872,10 @@ function AssistantTranscript({
 	return (
 		<>
 			{announcer}
-			<div className="@container mx-auto flex w-full max-w-3xl flex-col gap-4 p-4 @2xl:p-6">
+			<div
+				ref={anchorList}
+				className="@container mx-auto flex w-full max-w-3xl flex-col gap-4 p-4 @2xl:p-6"
+			>
 				{messages.map((message) =>
 					message.role === "user" ? (
 						<div key={message.id} className="flex justify-end">
@@ -984,9 +1012,6 @@ import { userEvent } from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	AssistantPage,
-	AssistantPanel,
-	assistantViewTransitionClassName,
-	crossesAssistant,
 	isAssistantPath,
 } from "~/features/assistant-across-routes/assistant-across-routes";
 import {
@@ -1022,17 +1047,6 @@ describe("isAssistantPath", () => {
 		["/endpoints", false],
 	])("%s → %s", (pathname, expected) => {
 		expect(isAssistantPath(pathname)).toBe(expected);
-	});
-});
-
-describe("crossesAssistant", () => {
-	it.each([
-		["/assistant", "/endpoints", true],
-		["/endpoints", "/assistant", true],
-		["/endpoints", "/domains", false],
-		["/assistant", "/assistant/c_123", false],
-	])("%s → %s crosses: %s", (from, to, expected) => {
-		expect(crossesAssistant(from, to)).toBe(expected);
 	});
 });
 
@@ -1160,36 +1174,6 @@ describe("AssistantPage", () => {
 		await user.click(screen.getByRole("button", { name: firstStarter }));
 
 		expect(trigger.getAttribute("aria-expanded")).toBe("true");
-	});
-});
-
-describe("AssistantPanel", () => {
-	function renderPanel({ open }: { open: boolean }) {
-		render(
-			<TooltipProvider>
-				<AssistantConversationProvider>
-					<AppLayout.SidePanelRoot defaultOpen={open}>
-						<AssistantPanel />
-					</AppLayout.SidePanelRoot>
-				</AssistantConversationProvider>
-			</TooltipProvider>,
-		);
-		return screen.getByRole("complementary", { name: "Assistant" });
-	}
-
-	// Why a class assertion: the name is a contract that crosses files. The
-	// assistant route puts the same class on `AppLayout.Content`, and
-	// `assistant-view-transition.css` times `::view-transition-group(assistant)`.
-	it("names the open panel for the view transition", () => {
-		const panel = renderPanel({ open: true });
-		expect(panel.classList.contains(assistantViewTransitionClassName)).toBe(true);
-	});
-
-	// Why assert the absence: a named closed panel beside a named page is the
-	// one duplicate that makes the browser skip the transition.
-	it("leaves the closed panel unnamed", () => {
-		const panel = renderPanel({ open: false });
-		expect(panel.classList.contains(assistantViewTransitionClassName)).toBe(false);
 	});
 });
 ```

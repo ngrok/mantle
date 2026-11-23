@@ -2,7 +2,6 @@ import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Badge } from "@ngrok/mantle/badge";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { Button } from "@ngrok/mantle/button";
-import { cx } from "@ngrok/mantle/cx";
 import { Sidebar, useSidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { Table } from "@ngrok/mantle/table";
@@ -10,14 +9,12 @@ import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWe
 import { GraphIcon } from "@phosphor-icons/react/Graph";
 import { PlusIcon } from "@phosphor-icons/react/Plus";
 import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
-import { useState, type ReactNode } from "react";
-import { flushSync } from "react-dom";
+import { startTransition, useState, type ReactNode } from "react";
 import {
+	AssistantContentCard,
 	AssistantPage,
 	AssistantPanel,
 	assistantPath,
-	assistantViewTransitionClassName,
-	crossesAssistant,
 	isAssistantPath,
 } from "~/features/assistant-across-routes/assistant-across-routes";
 import { AssistantConversationProvider } from "~/features/assistant-across-routes/assistant-conversation";
@@ -25,8 +22,10 @@ import { AssistantConversationProvider } from "~/features/assistant-across-route
 /*
  * Navigation in this demo is a FAKE ROUTER, because a preview renders inside
  * the docs app's router and React Router permits one router per tree. A real
- * app renders react-router's `Link` through `Sidebar.ItemButton`'s `asChild`,
- * reads `useLocation()`, and passes `viewTransition` on a crossing.
+ * app renders react-router's `Link` through `Sidebar.ItemButton`'s `asChild`
+ * and reads `useLocation()`. React Router commits every navigation inside
+ * `startTransition`, and this demo does the same, so the `<ViewTransition>`
+ * boundaries animate the crossing in both.
  */
 
 type DemoNavItem = {
@@ -261,21 +260,11 @@ export function AssistantAcrossRoutesDemo() {
 	const onAssistantPage = isAssistantPath(pathname);
 
 	const navigate = (to: string) => {
-		if (to === pathname) {
-			return;
-		}
-		// What react-router's `viewTransition` does: a crossing commits inside
-		// `startViewTransition`, so the browser snapshots both states and morphs
-		// the named element between them. Every other navigation is a plain update.
-		if (crossesAssistant(pathname, to) && typeof document.startViewTransition === "function") {
-			document.startViewTransition(() => {
-				flushSync(() => {
-					setPathname(to);
-				});
-			});
-			return;
-		}
-		setPathname(to);
+		// What React Router does with every navigation: a transition, so the
+		// `<ViewTransition>` boundaries that a crossing mounts and unmounts animate.
+		startTransition(() => {
+			setPathname(to);
+		});
 	};
 
 	return (
@@ -289,13 +278,11 @@ export function AssistantAcrossRoutesDemo() {
 						<SkipToMainLink />
 						<AppLayout.Workspace>
 							<DemoNav pathname={pathname} onNavigate={navigate} />
-							<AppLayout.Content
-								className={cx(onAssistantPage && assistantViewTransitionClassName)}
-							>
+							<AssistantContentCard onAssistantPage={onAssistantPage}>
 								{onAssistantPage && <AssistantPage />}
 								{pathname === "/endpoints" && <DemoEndpointsPage />}
 								{pathname === "/domains" && <DemoDomainsPage />}
-							</AppLayout.Content>
+							</AssistantContentCard>
 							{!onAssistantPage && <AssistantPanel mobileBreakpoint="md" />}
 						</AppLayout.Workspace>
 					</AppLayout.Root>

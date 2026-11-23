@@ -23,6 +23,8 @@ updates:
           - "@vitest/browser-playwright"
 
   - package-ecosystem: "github-actions"
-    directory: "/"
+    directories:
+      - "/"
+      - "/.github/actions/vitest-module-cache-key"
     schedule:
       interval: "daily"

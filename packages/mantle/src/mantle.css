@@ -2180,6 +2180,44 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 }
 
 /*
+ * The morph between `AppLayout.Content` and `AppLayout.SidePanel`. Both carry
+ * `view-transition-class: app-layout-card`, so a surface that is the page on
+ * one route and the panel on the others morphs between them once the app
+ * gives both the same `view-transition-name`. A class does nothing without a
+ * name, so an unnamed card never takes part.
+ *
+ * It is a page transition, so it runs for 300ms, on ease-out-strong. The frame
+ * clips its snapshots at the card's radius. Each snapshot keeps its own width
+ * at the frame's top-start corner: a 24rem panel stretched across the page
+ * reads as a zoom of blurred text. Reduced motion makes it a cut.
+ */
+::view-transition-group(*.app-layout-card),
+::view-transition-old(*.app-layout-card),
+::view-transition-new(*.app-layout-card) {
+	animation-duration: 300ms;
+	/* ease-out-strong: `@theme inline` emits no variable for the token. */
+	animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+::view-transition-group(*.app-layout-card) {
+	overflow: clip;
+	border-radius: var(--radius-xl, 0.75rem);
+}
+
+::view-transition-old(*.app-layout-card),
+::view-transition-new(*.app-layout-card) {
+	width: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-group(*.app-layout-card),
+	::view-transition-old(*.app-layout-card),
+	::view-transition-new(*.app-layout-card) {
+		animation: none;
+	}
+}
+
+/*
  * The new snapshot is live, so a color transition would fade inside the circle
  * while the rest of the page shows the new theme. The swap cancels those
  * transitions in script. On a page that holds many transitions it sets this
