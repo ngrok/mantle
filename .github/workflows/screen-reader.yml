@@ -8,7 +8,8 @@ name: Screen Reader Check
 #   uses Guidepup's virtual reader plus Chromium's accessibility tree, about
 #   6 minutes on ubuntu-latest.
 # - `real` drives NVDA (Windows, Chromium) and VoiceOver (macOS, WebKit) on the
-#   PR head and on the last release, and diffs them. It runs on the weekly
+#   PR head and on the last release, and diffs them. A Linux job builds both
+#   docs sites for them. It runs on the weekly
 #   schedule, on a manual run, and on a PR with the `screen-reader` label.
 #
 # To make a job blocking later, remove `continue-on-error` and pass `--strict`
@@ -88,11 +89,66 @@ jobs:
           name: screen-reader-virtual
           path: /tmp/virtual.json
 
-  real:
+  # Why a Linux build for the real readers: the package scripts are POSIX shell, so the
+  # docs site does not build on Windows. The readers serve these builds.
+  build:
     if: >-
       github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||
       contains(github.event.pull_request.labels.*.name, 'screen-reader')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    outputs:
+      base: ${{ steps.base.outputs.ref }}
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve the base ref 🏷️
+        id: base
+        env:
+          INPUT_BASE: ${{ inputs.base }}
+        run: |
+          base="${INPUT_BASE:-$(git tag --list '@ngrok/mantle@*' --sort=-v:refname | head -n 1)}"
+          echo "ref=$base" >> "$GITHUB_OUTPUT"
+          git worktree add base "$base"
+
+      - name: Install pnpm 📦
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: Build both docs sites 🏗️
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec turbo run build --filter=@app/www
+          cd base
+          pnpm install --frozen-lockfile
+          pnpm exec turbo run build --filter=@app/www
+
+      - name: Upload the builds 📤
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: docs-builds
+          path: |
+            apps/www/build
+            packages/*/dist
+            base/apps/www/build
+            base/packages/*/dist
+
+  real:
+    needs: build
     strategy:
       fail-fast: false
       matrix:
@@ -107,9 +163,6 @@ jobs:
     defaults:
       run:
         shell: bash
-    env:
-      # Why: the package scripts are POSIX shell (`NODE_OPTIONS=… tsdown`, `rm -rf`), and pnpm uses cmd.exe on Windows.
-      npm_config_script_shell: ${{ matrix.reader == 'nvda' && 'C:\Program Files\Git\bin\bash.exe' || '' }}
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -118,15 +171,8 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Resolve the base ref 🏷️
-        id: base
-        run: |
-          base="${{ inputs.base }}"
-          if [[ -z "$base" ]]; then
-            base="$(git tag --list '@ngrok/mantle@*' --sort=-v:refname | head -n 1)"
-          fi
-          echo "ref=$base" >> "$GITHUB_OUTPUT"
-          git worktree add ../base "$base"
+      - name: Check out the base 🏷️
+        run: git worktree add base "${{ needs.build.outputs.base }}"
 
       - name: Install pnpm 📦
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
@@ -139,15 +185,16 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: "pnpm-lock.yaml"
 
+      # Why --ignore-scripts: the install scripts are POSIX shell, and the builds come from Linux.
       - name: Install Dependencies 📥
         run: |
-          pnpm install --frozen-lockfile
-          (cd ../base && pnpm install --frozen-lockfile)
+          pnpm install --frozen-lockfile --ignore-scripts
+          (cd base && pnpm install --frozen-lockfile --ignore-scripts)
 
-      - name: Build both docs sites 🏗️
-        run: |
-          pnpm exec turbo run build --filter=@app/www
-          (cd ../base && pnpm exec turbo run build --filter=@app/www)
+      - name: Download the builds 📥
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: docs-builds
 
       - name: Set up the screen reader 🔧
         working-directory: apps/www
@@ -160,13 +207,13 @@ jobs:
         working-directory: apps/www
         run: |
           (PORT=4001 NODE_ENV=production pnpm exec app-server serve > "$GITHUB_WORKSPACE/serve-head.log" 2>&1 &)
-          (cd ../../../base/apps/www && PORT=4002 NODE_ENV=production pnpm exec app-server serve > "$GITHUB_WORKSPACE/serve-base.log" 2>&1 &)
+          (cd ../../base/apps/www && PORT=4002 NODE_ENV=production pnpm exec app-server serve > "$GITHUB_WORKSPACE/serve-base.log" 2>&1 &)
           for port in 4001 4002; do
             for i in $(seq 90); do curl -sf -o /dev/null "http://localhost:$port/robots.txt" && break; sleep 1; done
           done
           node screen-reader/run.ts --reader=${{ matrix.reader }} --base=http://localhost:4002/ --out=../../${{ matrix.reader }}-base.json
           node screen-reader/run.ts --reader=${{ matrix.reader }} --base=http://localhost:4001/ --out=../../${{ matrix.reader }}-head.json
-          echo "Base: ${{ steps.base.outputs.ref }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Base: ${{ needs.build.outputs.base }}" >> "$GITHUB_STEP_SUMMARY"
           node screen-reader/report.ts --head=../../${{ matrix.reader }}-head.json --base=../../${{ matrix.reader }}-base.json >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload results 📤
