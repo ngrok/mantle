@@ -187,11 +187,10 @@ export function structuralVariants(token) {
 				const self = dropHasArguments(selector.slice(selfStart));
 				structuralBefore = (structuralBefore && !addsCombinator) || STRUCTURAL.test(self);
 			} else if (relative != null) {
-				// Why no `structuralBefore`: the relative selector goes in front, so the element's own compound stays last.
+				// Why `structuralBefore` stays: the relative selector goes in front, so the element's own compound stays last.
 				if (STRUCTURAL.test(dropHasArguments(relative[1] ?? ""))) {
 					found.push(variant);
 				}
-				structuralBefore = false;
 			} else if (STRUCTURAL_RELATIVE_VARIANT.test(variant)) {
 				found.push(variant);
 				structuralBefore = false;
@@ -200,7 +199,10 @@ export function structuralVariants(token) {
 					found.push(variant);
 				}
 				structuralBefore = false;
-			} else if (STRUCTURAL_SELF_VARIANT.test(variant)) {
+			} else if (
+				STRUCTURAL_SELF_VARIANT.test(variant) ||
+				(/^not-\[.+\]$/.test(variant) && STRUCTURAL.test(variant))
+			) {
 				structuralBefore = true;
 			}
 		}

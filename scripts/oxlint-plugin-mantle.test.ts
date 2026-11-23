@@ -351,6 +351,7 @@ describe("no-structural-combinator", () => {
 		"const a = `group-first:hidden`;",
 		'const a = "[&:is(tr:last-child_*)]:p-2";',
 		'cx("first:*:p-2 not-last:[&>td]:p-2 in-[tr:last-child]:p-2 group-not-first:p-2");',
+		'cx("first:group-[.x]:*:p-2 not-[:first-child]:*:p-2");',
 	])("flags %s", (source) => {
 		expect(
 			lint({ rule: "no-structural-combinator", fileName: "a.ts", source }).length,
