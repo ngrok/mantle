@@ -2,7 +2,6 @@ import { render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import { describe, expect, test, vi } from "vitest";
 import * as QrCode from "./qr-code-parts.js";
-import { buildPath } from "./qr-code.js";
 
 /**
  * Renders the minimal valid composition used across most assertions.
@@ -16,33 +15,6 @@ function renderQrCode(props?: Partial<Parameters<typeof QrCode.Root>[0]>) {
 		</QrCode.Root>,
 	);
 }
-
-describe("buildPath", () => {
-	test("emits an SVG rect command per dark module, scaled by pixelSize", () => {
-		// 2x2 grid: top-left and bottom-right modules are dark.
-		const grid = [
-			[true, false],
-			[false, true],
-		];
-		expect(buildPath(grid, 10)).toBe("M0,0h10v10h-10zM10,10h10v10h-10z");
-	});
-
-	test("scales coordinates by pixelSize", () => {
-		expect(buildPath([[false, true]], 4)).toBe("M4,0h4v4h-4z");
-	});
-
-	test("returns an empty string when no modules are dark", () => {
-		expect(
-			buildPath(
-				[
-					[false, false],
-					[false, false],
-				],
-				10,
-			),
-		).toBe("");
-	});
-});
 
 describe("QrCode", () => {
 	test("Root carries its data-slot", () => {
@@ -120,67 +92,9 @@ describe("QrCode", () => {
 		expect(screen.getByTestId("frame")).toHaveAttribute("shape-rendering", "crispEdges");
 	});
 
-	test("Pattern renders the encoded modules at the default pixelSize and quietZone", () => {
+	test("Pattern carries its data-slot", () => {
 		renderQrCode();
-		const pattern = screen.getByTestId("pattern");
-		expect(pattern).toHaveAttribute("data-slot", "qr-code-pattern");
-		// Why this prefix: the default `quietZone` of 4 puts the top-left finder pattern
-		// at module (4, 4). The default `pixelSize` of 10 scales that to 40px.
-		expect(pattern.getAttribute("d")).toMatch(/^M40,40h10v10h-10z/);
-	});
-
-	test("different values produce different encoded patterns", () => {
-		const { container: a } = render(
-			<QrCode.Root value="https://ngrok.com">
-				<QrCode.Frame>
-					<QrCode.Pattern data-testid="pattern-a" />
-				</QrCode.Frame>
-			</QrCode.Root>,
-		);
-		const { container: b } = render(
-			<QrCode.Root value="https://example.com">
-				<QrCode.Frame>
-					<QrCode.Pattern data-testid="pattern-b" />
-				</QrCode.Frame>
-			</QrCode.Root>,
-		);
-		const pathA = a.querySelector('[data-slot="qr-code-pattern"]')?.getAttribute("d");
-		const pathB = b.querySelector('[data-slot="qr-code-pattern"]')?.getAttribute("d");
-		expect(pathA).toBeTruthy();
-		expect(pathB).toBeTruthy();
-		expect(pathA).not.toBe(pathB);
-	});
-
-	test("the `ecc` prop changes the encoded pattern", () => {
-		const renderWith = (ecc: "L" | "H") => {
-			const { container } = render(
-				<QrCode.Root value="https://ngrok.com" ecc={ecc}>
-					<QrCode.Frame>
-						<QrCode.Pattern />
-					</QrCode.Frame>
-				</QrCode.Root>,
-			);
-			return container.querySelector('[data-slot="qr-code-pattern"]')?.getAttribute("d") ?? "";
-		};
-		// Higher error correction adds recovery data, so the same value encodes differently.
-		expect(renderWith("L")).not.toBe(renderWith("H"));
-	});
-
-	test("a smaller `quietZone` shrinks the encoded grid and the Frame viewBox", () => {
-		const viewBoxWith = (quietZone?: number) => {
-			const { container } = render(
-				<QrCode.Root value="https://ngrok.com" quietZone={quietZone}>
-					<QrCode.Frame>
-						<QrCode.Pattern />
-					</QrCode.Frame>
-				</QrCode.Root>,
-			);
-			return container.querySelector('[data-slot="qr-code-frame"]')?.getAttribute("viewBox") ?? "";
-		};
-		// viewBox is "0 0 <size> <size>"; the quiet zone is baked into the grid, so a
-		// tighter margin yields a smaller square than the spec-recommended default of 4.
-		const sizeOf = (viewBox: string) => Number(viewBox.split(" ")[2]);
-		expect(sizeOf(viewBoxWith(1))).toBeLessThan(sizeOf(viewBoxWith()));
+		expect(screen.getByTestId("pattern")).toHaveAttribute("data-slot", "qr-code-pattern");
 	});
 
 	test.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])(

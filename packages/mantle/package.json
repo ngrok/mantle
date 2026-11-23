@@ -29,6 +29,16 @@
 	"sideEffects": [
 		"*.css"
 	],
+	"imports": {
+		"#qr-code-encoder": {
+			"@ngrok/src-live-types": {
+				"browser": "./src/components/qr-code/qr-code-encoder.browser.ts",
+				"default": "./src/components/qr-code/qr-code-encoder.ts"
+			},
+			"browser": "./dist/qr-code-encoder.browser.js",
+			"default": "./dist/qr-code-encoder.js"
+		}
+	},
 	"exports": {
 		"./mantle.css": {
 			"@ngrok/src-live-types": "./src/mantle.css",
