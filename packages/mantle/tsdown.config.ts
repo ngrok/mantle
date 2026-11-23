@@ -99,10 +99,10 @@ const REACT_COMPILER_SOURCE_RE = /[\\/]src[\\/].+\.tsx?$/;
 const DECLARATION_MODULE_RE = /\.d\.[cm]?ts$/;
 
 /**
- * Compiles components and hooks with the React Compiler, so the published
- * dist ships memoized output. App-level compilation never reaches
- * `node_modules`, so this pass is the only way consumers get compiled
- * mantle components. The vitest config runs the same compiler over `src`,
+ * Runs the React Compiler over each module: every component and hook must pass
+ * its strict validations, and only a function that opts in with `"use memo"`
+ * ships compiled. App-level compilation never reaches `node_modules`, so this
+ * pass is the only way a mantle component ships compiled. The vitest config runs the same compiler over `src`,
  * which keeps the tested code equal to the shipped code. React 19 carries
  * `react/compiler-runtime`, so the emitted import resolves for every
  * consumer the peer range allows.
@@ -111,7 +111,7 @@ const DECLARATION_MODULE_RE = /\.d\.[cm]?ts$/;
  * than the Babel plugin and strips TypeScript in the same pass. JSX stays in
  * the output (`jsx: "preserve"`), so rolldown's own JSX transform still runs
  * with the tsconfig settings. `compileReact` holds the strict settings and
- * the memo-free rule that all three compiler passes share.
+ * the opt-in rule that all three compiler passes share.
  */
 const reactCompiler = () => ({
 	name: "react-compiler",

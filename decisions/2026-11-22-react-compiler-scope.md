@@ -1,86 +1,81 @@
-# The React Compiler keeps its scope: compile where a component holds a hook or creates a function
+# The React Compiler compiles only what improves INP
 
 **Date:** 2026-11-22
 **Status:** Accepted
-**Builds on:** #1732 (`packages/mantle/scripts/mark-memo-free-components.ts`)
+**Replaces:** the compile rule from #1732 (`mark-memo-free-components.ts`)
 
 ## Context
 
-Mantle compiles its dist with the React Compiler. Since #1732, the build gives `"use no memo"` to each component that calls no hook and creates no function in render. On `main` at `d859fd15`, the compiler adds 69.6 KB gzip to the dist: 317.3 KB with it, 247.7 KB without it, summed over each dist file.
+Mantle compiled its dist with the React Compiler. Since #1732, the build skipped a component only when it called no hook and created no function in render, so every component with a hook compiled. On `main` at `d859fd15`, that cost 69.6 KB gzip across the dist (317.3 KB against 247.7 KB without the compiler) and 6 to 13 KB gzip on each measured page.
 
-A performance sweep on 2026-11-22 proposed cutting that cost in three ways:
-
-- turn the compiler off;
-- tighten the build rule, so `useId`, `useRef`, `useContext`, `use`, host event handlers, and list callbacks no longer count as work;
-- add `"use no memo"` to parts that seem to render once: the chart `Root` (`ChartRootPrimitive`), and the Root, Trigger, and Value of Select, Combobox, and MultiSelect, plus Switch.
-
-Cody Price asked for a browser A/B of interactions that re-render before any of these changes, and for the change that gives the best result.
+Cody Price set the rule on 2026-11-22: nothing compiles by default, except where memoization improves Interaction to Next Paint (INP). Bytes or render counts alone do not qualify. The code stays compiler-compliant through lint and the strict validation pass.
 
 ## How we measured
 
-- **Harness.** A Vite 8 production app that imports a chosen dist build through an alias. Each page wraps the scenario in `<Profiler>` from `react-dom/profiling`. Chromium 159 runs headless through Playwright, with a 4× CPU throttle (CDP `Emulation.setCPUThrottlingRate`) and a fresh context for each case. One page runs at a time, and the variant order rotates each round.
-- **Scenarios.**
-  - **form:** typing 30 characters into a 24-field form that keeps its state in the parent, then three checkbox clicks.
-  - **table:** a 100-row `DataTable` with five sort clicks, ten row selections, and two select-all clicks.
-  - **select:** three Select open, arrow, and pick cycles, then typing and deleting in a Combobox, then the same in a MultiSelect with five tags.
-  - **charts:** four `LineChart`s and two `BarChart`s, with eight data refreshes and a 41-step hover sweep.
-  - **theme:** a `ThemeSwitcher` toggle eight times over a form and a table.
-  - **dashboard:** the docs `AppShellDemo` with the table in its body, eight sidebar navigations, and one sort.
-- **Metrics.**
-  - **Commit time:** the Profiler `actualDuration` sum over the interactions.
-  - **Event processing:** `processingEnd − processingStart` over Event Timing entries.
-  - **Mean interaction duration** and the worst one (INP). Chromium rounds Event Timing durations to 8 ms.
-  - **Heap:** CDP `Runtime.getHeapUsage` after a forced GC.
-  - **JS:** the gzip `-9` sum of the JS files the page loads, React included.
-- **Noise.** The orb's CPU speed changed between rounds by up to 2×. The later runs time a fixed loop before and after the interactions and divide each metric by it. Each figure below is the median over rounds of the variant-to-shipped ratio inside one round. The single-round ratios spread by ±10 to 20%, so a difference under about 5% is noise.
-- **Runs.** The runs on `1e0f2d26` (before #1739) have 5 to 7 rounds and no calibration. The runs on `d859fd15` (after #1739) have 7 calibrated rounds. The scripts are not in the repo.
+- **Harness.** A Vite 8 production app imports a chosen dist build through an alias. Chromium 159 runs headless through Playwright, with a 4× CPU throttle (CDP `Emulation.setCPUThrottlingRate`) and a fresh context for each case. One page runs at a time, and the variant order rotates each round.
+- **Interactions.**
+  - **MultiSelect typing:** five tags, 60 options filtered by the parent, `app-1` typed and deleted twice.
+  - **Combobox typing:** 60 options filtered by the parent, the same keys.
+  - **Select:** four open, arrow, and pick cycles.
+  - **charts:** four `LineChart`s and two `BarChart`s, eight data refreshes, and a hover sweep.
+  - **table:** a 100-row `DataTable` with five sorts, ten row selections, and two select-all clicks.
+- **Metrics.** Event Timing gives each interaction's duration, which Chromium rounds to 8 ms, and its event processing time. A session's INP is its worst interaction, and in a typing session nearly every interaction is a keystroke, so the tables give the median keystroke and the mean interaction too. Page JS is the gzip `-9` sum of the JS that the page loads, React included.
+- **Noise.** The orb's CPU speed drifted between rounds. Each case times a fixed loop before and after its interactions. Each figure is the median over 4 to 7 rounds of the variant-to-baseline ratio inside one round.
+- **Scripts.** The [harness artifact](https://ampcode.com/artifacts/react-compiler-a-b-harness-1773-ae18b1e8-96aa-4696-ac5c-5abffdfb7ba7) holds the driver, the bench app, the variant builds, and the commands. ngrok workspace members can open it. It is not in the repo, because it needs a temporary build-config edit and several dist builds side by side.
 
 ## Results
 
-### Compiler off, against the shipped rule
+### Where compiling improved INP
 
-| Scenario                         | Interaction cost with the compiler off           | Page JS (gzip)   | Heap  |
-| -------------------------------- | ------------------------------------------------ | ---------------- | ----- |
-| select (after #1739)             | processing +36%, mean duration +28%              | −10.0 KB (−9.2%) | −4.4% |
-| charts (after #1739)             | commit +11%, processing +15%, mean duration +13% | −6.0 KB (−4.8%)  | −0.9% |
-| charts (before #1739, 3 runs)    | commit +17% to +26%                              | −6.2 KB          | −1.0% |
-| form (after #1739)               | processing +3% to +8%, within noise              | −7.7 KB (−7.2%)  | −4.7% |
-| table (before #1739, 2 runs)     | commit +3% to +12%                               | −4.5 KB (−3.1%)  | −1.3% |
-| dashboard (before #1739, 2 runs) | commit −2% to −16%                               | −12.9 KB (−5.8%) | −2.0% |
-| theme (before #1739)             | no React commit; INP within noise                | −9.6 KB (−5.7%)  | −3.8% |
+Compiled against uncompiled (annotation mode, no opt-ins):
 
-The compiler pays where parts re-render with inputs that stay equal: chart series and tooltips on a refresh or a hover, `DataTable` rows on a sort or a selection, and picker items on each keystroke. The picker study (Pickers after #1739) found the same: MultiSelect typing is 2× slower without it.
+| Interaction              | Compiled                           | Uncompiled          | Page JS cost of compiling |
+| ------------------------ | ---------------------------------- | ------------------- | ------------------------- |
+| MultiSelect typing       | median keystroke 16 ms, mean 27 ms | 40–48 ms, 46–51 ms  | +4.3 KB                   |
+| Combobox typing          | median keystroke 40 ms, mean 44 ms | 48 ms, 56 ms        | +8.2 KB                   |
+| Select open, arrow, pick | mean 48 ms                         | mean 44 ms (faster) | +8.2 KB                   |
+| charts refresh           | INP 80 ms                          | INP 80 ms           | +5.7 KB                   |
+| table sort and select    | INP 432–440 ms                     | INP 440 ms          | +2.1 KB                   |
 
-### Changes to the rule, against the shipped rule
+Only the two typing interactions improved. A bisect that compiled one module at a time pointed at one hook: compiling `use-popup.ts` alone took the MultiSelect median keystroke down 50% and the mean interaction 37%. Compiling the picker component files, the other behavior hooks one at a time, or the MultiSelect `Item` and `TagValues` gave no gain.
 
-| Variant                                                                                              | Faster                                   | Slower                                          | Page JS (gzip)  |
-| ---------------------------------------------------------------------------------------------------- | ---------------------------------------- | ----------------------------------------------- | --------------- |
-| Tight rule: stable hooks, host event handlers, and list callbacks do not count                       | form −7%, table −8%, select −9% (commit) | dashboard +14%, charts +10% (commit)            | −0.5 to −1.2 KB |
-| Narrow rule: stable hooks and host event handlers do not count, plus the chart Root opt-out          | nothing past noise                       | table +13%, charts +19%, dashboard +7% (commit) | −0.2 to −2.8 KB |
-| Picker parts opt out (Select Root, Value, Trigger; MultiSelect Root, Trigger; Combobox Root; Switch) | select processing −3%                    | form processing +10%, mean duration +9%         | −1.4 to −1.7 KB |
-| Chart Root opts out                                                                                  | first mount −11%                         | commit +5%, processing +8%                      | −2.9 KB         |
+### The cause, and the fix
 
-- **The tight rule slows charts.** The likely cause is `ChartTooltipReadout`: its only function is a `.map` callback, so the tight rule uncompiles it, and the compiled output keeps the mapped rows between hover frames.
-- **The picker opt-out slows form typing.** A form re-renders every field on each keystroke. The likely cause: a compiled `Select.Trigger` returns its cached caret icon chain, and an uncompiled one renders it again.
-- **The chart Root opt-out slows each refresh.** The likely cause: the compiled Root keeps the child elements whose inputs stay equal.
+`usePopup` returned a new ref callback on each render. React detaches and attaches a new ref callback, so each keystroke placed the popup again with a forced layout, joined the host to the document again, and entered the modal again. The compiler had hidden this by keeping the callback. `useListbox` had the same shape, and each picker composes the two refs with `useComposedRefs`, so a new listbox ref also re-runs the popup ref. Both hooks now keep their callback (`useCallback`, and `useCallbackRef` for the latest `move`). The popup fix alone recovered nothing; the two together recover all of it:
 
-A build that compiles every component (no `"use no memo"`) gave lower commit times in most scenarios before #1739, without calibration. It cost 1.4 to 5.6 KB gzip of JS per page and up to 1 MB more heap (+0.5% to +9%).
+| Interaction (4 rounds)                      | Picker family compiled | Uncompiled, both refs fixed | Uncompiled, no fix |
+| ------------------------------------------- | ---------------------- | --------------------------- | ------------------ |
+| MultiSelect typing, median keystroke / mean | 16 / 26 ms             | 20 / 27 ms                  | 40 / 43 ms         |
+| Combobox typing, median keystroke / mean    | 32 / 42 ms             | 36 / 41 ms                  | 48 / 54 ms         |
+| Page JS (MultiSelect / Combobox page)       | 98.4 / 109.7 KB        | 93.9 / 101.4 KB             | 93.9 / 101.3 KB    |
+| Heap after the session                      | 4.34 / 4.92 MB         | 4.20 / 4.68 MB              | 4.25 / 4.69 MB     |
+
+So no component needs `"use memo"`.
+
+### The same class of bug, found by tests
+
+With nothing compiled, the full test suite found two more callbacks that only the compiler had kept:
+
+- **`Select.Trigger`** composed its ref with an inline callback, so a caller's callback ref ran again on each re-render. The form reset listener now lives in an effect, and the trigger composes only stable refs.
+- **`Slot`** composed the part's ref and the child's ref into a new callback on each render. `composeRefs` now returns the same callback for the same two refs, so `Slot` stays free of hooks.
+
+One test, "a hover publish does not re-render the data table", counted renders of the chart's screen-reader table on the first hover. Only the compiled cache kept that count at zero. A render count alone does not qualify for an opt-in, so the test is gone.
 
 ## Decision
 
-1. **Keep the React Compiler on.** Off saves 6 to 13 KB gzip per page and up to 5% of heap. It makes picker, chart, and table interactions 3 to 36% slower.
-2. **Keep the #1732 rule as it is.** Each change to it that we measured made one re-rendering interaction slower by more than the noise. Each one saved under 3 KB gzip per page.
-3. **Add no `"use no memo"` to save bytes.** Write it only for a library that the compiler cannot model, as CONVENTIONS.md § React Compiler says. Do not add it to the chart Root or to the picker parts.
+1. **Nothing compiles by default.** The build runs the React Compiler in annotation mode. A function that starts with `"use memo"`, or each function of a module that starts with it, ships compiled. Today no function does.
+2. **Opt in only for a measured INP gain.** Use a browser A/B at 4× CPU like the one above. Put the numbers in the `Why` comment above the directive. Bytes or render counts alone do not qualify.
+3. **Every component and hook stays compiler-compliant.** The build compiles each module in full to run the strict validations, then discards that output. oxlint keeps every rule that ports a compiler diagnostic.
+4. **A stable identity that callers rely on is code, not compiler output.** A ref callback, or a value in an effect's dependency list, uses `useCallback`, `useMemo`, or a module cache.
 
 ## Alternatives considered
 
-- **Turn the compiler off.** Rejected: see the first results table.
-- **Tighten the build rule.** Rejected: it trades a slower dashboard and slower chart hovers for under 1.2 KB per page.
-- **Opt out per part (chart Root, picker Root, Trigger, Value, Switch).** Rejected: each part re-renders when its parent does, and the compiled cache then skips its static subtree.
-- **Compile every component.** Not taken: it trades 1.4 to 5.6 KB per page and up to 9% of heap for faster commits that only uncalibrated runs measured. Measure it with calibration before you change the rule in that direction.
+- **Keep the #1732 rule.** Rejected: it compiles every component with a hook, and most of them gain no INP.
+- **Remove the compiler from the build.** Equal output today, because nothing opts in. Rejected for now: annotation mode keeps one place for a future measured opt-in, and the validation pass needs the compiler anyway.
+- **Opt the picker family in.** Rejected: the gain came from one ref callback, and fixing that callback recovers it at no byte cost.
 
 ## Consequences
 
-- The dist keeps the compiler's cost: 69.6 KB gzip across the dist, and 6 to 13 KB gzip on each measured page.
-- A proposal to change the compile scope needs a browser A/B like this one: re-rendering interactions at 4× CPU, calibrated for host speed, with paired rounds. A byte count alone cannot decide it.
-- Smaller picker and chart bytes must come from other work, such as a closed `Select.Content` that mounts nothing, or inline caret icons.
+- The dist is 247.7 KB gzip, against 317.3 KB on `d859fd15` (−69.6 KB, −22%). A page saves 6 to 13 KB gzip of JS, and its heap shrinks up to 5%.
+- The build takes about 4.7 s, against 5.0 s on `d859fd15`. A build with no compiler at all took 3.9 s, so the validation pass costs about 0.8 s.
+- Uncompiled code re-renders a child whose props did not change. Code that needs a stable identity must say so itself (decision 4). The tests caught two such places, and the A/B caught two more.

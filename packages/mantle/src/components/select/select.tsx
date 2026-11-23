@@ -8,7 +8,7 @@ import type {
 	Ref,
 	SelectHTMLAttributes,
 } from "react";
-import { cloneElement, createContext, isValidElement, use, useId, useMemo } from "react";
+import { cloneElement, createContext, isValidElement, use, useEffect, useId, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { composeHandlers } from "../../behaviors/compose-handlers.js";
 import { enterModal } from "../../behaviors/enter-modal.js";
@@ -18,7 +18,6 @@ import { usePopup } from "../../behaviors/use-popup.js";
 import { useSelect, useSelectTrigger } from "../../behaviors/use-select.js";
 import type { SelectBehavior } from "../../behaviors/use-select.js";
 import type { WithAsChild } from "../../types/as-child.js";
-import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -660,21 +659,19 @@ const Trigger = ({
 	const ctx = useSelectContext();
 	const fieldControl = use(FieldControlContext);
 	const triggerProps = useSelectTrigger(ctx);
-	const triggerRef = useComposedRefs(
-		ref,
-		triggerProps.ref,
-		composeRefs(ctx.ref, (node: HTMLElement | null) => {
-			// Why the trigger: a form reset returns the select to its default with or
-			// without a native select, and the listener lives as long as the trigger.
-			const owner =
-				ctx.form == null ? node?.closest("form") : node?.ownerDocument.getElementById(ctx.form);
-			if (!(owner instanceof HTMLFormElement)) {
-				return;
-			}
-			owner.addEventListener("reset", ctx.reset);
-			return () => owner.removeEventListener("reset", ctx.reset);
-		}),
-	);
+	const triggerRef = useComposedRefs(ref, triggerProps.ref, ctx.ref);
+	// Why the trigger: a form reset returns the select to its default with or
+	// without a native select, and the listener lives as long as the trigger.
+	useEffect(() => {
+		const node = ctx.triggerRef.current;
+		const owner =
+			ctx.form == null ? node?.closest("form") : node?.ownerDocument.getElementById(ctx.form);
+		if (!(owner instanceof HTMLFormElement)) {
+			return;
+		}
+		owner.addEventListener("reset", ctx.reset);
+		return () => owner.removeEventListener("reset", ctx.reset);
+	}, [ctx.triggerRef, ctx.form, ctx.reset]);
 	const fieldValidation = useFieldValidation();
 	const rawAriaInvalid = fieldControl
 		? fieldControl["aria-invalid"]

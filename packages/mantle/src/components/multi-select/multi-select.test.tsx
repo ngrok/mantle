@@ -54,6 +54,33 @@ describe("MultiSelect", () => {
 		expect(screen.getByRole("combobox")).toHaveAttribute("placeholder", "Select items...");
 	});
 
+	test("callback refs on MultiSelect.Trigger and MultiSelect.Content attach once while the reader types", async () => {
+		const user = userEvent.setup();
+		const contentRef = vi.fn<(node: HTMLDivElement | null) => void>();
+		const triggerRef = vi.fn<(node: HTMLDivElement | null) => void>();
+		render(
+			<MultiSelect.Root>
+				<MultiSelect.Trigger ref={triggerRef}>
+					<MultiSelect.TagValues />
+					<MultiSelect.Input placeholder="Select items..." />
+				</MultiSelect.Trigger>
+				<MultiSelect.Content ref={contentRef}>
+					<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+					<MultiSelect.Item value="banana">Banana</MultiSelect.Item>
+				</MultiSelect.Content>
+			</MultiSelect.Root>,
+		);
+		await user.click(screen.getByRole("combobox"));
+		const listbox = screen.getByRole("listbox");
+		contentRef.mockClear();
+		triggerRef.mockClear();
+		await user.keyboard("an");
+		// Why: a new ref callback would detach and attach the list, and place the popup again.
+		expect(contentRef).not.toHaveBeenCalled();
+		expect(triggerRef).not.toHaveBeenCalled();
+		expect(listbox).toBeInTheDocument();
+	});
+
 	test("renders selected values as tags", () => {
 		render(
 			<MultiSelect.Root value={["apple", "banana"]} onValueChange={() => {}}>

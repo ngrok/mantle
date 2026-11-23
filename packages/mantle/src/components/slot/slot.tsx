@@ -7,6 +7,7 @@ import {
 	isValidElement,
 	type ReactNode,
 	type Ref,
+	type RefCallback,
 } from "react";
 import type { WithStyleProps } from "../../types/with-style-props.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -68,10 +69,16 @@ const setRef = <T,>(ref: Ref<T> | undefined, node: T | null): (() => void) | und
 	return undefined;
 };
 
+/** The composed callback for each pair of slot ref and child ref. */
+const composedRefs = new WeakMap<object, WeakMap<object, RefCallback<HTMLElement>>>();
+
 /**
  * Composes the slot's ref and the child's ref. It returns a single ref
- * unchanged, so a child with no slot ref keeps its own. Two refs compose into a
- * new callback, which the compiled `Slot` keeps until a ref changes.
+ * unchanged, so a child with no slot ref keeps its own. Two refs compose into
+ * one callback, and the same two refs return the same callback.
+ *
+ * Why the same callback: React detaches and attaches a new ref callback on each
+ * render, which runs the child's ref and its cleanup again.
  */
 const composeRefs = (
 	slotRef: Ref<HTMLElement> | undefined,
@@ -80,7 +87,16 @@ const composeRefs = (
 	if (slotRef == null || childRef == null) {
 		return slotRef ?? childRef;
 	}
-	return (node: HTMLElement | null) => {
+	let byChildRef = composedRefs.get(slotRef);
+	if (byChildRef == null) {
+		byChildRef = new WeakMap();
+		composedRefs.set(slotRef, byChildRef);
+	}
+	const cached = byChildRef.get(childRef);
+	if (cached != null) {
+		return cached;
+	}
+	const composed = (node: HTMLElement | null) => {
 		const cleanups = [setRef(slotRef, node), setRef(childRef, node)];
 		return () => {
 			for (const [index, cleanup] of cleanups.entries()) {
@@ -92,6 +108,8 @@ const composeRefs = (
 			}
 		};
 	};
+	byChildRef.set(childRef, composed);
+	return composed;
 };
 
 /**
@@ -187,9 +205,6 @@ function composeStyle(
  * ```
  */
 const Slot = ({ children, className, "data-slot": dataSlot, ref, style, ...props }: Props) => {
-	// Why "use memo": `composeRefs`, and `composeClassName` and `composeStyle` for a render-prop
-	// child, return new functions. React re-attaches a new ref, and the child may compare the others.
-	"use memo";
 	const child = isValidElement<ComposedChildProps>(children) ? children : null;
 	if (child == null) {
 		return Children.only(children);

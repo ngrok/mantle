@@ -10,16 +10,10 @@ import { createIntersectionObserverStub } from "../../test-utils/mock-intersecti
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import * as BarChart from "../bar-chart/bar-chart-parts.js";
 import * as LineChart from "../line-chart/line-chart-parts.js";
-import { datumValue } from "./datum.js";
 import { ChartStore } from "./store.js";
 import { ValueTween } from "./tween.js";
 import type { HoverSnapshot, SeriesMeta } from "./types.js";
 import { CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
-
-// Why a spied module: `datumValue` is the single read point for chart rows. The
-// engine reads them once at ingest, so after mount every call comes from a
-// data-table render.
-vi.mock("./datum.js", { spy: true });
 
 const data = [
 	{ month: "January", desktop: 186, mobile: 80 },
@@ -101,33 +95,6 @@ describe("hover subscriptions", () => {
 		mobile: index * 5,
 		tablet: index * 2,
 	}));
-
-	test("a hover publish does not re-render the data table", async () => {
-		const user = userEvent.setup();
-		render(
-			<BarChart.Root data={rows} xKey="month" aria-label="Visitors by month">
-				<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
-				<BarChart.Bar dataKey="mobile" label="Mobile" color="emerald" />
-				<BarChart.Bar dataKey="tablet" label="Tablet" color="pink" />
-			</BarChart.Root>,
-		);
-		// Focus mounts the table, which reads every cell through the spy.
-		await user.tab();
-		expect(screen.getAllByRole("row")).toHaveLength(21);
-		const rowReads = vi.mocked(datumValue);
-		// Why this guard: if the module mock stops applying, the zero below is
-		// vacuous.
-		expect(rowReads).toHaveBeenCalledWith(rows[19], "tablet");
-		rowReads.mockClear();
-		// Two distinct publishes. A zero-width plot widens the arrow stride to the
-		// whole set, so `Home` is the deterministic second index.
-		await user.keyboard("{ArrowRight}{Home}");
-		const tooltip = document.querySelector('[data-slot="bar-chart-tooltip"]');
-		expect(tooltip?.textContent).toContain("Month 0");
-		// The table only reads `series`, which a hover publish carries by
-		// reference; a re-render reads every row again (20 rows x 4 cells).
-		expect(rowReads).toHaveBeenCalledTimes(0);
-	});
 
 	test("a hover publish does not re-render the legend", async () => {
 		const user = userEvent.setup();

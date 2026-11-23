@@ -374,6 +374,25 @@ describe("Slot render-prop className and style", () => {
 		expect(childRef.current).toBe(link);
 	});
 
+	it("keeps one composed ref across a re-render, so neither callback ref runs again", () => {
+		const slotRef = vi.fn<(node: HTMLAnchorElement | null) => void>();
+		const childRef = vi.fn<(node: HTMLAnchorElement | null) => void>();
+		// Why a factory: each render needs a fresh element with the same refs.
+		const renderTree = () => (
+			<Slot ref={slotRef}>
+				<a href="/endpoints" ref={childRef}>
+					Endpoints
+				</a>
+			</Slot>
+		);
+		const { rerender, getByRole } = render(renderTree());
+		rerender(renderTree());
+
+		expect(slotRef).toHaveBeenCalledTimes(1);
+		expect(slotRef).toHaveBeenLastCalledWith(getByRole("link"));
+		expect(childRef).toHaveBeenCalledTimes(1);
+	});
+
 	it("runs the child's handler before the Slot's", async () => {
 		const user = userEvent.setup();
 		const calls: string[] = [];

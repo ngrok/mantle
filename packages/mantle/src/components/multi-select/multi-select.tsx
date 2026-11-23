@@ -152,6 +152,8 @@ const Trigger = ({
 	...props
 }: MultiSelectTriggerProps) => {
 	const { inputRef, open, setOpen, tags, triggerRef } = useMultiSelectContext();
+	// Why a hook: a new ref callback on each render would run the caller's callback ref again.
+	const composedRef = useComposedRefs(triggerRef, ref);
 	const inTag = (target: EventTarget) =>
 		target instanceof Node && [...tags.values()].some((tag) => tag.contains(target));
 	const fieldValidation = useFieldValidation();
@@ -210,7 +212,7 @@ const Trigger = ({
 						setOpen(false);
 					}
 				})}
-				ref={composeRefs(triggerRef, ref)}
+				ref={composedRef}
 				{...props}
 			>
 				{children}
