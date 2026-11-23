@@ -49,6 +49,7 @@ import { Tabs } from "@ngrok/mantle/tabs";
 
 - Switch between peer views of related content in one place, with one view visible at a time.
 - Drive client-side navigation with a tab for each route, as in [Polymorphism](#polymorphism).
+- Use [`HeadlessTabs`](#headless-tabs) when a page needs this behavior in its own look, such as the use-case cards on a marketing page.
 - Prefer [`Accordion`](/components/data-display/accordion) when several sections stack, and each one expands in place.
 - Prefer [`RadioGroup`](/components/forms/radio-group) when the user picks a form value, not a view.
 
@@ -587,6 +588,76 @@ import { Tabs } from "@ngrok/mantle/tabs";
 
 </Example>
 
+## Headless tabs
+
+Use `HeadlessTabs` when a page needs tabs in its own visual language, such as the large use-case cards on a marketing page. It has the same behavior as `Tabs` and no look of its own. Style each part with your own classes, and style the states with `data-state-active:` and `data-state-inactive:`.
+
+`HeadlessTabs` keeps the keyboard and ARIA contract, `hiddenUntilFound`, the scroll of a keyboard-focused tab into view, and link tabs. The triggers and panels keep mantle's focus ring for keyboard focus, and a pointer press focuses a trigger without it. Add a `ring-focus-*` or `ring-*` class to change the ring's tone or width. `HeadlessTabs` has no `Separator` or `Badge`, and no `appearance` prop.
+
+<Example name="components/navigation/tabs/headless-tabs" title="Headless tabs example">
+
+```tsx
+import { Card } from "@ngrok/mantle/card";
+import { Icon } from "@ngrok/mantle/icon";
+import { HeadlessTabs } from "@ngrok/mantle/tabs";
+import { DoorOpenIcon } from "@phosphor-icons/react/DoorOpen";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
+import { StackIcon } from "@phosphor-icons/react/Stack";
+
+<Card.Root className="w-full max-w-2xl">
+	<HeadlessTabs.Root defaultValue="front-door">
+		<HeadlessTabs.List aria-label="How it works" className="grid grid-cols-3 gap-1 p-2">
+			<HeadlessTabs.Trigger
+				value="front-door"
+				className="group text-body hover:bg-card-hover data-state-active:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
+			>
+				<Icon svg={<DoorOpenIcon />} className="size-6 group-data-state-active:text-accent-600" />
+				Create one front door
+			</HeadlessTabs.Trigger>
+			<HeadlessTabs.Trigger
+				value="agent"
+				className="group text-body hover:bg-card-hover data-state-active:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
+			>
+				<Icon svg={<StackIcon />} className="size-6 group-data-state-active:text-accent-600" />
+				Run the agent
+			</HeadlessTabs.Trigger>
+			<HeadlessTabs.Trigger
+				value="route"
+				className="group text-body hover:bg-card-hover data-state-active:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
+			>
+				<Icon
+					svg={<GlobeHemisphereWestIcon />}
+					className="size-6 group-data-state-active:text-accent-600"
+				/>
+				Route and authenticate
+			</HeadlessTabs.Trigger>
+		</HeadlessTabs.List>
+		<Card.Body>
+			<HeadlessTabs.Content value="front-door" hiddenUntilFound>
+				Put one public endpoint in front of every service.
+			</HeadlessTabs.Content>
+			<HeadlessTabs.Content value="agent" hiddenUntilFound>
+				Start the agent next to your services, in any network.
+			</HeadlessTabs.Content>
+			<HeadlessTabs.Content value="route" hiddenUntilFound>
+				Route, transform, and authenticate each request with Traffic Policy.
+			</HeadlessTabs.Content>
+		</Card.Body>
+	</HeadlessTabs.Root>
+</Card.Root>;
+```
+
+</Example>
+
+The parts share one state with `Tabs`, so you can mix them: put a `HeadlessTabs.Trigger` in a `Tabs.List` to keep the styled list and draw your own triggers. A styled part inside `HeadlessTabs.Root` uses the classic appearance.
+
+```text showLineNumbers=false
+HeadlessTabs.Root
+├── HeadlessTabs.List
+│   └── HeadlessTabs.Trigger
+└── HeadlessTabs.Content
+```
+
 ## Accessibility
 
 `Tabs` follows the [WAI-ARIA tabs pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/): the list is a `role="tablist"`, each trigger is a `role="tab"` with `aria-selected` and `aria-controls`, and each content panel is a `role="tabpanel"` labelled by its tab.
@@ -745,3 +816,50 @@ A badge to render inside a tab trigger, typically a count or a status indicator.
 | Data Attribute | Value          | Description           |
 | -------------- | -------------- | --------------------- |
 | `data-slot`    | `"tabs-badge"` | On the badge element. |
+
+### HeadlessTabs.Root
+
+The unstyled outermost part. It takes the props of [`Tabs.Root`](#tabsroot) except `appearance`, and renders a `<div>` with no class.
+
+#### Data attributes
+
+| Data Attribute     | Value                          | Description             |
+| ------------------ | ------------------------------ | ----------------------- |
+| `data-slot`        | `"tabs"`                       | On the root element.    |
+| `data-orientation` | `"horizontal"` \| `"vertical"` | The `orientation` prop. |
+
+### HeadlessTabs.List
+
+The unstyled tablist. It takes the props of [`Tabs.List`](#tabslist). Lay it out with your own classes.
+
+#### Data attributes
+
+| Data Attribute     | Value                          | Description             |
+| ------------------ | ------------------------------ | ----------------------- |
+| `data-slot`        | `"tabs-list"`                  | On the tablist element. |
+| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation. |
+
+### HeadlessTabs.Trigger
+
+The unstyled tab button. It takes the props of [`Tabs.Trigger`](#tabstrigger). Its only classes are the focus ring for keyboard focus. It renders `children` as given, with no label wrapper.
+
+#### Data attributes
+
+| Data Attribute     | Value                          | Description                           |
+| ------------------ | ------------------------------ | ------------------------------------- |
+| `data-slot`        | `"tabs-trigger"`               | On the trigger element.               |
+| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.               |
+| `data-state`       | `"active"` \| `"inactive"`     | Whether the trigger's panel is shown. |
+| `data-disabled`    | present when `disabled`        | Presence-only.                        |
+
+### HeadlessTabs.Content
+
+The unstyled tab panel. It takes the props of [`Tabs.Content`](#tabscontent). Its only classes are the focus ring for keyboard focus and the rule that takes a panel hidden until found out of the layout.
+
+#### Data attributes
+
+| Data Attribute     | Value                          | Description                 |
+| ------------------ | ------------------------------ | --------------------------- |
+| `data-slot`        | `"tabs-content"`               | On the panel element.       |
+| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.     |
+| `data-state`       | `"active"` \| `"inactive"`     | Whether the panel is shown. |

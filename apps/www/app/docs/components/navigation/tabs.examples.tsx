@@ -1,20 +1,23 @@
 import { Code } from "@ngrok/mantle/code";
 import { Card } from "@ngrok/mantle/card";
 import { Icon } from "@ngrok/mantle/icon";
-import { Tabs } from "@ngrok/mantle/tabs";
+import { HeadlessTabs, Tabs } from "@ngrok/mantle/tabs";
 import { ArrowsSplitIcon } from "@phosphor-icons/react/ArrowsSplit";
 import { BellIcon } from "@phosphor-icons/react/Bell";
 import { CertificateIcon } from "@phosphor-icons/react/Certificate";
 import { ChartBarIcon } from "@phosphor-icons/react/ChartBar";
 import { ChartLineIcon } from "@phosphor-icons/react/ChartLine";
+import { DoorOpenIcon } from "@phosphor-icons/react/DoorOpen";
 import { GearSixIcon } from "@phosphor-icons/react/GearSix";
 import { GlobeIcon } from "@phosphor-icons/react/Globe";
+import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { KeyIcon } from "@phosphor-icons/react/Key";
 import { ListIcon } from "@phosphor-icons/react/List";
 import { LockIcon } from "@phosphor-icons/react/Lock";
 import { PlugIcon } from "@phosphor-icons/react/Plug";
 import { RocketLaunchIcon } from "@phosphor-icons/react/RocketLaunch";
 import { ShieldCheckIcon } from "@phosphor-icons/react/ShieldCheck";
+import { StackIcon } from "@phosphor-icons/react/Stack";
 import { UserIcon } from "@phosphor-icons/react/User";
 import { Link, href } from "react-router";
 
@@ -520,6 +523,61 @@ export function SeparatorExample() {
 					</Tabs.Content>
 				</Tabs.Root>
 			</div>
+		</PreviewCanvas>
+	);
+}
+
+/** The "Headless tabs" example on the Tabs docs page. */
+export function HeadlessTabsExample() {
+	return (
+		<PreviewCanvas>
+			<Card.Root className="w-full max-w-2xl">
+				<HeadlessTabs.Root defaultValue="front-door">
+					<HeadlessTabs.List aria-label="How it works" className="grid grid-cols-3 gap-1 p-2">
+						<HeadlessTabs.Trigger
+							value="front-door"
+							className="group text-body hover:bg-card-hover data-state-active:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
+						>
+							<Icon
+								svg={<DoorOpenIcon />}
+								className="size-6 group-data-state-active:text-accent-600"
+							/>
+							Create one front door
+						</HeadlessTabs.Trigger>
+						<HeadlessTabs.Trigger
+							value="agent"
+							className="group text-body hover:bg-card-hover data-state-active:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
+						>
+							<Icon
+								svg={<StackIcon />}
+								className="size-6 group-data-state-active:text-accent-600"
+							/>
+							Run the agent
+						</HeadlessTabs.Trigger>
+						<HeadlessTabs.Trigger
+							value="route"
+							className="group text-body hover:bg-card-hover data-state-active:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
+						>
+							<Icon
+								svg={<GlobeHemisphereWestIcon />}
+								className="size-6 group-data-state-active:text-accent-600"
+							/>
+							Route and authenticate
+						</HeadlessTabs.Trigger>
+					</HeadlessTabs.List>
+					<Card.Body>
+						<HeadlessTabs.Content value="front-door" hiddenUntilFound>
+							Put one public endpoint in front of every service.
+						</HeadlessTabs.Content>
+						<HeadlessTabs.Content value="agent" hiddenUntilFound>
+							Start the agent next to your services, in any network.
+						</HeadlessTabs.Content>
+						<HeadlessTabs.Content value="route" hiddenUntilFound>
+							Route, transform, and authenticate each request with Traffic Policy.
+						</HeadlessTabs.Content>
+					</Card.Body>
+				</HeadlessTabs.Root>
+			</Card.Root>
 		</PreviewCanvas>
 	);
 }
