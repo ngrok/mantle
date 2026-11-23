@@ -137,8 +137,7 @@ describe("SplitButton", () => {
 		);
 
 		expect(screen.getByRole("menu")).toBeInTheDocument();
-		// Why `hidden`: the open modal menu removes the trigger from the accessibility tree.
-		expect(screen.getByRole("button", { name: "More save options", hidden: true })).toHaveAttribute(
+		expect(screen.getByRole("button", { name: "More save options" })).toHaveAttribute(
 			"aria-expanded",
 			"true",
 		);
@@ -158,9 +157,9 @@ describe("SplitButton", () => {
 		expect(screen.getByRole("menu")).toHaveAttribute("dir", "rtl");
 	});
 
-	test("forwards `modal` from Root so a non-modal menu leaves the primary action reachable", () => {
+	test("forwards `modal` from Root so a modal menu makes the primary action inert", () => {
 		render(
-			<SplitButton.Root open modal={false}>
+			<SplitButton.Root open modal>
 				<SplitButton.PrimaryAction>Save</SplitButton.PrimaryAction>
 				<SplitButton.MenuTrigger label="More save options" />
 				<SplitButton.MenuContent>
@@ -169,10 +168,10 @@ describe("SplitButton", () => {
 			</SplitButton.Root>,
 		);
 
-		// Why the primary action: a modal menu hides the rest of the page behind
-		// `aria-hidden`, so the button is only queryable while `modal` reaches Radix.
 		expect(screen.getByRole("menu")).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: "Save", hidden: true }).closest("[inert]"),
+		).not.toBeNull();
 	});
 
 	test("selecting a menu item fires its onClick and closes the menu", async () => {

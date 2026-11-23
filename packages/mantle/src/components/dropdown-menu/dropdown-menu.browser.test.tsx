@@ -74,10 +74,12 @@ function FruitMenu({
 	modal,
 	onSelect,
 	onCloseAutoFocus,
+	onOutsideClick,
 }: {
 	modal?: boolean;
 	onSelect?: (event: Event) => void;
 	onCloseAutoFocus?: (event: Event) => void;
+	onOutsideClick?: () => void;
 }) {
 	return (
 		<>
@@ -97,7 +99,9 @@ function FruitMenu({
 					</DropdownMenu.Sub>
 				</DropdownMenu.Content>
 			</DropdownMenu.Root>
-			<button type="button">Outside</button>
+			<button type="button" onClick={onOutsideClick}>
+				Outside
+			</button>
 		</>
 	);
 }
@@ -334,7 +338,7 @@ describe("DropdownMenu selection (browser)", () => {
 describe("DropdownMenu modal (browser)", () => {
 	test("a modal menu makes the rest of the page inert while it is open", async () => {
 		const user = userEvent.setup();
-		render(<FruitMenu />);
+		render(<FruitMenu modal />);
 		await user.click(screen.getByRole("button", { name: "Open" }));
 		await screen.findByRole("menu");
 
@@ -345,56 +349,89 @@ describe("DropdownMenu modal (browser)", () => {
 		await waitFor(() => expect(outside.closest("[inert]")).toBeNull());
 	});
 
-	test("a menu with modal={false} leaves the page interactive", async () => {
+	test("a menu is not modal by default: the page stays interactive and scrolls", async () => {
 		const user = userEvent.setup();
-		render(<FruitMenu modal={false} />);
+		render(<FruitMenu />);
 		await user.click(screen.getByRole("button", { name: "Open" }));
 		await screen.findByRole("menu");
 
 		expect(screen.getByRole("button", { name: "Outside" }).closest("[inert]")).toBeNull();
+		expect(document.documentElement.style.overflow).not.toBe("hidden");
 	});
 
-	test("a pointer down outside closes the menu and leaves focus where it lands", async () => {
-		const user = userEvent.setup();
-		render(<FruitMenu modal={false} />);
+	test("a press outside closes the menu, leaves focus where it lands, and does not click what is under it", async () => {
+		const clicks: string[] = [];
+		render(<FruitMenu onOutsideClick={() => clicks.push("outside")} />);
 		const trigger = screen.getByRole("button", { name: "Open" });
-		await user.click(trigger);
+		const outside = screen.getByRole("button", { name: "Outside" });
+		await browserUser.click(trigger);
 		await screen.findByRole("menu");
 
-		await user.click(screen.getByRole("button", { name: "Outside" }));
+		await browserUser.click(outside);
 
 		await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "false"));
-		expect(screen.getByRole("button", { name: "Outside" })).toHaveFocus();
+		expect(outside).toHaveFocus();
+		expect(clicks).toEqual([]);
+		// Why: only the press that closed the menu loses its click.
+		await browserUser.click(outside);
+		expect(clicks).toEqual(["outside"]);
 	});
 
-	test("a Popover opened from a menu item takes keyboard focus and input", async () => {
-		const user = userEvent.setup();
+	test.each([false, true])(
+		"a Popover opened from a menu item takes keyboard focus and input (modal: %s)",
+		async (modal) => {
+			const user = userEvent.setup();
+			render(
+				<DropdownMenu.Root modal={modal}>
+					<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+					<DropdownMenu.Content>
+						<Popover.Root>
+							<Popover.Trigger asChild>
+								<DropdownMenu.Item onSelect={(event) => event.preventDefault()}>
+									Rename
+								</DropdownMenu.Item>
+							</Popover.Trigger>
+							<Popover.Content>
+								<input aria-label="Name" />
+							</Popover.Content>
+						</Popover.Root>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>,
+			);
+			await user.click(screen.getByRole("button", { name: "Open" }));
+			await user.click(await screen.findByRole("menuitem", { name: "Rename" }));
+			const input = await screen.findByRole("textbox", { name: "Name" });
+
+			await user.click(input);
+			await user.keyboard("bb");
+
+			expect(input).toHaveFocus();
+			expect(input).toHaveValue("bb");
+		},
+	);
+
+	test("a press that the consumer keeps from closing the menu still clicks what is under it", async () => {
+		const clicks: string[] = [];
 		render(
-			<DropdownMenu.Root>
-				<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
-				<DropdownMenu.Content>
-					<Popover.Root>
-						<Popover.Trigger asChild>
-							<DropdownMenu.Item onSelect={(event) => event.preventDefault()}>
-								Rename
-							</DropdownMenu.Item>
-						</Popover.Trigger>
-						<Popover.Content>
-							<input aria-label="Name" />
-						</Popover.Content>
-					</Popover.Root>
-				</DropdownMenu.Content>
-			</DropdownMenu.Root>,
+			<>
+				<DropdownMenu.Root>
+					<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+					<DropdownMenu.Content onPointerDownOutside={(event) => event.preventDefault()}>
+						<DropdownMenu.Item>Apple</DropdownMenu.Item>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
+				<button type="button" onClick={() => clicks.push("outside")}>
+					Outside
+				</button>
+			</>,
 		);
-		await user.click(screen.getByRole("button", { name: "Open" }));
-		await user.click(await screen.findByRole("menuitem", { name: "Rename" }));
-		const input = await screen.findByRole("textbox", { name: "Name" });
+		await browserUser.click(screen.getByRole("button", { name: "Open" }));
+		await screen.findByRole("menu");
 
-		await user.click(input);
-		await user.keyboard("bb");
+		// Why it closes: the press moves focus outside, and focus outside closes the menu.
+		await browserUser.click(screen.getByRole("button", { name: "Outside" }));
 
-		expect(input).toHaveFocus();
-		expect(input).toHaveValue("bb");
+		expect(clicks).toEqual(["outside"]);
 	});
 });
 
@@ -579,7 +616,7 @@ describe("DropdownMenu parity with Radix (browser)", () => {
 
 	test("a press outside a modal menu returns focus to its trigger", async () => {
 		const user = userEvent.setup();
-		render(<FruitMenu />);
+		render(<FruitMenu modal />);
 		const trigger = screen.getByRole("button", { name: "Open" });
 		trigger.focus();
 		await user.keyboard("{ArrowDown}");
@@ -597,13 +634,13 @@ describe("DropdownMenu parity with Radix (browser)", () => {
 			return (
 				<>
 					<button type="button">Outside</button>
-					<DropdownMenu.Root open={first}>
+					<DropdownMenu.Root modal open={first}>
 						<DropdownMenu.Trigger>First</DropdownMenu.Trigger>
 						<DropdownMenu.Content onInteractOutside={(event) => event.preventDefault()}>
 							<DropdownMenu.Item>A</DropdownMenu.Item>
 						</DropdownMenu.Content>
 					</DropdownMenu.Root>
-					<DropdownMenu.Root open={second}>
+					<DropdownMenu.Root modal open={second}>
 						<DropdownMenu.Trigger>Second</DropdownMenu.Trigger>
 						<DropdownMenu.Content>
 							<DropdownMenu.Item>B</DropdownMenu.Item>
@@ -1054,7 +1091,7 @@ describe("DropdownMenu parity with Radix (browser)", () => {
 		const tree = (section: boolean) => (
 			<>
 				<button type="button">Outside</button>
-				<DropdownMenu.Root defaultOpen>
+				<DropdownMenu.Root defaultOpen modal>
 					<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
 					<DropdownMenu.Content asChild>
 						{section ? (
@@ -1084,7 +1121,7 @@ describe("DropdownMenu parity with Radix (browser)", () => {
 
 	test("a new trigger element for an open modal menu is not inert", async () => {
 		const tree = (changed: boolean) => (
-			<DropdownMenu.Root defaultOpen>
+			<DropdownMenu.Root defaultOpen modal>
 				<DropdownMenu.Trigger key={String(changed)}>Open</DropdownMenu.Trigger>
 				<DropdownMenu.Content>
 					<DropdownMenu.Item>Apple</DropdownMenu.Item>
@@ -1223,13 +1260,13 @@ describe("DropdownMenu parity with Radix (browser)", () => {
 		const keepOpen = (event: Event) => event.preventDefault();
 		const tree = ({ second, replacement }: { second: boolean; replacement: boolean }) => (
 			<>
-				<DropdownMenu.Root open>
+				<DropdownMenu.Root open modal>
 					<DropdownMenu.Trigger key={String(replacement)}>First</DropdownMenu.Trigger>
 					<DropdownMenu.Content onInteractOutside={keepOpen}>
 						<DropdownMenu.Item>Alpha</DropdownMenu.Item>
 					</DropdownMenu.Content>
 				</DropdownMenu.Root>
-				<DropdownMenu.Root open={second}>
+				<DropdownMenu.Root open={second} modal>
 					<DropdownMenu.Trigger>Second</DropdownMenu.Trigger>
 					<DropdownMenu.Content onInteractOutside={keepOpen}>
 						<DropdownMenu.Item>Beta</DropdownMenu.Item>

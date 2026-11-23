@@ -24,6 +24,7 @@ import {
 import { createPortal } from "react-dom";
 import invariant from "tiny-invariant";
 import { enterModal } from "../../behaviors/enter-modal.js";
+import { swallowOutsideClick } from "../../behaviors/swallow-outside-click.js";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
@@ -458,7 +459,7 @@ const Root = ({
 	children,
 	defaultOpen = false,
 	dir,
-	modal = true,
+	modal = false,
 	onOpenChange,
 	open: openProp,
 }: {
@@ -474,8 +475,11 @@ const Root = ({
 	onOpenChange?: (open: boolean) => void;
 	/**
 	 * Whether the page behind the open menu is inert: it does not scroll, take
-	 * focus, take pointer input, or reach a screen reader.
-	 * @default true
+	 * focus, take pointer input, or reach a screen reader. By default the page
+	 * stays live, as with a native popover and the WAI-ARIA menu button pattern.
+	 * A press outside still closes the menu, and its primary click (left
+	 * button, no Ctrl) does not activate what is under it.
+	 * @default false
 	 */
 	modal?: boolean;
 	/** The reading direction. It decides which arrow key opens and closes a submenu. Defaults to the trigger's direction. */
@@ -913,6 +917,8 @@ const Content = ({
 	/** How the last outside interaction left focus: where it landed (`keep`), or back to the trigger (`restore`). */
 	const outsideFocus = useRef<"keep" | "restore" | null>(null);
 	const outsideRightClick = useRef(false);
+	/** Whether the outside interaction that closes the menu is a primary press, whose click must not land. */
+	const outsidePrimaryPress = useRef(false);
 	const modalBoundary = useRef<ModalBoundary>({ shown: null, held: null });
 	const [menu, setMenu] = useState<HTMLElement | null>(null);
 	const { onMenuKeyDown, isTyping, resetTyping } = useMenuKeyboard(loop);
@@ -925,7 +931,13 @@ const Content = ({
 			outsideFocus.current = null;
 			if (reason === "outside") {
 				outsideFocus.current = !state.modal || outsideRightClick.current ? "keep" : "restore";
+				// Why: the press that closes the menu must not also activate what is
+				// under it, as with the pickers. A modal menu's inert page takes no click.
+				if (outsidePrimaryPress.current && !state.modal) {
+					swallowOutsideClick();
+				}
 			}
+			outsidePrimaryPress.current = false;
 			state.setOpen(false);
 		},
 		getAnchor: () => state.triggerRef.current,
@@ -942,6 +954,13 @@ const Content = ({
 		onPointerDownOutside: (event) => {
 			const { button, ctrlKey } = event.detail.originalEvent;
 			outsideRightClick.current = button === 2 || (button === 0 && ctrlKey);
+			outsidePrimaryPress.current = button === 0 && !ctrlKey;
+			// Why a microtask: the flag is for the dismiss in this press's own
+			// listener. A press that the consumer keeps from closing the menu can
+			// close it later through its focus move, and that click must land.
+			queueMicrotask(() => {
+				outsidePrimaryPress.current = false;
+			});
 			onPointerDownOutside?.(event);
 		},
 		onShow: (floating) => {
