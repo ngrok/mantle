@@ -246,15 +246,13 @@ export default defineConfig({
 							!process.env.DISABLE_HEADLESS ||
 							process.env.CI === "1" ||
 							/true/i.test(process.env.CI ?? ""),
-						// Why Firefox and WebKit run one file at a time: Firefox keeps mouse
-						// capture and drag state for the whole browser, so a real drag in one
-						// page breaks a drag or a selection in another. In WebKit, parallel
-						// pages on a loaded CI runner left a native dialog open after Escape.
-						// CI splits both engines into shards instead.
+						// Why Firefox runs one file at a time: Firefox keeps mouse capture and
+						// drag state for the whole browser, so a real drag in one page breaks a
+						// drag or a selection in another. CI splits Firefox into shards instead.
 						instances: engines.map((engine) => ({
 							browser: engine,
 							provider: providerFor(engine),
-							...(engine === "chromium" ? {} : { fileParallelism: false }),
+							...(engine === "firefox" ? { fileParallelism: false } : {}),
 						})),
 						commands: { emulateMedia, tailwindCss },
 					},
