@@ -1,3 +1,4 @@
+import { createHash, randomBytes } from "node:crypto";
 import mantlePackageJson from "@ngrok/mantle/package.json" with { type: "json" };
 import { McpServer, ResourceTemplate, type CallToolResult } from "@modelcontextprotocol/server";
 import { z } from "zod";
@@ -174,6 +175,8 @@ export type ToolCallEvent = ToolCallOutcome & {
 	resultBytes: number;
 	/** The first product token of the `User-Agent` header, such as `claude-code/2.1.3`. */
 	client?: string;
+	/** The pseudonymous key of the agent that called, from `callerOf`. The pulse groups calls into sessions by it. */
+	caller: string;
 	/** The ngrok repo that the call came from, from the `source` query parameter. */
 	source?: McpSource;
 	/** The agent's reason for the call, from `scrubIntent`. */
@@ -187,10 +190,48 @@ export type ToolCallEvent = ToolCallOutcome & {
 	ids?: string[];
 	/** The number of `find` results. */
 	resultCount?: number;
-	/** The top-level argument names that failed validation. */
-	invalidFields?: string[];
+	/** Each top-level argument that failed validation, and its problem. */
+	invalidArguments?: InvalidArgument[];
 	gap?: GapSignal;
 };
+
+/** What is wrong with an argument that failed validation. */
+export type ArgumentProblem =
+	| "missing"
+	| "wrong type"
+	| "empty"
+	| "too short"
+	| "too long"
+	| "not an allowed value"
+	| "bad format"
+	| "unknown key"
+	| "invalid";
+
+/** One top-level argument that failed validation. */
+export type InvalidArgument = { argument: string; problem: ArgumentProblem };
+
+/**
+ * The problem of one validation issue. Why the issue `code` and not its
+ * message: a code names no value that the agent sent.
+ */
+function problemOf(issue: object, value: unknown): ArgumentProblem {
+	switch (Reflect.get(issue, "code")) {
+		case "invalid_type":
+			return value === undefined ? "missing" : "wrong type";
+		case "too_small":
+			return Reflect.get(issue, "minimum") === 1 ? "empty" : "too short";
+		case "too_big":
+			return "too long";
+		case "invalid_value":
+			return "not an allowed value";
+		case "invalid_format":
+			return "bad format";
+		case "unrecognized_keys":
+			return "unknown key";
+		default:
+			return "invalid";
+	}
+}
 
 /** The fields that a tool body adds to its log event. */
 type ToolCallFacts = Pick<ToolCallEvent, "dataVersion" | "ids" | "resultCount" | "gap"> & {
@@ -213,6 +254,25 @@ function clientOf(request: Request | undefined): string | undefined {
 	const token = request?.headers.get("user-agent")?.trim().split(/\s+/)[0] ?? "";
 	const client = token.replace(/[^\w./-]/g, "").slice(0, 60);
 	return client === "" || hasProfanity(client) ? undefined : client;
+}
+
+/** The salt of `callerOf`. A new process makes a new salt, so a key cannot follow an agent across deploys. */
+const CALLER_SALT = randomBytes(16);
+
+/**
+ * The pseudonymous key of the agent that sent a request: a salted hash of
+ * its first `X-Forwarded-For` address, its whole `User-Agent` header, and
+ * its source. Why a hash: the server is stateless and gets no session ID,
+ * and the log must not hold an address.
+ */
+function callerOf(request: Request | undefined, source: McpSource | undefined): string {
+	const address = request?.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "";
+	const agent = request?.headers.get("user-agent") ?? "";
+	return createHash("sha256")
+		.update(CALLER_SALT)
+		.update(`${address}\n${agent}\n${source ?? ""}`)
+		.digest("hex")
+		.slice(0, 12);
 }
 
 /** The string at `key` in the raw arguments of a call, or `undefined`. */
@@ -396,6 +456,7 @@ function findResultText(record: FindRecord): string {
 export function createMantleMcpServer(dependencies: McpDependencies, request?: Request): McpServer {
 	const client = clientOf(request);
 	const source = sourceOf(request);
+	const caller = callerOf(request, source);
 	/** The logged `workspace` and `ticket`. Both need a source. */
 	const attribution = (
 		workspace: string | null | undefined,
@@ -432,10 +493,19 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				const intent = rawString(value, "intent");
 				const workspace = rawString(value, "workspace");
 				const ticket = rawString(value, "ticket");
-				const fields = result.issues.map(({ path }) => {
-					const first = path?.[0];
-					return String(typeof first === "object" ? first.key : (first ?? "arguments"));
-				});
+				const invalid = new Map<string, ArgumentProblem>();
+				for (const issue of result.issues) {
+					const first = issue.path?.[0];
+					const key = typeof first === "object" ? first.key : first;
+					const argument = key == null ? "arguments" : String(key);
+					const argumentValue =
+						key == null || typeof value !== "object" || value == null
+							? value
+							: Reflect.get(value, key);
+					if (!invalid.has(argument)) {
+						invalid.set(argument, problemOf(issue, argumentValue));
+					}
+				}
 				dependencies.log({
 					tool,
 					outcome: "error",
@@ -443,10 +513,11 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					latencyMs: 0,
 					resultBytes: 0,
 					client,
+					caller,
 					source,
 					intent: intent == null ? undefined : scrubIntent(intent),
 					...attribution(workspace, ticket),
-					invalidFields: Array.from(new Set(fields)),
+					invalidArguments: Array.from(invalid, ([argument, problem]) => ({ argument, problem })),
 				});
 			}
 			return result;
@@ -501,6 +572,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					latencyMs: Math.round(performance.now() - started),
 					resultBytes: byteLength(resultText),
 					client,
+					caller,
 					source,
 					intent: intent == null ? undefined : scrubIntent(intent),
 					...attribution(workspace, ticket),

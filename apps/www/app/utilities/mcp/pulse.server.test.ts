@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	addToDigest,
 	alertOf,
@@ -17,6 +17,7 @@ function event(overrides: Partial<ToolCallEvent> = {}): ToolCallEvent {
 		latencyMs: 40,
 		resultBytes: 900,
 		client: "claude-code/2.1.3",
+		caller: "agent-a",
 		dataVersion: "0.93.0",
 		...overrides,
 	} as ToolCallEvent;
@@ -87,6 +88,7 @@ function testPulse({
 		fetch,
 		advance: (ms: number) => {
 			time += ms;
+			vi.advanceTimersByTime(ms);
 		},
 	};
 }
@@ -217,27 +219,51 @@ describe("write-up", () => {
 describe("digestText", () => {
 	it("sums the calls since the last digest for a person to read", () => {
 		const digest = emptyDigest(0);
-		addToDigest(digest, gapReport);
-		addToDigest(digest, weakFind);
-		addToDigest(digest, { ...weakFind, client: "cursor/1.0", intent: "booking form" });
+		addToDigest(digest, { ...gapReport, source: "ngrok-private/frontend" }, { id: 1 });
+		addToDigest(digest, weakFind, { id: 2, opening: "find" });
+		addToDigest(
+			digest,
+			{ ...weakFind, client: "cursor/1.0", intent: "booking form" },
+			{ id: 3, opening: "find" },
+		);
 		addToDigest(
 			digest,
 			event({ tool: "get", outcome: "error", errorKind: "not_found", latencyMs: 400 }),
+			{ id: 4, opening: "check" },
+		);
+		const badQuery = event({
+			outcome: "error",
+			errorKind: "validation",
+			invalidArguments: [{ argument: "query", problem: "too long" }],
+		});
+		addToDigest(digest, badQuery, { id: 2, opening: "find" });
+		addToDigest(digest, badQuery, { id: 2, opening: "find" });
+		addToDigest(
+			digest,
+			event({
+				tool: "get",
+				outcome: "error",
+				errorKind: "validation",
+				invalidArguments: [{ argument: "name", problem: "missing" }],
+			}),
+			{ id: 2, opening: "find" },
 		);
 
 		expect(digestText(digest, { now: 6 * HOUR_MS, reason: "shutdown", host: "www-1" })).toBe(
 			[
-				":bar_chart: *mantle MCP: 4 calls in the last 6 h*",
+				":bar_chart: *mantle MCP: 7 calls in the last 6 h*",
 				"",
-				"*Tools:* find 2 · report_gap 1 · get 1",
-				"*Clients:* claude-code 75% · cursor 25%",
-				"*Slowest:* get averages 400 ms (max 400 ms)",
+				"*Tools:* find 4 · get 2 · report_gap 1",
+				"*Sources:* untagged 86% · ngrok-private/frontend 14%",
+				"*Clients:* claude-code 86% · cursor 14%",
+				"*Sessions:* 4 · 2 called find before any check · 1 called check before any find",
+				"*Slowest:* get averages 220 ms (max 400 ms)",
 				"",
-				"*Errors:* 1 of 4 calls (25.0%)",
+				"*Errors:* 4 of 7 calls (57.1%)",
+				"• 3 bad arguments: find query too long ×2 · get name missing",
 				"• 1 not found",
 				"",
 				"*Gaps:* 1 reported, 2 finds with no strong match",
-				'• "date range picker" ×2',
 				'• "stepper"',
 				"",
 				"*Recent goals*",
@@ -269,6 +295,94 @@ describe("digestText", () => {
 });
 
 describe("createPulse", () => {
+	beforeEach(() => {
+		vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	const getPart = (part: string, caller = "agent-a") => event({ tool: "get", ids: [part], caller });
+
+	it("counts a weak find in the digest only when its session gets the top guess", async () => {
+		const { pulse, posts } = testPulse();
+
+		pulse.record(weakFind);
+		pulse.record(getPart("DatePicker"));
+		await pulse.flush("shutdown");
+
+		expect(posts).toHaveLength(1);
+		expect(posts[0]).toContain(
+			"*Gaps:* 0 reported, 1 finds with no strong match (1 then got the top guess)",
+		);
+		expect(posts[0]).toContain('*Top guess was right:* "date range picker" → DatePicker');
+		expect(posts[0]).not.toContain('• "date range picker"');
+	});
+
+	it("posts a weak find when its own session gets another part, with the part's rank", async () => {
+		const { pulse, posts } = testPulse();
+
+		pulse.record(weakFind);
+		pulse.record(getPart("DatePicker", "agent-b"));
+		pulse.record(getPart("Calendar"));
+		await pulse.flush("shutdown");
+
+		expect(posts[0]).toContain("*Then:* get Calendar (result 2)");
+		expect(posts[1]).toContain('• "date range picker"');
+	});
+
+	it("posts a weak find with the steps of its session after 10 min with no get", () => {
+		const { pulse, posts, advance } = testPulse();
+
+		pulse.record(weakFind);
+		pulse.record(event({ tool: "check" }));
+		pulse.record(event({ tool: "check", outcome: "error", errorKind: "too_large" }));
+		advance(10 * 60_000 - 1);
+		const beforeWait = posts.length;
+		advance(1);
+
+		expect(beforeWait).toBe(0);
+		expect(posts).toHaveLength(1);
+		expect(posts[0]).toContain("*Then:* check → check (too large), no get in 10 min");
+	});
+
+	it("posts a waiting weak find at shutdown", async () => {
+		const { pulse, posts } = testPulse();
+
+		pulse.record(weakFind);
+		await pulse.flush("shutdown");
+
+		expect(posts[0]).toContain("*Then:* no call before the server stopped");
+		expect(posts[1]).toContain('• "date range picker"');
+	});
+
+	it("starts a new session when a caller makes no call for 30 min", async () => {
+		const { pulse, posts, advance } = testPulse();
+
+		pulse.record(event({ tool: "find", ids: ["Dialog"] }));
+		advance(30 * 60_000 - 1);
+		pulse.record(event({ tool: "check" }));
+		advance(30 * 60_000);
+		pulse.record(event({ tool: "check" }));
+		pulse.record(event({ tool: "find", ids: ["Dialog"] }));
+		await pulse.flush("shutdown");
+
+		expect(posts[0]).toContain(
+			"*Sessions:* 2 · 1 called find before any check · 1 called check before any find",
+		);
+	});
+
+	it("shows the calls of the session before a gap report", () => {
+		const { pulse, posts } = testPulse();
+
+		pulse.record(event({ tool: "find", ids: ["Dialog"] }));
+		pulse.record(event({ tool: "find", ids: ["Tabs"] }));
+		pulse.record(getPart("Tabs"));
+		pulse.record(gapReport);
+
+		expect(posts[0]).toContain("*Session:* find ×2 → get Tabs\n");
+	});
 	it("posts an alert once an hour for the same need", () => {
 		const { pulse, posts, advance } = testPulse();
 

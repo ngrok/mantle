@@ -17,12 +17,12 @@ const rpcResponse = z.object({
 });
 
 /**
- * Sends one 2025-era JSON-RPC request to `url` through the stateless HTTP handler.
+ * Sends one 2025-era JSON-RPC request to `url`, with `headers` added, through the stateless HTTP handler.
  *
  * @example
  * const { result } = await rpcAt("https://mantle.example/mcp")(deps, "tools/list");
  */
-export function rpcAt(url: string) {
+export function rpcAt(url: string, headers: Record<string, string> = {}) {
 	return async (deps: McpDependencies, method: string, params: Record<string, unknown> = {}) => {
 		const handler = createMcpHandler(({ requestInfo }) => createMantleMcpServer(deps, requestInfo));
 		requestId += 1;
@@ -33,6 +33,7 @@ export function rpcAt(url: string) {
 					"Content-Type": "application/json",
 					Accept: "application/json, text/event-stream",
 					"User-Agent": "claude-code/2.1.3 (cli; darwin)",
+					...headers,
 				},
 				body: JSON.stringify({ jsonrpc: "2.0", id: requestId, method, params }),
 			}),

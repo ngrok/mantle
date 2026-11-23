@@ -27,6 +27,22 @@ const DRAIN_WAIT_MS = 5_000;
 /** The most client names, and the most needs, that one digest counts by name. */
 const DIGEST_KEYS = 200;
 
+/** How long a caller can go with no call before its next call starts a new session. */
+const SESSION_IDLE_MS = 30 * 60_000;
+
+/** The most sessions that one process tracks, and that one digest counts. */
+const SESSION_KEYS = 1_000;
+
+/** The most calls that a session trail shows. */
+const TRAIL_LENGTH = 8;
+
+/**
+ * How long a weak find waits for its session to `get` a part before its
+ * alert posts. Why wait: when the agent gets the top guess, the guess was
+ * right, and the alert is noise.
+ */
+const FOLLOW_THROUGH_MS = 10 * 60_000;
+
 /** One alert: its Slack text, and the key that holds back a repeat for an hour. */
 type Alert = { key: string; text: string };
 
@@ -94,6 +110,60 @@ function duration(ms: number): string {
 /** The client name with no version: `claude-code/2.1.3` is `claude-code`. */
 function clientName(client: string | undefined): string {
 	return client?.split("/")[0] || "unknown client";
+}
+
+/** One call in a session trail: `get` with the part it returned, or the tool and its error. */
+function stepOf(event: ToolCallEvent): string {
+	if (event.outcome === "error") {
+		return `${event.tool} (${ERROR_LABELS[event.errorKind]})`;
+	}
+	const part = event.tool === "get" && event.outcome === "ok" ? event.ids?.[0] : undefined;
+	return part == null ? event.tool : `get ${part}`;
+}
+
+/**
+ * The steps of a session in order, with a run of one step as one entry.
+ *
+ * @example
+ * trailText(["find", "find", "get Tabs"]); // "find ×2 → get Tabs"
+ */
+function trailText(steps: readonly string[]): string {
+	const runs: Array<{ step: string; times: number }> = [];
+	for (const step of steps) {
+		const last = runs.at(-1);
+		if (last?.step === step) {
+			last.times += 1;
+		} else {
+			runs.push({ step, times: 1 });
+		}
+	}
+	return runs.map(({ step, times }) => (times > 1 ? `${step} ×${times}` : step)).join(" → ");
+}
+
+/**
+ * What the session of a weak find did next: the part it got first, with
+ * its index in the `find` results (`-1` when absent), or no `get` before
+ * the wait ended, with the steps it took instead.
+ */
+export type FollowThrough =
+	| { kind: "get"; part: string; rank: number }
+	| { kind: "none"; after: string[]; until: "timeout" | "shutdown" | "full" };
+
+const WAIT_ENDS: Record<Extract<FollowThrough, { kind: "none" }>["until"], string> = {
+	timeout: `in ${FOLLOW_THROUGH_MS / 60_000} min`,
+	shutdown: "before the server stopped",
+	full: "before more weak finds filled the wait list",
+};
+
+function followThroughLine(followThrough: FollowThrough): string {
+	if (followThrough.kind === "get") {
+		const { part, rank } = followThrough;
+		return `*Then:* get ${escape(part)} (${rank < 0 ? "not in the results" : `result ${rank + 1}`})`;
+	}
+	const wait = WAIT_ENDS[followThrough.until];
+	return followThrough.after.length === 0
+		? `*Then:* no call ${wait}`
+		: `*Then:* ${escape(trailText(followThrough.after))}, no get ${wait}`;
 }
 
 function goal(event: ToolCallEvent): string | undefined {
@@ -212,15 +282,18 @@ export function clipMarkdown(markdown: string, length: number): string {
 /**
  * The Slack alert for a call that a person must see now, or `undefined`:
  *
- * - a `report_gap` call,
- * - a `find` call with no strong match, when its query has words that are safe to log, and
+ * - a `report_gap` call, with the `session` trail before it,
+ * - a `find` call with no strong match, when its query has words that are safe to log, with its `followThrough`, and
  * - a call that failed with a `busy` or `internal` error.
  *
  * @example
  * alertOf({ tool: "report_gap", outcome: "ok", latencyMs: 4, resultBytes: 60, gap: { source: "report_gap", tokens: ["stepper"], kind: "component", workaround: "composed-mantle-parts" } });
  * // { key: "gap:stepper", text: ':jigsaw: *Gap reported: "stepper"*\n\nAn agent needed a component.\nIt composed mantle parts instead.\n\n_unknown client_\n\n```\n{\n  "schema": "mantle-gap/1", …\n}\n```' }
  */
-export function alertOf(event: ToolCallEvent): Alert | undefined {
+export function alertOf(
+	event: ToolCallEvent,
+	{ session, followThrough }: { session?: string; followThrough?: FollowThrough } = {},
+): Alert | undefined {
 	const { gap } = event;
 	if (gap?.source === "report_gap") {
 		const need = escape(gap.tokens.join(" "));
@@ -230,6 +303,7 @@ export function alertOf(event: ToolCallEvent): Alert | undefined {
 			text: sections(
 				`:jigsaw: *Gap reported: "${need}"*`,
 				escape(gapSummary(gap)),
+				session == null ? undefined : `*Session:* ${escape(session)}`,
 				footer(event),
 				codeBlock(gapRecord({ ...event, gap })),
 				gap.writeup == null
@@ -248,6 +322,7 @@ export function alertOf(event: ToolCallEvent): Alert | undefined {
 				guesses.length > 0
 					? lines("*Best guesses*", bullets(guesses))
 					: "No part or docs page matched.",
+				followThrough == null ? undefined : followThroughLine(followThrough),
 				goal(event),
 				footer(event),
 			),
@@ -284,6 +359,20 @@ export function alertOf(event: ToolCallEvent): Alert | undefined {
 
 type ToolStats = { calls: number; totalMs: number; maxMs: number };
 
+/** Which of `find` and `check` a session called first. */
+type Opening = "find" | "check";
+
+/** The calls of one caller with no gap of `SESSION_IDLE_MS`, as the pulse tracks them. */
+export type Session = {
+	/** Unique in the process. */
+	id: number;
+	lastSeen: number;
+	opening?: Opening;
+	calls: number;
+	/** The last `TRAIL_LENGTH` steps, from `stepOf`. */
+	trail: string[];
+};
+
 /** The counts of the calls since the last digest. */
 export type Digest = {
 	since: number;
@@ -292,8 +381,16 @@ export type Digest = {
 	errors: Map<ToolErrorKind, number>;
 	/** At most `DIGEST_KEYS` names. A call from a new client after the cap counts only in `calls`. */
 	clients: Map<string, number>;
-	/** At most `DIGEST_KEYS` needs, as `clients`. */
+	/** The calls of each source, with `untagged` for a call with no source. At most `DIGEST_KEYS`, as `clients`. */
+	sources: Map<string, number>;
+	/** The first of `find` and `check` that each session called, by session ID. At most `SESSION_KEYS`. */
+	sessions: Map<number, Opening | undefined>;
+	/** The calls rejected for each tool, argument, and problem, such as `find query too long`. At most `DIGEST_KEYS`. */
+	invalidArguments: Map<string, number>;
+	/** The needs of the reports and of the weak finds that did not lead to their top guess. At most `DIGEST_KEYS`. */
 	needs: Map<string, number>;
+	/** The weak finds whose session then got the top guess, as `"query" → Part`. At most `DIGEST_KEYS`. */
+	topGuesses: Map<string, number>;
 	reportedGaps: number;
 	weakFinds: number;
 	heldAlerts: number;
@@ -309,7 +406,11 @@ export function emptyDigest(now: number): Digest {
 		tools: new Map(),
 		errors: new Map(),
 		clients: new Map(),
+		sources: new Map(),
+		sessions: new Map(),
+		invalidArguments: new Map(),
 		needs: new Map(),
+		topGuesses: new Map(),
 		reportedGaps: 0,
 		weakFinds: 0,
 		heldAlerts: 0,
@@ -324,8 +425,22 @@ function increment<Key>(map: Map<Key, number>, key: Key, by = 1) {
 	}
 }
 
-/** Adds one call to the digest. */
-export function addToDigest(digest: Digest, event: ToolCallEvent) {
+/** Sets the opening of a session in the digest. A new session after `SESSION_KEYS` is not added. */
+function addSession(digest: Digest, id: number, opening: Opening | undefined) {
+	if (digest.sessions.has(id) || digest.sessions.size < SESSION_KEYS) {
+		digest.sessions.set(id, opening);
+	}
+}
+
+/**
+ * Adds one call to the digest. A weak find counts in `weakFinds` only: its
+ * need waits until the pulse knows whether the session got the top guess.
+ */
+export function addToDigest(
+	digest: Digest,
+	event: ToolCallEvent,
+	session?: Pick<Session, "id" | "opening">,
+) {
 	digest.calls += 1;
 	const stats = digest.tools.get(event.tool) ?? { calls: 0, totalMs: 0, maxMs: 0 };
 	stats.calls += 1;
@@ -335,14 +450,19 @@ export function addToDigest(digest: Digest, event: ToolCallEvent) {
 	if (event.outcome === "error") {
 		increment(digest.errors, event.errorKind);
 	}
+	for (const { argument, problem } of event.invalidArguments ?? []) {
+		increment(digest.invalidArguments, `${event.tool} ${argument} ${problem}`);
+	}
 	increment(digest.clients, clientName(event.client));
-	if (event.gap != null) {
+	increment(digest.sources, event.source ?? "untagged");
+	if (session != null) {
+		addSession(digest, session.id, session.opening);
+	}
+	if (event.gap?.source === "report_gap") {
 		increment(digest.needs, event.gap.tokens.join(" "));
-		if (event.gap.source === "report_gap") {
-			digest.reportedGaps += 1;
-		} else {
-			digest.weakFinds += 1;
-		}
+		digest.reportedGaps += 1;
+	} else if (event.gap != null) {
+		digest.weakFinds += 1;
 	}
 	if (event.intent != null && !digest.goals.includes(event.intent)) {
 		digest.goals = [event.intent, ...digest.goals].slice(0, 3);
@@ -370,8 +490,20 @@ function mergeDigest(digest: Digest, older: Digest) {
 	for (const [name, calls] of older.clients) {
 		increment(digest.clients, name, calls);
 	}
+	for (const [source, calls] of older.sources) {
+		increment(digest.sources, source, calls);
+	}
+	for (const [id, opening] of older.sessions) {
+		addSession(digest, id, digest.sessions.get(id) ?? opening);
+	}
+	for (const [reason, times] of older.invalidArguments) {
+		increment(digest.invalidArguments, reason, times);
+	}
 	for (const [need, times] of older.needs) {
 		increment(digest.needs, need, times);
+	}
+	for (const [pair, times] of older.topGuesses) {
+		increment(digest.topGuesses, pair, times);
 	}
 	digest.reportedGaps += older.reportedGaps;
 	digest.weakFinds += older.weakFinds;
@@ -382,6 +514,46 @@ function mergeDigest(digest: Digest, older: Digest) {
 /** The entries of `map`, largest count first. */
 function ranked<Key>(map: Map<Key, number>): Array<[Key, number]> {
 	return Array.from(map).toSorted(([, left], [, right]) => right - left);
+}
+
+/**
+ * The top three keys of `map` with their share of `total`, then how many
+ * keys are left, such as `claude-code 75% · cursor 25%`.
+ */
+function shares(map: Map<string, number>, total: number): string {
+	const entries = ranked(map);
+	return [
+		...entries
+			.slice(0, 3)
+			.map(([key, calls]) => `${escape(key)} ${Math.round((calls / total) * 100)}%`),
+		...(entries.length > 3 ? [`${entries.length - 3} more`] : []),
+	].join(" · ");
+}
+
+/** The top `limit` keys of `map`, each with `×n` when it counts more than one, then how many are left. */
+function tally(map: Map<string, number>, limit: number, label = escape): string {
+	const entries = ranked(map);
+	return [
+		...entries
+			.slice(0, limit)
+			.map(([key, times]) => `${label(key)}${times > 1 ? ` ×${times}` : ""}`),
+		...(entries.length > limit ? [`${entries.length - limit} more`] : []),
+	].join(" · ");
+}
+
+/** The sessions line: how many sessions called, and how many called `find` or `check` first. */
+function sessionsLine(sessions: Map<number, Opening | undefined>): string | undefined {
+	if (sessions.size === 0) {
+		return undefined;
+	}
+	const openings = Array.from(sessions.values());
+	const findFirst = openings.filter((opening) => opening === "find").length;
+	const checkFirst = openings.filter((opening) => opening === "check").length;
+	return [
+		`*Sessions:* ${count(sessions.size)}`,
+		...(findFirst > 0 ? [`${count(findFirst)} called find before any check`] : []),
+		...(checkFirst > 0 ? [`${count(checkFirst)} called check before any find`] : []),
+	].join(" · ");
 }
 
 /**
@@ -402,19 +574,21 @@ export function digestText(
 	const slowest = Array.from(digest.tools).toSorted(
 		([, left], [, right]) => right.totalMs / right.calls - left.totalMs / left.calls,
 	)[0];
-	const clients = ranked(digest.clients);
-	const topClients = clients
-		.slice(0, 3)
-		.map(([name, calls]) => `${escape(name)} ${Math.round((calls / digest.calls) * 100)}%`);
 	const needs = ranked(digest.needs)
 		.slice(0, 5)
 		.map(([need, times]) => `"${escape(need)}"${times > 1 ? ` ×${times}` : ""}`);
+	const topGuessCount = Array.from(digest.topGuesses.values()).reduce(
+		(sum, value) => sum + value,
+		0,
+	);
 	const tools = ranked(new Map(Array.from(digest.tools, ([tool, stats]) => [tool, stats.calls])));
 	return sections(
 		`:bar_chart: *mantle MCP: ${count(digest.calls)} ${digest.calls === 1 ? "call" : "calls"} in the last ${duration(now - digest.since)}*`,
 		lines(
 			`*Tools:* ${tools.map(([tool, calls]) => `${tool} ${count(calls)}`).join(" · ")}`,
-			`*Clients:* ${[...topClients, ...(clients.length > 3 ? [`${clients.length - 3} more`] : [])].join(" · ")}`,
+			`*Sources:* ${shares(digest.sources, digest.calls)}`,
+			`*Clients:* ${shares(digest.clients, digest.calls)}`,
+			sessionsLine(digest.sessions),
 			slowest == null
 				? undefined
 				: `*Slowest:* ${slowest[0]} averages ${duration(slowest[1].totalMs / slowest[1].calls)} (max ${duration(slowest[1].maxMs)})`,
@@ -424,14 +598,21 @@ export function digestText(
 			: lines(
 					`*Errors:* ${count(errorCount)} of ${count(digest.calls)} calls (${errorShare}%)`,
 					bullets(
-						ranked(digest.errors).map(([kind, times]) => `${count(times)} ${ERROR_LABELS[kind]}`),
+						ranked(digest.errors).map(([kind, times]) =>
+							kind === "validation" && digest.invalidArguments.size > 0
+								? `${count(times)} ${ERROR_LABELS[kind]}: ${tally(digest.invalidArguments, 3)}`
+								: `${count(times)} ${ERROR_LABELS[kind]}`,
+						),
 					),
 				),
 		digest.reportedGaps + digest.weakFinds === 0
 			? "*Gaps:* none"
 			: lines(
-					`*Gaps:* ${count(digest.reportedGaps)} reported, ${count(digest.weakFinds)} finds with no strong match`,
-					bullets(needs),
+					`*Gaps:* ${count(digest.reportedGaps)} reported, ${count(digest.weakFinds)} finds with no strong match${topGuessCount > 0 ? ` (${count(topGuessCount)} then got the top guess)` : ""}`,
+					needs.length === 0 ? undefined : bullets(needs),
+					digest.topGuesses.size === 0
+						? undefined
+						: `*Top guess was right:* ${tally(digest.topGuesses, 3, (pair) => pair)}`,
 				),
 		digest.goals.length === 0
 			? undefined
@@ -445,7 +626,11 @@ export function digestText(
 
 /** Posts tool-call alerts and digests to Slack. */
 export type Pulse = {
-	/** Adds a call to the digest, and posts its alert when the call needs one. Never waits for Slack. */
+	/**
+	 * Adds a call to the digest and to its session, and posts its alert when
+	 * the call needs one. A weak find waits for its session first. Never waits
+	 * for Slack.
+	 */
 	record: (event: ToolCallEvent) => void;
 	/**
 	 * Marks an MCP request as in flight, and returns the function that ends it.
@@ -462,11 +647,22 @@ export type Pulse = {
 	flush: (reason: "interval" | "shutdown") => Promise<void>;
 };
 
+/** A weak find that waits for its session to `get` a part. */
+type ParkedFind = {
+	event: ToolCallEvent & { gap: GapSignal };
+	session: Session;
+	/** The steps of the session after the find. */
+	after: string[];
+	timer: ReturnType<typeof setTimeout>;
+};
+
 /**
  * Creates the Slack pulse of the MCP server. With no `webhookUrl`, it posts
  * nothing. A repeat of an alert waits an hour after Slack accepts it, and one
  * process tries at most 30 alerts an hour; the digest counts the alerts it held
- * back.
+ * back. A weak find posts when its session gets a part other than the top
+ * guess, or after 10 min with no `get`. When the session gets the top guess,
+ * only the digest counts it.
  *
  * @example
  * const pulse = createPulse({ webhookUrl: process.env.MANTLE_MCP_SLACK_WEBHOOK_URL });
@@ -494,6 +690,10 @@ export function createPulse({
 	const pending = new Set<Promise<unknown>>();
 	let inFlight = 0;
 	let onIdle: (() => void) | undefined;
+	/** The sessions by caller, least recently seen first. */
+	const sessions = new Map<string, Session>();
+	let lastSessionId = 0;
+	const parked = new Set<ParkedFind>();
 
 	const track = <Value>(work: Promise<Value>): Promise<Value> => {
 		pending.add(work);
@@ -565,30 +765,120 @@ export function createPulse({
 		}
 	};
 
+	/** The session of `caller` at `time`: its open session, else a new one. */
+	const sessionOf = (caller: string, time: number): Session => {
+		const known = sessions.get(caller);
+		sessions.delete(caller);
+		let session = known;
+		if (session == null || time - session.lastSeen >= SESSION_IDLE_MS) {
+			lastSessionId += 1;
+			session = { id: lastSessionId, lastSeen: time, calls: 0, trail: [] };
+		}
+		session.lastSeen = time;
+		sessions.set(caller, session);
+		const oldest = sessions.keys().next().value;
+		if (sessions.size > SESSION_KEYS && oldest != null) {
+			sessions.delete(oldest);
+		}
+		return session;
+	};
+
+	/** Posts `alert` unless a repeat or the hourly cap holds it back. */
+	const send = (alert: Alert) => {
+		const time = now();
+		if (time - (lastSent.get(alert.key) ?? -Infinity) < HOUR_MS) {
+			return;
+		}
+		if (time - windowStart >= HOUR_MS) {
+			windowStart = time;
+			sentInWindow.gap = 0;
+			sentInWindow.other = 0;
+		}
+		const budget = alert.key.startsWith("gap:") ? "gap" : "other";
+		if (sentInWindow[budget] >= (budget === "gap" ? GAPS_PER_HOUR : ALERTS_PER_HOUR)) {
+			digest.heldAlerts += 1;
+			return;
+		}
+		sentInWindow[budget] += 1;
+		lastSent.set(alert.key, time);
+		void track(postAlert(alert, time));
+	};
+
+	/** Ends the wait of a weak find: the digest counts a right top guess, and any other end posts the alert. */
+	const resolve = (find: ParkedFind, followThrough: FollowThrough) => {
+		clearTimeout(find.timer);
+		parked.delete(find);
+		const need = find.event.gap.tokens.join(" ");
+		if (followThrough.kind === "get" && followThrough.rank === 0) {
+			increment(digest.topGuesses, `"${escape(need)}" → ${escape(followThrough.part)}`);
+			return;
+		}
+		increment(digest.needs, need);
+		const alert = alertOf(find.event, { followThrough });
+		if (alert != null) {
+			send(alert);
+		}
+	};
+
+	const park = (event: ToolCallEvent & { gap: GapSignal }, session: Session) => {
+		// Why: a burst of weak finds must not hold a timer each. Past the cap, the oldest wait ends early.
+		const oldest = parked.values().next().value;
+		if (parked.size >= SESSION_KEYS && oldest != null) {
+			resolve(oldest, { kind: "none", after: oldest.after, until: "full" });
+		}
+		const need = event.gap.tokens.join(" ");
+		for (const find of parked) {
+			if (find.session === session && find.event.gap.tokens.join(" ") === need) {
+				return;
+			}
+		}
+		const find: ParkedFind = {
+			event,
+			session,
+			after: [],
+			timer: setTimeout(
+				() => resolve(find, { kind: "none", after: find.after, until: "timeout" }),
+				FOLLOW_THROUGH_MS,
+			),
+		};
+		parked.add(find);
+	};
+
 	return {
 		record: (event) => {
-			addToDigest(digest, event);
-			const alert = alertOf(event);
-			if (alert == null) {
-				return;
+			const session = sessionOf(event.caller, now());
+			if (event.tool === "find" || event.tool === "check") {
+				session.opening ??= event.tool;
 			}
-			const time = now();
-			if (time - (lastSent.get(alert.key) ?? -Infinity) < HOUR_MS) {
-				return;
+			addToDigest(digest, event, session);
+			const step = stepOf(event);
+			const got = event.tool === "get" && event.outcome === "ok" ? event.ids?.[0] : undefined;
+			for (const find of parked) {
+				if (find.session !== session) {
+					continue;
+				}
+				if (got == null) {
+					find.after.push(step);
+				} else {
+					resolve(find, { kind: "get", part: got, rank: (find.event.ids ?? []).indexOf(got) });
+				}
 			}
-			if (time - windowStart >= HOUR_MS) {
-				windowStart = time;
-				sentInWindow.gap = 0;
-				sentInWindow.other = 0;
+			const { gap } = event;
+			if (gap?.source === "find") {
+				park({ ...event, gap }, session);
+			} else {
+				const alert = alertOf(event, {
+					session:
+						session.trail.length === 0
+							? undefined
+							: `${session.calls > session.trail.length ? "… → " : ""}${trailText(session.trail)}`,
+				});
+				if (alert != null) {
+					send(alert);
+				}
 			}
-			const budget = alert.key.startsWith("gap:") ? "gap" : "other";
-			if (sentInWindow[budget] >= (budget === "gap" ? GAPS_PER_HOUR : ALERTS_PER_HOUR)) {
-				digest.heldAlerts += 1;
-				return;
-			}
-			sentInWindow[budget] += 1;
-			lastSent.set(alert.key, time);
-			void track(postAlert(alert, time));
+			session.calls += 1;
+			session.trail = [...session.trail, step].slice(-TRAIL_LENGTH);
 		},
 		hold: () => {
 			inFlight += 1;
@@ -609,6 +899,9 @@ export function createPulse({
 				return;
 			}
 			await Promise.all([idle(), settled()]);
+			for (const find of parked) {
+				resolve(find, { kind: "none", after: find.after, until: "shutdown" });
+			}
 			await postDigest(reason);
 			// Why again: a call that ended during the wait can post an alert.
 			await settled();
