@@ -278,6 +278,35 @@ describe("Slider track press (browser)", () => {
 		);
 	});
 
+	test("a move of the pointer that changes no value keeps the thumb and the range gliding together", async () => {
+		const { root } = renderSlider();
+		const rect = root.getBoundingClientRect();
+		const at = { x: rect.width * 0.8, y: rect.height / 2 };
+
+		await userEvent.dragAndDrop(root, root, {
+			sourcePosition: at,
+			targetPosition: { ...at, y: at.y + 1 },
+		});
+
+		expect(glides().map(({ property }) => property)).toEqual(
+			expect.arrayContaining(["left", "right"]),
+		);
+	});
+
+	test("the hit area of the next slider leaves this slider's thumb clickable", async () => {
+		render(
+			<div style={{ padding: 40, width: 280 }}>
+				<Slider aria-label="Treble" defaultValue={50} />
+				<Slider aria-label="Bass" defaultValue={50} disabled />
+			</div>,
+		);
+		const treble = screen.getByRole("slider", { name: "Treble" });
+
+		await userEvent.click(treble);
+
+		expect(treble).toHaveFocus();
+	});
+
 	test("a key press and a drag move the thumb at once", async () => {
 		const { slider, root } = renderSlider();
 		const rect = root.getBoundingClientRect();

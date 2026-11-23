@@ -151,7 +151,7 @@ type SliderProps = SliderBaseProps &
  * | ------------------ | ------------------------------ | ---------------------------------------------- |
  * | `data-orientation` | `"horizontal"` \| `"vertical"` | On the root. Mirrors `orientation`.            |
  * | `data-disabled`    | present when disabled          | On the root. Presence-only. Style with `data-disabled:`. |
- * | `data-track-press` | present while a thumb glides   | On the root, for 200ms after a press on the track. Presence-only. |
+ * | `data-track-press` | present during a glide         | On the root while a thumb glides after a press on the track. Presence-only. |
  *
  * @useWhen Pick a number, or a range between two numbers, with a thumb that moves along a track.
  *
@@ -260,10 +260,11 @@ function Slider({
 			className={cx(
 				"group/slider [--slider-thumb-size:--spacing(4.5)]",
 				"relative flex w-full touch-none items-center select-none data-disabled:opacity-50",
-				// Why the hit area behind the thumbs: a press beside the thin track still reaches it, and
-				// `isolate` keeps the layer above the page and below each thumb. It is 24px for a mouse
-				// (the WCAG minimum target) and 44px for a finger, because it covers what sits beside the track.
-				"hit-area isolate after:-z-1 after:[--hit-area-size:--spacing(6)] pointer-coarse:after:[--hit-area-size:--spacing(11)]",
+				// Why a `::before`: it paints under the track and the thumbs with no stacking context,
+				// so each thumb's input stays above the hit area of an adjacent slider too. It is 24px
+				// for a mouse (the WCAG minimum target) and 44px for a finger, because it covers what
+				// sits beside the track.
+				"before:absolute before:top-1/2 before:left-1/2 before:-translate-1/2 before:size-[max(100%,--spacing(6))] pointer-coarse:before:size-[max(100%,--spacing(11))] data-disabled:before:pointer-events-none",
 				"data-orientation-vertical:h-full data-orientation-vertical:min-h-40 data-orientation-vertical:w-auto data-orientation-vertical:flex-col",
 				tickCount > 0 && "mb-3",
 				className,

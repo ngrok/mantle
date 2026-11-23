@@ -95,8 +95,6 @@ function sliderBehavior({
 		commit: boolean;
 		keyboard: boolean;
 	}): number => {
-		// Why: only a press on the track glides; a drag, a key, and assistive technology move at once.
-		root.removeAttribute(TRACK_PRESS);
 		const parts = partsOf(root);
 		const current = parts.values;
 		const result = nextValues({
@@ -112,6 +110,9 @@ function sliderBehavior({
 		if (result == null) {
 			return index;
 		}
+		// Why after the check: only a press on the track glides, and a move that changes no value
+		// must not stop the thumb's glide while the range's runs on.
+		root.removeAttribute(TRACK_PRESS);
 		parts.inputs[result.index]?.focus({ preventScroll: true, focusVisible: keyboard });
 		if (!controlled) {
 			paint(parts, result.values, min);
@@ -337,16 +338,16 @@ const glides = new WeakMap<Element, ReturnType<typeof setTimeout>>();
 
 /**
  * Lets the thumbs and the range of `root` glide to their new values. The
- * attribute goes after `duration-200`, so a later change of a controlled value
- * or a form reset moves at once. Why a timer: an interrupted transition fires
- * no `transitionend`.
+ * attribute goes 250ms later, after `duration-200` and a busy frame, so a later
+ * change of a controlled value or a form reset moves at once. Why a timer: an
+ * interrupted transition fires no `transitionend`.
  */
 function glide(root: Element) {
 	root.setAttribute(TRACK_PRESS, "");
 	clearTimeout(glides.get(root));
 	glides.set(
 		root,
-		setTimeout(() => root.removeAttribute(TRACK_PRESS), 200),
+		setTimeout(() => root.removeAttribute(TRACK_PRESS), 250),
 	);
 }
 

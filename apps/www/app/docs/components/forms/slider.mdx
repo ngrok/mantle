@@ -234,11 +234,11 @@ Each thumb of `Slider` is a native `<input type="range">`. The root is a `<span>
 | `preserveThumbOrder`    | `boolean`                      | `false`           | Whether a thumb stops at its neighbor instead of passing it.                                                   |
 | `dir`                   | `"ltr"` \| `"rtl"`             |                   | The text direction. When omitted, the slider follows the direction it inherits from the page.                  |
 
-| Data Attribute     | Value                          | Description                                                       |
-| :----------------- | :----------------------------- | :---------------------------------------------------------------- |
-| `data-orientation` | `"horizontal"` \| `"vertical"` | On the root. Mirrors `orientation`.                               |
-| `data-disabled`    | present when disabled          | On the root. Presence-only. Style with `data-disabled:`.          |
-| `data-track-press` | present while a thumb glides   | On the root, for 200ms after a press on the track. Presence-only. |
+| Data Attribute     | Value                          | Description                                                                 |
+| :----------------- | :----------------------------- | :-------------------------------------------------------------------------- |
+| `data-orientation` | `"horizontal"` \| `"vertical"` | On the root. Mirrors `orientation`.                                         |
+| `data-disabled`    | present when disabled          | On the root. Presence-only. Style with `data-disabled:`.                    |
+| `data-track-press` | present during a glide         | On the root while a thumb glides after a press on the track. Presence-only. |
 
 ### Keyboard
 
