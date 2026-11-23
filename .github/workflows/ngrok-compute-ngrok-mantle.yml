@@ -5,9 +5,10 @@
 # action versions stay. Remove the line to let ship manage the file again.
 #
 # ngrok/ship-action builds the image and reports it to ship. A pull request
-# gets a preview only when the action runs, so the step runs only when the PR
-# changes @app/www, a package it depends on, or this file. A push to `main`
-# deploys the `main` environment the same way.
+# gets a preview only when the action runs. The step runs only when the docs
+# site's turbo build inputs changed since the last run that built it, or when
+# this workflow changed. A push that changes only tests or other docs keeps the
+# running preview. A push to `main` deploys the `main` environment the same way.
 
 # Do not start the name with "Build and Push Container". Ship reads a run with
 # that name at this path as a run of its old workflow, and looks for an image
@@ -28,6 +29,8 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
+  # .github/actions/ship-build-changed reads earlier runs of this workflow.
+  actions: read
   contents: read
   # The action authenticates to ship with a GitHub OIDC token.
   id-token: write
@@ -39,35 +42,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # The default ref is the merge of the PR into its base, which ship expects.
-      # HEAD^1 is then the base. On a push to `main`, it is the previous commit.
+      # Depth 2 holds the base and the PR head, the merge commit's parents.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 2
 
-      - name: Check for changes in @app/www
-        id: app
+      - name: Check whether @app/www needs a new image
+        id: changes
         if: github.event_name != 'workflow_dispatch'
-        uses: Trampoline-CX/action-turbo-changed@56210b7f3e17e539416f61ef93dde2ff22337525 # v2.0.1
+        uses: ./.github/actions/ship-build-changed
         with:
-          workspace: "@app/www"
-          from: HEAD^1
-
-      - name: Check for changes to this workflow
-        id: workflow
-        if: github.event_name != 'workflow_dispatch'
-        run: |
-          if git diff --quiet HEAD^1 -- .github/workflows/ngrok-compute-ngrok-mantle.yml; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
+          package: "@app/www"
 
       - name: Read the Node version from .nvmrc
         id: node
         run: echo "version=$(cat .nvmrc)" >> "$GITHUB_OUTPUT"
 
-      - uses: ngrok/ship-action@ce608ca50086eeaa02bb54783633d6e3a31004d7 # v1.0.0
-        if: github.event_name == 'workflow_dispatch' || steps.app.outputs.changed == 'true' || steps.workflow.outputs.changed == 'true'
+      # .github/actions/ship-build-changed finds the last build by this step name.
+      - name: Build and deploy with ngrok ship
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.changed == 'true'
+        uses: ngrok/ship-action@ce608ca50086eeaa02bb54783633d6e3a31004d7 # v1.0.0
         with:
           app-id: "app_3FsBBr2ai9ocPOzjWWaBDBf9Pna"
           build-args: |

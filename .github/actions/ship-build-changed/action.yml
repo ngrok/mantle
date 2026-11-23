@@ -1,0 +1,97 @@
+name: Ship build changed
+description: Decide whether a ship app needs a new image in this run
+
+# Why: a preview keeps the image of the last run that built the app. A push
+# that leaves the app's build inputs as they were at that build needs no new
+# image. A comparison with the PR base instead rebuilds the app on every push
+# after the first change to it.
+#
+# The caller's job must name its ngrok/ship-action step
+# "Build and deploy with ngrok ship". A run counts as a build of the app only
+# when that step succeeded, so a cancelled or failed build does not count.
+# The job needs `actions: read` and a checkout with `fetch-depth: 2`.
+
+inputs:
+  package:
+    description: Workspace package name of the app, for example `@app/www`
+    required: true
+
+outputs:
+  changed:
+    description: "`true` when the app needs a new image"
+    value: ${{ steps.result.outputs.changed }}
+
+runs:
+  using: composite
+  steps:
+    # A PR that opens or reopens compares its merge commit with its base. A new
+    # push to a PR or a branch compares its head with the last built head. With
+    # no built head, or when that commit is gone after a force push, it uses the
+    # base comparison.
+    - name: Find the last built commit
+      id: range
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+        WORKFLOW_REF: ${{ github.workflow_ref }}
+        EVENT: ${{ github.event_name }}
+        ACTION: ${{ github.event.action }}
+        BRANCH: ${{ github.head_ref || github.ref_name }}
+        PR_NUMBER: ${{ github.event.pull_request.number || 0 }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        RUN_ID: ${{ github.run_id }}
+        STEP: Build and deploy with ngrok ship
+      run: |
+        workflow="${WORKFLOW_REF#"${REPO}/"}"
+        workflow="${workflow%%@*}"
+        from=$(git rev-parse HEAD^1)
+        to=$(git rev-parse HEAD)
+
+        if [[ "${EVENT}" == "push" || "${ACTION}" == "synchronize" ]]; then
+          runs=$(gh api "repos/${REPO}/actions/workflows/${workflow##*/}/runs?event=${EVENT}&branch=${BRANCH}&status=completed&per_page=20" \
+            | jq -r --argjson run "${RUN_ID}" --argjson pr "${PR_NUMBER}" --arg event "${EVENT}" \
+              '.workflow_runs[] | select(.id != $run) | select($event == "push" or any(.pull_requests[]; .number == $pr)) | "\(.id) \(.head_sha)"') || runs=""
+          while read -r id sha; do
+            [[ -n "${id}" ]] || continue
+            built=$(gh api "repos/${REPO}/actions/runs/${id}/jobs" \
+              | jq --arg step "${STEP}" '[.jobs[].steps[] | select(.name == $step and .conclusion == "success")] | length') || built=0
+            [[ "${built}" != "0" ]] || continue
+            if git cat-file -e "${sha}^{commit}" 2>/dev/null || git fetch --quiet --depth=1 origin "${sha}"; then
+              from="${sha}"
+              to="${HEAD_SHA}"
+            fi
+            break
+          done <<<"${runs}"
+        fi
+
+        echo "Comparing ${from} with ${to}"
+        {
+          echo "workflow=${workflow}"
+          echo "from=${from}"
+          echo "to=${to}"
+        } >> "${GITHUB_OUTPUT}"
+
+    - name: Compare build hashes
+      id: hash
+      uses: ./.github/actions/turbo-build-changed
+      with:
+        package: ${{ inputs.package }}
+        from: ${{ steps.range.outputs.from }}
+        to: ${{ steps.range.outputs.to }}
+
+    # A change to the workflow or to this action also builds the app.
+    - name: Decide
+      id: result
+      shell: bash
+      env:
+        HASH_CHANGED: ${{ steps.hash.outputs.changed }}
+        WORKFLOW: ${{ steps.range.outputs.workflow }}
+        FROM: ${{ steps.range.outputs.from }}
+        TO: ${{ steps.range.outputs.to }}
+      run: |
+        if [[ "${HASH_CHANGED}" == "true" ]] || ! git diff --quiet "${FROM}" "${TO}" -- "${WORKFLOW}" .github/actions/ship-build-changed .github/actions/turbo-build-changed; then
+          echo "changed=true" >> "${GITHUB_OUTPUT}"
+        else
+          echo "changed=false" >> "${GITHUB_OUTPUT}"
+        fi
