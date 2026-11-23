@@ -229,6 +229,87 @@ describe("Slider thumb hit area (browser)", () => {
 	});
 });
 
+describe("Slider track press (browser)", () => {
+	/** The running transitions of the thumb's and the range's position. */
+	function glides(): { property: string; duration: unknown; easing: string }[] {
+		return document
+			.getAnimations()
+			.filter((animation) => animation instanceof CSSTransition)
+			.filter((transition) => /inset|left|right|top|bottom/.test(transition.transitionProperty))
+			.map((transition) => ({
+				property: transition.transitionProperty,
+				duration: transition.effect?.getTiming().duration,
+				easing: transition.effect?.getTiming().easing ?? "",
+			}));
+	}
+
+	function renderSlider() {
+		render(
+			<div style={{ padding: 40, width: 280 }}>
+				<Slider aria-label="Level" defaultValue={0} />
+			</div>,
+		);
+		const slider = screen.getByRole("slider");
+		return { slider, root: rootOf(slider) };
+	}
+
+	test("a press 10px beside the thin track still moves the thumb", async () => {
+		const { slider, root } = renderSlider();
+		const rect = root.getBoundingClientRect();
+
+		await userEvent.click(root, { position: { x: rect.width * 0.75, y: rect.height / 2 - 10 } });
+
+		expect(Number((slider as HTMLInputElement).value)).toBeGreaterThan(60);
+	});
+
+	test("a press on the track glides the thumb and the range on ease-out-strong in 200ms", async () => {
+		const { slider, root } = renderSlider();
+		const rect = root.getBoundingClientRect();
+
+		await userEvent.click(root, { position: { x: rect.width - 1, y: rect.height / 2 } });
+
+		expect(slider).toHaveValue("100");
+		const curve = "cubic-bezier(0.23, 1, 0.32, 1)";
+		expect(glides()).toEqual(
+			expect.arrayContaining([
+				{ property: "left", duration: 200, easing: curve },
+				{ property: "right", duration: 200, easing: curve },
+			]),
+		);
+	});
+
+	test("a key press and a drag move the thumb at once", async () => {
+		const { slider, root } = renderSlider();
+		const rect = root.getBoundingClientRect();
+		slider.focus();
+		await userEvent.keyboard("{PageUp}");
+		expect(glides()).toEqual([]);
+
+		await userEvent.dragAndDrop(root, root, {
+			sourcePosition: { x: rect.width * 0.25, y: rect.height / 2 },
+			targetPosition: { x: rect.width * 0.75, y: rect.height / 2 },
+		});
+
+		expect(Number((slider as HTMLInputElement).value)).toBeGreaterThan(60);
+		expect(glides()).toEqual([]);
+	});
+
+	test("with reduced motion, a press on the track moves the thumb at once", async () => {
+		await commands.emulateMedia({ reducedMotion: "reduce" });
+		try {
+			const { slider, root } = renderSlider();
+			const rect = root.getBoundingClientRect();
+
+			await userEvent.click(root, { position: { x: rect.width - 1, y: rect.height / 2 } });
+
+			expect(slider).toHaveValue("100");
+			expect(glides()).toEqual([]);
+		} finally {
+			await commands.emulateMedia({ reducedMotion: "no-preference" });
+		}
+	});
+});
+
 describe("Slider pointer (browser)", () => {
 	/** Presses the track of the only slider at `fraction` of its length from the top left, and drags to `to`. */
 	async function pressTrack(fraction: number, to = fraction) {
