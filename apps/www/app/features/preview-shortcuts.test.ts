@@ -70,6 +70,22 @@ describe("forwardPreviewShortcutsScript", () => {
 		expect(docsPageListener).not.toHaveBeenCalled();
 	});
 
+	// Why blur: Chromium clears the frame's focus when the docs page takes it.
+	it("gives focus back to the element that sent ⌘K when the docs page focuses the frame", () => {
+		document.body.innerHTML = "<button>Open</button>";
+		const button = document.body.querySelector("button");
+		if (button == null) {
+			throw new Error("The fixture renders no button.");
+		}
+		button.focus();
+		pressModK(button);
+		button.blur();
+
+		window.dispatchEvent(new FocusEvent("focus"));
+
+		expect(document.activeElement).toBe(button);
+	});
+
 	it.each([
 		{ name: "a keypress with no modifier", html: "<button>Open</button>", init: {} },
 		{ name: "a held ⌘K", html: "<button>Open</button>", init: { metaKey: true, repeat: true } },
