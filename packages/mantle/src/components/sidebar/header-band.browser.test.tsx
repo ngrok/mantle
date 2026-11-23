@@ -71,7 +71,7 @@ const STYLE = `
 	.px-4 { padding-inline: calc(var(--spacing) * 4); }
 	.pt-1\\.5 { padding-top: calc(var(--spacing) * 1.5); }
 	.pb-4 { padding-bottom: calc(var(--spacing) * 4); }
-	.group-has-data-\\[slot\\~\\=sidebar-header\\]\\/app-layout\\:h-\\[calc\\(var\\(--sidebar-header-height\\,4\\.5rem\\)-2\\*var\\(--app-layout-card-gutter\\,0\\.5rem\\)-2px\\)\\]:is(:where(.group\\/app-layout):has([data-slot~="sidebar-header"]) *) {
+	:is(:where(.group\\/app-layout):has(:is([data-slot~=sidebar-header]:not([data-mobile] *))) .group-has-\\[\\[data-slot\\~\\=sidebar-header\\]\\:not\\(\\[data-mobile\\]_\\*\\)\\]\\/app-layout\\:h-\\[calc\\(var\\(--sidebar-header-height\\,4\\.5rem\\)-2\\*var\\(--app-layout-card-gutter\\,0\\.5rem\\)-2px\\)\\]) {
 		height: calc(var(--sidebar-header-height,4.5rem) - 2 * var(--app-layout-card-gutter,0.5rem) - 2px);
 	}
 	.group-data-\\[state\\=expanded\\]\\/sidebar-nav\\:pr-1:is(:where(.group\\/sidebar-nav)[data-state="expanded"] *) {
@@ -116,11 +116,20 @@ function topY(element: HTMLElement): number {
  * Every row carries an explicit pixel height, because the contract under test is
  * where the band puts a row, not how tall `Sidebar.SwitcherTrigger` renders.
  */
-function Shell({ children, className }: { children: ReactNode; className?: string }) {
+function Shell({
+	children,
+	className,
+	mobile = false,
+}: {
+	children: ReactNode;
+	className?: string;
+	/** Whether the column stands in for the mobile sheet (`data-mobile`). */
+	mobile?: boolean;
+}) {
 	return (
 		<AppLayout.Root className={className} style={{ height: 640, width: 1024 }}>
 			<AppLayout.Workspace>
-				<div className="shrink-0" style={{ width: 256 }}>
+				<div className="shrink-0" data-mobile={mobile ? "" : undefined} style={{ width: 256 }}>
 					<Sidebar.Header data-testid="header">{children}</Sidebar.Header>
 				</div>
 				<AppLayout.Content>
@@ -184,6 +193,14 @@ describe("Sidebar.Header alignment band", () => {
 			centerY(screen.getByTestId("toolbar")),
 			1,
 		);
+	});
+
+	test("a header in the mobile sheet leaves the toolbar at its standalone height", () => {
+		// The sheet sits above the page, not beside the toolbar, so there is no row
+		// to align with. The closed sheet stays in the document, so `:has()` must
+		// skip a header under `data-mobile`.
+		render(<Shell mobile>{switcherRow}</Shell>);
+		expect(screen.getByTestId("toolbar").getBoundingClientRect().height).toBeCloseTo(56, 1);
 	});
 
 	test("overriding the token on a shared ancestor moves the band and the toolbar together", () => {

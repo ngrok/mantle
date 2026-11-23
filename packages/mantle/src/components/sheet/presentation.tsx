@@ -73,6 +73,18 @@ function contentSurfaceClassName({
 	);
 }
 
+/**
+ * The slide a native sheet enters and exits with from each {@link SheetSide}.
+ * It keys on the `<dialog>`'s `[open]` and ends at `translate: none`, so a
+ * float that the sheet holds positions against the viewport once the sheet is
+ * in.
+ */
+const nativeSlideClassName: Record<SheetSide, string> = {
+	left: "transition-[translate] duration-200 ease-out-strong group-not-open/native-dialog:duration-150 motion-reduce:transition-none group-not-open/native-dialog:-translate-x-full starting:group-open/native-dialog:-translate-x-full",
+	right:
+		"transition-[translate] duration-200 ease-out-strong group-not-open/native-dialog:duration-150 motion-reduce:transition-none group-not-open/native-dialog:translate-x-full starting:group-open/native-dialog:translate-x-full",
+};
+
 /** The classes of `Sheet.Title`. */
 const titleClassName = "text-strong flex-1 truncate text-lg font-medium";
 
@@ -470,6 +482,7 @@ export {
 	descriptionClassName,
 	Footer,
 	Header,
+	nativeSlideClassName,
 	titleClassName,
 	TitleGroup,
 };

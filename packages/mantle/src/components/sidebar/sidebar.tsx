@@ -12,6 +12,7 @@ import {
 	useMemo,
 	useRef,
 	useState,
+	startTransition,
 } from "react";
 import invariant from "tiny-invariant";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
@@ -20,20 +21,26 @@ import { useIsApplePlatform } from "../../hooks/use-is-apple-platform.js";
 import { useIsHydratedAfterPaint } from "../../hooks/use-is-hydrated-after-paint.js";
 import type { SelfClosingWithAsChild, WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
+import {
+	Content as NativeContent,
+	createScope,
+	moveDialog,
+	Root as NativeRoot,
+} from "../dialog/native-primitive.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { isApplePlatform } from "../../utils/platform.js";
 import type { IconButtonProps } from "../button/icon-button.js";
 import { IconButton } from "../button/icon-button.js";
 import { Separator } from "../separator/separator.js";
-import * as Sheet from "../sheet/sheet-parts.js";
+import { contentSurfaceClassName, nativeSlideClassName } from "../sheet/presentation.js";
 import { Slot } from "../slot/index.js";
 import * as Tooltip from "../tooltip/tooltip-parts.js";
 import { SidebarWidthRequestContext } from "./width-request-context.js";
 
 /**
  * The breakpoints below which `Sidebar.Nav` swaps from the inline desktop
- * panel to the mobile `Sheet` presentation. Kept to a closed set because the
+ * panel to the mobile sheet presentation. Kept to a closed set because the
  * pre-hydration visibility classes are static strings (Tailwind cannot see
  * interpolated class names).
  *
@@ -58,6 +65,32 @@ const navVisibilityClassName: Record<SidebarMobileBreakpoint, string> = {
 	md: "max-md:not-data-hydrated:hidden",
 	lg: "max-lg:not-data-hydrated:hidden",
 };
+
+/**
+ * The desktop panel: an inline column that collapses by animating its width
+ * down to its icons, with its content still interactive and in the
+ * accessibility tree. `bg-base` lives on this surface, not the inner nav, so a
+ * consumer `bg-*` replaces it. Why the width transition has one negated gate:
+ * an SSR state correction must snap, not animate shut on page load, and bare
+ * utilities let a consumer `transition-none` or `duration-*` override the
+ * default through tailwind-merge.
+ */
+const desktopPanelClassName =
+	"group/sidebar-nav bg-base relative h-full w-(--sidebar-width,13rem) shrink-0 overflow-hidden data-[state=collapsed]:w-(--sidebar-width-icon,3.25rem) transition-[width] duration-200 ease-out-strong motion-reduce:transition-none not-data-hydrated:transition-none";
+
+/**
+ * The mobile panel: the surface of a native `Sheet` on the left, at
+ * `--sidebar-width-mobile`.
+ */
+const mobilePanelClassName = cx(
+	"group/sidebar-nav",
+	contentSurfaceClassName({
+		side: "left",
+		preferredWidth: "sm:max-w-(--sidebar-width-mobile,18rem)",
+	}),
+	nativeSlideClassName.left,
+	"bg-base w-(--sidebar-width-mobile,18rem) max-w-full p-0",
+);
 
 /**
  * The clock and the gates every collapse transition under `Sidebar.Nav`
@@ -144,6 +177,9 @@ type SidebarState = {
 
 const SidebarContext = createContext<SidebarState | null>(null);
 
+/** The scope of the native `<dialog>` that holds `Sidebar.Nav`. */
+const navScope = createScope();
+
 /**
  * Read the nearest `Sidebar.Root` state. Throws when called outside a
  * `Sidebar.Root` so misuse fails loudly. Use it to build custom triggers,
@@ -207,7 +243,9 @@ type SidebarRootProps = {
 	 */
 	openMobile?: boolean;
 	/**
-	 * Called with the next mobile sheet open state whenever it changes.
+	 * Called with the next mobile sheet open state whenever it changes. An
+	 * uncontrolled sheet calls it only when it opens or closes, not when
+	 * `setOpenMobile` asks for the state it already has.
 	 */
 	onOpenMobileChange?: (open: boolean) => void;
 	/**
@@ -425,6 +463,9 @@ const Root = ({
 }: SidebarRootProps) => {
 	const isMobile = useIsBelowBreakpoint(mobileBreakpoint);
 	const navId = useId();
+	// Why a ref: `setOpenMobile` keeps one identity across renders, and it must
+	// not open the sheet on desktop.
+	const isMobileRef = useRef(isMobile);
 
 	// Why refs: an inline `onOpenChange` takes a new identity on every parent
 	// render, and both setters are public through `useSidebar()` as effect
@@ -435,6 +476,7 @@ const Root = ({
 	useLayoutEffect(() => {
 		onOpenChangeRef.current = onOpenChange;
 		onOpenMobileChangeRef.current = onOpenMobileChange;
+		isMobileRef.current = isMobile;
 	});
 
 	const isOpenControlled = openProp != null;
@@ -473,20 +515,48 @@ const Root = ({
 	const isOpenMobileControlled = openMobileProp != null;
 	const [internalOpenMobile, setInternalOpenMobile] = useState(false);
 	const openMobile = isOpenMobileControlled ? openMobileProp : internalOpenMobile;
-	const setOpenMobile = useCallback(
+
+	// The `<dialog>` of `Sidebar.Nav` reports each open and close here. An
+	// uncontrolled sheet is the state owner, so its state follows the report.
+	// Why a transition: the tap already opened the `<dialog>`, and the render of
+	// every part that reads the state must not delay that paint.
+	const reportOpenMobile = useCallback(
 		(next: boolean) => {
 			if (!isOpenMobileControlled) {
-				setInternalOpenMobile(next);
+				startTransition(() => setInternalOpenMobile(next));
 			}
 			onOpenMobileChangeRef.current?.(next);
 		},
 		[isOpenMobileControlled],
 	);
 
-	// Crossing up over the breakpoint unmounts the sheet without closing it;
-	// clear the stale flag so narrowing the window later doesn't pop the sheet
-	// back open without user action. Only a true mobile→desktop transition may
-	// reset: a bare state check would fire on mount and clobber a controlled
+	const setOpenMobile = useCallback(
+		(next: boolean) => {
+			// Why the DOM first: an uncontrolled sheet opens and closes with no
+			// React render, and the `<dialog>` reports the change back.
+			const dialog = document.getElementById(navId)?.closest("dialog");
+			if (!isOpenMobileControlled && dialog != null) {
+				moveDialog({ dialog, open: next && isMobileRef.current });
+				// Why a close renders now: a dialog that opens in the same event, such
+				// as a palette whose `onOpenChange` closes the sheet, must not mount in
+				// the closing sheet.
+				if (!dialog.open) {
+					setInternalOpenMobile(false);
+				}
+				return;
+			}
+			if (!isOpenMobileControlled) {
+				setInternalOpenMobile(next);
+			}
+			onOpenMobileChangeRef.current?.(next);
+		},
+		[isOpenMobileControlled, navId],
+	);
+
+	// Crossing up over the breakpoint closes the sheet (see `Sidebar.Nav`);
+	// clear a controlled flag too, so narrowing the window later doesn't pop the
+	// sheet back open without user action. Only a true mobile→desktop transition
+	// may reset: a bare state check would fire on mount and clobber a controlled
 	// `openMobile` during SSR hydration (isMobile is desktop-first until the
 	// media query snapshot corrects).
 	const wasMobile = useRef(isMobile);
@@ -598,7 +668,13 @@ const Root = ({
 	return (
 		<SidebarContext.Provider value={contextValue}>
 			<SidebarWidthRequestContext.Provider value={setSidePanelNeedsWidth}>
-				{children}
+				<NativeRoot
+					scope={navScope}
+					open={isOpenMobileControlled ? openMobile && isMobile : undefined}
+					onOpenChange={reportOpenMobile}
+				>
+					{children}
+				</NativeRoot>
 			</SidebarWidthRequestContext.Provider>
 		</SidebarContext.Provider>
 	);
@@ -606,9 +682,9 @@ const Root = ({
 
 type SidebarNavProps = ComponentProps<"div"> & WithDataSlot;
 
-// Why no `asChild`: Nav renders a fixed two-element structure on desktop (a
-// width animator clipping the `<nav>`) and a `Sheet` on mobile. There
-// is no single default element a Slot swap could coherently replace.
+// Why no `asChild`: Nav renders a fixed structure (a `<dialog>`, the panel
+// surface, and the `<nav>` it clips). There is no single default element a
+// Slot swap could coherently replace.
 /**
  * The sidebar panel. On viewports at or above the root's `mobileBreakpoint`
  * it renders inline (in normal flow, so it composes under an
@@ -616,11 +692,13 @@ type SidebarNavProps = ComponentProps<"div"> & WithDataSlot;
  * narrow column (`--sidebar-width-icon`): group labels fade out in place
  * and each row becomes a square chip around its leading icon, but everything
  * keeps its expanded position and stays in the tab order and the
- * accessibility tree. Below the breakpoint it renders inside a mantle
- * `Sheet` on the left.
+ * accessibility tree. Below the breakpoint the same tree is a modal sheet on
+ * the left, on the browser's `<dialog>`: the browser traps focus, makes the
+ * page inert, closes it on Escape, and returns focus to the trigger, and CSS
+ * locks page scroll. The nav mounts once and never moves between the two.
  *
  * `className`, `style`, `ref`, and rest props land on the panel surface in
- * both presentations (the desktop animator / the mobile `Sheet.Content`), so
+ * both presentations (the desktop width animator / the sheet panel), so
  * the width variables work anywhere:
  * `className="[--sidebar-width:20rem] [--sidebar-width-mobile:20rem]"`.
  * The panel forwards `aria-label` (default `"Main"`) to the inner `<nav>` landmark.
@@ -653,8 +731,8 @@ type SidebarNavProps = ComponentProps<"div"> & WithDataSlot;
  * | --- | --- | --- |
  * | `data-state` | `"expanded"` \| `"collapsed"` | On the desktop panel surface. Mirrors the root's expanded state and drives the width collapse to its icons; descendant parts style off it with `group-data-[state=collapsed]/sidebar-nav:`. |
  * | `data-hydrated` | present one frame after hydration | Presence-only, desktop panel surface. The panel's pre-hydration visibility gate, its width transition, and descendant collapse transitions all key off its absence in CSS (`not-data-hydrated:`, `group-not-data-hydrated/sidebar-nav:`). The stamp waits one frame, so an SSR state correction paints first and snaps instead of animating on page load. |
- * | `data-mobile` | present in the mobile sheet | Presence-only. Marks the `Sheet.Content` presentation used below the root's `mobileBreakpoint`. |
- * | `data-state` | `"open"` \| `"closed"` | In the mobile sheet only, where the panel *is* the `Sheet`'s Radix dialog content element and Radix owns the attribute: the sheet's open/close animation state, not the desktop expanded state. Consumers style against it too. |
+ * | `data-mobile` | present in the mobile sheet | Presence-only. Marks the sheet presentation used below the root's `mobileBreakpoint`. |
+ * | `data-state` | `"open"` \| `"closed"` | In the mobile sheet only, where the `<dialog>` owns the attribute: the sheet's open state, not the desktop expanded state. Consumers style against it too. |
  *
  * @see https://mantle.ngrok.com/components/navigation/sidebar#sidebarnav
  *
@@ -716,91 +794,74 @@ const Nav = ({
 	"data-slot": dataSlot,
 	...props
 }: SidebarNavProps) => {
-	const { isMobile, mobileBreakpoint, navId, open, openMobile, setOpenMobile } =
-		useSidebarContext("Nav");
+	const { isMobile, mobileBreakpoint, navId, open, openMobile } = useSidebarContext("Nav");
 	const isHydrated = useIsHydratedAfterPaint();
 	const ariaLabel = ariaLabelProp ?? (ariaLabelledBy == null ? "Main" : undefined);
+	const desktopState = open ? "expanded" : "collapsed";
+	const navRef = useRef<HTMLElement>(null);
 
-	if (isMobile) {
-		return (
-			<Sheet.Root open={openMobile} onOpenChange={setOpenMobile}>
-				<Sheet.Content
-					side="left"
-					preferredWidth="sm:max-w-(--sidebar-width-mobile,18rem)"
-					data-slot={joinDataSlot(dataSlot, "sidebar-nav")}
-					data-mobile=""
-					// A consumer aria-labelledby names the dialog too, keeping the
-					// sheet and the nav consistently named. Spread conditionally:
-					// an explicit undefined would override the Sheet's internal
-					// Title wiring and leave the dialog unnamed.
-					{...(ariaLabelledBy == null ? null : { "aria-labelledby": ariaLabelledBy })}
-					className={cx("bg-base w-(--sidebar-width-mobile,18rem) max-w-full p-0", className)}
-					{...props}
-				>
-					{/* The dialog's accessible name follows the nav's, so overriding
-					    aria-label (e.g. for localization) renames the sheet too. The
-					    "Sidebar" fallback only applies while aria-labelledby (which
-					    names the dialog directly, above) is unset. */}
-					<Sheet.Title className="sr-only">{ariaLabel ?? "Sidebar"}</Sheet.Title>
-					<nav
-						id={navId}
-						aria-label={ariaLabel}
-						aria-labelledby={ariaLabelledBy}
-						className="flex h-full w-full min-w-0 flex-col text-sm"
-					>
-						{children}
-					</nav>
-				</Sheet.Content>
-			</Sheet.Root>
-		);
-	}
+	// Why: crossing up over the breakpoint must close an open sheet. The inline
+	// panel has no overlay marker, so the close leaves its `data-state` alone.
+	useLayoutEffect(() => {
+		const dialog = navRef.current?.closest("dialog");
+		if (!isMobile && dialog != null) {
+			moveDialog({ dialog, open: false });
+		}
+	}, [isMobile]);
 
 	return (
-		<div
+		// Why one tree for both presentations: a swap between them remounts every
+		// row. Above the breakpoint the closed `<dialog>` is inline, with no box,
+		// so the panel sits in the row; below it the browser shows the
+		// `<dialog>` as a modal sheet.
+		<NativeContent
+			scope={navScope}
+			inline={!isMobile}
+			// Why only while open: the nav stays mounted in the closed sheet, and a
+			// dialog that a shortcut opens from there must show on the page.
+			layer={openMobile}
+			positionerSlot="sidebar-positioner"
+			// Why no transition before the hydration stamp: on a phone the inline
+			// `<dialog>` hides when `isMobile` corrects, and a `display` transition
+			// would hold the panel on screen for the length of an exit.
+			positionerClassName={cx("inset-0", !isHydrated && "transition-none")}
+			// The sheet takes the nav's name, so a localized `aria-label` names
+			// both. An inline `<dialog>` drops the name.
+			aria-label={ariaLabel}
+			aria-labelledby={ariaLabelledBy}
 			data-slot={joinDataSlot(dataSlot, "sidebar-nav")}
 			className={cx(
-				// bg lives on this surface (not the inner nav) so consumer
-				// className overrides like `bg-card` take effect on desktop too.
-				"group/sidebar-nav bg-base relative h-full w-(--sidebar-width,13rem) shrink-0 overflow-hidden",
-				// collapsing animates the width down to its icons; the
-				// panel content stays interactive and in the accessibility tree.
-				"data-[state=collapsed]:w-(--sidebar-width-icon,3.25rem)",
-				// Why a pre-hydration gate: the server cannot know the viewport, so CSS
-				// hides the desktop panel below the breakpoint until `data-hydrated`
-				// lands and `isMobile` takes over.
-				// Why `max-*`: it asserts no display above the breakpoint, so a consumer
-				// display utility holds there before hydration too.
-				// Why it releases on hydration: Tailwind's `max-*` range and the hook's
-				// `max-width` query differ by 0.01rem, so a held gate leaves a sliver
-				// of widths where CSS hides the panel and no mobile sheet exists.
-				navVisibilityClassName[mobileBreakpoint],
-				// Why one negated gate: an SSR state correction must snap, not animate
-				// shut on page load, and bare utilities let a consumer `transition-none`
-				// or `duration-*` override the default through tailwind-merge.
-				"transition-[width] duration-200 ease-out-strong motion-reduce:transition-none not-data-hydrated:transition-none",
+				isMobile ? mobilePanelClassName : desktopPanelClassName,
+				!isMobile && navVisibilityClassName[mobileBreakpoint],
 				className,
 			)}
 			{...props}
 			// Why after the spread: a wider props object can carry `data-state` or
 			// `data-hydrated` past the type, and a consumer value would desync the
-			// collapse from `open` or release the gate.
-			data-state={open ? "expanded" : "collapsed"}
+			// collapse from `open` or release the gate. In the sheet the
+			// `<dialog>` writes `data-state` itself, as `"open"` or `"closed"`.
+			data-state={isMobile ? "closed" : desktopState}
+			data-mobile={isMobile ? "" : undefined}
 			// Why data-hydrated: the first-paint gates above and the descendants'
 			// collapse transitions key off this attribute in CSS, so an SSR state
 			// correction snaps instead of animating.
 			data-hydrated={isHydrated ? "" : undefined}
 		>
 			<nav
+				ref={navRef}
 				id={navId}
 				aria-label={ariaLabel}
 				aria-labelledby={ariaLabelledBy}
-				// w-full tracks the animating panel width so the rows clip in
-				// place during the collapse.
-				className="absolute inset-y-0 left-0 flex w-full min-w-0 flex-col text-sm"
+				className={cx(
+					"flex w-full min-w-0 flex-col text-sm",
+					// The desktop nav tracks the animating panel width, so the rows clip
+					// in place during the collapse.
+					isMobile ? "h-full" : "absolute inset-y-0 left-0",
+				)}
 			>
 				{children}
 			</nav>
-		</div>
+		</NativeContent>
 	);
 };
 
@@ -1022,11 +1083,6 @@ const Trigger = ({
 		useSidebarContext("Trigger");
 	const isApple = useIsApplePlatform();
 	const expanded = isMobile ? openMobile : open;
-	// The mobile `Sheet` unmounts its content while closed, so the `<nav>` this
-	// would point at does not exist, and `aria-controls` must reference an
-	// element that is in the document. Desktop keeps the panel mounted at every
-	// state (collapsing is a width animation), so the reference always resolves.
-	const controlsNav = !isMobile || openMobile;
 
 	// Never name a chord this root does not bind.
 	const hint = keyboardShortcut ? shortcut : undefined;
@@ -1044,7 +1100,7 @@ const Trigger = ({
 			<Tooltip.Trigger asChild>
 				<IconButton
 					appearance={appearance}
-					aria-controls={controlsNav ? navId : undefined}
+					aria-controls={navId}
 					aria-expanded={expanded}
 					aria-keyshortcuts={keyboardShortcut ? platformChord : undefined}
 					data-slot={joinDataSlot(dataSlot, "sidebar-trigger")}

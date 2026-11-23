@@ -438,14 +438,18 @@ function Trigger({
 				pressed.current = true;
 				// Why the owner document: a press can end outside the trigger, or in a frame.
 				// Why `pointercancel` too: a touch scroll ends with it, not with `pointerup`.
+				// Why a tap ends on `click`: it focuses the trigger after `pointerup`, and
+				// a tooltip that opens there only mounts for the click to close it.
+				// Why the capture phase: a handler under the document can stop the click.
 				const document = event.currentTarget.ownerDocument;
+				const end = event.pointerType === "touch" ? "click" : "pointerup";
 				const release = () => {
 					pressed.current = false;
-					document.removeEventListener("pointerup", release);
-					document.removeEventListener("pointercancel", release);
+					document.removeEventListener(end, release, true);
+					document.removeEventListener("pointercancel", release, true);
 				};
-				document.addEventListener("pointerup", release);
-				document.addEventListener("pointercancel", release);
+				document.addEventListener(end, release, true);
+				document.addEventListener("pointercancel", release, true);
 			}}
 			onFocus={(event: FocusEvent<HTMLButtonElement>) => {
 				onFocus?.(event);

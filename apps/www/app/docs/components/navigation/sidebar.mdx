@@ -650,8 +650,9 @@ Sidebar.Root
 `Sidebar.Root` renders no DOM: it only carries state, so `Sidebar.Trigger` can live anywhere under it,
 including inside layout components that know nothing about the sidebar.
 `Sidebar.Nav` renders the panel: inline on desktop, collapsing to
-[its icons](#collapsing-the-sidebar), and a left-side [Sheet](/components/overlays/sheet) below the
-root's `mobileBreakpoint`. This keeps the sidebar decoupled from your app shell: place the trigger in an
+[its icons](#collapsing-the-sidebar), and a left-side sheet below the root's `mobileBreakpoint`. The
+sheet is the browser's `<dialog>`, as in the [native Sheet](/components/overlays/sheet#native-sheet), and
+CSS decides the presentation, so the nav mounts once and a tap opens the sheet with no React render. This keeps the sidebar decoupled from your app shell: place the trigger in an
 [App Layout](/layouts/app-layout) header without the shell knowing the sidebar exists. Render exactly one `Sidebar.Nav` per
 `Sidebar.Root`; nested roots shadow the outer sidebar for everything below them.
 There is deliberately no account-switcher part: a "Switch accounts" submenu is a composition of
@@ -672,8 +673,8 @@ the single slotted child, so `shortcut` is not accepted: you render any chord hi
 `Sidebar.Separator` passes it to the [Separator](/components/structure/separator) it composes, and requires exactly one child to clone.
 
 `Sidebar.Root`, `Sidebar.Nav`, `Sidebar.Trigger`, and `Sidebar.Tooltip` are the exceptions. `Sidebar.Root`
-renders no DOM at all, so there is nothing to swap; the nav renders a fixed two-element collapse structure
-(and a `Sheet` on mobile); the trigger renders a fully-wired control (build custom triggers with `useSidebar`
+renders no DOM at all, so there is nothing to swap; the nav renders a fixed structure (a `<dialog>`, the
+panel, and the `<nav>`); the trigger renders a fully-wired control (build custom triggers with `useSidebar`
 instead); and the tooltip's surface is mantle's
 [`Tooltip.Content`](/components/overlays/tooltip#tooltipcontent), which omits `asChild` because its arrow is a
 permanent sibling of the body. The row's own polymorphism goes through the `Sidebar.ItemButton` or
@@ -854,7 +855,7 @@ and one place to change it.
 | ------------------------ | ---------------- | ------------------------------------------------ |
 | `--sidebar-width`        | `13rem` (208px)  | The expanded desktop panel                       |
 | `--sidebar-width-icon`   | `3.25rem` (52px) | The [collapsed sidebar](#collapsing-the-sidebar) |
-| `--sidebar-width-mobile` | `18rem` (288px)  | The mobile `Sheet` panel                         |
+| `--sidebar-width-mobile` | `18rem` (288px)  | The mobile sheet panel                           |
 
 Override one sidebar by setting the variable on `Sidebar.Nav`: a Tailwind arbitrary property is the
 shortest route, and `cx` keeps it deterministic. The panel below is `18rem` wide expanded; collapse it with
@@ -1134,7 +1135,7 @@ export function AccountRowMenu() {
 
 One static class covers all three presentations at the default widths. Expanded, the floor is a no-op: the
 row already measures that wide, so the menu is flush with it. Collapsed, the floor holds the menu at the
-expanded row's width, so it looks identical in the collapsed sidebar. In the mobile `Sheet` the floor is inert because the
+expanded row's width, so it looks identical in the collapsed sidebar. In the mobile sheet the floor is inert because the
 sheet's row is the wider of the two (`--sidebar-width-mobile` − `1.5rem` − the sheet's 1px `border-r` =
 263px, against 192px), so `width="trigger"` wins.
 
@@ -1330,9 +1331,9 @@ function SidebarSearch({ children }: { children: ReactNode }) {
 	return (
 		<Command.DialogRoot
 			onOpenChange={(open) => {
-				// Why close the sheet: below the mobileBreakpoint the panel is a Sheet,
-				// and a palette over an open sheet stacks two focus traps and two
-				// scroll locks.
+				// Why close the sheet: below the mobileBreakpoint the panel is a modal
+				// sheet, and a palette over it stacks two focus traps and two Escape
+				// presses back to the page.
 				if (open) {
 					setOpenMobile(false);
 				}
@@ -1386,9 +1387,9 @@ function SidebarSearchRow() {
 function SidebarWithSearch() {
 	return (
 		<Sidebar.Root>
-			{/* Above Sidebar.Nav, not inside it: below the mobileBreakpoint the nav
-			    is a Sheet that unmounts its subtree when it closes, and a root in
-			    there takes the ⌘K binding with it. */}
+			{/* Above Sidebar.Nav, so the palette does not depend on the nav. Inside
+			    it works too: the nav stays mounted while the mobile sheet is
+			    closed, so the ⌘K binding stays live. */}
 			<SidebarSearch>
 				<Sidebar.Nav aria-label="Main">
 					<Sidebar.Body>
@@ -1624,9 +1625,11 @@ The [Assistant Across Routes](/recipes/assistant-across-routes) recipe shows the
 - `Sidebar.ItemButton` `current` renders `aria-current="page"`, and the row's current treatment is styled from
   that attribute as well as `data-current`, so the announced state and the visual state cannot drift apart,
   whichever side sets it. `Sidebar.GroupLabel` is linked to its `Sidebar.List` via `aria-labelledby`.
-- The mobile sheet is a modal dialog with focus trapping and `Escape` dismissal, courtesy of
-  [Sheet](/components/overlays/sheet). Its accessible name follows the nav's (`"Main"` by default), so
-  overriding `aria-label` or `aria-labelledby` on `Sidebar.Nav` renames the dialog too.
+- The mobile sheet is the browser's modal `<dialog>`: it traps focus, makes the page inert, closes on
+  `Escape` or a click on the backdrop, and returns focus to the trigger, and CSS locks the page scroll. Its
+  accessible name follows the nav's (`"Main"` by default), so overriding `aria-label` or `aria-labelledby` on
+  `Sidebar.Nav` renames the dialog too. On desktop the same `<dialog>` is inline and exposes no dialog role
+  (`role="generic"`), so screen readers meet only the `<nav>` landmark.
 - The collapse/expand transitions respect `prefers-reduced-motion`.
 
 ## API Reference
@@ -1641,23 +1644,23 @@ The state owner. Renders no DOM.
 | `open?`               | `boolean`                 |         | Controlled desktop expanded state. Pair with `onOpenChange`.                                                                                                                                                                         |
 | `onOpenChange?`       | `(open: boolean) => void` |         | Called with the next desktop expanded state when the reader or `setOpen` changes it. A collapse or an expand that an [`AppLayout.SidePanel`](#yielding-to-a-side-panel) causes does not call it.                                     |
 | `openMobile?`         | `boolean`                 |         | Controlled mobile sheet open state. Pair with `onOpenMobileChange`.                                                                                                                                                                  |
-| `onOpenMobileChange?` | `(open: boolean) => void` |         | Called with the next mobile sheet open state.                                                                                                                                                                                        |
-| `mobileBreakpoint?`   | `"sm" \| "md" \| "lg"`    | `"lg"`  | Breakpoint below which `Sidebar.Nav` renders as a mobile `Sheet`.                                                                                                                                                                    |
+| `onOpenMobileChange?` | `(open: boolean) => void` |         | Called with the next mobile sheet open state. An uncontrolled sheet calls it only when it opens or closes.                                                                                                                           |
+| `mobileBreakpoint?`   | `"sm" \| "md" \| "lg"`    | `"lg"`  | Breakpoint below which `Sidebar.Nav` renders as a mobile sheet.                                                                                                                                                                      |
 | `keyboardShortcut?`   | `boolean`                 | `true`  | Toggle with `⌘B` (Apple) / `Ctrl+B` (elsewhere). Exact-modifier match, resolved per platform (`⌘⇧B` and macOS's native `Ctrl+B` pass through), and ignored while focus is in a text-editing or form control; set `false` to opt out. |
 
 ### Sidebar.Nav
 
 The panel. All props from `div` plus the panel contract: `className`, `style`, `ref`, and rest props land on
-the panel surface in both presentations (the desktop collapse container and the mobile `Sheet.Content`), and
+the panel surface in both presentations (the desktop collapse container and the mobile sheet panel), and
 `aria-label` (default `"Main"`) is forwarded to the inner `<nav>` landmark.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
 
-| Prop               | Type     | Default  | Description                                                                                                                                                                                   |
-| ------------------ | -------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `aria-label?`      | `string` | `"Main"` | Names the inner `<nav>` landmark, and the mobile `Sheet` dialog along with it. Override it for localization. Omitted when you pass `aria-labelledby` instead.                                 |
-| `aria-labelledby?` | `string` |          | Names the `<nav>` from another element's id, and names the mobile sheet dialog directly. Takes precedence over the `aria-label` default.                                                      |
-| `data-slot?`       | `string` |          | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `sidebar-nav` rather than replacing it. In the mobile sheet, `Sheet.Content` joins its own `sheet-content` after it. |
+| Prop               | Type     | Default  | Description                                                                                                                                                                           |
+| ------------------ | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `aria-label?`      | `string` | `"Main"` | Names the inner `<nav>` landmark, and the mobile sheet dialog along with it. Override it for localization. Omitted when you pass `aria-labelledby` instead.                           |
+| `aria-labelledby?` | `string` |          | Names the `<nav>` from another element's id, and names the mobile sheet dialog directly. Takes precedence over the `aria-label` default.                                              |
+| `data-slot?`       | `string` |          | An ancestor-forwarded `data-slot` chain, joined ahead of this part's own `sidebar-nav` rather than replacing it. The `<dialog>` around the panel is `data-slot="sidebar-positioner"`. |
 
 `Sidebar.Nav` takes no `asChild` (see [Polymorphism](#polymorphism)).
 
@@ -1674,8 +1677,8 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | --------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `data-state`    | `"expanded"` \| `"collapsed"`     | On the desktop panel surface. Mirrors the root's expanded state and drives the width collapse to its icons; descendant parts style off it with `group-data-[state=collapsed]/sidebar-nav:`.                                                                                                                                                               |
 | `data-hydrated` | present one frame after hydration | Presence-only, desktop panel surface. The panel's pre-hydration visibility gate, its width transition, and descendant collapse transitions all key off its absence in CSS (`not-data-hydrated:`, `group-not-data-hydrated/sidebar-nav:`). The stamp waits one frame, so an SSR state correction paints first and snaps instead of animating on page load. |
-| `data-mobile`   | present in the mobile sheet       | Presence-only. Marks the `Sheet.Content` presentation used below the root's `mobileBreakpoint`.                                                                                                                                                                                                                                                           |
-| `data-state`    | `"open"` \| `"closed"`            | In the mobile sheet only, where the panel _is_ the `Sheet`'s Radix dialog content element and Radix owns the attribute. It is the sheet's open/close animation state, not the desktop expanded state. Consumers style against it too.                                                                                                                     |
+| `data-mobile`   | present in the mobile sheet       | Presence-only. Marks the sheet presentation used below the root's `mobileBreakpoint`.                                                                                                                                                                                                                                                                     |
+| `data-state`    | `"open"` \| `"closed"`            | In the mobile sheet only, where the `<dialog>` owns the attribute. It is the sheet's open state, not the desktop expanded state. Consumers style against it too.                                                                                                                                                                                          |
 
 `Sidebar.Header` reads one more public token, [`--sidebar-header-height`](#sidebarheader), which belongs on a
 common ancestor of the sidebar and the app-layout header rather than on the panel.
@@ -1734,9 +1737,9 @@ wrapper around both rows takes the band itself, and a first row taller than the 
 
 > [!NOTE]
 > **The alignment is a desktop-only coupling.** `AppLayout.Header` finds the sidebar header with
-> `:has()` from `AppLayout.Root`. Below `mobileBreakpoint` the sidebar renders inside a `Sheet` that portals
-> to `document.body` (outside the shell subtree), so the selector stops matching and `AppLayout.Header`
-> falls back to its standalone `h-14` (56px) from the derived 54px. That 2px change lands after hydration,
+> `:has()` from `AppLayout.Root`. Below `mobileBreakpoint` the sidebar is a sheet that sits above the page,
+> and the selector skips a header under its `data-mobile` panel, so `AppLayout.Header` falls back to its
+> standalone `h-14` (56px) from the derived 54px. That 2px change lands after hydration,
 > because the server renders desktop-first. It is invisible in practice and there is nothing to align to on
 > mobile (the sidebar header is inside a closed sheet), but if you are diffing layout snapshots across
 > breakpoints, that is where the 2px comes from.

@@ -1430,6 +1430,15 @@ MARK: CUSTOM VARIANTS
 		overflow: hidden;
 		scrollbar-gutter: stable;
 	}
+
+	/*
+	 * The mobile `Sidebar.Nav` sheet locks page scroll with no gutter: it sits
+	 * in an app shell whose root does not scroll, and a gutter there would
+	 * narrow the whole shell while the sheet is open.
+	 */
+	:root:has(dialog[data-slot~="sidebar-positioner"]:modal) {
+		overflow: hidden;
+	}
 }
 
 /**

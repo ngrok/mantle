@@ -1,9 +1,10 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps } from "react";
-import { createRef, useState } from "react";
+import { createRef, useLayoutEffect, useRef, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import * as Dialog from "./dialog-parts.js";
+import * as NativeDialog from "./native/dialog-native-parts.js";
 import { isDialogOverlayTarget } from "./primitive.js";
 
 type DialogAppearance = "centered" | "full-page" | "full-bleed";
@@ -498,6 +499,66 @@ describe("Dialog.Content", () => {
 			}
 			expect(document.querySelectorAll('[data-slot="dialog-overlay"]')).toHaveLength(1);
 		});
+	});
+});
+
+describe("over an open native modal dialog", () => {
+	const connectedInLayoutEffect: boolean[] = [];
+	/** Records whether it is in the page when its layout effect runs, as `autoFocus` needs. */
+	function ConnectionProbe() {
+		const ref = useRef<HTMLSpanElement>(null);
+		useLayoutEffect(() => {
+			connectedInLayoutEffect.push(ref.current?.isConnected ?? false);
+		}, []);
+		return <span ref={ref} />;
+	}
+
+	function Shell({ inner, radix, sheet }: { inner: boolean; radix: boolean; sheet: boolean }) {
+		return (
+			<>
+				<NativeDialog.Root open={sheet}>
+					<NativeDialog.Content>
+						<NativeDialog.Title>Sheet</NativeDialog.Title>
+					</NativeDialog.Content>
+				</NativeDialog.Root>
+				{radix && (
+					<Dialog.Root open>
+						<Dialog.Content>
+							<Dialog.Title>Palette</Dialog.Title>
+							<ConnectionProbe />
+							<input aria-label="Query" />
+							<NativeDialog.Root open={inner}>
+								<NativeDialog.Content>
+									<NativeDialog.Title>Inner</NativeDialog.Title>
+								</NativeDialog.Content>
+							</NativeDialog.Root>
+						</Dialog.Content>
+					</Dialog.Root>
+				)}
+			</>
+		);
+	}
+
+	it("a dialog that mounts open in the modal is in the page in its layout effects", () => {
+		connectedInLayoutEffect.length = 0;
+		const { rerender } = render(<Shell inner={false} radix={false} sheet />);
+		rerender(<Shell inner={false} radix sheet />);
+
+		const sheet = screen.getByRole("dialog", { name: "Sheet" });
+		expect(sheet.contains(screen.getByRole("textbox", { name: "Query" }))).toBe(true);
+		expect(connectedInLayoutEffect).toEqual([true]);
+	});
+
+	it("the modal closes under a dialog that holds an open native dialog", () => {
+		const { rerender } = render(<Shell inner={false} radix={false} sheet />);
+		rerender(<Shell inner={false} radix sheet />);
+		rerender(<Shell inner radix sheet />);
+
+		act(() => rerender(<Shell inner radix sheet={false} />));
+
+		const query = screen.getByRole("textbox", { name: "Query" });
+		expect(query.closest("dialog")).toBeNull();
+		expect(document.querySelector("dialog:modal")).toBeNull();
 	});
 });
 

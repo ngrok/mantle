@@ -492,10 +492,10 @@ function ProductSwitcherDialog({
  * focus) wrapped in `Command.SearchTrigger`, which is what makes typing or
  * pasting into the row open the palette with that text already in the query.
  *
- * `setOpenMobile(false)` as the palette opens is required, not tidiness:
- * below the sidebar's `mobileBreakpoint` the panel *is* a `Sheet`, so leaving it
- * open would stack a dialog inside a dialog: two focus traps, and two scroll
- * locks unwinding in an order neither owns.
+ * `setOpenMobile(false)` as the palette opens keeps one dialog on screen:
+ * below the sidebar's `mobileBreakpoint` the panel is a modal sheet, and the
+ * palette would stack on it, with two focus traps and two Escape presses back
+ * to the page.
  */
 function DemoSearch({
 	onNavigate,

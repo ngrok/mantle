@@ -10,6 +10,12 @@ const hosts = new Set<HTMLElement>();
 let topModal: HTMLDialogElement | null = null;
 
 /**
+ * Marks the host `<div>` of a dialog that opened over a native modal
+ * `<dialog>`. The `<dialog>` moves its hosts on when it closes.
+ */
+const modalHostAttribute = "data-mantle-modal-host";
+
+/**
  * Puts `host` in the top open native modal dialog, else in `<body>`, and keeps
  * it there as dialogs open and close. Returns the function that removes it.
  *
@@ -48,8 +54,22 @@ function setTopModal(dialog: HTMLDialogElement | null): void {
 	}
 }
 
+/**
+ * The top open native modal `<dialog>`, or `null` when none is open.
+ *
+ * @example
+ * ```ts
+ * const container = getTopModal() ?? document.body;
+ * ```
+ */
+function getTopModal(): HTMLDialogElement | null {
+	return topModal;
+}
+
 export {
 	//,
 	attachToasterHost,
+	getTopModal,
+	modalHostAttribute,
 	setTopModal,
 };
