@@ -221,6 +221,15 @@ function moveDialog({
 	modal?: boolean;
 	open: boolean;
 }): void {
+	// Why: jsdom has no dialog methods. Without them, a consumer test that
+	// opens a dialog by its role throws. The `open` attribute is enough there.
+	if (typeof dialog.showModal !== "function") {
+		dialog.show = dialog.showModal = () => dialog.setAttribute("open", "");
+		dialog.close = () => {
+			dialog.removeAttribute("open");
+			dialog.dispatchEvent(new Event("close"));
+		};
+	}
 	if (open === dialog.open) {
 		// Why: a reopen during the exit keeps the dialog open, and the pending
 		// close sees the state and stops.
