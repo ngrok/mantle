@@ -138,15 +138,16 @@ function sliderBehavior({
 				return;
 			}
 			// Why `:disabled`: a disabled `<fieldset>` disables the inputs but not the slider prop.
+			// Why the capture check: only a lost capture ends a drag, and jsdom has no pointer capture.
 			if (
 				event.button !== 0 ||
 				!(target instanceof Element) ||
+				!("setPointerCapture" in target) ||
 				inputs[0]?.matches(":disabled") !== false
 			) {
 				return;
 			}
-			// Why optional: jsdom has no pointer capture, and a consumer test must still press.
-			target.setPointerCapture?.(event.pointerId);
+			target.setPointerCapture(event.pointerId);
 			// Why: a press neither selects text nor moves focus to the root.
 			event.preventDefault();
 			const edge = edgeOfMin(root);

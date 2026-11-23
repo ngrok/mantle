@@ -15,12 +15,18 @@ test("a consumer moves the slider with the keyboard by role", async () => {
 	expect(slider).toHaveValue("60");
 });
 
-// Why a crash guard: jsdom has no layout, so the pressed value is not the contract here.
-test("a consumer presses the slider without an error", async () => {
+// Why no value from the press: jsdom has no layout and no pointer capture, so a press starts no drag.
+test("a consumer presses the slider, then moves it with the keyboard", async () => {
 	const user = userEvent.setup();
-	render(<Slider aria-label="Volume" defaultValue={50} />);
+	render(<Slider aria-label="Volume" defaultValue={50} max={100} step={10} />);
 
-	await user.click(screen.getByRole("slider", { name: "Volume" }));
+	const slider = screen.getByRole("slider", { name: "Volume" });
+	await user.click(slider);
+	await user.pointer({ target: slider, coords: { clientX: 40 } });
+	await user.click(slider);
+	expect(slider).toHaveValue("50");
+	expect(slider).toHaveFocus();
 
-	expect(screen.getByRole("slider", { name: "Volume" })).toBeInTheDocument();
+	await user.keyboard("{ArrowRight}");
+	expect(slider).toHaveValue("60");
 });
