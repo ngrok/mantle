@@ -18,6 +18,7 @@ Breaking changes:
 - The overlay elements are gone: no element carries `dialog-overlay`, `sheet-overlay`, or `alert-dialog-overlay`. Style `[data-slot~="dialog-positioner"]::backdrop` instead. `Dialog.Portal` and `Dialog.Overlay` are deprecated and do nothing.
 - `role="dialog"` is on the `<dialog>` (`data-slot="dialog-positioner"`). The props of `Content` go to the panel inside it, which keeps `data-slot="dialog-content"`, `data-state`, and `data-mantle-modal-content`.
 - `Content` takes no `asChild` and no `role`: it renders the `<dialog>`, which takes the role, and the panel inside it. `Content` has no `onFocusOutside`: focus cannot leave a modal dialog, and a non-modal dialog closes on Escape and a press outside, not on a focus move. `Title` takes no `id`: the dialog names itself from the id it gives the title.
+- React's `autoFocus` inside `Content` does not take focus when the dialog mounts on open. Use `onOpenAutoFocus` instead.
 - The close completes after the exit animation, so a test waits for it.
 - `overlay-prompt` UI outside the dialog takes no input while a modal is open, and `Sandbar` sits under the backdrop. `Toaster` moves its toasts into the open dialog.
 

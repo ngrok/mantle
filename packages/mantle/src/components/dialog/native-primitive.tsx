@@ -295,7 +295,21 @@ function requestOpen({
  * hydration, and the dialog's `command` listener routes it.
  */
 function commandAttributes(root: RootState, command: "show-modal" | "close") {
-	return root.controlled ? {} : { command, commandfor: root.contentId };
+	// Why not for a non-modal open: the command opens a modal, even before hydration.
+	return root.controlled || (command === "show-modal" && !root.modal)
+		? {}
+		: { command, commandfor: root.contentId };
+}
+
+/**
+ * Whether `dialog` sits in a closed `<dialog>` that hides it, such as a closed
+ * `forceMount` parent. A modal there would make the page inert and not show.
+ * The closed `<dialog>` of a desktop `Sidebar.Nav` has `display: contents` and
+ * hides nothing.
+ */
+function insideHiddenDialog(dialog: HTMLDialogElement): boolean {
+	const ancestor = dialog.parentElement?.closest("dialog:not([open])");
+	return ancestor instanceof HTMLElement && ancestor.style.display !== "contents";
 }
 
 /** Whether the click on `element` sends a `command` event to the `<dialog>`. */
@@ -425,7 +439,11 @@ function useClickToOpen({
 		onClick?.(event);
 		const element = event.currentTarget;
 		if (!event.defaultPrevented && !sendsCommand(element)) {
-			requestOpen({ dialog: element.ownerDocument.getElementById(root.contentId), open, root });
+			const dialog = element.ownerDocument.getElementById(root.contentId);
+			// Why a toggle: a trigger outside an open non-modal dialog closes it, as with Radix.
+			const shown =
+				dialog instanceof HTMLDialogElement && dialog.open && dialog.dataset.state === "open";
+			requestOpen({ dialog, open: open && !shown, root });
 		}
 	};
 }
@@ -695,7 +713,7 @@ const Content = ({
 	 * dialog that opens first paints under that dialog in the top layer.
 	 */
 	const openSoon = useCallbackRef((dialog: HTMLDialogElement) => {
-		if (dialog.parentElement?.closest("dialog:not([open])") == null) {
+		if (!insideHiddenDialog(dialog)) {
 			openDialog(dialog);
 			return;
 		}
@@ -707,7 +725,7 @@ const Content = ({
 				dialogRef.current === dialog &&
 				wantsOpen() &&
 				!dialog.open &&
-				dialog.parentElement?.closest("dialog:not([open])") == null
+				!insideHiddenDialog(dialog)
 			) {
 				openDialog(dialog);
 			}
@@ -825,6 +843,10 @@ const Content = ({
 			return;
 		}
 		const open = command === "show-modal";
+		if (open && insideHiddenDialog(dialog)) {
+			event.preventDefault();
+			return;
+		}
 		if (open && keepMounted && !root.controlled && root.modal) {
 			nonModal.delete(dialog);
 			lockPageScroll({ dialog, lock: true });
@@ -873,13 +895,17 @@ const Content = ({
 			dialog.removeEventListener("command", routeCommand);
 			writeOpenState({ dialog, open: false });
 			lockPageScroll({ dialog, lock: false });
+			// Why: a dialog that leaves the page sends no `close`.
+			releaseOverlay.current?.();
 			if (!dialog.open) {
 				return;
 			}
 			// Why: the browser returns focus only from `close()`, not when an open
 			// `<dialog>` leaves the page. A StrictMode remount keeps it on the page.
+			// Why the ref check: a new portal target replaces the `<dialog>`, and
+			// the dialog stays open in it.
 			queueMicrotask(() => {
-				if (!dialog.isConnected) {
+				if (!dialog.isConnected && (dialogRef.current == null || dialogRef.current === dialog)) {
 					returnFocus(dialog);
 				}
 			});
@@ -927,11 +953,15 @@ const Content = ({
 		// frame is a press in that flow, not outside the dialog.
 		const onPointerDown = (event: PointerEvent) => {
 			const { target } = event;
+			// Why the top check: a press in a modal above this dialog is not
+			// outside it. Why the trigger check: its click toggles the dialog.
 			if (
 				!root.modal &&
 				dialog.open &&
-				target instanceof Node &&
+				openDialogs.at(-1) === dialog &&
+				target instanceof Element &&
 				!dialog.contains(target) &&
+				target.closest(`[aria-controls="${dialog.id}"]`) == null &&
 				getCoveringFrame()?.closest("body > *")?.contains(target) !== true &&
 				pressOutside(event)
 			) {

@@ -13,6 +13,7 @@ import * as Sheet from "../sheet/sheet-parts.js";
 import { makeToast, Toaster } from "../toast/toast.js";
 import * as Tooltip from "../tooltip/tooltip-parts.js";
 import { TooltipProvider } from "../tooltip/tooltip.js";
+import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import * as Dialog from "./dialog-parts.js";
 
 afterEach(async () => {
@@ -1011,6 +1012,104 @@ describe("state the DOM owns, hydration, and nesting", () => {
 
 		expect(onPageClick).toHaveBeenCalledTimes(1);
 		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+	});
+});
+
+describe("review round 2", () => {
+	test("a trigger outside a closed forceMount parent does not open its child", async () => {
+		render(
+			<Sheet.Root>
+				<Dialog.Root>
+					<Dialog.Trigger>Open child</Dialog.Trigger>
+					<Sheet.Content forceMount>
+						<Sheet.Title>Parent</Sheet.Title>
+						<Dialog.Content forceMount>
+							<Dialog.Title>Child</Dialog.Title>
+						</Dialog.Content>
+					</Sheet.Content>
+				</Dialog.Root>
+			</Sheet.Root>,
+		);
+
+		await userEvent.click(screen.getByRole("button", { name: "Open child" }));
+
+		expect(document.querySelector("dialog:modal")).toBeNull();
+	});
+
+	test("a dialog that moves to a new portal target keeps its floats working", async () => {
+		render(
+			<LayerContainer>
+				<Dialog.Root defaultOpen>
+					<Dialog.Content>
+						<Dialog.Title>Moved</Dialog.Title>
+						<Popover.Root>
+							<Popover.Trigger>Open float</Popover.Trigger>
+							<Popover.Content>float content</Popover.Content>
+						</Popover.Root>
+					</Dialog.Content>
+				</Dialog.Root>
+			</LayerContainer>,
+		);
+
+		await userEvent.click(await screen.findByRole("button", { name: "Open float" }));
+
+		await waitFor(() => expect(screen.getByText("float content")).toBeVisible());
+	});
+
+	test("a trigger outside an open non-modal dialog closes it", async () => {
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<Dialog.Root modal={false} onOpenChange={onOpenChange}>
+				<Dialog.Trigger>Toggle</Dialog.Trigger>
+				<Dialog.Content>
+					<Dialog.Title>Toggled</Dialog.Title>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+		const trigger = screen.getByRole("button", { name: "Toggle" });
+
+		await userEvent.click(trigger);
+		await screen.findByRole("dialog", { name: "Toggled" });
+		await userEvent.click(trigger);
+
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		expect(onOpenChange.mock.calls).toEqual([[true], [false]]);
+	});
+
+	test("a press in a modal above a non-modal dialog leaves the non-modal dialog open", async () => {
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(
+			<>
+				<Dialog.Root defaultOpen modal={false} onOpenChange={onOpenChange}>
+					<Dialog.Content>
+						<Dialog.Title>Below</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+				<Dialog.Root defaultOpen>
+					<Dialog.Content>
+						<Dialog.Title>Above</Dialog.Title>
+						<button type="button">Inside above</button>
+					</Dialog.Content>
+				</Dialog.Root>
+			</>,
+		);
+
+		await userEvent.click(await screen.findByRole("button", { name: "Inside above" }));
+
+		expect(onOpenChange).not.toHaveBeenCalled();
+	});
+
+	test("an uncontrolled trigger of a non-modal dialog sends no modal command", () => {
+		render(
+			<Dialog.Root modal={false}>
+				<Dialog.Trigger>Open</Dialog.Trigger>
+				<Dialog.Content forceMount>
+					<Dialog.Title>Live</Dialog.Title>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+
+		expect(screen.getByRole("button", { name: "Open" })).not.toHaveAttribute("command");
 	});
 });
 
