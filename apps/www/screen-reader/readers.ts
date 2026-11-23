@@ -246,7 +246,12 @@ const realReader = async (browser: Browser, name: "voiceover" | "nvda"): Promise
 			if (!inWebContent) {
 				await enterWebContent();
 				inWebContent = true;
+				// Why a second load: the first key after Guidepup finds the web area is lost.
+				await page.goto(url, { waitUntil: "networkidle" });
 			}
+			// Why a click: after a flow that tabbed out to the browser UI, focus stays
+			// there on the next load. A click on the page's corner puts it in the page.
+			await page.mouse.click(1, 1);
 			await settle();
 			seen = (await sr.spokenPhraseLog()).length;
 			lastHeard = await sr.lastSpokenPhrase();
