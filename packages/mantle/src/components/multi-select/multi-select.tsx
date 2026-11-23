@@ -830,7 +830,7 @@ const OpenContent = ({
 	const { portalTarget, popupRef } = usePopup({
 		anchorRef: triggerRef,
 		ownerRef: inputRef,
-		swallowOutsidePress: true,
+		onOutsidePress: () => setOpen(false),
 	});
 
 	const composedRef = useComposedRefs(ref, popupRef, listbox.listboxProps.ref);
@@ -853,7 +853,7 @@ const OpenContent = ({
 					data-slot={joinDataSlot(dataSlot, "multi-select-content")}
 					data-state="open"
 					className={cx(
-						"border-popover bg-popover fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 scrollbar overflow-y-scroll overflow-x-hidden overscroll-y-none rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col gap-px outline-hidden",
+						"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 scrollbar overflow-y-scroll overflow-x-hidden overscroll-y-none rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col gap-px outline-hidden",
 						sameWidth && "w-(--anchor-width)",
 						className,
 					)}

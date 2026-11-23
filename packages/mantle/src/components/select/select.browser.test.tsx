@@ -337,6 +337,44 @@ describe("Select keyboard, focus, and ARIA contract", () => {
 		expect(onOutside).toHaveBeenCalledTimes(1);
 	});
 
+	test("an outside press that makes no click, or keeps focus, leaves later clicks alone", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		const onKeep = vi.fn<() => void>();
+		const onNext = vi.fn<() => void>();
+		render(
+			<>
+				{/* Why first: the list opens below the trigger and would cover a later button. */}
+				<button type="button" onMouseDown={(event) => event.preventDefault()} onClick={onKeep}>
+					Keep focus
+				</button>
+				<button type="button" onClick={onNext}>
+					Next
+				</button>
+				<FruitSelect onValueChange={onValueChange} />
+			</>,
+		);
+		const trigger = screen.getByRole("combobox", { name: "Fruit" });
+		const keep = screen.getByRole("button", { name: "Keep focus" });
+
+		// A secondary press arms nothing, so a keyboard pick after it still picks.
+		await userEvent.click(trigger);
+		await userEvent.pointer({ keys: "[MouseRight]", target: keep });
+		trigger.focus();
+		await userEvent.keyboard("{Escape}{ArrowDown}{ArrowDown}{Enter}");
+		expect(onValueChange).toHaveBeenLastCalledWith("cherry");
+
+		// A press that keeps focus on the trigger still closes the list, and its click stays eaten.
+		await userEvent.click(trigger);
+		await userEvent.click(keep);
+		expect(trigger).toHaveAttribute("aria-expanded", "false");
+		expect(onKeep).toHaveBeenCalledTimes(0);
+
+		// A keyboard click never meets the guard.
+		screen.getByRole("button", { name: "Next" }).focus();
+		await userEvent.keyboard("{Enter}");
+		expect(onNext).toHaveBeenCalledTimes(1);
+	});
+
 	test("a pointer press on an option picks it", async () => {
 		const onValueChange = vi.fn<(value: string) => void>();
 		render(<FruitSelect onValueChange={onValueChange} />);

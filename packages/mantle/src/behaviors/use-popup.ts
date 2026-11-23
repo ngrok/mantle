@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import type { RefCallback, RefObject } from "react";
+import { useCallbackRef } from "../hooks/use-callback-ref.js";
 import { useIsHydrated } from "../hooks/use-is-hydrated.js";
 import { useLayerContainer } from "../utils/layer-container/layer-container.js";
 import { trackFloat } from "../utils/float/position.js";
@@ -33,7 +34,7 @@ const OFFSET = 8;
 const usePopup = ({
 	anchorRef,
 	ownerRef,
-	swallowOutsidePress = false,
+	onOutsidePress,
 }: {
 	anchorRef: RefObject<Element | null>;
 	/**
@@ -44,13 +45,14 @@ const usePopup = ({
 	 */
 	ownerRef?: RefObject<HTMLElement | null>;
 	/**
-	 * Whether the click of a press outside the anchor and the popup does not
-	 * reach the page, as with a native select. The press still closes the
-	 * popup through the owner's blur.
+	 * Closes the popup on a primary press outside the anchor and the popup.
+	 * The click of that press does not reach the page, as with a native select.
 	 */
-	swallowOutsidePress?: boolean;
+	onOutsidePress?: () => void;
 }): { portalTarget: Element | DocumentFragment | null; popupRef: RefCallback<HTMLElement> } => {
 	const layerContainer = useLayerContainer();
+	const outsidePress = useCallbackRef(onOutsidePress);
+	const closesOnOutsidePress = onOutsidePress != null;
 	const hydrated = useIsHydrated();
 	// Why `useCallback`: a new callback on each render would place the popup
 	// again on each keystroke.
@@ -82,12 +84,20 @@ const usePopup = ({
 				const document = floating.ownerDocument;
 				const onPointerDown = (event: PointerEvent) => {
 					const { target } = event;
-					if (target instanceof Node && (floating.contains(target) || anchor.contains(target))) {
+					if (
+						event.button !== 0 ||
+						(target instanceof Node && (floating.contains(target) || anchor.contains(target)))
+					) {
 						return;
 					}
 					// Why on the window, not the popup: the press closes the popup before
 					// its click arrives. A cancelled press or the next press drops it.
-					const swallow = (click: Event) => {
+					// Why skip `detail` 0: a keyboard or script click has no press, so a
+					// press that makes no click, such as on a disabled button, cannot eat it.
+					const swallow = (click: MouseEvent) => {
+						if (click.detail === 0) {
+							return;
+						}
 						click.preventDefault();
 						click.stopPropagation();
 						release();
@@ -101,8 +111,11 @@ const usePopup = ({
 					window.addEventListener("pointercancel", release, { capture: true });
 					// Why this press does not release it: it has passed the window already.
 					window.addEventListener("pointerdown", release, { capture: true });
+					// Why close here, not only on blur: a press that keeps focus, such as on a
+					// toolbar button that cancels `mousedown`, would leave the popup open.
+					outsidePress();
 				};
-				if (swallowOutsidePress) {
+				if (closesOnOutsidePress) {
 					document.addEventListener("pointerdown", onPointerDown, { capture: true });
 				}
 				stop = () => {
@@ -133,7 +146,7 @@ const usePopup = ({
 				}
 			};
 		},
-		[anchorRef, ownerRef, swallowOutsidePress],
+		[anchorRef, ownerRef, closesOnOutsidePress, outsidePress],
 	);
 	return {
 		portalTarget: hydrated ? resolvePortalTarget(layerContainer) : null,

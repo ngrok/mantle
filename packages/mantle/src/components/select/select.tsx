@@ -805,11 +805,11 @@ const OpenContent = ({
 	width = "trigger",
 	...props
 }: SelectContentProps) => {
-	const { dir, listbox, triggerRef } = useSelectContext();
+	const { dir, listbox, setOpen, triggerRef } = useSelectContext();
 	const { portalTarget, popupRef } = usePopup({
 		anchorRef: triggerRef,
 		ownerRef: triggerRef,
-		swallowOutsidePress: true,
+		onOutsidePress: () => setOpen(false),
 	});
 	const composedRef = useComposedRefs(ref, popupRef, listbox.listboxProps.ref);
 
@@ -829,7 +829,7 @@ const OpenContent = ({
 				data-state="open"
 				data-align="start"
 				className={cx(
-					"border-popover duration-200 ease-out-strong data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-top:slide-in-from-bottom-1 motion-reduce:animate-none! fixed inset-auto z-50 m-0 text-inherit min-w-32 overflow-y-auto rounded-md border shadow-md",
+					"border-popover duration-200 ease-out-strong data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-top:slide-in-from-bottom-1 motion-reduce:animate-none! pointer-events-auto fixed inset-auto z-50 m-0 text-inherit min-w-32 overflow-y-auto rounded-md border shadow-md",
 					"bg-popover font-sans p-1 space-y-px max-h-(--available-height) outline-hidden",
 					width === "trigger" && "w-(--anchor-width)",
 					className,
