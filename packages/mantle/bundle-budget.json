@@ -19,6 +19,10 @@
     "entry": "import { RadioGroup } from \"@ngrok/mantle/radio-group\"; export default [RadioGroup.Root, RadioGroup.Item, RadioGroup.Indicator];",
     "maxGzipBytes": 9309
   },
+  "otp-input": {
+    "entry": "import { OtpInput } from \"@ngrok/mantle/otp-input\"; export default [OtpInput.Root, OtpInput.Group, OtpInput.Slot, OtpInput.Separator];",
+    "maxGzipBytes": 10825
+  },
   "select": {
     "entry": "import { Select } from \"@ngrok/mantle/select\"; export default [Select.Root, Select.Trigger, Select.Value, Select.Content, Select.Item];",
     "maxGzipBytes": 15710

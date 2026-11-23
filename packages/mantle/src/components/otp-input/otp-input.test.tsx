@@ -1,11 +1,11 @@
-import { render, screen } from "@testing-library/react";
-import * as InputOtp from "input-otp";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import * as Field from "../field/field-parts.js";
 import * as OtpInput from "./otp-input-parts.js";
-import * as patterns from "./patterns.js";
 
 type RenderOtpProps = Pick<ComponentProps<typeof OtpInput.Root>, "aria-invalid" | "validation">;
 
@@ -210,6 +210,84 @@ describe("OtpInput", () => {
 		});
 	});
 
+	test("text typed before hydration reaches the slots and onChange", async () => {
+		const handleChange = vi.fn<(value: string) => void>();
+		const subject = (
+			<OtpInput.Root maxLength={3} aria-label="otp" onChange={handleChange}>
+				<OtpInput.Group>
+					<OtpInput.Slot index={0} />
+					<OtpInput.Slot index={1} />
+					<OtpInput.Slot index={2} />
+				</OtpInput.Group>
+			</OtpInput.Root>
+		);
+		const container = document.createElement("div");
+		document.body.append(container);
+		container.innerHTML = renderToString(subject);
+		const input = screen.getByRole<HTMLInputElement>("textbox", { name: "otp" });
+		input.value = "42";
+
+		const root = await act(async () => hydrateRoot(container, subject));
+
+		expect(handleChange).toHaveBeenCalledTimes(1);
+		expect(handleChange).toHaveBeenLastCalledWith("42");
+		const slots = container.querySelectorAll('[data-slot="otp-input-slot"]');
+		expect(slots[0]).toHaveTextContent("4");
+		expect(slots[1]).toHaveTextContent("2");
+		act(() => {
+			root.unmount();
+		});
+		container.remove();
+	});
+
+	test("a fill while the input has no focus activates no slot", () => {
+		const { bridge, container, input } = renderOtp();
+
+		fireEvent.change(input, { target: { value: "12" } });
+
+		expect(input).toHaveValue("12");
+		expect(bridge).toHaveAttribute("data-otp-state", "idle");
+		expect(container.querySelector("[data-active]")).toBeNull();
+	});
+
+	// Why: a `noScriptCSSFallback` or a page style selects the input with these attributes.
+	test("keeps the data-input-otp attributes on the input and its container", () => {
+		const { input } = renderOtp();
+
+		expect(input).toHaveAttribute("data-input-otp", "true");
+		expect(input).toHaveAttribute("data-input-otp-placeholder-shown", "true");
+		expect(input.closest("[data-input-otp-container]")).not.toBeNull();
+	});
+
+	test("onComplete fires when a parent fills the code, and not for the first render", () => {
+		const handleComplete = vi.fn<(value: string) => void>();
+		const subject = (value: string) => (
+			<OtpInput.Root maxLength={2} aria-label="otp" value={value} onComplete={handleComplete}>
+				<OtpInput.Group>
+					<OtpInput.Slot index={0} />
+					<OtpInput.Slot index={1} />
+				</OtpInput.Group>
+			</OtpInput.Root>
+		);
+		const { rerender } = render(subject("12"));
+		expect(handleComplete).not.toHaveBeenCalled();
+
+		rerender(subject("1"));
+		rerender(subject("34"));
+
+		expect(handleComplete).toHaveBeenCalledTimes(1);
+		expect(handleComplete).toHaveBeenLastCalledWith("34");
+	});
+
+	test("OtpInput.Slot outside OtpInput.Root throws a descriptive error", () => {
+		// Why the spy: React logs the thrown render error, and the log is noise here.
+		vi.spyOn(console, "error").mockImplementation(() => {});
+
+		expect(() => render(<OtpInput.Slot index={0} />)).toThrow(
+			"OtpInput.Slot must be rendered inside OtpInput.Root.",
+		);
+	});
+
 	describe("translation", () => {
 		test("a translation engine skips the slots, so clearing a character cannot throw", () => {
 			const handleChange = vi.fn<(value: string) => void>();
@@ -266,13 +344,5 @@ describe("OtpInput", () => {
 
 			expect(screen.getByTestId("slot")).toHaveAttribute("translate", "no");
 		});
-	});
-});
-
-test("the pattern constants equal the ones input-otp exports", () => {
-	expect({ ...patterns }).toEqual({
-		REGEXP_ONLY_CHARS: InputOtp.REGEXP_ONLY_CHARS,
-		REGEXP_ONLY_DIGITS: InputOtp.REGEXP_ONLY_DIGITS,
-		REGEXP_ONLY_DIGITS_AND_CHARS: InputOtp.REGEXP_ONLY_DIGITS_AND_CHARS,
 	});
 });
