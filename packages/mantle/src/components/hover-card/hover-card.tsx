@@ -18,7 +18,12 @@ import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { FloatArrow } from "../../utils/float/parts.js";
 import type { Align, Side } from "../../utils/float/position.js";
-import { floatClassName, useFloat } from "../../utils/float/use-float.js";
+import {
+	floatClassName,
+	useFloat,
+	useReconcileOnTriggerChange,
+	useTriggerRef,
+} from "../../utils/float/use-float.js";
 import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import { Slot } from "../slot/index.js";
 
@@ -33,6 +38,9 @@ type HoverCardState = {
 	cancelPending: () => void;
 	contentId: string;
 	triggerRef: RefObject<HTMLElement | null>;
+	/** The trigger's ref callback. It tells the open content about a new trigger element. */
+	setTrigger: (element: HTMLElement | null) => void;
+	onTriggerChangeRef: RefObject<(() => void) | null>;
 	contentRef: RefObject<HTMLElement | null>;
 };
 
@@ -104,7 +112,7 @@ function Root({
 	const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
 	const open = openProp ?? uncontrolledOpen;
 	const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-	const triggerRef = useRef<HTMLElement | null>(null);
+	const { triggerRef, setTrigger, onTriggerChangeRef } = useTriggerRef();
 	const contentRef = useRef<HTMLElement | null>(null);
 	useEffect(() => () => clearTimeout(timer.current), []);
 
@@ -148,9 +156,21 @@ function Root({
 			cancelPending: () => clearTimeout(timer.current),
 			contentId,
 			triggerRef,
+			setTrigger,
+			onTriggerChangeRef,
 			contentRef,
 		};
-	}, [closeDelay, contentId, onOpenChange, open, openDelay, openProp]);
+	}, [
+		closeDelay,
+		contentId,
+		onOpenChange,
+		onTriggerChangeRef,
+		open,
+		openDelay,
+		openProp,
+		setTrigger,
+		triggerRef,
+	]);
 	return <HoverCardContext.Provider value={state}>{children}</HoverCardContext.Provider>;
 }
 
@@ -183,7 +203,7 @@ const Trigger = ({
 	...props
 }: ComponentProps<"a"> & WithAsChild & WithDataSlot) => {
 	const state = useHoverCardState("Trigger");
-	const composedRef = useComposedRefs(ref, state.triggerRef);
+	const composedRef = useComposedRefs(ref, state.setTrigger);
 	const Component = asChild ? Slot : "a";
 	return (
 		<Component
@@ -298,7 +318,7 @@ const Content = ({
 	...props
 }: HoverCardContentProps) => {
 	const state = useHoverCardState("Content");
-	const { portalTarget, floatingRef } = useFloat({
+	const { portalTarget, floatingRef, reconcile } = useFloat({
 		open: state.open,
 		onDismiss: () => state.setOpen(false),
 		getAnchor: () => state.triggerRef.current,
@@ -310,6 +330,7 @@ const Content = ({
 		sideOffset,
 		onEscapeKeyDown,
 	});
+	useReconcileOnTriggerChange(state.onTriggerChangeRef, reconcile);
 	const composedRef = useComposedRefs(ref, floatingRef, state.contentRef);
 
 	return (

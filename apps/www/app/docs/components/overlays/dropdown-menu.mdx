@@ -115,7 +115,7 @@ function Example() {
 
 ## Layering and z-index
 
-`DropdownMenu.Content` and `DropdownMenu.SubContent` render at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, they portal into that overlay's positioner and paint above the overlay that owns them. Outside every overlay, they portal to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
+`DropdownMenu.Content` and `DropdownMenu.SubContent` are native [`popover`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/popover) elements in the browser's top layer, so they paint above the page with no `z-index`. They portal into the content of the open `Dialog`, `AlertDialog`, `Sheet`, or `Popover` that holds them, else into `document.body`. A `Popover`, `Select`, or other float that an item opens portals into the menu, so it takes focus and input. The menu closes when an overlay that does not hold it opens. See [Stacking layers](/base/stacking-layers).
 
 `DropdownMenu` does not render a backdrop by default. Modal layers such as `Dialog`, `Sheet`, and `AlertDialog` do render backdrops, so stacking those layers compounds the dim and blur effect on the layers underneath.
 
@@ -160,31 +160,45 @@ attributes, and `ref` onto that child. These parts take it:
 | `DropdownMenu.Separator`    | The divider must be a specific element, such as an `<hr>`.           |
 
 `DropdownMenu.SubTrigger`, `DropdownMenu.CheckboxItem`, and `DropdownMenu.RadioItem` each render a second
-element beside your children: the submenu caret, or the check indicator. Under `asChild`, Radix clones your
-single child as the item element and moves the label span and that element inside it, so the
+element beside your children: the submenu caret, or the check indicator. Under `asChild`, the part merges onto
+your single child as the item element and moves the label span and that element inside it, so the
 [translation guarantee](/browser-translation) holds on both paths.
+
+## Keyboard
+
+The menu follows the [WAI-ARIA menu button pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/). Items take focus with a roving `tabindex`, so `Tab` does not move between them.
+
+| Key                               | Action                                                                                                                                                      |
+| :-------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Enter`, `Space`                  | On the trigger, opens the menu on its first item. On an item, selects it.                                                                                   |
+| `ArrowDown`, `ArrowUp`            | On the trigger, opens the menu on its first or last item. In the menu, moves to the next or previous item and skips disabled items.                         |
+| `Home`, `End`                     | Moves to the first or last item.                                                                                                                            |
+| `ArrowRight` (`ArrowLeft` in RTL) | On a `SubTrigger`, opens its submenu on the first item.                                                                                                     |
+| `ArrowLeft` (`ArrowRight` in RTL) | In a submenu, closes it and returns focus to its `SubTrigger`.                                                                                              |
+| `Escape`                          | Closes the whole menu and returns focus to the trigger.                                                                                                     |
+| A printable character             | Moves to the next item whose text starts with the characters typed in the last second. The same character again moves through the items that start with it. |
 
 ## API Reference
 
-The `DropdownMenu` components are built on top of [Radix Dropdown Menu](https://www.radix-ui.com/primitives/docs/components/dropdown-menu).
+The `DropdownMenu` components are built on the native [popover API](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API) and CSS anchor positioning. Where the browser has no anchor positioning, a script places the menu. Where it has no popover API, the menu is a fixed box at `z-50`.
 
 ### DropdownMenu.Root
 
 The root, stateful component that manages the open/closed state of the dropdown menu.
 
-`DropdownMenu.Content` and `DropdownMenu.SubContent` render at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, they portal into that overlay's positioner and paint above the overlay that owns them. Outside every overlay, they portal to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
-
-| Prop            | Type                      | Default | Description                                                                                                                                                        |
-| :-------------- | :------------------------ | :------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `open?`         | `boolean`                 |         | The controlled open state of the dropdown menu. Must be used in conjunction with `onOpenChange`.                                                                   |
-| `onOpenChange?` | `(open: boolean) => void` |         | Event handler called when the open state of the dropdown menu changes.                                                                                             |
-| `defaultOpen?`  | `boolean`                 | `false` | The open state of the dropdown menu when it is initially rendered. Use when you do not need to control its open state.                                             |
-| `dir?`          | `"ltr"` \| `"rtl"`        |         | The reading direction of submenus when applicable.                                                                                                                 |
-| `modal?`        | `boolean`                 | `true`  | The modality of the dropdown menu. When set to `true`, interaction with outside elements will be disabled and only menu content will be visible to screen readers. |
+| Prop            | Type                      | Default | Description                                                                                                                                    |
+| :-------------- | :------------------------ | :------ | :--------------------------------------------------------------------------------------------------------------------------------------------- |
+| `open?`         | `boolean`                 |         | The controlled open state of the dropdown menu. Must be used in conjunction with `onOpenChange`.                                               |
+| `onOpenChange?` | `(open: boolean) => void` |         | Event handler called when the open state of the dropdown menu changes.                                                                         |
+| `defaultOpen?`  | `boolean`                 | `false` | The open state of the dropdown menu when it is initially rendered. Use when you do not need to control its open state.                         |
+| `dir?`          | `"ltr"` \| `"rtl"`        |         | The reading direction of submenus when applicable.                                                                                             |
+| `modal?`        | `boolean`                 | `true`  | When `true`, the rest of the page is `inert` while the menu is open: a pointer, focus, or screen reader reaches only the trigger and the menu. |
 
 ### DropdownMenu.Trigger
 
-The trigger button that opens the dropdown menu.
+The trigger button that opens the dropdown menu. It opens on a pointer press, so a press, drag, and release on an item selects that item.
+
+All props of a `<button>`. It sets `aria-haspopup="menu"`, `aria-expanded`, `data-state`, and, while open, `aria-controls`.
 
 | Prop       | Type      | Default | Description                                                                          |
 | :--------- | :-------- | :------ | :----------------------------------------------------------------------------------- |
@@ -192,30 +206,43 @@ The trigger button that opens the dropdown menu.
 
 ### DropdownMenu.Content
 
-The container for the dropdown menu content. Appears in a portal with scrolling and animations.
+The container for the dropdown menu content. Appears in a portal with scrolling and animations. It has `role="menu"` and takes its name from the trigger.
 
-`DropdownMenu.Content` and `DropdownMenu.SubContent` render at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, they portal into that overlay's positioner and paint above the overlay that owns them. Outside every overlay, they portal to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
+`DropdownMenu.Content` is `position: fixed`. It sets the CSS variables `--anchor-width` (the width of the trigger) and `--available-height` (the room between the trigger and the edge of the viewport). Its height is at most `--available-height`, and it scrolls past that.
 
-All props from Radix [DropdownMenu.Content](https://www.radix-ui.com/primitives/docs/components/dropdown-menu#content), plus:
+All props of a `<div>`, plus:
 
-| Prop           | Type                                           | Default    | Description                                                                                                                                        |
-| :------------- | :--------------------------------------------- | :--------- | :------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `width?`       | `"trigger"` \| `"content"`                     |            | `trigger` sets the dropdown content to the same width as the trigger button. `content` makes the dropdown content use the intrinsic content width. |
-| `side?`        | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | `"bottom"` | The preferred side of the trigger to render against when open.                                                                                     |
-| `sideOffset?`  | `number`                                       |            | The distance in pixels from the trigger.                                                                                                           |
-| `align?`       | `"start"` \| `"center"` \| `"end"`             | `"center"` | The preferred alignment against the trigger.                                                                                                       |
-| `alignOffset?` | `number`                                       | `0`        | An offset in pixels from the `start` or `end` alignment options.                                                                                   |
-| `loop?`        | `boolean`                                      | `true`     | When `true`, keyboard navigation will loop from last item to first, and vice versa.                                                                |
+| Prop                    | Type                                                            | Default    | Description                                                                                                 |
+| :---------------------- | :-------------------------------------------------------------- | :--------- | :---------------------------------------------------------------------------------------------------------- |
+| `width?`                | `"trigger"` \| `"content"`                                      |            | `trigger` sets the menu to the width of the trigger. `content` uses the intrinsic width of the items.       |
+| `side?`                 | `"top" \| "right" \| "bottom" \| "left"`                        | `"bottom"` | The preferred side of the trigger. The menu flips to the opposite side when only that side fits.            |
+| `sideOffset?`           | `number`                                                        | `8`        | The distance in pixels from the trigger.                                                                    |
+| `align?`                | `"start" \| "center" \| "end"`                                  | `"center"` | The alignment against the trigger. The menu shifts along the side to stay in the viewport.                  |
+| `loop?`                 | `boolean`                                                       | `true`     | When `true`, `ArrowDown` on the last item moves to the first, and `ArrowUp` on the first moves to the last. |
+| `onCloseAutoFocus?`     | `(event: Event) => void`                                        |            | Runs before focus returns to the trigger on close. Call `event.preventDefault()` to move focus yourself.    |
+| `onEscapeKeyDown?`      | `(event: KeyboardEvent) => void`                                |            | Runs on `Escape`. Call `event.preventDefault()` to keep the menu open.                                      |
+| `onPointerDownOutside?` | `(event: PointerDownOutsideEvent) => void`                      |            | Runs when a pointer press starts outside the menu. Call `event.preventDefault()` to keep it open.           |
+| `onFocusOutside?`       | `(event: FocusOutsideEvent) => void`                            |            | Runs when focus moves outside the menu. Call `event.preventDefault()` to keep it open.                      |
+| `onInteractOutside?`    | `(event: PointerDownOutsideEvent \| FocusOutsideEvent) => void` |            | Runs for both an outside press and an outside focus move. Call `event.preventDefault()` to keep it open.    |
+
+#### Data attributes
+
+| Data Attribute | Value                                    | Description                             |
+| :------------- | :--------------------------------------- | :-------------------------------------- |
+| `data-state`   | `"open"` \| `"closed"`                   | Whether the menu is open.               |
+| `data-side`    | `"top" \| "right" \| "bottom" \| "left"` | The side the menu is on after it flips. |
+| `data-align`   | `"start" \| "center" \| "end"`           | The `align` the menu takes.             |
 
 ### DropdownMenu.Item
 
 A standard item in the dropdown menu that can be selected or activated.
 
-| Prop        | Type                     | Default | Description                                                                                                                 |
-| :---------- | :----------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------- |
-| `inset?`    | `boolean`                |         | When `true`, adds left padding to align with items that have icons.                                                         |
-| `disabled?` | `boolean`                |         | When `true`, prevents the user from interacting with the item.                                                              |
-| `onSelect?` | `(event: Event) => void` |         | Event handler called when the user selects an item (via mouse or key). Call `event.preventDefault()` to keep the menu open. |
+| Prop         | Type                     | Default | Description                                                                                                                 |
+| :----------- | :----------------------- | :------ | :-------------------------------------------------------------------------------------------------------------------------- |
+| `inset?`     | `boolean`                |         | When `true`, adds left padding to align with items that have icons.                                                         |
+| `disabled?`  | `boolean`                |         | When `true`, prevents the user from interacting with the item.                                                              |
+| `onSelect?`  | `(event: Event) => void` |         | Event handler called when the user selects an item (via mouse or key). Call `event.preventDefault()` to keep the menu open. |
+| `textValue?` | `string`                 |         | The text that typeahead matches. Defaults to the text content of the item.                                                  |
 
 ### DropdownMenu.CheckboxItem
 
@@ -225,29 +252,33 @@ A menu item with a checkbox that can be controlled or uncontrolled.
 
 An icon you pass as a child is now a grandchild of the item, so a `[&>svg]` class of your own no longer reaches it. Match the part's own variant instead: `[&>[data-slot=dropdown-menu-checkbox-item-label]>svg]:size-4`. A `[&_svg]` class or a class on the icon itself loses to the item's default, which carries one more attribute selector.
 
-All props from Radix [DropdownMenu.CheckboxItem](https://www.radix-ui.com/primitives/docs/components/dropdown-menu#checkboxitem), including:
+All props of `DropdownMenu.Item`, plus:
 
-| Prop               | Type                           | Default | Description                                                                    |
-| :----------------- | :----------------------------- | :------ | :----------------------------------------------------------------------------- |
-| `checked?`         | `boolean` \| `"indeterminate"` |         | The controlled checked state of the item. Must be used with `onCheckedChange`. |
-| `onCheckedChange?` | `(checked: boolean) => void`   |         | Event handler called when the checked state changes.                           |
-| `disabled?`        | `boolean`                      |         | When `true`, prevents the user from interacting with the item.                 |
+| Prop               | Type                           | Default | Description                                                                                            |
+| :----------------- | :----------------------------- | :------ | :----------------------------------------------------------------------------------------------------- |
+| `checked?`         | `boolean` \| `"indeterminate"` |         | The controlled checked state of the item. Must be used with `onCheckedChange`.                         |
+| `defaultChecked?`  | `boolean` \| `"indeterminate"` | `false` | The checked state on the first render. Use when you do not need to control the state.                  |
+| `onCheckedChange?` | `(checked: boolean) => void`   |         | Event handler called when the checked state changes. It runs even when `onSelect` keeps the menu open. |
+
+The item sets `aria-checked` to `true`, `false`, or `mixed` for `"indeterminate"`.
 
 #### Data attributes
 
-| Data Attribute | Value                                 | Description                          |
-| :------------- | :------------------------------------ | :----------------------------------- |
-| `data-slot`    | `"dropdown-menu-checkbox-item"`       | On the item element.                 |
-| `data-slot`    | `"dropdown-menu-checkbox-item-label"` | On the `<span>` wrapping `children`. |
+| Data Attribute | Value                                             | Description                          |
+| :------------- | :------------------------------------------------ | :----------------------------------- |
+| `data-slot`    | `"dropdown-menu-checkbox-item"`                   | On the item element.                 |
+| `data-state`   | `"checked"` \| `"unchecked"` \| `"indeterminate"` | On the item element.                 |
+| `data-slot`    | `"dropdown-menu-checkbox-item-label"`             | On the `<span>` wrapping `children`. |
 
 ### DropdownMenu.RadioGroup
 
 A radio group container for exclusive selection within the dropdown menu.
 
-| Prop             | Type                      | Default | Description                                  |
-| :--------------- | :------------------------ | :------ | :------------------------------------------- |
-| `value?`         | `string`                  |         | The value of the selected item in the group. |
-| `onValueChange?` | `(value: string) => void` |         | Event handler called when the value changes. |
+| Prop             | Type                      | Default | Description                                                                                        |
+| :--------------- | :------------------------ | :------ | :------------------------------------------------------------------------------------------------- |
+| `value?`         | `string`                  |         | The value of the selected item, for a controlled group. Must be used with `onValueChange`.         |
+| `defaultValue?`  | `string`                  |         | The value of the selected item on the first render. Use when you do not need to control the state. |
+| `onValueChange?` | `(value: string) => void` |         | Event handler called when the value changes.                                                       |
 
 ### DropdownMenu.RadioItem
 
@@ -257,18 +288,18 @@ A radio item where only one item in the group can be selected at a time.
 
 An icon you pass as a child is now a grandchild of the item, so a `[&>svg]` class of your own no longer reaches it. Match the part's own variant instead: `[&>[data-slot=dropdown-menu-radio-item-label]>svg]:size-4`. A `[&_svg]` class or a class on the icon itself loses to the item's default, which carries one more attribute selector.
 
-All props from Radix [DropdownMenu.RadioItem](https://www.radix-ui.com/primitives/docs/components/dropdown-menu#radioitem), including:
+All props of `DropdownMenu.Item`, plus:
 
-| Prop        | Type      | Default | Description                                                    |
-| :---------- | :-------- | :------ | :------------------------------------------------------------- |
-| `value`     | `string`  |         | The unique value of the item.                                  |
-| `disabled?` | `boolean` |         | When `true`, prevents the user from interacting with the item. |
+| Prop    | Type     | Default | Description                   |
+| :------ | :------- | :------ | :---------------------------- |
+| `value` | `string` |         | The unique value of the item. |
 
 #### Data attributes
 
 | Data Attribute | Value                              | Description                          |
 | :------------- | :--------------------------------- | :----------------------------------- |
 | `data-slot`    | `"dropdown-menu-radio-item"`       | On the item element.                 |
+| `data-state`   | `"checked"` \| `"unchecked"`       | On the item element.                 |
 | `data-slot`    | `"dropdown-menu-radio-item-label"` | On the `<span>` wrapping `children`. |
 
 ### DropdownMenu.Label
@@ -281,7 +312,7 @@ A label for grouping and describing sections within the dropdown menu.
 
 ### DropdownMenu.Group
 
-A group container for organizing related dropdown menu items. Accepts all props from Radix [DropdownMenu.Group](https://www.radix-ui.com/primitives/docs/components/dropdown-menu#group).
+A group container for organizing related dropdown menu items, with `role="group"`. All props of a `<div>`.
 
 ### DropdownMenu.Separator
 
@@ -293,7 +324,7 @@ A keyboard shortcut indicator for dropdown menu items. It locks `translate="no"`
 
 ### DropdownMenu.Sub
 
-A submenu container for creating nested dropdown menus. Accepts all props from Radix [DropdownMenu.Sub](https://www.radix-ui.com/primitives/docs/components/dropdown-menu#sub).
+A submenu container for creating nested dropdown menus. It renders no element.
 
 | Prop            | Type                      | Default | Description                                                                                |
 | :-------------- | :------------------------ | :------ | :----------------------------------------------------------------------------------------- |
@@ -303,7 +334,7 @@ A submenu container for creating nested dropdown menus. Accepts all props from R
 
 ### DropdownMenu.SubTrigger
 
-A trigger for a dropdown menu sub-menu. It opens the submenu on hover, or on ArrowRight or Enter.
+A trigger for a dropdown menu sub-menu. It opens the submenu when the pointer rests on it for 100 ms, on a click, or on `ArrowRight`, `Enter`, or `Space`. While the pointer moves toward the open submenu, the submenu stays open.
 
 `children` render inside a `<span data-slot="dropdown-menu-sub-trigger-label">`. The caret is a permanent element sibling, so without the span a bare text label is never a lone child: a browser translation engine reparents that text node, and the removal React runs when the label changes shape or goes away throws. The span is `display: contents`, so an icon and its label stay flex items of the item and keep its `gap`. [Browser translation](/browser-translation) covers the mechanism and the rules your own components need.
 
@@ -322,10 +353,16 @@ An icon you pass as a child is now a grandchild of the item, so a `[&>svg]` clas
 
 ### DropdownMenu.SubContent
 
-The content container for submenu items. Appears in a portal with scrolling and animations.
+The content container for submenu items. Appears in a portal with scrolling and animations. It opens beside its `SubTrigger`, on the end side, and flips when only the other side fits.
 
-`DropdownMenu.Content` and `DropdownMenu.SubContent` render at Tailwind `z-50`, Mantle's float tier. When composed inside an open `Dialog`, `AlertDialog`, or `Sheet`, they portal into that overlay's positioner and paint above the overlay that owns them. Outside every overlay, they portal to `document.body`, below the overlay tier (`z-60`). When sibling floats share a container, the most recently mounted float paints on top.
+All props of a `<div>`, plus:
 
-| Prop    | Type      | Default | Description                                                                         |
-| :------ | :-------- | :------ | :---------------------------------------------------------------------------------- |
-| `loop?` | `boolean` | `true`  | When `true`, keyboard navigation will loop from last item to first, and vice versa. |
+| Prop                    | Type                                                            | Default   | Description                                                                                                  |
+| :---------------------- | :-------------------------------------------------------------- | :-------- | :----------------------------------------------------------------------------------------------------------- |
+| `loop?`                 | `boolean`                                                       | `true`    | When `true`, `ArrowDown` on the last item moves to the first, and `ArrowUp` on the first moves to the last.  |
+| `align?`                | `"start" \| "end"`                                              | `"start"` | Which edge of the submenu lines up with the `SubTrigger`: the top edge (`start`) or the bottom edge (`end`). |
+| `sideOffset?`           | `number`                                                        | `2`       | The distance in pixels from the `SubTrigger`.                                                                |
+| `onEscapeKeyDown?`      | `(event: KeyboardEvent) => void`                                |           | Runs on `Escape`. Call `event.preventDefault()` to keep the menu open.                                       |
+| `onPointerDownOutside?` | `(event: PointerDownOutsideEvent) => void`                      |           | Runs when a pointer press starts outside the submenu. Call `event.preventDefault()` to keep it open.         |
+| `onFocusOutside?`       | `(event: FocusOutsideEvent) => void`                            |           | Runs when focus moves outside the submenu. Call `event.preventDefault()` to keep it open.                    |
+| `onInteractOutside?`    | `(event: PointerDownOutsideEvent \| FocusOutsideEvent) => void` |           | Runs for both an outside press and an outside focus move. Call `event.preventDefault()` to keep it open.     |

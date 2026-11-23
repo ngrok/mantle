@@ -285,6 +285,7 @@ function trackFloat({
 	align: logicalAlign,
 	anchor,
 	fallback = "preferred",
+	dir,
 	floating,
 	placeWith = "css",
 	releaseAnchorAfter,
@@ -294,6 +295,8 @@ function trackFloat({
 	align: Align;
 	anchor: HTMLElement;
 	fallback?: Fallback;
+	/** The reading direction that `start` and `end` follow. Defaults to the anchor's direction. */
+	dir?: "ltr" | "rtl";
 	floating: HTMLElement;
 	/**
 	 * Who places the float where the browser has CSS anchor positioning.
@@ -314,13 +317,13 @@ function trackFloat({
 	const align =
 		(side === "top" || side === "bottom") &&
 		logicalAlign !== "center" &&
-		getComputedStyle(anchor).direction === "rtl"
+		(dir ?? getComputedStyle(anchor).direction) === "rtl"
 			? oppositeAlign[logicalAlign]
 			: logicalAlign;
 	const arrow = floating.querySelector<HTMLElement>(":scope > [data-float-arrow]");
 	// Why the arrow's height: the arrow sticks out of the float toward the
 	// anchor, so `sideOffset` is the gap between its tip and the anchor.
-	const gap = sideOffset + (arrow?.offsetHeight ?? 0);
+	let gap = sideOffset + (arrow?.offsetHeight ?? 0);
 	floating.style.inset = "auto";
 	// Why: a float that is placed again keeps the margins of its last placement.
 	for (const edge of ["top", "right", "bottom", "left"] as const) {
@@ -372,6 +375,14 @@ function trackFloat({
 
 	let frame = 0;
 	const place = () => {
+		// Why again: the arrow can change size while the float is open.
+		const nextGap = sideOffset + (arrow?.offsetHeight ?? 0);
+		if (nextGap !== gap) {
+			gap = nextGap;
+			if (cssSide != null) {
+				floating.style.setProperty(`margin-${oppositeSide[cssSide]}`, `${gap}px`);
+			}
+		}
 		const anchorBox = anchor.getBoundingClientRect();
 		// Why before the reads: a float sized by the anchor, such as a picker list,
 		// takes its final width and wrapped height in this placement.
@@ -462,6 +473,9 @@ function trackFloat({
 	const observer = new ResizeObserver(schedule);
 	observer.observe(anchor);
 	observer.observe(floating);
+	if (arrow != null) {
+		observer.observe(arrow);
+	}
 	place();
 	window.addEventListener("scroll", schedule, { capture: true, passive: true });
 	window.addEventListener("resize", schedule, { passive: true });

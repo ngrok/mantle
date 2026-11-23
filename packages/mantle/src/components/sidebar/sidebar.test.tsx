@@ -810,7 +810,7 @@ describe("--sidebar-row-width", () => {
 		const menu = screen.getByTestId("menu");
 		expect(menu.className).toContain("min-w-(--sidebar-row-width)");
 		// the trigger width survives beside the floor: min-width clamps it up
-		expect(menu.className).toContain("w-(--radix-dropdown-menu-trigger-width)");
+		expect(menu.className).toContain("w-(--anchor-width)");
 		expect(menu.className).not.toContain("min-w-32");
 	});
 

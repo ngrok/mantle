@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useInsertionEffect, useRef, useState } from "react";
-import type { RefCallback } from "react";
+import { useCallback, useEffect, useInsertionEffect, useRef, useState } from "react";
+import type { RefCallback, RefObject } from "react";
 import { canUseDOM } from "../../components/browser-only/can-use-dom.js";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
+import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import { useIsCoveredByOverlay, useLayerContainer } from "../layer-container/layer-container.js";
 import { trackFloat } from "./position.js";
 import type { Align, Side } from "./position.js";
@@ -55,6 +56,15 @@ type OutsideHandlers = {
 };
 
 /** Why a float closed without the caller asking. */
+/** What an open float is placed against: its anchor, its arrow, its direction when the placement reads it, and the call that places it again. */
+type PlacedFor = {
+	floating: HTMLElement;
+	anchor: HTMLElement;
+	arrow: HTMLElement | null;
+	rtl: boolean | null;
+	retrack: (anchor: HTMLElement) => void;
+};
+
 type DismissReason = "escape" | "outside" | "browser" | "covered";
 
 /** An open float that can take Escape. */
@@ -144,6 +154,11 @@ type FloatSession = {
 const floatSessions = new WeakMap<HTMLElement, FloatSession>();
 
 /** Whether a native modal `<dialog>` that does not hold `element` is open: the float would paint over it. */
+/** The arrow of a float: its direct child with `data-float-arrow`. */
+function arrowOf(floating: HTMLElement): HTMLElement | null {
+	return floating.querySelector<HTMLElement>(":scope > [data-float-arrow]");
+}
+
 function isUnderNativeModal(element: HTMLElement): boolean {
 	return Array.from(element.ownerDocument.querySelectorAll("dialog[open]")).some(
 		(dialog) => !dialog.contains(element) && dialog.matches(":modal"),
@@ -166,6 +181,8 @@ type UseFloatOptions = OutsideHandlers & {
 	side: Side;
 	align: Align;
 	sideOffset: number;
+	/** The reading direction that `start` and `end` follow. Defaults to the anchor's direction. */
+	dir?: "ltr" | "rtl";
 	/** Runs on Escape while the float is on top. Call `event.preventDefault()` to keep it open. */
 	onEscapeKeyDown?: (event: KeyboardEvent) => void;
 	/** Runs after the float shows. */
@@ -194,6 +211,7 @@ type UseFloatOptions = OutsideHandlers & {
  */
 function useFloat({
 	align,
+	dir,
 	dismissOnOutside,
 	dismissWhenCovered,
 	getAnchor,
@@ -212,6 +230,7 @@ function useFloat({
 	present: boolean;
 	portalTarget: Element | DocumentFragment | null;
 	floatingRef: RefCallback<HTMLElement>;
+	reconcile: () => void;
 } {
 	const layerContainer = useLayerContainer();
 	const hydrated = useIsHydrated();
@@ -253,135 +272,256 @@ function useFloat({
 	}, [covered, dismiss, dismissWhenCovered, open]);
 
 	const visible = open && !covered;
+	/** What the open float is placed against, and the call that places it again. */
+	const placedFor = useRef<PlacedFor | null>(null);
+	/** Starts an open float that had no anchor, or was not in the document, when its ref callback ran. */
+	const attachLate = useRef<(() => boolean) | null>(null);
+	// Why: the ref callback keeps one identity while the float is open, so it
+	// does not see a new anchor element, such as a replaced trigger or an Anchor
+	// that mounts later, a new inherited direction, or a new arrow element. This
+	// starts or places the float again only when one changes.
+	const reconcile = () => {
+		const anchor = anchorOf();
+		if (anchor == null) {
+			return;
+		}
+		const placed = placedFor.current;
+		if (placed == null) {
+			attachLate.current?.();
+			return;
+		}
+		if (
+			anchor !== placed.anchor ||
+			arrowOf(placed.floating) !== placed.arrow ||
+			(placed.rtl != null && (getComputedStyle(anchor).direction === "rtl") !== placed.rtl)
+		) {
+			placed.retrack(anchor);
+		}
+	};
+	// Why a layout effect: the float moves before the browser paints.
+	useIsomorphicLayoutEffect(reconcile);
+	const reconcileNow = useCallbackRef(reconcile);
+	// Why a passive effect too: an Anchor after the content in the tree attaches
+	// its ref after the content's layout effects run.
+	useEffect(reconcile);
+
+	/** Shows an open float on `anchor` and tracks it there. Returns the cleanup that hides it. */
+	const attach = useCallback(
+		(floating: HTMLElement, anchor: HTMLElement) => {
+			// Why only with the popover API: without it the float has no top layer,
+			// so it paints under a modal dialog anyway.
+			if (hasPopoverApi && isUnderNativeModal(floating)) {
+				if (dismissWhenCovered) {
+					dismiss("covered");
+				}
+				return;
+			}
+			// Why only for `start` and `end` above or below: only that placement follows the direction.
+			const readsDirection =
+				dir == null && align !== "center" && (side === "top" || side === "bottom");
+			let shown = true;
+			let dismissed = false;
+			// Why once: the browser can hide a `hint` float on the same press that the outside check sees.
+			const dismissOnce = (reason: DismissReason) => {
+				if (!dismissed) {
+					dismissed = true;
+					dismiss(reason);
+				}
+			};
+			// Why: the browser hides a `hint` float when the user presses outside it,
+			// presses Escape, or opens another one.
+			const onBeforeToggle = (event: Event) => {
+				if (shown && Reflect.get(event, "newState") === "closed") {
+					shown = false;
+					dismissOnce("browser");
+				}
+			};
+			const onEscape = (event: KeyboardEvent) => {
+				escape(event);
+				if (!event.defaultPrevented) {
+					event.preventDefault();
+					dismissOnce("escape");
+				}
+			};
+			const previous = floatSessions.get(floating);
+			const continuing = previous != null;
+			let session: FloatSession;
+			if (previous == null) {
+				const entry = { element: floating, escape: onEscape };
+				session = { entry, popEscape: pushOpenFloat(entry) };
+			} else {
+				previous.entry.escape = onEscape;
+				session = { entry: previous.entry, popEscape: previous.popEscape };
+			}
+			floatSessions.set(floating, session);
+			floating.addEventListener("beforetoggle", onBeforeToggle);
+			if (!continuing && hasPopoverApi) {
+				floating.showPopover();
+			}
+			const track = (target: HTMLElement) =>
+				trackFloat({
+					align,
+					anchor: target,
+					dir,
+					floating,
+					side,
+					sideOffset,
+					releaseAnchorAfter: EXIT_DURATION,
+				});
+			let stopTracking = track(anchor);
+			const placed: PlacedFor = {
+				floating,
+				anchor,
+				arrow: arrowOf(floating),
+				rtl: readsDirection ? getComputedStyle(anchor).direction === "rtl" : null,
+				retrack: (next) => {
+					stopTracking();
+					stopTracking = track(next);
+					placed.anchor = next;
+					placed.arrow = arrowOf(floating);
+					placed.rtl = readsDirection ? getComputedStyle(next).direction === "rtl" : null;
+				},
+			};
+			placedFor.current = placed;
+
+			const isInside = (target: EventTarget | null) =>
+				target instanceof Node &&
+				(floating.contains(target) ||
+					(insideElementsOf()?.some((element) => element?.contains(target) === true) ?? false));
+			const onOutside = <TEvent extends PointerEvent | FocusEvent>(
+				originalEvent: TEvent,
+				handler: (event: CustomEvent<{ originalEvent: TEvent }>) => void,
+			) => {
+				const target = originalEvent.target;
+				if (target == null || isInside(target)) {
+					return;
+				}
+				const event = new CustomEvent("mantle.float.outside", {
+					cancelable: true,
+					detail: { originalEvent },
+				});
+				// Why dispatch on the target: a handler reads `event.target` to keep the
+				// float open for one outside control, as it could with Radix.
+				const runHandlers = () => {
+					handler(event);
+					interactOutside(event);
+				};
+				target.addEventListener(event.type, runHandlers, { once: true });
+				target.dispatchEvent(event);
+				if (!event.defaultPrevented) {
+					dismissOnce("outside");
+				}
+			};
+			const onPointerDown = (event: PointerEvent) => onOutside(event, pointerDownOutside);
+			const onFocusIn = (event: FocusEvent) => onOutside(event, focusOutside);
+			const document = floating.ownerDocument;
+			if (dismissOnOutside) {
+				document.addEventListener("pointerdown", onPointerDown);
+				document.addEventListener("focusin", onFocusIn);
+			}
+			if (!continuing) {
+				latestShow.current?.(floating);
+			}
+
+			return () => {
+				placedFor.current = null;
+				document.removeEventListener("pointerdown", onPointerDown);
+				document.removeEventListener("focusin", onFocusIn);
+				stopTracking();
+				floating.removeEventListener("beforetoggle", onBeforeToggle);
+				// Why now: the closed float turns `inert` in this commit, and the browser
+				// then moves focus out of it.
+				const focusWasInside = floating.contains(document.activeElement);
+				// Why a microtask: React runs this cleanup inside its commit, and at the
+				// end of the commit it moves focus back to the element that had it
+				// before. A focus move here would not hold.
+				queueMicrotask(() => {
+					if (floatSessions.get(floating) !== session) {
+						return;
+					}
+					floatSessions.delete(floating);
+					session.popEscape();
+					// Why: under `asChild`, an open float can get a new element. The new
+					// element shows in the same commit, so the old one has not closed.
+					const next = floatElement.current;
+					const replaced = next != null && next !== floating && floatSessions.has(next);
+					if (!replaced) {
+						latestHide.current?.(floating, focusWasInside);
+					} else if (focusWasInside && !next.contains(document.activeElement)) {
+						next.focus({ preventScroll: true });
+					}
+					if (shown && hasPopoverApi) {
+						shown = false;
+						floating.hidePopover();
+					}
+				});
+			};
+		},
+		[
+			align,
+			dir,
+			dismiss,
+			dismissOnOutside,
+			dismissWhenCovered,
+			escape,
+			focusOutside,
+			insideElementsOf,
+			interactOutside,
+			pointerDownOutside,
+			side,
+			sideOffset,
+		],
+	);
 
 	// Why a ref callback: React calls it again when `visible` or the placement
 	// changes, so the float shows and follows its anchor only while visible.
-	const floatingRef: RefCallback<HTMLElement> = (floating) => {
-		floatElement.current = floating;
-		const anchor = anchorOf();
-		if (!visible || floating == null || anchor == null) {
-			return;
-		}
-		// Why only with the popover API: without it the float has no top layer,
-		// so it paints under a modal dialog anyway.
-		if (hasPopoverApi && isUnderNativeModal(floating)) {
-			if (dismissWhenCovered) {
-				dismiss("covered");
-			}
-			return;
-		}
-		let shown = true;
-		let dismissed = false;
-		// Why once: the browser can hide a `hint` float on the same press that the outside check sees.
-		const dismissOnce = (reason: DismissReason) => {
-			if (!dismissed) {
-				dismissed = true;
-				dismiss(reason);
-			}
-		};
-		// Why: the browser hides a `hint` float when the user presses outside it,
-		// presses Escape, or opens another one.
-		const onBeforeToggle = (event: Event) => {
-			if (shown && Reflect.get(event, "newState") === "closed") {
-				shown = false;
-				dismissOnce("browser");
-			}
-		};
-		const onEscape = (event: KeyboardEvent) => {
-			escape(event);
-			if (!event.defaultPrevented) {
-				event.preventDefault();
-				dismissOnce("escape");
-			}
-		};
-		const previous = floatSessions.get(floating);
-		const continuing = previous != null;
-		let session: FloatSession;
-		if (previous == null) {
-			const entry = { element: floating, escape: onEscape };
-			session = { entry, popEscape: pushOpenFloat(entry) };
-		} else {
-			previous.entry.escape = onEscape;
-			session = { entry: previous.entry, popEscape: previous.popEscape };
-		}
-		floatSessions.set(floating, session);
-		floating.addEventListener("beforetoggle", onBeforeToggle);
-		if (!continuing && hasPopoverApi) {
-			floating.showPopover();
-		}
-		const stopTracking = trackFloat({
-			align,
-			anchor,
-			floating,
-			side,
-			sideOffset,
-			releaseAnchorAfter: EXIT_DURATION,
-		});
-
-		const isInside = (target: EventTarget | null) =>
-			target instanceof Node &&
-			(floating.contains(target) ||
-				(insideElementsOf()?.some((element) => element?.contains(target) === true) ?? false));
-		const onOutside = <TEvent extends PointerEvent | FocusEvent>(
-			originalEvent: TEvent,
-			handler: (event: CustomEvent<{ originalEvent: TEvent }>) => void,
-		) => {
-			const target = originalEvent.target;
-			if (target == null || isInside(target)) {
+	// Why `useCallback`: a new callback on each render would place the open
+	// float again, with a forced layout, each time its owner renders.
+	const floatingRef = useCallback<RefCallback<HTMLElement>>(
+		(floating) => {
+			floatElement.current = floating;
+			if (!visible || floating == null) {
 				return;
 			}
-			const event = new CustomEvent("mantle.float.outside", {
-				cancelable: true,
-				detail: { originalEvent },
-			});
-			// Why dispatch on the target: a handler reads `event.target` to keep the
-			// float open for one outside control, as it could with Radix.
-			const runHandlers = () => {
-				handler(event);
-				interactOutside(event);
-			};
-			target.addEventListener(event.type, runHandlers, { once: true });
-			target.dispatchEvent(event);
-			if (!event.defaultPrevented) {
-				dismissOnce("outside");
+			const anchor = anchorOf();
+			if (anchor != null && floating.isConnected) {
+				return attach(floating, anchor);
 			}
-		};
-		const onPointerDown = (event: PointerEvent) => onOutside(event, pointerDownOutside);
-		const onFocusIn = (event: FocusEvent) => onOutside(event, focusOutside);
-		const document = floating.ownerDocument;
-		if (dismissOnOutside) {
-			document.addEventListener("pointerdown", onPointerDown);
-			document.addEventListener("focusin", onFocusIn);
-		}
-		if (!continuing) {
-			latestShow.current?.(floating);
-		}
-
-		return () => {
-			document.removeEventListener("pointerdown", onPointerDown);
-			document.removeEventListener("focusin", onFocusIn);
-			stopTracking();
-			floating.removeEventListener("beforetoggle", onBeforeToggle);
-			// Why now: the closed float turns `inert` in this commit, and the browser
-			// then moves focus out of it.
-			const focusWasInside = floating.contains(document.activeElement);
-			// Why a microtask: React runs this cleanup inside its commit, and at the
-			// end of the commit it moves focus back to the element that had it
-			// before. A focus move here would not hold.
-			queueMicrotask(() => {
-				if (floatSessions.get(floating) !== session) {
-					return;
+			// Why wait: an Anchor can mount later, and a float can portal into a
+			// menu that is not in the document yet, where `showPopover` throws.
+			let stop: (() => void) | undefined;
+			let frame = 0;
+			const tryAttach = () => {
+				const late = anchorOf();
+				// Why check the owner: a queued frame can run after a render attached the float.
+				if (attachLate.current !== tryAttach || late == null || !floating.isConnected) {
+					return false;
 				}
-				floatSessions.delete(floating);
-				session.popEscape();
-				latestHide.current?.(floating, focusWasInside);
-				if (shown && hasPopoverApi) {
-					shown = false;
-					floating.hidePopover();
+				attachLate.current = null;
+				stop = attach(floating, late);
+				return true;
+			};
+			attachLate.current = tryAttach;
+			// Why each frame: nothing renders this float again when its container connects.
+			const retry = () => {
+				if (attachLate.current === tryAttach && !floating.isConnected) {
+					frame = requestAnimationFrame(() => {
+						tryAttach();
+						retry();
+					});
 				}
-			});
-		};
-	};
+			};
+			retry();
+			return () => {
+				cancelAnimationFrame(frame);
+				if (attachLate.current === tryAttach) {
+					attachLate.current = null;
+				}
+				stop?.();
+			};
+		},
+		[anchorOf, attach, visible],
+	);
 
 	return {
 		present,
@@ -389,7 +529,53 @@ function useFloat({
 		// open on the first render portals one render later instead of mismatching.
 		portalTarget: present && hydrated ? resolvePortalTarget(layerContainer) : null,
 		floatingRef,
+		// Why: an anchor can get a new element in a render this hook does not see.
+		reconcile: reconcileNow,
 	};
+}
+
+/**
+ * The element of a float's trigger or anchor, and the ref callback that sets
+ * it. The callback runs `onTriggerChangeRef` for each new element. Why: a
+ * custom trigger can replace its own element with no render of the float, so
+ * the open float must place itself again, with the `reconcile` that
+ * `useFloat` returns.
+ *
+ * @example
+ * ```tsx
+ * const { triggerRef, setTrigger, onTriggerChangeRef } = useTriggerRef();
+ * // In the content, after useFloat:
+ * useReconcileOnTriggerChange(onTriggerChangeRef, reconcile);
+ * ```
+ */
+function useTriggerRef() {
+	const triggerRef = useRef<HTMLElement | null>(null);
+	const onTriggerChangeRef = useRef<(() => void) | null>(null);
+	// Why only for an element: a replaced trigger detaches before the new one
+	// attaches, and a modal menu must not let its boundary go between them.
+	const setTrigger = useCallback((element: HTMLElement | null) => {
+		triggerRef.current = element;
+		if (element != null) {
+			onTriggerChangeRef.current?.();
+		}
+	}, []);
+	return { triggerRef, setTrigger, onTriggerChangeRef };
+}
+
+/**
+ * Runs `reconcile` when the trigger behind `onTriggerChangeRef` gets a new
+ * element, while the content is mounted.
+ */
+function useReconcileOnTriggerChange(
+	onTriggerChangeRef: RefObject<(() => void) | null>,
+	reconcile: () => void,
+) {
+	useEffect(() => {
+		onTriggerChangeRef.current = reconcile;
+		return () => {
+			onTriggerChangeRef.current = null;
+		};
+	}, [onTriggerChangeRef, reconcile]);
 }
 
 export {
@@ -398,6 +584,8 @@ export {
 	hasPopoverApi,
 	resolvePortalTarget,
 	useFloat,
+	useReconcileOnTriggerChange,
+	useTriggerRef,
 };
 
 export type {

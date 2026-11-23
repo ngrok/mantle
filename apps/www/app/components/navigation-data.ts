@@ -652,6 +652,14 @@ export const migrations = [
 			"mantle.css no longer has the stone palette, so stone classes make no CSS. Use gray, or set the stone stops you need in your own @theme block.",
 		route: "/migrations/0025-stone-palette-migration",
 	},
+	{
+		number: 26,
+		slug: "native-dropdown-menu-migration",
+		title: "Native Dropdown Menu",
+		description:
+			"DropdownMenu is built on native popovers placed by CSS anchor positioning. The Radix positioning props are gone, --anchor-width and --available-height replace the Radix CSS variables, and a modal menu makes the page inert.",
+		route: "/migrations/0026-native-dropdown-menu-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

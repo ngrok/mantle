@@ -1,0 +1,106 @@
+---
+title: Native Dropdown Menu Migration
+description: DropdownMenu is built on native popovers placed by CSS anchor positioning. The Radix positioning props are gone, --anchor-width and --available-height replace the Radix CSS variables, and a modal menu makes the page inert.
+introducedIn: "0.95.0"
+codemodIn: "0.95.0"
+---
+
+# Mantle Native Dropdown Menu Migration Guide
+
+`@ngrok/mantle`'s `DropdownMenu` no longer uses Radix. `DropdownMenu.Content` and `DropdownMenu.SubContent` are native [`popover`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/popover) elements in the browser's top layer, and CSS anchor positioning places them. Where the browser has no anchor positioning, a small script places them. The parts, their nesting, and the other props stay the same, so no call site changes shape.
+
+**TL;DR:** Delete `alignOffset`, `avoidCollisions`, `collisionBoundary`, `collisionPadding`, `arrowPadding`, `sticky`, `hideWhenDetached`, `updatePositionStrategy`, and `forceMount` from `DropdownMenu.Content` and `DropdownMenu.SubContent`. Replace `--radix-dropdown-menu-trigger-width` with `--anchor-width` and `--radix-dropdown-menu-content-available-height` with `--available-height`.
+
+## Codemod
+
+From a mantle checkout:
+
+```sh
+pnpm -w run migrate 0026 <path>
+```
+
+In a project that installs `@ngrok/mantle`:
+
+```sh
+npx --yes --package=@ast-grep/cli@0.51.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0026-native-dropdown-menu.yml --update-all <path>
+```
+
+The rules apply steps 2 and 3. They delete the Radix positioning props from `DropdownMenu.Content` and `DropdownMenu.SubContent`, and rename the two CSS variables in the props of those parts in a file that imports `@ngrok/mantle/dropdown-menu`. The rules read a part through its import, under its own name or an alias. A function that binds the part's name to a parameter or a local shadows the import, so the rules leave that function alone. Shared class constants and stylesheets stay manual. The codemod is safe to run again. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find every `DropdownMenu` part from `@ngrok/mantle`. Search for `DropdownMenu.`, and for a renamed import of the same parts (`import { DropdownMenu as Menu }`).
+2. On `DropdownMenu.Content` and `DropdownMenu.SubContent`, delete `alignOffset`, `avoidCollisions`, `collisionBoundary`, `collisionPadding`, `arrowPadding`, `sticky`, `hideWhenDetached`, `updatePositionStrategy`, and `forceMount`. Keep `side`, `align`, and `sideOffset` on `Content`, and `align` and `sideOffset` on `SubContent`. The menu flips to the opposite side when only that side fits, and shifts to stay 8px inside the viewport.
+3. Replace `--radix-dropdown-menu-trigger-width` with `--anchor-width`, and `--radix-dropdown-menu-content-available-height` with `--available-height`, in class strings and stylesheets. The codemod changes only the props of the two parts; change shared strings, `cva` variants, and stylesheets by hand.
+4. Delete `modal={false}` from a `DropdownMenu.Root` that you set only so that a `Popover` opened from an item could take keyboard focus. A float that an item opens now portals into the menu and takes focus in a modal menu.
+5. Update tests that read the old shape:
+   - A modal menu sets `inert` on the rest of the page, not `aria-hidden`. Query an element outside the menu with `closest("[inert]")`.
+   - The content keeps `z-50` for browsers with no popover API, but the top layer, not `z-index`, orders it in the others. Assert `popover` on the content to check that it is a native float.
+   - A closed menu stays in the DOM for its 150ms exit transition. Wait for it to go.
+   - `DropdownMenu.Content` has `sideOffset={8}` in place of a `my-2` margin class.
+6. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why native popovers?** The top layer paints the menu above every `z-index`, CSS anchor positioning keeps it next to its trigger, and the menu ships less JavaScript with no Radix dependency. A browser with no popover API (Safari before 17, Chrome before 114, Firefox before 125) shows the menu as a fixed box at `z-50`, as before.
+
+---
+
+## Before → after
+
+### Radix positioning props
+
+```tsx
+// BEFORE
+<DropdownMenu.Content align="end" alignOffset={4} collisionPadding={16} sticky="always">
+	<DropdownMenu.Item>Rename</DropdownMenu.Item>
+</DropdownMenu.Content>
+```
+
+```tsx
+// AFTER: the browser flips and shifts the menu
+<DropdownMenu.Content align="end">
+	<DropdownMenu.Item>Rename</DropdownMenu.Item>
+</DropdownMenu.Content>
+```
+
+### The Radix CSS variables
+
+```tsx
+// BEFORE
+<DropdownMenu.Content className="max-h-(--radix-dropdown-menu-content-available-height) w-(--radix-dropdown-menu-trigger-width)" />
+```
+
+```tsx
+// AFTER
+<DropdownMenu.Content className="max-h-(--available-height) w-(--anchor-width)" />
+```
+
+### A popover opened from a menu item
+
+```tsx
+// BEFORE: a modal menu kept keyboard focus from the popover
+<DropdownMenu.Root modal={false}>…</DropdownMenu.Root>
+```
+
+```tsx
+// AFTER: the popover portals into the menu and takes focus
+<DropdownMenu.Root>…</DropdownMenu.Root>
+```
+
+## Edge cases & gotchas
+
+- A menu closes when an overlay that does not hold it opens, because the top layer would paint it over that overlay.
+- `DropdownMenu.Content` and `DropdownMenu.SubContent` are layer containers. A `Popover`, `Select`, or other float inside an item portals into the menu, so it paints above the menu and stays reachable while the page is inert.
+- `ArrowUp` on the trigger opens the menu on its last item, as the WAI-ARIA menu button pattern describes.
+- `DropdownMenu.RadioGroup` takes `defaultValue`, and `DropdownMenu.CheckboxItem` takes `defaultChecked`, for an uncontrolled menu.
+- A press outside the menu closes it. In a modal menu, focus returns to the trigger. With `modal={false}`, or after a right click, focus stays where the user put it. The menu also closes when the window loses focus. `onPointerDownOutside`, `onFocusOutside`, and `onInteractOutside` still get a cancelable event with `event.detail.originalEvent`.
+- A menu in the top layer paints above toasts, which stay at `z-index: 999999999` in the page.
+
+## How to verify
+
+```sh
+rg -n "alignOffset|collisionPadding|avoidCollisions|hideWhenDetached|updatePositionStrategy|--radix-dropdown-menu" <path>
+```
+
+The search finds nothing in code that uses `DropdownMenu`. Run the type checker, which flags each removed prop the codemod could not reach, then the tests.

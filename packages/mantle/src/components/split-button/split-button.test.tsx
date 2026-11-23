@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps } from "react";
 import { describe, expect, test, vi } from "vitest";
@@ -82,7 +82,7 @@ describe("SplitButton", () => {
 		await user.click(screen.getByRole("button", { name: "Save" }));
 
 		expect(onClick).toHaveBeenCalledTimes(1);
-		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+		await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
 	});
 
 	test("forwards `onOpenChange` from Root and opens the menu on a trigger click", async () => {
@@ -105,7 +105,8 @@ describe("SplitButton", () => {
 
 		await user.keyboard("{Escape}");
 
-		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+		// Why waitFor: the closed menu stays mounted for its exit transition.
+		await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
 		expect(menuTrigger).toHaveAttribute("aria-expanded", "false");
 		expect(onOpenChange).toHaveBeenCalledTimes(2);
 		expect(onOpenChange).toHaveBeenLastCalledWith(false);
@@ -191,7 +192,7 @@ describe("SplitButton", () => {
 		await user.click(await screen.findByRole("menuitem", { name: "Save as draft" }));
 
 		expect(onClick).toHaveBeenCalledTimes(1);
-		expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+		await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
 	});
 
 	test.each([
