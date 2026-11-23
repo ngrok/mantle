@@ -169,7 +169,8 @@ describe("QrCode render paths", () => {
 		const first = document.body.appendChild(document.createElement("div"));
 		mounted = createRoot(first);
 		act(() => mounted?.render(qrCodeTree(QrCode, value)));
-		expect(readGeometry(first)).toEqual({ path: "", viewBox: null });
+		// Why a unit viewBox: it keeps a frame that the consumer sizes by width square while it loads.
+		expect(readGeometry(first)).toEqual({ path: "", viewBox: "0 0 1 1" });
 
 		await act(() => vi.dynamicImportSettled());
 		expect(readGeometry(first).path).toBe(geometryOf(value).path);

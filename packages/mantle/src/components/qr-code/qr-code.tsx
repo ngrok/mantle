@@ -228,6 +228,27 @@ function useQrCodePartContext(): QrCodeContextValue {
 }
 
 /**
+ * The `viewBox` for `QrCode.Frame`. While the encoder loads, a unit square
+ * keeps the frame square; for the server markup, `undefined` keeps the server
+ * `viewBox`.
+ *
+ * @example
+ * ```ts
+ * frameViewBox({ status: "loading" }); // "0 0 1 1"
+ * ```
+ */
+function frameViewBox(context: QrCodeContextValue): string | undefined {
+	switch (context.status) {
+		case "encoded":
+			return `0 0 ${context.dimension} ${context.dimension}`;
+		case "loading":
+			return "0 0 1 1";
+		case "server-markup":
+			return undefined;
+	}
+}
+
+/**
  * The `d` for `QrCode.Pattern`. While the encoder loads, `""` clears a stale
  * server path; for the server markup, `undefined` keeps the server path.
  *
@@ -389,9 +410,7 @@ const Frame = ({
 			aria-labelledby={ariaLabelledBy}
 			data-slot={joinDataSlot(dataSlot, "qr-code-frame")}
 			xmlns="http://www.w3.org/2000/svg"
-			viewBox={
-				context.status === "encoded" ? `0 0 ${context.dimension} ${context.dimension}` : undefined
-			}
+			viewBox={frameViewBox(context)}
 			suppressHydrationWarning={context.status === "server-markup"}
 			shapeRendering="crispEdges"
 			className={cx("block size-48", className)}
