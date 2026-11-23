@@ -177,7 +177,6 @@ const enterList = (event: FocusEvent<HTMLElement>) => {
 const getTabListProps = (tabs: TabsBehavior) => ({
 	role: "tablist",
 	"aria-orientation": tabs.orientation,
-	"data-orientation": tabs.orientation,
 	onFocus: enterList,
 	onMouseDown: pressList,
 });
@@ -282,9 +281,6 @@ const getTabProps = (
 		disabled,
 		// Why `undefined` when disabled: React attaches the ref again when the tab becomes enabled.
 		ref: disabled ? undefined : joinList,
-		"data-state": selected ? "active" : "inactive",
-		"data-disabled": disabled ? "" : undefined,
-		"data-orientation": tabs.orientation,
 		onMouseDown: (event: MouseEvent<HTMLElement>) => {
 			const tab = event.currentTarget;
 			// Why: a link follows only a press released on it, so a link tab waits
@@ -367,8 +363,9 @@ const getTabProps = (
 /**
  * Wires one tab panel: `role="tabpanel"`, its label, and a Tab stop. The
  * panel element always renders, so each tab's `aria-controls` resolves; an
- * inactive panel is empty and `hidden`. `shown` says whether the panel renders
- * its children: it is selected, force-mounted, or hidden until found.
+ * inactive panel is `hidden`, and empty unless it is force-mounted. `shown`
+ * says whether the panel renders its children: it is selected, force-mounted,
+ * or hidden until found.
  *
  * A panel that is hidden until found gets `hidden="until-found"`.
  * Find-in-page and a fragment link make the browser remove `hidden`;
@@ -399,9 +396,9 @@ const getTabPanelProps = (
 			"aria-labelledby": tabId(tabs, value),
 			// Why -1: an inactive panel hidden until found is invisible but focusable.
 			tabIndex: hiddenUntilFound && !selected ? -1 : 0,
-			"data-state": selected ? "active" : "inactive",
-			"data-orientation": tabs.orientation,
-			hidden: !shown || undefined,
+			// Why `hidden` on a force-mounted inactive panel: the panel stays in the
+			// DOM and the server HTML, but not on screen.
+			hidden: (!selected && !hiddenUntilFound) || undefined,
 			// Why: the browser can remove `hidden` before hydration, which
 			// `revealRef` handles; React would report it as a mismatch.
 			suppressHydrationWarning: hiddenUntilFound || undefined,
@@ -418,14 +415,17 @@ const getTabPanelProps = (
 					// Why an observer and not `beforematch`: the browser removes `hidden`
 					// after `beforematch`, and it can do so before hydration. A change
 					// to `hidden` on an inactive panel covers both.
+					// Why `tabIndex`: it is -1 only while this panel is inactive, so the
+					// DOM tells the current state without a data attribute of its own.
+					const isInactive = () => panel.tabIndex === -1;
 					const reconcile = () => {
-						if (panel.dataset.state !== "inactive" || panel.hasAttribute("hidden")) {
+						if (!isInactive() || panel.hasAttribute("hidden")) {
 							return;
 						}
 						flushSync(() => {
 							tabs.select(value);
 						});
-						if (panel.dataset.state === "inactive") {
+						if (isInactive()) {
 							panel.setAttribute("hidden", "until-found");
 						}
 					};

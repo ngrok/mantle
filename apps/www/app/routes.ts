@@ -199,6 +199,7 @@ const migrationsPages = [
 	"0026-native-dropdown-menu-migration",
 	"0027-native-dialog-migration",
 	"0028-native-slider-migration",
+	"0029-data-attribute-contract-migration",
 ];
 
 export default [

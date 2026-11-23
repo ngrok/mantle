@@ -88,7 +88,7 @@ describe("Sidebar.Nav (desktop)", () => {
 				<Sidebar.Nav data-testid="nav" />
 			</Sidebar.Root>,
 		);
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-expanded");
 	});
 
 	test("a consumer bg-* class replaces the panel's default background", () => {
@@ -110,7 +110,7 @@ describe("Sidebar.Nav (desktop)", () => {
 				<Sidebar.Nav data-testid="nav" />
 			</Sidebar.Root>,
 		);
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+		expect(screen.getByTestId("nav")).not.toHaveAttribute("data-expanded");
 	});
 
 	test("Trigger toggles the panel and reflects state via aria-expanded", async () => {
@@ -123,15 +123,14 @@ describe("Sidebar.Nav (desktop)", () => {
 		);
 		const trigger = screen.getByRole("button", { name: "Toggle Sidebar" });
 		expect(trigger).toHaveAttribute("aria-expanded", "true");
-		expect(trigger).toHaveAttribute("data-state", "expanded");
 
 		await user.click(trigger);
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+		expect(screen.getByTestId("nav")).not.toHaveAttribute("data-expanded");
 
 		await user.click(trigger);
 		expect(trigger).toHaveAttribute("aria-expanded", "true");
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-expanded");
 	});
 
 	test("Trigger renders a small ghost neutral IconButton by default", () => {
@@ -192,7 +191,7 @@ describe("Sidebar.Nav (desktop)", () => {
 		expect(controlled?.tagName).toBe("NAV");
 	});
 
-	test("Trigger's aria-expanded and data-state mirror the mobile sheet, not the desktop panel", async () => {
+	test("Trigger's aria-expanded mirrors the mobile sheet, not the desktop panel", async () => {
 		// The desktop `open` stays true throughout, so a trigger that read it
 		// would announce an expanded sheet that is closed.
 		const user = userEvent.setup();
@@ -205,11 +204,9 @@ describe("Sidebar.Nav (desktop)", () => {
 		);
 		const trigger = screen.getByRole("button", { name: "Toggle Sidebar" });
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
-		expect(trigger).toHaveAttribute("data-state", "collapsed");
 
 		await user.click(trigger);
 		expect(trigger).toHaveAttribute("aria-expanded", "true");
-		expect(trigger).toHaveAttribute("data-state", "expanded");
 	});
 
 	test("controlled open reports changes through onOpenChange without flipping itself", async () => {
@@ -224,7 +221,7 @@ describe("Sidebar.Nav (desktop)", () => {
 		await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
 		expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
 		// controlled: the parent did not update `open`, so the panel stays expanded
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-expanded");
 	});
 
 	test("uncontrolled defaultOpen reports a toggle through onOpenChange and flips itself", async () => {
@@ -240,7 +237,7 @@ describe("Sidebar.Nav (desktop)", () => {
 		);
 		await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
 		expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+		expect(screen.getByTestId("nav")).not.toHaveAttribute("data-expanded");
 	});
 
 	test("Trigger respects event.defaultPrevented from the consumer onClick", async () => {
@@ -254,7 +251,7 @@ describe("Sidebar.Nav (desktop)", () => {
 		);
 		await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
 		expect(onOpenChange).not.toHaveBeenCalled();
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-expanded");
 	});
 
 	test("Ctrl+B toggles the sidebar; Ctrl+Shift+B and Ctrl+Alt+B pass through", async () => {
@@ -265,18 +262,18 @@ describe("Sidebar.Nav (desktop)", () => {
 			</Sidebar.Root>,
 		);
 		await user.keyboard(platformChord);
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+		expect(screen.getByTestId("nav")).not.toHaveAttribute("data-expanded");
 
 		await user.keyboard(platformChord);
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-expanded");
 
 		// Shift combinations (e.g. the browser's own Ctrl+Shift+B) are left alone
 		await user.keyboard("{Control>}{Shift>}b{/Shift}{/Control}");
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-expanded");
 
 		// The handler passes Alt combinations through too: Ctrl+Alt is AltGr on many layouts.
 		await user.keyboard("{Control>}{Alt>}b{/Alt}{/Control}");
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-expanded");
 	});
 
 	test("⌘B does not toggle on a non-Apple platform", async () => {
@@ -290,7 +287,7 @@ describe("Sidebar.Nav (desktop)", () => {
 			</Sidebar.Root>,
 		);
 		await user.keyboard("{Meta>}b{/Meta}");
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-expanded");
 	});
 
 	test("Ctrl+B still toggles with Caps Lock on (uppercase key without shift)", () => {
@@ -303,7 +300,7 @@ describe("Sidebar.Nav (desktop)", () => {
 			</Sidebar.Root>,
 		);
 		fireEvent.keyDown(window, { key: "B", ctrlKey: true });
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+		expect(screen.getByTestId("nav")).not.toHaveAttribute("data-expanded");
 	});
 
 	test("a keydown that carries no `key` leaves the shortcut working", () => {
@@ -317,10 +314,10 @@ describe("Sidebar.Nav (desktop)", () => {
 		);
 
 		window.dispatchEvent(new Event("keydown", { bubbles: true, cancelable: true }));
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-expanded");
 
 		fireEvent.keyDown(window, { key: "b", ctrlKey: true });
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+		expect(screen.getByTestId("nav")).not.toHaveAttribute("data-expanded");
 	});
 
 	test("Ctrl+B does not toggle when an earlier listener prevented it", () => {
@@ -337,7 +334,7 @@ describe("Sidebar.Nav (desktop)", () => {
 		fireEvent.keyDown(document, { key: "b", ctrlKey: true });
 		document.removeEventListener("keydown", preventChord);
 
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-expanded");
 	});
 
 	test("Trigger's tooltip shows its label and shortcut to pointer users", async () => {
@@ -478,7 +475,7 @@ describe("Sidebar.Nav (desktop)", () => {
 			</Sidebar.Root>,
 		);
 		await user.keyboard(platformChord);
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-expanded");
 	});
 
 	describe("on Apple platforms", () => {
@@ -497,7 +494,7 @@ describe("Sidebar.Nav (desktop)", () => {
 				</Sidebar.Root>,
 			);
 			await user.keyboard("{Meta>}b{/Meta}");
-			expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+			expect(screen.getByTestId("nav")).not.toHaveAttribute("data-expanded");
 		});
 
 		test("Ctrl+B is left to macOS, which binds it to caret-back", async () => {
@@ -511,7 +508,7 @@ describe("Sidebar.Nav (desktop)", () => {
 				</Sidebar.Root>,
 			);
 			await user.keyboard("{Control>}b{/Control}");
-			expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+			expect(screen.getByTestId("nav")).toHaveAttribute("data-expanded");
 		});
 
 		test("⌘+Ctrl+B is a different chord and passes through", async () => {
@@ -522,7 +519,7 @@ describe("Sidebar.Nav (desktop)", () => {
 				</Sidebar.Root>,
 			);
 			await user.keyboard("{Meta>}{Control>}b{/Control}{/Meta}");
-			expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+			expect(screen.getByTestId("nav")).toHaveAttribute("data-expanded");
 		});
 	});
 
@@ -555,7 +552,7 @@ describe("Sidebar.Nav (desktop)", () => {
 			ctrlKey: true,
 		});
 
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-expanded");
 		// Skipping the toggle is not enough: swallowing the default would still
 		// break whatever the field or its embedded editor binds the chord to.
 		expect(notPrevented).toBe(true);
@@ -576,8 +573,8 @@ describe("Sidebar.Nav (desktop)", () => {
 			</>,
 		);
 		await user.keyboard(platformChord);
-		expect(screen.getByTestId("primary")).toHaveAttribute("data-state", "collapsed");
-		expect(screen.getByTestId("secondary")).toHaveAttribute("data-state", "expanded");
+		expect(screen.getByTestId("primary")).not.toHaveAttribute("data-expanded");
+		expect(screen.getByTestId("secondary")).toHaveAttribute("data-expanded");
 	});
 
 	test("shortcut ownership stays with the first root across repeated presses", async () => {
@@ -598,8 +595,8 @@ describe("Sidebar.Nav (desktop)", () => {
 		await user.keyboard(platformChord);
 		await user.keyboard(platformChord);
 		await user.keyboard(platformChord);
-		expect(screen.getByTestId("primary")).toHaveAttribute("data-state", "collapsed");
-		expect(screen.getByTestId("secondary")).toHaveAttribute("data-state", "expanded");
+		expect(screen.getByTestId("primary")).not.toHaveAttribute("data-expanded");
+		expect(screen.getByTestId("secondary")).toHaveAttribute("data-expanded");
 	});
 
 	test("shortcut ownership hands off when the owning root unmounts", async () => {
@@ -624,7 +621,7 @@ describe("Sidebar.Nav (desktop)", () => {
 		const { rerender } = render(<TwoRoots showPrimary />);
 		rerender(<TwoRoots showPrimary={false} />);
 		await user.keyboard(platformChord);
-		expect(screen.getByTestId("secondary")).toHaveAttribute("data-state", "collapsed");
+		expect(screen.getByTestId("secondary")).not.toHaveAttribute("data-expanded");
 	});
 
 	test("an opted-out root never claims shortcut ownership", async () => {
@@ -642,8 +639,8 @@ describe("Sidebar.Nav (desktop)", () => {
 			</>,
 		);
 		await user.keyboard(platformChord);
-		expect(screen.getByTestId("silent")).toHaveAttribute("data-state", "expanded");
-		expect(screen.getByTestId("active")).toHaveAttribute("data-state", "collapsed");
+		expect(screen.getByTestId("silent")).toHaveAttribute("data-expanded");
+		expect(screen.getByTestId("active")).not.toHaveAttribute("data-expanded");
 	});
 
 	test("mounting with controlled openMobile on desktop does not clobber it", () => {
@@ -756,16 +753,15 @@ describe("Sidebar.Nav first paint", () => {
 		expect(html).not.toContain("data-hydrated=");
 	});
 
-	test("keeps data-state its own when a call site passes it", () => {
+	test("keeps data-expanded its own when a call site passes it", () => {
 		// Why: the collapse width and every descendant's collapsed styles key off
 		// the attribute in CSS, so a consumer value would desync them from `open`.
 		const html = renderToString(
 			<Sidebar.Root defaultOpen={false}>
-				<Sidebar.Nav data-state="expanded" />
+				<Sidebar.Nav data-expanded="" />
 			</Sidebar.Root>,
 		);
-		expect(html).toContain('data-state="collapsed"');
-		expect(html).not.toContain('data-state="expanded"');
+		expect(html).not.toContain('data-expanded=""');
 	});
 });
 
@@ -830,7 +826,7 @@ describe("--sidebar-row-width", () => {
 			// makes the token's hard-coded 1rem wrong.
 			expect(screen.getByTestId(region)).toHaveClass(
 				"px-3",
-				"group-data-[state=expanded]/sidebar-nav:pr-1",
+				"group-data-expanded/sidebar-nav:pr-1",
 			);
 		}
 	});
@@ -858,9 +854,9 @@ describe("Sidebar.Nav (mobile)", () => {
 		const panel = screen.getByTestId("panel");
 		expect(panel).toHaveAttribute("data-slot", "sidebar-nav");
 		expect(panel).toHaveAttribute("data-mobile");
-		// The `<dialog>` owns the value: a mantle `data-state` stamped after the
-		// spread must not clobber it.
-		expect(panel).toHaveAttribute("data-state", "open");
+		// The `<dialog>` owns `data-open`: the desktop `data-expanded` does not reach the sheet.
+		expect(panel).toHaveAttribute("data-open");
+		expect(panel).not.toHaveAttribute("data-expanded");
 		const nav = screen.getByRole("navigation", { name: "Main" });
 		expect(nav).toHaveTextContent("content");
 		// The open moved the nav into view, it did not mount a second one.
@@ -939,10 +935,11 @@ describe("Sidebar.Nav (mobile)", () => {
 		await waitFor(() => expect(onOpenMobileChange).toHaveBeenCalledTimes(2));
 		expect(onOpenMobileChange).toHaveBeenLastCalledWith(false);
 		expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-		expect(screen.getByRole("navigation", { name: "Main" }).parentElement).toHaveAttribute(
-			"data-state",
-			"expanded",
-		);
+		const panel = screen.getByRole("navigation", { name: "Main" }).parentElement;
+		expect(panel).toHaveAttribute("data-expanded", "");
+		// The sheet's dialog state does not linger on the desktop panel.
+		expect(panel).not.toHaveAttribute("data-open");
+		expect(panel).not.toHaveAttribute("data-closing");
 	});
 });
 
@@ -974,9 +971,9 @@ describe("useSidebar", () => {
 			</Sidebar.Root>,
 		);
 		await user.click(screen.getByRole("button", { name: "collapse it" }));
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+		expect(screen.getByTestId("nav")).not.toHaveAttribute("data-expanded");
 		await user.click(screen.getByRole("button", { name: "expand it" }));
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "expanded");
+		expect(screen.getByTestId("nav")).toHaveAttribute("data-expanded");
 	});
 
 	test("a parent rerender with new inline callbacks keeps the context value's identity", () => {
@@ -1119,15 +1116,15 @@ describe("Sidebar beside AppLayout.SidePanel", () => {
 		const media = mockMatchMedia({ [belowTheLane]: true });
 		const onOpenChange = vi.fn<(open: boolean) => void>();
 		render(<Shell onOpenChange={onOpenChange} />);
-		expect(nav()).toHaveAttribute("data-state", "expanded");
+		expect(nav()).toHaveAttribute("data-expanded");
 
 		await togglePanel(user);
-		expect(nav()).toHaveAttribute("data-state", "collapsed");
+		expect(nav()).not.toHaveAttribute("data-expanded");
 
 		act(() => {
 			media.setMatches(belowTheLane, false);
 		});
-		expect(nav()).toHaveAttribute("data-state", "expanded");
+		expect(nav()).toHaveAttribute("data-expanded");
 		expect(onOpenChange).toHaveBeenCalledTimes(0);
 	});
 
@@ -1136,10 +1133,10 @@ describe("Sidebar beside AppLayout.SidePanel", () => {
 		mockMatchMedia({ [belowTheLane]: true });
 		render(<Shell />);
 		await togglePanel(user);
-		expect(nav()).toHaveAttribute("data-state", "collapsed");
+		expect(nav()).not.toHaveAttribute("data-expanded");
 
 		await togglePanel(user);
-		expect(nav()).toHaveAttribute("data-state", "expanded");
+		expect(nav()).toHaveAttribute("data-expanded");
 	});
 
 	test("the panel gives the width back when it unmounts open", async () => {
@@ -1147,10 +1144,10 @@ describe("Sidebar beside AppLayout.SidePanel", () => {
 		mockMatchMedia({ [belowTheLane]: true });
 		const { rerender } = render(<Shell />);
 		await togglePanel(user);
-		expect(nav()).toHaveAttribute("data-state", "collapsed");
+		expect(nav()).not.toHaveAttribute("data-expanded");
 
 		rerender(<Shell panelMounted={false} />);
-		expect(nav()).toHaveAttribute("data-state", "expanded");
+		expect(nav()).toHaveAttribute("data-expanded");
 	});
 
 	test("an open state with no panel in the row keeps the sidebar expanded", async () => {
@@ -1158,7 +1155,7 @@ describe("Sidebar beside AppLayout.SidePanel", () => {
 		mockMatchMedia({ [belowTheLane]: true });
 		render(<Shell panelMounted={false} />);
 		await togglePanel(user);
-		expect(nav()).toHaveAttribute("data-state", "expanded");
+		expect(nav()).toHaveAttribute("data-expanded");
 	});
 
 	test("a toggle by the reader stands after the panel closes", async () => {
@@ -1169,7 +1166,7 @@ describe("Sidebar beside AppLayout.SidePanel", () => {
 		await togglePanel(user);
 
 		await toggleSidebar(user);
-		expect(nav()).toHaveAttribute("data-state", "expanded");
+		expect(nav()).toHaveAttribute("data-expanded");
 		expect(onOpenChange).toHaveBeenCalledTimes(1);
 		expect(onOpenChange).toHaveBeenLastCalledWith(true);
 
@@ -1178,7 +1175,7 @@ describe("Sidebar beside AppLayout.SidePanel", () => {
 		expect(onOpenChange).toHaveBeenLastCalledWith(false);
 
 		await togglePanel(user);
-		expect(nav()).toHaveAttribute("data-state", "collapsed");
+		expect(nav()).not.toHaveAttribute("data-expanded");
 	});
 
 	test("a sidebar that was collapsed when the panel opened follows a controlled `open`", async () => {
@@ -1188,7 +1185,7 @@ describe("Sidebar beside AppLayout.SidePanel", () => {
 		await togglePanel(user);
 
 		rerender(<Shell open />);
-		expect(nav()).toHaveAttribute("data-state", "expanded");
+		expect(nav()).toHaveAttribute("data-expanded");
 	});
 
 	test("a controlled `open` that changes to `false` and back expands a yielded sidebar", async () => {
@@ -1196,11 +1193,11 @@ describe("Sidebar beside AppLayout.SidePanel", () => {
 		mockMatchMedia({ [belowTheLane]: true });
 		const { rerender } = render(<Shell open />);
 		await togglePanel(user);
-		expect(nav()).toHaveAttribute("data-state", "collapsed");
+		expect(nav()).not.toHaveAttribute("data-expanded");
 
 		rerender(<Shell open={false} />);
 		rerender(<Shell open />);
-		expect(nav()).toHaveAttribute("data-state", "expanded");
+		expect(nav()).toHaveAttribute("data-expanded");
 	});
 
 	test("a collapse that a controlled parent refuses keeps a yielded sidebar collapsed", async () => {
@@ -1229,7 +1226,7 @@ describe("Sidebar beside AppLayout.SidePanel", () => {
 
 		await user.click(screen.getByRole("button", { name: "Collapse sidebar" }));
 		expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
-		expect(nav()).toHaveAttribute("data-state", "collapsed");
+		expect(nav()).not.toHaveAttribute("data-expanded");
 	});
 
 	test("the sidebar keeps its width at the lane and wider", async () => {
@@ -1237,7 +1234,7 @@ describe("Sidebar beside AppLayout.SidePanel", () => {
 		mockMatchMedia({ [belowTheLane]: false });
 		render(<Shell />);
 		await togglePanel(user);
-		expect(nav()).toHaveAttribute("data-state", "expanded");
+		expect(nav()).toHaveAttribute("data-expanded");
 	});
 
 	test("a Sidebar.Root above AppLayout.SidePanelRoot yields too", async () => {
@@ -1253,7 +1250,7 @@ describe("Sidebar beside AppLayout.SidePanel", () => {
 			</Sidebar.Root>,
 		);
 		await togglePanel(user);
-		expect(nav()).toHaveAttribute("data-state", "collapsed");
+		expect(nav()).not.toHaveAttribute("data-expanded");
 	});
 
 	test("the server renders the reader's preference beside an open panel", () => {
@@ -1268,7 +1265,7 @@ describe("Sidebar beside AppLayout.SidePanel", () => {
 				</AppLayout.SidePanelRoot>
 			</TooltipProvider>,
 		);
-		expect(html).toContain('data-state="expanded"');
+		expect(html).toContain('data-expanded=""');
 	});
 
 	test("the lane is the `--container-side-panel-lane` theme token", async () => {
@@ -1279,7 +1276,7 @@ describe("Sidebar beside AppLayout.SidePanel", () => {
 		mockMatchMedia({ [`(width < ${lane})`]: true });
 		render(<Shell />);
 		await togglePanel(user);
-		expect(nav()).toHaveAttribute("data-state", "collapsed");
+		expect(nav()).not.toHaveAttribute("data-expanded");
 	});
 });
 
@@ -1370,18 +1367,16 @@ describe("Sidebar.Item + ItemButton", () => {
 		expect(screen.getByRole("button", { name: "Endpoints" })).toHaveAttribute("type", "button");
 	});
 
-	test("current sets aria-current=page and the data-current state", () => {
+	test("current sets aria-current=page", () => {
 		render(<Sidebar.ItemButton current>Endpoints</Sidebar.ItemButton>);
 		const button = screen.getByRole("button", { name: "Endpoints" });
 		expect(button).toHaveAttribute("aria-current", "page");
-		expect(button).toHaveAttribute("data-current");
 	});
 
-	test("non-current rows render neither aria-current nor data-current", () => {
+	test("non-current rows render no aria-current", () => {
 		render(<Sidebar.ItemButton>Endpoints</Sidebar.ItemButton>);
 		const button = screen.getByRole("button", { name: "Endpoints" });
 		expect(button).not.toHaveAttribute("aria-current");
-		expect(button).not.toHaveAttribute("data-current");
 	});
 
 	test("asChild composes a router-style link and keeps the row contract", () => {
@@ -1409,7 +1404,6 @@ describe("Sidebar.Item + ItemButton", () => {
 		const link = screen.getByRole("link", { name: "Endpoints" });
 
 		expect(link).toHaveAttribute("aria-current", "page");
-		expect(link).not.toHaveAttribute("data-current");
 		// Why the class: the row styles itself from `aria-current` through this
 		// variant, and no attribute of mantle's observes that wiring.
 		expect(link).toHaveClass("aria-[current=page]:bg-neutral-500/15");
@@ -1617,11 +1611,9 @@ describe("Sidebar.SearchTrigger", () => {
 	});
 
 	test("stays highlighted while its palette is open, even inside a Sidebar.Tooltip", async () => {
-		// Cross-part pin: `Tooltip.Trigger` hands its own `data-state` down, and
-		// Radix's prop merge lets the child's value win, so `Command.SearchTrigger`
-		// has to re-stamp the palette's state after the forwarded props. Without
-		// that, this row reads `data-state="closed"` with the palette open and
-		// `rowClassName`'s `data-state-open:` styling never fires.
+		// Cross-part pin: the row highlight keys on `aria-expanded`, which
+		// `Command.SearchTrigger` stamps from the palette's state. The tooltip
+		// trigger between them must not drop or overwrite it.
 		const user = userEvent.setup();
 		render(
 			<TooltipProvider>
@@ -1646,14 +1638,14 @@ describe("Sidebar.SearchTrigger", () => {
 		);
 
 		const row = screen.getByTestId("row");
-		expect(row).toHaveAttribute("data-state", "closed");
+		expect(row).toHaveAttribute("aria-expanded", "false");
 
 		await user.click(row);
 
 		// Queried by test id: the open modal marks everything outside it
 		// `aria-hidden`, so a role query cannot reach the row any more.
 		await waitFor(() => {
-			expect(screen.getByTestId("row")).toHaveAttribute("data-state", "open");
+			expect(screen.getByTestId("row")).toHaveAttribute("aria-expanded", "true");
 		});
 	});
 
@@ -1678,7 +1670,7 @@ describe("Sidebar.SearchTrigger", () => {
 
 		await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
 
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+		expect(screen.getByTestId("nav")).not.toHaveAttribute("data-expanded");
 		expect(screen.getByRole("button", { name: "Search…" })).toBeInTheDocument();
 	});
 
@@ -1848,7 +1840,7 @@ describe("Sidebar.Tooltip", () => {
 		// below: silent means Radix's own state is closed, not just that the
 		// surface was withheld.
 		expect(row).not.toHaveAttribute("aria-describedby");
-		expect(row).toHaveAttribute("data-state", "closed");
+		expect(row).not.toHaveAttribute("data-open");
 	});
 
 	test("closes the label when the pointer leaves the row", async () => {
@@ -1875,7 +1867,7 @@ describe("Sidebar.Tooltip", () => {
 		await user.hover(row);
 
 		expect(row).not.toHaveAttribute("aria-describedby");
-		expect(row).toHaveAttribute("data-state", "closed");
+		expect(row).not.toHaveAttribute("data-open");
 	});
 
 	test("stays closed when the sidebar collapses after the pointer swept an expanded row", async () => {
@@ -1891,7 +1883,7 @@ describe("Sidebar.Tooltip", () => {
 		await user.unhover(row);
 		await user.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
 
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+		expect(screen.getByTestId("nav")).not.toHaveAttribute("data-expanded");
 		// Why wait: the toggle's own tooltip, closed by the press, plays its exit first.
 		await waitFor(() => expect(screen.queryByRole("tooltip")).not.toBeInTheDocument());
 	});
@@ -1907,7 +1899,7 @@ describe("Sidebar.Tooltip", () => {
 
 		await user.keyboard(platformChord);
 
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+		expect(screen.getByTestId("nav")).not.toHaveAttribute("data-expanded");
 		expect(row).toHaveFocus();
 		expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 	});
@@ -1926,7 +1918,7 @@ describe("Sidebar.Tooltip", () => {
 
 		await user.keyboard(platformChord);
 
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+		expect(screen.getByTestId("nav")).not.toHaveAttribute("data-expanded");
 		expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 	});
 
@@ -1968,7 +1960,7 @@ describe("Sidebar.Tooltip", () => {
 		);
 		await user.keyboard(platformChord);
 
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+		expect(screen.getByTestId("nav")).not.toHaveAttribute("data-expanded");
 		expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 	});
 
@@ -2029,7 +2021,7 @@ describe("Sidebar.Tooltip", () => {
 
 		await user.keyboard(platformChord);
 
-		expect(screen.getByTestId("nav")).toHaveAttribute("data-state", "collapsed");
+		expect(screen.getByTestId("nav")).not.toHaveAttribute("data-expanded");
 		expect(screen.getByRole("button", { name: "Endpoints" })).toBe(row);
 		expect(row).toHaveFocus();
 	});

@@ -165,7 +165,6 @@ const Trigger = ({
 			aria-expanded={state.open}
 			aria-haspopup="dialog"
 			data-slot={joinDataSlot(dataSlot, "popover-trigger")}
-			data-state={state.open ? "open" : "closed"}
 			ref={composedRef}
 			// Why also under `asChild`: a slotted `<button>` with no type would submit its form.
 			type="button"
@@ -321,7 +320,7 @@ type PopoverContentProps = ComponentProps<"div"> &
  * | Data Attribute | Value                                          | Description                                        |
  * | -------------- | ---------------------------------------------- | -------------------------------------------------- |
  * | `data-slot`    | `"popover-content"`                            | On the content, with any composing part's chain ahead of it. |
- * | `data-state`   | `"open"` \| `"closed"`                         | `"closed"` while the exit transition plays.        |
+ * | `data-open`    | present while open | Presence-only. Absent while the exit transition plays. |
  * | `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | The side of the anchor the content resolved to.    |
  *
  * The content sets the CSS variables `--anchor-width` (the anchor's width)
@@ -419,7 +418,7 @@ const Content = ({
 				role="dialog"
 				tabIndex={-1}
 				data-slot={joinDataSlot(dataSlot, "popover-content")}
-				data-state={state.open ? "open" : "closed"}
+				data-open={state.open ? "" : undefined}
 				inert={!state.open}
 				className={cx(
 					floatClassName,

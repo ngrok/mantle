@@ -259,7 +259,7 @@ function Slider({
 			className={cx(
 				"group/slider [--slider-thumb-size:--spacing(4.5)]",
 				"relative flex w-full touch-none items-center select-none data-disabled:opacity-50",
-				"data-orientation-vertical:h-full data-orientation-vertical:min-h-40 data-orientation-vertical:w-auto data-orientation-vertical:flex-col",
+				"data-[orientation=vertical]:h-full data-[orientation=vertical]:min-h-40 data-[orientation=vertical]:w-auto data-[orientation=vertical]:flex-col",
 				tickCount > 0 && "mb-3",
 				className,
 			)}
@@ -273,18 +273,18 @@ function Slider({
 		>
 			<span
 				data-slot="slider-track"
-				className="bg-neutral-300 rounded-full relative grow overflow-hidden h-1.5 w-full group-data-orientation-vertical/slider:h-full group-data-orientation-vertical/slider:w-1.5"
+				className="bg-neutral-300 rounded-full relative grow overflow-hidden h-1.5 w-full group-data-[orientation=vertical]/slider:h-full group-data-[orientation=vertical]/slider:w-1.5"
 			>
 				<span
 					data-slot="slider-range"
 					className={clsx(
-						"absolute h-full select-none group-data-orientation-vertical/slider:h-auto group-data-orientation-vertical/slider:w-full",
+						"absolute h-full select-none group-data-[orientation=vertical]/slider:h-auto group-data-[orientation=vertical]/slider:w-full",
 						// Why `--_s` and `--_e`: the insets of the start and the end edge, as
 						// fractions of the track. `--_inv` swaps the ends of an inverted track.
 						"[--_a:clamp(0,(var(--_start)_-_var(--_min))/(var(--_max)_-_var(--_min)),1)] [--_b:clamp(0,(var(--_end)_-_var(--_min))/(var(--_max)_-_var(--_min)),1)]",
 						"[--_s:calc(var(--_inv)_*_(1_-_var(--_b))_+_(1_-_var(--_inv))_*_var(--_a))] [--_e:calc(var(--_inv)_*_var(--_a)_+_(1_-_var(--_inv))_*_(1_-_var(--_b)))]",
-						"group-data-orientation-horizontal/slider:inset-s-[calc(var(--_s)*100%)] group-data-orientation-horizontal/slider:inset-e-[calc(var(--_e)*100%)]",
-						"group-data-orientation-vertical/slider:bottom-[calc(var(--_s)*100%)] group-data-orientation-vertical/slider:top-[calc(var(--_e)*100%)]",
+						"group-data-[orientation=horizontal]/slider:inset-s-[calc(var(--_s)*100%)] group-data-[orientation=horizontal]/slider:inset-e-[calc(var(--_e)*100%)]",
+						"group-data-[orientation=vertical]/slider:bottom-[calc(var(--_s)*100%)] group-data-[orientation=vertical]/slider:top-[calc(var(--_e)*100%)]",
 						color,
 					)}
 					style={$cssProperties(styles.range)}
@@ -301,14 +301,14 @@ function Slider({
 						// Why `--_f`: the thumb's inset from the start edge, as a fraction of the
 						// track less one thumb, so the thumb stays inside the track.
 						"[--_f:calc(var(--_inv)_+_(1_-_var(--_inv)_*_2)_*_clamp(0,(var(--_value)_-_var(--_min))/(var(--_max)_-_var(--_min)),1))]",
-						"group-data-orientation-horizontal/slider:inset-s-[calc(var(--_f)*(100%-var(--slider-thumb-size)))]",
-						"group-data-orientation-vertical/slider:bottom-[calc(var(--_f)*(100%-var(--slider-thumb-size)))]",
+						"group-data-[orientation=horizontal]/slider:inset-s-[calc(var(--_f)*(100%-var(--slider-thumb-size)))]",
+						"group-data-[orientation=vertical]/slider:bottom-[calc(var(--_f)*(100%-var(--slider-thumb-size)))]",
 						// Why: a press on a thumb grabs that thumb. With more than one thumb, a hit
 						// area that is wider than the thumb along the track covers an adjacent
 						// thumb. A press beside a thumb then goes to the root, which moves the
 						// nearest thumb.
 						values.length > 1 &&
-							"group-data-orientation-horizontal/slider:after:w-full group-data-orientation-vertical/slider:after:h-full",
+							"group-data-[orientation=horizontal]/slider:after:w-full group-data-[orientation=vertical]/slider:after:h-full",
 						// Why the outline: forced-colors mode drops the ring's box shadow and paints the transparent outline.
 						"has-focus-visible:ring-3 has-focus-visible:ring-accent-500/20 has-focus-visible:outline-hidden",
 						"group-data-disabled/slider:pointer-events-none group-data-disabled/slider:cursor-default",
@@ -320,7 +320,7 @@ function Slider({
 						data-slot="slider-input"
 						// Why `z-1` and no `pointer-events: none`: the input sits above the hit area of its thumb, so a test finds the thumb by role and clicks it as it would a native input.
 						// Why the writing mode: Chromium reads a range input's orientation from it, not from `aria-orientation`.
-						className="absolute inset-0 z-1 m-0 size-full cursor-inherit appearance-none opacity-0 group-data-orientation-vertical/slider:[writing-mode:vertical-lr]"
+						className="absolute inset-0 z-1 m-0 size-full cursor-inherit appearance-none opacity-0 group-data-[orientation=vertical]/slider:[writing-mode:vertical-lr]"
 						aria-describedby={ariaDescribedBy}
 						aria-errormessage={ariaErrorMessage}
 						aria-invalid={ariaInvalid}

@@ -356,7 +356,7 @@ const Item = ({
 				{...props}
 				role="group"
 				data-slot={joinDataSlot(dataSlot, "accordion-item")}
-				data-state={open ? "open" : "closed"}
+				data-open={open ? "" : undefined}
 			>
 				{children}
 			</div>
@@ -405,7 +405,6 @@ const Trigger = ({
 			type="button"
 			{...props}
 			data-slot={joinDataSlot(dataSlot, "accordion-trigger")}
-			data-state={open ? "open" : "closed"}
 			aria-expanded={open}
 			aria-controls={contentId}
 			className={cx(
@@ -496,7 +495,7 @@ const TriggerIcon = ({
 		// label is one line, the row is one line tall, so the trigger's `items-center`
 		// keeps the icon centered with shorter children, such as a `text-sm` label.
 		className={cx(
-			"h-lh w-4 shrink-0 self-start text-muted transition-transform duration-200 ease-out-strong group-data-state-open:rotate-180 motion-reduce:transition-none",
+			"h-lh w-4 shrink-0 self-start text-muted transition-transform duration-200 ease-out-strong group-aria-expanded:rotate-180 motion-reduce:transition-none",
 			className,
 		)}
 	/>
@@ -555,7 +554,7 @@ const Content = ({
 		}
 		const handleBeforeMatch = () => {
 			// The browser reveals and highlights the match synchronously right after
-			// this event, but our React-driven height (`data-state-open:h-auto`) only
+			// this event, but our React-driven height (`data-open:h-auto`) only
 			// applies a tick later. Without expanding now, the box is still
 			// `h-0 overflow-hidden` when the browser paints its find highlight, so the
 			// match opens but its highlight is clipped to zero height and lost. Removing
@@ -631,7 +630,7 @@ const Content = ({
 			// above removes it where `hidden="until-found"` takes over.
 			inert={!open}
 			data-slot={joinDataSlot(dataSlot, "accordion-content")}
-			data-state={open ? "open" : "closed"}
+			data-open={open ? "" : undefined}
 			className={cx(
 				// Animate height 0 <-> auto via `interpolate-size` (Chromium only; other
 				// engines snap, which is fine: the slide is a progressive enhancement and
@@ -644,7 +643,7 @@ const Content = ({
 				// lives on `Accordion.Body`, never here: a padded `h-0` border-box can't
 				// collapse below its padding, so the closed section would stop short of
 				// zero height instead of fully collapsing.
-				"h-0 overflow-hidden opacity-0 transition-[height,opacity,content-visibility] duration-200 ease-out-strong [interpolate-size:allow-keywords] transition-discrete data-state-open:h-auto data-state-open:opacity-100 motion-reduce:transition-none",
+				"h-0 overflow-hidden opacity-0 transition-[height,opacity,content-visibility] duration-200 ease-out-strong [interpolate-size:allow-keywords] transition-discrete data-open:h-auto data-open:opacity-100 motion-reduce:transition-none",
 				className,
 			)}
 		>

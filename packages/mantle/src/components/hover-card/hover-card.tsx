@@ -209,7 +209,6 @@ const Trigger = ({
 	return (
 		<Component
 			data-slot={joinDataSlot(dataSlot, "hover-card-trigger")}
-			data-state={state.open ? "open" : "closed"}
 			ref={composedRef}
 			{...props}
 			onPointerEnter={(event: PointerEvent<HTMLAnchorElement>) => {
@@ -288,7 +287,7 @@ type HoverCardContentProps = ComponentProps<"div"> &
  * | Data Attribute | Value                                          | Description                                     |
  * | -------------- | ---------------------------------------------- | ----------------------------------------------- |
  * | `data-slot`    | `"hover-card-content"`                         | On the card, with any composing part's chain ahead of it. |
- * | `data-state`   | `"open"` \| `"closed"`                         | `"closed"` while the exit transition plays.     |
+ * | `data-open`    | present while open | Presence-only. Absent while the exit transition plays. |
  * | `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | The side of the trigger the card resolved to.   |
  *
  * @see https://mantle.ngrok.com/components/overlays/hover-card#hovercardcontent
@@ -342,7 +341,7 @@ const Content = ({
 				id={state.contentId}
 				popover={hasPopoverApi ? "hint" : undefined}
 				data-slot={joinDataSlot(dataSlot, "hover-card-content")}
-				data-state={state.open ? "open" : "closed"}
+				data-open={state.open ? "" : undefined}
 				inert={!state.open}
 				className={cx(
 					floatClassName,

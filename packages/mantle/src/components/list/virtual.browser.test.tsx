@@ -366,7 +366,7 @@ describe("List grid navigation", () => {
 		const grid = await screen.findByRole("grid");
 		const activeIndex = () =>
 			document
-				.querySelector("[data-slot='list'] [role='row'][data-active]")
+				.querySelector("[data-slot='list'] [role='row'][data-highlighted]")
 				?.getAttribute("data-index") ?? null;
 
 		const user = userEvent.setup();
@@ -383,7 +383,7 @@ describe("List grid navigation", () => {
 		expect(
 			document
 				.querySelector("[data-slot='list'] [role='row'][data-index='2']")
-				?.hasAttribute("data-active"),
+				?.hasAttribute("data-highlighted"),
 		).toBe(false);
 	});
 

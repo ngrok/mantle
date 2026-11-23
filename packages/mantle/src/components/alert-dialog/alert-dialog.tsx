@@ -254,8 +254,8 @@ const Content = ({
 			"max-h-full overflow-y-auto overscroll-none",
 			"outline-hidden focus-within:outline-hidden",
 			"p-6",
-			"border-dialog bg-dialog rounded-xl border shadow-lg duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none!",
-			"data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95",
+			"border-dialog bg-dialog rounded-xl border shadow-lg duration-200 ease-out-strong data-closing:duration-150 motion-reduce:animate-none!",
+			"data-closing:animate-out data-closing:fade-out-0 data-closing:zoom-out-95 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95",
 			preferredWidth,
 			className,
 		)}

@@ -15,11 +15,11 @@ import {
 } from "./theme-switcher.js";
 
 /**
- * The one icon the switcher shows. A hidden icon is in a `data-state="inactive"` span.
+ * The one icon the switcher shows. A hidden icon is in an `aria-hidden` span.
  */
 function shownIcon(button: HTMLElement): SVGElement {
 	const icons = [...button.querySelectorAll("svg")].filter(
-		(svg) => svg.closest("[data-state='inactive']") == null,
+		(svg) => svg.closest("[data-slot='icon-swap-item'][aria-hidden='true']") == null,
 	);
 	expect(icons).toHaveLength(1);
 	const [icon] = icons;
@@ -247,7 +247,7 @@ describe("ThemeSwitcher", () => {
 		expect(glyphOf(spinner)).not.toBe(glyphOf(<ThemeIcon theme="light" />));
 		const hiddenIcons = [...button.querySelectorAll("svg")].filter((svg) => svg !== spinner);
 		for (const svg of hiddenIcons) {
-			expect(svg.closest("[data-state='inactive']")).not.toBeNull();
+			expect(svg.closest("[data-slot='icon-swap-item'][aria-hidden='true']")).not.toBeNull();
 		}
 	});
 });

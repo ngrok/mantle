@@ -1363,31 +1363,6 @@ MARK: CUSTOM VARIANTS
 @custom-variant aria-invalid (&[aria-invalid="true"]);
 @custom-variant aria-unchecked (&[aria-checked="false"]);
 
-@custom-variant data-active-item (&[data-active-item~="true"]);
-@custom-variant data-disabled (&[data-disabled]);
-@custom-variant data-drag-over (&[data-drag-over="true"]);
-@custom-variant data-highlighted (&[data-highlighted]);
-@custom-variant data-orientation-horizontal (&[data-orientation="horizontal"]);
-@custom-variant data-orientation-vertical (&[data-orientation="vertical"]);
-@custom-variant data-side-bottom (&[data-side="bottom"]);
-@custom-variant data-side-left (&[data-side="left"]);
-@custom-variant data-side-right (&[data-side="right"]);
-@custom-variant data-side-top (&[data-side="top"]);
-@custom-variant data-state-active (&[data-state~=active]);
-@custom-variant data-state-checked (&[data-state~=checked]);
-@custom-variant data-state-closed (&[data-state~=closed]);
-@custom-variant data-state-idle (&[data-state~=idle]);
-@custom-variant data-state-inactive (&[data-state~=inactive]);
-@custom-variant data-state-indeterminate (&[data-state~=indeterminate]);
-@custom-variant data-state-open (&[data-state~=open]);
-@custom-variant data-state-pending (&[data-state~=pending]);
-@custom-variant data-state-selected (&[data-state~=selected]);
-@custom-variant data-state-submitting (&[data-state~=submitting]);
-@custom-variant data-state-unchecked (&[data-state~=unchecked]);
-@custom-variant data-validation-error (&[data-validation="error"]);
-@custom-variant data-validation-success (&[data-validation="success"]);
-@custom-variant data-validation-warning (&[data-validation="warning"]);
-
 @custom-variant where (:where(&));
 
 @custom-variant hover-hover {
@@ -2201,11 +2176,11 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
  * surface that is open when it starts: a rule under the root attribute would
  * restyle every element that has a `data-slot`.
  */
+[data-slot~="dialog-content"][data-theme-transition][data-closing],
 :is(
-		[data-slot~="dialog-content"],
 		[data-slot~="dropdown-menu-content"],
 		[data-slot~="dropdown-menu-sub-content"]
-	)[data-theme-transition][data-state="closed"],
+	)[data-theme-transition]:not([data-open]),
 [data-slot~="dialog-positioner"][data-theme-transition],
 [data-slot~="dialog-positioner"][data-theme-transition]::backdrop {
 	animation: none !important;

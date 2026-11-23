@@ -385,8 +385,6 @@ const useOption = (
 			"aria-disabled": disabled || undefined,
 			"data-value": value,
 			"data-text-value": textValue,
-			"data-state": selected ? "checked" : "unchecked",
-			"data-disabled": disabled ? "" : undefined,
 			onPointerMove: (event: { currentTarget: HTMLElement }) => {
 				// Why not `activate`: a hover must not scroll a half-visible option.
 				if (!disabled) {

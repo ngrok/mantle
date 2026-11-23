@@ -622,7 +622,7 @@ The two parts differ on whether a call site may turn the guard off. `CodeBlock.C
 ## Accessibility
 
 - `CodeBlock.CopyButton` is an icon button named by `label` (default "Copy code"). After a copy, an always-mounted `role="status"` element beside the button announces "Copied", so a screen-reader user hears the result and not only the icon swap.
-- `CodeBlock.ExpanderButton` carries `aria-expanded` and `aria-controls` that points at the `<pre>`. The `<pre>` itself carries no ARIA state; `data-state="collapsed" | "expanded"` drives the styling.
+- `CodeBlock.ExpanderButton` carries `aria-expanded` and `aria-controls` that points at the `<pre>`. The `<pre>` itself carries no ARIA state; a presence-only `data-expanded` drives the styling.
 - Fold toggles are real `<button>` elements named "Toggle code folding" with `aria-expanded`. Enter and Space toggle them. The folded marker is `aria-hidden`.
 - A code block with fold toggles uses a 24px line height instead of 20px. The toggles of adjacent lines are then 24px apart, the spacing that WCAG 2.5.8 needs. The `--mantle-code-fold-line-height` CSS variable holds the value.
 - The tabs, the fold toggles, the copy button, and the expander button show the [focus ring](/base/focus-ring) for keyboard focus only. `CodeBlock.TabList` scrolls, so it carries `-m-1 p-1` to keep the ring of each tab inside its scroll box. See [Give the ring room](/base/focus-ring#give-the-ring-room). `CodeBlock.ExpanderButton` meets the edges of the root, so its ring draws inside it. See [Draw the ring inside](/base/focus-ring#draw-the-ring-inside).
@@ -668,14 +668,14 @@ All props from [standard HTML pre attributes](https://developer.mozilla.org/en-U
 | :------ | :--------------------- | :------ | :------------------------------------------------------------------------------------------------- |
 | `value` | `MantleCodeBlockValue` |         | The code value produced by `mantleCode("lang")` tagged template or `createMantleCodeBlockValue()`. |
 
-| Data Attribute                  | Value                         | Description                                                                             |
-| :------------------------------ | :---------------------------- | :-------------------------------------------------------------------------------------- |
-| `data-state`                    | `"collapsed"` \| `"expanded"` | Present when a `CodeBlock.ExpanderButton` is composed. Drives the collapsed max height. |
-| `data-highlighted`              | `"true"` \| `"false"`         | Whether the value carried pre-rendered Shiki HTML.                                      |
-| `data-lang`                     | the language id               | The value's language.                                                                   |
-| `data-mantle-line-numbers`      | `"true"` \| `"false"`         | Whether the gutter shows line numbers.                                                  |
-| `data-mantle-line-number-start` | a number as a string          | The first line number.                                                                  |
-| `data-mantle-highlight-lines`   | comma-separated line numbers  | Present when lines are highlighted.                                                     |
+| Data Attribute                  | Value                        | Description                                                                                    |
+| :------------------------------ | :--------------------------- | :--------------------------------------------------------------------------------------------- |
+| `data-expanded`                 | present when expanded        | Presence-only. Only with a composed `CodeBlock.ExpanderButton`, which carries `aria-expanded`. |
+| `data-syntax-highlighted`       | present when highlighted     | Presence-only. The value carried pre-rendered Shiki HTML.                                      |
+| `data-lang`                     | the language id              | The value's language.                                                                          |
+| `data-mantle-line-numbers`      | `"true"` \| `"false"`        | Whether the gutter shows line numbers.                                                         |
+| `data-mantle-line-number-start` | a number as a string         | The first line number.                                                                         |
+| `data-mantle-highlight-lines`   | comma-separated line numbers | Present when lines are highlighted.                                                            |
 
 Inside the highlighted HTML, `data-slot="line-number"`, `data-slot="fold-toggle"`, and `data-slot="fold-ellipsis"` mark the gutter number, the fold button, and the folded marker.
 

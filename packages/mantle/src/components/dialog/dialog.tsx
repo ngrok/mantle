@@ -195,7 +195,8 @@ type ContentProps = Omit<
  * | Data Attribute    | Value                                            | Description                                                          |
  * | ----------------- | ------------------------------------------------ | -------------------------------------------------------------------- |
  * | `data-appearance` | `"centered"` \| `"full-page"` \| `"full-bleed"`   | Reflects the resolved `appearance`.                                  |
- * | `data-state`      | `"open"` \| `"closed"`                           | Set by the dialog; drives the open and close animation.              |
+ * | `data-open`       | present while open | Presence-only. The `[open]` mirror the open animation keys on. |
+ * | `data-closing`    | present while the exit plays | Presence-only. Drives the close animation. |
  *
  * A modal dialog makes the rest of the page inert, so UI outside it takes no
  * input while it is open. mantle's `Toaster` and `Sandbar` move into the open
@@ -283,8 +284,8 @@ const Content = ({
 		data-slot={joinDataSlot(dataSlot, "dialog-content")}
 		className={cx(
 			contentSurfaceClassName({ appearance, preferredWidth }),
-			"duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none!",
-			"data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95",
+			"duration-200 ease-out-strong data-closing:duration-150 motion-reduce:animate-none!",
+			"data-closing:animate-out data-closing:fade-out-0 data-closing:zoom-out-95 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95",
 			className,
 		)}
 		{...props}

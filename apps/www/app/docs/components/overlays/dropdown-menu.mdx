@@ -198,7 +198,7 @@ The root, stateful component that manages the open/closed state of the dropdown 
 
 The trigger button that opens the dropdown menu. It opens on a pointer press, so a press, drag, and release on an item selects that item.
 
-All props of a `<button>`. It sets `aria-haspopup="menu"`, `aria-expanded`, `data-state`, and, while open, `aria-controls`.
+It sets `aria-haspopup="menu"`, `aria-expanded`, and, while open, `aria-controls`.
 
 | Prop       | Type      | Default | Description                                                                          |
 | :--------- | :-------- | :------ | :----------------------------------------------------------------------------------- |
@@ -227,11 +227,10 @@ All props of a `<div>`, plus:
 
 #### Data attributes
 
-| Data Attribute | Value                                    | Description                             |
-| :------------- | :--------------------------------------- | :-------------------------------------- |
-| `data-state`   | `"open"` \| `"closed"`                   | Whether the menu is open.               |
-| `data-side`    | `"top" \| "right" \| "bottom" \| "left"` | The side the menu is on after it flips. |
-| `data-align`   | `"start" \| "center" \| "end"`           | The `align` the menu takes.             |
+| Data Attribute | Value                                    | Description                              |
+| :------------- | :--------------------------------------- | :--------------------------------------- |
+| `data-open`    | present while open                       | Presence-only. Whether the menu is open. |
+| `data-side`    | `"top" \| "right" \| "bottom" \| "left"` | The side the menu is on after it flips.  |
 
 ### DropdownMenu.Item
 
@@ -264,11 +263,10 @@ The item sets `aria-checked` to `true`, `false`, or `mixed` for `"indeterminate"
 
 #### Data attributes
 
-| Data Attribute | Value                                             | Description                          |
-| :------------- | :------------------------------------------------ | :----------------------------------- |
-| `data-slot`    | `"dropdown-menu-checkbox-item"`                   | On the item element.                 |
-| `data-state`   | `"checked"` \| `"unchecked"` \| `"indeterminate"` | On the item element.                 |
-| `data-slot`    | `"dropdown-menu-checkbox-item-label"`             | On the `<span>` wrapping `children`. |
+| Data Attribute | Value                                 | Description                          |
+| :------------- | :------------------------------------ | :----------------------------------- |
+| `data-slot`    | `"dropdown-menu-checkbox-item"`       | On the item element.                 |
+| `data-slot`    | `"dropdown-menu-checkbox-item-label"` | On the `<span>` wrapping `children`. |
 
 ### DropdownMenu.RadioGroup
 
@@ -299,7 +297,6 @@ All props of `DropdownMenu.Item`, plus:
 | Data Attribute | Value                              | Description                          |
 | :------------- | :--------------------------------- | :----------------------------------- |
 | `data-slot`    | `"dropdown-menu-radio-item"`       | On the item element.                 |
-| `data-state`   | `"checked"` \| `"unchecked"`       | On the item element.                 |
 | `data-slot`    | `"dropdown-menu-radio-item-label"` | On the `<span>` wrapping `children`. |
 
 ### DropdownMenu.Label

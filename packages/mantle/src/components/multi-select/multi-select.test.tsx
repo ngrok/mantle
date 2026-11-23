@@ -527,24 +527,22 @@ describe("MultiSelect", () => {
 			expect(await screen.findByRole("listbox")).toBeInTheDocument();
 		});
 
-		test("the focused tag is marked data-active, never aria-current, and drops it on blur", async () => {
+		test("a focused tag uses DOM focus as its state, never aria-current or data-active", async () => {
 			const user = userEvent.setup();
 			render(<Subject />);
 			const cherry = getTagOption("cherry");
-			expect(cherry).not.toHaveAttribute("data-active");
 
 			act(() => {
 				cherry.focus();
 			});
 			expect(cherry).toHaveFocus();
-			expect(cherry).toHaveAttribute("data-active");
+			expect(cherry).not.toHaveAttribute("data-active");
 			// Why: `aria-current` names the current item in a set, not keyboard focus.
 			expect(cherry).not.toHaveAttribute("aria-current");
-			expect(getTagOption("banana")).not.toHaveAttribute("data-active");
 
 			await user.keyboard("{ArrowRight}");
 			expect(screen.getByRole("combobox")).toHaveFocus();
-			expect(cherry).not.toHaveAttribute("data-active");
+			expect(cherry).not.toHaveFocus();
 		});
 
 		test("ArrowLeft on a non-first tag focuses the previous tag", async () => {

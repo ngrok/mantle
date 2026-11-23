@@ -787,8 +787,8 @@ export function TrafficNavLinks() {
 ```
 
 No `current`, no `useMatch`, no `className`: the row highlights itself. `NavLink` already resolved the match
-and sets `aria-current="page"`, and the current-row treatment follows **either** `aria-current="page"` or
-`data-current`, so the router's own answer drives mantle's own styling. Pass `current` for the rows whose
+and sets `aria-current="page"`, the attribute the current-row treatment follows, so the router's own answer
+drives mantle's own styling. Pass `current` for the rows whose
 parent knows (a plain `Link`, a custom matcher, a row that is current for a reason the URL doesn't express).
 
 Reach for `NavLink`'s render-prop `className` only to add styling of your own on top;
@@ -1025,8 +1025,8 @@ export function LabeledCollapsedSidebar() {
 
 The label shows only while the desktop panel is collapsed: expanded rows already read their own text and the
 mobile sheet shows full labels, so there is nothing to duplicate. The sidebar state _vetoes_ the tooltip's open
-state rather than withholding its content: the expanded panel and the mobile sheet keep the row at
-`data-state="closed"` with no `aria-describedby`, and toggling the sidebar dismisses whatever was showing, so
+state rather than withholding its content: the expanded panel and the mobile sheet keep the
+tooltip closed with no `aria-describedby` on the row, and toggling the sidebar dismisses whatever was showing, so
 collapsing the panel cannot pop a label under a pointer that has already moved on. `Tooltip.Root` itself stays
 mounted at every sidebar state, which keeps the row (and its focus) through a collapse.
 
@@ -1221,8 +1221,8 @@ export function NarrowSidebarMenu() {
 The navigation parts are plain styled elements: `Sidebar.Group` pairs an optional muted `Sidebar.GroupLabel`
 with a `Sidebar.List` of rows, and links the two with `aria-labelledby` automatically so each list is
 announced with its group's name. `Sidebar.ItemButton` renders a leading icon slot and a truncating label, and
-`current` sets both `aria-current="page"` and the `data-current` visual state: the row's current treatment
-follows either one, so a composed child that marks itself (react-router's `NavLink`) needs no `current` at all.
+`current` sets `aria-current="page"`, which also drives the row's current treatment, so a composed child that
+marks itself (react-router's `NavLink`) needs no `current` at all.
 
 > [!IMPORTANT]
 > **The navigation is one level deep.** There is no nested item and no collapsible group: a
@@ -1573,7 +1573,7 @@ export default function Root({ loaderData }: Route.ComponentProps) {
 
 `defaultOpen` is correct here, **not** controlled `open`. The value is already available at the server
 render and the hydration render, so the uncontrolled state initializes to the right value once and stays
-there; the server HTML ships `data-state="collapsed"` directly, with zero flash.
+there; the server HTML ships the collapsed panel, with no `data-expanded`, directly and with zero flash.
 
 `extractSidebarStateCookie` returns `boolean | undefined` rather than `boolean` on purpose: a first-time
 visitor with no cookie is not the same as someone who deliberately collapsed the sidebar, and folding the two
@@ -1623,7 +1623,7 @@ The [Assistant Across Routes](/recipes/assistant-across-routes) recipe shows the
   hidden, but both remain in the tab order and the accessibility tree, so accessible names do not change
   between states.
 - `Sidebar.ItemButton` `current` renders `aria-current="page"`, and the row's current treatment is styled from
-  that attribute as well as `data-current`, so the announced state and the visual state cannot drift apart,
+  that attribute alone, so the announced state and the visual state cannot drift apart,
   whichever side sets it. `Sidebar.GroupLabel` is linked to its `Sidebar.List` via `aria-labelledby`.
 - The mobile sheet is the browser's modal `<dialog>`: it makes the page inert, closes on
   `Escape` or a click on the backdrop, and returns focus to the trigger, and locks the page scroll. Its
@@ -1673,12 +1673,13 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 **Data attributes**
 
-| Data Attribute  | Value                             | Description                                                                                                                                                                                                                                                                                                                                               |
-| --------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-state`    | `"expanded"` \| `"collapsed"`     | On the desktop panel surface. Mirrors the root's expanded state and drives the width collapse to its icons; descendant parts style off it with `group-data-[state=collapsed]/sidebar-nav:`.                                                                                                                                                               |
-| `data-hydrated` | present one frame after hydration | Presence-only, desktop panel surface. The panel's pre-hydration visibility gate, its width transition, and descendant collapse transitions all key off its absence in CSS (`not-data-hydrated:`, `group-not-data-hydrated/sidebar-nav:`). The stamp waits one frame, so an SSR state correction paints first and snaps instead of animating on page load. |
-| `data-mobile`   | present in the mobile sheet       | Presence-only. Marks the sheet presentation used below the root's `mobileBreakpoint`.                                                                                                                                                                                                                                                                     |
-| `data-state`    | `"open"` \| `"closed"`            | In the mobile sheet only, where the `<dialog>` owns the attribute. It is the sheet's open state, not the desktop expanded state. Consumers style against it too.                                                                                                                                                                                          |
+| Data Attribute  | Value                                | Description                                                                                                                                                                                                                                                                                                                                               |
+| --------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-expanded` | present while expanded               | Presence-only, desktop panel surface. Mirrors the root's expanded state; its absence drives the width collapse to its icons. Descendant parts style off it with `group-data-expanded/sidebar-nav:` and `group-not-data-expanded/sidebar-nav:`.                                                                                                            |
+| `data-hydrated` | present one frame after hydration    | Presence-only, desktop panel surface. The panel's pre-hydration visibility gate, its width transition, and descendant collapse transitions all key off its absence in CSS (`not-data-hydrated:`, `group-not-data-hydrated/sidebar-nav:`). The stamp waits one frame, so an SSR state correction paints first and snaps instead of animating on page load. |
+| `data-mobile`   | present in the mobile sheet          | Presence-only. Marks the sheet presentation used below the root's `mobileBreakpoint`.                                                                                                                                                                                                                                                                     |
+| `data-open`     | present while the sheet is open      | Presence-only, in the mobile sheet only: the sheet's open state, not the desktop expanded state.                                                                                                                                                                                                                                                          |
+| `data-closing`  | present while the sheet's exit plays | Presence-only, in the mobile sheet only. Drives the slide-out.                                                                                                                                                                                                                                                                                            |
 
 `Sidebar.Header` reads one more public token, [`--sidebar-header-height`](#sidebarheader), which belongs on a
 common ancestor of the sidebar and the app-layout header rather than on the panel.
@@ -1707,19 +1708,18 @@ after hydration reads the platform in its first render.
 
 **Data attributes**
 
-| Data Attribute    | Value                                              | Description                                                                                                                                             |
-| ----------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-state`      | `"expanded"` \| `"collapsed"`                      | Mirrors what the trigger toggles: the mobile sheet below the root's `mobileBreakpoint`, the desktop panel otherwise. Pairs with `aria-expanded`.        |
-| `data-slot`       | `"sidebar-trigger icon-button"`                    | On the button: the part's slot, joined ahead of `IconButton`'s own.                                                                                     |
-| `data-slot`       | `"sidebar-trigger-tooltip tooltip-content"`        | On the tooltip surface, not the button: the styling hook for the label-and-chord popup this part renders, joined ahead of `Tooltip.Content`'s own slot. |
-| `data-state`      | `"delayed-open"` \| `"instant-open"` \| `"closed"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`.                                                                                      |
-| `data-side`       | `"top"` \| `"right"` \| `"bottom"` \| `"left"`     | Read, not stamped: on the tooltip surface, from `Tooltip.Content`.                                                                                      |
-| `data-slot`       | `"sidebar-tooltip-row"`                            | Inside that surface, on the flex row holding the label and the optional chord chips. Always present.                                                    |
-| `data-slot`       | `"sidebar-tooltip-label"`                          | On the `<span>` wrapping `label` inside that row. Always present, and `display: contents`.                                                              |
-| `data-slot`       | `"sidebar-tooltip-shortcut"`                       | On the chord chips. Present only while `shortcut` holds something. Carries `translate="no"`: a chord is a key name, not prose.                          |
-| `data-appearance` | `"filled"` \| `"ghost"` \| `"outlined"`            | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`.                                        |
-| `data-intent`     | `"neutral"`                                        | Read, not stamped: the underlying `IconButton` reflects its `intent`, and it draws the neutral tone only.                                               |
-| `data-size`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`     | Read, not stamped: the underlying `IconButton` reflects its `size`, which this part defaults to `"sm"`.                                                 |
+| Data Attribute    | Value                                          | Description                                                                                                                                             |
+| ----------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`       | `"sidebar-trigger icon-button"`                | On the button: the part's slot, joined ahead of `IconButton`'s own.                                                                                     |
+| `data-slot`       | `"sidebar-trigger-tooltip tooltip-content"`    | On the tooltip surface, not the button: the styling hook for the label-and-chord popup this part renders, joined ahead of `Tooltip.Content`'s own slot. |
+| `data-open`       | present while open                             | Read, not stamped: on the tooltip surface, from `Tooltip.Content`.                                                                                      |
+| `data-side`       | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`.                                                                                      |
+| `data-slot`       | `"sidebar-tooltip-row"`                        | Inside that surface, on the flex row holding the label and the optional chord chips. Always present.                                                    |
+| `data-slot`       | `"sidebar-tooltip-label"`                      | On the `<span>` wrapping `label` inside that row. Always present, and `display: contents`.                                                              |
+| `data-slot`       | `"sidebar-tooltip-shortcut"`                   | On the chord chips. Present only while `shortcut` holds something. Carries `translate="no"`: a chord is a key name, not prose.                          |
+| `data-appearance` | `"filled"` \| `"ghost"` \| `"outlined"`        | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`.                                        |
+| `data-intent`     | `"neutral"`                                    | Read, not stamped: the underlying `IconButton` reflects its `intent`, and it draws the neutral tone only.                                               |
+| `data-size`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | Read, not stamped: the underlying `IconButton` reflects its `size`, which this part defaults to `"sm"`.                                                 |
 
 ### Sidebar.Header
 
@@ -1824,7 +1824,7 @@ without text peeking from the collapsed sidebar.
 
 The row sizes its **leading** icon (20px) and leaves trailing visuals (a menu caret, a count, a status
 pip) to size themselves, so composing one needs no `!` override. A row composed with
-`DropdownMenu.Trigger asChild` also stays highlighted while its menu is open (`data-state="open"`, supplied
+`DropdownMenu.Trigger asChild` also stays highlighted while its menu is open (`aria-expanded="true"`, supplied
 by the trigger), and takes the same `--sidebar-row-width` floor on its menu as a switcher row (see
 [Sizing a menu to a sidebar row](#sizing-a-menu-to-a-sidebar-row)). That is how the **Help** row is built in
 the shell demo at the top of this page and in the live example under
@@ -1832,19 +1832,18 @@ the shell demo at the top of this page and in the live example under
 
 All props from `button` plus:
 
-| Prop       | Type      | Default | Description                                                                                                                                     |
-| ---------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `asChild?` | `boolean` | `false` | Render the single child (e.g. a router link) instead of a `<button>`.                                                                           |
-| `current?` | `boolean` |         | Marks the current page: sets `aria-current="page"` and `data-current`. Not needed for a child that marks itself, like react-router's `NavLink`. |
+| Prop       | Type      | Default | Description                                                                                                                                                        |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `asChild?` | `boolean` | `false` | Render the single child (e.g. a router link) instead of a `<button>`.                                                                                              |
+| `current?` | `boolean` |         | Marks the current page: sets `aria-current="page"`, which drives the current-row styling. Not needed for a child that marks itself, like react-router's `NavLink`. |
 
 **Data attributes**
 
-| Data Attribute | Value                   | Description                                                                                                                                                                                                                                                                                        |
-| -------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"sidebar-item-button"` | Names the part, with any composing ancestor's chain ahead of it.                                                                                                                                                                                                                                   |
-| `data-current` | present when `current`  | Presence-only, never `"false"`, since the `data-current:` variant matches the attribute's existence. Styles the current row.                                                                                                                                                                       |
-| `aria-current` | `"page"` when `current` | Set alongside `data-current`. The current-row styling follows _either_, so a composed child that marks itself (react-router's `NavLink`) gets the treatment without the prop.                                                                                                                      |
-| `data-state`   | `"open"` \| `"closed"`  | **Read, not stamped**: supplied by a composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. Inside `Sidebar.Tooltip` the tooltip's own `data-state` replaces this one, so the open highlight also keys on `aria-expanded`. |
+| Data Attribute  | Value                   | Description                                                                                                                                                         |
+| --------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`     | `"sidebar-item-button"` | Names the part, with any composing ancestor's chain ahead of it.                                                                                                    |
+| `aria-current`  | `"page"` when `current` | Styles the current row with `aria-[current=page]:`, so a composed child that marks itself (react-router's `NavLink`) gets the treatment without the prop.           |
+| `aria-expanded` | `"true"` \| `"false"`   | **Read, not stamped**: supplied by a composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. |
 
 ### Sidebar.SearchTrigger
 
@@ -1886,12 +1885,12 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 **Data attributes**
 
-| Data Attribute | Value                               | Description                                                                                                                                                                                                                 |
-| -------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"sidebar-search-trigger"`          | Names the part, with any composing ancestor's chain ahead of it: `"command-search-trigger sidebar-search-trigger"` once a palette wraps it.                                                                                 |
-| `data-slot`    | `"sidebar-search-trigger-label"`    | On the `<span>` wrapping `children`. Default `button` path only: under `asChild` the row renders no sibling, so it needs no wrapper. Always `display: contents`, so your icon and label stay flex items of the row.         |
-| `data-slot`    | `"sidebar-search-trigger-shortcut"` | On the chord chips. Default `button` path only, where it is always mounted and `display: none` while empty; the props union forbids `shortcut` under `asChild`. Carries `translate="no"`: a chord is a key name, not prose. |
-| `data-state`   | `"open"` \| `"closed"`              | **Read, not stamped**: supplied by the composing `Command.SearchTrigger` / `Dialog.Trigger`. The row stays highlighted while its palette is open.                                                                           |
+| Data Attribute  | Value                               | Description                                                                                                                                                                                                                 |
+| --------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`     | `"sidebar-search-trigger"`          | Names the part, with any composing ancestor's chain ahead of it: `"command-search-trigger sidebar-search-trigger"` once a palette wraps it.                                                                                 |
+| `data-slot`     | `"sidebar-search-trigger-label"`    | On the `<span>` wrapping `children`. Default `button` path only: under `asChild` the row renders no sibling, so it needs no wrapper. Always `display: contents`, so your icon and label stay flex items of the row.         |
+| `data-slot`     | `"sidebar-search-trigger-shortcut"` | On the chord chips. Default `button` path only, where it is always mounted and `display: none` while empty; the props union forbids `shortcut` under `asChild`. Carries `translate="no"`: a chord is a key name, not prose. |
+| `aria-expanded` | `"true"` \| `"false"`               | **Read, not stamped**: supplied by the composing `Command.SearchTrigger` / `Dialog.Trigger`. The row stays highlighted while its palette is open.                                                                           |
 
 The `shortcut` hint is dropped outright in the collapsed sidebar: the chip has room for the icon and nothing
 else, and `aria-keyshortcuts` already announces the chord. The row's label is clipped rather than removed, so
@@ -1904,7 +1903,7 @@ size-7 to match selected sidebar icons while the row keeps a compact 36px footpr
 [Avatar](/components/data-display/avatar) is that size by default, which is what an account or user row puts
 there. The control uses a custom 10px radius on all corners so product and account switchers share the same
 shape around their rounded tiles. A styled button only. Compose it with `DropdownMenu.Trigger asChild` or
-`Dialog.Trigger asChild`, which set the open state (`data-state="open"` styling responds automatically).
+`Dialog.Trigger asChild`, which set the open state (`aria-expanded="true"` styling responds automatically).
 
 Match the trailing affordance to the surface the trigger actually opens. A `CaretDown` promises a menu
 dropping from the row, so keep it for `DropdownMenu`-backed switchers; a `Dialog`-backed switcher reads
@@ -1918,10 +1917,10 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 **Data attributes**
 
-| Data Attribute | Value                        | Description                                                                                                                                                                                                                                                                                          |
-| -------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"sidebar-switcher-trigger"` | Names the part, with any composing ancestor's chain ahead of it.                                                                                                                                                                                                                                     |
-| `data-state`   | `"open"` \| `"closed"`       | **Read, not stamped**: supplied by the composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. Inside `Sidebar.Tooltip` the tooltip's own `data-state` replaces this one, so the open highlight also keys on `aria-expanded`. |
+| Data Attribute  | Value                        | Description                                                                                                                                                           |
+| --------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`     | `"sidebar-switcher-trigger"` | Names the part, with any composing ancestor's chain ahead of it.                                                                                                      |
+| `aria-expanded` | `"true"` \| `"false"`        | **Read, not stamped**: supplied by the composing `DropdownMenu.Trigger` / `Dialog.Trigger`. The row styles against it so it stays highlighted while its menu is open. |
 
 Inside the collapsed sidebar, the row collapses to its **first child element** (the
 leading visual), and the remaining children become visually hidden while staying in the accessibility tree,
@@ -1959,21 +1958,19 @@ a slot would receive two elements. See [Polymorphism](#polymorphism).
 
 Every remaining `Tooltip.Content` prop (`style`, `ref`, `align`, `sideOffset`, any
 `data-*`) lands on the tooltip surface as usual, and so do the attributes
-[Tooltip](/components/overlays/tooltip#tooltipcontent) itself emits there (`data-state`, `data-side`). The
+[Tooltip](/components/overlays/tooltip#tooltipcontent) itself emits there (`data-open`, `data-side`). The
 four in the table above are the exceptions: this part reads them itself.
 
 **Data attributes**
 
-| Data Attribute | Value                                              | Description                                                                                                                              |
-| -------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-slot`    | `"sidebar-tooltip tooltip-content"`                | On the tooltip surface, with any forwarded chain ahead of it and `Tooltip.Content`'s own slot after it. Styling and test-targeting hook. |
-| `data-state`   | `"delayed-open"` \| `"instant-open"` \| `"closed"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`.                                                                       |
-| `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"`     | Read, not stamped: on the tooltip surface, from `Tooltip.Content`. The resolved side, `"right"` by default.                              |
-| `data-align`   | `"start"` \| `"center"` \| `"end"`                 | Read, not stamped: on the tooltip surface, from `Tooltip.Content`.                                                                       |
-| `data-slot`    | `"sidebar-tooltip-row"`                            | Inside that surface, on the flex row holding the label and the optional chord chips.                                                     |
-| `data-slot`    | `"sidebar-tooltip-label"`                          | On the `<span>` wrapping `label` inside that row. Always present, and `display: contents`.                                               |
-| `data-slot`    | `"sidebar-tooltip-shortcut"`                       | On the chord chips. Present only while `shortcut` holds something. Carries `translate="no"`: a chord is a key name, not prose.           |
-| `data-state`   | `"delayed-open"` \| `"instant-open"` \| `"closed"` | On the wrapped row, from `Tooltip.Trigger`. `"closed"` outside the collapsed sidebar, where this part vetoes the open state.             |
+| Data Attribute | Value                                          | Description                                                                                                                              |
+| -------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"sidebar-tooltip tooltip-content"`            | On the tooltip surface, with any forwarded chain ahead of it and `Tooltip.Content`'s own slot after it. Styling and test-targeting hook. |
+| `data-open`    | present while open                             | Read, not stamped: on the tooltip surface, from `Tooltip.Content`.                                                                       |
+| `data-side`    | `"top"` \| `"right"` \| `"bottom"` \| `"left"` | Read, not stamped: on the tooltip surface, from `Tooltip.Content`. The resolved side, `"right"` by default.                              |
+| `data-slot`    | `"sidebar-tooltip-row"`                        | Inside that surface, on the flex row holding the label and the optional chord chips.                                                     |
+| `data-slot`    | `"sidebar-tooltip-label"`                      | On the `<span>` wrapping `label` inside that row. Always present, and `display: contents`.                                               |
+| `data-slot`    | `"sidebar-tooltip-shortcut"`                   | On the chord chips. Present only while `shortcut` holds something. Carries `translate="no"`: a chord is a key name, not prose.           |
 
 That row is always mounted, so a `shortcut` that resolves later appends beside an element instead of replacing
 the label. The label span is always mounted too, so your own swap of `label` from text to an element never

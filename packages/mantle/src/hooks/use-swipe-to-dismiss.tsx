@@ -262,8 +262,8 @@ function clearDisplacement(session: SwipeSession) {
  *     <aside
  *       ref={panelRef}
  *       aria-label="Assistant"
- *       data-state={open ? "open" : "closed"}
- *       className="transition-[translate] duration-200 ease-out-strong motion-reduce:transition-none data-state-closed:translate-x-full"
+ *       data-open={open ? "" : undefined}
+ *       className="transition-[translate] duration-200 ease-out-strong motion-reduce:transition-none not-data-open:translate-x-full"
  *     >
  *       <div ref={headerRef} className="touch-pan-y">
  *         Assistant

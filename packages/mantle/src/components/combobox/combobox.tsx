@@ -221,9 +221,9 @@ const Input = ({
 				"hover:border-neutral-400",
 				"focus:focus-ring aria-expanded:focus-ring",
 				"focus:border-accent-600 aria-expanded:border-accent-600",
-				"data-validation-success:border-success-600 data-validation-success:focus:border-success-600 data-validation-success:focus:ring-focus-success data-validation-success:aria-expanded:border-success-600 data-validation-success:aria-expanded:ring-focus-success",
-				"data-validation-warning:border-warning-600 data-validation-warning:focus:border-warning-600 data-validation-warning:focus:ring-focus-warning data-validation-warning:aria-expanded:border-warning-600 data-validation-warning:aria-expanded:ring-focus-warning",
-				"data-validation-error:border-danger-600 data-validation-error:focus:border-danger-600 data-validation-error:focus:ring-focus-danger data-validation-error:aria-expanded:border-danger-600 data-validation-error:aria-expanded:ring-focus-danger motion-safe:data-validation-error:animate-shake",
+				"data-[validation=success]:border-success-600 data-[validation=success]:focus:border-success-600 data-[validation=success]:focus:ring-focus-success data-[validation=success]:aria-expanded:border-success-600 data-[validation=success]:aria-expanded:ring-focus-success",
+				"data-[validation=warning]:border-warning-600 data-[validation=warning]:focus:border-warning-600 data-[validation=warning]:focus:ring-focus-warning data-[validation=warning]:aria-expanded:border-warning-600 data-[validation=warning]:aria-expanded:ring-focus-warning",
+				"data-[validation=error]:border-danger-600 data-[validation=error]:focus:border-danger-600 data-[validation=error]:focus:ring-focus-danger data-[validation=error]:aria-expanded:border-danger-600 data-[validation=error]:aria-expanded:ring-focus-danger motion-safe:data-[validation=error]:animate-shake",
 				"autofill:shadow-(--color-blue-50) autofill:bg-blue-50 autofill:[-webkit-text-fill-color:var(--text-color-strong)]", // Autofill styling on the input itself and any children with autofill styling
 				className,
 			)}
@@ -306,7 +306,7 @@ const OpenContent = ({
 				onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
 				ref={composedRef}
 				data-slot={joinDataSlot(dataSlot, "combobox-content")}
-				data-state="open"
+				data-open=""
 				className={cx(
 					"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 rounded-md border shadow-md p-1 space-y-px font-sans outline-hidden",
 					sameWidth && "w-(--anchor-width)",

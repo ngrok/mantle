@@ -577,21 +577,19 @@ describe("AppLayout.SidePanel", () => {
 		const trigger = screen.getByRole("button", { name: "Toggle side panel" });
 		const panel = screen.getByTestId("panel");
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
-		expect(trigger).toHaveAttribute("data-state", "closed");
-		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("data-open");
 		expect(panel).toHaveAttribute("inert");
 
 		await user.click(trigger);
 		expect(trigger).toHaveAttribute("aria-expanded", "true");
-		expect(trigger).toHaveAttribute("data-state", "open");
-		expect(panel).toHaveAttribute("data-state", "open");
+		expect(panel).toHaveAttribute("data-open");
 		expect(panel).not.toHaveAttribute("inert");
 		// Why assert the uncontrolled call: the cookie recipe writes from it.
 		expect(onOpenChange).toHaveBeenNthCalledWith(1, true);
 
 		await user.click(trigger);
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
-		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("data-open");
 		expect(panel).toHaveAttribute("inert");
 		expect(onOpenChange).toHaveBeenNthCalledWith(2, false);
 		expect(onOpenChange).toHaveBeenCalledTimes(2);
@@ -619,9 +617,9 @@ describe("AppLayout.SidePanel", () => {
 		await user.type(screen.getByRole("textbox", { name: "Draft" }), "hello");
 		const trigger = screen.getByRole("button", { name: "Toggle side panel" });
 		await user.click(trigger);
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("panel")).not.toHaveAttribute("data-open");
 		await user.click(trigger);
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-open");
 		expect(screen.getByRole("textbox", { name: "Draft" })).toHaveValue("hello");
 	});
 
@@ -632,7 +630,7 @@ describe("AppLayout.SidePanel", () => {
 			</AppLayout.SidePanelRoot>,
 		);
 		const panel = screen.getByTestId("panel");
-		expect(panel).toHaveAttribute("data-state", "open");
+		expect(panel).toHaveAttribute("data-open");
 		expect(panel).not.toHaveAttribute("inert");
 	});
 
@@ -663,7 +661,7 @@ describe("AppLayout.SidePanel", () => {
 		await user.click(screen.getByRole("button", { name: "Toggle side panel" }));
 		expect(onOpenChange).toHaveBeenCalledExactlyOnceWith(false);
 		// controlled: the parent did not update `open`, so the panel stays open
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-open");
 	});
 
 	test("the trigger respects event.defaultPrevented from the consumer onClick", async () => {
@@ -679,7 +677,7 @@ describe("AppLayout.SidePanel", () => {
 		);
 		await user.click(screen.getByRole("button", { name: "Toggle side panel" }));
 		expect(onOpenChange).not.toHaveBeenCalled();
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("panel")).not.toHaveAttribute("data-open");
 	});
 
 	test("the trigger renders a small ghost neutral IconButton with its label as the tooltip", async () => {
@@ -789,7 +787,7 @@ describe("AppLayout.SidePanel", () => {
 		);
 		// Why: a closed panel is `inert`, so focus left inside it falls to <body>.
 		await user.click(screen.getByRole("button", { name: "Close the assistant" }));
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("panel")).not.toHaveAttribute("data-open");
 		expect(screen.getByRole("button", { name: "Toggle the assistant" })).toHaveFocus();
 		expect(screen.getByRole("button", { name: "Close the assistant" })).not.toHaveFocus();
 	});
@@ -814,7 +812,7 @@ describe("AppLayout.SidePanel", () => {
 			</TooltipProvider>,
 		);
 		await user.click(screen.getByRole("button", { name: "Close the assistant" }));
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("panel")).not.toHaveAttribute("data-open");
 		expect(screen.getByRole("button", { name: "Mobile toggle" })).toHaveFocus();
 	});
 
@@ -872,7 +870,7 @@ describe("AppLayout.SidePanel", () => {
 			</TooltipProvider>,
 		);
 		await user.click(screen.getByRole("button", { name: "dismiss" }));
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("panel")).not.toHaveAttribute("data-open");
 		expect(document.body).toHaveFocus();
 		expect(screen.getByRole("button", { name: "Toggle the assistant" })).not.toHaveFocus();
 	});
@@ -884,7 +882,7 @@ describe("AppLayout.SidePanel", () => {
 		// Why rerender: the parent flips `open` itself (a shortcut, a route effect,
 		// a cross-tab sync), so no trigger click and no `setOpen` call precedes the close.
 		rerender(controlledShell(false));
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("panel")).not.toHaveAttribute("data-open");
 		expect(screen.getByRole("button", { name: "Toggle the assistant" })).toHaveFocus();
 	});
 
@@ -934,11 +932,11 @@ describe("AppLayout.SidePanel", () => {
 		expect(onBlur).toHaveBeenCalledTimes(1);
 	});
 
-	test("stamps id, data-state, and inert after a wider props object", () => {
+	test("stamps id, data-open, and inert after a wider props object", () => {
 		// Why: a consumer value for any of these would break the trigger's
 		// `aria-controls`, desync the collapse from the root, or leave a closed
 		// panel in the tab order.
-		const consumerProps = { id: "mine", "data-state": "open", inert: false };
+		const consumerProps = { id: "mine", "data-open": "", inert: false };
 		render(
 			<AppLayout.SidePanelRoot>
 				<AppLayout.SidePanel data-testid="panel" {...consumerProps}>
@@ -948,7 +946,7 @@ describe("AppLayout.SidePanel", () => {
 		);
 		const panel = screen.getByTestId("panel");
 		expect(panel.id).not.toBe("mine");
-		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("data-open");
 		expect(panel).toHaveAttribute("inert");
 	});
 
@@ -975,7 +973,8 @@ describe("AppLayout.SidePanel", () => {
 				<AppLayout.SidePanel>conversation</AppLayout.SidePanel>
 			</AppLayout.SidePanelRoot>,
 		);
-		expect(html).toContain('data-state="closed"');
+		// The class list names the attribute in its variants, so match the stamp itself.
+		expect(html).not.toContain('data-open=""');
 		expect(html).toContain("inert");
 		// The class list names the attribute in its gate, so match the stamp itself.
 		expect(html).not.toContain('data-hydrated=""');
@@ -1067,7 +1066,7 @@ describe("AppLayout.SidePanel as an overlay", () => {
 		);
 		screen.getByRole("button", { name: "send" }).focus();
 		await user.keyboard("{Escape}");
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("panel")).not.toHaveAttribute("data-open");
 		expect(screen.getByRole("button", { name: "Toggle the assistant" })).toHaveFocus();
 	});
 
@@ -1082,7 +1081,7 @@ describe("AppLayout.SidePanel as an overlay", () => {
 		);
 		screen.getByRole("button", { name: "send" }).focus();
 		await user.keyboard("{Escape}");
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-open");
 	});
 
 	test("Escape inside an open combobox in a floating panel closes the popup only", async () => {
@@ -1104,9 +1103,9 @@ describe("AppLayout.SidePanel as an overlay", () => {
 		await screen.findByRole("option", { name: "Apple" });
 		await user.keyboard("{Escape}");
 		expect(screen.queryByRole("option", { name: "Apple" })).not.toBeInTheDocument();
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-open");
 		await user.keyboard("{Escape}");
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("panel")).not.toHaveAttribute("data-open");
 	});
 
 	test("a consumer onKeyDown that prevents the default keeps Escape from closing the panel", async () => {
@@ -1126,7 +1125,7 @@ describe("AppLayout.SidePanel as an overlay", () => {
 		);
 		screen.getByRole("button", { name: "send" }).focus();
 		await user.keyboard("{Escape}");
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-open");
 	});
 
 	test("a covering panel makes the row's other children inert and moves focus inside", () => {
@@ -1232,9 +1231,9 @@ describe("useSidePanel", () => {
 			</AppLayout.SidePanelRoot>,
 		);
 		await user.click(screen.getByRole("button", { name: "open it" }));
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-open");
 		await user.click(screen.getByRole("button", { name: "dismiss" }));
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("panel")).not.toHaveAttribute("data-open");
 	});
 
 	/** The trigger and the panel under the `TooltipProvider` the trigger needs. */
@@ -1272,7 +1271,7 @@ describe("useSidePanel", () => {
 		}
 		render(<Page />);
 		await user.click(screen.getByRole("button", { name: "Toggle side panel" }));
-		expect(screen.getByTestId("panel")).toHaveAttribute("data-state", "open");
+		expect(screen.getByTestId("panel")).toHaveAttribute("data-open");
 	});
 
 	test("a parent rerender with a new inline onOpenChange keeps the context value's identity", () => {

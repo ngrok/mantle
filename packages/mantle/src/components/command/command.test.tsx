@@ -90,7 +90,6 @@ describe("Command.SearchTrigger", () => {
 		// wrapper, which would also lose focus restoration.
 		expect(trigger()).toHaveAttribute("aria-haspopup", "dialog");
 		expect(trigger()).toHaveAttribute("aria-expanded", "false");
-		expect(trigger()).toHaveAttribute("data-state", "closed");
 	});
 
 	test("its data-slot joins ahead of the child's own", () => {
@@ -109,7 +108,7 @@ describe("Command.SearchTrigger", () => {
 		);
 	});
 
-	test("data-state and aria-expanded follow the open state", async () => {
+	test("aria-expanded follows the open state", async () => {
 		const user = userEvent.setup();
 		render(
 			<Command.DialogRoot>
@@ -127,9 +126,8 @@ describe("Command.SearchTrigger", () => {
 		// outside it `aria-hidden`, so a role query cannot see the trigger at all
 		// once the dialog is up.
 		await waitFor(() => {
-			expect(screen.getByTestId("trigger")).toHaveAttribute("data-state", "open");
+			expect(screen.getByTestId("trigger")).toHaveAttribute("aria-expanded", "true");
 		});
-		expect(screen.getByTestId("trigger")).toHaveAttribute("aria-expanded", "true");
 	});
 
 	describe("aria-keyshortcuts", () => {

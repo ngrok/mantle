@@ -336,7 +336,7 @@ const Content = ({
 		data-slot={joinDataSlot(dataSlot, "sheet-content")}
 		className={cx(
 			contentSurfaceClassName({ side, preferredWidth }),
-			"data-state-closed:animate-out data-state-open:animate-in duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none!",
+			"data-closing:animate-out data-open:animate-in duration-200 ease-out-strong data-closing:duration-150 motion-reduce:animate-none!",
 			slideClassName[side],
 			className,
 		)}

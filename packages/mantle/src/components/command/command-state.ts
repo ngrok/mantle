@@ -143,7 +143,6 @@ const createCommand = (initialValue: string) => {
 	let list: HTMLElement | null = null;
 	let counted = false;
 	let scheduled = false;
-	let highlighted: HTMLElement | null = null;
 	/** True while the root applies its controlled `value`, which must not echo through `onValueChange`. */
 	let syncing = false;
 	/** The last controlled `value`, and whether it named no item and cleared the active item. */
@@ -369,16 +368,11 @@ const createCommand = (initialValue: string) => {
 		}
 	};
 
-	/** Mirrors the active option into the state, `data-selected`, and `onValueChange`. */
+	/** Mirrors the active option into the state and `onValueChange`. */
 	const showActive = () => {
 		const active = getActive();
 		if (active != null) {
 			cleared = false;
-		}
-		if (active !== highlighted) {
-			highlighted?.removeAttribute("data-selected");
-			active?.setAttribute("data-selected", "true");
-			highlighted = active;
 		}
 		state.selectedItemId = active?.id;
 		const value = active?.dataset.value ?? "";
@@ -491,7 +485,7 @@ const createCommand = (initialValue: string) => {
 			}
 			const unsubscribe = listbox.getStore().subscribe(showActive);
 			refresh({ selectFirst: false });
-			// Why keep `highlighted` and `natural`: StrictMode and an inline `ref` detach and attach the same list, and a reset would leave a second `data-selected` row and lose the order to restore.
+			// Why keep `natural`: StrictMode and an inline `ref` detach and attach the same list, and a reset would lose the order to restore.
 			return () => {
 				unsubscribe();
 				list = null;

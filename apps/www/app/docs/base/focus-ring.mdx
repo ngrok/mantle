@@ -129,7 +129,7 @@ width class on the same element overrides it.
 
 ```tsx
 // The tone follows the validation state.
-<input className="focus-visible:focus-ring focus-visible:data-validation-error:ring-focus-danger" />
+<input className="focus-visible:focus-ring focus-visible:data-[validation=error]:ring-focus-danger" />
 
 // A 2px ring for a small control inside another control.
 <button type="button" className="focus-visible:focus-ring focus-visible:ring-2" />

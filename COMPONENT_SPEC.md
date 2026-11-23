@@ -573,8 +573,9 @@ Errors are control flow. `console.error` is not error handling.
   exit that mirrors its enter, and motion that a second input can interrupt.
 - At a 320px viewport, the component wraps, truncates, or scrolls in its own box. It never makes the page scroll
   sideways or clips content ([CONVENTIONS.md § Browser code](./CONVENTIONS.md#browser-code)).
-- Interactive state is styled through the custom Tailwind variants that match the DOM the behavior layer
-  actually emits (`data-state-*`, `aria-*`), not through JS-toggled classes.
+- Interactive state is styled through Tailwind's built-in variants on the attributes the behavior layer
+  actually emits (`aria-expanded:`, `data-open:`, `data-[side=top]:`), not through JS-toggled classes.
+  `mantle.css` registers no `data-*` custom variants ([§6](#6-data-attributes-are-api)).
 
 ### 3.7. SSR and first paint
 
@@ -818,20 +819,30 @@ DARK DEFS) or it resolves to nothing outside light mode. No §9 command catches 
 ## 6. Data attributes are API
 
 - `data-slot` is on every part ([§3.2](#32-data-slot-on-every-part)) and is always targetable.
-- Any other `data-*` a component stamps for styling or coordination (`data-state`, `data-orientation`,
+- Any other `data-*` a component stamps for styling or coordination (`data-open`, `data-orientation`,
   `data-validation`, a per-item id) is documented in the part's JSDoc **and** its API-reference section,
   including the attributes a wrapped third-party primitive emits, since consumers style against those too.
   Both use these columns:
 
-| Data Attribute | Value                  | Description                                          |
-| -------------- | ---------------------- | ---------------------------------------------------- |
-| `data-state`   | `"open"` \| `"closed"` | Reflects the disclosure state; drives the animation. |
-| `data-loading` | present when loading   | Presence-only. Style with `data-loading:`.           |
+| Data Attribute | Value                | Description                                        |
+| -------------- | -------------------- | -------------------------------------------------- |
+| `data-open`    | present while open   | Presence-only. Drives the open and exit animation. |
+| `data-loading` | present when loading | Presence-only. Style with `data-loading:`.         |
 
-- Prefer **presence semantics** for boolean states: stamp `data-selected=""` when true and **omit the
-  attribute** when false. Never `data-selected="false"`: mantle's custom variants are defined as
-  `&[data-selected]`, which matches attribute presence, so `"false"` still matches and the variant fires when
-  it should not. Beware `data-x={someBoolean}`: React renders that as `data-x="false"`.
+- **Native and ARIA state first.** When the element already carries the state (`disabled`, `hidden`,
+  `aria-expanded`, `aria-selected`, `aria-checked`, `aria-disabled`, `aria-current`), stamp no data attribute
+  for it, and style with `disabled:`, `aria-expanded:`, and the like. A trigger has `aria-expanded` and no
+  `data-state`.
+- **A boolean state is presence-only** and takes the name of the ARIA or HTML state it mirrors: `data-open`,
+  `data-expanded`, `data-highlighted`, `data-selected`. Stamp `""` when true and **omit the attribute** when
+  false. Never `"false"`: Tailwind's `data-selected:` matches attribute presence, so `"false"` still matches.
+  Beware `data-x={someBoolean}`: React renders that as `data-x="false"`. Style the false state with
+  `not-data-open:`.
+- **A value with several options is an enum** on the root: `data-side="top"`, `data-validation="error"`.
+  Style it with the bracket form, `data-[side=top]:`.
+- No library names (`data-radix-*`, `data-active-item`, `data-headlessui-*`) and no `data-*` custom variants
+  in `mantle.css`. Internal markers that mantle code reads (`data-mantle-*`, `data-value`, `data-closing`)
+  keep their names.
 
 No shipped docs page has a data-attribute table yet. New components ship one; add one to an existing component
 when you are already touching it, starting with the highest-traffic hooks (`data-validation`, Button and

@@ -564,9 +564,7 @@ const Trigger = ({
 			aria-controls={state.open ? state.contentId : undefined}
 			aria-expanded={state.open}
 			aria-haspopup="menu"
-			data-disabled={disabled ? "" : undefined}
 			data-slot={joinDataSlot(dataSlot, "dropdown-menu-trigger")}
-			data-state={state.open ? "open" : "closed"}
 			disabled={disabled}
 			id={state.triggerId}
 			ref={composedRef}
@@ -1033,9 +1031,8 @@ const Content = ({
 					aria-orientation="vertical"
 					tabIndex={-1}
 					dir={state.dir}
-					data-align={align}
 					data-slot={joinDataSlot(dataSlot, "dropdown-menu-content")}
-					data-state={state.open ? "open" : "closed"}
+					data-open={state.open ? "" : undefined}
 					inert={!state.open}
 					className={cx(
 						floatClassName,
@@ -1097,7 +1094,6 @@ function useItemBehavior({
 	};
 	return {
 		"aria-disabled": disabled ? true : undefined,
-		"data-disabled": disabled ? "" : undefined,
 		tabIndex: -1,
 		onFocus: (event: FocusEvent<HTMLDivElement>) => {
 			event.currentTarget.setAttribute("data-highlighted", "");
@@ -1359,12 +1355,11 @@ const SubTrigger = ({
 			aria-controls={sub.open ? sub.contentId : undefined}
 			id={sub.triggerId}
 			data-slot={joinDataSlot(dataSlot, "dropdown-menu-sub-trigger")}
-			data-state={sub.open ? "open" : "closed"}
 			data-text-value={textValue}
 			className={cx(
-				"focus:bg-accent data-state-open:bg-accent relative flex cursor-pointer select-none items-center rounded-md py-1.5 pl-2 pr-9 text-sm outline-hidden",
-				"data-highlighted:bg-active-menu-item data-state-open:bg-active-menu-item",
-				"data-disabled:cursor-default data-disabled:opacity-50",
+				"focus:bg-accent aria-expanded:bg-accent relative flex cursor-pointer select-none items-center rounded-md py-1.5 pl-2 pr-9 text-sm outline-hidden",
+				"data-highlighted:bg-active-menu-item aria-expanded:bg-active-menu-item",
+				"aria-disabled:cursor-default aria-disabled:opacity-50",
 				// Why slot-scoped: the label span makes a consumer's svg a grandchild, so
 				// a bare `[&>svg]` matches nothing. A `[&_svg]` would also resize the
 				// indicator this part renders.
@@ -1606,9 +1601,8 @@ const SubContent = ({
 					aria-orientation="vertical"
 					tabIndex={-1}
 					dir={root.dir}
-					data-align={align}
 					data-slot={joinDataSlot(dataSlot, "dropdown-menu-sub-content")}
-					data-state={sub.open ? "open" : "closed"}
+					data-open={sub.open ? "" : undefined}
 					inert={!sub.open}
 					className={cx(floatClassName, panelClassName, asChild && scrollClassName, className)}
 					ref={composedRef}
@@ -1692,7 +1686,7 @@ const Item = ({
 				"relative flex cursor-pointer select-none items-center rounded-md px-2 py-1.5 text-strong text-sm font-normal outline-hidden transition-colors",
 				"data-highlighted:bg-active-menu-item",
 				"focus:bg-accent focus:text-accent-foreground",
-				"data-disabled:cursor-default data-disabled:opacity-50",
+				"aria-disabled:cursor-default aria-disabled:opacity-50",
 				"[&>svg]:size-5 [&_svg]:shrink-0",
 				inset && "pl-8",
 				className,
@@ -1817,21 +1811,15 @@ const CheckboxItem = ({
 		slot: "dropdown-menu-checkbox-item",
 		checked: checked !== false,
 	});
-	let ariaChecked: boolean | "mixed" = checked === true;
-	let dataState = checked ? "checked" : "unchecked";
-	if (checked === "indeterminate") {
-		ariaChecked = "mixed";
-		dataState = "indeterminate";
-	}
+	const ariaChecked = checked === "indeterminate" ? "mixed" : checked;
 	return (
 		<Component
 			role="menuitemcheckbox"
 			aria-checked={ariaChecked}
 			data-slot={joinDataSlot(dataSlot, "dropdown-menu-checkbox-item")}
-			data-state={dataState}
 			data-text-value={textValue}
 			className={cx(
-				"text-strong data-disabled:pointer-events-none data-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-2 rounded-md py-1.5 pl-2 pr-9 text-sm font-normal outline-hidden",
+				"text-strong aria-disabled:pointer-events-none aria-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-2 rounded-md py-1.5 pl-2 pr-9 text-sm font-normal outline-hidden",
 				"data-highlighted:bg-active-menu-item",
 				"aria-checked:bg-selected-menu-item",
 				"data-highlighted:aria-checked:bg-active-selected-menu-item!",
@@ -1947,10 +1935,9 @@ const RadioItem = ({
 			role="menuitemradio"
 			aria-checked={checked}
 			data-slot={joinDataSlot(dataSlot, "dropdown-menu-radio-item")}
-			data-state={checked ? "checked" : "unchecked"}
 			data-text-value={textValue}
 			className={cx(
-				"text-strong data-disabled:pointer-events-none data-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-2 rounded-md py-1.5 px-2 text-sm font-normal outline-none",
+				"text-strong aria-disabled:pointer-events-none aria-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-2 rounded-md py-1.5 px-2 text-sm font-normal outline-none",
 				"data-highlighted:bg-active-menu-item",
 				"aria-checked:bg-selected-menu-item aria-checked:pr-9",
 				"data-highlighted:aria-checked:bg-active-selected-menu-item!",

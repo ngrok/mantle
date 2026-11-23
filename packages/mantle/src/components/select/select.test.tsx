@@ -444,21 +444,20 @@ describe("Select", () => {
 
 			const trigger = screen.getByRole("combobox");
 			expect(trigger).toHaveAttribute("data-placeholder", "");
-			expect(trigger).toHaveAttribute("data-state", "closed");
-			expect(trigger).not.toHaveAttribute("data-disabled");
+			expect(trigger).toHaveAttribute("aria-expanded", "false");
+			expect(trigger).toBeEnabled();
 
 			await user.click(trigger);
 
-			expect(trigger).toHaveAttribute("data-state", "open");
+			expect(trigger).toHaveAttribute("aria-expanded", "true");
 			const listbox = await screen.findByRole("listbox");
-			expect(listbox).toHaveAttribute("data-state", "open");
+			expect(listbox).toHaveAttribute("data-open");
 			expect(listbox).toHaveAttribute("data-side", "bottom");
-			expect(listbox).toHaveAttribute("data-align", "start");
 
 			await user.click(screen.getByRole("option", { name: "Apple" }));
 
 			expect(trigger).not.toHaveAttribute("data-placeholder");
-			expect(trigger).toHaveAttribute("data-state", "closed");
+			expect(trigger).toHaveAttribute("aria-expanded", "false");
 
 			render(
 				<Select.Root disabled>
@@ -470,7 +469,7 @@ describe("Select", () => {
 					</Select.Content>
 				</Select.Root>,
 			);
-			expect(screen.getByTestId("disabled")).toHaveAttribute("data-disabled", "");
+			expect(screen.getByTestId("disabled")).toBeDisabled();
 		});
 
 		test("documented item data attributes follow selection, keyboard highlight, and disabled", async () => {
@@ -495,10 +494,14 @@ describe("Select", () => {
 			const apple = await screen.findByRole("option", { name: "Apple" });
 			const banana = screen.getByRole("option", { name: "Banana" });
 			const cherry = screen.getByRole("option", { name: "Cherry" });
-			expect(apple).toHaveAttribute("data-state", "checked");
-			expect(banana).toHaveAttribute("data-state", "unchecked");
-			expect(cherry).toHaveAttribute("data-disabled", "");
-			expect(banana).not.toHaveAttribute("data-disabled");
+			expect(apple).toHaveAttribute("aria-selected", "true");
+			expect(banana).toHaveAttribute("aria-selected", "false");
+			expect(cherry).toHaveAttribute("aria-disabled", "true");
+			expect(banana).not.toHaveAttribute("aria-disabled");
+			for (const option of [apple, banana, cherry]) {
+				expect(option).not.toHaveAttribute("data-state");
+				expect(option).not.toHaveAttribute("data-disabled");
+			}
 			// The list opens with the selected item highlighted.
 			expect(apple).toHaveAttribute("data-highlighted", "");
 			expect(banana).not.toHaveAttribute("data-highlighted");
@@ -882,7 +885,7 @@ describe("Select", () => {
 			expect(option).toHaveClass("mine", "theirs");
 			expect(option).toHaveAttribute("data-testid", "custom");
 			expect(option).toHaveAttribute("data-slot", "select-item");
-			expect(option).toHaveAttribute("data-state", "checked");
+			expect(option).toHaveAttribute("aria-selected", "true");
 			expect(ref.current).toBe(option);
 
 			const label = option.querySelector('[data-slot="select-item-label"]');

@@ -60,10 +60,10 @@ const STYLE = `
 		}
 	}
 	@container app-layout-workspace (width < 56.5rem) {
-		[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-state~=expanded]) .\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-state\\~\\=expanded\\]\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:absolute {
+		[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-expanded]) .\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-expanded\\]\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:absolute {
 			position: absolute;
 		}
-		[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-state~=expanded]) .\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-state\\~\\=expanded\\]\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:right-\\(--app-layout-card-gutter\\,0\\.5rem\\) {
+		[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-expanded]) .\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-expanded\\]\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:right-\\(--app-layout-card-gutter\\,0\\.5rem\\) {
 			right: var(--app-layout-card-gutter, 0.5rem);
 		}
 	}
@@ -74,7 +74,7 @@ const STYLE = `
 			}
 		}
 		@container app-layout-workspace (width < 56.5rem) {
-			[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-state~=expanded]) .sm\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-state\\~\\=expanded\\]\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100cqw-5rem\\)\\)\\] {
+			[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-expanded]) .sm\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-expanded\\]\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100cqw-5rem\\)\\)\\] {
 				width: min(24rem, calc(100cqw - 5rem));
 			}
 		}
@@ -87,7 +87,7 @@ const STYLE = `
 	.duration-200 { transition-duration: 200ms; }
 	.transition-none { transition-property: none; }
 	@media (width < 64rem) {
-		.max-lg\\:data-state-closed\\:translate-x-\\[calc\\(100\\%\\+var\\(--app-layout-card-gutter\\,0\\.5rem\\)\\)\\][data-state~=closed] {
+		.max-lg\\:not-data-open\\:translate-x-\\[calc\\(100\\%\\+var\\(--app-layout-card-gutter\\,0\\.5rem\\)\\)\\]:not([data-open]) {
 			translate: calc(100% + var(--app-layout-card-gutter, 0.5rem)) 0;
 		}
 	}
@@ -249,7 +249,7 @@ describe("AppLayout.SidePanel lane float", () => {
 
 	/**
 	 * The row with a real `Sidebar.Nav` beside the card, so the `:has()` on the
-	 * sidebar's `data-slot` and `data-state` matches what the sidebar emits. The
+	 * sidebar's `data-slot` and `data-expanded` matches what the sidebar emits. The
 	 * viewport is desktop width, so the sidebar renders in the row and not as a
 	 * sheet.
 	 */
@@ -356,7 +356,7 @@ describe("AppLayout.SidePanel motion across mobileBreakpoint", () => {
 		const slid: string[] = [];
 		panel.addEventListener("transitionrun", (event) => slid.push(event.propertyName));
 		await userEvent.click(screen.getByRole("button", { name: "Toggle the assistant" }));
-		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("data-open");
 		await expect.poll(() => slid).toContain("translate");
 		await expect.poll(() => getComputedStyle(panel).transitionProperty).toBe("none");
 		await page.viewport(1280, 800);
@@ -429,9 +429,9 @@ describe("AppLayout.SidePanel Escape with a nested popup", () => {
 		await screen.findByRole("option", { name: "Apple" });
 		await userEvent.keyboard("{Escape}");
 		await expect.poll(() => screen.queryByRole("option", { name: "Apple" })).toBeNull();
-		expect(panel).toHaveAttribute("data-state", "open");
+		expect(panel).toHaveAttribute("data-open");
 		await userEvent.keyboard("{Escape}");
-		await expect.poll(() => panel.getAttribute("data-state")).toBe("closed");
+		await expect.poll(() => panel.hasAttribute("data-open")).toBe(false);
 	});
 });
 
@@ -485,7 +485,7 @@ describe("AppLayout.SidePanelHeader swipe", () => {
 		expect(panel.style.translate).toBe("50px");
 		move(200);
 		release(200);
-		await expect.poll(() => panel.getAttribute("data-state")).toBe("closed");
+		await expect.poll(() => panel.hasAttribute("data-open")).toBe(false);
 		expect(panel.style.translate).toBe("");
 	});
 
@@ -495,7 +495,7 @@ describe("AppLayout.SidePanelHeader swipe", () => {
 		press(header, 100);
 		move(150);
 		release(150);
-		expect(panel).toHaveAttribute("data-state", "open");
+		expect(panel).toHaveAttribute("data-open");
 		expect(panel.style.translate).toBe("");
 	});
 
@@ -510,7 +510,7 @@ describe("AppLayout.SidePanelHeader swipe", () => {
 		expect(panel.style.translate).toBe("");
 		move(100 + Math.ceil(width * 0.25));
 		release(100 + Math.ceil(width * 0.25));
-		await expect.poll(() => panel.getAttribute("data-state")).toBe("closed");
+		await expect.poll(() => panel.hasAttribute("data-open")).toBe(false);
 		expect(panel.style.flexBasis).toBe("");
 	});
 });

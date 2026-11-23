@@ -303,7 +303,7 @@ describe("Sandbar (browser)", () => {
 		// Mid-exit: still painted (`hidden` lands only at rest, 400ms later via the
 		// safety timeout) but no longer reachable. Without `inert` here the user
 		// could Tab onto the visually-vanishing Discard button and activate it:
-		// `data-state-closed:pointer-events-none` suppresses only the mouse.
+		// `not-data-open:pointer-events-none` suppresses only the mouse.
 		expect(panel).not.toHaveAttribute("hidden");
 		expect(panel).toHaveAttribute("inert");
 		// the browser evicts focus from an inert subtree, though not synchronously

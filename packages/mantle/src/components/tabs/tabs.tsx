@@ -269,15 +269,15 @@ const triggerVariants = cva(
 			appearance: {
 				// Why a pseudo-element: the active-tab bar costs no element and no render.
 				classic: cx(
-					"after:absolute after:z-0 data-state-active:after:bg-neutral-950",
-					"not-aria-disabled:hover:data-state-active:text-strong",
-					"data-state-active:text-strong",
+					"after:absolute after:z-0 aria-selected:after:bg-neutral-950",
+					"not-aria-disabled:hover:aria-selected:text-strong",
+					"aria-selected:text-strong",
 				),
 				pill: cx(
-					"not-aria-disabled:hover:data-state-active:text-strong",
-					"not-aria-disabled:hover:data-state-active:bg-neutral-500/15",
-					"data-state-active:text-strong",
-					"data-state-active:bg-neutral-500/15",
+					"not-aria-disabled:hover:aria-selected:text-strong",
+					"not-aria-disabled:hover:aria-selected:bg-neutral-500/15",
+					"aria-selected:text-strong",
+					"aria-selected:bg-neutral-500/15",
 					"rounded-full py-2 px-3",
 					// Why: the orientation's bar geometry would make an empty flex item.
 					"after:content-none",
@@ -327,9 +327,7 @@ const labelChild = (child: ReactNode) =>
  * | -------------- | ------------------------ | ------------------------------------ |
  * | `data-slot`    | `"tabs-trigger"`         | On the trigger element.              |
  * | `data-slot`    | `"tabs-trigger-label"`   | On the `<span>` wrapping `children`. |
- * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.               |
- * | `data-state`   | `"active"` \| `"inactive"` | Whether the trigger's panel is shown. |
- * | `data-disabled` | present when `disabled` | Presence-only. |
+ * | `aria-selected` | `"true"` \| `"false"`   | Whether the trigger's panel is shown. Style it with `aria-selected:`. |
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabstrigger
  *
@@ -394,7 +392,7 @@ const Badge = ({
 		data-slot={joinDataSlot(dataSlot, "tabs-badge")}
 		className={cx(
 			"rounded-full bg-neutral-500/20 px-1.5 text-xs font-medium text-gray-600",
-			"group-data-state-active/tab-trigger:bg-neutral-950/10 group-data-state-active/tab-trigger:text-strong group-hover/tab-trigger:group-enabled/tab-trigger:group-data-state-active/tab-trigger:text-strong",
+			"group-aria-selected/tab-trigger:bg-neutral-950/10 group-aria-selected/tab-trigger:text-strong group-hover/tab-trigger:group-enabled/tab-trigger:group-aria-selected/tab-trigger:text-strong",
 			"group-hover/tab-trigger:group-enabled/tab-trigger:text-gray-700",
 			className,
 		)}
@@ -415,8 +413,7 @@ const Badge = ({
  * | Data Attribute     | Value                          | Description                               |
  * | ------------------ | ------------------------------ | ----------------------------------------- |
  * | `data-slot`        | `"tabs-content"`               | On the panel element.                     |
- * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.                   |
- * | `data-state`       | `"active"` \| `"inactive"`     | Whether the panel is shown.               |
+ * | `hidden`           | present while inactive         | The browser hides the panel. `"until-found"` with `hiddenUntilFound`. |
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#tabscontent
  *

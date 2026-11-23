@@ -32,8 +32,8 @@ ${mantleCss.match(/[^{}]*\[data-theme-transition(?:-many)?\][^{]*\{[^}]*\}/g)?.j
 [data-slot~="theme-switcher-icon"] > * { transition: opacity 1s linear; }
 .dark [data-slot~="theme-switcher-icon"] > * { opacity: 0.5; }
 @keyframes slow-exit { to { opacity: 0; } }
-[data-slot~="dialog-content"][data-state="closed"] { animation: slow-exit 1s; }
-[data-slot~="dialog-positioner"][data-state="closed"]::backdrop { animation: slow-exit 1s; }
+[data-slot~="dialog-content"][data-closing] { animation: slow-exit 1s; }
+[data-slot~="dialog-positioner"][data-closing]::backdrop { animation: slow-exit 1s; }
 `;
 
 let styleElement: HTMLStyleElement;

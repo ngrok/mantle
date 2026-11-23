@@ -247,7 +247,7 @@ describe("OtpInput", () => {
 
 		expect(input).toHaveValue("12");
 		expect(bridge).toHaveAttribute("data-otp-state", "idle");
-		expect(container.querySelector("[data-active]")).toBeNull();
+		expect(container.querySelector("[data-highlighted]")).toBeNull();
 	});
 
 	// Why: a `noScriptCSSFallback` or a page style selects the input with these attributes.
