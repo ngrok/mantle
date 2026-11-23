@@ -82,6 +82,7 @@ export const previewModules: Readonly<Record<string, () => Promise<unknown>>> = 
 	"@ngrok/mantle/text-area": () => import("@ngrok/mantle/text-area"),
 	"@ngrok/mantle/theme": () => import("@ngrok/mantle/theme"),
 	"@ngrok/mantle/theme-switcher": () => import("@ngrok/mantle/theme-switcher"),
+	"@ngrok/mantle/time-zone": () => import("@ngrok/mantle/time-zone"),
 	"@ngrok/mantle/toast": () => import("@ngrok/mantle/toast"),
 	"@ngrok/mantle/tooltip": () => import("@ngrok/mantle/tooltip"),
 	"@ngrok/mantle/truncated-text": () => import("@ngrok/mantle/truncated-text"),

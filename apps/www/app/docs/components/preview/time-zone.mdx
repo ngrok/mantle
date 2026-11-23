@@ -1,0 +1,211 @@
+---
+title: Time Zone
+description: Server-rendered dates in the visitor's time zone, with no hydration mismatch.
+category: Primitives
+aliases: [timezone, tz, local time, date format, time element]
+---
+
+import { PageHeader } from "~/components/page-header";
+import { Example } from "~/components/example";
+
+<PageHeader id="time-zone" isPreview>
+	Time Zone
+</PageHeader>
+
+Server-rendered dates in the visitor's time zone, with no hydration mismatch. `LocalTime` renders each instant in the zone that `TimeZoneProvider` gets from a cookie, so the date is right in the first paint.
+
+<Example name="components/preview/time-zone/overview" title="Time Zone example">
+
+```tsx
+import { Table } from "@ngrok/mantle/table";
+import { LocalTime, TimeZoneProvider } from "@ngrok/mantle/time-zone";
+
+const endpoints = [
+	{ url: "https://api.example.com", createdAt: new Date("2026-11-23T16:04:00Z") },
+	{ url: "https://app.example.com", createdAt: new Date("2026-11-22T03:15:00Z") },
+	{ url: "tcp://1.tcp.ngrok.io:20012", createdAt: new Date("2026-10-30T22:48:00Z") },
+];
+
+function EndpointsTable({ timeZone }: { timeZone: string | undefined }) {
+	return (
+		<TimeZoneProvider timeZone={timeZone}>
+			<Table.Root>
+				<Table.Element>
+					<Table.Head>
+						<Table.Row>
+							<Table.Header>Endpoint</Table.Header>
+							<Table.Header>Created</Table.Header>
+						</Table.Row>
+					</Table.Head>
+					<Table.Body>
+						{endpoints.map((endpoint) => (
+							<Table.Row key={endpoint.url}>
+								<Table.Cell className="font-mono">{endpoint.url}</Table.Cell>
+								<Table.Cell>
+									<LocalTime date={endpoint.createdAt} />
+								</Table.Cell>
+							</Table.Row>
+						))}
+					</Table.Body>
+				</Table.Element>
+			</Table.Root>
+		</TimeZoneProvider>
+	);
+}
+```
+
+</Example>
+
+## When to use
+
+- Show a timestamp, such as a creation time or a renewal date, in the visitor's zone on a server-rendered page.
+- Format a date in a loader or an action for that visitor, such as for a CSV export, with `readTimeZoneCookie` and `formatDateTime`.
+- Use [Browser Only](/components/primitives/browser-only) when the text depends on other browser state, such as the clock for a "5m ago" label.
+- Use [Calendar](/components/preview/calendar) when the user picks a date.
+
+## How it works
+
+A server doesn't know the visitor's time zone, so a date formatted on the server is in the server's zone, usually UTC. The browser then renders it again in its own zone, and React reports a hydration mismatch. Time Zone fixes this in three steps:
+
+1. `TimeZoneScript` runs in `<head>` before hydration. It stores the browser's zone in the `mantle-tz` cookie. On an `ngrok.com` or `ngrok.ai` host, the cookie covers every subdomain of that site.
+2. The root loader reads the cookie from the next request with `readTimeZoneCookie`.
+3. `TimeZoneProvider` gives the zone to `LocalTime` and `useTimeZone`. The server and the hydration render use it, so the HTML matches.
+
+On a visit with no cookie, such as the first visit to a site, the server renders UTC. The hydration render uses UTC too, so React keeps the server HTML. Then the browser's zone replaces the text once. Every later request carries the cookie, and the text never changes after the first paint.
+
+## Setup
+
+These blocks need a request, so no example on this page renders them. The examples on this page pass `timeZone={undefined}` and show your browser's zone after hydration.
+
+Read the cookie in the root loader. `readTimeZoneCookie` returns only a valid zone name, so the other cookies in the request stay out of loader data.
+
+```tsx
+// root.tsx loader
+import { readTimeZoneCookie } from "@ngrok/mantle/time-zone";
+
+export function loader({ request }: Route.LoaderArgs) {
+	return {
+		timeZone: readTimeZoneCookie(request.headers.get("Cookie")),
+	};
+}
+```
+
+Add `TimeZoneScript` to `<head>`, and wrap the app in `TimeZoneProvider`.
+
+```tsx
+// root.tsx
+import { TimeZoneProvider, TimeZoneScript } from "@ngrok/mantle/time-zone";
+
+export function Layout({ children }: PropsWithChildren) {
+	const loaderData = useRouteLoaderData<typeof loader>("root");
+
+	return (
+		<html lang="en-US" dir="ltr">
+			<head>
+				<TimeZoneScript nonce={nonce} />
+				<Meta />
+				<Links />
+			</head>
+			<body>
+				<TimeZoneProvider timeZone={loaderData?.timeZone}>{children}</TimeZoneProvider>
+			</body>
+		</html>
+	);
+}
+```
+
+A page that a CDN caches for every visitor must not read the cookie, or one visitor's zone reaches everyone. Pass `timeZone={undefined}` there, or render a fixed zone with a label, such as "10:00 AM PT".
+
+## Format
+
+`LocalTime` shows a medium date and a short time by default. Pass `Intl.DateTimeFormat` options in `format` to change it. The locale is `en-US` by default, so the server and the browser render the same text.
+
+<Example name="components/preview/time-zone/format" title="Time Zone format example">
+
+```tsx
+import { LocalTime, TimeZoneProvider } from "@ngrok/mantle/time-zone";
+
+function RenewalTime({ timeZone }: { timeZone: string | undefined }) {
+	return (
+		<TimeZoneProvider timeZone={timeZone}>
+			<LocalTime
+				date={new Date("2026-11-23T16:04:00Z")}
+				format={{ dateStyle: "full", timeStyle: "long" }}
+			/>
+		</TimeZoneProvider>
+	);
+}
+```
+
+</Example>
+
+## Format on the server
+
+`formatDateTime` takes the zone as a required option, so it never falls back to the server's zone. Call it in a loader or an action with the zone from `readTimeZoneCookie`.
+
+```ts
+// routes/usage.csv.ts
+import { formatDateTime, readTimeZoneCookie } from "@ngrok/mantle/time-zone";
+
+export async function loader({ request }: Route.LoaderArgs) {
+	const timeZone = readTimeZoneCookie(request.headers.get("Cookie")) ?? "UTC";
+	const rows = await getUsageRows();
+	const csv = rows
+		.map((row) => `${formatDateTime(row.date, { timeZone, dateStyle: "short" })},${row.bytes}`)
+		.join("\n");
+	return new Response(csv, { headers: { "Content-Type": "text/csv" } });
+}
+```
+
+## Search engines and assistants
+
+`LocalTime` puts the instant in the `datetime` attribute in ISO 8601 form. Crawlers and answer engines read that attribute, not the visible text, so the page states the same instant to every reader in every zone.
+
+## API Reference
+
+### TimeZoneProvider
+
+| Prop       | Type                  | Default | Description                                                                                                                                       |
+| ---------- | --------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `timeZone` | `string \| undefined` |         | Required. The zone from `readTimeZoneCookie`. The server and the hydration render use it, then the browser's zone. `undefined` renders UTC first. |
+| `children` | `ReactNode`           |         | The part of the app that shows dates.                                                                                                             |
+
+### LocalTime
+
+Renders a `<time>` element. Accepts every `<time>` prop except `children` and `dateTime`.
+
+| Prop     | Type                                               | Default                                       | Description                                                                         |
+| -------- | -------------------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `date`   | `Date`                                             |                                               | Required. The instant to show. An invalid date throws.                              |
+| `format` | `Intl.DateTimeFormatOptions & { locale?: string }` | `{ dateStyle: "medium", timeStyle: "short" }` | The format and the locale. The zone comes from `TimeZoneProvider`. Locale: `en-US`. |
+
+| Data Attribute | Value          | Description           |
+| -------------- | -------------- | --------------------- |
+| `data-slot`    | `"local-time"` | The `<time>` element. |
+
+### TimeZoneScript
+
+| Prop     | Type     | Default | Description                                                       |
+| -------- | -------- | ------- | ----------------------------------------------------------------- |
+| `nonce?` | `string` |         | The CSP nonce for the inline script, so a strict CSP lets it run. |
+
+### useTimeZone
+
+`useTimeZone(): string` returns the visitor's IANA zone, such as `America/Chicago`. It returns the cookie's zone on the server and in the hydration render, then the browser's zone. Outside a `TimeZoneProvider`, it returns `"UTC"`.
+
+```tsx
+import { formatDateTime, useTimeZone } from "@ngrok/mantle/time-zone";
+
+function RenewalDate({ date }: { date: Date }) {
+	const timeZone = useTimeZone();
+	return <p>Renews {formatDateTime(date, { timeZone, dateStyle: "long" })}</p>;
+}
+```
+
+### readTimeZoneCookie
+
+`readTimeZoneCookie(cookieHeader: string | null | undefined): string | undefined` reads the `mantle-tz` cookie from a raw `Cookie` header. It returns `undefined` when the cookie is absent or doesn't name a zone that `Intl` accepts. Safe to call on the server.
+
+### formatDateTime
+
+`formatDateTime(date: Date, options: FormatDateTimeOptions): string` formats a date in `options.timeZone`, which is required. The other options are `Intl.DateTimeFormat` options and `locale` (default `en-US`). Safe to call on the server.
