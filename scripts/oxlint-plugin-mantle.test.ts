@@ -341,3 +341,120 @@ describe.each([
 		expect(lint({ rule, fileName, source: allowed })).toEqual([]);
 	});
 });
+
+describe("no-structural-combinator", () => {
+	it.each([
+		// The Table.Head and Table.Foot classes that #1794 removed.
+		'cx("[&>tr:last-child>*]:border-b [&>tr:last-child>*]:border-card-muted");',
+		'cx("[&>tr:first-child>*]:border-t");',
+		'const a = "md:[&>li:nth-child(2n)_span]:p-2";',
+		"const a = `group-first:hidden`;",
+		'const a = "[&:is(tr:last-child_*)]:p-2";',
+		'cx("first:*:p-2 not-last:[&>td]:p-2 in-[tr:last-child]:p-2 group-not-first:p-2");',
+		'cx("first:group-[.x]:*:p-2 not-[:first-child]:*:p-2");',
+		'cx("[&>tr:last-child]:[&>*]:border-b");',
+	])("flags %s", (source) => {
+		expect(
+			lint({ rule: "no-structural-combinator", fileName: "a.ts", source }).length,
+		).toBeGreaterThan(0);
+	});
+
+	it.each([
+		'cx("[&>tr:not(:has(+tr))>*]:border-b [&>tr+tr>*]:border-t");',
+		'cx("[&>*:last-child]:rounded-l-none [&>*:not(:first-child)]:-ml-px last:border-0");',
+		'cx("has-[>button:last-child]:pe-1 [&:has(>a:first-child_b)]:p-2");',
+		'document.querySelector("tr:last-child > td");',
+		'cx("*:first:p-2 first:hover:p-2 first:group-[.x]:p-2 group-hover:p-2");',
+		'cx("[&[data-label=\\":empty\\"]>*]:p-2");',
+	])("allows %s", (source) => {
+		expect(lint({ rule: "no-structural-combinator", fileName: "a.ts", source })).toEqual([]);
+	});
+});
+
+describe("no-unanchored-child-variant", () => {
+	it.each([
+		'cx("*:pointer-events-auto");',
+		'cx("md:**:data-[slot=icon]:shrink-0");',
+		'const a = "data-state-inactive:*:paused";',
+		'cx("not-has-data-[slot=x]:[&_[data-a],&_[data-b]]:top-1/2");',
+		`cx("[&_[data-label='(']]:*:p-2");`,
+	])("flags %s", (source) => {
+		expect(
+			lint({ rule: "no-unanchored-child-variant", fileName: "a.ts", source }).length,
+		).toBeGreaterThan(0);
+	});
+
+	it.each([
+		'cx("[&>*]:pointer-events-auto [&_[data-slot=icon]]:shrink-0");',
+		'cx("data-state-inactive:[&>*]:paused [&>:first-child]:size-7");',
+		'cx("[&:is([data-a],[data-b])]:p-2 has-[[data-a],[data-b]]:p-2");',
+		'const a = "2 * 3: four";',
+		'cx("[&_.foo\\\\,bar]:p-2");',
+	])("allows %s", (source) => {
+		expect(lint({ rule: "no-unanchored-child-variant", fileName: "a.ts", source })).toEqual([]);
+	});
+});
+
+describe("data-attribute-contract", () => {
+	it.each([
+		'const a = <div data-state="open" />;',
+		'const a = <div data-selected="false" />;',
+		'const a = <div data-open={open ? "true" : "false"} />;',
+		"const a = <div data-disabled={!enabled} />;",
+		"const a = <div data-empty={items.length === 0} />;",
+		"const a = <div data-empty={items.length === 0 || undefined} />;",
+		'const a = <button aria-expanded={open} data-open={open ? "" : undefined} />;',
+		'const a = <div data-x={open === 1 && ""} />;',
+		"const a = <div data-x={open ? true : undefined} />;",
+		"const a = <div data-x={!open as boolean} />;",
+	])("flags %s", (source) => {
+		expect(lint({ rule: "data-attribute-contract", fileName: "a.tsx", source })).toEqual([
+			"data-attribute-contract",
+		]);
+	});
+
+	it.each([
+		'const a = <div data-open={open ? "" : undefined} />;',
+		"const a = <div data-side={side} data-value={count > 0 ? count : undefined} />;",
+		'const a = <div role="option" aria-selected={highlighted} data-selected={picked ? "" : undefined} />;',
+		'const a = <pre data-mantle-line-numbers={shown ? "true" : "false"} />;',
+		'const a = <div data-label={label && ""} />;',
+	])("allows %s", (source) => {
+		expect(lint({ rule: "data-attribute-contract", fileName: "a.tsx", source })).toEqual([]);
+	});
+
+	it("skips a test file, whose fixtures may carry any attribute", () => {
+		const source = 'const a = <form data-state="dirty" />;';
+
+		expect(lint({ rule: "data-attribute-contract", fileName: "a.test.tsx", source })).toEqual([]);
+	});
+});
+
+describe("prop-vocabulary", () => {
+	it.each([
+		"type PickerProps = { setOpen?: (open: boolean) => void };",
+		"type PickerProps = { selectedValue?: string };",
+		"type PickerProps = { multiple?: boolean };",
+		"type ToggleProps = { onChange?: (checked: boolean) => void };",
+		'type ToggleProps = { onChange?(value: "a" | "b"): void };',
+		"type ListProps = Base & ({ onChange: (values: string[]) => void } | { value: string });",
+		"type PickProps = { onChange?: (value: string | undefined) => void };",
+		"type PickProps = { onChange?: (values: readonly string[]) => void };",
+		"type PickProps = { onChange?: (values: Array<string>) => void };",
+		"type PickProps<T> = { onChange?: (value: T) => void };",
+		"type PickProps = PropsWithChildren<{ selectedValue?: string }>;",
+	])("flags %s", (source) => {
+		expect(lint({ rule: "prop-vocabulary", fileName: "a.ts", source })).toEqual([
+			"prop-vocabulary",
+		]);
+	});
+
+	it.each([
+		"type PickerProps = { value?: string; onValueChange?: (value: string) => void };",
+		"type FieldProps = { onChange?: (event: ChangeEvent<HTMLInputElement>) => void };",
+		"type FieldProps = { onChange?: (input: ChangeEvent<HTMLInputElement> | string) => void };",
+		"type PickerContextValue = { setOpen: (open: boolean) => void };",
+	])("allows %s", (source) => {
+		expect(lint({ rule: "prop-vocabulary", fileName: "a.ts", source })).toEqual([]);
+	});
+});

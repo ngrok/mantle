@@ -308,10 +308,16 @@ function isSettled(text: string): boolean {
 	return rowOf(text).getAnimations().length === 0;
 }
 
-/** Stop each slide where it is, so a read before and after a commit compares one instant. */
+/**
+ * Stop each slide where it is, so a read before and after a commit compares one instant.
+ * Why set `currentTime`: `pause()` on a running slide waits for the next frame. Until
+ * then, a read in a later task sees the slide further on. Setting the time holds it at once.
+ */
 function pauseSlides(): void {
 	for (const animation of document.getAnimations()) {
+		const time = animation.currentTime;
 		animation.pause();
+		animation.currentTime = time;
 	}
 }
 
@@ -389,6 +395,14 @@ describe("DataTable row motion (browser)", () => {
 		expect(midTop).toBeGreaterThan(startTop);
 
 		await clickToggle("Expand b");
+		// Why rewind only the new slide: WebKit can run a frame of it before the
+		// read, and the first slide stays paused where the test put it.
+		for (const animation of document.getAnimations()) {
+			if (animation.playState === "running") {
+				animation.pause();
+				animation.currentTime = 0;
+			}
+		}
 
 		expect(shownTop("tail")).toBeCloseTo(midTop, 0);
 		finishSlides();
@@ -410,6 +424,13 @@ describe("DataTable row motion (browser)", () => {
 		const shownBefore = { b: shownTop("b"), tail: shownTop("tail") };
 		// Run to the first collapse's commit only.
 		await act(() => vi.advanceTimersByTimeAsync(100));
+		// Why rewind the new slides: WebKit can run frames of them before the read.
+		for (const animation of document.getAnimations()) {
+			if (animation.playState !== "paused") {
+				animation.pause();
+				animation.currentTime = 0;
+			}
+		}
 
 		expect(screen.queryByText("a-1")).not.toBeInTheDocument();
 		expect(screen.getByText("b-1")).toBeInTheDocument();

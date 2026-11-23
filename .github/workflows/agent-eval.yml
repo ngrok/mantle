@@ -1,0 +1,133 @@
+name: Agent Eval
+
+# Runs coding agents on the fixed mantle tasks and scores the code they write
+# (docs/mcp-evals.md). Each run costs an agent session, so it never runs on a
+# pull request: run it by hand on a branch that changes what the MCP returns,
+# and every night against production.
+on:
+  workflow_dispatch:
+    inputs:
+      mcp:
+        description: "prod: the live MCP and the latest release. branch: an MCP server and a packed mantle from this ref."
+        type: choice
+        options: [prod, branch]
+        default: prod
+      agents:
+        description: "Agents to run, separated by spaces: claude, codex."
+        default: "claude codex"
+      tasks:
+        description: "Task ids separated by spaces, or all."
+        default: "all"
+      reps:
+        description: "Runs of each task for each agent."
+        default: "1"
+  schedule:
+    # 09:00 UTC, before the US workday.
+    - cron: "0 9 * * *"
+
+concurrency:
+  group: agent-eval-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  DO_NOT_TRACK: 1
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  TURBO_TELEMETRY_DISABLED: 1
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_API: https://turborepo-ci.corp.ngrok.com
+
+jobs:
+  agent-eval:
+    name: agent eval (${{ inputs.mcp || 'prod' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env:
+      MCP: ${{ inputs.mcp || 'prod' }}
+      AGENTS: ${{ inputs.agents || 'claude codex' }}
+      TASKS: ${{ inputs.tasks || 'all' }}
+      REPS: ${{ inputs.reps || '1' }}
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Install pnpm 📦
+        uses: pnpm/action-setup@v6.1.1
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: Install Dependencies 📥
+        run: pnpm install --frozen-lockfile
+
+      # Why each agent needs its own secret: a run with a missing key fails at sign-in, not at scoring.
+      - name: Install the agent CLIs 🤖
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.AGENT_EVAL_ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.AGENT_EVAL_OPENAI_API_KEY }}
+        run: |
+          agents=""
+          for agent in ${AGENTS}; do
+            case "${agent}" in
+              claude)
+                if [[ -z "${ANTHROPIC_API_KEY}" ]]; then echo "::warning::No AGENT_EVAL_ANTHROPIC_API_KEY secret; skipping claude."; continue; fi
+                npm install --global @anthropic-ai/claude-code ;;
+              codex)
+                if [[ -z "${OPENAI_API_KEY}" ]]; then echo "::warning::No AGENT_EVAL_OPENAI_API_KEY secret; skipping codex."; continue; fi
+                npm install --global @openai/codex
+                printenv OPENAI_API_KEY | codex login --with-api-key ;;
+              *) echo "::error::Unknown agent ${agent}."; exit 1 ;;
+            esac
+            agents="${agents} --agent ${agent}"
+          done
+          if [[ -z "${agents}" ]]; then echo "::error::No agent has an API key secret."; exit 1; fi
+          echo "AGENT_ARGS=${agents}" >> "${GITHUB_ENV}"
+
+      # Why a packed tarball: the branch server and the eval app must both read this ref's agent.json.
+      - name: Serve this ref's MCP 🏗️
+        if: env.MCP == 'branch'
+        run: |
+          pnpm exec turbo run build --filter='@app/www^...'
+          mkdir -p /tmp/mantle-pack
+          pnpm -F @ngrok/mantle pack --pack-destination /tmp/mantle-pack
+          tarball="$(ls /tmp/mantle-pack/*.tgz)"
+          echo "MANTLE_ARGS=--mantle ${tarball} --mcp-url http://localhost:3333/mcp" >> "${GITHUB_ENV}"
+          MANTLE_MCP_LOCAL_TARBALL="${tarball}" nohup pnpm -F @app/www start --port 3333 > /tmp/www.log 2>&1 &
+          for attempt in $(seq 1 60); do
+            if curl -sf -o /dev/null http://localhost:3333/.well-known/skills/mantle/SKILL.md; then exit 0; fi
+            sleep 5
+          done
+          cat /tmp/www.log
+          exit 1
+
+      - name: Run the agents 🎯
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.AGENT_EVAL_ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.AGENT_EVAL_OPENAI_API_KEY }}
+        run: |
+          task_args=""
+          if [[ "${TASKS}" != "all" ]]; then
+            for task in ${TASKS}; do task_args="${task_args} --task ${task}"; done
+          fi
+          # shellcheck disable=SC2086 # Why: each variable holds several arguments.
+          pnpm run eval:agents ${AGENT_ARGS} ${task_args} ${MANTLE_ARGS:-} --reps "${REPS}" --out "${RUNNER_TEMP}/agent-eval"
+
+      - name: Upload the runs 📤
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: agent-eval
+          path: |
+            ${{ runner.temp }}/agent-eval
+            !${{ runner.temp }}/agent-eval/**/node_modules
+          retention-days: 14

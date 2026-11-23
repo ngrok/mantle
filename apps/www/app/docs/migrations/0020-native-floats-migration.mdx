@@ -1,13 +1,13 @@
 ---
 title: Native Floats Migration
-description: Popover, Tooltip, and HoverCard are native popovers placed by CSS anchor positioning. The Radix positioning props, Popover.Root modal, and HoverCard.Portal are gone, and --anchor-width and --available-height replace the Radix CSS variables.
+description: Popover, Tooltip, and HoverCard are native popovers in the top layer. The Radix positioning props, Popover.Root modal, and HoverCard.Portal are gone, and --anchor-width and --available-height replace the Radix CSS variables.
 introducedIn: "0.95.0"
 codemodIn: "0.95.0"
 ---
 
 # Mantle Native Floats Migration Guide
 
-`@ngrok/mantle`'s `Popover`, `Tooltip`, and `HoverCard` no longer use Radix. Each content part is a native [`popover`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/popover) in the browser's top layer, and CSS anchor positioning places it next to its trigger. Where the browser has no anchor positioning, a small script places it. The Radix positioning props, `Popover.Root`'s `modal` prop, `HoverCard.Portal`, and the `--radix-popover-*` CSS variables are gone. `Popover.Content` and `HoverCard.Content` no longer take `asChild`, and `Tooltip.Content` no longer takes `id`. The part names and the other props stay the same.
+`@ngrok/mantle`'s `Popover`, `Tooltip`, and `HoverCard` no longer use Radix. Each content part is a native [`popover`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/popover) in the browser's top layer, and a small script places it next to its trigger. The Radix positioning props, `Popover.Root`'s `modal` prop, `HoverCard.Portal`, and the `--radix-popover-*` CSS variables are gone. `Popover.Content` and `HoverCard.Content` no longer take `asChild`, and `Tooltip.Content` no longer takes `id`. The part names and the other props stay the same.
 
 **TL;DR:** Delete `collisionPadding`, `collisionBoundary`, `sticky`, `avoidCollisions`, `alignOffset`, `hideWhenDetached`, `forceMount`, `updatePositionStrategy`, and `arrowPadding` from `Popover.Content`, `Tooltip.Content`, and `HoverCard.Content`. Delete `modal` from `Popover.Root`. Unwrap `HoverCard.Portal`. Replace `--radix-popover-trigger-width` with `--anchor-width` and `--radix-popover-content-available-height` with `--available-height`. `TooltipProvider` is now optional.
 
@@ -46,7 +46,7 @@ The rules apply steps 2 to 5. They delete the Radix positioning props from the t
    - A closed float stays in the DOM for its 150ms exit transition. Wait for it to go.
 10. After editing, run the project's formatter, linter, type checker, and tests.
 
-> **Why native popovers?** The top layer paints a float above every `z-index` with no stacking rules to learn, and CSS anchor positioning lets the browser keep it next to its trigger. The three components ship less JavaScript and no Radix dependency. A browser with no popover API (Safari before 17, Chrome before 114, Firefox before 125) shows the float as a fixed box at `z-50`, as before.
+> **Why native popovers?** The top layer paints a float above every `z-index` with no stacking rules to learn. The three components ship less JavaScript and no Radix dependency. A browser with no popover API (Safari before 17, Chrome before 114, Firefox before 125) shows the float as a fixed box at `z-50`, as before.
 
 ---
 
@@ -115,6 +115,7 @@ The rules apply steps 2 to 5. They delete the Radix positioning props from the t
 - A press or a focus move outside a popover closes it and leaves focus where the user put it. `onPointerDownOutside`, `onFocusOutside`, and `onInteractOutside` still get a cancelable event with `event.detail.originalEvent`.
 - A popover opened from a `DropdownMenu` item portals into the menu and takes keyboard focus. The [Native Dropdown Menu migration](/migrations/0026-native-dropdown-menu-migration) covers the menu.
 - A float in the top layer paints above toasts, which stay at `z-index: 999999999` in the page. Do not open a popover over the toast corner.
+- `Popover.Anchor` takes no `virtualRef`. Wrap the element that the popover points at in `Popover.Anchor`. For a point with no element, such as a text selection, render an empty element at that point and wrap it.
 - `HoverCard.Trigger` renders an `<a>`. It opens on hover and on keyboard focus, and not on touch.
 
 ## How to verify

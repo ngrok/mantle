@@ -50,15 +50,15 @@ url = "https://mantle.ngrok.com/mcp"
 
 The server tells the agent when to call each tool, so you don't have to:
 
-| Tool         | What it does                                                                                                                      |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| `find`       | Ranks components, layouts, hooks, utilities, recipes, and docs pages for an intent ("confirm before delete") or a name ("modal"). |
-| `get`        | Returns one part's import, examples, and prop contract for the version you pass, or one recipe's parts and its docs page.         |
-| `read_docs`  | Returns a docs page as markdown, or an outline when the page is long.                                                             |
-| `check`      | Checks one TSX file for wrong import paths and names, other UI libraries, and `className` strings built by hand.                  |
-| `preview`    | Returns a link that renders one TSX file in a sandbox. The code travels in the link fragment, so the server never sees it.        |
-| `migrate`    | Lists the migration guides and codemods between two versions, in order.                                                           |
-| `report_gap` | Tells the mantle team that mantle has no part for a need, the use case, what the agent tried, and why it fell short.              |
+| Tool         | What it does                                                                                                                                                                                   |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `find`       | Ranks components, layouts, hooks, utilities, recipes, and docs pages for an intent ("confirm before delete") or a name ("modal").                                                              |
+| `get`        | Returns one part's import, examples, and prop contract for the version you pass, or one recipe's parts and its docs page.                                                                      |
+| `read_docs`  | Returns a docs page as markdown, or an outline when the page is long.                                                                                                                          |
+| `check`      | Checks one TSX file against the version you pass: import paths and names, props each part lacks or requires, dialogs with no title, other UI libraries, and `className` strings built by hand. |
+| `preview`    | Returns a link that renders one TSX file in a sandbox. The code travels in the link fragment, so the server never sees it.                                                                     |
+| `migrate`    | Lists the migration guides and codemods between two versions, in order.                                                                                                                        |
+| `report_gap` | Tells the mantle team that mantle has no part for a need, the use case, what the agent tried, and why it fell short.                                                                           |
 
 Pass the exact installed version (from `node_modules/@ngrok/mantle/package.json` or the lockfile), not the range in `package.json`. The server supports 0.90.0 and later.
 
@@ -98,7 +98,7 @@ The skill uses the MCP server when your client has it connected, and the files i
 | [`/api/components.json`](/api/components.json)     | Structured component manifest. Each entry has `name`, `slug`, `kind`, `status`, `importPath`, `docsUrl`, `markdownUrl`, a one-line `summary`, the source `jsdoc` first sentence, `examples` (the body of each `@example` block, which for a compound component is the full part tree), `aliases` (search words such as `modal` for Dialog), and the sibling boundary from the source JSDoc: `useWhen`, and `siblings` with a `name` and the `boundary` that picks it instead. `kind: "component"` entries also carry `category` (layouts are a flat family and omit it). |
 | [`/api/hooks.json`](/api/hooks.json)               | Structured hooks manifest. Each entry has `name`, `importPath`, `docsUrl`, `markdownUrl`, an optional `summary`, and `examples` from the hook's JSDoc.                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | [`/api/utils.json`](/api/utils.json)               | Structured utilities manifest. Same shape as hooks.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `node_modules/@ngrok/mantle/dist/agent.json`       | The three manifests above in one file, written when the package is packed, so an agent with no network reads the records for the installed version. `dist/llms.txt` beside it lists every module on one line with its import path and summary, and `dist/migrations/` holds the codemods the migration guides name.                                                                                                                                                                                                                                                      |
+| `node_modules/@ngrok/mantle/dist/agent.json`       | The three manifests above in one file, written when the package is packed, so an agent with no network reads the records for the installed version. Its `recipes` list each recipe with `name`, `slug`, `docsUrl`, `markdownUrl`, `summary`, `useWhen`, `aliases`, and the `parts` it composes: the records the MCP `find` and `get` tools serve. `dist/llms.txt` beside it lists every module on one line with its import path and summary, and `dist/migrations/` holds the codemods the migration guides name.                                                        |
 | [`/api/package.json`](/api/package.json)           | Curated `@ngrok/mantle` package info: version, peer/dev deps, full list of importable subpaths.                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | [`/api/changelog.json`](/api/changelog.json)       | Published changelog parsed into a structured per-version, per-bump shape with PR/commit/author metadata.                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | [`/api/search-index.json`](/api/search-index.json) | Flat searchable index across components, hooks, and utilities with keyword tokens.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
@@ -156,8 +156,8 @@ design system. Conventions:
   or a tab list scrolls in its own box. Below 320px is out of scope.
 - Without network access, read node_modules/@ngrok/mantle/dist/agent.json:
   every component with its import path, examples, aliases, and sibling
-  boundaries (useWhen, siblings), plus the hooks and utilities, for the
-  installed version.
+  boundaries (useWhen, siblings), plus the hooks, utilities, and recipes,
+  for the installed version.
 - Reference the canonical docs at https://mantle.ngrok.com or fetch
   https://mantle.ngrok.com/llms.txt for the full index. When building an
   app shell, read the demo sources under `# Framed preview sources` in
@@ -246,7 +246,7 @@ Every mantle component is built on semantic HTML and tested ARIA patterns. Agent
   - `Button` takes `"accent"`, `"danger"`, or `"neutral"`. Use `intent="neutral"` when no tone is implied. Reserve `intent="accent"` for deliberate brand emphasis: an action that should carry the accent color.
   - `IconButton` takes `"neutral"` alone. Reach for `Button` where the tone carries meaning.
 - If choosing between `Tooltip`, `Popover`, and `HoverCard`, follow [the JSDoc guidance](https://mantle.ngrok.com/components/overlays/tooltip): `Tooltip` for short label hints, `Popover` for interactive content, `HoverCard` for non-essential preview cards.
-- If choosing between `DataTable` and `Table`: `DataTable` for dynamic, sortable, filterable, paginated tabular data; `Table` for static layout.
+- If choosing between `DataTable` and `Table`: `DataTable` for rows that the user sorts, filters, pages through, selects, or expands into a detail panel or sub-rows; `Table` for static rows, with no row expansion.
 - When uncertain, prefer to fetch the relevant `/<page>.md` and read the full doc rather than guessing.
 
 ## Versioning

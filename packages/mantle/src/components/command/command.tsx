@@ -21,6 +21,7 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { observeScrollEdges } from "../../utils/scroll-edges.js";
 import * as Dialog from "../dialog/dialog-parts.js";
 import { Separator } from "../separator/separator.js";
 import { Slot } from "../slot/index.js";
@@ -55,6 +56,18 @@ const NO_SELECTION: readonly string[] = [];
 const ignoreSelect = () => {};
 
 /**
+ * Names an input that has no other source of a name: no `aria-labelledby`, no
+ * `id` that a `<label>` could point at, no `title`, and no `placeholder`.
+ */
+const defaultName = (props: {
+	"aria-labelledby"?: string;
+	id?: string;
+	placeholder?: string;
+	title?: string;
+}) =>
+	(props["aria-labelledby"] ?? props.id ?? props.title ?? props.placeholder) ? undefined : "Search";
+
+/**
  * The props for `Command.Root`.
  *
  * @see https://mantle.ngrok.com/components/navigation/command#commandroot
@@ -63,6 +76,8 @@ type CommandRootProps = Omit<ComponentProps<"div">, "defaultValue" | "onChange">
 	WithDataSlot & {
 		/**
 		 * The accessible name of `Command.Input`. Not shown.
+		 *
+		 * @default "Search", when the input has no other name: no `aria-label`, `aria-labelledby`, `<label>`, `title`, or `placeholder`
 		 */
 		label?: string;
 		/**
@@ -593,7 +608,7 @@ const CommandDialogContent = ({
 				<Dialog.Description>{description}</Dialog.Description>
 			</Dialog.Header>
 			<CommandRoot
-				className="**:data-[slot=command-input-wrapper]:h-12 **:data-[slot~=command-input]:h-12 **:data-[slot=command-group]:px-2 **:data-[slot=command-list]:pb-1"
+				className="[&_[data-slot=command-input-wrapper]]:h-12 [&_[data-slot~=command-input]]:h-12 [&_[data-slot=command-group]]:px-2 [&_[data-slot=command-list]]:pb-1"
 				filter={filter}
 				shouldFilter={shouldFilter}
 			>
@@ -726,7 +741,7 @@ const CommandInput = ({
 				aria-autocomplete="list"
 				aria-expanded
 				aria-controls={listboxId}
-				aria-label={label ?? props["aria-label"]}
+				aria-label={label ?? props["aria-label"] ?? defaultName(props)}
 				// Why: the list writes this attribute, so no consumer value may render over it.
 				aria-activedescendant={undefined}
 				value={resolvedValue}
@@ -800,7 +815,8 @@ const CommandList = ({
 		label?: string;
 	}) => {
 	const { command, listboxId, listboxRef } = useCommandContext("Command.List");
-	const composedRef = useComposedRefs(listboxRef, command.attachList, ref);
+	const listRef = useComposedRefs(listboxRef, observeScrollEdges);
+	const composedRef = useComposedRefs(listRef, command.attachList, ref);
 	return (
 		<div
 			{...props}
@@ -814,8 +830,8 @@ const CommandList = ({
 				// Why relative: the list scrolls an option into view from its offset, which needs the list as its offset parent.
 				"relative max-h-75 scroll-py-6 overflow-x-hidden overflow-y-auto",
 				// Why: the list scrolls by wheel, touch, and keyboard with no visible bar, and a scroll at its end neither bounces nor moves the page.
-				// The edge fade is the cue that more items are past an edge.
-				"scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-fade-y",
+				// The `scroll-cue-y` fade is the cue that more items are past an edge.
+				"scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y",
 				className,
 			)}
 			onMouseDown={composeHandlers(onMouseDown, (event) => {
@@ -963,7 +979,7 @@ const CommandGroup = ({
 			data-force-mount={forceMount ? "" : undefined}
 			data-slot={joinDataSlot(dataSlot, "command-group")}
 			className={cx(
-				"*:data-[slot=command-group-heading]:text-muted overflow-hidden p-1 *:data-[slot=command-group-heading]:px-2 *:data-[slot=command-group-heading]:py-1.5 *:data-[slot=command-group-heading]:text-xs *:data-[slot=command-group-heading]:font-medium",
+				"[&>[data-slot=command-group-heading]]:text-muted overflow-hidden p-1 [&>[data-slot=command-group-heading]]:px-2 [&>[data-slot=command-group-heading]]:py-1.5 [&>[data-slot=command-group-heading]]:text-xs [&>[data-slot=command-group-heading]]:font-medium",
 				className,
 			)}
 		>
@@ -1053,12 +1069,11 @@ const CommandSeparator = ({
  * One selectable row in the palette's list. A query that does not match it
  * writes `hidden` on it, and it stays mounted.
  *
- * | Data Attribute  | Value                  | Description                       |
- * | --------------- | ---------------------- | --------------------------------- |
- * | `data-slot`     | `"command-item"`       | The item.                         |
- * | `data-value`    | the resolved value     | The `value`, or the trimmed text. |
- * | `data-selected` | `"true"` when active   | The active item.                  |
- * | `data-disabled` | `"true"` when disabled | Set by `disabled`.                |
+ * | Data Attribute     | Value                    | Description                                       |
+ * | ------------------ | ------------------------ | ------------------------------------------------- |
+ * | `data-slot`        | `"command-item"`         | The item.                                         |
+ * | `data-highlighted` | present when highlighted | Presence-only. The item the keyboard or pointer is on. |
+ * | `aria-disabled`    | `"true"` when disabled   | Set by `disabled`. Style it with `aria-disabled:`. |
  *
  * @see https://mantle.ngrok.com/components/navigation/command#commanditem
  *
@@ -1169,10 +1184,9 @@ const CommandItem = ({
 			// Why `false`: the list writes `true` on the active item when it moves.
 			aria-selected={false}
 			aria-disabled={disabled || undefined}
-			data-disabled={disabled ? "true" : undefined}
 			data-slot={joinDataSlot(dataSlot, "command-item")}
 			className={cx(
-				"data-[selected=true]:bg-active-menu-item [:where(&_svg)]:text-muted relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [:where(&_svg)]:size-5",
+				"data-highlighted:bg-active-menu-item [:where(&_svg)]:text-muted relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [:where(&_svg)]:size-5",
 				className,
 			)}
 			onPointerMove={(event) => {

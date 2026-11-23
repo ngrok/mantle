@@ -6,7 +6,7 @@ introducedIn: "0.95.0"
 
 # Mantle Native Dialog Migration Guide
 
-`Dialog`, `AlertDialog`, and `Sheet` no longer use Radix Dialog. Each `Content` renders the browser's modal `<dialog>`, and the panel goes inside it. The browser traps focus, makes the page inert, closes the dialog on Escape, paints it in the top layer, and returns focus to the trigger. The parts, their names, and the look stay the same, and most props do. What changes is the DOM around the panel, the reach of the modal, and the timing of the close.
+`Dialog`, `AlertDialog`, and `Sheet` no longer use Radix Dialog. Each `Content` renders the browser's modal `<dialog>`, and the panel goes inside it. The browser makes the page inert, closes the dialog on Escape, paints it in the top layer, and returns focus to the trigger. The parts, their names, and the look stay the same, and most props do. What changes is the DOM around the panel, the reach of the modal, and the timing of the close.
 
 **TL;DR:** Add `modal={false}` to the `Root` of each dialog or sheet that holds a third-party frame, such as a payment form, a 3-D Secure challenge, or a captcha. Replace a selector for `[data-slot~="dialog-overlay"]` (or `sheet-overlay`, `alert-dialog-overlay`) with `[data-slot~="dialog-positioner"]::backdrop`. In tests, `getByRole("dialog")` returns the `<dialog>`, the props of `Content` go to the panel inside it, and the dialog closes after its exit animation, so wait for it.
 
@@ -20,18 +20,19 @@ Codemod: manual: each step depends on what a dialog holds or on a selector or a 
 
 1. Find every file that imports `Dialog` from `@ngrok/mantle/dialog`, `AlertDialog` from `@ngrok/mantle/alert-dialog`, `Sheet` from `@ngrok/mantle/sheet`, or `Command` from `@ngrok/mantle/command`, under any local name.
 2. Find each of those overlays that holds a flow where a third-party script puts a frame on `<body>`: Stripe Elements or Stripe.js (`confirmCardSetup`, `confirmPayment`, `handleCardAction`), PayPal, hCaptcha, reCAPTCHA, Turnstile, or a chat widget. Add `modal={false}` to its `Root`. A modal `<dialog>` makes that frame inert and paints over it. Leave every other overlay modal.
-3. Search CSS, `className` strings, and `querySelector` calls for `dialog-overlay`, `sheet-overlay`, and `alert-dialog-overlay`. No element carries these slots now. Style the backdrop with `[data-slot~="dialog-positioner"]::backdrop` (or `sheet-positioner`, `alert-dialog-positioner`).
+3. Search CSS, `className` strings, and `querySelector` calls for `dialog-overlay`, `sheet-overlay`, and `alert-dialog-overlay`. No element carries these slots now. Style the backdrop with `[data-slot~="dialog-positioner"]::backdrop` (or `sheet-positioner`, `alert-dialog-positioner`). Also search for `--removed-body-scroll-bar-size` and `data-scroll-locked`, which Radix's scroll lock wrote. An open modal marks `<html>` with `data-mantle-scroll-lock` and writes the width of the scrollbar it hides to `--mantle-scrollbar-width` on `<html>`. Read the width only under `[data-mantle-scroll-lock]` or in UI that shows only while the lock holds: the variable stays on `<html>` after the lock ends.
 4. Remove `<Dialog.Overlay />` and unwrap `<Dialog.Portal>`. Both still render (the overlay renders nothing and the portal renders its children), and both are deprecated.
 5. Where a Radix `forceMount` kept the content mounted while closed, pass `forceMount` to `Content`. Remove `forceMount` from `Dialog.Portal` and `Dialog.Overlay`.
-6. Where UI must take clicks above an open overlay with the `overlay-prompt` class, move that control into the overlay content. A modal `<dialog>` makes the rest of the page inert, `overlay-prompt` included. `Toaster` moves its toasts into the open dialog by itself.
+6. Where UI must take clicks above an open overlay with the `overlay-prompt` class, such as a consent banner, wrap it in [`OverlayPrompt`](/components/primitives/overlay-prompt). A modal `<dialog>` makes the rest of the page inert, `overlay-prompt` included, and `OverlayPrompt` moves its content into the open dialog. `Toaster` and `Sandbar` do this by themselves.
 7. In tests:
    - `getByRole("dialog")` (or `"alertdialog"`) returns the `<dialog>`. `className`, `data-*`, `ref`, and `data-appearance` from `Content` are on the panel inside it: `dialog.querySelector('[data-slot~="dialog-content"]')`.
    - The dialog closes after its exit animation: `await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())`.
    - happy-dom and jsdom do not close a `<dialog>` on Escape. Close it with a close button in those tests, or run the test in a browser with a real key press.
    - A press outside a modal dialog lands on the backdrop, which is the `<dialog>` itself: `await user.click(screen.getByRole("dialog"))`.
+   - The open dialog holds the toasts and the `Sandbar`, with their list items and their `status` and `alert` live regions. A query such as `within(dialog).getAllByRole("listitem")` or `within(dialog).getByRole("alert")` can find theirs too, so narrow it to the element under test.
 8. After editing, run the project's formatter, linter, type checker, and tests.
 
-> **Why the native `<dialog>`?** The browser does the focus trap, the inert page, the Escape key, the top layer, and the focus return, so mantle ships no script for them. `@radix-ui/react-dialog` leaves the package, and the content mounts in the frame of the tap: on a slow phone the open of a 150-element sheet takes about half the time it took with Radix.
+> **Why the native `<dialog>`?** The browser does the inert page, the Escape key, the top layer, and the focus return, so mantle ships no script for them. `@radix-ui/react-dialog` leaves the package, and the content mounts in the frame of the tap: on a slow phone the open of a 150-element sheet takes about half the time it took with Radix.
 
 ---
 
@@ -86,12 +87,14 @@ expect(content).toHaveAttribute("data-appearance", "full-page");
 
 - A dialog with `modal={false}` has no backdrop, paints at Tailwind `z-60`, and leaves the page live. Escape and a press outside close it. It no longer closes when focus leaves it.
 - On open, the browser focuses the first focusable element in the dialog, which can be an element with `tabindex="-1"`. To pick the element, use `onOpenAutoFocus`: call `event.preventDefault()` and focus it. React's `autoFocus` works in a `Content` that mounts on open. A `forceMount` dialog mounts its content while it is closed, so React's focus does nothing: use `onOpenAutoFocus` there.
+- Tab from the last control in a modal dialog moves focus to the browser UI, such as the address bar, instead of to the first control. This change is on purpose: it is the HTML standard's behavior for a modal dialog. The page behind the dialog stays out of reach, and keyboard users can still reach the browser UI. A test that expects Tab to wrap to the first control fails. [Tab at the end of a dialog](/components/overlays/dialog#tab-at-the-end-of-a-dialog) gives the reasons and the sources.
 - Escape closes the top modal unless a listener prevents the key. An open `Select`, `Combobox`, `MultiSelect`, or a popup with `aria-expanded` and `aria-controls` in the panel takes the key first.
 - `Content` takes no `asChild` and no `role`. It renders the `<dialog>`, which takes the role, and the panel inside it. Put your element inside `Content` instead. `AlertDialog` sets `role="alertdialog"` itself.
-- `Content` has no `onFocusOutside`. Focus cannot leave a modal dialog. Move the logic to `onInteractOutside`, or to `onOpenChange` for a non-modal dialog.
+- `Content` has no `onFocusOutside`. Focus cannot move to the page behind a modal dialog. Move the logic to `onInteractOutside`, or to `onOpenChange` for a non-modal dialog.
+- `Sheet.Content` takes no `side={null}`. A `null` side rendered no edge or slide classes. Set `side` to `"left"` or `"right"`, or leave it out for `"right"`, and check where the sheet opens.
 - `Title` takes no `id`. The dialog names itself from the id it gives the title. Pass `aria-label` or `aria-labelledby` on `Content` to name it from other text.
 - happy-dom does not move focus into a `<dialog>` on `showModal()` or back on `close()`, and jsdom has no `showModal()`. A unit test that asserts focus on open or close runs in a real browser, such as Vitest browser mode. Escape and clicks work in both.
-- Testing Library does not read `inert`. Radix put `aria-hidden` on the page outside an open dialog, so a role query skipped it; now a query such as `getByRole("button", { name: "Close" })` also finds the matching button under the dialog. Scope the query to the dialog with `within(dialog)`. A screen reader still skips the inert page.
+- Testing Library does not read `inert`. Radix put `aria-hidden` on the page outside an open dialog, so a role query skipped it; now a query such as `getByRole("button", { name: "Close" })` also finds the matching button under the dialog. Scope the query to the dialog with `within(dialog)`. Playwright and Vitest browser-mode locators also find it: scope them as `page.getByRole("dialog").getByRole("button", { name: "Close" })`. A screen reader still skips the inert page.
 - The exit plays in every browser: the dialog writes `data-state="closed"`, waits for the animations of the panel and the backdrop, and then closes.
 
 ## How to verify

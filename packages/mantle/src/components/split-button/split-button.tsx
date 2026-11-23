@@ -99,7 +99,7 @@ const Root = ({
 					data-slot={joinDataSlot(dataSlot, "split-button")}
 					data-size={size}
 					className={cx(
-						"flex flex-row [&>*:first-child]:rounded-r-none [&>*:last-child]:rounded-l-none [&>*:not(:first-child):not(:last-child)]:rounded-none [&>*:not(:first-child)]:-ml-px [&>*:focus]:relative [&>*:focus]:z-10 [&>*:hover]:relative [&>*:hover]:z-10 *:active:scale-100!",
+						"flex flex-row [&>*:first-child]:rounded-r-none [&>*:last-child]:rounded-l-none [&>*:not(:first-child):not(:last-child)]:rounded-none [&>*:not(:first-child)]:-ml-px [&>*:focus]:relative [&>*:focus]:z-10 [&>*:hover]:relative [&>*:hover]:z-10 [&>:active]:scale-100!",
 						className,
 					)}
 					ref={ref}
@@ -211,7 +211,7 @@ const MenuTrigger = ({ "data-slot": dataSlot, icon, ...props }: MenuTriggerProps
 							svg={
 								<CaretDownIcon
 									weight="bold"
-									className="size-4 group-data-[state=open]:-rotate-180 transition-transform duration-200 ease-out-strong motion-reduce:transition-none"
+									className="size-4 group-aria-expanded:-rotate-180 transition-transform duration-200 ease-out-strong motion-reduce:transition-none"
 								/>
 							}
 						/>

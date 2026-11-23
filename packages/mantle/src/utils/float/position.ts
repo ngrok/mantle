@@ -1,5 +1,3 @@
-import { canUseDOM } from "../../components/browser-only/can-use-dom.js";
-
 /** The side of the anchor that a float sits on. */
 type Side = "top" | "right" | "bottom" | "left";
 
@@ -15,13 +13,6 @@ const oppositeSide = {
 	bottom: "top",
 	left: "right",
 } as const satisfies Record<Side, Side>;
-
-/**
- * The side a float takes when neither its preferred side nor the opposite one
- * fits: the preferred side, or the side with more room, such as for a list
- * that its `--available-height` caps.
- */
-type Fallback = "preferred" | "larger";
 
 /** The room on `side` of `anchor` inside the viewport, in pixels. */
 function roomOn(anchor: Box, side: Side, viewport: { width: number; height: number }): number {
@@ -95,10 +86,9 @@ function alignOnAxis({
 
 /**
  * Places a float of `size` next to `anchor`. It flips to the opposite side
- * when the preferred side does not fit and the opposite side does, or, with
- * `fallback: "larger"`, when neither fits and the opposite side has more room. It
- * shifts along the side to stay `VIEWPORT_PADDING` inside the viewport. The
- * CSS path takes the side it picks.
+ * when the preferred side does not fit and the opposite side does, or when
+ * neither fits and the opposite side has more room, as Radix's `bestFit` did.
+ * It shifts along the side to stay `VIEWPORT_PADDING` inside the viewport.
  *
  * @example
  * ```ts
@@ -115,7 +105,6 @@ function alignOnAxis({
 function computePlacement({
 	align,
 	anchor,
-	fallback = "preferred",
 	side,
 	sideOffset,
 	size,
@@ -123,7 +112,6 @@ function computePlacement({
 }: {
 	align: Align;
 	anchor: Box;
-	fallback?: Fallback;
 	side: Side;
 	sideOffset: number;
 	size: { width: number; height: number };
@@ -133,8 +121,7 @@ function computePlacement({
 	const flips =
 		!fits({ anchor, side, sideOffset, size, viewport }) &&
 		(fits({ anchor, side: flipped, sideOffset, size, viewport }) ||
-			(fallback === "larger" &&
-				roomOn(anchor, flipped, viewport) > roomOn(anchor, side, viewport)));
+			roomOn(anchor, flipped, viewport) > roomOn(anchor, side, viewport));
 	const placedSide = flips ? flipped : side;
 	if (placedSide === "top" || placedSide === "bottom") {
 		return {
@@ -161,24 +148,6 @@ function computePlacement({
 		}),
 	};
 }
-
-/**
- * Whether the browser places floats with CSS anchor positioning. Safari before
- * 26 and Firefox before 147 do not, so `trackFloat` places floats from script there.
- */
-const supportsAnchorPositioning =
-	canUseDOM() &&
-	typeof CSS !== "undefined" &&
-	CSS.supports("anchor-name: --a") &&
-	CSS.supports("position-area: top");
-
-/** The `position-area` for each side and alignment, in physical keywords so it matches `computePlacement`. */
-const positionArea = {
-	top: { start: "top span-right", center: "top", end: "top span-left" },
-	bottom: { start: "bottom span-right", center: "bottom", end: "bottom span-left" },
-	left: { start: "left span-bottom", center: "left", end: "left span-top" },
-	right: { start: "right span-bottom", center: "right", end: "right span-top" },
-} as const satisfies Record<Side, Record<Align, string>>;
 
 /**
  * Where an arrow sits for each side the float resolves to. The arrow points
@@ -252,22 +221,107 @@ function toLocalPoint(
 	};
 }
 
-let anchorCount = 0;
+/**
+ * The zoom that scales `element` from viewport pixels, its own `zoom` times
+ * that of each ancestor. Why the walk: Safari has no `currentCSSZoom`.
+ */
+function zoomOf(element: HTMLElement): number {
+	// Why `typeof`: the DOM types declare it in each browser.
+	if (typeof element.currentCSSZoom === "number") {
+		return element.currentCSSZoom;
+	}
+	let zoom = 1;
+	for (let node: Element | null = element; node != null; node = node.parentElement) {
+		zoom *= Number.parseFloat(getComputedStyle(node).zoom) || 1;
+	}
+	return zoom;
+}
+
+/** The anchor box and the viewport size, as one value to compare between frames. */
+const keyOf = (rect: DOMRect): string =>
+	`${rect.left} ${rect.top} ${rect.width} ${rect.height} ${document.documentElement.clientWidth} ${document.documentElement.clientHeight}`;
 
 /**
- * Keeps an open float next to `anchor` and returns the cleanup. After each
- * scroll, resize, size change, and end of a transition or animation,
- * `computePlacement` picks the side. With CSS anchor positioning, the browser
- * places the float on that side and keeps it there between frames. Without it,
- * this places the float.
+ * Calls `onMove` when `element` moves in the viewport for any cause, such as a
+ * layout shift above it, or a transform or animation on an ancestor, and
+ * returns the cleanup. Why an `IntersectionObserver`: its root margin crops the
+ * viewport to the element's box, so any move changes the visible ratio, and the
+ * browser checks it with no script while nothing moves. After each report it
+ * crops to the new box again.
+ */
+function observeMove(element: HTMLElement, onMove: () => void): () => void {
+	// Why: jsdom has neither observer. The float then places on scroll and resize only.
+	if (typeof IntersectionObserver === "undefined" || typeof ResizeObserver === "undefined") {
+		return () => {};
+	}
+	let observer: IntersectionObserver | undefined;
+	let stopped = false;
+	const watch = (threshold = 1) => {
+		observer?.disconnect();
+		const { left, top, width, height } = element.getBoundingClientRect();
+		if (width === 0 || height === 0) {
+			return;
+		}
+		const root = document.documentElement;
+		const crop = [top, root.clientWidth - left - width, root.clientHeight - top - height, left].map(
+			(inset) => `${-Math.floor(inset)}px`,
+		);
+		let first = true;
+		observer = new IntersectionObserver(
+			([entry]) => {
+				if (stopped) {
+					return;
+				}
+				const ratio = entry?.intersectionRatio ?? threshold;
+				// Why the first report: the browser reports the start state, and a
+				// ratio other than the threshold means the element moved since the
+				// crop, or that the viewport clips it. Then the observer watches for
+				// a change from that ratio.
+				if (first) {
+					first = false;
+					if (ratio !== threshold) {
+						onMove();
+						watch(ratio);
+					}
+					return;
+				}
+				onMove();
+				watch();
+			},
+			{ rootMargin: crop.join(" "), threshold },
+		);
+		observer.observe(element);
+	};
+	// Why a size observer too: a box that shrinks inside the crop shows all of
+	// itself, so the ratio does not change, and a box with no size has no crop.
+	const sizeObserver = new ResizeObserver(() => {
+		if (!stopped) {
+			onMove();
+			watch();
+		}
+	});
+	sizeObserver.observe(element);
+	return () => {
+		stopped = true;
+		sizeObserver.disconnect();
+		observer?.disconnect();
+	};
+}
+
+/**
+ * Keeps an open float next to `anchor` and returns the cleanup. When the
+ * anchor moves or changes size, the viewport changes size, or the float
+ * changes size, it places the float with `left` and `top` on the side that
+ * `computePlacement` picks, before the next paint.
  *
- * Why not `position-try-fallbacks`: WebKit drops the registered custom
- * properties of a float that takes a fallback, so Tailwind's border and shadow
- * utilities paint nothing.
+ * Why not CSS anchor positioning: Chromium recalculates style and layout of
+ * an anchor-positioned element on each frame of a transition on it, even an
+ * opacity transition, so each open fade costs a layout per frame. The script
+ * places the float once for each change.
  *
- * With `fallback: "larger"`, it sizes the float by its content height
- * (`scrollHeight`), so a list that `--available-height` caps can still move
- * to the side with more room.
+ * A float that scrolls, such as a list that `--available-height` caps, is
+ * sized by its content height (`scrollHeight`), so it can still move to the
+ * side with more room.
  *
  * Each frame it writes on the float `data-side` (the side it resolved to),
  * `--anchor-width`, `--anchor-height`, `--available-height`, and a `transform-origin` at the
@@ -276,7 +330,7 @@ let anchorCount = 0;
  *
  * @example
  * ```ts
- * const stop = trackFloat({ anchor: trigger, floating: content, side: "bottom", align: "start", sideOffset: 4, releaseAnchorAfter: 150 });
+ * const stop = trackFloat({ anchor: trigger, floating: content, side: "bottom", align: "start", sideOffset: 4 });
  * // later, when the float closes
  * stop();
  * ```
@@ -284,34 +338,19 @@ let anchorCount = 0;
 function trackFloat({
 	align: logicalAlign,
 	anchor,
-	fallback = "preferred",
 	dir,
 	floating,
-	placeWith = "css",
-	releaseAnchorAfter,
 	side,
 	sideOffset,
 }: {
 	align: Align;
 	anchor: HTMLElement;
-	fallback?: Fallback;
 	/** The reading direction that `start` and `end` follow. Defaults to the anchor's direction. */
 	dir?: "ltr" | "rtl";
 	floating: HTMLElement;
-	/**
-	 * Who places the float where the browser has CSS anchor positioning.
-	 * Why `"script"` for the picker lists: on a page of 50 pickers, Chromium
-	 * recalculated style and layout on each frame of an anchor-positioned
-	 * list's open, and the open took about 80 ms longer than from script.
-	 */
-	placeWith?: "css" | "script";
-	/** How long after the cleanup the float keeps its anchor, in milliseconds, so its exit transition plays in place. */
-	releaseAnchorAfter: number;
 	side: Side;
 	sideOffset: number;
 }): () => void {
-	const anchorName = `--mantle-float-${++anchorCount}`;
-	const css = supportsAnchorPositioning && placeWith === "css";
 	// Why: `start` and `end` follow the text direction, as they did with Radix.
 	// Above or below the anchor in a right-to-left document, `start` is the right edge.
 	const align =
@@ -321,85 +360,58 @@ function trackFloat({
 			? oppositeAlign[logicalAlign]
 			: logicalAlign;
 	const arrow = floating.querySelector<HTMLElement>(":scope > [data-float-arrow]");
-	// Why the arrow's height: the arrow sticks out of the float toward the
-	// anchor, so `sideOffset` is the gap between its tip and the anchor.
-	let gap = sideOffset + (arrow?.offsetHeight ?? 0);
 	floating.style.inset = "auto";
-	// Why: a float that is placed again keeps the margins of its last placement.
-	for (const edge of ["top", "right", "bottom", "left"] as const) {
-		floating.style.removeProperty(`margin-${edge}`);
-	}
-	if (css) {
-		// Why a list: one element can anchor two floats, such as a tooltip on a popover trigger.
-		const names = anchor.style.getPropertyValue("anchor-name");
-		anchor.style.setProperty("anchor-name", names === "" ? anchorName : `${names}, ${anchorName}`);
-		floating.style.setProperty("position-anchor", anchorName);
-		// Why margins across the side: the browser shifts a float that overflows
-		// the viewport back inside its margin box, so these keep it
-		// `VIEWPORT_PADDING` from the edge, as `computePlacement` does. The edge
-		// that the float aligns to takes none, so the alignment holds.
-		const [crossStart, crossEnd] =
-			side === "top" || side === "bottom"
-				? (["left", "right"] as const)
-				: (["top", "bottom"] as const);
-		if (align !== "start") {
-			floating.style.setProperty(`margin-${crossStart}`, `${VIEWPORT_PADDING}px`);
-		}
-		if (align !== "end") {
-			floating.style.setProperty(`margin-${crossEnd}`, `${VIEWPORT_PADDING}px`);
-		}
-	}
-
-	let cssSide: Side | null = null;
-	/** Puts a float placed by CSS on `next`, `gap` away from the anchor. */
-	const setCssSide = (next: Side) => {
-		if (next === cssSide) {
-			return;
-		}
-		if (cssSide != null) {
-			floating.style.removeProperty(`margin-${oppositeSide[cssSide]}`);
-		}
-		cssSide = next;
-		floating.style.setProperty("position-area", positionArea[next][align]);
-		floating.style.setProperty(`margin-${oppositeSide[next]}`, `${gap}px`);
-	};
-	if (css) {
-		setCssSide(side);
-	}
-
 	// Why: with no popover API the float is not in the top layer, so a
 	// transformed overlay or float that holds it is its containing block, and
 	// `left` and `top` start at that element. An open animation sets and clears
 	// the transform, so each placement looks again.
 	const inTopLayer = "togglePopover" in HTMLElement.prototype;
+	// Why only a float that scrolls: in one that does not, `scrollHeight` also
+	// counts an arrow that sticks out below it, which the gap already counts.
+	// Why only above or below: beside the anchor, the height only aligns the
+	// float, and the rendered height is the one to align.
+	const sizeByContent =
+		(side === "top" || side === "bottom") && getComputedStyle(floating).overflowY !== "visible";
 
-	let frame = 0;
+	/** The anchor box and viewport size of the last placement, to see a move. */
+	let placedFor = "";
+	/** The float or the arrow changed size since the last placement. */
+	let resized = false;
 	const place = () => {
-		// Why again: the arrow can change size while the float is open.
-		const nextGap = sideOffset + (arrow?.offsetHeight ?? 0);
-		if (nextGap !== gap) {
-			gap = nextGap;
-			if (cssSide != null) {
-				floating.style.setProperty(`margin-${oppositeSide[cssSide]}`, `${gap}px`);
-			}
-		}
-		const anchorBox = anchor.getBoundingClientRect();
+		resized = false;
+		// Why the arrow's height, read on each placement: the arrow sticks out of
+		// the float toward the anchor, so `sideOffset` is the gap between its tip
+		// and the anchor, and the arrow can change size while the float is open.
+		const gap = sideOffset + (arrow?.offsetHeight ?? 0);
+		const rect = anchor.getBoundingClientRect();
+		placedFor = keyOf(rect);
+		// Why the zoom: `left`, `top`, and sizes on the float are in its own CSS
+		// pixels, which an inherited or own `zoom` scales from viewport pixels.
+		const zoom = zoomOf(floating);
+		const anchorBox: Box = {
+			top: rect.top / zoom,
+			right: rect.right / zoom,
+			bottom: rect.bottom / zoom,
+			left: rect.left / zoom,
+			width: rect.width / zoom,
+			height: rect.height / zoom,
+		};
 		// Why before the reads: a float sized by the anchor, such as a picker list,
 		// takes its final width and wrapped height in this placement.
 		floating.style.setProperty("--anchor-width", `${anchorBox.width}px`);
 		floating.style.setProperty("--anchor-height", `${anchorBox.height}px`);
 		const width = floating.offsetWidth;
 		const height = floating.offsetHeight;
-		const contentHeight =
-			fallback === "larger" ? floating.scrollHeight + height - floating.clientHeight : height;
+		const contentHeight = sizeByContent
+			? floating.scrollHeight + height - floating.clientHeight
+			: height;
 		const viewport = {
-			width: document.documentElement.clientWidth,
-			height: document.documentElement.clientHeight,
+			width: document.documentElement.clientWidth / zoom,
+			height: document.documentElement.clientHeight / zoom,
 		};
 		let placed = computePlacement({
 			align,
 			anchor: anchorBox,
-			fallback,
 			side,
 			sideOffset: gap,
 			size: { width, height: contentHeight },
@@ -415,30 +427,18 @@ function trackFloat({
 			"--available-height",
 			`${Math.max(availableHeight - VIEWPORT_PADDING, 0)}px`,
 		);
-		if (css) {
-			setCssSide(placed.side);
-			// Why the center: the open animation scales the float around its center,
-			// so the box edges move while the layout size stays.
-			const box = floating.getBoundingClientRect();
-			placed = {
-				side: placed.side,
-				x: (box.left + box.right) / 2 - width / 2,
-				y: (box.top + box.bottom) / 2 - height / 2,
-			};
-		} else {
-			// Why read the height again: the new `--available-height` can cap a list
-			// that sits its rendered height above the anchor.
-			if (fallback === "larger" && placed.side === "top") {
-				placed = { ...placed, y: anchorBox.top - gap - floating.offsetHeight };
-			}
-			const containingBlock = inTopLayer ? null : findFixedContainingBlock(floating);
-			const local =
-				containingBlock == null
-					? { x: placed.x, y: placed.y }
-					: toLocalPoint(containingBlock, placed.x, placed.y);
-			floating.style.left = `${local.x}px`;
-			floating.style.top = `${local.y}px`;
+		// Why read the height again: the new `--available-height` can cap a float,
+		// such as a long menu, that sits its rendered height above the anchor.
+		if (placed.side === "top") {
+			placed = { ...placed, y: anchorBox.top - gap - floating.offsetHeight };
 		}
+		const containingBlock = inTopLayer ? null : findFixedContainingBlock(floating);
+		const local =
+			containingBlock == null
+				? { x: placed.x, y: placed.y }
+				: toLocalPoint(containingBlock, placed.x * zoom, placed.y * zoom);
+		floating.style.left = `${local.x}px`;
+		floating.style.top = `${local.y}px`;
 		const anchorCenterX = anchorBox.left + anchorBox.width / 2 - placed.x;
 		const anchorCenterY = anchorBox.top + anchorBox.height / 2 - placed.y;
 		floating.dataset.side = placed.side;
@@ -466,61 +466,52 @@ function trackFloat({
 			arrow.style.transform = style.transform;
 		}
 	};
+	place();
+	let frame = 0;
+	/** Places the float in the next frame if its anchor, the viewport, or its size changed. */
 	const schedule = () => {
 		cancelAnimationFrame(frame);
-		frame = requestAnimationFrame(place);
+		frame = requestAnimationFrame(() => {
+			if (resized || keyOf(anchor.getBoundingClientRect()) !== placedFor) {
+				place();
+			}
+		});
 	};
-	const observer = new ResizeObserver(schedule);
-	observer.observe(anchor);
-	observer.observe(floating);
+	// Why the check: jsdom has no `ResizeObserver`, and a throw here would break the open in a consumer's test.
+	const resizeObserver =
+		typeof ResizeObserver === "undefined"
+			? undefined
+			: new ResizeObserver(() => {
+					resized = true;
+					schedule();
+				});
+	resizeObserver?.observe(floating);
 	if (arrow != null) {
-		observer.observe(arrow);
+		resizeObserver?.observe(arrow);
 	}
-	place();
+	// Why the listeners too: the observer reports after a paint, and a scroll
+	// or resize places the float before the paint, so it does not lag a frame.
 	window.addEventListener("scroll", schedule, { capture: true, passive: true });
 	window.addEventListener("resize", schedule, { passive: true });
-	// Why: an overlay's open animation moves the anchor with no resize or scroll.
-	window.addEventListener("transitionend", schedule, { capture: true, passive: true });
-	window.addEventListener("animationend", schedule, { capture: true, passive: true });
+	const stopObservingMove = observeMove(anchor, schedule);
 
-	const releaseAnchorName = () => {
-		// Why a filter: another float on the same anchor can close after this one.
-		const otherNames = anchor.style
-			.getPropertyValue("anchor-name")
-			.split(",")
-			.map((name) => name.trim())
-			.filter((name) => name !== "" && name !== anchorName);
-		if (otherNames.length === 0) {
-			anchor.style.removeProperty("anchor-name");
-		} else {
-			anchor.style.setProperty("anchor-name", otherNames.join(", "));
-		}
-	};
 	return () => {
 		cancelAnimationFrame(frame);
-		observer.disconnect();
+		resizeObserver?.disconnect();
+		stopObservingMove();
 		window.removeEventListener("scroll", schedule, { capture: true });
 		window.removeEventListener("resize", schedule);
-		window.removeEventListener("transitionend", schedule, { capture: true });
-		window.removeEventListener("animationend", schedule, { capture: true });
-		if (css) {
-			// Why later: Chromium paints a closing float through its exit
-			// transition, and without the anchor it would jump to the corner.
-			setTimeout(releaseAnchorName, releaseAnchorAfter);
-		}
 	};
 }
 
 export {
 	//,
 	computePlacement,
-	supportsAnchorPositioning,
 	trackFloat,
 };
 
 export type {
 	//,
 	Align,
-	Fallback,
 	Side,
 };

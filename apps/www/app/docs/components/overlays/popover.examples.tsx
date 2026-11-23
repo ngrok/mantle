@@ -14,7 +14,7 @@ export function OverviewExample() {
 						Open popover
 					</Button>
 				</Popover.Trigger>
-				<Popover.Content preferredWidth="max-w-96">
+				<Popover.Content aria-labelledby="popover-dimensions" preferredWidth="max-w-96">
 					<form
 						className="grid gap-4"
 						onSubmit={(event) => {
@@ -22,7 +22,9 @@ export function OverviewExample() {
 						}}
 					>
 						<div className="space-y-2">
-							<h4 className="font-medium leading-none">Dimensions</h4>
+							<h4 id="popover-dimensions" className="font-medium leading-none">
+								Dimensions
+							</h4>
 							<p className="text-sm text-gray-700">Set the dimensions for the layer.</p>
 						</div>
 						<div className="grid gap-2">

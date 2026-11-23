@@ -47,14 +47,6 @@ type RootProps = ComponentProps<"div"> & {
 	value?: ValueType | undefined;
 } & WithDataSlot;
 
-/** The `data-state` of a bar and its indicator. */
-function progressState(valueNow: number | undefined, max: number) {
-	if (valueNow == null) {
-		return "indeterminate";
-	}
-	return valueNow === max ? "complete" : "loading";
-}
-
 /** Resolves the `value` prop: a number in [0, `max`] stays, a nullish value is 0, and anything else is indeterminate. */
 function resolveValue(value: ValueType | undefined, max: number): ValueType {
 	if (isValidValueNumber(value, max)) {
@@ -77,9 +69,7 @@ function resolveValue(value: ValueType | undefined, max: number): ValueType {
  * | Data Attribute | Value                                                  | Description                                  |
  * | -------------- | ------------------------------------------------------ | -------------------------------------------- |
  * | `data-slot`    | `"progress-bar"`                                       | The root element.                            |
- * | `data-state`   | `"complete"` \| `"indeterminate"` \| `"loading"`       | Set from `value` and `max`.                  |
- * | `data-value`   | the current value                                      | Absent while indeterminate.                  |
- * | `data-max`     | the maximum                                            |                                              |
+ * | `data-indeterminate` | present while indeterminate                      | Presence-only. On the root and the indicator. |
  *
  * @see https://mantle.ngrok.com/components/feedback/progress-bar#progressbarroot
  *
@@ -128,9 +118,7 @@ function Root({
 				aria-valuemin={0}
 				aria-valuenow={valueNow}
 				aria-valuetext={valueNow == null ? undefined : `${Math.round((valueNow / max) * 100)}%`}
-				data-state={progressState(valueNow, max)}
-				data-value={valueNow}
-				data-max={max}
+				data-indeterminate={valueNow == null ? "" : undefined}
 				data-slot={joinDataSlot(dataSlot, "progress-bar")}
 				className={cx(
 					"bg-base-hover dark:bg-base shadow-inner relative h-3 w-full overflow-hidden rounded-md",
@@ -180,9 +168,7 @@ function Indicator({
 
 	return (
 		<Component
-			data-state={progressState(valueNow, max)}
-			data-value={valueNow}
-			data-max={max}
+			data-indeterminate={valueNow == null ? "" : undefined}
 			data-slot={joinDataSlot(dataSlot, "progress-bar-indicator")}
 			className={cx(
 				"bg-accent-600 h-full w-full flex-1 transition-transform duration-200 ease-out-strong motion-reduce:transition-none",

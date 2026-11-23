@@ -189,7 +189,8 @@ export function ThemeItem() {
 
 ## Accessibility
 
-- When `label` is omitted, the accessible name says which theme the next click shows: "Switch to dark theme", "Switch to light theme", or "Switch to light theme (system default)" when the click returns to the OS setting. CSS writes the name from the theme on `<html>`, so it's correct before hydration and with no JavaScript.
+- When `label` is omitted, the accessible name says which theme the next click shows: "Switch to dark theme", "Switch to light theme", or "Switch to light theme (system default)" when the click returns to the OS setting. CSS writes the name from the theme on `<html>`, so it's correct before hydration and with no JavaScript. After mount, an `aria-label` holds the same name, so a test finds the button with `getByRole("button", { name: "Switch to dark theme" })`, even in jsdom or happy-dom.
+- A screen reader does not read a focused button again when its name changes, so a click also says the theme it applied, such as "Dark theme" or "Light theme (system default)", in a polite status. One status on `<body>` serves every switcher on the page.
 - The circular reveal is movement, so it does not run under `prefers-reduced-motion: reduce`.
 - The icon mirrors the applied theme (a sun or a moon). CSS picks it from the theme class on `<html>`, so the first paint shows the right icon, with no placeholder.
 - `ThemeDropdownMenuItem` is a `role="menuitem"`. When `label` is omitted, its accessible name starts with the visible "Theme" and says which theme the next press shows, such as "Theme: Switch to dark theme". When `label` is set, the label is the name. When `children` is set, the children are the name. Under `forceTheme`, the item is disabled.

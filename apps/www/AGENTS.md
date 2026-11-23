@@ -7,3 +7,4 @@
 - Router glue lives here as a recipe under `app/docs/recipes/` ([docs/framework-boundary.md](../../docs/framework-boundary.md)).
 - No `*.test.*` file goes under `app/routes/`. Tests follow [docs/testing.md](../../docs/testing.md).
 - An edit to a JSDoc summary or an `@example` changes `app/utilities/__snapshots__/components-surface.json`. Regenerate it with `pnpm -F @app/www test -u`.
+- A change to what the MCP returns (JSDoc `useWhen` or aliases, docs or recipe frontmatter, the `find` scorer) follows [docs/mcp-evals.md](../../docs/mcp-evals.md).

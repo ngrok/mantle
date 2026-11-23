@@ -37,7 +37,9 @@ function Grid({
 }
 
 function activeIndex(): string | null {
-	return document.querySelector("[role='row'][data-active]")?.getAttribute("data-index") ?? null;
+	return (
+		document.querySelector("[role='row'][data-highlighted]")?.getAttribute("data-index") ?? null
+	);
 }
 
 describe("List grid keyboard navigation edges", () => {
@@ -376,7 +378,7 @@ describe("List semantics and attributes", () => {
 		const gridRender = render(<Grid count={2} disabled={[1]} />);
 		const disabledGridRow = document.querySelector("[role='row'][data-index='1']");
 		expect(disabledGridRow).toHaveAttribute("aria-disabled", "true");
-		expect(disabledGridRow).toHaveAttribute("data-disabled");
+		expect(disabledGridRow).not.toHaveAttribute("data-disabled");
 		gridRender.unmount();
 
 		render(

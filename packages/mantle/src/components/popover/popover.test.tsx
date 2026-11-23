@@ -130,6 +130,37 @@ describe("Popover", () => {
 		});
 	});
 
+	test("the content dialog takes its name from the trigger, unless it has its own", async () => {
+		const user = userEvent.setup();
+		render(
+			<>
+				<Popover.Root>
+					<Popover.Trigger>Filters</Popover.Trigger>
+					<Popover.Content>Pick filters</Popover.Content>
+				</Popover.Root>
+				<Popover.Root>
+					<Popover.Trigger>Share</Popover.Trigger>
+					<Popover.Content aria-label="Share settings">Share with</Popover.Content>
+				</Popover.Root>
+				<Popover.Root>
+					<Popover.Trigger asChild>
+						<button type="button" id="sort-trigger">
+							Sort
+						</button>
+					</Popover.Trigger>
+					<Popover.Content>Sort by</Popover.Content>
+				</Popover.Root>
+			</>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "Filters" }));
+		expect(await screen.findByRole("dialog", { name: "Filters" })).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Share" }));
+		expect(await screen.findByRole("dialog", { name: "Share settings" })).toBeInTheDocument();
+		await user.click(screen.getByRole("button", { name: "Sort" }));
+		expect(await screen.findByRole("dialog", { name: "Sort" })).toBeInTheDocument();
+	});
+
 	test("opens on trigger click and closes on Escape, returning focus to the trigger", async () => {
 		const user = userEvent.setup();
 		render(
@@ -269,6 +300,34 @@ describe("Popover", () => {
 
 		await user.click(screen.getByRole("button", { name: "Open" }));
 		await waitFor(() => expect(screen.getByRole("textbox", { name: "Name" })).toHaveFocus());
+	});
+
+	test("Tab and Shift+Tab cycle inside the open content instead of leaving the page", async () => {
+		const user = userEvent.setup();
+		render(
+			<>
+				<Popover.Root>
+					<Popover.Trigger>Open</Popover.Trigger>
+					<Popover.Content>
+						<input aria-label="Width" />
+						<button type="button">Apply</button>
+					</Popover.Content>
+				</Popover.Root>
+				<button type="button">After the trigger</button>
+			</>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "Open" }));
+		const width = screen.getByRole("textbox", { name: "Width" });
+		await waitFor(() => expect(width).toHaveFocus());
+
+		await user.tab();
+		expect(screen.getByRole("button", { name: "Apply" })).toHaveFocus();
+		await user.tab();
+		expect(width).toHaveFocus();
+		await user.tab({ shift: true });
+		expect(screen.getByRole("button", { name: "Apply" })).toHaveFocus();
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
 	});
 
 	test("an open popover hydrates with no mismatch", async () => {

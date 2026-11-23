@@ -15,6 +15,7 @@ import {
 	type IconButtonIntent,
 	type IconButtonProps,
 } from "../button/icon-button.js";
+import { ScrollBody } from "../dialog/scroll-body.js";
 
 /** The side of the screen a sheet slides in from. */
 type SheetSide = "left" | "right";
@@ -74,11 +75,11 @@ function contentSurfaceClassName({
 
 /**
  * The slide each {@link SheetSide} enters and exits with, keyed on the
- * panel's `data-state`.
+ * panel's `data-open` and `data-closing`.
  */
 const slideClassName: Record<SheetSide, string> = {
-	left: "data-state-closed:slide-out-to-left data-state-open:slide-in-from-left",
-	right: "data-state-closed:slide-out-to-right data-state-open:slide-in-from-right",
+	left: "data-closing:slide-out-to-left data-open:slide-in-from-left",
+	right: "data-closing:slide-out-to-right data-open:slide-in-from-right",
 };
 
 /** The classes of `Sheet.Title`. */
@@ -196,10 +197,10 @@ const Body = ({
 	className,
 	...props
 }: HTMLAttributes<HTMLDivElement> & WithDataSlot) => (
-	<div
+	<ScrollBody
 		data-slot={joinDataSlot(dataSlot, "sheet-body")}
 		className={cx(
-			"scrollbar scrollbar-gutter-stable text-body flex-1 overflow-y-auto overscroll-none p-6",
+			"scrollbar scrollbar-gutter-stable text-body flex-1 overflow-y-auto overscroll-none p-6 focus-visible:focus-ring focus-visible:ring-inset",
 			className,
 		)}
 		{...props}

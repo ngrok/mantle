@@ -19,8 +19,7 @@ import { useSidebar } from "./sidebar.js";
  * `:not([data-hydrated])` selector outranks the bare utility's class. The
  * transition gates are negated the same way, and only a running
  * `CSSTransition` can observe whether they held or released. The open
- * highlight is a class with no data attribute of its own, and the `data-state`
- * a tooltip trigger writes over a menu trigger's is a Radix runtime fact, so
+ * highlight is a class keyed on `aria-expanded` through a tooltip trigger, so
  * only the computed style can observe it. happy-dom resolves no stylesheet and
  * runs no transition, and `prefers-reduced-motion` is a Playwright page
  * emulation.
@@ -37,9 +36,12 @@ const STYLE = `
 		--text-color-strong: rgb(17, 24, 39);
 	}
 }
+@layer base {
+	/* Tailwind's preflight. Without it, WebKit paints a row in its own button text color. */
+	button { color: inherit; }
+}
 @layer utilities {
 	.flex { display: flex; }
-	.data-state-open\\:text-strong[data-state~=open] { color: var(--text-color-strong); }
 	.aria-expanded\\:text-strong[aria-expanded="true"] { color: var(--text-color-strong); }
 	.w-\\(--sidebar-width\\,13rem\\) { width: var(--sidebar-width, 13rem); }
 	.transition-none { transition-property: none; }
@@ -82,25 +84,25 @@ const STYLE = `
 	.group-not-data-hydrated\\/sidebar-nav\\:transition-none:is(:where(.group\\/sidebar-nav):not([data-hydrated]) *) {
 		transition-property: none;
 	}
-	.group-data-\\[state\\=collapsed\\]\\/sidebar-nav\\:opacity-0:is(:where(.group\\/sidebar-nav)[data-state="collapsed"] *) {
+	.group-not-data-expanded\\/sidebar-nav\\:opacity-0:is(:where(.group\\/sidebar-nav):not([data-expanded]) *) {
 		opacity: 0%;
 	}
-	.data-\\[state\\=collapsed\\]\\:w-\\(--sidebar-width-icon\\,3\\.25rem\\)[data-state="collapsed"] {
+	.not-data-expanded\\:w-\\(--sidebar-width-icon\\,3\\.25rem\\):not([data-expanded]) {
 		width: var(--sidebar-width-icon, 3.25rem);
 	}
-	.group-data-\\[state\\=collapsed\\]\\/sidebar-nav\\:ml-1:is(:where(.group\\/sidebar-nav)[data-state="collapsed"] *) {
+	.group-not-data-expanded\\/sidebar-nav\\:ml-1:is(:where(.group\\/sidebar-nav):not([data-expanded]) *) {
 		margin-left: 0.25rem;
 	}
-	.group-data-\\[state\\=collapsed\\]\\/sidebar-nav\\:w-7:is(:where(.group\\/sidebar-nav)[data-state="collapsed"] *) {
+	.group-not-data-expanded\\/sidebar-nav\\:w-7:is(:where(.group\\/sidebar-nav):not([data-expanded]) *) {
 		width: 1.75rem;
 	}
-	.group-data-\\[state\\=collapsed\\]\\/sidebar-nav\\:w-9:is(:where(.group\\/sidebar-nav)[data-state="collapsed"] *) {
+	.group-not-data-expanded\\/sidebar-nav\\:w-9:is(:where(.group\\/sidebar-nav):not([data-expanded]) *) {
 		width: 2.25rem;
 	}
-	.group-data-\\[state\\=collapsed\\]\\/sidebar-nav\\:p-1:is(:where(.group\\/sidebar-nav)[data-state="collapsed"] *) {
+	.group-not-data-expanded\\/sidebar-nav\\:p-1:is(:where(.group\\/sidebar-nav):not([data-expanded]) *) {
 		padding: 0.25rem;
 	}
-	.group-data-\\[state\\=expanded\\]\\/sidebar-nav\\:pr-1:is(:where(.group\\/sidebar-nav)[data-state="expanded"] *) {
+	.group-data-expanded\\/sidebar-nav\\:pr-1:is(:where(.group\\/sidebar-nav)[data-expanded] *) {
 		padding-right: 0.25rem;
 	}
 	@media (width < 64rem) {
@@ -200,7 +202,7 @@ test("snaps a persisted-collapsed correction into place with no transition", asy
 	// `useLocalStorage` stores JSON, so the seed is the encoded string.
 	localStorage.setItem(STORAGE_KEY, JSON.stringify("collapsed"));
 	const nav = mountServerHtml(renderToString(<PersistedShell />));
-	expect(nav).toHaveAttribute("data-state", "expanded");
+	expect(nav).toHaveAttribute("data-expanded");
 	// Why read the width: a real page paints the server markup before hydration,
 	// and only a painted width can be the start value of a transition.
 	expect(getComputedStyle(nav).width).toBe("208px");
@@ -218,7 +220,7 @@ test("snaps a persisted-collapsed correction into place with no transition", asy
 	if (!(label instanceof HTMLElement)) {
 		throw new Error('No element carries data-slot="sidebar-group-label".');
 	}
-	expect(nav).toHaveAttribute("data-state", "collapsed");
+	expect(nav).not.toHaveAttribute("data-expanded");
 	expect(getComputedStyle(nav).width).toBe("52px");
 	expect(nav.getAnimations()).toHaveLength(0);
 	expect(getComputedStyle(label).opacity).toBe("0");
@@ -328,7 +330,7 @@ test("animates a collapse the user triggers after hydration", async () => {
 
 	await userEvent.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
 
-	expect(nav).toHaveAttribute("data-state", "collapsed");
+	expect(nav).not.toHaveAttribute("data-expanded");
 	// Why every part: each trades its expanded shape for its collapsed one on the sidebar's
 	// clock, or it takes the collapsed shape on the first frame and the sidebar catches up.
 	await waitFor(() => {
@@ -357,7 +359,7 @@ test("snaps a collapse the user triggers under reduced motion", async () => {
 
 	await userEvent.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
 
-	expect(nav).toHaveAttribute("data-state", "collapsed");
+	expect(nav).not.toHaveAttribute("data-expanded");
 	expect(getComputedStyle(nav).width).toBe("52px");
 	expect(getComputedStyle(label).opacity).toBe("0");
 	expect(getComputedStyle(row).width).toBe("28px");
@@ -382,7 +384,7 @@ test("lets a consumer transition-none replace the default transition", async () 
 
 	await userEvent.click(screen.getByRole("button", { name: "Toggle Sidebar" }));
 
-	expect(nav).toHaveAttribute("data-state", "collapsed");
+	expect(nav).not.toHaveAttribute("data-expanded");
 	expect(getComputedStyle(nav).width).toBe("52px");
 	expect(getComputedStyle(label).opacity).toBe("0");
 	expect(getComputedStyle(row).width).toBe("28px");
@@ -393,10 +395,9 @@ test("lets a consumer transition-none replace the default transition", async () 
 });
 
 test("a row inside Sidebar.Tooltip keeps its open highlight while its menu is open", async () => {
-	// Why: `Tooltip.Trigger` writes its own `data-state` over the menu trigger's
-	// on the row, so `data-state-open:` never fires in the composition the docs
-	// recommend. The highlight keys on `aria-expanded` too, which only the menu
-	// trigger stamps.
+	// Why: the tooltip trigger sits between the row and the menu trigger in the
+	// composition the docs recommend. The highlight keys on `aria-expanded`,
+	// which only the menu trigger stamps, so the tooltip must not drop it.
 	await page.viewport(1280, 800);
 	render(
 		<TooltipProvider>
@@ -432,8 +433,6 @@ test("a row inside Sidebar.Tooltip keeps its open highlight while its menu is op
 	await waitFor(() => {
 		expect(screen.getByTestId("row")).toHaveAttribute("aria-expanded", "true");
 	});
-	// The premise: the row carries the tooltip's `data-state`, not the menu's.
-	expect(row).toHaveAttribute("data-state", "closed");
 	expect(getComputedStyle(row).color).toBe("rgb(17, 24, 39)");
 });
 
@@ -583,6 +582,12 @@ describe("Sidebar.Nav on the native <dialog>", () => {
 		expect(panel == null ? null : getComputedStyle(panel).width).toBe("288px");
 
 		await userEvent.keyboard("{Escape}");
+		// Why wait on the exit: the dialog closes when its exit animations end. A
+		// `waitFor` gives up after 1 s, and WebKit in CI can skip frames that long.
+		await waitFor(() => expect(dialog).not.toHaveAttribute("data-open"));
+		await Promise.allSettled(
+			dialog.getAnimations({ subtree: true }).map((animation) => animation.finished),
+		);
 		await waitFor(() => expect(dialog.open).toBe(false));
 		await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "false"));
 		expect(document.activeElement).toBe(trigger);
@@ -815,6 +820,8 @@ describe("Sidebar.Nav on the native <dialog>", () => {
 			expect(screen.getByPlaceholderText("Type a command…")).toBe(input);
 			expect(input).toHaveValue("abc");
 			expect(document.activeElement).toBe(input);
+			// The closed sheet's nav is not left inert under the palette.
+			expect(document.querySelector('[data-slot~="sidebar-nav"]')?.closest("[inert]")).toBeNull();
 		},
 	);
 

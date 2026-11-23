@@ -46,7 +46,6 @@ lone child, because the component owns no host node and React mounts the text no
 A parent with no host node of its own is the exception. A portal, a `Fragment`, and an array all lack one.
 React then removes each of their children from the DOM one at a time, so a bare text child there throws on
 unmount with no sibling in play. Wrap what you portal. Wrap the text children of a `Fragment` or an array too.
-`Select.Item` wraps the label Radix portals into the trigger for this reason.
 
 A reorder needs the same wrapper. React inserts a moved element before the next host sibling. That walk
 returns a text node as readily as an element, so a keyed list that re-sorts in front of a bare text summary

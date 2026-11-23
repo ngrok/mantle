@@ -1,53 +1,45 @@
 import { expect, test } from "vitest";
 import { cx } from "./cx.js";
+import { mergeClassList } from "./merge.js";
 
 /**
  * Real-browser (Chromium/V8) benchmarks for `cx`. `cx` keeps two caches over the merge in
- * `./merge.ts`, which itself caches nothing: an argument cache keyed on the first argument
- * (`./cx.ts`) and a per-call-site cache for the tagged-template form. The test registers a cold
- * merge and one workload per cache through the `bench` fixture, then asserts each cache hit is
- * faster than the cold merge with `toBeFasterThan`. Vitest owns the sampling and the comparison,
- * so the file carries no wall-clock threshold.
+ * `./merge.ts`: an argument cache keyed on the first argument (`./cx.ts`) and a per-call-site
+ * cache for the tagged-template form. Each workload races a merge of the same class list, so a
+ * cache that stops hitting loses the race. Vitest owns the sampling and the comparison, so the
+ * file carries no wall-clock threshold.
+ *
+ * Why not a pool of unique strings as the baseline: the merge memoizes each class's group, so a
+ * repeated string beats unique strings with no `cx` cache at all, and the race cannot fail.
  */
 
-// Realistic, conflict-bearing class lists in the spirit of mantle components.
-const SAMPLES = [
-	"flex items-center justify-between gap-2 rounded border px-4 py-2 text-sm font-medium",
-	"bg-blue-500 text-white hover:bg-blue-600 focus-visible:ring-2 focus-visible:ring-blue-400",
-	"absolute inset-0 z-10 grid place-items-center bg-black/50 p-4 p-6",
-	"text-red-500 text-blue-500 mb-2 text-base leading-4 text-xl leading-5",
-	"p-4 pt-5 pb-6 pr-3 pb-3 m-2 mx-4 mt-1",
-	"w-4 w-em h-em h-6 size-4 size-em gap-4 gap-em",
-	"rounded-md rounded-lg shadow shadow-md border border-2 border-form",
-	"transition-colors duration-150 ease-in-out hover:opacity-80 disabled:opacity-50",
-];
+const STATIC =
+	"flex items-center justify-between gap-2 rounded border px-4 py-2 text-sm font-medium";
+const BASE = "flex items-center px-4 py-2";
 
-test("cache hits and tagged templates beat a cold merge", async ({ bench }) => {
-	// Why a 3000-string pool: each string is new to the caches, so each cold call pays a full
-	// merge.
-	const coldPool: string[] = [];
-	for (let index = 0; index < 3000; index++) {
-		coldPool.push(`${SAMPLES[index % SAMPLES.length]} mt-${index} pb-${index % 97}`);
-	}
-	let coldIndex = 0;
+test("cache hits and tagged templates beat a merge of the same classes", async ({ bench }) => {
 	let variadicIndex = 0;
 	let templateIndex = 0;
-	const cachedInput = SAMPLES[0];
+	let mergeIndex = 0;
 
 	const result = await bench.compare(
-		bench("cold (unique strings, full merge)", () => cx(coldPool[coldIndex++ % coldPool.length])),
+		bench("merge (same classes, no cx cache)", () =>
+			mergeClassList(`${BASE} ${mergeIndex++ % 2 === 0 ? "bg-blue-500 " : ""}text-sm`)),
 		// The same string every call, so the argument cache hits after the second.
-		bench("cached (repeated string)", () => cx(cachedInput)),
+		bench("cached (repeated string)", () => cx(STATIC)),
 		// Stable base classes plus a toggled variant, so the argument cache hits with no join.
 		bench("variadic (stable args, arg cache)", () =>
-			cx("flex items-center px-4 py-2", variadicIndex++ % 2 === 0 && "bg-blue-500", "text-sm")),
+			cx(BASE, variadicIndex++ % 2 === 0 && "bg-blue-500", "text-sm")),
 		// One stable call site that cycles a boolean, so the call-site cache hits.
 		bench("template (stable call site)", () =>
 			cx`flex items-center px-4 py-2 ${templateIndex++ % 2 === 0 && "bg-blue-500"} text-sm`),
+		// Why short runs: a cache hit is many times faster than a merge, so 100 ms of samples
+		// separates them; the default second per workload adds about 20 s and no signal.
+		{ time: 100, warmupTime: 20 },
 	);
 
-	const cold = result.get("cold (unique strings, full merge)");
-	expect(result.get("cached (repeated string)")).toBeFasterThan(cold);
-	expect(result.get("variadic (stable args, arg cache)")).toBeFasterThan(cold);
-	expect(result.get("template (stable call site)")).toBeFasterThan(cold);
+	const merge = result.get("merge (same classes, no cx cache)");
+	expect(result.get("cached (repeated string)")).toBeFasterThan(merge);
+	expect(result.get("variadic (stable args, arg cache)")).toBeFasterThan(merge);
+	expect(result.get("template (stable call site)")).toBeFasterThan(merge);
 });

@@ -826,17 +826,17 @@ to the banner chrome. `appearance` and `intent` are the component's own: the chr
 | `ref`       | `Ref<HTMLDivElement>` |         | Forwarded to the banner chrome, not to the presence wrapper.                                                                                    |
 | `children`  | `never`               |         | Not accepted. The bar renders the top-ranked item's authored children.                                                                          |
 
-| Data Attribute       | Value                          | Description                                                                                          |
-| -------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| `data-slot`          | `alert-center-bar-wrapper`     | On the presence wrapper that owns the enter/exit animation.                                          |
-| `data-slot`          | `alert-center-bar alert`       | On the banner chrome the top item's children render inside, joined ahead of `Alert.Root`'s own slot. |
-| `data-slot`          | `alert-center-bar-mount`       | On the layout-transparent element the top item's host is adopted into.                               |
-| `data-state`         | `"open"` \| `"closed"`         | On the wrapper; drives the enter/exit transition, and stays `closed` while the exit plays.           |
-| `data-placement`     | `"bar"`                        | On the chrome: where the top item's children are currently rendering.                                |
-| `data-alert-id`      | the top item's `id`            | On the chrome; per-alert styling and testing hook.                                                   |
-| `data-alert-dismiss` | present on the dismiss control | Read, not stamped. `Alert` emits it; the bar's CSS centers and offsets the control with it.          |
-| `data-alert-expand`  | present on the expand control  | Read, not stamped. `Alert` emits it; the bar's CSS centers the control with it.                      |
-| `data-slot`          | `alert-center-bar-anchor`      | While no bar shows: on a hidden element that marks where the items' server copies may show.          |
+| Data Attribute       | Value                          | Description                                                                                             |
+| -------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `data-slot`          | `alert-center-bar-wrapper`     | On the presence wrapper that owns the enter/exit animation.                                             |
+| `data-slot`          | `alert-center-bar alert`       | On the banner chrome the top item's children render inside, joined ahead of `Alert.Root`'s own slot.    |
+| `data-slot`          | `alert-center-bar-mount`       | On the layout-transparent element the top item's host is adopted into.                                  |
+| `data-open`          | present while open             | Presence-only, on the wrapper; drives the enter/exit transition, and stays absent while the exit plays. |
+| `data-placement`     | `"bar"`                        | On the chrome: where the top item's children are currently rendering.                                   |
+| `data-alert-id`      | the top item's `id`            | On the chrome; per-alert styling and testing hook.                                                      |
+| `data-alert-dismiss` | present on the dismiss control | Read, not stamped. `Alert` emits it; the bar's CSS centers and offsets the control with it.             |
+| `data-alert-expand`  | present on the expand control  | Read, not stamped. `Alert` emits it; the bar's CSS centers the control with it.                         |
+| `data-slot`          | `alert-center-bar-anchor`      | While no bar shows: on a hidden element that marks where the items' server copies may show.             |
 
 ### AlertCenter.Content
 
@@ -855,15 +855,16 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `ref`             | `Ref<HTMLDivElement>` |                 | Forwarded to the expansion wrapper.                                                                                                                     |
 | `children`        | `never`               |                 | Not accepted. The rows are the registered items' authored children.                                                                                     |
 
-| Data Attribute     | Value                         | Description                                                                                            |
-| ------------------ | ----------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `data-slot`        | `alert-center-content`        | On the expansion wrapper that owns the collapse animation.                                             |
-| `data-slot`        | `alert-center-item alert`     | On each row's banner chrome, joined ahead of `Alert.Root`'s own slot.                                  |
-| `data-state`       | `"open"` \| `"closed"`        | On the wrapper; drives the collapse transition.                                                        |
-| `data-placement`   | `"list"`                      | On each row's chrome: where that item's children are currently rendering.                              |
-| `data-alert-id`    | the row item's `id`           | On each row's chrome; per-alert styling and testing hook.                                              |
-| `data-alert-mount` | the row item's `id`           | On the row's layout-transparent mount point: the element that item's host is adopted into.             |
-| `data-slot`        | `alert-center-content-anchor` | While no row shows: on a hidden element that tells a server copy to reserve the expand control's room. |
+| Data Attribute                     | Value                         | Description                                                                                            |
+| ---------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `data-slot`                        | `alert-center-content`        | On the expansion wrapper that owns the collapse animation.                                             |
+| `data-slot`                        | `alert-center-item alert`     | On each row's banner chrome, joined ahead of `Alert.Root`'s own slot.                                  |
+| `data-open`                        | present while expanded        | Presence-only, on the wrapper; drives the collapse transition.                                         |
+| `data-placement`                   | `"list"`                      | On each row's chrome: where that item's children are currently rendering.                              |
+| `data-alert-id`                    | the row item's `id`           | On each row's chrome; per-alert styling and testing hook.                                              |
+| `data-alert-mount`                 | the row item's `id`           | On the row's layout-transparent mount point: the element that item's host is adopted into.             |
+| `data-slot`                        | `alert-center-content-anchor` | While no row shows: on a hidden element that tells a server copy to reserve the expand control's room. |
+| `data-alert-center-content-anchor` | present                       | On the same hidden element. The server copy's CSS keys off this attribute.                             |
 
 ### AlertCenter.Item
 

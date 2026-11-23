@@ -29,7 +29,7 @@ describe("SandbarReducedMotionDemo", () => {
 
 		fireEvent.click(screen.getByRole("switch", { name: /simulate reduced motion/i }));
 
-		expect(getPanel().className).toContain("motion-safe:data-state-closed:translate-y-0");
+		expect(getPanel().className).toContain("motion-safe:not-data-open:translate-y-0");
 		expect(getPanel().className).not.toContain("translate-y-[calc(100%+2.5rem)]");
 		// the wiggle suppressor rides along, since `shake()` reads the real preference
 		expect(getPanel().className).toContain("transform-none!");
@@ -47,15 +47,15 @@ describe("SandbarReducedMotionDemo", () => {
 
 	it("hides and reshows the bar, so the enter and exit are both reachable", () => {
 		render(<SandbarReducedMotionDemo />);
-		expect(getPanel().getAttribute("data-state")).toBe("open");
+		expect(getPanel().hasAttribute("data-open")).toBe(true);
 
 		fireEvent.click(screen.getByRole("button", { name: "Hide the bar" }));
-		expect(getPanel().getAttribute("data-state")).toBe("closed");
+		expect(getPanel().hasAttribute("data-open")).toBe(false);
 
 		fireEvent.click(screen.getByRole("button", { name: "Show the bar" }));
-		// Why "open" at once: the panel is still visible mid-exit, so the reopen
+		// Why open at once: the panel is still visible mid-exit, so the reopen
 		// skips the pre-enter frame.
-		expect(getPanel().getAttribute("data-state")).toBe("open");
+		expect(getPanel().hasAttribute("data-open")).toBe(true);
 	});
 });
 
@@ -74,7 +74,7 @@ describe("SandbarOverSheetDemo", () => {
 		await user.click(screen.getByRole("button", { name: "Save changes", hidden: true }));
 
 		expect(screen.queryByRole("dialog")).not.toBeNull();
-		expect(getPanel().getAttribute("data-state")).toBe("closed");
+		expect(getPanel().hasAttribute("data-open")).toBe(false);
 		expect(screen.queryByRole("heading", { name: "my-agent-endpoint-v2" })).not.toBeNull();
 	});
 

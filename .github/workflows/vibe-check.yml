@@ -37,18 +37,18 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        uses: pnpm/action-setup@v6.1.1
         with:
           run_install: false
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -68,7 +68,7 @@ jobs:
       # The fixer checks each cache file against the lockfile and the CSS it loads,
       # so a stale restore only costs a recompute.
       - name: Restore Tailwind Canonical Cache 💾
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache@v6.1.0
         with:
           path: .cache/tailwind-canonical
           key: tailwind-canonical-${{ hashFiles('pnpm-lock.yaml', 'packages/mantle/src/*.css') }}
@@ -89,19 +89,22 @@ jobs:
       - name: Prose 🖊️
         run: pnpm run check:prose
 
+      - name: CSS Selectors 🎯
+        run: pnpm run check:css-selectors
+
   mise-lock-check:
     name: Mise Lockfile
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Cache mise binary 🗃️
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache@v6.1.0
         with:
           path: ~/.local/bin/mise
           key: mise-${{ runner.os }}-${{ hashFiles('scripts/install-mise') }}
@@ -135,18 +138,18 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        uses: pnpm/action-setup@v6.1.1
         with:
           run_install: false
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -171,18 +174,18 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        uses: pnpm/action-setup@v6.1.1
         with:
           run_install: false
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -213,22 +216,22 @@ jobs:
         shard_total: [4]
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Compute Vitest cache key 🔑
         id: vitest-cache-key
-        uses: ./.github/actions/vitest-module-cache-key
+        uses: $/.github/actions/vitest-module-cache-key
 
       # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        uses: pnpm/action-setup@v6.1.1
         with:
           run_install: false
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -243,7 +246,7 @@ jobs:
       # Restore after the install, because the cache is in node_modules. Only `warm-vitest-cache`
       # saves, because a cache that a PR run saves is visible only to that PR.
       - name: Restore Vitest module cache 💾
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/restore@v6.1.0
         with:
           path: node_modules/.vitest-cache
           key: ${{ steps.vitest-cache-key.outputs.key }}
@@ -294,26 +297,40 @@ jobs:
             exit 1
           fi
 
-  # Browser-mode tests only. Launches a local headless Chromium from a cached
-  # browser build instead of installing Playwright in every unit shard.
+  # Browser-mode tests only. Launches a local headless browser from a cached
+  # browser build instead of installing Playwright in every unit shard. Each
+  # engine runs in its own job, in parallel, so a second and third engine add
+  # little wall time. Firefox runs one file at a time (see vitest.config.ts),
+  # so it takes two shards.
   browser-test:
-    name: browser-test
+    name: browser-test (${{ matrix.browser }} ${{ matrix.shard }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { browser: chromium, shard: 1/1 }
+          - { browser: firefox, shard: 1/2 }
+          - { browser: firefox, shard: 2/2 }
+          - { browser: webkit, shard: 1/1 }
+    env:
+      MANTLE_BROWSERS: ${{ matrix.browser }}
+      SHARD: ${{ matrix.shard }}
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        uses: pnpm/action-setup@v6.1.1
         with:
           run_install: false
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -331,28 +348,36 @@ jobs:
 
       - name: Restore Playwright browser cache 🎭
         id: playwright-cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache@v6.1.0
         with:
           path: ~/.cache/ms-playwright
           # Key on the Playwright version only, so the cached browser binaries
           # survive unrelated pnpm-workspace.yaml edits and are reused until the
           # next genuine Playwright bump.
-          key: playwright-browsers-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+          key: playwright-browsers-${{ runner.os }}-${{ matrix.browser }}-${{ steps.playwright.outputs.version }}
 
       - name: Install Dependencies 📥
         # See the `test` job for why the gate-binding jobs trust the already-verified
         # lockfile; the other jobs keep the supply-chain re-check.
         run: pnpm install --frozen-lockfile --trust-lockfile
 
-      - name: Install Playwright Chromium 🎭
+      - name: Install Playwright ${{ matrix.browser }} 🎭
         # Why gated on the cache: a hit means the pinned browser build is already
         # restored, and the apt system libraries --with-deps re-applies ship on the
-        # ubuntu-latest image. Skipping keeps apt off the hot path: an apt-mirror
-        # outage once hung this step for the whole 20-minute job timeout. The step
-        # timeout makes a hang on the rare cache-miss path fail fast instead.
+        # ubuntu-latest image for Chromium and Firefox. Skipping keeps apt off the
+        # hot path: an apt-mirror outage once hung this step for the whole 20-minute
+        # job timeout. The step timeout makes a hang on the rare cache-miss path
+        # fail fast instead.
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         timeout-minutes: 10
-        run: pnpm -F @ngrok/mantle exec playwright install --with-deps chromium
+        run: pnpm -F @ngrok/mantle exec playwright install --with-deps "${MANTLE_BROWSERS}"
+
+      - name: Install WebKit system libraries 🎭
+        # Why on every run: the ubuntu-latest image lacks the GStreamer and GTK
+        # libraries WebKit links, and the browser cache holds no apt packages.
+        if: matrix.browser == 'webkit' && steps.playwright-cache.outputs.cache-hit == 'true'
+        timeout-minutes: 5
+        run: pnpm -F @ngrok/mantle exec playwright install-deps webkit
 
       - name: Configure test worker limits
         run: |
@@ -363,6 +388,7 @@ jobs:
       # Why: Ubuntu 24.04 blocks unprivileged user namespaces through AppArmor, and
       # the Chromium sandbox needs them. GitHub discards the runner after the job.
       - name: Allow the Chromium sandbox 🔒
+        if: matrix.browser == 'chromium'
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
       - name: Browser Test 🧪
@@ -371,7 +397,7 @@ jobs:
             --concurrency="${TURBO_TEST_CONCURRENCY}" \
             --continue=always \
             --filter='@ngrok/mantle' \
-            -- --project='browser*' --maxWorkers="${TURBO_TEST_CONCURRENCY}"
+            -- --project='browser*' --maxWorkers="${TURBO_TEST_CONCURRENCY}" --shard="${SHARD}"
 
   # GitHub scopes an Actions cache to the ref that saved it, and a PR run reads only its
   # own caches and the caches of `main`. So this job saves the Vitest module cache from
@@ -384,18 +410,18 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Compute Vitest cache key 🔑
         id: vitest-cache-key
-        uses: ./.github/actions/vitest-module-cache-key
+        uses: $/.github/actions/vitest-module-cache-key
 
       - name: Check Vitest module cache 💾
         id: vitest-cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/restore@v6.1.0
         with:
           path: node_modules/.vitest-cache
           key: ${{ steps.vitest-cache-key.outputs.key }}
@@ -404,12 +430,12 @@ jobs:
       # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
         if: steps.vitest-cache.outputs.cache-hit != 'true'
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        uses: pnpm/action-setup@v6.1.1
         with:
           run_install: false
 
       - if: steps.vitest-cache.outputs.cache-hit != 'true'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        uses: actions/setup-node@v7.1.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -437,7 +463,7 @@ jobs:
       # The job stays green on a failure, because the `test` shards already test this commit.
       - name: Save Vitest module cache 💾
         if: steps.vitest-cache.outputs.cache-hit != 'true' && steps.transform.outcome == 'success'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/save@v6.1.0
         with:
           path: node_modules/.vitest-cache
           key: ${{ steps.vitest-cache-key.outputs.key }}

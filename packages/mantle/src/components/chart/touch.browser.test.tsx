@@ -3,7 +3,7 @@
 import { render, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterAll, beforeAll, describe, expect, onTestFinished, test, vi } from "vitest";
-import { cdp, commands } from "vitest/browser";
+import { cdp, commands, server } from "vitest/browser";
 import * as AreaChart from "../area-chart/area-chart-parts.js";
 import * as BarChart from "../bar-chart/bar-chart-parts.js";
 import * as LineChart from "../line-chart/line-chart-parts.js";
@@ -64,6 +64,13 @@ const STYLE = `
 	pointer-events: none;
 }
 `;
+
+/**
+ * Why Chromium only: these tests drive trusted touch through CDP, which only
+ * Chromium has. Playwright's Firefox and WebKit can tap but cannot move a
+ * finger, so they cannot scrub or pan.
+ */
+const hasCdpTouch = server.browser === "chromium";
 
 let styleElement: HTMLStyleElement;
 
@@ -167,7 +174,7 @@ const nextFrame = () =>
 		requestAnimationFrame(resolve);
 	});
 
-describe.each(families)("$slot under a finger", ({ slot, chart }) => {
+describe.runIf(hasCdpTouch).each(families)("$slot under a finger", ({ slot, chart }) => {
 	const setup = () => {
 		const onDatumActivate = vi.fn<Activate>();
 		// Why 400 wide: the test viewport is 414 wide, and a touch off screen hits nothing.
@@ -235,41 +242,44 @@ describe.each(families)("$slot under a finger", ({ slot, chart }) => {
 	});
 });
 
-test("a touch inside a chart in a shadow root does not clear its active datum", async () => {
-	const host = document.createElement("div");
-	document.body.append(host);
-	onTestFinished(() => host.remove());
-	const shadow = host.attachShadow({ mode: "open" });
-	const container = document.createElement("div");
-	shadow.append(styleElement.cloneNode(true), container);
-	const onActiveIndexChange = vi.fn<(index: number | null) => void>();
-	render(
-		<div style={{ width: 400, height: 300 }}>
-			<LineChart.Root
-				data={data}
-				xKey="x"
-				animate={false}
-				onActiveIndexChange={onActiveIndexChange}
-				aria-label="Line"
-			>
-				<LineChart.Line dataKey="v" label="Value" color="blue" />
-			</LineChart.Root>
-		</div>,
-		{ container },
-	);
-	const overlay = container.querySelector('[role="application"]');
-	if (!(overlay instanceof HTMLElement)) {
-		throw new Error("expected the interaction overlay to render");
-	}
-	const rect = overlay.getBoundingClientRect();
-	const center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-	await waitFor(async () => {
+test.runIf(hasCdpTouch)(
+	"a touch inside a chart in a shadow root does not clear its active datum",
+	async () => {
+		const host = document.createElement("div");
+		document.body.append(host);
+		onTestFinished(() => host.remove());
+		const shadow = host.attachShadow({ mode: "open" });
+		const container = document.createElement("div");
+		shadow.append(styleElement.cloneNode(true), container);
+		const onActiveIndexChange = vi.fn<(index: number | null) => void>();
+		render(
+			<div style={{ width: 400, height: 300 }}>
+				<LineChart.Root
+					data={data}
+					xKey="x"
+					animate={false}
+					onActiveIndexChange={onActiveIndexChange}
+					aria-label="Line"
+				>
+					<LineChart.Line dataKey="v" label="Value" color="blue" />
+				</LineChart.Root>
+			</div>,
+			{ container },
+		);
+		const overlay = container.querySelector('[role="application"]');
+		if (!(overlay instanceof HTMLElement)) {
+			throw new Error("expected the interaction overlay to render");
+		}
+		const rect = overlay.getBoundingClientRect();
+		const center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+		await waitFor(async () => {
+			await touch("touchStart", center);
+			await touch("touchEnd");
+			expect(onActiveIndexChange).toHaveBeenLastCalledWith(expect.any(Number));
+		});
+		onActiveIndexChange.mockClear();
 		await touch("touchStart", center);
 		await touch("touchEnd");
-		expect(onActiveIndexChange).toHaveBeenLastCalledWith(expect.any(Number));
-	});
-	onActiveIndexChange.mockClear();
-	await touch("touchStart", center);
-	await touch("touchEnd");
-	expect(onActiveIndexChange).not.toHaveBeenCalledWith(null);
-});
+		expect(onActiveIndexChange).not.toHaveBeenCalledWith(null);
+	},
+);

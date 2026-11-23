@@ -13,7 +13,8 @@ a control that you build, so its focus ring matches.
 
 ## Example
 
-Press <kbd>Tab</kbd> to move the focus through the buttons.
+Press <kbd>Tab</kbd> to move the focus through the buttons. Click a button and
+no ring shows.
 
 <Example name="base/focus-ring/tones" title="Focus Ring tones example">
 
@@ -28,7 +29,62 @@ Press <kbd>Tab</kbd> to move the focus through the buttons.
 
 </Example>
 
-## Usage
+## When the ring shows
+
+A mantle control shows the ring on `:focus-visible`, not on `:focus`. The
+browser matches `:focus-visible` when the user needs to see where the focus is:
+
+- after <kbd>Tab</kbd> or <kbd>Shift</kbd>+<kbd>Tab</kbd>
+- after an arrow key moves the focus inside a group, such as the triggers of
+  [Tabs](/components/navigation/tabs) or the options of a radio group
+- on each focus of a text field, because the user types into it
+
+A mouse click or a tap on a button, a link, or a checkbox does not match it. A
+pointer user already knows which control they pressed, so a ring there is
+noise. A keyboard user has no pointer, so the ring is how they know where they
+are. `:focus-visible` gives each of them the correct result from one class.
+
+In Chromium and WebKit, a key press on a control that already has the focus also matches
+`:focus-visible`, such as an arrow key in the open list of a
+[Select](/components/forms/select) that a click opened. Firefox keeps the
+result of the click until the focus moves.
+
+Some mantle controls use another state, because the ring must also show after
+a click:
+
+- [Input](/components/forms/input) puts `focus-within:focus-ring` on the box
+  around the `<input>`, so the ring goes around the icons and buttons in it.
+- [Combobox](/components/forms/combobox) and
+  [MultiSelect](/components/forms/multi-select) show the ring on each focus of
+  their text field, and keep it while their list is open.
+
+## How it's drawn
+
+The ring is a box shadow, not a CSS `outline`. The utility sets Tailwind's
+`ring-4` and the focus color, and it removes the browser outline:
+
+```css
+/* In effect, beside the element's own shadows: */
+box-shadow: 0 0 0 4px var(--ring-color-focus-accent);
+outline-style: none;
+```
+
+The result is a 4px halo flush against the border of the element, in a
+translucent tint of the tone (30% of its 500 shade). It follows the border
+radius of the element.
+
+mantle uses a box shadow because it is easier to customize than an outline:
+
+- It adds to the element's own shadows. A card or a button with a drop shadow
+  keeps that shadow when it gets the ring.
+- A `ring-focus-*` or `ring-*` class on the same element changes the color or
+  the width for one state, such as a field with an error. See
+  [Change the tone or the size for a state](#change-the-tone-or-the-size-for-a-state).
+
+The cost is space: the ring paints 4px outside the box of the element, and it
+takes no layout space. See [A clipped ring](#a-clipped-ring).
+
+## Use it on your own control
 
 Put a state variant before the utility. The utility alone shows the ring at all
 times.
@@ -38,9 +94,24 @@ times.
 - `focus-within:focus-ring` for a wrapper that holds the focused element, such
   as the box around an input.
 - `focus:focus-ring` for a control that must show the ring after a click, such
-  as a select trigger.
+  as a field that the user types into.
 
 Give the element a border radius. The ring follows the radius of the element.
+
+```tsx
+<a href="/endpoints" className="block rounded-lg border border-card p-4 focus-visible:focus-ring">
+	Endpoints
+</a>
+```
+
+In a stylesheet that Tailwind compiles with `mantle.css` in scope (or with a
+`@reference` to it), apply the utility inside the state selector:
+
+```css
+.my-control:focus-visible {
+	@apply focus-ring;
+}
+```
 
 ## Tones
 
@@ -61,7 +132,7 @@ width class on the same element overrides it.
 
 ```tsx
 // The tone follows the validation state.
-<input className="focus-visible:focus-ring focus-visible:data-validation-error:ring-focus-danger" />
+<input className="focus-visible:focus-ring focus-visible:data-[validation=error]:ring-focus-danger" />
 
 // A 2px ring for a small control inside another control.
 <button type="button" className="focus-visible:focus-ring focus-visible:ring-2" />
@@ -72,16 +143,110 @@ for it.
 
 ## A clipped ring
 
-The ring is a box shadow, so it extends 4px outside the element.
+The ring paints outside the element, so an ancestor that clips its content cuts
+it off. This includes each scroll container and each element with
+`overflow-hidden`. Watch for `overflow-x-auto`: when one axis scrolls, the
+browser sets the other axis to `auto` too, so a horizontal scroller also clips
+the ring at its top and bottom.
 
-- An ancestor that clips its content cuts the ring off. This includes each
-  scroll container and each element with `overflow-hidden`. Give that ancestor
-  4px of padding.
-- An adjacent element that is later in the DOM can cover the ring. Add
-  `focus-visible:z-1` to the control.
+Press <kbd>Tab</kbd> into the row below. The scroll box cuts off the ring of each
+button.
 
-## How it works
+<Example name="base/focus-ring/clipped" title="Focus Ring clipped by a scroll container example">
 
-The utility sets a 4px Tailwind ring and its color, and removes the browser
-outline. In forced-colors mode, a box shadow does not show, so the utility
-keeps a transparent outline that the browser then paints.
+```tsx
+<div className="flex gap-2 overflow-x-auto">
+	<button type="button" className="shrink-0 rounded-md focus-visible:focus-ring">
+		Endpoints
+	</button>
+	<button type="button" className="shrink-0 rounded-md focus-visible:focus-ring">
+		Domains
+	</button>
+</div>
+```
+
+</Example>
+
+### Give the ring room
+
+Give the clipping ancestor 4px of padding, then a negative margin of the same
+size. The padding puts the ring inside the clip box. The negative margin
+cancels the padding, so the content stays where it was and the layout does not
+change.
+
+<Example name="base/focus-ring/room-for-the-ring" title="Focus Ring with room in a scroll container example">
+
+```tsx
+<div className="-m-1 flex gap-2 overflow-x-auto p-1">
+	<button type="button" className="shrink-0 rounded-md focus-visible:focus-ring">
+		Endpoints
+	</button>
+	<button type="button" className="shrink-0 rounded-md focus-visible:focus-ring">
+		Domains
+	</button>
+</div>
+```
+
+</Example>
+
+Match the padding to the ring: `p-1 -m-1` for the 4px ring, and `p-0.5 -m-0.5`
+for `ring-2`. Pad only the sides where a focusable element meets the clip
+edge. The parent of the scroll box must
+not clip the 4px that the negative margin moves into.
+
+mantle uses this fix in its own components:
+
+- The horizontal `Tabs.List` uses `px-1 -mx-1 pt-1 -mt-1`, and the pill
+  appearance adds `pb-1 -mb-1`.
+- `CodeBlock.TabList` uses `-m-1 p-1`.
+
+The same pair on the control itself moves the ring off its label.
+`Accordion.Trigger` uses `-mx-2 px-2`, so the ring has space around the label
+and the label stays aligned with the content.
+
+### Draw the ring inside
+
+Some controls meet the clip edge and the ancestor cannot take padding, such as a
+full-width button at the bottom of a rounded card with `overflow-hidden`. Draw
+the ring inside the control instead:
+
+```tsx
+<button
+	type="button"
+	className="w-full focus-visible:focus-ring focus-visible:ring-inset focus-visible:-outline-offset-2"
+>
+	Show more
+</button>
+```
+
+`ring-inset` moves the ring inside the border. `-outline-offset-2` moves the
+[forced-colors](#forced-colors) outline inside too. `CodeBlock.ExpanderButton`
+uses this fix.
+
+### A covered ring
+
+An adjacent element that is later in the DOM can paint over the ring. Add
+`focus-visible:z-1` to the control, so it paints above its neighbors while it
+has the focus.
+
+## Forced colors
+
+In forced-colors mode, such as Windows High Contrast, the browser removes each
+box shadow, so the ring does not show. The utility keeps a fallback for this
+mode. Tailwind's `outline-hidden`, which `focus-ring` applies, sets a
+transparent outline in place of `outline-style: none`:
+
+```css
+.focus-visible\:focus-ring:focus-visible {
+	outline-style: none;
+
+	@media (forced-colors: active) {
+		outline: 2px solid transparent;
+		outline-offset: 2px;
+	}
+}
+```
+
+Forced-colors mode replaces the transparent color with a system color, so the
+user sees a 2px outline 2px outside the control. You get this fallback each time
+you use `focus-ring`.

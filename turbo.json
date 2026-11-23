@@ -40,7 +40,8 @@
       "persistent": true
     },
     "//#install:playwright": {
-      "cache": false
+      "cache": false,
+      "passThroughEnv": ["MANTLE_BROWSERS"]
     },
     "//#test:scripts": {
       "inputs": [
@@ -55,10 +56,12 @@
     },
     "@ngrok/mantle#test": {
       "dependsOn": ["^build", "//#install:playwright", "//#test:scripts"],
+      "env": ["MANTLE_BROWSERS"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/apps/www/app/docs/**",
         "$TURBO_ROOT$/apps/www/app/utilities/__snapshots__/components-surface.json",
+        "$TURBO_ROOT$/apps/www/app/utilities/__snapshots__/recipes-surface.json",
         "$TURBO_ROOT$/docs/charts.md"
       ]
     },

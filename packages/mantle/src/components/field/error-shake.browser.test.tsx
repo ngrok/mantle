@@ -17,9 +17,9 @@ import type { Validation } from "./validation.js";
  * stays. Only a running `CSSAnimation` can show that. happy-dom runs no
  * animation, and `prefers-reduced-motion` is a Playwright page emulation.
  *
- * The stylesheet below is Tailwind 4.3.3's output for the class lists the
- * controls use, with the `shake` keyframes from `mantle.css`. Regenerate it by
- * compiling those class names through `@tailwindcss/node`'s `compile()`.
+ * The shake rules come from Tailwind's own output for each control, so the
+ * `motion-safe:` gate is the one the component writes. Tailwind's default theme
+ * has no `danger` color, so the border rule below is hand-written.
  */
 const STYLE = `
 @layer theme {
@@ -31,30 +31,22 @@ const STYLE = `
 	.has-\\[\\>\\[data-validation\\=error\\]\\]\\:border-danger-600:has( > [data-validation=error]) {
 		border-color: var(--color-danger-600);
 	}
-	@media (prefers-reduced-motion: no-preference) {
-		.motion-safe\\:has-\\[\\>\\[data-validation\\=error\\]\\]\\:animate-shake:has( > [data-validation=error]) {
-			animation: shake 300ms ease-in-out;
-		}
-		.motion-safe\\:data-validation-error\\:animate-shake[data-validation="error"] {
-			animation: shake 300ms ease-in-out;
-		}
-	}
-}
-@keyframes shake {
-	0% { translate: 0; animation-timing-function: ease-out; }
-	20% { translate: -4px; }
-	40% { translate: 3px; }
-	60% { translate: -2px; }
-	80% { translate: 1px; }
-	100% { translate: 0; }
 }
 `;
 
 let styleElement: HTMLStyleElement;
 
-beforeAll(() => {
+beforeAll(async () => {
 	styleElement = document.createElement("style");
-	styleElement.textContent = STYLE;
+	const controls = [
+		"../input/input.tsx",
+		"../text-area/text-area.tsx",
+		"../select/select.tsx",
+		"../combobox/combobox.tsx",
+		"../multi-select/multi-select.tsx",
+	];
+	const compiled = await Promise.all(controls.map((file) => commands.tailwindCss(file)));
+	styleElement.textContent = [...compiled, STYLE].join("\n");
 	document.head.appendChild(styleElement);
 });
 

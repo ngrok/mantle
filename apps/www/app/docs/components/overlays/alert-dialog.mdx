@@ -111,13 +111,13 @@ import { Button } from "@ngrok/mantle/button";
 
 ## Layering and z-index
 
-`AlertDialog.Content` renders the browser's modal `<dialog>` (`data-slot="alert-dialog-positioner"`, `role="alertdialog"`), so it paints in the top layer, above the page and every float outside it. The browser traps focus in it, makes the page behind it inert, closes it on Escape, and returns focus to the trigger. Floats composed inside the content portal into the `<dialog>` and paint above the content.
+`AlertDialog.Content` renders the browser's modal `<dialog>` (`data-slot="alert-dialog-positioner"`, `role="alertdialog"`), so it paints in the top layer, above the page and every float outside it. The browser makes the page behind it inert, closes it on Escape, and returns focus to the trigger. Floats composed inside the content portal into the `<dialog>` and paint above the content.
 
 `AlertDialog`, `Dialog`, and `Sheet` each draw their own backdrop, so stacking modal layers compounds the dim and blur effect on the layers underneath.
 
 ## UI above an open alert dialog
 
-An open alert dialog makes the rest of the page inert: no click, focus, or screen reader reaches it. mantle's `Toaster` moves its toasts into the open alert dialog, so they paint above it and take clicks. Put a control that a user must reach while the alert dialog is open inside the alert dialog content.
+An open alert dialog makes the rest of the page inert: no click, focus, or screen reader reaches it. To keep a banner or a bar usable above it, wrap the element in [`OverlayPrompt`](/components/primitives/overlay-prompt): it moves into the open alert dialog, so it paints above it, takes clicks and focus, and a press in it does not close the alert dialog. mantle's `Toaster` and `Sandbar` use it.
 
 ## Third-party popups
 
@@ -156,7 +156,7 @@ import { Checkbox } from "@ngrok/mantle/checkbox";
 import { Choice } from "@ngrok/mantle/choice";
 import { Field, toErrorMessages } from "@ngrok/mantle/field";
 import { useForm } from "@tanstack/react-form";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { z } from "zod";
 
 const formSchema = z.object({
@@ -165,12 +165,20 @@ const formSchema = z.object({
 
 function Example() {
 	const [open, setOpen] = useState(false);
+	const formRef = useRef<HTMLFormElement>(null);
 	const form = useForm({
 		defaultValues: {
 			acknowledged: false,
 		},
 		validators: {
 			onSubmit: formSchema,
+		},
+		// Why: a failed submit moves focus to the first invalid field, so a screen
+		// reader says what to fix. The frame lets the fields render their errors first.
+		onSubmitInvalid: () => {
+			requestAnimationFrame(() => {
+				formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+			});
 		},
 		onSubmit: ({ value }) => {
 			// Handle the destructive action with `value`, then close the dialog
@@ -196,6 +204,7 @@ function Example() {
 				<AlertDialog.Icon />
 				<AlertDialog.Body asChild>
 					<form
+						ref={formRef}
 						onSubmit={(event) => {
 							event.preventDefault();
 							event.stopPropagation();

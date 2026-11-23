@@ -7,7 +7,8 @@ import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
  * Runs the floats in a browser with no popover API and no CSS anchor
  * positioning, such as Safari 16 or Chrome 113. Why a dynamic import: the
  * float reads both features once, when its module loads, so the test removes
- * them first.
+ * them first. The test hides each `[popover]` that is not open, as jsdom
+ * does, so a float with the attribute would not show.
  */
 const popoverMethods = ["showPopover", "hidePopover", "togglePopover"] as const;
 const savedMethods = popoverMethods.map((name) =>
@@ -21,6 +22,10 @@ const supports = vi.spyOn(CSS, "supports").mockReturnValue(false);
 const Popover = await import("../../components/popover/popover-parts.js");
 const Tooltip = await import("../../components/tooltip/tooltip-parts.js");
 const DropdownMenu = await import("../../components/dropdown-menu/dropdown-menu-parts.js");
+const HoverCard = await import("../../components/hover-card/hover-card-parts.js");
+const Select = await import("../../components/select/select-parts.js");
+const Combobox = await import("../../components/combobox/combobox-parts.js");
+const MultiSelect = await import("../../components/multi-select/multi-select-parts.js");
 
 let styleElement: HTMLStyleElement;
 
@@ -29,9 +34,8 @@ beforeAll(async () => {
 	styleElement.textContent = [
 		// Why: Tailwind's preflight sets it.
 		"*, ::before, ::after { box-sizing: border-box; border: 0 solid; }",
-		// Why: an old browser does not know the attribute, so its own stylesheet
-		// does not hide a `[popover]` that is not open. This browser does.
-		"[popover]:not(:popover-open) { display: block; }",
+		// Why `!important`: a `display` class on a float, such as the menu's `flex`, would show it.
+		"[popover]:not(:popover-open) { display: none !important; }",
 		await commands.tailwindCss("./use-float.ts"),
 		await commands.tailwindCss("../../components/popover/popover.tsx"),
 		await commands.tailwindCss("../../components/tooltip/tooltip.tsx"),
@@ -73,7 +77,7 @@ describe("a browser with no popover API and no anchor positioning", () => {
 		const style = getComputedStyle(content);
 		expect(style.position).toBe("fixed");
 		expect(style.zIndex).toBe("50");
-		await waitFor(() => expect(style.opacity).toBe("1"));
+		await Promise.all(content.getAnimations().map((animation) => animation.finished));
 		// Below the trigger, `sideOffset` away, centered on it.
 		const anchor = trigger.getBoundingClientRect();
 		const box = content.getBoundingClientRect();
@@ -266,5 +270,61 @@ describe("a browser with no popover API and no anchor positioning", () => {
 		await user.keyboard("{Escape}");
 		await waitFor(() => expect(trigger).toHaveFocus());
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
+	});
+
+	test("shows a hover card on hover", async () => {
+		const user = userEvent.setup();
+		render(
+			<HoverCard.Root openDelay={0}>
+				<HoverCard.Trigger href="/docs">Docs</HoverCard.Trigger>
+				<HoverCard.Content>Read the guides</HoverCard.Content>
+			</HoverCard.Root>,
+		);
+
+		await user.hover(screen.getByRole("link", { name: "Docs" }));
+
+		await waitFor(() => expect(screen.getByText("Read the guides").checkVisibility()).toBe(true));
+	});
+
+	test("opens the list of each picker and picks an option by its role", async () => {
+		const user = userEvent.setup();
+		render(
+			<>
+				<Select.Root>
+					<Select.Trigger aria-label="Fruit">
+						<Select.Value />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+					</Select.Content>
+				</Select.Root>
+				<Combobox.Root>
+					<Combobox.Input aria-label="Color" />
+					<Combobox.Content>
+						<Combobox.Item value="Red">Red</Combobox.Item>
+					</Combobox.Content>
+				</Combobox.Root>
+				<MultiSelect.Root>
+					<MultiSelect.Trigger>
+						<MultiSelect.Input aria-label="Tags" />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="urgent">Urgent</MultiSelect.Item>
+					</MultiSelect.Content>
+				</MultiSelect.Root>
+			</>,
+		);
+
+		await user.click(screen.getByRole("combobox", { name: "Fruit" }));
+		await user.click(await screen.findByRole("option", { name: "Apple" }));
+		expect(screen.getByRole("combobox", { name: "Fruit" })).toHaveTextContent("Apple");
+
+		await user.click(screen.getByRole("combobox", { name: "Color" }));
+		await user.click(await screen.findByRole("option", { name: "Red" }));
+		expect(screen.getByRole("combobox", { name: "Color" })).toHaveValue("Red");
+
+		await user.click(screen.getByRole("combobox", { name: "Tags" }));
+		await user.click(await screen.findByRole("option", { name: "Urgent" }));
+		expect(screen.getByRole("option", { name: "Urgent" })).toHaveAttribute("aria-selected", "true");
 	});
 });

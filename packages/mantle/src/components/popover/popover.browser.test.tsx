@@ -1,9 +1,11 @@
 "use client";
 
 import { render, screen, waitFor } from "@testing-library/react";
+import { createPortal } from "react-dom";
 import { userEvent } from "@testing-library/user-event";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { commands } from "vitest/browser";
+import { commands, server, userEvent as browserUser } from "vitest/browser";
+import * as AlertDialog from "../alert-dialog/alert-dialog-parts.js";
 import * as Popover from "./popover-parts.js";
 
 /**
@@ -49,32 +51,6 @@ function baseOverlap() {
 }
 
 describe("Popover.Arrow", () => {
-	test("keeps its offset through the open animation's scale", async () => {
-		const user = userEvent.setup();
-		render(
-			<Popover.Root>
-				<Popover.Trigger>Open</Popover.Trigger>
-				<Popover.Content side="right">
-					<Popover.Arrow />
-					<p>Products moved up here</p>
-				</Popover.Content>
-			</Popover.Root>,
-		);
-
-		await user.click(screen.getByRole("button", { name: "Open" }));
-		await screen.findByRole("dialog");
-		const settled = baseOverlap();
-
-		// The open animation scales the content. `scale: 1` sets the property with
-		// no visual change, so this isolates the property from the motion. The
-		// content is `fixed`, so it is the arrow's containing block either way.
-		const content = screen.getByRole("dialog");
-		content.style.scale = "1";
-		content.getBoundingClientRect();
-
-		expect(baseOverlap()).toBeCloseTo(settled, 1);
-	});
-
 	test("overlaps the content's border so the two edges read as one line", async () => {
 		const user = userEvent.setup();
 		render(
@@ -107,6 +83,23 @@ describe("Popover.Content placement", () => {
 
 	afterAll(() => {
 		placementStyle.remove();
+	});
+
+	test("content that scrolls does not bounce or scroll the page at its ends", async () => {
+		const user = userEvent.setup();
+		render(
+			<Popover.Root>
+				<Popover.Trigger>Open</Popover.Trigger>
+				<Popover.Content style={{ maxHeight: 60, overflowY: "auto" }}>
+					<p style={{ height: 200 }}>Tall content</p>
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		await user.click(screen.getByRole("button", { name: "Open" }));
+		const content = await screen.findByRole("dialog");
+
+		expect(content.scrollHeight).toBeGreaterThan(content.clientHeight);
+		expect(getComputedStyle(content).overscrollBehaviorY).toBe("none");
 	});
 
 	test("aligns to the trigger's start edge after it changes from center", async () => {
@@ -160,32 +153,35 @@ describe("Popover.Content placement", () => {
 		});
 	});
 
-	test("stays next to its trigger while its exit transition plays", async () => {
-		const user = userEvent.setup();
-		render(
-			<div style={{ padding: 120 }}>
-				<Popover.Root>
-					<Popover.Trigger>Open</Popover.Trigger>
-					<Popover.Content>
-						<Popover.Close>Done</Popover.Close>
-					</Popover.Content>
-				</Popover.Root>
-			</div>,
-		);
-		const trigger = screen.getByRole("button", { name: "Open" });
-		await user.click(trigger);
-		const content = await screen.findByRole("dialog");
-		await waitFor(() => expect(getComputedStyle(content).opacity).toBe("1"));
-		const openTop = content.getBoundingClientRect().top;
+	// Why Chromium only: Chromium keeps a closing popover in the top layer for its
+	// exit. Firefox and Safari hide it at once, so they paint no exit to place.
+	test.runIf(server.browser === "chromium")(
+		"stays next to its trigger while its exit transition plays",
+		async () => {
+			const user = userEvent.setup();
+			render(
+				<div style={{ padding: 120 }}>
+					<Popover.Root>
+						<Popover.Trigger>Open</Popover.Trigger>
+						<Popover.Content>
+							<Popover.Close>Done</Popover.Close>
+						</Popover.Content>
+					</Popover.Root>
+				</div>,
+			);
+			const trigger = screen.getByRole("button", { name: "Open" });
+			await user.click(trigger);
+			const content = await screen.findByRole("dialog");
+			await Promise.all(content.getAnimations().map((animation) => animation.finished));
+			const openTop = content.getBoundingClientRect().top;
 
-		await user.click(screen.getByRole("button", { name: "Done" }));
-		await new Promise(requestAnimationFrame);
+			await user.click(screen.getByRole("button", { name: "Done" }));
+			await new Promise(requestAnimationFrame);
 
-		// Why only while painted: Chromium keeps a closing popover in the top
-		// layer for its exit; Firefox and Safari hide it at once.
-		const paintedTop = content.checkVisibility() ? content.getBoundingClientRect().top : openTop;
-		expect(paintedTop).toBeCloseTo(openTop, 0);
-	});
+			expect(content.checkVisibility()).toBe(true);
+			expect(content.getBoundingClientRect().top).toBeCloseTo(openTop, 0);
+		},
+	);
 
 	test("takes pointer input when a modal menu turns off pointer events on the body", async () => {
 		const user = userEvent.setup();
@@ -220,7 +216,7 @@ describe("Popover.Content placement", () => {
 		const { rerender } = render(tree("First"));
 		await user.click(screen.getByRole("button", { name: "Open" }));
 		const content = await screen.findByRole("dialog");
-		await waitFor(() => expect(getComputedStyle(content).opacity).toBe("1"));
+		await Promise.all(content.getAnimations().map((animation) => animation.finished));
 		const observer = new MutationObserver(() => {});
 		observer.observe(content, { attributeFilter: ["style"] });
 
@@ -232,5 +228,140 @@ describe("Popover.Content placement", () => {
 
 		expect(screen.getByText("Second")).toBeInTheDocument();
 		expect(styleWrites).toHaveLength(0);
+	});
+});
+
+describe("Popover.Content Tab order", () => {
+	test("Tab and Shift+Tab wrap at the edges of the open content", async () => {
+		render(
+			<>
+				<Popover.Root>
+					<Popover.Trigger>Open</Popover.Trigger>
+					<Popover.Content>
+						<button type="button">First</button>
+						<button type="button">Last</button>
+					</Popover.Content>
+				</Popover.Root>
+				<button type="button">After</button>
+			</>,
+		);
+		await browserUser.click(screen.getByRole("button", { name: "Open" }));
+		const first = screen.getByRole("button", { name: "First" });
+		const last = screen.getByRole("button", { name: "Last" });
+		await waitFor(() => expect(first).toHaveFocus());
+
+		await browserUser.keyboard("{Tab}");
+		expect(last).toHaveFocus();
+		await browserUser.keyboard("{Tab}");
+		expect(first).toHaveFocus();
+		await browserUser.keyboard("{Shift>}{Tab}{/Shift}");
+		expect(last).toHaveFocus();
+	});
+
+	test("lets the browser move focus inside a shadow root in the content", async () => {
+		render(
+			<Popover.Root>
+				<Popover.Trigger>Open</Popover.Trigger>
+				<Popover.Content>
+					<div
+						ref={(host) => {
+							if (host != null && host.shadowRoot == null) {
+								host.attachShadow({ mode: "open" }).innerHTML =
+									'<input aria-label="S1"><input aria-label="S2">';
+							}
+						}}
+					/>
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		await browserUser.click(screen.getByRole("button", { name: "Open" }));
+		const shadow = (await screen.findByRole("dialog")).querySelector("div")?.shadowRoot;
+		shadow?.querySelector<HTMLInputElement>("[aria-label=S1]")?.focus();
+
+		await browserUser.keyboard("{Tab}");
+		expect(shadow?.activeElement?.getAttribute("aria-label")).toBe("S2");
+	});
+
+	test("leaves Tab to an AlertDialog opened from the content", async () => {
+		render(
+			<Popover.Root>
+				<Popover.Trigger>Open</Popover.Trigger>
+				<Popover.Content>
+					<button type="button">Inside</button>
+					<AlertDialog.Root intent="danger">
+						<AlertDialog.Trigger>Delete</AlertDialog.Trigger>
+						<AlertDialog.Content>
+							<AlertDialog.Body>
+								<AlertDialog.Title>Delete it?</AlertDialog.Title>
+								<AlertDialog.Footer>
+									<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+								</AlertDialog.Footer>
+							</AlertDialog.Body>
+						</AlertDialog.Content>
+					</AlertDialog.Root>
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		await browserUser.click(screen.getByRole("button", { name: "Open" }));
+		await browserUser.click(await screen.findByRole("button", { name: "Delete" }));
+		const cancel = await screen.findByRole("button", { name: "Cancel" });
+		cancel.focus();
+
+		let prevented: boolean | undefined;
+		const record = (event: KeyboardEvent) => {
+			prevented = event.defaultPrevented;
+		};
+		document.addEventListener("keydown", record);
+		try {
+			await browserUser.keyboard("{Tab}");
+		} finally {
+			document.removeEventListener("keydown", record);
+		}
+		expect(prevented).toBe(false);
+	});
+
+	test("wraps from the last stop inside a dialog element written in the content", async () => {
+		render(
+			<Popover.Root>
+				<Popover.Trigger>Open</Popover.Trigger>
+				<Popover.Content>
+					<button type="button">First</button>
+					<dialog open>
+						<button type="button">Last</button>
+					</dialog>
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		await browserUser.click(screen.getByRole("button", { name: "Open" }));
+		screen.getByRole("button", { name: "Last" }).focus();
+
+		await browserUser.keyboard("{Tab}");
+		expect(screen.getByRole("button", { name: "First" })).toHaveFocus();
+	});
+
+	test("leaves Tab to a React child portaled outside the content", async () => {
+		render(
+			<Popover.Root>
+				<Popover.Trigger>Open</Popover.Trigger>
+				<Popover.Content>
+					<p>No controls here</p>
+					{createPortal(<input aria-label="Portaled" />, document.body)}
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		await browserUser.click(screen.getByRole("button", { name: "Open" }));
+		screen.getByRole("textbox", { name: "Portaled" }).focus();
+
+		let prevented: boolean | undefined;
+		const record = (event: KeyboardEvent) => {
+			prevented = event.defaultPrevented;
+		};
+		document.addEventListener("keydown", record);
+		try {
+			await browserUser.keyboard("{Tab}");
+		} finally {
+			document.removeEventListener("keydown", record);
+		}
+		expect(prevented).toBe(false);
 	});
 });

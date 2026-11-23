@@ -356,7 +356,7 @@ describe("Input", () => {
 	describe("data-disabled", () => {
 		test("stamps data-disabled when disabled and disables the input", () => {
 			render(<Input disabled placeholder="test" />);
-			expect(getInputContainer()).toHaveAttribute("data-disabled", "true");
+			expect(getInputContainer()).toHaveAttribute("data-disabled", "");
 			expect(screen.getByRole("textbox")).toBeDisabled();
 		});
 
@@ -369,10 +369,7 @@ describe("Input", () => {
 
 		test('stamps data-disabled for aria-disabled="true"', () => {
 			const { container } = render(<Input aria-disabled="true" placeholder="test" />);
-			expect(container.querySelector('[data-slot="input"]')).toHaveAttribute(
-				"data-disabled",
-				"true",
-			);
+			expect(container.querySelector('[data-slot="input"]')).toHaveAttribute("data-disabled", "");
 		});
 	});
 

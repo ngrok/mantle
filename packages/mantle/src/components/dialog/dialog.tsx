@@ -195,20 +195,22 @@ type ContentProps = Omit<
  * | Data Attribute    | Value                                            | Description                                                          |
  * | ----------------- | ------------------------------------------------ | -------------------------------------------------------------------- |
  * | `data-appearance` | `"centered"` \| `"full-page"` \| `"full-bleed"`   | Reflects the resolved `appearance`.                                  |
- * | `data-state`      | `"open"` \| `"closed"`                           | Stamped by Radix; drives the open and close animation.               |
+ * | `data-open`       | present while open | Presence-only. The `[open]` mirror the open animation keys on. |
+ * | `data-closing`    | present while the exit plays | Presence-only. Drives the close animation. |
  *
- * UI that must take clicks above the open dialog, such as a consent banner,
- * carries the `overlay-prompt` class: a click inside it does not count as an
- * outside click. Add `pointer-events-auto` too, because the open dialog sets
- * `pointer-events: none` on `<body>`. mantle's `Toaster` does both.
+ * A modal dialog makes the rest of the page inert. To keep app UI usable
+ * above it, such as a consent banner, wrap the UI in `OverlayPrompt`: while
+ * the dialog is open, it moves into the dialog, so it takes clicks and focus,
+ * and a press in it does not close the dialog. mantle's `Toaster` and
+ * `Sandbar` use it. With `modal={false}`, UI with the `overlay-prompt`
+ * class takes clicks above the dialog: a click inside it does not count as
+ * an outside click.
  *
- * The class reaches pointer input only. The open dialog traps keyboard
- * focus and hides outside content from assistive technology. Put a control that
- * every user must reach inside the content.
- *
- * A script can show its own popup in a frame on `<body>`, above the dialog,
- * such as the 3-D Secure challenge of a payment script. While that frame is
- * on top at the center of the viewport, the dialog yields to the popup:
+ * A script can show its own popup in a frame on `<body>`, such as the 3-D
+ * Secure challenge of a payment script. Set `modal={false}` on a dialog that
+ * holds such a flow: a modal dialog makes the frame inert and covers it.
+ * While that frame is on top at the center of the viewport, a non-modal
+ * dialog yields to the popup:
  *
  * - Focus that a script moves into the popup stays there.
  * - Escape moves focus into the popup and does not close the dialog.
@@ -284,8 +286,8 @@ const Content = ({
 		data-slot={joinDataSlot(dataSlot, "dialog-content")}
 		className={cx(
 			contentSurfaceClassName({ appearance, preferredWidth }),
-			"duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none!",
-			"data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95",
+			"duration-200 ease-out-strong data-closing:duration-150 motion-reduce:animate-none!",
+			"data-closing:animate-out data-closing:fade-out-0 data-closing:zoom-out-95 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95",
 			className,
 		)}
 		{...props}

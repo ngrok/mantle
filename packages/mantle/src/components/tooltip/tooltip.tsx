@@ -20,6 +20,7 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 import type { Align, Side } from "../../utils/float/position.js";
 import {
 	floatClassName,
+	hasPopoverApi,
 	useFloat,
 	useReconcileOnTriggerChange,
 	useTriggerRef,
@@ -128,7 +129,7 @@ function TooltipProvider({
 	return <TooltipTimingContext.Provider value={timing}>{children}</TooltipTimingContext.Provider>;
 }
 
-/** The open state of a tooltip, as `data-state` writes it. */
+/** The open state of a tooltip. */
 type TooltipOpenState = "closed" | "delayed-open" | "instant-open";
 
 type TooltipState = {
@@ -408,7 +409,6 @@ function Trigger({
 					: [ariaDescribedBy, state.contentId].filter(Boolean).join(" ")
 			}
 			data-slot={joinDataSlot(dataSlot, "tooltip-trigger")}
-			data-state={state.state}
 			ref={composedRef}
 			// Why also under `asChild`: a slotted `<button>` with no type would submit its form.
 			type="button"
@@ -523,7 +523,7 @@ type TooltipContentProps = Omit<ComponentProps<"div">, "id"> &
  * | ---------------- | -------------------------------------------------- | ------------------------------------------------- |
  * | `data-slot`      | `"tooltip-content"`                                | On the tooltip surface, with any composing part's chain ahead of it. |
  * | `data-slot`      | `"tooltip-label"`                                  | On the `<div>` wrapping `children`.               |
- * | `data-state`     | `"delayed-open"` \| `"instant-open"` \| `"closed"` | `"instant-open"` when the tooltip skipped its delay; `"closed"` while the exit plays. |
+ * | `data-open`      | present while open                                 | Presence-only. Absent while the exit plays.       |
  * | `data-side`      | `"top"` \| `"right"` \| `"bottom"` \| `"left"`     | Which side of the trigger the surface resolved to. |
  *
  * @see https://mantle.ngrok.com/components/overlays/tooltip#tooltipcontent
@@ -579,10 +579,10 @@ function Content({
 			<LayerContainer
 				modal={false}
 				id={state.contentId}
-				popover="hint"
+				popover={hasPopoverApi ? "hint" : undefined}
 				role="tooltip"
 				data-slot={joinDataSlot(dataSlot, "tooltip-content")}
-				data-state={state.state}
+				data-open={state.state === "closed" ? undefined : ""}
 				inert={state.state === "closed"}
 				className={cx(
 					floatClassName,

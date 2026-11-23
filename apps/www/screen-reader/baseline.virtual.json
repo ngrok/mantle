@@ -1,0 +1,1097 @@
+{
+  "reader": "virtual",
+  "base": "baseline",
+  "flows": [
+    {
+      "id": "dialog-open-close",
+      "component": "Dialog",
+      "path": "components/overlays/dialog/overview",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Open dialog, not disabled, not expanded, has popup dialog",
+            "focus: button \"Open dialog\" collapsed popup dialog"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": [
+            "dialog, Are you absolutely sure?",
+            "button, Close Dialog, not disabled",
+            "focus: button \"Close Dialog\" (in dialog \"Are you absolutely sure?\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Cancel, not disabled",
+            "focus: button \"Cancel\" (in dialog \"Are you absolutely sure?\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Delete, not disabled",
+            "focus: button \"Delete\" (in dialog \"Are you absolutely sure?\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": ["focus: none (no name)"],
+          "failed": []
+        },
+        {
+          "label": "press Escape",
+          "spoken": [
+            "button, Open dialog, 1 control, not disabled, not expanded, has popup dialog",
+            "focus: button \"Open dialog\" collapsed popup dialog"
+          ],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "dialog-sheet-stack",
+      "component": "Dialog + Sheet",
+      "path": "components/overlays/dialog/stacking-a-sheet-over-a-dialog",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Open dialog, not disabled, not expanded, has popup dialog",
+            "focus: button \"Open dialog\" collapsed popup dialog"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": [
+            "dialog, Dialog",
+            "button, Close Dialog, not disabled",
+            "focus: button \"Close Dialog\" (in dialog \"Dialog\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Open sheet, not disabled, not expanded, has popup dialog",
+            "focus: button \"Open sheet\" collapsed popup dialog (in dialog \"Dialog\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": [
+            "dialog, Sheet over a dialog, This sheet renders on top of the dialog that opened it.",
+            "button, Close Sheet, not disabled",
+            "focus: button \"Close Sheet\" (in dialog \"Sheet over a dialog\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Escape",
+          "spoken": [
+            "dialog, Dialog",
+            "button, Open sheet, 1 control, not disabled, not expanded, has popup dialog",
+            "focus: button \"Open sheet\" collapsed popup dialog (in dialog \"Dialog\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Escape",
+          "spoken": [
+            "button, Open dialog, 1 control, not disabled, not expanded, has popup dialog",
+            "focus: button \"Open dialog\" collapsed popup dialog"
+          ],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "alert-dialog-open-close",
+      "component": "AlertDialog",
+      "path": "components/overlays/alert-dialog/overview",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Show info alert dialog, not disabled, not expanded, has popup dialog",
+            "focus: button \"Show info alert dialog\" collapsed popup dialog"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": [
+            "alertdialog, Are you absolutely sure?, Proident quis nisi tempor irure sunt ut minim occaecat mollit sunt.",
+            "button, Cancel, not disabled",
+            "assertive: Are you absolutely sure?",
+            "assertive: Are you absolutely sure?",
+            "assertive: Are you absolutely sure?",
+            "assertive: Are you absolutely sure?",
+            "assertive: Are you absolutely sure?",
+            "focus: button \"Cancel\" (in alertdialog \"Are you absolutely sure?\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Continue, not disabled",
+            "focus: button \"Continue\" (in alertdialog \"Are you absolutely sure?\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Escape",
+          "spoken": [
+            "assertive: Are you absolutely sure?",
+            "assertive: Are you absolutely sure?",
+            "assertive: Are you absolutely sure?",
+            "assertive: Are you absolutely sure?",
+            "assertive: Are you absolutely sure?",
+            "button, Show info alert dialog, 1 control, not disabled, not expanded, has popup dialog",
+            "assertive: Are you absolutely sure?Proident quis nisi tempor irure sunt ut minim occaecat mollit sunt.CancelContinue",
+            "focus: button \"Show info alert dialog\" collapsed popup dialog"
+          ],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "sheet-open-close",
+      "component": "Sheet",
+      "path": "components/overlays/sheet/overview",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Open sheet, not disabled, not expanded, has popup dialog",
+            "focus: button \"Open sheet\" collapsed popup dialog"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": [
+            "dialog, Are you absolutely sure?, This action cannot be undone. This will permanently delete your account and remove your data from our servers.",
+            "button, Start a Tunnel, not disabled",
+            "focus: button \"Start a Tunnel\" (in dialog \"Are you absolutely sure?\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, See Traffic, not disabled",
+            "focus: button \"See Traffic\" (in dialog \"Are you absolutely sure?\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Escape",
+          "spoken": [
+            "button, Open sheet, 1 control, not disabled, not expanded, has popup dialog",
+            "focus: button \"Open sheet\" collapsed popup dialog"
+          ],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "toast-over-dialog",
+      "component": "Toaster + Dialog",
+      "path": "components/feedback/toast/over-a-sheet-or-dialog",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Open sheet, not disabled, not expanded, has popup dialog",
+            "focus: button \"Open sheet\" collapsed popup dialog"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Open dialog, not disabled, not expanded, has popup dialog",
+            "focus: button \"Open dialog\" collapsed popup dialog"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": [
+            "dialog, Are you absolutely sure?",
+            "button, Close Dialog, not disabled",
+            "focus: button \"Close Dialog\" (in dialog \"Are you absolutely sure?\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Show toast, not disabled",
+            "focus: button \"Show toast\" (in dialog \"Are you absolutely sure?\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": [
+            "polite: Laborum ea anim adipisicing in Lorem incididunt mollit ipsum reprehenderit."
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Escape",
+          "spoken": [
+            "button, Open dialog, 1 control, not disabled, not expanded, has popup dialog",
+            "focus: button \"Open dialog\" collapsed popup dialog"
+          ],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "toast",
+      "component": "Toaster",
+      "path": "components/feedback/toast/overview",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": ["button, Show toast, not disabled", "focus: button \"Show toast\""],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": [
+            "polite: Laborum ea anim adipisicing in Lorem incididunt mollit ipsum reprehenderit."
+          ],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "sandbar-over-sheet",
+      "component": "Sandbar + Sheet",
+      "path": "sandbar-over-sheet",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "textbox, Endpoint name, my-agent-endpoint, not invalid",
+            "focus: textbox \"Endpoint name\" value \"my-agent-endpoint\""
+          ],
+          "failed": []
+        },
+        {
+          "label": "type \"-x\"",
+          "spoken": [
+            "polite: You have unsaved changes",
+            "polite: ",
+            "focus: textbox \"Endpoint name\" value \"-x\""
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "textbox, Description, not invalid",
+            "focus: textbox \"Description\" value \"Forwards traffic to the local dev server.\""
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, View endpoint details, not disabled, not expanded, has popup dialog",
+            "focus: button \"View endpoint details\" collapsed popup dialog"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": [
+            "dialog, my-agent-endpoint, Forwards traffic to the local dev server.",
+            "button, Close Sheet, not disabled",
+            "focus: button \"Close Sheet\" (in dialog \"my-agent-endpoint\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Discard, not disabled",
+            "focus: button \"Discard\" (in group \"You have unsaved changes\", in dialog \"my-agent-endpoint\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Save changes, not disabled",
+            "focus: button \"Save changes\" (in group \"You have unsaved changes\", in dialog \"my-agent-endpoint\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": ["focus: none (no name)"],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "dropdown-menu",
+      "component": "DropdownMenu",
+      "path": "components/overlays/dropdown-menu/overview",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Open menu, not disabled, not expanded, has popup menu",
+            "focus: button \"Open menu\" collapsed popup menu"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": [
+            "menuitemradio, System preference, checked, position 1, set size 3",
+            "focus: menuitemradio \"System preference\" checked (in menu \"Open menu\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press ArrowDown",
+          "spoken": [
+            "menuitemradio, Light mode, not checked, position 2, set size 3",
+            "focus: menuitemradio \"Light mode\" not checked (in menu \"Open menu\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press ArrowDown",
+          "spoken": [
+            "menuitemradio, Dark mode, not checked, position 3, set size 3",
+            "focus: menuitemradio \"Dark mode\" not checked (in menu \"Open menu\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Escape",
+          "spoken": [
+            "button, Open menu, not disabled, not expanded, has popup menu",
+            "focus: button \"Open menu\" collapsed popup menu"
+          ],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "tooltip",
+      "component": "Tooltip",
+      "path": "components/overlays/tooltip/overview",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Hover me, not disabled",
+            "focus: button \"Hover me\" description \"This feature is part of your plan\""
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Escape",
+          "spoken": ["focus: button \"Hover me\""],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "popover",
+      "component": "Popover",
+      "path": "components/overlays/popover/overview",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Open popover, not disabled, not expanded, has popup dialog",
+            "focus: button \"Open popover\" collapsed popup dialog"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": [
+            "dialog, Dimensions",
+            "textbox, Width, 100%, not invalid",
+            "focus: textbox \"Width\" value \"100%\" (in dialog \"Dimensions\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Escape",
+          "spoken": [
+            "button, Open popover, not disabled, not expanded, has popup dialog",
+            "focus: button \"Open popover\" collapsed popup dialog"
+          ],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "hover-card",
+      "component": "HoverCard",
+      "path": "components/overlays/hover-card/overview",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": ["button, Open hover card, not disabled", "focus: button \"Open hover card\""],
+          "failed": []
+        },
+        {
+          "label": "reader next",
+          "spoken": ["region, Notifications alt+T"],
+          "failed": []
+        },
+        {
+          "label": "press Escape",
+          "spoken": [],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "select",
+      "component": "Select",
+      "path": "components/forms/select/overview",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "combobox, Fruits, has popup listbox, not expanded, not invalid",
+            "focus: combobox \"Fruits\" value \"Select a fruit\" collapsed popup listbox"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": ["focus: option \"Apple\" (in group \"Fruits\")"],
+          "failed": []
+        },
+        {
+          "label": "press ArrowDown",
+          "spoken": ["focus: option \"Banana\" (in group \"Fruits\")"],
+          "failed": []
+        },
+        {
+          "label": "press ArrowDown",
+          "spoken": ["focus: option \"Blueberry\" (in group \"Fruits\")"],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": ["focus: combobox \"Fruits\" value \"Blueberry\" collapsed popup listbox"],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "select-error",
+      "component": "Select",
+      "path": "components/forms/select/raw-usage-and-validation",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "combobox, Fruit, has popup listbox, not expanded, not invalid",
+            "focus: combobox \"Fruit\" value \"Select a fruit\" collapsed popup listbox"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "combobox, Fruit with error, has popup listbox, not expanded, invalid",
+            "focus: combobox \"Fruit with error\" value \"Select a fruit\" collapsed invalid popup listbox"
+          ],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "combobox",
+      "component": "Combobox",
+      "path": "components/forms/combobox/overview",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "combobox, Subdomain, Start typing to filter available domains., has popup listbox, not expanded, autocomplete in list, not invalid",
+            "focus: combobox \"Subdomain\" description \"Start typing to filter available domains.\" collapsed popup listbox"
+          ],
+          "failed": []
+        },
+        {
+          "label": "type \"a\"",
+          "spoken": [
+            "focus: option \"https://${random}.ngrok.app\" selected (in group \"Available domains\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press ArrowDown",
+          "spoken": [
+            "focus: option \"https://${random}.ngrok.dev\" selected (in group \"Available domains\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press ArrowDown",
+          "spoken": [
+            "focus: option \"https://${random}.ngrok.io\" selected (in group \"Available domains\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": [
+            "focus: combobox \"Subdomain\" value \"https://${random}.ngrok.io\" description \"Start typing to filter available domains.\" collapsed popup listbox"
+          ],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "multi-select",
+      "component": "MultiSelect",
+      "path": "components/forms/multi-select/overview",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "combobox, Fruits, Pick one or more., has popup listbox, not expanded, autocomplete in list",
+            "focus: combobox \"Fruits\" description \"Pick one or more.\" collapsed popup listbox"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press ArrowDown",
+          "spoken": ["focus: option \"Apple\""],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": ["focus: option \"Apple\" selected"],
+          "failed": []
+        },
+        {
+          "label": "press ArrowDown",
+          "spoken": ["focus: option \"Banana\""],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": ["focus: option \"Banana\" selected"],
+          "failed": []
+        },
+        {
+          "label": "press Escape",
+          "spoken": [
+            "focus: combobox \"Fruits\" description \"Pick one or more.\" collapsed popup listbox"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Backspace",
+          "spoken": ["polite: Removed Banana"],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "multi-select-validation",
+      "component": "MultiSelect",
+      "path": "components/forms/multi-select/validation-states",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "combobox, Fruits (error), has popup listbox, not expanded, autocomplete in list",
+            "focus: combobox \"Fruits (error)\" collapsed popup listbox"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "combobox, Fruits (success), has popup listbox, not expanded, autocomplete in list",
+            "focus: combobox \"Fruits (success)\" collapsed popup listbox"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "combobox, Fruits (warning), has popup listbox, not expanded, autocomplete in list",
+            "focus: combobox \"Fruits (warning)\" collapsed popup listbox"
+          ],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "switch",
+      "component": "Switch",
+      "path": "components/forms/switch/overview",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "switch, Airplane mode, on, Disables wireless radios while in flight., not checked, not invalid, not read only",
+            "focus: switch \"Airplane mode\" description \"Disables wireless radios while in flight.\" not checked"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Space",
+          "spoken": [
+            "focus: switch \"Airplane mode\" description \"Disables wireless radios while in flight.\" checked"
+          ],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "dialog-form-errors",
+      "component": "Dialog + Field + Select",
+      "path": "components/overlays/dialog/with-tanstack-form",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Invite a teammate, not disabled, not expanded, has popup dialog",
+            "focus: button \"Invite a teammate\" collapsed popup dialog"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": [
+            "dialog, Invite a teammate",
+            "button, Close Dialog, not disabled",
+            "focus: button \"Close Dialog\" (in dialog \"Invite a teammate\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "textbox, Email, not invalid, placeholder teammate@example.com",
+            "focus: textbox \"Email\" (in dialog \"Invite a teammate\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "combobox, Role, has popup listbox, not expanded, not invalid",
+            "focus: combobox \"Role\" value \"Select a role\" collapsed popup listbox (in dialog \"Invite a teammate\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Cancel, not disabled",
+            "focus: button \"Cancel\" (in dialog \"Invite a teammate\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Send invite, not disabled",
+            "focus: button \"Send invite\" (in dialog \"Invite a teammate\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": [
+            "textbox, Email, Enter a valid email address., 1 error message, invalid, placeholder teammate@example.com",
+            "focus: textbox \"Email\" description \"Enter a valid email address.\" invalid (in dialog \"Invite a teammate\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "combobox, Role, Choose a role., has popup listbox, not expanded, 1 error message, invalid",
+            "focus: combobox \"Role\" value \"Select a role\" description \"Choose a role.\" collapsed invalid popup listbox (in dialog \"Invite a teammate\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Shift+Tab",
+          "spoken": [
+            "textbox, Email, not invalid, placeholder teammate@example.com",
+            "focus: textbox \"Email\" (in dialog \"Invite a teammate\")"
+          ],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "radio-group",
+      "component": "RadioGroup",
+      "path": "components/forms/radio-group/overview",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "radio, Compact, checked, position 3, set size 3",
+            "focus: radio \"Compact\" checked (in group \"Density\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press ArrowUp",
+          "spoken": [
+            "radio, Comfortable, not checked, position 2, set size 3",
+            "focus: radio \"Comfortable\" checked (in group \"Density\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "reader next",
+          "spoken": ["radio, Compact, checked, position 3, set size 3"],
+          "failed": []
+        },
+        {
+          "label": "reader next",
+          "spoken": ["end of radiogroup"],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "segmented-control",
+      "component": "SegmentedControl",
+      "path": "components/forms/segmented-control/overview",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "radio, Prod, checked, position 3, set size 3",
+            "focus: radio \"Prod\" checked (in radiogroup \"Environment\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press ArrowLeft",
+          "spoken": [
+            "radio, Dev, not checked, position 1, set size 3",
+            "focus: radio \"Dev\" checked (in radiogroup \"Environment\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "reader next",
+          "spoken": ["radio, Staging, not checked, disabled, position 2, set size 3"],
+          "failed": []
+        },
+        {
+          "label": "reader next",
+          "spoken": ["radio, Prod, checked, position 3, set size 3"],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "tabs",
+      "component": "Tabs",
+      "path": "components/navigation/tabs/overview",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "tablist, orientated horizontally",
+            "tab, Account, selected, 1 control, position 1, set size 2",
+            "focus: tab \"Account\" selected"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press ArrowRight",
+          "spoken": [
+            "tab, Password, selected, 1 control, position 2, set size 2",
+            "focus: tab \"Password\" selected"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": ["tabpanel, Password", "focus: tabpanel \"Password\""],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "command",
+      "component": "Command",
+      "path": "components/navigation/command/button-trigger",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Open command dialog, not disabled, not expanded, has popup dialog",
+            "focus: button \"Open command dialog\" collapsed popup dialog"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": [
+            "dialog, Command Palette, Search for a command to run...",
+            "combobox, has popup listbox, expanded, active descendant Calendar, autocomplete in list, 1 control",
+            "focus: option \"Calendar\" selected (in group \"Suggestions\", in listbox \"Suggestions\", in dialog \"Command Palette\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press ArrowDown",
+          "spoken": [
+            "focus: option \"Search emoji\" selected (in group \"Suggestions\", in listbox \"Suggestions\", in dialog \"Command Palette\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press ArrowDown",
+          "spoken": [
+            "focus: option \"Calculator\" selected (in group \"Suggestions\", in listbox \"Suggestions\", in dialog \"Command Palette\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Escape",
+          "spoken": [
+            "button, Open command dialog, 1 control, not disabled, not expanded, has popup dialog",
+            "focus: button \"Open command dialog\" collapsed popup dialog"
+          ],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "otp-input",
+      "component": "OtpInput",
+      "path": "components/forms/otp-input/overview",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "textbox, Verification code, Enter the 6-digit code we emailed you.",
+            "focus: textbox \"Verification code\" description \"Enter the 6-digit code we emailed you.\""
+          ],
+          "failed": []
+        },
+        {
+          "label": "type \"1\"",
+          "spoken": [
+            "focus: textbox \"Verification code\" value \"1\" description \"Enter the 6-digit code we emailed you.\""
+          ],
+          "failed": []
+        },
+        {
+          "label": "type \"2\"",
+          "spoken": [
+            "focus: textbox \"Verification code\" value \"12\" description \"Enter the 6-digit code we emailed you.\""
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": ["focus: generic (no name)"],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "otp-input-error",
+      "component": "OtpInput",
+      "path": "components/forms/otp-input/validation",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "textbox, Verification code, invalid",
+            "focus: textbox \"Verification code\" invalid"
+          ],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "slider",
+      "component": "Slider",
+      "path": "components/forms/slider/overview",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "slider, Volume, Drag to adjust playback volume., orientated horizontally, max value 100, min value 0, current value 67%",
+            "focus: slider \"Volume\" value \"67\" description \"Drag to adjust playback volume.\" valuetext 67"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press ArrowRight",
+          "spoken": [
+            "focus: slider \"Volume\" value \"68\" description \"Drag to adjust playback volume.\" valuetext 68"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press End",
+          "spoken": [
+            "focus: slider \"Volume\" value \"100\" description \"Drag to adjust playback volume.\" valuetext 100"
+          ],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "alert-center",
+      "component": "AlertCenter",
+      "path": "components/feedback/alert-center/several-alerts",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": ["link, Update payment method", "focus: link \"Update payment method\""],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Dismiss Payment failed: update your card, not disabled",
+            "focus: button \"Dismiss Payment failed: update your card\""
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Show 3 more alerts, 1 control, not disabled, not expanded",
+            "focus: button \"Show 3 more alerts\" collapsed"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": ["focus: button \"Collapse additional alerts\" expanded"],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": ["link, Upgrade", "focus: link \"Upgrade\""],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "accordion",
+      "component": "Accordion",
+      "path": "components/data-display/accordion/overview",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, How do I point my custom domain at an ngrok endpoint?, 1 control, expanded",
+            "focus: button \"How do I point my custom domain at an ngrok endpoint?\" expanded"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Can I verify inbound webhook signatures?, 1 control, not expanded",
+            "focus: button \"Can I verify inbound webhook signatures?\" collapsed"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": ["focus: button \"Can I verify inbound webhook signatures?\" expanded"],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "theme-switcher",
+      "component": "ThemeSwitcher",
+      "path": "components/forms/theme-switcher/overview",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Switch to dark theme, not disabled",
+            "focus: button \"Switch to dark theme\""
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": [
+            "polite: Dark theme",
+            "focus: button \"Switch to light theme (system default)\""
+          ],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "sidebar",
+      "component": "Sidebar",
+      "path": "sidebar-persistence",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": ["link, Skip to main content", "focus: link \"Skip to main content\""],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": ["button, Endpoints, current page", "focus: button \"Endpoints\""],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Toggle Sidebar, 1 control, not disabled, expanded, key shortcuts Control+B",
+            "focus: button \"Toggle Sidebar\" expanded"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": ["focus: generic (no name)"],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": [],
+          "failed": []
+        }
+      ]
+    }
+  ]
+}

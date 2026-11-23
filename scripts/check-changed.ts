@@ -4,6 +4,8 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import process from "node:process";
 
+import { contributorDocFile } from "./check-agent-docs.ts";
+
 /** One command that `check:changed` runs. */
 export type CheckStep = {
 	name: string;
@@ -13,7 +15,6 @@ export type CheckStep = {
 
 const lintableFile = /\.(?:[cm]?[jt]sx?)$/;
 const formattableFile = /\.(?:[cm]?[jt]sx?|json|jsonc|css|md|mdx|ya?ml)$/;
-const agentDocFile = /(?:^|\/)(?:AGENTS|CONVENTIONS)\.md$/;
 const tailwindSourceFile = /^(?:apps|packages)\/.+\.tsx?$/;
 // Why every source file: a new theme, Tailwind version, or fixer rule can change the canonical form of any class.
 const tailwindRulesFile = /\.css$|^pnpm-lock\.yaml$|^scripts\/tailwind-canonical/;
@@ -22,6 +23,9 @@ const packageInputFile = /\.(?:[cm]?[jt]sx?|mdx|css|jsonc?|ya?ml)$/;
 // Why the whole repo: a new rule or a plugin change can fail a file that did not change.
 const lintConfigFile =
 	/^(?:\.oxlintrc\.json|scripts\/oxlint-plugin-mantle\.js|scripts\/oxlint-rules\/[^/]+\.js)$/;
+// The stylesheets `check-css-selectors.ts` reads, and the files that define its check.
+const cssSelectorFile =
+	/^packages\/mantle\/src\/.+\.css$|^scripts\/check-css-selectors\.ts$|^scripts\/oxlint-rules\/no-structural-combinator\.js$/;
 // The files `check-prose.ts` reads: prose and stylesheets.
 const proseFile = /\.(md|mdx|css)$/;
 
@@ -33,7 +37,7 @@ const rootTaskInputFile =
  * Plan the checks for a set of changed files, cheapest first.
  *
  * Format, the Tailwind class check, lint, the markdown link check, and the prose check read only the changed files that still
- * exist. A change to a stylesheet, the lockfile, or the Tailwind fixer checks the classes in every file.
+ * exist. A change to a mantle stylesheet runs the CSS selector check on every mantle stylesheet. A change to a stylesheet, the lockfile, or the Tailwind fixer checks the classes in every file.
  * Typecheck and tests run through turbo for each package that changed since `base`, plus the packages that depend on
  * it. A deleted file still schedules them, because a deletion can break an import. A lint config change lints the whole repo, and a change to a
  * script, a hook, a migration, or a changeset runs the root `typecheck:scripts` and `test:scripts` tasks.
@@ -90,7 +94,15 @@ export function planChecks({
 			args: ["exec", "oxlint", "--type-aware", "--deny-warnings", ...lintable],
 		});
 	}
-	if (files.some((file) => agentDocFile.test(file))) {
+	// Why the mantle manifest and the check: a dependency or a retired name changes which library names the docs may use.
+	if (
+		files.some(
+			(file) =>
+				contributorDocFile.test(file) ||
+				file === "packages/mantle/package.json" ||
+				file === "scripts/check-agent-docs.ts",
+		)
+	) {
 		steps.push({ name: "agent docs", command: "node", args: ["./scripts/check-agent-docs.ts"] });
 	}
 	if (markdown.length > 0) {
@@ -102,6 +114,13 @@ export function planChecks({
 	}
 	if (prose.length > 0) {
 		steps.push({ name: "prose", command: "node", args: ["./scripts/check-prose.ts", ...prose] });
+	}
+	if (files.some((file) => cssSelectorFile.test(file))) {
+		steps.push({
+			name: "css selectors",
+			command: "node",
+			args: ["./scripts/check-css-selectors.ts"],
+		});
 	}
 	if (touchesPackage) {
 		const filter = `--filter=...[${base}]`;

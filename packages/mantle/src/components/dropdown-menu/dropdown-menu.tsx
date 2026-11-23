@@ -24,6 +24,7 @@ import {
 import { createPortal } from "react-dom";
 import invariant from "tiny-invariant";
 import { enterModal } from "../../behaviors/enter-modal.js";
+import { swallowOutsideClick } from "../../behaviors/swallow-outside-click.js";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
@@ -33,12 +34,14 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 import type { Align, Side } from "../../utils/float/position.js";
 import {
 	floatClassName,
+	hasPopoverApi,
 	useFloat,
 	useReconcileOnTriggerChange,
 	useTriggerRef,
 } from "../../utils/float/use-float.js";
 import type { OutsideHandlers } from "../../utils/float/use-float.js";
 import { LayerContainerContext } from "../../utils/layer-container/layer-container.js";
+import { observeScrollEdges } from "../../utils/scroll-edges.js";
 import { Icon } from "../icon/icon.js";
 import { Separator } from "../separator/separator.js";
 import { Slot, slotContent } from "../slot/slot.js";
@@ -219,7 +222,8 @@ function focusFirst(items: readonly HTMLElement[]): boolean {
 		focusWithoutScroll(item);
 		const after = item.ownerDocument.activeElement;
 		if (after === item) {
-			item.scrollIntoView({ block: "nearest" });
+			// Why optional: jsdom has no `scrollIntoView`.
+			item.scrollIntoView?.({ block: "nearest" });
 			return true;
 		}
 		// Why stop: a consumer's focus handler sent focus somewhere else on purpose.
@@ -428,8 +432,8 @@ function isInBox(x: number, y: number, box: DOMRect): boolean {
  * This is the root, stateful component that manages the open/closed state of the dropdown menu.
  *
  * `DropdownMenu.Content` and `DropdownMenu.SubContent` are native
- * `popover="manual"` elements in the browser's top layer, placed by CSS anchor
- * positioning, so no `overflow` or `z-index` clips them. Each portals into the
+ * `popover="manual"` elements in the browser's top layer, placed by a script
+ * next to their trigger, so no `overflow` or `z-index` clips them. Each portals into the
  * overlay or float that holds it, else into `document.body`, and closes when an
  * overlay that does not hold it opens. A float opened from an item, such as a
  * `Popover`, portals into the menu.
@@ -455,7 +459,7 @@ const Root = ({
 	children,
 	defaultOpen = false,
 	dir,
-	modal = true,
+	modal = false,
 	onOpenChange,
 	open: openProp,
 }: {
@@ -471,8 +475,11 @@ const Root = ({
 	onOpenChange?: (open: boolean) => void;
 	/**
 	 * Whether the page behind the open menu is inert: it does not scroll, take
-	 * focus, take pointer input, or reach a screen reader.
-	 * @default true
+	 * focus, take pointer input, or reach a screen reader. By default the page
+	 * stays live, as with a native popover and the WAI-ARIA menu button pattern.
+	 * A press that ends outside still closes the menu, and its primary click
+	 * (left button, no Ctrl) does not activate what is under it.
+	 * @default false
 	 */
 	modal?: boolean;
 	/** The reading direction. It decides which arrow key opens and closes a submenu. Defaults to the trigger's direction. */
@@ -562,9 +569,7 @@ const Trigger = ({
 			aria-controls={state.open ? state.contentId : undefined}
 			aria-expanded={state.open}
 			aria-haspopup="menu"
-			data-disabled={disabled ? "" : undefined}
 			data-slot={joinDataSlot(dataSlot, "dropdown-menu-trigger")}
-			data-state={state.open ? "open" : "closed"}
 			disabled={disabled}
 			id={state.triggerId}
 			ref={composedRef}
@@ -809,20 +814,25 @@ const panelClassName =
 
 /**
  * How the element that scrolls a menu's items scrolls. Why `scroll-py-6`: a
- * focused item scrolls clear of the 1.5rem `scroll-fade-y` fade at each edge.
+ * focused item scrolls clear of the 1.5rem `scroll-cue-y` fade at each edge.
  */
 const scrollClassName =
 	"scrollbar-none [&::-webkit-scrollbar]:hidden min-h-0 overflow-auto overscroll-none scroll-py-6 p-1.25 space-y-px";
 
 /**
- * Puts a menu panel's items in an element that scrolls them. Why a separate
- * element: the `scroll-fade-y` mask fades the edges of the element that has
- * it, and on the panel it would fade the border and shadow too. Why not under
- * `asChild`: a custom panel can render items of its own beside its children,
- * so the panel scrolls itself, with no fade.
+ * Puts a menu panel's items in an element that scrolls them, with the
+ * `scroll-cue-y` fade at each edge that has more items past it. Why the
+ * offsets: sticky offsets start inside the padding, so the cue moves out by
+ * the 1.25 padding to meet the edge. Why not under `asChild`: a custom panel
+ * can render items of its own beside its children, so the panel scrolls
+ * itself, with no cue.
  */
 const renderScroller = (items: ReactNode) => (
-	<div data-slot="dropdown-menu-viewport" className={cx("scroll-fade-y", scrollClassName)}>
+	<div
+		ref={observeScrollEdges}
+		data-slot="dropdown-menu-viewport"
+		className={cx("scroll-cue-y before:-top-1.25 after:-bottom-1.25", scrollClassName)}
+	>
 		{items}
 	</div>
 );
@@ -856,8 +866,8 @@ type DropdownMenuContentProps = MenuPanelProps & {
  * The container for the dropdown menu content.
  *
  * `DropdownMenu.Content` and `DropdownMenu.SubContent` are native
- * `popover="manual"` elements in the browser's top layer, placed by CSS anchor
- * positioning, so no `overflow` or `z-index` clips them. Each portals into the
+ * `popover="manual"` elements in the browser's top layer, placed by a script
+ * next to their trigger, so no `overflow` or `z-index` clips them. Each portals into the
  * overlay or float that holds it, else into `document.body`, and closes when an
  * overlay that does not hold it opens. A float opened from an item, such as a
  * `Popover`, portals into the menu.
@@ -910,13 +920,22 @@ const Content = ({
 	const { onMenuKeyDown, isTyping, resetTyping } = useMenuKeyboard(loop);
 	const { portalTarget, floatingRef, reconcile } = useFloat({
 		open: state.open,
-		onDismiss: (reason) => {
+		onDismiss: (reason, outside) => {
 			// Why: in a modal menu the page is inert, so an outside press puts focus
 			// nowhere and it returns to the trigger. A right click, or any outside
 			// interaction with a menu that is not modal, leaves focus where it lands.
 			outsideFocus.current = null;
 			if (reason === "outside") {
 				outsideFocus.current = !state.modal || outsideRightClick.current ? "keep" : "restore";
+				// Why: the primary press that closes the menu must not also activate
+				// what is under it, as with the pickers. A focus move that closes it
+				// does not count. A modal menu's inert page takes no click.
+				const press = outside?.detail.originalEvent;
+				if (!state.modal && press instanceof MouseEvent && press.button === 0 && !press.ctrlKey) {
+					// Why the check at the click: a controlled menu can refuse to close,
+					// and then the click lands.
+					swallowOutsideClick(() => !menuRef.current?.hasAttribute("data-open"));
+				}
 			}
 			state.setOpen(false);
 		},
@@ -1020,15 +1039,14 @@ const Content = ({
 			renderLevel(
 				<Component
 					id={state.contentId}
-					popover="manual"
+					popover={hasPopoverApi ? "manual" : undefined}
 					role="menu"
 					aria-labelledby={state.triggerId}
 					aria-orientation="vertical"
 					tabIndex={-1}
 					dir={state.dir}
-					data-align={align}
 					data-slot={joinDataSlot(dataSlot, "dropdown-menu-content")}
-					data-state={state.open ? "open" : "closed"}
+					data-open={state.open ? "" : undefined}
 					inert={!state.open}
 					className={cx(
 						floatClassName,
@@ -1090,7 +1108,6 @@ function useItemBehavior({
 	};
 	return {
 		"aria-disabled": disabled ? true : undefined,
-		"data-disabled": disabled ? "" : undefined,
 		tabIndex: -1,
 		onFocus: (event: FocusEvent<HTMLDivElement>) => {
 			event.currentTarget.setAttribute("data-highlighted", "");
@@ -1352,12 +1369,11 @@ const SubTrigger = ({
 			aria-controls={sub.open ? sub.contentId : undefined}
 			id={sub.triggerId}
 			data-slot={joinDataSlot(dataSlot, "dropdown-menu-sub-trigger")}
-			data-state={sub.open ? "open" : "closed"}
 			data-text-value={textValue}
 			className={cx(
-				"focus:bg-accent data-state-open:bg-accent relative flex cursor-pointer select-none items-center rounded-md py-1.5 pl-2 pr-9 text-sm outline-hidden",
-				"data-highlighted:bg-active-menu-item data-state-open:bg-active-menu-item",
-				"data-disabled:cursor-default data-disabled:opacity-50",
+				"focus:bg-accent aria-expanded:bg-accent relative flex cursor-pointer select-none items-center rounded-md py-1.5 pl-2 pr-9 text-sm outline-hidden",
+				"data-highlighted:bg-active-menu-item aria-expanded:bg-active-menu-item",
+				"aria-disabled:cursor-default aria-disabled:opacity-50",
 				// Why slot-scoped: the label span makes a consumer's svg a grandchild, so
 				// a bare `[&>svg]` matches nothing. A `[&_svg]` would also resize the
 				// indicator this part renders.
@@ -1470,8 +1486,8 @@ const SubTrigger = ({
  * The content container for a dropdown menu sub-menu.
  *
  * `DropdownMenu.Content` and `DropdownMenu.SubContent` are native
- * `popover="manual"` elements in the browser's top layer, placed by CSS anchor
- * positioning, so no `overflow` or `z-index` clips them. Each portals into the
+ * `popover="manual"` elements in the browser's top layer, placed by a script
+ * next to their trigger, so no `overflow` or `z-index` clips them. Each portals into the
  * overlay or float that holds it, else into `document.body`, and closes when an
  * overlay that does not hold it opens. A float opened from an item, such as a
  * `Popover`, portals into the menu.
@@ -1593,15 +1609,14 @@ const SubContent = ({
 			renderLevel(
 				<Component
 					id={sub.contentId}
-					popover="manual"
+					popover={hasPopoverApi ? "manual" : undefined}
 					role="menu"
 					aria-labelledby={sub.triggerId}
 					aria-orientation="vertical"
 					tabIndex={-1}
 					dir={root.dir}
-					data-align={align}
 					data-slot={joinDataSlot(dataSlot, "dropdown-menu-sub-content")}
-					data-state={sub.open ? "open" : "closed"}
+					data-open={sub.open ? "" : undefined}
 					inert={!sub.open}
 					className={cx(floatClassName, panelClassName, asChild && scrollClassName, className)}
 					ref={composedRef}
@@ -1685,7 +1700,7 @@ const Item = ({
 				"relative flex cursor-pointer select-none items-center rounded-md px-2 py-1.5 text-strong text-sm font-normal outline-hidden transition-colors",
 				"data-highlighted:bg-active-menu-item",
 				"focus:bg-accent focus:text-accent-foreground",
-				"data-disabled:cursor-default data-disabled:opacity-50",
+				"aria-disabled:cursor-default aria-disabled:opacity-50",
 				"[&>svg]:size-5 [&_svg]:shrink-0",
 				inset && "pl-8",
 				className,
@@ -1810,21 +1825,15 @@ const CheckboxItem = ({
 		slot: "dropdown-menu-checkbox-item",
 		checked: checked !== false,
 	});
-	let ariaChecked: boolean | "mixed" = checked === true;
-	let dataState = checked ? "checked" : "unchecked";
-	if (checked === "indeterminate") {
-		ariaChecked = "mixed";
-		dataState = "indeterminate";
-	}
+	const ariaChecked = checked === "indeterminate" ? "mixed" : checked;
 	return (
 		<Component
 			role="menuitemcheckbox"
 			aria-checked={ariaChecked}
 			data-slot={joinDataSlot(dataSlot, "dropdown-menu-checkbox-item")}
-			data-state={dataState}
 			data-text-value={textValue}
 			className={cx(
-				"text-strong data-disabled:pointer-events-none data-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-2 rounded-md py-1.5 pl-2 pr-9 text-sm font-normal outline-hidden",
+				"text-strong aria-disabled:pointer-events-none aria-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-2 rounded-md py-1.5 pl-2 pr-9 text-sm font-normal outline-hidden",
 				"data-highlighted:bg-active-menu-item",
 				"aria-checked:bg-selected-menu-item",
 				"data-highlighted:aria-checked:bg-active-selected-menu-item!",
@@ -1940,10 +1949,9 @@ const RadioItem = ({
 			role="menuitemradio"
 			aria-checked={checked}
 			data-slot={joinDataSlot(dataSlot, "dropdown-menu-radio-item")}
-			data-state={checked ? "checked" : "unchecked"}
 			data-text-value={textValue}
 			className={cx(
-				"text-strong data-disabled:pointer-events-none data-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-2 rounded-md py-1.5 px-2 text-sm font-normal outline-none",
+				"text-strong aria-disabled:pointer-events-none aria-disabled:opacity-50 relative flex cursor-pointer select-none items-center gap-2 rounded-md py-1.5 px-2 text-sm font-normal outline-none",
 				"data-highlighted:bg-active-menu-item",
 				"aria-checked:bg-selected-menu-item aria-checked:pr-9",
 				"data-highlighted:aria-checked:bg-active-selected-menu-item!",

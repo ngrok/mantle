@@ -114,6 +114,7 @@ export const componentsByCategory = {
 		"Browser Only",
 		"Live Region",
 		"Main",
+		"Overlay Prompt",
 		"SandboxedOnClick",
 		"Skip to Main Link",
 		"Slot",
@@ -145,6 +146,7 @@ export const prodReadyComponents: readonly ProdReadyComponent[] = componentCateg
 export const previewComponents = [
 	//,
 	"Calendar",
+	"Time Zone",
 	"World Map",
 ] as const;
 
@@ -191,6 +193,7 @@ export const prodReadyComponentRouteLookup = {
 	"Media Object": "/components/structure/media-object",
 	"Multi Select": "/components/forms/multi-select",
 	"OTP Input": "/components/forms/otp-input",
+	"Overlay Prompt": "/components/primitives/overlay-prompt",
 	Pagination: "/components/navigation/pagination",
 	"Password Input": "/components/forms/password-input",
 	Popover: "/components/overlays/popover",
@@ -231,6 +234,7 @@ export const prodReadyComponentRouteLookup = {
 /** Route lookup for preview component pages. */
 export const previewComponentsRouteLookup = {
 	Calendar: "/components/preview/calendar",
+	"Time Zone": "/components/preview/time-zone",
 	"World Map": "/components/preview/world-map",
 } as const satisfies Record<(typeof previewComponents)[number], Route>;
 
@@ -241,6 +245,7 @@ export const previewComponentsRouteLookup = {
  */
 export const previewComponentCategoryLookup = {
 	Calendar: "Forms",
+	"Time Zone": "Primitives",
 	"World Map": "Charts",
 } as const satisfies Record<(typeof previewComponents)[number], ComponentCategory>;
 
@@ -355,6 +360,7 @@ export const recipePages = [
 	//,
 	"Assistant Across Routes",
 	"Breadcrumbs from Routes",
+	"Cancel and Submit Actions",
 	"Filter from a Value",
 	"Header Actions from Routes",
 	"List Page Loading States",
@@ -379,6 +385,7 @@ type RecipePage = (typeof recipePages)[number] | (typeof proposalRecipePages)[nu
 export const recipeRoutes = {
 	"Assistant Across Routes": "/recipes/assistant-across-routes",
 	"Breadcrumbs from Routes": "/recipes/breadcrumbs-from-routes",
+	"Cancel and Submit Actions": "/recipes/cancel-and-submit",
 	"Filter from a Value": "/recipes/filter-from-a-value",
 	"Header Actions from Routes": "/recipes/header-actions-from-routes",
 	"List Page Loading States": "/recipes/list-page-loading-states",
@@ -395,6 +402,8 @@ export const recipeDescriptions = {
 		"Render an assistant in main on its own route and in the AppLayout side panel on every other route, with one conversation above both and a 300ms View Transition that morphs the page into the panel.",
 	"Breadcrumbs from Routes":
 		"Derive a breadcrumb trail from the matched route chain with React Router route handles \u2014 derived state, so it is correct on the server and on the first frame, with no context and no effects.",
+	"Cancel and Submit Actions":
+		"Where a form's Cancel and submit buttons go: one actions row below its Strata sections of Field rows. Switch to a Sandbar when the form edits saved settings.",
 	"Filter from a Value":
 		"Turn a value in a table row into a Query filter with one click, and take it out with a second click. One pure function, toggleFacet, does the edit.",
 	"Header Actions from Routes":
@@ -611,7 +620,7 @@ export const migrations = [
 		slug: "native-floats-migration",
 		title: "Native Floats",
 		description:
-			"Popover, Tooltip, and HoverCard are native popovers placed by CSS anchor positioning. The Radix positioning props, Popover.Root modal, and HoverCard.Portal are gone, and --anchor-width and --available-height replace the Radix CSS variables.",
+			"Popover, Tooltip, and HoverCard are native popovers in the top layer. The Radix positioning props, Popover.Root modal, and HoverCard.Portal are gone, and --anchor-width and --available-height replace the Radix CSS variables.",
 		route: "/migrations/0020-native-floats-migration",
 	},
 	{
@@ -659,7 +668,7 @@ export const migrations = [
 		slug: "native-dropdown-menu-migration",
 		title: "Native Dropdown Menu",
 		description:
-			"DropdownMenu is built on native popovers placed by CSS anchor positioning. The Radix positioning props are gone, --anchor-width and --available-height replace the Radix CSS variables, and a modal menu makes the page inert.",
+			"DropdownMenu is built on native popovers in the top layer. The Radix positioning props are gone, --anchor-width and --available-height replace the Radix CSS variables, and a menu is not modal by default.",
 		route: "/migrations/0026-native-dropdown-menu-migration",
 	},
 	{
@@ -669,6 +678,22 @@ export const migrations = [
 		description:
 			"Dialog, AlertDialog, and Sheet render the browser's modal <dialog> in place of Radix Dialog. Set modal={false} on an overlay that holds a third-party frame, and read the backdrop and the panel from their new elements.",
 		route: "/migrations/0027-native-dialog-migration",
+	},
+	{
+		number: 28,
+		slug: "native-slider-migration",
+		title: "Native Slider",
+		description:
+			"Each Slider thumb is now a native range input inside the thumb span. Target the input for focus, keys, ids, and test queries, and expect a disabled slider to submit no value.",
+		route: "/migrations/0028-native-slider-migration",
+	},
+	{
+		number: 29,
+		slug: "data-attribute-contract-migration",
+		title: "Data Attribute Contract",
+		description:
+			"Mantle's data attributes follow one small contract. Triggers, tabs, options, and checkable items use ARIA state, a boolean state is a presence attribute such as data-open, and mantle.css registers no data-* variants, so style with Tailwind's built-in forms.",
+		route: "/migrations/0029-data-attribute-contract-migration",
 	},
 ] as const satisfies readonly Migration[];
 

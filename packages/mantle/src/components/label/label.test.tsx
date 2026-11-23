@@ -17,14 +17,14 @@ describe("Label", () => {
 	test("disabled stamps data-disabled and never aria-disabled", () => {
 		render(<Label disabled>Email</Label>);
 		const label = screen.getByText("Email");
-		expect(label).toHaveAttribute("data-disabled", "true");
+		expect(label).toHaveAttribute("data-disabled", "");
 		expect(label).not.toHaveAttribute("aria-disabled");
 	});
 
 	test("an aria-disabled prop maps onto data-disabled", () => {
 		render(<Label aria-disabled="true">Email</Label>);
 		const label = screen.getByText("Email");
-		expect(label).toHaveAttribute("data-disabled", "true");
+		expect(label).toHaveAttribute("data-disabled", "");
 		expect(label).not.toHaveAttribute("aria-disabled");
 	});
 

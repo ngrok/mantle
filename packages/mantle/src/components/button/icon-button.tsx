@@ -128,7 +128,6 @@ type IconButtonProps = Omit<ComponentProps<"button">, "aria-label" | "children">
  * | `data-intent`      | `"neutral"`                                  | The `intent` prop.                                                     |
  * | `data-size`        | `"2xs"` \| `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop.                                          |
  * | `data-loading`     | present when `isLoading`                     | Presence-only, never `"false"`.                                        |
- * | `data-disabled`    | present when disabled                        | Presence-only, never `"false"`, since the `data-disabled:` variant matches the attribute's existence. Set when the button resolves disabled: `disabled`, `aria-disabled="true"`, or `isLoading` with no explicit `disabled`. `disabled={false}` keeps a loading button enabled and omits it. |
  *
  * @useWhen Run an action from a compact button that shows one icon and no text, such as a close or
  * a copy button.
@@ -189,9 +188,6 @@ const IconButton = ({
 		"data-slot": joinDataSlot(dataSlot, "icon-button"),
 		className: cx(iconButtonVariants({ appearance, intent, isLoading, size }), className),
 		"data-appearance": appearance,
-		// Why presence-only: the `data-disabled:` variant matches the attribute,
-		// so a `"false"` value fires it on every enabled button.
-		"data-disabled": disabled ? "" : undefined,
 		"data-icon-button": true,
 		"data-intent": intent,
 		"data-loading": isLoading ? "" : undefined,

@@ -19,8 +19,7 @@ const SIDE_PANEL_STATE_COOKIE_NAME = "mantle-side-panel-state";
 
 /**
  * The serialized values the cookie holds. Words rather than `"true"`/`"false"`
- * so the cookie is readable in devtools and reads the same as the panel's
- * `data-state` attribute.
+ * so the cookie is readable in devtools.
  */
 const SIDE_PANEL_STATE_COOKIE_VALUES = {
 	closed: "closed",
@@ -32,7 +31,7 @@ const SIDE_PANEL_STATE_COOKIE_VALUES = {
  *
  * This is the server half of cookie-backed persistence: a cookie is available
  * before the server renders, so the server HTML already carries the right
- * `data-state` and there is no first-frame correction to hide. Pass the result
+ * `data-open` and there is no first-frame correction to hide. Pass the result
  * straight to `AppLayout.SidePanelRoot`'s `defaultOpen`.
  *
  * Returns `undefined`, not `false`, when the cookie is absent or holds a value

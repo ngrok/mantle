@@ -9,6 +9,7 @@
     "serve": "app-server serve",
     "start": "app-server start",
     "test": "vitest run --passWithNoTests",
+    "eval:find": "vitest run app/utilities/mcp/find-golden.server.test.ts",
     "test:watch": "vitest watch",
     "typecheck": "react-router typegen && tsrs",
     "bench": "node bench/run.ts",
@@ -51,6 +52,9 @@
   },
   "devDependencies": {
     "@cfg/tsconfig": "workspace:*",
+    "@guidepup/guidepup": "0.40.0",
+    "@guidepup/playwright": "0.21.0",
+    "@guidepup/virtual-screen-reader": "0.33.0",
     "@mdx-js/rollup": "3.1.1",
     "@ngrok/remark-mdx-github-alerts": "0.1.0",
     "@ngrok/remark-mdx-no-paragraph-wrap": "0.1.0",

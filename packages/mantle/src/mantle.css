@@ -1363,31 +1363,6 @@ MARK: CUSTOM VARIANTS
 @custom-variant aria-invalid (&[aria-invalid="true"]);
 @custom-variant aria-unchecked (&[aria-checked="false"]);
 
-@custom-variant data-active-item (&[data-active-item~="true"]);
-@custom-variant data-disabled (&[data-disabled]);
-@custom-variant data-drag-over (&[data-drag-over="true"]);
-@custom-variant data-highlighted (&[data-highlighted]);
-@custom-variant data-orientation-horizontal (&[data-orientation="horizontal"]);
-@custom-variant data-orientation-vertical (&[data-orientation="vertical"]);
-@custom-variant data-side-bottom (&[data-side="bottom"]);
-@custom-variant data-side-left (&[data-side="left"]);
-@custom-variant data-side-right (&[data-side="right"]);
-@custom-variant data-side-top (&[data-side="top"]);
-@custom-variant data-state-active (&[data-state~=active]);
-@custom-variant data-state-checked (&[data-state~=checked]);
-@custom-variant data-state-closed (&[data-state~=closed]);
-@custom-variant data-state-idle (&[data-state~=idle]);
-@custom-variant data-state-inactive (&[data-state~=inactive]);
-@custom-variant data-state-indeterminate (&[data-state~=indeterminate]);
-@custom-variant data-state-open (&[data-state~=open]);
-@custom-variant data-state-pending (&[data-state~=pending]);
-@custom-variant data-state-selected (&[data-state~=selected]);
-@custom-variant data-state-submitting (&[data-state~=submitting]);
-@custom-variant data-state-unchecked (&[data-state~=unchecked]);
-@custom-variant data-validation-error (&[data-validation="error"]);
-@custom-variant data-validation-success (&[data-validation="success"]);
-@custom-variant data-validation-warning (&[data-validation="warning"]);
-
 @custom-variant where (:where(&));
 
 @custom-variant hover-hover {
@@ -1437,6 +1412,33 @@ MARK: CUSTOM VARIANTS
 	[data-mantle-scroll-lock] body {
 		overflow: hidden !important;
 		padding-inline-end: var(--mantle-scrollbar-width, 0px);
+	}
+
+	/*
+	 * The native radio of a `RadioGroup` or `SegmentedControl` item covers the
+	 * item, over its content. The controls in the content sit over the radio, so
+	 * they keep their own clicks. Why the base layer and `:where()`: a position
+	 * or z-index utility on the control wins. The list matches
+	 * `CONTENT_CONTROL_SELECTOR` in `radio-group/primitive.tsx`, but for
+	 * `label`: a title label would cover the radio, and a click on it checks
+	 * the radio anyway.
+	 */
+	:where(.radio-item-content)
+		:where(
+			a[href],
+			button,
+			details,
+			input,
+			select,
+			textarea,
+			[role="button"],
+			[role="link"],
+			[role="menuitem"],
+			[tabindex]:not([tabindex="-1"]),
+			[contenteditable="true"]
+		) {
+		position: relative;
+		z-index: 2;
 	}
 }
 
@@ -1572,11 +1574,6 @@ MARK: UTILITIES
 		font-weight: 100 !important;
 		font-stretch: ultra-condensed !important;
 		font-optical-sizing: none !important;
-	}
-
-	/* A password manager badge that follows the input takes the pointer. */
-	& + * {
-		pointer-events: auto !important;
 	}
 }
 
@@ -1795,6 +1792,50 @@ MARK: UTILITIES
 		animation-range: calc(100% - 2px) 100%;
 		animation-timeline: scroll(self inline);
 		animation-duration: 1ms;
+	}
+}
+
+@utility scroll-cue-y {
+	/*
+	 * Fades the top and bottom edges of a vertical scroll container while it has
+	 * more content past them. A script marks the edges: `observeScrollEdges` sets
+	 * `data-overflow-top` and `data-overflow-bottom` only when an edge flips, so
+	 * a scroll frame runs no style work. Each fade is a sticky gradient in
+	 * `--scroll-cue-color` (the popover background by default) laid over the
+	 * content: it masks nothing and has no children, so showing it restyles
+	 * one box. Sticky offsets start inside the padding, so a container with
+	 * vertical padding moves them out by it, such as `before:-top-1 after:-bottom-1`.
+	 */
+	&::before,
+	&::after {
+		content: "";
+		position: sticky;
+		z-index: 1;
+		display: block;
+		flex: none;
+		height: 1.5rem;
+		pointer-events: none;
+		opacity: 0;
+	}
+	&::before {
+		top: 0;
+		margin-bottom: -1.5rem;
+		background: linear-gradient(
+			var(--scroll-cue-color, var(--background-color-popover)),
+			transparent
+		);
+	}
+	&::after {
+		bottom: 0;
+		margin-top: -1.5rem;
+		background: linear-gradient(
+			transparent,
+			var(--scroll-cue-color, var(--background-color-popover))
+		);
+	}
+	&[data-overflow-top]::before,
+	&[data-overflow-bottom]::after {
+		opacity: 1;
 	}
 }
 
@@ -2284,6 +2325,44 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 }
 
 /*
+ * The morph between `AppLayout.Content` and `AppLayout.SidePanel`. Both carry
+ * `view-transition-class: app-layout-card`, so a surface that is the page on
+ * one route and the panel on the others morphs between them once the app
+ * gives both the same `view-transition-name`. A class does nothing without a
+ * name, so an unnamed card never takes part.
+ *
+ * It is a page transition, so it runs for 300ms, on ease-out-strong. The frame
+ * clips its snapshots at the card's radius. Each snapshot keeps its own width
+ * at the frame's top-start corner: a 24rem panel stretched across the page
+ * reads as a zoom of blurred text. Reduced motion makes it a cut.
+ */
+::view-transition-group(*.app-layout-card),
+::view-transition-old(*.app-layout-card),
+::view-transition-new(*.app-layout-card) {
+	animation-duration: 300ms;
+	/* ease-out-strong: `@theme inline` emits no variable for the token. */
+	animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+::view-transition-group(*.app-layout-card) {
+	overflow: clip;
+	border-radius: var(--radius-xl, 0.75rem);
+}
+
+::view-transition-old(*.app-layout-card),
+::view-transition-new(*.app-layout-card) {
+	width: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-group(*.app-layout-card),
+	::view-transition-old(*.app-layout-card),
+	::view-transition-new(*.app-layout-card) {
+		animation: none;
+	}
+}
+
+/*
  * The new snapshot is live, so a color transition would fade inside the circle
  * while the rest of the page shows the new theme. The swap cancels those
  * transitions in script. On a page that holds many transitions it sets this
@@ -2308,11 +2387,11 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
  * surface that is open when it starts: a rule under the root attribute would
  * restyle every element that has a `data-slot`.
  */
+[data-slot~="dialog-content"][data-theme-transition][data-closing],
 :is(
-		[data-slot~="dialog-content"],
 		[data-slot~="dropdown-menu-content"],
 		[data-slot~="dropdown-menu-sub-content"]
-	)[data-theme-transition][data-state="closed"],
+	)[data-theme-transition]:not([data-open]),
 [data-slot~="dialog-positioner"][data-theme-transition],
 [data-slot~="dialog-positioner"][data-theme-transition]::backdrop {
 	animation: none !important;

@@ -19,3 +19,4 @@ bun.lockb
 # Codemod inputs keep their spelling on purpose: a rule must read a single-quoted or spaced attribute.
 packages/mantle/migrations/*/before.ts
 packages/mantle/migrations/*/before.tsx
+packages/mantle/migrations/*/before.*.tsx

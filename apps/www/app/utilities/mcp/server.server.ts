@@ -1,9 +1,11 @@
+import { createHash, randomBytes } from "node:crypto";
 import mantlePackageJson from "@ngrok/mantle/package.json" with { type: "json" };
 import { McpServer, ResourceTemplate, type CallToolResult } from "@modelcontextprotocol/server";
 import { z } from "zod";
+import { buildSiteAgentManifest } from "~/utilities/agent-manifest.server";
 import { canonicalHref, canonicalOrigin } from "~/utilities/canonical-origin";
 import { loadFrontmatter, rawDocContent, urlToFileMap } from "~/utilities/docs";
-import { checkCode } from "~/utilities/mcp/check.server";
+import { checkCode, MAX_CHECK_CODE_BYTES, type Diagnostic } from "~/utilities/mcp/check.server";
 import { isMcpToolEnabled, previewFrameOrigin, type McpFlags } from "~/utilities/mcp/flags.server";
 import { fitMarkdown } from "~/utilities/mcp/markdown-budget";
 import { MCP_APP_MIME_TYPE, PREVIEW_APP_URI, previewAppHtml } from "~/utilities/mcp/preview-app";
@@ -38,6 +40,7 @@ import {
 	type VersionDataLoader,
 } from "~/utilities/mcp/version-data.server";
 import { countUrls, hasProfanity } from "~/utilities/mcp/content-safety";
+import { localTarballRegistry } from "~/utilities/mcp/npm-tarball.server";
 import { clipMarkdown, mcpPulse } from "~/utilities/mcp/pulse.server";
 import { renderMdxToMarkdown } from "~/utilities/render-mdx-to-markdown.server";
 import { loadDeclarationFiles, loadSourceFiles } from "~/utilities/mantle-source.server";
@@ -46,14 +49,15 @@ import { sourceHash } from "../../../../../packages/mantle/scripts/agent-manifes
 
 /** The server instructions. The contract test caps their size. */
 export const MCP_INSTRUCTIONS = [
-	"Helps you build ngrok websites and apps with @ngrok/mantle, ngrok's React UI library, for one exact published version.",
-	"Use mantle parts before you write custom UI or add another UI library.",
+	"Helps you build UI with @ngrok/mantle, ngrok's React UI library, for one exact version.",
+	"Use mantle parts before you write custom UI or add a UI library.",
 	"Your trained knowledge of mantle can be stale. Call `find` before you pick a component or pattern, and `get` before you write its props.",
-	"Pass the exact installed version: read it from node_modules/@ngrok/mantle/package.json or the lockfile, not the range in package.json.",
+	"Pass the exact installed version from node_modules/@ngrok/mantle/package.json or the lockfile, not the package.json range.",
 	"Call `check` on each file you change. Import each part from its own subpath, such as @ngrok/mantle/button.",
-	"When the user has no repo to run the code in, call `preview` and give them the link.",
-	"When mantle has no part for a need and you build a workaround, call `report_gap` once for that need.",
-	"Pass `intent` and `workspace` on each call, so the mantle team learns what agents build and where.",
+	"With no repo to run the code in, call `preview` and give the user the link.",
+	"When mantle has no part for a need, call `report_gap` once for that need.",
+	"Your final reply lists each part you built instead of mantle, and why. Claim a mantle part only with its import and the JSX that renders it.",
+	"Pass `intent` and `workspace` on each call, so mantle learns what agents build.",
 	'When you know the Linear issue of the work, such as MNTL-59, pass it as `ticket` on each call. `report_gap` requires it, or "none".',
 ].join("\n");
 
@@ -172,6 +176,8 @@ export type ToolCallEvent = ToolCallOutcome & {
 	resultBytes: number;
 	/** The first product token of the `User-Agent` header, such as `claude-code/2.1.3`. */
 	client?: string;
+	/** The pseudonymous key of the agent that called, from `callerOf`. The pulse groups calls into sessions by it. */
+	caller: string;
 	/** The ngrok repo that the call came from, from the `source` query parameter. */
 	source?: McpSource;
 	/** The agent's reason for the call, from `scrubIntent`. */
@@ -185,10 +191,48 @@ export type ToolCallEvent = ToolCallOutcome & {
 	ids?: string[];
 	/** The number of `find` results. */
 	resultCount?: number;
-	/** The top-level argument names that failed validation. */
-	invalidFields?: string[];
+	/** Each top-level argument that failed validation, and its problem. */
+	invalidArguments?: InvalidArgument[];
 	gap?: GapSignal;
 };
+
+/** What is wrong with an argument that failed validation. */
+export type ArgumentProblem =
+	| "missing"
+	| "wrong type"
+	| "empty"
+	| "too short"
+	| "too long"
+	| "not an allowed value"
+	| "bad format"
+	| "unknown key"
+	| "invalid";
+
+/** One top-level argument that failed validation. */
+export type InvalidArgument = { argument: string; problem: ArgumentProblem };
+
+/**
+ * The problem of one validation issue. Why the issue `code` and not its
+ * message: a code names no value that the agent sent.
+ */
+function problemOf(issue: object, value: unknown): ArgumentProblem {
+	switch (Reflect.get(issue, "code")) {
+		case "invalid_type":
+			return value === undefined ? "missing" : "wrong type";
+		case "too_small":
+			return Reflect.get(issue, "minimum") === 1 ? "empty" : "too short";
+		case "too_big":
+			return "too long";
+		case "invalid_value":
+			return "not an allowed value";
+		case "invalid_format":
+			return "bad format";
+		case "unrecognized_keys":
+			return "unknown key";
+		default:
+			return "invalid";
+	}
+}
 
 /** The fields that a tool body adds to its log event. */
 type ToolCallFacts = Pick<ToolCallEvent, "dataVersion" | "ids" | "resultCount" | "gap"> & {
@@ -211,6 +255,25 @@ function clientOf(request: Request | undefined): string | undefined {
 	const token = request?.headers.get("user-agent")?.trim().split(/\s+/)[0] ?? "";
 	const client = token.replace(/[^\w./-]/g, "").slice(0, 60);
 	return client === "" || hasProfanity(client) ? undefined : client;
+}
+
+/** The salt of `callerOf`. A new process makes a new salt, so a key cannot follow an agent across deploys. */
+const CALLER_SALT = randomBytes(16);
+
+/**
+ * The pseudonymous key of the agent that sent a request: a salted hash of
+ * its first `X-Forwarded-For` address, its whole `User-Agent` header, and
+ * its source. Why a hash: the server is stateless and gets no session ID,
+ * and the log must not hold an address.
+ */
+function callerOf(request: Request | undefined, source: McpSource | undefined): string {
+	const address = request?.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "";
+	const agent = request?.headers.get("user-agent") ?? "";
+	return createHash("sha256")
+		.update(CALLER_SALT)
+		.update(`${address}\n${agent}\n${source ?? ""}`)
+		.digest("hex")
+		.slice(0, 12);
 }
 
 /** The string at `key` in the raw arguments of a call, or `undefined`. */
@@ -265,50 +328,46 @@ const versionArgument = z
 	.string()
 	.optional()
 	.describe(
-		`The exact installed @ngrok/mantle version, MAJOR.MINOR.PATCH, ${MIN_SUPPORTED_VERSION} or later. Defaults to the latest published version.`,
+		`Exact installed @ngrok/mantle version, ${MIN_SUPPORTED_VERSION} or later. Defaults to the latest.`,
 	);
 
 const sectionsArgument = z
 	.array(z.string().max(120))
 	.max(12)
 	.optional()
-	.describe("Docs headings to return, such as `API Reference`. Omit for the default.");
+	.describe("Docs headings to return, such as `API Reference`.");
 
+// Why one line each: every tool repeats these three, and tools/list loads in each session.
+// The For AI Agents page holds the full rules.
 // Why no max: a long intent must not fail the call. `scrubIntent` cuts it for the log.
 const intentArgument = z
 	.string()
 	.optional()
 	.describe(
-		'Why you call this tool: the screen or feature, the change you make to it, and what this call must answer, such as "endpoints list page, add bulk delete, need a confirm step for a destructive action". No code, URLs, paths, names of people, or customer data.',
+		'The screen, change, and question, such as "endpoints list, bulk delete, need a confirm". No code, paths, URLs, names, or customer data.',
 	);
 
 // Why no schema check: a bad workspace must not fail the call. `workspaceSlug` drops it from the log.
 const workspaceArgument = z
 	.string()
 	.nullish()
-	.describe(
-		'The app or package that you change, as a short lowercase slug: its folder name in a monorepo, such as "dashboard" for apps/dashboard. Never send a person\'s name or email.',
-	);
+	.describe('App or package folder slug, such as "dashboard". No names.');
 
 // Why no schema check: a bad ticket must not fail the call. `ticketKey` drops it from the log.
-const TICKET_TEXT =
-	'The Linear issue key of the work: the team key in capitals, a hyphen, and a number, such as "FEP-1867" or "MNTL-59". Each team has its own key. Look for it in the conversation, the branch name, the commits, and the task. Send the key only, never the title or a URL, and never invent a key.';
-
 const ticketArgument = z
 	.string()
 	.nullish()
-	.describe(
-		`${TICKET_TEXT} When you know it, send it on each call. Omit it when you do not know it, and do not ask the user only for this.`,
-	);
+	.describe('Linear issue key, such as "MNTL-59", if known. Never invent or ask for one.');
 
 // Why required: an agent fills each required argument, so it looks for the issue before it reports a gap.
 const requiredTicketArgument = z
 	.string()
 	.describe(
-		'The Linear issue key of the product work, such as "CDATA-1234", from the task, branch, PR, or commits. Never invent one. Send "none" when you do not know it.',
+		'The Linear issue key of the work, such as "CDATA-1234", from the task, branch, or commits. Never invent one. Send "none" if unknown.',
 	);
 
-const readOnly = { readOnlyHint: true, idempotentHint: true, openWorldHint: false } as const;
+// Why no idempotentHint: MCP reads it only when readOnlyHint is false.
+const readOnly = { readOnlyHint: true, openWorldHint: false } as const;
 
 function text(body: string, isError = false): CallToolResult {
 	return { content: [{ type: "text", text: body }], isError };
@@ -337,6 +396,33 @@ async function provenanceFor(
 		docsVersion: `${docsVersion} with unreleased changes`,
 		docsCommit,
 	};
+}
+
+/**
+ * Whether the docs build is the selected release plus unreleased changes.
+ * Why only then: an older version can inherit a prop from a dependency that
+ * the docs build now declares itself, and its words cannot show that.
+ */
+function hasUnreleasedDocs(
+	dependencies: McpDependencies,
+	data: VersionData,
+	provenance: Provenance,
+): boolean {
+	return dependencies.docsVersion === data.version && provenance.docsVersion !== data.version;
+}
+
+/** The `check` findings that read a part's declarations, which the docs build can change. */
+const PART_CONTRACT_CODES: ReadonlySet<Diagnostic["code"]> = new Set<Diagnostic["code"]>([
+	"unknown-part",
+	"unknown-prop",
+	"forbidden-prop",
+	"missing-prop",
+	"missing-dialog-title",
+]);
+
+/** One `check` finding as a line, such as `3:12 error unknown-prop: … Fix: …`. */
+function diagnosticLine({ line, column, severity, code, message, fix }: Diagnostic): string {
+	return `${line}:${column} ${severity} ${code}: ${message}${fix == null ? "" : ` Fix: ${fix}`}`;
 }
 
 /** The docs version as `provenanceFor` labels it against the latest release. */
@@ -398,6 +484,7 @@ function findResultText(record: FindRecord): string {
 export function createMantleMcpServer(dependencies: McpDependencies, request?: Request): McpServer {
 	const client = clientOf(request);
 	const source = sourceOf(request);
+	const caller = callerOf(request, source);
 	/** The logged `workspace` and `ticket`. Both need a source. */
 	const attribution = (
 		workspace: string | null | undefined,
@@ -434,10 +521,19 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				const intent = rawString(value, "intent");
 				const workspace = rawString(value, "workspace");
 				const ticket = rawString(value, "ticket");
-				const fields = result.issues.map(({ path }) => {
-					const first = path?.[0];
-					return String(typeof first === "object" ? first.key : (first ?? "arguments"));
-				});
+				const invalid = new Map<string, ArgumentProblem>();
+				for (const issue of result.issues) {
+					const first = issue.path?.[0];
+					const key = typeof first === "object" ? first.key : first;
+					const argument = key == null ? "arguments" : String(key);
+					const argumentValue =
+						key == null || typeof value !== "object" || value == null
+							? value
+							: Reflect.get(value, key);
+					if (!invalid.has(argument)) {
+						invalid.set(argument, problemOf(issue, argumentValue));
+					}
+				}
 				dependencies.log({
 					tool,
 					outcome: "error",
@@ -445,10 +541,11 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					latencyMs: 0,
 					resultBytes: 0,
 					client,
+					caller,
 					source,
 					intent: intent == null ? undefined : scrubIntent(intent),
 					...attribution(workspace, ticket),
-					invalidFields: Array.from(new Set(fields)),
+					invalidArguments: Array.from(invalid, ([argument, problem]) => ({ argument, problem })),
 				});
 			}
 			return result;
@@ -461,6 +558,14 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					return result instanceof Promise
 						? result.then((settled) => report(value, settled))
 						: report(value, result);
+				},
+				// Why drop `$schema`: MCP reads a schema without it as 2020-12, and each tool repeats it in tools/list.
+				jsonSchema: {
+					...standard.jsonSchema,
+					input: () => {
+						const { $schema: _, ...json } = z.toJSONSchema(schema, { io: "input" });
+						return json;
+					},
 				},
 			},
 		};
@@ -495,6 +600,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					latencyMs: Math.round(performance.now() - started),
 					resultBytes: byteLength(resultText),
 					client,
+					caller,
 					source,
 					intent: intent == null ? undefined : scrubIntent(intent),
 					...attribution(workspace, ticket),
@@ -529,7 +635,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 		"find",
 		{
 			title: "Find mantle parts",
-			description: `Ranks mantle components, layouts, hooks, utilities, recipes (compositions of parts), and docs pages (foundations such as colors) for an intent ("confirm before delete") or a name from another library ("modal"). Returns up to 8 results with import paths, and says when no result is a strong match. Supports ${MIN_SUPPORTED_VERSION} and later.`,
+			description: `Ranks mantle components, layouts, hooks, utilities, recipes, and docs pages for an intent ("confirm before delete") or another library's name ("modal"). Returns up to 8 with import paths, and says when none is a strong match.`,
 			inputSchema: logInvalid(
 				"find",
 				z.object({
@@ -601,7 +707,8 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 		"get",
 		{
 			title: "Get a mantle part",
-			description: `Returns one component, layout, hook, or utility: its import, examples, and prop contract for the selected version. For a recipe, returns its parts and its docs page. Supports ${MIN_SUPPORTED_VERSION} and later.`,
+			description:
+				"Returns one part's import, examples, and prop contract for the selected version, or a recipe's parts and docs page.",
 			inputSchema: logInvalid(
 				"get",
 				z.object({
@@ -651,16 +758,12 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				);
 			}
 			const provenance = await provenanceFor(dependencies, data);
-			// Why only the latest release with unreleased changes: an older version can inherit a prop
-			// from a dependency that the docs build now declares itself, and its words cannot show that.
-			const unreleased =
-				dependencies.docsVersion === data.version && provenance.docsVersion !== data.version;
 			const body = getRecordText({
 				record,
 				data,
 				provenance,
 				docsMarkdown: await dependencies.readDocs(record.docsSlug),
-				docsWords: unreleased
+				docsWords: hasUnreleasedDocs(dependencies, data, provenance)
 					? await dependencies.docsDeclaredWordsOf(record.importPath)
 					: undefined,
 				sections,
@@ -678,7 +781,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 		{
 			title: "Read a mantle docs page",
 			description:
-				"Returns a docs page as markdown, or an outline when the page is long. The docs are always the latest build.",
+				"Returns a docs page of the latest build as markdown, or an outline when the page is long.",
 			inputSchema: logInvalid(
 				"read_docs",
 				z.object({
@@ -765,7 +868,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 		"check",
 		{
 			title: "Check mantle code",
-			description: `Returns feedback on one TSX file: mantle import paths and names for the selected version, foreign UI libraries, and className construction. No type check. Max ${MAX_PREVIEW_CODE_BYTES} bytes. Supports ${MIN_SUPPORTED_VERSION} and later.`,
+			description: `Returns feedback on one TSX file for the selected version: mantle imports, parts, and props (unknown, forbidden, or missing), untitled dialogs, foreign UI libraries, and className construction. No type check. Max ${MAX_CHECK_CODE_BYTES} bytes. Supports ${MIN_SUPPORTED_VERSION} and later.`,
 			inputSchema: logInvalid(
 				"check",
 				z.object({
@@ -779,24 +882,42 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 			annotations: readOnly,
 		},
 		run("check", async ({ code, version }) => {
-			if (byteLength(code) > MAX_PREVIEW_CODE_BYTES) {
+			if (byteLength(code) > MAX_CHECK_CODE_BYTES) {
 				return failure(
 					"too_large",
-					`The code is over ${MAX_PREVIEW_CODE_BYTES} bytes. Check one file at a time.`,
+					`The code is over ${MAX_CHECK_CODE_BYTES} bytes. Check one file at a time.`,
 				);
 			}
 			const data = await dependencies.loader.load(version);
-			const diagnostics = checkCode({ code, data });
+			const provenance = await provenanceFor(dependencies, data);
+			// Why: a prop that only the docs build declares is on the docs page, but not in a release yet.
+			const docsWords = new Map<string, ReadonlySet<string> | undefined>();
+			if (hasUnreleasedDocs(dependencies, data, provenance)) {
+				for (const [, specifier] of code.matchAll(/from\s*["'](@ngrok\/mantle\/[\w-]+)["']/g)) {
+					if (
+						specifier != null &&
+						data.exportsBySpecifier.has(specifier) &&
+						!docsWords.has(specifier)
+					) {
+						docsWords.set(specifier, await dependencies.docsDeclaredWordsOf(specifier));
+					}
+				}
+			}
+			const diagnostics = checkCode({
+				code,
+				data,
+				docsWordsOf: (specifier) => docsWords.get(specifier),
+			});
 			const summary =
 				diagnostics.length === 0
 					? "No findings. This check does not run TypeScript; run tsc where you can."
-					: `${diagnostics.length} finding(s).`;
+					: `${diagnostics.length} finding(s):\n${diagnostics.map(diagnosticLine).join("\n")}`;
 			return {
 				result: {
 					content: [
 						{
 							type: "text",
-							text: `${provenanceLine(await provenanceFor(dependencies, data))}\n\n${summary}\n\n${JSON.stringify(diagnostics, null, 1)}`,
+							text: `${provenanceLine(provenance)}\n\n${summary}`,
 						},
 					],
 					structuredContent: { dataVersion: data.version, diagnostics },
@@ -834,7 +955,15 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 			}
 			// Why the docs version: the preview page renders it, so check names what that page can import.
 			const data = await dependencies.loader.load(dependencies.docsVersion);
-			const diagnostics = checkCode({ code, data, requireDefaultExport: true });
+			// Why: with unreleased changes, the page renders parts whose props the release lacks.
+			const unreleased = hasUnreleasedDocs(
+				dependencies,
+				data,
+				await provenanceFor(dependencies, data),
+			);
+			const diagnostics = checkCode({ code, data, requireDefaultExport: true }).filter(
+				(diagnostic) => !unreleased || !PART_CONTRACT_CODES.has(diagnostic.code),
+			);
 			const url = await previewUrl({ origin: dependencies.previewOrigin, code });
 			return {
 				result: {
@@ -863,7 +992,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 		{
 			title: "Report a mantle gap",
 			description:
-				'Tells the mantle team that mantle lacks something you needed, so they can build it. Call it once for each need, after `find` and `get` found no fit. Be specific: the team reads every report, and `writeup` takes a long-form account. No secrets or customer data. Always send `ticket`: the Linear issue key of the work, or "none".',
+				"Tells the mantle team what mantle lacked, so they can build it. Call it once for each need, after `find` and `get` found no fit. The team reads every report: be specific, and put the long account in `writeup`. No secrets or customer data.",
 			inputSchema: logInvalid(
 				"report_gap",
 				z.object({
@@ -872,7 +1001,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 						.min(3)
 						.max(120)
 						.describe(
-							'A short name for what you needed, such as "stepper" or "date range picker". Put the detail in the other fields.',
+							'A short name for the need, such as "stepper" or "date range picker". Put detail in the other fields.',
 						),
 					kind: z.enum(GAP_KINDS).describe("The kind of part that is missing."),
 					workaround: z.enum(GAP_WORKAROUNDS).describe("What you did instead."),
@@ -904,7 +1033,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					intent: z
 						.string()
 						.describe(
-							'The use case: the screen or feature, the change, and where mantle fell short, such as "onboarding page, add a setup checklist, need numbered steps with a done state".',
+							'The screen, the change, and where mantle fell short, such as "onboarding page, add a setup checklist, need numbered steps with a done state".',
 						),
 					workspace: workspaceArgument,
 					ticket: requiredTicketArgument,
@@ -1132,36 +1261,61 @@ const docPageFrontmatter = z.object({
 	description: z.string().optional(),
 	aliases: z.array(z.string()).optional(),
 	useWhen: z.string().optional(),
-	parts: z.array(z.string()).optional(),
 });
 
-/** Whether `find` searches a docs page. `migrate` covers the guides, and the rest are indexes. */
+/**
+ * Whether `find` searches a docs page. `migrate` covers the guides, the
+ * manifest owns the recipes, and the rest are indexes.
+ */
 function isFindablePage(slug: string): boolean {
-	return !slug.startsWith("migrations/") && slug !== "changelog" && slug !== "index";
+	return (
+		!slug.startsWith("migrations/") &&
+		!slug.startsWith("recipes/") &&
+		slug !== "changelog" &&
+		slug !== "index"
+	);
 }
 
-/** Each findable docs page with a title. `find` drops the pages that an API record owns. */
+/**
+ * Each findable docs page with a title, and each recipe. `find` drops the
+ * pages that an API record owns. Why the manifest for recipes: `dist/agent.json`
+ * ships the same records, so an agent offline finds what `find` finds.
+ */
 async function readDocPages(): Promise<DocPageRecord[]> {
-	const pages = await Promise.all(
-		Array.from(urlToFileMap)
-			.filter(([slug]) => isFindablePage(slug))
-			.map(async ([slug, filePath]): Promise<DocPageRecord | undefined> => {
-				const frontmatter = docPageFrontmatter.safeParse(await loadFrontmatter(filePath));
-				return frontmatter.success
-					? {
-							name: frontmatter.data.title,
-							kind: slug.startsWith("recipes/") ? "recipe" : "page",
-							summary: frontmatter.data.description,
-							aliases: frontmatter.data.aliases,
-							useWhen: frontmatter.data.useWhen,
-							parts: frontmatter.data.parts,
-							docsUrl: canonicalHref(`/${slug}`),
-							docsSlug: slug,
-						}
-					: undefined;
-			}),
+	const [pages, manifest] = await Promise.all([
+		Promise.all(
+			Array.from(urlToFileMap)
+				.filter(([slug]) => isFindablePage(slug))
+				.map(async ([slug, filePath]): Promise<DocPageRecord | undefined> => {
+					const frontmatter = docPageFrontmatter.safeParse(await loadFrontmatter(filePath));
+					return frontmatter.success
+						? {
+								name: frontmatter.data.title,
+								kind: "page",
+								summary: frontmatter.data.description,
+								aliases: frontmatter.data.aliases,
+								useWhen: frontmatter.data.useWhen,
+								docsUrl: canonicalHref(`/${slug}`),
+								docsSlug: slug,
+							}
+						: undefined;
+				}),
+		),
+		buildSiteAgentManifest(),
+	]);
+	const recipes = (manifest.recipes ?? []).map(
+		({ name, slug, docsUrl, summary, useWhen, aliases, parts }): DocPageRecord => ({
+			name,
+			kind: "recipe",
+			summary,
+			aliases,
+			useWhen,
+			parts,
+			docsUrl,
+			docsSlug: slug,
+		}),
 	);
-	return pages.filter((page) => page != null);
+	return [...pages.filter((page) => page != null), ...recipes];
 }
 
 let docPagesCache: Promise<DocPageRecord[]> | undefined;
@@ -1219,7 +1373,13 @@ export function productionDependencies({
 	flags: () => McpFlags;
 	requestOrigin: string;
 }): McpDependencies {
-	loader ??= createVersionDataLoader();
+	// Why: the agent eval's branch mode serves the branch's packed tarball (docs/mcp-evals.md).
+	const localTarball = process.env.MANTLE_MCP_LOCAL_TARBALL;
+	loader ??= createVersionDataLoader(
+		localTarball == null || localTarball === ""
+			? {}
+			: { registry: localTarballRegistry(localTarball) },
+	);
 	const previewOrigin =
 		process.env.MANTLE_PREVIEW_ORIGIN ?? (import.meta.env.DEV ? requestOrigin : canonicalOrigin);
 	return {

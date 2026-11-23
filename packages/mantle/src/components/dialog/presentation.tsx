@@ -15,6 +15,7 @@ import {
 	type IconButtonIntent,
 	type IconButtonProps,
 } from "../button/icon-button.js";
+import { ScrollBody } from "./scroll-body.js";
 
 /**
  * How much of the viewport a `Dialog.Content` claims, and what it looks like
@@ -168,8 +169,8 @@ const Header = ({
 			"border-dialog-muted text-strong relative flex shrink-0 flex-wrap items-center justify-between gap-2 border-b px-6 py-4",
 			// Why `flex-1` and `order-last`: a zero flex basis keeps a long title on
 			// the close button's row. The description orders last so it wraps under both.
-			"*:data-[slot~=dialog-title]:flex-1",
-			"*:data-[slot~=dialog-description]:order-last *:data-[slot~=dialog-description]:basis-full",
+			"[&>[data-slot~=dialog-title]]:flex-1",
+			"[&>[data-slot~=dialog-description]]:order-last [&>[data-slot~=dialog-description]]:basis-full",
 			"has-[.icon-button]:pr-4", // when there are actions in the header, shorten the padding
 			className,
 		)}
@@ -269,10 +270,10 @@ const Body = ({
 	className,
 	...props
 }: ComponentProps<"div"> & WithDataSlot) => (
-	<div
+	<ScrollBody
 		data-slot={joinDataSlot(dataSlot, "dialog-body")}
 		className={cx(
-			"scrollbar scrollbar-gutter-stable text-body flex-1 overflow-y-auto overscroll-none p-6",
+			"scrollbar scrollbar-gutter-stable text-body flex-1 overflow-y-auto overscroll-none p-6 focus-visible:focus-ring focus-visible:ring-inset",
 			className,
 		)}
 		{...props}

@@ -111,12 +111,12 @@ describe("Tooltip.Trigger", () => {
 		fireEvent.pointerDown(trigger, { pointerType: "touch" });
 		fireEvent.pointerUp(trigger, { pointerType: "touch" });
 		act(() => trigger.focus());
-		expect(trigger).toHaveAttribute("data-state", "closed");
+		expect(trigger).not.toHaveAttribute("aria-describedby");
 		fireEvent.click(trigger);
 
 		act(() => trigger.blur());
 		act(() => trigger.focus());
-		expect(trigger).not.toHaveAttribute("data-state", "closed");
+		expect(trigger).toHaveAttribute("aria-describedby");
 	});
 
 	test("a tap whose click a parent stops leaves the next keyboard focus free to open", () => {
@@ -135,7 +135,7 @@ describe("Tooltip.Trigger", () => {
 
 		act(() => trigger.blur());
 		act(() => trigger.focus());
-		expect(trigger).not.toHaveAttribute("data-state", "closed");
+		expect(trigger).toHaveAttribute("aria-describedby");
 	});
 
 	test("a touch press that becomes a scroll leaves the next keyboard focus free to open", () => {
@@ -145,7 +145,7 @@ describe("Tooltip.Trigger", () => {
 		fireEvent.pointerDown(trigger, { pointerType: "touch" });
 		fireEvent.pointerCancel(trigger, { pointerType: "touch" });
 		act(() => trigger.focus());
-		expect(trigger).not.toHaveAttribute("data-state", "closed");
+		expect(trigger).toHaveAttribute("aria-describedby");
 	});
 });
 

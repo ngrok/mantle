@@ -105,7 +105,7 @@ type OtpInputRootProps = Omit<
 		/**
 		 * The new value, after each change.
 		 */
-		onChange?: (value: string) => void;
+		onChange?: (value: string) => void; // oxlint-disable-line mantle/prop-vocabulary -- Why: the rename to `onValueChange` is a breaking change that waits for a migration.
 		/**
 		 * The full value, when the value grows to `maxLength` characters: the user
 		 * fills the final slot, or a parent sets the full value.
@@ -354,8 +354,11 @@ const Root = ({
 						{children}
 					</div>
 				</OtpInputContext>
-				{/* Why a size container: the input's font size follows the slot height. */}
-				<div className="pointer-events-none absolute inset-0 [container-type:size]">
+				{/* Why a size container: the input's font size follows the slot height.
+				Why `[&>*]:pointer-events-auto!`: a password manager badge beside the input
+				takes the pointer. A `+*` rule makes Chromium restyle a whole subtree
+				each time a node is inserted before another one, anywhere on the page. */}
+				<div className="pointer-events-none absolute inset-0 [container-type:size] [&>*]:pointer-events-auto!">
 					<input
 						autoComplete={autoComplete || "one-time-code"}
 						aria-invalid={resolvedAriaInvalid}
@@ -365,6 +368,7 @@ const Root = ({
 						data-input-otp
 						data-input-otp-mss={selection?.start}
 						data-input-otp-mse={selection?.end}
+						// oxlint-disable-next-line mantle/data-attribute-contract -- Why: input-otp emitted `"true"`, and page styles written for it select that value.
 						data-input-otp-placeholder-shown={value.length === 0 || undefined}
 						// LastPass does not fill one-time codes, so only its badge is kept off.
 						data-lpignore={passwordManagerIgnoreProps["data-lpignore"]}
@@ -425,7 +429,7 @@ const Root = ({
 							if (
 								event.defaultPrevented ||
 								input.readOnly ||
-								(pasteTransformer == null && !CSS.supports("-webkit-touch-callout", "none"))
+								(pasteTransformer == null && !CSS.supports?.("-webkit-touch-callout", "none"))
 							) {
 								return;
 							}
@@ -499,12 +503,12 @@ const Group = ({
 				// having to count: if any active slot is preceded by
 				// another active slot at the same nesting level, the
 				// group has at least 2 actives → draw the ring.
-				"has-[[data-active]~[data-active]]:ring-focus-accent has-[[data-active]~[data-active]]:ring-4",
+				"has-[[data-highlighted]~[data-highlighted]]:ring-focus-accent has-[[data-highlighted]~[data-highlighted]]:ring-4",
 				// Validation override for the group-level range/all ring.
 				// `OtpInput.Root` sets `--otp-validation-ring` based on
 				// the validation value, so a single class covers
 				// error/success/warning instead of one per hue.
-				"group-data-validation/otp:has-[[data-active]~[data-active]]:ring-(--otp-validation-ring)",
+				"group-data-validation/otp:has-[[data-highlighted]~[data-highlighted]]:ring-(--otp-validation-ring)",
 				className,
 			)}
 			{...props}
@@ -575,7 +579,7 @@ const OtpInputSlotImpl = ({
 		<div
 			ref={ref}
 			data-slot={joinDataSlot(dataSlot, "otp-input-slot")}
-			data-active={isActive ? "" : undefined}
+			data-highlighted={isActive ? "" : undefined}
 			className={cx(
 				"border-form bg-form text-strong relative flex h-10 w-10 items-center justify-center border-y border-e text-sm shadow-sm outline-hidden transition-all duration-150 ease-out",
 				"first:rounded-s-md first:border-s last:rounded-e-md",
@@ -586,7 +590,7 @@ const OtpInputSlotImpl = ({
 				// edge. We use an arbitrary `&:has(+ ...)` variant
 				// because Tailwind's `has-[...]` shorthand doesn't
 				// parse the nested bracketed attribute selector here.
-				"[&:has(+[data-active])]:group-data-[otp-state=caret]/otp:border-e-transparent",
+				"[&:has(+[data-highlighted])]:group-data-[otp-state=caret]/otp:border-e-transparent",
 				// Per-slot ring renders only in `caret` state (single
 				// active slot). When more than one slot is active, the
 				// surrounding `OtpInput.Group` draws a single ring
@@ -596,11 +600,11 @@ const OtpInputSlotImpl = ({
 				// `border-s` on `:first-child`), so the slot reads as
 				// one cohesive highlighted box rather than a ring with
 				// a gray box inside.
-				"data-active:group-data-[otp-state=caret]/otp:border-accent-600",
-				"data-active:group-data-[otp-state=caret]/otp:border-s",
-				"data-active:group-data-[otp-state=caret]/otp:ring-focus-accent",
-				"data-active:group-data-[otp-state=caret]/otp:z-20",
-				"data-active:group-data-[otp-state=caret]/otp:ring-4",
+				"data-highlighted:group-data-[otp-state=caret]/otp:border-accent-600",
+				"data-highlighted:group-data-[otp-state=caret]/otp:border-s",
+				"data-highlighted:group-data-[otp-state=caret]/otp:ring-focus-accent",
+				"data-highlighted:group-data-[otp-state=caret]/otp:z-20",
+				"data-highlighted:group-data-[otp-state=caret]/otp:ring-4",
 				// Select-all: tint *every* border on the slot accent.
 				// Tinting only the outside edges leaves the internal
 				// vertical divider (gray `border-e`) meeting the
@@ -623,8 +627,8 @@ const OtpInputSlotImpl = ({
 				"group-data-validation/otp:border-y-(--otp-validation-border)",
 				"group-data-validation/otp:first:border-s-(--otp-validation-border)",
 				"group-data-validation/otp:last:border-e-(--otp-validation-border)",
-				"group-data-validation/otp:data-active:group-data-[otp-state=caret]/otp:border-(--otp-validation-border)",
-				"group-data-validation/otp:data-active:group-data-[otp-state=caret]/otp:ring-(--otp-validation-ring)",
+				"group-data-validation/otp:data-highlighted:group-data-[otp-state=caret]/otp:border-(--otp-validation-border)",
+				"group-data-validation/otp:data-highlighted:group-data-[otp-state=caret]/otp:ring-(--otp-validation-ring)",
 				"group-data-validation/otp:group-data-[otp-state=all]/otp:border-(--otp-validation-border)",
 				className,
 			)}

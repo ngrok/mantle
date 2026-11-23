@@ -527,24 +527,22 @@ describe("MultiSelect", () => {
 			expect(await screen.findByRole("listbox")).toBeInTheDocument();
 		});
 
-		test("the focused tag is marked data-active, never aria-current, and drops it on blur", async () => {
+		test("a focused tag uses DOM focus as its state, never aria-current or data-active", async () => {
 			const user = userEvent.setup();
 			render(<Subject />);
 			const cherry = getTagOption("cherry");
-			expect(cherry).not.toHaveAttribute("data-active");
 
 			act(() => {
 				cherry.focus();
 			});
 			expect(cherry).toHaveFocus();
-			expect(cherry).toHaveAttribute("data-active");
+			expect(cherry).not.toHaveAttribute("data-active");
 			// Why: `aria-current` names the current item in a set, not keyboard focus.
 			expect(cherry).not.toHaveAttribute("aria-current");
-			expect(getTagOption("banana")).not.toHaveAttribute("data-active");
 
 			await user.keyboard("{ArrowRight}");
 			expect(screen.getByRole("combobox")).toHaveFocus();
-			expect(cherry).not.toHaveAttribute("data-active");
+			expect(cherry).not.toHaveFocus();
 		});
 
 		test("ArrowLeft on a non-first tag focuses the previous tag", async () => {
@@ -600,6 +598,27 @@ describe("MultiSelect", () => {
 			await user.click(screen.getByRole("combobox"));
 			await user.keyboard("{Backspace}");
 			expect(screen.queryByLabelText("Remove cherry")).not.toBeInTheDocument();
+			// Why: no focus or option changes, so only the status says which value went.
+			expect(screen.getByRole("status")).toHaveTextContent("Removed cherry");
+		});
+
+		test("a removal that a controlled value rejects says nothing", async () => {
+			const user = userEvent.setup();
+			render(
+				<MultiSelect.Root value={["apple"]}>
+					<MultiSelect.Trigger>
+						<MultiSelect.TagValues />
+						<MultiSelect.Input placeholder="Select items..." />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+					</MultiSelect.Content>
+				</MultiSelect.Root>,
+			);
+			await user.click(screen.getByRole("combobox"));
+			await user.keyboard("{Backspace}");
+			expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
+			expect(screen.getByRole("status")).toBeEmptyDOMElement();
 		});
 
 		test("Backspace on the first tag with remaining tags focuses the new first tag", async () => {
@@ -1152,5 +1171,38 @@ describe("MultiSelect.Item asChild", () => {
 		await expect(user.click(screen.getByRole("combobox"))).rejects.toThrow(
 			"When using `asChild`, MultiSelect.Item must be passed a single child as a JSX tag.",
 		);
+	});
+});
+
+describe("MultiSelect.Item function child", () => {
+	test("renders the returned element as the option, with the label and check inside, and reports the highlight", async () => {
+		const user = userEvent.setup();
+		render(
+			<MultiSelect.Root defaultValue={["apple"]}>
+				<MultiSelect.Trigger aria-label="Fruits">
+					<MultiSelect.TagValues />
+					<MultiSelect.Input aria-label="Search fruits" />
+				</MultiSelect.Trigger>
+				<MultiSelect.Content>
+					{["apple", "banana"].map((fruit) => (
+						<MultiSelect.Item key={fruit} value={fruit}>
+							{(props, { highlighted }) => (
+								<div {...props} data-row-highlighted={String(highlighted)}>
+									{fruit}
+								</div>
+							)}
+						</MultiSelect.Item>
+					))}
+				</MultiSelect.Content>
+			</MultiSelect.Root>,
+		);
+
+		await user.click(screen.getByRole("combobox", { name: "Search fruits" }));
+		const banana = await screen.findByRole("option", { name: "banana" });
+		await user.hover(banana);
+
+		expect(banana).toHaveAttribute("data-row-highlighted", "true");
+		expect(banana.querySelector("[data-slot=multi-select-item-label]")).toHaveTextContent("banana");
+		expect(screen.getByRole("option", { name: "apple" }).querySelector("svg")).not.toBeNull();
 	});
 });

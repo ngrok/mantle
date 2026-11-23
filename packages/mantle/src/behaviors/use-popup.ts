@@ -8,6 +8,7 @@ import {
 	useIsCoveredByOverlay,
 	useLayerContainer,
 } from "../utils/layer-container/layer-container.js";
+import { swallowOutsideClick } from "./swallow-outside-click.js";
 import { trackFloat } from "../utils/float/position.js";
 import { hasPopoverApi, resolvePortalTarget } from "../utils/float/use-float.js";
 
@@ -17,7 +18,7 @@ const OFFSET = 8;
 /**
  * Owns an open popup: a `popover="manual"` element in the top layer that
  * follows its anchor. Render the popup only while it is open, into
- * `portalTarget`, with `popupRef` and `popover="manual"`.
+ * `portalTarget`, with `popupRef`, and with `popover="manual"` when `hasPopoverApi` is true.
  *
  * `trackFloat` places the popup from script below its anchor, or above it
  * when it does not fit below and the space above is larger. The popup gets `data-side` (`bottom` or `top`)
@@ -32,7 +33,7 @@ const OFFSET = 8;
  * @example
  * ```tsx
  * const { portalTarget, popupRef } = usePopup({ anchorRef: triggerRef });
- * return portalTarget != null && createPortal(<div popover="manual" ref={popupRef} role="listbox" />, portalTarget);
+ * return portalTarget != null && createPortal(<div popover={hasPopoverApi ? "manual" : undefined} ref={popupRef} role="listbox" />, portalTarget);
  * ```
  */
 const usePopup = ({
@@ -51,8 +52,9 @@ const usePopup = ({
 	/**
 	 * Closes the popup on a primary press outside the anchor and the popup.
 	 * The click of that press does not reach the page, as with a native select.
+	 * It gets the `pointerdown`, so a call to `preventDefault` keeps focus where it is.
 	 */
-	onOutsidePress?: () => void;
+	onOutsidePress?: (event: PointerEvent) => void;
 }): { portalTarget: Element | DocumentFragment | null; popupRef: RefCallback<HTMLElement> } => {
 	const layerContainer = useLayerContainer();
 	const outsidePress = useCallbackRef(onOutsidePress);
@@ -87,9 +89,6 @@ const usePopup = ({
 					side: "bottom",
 					align: "start",
 					sideOffset: OFFSET,
-					fallback: "larger",
-					placeWith: "script",
-					releaseAnchorAfter: 0,
 				});
 				const document = floating.ownerDocument;
 				const onPointerDown = (event: PointerEvent) => {
@@ -100,30 +99,10 @@ const usePopup = ({
 					) {
 						return;
 					}
-					// Why on the window, not the popup: the press closes the popup before
-					// its click arrives. A cancelled press or the next press drops it.
-					// Why skip `detail` 0: a keyboard or script click has no press, so a
-					// press that makes no click, such as on a disabled button, cannot eat it.
-					const swallow = (click: MouseEvent) => {
-						if (click.detail === 0) {
-							return;
-						}
-						click.preventDefault();
-						click.stopPropagation();
-						release();
-					};
-					const release = () => {
-						window.removeEventListener("click", swallow, { capture: true });
-						window.removeEventListener("pointercancel", release, { capture: true });
-						window.removeEventListener("pointerdown", release, { capture: true });
-					};
-					window.addEventListener("click", swallow, { capture: true });
-					window.addEventListener("pointercancel", release, { capture: true });
-					// Why this press does not release it: it has passed the window already.
-					window.addEventListener("pointerdown", release, { capture: true });
+					swallowOutsideClick();
 					// Why close here, not only on blur: a press that keeps focus, such as on a
 					// toolbar button that cancels `mousedown`, would leave the popup open.
-					outsidePress();
+					outsidePress(event);
 				};
 				if (closesOnOutsidePress) {
 					document.addEventListener("pointerdown", onPointerDown, { capture: true });

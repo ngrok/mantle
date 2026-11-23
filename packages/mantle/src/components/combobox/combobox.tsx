@@ -11,13 +11,17 @@ import { usePopup } from "../../behaviors/use-popup.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
+import { observeScrollEdges } from "../../utils/scroll-edges.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { hasPopoverApi } from "../../utils/float/use-float.js";
 import { parseValidation } from "../field/validation.js";
 import { useFieldValidation } from "../field/validation-context.js";
 import type { WithValidation } from "../field/validation.js";
 import { Separator } from "../separator/separator.js";
 import { Slot } from "../slot/index.js";
+import { OptionSlot } from "../slot/option-slot.js";
+import type { OptionRender } from "../slot/option-slot.js";
 
 const ComboboxContext = createContext<ComboboxContextValue | null>(null);
 
@@ -219,9 +223,9 @@ const Input = ({
 				"hover:border-neutral-400",
 				"focus:focus-ring aria-expanded:focus-ring",
 				"focus:border-accent-600 aria-expanded:border-accent-600",
-				"data-validation-success:border-success-600 data-validation-success:focus:border-success-600 data-validation-success:focus:ring-focus-success data-validation-success:aria-expanded:border-success-600 data-validation-success:aria-expanded:ring-focus-success",
-				"data-validation-warning:border-warning-600 data-validation-warning:focus:border-warning-600 data-validation-warning:focus:ring-focus-warning data-validation-warning:aria-expanded:border-warning-600 data-validation-warning:aria-expanded:ring-focus-warning",
-				"data-validation-error:border-danger-600 data-validation-error:focus:border-danger-600 data-validation-error:focus:ring-focus-danger data-validation-error:aria-expanded:border-danger-600 data-validation-error:aria-expanded:ring-focus-danger motion-safe:data-validation-error:animate-shake",
+				"data-[validation=success]:border-success-600 data-[validation=success]:focus:border-success-600 data-[validation=success]:focus:ring-focus-success data-[validation=success]:aria-expanded:border-success-600 data-[validation=success]:aria-expanded:ring-focus-success",
+				"data-[validation=warning]:border-warning-600 data-[validation=warning]:focus:border-warning-600 data-[validation=warning]:focus:ring-focus-warning data-[validation=warning]:aria-expanded:border-warning-600 data-[validation=warning]:aria-expanded:ring-focus-warning",
+				"data-[validation=error]:border-danger-600 data-[validation=error]:focus:border-danger-600 data-[validation=error]:focus:ring-focus-danger data-[validation=error]:aria-expanded:border-danger-600 data-[validation=error]:aria-expanded:ring-focus-danger motion-safe:data-[validation=error]:animate-shake",
 				"autofill:shadow-(--color-blue-50) autofill:bg-blue-50 autofill:[-webkit-text-fill-color:var(--text-color-strong)]", // Autofill styling on the input itself and any children with autofill styling
 				className,
 			)}
@@ -291,7 +295,8 @@ const OpenContent = ({
 }: ComboboxContentProps) => {
 	const { inputRef, listbox } = useComboboxContext();
 	const { portalTarget, popupRef } = usePopup({ anchorRef: inputRef, ownerRef: inputRef });
-	const composedRef = useComposedRefs(ref, popupRef, listbox.listboxProps.ref);
+	const listRef = useComposedRefs(listbox.listboxProps.ref, observeScrollEdges);
+	const composedRef = useComposedRefs(ref, popupRef, listRef);
 	const Component = asChild ? Slot : "div";
 	return (
 		portalTarget != null &&
@@ -299,13 +304,13 @@ const OpenContent = ({
 			<Component
 				{...props}
 				{...listbox.listboxProps}
-				popover="manual"
+				popover={hasPopoverApi ? "manual" : undefined}
 				onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
 				ref={composedRef}
 				data-slot={joinDataSlot(dataSlot, "combobox-content")}
-				data-state="open"
+				data-open=""
 				className={cx(
-					"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none rounded-md border shadow-md p-1 space-y-px font-sans outline-hidden",
+					"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 rounded-md border shadow-md p-1 space-y-px font-sans outline-hidden",
 					sameWidth && "w-(--anchor-width)",
 					className,
 				)}
@@ -317,9 +322,15 @@ const OpenContent = ({
 	);
 };
 
-type ComboboxItemProps = Omit<ComponentProps<"div">, "value"> &
+type ComboboxItemProps = Omit<ComponentProps<"div">, "children" | "value"> &
 	WithAsChild &
 	WithDataSlot & {
+		/**
+		 * The item's content, which defaults to its `value`. A function renders the
+		 * item as the element it returns, with the item's props and `{ highlighted }`:
+		 * spread `props` on that element.
+		 */
+		children?: ReactNode | OptionRender;
 		/**
 		 * Whether the item is inert.
 		 */
@@ -333,6 +344,9 @@ type ComboboxItemProps = Omit<ComponentProps<"div">, "value"> &
 
 /**
  * Renders a combobox item inside a Combobox.Content component.
+ *
+ * **Function child.** `(props, { highlighted }) => element` renders the item as
+ * the element it returns. Spread `props` on it.
  *
  * @see https://mantle.ngrok.com/components/forms/combobox#comboboxitem
  *
@@ -366,30 +380,33 @@ const Item = ({
 		disabled: disabled || value == null,
 		id: childId({ asChild, children, id: props.id }),
 	});
+	const elementProps = {
+		...props,
+		...optionProps,
+		onClick: composeHandlers(onClick, optionProps.onClick),
+		onPointerMove: composeHandlers(onPointerMove, optionProps.onPointerMove),
+		// Why: in the APG combobox pattern, the highlighted option is the selected
+		// one, and the open list writes the attribute with the highlight.
+		"aria-selected": undefined,
+		// Why `data-selected`: `aria-selected` follows the highlight, so the picked option needs its own attribute.
+		"data-selected": selected ? "" : undefined,
+		ref,
+		"data-slot": joinDataSlot(dataSlot, "combobox-item"),
+		className: cx(
+			"cursor-pointer rounded-md px-2 py-1.5 text-strong text-sm flex min-w-0 gap-2 items-center [&>svg]:size-5 [&_svg]:shrink-0",
+			"data-highlighted:bg-active-menu-item",
+			"aria-disabled:opacity-50",
+			className,
+		),
+	};
 	const Component = asChild ? Slot : "div";
 	return (
 		<ItemValueContext value={value}>
-			<Component
-				{...props}
-				{...optionProps}
-				onClick={composeHandlers(onClick, optionProps.onClick)}
-				onPointerMove={composeHandlers(onPointerMove, optionProps.onPointerMove)}
-				// Why: in the APG combobox pattern, the highlighted option is the selected
-				// one, and the open list writes the attribute with the highlight.
-				aria-selected={undefined}
-				// Why `data-selected`: `aria-selected` follows the highlight, so the picked option needs its own attribute.
-				data-selected={selected ? "" : undefined}
-				ref={ref}
-				data-slot={joinDataSlot(dataSlot, "combobox-item")}
-				className={cx(
-					"cursor-pointer rounded-md px-2 py-1.5 text-strong text-sm flex min-w-0 gap-2 items-center [&>svg]:size-5 [&_svg]:shrink-0",
-					"data-highlighted:bg-active-menu-item",
-					"aria-disabled:opacity-50",
-					className,
-				)}
-			>
-				{children ?? value}
-			</Component>
+			{typeof children === "function" ? (
+				<OptionSlot {...elementProps} listbox={listbox} render={children} />
+			) : (
+				<Component {...elementProps}>{children ?? value}</Component>
+			)}
 		</ItemValueContext>
 	);
 };
@@ -553,7 +570,7 @@ const ItemValue = ({
 		<span
 			data-slot={joinDataSlot(dataSlot, "combobox-item-value")}
 			className={cx(
-				"*:data-user-value:font-medium flex-1 shrink-0 text-strong font-normal",
+				"[&>[data-user-value]]:font-medium flex-1 shrink-0 text-strong font-normal",
 				className,
 			)}
 			ref={ref}

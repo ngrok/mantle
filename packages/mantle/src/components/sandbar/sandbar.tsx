@@ -11,9 +11,7 @@ import {
 	useMemo,
 	useRef,
 	useState,
-	useSyncExternalStore,
 } from "react";
-import { createPortal } from "react-dom";
 import invariant from "tiny-invariant";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { WithAsChild } from "../../types/as-child.js";
@@ -26,8 +24,7 @@ import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import { shakeElement } from "../../utils/shake.js";
 import type { ButtonProps } from "../button/button.js";
 import { Button } from "../button/button.js";
-import { canUseDOM } from "../browser-only/can-use-dom.js";
-import { attachPromptHost, getTopModal, subscribeTopModal } from "../toast/toaster-host.js";
+import { OverlayPrompt } from "../overlay-prompt/overlay-prompt.js";
 import { Slot } from "../slot/index.js";
 
 /**
@@ -211,11 +208,11 @@ type SandbarRootProps = ComponentProps<"div"> &
  * the page (light ⇄ dark), and so does everything composed inside it: the
  * blessed buttons and any custom children.
  *
- * The bar renders at Tailwind `z-70`, above Mantle's overlay tier (`z-60`), so
- * it stays visible above the scrim of an open dialog, alert dialog, or sheet.
- * Like a toast, a click on the panel does not dismiss that overlay. Keyboard
- * and screen-reader users reach the bar only after the overlay closes, so a
- * form inside an overlay keeps its save actions in the overlay.
+ * The bar stays usable above an open dialog, alert dialog, or sheet: it is an
+ * `OverlayPrompt`, so it moves into the top open modal dialog, where it takes
+ * clicks and focus, and a press on it does not close the dialog. It renders at
+ * Tailwind `z-70`, above a non-modal dialog (`z-60`). A form inside an overlay
+ * keeps its save actions in the overlay.
  *
  * `ref`, `className`, and all other props target the panel. Render it in
  * place at the end of the form it saves. `position: fixed` changes paint
@@ -227,7 +224,7 @@ type SandbarRootProps = ComponentProps<"div"> &
  * | Data Attribute | Value                  | Description                                                                                                                                      |
  * | -------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
  * | `data-slot`    | `"sandbar"`            | Stable styling hook for the panel. Survives `className` overrides.                                                                               |
- * | `data-state`   | `"open"` \| `"closed"` | `"open"` only at the resting open pose. `"closed"` covers both the pre-enter frame and the exit transition, which is what drives the slide/fade. |
+ * | `data-open`    | present while open     | Presence-only, and only at the resting open pose. Absent in both the pre-enter frame and the exit transition, which is what drives the slide/fade. |
  *
  * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarroot
  *
@@ -257,13 +254,13 @@ const Root = ({
 	...props
 }: SandbarRootProps) => {
 	const [presence, setPresence] = useState<SandbarPresence>(open ? "open" : "closed");
-	const [host] = useState(() => (canUseDOM() ? document.createElement("div") : null));
-	useIsomorphicLayoutEffect(() => (host == null ? undefined : attachPromptHost(host)), [host]);
 	const [politeText, setPoliteText] = useState("");
 	const [assertiveText, setAssertiveText] = useState("");
 	const [messageId, setMessageId] = useState<string | null>(null);
 
 	const wrapperRef = useRef<HTMLDivElement>(null);
+	/** Where the bar lives when no modal dialog is open: in the form it saves. */
+	const homeRef = useRef<HTMLDivElement>(null);
 	const panelRef = useRef<HTMLDivElement>(null);
 	const composedPanelRef = useComposedRefs(panelRef, ref);
 
@@ -369,30 +366,16 @@ const Root = ({
 	// callback, so the context identity survives the four presence transitions
 	// instead of re-rendering every consumer on each one.
 	/**
-	 * Whether the bar sits in the top open modal `<dialog>`. A modal makes the
-	 * rest of the page inert, so the bar moves into the dialog while one is open,
-	 * as it painted above a Radix dialog and took clicks. Otherwise it stays in
-	 * place, so the form owns its submit button and Tab reaches it after the last
-	 * field. It stays in place in a dialog that holds it or that it holds, such
-	 * as its own confirm.
+	 * The form that the bar saves while it sits in an open modal dialog. A modal
+	 * makes the rest of the page inert, so `OverlayPrompt` moves the bar into the
+	 * dialog, as it painted above a Radix dialog and took clicks. There the form
+	 * no longer owns the bar's submit button.
 	 */
-	const getLifted = useCallback(() => {
-		const top = getTopModal();
+	const liftedForm = useCallback(() => {
+		const home = homeRef.current;
 		const wrapper = wrapperRef.current;
-		if (top == null || host == null || wrapper == null) {
-			return false;
-		}
-		return host.contains(wrapper) || !(top.contains(wrapper) || wrapper.contains(top));
-	}, [host]);
-	const lifted = useSyncExternalStore(subscribeTopModal, getLifted, () => false);
-	/** The form that holds the bar in place: a lifted submit button submits it. */
-	const formRef = useRef<HTMLFormElement | null>(null);
-	useIsomorphicLayoutEffect(() => {
-		if (!lifted) {
-			formRef.current = wrapperRef.current?.closest("form") ?? null;
-		}
-	}, [lifted]);
-	const liftedForm = useCallback(() => (lifted ? formRef.current : null), [lifted]);
+		return home == null || wrapper == null || home.contains(wrapper) ? null : home.closest("form");
+	}, []);
 
 	const context = useMemo<SandbarContextValue>(
 		() => ({ announceAssertive, liftedForm, registerMessage, reportSaving }),
@@ -601,7 +584,7 @@ const Root = ({
 	// `inert` covers the exit, not just the resting closed state: through the
 	// 200ms drop the panel is still painted and still in the tab order, so a user
 	// who was Tabbing toward Discard as the save landed could focus and activate a
-	// control that is visually gone. `data-state-closed:pointer-events-none` only
+	// control that is visually gone. `not-data-open:pointer-events-none` only
 	// suppresses the mouse. Focus that `inert` evicts lands on <body> with no
 	// `relatedTarget`, which `handleFocusOut` ignores (the departed control is
 	// neither disconnected, disabled, nor hidden) and which the restore-on-close
@@ -610,15 +593,13 @@ const Root = ({
 
 	const bar = (
 		<SandbarContext.Provider value={context}>
-			{/* Why z-70: the bar stays visible and usable while a dialog, alert
-			    dialog, or sheet (the `z-60` overlay tier) is open, as a toast does.
+			{/* Why z-70: the bar paints above a non-modal dialog (the `z-60`
+			    overlay tier), as a toast does.
 			    Why a layer container: a float composed in the bar (a menu, a
 			    tooltip) portals in here and paints above the bar, not under it at
-			    `z-50`. `*:pointer-events-auto` keeps those floats clickable, and
-			    `overlay-prompt` on the wrapper keeps a click in the panel or in one
-			    of those floats from dismissing an open dialog or sheet. */}
+			    `z-50`. `[&>*]:pointer-events-auto` keeps those floats clickable. */}
 			<LayerContainer
-				className="overlay-prompt pointer-events-none fixed inset-x-0 bottom-4 z-70 flex justify-center px-4 *:pointer-events-auto sm:bottom-10"
+				className="pointer-events-none fixed inset-x-0 bottom-4 z-70 flex justify-center px-4 [&>*]:pointer-events-auto sm:bottom-10"
 				modal={false}
 				onBlur={handleFocusOut}
 				onFocus={handleFocusIn}
@@ -670,14 +651,14 @@ const Root = ({
 						// `translate-y-*` writes the standalone `translate` property in
 						// Tailwind v4. Transitioning `transform` instead silently snaps.
 						"transition-[opacity,translate] duration-200 ease-out-strong",
-						"data-state-closed:pointer-events-none data-state-closed:opacity-0 data-state-closed:duration-150 motion-safe:data-state-closed:translate-y-[calc(100%+2.5rem)]",
+						"not-data-open:pointer-events-none not-data-open:opacity-0 not-data-open:duration-150 motion-safe:not-data-open:translate-y-[calc(100%+2.5rem)]",
 						className,
 					)}
 					{...props}
 					aria-label={label}
 					aria-labelledby={labelledby}
 					data-slot={joinDataSlot(dataSlot, "sandbar")}
-					data-state={presence === "open" ? "open" : "closed"}
+					data-open={presence === "open" ? "" : undefined}
 					hidden={isClosed ? true : undefined}
 					inert={isInert ? true : undefined}
 					onTransitionEnd={handleTransitionEnd}
@@ -690,9 +671,9 @@ const Root = ({
 			</LayerContainer>
 		</SandbarContext.Provider>
 	);
-	// Why a host: it moves into the top open modal, as the `Toaster`'s does.
-	// The move remounts the bar's children; the state of `Root` stays.
-	return lifted && host != null ? createPortal(bar, host) : bar;
+	// Why `OverlayPrompt`: the bar moves into the top open modal dialog, as the
+	// toasts do, and back to its form when the dialog closes.
+	return <OverlayPrompt ref={homeRef}>{bar}</OverlayPrompt>;
 };
 
 /**
@@ -887,7 +868,6 @@ type SandbarSaveButtonProps = Omit<ButtonProps, "appearance" | "children" | "int
  * | `data-appearance` | the resolved `appearance` | Stamped by `Button`.                                                                             |
  * | `data-intent`     | the resolved `intent`     | Stamped by `Button`.                                                                             |
  * | `data-size`       | the resolved `size`       | Stamped by `Button`; absent for `appearance="link"`.                                             |
- * | `data-disabled`   | present when disabled     | Stamped by `Button`. Presence-only, never `"false"`.                                             |
  * | `data-loading`    | present when `isLoading`  | Stamped by `Button`. Presence-only, never `"false"`.                                             |
  *
  * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarsavebutton
@@ -941,8 +921,18 @@ const SaveButton = ({
 				onClick?.(event);
 				// Why: a bar in a dialog is outside its form, so a submit button
 				// submits the form it left.
+				// Why the form owner check: a bar that the dialog's own form holds
+				// submits it natively. A bar that another form holds must not
+				// submit that form. A `form` attribute names the form itself.
 				const form = liftedForm();
-				if (!event.defaultPrevented && props.type === "submit" && form != null) {
+				if (
+					!event.defaultPrevented &&
+					props.type === "submit" &&
+					props.form == null &&
+					form != null &&
+					buttonRef.current?.form !== form
+				) {
+					event.preventDefault();
 					form.requestSubmit();
 				}
 			}}
@@ -1002,7 +992,6 @@ type SandbarDiscardButtonProps = Omit<ButtonProps, "appearance" | "children" | "
  * | `data-appearance` | the resolved `appearance`  | Stamped by `Button`.                                                                             |
  * | `data-intent`     | the resolved `intent`      | Stamped by `Button`.                                                                             |
  * | `data-size`       | the resolved `size`        | Stamped by `Button`; absent for `appearance="link"`.                                             |
- * | `data-disabled`   | present when disabled      | Stamped by `Button`. Presence-only, never `"false"`.                                             |
  * | `data-loading`    | present when `isLoading`   | Stamped by `Button`. Presence-only, never `"false"`.                                             |
  *
  * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbardiscardbutton

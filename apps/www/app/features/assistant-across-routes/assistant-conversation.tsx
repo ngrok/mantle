@@ -1,5 +1,6 @@
 import { Button, IconButton } from "@ngrok/mantle/button";
 import { cx } from "@ngrok/mantle/cx";
+import { type ScrollAnchor, useScrollAnchor } from "@ngrok/mantle/hooks";
 import { Icon } from "@ngrok/mantle/icon";
 import { LiveRegion } from "@ngrok/mantle/live-region";
 import { TextArea } from "@ngrok/mantle/text-area";
@@ -18,6 +19,7 @@ import {
 	useRef,
 	useState,
 	type ReactNode,
+	type RefObject,
 } from "react";
 
 /** One turn of the conversation. */
@@ -38,6 +40,11 @@ type AssistantConversation = {
 	draft: string;
 	/** True from a send until the reply has arrived in full. */
 	isReplying: boolean;
+	/**
+	 * The reader's place in the transcript. Held here so a route change keeps
+	 * it: the transcript passes it to `useScrollAnchor` in each home.
+	 */
+	scrollAnchorRef: RefObject<ScrollAnchor | null>;
 	setDraft: (draft: string) => void;
 	/**
 	 * Appends the user's message and starts the reply. Returns `false`, and
@@ -124,6 +131,7 @@ function AssistantConversationProvider({ children }: { children: ReactNode }) {
 	const [messages, setMessages] = useState<ReadonlyArray<AssistantMessage>>([]);
 	const [draft, setDraft] = useState("");
 	const [isReplying, setIsReplying] = useState(false);
+	const scrollAnchorRef = useRef<ScrollAnchor | null>(null);
 	const replyTimer = useRef<number | null>(null);
 	const replyCount = useRef(0);
 
@@ -179,7 +187,7 @@ function AssistantConversationProvider({ children }: { children: ReactNode }) {
 	}, [stopReply]);
 
 	const conversation = useMemo<AssistantConversation>(
-		() => ({ messages, draft, isReplying, setDraft, send, reset }),
+		() => ({ messages, draft, isReplying, scrollAnchorRef, setDraft, send, reset }),
 		[messages, draft, isReplying, send, reset],
 	);
 
@@ -239,13 +247,21 @@ function AssistantTranscript({
 	/** Runs after a starter prompt is accepted. The assistant's page opens the companion here. */
 	onSend?: () => void;
 }) {
-	const { messages, isReplying, send } = useAssistantConversation();
+	const { messages, isReplying, scrollAnchorRef, send } = useAssistantConversation();
 	const endRef = useRef<HTMLDivElement>(null);
+	// Why: each home mounts its own transcript at its own width. The list writes
+	// the reader's place to the conversation when it detaches, and the next home
+	// scrolls back to it before its first paint. A new message drops the place.
+	const anchorList = useScrollAnchor({ anchorRef: scrollAnchorRef, key: messages.at(-1)?.id });
+	// The messages the transcript mounted with. A host that mounts mid-
+	// conversation keeps the reader's place (`useScrollAnchor`), so only a
+	// change after the mount scrolls to the end.
+	const mountedMessages = useRef(messages);
 
 	// Why an effect: the newest text must stay in view while a reply grows. The
 	// scroll region is the host's, so the sentinel finds it and scrolls it.
 	useEffect(() => {
-		if (messages.length > 0 && endRef.current != null) {
+		if (messages !== mountedMessages.current && messages.length > 0 && endRef.current != null) {
 			scrollHostToEnd(endRef.current);
 		}
 	}, [messages]);
@@ -306,7 +322,10 @@ function AssistantTranscript({
 	return (
 		<>
 			{announcer}
-			<div className="@container mx-auto flex w-full max-w-3xl flex-col gap-4 p-4 @2xl:p-6">
+			<div
+				ref={anchorList}
+				className="@container mx-auto flex w-full max-w-3xl flex-col gap-4 p-4 @2xl:p-6"
+			>
 				{messages.map((message) =>
 					message.role === "user" ? (
 						<div key={message.id} className="flex justify-end">

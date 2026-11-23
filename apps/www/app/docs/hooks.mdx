@@ -11,28 +11,29 @@ Custom React hooks exported from `@ngrok/mantle/hooks`.
 
 ## Overview
 
-| Hook                        | Description                                                                             |
-| --------------------------- | --------------------------------------------------------------------------------------- |
-| `useBreakpoint`             | The largest Tailwind breakpoint the viewport width matches, or `"default"` below `2xs`. |
-| `useIsBelowBreakpoint`      | `true` while the viewport is narrower than the given breakpoint.                        |
-| `useCallbackRef`            | Returns a memoized callback that always refers to the latest function passed to it.     |
-| `useComposedRefs`           | Composes multiple React refs into a single callback ref.                                |
-| `useCopyToClipboard`        | Copies a string to the clipboard.                                                       |
-| `useDebounce`               | Returns a debounced copy of a value that updates after changes pause.                   |
-| `useDebouncedCallback`      | Creates a debounced version of a callback function.                                     |
-| `useFocusTrap`              | Keeps keyboard focus inside an element while active: `Tab` wraps at both ends.          |
-| `useInertSiblings`          | Sets `inert` on every other child of an element's parent while active.                  |
-| `useIsHydrated`             | Returns whether the component tree has been hydrated on the client.                     |
-| `useIsHydratedAfterPaint`   | `true` from the first animation frame after hydration, for CSS transition gates.        |
-| `useIsomorphicLayoutEffect` | Uses `useLayoutEffect` on the client and `useEffect` on the server.                     |
-| `useLocalStorage`           | SSR-safe localStorage string state, synced across hook instances and tabs.              |
-| `useSessionStorage`         | SSR-safe sessionStorage string state for per-tab persistence.                           |
-| `useMatchesMediaQuery`      | Subscribes to and returns the result of a CSS media query.                              |
-| `usePrefersReducedMotion`   | Returns `true` when the user prefers reduced motion.                                    |
-| `useScrollBehavior`         | Returns a `ScrollBehavior` that respects the user's reduced motion preference.          |
-| `useSwipeToDismiss`         | Makes an element a swipe handle that drags a target toward one edge and dismisses it.   |
-| `useInView`                 | Returns `true` when a DOM element is visible within the viewport.                       |
-| `useUndoRedo`               | Generic undo/redo history stacks for snapshotting state.                                |
+| Hook                        | Description                                                                              |
+| --------------------------- | ---------------------------------------------------------------------------------------- |
+| `useBreakpoint`             | The largest Tailwind breakpoint the viewport width matches, or `"default"` below `2xs`.  |
+| `useIsBelowBreakpoint`      | `true` while the viewport is narrower than the given breakpoint.                         |
+| `useCallbackRef`            | Returns a memoized callback that always refers to the latest function passed to it.      |
+| `useComposedRefs`           | Composes multiple React refs into a single callback ref.                                 |
+| `useCopyToClipboard`        | Copies a string to the clipboard.                                                        |
+| `useDebounce`               | Returns a debounced copy of a value that updates after changes pause.                    |
+| `useDebouncedCallback`      | Creates a debounced version of a callback function.                                      |
+| `useFocusTrap`              | Keeps keyboard focus inside an element while active: `Tab` wraps at both ends.           |
+| `useInertSiblings`          | Sets `inert` on every other child of an element's parent while active.                   |
+| `useIsHydrated`             | Returns whether the component tree has been hydrated on the client.                      |
+| `useIsHydratedAfterPaint`   | `true` from the first animation frame after hydration, for CSS transition gates.         |
+| `useIsomorphicLayoutEffect` | Uses `useLayoutEffect` on the client and `useEffect` on the server.                      |
+| `useLocalStorage`           | SSR-safe localStorage string state, synced across hook instances and tabs.               |
+| `useSessionStorage`         | SSR-safe sessionStorage string state for per-tab persistence.                            |
+| `useMatchesMediaQuery`      | Subscribes to and returns the result of a CSS media query.                               |
+| `usePrefersReducedMotion`   | Returns `true` when the user prefers reduced motion.                                     |
+| `useScrollAnchor`           | Keeps the reader's place in some content when it remounts, at the same width or another. |
+| `useScrollBehavior`         | Returns a `ScrollBehavior` that respects the user's reduced motion preference.           |
+| `useSwipeToDismiss`         | Makes an element a swipe handle that drags a target toward one edge and dismisses it.    |
+| `useInView`                 | Returns `true` when a DOM element is visible within the viewport.                        |
+| `useUndoRedo`               | Generic undo/redo history stacks for snapshotting state.                                 |
 
 ## useBreakpoint
 
@@ -277,9 +278,9 @@ function Panel() {
 	// A persisted-collapsed panel snaps on load and animates on every later toggle.
 	return (
 		<div
-			data-state={state}
+			data-expanded={state === "expanded" ? "" : undefined}
 			data-hydrated={isHydrated ? "" : undefined}
-			className="w-52 transition-[width] data-[state=collapsed]:w-13 not-data-hydrated:transition-none"
+			className="w-52 transition-[width] not-data-expanded:w-13 not-data-hydrated:transition-none"
 		/>
 	);
 }
@@ -413,6 +414,51 @@ function shakeElement(element: HTMLElement) {
 }
 ```
 
+## useScrollAnchor
+
+```tsx
+const anchorContent = useScrollAnchor({ anchorRef, key }); // a ref for the content's element
+```
+
+Keeps the reader's place in some content across a remount, at the same width or another. When the element
+with the ref detaches, the hook writes down which text is at the top edge of the region that scrolls it.
+When an element attaches, the hook scrolls that text back to the top edge before the first paint. It
+records a path to an element and a fraction of its height, not a `scrollTop`: the same content at another
+width wraps differently, so the same text sits at another offset.
+
+Use it when one piece of content has two homes that a navigation swaps, such as a conversation that is the
+page on one route and the side panel on the others. A view transition between the two then snapshots the new
+home already in place. [Assistant Across Routes](/recipes/assistant-across-routes) uses it this way.
+
+```tsx
+import { type ScrollAnchor, useScrollAnchor } from "@ngrok/mantle/hooks";
+
+function Transcript() {
+	const { messages, scrollAnchorRef } = useConversation(); // the ref lives above both homes
+	const anchorContent = useScrollAnchor({ anchorRef: scrollAnchorRef, key: messages.at(-1)?.id });
+
+	return (
+		<ol ref={anchorContent}>
+			{messages.map((message) => (
+				<li key={message.id}>{message.text}</li>
+			))}
+		</ol>
+	);
+}
+```
+
+The region it scrolls is the element itself or its nearest ancestor that can scroll up and down, such as
+`AppLayout.Body` or `AppLayout.SidePanelBody`, else the document. Fixed and sticky children do not count as
+the place, and the restore is instant even under `scroll-behavior: smooth`. Until the reader scrolls, a later change of the
+content's width, such as a sidebar that expands again, restores the place again. Put the ref on an element whose subtree is the same in each
+home, such as the list of messages, so the place reads the same in each. Content that scrolls to its end
+when it changes must skip that scroll on mount, or the scroll overrides the place.
+
+| Option      | Type                              | Default | Description                                                                                                                                                          |
+| ----------- | --------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `anchorRef` | `RefObject<ScrollAnchor \| null>` |         | Holds the place between two mounts. Create it above every home of the content, such as in the provider that holds a conversation.                                    |
+| `key?`      | `string \| number`                |         | Names the content the place belongs to. The hook restores the place only when the key is unchanged, so pass the id of the last item. Omit it to restore every place. |
+
 ## useScrollBehavior
 
 ```tsx
@@ -476,8 +522,8 @@ function FloatingPanel({
 		<aside
 			ref={panelRef}
 			aria-label="Assistant"
-			data-state={open ? "open" : "closed"}
-			className="transition-[translate] duration-200 ease-out-strong motion-reduce:transition-none data-state-closed:translate-x-full"
+			data-open={open ? "" : undefined}
+			className="transition-[translate] duration-200 ease-out-strong motion-reduce:transition-none not-data-open:translate-x-full"
 		>
 			<div ref={headerRef} className="touch-pan-y">
 				Assistant
@@ -524,13 +570,14 @@ Trigger once on first entry:
 
 ```tsx
 import { useRef } from "react";
+import { cx } from "@ngrok/mantle/cx";
 import { useInView } from "@ngrok/mantle/hooks";
 
 function AnimateOnce() {
 	const ref = useRef<HTMLDivElement>(null);
 	const isInView = useInView(ref, { once: true });
 
-	return <div ref={ref} className={isInView ? "animate" : ""} />;
+	return <div ref={ref} className={cx(isInView && "animate")} />;
 }
 ```
 

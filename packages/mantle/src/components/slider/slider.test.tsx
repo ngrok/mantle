@@ -1,8 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import * as Field from "../field/field-parts.js";
-import { Slider } from "./slider.js";
+import { renderToString } from "react-dom/server";
+import { Slider, SliderValue } from "./slider.js";
+import type { SliderProps } from "./slider.js";
 
 describe("Slider", () => {
 	describe("showTicks", () => {
@@ -127,7 +129,7 @@ describe("Slider", () => {
 			);
 
 			const thumb = screen.getByRole("slider", { name: "Volume" });
-			expect(thumb).toHaveAttribute("aria-valuenow", "30");
+			expect(thumb).toHaveValue("30");
 
 			thumb.focus();
 			await user.keyboard("{ArrowRight}");
@@ -135,7 +137,7 @@ describe("Slider", () => {
 			// Controlled: the caller owns the value, so the thumb stays at 30 and
 			// only reports the requested next value.
 			expect(onValueChange).toHaveBeenCalledExactlyOnceWith([31]);
-			expect(thumb).toHaveAttribute("aria-valuenow", "30");
+			expect(thumb).toHaveValue("30");
 		});
 
 		test("with neither value nor defaultValue, a single thumb sits at min", () => {
@@ -143,8 +145,253 @@ describe("Slider", () => {
 
 			const thumbs = screen.getAllByRole("slider");
 			expect(thumbs).toHaveLength(1);
-			expect(thumbs[0]).toHaveAttribute("aria-valuenow", "7");
+			expect(thumbs[0]).toHaveValue("7");
 		});
+	});
+
+	describe("keyboard", () => {
+		type PressProps = Omit<SliderProps, "defaultValue" | "value"> & {
+			defaultValue?: number | number[];
+		};
+
+		/** Renders an uncontrolled slider, focuses its thumb at `index`, and presses `keys`. */
+		async function press(
+			keys: string,
+			{ defaultValue = 50, ...props }: PressProps = {},
+			index = 0,
+		) {
+			const user = userEvent.setup();
+			const onValueChange = vi.fn<(value: number[]) => void>();
+			const onValueCommit = vi.fn<(value: number[]) => void>();
+			render(
+				<Slider
+					aria-label="Level"
+					onValueChange={onValueChange}
+					onValueCommit={onValueCommit}
+					{...props}
+					defaultValue={[defaultValue].flat()}
+				/>,
+			);
+			screen.getAllByRole("slider")[index]?.focus();
+			await user.keyboard(keys);
+			const values = screen
+				.getAllByRole("slider")
+				.map((thumb) => (thumb instanceof HTMLInputElement ? thumb.valueAsNumber : Number.NaN));
+			return { onValueChange, onValueCommit, values };
+		}
+
+		test.each([
+			{ keys: "{ArrowRight}", props: {}, expected: 51 },
+			{ keys: "{ArrowUp}", props: {}, expected: 51 },
+			{ keys: "{ArrowLeft}", props: {}, expected: 49 },
+			{ keys: "{ArrowDown}", props: {}, expected: 49 },
+			{ keys: "{PageUp}", props: {}, expected: 60 },
+			{ keys: "{PageDown}", props: {}, expected: 40 },
+			{ keys: "{Shift>}{ArrowRight}{/Shift}", props: {}, expected: 60 },
+			{ keys: "{Home}", props: {}, expected: 0 },
+			{ keys: "{End}", props: {}, expected: 100 },
+			{ keys: "{ArrowRight}", props: { step: 5 }, expected: 55 },
+			{ keys: "{ArrowRight}", props: { dir: "rtl" }, expected: 49 },
+			{ keys: "{ArrowLeft}", props: { dir: "rtl" }, expected: 51 },
+			{ keys: "{ArrowRight}", props: { inverted: true }, expected: 49 },
+			{ keys: "{ArrowLeft}", props: { dir: "rtl", inverted: true }, expected: 49 },
+			{ keys: "{ArrowUp}", props: { orientation: "vertical" }, expected: 51 },
+			{ keys: "{ArrowUp}", props: { orientation: "vertical", inverted: true }, expected: 49 },
+			{ keys: "{ArrowRight}", props: { defaultValue: 100 }, expected: 100 },
+			{ keys: "{ArrowLeft}", props: { defaultValue: 0 }, expected: 0 },
+			{ keys: "{ArrowRight}", props: { defaultValue: 53, step: 10 }, expected: 60 },
+			{ keys: "{ArrowRight}", props: { defaultValue: 0.2, max: 1, step: 0.1 }, expected: 0.3 },
+			{ keys: "{ArrowRight}", props: { defaultValue: 0.5, min: 0.5, step: 1 }, expected: 1.5 },
+		] satisfies { keys: string; props: PressProps; expected: number }[])(
+			"$keys with $props moves the thumb to $expected",
+			async ({ keys, props, expected }) => {
+				const { values } = await press(keys, props);
+				expect(values).toEqual([expected]);
+			},
+		);
+
+		test("each key press reports the new value and commits it", async () => {
+			const { onValueChange, onValueCommit } = await press("{ArrowRight}{ArrowRight}");
+
+			expect(onValueChange).toHaveBeenCalledTimes(2);
+			expect(onValueChange).toHaveBeenLastCalledWith([52]);
+			expect(onValueCommit).toHaveBeenCalledTimes(2);
+			expect(onValueCommit).toHaveBeenLastCalledWith([52]);
+		});
+
+		test("a thumb stops minStepsBetweenThumbs short of its neighbor", async () => {
+			const { values, onValueChange } = await press(
+				"{ArrowRight}{ArrowRight}",
+				{ defaultValue: [40, 43], minStepsBetweenThumbs: 2 },
+				0,
+			);
+
+			expect(values).toEqual([41, 43]);
+			expect(onValueChange).toHaveBeenCalledExactlyOnceWith([41, 43]);
+		});
+
+		test("a page step past a neighbor swaps the thumbs, and focus follows the moved value", async () => {
+			const { values } = await press("{PageUp}", { defaultValue: [40, 45] }, 0);
+
+			expect(values).toEqual([45, 50]);
+			expect(screen.getByRole("slider", { name: "Maximum Level" })).toHaveFocus();
+		});
+
+		test("with preserveThumbOrder, a page step stops at the neighbor", async () => {
+			const { values } = await press(
+				"{PageUp}",
+				{ defaultValue: [40, 45], preserveThumbOrder: true },
+				0,
+			);
+
+			expect(values).toEqual([44, 45]);
+			expect(screen.getByRole("slider", { name: "Minimum Level" })).toHaveFocus();
+		});
+
+		test("Home and End move the focused thumb as far as its neighbors allow", async () => {
+			const home = await press("{Home}", { defaultValue: [20, 80] }, 1);
+			expect(home.values).toEqual([20, 21]);
+			expect(screen.getByRole("slider", { name: "Maximum Level" })).toHaveFocus();
+		});
+
+		test("End on the lower thumb stops one step under the upper thumb", async () => {
+			const { values } = await press("{End}", { defaultValue: [20, 80] }, 0);
+			expect(values).toEqual([79, 80]);
+		});
+	});
+
+	describe("disabled", () => {
+		test("a disabled slider disables each thumb, so no key moves it", async () => {
+			const user = userEvent.setup();
+			const onValueChange = vi.fn<(value: number[]) => void>();
+			render(
+				<Slider
+					aria-label="Price"
+					defaultValue={[20, 80]}
+					disabled
+					onValueChange={onValueChange}
+				/>,
+			);
+
+			const thumbs = screen.getAllByRole("slider");
+			for (const thumb of thumbs) {
+				expect(thumb).toBeDisabled();
+			}
+			await user.tab();
+			expect(document.body).toHaveFocus();
+			expect(onValueChange).toHaveBeenCalledTimes(0);
+			expect(document.querySelector("[data-slot='slider']")).toHaveAttribute("data-disabled", "");
+		});
+	});
+
+	describe("forms", () => {
+		test("a single thumb submits under name, and more thumbs submit under name[]", () => {
+			render(
+				<form data-testid="form">
+					<Slider aria-label="Volume" defaultValue={40} name="volume" />
+					<Slider aria-label="Price" defaultValue={[10, 90]} name="price" />
+				</form>,
+			);
+			const form = screen.getByTestId("form");
+			if (!(form instanceof HTMLFormElement)) {
+				throw new Error("expected a form");
+			}
+
+			const data = new FormData(form);
+			expect(data.getAll("volume")).toEqual(["40"]);
+			expect(data.getAll("price[]")).toEqual(["10", "90"]);
+		});
+
+		test("a new defaultValue after a change leaves an uncontrolled slider where the user put it", async () => {
+			const user = userEvent.setup();
+			const { rerender } = render(<Slider aria-label="Volume" defaultValue={40} />);
+			const input = screen.getByRole("slider");
+			input.focus();
+			await user.keyboard("{PageUp}");
+
+			rerender(<Slider aria-label="Volume" defaultValue={60} />);
+
+			expect(input).toHaveValue("50");
+			// Why the custom property: CSS places the thumb from it.
+			expect(
+				input
+					.closest<HTMLElement>("[data-slot='slider-thumb']")
+					?.style.getPropertyValue("--_value"),
+			).toBe("50");
+		});
+
+		test("a key press sends one change to a form onChange", async () => {
+			const user = userEvent.setup();
+			const onFormChange = vi.fn<(name: string, value: string) => void>();
+			render(
+				<form
+					onChange={(event) => {
+						if (event.target instanceof HTMLInputElement) {
+							onFormChange(event.target.name, event.target.value);
+						}
+					}}
+				>
+					<Slider aria-label="Volume" defaultValue={40} name="volume" />
+				</form>,
+			);
+			screen.getByRole("slider").focus();
+			await user.keyboard("{ArrowRight}");
+
+			expect(onFormChange).toHaveBeenCalledExactlyOnceWith("volume", "41");
+		});
+
+		test("assistive technology that sets the input value moves the thumb within its limits", () => {
+			const onValueChange = vi.fn<(value: number[]) => void>();
+			render(<Slider aria-label="Price" defaultValue={[20, 30]} onValueChange={onValueChange} />);
+			const [lower] = screen.getAllByRole("slider");
+			if (!(lower instanceof HTMLInputElement)) {
+				throw new Error("expected a range input");
+			}
+
+			fireEvent.change(lower, { target: { value: "25" } });
+			expect(onValueChange).toHaveBeenLastCalledWith([25, 30]);
+			fireEvent.change(lower, { target: { value: "30" } });
+
+			// Why: 30 leaves no step between the thumbs, so the input keeps 25.
+			expect(onValueChange).toHaveBeenCalledTimes(1);
+			expect(lower).toHaveValue("25");
+		});
+	});
+
+	test("a value off the step grid reads out and submits as rendered", () => {
+		render(
+			<form data-testid="form">
+				<Slider aria-label="Volume" defaultValue={53} name="volume" step={10} />
+			</form>,
+		);
+		const form = screen.getByTestId("form");
+		if (!(form instanceof HTMLFormElement)) {
+			throw new Error("expected a form");
+		}
+
+		expect(screen.getByRole("slider")).toHaveValue("53");
+		expect(new FormData(form).get("volume")).toBe("53");
+	});
+
+	test("an id lands on the first thumb, so a label names it", () => {
+		render(
+			<>
+				<label htmlFor="price">Price</label>
+				<Slider defaultValue={[10, 90]} id="price" />
+			</>,
+		);
+
+		expect(screen.getAllByRole("slider")[0]).toHaveAccessibleName("Price");
+	});
+
+	test("the root carries data-orientation, and each thumb its aria-orientation", () => {
+		render(<Slider aria-label="Height" defaultValue={30} orientation="vertical" />);
+
+		expect(document.querySelector("[data-slot='slider']")).toHaveAttribute(
+			"data-orientation",
+			"vertical",
+		);
+		expect(screen.getByRole("slider")).toHaveAttribute("aria-orientation", "vertical");
 	});
 
 	// Why a class assertion: `color` is typed `bg-${string}` and the range carries no
@@ -164,5 +411,64 @@ describe("Slider", () => {
 			const colors = Array.from(range?.classList ?? []).filter((name) => name.startsWith("bg-"));
 			expect(colors).toEqual(["bg-blue-500"]);
 		});
+	});
+});
+
+describe("SliderValue", () => {
+	test("the server HTML holds each thumb's value text, and each label writes its text on mount", () => {
+		const slider = (
+			<Slider aria-label="Price" defaultValue={[20, 80]} formatValue={(value) => `$${value}`}>
+				<SliderValue />
+				<SliderValue placement="track" />
+			</Slider>
+		);
+		const page = document.createElement("div");
+		page.innerHTML = renderToString(slider);
+		render(slider);
+
+		expect(
+			[...page.querySelectorAll("input")].map((input) => input.getAttribute("aria-valuetext")),
+		).toEqual(["$20", "$80"]);
+		expect(
+			[...document.body.querySelectorAll("[data-slot='slider-value']")].map(
+				(label) => label.textContent,
+			),
+		).toEqual(["$20", "$80", "$20 – $80"]);
+	});
+
+	test("a key press on an uncontrolled slider updates the labels and the value text", async () => {
+		const user = userEvent.setup();
+		render(
+			<Slider aria-label="Volume" defaultValue={40} formatValue={(value) => `${value}%`}>
+				<SliderValue placement="track" />
+			</Slider>,
+		);
+		screen.getByRole("slider").focus();
+		await user.keyboard("{ArrowRight}");
+
+		expect(screen.getByRole("slider")).toHaveAttribute("aria-valuetext", "41%");
+		await waitFor(() =>
+			expect(document.querySelector("[data-slot='slider-value']")).toHaveTextContent("41%"),
+		);
+	});
+
+	test("a new formatValue keeps an uncontrolled thumb's value text on its current value", async () => {
+		const user = userEvent.setup();
+		const { rerender } = render(
+			<Slider aria-label="Heat" defaultValue={20} formatValue={(value) => `${value}C`} />,
+		);
+		screen.getByRole("slider").focus();
+		await user.keyboard("{PageUp}");
+		rerender(<Slider aria-label="Heat" defaultValue={20} formatValue={(value) => `${value}F`} />);
+
+		expect(screen.getByRole("slider")).toHaveAttribute("aria-valuetext", "30C");
+		await user.keyboard("{ArrowRight}");
+		expect(screen.getByRole("slider")).toHaveAttribute("aria-valuetext", "31F");
+	});
+
+	test("outside a Slider, it throws", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+
+		expect(() => render(<SliderValue />)).toThrow("SliderValue must be rendered inside a Slider.");
 	});
 });
