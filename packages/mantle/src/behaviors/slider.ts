@@ -114,7 +114,7 @@ function sliderBehavior({
 		if (!controlled) {
 			paint(parts, result.values, min);
 		}
-		announce(parts.inputs, current, result.values);
+		announce({ inputs: parts.inputs, before: current, after: result.values, grid: { min, step } });
 		onValueChange?.(result.values);
 		if (commit) {
 			onValueCommit?.(result.values);
@@ -123,31 +123,14 @@ function sliderBehavior({
 	};
 
 	const rootProps = {
-		ref: (root: HTMLSpanElement | null) => {
-			// Why: a form reset puts each input of an uncontrolled slider back to its
-			// default, and the thumbs follow the inputs.
-			const form = controlled ? null : root?.querySelector("input")?.form;
-			if (root == null || form == null) {
-				return;
-			}
-			const resetToDefault = () => {
-				// Why a microtask: the form resets its inputs after the `reset` event.
-				queueMicrotask(() => {
-					const parts = partsOf(root);
-					const next = parts.inputs.map((input) => input.valueAsNumber);
-					if (String(next) !== String(parts.values)) {
-						paint(parts, next, min);
-						onValueChange?.(next);
-					}
-				});
-			};
-			form.addEventListener("reset", resetToDefault);
-			return () => form.removeEventListener("reset", resetToDefault);
-		},
 		onPointerDown: (event: PointerEvent<HTMLSpanElement>) => {
 			const root = event.currentTarget;
 			const target = event.target;
 			const { inputs, values } = partsOf(root);
+			if (slides.has(root)) {
+				// Why: a second pointer does not take over the drag of the first.
+				return;
+			}
 			// Why `:disabled`: a disabled `<fieldset>` disables the inputs but not the slider prop.
 			if (
 				event.button !== 0 ||
@@ -201,18 +184,13 @@ function sliderBehavior({
 				valueAtPoint({ event, rect: slide.rect, edge: slide.edge, min, max }) - slide.offset;
 			slide.index = update({ root, next, index: slide.index, commit: false, keyboard: false });
 		},
-		onPointerUp: (event: PointerEvent<HTMLSpanElement>) => {
+		// Why the lost capture: it ends a drag after a pointer up and after a cancel.
+		onLostPointerCapture: (event: PointerEvent<HTMLSpanElement>) => {
 			const root = event.currentTarget;
 			const slide = slides.get(root);
-			const target = event.target;
-			if (
-				slide == null ||
-				!(target instanceof Element) ||
-				!target.hasPointerCapture(event.pointerId)
-			) {
+			if (slide == null) {
 				return;
 			}
-			target.releasePointerCapture(event.pointerId);
 			slides.delete(root);
 			const { values } = partsOf(root);
 			if (String(values) !== String(slide.before)) {
@@ -260,6 +238,14 @@ function sliderBehavior({
 				return;
 			}
 			const { inputs, values } = partsOf(root);
+			if (resetting) {
+				const next = inputs.map((each) => each.valueAsNumber);
+				if (String(next) !== String(values)) {
+					paint(partsOf(root), next, min);
+					onValueChange?.(next);
+				}
+				return;
+			}
 			const index = inputs.indexOf(input);
 			update({ root, next: input.valueAsNumber, index, commit: true, keyboard: true });
 			// Why: a value the thumbs reject leaves an uncontrolled input where it was.
@@ -271,6 +257,42 @@ function sliderBehavior({
 	};
 
 	return { rootProps, inputProps };
+}
+
+/**
+ * The ref callback for the slider root. A form reset puts each input of an
+ * uncontrolled slider back to its default; the thumbs and `onValueChange`
+ * follow through each input's own `onChange`.
+ *
+ * @example
+ * ```tsx
+ * <span ref={useComposedRefs(ref, sliderRootRef)} />
+ * ```
+ */
+function sliderRootRef(root: HTMLSpanElement | null) {
+	const form = root?.querySelector("input")?.form;
+	if (root == null || form == null) {
+		return;
+	}
+	const followReset = () => {
+		// Why a task: the form resets its inputs after the `reset` event, and a
+		// microtask runs first when the reset comes from a click.
+		setTimeout(() => {
+			resetting = true;
+			for (const input of partsOf(root).inputs) {
+				input.dispatchEvent(new Event("input", { bubbles: true }));
+			}
+			resetting = false;
+		});
+	};
+	form.addEventListener("reset", followReset);
+	return () => form.removeEventListener("reset", followReset);
+}
+
+/** Whether `value` sits on the grid of `step`s that starts at `min`. */
+function onStepGrid(value: number, { min, step }: { min: number; step: number }): boolean {
+	const steps = (value - min) / step;
+	return Math.abs(steps - Math.round(steps)) < 1e-9;
 }
 
 /**
@@ -295,7 +317,9 @@ function sliderStyles(values: number[], min: number) {
 
 export {
 	//,
+	onStepGrid,
 	sliderBehavior,
+	sliderRootRef,
 	sliderStyles,
 };
 
@@ -329,6 +353,9 @@ const slides = new WeakMap<Element, Slide>();
 
 /** Whether the slider is sending its own `input` events, which its inputs must not read as a change. */
 let announcing = false;
+
+/** Whether the slider is sending `input` events after a form reset, so its inputs paint the reset values. */
+let resetting = false;
 
 type Parts = {
 	range: HTMLElement | null;
@@ -368,13 +395,25 @@ function paint({ range, thumbs }: Parts, values: number[], min: number): void {
  * Writes each input whose value changed and sends a bubbling `input` event from
  * it, so a form or an ancestor `onChange` sees a change that the slider made.
  */
-function announce(inputs: HTMLInputElement[], before: number[], after: number[]): void {
+function announce({
+	inputs,
+	before,
+	after,
+	grid,
+}: {
+	inputs: HTMLInputElement[];
+	before: number[];
+	after: number[];
+	grid: { min: number; step: number };
+}): void {
 	announcing = true;
 	for (const [index, input] of inputs.entries()) {
 		const value = after[index];
 		if (value == null || value === before[index]) {
 			continue;
 		}
+		// Why before the value: the browser snaps a value to `step`, and `max` can sit off the grid.
+		input.step = onStepGrid(value, grid) ? String(grid.step) : "any";
 		// Why the prototype's setter: it skips React's value tracker, so React reads
 		// the event as a change of a controlled input.
 		Reflect.set(HTMLInputElement.prototype, "value", String(value), input);

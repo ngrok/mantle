@@ -267,6 +267,45 @@ describe("Slider pointer (browser)", () => {
 	});
 });
 
+test("a value at a max off the step grid reads out and submits as shown", async () => {
+	render(
+		<form data-testid="form">
+			<Slider aria-label="Volume" defaultValue={9} max={11} name="volume" step={3} />
+		</form>,
+	);
+	const form = screen.getByTestId("form");
+	if (!(form instanceof HTMLFormElement)) {
+		throw new Error("expected a form");
+	}
+	screen.getByRole("slider").focus();
+	await userEvent.keyboard("{End}");
+
+	expect(screen.getByRole("slider")).toHaveValue("11");
+	expect(new FormData(form).get("volume")).toBe("11");
+});
+
+test("a click on a reset button returns the thumbs and the inputs to defaultValue", async () => {
+	const onValueChange = vi.fn<(value: number[]) => void>();
+	render(
+		<form style={{ padding: 40, width: 280 }}>
+			<Slider aria-label="Price" defaultValue={[20, 80]} onValueChange={onValueChange} />
+			<button type="reset">Reset</button>
+		</form>,
+	);
+	const [lower] = screen.getAllByRole("slider");
+	lower?.focus();
+	await userEvent.keyboard("{PageUp}");
+	expect(thumbValues()).toEqual([30, 80]);
+	const thumb = thumbOf(lower);
+	const moved = thumb.getBoundingClientRect().left;
+
+	await userEvent.click(screen.getByRole("button", { name: "Reset" }));
+
+	await expect.poll(() => onValueChange.mock.lastCall).toEqual([[20, 80]]);
+	expect(thumbValues()).toEqual([20, 80]);
+	expect(thumb.getBoundingClientRect().left).toBeLessThan(moved);
+});
+
 test("in forced-colors mode, a focused thumb shows an outline", async () => {
 	await commands.emulateMedia({ forcedColors: "active" });
 	try {

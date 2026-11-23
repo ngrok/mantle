@@ -198,6 +198,7 @@ const migrationsPages = [
 	"0025-stone-palette-migration",
 	"0026-native-dropdown-menu-migration",
 	"0027-native-dialog-migration",
+	"0028-native-slider-migration",
 ];
 
 export default [

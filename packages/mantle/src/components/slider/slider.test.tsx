@@ -301,29 +301,22 @@ describe("Slider", () => {
 			expect(data.getAll("price[]")).toEqual(["10", "90"]);
 		});
 
-		test("a form reset returns an uncontrolled slider to defaultValue", async () => {
+		test("a new defaultValue after a change leaves an uncontrolled slider where the user put it", async () => {
 			const user = userEvent.setup();
-			const onValueChange = vi.fn<(value: number[]) => void>();
-			render(
-				<form>
-					<Slider
-						aria-label="Volume"
-						defaultValue={40}
-						name="volume"
-						onValueChange={onValueChange}
-					/>
-					<button type="reset">Reset</button>
-				</form>,
-			);
-			const thumb = screen.getByRole("slider");
-			thumb.focus();
+			const { rerender } = render(<Slider aria-label="Volume" defaultValue={40} />);
+			const input = screen.getByRole("slider");
+			input.focus();
 			await user.keyboard("{PageUp}");
-			expect(thumb).toHaveValue("50");
 
-			await user.click(screen.getByRole("button", { name: "Reset" }));
+			rerender(<Slider aria-label="Volume" defaultValue={60} />);
 
-			expect(thumb).toHaveValue("40");
-			expect(onValueChange).toHaveBeenLastCalledWith([40]);
+			expect(input).toHaveValue("50");
+			// Why the custom property: CSS places the thumb from it.
+			expect(
+				input
+					.closest<HTMLElement>("[data-slot='slider-thumb']")
+					?.style.getPropertyValue("--_value"),
+			).toBe("50");
 		});
 
 		test("a key press sends one change to a form onChange", async () => {

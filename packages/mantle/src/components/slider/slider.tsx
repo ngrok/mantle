@@ -1,9 +1,10 @@
 "use client";
 
 import type { ComponentProps } from "react";
+import { useState } from "react";
 import { composeHandlers } from "../../behaviors/compose-handlers.js";
-import { sliderBehavior, sliderStyles } from "../../behaviors/slider.js";
-import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
+import { onStepGrid, sliderBehavior, sliderRootRef, sliderStyles } from "../../behaviors/slider.js";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { $cssProperties } from "../../types/css-properties.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -212,8 +213,8 @@ function Slider({
 	name,
 	onKeyDown,
 	onPointerDown,
+	onLostPointerCapture,
 	onPointerMove,
-	onPointerUp,
 	onValueChange,
 	onValueCommit,
 	orientation = "horizontal",
@@ -226,7 +227,11 @@ function Slider({
 	...props
 }: SliderProps) {
 	const controlled = value !== undefined;
-	const values = toValueArray(value) ?? toValueArray(defaultValue) ?? [min];
+	// Why the first `defaultValue` only: an uncontrolled slider keeps its values in
+	// the DOM, and a later default must not move the thumbs away from the inputs.
+	const [initialValues] = useState(() => toValueArray(defaultValue) ?? [min]);
+	const values = toValueArray(value) ?? initialValues;
+	const composedRef = useComposedRefs(ref, sliderRootRef);
 	const { rootProps, inputProps } = sliderBehavior({
 		controlled,
 		min,
@@ -260,11 +265,11 @@ function Slider({
 			)}
 			style={$cssProperties({ "--_min": min, "--_max": max, "--_inv": inverted ? 1 : 0, ...style })}
 			{...props}
-			ref={composeRefs(ref, rootProps.ref)}
+			ref={composedRef}
 			onKeyDown={composeHandlers(onKeyDown, rootProps.onKeyDown)}
 			onPointerDown={composeHandlers(onPointerDown, rootProps.onPointerDown)}
 			onPointerMove={composeHandlers(onPointerMove, rootProps.onPointerMove)}
-			onPointerUp={composeHandlers(onPointerUp, rootProps.onPointerUp)}
+			onLostPointerCapture={composeHandlers(onLostPointerCapture, rootProps.onLostPointerCapture)}
 		>
 			<span
 				data-slot="slider-track"
@@ -360,12 +365,6 @@ export { Slider };
 export type { SliderProps };
 
 // MARK: - Private
-
-/** Whether `value` sits on the grid of `step`s that starts at `min`. */
-function onStepGrid(value: number, { min, step }: { min: number; step: number }): boolean {
-	const steps = (value - min) / step;
-	return Math.abs(steps - Math.round(steps)) < 1e-9;
-}
 
 /** Wraps a single slider value in an array; an array passes through, and a nullish value stays `undefined`. */
 function toValueArray(value: number | number[] | undefined): number[] | undefined {
