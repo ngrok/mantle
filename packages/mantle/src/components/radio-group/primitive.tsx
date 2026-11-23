@@ -242,7 +242,7 @@ type PrimitiveItemProps = ItemProps & {
  * the item's start edge, so `getByRole("radio").click()` in a test clicks the
  * radio itself. A click anywhere on the item focuses and checks the radio.
  * Links, buttons, labels, and form controls in the children keep their own
- * clicks. The radio takes its name from a
+ * clicks, except on the radio's own 4px at the start edge. The radio takes its name from a
  * `<label>` in the item (the title line, such as `Choice.Label`), from a
  * `Choice.Title`, or else from all of the item's text. The caller
  * sets the styles; read the radio's state with `has-[>input:checked]:`,
@@ -338,7 +338,7 @@ const Item = ({
 					onChange={check}
 					// Why a 4px box over the middle of the start edge: a click at the radio's center lands on the radio
 					// itself, so a test can click it by its role, and a click on the item's text still lands on that
-					// text. A rounded corner or a corner badge never covers the middle of the edge.
+					// text. A rounded corner or a corner badge does not cover the middle of the edge.
 					className="absolute start-0 top-1/2 z-1 m-0 size-1 cursor-inherit opacity-0"
 					disabled={disabled}
 					form={group.form}
