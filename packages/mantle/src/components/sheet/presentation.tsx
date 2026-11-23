@@ -15,6 +15,7 @@ import {
 	type IconButtonIntent,
 	type IconButtonProps,
 } from "../button/icon-button.js";
+import { ScrollBody } from "../dialog/scroll-body.js";
 
 /** The side of the screen a sheet slides in from. */
 type SheetSide = "left" | "right";
@@ -196,10 +197,10 @@ const Body = ({
 	className,
 	...props
 }: HTMLAttributes<HTMLDivElement> & WithDataSlot) => (
-	<div
+	<ScrollBody
 		data-slot={joinDataSlot(dataSlot, "sheet-body")}
 		className={cx(
-			"scrollbar scrollbar-gutter-stable text-body flex-1 overflow-y-auto overscroll-none p-6",
+			"scrollbar scrollbar-gutter-stable text-body flex-1 overflow-y-auto overscroll-none p-6 focus-visible:focus-ring focus-visible:ring-inset",
 			className,
 		)}
 		{...props}
