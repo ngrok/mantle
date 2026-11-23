@@ -747,7 +747,7 @@ type MenuPanelProps = ComponentProps<"div"> &
 	};
 
 const panelClassName =
-	"scrollbar-none text-popover-foreground border-popover bg-popover p-1.25 min-w-32 max-h-(--available-height) overflow-auto overscroll-none rounded-md border shadow-xl outline-hidden space-y-px font-sans";
+	"scrollbar-none [&::-webkit-scrollbar]:hidden text-popover-foreground border-popover bg-popover p-1.25 min-w-32 max-h-(--available-height) overflow-auto overscroll-none rounded-md border shadow-xl outline-hidden space-y-px font-sans";
 
 type DropdownMenuContentProps = MenuPanelProps & {
 	/**
