@@ -792,7 +792,9 @@ const Content = (props: SelectContentProps) =>
 const OpenContent = ({
 	"aria-label": ariaLabel,
 	"aria-labelledby": ariaLabelledBy,
+	"aria-describedby": ariaDescribedBy,
 	onScroll,
+	onScrollEnd,
 	className,
 	children,
 	"data-slot": dataSlot,
@@ -840,8 +842,10 @@ const OpenContent = ({
 					tabIndex={-1}
 					aria-label={ariaLabel}
 					aria-labelledby={ariaLabelledBy}
-					// Why: the viewport scrolls, and a scroll event does not bubble.
+					aria-describedby={ariaDescribedBy}
+					// Why: the viewport scrolls, and scroll events do not bubble.
 					onScroll={onScroll}
+					onScrollEnd={onScrollEnd}
 					// Why: a dialog lets the list take Escape only while the controlled element is open.
 					data-state="open"
 					data-slot="select-viewport"
