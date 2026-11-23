@@ -33,13 +33,16 @@ function forwardPreviewShortcuts() {
 		"textbox",
 	];
 	const forward = (event: KeyboardEvent) => {
-		const target = event.target;
+		// Why `composedPath()`: a field in a shadow root is the target there, not its host.
+		const target = event.composedPath()[0];
 		const inField =
-			target instanceof HTMLElement &&
-			(target.isContentEditable ||
+			target instanceof Element &&
+			((target instanceof HTMLElement && target.isContentEditable) ||
 				fields.includes(target.tagName.toLowerCase()) ||
 				fields.includes(target.getAttribute("role") ?? ""));
-		if (event.defaultPrevented || !(event.metaKey || event.ctrlKey) || inField) {
+		// Why skip a repeat: a demo's `Command.DialogRoot` ignores repeats without
+		// cancelling them, so holding ⌘K to close the demo palette would open search.
+		if (event.defaultPrevented || event.repeat || !(event.metaKey || event.ctrlKey) || inField) {
 			return;
 		}
 		if (!frame.dispatchEvent(new KeyboardEvent(event.type, event))) {
