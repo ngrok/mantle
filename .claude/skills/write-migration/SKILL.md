@@ -60,18 +60,21 @@ file on [0008](../../../apps/www/app/docs/migrations/0008-tabs-separator-migrati
 8. **`## Edge cases & gotchas`** when there are any, and **`## How to verify`** with the commands and the
    test queries that change.
 
-A consumer's tests break first, so step 5 holds one test step for each way the change reaches a test, with the
-old and the new line. Check the change against each kind:
+In section 5, the step that starts `In tests:` holds one sub-bullet for each kind of test change below. Each
+sub-bullet gives the old test line and the new test line. `## Edge cases & gotchas` and `## How to verify` refer
+to that step and do not repeat it. Check the change against each kind:
 
-- The state moves to another element: the matcher changes (`toHaveAttribute("aria-checked", "true")` becomes
-  `toBeChecked()`), and so does a class variant that read the old attribute.
-- A part opens or picks on another event: the event a test sends changes (`fireEvent.pointerDown(trigger)`
-  becomes `fireEvent.click(trigger)`).
-- Content outside the part turns inert or moves into it: queries need a scope (`screen.getByRole(…)` becomes
-  `within(dialog).getByRole(…)`), and the moved content, such as toasts, shows up inside that scope.
-- A part mounts, unmounts, or closes at another time: queries change (`{ hidden: true }` goes away) or wait
-  (`waitFor` on removal after an exit).
-- happy-dom stops modeling the behavior, such as focus on `showModal()`: the assertion moves to a browser test.
+- The state moves to another element. The matcher changes: `toHaveAttribute("aria-checked", "true")` becomes
+  `toBeChecked()`.
+- A part opens or picks on another event. The event that the test sends changes: `fireEvent.pointerDown(trigger)`
+  becomes `fireEvent.click(trigger)`.
+- Content outside the part becomes `inert` or moves into the part. Queries need a scope:
+  `screen.getByRole(…)` becomes `within(dialog).getByRole(…)`. A query in that scope also finds the moved
+  content, such as toasts, so give it a narrower name or role.
+- A part mounts, unmounts, or closes at another time. The query changes: `{ hidden: true }` goes away. Or the
+  test waits: it wraps the removal check in `waitFor`.
+- happy-dom or jsdom stops modeling the behavior, such as focus on `showModal()`. The assertion moves to a
+  browser test.
 
 ## The codemod
 
@@ -160,6 +163,6 @@ the rest.
 - `before.tsx` has a negative case for every guard, and `after.tsx` is the rules' real output.
 - The codemod is idempotent, or the guide says "run once" and the test exempts it with a reason.
 - A dry run over `local/frontend/apps` found the expected shapes and nothing else.
-- Step 5 has a test step, with the old and the new line, for each kind of test change the change causes.
+- The `In tests:` step in section 5 has a sub-bullet, with the old and the new line, for each kind of test break.
 - The changeset is `minor` and links the guide.
 - Every sentence passes [CONVENTIONS.md § Self-check](../../../CONVENTIONS.md#self-check).
