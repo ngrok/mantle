@@ -4,6 +4,8 @@ import {
 	decorateHighlightedHtml,
 	inferIndentation,
 	isSupportedLanguage,
+	mantleShikiThemeName,
+	mantleShikiTokenColors,
 	normalizeIndentation,
 	parseLanguage,
 	type FoldLine,
@@ -47,7 +49,6 @@ const mantleShikiLanguageGrammarIds = [
 /**
  * Shared Shiki theme name used across Mantle highlighting.
  */
-const mantleShikiThemeName = "mantle-css-variables" as const;
 const mantleHighlightCacheMaxEntries = 1000;
 
 type ShikiHighlighter = Awaited<ReturnType<typeof createHighlighter>>;
@@ -133,44 +134,8 @@ function getMantleShikiHighlighter(): Promise<ShikiHighlighter> {
 		const { createCssVariablesTheme, createHighlighter } = await import("shiki");
 		const cssVarsTheme = createCssVariablesTheme({ name: mantleShikiThemeName });
 
-		// Append more granular token scope → CSS variable mappings.
-		// More specific scopes override the defaults from createCssVariablesTheme.
-		// Each uses a fallback to the original grouping variable for backwards compat.
-		cssVarsTheme.tokenColors = [
-			...(cssVarsTheme.tokenColors ?? []),
-			{
-				scope: ["entity.name.type", "entity.name.class", "support.type", "support.class"],
-				settings: { foreground: "var(--shiki-token-type, var(--shiki-token-function))" },
-			},
-			{
-				scope: ["variable", "variable.parameter", "variable.other"],
-				settings: { foreground: "var(--shiki-token-variable, var(--shiki-foreground))" },
-			},
-			{
-				scope: ["keyword.operator", "keyword.operator.assignment", "keyword.operator.comparison"],
-				settings: { foreground: "var(--shiki-token-operator, var(--shiki-token-keyword))" },
-			},
-			{
-				scope: ["entity.other.attribute-name"],
-				settings: { foreground: "var(--shiki-token-attribute, var(--shiki-token-constant))" },
-			},
-			{
-				scope: ["meta.object-literal.key", "support.type.property-name", "entity.name.tag.yaml"],
-				settings: { foreground: "var(--shiki-token-property, var(--shiki-token-function))" },
-			},
-			{
-				scope: ["constant.character.escape"],
-				settings: { foreground: "var(--shiki-token-escape, var(--shiki-token-constant))" },
-			},
-			{
-				scope: ["string.unquoted.plain.out.yaml", "string.unquoted.plain.in.yaml"],
-				settings: { foreground: "var(--shiki-token-variable, var(--shiki-foreground))" },
-			},
-			{
-				scope: ["punctuation.definition.block.sequence.item.yaml"],
-				settings: { foreground: "var(--shiki-token-variable, var(--shiki-foreground))" },
-			},
-		];
+		// Why after Shiki's own scopes: a more specific scope wins over its group.
+		cssVarsTheme.tokenColors = [...(cssVarsTheme.tokenColors ?? []), ...mantleShikiTokenColors];
 
 		return createHighlighter({
 			themes: [cssVarsTheme],

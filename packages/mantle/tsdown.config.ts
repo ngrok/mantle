@@ -222,6 +222,9 @@ export default defineConfig((options) => [
 			...compoundParts.entries,
 			...utilPackages,
 			"code-block_highlight-utils": "./src/components/code-block/highlight-utils.ts",
+			// Why an entry with no subpath: `useCodeBlockStream` starts it as a module worker from
+			// `new URL("./highlight-worker.js", import.meta.url)`, which names this file beside its chunk.
+			"highlight-worker": "./src/components/code-block/highlight-worker.ts",
 			hooks: "./src/hooks/index.ts",
 			types: "./src/types/index.ts",
 			utils: "./src/utils/index.ts",

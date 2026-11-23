@@ -85,6 +85,12 @@ export type {
 
 export {
 	//,
+	mantleShikiThemeName,
+	mantleShikiTokenColors,
+} from "./shiki-theme.js";
+
+export {
+	//,
 	parseCodeBlockHighlightLines,
 	parseCodeBlockLineNumberStart,
 	parseCodeBlockShowLineNumbers,

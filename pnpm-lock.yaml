@@ -333,6 +333,15 @@ importers:
       '@radix-ui/react-slider':
         specifier: 1.6.1
         version: 1.6.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@shikijs/core':
+        specifier: 4.6.0
+        version: 4.6.0
+      '@shikijs/engine-javascript':
+        specifier: 4.6.0
+        version: 4.6.0
+      '@shikijs/langs':
+        specifier: 4.6.0
+        version: 4.6.0
       '@tanstack/react-table':
         specifier: 9.3.1
         version: 9.3.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -342,9 +351,15 @@ importers:
       class-variance-authority:
         specifier: 0.7.1
         version: 0.7.1
+      marked:
+        specifier: 18.2.1
+        version: 18.2.1
       react-day-picker:
         specifier: 10.0.2
         version: 10.0.2(@types/react@19.3.0)(react@19.3.1)
+      remend:
+        specifier: 1.5.0
+        version: 1.5.0
       sonner:
         specifier: 2.0.8
         version: 2.0.8(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -3253,6 +3268,11 @@ packages:
   markdown-table@3.1.0:
     resolution: {integrity: sha512-xpeSCdM+B+6P3ncfgaB7FoDbtJ30xAe6Z18TGT7AgXJsHqCElCICZovQqdRMm7kHgpTyYv36EupqewoFFSB8vw==}
 
+  marked@18.2.1:
+    resolution: {integrity: sha512-ii4bxCTCqqwpT86XZWgJNs+ZnAIZksmLGYMViWA7PDIXYIeNo1x6cDdX3JOip9NM/cI6p8z57FxliACboTruMA==}
+    engines: {node: '>= 20'}
+    hasBin: true
+
   match-sorter@8.3.1:
     resolution: {integrity: sha512-tHtqmEREd+8EQHERElN1xp3eCnCJu2VnXpluj8bwsQvuRfLj5hldq/Mc3UhILZxT1Cff6o+ZdP4frAetZbqNbQ==}
 
@@ -3712,6 +3732,9 @@ packages:
 
   remark-stringify@11.0.0:
     resolution: {integrity: sha512-1OSmLd3awB/t8qdoEOMazZkNsfVTeY4fTsgzcQFdXNq8ToTN4ZGwrMnlda4K6smTFKD+GRV6O48i6Z4iKgPPpw==}
+
+  remend@1.5.0:
+    resolution: {integrity: sha512-A65+1l1jPGiZZsLD6QqL7foG8KBK2xMIjlr5Vm8R3kGAnVinjxFhdhHf3/zU5wPHrrsC87KqHztG7p1TD5i1HQ==}
 
   remove-accents@0.5.0:
     resolution: {integrity: sha512-8g3/Otx1eJaVD12e31UbJj1YzdtVvzH85HV7t+9MJYk/u3XmkOUJ5Ys9wQrf9PCPK8+xn4ymzqYCiZl6QWKn+A==}
@@ -6402,6 +6425,8 @@ snapshots:
 
   markdown-table@3.1.0: {}
 
+  marked@18.2.1: {}
+
   match-sorter@8.3.1:
     dependencies:
       '@babel/runtime': 7.29.15
@@ -7229,6 +7254,8 @@ snapshots:
       '@types/mdast': 4.0.4
       mdast-util-to-markdown: 2.2.4
       unified: 11.0.5
+
+  remend@1.5.0: {}
 
   remove-accents@0.5.0: {}
 

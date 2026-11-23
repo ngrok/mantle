@@ -8,6 +8,7 @@ import { TerminalIcon } from "@phosphor-icons/react/Terminal";
 import type { ComponentProps, Dispatch, ReactNode, SetStateAction } from "react";
 import {
 	createContext,
+	memo,
 	useCallback,
 	useContext,
 	useEffect,
@@ -31,6 +32,7 @@ import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-eff
 import type { SelfClosingWithAsChild, WithAsChild } from "../../types/as-child.js";
 import { alternateAnnouncement } from "../../utils/alternate-announcement.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
+import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -44,6 +46,7 @@ import { Slot } from "../slot/index.js";
 import { escapeHtml } from "./escape-html.js";
 import { attachFoldHandler, resetFoldState } from "./fold-runtime.js";
 import type { Mode } from "./resolve-pre-rendered-props.js";
+import type { CodeLine, CodeToken } from "./line-tokenizer.js";
 import type { MantleCodeBlockValue } from "./mantle-code.js";
 
 type CodeBlockContextType = {
@@ -376,11 +379,71 @@ type CodeBlockCodeProps = Omit<ComponentProps<"pre">, "children" | "translate"> 
 	value: MantleCodeBlockValue;
 };
 
+/** The inline style of one highlighted token, from its color and Shiki's font-style bit flags. */
+function tokenStyle(token: CodeToken): ComponentProps<"span">["style"] {
+	const fontStyle = token.fontStyle ?? 0;
+	return {
+		color: token.color,
+		fontStyle: fontStyle & 1 ? "italic" : undefined,
+		fontWeight: fontStyle & 2 ? "bold" : undefined,
+		textDecoration:
+			fontStyle & 12
+				? clsx(fontStyle & 4 && "underline", fontStyle & 8 && "line-through")
+				: undefined,
+	};
+}
+
 /**
- * The `CodeBlock` content. Renders pre-highlighted code from `mantleCode()`.
+ * One line of browser-highlighted code, with the same markup as a line of
+ * pre-rendered HTML, so the two share one stylesheet and one geometry.
+ * Why `memo`: a streamed block renders again for each update, and a finished
+ * line keeps its tokens, so it skips the render.
+ */
+const CodeLineView = memo(function CodeLineView({
+	line,
+	lineNumber,
+	showLineNumber,
+}: {
+	line: CodeLine | string;
+	lineNumber: number;
+	showLineNumber: boolean;
+}) {
+	const isEmpty = line.length === 0;
+	return (
+		<span className="mantle-code-line" data-line-number={lineNumber}>
+			{showLineNumber && (
+				<span className="mantle-code-line-number" data-slot="line-number" aria-hidden="true">
+					{lineNumber}
+				</span>
+			)}
+			<span className="mantle-code-line-content" data-slot="line-content">
+				{/* Why a space: an empty line keeps its height. */}
+				{isEmpty && " "}
+				{!isEmpty && typeof line === "string" && line}
+				{!isEmpty &&
+					typeof line !== "string" &&
+					line.map((token, index) => (
+						<span
+							// oxlint-disable-next-line react/no-array-index-key -- Why: a token has no identity but its position in a line that renders as a whole.
+							key={index}
+							style={tokenStyle(token)}
+						>
+							{token.content}
+						</span>
+					))}
+			</span>
+		</span>
+	);
+});
+
+/**
+ * The `CodeBlock` content. Renders pre-highlighted code from `mantleCode()`,
+ * or browser-highlighted code from `useCodeBlockStream()`.
  *
- * Mantle's Vite plugin or server highlighter must set `value["~preHtml"]`.
- * Runtime highlighting and runtime line decoration are intentionally unsupported.
+ * Mantle's Vite plugin or server highlighter sets `value["~preHtml"]`.
+ * `useCodeBlockStream` sets `value["~lines"]` instead: each line then renders
+ * as React elements with the same markup, and a line that did not change
+ * does not render again. Code folding needs pre-rendered HTML.
  *
  * The `<pre>` always carries `translate="no"`, so a browser translation engine
  * skips the code. A translated CLI flag, env var, or YAML key is wrong, and the
@@ -438,6 +501,7 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 		"~highlightLines": __highlightLines,
 		"~lineNumberStart": __lineNumberStart,
 		"~preHtml": __preHtml,
+		"~lines": lines,
 		"~showLineNumbers": __showLineNumbers,
 	} = value;
 
@@ -466,14 +530,15 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 		};
 	}, [registerCode, unregisterCode]);
 
+	const hasLines = lines != null;
 	const renderedHtml = useMemo(() => {
-		if (__preHtml == null) {
+		if (__preHtml == null || hasLines) {
 			return undefined;
 		}
 		return __preVals != null && __preVals.length > 0
 			? substitutePreVals(__preHtml, __preVals, __preValToken)
 			: __preHtml;
-	}, [__preHtml, __preValToken, __preVals]);
+	}, [__preHtml, __preValToken, __preVals, hasLines]);
 
 	// Attach a single delegated click handler per <pre> so fold toggles do
 	// not pay the cost of N React re-renders or N event handlers (see the
@@ -492,7 +557,7 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 		return attachFoldHandler(pre);
 	}, [renderedHtml]);
 
-	const isPreRendered = renderedHtml != null;
+	const isPreRendered = renderedHtml != null || hasLines;
 	const displayHtml = renderedHtml ?? escapeHtml(copyText);
 
 	// React diffs `dangerouslySetInnerHTML` by prop reference; a fresh
@@ -545,10 +610,24 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 			// past the type, and translated code is wrong at every call site.
 			translate="no"
 		>
-			<code
-				className="text-size-inherit block min-w-full w-max"
-				dangerouslySetInnerHTML={innerHtmlProp}
-			/>
+			{lines == null ? (
+				<code
+					className="text-size-inherit block min-w-full w-max"
+					dangerouslySetInnerHTML={innerHtmlProp}
+				/>
+			) : (
+				<code className="text-size-inherit block min-w-full w-max">
+					{lines.map((line, index) => (
+						<CodeLineView
+							// oxlint-disable-next-line react/no-array-index-key -- Why: a line has no identity but its position, and an appended line must not remount the lines above it.
+							key={index}
+							line={line}
+							lineNumber={effectiveLineNumberStart + index}
+							showLineNumber={effectiveShowLineNumbers}
+						/>
+					))}
+				</code>
+			)}
 		</pre>
 	);
 };
