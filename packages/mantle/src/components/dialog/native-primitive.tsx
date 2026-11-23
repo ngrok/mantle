@@ -1140,21 +1140,29 @@ const Content = ({
 		// Why: when the focused element leaves the panel, such as a retry button
 		// that a loading state replaces, the browser puts focus on `<body>`. The
 		// dialog takes it back, as a Radix dialog did, so a screen reader stays in it.
+		// Why a task later: a field that renders on blur, such as one that clears
+		// its error, changes the panel while Tab moves focus and `<body>` holds it
+		// for a moment. Focus on the dialog then would cancel the Tab.
+		let refocusTimer = 0;
 		const refocus = new MutationObserver(() => {
-			if (
-				dialog.open &&
-				dialog.dataset.state === "open" &&
-				!nonModal.has(dialog) &&
-				openDialogs.at(-1) === dialog &&
-				ownerDocument.activeElement === ownerDocument.body
-			) {
-				dialog.focus({ preventScroll: true });
-			}
+			clearTimeout(refocusTimer);
+			refocusTimer = window.setTimeout(() => {
+				if (
+					dialog.open &&
+					dialog.dataset.state === "open" &&
+					!nonModal.has(dialog) &&
+					openDialogs.at(-1) === dialog &&
+					ownerDocument.activeElement === ownerDocument.body
+				) {
+					dialog.focus({ preventScroll: true });
+				}
+			});
 		});
 		refocus.observe(dialog, { childList: true, subtree: true });
 		ownerDocument.addEventListener("keydown", onKeyDown);
 		ownerDocument.addEventListener("pointerdown", onPointerDown, { capture: true });
 		return () => {
+			clearTimeout(refocusTimer);
 			refocus.disconnect();
 			ownerDocument.removeEventListener("keydown", onKeyDown);
 			ownerDocument.removeEventListener("pointerdown", onPointerDown, { capture: true });

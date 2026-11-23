@@ -4,7 +4,7 @@ import { Checkbox } from "@ngrok/mantle/checkbox";
 import { Choice } from "@ngrok/mantle/choice";
 import { Field, toErrorMessages } from "@ngrok/mantle/field";
 import { useForm } from "@tanstack/react-form";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { z } from "zod";
 
 const formSchema = z.object({
@@ -22,12 +22,20 @@ const formSchema = z.object({
  */
 export function TanStackFormDemo() {
 	const [open, setOpen] = useState(false);
+	const formRef = useRef<HTMLFormElement>(null);
 	const form = useForm({
 		defaultValues: {
 			acknowledged: false,
 		},
 		validators: {
 			onSubmit: formSchema,
+		},
+		// Why: a failed submit moves focus to the first invalid field, so a screen
+		// reader says what to fix. The frame lets the fields render their errors first.
+		onSubmitInvalid: () => {
+			requestAnimationFrame(() => {
+				formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+			});
 		},
 		onSubmit: ({ value }) => {
 			window.alert(`Submitted: ${JSON.stringify(value, null, 2)}`);
@@ -53,6 +61,7 @@ export function TanStackFormDemo() {
 				<AlertDialog.Icon />
 				<AlertDialog.Body asChild>
 					<form
+						ref={formRef}
 						onSubmit={(event) => {
 							event.preventDefault();
 							event.stopPropagation();
