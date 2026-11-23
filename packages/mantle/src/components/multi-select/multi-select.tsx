@@ -18,6 +18,7 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 import { hasPopoverApi } from "../../utils/float/use-float.js";
 import { shakeElement } from "../../utils/shake.js";
 import { FieldControlContext } from "../field/field-context.js";
+import { LiveRegion } from "../live-region/live-region.js";
 import { parseValidation } from "../field/validation.js";
 import { useFieldValidation } from "../field/validation-context.js";
 import type { AriaInvalid, WithValidation } from "../field/validation.js";
@@ -754,6 +755,9 @@ const Input = ({
 						disabled={props.disabled}
 					/>
 				))}
+			{/* Why: a removed tag leaves no focus or option to describe the change, so
+			    nothing else tells a screen reader which value went. */}
+			<LiveRegion>{multiSelect.removal}</LiveRegion>
 		</>
 	);
 };

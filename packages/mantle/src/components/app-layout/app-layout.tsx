@@ -1704,7 +1704,11 @@ const SidePanelTrigger = ({
 					{...props}
 				/>
 			</Tooltip.Trigger>
-			<Tooltip.Content data-slot="app-layout-side-panel-trigger-tooltip">{label}</Tooltip.Content>
+			<Tooltip.Content data-slot="app-layout-side-panel-trigger-tooltip">
+				{/* Why hidden: the label is also the button's name, and the tooltip is its
+				    description, so a screen reader would say the label twice. */}
+				<span aria-hidden>{label}</span>
+			</Tooltip.Content>
 		</Tooltip.Root>
 	);
 };

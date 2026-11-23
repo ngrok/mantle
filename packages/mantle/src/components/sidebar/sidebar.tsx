@@ -953,7 +953,16 @@ const defaultTriggerIcon = <SidebarSimpleIcon />;
  * `aria-describedby`, and the chord is already announced by that control's
  * `aria-keyshortcuts`, so repeating it here would speak it twice.
  */
-const TooltipLabel = ({ label, shortcut }: { label: ReactNode; shortcut: ReactNode }) => (
+const TooltipLabel = ({
+	label,
+	labelHidden = false,
+	shortcut,
+}: {
+	label: ReactNode;
+	/** Hides the label from assistive technology, for a label that already names the control. */
+	labelHidden?: boolean;
+	shortcut: ReactNode;
+}) => (
 	// Why always the row: an early return for a null `shortcut` made this
 	// component's root flip between a text node and an element, so React deleted
 	// the whole child list when a chord arrived. A translated label is reparented
@@ -965,7 +974,8 @@ const TooltipLabel = ({ label, shortcut }: { label: ReactNode; shortcut: ReactNo
 		    element throws on a translated page. `contents` keeps the label a flex
 		    item of the row. */}
 		<span data-slot="sidebar-tooltip-label" className="contents">
-			{label}
+			{/* Why an inner span: WebKit ignores `aria-hidden` on a `display: contents` element. */}
+			{labelHidden ? <span aria-hidden>{label}</span> : label}
 		</span>
 		{shortcut != null && (
 			<span
@@ -1135,7 +1145,9 @@ const Trigger = ({
 				/>
 			</Tooltip.Trigger>
 			<Tooltip.Content data-slot="sidebar-trigger-tooltip">
-				<TooltipLabel label={label} shortcut={hint} />
+				{/* Why hidden: the label is also the button's name, and the tooltip is its
+				    description, so a screen reader would say the label twice. */}
+				<TooltipLabel label={label} labelHidden shortcut={hint} />
 			</Tooltip.Content>
 		</Tooltip.Root>
 	);

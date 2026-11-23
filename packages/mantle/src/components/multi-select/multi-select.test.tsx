@@ -598,6 +598,27 @@ describe("MultiSelect", () => {
 			await user.click(screen.getByRole("combobox"));
 			await user.keyboard("{Backspace}");
 			expect(screen.queryByLabelText("Remove cherry")).not.toBeInTheDocument();
+			// Why: no focus or option changes, so only the status says which value went.
+			expect(screen.getByRole("status")).toHaveTextContent("Removed cherry");
+		});
+
+		test("a removal that a controlled value rejects says nothing", async () => {
+			const user = userEvent.setup();
+			render(
+				<MultiSelect.Root value={["apple"]}>
+					<MultiSelect.Trigger>
+						<MultiSelect.TagValues />
+						<MultiSelect.Input placeholder="Select items..." />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+					</MultiSelect.Content>
+				</MultiSelect.Root>,
+			);
+			await user.click(screen.getByRole("combobox"));
+			await user.keyboard("{Backspace}");
+			expect(screen.getByLabelText("Remove apple")).toBeInTheDocument();
+			expect(screen.getByRole("status")).toBeEmptyDOMElement();
 		});
 
 		test("Backspace on the first tag with remaining tags focuses the new first tag", async () => {

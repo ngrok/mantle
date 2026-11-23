@@ -113,6 +113,21 @@ describe("Sidebar.Nav (desktop)", () => {
 		expect(screen.getByTestId("nav")).not.toHaveAttribute("data-expanded");
 	});
 
+	test("the Trigger's tooltip does not repeat its name as its description", async () => {
+		const user = userEvent.setup();
+		render(
+			<Sidebar.Root>
+				<Sidebar.Nav />
+				<Sidebar.Trigger />
+			</Sidebar.Root>,
+		);
+
+		await user.tab();
+		const trigger = screen.getByRole("button", { name: "Toggle Sidebar" });
+		expect(await screen.findByRole("tooltip")).toHaveTextContent("Toggle Sidebar");
+		expect(trigger).toHaveAccessibleDescription("");
+	});
+
 	test("Trigger toggles the panel and reflects state via aria-expanded", async () => {
 		const user = userEvent.setup();
 		render(

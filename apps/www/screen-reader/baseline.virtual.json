@@ -431,9 +431,9 @@
         {
           "label": "press Enter",
           "spoken": [
-            "dialog",
+            "dialog, Dimensions",
             "textbox, Width, 100%, not invalid",
-            "focus: textbox \"Width\" value \"100%\""
+            "focus: textbox \"Width\" value \"100%\" (in dialog \"Dimensions\")"
           ],
           "failed": []
         },
@@ -612,8 +612,8 @@
         },
         {
           "label": "press Backspace",
-          "spoken": [],
-          "failed": ["missing /remov/"]
+          "spoken": ["polite: Removed Banana"],
+          "failed": []
         }
       ]
     },
@@ -726,19 +726,14 @@
         },
         {
           "label": "press Enter",
-          "spoken": [],
-          "failed": []
-        },
-        {
-          "label": "press Shift+Tab",
           "spoken": [
-            "button, Cancel, not disabled",
-            "focus: button \"Cancel\" (in dialog \"Invite a teammate\")"
+            "textbox, Email, Enter a valid email address., 1 error message, invalid, placeholder teammate@example.com",
+            "focus: textbox \"Email\" description \"Enter a valid email address.\" invalid (in dialog \"Invite a teammate\")"
           ],
           "failed": []
         },
         {
-          "label": "press Shift+Tab",
+          "label": "press Tab",
           "spoken": [
             "combobox, Role, Choose a role., has popup listbox, not expanded, 1 error message, invalid",
             "focus: combobox \"Role\" value \"Select a role\" description \"Choose a role.\" collapsed invalid popup listbox (in dialog \"Invite a teammate\")"
@@ -747,8 +742,11 @@
         },
         {
           "label": "press Shift+Tab",
-          "spoken": ["dialog, Invite a teammate", "focus: dialog \"Invite a teammate\""],
-          "failed": ["missing /email/", "missing /invalid|error/", "missing /valid email/"]
+          "spoken": [
+            "textbox, Email, not invalid, placeholder teammate@example.com",
+            "focus: textbox \"Email\" (in dialog \"Invite a teammate\")"
+          ],
+          "failed": []
         }
       ]
     },
@@ -950,7 +948,7 @@
         {
           "label": "press Tab",
           "spoken": [
-            "slider, Volume, 67, Drag to adjust playback volume., orientated horizontally, max value 100, min value 0",
+            "slider, Volume, Drag to adjust playback volume., orientated horizontally, max value 100, min value 0, current value 67%",
             "focus: slider \"Volume\" value \"67\" description \"Drag to adjust playback volume.\" valuetext 67"
           ],
           "failed": []
@@ -1052,7 +1050,10 @@
         },
         {
           "label": "press Enter",
-          "spoken": ["focus: button \"Switch to light theme (system default)\""],
+          "spoken": [
+            "polite: Dark theme",
+            "focus: button \"Switch to light theme (system default)\""
+          ],
           "failed": []
         }
       ]
@@ -1076,7 +1077,7 @@
           "label": "press Tab",
           "spoken": [
             "button, Toggle Sidebar, 1 control, not disabled, expanded, key shortcuts Control+B",
-            "focus: button \"Toggle Sidebar\" description \"Toggle Sidebar\" expanded"
+            "focus: button \"Toggle Sidebar\" expanded"
           ],
           "failed": []
         },

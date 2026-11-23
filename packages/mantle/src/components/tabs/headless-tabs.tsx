@@ -156,7 +156,10 @@ const scrollFocusedTab = (event: FocusEvent<HTMLElement>) => {
 	if (
 		focusFromPointer ||
 		event.target === list ||
-		list.getAttribute("aria-orientation") !== "horizontal"
+		list.getAttribute("aria-orientation") !== "horizontal" ||
+		// Why: jsdom has no `scrollIntoView` and no `matchMedia`. A consumer test
+		// must still move focus.
+		!event.target.scrollIntoView
 	) {
 		return;
 	}

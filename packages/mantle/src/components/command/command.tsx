@@ -56,6 +56,18 @@ const NO_SELECTION: readonly string[] = [];
 const ignoreSelect = () => {};
 
 /**
+ * Names an input that has no other source of a name: no `aria-labelledby`, no
+ * `id` that a `<label>` could point at, no `title`, and no `placeholder`.
+ */
+const defaultName = (props: {
+	"aria-labelledby"?: string;
+	id?: string;
+	placeholder?: string;
+	title?: string;
+}) =>
+	(props["aria-labelledby"] ?? props.id ?? props.title ?? props.placeholder) ? undefined : "Search";
+
+/**
  * The props for `Command.Root`.
  *
  * @see https://mantle.ngrok.com/components/navigation/command#commandroot
@@ -64,6 +76,8 @@ type CommandRootProps = Omit<ComponentProps<"div">, "defaultValue" | "onChange">
 	WithDataSlot & {
 		/**
 		 * The accessible name of `Command.Input`. Not shown.
+		 *
+		 * @default "Search", when the input has no other name: no `aria-label`, `aria-labelledby`, `<label>`, `title`, or `placeholder`
 		 */
 		label?: string;
 		/**
@@ -727,7 +741,7 @@ const CommandInput = ({
 				aria-autocomplete="list"
 				aria-expanded
 				aria-controls={listboxId}
-				aria-label={label ?? props["aria-label"]}
+				aria-label={label ?? props["aria-label"] ?? defaultName(props)}
 				// Why: the list writes this attribute, so no consumer value may render over it.
 				aria-activedescendant={undefined}
 				value={resolvedValue}
