@@ -3,8 +3,8 @@ import { mcpFlags } from "~/utilities/mcp/flags.server";
 import { mcpPulse } from "~/utilities/mcp/pulse.server";
 import { createMantleMcpServer, productionDependencies } from "~/utilities/mcp/server.server";
 
-/** The largest JSON-RPC body `/mcp` reads: a 20 KB `code` argument with room for JSON escapes. */
-const MAX_REQUEST_BODY_BYTES = 128 * 1024;
+/** The largest JSON-RPC body `/mcp` reads: a 100 KB `check` argument with room for JSON escapes. */
+const MAX_REQUEST_BODY_BYTES = 256 * 1024;
 
 /**
  * Passes the body through as it streams, and calls `onDone` once, when the

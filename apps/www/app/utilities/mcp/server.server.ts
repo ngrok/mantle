@@ -4,7 +4,7 @@ import { z } from "zod";
 import { buildSiteAgentManifest } from "~/utilities/agent-manifest.server";
 import { canonicalHref, canonicalOrigin } from "~/utilities/canonical-origin";
 import { loadFrontmatter, rawDocContent, urlToFileMap } from "~/utilities/docs";
-import { checkCode } from "~/utilities/mcp/check.server";
+import { checkCode, MAX_CHECK_CODE_BYTES, type Diagnostic } from "~/utilities/mcp/check.server";
 import { isMcpToolEnabled, previewFrameOrigin, type McpFlags } from "~/utilities/mcp/flags.server";
 import { fitMarkdown } from "~/utilities/mcp/markdown-budget";
 import { MCP_APP_MIME_TYPE, PREVIEW_APP_URI, previewAppHtml } from "~/utilities/mcp/preview-app";
@@ -337,6 +337,24 @@ async function provenanceFor(
 	};
 }
 
+/**
+ * Whether the docs build is the selected release plus unreleased changes.
+ * Why only then: an older version can inherit a prop from a dependency that
+ * the docs build now declares itself, and its words cannot show that.
+ */
+function hasUnreleasedDocs(
+	dependencies: McpDependencies,
+	data: VersionData,
+	provenance: Provenance,
+): boolean {
+	return dependencies.docsVersion === data.version && provenance.docsVersion !== data.version;
+}
+
+/** One `check` finding as a line, such as `3:12 error unknown-prop: … Fix: …`. */
+function diagnosticLine({ line, column, severity, code, message, fix }: Diagnostic): string {
+	return `${line}:${column} ${severity} ${code}: ${message}${fix == null ? "" : ` Fix: ${fix}`}`;
+}
+
 /** The docs version as `provenanceFor` labels it against the latest release. */
 async function latestDocsVersion(dependencies: McpDependencies): Promise<string> {
 	try {
@@ -658,16 +676,12 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				);
 			}
 			const provenance = await provenanceFor(dependencies, data);
-			// Why only the latest release with unreleased changes: an older version can inherit a prop
-			// from a dependency that the docs build now declares itself, and its words cannot show that.
-			const unreleased =
-				dependencies.docsVersion === data.version && provenance.docsVersion !== data.version;
 			const body = getRecordText({
 				record,
 				data,
 				provenance,
 				docsMarkdown: await dependencies.readDocs(record.docsSlug),
-				docsWords: unreleased
+				docsWords: hasUnreleasedDocs(dependencies, data, provenance)
 					? await dependencies.docsDeclaredWordsOf(record.importPath)
 					: undefined,
 				sections,
@@ -772,7 +786,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 		"check",
 		{
 			title: "Check mantle code",
-			description: `Returns feedback on one TSX file: mantle import paths and names for the selected version, foreign UI libraries, and className construction. No type check. Max ${MAX_PREVIEW_CODE_BYTES} bytes. Supports ${MIN_SUPPORTED_VERSION} and later.`,
+			description: `Returns feedback on one TSX file for the selected version: mantle imports, parts, and props (unknown, forbidden, or missing), parts outside their Root, untitled dialogs, foreign UI libraries, and className construction. No type check. Max ${MAX_CHECK_CODE_BYTES} bytes. Supports ${MIN_SUPPORTED_VERSION} and later.`,
 			inputSchema: logInvalid(
 				"check",
 				z.object({
@@ -786,24 +800,42 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 			annotations: readOnly,
 		},
 		run("check", async ({ code, version }) => {
-			if (byteLength(code) > MAX_PREVIEW_CODE_BYTES) {
+			if (byteLength(code) > MAX_CHECK_CODE_BYTES) {
 				return failure(
 					"too_large",
-					`The code is over ${MAX_PREVIEW_CODE_BYTES} bytes. Check one file at a time.`,
+					`The code is over ${MAX_CHECK_CODE_BYTES} bytes. Check one file at a time.`,
 				);
 			}
 			const data = await dependencies.loader.load(version);
-			const diagnostics = checkCode({ code, data });
+			const provenance = await provenanceFor(dependencies, data);
+			// Why: a prop that only the docs build declares is on the docs page, but not in a release yet.
+			const docsWords = new Map<string, ReadonlySet<string> | undefined>();
+			if (hasUnreleasedDocs(dependencies, data, provenance)) {
+				for (const [, specifier] of code.matchAll(/from\s*["'](@ngrok\/mantle\/[\w-]+)["']/g)) {
+					if (
+						specifier != null &&
+						data.exportsBySpecifier.has(specifier) &&
+						!docsWords.has(specifier)
+					) {
+						docsWords.set(specifier, await dependencies.docsDeclaredWordsOf(specifier));
+					}
+				}
+			}
+			const diagnostics = checkCode({
+				code,
+				data,
+				docsWordsOf: (specifier) => docsWords.get(specifier),
+			});
 			const summary =
 				diagnostics.length === 0
 					? "No findings. This check does not run TypeScript; run tsc where you can."
-					: `${diagnostics.length} finding(s).`;
+					: `${diagnostics.length} finding(s):\n${diagnostics.map(diagnosticLine).join("\n")}`;
 			return {
 				result: {
 					content: [
 						{
 							type: "text",
-							text: `${provenanceLine(await provenanceFor(dependencies, data))}\n\n${summary}\n\n${JSON.stringify(diagnostics, null, 1)}`,
+							text: `${provenanceLine(provenance)}\n\n${summary}`,
 						},
 					],
 					structuredContent: { dataVersion: data.version, diagnostics },

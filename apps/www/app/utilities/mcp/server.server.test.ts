@@ -749,11 +749,35 @@ describe("the mantle MCP server", () => {
 		);
 	});
 
-	it("rejects code over the size cap before it parses it", async () => {
-		const result = await callTool(dependencies(), "check", { code: "x".repeat(20 * 1024 + 1) });
+	it("checks a file over the preview cap, and rejects code over its own cap before it parses it", async () => {
+		const large = `export const a = 1;\n${"// pad\n".repeat(4 * 1024)}`;
+		const accepted = await callTool(dependencies(), "check", { code: large });
+		const result = await callTool(dependencies(), "check", { code: "x".repeat(100 * 1024 + 1) });
 
+		expect(accepted.isError).toBeFalsy();
 		expect(result.isError).toBe(true);
-		expect(result.text).toBe("The code is over 20480 bytes. Check one file at a time.");
+		expect(result.text).toBe("The code is over 102400 bytes. Check one file at a time.");
+	});
+
+	// Regression: agents wrote the documented `keyboardShortcut` prop that 0.94.1 lacks.
+	it("says when a prop that check rejects is in the docs build but in no release", async () => {
+		const code =
+			'import { Button } from "@ngrok/mantle/button";\n<Button intent="neutral" keyboardShortcut />;';
+		const docsWords = async () => new Set(["keyboardShortcut"]);
+
+		const unreleased = await callTool(
+			dependencies({ docsSourceHash: async () => "main-hash", docsDeclaredWordsOf: docsWords }),
+			"check",
+			{ code },
+		);
+		const released = await callTool(dependencies({ docsDeclaredWordsOf: docsWords }), "check", {
+			code,
+		});
+
+		expect(unreleased.text).toContain(
+			"2:26 error unknown-prop: Button has no prop keyboardShortcut in @ngrok/mantle@0.93.0. Fix: The docs show keyboardShortcut, but no release has it yet. Remove it.",
+		);
+		expect(released.text).toContain("Fix: Call `get` with Button for its props.");
 	});
 });
 

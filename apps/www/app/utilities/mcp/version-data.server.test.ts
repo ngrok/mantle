@@ -104,7 +104,7 @@ describe("declarationsOf", () => {
 		const declaration = declarationsOf(packageFilesFixture(), "dist/button.d.ts", ["ButtonProps"]);
 
 		expect(declaration).toBe(
-			'/** The props of `Button`. */\ntype ButtonProps = { intent: "neutral" | "danger" };',
+			'/** The props of `Button`. */\ntype ButtonProps = ComponentProps<"button"> & { intent: "neutral" | "danger" };',
 		);
 	});
 
