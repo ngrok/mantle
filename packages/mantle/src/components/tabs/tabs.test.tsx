@@ -273,12 +273,13 @@ describe("Tabs", () => {
 			expect(scrollIntoView).toHaveBeenCalledTimes(2);
 		});
 
-		test("arrow keys move focus and raise no error with no scrollIntoView, as in jsdom", async () => {
+		test("arrow keys move focus and raise no error with no scrollIntoView or matchMedia, as in jsdom", async () => {
 			const saved = Object.getOwnPropertyDescriptor(Element.prototype, "scrollIntoView");
 			Object.defineProperty(Element.prototype, "scrollIntoView", {
 				configurable: true,
 				value: undefined,
 			});
+			vi.stubGlobal("matchMedia", undefined);
 			const errors: unknown[] = [];
 			const onError = (event: ErrorEvent) => errors.push(event.error);
 			window.addEventListener("error", onError);
@@ -301,7 +302,9 @@ describe("Tabs", () => {
 				expect(errors).toEqual([]);
 			} finally {
 				window.removeEventListener("error", onError);
-				if (saved != null) {
+				if (saved == null) {
+					Reflect.deleteProperty(Element.prototype, "scrollIntoView");
+				} else {
 					Object.defineProperty(Element.prototype, "scrollIntoView", saved);
 				}
 			}

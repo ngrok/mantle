@@ -156,15 +156,17 @@ const scrollFocusedTab = (event: FocusEvent<HTMLElement>) => {
 	if (
 		focusFromPointer ||
 		event.target === list ||
-		list.getAttribute("aria-orientation") !== "horizontal"
+		list.getAttribute("aria-orientation") !== "horizontal" ||
+		// Why: jsdom has no `scrollIntoView` and no `matchMedia`. A consumer test
+		// must still move focus.
+		typeof event.target.scrollIntoView !== "function"
 	) {
 		return;
 	}
 	const behavior: ScrollBehavior = getPrefersReducedMotion() ? "auto" : "smooth";
 	// "center" rather than "nearest" so the focused tab lands in the middle of
 	// the visible area, giving the user context on both sides.
-	// Why `?.`: jsdom has no `scrollIntoView`, and a consumer test must still move focus.
-	event.target.scrollIntoView?.({ behavior, inline: "center", block: "nearest" });
+	event.target.scrollIntoView({ behavior, inline: "center", block: "nearest" });
 };
 
 /** Runs the consumer's handler, then the part's, whatever the consumer did. */
