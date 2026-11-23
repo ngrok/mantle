@@ -178,7 +178,7 @@ const axeViolations = async () => {
 };
 
 describe("Select keyboard, focus, and ARIA contract", () => {
-	test("an option under a group label stays live and clickable while the list is modal", async () => {
+	test("an option under a group label stays live and clickable", async () => {
 		render(
 			<Select.Root>
 				<Select.Trigger aria-label="Fruit">
@@ -235,6 +235,36 @@ describe("Select keyboard, focus, and ARIA contract", () => {
 		expect(form instanceof HTMLFormElement && new FormData(form).get("fruit")).toBe("apple");
 	});
 
+	test("the list opens in the top layer and scrolls the highlighted option into view", async () => {
+		const fruits = Array.from({ length: 40 }, (_, index) => `Fruit ${index}`);
+		render(
+			<Select.Root defaultValue="Fruit 30">
+				<Select.Trigger aria-label="Fruit" />
+				{/* Why the style: this page loads no Tailwind, and the real classes cap the list the same way. */}
+				<Select.Content style={{ maxHeight: 120, overflowY: "auto", boxSizing: "border-box" }}>
+					{fruits.map((fruit) => (
+						<Select.Item key={fruit} value={fruit}>
+							{fruit}
+						</Select.Item>
+					))}
+				</Select.Content>
+			</Select.Root>,
+		);
+		const trigger = screen.getByRole("combobox", { name: "Fruit" });
+		const inView = (option: HTMLElement) => {
+			const list = screen.getByRole("listbox").getBoundingClientRect();
+			const box = option.getBoundingClientRect();
+			return box.top >= list.top - 0.5 && box.bottom <= list.bottom + 0.5;
+		};
+		await userEvent.click(trigger);
+		expect(screen.getByRole("listbox").matches(":popover-open")).toBe(true);
+		expect(inView(screen.getByRole("option", { name: "Fruit 30" }))).toBe(true);
+		await userEvent.keyboard("{Home}");
+		expect(inView(screen.getByRole("option", { name: "Fruit 0" }))).toBe(true);
+		await userEvent.keyboard("{End}");
+		expect(inView(screen.getByRole("option", { name: "Fruit 39" }))).toBe(true);
+	});
+
 	test("typeahead opens a closed select, matches a prefix, and cycles on a repeated letter", async () => {
 		render(<FruitSelect />);
 		const trigger = screen.getByRole("combobox", { name: "Fruit" });
@@ -268,33 +298,81 @@ describe("Select keyboard, focus, and ARIA contract", () => {
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
 		expect(trigger).not.toHaveAttribute("aria-activedescendant");
 		await userEvent.click(trigger);
-		// Why force: the open list makes the page inert, so the press lands on the root.
-		await userEvent.click(document.body, { force: true });
+		await userEvent.click(document.body);
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
 		expect(onValueChange).toHaveBeenCalledTimes(0);
 	});
 
-	test("the open list is modal: Tab keeps focus, the page does not scroll, and only the select is exposed", async () => {
+	test("the open list leaves the page live, keeps focus on Tab, and eats the click that closes it", async () => {
 		const onValueChange = vi.fn<(value: string) => void>();
-		render(<FruitSelect onValueChange={onValueChange} />);
+		const onOutside = vi.fn<() => void>();
+		render(
+			<>
+				{/* Why first: the list opens below the trigger and would cover a later button. */}
+				<button type="button" onClick={onOutside}>
+					Outside
+				</button>
+				<FruitSelect onValueChange={onValueChange} />
+			</>,
+		);
 		const trigger = screen.getByRole("combobox", { name: "Fruit" });
-		const after = screen.getByRole("button", { name: "After" });
+		const outside = screen.getByRole("button", { name: "Outside" });
 		trigger.focus();
 		await userEvent.keyboard("{ArrowDown}{ArrowDown}{Tab}");
 		expect(document.activeElement).toBe(trigger);
 		expect(trigger).toHaveAttribute("aria-expanded", "true");
 		expect(onValueChange).toHaveBeenCalledTimes(0);
-		expect(document.documentElement.style.overflow).toBe("hidden");
-		// The button beside the trigger goes inert; the label, the trigger, and the list stay.
-		expect(after.inert).toBe(true);
-		expect(screen.getByRole("combobox", { name: "Fruit" })).toBe(trigger);
-		expect(screen.getByRole("listbox")).toBeInTheDocument();
+		expect(document.documentElement.style.overflow).toBe("");
+		expect(document.querySelector("[inert]")).toBeNull();
 
 		await userEvent.keyboard("{Enter}");
 		expect(onValueChange).toHaveBeenLastCalledWith("cherry");
-		expect(document.documentElement.style.overflow).toBe("");
-		expect(screen.getByRole("button", { name: "After" })).toBe(after);
-		expect(document.querySelector("[inert]")).toBeNull();
+
+		// Why: as with a native select, the press that closes the list does not reach the page.
+		await userEvent.click(trigger);
+		await userEvent.click(outside);
+		expect(trigger).toHaveAttribute("aria-expanded", "false");
+		expect(onOutside).toHaveBeenCalledTimes(0);
+		await userEvent.click(outside);
+		expect(onOutside).toHaveBeenCalledTimes(1);
+	});
+
+	test("an outside press that makes no click, or keeps focus, leaves later clicks alone", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		const onKeep = vi.fn<() => void>();
+		const onNext = vi.fn<() => void>();
+		render(
+			<>
+				{/* Why first: the list opens below the trigger and would cover a later button. */}
+				<button type="button" onMouseDown={(event) => event.preventDefault()} onClick={onKeep}>
+					Keep focus
+				</button>
+				<button type="button" onClick={onNext}>
+					Next
+				</button>
+				<FruitSelect onValueChange={onValueChange} />
+			</>,
+		);
+		const trigger = screen.getByRole("combobox", { name: "Fruit" });
+		const keep = screen.getByRole("button", { name: "Keep focus" });
+
+		// A secondary press arms nothing, so a keyboard pick after it still picks.
+		await userEvent.click(trigger);
+		await userEvent.pointer({ keys: "[MouseRight]", target: keep });
+		trigger.focus();
+		await userEvent.keyboard("{Escape}{ArrowDown}{ArrowDown}{Enter}");
+		expect(onValueChange).toHaveBeenLastCalledWith("cherry");
+
+		// A press that keeps focus on the trigger still closes the list, and its click stays eaten.
+		await userEvent.click(trigger);
+		await userEvent.click(keep);
+		expect(trigger).toHaveAttribute("aria-expanded", "false");
+		expect(onKeep).toHaveBeenCalledTimes(0);
+
+		// A keyboard click never meets the guard.
+		screen.getByRole("button", { name: "Next" }).focus();
+		await userEvent.keyboard("{Enter}");
+		expect(onNext).toHaveBeenCalledTimes(1);
 	});
 
 	test("a pointer press on an option picks it", async () => {
@@ -324,6 +402,35 @@ describe("Select keyboard, focus, and ARIA contract", () => {
 		expect(screen.getByRole("dialog", { name: "Settings" })).toBeInTheDocument();
 		await userEvent.keyboard("{Escape}");
 		expect(screen.queryByRole("dialog", { name: "Settings" })).not.toBeInTheDocument();
+	});
+
+	test("an open list that a dialog covers waits until the dialog closes", async () => {
+		const { rerender } = render(
+			<>
+				<Select.Root open onOpenChange={() => {}}>
+					<Select.Trigger aria-label="Fruit" />
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+					</Select.Content>
+				</Select.Root>
+				<Dialog.Root open>
+					<Dialog.Content>
+						<Dialog.Title>Settings</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+			</>,
+		);
+		expect(await screen.findByRole("dialog", { name: "Settings" })).toBeInTheDocument();
+		expect(screen.queryByRole("listbox", { hidden: true })).not.toBeInTheDocument();
+		rerender(
+			<Select.Root open onOpenChange={() => {}}>
+				<Select.Trigger aria-label="Fruit" />
+				<Select.Content>
+					<Select.Item value="apple">Apple</Select.Item>
+				</Select.Content>
+			</Select.Root>,
+		);
+		expect(await screen.findByRole("listbox")).toBeInTheDocument();
 	});
 
 	test("has no axe violations closed or open", async () => {

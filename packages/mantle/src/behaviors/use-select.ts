@@ -31,9 +31,9 @@ type SelectBehavior = {
 
 /**
  * Owns the WAI-ARIA select-only combobox pattern: a button that opens a
- * modal listbox and picks one value. DOM focus never leaves the trigger, and
- * Tab cannot move it while the list is open. A press outside closes the list
- * through the trigger's blur, with no document listener. Call it in the root part; call
+ * listbox and picks one value. DOM focus never leaves the trigger, and Tab
+ * cannot move it while the list is open. A press outside closes the list
+ * through the trigger's blur. The page stays live, as with a native select. Call it in the root part; call
  * `useSelectTrigger` in the trigger and `useOption` in each option.
  *
  * @see https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-select-only/
@@ -112,13 +112,11 @@ const moveKeys: Record<string, MoveTarget> = {
 const useSelectTrigger = (select: SelectBehavior) => {
 	const { open, setOpen, listbox, disabled } = select;
 
-	// Why flushSync: a closed list renders no options, so they exist only once
-	// React commits the open state.
+	// Why no flushSync: the list moves to `target` when it mounts, in the
+	// commit that opens it.
 	const openTo = (target: MoveTarget) => {
-		flushSync(() => {
-			setOpen(true);
-		});
-		listbox.move(target);
+		listbox.moveOnOpen(target);
+		setOpen(true);
 	};
 
 	const pickActive = () => {
@@ -205,7 +203,7 @@ const useSelectTrigger = (select: SelectBehavior) => {
 					return;
 				}
 				case "Tab": {
-					// Why: the open list is modal, so focus stays until Enter, Escape, or a pick.
+					// Why: as with a native select, focus stays until Enter, Escape, or a pick.
 					event.preventDefault();
 					return;
 				}

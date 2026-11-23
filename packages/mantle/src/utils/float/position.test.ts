@@ -49,6 +49,21 @@ describe("computePlacement", () => {
 		).toBe("bottom");
 	});
 
+	test("with the larger fallback, takes the side with more room when neither fits", () => {
+		const placement = (top: number) =>
+			computePlacement({
+				anchor: anchorAt(400, top),
+				size: { width: 200, height: 580 },
+				viewport,
+				side: "bottom",
+				align: "start",
+				sideOffset: 4,
+				fallback: "larger",
+			}).side;
+		expect(placement(400)).toBe("top");
+		expect(placement(200)).toBe("bottom");
+	});
+
 	test("shifts along the side to stay 8px inside the viewport", () => {
 		expect(
 			computePlacement({

@@ -4,7 +4,6 @@ import type { ComponentProps, KeyboardEvent, PropsWithChildren, ReactNode } from
 import { cloneElement, createContext, isValidElement, use, useId, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
 import { composeHandlers } from "../../behaviors/compose-handlers.js";
-import { enterModal } from "../../behaviors/enter-modal.js";
 import { useComboboxInput } from "../../behaviors/use-combobox.js";
 import { childId, useOption } from "../../behaviors/use-listbox.js";
 import { useMultiSelect } from "../../behaviors/use-multi-select.js";
@@ -15,7 +14,6 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
 import { shakeElement } from "../../utils/shake.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { parseValidation } from "../field/validation.js";
@@ -88,10 +86,11 @@ type MultiSelectProps = UseMultiSelectProps & {
  * combobox input, so a native form submit sends the selected values, not the
  * typeahead filter text.
  *
- * `MultiSelect.Content` renders at Tailwind `z-50`. Inside an open `Dialog`,
- * `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and
- * paints above the overlay that owns it. Outside every overlay, it portals to
- * `document.body`, below the overlay tier (`z-60`).
+ * `MultiSelect.Content` is a `popover="manual"` element in the top layer, so it paints
+ * above the page and every overlay. It portals into the overlay or float that
+ * holds it, such as an open `Dialog` or `Popover.Content`, else into
+ * `document.body`. In a browser with no popover API, it is a fixed box at
+ * Tailwind `z-50`.
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectroot
  *
@@ -717,8 +716,8 @@ const Input = ({
 					if (event.nativeEvent.isComposing) {
 						return;
 					}
-					// Why: the open list is modal, so Tab moves only to a control in the
-					// list, such as a footer button, and focus stays until Escape closes it.
+					// Why: while the list is open, Tab moves only to a control in the list,
+					// such as a footer button, and focus stays until Escape closes it.
 					if (event.key === "Tab" && multiSelect.open) {
 						event.preventDefault();
 						if (!event.shiftKey) {
@@ -788,13 +787,15 @@ type MultiSelectContentProps = ComponentProps<"div"> &
  * Renders a popover that contains multi-select content, such as items, groups,
  * and separators. Opens below the trigger.
  *
- * `MultiSelect.Content` renders at Tailwind `z-50`. Inside an open `Dialog`,
- * `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and
- * paints above the overlay that owns it. Outside every overlay, it portals to
- * `document.body`, below the overlay tier (`z-60`).
+ * `MultiSelect.Content` is a `popover="manual"` element in the top layer, so it paints
+ * above the page and every overlay. It portals into the overlay or float that
+ * holds it, such as an open `Dialog` or `Popover.Content`, else into
+ * `document.body`. In a browser with no popover API, it is a fixed box at
+ * Tailwind `z-50`.
  *
- * The list is modal: while it is open, the page does not scroll, the rest of
- * the page is inert, and a press outside the trigger and the list closes it.
+ * As with a native select, the page stays live while the list is open: it
+ * scrolls, and assistive technology can reach it. A press outside the trigger
+ * and the list closes the list, and its click does not reach the page.
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectcontent
  *
@@ -826,17 +827,16 @@ const OpenContent = ({
 	...props
 }: MultiSelectContentProps) => {
 	const { inputRef, listbox, setOpen, triggerRef } = useMultiSelectContext();
-	const { host, popupRef } = usePopup({
-		open: true,
+	const { portalTarget, popupRef } = usePopup({
 		anchorRef: triggerRef,
 		ownerRef: inputRef,
-		container: useLayerContainer(),
-		modal: enterModal,
+		onOutsidePress: () => setOpen(false),
 	});
-	const composedRef = useComposedRefs(ref, listbox.listboxProps.ref, popupRef);
+
+	const composedRef = useComposedRefs(ref, popupRef, listbox.listboxProps.ref);
 	const Component = asChild ? Slot : "div";
 	return (
-		host != null &&
+		portalTarget != null &&
 		createPortal(
 			<>
 				{/* Why: a touch screen reader has no Escape key, and a pick keeps this list open. */}
@@ -848,11 +848,12 @@ const OpenContent = ({
 					{...listbox.listboxProps}
 					onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
 					aria-multiselectable
+					popover="manual"
 					ref={composedRef}
 					data-slot={joinDataSlot(dataSlot, "multi-select-content")}
 					data-state="open"
 					className={cx(
-						"border-popover bg-popover relative z-50 max-h-(--available-height) min-w-32 scrollbar overflow-y-scroll overflow-x-hidden overscroll-y-none rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col gap-px outline-hidden",
+						"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 scrollbar overflow-y-scroll overflow-x-hidden overscroll-y-none rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col gap-px outline-hidden",
 						sameWidth && "w-(--anchor-width)",
 						className,
 					)}
@@ -860,6 +861,26 @@ const OpenContent = ({
 						// Why: a focused control in the footer, such as a button, closes the list on Escape too.
 						if (event.key === "Escape") {
 							setOpen(false);
+						}
+						// Why: Shift+Tab from the first control in the list goes back to the
+						// input, the way Tab came in. Tab from the last one leaves and closes the list.
+						if (
+							event.key === "Tab" &&
+							event.shiftKey &&
+							event.target === event.currentTarget.querySelector(TABBABLE)
+						) {
+							// Why the root node and not `inputRef`: the compiler's pass forbids a
+							// ref read in a handler built during render. The input names this list
+							// in `aria-controls`, in the same document or shadow root.
+							const root = event.currentTarget.getRootNode();
+							const input =
+								root instanceof Document || root instanceof ShadowRoot
+									? root.querySelector<HTMLElement>(`[aria-controls="${event.currentTarget.id}"]`)
+									: null;
+							if (input != null) {
+								event.preventDefault();
+								input.focus();
+							}
 						}
 					})}
 					onBlur={composeHandlers(props.onBlur, (event) => {
@@ -878,7 +899,7 @@ const OpenContent = ({
 					{children}
 				</Component>
 			</>,
-			host,
+			portalTarget,
 		)
 	);
 };

@@ -386,7 +386,7 @@ describe("MultiSelect", () => {
 			expect(input).toHaveAttribute("aria-expanded", "false");
 		});
 
-		test("Tab reaches a footer control, and focus that leaves it closes the list", async () => {
+		test("Tab reaches a footer control, Shift+Tab returns to the input, and focus that leaves closes the list", async () => {
 			const user = userEvent.setup();
 			render(
 				<MultiSelect.Root>
@@ -408,6 +408,11 @@ describe("MultiSelect", () => {
 			const upgrade = screen.getByRole("button", { name: "Upgrade" });
 			expect(upgrade).toHaveFocus();
 			expect(input).toHaveAttribute("aria-expanded", "true");
+			await user.keyboard("{Shift>}{Tab}{/Shift}");
+			expect(input).toHaveFocus();
+			expect(input).toHaveAttribute("aria-expanded", "true");
+			await user.keyboard("{Tab}");
+			expect(upgrade).toHaveFocus();
 			act(() => {
 				upgrade.blur();
 			});

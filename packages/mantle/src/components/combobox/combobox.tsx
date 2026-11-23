@@ -13,7 +13,6 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { useLayerContainer } from "../../utils/layer-container/layer-container.js";
 import { parseValidation } from "../field/validation.js";
 import { useFieldValidation } from "../field/validation-context.js";
 import type { WithValidation } from "../field/validation.js";
@@ -61,10 +60,11 @@ type ComboboxProps = UseComboboxProps & {
  * async/server-side data, or any single-select where search is helpful. For very small
  * finite lists with no filtering, prefer Select. For multi-selection, prefer MultiSelect.
  *
- * `Combobox.Content` renders at Tailwind `z-50`, Mantle's float tier. Inside an
- * open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's
- * positioner and paints above the overlay that owns it. Outside every overlay,
- * it portals to `document.body`, below the overlay tier (`z-60`).
+ * `Combobox.Content` is a `popover="manual"` element in the top layer, so it paints
+ * above the page and every overlay. It portals into the overlay or float that
+ * holds it, such as an open `Dialog` or `Popover.Content`, else into
+ * `document.body`. In a browser with no popover API, it is a fixed box at
+ * Tailwind `z-50`.
  *
  * The list opens on each keystroke. While it is open, Enter in `Combobox.Input`
  * never submits a parent form. If you render `Combobox.Content` conditionally, control `open`
@@ -249,11 +249,13 @@ type ComboboxContentProps = ComponentProps<"div"> &
 /**
  * Renders a popover that contains combobox content, e.g. Combobox.Items, Combobox.Groups, and Combobox.Separators.
  *
- * `Combobox.Content` renders at Tailwind `z-50`, Mantle's float tier. Inside an
- * open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's
- * positioner and paints above the overlay that owns it. Outside every overlay,
- * it portals to `document.body`, below the overlay tier (`z-60`). It opens below
- * the input, or above it when the space below is too small.
+ * `Combobox.Content` is a `popover="manual"` element in the top layer, so it paints
+ * above the page and every overlay. It portals into the overlay or float that
+ * holds it, such as an open `Dialog` or `Popover.Content`, else into
+ * `document.body`. In a browser with no popover API, it is a fixed box at
+ * Tailwind `z-50`.
+ *
+ * It opens below the input, or above it when the space below is too small.
  *
  * The popover has `role="listbox"`, so its children must be `Combobox.Item`,
  * `Combobox.Group`, or `Combobox.Separator`. Render an empty-state or "create" row as a
@@ -288,33 +290,29 @@ const OpenContent = ({
 	...props
 }: ComboboxContentProps) => {
 	const { inputRef, listbox } = useComboboxContext();
-	const { host, popupRef } = usePopup({
-		open: true,
-		anchorRef: inputRef,
-		ownerRef: inputRef,
-		container: useLayerContainer(),
-	});
-	const composedRef = useComposedRefs(ref, listbox.listboxProps.ref, popupRef);
+	const { portalTarget, popupRef } = usePopup({ anchorRef: inputRef, ownerRef: inputRef });
+	const composedRef = useComposedRefs(ref, popupRef, listbox.listboxProps.ref);
 	const Component = asChild ? Slot : "div";
 	return (
-		host != null &&
+		portalTarget != null &&
 		createPortal(
 			<Component
 				{...props}
 				{...listbox.listboxProps}
+				popover="manual"
 				onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
 				ref={composedRef}
 				data-slot={joinDataSlot(dataSlot, "combobox-content")}
 				data-state="open"
 				className={cx(
-					"border-popover bg-popover relative z-50 max-h-(--available-height) min-w-32 scrollbar overflow-y-auto overflow-x-hidden rounded-md border shadow-md p-1 space-y-px font-sans outline-hidden",
+					"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 scrollbar overflow-y-auto overflow-x-hidden rounded-md border shadow-md p-1 space-y-px font-sans outline-hidden",
 					sameWidth && "w-(--anchor-width)",
 					className,
 				)}
 			>
 				{children}
 			</Component>,
-			host,
+			portalTarget,
 		)
 	);
 };
@@ -363,7 +361,7 @@ const Item = ({
 	...props
 }: ComboboxItemProps) => {
 	const { listbox } = useComboboxContext();
-	const { active, selected, optionProps } = useOption(listbox, {
+	const { selected, optionProps } = useOption(listbox, {
 		value: value ?? "",
 		disabled: disabled || value == null,
 		id: childId({ asChild, children, id: props.id }),
@@ -376,8 +374,9 @@ const Item = ({
 				{...optionProps}
 				onClick={composeHandlers(onClick, optionProps.onClick)}
 				onPointerMove={composeHandlers(onPointerMove, optionProps.onPointerMove)}
-				// Why: in the APG combobox pattern, the highlighted option is the selected one, and no other option has the attribute.
-				aria-selected={active || undefined}
+				// Why: in the APG combobox pattern, the highlighted option is the selected
+				// one, and the open list writes the attribute with the highlight.
+				aria-selected={undefined}
 				// Why `data-selected`: `aria-selected` follows the highlight, so the picked option needs its own attribute.
 				data-selected={selected ? "" : undefined}
 				ref={ref}

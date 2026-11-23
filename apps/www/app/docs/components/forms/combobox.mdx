@@ -99,7 +99,7 @@ import { CirclesThreePlusIcon } from "@phosphor-icons/react/CirclesThreePlus";
 
 ## Layering and z-index
 
-`Combobox.Content` renders at Tailwind `z-50`, Mantle's float tier. Inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). It opens below the input, or above it when the space below is too small.
+`Combobox.Content` is a `popover="manual"` element in the top layer, so it paints above the page and every overlay. It portals into the overlay or float that holds it, such as an open `Dialog` or `Popover.Content`, else into `document.body`. In a browser with no popover API, it is a fixed box at Tailwind `z-50`. It opens below the input, or above it when the space below is too small.
 
 `Combobox` does not render a backdrop. Modal layers such as `Dialog`, `Sheet`, and `AlertDialog` do render backdrops, so stacking those layers compounds the dim and blur effect on the layers underneath.
 
@@ -225,7 +225,7 @@ import { Combobox } from "@ngrok/mantle/combobox";
 
 The outermost part of a combobox. It holds the query text, the open state, and the selection.
 
-`Combobox.Content` renders at Tailwind `z-50`, Mantle's float tier. Inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). It opens below the input, or above it when the space below is too small.
+`Combobox.Content` is a `popover="manual"` element in the top layer, so it paints above the page and every overlay. It portals into the overlay or float that holds it, such as an open `Dialog` or `Popover.Content`, else into `document.body`. In a browser with no popover API, it is a fixed box at Tailwind `z-50`. It opens below the input, or above it when the space below is too small.
 
 | Prop                  | Type                           | Default | Description                                                                               |
 | :-------------------- | :----------------------------- | :------ | :---------------------------------------------------------------------------------------- |
@@ -260,7 +260,7 @@ All props of an `<input>` except `value`, `defaultValue`, and `autoComplete`, pl
 
 Renders a popover that contains combobox content, e.g. items, groups, and separators.
 
-`Combobox.Content` renders at Tailwind `z-50`, Mantle's float tier. Inside an open `Dialog`, `AlertDialog`, or `Sheet`, it portals into that overlay's positioner and paints above the overlay that owns it. Outside every overlay, it portals to `document.body`, below the overlay tier (`z-60`). It opens below the input, or above it when the space below is too small.
+`Combobox.Content` is a `popover="manual"` element in the top layer, so it paints above the page and every overlay. It portals into the overlay or float that holds it, such as an open `Dialog` or `Popover.Content`, else into `document.body`. In a browser with no popover API, it is a fixed box at Tailwind `z-50`. It opens below the input, or above it when the space below is too small.
 
 All props of a `<div>`, plus:
 
