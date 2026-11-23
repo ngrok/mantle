@@ -178,6 +178,17 @@ describe("buildDesignTokens on mantle.css", () => {
 	const light = tokensOf(tokens);
 	const dark = new Map([...light, ...tokensOf(darkTokens)]);
 
+	// Why: `@theme` removes the stone palette with `--color-stone-*: initial`, so the
+	// exported tokens must not publish it in either theme.
+	it("publishes no token of a palette that the theme removes", () => {
+		const stone = [...light.keys(), ...dark.keys()].filter((path) =>
+			path.startsWith("color.stone"),
+		);
+
+		expect(stone).toEqual([]);
+		expect([...light.keys()].some((path) => path.startsWith("color.gray"))).toBe(true);
+	});
+
 	it("gives every token a $value and a $type", () => {
 		for (const [path, token] of [...light, ...tokensOf(darkTokens)]) {
 			expect({ path, value: token.$value != null, type: typeof token.$type }).toEqual({
