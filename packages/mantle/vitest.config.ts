@@ -54,7 +54,14 @@ const providerFor = (engine: Engine) =>
 				launchOptions: {
 					chromium: { chromiumSandbox: true },
 					firefox: {},
-					webkit: { env: { ...process.env, LIBGL_ALWAYS_SOFTWARE: "1" } },
+					webkit: {
+						env: {
+							...process.env,
+							LIBGL_ALWAYS_SOFTWARE: "1",
+							WEBKIT_DISABLE_DMABUF_RENDERER: "1",
+							WEBKIT_SKIA_ENABLE_CPU_RENDERING: "1",
+						},
+					},
 				}[engine],
 			});
 
