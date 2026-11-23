@@ -1573,11 +1573,6 @@ MARK: UTILITIES
 		font-stretch: ultra-condensed !important;
 		font-optical-sizing: none !important;
 	}
-
-	/* A password manager badge that follows the input takes the pointer. */
-	& + * {
-		pointer-events: auto !important;
-	}
 }
 
 @utility scroll-shadow {
