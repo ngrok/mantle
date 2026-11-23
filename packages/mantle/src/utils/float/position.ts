@@ -233,10 +233,77 @@ function toLocalPoint(
 }
 
 /**
- * Keeps an open float next to `anchor` and returns the cleanup. After each
- * scroll, resize, size change, and end of a transition or animation, it
- * places the float with `left` and `top` on the side that `computePlacement`
- * picks.
+ * The zoom that scales `element` from viewport pixels, its own `zoom` times
+ * that of each ancestor. Why the walk: Safari has no `currentCSSZoom`.
+ */
+function zoomOf(element: HTMLElement): number {
+	// Why `typeof`: the DOM types declare it in each browser.
+	if (typeof element.currentCSSZoom === "number") {
+		return element.currentCSSZoom;
+	}
+	let zoom = 1;
+	for (let node: Element | null = element; node != null; node = node.parentElement) {
+		zoom *= Number.parseFloat(getComputedStyle(node).zoom) || 1;
+	}
+	return zoom;
+}
+
+/** The anchor box and the viewport size, as one value to compare between frames. */
+const keyOf = (rect: DOMRect): string =>
+	`${rect.left} ${rect.top} ${rect.width} ${rect.height} ${document.documentElement.clientWidth} ${document.documentElement.clientHeight}`;
+
+/**
+ * Calls `onMove` when `element` moves in the viewport for any cause, such as a
+ * layout shift above it, or a transform or animation on an ancestor, and
+ * returns the cleanup. Why an `IntersectionObserver`: its root margin crops the
+ * viewport to the element's box, so any move changes the visible ratio, and the
+ * browser checks it with no script while nothing moves. After each report it
+ * crops to the new box again.
+ */
+function observeMove(element: HTMLElement, onMove: () => void): () => void {
+	let observer: IntersectionObserver | undefined;
+	const watch = (threshold = 1) => {
+		observer?.disconnect();
+		const { left, top, width, height } = element.getBoundingClientRect();
+		if (width === 0 || height === 0) {
+			return;
+		}
+		const root = document.documentElement;
+		const crop = [top, root.clientWidth - left - width, root.clientHeight - top - height, left].map(
+			(inset) => `${-Math.floor(inset)}px`,
+		);
+		let first = true;
+		observer = new IntersectionObserver(
+			([entry]) => {
+				const ratio = entry?.intersectionRatio ?? threshold;
+				// Why the first report: the browser reports the start state, and a
+				// ratio other than the threshold means the element moved since the
+				// crop, or that the viewport clips it. Then the observer watches for
+				// a change from that ratio.
+				if (first) {
+					first = false;
+					if (ratio !== threshold) {
+						onMove();
+						watch(ratio);
+					}
+					return;
+				}
+				onMove();
+				watch();
+			},
+			{ rootMargin: crop.join(" "), threshold },
+		);
+		observer.observe(element);
+	};
+	watch();
+	return () => observer?.disconnect();
+}
+
+/**
+ * Keeps an open float next to `anchor` and returns the cleanup. When the
+ * anchor moves or changes size, the viewport changes size, or the float
+ * changes size, it places the float with `left` and `top` on the side that
+ * `computePlacement` picks, before the next paint.
  *
  * Why not CSS anchor positioning: Chromium recalculates style and layout of
  * an anchor-positioned element on each frame of a transition on it, even an
@@ -293,13 +360,29 @@ function trackFloat({
 	// the transform, so each placement looks again.
 	const inTopLayer = "togglePopover" in HTMLElement.prototype;
 
-	let frame = 0;
+	/** The anchor box and viewport size of the last placement, to see a move. */
+	let placedFor = "";
+	/** The float or the arrow changed size since the last placement. */
+	let resized = false;
 	const place = () => {
+		resized = false;
 		// Why the arrow's height, read on each placement: the arrow sticks out of
 		// the float toward the anchor, so `sideOffset` is the gap between its tip
 		// and the anchor, and the arrow can change size while the float is open.
 		const gap = sideOffset + (arrow?.offsetHeight ?? 0);
-		const anchorBox = anchor.getBoundingClientRect();
+		const rect = anchor.getBoundingClientRect();
+		placedFor = keyOf(rect);
+		// Why the zoom: `left`, `top`, and sizes on the float are in its own CSS
+		// pixels, which an inherited or own `zoom` scales from viewport pixels.
+		const zoom = zoomOf(floating);
+		const anchorBox: Box = {
+			top: rect.top / zoom,
+			right: rect.right / zoom,
+			bottom: rect.bottom / zoom,
+			left: rect.left / zoom,
+			width: rect.width / zoom,
+			height: rect.height / zoom,
+		};
 		// Why before the reads: a float sized by the anchor, such as a picker list,
 		// takes its final width and wrapped height in this placement.
 		floating.style.setProperty("--anchor-width", `${anchorBox.width}px`);
@@ -309,8 +392,8 @@ function trackFloat({
 		const contentHeight =
 			fallback === "larger" ? floating.scrollHeight + height - floating.clientHeight : height;
 		const viewport = {
-			width: document.documentElement.clientWidth,
-			height: document.documentElement.clientHeight,
+			width: document.documentElement.clientWidth / zoom,
+			height: document.documentElement.clientHeight / zoom,
 		};
 		let placed = computePlacement({
 			align,
@@ -331,16 +414,16 @@ function trackFloat({
 			"--available-height",
 			`${Math.max(availableHeight - VIEWPORT_PADDING, 0)}px`,
 		);
-		// Why read the height again: the new `--available-height` can cap a list
-		// that sits its rendered height above the anchor.
-		if (fallback === "larger" && placed.side === "top") {
+		// Why read the height again: the new `--available-height` can cap a float,
+		// such as a long menu, that sits its rendered height above the anchor.
+		if (placed.side === "top") {
 			placed = { ...placed, y: anchorBox.top - gap - floating.offsetHeight };
 		}
 		const containingBlock = inTopLayer ? null : findFixedContainingBlock(floating);
 		const local =
 			containingBlock == null
 				? { x: placed.x, y: placed.y }
-				: toLocalPoint(containingBlock, placed.x, placed.y);
+				: toLocalPoint(containingBlock, placed.x * zoom, placed.y * zoom);
 		floating.style.left = `${local.x}px`;
 		floating.style.top = `${local.y}px`;
 		const anchorCenterX = anchorBox.left + anchorBox.width / 2 - placed.x;
@@ -370,30 +453,37 @@ function trackFloat({
 			arrow.style.transform = style.transform;
 		}
 	};
+	place();
+	let frame = 0;
+	/** Places the float in the next frame if its anchor, the viewport, or its size changed. */
 	const schedule = () => {
 		cancelAnimationFrame(frame);
-		frame = requestAnimationFrame(place);
+		frame = requestAnimationFrame(() => {
+			if (resized || keyOf(anchor.getBoundingClientRect()) !== placedFor) {
+				place();
+			}
+		});
 	};
-	const observer = new ResizeObserver(schedule);
-	observer.observe(anchor);
-	observer.observe(floating);
+	const resizeObserver = new ResizeObserver(() => {
+		resized = true;
+		schedule();
+	});
+	resizeObserver.observe(floating);
 	if (arrow != null) {
-		observer.observe(arrow);
+		resizeObserver.observe(arrow);
 	}
-	place();
+	// Why the listeners too: the observer reports after a paint, and a scroll
+	// or resize places the float before the paint, so it does not lag a frame.
 	window.addEventListener("scroll", schedule, { capture: true, passive: true });
 	window.addEventListener("resize", schedule, { passive: true });
-	// Why: an overlay's open animation moves the anchor with no resize or scroll.
-	window.addEventListener("transitionend", schedule, { capture: true, passive: true });
-	window.addEventListener("animationend", schedule, { capture: true, passive: true });
+	const stopObservingMove = observeMove(anchor, schedule);
 
 	return () => {
 		cancelAnimationFrame(frame);
-		observer.disconnect();
+		resizeObserver.disconnect();
+		stopObservingMove();
 		window.removeEventListener("scroll", schedule, { capture: true });
 		window.removeEventListener("resize", schedule);
-		window.removeEventListener("transitionend", schedule, { capture: true });
-		window.removeEventListener("animationend", schedule, { capture: true });
 	};
 }
 

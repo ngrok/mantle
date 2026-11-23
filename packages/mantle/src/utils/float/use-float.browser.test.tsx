@@ -217,6 +217,110 @@ describe("useFloat placement while open", () => {
 	);
 });
 
+describe("useFloat placement as the anchor moves", () => {
+	/** Two frames: the frame that sees the move, and the one that paints it. */
+	const nextFrames = async () => {
+		await new Promise(requestAnimationFrame);
+		await new Promise(requestAnimationFrame);
+	};
+	/** Waits for the open transition, so no `transitionend` places the float again. */
+	const settle = async (panel: HTMLElement) => {
+		await Promise.all(panel.getAnimations().map((animation) => animation.finished));
+		await nextFrames();
+	};
+	const tree = () => (
+		<div data-testid="container" style={{ position: "fixed", left: 100, top: 100 }}>
+			<div data-testid="spacer" />
+			<Popover.Root defaultOpen>
+				<Popover.Trigger style={{ width: 80, height: 24 }}>Trigger</Popover.Trigger>
+				<Popover.Content align="start" style={panelStyle}>
+					Content
+				</Popover.Content>
+			</Popover.Root>
+		</div>
+	);
+
+	test("a layout shift above an unchanged trigger moves its open popover", async () => {
+		render(tree());
+		const trigger = screen.getByRole("button", { name: "Trigger" });
+		const panel = await screen.findByRole("dialog");
+		await waitFor(() =>
+			expect(panel.getBoundingClientRect().top).toBeCloseTo(
+				trigger.getBoundingClientRect().bottom + 4,
+				0,
+			),
+		);
+
+		await settle(panel);
+
+		screen.getByTestId("spacer").style.height = "80px";
+		await nextFrames();
+
+		expect(panel.getBoundingClientRect().top).toBeCloseTo(
+			trigger.getBoundingClientRect().bottom + 4,
+			0,
+		);
+	});
+
+	test("a transform on an ancestor of the trigger moves its open popover", async () => {
+		render(tree());
+		const trigger = screen.getByRole("button", { name: "Trigger" });
+		const panel = await screen.findByRole("dialog");
+		await waitFor(() =>
+			expect(panel.getBoundingClientRect().left).toBeCloseTo(
+				trigger.getBoundingClientRect().left,
+				0,
+			),
+		);
+
+		await settle(panel);
+
+		screen.getByTestId("container").style.transform = "translateX(100px)";
+		await nextFrames();
+
+		expect(panel.getBoundingClientRect().left).toBeCloseTo(trigger.getBoundingClientRect().left, 0);
+	});
+
+	test("a popover follows its trigger through a running animation", async () => {
+		render(tree());
+		const trigger = screen.getByRole("button", { name: "Trigger" });
+		const panel = await screen.findByRole("dialog");
+		await settle(panel);
+		const animation = screen
+			.getByTestId("container")
+			.animate([{ translate: "0" }, { translate: "300px" }], { duration: 2000 });
+
+		try {
+			for (let frame = 0; frame < 10; frame++) {
+				await nextFrames();
+				// Why 10 px: the observer reports after a paint, so the float can trail its anchor by a frame.
+				expect(
+					Math.abs(panel.getBoundingClientRect().left - trigger.getBoundingClientRect().left),
+				).toBeLessThan(10);
+			}
+			expect(trigger.getBoundingClientRect().left).toBeGreaterThan(110);
+		} finally {
+			animation.cancel();
+		}
+	});
+
+	test("a zoomed popover lines up with its anchor", async () => {
+		render(
+			<Popover.Root defaultOpen>
+				<Popover.Trigger style={anchorStyle}>Trigger</Popover.Trigger>
+				<Popover.Content align="start" style={{ ...panelStyle, zoom: 1.5 }}>
+					Content
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		const panel = await screen.findByRole("dialog");
+
+		await waitFor(() => expect(panel.getBoundingClientRect().left).toBeCloseTo(180, 0));
+		// Why 236: the anchor bottom, 230, plus the 4 px side offset in the float's zoomed pixels.
+		expect(panel.getBoundingClientRect().top).toBeCloseTo(236, 0);
+	});
+});
+
 describe("useFloat with a portal that connects later", () => {
 	test("a render before the next frame starts the float once", async () => {
 		const host = document.createElement("div");

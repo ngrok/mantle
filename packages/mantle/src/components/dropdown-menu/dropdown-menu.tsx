@@ -428,8 +428,8 @@ function isInBox(x: number, y: number, box: DOMRect): boolean {
  * This is the root, stateful component that manages the open/closed state of the dropdown menu.
  *
  * `DropdownMenu.Content` and `DropdownMenu.SubContent` are native
- * `popover="manual"` elements in the browser's top layer, placed by CSS anchor
- * positioning, so no `overflow` or `z-index` clips them. Each portals into the
+ * `popover="manual"` elements in the browser's top layer, placed by a script
+ * next to their trigger, so no `overflow` or `z-index` clips them. Each portals into the
  * overlay or float that holds it, else into `document.body`, and closes when an
  * overlay that does not hold it opens. A float opened from an item, such as a
  * `Popover`, portals into the menu.
@@ -856,8 +856,8 @@ type DropdownMenuContentProps = MenuPanelProps & {
  * The container for the dropdown menu content.
  *
  * `DropdownMenu.Content` and `DropdownMenu.SubContent` are native
- * `popover="manual"` elements in the browser's top layer, placed by CSS anchor
- * positioning, so no `overflow` or `z-index` clips them. Each portals into the
+ * `popover="manual"` elements in the browser's top layer, placed by a script
+ * next to their trigger, so no `overflow` or `z-index` clips them. Each portals into the
  * overlay or float that holds it, else into `document.body`, and closes when an
  * overlay that does not hold it opens. A float opened from an item, such as a
  * `Popover`, portals into the menu.
@@ -1470,8 +1470,8 @@ const SubTrigger = ({
  * The content container for a dropdown menu sub-menu.
  *
  * `DropdownMenu.Content` and `DropdownMenu.SubContent` are native
- * `popover="manual"` elements in the browser's top layer, placed by CSS anchor
- * positioning, so no `overflow` or `z-index` clips them. Each portals into the
+ * `popover="manual"` elements in the browser's top layer, placed by a script
+ * next to their trigger, so no `overflow` or `z-index` clips them. Each portals into the
  * overlay or float that holds it, else into `document.body`, and closes when an
  * overlay that does not hold it opens. A float opened from an item, such as a
  * `Popover`, portals into the menu.

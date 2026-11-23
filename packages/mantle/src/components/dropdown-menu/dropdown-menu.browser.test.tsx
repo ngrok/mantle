@@ -1396,4 +1396,39 @@ describe("DropdownMenu with its CSS (browser)", () => {
 
 		await waitFor(() => expect(submenu.getBoundingClientRect().left).toBeCloseTo(212, 0));
 	});
+
+	test("a long menu above its trigger is next to the trigger on its first frame", async () => {
+		const firstFrame = { bottom: Number.NaN };
+		const measured = new Promise<void>((resolve) => {
+			const onFirstFrame = (menu: HTMLElement | null) => {
+				if (menu != null && Number.isNaN(firstFrame.bottom)) {
+					requestAnimationFrame(() => {
+						firstFrame.bottom = menu.getBoundingClientRect().bottom;
+						resolve();
+					});
+				}
+			};
+			render(
+				<DropdownMenu.Root defaultOpen>
+					<DropdownMenu.Trigger style={{ position: "fixed", left: 180, top: 500, height: 30 }}>
+						Menu
+					</DropdownMenu.Trigger>
+					<DropdownMenu.Content
+						side="top"
+						style={{ width: 200, transition: "none" }}
+						ref={onFirstFrame}
+					>
+						{Array.from({ length: 40 }, (_, index) => (
+							<DropdownMenu.Item key={index}>{`Item ${index}`}</DropdownMenu.Item>
+						))}
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>,
+			);
+		});
+
+		await measured;
+
+		// Why 492: the trigger top, 500, less the 8 px side offset.
+		expect(firstFrame.bottom).toBeCloseTo(492, 0);
+	});
 });
