@@ -63,15 +63,15 @@ accessible, least surprising, fast, delightful, clean, and efficient.
    top and every enhancement names its fallback (`Accordion`'s `hidden="until-found"` and `interpolate-size`
    both degrade cleanly). If a component needs JavaScript to do what an element already does, start over.
    Add the least JavaScript that meets a named product or site need. `Dialog`, `AlertDialog`, and `Sheet`
-   are a native `<dialog>`. `Popover`, `DropdownMenu`, `Tooltip`, and `HoverCard` are a native `popover`.
-   `RadioGroup` is native radios. Native `<details>` and `<select>` do not meet the need today, so
+   each render a native `<dialog>`. `Popover`, `DropdownMenu`, `Tooltip`, and `HoverCard` each render a native
+   `popover`. `RadioGroup` renders native radios. Native `<details>` and `<select>` do not meet the need today, so
    `Accordion` and `Select` are mantle's own.
    Measure each new or rewritten interactive part against a hand-written native floor ([§3.9](#39-performance)).
 2. **Own the behavior.** Hand-roll where the platform is enough (`Accordion`, `Field`). Where the behavior
    is genuinely hard, put it in a mantle behavior hook under `behaviors/` that follows the APG pattern. Then
    mantle owns the performance and accessibility contract. A component ships only the code it needs. New
    work adds no headless library. An engine that renders no UI, such as TanStack Table for `DataTable`, can
-   stay. Every foundation sits behind the same house API: flat namespace, `asChild`, `data-slot`, consumer
+   stay. sonner, mounted unstyled, still renders `Toast`'s list, and it stays until a hook replaces it. Every foundation sits behind the same house API: flat namespace, `asChild`, `data-slot`, consumer
    `className` merged last.
 3. **One component per user intent.** Name the intent in a sentence. A variant is a prop or a sibling part,
    never a second public component ([§1.1](#11-one-component-per-user-intent)).
@@ -96,7 +96,7 @@ accessible, least surprising, fast, delightful, clean, and efficient.
 10. **Performance happens before the browser.** Prefer work that never reaches the client (`CodeBlock`
     highlights at build time). Prefer platform mechanisms over listeners (CSS scroll-driven animations over
     scroll handlers). Avoid unremovable module side effects ([§1.7](#17-forbidden-api-shapes)).
-11. **Safe, ecosystem-normal defaults.** A default is the library exercising judgment for the consumer:
+11. **Safe defaults.** A default is the library exercising judgment for the consumer:
     `Button` defaults `type="button"`; `AlertDialog.Action` deliberately does not dismiss; wrapped handlers run
     the consumer's callback first and bail on `preventDefault()`.
 12. **Docs are executable contracts.** JSDoc and docs examples feed the published types, `llms.txt`, and the
@@ -320,8 +320,8 @@ Match what the native element does unless a named product need says otherwise
   make the page inert. A menu, a popover, and a picker leave the page live. `DropdownMenu` takes `modal` as an
   opt-in.
 - **Dismissal follows the element the part enhances.** A float (`Popover`, `DropdownMenu`) closes when an
-  outside press ends, as a native `popover` does. A picker (`Select`, `Combobox`, `MultiSelect`) closes on the
-  press, as a native `<select>` does.
+  outside primary press ends, as a native `popover` does. `Select` and `MultiSelect` close on the press, as a
+  native `<select>` does. `Combobox` closes when its input loses focus.
 - **A safer ecosystem default wins, with a reason.** `Button` defaults to `type="button"`, not the native
   `submit` ([§0](#0-principles) item 11). The JSDoc names the reason for each such default.
 - **A departure cites a primary source.** Name the section of the HTML Standard, the ARIA Authoring Practices
@@ -354,8 +354,9 @@ or changed API takes one triple of names:
 - A rename keeps the compound API and ships a codemod ([VERSIONING.md](./VERSIONING.md)).
 
 Some shipped props predate the table: `OtpInput.Root`'s `onChange(value)`, `Select`'s deprecated `onChange`,
-`CodeBlock`'s `activeTab`, `SelectableList`'s `query`, `PasswordInput`'s `showValue`, and `Sidebar`'s
-`openMobile`. Do not copy them into new work. Rename one only in a breaking change with a codemod.
+`CodeBlock`'s `activeTab`, `SelectableList`'s `query`, `PasswordInput`'s `showValue`, `Sidebar`'s
+`openMobile`, `Slider`'s numeric `value` with an array `onValueChange`, and `Calendar`'s `mode`, `selected`,
+and `onSelect` (react-day-picker's names). Do not copy them into new work. Rename one only in a breaking change with a codemod.
 
 ---
 

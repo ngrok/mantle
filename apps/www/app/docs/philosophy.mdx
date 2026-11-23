@@ -84,8 +84,8 @@ porting from the ecosystem; vocabulary is re-derived from what the component emi
 ## The right foundation, per problem
 
 Mantle starts from the platform. [Dialog](/components/overlays/dialog), AlertDialog, and Sheet
-are a native `<dialog>`. Popover, DropdownMenu, Tooltip, and HoverCard are a native
-`popover`. [RadioGroup](/components/forms/radio-group) is native radios, and
+each render a native `<dialog>`. Popover, DropdownMenu, Tooltip, and HoverCard each render a
+native `popover`. [RadioGroup](/components/forms/radio-group) renders native radios, and
 [Field](/components/forms/field) is real `<fieldset>`/`<legend>`/`<label>` elements with
 Mantle-owned wiring. Accordion is hand-rolled because a headless collapsible would lose the
 find-in-page behavior above.
@@ -94,11 +94,12 @@ Where the behavior is genuinely hard, Mantle owns it.
 [Select](/components/forms/select), [Combobox](/components/forms/combobox),
 [MultiSelect](/components/forms/multi-select), and [Command](/components/navigation/command)
 run on Mantle's own behavior hooks, which follow the WAI-ARIA patterns. The four share one
-listbox hook, so a page with all of them pays for it once. Engines that render no UI of their
-own stay: TanStack Table for [DataTable](/components/data-display/data-table), and sonner
-(mounted unstyled) for [Toast](/components/feedback/toast). New work adds no headless library.
+listbox hook, so a page with all of them pays for it once. TanStack Table, which renders no UI,
+drives [DataTable](/components/data-display/data-table). sonner, mounted unstyled, renders
+[Toast](/components/feedback/toast)'s list. New work adds no headless library.
 
-You can't tell which is which from the outside, and that's the point. Every foundation is
+You can't tell native parts, behavior hooks, and engines apart from the outside, and that's the
+point. Every foundation is
 normalized behind one house API: flat compound namespaces, `asChild` polymorphism, a
 `data-slot` attribute on every rendered part, and consumer `className` merged last with
 [cx](/utils/cx). If you understand how one Mantle component works, you can predict how the

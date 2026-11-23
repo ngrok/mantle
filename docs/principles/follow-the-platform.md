@@ -8,7 +8,7 @@ Start from the native element and the behavior the browser gives it. Add the lea
 
 **Signs you missed it:**
 
-- A part that rebuilds in JavaScript what an element or a Web API does: the stacking of the top layer, `inert` behind a modal, a focus loop, or a hit test.
+- A part that rebuilds in JavaScript what an element or a Web API does: the stacking of the top layer, a focus loop, or a hit test, with no named browser gap that needs it.
 - A default that the native element does not have, such as a menu or a picker that blocks the page.
 - A departure from browser behavior with no primary source, or with a source that says less than the claim ([COMPONENT_SPEC.md §1.10](../../COMPONENT_SPEC.md#110-follow-the-browser)).
 - A merged rewrite whose open, input, or byte cost is far above the hand-written floor, and no one has said what fills the gap.

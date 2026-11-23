@@ -70,17 +70,20 @@ describe("findRetiredLibraryMentions", () => {
 		]);
 	});
 
-	it("allows the name while the manifest still lists the library as a peer", () => {
-		write(
-			"packages/mantle/package.json",
-			JSON.stringify({ peerDependencies: { "@radix-ui/react-dialog": "1.1.15" } }),
-		);
-		write("docs/motion.md", "A Radix overlay keeps keyframes.\n");
+	it.each(["dependencies", "peerDependencies"])(
+		"allows the name while the manifest lists the library in %s",
+		(field) => {
+			write(
+				"packages/mantle/package.json",
+				JSON.stringify({ [field]: { "@radix-ui/react-dialog": "1.1.15" } }),
+			);
+			write("docs/motion.md", "A Radix overlay keeps keyframes.\n");
 
-		expect(findRetiredLibraryMentions({ rootDir, files: ["docs/motion.md"], libraries })).toEqual(
-			[],
-		);
-	});
+			expect(findRetiredLibraryMentions({ rootDir, files: ["docs/motion.md"], libraries })).toEqual(
+				[],
+			);
+		},
+	);
 
 	it("skips a decision doc, which records what was true on its date", () => {
 		writeManifest({});
