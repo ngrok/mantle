@@ -297,8 +297,8 @@ jobs:
   # Browser-mode tests only. Launches a local headless browser from a cached
   # browser build instead of installing Playwright in every unit shard. Each
   # engine runs in its own job, in parallel, so a second and third engine add
-  # little wall time. Firefox runs one file at a time (see vitest.config.ts),
-  # so it takes two shards.
+  # little wall time. Firefox and WebKit run one file at a time (see
+  # vitest.config.ts), so each takes two shards.
   browser-test:
     name: browser-test (${{ matrix.browser }} ${{ matrix.shard }})
     runs-on: ubuntu-latest
@@ -310,7 +310,8 @@ jobs:
           - { browser: chromium, shard: 1/1 }
           - { browser: firefox, shard: 1/2 }
           - { browser: firefox, shard: 2/2 }
-          - { browser: webkit, shard: 1/1 }
+          - { browser: webkit, shard: 1/2 }
+          - { browser: webkit, shard: 2/2 }
     env:
       MANTLE_BROWSERS: ${{ matrix.browser }}
       SHARD: ${{ matrix.shard }}
