@@ -44,7 +44,7 @@ pointer user already knows which control they pressed, so a ring there is
 noise. A keyboard user has no pointer, so the ring is how they know where they
 are. `:focus-visible` gives each of them the correct result from one class.
 
-In Chromium, a key press on a control that already has the focus also matches
+In Chromium and WebKit, a key press on a control that already has the focus also matches
 `:focus-visible`, such as an arrow key in the open list of a
 [Select](/components/forms/select) that a click opened. Firefox keeps the
 result of the click until the focus moves.

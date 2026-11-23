@@ -3,7 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import axe from "axe-core";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import { commands, userEvent } from "vitest/browser";
+import { commands, server, userEvent } from "vitest/browser";
 import * as Dialog from "../dialog/dialog-parts.js";
 import * as Select from "./select-parts.js";
 
@@ -599,9 +599,10 @@ describe("Select keyboard, focus, and ARIA contract", () => {
 			expect(trigger).toHaveAttribute("aria-expanded", "true");
 			expect(hasRing()).toBe(false);
 
+			// Why per engine: Firefox does not check `:focus-visible` again on a key press after a click.
 			await userEvent.keyboard("{ArrowDown}");
 			expect(trigger).toHaveFocus();
-			expect(hasRing()).toBe(true);
+			expect(hasRing()).toBe(server.browser !== "firefox");
 
 			await userEvent.keyboard("{Escape}");
 			await userEvent.click(screen.getByRole("button", { name: "After" }));
