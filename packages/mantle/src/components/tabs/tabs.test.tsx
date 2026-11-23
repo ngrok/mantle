@@ -273,6 +273,40 @@ describe("Tabs", () => {
 			expect(scrollIntoView).toHaveBeenCalledTimes(2);
 		});
 
+		test("arrow keys move focus and raise no error with no scrollIntoView, as in jsdom", async () => {
+			const saved = Object.getOwnPropertyDescriptor(Element.prototype, "scrollIntoView");
+			Object.defineProperty(Element.prototype, "scrollIntoView", {
+				configurable: true,
+				value: undefined,
+			});
+			const errors: unknown[] = [];
+			const onError = (event: ErrorEvent) => errors.push(event.error);
+			window.addEventListener("error", onError);
+			try {
+				const user = userEvent.setup();
+				render(
+					<Tabs.Root orientation="horizontal" defaultValue="a">
+						<Tabs.List>
+							<Tabs.Trigger value="a">Tab A</Tabs.Trigger>
+							<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
+						</Tabs.List>
+					</Tabs.Root>,
+				);
+
+				await user.tab();
+				await user.keyboard("{ArrowRight}");
+
+				expect(screen.getByRole("tab", { name: "Tab B" })).toHaveFocus();
+				expect(screen.getByRole("tab", { name: "Tab B" })).toHaveAttribute("aria-selected", "true");
+				expect(errors).toEqual([]);
+			} finally {
+				window.removeEventListener("error", onError);
+				if (saved != null) {
+					Object.defineProperty(Element.prototype, "scrollIntoView", saved);
+				}
+			}
+		});
+
 		test("keyboard focus in a vertical tablist does not scroll the trigger into view", async () => {
 			const user = userEvent.setup();
 			// Why a spy: happy-dom lays out nothing, so the `scrollIntoView` call is the
