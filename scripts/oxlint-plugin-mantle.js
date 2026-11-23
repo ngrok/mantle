@@ -2,6 +2,7 @@
 // Each rule names the doc section it enforces, so the message can point there.
 // Why one file per rule under oxlint-rules/: the rules ported from the frontend repo stay diffable against their source.
 
+import dataAttributeContract from "./oxlint-rules/data-attribute-contract.js";
 import descriptiveNames from "./oxlint-rules/descriptive-names.js";
 import imgDimensions from "./oxlint-rules/img-dimensions.js";
 import multilineExports from "./oxlint-rules/multiline-exports.js";
@@ -15,6 +16,7 @@ import noStructuralCombinator from "./oxlint-rules/no-structural-combinator.js";
 import noUnanchoredChildVariant from "./oxlint-rules/no-unanchored-child-variant.js";
 import preferCanUseDom from "./oxlint-rules/prefer-can-use-dom.js";
 import preferTypeAlias from "./oxlint-rules/prefer-type-alias.js";
+import propVocabulary from "./oxlint-rules/prop-vocabulary.js";
 import requireSuppressionReason from "./oxlint-rules/require-suppression-reason.js";
 import tailwindQuarterStepSpacing from "./oxlint-rules/tailwind-quarter-step-spacing.js";
 import testAssertions from "./oxlint-rules/test-assertions.js";
@@ -308,6 +310,7 @@ export default {
 		"no-namespace-object": noNamespaceObject,
 		"no-presence-matcher-on-get-by": noPresenceMatcherOnGetBy,
 		"no-sleep-in-tests": noSleepInTests,
+		...dataAttributeContract.rules,
 		...descriptiveNames.rules,
 		...imgDimensions.rules,
 		...multilineExports.rules,
@@ -321,6 +324,7 @@ export default {
 		...noUnanchoredChildVariant.rules,
 		...preferCanUseDom.rules,
 		...preferTypeAlias.rules,
+		...propVocabulary.rules,
 		...requireSuppressionReason.rules,
 		...tailwindQuarterStepSpacing.rules,
 		...testAssertions.rules,

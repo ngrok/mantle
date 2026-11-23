@@ -394,3 +394,57 @@ describe("no-unanchored-child-variant", () => {
 		expect(lint({ rule: "no-unanchored-child-variant", fileName: "a.ts", source })).toEqual([]);
 	});
 });
+
+describe("data-attribute-contract", () => {
+	it.each([
+		'const a = <div data-state="open" />;',
+		'const a = <div data-selected="false" />;',
+		'const a = <div data-open={open ? "true" : "false"} />;',
+		"const a = <div data-disabled={!enabled} />;",
+		"const a = <div data-empty={items.length === 0} />;",
+		"const a = <div data-empty={items.length === 0 || undefined} />;",
+		'const a = <button aria-expanded={open} data-open={open ? "" : undefined} />;',
+	])("flags %s", (source) => {
+		expect(lint({ rule: "data-attribute-contract", fileName: "a.tsx", source })).toEqual([
+			"data-attribute-contract",
+		]);
+	});
+
+	it.each([
+		'const a = <div data-open={open ? "" : undefined} />;',
+		"const a = <div data-side={side} data-value={count > 0 ? count : undefined} />;",
+		'const a = <div role="option" aria-selected={highlighted} data-selected={picked ? "" : undefined} />;',
+		'const a = <pre data-mantle-line-numbers={shown ? "true" : "false"} />;',
+	])("allows %s", (source) => {
+		expect(lint({ rule: "data-attribute-contract", fileName: "a.tsx", source })).toEqual([]);
+	});
+
+	it("skips a test file, whose fixtures may carry any attribute", () => {
+		const source = 'const a = <form data-state="dirty" />;';
+
+		expect(lint({ rule: "data-attribute-contract", fileName: "a.test.tsx", source })).toEqual([]);
+	});
+});
+
+describe("prop-vocabulary", () => {
+	it.each([
+		"type PickerProps = { setOpen?: (open: boolean) => void };",
+		"type PickerProps = { selectedValue?: string };",
+		"type PickerProps = { multiple?: boolean };",
+		"type ToggleProps = { onChange?: (checked: boolean) => void };",
+		'type ToggleProps = { onChange?(value: "a" | "b"): void };',
+		"type ListProps = Base & ({ onChange: (values: string[]) => void } | { value: string });",
+	])("flags %s", (source) => {
+		expect(lint({ rule: "prop-vocabulary", fileName: "a.ts", source })).toEqual([
+			"prop-vocabulary",
+		]);
+	});
+
+	it.each([
+		"type PickerProps = { value?: string; onValueChange?: (value: string) => void };",
+		"type FieldProps = { onChange?: (event: ChangeEvent<HTMLInputElement>) => void };",
+		"type PickerContextValue = { setOpen: (open: boolean) => void };",
+	])("allows %s", (source) => {
+		expect(lint({ rule: "prop-vocabulary", fileName: "a.ts", source })).toEqual([]);
+	});
+});

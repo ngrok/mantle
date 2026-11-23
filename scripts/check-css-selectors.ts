@@ -98,6 +98,20 @@ export function selectorProblems(text: string): Problem[] {
 	return problems;
 }
 
+/**
+ * The 1-based lines that define a `data-*` custom variant. Tailwind's own
+ * `data-*:` variants cover each state, and a misspelled custom one compiles
+ * with no error and never matches (COMPONENT_SPEC.md §6).
+ *
+ * @example
+ * customDataVariants("@custom-variant data-side-start (&[data-side=start]);"); // => [1]
+ */
+export function customDataVariants(text: string): number[] {
+	return text
+		.split("\n")
+		.flatMap((line, index) => (/^\s*@custom-variant\s+data-/.test(line) ? [index + 1] : []));
+}
+
 function cli(): void {
 	const tracked = execFileSync("git", ["ls-files", "-z", "--cached"], { encoding: "utf8" }).split(
 		"\0",
@@ -105,11 +119,18 @@ function cli(): void {
 	const files = (process.argv.length > 2 ? process.argv.slice(2) : tracked).filter(
 		(file) => checkedFile.test(file) && tracked.includes(file) && fs.existsSync(file),
 	);
-	const problems = files.flatMap((file) =>
-		selectorProblems(fs.readFileSync(file, "utf8")).map(
-			({ line, selector }) => `${file}:${line}: \`${selector}\`: ${fixHint}`,
-		),
-	);
+	const problems = files.flatMap((file) => {
+		const text = fs.readFileSync(file, "utf8");
+		return [
+			...selectorProblems(text).map(
+				({ line, selector }) => `${file}:${line}: \`${selector}\`: ${fixHint}`,
+			),
+			...customDataVariants(text).map(
+				(line) =>
+					`${file}:${line}: a \`data-*\` custom variant. Use Tailwind's built-in \`data-*:\` variant (COMPONENT_SPEC.md §6).`,
+			),
+		];
+	});
 	if (problems.length > 0) {
 		console.log(problems.join("\n"));
 		console.log(

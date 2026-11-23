@@ -496,6 +496,8 @@ CONVENTIONS.md covers general style ([TypeScript](./CONVENTIONS.md#typescript),
 - Plain helpers are the one exception. Put a helper with no hooks, context, or browser-only API in a module
   without `"use client"`, so server code and loaders can call it. The build keeps such modules out of client
   chunks, and it fails when a subpath exports a helper from one (`scripts/preserve-use-client.ts`).
+- Use only React APIs that React 19.0 ships, because the peer range is `^19`. Local tests run a newer React and
+  stay green on a 19.2 API such as `useEffectEvent`. (lint: `no-restricted-imports`)
 - Named exports only, no default exports. Relative imports ending in `.js` (`../../utils/cx/cx.js`).
 - `type`, not `interface`. Props based on `ComponentProps<…>`, which already includes `ref`. Never
   `HTMLAttributes<…>` alone, which does not.
@@ -907,11 +909,11 @@ DARK DEFS) or it resolves to nothing outside light mode. No §9 command catches 
   `data-expanded`, `data-highlighted`, `data-selected`. Stamp `""` when true and **omit the attribute** when
   false. Never `"false"`: Tailwind's `data-selected:` matches attribute presence, so `"false"` still matches.
   Beware `data-x={someBoolean}`: React renders that as `data-x="false"`. Style the false state with
-  `not-data-open:`.
+  `not-data-open:`. (lint: `mantle/data-attribute-contract`)
 - **A value with several options is an enum** on the root: `data-side="top"`, `data-validation="error"`.
   Style it with the bracket form, `data-[side=top]:`.
 - No library names (`data-radix-*`, `data-active-item`, `data-headlessui-*`) and no `data-*` custom variants
-  in `mantle.css`. Internal markers that mantle code reads (`data-mantle-*`, `data-value`, `data-closing`)
+  in `mantle.css` (`check:css-selectors`). Internal markers that mantle code reads (`data-mantle-*`, `data-value`, `data-closing`)
   keep their names.
 
 No shipped docs page has a data-attribute table yet. New components ship one; add one to an existing component

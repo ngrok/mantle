@@ -105,7 +105,7 @@ type OtpInputRootProps = Omit<
 		/**
 		 * The new value, after each change.
 		 */
-		onChange?: (value: string) => void;
+		onChange?: (value: string) => void; // oxlint-disable-line mantle/prop-vocabulary -- Why: the rename to `onValueChange` is a breaking change that waits for a migration.
 		/**
 		 * The full value, when the value grows to `maxLength` characters: the user
 		 * fills the final slot, or a parent sets the full value.
@@ -368,6 +368,7 @@ const Root = ({
 						data-input-otp
 						data-input-otp-mss={selection?.start}
 						data-input-otp-mse={selection?.end}
+						// oxlint-disable-next-line mantle/data-attribute-contract -- Why: input-otp emitted `"true"`, and page styles written for it select that value.
 						data-input-otp-placeholder-shown={value.length === 0 || undefined}
 						// LastPass does not fill one-time codes, so only its badge is kept off.
 						data-lpignore={passwordManagerIgnoreProps["data-lpignore"]}
