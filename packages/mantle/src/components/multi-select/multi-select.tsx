@@ -4,7 +4,6 @@ import type { ComponentProps, KeyboardEvent, PropsWithChildren, ReactNode } from
 import { cloneElement, createContext, isValidElement, use, useId, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
 import { composeHandlers } from "../../behaviors/compose-handlers.js";
-import { enterModal } from "../../behaviors/enter-modal.js";
 import { useComboboxInput } from "../../behaviors/use-combobox.js";
 import { childId, useOption } from "../../behaviors/use-listbox.js";
 import { useMultiSelect } from "../../behaviors/use-multi-select.js";
@@ -717,8 +716,8 @@ const Input = ({
 					if (event.nativeEvent.isComposing) {
 						return;
 					}
-					// Why: the open list is modal, so Tab moves only to a control in the
-					// list, such as a footer button, and focus stays until Escape closes it.
+					// Why: while the list is open, Tab moves only to a control in the list,
+					// such as a footer button, and focus stays until Escape closes it.
 					if (event.key === "Tab" && multiSelect.open) {
 						event.preventDefault();
 						if (!event.shiftKey) {
@@ -794,8 +793,9 @@ type MultiSelectContentProps = ComponentProps<"div"> &
  * `document.body`. In a browser with no popover API, it is a fixed box at
  * Tailwind `z-50`.
  *
- * The list is modal: while it is open, the page does not scroll, the rest of
- * the page is inert, and a press outside the trigger and the list closes it.
+ * As with a native select, the page stays live while the list is open: it
+ * scrolls, and assistive technology can reach it. A press outside the trigger
+ * and the list closes the list, and its click does not reach the page.
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectcontent
  *
@@ -827,13 +827,12 @@ const OpenContent = ({
 	...props
 }: MultiSelectContentProps) => {
 	const { inputRef, listbox, setOpen, triggerRef } = useMultiSelectContext();
-	const dismissRef = useRef<HTMLButtonElement>(null);
 	const { portalTarget, popupRef } = usePopup({
 		anchorRef: triggerRef,
 		ownerRef: inputRef,
-		// Why the dismiss button: it sits beside the list, so it must stay live too.
-		modal: (keep) => enterModal(dismissRef.current == null ? keep : [...keep, dismissRef.current]),
+		swallowOutsidePress: true,
 	});
+
 	const composedRef = useComposedRefs(ref, popupRef, listbox.listboxProps.ref);
 	const Component = asChild ? Slot : "div";
 	return (
@@ -841,13 +840,7 @@ const OpenContent = ({
 		createPortal(
 			<>
 				{/* Why: a touch screen reader has no Escape key, and a pick keeps this list open. */}
-				<button
-					ref={dismissRef}
-					type="button"
-					tabIndex={-1}
-					className="sr-only"
-					onClick={() => setOpen(false)}
-				>
+				<button type="button" tabIndex={-1} className="sr-only" onClick={() => setOpen(false)}>
 					Dismiss popup
 				</button>
 				<Component

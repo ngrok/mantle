@@ -33,7 +33,7 @@ const OFFSET = 8;
 const usePopup = ({
 	anchorRef,
 	ownerRef,
-	modal,
+	swallowOutsidePress = false,
 }: {
 	anchorRef: RefObject<Element | null>;
 	/**
@@ -44,10 +44,11 @@ const usePopup = ({
 	 */
 	ownerRef?: RefObject<HTMLElement | null>;
 	/**
-	 * Makes the page behind the open popup inert, such as `enterModal`, and
-	 * returns the cleanup. A popup that passes nothing ships no modal code.
+	 * Whether the click of a press outside the anchor and the popup does not
+	 * reach the page, as with a native select. The press still closes the
+	 * popup through the owner's blur.
 	 */
-	modal?: (keep: readonly Element[]) => () => void;
+	swallowOutsidePress?: boolean;
 }): { portalTarget: Element | DocumentFragment | null; popupRef: RefCallback<HTMLElement> } => {
 	const layerContainer = useLayerContainer();
 	const hydrated = useIsHydrated();
@@ -78,9 +79,34 @@ const usePopup = ({
 					placeWith: "script",
 					releaseAnchorAfter: 0,
 				});
-				const exitModal = modal?.([anchor, floating]);
+				const document = floating.ownerDocument;
+				const onPointerDown = (event: PointerEvent) => {
+					const { target } = event;
+					if (target instanceof Node && (floating.contains(target) || anchor.contains(target))) {
+						return;
+					}
+					// Why on the window, not the popup: the press closes the popup before
+					// its click arrives. A cancelled press or the next press drops it.
+					const swallow = (click: Event) => {
+						click.preventDefault();
+						click.stopPropagation();
+						release();
+					};
+					const release = () => {
+						window.removeEventListener("click", swallow, { capture: true });
+						window.removeEventListener("pointercancel", release, { capture: true });
+						window.removeEventListener("pointerdown", release, { capture: true });
+					};
+					window.addEventListener("click", swallow, { capture: true });
+					window.addEventListener("pointercancel", release, { capture: true });
+					// Why this press does not release it: it has passed the window already.
+					window.addEventListener("pointerdown", release, { capture: true });
+				};
+				if (swallowOutsidePress) {
+					document.addEventListener("pointerdown", onPointerDown, { capture: true });
+				}
 				stop = () => {
-					exitModal?.();
+					document.removeEventListener("pointerdown", onPointerDown, { capture: true });
 					stopTracking();
 				};
 				// Why the anchor: focus on another part of the control, such as a tag,
@@ -107,7 +133,7 @@ const usePopup = ({
 				}
 			};
 		},
-		[anchorRef, ownerRef, modal],
+		[anchorRef, ownerRef, swallowOutsidePress],
 	);
 	return {
 		portalTarget: hydrated ? resolvePortalTarget(layerContainer) : null,

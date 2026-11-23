@@ -160,7 +160,7 @@ function Example() {
 
 ### In a Sheet
 
-Use `@tanstack/react-form` to manage the selected values when a side panel needs validation and submit handling. `MultiSelect.Content` will automatically scope its portal to the surrounding sheet so the default modal behavior works without extra configuration.
+Use `@tanstack/react-form` to manage the selected values when a side panel needs validation and submit handling. `MultiSelect.Content` will automatically scope its portal to the surrounding sheet with no extra configuration.
 
 <Example name="components/forms/multi-select/in-a-sheet" title="Multi Select In a Sheet example">
 
@@ -776,7 +776,7 @@ The trigger-side parts (`MultiSelect.Root`, `Trigger`, `Input`, `Tag`, `TagValue
 
 ## Accessibility
 
-`MultiSelect` follows the [WAI-ARIA Combobox Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) with a multi-selectable listbox. DOM focus stays on the input or a tag, and `aria-activedescendant` on the input names the highlighted item. The list is modal, as it was with Ariakit: while it is open, the page does not scroll, the rest of the page is inert (hidden from screen readers and closed to the pointer and to Tab), and a press outside the trigger and the list closes it.
+`MultiSelect` follows the [WAI-ARIA Combobox Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) with a multi-selectable listbox. DOM focus stays on the input or a tag, and `aria-activedescendant` on the input names the highlighted item. As with a native select, the page stays live while the list is open: it scrolls, and assistive technology can reach it. Tab moves only to a control in the list. A press outside the trigger and the list closes the list, and its click does not reach the page.
 
 Inside a field, `Field.Control` puts the generated `id`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` on the focusable `MultiSelect.Input` through `FieldControlContext`. The field `name` goes through too, but it lands on one hidden input for each selected value, not on the combobox input. The value of the combobox input is the typeahead filter text, so a native form submit sends the selected values and not the text the user typed.
 

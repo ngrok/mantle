@@ -11,7 +11,6 @@ import type {
 import { cloneElement, createContext, isValidElement, use, useEffect, useId, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { composeHandlers } from "../../behaviors/compose-handlers.js";
-import { enterModal } from "../../behaviors/enter-modal.js";
 import { useStoreValue } from "../../behaviors/store.js";
 import { childId, useOption } from "../../behaviors/use-listbox.js";
 import { usePopup } from "../../behaviors/use-popup.js";
@@ -810,7 +809,7 @@ const OpenContent = ({
 	const { portalTarget, popupRef } = usePopup({
 		anchorRef: triggerRef,
 		ownerRef: triggerRef,
-		modal: enterModal,
+		swallowOutsidePress: true,
 	});
 	const composedRef = useComposedRefs(ref, popupRef, listbox.listboxProps.ref);
 
