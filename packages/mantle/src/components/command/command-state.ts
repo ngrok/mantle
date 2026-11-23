@@ -223,8 +223,9 @@ const createCommand = (initialValue: string) => {
 					mounted.push(child);
 				}
 			}
-			if (mounted.length > 0) {
-				container.prepend(...mounted);
+			// Why not `prepend(...mounted)`: happy-dom reverses the nodes when the first one is already first.
+			for (const node of mounted.toReversed()) {
+				container.insertBefore(node, container.firstChild);
 			}
 			place(
 				container,
