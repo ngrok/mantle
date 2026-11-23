@@ -25,15 +25,15 @@
   },
   "select": {
     "entry": "import { Select } from \"@ngrok/mantle/select\"; export default [Select.Root, Select.Trigger, Select.Value, Select.Content, Select.Item];",
-    "maxGzipBytes": 15916
+    "maxGzipBytes": 15951
   },
   "combobox": {
     "entry": "import { Combobox } from \"@ngrok/mantle/combobox\"; export default [Combobox.Root, Combobox.Input, Combobox.Content, Combobox.Item];",
-    "maxGzipBytes": 14406
+    "maxGzipBytes": 14455
   },
   "multi-select": {
     "entry": "import { MultiSelect } from \"@ngrok/mantle/multi-select\"; export default [MultiSelect.Root, MultiSelect.Trigger, MultiSelect.Input, MultiSelect.Content, MultiSelect.Item];",
-    "maxGzipBytes": 15777
+    "maxGzipBytes": 15822
   },
   "tabs": {
     "entry": "import { Tabs } from \"@ngrok/mantle/tabs\"; export default [Tabs.Root, Tabs.List, Tabs.Trigger, Tabs.Content];",
@@ -61,11 +61,11 @@
   },
   "command": {
     "entry": "import { Command } from \"@ngrok/mantle/command\"; export default [Command.DialogRoot, Command.DialogContent, Command.Input, Command.List, Command.Item];",
-    "maxGzipBytes": 30316
+    "maxGzipBytes": 30334
   },
   "command-inline": {
     "entry": "import { Command } from \"@ngrok/mantle/command\"; export default [Command.Root, Command.Input, Command.List, Command.Empty, Command.Group, Command.Item, Command.Separator];",
-    "maxGzipBytes": 13632
+    "maxGzipBytes": 13647
   },
   "slider": {
     "entry": "import { Slider } from \"@ngrok/mantle/slider\"; export default [Slider];",
@@ -77,6 +77,6 @@
   },
   "form-page": {
     "entry": "import { Button } from \"@ngrok/mantle/button\"; import { Field } from \"@ngrok/mantle/field\"; import { Select } from \"@ngrok/mantle/select\"; import { Combobox } from \"@ngrok/mantle/combobox\"; export default [Button, Field.Item, Field.Label, Field.Control, Select.Root, Select.Trigger, Select.Value, Select.Content, Select.Item, Combobox.Root, Combobox.Input, Combobox.Content, Combobox.Item];",
-    "maxGzipBytes": 19861
+    "maxGzipBytes": 19912
   }
 }

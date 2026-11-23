@@ -272,7 +272,9 @@ describe("Select keyboard, focus, and ARIA contract", () => {
 				);
 			};
 			await userEvent.click(trigger);
-			expect(screen.getByRole("listbox").matches(":popover-open")).toBe(true);
+			expect(screen.getByRole("listbox").closest(":popover-open")).not.toBeNull();
+			// Why here: axe exempts a scrolling listbox that a combobox controls, not a scroller inside one.
+			expect(await axeViolations()).toEqual([]);
 			expect(clearOfFade(screen.getByRole("option", { name: "Fruit 30" }))).toBe(true);
 			await userEvent.keyboard("{Home}");
 			expect(clearOfFade(screen.getByRole("option", { name: "Fruit 0" }))).toBe(true);
@@ -286,6 +288,43 @@ describe("Select keyboard, focus, and ARIA contract", () => {
 				await userEvent.keyboard("{ArrowUp}");
 			}
 			expect(clearOfFade(screen.getByRole("option", { name: "Fruit 27" }))).toBe(true);
+		} finally {
+			style.remove();
+		}
+	});
+
+	test("a list too short for the fade padding still shows the highlighted option in full", async () => {
+		const style = document.createElement("style");
+		style.textContent = await commands.tailwindCss("./select.tsx");
+		document.head.append(style);
+		try {
+			const fruits = Array.from({ length: 10 }, (_, index) => `Fruit ${index}`);
+			render(
+				<Select.Root>
+					<Select.Trigger aria-label="Fruit" />
+					{/* Why the style: the compiled CSS holds only the classes in select.tsx. */}
+					<Select.Content style={{ maxHeight: 44 }}>
+						{fruits.map((fruit) => (
+							<Select.Item key={fruit} value={fruit}>
+								{fruit}
+							</Select.Item>
+						))}
+					</Select.Content>
+				</Select.Root>,
+			);
+			await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
+			const viewport = screen.getByRole("listbox");
+			const inFull = (name: string) => {
+				const list = viewport.getBoundingClientRect();
+				const box = screen.getByRole("option", { name }).getBoundingClientRect();
+				return box.top >= list.top - 0.5 && box.bottom <= list.bottom + 0.5;
+			};
+			for (let step = 0; step < 5; step++) {
+				await userEvent.keyboard("{ArrowDown}");
+			}
+			expect(inFull("Fruit 5")).toBe(true);
+			await userEvent.keyboard("{ArrowUp}{ArrowUp}");
+			expect(inFull("Fruit 3")).toBe(true);
 		} finally {
 			style.remove();
 		}
@@ -474,16 +513,16 @@ describe("Select keyboard, focus, and ARIA contract", () => {
 				</Select.Root>,
 			);
 			await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
-			const list = await screen.findByRole("listbox");
-			const viewport = list.querySelector('[data-slot="select-viewport"]');
-			expect(viewport).not.toBeNull();
-			expect(getComputedStyle(viewport ?? list)).toMatchObject({
+			const viewport = await screen.findByRole("listbox");
+			const list = viewport.closest("[popover]") ?? viewport;
+			expect(viewport).toHaveAttribute("data-slot", "select-viewport");
+			expect(getComputedStyle(viewport)).toMatchObject({
 				overflowY: "auto",
 				overscrollBehaviorY: "none",
 				scrollbarWidth: "none",
 				maskImage: expect.stringContaining("linear-gradient"),
 			});
-			// Why: the fade masks only the viewport, so the list's border and shadow stay whole.
+			// Why: the fade masks only the listbox viewport, so the popup's border and shadow stay whole.
 			expect(getComputedStyle(list).maskImage).toBe("none");
 		} finally {
 			style.remove();

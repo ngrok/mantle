@@ -249,7 +249,8 @@ describe("Select", () => {
 
 			const listbox = await screen.findByRole("listbox");
 			const option = screen.getByRole("option", { name: "Apple" });
-			expect(listbox).toHaveAttribute("data-slot", "select-content");
+			expect(listbox).toHaveAttribute("data-slot", "select-viewport");
+			expect(listbox.closest("[popover]")).toHaveAttribute("data-slot", "select-content");
 			expect(screen.getByRole("group", { name: "Fruits" })).toHaveAttribute(
 				"data-slot",
 				"select-group",
@@ -354,7 +355,10 @@ describe("Select", () => {
 			await user.click(trigger);
 
 			const listbox = await screen.findByRole("listbox");
-			expect(listbox).toHaveAttribute("data-slot", "app-content select-content");
+			expect(listbox.closest("[popover]")).toHaveAttribute(
+				"data-slot",
+				"app-content select-content",
+			);
 			expect(screen.getByRole("group", { name: "Fruits" })).toHaveAttribute(
 				"data-slot",
 				"app-group select-group",
@@ -450,10 +454,10 @@ describe("Select", () => {
 			await user.click(trigger);
 
 			expect(trigger).toHaveAttribute("data-state", "open");
-			const listbox = await screen.findByRole("listbox");
-			expect(listbox).toHaveAttribute("data-state", "open");
-			expect(listbox).toHaveAttribute("data-side", "bottom");
-			expect(listbox).toHaveAttribute("data-align", "start");
+			const content = (await screen.findByRole("listbox")).closest("[popover]");
+			expect(content).toHaveAttribute("data-state", "open");
+			expect(content).toHaveAttribute("data-side", "bottom");
+			expect(content).toHaveAttribute("data-align", "start");
 
 			await user.click(screen.getByRole("option", { name: "Apple" }));
 

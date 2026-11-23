@@ -282,6 +282,8 @@ const Content = (props: ComboboxContentProps) =>
 
 /** The open list. A closed combobox mounts none of it: no popup, store, or listener. */
 const OpenContent = ({
+	"aria-label": ariaLabel,
+	"aria-labelledby": ariaLabelledBy,
 	"data-slot": dataSlot,
 	asChild = false,
 	children,
@@ -294,10 +296,16 @@ const OpenContent = ({
 	const { portalTarget, popupRef } = usePopup({ anchorRef: inputRef, ownerRef: inputRef });
 	const composedRef = useComposedRefs(ref, popupRef, listbox.listboxProps.ref);
 	const Component = asChild ? Slot : "div";
-	// Why a viewport: the fade masks it, not the list, so the border and the shadow stay whole.
+	// Why the listbox is a viewport inside the popup: the fade masks it, so the border and the shadow stay whole.
 	const renderViewport = (inner: ReactNode) => (
 		<div
-			ref={listbox.viewportRef}
+			id={listbox.id}
+			role="listbox"
+			tabIndex={-1}
+			aria-label={ariaLabel}
+			aria-labelledby={ariaLabelledBy}
+			// Why: a dialog lets the list take Escape only while the controlled element is open.
+			data-state="open"
 			data-slot="combobox-viewport"
 			data-float-viewport
 			className="relative min-h-0 overflow-y-auto overflow-x-hidden scroll-fade-y scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-py-6 p-1 space-y-px"
@@ -310,7 +318,6 @@ const OpenContent = ({
 		createPortal(
 			<Component
 				{...props}
-				{...listbox.listboxProps}
 				popover="manual"
 				onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
 				ref={composedRef}

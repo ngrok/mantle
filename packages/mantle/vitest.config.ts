@@ -54,7 +54,8 @@ const mantleCustomVariants = async (): Promise<string> => {
 
 /**
  * The `focus-ring`, `theme-switcher-name`, `otp-input-overlay`, and
- * `scroll-fade-*` utilities of `mantle.css`, with the keyframes the fades run.
+ * `scroll-fade-*` utilities of `mantle.css`, with the properties and keyframes
+ * the fades animate.
  * Without them, Tailwind compiles `focus-visible:focus-ring` to nothing, so a
  * focused element keeps the browser outline, a `ThemeSwitcher` has no name,
  * the `OtpInput` input does not lie over its slots, and a picker list has no
@@ -63,7 +64,7 @@ const mantleCustomVariants = async (): Promise<string> => {
 const mantleUtilities = async (): Promise<string> => {
 	const css = await readFile(path.join(import.meta.dirname, "src/mantle.css"), "utf8");
 	const rules = css.match(
-		/^@(?:utility (?:focus-ring|theme-switcher-name|otp-input-overlay|scroll-fade-[a-z])|keyframes scroll-fade-)[^{]*\{[\s\S]*?^\}/gm,
+		/^@(?:utility (?:focus-ring|theme-switcher-name|otp-input-overlay|scroll-fade-[a-z])|property --_scroll-fade-|keyframes scroll-fade-)[^{]*\{[\s\S]*?^\}/gm,
 	);
 	if (rules == null) {
 		throw new Error(

@@ -29,8 +29,6 @@ type Listbox = {
 	/** The store of the hot state. The first call creates it. */
 	getStore: () => Store<ListboxState>;
 	ref: RefObject<HTMLElement | null>;
-	/** The element inside the list that scrolls, if not the list itself. It must be positioned. */
-	viewportRef: RefObject<HTMLDivElement | null>;
 	selected: readonly string[];
 	select: (value: string) => void;
 	activate: (option: HTMLElement | null) => void;
@@ -75,10 +73,12 @@ const scrollIntoList = (list: HTMLElement, option: HTMLElement): void => {
 	}
 	top -= list.clientTop;
 	// Why: a list with `scroll-fade-y` sets `scroll-py-6`, so an option the
-	// keyboard reaches stays out of the faded edges. `auto` parses to 0.
+	// keyboard reaches stays out of the faded edges. `auto` parses to 0. A list
+	// too short for both paddings shares the room left, so the option still shows.
 	const style = getComputedStyle(list);
-	const paddingTop = Number.parseFloat(style.scrollPaddingTop) || 0;
-	const paddingBottom = Number.parseFloat(style.scrollPaddingBottom) || 0;
+	const room = Math.max((list.clientHeight - option.offsetHeight) / 2, 0);
+	const paddingTop = Math.min(Number.parseFloat(style.scrollPaddingTop) || 0, room);
+	const paddingBottom = Math.min(Number.parseFloat(style.scrollPaddingBottom) || 0, room);
 	if (top - paddingTop < list.scrollTop) {
 		list.scrollTop = top - paddingTop;
 	} else if (top + option.offsetHeight + paddingBottom > list.scrollTop + list.clientHeight) {
@@ -134,7 +134,6 @@ const createListboxState = () => {
 	let store: Store<ListboxState> | null = null;
 	return {
 		ref: { current: null as HTMLElement | null },
-		viewportRef: { current: null as HTMLDivElement | null },
 		searchRef: { current: { text: "", time: 0 } },
 		// A move that found no options, such as before async results arrive.
 		pendingMoveRef: { current: null as MoveTarget | null },
@@ -176,11 +175,13 @@ const useListbox = ({
 	selectionFollowsHighlight?: boolean;
 }): Listbox => {
 	const id = useId();
-	const [{ ref, viewportRef, searchRef, pendingMoveRef, getStore }] = useState(createListboxState);
+	const [{ ref, searchRef, pendingMoveRef, getStore }] = useState(createListboxState);
 
 	const activate = (option: HTMLElement | null) => {
 		getStore().set({ activeId: option?.id ?? null });
-		const list = viewportRef.current ?? ref.current;
+		// Why the option's own listbox: a picker's listbox is a viewport inside the
+		// popup that holds `ref`, so the popup places itself before this reads layout.
+		const list = option?.closest<HTMLElement>('[role="listbox"]');
 		if (option != null && list != null) {
 			scrollIntoList(list, option);
 		}
@@ -308,7 +309,6 @@ const useListbox = ({
 		id,
 		getStore,
 		ref,
-		viewportRef,
 		selected,
 		select: onSelect,
 		activate,

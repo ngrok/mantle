@@ -755,6 +755,7 @@ type SelectContentProps = Omit<ComponentProps<"div">, "dir"> &
  * | Data Attribute | Value                                          | Description                                                            |
  * | -------------- | ---------------------------------------------- | ---------------------------------------------------------------------- |
  * | `data-slot`    | `"select-content"`                             | On the content element.                                                |
+ * | `data-slot`    | `"select-viewport"`                            | On the listbox inside it, which scrolls and fades.                     |
  * | `data-state`   | `"open"`                                       | Drives the open animation. A closed list renders nothing.              |
  * | `data-side`    | `"top"` \| `"bottom"`                           | The side of the trigger the list opened on.                            |
  * | `data-align`   | `"start"`                                      | The alignment against the trigger.                                     |
@@ -789,6 +790,8 @@ const Content = (props: SelectContentProps) =>
 
 /** The open list. A closed select mounts none of it: no popup, store, or listener. */
 const OpenContent = ({
+	"aria-label": ariaLabel,
+	"aria-labelledby": ariaLabelledBy,
 	className,
 	children,
 	"data-slot": dataSlot,
@@ -798,7 +801,7 @@ const OpenContent = ({
 }: SelectContentProps) => {
 	const {
 		dir,
-		listbox: { listboxProps, viewportRef },
+		listbox: { listboxProps },
 		setOpen,
 		triggerRef,
 	} = useSelectContext();
@@ -814,10 +817,8 @@ const OpenContent = ({
 		createPortal(
 			<div
 				{...props}
-				{...listboxProps}
+				role="presentation"
 				popover="manual"
-				role="listbox"
-				tabIndex={-1}
 				onMouseDown={composeHandlers(props.onMouseDown, listboxProps.onMouseDown)}
 				ref={composedRef}
 				dir={dir}
@@ -831,9 +832,15 @@ const OpenContent = ({
 					className,
 				)}
 			>
-				{/* Why a viewport: the fade masks it, not the list, so the border, the shadow, and the open animation stay whole. */}
+				{/* Why the listbox is a viewport inside the popup: the fade masks it, so the border, the shadow, and the open animation stay whole. */}
 				<div
-					ref={viewportRef}
+					id={listboxProps.id}
+					role="listbox"
+					tabIndex={-1}
+					aria-label={ariaLabel}
+					aria-labelledby={ariaLabelledBy}
+					// Why: a dialog lets the list take Escape only while the controlled element is open.
+					data-state="open"
 					data-slot="select-viewport"
 					data-float-viewport
 					className="relative min-h-0 overflow-y-auto overflow-x-hidden scroll-fade-y scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-py-6 p-1 space-y-px"

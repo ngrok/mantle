@@ -652,16 +652,16 @@ describe("MultiSelect.Item label slot (browser)", () => {
 				</MultiSelect.Root>,
 			);
 			await user.click(screen.getByRole("combobox", { name: "Fruits" }));
-			const list = await screen.findByRole("listbox");
-			const viewport = list.querySelector('[data-slot="multi-select-viewport"]');
-			expect(viewport).not.toBeNull();
-			expect(getComputedStyle(viewport ?? list)).toMatchObject({
+			const viewport = await screen.findByRole("listbox");
+			const list = viewport.closest("[popover]") ?? viewport;
+			expect(viewport).toHaveAttribute("data-slot", "multi-select-viewport");
+			expect(getComputedStyle(viewport)).toMatchObject({
 				overflowY: "auto",
 				overscrollBehaviorY: "none",
 				scrollbarWidth: "none",
 				maskImage: expect.stringContaining("linear-gradient"),
 			});
-			// Why: the fade masks only the viewport, so the list's border and shadow stay whole.
+			// Why: the fade masks only the listbox viewport, so the popup's border and shadow stay whole.
 			expect(getComputedStyle(list).maskImage).toBe("none");
 		} finally {
 			style.remove();

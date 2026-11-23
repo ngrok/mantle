@@ -819,6 +819,8 @@ const Content = (props: MultiSelectContentProps) =>
 
 /** The open list. A closed multi-select mounts none of it: no popup, store, or listener. */
 const OpenContent = ({
+	"aria-label": ariaLabel,
+	"aria-labelledby": ariaLabelledBy,
 	"data-slot": dataSlot,
 	asChild = false,
 	children,
@@ -836,11 +838,18 @@ const OpenContent = ({
 
 	const composedRef = useComposedRefs(ref, popupRef, listbox.listboxProps.ref);
 	const Component = asChild ? Slot : "div";
-	// Why a viewport: the fade masks it, not the list, so the border and the shadow stay whole.
+	// Why the listbox is a viewport inside the popup: the fade masks it, so the border and the shadow stay whole.
 	// Why only the top edge fades with a footer: the sticky footer sits on the bottom edge.
 	const renderViewport = (inner: ReactNode) => (
 		<div
-			ref={listbox.viewportRef}
+			id={listbox.id}
+			role="listbox"
+			tabIndex={-1}
+			aria-label={ariaLabel}
+			aria-labelledby={ariaLabelledBy}
+			aria-multiselectable
+			// Why: a dialog lets the list take Escape only while the controlled element is open.
+			data-state="open"
 			data-slot="multi-select-viewport"
 			data-float-viewport
 			className="relative min-h-0 overflow-y-auto overflow-x-hidden scroll-fade-y has-data-content-footer:scroll-fade-t scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-py-6 pt-1 pb-1 has-data-content-footer:pb-0 flex flex-col gap-px"
@@ -858,9 +867,7 @@ const OpenContent = ({
 				</button>
 				<Component
 					{...props}
-					{...listbox.listboxProps}
 					onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
-					aria-multiselectable
 					popover="manual"
 					ref={composedRef}
 					data-slot={joinDataSlot(dataSlot, "multi-select-content")}
@@ -888,7 +895,7 @@ const OpenContent = ({
 							const root = event.currentTarget.getRootNode();
 							const input =
 								root instanceof Document || root instanceof ShadowRoot
-									? root.querySelector<HTMLElement>(`[aria-controls="${event.currentTarget.id}"]`)
+									? root.querySelector<HTMLElement>(`[aria-controls="${listbox.id}"]`)
 									: null;
 							if (input != null) {
 								event.preventDefault();

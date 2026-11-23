@@ -70,8 +70,8 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		);
 		const input = screen.getByRole("combobox", { name: "Fruit" });
 		await userEvent.click(input);
-		const listbox = await screen.findByRole("listbox");
-		const gap = input.getBoundingClientRect().top - listbox.getBoundingClientRect().bottom;
+		const content = (await screen.findByRole("listbox")).closest("[popover]");
+		const gap = input.getBoundingClientRect().top - (content?.getBoundingClientRect().bottom ?? 0);
 		expect(gap).toBeCloseTo(8, 0);
 	});
 
@@ -93,11 +93,7 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 				</Combobox.Root>,
 			);
 			await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
-			const listbox = await screen.findByRole("listbox");
-			const viewport = listbox.querySelector<HTMLElement>('[data-slot="combobox-viewport"]');
-			if (viewport == null) {
-				throw new Error("No viewport");
-			}
+			const viewport = await screen.findByRole("listbox");
 			viewport.scrollTop = 300;
 			// Why: a page scroll places the list again, which measures it.
 			window.dispatchEvent(new Event("scroll"));
@@ -131,14 +127,14 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 			);
 			const { rerender } = render(<Growing count={2} />);
 			await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
-			const listbox = await screen.findByRole("listbox");
-			expect(listbox).toHaveAttribute("data-side", "bottom");
+			const content = (await screen.findByRole("listbox")).closest("[popover]");
+			expect(content).toHaveAttribute("data-side", "bottom");
 			// Why: the list capped below now holds more than fits there, and more room is above.
 			rerender(<Growing count={200} />);
 			// Why a poll: the resize observer places the list again in a later frame.
-			await expect.poll(() => listbox.getAttribute("data-side")).toBe("top");
+			await expect.poll(() => content?.getAttribute("data-side")).toBe("top");
 			// Why 7.5: the input's top sits at a fraction of a pixel.
-			expect(listbox.getBoundingClientRect().top).toBeGreaterThanOrEqual(7.5);
+			expect(content?.getBoundingClientRect().top).toBeGreaterThanOrEqual(7.5);
 		} finally {
 			style.remove();
 		}
@@ -256,22 +252,27 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 			render(
 				<Combobox.Root>
 					<Combobox.Input aria-label="Fruit" />
-					<Combobox.Content>
-						<Combobox.Item value="Apple" />
+					<Combobox.Content style={{ maxHeight: 120 }}>
+						{Array.from({ length: 30 }, (_, index) => (
+							<Combobox.Item key={index} value={`Fruit ${index}`} />
+						))}
 					</Combobox.Content>
 				</Combobox.Root>,
 			);
 			await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
-			const list = await screen.findByRole("listbox");
-			const viewport = list.querySelector('[data-slot="combobox-viewport"]');
-			expect(viewport).not.toBeNull();
-			expect(getComputedStyle(viewport ?? list)).toMatchObject({
+			const viewport = await screen.findByRole("listbox");
+			expect(viewport.scrollHeight).toBeGreaterThan(viewport.clientHeight);
+			// Why with a list that scrolls: axe exempts a scrolling listbox that a combobox controls, not a scroller inside one.
+			expect(await axeViolations()).toEqual([]);
+			const list = viewport.closest("[popover]") ?? viewport;
+			expect(viewport).toHaveAttribute("data-slot", "combobox-viewport");
+			expect(getComputedStyle(viewport)).toMatchObject({
 				overflowY: "auto",
 				overscrollBehaviorY: "none",
 				scrollbarWidth: "none",
 				maskImage: expect.stringContaining("linear-gradient"),
 			});
-			// Why: the fade masks only the viewport, so the list's border and shadow stay whole.
+			// Why: the fade masks only the listbox viewport, so the popup's border and shadow stay whole.
 			expect(getComputedStyle(list).maskImage).toBe("none");
 		} finally {
 			style.remove();
