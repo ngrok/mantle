@@ -210,4 +210,16 @@ describe("Checkbox onCheckedChange", () => {
 		expect(onCheckedChange).toHaveBeenLastCalledWith(false);
 		expect(calls).toEqual(["change", "checked:true", "change", "checked:false"]);
 	});
+
+	test("does not run on a read-only box", async () => {
+		const user = userEvent.setup();
+		const onCheckedChange = vi.fn<(checked: boolean) => void>();
+		render(<Checkbox aria-label="Locked" readOnly onCheckedChange={onCheckedChange} />);
+		const checkbox = screen.getByRole("checkbox", { name: "Locked" });
+
+		await user.click(checkbox);
+
+		expect(checkbox).not.toBeChecked();
+		expect(onCheckedChange).not.toHaveBeenCalled();
+	});
 });

@@ -77,10 +77,13 @@ type ItemElementProps = {
 	value?: unknown;
 };
 
-/** The label an item shows in `Select.Value`: `textValue` for a function child, which has no label to read. */
-const itemLabel = ({ asChild, children, textValue }: ItemElementProps): ReactNode => {
+/**
+ * The label an item shows in `Select.Value`. A function child has no label to
+ * read, so it shows `textValue`, else `value`.
+ */
+const itemLabel = ({ asChild, children, textValue, value }: ItemElementProps): ReactNode => {
 	if (typeof children === "function") {
-		return textValue;
+		return textValue ?? String(value);
 	}
 	return asChild && isValidElement<{ children?: ReactNode }>(children)
 		? children.props.children
@@ -915,29 +918,19 @@ type SelectItemProps = Omit<ComponentProps<"div">, "children"> &
 		 * The value the select takes when the user picks this item.
 		 */
 		value: string;
-	} & (
-		| {
-				/** The option's label. */
-				children?: ReactNode;
-				/**
-				 * The text that typeahead matches. Defaults to the item's text content.
-				 */
-				textValue?: string;
-		  }
-		| {
-				/**
-				 * Renders the option as the element this function returns, with the
-				 * option's props and `{ highlighted }`. Spread `props` on the element and
-				 * write the label inside it.
-				 */
-				children: OptionRender;
-				/**
-				 * The text that typeahead matches, and the label `Select.Value` shows:
-				 * a function child has no label to read.
-				 */
-				textValue: string;
-		  }
-	);
+		/**
+		 * The option's label, or a function child: `(props, { highlighted }) => element`
+		 * renders the option as the element it returns. Spread `props` on it and
+		 * write the label inside it.
+		 */
+		children?: ReactNode | OptionRender;
+		/**
+		 * The text that typeahead matches. Defaults to the item's text content.
+		 * With a function child, it is also the label `Select.Value` shows, which
+		 * falls back to `value`.
+		 */
+		textValue?: string;
+	};
 
 /**
  * An option within a select menu. Similar to an html `<option>` element.
@@ -963,7 +956,7 @@ type SelectItemProps = Omit<ComponentProps<"div">, "children"> &
  *
  * **Function child.** `(props, { highlighted }) => element` renders the option as
  * the element it returns. Spread `props` on it and write the label inside it.
- * It needs `textValue`, the label `Select.Value` shows.
+ * Set `textValue`: it is the label `Select.Value` shows, else `value`.
  *
  * | Data Attribute     | Value                        | Description                                                          |
  * | ------------------ | ---------------------------- | -------------------------------------------------------------------- |
@@ -1020,7 +1013,7 @@ const Item = ({
 		textValue,
 		id: childId({ asChild, children, id: props.id }),
 	});
-	const label = itemLabel({ asChild, children, textValue });
+	const label = itemLabel({ asChild, children, textValue, value });
 	const reportLabel = () => {
 		listbox.getStore().set({ itemLabel: { value, label, translate } });
 	};

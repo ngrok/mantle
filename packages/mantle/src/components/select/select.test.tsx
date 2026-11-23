@@ -1,7 +1,7 @@
 import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
 import { act, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { createRef, useState } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -1375,5 +1375,26 @@ describe("Select.Item function child", () => {
 		container.innerHTML = html;
 
 		expect(container.querySelector("[data-slot=select-item-label]")).toHaveTextContent("Apple");
+	});
+
+	test("a wrapper that omits a prop passes a function child, and Select.Value falls back to the value", () => {
+		const Item = (props: Omit<ComponentProps<typeof Select.Item>, "icon">) => (
+			<Select.Item {...props} />
+		);
+		const html = renderToString(
+			<Select.Root defaultValue="apple">
+				<Select.Trigger aria-label="Fruit">
+					<Select.Value placeholder="Pick a fruit" />
+				</Select.Trigger>
+				<Select.Content>
+					<Select.Item value="apple">{(props) => <div {...props}>Apple</div>}</Select.Item>
+					<Item value="banana">{(props) => <div {...props}>Banana</div>}</Item>
+				</Select.Content>
+			</Select.Root>,
+		);
+		const container = document.createElement("div");
+		container.innerHTML = html;
+
+		expect(container.querySelector("[data-slot=select-item-label]")).toHaveTextContent("apple");
 	});
 });

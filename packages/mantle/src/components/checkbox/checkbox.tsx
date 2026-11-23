@@ -153,7 +153,10 @@ const Checkbox = ({
 					? undefined
 					: (event) => {
 							onChange?.(event);
-							onCheckedChange?.(event.currentTarget.checked);
+							// Why: React fires `change` on a read-only box before the browser undoes the toggle.
+							if (!readOnly) {
+								onCheckedChange?.(event.currentTarget.checked);
+							}
 						}
 			}
 			onClick={(event) => {

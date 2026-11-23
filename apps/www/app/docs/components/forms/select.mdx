@@ -321,7 +321,7 @@ function Example() {
 
 ### Highlighted row details
 
-Style a highlighted row with the `data-highlighted:` variant, or reach its children with `in-data-highlighted:`. That needs no JavaScript and works in the first paint. When the row must render different content, pass a function as the item's `children`. It gets the option's props and `{ highlighted }`, and returns the element the option renders as. Spread `props` on that element and write the label inside it: the label span and the check move inside, as with `asChild`. A function child needs `textValue`, which is also the label `Select.Value` shows.
+Style a highlighted row with the `data-highlighted:` variant, or reach its children with `in-data-highlighted:`. That needs no JavaScript and works in the first paint. When the row must render different content, pass a function as the item's `children`. It gets the option's props and `{ highlighted }`, and returns the element the option renders as. Spread `props` on that element and write the label inside it: the label span and the check move inside, as with `asChild`. Give a function child a `textValue`: it is the label `Select.Value` shows, and without it `Select.Value` shows the `value`.
 
 <Example name="components/forms/select/highlighted-row-details" title="Select highlighted row details example">
 
@@ -504,7 +504,7 @@ All props of a `<div>`, plus `asChild`, `value`, `disabled`, `textValue`, and:
 
 | Prop         | Type                                                      | Default | Description                                                                                                                                                       |
 | ------------ | --------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `children?`  | `ReactNode` \| `(props, { highlighted }) => ReactElement` |         | The option's label. A function renders the option as the element it returns; it needs `textValue`.                                                                |
+| `children?`  | `ReactNode` \| `(props, { highlighted }) => ReactElement` |         | The option's label. A function renders the option as the element it returns; set `textValue` with it.                                                             |
 | `icon?`      | `ReactNode`                                               |         | An optional icon rendered before the item text.                                                                                                                   |
 | `translate?` | `"yes" \| "no"`                                           |         | The standard HTML attribute, also set on the label span so the copy the trigger shows keeps it. Set `"no"` when the label is an ID, a path, a filename, or a key. |
 
