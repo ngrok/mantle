@@ -117,14 +117,17 @@ describe("Command.Root filtering", () => {
 				</Command.List>
 			</Command.Root>
 		);
-		const { rerender } = render(<Items names={["Xa", "Ab"]} />);
+		const { rerender } = render(<Items names={["Xab", "Abx"]} />);
 		await user.type(input(), "a");
-		expect(optionNames()).toEqual(["Ab", "Xa"]);
+		expect(optionNames()).toEqual(["Abx", "Xab"]);
 
-		rerender(<Items names={["Xa", "Ab", "Zed"]} />);
+		rerender(<Items names={["Xab", "Abx", "Zed"]} />);
+		// A new query after the mount sorts again, and the last match must not move past the new item.
+		await user.type(input(), "x", { initialSelectionStart: 0, initialSelectionEnd: 1 });
+		expect(optionNames()).toEqual(["Xab", "Abx"]);
 		await user.clear(input());
 
-		await vi.waitFor(() => expect(optionNames()).toEqual(["Xa", "Ab", "Zed"]));
+		await vi.waitFor(() => expect(optionNames()).toEqual(["Xab", "Abx", "Zed"]));
 	});
 
 	test("shows the empty state and counts no match for a query that matches nothing", async () => {
@@ -373,19 +376,22 @@ describe("Command.Root value", () => {
 		expect(active()).toHaveTextContent("Billing");
 	});
 
-	test("a controlled value with no item leaves no item active, so Enter selects nothing", async () => {
-		const user = userEvent.setup();
-		const onSelect = vi.fn<(value: string) => void>();
-		const onValueChange = vi.fn<(value: string) => void>();
-		const { rerender } = render(
-			<Palette value="Billing" onValueChange={onValueChange} onSelect={onSelect} />,
-		);
+	test.for(["Nothing", ""])(
+		"a controlled value %j with no item leaves no item active, so Enter selects nothing",
+		async (value) => {
+			const user = userEvent.setup();
+			const onSelect = vi.fn<(value: string) => void>();
+			const onValueChange = vi.fn<(value: string) => void>();
+			const { rerender } = render(
+				<Palette value="Billing" onValueChange={onValueChange} onSelect={onSelect} />,
+			);
 
-		rerender(<Palette value="Nothing" onValueChange={onValueChange} onSelect={onSelect} />);
-		await user.type(input(), "{Enter}");
+			rerender(<Palette value={value} onValueChange={onValueChange} onSelect={onSelect} />);
+			await user.type(input(), "{Enter}");
 
-		expect(active()).toBeNull();
-		expect(onSelect).not.toHaveBeenCalled();
-		expect(onValueChange).not.toHaveBeenCalled();
-	});
+			expect(active()).toBeNull();
+			expect(onSelect).not.toHaveBeenCalled();
+			expect(onValueChange).not.toHaveBeenCalled();
+		},
+	);
 });

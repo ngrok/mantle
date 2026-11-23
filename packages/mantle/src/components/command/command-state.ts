@@ -98,16 +98,18 @@ const place = (container: Element, nodes: Element[]) => {
 	if (keep.size === nodes.length) {
 		return;
 	}
-	let next: Element | null = null;
-	for (const node of nodes.toReversed()) {
+	// Why after the previous node, not at the end: a child that mounted during the search after every node stays after them.
+	const first = nodes.find((node) => keep.has(node));
+	let previousNode: Element | null = null;
+	for (const node of nodes) {
 		if (!keep.has(node)) {
-			if (next == null) {
-				container.append(node);
+			if (previousNode == null) {
+				first?.before(node);
 			} else {
-				next.before(node);
+				previousNode.after(node);
 			}
 		}
-		next = node;
+		previousNode = node;
 	}
 };
 
@@ -144,6 +146,9 @@ const createCommand = (initialValue: string) => {
 	let highlighted: HTMLElement | null = null;
 	/** True while the root applies its controlled `value`, which must not echo through `onValueChange`. */
 	let syncing = false;
+	/** The last controlled `value`, and whether it named no item and cleared the active item. */
+	let controlled: string | undefined;
+	let cleared = false;
 
 	const emit = () => {
 		for (const listener of listeners) {
@@ -197,9 +202,8 @@ const createCommand = (initialValue: string) => {
 
 	/**
 	 * Puts each container's children back in the order they had before the
-	 * first sort. A child that mounted during the search keeps its place before
-	 * the next child it stands in front of, and the children appended at the end
-	 * stay at the end.
+	 * first sort. The children that mounted during the search after every saved
+	 * child stay at the end.
 	 */
 	const restore = () => {
 		for (const [container, order] of natural) {
@@ -313,11 +317,9 @@ const createCommand = (initialValue: string) => {
 
 		for (const group of list.querySelectorAll<HTMLElement>(GROUP_SELECTOR)) {
 			const items = group.querySelector(GROUP_ITEMS_SELECTOR);
-			const visible =
-				!filtering ||
-				group.hasAttribute("data-force-mount") ||
-				items?.querySelector('[role="option"]:not([hidden])') != null;
-			if (filtering && visible && items != null) {
+			const matched = items?.querySelector('[role="option"]:not([hidden])') != null;
+			const visible = !filtering || matched || group.hasAttribute("data-force-mount");
+			if (filtering && matched && items != null) {
 				state.filtered.groups.add(items.id);
 			}
 			if (group.hidden === visible) {
@@ -341,7 +343,7 @@ const createCommand = (initialValue: string) => {
 			const match = state.value === "" ? undefined : findByValue(state.value);
 			if (match != null) {
 				focusOption(match);
-			} else if (state.value === "" || activeId != null) {
+			} else if (!cleared && (state.value === "" || activeId != null)) {
 				moveTo("first");
 			}
 		}
@@ -363,6 +365,9 @@ const createCommand = (initialValue: string) => {
 	/** Mirrors the active option into the state, `data-selected`, and `onValueChange`. */
 	const showActive = () => {
 		const active = getActive();
+		if (active != null) {
+			cleared = false;
+		}
 		if (active !== highlighted) {
 			highlighted?.removeAttribute("data-selected");
 			active?.setAttribute("data-selected", "true");
@@ -429,13 +434,16 @@ const createCommand = (initialValue: string) => {
 		},
 		/** Activates the item with `value`, as the root's controlled `value` asks. */
 		setValue: (value: string) => {
+			const changed = controlled !== undefined;
+			controlled = value;
 			state.value = value;
 			const match = findByValue(value);
 			syncing = true;
 			if (match != null) {
 				focusOption(match);
-			} else {
-				// Why: a value with no item leaves no item active, so `Enter` cannot run the item that was active before.
+			} else if (changed) {
+				// Why only on a change: on mount the first item is active, as in cmdk. Later, a value with no item leaves no item active until the user moves or types, so `Enter` cannot run the item that was active before.
+				cleared = true;
 				listboxRef.current?.activate(null);
 			}
 			syncing = false;
