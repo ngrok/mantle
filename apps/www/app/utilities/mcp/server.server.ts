@@ -350,6 +350,15 @@ function hasUnreleasedDocs(
 	return dependencies.docsVersion === data.version && provenance.docsVersion !== data.version;
 }
 
+/** The `check` findings that read a part's declarations, which the docs build can change. */
+const PART_CONTRACT_CODES: ReadonlySet<Diagnostic["code"]> = new Set<Diagnostic["code"]>([
+	"unknown-part",
+	"unknown-prop",
+	"forbidden-prop",
+	"missing-prop",
+	"missing-dialog-title",
+]);
+
 /** One `check` finding as a line, such as `3:12 error unknown-prop: … Fix: …`. */
 function diagnosticLine({ line, column, severity, code, message, fix }: Diagnostic): string {
 	return `${line}:${column} ${severity} ${code}: ${message}${fix == null ? "" : ` Fix: ${fix}`}`;
@@ -873,7 +882,15 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 			}
 			// Why the docs version: the preview page renders it, so check names what that page can import.
 			const data = await dependencies.loader.load(dependencies.docsVersion);
-			const diagnostics = checkCode({ code, data, requireDefaultExport: true });
+			// Why: with unreleased changes, the page renders parts whose props the release lacks.
+			const unreleased = hasUnreleasedDocs(
+				dependencies,
+				data,
+				await provenanceFor(dependencies, data),
+			);
+			const diagnostics = checkCode({ code, data, requireDefaultExport: true }).filter(
+				(diagnostic) => !unreleased || !PART_CONTRACT_CODES.has(diagnostic.code),
+			);
 			const url = await previewUrl({ origin: dependencies.previewOrigin, code });
 			return {
 				result: {

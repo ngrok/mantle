@@ -49,7 +49,7 @@ function partsFiles() {
 		[
 			'import { ComponentProps, ReactNode } from "react";',
 			'declare const iconButtonVariants: (props?: ({ size?: "sm" | "md" | null } & import("class-variance-authority/types").ClassProp) | undefined) => string;',
-			'type IconButtonProps = Omit<ComponentProps<"button">, "aria-label"> & VariantProps<typeof iconButtonVariants> & { "aria-label"?: never; label: string; icon: ReactNode };',
+			'type IconButtonProps = Omit<ComponentProps<"button">, "aria-label" | "children"> & VariantProps<typeof iconButtonVariants> & { "aria-label"?: never; label: string; icon: ReactNode };',
 			"declare const IconButton: (props: IconButtonProps) => unknown;",
 			"export { IconButton };",
 		].join("\n"),
@@ -206,6 +206,16 @@ describe("checkCode", () => {
 		]);
 		expect(partsOf(`${iconButton}(props) => <IconButton {...props} />;`)).toEqual([]);
 		expect(
+			partsOf(`${SHEET}<Sheet.Root><Sheet.Title>T<Sheet.Trigger /></Sheet.Title></Sheet.Root>;`),
+		).toEqual([]);
+		expect(partsOf(`${iconButton}<IconButton label="Close" icon={null}>x</IconButton>;`)).toEqual([
+			{
+				code: "forbidden-prop",
+				message: "IconButton does not take children.",
+				fix: "Make it self-closing, or call `get` with IconButton for its props.",
+			},
+		]);
+		expect(
 			partsOf(`${SHEET}<Sheet.Root><Sheet.Content title="x" aria-label="y" /></Sheet.Root>;`),
 		).toMatchObject([{ code: "forbidden-prop", message: "Sheet.Content does not take title." }]);
 	});
@@ -235,6 +245,11 @@ describe("checkCode", () => {
 
 		expect(partsOf(intrinsic)).toEqual([]);
 		expect(partsOf(local)).toEqual([]);
+		expect(
+			partsOf(
+				'import { IconButton } from "@ngrok/mantle/icon-button";\nconst props: import("react").ComponentProps<typeof IconButton> = x;\n<IconButton label="Close" />;',
+			),
+		).toMatchObject([{ code: "missing-prop", message: "IconButton requires icon." }]);
 	});
 
 	it("reports dialog content with no title, label, or code that can render one", () => {
@@ -251,6 +266,17 @@ describe("checkCode", () => {
 		expect(partsOf(wrap("<Sheet.Title>Edit</Sheet.Title>Body"))).toEqual([]);
 		expect(partsOf(wrap("<EditHeader />"))).toEqual([]);
 		expect(partsOf(wrap("{renderTitle()}"))).toEqual([]);
+		expect(partsOf(wrap("<parts.Header />"))).toEqual([]);
+		expect(partsOf(wrap("<div children={<Sheet.Title>Edit</Sheet.Title>} />"))).toEqual([]);
+		expect(
+			partsOf(
+				wrap(
+					"<Sheet.Root><Sheet.Content><Sheet.Title>Inner</Sheet.Title></Sheet.Content></Sheet.Root>",
+				),
+			),
+		).toMatchObject([
+			{ code: "missing-dialog-title", message: expect.stringContaining("Sheet.Content") },
+		]);
 		expect(
 			partsOf(
 				`${SHEET}<Sheet.Root><Sheet.Content children={<Sheet.Title>Edit</Sheet.Title>} /></Sheet.Root>;`,

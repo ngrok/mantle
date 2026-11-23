@@ -150,8 +150,9 @@ export function versionDataFromFiles(version: string, files: PackageFiles): Vers
 					});
 				}
 				lookup = entry == null ? { status: "unknown" } : partPropsOf(resolver, entry, path);
-				// Why parts only: caller code can name any path, and only a real part's path is bounded.
-				if (lookup.status === "part" && partsByKey.size < MAX_CACHED_PARTS) {
+				// Why real parts only: caller code can name any path, and only an exported part's path is bounded.
+				const exported = exportsBySpecifier.get(specifier)?.names.has(path[0] ?? "") === true;
+				if (lookup.status === "part" && exported && partsByKey.size < MAX_CACHED_PARTS) {
 					partsByKey.set(key, lookup);
 				}
 			}

@@ -354,21 +354,53 @@ export function checkCode({
 
 	// Why: a local declaration can shadow an import, and its JSX is not the mantle part.
 	const shadowed = new Set<string>();
+	const declare = (pattern: unknown): void => {
+		if (Array.isArray(pattern)) {
+			pattern.forEach(declare);
+			return;
+		}
+		if (!isRecord(pattern)) {
+			return;
+		}
+		// Why only the binding positions: a default value or a type annotation declares nothing.
+		switch (pattern.type) {
+			case "Identifier":
+				if (typeof pattern.name === "string" && bindings.has(pattern.name)) {
+					shadowed.add(pattern.name);
+				}
+				return;
+			case "ObjectPattern":
+				declare(pattern.properties);
+				return;
+			case "Property":
+				declare(pattern.value);
+				return;
+			case "ArrayPattern":
+				declare(pattern.elements);
+				return;
+			case "AssignmentPattern":
+				declare(pattern.left);
+				return;
+			case "RestElement":
+				declare(pattern.argument);
+				return;
+			case "TSParameterProperty":
+				declare(pattern.parameter);
+				return;
+		}
+	};
 	walk(parsed.program, (node) => {
-		const declares =
+		if (
 			node.type === "VariableDeclarator" ||
 			node.type === "FunctionDeclaration" ||
-			node.type === "ClassDeclaration";
-		const declared = [declares ? node.id : undefined, node.params];
-		walk(declared, (binding) => {
-			if (
-				binding.type === "Identifier" &&
-				typeof binding.name === "string" &&
-				bindings.has(binding.name)
-			) {
-				shadowed.add(binding.name);
-			}
-		});
+			node.type === "ClassDeclaration"
+		) {
+			declare(node.id);
+		}
+		if (node.type === "CatchClause") {
+			declare(node.param);
+		}
+		declare(node.params);
 	});
 
 	const partUseOf = (opening: unknown): PartUse | undefined => {
@@ -428,10 +460,22 @@ export function checkCode({
 					: `${hint}Call \`get\` with ${use.path[0]} for its props.`,
 			});
 		}
+		const children = Array.isArray(element.children) ? element.children : [];
+		if (
+			children.some(rendersSomething) &&
+			!given.has("children") &&
+			propProblem("children", props) != null
+		) {
+			add(typeof opening.start === "number" ? opening.start : 0, {
+				code: "forbidden-prop",
+				severity: "error",
+				message: `${use.label} does not take children.`,
+				fix: `Make it self-closing, or call \`get\` with ${use.path[0]} for its props.`,
+			});
+		}
 		if (spread) {
 			return;
 		}
-		const children = Array.isArray(element.children) ? element.children : [];
 		const missing = [...props.required].filter(
 			(name) => !given.has(name) && !(name === "children" && children.some(rendersSomething)),
 		);
@@ -471,16 +515,33 @@ export function checkCode({
 			if (node.type === "JSXElement") {
 				const child = partUseOf(node.openingElement);
 				const opening = isRecord(node.openingElement) ? node.openingElement : {};
-				const [first = ""] = jsxNameSegments(opening.name) ?? [];
+				const segments = jsxNameSegments(opening.name) ?? [];
+				const [first = ""] = segments;
+				const part = child?.path.at(-1) ?? "";
 				if (child != null && namespaceOf(child) === namespace) {
-					// Why stop at a nested Content: it names its own dialog, and one pass keeps check linear.
-					return (
-						child.path.at(-1) === "Title" ||
-						(child.path.at(-1) !== "Content" && names(node.children))
-					);
+					// Why stop at a nested Root or Content: its title names another dialog.
+					if (part === "Title") {
+						return true;
+					}
+					if (part === "Content" || part.endsWith("Root")) {
+						return false;
+					}
 				}
+				const attributes = Array.isArray(opening.attributes) ? opening.attributes : [];
 				// Why a local component counts: it can render the title where check cannot see.
-				return (child == null && /^[A-Z]/.test(first)) || names(node.children);
+				const local = child == null && (segments.length > 1 || /^[A-Z]/.test(first));
+				return (
+					local ||
+					attributes.some(
+						(attribute) =>
+							!isRecord(attribute) ||
+							attribute.type !== "JSXAttribute" ||
+							(isRecord(attribute.name) &&
+								attribute.name.name === "children" &&
+								names(attribute.value)),
+					) ||
+					names(node.children)
+				);
 			}
 			if (node.type === "JSXExpressionContainer" && isRecord(node.expression)) {
 				// Why: an identifier, a call, or `{/* … */}` can hold a title that check cannot see.

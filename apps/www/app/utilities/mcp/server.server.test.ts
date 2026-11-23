@@ -759,6 +759,21 @@ describe("the mantle MCP server", () => {
 		expect(result.text).toBe("The code is over 102400 bytes. Check one file at a time.");
 	});
 
+	it("leaves part contracts out of preview when the page renders unreleased changes", async () => {
+		const code =
+			'import { Button } from "@ngrok/mantle/button";\nexport default () => <Button intent="neutral" keyboardShortcut />;';
+
+		const unreleased = await callTool(
+			dependencies({ docsSourceHash: async () => "main-hash" }),
+			"preview",
+			{ code },
+		);
+		const released = await callTool(dependencies(), "preview", { code });
+
+		expect(unreleased.text).toContain("check found nothing.");
+		expect(released.text).toContain("unknown-prop");
+	});
+
 	// Regression: agents wrote the documented `keyboardShortcut` prop that 0.94.1 lacks.
 	it("says when a prop that check rejects is in the docs build but in no release", async () => {
 		const code =
