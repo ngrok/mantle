@@ -37,6 +37,11 @@ function installDialogCloseRequest(): void {
 	prototype.showModal = function (this: HTMLDialogElement) {
 		openers.set(this, document.activeElement);
 		showModal.call(this);
+		// Why the prune: the shim lives as long as the window, across test files,
+		// and must not keep closed or removed dialogs.
+		for (const modal of modals.filter((each) => each === this || !each.open || !each.isConnected)) {
+			modals.splice(modals.indexOf(modal), 1);
+		}
 		modals.push(this);
 		(
 			this.querySelector<HTMLElement>("[autofocus]") ??
