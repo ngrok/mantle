@@ -1625,7 +1625,7 @@ The [Assistant Across Routes](/recipes/assistant-across-routes) recipe shows the
 - `Sidebar.ItemButton` `current` renders `aria-current="page"`, and the row's current treatment is styled from
   that attribute as well as `data-current`, so the announced state and the visual state cannot drift apart,
   whichever side sets it. `Sidebar.GroupLabel` is linked to its `Sidebar.List` via `aria-labelledby`.
-- The mobile sheet is the browser's modal `<dialog>`: it traps focus, makes the page inert, closes on
+- The mobile sheet is the browser's modal `<dialog>`: it makes the page inert, closes on
   `Escape` or a click on the backdrop, and returns focus to the trigger, and locks the page scroll. Its
   accessible name follows the nav's (`"Main"` by default), so overriding `aria-label` or `aria-labelledby` on
   `Sidebar.Nav` renames the dialog too. On desktop the same `<dialog>` is inline and exposes no dialog role

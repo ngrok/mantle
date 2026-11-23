@@ -9,7 +9,7 @@ introducedIn: "0.95.0"
 `Select` no longer uses `@radix-ui/react-select`. Mantle's own behavior hooks drive it, and they follow the WAI-ARIA [select-only combobox](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-select-only/) pattern. The parts, the `value` and `open` props, the keyboard, and the data attributes stay the same. Three things change:
 
 - `Select.Content` takes no positioning props. The list opens below the trigger, or above it when the space below is too small.
-- The list stays modal, as it was with Radix: the page does not scroll and the rest of the page is inert while it is open. Tab no longer moves focus out of an open list. Pick with Enter, or close with Escape.
+- The list is not modal, the same as a native select. While the list is open, the page scrolls and assistive technology can reach it. Focus stays on the trigger, and Tab does not move it out of the open list. Pick with Enter, or close with Escape.
 - The `--radix-select-*` CSS variables are gone. `--anchor-width`, `--anchor-height`, and `--available-height` replace them.
 
 `Select` costs 18.5 KB gzip in place of 43.2 KB (React external).
@@ -41,7 +41,7 @@ The rules apply step 2. They delete each positioning prop from `Select.Content`,
 5. In tests, find queries that pass `{ hidden: true }` only because Radix hid the trigger while the list was open, such as `getByRole("combobox", { hidden: true })`. Delete the option. Also check a `data-side` assertion: it is now only `"top"` or `"bottom"`.
 6. After editing, run the project's formatter, linter, type checker, and tests.
 
-> **Why own the behavior?** Radix Select and Ariakit's combobox each shipped their own selection state, focus, dismissal, and positioning, so a page with both paid for two copies. Mantle's `useListbox` hook now holds that behavior once for `Select`, and `Combobox` and `MultiSelect` move to it next. The list stays modal, and the page behind it is `inert`, so the trigger that keeps focus stays exposed to screen readers.
+> **Why own the behavior?** Radix Select and Ariakit's combobox each shipped their own selection state, focus, dismissal, and positioning, so a page with both paid for two copies. Mantle's `useListbox` hook now holds that behavior once for `Select`, and `Combobox` and `MultiSelect` move to it next. The list is not modal, the same as a native select, and the trigger keeps focus.
 
 ---
 

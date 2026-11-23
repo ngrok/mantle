@@ -14,8 +14,8 @@ import * as DialogParts from "./dialog-parts.js";
  * For side-panel content that slides in from an edge (filter panels, detail
  * views, navigation drawers), prefer `Sheet`.
  *
- * `Dialog` runs on the browser's modal `<dialog>`: the browser traps focus,
- * makes the page inert, closes it on Escape, paints it in the top layer, and
+ * `Dialog` runs on the browser's modal `<dialog>`: the browser makes
+ * the page inert, closes it on Escape, paints it in the top layer, and
  * returns focus to the trigger. Floats composed inside the content portal into
  * the `<dialog>` (`data-slot="dialog-positioner"`) and paint above it. The
  * content mounts when the dialog opens; `forceMount` keeps it mounted and

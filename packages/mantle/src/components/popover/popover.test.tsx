@@ -271,6 +271,34 @@ describe("Popover", () => {
 		await waitFor(() => expect(screen.getByRole("textbox", { name: "Name" })).toHaveFocus());
 	});
 
+	test("Tab and Shift+Tab cycle inside the open content instead of leaving the page", async () => {
+		const user = userEvent.setup();
+		render(
+			<>
+				<Popover.Root>
+					<Popover.Trigger>Open</Popover.Trigger>
+					<Popover.Content>
+						<input aria-label="Width" />
+						<button type="button">Apply</button>
+					</Popover.Content>
+				</Popover.Root>
+				<button type="button">After the trigger</button>
+			</>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "Open" }));
+		const width = screen.getByRole("textbox", { name: "Width" });
+		await waitFor(() => expect(width).toHaveFocus());
+
+		await user.tab();
+		expect(screen.getByRole("button", { name: "Apply" })).toHaveFocus();
+		await user.tab();
+		expect(width).toHaveFocus();
+		await user.tab({ shift: true });
+		expect(screen.getByRole("button", { name: "Apply" })).toHaveFocus();
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+	});
+
 	test("an open popover hydrates with no mismatch", async () => {
 		const tree = (
 			<Popover.Root defaultOpen>

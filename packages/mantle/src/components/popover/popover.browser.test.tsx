@@ -1,9 +1,11 @@
 "use client";
 
 import { render, screen, waitFor } from "@testing-library/react";
+import { createPortal } from "react-dom";
 import { userEvent } from "@testing-library/user-event";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { commands } from "vitest/browser";
+import { commands, userEvent as browserUser } from "vitest/browser";
+import * as AlertDialog from "../alert-dialog/alert-dialog-parts.js";
 import * as Popover from "./popover-parts.js";
 
 /**
@@ -232,5 +234,140 @@ describe("Popover.Content placement", () => {
 
 		expect(screen.getByText("Second")).toBeInTheDocument();
 		expect(styleWrites).toHaveLength(0);
+	});
+});
+
+describe("Popover.Content Tab order", () => {
+	test("Tab and Shift+Tab wrap at the edges of the open content", async () => {
+		render(
+			<>
+				<Popover.Root>
+					<Popover.Trigger>Open</Popover.Trigger>
+					<Popover.Content>
+						<button type="button">First</button>
+						<button type="button">Last</button>
+					</Popover.Content>
+				</Popover.Root>
+				<button type="button">After</button>
+			</>,
+		);
+		await browserUser.click(screen.getByRole("button", { name: "Open" }));
+		const first = screen.getByRole("button", { name: "First" });
+		const last = screen.getByRole("button", { name: "Last" });
+		await waitFor(() => expect(first).toHaveFocus());
+
+		await browserUser.keyboard("{Tab}");
+		expect(last).toHaveFocus();
+		await browserUser.keyboard("{Tab}");
+		expect(first).toHaveFocus();
+		await browserUser.keyboard("{Shift>}{Tab}{/Shift}");
+		expect(last).toHaveFocus();
+	});
+
+	test("lets the browser move focus inside a shadow root in the content", async () => {
+		render(
+			<Popover.Root>
+				<Popover.Trigger>Open</Popover.Trigger>
+				<Popover.Content>
+					<div
+						ref={(host) => {
+							if (host != null && host.shadowRoot == null) {
+								host.attachShadow({ mode: "open" }).innerHTML =
+									'<input aria-label="S1"><input aria-label="S2">';
+							}
+						}}
+					/>
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		await browserUser.click(screen.getByRole("button", { name: "Open" }));
+		const shadow = (await screen.findByRole("dialog")).querySelector("div")?.shadowRoot;
+		shadow?.querySelector<HTMLInputElement>("[aria-label=S1]")?.focus();
+
+		await browserUser.keyboard("{Tab}");
+		expect(shadow?.activeElement?.getAttribute("aria-label")).toBe("S2");
+	});
+
+	test("leaves Tab to an AlertDialog opened from the content", async () => {
+		render(
+			<Popover.Root>
+				<Popover.Trigger>Open</Popover.Trigger>
+				<Popover.Content>
+					<button type="button">Inside</button>
+					<AlertDialog.Root intent="danger">
+						<AlertDialog.Trigger>Delete</AlertDialog.Trigger>
+						<AlertDialog.Content>
+							<AlertDialog.Body>
+								<AlertDialog.Title>Delete it?</AlertDialog.Title>
+								<AlertDialog.Footer>
+									<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+								</AlertDialog.Footer>
+							</AlertDialog.Body>
+						</AlertDialog.Content>
+					</AlertDialog.Root>
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		await browserUser.click(screen.getByRole("button", { name: "Open" }));
+		await browserUser.click(await screen.findByRole("button", { name: "Delete" }));
+		const cancel = await screen.findByRole("button", { name: "Cancel" });
+		cancel.focus();
+
+		let prevented: boolean | undefined;
+		const record = (event: KeyboardEvent) => {
+			prevented = event.defaultPrevented;
+		};
+		document.addEventListener("keydown", record);
+		try {
+			await browserUser.keyboard("{Tab}");
+		} finally {
+			document.removeEventListener("keydown", record);
+		}
+		expect(prevented).toBe(false);
+	});
+
+	test("wraps from the last stop inside a dialog element written in the content", async () => {
+		render(
+			<Popover.Root>
+				<Popover.Trigger>Open</Popover.Trigger>
+				<Popover.Content>
+					<button type="button">First</button>
+					<dialog open>
+						<button type="button">Last</button>
+					</dialog>
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		await browserUser.click(screen.getByRole("button", { name: "Open" }));
+		screen.getByRole("button", { name: "Last" }).focus();
+
+		await browserUser.keyboard("{Tab}");
+		expect(screen.getByRole("button", { name: "First" })).toHaveFocus();
+	});
+
+	test("leaves Tab to a React child portaled outside the content", async () => {
+		render(
+			<Popover.Root>
+				<Popover.Trigger>Open</Popover.Trigger>
+				<Popover.Content>
+					<p>No controls here</p>
+					{createPortal(<input aria-label="Portaled" />, document.body)}
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		await browserUser.click(screen.getByRole("button", { name: "Open" }));
+		screen.getByRole("textbox", { name: "Portaled" }).focus();
+
+		let prevented: boolean | undefined;
+		const record = (event: KeyboardEvent) => {
+			prevented = event.defaultPrevented;
+		};
+		document.addEventListener("keydown", record);
+		try {
+			await browserUser.keyboard("{Tab}");
+		} finally {
+			document.removeEventListener("keydown", record);
+		}
+		expect(prevented).toBe(false);
 	});
 });
