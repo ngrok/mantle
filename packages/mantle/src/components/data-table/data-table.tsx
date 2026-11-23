@@ -1122,14 +1122,17 @@ function isPressOnRowSelection(event: PointerEvent<HTMLTableRowElement>): boolea
 	) {
 		return false;
 	}
-	for (const rect of selection.getRangeAt(0).getClientRects()) {
-		if (
-			event.clientX >= rect.left &&
-			event.clientX <= rect.right &&
-			event.clientY >= rect.top &&
-			event.clientY <= rect.bottom
-		) {
-			return true;
+	// Why each range: Firefox keeps one range for each Ctrl+drag.
+	for (let index = 0; index < selection.rangeCount; index++) {
+		for (const rect of selection.getRangeAt(index).getClientRects()) {
+			if (
+				event.clientX >= rect.left &&
+				event.clientX <= rect.right &&
+				event.clientY >= rect.top &&
+				event.clientY <= rect.bottom
+			) {
+				return true;
+			}
 		}
 	}
 	return false;
@@ -1263,7 +1266,12 @@ function Row<TFeatures extends TableFeatures, TData extends RowData>({
 				onClick={
 					onClick &&
 					((event) => {
-						if (!pressedOnSelection.current && isRowActivationClick(event)) {
+						// Why reset here: a press that no click follows, such as a right
+						// click, must not block a later click. Why only a pointer click
+						// (`detail` > 0): a keyboard or script click has no press.
+						const pressed = pressedOnSelection.current;
+						pressedOnSelection.current = false;
+						if (!(pressed && event.detail > 0) && isRowActivationClick(event)) {
 							onClick(event);
 						}
 					})

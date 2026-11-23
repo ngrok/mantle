@@ -87,6 +87,30 @@ describe("DataTable.Row (browser): text selection", () => {
 		expect(handleClick).toHaveBeenCalledTimes(1);
 	});
 
+	test("a press on selected text with no click after it does not block a later click", async () => {
+		const handleClick = vi.fn<() => void>();
+		render(<Harness onClick={handleClick} />);
+		const nameCell = screen.getByRole("cell", { name: "Alice" });
+		await userEvent.dragAndDrop(nameCell, screen.getByRole("cell", { name: "alice@example.com" }));
+		const selected = document.getSelection()?.getRangeAt(0).getClientRects()[0];
+		invariant(selected, "expected the drag to select text in the name cell");
+		const cell = nameCell.getBoundingClientRect();
+
+		// A right click fires no `click`. Then the selection clears elsewhere, and
+		// a keyboard or script click reaches the row with no press before it.
+		await userEvent.click(nameCell, {
+			button: "right",
+			position: {
+				x: (selected.left + selected.right) / 2 - cell.left,
+				y: (selected.top + selected.bottom) / 2 - cell.top,
+			},
+		});
+		document.getSelection()?.removeAllRanges();
+		screen.getByTestId("row").click();
+
+		expect(handleClick).toHaveBeenCalledTimes(1);
+	});
+
 	test("a selection anchored outside the row does not block onClick", () => {
 		const handleClick = vi.fn<() => void>();
 		render(
