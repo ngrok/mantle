@@ -237,10 +237,13 @@ function alertsSummary(topLabel: string, count: number): string {
 
 const EMPTY_ALERTS: readonly AlertCenterRegisteredAlert[] = [];
 
+/** The bar props an item's server copy of the bar takes: the ones that shape the chrome. */
+type ServerBarProps = Pick<AlertCenterBarProps, "className" | "style" | "data-slot">;
+
 /**
  * The registration store an `AlertCenter.Root` owns for its lifetime.
- * `AlertCenter.Item` parts render `null` and register their facts + content
- * here from layout effects; `Bar`, `Content`, and the live-region announcer
+ * `AlertCenter.Item` parts register their facts here from layout effects
+ * (before hydration they render a server copy of the bar in place); `Bar`, `Content`, and the live-region announcer
  * read the ranked snapshot via `useSyncExternalStore`, so registration churn
  * re-renders only those leaf surfaces, never the consumer's tree. (Same
  * pattern as the chart family's `ChartStore`.)
@@ -419,7 +422,7 @@ class AlertCenterStore {
 	getContentMounted = (): boolean => this.#contentMounted;
 
 	#serverAlertsById = new Map<string, AlertCenterRegisteredAlert>();
-	#serverBarProps: Omit<AlertCenterBarProps, "ref"> = {};
+	#serverBarProps: ServerBarProps = {};
 	#serverShownId: string | null = null;
 
 	/**
@@ -446,15 +449,15 @@ class AlertCenterStore {
 
 	/**
 	 * Bar-side, server render and hydration pass only: publish the bar's props,
-	 * so an item's server copy of the bar renders the same chrome as the client
-	 * bar. The bar renders before the items it precedes, so they read it in time.
+	 * so an item's server copy of the bar takes the same `className`, `style`,
+	 * and `data-slot` as the client bar. The bar renders before the items it precedes, so they read it in time.
 	 */
-	setServerBarProps(props: Omit<AlertCenterBarProps, "ref">): void {
+	setServerBarProps(props: ServerBarProps): void {
 		this.#serverBarProps = props;
 	}
 
 	/** The bar's props for the server copy of the bar. */
-	getServerBarProps = (): Omit<AlertCenterBarProps, "ref"> => this.#serverBarProps;
+	getServerBarProps = (): ServerBarProps => this.#serverBarProps;
 
 	/**
 	 * Item-side: report that the server HTML showed this id in the bar. The
@@ -855,9 +858,16 @@ const Item = ({ children, className, id, intent, order }: AlertCenterItemProps) 
 	// through the portal like any other render.
 	const [host, setHost] = useState<HTMLElement | null>(null);
 	useIsomorphicLayoutEffect(() => {
-		// Read before the portal replaces the server copy: CSS shows at most one
-		// copy, so a copy with a box is the bar the page already shows.
-		if ((serverBarRef.current?.getClientRects().length ?? 0) > 0) {
+		// Read before the portal replaces the server copy. CSS shows at most one
+		// copy in a parent, so a copy with a box is the bar the page already
+		// shows. Why any copy in the parent, not only this one: the shown copy
+		// can belong to an item in a `Suspense` boundary that hydrates later.
+		const shownCopy = [...(serverBarRef.current?.parentElement?.children ?? [])].find(
+			(element) =>
+				element.getAttribute("data-slot") === "alert-center-server-bar" &&
+				element.getClientRects().length > 0,
+		);
+		if (shownCopy != null) {
 			store.setServerShownId(id);
 		}
 		setHost(store.getHost(id));
@@ -904,10 +914,12 @@ const Item = ({ children, className, id, intent, order }: AlertCenterItemProps) 
 	// The same chrome the client bar renders, so the client bar replaces it at
 	// the same height. Every item renders the same element, so a claim that
 	// differs at hydration changes only an attribute.
+	// Only the props that shape the chrome: every item renders a copy, so an
+	// `id` or a test id would repeat in the HTML.
 	const {
 		className: barClassName,
 		"data-slot": barDataSlot,
-		...barProps
+		style: barStyle,
 	} = store.getServerBarProps();
 	return (
 		<div
@@ -920,7 +932,7 @@ const Item = ({ children, className, id, intent, order }: AlertCenterItemProps) 
 				appearance="banner"
 				intent={intent}
 				className={cx(chromeClassName, singleLineBarControls, barClassName, className)}
-				{...barProps}
+				style={barStyle}
 				data-slot={joinDataSlot(barDataSlot, "alert-center-bar")}
 				data-placement="bar"
 				data-alert-id={id}
@@ -1433,7 +1445,7 @@ const Bar = ({ className, "data-slot": dataSlot, ref, ...props }: AlertCenterBar
 	const { isMounted, dataState, onExitTransitionEnd } = useBarPresence({ present });
 	const isHydrated = useIsHydrated();
 	if (!isHydrated) {
-		store.setServerBarProps({ ...props, className, "data-slot": dataSlot });
+		store.setServerBarProps({ className, style: props.style, "data-slot": dataSlot });
 	}
 
 	// Retain the last alert so the collapsing bar keeps its chrome through the
@@ -1526,6 +1538,8 @@ const Bar = ({ className, "data-slot": dataSlot, ref, ...props }: AlertCenterBar
 	useIsomorphicLayoutEffect(() => {
 		return () => {
 			store.setTopLabel("");
+			// A later bar under the same root must enter with its animation.
+			store.setServerShownId(null);
 		};
 	}, [store]);
 	// Publish the wrapper element so Content can redirect focus into the bar

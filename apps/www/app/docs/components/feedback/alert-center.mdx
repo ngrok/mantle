@@ -46,14 +46,15 @@ export function AccountAlerts() {
 
 ## Composition
 
-Compose the parts of an `AlertCenter` together to build your own. Items render `null` in place; their
-children are projected into the bar or an expansion row by rank:
+Compose the parts of an `AlertCenter` together to build your own. After hydration, items render no DOM in
+place; their children are projected into the bar or an expansion row by rank (see
+[Server rendering](#server-rendering) for the server HTML):
 
 ```text showLineNumbers=false
 AlertCenter.Root
 ├── AlertCenter.Bar        ← the top-ranked item's children, in Alert chrome
 ├── AlertCenter.Content    ← every other item's children, as ranked rows
-└── AlertCenter.Item (0..n, renderless)
+└── AlertCenter.Item (0..n, renderless after hydration)
     └── Alert.Icon / Alert.Content / Alert.Title / Alert.Description /
         AlertCenter.DismissIconButton
 ```
@@ -68,8 +69,8 @@ Only one part takes `asChild`, and deliberately so:
   is a link or a form submit rather than a click handler. The required `onClick` still runs, so keep the
   unmount there.
 
-The rest have no `asChild` on purpose. `AlertCenter.Root` and `AlertCenter.Item` render no DOM at all, so
-there is nothing to swap: `Root` is the state owner, and an `Item` registers its facts and projects its
+The rest have no `asChild` on purpose. `AlertCenter.Root` renders no DOM, and `AlertCenter.Item` renders
+none after hydration, so there is nothing to swap: `Root` is the state owner, and an `Item` registers its facts and projects its
 children (see [Projection](#projection)). `AlertCenter.Bar` and `AlertCenter.Content` each render a fixed
 structure with no single default element a swap could coherently replace: the bar is a presence wrapper that
 owns the exit animation around an `Alert.Root` banner (swap the wrapper and the animation breaks; swap the
@@ -91,8 +92,8 @@ into the bar.
 - **The count-and-caret control expands the full list.** When two or more alerts are active, the bar renders
   a compact control that expands `AlertCenter.Content` beneath it. The additional alerts render as compact,
   full-width one- or two-line banners, push the app layout down, and can be collapsed by the same control.
-- **Content is composed; facts are registered.** Each `AlertCenter.Item` renders no DOM where it's
-  authored: it registers `{ id, intent }` and portals its children into a stable host the bar or an
+- **Content is composed; facts are registered.** After hydration, each `AlertCenter.Item` renders no DOM
+  where it's authored: it registers `{ id, intent }` and portals its children into a stable host the bar or an
   expansion row adopts (see [Projection](#projection)). You get real anchors, router links, stateful and
   context-aware JSX in every banner, while the count, the top alert, and the ordering stay derived and
   deterministic.
@@ -102,7 +103,7 @@ into the bar.
   and a dismissed alert that returns resumes its original position. When two same-intent alerts come from
   independent sources, arrival order depends on which source answers first. Set `order` on each item to pin
   which one the bar shows.
-- **It collapses when empty.** With no items mounted the bar animates out and renders nothing, mirroring
+- **It collapses when empty.** With no items mounted the bar animates out and renders only a hidden anchor, mirroring
   `AppLayout.Notice`, so `Root`, `Bar`, and `Content` can all stay mounted unconditionally.
 - **It announces politely.** A persistent, visually-hidden `role="status"` live region (mounted by
   `AlertCenter.Root`) announces the top alert and how many more as alerts arrive or re-rank. A live region
@@ -686,8 +687,10 @@ render.
 Without the prefetch, the server has no items. The bar then enters with its height animation after
 hydration and pushes the page down, which counts toward Cumulative Layout Shift. An item authored in a
 route, away from the bar, also enters after hydration, and so do the expansion rows of a `Root` that
-starts open. When such an item outranks the copy the server shows, the bar keeps its height but changes
-its alert at hydration. The server HTML places the copy by its siblings, so compose one `AlertCenter.Root` per parent.
+starts open. When such an item outranks the copy the server shows, the bar changes its alert at
+hydration, and the page shifts if the two alerts differ in height. The same happens when an item sits
+inside a `Suspense` boundary that suspends during a streamed server render. The server HTML places the
+copy by its siblings, so compose one `AlertCenter.Root` per parent.
 
 Render on the server only the alerts the server can decide. A dismissal kept in `sessionStorage` is unknown
 on the server, so an item it hides would show in the server HTML and then leave at hydration. Keep those
@@ -833,6 +836,7 @@ to the banner chrome. `appearance` and `intent` are the component's own: the chr
 | `data-alert-id`      | the top item's `id`            | On the chrome; per-alert styling and testing hook.                                                   |
 | `data-alert-dismiss` | present on the dismiss control | Read, not stamped. `Alert` emits it; the bar's CSS centers and offsets the control with it.          |
 | `data-alert-expand`  | present on the expand control  | Read, not stamped. `Alert` emits it; the bar's CSS centers the control with it.                      |
+| `data-slot`          | `alert-center-bar-anchor`      | While no bar shows: on a hidden element that marks where the items' server copies may show.          |
 
 ### AlertCenter.Content
 
@@ -851,18 +855,20 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | `ref`             | `Ref<HTMLDivElement>` |                 | Forwarded to the expansion wrapper.                                                                                                                     |
 | `children`        | `never`               |                 | Not accepted. The rows are the registered items' authored children.                                                                                     |
 
-| Data Attribute     | Value                     | Description                                                                                |
-| ------------------ | ------------------------- | ------------------------------------------------------------------------------------------ |
-| `data-slot`        | `alert-center-content`    | On the expansion wrapper that owns the collapse animation.                                 |
-| `data-slot`        | `alert-center-item alert` | On each row's banner chrome, joined ahead of `Alert.Root`'s own slot.                      |
-| `data-state`       | `"open"` \| `"closed"`    | On the wrapper; drives the collapse transition.                                            |
-| `data-placement`   | `"list"`                  | On each row's chrome: where that item's children are currently rendering.                  |
-| `data-alert-id`    | the row item's `id`       | On each row's chrome; per-alert styling and testing hook.                                  |
-| `data-alert-mount` | the row item's `id`       | On the row's layout-transparent mount point: the element that item's host is adopted into. |
+| Data Attribute     | Value                         | Description                                                                                            |
+| ------------------ | ----------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `data-slot`        | `alert-center-content`        | On the expansion wrapper that owns the collapse animation.                                             |
+| `data-slot`        | `alert-center-item alert`     | On each row's banner chrome, joined ahead of `Alert.Root`'s own slot.                                  |
+| `data-state`       | `"open"` \| `"closed"`        | On the wrapper; drives the collapse transition.                                                        |
+| `data-placement`   | `"list"`                      | On each row's chrome: where that item's children are currently rendering.                              |
+| `data-alert-id`    | the row item's `id`           | On each row's chrome; per-alert styling and testing hook.                                              |
+| `data-alert-mount` | the row item's `id`           | On the row's layout-transparent mount point: the element that item's host is adopted into.             |
+| `data-slot`        | `alert-center-content-anchor` | While no row shows: on a hidden element that tells a server copy to reserve the expand control's room. |
 
 ### AlertCenter.Item
 
-One authored alert: the coordination facts as props, the banner content as children. Renders `null` in
+One authored alert: the coordination facts as props, the banner content as children. Before hydration it
+renders a copy of the bar in place (see [Server rendering](#server-rendering)); after, it renders nothing in
 place and registers with the center; mount to show, unmount to dismiss. Two items mounted at once may not
 share an `id`. The second registration throws, since both would project into that id's single host.
 
@@ -881,11 +887,13 @@ children stay direct flex items of the banner chrome and keep its `gap`.
 | `order`     | `number`                                                      |         | The position among same-intent peers. Lower comes first. Items that share an order keep arrival order. An item with no order follows every item that declares one. `Infinity` counts as declared. `intent` still decides the tier.  |
 | `children`  | `ReactNode`                                                   |         | The banner content: `Alert` parts, not `Alert.Root`. Rendered at the Bar/Content position, not where the item is authored.                                                                                                          |
 
-| Data Attribute    | Value                     | Description                                                                       |
-| ----------------- | ------------------------- | --------------------------------------------------------------------------------- |
-| `data-slot`       | `alert-center-item-host`  | On the stable per-id host element the item's children portal into.                |
-| `data-slot`       | `alert-center-item-label` | On the layout-transparent element inside the host that wraps the item's children. |
-| `data-alert-host` | the item's `id`           | On that same host: which alert's projected children it holds.                     |
+| Data Attribute                   | Value                     | Description                                                                                                           |
+| -------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`                      | `alert-center-item-host`  | On the stable per-id host element the item's children portal into.                                                    |
+| `data-slot`                      | `alert-center-item-label` | On the layout-transparent element inside the host that wraps the item's children.                                     |
+| `data-alert-host`                | the item's `id`           | On that same host: which alert's projected children it holds.                                                         |
+| `data-slot`                      | `alert-center-server-bar` | Before hydration only: on the item's copy of the bar, around the same chrome the bar renders.                         |
+| `data-alert-center-server-claim` | present                   | Before hydration only: on a copy that outranks every item rendered before it. CSS shows the last claim after the bar. |
 
 ### AlertCenter.DismissIconButton
 

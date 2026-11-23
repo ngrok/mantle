@@ -52,14 +52,21 @@ return alerts
 
 ```tsx
 // BEFORE
-<AlertCenter.Item id="screen" intent="info">
-	<Alert.Title>Your screen is {window.innerWidth}px wide</Alert.Title>
-</AlertCenter.Item>;
+function ScreenAlert() {
+	return (
+		<AlertCenter.Item id="screen" intent="info">
+			<Alert.Title>Your screen is {window.innerWidth}px wide</Alert.Title>
+		</AlertCenter.Item>
+	);
+}
 
 // AFTER
-const isHydrated = useIsHydrated();
-{
-	isHydrated && (
+function ScreenAlert() {
+	const isHydrated = useIsHydrated();
+	if (!isHydrated) {
+		return null;
+	}
+	return (
 		<AlertCenter.Item id="screen" intent="info">
 			<Alert.Title>Your screen is {window.innerWidth}px wide</Alert.Title>
 		</AlertCenter.Item>
@@ -71,6 +78,7 @@ const isHydrated = useIsHydrated();
 
 - Items that already render only after hydration change nothing. They enter after hydration, as before.
 - At hydration the item's children mount again in the bar, so their mount effects run twice in production.
+- `AlertCenter.Bar` and `AlertCenter.Content` now render a hidden anchor while they show nothing, so a test that expects an empty notice slot must ignore hidden elements.
 - An item authored away from the bar keeps a hidden copy and enters after hydration. With `defaultOpen`, the expansion rows also enter after hydration.
 
 ## How to verify
