@@ -1327,7 +1327,9 @@ export function productionDependencies({
 	// Why: the agent eval's branch mode serves the branch's packed tarball (docs/mcp-evals.md).
 	const localTarball = process.env.MANTLE_MCP_LOCAL_TARBALL;
 	loader ??= createVersionDataLoader(
-		localTarball == null ? {} : { registry: localTarballRegistry(localTarball) },
+		localTarball == null || localTarball === ""
+			? {}
+			: { registry: localTarballRegistry(localTarball) },
 	);
 	const previewOrigin =
 		process.env.MANTLE_PREVIEW_ORIGIN ?? (import.meta.env.DEV ? requestOrigin : canonicalOrigin);

@@ -59,8 +59,7 @@ export function InterfaceCountersTable() {
 `;
 
 /** State that only a hand-built row expansion needs. */
-const handBuiltExpansion =
-	/aria-expanded|setExpanded|expanded(Ids|Rows|Set)\b|useState<[^>]*(Set|Record)</;
+const handBuiltExpansion = /aria-expanded|expanded(Ids|Rows|Set)\b|useState<[^>]*(Set|Record)</;
 
 export const tasks: readonly Task[] = [
 	{

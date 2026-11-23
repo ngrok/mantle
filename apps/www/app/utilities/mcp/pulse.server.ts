@@ -43,6 +43,9 @@ const TRAIL_LENGTH = 8;
  */
 const FOLLOW_THROUGH_MS = 10 * 60_000;
 
+/** The source that the agent eval's proxy sends (docs/mcp-evals.md). Its calls are not real use. */
+const AGENT_EVAL_SOURCE = "ngrok/mantle-agent-eval";
+
 /** One alert: its Slack text, and the key that holds back a repeat for an hour. */
 type Alert = { key: string; text: string };
 
@@ -861,6 +864,10 @@ export function createPulse({
 
 	return {
 		record: (event) => {
+			// Why: an eval run makes weak finds on purpose, and must not use up the alert budget or skew the digest.
+			if (event.source === AGENT_EVAL_SOURCE) {
+				return;
+			}
 			const time = now();
 			// Why the workspace and the ticket: two tasks behind one address and agent are two sessions.
 			const sessionKey = `${event.caller} ${event.workspace ?? ""} ${event.ticket ?? ""}`;

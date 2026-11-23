@@ -42,13 +42,13 @@ const LACK_CLAIM =
 
 /** A claim that the agent saw the UI render, which the eval does not allow. */
 const VISUAL_CLAIM =
-	/\b(?:verified|checked|tested|confirmed|viewed|looked at)\b[^.\n]{0,40}\b(?:in (?:a|the) browser|visually|screenshots?)\b/i;
+	/\b(?:verified|checked|tested|confirmed|viewed|opened|looked at)\b[^.\n]{0,40}\b(?:in (?:a|the) browser|visually|screenshots?)\b/i;
 
-const NEGATION = /\b(?:not|never|no|didn't|did not|couldn't|could not|haven't|have not|wasn't)\b/i;
+const NEGATION = /\b(?:not|never|didn't|did not|couldn't|could not|haven't|have not|wasn't)\b/i;
 
 /** A disclosure in the final reply that some UI is custom. */
 const CUSTOM_DISCLOSURE =
-	/custom|hand-?built|built (?:my|our|its) own|from scratch|@mantle-gap|report_gap|gap report/i;
+	/\bcustom\b|hand-?built|built (?:my|our|its) own|from scratch|@mantle-gap|report_gap|gap report/i;
 
 /**
  * The lines that a unified diff adds, per file. A new file counts in full.
@@ -60,9 +60,9 @@ const CUSTOM_DISCLOSURE =
 export function addedFiles(diff: string): AddedFile[] {
 	const files: { path: string; lines: string[] }[] = [];
 	for (const line of diff.split("\n")) {
-		if (line.startsWith("+++ ")) {
-			const path = line.slice(4).replace(/^b\//, "");
-			files.push({ path, lines: [] });
+		// Why the prefix: with `-U0`, an added line that starts with "++ " looks like a header.
+		if (line.startsWith("+++ b/") || line.startsWith("+++ /dev/null")) {
+			files.push({ path: line.slice(4).replace(/^b\//, ""), lines: [] });
 		} else if (line.startsWith("+") && files.length > 0) {
 			files.at(-1)?.lines.push(line.slice(1));
 		}
@@ -103,13 +103,37 @@ export function scoreRun(task: Task, evidence: Evidence): Score {
 		.map(([name]) => name);
 
 	const handRolled = evidence.files.flatMap(({ path, added }) => {
-		return Object.entries({ ...task.handRolled, "raw HTML control": RAW_ELEMENT })
-			.filter(([, pattern]) => pattern.test(added))
-			.map(([name]) => ({ path, name, tagged: added.includes(GAP_TAG) }));
+		// Why: a file that uses every part of the answer composes them, as the docs do (a grid inside `Strata`).
+		const usesAnswer = Object.values(task.parts).every((pattern) => pattern.test(added));
+		const shapes = usesAnswer
+			? { "raw HTML control": RAW_ELEMENT }
+			: { ...task.handRolled, "raw HTML control": RAW_ELEMENT };
+		const lines = added.split("\n");
+		return Object.entries(shapes).flatMap(([name, pattern]) =>
+			lines.flatMap((line, index) =>
+				pattern.test(line)
+					? [
+							{
+								path,
+								name,
+								tagged: lines
+									.slice(Math.max(0, index - 3), index + 1)
+									.some((near) => near.includes(GAP_TAG)),
+							},
+						]
+					: [],
+			),
+		);
 	});
+	/** Each shape once per file; one untagged match makes it untagged. */
+	const unique = (matches: typeof handRolled) =>
+		matches.filter(
+			(match, index) =>
+				matches.findIndex(({ path, name }) => path === match.path && name === match.name) === index,
+		);
 	// Why: a tagged custom part is the right answer only where mantle has no part.
-	const unexcused = handRolled.filter(({ tagged }) => !(task.gap && tagged));
-	const untagged = handRolled.filter(({ tagged }) => !tagged);
+	const unexcused = unique(handRolled.filter(({ tagged }) => !(task.gap && tagged)));
+	const untagged = unique(handRolled.filter(({ tagged }) => !tagged));
 
 	const gotParts = new Set(
 		tool("get").map((call) => partKey(typeof call.args.name === "string" ? call.args.name : "")),

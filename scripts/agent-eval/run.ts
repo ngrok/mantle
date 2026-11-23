@@ -542,6 +542,8 @@ async function main() {
 		),
 	);
 	const proxy = await startMcpProxy(mcpUrl);
+	// Why after each run: a job that hits its timeout keeps the finished runs for `--rescore`.
+	const finished: RunRecord[] = [];
 	try {
 		const records = await pool(jobs, Number(values.concurrency), async (job) => {
 			process.stderr.write(`start ${job.id}\n`);
@@ -553,13 +555,14 @@ async function main() {
 			});
 			const scored = score({ ...record, calls: proxy.callsOf(job.id) });
 			writeFileSync(path.join(out, "runs", job.id, "run.json"), JSON.stringify(scored, null, 2));
+			finished.push(scored);
+			writeFileSync(
+				path.join(out, "eval.json"),
+				JSON.stringify({ records: finished, mantle, mcpUrl }, null, 2),
+			);
 			process.stderr.write(`done ${job.id}: ${scored.score?.pass === true ? "pass" : "fail"}\n`);
 			return scored;
 		});
-		writeFileSync(
-			path.join(out, "eval.json"),
-			JSON.stringify({ records, mantle, mcpUrl }, null, 2),
-		);
 		writeReport(out, records, { mcpUrl, mantle });
 	} finally {
 		await proxy.close();

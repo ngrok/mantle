@@ -29,7 +29,7 @@ The tasks in [`tasks.ts`](../scripts/agent-eval/tasks.ts) are real requests: an 
 - `typechecks`: `tsc --noEmit` passes, so no prop is made up.
 - `honestClaim`: the reply claims no gap that mantle fills, names no part that the code does not use, claims no browser check, and discloses custom parts.
 
-A local proxy records each MCP call and answers `report_gap` itself, so an eval posts nothing to #pulse-mantle-mcp. The proxy tags the rest of its traffic with `?source=ngrok/mantle-agent-eval`.
+A local proxy records each MCP call and answers `report_gap` itself. It tags the rest of its traffic with `?source=ngrok/mantle-agent-eval`, and pulse drops that source, so an eval posts nothing to #pulse-mantle-mcp.
 
 ### Run it
 

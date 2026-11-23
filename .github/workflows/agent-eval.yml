@@ -20,7 +20,7 @@ on:
         default: "all"
       reps:
         description: "Runs of each task for each agent."
-        default: "2"
+        default: "1"
   schedule:
     # 09:00 UTC, before the US workday.
     - cron: "0 9 * * *"
@@ -43,14 +43,12 @@ jobs:
   agent-eval:
     name: agent eval (${{ inputs.mcp || 'prod' }})
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 240
     env:
       MCP: ${{ inputs.mcp || 'prod' }}
       AGENTS: ${{ inputs.agents || 'claude codex' }}
       TASKS: ${{ inputs.tasks || 'all' }}
       REPS: ${{ inputs.reps || '1' }}
-      ANTHROPIC_API_KEY: ${{ secrets.AGENT_EVAL_ANTHROPIC_API_KEY }}
-      OPENAI_API_KEY: ${{ secrets.AGENT_EVAL_OPENAI_API_KEY }}
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -74,6 +72,9 @@ jobs:
 
       # Why each agent needs its own secret: a run with a missing key fails at sign-in, not at scoring.
       - name: Install the agent CLIs 🤖
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.AGENT_EVAL_ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.AGENT_EVAL_OPENAI_API_KEY }}
         run: |
           agents=""
           for agent in ${AGENTS}; do
@@ -110,6 +111,9 @@ jobs:
           exit 1
 
       - name: Run the agents 🎯
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.AGENT_EVAL_ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.AGENT_EVAL_OPENAI_API_KEY }}
         run: |
           task_args=""
           if [[ "${TASKS}" != "all" ]]; then
@@ -120,7 +124,7 @@ jobs:
 
       - name: Upload the runs 📤
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: agent-eval
           path: |

@@ -21,13 +21,15 @@ const readsDataTable: McpCall[] = [
 	{ tool: "check", args: { code: "<1200 bytes>" } },
 ];
 
-/** Wave 3 of the A/B: `DataTable` with `renderExpanded`, and an accurate reply. */
+/** Wave 3 of the A/B: `DataTable` with `renderExpanded` and the docs' expansion state, and an accurate reply. */
 const dataTableDetail: Evidence = {
 	files: [
 		{
 			path: "src/interface-counters-table.tsx",
 			added: [
 				'import { DataTable, useTable } from "@ngrok/mantle/data-table";',
+				"const [expanded, setExpanded] = useState<ExpandedState>({});",
+				"onExpandedChange: setExpanded,",
 				"renderExpanded={(row) => <ErrorPanel errors={row.original.errors} />}",
 			].join("\n"),
 		},
@@ -100,8 +102,40 @@ describe("scoreRun", () => {
 			typechecks: true,
 		};
 
+		const untaggedInput = {
+			...customDrag,
+			files: [
+				{
+					path: "src/rules-editor.tsx",
+					added: `${customDrag.files[0]?.added}\nconst a = 1;\nconst b = 2;\nconst c = 3;\n<input value={name} />`,
+				},
+			],
+		};
+
 		expect(scoreRun(task("rules-reorder"), customDrag).pass).toBe(true);
+		expect(scoreRun(task("rules-reorder"), untaggedInput).criteria.noHandRolling.notes).toEqual([
+			"raw HTML control in src/rules-editor.tsx",
+		]);
 		expect(scoreRun(task("sub-row-table"), customDrag).criteria.noHandRolling.pass).toBe(false);
+	});
+
+	it("lets a file that uses the answer compose it, as the Strata docs put a grid inside it", () => {
+		const { criteria } = scoreRun(task("settings-strata"), {
+			files: [
+				{
+					path: "src/account-settings.tsx",
+					added: [
+						'import { Strata } from "@ngrok/mantle/strata";',
+						'<Strata.Body className="grid grid-cols-1 gap-2 sm:grid-cols-2">',
+					].join("\n"),
+				},
+			],
+			calls: [],
+			finalMessage: "",
+			typechecks: true,
+		});
+
+		expect(criteria.noHandRolling.pass).toBe(true);
 	});
 
 	it("fails a reply that names a part the code does not use or claims a browser check", () => {

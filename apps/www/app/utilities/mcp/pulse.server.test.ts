@@ -507,6 +507,20 @@ describe("createPulse", () => {
 		expect(posts).toHaveLength(2);
 	});
 
+	it("posts nothing for the agent eval, and leaves it out of the digest", async () => {
+		const { pulse, posts } = testPulse();
+		const weakFind = event({ gap: { source: "find", tokens: ["stepper"] } });
+
+		pulse.record({ ...weakFind, source: "ngrok/mantle-agent-eval" });
+		await pulse.flush("shutdown");
+		const evalPosts = [...posts];
+		pulse.record(weakFind);
+		await pulse.flush("shutdown");
+
+		expect(evalPosts).toEqual([]);
+		expect(posts.join("\n")).toContain("stepper");
+	});
+
 	it("posts the same need once for each app in the same hour", () => {
 		const { pulse, posts } = testPulse();
 		const fromDashboard = {
