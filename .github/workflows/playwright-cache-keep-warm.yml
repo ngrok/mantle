@@ -24,6 +24,10 @@ jobs:
   keep-warm:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -53,9 +57,9 @@ jobs:
           path: ~/.cache/ms-playwright
           # The same key `browser-test` in vibe-check.yml restores. A restore
           # here counts as an access and resets the 7-day eviction timer.
-          key: playwright-browsers-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+          key: playwright-browsers-${{ runner.os }}-${{ matrix.browser }}-${{ steps.playwright.outputs.version }}
 
-      - name: Install Playwright Chromium 🎭
+      - name: Install Playwright ${{ matrix.browser }} 🎭
         # Runs only when the key missed (a Playwright bump or an evicted
         # entry); the cache action's post step then saves the fresh entry.
         # `pnpm dlx` fetches the pinned playwright package alone, so the job
@@ -63,4 +67,4 @@ jobs:
         # populates ~/.cache/ms-playwright, never launches the browser.
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         timeout-minutes: 10
-        run: pnpm dlx playwright@${{ steps.playwright.outputs.version }} install chromium
+        run: pnpm dlx playwright@${{ steps.playwright.outputs.version }} install ${{ matrix.browser }}

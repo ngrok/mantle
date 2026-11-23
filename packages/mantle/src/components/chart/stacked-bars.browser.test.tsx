@@ -5,7 +5,6 @@ import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import * as AreaChart from "../area-chart/area-chart-parts.js";
 import * as BarChart from "../bar-chart/bar-chart-parts.js";
-import { BAR_CORNER_RADIUS } from "./renderer.js";
 import { CanvasAreaChartRoot, CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
 
 /**
@@ -139,12 +138,13 @@ const waitForPlot = async (canvas: HTMLCanvasElement): Promise<void> => {
 };
 
 /**
- * Whether the pixel at `offset` is opaque and within `tolerance` of `color`.
+ * Whether the pixel at `offset` is fully covered and within `tolerance` of `color`.
  * The threshold excludes antialiased edge pixels, so a measured edge is the
- * fill's own edge rather than its fringe.
+ * fill's own edge rather than its fringe. Why near 255: WebKit paints the
+ * outer pixel of a 2px corner at alpha 212, and a lower bar counts it as fill.
  */
 const isColor = (painted: Painted, offset: number, color: Rgb, tolerance = 20): boolean =>
-	(painted.data[offset + 3] ?? 0) > 200 &&
+	(painted.data[offset + 3] ?? 0) >= 250 &&
 	Math.abs((painted.data[offset] ?? 0) - color[0]) <= tolerance &&
 	Math.abs((painted.data[offset + 1] ?? 0) - color[1]) <= tolerance &&
 	Math.abs((painted.data[offset + 2] ?? 0) - color[2]) <= tolerance;
@@ -158,7 +158,10 @@ const isColor = (painted: Painted, offset: number, color: Rgb, tolerance = 20): 
  */
 const expectRoundedCap = (painted: Painted, { cap, body }: { cap: number; body: number }): void => {
 	expect(body).toBeGreaterThan(0);
-	expect(body - cap).toBeGreaterThanOrEqual(BAR_CORNER_RADIUS * painted.scale);
+	// Why a literal, not the renderer's radius: a radius of 0 must fail here. Each
+	// corner of the shipped 2px radius leaves at least one partly covered pixel in
+	// the edge row, in every engine's rasterizer.
+	expect(body - cap).toBeGreaterThanOrEqual(2 * painted.scale);
 };
 
 /** How many pixels of `color` row `y` carries between `from` and `to`. */

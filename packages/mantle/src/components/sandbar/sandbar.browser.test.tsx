@@ -242,36 +242,6 @@ describe("Sandbar (browser)", () => {
 		expect(document.activeElement).not.toBe(fieldA);
 	});
 
-	test("restore is skipped when the pre-bar element has been removed", async () => {
-		const tree = ({ open, showOutside }: { open: boolean; showOutside: boolean }) => (
-			<div>
-				{showOutside && <button type="button">Removed later</button>}
-				<Sandbar.Root open={open}>
-					<Sandbar.Message>You have unsaved changes</Sandbar.Message>
-					<Sandbar.Actions>
-						<Sandbar.DiscardButton onClick={() => {}}>Discard</Sandbar.DiscardButton>
-					</Sandbar.Actions>
-				</Sandbar.Root>
-			</div>
-		);
-		const { rerender } = render(tree({ open: true, showOutside: true }));
-
-		screen.getByRole("button", { name: "Removed later" }).focus();
-		screen.getByRole("button", { name: "Discard" }).focus();
-
-		rerender(tree({ open: true, showOutside: false }));
-		rerender(tree({ open: false, showOutside: false }));
-
-		await waitFor(() => {
-			expect(getPanel()).toHaveAttribute("hidden");
-		});
-		// the stored target is disconnected, so focus is left where the browser put it
-		// rather than restored to a dead node. Poll the focus itself: hiding the
-		// panel drops focus to <body> through the browser's own focus-fixup, which
-		// is not synchronous with the DOM mutation.
-		await expect.poll(() => document.activeElement).toBe(document.body);
-	});
-
 	test("closing restores focus after an in-bar control dropped focus to the body", async () => {
 		const tree = ({ open }: { open: boolean }) => (
 			<div>
@@ -305,9 +275,9 @@ describe("Sandbar (browser)", () => {
 	});
 
 	// NOTE: the restore effect's remaining rejection guards (a stored candidate
-	// that is now `:disabled`, or that fails `checkVisibility()`) are deliberately
-	// untested. `HTMLElement.focus()` on a disabled or non-rendered element is a
-	// spec-defined no-op, so removing either guard leaves the identical observable
+	// that is now disconnected, `:disabled`, or fails `checkVisibility()`) are
+	// deliberately untested. `HTMLElement.focus()` on a disconnected, disabled, or
+	// non-rendered element is a spec-defined no-op, so removing either guard leaves the identical observable
 	// outcome (focus stays on <body>); a black-box focus assertion cannot tell the
 	// two apart. They remain as defensive fast-paths that skip a wasted focus() call.
 

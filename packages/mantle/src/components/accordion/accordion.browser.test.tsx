@@ -86,7 +86,9 @@ describe("Accordion (browser)", () => {
 		// find-in-page match; that opens the section and clears the hidden attribute.
 		region?.dispatchEvent(new Event("beforematch", { bubbles: true }));
 		await waitFor(() => expect(region).not.toHaveAttribute("hidden"));
-		expect(region).toHaveAttribute("data-state", "open");
+		// Why wait: the state change renders in a later task in WebKit. The next
+		// test pins the synchronous part, the unhidden box.
+		await waitFor(() => expect(region).toHaveAttribute("data-state", "open"));
 	});
 
 	test('"beforematch" expands the content synchronously so the browser can highlight the revealed match', () => {

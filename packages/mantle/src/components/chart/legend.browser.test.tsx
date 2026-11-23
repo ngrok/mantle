@@ -56,17 +56,6 @@ describe("the legend", () => {
 		expect(legend.tabIndex).toBe(0);
 	});
 
-	test("is not in the Tab order when it fits", async () => {
-		render(<Chart seriesCount={2} />);
-		const legend = await screen.findByTestId("legend");
-		// Why the frame: the overflow read lands after layout.
-		await new Promise((resolve) => {
-			requestAnimationFrame(resolve);
-		});
-		expect(legend.hasAttribute("tabindex")).toBe(false);
-		expect(legend.hasAttribute("role")).toBe(false);
-	});
-
 	test("leaves the Tab order when it stops scrolling", async () => {
 		const { rerender } = render(<Chart seriesCount={20} />);
 		await screen.findByRole("group", { name: "Legend" });

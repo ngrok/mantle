@@ -108,6 +108,15 @@ function queryElement(root: ParentNode, selector: string) {
 	return element;
 }
 
+/**
+ * How far the trail sits from its scroll end. Why not `scrollLeft` against the
+ * integer `scrollWidth - clientWidth`: Firefox keeps a fractional scroll offset,
+ * so a trail pinned to its end can sit a fraction of a pixel short of it.
+ */
+function distanceFromEnd(list: HTMLElement) {
+	return Math.abs(list.scrollWidth - list.clientWidth - list.scrollLeft);
+}
+
 function queryElements(root: ParentNode, selector: string) {
 	return [...root.querySelectorAll<HTMLElement>(selector)];
 }
@@ -193,7 +202,7 @@ describe("Breadcrumb overflow", () => {
 		const list = queryElement(container, "[data-slot~=breadcrumb-list]");
 		const currentPage = queryElement(container, "[data-slot~=breadcrumb-page]");
 
-		expect(list.scrollLeft).toBe(list.scrollWidth - list.clientWidth);
+		expect(distanceFromEnd(list)).toBeLessThan(1);
 		expect(list.scrollLeft).toBeGreaterThan(0);
 		// Sub-pixel slack: the current page is flush with the scrollport's end.
 		expect(currentPage.getBoundingClientRect().right).toBeLessThanOrEqual(
@@ -210,21 +219,24 @@ describe("Breadcrumb overflow", () => {
 
 		const secondEnd = list.scrollWidth - list.clientWidth;
 		expect(secondEnd).toBeGreaterThan(firstEnd);
-		expect(list.scrollLeft).toBe(secondEnd);
+		expect(distanceFromEnd(list)).toBeLessThan(1);
 	});
 
-	test("a crumb the reader tabs to lands clear of the fade zone", () => {
+	test("a crumb the reader tabs to lands clear of the fade zone", async () => {
 		const { container } = render(<Header crumbs={LONG_TRAIL} />);
 		const list = queryElement(container, "[data-slot~=breadcrumb-list]");
 		const crumb = hangOffEndEdge(list, "Traffic Policy");
 
 		// Focus is the browser's own scroll trigger, and scroll padding is what tells
 		// it how far in to land: without the padding it leaves this crumb hanging.
+		// Why poll: WebKit scrolls a focused element into view after `focus()` returns.
 		crumb.focus();
 
-		expect(
-			Math.round(list.getBoundingClientRect().right - crumb.getBoundingClientRect().right),
-		).toBeGreaterThanOrEqual(FADE_ZONE);
+		await expect
+			.poll(() =>
+				Math.round(list.getBoundingClientRect().right - crumb.getBoundingClientRect().right),
+			)
+			.toBeGreaterThanOrEqual(FADE_ZONE);
 	});
 
 	test("a narrower row re-pins the trail so the current page stays in view", async () => {
@@ -232,13 +244,13 @@ describe("Breadcrumb overflow", () => {
 		const header = queryElement(container, ".test-header");
 		const list = queryElement(container, "[data-slot~=breadcrumb-list]");
 		const currentPage = queryElement(container, "[data-slot~=breadcrumb-page]");
-		expect(list.scrollLeft).toBe(list.scrollWidth - list.clientWidth);
+		expect(distanceFromEnd(list)).toBeLessThan(1);
 
 		// A window drag or a sidebar collapse resizes the row with no re-render, and
 		// a narrower row puts the end further away than where the reader was left.
 		header.style.width = "150px";
 
-		await expect.poll(() => list.scrollLeft).toBe(list.scrollWidth - list.clientWidth);
+		await expect.poll(() => distanceFromEnd(list)).toBeLessThan(1);
 		expect(currentPage.getBoundingClientRect().right).toBeLessThanOrEqual(
 			list.getBoundingClientRect().right + 1,
 		);

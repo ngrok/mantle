@@ -37,6 +37,10 @@ const STYLE = `
 		--text-color-strong: rgb(17, 24, 39);
 	}
 }
+@layer base {
+	/* Tailwind's preflight. Without it, WebKit paints a row in its own button text color. */
+	button { color: inherit; }
+}
 @layer utilities {
 	.flex { display: flex; }
 	.data-state-open\\:text-strong[data-state~=open] { color: var(--text-color-strong); }

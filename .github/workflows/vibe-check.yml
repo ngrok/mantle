@@ -294,12 +294,20 @@ jobs:
             exit 1
           fi
 
-  # Browser-mode tests only. Launches a local headless Chromium from a cached
-  # browser build instead of installing Playwright in every unit shard.
+  # Browser-mode tests only. Launches a local headless browser from a cached
+  # browser build instead of installing Playwright in every unit shard. Each
+  # engine runs in its own job, in parallel, so a second and third engine add
+  # little wall time.
   browser-test:
-    name: browser-test
+    name: browser-test (${{ matrix.browser }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    env:
+      MANTLE_BROWSERS: ${{ matrix.browser }}
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -337,22 +345,30 @@ jobs:
           # Key on the Playwright version only, so the cached browser binaries
           # survive unrelated pnpm-workspace.yaml edits and are reused until the
           # next genuine Playwright bump.
-          key: playwright-browsers-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+          key: playwright-browsers-${{ runner.os }}-${{ matrix.browser }}-${{ steps.playwright.outputs.version }}
 
       - name: Install Dependencies 📥
         # See the `test` job for why the gate-binding jobs trust the already-verified
         # lockfile; the other jobs keep the supply-chain re-check.
         run: pnpm install --frozen-lockfile --trust-lockfile
 
-      - name: Install Playwright Chromium 🎭
+      - name: Install Playwright ${{ matrix.browser }} 🎭
         # Why gated on the cache: a hit means the pinned browser build is already
         # restored, and the apt system libraries --with-deps re-applies ship on the
-        # ubuntu-latest image. Skipping keeps apt off the hot path: an apt-mirror
-        # outage once hung this step for the whole 20-minute job timeout. The step
-        # timeout makes a hang on the rare cache-miss path fail fast instead.
+        # ubuntu-latest image for Chromium and Firefox. Skipping keeps apt off the
+        # hot path: an apt-mirror outage once hung this step for the whole 20-minute
+        # job timeout. The step timeout makes a hang on the rare cache-miss path
+        # fail fast instead.
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         timeout-minutes: 10
-        run: pnpm -F @ngrok/mantle exec playwright install --with-deps chromium
+        run: pnpm -F @ngrok/mantle exec playwright install --with-deps "${MANTLE_BROWSERS}"
+
+      - name: Install WebKit system libraries 🎭
+        # Why on every run: the ubuntu-latest image lacks the GStreamer and GTK
+        # libraries WebKit links, and the browser cache holds no apt packages.
+        if: matrix.browser == 'webkit' && steps.playwright-cache.outputs.cache-hit == 'true'
+        timeout-minutes: 5
+        run: pnpm -F @ngrok/mantle exec playwright install-deps webkit
 
       - name: Configure test worker limits
         run: |
@@ -363,6 +379,7 @@ jobs:
       # Why: Ubuntu 24.04 blocks unprivileged user namespaces through AppArmor, and
       # the Chromium sandbox needs them. GitHub discards the runner after the job.
       - name: Allow the Chromium sandbox 🔒
+        if: matrix.browser == 'chromium'
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
       - name: Browser Test 🧪

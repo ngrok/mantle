@@ -199,11 +199,13 @@ describe("Table.Root overflow observer", () => {
 		const { rerender } = render(<SwappedTable generation={1} width={200} />);
 		const root = screen.getByTestId("root");
 		const firstTable = screen.getByRole("table");
+		const scrollWidth = vi.spyOn(Element.prototype, "scrollWidth", "get");
 		rerender(<SwappedTable generation={2} width={200} />);
 		expect(screen.getByRole("table")).not.toBe(firstTable);
-		// Two frames: the swap settles, with each notification it causes.
-		await new Promise(requestAnimationFrame);
-		await new Promise(requestAnimationFrame);
+		await waitFor(() => {
+			// oxlint-disable-next-line mantle/no-bare-to-have-been-called -- Why: the first read of the new table is a readiness signal, so the count does not matter.
+			expect(scrollWidth).toHaveBeenCalled();
+		});
 		expect(root).toHaveAttribute("data-x-overflow", "false");
 
 		rerender(<SwappedTable generation={2} width={800} />);
@@ -230,10 +232,13 @@ describe("Table.Root overflow observer", () => {
 				</Table.Root>
 			);
 		}
+		const scrollWidth = vi.spyOn(Element.prototype, "scrollWidth", "get");
 		const { rerender } = render(<WrappedTable width={200} />);
 		const root = screen.getByTestId("root");
-		await new Promise(requestAnimationFrame);
-		await new Promise(requestAnimationFrame);
+		await waitFor(() => {
+			// oxlint-disable-next-line mantle/no-bare-to-have-been-called -- Why: the first read is a readiness signal, so the count does not matter.
+			expect(scrollWidth).toHaveBeenCalled();
+		});
 		expect(root).toHaveAttribute("data-x-overflow", "false");
 
 		rerender(<WrappedTable width={800} />);
