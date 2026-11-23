@@ -51,6 +51,9 @@ a click:
   around the `<input>`, so the ring goes around the icons and buttons in it.
 - The trigger of [Select](/components/forms/select) uses `focus:focus-ring`,
   and keeps the ring while its list is open.
+- [Combobox](/components/forms/combobox) and
+  [MultiSelect](/components/forms/multi-select) show the ring on each focus of
+  their text field, and keep it while their list is open.
 
 ## How it's drawn
 
@@ -98,7 +101,8 @@ Give the element a border radius. The ring follows the radius of the element.
 </a>
 ```
 
-In plain CSS, apply the utility inside the state selector:
+In a stylesheet that Tailwind compiles with `mantle.css` in scope (or with a
+`@reference` to it), apply the utility inside the state selector:
 
 ```css
 .my-control:focus-visible {
@@ -192,8 +196,10 @@ mantle uses this fix in its own components:
 - The horizontal `Tabs.List` uses `px-1 -mx-1 pt-1 -mt-1`, and the pill
   appearance adds `pb-1 -mb-1`.
 - `CodeBlock.TabList` uses `-m-1 p-1`.
-- `Accordion.Trigger` uses `-mx-2 px-2`, so the ring has space around the label
-  and the label stays aligned with the content.
+
+The same pair on the control itself moves the ring off its label.
+`Accordion.Trigger` uses `-mx-2 px-2`, so the ring has space around the label
+and the label stays aligned with the content.
 
 ### Draw the ring inside
 
@@ -228,9 +234,13 @@ mode. Tailwind's `outline-hidden`, which `focus-ring` applies, sets a
 transparent outline in place of `outline-style: none`:
 
 ```css
-@media (forced-colors: active) {
-	outline: 2px solid transparent;
-	outline-offset: 2px;
+.focus-visible\:focus-ring:focus-visible {
+	outline-style: none;
+
+	@media (forced-colors: active) {
+		outline: 2px solid transparent;
+		outline-offset: 2px;
+	}
 }
 ```
 

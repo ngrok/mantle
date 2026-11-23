@@ -625,8 +625,15 @@ describe("CodeBlock (browser)", () => {
 			expect(document.activeElement).toBe(button);
 			expect(button.matches(":focus-visible")).toBe(true);
 			expect(getComputedStyle(button).boxShadow).toMatch(/inset/);
-			expect(getComputedStyle(button).outlineOffset).toBe("-2px");
+
+			// Forced colors removes the ring, so the outline fallback must also stay inside.
+			await commands.emulateMedia({ forcedColors: "active" });
+			expect(getComputedStyle(button)).toMatchObject({
+				outlineStyle: "solid",
+				outlineOffset: "-2px",
+			});
 		} finally {
+			await commands.emulateMedia({ forcedColors: "none" });
 			style.remove();
 		}
 	});
