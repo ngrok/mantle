@@ -509,4 +509,35 @@ describe("a bar in a form", () => {
 		expect(onSave).toHaveBeenCalledTimes(1);
 		expect(onOther).not.toHaveBeenCalled();
 	});
+
+	test("submits the form that its `form` attribute names from a dialog", async () => {
+		const onBar = vi.fn<(event: SubmitEvent) => void>((event) => event.preventDefault());
+		const onNamed = vi.fn<(event: SubmitEvent) => void>((event) => event.preventDefault());
+		render(
+			<>
+				<form aria-label="Endpoint" onSubmit={(event) => onBar(event.nativeEvent)}>
+					<Sandbar.Root open>
+						<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+						<Sandbar.Actions>
+							<Sandbar.SaveButton type="submit" form="named">
+								Save
+							</Sandbar.SaveButton>
+						</Sandbar.Actions>
+					</Sandbar.Root>
+				</form>
+				<form id="named" onSubmit={(event) => onNamed(event.nativeEvent)} />
+				<Dialog.Root defaultOpen>
+					<Dialog.Content>
+						<Dialog.Title>Details</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+			</>,
+		);
+		const dialog = screen.getByRole("dialog", { name: "Details" });
+		await waitFor(() => expect(dialog.contains(getPanel())).toBe(true));
+		await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+		expect(onNamed).toHaveBeenCalledTimes(1);
+		expect(onBar).not.toHaveBeenCalled();
+	});
 });

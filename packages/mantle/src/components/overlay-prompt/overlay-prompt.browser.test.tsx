@@ -257,4 +257,39 @@ describe("OverlayPrompt over an open modal dialog", () => {
 
 		await waitFor(() => expect(screen.getByRole("dialog", { name: "Loading" })).toHaveFocus());
 	});
+
+	test("goes home when the dialog it is in closes with a confirm from it still open", async () => {
+		const Page = ({ open }: { open: boolean }) => (
+			<>
+				<Dialog.Root open={open}>
+					<Dialog.Content>
+						<Dialog.Title>Details</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+				<OverlayPrompt>
+					<Dialog.Root>
+						<Dialog.Trigger>Reset</Dialog.Trigger>
+						<Dialog.Content>
+							<Dialog.Title>Reset preferences?</Dialog.Title>
+						</Dialog.Content>
+					</Dialog.Root>
+				</OverlayPrompt>
+			</>
+		);
+		const view = render(<Page open />);
+		const reset = screen.getByRole("button", { name: "Reset" });
+		await waitFor(() => expect(reset.closest("dialog")).not.toBeNull());
+		await userEvent.click(reset);
+		await waitFor(() =>
+			expect(screen.getByRole("dialog", { name: "Reset preferences?" }).matches(":modal")).toBe(
+				true,
+			),
+		);
+
+		view.rerender(<Page open={false} />);
+
+		await waitFor(() => expect(document.querySelector("dialog[open]")).toBeNull());
+		await waitFor(() => expect(reset.closest("dialog")).toBeNull());
+		expect(reset.isConnected).toBe(true);
+	});
 });

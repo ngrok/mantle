@@ -924,11 +924,12 @@ const SaveButton = ({
 				// submits the form it left.
 				// Why the form owner check: a bar that the dialog's own form holds
 				// submits it natively. A bar that another form holds must not
-				// submit that form.
+				// submit that form. A `form` attribute names the form itself.
 				const form = liftedForm();
 				if (
 					!event.defaultPrevented &&
 					props.type === "submit" &&
+					props.form == null &&
 					form != null &&
 					buttonRef.current?.form !== form
 				) {

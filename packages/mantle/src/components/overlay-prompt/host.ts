@@ -77,9 +77,8 @@ function attachPromptHost(host: HTMLElement, home: Element): () => void {
  * ```
  */
 function setTopModal(dialog: HTMLDialogElement | null): void {
-	if (dialog === topModal) {
-		return;
-	}
+	// Why no early return for the same dialog: a host that held a closing
+	// modal stayed where it was, and moves once that modal has closed.
 	topModal = dialog;
 	for (const [host, home] of hosts) {
 		placeHost(host, home);
