@@ -1,9 +1,12 @@
 "use client";
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { useState } from "react";
-import { describe, expect, test } from "vitest";
+import { StrictMode, useState } from "react";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
+import { describe, expect, onTestFinished, test } from "vitest";
+import { commands } from "vitest/browser";
 import * as Alert from "../alert/alert-parts.js";
 import * as AlertCenter from "./alert-center-parts.js";
 
@@ -94,5 +97,95 @@ describe("AlertCenter host projection (browser)", () => {
 		// focus redirect can restore it; the move keeps the box.
 		expect(notes.scrollTop).toBe(50);
 		expect(flag).toHaveFocus();
+	});
+});
+
+describe("AlertCenter server render (browser)", () => {
+	/**
+	 * The dashboard shape: the items exist during SSR and follow the bar in the
+	 * same parent. The warning comes first, so the server copy must rank, not
+	 * take authored order. StrictMode double-renders each item, which must not
+	 * change its claim. The bar's `style` must reach the server copy.
+	 */
+	function Page() {
+		return (
+			<StrictMode>
+				<AlertCenter.Root>
+					<div className="flex flex-col">
+						<AlertCenter.Bar style={{ minHeight: 160 }} />
+						<AlertCenter.Content />
+						<AlertCenter.Item id="transfer" intent="warning">
+							<Alert.Icon />
+							<Alert.Content>
+								<Alert.Title>Transfer limit</Alert.Title>
+							</Alert.Content>
+						</AlertCenter.Item>
+						<AlertCenter.Item id="payment" intent="danger">
+							<Alert.Icon />
+							<Alert.Content>
+								<Alert.Title>Payment failed</Alert.Title>
+								<Alert.Description>Update your card.</Alert.Description>
+							</Alert.Content>
+						</AlertCenter.Item>
+					</div>
+					<main>Page content</main>
+				</AlertCenter.Root>
+			</StrictMode>
+		);
+	}
+
+	test("hydration hands the server copy of the bar to the client bar without moving the page", async () => {
+		// Why the compiled CSS: the browser project loads no stylesheet, and the
+		// copy's visibility and the bar's enter animation are both utilities.
+		const style = document.createElement("style");
+		style.textContent = [
+			"*, ::before, ::after { box-sizing: border-box; }",
+			await commands.tailwindCss("./alert-center.tsx"),
+			await commands.tailwindCss("../alert/alert.tsx"),
+		].join("\n");
+		document.head.append(style);
+		const container = document.createElement("div");
+		container.innerHTML = renderToString(<Page />);
+		document.body.append(container);
+		onTestFinished(() => {
+			container.remove();
+			style.remove();
+		});
+
+		// before hydration: only the top alert shows, and it already pushes the page down
+		expect(screen.getByText("Payment failed")).toBeVisible();
+		expect(screen.getByText("Transfer limit")).not.toBeVisible();
+		const main = screen.getByRole("main");
+		const serverTop = main.getBoundingClientRect().top;
+		expect(serverTop).toBeGreaterThanOrEqual(160);
+		// the room for the client bar's expand control, so no line wraps at hydration
+		const contentPadding = () =>
+			getComputedStyle(
+				screen.getByText("Payment failed").closest('[data-slot~="alert-content"]') ?? document.body,
+			).paddingRight;
+		const serverPadding = contentPadding();
+
+		const errors: unknown[] = [];
+		const root = await act(async () =>
+			hydrateRoot(container, <Page />, { onRecoverableError: (error) => errors.push(error) }),
+		);
+		onTestFinished(() => act(() => root.unmount()));
+
+		expect(errors).toEqual([]);
+		expect(container.querySelector('[data-slot="alert-center-server-bar"]')).toBeNull();
+		expect(screen.getByRole("button", { name: /1 more/ })).toBeVisible();
+		expect(contentPadding()).toBe(serverPadding);
+		expect(document.querySelector('[data-slot~="alert-center-bar"]')).toHaveAttribute(
+			"data-alert-id",
+			"payment",
+		);
+		// Sample past the bar's 200ms enter transition: an enter from zero
+		// height would pull the page up, then push it back down.
+		for (let frame = 0; frame < 20; frame++) {
+			expect(main.getBoundingClientRect().top).toBe(serverTop);
+			await new Promise((resolve) => {
+				requestAnimationFrame(resolve);
+			});
+		}
 	});
 });

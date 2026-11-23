@@ -46,13 +46,13 @@ import * as AlertCenterParts from "./alert-center-parts.js";
  * @see https://mantle.ngrok.com/components/feedback/alert-center
  *
  * @example
- * Composition (items render no DOM in place; their children portal into a
- * stable host the bar or a row adopts):
+ * Composition (after hydration, items render no DOM in place; their children
+ * portal into a stable host the bar or a row adopts):
  * ```
  * AlertCenter.Root
  * ├── AlertCenter.Bar        ← the top-ranked item's children, in Alert chrome
  * ├── AlertCenter.Content    ← every other item's children, as ranked rows
- * └── AlertCenter.Item (0..n, renderless)
+ * └── AlertCenter.Item (0..n, renderless after hydration)
  *     └── Alert.Icon / Alert.Content / Alert.Title / Alert.Description /
  *         AlertCenter.DismissIconButton
  * ```

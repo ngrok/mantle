@@ -4,7 +4,7 @@ import { AlertCenter } from "@ngrok/mantle/alert-center";
 import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Breadcrumb } from "@ngrok/mantle/breadcrumb";
 import { Button } from "@ngrok/mantle/button";
-import { useSessionStorage } from "@ngrok/mantle/hooks";
+import { useIsHydrated, useSessionStorage } from "@ngrok/mantle/hooks";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { GearIcon } from "@phosphor-icons/react/Gear";
@@ -470,6 +470,11 @@ function parseDismissedIds(raw: string): ReadonlyArray<string> {
 	}
 }
 
+/** This demo's dismissability policy: its danger alerts don't offer dismissal. */
+function isDismissable(alert: { intent: AlertCenterIntent }): boolean {
+	return alert.intent !== "danger";
+}
+
 /**
  * The persistence + server-state reconciliation demo: dismissed ids live in
  * sessionStorage (per tab, survives reloads), the "server" keeps reporting
@@ -487,6 +492,9 @@ export function AlertCenterPersistedDismissExample() {
 	const transferActive = serverAlerts.some((alert) => alert.id === "transfer-limit");
 
 	const [dismissedRaw, setDismissedRaw] = useSessionStorage("docs-alert-center-dismissed", "[]");
+	// The server cannot read sessionStorage, so before hydration render only the
+	// alerts no one can dismiss. The rest arrive once the dismissed set is known.
+	const isHydrated = useIsHydrated();
 	const dismissed = useMemo(() => new Set(parseDismissedIds(dismissedRaw)), [dismissedRaw]);
 	const dismiss = (id: string) => setDismissedRaw(JSON.stringify([...dismissed, id]));
 
@@ -508,7 +516,7 @@ export function AlertCenterPersistedDismissExample() {
 					<AlertCenter.Bar />
 					<AlertCenter.Content />
 					{serverAlerts
-						.filter((alert) => !dismissed.has(alert.id))
+						.filter((alert) => (isHydrated ? !dismissed.has(alert.id) : !isDismissable(alert)))
 						.map((alert) => (
 							<AlertCenter.Item key={alert.id} id={alert.id} intent={alert.intent}>
 								<Alert.Icon />
@@ -519,7 +527,7 @@ export function AlertCenterPersistedDismissExample() {
 											{alert.cta}
 										</a>
 									</Alert.Title>
-									{alert.intent !== "danger" && (
+									{isDismissable(alert) && (
 										<AlertCenter.DismissIconButton onClick={() => dismiss(alert.id)} />
 									)}
 								</Alert.Content>

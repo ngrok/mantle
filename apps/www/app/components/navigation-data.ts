@@ -620,6 +620,14 @@ export const migrations = [
 			"RadioGroup and SegmentedControl items are now a label around a native radio. Style item state with has-[>input:checked], has-[>input:disabled], and has-[>input:focus-visible] in place of aria-checked, aria-disabled, and focus-visible.",
 		route: "/migrations/0021-native-radio-group-migration",
 	},
+	{
+		number: 22,
+		slug: "alert-center-server-render-migration",
+		title: "Alert Center Server Render",
+		description:
+			"AlertCenter items now render their children on the server, and the top item shows in the server HTML. Gate items and children that only the browser can decide with useIsHydrated, and prefetch the alert data in the root loader.",
+		route: "/migrations/0022-alert-center-server-render-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */
