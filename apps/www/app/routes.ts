@@ -68,6 +68,7 @@ const docsPages = [
 	"components/data-display/icons",
 	"components/data-display/kbd",
 	"components/data-display/list",
+	"components/data-display/markdown",
 	"components/data-display/qr-code",
 	"components/data-display/selectable-list",
 	"components/data-display/table",

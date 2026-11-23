@@ -2091,6 +2091,162 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 }
 
 /*
+ * The prose styles of `Markdown`. Why `@layer components`: a utility class on
+ * an element that a `components` override renders wins over these rules. Why
+ * `:where()`: the scope adds no specificity, so each rule weighs one element.
+ */
+@layer components {
+	:where([data-slot="markdown"]) > * + * {
+		margin-block-start: 1em;
+	}
+
+	/* The live region renders first and takes no space, so the first block gets no margin. */
+	:where([data-slot="markdown"]) > [data-slot="live-region"] + * {
+		margin-block-start: 0;
+	}
+
+	:where([data-slot="markdown"]) :is(h1, h2, h3, h4, h5, h6) {
+		color: var(--text-color-strong);
+		font-family: var(--font-heading);
+		text-wrap: balance;
+	}
+
+	:where([data-slot="markdown"]) * + :is(h1, h2, h3, h4, h5, h6) {
+		margin-block-start: 1.5em;
+	}
+
+	:where([data-slot="markdown"]) :is(h1, h2, h3, h4, h5, h6) + * {
+		margin-block-start: 0.5em;
+	}
+
+	:where([data-slot="markdown"]) h1 {
+		font-size: var(--text-heading-2xl);
+		line-height: var(--text-heading-2xl--line-height);
+		font-weight: var(--text-heading-2xl--font-weight);
+	}
+
+	:where([data-slot="markdown"]) h2 {
+		font-size: var(--text-heading-xl);
+		line-height: var(--text-heading-xl--line-height);
+		font-weight: var(--text-heading-xl--font-weight);
+	}
+
+	:where([data-slot="markdown"]) h3 {
+		font-size: var(--text-heading-lg);
+		line-height: var(--text-heading-lg--line-height);
+		font-weight: var(--text-heading-lg--font-weight);
+	}
+
+	:where([data-slot="markdown"]) :is(h4, h5, h6) {
+		font-size: var(--text-heading-base);
+		line-height: var(--text-heading-base--line-height);
+		font-weight: var(--text-heading-base--font-weight);
+	}
+
+	:where([data-slot="markdown"]) :is(strong, b) {
+		color: var(--text-color-strong);
+		font-weight: 600;
+	}
+
+	:where([data-slot="markdown"]) ul {
+		list-style-type: disc;
+		padding-inline-start: 1.5em;
+	}
+
+	:where([data-slot="markdown"]) ol {
+		list-style-type: decimal;
+		padding-inline-start: 1.5em;
+	}
+
+	:where([data-slot="markdown"]) li + li,
+	:where([data-slot="markdown"]) li > :is(ul, ol, p + *) {
+		margin-block-start: 0.25em;
+	}
+
+	:where([data-slot="markdown"]) li::marker {
+		color: var(--text-color-muted);
+	}
+
+	:where([data-slot="markdown"]) li[data-task] {
+		list-style-type: none;
+	}
+
+	:where([data-slot="markdown"]) li[data-task] > input {
+		margin-inline: -1.375em 0.375em;
+		vertical-align: -0.125em;
+	}
+
+	:where([data-slot="markdown"]) blockquote {
+		border-inline-start: 0.25rem solid var(--border-color-base);
+		padding-inline-start: 1em;
+		color: var(--text-color-muted);
+	}
+
+	:where([data-slot="markdown"]) hr {
+		border: 0;
+		border-block-start: 1px solid var(--border-color-base);
+		margin-block: 1.5em;
+	}
+
+	/* The same look as mantle's `Code`. No color-mix fallbacks: see the note at the top of this file. */
+	:where([data-slot="markdown"]) :not(pre) > code {
+		border: 1px solid transparent;
+		border-radius: var(--radius-md);
+		padding-inline: 0.25em;
+		font-family: var(--font-mono);
+		font-size: 0.8em;
+	}
+
+	@supports (color: color-mix(in lab, red, red)) or (not (color: color-mix(in lab, red, red))) {
+		:where([data-slot="markdown"]) :not(pre) > code {
+			border-color: --alpha(var(--color-gray-500) / 15%);
+			background-color: --alpha(var(--color-gray-500) / 5%);
+		}
+	}
+
+	:where([data-slot="markdown"]) img {
+		max-width: 100%;
+		height: auto;
+	}
+
+	:where([data-slot="markdown"]) > pre {
+		overflow-x: auto;
+		font-family: var(--font-mono);
+	}
+
+	/* The caret at the end of the streamed text: after the last paragraph, heading, or list item. */
+	:where([data-slot="markdown"][data-streaming]) > :last-child:is(p, h1, h2, h3, h4, h5, h6)::after,
+	:where([data-slot="markdown"][data-streaming])
+		> :last-child:is(ul, ol)
+		> li:last-child:not(:has(> p, > ul, > ol))::after,
+	:where([data-slot="markdown"][data-streaming])
+		> :last-child:is(ul, ol)
+		> li:last-child
+		> p:last-child::after,
+	:where([data-slot="markdown"][data-streaming]) > blockquote:last-child > p:last-child::after {
+		content: "";
+		display: inline-block;
+		width: 0.5em;
+		height: 1em;
+		margin-inline-start: 0.125em;
+		vertical-align: -0.125em;
+		background-color: currentColor;
+		opacity: 0.6;
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		/* A block fades in when it starts to stream. `ease-out-strong` is cubic-bezier(0.23, 1, 0.32, 1). */
+		:where([data-slot="markdown"][data-streamed]) > * {
+			transition: opacity 200ms cubic-bezier(0.23, 1, 0.32, 1);
+
+			@starting-style {
+				opacity: 0;
+			}
+		}
+	}
+}
+
+/*
  * The accessible name of `ThemeSwitcher`: the theme its next click shows. CSS
  * writes it from the theme on `<html>`, so the name is correct before
  * hydration and with no JavaScript. Generated content keeps it out of the page

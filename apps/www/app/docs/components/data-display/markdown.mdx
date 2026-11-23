@@ -1,0 +1,232 @@
+---
+title: Markdown
+description: Renders Markdown from a model as it streams, with mantle's CodeBlock, Table, and Anchor for its fences, tables, and links.
+aliases: [streaming markdown, chat answer, llm output, prose]
+---
+
+import { Example } from "~/components/example";
+
+# Markdown
+
+Renders Markdown from a model as it streams, with mantle's CodeBlock, Table, and Anchor for its fences, tables, and links. Pass the text so far as `children`, and set `streaming` while more text can arrive.
+
+<Example name="components/data-display/markdown/overview" title="Markdown example">
+
+````tsx
+import { Button } from "@ngrok/mantle/button";
+import { Card } from "@ngrok/mantle/card";
+import { Markdown } from "@ngrok/mantle/markdown";
+import { useEffect, useState } from "react";
+
+const answer =
+	"## Put your app online\n\nAn **endpoint** gives your app a public URL:\n\n```bash\nngrok http 8080\n```";
+
+function StreamingAnswer() {
+	const [length, setLength] = useState(0);
+	const isStreaming = length < answer.length;
+	useEffect(() => {
+		if (!isStreaming) {
+			return undefined;
+		}
+		const timer = setInterval(() => {
+			setLength((current) => Math.min(current + 3 + (current % 5), answer.length));
+		}, 16);
+		return () => {
+			clearInterval(timer);
+		};
+	}, [isStreaming]);
+
+	return (
+		<div className="flex flex-col gap-4">
+			<Button
+				type="button"
+				appearance="outlined"
+				intent="neutral"
+				className="self-start"
+				onClick={() => setLength(0)}
+			>
+				Stream again
+			</Button>
+			<Card.Root>
+				<Card.Body>
+					<Markdown streaming={isStreaming}>{answer.slice(0, length)}</Markdown>
+				</Card.Body>
+			</Card.Root>
+		</div>
+	);
+}
+````
+
+</Example>
+
+## When to use
+
+- Render Markdown that arrives at runtime, such as a model's answer, while it streams and after it ends.
+- Prefer [`CodeBlock`](/components/data-display/code-block) when the content is one block of code.
+- Prefer [`Typography`](/components/data-display/typography) for prose that you write in the source, not prose that arrives at runtime.
+
+## Complete answers
+
+Leave `streaming` off for an answer that is already complete, such as an answer in a chat history. Each fence still highlights in the browser after the page loads. Until then, it shows as plain text with the same layout, so nothing moves.
+
+<Example name="components/data-display/markdown/complete-answers" title="Markdown complete answer example">
+
+```tsx
+import { Card } from "@ngrok/mantle/card";
+import { Markdown } from "@ngrok/mantle/markdown";
+
+const answer =
+	"| Endpoint type | Lives |\n| --- | --- |\n| Agent | while the agent runs |\n| Cloud | until you delete it |\n\n- [x] Install the agent\n- [ ] Reserve a domain";
+
+<Card.Root>
+	<Card.Body>
+		<Markdown>{answer}</Markdown>
+	</Card.Body>
+</Card.Root>;
+```
+
+</Example>
+
+## Read a stream
+
+`useMarkdownStream` reads a stream of text chunks, such as a `fetch` body, and returns the text so far and a status. It renders at most once per animation frame, however fast the chunks arrive.
+
+The hook resumes. When the stream fails, it calls `read` again with the length of the text so far as `offset`, and the answer continues where it stopped. After a reload, pass the partial answer that the server rendered as `initialText`, and the stream continues after it with no flash. The server must skip `offset` characters of the answer.
+
+This fence needs a server that streams an answer, so no example renders it.
+
+```tsx
+import { Markdown, useMarkdownStream } from "@ngrok/mantle/markdown";
+
+function Answer({ id, partial }: { id: string; partial: string }) {
+	const { text, status } = useMarkdownStream({
+		initialText: partial,
+		read: async ({ offset, signal }) => {
+			const response = await fetch(`/answers/${id}?offset=${offset}`, { signal });
+			if (!response.ok || response.body == null) {
+				throw new Error(`The answer stream failed: ${response.status}`);
+			}
+			return response.body.pipeThrough(new TextDecoderStream());
+		},
+	});
+	return <Markdown streaming={status === "streaming"}>{text}</Markdown>;
+}
+```
+
+## Follow the stream
+
+`useFollowStream` keeps a scroll box at its end while the answer grows. When the reader scrolls up, the box stays where the reader put it. When the reader scrolls back to the end, it follows again. Put the returned ref on the element that scrolls.
+
+<Example name="components/data-display/markdown/follow-the-stream" title="Markdown follow the stream example">
+
+```tsx
+import { Card } from "@ngrok/mantle/card";
+import { Markdown, useFollowStream } from "@ngrok/mantle/markdown";
+
+function Transcript({ answer, isStreaming }: { answer: string; isStreaming: boolean }) {
+	const scrollRef = useFollowStream<HTMLDivElement>();
+	return (
+		<Card.Root>
+			<div ref={scrollRef} className="scrollbar h-80 overflow-y-auto p-4">
+				<Markdown streaming={isStreaming}>{answer}</Markdown>
+			</div>
+		</Card.Root>
+	);
+}
+```
+
+</Example>
+
+## Math
+
+Pass `markdownMath()` in `extensions` to read TeX math: `$$…$$` and `\[…\]` as display math, and `$…$` and `\(…\)` as inline math. A `$` that reads as a price, such as in `$5 and $10`, stays text. Render each formula with a `math` component, such as with KaTeX. Without one, a formula shows its TeX source as code.
+
+Keep `extensions` and `components` stable, such as at module scope. A new `extensions` array parses the whole answer again, and a new `components` object renders each block again.
+
+<Example name="components/data-display/markdown/math" title="Markdown math example">
+
+```tsx
+import { Card } from "@ngrok/mantle/card";
+import { Markdown, markdownMath, type MarkdownComponents } from "@ngrok/mantle/markdown";
+
+const extensions = [markdownMath()];
+
+const components: MarkdownComponents = {
+	math: ({ token }) => (
+		<span translate="no" className="rounded-md bg-accent-500/10 px-1 font-mono text-accent-700">
+			{token.text}
+		</span>
+	),
+};
+
+<Card.Root>
+	<Card.Body>
+		<Markdown extensions={extensions} components={components}>
+			{"At $5 and $10 a month, the cost grows as $c = 5n$ for $n$ endpoints."}
+		</Markdown>
+	</Card.Body>
+</Card.Root>;
+```
+
+</Example>
+
+## Components
+
+Set a component in `components` to replace the built-in one for a kind of token, such as `code`, `link`, `table`, or `math`. Each component gets the marked `token` and its content as `children`. `extension` renders each token of a marked extension that has no component of its own.
+
+## How it streams
+
+- Each update lexes only the unfinished block at the end, so a long answer costs the same for each update as a short one.
+- A finished block never renders again, and a block keeps its element from when it starts to stream to when it finishes.
+- Unfinished syntax, such as `**bol`, an open fence, or a link with no URL yet, renders closed.
+- A fence highlights in a module worker, one changed line at a time. A finished line never renders again.
+- When `streaming` turns off, the whole answer parses once more, so a reference link that comes before its definition resolves.
+
+## Security
+
+The output is React elements, never `innerHTML`, and no part needs a CSP change beyond `worker-src 'self'` for the highlighter. Raw HTML shows as text, except the inline tags of GitHub's sanitize schema, such as `<sub>`, `<kbd>`, and `<br>`. So a placeholder such as `<your-domain>` stays in a command. A link may use `http:`, `https:`, `mailto:`, `tel:`, or a relative URL, and an image may use `http:`, `https:`, or a relative URL. Any other URL, such as `javascript:`, renders as text.
+
+## Accessibility
+
+While `streaming`, the root is `aria-busy`, and a polite live region reads each block once it finishes. A screen reader hears whole blocks, not fragments of words. A task-list checkbox takes its item's text as its name. The caret and the fade-in show only when the reader allows motion.
+
+## API Reference
+
+### Markdown
+
+| Prop              | Type                                  | Default | Description                                                                                        |
+| ----------------- | ------------------------------------- | ------- | -------------------------------------------------------------------------------------------------- |
+| `children`        | `string`                              |         | The Markdown so far. While it streams, each update appends to it.                                  |
+| `streaming`       | `boolean`                             | `false` | Whether more Markdown can arrive. Closes unfinished syntax, renders once per frame, shows a caret. |
+| `components`      | `MarkdownComponents`                  |         | The components that replace the built-in one for a token. Keep the object stable.                  |
+| `extensions`      | `readonly MarkdownExtension[]`        |         | Marked extensions, such as `markdownMath()`. Keep the array stable.                                |
+| `onBlockComplete` | `(block: MarkdownBlockEvent) => void` |         | Called once for each block that finishes after mount, in order.                                    |
+| `onStreamEnd`     | `() => void`                          |         | Called once when `streaming` turns from `true` to `false`.                                         |
+
+Other props go to the root `<div>`.
+
+| Data Attribute   | Value        | Description                                                              |
+| ---------------- | ------------ | ------------------------------------------------------------------------ |
+| `data-slot`      | `"markdown"` | The root. The prose styles in `mantle.css` match it.                     |
+| `data-streaming` | `""`         | Present while `streaming`. Shows the caret.                              |
+| `data-streamed`  | `""`         | Present once the answer has streamed on this page. A new block fades in. |
+| `data-task`      | `""`         | On a task-list item, which holds a checkbox.                             |
+
+### useMarkdownStream
+
+| Option        | Type                                                         | Default | Description                                                                    |
+| ------------- | ------------------------------------------------------------ | ------- | ------------------------------------------------------------------------------ |
+| `read`        | `({ offset, signal }) => MarkdownStreamSource \| Promise<…>` |         | Opens the answer's stream from `offset`, the length of the text so far.        |
+| `initialText` | `string`                                                     | `""`    | The text the page already shows. The stream continues after it.                |
+| `enabled`     | `boolean`                                                    | `true`  | Whether to read the stream. Set `false` for an answer that is complete.        |
+| `retries`     | `number`                                                     | `3`     | How many times to open the stream again after it fails, from 500 ms, doubling. |
+
+It returns `{ text, status, error }`. `status` is `"streaming"`, `"done"`, or `"error"`.
+
+### useFollowStream
+
+Returns a ref for the element that scrolls. It takes no options.
+
+### markdownMath
+
+Returns a marked extension that reads TeX math as `math` tokens, with `text` and `display`.
