@@ -121,7 +121,7 @@ runs:
       id: hash
       if: steps.range.outputs.force != 'true'
       continue-on-error: true
-      uses: ./.github/actions/turbo-build-changed
+      uses: $/.github/actions/turbo-build-changed
       with:
         package: ${{ inputs.package }}
         from: ${{ steps.range.outputs.from }}

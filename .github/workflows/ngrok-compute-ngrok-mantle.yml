@@ -1,8 +1,8 @@
 # ngrok-ship: pipeline-updates disabled
 #
 # The line above turns off ngrok ship pipeline updates for this file. Ship opens
-# no pull request to rewrite it, so the change check and the commit-pinned
-# action versions stay. Remove the line to let ship manage the file again.
+# no pull request to rewrite it, so the change check and the actions.lock pins
+# stay. Remove the line to let ship manage the file again.
 #
 # ngrok/ship-action builds the image and reports it to ship. A pull request
 # gets a preview only when the action runs. The step runs only when the docs
@@ -44,14 +44,14 @@ jobs:
     steps:
       # The default ref is the merge of the PR into its base, which ship expects.
       # Depth 2 holds the base and the PR head, the merge commit's parents.
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 2
 
       - name: Check whether @app/www needs a new image
         id: changes
         if: github.event_name != 'workflow_dispatch'
-        uses: ./.github/actions/ship-build-changed
+        uses: $/.github/actions/ship-build-changed
         with:
           package: "@app/www"
 
@@ -62,7 +62,7 @@ jobs:
       # .github/actions/ship-build-changed reads this step name.
       - name: Build and deploy with ngrok ship
         if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.changed == 'true'
-        uses: ngrok/ship-action@ce608ca50086eeaa02bb54783633d6e3a31004d7 # v1.0.0
+        uses: ngrok/ship-action@v1.0.0
         with:
           app-id: "app_3FsBBr2ai9ocPOzjWWaBDBf9Pna"
           build-args: |
