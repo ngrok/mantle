@@ -24,10 +24,18 @@
  */
 
 const STRUCTURAL =
-	/:(?:first-child|last-child|only-child|first-of-type|last-of-type|only-of-type|empty|nth-(?:last-)?(?:child|of-type)\()/;
-/** Tailwind variants whose selector puts a structural pseudo-class on an ancestor or a sibling. */
-const STRUCTURAL_GROUP_VARIANT =
-	/^(?:group|peer)-(?:first|last|only|odd|even|empty|first-of-type|last-of-type|only-of-type|nth(?:-last)?(?:-of-type)?-\S+)(?:\/\S+)?$/;
+	/:(?:first-child|last-child|only-child|first-of-type|last-of-type|only-of-type|empty|nth-(?:last-)?(?:child|of-type)\()/i;
+/** The names of Tailwind's structural variants, such as `first` or `nth-3`. */
+const STRUCTURAL_NAME =
+	"(?:not-)?(?:first|last|only|odd|even|empty|first-of-type|last-of-type|only-of-type|nth(?:-last)?(?:-of-type)?-\\S+)";
+/** A structural variant on the element itself, such as `first` or `not-last`. */
+const STRUCTURAL_SELF_VARIANT = new RegExp(`^${STRUCTURAL_NAME}$`);
+/** A variant that puts a structural pseudo-class on an ancestor or a sibling, such as `group-first` or `in-last`. */
+const STRUCTURAL_RELATIVE_VARIANT = new RegExp(
+	`^(?:group|peer|in)-${STRUCTURAL_NAME}(?:\\/\\S+)?$`,
+);
+/** An arbitrary `group-[…]`, `peer-[…]`, or `in-[…]` variant, with its selector. */
+const RELATIVE_ARBITRARY_VARIANT = /^(?:group|peer|in)-\[(.+)\](?:\/\S+)?$/;
 
 /** The message for a selector, with the fix it names. */
 const fixHint =
@@ -144,16 +152,20 @@ export function hasStructuralCombinator(selector) {
 
 /**
  * The variants of one Tailwind class that put a structural pseudo-class before
- * a combinator: arbitrary variants such as `[&>tr:last-child>*]`, and
- * `group-first`-style variants.
+ * a combinator: an arbitrary variant such as `[&>tr:last-child>*]`, a
+ * `group-first` or `in-[tr:last-child]` variant, or a structural variant that
+ * a combinator variant follows, such as `first:*:`. Tailwind applies the
+ * variants from left to right, so a later variant wraps an earlier one.
  *
  * @example
  * structuralVariants("md:[&>tr:last-child>*]:border-b"); // => ["[&>tr:last-child>*]"]
+ * structuralVariants("first:*:p-2"); // => ["*"]
  */
 export function structuralVariants(token) {
 	const found = [];
 	let depth = 0;
 	let start = 0;
+	let structuralBefore = false;
 	for (let index = 0; index < token.length; index++) {
 		const char = token[index];
 		if (char === "[" || char === "(") {
@@ -163,14 +175,33 @@ export function structuralVariants(token) {
 		} else if (char === ":" && depth === 0) {
 			const variant = token.slice(start, index);
 			start = index + 1;
+			const relative = RELATIVE_ARBITRARY_VARIANT.exec(variant);
 			if (variant.startsWith("[") && variant.endsWith("]") && variant.includes("&")) {
 				// Why the swap: Tailwind reads `_` as a space in an arbitrary value.
 				const selector = variant.slice(1, -1).replace(/(?<!\\)_/g, " ");
-				if (hasStructuralCombinator(selector)) {
+				const selfStart = lastCompoundStart(selector);
+				const addsCombinator = selector.indexOf("&") < selfStart;
+				if (hasStructuralCombinator(selector) || (structuralBefore && addsCombinator)) {
 					found.push(variant);
 				}
-			} else if (STRUCTURAL_GROUP_VARIANT.test(variant)) {
+				const self = dropHasArguments(selector.slice(selfStart));
+				structuralBefore = (structuralBefore && !addsCombinator) || STRUCTURAL.test(self);
+			} else if (relative != null) {
+				// Why no `structuralBefore`: the relative selector goes in front, so the element's own compound stays last.
+				if (STRUCTURAL.test(dropHasArguments(relative[1] ?? ""))) {
+					found.push(variant);
+				}
+				structuralBefore = false;
+			} else if (STRUCTURAL_RELATIVE_VARIANT.test(variant)) {
 				found.push(variant);
+				structuralBefore = false;
+			} else if (variant === "*" || variant === "**") {
+				if (structuralBefore) {
+					found.push(variant);
+				}
+				structuralBefore = false;
+			} else if (STRUCTURAL_SELF_VARIANT.test(variant)) {
+				structuralBefore = true;
 			}
 		}
 	}

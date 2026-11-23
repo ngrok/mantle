@@ -18,6 +18,19 @@ describe("selectorProblems", () => {
 		expect(selectorProblems(css).map((problem) => problem.line)).toEqual([1, 3]);
 	});
 
+	it("checks a nested rule as the selector it resolves to", () => {
+		const css =
+			".a:first-child {\n\t& > b { color: red; }\n\t.c { color: red; }\n\t&:hover { color: red; }\n}\n.d > e:last-child {\n\t& f { color: red; }\n}\n";
+
+		expect(selectorProblems(css).map((problem) => problem.line)).toEqual([2, 3, 7]);
+	});
+
+	it("reads past an escaped quote", () => {
+		expect(
+			selectorProblems('.x { content: "\\""; }\n.a:first-child > b { color: red; }').length,
+		).toBe(1);
+	});
+
 	it("allows a structural pseudo-class in the last compound or inside :has()", () => {
 		const css =
 			".a > :last-child { color: red; }\n.b:has(> tr:last-child > td) { color: red; }\n@media (width > 1px) { .c { color: red; } }\n@keyframes k { from { opacity: 0; } }\n";

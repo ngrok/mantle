@@ -350,6 +350,7 @@ describe("no-structural-combinator", () => {
 		'const a = "md:[&>li:nth-child(2n)_span]:p-2";',
 		"const a = `group-first:hidden`;",
 		'const a = "[&:is(tr:last-child_*)]:p-2";',
+		'cx("first:*:p-2 not-last:[&>td]:p-2 in-[tr:last-child]:p-2 group-not-first:p-2");',
 	])("flags %s", (source) => {
 		expect(
 			lint({ rule: "no-structural-combinator", fileName: "a.ts", source }).length,
@@ -361,6 +362,7 @@ describe("no-structural-combinator", () => {
 		'cx("[&>*:last-child]:rounded-l-none [&>*:not(:first-child)]:-ml-px last:border-0");',
 		'cx("has-[>button:last-child]:pe-1 [&:has(>a:first-child_b)]:p-2");',
 		'document.querySelector("tr:last-child > td");',
+		'cx("*:first:p-2 first:hover:p-2 first:group-[.x]:p-2 group-hover:p-2");',
 	])("allows %s", (source) => {
 		expect(lint({ rule: "no-structural-combinator", fileName: "a.ts", source })).toEqual([]);
 	});

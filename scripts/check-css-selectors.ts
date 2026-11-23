@@ -13,10 +13,21 @@ const allowComment = /structural-selector-ok:\s*(?!\*\/)\S/;
 
 type Problem = { line: number; selector: string };
 
+/** A nested selector resolved against its parent rule's selector, as CSS nesting reads it. */
+function resolveNested(parent: string | null, selector: string): string {
+	if (parent == null) {
+		return selector;
+	}
+	return selector.includes("&")
+		? selector.replaceAll("&", `:is(${parent})`)
+		: `:is(${parent}) ${selector}`;
+}
+
 /**
  * The selectors in a stylesheet that put a structural pseudo-class before a
- * combinator, with their 1-based lines. A `structural-selector-ok: <reason>`
- * comment right before a rule allows it. `@custom-variant` selectors count.
+ * combinator, with their 1-based lines. A nested rule is checked as its
+ * resolved selector. A `structural-selector-ok: <reason>` comment right before
+ * a rule allows it. `@custom-variant` selectors count.
  *
  * @example
  * selectorProblems(".a > tr:last-child > * { color: red }"); // => [{ line: 1, selector: ".a > tr:last-child > *" }]
@@ -27,9 +38,14 @@ export function selectorProblems(text: string): Problem[] {
 	let preludeStart = 0;
 	let allowed = false;
 	let index = 0;
+	// The resolved selector of each open block; an at-rule block keeps its parent's.
+	const parents: (string | null)[] = [];
 	const lineAt = (offset: number) => text.slice(0, offset).split("\n").length;
 	const check = (selector: string, offset: number) => {
-		if (!allowed && hasStructuralCombinator(selector)) {
+		const parent = parents.at(-1) ?? null;
+		// Why the parent test: a parent that fails is already reported once.
+		const parentFails = parent != null && hasStructuralCombinator(parent);
+		if (!allowed && !parentFails && hasStructuralCombinator(resolveNested(parent, selector))) {
 			problems.push({ line: lineAt(offset), selector: selector.trim().replace(/\s+/g, " ") });
 		}
 	};
@@ -45,9 +61,12 @@ export function selectorProblems(text: string): Problem[] {
 		}
 		const char = text[index] ?? "";
 		if (char === '"' || char === "'") {
-			const end = text.indexOf(char, index + 1);
-			prelude += text.slice(index, end < 0 ? text.length : end + 1);
-			index = end < 0 ? text.length : end + 1;
+			let end = index + 1;
+			while (end < text.length && text[end] !== char) {
+				end += text[end] === "\\" ? 2 : 1;
+			}
+			prelude += text.slice(index, end + 1);
+			index = end + 1;
 			continue;
 		}
 		if (char === "{" || char === ";" || char === "}") {
@@ -57,6 +76,13 @@ export function selectorProblems(text: string): Problem[] {
 				check(variant[1] ?? "", preludeStart);
 			} else if (char === "{" && trimmed !== "" && !trimmed.startsWith("@")) {
 				check(trimmed, preludeStart);
+			}
+			if (char === "{") {
+				const parent = parents.at(-1) ?? null;
+				const isRule = trimmed !== "" && !trimmed.startsWith("@");
+				parents.push(isRule ? resolveNested(parent, trimmed) : parent);
+			} else if (char === "}") {
+				parents.pop();
 			}
 			prelude = "";
 			allowed = false;
