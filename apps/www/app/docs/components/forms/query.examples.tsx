@@ -46,7 +46,9 @@ export function TokenColorsExample() {
 /** The "Keyboard shortcut" example on the Query docs page. */
 export function KeyboardShortcutExample() {
 	return (
-		<PreviewCanvas className="min-h-160">
+		// Why items-start: the field is alone in the canvas, and its suggestions
+		// do not fit below the center of the frame.
+		<PreviewCanvas className="min-h-160 items-start">
 			<KeyboardShortcutQueryExample />
 		</PreviewCanvas>
 	);
