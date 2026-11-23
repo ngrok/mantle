@@ -7,8 +7,8 @@ import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
  * Runs the floats in a browser with no popover API and no CSS anchor
  * positioning, such as Safari 16 or Chrome 113. Why a dynamic import: the
  * float reads both features once, when its module loads, so the test removes
- * them first. This browser's own stylesheet still hides a `[popover]` that is
- * not open, as jsdom's does, so a float with the attribute would not show.
+ * them first. The test hides each `[popover]` that is not open, as jsdom
+ * does, so a float with the attribute would not show.
  */
 const popoverMethods = ["showPopover", "hidePopover", "togglePopover"] as const;
 const savedMethods = popoverMethods.map((name) =>
@@ -34,6 +34,8 @@ beforeAll(async () => {
 	styleElement.textContent = [
 		// Why: Tailwind's preflight sets it.
 		"*, ::before, ::after { box-sizing: border-box; border: 0 solid; }",
+		// Why `!important`: a `display` class on a float, such as the menu's `flex`, would show it.
+		"[popover]:not(:popover-open) { display: none !important; }",
 		await commands.tailwindCss("./use-float.ts"),
 		await commands.tailwindCss("../../components/popover/popover.tsx"),
 		await commands.tailwindCss("../../components/tooltip/tooltip.tsx"),
