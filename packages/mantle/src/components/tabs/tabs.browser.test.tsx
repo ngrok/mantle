@@ -1000,6 +1000,61 @@ describe("Tabs keyboard, focus, and ARIA contract", () => {
 		expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
 	});
 
+	test.each([
+		{ name: "mount late", late: true },
+		{ name: "become enabled", late: false },
+	])("Tab enters a list whose tabs $name", async ({ late }) => {
+		const Loading = ({ ready }: { ready: boolean }) => (
+			<>
+				<button type="button">Before</button>
+				<Tabs.Root>
+					<Tabs.List aria-label="Loading">
+						{(ready || !late) && (
+							<>
+								<Tabs.Trigger value="a" disabled={!ready}>
+									A
+								</Tabs.Trigger>
+								<Tabs.Trigger value="b" disabled={!ready}>
+									B
+								</Tabs.Trigger>
+							</>
+						)}
+					</Tabs.List>
+				</Tabs.Root>
+			</>
+		);
+		const { rerender } = render(<Loading ready={false} />);
+		rerender(<Loading ready />);
+
+		await userEvent.click(screen.getByRole("button", { name: "Before" }));
+		await userEvent.keyboard("{Tab}");
+
+		expect(tab("A")).toHaveFocus();
+		expect(tab("A")).toHaveAttribute("aria-selected", "true");
+	});
+
+	test("a focus on the list after a click moves to the selected tab", async () => {
+		render(
+			<>
+				<button type="button" onClick={() => screen.getByRole("tablist").focus()}>
+					Focus list
+				</button>
+				<Tabs.Root defaultValue="a">
+					<Tabs.List aria-label="Focused">
+						<Tabs.Trigger value="a">A</Tabs.Trigger>
+						<Tabs.Trigger value="b">B</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+			</>,
+		);
+
+		await userEvent.click(screen.getByRole("button", { name: "Focus list" }));
+		expect(tab("A")).toHaveFocus();
+		await userEvent.keyboard("{ArrowRight}");
+
+		expect(tab("B")).toHaveAttribute("aria-selected", "true");
+	});
+
 	test("a list keeps the tabIndex its consumer sets", async () => {
 		render(
 			<>

@@ -273,6 +273,7 @@ const List = ({
 	loop = true,
 	onFocus,
 	onKeyDown,
+	onMouseDown,
 	onPointerCancel,
 	onPointerDown,
 	onPointerUp,
@@ -291,7 +292,6 @@ const List = ({
 	const { orientation, appearance } = tabs;
 	const listProps = getTabListProps(tabs);
 
-	const composedRef = useComposedRefs(listProps.ref, ref);
 	const Component = asChild ? Slot : "div";
 
 	return (
@@ -300,8 +300,9 @@ const List = ({
 				{...listProps}
 				data-slot={joinDataSlot(dataSlot, "tabs-list")}
 				className={cx(listVariants({ orientation, appearance }), className)}
-				ref={composedRef}
+				ref={ref}
 				{...props}
+				onMouseDown={composeHandlers(onMouseDown, listProps.onMouseDown)}
 				onPointerDown={chain(onPointerDown, markPointerFocus)}
 				onPointerUp={chain(onPointerUp, clearPointerFocusSoon)}
 				onPointerCancel={chain(onPointerCancel, clearPointerFocus)}
@@ -495,6 +496,7 @@ const Trigger = ({
 	onFocus,
 	onKeyDown,
 	onMouseDown,
+	ref,
 	value,
 	...props
 }: TabsTriggerProps) => {
@@ -516,6 +518,7 @@ const Trigger = ({
 		onFocus: composeHandlers(onFocus, tabProps.onFocus),
 		onKeyDown: composeHandlers(onKeyDown, tabProps.onKeyDown),
 		onMouseDown: composeHandlers(onMouseDown, tabProps.onMouseDown),
+		ref: useComposedRefs(ref, tabProps.ref),
 	};
 
 	if (asChild) {

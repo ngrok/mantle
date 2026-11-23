@@ -974,11 +974,11 @@ const TabList = ({
 	"data-slot": dataSlot,
 	className,
 	onFocus,
+	onMouseDown,
 	ref,
 	...props
 }: CodeBlockTabListProps) => {
 	const listProps = getTabListProps(useCodeBlockTabs("CodeBlock.TabList"));
-	const composedRef = useComposedRefs(listProps.ref, ref);
 	return (
 		// oxlint-disable-next-line jsx-a11y/interactive-supports-focus -- Why: a focus on the list moves to a tab; the list is only the entry point for a Tab forward (WAI-ARIA tabs pattern).
 		<div
@@ -994,9 +994,10 @@ const TabList = ({
 				"-m-1 p-1",
 				className,
 			)}
-			ref={composedRef}
+			ref={ref}
 			{...props}
 			onFocus={composeHandlers(onFocus, listProps.onFocus)}
+			onMouseDown={composeHandlers(onMouseDown, listProps.onMouseDown)}
 		/>
 	);
 };
@@ -1030,6 +1031,7 @@ const TabTrigger = ({
 	onFocus,
 	onKeyDown,
 	onMouseDown,
+	ref,
 	value,
 	...props
 }: CodeBlockTabTriggerProps) => {
@@ -1053,6 +1055,7 @@ const TabTrigger = ({
 			onFocus={composeHandlers(onFocus, tabProps.onFocus)}
 			onKeyDown={composeHandlers(onKeyDown, tabProps.onKeyDown)}
 			onMouseDown={composeHandlers(onMouseDown, tabProps.onMouseDown)}
+			ref={useComposedRefs(ref, tabProps.ref)}
 		/>
 	);
 };

@@ -127,21 +127,31 @@ const exitingLists = new WeakSet<HTMLElement>();
  * stop before hydration. A Shift+Tab from a tab takes the list out of the Tab
  * order until focus leaves, so focus does not come back to the tab.
  *
- * Why the checks: a consumer's `tabIndex`, and the `-1` of a Shift+Tab, must
- * survive a ref that attaches again. A list with no enabled tab stays out of
- * the Tab order.
+ * Each enabled tab attaches this ref, so a tab that mounts late or becomes
+ * enabled makes its list the entry point too. A list with no enabled tab
+ * stays out of the Tab order. Why the check: a consumer's `tabIndex`, and the
+ * `-1` of a Shift+Tab, must survive.
  */
-const enableListEntry = (list: HTMLElement | null) => {
-	if (list != null && !list.hasAttribute("tabindex") && enabledTabs(list).length > 0) {
+const joinList = (tab: HTMLElement | null) => {
+	const list = tab?.closest<HTMLElement>('[role="tablist"]');
+	if (list != null && !list.hasAttribute("tabindex")) {
 		list.tabIndex = 0;
+	}
+};
+
+/**
+ * Keeps a press on the list's blank space from focusing the list, so a click
+ * there activates no tab.
+ */
+const pressList = (event: MouseEvent<HTMLElement>) => {
+	if (event.target === event.currentTarget) {
+		event.preventDefault();
 	}
 };
 
 const enterList = (event: FocusEvent<HTMLElement>) => {
 	const list = event.currentTarget;
-	// Why `:focus-visible`: a click on the list's blank space focuses the list,
-	// and only keyboard entry moves on to a tab.
-	if (event.target !== list || !list.matches(":focus-visible")) {
+	if (event.target !== list) {
 		return;
 	}
 	// Why this order: the APG enters on the selected tab, then the last focused
@@ -168,8 +178,8 @@ const getTabListProps = (tabs: TabsBehavior) => ({
 	role: "tablist",
 	"aria-orientation": tabs.orientation,
 	"data-orientation": tabs.orientation,
-	ref: enableListEntry,
 	onFocus: enterList,
+	onMouseDown: pressList,
 });
 
 /** The keys that move focus, and where each one moves it. */
@@ -270,6 +280,8 @@ const getTabProps = (
 		"aria-controls": panelId(tabs, value),
 		tabIndex: tabs.stop === value ? 0 : -1,
 		disabled,
+		// Why `undefined` when disabled: React attaches the ref again when the tab becomes enabled.
+		ref: disabled ? undefined : joinList,
 		"data-state": selected ? "active" : "inactive",
 		"data-disabled": disabled ? "" : undefined,
 		"data-orientation": tabs.orientation,
