@@ -129,6 +129,16 @@ const mantleAnimations = async (): Promise<string> => {
 	return `@theme inline {\n${rules.join("\n")}\n}`;
 };
 
+/** The `ease-*` tokens of mantle's theme, so a test reads the curve that a component's class compiles to. */
+const mantleEasings = async (): Promise<string> => {
+	const css = await readFile(path.join(import.meta.dirname, "src/mantle.css"), "utf8");
+	const tokens = css.match(/^\s*--ease-[\w-]+:[^;]+;/gm);
+	if (tokens == null) {
+		throw new Error("mantle.css holds no ease tokens.");
+	}
+	return `@theme {${tokens.join("")}}`;
+};
+
 // Why a command: a browser test asserts layout, so it needs the CSS that Tailwind
 // really compiles for a component. A hand-written copy keeps passing when Tailwind
 // drops a rule. The path is relative to the test file.
@@ -142,7 +152,7 @@ const tailwindCss: BrowserCommand<[sourceFile: string]> = async ({ testPath }, s
 		.getCandidatesWithPositions({ content, extension: path.extname(file).slice(1) })
 		.map(({ candidate }) => candidate);
 	const compiler = await compile(
-		`@import "tailwindcss/theme"; @import "tailwindcss/utilities";\n${await mantleCustomVariants()}\n${await mantleUtilities()}\n${await mantleAnimations()}`,
+		`@import "tailwindcss/theme"; @import "tailwindcss/utilities";\n${await mantleEasings()}\n${await mantleCustomVariants()}\n${await mantleUtilities()}\n${await mantleAnimations()}`,
 		{
 			base: import.meta.dirname,
 			onDependency: () => {},
