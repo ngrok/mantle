@@ -1,5 +1,9 @@
-import { render, screen } from "@testing-library/react";
-import { afterAll, beforeAll, expect, test, vi } from "vitest";
+import { act, render, screen } from "@testing-library/react";
+import axe from "axe-core";
+import { useState } from "react";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import * as Tabs from "./tabs-parts.js";
 
@@ -39,6 +43,8 @@ const TABS_LAYOUT_STYLE = `
 	.-mx-1 { margin-inline: calc(var(--spacing) * -1); }
 	[data-slot~=tabs] > .\\[\\[data-slot\\~\\=tabs\\]\\>\\&\\]\\:-mt-\\(--tabs-gap\\) { margin-top: calc(var(--tabs-gap) * -1); }
 	[data-slot~=tabs] > .\\[\\[data-slot\\~\\=tabs\\]\\>\\&\\]\\:-ml-\\(--tabs-gap\\) { margin-left: calc(var(--tabs-gap) * -1); }
+	.\\[\\[hidden\\=until-found\\]\\]\\:sr-only[hidden=until-found] { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
+	.p-6 { padding: 1.5rem; }
 	.tabs-trigger { display: flex; align-items: center; gap: 0.5rem; }
 	.tabs-trigger > [data-slot="tabs-trigger-label"] > svg { width: 1.25rem; height: 1.25rem; }
 }
@@ -461,4 +467,842 @@ test("a selection across the tabs copies the panel text and no tab label", () =>
 	document.getSelection()?.selectAllChildren(container);
 
 	expect(document.getSelection()?.toString()).toBe("Panel A");
+});
+
+const axeViolations = async () => {
+	// Why WCAG tags only: `region` is a best practice for whole pages, and a test page has no landmarks.
+	// Why no `target-size`: the test page loads no Tailwind, so a trigger is one bare line of text.
+	const results = await axe.run(document.body, {
+		resultTypes: ["violations"],
+		rules: { "target-size": { enabled: false } },
+		runOnly: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"],
+	});
+	return results.violations.map((violation) => violation.id);
+};
+
+const tab = (name: string) => screen.getByRole("tab", { name });
+
+describe("Tabs keyboard, focus, and ARIA contract", () => {
+	const FourTabs = (props: Partial<Parameters<typeof Tabs.Root>[0]> & { loop?: boolean }) => {
+		const { loop, ...rootProps } = props;
+		return (
+			<>
+				<button type="button">Before</button>
+				<Tabs.Root defaultValue="b" {...rootProps}>
+					<Tabs.List aria-label="Settings" loop={loop}>
+						<Tabs.Trigger value="a">A</Tabs.Trigger>
+						<Tabs.Trigger value="b">B</Tabs.Trigger>
+						<Tabs.Trigger value="c" disabled>
+							C
+						</Tabs.Trigger>
+						<Tabs.Trigger value="d">D</Tabs.Trigger>
+					</Tabs.List>
+					{["a", "b", "c", "d"].map((value) => (
+						<Tabs.Content key={value} value={value}>
+							Panel {value.toUpperCase()}
+						</Tabs.Content>
+					))}
+				</Tabs.Root>
+			</>
+		);
+	};
+
+	test("joins each tab to its panel, and only the active tab is a Tab stop", async () => {
+		render(<FourTabs />);
+		const panel = screen.getByRole("tabpanel");
+
+		expect(tab("B")).toHaveAttribute("aria-selected", "true");
+		expect(tab("A")).toHaveAttribute("aria-selected", "false");
+		expect(tab("B").getAttribute("aria-controls")).toBe(panel.id);
+		expect(panel).toHaveAccessibleName("B");
+		expect(screen.getByRole("tablist")).toHaveAttribute("aria-orientation", "horizontal");
+		expect(await axeViolations()).toEqual([]);
+
+		await userEvent.click(screen.getByRole("button", { name: "Before" }));
+		await userEvent.keyboard("{Tab}");
+		expect(tab("B")).toHaveFocus();
+		await userEvent.keyboard("{Tab}");
+		expect(panel).toHaveFocus();
+	});
+
+	test("the arrow keys skip a disabled tab, wrap, and activate in automatic mode", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(<FourTabs onValueChange={onValueChange} />);
+		tab("B").focus();
+
+		await userEvent.keyboard("{ArrowRight}");
+		expect(tab("D")).toHaveFocus();
+		expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel D");
+		await userEvent.keyboard("{ArrowRight}");
+		expect(tab("A")).toHaveFocus();
+		await userEvent.keyboard("{ArrowLeft}");
+		expect(tab("D")).toHaveFocus();
+		await userEvent.keyboard("{Home}");
+		expect(tab("A")).toHaveFocus();
+		await userEvent.keyboard("{End}");
+		expect(tab("D")).toHaveFocus();
+		// A horizontal list ignores the vertical arrows.
+		await userEvent.keyboard("{ArrowDown}");
+		expect(tab("D")).toHaveFocus();
+		expect(onValueChange.mock.calls).toEqual([["d"], ["a"], ["d"], ["a"], ["d"]]);
+	});
+
+	test("Home on the first tab keeps focus there", async () => {
+		render(<FourTabs />);
+		tab("A").focus();
+
+		await userEvent.keyboard("{Home}");
+
+		expect(tab("A")).toHaveFocus();
+	});
+
+	test("without loop, the arrow keys stop at the ends", async () => {
+		render(<FourTabs loop={false} />);
+		tab("B").focus();
+
+		await userEvent.keyboard("{ArrowLeft}{ArrowLeft}");
+		expect(tab("A")).toHaveFocus();
+		await userEvent.keyboard("{End}{ArrowRight}");
+		expect(tab("D")).toHaveFocus();
+	});
+
+	test("a vertical list moves with the up and down arrows only", async () => {
+		render(<FourTabs orientation="vertical" />);
+		tab("B").focus();
+
+		await userEvent.keyboard("{ArrowRight}");
+		expect(tab("B")).toHaveFocus();
+		await userEvent.keyboard("{ArrowUp}");
+		expect(tab("A")).toHaveFocus();
+		await userEvent.keyboard("{ArrowDown}{ArrowDown}");
+		expect(tab("D")).toHaveFocus();
+	});
+
+	test("a right-to-left list swaps the left and right arrows", async () => {
+		render(
+			<div dir="rtl">
+				<FourTabs />
+			</div>,
+		);
+		tab("B").focus();
+
+		await userEvent.keyboard("{ArrowLeft}");
+		expect(tab("D")).toHaveFocus();
+		await userEvent.keyboard("{ArrowRight}");
+		expect(tab("B")).toHaveFocus();
+	});
+
+	test("manual mode moves focus with the arrows and activates on Enter or Space", async () => {
+		render(<FourTabs activationMode="manual" />);
+		tab("B").focus();
+
+		await userEvent.keyboard("{ArrowLeft}");
+		expect(tab("A")).toHaveFocus();
+		expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel B");
+		await userEvent.keyboard("{Enter}");
+		expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel A");
+		await userEvent.keyboard("{End} ");
+		expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel D");
+	});
+
+	test("with no active tab, Tab reaches the first tab and its focus activates it", async () => {
+		render(<FourTabs defaultValue={undefined} />);
+
+		expect(screen.queryByRole("tabpanel")).toBeNull();
+		await userEvent.click(screen.getByRole("button", { name: "Before" }));
+		await userEvent.keyboard("{Tab}");
+		expect(tab("A")).toHaveFocus();
+		expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel A");
+	});
+
+	test("Enter on a link tab fires onValueChange once on a controlled root", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(
+			<Tabs.Root value="a" onValueChange={onValueChange} activationMode="manual">
+				<Tabs.List aria-label="Pages">
+					<Tabs.Trigger value="a">A</Tabs.Trigger>
+					<Tabs.Trigger value="b" asChild>
+						<a href="#b">B</a>
+					</Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root>,
+		);
+		tab("A").focus();
+
+		await userEvent.keyboard("{ArrowRight}{Enter}");
+
+		expect(tab("B")).toHaveFocus();
+		expect(onValueChange.mock.calls).toEqual([["b"]]);
+		history.replaceState(null, "", window.location.pathname);
+	});
+
+	test("a panel hidden until found reveals and activates its tab on a fragment link", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(
+			<Tabs.Root defaultValue="a" onValueChange={onValueChange}>
+				<Tabs.List aria-label="Docs">
+					<Tabs.Trigger value="a">A</Tabs.Trigger>
+					<Tabs.Trigger value="b">B</Tabs.Trigger>
+				</Tabs.List>
+				<Tabs.Content value="a" hiddenUntilFound>
+					Panel A
+				</Tabs.Content>
+				<Tabs.Content value="b" hiddenUntilFound className="p-6">
+					<p id="deep-link-target">Panel B</p>
+				</Tabs.Content>
+			</Tabs.Root>,
+		);
+		const panelB = screen.getByText("Panel B").parentElement;
+		expect(panelB).toHaveAttribute("hidden", "until-found");
+		// The hidden panel's own padding and the root's gap take no space.
+		expect(panelB?.getBoundingClientRect().height).toBeLessThanOrEqual(1);
+		expect(getComputedStyle(panelB as HTMLElement).position).toBe("absolute");
+		expect(screen.getByText("Panel A").closest("[hidden]")).toBeNull();
+
+		window.location.hash = "#deep-link-target";
+
+		await vi.waitFor(() => {
+			expect(tab("B")).toHaveAttribute("aria-selected", "true");
+		});
+		expect(panelB).not.toHaveAttribute("hidden");
+		expect(onValueChange.mock.calls).toEqual([["b"]]);
+		history.replaceState(null, "", window.location.pathname);
+	});
+
+	test("an asChild button tab inside a form selects without submitting", async () => {
+		const onSubmit = vi.fn<() => void>();
+		render(
+			<form
+				onSubmit={(event) => {
+					event.preventDefault();
+					onSubmit();
+				}}
+			>
+				<Tabs.Root defaultValue="a">
+					<Tabs.List aria-label="Form tabs">
+						<Tabs.Trigger value="a">A</Tabs.Trigger>
+						<Tabs.Trigger value="b" asChild>
+							{/* oxlint-disable-next-line react/button-has-type -- Why: the test needs a child with no type of its own. */}
+							<button>B</button>
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+			</form>,
+		);
+
+		await userEvent.click(tab("B"));
+
+		expect(tab("B")).toHaveAttribute("aria-selected", "true");
+		expect(onSubmit).not.toHaveBeenCalled();
+	});
+
+	test("in manual mode, Tab leaves the list from the focused tab", async () => {
+		render(<FourTabs activationMode="manual" />);
+		tab("B").focus();
+
+		await userEvent.keyboard("{ArrowLeft}{Tab}");
+
+		expect(screen.getByRole("tabpanel")).toHaveFocus();
+		await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+		expect(tab("A")).toHaveFocus();
+	});
+
+	test("a selection made outside the list is where Tab comes back", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		const Controlled = () => {
+			const [value, setValue] = useState("a");
+			return (
+				<>
+					<button type="button">Before</button>
+					<Tabs.Root
+						value={value}
+						onValueChange={(next) => {
+							onValueChange(next);
+							setValue(next);
+						}}
+					>
+						<Tabs.List aria-label="Controlled">
+							<Tabs.Trigger value="a">A</Tabs.Trigger>
+							<Tabs.Trigger value="b">B</Tabs.Trigger>
+						</Tabs.List>
+					</Tabs.Root>
+					<button type="button" onClick={() => setValue("b")}>
+						Pick B
+					</button>
+				</>
+			);
+		};
+		render(<Controlled />);
+
+		await userEvent.click(tab("A"));
+		await userEvent.click(screen.getByRole("button", { name: "Pick B" }));
+		await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+
+		expect(tab("B")).toHaveFocus();
+		await userEvent.click(screen.getByRole("button", { name: "Before" }));
+		await userEvent.keyboard("{Tab}");
+
+		expect(tab("B")).toHaveFocus();
+		expect(tab("B")).toHaveAttribute("aria-selected", "true");
+		expect(onValueChange).not.toHaveBeenCalled();
+	});
+
+	test("in manual mode, a Tab forward into the list enters on the selected tab", async () => {
+		render(<FourTabs activationMode="manual" />);
+		tab("B").focus();
+		await userEvent.keyboard("{ArrowLeft}{Tab}");
+
+		await userEvent.click(screen.getByRole("button", { name: "Before" }));
+		await userEvent.keyboard("{Tab}");
+
+		expect(tab("B")).toHaveFocus();
+	});
+
+	test.each([
+		{ name: "the selected tab", defaultValue: "a" },
+		{ name: "the first tab, with no selection", defaultValue: undefined },
+	])("Tab reaches the list when $name cannot take focus", async ({ defaultValue }) => {
+		render(
+			<>
+				<button type="button">Before</button>
+				<Tabs.Root defaultValue={defaultValue}>
+					<Tabs.List aria-label="Hidden stop">
+						<Tabs.Trigger value="a" style={{ display: "none" }}>
+							A
+						</Tabs.Trigger>
+						<Tabs.Trigger value="b">B</Tabs.Trigger>
+						<Tabs.Trigger value="c">C</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+			</>,
+		);
+
+		await userEvent.click(screen.getByRole("button", { name: "Before" }));
+		await userEvent.keyboard("{Tab}");
+
+		expect(tab("B")).toHaveFocus();
+	});
+
+	test("a press that a focus handler nests in another root selects each tab once", async () => {
+		const calls: string[] = [];
+		render(
+			<>
+				<Tabs.Root value="x" onValueChange={(value) => calls.push(value)}>
+					<Tabs.List aria-label="Other">
+						<Tabs.Trigger value="x" asChild>
+							<a href="#x">X</a>
+						</Tabs.Trigger>
+						<Tabs.Trigger value="y" asChild>
+							<a href="#y">Y</a>
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+				<Tabs.Root value="a" onValueChange={(value) => calls.push(value)}>
+					<Tabs.List aria-label="Pressed">
+						<Tabs.Trigger value="a" asChild>
+							<a href="#a">A</a>
+						</Tabs.Trigger>
+						<Tabs.Trigger value="b" asChild onFocus={() => tab("Y").click()}>
+							<a href="#b">B</a>
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+			</>,
+		);
+
+		await userEvent.click(tab("B"));
+
+		expect(calls).toEqual(["y", "b"]);
+		history.replaceState(null, "", window.location.pathname);
+	});
+
+	test("a focus request from before the list focuses the requested tab", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(
+			<>
+				<button type="button" onClick={() => tab("B").focus()}>
+					Focus B
+				</button>
+				<Tabs.Root defaultValue="a" onValueChange={onValueChange}>
+					<Tabs.List aria-label="Requested">
+						<Tabs.Trigger value="a">A</Tabs.Trigger>
+						<Tabs.Trigger value="b">B</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+			</>,
+		);
+
+		await userEvent.click(screen.getByRole("button", { name: "Focus B" }));
+
+		expect(tab("B")).toHaveFocus();
+		expect(onValueChange.mock.calls).toEqual([["b"]]);
+	});
+
+	test("a selection made while focus stays on a tab keeps that tab the Tab stop", async () => {
+		const Controlled = ({ value }: { value: string }) => (
+			<Tabs.Root value={value} onValueChange={() => {}}>
+				<Tabs.List aria-label="Async">
+					<Tabs.Trigger value="a">A</Tabs.Trigger>
+					<Tabs.Trigger value="b">B</Tabs.Trigger>
+				</Tabs.List>
+				<Tabs.Content value="a">Panel A</Tabs.Content>
+				<Tabs.Content value="b">Panel B</Tabs.Content>
+			</Tabs.Root>
+		);
+		const { rerender } = render(<Controlled value="a" />);
+		await userEvent.click(tab("A"));
+
+		rerender(<Controlled value="b" />);
+		await userEvent.keyboard("{Tab}");
+
+		expect(screen.getByRole("tabpanel")).toHaveFocus();
+		expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel B");
+	});
+
+	test.each([
+		{ name: "display: none", style: { display: "none" } },
+		{ name: "visibility: hidden", style: { visibility: "hidden" } },
+	] as const)("Tab enters past a selected tab that $name hides after mount", async ({ style }) => {
+		const Hidden = ({ hide }: { hide: boolean }) => (
+			<>
+				<button type="button">Before</button>
+				<Tabs.Root defaultValue="a">
+					<Tabs.List aria-label="Later hidden">
+						<Tabs.Trigger value="a" style={hide ? style : undefined}>
+							A
+						</Tabs.Trigger>
+						<Tabs.Trigger value="b">B</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+			</>
+		);
+		const { rerender } = render(<Hidden hide={false} />);
+		rerender(<Hidden hide />);
+
+		await userEvent.click(screen.getByRole("button", { name: "Before" }));
+		await userEvent.keyboard("{Tab}");
+
+		expect(tab("B")).toHaveFocus();
+	});
+
+	test("Shift+Tab leaves tabs that mount under a hidden ancestor", async () => {
+		const Shown = ({ shown }: { shown: boolean }) => (
+			<>
+				<button type="button">Before</button>
+				<div style={shown ? undefined : { display: "none" }}>
+					<Tabs.Root defaultValue="a">
+						<Tabs.List aria-label="Shown later">
+							<Tabs.Trigger value="a">A</Tabs.Trigger>
+							<Tabs.Trigger value="b">B</Tabs.Trigger>
+						</Tabs.List>
+					</Tabs.Root>
+				</div>
+			</>
+		);
+		const { rerender } = render(<Shown shown={false} />);
+		rerender(<Shown shown />);
+		tab("A").focus();
+
+		await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+
+		expect(screen.getByRole("button", { name: "Before" })).toHaveFocus();
+	});
+
+	test("Shift+Tab leaves a list whose inline ref attaches again on each key", async () => {
+		const Rerendering = () => {
+			const [, setKeys] = useState(0);
+			return (
+				<>
+					<button type="button">Before</button>
+					<Tabs.Root defaultValue="a">
+						<Tabs.List
+							aria-label="Inline ref"
+							ref={(node) => void node}
+							onKeyDown={() => setKeys((keys) => keys + 1)}
+						>
+							<Tabs.Trigger value="a">A</Tabs.Trigger>
+							<Tabs.Trigger value="b">B</Tabs.Trigger>
+						</Tabs.List>
+					</Tabs.Root>
+				</>
+			);
+		};
+		render(<Rerendering />);
+		tab("A").focus();
+
+		await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+
+		expect(screen.getByRole("button", { name: "Before" })).toHaveFocus();
+	});
+
+	test("Tab entry follows a focus handler that sends focus elsewhere", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(
+			<>
+				<button type="button">Before</button>
+				<Tabs.Root defaultValue="a" onValueChange={onValueChange}>
+					<Tabs.List aria-label="Redirect">
+						<Tabs.Trigger
+							value="a"
+							onFocus={() => screen.getByRole("button", { name: "Elsewhere" }).focus()}
+						>
+							A
+						</Tabs.Trigger>
+						<Tabs.Trigger value="b">B</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+				<button type="button">Elsewhere</button>
+			</>,
+		);
+
+		await userEvent.click(screen.getByRole("button", { name: "Before" }));
+		await userEvent.keyboard("{Tab}");
+
+		expect(screen.getByRole("button", { name: "Elsewhere" })).toHaveFocus();
+		expect(onValueChange).not.toHaveBeenCalled();
+	});
+
+	test("a click on the list's blank space activates no tab", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(
+			<Tabs.Root value="" onValueChange={onValueChange}>
+				<Tabs.List aria-label="Blank" style={{ paddingLeft: "4rem" }}>
+					<Tabs.Trigger value="a">A</Tabs.Trigger>
+					<Tabs.Trigger value="b">B</Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root>,
+		);
+
+		await userEvent.click(screen.getByRole("tablist"), { position: { x: 8, y: 8 } });
+
+		expect(onValueChange).not.toHaveBeenCalled();
+		expect(tab("A")).not.toHaveFocus();
+	});
+
+	test("Tab passes a list with no enabled tab", async () => {
+		render(
+			<>
+				<button type="button">Before</button>
+				<Tabs.Root>
+					<Tabs.List aria-label="All disabled">
+						<Tabs.Trigger value="a" disabled>
+							A
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+				<button type="button">After</button>
+			</>,
+		);
+
+		await userEvent.click(screen.getByRole("button", { name: "Before" }));
+		await userEvent.keyboard("{Tab}");
+
+		expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
+	});
+
+	test.each([
+		{ name: "mount late", late: true },
+		{ name: "become enabled", late: false },
+	])("Tab enters a list whose tabs $name", async ({ late }) => {
+		const Loading = ({ ready }: { ready: boolean }) => (
+			<>
+				<button type="button">Before</button>
+				<Tabs.Root>
+					<Tabs.List aria-label="Loading">
+						{(ready || !late) && (
+							<>
+								<Tabs.Trigger value="a" disabled={!ready}>
+									A
+								</Tabs.Trigger>
+								<Tabs.Trigger value="b" disabled={!ready}>
+									B
+								</Tabs.Trigger>
+							</>
+						)}
+					</Tabs.List>
+				</Tabs.Root>
+			</>
+		);
+		const { rerender } = render(<Loading ready={false} />);
+		rerender(<Loading ready />);
+
+		await userEvent.click(screen.getByRole("button", { name: "Before" }));
+		await userEvent.keyboard("{Tab}");
+
+		expect(tab("A")).toHaveFocus();
+		expect(tab("A")).toHaveAttribute("aria-selected", "true");
+	});
+
+	test("a focus on the list after a click moves to the selected tab", async () => {
+		render(
+			<>
+				<button type="button" onClick={() => screen.getByRole("tablist").focus()}>
+					Focus list
+				</button>
+				<Tabs.Root defaultValue="a">
+					<Tabs.List aria-label="Focused">
+						<Tabs.Trigger value="a">A</Tabs.Trigger>
+						<Tabs.Trigger value="b">B</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+			</>,
+		);
+
+		await userEvent.click(screen.getByRole("button", { name: "Focus list" }));
+		expect(tab("A")).toHaveFocus();
+		await userEvent.keyboard("{ArrowRight}");
+
+		expect(tab("B")).toHaveAttribute("aria-selected", "true");
+	});
+
+	test("a list keeps the tabIndex its consumer sets", async () => {
+		render(
+			<>
+				<Tabs.Root defaultValue="a">
+					<Tabs.List aria-label="Explicit" tabIndex={-1}>
+						<Tabs.Trigger value="a">A</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+				<button type="button">After</button>
+			</>,
+		);
+
+		expect(screen.getByRole("tablist")).toHaveAttribute("tabindex", "-1");
+		tab("A").focus();
+		await userEvent.keyboard("{Tab}");
+		expect(screen.getByRole("tablist")).toHaveAttribute("tabindex", "-1");
+	});
+
+	test("when the selected tab is disabled, Tab reaches the first enabled tab", async () => {
+		render(<FourTabs defaultValue="c" activationMode="manual" />);
+
+		await userEvent.click(screen.getByRole("button", { name: "Before" }));
+		await userEvent.keyboard("{Tab}");
+
+		expect(tab("A")).toHaveFocus();
+		await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+		expect(screen.getByRole("button", { name: "Before" })).toHaveFocus();
+	});
+
+	test("a click selects a tab whose focus handler prevents focus activation", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(
+			<Tabs.Root value="a" onValueChange={onValueChange}>
+				<Tabs.List aria-label="Prevented">
+					<Tabs.Trigger value="a">A</Tabs.Trigger>
+					<Tabs.Trigger value="b" onFocus={(event) => event.preventDefault()}>
+						B
+					</Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root>,
+		);
+
+		await userEvent.click(tab("B"));
+
+		expect(onValueChange.mock.calls).toEqual([["b"]]);
+	});
+
+	test("a tab that stops key propagation still moves with the arrows", async () => {
+		render(
+			<Tabs.Root defaultValue="a">
+				<Tabs.List aria-label="Stopped">
+					<Tabs.Trigger value="a" onKeyDown={(event) => event.stopPropagation()}>
+						A
+					</Tabs.Trigger>
+					<Tabs.Trigger value="b">B</Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root>,
+		);
+		tab("A").focus();
+
+		await userEvent.keyboard("{ArrowRight}");
+
+		expect(tab("B")).toHaveFocus();
+	});
+
+	test("the arrows skip a tab that cannot take focus", async () => {
+		render(
+			<Tabs.Root defaultValue="a">
+				<Tabs.List aria-label="Hidden tab">
+					<Tabs.Trigger value="a">A</Tabs.Trigger>
+					<Tabs.Trigger value="b" style={{ display: "none" }}>
+						B
+					</Tabs.Trigger>
+					<Tabs.Trigger value="c">C</Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root>,
+		);
+		tab("A").focus();
+
+		await userEvent.keyboard("{ArrowRight}");
+
+		expect(tab("C")).toHaveFocus();
+	});
+
+	test("Space on a link tab activates it without scrolling the page", async () => {
+		render(
+			<Tabs.Root defaultValue="a" activationMode="manual">
+				<Tabs.List aria-label="Links">
+					<Tabs.Trigger value="a">A</Tabs.Trigger>
+					<Tabs.Trigger value="b" asChild>
+						<a href="#b">B</a>
+					</Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root>,
+		);
+		tab("B").focus();
+		// Why the default: Space on a link scrolls the page unless a handler cancels it.
+		let scrolls = true;
+		const record = (event: KeyboardEvent) => {
+			scrolls = !event.defaultPrevented;
+		};
+		window.addEventListener("keydown", record);
+
+		await userEvent.keyboard(" ");
+
+		window.removeEventListener("keydown", record);
+		expect(tab("B")).toHaveAttribute("aria-selected", "true");
+		expect(scrolls).toBe(false);
+	});
+
+	test("Space in a field inside an asChild tab does not activate the tab", async () => {
+		render(
+			<Tabs.Root defaultValue="a" activationMode="manual">
+				<Tabs.List aria-label="Field tab">
+					<Tabs.Trigger value="a">A</Tabs.Trigger>
+					<Tabs.Trigger value="b" asChild>
+						<div>
+							B <input aria-label="Filter" />
+						</div>
+					</Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root>,
+		);
+		screen.getByRole("textbox", { name: "Filter" }).focus();
+
+		await userEvent.keyboard(" ");
+
+		expect(tab("A")).toHaveAttribute("aria-selected", "true");
+	});
+
+	const UntilFound = ({
+		value,
+		onValueChange,
+		inner = false,
+	}: {
+		value?: string;
+		onValueChange?: (value: string) => void;
+		inner?: boolean;
+	}) => (
+		<Tabs.Root
+			defaultValue={value == null ? "a" : undefined}
+			value={value}
+			onValueChange={onValueChange}
+		>
+			<Tabs.List aria-label="Docs">
+				<Tabs.Trigger value="a">A</Tabs.Trigger>
+				<Tabs.Trigger value="b">B</Tabs.Trigger>
+			</Tabs.List>
+			<Tabs.Content value="a" hiddenUntilFound>
+				Panel A
+			</Tabs.Content>
+			<Tabs.Content value="b" hiddenUntilFound>
+				{inner ? (
+					<Tabs.Root defaultValue="x">
+						<Tabs.List aria-label="Inner">
+							<Tabs.Trigger value="x">X</Tabs.Trigger>
+							<Tabs.Trigger value="y">Y</Tabs.Trigger>
+						</Tabs.List>
+						<Tabs.Content value="x" hiddenUntilFound>
+							Panel X
+						</Tabs.Content>
+						<Tabs.Content value="y" hiddenUntilFound>
+							<p id="deep-inner">Panel Y</p>
+						</Tabs.Content>
+					</Tabs.Root>
+				) : (
+					<p id="deep-b">Panel B</p>
+				)}
+			</Tabs.Content>
+		</Tabs.Root>
+	);
+
+	test("a controlled root that keeps its tab hides a revealed panel again", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(<UntilFound value="a" onValueChange={onValueChange} />);
+		const panelB = screen.getByText("Panel B").parentElement;
+
+		window.location.hash = "#deep-b";
+
+		await vi.waitFor(() => {
+			expect(onValueChange.mock.calls).toEqual([["b"]]);
+		});
+		expect(tab("A")).toHaveAttribute("aria-selected", "true");
+		expect(panelB).toHaveAttribute("hidden", "until-found");
+		history.replaceState(null, "", window.location.pathname);
+	});
+
+	test("a reveal of a nested panel selects each tab once", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(
+			<Tabs.Root defaultValue="outer">
+				<Tabs.List aria-label="Outer">
+					<Tabs.Trigger value="outer">Outer</Tabs.Trigger>
+				</Tabs.List>
+				<Tabs.Content value="outer">
+					<UntilFound inner onValueChange={onValueChange} />
+				</Tabs.Content>
+			</Tabs.Root>,
+		);
+
+		window.location.hash = "#deep-inner";
+
+		await vi.waitFor(() => {
+			expect(tab("Y")).toHaveAttribute("aria-selected", "true");
+		});
+		expect(tab("B")).toHaveAttribute("aria-selected", "true");
+		expect(onValueChange.mock.calls).toEqual([["b"]]);
+		history.replaceState(null, "", window.location.pathname);
+	});
+
+	test("Tab skips the inactive panels that are hidden until found", async () => {
+		render(
+			<>
+				<UntilFound value="b" />
+				<button type="button">After</button>
+			</>,
+		);
+		tab("B").focus();
+
+		await userEvent.keyboard("{Tab}");
+		expect(screen.getByRole("tabpanel", { name: "B" })).toHaveFocus();
+		await userEvent.keyboard("{Tab}");
+		expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
+	});
+
+	test("a panel revealed before hydration selects its tab once hydrated", async () => {
+		const container = document.createElement("div");
+		container.innerHTML = renderToString(<UntilFound />);
+		document.body.append(container);
+		// The browser revealed the panel, as a fragment link does before hydration.
+		container.querySelector("#deep-b")?.parentElement?.removeAttribute("hidden");
+		const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+
+		const root = await act(async () => hydrateRoot(container, <UntilFound />));
+
+		await vi.waitFor(() => {
+			expect(tab("B")).toHaveAttribute("aria-selected", "true");
+		});
+		expect(container.querySelector('[role="tabpanel"]')).toHaveAttribute("hidden", "until-found");
+		// Why the filter: React warns about the uppercase `HIDDEN` name on purpose.
+		const unexpected = errors.mock.calls
+			.map((args) => args.map(String).join(" "))
+			.filter((message) => !message.includes("Invalid DOM property"));
+		expect(unexpected).toEqual([]);
+		act(() => {
+			root.unmount();
+		});
+		container.remove();
+		errors.mockRestore();
+	});
 });
