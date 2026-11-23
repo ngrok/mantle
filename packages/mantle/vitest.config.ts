@@ -88,9 +88,8 @@ const tailwindCss: BrowserCommand<[sourceFile: string]> = async ({ testPath }, s
 	return compiler.build(candidates);
 };
 
-// The published dist ships React Compiler output (see `tsdown.config.ts`), so tests must run the
-// same compiled components: a suite that runs uncompiled source never executes what npm consumers
-// get. Test files stay uncompiled, because a consumer's own code is not compiled either.
+// Tests run the same opt-in React Compiler pass as the published dist (see `tsdown.config.ts`): a
+// suite that skips it never executes what npm consumers get. Test files stay uncompiled, because a consumer's own code is not compiled either.
 // Why `enforce: "pre"`: Vite's own transform strips JSX, and the compiler must see the original
 // source.
 const reactCompiler = () => ({

@@ -56,7 +56,7 @@ A rule tagged `(lint: name)` has an oxlint check, and the lint message says why 
 
 - The React Compiler runs in strict mode by default. The tsdown build, the vitest suite, and the docs site share `packages/mantle/react-compiler.config.ts`. It sets `panicThreshold: "all_errors"` and turns on every compiler validation, so a function that the compiler cannot compile or validate fails the build.
 - Write code that the compiler can compile. When the build fails, rewrite the function to the [Rules of React](https://react.dev/reference/rules). Do not opt it out.
-- Nothing ships compiled by default (annotation mode). Start a function, or a module, with `"use memo"` only when a browser A/B at 4× CPU shows a better INP, and put the numbers in its `Why` comment. Bytes or render counts alone do not qualify ([decision](./decisions/2026-11-22-react-compiler-scope.md)).
+- Nothing ships compiled by default (annotation mode). Start a function, or a module (its components and hooks), with `"use memo"` only when a browser A/B at 4× CPU shows a better INP, and put the numbers in its `Why` comment. Bytes or render counts alone do not qualify ([decision](./decisions/2026-11-22-react-compiler-scope.md)).
 - A stable identity that a caller relies on, such as a ref callback or an effect dependency, is code: use `useCallback`, `useMemo`, or a module cache.
 - Write `"use no memo"` only for a library that the compiler cannot model (`list/virtual.tsx` and `@tanstack/react-virtual`). Add a `Why` comment that names the library.
 - oxlint turns on every rule that ports a compiler diagnostic, so the editor shows what the build rejects. Never disable a React hooks or React Compiler rule; restructure the code. (lint: `mantle/no-react-hooks-suppression`)

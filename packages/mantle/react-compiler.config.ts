@@ -50,7 +50,7 @@ function assertCompiled(id: string, result: TransformResult): void {
 	}
 }
 
-/** Reports whether a module starts with a `"use memo"` directive, which opts in each of its functions. */
+/** Reports whether a module starts with a `"use memo"` directive, which opts in each of its components and hooks. */
 function optsInModule(id: string, code: string): boolean {
 	const { program } = parseSync(id, code);
 	for (const statement of program.body) {
@@ -66,8 +66,8 @@ function optsInModule(id: string, code: string): boolean {
 
 /**
  * Runs the React Compiler over one module, for the tsdown build, the vitest suite, and the docs
- * site. Only a function that starts with `"use memo"`, or each function of a module that starts with
- * it, ships compiled. Every other function ships as written. The source map points at the original module. JSX stays in the output, so the host's own
+ * site. Only a function that starts with `"use memo"`, or each component and hook of a module that
+ * starts with it, ships compiled. Every other function ships as written. The source map points at the original module. JSX stays in the output, so the host's own
  * JSX transform still runs.
  *
  * Why two passes: the first pass compiles every component and hook to run the strict validations,

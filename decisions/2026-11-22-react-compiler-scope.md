@@ -63,7 +63,7 @@ One test, "a hover publish does not re-render the data table", counted renders o
 
 ## Decision
 
-1. **Nothing compiles by default.** The build runs the React Compiler in annotation mode. A function that starts with `"use memo"`, or each function of a module that starts with it, ships compiled. Today no function does.
+1. **Nothing compiles by default.** The build runs the React Compiler in annotation mode. A function that starts with `"use memo"`, or each component and hook of a module that starts with it, ships compiled. Today no function does. The rule covers the docs site's own code too, because it runs the same pass.
 2. **Opt in only for a measured INP gain.** Use a browser A/B at 4× CPU like the one above. Put the numbers in the `Why` comment above the directive. Bytes or render counts alone do not qualify.
 3. **Every component and hook stays compiler-compliant.** The build compiles each module in full to run the strict validations, then discards that output. oxlint keeps every rule that ports a compiler diagnostic.
 4. **A stable identity that callers rely on is code, not compiler output.** A ref callback, or a value in an effect's dependency list, uses `useCallback`, `useMemo`, or a module cache.
@@ -78,4 +78,4 @@ One test, "a hover publish does not re-render the data table", counted renders o
 
 - The dist is 247.7 KB gzip, against 317.3 KB on `d859fd15` (−69.6 KB, −22%). A page saves 6 to 13 KB gzip of JS, and its heap shrinks up to 5%.
 - The build takes about 4.7 s, against 5.0 s on `d859fd15`. A build with no compiler at all took 3.9 s, so the validation pass costs about 0.8 s.
-- Uncompiled code re-renders a child whose props did not change. Code that needs a stable identity must say so itself (decision 4). The tests caught two such places, and the A/B caught two more.
+- Uncompiled code re-renders a child whose props did not change. Code that needs a stable identity must say so itself (decision 4). The tests caught two such places, the A/B caught two more, and the review caught `MultiSelect.Trigger` and `MultiSelect.Tag`.

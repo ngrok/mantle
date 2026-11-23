@@ -1,8 +1,7 @@
 "use client";
 
-import { isValidElement, useCallback, useId, useState } from "react";
+import { isValidElement, useCallback, useId, useInsertionEffect, useRef, useState } from "react";
 import type { HTMLAttributes, MouseEventHandler, ReactNode, RefCallback, RefObject } from "react";
-import { useCallbackRef } from "../hooks/use-callback-ref.js";
 import { createStore, useStoreValue } from "./store.js";
 import type { Store } from "./store.js";
 
@@ -187,7 +186,12 @@ const useListbox = ({
 
 	// Why a stable callback: React detaches and attaches a new ref callback on each render, which
 	// would rebuild the observer and the subscription on each keystroke.
-	const latestMove = useCallbackRef(move);
+	// Why an insertion effect: the ref callback and the observer can run in the same commit, before
+	// a passive effect (`useCallbackRef`) writes this render's `move`.
+	const moveRef = useRef(move);
+	useInsertionEffect(() => {
+		moveRef.current = move;
+	});
 	const listboxRef = useCallback<RefCallback<HTMLElement>>(
 		(node) => {
 			ref.current = node;
@@ -202,7 +206,7 @@ const useListbox = ({
 				const { activeId } = store.get();
 				const stale = activeId != null && !node.contains(document.getElementById(activeId));
 				if (pendingMoveRef.current != null || stale) {
-					latestMove(pendingMoveRef.current ?? "first");
+					moveRef.current(pendingMoveRef.current ?? "first");
 				}
 			};
 			const observer = new MutationObserver(reconcile);
@@ -234,7 +238,7 @@ const useListbox = ({
 				ref.current = null;
 			};
 		},
-		[ref, getStore, pendingMoveRef, ownerRef, latestMove],
+		[ref, getStore, pendingMoveRef, ownerRef],
 	);
 
 	return {
