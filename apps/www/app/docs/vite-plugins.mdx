@@ -140,7 +140,7 @@ islands. To do that, it restates every stop of every palette, about 240 of them,
 rules. Tailwind drops a stop your app never uses from the light theme, but it can't drop that
 stop from mantle's theme rules. Your stylesheet ships the dark value of every stop anyway.
 
-In mantle 0.94 and earlier, Tailwind's color-mix fallbacks add more. Each fallback repeats the
+In mantle 0.94.1 and earlier, Tailwind's color-mix fallbacks add more. Each fallback repeats the
 long theme selector, once per token.
 
 ### Setup
@@ -166,13 +166,13 @@ The plugin runs once on the finished bundle of `vite build`. `vite dev` serves t
 - It keeps a stop in mantle's theme rules only when the same stylesheet reads it: a utility, a
   `var()`, an at-rule condition, a CSS module merged into it, or `@layer theme`, where Tailwind
   writes each stop that a scanned file names, such as a class or a raw `--color-pink-300` string.
-- It joins the pieces of each theme rule that the fallbacks of mantle 0.94 and earlier split
+- It joins the pieces of each theme rule that the fallbacks of mantle 0.94.1 and earlier split
   apart, so the theme selector appears once per rule.
 
 It changes only mantle's own theme rules, which it finds by their exact selectors. A page that
 renders Button, Card, Tabs, Accordion, DropdownMenu, Dialog, and CodeBlock ships 128.6 KB of
 mantle CSS without the plugin and 104.1 KB with it (21.9 KB and 18.1 KB gzipped). Measured with
-Vite 8.3.8, mantle 0.94, Tailwind 4.3.5, and `mantleSourcesPlugin`.
+Vite 8.3.8, mantle 0.94.1, Tailwind 4.3.5, and `mantleSourcesPlugin`.
 
 ### Limits
 

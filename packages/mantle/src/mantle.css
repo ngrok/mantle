@@ -4,7 +4,7 @@ each `color-mix()` that reads a `var()`. It adds none inside an `@supports`
 block that tests `color-mix(` (tailwindlabs/tailwindcss#19450). Each such block
 in this file tests `X or not X`, which is true in each browser, so it gates
 nothing. The fallbacks apply only below mantle's browser floor (Tailwind v4:
-Safari 16.4, Chrome 111, Firefox 128) and cost 1.9 KB gz on each page.
+Safari 16.4, Chrome 111, Firefox 128) and cost up to 1.9 KB gz (with every mantle class).
 
 Why not `@import "tailwindcss" supports(…)`: an app that also imports
 `tailwindcss` before this file would then get the preflight twice.

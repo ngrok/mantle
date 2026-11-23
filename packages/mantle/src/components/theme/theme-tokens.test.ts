@@ -35,7 +35,7 @@ test("the semantic utilities read the theme tokens, and no token is declared as 
 });
 
 // Why: Tailwind adds a fallback and an `@supports` block for each `color-mix()` that reads a
-// `var()`. They apply only below mantle's browser floor and cost 1.9 KB gz on each page.
+// `var()`. They apply only below mantle's browser floor and cost up to 1.9 KB gz.
 test("emits no color-mix fallbacks for the theme tokens or the utilities", async () => {
 	const css = await buildMantleCss(["bg-neutral-500/20", "shadow-sm", "focus-ring", "scrollbar"]);
 
