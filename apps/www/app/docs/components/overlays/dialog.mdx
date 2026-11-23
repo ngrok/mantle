@@ -58,9 +58,22 @@ import { Button } from "@ngrok/mantle/button";
 
 ## Layering and z-index
 
-`Dialog.Content` renders the browser's modal `<dialog>` (`data-slot="dialog-positioner"`), so it paints in the top layer, above the page and every float outside it. The browser traps focus in it, makes the page behind it inert, closes it on Escape, and returns focus to the trigger. Floats composed inside the content portal into the `<dialog>` and paint above the content. A dialog that opens from inside another one paints above it.
+`Dialog.Content` renders the browser's modal `<dialog>` (`data-slot="dialog-positioner"`), so it paints in the top layer, above the page and every float outside it. The browser makes the page behind it inert, closes it on Escape, and returns focus to the trigger. Floats composed inside the content portal into the `<dialog>` and paint above the content. A dialog that opens from inside another one paints above it.
 
 `Dialog`, `Sheet`, and `AlertDialog` each draw their own backdrop, so stacking modal layers compounds the dim and blur effect on the layers underneath.
+
+## Tab at the end of a dialog
+
+Tab from the last control in an open dialog moves focus to the browser's own controls, such as the address bar. Tab from there comes back into the dialog, and Shift+Tab works the same way in reverse. The page behind the dialog never takes focus. This is what Tab does at the end of any page, and it differs from mantle 0.94.1 on purpose: the Radix dialog wrapped Tab from the last control to the first.
+
+mantle keeps the browser behavior because the standard defines it and the accessibility groups chose it:
+
+- **The HTML standard.** [`showModal()`](https://html.spec.whatwg.org/multipage/interactive-elements.html#show-a-modal-dialog) sets the document to be [blocked by the modal dialog](https://html.spec.whatwg.org/multipage/interaction.html#blocked-by-a-modal-dialog). While it is blocked, every node outside the dialog "must become inert". [Sequential focus navigation](https://html.spec.whatwg.org/multipage/interaction.html#sequential-focus-navigation) has no exception for dialogs: when the document has no next control, "the user agent should transfer focus to its own controls appropriately (if any)". Chromium, Firefox, and WebKit all do this.
+- **The decision.** [whatwg/html#8339](https://github.com/whatwg/html/issues/8339) asked for a focus trap in `showModal()` in 2022. In the Chromium bug that led to it, an HTML editor wrote that the spec "indicates that browsers' current behavior is correct". In November 2023, W3C's Accessible Platform Architectures Working Group concluded that "the current behavior of the native dialog element should be kept as it is", so that keyboard users can, for example, "open a new tab to look something important up or to change a browser setting", and as "an additional natural escape mechanism" in kiosk setups. The issue closed the same day.
+- **WCAG.** In August 2025, [w3c/wcag#4381](https://github.com/w3c/wcag/pull/4381) changed the modal dialog examples in the Understanding documents for [2.4.3 Focus Order](https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html) and 2.1.2 No Keyboard Trap. They now say that content outside the dialog "becomes inert and cannot receive focus (though, depending on implementation, the focus cycle might still include user agent controls)".
+- **Why the APG says to wrap.** The [APG Dialog (Modal) Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/) still tells Tab to move from the last tabbable element to the first. In #8339, Scott O'Hara explained that this guidance and the old WCAG example "were written long before the `inert` attribute or the `<dialog>` element were widely supported". A script dialog could not make the page inert, so a trap was "far easier" than taking every control on the page out of the tab order. The APG is not normative. [w3c/aria-practices#1772](https://github.com/w3c/aria-practices/issues/1772), opened in 2021, asks the APG to allow Tab to reach the browser UI, and is still open.
+
+Do not add a focus trap on top of the dialog. The page behind stays out of reach, and keyboard users keep the same way out of the page that they have everywhere else.
 
 ## UI above an open dialog
 
