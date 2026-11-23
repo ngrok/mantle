@@ -200,6 +200,7 @@
         "mantle/no-default-export": "error",
         "mantle/no-display-name": "error",
         "mantle/no-namespace-object": "error",
+        "mantle/no-structural-combinator": "error",
         "no-restricted-imports": [
           "error",
           {

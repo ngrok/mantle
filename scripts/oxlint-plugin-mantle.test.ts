@@ -341,3 +341,27 @@ describe.each([
 		expect(lint({ rule, fileName, source: allowed })).toEqual([]);
 	});
 });
+
+describe("no-structural-combinator", () => {
+	it.each([
+		// The Table.Head and Table.Foot classes that #1794 removed.
+		'cx("[&>tr:last-child>*]:border-b [&>tr:last-child>*]:border-card-muted");',
+		'cx("[&>tr:first-child>*]:border-t");',
+		'const a = "md:[&>li:nth-child(2n)_span]:p-2";',
+		"const a = `group-first:hidden`;",
+		'const a = "[&:is(tr:last-child_*)]:p-2";',
+	])("flags %s", (source) => {
+		expect(
+			lint({ rule: "no-structural-combinator", fileName: "a.ts", source }).length,
+		).toBeGreaterThan(0);
+	});
+
+	it.each([
+		'cx("[&>tr:not(:has(+tr))>*]:border-b [&>tr+tr>*]:border-t");',
+		'cx("[&>*:last-child]:rounded-l-none [&>*:not(:first-child)]:-ml-px last:border-0");',
+		'cx("has-[>button:last-child]:pe-1 [&:has(>a:first-child_b)]:p-2");',
+		'document.querySelector("tr:last-child > td");',
+	])("allows %s", (source) => {
+		expect(lint({ rule: "no-structural-combinator", fileName: "a.ts", source })).toEqual([]);
+	});
+});
