@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useInsertionEffect, useRef, useState } from "react";
-import type { RefCallback } from "react";
+import type { RefCallback, RefObject } from "react";
 import { canUseDOM } from "../../components/browser-only/can-use-dom.js";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
@@ -493,7 +493,8 @@ function useFloat({
 			let frame = 0;
 			const tryAttach = () => {
 				const late = anchorOf();
-				if (late == null || !floating.isConnected) {
+				// Why check the owner: a queued frame can run after a render attached the float.
+				if (attachLate.current !== tryAttach || late == null || !floating.isConnected) {
 					return false;
 				}
 				attachLate.current = null;
@@ -533,12 +534,58 @@ function useFloat({
 	};
 }
 
+/**
+ * The element of a float's trigger or anchor, and the ref callback that sets
+ * it. The callback runs `onTriggerChangeRef` for each new element. Why: a
+ * custom trigger can replace its own element with no render of the float, so
+ * the open float must place itself again, with the `reconcile` that
+ * `useFloat` returns.
+ *
+ * @example
+ * ```tsx
+ * const { triggerRef, setTrigger, onTriggerChangeRef } = useTriggerRef();
+ * // In the content, after useFloat:
+ * useReconcileOnTriggerChange(onTriggerChangeRef, reconcile);
+ * ```
+ */
+function useTriggerRef() {
+	const triggerRef = useRef<HTMLElement | null>(null);
+	const onTriggerChangeRef = useRef<(() => void) | null>(null);
+	// Why only for an element: a replaced trigger detaches before the new one
+	// attaches, and a modal menu must not let its boundary go between them.
+	const setTrigger = useCallback((element: HTMLElement | null) => {
+		triggerRef.current = element;
+		if (element != null) {
+			onTriggerChangeRef.current?.();
+		}
+	}, []);
+	return { triggerRef, setTrigger, onTriggerChangeRef };
+}
+
+/**
+ * Runs `reconcile` when the trigger behind `onTriggerChangeRef` gets a new
+ * element, while the content is mounted.
+ */
+function useReconcileOnTriggerChange(
+	onTriggerChangeRef: RefObject<(() => void) | null>,
+	reconcile: () => void,
+) {
+	useEffect(() => {
+		onTriggerChangeRef.current = reconcile;
+		return () => {
+			onTriggerChangeRef.current = null;
+		};
+	}, [onTriggerChangeRef, reconcile]);
+}
+
 export {
 	//,
 	floatClassName,
 	hasPopoverApi,
 	resolvePortalTarget,
 	useFloat,
+	useReconcileOnTriggerChange,
+	useTriggerRef,
 };
 
 export type {

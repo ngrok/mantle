@@ -1357,4 +1357,43 @@ describe("DropdownMenu with its CSS (browser)", () => {
 			await waitFor(() => expect(menu.getBoundingClientRect().left).toBeCloseTo(240, 0));
 		},
 	);
+
+	test("a custom sub-trigger that replaces its own element moves the open submenu", async () => {
+		const control = { replaceElement: () => {} };
+		function CustomSubTrigger(props: ComponentProps<"button">) {
+			const [replacement, setReplacement] = useState(false);
+			useEffect(() => {
+				control.replaceElement = () => setReplacement(true);
+			});
+			return (
+				<button
+					type="button"
+					key={String(replacement)}
+					{...props}
+					style={{ position: "fixed", left: replacement ? 140 : 80, top: 200, width: 70 }}
+				/>
+			);
+		}
+		render(
+			<DropdownMenu.Root open modal={false}>
+				<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+				<DropdownMenu.Content onInteractOutside={(event) => event.preventDefault()}>
+					<DropdownMenu.Sub open>
+						<DropdownMenu.SubTrigger asChild>
+							<CustomSubTrigger>More</CustomSubTrigger>
+						</DropdownMenu.SubTrigger>
+						<DropdownMenu.SubContent sideOffset={2} style={{ width: 140 }}>
+							<DropdownMenu.Item>Apple</DropdownMenu.Item>
+						</DropdownMenu.SubContent>
+					</DropdownMenu.Sub>
+				</DropdownMenu.Content>
+			</DropdownMenu.Root>,
+		);
+		const submenu = await screen.findByRole("menu", { name: "More" });
+		await waitFor(() => expect(submenu.getBoundingClientRect().left).toBeCloseTo(152, 0));
+
+		await act(async () => control.replaceElement());
+
+		await waitFor(() => expect(submenu.getBoundingClientRect().left).toBeCloseTo(212, 0));
+	});
 });

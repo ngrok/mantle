@@ -1,9 +1,12 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { useEffect, useState } from "react";
+import type { ComponentProps } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { commands } from "vitest/browser";
 import * as HoverCard from "../../components/hover-card/hover-card-parts.js";
 import * as Popover from "../../components/popover/popover-parts.js";
 import * as Tooltip from "../../components/tooltip/tooltip-parts.js";
+import { LayerContainerContext } from "../layer-container/layer-container.js";
 
 const anchorStyle = { position: "fixed", left: 180, top: 200, width: 70, height: 30 } as const;
 const panelStyle = {
@@ -173,4 +176,84 @@ describe("useFloat placement while open", () => {
 			await waitFor(() => expect(panel.getBoundingClientRect().top).toBeCloseTo(253, 0));
 		},
 	);
+
+	test.each(families)(
+		"%s follows a custom trigger that replaces its own element",
+		async (_name, Parts) => {
+			const control = { replaceElement: () => {} };
+			function CustomTrigger(props: ComponentProps<"button">) {
+				const [replacement, setReplacement] = useState(false);
+				useEffect(() => {
+					control.replaceElement = () => setReplacement(true);
+				});
+				return (
+					<button
+						type="button"
+						key={String(replacement)}
+						{...props}
+						style={{ ...anchorStyle, left: replacement ? 240 : 180 }}
+					>
+						Open
+					</button>
+				);
+			}
+			render(
+				<Parts.Root open>
+					<Parts.Trigger asChild>
+						<CustomTrigger />
+					</Parts.Trigger>
+					<Parts.Content data-testid="panel" side="bottom" align="start" style={panelStyle}>
+						Content
+					</Parts.Content>
+				</Parts.Root>,
+			);
+			const panel = await screen.findByTestId("panel");
+			await waitFor(() => expect(panel.getBoundingClientRect().left).toBeCloseTo(180, 0));
+
+			await act(async () => control.replaceElement());
+
+			await waitFor(() => expect(panel.getBoundingClientRect().left).toBeCloseTo(240, 0));
+		},
+	);
+});
+
+describe("useFloat with a portal that connects later", () => {
+	test("a render before the next frame starts the float once", async () => {
+		const host = document.createElement("div");
+		const outside: string[] = [];
+		const tree = (label: string) => (
+			<LayerContainerContext.Provider value={host}>
+				<Popover.Root open>
+					<Popover.Trigger style={anchorStyle}>Open</Popover.Trigger>
+					<Popover.Content
+						data-testid="panel"
+						style={panelStyle}
+						onPointerDownOutside={(event) => {
+							event.preventDefault();
+							outside.push("outside");
+						}}
+					>
+						{label}
+					</Popover.Content>
+				</Popover.Root>
+			</LayerContainerContext.Provider>
+		);
+		const { rerender, unmount } = render(tree("First"));
+		const anchor = screen.getByRole("button", { name: "Open" });
+		await act(async () => {
+			document.body.append(host);
+			rerender(tree("Second"));
+		});
+		const panel = await screen.findByTestId("panel");
+		await waitFor(() => expect(panel.matches(":popover-open")).toBe(true));
+		await new Promise(requestAnimationFrame);
+
+		document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+		expect(outside).toEqual(["outside"]);
+		unmount();
+		host.remove();
+		document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+		expect(outside).toEqual(["outside"]);
+		await waitFor(() => expect(anchor.style.getPropertyValue("anchor-name")).toBe(""));
+	});
 });

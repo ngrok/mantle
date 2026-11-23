@@ -99,4 +99,27 @@ describe("enterModal", () => {
 		expect(document.querySelector("[inert]")).toBeNull();
 		expect(document.documentElement.style.overflow).toBe("");
 	});
+
+	test("a modal that exits under two later modals leaves the newest one live", () => {
+		const { trigger, next, aside, popup } = page();
+		const exitFirst = enterModal([trigger, popup]);
+		enterModal([next]);
+		const exitNewest = enterModal([aside]);
+		exitFirst();
+		expect(aside.inert).toBe(false);
+		expect(popup.inert).toBe(true);
+		exitNewest();
+	});
+
+	test("a modal's popup that an older modal made inert before it entered is live", () => {
+		const { trigger, aside, popup } = page();
+		const exitOuter = enterModal([trigger, popup]);
+		expect(aside.inert).toBe(true);
+		const exitLater = enterModal([aside]);
+		expect(aside.inert).toBe(false);
+		exitLater();
+		expect(aside.inert).toBe(true);
+		exitOuter();
+		expect(document.querySelector("[inert]")).toBeNull();
+	});
 });

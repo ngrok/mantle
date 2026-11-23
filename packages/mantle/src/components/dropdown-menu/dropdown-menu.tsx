@@ -31,7 +31,12 @@ import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import type { Align, Side } from "../../utils/float/position.js";
-import { floatClassName, useFloat } from "../../utils/float/use-float.js";
+import {
+	floatClassName,
+	useFloat,
+	useReconcileOnTriggerChange,
+	useTriggerRef,
+} from "../../utils/float/use-float.js";
 import type { OutsideHandlers } from "../../utils/float/use-float.js";
 import { LayerContainerContext } from "../../utils/layer-container/layer-container.js";
 import { Icon } from "../icon/icon.js";
@@ -102,6 +107,10 @@ type SubState = {
 	open: boolean;
 	setOpen: (open: boolean) => void;
 	triggerRef: RefObject<HTMLElement | null>;
+	/** The sub-trigger's ref callback. It tells `onTriggerChangeRef` about a new element. */
+	setTrigger: (element: HTMLElement | null) => void;
+	/** Runs when the sub-trigger gets a new element. */
+	onTriggerChangeRef: RefObject<(() => void) | null>;
 	triggerId: string;
 	contentId: string;
 	setOpenFocus: (focus: OpenFocus) => void;
@@ -471,16 +480,7 @@ const Root = ({
 }) => {
 	const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
 	const open = openProp ?? uncontrolledOpen;
-	const triggerRef = useRef<HTMLElement | null>(null);
-	const onTriggerChangeRef = useRef<(() => void) | null>(null);
-	// Why only for an element: a replaced trigger detaches before the new one
-	// attaches, and the menu must not let its modal boundary go between them.
-	const setTrigger = useCallback((element: HTMLElement | null) => {
-		triggerRef.current = element;
-		if (element != null) {
-			onTriggerChangeRef.current?.();
-		}
-	}, []);
+	const { triggerRef, setTrigger, onTriggerChangeRef } = useTriggerRef();
 	const { setOpenFocus, takeOpenFocus } = useOpenFocus();
 	const triggerId = useId();
 	const contentId = useId();
@@ -505,10 +505,12 @@ const Root = ({
 			open,
 			openProp,
 			onOpenChange,
+			onTriggerChangeRef,
 			setOpenFocus,
 			setTrigger,
 			takeOpenFocus,
 			triggerId,
+			triggerRef,
 		],
 	);
 	const { setOpen } = state;
@@ -679,7 +681,7 @@ const Sub = ({
 	const parentOpen = root.open && (parentSub?.open ?? true);
 	const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
 	const open = openProp ?? uncontrolledOpen;
-	const triggerRef = useRef<HTMLElement | null>(null);
+	const { triggerRef, setTrigger, onTriggerChangeRef } = useTriggerRef();
 	const { setOpenFocus, takeOpenFocus } = useOpenFocus();
 	const triggerId = useId();
 	const contentId = useId();
@@ -688,12 +690,25 @@ const Sub = ({
 			open,
 			setOpen: openSetter({ open, openProp, onOpenChange, setUncontrolledOpen }),
 			triggerRef,
+			setTrigger,
+			onTriggerChangeRef,
 			triggerId,
 			contentId,
 			setOpenFocus,
 			takeOpenFocus,
 		}),
-		[contentId, open, openProp, onOpenChange, setOpenFocus, takeOpenFocus, triggerId],
+		[
+			contentId,
+			onTriggerChangeRef,
+			open,
+			openProp,
+			onOpenChange,
+			setOpenFocus,
+			setTrigger,
+			takeOpenFocus,
+			triggerId,
+			triggerRef,
+		],
 	);
 	const { setOpen } = state;
 	const setLatestOpen = useCallbackRef(setOpen);
@@ -1318,7 +1333,7 @@ const SubTrigger = ({
 	const root = useRootState("SubTrigger");
 	const sub = useSubState("SubTrigger");
 	const level = useMenuLevel("SubTrigger");
-	const composedRef = useComposedRefs(ref, sub.triggerRef);
+	const composedRef = useComposedRefs(ref, sub.setTrigger);
 	const openTimer = useHoverTimer();
 	const path = usePathListener();
 	useEffect(() => {
@@ -1518,7 +1533,7 @@ const SubContent = ({
 	// Why the trigger's direction: the keyboard opens the submenu with the arrow
 	// key of the menu's direction, so the submenu opens on that side too.
 	const opensLeft = sub.open && trigger != null ? isRtl(trigger, root.dir) : root.dir === "rtl";
-	const { portalTarget, floatingRef } = useFloat({
+	const { portalTarget, floatingRef, reconcile } = useFloat({
 		open: root.open && sub.open,
 		onDismiss: (reason) => {
 			// Why: Escape in a submenu closes the whole menu, as a native menu does.
@@ -1563,6 +1578,7 @@ const SubContent = ({
 		() => ({ menuRef, closeAll, isInSubmenuPath, setSubmenuPath, clearSubmenuPath, isTyping }),
 		[clearSubmenuPath, closeAll, isInSubmenuPath, isTyping, setSubmenuPath],
 	);
+	useReconcileOnTriggerChange(sub.onTriggerChangeRef, reconcile);
 	// Why around the element: see `Content`.
 	const renderLevel = (inner: ReactNode) => (
 		<LayerContainerContext.Provider value={menu}>

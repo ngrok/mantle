@@ -18,7 +18,12 @@ import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import type { Align, Side } from "../../utils/float/position.js";
-import { floatClassName, useFloat } from "../../utils/float/use-float.js";
+import {
+	floatClassName,
+	useFloat,
+	useReconcileOnTriggerChange,
+	useTriggerRef,
+} from "../../utils/float/use-float.js";
 import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import { Slot } from "../slot/index.js";
 
@@ -130,6 +135,9 @@ type TooltipState = {
 	state: TooltipOpenState;
 	contentId: string;
 	triggerRef: RefObject<HTMLElement | null>;
+	/** The trigger's ref callback. It tells the open content about a new trigger element. */
+	setTrigger: (element: HTMLElement | null) => void;
+	onTriggerChangeRef: RefObject<(() => void) | null>;
 	/** The pointer reached the trigger: open after the delay. */
 	onTriggerEnter: () => void;
 	/** The pointer left the trigger: close, or wait for it to reach the content. */
@@ -223,7 +231,7 @@ function Root({
 	useEffect(() => {
 		requestedOpen.current = open;
 	}, [open]);
-	const triggerRef = useRef<HTMLElement | null>(null);
+	const { triggerRef, setTrigger, onTriggerChangeRef } = useTriggerRef();
 	useEffect(
 		() => () => {
 			clearTimeout(timer.current);
@@ -282,6 +290,8 @@ function Root({
 			state: openState,
 			contentId,
 			triggerRef,
+			setTrigger,
+			onTriggerChangeRef,
 			onTriggerEnter: () => {
 				clearTimeout(timer.current);
 				stopGrace.current?.();
@@ -341,10 +351,13 @@ function Root({
 		delayDuration,
 		disableHoverableContent,
 		onOpenChange,
+		onTriggerChangeRef,
 		open,
 		openProp,
 		openState,
+		setTrigger,
 		timing,
+		triggerRef,
 	]);
 	return <TooltipContext.Provider value={state}>{children}</TooltipContext.Provider>;
 }
@@ -383,7 +396,7 @@ function Trigger({
 	...props
 }: ComponentProps<"button"> & WithAsChild & WithDataSlot) {
 	const state = useTooltipState("Trigger");
-	const composedRef = useComposedRefs(ref, state.triggerRef);
+	const composedRef = useComposedRefs(ref, state.setTrigger);
 	const hoverOpened = useRef(false);
 	const pressed = useRef(false);
 	const Component = asChild ? Slot : "button";
@@ -539,7 +552,7 @@ function Content({
 	...props
 }: TooltipContentProps) {
 	const state = useTooltipState("Content");
-	const { portalTarget, floatingRef } = useFloat({
+	const { portalTarget, floatingRef, reconcile } = useFloat({
 		open: state.state !== "closed",
 		onDismiss: state.close,
 		getAnchor: () => state.triggerRef.current,
@@ -553,6 +566,7 @@ function Content({
 		sideOffset,
 		onEscapeKeyDown,
 	});
+	useReconcileOnTriggerChange(state.onTriggerChangeRef, reconcile);
 	const composedRef = useComposedRefs(ref, floatingRef);
 
 	return (

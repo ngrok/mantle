@@ -11,7 +11,12 @@ import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { FloatArrow, focusFirst } from "../../utils/float/parts.js";
 import type { Align, Side } from "../../utils/float/position.js";
-import { floatClassName, useFloat } from "../../utils/float/use-float.js";
+import {
+	floatClassName,
+	useFloat,
+	useReconcileOnTriggerChange,
+	useTriggerRef,
+} from "../../utils/float/use-float.js";
 import type { OutsideHandlers } from "../../utils/float/use-float.js";
 import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import { Slot } from "../slot/index.js";
@@ -21,7 +26,13 @@ type PopoverState = {
 	setOpen: (open: boolean) => void;
 	contentId: string;
 	triggerRef: RefObject<HTMLElement | null>;
+	/** The trigger's ref callback. It tells the open content about a new trigger element. */
+	setTrigger: (element: HTMLElement | null) => void;
+	onTriggerChangeRef: RefObject<(() => void) | null>;
 	anchorRef: RefObject<HTMLElement | null>;
+	/** The anchor's ref callback. It tells the open content about a new anchor element. */
+	setAnchor: (element: HTMLElement | null) => void;
+	onAnchorChangeRef: RefObject<(() => void) | null>;
 };
 
 const PopoverContext = createContext<PopoverState | null>(null);
@@ -73,8 +84,12 @@ type PopoverRootProps = {
 function Root({ children, defaultOpen = false, onOpenChange, open: openProp }: PopoverRootProps) {
 	const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
 	const open = openProp ?? uncontrolledOpen;
-	const triggerRef = useRef<HTMLElement | null>(null);
-	const anchorRef = useRef<HTMLElement | null>(null);
+	const { triggerRef, setTrigger, onTriggerChangeRef } = useTriggerRef();
+	const {
+		triggerRef: anchorRef,
+		setTrigger: setAnchor,
+		onTriggerChangeRef: onAnchorChangeRef,
+	} = useTriggerRef();
 	const contentId = useId();
 	const state = useMemo<PopoverState>(
 		() => ({
@@ -90,9 +105,24 @@ function Root({ children, defaultOpen = false, onOpenChange, open: openProp }: P
 			},
 			contentId,
 			triggerRef,
+			setTrigger,
+			onTriggerChangeRef,
 			anchorRef,
+			setAnchor,
+			onAnchorChangeRef,
 		}),
-		[contentId, onOpenChange, open, openProp],
+		[
+			anchorRef,
+			contentId,
+			onAnchorChangeRef,
+			onOpenChange,
+			onTriggerChangeRef,
+			open,
+			openProp,
+			setAnchor,
+			setTrigger,
+			triggerRef,
+		],
 	);
 	return <PopoverContext.Provider value={state}>{children}</PopoverContext.Provider>;
 }
@@ -125,7 +155,7 @@ const Trigger = ({
 	...props
 }: ComponentProps<"button"> & WithAsChild & WithDataSlot) => {
 	const state = usePopoverState("Trigger");
-	const composedRef = useComposedRefs(ref, state.triggerRef);
+	const composedRef = useComposedRefs(ref, state.setTrigger);
 	const Component = asChild ? Slot : "button";
 	return (
 		<Component
@@ -181,7 +211,7 @@ const Anchor = ({
 	...props
 }: ComponentProps<"div"> & WithAsChild & WithDataSlot) => {
 	const state = usePopoverState("Anchor");
-	const composedRef = useComposedRefs(ref, state.anchorRef);
+	const composedRef = useComposedRefs(ref, state.setAnchor);
 	const Component = asChild ? Slot : "div";
 	return (
 		<Component data-slot={joinDataSlot(dataSlot, "popover-anchor")} ref={composedRef} {...props} />
@@ -330,7 +360,7 @@ const Content = ({
 }: PopoverContentProps) => {
 	const state = usePopoverState("Content");
 	const closedFromOutside = useRef(false);
-	const { portalTarget, floatingRef } = useFloat({
+	const { portalTarget, floatingRef, reconcile } = useFloat({
 		open: state.open,
 		onDismiss: (reason) => {
 			closedFromOutside.current = reason === "outside";
@@ -372,6 +402,8 @@ const Content = ({
 			}
 		},
 	});
+	useReconcileOnTriggerChange(state.onTriggerChangeRef, reconcile);
+	useReconcileOnTriggerChange(state.onAnchorChangeRef, reconcile);
 	const composedRef = useComposedRefs(ref, floatingRef);
 
 	return (
