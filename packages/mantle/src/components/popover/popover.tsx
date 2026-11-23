@@ -436,13 +436,14 @@ const Content = ({
 				onKeyDown={(event) => {
 					onKeyDown?.(event);
 					const content = event.currentTarget;
-					// Why the `dialog` check: a Dialog opened from the content portals
+					// Why the `:modal` check: a Dialog opened from the content portals
 					// into it, and that dialog keeps its own Tab order.
 					if (
 						event.key !== "Tab" ||
 						event.defaultPrevented ||
 						!(event.target instanceof Element) ||
-						event.target.closest("dialog") !== content.closest("dialog")
+						!content.contains(event.target) ||
+						event.target.closest("dialog:modal") !== content.closest("dialog:modal")
 					) {
 						return;
 					}
@@ -453,7 +454,7 @@ const Content = ({
 					const first = tabStops[0];
 					const last = tabStops[tabStops.length - 1];
 					const focused = content.ownerDocument.activeElement;
-					if (first == null || focused === (event.shiftKey ? first : last)) {
+					if (first == null ? focused === content : focused === (event.shiftKey ? first : last)) {
 						event.preventDefault();
 						(event.shiftKey ? last : first)?.focus();
 					}
