@@ -30,6 +30,8 @@ import type { WithValidation } from "../field/validation.js";
 import { Icon } from "../icon/icon.js";
 import { Separator } from "../separator/separator.js";
 import { Slot, slotContent } from "../slot/slot.js";
+import { OptionSlot } from "../slot/option-slot.js";
+import type { OptionRender } from "../slot/option-slot.js";
 
 type WithAriaInvalid = Pick<SelectHTMLAttributes<HTMLSelectElement>, "aria-invalid">;
 
@@ -69,9 +71,20 @@ type ItemLabel = { value: string; label: ReactNode; translate?: "yes" | "no" };
 
 type ItemElementProps = {
 	asChild?: boolean;
-	children?: ReactNode;
+	children?: ReactNode | OptionRender;
+	textValue?: string;
 	translate?: "yes" | "no";
 	value?: unknown;
+};
+
+/** The label an item shows in `Select.Value`: `textValue` for a function child, which has no label to read. */
+const itemLabel = ({ asChild, children, textValue }: ItemElementProps): ReactNode => {
+	if (typeof children === "function") {
+		return textValue;
+	}
+	return asChild && isValidElement<{ children?: ReactNode }>(children)
+		? children.props.children
+		: children;
 };
 
 /**
@@ -95,15 +108,11 @@ const findItemLabel = (node: ReactNode, value: string): ItemLabel | null => {
 	if (!isValidElement<ItemElementProps>(node)) {
 		return null;
 	}
-	const { asChild, children, translate } = node.props;
+	const { children, translate } = node.props;
 	if (node.type === Item && node.props.value === value) {
-		const label =
-			asChild && isValidElement<{ children?: ReactNode }>(children)
-				? children.props.children
-				: children;
-		return { value, label, translate };
+		return { value, label: itemLabel(node.props), translate };
 	}
-	return findItemLabel(children, value);
+	return typeof children === "function" ? null : findItemLabel(children, value);
 };
 
 const SelectContext = createContext<SelectContextType | null>(null);
@@ -894,7 +903,6 @@ const Label = ({
 type SelectItemProps = Omit<ComponentProps<"div">, "children"> &
 	WithAsChild &
 	WithDataSlot & {
-		children?: ReactNode;
 		/**
 		 * Whether the option is inert.
 		 */
@@ -904,14 +912,32 @@ type SelectItemProps = Omit<ComponentProps<"div">, "children"> &
 		 */
 		icon?: ReactNode;
 		/**
-		 * The text that typeahead matches. Defaults to the item's text content.
-		 */
-		textValue?: string;
-		/**
 		 * The value the select takes when the user picks this item.
 		 */
 		value: string;
-	};
+	} & (
+		| {
+				/** The option's label. */
+				children?: ReactNode;
+				/**
+				 * The text that typeahead matches. Defaults to the item's text content.
+				 */
+				textValue?: string;
+		  }
+		| {
+				/**
+				 * Renders the option as the element this function returns, with the
+				 * option's props and `{ highlighted }`. Spread `props` on the element and
+				 * write the label inside it.
+				 */
+				children: OptionRender;
+				/**
+				 * The text that typeahead matches, and the label `Select.Value` shows:
+				 * a function child has no label to read.
+				 */
+				textValue: string;
+		  }
+	);
 
 /**
  * An option within a select menu. Similar to an html `<option>` element.
@@ -934,6 +960,10 @@ type SelectItemProps = Omit<ComponentProps<"div">, "children"> &
  *
  * **`asChild`.** Your single child becomes the option element. The label
  * span and the indicator move inside it, so the guarantee above holds on both paths.
+ *
+ * **Function child.** `(props, { highlighted }) => element` renders the option as
+ * the element it returns. Spread `props` on it and write the label inside it.
+ * It needs `textValue`, the label `Select.Value` shows.
  *
  * | Data Attribute     | Value                        | Description                                                          |
  * | ------------------ | ---------------------------- | -------------------------------------------------------------------- |
@@ -990,10 +1020,7 @@ const Item = ({
 		textValue,
 		id: childId({ asChild, children, id: props.id }),
 	});
-	const label =
-		asChild && isValidElement<{ children?: ReactNode }>(children)
-			? children.props.children
-			: children;
+	const label = itemLabel({ asChild, children, textValue });
 	const reportLabel = () => {
 		listbox.getStore().set({ itemLabel: { value, label, translate } });
 	};
@@ -1026,29 +1053,40 @@ const Item = ({
 			)}
 		</>
 	);
+	const elementProps = {
+		...props,
+		...optionProps,
+		onClick: composeHandlers(onClick, () => {
+			// Why: a tap can pick an item that no pointer move highlighted.
+			reportLabel();
+			optionProps.onClick();
+		}),
+		onPointerMove: composeHandlers(onPointerMove, optionProps.onPointerMove),
+		ref: composedRef,
+		"data-slot": joinDataSlot(dataSlot, "select-item"),
+		translate,
+		className: cx(
+			"relative flex gap-2 w-full cursor-pointer select-none items-center rounded-md py-1.5 pl-2 pr-8 text-strong text-sm outline-hidden",
+			"data-highlighted:bg-active-menu-item",
+			"data-disabled:pointer-events-none data-disabled:opacity-50",
+			"data-state-checked:bg-selected-menu-item",
+			"data-highlighted:data-state-checked:bg-active-selected-menu-item",
+			className,
+		),
+	};
+	if (typeof children === "function") {
+		return (
+			<OptionSlot
+				{...elementProps}
+				listbox={listbox}
+				render={children}
+				renderContent={renderContent}
+			/>
+		);
+	}
 	const Component = asChild ? Slot : "div";
 	return (
-		<Component
-			{...props}
-			{...optionProps}
-			onClick={composeHandlers(onClick, () => {
-				// Why: a tap can pick an item that no pointer move highlighted.
-				reportLabel();
-				optionProps.onClick();
-			})}
-			onPointerMove={composeHandlers(onPointerMove, optionProps.onPointerMove)}
-			ref={composedRef}
-			data-slot={joinDataSlot(dataSlot, "select-item")}
-			translate={translate}
-			className={cx(
-				"relative flex gap-2 w-full cursor-pointer select-none items-center rounded-md py-1.5 pl-2 pr-8 text-strong text-sm outline-hidden",
-				"data-highlighted:bg-active-menu-item",
-				"data-disabled:pointer-events-none data-disabled:opacity-50",
-				"data-state-checked:bg-selected-menu-item",
-				"data-highlighted:data-state-checked:bg-active-selected-menu-item",
-				className,
-			)}
-		>
+		<Component {...elementProps}>
 			{asChild ? slotContent(children, renderContent) : renderContent(children)}
 		</Component>
 	);

@@ -1313,3 +1313,67 @@ describe("Select", () => {
 		consoleError.mockRestore();
 	});
 });
+
+describe("Select.Item function child", () => {
+	test("renders the returned element as the option, with the label span and check inside, and reports the highlight", async () => {
+		const user = userEvent.setup();
+		const onClick = vi.fn<() => void>();
+		const renderItem = (value: string, label: string) => (
+			<Select.Item value={value} textValue={label} onClick={onClick}>
+				{(props, { highlighted }) => (
+					<a {...props} href={`#${value}`} data-row-highlighted={String(highlighted)}>
+						{label}
+					</a>
+				)}
+			</Select.Item>
+		);
+		render(
+			<Select.Root defaultValue="apple">
+				<Select.Trigger aria-label="Fruit">
+					<Select.Value />
+				</Select.Trigger>
+				<Select.Content>
+					{renderItem("apple", "Apple")}
+					{renderItem("banana", "Banana")}
+				</Select.Content>
+			</Select.Root>,
+		);
+
+		await user.click(screen.getByRole("combobox", { name: "Fruit" }));
+		const apple = await screen.findByRole("option", { name: "Apple" });
+		const banana = screen.getByRole("option", { name: "Banana" });
+		expect(apple.tagName).toBe("A");
+		expect(apple.querySelector("[data-slot=select-item-label]")).toHaveTextContent("Apple");
+		expect(apple).toHaveAttribute("data-row-highlighted", "true");
+		expect(banana).toHaveAttribute("data-row-highlighted", "false");
+
+		await user.keyboard("{ArrowDown}");
+
+		expect(banana).toHaveAttribute("data-row-highlighted", "true");
+		expect(apple).toHaveAttribute("data-row-highlighted", "false");
+
+		await user.click(banana);
+
+		expect(onClick).toHaveBeenCalledTimes(1);
+		expect(screen.getByRole("combobox", { name: "Fruit" })).toHaveTextContent("Banana");
+	});
+
+	test("Select.Value shows the item's textValue in the server HTML", () => {
+		const html = renderToString(
+			<Select.Root defaultValue="apple">
+				<Select.Trigger aria-label="Fruit">
+					<Select.Value placeholder="Pick a fruit" />
+				</Select.Trigger>
+				<Select.Content>
+					<Select.Item value="apple" textValue="Apple">
+						{(props) => <div {...props}>Apple</div>}
+					</Select.Item>
+				</Select.Content>
+			</Select.Root>,
+		);
+		const container = document.createElement("div");
+		container.innerHTML = html;
+
+		expect(container.querySelector("[data-slot=select-item-label]")).toHaveTextContent("Apple");
+	});
+});

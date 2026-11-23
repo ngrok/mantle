@@ -83,6 +83,8 @@ Select.Root
 
 `Select.Content` takes no `asChild`. It is the listbox that the trigger controls, and it holds your items. Style it with `className` instead.
 
+`Select.Item` also takes a function child, `(props, { highlighted }) => element`. Only a row that uses one re-renders when the highlight moves. The [highlighted row details](#highlighted-row-details) example shows it. Anything you write after `{...props}` wins, so join a class with `cx(props.className, "…")`, and set `id` on the item, not on your element.
+
 `Select.Value asChild` merges the value's props onto your element and renders it as-is, with no label span and no placeholder. To render a custom value inside the default span, pass `children` instead, as the [custom selected value](#custom-selected-value) example does.
 
 ## Inside a Field
@@ -317,6 +319,42 @@ function Example() {
 
 </Example>
 
+### Highlighted row details
+
+Style a highlighted row with the `data-highlighted:` variant, or reach its children with `in-data-highlighted:`. That needs no JavaScript and works in the first paint. When the row must render different content, pass a function as the item's `children`. It gets the option's props and `{ highlighted }`, and returns the element the option renders as. Spread `props` on that element and write the label inside it: the label span and the check move inside, as with `asChild`. A function child needs `textValue`, which is also the label `Select.Value` shows.
+
+<Example name="components/forms/select/highlighted-row-details" title="Select highlighted row details example">
+
+```tsx
+import { Select } from "@ngrok/mantle/select";
+
+const regionDetails = [
+	{ value: "us-east-1", label: "US East", detail: "Virginia · 12 ms" },
+	{ value: "eu-west-1", label: "EU West", detail: "Ireland · 84 ms" },
+	{ value: "ap-southeast-2", label: "Asia Pacific", detail: "Sydney · 210 ms" },
+];
+
+<Select.Root defaultValue="us-east-1">
+	<Select.Trigger className="w-56" aria-label="Region">
+		<Select.Value placeholder="Select a region" />
+	</Select.Trigger>
+	<Select.Content width="trigger">
+		{regionDetails.map((region) => (
+			<Select.Item key={region.value} value={region.value} textValue={region.label}>
+				{(props, { highlighted }) => (
+					<div {...props}>
+						{region.label}
+						{highlighted && <span className="text-muted ml-auto text-xs">{region.detail}</span>}
+					</div>
+				)}
+			</Select.Item>
+		))}
+	</Select.Content>
+</Select.Root>;
+```
+
+</Example>
+
 ### Untranslatable labels
 
 When a label is an ID, a path, a filename, or a key, set `translate="no"` on the item. A browser translation engine then skips the row and the copy the trigger shows, so the reader copies the right string.
@@ -464,10 +502,11 @@ When the label is an ID, a path, a filename, or a key, set `translate="no"` on t
 
 All props of a `<div>`, plus `asChild`, `value`, `disabled`, `textValue`, and:
 
-| Prop         | Type            | Default | Description                                                                                                                                                       |
-| ------------ | --------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `icon?`      | `ReactNode`     |         | An optional icon rendered before the item text.                                                                                                                   |
-| `translate?` | `"yes" \| "no"` |         | The standard HTML attribute, also set on the label span so the copy the trigger shows keeps it. Set `"no"` when the label is an ID, a path, a filename, or a key. |
+| Prop         | Type                                                      | Default | Description                                                                                                                                                       |
+| ------------ | --------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `children?`  | `ReactNode` \| `(props, { highlighted }) => ReactElement` |         | The option's label. A function renders the option as the element it returns; it needs `textValue`.                                                                |
+| `icon?`      | `ReactNode`                                               |         | An optional icon rendered before the item text.                                                                                                                   |
+| `translate?` | `"yes" \| "no"`                                           |         | The standard HTML attribute, also set on the label span so the copy the trigger shows keeps it. Set `"no"` when the label is an ID, a path, a filename, or a key. |
 
 #### Data attributes
 

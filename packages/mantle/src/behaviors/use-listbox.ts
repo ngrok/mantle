@@ -341,7 +341,8 @@ const childId = ({
 	id,
 }: {
 	asChild: boolean;
-	children: ReactNode;
+	/** The option's children: an element under `asChild`, or content or a function child otherwise. */
+	children: unknown;
 	id: string | undefined;
 }): string | undefined =>
 	asChild && isValidElement<{ id?: string }>(children) ? (children.props.id ?? id) : id;
