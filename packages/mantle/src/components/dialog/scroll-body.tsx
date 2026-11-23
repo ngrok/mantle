@@ -39,6 +39,7 @@ const observeKeyboardScroll = (body: HTMLDivElement | null): (() => void) | unde
 	};
 	const mutation = new MutationObserver(watch);
 	mutation.observe(body, {
+		characterData: true,
 		childList: true,
 		subtree: true,
 		attributeFilter: ["disabled", "hidden", "href", "inert", "tabindex"],

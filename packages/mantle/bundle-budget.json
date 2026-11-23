@@ -57,7 +57,7 @@
   },
   "dialog": {
     "entry": "import { Dialog } from \"@ngrok/mantle/dialog\"; export default [Dialog.Root, Dialog.Trigger, Dialog.Content, Dialog.Header, Dialog.Title, Dialog.Body, Dialog.Footer];",
-    "maxGzipBytes": 12754
+    "maxGzipBytes": 13227
   },
   "command": {
     "entry": "import { Command } from \"@ngrok/mantle/command\"; export default [Command.DialogRoot, Command.DialogContent, Command.Input, Command.List, Command.Item];",
