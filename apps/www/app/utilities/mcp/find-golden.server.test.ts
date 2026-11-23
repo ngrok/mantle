@@ -29,6 +29,12 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 		"two column form": "Strata",
 		"title and description on the left, form on the right": "Strata",
 	},
+	"Design Principles, in designers' words": {
+		"make the table columns feel balanced and even": "Design Principles",
+		"a ton of real estate to one column while the others are tight and narrow": "Design Principles",
+		"better proximity for related controls": "Design Principles",
+		"less space inside a group than between groups": "Design Principles",
+	},
 	Layouts: {
 		"app shell sidebar header": "App Layout",
 		"dashboard layout": "App Layout",
@@ -69,6 +75,7 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 		"subrow expand row": "Data Table",
 		"row details panel": "Data Table",
 		"click a row to show details under it": "Data Table",
+		"set a column width in a table": ["Data Table", "Table"],
 	},
 	"New in 0.95": {
 		"headless tabs": "Tabs",
