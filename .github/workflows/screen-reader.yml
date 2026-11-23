@@ -1,0 +1,177 @@
+name: Screen Reader Check
+
+# Report only: no job here fails the build. Each job runs the flows in
+# apps/www/screen-reader/flows.ts on the docs previews and writes what the
+# reader said to the job summary and an artifact.
+#
+# - `virtual` runs on each PR that touches a component or the docs site. It
+#   uses Guidepup's virtual reader plus Chromium's accessibility tree, about
+#   6 minutes on ubuntu-latest.
+# - `real` drives NVDA (Windows, Chromium) and VoiceOver (macOS, WebKit) on the
+#   PR head and on the last release, and diffs them. It runs on the weekly
+#   schedule, on a manual run, and on a PR with the `screen-reader` label.
+#
+# To make a job blocking later, remove `continue-on-error` and pass `--strict`
+# to report.ts, which exits 1 on an unmet expectation.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+    paths:
+      - "packages/mantle/src/**"
+      - "apps/www/app/**"
+      - "apps/www/screen-reader/**"
+      - ".github/workflows/screen-reader.yml"
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+    inputs:
+      base:
+        description: "Ref to compare against (default: the last @ngrok/mantle release tag)"
+        required: false
+
+concurrency:
+  group: screen-reader-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DO_NOT_TRACK: 1
+  TURBO_TELEMETRY_DISABLED: 1
+
+jobs:
+  virtual:
+    if: github.event.action != 'labeled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Install pnpm 📦
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: Install Dependencies 📥
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium 🎭
+        run: pnpm -F @app/www exec playwright install --with-deps chromium
+
+      - name: Build the docs site 🏗️
+        run: pnpm exec turbo run build --filter=@app/www
+
+      - name: Run the flows 🗣️
+        working-directory: apps/www
+        run: |
+          PORT=4001 NODE_ENV=production pnpm exec app-server serve > /tmp/serve.log 2>&1 &
+          for i in $(seq 60); do curl -sf -o /dev/null http://localhost:4001/robots.txt && break; sleep 1; done
+          node screen-reader/run.ts --reader=virtual --base=http://localhost:4001/ --out=/tmp/virtual.json
+          node screen-reader/report.ts --head=/tmp/virtual.json --base=screen-reader/baseline.virtual.json >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload results 📤
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: screen-reader-virtual
+          path: /tmp/virtual.json
+
+  real:
+    if: >-
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.pull_request.labels.*.name, 'screen-reader')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - reader: nvda
+            os: windows-2025
+          - reader: voiceover
+            os: macos-15
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    continue-on-error: true
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve the base ref 🏷️
+        id: base
+        run: |
+          base="${{ inputs.base }}"
+          if [[ -z "$base" ]]; then
+            base="$(git tag --list '@ngrok/mantle@*' --sort=-v:refname | head -n 1)"
+          fi
+          echo "ref=$base" >> "$GITHUB_OUTPUT"
+          git worktree add ../base "$base"
+
+      - name: Install pnpm 📦
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: Install Dependencies 📥
+        run: |
+          pnpm install --frozen-lockfile
+          (cd ../base && pnpm install --frozen-lockfile)
+
+      - name: Build both docs sites 🏗️
+        run: |
+          pnpm exec turbo run build --filter=@app/www
+          (cd ../base && pnpm exec turbo run build --filter=@app/www)
+
+      - name: Set up the screen reader 🔧
+        working-directory: apps/www
+        run: |
+          npx -y @guidepup/setup@0.29.3 setup --ci
+          npx -y @guidepup/setup@0.29.3 install
+          pnpm exec playwright install ${{ matrix.reader == 'voiceover' && 'webkit' || 'chromium' }}
+
+      - name: Run the flows 🗣️
+        working-directory: apps/www
+        run: |
+          (PORT=4001 NODE_ENV=production pnpm exec app-server serve > "$GITHUB_WORKSPACE/serve-head.log" 2>&1 &)
+          (cd ../../../base/apps/www && PORT=4002 NODE_ENV=production pnpm exec app-server serve > "$GITHUB_WORKSPACE/serve-base.log" 2>&1 &)
+          for port in 4001 4002; do
+            for i in $(seq 90); do curl -sf -o /dev/null "http://localhost:$port/robots.txt" && break; sleep 1; done
+          done
+          node screen-reader/run.ts --reader=${{ matrix.reader }} --base=http://localhost:4002/ --out=../../${{ matrix.reader }}-base.json
+          node screen-reader/run.ts --reader=${{ matrix.reader }} --base=http://localhost:4001/ --out=../../${{ matrix.reader }}-head.json
+          echo "Base: ${{ steps.base.outputs.ref }}" >> "$GITHUB_STEP_SUMMARY"
+          node screen-reader/report.ts --head=../../${{ matrix.reader }}-head.json --base=../../${{ matrix.reader }}-base.json >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload results 📤
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: screen-reader-${{ matrix.reader }}
+          path: |
+            ${{ matrix.reader }}-*.json
+            serve-*.log
