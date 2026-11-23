@@ -12,7 +12,7 @@ describe("OverlayPrompt", () => {
 		const container = document.createElement("div");
 		container.innerHTML = html;
 
-		expect(container.querySelector('[data-slot="overlay-prompt"] > p')).toHaveTextContent(
+		expect(container.querySelector('[data-slot="overlay-prompt"] p')).toHaveTextContent(
 			"We use cookies.",
 		);
 	});
