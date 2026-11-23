@@ -1,8 +1,12 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { Scanner } from "@tailwindcss/oxide";
 import { extendTailwindMerge, validators } from "tailwind-merge";
+import { parseSync } from "oxc-parser";
 import { __unstable__loadDesignSystem } from "tailwindcss";
 import { expect, test } from "vitest";
+import mantleCss from "../../mantle.css?raw";
+import { loadMantleImport } from "../../test-utils/parse-theme-css.js";
 import { mergeClassList } from "./merge.js";
 
 // The oracle: tailwind-merge with mantle's utilities and its one conflict choice added.
@@ -155,4 +159,31 @@ test("keeps a variant class apart from plain classes when one merge has many var
 	const blocks = Array.from({ length: 65_535 }, (_, index) => `data-[i=${index}]:block`);
 	const result = mergeClassList(["p-2", ...blocks, "data-[i=last]:p-4"].join(" "));
 	expect(result.startsWith("p-2 ")).toBe(true);
+});
+
+test("names no class in its tables that Tailwind builds", async () => {
+	// Why: Tailwind scans mantle's built JavaScript, which keeps these tables and drops the
+	// comments, so a class that a table names gets built on each page that imports cx. The
+	// tables separate names with commas, which the scanner does not split on. The code itself
+	// still names a few roots, value kinds, and class groups; most pages build those classes anyway.
+	const mergeSource = readFileSync(createRequire(import.meta.url).resolve("./merge.ts"), "utf8");
+	const { comments } = parseSync("merge.ts", mergeSource);
+	const source = comments.reduceRight(
+		(text, { start, end }) => text.slice(0, start) + text.slice(end),
+		mergeSource,
+	);
+	const candidates = new Scanner({}).scanFiles([{ content: source, extension: "js" }]);
+	const designSystem = await __unstable__loadDesignSystem(mantleCss, {
+		loadStylesheet: loadMantleImport,
+	});
+	const css = designSystem.candidatesToCss(candidates);
+	expect(candidates.filter((_, index) => css[index] != null).toSorted()).toEqual([
+		"border",
+		"font-family",
+		"outline",
+		"scrollbar",
+		"shadow",
+		"text-wrap",
+		"transform",
+	]);
 });
