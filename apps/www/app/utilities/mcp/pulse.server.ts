@@ -143,11 +143,11 @@ function trailText(steps: readonly string[]): string {
 /**
  * What the session of a weak find did next: the part it got first, with
  * its index in the `find` results (`-1` when absent), or no `get` before
- * the wait ended, with the steps it took instead.
+ * the wait ended, with its first `TRAIL_LENGTH` steps and how many more it took.
  */
 export type FollowThrough =
 	| { kind: "get"; part: string; rank: number }
-	| { kind: "none"; after: string[]; until: "timeout" | "shutdown" | "full" };
+	| { kind: "none"; after: string[]; more: number; until: "timeout" | "shutdown" | "full" };
 
 const WAIT_ENDS: Record<Extract<FollowThrough, { kind: "none" }>["until"], string> = {
 	timeout: `in ${FOLLOW_THROUGH_MS / 60_000} min`,
@@ -161,9 +161,10 @@ function followThroughLine(followThrough: FollowThrough): string {
 		return `*Then:* get ${escape(part)} (${rank < 0 ? "not in the results" : `result ${rank + 1}`})`;
 	}
 	const wait = WAIT_ENDS[followThrough.until];
-	return followThrough.after.length === 0
+	const { after, more } = followThrough;
+	return after.length === 0
 		? `*Then:* no call ${wait}`
-		: `*Then:* ${escape(trailText(followThrough.after))}, no get ${wait}`;
+		: `*Then:* ${escape(trailText(after))}${more > 0 ? ` → … ${count(more)} more` : ""}, no get ${wait}`;
 }
 
 function goal(event: ToolCallEvent): string | undefined {
@@ -368,6 +369,8 @@ export type Session = {
 	id: number;
 	lastSeen: number;
 	opening?: Opening;
+	/** When the call that set `opening` started. Why: calls log when they end, so a slow `find` can log after a later `check`. */
+	openedAt?: number;
 	calls: number;
 	/** The last `TRAIL_LENGTH` steps, from `stepOf`. */
 	trail: string[];
@@ -433,8 +436,9 @@ function addSession(digest: Digest, id: number, opening: Opening | undefined) {
 }
 
 /**
- * Adds one call to the digest. A weak find counts in `weakFinds` only: its
- * need waits until the pulse knows whether the session got the top guess.
+ * Adds one call to the digest. A weak find does not count here: the pulse
+ * counts it when it knows whether the session got the top guess, so its
+ * count and its outcome go in the same digest.
  */
 export function addToDigest(
 	digest: Digest,
@@ -461,8 +465,6 @@ export function addToDigest(
 	if (event.gap?.source === "report_gap") {
 		increment(digest.needs, event.gap.tokens.join(" "));
 		digest.reportedGaps += 1;
-	} else if (event.gap != null) {
-		digest.weakFinds += 1;
 	}
 	if (event.intent != null && !digest.goals.includes(event.intent)) {
 		digest.goals = [event.intent, ...digest.goals].slice(0, 3);
@@ -651,8 +653,10 @@ export type Pulse = {
 type ParkedFind = {
 	event: ToolCallEvent & { gap: GapSignal };
 	session: Session;
-	/** The steps of the session after the find. */
+	/** The first `TRAIL_LENGTH` steps of the session after the find. */
 	after: string[];
+	/** How many steps came after `after`. */
+	more: number;
 	timer: ReturnType<typeof setTimeout>;
 };
 
@@ -809,6 +813,7 @@ export function createPulse({
 		clearTimeout(find.timer);
 		parked.delete(find);
 		const need = find.event.gap.tokens.join(" ");
+		digest.weakFinds += 1;
 		if (followThrough.kind === "get" && followThrough.rank === 0) {
 			increment(digest.topGuesses, `"${escape(need)}" → ${escape(followThrough.part)}`);
 			return;
@@ -824,20 +829,15 @@ export function createPulse({
 		// Why: a burst of weak finds must not hold a timer each. Past the cap, the oldest wait ends early.
 		const oldest = parked.values().next().value;
 		if (parked.size >= SESSION_KEYS && oldest != null) {
-			resolve(oldest, { kind: "none", after: oldest.after, until: "full" });
-		}
-		const need = event.gap.tokens.join(" ");
-		for (const find of parked) {
-			if (find.session === session && find.event.gap.tokens.join(" ") === need) {
-				return;
-			}
+			resolve(oldest, { kind: "none", after: oldest.after, more: oldest.more, until: "full" });
 		}
 		const find: ParkedFind = {
 			event,
 			session,
 			after: [],
+			more: 0,
 			timer: setTimeout(
-				() => resolve(find, { kind: "none", after: find.after, until: "timeout" }),
+				() => resolve(find, { kind: "none", after: find.after, more: find.more, until: "timeout" }),
 				FOLLOW_THROUGH_MS,
 			),
 		};
@@ -846,9 +846,19 @@ export function createPulse({
 
 	return {
 		record: (event) => {
-			const session = sessionOf(event.caller, now());
-			if (event.tool === "find" || event.tool === "check") {
-				session.opening ??= event.tool;
+			const time = now();
+			// Why the workspace and the ticket: two tasks behind one address and agent are two sessions.
+			const session = sessionOf(
+				`${event.caller} ${event.workspace ?? ""} ${event.ticket ?? ""}`,
+				time,
+			);
+			const startedAt = time - event.latencyMs;
+			if (
+				(event.tool === "find" || event.tool === "check") &&
+				(session.openedAt == null || startedAt < session.openedAt)
+			) {
+				session.opening = event.tool;
+				session.openedAt = startedAt;
 			}
 			addToDigest(digest, event, session);
 			const step = stepOf(event);
@@ -857,10 +867,12 @@ export function createPulse({
 				if (find.session !== session) {
 					continue;
 				}
-				if (got == null) {
+				if (got != null) {
+					resolve(find, { kind: "get", part: got, rank: (find.event.ids ?? []).indexOf(got) });
+				} else if (find.after.length < TRAIL_LENGTH) {
 					find.after.push(step);
 				} else {
-					resolve(find, { kind: "get", part: got, rank: (find.event.ids ?? []).indexOf(got) });
+					find.more += 1;
 				}
 			}
 			const { gap } = event;
@@ -900,7 +912,7 @@ export function createPulse({
 			}
 			await Promise.all([idle(), settled()]);
 			for (const find of parked) {
-				resolve(find, { kind: "none", after: find.after, until: "shutdown" });
+				resolve(find, { kind: "none", after: find.after, more: find.more, until: "shutdown" });
 			}
 			await postDigest(reason);
 			// Why again: a call that ended during the wait can post an alert.
