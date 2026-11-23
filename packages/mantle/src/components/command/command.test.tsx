@@ -22,10 +22,9 @@ function SearchButton(props: ComponentProps<"button">) {
 
 /**
  * The palette used across this suite: a search trigger plus a dialog with an
- * input. `Command.List` is absent because nothing here needs filtering. The
- * `Command.Empty` suite below mounts the list in happy-dom, where cmdk's
- * `ResizeObserver` never fires. Query seeding, dismissal, and focus return
- * live in `command-dialog.test.tsx`.
+ * input. `Command.List` is absent because nothing here needs filtering.
+ * Query seeding, dismissal, and focus return live in
+ * `command-dialog.test.tsx`.
  */
 function Palette(props: ComponentProps<typeof Command.DialogRoot>) {
 	return (
@@ -368,7 +367,7 @@ describe("Command.DialogRoot", () => {
 			event.preventDefault();
 			window.dispatchEvent(event);
 
-			// cmdk maps Ctrl+K to "previous item" inside an open palette and
+			// `Command.Root` maps Ctrl+K to "previous item" inside an open palette and
 			// preventDefault()s it; this listener must not act on an already-handled
 			// keypress.
 			expect(queryInput()).not.toBeInTheDocument();
@@ -757,9 +756,7 @@ describe("Command.DialogRoot", () => {
 describe("Command.Empty", () => {
 	/**
 	 * The inline palette from the `Command.Root` docs: no dialog, so the list
-	 * reaches the server HTML. happy-dom's `ResizeObserver` never fires, which only costs
-	 * cmdk's list its measured height; the filtering these tests need runs
-	 * without it.
+	 * reaches the server HTML.
 	 */
 	function InlinePalette() {
 		return (
@@ -775,9 +772,8 @@ describe("Command.Empty", () => {
 	}
 
 	test("is absent from the server HTML when items exist", () => {
-		// Items register with cmdk in a layout effect, which never runs on the
-		// server, so cmdk counts zero matches there and paints the empty state
-		// above the full list. Catches deleting the hydration guard.
+		// The server runs no filter pass, so it cannot count the matches. Catches
+		// an empty state that paints above the full list in the server HTML.
 		const html = renderToString(<InlinePalette />);
 
 		expect(html).toContain('data-slot="command-item"');
@@ -793,7 +789,7 @@ describe("Command.Empty", () => {
 		await user.type(input(), "zzz");
 
 		expect(screen.getByText("No results found.")).toHaveAttribute("data-slot", "command-empty");
-		expect(screen.queryByText("Calendar")).not.toBeInTheDocument();
+		expect(screen.queryByRole("option", { name: "Calendar" })).not.toBeInTheDocument();
 	});
 });
 

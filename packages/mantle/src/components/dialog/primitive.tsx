@@ -305,7 +305,7 @@ function yieldEscapeToCoveringFrame(event: Event): void {
  * owner is the nearest ancestor of `target`, else of the focused element, with
  * `aria-expanded="true"` and `aria-controls`; its popup must sit inside
  * `container` and be open (Ariakit's `data-open="true"`, Radix's
- * `data-state="open"`). An always-visible list such as cmdk carries neither
+ * `data-state="open"`). An always-visible list such as `Command.List` carries neither
  * attribute and never claims the Escape.
  *
  * @example

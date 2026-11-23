@@ -62,7 +62,7 @@ type SearchKeyDownEvent = {
 	 * Why a deprecated property: `229` is the only reliable marker for the
 	 * keydown that *starts* an IME composition, where `isComposing` is still
 	 * `false` and `key` varies by engine. There is no non-deprecated
-	 * replacement; cmdk reads it for the same reason.
+	 * replacement; `Command.Root` reads it for the same reason.
 	 */
 	keyCode?: number;
 	metaKey: boolean;

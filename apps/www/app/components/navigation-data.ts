@@ -636,6 +636,14 @@ export const migrations = [
 			"Tabs and the CodeBlock tabs no longer use Radix. A Radix Tabs part inside a mantle Tabs.Root has no context and throws. Use Tabs.Trigger instead.",
 		route: "/migrations/0023-tabs-owned-behavior-migration",
 	},
+	{
+		number: 24,
+		slug: "command-owned-behavior-migration",
+		title: "Command Owned Behavior",
+		description:
+			"Command no longer uses cmdk. Its parts drop the cmdk-* attributes for data-slot, a filtered item stays mounted with hidden, and groups sort by their best match.",
+		route: "/migrations/0024-command-owned-behavior-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

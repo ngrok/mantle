@@ -194,6 +194,7 @@ const migrationsPages = [
 	"0021-native-radio-group-migration",
 	"0022-alert-center-server-render-migration",
 	"0023-tabs-owned-behavior-migration",
+	"0024-command-owned-behavior-migration",
 ];
 
 export default [

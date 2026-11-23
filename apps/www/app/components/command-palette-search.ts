@@ -33,7 +33,7 @@ type Route = Parameters<typeof href>[0];
 export const previewComponentsGroup = "Preview Components";
 
 type PaletteCommandBase = {
-	/** Stable unique identity; used as the cmdk selection value. */
+	/** Stable unique identity; used as the palette's item value. */
 	id: string;
 	/** The visible name of the command; the primary search target. */
 	title: string;

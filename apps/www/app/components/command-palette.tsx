@@ -45,7 +45,7 @@ class DialogLoadBoundary extends Component<DialogLoadBoundaryProps, { failed: bo
 
 /**
  * The docs site search palette (⌘K): search triggers for the header plus the
- * command dialog. The dialog, with cmdk and the search code, is a separate
+ * command dialog. The dialog, with the palette and the search code, is a separate
  * chunk. It loads after hydration, so it does not delay the first paint, and
  * it is ready before the first open.
  *

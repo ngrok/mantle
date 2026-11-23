@@ -129,17 +129,18 @@ describe("Command.Dialog", () => {
 			const trigger = screen.getByRole("button", { name: "Search…" });
 			trigger.focus();
 			// "p" appears in "Endpoints" and not in "Calendar", so the filtering is
-			// what the assertion below observes rather than cmdk's fuzzy tolerance.
+			// what the assertion below observes rather than the fuzzy tolerance.
 			await user.keyboard("p");
 
 			const input = await screen.findByPlaceholderText("Type a command or search...");
 			expect(input).toHaveValue("p");
-			// The seed has to reach cmdk's own search state, not just the field's
+			// The seed has to reach the palette's search state, not just the field's
 			// value. Otherwise the palette opens showing text that filters nothing.
 			await waitFor(() => {
 				expect(screen.getByText("Endpoints")).toBeInTheDocument();
 			});
-			expect(screen.queryByText("Calendar")).not.toBeInTheDocument();
+			// A filtered-out item stays mounted with `hidden`, so it leaves the accessibility tree.
+			expect(screen.queryByRole("option", { name: "Calendar" })).not.toBeInTheDocument();
 		});
 
 		test("keystrokes after the first continue into the palette input", async () => {
@@ -249,9 +250,8 @@ describe("Command.Dialog", () => {
 			expect(document.querySelector("[data-slot~='command-separator']")).toBeInTheDocument();
 		});
 
-		// Why: cmdk hides its own `Separator` on a query. This test pins the `asChild`
-		// wrapper that reaches it; a bare `Separator` carrying the slot passes the
-		// test above and never hides.
+		// Why: a bare `Separator` that carries the slot passes the test above and
+		// never hides, so this test pins the hide on a query.
 		test("separator unmounts when a search query is active", async () => {
 			const user = userEvent.setup();
 			render(<CommandDialogSubject initialOpen />);
