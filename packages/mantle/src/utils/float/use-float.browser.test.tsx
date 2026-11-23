@@ -348,7 +348,7 @@ describe("useFloat placement as the anchor moves", () => {
 		await settle(panel);
 		const animation = screen
 			.getByTestId("container")
-			.animate([{ translate: "0" }, { translate: "300px" }], { duration: 2000 });
+			.animate([{ translate: "0" }, { translate: "300px" }], { duration: 2000, fill: "forwards" });
 
 		try {
 			let before = trigger.getBoundingClientRect().left;
