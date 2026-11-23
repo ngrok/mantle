@@ -195,6 +195,7 @@ const migrationsPages = [
 	"0022-alert-center-server-render-migration",
 	"0023-tabs-owned-behavior-migration",
 	"0024-command-owned-behavior-migration",
+	"0025-stone-palette-migration",
 ];
 
 export default [
