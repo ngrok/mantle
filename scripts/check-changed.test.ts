@@ -32,7 +32,11 @@ describe("planChecks", () => {
 	});
 
 	it("typechecks and tests a change to a package manifest, which compilation reads", () => {
-		expect(stepNames(["packages/web/package.json"])).toEqual(["fmt", "typecheck", "test"]);
+		expect(stepNames(["packages/mantle-vite-plugins/package.json"])).toEqual([
+			"fmt",
+			"typecheck",
+			"test",
+		]);
 	});
 
 	it("checks the agent docs when the mantle manifest changes, since its dependencies decide the library names docs may use", () => {
@@ -44,9 +48,12 @@ describe("planChecks", () => {
 		]);
 	});
 
-	it("checks the agent docs when a docs page under docs/ changes", () => {
-		expect(stepNames(["docs/motion.md"])).toContain("agent docs");
-	});
+	it.each(["docs/motion.md", "scripts/check-agent-docs.ts"])(
+		"checks the agent docs when %s changes",
+		(file) => {
+			expect(stepNames([file])).toContain("agent docs");
+		},
+	);
 
 	it.each(["packages/mantle/src/mantle.css", "pnpm-lock.yaml", "scripts/tailwind-canonical.ts"])(
 		"checks the Tailwind classes of every file when %s changes",

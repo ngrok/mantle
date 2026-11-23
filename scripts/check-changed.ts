@@ -94,9 +94,14 @@ export function planChecks({
 			args: ["exec", "oxlint", "--type-aware", "--deny-warnings", ...lintable],
 		});
 	}
-	// Why the mantle manifest: a dependency it adds or drops changes which library names the docs may use.
+	// Why the mantle manifest and the check: a dependency or a retired name changes which library names the docs may use.
 	if (
-		files.some((file) => contributorDocFile.test(file) || file === "packages/mantle/package.json")
+		files.some(
+			(file) =>
+				contributorDocFile.test(file) ||
+				file === "packages/mantle/package.json" ||
+				file === "scripts/check-agent-docs.ts",
+		)
 	) {
 		steps.push({ name: "agent docs", command: "node", args: ["./scripts/check-agent-docs.ts"] });
 	}

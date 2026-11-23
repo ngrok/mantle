@@ -83,32 +83,26 @@ porting from the ecosystem; vocabulary is re-derived from what the component emi
 
 ## The right foundation, per problem
 
-Mantle isn't "built on Radix." Where the platform is enough, components are native:
-Accordion is hand-rolled precisely because a headless collapsible would lose the
-find-in-page behavior above, [Field](/components/forms/field) is real
-`<fieldset>`/`<legend>`/`<label>` elements with Mantle-owned wiring, and
-[RadioGroup](/components/forms/radio-group) is native radios inside labels. Where the behavior
-is genuinely hard, Mantle wraps the best engine for that specific problem:
-[Radix](https://www.radix-ui.com) for [Dialog](/components/overlays/dialog), TanStack Table for [DataTable](/components/data-display/data-table),
-sonner (mounted unstyled) for [Toast](/components/feedback/toast).
+Mantle starts from the platform. [Dialog](/components/overlays/dialog), AlertDialog, and Sheet
+are a native `<dialog>`. Popover, DropdownMenu, Tooltip, and HoverCard are a native
+`popover`. [RadioGroup](/components/forms/radio-group) is native radios, and
+[Field](/components/forms/field) is real `<fieldset>`/`<legend>`/`<label>` elements with
+Mantle-owned wiring. Accordion is hand-rolled because a headless collapsible would lose the
+find-in-page behavior above.
+
+Where the behavior is genuinely hard, Mantle owns it.
 [Select](/components/forms/select), [Combobox](/components/forms/combobox),
 [MultiSelect](/components/forms/multi-select), and [Command](/components/navigation/command)
-run on Mantle's own behavior hooks, which follow the WAI-ARIA patterns. The four share
-one listbox hook, so a page with all of them pays for it once.
+run on Mantle's own behavior hooks, which follow the WAI-ARIA patterns. The four share one
+listbox hook, so a page with all of them pays for it once. Engines that render no UI of their
+own stay: TanStack Table for [DataTable](/components/data-display/data-table), and sonner
+(mounted unstyled) for [Toast](/components/feedback/toast). New work adds no headless library.
 
-You can't tell which is which from the outside, and that's the point. Every foundation
-is normalized behind one house API: flat compound namespaces, `asChild` polymorphism, a
+You can't tell which is which from the outside, and that's the point. Every foundation is
+normalized behind one house API: flat compound namespaces, `asChild` polymorphism, a
 `data-slot` attribute on every rendered part, and consumer `className` merged last with
-[cx](/utils/cx). A vendor is a starting point, not a ceiling:
-[Switch](/components/forms/switch) adds the read-only state Radix lacks, the dialog primitive
-strips Radix's dangling `aria-describedby` when no description is mounted, and
-[Slot](/components/primitives/slot) re-implements Radix's className merge so your classes beat the
-component's. If you understand how one Mantle component works, you can predict how the
+[cx](/utils/cx). If you understand how one Mantle component works, you can predict how the
 rest behave. Learn the system once; apply it everywhere.
-
-Wrapping a headless library is where Mantle is today, not where it stops. Mantle moves
-hard behavior into its own behavior hooks that follow the ARIA patterns. Then Mantle owns
-the performance and accessibility contract. Each component ships only the code it needs. New work adds no headless library.
 
 ## One component per intent
 

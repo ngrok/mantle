@@ -3,7 +3,12 @@ import os from "node:os";
 import path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { checkAgentDocs, findRetiredLibraryMentions } from "./check-agent-docs.ts";
+import {
+	checkAgentDocs,
+	findRetiredLibraryMentions,
+	listContributorDocs,
+	retiredLibraries,
+} from "./check-agent-docs.ts";
 
 const budgets = [{ path: "AGENTS.md", maxBytes: 10 }];
 
@@ -65,8 +70,11 @@ describe("findRetiredLibraryMentions", () => {
 		]);
 	});
 
-	it("allows the name while the manifest still lists the library", () => {
-		writeManifest({ "@radix-ui/react-dialog": "1.1.15" });
+	it("allows the name while the manifest still lists the library as a peer", () => {
+		write(
+			"packages/mantle/package.json",
+			JSON.stringify({ peerDependencies: { "@radix-ui/react-dialog": "1.1.15" } }),
+		);
 		write("docs/motion.md", "A Radix overlay keeps keyframes.\n");
 
 		expect(findRetiredLibraryMentions({ rootDir, files: ["docs/motion.md"], libraries })).toEqual(
@@ -81,5 +89,39 @@ describe("findRetiredLibraryMentions", () => {
 		expect(
 			findRetiredLibraryMentions({ rootDir, files: ["decisions/2026-11-21-hooks.md"], libraries }),
 		).toEqual([]);
+	});
+});
+
+describe("retiredLibraries", () => {
+	it.each([
+		["Radix wraps the dialog.", true],
+		["`@radix-ui/react-tabs` ships Tabs.", true],
+		["cmdk filters the list.", true],
+		["the input-otp library", true],
+		["HeadlessUI renders the radio.", true],
+		["Select `[data-input-otp]` in a page style.", false],
+		["No library names (`data-radix-*`).", false],
+	])("%s → reported: %s", (line, reported) => {
+		expect(retiredLibraries.some((library) => library.mention.test(line))).toBe(reported);
+	});
+});
+
+describe("listContributorDocs", () => {
+	it("finds nested skills and docs, and skips decisions", () => {
+		for (const file of [
+			"AGENTS.md",
+			"docs/principles/a.md",
+			".claude/skills/x/SKILL.md",
+			"decisions/2026-11-21-a.md",
+		]) {
+			fs.mkdirSync(path.dirname(path.join(rootDir, file)), { recursive: true });
+			fs.writeFileSync(path.join(rootDir, file), "");
+		}
+
+		expect(listContributorDocs(rootDir).toSorted()).toEqual([
+			".claude/skills/x/SKILL.md",
+			"AGENTS.md",
+			"docs/principles/a.md",
+		]);
 	});
 });

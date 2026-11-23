@@ -63,22 +63,24 @@ export type RetiredLibrary = {
 /**
  * The UI libraries mantle replaced with native elements and its own behavior hooks.
  * Why a list: a contributor doc that still names one teaches an agent to follow a design that main no longer has.
+ * Why case-sensitive: a lowercase `data-radix-*` names a shape that COMPONENT_SPEC.md §6 bans, not a dependency.
  */
 export const retiredLibraries = [
 	{ mention: /\bRadix\b|@radix-ui\//, packageName: /^@radix-ui\// },
 	{ mention: /\bAriakit\b|@ariakit\//, packageName: /^@ariakit\// },
 	{ mention: /\bcmdk\b/, packageName: /^cmdk$/ },
-	{ mention: /\bHeadless UI\b|@headlessui\//, packageName: /^@headlessui\// },
-	{ mention: /\binput-otp\b/, packageName: /^input-otp$/ },
+	{ mention: /\bHeadless ?UI\b|@headlessui\//, packageName: /^@headlessui\// },
+	// Why the lookbehind: `OtpInput` still emits `data-input-otp`, which is not the library.
+	{ mention: /(?<![\w-])input-otp\b/, packageName: /^input-otp$/ },
 	{ mention: /\bFloating UI\b|@floating-ui\//, packageName: /^@floating-ui\// },
 ] satisfies readonly RetiredLibrary[];
 
 /**
- * The docs that guide work on mantle itself, relative to the repo root.
- * Why no `decisions/`: a decision records what was true on its date.
+ * The docs that guide work on mantle itself, relative to the repo root, plus the Philosophy page that AGENTS.md
+ * routes to. Why no `decisions/`: a decision records what was true on its date.
  */
 export const contributorDocFile =
-	/^(?:AGENTS|CONVENTIONS|COMPONENT_SPEC|VERSIONING|CONTRIBUTING)\.md$|^(?:packages|apps\/www)\/AGENTS\.md$|^docs\/.+\.md$|^\.claude\/.+\.md$|^\.github\/copilot-instructions\.md$/;
+	/^(?:AGENTS|CONVENTIONS|COMPONENT_SPEC|VERSIONING|CONTRIBUTING)\.md$|^(?:packages|apps\/www)\/AGENTS\.md$|^docs\/.+\.md$|^\.claude\/.+\.md$|^\.github\/copilot-instructions\.md$|^apps\/www\/app\/docs\/philosophy\.mdx$/;
 
 /**
  * Find each line of a contributor doc that names a retired library that `packages/mantle/package.json` no longer lists.
@@ -126,14 +128,21 @@ export function findRetiredLibraryMentions({
 	return problems;
 }
 
-/** Every contributor doc in the repo, relative to `rootDir`. */
-function listContributorDocs(rootDir: string): string[] {
-	const nested = ["docs", ".claude"].flatMap((dir) =>
-		fs
-			.readdirSync(path.join(rootDir, dir), { recursive: true, encoding: "utf8" })
-			.map((file) => `${dir}/${file.split(path.sep).join("/")}`),
-	);
-	const fixed = ["packages/AGENTS.md", "apps/www/AGENTS.md", ".github/copilot-instructions.md"];
+/** Every contributor doc under `rootDir`, relative to it. */
+export function listContributorDocs(rootDir: string): string[] {
+	const nested = ["docs", ".claude"]
+		.filter((dir) => fs.existsSync(path.join(rootDir, dir)))
+		.flatMap((dir) =>
+			fs
+				.readdirSync(path.join(rootDir, dir), { recursive: true, encoding: "utf8" })
+				.map((file) => `${dir}/${file.split(path.sep).join("/")}`),
+		);
+	const fixed = [
+		"packages/AGENTS.md",
+		"apps/www/AGENTS.md",
+		".github/copilot-instructions.md",
+		"apps/www/app/docs/philosophy.mdx",
+	].filter((file) => fs.existsSync(path.join(rootDir, file)));
 	return [...fs.readdirSync(rootDir), ...fixed, ...nested].filter((file) =>
 		contributorDocFile.test(file),
 	);

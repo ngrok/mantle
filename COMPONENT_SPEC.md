@@ -207,7 +207,7 @@ porting from the ecosystem; vocabulary is re-derived from what the component emi
 ### 1.5. Composition vs data-driven
 
 Compose children when every behavior derives from the authored children (`Table`, `List`). Take a data prop
-when collection-level behavior (filtering, select-all, virtualization) must operate over items that may not
+when collection-level behavior (filtering, select-all, counts) must operate over items that may not
 be mounted or even created (`DataTable`'s `data`, `SelectableList`'s `options`). Keep the data a thin
 description (a value, its text, a disabled flag).
 
@@ -317,17 +317,23 @@ Match what the native element does unless a named product need says otherwise
 ([follow the platform](./docs/principles/follow-the-platform.md)).
 
 - **Only the dialog family is modal by default.** `Dialog`, `AlertDialog`, `Sheet`, and parts built on them
-  make the page inert. A menu, a popover, and a picker leave the page live, take `modal` as an opt-in, and
-  dismiss on `pointerup`, as a native `popover` does.
-- **A departure cites a primary source.** Name the WHATWG, APG, or WCAG section, and claim no more than it says.
-  "Common guidance" is not a source.
+  make the page inert. A menu, a popover, and a picker leave the page live. `DropdownMenu` takes `modal` as an
+  opt-in.
+- **Dismissal follows the element the part enhances.** A float (`Popover`, `DropdownMenu`) closes when an
+  outside press ends, as a native `popover` does. A picker (`Select`, `Combobox`, `MultiSelect`) closes on the
+  press, as a native `<select>` does.
+- **A safer ecosystem default wins, with a reason.** `Button` defaults to `type="button"`, not the native
+  `submit` ([§0](#0-principles) item 11). The JSDoc names the reason for each such default.
+- **A departure cites a primary source.** Name the section of the HTML Standard, the ARIA Authoring Practices
+  Guide (APG), or the Web Content Accessibility Guidelines (WCAG), and claim no more than it says. "Common
+  guidance" is not a source.
 - **A default flip is a contract change.** In the same change, find each test, doc, and JSDoc line that names
   the old default. Make each one pass the value it depends on, or delete it.
 
 ### 1.11. Prop vocabulary
 
-A consumer who knows one mantle component can predict the props of the next. Each kind of state takes one
-triple of names:
+A consumer who knows one mantle component can predict the props of the next. Each kind of state in a new
+or changed API takes one triple of names:
 
 | State                     | Controlled   | Uncontrolled        | Change callback      |
 | ------------------------- | ------------ | ------------------- | -------------------- |
@@ -338,13 +344,18 @@ triple of names:
 
 - A callback gets the new value, not an event. `onChange` stays the DOM event.
 - The value is a `string` for one choice and a `string[]` for several. The component decides which; no
-  `multiple` flag.
+  `multiple` flag. `Accordion`'s `type` is the exception: one component serves both intents, and the union
+  types the value for each ([§1.6](#16-make-invalid-states-unrepresentable)).
 - A toggle's third state is `"indeterminate"`. ARIA's `"mixed"` appears only on the attribute.
 - `inputValue` is only for a part that holds a selection and text together (`Combobox`, `MultiSelect`). A plain
   text field uses `value`.
 - No `setX` props. A new kind of state gets its own `x`, `defaultX`, and `onXChange`.
 - A behavior hook takes the same option names as its component.
 - A rename keeps the compound API and ships a codemod ([VERSIONING.md](./VERSIONING.md)).
+
+Some shipped props predate the table: `OtpInput.Root`'s `onChange(value)`, `Select`'s deprecated `onChange`,
+`CodeBlock`'s `activeTab`, `SelectableList`'s `query`, `PasswordInput`'s `showValue`, and `Sidebar`'s
+`openMobile`. Do not copy them into new work. Rename one only in a breaking change with a codemod.
 
 ---
 
@@ -725,13 +736,14 @@ cure. Read the roster there rather than restating it here, because an enumerated
   ([explain the number](./docs/principles/explain-the-number.md)). Run the base and the branch in turn.
 - **Measure a new or rewritten interactive part against a native floor.** The floor is the same UI written by
   hand on platform primitives: `<dialog>` with `showModal()`, a `popover`, native inputs, and one shared
-  listener. Report the gap in gzip bytes and in INP at 4× CPU. When the gap stays large, name what fills it.
-  A merge does not settle the question.
+  listener. Report the gap in gzip bytes and in Interaction to Next Paint (INP) at 4× CPU. When the gap stays
+  large, name what fills it. Merging does not waive the report.
 - **Run one browser benchmark at a time.** Two runs on one machine share its CPU and its memory, and each
   run skews the other. Rotate the order of the base and the branch in each round, report medians, and compare
   numbers only within one run. One 8ms Event Timing step is noise unless a trace confirms it.
-- An opt-in API, such as a function child, ships only on the parts that clearly gain from it. Weigh its bytes
-  against the product and marketing JavaScript budgets first.
+- An opt-in API, such as a function child, ships only on a part where a named use case needs it. Measure its
+  gzip bytes on each page shape in `bundle-budget.json`, and weigh them against the product and marketing
+  JavaScript budgets.
 - Performance does not win against accessibility. Keep what assistive technology reads, and give the measured
   cost to the author as a decision ([docs/north-star.md](./docs/north-star.md#when-two-goals-pull-apart)).
 
