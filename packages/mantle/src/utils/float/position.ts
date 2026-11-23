@@ -267,7 +267,8 @@ let anchorCount = 0;
  *
  * With `fallback: "larger"`, it sizes the float by its content height
  * (`scrollHeight`), so a list that `--available-height` caps can still move
- * to the side with more room.
+ * to the side with more room. When a child with `data-float-viewport` scrolls
+ * instead of the float, its content height counts.
  *
  * Each frame it writes on the float `data-side` (the side it resolved to),
  * `--anchor-width`, `--anchor-height`, `--available-height`, and a `transform-origin` at the
@@ -321,6 +322,8 @@ function trackFloat({
 	// Why the arrow's height: the arrow sticks out of the float toward the
 	// anchor, so `sideOffset` is the gap between its tip and the anchor.
 	const gap = sideOffset + (arrow?.offsetHeight ?? 0);
+	const scroller =
+		floating.querySelector<HTMLElement>(":scope > [data-float-viewport]") ?? floating;
 	floating.style.inset = "auto";
 	// Why: a float that is placed again keeps the margins of its last placement.
 	for (const edge of ["top", "right", "bottom", "left"] as const) {
@@ -380,7 +383,7 @@ function trackFloat({
 		const width = floating.offsetWidth;
 		const height = floating.offsetHeight;
 		const contentHeight =
-			fallback === "larger" ? floating.scrollHeight + height - floating.clientHeight : height;
+			fallback === "larger" ? scroller.scrollHeight + height - scroller.clientHeight : height;
 		const viewport = {
 			width: document.documentElement.clientWidth,
 			height: document.documentElement.clientHeight,

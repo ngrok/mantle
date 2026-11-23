@@ -76,50 +76,72 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 	});
 
 	test("a scrolled list keeps its scroll position", async () => {
-		const fruits = Array.from({ length: 80 }, (_, index) => `Fruit ${index}`);
-		render(
-			<Combobox.Root>
-				<Combobox.Input aria-label="Fruit" />
-				<Combobox.Content style={{ maxHeight: "var(--available-height)", overflowY: "auto" }}>
-					{fruits.map((fruit) => (
-						<Combobox.Item key={fruit} value={fruit} />
-					))}
-				</Combobox.Content>
-			</Combobox.Root>,
-		);
-		await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
-		const listbox = await screen.findByRole("listbox");
-		listbox.scrollTop = 300;
-		// Why: a page scroll places the list again, which measures it.
-		window.dispatchEvent(new Event("scroll"));
-		await new Promise((resolve) => {
-			requestAnimationFrame(() => requestAnimationFrame(resolve));
-		});
-		expect(listbox.scrollTop).toBe(300);
+		// Why the compiled CSS: the real classes cap the list and scroll its viewport.
+		const style = document.createElement("style");
+		style.textContent = await commands.tailwindCss("./combobox.tsx");
+		document.head.append(style);
+		try {
+			const fruits = Array.from({ length: 80 }, (_, index) => `Fruit ${index}`);
+			render(
+				<Combobox.Root>
+					<Combobox.Input aria-label="Fruit" />
+					<Combobox.Content>
+						{fruits.map((fruit) => (
+							<Combobox.Item key={fruit} value={fruit} />
+						))}
+					</Combobox.Content>
+				</Combobox.Root>,
+			);
+			await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
+			const listbox = await screen.findByRole("listbox");
+			const viewport = listbox.querySelector<HTMLElement>('[data-slot="combobox-viewport"]');
+			if (viewport == null) {
+				throw new Error("No viewport");
+			}
+			viewport.scrollTop = 300;
+			// Why: a page scroll places the list again, which measures it.
+			window.dispatchEvent(new Event("scroll"));
+			await new Promise((resolve) => {
+				requestAnimationFrame(() => requestAnimationFrame(resolve));
+			});
+			expect(viewport.scrollTop).toBe(300);
+		} finally {
+			style.remove();
+		}
 	});
-	test("a list taller than both sides opens above a low input inside the viewport", async () => {
-		const fruits = Array.from({ length: 60 }, (_, index) => `Fruit ${index}`);
-		render(
-			<Combobox.Root>
-				<Combobox.Input aria-label="Fruit" style={{ position: "fixed", bottom: 40 }} />
-				{/* Why the style: this page loads no Tailwind, and the real classes cap the list and size its box the same way. */}
-				<Combobox.Content
-					style={{
-						maxHeight: "var(--available-height)",
-						overflowY: "auto",
-						boxSizing: "border-box",
-					}}
-				>
-					{fruits.map((fruit) => (
-						<Combobox.Item key={fruit} value={fruit} />
-					))}
-				</Combobox.Content>
-			</Combobox.Root>,
-		);
-		await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
-		const listbox = await screen.findByRole("listbox");
-		expect(listbox).toHaveAttribute("data-side", "top");
-		expect(listbox.getBoundingClientRect().top).toBeGreaterThanOrEqual(8);
+	test("a list that grows past both sides moves above a low input", async () => {
+		// Why the compiled CSS: the side choice measures the content of the viewport that scrolls.
+		const style = document.createElement("style");
+		style.textContent = await commands.tailwindCss("./combobox.tsx");
+		document.head.append(style);
+		try {
+			const Growing = ({ count }: { count: number }) => (
+				<Combobox.Root>
+					<Combobox.Input
+						aria-label="Fruit"
+						style={{ position: "fixed", top: "60%", height: 30 }}
+					/>
+					{/* Why the style: the page loads no preflight, which sizes every box by its border. */}
+					<Combobox.Content style={{ boxSizing: "border-box" }}>
+						{Array.from({ length: count }, (_, index) => (
+							<Combobox.Item key={index} value={`Fruit ${index}`} />
+						))}
+					</Combobox.Content>
+				</Combobox.Root>
+			);
+			const { rerender } = render(<Growing count={2} />);
+			await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
+			const listbox = await screen.findByRole("listbox");
+			expect(listbox).toHaveAttribute("data-side", "bottom");
+			// Why: the list capped below now holds more than fits there, and more room is above.
+			rerender(<Growing count={200} />);
+			// Why a poll: the resize observer places the list again in a later frame.
+			await expect.poll(() => listbox.getAttribute("data-side")).toBe("top");
+			// Why 7.5: the input's top sits at a fraction of a pixel.
+			expect(listbox.getBoundingClientRect().top).toBeGreaterThanOrEqual(7.5);
+		} finally {
+			style.remove();
+		}
 	});
 	test("typing filters and highlights the first match; arrows move; Enter fills the input", async () => {
 		const onPick = vi.fn<(value: string) => void>();
@@ -225,7 +247,7 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		expect(screen.queryByRole("dialog", { name: "Settings" })).not.toBeInTheDocument();
 	});
 
-	test("the open list hides its scrollbar and stops overscroll", async () => {
+	test("the open list scrolls in a faded viewport with no scrollbar or overscroll", async () => {
 		// Why the compiled CSS: this page loads no Tailwind, and the test checks the real utilities.
 		const style = document.createElement("style");
 		style.textContent = await commands.tailwindCss("./combobox.tsx");
@@ -241,11 +263,16 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 			);
 			await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
 			const list = await screen.findByRole("listbox");
-			expect(getComputedStyle(list)).toMatchObject({
+			const viewport = list.querySelector('[data-slot="combobox-viewport"]');
+			expect(viewport).not.toBeNull();
+			expect(getComputedStyle(viewport ?? list)).toMatchObject({
 				overflowY: "auto",
 				overscrollBehaviorY: "none",
 				scrollbarWidth: "none",
+				maskImage: expect.stringContaining("linear-gradient"),
 			});
+			// Why: the fade masks only the viewport, so the list's border and shadow stay whole.
+			expect(getComputedStyle(list).maskImage).toBe("none");
 		} finally {
 			style.remove();
 		}

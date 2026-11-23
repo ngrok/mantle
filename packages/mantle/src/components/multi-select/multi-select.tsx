@@ -21,6 +21,7 @@ import { useFieldValidation } from "../field/validation-context.js";
 import type { AriaInvalid, WithValidation } from "../field/validation.js";
 import { Separator } from "../separator/separator.js";
 import { Slot } from "../slot/index.js";
+import { slotContent } from "../slot/slot.js";
 import invariant from "tiny-invariant";
 
 const EMPTY_ARRAY: readonly string[] = [];
@@ -835,6 +836,18 @@ const OpenContent = ({
 
 	const composedRef = useComposedRefs(ref, popupRef, listbox.listboxProps.ref);
 	const Component = asChild ? Slot : "div";
+	// Why a viewport: the fade masks it, not the list, so the border and the shadow stay whole.
+	// Why only the top edge fades with a footer: the sticky footer sits on the bottom edge.
+	const renderViewport = (inner: ReactNode) => (
+		<div
+			ref={listbox.viewportRef}
+			data-slot="multi-select-viewport"
+			data-float-viewport
+			className="relative min-h-0 overflow-y-auto overflow-x-hidden scroll-fade-y has-data-content-footer:scroll-fade-t scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-py-6 pt-1 pb-1 has-data-content-footer:pb-0 flex flex-col gap-px"
+		>
+			{inner}
+		</div>
+	);
 	return (
 		portalTarget != null &&
 		createPortal(
@@ -853,7 +866,7 @@ const OpenContent = ({
 					data-slot={joinDataSlot(dataSlot, "multi-select-content")}
 					data-state="open"
 					className={cx(
-						"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col gap-px outline-hidden",
+						"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 flex flex-col rounded-md border shadow-md font-sans outline-hidden",
 						sameWidth && "w-(--anchor-width)",
 						className,
 					)}
@@ -896,7 +909,7 @@ const OpenContent = ({
 						}
 					})}
 				>
-					{children}
+					{asChild ? slotContent(children, renderViewport) : renderViewport(children)}
 				</Component>
 			</>,
 			portalTarget,

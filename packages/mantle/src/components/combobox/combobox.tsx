@@ -18,6 +18,7 @@ import { useFieldValidation } from "../field/validation-context.js";
 import type { WithValidation } from "../field/validation.js";
 import { Separator } from "../separator/separator.js";
 import { Slot } from "../slot/index.js";
+import { slotContent } from "../slot/slot.js";
 
 const ComboboxContext = createContext<ComboboxContextValue | null>(null);
 
@@ -293,6 +294,17 @@ const OpenContent = ({
 	const { portalTarget, popupRef } = usePopup({ anchorRef: inputRef, ownerRef: inputRef });
 	const composedRef = useComposedRefs(ref, popupRef, listbox.listboxProps.ref);
 	const Component = asChild ? Slot : "div";
+	// Why a viewport: the fade masks it, not the list, so the border and the shadow stay whole.
+	const renderViewport = (inner: ReactNode) => (
+		<div
+			ref={listbox.viewportRef}
+			data-slot="combobox-viewport"
+			data-float-viewport
+			className="relative min-h-0 overflow-y-auto overflow-x-hidden scroll-fade-y scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-py-6 p-1 space-y-px"
+		>
+			{inner}
+		</div>
+	);
 	return (
 		portalTarget != null &&
 		createPortal(
@@ -305,12 +317,12 @@ const OpenContent = ({
 				data-slot={joinDataSlot(dataSlot, "combobox-content")}
 				data-state="open"
 				className={cx(
-					"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none rounded-md border shadow-md p-1 space-y-px font-sans outline-hidden",
+					"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 flex flex-col rounded-md border shadow-md font-sans outline-hidden",
 					sameWidth && "w-(--anchor-width)",
 					className,
 				)}
 			>
-				{children}
+				{asChild ? slotContent(children, renderViewport) : renderViewport(children)}
 			</Component>,
 			portalTarget,
 		)
