@@ -29,15 +29,30 @@ const observeKeyboardScroll = (body: HTMLDivElement | null): (() => void) | unde
 		}
 	};
 	const resize = new ResizeObserver(update);
-	const watch = () => {
-		resize.disconnect();
-		resize.observe(body);
-		for (const child of body.children) {
-			resize.observe(child);
+	resize.observe(body);
+	for (const child of body.children) {
+		resize.observe(child);
+	}
+	// Why only the changed children: each `observe` queues a size report. In
+	// WebKit, a report queued from a resize callback fires a loop error.
+	const mutation = new MutationObserver((records) => {
+		for (const record of records) {
+			if (record.target !== body) {
+				continue;
+			}
+			for (const node of record.addedNodes) {
+				if (node instanceof Element) {
+					resize.observe(node);
+				}
+			}
+			for (const node of record.removedNodes) {
+				if (node instanceof Element) {
+					resize.unobserve(node);
+				}
+			}
 		}
 		update();
-	};
-	const mutation = new MutationObserver(watch);
+	});
 	mutation.observe(body, {
 		characterData: true,
 		childList: true,
@@ -45,7 +60,7 @@ const observeKeyboardScroll = (body: HTMLDivElement | null): (() => void) | unde
 		attributeFilter: ["disabled", "hidden", "href", "inert", "tabindex"],
 	});
 	body.addEventListener("focusout", update);
-	watch();
+	update();
 	return () => {
 		body.removeEventListener("focusout", update);
 		mutation.disconnect();

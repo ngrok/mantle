@@ -307,4 +307,36 @@ describe("Dialog.Body", () => {
 		screen.getByRole("button", { name: "Before" }).focus();
 		await waitFor(() => expect(body).not.toHaveAttribute("tabindex"));
 	});
+
+	test("a scrolling body that closes with its dialog reports no ResizeObserver loop error", async () => {
+		const errors: string[] = [];
+		const onError = (event: ErrorEvent) => errors.push(event.message);
+		window.addEventListener("error", onError);
+		try {
+			const { rerender } = render(
+				<div>
+					<Dialog.Body data-testid="body" style={bodyStyle}>
+						{lines(10)}
+					</Dialog.Body>
+				</div>,
+			);
+			const body = screen.getByTestId("body");
+			await waitFor(() => expect(body).toHaveAttribute("tabindex", "0"));
+
+			rerender(
+				<div hidden>
+					<Dialog.Body data-testid="body" style={bodyStyle}>
+						{lines(10)}
+					</Dialog.Body>
+				</div>,
+			);
+
+			await waitFor(() => expect(body).not.toHaveAttribute("tabindex"));
+			await new Promise(requestAnimationFrame);
+			await new Promise(requestAnimationFrame);
+			expect(errors).toEqual([]);
+		} finally {
+			window.removeEventListener("error", onError);
+		}
+	});
 });
