@@ -1332,7 +1332,22 @@ describe("DropdownMenu with its CSS (browser)", () => {
 				scroller.hasAttribute("data-overflow-top"),
 				scroller.hasAttribute("data-overflow-bottom"),
 			].join();
-		await expect.poll(edges).toBe("false,true");
+		try {
+			await expect.poll(edges).toBe("false,true");
+		} catch (error) {
+			const items = scroller.querySelectorAll('[role="menuitem"]');
+			const last = items[items.length - 1] as HTMLElement;
+			const panel = scroller.parentElement as HTMLElement;
+			const rect = (el: Element) => {
+				const r = el.getBoundingClientRect();
+				return `${Math.round(r.top)}..${Math.round(r.bottom)}`;
+			};
+			const cs = getComputedStyle(scroller);
+			const ps = getComputedStyle(panel);
+			throw new Error(
+				`DIAG edges=${edges()} scroller=${rect(scroller)} sh=${scroller.scrollHeight} ch=${scroller.clientHeight} st=${scroller.scrollTop} overflow=${cs.overflowY} minh=${cs.minHeight} panel=${rect(panel)} pdisplay=${ps.display} pflex=${ps.flexDirection} pmax=${ps.maxHeight} open=${panel.matches(":popover-open")} last=${rect(last)} items=${items.length} vis=${document.visibilityState} anims=${document.getAnimations().length} css=${document.querySelectorAll("style").length} ${String(error).slice(0, 80)}`,
+			);
+		}
 		expect(getComputedStyle(scroller, "::after").opacity).toBe("1");
 
 		await user.keyboard("{End}");
