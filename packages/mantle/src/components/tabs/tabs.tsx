@@ -431,6 +431,8 @@ const triggerVariants = cva(
 					"data-state-active:text-strong",
 					"data-state-active:bg-neutral-500/15",
 					"rounded-full py-2 px-3",
+					// Why: the orientation's bar geometry would make an empty flex item.
+					"after:content-none",
 				),
 			} as const satisfies Record<Appearance, string>,
 		},

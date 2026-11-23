@@ -1,5 +1,6 @@
 import { act, render, screen } from "@testing-library/react";
 import axe from "axe-core";
+import { useState } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
@@ -697,6 +698,115 @@ describe("Tabs keyboard, focus, and ARIA contract", () => {
 		expect(tab("A")).toHaveFocus();
 	});
 
+	test("a selection made outside the list is where Tab comes back", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		const Controlled = () => {
+			const [value, setValue] = useState("a");
+			return (
+				<>
+					<button type="button">Before</button>
+					<Tabs.Root
+						value={value}
+						onValueChange={(next) => {
+							onValueChange(next);
+							setValue(next);
+						}}
+					>
+						<Tabs.List aria-label="Controlled">
+							<Tabs.Trigger value="a">A</Tabs.Trigger>
+							<Tabs.Trigger value="b">B</Tabs.Trigger>
+						</Tabs.List>
+					</Tabs.Root>
+					<button type="button" onClick={() => setValue("b")}>
+						Pick B
+					</button>
+				</>
+			);
+		};
+		render(<Controlled />);
+
+		await userEvent.click(tab("A"));
+		await userEvent.click(screen.getByRole("button", { name: "Pick B" }));
+		await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+
+		expect(tab("B")).toHaveFocus();
+		await userEvent.click(screen.getByRole("button", { name: "Before" }));
+		await userEvent.keyboard("{Tab}");
+
+		expect(tab("B")).toHaveFocus();
+		expect(tab("B")).toHaveAttribute("aria-selected", "true");
+		expect(onValueChange).not.toHaveBeenCalled();
+	});
+
+	test("in manual mode, a Tab forward into the list enters on the selected tab", async () => {
+		render(<FourTabs activationMode="manual" />);
+		tab("B").focus();
+		await userEvent.keyboard("{ArrowLeft}{Tab}");
+
+		await userEvent.click(screen.getByRole("button", { name: "Before" }));
+		await userEvent.keyboard("{Tab}");
+
+		expect(tab("B")).toHaveFocus();
+	});
+
+	test.each([
+		{ name: "the selected tab", defaultValue: "a" },
+		{ name: "the first tab, with no selection", defaultValue: undefined },
+	])("Tab reaches the list when $name cannot take focus", async ({ defaultValue }) => {
+		render(
+			<>
+				<button type="button">Before</button>
+				<Tabs.Root defaultValue={defaultValue}>
+					<Tabs.List aria-label="Hidden stop">
+						<Tabs.Trigger value="a" style={{ display: "none" }}>
+							A
+						</Tabs.Trigger>
+						<Tabs.Trigger value="b">B</Tabs.Trigger>
+						<Tabs.Trigger value="c">C</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+			</>,
+		);
+
+		await userEvent.click(screen.getByRole("button", { name: "Before" }));
+		await userEvent.keyboard("{Tab}");
+
+		expect(tab("B")).toHaveFocus();
+	});
+
+	test("a press that a focus handler nests in another root selects each tab once", async () => {
+		const calls: string[] = [];
+		render(
+			<>
+				<Tabs.Root value="x" onValueChange={(value) => calls.push(value)}>
+					<Tabs.List aria-label="Other">
+						<Tabs.Trigger value="x" asChild>
+							<a href="#x">X</a>
+						</Tabs.Trigger>
+						<Tabs.Trigger value="y" asChild>
+							<a href="#y">Y</a>
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+				<Tabs.Root value="a" onValueChange={(value) => calls.push(value)}>
+					<Tabs.List aria-label="Pressed">
+						<Tabs.Trigger value="a" asChild>
+							<a href="#a">A</a>
+						</Tabs.Trigger>
+						<Tabs.Trigger value="b" asChild onFocus={() => tab("Y").click()}>
+							<a href="#b">B</a>
+						</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+			</>,
+		);
+
+		await userEvent.click(tab("B"));
+
+		expect(calls).toEqual(["y", "b"]);
+		history.replaceState(null, "", window.location.pathname);
+	});
+
 	test("when the selected tab is disabled, Tab reaches the first enabled tab", async () => {
 		render(<FourTabs defaultValue="c" activationMode="manual" />);
 		await vi.waitFor(() => {
@@ -909,6 +1019,11 @@ describe("Tabs keyboard, focus, and ARIA contract", () => {
 			expect(tab("B")).toHaveAttribute("aria-selected", "true");
 		});
 		expect(container.querySelector('[role="tabpanel"]')).toHaveAttribute("hidden", "until-found");
+		// Why the filter: React warns about the uppercase `HIDDEN` name on purpose.
+		const unexpected = errors.mock.calls
+			.map((args) => args.map(String).join(" "))
+			.filter((message) => !message.includes("Invalid DOM property"));
+		expect(unexpected).toEqual([]);
 		act(() => {
 			root.unmount();
 		});

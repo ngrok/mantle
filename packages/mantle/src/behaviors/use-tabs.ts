@@ -29,7 +29,10 @@ type TabsBehavior = {
 	baseId: string;
 	value: string | undefined;
 	select: (value: string) => void;
-	/** The value of the tab that is the Tab stop: the last focused tab, else the selected one. */
+	/**
+	 * The value of the tab that is the Tab stop: the last focused tab, else the
+	 * selected one. A selection change makes the last focused tab stale.
+	 */
 	stop: string | undefined;
 	setFocused: (value: string) => void;
 	orientation: Orientation;
@@ -66,13 +69,17 @@ const useTabs = ({
 			}
 		},
 	});
-	const [focused, setFocused] = useState<string | null>(null);
+	// Why `under`: a selection made outside the list, such as a controlled
+	// change, must be where focus comes back, not the tab focused before it.
+	const [focused, setFocused] = useState<{ value: string; under: string | undefined } | null>(null);
 	return {
 		baseId: useId(),
 		value,
 		select: setValue,
-		stop: focused ?? value,
-		setFocused,
+		stop: focused != null && focused.under === value ? focused.value : value,
+		setFocused: (next) => {
+			setFocused({ value: next, under: value });
+		},
 		orientation,
 		activationMode,
 	};
@@ -85,17 +92,30 @@ const panelId = (tabs: TabsBehavior, value: string) => `${tabs.baseId}-content-$
 const enabledTabs = (list: Element | null): HTMLElement[] =>
 	list == null ? [] : Array.from(list.querySelectorAll<HTMLElement>('[role="tab"]:not(:disabled)'));
 
+/** Focuses the first element of `order` that takes focus, such as one without `display: none`. */
+const focusFirst = (order: HTMLElement[]) => {
+	for (const candidate of order) {
+		candidate.focus();
+		if (candidate.ownerDocument.activeElement === candidate) {
+			return;
+		}
+	}
+};
+
 /**
- * Makes the list itself a Tab stop only while no enabled tab is one, such as
- * when no tab is selected or the selected tab is disabled. A focus on the list
- * then moves to the selected tab, or to the first enabled one.
+ * Makes the list itself a Tab stop only while no enabled, rendered tab is one,
+ * such as when no tab is selected, or the selected tab is disabled or has
+ * `display: none`. A focus on the list then moves to the selected tab, or to
+ * the first enabled tab that takes focus.
  */
 const watchTabStop = (list: HTMLElement | null) => {
 	if (list == null) {
 		return;
 	}
 	const sync = () => {
-		const hasStop = enabledTabs(list).some((tab) => tab.tabIndex === 0);
+		const hasStop = enabledTabs(list).some(
+			(tab) => tab.tabIndex === 0 && tab.getClientRects().length > 0,
+		);
 		// Why the checks: a write to `tabindex` would wake this observer again.
 		if (hasStop && list.hasAttribute("tabindex")) {
 			list.removeAttribute("tabindex");
@@ -107,7 +127,7 @@ const watchTabStop = (list: HTMLElement | null) => {
 	observer.observe(list, {
 		subtree: true,
 		childList: true,
-		attributeFilter: ["tabindex", "disabled"],
+		attributeFilter: ["tabindex", "disabled", "hidden", "class", "style"],
 	});
 	sync();
 	return () => {
@@ -120,7 +140,7 @@ const enterList = (event: FocusEvent<HTMLElement>) => {
 		return;
 	}
 	const tabs = enabledTabs(event.currentTarget);
-	(tabs.find((tab) => tab.getAttribute("aria-selected") === "true") ?? tabs[0])?.focus();
+	focusFirst([...tabs.filter((tab) => tab.getAttribute("aria-selected") === "true"), ...tabs]);
 };
 
 /**
@@ -193,12 +213,7 @@ const moveFocus = (
 			...(loop ? enabled.slice(index + 1).toReversed() : []),
 		];
 	}
-	for (const candidate of order) {
-		candidate.focus();
-		if (candidate.ownerDocument.activeElement === candidate) {
-			break;
-		}
-	}
+	focusFirst(order);
 	return true;
 };
 
@@ -207,9 +222,15 @@ let pressedTab: HTMLElement | null = null;
 
 /** Focuses a tab without the focus ring, then selects it once. */
 const pressTab = (tabs: TabsBehavior, tab: HTMLElement, value: string) => {
+	// Why restore and not clear: a consumer's focus handler can press another
+	// tab, and that nested press must not clear this one.
+	const outer = pressedTab;
 	pressedTab = tab;
-	tab.focus({ focusVisible: false });
-	pressedTab = null;
+	try {
+		tab.focus({ focusVisible: false });
+	} finally {
+		pressedTab = outer;
+	}
 	tabs.select(value);
 };
 
@@ -217,7 +238,7 @@ const pressTab = (tabs: TabsBehavior, tab: HTMLElement, value: string) => {
  * Wires one tab: `role="tab"`, `aria-selected`, `aria-controls`, the roving
  * `tabIndex`, the arrow keys, and activation. The last focused tab is the Tab
  * stop, else the selected tab, so the server HTML has the selected tab in the
- * Tab order. A press focuses the tab without the focus ring. A link tab waits
+ * Tab order. A Tab forward into the list enters on the selected tab. A press focuses the tab without the focus ring. A link tab waits
  * for its click, so a press released off the link switches no tab and starts
  * no drag.
  *
@@ -293,8 +314,28 @@ const getTabProps = (
 			if (disabled) {
 				return;
 			}
+			const tab = event.currentTarget;
+			const from = event.relatedTarget;
+			const list = tab.closest('[role="tablist"]');
+			// Why: a Tab forward from before the list enters on the selected tab, as
+			// the APG asks, even when manual mode left another tab as the stop.
+			if (
+				!selected &&
+				tab !== pressedTab &&
+				from instanceof Node &&
+				!list?.contains(from) &&
+				from.compareDocumentPosition(tab) & Node.DOCUMENT_POSITION_FOLLOWING
+			) {
+				const active = enabledTabs(list).find(
+					(other) => other.getAttribute("aria-selected") === "true",
+				);
+				active?.focus();
+				if (active != null && tab.ownerDocument.activeElement === active) {
+					return;
+				}
+			}
 			tabs.setFocused(value);
-			if (event.currentTarget !== pressedTab && !selected && tabs.activationMode === "automatic") {
+			if (tab !== pressedTab && !selected && tabs.activationMode === "automatic") {
 				tabs.select(value);
 			}
 		},
@@ -338,6 +379,9 @@ const getTabPanelProps = (
 			"data-state": selected ? "active" : "inactive",
 			"data-orientation": tabs.orientation,
 			hidden: !shown || undefined,
+			// Why: the browser can remove `hidden` before hydration, which
+			// `revealRef` handles; React would report it as a mismatch.
+			suppressHydrationWarning: hiddenUntilFound || undefined,
 			// Why uppercase: React renders `hidden` as a boolean, so `"until-found"`
 			// would become `hidden=""`. React passes an unknown name through, and
 			// HTML lowercases it. React warns about it in development.
