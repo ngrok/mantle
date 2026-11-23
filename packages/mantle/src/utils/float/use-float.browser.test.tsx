@@ -304,6 +304,25 @@ describe("useFloat placement as the anchor moves", () => {
 		}
 	});
 
+	test("a centered popover stays centered as its trigger shrinks", async () => {
+		render(
+			<Popover.Root defaultOpen>
+				<Popover.Trigger style={{ ...anchorStyle, width: 140 }}>Trigger</Popover.Trigger>
+				<Popover.Content style={panelStyle}>Content</Popover.Content>
+			</Popover.Root>,
+		);
+		const trigger = screen.getByRole("button", { name: "Trigger" });
+		const panel = await screen.findByRole("dialog");
+		await settle(panel);
+
+		trigger.style.width = "60px";
+		await nextFrames();
+
+		// Why 140: the trigger center, 180 + 60 / 2, less half the 140 px panel.
+		expect(panel.getBoundingClientRect().left).toBeCloseTo(140, 0);
+		expect(panel.style.getPropertyValue("--anchor-width")).toBe("60px");
+	});
+
 	test("a zoomed popover lines up with its anchor", async () => {
 		render(
 			<Popover.Root defaultOpen>

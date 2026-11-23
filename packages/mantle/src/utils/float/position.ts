@@ -262,6 +262,7 @@ const keyOf = (rect: DOMRect): string =>
  */
 function observeMove(element: HTMLElement, onMove: () => void): () => void {
 	let observer: IntersectionObserver | undefined;
+	let stopped = false;
 	const watch = (threshold = 1) => {
 		observer?.disconnect();
 		const { left, top, width, height } = element.getBoundingClientRect();
@@ -275,6 +276,9 @@ function observeMove(element: HTMLElement, onMove: () => void): () => void {
 		let first = true;
 		observer = new IntersectionObserver(
 			([entry]) => {
+				if (stopped) {
+					return;
+				}
 				const ratio = entry?.intersectionRatio ?? threshold;
 				// Why the first report: the browser reports the start state, and a
 				// ratio other than the threshold means the element moved since the
@@ -295,8 +299,20 @@ function observeMove(element: HTMLElement, onMove: () => void): () => void {
 		);
 		observer.observe(element);
 	};
-	watch();
-	return () => observer?.disconnect();
+	// Why a size observer too: a box that shrinks inside the crop shows all of
+	// itself, so the ratio does not change, and a box with no size has no crop.
+	const sizeObserver = new ResizeObserver(() => {
+		if (!stopped) {
+			onMove();
+			watch();
+		}
+	});
+	sizeObserver.observe(element);
+	return () => {
+		stopped = true;
+		sizeObserver.disconnect();
+		observer?.disconnect();
+	};
 }
 
 /**
