@@ -11,6 +11,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { flushSync } from "react-dom";
 import invariant from "tiny-invariant";
 import { useControllableState } from "../../behaviors/use-controllable-state.js";
 import type { WithAsChild } from "../../types/as-child.js";
@@ -96,9 +97,9 @@ type OtpInputRootProps = Omit<
 		 */
 		maxLength: number;
 		/**
-		 * The CSS that shows the input when JavaScript is off, in a `<noscript>`.
-		 * When omitted, the input shows with mantle's form colors. `null` turns the
-		 * fallback off.
+		 * The CSS that shows the input when JavaScript is off, in a `<noscript>`. It
+		 * selects the input with `[data-input-otp]`. When omitted, the input shows
+		 * with mantle's form colors. `null` turns the fallback off.
 		 */
 		noScriptCSSFallback?: string | null;
 		/**
@@ -252,6 +253,12 @@ const Root = ({
 
 	// Why `pattern` here: a native `pattern` only marks the value invalid, and the slots
 	// must never show a character it rejects.
+	const measureBadgeGutter = (input: HTMLInputElement) => {
+		if (pushPasswordManagerStrategy === "increase-width" && input.parentElement != null) {
+			setPushesBadge(fitsBadgeGutter(input.parentElement));
+		}
+	};
+
 	const changeValue = (next: string): boolean => {
 		if (next.length > 0 && pattern != null && !new RegExp(pattern).test(next)) {
 			return false;
@@ -301,6 +308,7 @@ const Root = ({
 		}
 		if (selection == null) {
 			if (document.activeElement === input && document.hasFocus()) {
+				measureBadgeGutter(input);
 				syncSelection(input);
 			}
 		} else if (input.selectionStart !== selection.start || input.selectionEnd !== selection.end) {
@@ -323,7 +331,8 @@ const Root = ({
 		<>
 			{noScriptCSSFallback != null && (
 				<noscript>
-					<style>{noScriptCSSFallback}</style>
+					{/* Why the layer: it lets the fallback win over the `!important` rules of `otp-input-overlay`. */}
+					<style>{`@layer utilities{${noScriptCSSFallback}}`}</style>
 				</noscript>
 			)}
 			<div
@@ -331,6 +340,7 @@ const Root = ({
 					"pointer-events-none relative flex items-center gap-2 select-none has-disabled:opacity-50",
 					containerClassName,
 				)}
+				data-input-otp-container
 				translate="no"
 			>
 				<OtpInputContext value={context}>
@@ -351,6 +361,11 @@ const Root = ({
 						aria-invalid={resolvedAriaInvalid}
 						aria-placeholder={placeholder}
 						data-slot={joinDataSlot(dataSlot, "otp-input")}
+						// Why the `data-input-otp` attributes: a `noScriptCSSFallback` or a page style can select them.
+						data-input-otp
+						data-input-otp-mss={selection?.start}
+						data-input-otp-mse={selection?.end}
+						data-input-otp-placeholder-shown={value.length === 0 || undefined}
 						// LastPass does not fill one-time codes, so only its badge is kept off.
 						data-lpignore={passwordManagerIgnoreProps["data-lpignore"]}
 						inputMode={inputMode}
@@ -368,12 +383,12 @@ const Root = ({
 						className={cx(
 							"otp-input-overlay disabled:cursor-not-allowed",
 							noScriptCSSFallback === undefined &&
-								"noscript:rounded-md noscript:border noscript:border-form noscript:bg-form noscript:text-center noscript:text-base noscript:tracking-[.25em] noscript:text-strong noscript:caret-current",
+								"noscript:rounded-md! noscript:border! noscript:border-form! noscript:bg-form! noscript:text-center! noscript:text-base! noscript:tracking-[.25em]! noscript:text-strong! noscript:caret-current!",
 							textAlignClasses[textAlign],
 							className,
 						)}
 						style={
-							pushesBadge
+							pushesBadge && pushPasswordManagerStrategy === "increase-width"
 								? { ...style, ...$cssProperties({ "--_otp-badge-gutter": `${BADGE_GUTTER}px` }) }
 								: style
 						}
@@ -386,7 +401,12 @@ const Root = ({
 						}}
 						onChange={(event) => {
 							const input = event.currentTarget;
-							if (changeValue(input.value.slice(0, maxLength))) {
+							// Why the focus check: a password manager or a script can fill the input
+							// without focus, and then no slot is active.
+							if (
+								changeValue(input.value.slice(0, maxLength)) &&
+								document.activeElement === input
+							) {
 								syncSelection(input);
 							}
 						}}
@@ -394,31 +414,35 @@ const Root = ({
 							const input = event.currentTarget;
 							const length = input.value.length;
 							input.setSelectionRange(Math.min(length, maxLength - 1), length);
-							if (pushPasswordManagerStrategy === "increase-width" && input.parentElement != null) {
-								setPushesBadge(fitsBadgeGutter(input.parentElement));
-							}
+							measureBadgeGutter(input);
 							syncSelection(input);
 							onFocus?.(event);
 						}}
 						onPaste={(event) => {
-							// Why iOS: a native paste into this input fails in iOS Safari.
-							if (pasteTransformer != null || CSS.supports("-webkit-touch-callout", "none")) {
-								event.preventDefault();
-								const input = event.currentTarget;
-								const pasted = event.clipboardData.getData("text/plain");
-								const content = pasteTransformer ? pasteTransformer(pasted) : pasted;
-								const next = (
-									value.slice(0, input.selectionStart ?? value.length) +
-									content +
-									value.slice(input.selectionEnd ?? value.length)
-								).slice(0, maxLength);
-								if (changeValue(next)) {
-									input.value = next;
-									input.setSelectionRange(Math.min(next.length, maxLength - 1), next.length);
-									syncSelection(input);
-								}
-							}
 							onPaste?.(event);
+							const input = event.currentTarget;
+							// Why iOS: a native paste into this input fails in iOS Safari.
+							if (
+								event.defaultPrevented ||
+								input.readOnly ||
+								(pasteTransformer == null && !CSS.supports("-webkit-touch-callout", "none"))
+							) {
+								return;
+							}
+							event.preventDefault();
+							const pasted = event.clipboardData.getData("text/plain");
+							const content = pasteTransformer ? pasteTransformer(pasted) : pasted;
+							const next = (
+								value.slice(0, input.selectionStart ?? value.length) +
+								content +
+								value.slice(input.selectionEnd ?? value.length)
+							).slice(0, maxLength);
+							// Why `flushSync`: the selection goes after the value that React commits, and a
+							// controlled parent can keep its own value.
+							flushSync(() => changeValue(next));
+							const length = input.value.length;
+							input.setSelectionRange(Math.min(length, maxLength - 1), length);
+							syncSelection(input);
 						}}
 					/>
 				</div>

@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -227,16 +227,36 @@ describe("OtpInput", () => {
 		const input = screen.getByRole<HTMLInputElement>("textbox", { name: "otp" });
 		input.value = "42";
 
-		await act(async () => {
-			hydrateRoot(container, subject);
-		});
+		const root = await act(async () => hydrateRoot(container, subject));
 
 		expect(handleChange).toHaveBeenCalledTimes(1);
 		expect(handleChange).toHaveBeenLastCalledWith("42");
 		const slots = container.querySelectorAll('[data-slot="otp-input-slot"]');
 		expect(slots[0]).toHaveTextContent("4");
 		expect(slots[1]).toHaveTextContent("2");
+		act(() => {
+			root.unmount();
+		});
 		container.remove();
+	});
+
+	test("a fill while the input has no focus activates no slot", () => {
+		const { bridge, container, input } = renderOtp();
+
+		fireEvent.change(input, { target: { value: "12" } });
+
+		expect(input).toHaveValue("12");
+		expect(bridge).toHaveAttribute("data-otp-state", "idle");
+		expect(container.querySelector("[data-active]")).toBeNull();
+	});
+
+	// Why: a `noScriptCSSFallback` or a page style selects the input with these attributes.
+	test("keeps the data-input-otp attributes on the input and its container", () => {
+		const { input } = renderOtp();
+
+		expect(input).toHaveAttribute("data-input-otp", "true");
+		expect(input).toHaveAttribute("data-input-otp-placeholder-shown", "true");
+		expect(input.closest("[data-input-otp-container]")).not.toBeNull();
 	});
 
 	test("onComplete fires when a parent fills the code, and not for the first render", () => {

@@ -299,20 +299,20 @@ state.
 
 All props from [input](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#attributes), plus:
 
-| Prop                           | Type                             | Default            | Description                                                                                                  |
-| ------------------------------ | -------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------ |
-| `maxLength`                    | `number`                         |                    | The total number of character slots. Required.                                                               |
-| `value?`                       | `string`                         |                    | Controlled value.                                                                                            |
-| `defaultValue?`                | `string`                         |                    | Uncontrolled initial value.                                                                                  |
-| `onChange?`                    | `(value: string) => void`        |                    | Fired when the value changes.                                                                                |
-| `onComplete?`                  | `(value: string) => void`        |                    | Fired when the value grows to `maxLength` characters, by typing, paste, or a parent.                         |
-| `pattern?`                     | `string`                         |                    | Regex source restricting accepted characters (e.g. `REGEXP_ONLY_DIGITS`).                                    |
-| `textAlign?`                   | `"left" \| "center" \| "right"`  | `"left"`           | Caret alignment within the hidden input.                                                                     |
-| `containerClassName?`          | `string`                         |                    | Class applied to the slot container element.                                                                 |
-| `pasteTransformer?`            | `(pasted: string) => string`     |                    | Transform pasted text before it is consumed.                                                                 |
-| `pushPasswordManagerStrategy?` | `"increase-width" \| "none"`     | `"increase-width"` | On focus, widen the input past the last slot when there is room, so a password manager badge sits beside it. |
-| `noScriptCSSFallback?`         | `string \| null`                 |                    | CSS for the input when JavaScript is off. `null` turns the fallback off.                                     |
-| `validation?`                  | `Validation \| () => Validation` |                    | Validation state. `"error"` also sets `aria-invalid` on the input.                                           |
+| Prop                           | Type                             | Default            | Description                                                                                                            |
+| ------------------------------ | -------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `maxLength`                    | `number`                         |                    | The total number of character slots. Required.                                                                         |
+| `value?`                       | `string`                         |                    | Controlled value.                                                                                                      |
+| `defaultValue?`                | `string`                         |                    | Uncontrolled initial value.                                                                                            |
+| `onChange?`                    | `(value: string) => void`        |                    | Fired when the value changes.                                                                                          |
+| `onComplete?`                  | `(value: string) => void`        |                    | Fired when the value grows to `maxLength` characters, by typing, paste, or a parent.                                   |
+| `pattern?`                     | `string`                         |                    | Regex source restricting accepted characters (e.g. `REGEXP_ONLY_DIGITS`).                                              |
+| `textAlign?`                   | `"left" \| "center" \| "right"`  | `"left"`           | Caret alignment within the hidden input.                                                                               |
+| `containerClassName?`          | `string`                         |                    | Class applied to the slot container element.                                                                           |
+| `pasteTransformer?`            | `(pasted: string) => string`     |                    | Transform pasted text before it is consumed.                                                                           |
+| `pushPasswordManagerStrategy?` | `"increase-width" \| "none"`     | `"increase-width"` | On focus, widen the input past the last slot when there is room, so a password manager badge sits beside it.           |
+| `noScriptCSSFallback?`         | `string \| null`                 |                    | CSS for the input when JavaScript is off. It selects the input with `[data-input-otp]`. `null` turns the fallback off. |
+| `validation?`                  | `Validation \| () => Validation` |                    | Validation state. `"error"` also sets `aria-invalid` on the input.                                                     |
 
 ### OtpInput.Group
 
