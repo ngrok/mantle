@@ -1,9 +1,13 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { createRef } from "react";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import { userEvent } from "vitest/browser";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { installShakeStyle, shakesOf } from "../../test-utils/shake-style.js";
 import type { SandbarHandle } from "./sandbar.js";
+import * as AlertDialog from "../alert-dialog/alert-dialog-parts.js";
+import * as Dialog from "../dialog/dialog-parts.js";
+import * as Sheet from "../sheet/sheet-parts.js";
 import * as Sandbar from "./sandbar-parts.js";
 
 function getPanel(): HTMLElement {
@@ -394,5 +398,112 @@ describe("Sandbar closed-state display (browser)", () => {
 		// would stay fully visible, inert and un-dismissable at the bottom of every
 		// page. The attribute-qualified variant on the panel is what wins instead.
 		expect(getComputedStyle(panel).display).toBe("none");
+	});
+});
+
+describe("Sandbar over a modal dialog", () => {
+	test("moves into each open modal dialog, takes clicks there, and goes back to <body>", async () => {
+		const onSave = vi.fn<() => void>();
+		render(
+			<>
+				<Sandbar.Root open>
+					<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+					<Sandbar.Actions>
+						<Sandbar.SaveButton onClick={onSave}>Save</Sandbar.SaveButton>
+					</Sandbar.Actions>
+				</Sandbar.Root>
+				<Dialog.Root>
+					<Dialog.Trigger>Open outer</Dialog.Trigger>
+					<Dialog.Content>
+						<Dialog.Title>Outer</Dialog.Title>
+						<Sheet.Root>
+							<Sheet.Trigger>Open sheet</Sheet.Trigger>
+							<Sheet.Content>
+								<Sheet.Title>Inner</Sheet.Title>
+							</Sheet.Content>
+						</Sheet.Root>
+					</Dialog.Content>
+				</Dialog.Root>
+			</>,
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Open outer" }));
+		const outer = screen.getByRole("dialog", { name: "Outer" });
+		expect(outer.contains(getPanel())).toBe(true);
+
+		await userEvent.click(screen.getByRole("button", { name: "Open sheet" }));
+		const inner = screen.getByRole("dialog", { name: "Inner" });
+		expect(inner.contains(getPanel())).toBe(true);
+		await userEvent.click(screen.getByRole("button", { name: "Save" }));
+		expect(onSave).toHaveBeenCalledTimes(1);
+		expect(inner).toBeInTheDocument();
+
+		await userEvent.keyboard("{Escape}");
+		await waitFor(() => expect(outer.contains(getPanel()) && !inner.isConnected).toBe(true));
+		await userEvent.keyboard("{Escape}");
+		await waitFor(() => expect(getPanel().closest("dialog")).toBeNull());
+	});
+});
+
+describe("a dialog that opens from the bar", () => {
+	test("opens as a modal above the page and leaves the bar where it is", async () => {
+		render(
+			<Sandbar.Root open>
+				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+				<Sandbar.Actions>
+					<AlertDialog.Root intent="danger">
+						<AlertDialog.Trigger>Discard</AlertDialog.Trigger>
+						<AlertDialog.Content>
+							<AlertDialog.Title>Discard changes?</AlertDialog.Title>
+							<AlertDialog.Cancel>Keep editing</AlertDialog.Cancel>
+						</AlertDialog.Content>
+					</AlertDialog.Root>
+				</Sandbar.Actions>
+			</Sandbar.Root>,
+		);
+
+		await userEvent.click(screen.getByRole("button", { name: "Discard" }));
+
+		const dialog = screen.getByRole("alertdialog", { name: "Discard changes?" });
+		expect(dialog.matches(":modal")).toBe(true);
+		expect(getPanel().closest("dialog")).toBeNull();
+		await userEvent.keyboard("{Escape}");
+		await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+	});
+});
+
+describe("a bar in a form", () => {
+	test("stays in the form with no dialog open, and its submit button submits the form from a dialog", async () => {
+		const onSubmit = vi.fn<(event: SubmitEvent) => void>((event) => event.preventDefault());
+		render(
+			<>
+				<form aria-label="Endpoint" onSubmit={(event) => onSubmit(event.nativeEvent)}>
+					<input aria-label="Name" />
+					<Sandbar.Root open>
+						<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+						<Sandbar.Actions>
+							<Sandbar.SaveButton type="submit">Save</Sandbar.SaveButton>
+						</Sandbar.Actions>
+					</Sandbar.Root>
+				</form>
+				<Dialog.Root>
+					<Dialog.Trigger>Open dialog</Dialog.Trigger>
+					<Dialog.Content>
+						<Dialog.Title>Details</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+			</>,
+		);
+		const form = screen.getByRole("form", { name: "Endpoint" });
+		expect(screen.getByRole("button", { name: "Save" })).toHaveProperty("form", form);
+
+		await userEvent.click(screen.getByRole("button", { name: "Open dialog" }));
+		const dialog = screen.getByRole("dialog", { name: "Details" });
+		await waitFor(() => expect(dialog.contains(getPanel())).toBe(true));
+		await userEvent.click(screen.getByRole("button", { name: "Save" }));
+		expect(onSubmit).toHaveBeenCalledTimes(1);
+
+		await userEvent.keyboard("{Escape}");
+		await waitFor(() => expect(form.contains(getPanel())).toBe(true));
+		expect(screen.getByRole("button", { name: "Save" })).toHaveProperty("form", form);
 	});
 });

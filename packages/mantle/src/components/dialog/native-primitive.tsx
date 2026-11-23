@@ -93,6 +93,54 @@ const keptMounted = new WeakSet<HTMLDialogElement>();
 /** The `<dialog>` elements that open with `show()`, not as a modal. */
 const nonModal = new WeakSet<HTMLDialogElement>();
 
+/** The documents that `trackInput` listens to. */
+const trackedDocuments = new WeakSet<Document>();
+/**
+ * Whether the last press or key on a tracked document was a press, or
+ * `undefined` before the first one that `trackInput` sees.
+ */
+let pressedLast: boolean | undefined;
+
+/**
+ * Records whether the last input on `ownerDocument` was a press or a key, for
+ * the focus ring of a dialog that opens. Why on the document: a dialog can
+ * open from any press or key, such as a row action or a hotkey, and Safari
+ * gives a pressed button no focus to read.
+ */
+function trackInput(ownerDocument: Document): void {
+	if (trackedDocuments.has(ownerDocument)) {
+		return;
+	}
+	trackedDocuments.add(ownerDocument);
+	const options = { capture: true, passive: true };
+	ownerDocument.addEventListener("pointerdown", () => (pressedLast = true), options);
+	ownerDocument.addEventListener("keydown", () => (pressedLast = false), options);
+}
+
+/**
+ * Runs `handler` with a cancelable `type` event that `target` receives, as a
+ * Radix dialog sent it to its content, so `event.currentTarget` is the panel.
+ * Returns the event. As with Radix, an error in `handler` goes to `window`'s
+ * `error` event, not to the caller.
+ */
+function sendFocusEvent(
+	target: HTMLElement | null,
+	type: string,
+	handler: ((event: Event) => void) | undefined,
+): Event {
+	const event = new Event(type, { cancelable: true });
+	if (handler == null) {
+		return event;
+	}
+	if (target == null) {
+		handler(event);
+		return event;
+	}
+	target.addEventListener(type, handler, { once: true });
+	target.dispatchEvent(event);
+	return event;
+}
+
 /** Writes `state` to the `aria-expanded` and `data-state` of `trigger`. */
 function writeTriggerState(trigger: Element, state: string): void {
 	trigger.setAttribute("aria-expanded", String(state === "open"));
@@ -475,6 +523,12 @@ const Trigger = ({ asChild, onClick, ref, scope, ...props }: ButtonProps) => {
 	};
 	const composedRef = useComposedRefs(ref, readState);
 
+	// Why: a dialog that opens from state passes an empty `asChild` trigger,
+	// which renders nothing, as with Radix.
+	if (asChild && props.children == null) {
+		return null;
+	}
+
 	// Why constant `aria-expanded` and `data-state`: `writeOpenState` keeps them
 	// current on the DOM, and React never writes a prop again that did not change.
 	return (
@@ -624,6 +678,8 @@ const Content = ({
 	// open, and the open must cost no more than the mount.
 	const dialogRef = useRef<HTMLDialogElement | null>(null);
 	const panelRef = useRef<HTMLDivElement | null>(null);
+	/** The panel of the last `<dialog>` that attached, which outlives its unmount. */
+	const lastPanel = useRef<HTMLDivElement | null>(null);
 	const composedPanelRef = useComposedRefs(ref, panelRef);
 	const reportedOpen = useRef(false);
 	const pressedOutside = useRef(false);
@@ -683,8 +739,24 @@ const Content = ({
 
 	/** The element that had focus when the dialog opened, such as a frame. */
 	const opener = useRef<Element | null>(null);
+	/** Whether `opener` showed a focus ring at open. */
+	const openerRing = useRef(false);
 	/** Runs `onOpenAutoFocus` on an open `dialog`. */
 	const openAutoFocus = useCallbackRef((dialog: HTMLDialogElement) => {
+		// Why: WebKit shows a focus ring on the browser's pick after a press, and
+		// the script focus of a Radix dialog showed none. A text field always
+		// shows one.
+		// Why the opener's ring as a fallback: a dialog that mounts on the press
+		// that opens it starts `trackInput` after that press.
+		const picked = dialog.ownerDocument.activeElement;
+		if (
+			(pressedLast ?? !openerRing.current) &&
+			picked instanceof HTMLElement &&
+			picked.matches(":focus-visible:not(:read-write)")
+		) {
+			picked.blur();
+			picked.focus({ focusVisible: false, preventScroll: true });
+		}
 		if (onOpenAutoFocus == null) {
 			return;
 		}
@@ -696,8 +768,7 @@ const Content = ({
 		if (autoFocused !== dialog) {
 			dialog.focus({ preventScroll: true });
 		}
-		const event = new Event("openAutoFocus", { cancelable: true });
-		onOpenAutoFocus(event);
+		const event = sendFocusEvent(panelRef.current, "openAutoFocus", onOpenAutoFocus);
 		if (
 			!event.defaultPrevented &&
 			dialog.ownerDocument.activeElement === dialog &&
@@ -707,11 +778,21 @@ const Content = ({
 		}
 	});
 
-	/** Opens `dialog`, then runs `onOpenAutoFocus`. */
+	/** Whether `onOpenAutoFocus` waits for the refs of the content to attach. */
+	const autoFocusPending = useRef(false);
+	/**
+	 * Opens `dialog`, then runs `onOpenAutoFocus`. A dialog that opens before
+	 * its ref attaches runs it once the refs of its content attach.
+	 */
 	const openDialog = useCallbackRef((dialog: HTMLDialogElement) => {
 		opener.current = dialog.ownerDocument.activeElement;
+		openerRing.current = opener.current?.matches(":focus-visible") === true;
 		moveDialog({ dialog, modal: root.modal, open: true });
-		openAutoFocus(dialog);
+		if (dialogRef.current === dialog) {
+			openAutoFocus(dialog);
+		} else {
+			autoFocusPending.current = true;
+		}
 	});
 
 	const wantsOpen = useCallbackRef(
@@ -742,6 +823,13 @@ const Content = ({
 			}
 			openDialog(dialog);
 		});
+	});
+
+	const openBeforeChildren = useCallbackRef((template: HTMLTemplateElement | null) => {
+		const dialog = template?.parentElement;
+		if (dialog instanceof HTMLDialogElement && expectedOpen === true && !dialog.open) {
+			openSoon(dialog);
+		}
 	});
 
 	// Why register: a float that this dialog covers hides, and a frame that
@@ -784,16 +872,17 @@ const Content = ({
 	 * ⌘K, and none from a dialog that leaves the page, so the opener takes it.
 	 * An opener that is gone leaves focus on `<body>`, so the trigger takes it.
 	 */
-	const returnFocus = useCallbackRef((dialog: HTMLDialogElement) => {
+	const returnFocus = useCallbackRef((dialog: HTMLDialogElement, leftOpen = false) => {
 		const { ownerDocument } = dialog;
 		const { body } = ownerDocument;
-		const returned = ownerDocument.activeElement;
+		// Why: a dialog that left the page open returned no focus, so the focus
+		// now is another's, such as that of a dialog that replaced it.
+		const returned = leftOpen ? body : ownerDocument.activeElement;
 		const modal = !nonModal.has(dialog);
 		if (modal && returned instanceof HTMLElement && returned !== body) {
 			returned.blur();
 		}
-		const event = new Event("closeAutoFocus", { cancelable: true });
-		onCloseAutoFocus?.(event);
+		const event = sendFocusEvent(lastPanel.current, "closeAutoFocus", onCloseAutoFocus);
 		if (event.defaultPrevented || ownerDocument.activeElement !== body) {
 			return;
 		}
@@ -883,6 +972,7 @@ const Content = ({
 		if (dialog == null) {
 			return;
 		}
+		lastPanel.current = panelRef.current;
 		if (keepMounted) {
 			keptMounted.add(dialog);
 		}
@@ -894,6 +984,10 @@ const Content = ({
 		reportedOpen.current = false;
 		// Why a sync now: a tap before hydration can open the dialog through its command.
 		sync(dialog);
+		if (autoFocusPending.current) {
+			autoFocusPending.current = false;
+			openAutoFocus(dialog);
+		}
 		if (keepMounted && !root.controlled && root.defaultOpen && !dialog.open) {
 			reportedOpen.current = true;
 			openSoon(dialog);
@@ -924,7 +1018,7 @@ const Content = ({
 			// the dialog stays open in it.
 			queueMicrotask(() => {
 				if (!dialog.isConnected && (dialogRef.current == null || dialogRef.current === dialog)) {
-					returnFocus(dialog);
+					returnFocus(dialog, true);
 				}
 			});
 		};
@@ -946,7 +1040,10 @@ const Content = ({
 		}
 	}, [expectedOpen, keepMounted, openSoon]);
 
-	useEffect(() => () => releaseOverlay.current?.(), []);
+	useEffect(() => {
+		trackInput(document);
+		return () => releaseOverlay.current?.();
+	}, []);
 
 	// Why Escape on the document: an open picker in the panel takes the key
 	// first and prevents it, in every engine, and the key closes the top dialog
@@ -986,9 +1083,25 @@ const Content = ({
 				close();
 			}
 		};
+		// Why: when the focused element leaves the panel, such as a retry button
+		// that a loading state replaces, the browser puts focus on `<body>`. The
+		// dialog takes it back, as a Radix dialog did, so a screen reader stays in it.
+		const refocus = new MutationObserver(() => {
+			if (
+				dialog.open &&
+				dialog.dataset.state === "open" &&
+				!nonModal.has(dialog) &&
+				openDialogs.at(-1) === dialog &&
+				ownerDocument.activeElement === ownerDocument.body
+			) {
+				dialog.focus({ preventScroll: true });
+			}
+		});
+		refocus.observe(dialog, { childList: true, subtree: true });
 		ownerDocument.addEventListener("keydown", onKeyDown);
 		ownerDocument.addEventListener("pointerdown", onPointerDown, { capture: true });
 		return () => {
+			refocus.disconnect();
 			ownerDocument.removeEventListener("keydown", onKeyDown);
 			ownerDocument.removeEventListener("pointerdown", onPointerDown, { capture: true });
 		};
@@ -1071,6 +1184,10 @@ const Content = ({
 				}
 			}}
 		>
+			{/* Why: React focuses an `autoFocus` element before the refs of the
+			    elements around it attach, so a dialog that mounts on open must open
+			    from a ref that attaches before its children commit. */}
+			{!keepMounted && <template ref={openBeforeChildren} />}
 			<LayerContainer active={layer && !inline} modal={root.modal} className="contents">
 				{/* Why no marker inline: the panel is not an overlay's content, and
 				    the close must not write `data-state` over the inline panel's own. */}

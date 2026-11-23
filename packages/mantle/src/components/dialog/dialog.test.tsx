@@ -499,6 +499,23 @@ describe("Dialog.Content", () => {
 	});
 });
 
+describe("Dialog.Trigger", () => {
+	it("renders nothing for an empty asChild trigger of a dialog that opens from state, as with Radix", () => {
+		render(
+			<Dialog.Root open>
+				<Dialog.Trigger asChild>{undefined}</Dialog.Trigger>
+				<Dialog.Content>
+					<Dialog.Title>Opened from state</Dialog.Title>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+		expect(screen.getByText("Opened from state")).toBeInTheDocument();
+		expect(
+			document.querySelector('[data-slot~="dialog-trigger"],[aria-haspopup="dialog"]'),
+		).toBeNull();
+	});
+});
+
 describe("isDialogOverlayTarget", () => {
 	it("is true for the <dialog>, which a press on the backdrop targets", async () => {
 		const { wrapper } = await open();
