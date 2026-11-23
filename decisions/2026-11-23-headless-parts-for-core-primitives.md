@@ -20,8 +20,7 @@ The ngrok marketing site (`ngrok-private/frontend`, `apps/www`) draws tabs that 
 
    It has no layout, color, spacing, or type class.
 
-4. **A headless part joins classes with `clsx`, not `cx`.** Its own classes do not merge with a consumer class, so the merge buys nothing. A styled part keeps `cx` for its variants.
-5. **The hooks stay internal.** Parts are the public layer. A site that migrates from Radix changes an import and keeps its JSX. The hooks (`useTabs`, `getTabProps`) keep the freedom to change.
+4. **The hooks stay internal.** Parts are the public layer. A site that migrates from Radix changes an import and keeps its JSX. The hooks (`useTabs`, `getTabProps`) keep the freedom to change.
 
 To add the pattern to another primitive: move the behavior of each styled part into `headless-<name>.tsx`, export the parts from `headless-<name>-parts.ts`, alias the namespace in `index.ts`, and make each styled part render its headless part. The existing tests of the styled parts must pass unchanged.
 
@@ -40,7 +39,7 @@ A Vite 8 production build of each entry, React external, minified, gzip `-9`. Ea
 
 - On a page that has `cx` and `Slot`, `HeadlessTabs` costs 5.8 KB less than Radix. Alone, it costs more than Radix, because `Slot` brings `cx` (6.7 KB). A page with no other mantle part is not a case that ngrok has today.
 - The 2.2 KB over the hand-written baseline buys the fixes listed in Context, manual activation, disabled tabs, right-to-left keys, and `asChild`.
-- `Tabs` grows 0.1 KB (101 bytes), the cost of one behavior path for both namespaces. A page that uses both namespaces pays 10 bytes more than a page with `Tabs` only.
+- `Tabs` grows 86 bytes, the cost of one behavior path for both namespaces. A page that uses both namespaces pays 9 bytes more than a page with `Tabs` only.
 
 ## Alternatives considered
 
@@ -52,6 +51,6 @@ A Vite 8 production build of each entry, React external, minified, gzip `-9`. Ea
 ## Consequences
 
 - A site gets mantle's tabs behavior in any look, and a fix in mantle reaches it with the next release.
-- Each styled part is one component layer deeper. The test suite of `Tabs` passes unchanged, so the DOM and the behavior did not change.
-- A consumer class that sets `outline-*` on a `Tabs.Trigger` no longer replaces the trigger's `outline-hidden` through the `cx` merge. The cascade decides. No call site in mantle or the frontend apps sets one.
+- Each styled part is one component layer deeper. The test suite of `Tabs` passes unchanged, so the behavior and the look did not change. The class string of `Tabs.Trigger` starts with the focus-ring classes, and the root writes `data-orientation` before `data-appearance`. A DOM snapshot test of a consumer can see that order.
+- `Tabs.Content` outside a root throws the `HeadlessTabs.Content` message, which names both roots.
 - The focus ring is not optional in the headless parts. A site that wants a different ring changes its tone or width with a `ring-focus-*` or `ring-*` class.

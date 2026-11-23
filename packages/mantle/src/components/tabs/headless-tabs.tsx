@@ -16,10 +16,7 @@ import type { ScrollBehavior } from "../../hooks/use-scroll-behavior.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { parseBooleanish } from "../../types/booleanish.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
-// Why `clsx` and not `cx`: a part's own classes are the focus
-// ring and the until-found rule, which no consumer class merges with, and the
-// merge would add 6.7 KB gzip to a page that does not use `cx`.
-import { clsx } from "../../utils/cx/clsx.js";
+import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { Slot } from "../slot/index.js";
@@ -313,7 +310,7 @@ const Trigger = ({
 	const triggerProps = {
 		...tabProps,
 		"aria-disabled": _ariaDisabled ?? _disabled,
-		className: clsx("outline-hidden focus-visible:focus-ring", className),
+		className: cx("outline-hidden focus-visible:focus-ring", className),
 		"data-slot": joinDataSlot(dataSlot, "tabs-trigger"),
 		...props,
 		// Why only `asChild`: the click handler serves a link child. React gives an
@@ -430,7 +427,7 @@ const Content = ({
 		<Component
 			{...panelProps}
 			data-slot={joinDataSlot(dataSlot, "tabs-content")}
-			className={clsx(
+			className={cx(
 				"focus-visible:focus-ring outline-hidden",
 				// Why: `until-found` hides only the panel's contents. Its own padding,
 				// border, and the root's gap would still take space.

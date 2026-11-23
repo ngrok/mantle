@@ -649,7 +649,7 @@ import { StackIcon } from "@phosphor-icons/react/Stack";
 
 </Example>
 
-The parts share one state with `Tabs`, so you can mix them: put a `HeadlessTabs.Trigger` in a `Tabs.List` to keep the styled list and draw your own triggers. A styled part inside `HeadlessTabs.Root` uses the classic appearance.
+The parts share one state with `Tabs`, so you can mix them: put a `HeadlessTabs.Trigger` in a `Tabs.List` to keep the styled list and draw your own triggers. A styled part reads the `appearance` of the nearest `Tabs.Root`, else the classic appearance.
 
 ```text showLineNumbers=false
 HeadlessTabs.Root
