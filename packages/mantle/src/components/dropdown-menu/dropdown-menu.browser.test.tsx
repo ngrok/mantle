@@ -1332,16 +1332,25 @@ describe("DropdownMenu with its CSS (browser)", () => {
 				scroller.hasAttribute("data-overflow-top"),
 				scroller.hasAttribute("data-overflow-bottom"),
 			].join();
+		// Why wait for two frames: the cue updates in the frame after a change, and
+		// WebKit in CI can render less than one frame a second, longer than a poll.
+		const twoFrames = () =>
+			new Promise<void>((resolve) => {
+				requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+			});
+		await twoFrames();
 		await expect.poll(edges).toBe("false,true");
 		expect(getComputedStyle(scroller, "::after").opacity).toBe("1");
 
 		await user.keyboard("{End}");
 
+		await twoFrames();
 		await expect.poll(edges).toBe("true,false");
 		expect(getComputedStyle(scroller, "::before").opacity).toBe("1");
 		expect(getComputedStyle(scroller, "::after").opacity).toBe("0");
 		// Why 24: the cue is 1.5rem tall, and the focused item must sit below it.
 		await user.keyboard("{ArrowUp}{ArrowUp}{ArrowUp}{ArrowUp}{ArrowUp}{ArrowUp}");
+		await twoFrames();
 		await expect.poll(edges).toBe("true,true");
 		// Why: the open animation scales the menu, which shrinks the measured gap.
 		await Promise.all(document.getAnimations().map((animation) => animation.finished));
