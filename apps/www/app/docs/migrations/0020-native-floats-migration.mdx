@@ -115,6 +115,7 @@ The rules apply steps 2 to 5. They delete the Radix positioning props from the t
 - A press or a focus move outside a popover closes it and leaves focus where the user put it. `onPointerDownOutside`, `onFocusOutside`, and `onInteractOutside` still get a cancelable event with `event.detail.originalEvent`.
 - A popover opened from a `DropdownMenu` item portals into the menu and takes keyboard focus. The [Native Dropdown Menu migration](/migrations/0026-native-dropdown-menu-migration) covers the menu.
 - A float in the top layer paints above toasts, which stay at `z-index: 999999999` in the page. Do not open a popover over the toast corner.
+- `Popover.Anchor` takes no `virtualRef`. Wrap the element that the popover points at in `Popover.Anchor`.
 - `HoverCard.Trigger` renders an `<a>`. It opens on hover and on keyboard focus, and not on touch.
 
 ## How to verify

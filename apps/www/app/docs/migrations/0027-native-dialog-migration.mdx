@@ -89,6 +89,7 @@ expect(content).toHaveAttribute("data-appearance", "full-page");
 - Escape closes the top modal unless a listener prevents the key. An open `Select`, `Combobox`, `MultiSelect`, or a popup with `aria-expanded` and `aria-controls` in the panel takes the key first.
 - `Content` takes no `asChild` and no `role`. It renders the `<dialog>`, which takes the role, and the panel inside it. Put your element inside `Content` instead. `AlertDialog` sets `role="alertdialog"` itself.
 - `Content` has no `onFocusOutside`. Focus cannot leave a modal dialog. Move the logic to `onInteractOutside`, or to `onOpenChange` for a non-modal dialog.
+- `Sheet.Content` takes no `side={null}`. Leave `side` out for the default, `"right"`.
 - `Title` takes no `id`. The dialog names itself from the id it gives the title. Pass `aria-label` or `aria-labelledby` on `Content` to name it from other text.
 - happy-dom does not move focus into a `<dialog>` on `showModal()` or back on `close()`, and jsdom has no `showModal()`. A unit test that asserts focus on open or close runs in a real browser, such as Vitest browser mode. Escape and clicks work in both.
 - Testing Library does not read `inert`. Radix put `aria-hidden` on the page outside an open dialog, so a role query skipped it; now a query such as `getByRole("button", { name: "Close" })` also finds the matching button under the dialog. Scope the query to the dialog with `within(dialog)`. A screen reader still skips the inert page.

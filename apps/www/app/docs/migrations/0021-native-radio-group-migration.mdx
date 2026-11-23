@@ -118,6 +118,8 @@ The codemod renames `onChange` to `onValueChange` on the roots and removes `as` 
 - Put one `Choice` in each radio item. Its title and description take the ids that the radio reads.
 - Safari moves Tab to radios only when "Press Tab to highlight each item" is on, or with Option-Tab. This is the same rule Safari applies to every native button and checkbox.
 - With no checked item, Shift+Tab into the group lands on the last radio, the native behavior. Tab still lands on the first.
+- A radio item takes no function `className` and no `refName`. Style its state with the `has-[>input:…]` variants.
+- In Playwright or Vitest browser mode, `getByRole("radio").click()` and `check()` wait and then fail, because the item's content paints over the radio. Click the item's label text, such as `getByText("Pro").click()`, or pass `{ force: true }`.
 - A `Choice.Title`, a `Choice.Label`, or a `<label htmlFor>` with the item's `id` names the radio alone. Without one, all of the item's text is the radio's name, as before.
 
 ## How to verify

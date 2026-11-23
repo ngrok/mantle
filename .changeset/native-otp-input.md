@@ -9,6 +9,7 @@
 - On a page with 200 codes (Chromium, 4× CPU slowdown), the script time until hydration is about half, and hydration ends 17 to 34% sooner across three measured runs.
 - In right-to-left text, a click on the code puts the caret after the last character, so typing appends. The outer corners of each group are rounded on the correct side.
 - `OtpInput.Slot` outside `OtpInput.Root` throws a descriptive error.
+- `OtpInput.Root` no longer takes `nonce`, because it adds no `<style>` element.
 - With JavaScript off, the fallback input uses mantle's form colors. It needs `@media (scripting: none)` (Chrome 120, Safari 17, Firefox 113). A `noScriptCSSFallback` string still renders in a `<noscript>`.
 
 https://mantle.ngrok.com/components/forms/otp-input
