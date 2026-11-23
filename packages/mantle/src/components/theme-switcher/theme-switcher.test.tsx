@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createRef } from "react";
 import type { ComponentProps, ReactElement } from "react";
 import { renderToString } from "react-dom/server";
@@ -183,6 +183,20 @@ describe("ThemeSwitcher", () => {
 
 		fireEvent.click(getSwitcher());
 		expect(status()).toHaveTextContent("Light theme (system default)");
+	});
+
+	test("in a dialog, the status is in the dialog, where a modal leaves it audible", () => {
+		stubPrefersDarkMode(false);
+		render(
+			<ThemeProvider>
+				<dialog open>
+					<ThemeSwitcher />
+				</dialog>
+			</ThemeProvider>,
+		);
+
+		fireEvent.click(getSwitcher());
+		expect(within(screen.getByRole("dialog")).getByRole("status")).toHaveTextContent("Dark theme");
 	});
 
 	test("an onClick that calls preventDefault keeps the theme", () => {

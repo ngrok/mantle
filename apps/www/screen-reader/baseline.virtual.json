@@ -862,7 +862,7 @@
           "label": "press Enter",
           "spoken": [
             "dialog, Command Palette, Search for a command to run...",
-            "combobox, Search, has popup listbox, expanded, active descendant Calendar, autocomplete in list, 1 control",
+            "combobox, has popup listbox, expanded, active descendant Calendar, autocomplete in list, 1 control",
             "focus: option \"Calendar\" selected (in group \"Suggestions\", in listbox \"Suggestions\", in dialog \"Command Palette\")"
           ],
           "failed": []

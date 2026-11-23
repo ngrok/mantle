@@ -89,7 +89,9 @@ const useMultiSelect = ({
 			return false;
 		}
 		setSelected(selected.filter((item) => item !== value));
-		setRemoval(`Removed ${value}`);
+		const message = `Removed ${value}`;
+		// Why the space: a live region speaks only a change, so a repeat of the same message must differ.
+		setRemoval((current) => (current === message ? `${message} ` : message));
 		return true;
 	};
 

@@ -6,8 +6,8 @@ Screen readers announce more of what changes, and say less twice:
 
 - `MultiSelect` says which value a removed tag held, such as "Removed apple", in a polite status.
 - `ThemeSwitcher` says the theme a click applied, such as "Dark theme", in a polite status.
-- `Popover.Content` takes its dialog name from its trigger. An `aria-label` or `aria-labelledby` replaces it.
-- `Command.Input` is named "Search" when `Command.Root` has no `label` and the input has no name of its own.
+- `Popover.Content` takes its dialog name from its trigger when it opens. An `aria-label` or `aria-labelledby` replaces it.
+- `Command.Input` is named "Search" when it has no other name: no `label`, `aria-label`, `aria-labelledby`, `<label>`, `title`, or `placeholder`.
 - The tooltips of `Sidebar.Trigger` and `AppLayout.SidePanelTrigger` no longer repeat the button's name as its description.
-- An arrow key in `Tabs` selects the tab before it takes focus, so NVDA reads the tab once.
+- An arrow key in `Tabs` selects the tab before it takes focus, so NVDA reads the tab once. A tab's `onFocus` that calls `preventDefault()` no longer stops that selection. To stop an arrow key, call `preventDefault()` in the `onKeyDown` of the tab that has focus.
 - In a modal `Dialog`, `Sheet`, or `AlertDialog`, Tab and Shift+Tab reach the next field when the field that loses focus renders on blur, such as a field that clears its error.

@@ -391,6 +391,16 @@ const Content = ({
 		onPointerDownOutside,
 		onShow: (floating) => {
 			closedFromOutside.current = false;
+			// Why the trigger: a dialog needs a name, and the trigger says what opens.
+			// Why its rendered `id`: a consumer `id` on the trigger replaces the default.
+			const triggerId = state.triggerRef.current?.id;
+			if (
+				triggerId &&
+				!floating.hasAttribute("aria-label") &&
+				!floating.hasAttribute("aria-labelledby")
+			) {
+				floating.setAttribute("aria-labelledby", triggerId);
+			}
 			const event = new Event("mantle.popover.openAutoFocus", { cancelable: true });
 			onOpenAutoFocus?.(event);
 			if (!event.defaultPrevented) {
@@ -426,9 +436,6 @@ const Content = ({
 				id={state.contentId}
 				popover={hasPopoverApi ? "manual" : undefined}
 				role="dialog"
-				// Why the trigger: a dialog needs a name, and the trigger says what opens.
-				// A consumer's `aria-label` or `aria-labelledby` replaces it.
-				aria-labelledby={props["aria-label"] == null ? state.triggerId : undefined}
 				tabIndex={-1}
 				data-slot={joinDataSlot(dataSlot, "popover-content")}
 				data-state={state.open ? "open" : "closed"}

@@ -240,7 +240,8 @@ const moveFocus = (
 		tabs.activationMode === "automatic"
 			? order.find(
 					(candidate) =>
-						typeof candidate.checkVisibility !== "function" || candidate.checkVisibility(),
+						typeof candidate.checkVisibility !== "function" ||
+						candidate.checkVisibility({ visibilityProperty: true }),
 				)
 			: null;
 	const prefix = `${tabs.baseId}-trigger-`;

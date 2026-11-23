@@ -342,37 +342,52 @@ const nameSwitcher: RefCallback<HTMLButtonElement> = (button) => {
 	};
 };
 
-/** The page's one live region that says the theme a switcher press applied. */
-let themeStatus: HTMLSpanElement | null = null;
-let themeStatusUsers = 0;
+/** The live region of each container that holds a switcher, and how many switchers use it. */
+const themeStatuses = new WeakMap<Element, { element: HTMLSpanElement; users: number }>();
 
 /**
- * A ref callback that keeps the theme live region on the page while a
+ * The element that holds a switcher's live region: the dialog around it, else
+ * `<body>`. Why the dialog: a modal dialog makes the rest of the page inert,
+ * and a screen reader does not hear a live region there.
+ */
+const statusContainer = (button: Element) => button.closest("dialog") ?? button.ownerDocument.body;
+
+/**
+ * A ref callback that keeps a live region in the switcher's container while a
  * switcher is mounted. Why on mount: a screen reader announces a change only
  * in a live region that existed before it.
  *
- * Why on `<body>` and not in the switcher: the button's content is its name,
- * and an element next to the button could change a consumer's layout.
+ * Why not in the switcher: the button's content is its name, and an element
+ * next to the button could change a consumer's layout.
  */
 const mountThemeStatus: RefCallback<HTMLButtonElement> = (button) => {
 	if (button == null) {
 		return undefined;
 	}
-	themeStatusUsers += 1;
-	if (themeStatus == null) {
-		themeStatus = document.createElement("span");
-		themeStatus.setAttribute("role", "status");
-		themeStatus.setAttribute("aria-live", "polite");
-		themeStatus.className = "sr-only";
-		themeStatus.dataset.slot = "theme-switcher-status";
-		document.body.append(themeStatus);
+	const container = statusContainer(button);
+	let status = themeStatuses.get(container);
+	if (status == null) {
+		const element = button.ownerDocument.createElement("span");
+		element.setAttribute("role", "status");
+		element.setAttribute("aria-live", "polite");
+		element.className = "sr-only";
+		element.dataset.slot = "theme-switcher-status";
+		container.append(element);
+		status = { element, users: 0 };
+		themeStatuses.set(container, status);
 	}
+	status.users += 1;
+	const current = status;
 	return () => {
-		themeStatusUsers -= 1;
-		if (themeStatusUsers === 0) {
-			themeStatus?.remove();
-			themeStatus = null;
-		}
+		current.users -= 1;
+		// Why a microtask: React detaches and attaches a new ref when a consumer's
+		// ref changes, and the region must keep the text it holds.
+		queueMicrotask(() => {
+			if (current.users === 0 && themeStatuses.get(container) === current) {
+				current.element.remove();
+				themeStatuses.delete(container);
+			}
+		});
 	};
 };
 
@@ -522,8 +537,9 @@ function ThemeSwitcher({
 						theme: isTheme(stored) ? stored : "system",
 						prefersDarkMode,
 					});
-					if (themeStatus != null) {
-						themeStatus.textContent = themeMessage(next, { prefersDarkMode });
+					const status = themeStatuses.get(statusContainer(event.currentTarget));
+					if (status != null) {
+						status.element.textContent = themeMessage(next, { prefersDarkMode });
 					}
 					setTheme((current) => getToggledTheme({ theme: current, prefersDarkMode }), {
 						origin: event.currentTarget,

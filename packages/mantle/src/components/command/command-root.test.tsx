@@ -49,7 +49,7 @@ const active = () => {
 };
 
 describe("Command.Input name", () => {
-	test("is Search with no label, and the input's own name replaces it", () => {
+	test("is Search with no other name, and the input's own name replaces it", () => {
 		render(
 			<>
 				<Command.Root>
@@ -58,10 +58,15 @@ describe("Command.Input name", () => {
 				<Command.Root>
 					<Command.Input aria-label="Find a command" />
 				</Command.Root>
+				<label htmlFor="palette-input">Jump to</label>
+				<Command.Root>
+					<Command.Input id="palette-input" />
+				</Command.Root>
 			</>,
 		);
 		expect(screen.getByRole("combobox", { name: "Search" })).toBeInTheDocument();
 		expect(screen.getByRole("combobox", { name: "Find a command" })).toBeInTheDocument();
+		expect(screen.getByRole("combobox", { name: "Jump to" })).toBeInTheDocument();
 	});
 });
 
