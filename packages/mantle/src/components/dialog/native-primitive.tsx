@@ -683,8 +683,27 @@ const Content = ({
 
 	/** The element that had focus when the dialog opened, such as a frame. */
 	const opener = useRef<Element | null>(null);
+	/** Whether the element that had focus at open showed a focus ring. */
+	const openerRing = useRef(true);
+	const noteOpener = useCallbackRef((ownerDocument: Document) => {
+		opener.current = ownerDocument.activeElement;
+		openerRing.current = opener.current?.matches(":focus-visible") === true;
+	});
 	/** Runs `onOpenAutoFocus` on an open `dialog`. */
 	const openAutoFocus = useCallbackRef((dialog: HTMLDialogElement) => {
+		// Why: WebKit shows a focus ring on the browser's pick after a press, and
+		// the script focus of a Radix dialog showed none. The pick shows a ring
+		// only when the opener did, as script focus does in each engine. A text
+		// field always shows one.
+		const picked = dialog.ownerDocument.activeElement;
+		if (
+			!openerRing.current &&
+			picked instanceof HTMLElement &&
+			picked.matches(":focus-visible:not(:read-write)")
+		) {
+			picked.blur();
+			picked.focus({ focusVisible: false, preventScroll: true });
+		}
 		if (onOpenAutoFocus == null) {
 			return;
 		}
@@ -707,11 +726,20 @@ const Content = ({
 		}
 	});
 
-	/** Opens `dialog`, then runs `onOpenAutoFocus`. */
+	/** Whether `onOpenAutoFocus` waits for the refs of the content to attach. */
+	const autoFocusPending = useRef(false);
+	/**
+	 * Opens `dialog`, then runs `onOpenAutoFocus`. A dialog that opens before
+	 * its ref attaches runs it once the refs of its content attach.
+	 */
 	const openDialog = useCallbackRef((dialog: HTMLDialogElement) => {
-		opener.current = dialog.ownerDocument.activeElement;
+		noteOpener(dialog.ownerDocument);
 		moveDialog({ dialog, modal: root.modal, open: true });
-		openAutoFocus(dialog);
+		if (dialogRef.current === dialog) {
+			openAutoFocus(dialog);
+		} else {
+			autoFocusPending.current = true;
+		}
 	});
 
 	const wantsOpen = useCallbackRef(
@@ -742,6 +770,13 @@ const Content = ({
 			}
 			openDialog(dialog);
 		});
+	});
+
+	const openBeforeChildren = useCallbackRef((template: HTMLTemplateElement | null) => {
+		const dialog = template?.parentElement;
+		if (dialog instanceof HTMLDialogElement && expectedOpen === true && !dialog.open) {
+			openSoon(dialog);
+		}
 	});
 
 	// Why register: a float that this dialog covers hides, and a frame that
@@ -866,6 +901,7 @@ const Content = ({
 			return;
 		}
 		if (open && keepMounted && !root.controlled && root.modal) {
+			noteOpener(dialog.ownerDocument);
 			nonModal.delete(dialog);
 			lockPageScroll({ dialog, lock: true });
 			writeOpenState({ dialog, open });
@@ -894,6 +930,10 @@ const Content = ({
 		reportedOpen.current = false;
 		// Why a sync now: a tap before hydration can open the dialog through its command.
 		sync(dialog);
+		if (autoFocusPending.current) {
+			autoFocusPending.current = false;
+			openAutoFocus(dialog);
+		}
 		if (keepMounted && !root.controlled && root.defaultOpen && !dialog.open) {
 			reportedOpen.current = true;
 			openSoon(dialog);
@@ -1071,6 +1111,10 @@ const Content = ({
 				}
 			}}
 		>
+			{/* Why: React focuses an `autoFocus` element before the refs of the
+			    elements around it attach, so a dialog that mounts on open must open
+			    from a ref that attaches before its children commit. */}
+			{!keepMounted && <template ref={openBeforeChildren} />}
 			<LayerContainer active={layer && !inline} modal={root.modal} className="contents">
 				{/* Why no marker inline: the panel is not an overlay's content, and
 				    the close must not write `data-state` over the inline panel's own. */}

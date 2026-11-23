@@ -121,6 +121,50 @@ describe("Dialog", () => {
 		expect(onOpenChange.mock.calls).toEqual([[true], [false]]);
 	});
 
+	test("an autoFocus field takes focus when the dialog mounts on open, and the trigger gets it back", async () => {
+		const { unmount } = render(
+			<ExampleDialog>
+				{/* oxlint-disable-next-line jsx-a11y/no-autofocus -- Why: the test covers React's `autoFocus`. */}
+				<input aria-label="Name" autoFocus />
+			</ExampleDialog>,
+		);
+		const trigger = screen.getByRole("button", { name: "Open dialog" });
+
+		await userEvent.click(trigger);
+		expect(screen.getByRole("textbox", { name: "Name" })).toHaveFocus();
+
+		await userEvent.keyboard("{Escape}");
+		await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
+		expect(trigger).toHaveFocus();
+
+		// A controlled open with no tap.
+		unmount();
+		render(
+			<ExampleDialog open>
+				{/* oxlint-disable-next-line jsx-a11y/no-autofocus -- Why: the test covers React's `autoFocus`. */}
+				<input aria-label="Name" autoFocus />
+			</ExampleDialog>,
+		);
+		expect(screen.getByRole("textbox", { name: "Name" })).toHaveFocus();
+	});
+
+	test("the first button shows a focus ring after a keyboard open and none after a press", async () => {
+		render(<ExampleDialog />);
+		const trigger = screen.getByRole("button", { name: "Open dialog" });
+
+		await userEvent.click(trigger);
+		const close = screen.getByRole("button", { name: "Close Dialog" });
+		expect(close).toHaveFocus();
+		expect(close.matches(":focus-visible")).toBe(false);
+
+		await userEvent.keyboard("{Escape}");
+		await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
+		await userEvent.keyboard("{Enter}");
+		expect(screen.getByRole("button", { name: "Close Dialog" }).matches(":focus-visible")).toBe(
+			true,
+		);
+	});
+
 	test("the dialog stays modal with `data-state` closed through its exit, then unmounts", async () => {
 		const style = document.createElement("style");
 		style.textContent = `

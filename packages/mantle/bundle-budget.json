@@ -57,11 +57,11 @@
   },
   "dialog": {
     "entry": "import { Dialog } from \"@ngrok/mantle/dialog\"; export default [Dialog.Root, Dialog.Trigger, Dialog.Content, Dialog.Header, Dialog.Title, Dialog.Body, Dialog.Footer];",
-    "maxGzipBytes": 12484
+    "maxGzipBytes": 12656
   },
   "command": {
     "entry": "import { Command } from \"@ngrok/mantle/command\"; export default [Command.DialogRoot, Command.DialogContent, Command.Input, Command.List, Command.Item];",
-    "maxGzipBytes": 20241
+    "maxGzipBytes": 20400
   },
   "command-inline": {
     "entry": "import { Command } from \"@ngrok/mantle/command\"; export default [Command.Root, Command.Input, Command.List, Command.Empty, Command.Group, Command.Item, Command.Separator];",
@@ -73,7 +73,7 @@
   },
   "marketing-page": {
     "entry": "import { Button } from \"@ngrok/mantle/button\"; import { DropdownMenu } from \"@ngrok/mantle/dropdown-menu\"; import { Dialog } from \"@ngrok/mantle/dialog\"; import { Tooltip } from \"@ngrok/mantle/tooltip\"; import { Tabs } from \"@ngrok/mantle/tabs\"; import { Accordion } from \"@ngrok/mantle/accordion\"; export default [Button, DropdownMenu.Root, DropdownMenu.Trigger, DropdownMenu.Content, DropdownMenu.Item, Dialog.Root, Dialog.Trigger, Dialog.Content, Dialog.Title, Tooltip.Root, Tooltip.Trigger, Tooltip.Content, Tabs.Root, Tabs.List, Tabs.Trigger, Tabs.Content, Accordion.Root, Accordion.Item, Accordion.Trigger, Accordion.Content];",
-    "maxGzipBytes": 26528
+    "maxGzipBytes": 26666
   },
   "form-page": {
     "entry": "import { Button } from \"@ngrok/mantle/button\"; import { Field } from \"@ngrok/mantle/field\"; import { Select } from \"@ngrok/mantle/select\"; import { Combobox } from \"@ngrok/mantle/combobox\"; export default [Button, Field.Item, Field.Label, Field.Control, Select.Root, Select.Trigger, Select.Value, Select.Content, Select.Item, Combobox.Root, Combobox.Input, Combobox.Content, Combobox.Item];",
