@@ -917,8 +917,8 @@ const Content = ({
 	/** How the last outside interaction left focus: where it landed (`keep`), or back to the trigger (`restore`). */
 	const outsideFocus = useRef<"keep" | "restore" | null>(null);
 	const outsideRightClick = useRef(false);
-	/** Whether the outside interaction that closes the menu is a primary press, whose click must not land. */
-	const outsidePrimaryPress = useRef(false);
+	/** The primary outside press now in dispatch, whose click must not land if it closes the menu. */
+	const outsidePrimaryPress = useRef<Event | null>(null);
 	const modalBoundary = useRef<ModalBoundary>({ shown: null, held: null });
 	const [menu, setMenu] = useState<HTMLElement | null>(null);
 	const { onMenuKeyDown, isTyping, resetTyping } = useMenuKeyboard(loop);
@@ -933,11 +933,14 @@ const Content = ({
 				outsideFocus.current = !state.modal || outsideRightClick.current ? "keep" : "restore";
 				// Why: the press that closes the menu must not also activate what is
 				// under it, as with the pickers. A modal menu's inert page takes no click.
-				if (outsidePrimaryPress.current && !state.modal) {
+				// Why `defaultPrevented`: a press that the consumer keeps from closing
+				// the menu can still close it through a focus move, and its click lands.
+				const press = outsidePrimaryPress.current;
+				if (press != null && !press.defaultPrevented && !state.modal) {
 					swallowOutsideClick();
 				}
 			}
-			outsidePrimaryPress.current = false;
+			outsidePrimaryPress.current = null;
 			state.setOpen(false);
 		},
 		getAnchor: () => state.triggerRef.current,
@@ -954,12 +957,10 @@ const Content = ({
 		onPointerDownOutside: (event) => {
 			const { button, ctrlKey } = event.detail.originalEvent;
 			outsideRightClick.current = button === 2 || (button === 0 && ctrlKey);
-			outsidePrimaryPress.current = button === 0 && !ctrlKey;
-			// Why a microtask: the flag is for the dismiss in this press's own
-			// listener. A press that the consumer keeps from closing the menu can
-			// close it later through its focus move, and that click must land.
+			outsidePrimaryPress.current = button === 0 && !ctrlKey ? event : null;
+			// Why a microtask: the press counts only for a dismiss in its own dispatch.
 			queueMicrotask(() => {
-				outsidePrimaryPress.current = false;
+				outsidePrimaryPress.current = null;
 			});
 			onPointerDownOutside?.(event);
 		},

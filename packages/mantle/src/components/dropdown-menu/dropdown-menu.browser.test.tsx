@@ -410,29 +410,41 @@ describe("DropdownMenu modal (browser)", () => {
 		},
 	);
 
-	test("a press that the consumer keeps from closing the menu still clicks what is under it", async () => {
-		const clicks: string[] = [];
-		render(
-			<>
-				<DropdownMenu.Root>
-					<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
-					<DropdownMenu.Content onPointerDownOutside={(event) => event.preventDefault()}>
-						<DropdownMenu.Item>Apple</DropdownMenu.Item>
-					</DropdownMenu.Content>
-				</DropdownMenu.Root>
-				<button type="button" onClick={() => clicks.push("outside")}>
-					Outside
-				</button>
-			</>,
-		);
-		await browserUser.click(screen.getByRole("button", { name: "Open" }));
-		await screen.findByRole("menu");
+	test.each(["focus move", "handler focus"])(
+		"a press that the consumer keeps from closing the menu still clicks what is under it (%s)",
+		async (closer) => {
+			const clicks: string[] = [];
+			render(
+				<>
+					<DropdownMenu.Root>
+						<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+						<DropdownMenu.Content
+							onPointerDownOutside={(event) => {
+								event.preventDefault();
+								// Why: a handler that moves focus out closes the menu in this dispatch.
+								if (closer === "handler focus") {
+									screen.getByRole("button", { name: "Outside" }).focus();
+								}
+							}}
+						>
+							<DropdownMenu.Item>Apple</DropdownMenu.Item>
+						</DropdownMenu.Content>
+					</DropdownMenu.Root>
+					<button type="button" onClick={() => clicks.push("outside")}>
+						Outside
+					</button>
+				</>,
+			);
+			await browserUser.click(screen.getByRole("button", { name: "Open" }));
+			await screen.findByRole("menu");
 
-		// Why it closes: the press moves focus outside, and focus outside closes the menu.
-		await browserUser.click(screen.getByRole("button", { name: "Outside" }));
+			// Why it closes: focus outside closes the menu.
+			await browserUser.click(screen.getByRole("button", { name: "Outside" }));
 
-		expect(clicks).toEqual(["outside"]);
-	});
+			await waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
+			expect(clicks).toEqual(["outside"]);
+		},
+	);
 });
 
 /** The box of the menu that holds `element`. */
