@@ -660,6 +660,14 @@ export const migrations = [
 			"DropdownMenu is built on native popovers placed by CSS anchor positioning. The Radix positioning props are gone, --anchor-width and --available-height replace the Radix CSS variables, and a modal menu makes the page inert.",
 		route: "/migrations/0026-native-dropdown-menu-migration",
 	},
+	{
+		number: 27,
+		slug: "native-dialog-migration",
+		title: "Native Dialog",
+		description:
+			"Dialog, AlertDialog, and Sheet render the browser's modal <dialog> in place of Radix Dialog. Set modal={false} on an overlay that holds a third-party frame, and read the backdrop and the panel from their new elements.",
+		route: "/migrations/0027-native-dialog-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

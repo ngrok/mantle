@@ -130,6 +130,30 @@ describe("Command.Root filtering", () => {
 		await vi.waitFor(() => expect(optionNames()).toEqual(["Xab", "Abx", "Zed"]));
 	});
 
+	test("an item prepended during a query goes first when the query clears", async () => {
+		const user = userEvent.setup();
+		const scores: Record<string, number> = { Bee: 1, Cat: 0.9, Ant: 0.5 };
+		const Items = ({ names }: { names: string[] }) => (
+			<Command.Root filter={(value) => scores[value] ?? 0}>
+				<Command.Input />
+				<Command.List>
+					{names.map((name) => (
+						<Command.Item key={name}>{name}</Command.Item>
+					))}
+				</Command.List>
+			</Command.Root>
+		);
+		const { rerender } = render(<Items names={["Ant", "Bee", "Cat"]} />);
+		await user.type(input(), "q");
+		expect(optionNames()).toEqual(["Bee", "Cat", "Ant"]);
+
+		// React puts "New" before the node of "Ant", which the sort moved to the end.
+		rerender(<Items names={["New", "Ant", "Bee", "Cat"]} />);
+		await user.clear(input());
+
+		await vi.waitFor(() => expect(optionNames()).toEqual(["New", "Ant", "Bee", "Cat"]));
+	});
+
 	test("shows the empty state and counts no match for a query that matches nothing", async () => {
 		const user = userEvent.setup();
 		const Count = () => (

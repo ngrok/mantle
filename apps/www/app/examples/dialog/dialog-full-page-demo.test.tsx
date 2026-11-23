@@ -9,7 +9,14 @@ async function openDialog() {
 	render(<FullPageDialogDemo />);
 	await user.click(screen.getByRole("button", { name: "Open full-page dialog" }));
 
-	const content = await screen.findByRole("dialog");
+	// Why the panel: `role="dialog"` is on the `<dialog>`, and the panel inside it
+	// carries the appearance.
+	const content = (await screen.findByRole("dialog")).querySelector<HTMLElement>(
+		'[data-slot~="dialog-content"]',
+	);
+	if (content == null) {
+		throw new Error("Dialog.Content rendered no panel.");
+	}
 	return { content, user };
 }
 

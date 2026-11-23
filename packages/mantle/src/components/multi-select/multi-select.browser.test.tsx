@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import { PointerEventsCheckLevel, userEvent } from "@testing-library/user-event";
+import { userEvent as browserUser } from "vitest/browser";
 import { type ReactNode, useState } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { commands } from "vitest/browser";
@@ -191,7 +192,9 @@ describe("MultiSelect (browser)", () => {
 				await waitFor(() => expect(screen.getByRole("listbox")).toBeVisible());
 				expect(input).toHaveFocus();
 
-				await user.keyboard("{Escape}");
+				// Why a trusted key: a synthetic one never closes a `<dialog>`, so the
+				// dialog would stay open whatever the input does with the key.
+				await browserUser.keyboard("{Escape}");
 
 				await waitFor(() => {
 					expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
@@ -221,12 +224,14 @@ describe("MultiSelect (browser)", () => {
 				await user.click(screen.getByRole("combobox"));
 				await waitFor(() => expect(screen.getByRole("listbox")).toBeVisible());
 
-				await user.keyboard("{Escape}");
+				await browserUser.keyboard("{Escape}");
 				await waitFor(() => {
 					expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
 				});
 
-				await user.keyboard("{Escape}");
+				// Why a trusted key: the browser sends the close request of a
+				// `<dialog>` only for a real key press.
+				await browserUser.keyboard("{Escape}");
 				await waitFor(() => {
 					expect(screen.queryByText(modal.title)).not.toBeInTheDocument();
 				});
@@ -287,7 +292,7 @@ describe("MultiSelect (browser)", () => {
 				);
 
 				await user.click(screen.getByRole("button", { name: "Focus outside" }));
-				await user.keyboard("{Escape}");
+				await browserUser.keyboard("{Escape}");
 
 				await waitFor(() => {
 					expect(screen.queryByText(modal.title)).not.toBeInTheDocument();

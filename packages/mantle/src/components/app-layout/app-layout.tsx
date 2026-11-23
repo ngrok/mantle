@@ -26,7 +26,7 @@ import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { isTabbable } from "../alert/tabbable-neighbors.js";
 import type { IconButtonProps } from "../button/icon-button.js";
-import { escapeBelongsToNestedPopup } from "../dialog/primitive.js";
+import { escapeBelongsToNestedPopup } from "../dialog/targets.js";
 import { IconButton } from "../button/icon-button.js";
 import { Main } from "../main/main.js";
 import { SidebarWidthRequestContext } from "../sidebar/width-request-context.js";
@@ -362,7 +362,9 @@ const Content = ({
  * The toolbar band `AppLayout.Header` and `AppLayout.SidePanelHeader` share, so
  * the two rows and the sidebar header's switcher row center on one line.
  * Standalone the band is `h-14`. With a `Sidebar.Header` in the shell, the
- * height derives from the sidebar's `--sidebar-header-height` token: the row
+ * height derives from the sidebar's `--sidebar-header-height` token, except
+ * when the sidebar is the mobile sheet (`data-mobile`), which sits above the
+ * page instead of beside the header: the row
  * sits below the card's gutter and its 1px border, so center parity needs the
  * band minus twice each. The band is the sidebar header's first row, so a header
  * that stacks a second row leaves this height alone. Set
@@ -370,7 +372,7 @@ const Content = ({
  * every row moves together.
  */
 const headerBandClassName =
-	"h-14 group-has-data-[slot~=sidebar-header]/app-layout:h-[calc(var(--sidebar-header-height,4.5rem)-2*var(--app-layout-card-gutter,0.5rem)-2px)]";
+	"h-14 group-has-[[data-slot~=sidebar-header]:not([data-mobile]_*)]/app-layout:h-[calc(var(--sidebar-header-height,4.5rem)-2*var(--app-layout-card-gutter,0.5rem)-2px)]";
 
 /**
  * The toolbar row at the top of the content card. Render it as the **first
@@ -791,9 +793,9 @@ type AppLayoutSidePanelMobileBreakpoint = "sm" | "md" | "lg";
  * constant can hold the prefix.
  */
 const sidePanelFloatClassName: Record<AppLayoutSidePanelMobileBreakpoint, string> = {
-	sm: "sm:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 sm:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed])))_&]:@min-side-panel-lane-collapsed/app-layout-workspace:data-state-closed:basis-0 max-sm:absolute max-sm:inset-y-(--app-layout-card-gutter,0.5rem) max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:right-(--app-layout-card-gutter,0.5rem) max-sm:z-20 max-sm:my-0 max-sm:rounded-xl max-sm:shadow-lg max-sm:[--_side-panel-content-width:100%] max-sm:[--_side-panel-content-inset:0px] max-sm:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-sm:data-state-closed:invisible",
-	md: "md:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 md:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed])))_&]:@min-side-panel-lane-collapsed/app-layout-workspace:data-state-closed:basis-0 max-md:absolute max-md:inset-y-(--app-layout-card-gutter,0.5rem) max-md:right-(--app-layout-card-gutter,0.5rem) max-md:z-20 max-md:my-0 max-md:w-[min(24rem,calc(100cqw-5rem))] max-md:rounded-xl max-md:shadow-lg max-md:[--_side-panel-content-width:100%] max-md:[--_side-panel-content-inset:0px] max-md:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-md:data-state-closed:invisible max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:w-auto",
-	lg: "lg:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 lg:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed])))_&]:@min-side-panel-lane-collapsed/app-layout-workspace:data-state-closed:basis-0 max-lg:absolute max-lg:inset-y-(--app-layout-card-gutter,0.5rem) max-lg:right-(--app-layout-card-gutter,0.5rem) max-lg:z-20 max-lg:my-0 max-lg:w-[min(24rem,calc(100cqw-5rem))] max-lg:rounded-xl max-lg:shadow-lg max-lg:[--_side-panel-content-width:100%] max-lg:[--_side-panel-content-inset:0px] max-lg:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-lg:data-state-closed:invisible max-md:left-(--app-layout-card-gutter,0.5rem) max-md:w-auto",
+	sm: "sm:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 sm:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded]))_&]:@min-side-panel-lane-collapsed/app-layout-workspace:data-state-closed:basis-0 max-sm:absolute max-sm:inset-y-(--app-layout-card-gutter,0.5rem) max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:right-(--app-layout-card-gutter,0.5rem) max-sm:z-20 max-sm:my-0 max-sm:rounded-xl max-sm:shadow-lg max-sm:[--_side-panel-content-width:100%] max-sm:[--_side-panel-content-inset:0px] max-sm:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-sm:data-state-closed:invisible",
+	md: "md:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 md:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded]))_&]:@min-side-panel-lane-collapsed/app-layout-workspace:data-state-closed:basis-0 max-md:absolute max-md:inset-y-(--app-layout-card-gutter,0.5rem) max-md:right-(--app-layout-card-gutter,0.5rem) max-md:z-20 max-md:my-0 max-md:w-[min(24rem,calc(100cqw-5rem))] max-md:rounded-xl max-md:shadow-lg max-md:[--_side-panel-content-width:100%] max-md:[--_side-panel-content-inset:0px] max-md:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-md:data-state-closed:invisible max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:w-auto",
+	lg: "lg:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 lg:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded]))_&]:@min-side-panel-lane-collapsed/app-layout-workspace:data-state-closed:basis-0 max-lg:absolute max-lg:inset-y-(--app-layout-card-gutter,0.5rem) max-lg:right-(--app-layout-card-gutter,0.5rem) max-lg:z-20 max-lg:my-0 max-lg:w-[min(24rem,calc(100cqw-5rem))] max-lg:rounded-xl max-lg:shadow-lg max-lg:[--_side-panel-content-width:100%] max-lg:[--_side-panel-content-inset:0px] max-lg:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-lg:data-state-closed:invisible max-md:left-(--app-layout-card-gutter,0.5rem) max-md:w-auto",
 };
 
 /**
@@ -816,7 +818,7 @@ const sidePanelLaneFloatClassName =
  * the panel to the lane at the narrower threshold.
  */
 const sidePanelExpandedSidebarLaneFloatClassName =
-	"[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:absolute [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:inset-y-(--app-layout-card-gutter,0.5rem) [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:right-(--app-layout-card-gutter,0.5rem) [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:z-20 [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:my-0 [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:rounded-xl [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:shadow-lg [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:[--_side-panel-content-width:100%] [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:[--_side-panel-content-inset:0px] [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:data-state-closed:invisible";
+	"[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:absolute [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:inset-y-(--app-layout-card-gutter,0.5rem) [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:right-(--app-layout-card-gutter,0.5rem) [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:z-20 [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:my-0 [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:rounded-xl [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:shadow-lg [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:[--_side-panel-content-width:100%] [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:[--_side-panel-content-inset:0px] [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:data-state-closed:invisible";
 
 /**
  * The strip width for the row-driven float, gated to the viewports above the
@@ -829,9 +831,9 @@ const sidePanelExpandedSidebarLaneFloatClassName =
  * than 24rem plus the strip never holds a panel wider than itself.
  */
 const sidePanelLaneStripWidthClassName: Record<AppLayoutSidePanelMobileBreakpoint, string> = {
-	sm: "sm:@max-side-panel-lane-collapsed/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] sm:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
-	md: "sm:@max-side-panel-lane-collapsed/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] sm:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
-	lg: "md:@max-side-panel-lane-collapsed/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] md:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-nav]:not([data-state~=collapsed]))_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
+	sm: "sm:@max-side-panel-lane-collapsed/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] sm:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
+	md: "sm:@max-side-panel-lane-collapsed/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] sm:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
+	lg: "md:@max-side-panel-lane-collapsed/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] md:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
 };
 
 /**
@@ -862,33 +864,6 @@ const sidePanelNeedsSidebarWidthQuery = "(width < 56.5rem)";
  */
 function isSidePanelFloating(panel: HTMLElement | null): boolean {
 	return panel != null && getComputedStyle(panel).position === "absolute";
-}
-
-/**
- * Parses a computed `transition-duration` or `transition-delay` list into
- * seconds, one entry per comma. An entry that does not parse is `0`.
- */
-function toSeconds(times: string): number[] {
-	return times.split(",").map((time) => Number.parseFloat(time) || 0);
-}
-
-/**
- * The milliseconds until every transition on `panel` ends: the longest
- * duration plus delay of one `transition-property` entry. The duration and
- * delay lists repeat to the length of the property list, as CSS repeats them.
- * It reads the computed style, so a consumer `duration-*` sets the wait.
- */
-function readSidePanelTransitionMs(panel: HTMLElement): number {
-	const style = getComputedStyle(panel);
-	const durations = toSeconds(style.transitionDuration);
-	const delays = toSeconds(style.transitionDelay);
-	const ends = style.transitionProperty
-		.split(",")
-		.map(
-			(_, index) =>
-				(durations[index % durations.length] ?? 0) + (delays[index % delays.length] ?? 0),
-		);
-	return Math.max(0, ...ends) * 1000;
 }
 
 /**
@@ -1393,8 +1368,26 @@ const SidePanel = ({
 		if (panel == null) {
 			return;
 		}
-		const timer = setTimeout(() => setCloseEnded(true), readSidePanelTransitionMs(panel));
-		return () => clearTimeout(timer);
+		// Why the transitions and not a timer: the slide starts a frame after this
+		// effect, so a timer set to its length shuts the gate before it ends. A
+		// consumer `duration-*` or `delay-*` sets the wait. Why transitions only: a
+		// consumer animation on the panel can run forever.
+		// Why the guard: jsdom has no Web Animations API.
+		const transitions =
+			typeof panel.getAnimations === "function"
+				? panel.getAnimations().filter((animation) => animation instanceof CSSTransition)
+				: [];
+		let cancelled = false;
+		const shut = async () => {
+			await Promise.allSettled(transitions.map((transition) => transition.finished));
+			if (!cancelled) {
+				setCloseEnded(true);
+			}
+		};
+		void shut();
+		return () => {
+			cancelled = true;
+		};
 	}, [open, panelRef]);
 
 	// Why a viewport query and not the computed position: the cover is the one

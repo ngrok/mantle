@@ -390,26 +390,6 @@ describe("layer containers", () => {
 		});
 	});
 
-	describe("explicit container escape hatches", () => {
-		test("Dialog.Portal's container prop wins over the layer container", async () => {
-			const external = document.createElement("div");
-			document.body.appendChild(external);
-
-			render(
-				<Dialog.Root open>
-					<Dialog.Portal container={external}>
-						<p>portaled content</p>
-					</Dialog.Portal>
-				</Dialog.Root>,
-			);
-
-			const content = await screen.findByText("portaled content");
-			expect(external.contains(content)).toBe(true);
-
-			external.remove();
-		});
-	});
-
 	describe("floats inside a Popover", () => {
 		// Popover.Content is a layer container: it paints in the top layer, so a
 		// float composed inside it must portal into it. A Radix float at `z-50`
@@ -619,7 +599,7 @@ describe("layer containers", () => {
 			});
 		}
 
-		test("a toast fired while a dialog is open renders in sonner's viewport, not the positioner", async () => {
+		test("a toast fired while a dialog is open renders in sonner's viewport, in the top modal", async () => {
 			render(
 				<div>
 					<Toaster />
@@ -632,7 +612,8 @@ describe("layer containers", () => {
 
 			const viewport = document.querySelector("[data-sonner-toaster]");
 			expect(viewport != null && viewport.contains(toastContent)).toBe(true);
-			expect(getPositioner("dialog-positioner").contains(toastContent)).toBe(false);
+			// Why in the dialog: only the top modal and what it holds take input.
+			expect(getPositioner("dialog-positioner").contains(viewport)).toBe(true);
 		});
 
 		test("Command.DialogRoot renders its palette inside a dialog positioner", async () => {
@@ -699,17 +680,15 @@ describe("layer tiers", () => {
 		const floatContent = await screen.findByText("float content");
 
 		expect(getPositioner("dialog-positioner")).toHaveClass("z-60");
-		expect(getPositioner("dialog-overlay")).toHaveClass("z-60");
 		expect(floatContent.closest("[data-slot='popover-content']")).toHaveClass("z-50");
 	});
 
-	test("sheet positioner and overlay carry the overlay tier", async () => {
+	test("the sheet positioner carries the overlay tier", async () => {
 		render(overlays[2].renderOpen(<p>body</p>));
 
 		await waitFor(() => {
 			expect(getPositioner("sheet-positioner")).toHaveClass("z-60");
 		});
-		expect(getPositioner("sheet-overlay")).toHaveClass("z-60");
 	});
 });
 
@@ -731,13 +710,14 @@ test("LayerContainer fires a callback ref once with the container across a re-re
 
 /**
  * Each overlay, open by default and uncontrolled, so Escape must close it
- * through the root's own state.
+ * through the root's own state. `modal` is `false` for the frame tests: a
+ * modal `<dialog>` makes a frame on `<body>` inert.
  */
 const uncontrolledOverlays = [
 	{
 		name: "Dialog",
-		render: (children: ReactNode) => (
-			<Dialog.Root defaultOpen>
+		render: (children: ReactNode, modal = true) => (
+			<Dialog.Root defaultOpen modal={modal}>
 				<Dialog.Content>
 					<Dialog.Title>Overlay</Dialog.Title>
 					<Dialog.Body>{children}</Dialog.Body>
@@ -747,8 +727,8 @@ const uncontrolledOverlays = [
 	},
 	{
 		name: "AlertDialog",
-		render: (children: ReactNode) => (
-			<AlertDialog.Root intent="info" defaultOpen>
+		render: (children: ReactNode, modal = true) => (
+			<AlertDialog.Root intent="info" defaultOpen modal={modal}>
 				<AlertDialog.Content>
 					<AlertDialog.Body>
 						<AlertDialog.Title>Overlay</AlertDialog.Title>
@@ -760,8 +740,8 @@ const uncontrolledOverlays = [
 	},
 	{
 		name: "Sheet",
-		render: (children: ReactNode) => (
-			<Sheet.Root defaultOpen>
+		render: (children: ReactNode, modal = true) => (
+			<Sheet.Root defaultOpen modal={modal}>
 				<Sheet.Content>
 					<Sheet.Header>
 						<Sheet.TitleGroup>
@@ -970,7 +950,7 @@ describe("a frame that covers an overlay", () => {
 			// Regression (MNTL-136): Escape closed a sheet under a payment popup,
 			// and the popup then put the sheet's `pointer-events: none` back on `<body>`.
 			const user = userEvent.setup();
-			render(renderOverlay(<button type="button">Save</button>));
+			render(renderOverlay(<button type="button">Save</button>, false));
 			const { hitTest, popup } = coverWithPopup();
 
 			await user.keyboard("{Escape}");
@@ -991,7 +971,7 @@ describe("a frame that covers an overlay", () => {
 		// the level of the overlay itself.
 		const user = userEvent.setup();
 		render(
-			<Dialog.Root defaultOpen>
+			<Dialog.Root defaultOpen modal={false}>
 				<Dialog.Content>
 					<Dialog.Title>Overlay</Dialog.Title>
 				</Dialog.Content>
@@ -1010,7 +990,7 @@ describe("a frame that covers an overlay", () => {
 		// move, a keyboard user stays under the frame with no key that leaves.
 		const user = userEvent.setup();
 		render(
-			<Dialog.Root defaultOpen>
+			<Dialog.Root defaultOpen modal={false}>
 				<Dialog.Content>
 					<Dialog.Title>Overlay</Dialog.Title>
 					<Dialog.Body>
@@ -1037,7 +1017,7 @@ describe("a frame that covers an overlay", () => {
 		const user = userEvent.setup();
 		const preventedWhenCalled: boolean[] = [];
 		render(
-			<Dialog.Root defaultOpen>
+			<Dialog.Root defaultOpen modal={false}>
 				<Dialog.Content
 					onEscapeKeyDown={(event) => {
 						preventedWhenCalled.push(event.defaultPrevented);
@@ -1059,7 +1039,7 @@ describe("a frame that covers an overlay", () => {
 		render(
 			<LateFloatUnderOverlay
 				renderOverlay={(children) => (
-					<Dialog.Root defaultOpen>
+					<Dialog.Root defaultOpen modal={false}>
 						<Dialog.Content>
 							<Dialog.Title>Overlay</Dialog.Title>
 							<Dialog.Body>{children}</Dialog.Body>
@@ -1087,22 +1067,16 @@ describe("a frame that covers an overlay", () => {
 			<>
 				<button type="button">Page</button>
 				<iframe title="Page embed" sandbox="" srcDoc="" />
-				<Dialog.Root defaultOpen>
+				<Dialog.Root defaultOpen modal={false}>
 					<Dialog.Content>
 						<Dialog.Title>Overlay</Dialog.Title>
 					</Dialog.Content>
 				</Dialog.Root>
 			</>,
 		);
-		const backdrop = document.querySelector('[data-slot="dialog-overlay"]');
-		if (!(backdrop instanceof HTMLElement)) {
-			throw new Error("dialog overlay not found");
-		}
-		// The modal marks the page `aria-hidden`, so the query passes `hidden: true`.
-		const pageButton = screen.getByRole("button", { name: "Page", hidden: true });
 		const pageFrame = screen.getByTitle("Page embed");
 
-		return { backdrop, pageButton, pageFrame };
+		return { pageFrame };
 	}
 
 	/**
@@ -1184,10 +1158,6 @@ describe("a frame that covers an overlay", () => {
 			find: () => mountPromptFrame(),
 		},
 		{
-			name: "the backdrop of the dialog, which shows while a menu in the dialog is open",
-			find: (page: ReturnType<typeof renderDialogOnPage>) => page.backdrop,
-		},
-		{
 			name: "a frame in the content of another overlay, which plays its exit animation",
 			find: () => mountClosingOverlayFrame(),
 		},
@@ -1248,24 +1218,11 @@ describe("a frame that covers an overlay", () => {
 		});
 	});
 
-	test("the focus trap takes focus back from a popup of page elements", () => {
-		renderDialogOnPage();
-		const dialog = screen.getByRole("dialog");
-		const close = mountPagePopup();
-		vi.spyOn(document, "elementFromPoint").mockReturnValue(close);
-
-		close.focus();
-
-		expect(dialog).toContainElement(
-			document.activeElement instanceof HTMLElement ? document.activeElement : null,
-		);
-	});
-
 	test("a press in the layer of the frame is not a press outside the dialog", async () => {
 		const user = userEvent.setup();
 		const onPointerDownOutside = vi.fn<() => void>();
 		render(
-			<Dialog.Root defaultOpen>
+			<Dialog.Root defaultOpen modal={false}>
 				<Dialog.Content onPointerDownOutside={onPointerDownOutside}>
 					<Dialog.Title>Overlay</Dialog.Title>
 				</Dialog.Content>
@@ -1286,7 +1243,7 @@ describe("a frame that covers an overlay", () => {
 		const user = userEvent.setup();
 		const onOpenChange = vi.fn<(open: boolean) => void>();
 		render(
-			<Dialog.Root defaultOpen onOpenChange={onOpenChange}>
+			<Dialog.Root defaultOpen modal={false} onOpenChange={onOpenChange}>
 				<Dialog.Content>
 					<Dialog.Title>Overlay</Dialog.Title>
 				</Dialog.Content>
@@ -1339,7 +1296,7 @@ describe("a frame that covers an overlay", () => {
 		// Regression (MNTL-136): a wallet popup focuses its frame from the page,
 		// and the focus trap took focus back, so the keyboard acted on the sheet.
 		render(
-			<Dialog.Root defaultOpen>
+			<Dialog.Root defaultOpen modal={false}>
 				<Dialog.Content>
 					<Dialog.Title>Overlay</Dialog.Title>
 					<Dialog.Body>
@@ -1356,18 +1313,6 @@ describe("a frame that covers an overlay", () => {
 		expect(frame).toHaveFocus();
 	});
 
-	test("the focus trap still takes focus back from the page under the frame", async () => {
-		const { pageButton } = renderDialogOnPage();
-		const title = screen.getByText("Overlay");
-		coverWithPopup();
-
-		pageButton.focus();
-
-		expect(title.closest('[role="dialog"]')).toContainElement(
-			document.activeElement instanceof HTMLElement ? document.activeElement : null,
-		);
-	});
-
 	test("focus into the frame leaves open a dialog that is not modal, under the dialog that the frame covers", async () => {
 		// A dialog that is not modal closes when focus leaves it. Its listener is
 		// on the document before the one of the dialog inside it.
@@ -1375,7 +1320,7 @@ describe("a frame that covers an overlay", () => {
 			<Dialog.Root defaultOpen modal={false}>
 				<Dialog.Content>
 					<Dialog.Title>Outer</Dialog.Title>
-					<Dialog.Root defaultOpen>
+					<Dialog.Root defaultOpen modal={false}>
 						<Dialog.Content>
 							<Dialog.Title>Inner</Dialog.Title>
 						</Dialog.Content>
@@ -1398,7 +1343,7 @@ describe("a frame that covers an overlay", () => {
 		// dialog that holds it. A float of that dialog can hold a frame.
 		const user = userEvent.setup();
 		render(
-			<Dialog.Root defaultOpen>
+			<Dialog.Root defaultOpen modal={false}>
 				<Dialog.Content>
 					<Dialog.Title>Checkout</Dialog.Title>
 					<Dialog.Body>
@@ -1429,49 +1374,5 @@ describe("a frame that covers an overlay", () => {
 			expect(screen.queryByText("Overlay")).not.toBeInTheDocument();
 		});
 		expect(screen.getByText("Checkout")).toBeInTheDocument();
-	});
-
-	/**
-	 * Renders an open dialog over a popup that was on the page first, as a
-	 * wallet popup is: its script keeps the wrapper on `<body>` between uses.
-	 * Radix hides from assistive technology each child of `<body>` that is on
-	 * the page as the dialog opens.
-	 */
-	function renderDialogOverKeptPopup() {
-		const layer = coverWithPopup();
-		render(
-			<Dialog.Root defaultOpen>
-				<Dialog.Content>
-					<Dialog.Title>Overlay</Dialog.Title>
-					<Dialog.Body>
-						<button type="button">Save</button>
-					</Dialog.Body>
-				</Dialog.Content>
-			</Dialog.Root>,
-		);
-		const save = screen.getByRole("button", { name: "Save" });
-		save.focus();
-
-		return { ...layer, save };
-	}
-
-	test("focus that moves into the frame shows its layer to assistive technology", () => {
-		const { frame, popup } = renderDialogOverKeptPopup();
-		expect(popup).toHaveAttribute("aria-hidden", "true");
-
-		frame.focus();
-
-		expect(popup).not.toHaveAttribute("aria-hidden");
-	});
-
-	test("focus that leaves the page shows the layer of the frame to assistive technology", () => {
-		// Firefox reports a `focus()` call on a frame as a focus move with no
-		// destination, and so does each browser for a click in a frame.
-		const { popup, save } = renderDialogOverKeptPopup();
-		expect(popup).toHaveAttribute("aria-hidden", "true");
-
-		save.blur();
-
-		expect(popup).not.toHaveAttribute("aria-hidden");
 	});
 });

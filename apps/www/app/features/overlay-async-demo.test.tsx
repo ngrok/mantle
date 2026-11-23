@@ -85,7 +85,7 @@ describe("UserOverlayDemo", () => {
 		// Why data-slot: `Sheet.Content` and `Dialog.Content` both render `role="dialog"`
 		// titled "User details", so the slot is the only observable of the Dialog branch.
 		expect(screen.getByRole("dialog", { name: "User details" }).getAttribute("data-slot")).toBe(
-			"dialog-content",
+			"dialog-positioner",
 		);
 		expect(screen.queryByRole("alertdialog", { name: "Remove this user?" })).toBeNull();
 	});

@@ -1,7 +1,6 @@
 /**
- * The presentation that `@ngrok/mantle/sheet` and `@ngrok/mantle/sheet/native`
- * share: the class recipes and the parts with no behavior. Each backend adds
- * its own slide motion and its own behavior parts.
+ * The presentation of `Sheet`, which `Sidebar.Nav` reuses for its mobile
+ * sheet: the class recipes and the parts with no behavior.
  */
 
 import { XIcon } from "@phosphor-icons/react/X";
@@ -72,6 +71,15 @@ function contentSurfaceClassName({
 		preferredWidth,
 	);
 }
+
+/**
+ * The slide each {@link SheetSide} enters and exits with, keyed on the
+ * panel's `data-state`.
+ */
+const slideClassName: Record<SheetSide, string> = {
+	left: "data-state-closed:slide-out-to-left data-state-open:slide-in-from-left",
+	right: "data-state-closed:slide-out-to-right data-state-open:slide-in-from-right",
+};
 
 /** The classes of `Sheet.Title`. */
 const titleClassName = "text-strong flex-1 truncate text-lg font-medium";
@@ -191,7 +199,7 @@ const Body = ({
 	<div
 		data-slot={joinDataSlot(dataSlot, "sheet-body")}
 		className={cx(
-			"scrollbar scrollbar-gutter-stable text-body flex-1 overflow-y-auto p-6",
+			"scrollbar scrollbar-gutter-stable text-body flex-1 overflow-y-auto overscroll-none p-6",
 			className,
 		)}
 		{...props}
@@ -470,6 +478,7 @@ export {
 	descriptionClassName,
 	Footer,
 	Header,
+	slideClassName,
 	titleClassName,
 	TitleGroup,
 };

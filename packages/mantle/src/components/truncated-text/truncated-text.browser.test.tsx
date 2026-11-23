@@ -765,7 +765,7 @@ test("clips a value inside a Dialog that opens with a zoom, also once the zoom e
 		// Why the name: a focus ring on the content can add transitions of its own.
 		const zooms = screen
 			.getByRole("dialog")
-			.getAnimations()
+			.getAnimations({ subtree: true })
 			.filter(
 				(animation) => animation instanceof CSSAnimation && animation.animationName === "zoom-in",
 			);

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { useState } from "react";
@@ -101,6 +101,51 @@ describe("Tooltip.Trigger", () => {
 		await user.hover(trigger);
 		const tooltip = await screen.findByRole("tooltip");
 		expect(trigger.getAttribute("aria-describedby")?.split(" ")).toEqual(["help", tooltip.id]);
+	});
+
+	test("a tap's focus does not open the tooltip, and the next keyboard focus does", () => {
+		render(<CopyTooltip body="Copy endpoint URL" />);
+		const trigger = screen.getByRole("button", { name: "Copy" });
+
+		// Why this order: a tap focuses the trigger after `pointerup`.
+		fireEvent.pointerDown(trigger, { pointerType: "touch" });
+		fireEvent.pointerUp(trigger, { pointerType: "touch" });
+		act(() => trigger.focus());
+		expect(trigger).toHaveAttribute("data-state", "closed");
+		fireEvent.click(trigger);
+
+		act(() => trigger.blur());
+		act(() => trigger.focus());
+		expect(trigger).not.toHaveAttribute("data-state", "closed");
+	});
+
+	test("a tap whose click a parent stops leaves the next keyboard focus free to open", () => {
+		render(
+			// oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- Why: a row that stops clicks, as a table cell does.
+			<div onClick={(event) => event.stopPropagation()}>
+				<CopyTooltip body="Copy endpoint URL" />
+			</div>,
+		);
+		const trigger = screen.getByRole("button", { name: "Copy" });
+
+		fireEvent.pointerDown(trigger, { pointerType: "touch" });
+		fireEvent.pointerUp(trigger, { pointerType: "touch" });
+		act(() => trigger.focus());
+		fireEvent.click(trigger);
+
+		act(() => trigger.blur());
+		act(() => trigger.focus());
+		expect(trigger).not.toHaveAttribute("data-state", "closed");
+	});
+
+	test("a touch press that becomes a scroll leaves the next keyboard focus free to open", () => {
+		render(<CopyTooltip body="Copy endpoint URL" />);
+		const trigger = screen.getByRole("button", { name: "Copy" });
+
+		fireEvent.pointerDown(trigger, { pointerType: "touch" });
+		fireEvent.pointerCancel(trigger, { pointerType: "touch" });
+		act(() => trigger.focus());
+		expect(trigger).not.toHaveAttribute("data-state", "closed");
 	});
 });
 

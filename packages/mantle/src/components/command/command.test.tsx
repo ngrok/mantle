@@ -94,8 +94,8 @@ describe("Command.SearchTrigger", () => {
 	});
 
 	test("its data-slot joins ahead of the child's own", () => {
-		// The chain reads in DOM order, so a consumer stylesheet can target either
-		// the palette wiring or the row that carries it.
+		// The chain reads in DOM order, so a consumer stylesheet can target the
+		// dialog trigger, the palette wiring, or the row that carries it.
 		render(
 			<Command.DialogRoot>
 				<Command.SearchTrigger>
@@ -103,7 +103,10 @@ describe("Command.SearchTrigger", () => {
 				</Command.SearchTrigger>
 			</Command.DialogRoot>,
 		);
-		expect(trigger()).toHaveAttribute("data-slot", "command-search-trigger app-search-row");
+		expect(trigger()).toHaveAttribute(
+			"data-slot",
+			"dialog-trigger command-search-trigger app-search-row",
+		);
 	});
 
 	test("data-state and aria-expanded follow the open state", async () => {
@@ -598,7 +601,7 @@ describe("Command.DialogRoot", () => {
 				"the Command.Input is disabled",
 				<Command.Input key="input" placeholder="Type a command or search..." disabled />,
 			],
-		] as const)("falls back to Radix's own autofocus when %s", async ([, field]) => {
+		] as const)("falls back to the dialog's own autofocus when %s", async ([, field]) => {
 			const user = userEvent.setup();
 			render(
 				<Command.DialogRoot>
@@ -611,10 +614,12 @@ describe("Command.DialogRoot", () => {
 
 			await user.click(screen.getByTestId("trigger"));
 
-			const close = await screen.findByRole("button", { name: "Close Dialog" });
+			// The browser focuses the first focusable element in the `<dialog>`.
+			const dialog = await screen.findByRole("dialog");
 			await waitFor(() => {
-				expect(close).toHaveFocus();
+				expect(dialog.contains(document.activeElement)).toBe(true);
 			});
+			expect(screen.getByTestId("trigger")).not.toHaveFocus();
 		});
 
 		test("a consumer-controlled Command.Input keeps ownership of the query", async () => {

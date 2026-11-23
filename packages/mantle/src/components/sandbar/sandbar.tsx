@@ -11,7 +11,9 @@ import {
 	useMemo,
 	useRef,
 	useState,
+	useSyncExternalStore,
 } from "react";
+import { createPortal } from "react-dom";
 import invariant from "tiny-invariant";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { WithAsChild } from "../../types/as-child.js";
@@ -24,6 +26,8 @@ import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import { shakeElement } from "../../utils/shake.js";
 import type { ButtonProps } from "../button/button.js";
 import { Button } from "../button/button.js";
+import { canUseDOM } from "../browser-only/can-use-dom.js";
+import { attachPromptHost, getTopModal, subscribeTopModal } from "../toast/toaster-host.js";
 import { Slot } from "../slot/index.js";
 
 /**
@@ -104,6 +108,8 @@ type SandbarContextValue = {
 	announceAssertive: (text: string) => void;
 	registerMessage: (id: string) => () => void;
 	reportSaving: (options: { button: HTMLButtonElement | null; isSaving: boolean }) => void;
+	/** The form that the bar saves while the bar sits in an open dialog, else `null`. */
+	liftedForm: () => HTMLFormElement | null;
 };
 
 const SandbarContext = createContext<SandbarContextValue | null>(null);
@@ -251,6 +257,8 @@ const Root = ({
 	...props
 }: SandbarRootProps) => {
 	const [presence, setPresence] = useState<SandbarPresence>(open ? "open" : "closed");
+	const [host] = useState(() => (canUseDOM() ? document.createElement("div") : null));
+	useIsomorphicLayoutEffect(() => (host == null ? undefined : attachPromptHost(host)), [host]);
 	const [politeText, setPoliteText] = useState("");
 	const [assertiveText, setAssertiveText] = useState("");
 	const [messageId, setMessageId] = useState<string | null>(null);
@@ -360,9 +368,35 @@ const Root = ({
 	// Deliberately independent of `presence`: every value here is a stable
 	// callback, so the context identity survives the four presence transitions
 	// instead of re-rendering every consumer on each one.
+	/**
+	 * Whether the bar sits in the top open modal `<dialog>`. A modal makes the
+	 * rest of the page inert, so the bar moves into the dialog while one is open,
+	 * as it painted above a Radix dialog and took clicks. Otherwise it stays in
+	 * place, so the form owns its submit button and Tab reaches it after the last
+	 * field. It stays in place in a dialog that holds it or that it holds, such
+	 * as its own confirm.
+	 */
+	const getLifted = useCallback(() => {
+		const top = getTopModal();
+		const wrapper = wrapperRef.current;
+		if (top == null || host == null || wrapper == null) {
+			return false;
+		}
+		return host.contains(wrapper) || !(top.contains(wrapper) || wrapper.contains(top));
+	}, [host]);
+	const lifted = useSyncExternalStore(subscribeTopModal, getLifted, () => false);
+	/** The form that holds the bar in place: a lifted submit button submits it. */
+	const formRef = useRef<HTMLFormElement | null>(null);
+	useIsomorphicLayoutEffect(() => {
+		if (!lifted) {
+			formRef.current = wrapperRef.current?.closest("form") ?? null;
+		}
+	}, [lifted]);
+	const liftedForm = useCallback(() => (lifted ? formRef.current : null), [lifted]);
+
 	const context = useMemo<SandbarContextValue>(
-		() => ({ announceAssertive, registerMessage, reportSaving }),
-		[announceAssertive, registerMessage, reportSaving],
+		() => ({ announceAssertive, liftedForm, registerMessage, reportSaving }),
+		[announceAssertive, liftedForm, registerMessage, reportSaving],
 	);
 
 	// Presence transitions driven by the controlled `open` prop. Opening from
@@ -574,7 +608,7 @@ const Root = ({
 	// effect reads as `focusFellToBody`, so the pre-bar element still gets focus.
 	const isInert = isClosed || presence === "closing";
 
-	return (
+	const bar = (
 		<SandbarContext.Provider value={context}>
 			{/* Why z-70: the bar stays visible and usable while a dialog, alert
 			    dialog, or sheet (the `z-60` overlay tier) is open, as a toast does.
@@ -656,6 +690,9 @@ const Root = ({
 			</LayerContainer>
 		</SandbarContext.Provider>
 	);
+	// Why a host: it moves into the top open modal, as the `Toaster`'s does.
+	// The move remounts the bar's children; the state of `Root` stays.
+	return lifted && host != null ? createPortal(bar, host) : bar;
 };
 
 /**
@@ -872,10 +909,11 @@ const SaveButton = ({
 	"data-slot": dataSlot,
 	intent = "neutral",
 	isLoading = false,
+	onClick,
 	ref,
 	...props
 }: SandbarSaveButtonProps) => {
-	const { reportSaving } = useSandbarContext("Sandbar.SaveButton");
+	const { liftedForm, reportSaving } = useSandbarContext("Sandbar.SaveButton");
 	const buttonRef = useRef<HTMLButtonElement>(null);
 	const composedRef = useComposedRefs(buttonRef, ref);
 
@@ -899,6 +937,15 @@ const SaveButton = ({
 			ref={composedRef}
 			{...props}
 			data-slot={joinDataSlot(dataSlot, "sandbar-save-button")}
+			onClick={(event) => {
+				onClick?.(event);
+				// Why: a bar in a dialog is outside its form, so a submit button
+				// submits the form it left.
+				const form = liftedForm();
+				if (!event.defaultPrevented && props.type === "submit" && form != null) {
+					form.requestSubmit();
+				}
+			}}
 		>
 			{children}
 		</Button>

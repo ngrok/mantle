@@ -60,10 +60,10 @@ const STYLE = `
 		}
 	}
 	@container app-layout-workspace (width < 56.5rem) {
-		[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed])) .\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:absolute {
+		[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-state~=expanded]) .\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-state\\~\\=expanded\\]\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:absolute {
 			position: absolute;
 		}
-		[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed])) .\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:right-\\(--app-layout-card-gutter\\,0\\.5rem\\) {
+		[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-state~=expanded]) .\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-state\\~\\=expanded\\]\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:right-\\(--app-layout-card-gutter\\,0\\.5rem\\) {
 			right: var(--app-layout-card-gutter, 0.5rem);
 		}
 	}
@@ -74,7 +74,7 @@ const STYLE = `
 			}
 		}
 		@container app-layout-workspace (width < 56.5rem) {
-			[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-nav]:not([data-state~=collapsed])) .sm\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-nav\\]\\:not\\(\\[data-state\\~\\=collapsed\\]\\)\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100cqw-5rem\\)\\)\\] {
+			[data-slot~=app-layout-workspace]:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-state~=expanded]) .sm\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-state\\~\\=expanded\\]\\)_\\&\\]\\:\\@max-side-panel-lane\\/app-layout-workspace\\:w-\\[min\\(24rem\\,calc\\(100cqw-5rem\\)\\)\\] {
 				width: min(24rem, calc(100cqw - 5rem));
 			}
 		}
@@ -364,18 +364,37 @@ describe("AppLayout.SidePanel motion across mobileBreakpoint", () => {
 		expect(panel.getAnimations()).toHaveLength(0);
 	});
 
-	test("the gate shuts when the longest transition ends, with each delay paired to its duration", async () => {
+	test("the gate shuts after the longest transition ends, not before", async () => {
 		await page.viewport(800, 600);
-		// Why these lists: the longest entry ends at 1000ms. The longest duration
-		// plus the longest delay is 1500ms, from two different entries.
+		// Why these lists: the 1000ms slide ends last, after a delayed 200ms entry.
 		const panel = renderShell({
 			defaultOpen: true,
 			style: { transitionDuration: "200ms, 1000ms, 200ms", transitionDelay: "500ms, 0ms, 0ms" },
 		});
+		// Why read the gate at the slide's last event: a gate that shuts early
+		// cancels the slide, or leaves it to end with the transitions already off.
+		const slideEnd = new Promise<{ type: string; transitionProperty: string }>((resolve) => {
+			for (const type of ["transitionend", "transitioncancel"]) {
+				panel.addEventListener(type, (event) => {
+					if (event instanceof TransitionEvent && event.propertyName === "translate") {
+						resolve({ type, transitionProperty: getComputedStyle(panel).transitionProperty });
+					}
+				});
+			}
+		});
 		await userEvent.click(screen.getByRole("button", { name: "Toggle the assistant" }));
-		await expect
-			.poll(() => getComputedStyle(panel).transitionProperty, { timeout: 1300 })
-			.toBe("none");
+		const { type, transitionProperty } = await slideEnd;
+		expect(type).toBe("transitionend");
+		expect(transitionProperty).not.toBe("none");
+		await expect.poll(() => getComputedStyle(panel).transitionProperty).toBe("none");
+	});
+
+	test("an endless animation on the panel does not hold the gate open", async () => {
+		await page.viewport(800, 600);
+		const panel = renderShell({ defaultOpen: true, style: { transitionDuration: "50ms" } });
+		panel.animate([{ opacity: 1 }, { opacity: 0.99 }], { duration: 100, iterations: Infinity });
+		await userEvent.click(screen.getByRole("button", { name: "Toggle the assistant" }));
+		await expect.poll(() => getComputedStyle(panel).transitionProperty).toBe("none");
 	});
 });
 

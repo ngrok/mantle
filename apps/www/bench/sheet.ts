@@ -1,8 +1,8 @@
 /**
  * The sheet open benchmark. Builds the site, serves the production build, and
  * taps the trigger of `/bench/sheet` on a throttled phone-sized page, once per
- * run for each implementation (`@ngrok/mantle/sheet` and
- * `@ngrok/mantle/sheet/native`), in turn.
+ * run for each implementation (a sheet that mounts on open, and one that
+ * stays mounted with `forceMount`), in turn.
  *
  * Each run reports the tap's Interaction to Next Paint (the longest Event
  * Timing entry of the tap) and the longest animation frame in the second
@@ -16,7 +16,7 @@ import { chromium } from "playwright";
 import { startServer } from "./serve.ts";
 
 type Run = {
-	impl: "radix" | "native";
+	impl: "default" | "mounted";
 	inpMs: number;
 	longestFrameMs: number;
 	open: boolean;
@@ -129,7 +129,7 @@ const measure = async (impl: Run["impl"]): Promise<Run> => {
 
 const results: Run[] = [];
 for (let run = 0; run < runs; run += 1) {
-	for (const impl of ["radix", "native"] as const) {
+	for (const impl of ["default", "mounted"] as const) {
 		const result = await measure(impl);
 		results.push(result);
 		console.log(
@@ -142,11 +142,11 @@ await browser.close();
 server.close();
 
 console.log(`\n${throttle}x CPU throttle, 412x915, median (p75) of ${runs} taps`);
-for (const impl of ["radix", "native"] as const) {
+for (const impl of ["default", "mounted"] as const) {
 	const rows = results.filter((result) => result.impl === impl);
 	const column = (key: "inpMs" | "longestFrameMs" | "loadScriptMs") =>
 		`${Math.round(median(rows.map((row) => row[key])))} (${Math.round(p75(rows.map((row) => row[key])))})`;
 	console.log(
-		`${impl.padEnd(6)} INP ${column("inpMs")} ms | longest frame after tap ${column("longestFrameMs")} ms | load script ${column("loadScriptMs")} ms | HTML ${rows[0]?.htmlBytes ?? 0} B | opened ${rows.every((row) => row.open)}`,
+		`${impl.padEnd(7)} INP ${column("inpMs")} ms | longest frame after tap ${column("longestFrameMs")} ms | load script ${column("loadScriptMs")} ms | HTML ${rows[0]?.htmlBytes ?? 0} B | opened ${rows.every((row) => row.open)}`,
 	);
 }

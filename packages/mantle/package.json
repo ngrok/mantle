@@ -187,11 +187,6 @@
 			"types": "./dist/dialog.d.ts",
 			"import": "./dist/dialog.js"
 		},
-		"./dialog/native": {
-			"@ngrok/src-live-types": "./src/components/dialog/native/index.ts",
-			"types": "./dist/dialog-native.d.ts",
-			"import": "./dist/dialog-native.js"
-		},
 		"./dropdown-menu": {
 			"@ngrok/src-live-types": "./src/components/dropdown-menu/index.ts",
 			"types": "./dist/dropdown-menu.d.ts",
@@ -357,11 +352,6 @@
 			"types": "./dist/sheet.d.ts",
 			"import": "./dist/sheet.js"
 		},
-		"./sheet/native": {
-			"@ngrok/src-live-types": "./src/components/sheet/native/index.ts",
-			"types": "./dist/sheet-native.d.ts",
-			"import": "./dist/sheet-native.js"
-		},
 		"./sidebar": {
 			"@ngrok/src-live-types": "./src/components/sidebar/index.ts",
 			"types": "./dist/sidebar.d.ts",
@@ -488,7 +478,6 @@
 		"typecheck": "tsrs && tsrs -p tsconfig.node.json"
 	},
 	"dependencies": {
-		"@radix-ui/react-dialog": "1.3.1",
 		"@radix-ui/react-slider": "1.6.1",
 		"@tanstack/react-table": "9.3.1",
 		"@tanstack/react-virtual": "3.14.26",

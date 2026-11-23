@@ -5,12 +5,10 @@ import {
 	type ComponentProps,
 	type RefObject,
 	useContext,
-	useEffect,
 	useLayoutEffect,
 	useState,
 	useSyncExternalStore,
 } from "react";
-import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { useComposedRefs } from "../compose-refs/use-composed-refs.js";
 
 /**
@@ -88,11 +86,20 @@ function useIsInsideModalLayer(): boolean {
  * ```
  */
 function LayerContainer({
+	active = true,
 	children,
 	modal = true,
 	ref,
 	...props
 }: ComponentProps<"div"> & {
+	/**
+	 * Whether floats inside portal into this layer. Pass `false` while the
+	 * layer is not in the top layer, such as a closed `<dialog>` that CSS shows
+	 * in the page. Its floats then portal as if the layer were not there, and
+	 * the subtree does not remount when the value changes.
+	 * @default true
+	 */
+	active?: boolean;
 	/**
 	 * Whether the layer belongs to a modal overlay that locks body scroll.
 	 * A non-modal layer inside a modal one stays modal.
@@ -103,11 +110,14 @@ function LayerContainer({
 	const [element, setElement] = useState<HTMLDivElement | null>(null);
 	const composedRef = useComposedRefs(ref, setElement);
 	const isInsideModal = useIsInsideModalLayer();
+	const outerContainer = useContext(LayerContainerContext);
 
 	return (
 		<div ref={composedRef} {...props}>
-			<ModalLayerContext.Provider value={isInsideModal || modal}>
-				<LayerContainerContext.Provider value={element}>{children}</LayerContainerContext.Provider>
+			<ModalLayerContext.Provider value={isInsideModal || (active && modal)}>
+				<LayerContainerContext.Provider value={active ? element : outerContainer}>
+					{children}
+				</LayerContainerContext.Provider>
 			</ModalLayerContext.Provider>
 		</div>
 	);
@@ -143,37 +153,20 @@ function subscribeToOverlays(listener: () => void): () => void {
 
 /**
  * Registers an open overlay, so a float it covers can hand it Escape, and so
- * the overlay on top can find a frame that covers it. Pass `null` for
- * `container` or `content` while the overlay is closed or not yet mounted, and
- * it stays out of the registry.
+ * the overlay on top can find a frame that covers it. Call it when the
+ * overlay opens; it returns the function to call when it closes.
  */
-function useRegisterOverlay({
-	container,
-	content,
-	escape,
-}: {
-	container: Element | DocumentFragment | null;
-	content: Element | null;
-	escape: (event: KeyboardEvent) => void;
-}): void {
-	const stableEscape = useCallbackRef(escape);
-
-	useEffect(() => {
-		if (!(container instanceof Element) || content == null) {
-			return;
-		}
-		const overlay: OpenOverlay = { container, content, escape: stableEscape };
-		openOverlays.push(overlay);
+function registerOverlay(overlay: OpenOverlay): () => void {
+	openOverlays.push(overlay);
+	for (const listener of overlayListeners) {
+		listener();
+	}
+	return () => {
+		openOverlays.splice(openOverlays.indexOf(overlay), 1);
 		for (const listener of overlayListeners) {
 			listener();
 		}
-		return () => {
-			openOverlays.splice(openOverlays.indexOf(overlay), 1);
-			for (const listener of overlayListeners) {
-				listener();
-			}
-		};
-	}, [container, content, stableEscape]);
+	};
 }
 
 /**
@@ -438,5 +431,5 @@ export {
 	useIsCoveredByOverlay,
 	useIsInsideModalLayer,
 	useLayerContainer,
-	useRegisterOverlay,
+	registerOverlay,
 };

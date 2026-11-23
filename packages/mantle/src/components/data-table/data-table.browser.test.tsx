@@ -68,12 +68,46 @@ describe("DataTable.Row (browser): text selection", () => {
 
 		// A click on selected text collapses the selection on mouseup, after the
 		// browser has already decided the click, so that click only deselects.
-		await userEvent.click(nameCell);
+		// Why aim at the selection: engines start a drag's selection at different
+		// character edges, so the drag's start point can sit just outside it.
+		const selected = document.getSelection()?.getRangeAt(0).getClientRects()[0];
+		invariant(selected, "expected the drag to select text in the name cell");
+		const cell = nameCell.getBoundingClientRect();
+		await userEvent.click(nameCell, {
+			position: {
+				x: (selected.left + selected.right) / 2 - cell.left,
+				y: (selected.top + selected.bottom) / 2 - cell.top,
+			},
+		});
 		expect(document.getSelection()?.isCollapsed).toBe(true);
 		expect(handleClick).not.toHaveBeenCalled();
 
 		// With nothing selected, the same click runs the handler.
 		await userEvent.click(nameCell);
+		expect(handleClick).toHaveBeenCalledTimes(1);
+	});
+
+	test("a press on selected text with no click after it does not block a later click", async () => {
+		const handleClick = vi.fn<() => void>();
+		render(<Harness onClick={handleClick} />);
+		const nameCell = screen.getByRole("cell", { name: "Alice" });
+		await userEvent.dragAndDrop(nameCell, screen.getByRole("cell", { name: "alice@example.com" }));
+		const selected = document.getSelection()?.getRangeAt(0).getClientRects()[0];
+		invariant(selected, "expected the drag to select text in the name cell");
+		const cell = nameCell.getBoundingClientRect();
+
+		// A right click fires no `click`. Then the selection clears elsewhere, and
+		// a keyboard or script click reaches the row with no press before it.
+		await userEvent.click(nameCell, {
+			button: "right",
+			position: {
+				x: (selected.left + selected.right) / 2 - cell.left,
+				y: (selected.top + selected.bottom) / 2 - cell.top,
+			},
+		});
+		document.getSelection()?.removeAllRanges();
+		screen.getByTestId("row").click();
+
 		expect(handleClick).toHaveBeenCalledTimes(1);
 	});
 
@@ -281,6 +315,17 @@ function pauseSlides(): void {
 	}
 }
 
+/**
+ * Stop each slide at its first frame. Why not read at once: WebKit can run a
+ * frame of the slide between the commit and the read.
+ */
+function rewindSlides(): void {
+	for (const animation of document.getAnimations()) {
+		animation.pause();
+		animation.currentTime = 0;
+	}
+}
+
 /** Run each slide to its end. */
 function finishSlides(): void {
 	for (const animation of document.getAnimations()) {
@@ -325,6 +370,7 @@ describe("DataTable row motion (browser)", () => {
 
 		// The panel is in the layout, but the row below starts where it was.
 		expect(screen.getByText("Panel")).toBeInTheDocument();
+		rewindSlides();
 		expect(shownTop("tail")).toBeCloseTo(startTop, 0);
 		finishSlides();
 		expect(isSettled("tail")).toBe(true);

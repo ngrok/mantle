@@ -202,28 +202,35 @@ const createCommand = (initialValue: string) => {
 
 	/**
 	 * Puts each container's children back in the order they had before the
-	 * first sort. The children that mounted during the search after every saved
-	 * child stay at the end.
+	 * first sort, and moves only the children out of order. A child that
+	 * mounted during the search stays at the end when it follows every saved
+	 * child, and goes to the front otherwise.
 	 */
 	const restore = () => {
 		for (const [container, order] of natural) {
-			let anchor: Element | null = null;
+			let last = container.lastElementChild;
+			while (last != null && !order.has(last)) {
+				last = last.previousElementSibling;
+			}
+			// Why the front: React put a prepended item before the first item's node, which the sort moved down.
+			const mounted: Element[] = [];
 			for (
-				let node = container.lastElementChild;
-				node != null && !order.has(node);
-				node = node.previousElementSibling
+				let child = last == null ? null : container.firstElementChild;
+				child != null && child !== last;
+				child = child.nextElementSibling
 			) {
-				anchor = node;
-			}
-			for (const node of [...order.keys()].toReversed()) {
-				if (node.parentElement !== container) {
-					continue;
+				if (!order.has(child)) {
+					mounted.push(child);
 				}
-				if (node.nextElementSibling !== anchor) {
-					container.insertBefore(node, anchor);
-				}
-				anchor = node;
 			}
+			// Why not `prepend(...mounted)`: happy-dom reverses the nodes when the first one is already first.
+			for (const node of mounted.toReversed()) {
+				container.insertBefore(node, container.firstChild);
+			}
+			place(
+				container,
+				[...order.keys()].filter((node) => node.parentElement === container),
+			);
 		}
 		natural.clear();
 	};

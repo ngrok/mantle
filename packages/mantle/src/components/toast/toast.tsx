@@ -27,7 +27,7 @@ import { Icon as IconComponent } from "../icon/icon.js";
 import type { SvgOnlyProps } from "../icon/svg-only.js";
 import { canUseDOM } from "../browser-only/can-use-dom.js";
 import { Slot } from "../slot/index.js";
-import { attachToasterHost } from "./toaster-host.js";
+import { attachPromptHost } from "./toaster-host.js";
 
 type ToasterPrimitiveProps = ComponentProps<typeof Sonner.Toaster>;
 
@@ -126,9 +126,9 @@ function getSonner(): typeof Sonner | undefined {
  *
  * The toasts render in a container on `<body>`. The toast code loads in its
  * own chunk when the browser is idle after hydration, or on the first
- * `makeToast` call if that comes first. While a native modal dialog
- * (`@ngrok/mantle/dialog/native`, `@ngrok/mantle/sheet/native`) is open, the
- * container moves into it, so the toasts paint above the dialog and stay usable.
+ * `makeToast` call if that comes first. While a modal `Dialog`,
+ * `AlertDialog`, or `Sheet` is open, the container moves into it, so the toasts
+ * paint above the dialog and stay usable.
  *
  * @see https://mantle.ngrok.com/components/feedback/toast#toaster
  *
@@ -155,7 +155,7 @@ const Toaster = ({
 	// the page inert, so the host moves into it. React never moves a portal's
 	// container, so the move is safe.
 	const [host] = useState(() => (canUseDOM() ? document.createElement("div") : null));
-	useLayoutEffect(() => (host == null ? undefined : attachToasterHost(host)), [host]);
+	useLayoutEffect(() => (host == null ? undefined : attachPromptHost(host)), [host]);
 	// Why idle: sonner stays off the critical path. A `makeToast` call that
 	// comes first starts the load sooner.
 	useEffect(() => {
