@@ -869,11 +869,18 @@ const OpenContent = ({
 							event.shiftKey &&
 							event.target === event.currentTarget.querySelector(TABBABLE)
 						) {
-							event.preventDefault();
-							// Why not `inputRef`: the input names this list in `aria-controls`.
-							event.currentTarget.ownerDocument
-								.querySelector<HTMLElement>(`[aria-controls="${event.currentTarget.id}"]`)
-								?.focus();
+							// Why the root node and not `inputRef`: the compiler's pass forbids a
+							// ref read in a handler built during render. The input names this list
+							// in `aria-controls`, in the same document or shadow root.
+							const root = event.currentTarget.getRootNode();
+							const input =
+								root instanceof Document || root instanceof ShadowRoot
+									? root.querySelector<HTMLElement>(`[aria-controls="${event.currentTarget.id}"]`)
+									: null;
+							if (input != null) {
+								event.preventDefault();
+								input.focus();
+							}
 						}
 					})}
 					onBlur={composeHandlers(props.onBlur, (event) => {
