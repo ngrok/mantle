@@ -7,7 +7,7 @@
 Breaking changes. Follow the [migration guide](https://mantle.ngrok.com/migrations/0017-select-owned-behavior-migration); `pnpm -w run migrate 0017` deletes the positioning props.
 
 - `Select.Content` takes no positioning props (`position`, `side`, `sideOffset`, `align`, and the other Radix Popper props) and no Radix event handlers (`onEscapeKeyDown`, `onPointerDownOutside`, `onCloseAutoFocus`). The list opens below the trigger, or above it when the space below is too small. `data-side` is `"top"` or `"bottom"`.
-- The list stays modal: the page does not scroll and the rest of the page is inert while it is open. The page behind it uses `inert` in place of `aria-hidden`, so Tab cannot reach it either.
+- The list is not modal, the same as a native select. Tab does not move focus out of an open list.
 - The `--radix-select-*` CSS variables are gone. Use `--anchor-width`, `--anchor-height`, and `--available-height`.
 
 Other changes:
