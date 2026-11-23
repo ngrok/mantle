@@ -11,7 +11,6 @@ const ROWS = [
 	'[data-slot~="dropdown-menu-label"]',
 	'[data-slot~="command-group-heading"]',
 ].join();
-const shown = (row: Element) => row.closest("[hidden]") == null;
 
 /**
  * A ref callback for a scrolling listbox or menu. An item is an option, a
@@ -27,7 +26,8 @@ const shown = (row: Element) => row.closest("[hidden]") == null;
  * group, does not count. The cleanup disconnects both and keeps the
  * attributes, so a ref that attaches again to the same list does not blink
  * the cue off for a frame. An item taller than the list never shows in full,
- * so its edge keeps the state it had when it came into view.
+ * so its edge keeps the state it had when it came into view. A list that
+ * mounts in a hidden panel watches again when the panel shows.
  *
  * @example
  * ```tsx
@@ -41,10 +41,15 @@ const observeScrollEdges = (list: HTMLElement | null): (() => void) | undefined 
 	}
 	let first: Element | undefined;
 	let last: Element | undefined;
+	// Why: a list in a hidden panel has no box, so its first report says
+	// nothing, and the observer does not report again while an item stays out
+	// of view. The resize when the panel shows watches again.
+	let blind = false;
 	const intersection = new IntersectionObserver(
 		(entries) => {
 			for (const { target, boundingClientRect: box, rootBounds } of entries) {
-				if (rootBounds == null) {
+				if (rootBounds == null || rootBounds.height === 0) {
+					blind = true;
 					continue;
 				}
 				if (target === first) {
@@ -63,6 +68,12 @@ const observeScrollEdges = (list: HTMLElement | null): (() => void) | undefined 
 	);
 	const watch = () => {
 		const rows = [...list.querySelectorAll(ROWS)];
+		// Why `contains`: only a `hidden` inside the list hides a row. A hidden
+		// ancestor of the list hides it whole.
+		const shown = (row: Element) => {
+			const hidden = row.closest("[hidden]");
+			return hidden == null || hidden.contains(list);
+		};
 		const nextFirst = rows.find(shown);
 		const nextLast = rows.findLast(shown);
 		if (nextFirst === first && nextLast === last) {
@@ -85,10 +96,20 @@ const observeScrollEdges = (list: HTMLElement | null): (() => void) | undefined 
 	};
 	const mutation = new MutationObserver(watch);
 	mutation.observe(list, { childList: true, subtree: true, attributeFilter: ["hidden"] });
+	const resize = new ResizeObserver(() => {
+		if (blind) {
+			blind = false;
+			first = undefined;
+			last = undefined;
+			watch();
+		}
+	});
+	resize.observe(list);
 	watch();
 	return () => {
 		mutation.disconnect();
 		intersection.disconnect();
+		resize.disconnect();
 	};
 };
 
