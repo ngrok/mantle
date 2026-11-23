@@ -43,7 +43,6 @@ env:
 
 jobs:
   virtual:
-    if: github.event.action != 'labeled'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     continue-on-error: true
@@ -108,6 +107,9 @@ jobs:
     defaults:
       run:
         shell: bash
+    env:
+      # Why: the package scripts are POSIX shell (`NODE_OPTIONS=… tsdown`, `rm -rf`), and pnpm uses cmd.exe on Windows.
+      npm_config_script_shell: ${{ matrix.reader == 'nvda' && 'C:\Program Files\Git\bin\bash.exe' || '' }}
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
