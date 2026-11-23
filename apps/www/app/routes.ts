@@ -117,6 +117,7 @@ const docsPages = [
 	"components/overlays/tooltip",
 	// preview (lifecycle namespace, not a category)
 	"components/preview/calendar",
+	"components/preview/time-zone",
 	"components/preview/world-map",
 	// primitives
 	"components/primitives/browser-only",
@@ -156,6 +157,7 @@ const layoutsPages = ["app-layout", "centered-layout"];
 const recipesPages = [
 	"assistant-across-routes",
 	"breadcrumbs-from-routes",
+	"cancel-and-submit",
 	"filter-from-a-value",
 	"header-actions-from-routes",
 	"list-page-loading-states",

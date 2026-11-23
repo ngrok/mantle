@@ -1,12 +1,13 @@
 import { act, render, screen } from "@testing-library/react";
 import { userEvent as testingLibraryUserEvent } from "@testing-library/user-event";
 import type { ComponentProps, CSSProperties } from "react";
+import { useState } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { cdp, commands, userEvent, server } from "vitest/browser";
 import mantleCss from "../../mantle.css?raw";
-import { Slider } from "./slider.js";
+import { Slider, SliderValue } from "./slider.js";
 
 /**
  * The `hit-area` rule of `mantle.css`, as a class rule. The `tailwindCss`
@@ -38,6 +39,20 @@ beforeAll(async () => {
 afterAll(() => {
 	styleElement.remove();
 });
+
+/** Sends one trusted mouse event at a viewport point, in the page that CDP input addresses. Chromium only. */
+function mouse(type: "mousePressed" | "mouseMoved" | "mouseReleased", x: number, y: number) {
+	const frame = window.frameElement?.getBoundingClientRect();
+	const scale = frame == null ? 1 : frame.width / window.innerWidth;
+	return cdp().send("Input.dispatchMouseEvent", {
+		type,
+		x: (frame?.left ?? 0) + x * scale,
+		y: (frame?.top ?? 0) + y * scale,
+		button: "left",
+		buttons: type === "mouseReleased" ? 0 : 1,
+		clickCount: 1,
+	});
+}
 
 /** The thumb that a press reaches at an offset from the center of `thumb`, through the thumb or its input. */
 function hitFromCenter(thumb: Element, dx: number, dy: number): Element | null {
@@ -226,6 +241,162 @@ describe("Slider thumb hit area (browser)", () => {
 		expect(hitFromCenter(lower, 0, -20)).toBe(lower);
 		expect(hitFromCenter(upper, 0, 0)).toBe(upper);
 		expect(hitFromCenter(upper, 0, -20)).toBe(upper);
+	});
+});
+
+describe("Slider track press (browser)", () => {
+	/** The running transitions of the thumb's and the range's position. */
+	function glides(): { property: string; duration: unknown; easing: string }[] {
+		return document
+			.getAnimations()
+			.filter((animation) => animation instanceof CSSTransition)
+			.filter((transition) => /inset|left|right|top|bottom/.test(transition.transitionProperty))
+			.map((transition) => ({
+				property: transition.transitionProperty,
+				duration: transition.effect?.getTiming().duration,
+				easing: transition.effect?.getTiming().easing ?? "",
+			}));
+	}
+
+	function renderSlider() {
+		render(
+			<div style={{ padding: 40, width: 280 }}>
+				<Slider aria-label="Level" defaultValue={0} />
+			</div>,
+		);
+		const slider = screen.getByRole("slider");
+		return { slider, root: rootOf(slider) };
+	}
+
+	test("a press 10px beside the thin track still moves the thumb", async () => {
+		const { slider, root } = renderSlider();
+		const rect = root.getBoundingClientRect();
+
+		await userEvent.click(root, { position: { x: rect.width * 0.75, y: rect.height / 2 - 10 } });
+
+		expect(Number((slider as HTMLInputElement).value)).toBeGreaterThan(60);
+	});
+
+	test("a press on the track glides the thumb and the range on ease-out-strong in 200ms", async () => {
+		const { slider, root } = renderSlider();
+		const rect = root.getBoundingClientRect();
+
+		await userEvent.click(root, { position: { x: rect.width - 1, y: rect.height / 2 } });
+
+		expect(slider).toHaveValue("100");
+		const curve = "cubic-bezier(0.23, 1, 0.32, 1)";
+		expect(glides()).toEqual(
+			expect.arrayContaining([
+				{ property: "left", duration: 200, easing: curve },
+				{ property: "right", duration: 200, easing: curve },
+			]),
+		);
+	});
+
+	test("a move of the pointer that changes no value keeps the thumb and the range gliding together", async () => {
+		const { root } = renderSlider();
+		const rect = root.getBoundingClientRect();
+		const at = { x: rect.width * 0.8, y: rect.height / 2 };
+
+		await userEvent.dragAndDrop(root, root, {
+			sourcePosition: at,
+			targetPosition: { ...at, y: at.y + 1 },
+		});
+
+		expect(glides().map(({ property }) => property)).toEqual(
+			expect.arrayContaining(["left", "right"]),
+		);
+	});
+
+	test("a reset during a glide moves the thumb at once", async () => {
+		render(
+			<form style={{ padding: 40, width: 280 }}>
+				<Slider aria-label="Level" defaultValue={0} />
+				<button type="reset" style={{ marginTop: 40 }}>
+					Reset
+				</button>
+			</form>,
+		);
+		const slider = screen.getByRole("slider");
+		const root = rootOf(slider);
+		const rect = root.getBoundingClientRect();
+		const reset = screen.getByRole("button", { name: "Reset" });
+
+		await userEvent.click(root, { position: { x: rect.width - 1, y: rect.height / 2 } });
+		reset.click();
+
+		await expect
+			.poll(() => getComputedStyle(thumbOf(slider)).getPropertyValue("--_value"))
+			.toBe("0");
+		expect(root).not.toHaveAttribute("data-track-press");
+		expect(glides()).toEqual([]);
+	});
+
+	// Why Chromium only: the test sends trusted mouse input through CDP.
+	test.runIf(server.browser === "chromium")(
+		"a thumb grabbed during its glide follows the pointer from where it shows",
+		async () => {
+			const { slider, root } = renderSlider();
+			const rect = root.getBoundingClientRect();
+			const thumb = thumbOf(slider);
+
+			const y = rect.top + rect.height / 2;
+			await mouse("mousePressed", rect.right - 1, y);
+			await mouse("mouseReleased", rect.right - 1, y);
+			const shown = thumb.getBoundingClientRect();
+			const x = shown.left + shown.width / 2;
+			await mouse("mousePressed", x, y);
+			await mouse("mouseMoved", x - 20, y);
+			await mouse("mouseReleased", x - 20, y);
+
+			// Why 5px: the thumb ends 20px left of where it showed, give or take the thumb inset along the track.
+			expect(thumb.getBoundingClientRect().left).toBeCloseTo(shown.left - 20, -1);
+		},
+	);
+
+	test("the hit area of the next slider leaves this slider's thumb clickable", async () => {
+		render(
+			<div style={{ padding: 40, width: 280 }}>
+				<Slider aria-label="Treble" defaultValue={50} />
+				<Slider aria-label="Bass" defaultValue={50} disabled />
+			</div>,
+		);
+		const treble = screen.getByRole("slider", { name: "Treble" });
+
+		await userEvent.click(treble);
+
+		expect(treble).toHaveFocus();
+	});
+
+	test("a key press and a drag move the thumb at once", async () => {
+		const { slider, root } = renderSlider();
+		const rect = root.getBoundingClientRect();
+		slider.focus();
+		await userEvent.keyboard("{PageUp}");
+		expect(glides()).toEqual([]);
+
+		await userEvent.dragAndDrop(root, root, {
+			sourcePosition: { x: rect.width * 0.25, y: rect.height / 2 },
+			targetPosition: { x: rect.width * 0.75, y: rect.height / 2 },
+		});
+
+		expect(Number((slider as HTMLInputElement).value)).toBeGreaterThan(60);
+		expect(glides()).toEqual([]);
+	});
+
+	test("with reduced motion, a press on the track moves the thumb at once", async () => {
+		await commands.emulateMedia({ reducedMotion: "reduce" });
+		try {
+			const { slider, root } = renderSlider();
+			const rect = root.getBoundingClientRect();
+
+			await userEvent.click(root, { position: { x: rect.width - 1, y: rect.height / 2 } });
+
+			expect(slider).toHaveValue("100");
+			expect(glides()).toEqual([]);
+		} finally {
+			await commands.emulateMedia({ reducedMotion: "no-preference" });
+		}
 	});
 });
 
@@ -527,6 +698,258 @@ describe("Slider server HTML (browser)", () => {
 			expect(serverStarts).toEqual([Math.round(travel * 0.2), Math.round(travel * 0.7)]);
 			expect(serverSliders).toEqual([20, 70]);
 			expect(hydratedBoxes).toEqual(serverBoxes);
+		},
+	);
+});
+
+describe("SliderValue (browser)", () => {
+	/** The value labels on the page, in DOM order. */
+	function labels(): HTMLElement[] {
+		return [...document.querySelectorAll<HTMLElement>("[data-slot='slider-value']")];
+	}
+
+	/** Shows the value labels of `root` as a drag does, which CSS alone decides. */
+	function showLabels(root: HTMLElement) {
+		root.setAttribute("data-dragging", "");
+	}
+
+	/** The horizontal center of an element. */
+	const centerX = (element: Element) => {
+		const { left, width } = element.getBoundingClientRect();
+		return left + width / 2;
+	};
+
+	test("a slider with no value label renders none and is no size container", () => {
+		render(<Slider aria-label="Volume" defaultValue={50} />);
+
+		expect(labels()).toEqual([]);
+		expect(getComputedStyle(rootOf(screen.getByRole("slider"))).containerType).toBe("normal");
+	});
+
+	test("at rest and under keyboard focus, the label is hidden and out of the accessibility tree", async () => {
+		render(
+			<div style={{ padding: 40, width: 280 }}>
+				<Slider aria-label="Volume" defaultValue={40} formatValue={(value) => `${value}%`}>
+					<SliderValue />
+				</Slider>
+			</div>,
+		);
+		const [label] = labels();
+		screen.getByRole("slider").focus();
+		await userEvent.keyboard("{ArrowRight}");
+
+		expect(label).toHaveTextContent("41%");
+		expect(getComputedStyle(label ?? document.body).opacity).toBe("0");
+		expect(label).toHaveAttribute("aria-hidden", "true");
+		expect(screen.getByRole("slider")).toHaveAttribute("aria-valuetext", "41%");
+	});
+
+	test.each([
+		{ name: "left to right", dir: undefined },
+		{ name: "right to left", dir: "rtl" as const },
+	])(
+		"$name: a label at each thumb centers on it, and stays inside the slider at each end",
+		({ dir }) => {
+			render(
+				<div dir={dir} style={{ padding: 40, width: 280 }}>
+					<Slider
+						aria-label="Price"
+						defaultValue={[0, 50, 100]}
+						formatValue={(value) => `$${value}.00`}
+					>
+						<SliderValue />
+					</Slider>
+				</div>,
+			);
+			const root = rootOf(screen.getAllByRole("slider")[0] ?? document.body);
+			showLabels(root);
+			const [low, middle, high] = labels();
+			const thumbs = screen.getAllByRole("slider").map(thumbOf);
+			const rootRect = root.getBoundingClientRect();
+
+			expect(labels().map((label) => label.textContent)).toEqual(["$0.00", "$50.00", "$100.00"]);
+			expect(Math.abs(centerX(middle ?? root) - centerX(thumbs[1] ?? root))).toBeLessThan(1);
+			for (const label of [low, high]) {
+				const box = (label ?? root).getBoundingClientRect();
+				expect(box.left).toBeGreaterThanOrEqual(rootRect.left - 0.5);
+				expect(box.right).toBeLessThanOrEqual(rootRect.right + 0.5);
+			}
+			for (const [index, label] of labels().entries()) {
+				expect(label.getBoundingClientRect().bottom).toBeLessThan(
+					(thumbs[index] ?? root).getBoundingClientRect().top,
+				);
+			}
+		},
+	);
+
+	test("in a vertical slider, a label at the thumb sits beside it, centered on it", () => {
+		render(
+			<div style={{ padding: 60, height: 200 }}>
+				<Slider aria-label="Level" defaultValue={30} orientation="vertical">
+					<SliderValue />
+				</Slider>
+			</div>,
+		);
+		const thumb = thumbOf(screen.getByRole("slider"));
+		showLabels(rootOf(thumb));
+		const [label] = labels();
+		const box = (label ?? thumb).getBoundingClientRect();
+		const thumbBox = thumb.getBoundingClientRect();
+
+		expect(box.right).toBeLessThan(thumbBox.left);
+		expect(Math.abs(box.top + box.height / 2 - (thumbBox.top + thumbBox.height / 2))).toBeLessThan(
+			1,
+		);
+	});
+
+	test("a label above the track shows every value of a range, centered on the track", () => {
+		render(
+			<div style={{ padding: 40, width: 280 }}>
+				<Slider aria-label="Price" defaultValue={[20, 80]}>
+					<SliderValue placement="track" />
+				</Slider>
+			</div>,
+		);
+		const root = rootOf(screen.getAllByRole("slider")[0] ?? document.body);
+		showLabels(root);
+		const [label, ...others] = labels();
+
+		expect(others).toEqual([]);
+		expect(label).toHaveTextContent("20 – 80");
+		expect(Math.abs(centerX(label ?? root) - centerX(root))).toBeLessThan(1);
+		const thumbTop = Math.min(
+			...screen.getAllByRole("slider").map((input) => thumbOf(input).getBoundingClientRect().top),
+		);
+		expect((label ?? root).getBoundingClientRect().bottom).toBeLessThan(thumbTop);
+	});
+
+	test("with reduced motion, the label shows and hides at once", async () => {
+		await commands.emulateMedia({ reducedMotion: "reduce" });
+		try {
+			render(
+				<Slider aria-label="Volume" defaultValue={40}>
+					<SliderValue />
+				</Slider>,
+			);
+			const [label] = labels();
+
+			expect(getComputedStyle(label ?? document.body).transitionDuration).toBe("0s");
+		} finally {
+			await commands.emulateMedia({ reducedMotion: "no-preference" });
+		}
+	});
+
+	test("a label above the track follows a controlled slider that adds a thumb", () => {
+		const { rerender } = render(
+			<Slider aria-label="Price" value={[50]} onValueChange={() => {}}>
+				<SliderValue placement="track" />
+			</Slider>,
+		);
+		rerender(
+			<Slider aria-label="Price" value={[50, 80]} onValueChange={() => {}}>
+				<SliderValue placement="track" />
+			</Slider>,
+		);
+
+		return expect.poll(() => labels().at(-1)?.textContent).toBe("50 – 80");
+	});
+
+	test("a label wrapped in another element still reads its value, and a child of false is no label", () => {
+		const show = false;
+		render(
+			<>
+				<Slider aria-label="Volume" defaultValue={40}>
+					<span>
+						<SliderValue placement="track" />
+					</span>
+				</Slider>
+				<Slider aria-label="Treble" defaultValue={40}>
+					{show && <SliderValue />}
+				</Slider>
+			</>,
+		);
+
+		expect(labels().map((label) => label.textContent)).toEqual(["40"]);
+		expect(
+			getComputedStyle(rootOf(screen.getByRole("slider", { name: "Treble" }))).containerType,
+		).toBe("normal");
+	});
+
+	// Why Chromium only: the test holds the mouse button down through CDP.
+	test.runIf(server.browser === "chromium")(
+		"a controlled slider's label matches the value after each move, and after a change from outside on a press",
+		async () => {
+			function Controlled() {
+				const [value, setValue] = useState(40);
+				return (
+					<div style={{ padding: 40, width: 280 }}>
+						<button type="button" onClick={() => setValue(75)}>
+							Set 75
+						</button>
+						<Slider
+							aria-label="Volume"
+							value={value}
+							onValueChange={([next]) => setValue(Math.min(next ?? 0, 90))}
+						>
+							<SliderValue />
+						</Slider>
+					</div>
+				);
+			}
+			render(<Controlled />);
+			const slider = screen.getByRole("slider");
+			const thumb = thumbOf(slider);
+			const [label] = labels();
+			const root = rootOf(thumb);
+			const rect = root.getBoundingClientRect();
+			const y = rect.top + rect.height / 2;
+
+			await mouse("mousePressed", centerX(thumb), y);
+			for (const fraction of [0.55, 0.7, 0.95]) {
+				await mouse("mouseMoved", rect.left + rect.width * fraction, y);
+				await expect.poll(() => label?.textContent).toBe((slider as HTMLInputElement).value);
+			}
+			expect(slider).toHaveValue("90");
+			await mouse("mouseReleased", rect.left + rect.width * 0.95, y);
+
+			screen.getByRole("button", { name: "Set 75" }).click();
+			await expect.poll(() => (slider as HTMLInputElement).value).toBe("75");
+			await mouse("mousePressed", centerX(thumb), y);
+			await expect.poll(() => label?.textContent).toBe("75");
+			await mouse("mouseReleased", centerX(thumb), y);
+		},
+	);
+
+	// Why Chromium only: the test holds the mouse button down through CDP.
+	test.runIf(server.browser === "chromium")(
+		"while a pointer drags a thumb, its label shows and follows the value",
+		async () => {
+			render(
+				<div style={{ padding: 40, width: 280 }}>
+					<Slider aria-label="Volume" defaultValue={40} formatValue={(value) => `${value}%`}>
+						<SliderValue />
+					</Slider>
+				</div>,
+			);
+			const slider = screen.getByRole("slider");
+			const thumb = thumbOf(slider);
+			const root = rootOf(thumb);
+			const [label] = labels();
+			const y = thumb.getBoundingClientRect().top + thumb.getBoundingClientRect().height / 2;
+			const x = centerX(thumb);
+			const rootRect = root.getBoundingClientRect();
+
+			await mouse("mousePressed", x, y);
+			await mouse("mouseMoved", rootRect.left + rootRect.width * 0.75, y);
+			await expect.poll(() => getComputedStyle(label ?? root).opacity).toBe("1");
+			const value = Number((slider as HTMLInputElement).value);
+			expect(label).toHaveTextContent(`${value}%`);
+			expect(slider).toHaveAttribute("aria-valuetext", `${value}%`);
+			expect(Math.abs(centerX(label ?? root) - centerX(thumb))).toBeLessThan(1);
+			await mouse("mouseReleased", rootRect.left + rootRect.width * 0.75, y);
+
+			expect(root).not.toHaveAttribute("data-dragging");
+			await expect.poll(() => getComputedStyle(label ?? root).opacity).toBe("0");
 		},
 	);
 });

@@ -3,7 +3,7 @@ import { Profiler, type ReactNode, useEffect, useState } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterAll, afterEach, beforeAll, describe, expect, onTestFinished, test, vi } from "vitest";
-import { commands, page, userEvent, server } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { useLocalStorage } from "../../hooks/use-local-storage.js";
 import mantleCss from "../../mantle.css?raw";
 import * as Command from "../command/command-parts.js";
@@ -534,69 +534,70 @@ describe("Sidebar.Nav on the native <dialog>", () => {
 		expect(serverNav?.checkVisibility()).toBe(false);
 	});
 
-	// Why not in WebKit: on the CI runner, WebKit leaves this dialog open after
-	// Escape (it passes locally). The Sidebar owners track the cause.
-	test.skipIf(server.browser === "webkit")(
-		"a tap opens the modal sheet before any React render, and Escape closes it",
-		async () => {
-			await page.viewport(414, 896);
-			let commits = 0;
-			let paletteCommits = 0;
-			render(
-				<Profiler id="shell" onRender={() => commits++}>
-					<MobileShell>
-						{/* Why a closed palette: a closed dialog must not render when the sheet opens. */}
-						<Profiler id="palette" onRender={() => paletteCommits++}>
-							<Command.DialogRoot keyboardShortcut={false}>
-								<Command.DialogContent title="Palette">
-									<Command.Input placeholder="Type a command…" />
-								</Command.DialogContent>
-							</Command.DialogRoot>
-						</Profiler>
-					</MobileShell>
-				</Profiler>,
-			);
-			await waitForSheet();
-			const trigger = screen.getByRole("button", { name: "Toggle Sidebar" });
-			const dialog = sheetDialog();
-			commits = 0;
-			paletteCommits = 0;
+	test("a tap opens the modal sheet before any React render, and Escape closes it", async () => {
+		await page.viewport(414, 896);
+		let commits = 0;
+		let paletteCommits = 0;
+		render(
+			<Profiler id="shell" onRender={() => commits++}>
+				<MobileShell>
+					{/* Why a closed palette: a closed dialog must not render when the sheet opens. */}
+					<Profiler id="palette" onRender={() => paletteCommits++}>
+						<Command.DialogRoot keyboardShortcut={false}>
+							<Command.DialogContent title="Palette">
+								<Command.Input placeholder="Type a command…" />
+							</Command.DialogContent>
+						</Command.DialogRoot>
+					</Profiler>
+				</MobileShell>
+			</Profiler>,
+		);
+		await waitForSheet();
+		const trigger = screen.getByRole("button", { name: "Toggle Sidebar" });
+		const dialog = sheetDialog();
+		commits = 0;
+		paletteCommits = 0;
 
-			// Why focus first: a pointer press focuses the button, and the `<dialog>`
-			// returns focus to the element that had it when it opened.
-			trigger.focus();
-			trigger.click();
+		// Why focus first: a pointer press focuses the button, and the `<dialog>`
+		// returns focus to the element that had it when it opened.
+		trigger.focus();
+		trigger.click();
 
-			// The open is a DOM call in the click handler; the state render comes later.
-			expect(dialog.matches(":modal")).toBe(true);
-			expect(commits).toBe(0);
-			// Why a microtask: a store update renders there, on the sync lane, before
-			// the paint. The state render that follows is a transition, after it.
-			await Promise.resolve();
-			expect(paletteCommits).toBe(0);
-			await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "true"));
+		// The open is a DOM call in the click handler; the state render comes later.
+		expect(dialog.matches(":modal")).toBe(true);
+		expect(commits).toBe(0);
+		// Why a microtask: a store update renders there, on the sync lane, before
+		// the paint. The state render that follows is a transition, after it.
+		await Promise.resolve();
+		expect(paletteCommits).toBe(0);
+		await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "true"));
 
-			expect(screen.getByRole("dialog", { name: "Main" })).toBe(dialog);
-			expect(dialog.contains(document.activeElement)).toBe(true);
-			// The page behind is inert, and its scroll is locked.
-			trigger.focus();
-			expect(document.activeElement).not.toBe(trigger);
-			expect(getComputedStyle(document.body).overflow).toBe("hidden");
-			// No gutter: in an app shell whose root does not scroll, one would narrow the shell.
-			expect(getComputedStyle(document.body).paddingInlineEnd).toBe("0px");
-			// The panel slides in to the left edge at `--sidebar-width-mobile`.
-			const panel = dialog.querySelector('[data-slot~="sidebar-nav"]');
-			await Promise.all(panel?.getAnimations().map((animation) => animation.finished) ?? []);
-			expect(panel?.getBoundingClientRect().left).toBe(0);
-			expect(panel == null ? null : getComputedStyle(panel).width).toBe("288px");
+		expect(screen.getByRole("dialog", { name: "Main" })).toBe(dialog);
+		expect(dialog.contains(document.activeElement)).toBe(true);
+		// The page behind is inert, and its scroll is locked.
+		trigger.focus();
+		expect(document.activeElement).not.toBe(trigger);
+		expect(getComputedStyle(document.body).overflow).toBe("hidden");
+		// No gutter: in an app shell whose root does not scroll, one would narrow the shell.
+		expect(getComputedStyle(document.body).paddingInlineEnd).toBe("0px");
+		// The panel slides in to the left edge at `--sidebar-width-mobile`.
+		const panel = dialog.querySelector('[data-slot~="sidebar-nav"]');
+		await Promise.all(panel?.getAnimations().map((animation) => animation.finished) ?? []);
+		expect(panel?.getBoundingClientRect().left).toBe(0);
+		expect(panel == null ? null : getComputedStyle(panel).width).toBe("288px");
 
-			await userEvent.keyboard("{Escape}");
-			await waitFor(() => expect(dialog.open).toBe(false));
-			await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "false"));
-			expect(document.activeElement).toBe(trigger);
-			expect(getComputedStyle(document.body).overflow).not.toBe("hidden");
-		},
-	);
+		await userEvent.keyboard("{Escape}");
+		// Why wait on the exit: the dialog closes when its exit animations end. A
+		// `waitFor` gives up after 1 s, and WebKit in CI can skip frames that long.
+		await waitFor(() => expect(dialog.dataset.state).toBe("closed"));
+		await Promise.allSettled(
+			dialog.getAnimations({ subtree: true }).map((animation) => animation.finished),
+		);
+		await waitFor(() => expect(dialog.open).toBe(false));
+		await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "false"));
+		expect(document.activeElement).toBe(trigger);
+		expect(getComputedStyle(document.body).overflow).not.toBe("hidden");
+	});
 
 	test("a controlled sheet asks its owner on Escape and stays open while the owner keeps it", async () => {
 		await page.viewport(414, 896);

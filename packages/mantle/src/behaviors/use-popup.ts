@@ -8,6 +8,7 @@ import {
 	useIsCoveredByOverlay,
 	useLayerContainer,
 } from "../utils/layer-container/layer-container.js";
+import { swallowOutsideClick } from "./swallow-outside-click.js";
 import { trackFloat } from "../utils/float/position.js";
 import { hasPopoverApi, resolvePortalTarget } from "../utils/float/use-float.js";
 
@@ -88,7 +89,6 @@ const usePopup = ({
 					side: "bottom",
 					align: "start",
 					sideOffset: OFFSET,
-					fallback: "larger",
 				});
 				const document = floating.ownerDocument;
 				const onPointerDown = (event: PointerEvent) => {
@@ -99,27 +99,7 @@ const usePopup = ({
 					) {
 						return;
 					}
-					// Why on the window, not the popup: the press closes the popup before
-					// its click arrives. A cancelled press or the next press drops it.
-					// Why skip `detail` 0: a keyboard or script click has no press, so a
-					// press that makes no click, such as on a disabled button, cannot eat it.
-					const swallow = (click: MouseEvent) => {
-						if (click.detail === 0) {
-							return;
-						}
-						click.preventDefault();
-						click.stopPropagation();
-						release();
-					};
-					const release = () => {
-						window.removeEventListener("click", swallow, { capture: true });
-						window.removeEventListener("pointercancel", release, { capture: true });
-						window.removeEventListener("pointerdown", release, { capture: true });
-					};
-					window.addEventListener("click", swallow, { capture: true });
-					window.addEventListener("pointercancel", release, { capture: true });
-					// Why this press does not release it: it has passed the window already.
-					window.addEventListener("pointerdown", release, { capture: true });
+					swallowOutsideClick();
 					// Why close here, not only on blur: a press that keeps focus, such as on a
 					// toolbar button that cancels `mousedown`, would leave the popup open.
 					outsidePress(event);

@@ -46,6 +46,16 @@ describe("planChecks", () => {
 		},
 	);
 
+	it("checks the selectors of every mantle stylesheet when one changes", () => {
+		const step = planChecks({
+			files: ["packages/mantle/src/mantle.css"],
+			deleted: [],
+			base: "origin/main",
+		}).find((candidate) => candidate.name === "css selectors");
+
+		expect(step?.args).toEqual(["./scripts/check-css-selectors.ts"]);
+	});
+
 	it("runs the root script tasks too for a shared tsconfig, which the scripts tsconfig extends", () => {
 		expect(stepNames(["config/tsconfig/tsconfig.client-package.json"])).toEqual([
 			"fmt",

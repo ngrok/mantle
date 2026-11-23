@@ -17,6 +17,8 @@ type SliderBehaviorOptions = {
 	onValueChange: ((value: number[]) => void) | undefined;
 	/** Called once for each keyboard step, and at the end of a drag that changed a value. */
 	onValueCommit: ((value: number[]) => void) | undefined;
+	/** The text of a value, for `aria-valuetext`. */
+	formatValue: ((value: number) => string) | undefined;
 };
 
 /**
@@ -72,6 +74,7 @@ function sliderBehavior({
 	dir,
 	onValueChange,
 	onValueCommit,
+	formatValue,
 }: SliderBehaviorOptions) {
 	const edgeOfMin = (root: HTMLElement): Edge => {
 		if (orientation === "vertical") {
@@ -110,9 +113,12 @@ function sliderBehavior({
 		if (result == null) {
 			return index;
 		}
+		// Why after the check: only a press on the track glides, and a move that changes no value
+		// must not stop the thumb's glide while the range's runs on.
+		root.removeAttribute(TRACK_PRESS);
 		parts.inputs[result.index]?.focus({ preventScroll: true, focusVisible: keyboard });
 		if (!controlled) {
-			paint(parts, result.values, min);
+			paint(parts, result.values, { min, formatValue });
 		}
 		announce({ inputs: parts.inputs, before: current, after: result.values, grid: { min, step } });
 		onValueChange?.(result.values);
@@ -154,13 +160,15 @@ function sliderBehavior({
 				// Why the offset: a press on a thumb grabs it where it is, so the thumb
 				// does not jump to the pointer on the first move.
 				inputs[thumbIndex]?.focus({ preventScroll: true, focusVisible: false });
+				root.setAttribute(DRAGGING, "");
 				slides.set(root, {
 					pointerId: event.pointerId,
 					index: thumbIndex,
 					rect,
 					before: values,
 					edge,
-					offset: pressed - thumbValue,
+					// Why no offset during a glide: the thumb shows short of its value, under the pointer.
+					offset: root.hasAttribute(TRACK_PRESS) ? 0 : pressed - thumbValue,
 				});
 				return;
 			}
@@ -171,6 +179,8 @@ function sliderBehavior({
 				commit: false,
 				keyboard: false,
 			});
+			glide(root);
+			root.setAttribute(DRAGGING, "");
 			slides.set(root, {
 				pointerId: event.pointerId,
 				index,
@@ -204,6 +214,7 @@ function sliderBehavior({
 				return;
 			}
 			slides.delete(root);
+			root.removeAttribute(DRAGGING);
 			const { values } = partsOf(root);
 			if (String(values) !== String(slide.before)) {
 				onValueCommit?.(values);
@@ -252,11 +263,12 @@ function sliderBehavior({
 			const { inputs, values } = partsOf(root);
 			if (resetting) {
 				const next = inputs.map((each) => each.valueAsNumber);
+				root.removeAttribute(TRACK_PRESS);
 				for (const [index, each] of inputs.entries()) {
 					each.step = onStepGrid(next[index] ?? min, { min, step }) ? String(step) : "any";
 				}
 				if (String(next) !== String(values)) {
-					paint(partsOf(root), next, min);
+					paint(partsOf(root), next, { min, formatValue });
 					onValueChange?.(next);
 				}
 				return;
@@ -324,6 +336,30 @@ function stopNativeTouch(event: TouchEvent) {
 	if (event.target instanceof HTMLInputElement) {
 		event.preventDefault();
 	}
+}
+
+/** The root attribute that shows the value labels while a pointer drags a thumb. */
+const DRAGGING = "data-dragging";
+
+/** The root attribute that lets the thumbs and the range glide to the value of a press on the track. */
+const TRACK_PRESS = "data-track-press";
+
+/** The timer that ends the glide on each root. */
+const glides = new WeakMap<Element, ReturnType<typeof setTimeout>>();
+
+/**
+ * Lets the thumbs and the range of `root` glide to their new values. The
+ * attribute goes 250ms later, after `duration-200` and a busy frame, so a later
+ * change of a controlled value or a form reset moves at once. Why a timer: an
+ * interrupted transition fires no `transitionend`.
+ */
+function glide(root: Element) {
+	root.setAttribute(TRACK_PRESS, "");
+	clearTimeout(glides.get(root));
+	glides.set(
+		root,
+		setTimeout(() => root.removeAttribute(TRACK_PRESS), 250),
+	);
 }
 
 /** Whether `value` sits on the grid of `step`s that starts at `min`. */
@@ -425,11 +461,24 @@ function partsOf(root: Element): Parts {
 	};
 }
 
-/** Writes `values` to the thumbs and the range of an uncontrolled slider. {@link announce} writes the inputs. */
-function paint({ range, thumbs }: Parts, values: number[], min: number): void {
+/**
+ * Writes `values` to the thumbs and the range of an uncontrolled slider, and the
+ * value text to its inputs. {@link announce} writes the input values.
+ */
+function paint(
+	{ range, thumbs, inputs }: Parts,
+	values: number[],
+	{ min, formatValue }: { min: number; formatValue: ((value: number) => string) | undefined },
+): void {
 	const styles = sliderStyles(values, min);
 	for (const [index, thumb] of thumbs.entries()) {
-		thumb.style.setProperty(VALUE_PROPERTY, String(values[index]));
+		const value = values[index] ?? min;
+		thumb.style.setProperty(VALUE_PROPERTY, String(value));
+		if (formatValue == null) {
+			inputs[index]?.removeAttribute("aria-valuetext");
+		} else {
+			inputs[index]?.setAttribute("aria-valuetext", formatValue(value));
+		}
 	}
 	range?.style.setProperty(RANGE_START_PROPERTY, String(styles.range[RANGE_START_PROPERTY]));
 	range?.style.setProperty(RANGE_END_PROPERTY, String(styles.range[RANGE_END_PROPERTY]));

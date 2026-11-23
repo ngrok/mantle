@@ -1,26 +1,106 @@
 "use client";
 
 import type { ComponentProps } from "react";
-import { createContext, useContext, useMemo } from "react";
+import {
+	createContext,
+	use,
+	useContext,
+	useEffect,
+	useMemo,
+	useState,
+	useSyncExternalStore,
+} from "react";
 import invariant from "tiny-invariant";
-import { encode } from "uqr";
+import { encodeQrCodeSync } from "#qr-code-encoder";
+import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import type { WithAsChild } from "../../types/as-child.js";
+import { canUseDOM } from "../browser-only/can-use-dom.js";
 import { Slot } from "../slot/index.js";
+import type {
+	EncodeQrCodeOptions,
+	QrCodeErrorCorrection,
+	QrCodeGeometry,
+} from "./qr-code-geometry.js";
 
 /**
- * The encoded geometry shared from `QrCode.Root` to the SVG rendering parts.
+ * What `QrCode.Root` shares with the SVG parts: the encoded geometry, or a
+ * state in which the parts render without it.
+ *
+ * - `server-markup`: the hydration render reuses the `viewBox` and `d` that the server rendered, so it leaves them out.
+ * - `loading`: the client loads the encoder for a value that the server did not render.
  */
-type QrCodeContextValue = {
-	/** The `d` attribute for the QR `Pattern` path. */
-	path: string;
-	/** The width/height of the (square) QR `Frame` viewBox. */
-	dimension: number;
-};
+type QrCodeContextValue =
+	| ({ status: "encoded" } & QrCodeGeometry)
+	| { status: "server-markup" }
+	| { status: "loading" };
 
 const QrCodeContext = createContext<QrCodeContextValue | null>(null);
+
+const SERVER_MARKUP: QrCodeContextValue = { status: "server-markup" };
+const LOADING: QrCodeContextValue = { status: "loading" };
+
+/**
+ * The encoder, once the server import or a client load sets it. A module cache,
+ * so each `QrCode.Root` after the first load encodes in its first render.
+ */
+let encoder = encodeQrCodeSync;
+let encoderLoad: Promise<void> | undefined;
+const encoderListeners = new Set<() => void>();
+
+/**
+ * Loads the encoder chunk one time and tells each subscribed `QrCode.Root`.
+ * A failed load clears the cache, so a later mount can try again.
+ *
+ * @example
+ * ```ts
+ * await loadEncoder();
+ * ```
+ */
+function loadEncoder(): Promise<void> {
+	encoderLoad ??= (async () => {
+		try {
+			const module = await import("./qr-code-geometry.js");
+			encoder = module.encodeQrCode;
+		} catch (error) {
+			encoderLoad = undefined;
+			throw error;
+		}
+		for (const listener of encoderListeners) {
+			listener();
+		}
+	})();
+	return encoderLoad;
+}
+
+/**
+ * Subscribes to the encoder load for `useSyncExternalStore`.
+ *
+ * @example
+ * ```ts
+ * const unsubscribe = subscribeToEncoder(() => {});
+ * ```
+ */
+function subscribeToEncoder(listener: () => void): () => void {
+	encoderListeners.add(listener);
+	return () => {
+		encoderListeners.delete(listener);
+	};
+}
+
+/**
+ * Reads the encoder for `useSyncExternalStore`, on the server and the client.
+ *
+ * @example
+ * ```ts
+ * getEncoder()?.({ value: "https://ngrok.com", ecc: "L", quietZone: 4, pixelSize: 10 });
+ * ```
+ */
+function getEncoder(): typeof encoder {
+	return encoder;
+}
 
 /**
  * Validates sizing props before they reach `uqr` or SVG coordinate math.
@@ -45,12 +125,78 @@ function assertValidRootProps(pixelSize: number, quietZone: number): void {
 }
 
 /**
+ * Loads the encoder chunk while `needed` is true. A failed load throws to the
+ * nearest error boundary.
+ *
+ * @example
+ * ```tsx
+ * useLoadEncoder(encoder == null);
+ * ```
+ */
+function useLoadEncoder(needed: boolean): void {
+	const [, setLoadFailure] = useState();
+	useEffect(() => {
+		if (!needed) {
+			return;
+		}
+		loadEncoder().catch((error: unknown) => {
+			// Why: an updater that throws hands the load failure to the nearest error boundary.
+			setLoadFailure(() => {
+				throw error;
+			});
+		});
+	}, [needed]);
+}
+
+/**
+ * Encodes the QR code for `QrCode.Root` with the least client JavaScript:
+ *
+ * - The server encodes, so the HTML holds the finished SVG.
+ * - The hydration render keeps that SVG and needs no encoder.
+ * - A value that only the client knows loads the encoder chunk, then encodes.
+ *
+ * @example
+ * ```tsx
+ * const context = useQrCodeEncoding({ value, ecc, quietZone, pixelSize });
+ * ```
+ */
+function useQrCodeEncoding({
+	value,
+	ecc,
+	quietZone,
+	pixelSize,
+}: EncodeQrCodeOptions): QrCodeContextValue {
+	const isHydrated = useIsHydrated();
+	const currentEncoder = useSyncExternalStore(subscribeToEncoder, getEncoder, getEncoder);
+	const key = JSON.stringify([value, ecc, quietZone, pixelSize]);
+	// Why: the DOM keeps the server SVG while the props match the props that
+	// the server rendered, so only that key needs no encoder.
+	const [serverKey] = useState(isHydrated ? undefined : key);
+	useLoadEncoder(currentEncoder == null && serverKey !== key);
+
+	const encoded = useMemo<QrCodeContextValue | undefined>(() => {
+		const geometry = currentEncoder?.({ value, ecc, quietZone, pixelSize });
+		return geometry && { status: "encoded", ...geometry };
+	}, [currentEncoder, value, ecc, quietZone, pixelSize]);
+
+	// Why: a server that resolves the `browser` condition (such as an edge
+	// runtime) has no encoder up front, so its render waits for the chunk.
+	if (currentEncoder == null && !canUseDOM()) {
+		use(loadEncoder());
+	}
+	if (encoded != null) {
+		return encoded;
+	}
+	return serverKey === key ? SERVER_MARKUP : LOADING;
+}
+
+/**
  * Reads the QR code context provided by `QrCode.Root`. Throws a clear error when
  * a part is rendered outside of a `QrCode.Root`.
  *
  * @example
  * ```tsx
- * const { dimension, path } = useQrCodeContext();
+ * const context = useQrCodeContext();
  * ```
  */
 function useQrCodeContext(): QrCodeContextValue {
@@ -63,36 +209,64 @@ function useQrCodeContext(): QrCodeContextValue {
 }
 
 /**
- * Builds the SVG `path` `d` attribute for a QR code by emitting one square
- * (`M x,y h s v s h-s z`) per dark module in the encoded grid, scaled by
- * `pixelSize`. Returns an empty string when there are no dark modules.
+ * Reads the QR code context for `QrCode.Frame` and `QrCode.Pattern`. A part
+ * that the client mounts after hydration has no server markup to keep, so it
+ * reads `loading` and loads the encoder.
  *
  * @example
- * ```ts
- * buildPath([[true, false], [false, true]], 10);
- * // "M0,0h10v10h-10zM10,10h10v10h-10z"
+ * ```tsx
+ * const context = useQrCodePartContext();
  * ```
  */
-function buildPath(modules: ReadonlyArray<ReadonlyArray<boolean>>, pixelSize: number): string {
-	const rects: string[] = [];
-	modules.forEach((columns, row) => {
-		columns.forEach((isDark, col) => {
-			if (isDark) {
-				const x = col * pixelSize;
-				const y = row * pixelSize;
-				rects.push(`M${x},${y}h${pixelSize}v${pixelSize}h-${pixelSize}z`);
-			}
-		});
-	});
-	return rects.join("");
+function useQrCodePartContext(): QrCodeContextValue {
+	const context = useQrCodeContext();
+	const isHydrated = useIsHydrated();
+	const [hydratedFromServer] = useState(!isHydrated);
+	const needsEncoder = context.status === "server-markup" && !hydratedFromServer;
+	useLoadEncoder(needsEncoder);
+	return needsEncoder ? LOADING : context;
 }
 
 /**
- * QR error correction level: the share of the code that can be damaged or
- * obscured while staying scannable: `"L"` ~7%, `"M"` ~15%, `"Q"` ~25%, `"H"`
- * ~30%. Higher levels produce a denser code.
+ * The `viewBox` for `QrCode.Frame`. While the encoder loads, a unit square
+ * keeps the frame square; for the server markup, `undefined` keeps the server
+ * `viewBox`.
+ *
+ * @example
+ * ```ts
+ * frameViewBox({ status: "loading" }); // "0 0 1 1"
+ * ```
  */
-type QrCodeErrorCorrection = "L" | "M" | "Q" | "H";
+function frameViewBox(context: QrCodeContextValue): string | undefined {
+	switch (context.status) {
+		case "encoded":
+			return `0 0 ${context.dimension} ${context.dimension}`;
+		case "loading":
+			return "0 0 1 1";
+		case "server-markup":
+			return undefined;
+	}
+}
+
+/**
+ * The `d` for `QrCode.Pattern`. While the encoder loads, `""` clears a stale
+ * server path; for the server markup, `undefined` keeps the server path.
+ *
+ * @example
+ * ```ts
+ * patternPath({ status: "loading" }); // ""
+ * ```
+ */
+function patternPath(context: QrCodeContextValue): string | undefined {
+	switch (context.status) {
+		case "encoded":
+			return context.path;
+		case "loading":
+			return "";
+		case "server-markup":
+			return undefined;
+	}
+}
 
 /**
  * Props for `QrCode.Root`, the provider and positioned tile that encodes the QR
@@ -122,6 +296,10 @@ type QrCodeRootProps = ComponentProps<"div"> &
  * The root container of a QR code. Encodes `value` (via the dependency-free
  * `uqr` encoder) and renders a positioned white tile around the QR `Frame`,
  * sharing the encoded path with the other parts via context.
+ *
+ * The server render encodes `value`, so the HTML holds the finished SVG and
+ * hydration ships no encoder. A value that only the client knows loads the
+ * encoder chunk the first time, and the code draws when it arrives.
  *
  * Set the error correction level via `ecc`. When you place a logo in an
  * `Overlay`, use `ecc="H"` so the covered modules can still be recovered by a
@@ -159,17 +337,7 @@ const Root = ({
 	...props
 }: QrCodeRootProps) => {
 	assertValidRootProps(pixelSize, quietZone);
-
-	// The quiet zone is the QR spec's required margin (light modules on each
-	// side). It's part of the code itself (the scannable margin), not cosmetic
-	// padding. The spec recommends 4; lowering it tightens the whitespace at
-	// the cost of scannability.
-	const encoded = useMemo(() => encode(value, { ecc, border: quietZone }), [value, ecc, quietZone]);
-	const path = useMemo(() => buildPath(encoded.data, pixelSize), [encoded, pixelSize]);
-	const context = useMemo<QrCodeContextValue>(
-		() => ({ path, dimension: encoded.size * pixelSize }),
-		[path, encoded.size, pixelSize],
-	);
+	const context = useQrCodeEncoding({ value, ecc, quietZone, pixelSize });
 
 	const Comp = asChild ? Slot : "div";
 
@@ -229,7 +397,7 @@ const Frame = ({
 	ref,
 	...props
 }: QrCodeFrameProps) => {
-	const { dimension } = useQrCodeContext();
+	const context = useQrCodePartContext();
 
 	return (
 		<svg
@@ -242,7 +410,8 @@ const Frame = ({
 			aria-labelledby={ariaLabelledBy}
 			data-slot={joinDataSlot(dataSlot, "qr-code-frame")}
 			xmlns="http://www.w3.org/2000/svg"
-			viewBox={`0 0 ${dimension} ${dimension}`}
+			viewBox={frameViewBox(context)}
+			suppressHydrationWarning={context.status === "server-markup"}
 			shapeRendering="crispEdges"
 			className={cx("block size-48", className)}
 		>
@@ -281,14 +450,15 @@ type QrCodePatternProps = ComponentProps<"path"> & WithDataSlot;
  * ```
  */
 const Pattern = ({ "data-slot": dataSlot, className, ref, ...props }: QrCodePatternProps) => {
-	const { path } = useQrCodeContext();
+	const context = useQrCodePartContext();
 
 	return (
 		<path
 			ref={ref}
 			{...props}
 			data-slot={joinDataSlot(dataSlot, "qr-code-pattern")}
-			d={path}
+			d={patternPath(context)}
+			suppressHydrationWarning={context.status === "server-markup"}
 			className={cx("fill-static-black", className)}
 		/>
 	);
@@ -344,7 +514,6 @@ const Overlay = ({
 
 export {
 	//,
-	buildPath,
 	Root,
 	Frame,
 	Pattern,

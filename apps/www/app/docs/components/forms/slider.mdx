@@ -33,6 +33,8 @@ import { Slider } from "@ngrok/mantle/slider";
 - Pair it with `Field` to connect a description and errors in a form.
 - Prefer [`Input`](/components/forms/input) when the user types an exact number.
 
+A press on the track glides the thumb to the new value. A drag and the keys move it at once. The track takes presses 24px tall with a mouse and 44px tall with a finger, so leave that much room above and below it for other controls.
+
 ## Disabled
 
 Set `disabled` to stop the user from changing the value.
@@ -202,6 +204,27 @@ import { Slider } from "@ngrok/mantle/slider";
 
 </Example>
 
+### Value while dragging
+
+Place `SliderValue` inside `Slider` to show the value in a small label while a pointer or a finger drags a thumb. It sits above each thumb and follows it, or with `placement="track"`, above the center of the track with every value of a range. It hides at rest. `formatValue` sets the text, and screen readers hear the same text through `aria-valuetext`.
+
+<Example name="components/forms/slider/value" title="Slider value example">
+
+```tsx
+import { Slider, SliderValue } from "@ngrok/mantle/slider";
+
+<Slider aria-label="Volume" defaultValue={40} formatValue={(value) => `${value}%`}>
+	<SliderValue />
+</Slider>
+<Slider aria-label="Price" defaultValue={[20, 80]} formatValue={(value) => `$${value}`}>
+	<SliderValue placement="track" />
+</Slider>
+```
+
+</Example>
+
+The label does not show under keyboard focus. A keyboard user sees the thumb move, and a label on each focus covers content as the user tabs through a form.
+
 ## API Reference
 
 ### Slider
@@ -213,6 +236,7 @@ Each thumb of `Slider` is a native `<input type="range">`. The root is a `<span>
 | Prop                    | Type                           | Default           | Description                                                                                                    |
 | :---------------------- | :----------------------------- | :---------------- | :------------------------------------------------------------------------------------------------------------- |
 | `color`                 | `` `bg-${string}` ``           | `"bg-accent-600"` | The color of the slider range. Accepts any Tailwind `bg-*` class.                                              |
+| `formatValue`           | `(value: number) => string`    |                   | The text of a value: `aria-valuetext` on each thumb and the text of each `SliderValue`.                        |
 | `aria-label`            | `string`                       |                   | Accessible name forwarded to the rendered thumb. Range sliders derive per-thumb labels from it.                |
 | `aria-labelledby`       | `string`                       |                   | IDREF forwarded to every thumb, so a range slider names both thumbs with the same text. Prefer `aria-label`.   |
 | `defaultValue`          | `number` \| `number[]`         |                   | The value of the slider when initially rendered. Use when you do not need to control the state of the slider.  |
@@ -232,10 +256,24 @@ Each thumb of `Slider` is a native `<input type="range">`. The root is a `<span>
 | `preserveThumbOrder`    | `boolean`                      | `false`           | Whether a thumb stops at its neighbor instead of passing it.                                                   |
 | `dir`                   | `"ltr"` \| `"rtl"`             |                   | The text direction. When omitted, the slider follows the direction it inherits from the page.                  |
 
-| Data Attribute     | Value                          | Description                                              |
-| :----------------- | :----------------------------- | :------------------------------------------------------- |
-| `data-orientation` | `"horizontal"` \| `"vertical"` | On the root. Mirrors `orientation`.                      |
-| `data-disabled`    | present when disabled          | On the root. Presence-only. Style with `data-disabled:`. |
+| Data Attribute     | Value                          | Description                                                                 |
+| :----------------- | :----------------------------- | :-------------------------------------------------------------------------- |
+| `data-orientation` | `"horizontal"` \| `"vertical"` | On the root. Mirrors `orientation`.                                         |
+| `data-disabled`    | present when disabled          | On the root. Presence-only. Style with `data-disabled:`.                    |
+| `data-track-press` | present during a glide         | On the root while a thumb glides after a press on the track. Presence-only. |
+| `data-dragging`    | present during a drag          | On the root while a pointer drags a thumb. Presence-only.                   |
+
+### SliderValue
+
+A label with the slider's value that shows while a pointer drags a thumb. It renders a `<span>`, which assistive technology does not read, and accepts its props.
+
+| Prop        | Type                   | Default   | Description                                                                |
+| :---------- | :--------------------- | :-------- | :------------------------------------------------------------------------- |
+| `placement` | `"thumb"` \| `"track"` | `"thumb"` | Above each thumb, which it follows, or once above the center of the track. |
+
+| Data Attribute   | Value                  | Description          |
+| :--------------- | :--------------------- | :------------------- |
+| `data-placement` | `"thumb"` \| `"track"` | Mirrors `placement`. |
 
 ### Keyboard
 

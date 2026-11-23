@@ -129,6 +129,16 @@ const mantleAnimations = async (): Promise<string> => {
 	return `@theme inline {\n${rules.join("\n")}\n}`;
 };
 
+/** The `ease-*` tokens of mantle's theme, so a test reads the curve that a component's class compiles to. */
+const mantleEasings = async (): Promise<string> => {
+	const css = await readFile(path.join(import.meta.dirname, "src/mantle.css"), "utf8");
+	const tokens = css.match(/^\s*--ease-[\w-]+:[^;]+;/gm);
+	if (tokens == null) {
+		throw new Error("mantle.css holds no ease tokens.");
+	}
+	return `@theme {${tokens.join("")}}`;
+};
+
 // Why a command: a browser test asserts layout, so it needs the CSS that Tailwind
 // really compiles for a component. A hand-written copy keeps passing when Tailwind
 // drops a rule. The path is relative to the test file.
@@ -142,7 +152,7 @@ const tailwindCss: BrowserCommand<[sourceFile: string]> = async ({ testPath }, s
 		.getCandidatesWithPositions({ content, extension: path.extname(file).slice(1) })
 		.map(({ candidate }) => candidate);
 	const compiler = await compile(
-		`@import "tailwindcss/theme"; @import "tailwindcss/utilities";\n${await mantleCustomVariants()}\n${await mantleUtilities()}\n${await mantleAnimations()}`,
+		`@import "tailwindcss/theme"; @import "tailwindcss/utilities";\n${await mantleEasings()}\n${await mantleCustomVariants()}\n${await mantleUtilities()}\n${await mantleAnimations()}`,
 		{
 			base: import.meta.dirname,
 			onDependency: () => {},
@@ -182,6 +192,16 @@ const compilerPlugins =
 // Both projects inherit every option here (Vitest 5 defaults projects to `extends: true`), so a
 // hygiene or locale pin is written once and cannot drift between them.
 export default defineConfig({
+	// Why an alias, not a resolve condition: a condition reaches every dependency. The unit
+	// and browser projects run in a DOM, so they get the encoder file a browser bundle gets.
+	resolve: {
+		alias: {
+			"#qr-code-encoder": path.join(
+				import.meta.dirname,
+				"src/components/qr-code/qr-code-encoder.browser.ts",
+			),
+		},
+	},
 	test: {
 		// A spy or global stub that a test installs and then fails to tear down leaks into every test
 		// that runs after it, which turns an unrelated failure into a cascade and makes results depend
@@ -249,10 +269,18 @@ export default defineConfig({
 						// Why Firefox runs one file at a time: Firefox keeps mouse capture and
 						// drag state for the whole browser, so a real drag in one page breaks a
 						// drag or a selection in another. CI splits Firefox into shards instead.
+						// Why a WebKit setup file: see `vitest.setup-webkit.ts`.
 						instances: engines.map((engine) => ({
 							browser: engine,
 							provider: providerFor(engine),
 							...(engine === "firefox" ? { fileParallelism: false } : {}),
+							...(engine === "webkit"
+								? {
+										setupFiles: ["vitest.setup.ts", "vitest.setup-webkit.ts"].map((file) =>
+											path.join(import.meta.dirname, file),
+										),
+									}
+								: {}),
 						})),
 						commands: { emulateMedia, tailwindCss },
 					},
