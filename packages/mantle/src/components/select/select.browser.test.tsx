@@ -3,7 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import axe from "axe-core";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import { userEvent } from "vitest/browser";
+import { commands, userEvent } from "vitest/browser";
 import * as Dialog from "../dialog/dialog-parts.js";
 import * as Select from "./select-parts.js";
 
@@ -431,6 +431,32 @@ describe("Select keyboard, focus, and ARIA contract", () => {
 			</Select.Root>,
 		);
 		expect(await screen.findByRole("listbox")).toBeInTheDocument();
+	});
+
+	test("the open list hides its scrollbar and stops overscroll", async () => {
+		// Why the compiled CSS: this page loads no Tailwind, and the test checks the real utilities.
+		const style = document.createElement("style");
+		style.textContent = await commands.tailwindCss("./select.tsx");
+		document.head.append(style);
+		try {
+			render(
+				<Select.Root>
+					<Select.Trigger aria-label="Fruit" />
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+			await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
+			const list = await screen.findByRole("listbox");
+			expect(getComputedStyle(list)).toMatchObject({
+				overflowY: "auto",
+				overscrollBehaviorY: "none",
+				scrollbarWidth: "none",
+			});
+		} finally {
+			style.remove();
+		}
 	});
 
 	test("has no axe violations closed or open", async () => {
