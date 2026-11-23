@@ -166,6 +166,53 @@ describe("ThemeSwitcher name and icon from the theme on <html>", () => {
 		},
 	);
 
+	test.each([
+		{ stored: "system", os: "light", name: "Switch to dark theme" },
+		{ stored: "system", os: "dark", name: "Switch to light theme" },
+		{ stored: "light", os: "light", name: "Switch to dark theme" },
+		{ stored: "light", os: "dark", name: "Switch to dark theme (system default)" },
+		{ stored: "dark", os: "light", name: "Switch to light theme (system default)" },
+		{ stored: "dark", os: "dark", name: "Switch to light theme" },
+	] as const)(
+		"before hydration, with $stored stored on a $os OS, CSS names the switcher $name",
+		async ({ stored, os, name }) => {
+			await commands.emulateMedia({ colorScheme: os });
+			const html = document.documentElement;
+			const previous = {
+				className: html.className,
+				theme: html.dataset.theme,
+				appliedTheme: html.dataset.appliedTheme,
+			};
+			// Why no hydration: the server HTML has no `aria-label`, so only CSS names it.
+			const container = document.createElement("div");
+			container.innerHTML = renderToString(
+				<ThemeProvider>
+					<ThemeSwitcher />
+				</ThemeProvider>,
+			);
+			document.body.appendChild(container);
+			// Why after the render: in a browser, `ThemeProvider` writes `<html>` as
+			// it renders, which a server never does.
+			const applied = stored === "system" ? os : stored;
+			html.dataset.theme = stored;
+			html.dataset.appliedTheme = applied;
+			html.className = applied;
+			try {
+				expect(screen.getByRole("button", { name })).not.toHaveAttribute("aria-label");
+			} finally {
+				container.remove();
+				html.className = previous.className;
+				for (const key of ["theme", "appliedTheme"] as const) {
+					if (previous[key] == null) {
+						delete html.dataset[key];
+					} else {
+						html.dataset[key] = previous[key];
+					}
+				}
+			}
+		},
+	);
+
 	test("an OS change renames the switcher and swaps its icon", async () => {
 		renderSwitcher();
 		await commands.emulateMedia({ colorScheme: "dark" });
