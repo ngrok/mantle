@@ -53,13 +53,16 @@ const mantleCustomVariants = async (): Promise<string> => {
 };
 
 /**
- * The `focus-ring` and `theme-switcher-name` utilities of `mantle.css`.
- * Without them, Tailwind compiles `focus-visible:focus-ring` to nothing, so a
- * focused element keeps the browser outline, and a `ThemeSwitcher` has no name.
+ * The `focus-ring`, `theme-switcher-name`, and `otp-input-overlay` utilities of
+ * `mantle.css`. Without them, Tailwind compiles `focus-visible:focus-ring` to
+ * nothing, so a focused element keeps the browser outline, a `ThemeSwitcher`
+ * has no name, and the `OtpInput` input does not lie over its slots.
  */
 const mantleUtilities = async (): Promise<string> => {
 	const css = await readFile(path.join(import.meta.dirname, "src/mantle.css"), "utf8");
-	const rules = css.match(/^@utility (?:focus-ring|theme-switcher-name)[^{]*\{[\s\S]*?^\}/gm);
+	const rules = css.match(
+		/^@utility (?:focus-ring|theme-switcher-name|otp-input-overlay)[^{]*\{[\s\S]*?^\}/gm,
+	);
 	if (rules == null) {
 		throw new Error("mantle.css holds no focus-ring or theme-switcher-name utilities.");
 	}

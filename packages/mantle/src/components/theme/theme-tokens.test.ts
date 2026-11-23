@@ -71,3 +71,14 @@ test("emits the island aliases and palette restore only for the invert-theme can
 	expect(utilities).toMatch(island);
 	expect(utilities).toMatch(restore);
 });
+
+// Why: the light theme rule declared every gray alias on every page before gray moved
+// to `@theme`, so a runtime-only `var(--color-gray-100)` must still find a value.
+test("emits every gray alias of neutral when no utility uses gray", async () => {
+	const css = await buildMantleCss();
+
+	for (const stop of [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]) {
+		expect(css).toContain(`--color-gray-${stop}: var(--color-neutral-${stop});`);
+		expect(css).toMatch(new RegExp(`--color-neutral-${stop}:\\s*oklch`));
+	}
+});

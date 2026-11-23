@@ -188,7 +188,7 @@ describe("searchPaletteCommands", () => {
 
 	// The two passes are unioned, so a command that matches on both its title and
 	// its route subtitle would be emitted twice without the id filter: duplicate
-	// rows, duplicate React keys, and colliding cmdk values that make arrow-key
+	// rows, duplicate React keys, and colliding item values that make arrow-key
 	// selection land on a twin.
 	test("returns each command at most once", () => {
 		// "tabs" matches the Tabs title *and* is a substring of

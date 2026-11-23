@@ -60,9 +60,12 @@ const lightBlock = new Map([
 	),
 ]);
 const darkBlock = parseDeclarationBlock(mantleCss, (selector) => selector.includes(":root.dark"));
-const mantleThemeBlock = parseDeclarationBlock(mantleCss, (selector) => selector === "@theme");
-// the Shiki/code-block tokens are declared on `:root, .invert-theme` so their
-// theme-dependent var() references re-resolve inside islands
+const mantleThemeBlock = parseDeclarationBlock(
+	mantleCss,
+	(selector) => selector === "@theme" || selector === "@theme static",
+);
+// the shared theme tokens and the Shiki/code-block tokens are declared on
+// `:root, .invert-theme` so their var() references re-resolve inside islands
 const shikiBlock = parseDeclarationBlock(
 	mantleCss,
 	(selector) => selector === ":root, .invert-theme",
@@ -79,7 +82,12 @@ const sweepProperties = [
 	...new Set(
 		[lightBlock, darkBlock, shikiBlock]
 			.flatMap((block) => [...block.keys()])
-			.concat([...mantleThemeBlock.keys()].filter((property) => property.startsWith("--color-"))),
+			.concat(
+				[...mantleThemeBlock.keys()].filter(
+					// `--color-stone-*: initial` removes a palette; it declares no token
+					(property) => property.startsWith("--color-") && !property.endsWith("*"),
+				),
+			),
 	),
 ].filter((property) => property.startsWith("--"));
 

@@ -12,7 +12,7 @@ import {
 	Trigger as DialogPrimitiveTrigger,
 } from "@radix-ui/react-dialog";
 import type { ComponentProps, ComponentPropsWithoutRef, Ref } from "react";
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useMemo, useRef, useState } from "react";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { Slot } from "../slot/index.js";
@@ -133,8 +133,10 @@ const Overlay = (props: ComponentProps<typeof DialogPrimitiveOverlay>) => (
 );
 
 const Content = ({
+	onCloseAutoFocus,
 	onEscapeKeyDown,
 	onInteractOutside,
+	onOpenAutoFocus,
 	onPointerDownOutside,
 	ref,
 	...props
@@ -143,6 +145,7 @@ const Content = ({
 	const layerContainer = useLayerContainer();
 	const [contentElement, setContentElement] = useState<HTMLDivElement | null>(null);
 	const composedRef = useComposedRefs(ref, setContentElement);
+	const focusedBeforeOpenRef = useRef<Element | null>(null);
 
 	// Why register: Radix can send Escape to a float this dialog covers. The
 	// float then passes it here, and this runs the same guards as Radix would.
@@ -165,6 +168,22 @@ const Content = ({
 	return (
 		<DialogPrimitiveContent
 			ref={composedRef}
+			onOpenAutoFocus={(event) => {
+				// Radix fires this before it moves focus into the dialog.
+				focusedBeforeOpenRef.current = document.activeElement;
+				onOpenAutoFocus?.(event);
+			}}
+			onCloseAutoFocus={(event) => {
+				onCloseAutoFocus?.(event);
+				// Why: Radix focuses only a `Dialog.Trigger` on close. A dialog opened
+				// from a shortcut or a frame then drops focus on the trigger or `<body>`.
+				// Why only from `<body>`: focus that moved elsewhere on close stays there.
+				const focused = document.activeElement;
+				const focusIsFree = focused == null || focused === document.body;
+				if (!event.defaultPrevented && focusIsFree && returnFocus(focusedBeforeOpenRef.current)) {
+					event.preventDefault();
+				}
+			}}
 			onEscapeKeyDown={(event) => {
 				preventCloseOnNestedPopupEscape(event);
 				yieldEscapeToCoveringFrame(event);
@@ -286,7 +305,7 @@ function yieldEscapeToCoveringFrame(event: Event): void {
  * owner is the nearest ancestor of `target`, else of the focused element, with
  * `aria-expanded="true"` and `aria-controls`; its popup must sit inside
  * `container` and be open (Ariakit's `data-open="true"`, Radix's
- * `data-state="open"`). An always-visible list such as cmdk carries neither
+ * `data-state="open"`). An always-visible list such as `Command.List` carries neither
  * attribute and never claims the Escape.
  *
  * @example
@@ -344,6 +363,25 @@ function getControlledPopup(owner: HTMLElement): HTMLElement | null {
 
 	const popup = owner.ownerDocument.getElementById(popupId);
 	return popup instanceof HTMLElement ? popup : null;
+}
+
+/**
+ * Focuses the element that had focus when the dialog opened, and returns
+ * whether it took focus. `<body>`, a removed element, and an element that
+ * cannot take focus return `false`. A frame element takes focus back into its
+ * document.
+ *
+ * @example
+ * ```ts
+ * returnFocus(searchButton); // true: the button has focus again
+ * ```
+ */
+function returnFocus(element: Element | null): boolean {
+	if (!isHTMLElement(element) || element === element.ownerDocument.body || !element.isConnected) {
+		return false;
+	}
+	element.focus();
+	return element.ownerDocument.activeElement === element;
 }
 
 /**

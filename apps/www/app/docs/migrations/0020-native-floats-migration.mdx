@@ -113,7 +113,7 @@ The rules apply steps 2 to 5. They delete the Radix positioning props from the t
 - A float does not show while an overlay that does not hold it is open, because the top layer would paint it over that overlay. A tooltip or hover card closes. A popover hides, and shows again when the overlay closes.
 - `Popover.Content` is a layer container. A `Select`, `DropdownMenu`, or other float inside it portals into it, so it paints above the popover.
 - A press or a focus move outside a popover closes it and leaves focus where the user put it. `onPointerDownOutside`, `onFocusOutside`, and `onInteractOutside` still get a cancelable event with `event.detail.originalEvent`.
-- A popover opened from a `DropdownMenu` item portals into the menu and takes keyboard focus. The [Native Dropdown Menu migration](/migrations/0023-native-dropdown-menu-migration) covers the menu.
+- A popover opened from a `DropdownMenu` item portals into the menu and takes keyboard focus. The [Native Dropdown Menu migration](/migrations/0026-native-dropdown-menu-migration) covers the menu.
 - A float in the top layer paints above toasts, which stay at `z-index: 999999999` in the page. Do not open a popover over the toast corner.
 - `HoverCard.Trigger` renders an `<a>`. It opens on hover and on keyboard focus, and not on touch.
 

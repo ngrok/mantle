@@ -151,7 +151,8 @@ function parseDeclarations(body: string): Map<string, string> {
 }
 
 /**
- * Parse the declarations of the first top-level rule whose selector matches.
+ * Parse the declarations of every top-level rule whose selector matches, in
+ * source order, so a later declaration wins.
  * Throws when nothing matches: a signal the theme sources changed shape and
  * the calling test needs updating.
  *
@@ -165,11 +166,11 @@ function parseDeclarationBlock(
 	css: string,
 	selectorTest: (selector: string) => boolean,
 ): Map<string, string> {
-	const rule = extractTopLevelRules(css).find(({ selector }) => selectorTest(selector));
-	if (rule == null) {
+	const rules = extractTopLevelRules(css).filter(({ selector }) => selectorTest(selector));
+	if (rules.length === 0) {
 		throw new Error("parse-theme-css: no rule matched the selector test");
 	}
-	return parseDeclarations(rule.body);
+	return parseDeclarations(rules.map(({ body }) => body).join(";"));
 }
 
 /**

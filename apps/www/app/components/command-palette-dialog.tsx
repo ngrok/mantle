@@ -130,7 +130,7 @@ function PaletteCommandItem({
  * The command dialog of the docs site search palette. Browsing (empty query)
  * lists every command in its group; typing switches to a flat,
  * relevance-ranked result list. Filtering and ranking are owned here (see
- * `command-palette-search.ts`) with cmdk's built-in filtering disabled, so
+ * `command-palette-search.ts`) with the palette's built-in filtering disabled, so
  * result order is exactly the ranked order. `CommandPalette` loads this
  * module at the first open.
  *
@@ -190,7 +190,7 @@ export function CommandPaletteDialog({
 						groups.map(({ group, commands: groupCommands }, index) => (
 							<Fragment key={group}>
 								{/* alwaysRender: this browse branch already owns separator
-								    visibility; without it cmdk hides separators as soon as its
+								    visibility; without it the palette hides separators as soon as its
 								    search state is non-empty, e.g. a whitespace-only query */}
 								{index > 0 && <Command.Separator alwaysRender />}
 								<Command.Group

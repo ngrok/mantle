@@ -10,4 +10,4 @@ Build `DropdownMenu` on native popovers and CSS anchor positioning, and remove R
 - A modal menu sets `inert` on the rest of the page. A `Popover` or other float that an item opens portals into the menu, so it takes keyboard focus and input.
 - `DropdownMenu.RadioGroup` takes `defaultValue`, and `DropdownMenu.CheckboxItem` takes `defaultChecked`. `ArrowUp` on the trigger opens the menu on its last item. `onValueChange` does not run when the user selects the checked radio item.
 
-Run migration 0023 to remove the props and rename the variables: `pnpm -w run migrate 0023 <path>`. See https://mantle.ngrok.com/migrations/0023-native-dropdown-menu-migration.
+Run migration 0026 to remove the props and rename the variables: `pnpm -w run migrate 0026 <path>`. See https://mantle.ngrok.com/migrations/0026-native-dropdown-menu-migration.

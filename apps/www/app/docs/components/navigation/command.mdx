@@ -1,6 +1,6 @@
 ---
 title: Command
-description: A command palette that allows users to search and execute commands, built on top of cmdk.
+description: A command palette that allows users to search and execute commands.
 aliases: [command palette, command menu, cmdk, spotlight]
 ---
 
@@ -8,7 +8,7 @@ import { Example } from "~/components/example";
 
 # Command
 
-A command palette that allows users to search and execute commands, built on top of [cmdk](https://cmdk.paco.me/). `Command.SearchTrigger` wraps the control that opens the palette and gives it the dialog wiring and the typing behavior.
+A command palette that allows users to search and execute commands. It keeps the API and the fuzzy ranking of [cmdk](https://cmdk.paco.me/), and filters in the DOM, so no item re-renders on a keystroke. `Command.SearchTrigger` wraps the control that opens the palette and gives it the dialog wiring and the typing behavior.
 
 <Example name="components/navigation/command/overview" title="Command example">
 
@@ -194,14 +194,11 @@ Command.DialogRoot
 
 ## Polymorphism
 
-`Command.Input`, `Command.Item`, `Command.Separator`, and `Command.Empty` accept `asChild`, forwarded to the underlying [cmdk](https://cmdk.paco.me/) primitive. `Command.DialogTrigger` accepts it too, forwarded to its Radix dialog trigger.
+`Command.Input`, `Command.Item`, `Command.Separator`, and `Command.Empty` accept `asChild`. `Command.DialogTrigger` accepts it too, forwarded to its Radix dialog trigger.
 
 The common case is `Command.Item asChild` with an `<a>` or a router `Link`, so selecting a result navigates while the item keeps its filtering, keyboard selection, and highlight behavior. `Command.DialogTrigger asChild` is the other frequent one: it lets any element, usually a `Button`, open the command dialog.
 
-`Command.DialogRoot` and `Command.DialogContent` own the dialog's state and panel, and `Command.Shortcut` is a plain `<span>` for key hints, so none of those take `asChild`. `Command.SearchTrigger` has no `asChild` prop for the opposite reason: cloning is all it does, so its single-element `children` is always the trigger and there is nothing to opt into.
-
-> [!WARNING]
-> `Command.Root`, `Command.List`, and `Command.Group` advertise `asChild` through their cmdk props but **throw at runtime** (`Cannot use 'in' operator to search for 'render' in div`): cmdk's own slot handling does not accept a plain element child for these three. Style them with `className` instead.
+`Command.DialogRoot` and `Command.DialogContent` own the dialog's state and panel, and `Command.Shortcut` is a plain `<span>` for key hints, so none of those take `asChild`. `Command.Root`, `Command.List`, and `Command.Group` render the elements that the filter, the keyboard, and the accessibility tree depend on, so style them with `className`. `Command.SearchTrigger` has no `asChild` prop for the opposite reason: cloning is all it does, so its single-element `children` is always the trigger and there is nothing to opt into.
 
 ## The keyboard shortcut
 
@@ -218,7 +215,7 @@ What it deliberately does:
 - **Claims the event.** Firefox binds `⌘K` to its own search bar, so a shortcut that does not `preventDefault()` runs both actions.
 - **Has exactly one owner per window.** The first mounted root that wants the shortcut gets it; later roots queue and take over only when that one unmounts. Two palettes never open on one keypress.
 - **Yields inside editors.** The chord is ignored while focus is in a `contenteditable` host or a `<textarea>`, where `⌘K` is already "insert link" or a chord prefix, and where Monaco and CodeMirror attach. It still fires from a plain `<input>`, including the palette's own `Command.Input`, so the chord closes what it opened.
-- **Yields to a handler that already ran.** Inside an open palette on Windows and Linux, cmdk's own vim bindings map `Ctrl+K` to "previous item" and claim the event, so the chord moves the selection instead of closing the palette. `Escape`, the close button, and clicking away all still dismiss it.
+- **Yields to a handler that already ran.** Inside an open palette on Windows and Linux, the palette's vim bindings map `Ctrl+K` to "previous item" and claim the event, so the chord moves the selection instead of closing the palette. `Escape`, the close button, and clicking away all still dismiss it.
 
 Pass `keyboardShortcut={false}` to bind the chord yourself with [`useCommandDialog()`](#usecommanddialog). `Command.SearchTrigger` then adds no `aria-keyshortcuts`, and the hook reports the same flag as `keyboardShortcut` so your trigger can drop its visible `⌘K` hint too. The UI never advertises a binding mantle does not own.
 
@@ -392,13 +389,32 @@ useHotkeys("mod+k", () => setOpen(true), { preventDefault: true });
 
 ## API Reference
 
-The `Command` component is built on top of [cmdk](https://cmdk.paco.me/) and ships a complete set of sub-components for command palettes.
-
 ### Command.Root
 
 The inline palette, wrapping `Command.Input` and `Command.List`. It owns the filtering and the active item for every part below it. `Command.DialogContent` renders one itself, so a modal palette does not add it.
 
-All props from cmdk's [Command Root](https://github.com/pacocoursey/cmdk?tab=readme-ov-file#command-cmdk-root).
+A query hides each item that scores 0 and moves the matches into score order: in each group the items, and in the list the items outside a group, then the groups by their best item. An empty query puts the items back in the order they had before the search, and an item appended during the search stays at the end.
+
+| Prop                       | Type                                                             | Default | Description                                                                                       |
+| :------------------------- | :--------------------------------------------------------------- | :------ | :------------------------------------------------------------------------------------------------ |
+| `label?`                   | `string`                                                         |         | The accessible name of `Command.Input`. Not shown.                                                |
+| `shouldFilter?`            | `boolean`                                                        | `true`  | Set `false` to turn off the built-in filtering and sorting, and render only the matches yourself. |
+| `filter?`                  | `(value: string, search: string, keywords?: string[]) => number` |         | Scores an item from 0 (hidden) to 1 (best). The default is cmdk's `command-score` fuzzy match.    |
+| `defaultValue?`            | `string`                                                         |         | The value of the item that is active on the first render.                                         |
+| `value?`                   | `string`                                                         |         | The value of the active item. A change activates that item. Pair with `onValueChange`.            |
+| `onValueChange?`           | `(value: string) => void`                                        |         | Called with the value of each item that becomes active.                                           |
+| `loop?`                    | `boolean`                                                        | `false` | Whether the arrow keys wrap from the last item to the first, and back.                            |
+| `disablePointerSelection?` | `boolean`                                                        | `false` | Whether a pointer over an item leaves the active item alone.                                      |
+| `vimBindings?`             | `boolean`                                                        | `true`  | Whether `Ctrl+N` / `Ctrl+J` and `Ctrl+P` / `Ctrl+K` move to the next and previous item.           |
+
+Focus stays in `Command.Input`, which names the active item with `aria-activedescendant`. These keys work anywhere in the palette:
+
+| Key                                           | Action                                                 |
+| :-------------------------------------------- | :----------------------------------------------------- |
+| `ArrowDown` / `ArrowUp`                       | The next or previous item. Disabled items are skipped. |
+| `Alt` + `ArrowDown` / `ArrowUp`               | The first item of the next or previous group.          |
+| `⌘` + `ArrowDown` / `ArrowUp`, `End` / `Home` | The last or first item.                                |
+| `Enter`                                       | Runs the active item's `onSelect`.                     |
 
 ### Command.DialogRoot
 
@@ -448,14 +464,14 @@ All props from Radix UI's [Dialog.Trigger](https://www.radix-ui.com/primitives/d
 
 The visible content of the Command dialog. Renders inside the dialog portal and wraps the command palette UI.
 
-| Prop               | Type                                        | Default                            | Description                                              |
-| :----------------- | :------------------------------------------ | :--------------------------------- | :------------------------------------------------------- |
-| `title?`           | `string`                                    | `"Command Palette"`                | Accessible title for the dialog (visually hidden).       |
-| `description?`     | `string`                                    | `"Search for a command to run..."` | Accessible description for the dialog (visually hidden). |
-| `className?`       | `string`                                    |                                    | Class name(s) to apply to the dialog content.            |
-| `showCloseButton?` | `boolean`                                   | `true`                             | Whether to show the close button.                        |
-| `filter?`          | `(value: string, search: string) => number` |                                    | Custom filter function for the command list.             |
-| `shouldFilter?`    | `boolean`                                   |                                    | Whether to enable built-in filtering of command items.   |
+| Prop               | Type                                                             | Default                            | Description                                                     |
+| :----------------- | :--------------------------------------------------------------- | :--------------------------------- | :-------------------------------------------------------------- |
+| `title?`           | `string`                                                         | `"Command Palette"`                | Accessible title for the dialog (visually hidden).              |
+| `description?`     | `string`                                                         | `"Search for a command to run..."` | Accessible description for the dialog (visually hidden).        |
+| `className?`       | `string`                                                         |                                    | Class name(s) to apply to the dialog content.                   |
+| `showCloseButton?` | `boolean`                                                        | `true`                             | Whether to show the close button.                               |
+| `filter?`          | `(value: string, search: string, keywords?: string[]) => number` |                                    | Scores an item from 0 (hidden) to 1 (best). See `Command.Root`. |
+| `shouldFilter?`    | `boolean`                                                        |                                    | Whether to enable built-in filtering of command items.          |
 
 When the palette opens, this part takes over the dialog's initial focus so the caret lands at the **end** of a seeded query. Radix's own open-autofocus selects the focused field's whole value, which would make the first keystroke after a seeded open replace the seed instead of extending it. It finds the field by `Command.Input`'s `data-slot="command-input"`, and leaves Radix's default in place when there is no input or the input is disabled.
 
@@ -463,9 +479,12 @@ When the palette opens, this part takes over the dialog's initial focus so the c
 
 The palette's query field.
 
-Inside a `Command.DialogRoot` the palette owns the query by default (see [Who owns the query](#who-owns-the-query)). Under a bare `Command.Root` it stays uncontrolled and cmdk owns the text. `ref` lands on the wrapper; `className` and rest props land on the `<input>`.
+Inside a `Command.DialogRoot` the palette owns the query by default (see [Who owns the query](#who-owns-the-query)). Under a bare `Command.Root` it stays uncontrolled and the `<input>` owns the text. `ref` lands on the wrapper; `className` and rest props land on the `<input>`.
 
-All other props from cmdk's [Command Input](https://github.com/pacocoursey/cmdk?tab=readme-ov-file#input-cmdk-input).
+| Prop             | Type                       | Default | Description                                      |
+| :--------------- | :------------------------- | :------ | :----------------------------------------------- |
+| `value?`         | `string`                   |         | The controlled query. Pair with `onValueChange`. |
+| `onValueChange?` | `(search: string) => void` |         | Called with the query on each change.            |
 
 | Data Attribute | Value                     | Description                                                                                                                         |
 | :------------- | :------------------------ | :---------------------------------------------------------------------------------------------------------------------------------- |
@@ -474,35 +493,61 @@ All other props from cmdk's [Command Input](https://github.com/pacocoursey/cmdk?
 
 ### Command.List
 
-The scrolling container for the palette's groups and items.
+The scrolling container for the palette's groups and items: the `role="listbox"` element. It scrolls by wheel, touch, and keyboard with no visible scrollbar. Its edges fade where more items are past them, and a scroll at its end neither bounces nor moves the page.
 
-All props from cmdk's [Command List](https://github.com/pacocoursey/cmdk?tab=readme-ov-file#list-cmdk-list).
+| Prop     | Type     | Default         | Description                                 |
+| :------- | :------- | :-------------- | :------------------------------------------ |
+| `label?` | `string` | `"Suggestions"` | The accessible name of the list. Not shown. |
 
 ### Command.Empty
 
 The empty-state message; it renders only when no item matches the query.
 
-It renders nothing in the server HTML and in the hydration pass. Items register with cmdk in a layout effect, which never runs on the server, so the server counts zero matches for every list. A palette with no items shows its empty state one render after hydration.
-
-All props from cmdk's [Command Empty](https://github.com/pacocoursey/cmdk?tab=readme-ov-file#empty-cmdk-empty).
+It renders nothing in the server HTML and in the hydration pass. The palette counts its matches in the DOM after the commit, which the server never reaches. A palette with no items shows its empty state one render after hydration.
 
 ### Command.Group
 
-A labeled section of items; the `heading` prop names it.
+A labeled section of items; the `heading` prop names it. A query that matches none of its items writes `hidden` on it.
 
-All props from cmdk's [Command Group](https://github.com/pacocoursey/cmdk?tab=readme-ov-file#group-cmdk-group-hidden).
+| Prop          | Type        | Default | Description                                           |
+| :------------ | :---------- | :------ | :---------------------------------------------------- |
+| `heading?`    | `ReactNode` |         | The visible label, which names the group.             |
+| `value?`      | `string`    |         | A value for the group, written to `data-value`.       |
+| `forceMount?` | `boolean`   | `false` | Whether the group and its items show for every query. |
+
+| Data Attribute     | Value                     | Description                                      |
+| :----------------- | :------------------------ | :----------------------------------------------- |
+| `data-slot`        | `"command-group"`         | The group.                                       |
+| `data-slot`        | `"command-group-heading"` | The heading, hidden from assistive technology.   |
+| `data-slot`        | `"command-group-items"`   | The `role="group"` element that holds the items. |
+| `data-force-mount` | `""`                      | Present when the group has `forceMount`.         |
 
 ### Command.Item
 
-One selectable row in the palette's list.
+One selectable row in the palette's list. A query that does not match it writes `hidden` on it, and it stays mounted, so it keeps its state and leaves the accessibility tree.
 
-All props from cmdk's [Command Item](https://github.com/pacocoursey/cmdk?tab=readme-ov-file#item-cmdk-item-data-disabled-data-selected).
+| Prop          | Type                      | Default | Description                                                                                                     |
+| :------------ | :------------------------ | :------ | :-------------------------------------------------------------------------------------------------------------- |
+| `value?`      | `string`                  |         | The value the query matches and `onSelect` gets. When omitted, the trimmed text. Set one when the text repeats. |
+| `keywords?`   | `string[]`                |         | More words the query matches.                                                                                   |
+| `onSelect?`   | `(value: string) => void` |         | Called on a click or `Enter`. `Enter` does not click the item, so an `asChild` link navigates in `onSelect`.    |
+| `disabled?`   | `boolean`                 | `false` | Whether the item can be activated and selected.                                                                 |
+| `forceMount?` | `boolean`                 | `false` | Whether the item shows for every query. It does not count as a match.                                           |
+
+| Data Attribute  | Value                  | Description                                             |
+| :-------------- | :--------------------- | :------------------------------------------------------ |
+| `data-slot`     | `"command-item"`       | The item.                                               |
+| `data-value`    | the resolved value     | The `value`, or the trimmed text.                       |
+| `data-selected` | `"true"` when active   | The active item. Style it with `data-[selected=true]:`. |
+| `data-disabled` | `"true"` when disabled | Set by `disabled`.                                      |
 
 ### Command.Separator
 
 A visual separator between command groups or items. Automatically hidden when there is an active search query.
 
-All props from cmdk's [Command Separator](https://github.com/pacocoursey/cmdk?tab=readme-ov-file#separator-cmdk-separator).
+| Prop            | Type      | Default | Description                                                                       |
+| :-------------- | :-------- | :------ | :-------------------------------------------------------------------------------- |
+| `alwaysRender?` | `boolean` | `false` | Whether it shows while a query is active too. Set it with `shouldFilter={false}`. |
 
 ### Command.Shortcut
 
@@ -582,6 +627,22 @@ import { MetaKey } from "@ngrok/mantle/command";
 
 ### useCommandState
 
-A hook for accessing the command palette state.
+Reads the palette state with a selector, and re-renders when the selected value changes. Call it inside a `Command.Root` or a `Command.DialogContent`.
 
-All props from cmdk's [useCommandState](https://github.com/pacocoursey/cmdk?tab=readme-ov-file#usecommandstatestate--stateselectedfield).
+| Field             | Type                  | Description                                                       |
+| :---------------- | :-------------------- | :---------------------------------------------------------------- |
+| `search`          | `string`              | The query.                                                        |
+| `value`           | `string`              | The active item's value, or `""`.                                 |
+| `selectedItemId`  | `string \| undefined` | The `id` of the active item's element.                            |
+| `filtered.count`  | `number`              | The number of matches. A `forceMount` item does not count.        |
+| `filtered.items`  | `Map<string, number>` | The score of each item, by element `id`, while a query filters.   |
+| `filtered.groups` | `Set<string>`         | The `id`s of the groups that hold a match, while a query filters. |
+
+```tsx
+import { useCommandState } from "@ngrok/mantle/command";
+
+function ResultCount() {
+	const count = useCommandState((state) => state.filtered.count);
+	return <span aria-live="polite">{count} results</span>;
+}
+```

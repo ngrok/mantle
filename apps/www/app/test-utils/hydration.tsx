@@ -27,6 +27,15 @@ if (typeof HTMLElement !== "undefined" && !("autofocus" in HTMLElement.prototype
 	});
 }
 
+/**
+ * Why: `Tabs.Content hiddenUntilFound` spreads `HIDDEN="until-found"`, because
+ * React renders `hidden` as a boolean and would write `hidden=""`. React warns
+ * once in development that `HIDDEN` is not a DOM property. The warning is
+ * expected and is not a hydration error.
+ */
+const isHiddenUntilFoundWarning = (args: readonly unknown[]): boolean =>
+	String(args[0]).startsWith("Invalid DOM property") && args[1] === "HIDDEN";
+
 /** The providers `root.tsx` mounts around every route, with nothing a request would set. */
 function RootProviders({ children }: { children: ReactNode }) {
 	return (
@@ -80,7 +89,9 @@ function hydrationErrorsOf(app: ReactNode): ReadonlyArray<string> {
 	document.body.append(container);
 	const errors: Array<string> = [];
 	const consoleError = vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
-		errors.push(args.map(String).join(" "));
+		if (!isHiddenUntilFoundWarning(args)) {
+			errors.push(args.map(String).join(" "));
+		}
 	});
 	let root: Root | undefined;
 	try {

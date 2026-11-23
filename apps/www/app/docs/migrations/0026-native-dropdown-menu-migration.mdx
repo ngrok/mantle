@@ -16,13 +16,13 @@ codemodIn: "0.95.0"
 From a mantle checkout:
 
 ```sh
-pnpm -w run migrate 0023 <path>
+pnpm -w run migrate 0026 <path>
 ```
 
 In a project that installs `@ngrok/mantle`:
 
 ```sh
-npx --yes --package=@ast-grep/cli@0.51.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0023-native-dropdown-menu.yml --update-all <path>
+npx --yes --package=@ast-grep/cli@0.51.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0026-native-dropdown-menu.yml --update-all <path>
 ```
 
 The rules apply steps 2 and 3. They delete the Radix positioning props from `DropdownMenu.Content` and `DropdownMenu.SubContent`, and rename the two CSS variables in the props of those parts in a file that imports `@ngrok/mantle/dropdown-menu`. The rules read a part through its import, under its own name or an alias. A function that binds the part's name to a parameter or a local shadows the import, so the rules leave that function alone. Shared class constants and stylesheets stay manual. The codemod is safe to run again. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.

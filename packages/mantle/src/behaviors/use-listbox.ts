@@ -42,12 +42,18 @@ type Listbox = {
 	};
 };
 
-/** The enabled options of a listbox in DOM order. The DOM is the collection. */
+/**
+ * The enabled options of a listbox in DOM order. The DOM is the collection. An
+ * option with the `hidden` attribute, such as one that a `Command` query
+ * filters out, is not in it.
+ */
 const getOptions = (listbox: HTMLElement | null): HTMLElement[] =>
 	listbox == null
 		? []
 		: Array.from(
-				listbox.querySelectorAll<HTMLElement>('[role="option"]:not([aria-disabled="true"])'),
+				listbox.querySelectorAll<HTMLElement>(
+					'[role="option"]:not([aria-disabled="true"]):not([hidden])',
+				),
 			);
 
 /**
@@ -386,6 +392,7 @@ export {
 	childId,
 	findTarget,
 	getOptions,
+	scrollIntoList,
 	useListbox,
 	useOption,
 };

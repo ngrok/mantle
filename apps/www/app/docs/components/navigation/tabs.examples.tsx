@@ -125,6 +125,27 @@ export function DisabledTabsExample() {
 	);
 }
 
+/** The "Find in page" example on the Tabs docs page. */
+export function HiddenUntilFoundExample() {
+	return (
+		<PreviewCanvas className="*:min-w-0">
+			<Tabs.Root defaultValue="npm">
+				<Tabs.List>
+					<Tabs.Trigger value="npm">npm</Tabs.Trigger>
+					<Tabs.Trigger value="pnpm">pnpm</Tabs.Trigger>
+				</Tabs.List>
+				<Tabs.Separator />
+				<Tabs.Content value="npm" hiddenUntilFound>
+					npm install @ngrok/mantle
+				</Tabs.Content>
+				<Tabs.Content value="pnpm" hiddenUntilFound>
+					pnpm add @ngrok/mantle
+				</Tabs.Content>
+			</Tabs.Root>
+		</PreviewCanvas>
+	);
+}
+
 /** The "Vertical orientation" example on the Tabs docs page. */
 export function VerticalOrientationExample() {
 	return (

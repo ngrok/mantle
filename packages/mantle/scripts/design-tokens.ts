@@ -907,6 +907,18 @@ function collectDeclarations(css: string): Declarations {
 			continue;
 		}
 		for (const child of node.nodes ?? []) {
+			// Why: `--color-stone-*: initial` removes a namespace from the theme, as Tailwind does.
+			if (child.type === "decl" && child.prop.endsWith("-*") && child.value.trim() === "initial") {
+				const prefix = child.prop.slice(0, -1);
+				for (const map of Object.values(declarations)) {
+					for (const property of map.keys()) {
+						if (property.startsWith(prefix)) {
+							map.delete(property);
+						}
+					}
+				}
+				continue;
+			}
 			// Why skip `var(--self)`: the `@theme inline` block registers a semantic token by naming itself, and the theme rules set its value.
 			if (
 				child.type === "decl" &&

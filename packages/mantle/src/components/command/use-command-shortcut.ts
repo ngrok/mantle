@@ -115,7 +115,7 @@ function useCommandShortcut({ enabled, onTrigger }: UseCommandShortcutOptions): 
 			if (!claim.isOwner()) {
 				return;
 			}
-			// Yield to anything that already handled the chord. cmdk's own vim
+			// Yield to anything that already handled the chord. `Command.Root`'s vim
 			// bindings map `Ctrl+K` to "previous item" inside an open palette and
 			// call preventDefault(); on non-Apple platforms this listener would
 			// otherwise close the palette out from under that keypress.

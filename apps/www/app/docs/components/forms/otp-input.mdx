@@ -275,9 +275,9 @@ semantic span, or wrapping a group in a styled label.
 
 ## Accessibility
 
-`OtpInput` builds on [`input-otp`](https://github.com/guilhermerodz/input-otp). It renders a single hidden input that handles paste, autofill, and IME correctly, and it shows each character in its own styled slot.
+`OtpInput` renders one native `<input>` over the slots, with `autocomplete="one-time-code"` and `inputmode="numeric"`. The browser handles typing, paste, IME, and SMS and password manager fill, as in any input, and each slot shows one character of its value. A form submits the value under the input's `name`.
 
-The hidden `<input>` carries the value and the focus, so it needs an accessible name. Inside a `Field.Item`, `Field.Label` supplies it through the `Field.Item` id. On its own, pass `aria-label` to `OtpInput.Root`. Every example above that renders the control without a `Field.Label` does so.
+The input is invisible, but it carries the value and the focus, so it needs an accessible name. Inside a `Field.Item`, `Field.Label` supplies it through the `Field.Item` id. On its own, pass `aria-label` to `OtpInput.Root`. Every example above that renders the control without a `Field.Label` does so.
 
 ## Translation
 
@@ -293,24 +293,26 @@ The attribute also protects the render. Google Translate wraps each text node in
 
 ### OtpInput.Root
 
-The root of the OTP input. Wraps the hidden input that captures keystrokes,
-paste, and autofill, and exposes per-slot state to descendant `OtpInput.Slot`
-parts via context.
+The root of the OTP input. Renders the native input that takes keystrokes,
+paste, and autofill, and passes each `OtpInput.Slot` its character and active
+state.
 
-All props from the underlying [`OTPInput`](https://github.com/guilhermerodz/input-otp#api-reference) component, including standard `input` props, plus:
+All props from [input](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input#attributes), plus:
 
-| Prop                           | Type                             | Default  | Description                                                               |
-| ------------------------------ | -------------------------------- | -------- | ------------------------------------------------------------------------- |
-| `maxLength`                    | `number`                         |          | The total number of character slots. Required.                            |
-| `value?`                       | `string`                         |          | Controlled value.                                                         |
-| `onChange?`                    | `(value: string) => void`        |          | Fired when the value changes.                                             |
-| `onComplete?`                  | `(value: string) => void`        |          | Fired when the user fills the final slot.                                 |
-| `pattern?`                     | `string`                         |          | Regex source restricting accepted characters (e.g. `REGEXP_ONLY_DIGITS`). |
-| `textAlign?`                   | `"left" \| "center" \| "right"`  | `"left"` | Caret alignment within the hidden input.                                  |
-| `containerClassName?`          | `string`                         |          | Class applied to the slot container element.                              |
-| `pasteTransformer?`            | `(pasted: string) => string`     |          | Transform pasted text before it is consumed.                              |
-| `pushPasswordManagerStrategy?` | `"increase-width" \| "none"`     |          | Strategy to push password-manager badges out of the way.                  |
-| `validation?`                  | `Validation \| () => Validation` |          | Validation state. `"error"` also sets `aria-invalid` on the input.        |
+| Prop                           | Type                             | Default            | Description                                                                                                            |
+| ------------------------------ | -------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `maxLength`                    | `number`                         |                    | The total number of character slots. Required.                                                                         |
+| `value?`                       | `string`                         |                    | Controlled value.                                                                                                      |
+| `defaultValue?`                | `string`                         |                    | Uncontrolled initial value.                                                                                            |
+| `onChange?`                    | `(value: string) => void`        |                    | Fired when the value changes.                                                                                          |
+| `onComplete?`                  | `(value: string) => void`        |                    | Fired when the value grows to `maxLength` characters, by typing, paste, or a parent.                                   |
+| `pattern?`                     | `string`                         |                    | Regex source restricting accepted characters (e.g. `REGEXP_ONLY_DIGITS`).                                              |
+| `textAlign?`                   | `"left" \| "center" \| "right"`  | `"left"`           | Caret alignment within the hidden input.                                                                               |
+| `containerClassName?`          | `string`                         |                    | Class applied to the slot container element.                                                                           |
+| `pasteTransformer?`            | `(pasted: string) => string`     |                    | Transform pasted text before it is consumed.                                                                           |
+| `pushPasswordManagerStrategy?` | `"increase-width" \| "none"`     | `"increase-width"` | On focus, widen the input past the last slot when there is room, so a password manager badge sits beside it.           |
+| `noScriptCSSFallback?`         | `string \| null`                 |                    | CSS for the input when JavaScript is off. It selects the input with `[data-input-otp]`. `null` turns the fallback off. |
+| `validation?`                  | `Validation \| () => Validation` |                    | Validation state. `"error"` also sets `aria-invalid` on the input.                                                     |
 
 ### OtpInput.Group
 
@@ -345,7 +347,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### Pattern helpers
 
-Re-exported from `input-otp` for convenience:
+Pass one to `pattern`:
 
 | Export                         | Pattern          |
 | ------------------------------ | ---------------- |

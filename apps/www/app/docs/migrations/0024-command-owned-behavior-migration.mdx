@@ -1,0 +1,89 @@
+---
+title: Command Owned Behavior Migration
+description: Command no longer uses cmdk. Its parts drop the cmdk-* attributes for data-slot, a filtered item stays mounted with hidden, and groups sort by their best match.
+introducedIn: "0.95.0"
+---
+
+# Mantle Command Owned Behavior Migration Guide
+
+`Command` no longer uses cmdk. It runs on mantle's listbox hook and filters in the DOM: a query writes `hidden` on each item that does not match and moves the matches into score order, so no item re-renders on a keystroke. The parts, their props, the `command-score` ranking, the keyboard, and `useCommandState` stay the same. Three things that a consumer can see change: the `cmdk-*` attributes are gone, a filtered item stays mounted, and groups now sort by their best match.
+
+**TL;DR:** Replace each `[cmdk-<part>]` selector with `[data-slot~=command-<part>]`, such as `*:[[cmdk-group-heading]]:uppercase` → `*:[[data-slot~=command-group-heading]]:uppercase`. In tests, query a filtered item by role (`queryByRole("option", { name })`), because a filtered item stays in the DOM with `hidden`. Remove `asChild` from `Command.Root`, `Command.List`, and `Command.Group`, where it always threw.
+
+## Codemod
+
+From a mantle checkout:
+
+```sh
+pnpm -w run migrate 0024 <path>
+```
+
+In a project that installs `@ngrok/mantle`:
+
+```sh
+npx --yes --package=@ast-grep/cli@0.51.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0024-command-owned-behavior.yml --update-all <path>
+```
+
+The codemod does step 2 in the string literals of each file that imports or re-exports `@ngrok/mantle/command`. It also rewrites the valued form, such as `[cmdk-item=""]`. A file that loads the palette with a dynamic `import()` is not covered; edit it by hand. It runs again safely. Pass `--dry-run` first, and run your formatter after. Do the other steps by hand: a selector in a `.css` file, a test query, and a choice about order are not syntax that a rule can read.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find every file that imports from `@ngrok/mantle/command`, and every stylesheet or test that names a `cmdk-` attribute or the `--cmdk-list-height` variable.
+2. Replace each attribute selector with the part's `data-slot`. The codemod does this step in TypeScript and TSX strings; do it by hand in CSS files.
+   - `[cmdk-root]` → `[data-slot~=command]`
+   - `[cmdk-input]` → `[data-slot~=command-input]`
+   - `[cmdk-list]` → `[data-slot~=command-list]`
+   - `[cmdk-group]` → `[data-slot~=command-group]`
+   - `[cmdk-group-heading]` → `[data-slot~=command-group-heading]`
+   - `[cmdk-group-items]` → `[data-slot~=command-group-items]`
+   - `[cmdk-item]` → `[data-slot~=command-item]`
+   - `[cmdk-separator]` → `[data-slot~=command-separator]`
+   - `[cmdk-empty]` → `[data-slot~=command-empty]`
+   - A valued form, such as `[cmdk-item=""]`, moves the same way.
+3. Delete selectors for `[cmdk-label]` and `[cmdk-list-sizer]`, which have no part now. `Command.Root`'s `label` sets the input's `aria-label`, and `Command.List` holds its children directly. Remove uses of `--cmdk-list-height`, which nothing sets now.
+4. Replace `data-[disabled=false]` and `data-[selected=false]` on `Command.Item`. An item has `data-disabled="true"` only when it is disabled, and `data-selected="true"` only while it is active, so use `not-data-[disabled=true]:` and `not-data-[selected=true]:`.
+5. In tests, a filtered item stays in the DOM with the `hidden` attribute. `queryByText("Calendar")` still finds it, so assert `queryByRole("option", { name: "Calendar" })`, which skips a hidden element. An item no longer unmounts when the query filters it out, so its state and effects stay.
+6. Remove `asChild` from `Command.Root`, `Command.List`, and `Command.Group`. cmdk threw at runtime for these three, so no working code passed it.
+7. Check each palette that relies on the group order during a search. A group now moves above another group when its best item scores higher, as cmdk documents. To keep a fixed order, filter and rank the items yourself with `shouldFilter={false}`.
+8. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why own the behavior?** cmdk re-rendered every item on each keystroke and scheduled its work through layout effects. It also imported Radix Dialog for its own `Command.Dialog`, so an inline palette shipped a dialog it never rendered. The mantle palette filters in one pass over the DOM, and an inline palette is about 47% smaller (gzip).
+
+---
+
+## Before → after
+
+### A heading style on a group
+
+```tsx
+// BEFORE
+<Command.Group heading="Repositories" className="*:[[cmdk-group-heading]]:uppercase">
+
+// AFTER
+<Command.Group heading="Repositories" className="*:[[data-slot~=command-group-heading]]:uppercase">
+```
+
+### A test of a filtered item
+
+```tsx
+// BEFORE
+await user.type(input, "pro");
+expect(screen.queryByText("Calendar")).not.toBeInTheDocument();
+
+// AFTER
+await user.type(input, "pro");
+expect(screen.queryByRole("option", { name: "Calendar" })).not.toBeInTheDocument();
+```
+
+## Edge cases & gotchas
+
+- The codemod skips a file that does not import `@ngrok/mantle/command`, so a class string in a shared constant module needs a hand edit.
+- `[data-slot~=…]` matches one token of the slot list, so a slot that an `asChild` parent joins in front still matches.
+- `Enter` still runs `onSelect` without a click, as in cmdk. An `asChild` link still navigates in `onSelect` on `Enter`.
+
+## How to verify
+
+- Search for `cmdk-` and `--cmdk-list-height`: no match should remain.
+- Run the tests that type into a palette, and check that each one asserts a filtered item by role.
