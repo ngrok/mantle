@@ -2224,6 +2224,7 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
  * swap does not use it on other pages. The icon of the switcher and each
  * `ThemeSwitcherIcon` keep their own swap.
  */
+/* structural-selector-ok: the rule must reach each element, and only a page with many transitions sets the attribute. */
 :root[data-theme-transition-many]
 	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-switcher-icon"] *),
 :root[data-theme-transition-many]

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { customDataVariants, selectorProblems } from "./check-css-selectors.ts";
-import { fixHint } from "./oxlint-rules/no-structural-combinator.js";
+import { fixHint, universalHint } from "./oxlint-rules/no-structural-combinator.js";
 
 describe("selectorProblems", () => {
 	it("flags a structural pseudo-class before a combinator, with its line", () => {
@@ -31,6 +31,16 @@ describe("selectorProblems", () => {
 			".a + * { color: red; }\n.b > tr ~ tr > * { color: red; }\n[data-state] > * { color: red; }\n.c > * { color: red; }\n.d + [data-slot=x] { color: red; }\n[data-x] .e > * { color: red; }\n@utility u {\n\t:root[data-theme] &::after { color: red; }\n}\n";
 
 		expect(selectorProblems(css).map((problem) => problem.line)).toEqual([1, 2, 3]);
+	});
+
+	it("names each fix a selector needs, and reads a nested rule and a tag anchor", () => {
+		const css =
+			".a { & + * { color: red; } }\n.b > tr:last-child + * { color: red; }\nbutton[data-x] > * { color: red; }\n";
+
+		expect(selectorProblems(css)).toEqual([
+			{ line: 1, selector: "& + *", hint: universalHint },
+			{ line: 2, selector: ".b > tr:last-child + *", hint: `${fixHint} ${universalHint}` },
+		]);
 	});
 
 	it("reads past an escaped quote", () => {

@@ -7,13 +7,16 @@
  * (#1794). A structural pseudo-class in the last compound, such as
  * `[&>*:last-child]`, and one inside `:has()` are fine.
  *
- * It also flags two shapes that end in an element with no class, id,
- * attribute, or tag, such as `*`. Chromium tries such a rule on each element.
- * - A sibling combinator anywhere, such as `[&+*]` or `[&>tr+tr>*]`: each
- *   node inserted before another one, anywhere on the page, restyles a whole
- *   subtree (the OtpInput overlay restyled 4,662 elements, #1825).
+ * It also flags two shapes whose subject has no class, id, attribute, or
+ * tag, such as `*` or `:not(.x)`. Chromium tries such a rule on each element.
+ * - A sibling combinator anywhere, such as `[&+*]` or `[&>tr+tr>*]`. When
+ *   all of the selector after the combinator is universal, as in `[&+*]`,
+ *   Chromium marks each parent on the page, and an insert restyles the next
+ *   sibling's subtree (the OtpInput overlay restyled 4,662 elements, #1825).
  * - Only attributes as anchors, such as `[data-state] > *` in a stylesheet:
- *   no class or id limits it to mantle's parts.
+ *   no class, id, or tag limits it to mantle's parts.
+ * The check reads the top-level compounds only, so a combinator inside
+ * `:is()` and a trap that CSS nesting builds from two rules are not seen.
  *
  * Scope: every static string in a file, so a class list in a `cx()` call, a
  * `className`, or a variants object is covered. Only Tailwind arbitrary
@@ -53,7 +56,7 @@ const fixHint =
 
 /** The message for a selector whose subject has no class, id, attribute, or tag. */
 const universalHint =
-	"This rule ends in an element with no class, id, attribute, or tag, so Chromium tries it on each element. With a sibling combinator, each node inserted before another one restyles a whole subtree; with only attribute anchors, no class limits it to mantle's parts. Give the subject a class or a `data-slot` attribute, or anchor it to a class.";
+	"This rule's subject has no class, id, attribute, or tag, so Chromium tries it on each element. After a sibling combinator such as `+*`, an insert anywhere on the page can restyle a whole subtree. Give the subject a class or a `data-slot` attribute.";
 
 /** Replaces the argument of each `:has(…)` with nothing; a structural pseudo-class there is fine. */
 function dropHasArguments(selector) {
@@ -195,8 +198,49 @@ function splitCompounds(selector) {
 	return { compounds, combinators };
 }
 
+/**
+ * Empties the argument of each `:not(…)`, and of each `:is(…)` or `:where(…)`
+ * with more than one selector. Chromium files a rule with such a subject
+ * under no class, id, attribute, or tag.
+ *
+ * @example
+ * dropUnbucketedArguments(":not(.x):is(.a,.b):is(.c)"); // => ":not():is():is(.c)"
+ */
+function dropUnbucketedArguments(compound) {
+	let result = "";
+	for (let index = 0; index < compound.length; index++) {
+		const name = /^:(not|is|where)\(/.exec(compound.slice(index))?.[1];
+		if (name == null) {
+			result += compound[index];
+			continue;
+		}
+		const open = index + name.length + 1;
+		let depth = 0;
+		let end = open;
+		for (; end < compound.length; end++) {
+			if (compound[end] === "(") {
+				depth++;
+			} else if (compound[end] === ")" && --depth === 0) {
+				break;
+			}
+		}
+		const argument = compound.slice(open + 1, end);
+		const keep = name !== "not" && splitTopLevel(argument).length === 1;
+		result += `:${name}(${keep ? argument : ""})`;
+		index = end;
+	}
+	return result;
+}
+
 /** Whether a compound, with its attribute and `:has()` text emptied, names no class, id, attribute, or tag. */
-const isUniversal = (compound) => !/[.#[]/.test(compound) && !/^[a-z]/i.test(compound);
+const isUniversal = (compound) => {
+	const bucketed = dropUnbucketedArguments(compound);
+	return !/[.#[]/.test(bucketed) && !/^[a-z]/i.test(bucketed);
+};
+
+/** Whether a compound anchors only on attributes: no class, id, or tag. */
+const isAttributeOnly = (compound) =>
+	!/[.#]/.test(compound) && !/^[a-z]/i.test(compound) && compound.includes("[");
 
 /**
  * Whether a selector ends in a universal subject after a sibling combinator,
@@ -204,6 +248,7 @@ const isUniversal = (compound) => !/[.#[]/.test(compound) && !/^[a-z]/i.test(com
  *
  * @example
  * hasUniversalSubjectTrap(".a + *"); // => true
+ * hasUniversalSubjectTrap(".a + :not(.x)"); // => true
  * hasUniversalSubjectTrap(".a>tr+tr>*"); // => true
  * hasUniversalSubjectTrap("[data-state] > *"); // => true
  * hasUniversalSubjectTrap(".a > *"); // => false
@@ -220,7 +265,7 @@ export function hasUniversalSubjectTrap(selector) {
 		const anchors = compounds.slice(0, -1);
 		if (
 			combinators.some((combinator) => combinator === "+" || combinator === "~") ||
-			anchors.every((compound) => !/[.#]/.test(compound) && compound.includes("["))
+			anchors.every(isAttributeOnly)
 		) {
 			return true;
 		}
@@ -334,8 +379,11 @@ const noStructuralCombinator = {
 			for (const token of value.split(/\s+/)) {
 				for (const variant of structuralVariants(token)) {
 					const selector = variant.slice(1, -1).replace(/(?<!\\)_/g, " ");
-					const hint =
-						variant.startsWith("[") && hasUniversalSubjectTrap(selector) ? universalHint : fixHint;
+					const universal = variant.startsWith("[") && hasUniversalSubjectTrap(selector);
+					const structural = !universal || hasStructuralCombinator(selector);
+					const hint = [structural && fixHint, universal && universalHint]
+						.filter(Boolean)
+						.join(" ");
 					context.report({ message: `\`${variant}\` in \`${token}\`: ${hint}`, node });
 				}
 			}

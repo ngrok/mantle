@@ -354,7 +354,9 @@ describe("no-structural-combinator", () => {
 		'cx("first:group-[.x]:*:p-2 not-[:first-child]:*:p-2");',
 		'cx("[&>tr:last-child]:[&>*]:border-b");',
 		// The OtpInput overlay rule that #1825 removed, and the Table divider rule.
-		'cx("[&+*]:ml-2 md:[&~*]:hidden");',
+		'cx("[&+*]:ml-2");',
+		'cx("md:[&~*]:hidden");',
+		'cx("[&+:not(.x)]:ml-2");',
 		'cx("[&>tr+tr>*]:border-t");',
 	])("flags %s", (source) => {
 		expect(
@@ -364,7 +366,7 @@ describe("no-structural-combinator", () => {
 
 	it.each([
 		'cx("[&>tr:not(:has(+tr))>*]:border-b [&>tr+tr>td]:border-t [&+[data-slot=x]]:ml-2");',
-		'cx("[&>*]:p-2 [&_*]:p-2 [&[data-open]>*]:p-2");',
+		'cx("[&>*]:p-2 [&_*]:p-2 [&[data-open]>*]:p-2 [&+:is(.a)]:p-2");',
 		'cx("[&>*:last-child]:rounded-l-none [&>*:not(:first-child)]:-ml-px last:border-0");',
 		'cx("has-[>button:last-child]:pe-1 [&:has(>a:first-child_b)]:p-2");',
 		'document.querySelector("tr:last-child > td");',
