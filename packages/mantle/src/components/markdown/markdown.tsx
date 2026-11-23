@@ -99,7 +99,6 @@ const INLINE_TAGS = new Set([
 const OPEN_TAG = /^<([a-z]+)\s*>$/i;
 const CLOSE_TAG = /^<\/([a-z]+)\s*>$/i;
 const BREAK_TAG = /^<br\s*\/?>$/i;
-const INCOMPLETE_IMAGE = "streamdown:incomplete-image";
 
 /** Narrows a token to one kind. Why a guard: marked's token union holds a generic token whose `type` is any string, so a `switch` cannot narrow it. */
 function isTokenOf<Name extends keyof MarkdownTokens | "table" | "list">(
@@ -252,7 +251,7 @@ const defaultComponents: Required<Omit<MarkdownComponents, "extension" | "table"
 	// Why text: an answer's raw HTML never reaches the DOM as markup.
 	html: ({ token }) => <p>{token.text}</p>,
 	image: ({ token }) => {
-		const src = token.href === INCOMPLETE_IMAGE ? undefined : safeUrl(token.href, "image");
+		const src = safeUrl(token.href, "image");
 		if (src == null) {
 			return token.text === "" ? null : <span>{token.text}</span>;
 		}

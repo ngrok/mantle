@@ -1,5 +1,5 @@
 import { Lexer, Marked, type MarkedExtension, type Token, type TokensList } from "marked";
-import remend from "remend";
+import { closeMarkdown } from "./close-markdown.js";
 
 /** The reference definitions of an answer, such as `[1]: https://ngrok.com`, by label. */
 type MarkdownLinks = TokensList["links"];
@@ -122,15 +122,7 @@ function createMarkdownParser({
 			}
 
 			const tail = source.slice(frozenSource.length);
-			const text = streaming
-				? remend(tail, {
-						katex: closeMath,
-						linkMode: "text-only",
-						// Why off: these two edit text before the end, so finished blocks would not match the source.
-						comparisonOperators: false,
-						singleTilde: false,
-					})
-				: tail;
+			const text = streaming ? closeMarkdown(tail, { math: closeMath }) : tail;
 			const tokens = lex(marked, text, links);
 			Object.assign(links, tokens.links);
 
@@ -140,7 +132,7 @@ function createMarkdownParser({
 
 			const finished = tokens.slice(0, Math.max(lastContentIndex(tokens), 0));
 			const finishedRaw = finished.map((token) => token.raw).join("");
-			// Why the check: a finished block must be the source as it is, not text that `remend` closed.
+			// Why the check: a finished block must be the source as it is, not text that `closeMarkdown` closed.
 			if (finished.length > 0 && tail.startsWith(finishedRaw)) {
 				frozen = [...frozen, ...contentTokens(finished)];
 				frozenSource += finishedRaw;
