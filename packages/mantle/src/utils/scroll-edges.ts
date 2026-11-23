@@ -11,7 +11,8 @@ const BOTTOM = "data-overflow-bottom";
  * scroll runs no script and restyles nothing until an edge flips. A
  * `MutationObserver` watches again when the options change, such as when a
  * filter drops or hides some. Hidden options do not count. The cleanup
- * disconnects both and removes the attributes.
+ * disconnects both and keeps the attributes, so a ref that attaches again
+ * to the same list does not blink the cue off for a frame.
  *
  * @example
  * ```tsx
@@ -73,8 +74,6 @@ const observeScrollEdges = (list: HTMLElement | null): (() => void) | undefined 
 	return () => {
 		mutation.disconnect();
 		intersection.disconnect();
-		list.removeAttribute(TOP);
-		list.removeAttribute(BOTTOM);
 	};
 };
 
