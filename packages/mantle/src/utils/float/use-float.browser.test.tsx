@@ -348,15 +348,20 @@ describe("useFloat placement as the anchor moves", () => {
 		await settle(panel);
 		const animation = screen
 			.getByTestId("container")
-			.animate([{ translate: "0" }, { translate: "300px" }], { duration: 2000 });
+			.animate([{ translate: "0" }, { translate: "300px" }], { duration: 2000, fill: "forwards" });
 
 		try {
+			let before = trigger.getBoundingClientRect().left;
 			for (let frame = 0; frame < 10; frame++) {
 				await nextFrames();
-				// Why 10 px: the observer reports after a paint, so the float can trail its anchor by a frame.
-				expect(
-					Math.abs(panel.getBoundingClientRect().left - trigger.getBoundingClientRect().left),
-				).toBeLessThan(10);
+				const now = trigger.getBoundingClientRect().left;
+				// Why between the two: the observer reports after a paint, so the float can
+				// trail its anchor by a frame. A bound in pixels fails when WebKit in CI
+				// skips frames, because the anchor then moves far in one frame.
+				const left = panel.getBoundingClientRect().left;
+				expect(left).toBeGreaterThanOrEqual(before - 1);
+				expect(left).toBeLessThanOrEqual(now + 1);
+				before = now;
 			}
 			expect(trigger.getBoundingClientRect().left).toBeGreaterThan(110);
 		} finally {

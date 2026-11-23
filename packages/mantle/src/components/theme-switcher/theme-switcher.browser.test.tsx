@@ -5,7 +5,7 @@ import { renderToString } from "react-dom/server";
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { commands } from "vitest/browser";
 import mantleCss from "../../mantle.css?raw";
 import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
@@ -52,6 +52,31 @@ afterAll(() => {
 	styleElement.remove();
 });
 
+/** The view transitions that swaps start in the running test. */
+const swaps: ViewTransition[] = [];
+
+beforeEach(() => {
+	swaps.length = 0;
+	if (typeof document.startViewTransition !== "function") {
+		return;
+	}
+	const start = document.startViewTransition.bind(document);
+	vi.spyOn(document, "startViewTransition").mockImplementation((update) => {
+		const swap = start(update);
+		swaps.push(swap);
+		return swap;
+	});
+});
+
+/**
+ * Waits for a step of each swap. Why the swap's own promises: they settle on the
+ * frames the swap renders, and WebKit in CI can render no frame for more than
+ * the 1 s a `waitFor` allows.
+ */
+async function swapStep(step: "updateCallbackDone" | "ready" | "finished") {
+	await Promise.allSettled(swaps.map((swap) => swap[step]));
+}
+
 /** Ends a running theme swap's view transition at once. */
 function finishSwap() {
 	for (const animation of document.getAnimations()) {
@@ -67,6 +92,7 @@ function finishSwap() {
 afterEach(async () => {
 	// Why wait: a running view transition holds the next test's clicks.
 	finishSwap();
+	await swapStep("finished");
 	await waitFor(() => {
 		if (document.documentElement.hasAttribute("data-theme-transition")) {
 			throw new Error("the theme swap still runs");
@@ -204,6 +230,7 @@ describe("ThemeSwitcher name and icon from the theme on <html>", () => {
 /** Waits for a reveal animation on the new snapshot of the root, other than `except`. */
 async function revealAnimation({ except }: { except?: Animation } = {}) {
 	let reveal: Animation | undefined;
+	await swapStep("ready");
 	await waitFor(() => {
 		reveal = document
 			.getAnimations()
@@ -248,6 +275,7 @@ describe("ThemeSwitcher theme swap in Chromium", () => {
 		expect(document.documentElement).toHaveClass("dark");
 
 		reveal.finish();
+		await swapStep("finished");
 		await waitFor(() =>
 			expect(document.documentElement).not.toHaveAttribute("data-theme-transition"),
 		);
@@ -258,6 +286,7 @@ describe("ThemeSwitcher theme swap in Chromium", () => {
 		const probe = screen.getByTestId("probe");
 		await userEvent.click(button);
 
+		await swapStep("updateCallbackDone");
 		await waitFor(() => expect(document.documentElement).toHaveClass("dark"));
 		expect(document.documentElement).toHaveAttribute("data-theme-transition");
 		expect(getComputedStyle(probe).color).toBe("rgb(255, 255, 255)");
@@ -276,12 +305,14 @@ describe("ThemeSwitcher theme swap in Chromium", () => {
 		}
 		await userEvent.click(button);
 
+		await swapStep("updateCallbackDone");
 		await waitFor(() => expect(document.documentElement).toHaveClass("dark"));
 		expect(document.documentElement).toHaveAttribute("data-theme-transition-many");
 		expect(getComputedStyle(probe).color).toBe("rgb(255, 255, 255)");
 		expect(getComputedStyle(probe).transitionDuration).toBe("0s");
 
 		finishSwap();
+		await swapStep("finished");
 		await waitFor(() =>
 			expect(document.documentElement).not.toHaveAttribute("data-theme-transition"),
 		);
@@ -305,6 +336,7 @@ describe("ThemeSwitcher theme swap in Chromium", () => {
 		}
 
 		// Five toggles from light: dark, light, dark, light, dark.
+		await swapStep("finished");
 		await waitFor(() =>
 			expect(document.documentElement).not.toHaveAttribute("data-theme-transition"),
 		);
