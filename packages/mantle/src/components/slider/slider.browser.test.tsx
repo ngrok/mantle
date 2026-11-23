@@ -293,6 +293,69 @@ describe("Slider track press (browser)", () => {
 		);
 	});
 
+	test("a reset during a glide moves the thumb at once", async () => {
+		render(
+			<form style={{ padding: 40, width: 280 }}>
+				<Slider aria-label="Level" defaultValue={0} />
+				<button type="reset" style={{ marginTop: 40 }}>
+					Reset
+				</button>
+			</form>,
+		);
+		const slider = screen.getByRole("slider");
+		const root = rootOf(slider);
+		const rect = root.getBoundingClientRect();
+		const reset = screen.getByRole("button", { name: "Reset" });
+
+		await userEvent.click(root, { position: { x: rect.width - 1, y: rect.height / 2 } });
+		reset.click();
+
+		await expect
+			.poll(() => getComputedStyle(thumbOf(slider)).getPropertyValue("--_value"))
+			.toBe("0");
+		expect(root).not.toHaveAttribute("data-track-press");
+		expect(glides()).toEqual([]);
+	});
+
+	// Why Chromium only: the test sends trusted mouse input through CDP.
+	test.runIf(server.browser === "chromium")(
+		"a thumb grabbed during its glide follows the pointer from where it shows",
+		async () => {
+			const { slider, root } = renderSlider();
+			const rect = root.getBoundingClientRect();
+			const thumb = thumbOf(slider);
+
+			/** Sends one trusted mouse event at a viewport point, in the page that CDP input addresses. */
+			const mouse = (
+				type: "mousePressed" | "mouseMoved" | "mouseReleased",
+				x: number,
+				y: number,
+			) => {
+				const frame = window.frameElement?.getBoundingClientRect();
+				const scale = frame == null ? 1 : frame.width / window.innerWidth;
+				return cdp().send("Input.dispatchMouseEvent", {
+					type,
+					x: (frame?.left ?? 0) + x * scale,
+					y: (frame?.top ?? 0) + y * scale,
+					button: "left",
+					buttons: type === "mouseReleased" ? 0 : 1,
+					clickCount: 1,
+				});
+			};
+			const y = rect.top + rect.height / 2;
+			await mouse("mousePressed", rect.right - 1, y);
+			await mouse("mouseReleased", rect.right - 1, y);
+			const shown = thumb.getBoundingClientRect();
+			const x = shown.left + shown.width / 2;
+			await mouse("mousePressed", x, y);
+			await mouse("mouseMoved", x - 20, y);
+			await mouse("mouseReleased", x - 20, y);
+
+			// Why 5px: the thumb ends 20px left of where it showed, give or take the thumb inset along the track.
+			expect(thumb.getBoundingClientRect().left).toBeCloseTo(shown.left - 20, -1);
+		},
+	);
+
 	test("the hit area of the next slider leaves this slider's thumb clickable", async () => {
 		render(
 			<div style={{ padding: 40, width: 280 }}>

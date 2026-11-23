@@ -163,7 +163,8 @@ function sliderBehavior({
 					rect,
 					before: values,
 					edge,
-					offset: pressed - thumbValue,
+					// Why no offset during a glide: the thumb shows short of its value, under the pointer.
+					offset: root.hasAttribute(TRACK_PRESS) ? 0 : pressed - thumbValue,
 				});
 				return;
 			}
@@ -256,6 +257,7 @@ function sliderBehavior({
 			const { inputs, values } = partsOf(root);
 			if (resetting) {
 				const next = inputs.map((each) => each.valueAsNumber);
+				root.removeAttribute(TRACK_PRESS);
 				for (const [index, each] of inputs.entries()) {
 					each.step = onStepGrid(next[index] ?? min, { min, step }) ? String(step) : "any";
 				}
