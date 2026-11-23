@@ -145,7 +145,10 @@ function sliderBehavior({
 			const edge = edgeOfMin(root);
 			const rect = root.getBoundingClientRect();
 			const pressed = valueAtPoint({ event, rect, edge, min, max });
-			const thumbIndex = inputs.findIndex((input) => input.parentElement === target);
+			// Why the input too: it covers its thumb and takes the press, as a native range input does.
+			const thumbIndex = inputs.findIndex(
+				(input) => input === target || input.parentElement === target,
+			);
 			const thumbValue = values[thumbIndex];
 			if (thumbValue != null) {
 				// Why the offset: a press on a thumb grabs it where it is, so the thumb
@@ -274,7 +277,8 @@ function sliderBehavior({
 /**
  * The ref callback for the slider root. A form reset puts each input of an
  * uncontrolled slider back to its default; the thumbs and `onValueChange`
- * follow through each input's own `onChange`.
+ * follow through each input's own `onChange`. It also stops native touch
+ * handling on the inputs.
  *
  * @example
  * ```tsx
@@ -282,10 +286,11 @@ function sliderBehavior({
  * ```
  */
 function sliderRootRef(root: HTMLSpanElement | null) {
-	const form = root?.querySelector("input")?.form;
-	if (root == null || form == null) {
+	if (root == null) {
 		return;
 	}
+	root.addEventListener("touchstart", stopNativeTouch, { passive: false });
+	const form = root.querySelector("input")?.form;
 	const followReset = () => {
 		// Why "any": a step written for a later value would snap an off-grid default.
 		for (const input of partsOf(root).inputs) {
@@ -304,8 +309,21 @@ function sliderRootRef(root: HTMLSpanElement | null) {
 			}
 		});
 	};
-	form.addEventListener("reset", followReset);
-	return () => form.removeEventListener("reset", followReset);
+	form?.addEventListener("reset", followReset);
+	return () => {
+		root.removeEventListener("touchstart", stopNativeTouch);
+		form?.removeEventListener("reset", followReset);
+	};
+}
+
+/**
+ * Stops a range input from sliding itself under a finger, from its own small box.
+ * The root's `touch-none` already stops scrolling, so this non-passive listener costs no scroll.
+ */
+function stopNativeTouch(event: TouchEvent) {
+	if (event.target instanceof HTMLInputElement) {
+		event.preventDefault();
+	}
 }
 
 /** Whether `value` sits on the grid of `step`s that starts at `min`. */

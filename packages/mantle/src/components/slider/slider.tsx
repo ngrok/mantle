@@ -318,8 +318,9 @@ function Slider({
 					<input
 						type="range"
 						data-slot="slider-input"
+						// Why `z-1` and no `pointer-events: none`: the input sits above the hit area of its thumb, so a test finds the thumb by role and clicks it as it would a native input.
 						// Why the writing mode: Chromium reads a range input's orientation from it, not from `aria-orientation`.
-						className="pointer-events-none absolute inset-0 m-0 size-full appearance-none opacity-0 group-data-orientation-vertical/slider:[writing-mode:vertical-lr]"
+						className="absolute inset-0 z-1 m-0 size-full cursor-inherit appearance-none opacity-0 group-data-orientation-vertical/slider:[writing-mode:vertical-lr]"
 						aria-describedby={ariaDescribedBy}
 						aria-errormessage={ariaErrorMessage}
 						aria-invalid={ariaInvalid}

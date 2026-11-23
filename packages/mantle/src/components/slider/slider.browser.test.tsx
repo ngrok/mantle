@@ -1,4 +1,5 @@
 import { act, render, screen } from "@testing-library/react";
+import { userEvent as testingLibraryUserEvent } from "@testing-library/user-event";
 import type { ComponentProps, CSSProperties } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -38,13 +39,14 @@ afterAll(() => {
 	styleElement.remove();
 });
 
-/** The element that a press receives at an offset from the center of `thumb`. */
+/** The thumb that a press reaches at an offset from the center of `thumb`, through the thumb or its input. */
 function hitFromCenter(thumb: Element, dx: number, dy: number): Element | null {
 	const rect = thumb.getBoundingClientRect();
-	return document.elementFromPoint(
+	const hit = document.elementFromPoint(
 		rect.left + rect.width / 2 + dx,
 		rect.top + rect.height / 2 + dy,
 	);
+	return hit?.closest("[data-slot='slider-thumb']") ?? null;
 }
 
 /** The visible thumb that holds the range input `input`. */
@@ -70,6 +72,45 @@ function thumbValues(): number[] {
 		.getAllByRole("slider")
 		.map((input) => (input instanceof HTMLInputElement ? input.valueAsNumber : Number.NaN));
 }
+
+test("a test finds each thumb by role and uses it as a native range input, with no force", async () => {
+	const onValueChange = vi.fn<(value: number[]) => void>();
+	render(
+		<form data-testid="form" style={{ padding: 40, width: 280 }}>
+			<Slider aria-label="Volume" defaultValue={50} name="volume" onValueChange={onValueChange} />
+		</form>,
+	);
+	const slider = screen.getByRole("slider", { name: "Volume" });
+	if (!(slider instanceof HTMLInputElement)) {
+		throw new Error("expected a range input");
+	}
+
+	// Why both: Testing Library refuses an element with `pointer-events: none`, and
+	// Playwright refuses one that another element covers.
+	await testingLibraryUserEvent.setup().click(slider);
+	await userEvent.hover(slider);
+	await userEvent.click(slider);
+	expect(slider).toHaveFocus();
+	expect(onValueChange).not.toHaveBeenCalled();
+
+	await userEvent.fill(slider, "70");
+	expect(onValueChange).toHaveBeenLastCalledWith([70]);
+	expect(getComputedStyle(thumbOf(slider)).getPropertyValue("--_value")).toBe("70");
+
+	await userEvent.keyboard("{ArrowRight}");
+	expect(slider).toHaveValue("71");
+
+	await userEvent.dragAndDrop(slider, rootOf(slider), {
+		targetPosition: {
+			x: rootOf(slider).getBoundingClientRect().width * 0.25,
+			y: rootOf(slider).getBoundingClientRect().height / 2,
+		},
+	});
+	// Why close to 25: a press on a thumb grabs it where it is, so the thumb keeps its offset to the pointer.
+	expect(Number(slider.value)).toBeCloseTo(25, -1);
+	const form = screen.getByTestId("form");
+	expect(form instanceof HTMLFormElement && new FormData(form).get("volume")).toBe(slider.value);
+});
 
 describe("Slider thumb hit area (browser)", () => {
 	test("a drag that starts 20px above the thumb moves the thumb", async () => {
