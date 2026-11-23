@@ -44,13 +44,16 @@ pointer user already knows which control they pressed, so a ring there is
 noise. A keyboard user has no pointer, so the ring is how they know where they
 are. `:focus-visible` gives each of them the correct result from one class.
 
+In Chromium and WebKit, a key press on a control that already has the focus also matches
+`:focus-visible`, such as an arrow key in the open list of a
+[Select](/components/forms/select) that a click opened. Firefox keeps the
+result of the click until the focus moves.
+
 Some mantle controls use another state, because the ring must also show after
 a click:
 
 - [Input](/components/forms/input) puts `focus-within:focus-ring` on the box
   around the `<input>`, so the ring goes around the icons and buttons in it.
-- The trigger of [Select](/components/forms/select) uses `focus:focus-ring`,
-  and keeps the ring while its list is open.
 - [Combobox](/components/forms/combobox) and
   [MultiSelect](/components/forms/multi-select) show the ring on each focus of
   their text field, and keep it while their list is open.
@@ -91,7 +94,7 @@ times.
 - `focus-within:focus-ring` for a wrapper that holds the focused element, such
   as the box around an input.
 - `focus:focus-ring` for a control that must show the ring after a click, such
-  as a select trigger.
+  as a field that the user types into.
 
 Give the element a border radius. The ring follows the radius of the element.
 

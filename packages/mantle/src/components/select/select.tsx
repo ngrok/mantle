@@ -323,8 +323,8 @@ const Root = ({
 					disabled={disabled}
 					value={select.value ?? ""}
 					// Why: a failed `required` check focuses this select, and the user must
-					// land on the trigger.
-					onFocus={() => select.triggerRef.current?.focus()}
+					// land on the trigger. `focusVisible` shows the ring after a mouse submit too.
+					onFocus={() => select.triggerRef.current?.focus({ focusVisible: true })}
 					onChange={(event) => {
 						// Why: the browser already dispatched this change.
 						committedValues.set(event.currentTarget, event.target.value);
@@ -699,11 +699,13 @@ const Trigger = ({
 				// the wrapper's `contents` and give it a box.
 				"[&>[data-slot=select-trigger-label]>span]:line-clamp-1 [&>[data-slot=select-trigger-label]>span]:text-left",
 				"hover:border-neutral-400",
-				"focus:focus-ring aria-expanded:focus-ring",
-				"focus:border-accent-600 aria-expanded:border-accent-600",
-				"data-validation-success:border-success-600 data-validation-success:focus:border-success-600 data-validation-success:focus:ring-focus-success data-validation-success:aria-expanded:border-success-600 data-validation-success:aria-expanded:ring-focus-success",
-				"data-validation-warning:border-warning-600 data-validation-warning:focus:border-warning-600 data-validation-warning:focus:ring-focus-warning data-validation-warning:aria-expanded:border-warning-600 data-validation-warning:aria-expanded:ring-focus-warning",
-				"data-validation-error:border-danger-600 data-validation-error:focus:border-danger-600 data-validation-error:focus:ring-focus-danger data-validation-error:aria-expanded:border-danger-600 data-validation-error:aria-expanded:ring-focus-danger motion-safe:data-validation-error:animate-shake",
+				// Why `focus-visible`: the trigger acts like a button. A pointer open shows no ring.
+				// In Chromium and WebKit, a key press such as an arrow key in the open list shows it.
+				"focus-visible:focus-ring",
+				"focus-visible:border-accent-600 aria-expanded:border-accent-600",
+				"data-validation-success:border-success-600 data-validation-success:focus-visible:border-success-600 data-validation-success:focus-visible:ring-focus-success data-validation-success:aria-expanded:border-success-600",
+				"data-validation-warning:border-warning-600 data-validation-warning:focus-visible:border-warning-600 data-validation-warning:focus-visible:ring-focus-warning data-validation-warning:aria-expanded:border-warning-600",
+				"data-validation-error:border-danger-600 data-validation-error:focus-visible:border-danger-600 data-validation-error:focus-visible:ring-focus-danger data-validation-error:aria-expanded:border-danger-600 motion-safe:data-validation-error:animate-shake",
 				className,
 			)}
 			data-validation={validation || undefined}

@@ -3,7 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import axe from "axe-core";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import { commands, userEvent } from "vitest/browser";
+import { commands, server, userEvent } from "vitest/browser";
 import * as Dialog from "../dialog/dialog-parts.js";
 import * as Select from "./select-parts.js";
 
@@ -579,6 +579,63 @@ describe("Select keyboard, focus, and ARIA contract", () => {
 				overscrollBehaviorY: "none",
 				scrollbarWidth: "none",
 			});
+		} finally {
+			style.remove();
+		}
+	});
+
+	// Why: the trigger acts like a button. Only keyboard use shows the ring, and the
+	// trigger keeps DOM focus while the list is open.
+	test("the trigger shows the focus ring for keyboard use only, open or closed", async () => {
+		const style = document.createElement("style");
+		style.textContent = await commands.tailwindCss("./select.tsx");
+		document.head.append(style);
+		try {
+			render(<FruitSelect />);
+			const trigger = screen.getByRole("combobox", { name: "Fruit" });
+			const hasRing = () => getComputedStyle(trigger).boxShadow.includes(" 4px");
+
+			await userEvent.click(trigger);
+			expect(trigger).toHaveAttribute("aria-expanded", "true");
+			expect(hasRing()).toBe(false);
+
+			// Why per engine: Firefox does not check `:focus-visible` again on a key press after a click.
+			await userEvent.keyboard("{ArrowDown}");
+			expect(trigger).toHaveFocus();
+			expect(hasRing()).toBe(server.browser !== "firefox");
+
+			await userEvent.keyboard("{Escape}");
+			await userEvent.click(screen.getByRole("button", { name: "After" }));
+			await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+			expect(trigger).toHaveFocus();
+			expect(trigger).toHaveAttribute("aria-expanded", "false");
+			expect(hasRing()).toBe(true);
+		} finally {
+			style.remove();
+		}
+	});
+
+	test("a failed required check after a mouse submit lands on the trigger with the ring", async () => {
+		const style = document.createElement("style");
+		style.textContent = await commands.tailwindCss("./select.tsx");
+		document.head.append(style);
+		try {
+			render(
+				<form aria-label="fruit form" onSubmit={(event) => event.preventDefault()}>
+					<Select.Root name="fruit" required>
+						<Select.Trigger aria-label="Fruit" />
+						<Select.Content>
+							<Select.Item value="apple">Apple</Select.Item>
+						</Select.Content>
+					</Select.Root>
+					<button type="submit">Submit</button>
+				</form>,
+			);
+			const trigger = screen.getByRole("combobox", { name: "Fruit" });
+			await userEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+			expect(trigger).toHaveFocus();
+			expect(getComputedStyle(trigger).boxShadow).toContain(" 4px");
 		} finally {
 			style.remove();
 		}
