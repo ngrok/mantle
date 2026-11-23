@@ -2,4 +2,4 @@
 "@ngrok/mantle": patch
 ---
 
-`Command` answers faster when the query clears. It now moves back only the items that the sort moved, not every item.
+`Command` answers faster when the query clears. It puts the items back in their first order with fewer DOM moves.
