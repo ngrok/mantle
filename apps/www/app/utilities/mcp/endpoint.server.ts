@@ -3,8 +3,12 @@ import { mcpFlags } from "~/utilities/mcp/flags.server";
 import { mcpPulse } from "~/utilities/mcp/pulse.server";
 import { createMantleMcpServer, productionDependencies } from "~/utilities/mcp/server.server";
 
-/** The largest JSON-RPC body `/mcp` reads: a 20 KB `code` argument with room for JSON escapes. */
-const MAX_REQUEST_BODY_BYTES = 128 * 1024;
+/**
+ * The largest JSON-RPC body `/mcp` reads. Why 512 KB: a serializer that
+ * escapes non-ASCII text writes `é` as `\u00e9`, so a 100 KB `check`
+ * argument can triple.
+ */
+const MAX_REQUEST_BODY_BYTES = 512 * 1024;
 
 /**
  * Passes the body through as it streams, and calls `onDone` once, when the
