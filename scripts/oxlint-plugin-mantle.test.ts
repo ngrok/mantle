@@ -377,6 +377,7 @@ describe("no-unanchored-child-variant", () => {
 		'cx("md:**:data-[slot=icon]:shrink-0");',
 		'const a = "data-state-inactive:*:paused";',
 		'cx("not-has-data-[slot=x]:[&_[data-a],&_[data-b]]:top-1/2");',
+		`cx("[&_[data-label='(']]:*:p-2");`,
 	])("flags %s", (source) => {
 		expect(
 			lint({ rule: "no-unanchored-child-variant", fileName: "a.ts", source }).length,
@@ -388,6 +389,7 @@ describe("no-unanchored-child-variant", () => {
 		'cx("data-state-inactive:[&>*]:paused [&>:first-child]:size-7");',
 		'cx("[&:is([data-a],[data-b])]:p-2 has-[[data-a],[data-b]]:p-2");',
 		'const a = "2 * 3: four";',
+		'cx("[&_.foo\\\\,bar]:p-2");',
 	])("allows %s", (source) => {
 		expect(lint({ rule: "no-unanchored-child-variant", fileName: "a.ts", source })).toEqual([]);
 	});

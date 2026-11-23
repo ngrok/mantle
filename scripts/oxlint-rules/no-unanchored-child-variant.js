@@ -25,19 +25,33 @@
 const fixHint =
 	"Tailwind or the minifier wraps this variant in `:is()`, so Chromium tries the rule on each element of the page on each style pass. Write the combinator as an arbitrary variant with the class outside it: `[&>*]:` for `*:`, `[&_*]:` for `**:`, `[&>[data-slot=x]]:` for `*:data-[slot=x]:`, and one class for each selector of a list.";
 
-/** Whether an arbitrary variant's selector has a comma outside parentheses and brackets. */
-function hasSelectorList(selector) {
+/**
+ * The offsets of `target` outside parentheses, brackets, and quotes. An escaped
+ * character, such as `\,` in a class name, is not syntax.
+ */
+function topLevelOffsets(text, target) {
+	const offsets = [];
 	let depth = 0;
-	for (const char of selector) {
-		if (char === "(" || char === "[") {
+	let quote = null;
+	for (let index = 0; index < text.length; index++) {
+		const char = text[index];
+		if (char === "\\") {
+			index++;
+		} else if (quote != null) {
+			if (char === quote) {
+				quote = null;
+			}
+		} else if (char === '"' || char === "'") {
+			quote = char;
+		} else if (char === "(" || char === "[") {
 			depth++;
 		} else if (char === ")" || char === "]") {
 			depth--;
-		} else if (char === "," && depth === 0) {
-			return true;
+		} else if (char === target && depth === 0) {
+			offsets.push(index);
 		}
 	}
-	return false;
+	return offsets;
 }
 
 /**
@@ -50,27 +64,19 @@ function hasSelectorList(selector) {
  */
 export function unanchoredVariants(token) {
 	const found = [];
-	let depth = 0;
 	let start = 0;
-	for (let index = 0; index < token.length; index++) {
-		const char = token[index];
-		if (char === "[" || char === "(") {
-			depth++;
-		} else if (char === "]" || char === ")") {
-			depth--;
-		} else if (char === ":" && depth === 0) {
-			const variant = token.slice(start, index);
-			start = index + 1;
-			if (
-				variant === "*" ||
-				variant === "**" ||
-				(variant.startsWith("[") &&
-					variant.endsWith("]") &&
-					variant.includes("&") &&
-					hasSelectorList(variant.slice(1, -1)))
-			) {
-				found.push(variant);
-			}
+	for (const index of topLevelOffsets(token, ":")) {
+		const variant = token.slice(start, index);
+		start = index + 1;
+		if (
+			variant === "*" ||
+			variant === "**" ||
+			(variant.startsWith("[") &&
+				variant.endsWith("]") &&
+				variant.includes("&") &&
+				topLevelOffsets(variant.slice(1, -1), ",").length > 0)
+		) {
+			found.push(variant);
 		}
 	}
 	return found;
