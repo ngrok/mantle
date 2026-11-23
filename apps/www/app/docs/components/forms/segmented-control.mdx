@@ -158,7 +158,7 @@ SegmentedControl.Root
 
 ## Radio semantics
 
-`SegmentedControl` is a radio group of native radios. It shares its primitive with [`RadioGroup`](/components/forms/radio-group), so it has the same contract: `role="radiogroup"`, one tab stop, arrow keys that move the checked segment, and form submission when it has a `name`. Each segment is a `<div>` with an `<input type="radio">` that covers it, so style a segment's state with `has-[>input:checked]:`, `has-[>input:disabled]:`, and `has-[>input:focus-visible]:`.
+`SegmentedControl` is a radio group of native radios. It shares its primitive with [`RadioGroup`](/components/forms/radio-group), so it has the same contract: `role="radiogroup"`, one tab stop, arrow keys that move the checked segment, and form submission when it has a `name`. Each segment is a `<div>` with an invisible `<input type="radio">` in it, so style a segment's state with `has-[>input:checked]:`, `has-[>input:disabled]:`, and `has-[>input:focus-visible]:`.
 
 To change the value, click a segment, use the arrow keys, or drag the thumb with a mouse or a finger.
 
