@@ -201,6 +201,15 @@ async function orRegression<T>(
 	}
 }
 
+/** The first three results with their scores, and whether the match is weak. */
+function topThree(found: Found): string {
+	const results = found.results
+		.slice(0, 3)
+		.map(({ name, score }) => `${name} (${score})`)
+		.join(", ");
+	return `${results || "nothing"}${found.strongMatch ? "" : ", weak"}`;
+}
+
 /** Ranks `query`, and records how it went against `wanted` for the report. */
 async function rank(section: string, query: string, wanted: string | readonly string[]) {
 	const found = await find(query);
@@ -208,18 +217,13 @@ async function rank(section: string, query: string, wanted: string | readonly st
 	const top = found.results[0]?.name;
 	const hit = found.strongMatch && top != null && answers.includes(top);
 	const index = found.results.findIndex(({ name }) => answers.includes(name));
-	const got =
-		found.results
-			.slice(0, 3)
-			.map(({ name, score }) => `${name} (${score})`)
-			.join(", ") || "nothing";
 	return {
 		hit,
 		row: {
 			section,
 			query,
 			want: answers.join(" or "),
-			got: `${got}${found.strongMatch ? "" : ", weak"}`,
+			got: topThree(found),
 			wantRank: index === -1 ? "not in top 8" : `#${index + 1}`,
 		},
 	};
@@ -254,7 +258,7 @@ describe("the known find misses", () => {
 
 		expect(
 			hit,
-			`find "${query}" now ranks ${row.want} first and strong. Move it to goldenFinds.`,
+			`find "${query}" now ranks ${row.want} first and strong (${row.got}). Move it to goldenFinds.`,
 		).toBe(false);
 	});
 });
@@ -266,22 +270,18 @@ describe("the real gaps", () => {
 			const found = await orRegression({ section: "Real gaps", query, want: `weak (${gap})` }, () =>
 				find(query),
 			);
-			const top = found.results[0];
 			rows.push({
 				section: "Real gaps",
 				query,
 				want: `weak (${gap})`,
-				got:
-					top == null
-						? "nothing"
-						: `${top.name} (${top.score})${found.strongMatch ? "" : ", weak"}`,
+				got: topThree(found),
 				wantRank: "",
 				status: found.strongMatch ? "regression" : "pass",
 			});
 
 			expect(
 				found.strongMatch,
-				`find "${query}" is a strong match to ${top?.name}. If mantle now has a part for ${gap}, move it to goldenFinds.`,
+				`find "${query}" is a strong match (${topThree(found)}). If mantle now has a part for ${gap}, move it to goldenFinds.`,
 			).toBe(false);
 		},
 	);
