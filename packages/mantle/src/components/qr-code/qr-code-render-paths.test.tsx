@@ -129,6 +129,41 @@ describe("QrCode render paths", () => {
 		expect(loadGeometry).toHaveBeenCalledOnce();
 	});
 
+	test("a Frame that mounts after hydration loads the encoder and draws the code", async () => {
+		const { QrCode, container, loadGeometry } = await hydrateServerHtml();
+		act(() =>
+			mounted?.render(
+				<QrCode.Root value={value}>
+					<QrCode.Frame key="remounted">
+						<QrCode.Pattern />
+					</QrCode.Frame>
+				</QrCode.Root>,
+			),
+		);
+		await act(() => vi.dynamicImportSettled());
+		const { path, dimension } = geometryOf(value);
+		expect(readGeometry(container)).toEqual({ path, viewBox: `0 0 ${dimension} ${dimension}` });
+		expect(loadGeometry).toHaveBeenCalledOnce();
+	});
+
+	test("ecc, quietZone, and pixelSize reach the rendered geometry", async () => {
+		const QrCode = await importQrCode();
+		const container = document.body.appendChild(document.createElement("div"));
+		mounted = createRoot(container);
+		act(() =>
+			mounted?.render(
+				<QrCode.Root value={value} ecc="H" quietZone={1} pixelSize={4}>
+					<QrCode.Frame>
+						<QrCode.Pattern />
+					</QrCode.Frame>
+				</QrCode.Root>,
+			),
+		);
+		await act(() => vi.dynamicImportSettled());
+		const { path, dimension } = encodeQrCode({ value, ecc: "H", quietZone: 1, pixelSize: 4 });
+		expect(readGeometry(container)).toEqual({ path, viewBox: `0 0 ${dimension} ${dimension}` });
+	});
+
 	test("a client-only value draws when the encoder chunk loads, and later mounts draw at once", async () => {
 		const QrCode = await importQrCode();
 		const first = document.body.appendChild(document.createElement("div"));

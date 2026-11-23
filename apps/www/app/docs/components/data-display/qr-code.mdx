@@ -98,7 +98,7 @@ import { QrCode } from "@ngrok/mantle/qr-code";
 
 ## Composition
 
-`QrCode.Root` encodes the value with the dependency-free [`uqr`](https://github.com/unjs/uqr) library. The server render encodes it, so the HTML holds the finished SVG and the browser loads no encoder to hydrate it. If only the browser knows the value, the encoder loads one time and the code draws when it arrives.
+`QrCode.Root` encodes the value with the dependency-free [`uqr`](https://github.com/unjs/uqr) library. The server render encodes it, so the HTML holds the finished SVG and the browser loads no encoder to hydrate it. If the browser renders the code (a client navigation, a popover, or an app with no server render), the encoder loads one time and the code draws when it arrives. Until then, the frame shows an empty tile of the same size.
 
 Compose the parts of a `QrCode` together to build your own:
 

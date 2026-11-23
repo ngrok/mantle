@@ -125,6 +125,30 @@ function assertValidRootProps(pixelSize: number, quietZone: number): void {
 }
 
 /**
+ * Loads the encoder chunk while `needed` is true. A failed load throws to the
+ * nearest error boundary.
+ *
+ * @example
+ * ```tsx
+ * useLoadEncoder(encoder == null);
+ * ```
+ */
+function useLoadEncoder(needed: boolean): void {
+	const [, setLoadFailure] = useState();
+	useEffect(() => {
+		if (!needed) {
+			return;
+		}
+		loadEncoder().catch((error: unknown) => {
+			// Why: an updater that throws hands the load failure to the nearest error boundary.
+			setLoadFailure(() => {
+				throw error;
+			});
+		});
+	}, [needed]);
+}
+
+/**
  * Encodes the QR code for `QrCode.Root` with the least client JavaScript:
  *
  * - The server encodes, so the HTML holds the finished SVG.
@@ -148,20 +172,7 @@ function useQrCodeEncoding({
 	// Why: the DOM keeps the server SVG while the props match the props that
 	// the server rendered, so only that key needs no encoder.
 	const [serverKey] = useState(isHydrated ? undefined : key);
-	const [, setLoadFailure] = useState();
-	const needsEncoder = currentEncoder == null && serverKey !== key;
-
-	useEffect(() => {
-		if (!needsEncoder) {
-			return;
-		}
-		loadEncoder().catch((error: unknown) => {
-			// Why: an updater that throws hands the load failure to the nearest error boundary.
-			setLoadFailure(() => {
-				throw error;
-			});
-		});
-	}, [needsEncoder]);
+	useLoadEncoder(currentEncoder == null && serverKey !== key);
 
 	const encoded = useMemo<QrCodeContextValue | undefined>(() => {
 		const geometry = currentEncoder?.({ value, ecc, quietZone, pixelSize });
@@ -195,6 +206,25 @@ function useQrCodeContext(): QrCodeContextValue {
 		"`QrCode.Frame` and `QrCode.Pattern` must be rendered inside a `QrCode.Root`.",
 	);
 	return context;
+}
+
+/**
+ * Reads the QR code context for `QrCode.Frame` and `QrCode.Pattern`. A part
+ * that the client mounts after hydration has no server markup to keep, so it
+ * reads `loading` and loads the encoder.
+ *
+ * @example
+ * ```tsx
+ * const context = useQrCodePartContext();
+ * ```
+ */
+function useQrCodePartContext(): QrCodeContextValue {
+	const context = useQrCodeContext();
+	const isHydrated = useIsHydrated();
+	const [hydratedFromServer] = useState(!isHydrated);
+	const needsEncoder = context.status === "server-markup" && !hydratedFromServer;
+	useLoadEncoder(needsEncoder);
+	return needsEncoder ? LOADING : context;
 }
 
 /**
@@ -346,7 +376,7 @@ const Frame = ({
 	ref,
 	...props
 }: QrCodeFrameProps) => {
-	const context = useQrCodeContext();
+	const context = useQrCodePartContext();
 
 	return (
 		<svg
@@ -401,7 +431,7 @@ type QrCodePatternProps = ComponentProps<"path"> & WithDataSlot;
  * ```
  */
 const Pattern = ({ "data-slot": dataSlot, className, ref, ...props }: QrCodePatternProps) => {
-	const context = useQrCodeContext();
+	const context = useQrCodePartContext();
 
 	return (
 		<path

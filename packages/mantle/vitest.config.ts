@@ -4,7 +4,6 @@ import path from "node:path";
 import { compile } from "@tailwindcss/node";
 import { Scanner } from "@tailwindcss/oxide";
 import { playwright, type PlaywrightProviderOptions } from "@vitest/browser-playwright";
-import { defaultClientConditions } from "vite";
 import { configDefaults, defineConfig } from "vitest/config";
 import type { BrowserCommand } from "vitest/node";
 
@@ -193,8 +192,16 @@ const compilerPlugins =
 // Both projects inherit every option here (Vitest 5 defaults projects to `extends: true`), so a
 // hygiene or locale pin is written once and cannot drift between them.
 export default defineConfig({
-	// Why: `package.json#imports` points `#qr-code-encoder` at `src` only under this condition.
-	resolve: { conditions: [...defaultClientConditions, "@ngrok/src-live-types"] },
+	// Why an alias, not a resolve condition: a condition reaches every dependency. The unit
+	// and browser projects run in a DOM, so they get the encoder file a browser bundle gets.
+	resolve: {
+		alias: {
+			"#qr-code-encoder": path.join(
+				import.meta.dirname,
+				"src/components/qr-code/qr-code-encoder.browser.ts",
+			),
+		},
+	},
 	test: {
 		// A spy or global stub that a test installs and then fails to tear down leaks into every test
 		// that runs after it, which turns an unrelated failure into a cascade and makes results depend
