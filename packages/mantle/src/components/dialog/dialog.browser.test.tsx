@@ -308,35 +308,38 @@ describe("Dialog.Body", () => {
 		await waitFor(() => expect(body).not.toHaveAttribute("tabindex"));
 	});
 
-	test("a scrolling body that closes with its dialog reports no ResizeObserver loop error", async () => {
+	test("a scrolling body reports no ResizeObserver loop error while its dialog plays the exit", async () => {
+		// Regression: the body dropped its tab stop when the closed dialog hid it, and
+		// the observer then observed the body again inside the resize callback.
+		const exitStyle = document.createElement("style");
+		exitStyle.textContent = `@keyframes slow-exit { to { opacity: 0; } }
+[data-slot~="dialog-content"][data-closing] { animation: slow-exit 300ms; }`;
+		document.head.appendChild(exitStyle);
 		const errors: string[] = [];
 		const onError = (event: ErrorEvent) => errors.push(event.message);
 		window.addEventListener("error", onError);
 		try {
-			const { rerender } = render(
-				<div>
-					<Dialog.Body data-testid="body" style={bodyStyle}>
-						{lines(10)}
-					</Dialog.Body>
-				</div>,
+			render(
+				<Dialog.Root defaultOpen>
+					<Dialog.Content>
+						<Dialog.Title>Exit</Dialog.Title>
+						<Dialog.Body data-testid="body" style={bodyStyle}>
+							{lines(10)}
+						</Dialog.Body>
+						<Dialog.Close>Close</Dialog.Close>
+					</Dialog.Content>
+				</Dialog.Root>,
 			);
 			const body = screen.getByTestId("body");
 			await waitFor(() => expect(body).toHaveAttribute("tabindex", "0"));
 
-			rerender(
-				<div hidden>
-					<Dialog.Body data-testid="body" style={bodyStyle}>
-						{lines(10)}
-					</Dialog.Body>
-				</div>,
-			);
+			await userEvent.click(screen.getByRole("button", { name: "Close" }));
 
-			await waitFor(() => expect(body).not.toHaveAttribute("tabindex"));
-			await new Promise(requestAnimationFrame);
-			await new Promise(requestAnimationFrame);
+			await waitFor(() => expect(screen.queryByTestId("body")).toBeNull());
 			expect(errors).toEqual([]);
 		} finally {
 			window.removeEventListener("error", onError);
+			exitStyle.remove();
 		}
 	});
 });
