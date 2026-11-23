@@ -56,8 +56,9 @@ A rule tagged `(lint: name)` has an oxlint check, and the lint message says why 
 
 - The React Compiler runs in strict mode by default. The tsdown build, the vitest suite, and the docs site share `packages/mantle/react-compiler.config.ts`. It sets `panicThreshold: "all_errors"` and turns on every compiler validation, so a function that the compiler cannot compile or validate fails the build.
 - Write code that the compiler can compile. When the build fails, rewrite the function to the [Rules of React](https://react.dev/reference/rules). Do not opt it out.
-- The compiler runs only where memoization can help: in a component that calls a hook or creates a function in render. The build gives every other component `"use no memo"` (`packages/mantle/scripts/mark-memo-free-components.ts`), because its compiled output adds a cache that saves little, such as a repeated `cx` call. Start a hook-free component with `"use memo"` when it passes a new object to a child that compares it, or when it runs a calculation that a benchmark shows is costly to repeat.
-- Write `"use no memo"` yourself only for a library that the compiler cannot model (`list/virtual.tsx` and `@tanstack/react-virtual`). Add a `Why` comment that names the library.
+- Nothing ships compiled by default (annotation mode). Start a function, or a module (its components and hooks), with `"use memo"` only when a browser A/B at 4× CPU shows a better INP, and put the numbers in its `Why` comment. Bytes or render counts alone do not qualify ([decision](./decisions/2026-11-22-react-compiler-scope.md)).
+- A stable identity that a caller relies on, such as a ref callback or an effect dependency, is code: use `useCallback`, `useMemo`, or a module cache.
+- Write `"use no memo"` only for a library that the compiler cannot model (`list/virtual.tsx` and `@tanstack/react-virtual`). Add a `Why` comment that names the library.
 - oxlint turns on every rule that ports a compiler diagnostic, so the editor shows what the build rejects. Never disable a React hooks or React Compiler rule; restructure the code. (lint: `mantle/no-react-hooks-suppression`)
 - The usual fixes:
   - State that follows a prop: set it during render behind a condition, not in an effect.

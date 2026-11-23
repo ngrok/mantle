@@ -11,7 +11,6 @@ import { useMultiSelect } from "../../behaviors/use-multi-select.js";
 import type { MultiSelectBehavior, UseMultiSelectProps } from "../../behaviors/use-multi-select.js";
 import { usePopup } from "../../behaviors/use-popup.js";
 import type { WithAsChild } from "../../types/as-child.js";
-import { composeRefs } from "../../utils/compose-refs/compose-refs.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -152,6 +151,8 @@ const Trigger = ({
 	...props
 }: MultiSelectTriggerProps) => {
 	const { inputRef, open, setOpen, tags, triggerRef } = useMultiSelectContext();
+	// Why a hook: a new ref callback on each render would run the caller's callback ref again.
+	const composedRef = useComposedRefs(triggerRef, ref);
 	const inTag = (target: EventTarget) =>
 		target instanceof Node && [...tags.values()].some((tag) => tag.contains(target));
 	const fieldValidation = useFieldValidation();
@@ -210,7 +211,7 @@ const Trigger = ({
 						setOpen(false);
 					}
 				})}
-				ref={composeRefs(triggerRef, ref)}
+				ref={composedRef}
 				{...props}
 			>
 				{children}
@@ -288,10 +289,12 @@ const Tag = ({
 	// valid here, and `aria-current` names a current item, not focus. DOM focus
 	// exposes the active tag; `data-active` drives its styling.
 	const [isActive, setIsActive] = useState(false);
+	// Why a hook: the tags re-render on each keystroke, and a new ref callback would run the caller's callback ref again.
+	const composedRef = useComposedRefs(internalRef, ref);
 
 	return (
 		<span
-			ref={composeRefs(internalRef, ref)}
+			ref={composedRef}
 			role="listitem"
 			tabIndex={-1}
 			data-slot={joinDataSlot(dataSlot, "multi-select-tag")}

@@ -32,9 +32,9 @@ const codeBlockPlugins = mantleCodeBlockPlugins();
 
 /**
  * Runs the React Compiler over the app and over the mantle source that
- * `resolve.conditions` maps in. The published dist ships compiled output (see
- * `packages/mantle/tsdown.config.ts`), so compiling mantle here keeps docs
- * pages rendering the library exactly as npm consumers get it.
+ * `resolve.conditions` maps in. It runs the same opt-in pass as the published
+ * dist (see `packages/mantle/tsdown.config.ts`), so docs pages render the
+ * library exactly as npm consumers get it.
  *
  * Why `enforce: "pre"`: Vite's own transform strips the JSX the compiler must
  * see, and the React Router Fast Refresh transform rewrites components.

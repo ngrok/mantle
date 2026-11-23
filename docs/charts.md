@@ -48,7 +48,7 @@ A change that fails a gate does not ship.
 
 ## React and loading
 
-- **Run the paint, the layout, the activation, and each overlay position outside React.** React renders the shell, the tooltip content, the legend, and the table; a hover renders neither the table nor the legend again. Check: `a hover publish does not re-render the data table` in `chart/primitive.test.tsx`.
+- **Run the paint, the layout, the activation, and each overlay position outside React.** React renders the shell, the tooltip content, the legend, and the table; a hover does not render the legend again. Check: `a hover publish does not re-render the legend` in `chart/primitive.test.tsx`.
 - **Compare a prop that has a value form by value before it reaches the engine.** The engine compares `data` and a function prop such as `tickFormat` by identity, so a new array or a new function paints the chart again. Check: `a re-render with an equal inline style resolves the colors once` in `chart/root-color-override.browser.test.tsx`.
 - **Make no observer, media query, or frame request for one chart: use the shared services (`requestSharedFrame` in `chart/frame-loop.ts`, `observeChartVisibility` in `chart/visibility.ts`, and `observeResize` and the others in `chart/environment.ts`).** Check: `every request in one frame shares one animation frame and runs once` in `chart/frame-loop.test.ts`; review for a module that makes its own.
 - **Mount a chart as a shell, and make each piece on first use.** Check: `a dormant chart is a shell: no paint surface, no hover layers, no tooltip surface` in `chart/primitive.test.tsx`.

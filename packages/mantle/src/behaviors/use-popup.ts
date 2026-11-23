@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { RefCallback, RefObject } from "react";
 import { canUseDOM } from "../components/browser-only/can-use-dom.js";
 import { useIsHydrated } from "../hooks/use-is-hydrated.js";
@@ -136,32 +136,37 @@ const usePopup = ({
 	});
 	// Why a ref callback: React calls it again when `open` changes, so the host
 	// joins the document and the popup follows its anchor only while open, with
-	// no effect and no extra render.
-	const popupRef: RefCallback<HTMLElement> = (floating) => {
-		if (!open || floating == null || host == null) {
-			return;
-		}
-		(container ?? document.body).append(host);
-		const stopFollowing = followAnchor(anchorRef, floating, host);
-		const anchor = anchorRef.current;
-		const exitModal = modal != null && anchor != null ? modal([anchor, host]) : undefined;
-		// Why the anchor: focus on another part of the control, such as a tag,
-		// already keeps the popup's Escape and blur.
-		const owner = ownerRef?.current;
-		if (owner != null && !anchor?.contains(document.activeElement)) {
-			owner.focus({ preventScroll: true });
-		}
-		return () => {
-			exitModal?.();
-			stopFollowing();
-			// Why: focus on a control in the popup, such as a footer button, would
-			// fall to the body when the popup unmounts.
-			if (host.contains(document.activeElement)) {
-				ownerRef?.current?.focus({ preventScroll: true });
+	// no effect and no extra render. Why `useCallback`: a new callback on each
+	// render would re-place the popup and enter the modal again on each keystroke.
+	const popupRef = useCallback<RefCallback<HTMLElement>>(
+		(floating) => {
+			if (!open || floating == null || host == null) {
+				return;
 			}
-			host.remove();
-		};
-	};
+			(container ?? document.body).append(host);
+			const stopFollowing = followAnchor(anchorRef, floating, host);
+			const anchor = anchorRef.current;
+			const exitModal = modal != null && anchor != null ? modal([anchor, host]) : undefined;
+			// Why the anchor: focus on another part of the control, such as a tag,
+			// already keeps the popup's Escape and blur.
+			const owner = ownerRef?.current;
+			if (owner != null && !anchor?.contains(document.activeElement)) {
+				owner.focus({ preventScroll: true });
+			}
+			return () => {
+				exitModal?.();
+				stopFollowing();
+				// Why: focus on a control in the popup, such as a footer button, would
+				// fall to the body when the popup unmounts.
+				if (host.contains(document.activeElement)) {
+					ownerRef?.current?.focus({ preventScroll: true });
+				}
+				host.remove();
+			};
+		},
+		[open, host, container, anchorRef, ownerRef, modal],
+	);
+
 	return { host: hydrated ? host : null, popupRef };
 };
 

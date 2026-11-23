@@ -1,6 +1,6 @@
 "use client";
 
-import { isValidElement, useId, useState } from "react";
+import { isValidElement, useCallback, useId, useInsertionEffect, useRef, useState } from "react";
 import type { HTMLAttributes, MouseEventHandler, ReactNode, RefCallback, RefObject } from "react";
 import { createStore, useStoreValue } from "./store.js";
 import type { Store } from "./store.js";
@@ -184,6 +184,63 @@ const useListbox = ({
 		return true;
 	};
 
+	// Why a stable callback: React detaches and attaches a new ref callback on each render, which
+	// would rebuild the observer and the subscription on each keystroke.
+	// Why an insertion effect: the ref callback and the observer can run in the same commit, before
+	// a passive effect (`useCallbackRef`) writes this render's `move`.
+	const moveRef = useRef(move);
+	useInsertionEffect(() => {
+		moveRef.current = move;
+	});
+	const listboxRef = useCallback<RefCallback<HTMLElement>>(
+		(node) => {
+			ref.current = node;
+			if (node == null) {
+				return;
+			}
+			const store = getStore();
+			// Why an observer: options can mount after the move that needed them, such
+			// as async results, or replace the active option. The highlight then
+			// moves when the options change, with no effect and no extra render.
+			const reconcile = () => {
+				const { activeId } = store.get();
+				const stale = activeId != null && !node.contains(document.getElementById(activeId));
+				if (pendingMoveRef.current != null || stale) {
+					moveRef.current(pendingMoveRef.current ?? "first");
+				}
+			};
+			const observer = new MutationObserver(reconcile);
+			observer.observe(node, { childList: true, subtree: true });
+			// Why the open list writes the attribute: the owner needs no subscription
+			// while closed. Each write reads the ref, because the list can attach
+			// first, and the cleanup removes it from the element it wrote to, because
+			// the owner's ref can be detached in the commit that closes the list.
+			let written: HTMLElement | null = null;
+			const showActive = () => {
+				const owner = ownerRef.current ?? written;
+				const { activeId } = store.get();
+				if (activeId == null) {
+					owner?.removeAttribute("aria-activedescendant");
+					return;
+				}
+				owner?.setAttribute("aria-activedescendant", activeId);
+				written = owner;
+			};
+			const unsubscribe = store.subscribe(showActive);
+			showActive();
+			// Why now too: the commit that attaches the list can also replace the
+			// options before the observer starts.
+			reconcile();
+			return () => {
+				observer.disconnect();
+				unsubscribe();
+				written?.removeAttribute("aria-activedescendant");
+				ref.current = null;
+			};
+		},
+		[ref, getStore, pendingMoveRef, ownerRef],
+	);
+
 	return {
 		id,
 		getStore,
@@ -195,52 +252,7 @@ const useListbox = ({
 		typeahead,
 		listboxProps: {
 			id,
-			ref: (node) => {
-				ref.current = node;
-				if (node == null) {
-					return;
-				}
-				const store = getStore();
-				// Why an observer: options can mount after the move that needed them, such
-				// as async results, or replace the active option. The highlight then
-				// moves when the options change, with no effect and no extra render.
-				const reconcile = () => {
-					const { activeId } = store.get();
-					const stale = activeId != null && !node.contains(document.getElementById(activeId));
-					if (pendingMoveRef.current != null || stale) {
-						move(pendingMoveRef.current ?? "first");
-					}
-				};
-				const observer = new MutationObserver(reconcile);
-				observer.observe(node, { childList: true, subtree: true });
-				// Why the open list writes the attribute: the owner needs no subscription
-				// while closed. Each write reads the ref, because the list can attach
-				// first, and the cleanup removes it from the element it wrote to, because
-				// the owner's ref can be detached in the commit that closes the list.
-				let written: HTMLElement | null = null;
-				const showActive = () => {
-					const owner = ownerRef.current ?? written;
-					const { activeId } = store.get();
-					if (activeId == null) {
-						owner?.removeAttribute("aria-activedescendant");
-						return;
-					}
-					owner?.setAttribute("aria-activedescendant", activeId);
-					written = owner;
-				};
-				const unsubscribe = store.subscribe(showActive);
-				showActive();
-				// Why now too: React calls this again when `move` changes, and the
-				// commit that changed it can also replace the options before the new
-				// observer starts.
-				reconcile();
-				return () => {
-					observer.disconnect();
-					unsubscribe();
-					written?.removeAttribute("aria-activedescendant");
-					ref.current = null;
-				};
-			},
+			ref: listboxRef,
 			role: "listbox",
 			tabIndex: -1,
 			// Why: a press inside the list must not move DOM focus off the owner.

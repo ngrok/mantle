@@ -2,7 +2,6 @@ import remapping from "@jridgewell/remapping";
 import MagicString from "magic-string";
 import { parseSync, Visitor } from "oxc-parser";
 import { transform, type ReactCompilerOptions, type TransformResult } from "oxc-transform-react";
-import { markMemoFreeComponents } from "./scripts/mark-memo-free-components.ts";
 
 /**
  * The React Compiler options for every compiler pass in the repo: the tsdown
@@ -51,14 +50,30 @@ function assertCompiled(id: string, result: TransformResult): void {
 	}
 }
 
+/** Reports whether a module starts with a `"use memo"` directive, which opts in each of its components and hooks. */
+function optsInModule(id: string, code: string): boolean {
+	const { program } = parseSync(id, code);
+	for (const statement of program.body) {
+		if (statement.type !== "ExpressionStatement" || statement.directive == null) {
+			return false;
+		}
+		if (statement.directive === "use memo") {
+			return true;
+		}
+	}
+	return false;
+}
+
 /**
  * Runs the React Compiler over one module, for the tsdown build, the vitest suite, and the docs
- * site. Each component that memoization cannot help ships as written (see
- * `markMemoFreeComponents`). The source map points at the original module. JSX stays in the output,
- * so the host's own JSX transform still runs.
+ * site. Only a function that starts with `"use memo"`, or each component and hook of a module that
+ * starts with it, ships compiled. Every other function ships as written. The source map points at the original module. JSX stays in the output, so the host's own
+ * JSX transform still runs.
  *
- * Why compile the original first: `"use no memo"` also turns off the compiler's validations, and
- * every component must still pass them.
+ * Why two passes: the first pass compiles every component and hook to run the strict validations,
+ * and discards its output. The second pass compiles only the opted-in functions. Opt in when a browser
+ * benchmark shows that memoization makes an interaction faster, or when a test shows that a caller
+ * relies on a stable identity (see decisions/2026-11-22-react-compiler-scope.md).
  *
  * @example
  * ```ts
@@ -66,15 +81,18 @@ function assertCompiled(id: string, result: TransformResult): void {
  * ```
  */
 async function compileReact(id: string, code: string) {
-	const options = {
+	const validated = await transform(id, code, {
+		jsx: "preserve",
+		reactCompiler: reactCompilerOptions,
+	});
+	assertCompiled(id, validated);
+	const result = await transform(id, code, {
 		jsx: "preserve",
 		sourcemap: true,
-		reactCompiler: reactCompilerOptions,
-	} as const;
-	const validated = await transform(id, code, options);
-	assertCompiled(id, validated);
-	const marked = markMemoFreeComponents(id, code);
-	const result = marked.hasChanged() ? await transform(id, marked.toString(), options) : validated;
+		reactCompiler: optsInModule(id, code)
+			? reactCompilerOptions
+			: { ...reactCompilerOptions, compilationMode: "annotation" },
+	});
 	assertCompiled(id, result);
 	// Why strip: the compiler keeps each directive in its output, and a directive is dead text there.
 	const stripped = new MagicString(result.code);
@@ -89,9 +107,6 @@ async function compileReact(id: string, code: string) {
 		return { code: result.code, map: result.map };
 	}
 	const maps = [stripped.generateMap({ hires: true }).toString(), JSON.stringify(result.map)];
-	if (marked.hasChanged()) {
-		maps.push(marked.generateMap({ source: id, hires: true, includeContent: true }).toString());
-	}
 	return { code: stripped.toString(), map: remapping(maps, () => null).toString() };
 }
 
