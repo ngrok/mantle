@@ -185,10 +185,10 @@ describe("ThemeSwitcher", () => {
 
 		fireEvent.click(screen.getByRole("button", { name: "Switch to dark theme" }));
 
-		fireEvent.click(
-			await screen.findByRole("button", { name: "Switch to light theme (system default)" }),
-		);
-		expect(await screen.findByRole("button", { name: "Switch to dark theme" })).toBeInTheDocument();
+		// Why `getByRole` with no wait: the name must be current as soon as the
+		// click returns.
+		fireEvent.click(screen.getByRole("button", { name: "Switch to light theme (system default)" }));
+		expect(screen.getByRole("button", { name: "Switch to dark theme" })).toBeInTheDocument();
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("system");
 	});
 

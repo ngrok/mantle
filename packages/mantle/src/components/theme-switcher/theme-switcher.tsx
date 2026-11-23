@@ -473,6 +473,11 @@ function ThemeSwitcher({
 					setTheme((current) => getToggledTheme({ theme: current, prefersDarkMode }), {
 						origin: event.currentTarget,
 					});
+					// Why here and not only in the observer: with no view transition,
+					// `<html>` changes during the click, and the observer renames the
+					// switcher one microtask later. A read right after the click must
+					// get the new name.
+					nameSwitchers();
 				}
 			}}
 		>
