@@ -46,8 +46,8 @@ function dependencies(overrides: Partial<McpDependencies> = {}): McpDependencies
 }
 
 /** Calls one tool at `url`, and returns its text and error flag. */
-function callToolAt(url: string) {
-	const send = rpcAt(url);
+function callToolAt(url: string, headers: Record<string, string> = {}) {
+	const send = rpcAt(url, headers);
 	return async (deps: McpDependencies, name: string, args: Record<string, unknown>) => {
 		const { result } = await send(deps, "tools/call", { name, arguments: args });
 		const content = (result?.content ?? []) as { type: string; text: string }[];
@@ -191,7 +191,10 @@ describe("the mantle MCP server", () => {
 		});
 
 		expect(missing.isError).toBe(true);
-		expect(missingEvent).toMatchObject({ errorKind: "validation", invalidFields: ["ticket"] });
+		expect(missingEvent).toMatchObject({
+			errorKind: "validation",
+			invalidArguments: [{ argument: "ticket", problem: "missing" }],
+		});
 		expect(none.isError).toBe(false);
 		expect(log).toHaveBeenLastCalledWith(
 			expect.objectContaining({
@@ -438,7 +441,10 @@ describe("the mantle MCP server", () => {
 				outcome: "error",
 				errorKind: "validation",
 				client: "claude-code/2.1.3",
-				invalidFields: ["query", "kind"],
+				invalidArguments: [
+					{ argument: "query", problem: "empty" },
+					{ argument: "kind", problem: "not an allowed value" },
+				],
 			}),
 		);
 	});
@@ -452,7 +458,7 @@ describe("the mantle MCP server", () => {
 			expect.objectContaining({
 				errorKind: "validation",
 				intent: "Danger zone for",
-				invalidFields: ["name"],
+				invalidArguments: [{ argument: "name", problem: "empty" }],
 			}),
 		);
 	});
@@ -474,6 +480,28 @@ describe("the mantle MCP server", () => {
 				intent: "Confirm before a user deletes a domain at",
 			}),
 		);
+	});
+
+	it("logs one caller key for each address, agent, and source, and no address", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+		const callFrom = (address: string, url = "https://mantle.example/mcp") =>
+			callToolAt(url, { "X-Forwarded-For": `${address}, 10.0.0.1` })(
+				dependencies({ log }),
+				"find",
+				{
+					query: "modal",
+				},
+			);
+
+		await callFrom("203.0.113.24");
+		await callFrom("203.0.113.24");
+		await callFrom("198.51.100.7");
+		await callFrom("203.0.113.24", "https://mantle.example/mcp?source=frontend");
+		const callers = log.mock.calls.map(([event]) => event.caller);
+
+		expect(callers[0]).toBe(callers[1]);
+		expect(new Set(callers).size).toBe(3);
+		expect(JSON.stringify(log.mock.calls)).not.toContain("203.0.113.24");
 	});
 
 	it("logs the ngrok repo from the source parameter and the workspace slug", async () => {
