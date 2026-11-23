@@ -1,4 +1,5 @@
-import { Lexer, Marked, type MarkedExtension, type Token, type TokensList } from "marked";
+import type { MarkedExtension, Token, TokenizerAndRendererExtension, TokensList } from "marked";
+import { lexMarkdown, type MarkdownTokenizer } from "./markdown-lexer.js";
 import { closeMarkdown } from "./close-markdown.js";
 
 /** The reference definitions of an answer, such as `[1]: https://ngrok.com`, by label. */
@@ -38,11 +39,15 @@ const closesMath: unique symbol = Symbol("closesMath");
 /** A marked extension that can carry {@link closesMath}. */
 type MarkdownExtension = MarkedExtension & { [closesMath]?: true };
 
-/** A lexer for the options of one `Marked` instance, seeded with known reference definitions. */
-function lex(marked: Marked, source: string, links: MarkdownLinks): TokensList {
-	const lexer = new Lexer(marked.defaults);
-	Object.assign(lexer.tokens.links, links);
-	return lexer.lex(source);
+/**
+ * Whether a marked extension adds a tokenizer. Why a guard and not a check of
+ * `this`: the lexer calls a tokenizer without marked's `this.lexer`, and no
+ * mantle extension reads it.
+ */
+function isTokenizer(
+	extension: TokenizerAndRendererExtension,
+): extension is TokenizerAndRendererExtension & MarkdownTokenizer {
+	return "tokenizer" in extension && extension.tokenizer != null;
 }
 
 /** The index of the last token of `tokens` that is not a blank line, or -1. */
@@ -77,18 +82,11 @@ function contentTokens(tokens: readonly Token[]): Token[] {
 function createMarkdownParser({
 	extensions = [],
 }: { extensions?: readonly MarkdownExtension[] } = {}): MarkdownParser {
-	const marked = new Marked(
-		{
-			gfm: true,
-			// Why: GitHub reads `~one~` as strikethrough, and a model writes `20~25` for a range.
-			tokenizer: {
-				del(source) {
-					return source.startsWith("~~") ? false : undefined;
-				},
-			},
-		},
-		...extensions,
-	);
+	const tokenizers = extensions
+		.flatMap((extension) => extension.extensions ?? [])
+		.filter(isTokenizer);
+	const lex = (source: string, known: MarkdownLinks) =>
+		lexMarkdown(source, { links: known, extensions: tokenizers });
 	const closeMath = extensions.some((extension) => extension[closesMath] === true);
 
 	let frozen: Token[] = [];
@@ -100,7 +98,7 @@ function createMarkdownParser({
 	 * block can come before its definition, and only a whole lex resolves it.
 	 */
 	const parseWhole = (source: string): MarkdownSnapshot => {
-		const all = lex(marked, source, Object.create(null));
+		const all = lex(source, Object.create(null));
 		const blocks = contentTokens(all);
 		frozen = blocks.slice(0, -1);
 		frozenSource = all
@@ -123,7 +121,7 @@ function createMarkdownParser({
 
 			const tail = source.slice(frozenSource.length);
 			const text = streaming ? closeMarkdown(tail, { math: closeMath }) : tail;
-			const tokens = lex(marked, text, links);
+			const tokens = lex(text, links);
 			Object.assign(links, tokens.links);
 
 			if (!streaming && frozen.length > 0 && Object.keys(links).length > 0) {
