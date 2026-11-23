@@ -72,6 +72,16 @@ export function addedFiles(diff: string): AddedFile[] {
 		.map(({ path, lines }) => ({ path, added: lines.join("\n") }));
 }
 
+/** Whether an answer-key name is a component, such as `DataTable`, not a feature such as `getSubRows`. */
+function isComponent(name: string): boolean {
+	return /^[A-Z][A-Za-z]+$/.test(name);
+}
+
+/** Whether `code` renders the component `name` as JSX, such as `<Strata.Root>` or `<Badge>`. */
+function rendersPart(code: string, name: string): boolean {
+	return new RegExp(`<${name}[.\\s/>]`).test(code);
+}
+
 /** A part name in the form `get` accepts, such as "Data Table" for `DataTable`. */
 function partKey(name: string): string {
 	return name.toLowerCase().replaceAll(/[^a-z0-9]/g, "");
@@ -98,8 +108,11 @@ export function scoreRun(task: Task, evidence: Evidence): Score {
 	const changedTaskFile = evidence.files.some(
 		({ path, added }) => path === task.file && added.trim() !== "",
 	);
+	// Why the JSX check: an import that renders nothing is not use, and tsc allows unused imports.
 	const missingParts = Object.entries(task.parts)
-		.filter(([, pattern]) => !pattern.test(code))
+		.filter(
+			([name, pattern]) => !pattern.test(code) || (isComponent(name) && !rendersPart(code, name)),
+		)
 		.map(([name]) => name);
 
 	const handRolled = evidence.files.flatMap(({ path, added }) => {
@@ -143,9 +156,9 @@ export function scoreRun(task: Task, evidence: Evidence): Score {
 	const builtCustom = unexcused.length > 0 || missingParts.length > 0;
 	const falseLack = task.gap ? [] : sentencesMatching(evidence.finalMessage, LACK_CLAIM);
 	const unbackedParts = Object.entries(task.parts)
-		// Why PascalCase only: a component name in prose is a claim; "row expansion" is not.
-		.filter(([name]) => /^[A-Z][A-Za-z]+$/.test(name))
-		.filter(([name, pattern]) => evidence.finalMessage.includes(name) && !pattern.test(code))
+		// Why components only: a component name in prose is a claim; "row expansion" is not.
+		.filter(([name]) => isComponent(name))
+		.filter(([name]) => evidence.finalMessage.includes(name) && missingParts.includes(name))
 		.map(([name]) => name);
 	const visualClaims = sentencesMatching(evidence.finalMessage, VISUAL_CLAIM).filter(
 		(sentence) => !NEGATION.test(sentence),

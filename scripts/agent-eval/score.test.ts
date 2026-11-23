@@ -30,6 +30,7 @@ const dataTableDetail: Evidence = {
 				'import { DataTable, useTable } from "@ngrok/mantle/data-table";',
 				"const [expanded, setExpanded] = useState<ExpandedState>({});",
 				"onExpandedChange: setExpanded,",
+				"<DataTable.Root table={table}>",
 				"renderExpanded={(row) => <ErrorPanel errors={row.original.errors} />}",
 			].join("\n"),
 		},
@@ -86,6 +87,7 @@ describe("scoreRun", () => {
 					added: [
 						'import { Badge } from "@ngrok/mantle/badge";',
 						'import { Switch } from "@ngrok/mantle/switch";',
+						'<Badge appearance="muted">allow</Badge> <Switch checked={rule.enabled} />',
 						"// @mantle-gap pending: sortable list with a drag handle",
 						'<button type="button" draggable onDragStart={start}>',
 					].join("\n"),
@@ -136,6 +138,24 @@ describe("scoreRun", () => {
 		});
 
 		expect(criteria.noHandRolling.pass).toBe(true);
+	});
+
+	it("does not count an import that renders nothing as use of the part", () => {
+		const { criteria } = scoreRun(task("settings-strata"), {
+			files: [
+				{
+					path: "src/account-settings.tsx",
+					added: ['import { Strata } from "@ngrok/mantle/strata";', "<div>Profile</div>"].join(
+						"\n",
+					),
+				},
+			],
+			calls: [],
+			finalMessage: "",
+			typechecks: true,
+		});
+
+		expect(criteria.rightParts.notes).toEqual(["no Strata"]);
 	});
 
 	it("fails a reply that names a part the code does not use or claims a browser check", () => {

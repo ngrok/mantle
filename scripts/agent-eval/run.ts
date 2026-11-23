@@ -64,13 +64,24 @@ function run(
 	{ cwd, timeoutMs = 10 * 60_000 }: { cwd: string; timeoutMs?: number },
 ): Promise<{ code: number | null; stdout: string; stderr: string; timedOut: boolean }> {
 	return new Promise((resolve, reject) => {
-		const child = spawn(command, args, { cwd, stdio: ["ignore", "pipe", "pipe"] });
+		// Why detached: the agent CLI starts its own children, and a timeout must stop them all.
+		const child = spawn(command, args, { cwd, stdio: ["ignore", "pipe", "pipe"], detached: true });
+		const killGroup = (signal: NodeJS.Signals) => {
+			try {
+				if (child.pid != null) {
+					process.kill(-child.pid, signal);
+				}
+			} catch {
+				// Why: the group can exit between the check and the signal.
+			}
+		};
 		let stdout = "";
 		let stderr = "";
 		let timedOut = false;
 		const timer = setTimeout(() => {
 			timedOut = true;
-			child.kill("SIGTERM");
+			killGroup("SIGTERM");
+			setTimeout(() => killGroup("SIGKILL"), 10_000).unref();
 		}, timeoutMs);
 		child.stdout.on("data", (chunk: Buffer) => {
 			stdout += chunk.toString();
