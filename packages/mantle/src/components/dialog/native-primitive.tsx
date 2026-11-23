@@ -26,7 +26,7 @@ import {
 } from "../../utils/layer-container/layer-container.js";
 import { Slot } from "../slot/index.js";
 import { preventCloseOnPromptInteraction } from "../toast/prevent-close-on-prompt-interaction.js";
-import { setTopModal } from "../toast/toaster-host.js";
+import { setTopModal } from "../overlay-prompt/host.js";
 import { escapeBelongsToNestedPopup } from "./targets.js";
 
 /**
@@ -731,7 +731,13 @@ const Content = ({
 	});
 	const pressOutside = useCallbackRef((originalEvent: PointerEvent): boolean => {
 		const outside = createPointerDownOutsideEvent(originalEvent);
-		preventCloseOnPromptInteraction(outside);
+		// Why the check: a dialog composed in a prompt sits in the prompt, and a
+		// press on its own backdrop is still outside it.
+		if (
+			!(originalEvent.target instanceof Node && dialogRef.current?.contains(originalEvent.target))
+		) {
+			preventCloseOnPromptInteraction(outside);
+		}
 		onPointerDownOutside?.(outside);
 		onInteractOutside?.(outside);
 		return !outside.defaultPrevented;
@@ -743,6 +749,17 @@ const Content = ({
 	const openerRing = useRef(false);
 	/** Runs `onOpenAutoFocus` on an open `dialog`. */
 	const openAutoFocus = useCallbackRef((dialog: HTMLDialogElement) => {
+		// Why: the content of each `OverlayPrompt` moved into the dialog before
+		// it opened. With no control in the panel, the browser picks a control
+		// of a prompt, so the dialog takes focus itself, as with no prompt.
+		const browserPick = dialog.ownerDocument.activeElement;
+		if (
+			browserPick !== dialog &&
+			dialog.contains(browserPick) &&
+			panelRef.current?.contains(browserPick) === false
+		) {
+			dialog.focus({ preventScroll: true });
+		}
 		// Why: WebKit shows a focus ring on the browser's pick after a press, and
 		// the script focus of a Radix dialog showed none. A text field always
 		// shows one.
@@ -935,8 +952,6 @@ const Content = ({
 	});
 
 	// Why the `command` listener: it routes each trigger and close button.
-	// A modal that stays mounted lets the browser open it, with the state
-	// written first, so the attributes join the browser's style pass.
 	// Why a callback ref: the listener must read the root of the latest
 	// render. A dialog that mounts on open attaches before that render's
 	// effects run, and a tap sends its command after the dialog mounts.
@@ -952,12 +967,6 @@ const Content = ({
 		const open = command === "show-modal";
 		if (open && insideHiddenDialog(dialog)) {
 			event.preventDefault();
-			return;
-		}
-		if (open && keepMounted && !root.controlled && root.modal) {
-			nonModal.delete(dialog);
-			lockPageScroll({ dialog, lock: true });
-			writeOpenState({ dialog, open });
 			return;
 		}
 		event.preventDefault();

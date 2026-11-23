@@ -123,6 +123,7 @@ const docsPages = [
 	"components/primitives/browser-only",
 	"components/primitives/live-region",
 	"components/primitives/main",
+	"components/primitives/overlay-prompt",
 	"components/primitives/sandboxed-on-click",
 	"components/primitives/skip-to-main-link",
 	"components/primitives/slot",

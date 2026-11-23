@@ -1311,6 +1311,40 @@
     "useWhen": "Enter a one-time passcode, such as a two-factor code, with one box for each character."
   },
   {
+    "name": "Overlay Prompt",
+    "slug": "components/primitives/overlay-prompt",
+    "kind": "component",
+    "category": "Primitives",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/overlay-prompt",
+    "summary": "Keeps a banner, a bar, or another floating element usable above an open dialog or sheet.",
+    "jsdoc": "Keeps its content usable above an open `Dialog`, `AlertDialog`, or `Sheet`.",
+    "examples": [
+      "```tsx\n<OverlayPrompt>\n  <div className=\"pointer-events-none fixed inset-x-0 bottom-4 z-max flex justify-center\">\n    <div role=\"group\" aria-label=\"Cookie preferences\" className=\"pointer-events-auto\">\n      <Button type=\"button\" appearance=\"filled\" onClick={acceptAll}>\n        Accept all\n      </Button>\n    </div>\n  </div>\n</OverlayPrompt>\n```"
+    ],
+    "aliases": [
+      "above dialog",
+      "top layer",
+      "cookie banner",
+      "inert"
+    ],
+    "siblings": [
+      {
+        "name": "Toast",
+        "boundary": "show short notifications; its `Toaster` already stays above dialogs."
+      },
+      {
+        "name": "Sandbar",
+        "boundary": "show a save bar for unsaved changes; it already stays above dialogs."
+      },
+      {
+        "name": "Dialog",
+        "boundary": "put a control that belongs to the task inside the dialog content instead."
+      }
+    ],
+    "useWhen": "Keep a banner, a bar, or another floating element that is not part of a dialog usable above an open dialog or sheet, such as a cookie banner."
+  },
+  {
     "name": "Pagination",
     "slug": "components/navigation/pagination",
     "kind": "component",
