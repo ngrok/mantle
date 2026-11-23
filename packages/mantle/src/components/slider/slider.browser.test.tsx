@@ -350,12 +350,11 @@ describe("Slider track press (browser)", () => {
 			const y = rect.top + rect.height / 2;
 			await mouse("mousePressed", rect.right - 1, y);
 			await mouse("mouseReleased", rect.right - 1, y);
-			// Why pause the glide: the thumb moves on after the read, and the press then lands
-			// on the track. Why set `currentTime`: `pause()` waits for the next frame.
+			// Why pause the glide at 50ms: a glide that moves on after the read lets the press
+			// land on the track, and a glide near its start puts the move off the track.
 			for (const animation of document.getAnimations()) {
-				const time = animation.currentTime;
 				animation.pause();
-				animation.currentTime = time;
+				animation.currentTime = 50;
 			}
 			const shown = thumb.getBoundingClientRect();
 			const x = shown.left + shown.width / 2;
@@ -365,11 +364,15 @@ describe("Slider track press (browser)", () => {
 			await mouse("mouseMoved", x - 20, y);
 			await mouse("mouseReleased", x - 20, y);
 
-			// Why the value: the thumb's left edge is off from the pointer by the thumb inset.
-			// The value is off by less than one step, the snap. A grab that kept the offset
-			// from the value, not from where the thumb shows, ends near 90.
+			// Why these limits: the value snaps to a step. The thumb's center travels half a
+			// thumb short of each end of the track, and the snap adds half a step (1px). A
+			// grab that kept the offset from the value, not from where the thumb shows, ends near 90.
 			const value = ((x - 20 - rect.left) / rect.width) * 100;
 			expect(Math.abs((thumbValues()[0] ?? Number.NaN) - value)).toBeLessThanOrEqual(1);
+			const ended = thumb.getBoundingClientRect();
+			expect(Math.abs(ended.left + ended.width / 2 - (x - 20))).toBeLessThanOrEqual(
+				ended.width / 2 + 1,
+			);
 		},
 	);
 
