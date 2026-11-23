@@ -594,7 +594,7 @@ const CommandDialogContent = ({
 				<Dialog.Description>{description}</Dialog.Description>
 			</Dialog.Header>
 			<CommandRoot
-				className="**:data-[slot=command-input-wrapper]:h-12 **:data-[slot~=command-input]:h-12 **:data-[slot=command-group]:px-2 **:data-[slot=command-list]:pb-1"
+				className="[&_[data-slot=command-input-wrapper]]:h-12 [&_[data-slot~=command-input]]:h-12 [&_[data-slot=command-group]]:px-2 [&_[data-slot=command-list]]:pb-1"
 				filter={filter}
 				shouldFilter={shouldFilter}
 			>
@@ -965,7 +965,7 @@ const CommandGroup = ({
 			data-force-mount={forceMount ? "" : undefined}
 			data-slot={joinDataSlot(dataSlot, "command-group")}
 			className={cx(
-				"*:data-[slot=command-group-heading]:text-muted overflow-hidden p-1 *:data-[slot=command-group-heading]:px-2 *:data-[slot=command-group-heading]:py-1.5 *:data-[slot=command-group-heading]:text-xs *:data-[slot=command-group-heading]:font-medium",
+				"[&>[data-slot=command-group-heading]]:text-muted overflow-hidden p-1 [&>[data-slot=command-group-heading]]:px-2 [&>[data-slot=command-group-heading]]:py-1.5 [&>[data-slot=command-group-heading]]:text-xs [&>[data-slot=command-group-heading]]:font-medium",
 				className,
 			)}
 		>

@@ -2344,7 +2344,7 @@ const SwitcherTrigger = ({
 				// source components by default; the tighter padding keeps the
 				// switcher row at the same net 36px height while preserving
 				// prototype spacing on the trailing action icon.
-				"*:first:size-7",
+				"[&>:first-child]:size-7",
 				// In the collapsed sidebar only the leading visual (product
 				// icon, account avatar) stays visible; the rest goes sr-only:
 				// visually gone but still part of the button's accessible name.

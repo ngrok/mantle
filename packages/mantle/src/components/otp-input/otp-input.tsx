@@ -355,10 +355,10 @@ const Root = ({
 					</div>
 				</OtpInputContext>
 				{/* Why a size container: the input's font size follows the slot height.
-				Why `*:pointer-events-auto!`: a password manager badge beside the input
+				Why `[&>*]:pointer-events-auto!`: a password manager badge beside the input
 				takes the pointer. A `+*` rule makes Chromium restyle a whole subtree
 				each time a node is inserted before another one, anywhere on the page. */}
-				<div className="pointer-events-none absolute inset-0 [container-type:size] *:pointer-events-auto!">
+				<div className="pointer-events-none absolute inset-0 [container-type:size] [&>*]:pointer-events-auto!">
 					<input
 						autoComplete={autoComplete || "one-time-code"}
 						aria-invalid={resolvedAriaInvalid}

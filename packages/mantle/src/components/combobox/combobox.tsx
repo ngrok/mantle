@@ -556,7 +556,7 @@ const ItemValue = ({
 		<span
 			data-slot={joinDataSlot(dataSlot, "combobox-item-value")}
 			className={cx(
-				"*:data-user-value:font-medium flex-1 shrink-0 text-strong font-normal",
+				"[&>[data-user-value]]:font-medium flex-1 shrink-0 text-strong font-normal",
 				className,
 			)}
 			ref={ref}

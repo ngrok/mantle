@@ -183,7 +183,7 @@ const Toaster = ({
 			) : (
 				<loadedSonner.Toaster
 					data-slot="toaster"
-					className={cx("toaster pointer-events-auto *:duration-200", className)}
+					className={cx("toaster pointer-events-auto [&>*]:duration-200", className)}
 					containerAriaLabel={containerAriaLabel}
 					dir={dir}
 					duration={resolveToastDuration(duration_ms)}

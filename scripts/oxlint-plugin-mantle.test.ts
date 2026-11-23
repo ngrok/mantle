@@ -370,3 +370,25 @@ describe("no-structural-combinator", () => {
 		expect(lint({ rule: "no-structural-combinator", fileName: "a.ts", source })).toEqual([]);
 	});
 });
+
+describe("no-unanchored-child-variant", () => {
+	it.each([
+		'cx("*:pointer-events-auto");',
+		'cx("md:**:data-[slot=icon]:shrink-0");',
+		'const a = "data-state-inactive:*:paused";',
+		'cx("not-has-data-[slot=x]:[&_[data-a],&_[data-b]]:top-1/2");',
+	])("flags %s", (source) => {
+		expect(
+			lint({ rule: "no-unanchored-child-variant", fileName: "a.ts", source }).length,
+		).toBeGreaterThan(0);
+	});
+
+	it.each([
+		'cx("[&>*]:pointer-events-auto [&_[data-slot=icon]]:shrink-0");',
+		'cx("data-state-inactive:[&>*]:paused [&>:first-child]:size-7");',
+		'cx("[&:is([data-a],[data-b])]:p-2 has-[[data-a],[data-b]]:p-2");',
+		'const a = "2 * 3: four";',
+	])("allows %s", (source) => {
+		expect(lint({ rule: "no-unanchored-child-variant", fileName: "a.ts", source })).toEqual([]);
+	});
+});

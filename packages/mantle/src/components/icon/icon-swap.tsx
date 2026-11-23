@@ -67,7 +67,7 @@ const IconSwap = <Key extends string>({
 						// layer while it paints. The transition holds `visible` to the end of the exit.
 						"data-state-inactive:invisible",
 						// Why paused: a spinner that is not shown must not keep a running animation.
-						"data-state-inactive:*:paused",
+						"data-state-inactive:[&>*]:paused",
 					)}
 				>
 					<Icon svg={svg} />
