@@ -132,6 +132,7 @@ type SliderProps = SliderBaseProps &
 		/**
 		 * The text of a value. It sets `aria-valuetext` on each thumb, and the text
 		 * of each {@link SliderValue}. When omitted, a value reads as its number.
+		 * An uncontrolled slider takes a new `formatValue` at its next change.
 		 *
 		 * @example
 		 * ```tsx
@@ -251,6 +252,12 @@ function Slider({
 	// the DOM, and a later default must not move the thumbs away from the inputs.
 	const [initialValues] = useState(() => toValueArray(defaultValue) ?? [min]);
 	const values = toValueArray(value) ?? initialValues;
+	// Why the first text for an uncontrolled slider: its values live in the DOM, and the uncontrolled
+	// paint writes each later text. A text from `initialValues` would put back the first value.
+	const [initialTexts] = useState(() => formatValue && initialValues.map(formatValue));
+	const texts = controlled ? formatValue && values.map(formatValue) : initialTexts;
+	// Why `false`: a `{show && <SliderValue />}` child of `false` is no label.
+	const hasValueLabel = children != null && children !== false;
 	const composedRef = useComposedRefs(ref, sliderRootRef);
 	const { rootProps, inputProps } = sliderBehavior({
 		controlled,
@@ -288,7 +295,7 @@ function Slider({
 				"data-orientation-vertical:h-full data-orientation-vertical:min-h-40 data-orientation-vertical:w-auto data-orientation-vertical:flex-col",
 				tickCount > 0 && "mb-3",
 				// Why a container: a value label at a thumb measures the slider's width to stay inside it.
-				children != null && "data-orientation-horizontal:@container",
+				hasValueLabel && "data-orientation-horizontal:@container",
 				className,
 			)}
 			style={$cssProperties({
@@ -379,10 +386,10 @@ function Slider({
 						// value it reads out and submits differs from the thumb.
 						step={onStepGrid(values[index] ?? min, { min, step }) ? step : "any"}
 						{...(controlled ? { value: values[index] } : { defaultValue: values[index] })}
-						aria-valuetext={formatValue?.(values[index] ?? min)}
+						aria-valuetext={texts?.[index]}
 						onChange={inputProps.onChange}
 					/>
-					{children != null && (
+					{hasValueLabel && (
 						<SliderThumbIndexContext value={index}>{children}</SliderThumbIndexContext>
 					)}
 				</span>
@@ -398,9 +405,7 @@ function Slider({
 					))}
 				</div>
 			)}
-			{children != null && (
-				<SliderThumbIndexContext value={null}>{children}</SliderThumbIndexContext>
-			)}
+			{hasValueLabel && <SliderThumbIndexContext value={null}>{children}</SliderThumbIndexContext>}
 		</span>
 	);
 	return root;
@@ -432,7 +437,11 @@ type SliderValueProps = Omit<ComponentProps<"span">, "children"> & {
  * `aria-valuetext`, so the label stays out of the accessibility tree.
  *
  * CSS places the label from the thumb's value. With `placement="thumb"`, it
- * stays inside the slider's width at each end.
+ * stays inside the slider's width at each end. A vertical slider shows it beside
+ * each thumb, toward the start of the line, so leave room there.
+ *
+ * `Slider` renders its children once in each thumb and once above the track, so
+ * a `ref` on `SliderValue` reaches the last label that renders.
  *
  * | Data Attribute    | Value               | Description                                               |
  * | ----------------- | ------------------- | --------------------------------------------------------- |
@@ -497,27 +506,43 @@ function SliderValue({
 
 /**
  * The ref callback of a value label. It writes the value text of its thumb, or
- * of every thumb above the track, and again after each `input` event that the
- * slider sends: a drag, a key, a form reset, or assistive technology.
+ * of every thumb above the track, and again after each change of a thumb's
+ * value or value text: a drag, a key, a form reset, assistive technology, or a
+ * new controlled value.
  */
 function sliderValueRef(label: HTMLSpanElement | null) {
-	// Why the parent: a label at a thumb sits in the thumb, and a label above the track in the root.
-	const parent = label?.parentElement;
-	const root = label?.dataset.placement === "track" ? parent : parent?.parentElement;
-	if (label == null || parent == null || root == null) {
+	const root = label?.closest<HTMLElement>("[data-slot~='slider']");
+	// Why: a label at a thumb reads its thumb, and a label above the track reads them all.
+	const scope =
+		label?.dataset.placement === "track"
+			? root
+			: label?.closest<HTMLElement>("[data-slot='slider-thumb']");
+	if (label == null || root == null || scope == null) {
 		return;
 	}
+	const thumbs =
+		scope === root
+			? root.querySelectorAll<HTMLElement>(":scope > [data-slot='slider-thumb']")
+			: [scope];
 	const write = () => {
-		const inputs = parent.querySelectorAll<HTMLInputElement>("[data-slot='slider-input']");
-		label.textContent = [...inputs]
-			.map((input) => input.getAttribute("aria-valuetext") ?? input.value)
+		label.textContent = [...thumbs]
+			.map(
+				(thumb) =>
+					thumb.querySelector("input")?.getAttribute("aria-valuetext") ??
+					thumb.style.getPropertyValue("--_value"),
+			)
 			.join(" – ");
 	};
-	// Why a microtask: the slider paints a form reset and React renders a controlled value after the event.
-	const follow = () => queueMicrotask(write);
 	write();
-	root.addEventListener("input", follow);
-	return () => root.removeEventListener("input", follow);
+	// Why the thumb's style: React writes a controlled value there after its render, and the slider
+	// paints an uncontrolled value there. The input's value can still hold a value React puts back.
+	const observer = new MutationObserver(write);
+	observer.observe(scope, {
+		attributes: true,
+		attributeFilter: ["style", "aria-valuetext"],
+		subtree: true,
+	});
+	return () => observer.disconnect();
 }
 
 export {

@@ -452,6 +452,20 @@ describe("SliderValue", () => {
 		);
 	});
 
+	test("a new formatValue keeps an uncontrolled thumb's value text on its current value", async () => {
+		const user = userEvent.setup();
+		const { rerender } = render(
+			<Slider aria-label="Heat" defaultValue={20} formatValue={(value) => `${value}C`} />,
+		);
+		screen.getByRole("slider").focus();
+		await user.keyboard("{PageUp}");
+		rerender(<Slider aria-label="Heat" defaultValue={20} formatValue={(value) => `${value}F`} />);
+
+		expect(screen.getByRole("slider")).toHaveAttribute("aria-valuetext", "30C");
+		await user.keyboard("{ArrowRight}");
+		expect(screen.getByRole("slider")).toHaveAttribute("aria-valuetext", "31F");
+	});
+
 	test("outside a Slider, it throws", () => {
 		vi.spyOn(console, "error").mockImplementation(() => {});
 

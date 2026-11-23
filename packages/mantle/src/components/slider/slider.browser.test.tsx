@@ -1,6 +1,7 @@
 import { act, render, screen } from "@testing-library/react";
 import { userEvent as testingLibraryUserEvent } from "@testing-library/user-event";
 import type { ComponentProps, CSSProperties } from "react";
+import { useState } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
@@ -837,6 +838,72 @@ describe("SliderValue (browser)", () => {
 			await commands.emulateMedia({ reducedMotion: "no-preference" });
 		}
 	});
+
+	test("a label wrapped in another element still reads its value, and a child of false is no label", () => {
+		const show = false;
+		render(
+			<>
+				<Slider aria-label="Volume" defaultValue={40}>
+					<span>
+						<SliderValue placement="track" />
+					</span>
+				</Slider>
+				<Slider aria-label="Treble" defaultValue={40}>
+					{show && <SliderValue />}
+				</Slider>
+			</>,
+		);
+
+		expect(labels().map((label) => label.textContent)).toEqual(["40"]);
+		expect(
+			getComputedStyle(rootOf(screen.getByRole("slider", { name: "Treble" }))).containerType,
+		).toBe("normal");
+	});
+
+	// Why Chromium only: the test holds the mouse button down through CDP.
+	test.runIf(server.browser === "chromium")(
+		"a controlled slider's label matches the value after each move, and after a change from outside on a press",
+		async () => {
+			function Controlled() {
+				const [value, setValue] = useState(40);
+				return (
+					<div style={{ padding: 40, width: 280 }}>
+						<button type="button" onClick={() => setValue(75)}>
+							Set 75
+						</button>
+						<Slider
+							aria-label="Volume"
+							value={value}
+							onValueChange={([next]) => setValue(Math.min(next ?? 0, 90))}
+						>
+							<SliderValue />
+						</Slider>
+					</div>
+				);
+			}
+			render(<Controlled />);
+			const slider = screen.getByRole("slider");
+			const thumb = thumbOf(slider);
+			const [label] = labels();
+			const root = rootOf(thumb);
+			const rect = root.getBoundingClientRect();
+			const y = rect.top + rect.height / 2;
+
+			await mouse("mousePressed", centerX(thumb), y);
+			for (const fraction of [0.55, 0.7, 0.95]) {
+				await mouse("mouseMoved", rect.left + rect.width * fraction, y);
+				await expect.poll(() => label?.textContent).toBe((slider as HTMLInputElement).value);
+			}
+			expect(slider).toHaveValue("90");
+			await mouse("mouseReleased", rect.left + rect.width * 0.95, y);
+
+			screen.getByRole("button", { name: "Set 75" }).click();
+			await expect.poll(() => (slider as HTMLInputElement).value).toBe("75");
+			await mouse("mousePressed", centerX(thumb), y);
+			await expect.poll(() => label?.textContent).toBe("75");
+			await mouse("mouseReleased", centerX(thumb), y);
+		},
+	);
 
 	// Why Chromium only: the test holds the mouse button down through CDP.
 	test.runIf(server.browser === "chromium")(
