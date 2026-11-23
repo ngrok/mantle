@@ -36,20 +36,7 @@ describe("computePlacement", () => {
 		).toEqual({ side: "top", x: 330, y: 456 });
 	});
 
-	test("keeps the preferred side when neither side fits", () => {
-		expect(
-			computePlacement({
-				anchor: anchorAt(400, 50),
-				size: { width: 200, height: 580 },
-				viewport,
-				side: "bottom",
-				align: "center",
-				sideOffset: 4,
-			}).side,
-		).toBe("bottom");
-	});
-
-	test("with the larger fallback, takes the side with more room when neither fits", () => {
+	test("takes the side with more room when neither side fits", () => {
 		const placement = (top: number) =>
 			computePlacement({
 				anchor: anchorAt(400, top),
@@ -58,7 +45,6 @@ describe("computePlacement", () => {
 				side: "bottom",
 				align: "start",
 				sideOffset: 4,
-				fallback: "larger",
 			}).side;
 		expect(placement(400)).toBe("top");
 		expect(placement(200)).toBe("bottom");

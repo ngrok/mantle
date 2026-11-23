@@ -378,6 +378,27 @@ describe("OtpInput (browser)", () => {
 				expect(inputBox.width).toBe(slotsBox.width + gutter);
 			},
 		);
+
+		test("a badge that a password manager puts after the input takes the pointer", () => {
+			render(
+				<OtpInput.Root maxLength={3} aria-label="otp">
+					<OtpInput.Group>
+						<OtpInput.Slot index={0} />
+						<OtpInput.Slot index={1} />
+						<OtpInput.Slot index={2} />
+					</OtpInput.Group>
+				</OtpInput.Root>,
+			);
+			const input = screen.getByRole("textbox", { name: "otp" });
+			const badge = document.createElement("span");
+			input.after(badge);
+
+			expect(getComputedStyle(badge).pointerEvents).toBe("auto");
+			expect(input.parentElement && getComputedStyle(input.parentElement).pointerEvents).toBe(
+				"none",
+			);
+			badge.remove();
+		});
 	});
 
 	// `data-otp-state` is what every conditional slot/group style keys off, and it

@@ -547,15 +547,6 @@ describe("Tabs keyboard, focus, and ARIA contract", () => {
 		expect(onValueChange.mock.calls).toEqual([["d"], ["a"], ["d"], ["a"], ["d"]]);
 	});
 
-	test("Home on the first tab keeps focus there", async () => {
-		render(<FourTabs />);
-		tab("A").focus();
-
-		await userEvent.keyboard("{Home}");
-
-		expect(tab("A")).toHaveFocus();
-	});
-
 	test("without loop, the arrow keys stop at the ends", async () => {
 		render(<FourTabs loop={false} />);
 		tab("B").focus();

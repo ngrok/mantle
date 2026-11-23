@@ -5,6 +5,7 @@ import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import { findTranslatedFont, translateTextNodes } from "../../test-utils/translate-text-nodes.js";
+import * as HeadlessTabs from "./headless-tabs-parts.js";
 import * as Tabs from "./tabs-parts.js";
 
 describe("Tabs", () => {
@@ -785,6 +786,66 @@ describe("Tabs", () => {
 			expect(html).toContain("Panel B");
 			expect(html).not.toContain("Panel C");
 		});
+	});
+});
+
+describe("HeadlessTabs", () => {
+	test("keeps the tabs keyboard and ARIA contract without the Tabs look", async () => {
+		const user = userEvent.setup();
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(
+			<HeadlessTabs.Root defaultValue="api" onValueChange={onValueChange}>
+				<HeadlessTabs.List aria-label="Use cases">
+					<HeadlessTabs.Trigger value="api">API gateway</HeadlessTabs.Trigger>
+					<HeadlessTabs.Trigger value="webhooks">Webhooks</HeadlessTabs.Trigger>
+				</HeadlessTabs.List>
+				<HeadlessTabs.Content value="api">One front door</HeadlessTabs.Content>
+				<HeadlessTabs.Content value="webhooks">Verify every webhook</HeadlessTabs.Content>
+			</HeadlessTabs.Root>,
+		);
+		const api = screen.getByRole("tab", { name: "API gateway" });
+		const webhooks = screen.getByRole("tab", { name: "Webhooks" });
+		expect(screen.getByRole("tablist", { name: "Use cases" })).toBeInTheDocument();
+		expect(webhooks).toHaveAttribute("tabindex", "-1");
+
+		await user.click(api);
+		await user.keyboard("{ArrowRight}");
+
+		expect(webhooks).toHaveFocus();
+		expect(webhooks).toHaveAttribute("aria-selected", "true");
+		expect(onValueChange).toHaveBeenCalledExactlyOnceWith("webhooks");
+		const panel = screen.getByRole("tabpanel", { name: "Webhooks" });
+		expect(panel).toHaveTextContent("Verify every webhook");
+		expect(webhooks).toHaveAttribute("aria-controls", panel.id);
+	});
+
+	// Why: a page can keep the styled list and draw only its own triggers.
+	test("a headless trigger switches the panel inside a styled Tabs.Root", async () => {
+		const user = userEvent.setup();
+		render(
+			<Tabs.Root appearance="pill" defaultValue="install">
+				<Tabs.List>
+					<HeadlessTabs.Trigger value="install">Homebrew</HeadlessTabs.Trigger>
+					<HeadlessTabs.Trigger value="download">Download</HeadlessTabs.Trigger>
+				</Tabs.List>
+				<Tabs.Content value="install">brew install ngrok</Tabs.Content>
+				<Tabs.Content value="download">Download the zip</Tabs.Content>
+			</Tabs.Root>,
+		);
+
+		await user.click(screen.getByRole("tab", { name: "Download" }));
+
+		expect(screen.getByRole("tabpanel", { name: "Download" })).toHaveTextContent(
+			"Download the zip",
+		);
+	});
+
+	test("a part outside a root throws with the root it needs", () => {
+		// Why: silence React's error log for the expected throw.
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() => render(<HeadlessTabs.List />)).toThrow(
+			"HeadlessTabs.List must be rendered inside HeadlessTabs.Root or Tabs.Root.",
+		);
 	});
 });
 

@@ -117,11 +117,13 @@ const docsPages = [
 	"components/overlays/tooltip",
 	// preview (lifecycle namespace, not a category)
 	"components/preview/calendar",
+	"components/preview/time-zone",
 	"components/preview/world-map",
 	// primitives
 	"components/primitives/browser-only",
 	"components/primitives/live-region",
 	"components/primitives/main",
+	"components/primitives/overlay-prompt",
 	"components/primitives/sandboxed-on-click",
 	"components/primitives/skip-to-main-link",
 	"components/primitives/slot",
@@ -156,6 +158,7 @@ const layoutsPages = ["app-layout", "centered-layout"];
 const recipesPages = [
 	"assistant-across-routes",
 	"breadcrumbs-from-routes",
+	"cancel-and-submit",
 	"filter-from-a-value",
 	"header-actions-from-routes",
 	"list-page-loading-states",
@@ -198,6 +201,7 @@ const migrationsPages = [
 	"0025-stone-palette-migration",
 	"0026-native-dropdown-menu-migration",
 	"0027-native-dialog-migration",
+	"0028-native-slider-migration",
 ];
 
 export default [

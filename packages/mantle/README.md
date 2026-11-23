@@ -43,8 +43,8 @@ Mantle runs a hosted, read-only [MCP](https://modelcontextprotocol.io) server at
 
 The package also works offline:
 
-- `@ngrok/mantle/agent.json`: the full component, hook, and utility records for the installed version.
-- `@ngrok/mantle/llms.txt`: one line for each module, with its import path and summary.
+- `@ngrok/mantle/agent.json`: the full component, hook, and utility records for the installed version, and the recipes that compose them.
+- `@ngrok/mantle/llms.txt`: one line for each module and recipe, with its import path or docs URL and its summary.
 - `dist/migrations/`: the codemods that the migration guides name.
 
 ## Design tokens

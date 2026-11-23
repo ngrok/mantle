@@ -29,6 +29,18 @@
 	"sideEffects": [
 		"*.css"
 	],
+	"imports": {
+		"#qr-code-encoder": {
+			"@ngrok/src-live-types": {
+				"browser": "./src/components/qr-code/qr-code-encoder.browser.ts",
+				"default": "./src/components/qr-code/qr-code-encoder.ts"
+			},
+			"workerd": "./dist/qr-code-encoder.js",
+			"edge-light": "./dist/qr-code-encoder.js",
+			"browser": "./dist/qr-code-encoder.browser.js",
+			"default": "./dist/qr-code-encoder.js"
+		}
+	},
 	"exports": {
 		"./mantle.css": {
 			"@ngrok/src-live-types": "./src/mantle.css",
@@ -277,6 +289,11 @@
 			"types": "./dist/otp-input.d.ts",
 			"import": "./dist/otp-input.js"
 		},
+		"./overlay-prompt": {
+			"@ngrok/src-live-types": "./src/components/overlay-prompt/index.ts",
+			"types": "./dist/overlay-prompt.d.ts",
+			"import": "./dist/overlay-prompt.js"
+		},
 		"./pagination": {
 			"@ngrok/src-live-types": "./src/components/pagination/index.ts",
 			"types": "./dist/pagination.d.ts",
@@ -417,6 +434,11 @@
 			"types": "./dist/theme-switcher.d.ts",
 			"import": "./dist/theme-switcher.js"
 		},
+		"./time-zone": {
+			"@ngrok/src-live-types": "./src/components/time-zone/index.ts",
+			"types": "./dist/time-zone.d.ts",
+			"import": "./dist/time-zone.js"
+		},
 		"./toast": {
 			"@ngrok/src-live-types": "./src/components/toast/index.ts",
 			"types": "./dist/toast.d.ts",
@@ -478,7 +500,6 @@
 		"typecheck": "tsrs && tsrs -p tsconfig.node.json"
 	},
 	"dependencies": {
-		"@radix-ui/react-slider": "1.6.1",
 		"@tanstack/react-table": "9.3.1",
 		"@tanstack/react-virtual": "3.14.26",
 		"class-variance-authority": "0.7.1",

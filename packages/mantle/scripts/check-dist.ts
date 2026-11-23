@@ -3,6 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 
+import { __unstable__loadDesignSystem } from "@tailwindcss/node";
+import { Scanner } from "@tailwindcss/oxide";
 import { parseSync } from "oxc-parser";
 
 const PACKAGE_ROOT = path.resolve(import.meta.dirname, "..");
@@ -98,19 +100,62 @@ function publicSubpaths(): string[] {
 }
 
 /**
+ * The classes that the `cx` merge code must name: roots, value kinds, and class groups. Most
+ * pages build them anyway.
+ */
+const CX_CLASSES = ["border", "font-family", "shadow", "text-wrap", "transform"];
+
+/**
+ * Lists the classes that Tailwind builds from the chunks behind `@ngrok/mantle/cx`, other than
+ * {@link CX_CLASSES}.
+ *
+ * Why: Tailwind scans mantle's built JavaScript, and each mantle component imports `cx`. A class
+ * that the merge tables name gets built on each page, used or not. The tables separate names with
+ * commas, which the scanner does not split on.
+ */
+async function cxBuiltClasses(imports: ReadonlyMap<string, readonly string[]>): Promise<string[]> {
+	const files = new Set(["cx.js"]);
+	for (const file of files) {
+		for (const imported of imports.get(file) ?? []) {
+			files.add(imported);
+		}
+	}
+	const candidates = new Scanner({}).scanFiles(
+		[...files].map((file) => ({
+			content: fs.readFileSync(path.join(DIST, file), "utf8"),
+			extension: "js",
+		})),
+	);
+	const designSystem = await __unstable__loadDesignSystem(
+		fs.readFileSync(path.join(PACKAGE_ROOT, "src/mantle.css"), "utf8"),
+		{ base: path.join(PACKAGE_ROOT, "src") },
+	);
+	const css = designSystem.candidatesToCss(candidates);
+	return candidates.filter(
+		(candidate, index) => css[index] != null && !CX_CLASSES.includes(candidate),
+	);
+}
+
+/**
  * Fails when the dist has a chunk cycle, or when a public subpath does not load
  * in plain Node ESM, with no bundler. Server rendering that externalizes
  * `@ngrok/mantle` loads the dist this way.
  */
-const main = (): void => {
+const main = async (): Promise<void> => {
 	if (!fs.existsSync(DIST)) {
 		throw new Error("No dist: run `pnpm -F @ngrok/mantle run build` first.");
 	}
 	let failed = false;
-	const cycles = findCycles(readChunkImports(DIST));
+	const imports = readChunkImports(DIST);
+	const cycles = findCycles(imports);
 	for (const cycle of cycles) {
 		failed = true;
 		console.log(`✗ chunk cycle: ${cycle.join(" -> ")}`);
+	}
+	const cxClasses = await cxBuiltClasses(imports);
+	if (cxClasses.length > 0) {
+		failed = true;
+		console.log(`✗ Tailwind builds classes from the cx chunks: ${cxClasses.join(" ")}`);
 	}
 	const subpaths = publicSubpaths();
 	for (const subpath of subpaths) {
@@ -122,16 +167,18 @@ const main = (): void => {
 	}
 	if (failed) {
 		console.log(
-			"\nThe dist must load in Node with no bundler. A chunk cycle comes from a source import cycle or from the chunk groups in scripts/preserve-use-client.ts.",
+			"\nThe dist must load in Node with no bundler. A chunk cycle comes from a source import cycle or from the chunk groups in scripts/preserve-use-client.ts. A class in the cx chunks comes from a table in src/utils/cx/merge.ts that separates names with spaces.",
 		);
 		process.exitCode = 1;
 		return;
 	}
-	console.log(`✓ no chunk cycles, and ${subpaths.length} subpaths load in Node`);
+	console.log(
+		`✓ no chunk cycles, no classes from the cx chunks, and ${subpaths.length} subpaths load in Node`,
+	);
 };
 
 if (import.meta.main) {
-	main();
+	await main();
 }
 
 export {

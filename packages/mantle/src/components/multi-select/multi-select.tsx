@@ -12,8 +12,10 @@ import { usePopup } from "../../behaviors/use-popup.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
+import { observeScrollEdges } from "../../utils/scroll-edges.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { hasPopoverApi } from "../../utils/float/use-float.js";
 import { shakeElement } from "../../utils/shake.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { parseValidation } from "../field/validation.js";
@@ -833,7 +835,8 @@ const OpenContent = ({
 		onOutsidePress: () => setOpen(false),
 	});
 
-	const composedRef = useComposedRefs(ref, popupRef, listbox.listboxProps.ref);
+	const listRef = useComposedRefs(listbox.listboxProps.ref, observeScrollEdges);
+	const composedRef = useComposedRefs(ref, popupRef, listRef);
 	const Component = asChild ? Slot : "div";
 	return (
 		portalTarget != null &&
@@ -848,12 +851,12 @@ const OpenContent = ({
 					{...listbox.listboxProps}
 					onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
 					aria-multiselectable
-					popover="manual"
+					popover={hasPopoverApi ? "manual" : undefined}
 					ref={composedRef}
 					data-slot={joinDataSlot(dataSlot, "multi-select-content")}
 					data-state="open"
 					className={cx(
-						"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col gap-px outline-hidden",
+						"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 has-data-content-footer:after:hidden rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col space-y-px outline-hidden",
 						sameWidth && "w-(--anchor-width)",
 						className,
 					)}

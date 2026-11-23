@@ -1,0 +1,81 @@
+---
+title: Native Slider Migration
+description: Each Slider thumb is now a native range input inside the thumb span. Target the input for focus, keys, ids, and test queries, and expect a disabled slider to submit no value.
+introducedIn: "0.95.0"
+---
+
+# Mantle Native Slider Migration Guide
+
+`Slider` no longer uses Radix. Each thumb is a native `<input type="range">` with `data-slot="slider-input"`, inside the visible `[data-slot="slider-thumb"]` span. The input holds the `slider` role, the value, focus, and the form value. The span only draws the thumb. The props, the `data-slot` values, and `onValueChange` stay the same.
+
+**TL;DR:** Point code that focuses, presses keys on, or reads the value of a thumb at its range input (`getByRole("slider")` or `[data-slot="slider-input"]`), not at the `slider-thumb` span. `id` now names the first input. A disabled slider submits no value. A form reset no longer calls `onValueChange` on a controlled slider. Most apps change nothing.
+
+## Codemod
+
+Codemod: manual: each step is a CSS selector, a test query, or a choice about form values, and the rules read component syntax only.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Search for `slider-thumb` in CSS, class strings, `querySelector` calls, and end-to-end tests. Keep a selector that styles the visible thumb, such as a size or a color. Move a selector that focuses the thumb, presses a key on it, or reads `aria-valuenow` to `[data-slot="slider-input"]`, and read the value with `.value` or `toHaveValue`. A style for the focused thumb moves from `[data-slot=slider-thumb]:focus-visible` to `[data-slot=slider-thumb]:has(:focus-visible)`.
+2. Search tests for `aria-valuenow` and `data-disabled` on a slider. Replace `toHaveAttribute("aria-valuenow", "50")` with `toHaveValue("50")`. The browser exposes the value to assistive technology from the native input. The input does not carry `data-disabled`. Replace `toHaveAttribute("data-disabled")` with `toBeDisabled()`, and `not.toHaveAttribute("data-disabled")` with `toBeEnabled()`.
+3. Search for `<Slider` with an `id` prop. The `id` now lands on the first thumb's input, not on the root span. Code that read the root by that `id` reads `closest("[data-slot~=slider]")` from the input instead. A `<label htmlFor>` with that `id` now names and focuses the first thumb.
+4. Search for `<Slider` with `disabled` inside a form whose server reads the slider's `name`. A disabled slider no longer submits a value, as any disabled input does. If the server needs the value, send it in a hidden input, or set `disabled` only on the controls that must not change.
+5. Search for a controlled `<Slider value={…}>` inside a form with a reset button. A reset no longer calls `onValueChange` for it. Reset the value where you own it, for example in the form's `onReset`.
+6. Remove `asChild` from `<Slider>`. It never rendered, and the type no longer takes it.
+7. Search for `data-orientation` and `data-disabled` on `slider-track`, `slider-range`, or `slider-thumb`. Only the root carries them now. Read them through the root, for example `group-data-disabled/slider:` on a child, or `[data-slot~=slider][data-disabled] [data-slot=slider-range]`.
+8. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why a native input?** A native range input has the slider role, the value, and the form value before any JavaScript runs, so the server HTML is the final paint and screen readers find each thumb before hydration. It also drops `@radix-ui/react-slider`, and an uncontrolled slider renders nothing in React while the user drags.
+
+---
+
+## Before → after
+
+### A test that reads the value
+
+```tsx
+// BEFORE
+expect(screen.getByRole("slider", { name: "Volume" })).toHaveAttribute("aria-valuenow", "50");
+
+// AFTER
+expect(screen.getByRole("slider", { name: "Volume" })).toHaveValue("50");
+```
+
+### An end-to-end test that presses a key
+
+```ts
+// BEFORE
+await page.locator("[data-slot=slider-thumb]").first().press("ArrowRight");
+
+// AFTER
+await page.getByRole("slider", { name: "Volume" }).press("ArrowRight");
+```
+
+### A focus style on the thumb
+
+```css
+/* BEFORE */
+[data-slot="slider-thumb"]:focus-visible {
+	outline: 2px solid var(--color-accent-600);
+}
+
+/* AFTER */
+[data-slot="slider-thumb"]:has(:focus-visible) {
+	outline: 2px solid var(--color-accent-600);
+}
+```
+
+## Edge cases & gotchas
+
+- A slider with more than one thumb still submits each value under `name[]`, as before.
+- Inside a disabled `<fieldset>`, the slider now ignores the pointer as well as the keys.
+- Home and End move the focused thumb as far as `min`, `max`, or its neighbor allows. Before, they moved the first or the last thumb.
+- With no `dir` prop, the slider follows the text direction it inherits from the page. Before, it was left to right.
+
+## How to verify
+
+- Run your tests. A query by role (`getByRole("slider")`) finds each thumb's input.
+- Open a page with a slider, press Tab to a thumb, and press the arrow keys. The thumb moves, and a focus ring shows.
+- Submit a form with a slider, and check the request for the slider's `name`.

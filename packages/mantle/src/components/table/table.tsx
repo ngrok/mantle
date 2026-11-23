@@ -322,8 +322,11 @@ const Head = ({
 		className={cx(
 			//,
 			// In border-separate, <tr>/<thead> borders don't render, so apply
-			// dividers directly to cells.
-			"[&>tr:last-child>*]:border-b [&>tr:last-child>*]:border-card-muted",
+			// dividers directly to cells. Why `:not(:has(+tr))` and not `:last-child`:
+			// a structural pseudo-class before `>*` makes Chromium restyle the whole
+			// page each time a portal is appended to `<body>`.
+			"[&>tr:not(:has(+tr))>*]:border-b [&>tr:not(:has(+tr))>*]:border-card-muted",
+			// Why `tr+tr`: see `Body`.
 			"[&>tr+tr>*]:border-t [&>tr+tr>*]:border-card-muted",
 			"text-muted bg-base",
 			"[&>tr]:bg-base", // Row styling
@@ -392,7 +395,14 @@ const Body = ({
 		className={cx(
 			//,
 			// In border-separate, <tr>/<tbody> borders don't render, so apply
-			// dividers directly to cells.
+			// dividers directly to cells. Why `tr+tr` stays (a known trade-off):
+			// with it, a row inserted at the top or middle of a 200-row body
+			// restyles all 1,442 elements of the body, not 7. Each other form we
+			// measured moves that cost: `tr:has(+tr)` restyles the body
+			// on each append, and `nth-child(n+2)` on each middle insert. This rule
+			// also keeps the restyle when a `data-slot` element is inserted into a
+			// parent that sibling rules mark (4,259 elements on a docs page, 84
+			// without it). `Head` above has the same rule.
 			"[&>tr+tr>*]:border-t [&>tr+tr>*]:border-card-muted",
 			"text-body",
 			// Body row styling. The focus variant mirrors hover for a keyboard user:
@@ -469,9 +479,8 @@ const Foot = ({
 			//,
 			"font-medium text-body",
 			// In border-separate, <tr>/<tfoot> borders don't render, so apply
-			// dividers directly to cells.
-			"[&>tr:first-child>*]:border-t [&>tr:first-child>*]:border-card-muted",
-			"[&>tr+tr>*]:border-t [&>tr+tr>*]:border-card-muted",
+			// dividers directly to cells. Why each row and not `:first-child`: see `Head`.
+			"[&>tr>*]:border-t [&>tr>*]:border-card-muted",
 			"[&>tr]:bg-gray-50/50 [&>tr]:hover:bg-card-hover", // Row styling
 			className,
 		)}

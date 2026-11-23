@@ -14,12 +14,20 @@ An input where the user selects a value from within a given range. Pass `aria-la
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
-import { Slider } from "@ngrok/mantle/slider";
+import { Slider, SliderValue } from "@ngrok/mantle/slider";
 
 <Field.Item name="volume">
 	<Field.Label>Volume</Field.Label>
 	<Field.Control>
-		<Slider aria-label="Volume" defaultValue={67} max={100} step={1} />
+		<Slider
+			aria-label="Volume"
+			defaultValue={67}
+			max={100}
+			step={1}
+			formatValue={(value) => `${value}%`}
+		>
+			<SliderValue />
+		</Slider>
 	</Field.Control>
 	<Field.Description>Drag to adjust playback volume.</Field.Description>
 </Field.Item>;
@@ -32,6 +40,8 @@ import { Slider } from "@ngrok/mantle/slider";
 - Pick a number, or a range between two numbers, with a thumb that moves along a track.
 - Pair it with `Field` to connect a description and errors in a form.
 - Prefer [`Input`](/components/forms/input) when the user types an exact number.
+
+A press on the track glides the thumb to the new value. A drag and the keys move it at once. The track takes presses 24px tall with a mouse and 44px tall with a finger, so leave that much room above and below it for other controls.
 
 ## Disabled
 
@@ -65,7 +75,7 @@ import { Slider } from "@ngrok/mantle/slider";
 
 ### With TanStack Form
 
-Use `@tanstack/react-form` with `zod` to keep a single-thumb slider controlled. Radix emits slider values as an array, so pass the first value into `field.handleChange`.
+Use `@tanstack/react-form` with `zod` to keep a single-thumb slider controlled. `onValueChange` reports an array of values, so pass the first value into `field.handleChange`.
 
 <Example name="components/forms/slider/with-tanstack-form" title="Slider With TanStack Form example">
 
@@ -202,29 +212,84 @@ import { Slider } from "@ngrok/mantle/slider";
 
 </Example>
 
+### Value while dragging
+
+Place `SliderValue` inside `Slider` to show the value in a small label while a pointer or a finger drags a thumb. It sits above each thumb and follows it, or with `placement="track"`, above the center of the track with every value of a range. It hides at rest. `formatValue` sets the text, and screen readers hear the same text through `aria-valuetext`.
+
+<Example name="components/forms/slider/value" title="Slider value example">
+
+```tsx
+import { Slider, SliderValue } from "@ngrok/mantle/slider";
+
+<Slider aria-label="Volume" defaultValue={40} formatValue={(value) => `${value}%`}>
+	<SliderValue />
+</Slider>
+<Slider aria-label="Price" defaultValue={[20, 80]} formatValue={(value) => `$${value}`}>
+	<SliderValue placement="track" />
+</Slider>
+```
+
+</Example>
+
+The label does not show under keyboard focus. A keyboard user sees the thumb move, and a label on each focus covers content as the user tabs through a form.
+
 ## API Reference
 
 ### Slider
 
-The `Slider` is built on top of [Radix Slider](https://www.radix-ui.com/primitives/docs/components/slider). It accepts all props from the Radix Slider Root component.
+Each thumb of `Slider` is a native `<input type="range">`. The root is a `<span>` and accepts its props, such as `className`, `id`, and event handlers.
 
 `defaultValue` and `value` both accept `number | number[]`, but they must be the same type. You cannot mix a single `number` with a `number[]`.
 
-| Prop                    | Type                           | Default           | Description                                                                                                   |
-| :---------------------- | :----------------------------- | :---------------- | :------------------------------------------------------------------------------------------------------------ |
-| `color`                 | `` `bg-${string}` ``           | `"bg-accent-600"` | The color of the slider range. Accepts any Tailwind `bg-*` class.                                             |
-| `aria-label`            | `string`                       |                   | Accessible name forwarded to the rendered thumb. Range sliders derive per-thumb labels from it.               |
-| `aria-labelledby`       | `string`                       |                   | IDREF forwarded to every thumb, so a range slider names both thumbs with the same text. Prefer `aria-label`.  |
-| `defaultValue`          | `number` \| `number[]`         |                   | The value of the slider when initially rendered. Use when you do not need to control the state of the slider. |
-| `showTicks`             | `boolean`                      | `false`           | Whether to show tick marks along the track, one per `step`, spread evenly.                                    |
-| `value`                 | `number` \| `number[]`         |                   | The controlled value of the slider. Must be used with `onValueChange`.                                        |
-| `onValueChange`         | `(value: number[]) => void`    |                   | Event handler called when the value changes.                                                                  |
-| `onValueCommit`         | `(value: number[]) => void`    |                   | Event handler called when the value changes at the end of an interaction (e.g. on mouse up or on blur).       |
-| `name`                  | `string`                       |                   | The name of the slider. Submitted with its owning form as part of a name/value pair.                          |
-| `disabled`              | `boolean`                      | `false`           | When `true`, prevents the user from interacting with the slider.                                              |
-| `orientation`           | `"horizontal"` \| `"vertical"` | `"horizontal"`    | The orientation of the slider.                                                                                |
-| `min`                   | `number`                       | `0`               | The minimum value for the range.                                                                              |
-| `max`                   | `number`                       | `100`             | The maximum value for the range.                                                                              |
-| `step`                  | `number`                       | `1`               | The stepping interval.                                                                                        |
-| `minStepsBetweenThumbs` | `number`                       | `1`               | The minimum permitted steps between multiple thumbs.                                                          |
-| `inverted`              | `boolean`                      | `false`           | Whether the slider is visually inverted.                                                                      |
+| Prop                    | Type                           | Default           | Description                                                                                                    |
+| :---------------------- | :----------------------------- | :---------------- | :------------------------------------------------------------------------------------------------------------- |
+| `color`                 | `` `bg-${string}` ``           | `"bg-accent-600"` | The color of the slider range. Accepts any Tailwind `bg-*` class.                                              |
+| `formatValue`           | `(value: number) => string`    |                   | The text of a value: `aria-valuetext` on each thumb and the text of each `SliderValue`.                        |
+| `aria-label`            | `string`                       |                   | Accessible name forwarded to the rendered thumb. Range sliders derive per-thumb labels from it.                |
+| `aria-labelledby`       | `string`                       |                   | IDREF forwarded to every thumb, so a range slider names both thumbs with the same text. Prefer `aria-label`.   |
+| `defaultValue`          | `number` \| `number[]`         |                   | The value of the slider when initially rendered. Use when you do not need to control the state of the slider.  |
+| `showTicks`             | `boolean`                      | `false`           | Whether to show tick marks along the track, one per `step`, spread evenly.                                     |
+| `value`                 | `number` \| `number[]`         |                   | The controlled value of the slider. Must be used with `onValueChange`.                                         |
+| `onValueChange`         | `(value: number[]) => void`    |                   | Event handler called when the value changes.                                                                   |
+| `onValueCommit`         | `(value: number[]) => void`    |                   | Event handler called once for each key press, and when a drag that changed the value ends.                     |
+| `name`                  | `string`                       |                   | The name the value submits under with its form. More than one thumb submits one value for each under `name[]`. |
+| `form`                  | `string`                       |                   | The `id` of the form the thumbs belong to, when the slider sits outside that form.                             |
+| `disabled`              | `boolean`                      | `false`           | When `true`, prevents the user from interacting with the slider. A disabled slider submits no value.           |
+| `orientation`           | `"horizontal"` \| `"vertical"` | `"horizontal"`    | The orientation of the slider.                                                                                 |
+| `min`                   | `number`                       | `0`               | The minimum value for the range.                                                                               |
+| `max`                   | `number`                       | `100`             | The maximum value for the range.                                                                               |
+| `step`                  | `number`                       | `1`               | The stepping interval.                                                                                         |
+| `minStepsBetweenThumbs` | `number`                       | `1`               | The minimum permitted steps between multiple thumbs.                                                           |
+| `inverted`              | `boolean`                      | `false`           | Whether the slider is visually inverted.                                                                       |
+| `preserveThumbOrder`    | `boolean`                      | `false`           | Whether a thumb stops at its neighbor instead of passing it.                                                   |
+| `dir`                   | `"ltr"` \| `"rtl"`             |                   | The text direction. When omitted, the slider follows the direction it inherits from the page.                  |
+
+| Data Attribute     | Value                          | Description                                                                 |
+| :----------------- | :----------------------------- | :-------------------------------------------------------------------------- |
+| `data-orientation` | `"horizontal"` \| `"vertical"` | On the root. Mirrors `orientation`.                                         |
+| `data-disabled`    | present when disabled          | On the root. Presence-only. Style with `data-disabled:`.                    |
+| `data-track-press` | present during a glide         | On the root while a thumb glides after a press on the track. Presence-only. |
+| `data-dragging`    | present during a drag          | On the root while a pointer drags a thumb. Presence-only.                   |
+
+### SliderValue
+
+A label with the slider's value that shows while a pointer drags a thumb. It renders a `<span>`, which assistive technology does not read, and accepts its props.
+
+| Prop        | Type                   | Default   | Description                                                                |
+| :---------- | :--------------------- | :-------- | :------------------------------------------------------------------------- |
+| `placement` | `"thumb"` \| `"track"` | `"thumb"` | Above each thumb, which it follows, or once above the center of the track. |
+
+| Data Attribute   | Value                  | Description          |
+| :--------------- | :--------------------- | :------------------- |
+| `data-placement` | `"thumb"` \| `"track"` | Mirrors `placement`. |
+
+### Keyboard
+
+| Key                           | Action                                                                 |
+| :---------------------------- | :--------------------------------------------------------------------- |
+| `Arrow Right` / `Arrow Up`    | Increase the focused thumb by one `step`.                              |
+| `Arrow Left` / `Arrow Down`   | Decrease the focused thumb by one `step`.                              |
+| `Page Up` / `Shift` + `Arrow` | Change the focused thumb by 10 steps.                                  |
+| `Home` / `End`                | Move the focused thumb as far as `min`, `max`, or its neighbor allows. |
+
+The arrow keys follow `dir` and `inverted`: in a right-to-left slider, `Arrow Left` increases the value, and in an inverted vertical slider, `Arrow Down` increases it.

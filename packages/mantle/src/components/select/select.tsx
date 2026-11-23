@@ -8,7 +8,7 @@ import type {
 	Ref,
 	SelectHTMLAttributes,
 } from "react";
-import { cloneElement, createContext, isValidElement, use, useEffect, useId, useMemo } from "react";
+import { createContext, isValidElement, use, useEffect, useId, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { composeHandlers } from "../../behaviors/compose-handlers.js";
 import { useStoreValue } from "../../behaviors/store.js";
@@ -19,15 +19,17 @@ import type { SelectBehavior } from "../../behaviors/use-select.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
+import { observeScrollEdges } from "../../utils/scroll-edges.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
+import { hasPopoverApi } from "../../utils/float/use-float.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { parseValidation } from "../field/validation.js";
 import { useFieldValidation } from "../field/validation-context.js";
 import type { WithValidation } from "../field/validation.js";
 import { Icon } from "../icon/icon.js";
 import { Separator } from "../separator/separator.js";
-import { Slot } from "../slot/index.js";
+import { Slot, slotContent } from "../slot/slot.js";
 
 type WithAriaInvalid = Pick<SelectHTMLAttributes<HTMLSelectElement>, "aria-invalid">;
 
@@ -732,16 +734,6 @@ const Trigger = ({
 	);
 };
 
-/**
- * Under `asChild`, moves the part's own content inside the consumer's element:
- * `render` gets the element's children and returns what the element renders.
- * `Slot` then merges the part's props onto that element.
- */
-const slotContent = (children: ReactNode, render: (inner: ReactNode) => ReactNode): ReactNode =>
-	isValidElement<{ children?: ReactNode }>(children)
-		? cloneElement(children, undefined, render(children.props.children))
-		: children;
-
 type SelectContentProps = Omit<ComponentProps<"div">, "dir"> &
 	WithDataSlot & {
 		/**
@@ -818,7 +810,8 @@ const OpenContent = ({
 			setOpen(false);
 		},
 	});
-	const composedRef = useComposedRefs(ref, popupRef, listbox.listboxProps.ref);
+	const listRef = useComposedRefs(listbox.listboxProps.ref, observeScrollEdges);
+	const composedRef = useComposedRefs(ref, popupRef, listRef);
 
 	return (
 		portalTarget != null &&
@@ -826,7 +819,7 @@ const OpenContent = ({
 			<div
 				{...props}
 				{...listbox.listboxProps}
-				popover="manual"
+				popover={hasPopoverApi ? "manual" : undefined}
 				role="listbox"
 				tabIndex={-1}
 				onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
@@ -836,7 +829,7 @@ const OpenContent = ({
 				data-state="open"
 				data-align="start"
 				className={cx(
-					"border-popover duration-200 ease-out-strong data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-top:slide-in-from-bottom-1 motion-reduce:animate-none! pointer-events-auto fixed inset-auto z-50 m-0 text-inherit min-w-32 overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none rounded-md border shadow-md",
+					"border-popover duration-200 ease-out-strong data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-top:slide-in-from-bottom-1 motion-reduce:animate-none! pointer-events-auto fixed inset-auto z-50 m-0 text-inherit min-w-32 overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 rounded-md border shadow-md",
 					"bg-popover font-sans p-1 space-y-px max-h-(--available-height) outline-hidden",
 					width === "trigger" && "w-(--anchor-width)",
 					className,

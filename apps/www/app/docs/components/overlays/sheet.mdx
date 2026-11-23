@@ -93,7 +93,7 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 
 ## UI above an open sheet
 
-An open sheet makes the rest of the page inert: no click, focus, or screen reader reaches it. mantle's `Toaster` and `Sandbar` move into the open sheet, so they paint above it and take clicks. Put any other control that a user must reach while the sheet is open inside the sheet content.
+An open sheet makes the rest of the page inert: no click, focus, or screen reader reaches it. To keep a banner or a bar usable above it, wrap the element in [`OverlayPrompt`](/components/primitives/overlay-prompt): it moves into the open sheet, so it paints above it, takes clicks and focus, and a press in it does not close the sheet. mantle's `Toaster` and `Sandbar` use it.
 
 ## Third-party popups
 

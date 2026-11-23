@@ -65,6 +65,30 @@ afterAll(() => {
 	styleElement.remove();
 });
 
+/** The opaque pixels on `canvas` within 2 of `target` in each channel. */
+const countPixels = (
+	canvas: HTMLCanvasElement,
+	target: { red: number; green: number; blue: number },
+): number => {
+	const context = canvas.getContext("2d");
+	if (context == null) {
+		throw new Error("no 2d context");
+	}
+	const { data: pixels } = context.getImageData(0, 0, canvas.width, canvas.height);
+	let matches = 0;
+	for (let offset = 0; offset < pixels.length; offset += 4) {
+		if (
+			(pixels[offset + 3] ?? 0) >= 250 &&
+			Math.abs((pixels[offset] ?? 0) - target.red) <= 2 &&
+			Math.abs((pixels[offset + 1] ?? 0) - target.green) <= 2 &&
+			Math.abs((pixels[offset + 2] ?? 0) - target.blue) <= 2
+		) {
+			matches += 1;
+		}
+	}
+	return matches;
+};
+
 const data = [
 	{ time: new Date("2026-07-18T10:00:00Z"), p50: 120 },
 	{ time: new Date("2026-07-18T10:01:00Z"), p50: 132 },
@@ -73,7 +97,8 @@ const data = [
 
 test("custom reference-line colors resolve through the color pass's one style read", async () => {
 	// Why a count of style reads: one read per pass is the contract, and the
-	// painted pixels look the same however many reads produced them.
+	// painted pixels look the same however many reads produced them. The pixels
+	// prove the colors reach the canvas.
 	const reads = vi.spyOn(window, "getComputedStyle");
 	const { container } = render(
 		<div style={{ width: 400, height: 200 }}>
@@ -85,6 +110,9 @@ test("custom reference-line colors resolve through the color pass's one style re
 		</div>,
 	);
 	const canvas = await findChartCanvas(container);
-	await waitFor(() => expect(canvas.width).toBeGreaterThan(0));
+	await waitFor(() => {
+		expect(countPixels(canvas, { red: 0xe4, green: 0x00, blue: 0x14 })).toBeGreaterThan(0);
+		expect(countPixels(canvas, { red: 0x00, green: 0x44, blue: 0xff })).toBeGreaterThan(0);
+	});
 	expect(reads).toHaveBeenCalledTimes(1);
 });

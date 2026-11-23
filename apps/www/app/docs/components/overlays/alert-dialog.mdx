@@ -117,7 +117,7 @@ import { Button } from "@ngrok/mantle/button";
 
 ## UI above an open alert dialog
 
-An open alert dialog makes the rest of the page inert: no click, focus, or screen reader reaches it. mantle's `Toaster` moves its toasts into the open alert dialog, so they paint above it and take clicks. Put a control that a user must reach while the alert dialog is open inside the alert dialog content.
+An open alert dialog makes the rest of the page inert: no click, focus, or screen reader reaches it. To keep a banner or a bar usable above it, wrap the element in [`OverlayPrompt`](/components/primitives/overlay-prompt): it moves into the open alert dialog, so it paints above it, takes clicks and focus, and a press in it does not close the alert dialog. mantle's `Toaster` and `Sandbar` use it.
 
 ## Third-party popups
 

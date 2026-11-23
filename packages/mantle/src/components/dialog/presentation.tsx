@@ -15,6 +15,7 @@ import {
 	type IconButtonIntent,
 	type IconButtonProps,
 } from "../button/icon-button.js";
+import { ScrollBody } from "./scroll-body.js";
 
 /**
  * How much of the viewport a `Dialog.Content` claims, and what it looks like
@@ -269,10 +270,10 @@ const Body = ({
 	className,
 	...props
 }: ComponentProps<"div"> & WithDataSlot) => (
-	<div
+	<ScrollBody
 		data-slot={joinDataSlot(dataSlot, "dialog-body")}
 		className={cx(
-			"scrollbar scrollbar-gutter-stable text-body flex-1 overflow-y-auto overscroll-none p-6",
+			"scrollbar scrollbar-gutter-stable text-body flex-1 overflow-y-auto overscroll-none p-6 focus-visible:focus-ring focus-visible:ring-inset",
 			className,
 		)}
 		{...props}

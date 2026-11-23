@@ -37,6 +37,10 @@ const STYLE = `
 		--text-color-strong: rgb(17, 24, 39);
 	}
 }
+@layer base {
+	/* Tailwind's preflight. Without it, WebKit paints a row in its own button text color. */
+	button { color: inherit; }
+}
 @layer utilities {
 	.flex { display: flex; }
 	.data-state-open\\:text-strong[data-state~=open] { color: var(--text-color-strong); }
@@ -583,6 +587,12 @@ describe("Sidebar.Nav on the native <dialog>", () => {
 		expect(panel == null ? null : getComputedStyle(panel).width).toBe("288px");
 
 		await userEvent.keyboard("{Escape}");
+		// Why wait on the exit: the dialog closes when its exit animations end. A
+		// `waitFor` gives up after 1 s, and WebKit in CI can skip frames that long.
+		await waitFor(() => expect(dialog.dataset.state).toBe("closed"));
+		await Promise.allSettled(
+			dialog.getAnimations({ subtree: true }).map((animation) => animation.finished),
+		);
 		await waitFor(() => expect(dialog.open).toBe(false));
 		await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "false"));
 		expect(document.activeElement).toBe(trigger);

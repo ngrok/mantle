@@ -761,6 +761,7 @@ const headCapClassName = "w-[calc(round(up,var(--_head-cap)-0.5px,1ch)+0.5px)]";
 // Why `:empty+&`: a value no longer than `tail` has no head to draw the
 // ellipsis, so the tail draws its own and takes the head's cell back.
 const tailClassName =
+	// oxlint-disable-next-line mantle/no-structural-combinator -- Why: the last compound is this class, so a change of `:empty` restyles only the next sibling with it, not a subtree.
 	"inline-block overflow-hidden whitespace-nowrap text-left align-bottom min-w-(--_tail-width) [[data-truncated]>&]:min-w-0 [[data-truncated]>&]:max-w-[calc(round(down,100%_-_1ch_-_var(--_tail-width),1ch)_+_var(--_tail-width))] [[data-truncated]>:empty+&]:max-w-[calc(round(down,100%_-_var(--_tail-width),1ch)_+_var(--_tail-width)_+_0.5px)] [[data-truncated]>:empty+&]:text-ellipsis";
 
 /** The `Tooltip.Trigger` handlers that the root calls with its own events. */

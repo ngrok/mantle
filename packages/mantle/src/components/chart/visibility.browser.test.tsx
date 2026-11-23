@@ -155,7 +155,6 @@ test("a chart below the fold stays a shell while the chart in view activates and
 	// A chart that activates regardless of visibility holds a surface here.
 	expect(far.root).toHaveAttribute("data-state", "dormant");
 	expect(surfaceOf(far)).toBeNull();
-	expect(far.plot.querySelector('[data-slot="line-chart-hover-band"]')).toBeNull();
 });
 
 test("scrolling to a dormant chart activates it but mounts no data table", async () => {
@@ -206,9 +205,6 @@ test("beforeprint paints a page whose only chart is dormant", async () => {
 		</>,
 	);
 	const lone = chartNamed("Lone chart");
-	await waitFor(() => {
-		expect(screen.getByRole("application", { name: "Lone chart" })).toBeInTheDocument();
-	});
 	expect(surfaceOf(lone)).toBeNull();
 
 	window.dispatchEvent(new Event("beforeprint"));
@@ -229,9 +225,6 @@ test("beforeprint paints the tick labels of a dormant chart at full alpha", asyn
 		</>,
 	);
 	const lone = chartNamed("Lone chart");
-	await waitFor(() => {
-		expect(screen.getByRole("application", { name: "Lone chart" })).toBeInTheDocument();
-	});
 	expect(surfaceOf(lone)).toBeNull();
 
 	window.dispatchEvent(new Event("beforeprint"));

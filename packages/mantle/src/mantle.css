@@ -1438,6 +1438,33 @@ MARK: CUSTOM VARIANTS
 		overflow: hidden !important;
 		padding-inline-end: var(--mantle-scrollbar-width, 0px);
 	}
+
+	/*
+	 * The native radio of a `RadioGroup` or `SegmentedControl` item covers the
+	 * item, over its content. The controls in the content sit over the radio, so
+	 * they keep their own clicks. Why the base layer and `:where()`: a position
+	 * or z-index utility on the control wins. The list matches
+	 * `CONTENT_CONTROL_SELECTOR` in `radio-group/primitive.tsx`, but for
+	 * `label`: a title label would cover the radio, and a click on it checks
+	 * the radio anyway.
+	 */
+	:where(.radio-item-content)
+		:where(
+			a[href],
+			button,
+			details,
+			input,
+			select,
+			textarea,
+			[role="button"],
+			[role="link"],
+			[role="menuitem"],
+			[tabindex]:not([tabindex="-1"]),
+			[contenteditable="true"]
+		) {
+		position: relative;
+		z-index: 2;
+	}
 }
 
 /**
@@ -1572,11 +1599,6 @@ MARK: UTILITIES
 		font-weight: 100 !important;
 		font-stretch: ultra-condensed !important;
 		font-optical-sizing: none !important;
-	}
-
-	/* A password manager badge that follows the input takes the pointer. */
-	& + * {
-		pointer-events: auto !important;
 	}
 }
 
@@ -1795,6 +1817,50 @@ MARK: UTILITIES
 		animation-range: calc(100% - 2px) 100%;
 		animation-timeline: scroll(self inline);
 		animation-duration: 1ms;
+	}
+}
+
+@utility scroll-cue-y {
+	/*
+	 * Fades the top and bottom edges of a vertical scroll container while it has
+	 * more content past them. A script marks the edges: `observeScrollEdges` sets
+	 * `data-overflow-top` and `data-overflow-bottom` only when an edge flips, so
+	 * a scroll frame runs no style work. Each fade is a sticky gradient in
+	 * `--scroll-cue-color` (the popover background by default) laid over the
+	 * content: it masks nothing and has no children, so showing it restyles
+	 * one box. Sticky offsets start inside the padding, so a container with
+	 * vertical padding moves them out by it, such as `before:-top-1 after:-bottom-1`.
+	 */
+	&::before,
+	&::after {
+		content: "";
+		position: sticky;
+		z-index: 1;
+		display: block;
+		flex: none;
+		height: 1.5rem;
+		pointer-events: none;
+		opacity: 0;
+	}
+	&::before {
+		top: 0;
+		margin-bottom: -1.5rem;
+		background: linear-gradient(
+			var(--scroll-cue-color, var(--background-color-popover)),
+			transparent
+		);
+	}
+	&::after {
+		bottom: 0;
+		margin-top: -1.5rem;
+		background: linear-gradient(
+			transparent,
+			var(--scroll-cue-color, var(--background-color-popover))
+		);
+	}
+	&[data-overflow-top]::before,
+	&[data-overflow-bottom]::after {
+		opacity: 1;
 	}
 }
 

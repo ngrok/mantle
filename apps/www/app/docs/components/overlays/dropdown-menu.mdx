@@ -180,19 +180,19 @@ The menu follows the [WAI-ARIA menu button pattern](https://www.w3.org/WAI/ARIA/
 
 ## API Reference
 
-The `DropdownMenu` components are built on the native [popover API](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API) and CSS anchor positioning. Where the browser has no anchor positioning, a script places the menu. Where it has no popover API, the menu is a fixed box at `z-50`.
+The `DropdownMenu` components are built on the native [popover API](https://developer.mozilla.org/en-US/docs/Web/API/Popover_API). A script places the menu next to its trigger. Where the browser has no popover API, the menu is a fixed box at `z-50`.
 
 ### DropdownMenu.Root
 
 The root, stateful component that manages the open/closed state of the dropdown menu.
 
-| Prop            | Type                      | Default | Description                                                                                                                                    |
-| :-------------- | :------------------------ | :------ | :--------------------------------------------------------------------------------------------------------------------------------------------- |
-| `open?`         | `boolean`                 |         | The controlled open state of the dropdown menu. Must be used in conjunction with `onOpenChange`.                                               |
-| `onOpenChange?` | `(open: boolean) => void` |         | Event handler called when the open state of the dropdown menu changes.                                                                         |
-| `defaultOpen?`  | `boolean`                 | `false` | The open state of the dropdown menu when it is initially rendered. Use when you do not need to control its open state.                         |
-| `dir?`          | `"ltr"` \| `"rtl"`        |         | The reading direction of submenus when applicable.                                                                                             |
-| `modal?`        | `boolean`                 | `true`  | When `true`, the rest of the page is `inert` while the menu is open: a pointer, focus, or screen reader reaches only the trigger and the menu. |
+| Prop            | Type                      | Default | Description                                                                                                                                                                                                                                                                                                                                                                          |
+| :-------------- | :------------------------ | :------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `open?`         | `boolean`                 |         | The controlled open state of the dropdown menu. Must be used in conjunction with `onOpenChange`.                                                                                                                                                                                                                                                                                     |
+| `onOpenChange?` | `(open: boolean) => void` |         | Event handler called when the open state of the dropdown menu changes.                                                                                                                                                                                                                                                                                                               |
+| `defaultOpen?`  | `boolean`                 | `false` | The open state of the dropdown menu when it is initially rendered. Use when you do not need to control its open state.                                                                                                                                                                                                                                                               |
+| `dir?`          | `"ltr"` \| `"rtl"`        |         | The reading direction of submenus when applicable.                                                                                                                                                                                                                                                                                                                                   |
+| `modal?`        | `boolean`                 | `false` | When `true`, the rest of the page is `inert` while the menu is open: a pointer, focus, or screen reader reaches only the trigger and the menu. By default the page stays live, as with a native popover. A press that ends outside closes the menu, so a touch scroll that starts outside does not, and its primary click (left button, no Ctrl) does not activate what is under it. |
 
 ### DropdownMenu.Trigger
 
