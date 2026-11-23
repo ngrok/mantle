@@ -152,6 +152,7 @@ function sliderBehavior({
 				// does not jump to the pointer on the first move.
 				inputs[thumbIndex]?.focus({ preventScroll: true, focusVisible: false });
 				slides.set(root, {
+					pointerId: event.pointerId,
 					index: thumbIndex,
 					rect,
 					before: values,
@@ -167,14 +168,22 @@ function sliderBehavior({
 				commit: false,
 				keyboard: false,
 			});
-			slides.set(root, { index, rect, before: values, edge, offset: 0 });
+			slides.set(root, {
+				pointerId: event.pointerId,
+				index,
+				rect,
+				before: values,
+				edge,
+				offset: 0,
+			});
 		},
 		onPointerMove: (event: PointerEvent<HTMLSpanElement>) => {
 			const root = event.currentTarget;
 			const slide = slides.get(root);
 			const target = event.target;
+			// Why the pointer id: a second touch has its own implicit capture.
 			if (
-				slide == null ||
+				slide?.pointerId !== event.pointerId ||
 				!(target instanceof Element) ||
 				!target.hasPointerCapture(event.pointerId)
 			) {
@@ -188,7 +197,7 @@ function sliderBehavior({
 		onLostPointerCapture: (event: PointerEvent<HTMLSpanElement>) => {
 			const root = event.currentTarget;
 			const slide = slides.get(root);
-			if (slide == null) {
+			if (slide?.pointerId !== event.pointerId) {
 				return;
 			}
 			slides.delete(root);
@@ -240,6 +249,9 @@ function sliderBehavior({
 			const { inputs, values } = partsOf(root);
 			if (resetting) {
 				const next = inputs.map((each) => each.valueAsNumber);
+				for (const [index, each] of inputs.entries()) {
+					each.step = onStepGrid(next[index] ?? min, { min, step }) ? String(step) : "any";
+				}
 				if (String(next) !== String(values)) {
 					paint(partsOf(root), next, min);
 					onValueChange?.(next);
@@ -275,14 +287,21 @@ function sliderRootRef(root: HTMLSpanElement | null) {
 		return;
 	}
 	const followReset = () => {
+		// Why "any": a step written for a later value would snap an off-grid default.
+		for (const input of partsOf(root).inputs) {
+			input.step = "any";
+		}
 		// Why a task: the form resets its inputs after the `reset` event, and a
 		// microtask runs first when the reset comes from a click.
 		setTimeout(() => {
 			resetting = true;
-			for (const input of partsOf(root).inputs) {
-				input.dispatchEvent(new Event("input", { bubbles: true }));
+			try {
+				for (const input of partsOf(root).inputs) {
+					input.dispatchEvent(new Event("input", { bubbles: true }));
+				}
+			} finally {
+				resetting = false;
 			}
-			resetting = false;
 		});
 	};
 	form.addEventListener("reset", followReset);
@@ -345,8 +364,15 @@ const STEP_KEYS = new Set([
 /** The edge of the track where `min` sits. */
 type Edge = keyof typeof BACK_KEYS;
 
-/** The drag in progress on a root: the thumb, the root's box, the values at the start, and the grab offset in value units. */
-type Slide = { index: number; rect: DOMRect; before: number[]; edge: Edge; offset: number };
+/** The drag in progress on a root: its pointer, the thumb, the root's box, the values at the start, and the grab offset in value units. */
+type Slide = {
+	pointerId: number;
+	index: number;
+	rect: DOMRect;
+	before: number[];
+	edge: Edge;
+	offset: number;
+};
 
 /** The drag in progress on each slider root. A root holds no drag between a pointer up and the next pointer down. */
 const slides = new WeakMap<Element, Slide>();
@@ -407,19 +433,22 @@ function announce({
 	grid: { min: number; step: number };
 }): void {
 	announcing = true;
-	for (const [index, input] of inputs.entries()) {
-		const value = after[index];
-		if (value == null || value === before[index]) {
-			continue;
+	try {
+		for (const [index, input] of inputs.entries()) {
+			const value = after[index];
+			if (value == null || value === before[index]) {
+				continue;
+			}
+			// Why before the value: the browser snaps a value to `step`, and `max` can sit off the grid.
+			input.step = onStepGrid(value, grid) ? String(grid.step) : "any";
+			// Why the prototype's setter: it skips React's value tracker, so React reads
+			// the event as a change of a controlled input.
+			Reflect.set(HTMLInputElement.prototype, "value", String(value), input);
+			input.dispatchEvent(new Event("input", { bubbles: true }));
 		}
-		// Why before the value: the browser snaps a value to `step`, and `max` can sit off the grid.
-		input.step = onStepGrid(value, grid) ? String(grid.step) : "any";
-		// Why the prototype's setter: it skips React's value tracker, so React reads
-		// the event as a change of a controlled input.
-		Reflect.set(HTMLInputElement.prototype, "value", String(value), input);
-		input.dispatchEvent(new Event("input", { bubbles: true }));
+	} finally {
+		announcing = false;
 	}
-	announcing = false;
 }
 
 /** The value under the pointer, scaled across the whole root. */

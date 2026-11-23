@@ -3,7 +3,7 @@ import type { ComponentProps, CSSProperties } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import { commands, userEvent } from "vitest/browser";
+import { cdp, commands, userEvent } from "vitest/browser";
 import mantleCss from "../../mantle.css?raw";
 import { Slider } from "./slider.js";
 
@@ -304,6 +304,63 @@ test("a click on a reset button returns the thumbs and the inputs to defaultValu
 	await expect.poll(() => onValueChange.mock.lastCall).toEqual([[20, 80]]);
 	expect(thumbValues()).toEqual([20, 80]);
 	expect(thumb.getBoundingClientRect().left).toBeLessThan(moved);
+});
+
+test("a reset returns an off-grid defaultValue after a key press moved the thumb onto the grid", async () => {
+	render(
+		<form data-testid="form">
+			<Slider aria-label="Volume" defaultValue={100} max={100} name="volume" step={30} />
+			<button type="reset">Reset</button>
+		</form>,
+	);
+	screen.getByRole("slider").focus();
+	await userEvent.keyboard("{ArrowLeft}");
+	expect(screen.getByRole("slider")).toHaveValue("90");
+
+	await userEvent.click(screen.getByRole("button", { name: "Reset" }));
+
+	await expect.poll(() => thumbValues()).toEqual([100]);
+	expect(screen.getByRole("slider")).toHaveValue("100");
+	screen.getByRole("slider").focus();
+	await userEvent.keyboard("{ArrowLeft}");
+	expect(screen.getByRole("slider")).toHaveValue("90");
+});
+
+test("a second finger neither moves nor ends the drag of the first", async () => {
+	const onValueCommit = vi.fn<(value: number[]) => void>();
+	render(
+		<div style={{ padding: "20px 50px", width: 400 }}>
+			<Slider aria-label="Volume" defaultValue={50} onValueCommit={onValueCommit} />
+		</div>,
+	);
+	const root = rootOf(screen.getByRole("slider"));
+	const rect = root.getBoundingClientRect();
+	/** A touch point at `percent` of the track, for the finger `id`, in the page that CDP input addresses. */
+	const at = (id: number, percent: number) => {
+		const frame = window.frameElement?.getBoundingClientRect();
+		const scale = frame == null ? 1 : frame.width / window.innerWidth;
+		const x = rect.left + (rect.width * percent) / 100;
+		const y = rect.top + rect.height / 2;
+		return { id, x: (frame?.left ?? 0) + x * scale, y: (frame?.top ?? 0) + y * scale };
+	};
+	const touch = (
+		type: "touchStart" | "touchMove" | "touchEnd",
+		touchPoints: { id: number; x: number; y: number }[],
+	) => cdp().send("Input.dispatchTouchEvent", { type, touchPoints });
+
+	await touch("touchStart", [at(1, 50)]);
+	await touch("touchMove", [at(1, 30)]);
+	await touch("touchStart", [at(1, 30), at(2, 80)]);
+	await touch("touchMove", [at(1, 30), at(2, 70)]);
+	await expect.poll(() => thumbValues()).toEqual([30]);
+	// Why a move without finger 2: CDP lifts each finger that a move leaves out.
+	await touch("touchMove", [at(1, 30)]);
+	await touch("touchMove", [at(1, 20)]);
+	await expect.poll(() => thumbValues()).toEqual([20]);
+	expect(onValueCommit).not.toHaveBeenCalled();
+	await touch("touchEnd", []);
+
+	await expect.poll(() => onValueCommit.mock.calls).toEqual([[[20]]]);
 });
 
 test("in forced-colors mode, a focused thumb shows an outline", async () => {
