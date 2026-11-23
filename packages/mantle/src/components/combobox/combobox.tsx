@@ -20,6 +20,8 @@ import { useFieldValidation } from "../field/validation-context.js";
 import type { WithValidation } from "../field/validation.js";
 import { Separator } from "../separator/separator.js";
 import { Slot } from "../slot/index.js";
+import { OptionSlot } from "../slot/option-slot.js";
+import type { OptionRender } from "../slot/option-slot.js";
 
 const ComboboxContext = createContext<ComboboxContextValue | null>(null);
 
@@ -320,9 +322,15 @@ const OpenContent = ({
 	);
 };
 
-type ComboboxItemProps = Omit<ComponentProps<"div">, "value"> &
+type ComboboxItemProps = Omit<ComponentProps<"div">, "children" | "value"> &
 	WithAsChild &
 	WithDataSlot & {
+		/**
+		 * The item's content, which defaults to its `value`. A function renders the
+		 * item as the element it returns, with the item's props and `{ highlighted }`:
+		 * spread `props` on that element.
+		 */
+		children?: ReactNode | OptionRender;
 		/**
 		 * Whether the item is inert.
 		 */
@@ -336,6 +344,9 @@ type ComboboxItemProps = Omit<ComponentProps<"div">, "value"> &
 
 /**
  * Renders a combobox item inside a Combobox.Content component.
+ *
+ * **Function child.** `(props, { highlighted }) => element` renders the item as
+ * the element it returns. Spread `props` on it.
  *
  * @see https://mantle.ngrok.com/components/forms/combobox#comboboxitem
  *
@@ -369,30 +380,33 @@ const Item = ({
 		disabled: disabled || value == null,
 		id: childId({ asChild, children, id: props.id }),
 	});
+	const elementProps = {
+		...props,
+		...optionProps,
+		onClick: composeHandlers(onClick, optionProps.onClick),
+		onPointerMove: composeHandlers(onPointerMove, optionProps.onPointerMove),
+		// Why: in the APG combobox pattern, the highlighted option is the selected
+		// one, and the open list writes the attribute with the highlight.
+		"aria-selected": undefined,
+		// Why `data-selected`: `aria-selected` follows the highlight, so the picked option needs its own attribute.
+		"data-selected": selected ? "" : undefined,
+		ref,
+		"data-slot": joinDataSlot(dataSlot, "combobox-item"),
+		className: cx(
+			"cursor-pointer rounded-md px-2 py-1.5 text-strong text-sm flex min-w-0 gap-2 items-center [&>svg]:size-5 [&_svg]:shrink-0",
+			"data-highlighted:bg-active-menu-item",
+			"aria-disabled:opacity-50",
+			className,
+		),
+	};
 	const Component = asChild ? Slot : "div";
 	return (
 		<ItemValueContext value={value}>
-			<Component
-				{...props}
-				{...optionProps}
-				onClick={composeHandlers(onClick, optionProps.onClick)}
-				onPointerMove={composeHandlers(onPointerMove, optionProps.onPointerMove)}
-				// Why: in the APG combobox pattern, the highlighted option is the selected
-				// one, and the open list writes the attribute with the highlight.
-				aria-selected={undefined}
-				// Why `data-selected`: `aria-selected` follows the highlight, so the picked option needs its own attribute.
-				data-selected={selected ? "" : undefined}
-				ref={ref}
-				data-slot={joinDataSlot(dataSlot, "combobox-item")}
-				className={cx(
-					"cursor-pointer rounded-md px-2 py-1.5 text-strong text-sm flex min-w-0 gap-2 items-center [&>svg]:size-5 [&_svg]:shrink-0",
-					"data-highlighted:bg-active-menu-item",
-					"aria-disabled:opacity-50",
-					className,
-				)}
-			>
-				{children ?? value}
-			</Component>
+			{typeof children === "function" ? (
+				<OptionSlot {...elementProps} listbox={listbox} render={children} />
+			) : (
+				<Component {...elementProps}>{children ?? value}</Component>
+			)}
 		</ItemValueContext>
 	);
 };

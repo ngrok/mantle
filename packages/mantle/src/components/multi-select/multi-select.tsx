@@ -24,6 +24,8 @@ import { useFieldValidation } from "../field/validation-context.js";
 import type { AriaInvalid, WithValidation } from "../field/validation.js";
 import { Separator } from "../separator/separator.js";
 import { Slot } from "../slot/index.js";
+import { OptionSlot } from "../slot/option-slot.js";
+import type { OptionRender } from "../slot/option-slot.js";
 import invariant from "tiny-invariant";
 
 const EMPTY_ARRAY: readonly string[] = [];
@@ -927,9 +929,15 @@ const renderItemLabel = (label: ReactNode) => (
 /**
  * Props for `MultiSelect.Item`.
  */
-type MultiSelectItemProps = Omit<ComponentProps<"div">, "value"> &
+type MultiSelectItemProps = Omit<ComponentProps<"div">, "children" | "value"> &
 	WithAsChild &
 	WithDataSlot & {
+		/**
+		 * The item's label. A function renders the item as the element it returns,
+		 * with the item's props and `{ highlighted }`: spread `props` on that
+		 * element and write the label inside it.
+		 */
+		children?: ReactNode | OptionRender;
 		/**
 		 * Whether the item is inert.
 		 */
@@ -956,6 +964,9 @@ type MultiSelectItemProps = Omit<ComponentProps<"div">, "value"> &
  *
  * **`asChild`.** Your single child becomes the option element. The label div
  * and the check move inside it, so the guarantee above holds on both paths.
+ *
+ * **Function child.** `(props, { highlighted }) => element` renders the option as
+ * the element it returns. Spread `props` on it and write the label inside it.
  *
  * **Data attributes:**
  *
@@ -1013,7 +1024,38 @@ const Item = ({
 		</span>
 	);
 
-	let content: ReactNode;
+	const renderContent = (inner: ReactNode) => (
+		<>
+			{renderItemLabel(inner)}
+			{check}
+		</>
+	);
+	const elementProps = {
+		...props,
+		...optionProps,
+		onClick: composeHandlers(onClick, optionProps.onClick),
+		onPointerMove: composeHandlers(onPointerMove, optionProps.onPointerMove),
+		"data-slot": joinDataSlot(dataSlot, "multi-select-item"),
+		className: cx(
+			"relative mx-1 cursor-pointer rounded-md pl-2 pr-8 py-1.5 text-strong text-sm font-normal flex min-w-0 items-center gap-2",
+			"[[role=option]+&]:mt-px",
+			"data-highlighted:bg-active-menu-item",
+			"aria-disabled:opacity-50",
+			"aria-selected:bg-selected-menu-item aria-selected:data-highlighted:bg-active-selected-menu-item",
+			className,
+		),
+		ref,
+	};
+	if (typeof children === "function") {
+		return (
+			<OptionSlot
+				{...elementProps}
+				listbox={listbox}
+				render={children}
+				renderContent={renderContent}
+			/>
+		);
+	}
 	if (asChild) {
 		// Why clone here: the consumer's element becomes the option, with the label
 		// div and the check inside it, so both keep their places.
@@ -1021,44 +1063,13 @@ const Item = ({
 			isValidElement<PropsWithChildren>(children),
 			"When using `asChild`, MultiSelect.Item must be passed a single child as a JSX tag.",
 		);
-		content = cloneElement(
-			children,
-			{},
-			<>
-				{renderItemLabel(children.props.children)}
-				{check}
-			</>,
-		);
-	} else {
-		content = (
-			<>
-				{renderItemLabel(children)}
-				{check}
-			</>
+		return (
+			<Slot {...elementProps}>
+				{cloneElement(children, {}, renderContent(children.props.children))}
+			</Slot>
 		);
 	}
-
-	const Component = asChild ? Slot : "div";
-	return (
-		<Component
-			{...props}
-			{...optionProps}
-			onClick={composeHandlers(onClick, optionProps.onClick)}
-			onPointerMove={composeHandlers(onPointerMove, optionProps.onPointerMove)}
-			data-slot={joinDataSlot(dataSlot, "multi-select-item")}
-			className={cx(
-				"relative mx-1 cursor-pointer rounded-md pl-2 pr-8 py-1.5 text-strong text-sm font-normal flex min-w-0 items-center gap-2",
-				"[[role=option]+&]:mt-px",
-				"data-highlighted:bg-active-menu-item",
-				"aria-disabled:opacity-50",
-				"aria-selected:bg-selected-menu-item aria-selected:data-highlighted:bg-active-selected-menu-item",
-				className,
-			)}
-			ref={ref}
-		>
-			{content}
-		</Component>
-	);
+	return <div {...elementProps}>{renderContent(children)}</div>;
 };
 
 type MultiSelectGroupProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;

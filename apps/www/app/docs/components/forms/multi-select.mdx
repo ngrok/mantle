@@ -770,6 +770,8 @@ MultiSelect.Root
 
 `MultiSelect.GroupLabel asChild` is the useful one: reach for it when a group heading must be a specific element for the page's outline. `MultiSelect.Content asChild` lets you own the popover panel element.
 
+`MultiSelect.Item` also takes a function child, `(props, { highlighted }) => element`, for a row that renders different content while highlighted. Write the label inside your element: the label wrapper and the check move inside it, as with `asChild`. Only a row that uses one re-renders when the highlight moves. To only restyle the highlighted row, use the `data-highlighted:` variant, or `in-data-highlighted:` from a child. Anything you write after `{...props}` wins, so join a class with `cx(props.className, "…")`, and set `id` on the item, not on your element.
+
 The trigger-side parts (`MultiSelect.Root`, `Trigger`, `Input`, `Tag`, `TagValues`) own input and tag behavior that depends on the elements they render, so they do not accept `asChild`.
 
 `MultiSelect.Item asChild` makes your single child the option element and moves the label div and the check indicator inside it, so the [translation guarantee](/browser-translation) holds on both paths. To give an option a custom layout inside the default element, pass it as `children` (a [`MediaObject`](/components/structure/media-object) with an avatar, say), which is unrestricted.
@@ -885,9 +887,10 @@ Renders a selectable item with a checkbox indicator inside a `MultiSelect.Conten
 
 All props of a `<div>`, plus `value`, `disabled`, and:
 
-| Prop       | Type      | Default | Description                                                           |
-| :--------- | :-------- | :------ | :-------------------------------------------------------------------- |
-| `asChild?` | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
+| Prop        | Type                                                      | Default | Description                                                                                                                                                                                 |
+| :---------- | :-------------------------------------------------------- | :------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `asChild?`  | `boolean`                                                 | `false` | Compose onto an alternative element type or your own React component.                                                                                                                       |
+| `children?` | `ReactNode` \| `(props, { highlighted }) => ReactElement` |         | The item's label. A function renders the item as the element it returns, with the item's props and whether it is highlighted. Spread `props` on that element and write the label inside it. |
 
 | Data Attribute | Value                       | Description                         |
 | :------------- | :-------------------------- | :---------------------------------- |
