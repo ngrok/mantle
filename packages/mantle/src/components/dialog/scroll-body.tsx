@@ -11,6 +11,8 @@ import { findTabbableDescendants } from "../alert/tabbable-neighbors.js";
  *
  * Why both observers: a resize of the body or a child changes whether it
  * scrolls, and a change in the content changes whether it holds a tab stop.
+ * Why `focusout`: a focused body keeps its tab stop, or the browser moves
+ * focus to the page. It checks again when focus leaves.
  */
 const observeKeyboardScroll = (body: HTMLDivElement | null): (() => void) | undefined => {
 	if (body == null) {
@@ -22,7 +24,7 @@ const observeKeyboardScroll = (body: HTMLDivElement | null): (() => void) | unde
 		const reachable = scrolls && findTabbableDescendants(body).length === 0;
 		if (reachable && !body.hasAttribute("tabindex")) {
 			body.setAttribute("tabindex", "0");
-		} else if (!reachable && body.hasAttribute("tabindex")) {
+		} else if (!reachable && body.hasAttribute("tabindex") && !body.matches(":focus")) {
 			body.removeAttribute("tabindex");
 		}
 	};
@@ -41,8 +43,10 @@ const observeKeyboardScroll = (body: HTMLDivElement | null): (() => void) | unde
 		subtree: true,
 		attributeFilter: ["disabled", "hidden", "href", "inert", "tabindex"],
 	});
+	body.addEventListener("focusout", update);
 	watch();
 	return () => {
+		body.removeEventListener("focusout", update);
 		mutation.disconnect();
 		resize.disconnect();
 	};

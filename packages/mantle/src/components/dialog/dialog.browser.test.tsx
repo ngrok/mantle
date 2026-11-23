@@ -277,4 +277,34 @@ describe("Dialog.Body", () => {
 
 		await waitFor(() => expect(body).toHaveAttribute("tabindex", "0"));
 	});
+	test("a focused body keeps focus when it stops scrolling or gains a tabbable child", async () => {
+		const { rerender } = render(
+			<>
+				<button type="button">Before</button>
+				<Dialog.Body data-testid="body" style={bodyStyle}>
+					{lines(10)}
+				</Dialog.Body>
+			</>,
+		);
+		const body = screen.getByTestId("body");
+		screen.getByRole("button", { name: "Before" }).focus();
+		await userEvent.keyboard("{Tab}");
+		expect(document.activeElement).toBe(body);
+
+		rerender(
+			<>
+				<button type="button">Before</button>
+				<Dialog.Body data-testid="body" style={bodyStyle}>
+					{lines(1)}
+					<button type="button">Load more</button>
+				</Dialog.Body>
+			</>,
+		);
+		await new Promise(requestAnimationFrame);
+		await new Promise(requestAnimationFrame);
+		expect(document.activeElement).toBe(body);
+
+		screen.getByRole("button", { name: "Before" }).focus();
+		await waitFor(() => expect(body).not.toHaveAttribute("tabindex"));
+	});
 });
