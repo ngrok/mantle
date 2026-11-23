@@ -64,6 +64,33 @@ function dropHasArguments(selector) {
 	return result;
 }
 
+/** Empties attribute selectors and quoted strings, whose text is not a pseudo-class. */
+function dropAttributes(selector) {
+	let result = "";
+	let depth = 0;
+	let quote = null;
+	for (const char of selector) {
+		if (quote != null) {
+			if (char === quote) {
+				quote = null;
+				result += depth === 0 ? char : "";
+			}
+		} else if (char === '"' || char === "'") {
+			quote = char;
+			result += depth === 0 ? char : "";
+		} else if (char === "[") {
+			result += depth === 0 ? char : "";
+			depth++;
+		} else if (char === "]") {
+			depth--;
+			result += depth === 0 ? char : "";
+		} else if (depth === 0) {
+			result += char;
+		}
+	}
+	return result;
+}
+
 /** Splits at the top-level commas, outside parentheses, brackets, and quotes. */
 function splitTopLevel(selector) {
 	const parts = [];
@@ -126,7 +153,7 @@ function lastCompoundStart(selector) {
  * hasStructuralCombinator(".a>*:last-child"); // => false
  */
 export function hasStructuralCombinator(selector) {
-	for (const part of splitTopLevel(dropHasArguments(selector))) {
+	for (const part of splitTopLevel(dropHasArguments(dropAttributes(selector)))) {
 		const trimmed = part.trim();
 		if (STRUCTURAL.test(trimmed.slice(0, lastCompoundStart(trimmed)))) {
 			return true;
@@ -184,11 +211,11 @@ export function structuralVariants(token) {
 				if (hasStructuralCombinator(selector) || (structuralBefore && addsCombinator)) {
 					found.push(variant);
 				}
-				const self = dropHasArguments(selector.slice(selfStart));
+				const self = dropHasArguments(dropAttributes(selector.slice(selfStart)));
 				structuralBefore = (structuralBefore && !addsCombinator) || STRUCTURAL.test(self);
 			} else if (relative != null) {
 				// Why `structuralBefore` stays: the relative selector goes in front, so the element's own compound stays last.
-				if (STRUCTURAL.test(dropHasArguments(relative[1] ?? ""))) {
+				if (STRUCTURAL.test(dropHasArguments(dropAttributes(relative[1] ?? "")))) {
 					found.push(variant);
 				}
 			} else if (STRUCTURAL_RELATIVE_VARIANT.test(variant)) {
@@ -201,7 +228,7 @@ export function structuralVariants(token) {
 				structuralBefore = false;
 			} else if (
 				STRUCTURAL_SELF_VARIANT.test(variant) ||
-				(/^not-\[.+\]$/.test(variant) && STRUCTURAL.test(variant))
+				(/^not-\[.+\]$/.test(variant) && STRUCTURAL.test(dropAttributes(variant.slice(5, -1))))
 			) {
 				structuralBefore = true;
 			}
