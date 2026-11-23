@@ -40,9 +40,6 @@ const contextOptionsFor = (engine: Engine) =>
 
 // Why chromiumSandbox: Playwright starts Chromium with `--no-sandbox` by default. Without the
 // sandbox, one renderer bug runs code with the access of the user.
-// Why software GL for WebKit: on a GitHub runner, which has no GPU, WebKit stops painting the
-// whole browser once it composites a `backdrop-filter`. After that, no `requestAnimationFrame`
-// runs and no animation starts, so tests in other files time out too.
 const providerFor = (engine: Engine) =>
 	process.env.PLAYWRIGHT_WS_ENDPOINT
 		? playwright({
@@ -51,18 +48,7 @@ const providerFor = (engine: Engine) =>
 			})
 		: playwright({
 				contextOptions: contextOptionsFor(engine),
-				launchOptions: {
-					chromium: { chromiumSandbox: true },
-					firefox: {},
-					webkit: {
-						env: {
-							...process.env,
-							LIBGL_ALWAYS_SOFTWARE: "1",
-							WEBKIT_DISABLE_DMABUF_RENDERER: "1",
-							WEBKIT_SKIA_ENABLE_CPU_RENDERING: "1",
-						},
-					},
-				}[engine],
+				launchOptions: engine === "chromium" ? { chromiumSandbox: true } : {},
 			});
 
 /**
@@ -273,10 +259,18 @@ export default defineConfig({
 						// Why Firefox runs one file at a time: Firefox keeps mouse capture and
 						// drag state for the whole browser, so a real drag in one page breaks a
 						// drag or a selection in another. CI splits Firefox into shards instead.
+						// Why a WebKit setup file: see `vitest.setup-webkit.ts`.
 						instances: engines.map((engine) => ({
 							browser: engine,
 							provider: providerFor(engine),
 							...(engine === "firefox" ? { fileParallelism: false } : {}),
+							...(engine === "webkit"
+								? {
+										setupFiles: ["vitest.setup.ts", "vitest.setup-webkit.ts"].map((file) =>
+											path.join(import.meta.dirname, file),
+										),
+									}
+								: {}),
 						})),
 						commands: { emulateMedia, tailwindCss },
 					},
