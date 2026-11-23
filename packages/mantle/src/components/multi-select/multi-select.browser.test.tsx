@@ -634,6 +634,39 @@ describe("MultiSelect.Item label slot (browser)", () => {
 		expect(screen.getByTestId("row").parentElement).toBe(label);
 	});
 
+	test("with a footer, the list cues only its top edge", async () => {
+		const style = document.createElement("style");
+		style.textContent = await commands.tailwindCss("./multi-select.tsx");
+		document.head.append(style);
+		try {
+			const user = setupUser();
+			render(
+				<MultiSelect.Root>
+					<MultiSelect.Trigger>
+						<MultiSelect.Input aria-label="Fruits" />
+					</MultiSelect.Trigger>
+					{/* Why the style: the compiled CSS holds only the classes in multi-select.tsx. */}
+					<MultiSelect.Content style={{ maxHeight: 160 }}>
+						{Array.from({ length: 30 }, (_, index) => (
+							<MultiSelect.Item key={index} value={`fruit-${index}`}>
+								Fruit {index}
+							</MultiSelect.Item>
+						))}
+						<MultiSelect.ContentFooter>Footer</MultiSelect.ContentFooter>
+					</MultiSelect.Content>
+				</MultiSelect.Root>,
+			);
+			await user.click(screen.getByRole("combobox", { name: "Fruits" }));
+			const list = await screen.findByRole("listbox");
+			await waitFor(() => expect(list).toHaveAttribute("data-overflow-bottom"));
+			// Why: the sticky footer sits on the bottom edge, so a cue there would cover it.
+			expect(getComputedStyle(list, "::after").display).toBe("none");
+			expect(getComputedStyle(list, "::before").display).toBe("block");
+		} finally {
+			style.remove();
+		}
+	});
+
 	test("the open list hides its scrollbar and stops overscroll", async () => {
 		// Why the compiled CSS: this page loads no Tailwind, and the test checks the real utilities.
 		const style = document.createElement("style");

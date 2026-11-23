@@ -60,7 +60,7 @@ const getOptions = (listbox: HTMLElement | null): HTMLElement[] =>
  * Scrolls `list` so that `option` shows in full, clear of the list's
  * `scroll-padding`, as `scrollIntoView` would. It moves no other scroll
  * container, and it reads offsets, so the open animation's scale changes
- * nothing. `list` must be the option's offset parent, or one of its ancestors'.
+ * nothing.
  */
 const scrollIntoList = (list: HTMLElement, option: HTMLElement): void => {
 	let top = 0;
@@ -72,7 +72,7 @@ const scrollIntoList = (list: HTMLElement, option: HTMLElement): void => {
 		top += node.offsetTop;
 	}
 	top -= list.clientTop;
-	// Why: a list with `scroll-fade-y` sets `scroll-py-6`, so an option the
+	// Why: a list with `scroll-cue-y` sets `scroll-py-6`, so an option the
 	// keyboard reaches stays out of the faded edges. `auto` parses to 0. A list
 	// too short for both paddings shares the room left, so the option still shows.
 	const style = getComputedStyle(list);
@@ -179,11 +179,8 @@ const useListbox = ({
 
 	const activate = (option: HTMLElement | null) => {
 		getStore().set({ activeId: option?.id ?? null });
-		// Why the option's own listbox: a picker's listbox is a viewport inside the
-		// popup that holds `ref`, so the popup places itself before this reads layout.
-		const list = option?.closest<HTMLElement>('[role="listbox"]');
-		if (option != null && list != null) {
-			scrollIntoList(list, option);
+		if (option != null && ref.current != null) {
+			scrollIntoList(ref.current, option);
 		}
 	};
 
