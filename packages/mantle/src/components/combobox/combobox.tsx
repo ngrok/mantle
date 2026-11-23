@@ -284,6 +284,7 @@ const Content = (props: ComboboxContentProps) =>
 const OpenContent = ({
 	"aria-label": ariaLabel,
 	"aria-labelledby": ariaLabelledBy,
+	onScroll,
 	"data-slot": dataSlot,
 	asChild = false,
 	children,
@@ -304,6 +305,8 @@ const OpenContent = ({
 			tabIndex={-1}
 			aria-label={ariaLabel}
 			aria-labelledby={ariaLabelledBy}
+			// Why: the viewport scrolls, and a scroll event does not bubble.
+			onScroll={onScroll}
 			// Why: a dialog lets the list take Escape only while the controlled element is open.
 			data-state="open"
 			data-slot="combobox-viewport"

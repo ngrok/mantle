@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import axe from "axe-core";
 import { useState } from "react";
+import type { UIEvent } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
 import * as Dialog from "../dialog/dialog-parts.js";
@@ -82,10 +83,11 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		document.head.append(style);
 		try {
 			const fruits = Array.from({ length: 80 }, (_, index) => `Fruit ${index}`);
+			const onScroll = vi.fn<(event: UIEvent<HTMLDivElement>) => void>();
 			render(
 				<Combobox.Root>
 					<Combobox.Input aria-label="Fruit" />
-					<Combobox.Content>
+					<Combobox.Content onScroll={onScroll}>
 						{fruits.map((fruit) => (
 							<Combobox.Item key={fruit} value={fruit} />
 						))}
@@ -101,6 +103,9 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 				requestAnimationFrame(() => requestAnimationFrame(resolve));
 			});
 			expect(viewport.scrollTop).toBe(300);
+			// Why: a Content `onScroll`, such as one that loads the next page, hears the viewport.
+			expect(onScroll).toHaveBeenCalledTimes(1);
+			expect(onScroll).toHaveBeenLastCalledWith(expect.objectContaining({ type: "scroll" }));
 		} finally {
 			style.remove();
 		}
