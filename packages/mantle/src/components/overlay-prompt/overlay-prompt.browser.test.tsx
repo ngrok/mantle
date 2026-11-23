@@ -188,4 +188,73 @@ describe("OverlayPrompt over an open modal dialog", () => {
 		await waitFor(() => expect(screen.queryByRole("dialog", { name: "Second" })).toBeNull());
 		expect(first.matches(":modal")).toBe(true);
 	});
+
+	test("a dialog that opens from a popover in the lifted content shows, and the content stays above the dialog under it", async () => {
+		// Why: Safari has no `moveBefore`, and a plain move closes a popover.
+		const proto = Element.prototype;
+		const methods = Object.getOwnPropertyDescriptors(proto);
+		Reflect.deleteProperty(proto, "moveBefore");
+		onTestFinished(() => {
+			Object.defineProperties(proto, methods);
+		});
+		render(
+			<>
+				<Dialog.Root defaultOpen>
+					<Dialog.Content>
+						<Dialog.Title>Details</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+				<OverlayPrompt>
+					<Popover.Root>
+						<Popover.Trigger>Manage</Popover.Trigger>
+						<Popover.Content>
+							<Dialog.Root>
+								<Dialog.Trigger>Reset</Dialog.Trigger>
+								<Dialog.Content>
+									<Dialog.Title>Reset preferences?</Dialog.Title>
+									<Dialog.CloseIconButton />
+								</Dialog.Content>
+							</Dialog.Root>
+						</Popover.Content>
+					</Popover.Root>
+				</OverlayPrompt>
+			</>,
+		);
+		const details = screen.getByRole("dialog", { name: "Details" });
+		const manage = screen.getByRole("button", { name: "Manage" });
+		await waitFor(() => expect(details.contains(manage)).toBe(true));
+
+		await userEvent.click(manage);
+		await userEvent.click(await screen.findByRole("button", { name: "Reset" }));
+		const reset = screen.getByRole("dialog", { name: "Reset preferences?" });
+		await waitFor(() => expect(reset.matches(":modal")).toBe(true));
+		expect(reset.getClientRects().length).toBeGreaterThan(0);
+
+		await userEvent.keyboard("{Escape}");
+		await waitFor(() =>
+			expect(screen.queryByRole("dialog", { name: "Reset preferences?" })).toBeNull(),
+		);
+		expect(details.contains(manage)).toBe(true);
+	});
+
+	test("a dialog with no control in its panel keeps focus from content that keeps a legacy `overlay-prompt` class", async () => {
+		render(
+			<>
+				<OverlayPrompt>
+					<button type="button" className="overlay-prompt">
+						Accept all
+					</button>
+				</OverlayPrompt>
+				<Dialog.Root>
+					<Dialog.Trigger>Open</Dialog.Trigger>
+					<Dialog.Content>
+						<Dialog.Title>Loading</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+			</>,
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Open" }));
+
+		await waitFor(() => expect(screen.getByRole("dialog", { name: "Loading" })).toHaveFocus());
+	});
 });

@@ -752,7 +752,12 @@ const Content = ({
 		// Why: the content of each `OverlayPrompt` moved into the dialog before
 		// it opened. With no control in the panel, the browser picks a control
 		// of a prompt, so the dialog takes focus itself, as with no prompt.
-		if (dialog.ownerDocument.activeElement?.closest(".overlay-prompt")?.parentElement === dialog) {
+		const browserPick = dialog.ownerDocument.activeElement;
+		if (
+			browserPick !== dialog &&
+			dialog.contains(browserPick) &&
+			panelRef.current?.contains(browserPick) === false
+		) {
 			dialog.focus({ preventScroll: true });
 		}
 		// Why: WebKit shows a focus ring on the browser's pick after a press, and
