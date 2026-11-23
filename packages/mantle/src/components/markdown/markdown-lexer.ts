@@ -81,6 +81,8 @@ for (let code = 33; code < 128; code += 1) {
 /** The first characters of a block that can end a paragraph. Why: a quick test skips most lines. */
 const BLOCK_START = /^ {0,3}[#*+\-_>`~<\d]/;
 const NOT_SPACE = /\S/;
+/** The label of a link reference definition at the start of a line. */
+const DEFINITION_START = /^ {0,3}\[(?:[^\\\]]|\\.)+\]:/;
 const LITERAL = /\\([!-/:-@[-`{-~])|&(?:#\d{1,7}|#[xX][\da-fA-F]{1,6}|[a-zA-Z\d]+);/g;
 /** The indent and markers of a line, up to its last tab. */
 const LEADING_TAB = /^(?:[ \t]|>|(?:[*+-]|\d{1,9}[.)])(?=[ \t]))*\t/;
@@ -210,6 +212,9 @@ function createLazyTracker(column: number): {
 } {
 	let fence: string | undefined;
 	let open = false;
+	// The width of the quote and list markers before the open paragraph, and whether it starts with a definition.
+	let width = 0;
+	let definition = false;
 	return {
 		read(line) {
 			const content = expandTabs(line, column);
@@ -219,11 +224,16 @@ function createLazyTracker(column: number): {
 					fence = undefined;
 				}
 				open = false;
-			} else if (open && SETEXT.test(content)) {
-				// A setext underline ends the paragraph as a heading.
+			} else if (open && !definition && SETEXT.test(content) && indentOf(content) >= width) {
+				// A setext underline ends the paragraph as a heading. Why the width: a line left of a nested item's
+				// content is lazy, and a definition is not a heading's text.
 				open = false;
 			} else if (!BLOCK_START.test(content)) {
 				// Plain text, or an indented line that continues an open paragraph.
+				if (!open) {
+					width = 0;
+					definition = DEFINITION_START.test(content);
+				}
 				open = NOT_SPACE.test(content) && (open || indentOf(content) < 4);
 			} else if (isFence(content)) {
 				fence = FENCE.exec(content)?.[2];
@@ -240,6 +250,8 @@ function createLazyTracker(column: number): {
 				) {
 					inner = inner.slice(marker[0].length);
 				}
+				width = content.length - inner.length;
+				definition = DEFINITION_START.test(inner);
 				open =
 					NOT_SPACE.test(inner) &&
 					indentOf(inner) < 4 &&
