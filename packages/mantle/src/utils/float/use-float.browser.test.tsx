@@ -235,6 +235,25 @@ describe("useFloat placement when neither side fits", () => {
 });
 
 describe("useFloat placement near the edge of the room", () => {
+	test("a scrolling popover beside its trigger lines up with the trigger", async () => {
+		render(
+			<Popover.Root open>
+				<Popover.Trigger style={anchorStyle}>Open</Popover.Trigger>
+				<Popover.Content
+					data-testid="panel"
+					side="right"
+					align="start"
+					style={{ ...panelStyle, overflowY: "auto" }}
+				>
+					<div style={{ height: 1000 }}>Long content</div>
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		const panel = await screen.findByTestId("panel");
+
+		await waitFor(() => expect(panel.getBoundingClientRect().top).toBeCloseTo(200, 0));
+	});
+
 	test("a popover with an arrow keeps its side as its trigger moves a pixel", async () => {
 		const tree = (top: number) => (
 			<Popover.Root open>

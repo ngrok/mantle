@@ -364,7 +364,10 @@ function trackFloat({
 	const inTopLayer = "togglePopover" in HTMLElement.prototype;
 	// Why only a float that scrolls: in one that does not, `scrollHeight` also
 	// counts an arrow that sticks out below it, which the gap already counts.
-	const scrolls = getComputedStyle(floating).overflowY !== "visible";
+	// Why only above or below: beside the anchor, the height only aligns the
+	// float, and the rendered height is the one to align.
+	const sizeByContent =
+		(side === "top" || side === "bottom") && getComputedStyle(floating).overflowY !== "visible";
 
 	/** The anchor box and viewport size of the last placement, to see a move. */
 	let placedFor = "";
@@ -395,7 +398,9 @@ function trackFloat({
 		floating.style.setProperty("--anchor-height", `${anchorBox.height}px`);
 		const width = floating.offsetWidth;
 		const height = floating.offsetHeight;
-		const contentHeight = scrolls ? floating.scrollHeight + height - floating.clientHeight : height;
+		const contentHeight = sizeByContent
+			? floating.scrollHeight + height - floating.clientHeight
+			: height;
 		const viewport = {
 			width: document.documentElement.clientWidth / zoom,
 			height: document.documentElement.clientHeight / zoom,
