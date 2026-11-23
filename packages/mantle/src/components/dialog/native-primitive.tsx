@@ -117,6 +117,30 @@ function trackInput(ownerDocument: Document): void {
 	ownerDocument.addEventListener("keydown", () => (pressedLast = false), options);
 }
 
+/**
+ * Runs `handler` with a cancelable `type` event that `target` receives, as a
+ * Radix dialog sent it to its content, so `event.currentTarget` is the panel.
+ * Returns the event. As with Radix, an error in `handler` goes to `window`'s
+ * `error` event, not to the caller.
+ */
+function sendFocusEvent(
+	target: HTMLElement | null,
+	type: string,
+	handler: ((event: Event) => void) | undefined,
+): Event {
+	const event = new Event(type, { cancelable: true });
+	if (handler == null) {
+		return event;
+	}
+	if (target == null) {
+		handler(event);
+		return event;
+	}
+	target.addEventListener(type, handler, { once: true });
+	target.dispatchEvent(event);
+	return event;
+}
+
 /** Writes `state` to the `aria-expanded` and `data-state` of `trigger`. */
 function writeTriggerState(trigger: Element, state: string): void {
 	trigger.setAttribute("aria-expanded", String(state === "open"));
@@ -648,6 +672,8 @@ const Content = ({
 	// open, and the open must cost no more than the mount.
 	const dialogRef = useRef<HTMLDialogElement | null>(null);
 	const panelRef = useRef<HTMLDivElement | null>(null);
+	/** The panel of the last `<dialog>` that attached, which outlives its unmount. */
+	const lastPanel = useRef<HTMLDivElement | null>(null);
 	const composedPanelRef = useComposedRefs(ref, panelRef);
 	const reportedOpen = useRef(false);
 	const pressedOutside = useRef(false);
@@ -736,8 +762,7 @@ const Content = ({
 		if (autoFocused !== dialog) {
 			dialog.focus({ preventScroll: true });
 		}
-		const event = new Event("openAutoFocus", { cancelable: true });
-		onOpenAutoFocus(event);
+		const event = sendFocusEvent(panelRef.current, "openAutoFocus", onOpenAutoFocus);
 		if (
 			!event.defaultPrevented &&
 			dialog.ownerDocument.activeElement === dialog &&
@@ -841,16 +866,17 @@ const Content = ({
 	 * ⌘K, and none from a dialog that leaves the page, so the opener takes it.
 	 * An opener that is gone leaves focus on `<body>`, so the trigger takes it.
 	 */
-	const returnFocus = useCallbackRef((dialog: HTMLDialogElement) => {
+	const returnFocus = useCallbackRef((dialog: HTMLDialogElement, leftOpen = false) => {
 		const { ownerDocument } = dialog;
 		const { body } = ownerDocument;
-		const returned = ownerDocument.activeElement;
+		// Why: a dialog that left the page open returned no focus, so the focus
+		// now is another's, such as that of a dialog that replaced it.
+		const returned = leftOpen ? body : ownerDocument.activeElement;
 		const modal = !nonModal.has(dialog);
 		if (modal && returned instanceof HTMLElement && returned !== body) {
 			returned.blur();
 		}
-		const event = new Event("closeAutoFocus", { cancelable: true });
-		onCloseAutoFocus?.(event);
+		const event = sendFocusEvent(lastPanel.current, "closeAutoFocus", onCloseAutoFocus);
 		if (event.defaultPrevented || ownerDocument.activeElement !== body) {
 			return;
 		}
@@ -940,6 +966,7 @@ const Content = ({
 		if (dialog == null) {
 			return;
 		}
+		lastPanel.current = panelRef.current;
 		if (keepMounted) {
 			keptMounted.add(dialog);
 		}
@@ -985,7 +1012,7 @@ const Content = ({
 			// the dialog stays open in it.
 			queueMicrotask(() => {
 				if (!dialog.isConnected && (dialogRef.current == null || dialogRef.current === dialog)) {
-					returnFocus(dialog);
+					returnFocus(dialog, true);
 				}
 			});
 		};
@@ -1050,9 +1077,25 @@ const Content = ({
 				close();
 			}
 		};
+		// Why: when the focused element leaves the panel, such as a retry button
+		// that a loading state replaces, the browser puts focus on `<body>`. The
+		// dialog takes it back, as a Radix dialog did, so a screen reader stays in it.
+		const refocus = new MutationObserver(() => {
+			if (
+				dialog.open &&
+				dialog.dataset.state === "open" &&
+				!nonModal.has(dialog) &&
+				openDialogs.at(-1) === dialog &&
+				ownerDocument.activeElement === ownerDocument.body
+			) {
+				dialog.focus({ preventScroll: true });
+			}
+		});
+		refocus.observe(dialog, { childList: true, subtree: true });
 		ownerDocument.addEventListener("keydown", onKeyDown);
 		ownerDocument.addEventListener("pointerdown", onPointerDown, { capture: true });
 		return () => {
+			refocus.disconnect();
 			ownerDocument.removeEventListener("keydown", onKeyDown);
 			ownerDocument.removeEventListener("pointerdown", onPointerDown, { capture: true });
 		};

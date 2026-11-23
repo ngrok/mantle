@@ -186,6 +186,28 @@ describe("Dialog", () => {
 		);
 	});
 
+	test("focus stays in the dialog when the focused button leaves the panel", async () => {
+		function RetryDialog() {
+			const [pending, setPending] = useState(false);
+			return (
+				<ExampleDialog open>
+					{pending ? (
+						<p>Loading</p>
+					) : (
+						<button type="button" onClick={() => setPending(true)}>
+							Retry
+						</button>
+					)}
+				</ExampleDialog>
+			);
+		}
+		render(<RetryDialog />);
+		await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+		await waitFor(() => expect(screen.getByText("Loading")).toBeInTheDocument());
+		await waitFor(() => expect(dialogElement()).toHaveFocus());
+	});
+
 	test("the dialog stays modal with `data-state` closed through its exit, then unmounts", async () => {
 		const style = document.createElement("style");
 		style.textContent = `
@@ -236,6 +258,26 @@ describe("Dialog", () => {
 		await userEvent.click(trigger);
 		await userEvent.click(screen.getByRole("button", { name: "Page button" }));
 		await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
+	});
+
+	test("onOpenAutoFocus and onCloseAutoFocus get the panel as event.currentTarget, as with Radix", async () => {
+		const targets: (EventTarget | null)[] = [];
+		render(
+			<Dialog.Root>
+				<Dialog.Trigger>Open</Dialog.Trigger>
+				<Dialog.Content
+					onOpenAutoFocus={(event) => targets.push(event.currentTarget)}
+					onCloseAutoFocus={(event) => targets.push(event.currentTarget)}
+				>
+					<Dialog.Title>Panel</Dialog.Title>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Open" }));
+		const panel = document.querySelector('[data-slot~="dialog-content"]');
+		await userEvent.keyboard("{Escape}");
+		await waitFor(() => expect(targets).toHaveLength(2));
+		expect(targets).toEqual([panel, panel]);
 	});
 
 	test("an onOpenAutoFocus that prevents the default leaves focus where it puts it", async () => {
@@ -753,6 +795,38 @@ describe("focus return on close", () => {
 		expect(screen.getByRole("button", { name: "Open dialog" })).toHaveFocus();
 	});
 
+	test("a dialog that replaces an open one keeps the focus it takes", async () => {
+		function Replace({ which }: { which: "a" | "b" }) {
+			return which === "a" ? (
+				<Dialog.Root key="a" defaultOpen>
+					<Dialog.Content onCloseAutoFocus={(event) => event.preventDefault()}>
+						<Dialog.Title>A</Dialog.Title>
+						<button type="button">a</button>
+					</Dialog.Content>
+				</Dialog.Root>
+			) : (
+				<Dialog.Root key="b" defaultOpen>
+					<Dialog.Content
+						onOpenAutoFocus={(event) => {
+							event.preventDefault();
+							document.querySelector<HTMLInputElement>("#replacement")?.focus();
+						}}
+					>
+						<Dialog.Title>B</Dialog.Title>
+						<input id="replacement" aria-label="Replacement" />
+					</Dialog.Content>
+				</Dialog.Root>
+			);
+		}
+		const { rerender } = render(<Replace which="a" />);
+
+		rerender(<Replace which="b" />);
+		// Why: the old dialog's focus return runs in a microtask after the commit.
+		await act(async () => {});
+
+		expect(screen.getByRole("textbox", { name: "Replacement" })).toHaveFocus();
+	});
+
 	test("returns no focus when onCloseAutoFocus prevents the default", async () => {
 		const onCloseAutoFocus = vi.fn<(event: Event) => void>((event) => event.preventDefault());
 		render(<ShortcutDialog onCloseAutoFocus={onCloseAutoFocus} />);
@@ -1229,6 +1303,62 @@ describe("review round 2", () => {
 		);
 
 		expect(screen.getByRole("button", { name: "Open" })).not.toHaveAttribute("command");
+	});
+});
+
+describe("a stack of three", () => {
+	test("Dialog, Dialog, AlertDialog: Escape closes one layer at a time, each returns focus, and the page stays locked until the last closes", async () => {
+		render(
+			<Dialog.Root>
+				<Dialog.Trigger>Open one</Dialog.Trigger>
+				<Dialog.Content>
+					<Dialog.Title>One</Dialog.Title>
+					<Dialog.Root>
+						<Dialog.Trigger>Open two</Dialog.Trigger>
+						<Dialog.Content>
+							<Dialog.Title>Two</Dialog.Title>
+							<AlertDialog.Root intent="danger">
+								<AlertDialog.Trigger>Open three</AlertDialog.Trigger>
+								<AlertDialog.Content>
+									<AlertDialog.Title>Three</AlertDialog.Title>
+									<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+								</AlertDialog.Content>
+							</AlertDialog.Root>
+						</Dialog.Content>
+					</Dialog.Root>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+		const root = document.documentElement;
+		const open = async (name: string) => {
+			const trigger = screen.getByRole("button", { name });
+			await userEvent.click(trigger);
+			return trigger;
+		};
+		const one = await open("Open one");
+		const two = await open("Open two");
+		const three = await open("Open three");
+		const top = screen.getByRole("alertdialog", { name: "Three" });
+		expect(top.matches(":modal")).toBe(true);
+		expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+		// Everything outside the top layer is inert, the dialogs under it too.
+		expect(two.closest("dialog")?.contains(top)).toBe(true);
+		two.focus();
+		expect(two).not.toHaveFocus();
+
+		for (const [trigger, name] of [
+			[three, "Three"],
+			[two, "Two"],
+		] as const) {
+			await userEvent.keyboard("{Escape}");
+			await waitFor(() => expect(screen.queryByText(name)).toBeNull());
+			expect(trigger).toHaveFocus();
+			expect(root).toHaveAttribute("data-mantle-scroll-lock");
+		}
+		await userEvent.keyboard("{Escape}");
+		await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
+		expect(one).toHaveFocus();
+		expect(root).not.toHaveAttribute("data-mantle-scroll-lock");
 	});
 });
 
