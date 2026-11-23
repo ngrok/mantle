@@ -126,9 +126,9 @@ function getSonner(): typeof Sonner | undefined {
  *
  * The toasts render in a container on `<body>`. The toast code loads in its
  * own chunk when the browser is idle after hydration, or on the first
- * `makeToast` call if that comes first. While a native modal dialog
- * (`@ngrok/mantle/dialog/native`, `@ngrok/mantle/sheet/native`) is open, the
- * container moves into it, so the toasts paint above the dialog and stay usable.
+ * `makeToast` call if that comes first. While a modal `Dialog`,
+ * `AlertDialog`, or `Sheet` is open, the container moves into it, so the toasts
+ * paint above the dialog and stay usable.
  *
  * @see https://mantle.ngrok.com/components/feedback/toast#toaster
  *

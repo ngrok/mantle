@@ -197,6 +197,7 @@ const migrationsPages = [
 	"0024-command-owned-behavior-migration",
 	"0025-stone-palette-migration",
 	"0026-native-dropdown-menu-migration",
+	"0027-native-dialog-migration",
 ];
 
 export default [

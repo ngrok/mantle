@@ -1,7 +1,6 @@
 import { Button, IconButton } from "@ngrok/mantle/button";
 import { Code } from "@ngrok/mantle/code";
 import { Dialog } from "@ngrok/mantle/dialog";
-import { Dialog as NativeDialog } from "@ngrok/mantle/dialog/native";
 import { Sheet } from "@ngrok/mantle/sheet";
 import { Tooltip } from "@ngrok/mantle/tooltip";
 import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
@@ -249,43 +248,6 @@ export function WithTanstackFormExample() {
 	return (
 		<PreviewCanvas className="min-h-160 w-full">
 			<TanStackFormDemo />
-		</PreviewCanvas>
-	);
-}
-
-/** The "Native dialog" example on the Dialog docs page. */
-export function NativeDialogExample() {
-	return (
-		<PreviewCanvas className="min-h-160 flex-col gap-6">
-			<NativeDialog.Root>
-				<NativeDialog.Trigger asChild>
-					<Button type="button" appearance="filled" intent="neutral">
-						Open native dialog
-					</Button>
-				</NativeDialog.Trigger>
-				<NativeDialog.Content>
-					<NativeDialog.Header>
-						<NativeDialog.Title>Are you absolutely sure?</NativeDialog.Title>
-						<NativeDialog.CloseIconButton />
-					</NativeDialog.Header>
-					<NativeDialog.Body>
-						This action cannot be undone. This will permanently delete your account and remove your
-						data from our servers.
-					</NativeDialog.Body>
-					<NativeDialog.Footer>
-						<NativeDialog.Close asChild>
-							<Button type="button" intent="neutral" appearance="outlined">
-								Cancel
-							</Button>
-						</NativeDialog.Close>
-						<NativeDialog.Close asChild>
-							<Button type="button" intent="danger" appearance="filled">
-								Delete
-							</Button>
-						</NativeDialog.Close>
-					</NativeDialog.Footer>
-				</NativeDialog.Content>
-			</NativeDialog.Root>
 		</PreviewCanvas>
 	);
 }

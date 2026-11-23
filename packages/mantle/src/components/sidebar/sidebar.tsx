@@ -23,6 +23,7 @@ import type { SelfClosingWithAsChild, WithAsChild } from "../../types/as-child.j
 import { cx } from "../../utils/cx/cx.js";
 import {
 	Content as NativeContent,
+	closeAfterExit,
 	createScope,
 	moveDialog,
 	Root as NativeRoot,
@@ -33,7 +34,7 @@ import { isApplePlatform } from "../../utils/platform.js";
 import type { IconButtonProps } from "../button/icon-button.js";
 import { IconButton } from "../button/icon-button.js";
 import { Separator } from "../separator/separator.js";
-import { contentSurfaceClassName, nativeSlideClassName } from "../sheet/presentation.js";
+import { contentSurfaceClassName } from "../sheet/presentation.js";
 import { Slot } from "../slot/index.js";
 import * as Tooltip from "../tooltip/tooltip-parts.js";
 import { SidebarWidthRequestContext } from "./width-request-context.js";
@@ -82,13 +83,22 @@ const desktopPanelClassName =
  * The mobile panel: the surface of a native `Sheet` on the left, at
  * `--sidebar-width-mobile`.
  */
+/**
+ * The slide of the mobile sheet. It keys on the `<dialog>`: `[open]` for the
+ * entry, `data-state` for the exit, which plays before the `<dialog>` closes.
+ * Why not the panel's `data-state`: the server renders it as `"closed"`, and a
+ * tap before hydration opens the sheet.
+ */
+const slideClassName =
+	"transition-[translate] duration-200 ease-out-strong motion-reduce:transition-none group-data-[state=closed]/native-dialog:duration-150 group-data-[state=closed]/native-dialog:-translate-x-full starting:group-open/native-dialog:-translate-x-full";
+
 const mobilePanelClassName = cx(
 	"group/sidebar-nav",
 	contentSurfaceClassName({
 		side: "left",
 		preferredWidth: "sm:max-w-(--sidebar-width-mobile,18rem)",
 	}),
-	nativeSlideClassName.left,
+	slideClassName,
 	"bg-base w-(--sidebar-width-mobile,18rem) max-w-full p-0",
 );
 
@@ -536,11 +546,14 @@ const Root = ({
 			// React render, and the `<dialog>` reports the change back.
 			const dialog = document.getElementById(navId)?.closest("dialog");
 			if (!isOpenMobileControlled && dialog != null) {
-				moveDialog({ dialog, open: next && isMobileRef.current });
-				// Why a close renders now: a dialog that opens in the same event, such
-				// as a palette whose `onOpenChange` closes the sheet, must not mount in
-				// the closing sheet.
-				if (!dialog.open) {
+				if (next && isMobileRef.current) {
+					moveDialog({ dialog, open: true });
+				} else {
+					closeAfterExit(dialog);
+				}
+				// Why a close renders now: the parts that read the state must not
+				// wait for the exit.
+				if (dialog.dataset.state === "closed") {
 					setInternalOpenMobile(false);
 				}
 				return;
@@ -816,6 +829,7 @@ const Nav = ({
 		// `<dialog>` as a modal sheet.
 		<NativeContent
 			scope={navScope}
+			forceMount
 			inline={!isMobile}
 			// Why only while open: the nav stays mounted in the closed sheet, and a
 			// dialog that a shortcut opens from there must show on the page.

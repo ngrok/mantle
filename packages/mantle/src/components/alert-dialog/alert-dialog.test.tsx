@@ -125,13 +125,8 @@ describe("AlertDialog", () => {
 		test("a pointer down on the backdrop does not close the dialog", async () => {
 			const user = userEvent.setup();
 			const { handleOpenChange } = renderDismissible();
-			const overlay = document.querySelector('[data-slot="alert-dialog-overlay"]');
-			expect(overlay).not.toBeNull();
-			if (overlay == null) {
-				return;
-			}
-
-			await user.pointer({ keys: "[MouseLeft]", target: overlay });
+			// A press on the backdrop targets the `<dialog>` itself.
+			await user.pointer({ keys: "[MouseLeft]", target: screen.getByRole("alertdialog") });
 
 			expect(screen.getByRole("alertdialog")).toBeInTheDocument();
 			expect(handleOpenChange).not.toHaveBeenCalled();

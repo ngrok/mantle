@@ -26,7 +26,7 @@ import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { isTabbable } from "../alert/tabbable-neighbors.js";
 import type { IconButtonProps } from "../button/icon-button.js";
-import { escapeBelongsToNestedPopup } from "../dialog/primitive.js";
+import { escapeBelongsToNestedPopup } from "../dialog/targets.js";
 import { IconButton } from "../button/icon-button.js";
 import { Main } from "../main/main.js";
 import { SidebarWidthRequestContext } from "../sidebar/width-request-context.js";

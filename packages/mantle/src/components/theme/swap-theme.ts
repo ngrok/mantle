@@ -14,7 +14,6 @@ let activeTransition: ReturnType<Document["startViewTransition"]> | null = null;
  * the old snapshot and does not freeze outside the circle.
  */
 const EXIT_SURFACES = [
-	'[data-slot~="dialog-overlay"]',
 	'[data-slot~="dialog-content"]',
 	'[data-slot~="dialog-positioner"]',
 	'[data-slot~="dropdown-menu-content"]',

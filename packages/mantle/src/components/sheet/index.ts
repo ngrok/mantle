@@ -15,16 +15,15 @@ import * as SheetParts from "./sheet-parts.js";
  * interrupts the user, use `Dialog` (or `AlertDialog` for destructive
  * confirmations).
  *
- * `Sheet` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier,
- * above every float (`z-50`). Floats composed inside the content portal into
- * the positioner (`data-slot="sheet-positioner"`) and paint above the content.
- * When multiple overlays are open, the most recently mounted overlay renders on
- * top.
- *
- * `@ngrok/mantle/sheet/native` exports the same parts on the browser's modal
- * `<dialog>`: an uncontrolled tap opens it with no React render, such as for a
- * mobile navigation menu. Its content renders and hydrates on every page, and
- * a third-party frame on `<body>` is inert under it.
+ * `Sheet` runs on the browser's modal `<dialog>`: the browser traps focus,
+ * makes the page inert, closes it on Escape, paints it in the top layer, and
+ * returns focus to the trigger. Floats composed inside the content portal into
+ * the `<dialog>` (`data-slot="sheet-positioner"`) and paint above it. The
+ * content mounts when the sheet opens; `forceMount` keeps it mounted and
+ * server-rendered, so an uncontrolled tap opens it with no React render, such
+ * as for a mobile navigation menu. Set `modal={false}` on the root for a flow
+ * whose frame a third-party script puts on `<body>`, such as a 3-D Secure
+ * challenge.
  *
  * @useWhen Open a panel from the edge of the screen for a task beside the current view, such as a
  * filter panel, a detail view, or a mobile menu.

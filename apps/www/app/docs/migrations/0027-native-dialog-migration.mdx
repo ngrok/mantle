@@ -1,0 +1,99 @@
+---
+title: Native Dialog Migration
+description: Dialog, AlertDialog, and Sheet render the browser's modal <dialog> in place of Radix Dialog. Set modal={false} on an overlay that holds a third-party frame, and read the backdrop and the panel from their new elements.
+introducedIn: "0.95.0"
+---
+
+# Mantle Native Dialog Migration Guide
+
+`Dialog`, `AlertDialog`, and `Sheet` no longer use Radix Dialog. Each `Content` renders the browser's modal `<dialog>`, and the panel goes inside it. The browser traps focus, makes the page inert, closes the dialog on Escape, paints it in the top layer, and returns focus to the trigger. The parts, their names, their props, and the look stay the same. What changes is the DOM around the panel, the reach of the modal, and the timing of the close.
+
+**TL;DR:** Add `modal={false}` to the `Root` of each dialog or sheet that holds a third-party frame, such as a payment form, a 3-D Secure challenge, or a captcha. Replace a selector for `[data-slot~="dialog-overlay"]` (or `sheet-overlay`, `alert-dialog-overlay`) with `[data-slot~="dialog-positioner"]::backdrop`. In tests, `getByRole("dialog")` returns the `<dialog>`, the props of `Content` go to the panel inside it, and the dialog closes after its exit animation, so wait for it.
+
+## Codemod
+
+Codemod: manual: each step depends on what a dialog holds or on a selector or a test query, which a syntax rule cannot read.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find every file that imports `Dialog` from `@ngrok/mantle/dialog`, `AlertDialog` from `@ngrok/mantle/alert-dialog`, `Sheet` from `@ngrok/mantle/sheet`, or `Command` from `@ngrok/mantle/command`, under any local name.
+2. Find each of those overlays that holds a flow where a third-party script puts a frame on `<body>`: Stripe Elements or Stripe.js (`confirmCardSetup`, `confirmPayment`, `handleCardAction`), PayPal, hCaptcha, reCAPTCHA, Turnstile, or a chat widget. Add `modal={false}` to its `Root`. A modal `<dialog>` makes that frame inert and paints over it. Leave every other overlay modal.
+3. Search CSS, `className` strings, and `querySelector` calls for `dialog-overlay`, `sheet-overlay`, and `alert-dialog-overlay`. No element carries these slots now. Style the backdrop with `[data-slot~="dialog-positioner"]::backdrop` (or `sheet-positioner`, `alert-dialog-positioner`).
+4. Remove `<Dialog.Overlay />` and unwrap `<Dialog.Portal>`. Both still render (the overlay renders nothing and the portal renders its children), and both are deprecated.
+5. Where a Radix `forceMount` kept the content mounted while closed, pass `forceMount` to `Content`. Remove `forceMount` from `Dialog.Portal` and `Dialog.Overlay`.
+6. Where UI must take clicks above an open overlay with the `overlay-prompt` class, move that control into the overlay content. A modal `<dialog>` makes the rest of the page inert, `overlay-prompt` included. `Toaster` moves its toasts into the open dialog by itself.
+7. In tests:
+   - `getByRole("dialog")` (or `"alertdialog"`) returns the `<dialog>`. `className`, `data-*`, `ref`, and `data-appearance` from `Content` are on the panel inside it: `dialog.querySelector('[data-slot~="dialog-content"]')`.
+   - The dialog closes after its exit animation: `await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())`.
+   - happy-dom and jsdom do not close a `<dialog>` on Escape. Close it with a close button in those tests, or run the test in a browser with a real key press.
+   - A press outside a modal dialog lands on the backdrop, which is the `<dialog>` itself: `await user.click(screen.getByRole("dialog"))`.
+8. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why the native `<dialog>`?** The browser does the focus trap, the inert page, the Escape key, the top layer, and the focus return, so mantle ships no script for them. `@radix-ui/react-dialog` leaves the package, and the content mounts in the frame of the tap: on a slow phone the open of a 150-element sheet takes about half the time it took with Radix.
+
+---
+
+## Before → after
+
+### An overlay that holds a payment challenge
+
+```tsx
+// BEFORE
+<Sheet.Root open={open} onOpenChange={setOpen}>
+	<Sheet.Content>
+		<PaymentElement />
+	</Sheet.Content>
+</Sheet.Root>
+
+// AFTER
+<Sheet.Root modal={false} open={open} onOpenChange={setOpen}>
+	<Sheet.Content>
+		<PaymentElement />
+	</Sheet.Content>
+</Sheet.Root>
+```
+
+### A backdrop selector
+
+```css
+/* BEFORE */
+[data-slot="dialog-overlay"] {
+	backdrop-filter: none;
+}
+
+/* AFTER */
+[data-slot~="dialog-positioner"]::backdrop {
+	backdrop-filter: none;
+}
+```
+
+### A test that reads the panel
+
+```tsx
+// BEFORE
+const content = await screen.findByRole("dialog");
+expect(content).toHaveAttribute("data-appearance", "full-page");
+
+// AFTER
+const dialog = await screen.findByRole("dialog");
+const content = dialog.querySelector('[data-slot~="dialog-content"]');
+expect(content).toHaveAttribute("data-appearance", "full-page");
+```
+
+## Edge cases & gotchas
+
+- A dialog with `modal={false}` has no backdrop, paints at Tailwind `z-60`, and leaves the page live. Escape and a press outside close it. It no longer closes when focus leaves it.
+- On open, the browser focuses the first focusable element in the dialog, which can be an element with `tabindex="-1"`. To pick the element, add `autoFocus` to it, or use `onOpenAutoFocus`.
+- `Sandbar` sits under the backdrop of a modal dialog, with the rest of the page.
+- Escape closes the top modal unless a listener prevents the key. An open `Select`, `Combobox`, `MultiSelect`, or a popup with `aria-expanded` and `aria-controls` in the panel takes the key first.
+- `Content` takes no `asChild`. It renders the `<dialog>` and the panel inside it. Put your element inside `Content` instead.
+- happy-dom does not move focus into a `<dialog>` on `showModal()` or back on `close()`, and jsdom has no `showModal()`. A unit test that asserts focus on open or close runs in a real browser, such as Vitest browser mode. Escape and clicks work in both.
+- The exit plays in every browser: the dialog writes `data-state="closed"`, waits for the animations of the panel and the backdrop, and then closes.
+
+## How to verify
+
+- Open each overlay that step 2 changed and complete its third-party flow: the frame takes clicks and keys, and the overlay stays open until your code closes it.
+- Search the codebase for `dialog-overlay`, `sheet-overlay`, and `alert-dialog-overlay`: no match is left.
+- Run the test suite. Queries for the panel read it inside the `<dialog>`, and assertions after a close wait for it.

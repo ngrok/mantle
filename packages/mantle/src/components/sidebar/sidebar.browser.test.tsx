@@ -443,9 +443,7 @@ describe("Sidebar.Nav on the native <dialog>", () => {
 	beforeAll(async () => {
 		// Why the scroll lock from `mantle.css`: it is the one rule there that this
 		// part relies on, and Tailwind compiles none of it.
-		const scrollLock = mantleCss.match(
-			/:root:has\(dialog\[data-slot~="sidebar-positioner"\]:modal\)\s*\{[^}]*\}/,
-		)?.[0];
+		const scrollLock = mantleCss.match(/\[data-mantle-scroll-lock\] body\s*\{[^}]*\}/)?.[0];
 		if (scrollLock == null) {
 			throw new Error("mantle.css holds no scroll lock rule for open native dialogs.");
 		}
@@ -575,9 +573,9 @@ describe("Sidebar.Nav on the native <dialog>", () => {
 		// The page behind is inert, and its scroll is locked.
 		trigger.focus();
 		expect(document.activeElement).not.toBe(trigger);
-		expect(getComputedStyle(document.documentElement).overflow).toBe("hidden");
+		expect(getComputedStyle(document.body).overflow).toBe("hidden");
 		// No gutter: in an app shell whose root does not scroll, one would narrow the shell.
-		expect(getComputedStyle(document.documentElement).scrollbarGutter).toBe("auto");
+		expect(getComputedStyle(document.body).paddingInlineEnd).toBe("0px");
 		// The panel slides in to the left edge at `--sidebar-width-mobile`.
 		const panel = dialog.querySelector('[data-slot~="sidebar-nav"]');
 		await Promise.all(panel?.getAnimations().map((animation) => animation.finished) ?? []);
@@ -585,10 +583,10 @@ describe("Sidebar.Nav on the native <dialog>", () => {
 		expect(panel == null ? null : getComputedStyle(panel).width).toBe("288px");
 
 		await userEvent.keyboard("{Escape}");
-		expect(dialog.open).toBe(false);
+		await waitFor(() => expect(dialog.open).toBe(false));
 		await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "false"));
 		expect(document.activeElement).toBe(trigger);
-		expect(getComputedStyle(document.documentElement).overflow).not.toBe("hidden");
+		expect(getComputedStyle(document.body).overflow).not.toBe("hidden");
 	});
 
 	test("a controlled sheet asks its owner on Escape and stays open while the owner keeps it", async () => {
@@ -660,7 +658,7 @@ describe("Sidebar.Nav on the native <dialog>", () => {
 		await userEvent.keyboard("{Control>}k{/Control}");
 
 		const input = await screen.findByPlaceholderText("Type a command…");
-		expect(input.closest("dialog")).toBeNull();
+		expect(input.closest("dialog")).not.toBe(sheetDialog());
 		await waitFor(() => expect(input.checkVisibility()).toBe(true));
 	});
 
@@ -711,9 +709,9 @@ describe("Sidebar.Nav on the native <dialog>", () => {
 		onTestFinished(() => observer.disconnect());
 		await userEvent.click(screen.getByRole("button", { name: "Search" }));
 
-		expect(sheetDialog().open).toBe(false);
+		await waitFor(() => expect(sheetDialog().open).toBe(false));
 		const input = await screen.findByPlaceholderText("Type a command…");
-		expect(input.closest("dialog")).toBeNull();
+		expect(input.closest("dialog")).not.toBe(sheetDialog());
 		expect(mountedInSheet).toEqual([]);
 		await waitFor(() => expect(document.activeElement).toBe(input));
 		expect(input.checkVisibility()).toBe(true);
@@ -759,7 +757,7 @@ describe("Sidebar.Nav on the native <dialog>", () => {
 		await waitFor(() => expect(screen.queryByPlaceholderText("Type a command…")).toBeNull());
 		expect(sheetDialog().matches(":modal")).toBe(true);
 		await userEvent.keyboard("{Escape}");
-		expect(sheetDialog().open).toBe(false);
+		await waitFor(() => expect(sheetDialog().open).toBe(false));
 	});
 
 	test.each([
@@ -883,7 +881,7 @@ describe("Sidebar.Nav on the native <dialog>", () => {
 			await waitFor(() => expect(sheetDialog().open).toBe(false));
 			await waitFor(() => {
 				const input = screen.getByPlaceholderText("Type a command…");
-				expect(input.closest("dialog")).toBeNull();
+				expect(input.closest("dialog")).not.toBe(sheetDialog());
 				expect(input.checkVisibility()).toBe(true);
 			});
 			const input = screen.getByPlaceholderText("Type a command…");

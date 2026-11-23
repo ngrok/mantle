@@ -1,22 +1,46 @@
 "use client";
 
 import type { ComponentProps, Context, MouseEvent, ReactNode } from "react";
-import { createContext, useContext, useId, useLayoutEffect, useMemo, useRef } from "react";
+import {
+	createContext,
+	useContext,
+	useEffect,
+	useId,
+	useLayoutEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
+import { createPortal } from "react-dom";
 import invariant from "tiny-invariant";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
+import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
-import { LayerContainer } from "../../utils/layer-container/layer-container.js";
+import {
+	getCoveringFrame,
+	LayerContainer,
+	registerOverlay,
+	useLayerContainer,
+} from "../../utils/layer-container/layer-container.js";
 import { Slot } from "../slot/index.js";
-import { modalHostAttribute, setTopModal } from "../toast/toaster-host.js";
+import { preventCloseOnPromptInteraction } from "../toast/prevent-close-on-prompt-interaction.js";
+import { setTopModal } from "../toast/toaster-host.js";
+import { escapeBelongsToNestedPopup } from "./targets.js";
 
 /**
- * The behavior that `@ngrok/mantle/dialog/native` and
- * `@ngrok/mantle/sheet/native` share: a modal `<dialog>` that the browser opens,
- * traps focus in, closes on Escape, and returns focus from. Open and close are
- * DOM calls, so an uncontrolled tap renders no React. The parts here carry no
- * look; each component composes its own presentation onto them.
+ * The behavior that `Dialog`, `AlertDialog`, and `Sheet` share: a `<dialog>`
+ * that the browser opens as a modal, traps focus in, makes the page inert
+ * behind, closes on Escape, paints in the top layer, and returns focus from.
+ * The parts here carry no look; each component composes its own presentation
+ * onto them.
+ *
+ * By default, `Content` mounts its children when the dialog opens and
+ * unmounts them after the exit animation, like a Radix dialog. With
+ * `forceMount`, the `<dialog>` and its children stay mounted and the server
+ * renders them: an uncontrolled tap then opens the dialog with DOM calls and
+ * no React render, even before hydration.
  */
 
 /** What every part reads from its `Root`. */
@@ -25,10 +49,17 @@ type RootState = {
 	contentId: string;
 	/** The `id` of the title, which the `<dialog>` names in `aria-labelledby`. */
 	titleId: string;
-	/** The controlled open state, or `undefined` when the `<dialog>` owns it. */
-	open: boolean | undefined;
+	/** Whether the owner sets `open`. */
+	controlled: boolean;
+	/** The open state that React holds: the `open` prop, else the uncontrolled state. */
+	open: boolean;
 	defaultOpen: boolean;
-	onOpenChange: (open: boolean) => void;
+	/** Whether the dialog opens as a modal. */
+	modal: boolean;
+	/** Asks for a new open state: sets the uncontrolled state, and tells the owner. */
+	setOpen: (open: boolean) => void;
+	/** Tells the owner of a change that the DOM already made. */
+	reportOpen: (open: boolean) => void;
 };
 
 /**
@@ -49,15 +80,18 @@ type ScopeProps = {
 /** The `RootState` of the enclosing `Root` in `scope`. Throws outside one. */
 function useRootState(scope: Scope, part: string): RootState {
 	const state = useContext(scope);
-	invariant(
-		state != null,
-		`The native dialog part \`${part}\` must be rendered inside its \`Root\`.`,
-	);
+	invariant(state != null, `The dialog part \`${part}\` must be rendered inside its \`Root\`.`);
 	return state;
 }
 
-/** The open native dialogs, in open order. The last one is on top. */
+/** The open dialogs, in open order. The last one is on top. */
 const openDialogs: HTMLDialogElement[] = [];
+
+/** The `<dialog>` elements whose `Content` stays mounted (`forceMount`). */
+const keptMounted = new WeakSet<HTMLDialogElement>();
+
+/** The `<dialog>` elements that open with `show()`, not as a modal. */
+const nonModal = new WeakSet<HTMLDialogElement>();
 
 /** Writes `state` to the `aria-expanded` and `data-state` of `trigger`. */
 function writeTriggerState(trigger: Element, state: string): void {
@@ -68,8 +102,8 @@ function writeTriggerState(trigger: Element, state: string): void {
 /**
  * Writes the open state of `dialog` to the DOM that mirrors it: `data-state` on
  * the `<dialog>` and its panel, `aria-expanded` and `data-state` on each
- * trigger, and the toaster hosts, which follow the top open dialog. A write
- * that changes nothing touches no attribute.
+ * trigger, the stack of open dialogs, and the toaster hosts, which follow the
+ * top open modal. A write that changes nothing touches no attribute.
  */
 function writeOpenState({ dialog, open }: { dialog: HTMLDialogElement; open: boolean }): void {
 	const state = open ? "open" : "closed";
@@ -81,55 +115,70 @@ function writeOpenState({ dialog, open }: { dialog: HTMLDialogElement; open: boo
 		}
 	}
 	const index = openDialogs.indexOf(dialog);
-	if (open === (index !== -1)) {
+	if (open && index === -1) {
+		openDialogs.push(dialog);
+	} else if (!open && index !== -1) {
+		openDialogs.splice(index, 1);
+	}
+	setTopModal(openDialogs.findLast((each) => !nonModal.has(each)) ?? null);
+}
+
+/** The open modal dialogs that hold the page scroll lock. */
+const scrollLockers = new Set<HTMLDialogElement>();
+
+/**
+ * Adds `dialog` to the page scroll lock, or takes it out. The first modal
+ * writes the width of the page scrollbar to `--mantle-scrollbar-width` and
+ * marks the root with `data-mantle-scroll-lock`; the last one to close removes
+ * the mark. `mantle.css` then hides the scrollbar and pads the page by that
+ * width, so the page does not shift and the backdrop covers the viewport.
+ */
+function lockPageScroll({ dialog, lock }: { dialog: HTMLDialogElement; lock: boolean }): void {
+	const root = dialog.ownerDocument.documentElement;
+	if (lock) {
+		if (scrollLockers.size === 0) {
+			const width = (dialog.ownerDocument.defaultView?.innerWidth ?? 0) - root.clientWidth;
+			root.style.setProperty("--mantle-scrollbar-width", `${Math.max(width, 0)}px`);
+			root.setAttribute("data-mantle-scroll-lock", "");
+		}
+		scrollLockers.add(dialog);
 		return;
 	}
-	if (open) {
-		openDialogs.push(dialog);
-	} else {
-		openDialogs.splice(index, 1);
-		moveModalHosts(dialog);
-	}
-	setTopModal(openDialogs.at(-1) ?? null);
-}
-
-/**
- * Moves the hosts of the dialogs that opened over `dialog`, such as a
- * `Command` palette, to the top open modal outside `dialog`, else `<body>`,
- * and keeps the focus that was in them. Closes the native dialogs in each
- * host first, as a parent closes its nested dialogs: a moved `<dialog>` leaves
- * the top layer, and a new top modal inside a host cannot take that host.
- *
- * Why a move and not a new container: a portal into a new container remounts
- * its content, and the dialog would lose its state. Why before `close()`: the
- * close returns focus to the element that opened `dialog`, outside the moved
- * dialog.
- */
-function moveModalHosts(dialog: HTMLDialogElement): void {
-	const hosts = [...dialog.querySelectorAll(`:scope > [${modalHostAttribute}]`)];
-	for (const host of hosts) {
-		closeNested(host);
-	}
-	const focused = dialog.ownerDocument.activeElement;
-	const target =
-		openDialogs.findLast((open) => !dialog.contains(open)) ?? dialog.ownerDocument.body;
-	target.append(...hosts);
-	if (focused instanceof HTMLElement && hosts.some((host) => host.contains(focused))) {
-		focused.focus({ preventScroll: true });
+	if (scrollLockers.delete(dialog) && scrollLockers.size === 0) {
+		root.removeAttribute("data-mantle-scroll-lock");
 	}
 }
 
 /**
- * Opens or closes `dialog`. The state is written first, so the browser lays
- * out the open dialog and its new attributes in one style pass.
+ * Opens or closes `dialog` at once. The state is written first, so the
+ * browser lays out the open dialog and its new attributes in one style pass.
+ * A close closes the open dialogs nested in `dialog` first.
  */
-function moveDialog({ dialog, open }: { dialog: HTMLDialogElement; open: boolean }): void {
+function moveDialog({
+	dialog,
+	modal = true,
+	open,
+}: {
+	dialog: HTMLDialogElement;
+	modal?: boolean;
+	open: boolean;
+}): void {
 	if (open === dialog.open) {
 		return;
 	}
+	if (modal) {
+		nonModal.delete(dialog);
+	} else {
+		nonModal.add(dialog);
+	}
 	writeOpenState({ dialog, open });
 	if (open) {
-		dialog.showModal();
+		if (modal) {
+			lockPageScroll({ dialog, lock: true });
+			dialog.showModal();
+		} else {
+			dialog.show();
+		}
 		return;
 	}
 	closeNested(dialog);
@@ -141,7 +190,7 @@ function moveDialog({ dialog, open }: { dialog: HTMLDialogElement; open: boolean
  * `dialog` closes: an open child stays modal inside its hidden parent and
  * blocks the page, and each close returns focus to the element that opened it.
  */
-function closeNested(dialog: Element): void {
+function closeNested(dialog: HTMLDialogElement): void {
 	for (const child of [...dialog.querySelectorAll("dialog[open]")].toReversed()) {
 		if (child instanceof HTMLDialogElement) {
 			// Why the write first: it takes the child out of the stack of open
@@ -154,76 +203,196 @@ function closeNested(dialog: Element): void {
 }
 
 /**
- * Opens or closes the dialog of `root`. A controlled root only asks its owner
- * through `onOpenChange`; the owner's next `open` moves the `<dialog>`.
+ * Closes `dialog` after its exit animation: `data-state="closed"` starts the
+ * exit of the `<dialog>`, its backdrop, and its panel, and `close()` runs when
+ * those animations end. The dialog stays modal for the length of the exit, as
+ * a Radix dialog does. `done` runs after the close, unless the dialog opened
+ * again during the exit.
+ *
+ * Why not CSS alone: Firefox does not animate `display`, and Safari takes a
+ * closed `<dialog>` out of the top layer at once (no `overlay`).
+ */
+function closeAfterExit(dialog: HTMLDialogElement, done?: () => void): void {
+	if (!dialog.open) {
+		done?.();
+		return;
+	}
+	writeOpenState({ dialog, open: false });
+	const panel = dialog.querySelector("[data-mantle-modal-content]");
+	// Why the filter: an animation that runs inside the panel, such as a spinner,
+	// must not hold the dialog open.
+	const exits = (dialog.getAnimations?.({ subtree: true }) ?? []).filter(
+		({ effect }) =>
+			effect instanceof KeyframeEffect &&
+			(effect.target === dialog || effect.target === panel) &&
+			effect.getTiming().iterations !== Number.POSITIVE_INFINITY,
+	);
+	const closeNow = () => {
+		if (dialog.dataset.state !== "closed") {
+			return;
+		}
+		if (dialog.open) {
+			closeNested(dialog);
+			dialog.close();
+		}
+		done?.();
+	};
+	// Why at once with no exit: a dialog with no animation closes in the
+	// event that asks for it, as a Radix dialog does.
+	if (exits.length === 0) {
+		closeNow();
+		return;
+	}
+	const closeWhenDone = async () => {
+		await Promise.allSettled(exits.map((animation) => animation.finished));
+		closeNow();
+	};
+	void closeWhenDone();
+}
+
+/**
+ * Asks the dialog of `root` for a new open state. A controlled root asks its
+ * owner. A dialog that stays mounted moves in the DOM, with no render. Else the
+ * root's own state changes, which mounts or unmounts the content.
  */
 function requestOpen({
-	root,
-	element,
+	dialog,
 	open,
+	root,
 }: {
-	root: RootState;
-	element: Element;
+	dialog: Element | null;
 	open: boolean;
+	root: RootState;
 }): void {
-	if (root.open !== undefined) {
+	if (root.controlled) {
 		if (open !== root.open) {
-			root.onOpenChange(open);
+			root.setOpen(open);
 		}
 		return;
 	}
-	const dialog = element.ownerDocument.getElementById(root.contentId);
-	if (dialog instanceof HTMLDialogElement) {
-		moveDialog({ dialog, open });
+	if (dialog instanceof HTMLDialogElement && keptMounted.has(dialog)) {
+		if (open) {
+			moveDialog({ dialog, modal: root.modal, open });
+		} else {
+			closeAfterExit(dialog);
+		}
+		return;
+	}
+	if (open !== root.open) {
+		root.setOpen(open);
 	}
 }
 
 /**
  * The `command` and `commandfor` attributes of an uncontrolled trigger or
- * close button. Where the browser supports invoker commands, it runs the
- * command on click, even before hydration.
+ * close button. Where the browser supports invoker commands and the
+ * `<dialog>` is on the page, the click reaches the dialog even before
+ * hydration, and the dialog's `command` listener routes it.
  */
 function commandAttributes(root: RootState, command: "show-modal" | "close") {
-	return root.open === undefined ? { command, commandfor: root.contentId } : {};
+	return root.controlled ? {} : { command, commandfor: root.contentId };
 }
 
-/** Whether the browser already ran the invoker command of `element` for this click. */
-function ranCommand(root: RootState, element: Element): boolean {
+/** Whether the click on `element` sends a `command` event to the `<dialog>`. */
+function sendsCommand(element: Element): boolean {
 	// Why `type="button"`: the browser runs no command for a submit or reset button.
 	return (
-		root.open === undefined &&
 		element instanceof HTMLButtonElement &&
 		element.type === "button" &&
-		"commandForElement" in element
+		Reflect.get(element, "commandForElement") instanceof HTMLDialogElement
 	);
+}
+
+/**
+ * The event that `onPointerDownOutside` and `onInteractOutside` get, as in
+ * Radix: a cancelable event at the pressed element, with the pointer event.
+ * Call `preventDefault()` to keep the dialog open.
+ */
+type PointerDownOutsideEvent = CustomEvent<{ originalEvent: PointerEvent }>;
+
+/** Dispatches a {@link PointerDownOutsideEvent} at the target of `originalEvent`. */
+function createPointerDownOutsideEvent(originalEvent: PointerEvent): PointerDownOutsideEvent {
+	const event = new CustomEvent("dismissableLayer.pointerDownOutside", {
+		cancelable: true,
+		detail: { originalEvent },
+	});
+	// Why a dispatch: it sets `event.target`, which handlers such as
+	// `isDialogOverlayTarget(event.target)` read.
+	originalEvent.target?.dispatchEvent(event);
+	return event;
+}
+
+/**
+ * Gives an Escape to a frame that covers a non-modal dialog, such as a 3-D
+ * Secure challenge that a payment script puts on `<body>`: it prevents the
+ * Escape, so the dialog stays open, and moves focus into the frame.
+ */
+function yieldEscapeToCoveringFrame(event: KeyboardEvent): void {
+	const frame = getCoveringFrame();
+	if (frame == null) {
+		return;
+	}
+	event.preventDefault();
+	// Why a timer: Firefox ignores a `focus()` call on a frame from a key listener.
+	setTimeout(() => frame.focus());
 }
 
 type RootProps = ScopeProps & {
 	children?: ReactNode;
 	/**
-	 * Whether the dialog opens on mount. The `<dialog>` owns the state after that.
+	 * Whether the dialog opens on mount, when `open` is not set.
 	 *
 	 * @default false
 	 */
 	defaultOpen?: boolean;
+	/**
+	 * Whether the dialog is modal: the page behind it is inert, and it paints in
+	 * the top layer. Set `false` for a dialog that holds a flow whose frame a
+	 * third-party script puts on `<body>`, such as a 3-D Secure challenge or a
+	 * captcha: a modal dialog would make that frame inert and cover it.
+	 *
+	 * @default true
+	 */
+	modal?: boolean;
 	/** Runs when the dialog opens or closes, with the new state. */
 	onOpenChange?: (open: boolean) => void;
-	/**
-	 * The controlled open state. Each change renders React and moves the
-	 * `<dialog>` with `showModal()` or `close()`. Leave it out for the fast path,
-	 * where a tap renders no React.
-	 */
+	/** The controlled open state. Pair it with `onOpenChange`. */
 	open?: boolean;
 };
 
-/** The state owner of a native dialog. It renders no DOM. */
-const Root = ({ children, defaultOpen = false, onOpenChange, open, scope: Scope }: RootProps) => {
+/** The state owner of a dialog. It renders no DOM. */
+const Root = ({
+	children,
+	defaultOpen = false,
+	modal = true,
+	onOpenChange,
+	open,
+	scope: Scope,
+}: RootProps) => {
 	const contentId = useId();
 	const titleId = useId();
-	const stableOnOpenChange = useCallbackRef((next: boolean) => onOpenChange?.(next));
+	const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+	const controlled = open !== undefined;
+	const reportOpen = useCallbackRef((next: boolean) => onOpenChange?.(next));
+	const setOpen = useCallbackRef((next: boolean) => {
+		if (!controlled) {
+			setUncontrolledOpen(next);
+		}
+		onOpenChange?.(next);
+	});
+	const resolvedOpen = open ?? uncontrolledOpen;
 	const state = useMemo(
-		() => ({ contentId, titleId, open, defaultOpen, onOpenChange: stableOnOpenChange }),
-		[contentId, titleId, open, defaultOpen, stableOnOpenChange],
+		() => ({
+			contentId,
+			titleId,
+			controlled,
+			open: resolvedOpen,
+			defaultOpen,
+			modal,
+			setOpen,
+			reportOpen,
+		}),
+		[contentId, titleId, controlled, resolvedOpen, defaultOpen, modal, setOpen, reportOpen],
 	);
 
 	return <Scope value={state}>{children}</Scope>;
@@ -231,18 +400,36 @@ const Root = ({ children, defaultOpen = false, onOpenChange, open, scope: Scope 
 
 type ButtonProps = ComponentProps<"button"> & WithAsChild & ScopeProps;
 
+/**
+ * The click handler of a trigger or close button: it runs `onClick`, then asks
+ * for `open`, unless the click sends a `command` that the `<dialog>` routes.
+ *
+ * Why a named handler type: `Slot` types its event on `HTMLElement`, and the
+ * handler reads `currentTarget` as the clicked element either way.
+ */
+function useClickToOpen({
+	onClick,
+	open,
+	root,
+}: {
+	onClick: ButtonProps["onClick"];
+	open: boolean;
+	root: RootState;
+}) {
+	return (event: MouseEvent<HTMLButtonElement>) => {
+		onClick?.(event);
+		const element = event.currentTarget;
+		if (!event.defaultPrevented && !sendsCommand(element)) {
+			requestOpen({ dialog: element.ownerDocument.getElementById(root.contentId), open, root });
+		}
+	};
+}
+
 /** A button that opens the dialog. */
 const Trigger = ({ asChild, onClick, ref, scope, ...props }: ButtonProps) => {
 	const root = useRootState(scope, "Trigger");
 	const Component = asChild ? Slot : "button";
-	// Why a named handler: `Slot` types its event on `HTMLElement`, and the
-	// handler reads `currentTarget` as the clicked element either way.
-	const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
-		onClick?.(event);
-		if (!event.defaultPrevented && !ranCommand(root, event.currentTarget)) {
-			requestOpen({ root, element: event.currentTarget, open: true });
-		}
-	};
+	const handleClick = useClickToOpen({ onClick, open: true, root });
 
 	// Why a ref: a trigger that mounts while its dialog is open takes the open
 	// state the dialog already has.
@@ -275,12 +462,7 @@ const Trigger = ({ asChild, onClick, ref, scope, ...props }: ButtonProps) => {
 const Close = ({ asChild, onClick, scope, ...props }: ButtonProps) => {
 	const root = useRootState(scope, "Close");
 	const Component = asChild ? Slot : "button";
-	const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
-		onClick?.(event);
-		if (!event.defaultPrevented && !ranCommand(root, event.currentTarget)) {
-			requestOpen({ root, element: event.currentTarget, open: false });
-		}
-	};
+	const handleClick = useClickToOpen({ onClick, open: false, root });
 
 	return (
 		<Component
@@ -293,19 +475,18 @@ const Close = ({ asChild, onClick, scope, ...props }: ButtonProps) => {
 };
 
 /**
- * The classes every native `<dialog>` takes: a reset of the browser's dialog
- * box, the backdrop, and the motion of both.
+ * The classes every `<dialog>` takes: a reset of the browser's dialog box,
+ * and the backdrop with its motion. `data-state` drives the motion, as in
+ * Radix, so the exit plays before `close()`.
  *
- * Why the `<dialog>` transitions `display` and `overlay`: it stays in the top
- * layer until the panel's 150ms exit ends. Why `[open]` and not `data-state`: a
- * tap before hydration opens the `<dialog>` before any script can write
- * `data-state`.
+ * Why `overscroll-none`: a scroll in the dialog must not bounce or chain to
+ * the page behind it.
  */
 const positionerBaseClassName = cx(
-	"group/native-dialog fixed m-0 h-auto max-h-none w-auto max-w-none overflow-visible bg-transparent p-0 text-inherit",
-	"transition-[display,overlay] transition-discrete duration-150 motion-reduce:transition-none",
-	"backdrop:bg-overlay backdrop:backdrop-blur-xs backdrop:transition-[opacity,display,overlay] backdrop:transition-discrete backdrop:duration-200 backdrop:ease-out-strong",
-	"not-open:backdrop:opacity-0 not-open:backdrop:duration-150 starting:open:backdrop:opacity-0 motion-reduce:backdrop:transition-none",
+	"group/native-dialog m-0 h-auto max-h-none w-auto max-w-none overflow-visible overscroll-none bg-transparent p-0 text-inherit outline-hidden",
+	"backdrop:bg-overlay backdrop:backdrop-blur-xs",
+	"data-state-open:backdrop:animate-in data-state-open:backdrop:fade-in-0 data-state-closed:backdrop:animate-out data-state-closed:backdrop:fade-out-0",
+	"backdrop:duration-200 data-state-closed:backdrop:duration-150 motion-reduce:backdrop:animate-none!",
 );
 
 /** The style of an inline `<dialog>`, which has no box of its own. */
@@ -314,12 +495,20 @@ const inlineStyle = { display: "contents" } as const;
 type ContentProps = ComponentProps<"div"> &
 	ScopeProps & {
 		/**
+		 * Whether the `<dialog>` and its children stay mounted while closed. The
+		 * server renders them, and an uncontrolled tap opens the dialog with no
+		 * React render, even before hydration. The page pays the HTML and the
+		 * hydration of the content up front.
+		 *
+		 * @default false
+		 */
+		forceMount?: true;
+		/**
 		 * Whether the closed `<dialog>` shows its panel in the page, as
 		 * `Sidebar.Nav` does above its breakpoint. An inline `<dialog>` has no
 		 * box (`display: contents`), and it is neither a dialog nor a layer: it
 		 * takes `role="generic"` and no name or description, and the floats
-		 * inside portal as if it were not there. A change keeps the children
-		 * mounted.
+		 * inside portal as if it were not there. Needs `forceMount`.
 		 *
 		 * @default false
 		 */
@@ -332,108 +521,371 @@ type ContentProps = ComponentProps<"div"> &
 		 * @default true
 		 */
 		layer?: boolean;
+		/**
+		 * Runs after the dialog opens and the browser moves focus into it. Call
+		 * `event.preventDefault()` and focus an element of your choice; with no
+		 * focus move, the `<dialog>` takes focus.
+		 */
+		onOpenAutoFocus?: (event: Event) => void;
+		/**
+		 * Runs after the dialog closes and the browser returns focus to the
+		 * element that opened it. Focus another element here to send focus there.
+		 */
+		onCloseAutoFocus?: (event: Event) => void;
+		/** Runs on Escape. Call `event.preventDefault()` to keep the dialog open. */
+		onEscapeKeyDown?: (event: KeyboardEvent) => void;
+		/**
+		 * Runs on a press outside the panel: on the backdrop, or, for a non-modal
+		 * dialog, anywhere outside it. Call `event.preventDefault()` to keep the
+		 * dialog open.
+		 */
+		onPointerDownOutside?: (event: PointerDownOutsideEvent) => void;
+		/** Runs on the same presses as `onPointerDownOutside`, after it. */
+		onInteractOutside?: (event: PointerDownOutsideEvent) => void;
 		/** The classes of the `<dialog>`, which positions the panel. */
 		positionerClassName: string;
 		/** The `data-slot` of the `<dialog>`. */
 		positionerSlot: string;
+		/**
+		 * The role of the `<dialog>`, such as `"alertdialog"` for a dialog that
+		 * asks for an explicit response.
+		 *
+		 * @default "dialog"
+		 */
+		role?: ComponentProps<"dialog">["role"];
 	};
 
 /**
- * The panel of the dialog, inside a modal `<dialog>` that is always rendered,
- * open or not. Style the panel with `group-open/native-dialog:` and
- * `group-not-open/native-dialog:`, which read the `<dialog>`'s `[open]`. The
- * `<dialog>` is the layer container, so a float composed inside portals into
- * the top layer with it.
+ * The panel of the dialog, inside a `<dialog>` (`positionerSlot`) that is the
+ * layer container: a float composed inside portals into it and paints in the
+ * top layer with it. Style the panel with `data-state-open:` and
+ * `data-state-closed:`; the exit plays before the `<dialog>` closes.
  */
 const Content = ({
 	"aria-describedby": ariaDescribedBy,
 	"aria-label": ariaLabel,
 	"aria-labelledby": ariaLabelledBy,
 	children,
+	forceMount,
 	inline = false,
 	layer = true,
+	onCloseAutoFocus,
+	onEscapeKeyDown,
+	onInteractOutside,
+	onOpenAutoFocus,
+	onPointerDownOutside,
 	positionerClassName,
 	positionerSlot,
 	ref,
+	role,
 	scope,
 	...props
 }: ContentProps) => {
 	const root = useRootState(scope, "Content");
+	const keepMounted = forceMount === true;
+	// Why refs and not state: a state would render the children again on each
+	// open, and the open must cost no more than the mount.
 	const dialogRef = useRef<HTMLDialogElement | null>(null);
-	const controlledOpen = useRef(root.open);
+	const panelRef = useRef<HTMLDivElement | null>(null);
+	const composedPanelRef = useComposedRefs(ref, panelRef);
 	const reportedOpen = useRef(false);
-	const pressedBackdrop = useRef(false);
+	const pressedOutside = useRef(false);
+
+	// Why a state for the exit: the content stays mounted until its exit ends.
+	const [exiting, setExiting] = useState(false);
+	const [renderedOpen, setRenderedOpen] = useState(root.open);
+	if (renderedOpen !== root.open) {
+		setRenderedOpen(root.open);
+		setExiting(!root.open);
+	}
+	const present = keepMounted || root.open || exiting;
+
+	// Why a portal for content that mounts on open: a `<dialog>` inside a
+	// closed `<dialog>` or another hidden ancestor does not show, even in the
+	// top layer. It portals into the enclosing open dialog, so a close of that
+	// dialog closes it first, else into `<body>` once the page has hydrated.
+	// A dialog that stays mounted renders in place, so the server renders it.
+	const layerContainer = useLayerContainer();
+	const isHydrated = useIsHydrated();
+	const portalTarget = layerContainer ?? (isHydrated ? document.body : null);
+
+	/** The open state that React expects, or `undefined` while the DOM owns it. */
+	const expectedOpen = keepMounted && !root.controlled ? undefined : root.open;
+
+	const close = useCallbackRef(() => requestOpen({ dialog: dialogRef.current, open: false, root }));
+	const escape = useCallbackRef((event: KeyboardEvent) => {
+		onEscapeKeyDown?.(event);
+		if (!event.defaultPrevented) {
+			close();
+		}
+	});
+	const pressOutside = useCallbackRef((originalEvent: PointerEvent): boolean => {
+		const outside = createPointerDownOutsideEvent(originalEvent);
+		preventCloseOnPromptInteraction(outside);
+		onPointerDownOutside?.(outside);
+		onInteractOutside?.(outside);
+		return !outside.defaultPrevented;
+	});
+
+	/** The element that had focus when the dialog opened, such as a frame. */
+	const opener = useRef<Element | null>(null);
+	/** Opens `dialog`, then runs `onOpenAutoFocus`. */
+	const openDialog = useCallbackRef((dialog: HTMLDialogElement) => {
+		opener.current = dialog.ownerDocument.activeElement;
+		moveDialog({ dialog, modal: root.modal, open: true });
+		if (onOpenAutoFocus == null) {
+			return;
+		}
+		const autoFocused = dialog.ownerDocument.activeElement;
+		const event = new Event("openAutoFocus", { cancelable: true });
+		onOpenAutoFocus(event);
+		if (event.defaultPrevented && dialog.ownerDocument.activeElement === autoFocused) {
+			dialog.focus();
+		}
+	});
+
+	const wantsOpen = useCallbackRef(() => expectedOpen === true);
+	/**
+	 * Opens `dialog` now, or after the `<dialog>` around it opens.
+	 *
+	 * Why wait: React attaches a dialog before the dialog around it, and a
+	 * dialog that opens first paints under that dialog in the top layer.
+	 */
+	const openSoon = useCallbackRef((dialog: HTMLDialogElement) => {
+		if (dialog.parentElement?.closest("dialog:not([open])") == null) {
+			openDialog(dialog);
+			return;
+		}
+		queueMicrotask(() => {
+			if (dialogRef.current === dialog && wantsOpen() && !dialog.open) {
+				openDialog(dialog);
+			}
+		});
+	});
 
 	const sync = useCallbackRef((dialog: HTMLDialogElement) => {
 		const { open } = dialog;
 		// Why the write comes before the check: a StrictMode remount writes the
 		// state closed and then finds the dialog still open.
 		writeOpenState({ dialog, open });
+		// Why here too: it sees a dialog that opens through its command before
+		// hydration, and each close, after the exit.
+		lockPageScroll({ dialog, lock: open && !nonModal.has(dialog) });
 		if (open === reportedOpen.current) {
 			return;
 		}
 		reportedOpen.current = open;
-		if (open !== controlledOpen.current) {
-			root.onOpenChange(open);
+		if (!open) {
+			// Why so little: `close()` already returned focus to the element that
+			// had it at open, and a non-modal close keeps focus that moved outside.
+			// Three gaps stay: a consumer that cancels owns focus, so the focus a
+			// modal restored goes; Chromium returns no focus to a frame, such as a
+			// docs preview that sent ⌘K, so the opener takes it here; and an opener
+			// that is gone leaves focus on `<body>`, so the trigger takes it.
+			// Why a microtask: the close can run in a React commit, which puts
+			// back the focus it saw at its start.
+			const { ownerDocument } = dialog;
+			const restored = ownerDocument.activeElement;
+			const event = new Event("closeAutoFocus", { cancelable: true });
+			onCloseAutoFocus?.(event);
+			const modal = !nonModal.has(dialog);
+			queueMicrotask(() => {
+				const { activeElement, body } = ownerDocument;
+				if (!event.defaultPrevented) {
+					if (activeElement === body && opener.current instanceof HTMLElement) {
+						opener.current.focus();
+					}
+					if (ownerDocument.activeElement === body) {
+						ownerDocument.querySelector<HTMLElement>(`[aria-controls="${dialog.id}"]`)?.focus();
+					}
+				} else if (modal && activeElement === restored && restored instanceof HTMLElement) {
+					restored.blur();
+				}
+			});
+		}
+		if (open === expectedOpen) {
+			return;
+		}
+		// Why both: a dialog that stays mounted and owns its state reports the
+		// change; any other dialog that the browser closed on its own updates
+		// the root, which unmounts the content.
+		if (expectedOpen === undefined) {
+			root.reportOpen(open);
+		} else {
+			root.setOpen(open);
 		}
 	});
 
+	// Why the `command` listener: it routes each trigger and close button.
+	// A modal that stays mounted lets the browser open it, with the state
+	// written first, so the attributes join the browser's style pass.
+	// Why a callback ref: the listener must read the root of the latest
+	// render. A dialog that mounts on open attaches before that render's
+	// effects run, and a tap sends its command after the dialog mounts.
+	const routeCommand = useCallbackRef((event: Event) => {
+		const dialog = event.currentTarget;
+		const command: unknown = Reflect.get(event, "command");
+		if (
+			!(dialog instanceof HTMLDialogElement) ||
+			(command !== "show-modal" && command !== "close" && command !== "request-close")
+		) {
+			return;
+		}
+		const open = command === "show-modal";
+		if (open && keepMounted && !root.controlled && root.modal) {
+			nonModal.delete(dialog);
+			lockPageScroll({ dialog, lock: true });
+			writeOpenState({ dialog, open });
+			return;
+		}
+		event.preventDefault();
+		requestOpen({ dialog, open, root });
+	});
+
 	// Why an observer of `open`: it sees each way the `<dialog>` opens or closes
-	// (a command, Escape, `form method="dialog"`, a call here) in one place. Its
-	// callback runs before the next paint.
+	// in one place, such as a command before hydration. Its callback runs before
+	// the next paint.
 	const attach = useCallbackRef((dialog: HTMLDialogElement | null) => {
+		dialogRef.current = dialog;
 		if (dialog == null) {
 			return;
 		}
-		dialogRef.current = dialog;
+		if (keepMounted) {
+			keptMounted.add(dialog);
+		}
 		const observer = new MutationObserver(() => sync(dialog));
 		observer.observe(dialog, { attributeFilter: ["open"] });
-		// Why the `command` listener: it runs before the browser opens the
-		// `<dialog>`, so the state attributes join the browser's style pass.
-		const writeCommand = (event: Event) => {
-			const command: unknown = Reflect.get(event, "command");
-			if (command === "show-modal") {
-				writeOpenState({ dialog, open: true });
-			} else if (command === "close") {
-				closeNested(dialog);
-				writeOpenState({ dialog, open: false });
-			}
-		};
-		dialog.addEventListener("command", writeCommand);
-		if (root.open === undefined && root.defaultOpen) {
+		dialog.addEventListener("command", routeCommand);
+		// Why a reset: a new portal target mounts a new, closed `<dialog>`, which
+		// is no close of the dialog.
+		reportedOpen.current = false;
+		if (keepMounted && !root.controlled && root.defaultOpen) {
 			reportedOpen.current = true;
-			moveDialog({ dialog, open: true });
+			openDialog(dialog);
 		}
 		// Why a sync now: a tap before hydration can open the dialog through its command.
 		sync(dialog);
+		// Why open here too: a new portal target mounts a new `<dialog>` with no
+		// change to the open state, so the layout effect does not run again.
+		if (expectedOpen === true && !dialog.open) {
+			openSoon(dialog);
+		}
 		return () => {
+			// Why: the content can unmount in the same task as the `close()` that
+			// ends its exit, before the observer reports it.
+			if (observer.takeRecords().length > 0) {
+				sync(dialog);
+			}
 			observer.disconnect();
-			dialog.removeEventListener("command", writeCommand);
+			dialog.removeEventListener("command", routeCommand);
 			writeOpenState({ dialog, open: false });
+			lockPageScroll({ dialog, lock: false });
 			if (!dialog.open) {
 				return;
 			}
 			// Why: the browser returns focus only from `close()`, not when an open
 			// `<dialog>` leaves the page. A StrictMode remount keeps it on the page.
-			const document = dialog.ownerDocument;
+			const { ownerDocument } = dialog;
 			queueMicrotask(() => {
-				if (!dialog.isConnected && document.activeElement === document.body) {
-					document.querySelector<HTMLElement>(`[aria-controls="${dialog.id}"]`)?.focus();
+				if (!dialog.isConnected && ownerDocument.activeElement === ownerDocument.body) {
+					ownerDocument.querySelector<HTMLElement>(`[aria-controls="${dialog.id}"]`)?.focus();
 				}
 			});
 		};
 	});
 
+	// Why a layout effect: the dialog opens in the frame of the render that
+	// mounts it, and the exit starts in the frame that asks for it.
 	useLayoutEffect(() => {
-		controlledOpen.current = root.open;
 		const dialog = dialogRef.current;
-		if (root.open === undefined || dialog == null) {
+		if (dialog == null || expectedOpen === undefined) {
 			return;
 		}
-		moveDialog({ dialog, open: root.open });
-	}, [root.open]);
+		if (!expectedOpen) {
+			closeAfterExit(dialog, keepMounted ? undefined : () => setExiting(false));
+		} else if (dialog.open) {
+			writeOpenState({ dialog, open: true });
+		} else {
+			openSoon(dialog);
+		}
+	}, [expectedOpen, keepMounted, openSoon]);
 
-	return (
+	// Why register: a float that this dialog covers hides, and a frame that
+	// covers it takes Escape. Why until `close`: the dialog stays modal through
+	// its exit, so a float that opens in the exit shows when the dialog closes.
+	const releaseOverlay = useRef<(() => void) | null>(null);
+	useEffect(() => {
+		const dialog = dialogRef.current;
+		const panel = panelRef.current;
+		if (!root.open || inline || dialog == null || panel == null || releaseOverlay.current != null) {
+			return;
+		}
+		const unregister = registerOverlay({ container: dialog, content: panel, escape });
+		const release = () => {
+			dialog.removeEventListener("close", release);
+			releaseOverlay.current = null;
+			unregister();
+		};
+		releaseOverlay.current = release;
+		dialog.addEventListener("close", release);
+	}, [root.open, inline, escape]);
+	useEffect(() => () => releaseOverlay.current?.(), []);
+
+	// Why Escape on the document: an open picker in the panel takes the key
+	// first and prevents it, in every engine, and the key closes the top dialog
+	// wherever focus is, as with Radix. Why a press outside here: a non-modal
+	// dialog has no backdrop.
+	useEffect(() => {
+		const dialog = dialogRef.current;
+		if (dialog == null || !root.open || inline) {
+			return;
+		}
+		const { ownerDocument } = dialog;
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key !== "Escape" || event.defaultPrevented || openDialogs.at(-1) !== dialog) {
+				return;
+			}
+			// Why the consumer runs after the guard: it sees the prevented
+			// Escape that a picker in the panel takes, as with Radix.
+			if (escapeBelongsToNestedPopup(dialog, event.target)) {
+				event.preventDefault();
+			} else if (!root.modal) {
+				// Why the consumer still runs: it sees the Escape that a covering
+				// frame took, prevented, as it would with Radix.
+				yieldEscapeToCoveringFrame(event);
+			}
+			escape(event);
+			// Why prevent: the browser's own close request would close the dialog
+			// at once, with no exit, and a dialog under a non-modal one would close too.
+			event.preventDefault();
+		};
+		// Why the covering-frame check: a press on the popup around a captcha
+		// frame is a press in that flow, not outside the dialog.
+		const onPointerDown = (event: PointerEvent) => {
+			const { target } = event;
+			if (
+				!root.modal &&
+				target instanceof Node &&
+				!dialog.contains(target) &&
+				getCoveringFrame()?.closest("body > *")?.contains(target) !== true &&
+				pressOutside(event)
+			) {
+				close();
+			}
+		};
+		ownerDocument.addEventListener("keydown", onKeyDown);
+		ownerDocument.addEventListener("pointerdown", onPointerDown, { capture: true });
+		return () => {
+			ownerDocument.removeEventListener("keydown", onKeyDown);
+			ownerDocument.removeEventListener("pointerdown", onPointerDown, { capture: true });
+		};
+	}, [root.modal, root.open, inline, escape, pressOutside, close]);
+
+	if (!present || (!keepMounted && portalTarget == null)) {
+		return null;
+	}
+
+	const dialog = (
 		// oxlint-disable-next-line jsx-a11y/click-events-have-key-events -- Why: Escape closes the dialog from the keyboard, through the `cancel` event.
 		<dialog
 			ref={attach}
@@ -442,29 +894,35 @@ const Content = ({
 			// `<dialog>`. ARIA prohibits a name on `generic`.
 			// Why an inline `display`: the browser's own style hides a closed
 			// `<dialog>`, and the panel must show before any stylesheet loads.
+			// Why `tabIndex` on the `<dialog>`, not the panel: the browser opens a
+			// dialog with focus on its first focusable element, as Radix did, and a
+			// press on a bare part of the panel keeps focus in the dialog.
 			{...(inline
 				? { role: "generic", style: inlineStyle }
 				: {
+						role,
+						tabIndex: -1,
 						"aria-describedby": ariaDescribedBy,
 						"aria-label": ariaLabel,
 						"aria-labelledby": ariaLabelledBy ?? (ariaLabel == null ? root.titleId : undefined),
 					})}
 			className={cx(positionerBaseClassName, positionerClassName)}
+			// Why `data-overlay`: a press on the backdrop targets the `<dialog>`,
+			// and `isDialogOverlayTarget` names that press.
+			data-overlay=""
 			data-slot={positionerSlot}
-			data-state="closed"
 			// Why the target checks: React sends the events of a nested `<dialog>`
-			// up to this one too. Why the `preventDefault`: a controlled dialog
-			// closes when its owner sets `open`.
+			// up to this one too. Why `preventDefault`: the exit plays before the
+			// close, and a controlled dialog closes when its owner sets `open`.
 			onCancel={(event) => {
-				if (event.target === event.currentTarget && root.open !== undefined) {
+				if (event.target === event.currentTarget) {
 					event.preventDefault();
-					root.onOpenChange(false);
+					close();
 				}
 			}}
 			onSubmit={(event) => {
 				const { currentTarget, nativeEvent, target } = event;
 				if (
-					root.open === undefined ||
 					event.defaultPrevented ||
 					!(nativeEvent instanceof SubmitEvent) ||
 					!(target instanceof HTMLFormElement) ||
@@ -475,35 +933,32 @@ const Content = ({
 				const method = nativeEvent.submitter?.getAttribute("formmethod")?.toLowerCase();
 				if ((method ?? target.method) === "dialog") {
 					event.preventDefault();
-					root.onOpenChange(false);
+					close();
 				}
 			}}
 			// Why a press and a click on the `<dialog>` itself: the backdrop and
 			// the area around the panel are the `<dialog>`. A drag out of the panel
 			// ends with a click there too, so the press must start there as well.
 			onPointerDown={(event) => {
-				pressedBackdrop.current = event.target === event.currentTarget;
+				pressedOutside.current =
+					root.modal && event.target === event.currentTarget && pressOutside(event.nativeEvent);
 			}}
 			onClick={(event) => {
-				if (pressedBackdrop.current && event.target === event.currentTarget) {
-					requestOpen({ root, element: event.currentTarget, open: false });
+				if (pressedOutside.current && event.target === event.currentTarget) {
+					close();
 				}
 			}}
 		>
-			<LayerContainer active={layer && !inline} className="contents">
+			<LayerContainer active={layer && !inline} modal={root.modal} className="contents">
 				{/* Why no marker inline: the panel is not an overlay's content, and
 				    the close must not write `data-state` over the inline panel's own. */}
-				<div
-					ref={ref}
-					data-mantle-modal-content={inline ? undefined : ""}
-					data-state="closed"
-					{...props}
-				>
+				<div ref={composedPanelRef} data-mantle-modal-content={inline ? undefined : ""} {...props}>
 					{children}
 				</div>
 			</LayerContainer>
 		</dialog>
 	);
+	return keepMounted || portalTarget == null ? dialog : createPortal(dialog, portalTarget);
 };
 
 /** The accessible name of the dialog. */
@@ -544,13 +999,30 @@ const Description = ({
 	return <Component id={descriptionId} ref={composedRef} {...props} />;
 };
 
+/** Renders its children: a `<dialog>` paints in the top layer, so it needs no portal. */
+const Portal = ({
+	children,
+}: {
+	children?: ReactNode;
+	/** Accepted for compatibility; the `<dialog>` needs no container. */
+	container?: Element | DocumentFragment | null;
+	/** Accepted for compatibility; `Content` takes `forceMount`. */
+	forceMount?: true;
+}) => children;
+
+/** Renders nothing: `Content` styles the `<dialog>`'s `::backdrop` instead. */
+const Overlay = (_props: ComponentProps<"div"> & { forceMount?: true }) => null;
+
 export {
 	//,
 	Close,
+	closeAfterExit,
 	Content,
 	createScope,
 	Description,
 	moveDialog,
+	Overlay,
+	Portal,
 	Root,
 	Title,
 	Trigger,
@@ -559,6 +1031,7 @@ export {
 export type {
 	//,
 	ContentProps,
+	PointerDownOutsideEvent,
 	RootProps,
 	Scope,
 };

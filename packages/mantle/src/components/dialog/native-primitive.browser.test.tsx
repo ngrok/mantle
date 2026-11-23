@@ -1,19 +1,19 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { createRef, Profiler, type ReactNode, StrictMode, useState } from "react";
+import { createRef, Profiler, type ReactNode, StrictMode, useEffect, useState } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, onTestFinished, test, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
-import * as AlertDialog from "../../alert-dialog/alert-dialog-parts.js";
-import * as DropdownMenu from "../../dropdown-menu/dropdown-menu-parts.js";
-import * as MultiSelect from "../../multi-select/multi-select-parts.js";
-import * as Popover from "../../popover/popover-parts.js";
-import * as Select from "../../select/select-parts.js";
-import * as SheetNative from "../../sheet/native/sheet-native-parts.js";
-import { makeToast, Toaster } from "../../toast/toast.js";
-import * as Tooltip from "../../tooltip/tooltip-parts.js";
-import { TooltipProvider } from "../../tooltip/tooltip.js";
-import * as Dialog from "./dialog-native-parts.js";
+import * as AlertDialog from "../alert-dialog/alert-dialog-parts.js";
+import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
+import * as MultiSelect from "../multi-select/multi-select-parts.js";
+import * as Popover from "../popover/popover-parts.js";
+import * as Select from "../select/select-parts.js";
+import * as Sheet from "../sheet/sheet-parts.js";
+import { makeToast, Toaster } from "../toast/toast.js";
+import * as Tooltip from "../tooltip/tooltip-parts.js";
+import { TooltipProvider } from "../tooltip/tooltip.js";
+import * as Dialog from "./dialog-parts.js";
 
 afterEach(async () => {
 	// Why: Escape and clicks leave an open `<dialog>` in the top layer between tests.
@@ -25,17 +25,19 @@ afterEach(async () => {
 
 function ExampleDialog({
 	children,
+	forceMount,
 	onOpenChange,
 	open,
 }: {
 	children?: ReactNode;
+	forceMount?: true;
 	onOpenChange?: (open: boolean) => void;
 	open?: boolean;
 }) {
 	return (
 		<Dialog.Root onOpenChange={onOpenChange} open={open}>
 			<Dialog.Trigger>Open dialog</Dialog.Trigger>
-			<Dialog.Content>
+			<Dialog.Content forceMount={forceMount}>
 				<Dialog.Header>
 					<Dialog.Title>Delete tunnel</Dialog.Title>
 					<Dialog.Description>The tunnel stops at once.</Dialog.Description>
@@ -58,13 +60,13 @@ function dialogElement(): HTMLDialogElement {
 	return dialog;
 }
 
-describe("Dialog (native)", () => {
-	test("a tap opens the modal dialog with no React render, and Escape closes it", async () => {
+describe("Dialog", () => {
+	test("with forceMount, a tap opens the modal dialog with no React render, and Escape closes it", async () => {
 		const onOpenChange = vi.fn<(open: boolean) => void>();
 		const onRender = vi.fn<() => void>();
 		render(
 			<Profiler id="dialog" onRender={onRender}>
-				<ExampleDialog onOpenChange={onOpenChange} />
+				<ExampleDialog forceMount onOpenChange={onOpenChange} />
 			</Profiler>,
 		);
 		const trigger = screen.getByRole("button", { name: "Open dialog" });
@@ -86,30 +88,129 @@ describe("Dialog (native)", () => {
 
 		await userEvent.keyboard("{Escape}");
 
-		await waitFor(() => expect(panel).toHaveAttribute("data-state", "closed"));
-		expect(dialogElement().open).toBe(false);
+		await waitFor(() => expect(dialogElement().open).toBe(false));
+		expect(panel).toHaveAttribute("data-state", "closed");
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
 		expect(trigger).toHaveFocus();
 		expect(onOpenChange).toHaveBeenCalledTimes(2);
 		expect(onOpenChange).toHaveBeenLastCalledWith(false);
 	});
 
+	test("a tap mounts and opens the dialog, and Escape closes and unmounts it", async () => {
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(<ExampleDialog onOpenChange={onOpenChange} />);
+		const trigger = screen.getByRole("button", { name: "Open dialog" });
+		expect(document.querySelector("dialog")).toBeNull();
+
+		await userEvent.click(trigger);
+
+		const dialog = screen.getByRole("dialog", { name: "Delete tunnel" });
+		expect(dialog.matches(":modal")).toBe(true);
+		expect(trigger).toHaveAttribute("aria-expanded", "true");
+		// The browser focuses the first focusable element, as Radix did.
+		expect(screen.getByRole("button", { name: "Close Dialog" })).toHaveFocus();
+
+		await userEvent.keyboard("{Escape}");
+
+		await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
+		expect(trigger).toHaveAttribute("aria-expanded", "false");
+		expect(trigger).toHaveFocus();
+		// Why once each: the trigger's command reaches the dialog that the tap
+		// mounted, and must not report the open a second time.
+		expect(onOpenChange.mock.calls).toEqual([[true], [false]]);
+	});
+
+	test("the dialog stays modal with `data-state` closed through its exit, then unmounts", async () => {
+		const style = document.createElement("style");
+		style.textContent = `
+@keyframes test-exit { to { opacity: 0; } }
+[data-slot~="dialog-content"][data-state="closed"] { animation: test-exit 200ms; }
+`;
+		document.head.append(style);
+		onTestFinished(() => style.remove());
+		render(<ExampleDialog />);
+		const trigger = screen.getByRole("button", { name: "Open dialog" });
+		await userEvent.click(trigger);
+		const dialog = dialogElement();
+		const panel = document.querySelector("[data-slot~='dialog-content']");
+
+		await userEvent.keyboard("{Escape}");
+
+		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(dialog.matches(":modal")).toBe(true);
+		expect(trigger).toHaveAttribute("aria-expanded", "false");
+		await waitFor(() => expect(dialog.isConnected).toBe(false));
+		expect(trigger).toHaveFocus();
+	});
+
+	test("a dialog that is not modal leaves the page live, and closes on Escape and a press outside", async () => {
+		render(
+			<>
+				<button type="button">Page button</button>
+				<Dialog.Root modal={false}>
+					<Dialog.Trigger>Open dialog</Dialog.Trigger>
+					<Dialog.Content>
+						<Dialog.Title>Payment</Dialog.Title>
+						<button type="button">Pay</button>
+					</Dialog.Content>
+				</Dialog.Root>
+			</>,
+		);
+		const trigger = screen.getByRole("button", { name: "Open dialog" });
+
+		await userEvent.click(trigger);
+		const dialog = dialogElement();
+		expect(dialog.open).toBe(true);
+		expect(dialog.matches(":modal")).toBe(false);
+		expect(screen.getByRole("button", { name: "Page button" }).closest("[inert]")).toBeNull();
+
+		await userEvent.keyboard("{Escape}");
+		await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
+
+		await userEvent.click(trigger);
+		await userEvent.click(screen.getByRole("button", { name: "Page button" }));
+		await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
+	});
+
+	test("an onOpenAutoFocus that prevents the default leaves focus where it puts it", async () => {
+		render(
+			<Dialog.Root>
+				<Dialog.Trigger>Open dialog</Dialog.Trigger>
+				<Dialog.Content
+					onOpenAutoFocus={(event) => {
+						event.preventDefault();
+						document.getElementById("query")?.focus();
+					}}
+				>
+					<Dialog.Title>Search</Dialog.Title>
+					<button type="button">First</button>
+					<input id="query" aria-label="Query" />
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+
+		await userEvent.click(screen.getByRole("button", { name: "Open dialog" }));
+
+		expect(screen.getByRole("textbox", { name: "Query" })).toHaveFocus();
+	});
+
 	test("Dialog.Close and a click on the backdrop close it, and a click in the panel does not", async () => {
 		render(<ExampleDialog>Body text</ExampleDialog>);
-		const dialog = dialogElement();
+		const trigger = screen.getByRole("button", { name: "Open dialog" });
 
-		await userEvent.click(screen.getByRole("button", { name: "Open dialog" }));
+		await userEvent.click(trigger);
 		await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
-		expect(dialog.open).toBe(false);
+		await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
 
-		await userEvent.click(screen.getByRole("button", { name: "Open dialog" }));
+		await userEvent.click(trigger);
+		const dialog = dialogElement();
 		fireEvent.pointerDown(screen.getByText("Body text"));
 		fireEvent.click(dialog);
 		expect(dialog.open).toBe(true);
 
 		fireEvent.pointerDown(dialog);
 		fireEvent.click(dialog);
-		expect(dialog.open).toBe(false);
+		await waitFor(() => expect(dialog.open).toBe(false));
 	});
 
 	test("a controlled dialog asks its owner on Escape and moves with `open`", async () => {
@@ -125,19 +226,13 @@ describe("Dialog (native)", () => {
 		expect(dialog.open).toBe(true);
 
 		rerender(<ExampleDialog open={false} onOpenChange={onOpenChange} />);
-		expect(dialog.open).toBe(false);
-		await waitFor(() =>
-			expect(document.querySelector("[data-slot~='dialog-content']")).toHaveAttribute(
-				"data-state",
-				"closed",
-			),
-		);
+		await waitFor(() => expect(dialog.open).toBe(false));
 		expect(onOpenChange).toHaveBeenCalledTimes(1);
 	});
 
-	test("a tap before hydration opens the dialog, and hydration takes over its state", async () => {
+	test("with forceMount, a tap before hydration opens the dialog, and hydration takes over its state", async () => {
 		const container = document.createElement("div");
-		container.innerHTML = renderToString(<ExampleDialog />);
+		container.innerHTML = renderToString(<ExampleDialog forceMount />);
 		document.body.append(container);
 		const dialog = dialogElement();
 		// Why `showModal()`: the trigger's `command="show-modal"` runs this on a tap before hydration.
@@ -145,7 +240,7 @@ describe("Dialog (native)", () => {
 
 		const onOpenChange = vi.fn<(open: boolean) => void>();
 		const root = await act(async () =>
-			hydrateRoot(container, <ExampleDialog onOpenChange={onOpenChange} />),
+			hydrateRoot(container, <ExampleDialog forceMount onOpenChange={onOpenChange} />),
 		);
 
 		expect(container.querySelector("[data-slot~='dialog-content']")).toHaveAttribute(
@@ -170,7 +265,7 @@ describe("Dialog (native)", () => {
 						Open dialog
 					</a>
 				</Dialog.Trigger>
-				<Dialog.Content ref={panelRef} className="own-panel" data-testid="panel">
+				<Dialog.Content forceMount ref={panelRef} className="own-panel" data-testid="panel">
 					<Dialog.Title>Delete tunnel</Dialog.Title>
 				</Dialog.Content>
 			</Dialog.Root>,
@@ -204,10 +299,11 @@ describe("Dialog (native)", () => {
 		await userEvent.click(screen.getByRole("button", { name: "Delete" }));
 
 		const toast = await screen.findByText("Tunnel deleted");
-		expect(dialogElement().contains(toast)).toBe(true);
+		const dialog = dialogElement();
+		expect(dialog.contains(toast)).toBe(true);
 
 		await userEvent.keyboard("{Escape}");
-		await waitFor(() => expect(dialogElement().contains(toast)).toBe(false));
+		await waitFor(() => expect(dialog.contains(toast)).toBe(false));
 		expect(document.body.contains(toast)).toBe(true);
 	});
 
@@ -343,43 +439,43 @@ describe("Dialog (native)", () => {
 
 		rerender(<Nested open={false} />);
 
+		await waitFor(() => expect(document.querySelector("dialog:modal")).toBeNull());
 		expect(inner).not.toHaveAttribute("open");
-		expect(document.querySelector("dialog:modal")).toBeNull();
 	});
 
-	test("a Sheet.Close inside a nested native dialog closes both", async () => {
+	test("a Sheet.Close inside a nested dialog closes both", async () => {
 		render(
-			<SheetNative.Root>
-				<SheetNative.Trigger>Open sheet</SheetNative.Trigger>
-				<SheetNative.Content>
-					<SheetNative.Title>Edit</SheetNative.Title>
+			<Sheet.Root>
+				<Sheet.Trigger>Open sheet</Sheet.Trigger>
+				<Sheet.Content>
+					<Sheet.Title>Edit</Sheet.Title>
 					<Dialog.Root>
 						<Dialog.Trigger>Open confirm</Dialog.Trigger>
 						<Dialog.Content>
 							<Dialog.Title>Discard changes?</Dialog.Title>
-							<SheetNative.Close>Discard</SheetNative.Close>
+							<Sheet.Close>Discard</Sheet.Close>
 						</Dialog.Content>
 					</Dialog.Root>
-				</SheetNative.Content>
-			</SheetNative.Root>,
+				</Sheet.Content>
+			</Sheet.Root>,
 		);
 		await userEvent.click(screen.getByRole("button", { name: "Open sheet" }));
 		await userEvent.click(screen.getByRole("button", { name: "Open confirm" }));
 		await userEvent.click(screen.getByRole("button", { name: "Discard" }));
 
-		expect(document.querySelector("dialog[open]")).toBeNull();
+		await waitFor(() => expect(document.querySelector("dialog[open]")).toBeNull());
 		await waitFor(() => expect(screen.getByRole("button", { name: "Open sheet" })).toHaveFocus());
 	});
 
-	test("a Dialog.Trigger inside a native Sheet.Content opens the Dialog.Root above the sheet", async () => {
+	test("a Dialog.Trigger inside a Sheet.Content opens the Dialog.Root above the sheet", async () => {
 		render(
 			<Dialog.Root>
-				<SheetNative.Root open>
-					<SheetNative.Content>
-						<SheetNative.Title>Filters</SheetNative.Title>
+				<Sheet.Root open>
+					<Sheet.Content>
+						<Sheet.Title>Filters</Sheet.Title>
 						<Dialog.Trigger>Open dialog</Dialog.Trigger>
-					</SheetNative.Content>
-				</SheetNative.Root>
+					</Sheet.Content>
+				</Sheet.Root>
 				<Dialog.Content>
 					<Dialog.Title>Confirm</Dialog.Title>
 				</Dialog.Content>
@@ -388,47 +484,9 @@ describe("Dialog (native)", () => {
 		await userEvent.click(screen.getByRole("button", { name: "Open dialog" }));
 		expect(screen.getByRole("dialog", { name: "Confirm" }).matches(":modal")).toBe(true);
 	});
-
-	test("an AlertDialog that opens again mounts in the native dialog now on top", async () => {
-		render(
-			<AlertDialog.Root intent="danger">
-				<SheetNative.Root open>
-					<SheetNative.Content>
-						<SheetNative.Title>Filters</SheetNative.Title>
-						<AlertDialog.Trigger>Confirm from sheet</AlertDialog.Trigger>
-						<Dialog.Root>
-							<Dialog.Trigger>Open inner</Dialog.Trigger>
-							<Dialog.Content>
-								<Dialog.Title>Inner</Dialog.Title>
-								<AlertDialog.Trigger>Confirm from inner</AlertDialog.Trigger>
-							</Dialog.Content>
-						</Dialog.Root>
-					</SheetNative.Content>
-				</SheetNative.Root>
-				<AlertDialog.Content>
-					<AlertDialog.Body>
-						<AlertDialog.Title>Discard filters</AlertDialog.Title>
-						<AlertDialog.Footer>
-							<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-						</AlertDialog.Footer>
-					</AlertDialog.Body>
-				</AlertDialog.Content>
-			</AlertDialog.Root>,
-		);
-		await userEvent.click(screen.getByRole("button", { name: "Confirm from sheet" }));
-		await userEvent.click(await screen.findByRole("button", { name: "Cancel" }));
-		await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
-		await userEvent.click(screen.getByRole("button", { name: "Open inner" }));
-		await userEvent.click(screen.getByRole("button", { name: "Confirm from inner" }));
-
-		const alert = await screen.findByRole("alertdialog", { name: "Discard filters" });
-		expect(alert.closest("dialog")).toBe(screen.getByRole("dialog", { name: "Inner" }));
-		await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
-		await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
-	});
 });
 
-/** Each native overlay, rendered with a trigger and `children` in its body. */
+/** Each overlay, rendered with a trigger and `children` in its body. */
 const overlays = [
 	{
 		name: "Dialog",
@@ -438,17 +496,17 @@ const overlays = [
 	{
 		name: "Sheet",
 		render: (children: ReactNode) => (
-			<SheetNative.Root>
-				<SheetNative.Trigger>Open sheet</SheetNative.Trigger>
-				<SheetNative.Content>
-					<SheetNative.Header>
-						<SheetNative.TitleGroup>
-							<SheetNative.Title>Navigation</SheetNative.Title>
-						</SheetNative.TitleGroup>
-					</SheetNative.Header>
-					<SheetNative.Body>{children}</SheetNative.Body>
-				</SheetNative.Content>
-			</SheetNative.Root>
+			<Sheet.Root>
+				<Sheet.Trigger>Open sheet</Sheet.Trigger>
+				<Sheet.Content>
+					<Sheet.Header>
+						<Sheet.TitleGroup>
+							<Sheet.Title>Navigation</Sheet.Title>
+						</Sheet.TitleGroup>
+					</Sheet.Header>
+					<Sheet.Body>{children}</Sheet.Body>
+				</Sheet.Content>
+			</Sheet.Root>
 		),
 		trigger: "Open sheet",
 	},
@@ -456,7 +514,7 @@ const overlays = [
 
 /**
  * Each float, with the trigger that opens it and the content it shows. Each one
- * opens inside the native overlay, so it must render in the `<dialog>`, take
+ * opens inside the overlay, so it must render in the `<dialog>`, take
  * the first Escape, and give focus back to its trigger.
  */
 const floats = [
@@ -535,13 +593,132 @@ const floats = [
 	},
 ] as const;
 
-describe("Sheet (native) positioning", () => {
+describe("focus return on close", () => {
+	// Why the real browser: happy-dom has no focus restore in `close()`, and
+	// the dialog relies on it for the element that had focus at open.
+	function ShortcutDialog({
+		modal,
+		onCloseAutoFocus,
+	}: {
+		modal?: false;
+		onCloseAutoFocus?: (event: Event) => void;
+	}) {
+		const [isOpen, setIsOpen] = useState(false);
+		const [hasShortcut, setHasShortcut] = useState(true);
+		return (
+			<>
+				{hasShortcut && (
+					<button type="button" onClick={() => setIsOpen(true)}>
+						Shortcut
+					</button>
+				)}
+				<input aria-label="Filter" />
+				<Dialog.Root open={isOpen} onOpenChange={setIsOpen} modal={modal}>
+					<Dialog.Trigger>Open dialog</Dialog.Trigger>
+					<Dialog.Content onCloseAutoFocus={onCloseAutoFocus}>
+						<Dialog.Title>Search</Dialog.Title>
+						<button type="button" onClick={() => setHasShortcut(false)}>
+							Remove shortcut
+						</button>
+					</Dialog.Content>
+				</Dialog.Root>
+			</>
+		);
+	}
+
+	test("returns focus to the element focused at open, not the trigger", async () => {
+		render(<ShortcutDialog />);
+		await userEvent.click(screen.getByRole("button", { name: "Shortcut" }));
+		await screen.findByRole("dialog", { name: "Search" });
+
+		await userEvent.keyboard("{Escape}");
+
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		expect(screen.getByRole("button", { name: "Shortcut" })).toHaveFocus();
+	});
+
+	test("falls back to the trigger when the element focused at open is gone", async () => {
+		render(<ShortcutDialog />);
+		await userEvent.click(screen.getByRole("button", { name: "Shortcut" }));
+		await userEvent.click(await screen.findByRole("button", { name: "Remove shortcut" }));
+
+		await userEvent.keyboard("{Escape}");
+
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		expect(screen.getByRole("button", { name: "Open dialog" })).toHaveFocus();
+	});
+
+	test("returns no focus when onCloseAutoFocus prevents the default", async () => {
+		const onCloseAutoFocus = vi.fn<(event: Event) => void>((event) => event.preventDefault());
+		render(<ShortcutDialog onCloseAutoFocus={onCloseAutoFocus} />);
+		await userEvent.click(screen.getByRole("button", { name: "Shortcut" }));
+		await screen.findByRole("dialog", { name: "Search" });
+
+		await userEvent.keyboard("{Escape}");
+
+		await waitFor(() => expect(onCloseAutoFocus).toHaveBeenCalledTimes(1));
+		expect(document.activeElement).toBe(document.body);
+	});
+
+	// Why: Chromium's `close()` returns no focus to a frame, such as a docs
+	// preview that sends ⌘K to the page.
+	test("returns focus to a frame that had focus at open", async () => {
+		const frame = document.createElement("iframe");
+		frame.srcdoc = "<button>Inside</button>";
+		await new Promise((resolve) => {
+			frame.addEventListener("load", resolve, { once: true });
+			document.body.append(frame);
+		});
+		onTestFinished(() => frame.remove());
+		// Why an event: a docs page opens its palette from a message the frame sends.
+		function FrameDialog() {
+			const [isOpen, setIsOpen] = useState(false);
+			useEffect(() => {
+				const openSearch = () => setIsOpen(true);
+				window.addEventListener("open-search", openSearch);
+				return () => window.removeEventListener("open-search", openSearch);
+			}, []);
+			return (
+				<Dialog.Root open={isOpen} onOpenChange={setIsOpen}>
+					<Dialog.Content>
+						<Dialog.Title>Search</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+			);
+		}
+		render(<FrameDialog />);
+		frame.contentDocument?.querySelector("button")?.focus();
+		expect(document.activeElement).toBe(frame);
+		act(() => {
+			window.dispatchEvent(new Event("open-search"));
+		});
+		await screen.findByRole("dialog", { name: "Search" });
+
+		await userEvent.keyboard("{Escape}");
+
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		await waitFor(() => expect(document.activeElement).toBe(frame));
+	});
+
+	test("keeps focus where the user moved it when a non-modal dialog closes", async () => {
+		render(<ShortcutDialog modal={false} />);
+		await userEvent.click(screen.getByRole("button", { name: "Shortcut" }));
+		await screen.findByRole("dialog", { name: "Search" });
+
+		await userEvent.click(screen.getByRole("textbox", { name: "Filter" }));
+
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		expect(screen.getByRole("textbox", { name: "Filter" })).toHaveFocus();
+	});
+});
+
+describe("Sheet positioning", () => {
 	test("a popover in the sheet sits under its trigger once the slide ends", async () => {
 		const style = document.createElement("style");
 		style.textContent = [
-			await commands.tailwindCss("../native-primitive.tsx"),
-			await commands.tailwindCss("../../sheet/native/sheet-native.tsx"),
-			await commands.tailwindCss("../../sheet/presentation.tsx"),
+			await commands.tailwindCss("./native-primitive.tsx"),
+			await commands.tailwindCss("../sheet/sheet.tsx"),
+			await commands.tailwindCss("../sheet/presentation.tsx"),
 		].join("\n");
 		document.head.append(style);
 		onTestFinished(() => style.remove());
@@ -571,7 +748,7 @@ describe("Sheet (native) positioning", () => {
 	});
 });
 
-describe.each(overlays)("$name (native) holding a float", (overlay) => {
+describe.each(overlays)("$name holding a float", (overlay) => {
 	test.each(floats)(
 		"$name opens in the <dialog>, takes the first Escape, and returns focus",
 		async (float) => {
@@ -590,7 +767,7 @@ describe.each(overlays)("$name (native) holding a float", (overlay) => {
 			await waitFor(() => expect(floatTrigger).toHaveFocus());
 
 			await userEvent.keyboard("{Escape}");
-			expect(dialog.open).toBe(false);
+			await waitFor(() => expect(dialog.open).toBe(false));
 		},
 	);
 

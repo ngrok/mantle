@@ -6,7 +6,6 @@ import { useState } from "react";
 import { afterAll, beforeAll, describe, expect, onTestFinished, test } from "vitest";
 import * as Dialog from "../../components/dialog/dialog-parts.js";
 import * as Popover from "../../components/popover/popover-parts.js";
-import * as Sandbar from "../../components/sandbar/sandbar-parts.js";
 import * as Sheet from "../../components/sheet/sheet-parts.js";
 import { makeToast, Toaster } from "../../components/toast/toast.js";
 
@@ -60,6 +59,11 @@ function centerOf(element: Element): { x: number; y: number } {
 	return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
 }
 
+/** Whether the native float that holds `element` shows in the top layer. */
+function isShown(element: Element): boolean {
+	return element.closest("[popover]")?.matches(":popover-open") === true;
+}
+
 /** The topmost element painted at the center of `element`. */
 function topElementAt(element: Element): Element | null {
 	const { x, y } = centerOf(element);
@@ -109,15 +113,9 @@ describe("paint order across layer tiers", () => {
 		await user.click(screen.getByRole("button", { name: "Announce" }));
 		const popoverContent = await screen.findByText("base popover content");
 
-		const positioner = document.querySelector("[data-slot='dialog-positioner']");
-		expect(positioner).not.toBeNull();
-
-		await waitFor(() => {
-			const topElement = topElementAt(popoverContent);
-			expect(topElement).not.toBeNull();
-			expect(positioner?.contains(topElement)).toBe(true);
-			expect(popoverContent.contains(topElement)).toBe(false);
-		});
+		// The popover would paint in the top layer, above the dialog, so it must
+		// not show while the dialog covers it.
+		expect(isShown(popoverContent)).toBe(false);
 	});
 
 	test("a popover opened from inside a dialog paints above the dialog", async () => {
@@ -174,15 +172,9 @@ describe("paint order across layer tiers", () => {
 		await user.click(screen.getByRole("button", { name: "Open inner" }));
 		await screen.findByText("Inner");
 
-		const positioners = document.querySelectorAll("[data-slot='dialog-positioner']");
-		expect(positioners).toHaveLength(2);
-		const inner = positioners[1];
-
+		expect(document.querySelectorAll("[data-slot='dialog-positioner']")).toHaveLength(2);
 		await waitFor(() => {
-			const topElement = topElementAt(floatContent);
-			expect(topElement).not.toBeNull();
-			expect(inner != null && inner.contains(topElement)).toBe(true);
-			expect(floatContent.contains(topElement)).toBe(false);
+			expect(isShown(floatContent)).toBe(false);
 		});
 	});
 
@@ -260,45 +252,15 @@ describe("paint order across layer tiers", () => {
 			expect(toastContent.contains(topElement)).toBe(true);
 		});
 	});
-
-	test("the sandbar stays hit-testable above a modal dialog", async () => {
-		render(
-			<div>
-				<Sandbar.Root open>
-					<Sandbar.Message>You have unsaved changes</Sandbar.Message>
-				</Sandbar.Root>
-				<Dialog.Root open>
-					<Dialog.Content appearance="full-bleed">
-						<Dialog.Title>Takeover</Dialog.Title>
-					</Dialog.Content>
-				</Dialog.Root>
-			</div>,
-		);
-
-		const message = await screen.findByText("You have unsaved changes");
-
-		// Why modal: as with the toast above, only the bar's own
-		// `pointer-events-auto` keeps it the hit target. The `z-70` tier puts it
-		// above the dialog's `z-60` layer.
-		await waitFor(() => {
-			const topElement = topElementAt(message);
-			expect(topElement).not.toBeNull();
-			expect(message.contains(topElement)).toBe(true);
-		});
-	});
 });
 
 describe("covered-float focus", () => {
 	/**
-	 * Why `animation-name` with no keyframes: Radix `Presence` keeps a closed
-	 * layer mounted while its computed `animation-name` changes, and no
-	 * `animationend` fires, so the dialog stays in its exit animation.
+	 * A long exit, so the dialog is still open and modal when the float opens.
 	 */
 	const EXIT_STYLE = `
-[data-slot="dialog-positioner"] { animation-name: none; }
-[data-slot="dialog-positioner"]:not(:has([data-state="open"])) { animation-name: exit-hold; }
-[data-slot="dialog-content"] { animation-name: none; }
-[data-slot="dialog-content"][data-state="closed"] { animation-name: exit; }
+@keyframes exit-hold { to { opacity: 0.5; } }
+[data-slot="dialog-content"][data-state="closed"] { animation: exit-hold 300ms; }
 `;
 
 	function CloseDialogThenOpenFloat() {
@@ -343,11 +305,8 @@ describe("covered-float focus", () => {
 			render(<CloseDialogThenOpenFloat />);
 			await user.click(screen.getByRole("button", { name: "Close and open" }));
 
-			// The closed dialog must still be mounted, or this test proves nothing.
-			expect(document.querySelector('[data-slot="dialog-content"]')).toHaveAttribute(
-				"data-state",
-				"closed",
-			);
+			// The closing dialog must still be modal, or this test proves nothing.
+			expect(document.querySelector("dialog:modal")).toHaveAttribute("data-state", "closed");
 			await waitFor(() => {
 				expect(screen.getByRole("button", { name: "Float button" })).toHaveFocus();
 			});
@@ -390,7 +349,7 @@ describe("a frame that covers an overlay", () => {
 	// events that a browser sends for a frame.
 	function renderSheet() {
 		render(
-			<Sheet.Root defaultOpen>
+			<Sheet.Root defaultOpen modal={false}>
 				<Sheet.Content>
 					<Sheet.Header>
 						<Sheet.TitleGroup>
@@ -447,19 +406,6 @@ describe("a frame that covers an overlay", () => {
 		expect(frame).toHaveFocus();
 	});
 
-	test("focus into a frame that was on the page first shows the frame to assistive technology", async () => {
-		// Radix hides from assistive technology each child of `<body>` that is on
-		// the page as the sheet opens. A wallet popup stays there between uses.
-		const { frame, popup } = await showPaymentPopup();
-		renderSheet();
-		expect(popup).toHaveAttribute("aria-hidden", "true");
-		screen.getByRole("button", { name: "Save" }).focus();
-
-		frame.focus();
-
-		expect(popup).not.toHaveAttribute("aria-hidden");
-	});
-
 	test("a press on the backdrop of the popup is not a press outside the sheet", async () => {
 		const user = userEvent.setup();
 		renderSheet();
@@ -490,13 +436,13 @@ describe("a frame that covers an overlay", () => {
 		});
 	});
 
-	test("a frame that sets no pointer-events of its own does not cover the sheet", async () => {
-		// The open sheet sets `pointer-events: none` on `<body>`. A frame that
-		// inherits it takes no click, so the hit test finds the sheet under it.
+	test("a frame that takes no pointer input does not cover the sheet", async () => {
+		// A frame that takes no click is not the hit target, so the hit test
+		// finds the sheet under it.
 		const user = userEvent.setup();
 		renderSheet();
 		const { frame } = await showPaymentPopup();
-		frame.style.pointerEvents = "";
+		frame.style.pointerEvents = "none";
 
 		await user.keyboard("{Escape}");
 

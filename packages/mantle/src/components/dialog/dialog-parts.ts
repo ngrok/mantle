@@ -10,7 +10,9 @@ export {
 	CloseIconButton,
 	Content,
 	Description,
+	// oxlint-disable-next-line typescript/no-deprecated -- Why: markup written for Radix keeps working until a later minor removes them.
 	Overlay,
+	// oxlint-disable-next-line typescript/no-deprecated -- Why: as above.
 	Portal,
 	Title,
 	Trigger,

@@ -1,11 +1,10 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps } from "react";
-import { createRef, useLayoutEffect, useRef, useState } from "react";
+import { createRef, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import * as Dialog from "./dialog-parts.js";
-import * as NativeDialog from "./native/dialog-native-parts.js";
-import { isDialogOverlayTarget } from "./primitive.js";
+import { isDialogOverlayTarget } from "./targets.js";
 
 type DialogAppearance = "centered" | "full-page" | "full-bleed";
 
@@ -27,12 +26,17 @@ async function open(appearance: DialogAppearance = "centered") {
 	);
 	await user.click(screen.getByRole("button", { name: "Open" }));
 
-	const content = await screen.findByRole("dialog");
-	const wrapper = content.parentElement;
-	if (!(wrapper instanceof HTMLElement)) {
-		throw new Error("dialog content wrapper not found");
+	const wrapper = await screen.findByRole("dialog");
+	return { content: panelOf(wrapper), user, wrapper };
+}
+
+/** The panel of a `<dialog>`: the element that `Dialog.Content` props target. */
+function panelOf(dialog: HTMLElement): HTMLElement {
+	const panel = dialog.querySelector<HTMLElement>("[data-mantle-modal-content]");
+	if (panel == null) {
+		throw new Error("dialog panel not found");
 	}
-	return { content, user, wrapper };
+	return panel;
 }
 
 describe("Dialog.Content", () => {
@@ -51,7 +55,7 @@ describe("Dialog.Content", () => {
 			);
 			await user.click(screen.getByRole("button", { name: "Open" }));
 
-			const content = await screen.findByRole("dialog");
+			const content = panelOf(await screen.findByRole("dialog"));
 			expect(content.dataset.appearance).toBe("centered");
 			expect(content.dataset.slot).toBe("dialog-content");
 		});
@@ -82,7 +86,7 @@ describe("Dialog.Content", () => {
 				</Dialog.Root>,
 			);
 
-			const content = await screen.findByRole("dialog");
+			const content = panelOf(await screen.findByRole("dialog"));
 			// Why the class assertion: `preferredWidth` is itself a `max-w-*` class and emits
 			// no data attribute. tailwind-merge keeps one `max-w-*`, so the cap's presence also
 			// proves the `max-w-lg` default is gone.
@@ -98,7 +102,7 @@ describe("Dialog.Content", () => {
 				</Dialog.Root>,
 			);
 
-			const content = await screen.findByRole("dialog");
+			const content = panelOf(await screen.findByRole("dialog"));
 			// tailwind-merge override contract: `className` merges after `preferredWidth`,
 			// so exactly one `max-w-*` survives and it is the consumer's.
 			const maxWidthClasses = Array.from(content.classList).filter((token) =>
@@ -130,12 +134,6 @@ describe("Dialog.Content", () => {
 			},
 		);
 
-		it("keeps one overlay at full bleed so the zoom-in animation has a backdrop", async () => {
-			await open("full-bleed");
-
-			expect(document.querySelectorAll('[data-slot="dialog-overlay"]')).toHaveLength(1);
-		});
-
 		it("lets a consumer className beat the appearance defaults", async () => {
 			render(
 				<Dialog.Root defaultOpen>
@@ -145,7 +143,7 @@ describe("Dialog.Content", () => {
 				</Dialog.Root>,
 			);
 
-			const content = await screen.findByRole("dialog");
+			const content = panelOf(await screen.findByRole("dialog"));
 			// tailwind-merge override contract: the consumer's `rounded-lg` beats the table's
 			// `rounded-xl` because `className` merges last.
 			expect(content).toHaveClass("rounded-lg");
@@ -358,7 +356,7 @@ describe("Dialog.Content", () => {
 				</Dialog.Root>,
 			);
 
-			const content = await screen.findByRole("dialog");
+			const content = panelOf(await screen.findByRole("dialog"));
 			expect(content).toHaveAttribute("id", "request-log");
 			expect(content).toHaveAttribute("data-flavor", "primary");
 			expect(ref.current).toBe(content);
@@ -470,11 +468,11 @@ describe("Dialog.Content", () => {
 			expect(trigger.dataset.slot).toBe("dialog-trigger");
 			await user.click(trigger);
 
-			const content = await screen.findByRole("dialog");
+			const content = panelOf(await screen.findByRole("dialog"));
 			const title = screen.getByRole("heading", { name: "Request log" });
 			const parts = [
 				{ element: content, slot: "dialog-content" },
-				{ element: content.parentElement, slot: "dialog-positioner" },
+				{ element: content.closest("dialog"), slot: "dialog-positioner" },
 				{ element: title, slot: "dialog-title" },
 				// `Dialog.Header` lays out its direct children by these slots, so a rename
 				// here also breaks the stack the browser test measures.
@@ -497,87 +495,23 @@ describe("Dialog.Content", () => {
 			for (const { element, slot } of parts) {
 				expect(element).toHaveAttribute("data-slot", slot);
 			}
-			expect(document.querySelectorAll('[data-slot="dialog-overlay"]')).toHaveLength(1);
 		});
 	});
 });
 
-describe("over an open native modal dialog", () => {
-	const connectedInLayoutEffect: boolean[] = [];
-	/** Records whether it is in the page when its layout effect runs, as `autoFocus` needs. */
-	function ConnectionProbe() {
-		const ref = useRef<HTMLSpanElement>(null);
-		useLayoutEffect(() => {
-			connectedInLayoutEffect.push(ref.current?.isConnected ?? false);
-		}, []);
-		return <span ref={ref} />;
-	}
-
-	function Shell({ inner, radix, sheet }: { inner: boolean; radix: boolean; sheet: boolean }) {
-		return (
-			<>
-				<NativeDialog.Root open={sheet}>
-					<NativeDialog.Content>
-						<NativeDialog.Title>Sheet</NativeDialog.Title>
-					</NativeDialog.Content>
-				</NativeDialog.Root>
-				{radix && (
-					<Dialog.Root open>
-						<Dialog.Content>
-							<Dialog.Title>Palette</Dialog.Title>
-							<ConnectionProbe />
-							<input aria-label="Query" />
-							<NativeDialog.Root open={inner}>
-								<NativeDialog.Content>
-									<NativeDialog.Title>Inner</NativeDialog.Title>
-								</NativeDialog.Content>
-							</NativeDialog.Root>
-						</Dialog.Content>
-					</Dialog.Root>
-				)}
-			</>
-		);
-	}
-
-	it("a dialog that mounts open in the modal is in the page in its layout effects", () => {
-		connectedInLayoutEffect.length = 0;
-		const { rerender } = render(<Shell inner={false} radix={false} sheet />);
-		rerender(<Shell inner={false} radix sheet />);
-
-		const sheet = screen.getByRole("dialog", { name: "Sheet" });
-		expect(sheet.contains(screen.getByRole("textbox", { name: "Query" }))).toBe(true);
-		expect(connectedInLayoutEffect).toEqual([true]);
-	});
-
-	it("the modal closes under a dialog that holds an open native dialog", () => {
-		const { rerender } = render(<Shell inner={false} radix={false} sheet />);
-		rerender(<Shell inner={false} radix sheet />);
-		rerender(<Shell inner radix sheet />);
-
-		act(() => rerender(<Shell inner radix sheet={false} />));
-
-		const query = screen.getByRole("textbox", { name: "Query" });
-		expect(query.closest("dialog")).toBeNull();
-		expect(document.querySelector("dialog:modal")).toBeNull();
-	});
-});
-
 describe("isDialogOverlayTarget", () => {
-	it("is true for the element Dialog.Overlay renders", async () => {
-		await open();
+	it("is true for the <dialog>, which a press on the backdrop targets", async () => {
+		const { wrapper } = await open();
 
-		// Both sides of the contract in one test: the overlay stamps the attribute
-		// the guard reads, so a rename of either alone turns this red.
-		const overlay = document.querySelector('[data-slot="dialog-overlay"]');
-		expect(overlay).toBeInstanceOf(HTMLElement);
-		expect(isDialogOverlayTarget(overlay)).toBe(true);
+		// Both sides of the contract in one test: the `<dialog>` stamps the
+		// attribute the guard reads, so a rename of either alone turns this red.
+		expect(isDialogOverlayTarget(wrapper)).toBe(true);
 	});
 
-	it("is false for the content, its positioner, and non-element targets", async () => {
-		const { content, wrapper } = await open();
+	it("is false for the panel and non-element targets", async () => {
+		const { content } = await open();
 
 		expect(isDialogOverlayTarget(content)).toBe(false);
-		expect(isDialogOverlayTarget(wrapper)).toBe(false);
 		expect(
 			isDialogOverlayTarget(document.createElementNS("http://www.w3.org/2000/svg", "svg")),
 		).toBe(false);
@@ -803,13 +737,7 @@ describe("outside interaction with a floating prompt", () => {
 				</Dialog.Content>
 			</Dialog.Root>,
 		);
-		await screen.findByRole("dialog");
-		const overlay = document.querySelector('[data-slot="dialog-overlay"]');
-		if (!(overlay instanceof HTMLElement)) {
-			throw new Error("dialog overlay not found");
-		}
-
-		await user.click(overlay);
+		await user.click(await screen.findByRole("dialog"));
 
 		expect(onOpenChange).toHaveBeenCalledTimes(1);
 		expect(onOpenChange).toHaveBeenLastCalledWith(false);
@@ -827,7 +755,9 @@ describe("outside interaction with a floating prompt", () => {
 		render(
 			<>
 				<PromptViewport />
-				<Dialog.Root defaultOpen>
+				{/* Why not modal: a modal dialog makes the page inert, so only a
+				    dialog that is not modal sees a press on the page. */}
+				<Dialog.Root defaultOpen modal={false}>
 					<Dialog.Content
 						onInteractOutside={(event) => {
 							preventedWhenCalled.interact.push(event.defaultPrevented);
