@@ -58,26 +58,30 @@ runs:
         elif [[ "${EVENT}" == "push" || "${ACTION}" == "synchronize" ]]; then
           # A PR counts only its own runs since it opened. A branch also counts
           # its manual runs, which always build. The baseline may not hold the
-          # live image when a newer run reported an image and then ended
-          # without success, or when a re-run attempt started after it. No
-          # successful run in the first page leaves the baseline unknown. Each
-          # of these builds.
+          # live image when a newer run started its deploy step and then ended
+          # without success, since the step can report an image before it
+          # fails. The same holds when a re-run attempt started after the
+          # baseline, or when a run in another concurrency group, such as a
+          # manual run, is still in progress. No successful run in the first
+          # page leaves the baseline unknown. Each of these builds.
           if lookup=$(gh api -X GET "repos/${REPO}/actions/workflows/${workflow##*/}/runs" \
-            -f branch="${BRANCH}" -f status=completed -f per_page=100 \
+            -f branch="${BRANCH}" -f per_page=100 \
             | jq -r --argjson run "${RUN_ID}" --argjson pr "${PR_NUMBER}" --arg event "${EVENT}" --arg since "${PR_CREATED_AT}" '
                 [.workflow_runs[] | select(.id != $run) | select(
                   if $event == "push" then .event == "push" or .event == "workflow_dispatch"
                   else .event == "pull_request" and .created_at >= $since and any(.pull_requests[]?; .number == $pr) end
-                )] as $runs
+                )] as $all
+                | [$all[] | select(.status == "completed")] as $runs
                 | ($runs | map(.conclusion == "success") | index(true)) as $i
-                | if $i == null then (if ($runs | length) > 0 then "force" else "none" end)
+                | if any($all[]; .status != "completed" and .event != $event) then "force"
+                  elif $i == null then (if ($runs | length) > 0 then "force" else "none" end)
                   elif any($runs[]; .run_attempt > 1 and .run_started_at > $runs[$i].run_started_at) then "force"
                   else $runs[$i].head_sha, ($runs[:$i][] | .id) end'); then
             baseline=$(head -n 1 <<<"${lookup}")
             while read -r id; do
               [[ -n "${id}" ]] || continue
               if ! reported=$(gh api "repos/${REPO}/actions/runs/${id}/jobs?filter=all&per_page=100" \
-                | jq --arg step "${STEP}" 'any(.jobs[].steps[]?; .name == $step and .conclusion == "success")'); then
+                | jq --arg step "${STEP}" 'any(.jobs[].steps[]?; .name == $step and .conclusion != null and .conclusion != "skipped")'); then
                 reported=true
               fi
               if [[ "${reported}" == "true" ]]; then
