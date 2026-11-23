@@ -11,7 +11,8 @@
  *   `aria-expanded`. A trigger carries ARIA only; style it with
  *   `aria-expanded:` or `group-aria-expanded:`.
  *
- * Scope: lowercase intrinsic elements and components alike, outside tests.
+ * Scope: JSX attributes on intrinsic elements and components, outside tests.
+ * A props object (`{ "data-x": … }`) and `setAttribute` are not checked.
  * An internal `data-mantle-*` marker is not consumer API, so its value is free.
  * The rule reads syntax, not types, so it misses a boolean variable passed
  * as a value (`data-x={isOpen}`).
@@ -36,8 +37,19 @@ const COMPARISON = new Set(["==", "!=", "===", "!==", "<", "<=", ">", ">=", "in"
  */
 const ARIA_STATE_ATTRIBUTES = new Set(["data-open", "data-expanded"]);
 
-/** Whether an expression always yields a boolean, judged from its syntax alone. */
-function isBooleanExpression(node) {
+/** The expression inside `as`, `satisfies`, `!`, and parentheses. */
+function unwrap(node) {
+	return node.type === "TSAsExpression" ||
+		node.type === "TSSatisfiesExpression" ||
+		node.type === "TSNonNullExpression" ||
+		node.type === "ParenthesizedExpression"
+		? unwrap(node.expression)
+		: node;
+}
+
+/** Whether an expression can yield a boolean, judged from its syntax alone. */
+function isBooleanExpression(input) {
+	const node = unwrap(input);
 	switch (node.type) {
 		case "Literal":
 			return typeof node.value === "boolean";
@@ -46,15 +58,19 @@ function isBooleanExpression(node) {
 		case "BinaryExpression":
 			return COMPARISON.has(node.operator);
 		case "LogicalExpression":
-			// Why `||` only: `ok || undefined` renders `"true"`, while `ok && ""` can yield `""` on purpose.
-			return node.operator === "||" && isBooleanExpression(node.left);
+			// Why a boolean side: `cmp || undefined` yields `true` and `cmp && ""` yields `false`, while a
+			// non-boolean `ok && ""` yields `""` on purpose.
+			return isBooleanExpression(node.left) || isBooleanExpression(node.right);
+		case "ConditionalExpression":
+			return isBooleanExpression(node.consequent) || isBooleanExpression(node.alternate);
 		default:
 			return false;
 	}
 }
 
 /** Whether an expression is the string `"true"` or `"false"`, or a ternary with one as a branch. */
-function yieldsBooleanString(node) {
+function yieldsBooleanString(input) {
+	const node = unwrap(input);
 	if (node.type === "Literal") {
 		return node.value === "true" || node.value === "false";
 	}

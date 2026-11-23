@@ -404,6 +404,9 @@ describe("data-attribute-contract", () => {
 		"const a = <div data-empty={items.length === 0} />;",
 		"const a = <div data-empty={items.length === 0 || undefined} />;",
 		'const a = <button aria-expanded={open} data-open={open ? "" : undefined} />;',
+		'const a = <div data-x={open === 1 && ""} />;',
+		"const a = <div data-x={open ? true : undefined} />;",
+		"const a = <div data-x={!open as boolean} />;",
 	])("flags %s", (source) => {
 		expect(lint({ rule: "data-attribute-contract", fileName: "a.tsx", source })).toEqual([
 			"data-attribute-contract",
@@ -415,6 +418,7 @@ describe("data-attribute-contract", () => {
 		"const a = <div data-side={side} data-value={count > 0 ? count : undefined} />;",
 		'const a = <div role="option" aria-selected={highlighted} data-selected={picked ? "" : undefined} />;',
 		'const a = <pre data-mantle-line-numbers={shown ? "true" : "false"} />;',
+		'const a = <div data-label={label && ""} />;',
 	])("allows %s", (source) => {
 		expect(lint({ rule: "data-attribute-contract", fileName: "a.tsx", source })).toEqual([]);
 	});
@@ -434,6 +438,10 @@ describe("prop-vocabulary", () => {
 		"type ToggleProps = { onChange?: (checked: boolean) => void };",
 		'type ToggleProps = { onChange?(value: "a" | "b"): void };',
 		"type ListProps = Base & ({ onChange: (values: string[]) => void } | { value: string });",
+		"type PickProps = { onChange?: (value: string | undefined) => void };",
+		"type PickProps = { onChange?: (values: readonly string[]) => void };",
+		"type PickProps = { onChange?: (values: Array<string>) => void };",
+		"type PickProps<T> = { onChange?: (value: T) => void };",
 	])("flags %s", (source) => {
 		expect(lint({ rule: "prop-vocabulary", fileName: "a.ts", source })).toEqual([
 			"prop-vocabulary",
@@ -443,6 +451,7 @@ describe("prop-vocabulary", () => {
 	it.each([
 		"type PickerProps = { value?: string; onValueChange?: (value: string) => void };",
 		"type FieldProps = { onChange?: (event: ChangeEvent<HTMLInputElement>) => void };",
+		"type FieldProps = { onChange?: (input: ChangeEvent<HTMLInputElement> | string) => void };",
 		"type PickerContextValue = { setOpen: (open: boolean) => void };",
 	])("allows %s", (source) => {
 		expect(lint({ rule: "prop-vocabulary", fileName: "a.ts", source })).toEqual([]);

@@ -215,7 +215,14 @@
               },
               {
                 "name": "react",
-                "importNames": ["useEffectEvent", "Activity", "captureOwnerStack", "cacheSignal"],
+                "importNames": [
+                  "useEffectEvent",
+                  "Activity",
+                  "captureOwnerStack",
+                  "cacheSignal",
+                  "ViewTransition",
+                  "addTransitionType"
+                ],
                 "message": "The React peer range is ^19, so use only APIs that React 19.0 ships (COMPONENT_SPEC.md §3.1)."
               }
             ],

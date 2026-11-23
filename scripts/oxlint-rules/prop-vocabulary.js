@@ -1,13 +1,21 @@
 /**
- * Holds the state prop names of COMPONENT_SPEC.md §1.11 on exported props
- * types: `value` / `defaultValue` / `onValueChange` and the other triples.
+ * Holds the state prop names of COMPONENT_SPEC.md §1.11 on props types:
+ * `value` / `defaultValue` / `onValueChange` and the other triples.
  *
  * In a type alias whose name ends in `Props`, it flags:
  * - a `setX` prop. Report a change with `onXChange`.
  * - a `selectedValue` or `multiple` prop. The value is `value`, and the
  *   component decides one or many.
- * - an `onChange` whose first parameter is a string, number, boolean, array,
- *   or literal. `onChange` is the DOM event; a value goes to `onValueChange`.
+ * - an `onChange` whose first parameter is a value: a string, number,
+ *   boolean, array, tuple, literal, or the alias's own type parameter, also
+ *   with `null` or `undefined`. `onChange` is the DOM event; a value goes to
+ *   `onValueChange`.
+ *
+ * Why no check that `onXChange` has an `x` beside it: a base props type often
+ * holds the callback while a union beside it holds `value` and `defaultValue`.
+ *
+ * Scope: source files; a test's own props types are fixtures. The rule reads
+ * object types written in the alias, not `Partial<…>` or `Omit<…>` arguments.
  *
  * @example
  * // ❌ Incorrect
@@ -17,19 +25,40 @@
  * // ✅ Correct
  * type PickerProps = { value?: string; defaultValue?: string; onValueChange?: (value: string) => void };
  * type ToggleProps = { checked?: boolean; onCheckedChange?: (checked: boolean) => void };
- *
- * Why no check that `onXChange` has an `x` beside it: a base props type often
- * holds the callback while a union beside it holds `value` and `defaultValue`.
- *
- * Scope: source files; a test's own props types are fixtures. */
+ */
 
 const VALUE_TYPES = new Set([
 	"TSStringKeyword",
 	"TSNumberKeyword",
+	"TSBigIntKeyword",
 	"TSBooleanKeyword",
 	"TSArrayType",
+	"TSTupleType",
 	"TSLiteralType",
+	"TSTemplateLiteralType",
 ]);
+
+const ARRAY_REFERENCES = new Set(["Array", "ReadonlyArray"]);
+
+/** Whether a type is a value, not an event. `null` and `undefined` in a union do not count. */
+function isValueType(type, typeParameters) {
+	switch (type.type) {
+		case "TSUnionType": {
+			const rest = type.types.filter(
+				(member) => member.type !== "TSNullKeyword" && member.type !== "TSUndefinedKeyword",
+			);
+			return rest.length > 0 && rest.every((member) => isValueType(member, typeParameters));
+		}
+		case "TSTypeOperator":
+			return type.operator === "readonly" && isValueType(type.typeAnnotation, typeParameters);
+		case "TSTypeReference": {
+			const name = type.typeName.type === "Identifier" ? type.typeName.name : null;
+			return name != null && (ARRAY_REFERENCES.has(name) || typeParameters.has(name));
+		}
+		default:
+			return VALUE_TYPES.has(type.type);
+	}
+}
 
 /** The key of a property or method signature, or `null` for a computed key. */
 function keyName(member) {
@@ -48,19 +77,16 @@ function keyName(member) {
 }
 
 /** Whether a callback's first parameter is a value, not an event. */
-function takesValue(member) {
-	const type = member.type === "TSMethodSignature" ? member : member.typeAnnotation?.typeAnnotation;
+function takesValue(member, typeParameters) {
+	let type = member.type === "TSMethodSignature" ? member : member.typeAnnotation?.typeAnnotation;
+	if (type?.type === "TSUnionType") {
+		type = type.types.find((part) => part.type === "TSFunctionType");
+	}
 	if (type?.type !== "TSFunctionType" && type?.type !== "TSMethodSignature") {
 		return false;
 	}
 	const first = type.params[0]?.typeAnnotation?.typeAnnotation;
-	if (first == null) {
-		return false;
-	}
-	if (first.type === "TSUnionType") {
-		return first.types.every((member) => VALUE_TYPES.has(member.type));
-	}
-	return VALUE_TYPES.has(first.type);
+	return first != null && isValueType(first, typeParameters);
 }
 
 const propVocabulary = {
@@ -90,6 +116,9 @@ const propVocabulary = {
 					}
 				};
 				collect(node.typeAnnotation);
+				const typeParameters = new Set(
+					(node.typeParameters?.params ?? []).map((param) => param.name.name ?? param.name),
+				);
 				for (const literal of literals) {
 					for (const member of literal.members) {
 						const name = keyName(member);
@@ -103,7 +132,7 @@ const propVocabulary = {
 								member,
 								`Drop \`${name}\`: the chosen value is \`value\`, and the component decides one or many`,
 							);
-						} else if (name === "onChange" && takesValue(member)) {
+						} else if (name === "onChange" && takesValue(member, typeParameters)) {
 							report(
 								member,
 								"`onChange` is the DOM event. Report a value with `onValueChange` or `onCheckedChange`",

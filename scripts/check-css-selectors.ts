@@ -134,7 +134,7 @@ function cli(): void {
 	if (problems.length > 0) {
 		console.log(problems.join("\n"));
 		console.log(
-			`check:css-selectors: ${problems.length} selectors. Add a \`/* structural-selector-ok: <reason> */\` comment before a rule only when the cost is justified.`,
+			`check:css-selectors: ${problems.length} problems. A structural selector may take a \`/* structural-selector-ok: <reason> */\` comment when the cost is justified; a \`data-*\` custom variant may not.`,
 		);
 		process.exitCode = 1;
 		return;

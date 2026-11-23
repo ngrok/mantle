@@ -913,8 +913,8 @@ DARK DEFS) or it resolves to nothing outside light mode. No §9 command catches 
 - **A value with several options is an enum** on the root: `data-side="top"`, `data-validation="error"`.
   Style it with the bracket form, `data-[side=top]:`.
 - No library names (`data-radix-*`, `data-active-item`, `data-headlessui-*`) and no `data-*` custom variants
-  in `mantle.css` (`check:css-selectors`). Internal markers that mantle code reads (`data-mantle-*`, `data-value`, `data-closing`)
-  keep their names.
+  in `mantle.css` (`check:css-selectors`). Internal markers that mantle code reads (`data-mantle-*`,
+  `data-value`, `data-closing`) keep their names.
 
 No shipped docs page has a data-attribute table yet. New components ship one; add one to an existing component
 when you are already touching it, starting with the highest-traffic hooks (`data-validation`, Button and
