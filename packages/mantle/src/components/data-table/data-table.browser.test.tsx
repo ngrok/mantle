@@ -389,6 +389,14 @@ describe("DataTable row motion (browser)", () => {
 		expect(midTop).toBeGreaterThan(startTop);
 
 		await clickToggle("Expand b");
+		// Why rewind only the new slide: WebKit can run a frame of it before the
+		// read, and the first slide stays paused where the test put it.
+		for (const animation of document.getAnimations()) {
+			if (animation.playState === "running") {
+				animation.pause();
+				animation.currentTime = 0;
+			}
+		}
 
 		expect(shownTop("tail")).toBeCloseTo(midTop, 0);
 		finishSlides();
