@@ -16,6 +16,7 @@
     "serve": "turbo run serve",
     "clean": "turbo run clean",
     "clean:node_modules": "node ./scripts/clean-node-modules.js",
+    "eval:agents": "node ./scripts/agent-eval/run.ts",
     "fmt:check": "oxfmt --check",
     "fmt": "oxfmt --write",
     "lint:fix": "oxlint --type-aware --ignore-pattern=.claude/worktrees --fix",
