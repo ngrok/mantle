@@ -1366,12 +1366,18 @@ const SidePanel = ({
 		if (panel == null) {
 			return;
 		}
-		// Why the animations and not a timer: the slide starts a frame after this
+		// Why the transitions and not a timer: the slide starts a frame after this
 		// effect, so a timer set to its length shuts the gate before it ends. A
-		// consumer `duration-*` or `delay-*` sets the wait.
+		// consumer `duration-*` or `delay-*` sets the wait. Why transitions only: a
+		// consumer animation on the panel can run forever.
+		// Why the guard: jsdom has no Web Animations API.
+		const transitions =
+			typeof panel.getAnimations === "function"
+				? panel.getAnimations().filter((animation) => animation instanceof CSSTransition)
+				: [];
 		let cancelled = false;
 		const shut = async () => {
-			await Promise.allSettled(panel.getAnimations().map((animation) => animation.finished));
+			await Promise.allSettled(transitions.map((transition) => transition.finished));
 			if (!cancelled) {
 				setCloseEnded(true);
 			}
