@@ -1,20 +1,16 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { createMcpHandler } from "@modelcontextprotocol/server";
-import mantlePackageJson from "@ngrok/mantle/package.json" with { type: "json" };
 import { describe, expect, it, vi } from "vitest";
-import { buildSiteAgentManifest } from "~/utilities/agent-manifest.server";
 import { urlToFileMap } from "~/utilities/docs";
 import type { McpFlags } from "~/utilities/mcp/flags.server";
 import {
-	createMantleMcpServer,
 	loadMigrationGuides,
 	MCP_INSTRUCTIONS,
-	productionDependencies,
 	type McpDependencies,
 	type ToolCallEvent,
 } from "~/utilities/mcp/server.server";
 import { packageFilesFixture } from "~/utilities/mcp/test-fixtures";
+import { currentDependencies, rpcAt } from "~/utilities/mcp/test-server";
 import type { DocPageRecord } from "~/utilities/mcp/tools";
 import { ServerBusyError, versionDataFromFiles } from "~/utilities/mcp/version-data.server";
 
@@ -46,37 +42,6 @@ function dependencies(overrides: Partial<McpDependencies> = {}): McpDependencies
 		frameOrigin: "https://frame.example",
 		log: () => {},
 		...overrides,
-	};
-}
-
-let requestId = 0;
-
-/** Sends one 2025-era JSON-RPC request to `url` through the stateless HTTP handler. */
-function rpcAt(url: string) {
-	return async (deps: McpDependencies, method: string, params: Record<string, unknown> = {}) => {
-		const handler = createMcpHandler(({ requestInfo }) => createMantleMcpServer(deps, requestInfo));
-		requestId += 1;
-		const response = await handler.fetch(
-			new Request(url, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Accept: "application/json, text/event-stream",
-					"User-Agent": "claude-code/2.1.3 (cli; darwin)",
-				},
-				body: JSON.stringify({ jsonrpc: "2.0", id: requestId, method, params }),
-			}),
-		);
-		// Why: the 2025-era leg answers over SSE, so the JSON-RPC response is the `data:` line.
-		const raw = await response.text();
-		await handler.close();
-		const data =
-			raw
-				.split("\n")
-				.find((line) => line.startsWith("data: "))
-				?.slice("data: ".length) ?? raw;
-		const body: unknown = JSON.parse(data);
-		return body as { result?: Record<string, unknown>; error?: { message: string } };
 	};
 }
 
@@ -758,29 +723,6 @@ describe("the mantle MCP server", () => {
 });
 
 /** The production dependencies, with the current docs build as the published version. */
-async function currentDependencies(): Promise<McpDependencies> {
-	const manifest = await buildSiteAgentManifest();
-	const data = versionDataFromFiles(
-		manifest.version,
-		new Map([
-			["package.json", JSON.stringify(mantlePackageJson)],
-			["dist/agent.json", JSON.stringify(manifest)],
-		]),
-	);
-	return {
-		...productionDependencies({
-			flags: () => ({ enabled: true, disabledTools: new Set() }),
-			requestOrigin: "https://mantle.example",
-		}),
-		loader: {
-			latestVersion: async () => data.version,
-			isPublished: async () => true,
-			load: async () => data,
-		},
-		log: () => {},
-	};
-}
-
 /** The queries in `("…")` form, as the `find` description and the For AI Agents page quote them. */
 function quotedExamples(text: string): string[] {
 	return Array.from(text.matchAll(/\("([^"]+)"\)/g), (match) => match[1] ?? "");
@@ -822,91 +764,12 @@ describe("the documented find examples", () => {
 	);
 });
 
-/**
- * Golden queries: how designers and agents describe a need, and the record
- * that must answer it. Each one came from a real search, such as Ricky's
- * words for Strata in Slack. Add a query when a weak find turns out to be a
- * find bug, not a gap.
- */
-describe("the golden find queries", () => {
-	const topResultByQuery = {
-		"form sections (our 2column layouts with label/description on left, inputs or controls on right)":
-			"Strata",
-		"this group of info on left, form fields on right": "Strata",
-		"form section with label and description on the left": "Strata",
-		"description left controls right": "Strata",
-		"two-column settings layout": "Strata",
-		"settings page": "Strata",
-		"icon on the left text on the right": "Media Object",
-		"checkbox on the left label and description on the right": "Choice",
-		"avatar initials from name": "Avatar",
-		"app shell sidebar header": "App Layout",
-		"centered login page": "Centered Layout",
-		"page heading with actions": "App Layout",
-		"list page with filters and a table": "List Page Loading States",
-		"skeleton rows while a table loads": "List Page Loading States",
-		"dialog loading state": "Overlays + Async Data (React Query)",
-		"sparkline in each table row": "Sparklines in a List",
-		"form actions": "Cancel and Submit Actions",
-		"form footer save cancel": "Cancel and Submit Actions",
-		"where do the save and cancel buttons go": "Cancel and Submit Actions",
-		"two column form sections": "Strata",
-		"section layout": "Strata",
-		"form validation": "Field",
-		"form validation on submit": "Field",
-		"cancel dialog": "Dialog",
-		"create form sections": "Strata",
-		"form section title on left": "Strata",
-		"page header buttons": "App Layout",
-		forms: "Field",
-		"form field": "Field",
-		"dialog loading state pattern": "Overlays + Async Data (React Query)",
-		"table sub-rows": "Data Table",
-		"expandable row detail": "Data Table",
-		"nested rows in a table": "Data Table",
-		"text search query": "Query",
-		"search filter": "Query",
-		"responsive adaptive layouts": "Breakpoints",
-		breadcrumbs: "Breadcrumb",
-	};
+// A version that lacks a part's API record still finds the part's docs page by its aliases.
+it("keeps the aliases of a component's docs page", async () => {
+	const pages = await (await currentDependencies()).docPages();
+	const page = pages.find(({ docsSlug }) => docsSlug === "components/forms/segmented-control");
 
-	it.each(Object.entries(topResultByQuery))(
-		'finds "%s" as a strong match to %s first',
-		async (query, name) => {
-			const { result } = await rpc(await currentDependencies(), "tools/call", {
-				name: "find",
-				arguments: { query },
-			});
-			const found = result?.structuredContent as {
-				strongMatch: boolean;
-				results: { name: string }[];
-			};
-
-			expect(found.strongMatch).toBe(true);
-			expect(found.results[0]?.name).toBe(name);
-		},
-	);
-
-	// A version that lacks a part's API record still finds the part's docs page by its aliases.
-	it("keeps the aliases of a component's docs page", async () => {
-		const pages = await (await currentDependencies()).docPages();
-		const page = pages.find(({ docsSlug }) => docsSlug === "components/forms/segmented-control");
-
-		expect(page).toMatchObject({ kind: "page", aliases: expect.arrayContaining(["toggle group"]) });
-	});
-
-	it.each(["stepper", "file drop zone"])(
-		'calls "%s" weak, so find reports the gap',
-		async (query) => {
-			const { result } = await rpc(await currentDependencies(), "tools/call", {
-				name: "find",
-				arguments: { query },
-			});
-			const found = result?.structuredContent as { strongMatch: boolean };
-
-			expect(found.strongMatch).toBe(false);
-		},
-	);
+	expect(page).toMatchObject({ kind: "page", aliases: expect.arrayContaining(["toggle group"]) });
 });
 
 describe("loadMigrationGuides", () => {
