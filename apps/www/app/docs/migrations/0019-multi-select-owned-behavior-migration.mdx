@@ -10,7 +10,7 @@ introducedIn: "0.95.0"
 
 - The parts no longer take every Ariakit prop. Each part takes the props of its element, plus the props on the [MultiSelect page](/components/forms/multi-select#api-reference).
 - `MultiSelect.Root` uses mantle's selection names: `value`, `defaultValue`, and `onValueChange` for the picked values; `inputValue`, `defaultInputValue`, and `onInputValueChange` for the text; and `open`, `defaultOpen`, and `onOpenChange`. Ariakit's `value`, `defaultValue`, and `setValue` set the text, so `value` and `defaultValue` now mean something else. `MultiSelect.Input` drops `onValueChange`: use `onInputValueChange` on `MultiSelect.Root`.
-- The list is not modal, the same as a native select: the page scrolls and stays reachable while it is open. `MultiSelect.Content` drops `modal`, `backdrop`, `preventBodyScroll`, `portalElement`, `unmountOnHide`, and the other Ariakit popover props. It portals into the nearest overlay's positioner, or into `document.body`, as `Select.Content` does.
+- The list is not modal, the same as a native select. While the list is open, the page scrolls and assistive technology can reach it. `MultiSelect.Content` drops `modal`, `backdrop`, `preventBodyScroll`, `portalElement`, `unmountOnHide`, and the other Ariakit popover props. It portals into the nearest overlay's positioner, or into `document.body`, as `Select.Content` does.
 - The highlighted item carries `data-highlighted` in place of `data-active-item`.
 - A closed list renders no items. The items mount when the list opens.
 

@@ -10,6 +10,6 @@
 - In right-to-left text, a click on the code puts the caret after the last character, so typing appends. The outer corners of each group are rounded on the correct side.
 - `OtpInput.Slot` outside `OtpInput.Root` throws a descriptive error.
 - `OtpInput.Root` adds no `<style>` at runtime, so `nonce` has no effect. It goes to the `<input>` as an attribute. A `noScriptCSSFallback` string renders a `<style>` with no `nonce` in a `<noscript>`.
-- With JavaScript off, the fallback input uses mantle's form colors. It needs `@media (scripting: none)` (Chrome 120, Safari 17, Firefox 113). A `noScriptCSSFallback` string still renders in a `<noscript>`.
+- With JavaScript off, the fallback input uses mantle's form colors. It needs `@media (scripting: none)` (Chrome 120, Safari 17, Firefox 113).
 
 https://mantle.ngrok.com/components/forms/otp-input
