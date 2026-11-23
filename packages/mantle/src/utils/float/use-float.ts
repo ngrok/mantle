@@ -31,9 +31,13 @@ const EXIT_DURATION = 150;
  *
  * Why `pointer-events-auto`: a modal Radix menu sets `pointer-events: none` on
  * `<body>`, and a float that portals there would inherit it.
+ *
+ * Why `overscroll-none`: a float whose content scrolls, such as a tall
+ * popover, does not bounce or scroll the page at its ends. It changes nothing
+ * on a float that does not scroll.
  */
 const floatClassName =
-	"pointer-events-auto fixed z-50 m-0 inset-auto overflow-visible starting:opacity-0 starting:scale-95 data-state-closed:opacity-0 data-state-closed:scale-95 transition-[opacity,scale,display,overlay] transition-discrete duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:transition-none";
+	"pointer-events-auto fixed z-50 m-0 inset-auto overflow-visible overscroll-none starting:opacity-0 starting:scale-95 data-state-closed:opacity-0 data-state-closed:scale-95 transition-[opacity,scale,display,overlay] transition-discrete duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:transition-none";
 
 /**
  * Whether the browser has the popover API. Without it, `useFloat` shows the
