@@ -394,6 +394,8 @@ export type Digest = {
 	needs: Map<string, number>;
 	/** The weak finds whose session then got the top guess, as `"query" → Part`. At most `DIGEST_KEYS`. */
 	topGuesses: Map<string, number>;
+	/** All weak finds whose session then got the top guess, also past the cap of `topGuesses`. */
+	topGuessHits: number;
 	reportedGaps: number;
 	weakFinds: number;
 	heldAlerts: number;
@@ -414,6 +416,7 @@ export function emptyDigest(now: number): Digest {
 		invalidArguments: new Map(),
 		needs: new Map(),
 		topGuesses: new Map(),
+		topGuessHits: 0,
 		reportedGaps: 0,
 		weakFinds: 0,
 		heldAlerts: 0,
@@ -507,6 +510,7 @@ function mergeDigest(digest: Digest, older: Digest) {
 	for (const [pair, times] of older.topGuesses) {
 		increment(digest.topGuesses, pair, times);
 	}
+	digest.topGuessHits += older.topGuessHits;
 	digest.reportedGaps += older.reportedGaps;
 	digest.weakFinds += older.weakFinds;
 	digest.heldAlerts += older.heldAlerts;
@@ -559,7 +563,8 @@ function sessionsLine(sessions: Map<number, Opening | undefined>): string | unde
 }
 
 /**
- * The Slack text of a digest, or `undefined` when it has no calls.
+ * The Slack text of a digest, or `undefined` when it has no calls and no
+ * weak finds. Why weak finds: a find can end its wait in a digest with no calls.
  *
  * @example
  * digestText(digest, { now: Date.now(), reason: "shutdown", host: "www-7f9c" });
@@ -568,7 +573,7 @@ export function digestText(
 	digest: Digest,
 	{ now, reason, host }: { now: number; reason: "interval" | "shutdown"; host: string },
 ): string | undefined {
-	if (digest.calls === 0) {
+	if (digest.calls === 0 && digest.weakFinds === 0) {
 		return undefined;
 	}
 	const errorCount = Array.from(digest.errors.values()).reduce((sum, value) => sum + value, 0);
@@ -579,22 +584,8 @@ export function digestText(
 	const needs = ranked(digest.needs)
 		.slice(0, 5)
 		.map(([need, times]) => `"${escape(need)}"${times > 1 ? ` ×${times}` : ""}`);
-	const topGuessCount = Array.from(digest.topGuesses.values()).reduce(
-		(sum, value) => sum + value,
-		0,
-	);
 	const tools = ranked(new Map(Array.from(digest.tools, ([tool, stats]) => [tool, stats.calls])));
-	return sections(
-		`:bar_chart: *mantle MCP: ${count(digest.calls)} ${digest.calls === 1 ? "call" : "calls"} in the last ${duration(now - digest.since)}*`,
-		lines(
-			`*Tools:* ${tools.map(([tool, calls]) => `${tool} ${count(calls)}`).join(" · ")}`,
-			`*Sources:* ${shares(digest.sources, digest.calls)}`,
-			`*Clients:* ${shares(digest.clients, digest.calls)}`,
-			sessionsLine(digest.sessions),
-			slowest == null
-				? undefined
-				: `*Slowest:* ${slowest[0]} averages ${duration(slowest[1].totalMs / slowest[1].calls)} (max ${duration(slowest[1].maxMs)})`,
-		),
+	const errors =
 		errorCount === 0
 			? "*Errors:* none"
 			: lines(
@@ -606,11 +597,25 @@ export function digestText(
 								: `${count(times)} ${ERROR_LABELS[kind]}`,
 						),
 					),
+				);
+	return sections(
+		`:bar_chart: *mantle MCP: ${count(digest.calls)} ${digest.calls === 1 ? "call" : "calls"} in the last ${duration(now - digest.since)}*`,
+		digest.calls === 0
+			? undefined
+			: lines(
+					`*Tools:* ${tools.map(([tool, calls]) => `${tool} ${count(calls)}`).join(" · ")}`,
+					`*Sources:* ${shares(digest.sources, digest.calls)}`,
+					`*Clients:* ${shares(digest.clients, digest.calls)}`,
+					sessionsLine(digest.sessions),
+					slowest == null
+						? undefined
+						: `*Slowest:* ${slowest[0]} averages ${duration(slowest[1].totalMs / slowest[1].calls)} (max ${duration(slowest[1].maxMs)})`,
 				),
+		digest.calls === 0 ? undefined : errors,
 		digest.reportedGaps + digest.weakFinds === 0
 			? "*Gaps:* none"
 			: lines(
-					`*Gaps:* ${count(digest.reportedGaps)} reported, ${count(digest.weakFinds)} finds with no strong match${topGuessCount > 0 ? ` (${count(topGuessCount)} then got the top guess)` : ""}`,
+					`*Gaps:* ${count(digest.reportedGaps)} reported, ${count(digest.weakFinds)} finds with no strong match${digest.topGuessHits > 0 ? ` (${count(digest.topGuessHits)} then got the top guess)` : ""}`,
 					needs.length === 0 ? undefined : bullets(needs),
 					digest.topGuesses.size === 0
 						? undefined
@@ -652,7 +657,10 @@ export type Pulse = {
 /** A weak find that waits for its session to `get` a part. */
 type ParkedFind = {
 	event: ToolCallEvent & { gap: GapSignal };
-	session: Session;
+	/** The key of its session. Why not the `Session`: an evicted session comes back as a new object. */
+	sessionKey: string;
+	/** When the find ended. A `get` that started earlier did not read its results. */
+	endedAt: number;
 	/** The first `TRAIL_LENGTH` steps of the session after the find. */
 	after: string[];
 	/** How many steps came after `after`. */
@@ -788,7 +796,10 @@ export function createPulse({
 	};
 
 	/** Posts `alert` unless a repeat or the hourly cap holds it back. */
-	const send = (alert: Alert) => {
+	const send = (alert: Alert | undefined) => {
+		if (alert == null) {
+			return;
+		}
 		const time = now();
 		if (time - (lastSent.get(alert.key) ?? -Infinity) < HOUR_MS) {
 			return;
@@ -808,36 +819,40 @@ export function createPulse({
 		void track(postAlert(alert, time));
 	};
 
-	/** Ends the wait of a weak find: the digest counts a right top guess, and any other end posts the alert. */
-	const resolve = (find: ParkedFind, followThrough: FollowThrough) => {
+	/** Ends the wait of a weak find, and returns its alert. A right top guess has none: only the digest counts it. */
+	const resolve = (find: ParkedFind, followThrough: FollowThrough): Alert | undefined => {
 		clearTimeout(find.timer);
 		parked.delete(find);
 		const need = find.event.gap.tokens.join(" ");
 		digest.weakFinds += 1;
 		if (followThrough.kind === "get" && followThrough.rank === 0) {
 			increment(digest.topGuesses, `"${escape(need)}" → ${escape(followThrough.part)}`);
-			return;
+			digest.topGuessHits += 1;
+			return undefined;
 		}
 		increment(digest.needs, need);
-		const alert = alertOf(find.event, { followThrough });
-		if (alert != null) {
-			send(alert);
-		}
+		return alertOf(find.event, { followThrough });
 	};
 
-	const park = (event: ToolCallEvent & { gap: GapSignal }, session: Session) => {
+	const park = (event: ToolCallEvent & { gap: GapSignal }, sessionKey: string, time: number) => {
 		// Why: a burst of weak finds must not hold a timer each. Past the cap, the oldest wait ends early.
 		const oldest = parked.values().next().value;
 		if (parked.size >= SESSION_KEYS && oldest != null) {
-			resolve(oldest, { kind: "none", after: oldest.after, more: oldest.more, until: "full" });
+			send(
+				resolve(oldest, { kind: "none", after: oldest.after, more: oldest.more, until: "full" }),
+			);
 		}
 		const find: ParkedFind = {
 			event,
-			session,
+			sessionKey,
+			endedAt: time,
 			after: [],
 			more: 0,
 			timer: setTimeout(
-				() => resolve(find, { kind: "none", after: find.after, more: find.more, until: "timeout" }),
+				() =>
+					send(
+						resolve(find, { kind: "none", after: find.after, more: find.more, until: "timeout" }),
+					),
 				FOLLOW_THROUGH_MS,
 			),
 		};
@@ -848,10 +863,8 @@ export function createPulse({
 		record: (event) => {
 			const time = now();
 			// Why the workspace and the ticket: two tasks behind one address and agent are two sessions.
-			const session = sessionOf(
-				`${event.caller} ${event.workspace ?? ""} ${event.ticket ?? ""}`,
-				time,
-			);
+			const sessionKey = `${event.caller} ${event.workspace ?? ""} ${event.ticket ?? ""}`;
+			const session = sessionOf(sessionKey, time);
 			const startedAt = time - event.latencyMs;
 			if (
 				(event.tool === "find" || event.tool === "check") &&
@@ -864,11 +877,13 @@ export function createPulse({
 			const step = stepOf(event);
 			const got = event.tool === "get" && event.outcome === "ok" ? event.ids?.[0] : undefined;
 			for (const find of parked) {
-				if (find.session !== session) {
+				if (find.sessionKey !== sessionKey) {
 					continue;
 				}
-				if (got != null) {
-					resolve(find, { kind: "get", part: got, rank: (find.event.ids ?? []).indexOf(got) });
+				if (got != null && startedAt >= find.endedAt) {
+					send(
+						resolve(find, { kind: "get", part: got, rank: (find.event.ids ?? []).indexOf(got) }),
+					);
 				} else if (find.after.length < TRAIL_LENGTH) {
 					find.after.push(step);
 				} else {
@@ -877,17 +892,16 @@ export function createPulse({
 			}
 			const { gap } = event;
 			if (gap?.source === "find") {
-				park({ ...event, gap }, session);
+				park({ ...event, gap }, sessionKey, time);
 			} else {
-				const alert = alertOf(event, {
-					session:
-						session.trail.length === 0
-							? undefined
-							: `${session.calls > session.trail.length ? "… → " : ""}${trailText(session.trail)}`,
-				});
-				if (alert != null) {
-					send(alert);
-				}
+				send(
+					alertOf(event, {
+						session:
+							session.trail.length === 0
+								? undefined
+								: `${session.calls > session.trail.length ? "… → " : ""}${trailText(session.trail)}`,
+					}),
+				);
 			}
 			session.calls += 1;
 			session.trail = [...session.trail, step].slice(-TRAIL_LENGTH);
@@ -911,10 +925,14 @@ export function createPulse({
 				return;
 			}
 			await Promise.all([idle(), settled()]);
-			for (const find of parked) {
-				resolve(find, { kind: "none", after: find.after, more: find.more, until: "shutdown" });
-			}
+			const waiting = Array.from(parked, (find) =>
+				resolve(find, { kind: "none", after: find.after, more: find.more, until: "shutdown" }),
+			);
+			// Why the digest first: Slack allows about one post a second, and the digest holds the counts.
 			await postDigest(reason);
+			for (const alert of waiting) {
+				send(alert);
+			}
 			// Why again: a call that ended during the wait can post an alert.
 			await settled();
 		},

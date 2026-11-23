@@ -303,7 +303,9 @@ describe("createPulse", () => {
 		vi.useRealTimers();
 	});
 
-	const getPart = (part: string, caller = "agent-a") => event({ tool: "get", ids: [part], caller });
+	// Why 0 ms: the get starts at the tick that the find ends, as a sequential call does.
+	const getPart = (part: string, caller = "agent-a") =>
+		event({ tool: "get", ids: [part], caller, latencyMs: 0 });
 
 	it("counts a weak find in the digest only when its session gets the top guess", async () => {
 		const { pulse, posts } = testPulse();
@@ -409,14 +411,63 @@ describe("createPulse", () => {
 		expect(posts[0]).toContain("*Sessions:* 1 · 1 called find before any check");
 	});
 
-	it("posts a waiting weak find at shutdown", async () => {
+	it("posts a waiting weak find at shutdown, after the digest", async () => {
 		const { pulse, posts } = testPulse();
 
 		pulse.record(weakFind);
 		await pulse.flush("shutdown");
 
-		expect(posts[0]).toContain("*Then:* no call before the server stopped");
-		expect(posts[1]).toContain('• "date range picker"');
+		expect(posts[0]).toContain('• "date range picker"');
+		expect(posts[1]).toContain("*Then:* no call before the server stopped");
+	});
+
+	it("posts the need of a weak find that ends its wait in a digest with no calls", async () => {
+		const { pulse, posts, advance } = testPulse();
+
+		pulse.record(weakFind);
+		await pulse.flush("interval");
+		advance(10 * 60_000);
+		await pulse.flush("shutdown");
+
+		expect(posts.at(-1)).toContain("*mantle MCP: 0 calls in the last 10 min*");
+		expect(posts.at(-1)).toContain('• "date range picker"');
+	});
+
+	it("does not count a get that started before the weak find ended", async () => {
+		const { pulse, posts, advance } = testPulse();
+
+		pulse.record({ ...weakFind, latencyMs: 10 });
+		advance(100);
+		pulse.record({ ...getPart("DatePicker"), latencyMs: 200 });
+		await pulse.flush("shutdown");
+
+		expect(posts[1]).toContain("*Then:* get DatePicker, no get before the server stopped");
+	});
+
+	it("follows a weak find through after its session is evicted", async () => {
+		const { pulse, posts } = testPulse();
+
+		pulse.record(weakFind);
+		for (let index = 0; index < 1_000; index += 1) {
+			pulse.record(event({ tool: "check", caller: `agent-${index}` }));
+		}
+		pulse.record(getPart("DatePicker"));
+		await pulse.flush("shutdown");
+
+		expect(posts).toHaveLength(1);
+		expect(posts[0]).toContain("(1 then got the top guess)");
+	});
+
+	it("counts each right top guess, past the cap on the named ones", async () => {
+		const { pulse, posts } = testPulse();
+
+		for (let index = 0; index < 201; index += 1) {
+			pulse.record({ ...weakFind, gap: { source: "find", tokens: [`need${index}`] } });
+			pulse.record(getPart("DatePicker"));
+		}
+		await pulse.flush("shutdown");
+
+		expect(posts[0]).toContain("201 finds with no strong match (201 then got the top guess)");
 	});
 
 	it("starts a new session when a caller makes no call for 30 min", async () => {
