@@ -238,10 +238,11 @@ type PrimitiveItemProps = ItemProps & {
 
 /**
  * One item of a `Root`: a `<div>` with a native `<input type="radio">` and
- * the item's children. The radio is an invisible pixel in the item's corner,
- * so `getByRole("radio").click()` in a test clicks the radio itself. A click
- * anywhere on the item focuses and checks the radio. Links, buttons, labels, and form controls in
- * the children keep their own clicks. The radio takes its name from a
+ * the item's children. The radio is a small invisible box at the middle of
+ * the item's start edge, so `getByRole("radio").click()` in a test clicks the
+ * radio itself. A click anywhere on the item focuses and checks the radio.
+ * Links, buttons, labels, and form controls in the children keep their own
+ * clicks. The radio takes its name from a
  * `<label>` in the item (the title line, such as `Choice.Label`), from a
  * `Choice.Title`, or else from all of the item's text. The caller
  * sets the styles; read the radio's state with `has-[>input:checked]:`,
@@ -310,7 +311,8 @@ const Item = ({
 					) {
 						return;
 					}
-					radio.focus();
+					// Why no scroll: the radio is a 4px box at the item's edge, and the user clicked a visible part of the item.
+					radio.focus({ preventScroll: true });
 					forwardingClick.current = true;
 					radio.click();
 					forwardingClick.current = false;
@@ -334,9 +336,10 @@ const Item = ({
 					{...radioProps}
 					checked={checked}
 					onChange={check}
-					// Why one pixel over the content's corner: a click at the radio's center lands on the radio itself, so a
-					// test can click it by its role, and a click on the item's text still lands on that text.
-					className="absolute start-0 top-0 z-1 m-0 size-px opacity-0"
+					// Why a 4px box over the middle of the start edge: a click at the radio's center lands on the radio
+					// itself, so a test can click it by its role, and a click on the item's text still lands on that
+					// text. A rounded corner or a corner badge never covers the middle of the edge.
+					className="absolute start-0 top-1/2 z-1 m-0 size-1 cursor-inherit opacity-0"
 					disabled={disabled}
 					form={group.form}
 					id={radioId}
