@@ -186,9 +186,9 @@ type AlertDialogContentProps = Omit<
  * outside click. Add `pointer-events-auto` too, because the open alert dialog sets
  * `pointer-events: none` on `<body>`. mantle's `Toaster` does both.
  *
- * The class reaches pointer input only. The open alert dialog traps keyboard
- * focus and hides outside content from assistive technology. Put a control that
- * every user must reach inside the content.
+ * The class reaches pointer input only. The open alert dialog makes outside
+ * content inert, so no keyboard focus or assistive technology reaches it.
+ * Put a control that every user must reach inside the content.
  *
  * A script can show its own popup in a frame on `<body>`, above the alert
  * dialog, such as the 3-D Secure challenge of a payment script. While that

@@ -31,8 +31,8 @@ import { escapeBelongsToNestedPopup } from "./targets.js";
 
 /**
  * The behavior that `Dialog`, `AlertDialog`, and `Sheet` share: a `<dialog>`
- * that the browser opens as a modal, traps focus in, makes the page inert
- * behind, closes on Escape, paints in the top layer, and returns focus from.
+ * that the browser opens as a modal, makes the page inert behind, closes on
+ * Escape, paints in the top layer, and returns focus from.
  * The parts here carry no look; each component composes its own presentation
  * onto them.
  *

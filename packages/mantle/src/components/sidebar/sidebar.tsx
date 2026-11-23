@@ -706,8 +706,8 @@ type SidebarNavProps = ComponentProps<"div"> & WithDataSlot;
  * and each row becomes a square chip around its leading icon, but everything
  * keeps its expanded position and stays in the tab order and the
  * accessibility tree. Below the breakpoint the same tree is a modal sheet on
- * the left, on the browser's `<dialog>`: the browser traps focus, makes the
- * page inert, closes it on Escape, and returns focus to the trigger, and CSS
+ * the left, on the browser's `<dialog>`: the browser makes the page inert,
+ * closes it on Escape, and returns focus to the trigger, and CSS
  * locks page scroll. The nav mounts once and never moves between the two.
  *
  * `className`, `style`, `ref`, and rest props land on the panel surface in
