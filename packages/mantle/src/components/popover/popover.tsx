@@ -9,6 +9,8 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { findWrappedTabStop } from "../../hooks/use-focus-trap.js";
+import { findTabbableDescendants } from "../alert/tabbable-neighbors.js";
 import { FloatArrow, focusFirst } from "../../utils/float/parts.js";
 import type { Align, Side } from "../../utils/float/position.js";
 import {
@@ -350,6 +352,7 @@ const Content = ({
 	onEscapeKeyDown,
 	onFocusOutside,
 	onInteractOutside,
+	onKeyDown,
 	onOpenAutoFocus,
 	onPointerDownOutside,
 	preferredWidth = "max-w-72",
@@ -430,6 +433,30 @@ const Content = ({
 					// Why: a click in the content must not reach a clickable parent of the trigger.
 					event.stopPropagation();
 					onClick?.(event);
+				}}
+				onKeyDown={(event) => {
+					onKeyDown?.(event);
+					if (
+						event.key !== "Tab" ||
+						event.defaultPrevented ||
+						!(event.target instanceof Node) ||
+						!event.currentTarget.contains(event.target)
+					) {
+						return;
+					}
+					// Why wrap: the content portals to the end of the body, so the
+					// browser's next tab stop after it is outside the page. Tab cycles
+					// inside the open content, and Escape or a press outside leaves it.
+					const tabStops = findTabbableDescendants(event.currentTarget);
+					const target = findWrappedTabStop({
+						tabStops,
+						current: event.currentTarget.ownerDocument.activeElement,
+						backwards: event.shiftKey,
+					});
+					if (tabStops.length === 0 || target != null) {
+						event.preventDefault();
+						target?.focus();
+					}
 				}}
 			/>,
 			portalTarget,
