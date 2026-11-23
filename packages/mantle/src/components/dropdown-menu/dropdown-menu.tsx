@@ -49,6 +49,10 @@ type RootState = {
 	triggerId: string;
 	contentId: string;
 	triggerRef: RefObject<HTMLElement | null>;
+	/** The trigger's ref callback. It tells `onTriggerChangeRef` about a new trigger element. */
+	setTrigger: (element: HTMLElement | null) => void;
+	/** Runs when the trigger gets a new element, such as a custom trigger that replaces its own button. */
+	onTriggerChangeRef: RefObject<(() => void) | null>;
 	/** Sets where focus goes when the menu opens next. */
 	setOpenFocus: (focus: OpenFocus) => void;
 	/** Returns where focus goes as the menu opens, and resets it to the menu. */
@@ -158,14 +162,18 @@ function itemsOf(menu: HTMLElement): HTMLElement[] {
 /** The shown menu element, and the inert boundary that a modal menu holds around it and its trigger. */
 type ModalBoundary = {
 	shown: HTMLElement | null;
-	held: { element: HTMLElement; trigger: HTMLElement; exit: () => void } | null;
+	held: {
+		element: HTMLElement;
+		trigger: HTMLElement;
+		exit: ReturnType<typeof enterModal>;
+	} | null;
 };
 
 /**
  * Makes the page inert around a shown modal menu and its trigger, and lets it
- * go when the menu hides or stops being modal. Why for each pair of elements:
- * the menu (under `asChild`) or the trigger can get a new element while the
- * menu stays open, and the boundary moves to the new one.
+ * go when the menu hides or stops being modal. Why update in place: the menu
+ * (under `asChild`) or the trigger can get a new element while the menu stays
+ * open, and a modal menu that opened later must stay above this one.
  */
 function syncModal(
 	boundary: ModalBoundary,
@@ -173,17 +181,17 @@ function syncModal(
 ): void {
 	const element = modal ? boundary.shown : null;
 	const { held } = boundary;
-	if (held?.element === element && held?.trigger === trigger) {
+	if (element == null || trigger == null) {
+		held?.exit();
+		boundary.held = null;
 		return;
 	}
-	if (held == null && (element == null || trigger == null)) {
-		return;
+	if (held == null) {
+		boundary.held = { element, trigger, exit: enterModal([trigger, element]) };
+	} else if (held.element !== element || held.trigger !== trigger) {
+		held.exit.update([trigger, element]);
+		boundary.held = { element, trigger, exit: held.exit };
 	}
-	held?.exit();
-	boundary.held =
-		element == null || trigger == null
-			? null
-			: { element, trigger, exit: enterModal([trigger, element]) };
 }
 
 /** Moves focus to an item or the menu, with no scroll jump. */
@@ -464,6 +472,15 @@ const Root = ({
 	const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
 	const open = openProp ?? uncontrolledOpen;
 	const triggerRef = useRef<HTMLElement | null>(null);
+	const onTriggerChangeRef = useRef<(() => void) | null>(null);
+	// Why only for an element: a replaced trigger detaches before the new one
+	// attaches, and the menu must not let its modal boundary go between them.
+	const setTrigger = useCallback((element: HTMLElement | null) => {
+		triggerRef.current = element;
+		if (element != null) {
+			onTriggerChangeRef.current?.();
+		}
+	}, []);
 	const { setOpenFocus, takeOpenFocus } = useOpenFocus();
 	const triggerId = useId();
 	const contentId = useId();
@@ -476,10 +493,23 @@ const Root = ({
 			triggerId,
 			contentId,
 			triggerRef,
+			setTrigger,
+			onTriggerChangeRef,
 			setOpenFocus,
 			takeOpenFocus,
 		}),
-		[contentId, dir, modal, open, openProp, onOpenChange, setOpenFocus, takeOpenFocus, triggerId],
+		[
+			contentId,
+			dir,
+			modal,
+			open,
+			openProp,
+			onOpenChange,
+			setOpenFocus,
+			setTrigger,
+			takeOpenFocus,
+			triggerId,
+		],
 	);
 	const { setOpen } = state;
 	// Why: a menu closes when the window loses focus, as a native menu does.
@@ -523,7 +553,7 @@ const Trigger = ({
 	...props
 }: ComponentProps<"button"> & WithAsChild & WithDataSlot) => {
 	const state = useRootState("Trigger");
-	const composedRef = useComposedRefs(ref, state.triggerRef);
+	const composedRef = useComposedRefs(ref, state.setTrigger);
 	const Component = asChild ? Slot : "button";
 	return (
 		<Component
@@ -863,7 +893,7 @@ const Content = ({
 	const modalBoundary = useRef<ModalBoundary>({ shown: null, held: null });
 	const [menu, setMenu] = useState<HTMLElement | null>(null);
 	const { onMenuKeyDown, isTyping, resetTyping } = useMenuKeyboard(loop);
-	const { portalTarget, floatingRef } = useFloat({
+	const { portalTarget, floatingRef, reconcile } = useFloat({
 		open: state.open,
 		onDismiss: (reason) => {
 			// Why: in a modal menu the page is inert, so an outside press puts focus
@@ -929,6 +959,17 @@ const Content = ({
 	// menu is open. A render that changes neither costs two comparisons.
 	useEffect(() => {
 		syncModal(modalBoundary.current, { modal: state.modal, trigger: state.triggerRef.current });
+	});
+	// Why: a custom trigger can replace its own element with no render here.
+	const { onTriggerChangeRef } = state;
+	useEffect(() => {
+		onTriggerChangeRef.current = () => {
+			reconcile();
+			syncModal(modalBoundary.current, { modal: state.modal, trigger: state.triggerRef.current });
+		};
+		return () => {
+			onTriggerChangeRef.current = null;
+		};
 	});
 	const menuElementRef = useCallback((element: HTMLElement | null) => {
 		menuRef.current = element;

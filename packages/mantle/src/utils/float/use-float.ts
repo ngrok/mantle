@@ -230,6 +230,7 @@ function useFloat({
 	present: boolean;
 	portalTarget: Element | DocumentFragment | null;
 	floatingRef: RefCallback<HTMLElement>;
+	reconcile: () => void;
 } {
 	const layerContainer = useLayerContainer();
 	const hydrated = useIsHydrated();
@@ -273,8 +274,8 @@ function useFloat({
 	const visible = open && !covered;
 	/** What the open float is placed against, and the call that places it again. */
 	const placedFor = useRef<PlacedFor | null>(null);
-	/** Starts an open float that had no anchor when its ref callback ran. */
-	const attachLate = useRef<((anchor: HTMLElement) => void) | null>(null);
+	/** Starts an open float that had no anchor, or was not in the document, when its ref callback ran. */
+	const attachLate = useRef<(() => boolean) | null>(null);
 	// Why: the ref callback keeps one identity while the float is open, so it
 	// does not see a new anchor element, such as a replaced trigger or an Anchor
 	// that mounts later, a new inherited direction, or a new arrow element. This
@@ -286,7 +287,7 @@ function useFloat({
 		}
 		const placed = placedFor.current;
 		if (placed == null) {
-			attachLate.current?.(anchor);
+			attachLate.current?.();
 			return;
 		}
 		if (
@@ -299,6 +300,7 @@ function useFloat({
 	};
 	// Why a layout effect: the float moves before the browser paints.
 	useIsomorphicLayoutEffect(reconcile);
+	const reconcileNow = useCallbackRef(reconcile);
 	// Why a passive effect too: an Anchor after the content in the tree attaches
 	// its ref after the content's layout effects run.
 	useEffect(reconcile);
@@ -482,18 +484,40 @@ function useFloat({
 				return;
 			}
 			const anchor = anchorOf();
-			if (anchor == null) {
-				let stop: (() => void) | undefined;
-				attachLate.current = (late) => {
-					attachLate.current = null;
-					stop = attach(floating, late);
-				};
-				return () => {
-					attachLate.current = null;
-					stop?.();
-				};
+			if (anchor != null && floating.isConnected) {
+				return attach(floating, anchor);
 			}
-			return attach(floating, anchor);
+			// Why wait: an Anchor can mount later, and a float can portal into a
+			// menu that is not in the document yet, where `showPopover` throws.
+			let stop: (() => void) | undefined;
+			let frame = 0;
+			const tryAttach = () => {
+				const late = anchorOf();
+				if (late == null || !floating.isConnected) {
+					return false;
+				}
+				attachLate.current = null;
+				stop = attach(floating, late);
+				return true;
+			};
+			attachLate.current = tryAttach;
+			// Why each frame: nothing renders this float again when its container connects.
+			const retry = () => {
+				if (attachLate.current === tryAttach && !floating.isConnected) {
+					frame = requestAnimationFrame(() => {
+						tryAttach();
+						retry();
+					});
+				}
+			};
+			retry();
+			return () => {
+				cancelAnimationFrame(frame);
+				if (attachLate.current === tryAttach) {
+					attachLate.current = null;
+				}
+				stop?.();
+			};
 		},
 		[anchorOf, attach, visible],
 	);
@@ -504,6 +528,8 @@ function useFloat({
 		// open on the first render portals one render later instead of mismatching.
 		portalTarget: present && hydrated ? resolvePortalTarget(layerContainer) : null,
 		floatingRef,
+		// Why: an anchor can get a new element in a render this hook does not see.
+		reconcile: reconcileNow,
 	};
 }
 

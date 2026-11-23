@@ -2,7 +2,7 @@
  * The exit of each open modal, so nested modals restore in reverse order. One
  * stack for each document is enough, and it holds nothing while no modal is open.
  */
-const stack: Array<{ apply: () => void; undo: () => void }> = [];
+const stack: Array<{ keep: () => readonly Element[]; apply: () => void; undo: () => void }> = [];
 
 /**
  * Sets an inline style property and returns the cleanup that puts back the
@@ -68,15 +68,20 @@ const labelsWithin = (element: Element): Element[] => {
  * @example
  * ```ts
  * const exit = enterModal([trigger, popupHost]);
+ * // when the trigger gets a new element while the popup stays open
+ * exit.update([nextTrigger, popupHost]);
  * // later, when the popup closes
  * exit();
  * ```
  */
-const enterModal = (keep: readonly Element[]): (() => void) => {
+const enterModal = (
+	initialKeep: readonly Element[],
+): (() => void) & { update: (keep: readonly Element[]) => void } => {
+	let keep = initialKeep;
 	// Why only labels outside: a label inside a kept popup, such as a group
 	// label, would otherwise make its sibling options inert.
 	const outside = (element: Element) => !keep.some((kept) => kept.contains(element));
-	const entry = { apply: () => {}, undo: () => {} };
+	const entry = { keep: () => keep, apply: () => {}, undo: () => {} };
 	entry.apply = () => {
 		const root = document.documentElement;
 		const cleanups: Array<() => void> = [];
@@ -96,6 +101,14 @@ const enterModal = (keep: readonly Element[]): (() => void) => {
 		};
 		for (const element of [...keep, ...keep.flatMap(labelsWithin).filter(outside)]) {
 			expose(element);
+		}
+		// Why: a modal that applies again under a modal that opened later must
+		// leave that one live, as it was when the later one opened.
+		const index = stack.indexOf(entry);
+		for (const later of index === -1 ? [] : stack.slice(index + 1)) {
+			for (const element of later.keep()) {
+				expose(element);
+			}
 		}
 		// Why: an ancestor, such as a dialog, keeps its name only while its title stays live.
 		for (const ancestor of exposed) {
@@ -148,7 +161,23 @@ const enterModal = (keep: readonly Element[]): (() => void) => {
 	};
 	entry.apply();
 	stack.push(entry);
-	return () => {
+	// Why in place: a modal that exits and enters again moves to the top of the
+	// stack, above a modal that opened after it, and makes that one inert.
+	const update = (next: readonly Element[]) => {
+		keep = next;
+		const index = stack.indexOf(entry);
+		if (index === -1) {
+			return;
+		}
+		const fromHere = stack.slice(index);
+		for (const open of fromHere.toReversed()) {
+			open.undo();
+		}
+		for (const open of fromHere) {
+			open.apply();
+		}
+	};
+	const exit = () => {
 		const index = stack.indexOf(entry);
 		if (index === -1) {
 			return;
@@ -165,6 +194,7 @@ const enterModal = (keep: readonly Element[]): (() => void) => {
 			stack.push(open);
 		}
 	};
+	return Object.assign(exit, { update });
 };
 
 export {

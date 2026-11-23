@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ComponentProps } from "react";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { commands, userEvent as browserUser } from "vitest/browser";
@@ -1144,6 +1144,112 @@ describe("DropdownMenu parity with Radix (browser)", () => {
 			await waitFor(() => expect(menu?.contains(document.activeElement)).toBe(true));
 		},
 	);
+
+	test.each([false, true])(
+		"a default-open Popover in a default-open menu mounts without an error (submenu: %s)",
+		async (submenu) => {
+			const editor = (
+				<Popover.Root defaultOpen>
+					<Popover.Trigger asChild>
+						<DropdownMenu.Item onSelect={(event) => event.preventDefault()}>Edit</DropdownMenu.Item>
+					</Popover.Trigger>
+					<Popover.Content>
+						<input aria-label="Name" />
+					</Popover.Content>
+				</Popover.Root>
+			);
+			render(
+				<DropdownMenu.Root defaultOpen modal={false}>
+					<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+					<DropdownMenu.Content>
+						{submenu ? (
+							<DropdownMenu.Sub defaultOpen>
+								<DropdownMenu.SubTrigger>More</DropdownMenu.SubTrigger>
+								<DropdownMenu.SubContent>{editor}</DropdownMenu.SubContent>
+							</DropdownMenu.Sub>
+						) : (
+							editor
+						)}
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>,
+			);
+
+			expect(await screen.findByRole("menu", { name: "Open" })).toBeInTheDocument();
+		},
+	);
+
+	test("a new asChild element for a submenu with an open Popover keeps the menus open", async () => {
+		const user = userEvent.setup();
+		function Fixture({ replacement }: { replacement: boolean }) {
+			const [editing, setEditing] = useState(false);
+			const nested = (
+				<Popover.Root open={editing} onOpenChange={setEditing}>
+					<Popover.Trigger asChild>
+						<DropdownMenu.Item onSelect={(event) => event.preventDefault()}>Edit</DropdownMenu.Item>
+					</Popover.Trigger>
+					<Popover.Content>
+						<input aria-label="Name" />
+					</Popover.Content>
+				</Popover.Root>
+			);
+			return (
+				<DropdownMenu.Root modal={false}>
+					<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+					<DropdownMenu.Content>
+						<DropdownMenu.Sub>
+							<DropdownMenu.SubTrigger>More</DropdownMenu.SubTrigger>
+							<DropdownMenu.SubContent asChild>
+								{replacement ? <section>{nested}</section> : <div>{nested}</div>}
+							</DropdownMenu.SubContent>
+						</DropdownMenu.Sub>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
+			);
+		}
+		const { rerender } = render(<Fixture replacement={false} />);
+		screen.getByRole("button", { name: "Open" }).focus();
+		await user.keyboard("{ArrowDown}{ArrowRight}{Enter}");
+		await waitFor(() => expect(screen.getByRole("textbox", { name: "Name" })).toHaveFocus());
+
+		rerender(<Fixture replacement />);
+		await act(async () => {});
+
+		expect(screen.getByRole("button", { name: "Open" })).toHaveAttribute("aria-expanded", "true");
+		expect(item("More")).toHaveAttribute("aria-expanded", "true");
+		expect(screen.getByRole("menu", { name: "More" })).toBeInTheDocument();
+	});
+
+	test("a new trigger element for an earlier modal menu leaves a later modal menu live", async () => {
+		const keepOpen = (event: Event) => event.preventDefault();
+		const tree = ({ second, replacement }: { second: boolean; replacement: boolean }) => (
+			<>
+				<DropdownMenu.Root open>
+					<DropdownMenu.Trigger key={String(replacement)}>First</DropdownMenu.Trigger>
+					<DropdownMenu.Content onInteractOutside={keepOpen}>
+						<DropdownMenu.Item>Alpha</DropdownMenu.Item>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
+				<DropdownMenu.Root open={second}>
+					<DropdownMenu.Trigger>Second</DropdownMenu.Trigger>
+					<DropdownMenu.Content onInteractOutside={keepOpen}>
+						<DropdownMenu.Item>Beta</DropdownMenu.Item>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
+			</>
+		);
+		const { rerender } = render(tree({ second: false, replacement: false }));
+		await screen.findByText("Alpha");
+		rerender(tree({ second: true, replacement: false }));
+		const beta = await screen.findByText("Beta");
+		await waitFor(() => expect(beta.closest("[inert]")).toBeNull());
+
+		rerender(tree({ second: true, replacement: true }));
+		await act(async () => {});
+
+		expect(beta.closest("[inert]")).toBeNull();
+		beta.focus();
+		expect(beta).toHaveFocus();
+	});
 });
 
 /** A consumer panel for `asChild` that adds an item of its own before its children. */
@@ -1156,7 +1262,7 @@ function PanelWithItem({ children, ...props }: ComponentProps<"section">) {
 	);
 }
 
-describe("DropdownMenu scrolling (browser)", () => {
+describe("DropdownMenu with its CSS (browser)", () => {
 	let styleElement: HTMLStyleElement;
 
 	beforeAll(async () => {
@@ -1204,4 +1310,51 @@ describe("DropdownMenu scrolling (browser)", () => {
 			panel.getBoundingClientRect().bottom,
 		);
 	});
+
+	test.each([false, true])(
+		"a custom trigger that replaces its own element updates the open menu (modal: %s)",
+		async (modal) => {
+			const control = { replaceElement: () => {} };
+			function CustomTrigger(props: ComponentProps<"button">) {
+				const [replacement, setReplacement] = useState(false);
+				useEffect(() => {
+					control.replaceElement = () => setReplacement(true);
+				});
+				return (
+					<button
+						type="button"
+						key={String(replacement)}
+						{...props}
+						style={{ position: "fixed", left: replacement ? 240 : 180, top: 200, width: 70 }}
+					>
+						Open
+					</button>
+				);
+			}
+			render(
+				<DropdownMenu.Root open modal={modal}>
+					<DropdownMenu.Trigger asChild>
+						<CustomTrigger />
+					</DropdownMenu.Trigger>
+					<DropdownMenu.Content
+						align="start"
+						onInteractOutside={(event) => event.preventDefault()}
+						style={{ width: 140 }}
+					>
+						<DropdownMenu.Item>Apple</DropdownMenu.Item>
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>,
+			);
+			const menu = await screen.findByRole("menu");
+			await waitFor(() => expect(menu.getBoundingClientRect().left).toBeCloseTo(180, 0));
+			const first = screen.getByRole("button", { name: "Open" });
+
+			await act(async () => control.replaceElement());
+
+			const next = screen.getByRole("button", { name: "Open" });
+			expect(next).not.toBe(first);
+			expect(next.closest("[inert]")).toBeNull();
+			await waitFor(() => expect(menu.getBoundingClientRect().left).toBeCloseTo(240, 0));
+		},
+	);
 });
