@@ -225,6 +225,38 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		expect(screen.queryByRole("dialog", { name: "Settings" })).not.toBeInTheDocument();
 	});
 
+	test("the edge cue follows the options when a filter changes them", async () => {
+		const style = document.createElement("style");
+		style.textContent = await commands.tailwindCss("./combobox.tsx");
+		document.head.append(style);
+		try {
+			const Filtered = ({ count }: { count: number }) => (
+				<Combobox.Root>
+					<Combobox.Input aria-label="Fruit" />
+					{/* Why the style: the compiled CSS holds only the classes in combobox.tsx. */}
+					<Combobox.Content style={{ maxHeight: 120 }}>
+						{Array.from({ length: count }, (_, index) => (
+							<Combobox.Item key={index} value={`Fruit ${index}`} />
+						))}
+					</Combobox.Content>
+				</Combobox.Root>
+			);
+			const { rerender } = render(<Filtered count={30} />);
+			await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
+			const list = screen.getByRole("listbox");
+			const edges = () =>
+				[list.hasAttribute("data-overflow-top"), list.hasAttribute("data-overflow-bottom")].join();
+			await expect.poll(edges).toBe("false,true");
+			list.scrollTop = 200;
+			await expect.poll(edges).toBe("true,true");
+			// Why: the list no longer scrolls, so neither edge has more options.
+			rerender(<Filtered count={2} />);
+			await expect.poll(edges).toBe("false,false");
+		} finally {
+			style.remove();
+		}
+	});
+
 	test("the open list hides its scrollbar and stops overscroll", async () => {
 		// Why the compiled CSS: this page loads no Tailwind, and the test checks the real utilities.
 		const style = document.createElement("style");

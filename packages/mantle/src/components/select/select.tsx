@@ -19,6 +19,7 @@ import type { SelectBehavior } from "../../behaviors/use-select.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
+import { observeScrollEdges } from "../../utils/scroll-edges.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { FieldControlContext } from "../field/field-context.js";
@@ -816,7 +817,8 @@ const OpenContent = ({
 			setOpen(false);
 		},
 	});
-	const composedRef = useComposedRefs(ref, popupRef, listbox.listboxProps.ref);
+	const listRef = useComposedRefs(listbox.listboxProps.ref, observeScrollEdges);
+	const composedRef = useComposedRefs(ref, popupRef, listRef);
 
 	return (
 		portalTarget != null &&
@@ -834,7 +836,7 @@ const OpenContent = ({
 				data-state="open"
 				data-align="start"
 				className={cx(
-					"border-popover duration-200 ease-out-strong data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-top:slide-in-from-bottom-1 motion-reduce:animate-none! pointer-events-auto fixed inset-auto z-50 m-0 text-inherit min-w-32 overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none rounded-md border shadow-md",
+					"border-popover duration-200 ease-out-strong data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-top:slide-in-from-bottom-1 motion-reduce:animate-none! pointer-events-auto fixed inset-auto z-50 m-0 text-inherit min-w-32 overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 rounded-md border shadow-md",
 					"bg-popover font-sans p-1 space-y-px max-h-(--available-height) outline-hidden",
 					width === "trigger" && "w-(--anchor-width)",
 					className,

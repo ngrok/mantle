@@ -57,8 +57,10 @@ const getOptions = (listbox: HTMLElement | null): HTMLElement[] =>
 			);
 
 /**
- * Scrolls `list` so that `option` shows in full. It moves no other scroll
- * container, and it reads offsets, so the open animation's scale changes nothing.
+ * Scrolls `list` so that `option` shows in full, clear of the list's
+ * `scroll-padding`, as `scrollIntoView` would. It moves no other scroll
+ * container, and it reads offsets, so the open animation's scale changes
+ * nothing.
  */
 const scrollIntoList = (list: HTMLElement, option: HTMLElement): void => {
 	let top = 0;
@@ -70,10 +72,23 @@ const scrollIntoList = (list: HTMLElement, option: HTMLElement): void => {
 		top += node.offsetTop;
 	}
 	top -= list.clientTop;
-	if (top < list.scrollTop) {
-		list.scrollTop = top;
-	} else if (top + option.offsetHeight > list.scrollTop + list.clientHeight) {
-		list.scrollTop = top + option.offsetHeight - list.clientHeight;
+	// Why: a list with `scroll-cue-y` sets `scroll-py-6`, so an option the
+	// keyboard reaches stays out of the faded edges. `auto` parses to 0. A list
+	// too short for both paddings shares the room left, so the option still shows.
+	// A percentage resolves against the list height, as for `scrollIntoView`.
+	const style = getComputedStyle(list);
+	const room = Math.max((list.clientHeight - option.offsetHeight) / 2, 0);
+	const padding = (value: string) =>
+		Math.min(
+			(Number.parseFloat(value) || 0) * (value.endsWith("%") ? list.clientHeight / 100 : 1),
+			room,
+		);
+	const paddingTop = padding(style.scrollPaddingTop);
+	const paddingBottom = padding(style.scrollPaddingBottom);
+	if (top - paddingTop < list.scrollTop) {
+		list.scrollTop = top - paddingTop;
+	} else if (top + option.offsetHeight + paddingBottom > list.scrollTop + list.clientHeight) {
+		list.scrollTop = top + option.offsetHeight + paddingBottom - list.clientHeight;
 	}
 };
 
