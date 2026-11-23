@@ -114,8 +114,14 @@ const CX_CLASSES = ["border", "font-family", "shadow", "text-wrap", "transform"]
  * commas, which the scanner does not split on.
  */
 async function cxBuiltClasses(imports: ReadonlyMap<string, readonly string[]>): Promise<string[]> {
+	const files = new Set(["cx.js"]);
+	for (const file of files) {
+		for (const imported of imports.get(file) ?? []) {
+			files.add(imported);
+		}
+	}
 	const candidates = new Scanner({}).scanFiles(
-		(imports.get("cx.js") ?? []).map((file) => ({
+		[...files].map((file) => ({
 			content: fs.readFileSync(path.join(DIST, file), "utf8"),
 			extension: "js",
 		})),
