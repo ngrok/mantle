@@ -57,12 +57,13 @@ file on [0008](../../../apps/www/app/docs/migrations/0008-tabs-separator-migrati
 6. **`> **Why <topic>?**`** One blockquote with the design reason. Two to four sentences.
 7. **`## Before → after`.** One `### <case>` per shape, each with a `// BEFORE` fence and an `// AFTER` fence.
    Cover the dynamic case and the aliased import when they exist.
-8. **`## Edge cases & gotchas`** when there are any, and **`## How to verify`** with the commands and the
-   test queries that change.
+8. **`## Edge cases & gotchas`** when there are any, and **`## How to verify`** with the commands and a
+   pointer to the `In tests:` step.
 
-In section 5, the step that starts `In tests:` holds one sub-bullet for each kind of test change below. Each
-sub-bullet gives the old test line and the new test line. `## Edge cases & gotchas` and `## How to verify` refer
-to that step and do not repeat it. Check the change against each kind:
+When the change breaks a test, section 5 has a step that starts `In tests:`. It holds one sub-bullet for each
+kind of test change below. Each sub-bullet gives the old test line and the new test line, where both
+exist. `## Edge cases & gotchas` and `## How to verify` refer to that step and do not repeat it. Check the
+change against each kind:
 
 - The state moves to another element. The matcher changes: `toHaveAttribute("aria-checked", "true")` becomes
   `toBeChecked()`.
@@ -70,7 +71,7 @@ to that step and do not repeat it. Check the change against each kind:
   becomes `fireEvent.click(trigger)`.
 - Content outside the part becomes `inert` or moves into the part. Queries need a scope:
   `screen.getByRole(…)` becomes `within(dialog).getByRole(…)`. A query in that scope also finds the moved
-  content, such as toasts, so give it a narrower name or role.
+  content, such as toasts. Give the query a narrower name or role.
 - A part mounts, unmounts, or closes at another time. The query changes: `{ hidden: true }` goes away. Or the
   test waits: it wraps the removal check in `waitFor`.
 - happy-dom or jsdom stops modeling the behavior, such as focus on `showModal()`. The assertion moves to a
@@ -163,6 +164,6 @@ the rest.
 - `before.tsx` has a negative case for every guard, and `after.tsx` is the rules' real output.
 - The codemod is idempotent, or the guide says "run once" and the test exempts it with a reason.
 - A dry run over `local/frontend/apps` found the expected shapes and nothing else.
-- The `In tests:` step in section 5 has a sub-bullet, with the old and the new line, for each kind of test break.
+- The `In tests:` step in section 5 has a sub-bullet, with the old and the new line, for each kind of test change.
 - The changeset is `minor` and links the guide.
 - Every sentence passes [CONVENTIONS.md § Self-check](../../../CONVENTIONS.md#self-check).
