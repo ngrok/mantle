@@ -261,6 +261,10 @@ const keyOf = (rect: DOMRect): string =>
  * crops to the new box again.
  */
 function observeMove(element: HTMLElement, onMove: () => void): () => void {
+	// Why: jsdom has neither observer. The float then places on scroll and resize only.
+	if (typeof IntersectionObserver === "undefined" || typeof ResizeObserver === "undefined") {
+		return () => {};
+	}
 	let observer: IntersectionObserver | undefined;
 	let stopped = false;
 	const watch = (threshold = 1) => {
@@ -480,13 +484,17 @@ function trackFloat({
 			}
 		});
 	};
-	const resizeObserver = new ResizeObserver(() => {
-		resized = true;
-		schedule();
-	});
-	resizeObserver.observe(floating);
+	// Why the check: jsdom has no `ResizeObserver`, and a throw here would break the open in a consumer's test.
+	const resizeObserver =
+		typeof ResizeObserver === "undefined"
+			? undefined
+			: new ResizeObserver(() => {
+					resized = true;
+					schedule();
+				});
+	resizeObserver?.observe(floating);
 	if (arrow != null) {
-		resizeObserver.observe(arrow);
+		resizeObserver?.observe(arrow);
 	}
 	// Why the listeners too: the observer reports after a paint, and a scroll
 	// or resize places the float before the paint, so it does not lag a frame.
@@ -496,7 +504,7 @@ function trackFloat({
 
 	return () => {
 		cancelAnimationFrame(frame);
-		resizeObserver.disconnect();
+		resizeObserver?.disconnect();
 		stopObservingMove();
 		window.removeEventListener("scroll", schedule, { capture: true });
 		window.removeEventListener("resize", schedule);
