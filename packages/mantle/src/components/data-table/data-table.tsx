@@ -38,6 +38,7 @@ import {
 	type ComponentProps,
 	Fragment,
 	type MouseEvent,
+	type PointerEvent,
 	type ReactNode,
 	createContext,
 	useCallback,
@@ -1108,6 +1109,36 @@ function isRowActivationClick(event: MouseEvent<HTMLTableRowElement>): boolean {
 }
 
 /**
+ * Whether a press lands on text selected inside the row. Why at the press:
+ * Firefox collapses the selection before it fires the `click`, so the click
+ * alone cannot tell a press that only deselects from a new activation.
+ */
+function isPressOnRowSelection(event: PointerEvent<HTMLTableRowElement>): boolean {
+	const selection = event.currentTarget.ownerDocument.getSelection();
+	if (
+		selection == null ||
+		selection.isCollapsed ||
+		!event.currentTarget.contains(selection.anchorNode)
+	) {
+		return false;
+	}
+	// Why each range: Firefox keeps one range for each Ctrl+drag.
+	for (let index = 0; index < selection.rangeCount; index++) {
+		for (const rect of selection.getRangeAt(index).getClientRects()) {
+			if (
+				event.clientX >= rect.left &&
+				event.clientX <= rect.right &&
+				event.clientY >= rect.top &&
+				event.clientY <= rect.bottom
+			) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+/**
  * A single data table body row rendered from a TanStack Table row instance.
  * Does not accept children: cells come from each column's `cell` definition.
  *
@@ -1193,10 +1224,12 @@ function Row<TFeatures extends TableFeatures, TData extends RowData>({
 	"data-slot": dataSlot,
 	className,
 	onClick,
+	onPointerDown,
 	renderExpanded,
 	row,
 	...props
 }: DataTableRowProps<TFeatures, TData>) {
+	const pressedOnSelection = useRef(false);
 	const closingRowIds = useContext(RowCollapseContext)?.closingRowIds ?? noClosingRowIds;
 	const renderRow = () => {
 		const isClosing = isRowClosing(row, closingRowIds);
@@ -1226,10 +1259,19 @@ function Row<TFeatures extends TableFeatures, TData extends RowData>({
 					onClick != null && "cursor-pointer",
 					className,
 				)}
+				onPointerDown={(event) => {
+					pressedOnSelection.current = onClick != null && isPressOnRowSelection(event);
+					onPointerDown?.(event);
+				}}
 				onClick={
 					onClick &&
 					((event) => {
-						if (isRowActivationClick(event)) {
+						// Why reset here: a press that no click follows, such as a right
+						// click, must not block a later click. Why only a pointer click
+						// (`detail` > 0): a keyboard or script click has no press.
+						const pressed = pressedOnSelection.current;
+						pressedOnSelection.current = false;
+						if (!(pressed && event.detail > 0) && isRowActivationClick(event)) {
 							onClick(event);
 						}
 					})
