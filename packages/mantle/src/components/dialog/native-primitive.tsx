@@ -168,7 +168,17 @@ function writeOpenState({ dialog, open }: { dialog: HTMLDialogElement; open: boo
 	} else if (!open && index !== -1) {
 		openDialogs.splice(index, 1);
 	}
-	setTopModal(openDialogs.findLast((each) => !nonModal.has(each)) ?? null);
+	const top = openDialogs.findLast((each) => !nonModal.has(each)) ?? null;
+	setTopModal(top);
+	// Why: WebKit keeps the content of an open dialog under the top modal
+	// focusable from script when the top one opened in a later frame, so the
+	// panel of each dialog under the top modal takes `inert` too.
+	for (const each of openDialogs) {
+		const panel = each.querySelector("[data-mantle-modal-content]");
+		if (panel instanceof HTMLElement) {
+			panel.inert = top != null && each !== top && !top.contains(each);
+		}
+	}
 }
 
 /** The open modal dialogs that hold the page scroll lock. */
@@ -762,17 +772,20 @@ const Content = ({
 		}
 		// Why: WebKit shows a focus ring on the browser's pick after a press, and
 		// the script focus of a Radix dialog showed none. A text field always
-		// shows one.
+		// shows one. Firefox shows none after a key when the opener showed none,
+		// such as a trigger that got focus back from a dialog that a press opened.
 		// Why the opener's ring as a fallback: a dialog that mounts on the press
 		// that opens it starts `trackInput` after that press.
 		const picked = dialog.ownerDocument.activeElement;
-		if (
-			(pressedLast ?? !openerRing.current) &&
-			picked instanceof HTMLElement &&
-			picked.matches(":focus-visible:not(:read-write)")
-		) {
-			picked.blur();
-			picked.focus({ focusVisible: false, preventScroll: true });
+		if (picked instanceof HTMLElement) {
+			const ring = picked.matches(":focus-visible");
+			const wrong = ring
+				? (pressedLast ?? !openerRing.current) && !picked.matches(":read-write")
+				: pressedLast === false;
+			if (wrong) {
+				picked.blur();
+				picked.focus({ focusVisible: !ring, preventScroll: true });
+			}
 		}
 		if (onOpenAutoFocus == null) {
 			return;
