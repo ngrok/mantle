@@ -44,6 +44,8 @@ runs:
         HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         RUN_ID: ${{ github.run_id }}
         RUN_ATTEMPT: ${{ github.run_attempt }}
+        # The caller names its ngrok/ship-action step this.
+        STEP: Build and deploy with ngrok ship
       run: |
         workflow="${WORKFLOW_REF#"${REPO}/"}"
         workflow="${workflow%%@*}"
@@ -55,11 +57,12 @@ runs:
           force=true
         elif [[ "${EVENT}" == "push" || "${ACTION}" == "synchronize" ]]; then
           # A PR counts only its own runs since it opened. A branch also counts
-          # its manual runs, which always build. A re-run attempt newer than the
-          # baseline may have left an image the baseline does not have, and no
-          # successful run in the first page leaves the baseline unknown: both
-          # build.
-          if baseline=$(gh api -X GET "repos/${REPO}/actions/workflows/${workflow##*/}/runs" \
+          # its manual runs, which always build. The baseline may not hold the
+          # live image when a newer run reported an image and then ended
+          # without success, or when a re-run attempt started after it. No
+          # successful run in the first page leaves the baseline unknown. Each
+          # of these builds.
+          if lookup=$(gh api -X GET "repos/${REPO}/actions/workflows/${workflow##*/}/runs" \
             -f branch="${BRANCH}" -f status=completed -f per_page=100 \
             | jq -r --argjson run "${RUN_ID}" --argjson pr "${PR_NUMBER}" --arg event "${EVENT}" --arg since "${PR_CREATED_AT}" '
                 [.workflow_runs[] | select(.id != $run) | select(
@@ -68,8 +71,20 @@ runs:
                 )] as $runs
                 | ($runs | map(.conclusion == "success") | index(true)) as $i
                 | if $i == null then (if ($runs | length) > 0 then "force" else "none" end)
-                  elif any($runs[:$i][]; .run_attempt > 1) then "force"
-                  else $runs[$i].head_sha end'); then
+                  elif any($runs[]; .run_attempt > 1 and .run_started_at > $runs[$i].run_started_at) then "force"
+                  else $runs[$i].head_sha, ($runs[:$i][] | .id) end'); then
+            baseline=$(head -n 1 <<<"${lookup}")
+            while read -r id; do
+              [[ -n "${id}" ]] || continue
+              if ! reported=$(gh api "repos/${REPO}/actions/runs/${id}/jobs?filter=all&per_page=100" \
+                | jq --arg step "${STEP}" 'any(.jobs[].steps[]?; .name == $step and .conclusion == "success")'); then
+                reported=true
+              fi
+              if [[ "${reported}" == "true" ]]; then
+                baseline=force
+                break
+              fi
+            done < <(tail -n +2 <<<"${lookup}")
             case "${baseline}" in
               force) force=true ;;
               none) [[ "${EVENT}" != "push" ]] || force=true ;;
@@ -96,9 +111,12 @@ runs:
           echo "force=${force}"
         } >> "${GITHUB_OUTPUT}"
 
+    # The comparison fails when the baseline predates the app. The app then
+    # builds.
     - name: Compare build hashes
       id: hash
       if: steps.range.outputs.force != 'true'
+      continue-on-error: true
       uses: ./.github/actions/turbo-build-changed
       with:
         package: ${{ inputs.package }}
@@ -114,11 +132,12 @@ runs:
       env:
         FORCE: ${{ steps.range.outputs.force }}
         HASH_CHANGED: ${{ steps.hash.outputs.changed }}
+        HASH_OUTCOME: ${{ steps.hash.outcome }}
         WORKFLOW: ${{ steps.range.outputs.workflow }}
         FROM: ${{ steps.range.outputs.from }}
         TO: ${{ steps.range.outputs.to }}
       run: |
-        if [[ "${FORCE}" == "true" || "${HASH_CHANGED}" == "true" ]] \
+        if [[ "${FORCE}" == "true" || "${HASH_CHANGED}" == "true" || "${HASH_OUTCOME}" == "failure" ]] \
           || ! git diff --quiet "${FROM}" "${TO}" -- "${WORKFLOW}" .github/actions/ship-build-changed .github/actions/turbo-build-changed \
             package.json pnpm-workspace.yaml scripts/package-manager-version; then
           echo "changed=true" >> "${GITHUB_OUTPUT}"

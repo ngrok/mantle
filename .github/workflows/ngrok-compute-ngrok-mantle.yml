@@ -59,6 +59,7 @@ jobs:
         id: node
         run: echo "version=$(cat .nvmrc)" >> "$GITHUB_OUTPUT"
 
+      # .github/actions/ship-build-changed reads this step name.
       - name: Build and deploy with ngrok ship
         if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.changed == 'true'
         uses: ngrok/ship-action@ce608ca50086eeaa02bb54783633d6e3a31004d7 # v1.0.0
