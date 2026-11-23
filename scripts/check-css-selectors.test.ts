@@ -53,4 +53,11 @@ describe("customDataVariants", () => {
 
 		expect(customDataVariants(css)).toEqual([2]);
 	});
+
+	it("skips a commented-out variant and finds one split across lines", () => {
+		const css =
+			"/*\n@custom-variant data-open (&[data-open]);\n*/\n@custom-variant\n  data-side-start (&[data-side=start]);\n";
+
+		expect(customDataVariants(css)).toEqual([4]);
+	});
 });

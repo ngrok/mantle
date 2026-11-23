@@ -442,6 +442,7 @@ describe("prop-vocabulary", () => {
 		"type PickProps = { onChange?: (values: readonly string[]) => void };",
 		"type PickProps = { onChange?: (values: Array<string>) => void };",
 		"type PickProps<T> = { onChange?: (value: T) => void };",
+		"type PickProps = PropsWithChildren<{ selectedValue?: string }>;",
 	])("flags %s", (source) => {
 		expect(lint({ rule: "prop-vocabulary", fileName: "a.ts", source })).toEqual([
 			"prop-vocabulary",

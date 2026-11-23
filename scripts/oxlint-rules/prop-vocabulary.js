@@ -15,7 +15,8 @@
  * holds the callback while a union beside it holds `value` and `defaultValue`.
  *
  * Scope: source files; a test's own props types are fixtures. The rule reads
- * object types written in the alias, not `Partial<…>` or `Omit<…>` arguments.
+ * object types written in the alias and inside `PropsWithChildren<…>`,
+ * `Readonly<…>`, or `Required<…>`, not `Omit<…>` or `Pick<…>` arguments.
  *
  * @example
  * // ❌ Incorrect
@@ -39,6 +40,9 @@ const VALUE_TYPES = new Set([
 ]);
 
 const ARRAY_REFERENCES = new Set(["Array", "ReadonlyArray"]);
+
+/** Generic types that keep every key of the object type they wrap. */
+const WRAPPERS = new Set(["PropsWithChildren", "Readonly", "Required"]);
 
 /** Whether a type is a value, not an event. `null` and `undefined` in a union do not count. */
 function isValueType(type, typeParameters) {
@@ -113,6 +117,12 @@ const propVocabulary = {
 						type.types.forEach(collect);
 					} else if (type.type === "TSParenthesizedType") {
 						collect(type.typeAnnotation);
+					} else if (
+						type.type === "TSTypeReference" &&
+						type.typeName.type === "Identifier" &&
+						WRAPPERS.has(type.typeName.name)
+					) {
+						(type.typeArguments ?? type.typeParameters)?.params.forEach(collect);
 					}
 				};
 				collect(node.typeAnnotation);

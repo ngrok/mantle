@@ -107,9 +107,11 @@ export function selectorProblems(text: string): Problem[] {
  * customDataVariants("@custom-variant data-side-start (&[data-side=start]);"); // => [1]
  */
 export function customDataVariants(text: string): number[] {
-	return text
-		.split("\n")
-		.flatMap((line, index) => (/^\s*@custom-variant\s+data-/.test(line) ? [index + 1] : []));
+	// Why blank the comments, not drop them: a commented-out variant registers nothing, and the line numbers must hold.
+	const code = text.replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, " "));
+	return [...code.matchAll(/@custom-variant\s+data-/g)].map(
+		(match) => code.slice(0, match.index).split("\n").length,
+	);
 }
 
 function cli(): void {
