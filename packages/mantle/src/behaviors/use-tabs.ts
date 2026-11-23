@@ -31,10 +31,12 @@ type TabsBehavior = {
 	select: (value: string) => void;
 	/**
 	 * The value of the tab that is the Tab stop: the last focused tab, else the
-	 * selected one. A selection change makes the last focused tab stale.
+	 * selected one. A selection change after focus leaves the list makes the
+	 * last focused tab stale.
 	 */
 	stop: string | undefined;
-	setFocused: (value: string) => void;
+	focusTab: (value: string) => void;
+	leaveList: () => void;
 	orientation: Orientation;
 	activationMode: ActivationMode;
 };
@@ -69,16 +71,24 @@ const useTabs = ({
 			}
 		},
 	});
-	// Why `under`: a selection made outside the list, such as a controlled
-	// change, must be where focus comes back, not the tab focused before it.
-	const [focused, setFocused] = useState<{ value: string; under: string | undefined } | null>(null);
+	// Why `under` and `inside`: the focused tab stays the Tab stop while focus is
+	// in the list. After focus leaves, a selection made outside the list, such as
+	// a controlled change, is where focus comes back.
+	const [focused, setFocused] = useState<{
+		value: string;
+		under: string | undefined;
+		inside: boolean;
+	} | null>(null);
 	return {
 		baseId: useId(),
 		value,
 		select: setValue,
-		stop: focused != null && focused.under === value ? focused.value : value,
-		setFocused: (next) => {
-			setFocused({ value: next, under: value });
+		stop: focused != null && (focused.inside || focused.under === value) ? focused.value : value,
+		focusTab: (next) => {
+			setFocused({ value: next, under: value, inside: true });
+		},
+		leaveList: () => {
+			setFocused((current) => current && { ...current, inside: false });
 		},
 		orientation,
 		activationMode,
@@ -103,49 +113,35 @@ const focusFirst = (order: HTMLElement[]) => {
 };
 
 /**
- * Makes the list itself a Tab stop only while no enabled, rendered tab is one,
- * such as when no tab is selected, or the selected tab is disabled or has
- * `display: none`. A focus on the list then moves to the selected tab, or to
- * the first enabled tab that takes focus.
+ * Makes the list the entry point for a Tab forward, as in Radix: the list
+ * precedes its tabs in the Tab order, and its focus moves to the first tab that
+ * takes focus. The server HTML leaves it out, so the selected tab is the Tab
+ * stop before hydration. A Shift+Tab from a tab takes the list out of the Tab
+ * order until focus leaves, so focus does not come back to the tab.
  */
-const watchTabStop = (list: HTMLElement | null) => {
-	if (list == null) {
-		return;
+const enableListEntry = (list: HTMLElement | null) => {
+	if (list != null) {
+		list.tabIndex = 0;
 	}
-	const sync = () => {
-		const hasStop = enabledTabs(list).some(
-			(tab) => tab.tabIndex === 0 && tab.getClientRects().length > 0,
-		);
-		// Why the checks: a write to `tabindex` would wake this observer again.
-		if (hasStop && list.hasAttribute("tabindex")) {
-			list.removeAttribute("tabindex");
-		} else if (!hasStop && list.getAttribute("tabindex") !== "0") {
-			list.tabIndex = 0;
-		}
-	};
-	const observer = new MutationObserver(sync);
-	observer.observe(list, {
-		subtree: true,
-		childList: true,
-		attributeFilter: ["tabindex", "disabled", "hidden", "class", "style"],
-	});
-	sync();
-	return () => {
-		observer.disconnect();
-	};
 };
 
 const enterList = (event: FocusEvent<HTMLElement>) => {
 	if (event.target !== event.currentTarget) {
 		return;
 	}
+	// Why this order: the APG enters on the selected tab, then the last focused
+	// tab. A tab that cannot take focus, such as one hidden by CSS, is skipped.
 	const tabs = enabledTabs(event.currentTarget);
-	focusFirst([...tabs.filter((tab) => tab.getAttribute("aria-selected") === "true"), ...tabs]);
+	focusFirst([
+		...tabs.filter((tab) => tab.getAttribute("aria-selected") === "true"),
+		...tabs.filter((tab) => tab.tabIndex === 0),
+		...tabs,
+	]);
 };
 
 /**
- * Wires the tab list: `role="tablist"`, its orientation, and the fallback Tab
- * stop. The arrow keys live on each tab, so a tab's own key handler can veto
+ * Wires the tab list: `role="tablist"`, its orientation, and the entry point
+ * for a Tab forward. The arrow keys live on each tab, so a tab's own key handler can veto
  * them with `preventDefault()`.
  *
  * @example
@@ -157,7 +153,7 @@ const getTabListProps = (tabs: TabsBehavior) => ({
 	role: "tablist",
 	"aria-orientation": tabs.orientation,
 	"data-orientation": tabs.orientation,
-	ref: watchTabStop,
+	ref: enableListEntry,
 	onFocus: enterList,
 });
 
@@ -289,6 +285,13 @@ const getTabProps = (
 		},
 		onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
 			const tab = event.currentTarget;
+			if (event.key === "Tab" && event.shiftKey) {
+				const list = tab.closest<HTMLElement>('[role="tablist"]');
+				if (list != null) {
+					list.tabIndex = -1;
+				}
+				return;
+			}
 			// Why the target check: a key in a field inside an `asChild` tab is not for the tab.
 			if (disabled || event.target !== tab) {
 				return;
@@ -315,28 +318,17 @@ const getTabProps = (
 				return;
 			}
 			const tab = event.currentTarget;
-			const from = event.relatedTarget;
-			const list = tab.closest('[role="tablist"]');
-			// Why: a Tab forward from before the list enters on the selected tab, as
-			// the APG asks, even when manual mode left another tab as the stop.
-			if (
-				!selected &&
-				tab !== pressedTab &&
-				from instanceof Node &&
-				!list?.contains(from) &&
-				from.compareDocumentPosition(tab) & Node.DOCUMENT_POSITION_FOLLOWING
-			) {
-				const active = enabledTabs(list).find(
-					(other) => other.getAttribute("aria-selected") === "true",
-				);
-				active?.focus();
-				if (active != null && tab.ownerDocument.activeElement === active) {
-					return;
-				}
-			}
-			tabs.setFocused(value);
+			tabs.focusTab(value);
 			if (tab !== pressedTab && !selected && tabs.activationMode === "automatic") {
 				tabs.select(value);
+			}
+		},
+		onBlur: (event: FocusEvent<HTMLElement>) => {
+			const list = event.currentTarget.closest<HTMLElement>('[role="tablist"]');
+			const to = event.relatedTarget;
+			if (list != null && !(to instanceof Node && list.contains(to))) {
+				list.tabIndex = 0;
+				tabs.leaveList();
 			}
 		},
 	};
@@ -375,7 +367,8 @@ const getTabPanelProps = (
 			role: "tabpanel",
 			id: panelId(tabs, value),
 			"aria-labelledby": tabId(tabs, value),
-			tabIndex: 0,
+			// Why -1: an inactive panel hidden until found is invisible but focusable.
+			tabIndex: hiddenUntilFound && !selected ? -1 : 0,
 			"data-state": selected ? "active" : "inactive",
 			"data-orientation": tabs.orientation,
 			hidden: !shown || undefined,

@@ -594,7 +594,7 @@ import { Tabs } from "@ngrok/mantle/tabs";
 - **Tab** moves focus into the list and lands on the active tab. Only the active tab is a Tab stop, so the next **Tab** leaves the list. This holds for `asChild` triggers too, so a list of router links is one Tab stop, not one per link.
 - **ArrowLeft** / **ArrowRight** (or **ArrowUp** / **ArrowDown** when vertical) move focus between the enabled tabs and activate the focused tab. They wrap at the ends unless `Tabs.List` has `loop={false}`. In a right-to-left page, **ArrowLeft** moves to the next tab. **Home** and **End** jump to the first and last tab.
 - With `activationMode="manual"`, the arrows only move focus, and **Enter** or **Space** activates the focused tab.
-- The active tab is a Tab stop in the server HTML, so the keyboard reaches it before hydration. After that, the last focused tab is the Tab stop. When no enabled tab is one, such as with no active tab, the list takes the focus and moves it to the first enabled tab.
+- The active tab is a Tab stop in the server HTML, so the keyboard reaches it before hydration. After hydration, a forward **Tab** enters on the active tab, or on the first enabled tab that can take focus. **Shift+Tab** comes back to the last focused tab, unless the selection changed after focus left.
 - When a horizontal list overflows, keyboard focus scrolls the focused tab to the center of the visible area. A pointer click never scrolls the list, so the tab you press stays under the pointer.
 - A `disabled` trigger carries `aria-disabled`. With `asChild`, it also drops the child's `href`, so a disabled link cannot navigate.
 

@@ -71,7 +71,7 @@ import { Tabs } from "@ngrok/mantle/tabs";
 ## Edge cases & gotchas
 
 - **Right-to-left pages.** Radix set `dir="ltr"` on the root, so the arrow keys moved left to right in a right-to-left page. The root now sets `dir` only when you pass it, and in a right-to-left page **ArrowLeft** moves to the next tab.
-- **Tab order before hydration.** The server HTML now puts the active tab in the Tab order. The tab list is a Tab stop only while no enabled tab is one.
+- **Tab order before hydration.** The server HTML now puts the active tab in the Tab order. After hydration, the tab list is the entry point for a forward Tab, as in Radix, and moves focus to the active tab.
 - **Exit animations.** An inactive panel hides at once. Radix kept a panel mounted while a CSS exit animation on it ran. No ngrok app animates a tab panel's exit. Animate the entering panel instead.
 - **Force-mounted panels for crawlers.** A page that force-mounts every panel and hides the inactive ones with `data-[state=inactive]:hidden` can use `<Tabs.Content hiddenUntilFound>` instead. The text stays in the HTML, and find-in-page reveals it. Delete the `hidden` class: `display: none` blocks the search.
 

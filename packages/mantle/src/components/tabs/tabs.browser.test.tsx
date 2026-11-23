@@ -807,19 +807,105 @@ describe("Tabs keyboard, focus, and ARIA contract", () => {
 		history.replaceState(null, "", window.location.pathname);
 	});
 
+	test("a focus request from before the list focuses the requested tab", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(
+			<>
+				<button type="button" onClick={() => tab("B").focus()}>
+					Focus B
+				</button>
+				<Tabs.Root defaultValue="a" onValueChange={onValueChange}>
+					<Tabs.List aria-label="Requested">
+						<Tabs.Trigger value="a">A</Tabs.Trigger>
+						<Tabs.Trigger value="b">B</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+			</>,
+		);
+
+		await userEvent.click(screen.getByRole("button", { name: "Focus B" }));
+
+		expect(tab("B")).toHaveFocus();
+		expect(onValueChange.mock.calls).toEqual([["b"]]);
+	});
+
+	test("a selection made while focus stays on a tab keeps that tab the Tab stop", async () => {
+		const Controlled = ({ value }: { value: string }) => (
+			<Tabs.Root value={value} onValueChange={() => {}}>
+				<Tabs.List aria-label="Async">
+					<Tabs.Trigger value="a">A</Tabs.Trigger>
+					<Tabs.Trigger value="b">B</Tabs.Trigger>
+				</Tabs.List>
+				<Tabs.Content value="a">Panel A</Tabs.Content>
+				<Tabs.Content value="b">Panel B</Tabs.Content>
+			</Tabs.Root>
+		);
+		const { rerender } = render(<Controlled value="a" />);
+		await userEvent.click(tab("A"));
+
+		rerender(<Controlled value="b" />);
+		await userEvent.keyboard("{Tab}");
+
+		expect(screen.getByRole("tabpanel")).toHaveFocus();
+		expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel B");
+	});
+
+	test.each([
+		{ name: "display: none", style: { display: "none" } },
+		{ name: "visibility: hidden", style: { visibility: "hidden" } },
+	] as const)("Tab enters past a selected tab that $name hides after mount", async ({ style }) => {
+		const Hidden = ({ hide }: { hide: boolean }) => (
+			<>
+				<button type="button">Before</button>
+				<Tabs.Root defaultValue="a">
+					<Tabs.List aria-label="Later hidden">
+						<Tabs.Trigger value="a" style={hide ? style : undefined}>
+							A
+						</Tabs.Trigger>
+						<Tabs.Trigger value="b">B</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>
+			</>
+		);
+		const { rerender } = render(<Hidden hide={false} />);
+		rerender(<Hidden hide />);
+
+		await userEvent.click(screen.getByRole("button", { name: "Before" }));
+		await userEvent.keyboard("{Tab}");
+
+		expect(tab("B")).toHaveFocus();
+	});
+
+	test("Shift+Tab leaves tabs that mount under a hidden ancestor", async () => {
+		const Shown = ({ shown }: { shown: boolean }) => (
+			<>
+				<button type="button">Before</button>
+				<div style={shown ? undefined : { display: "none" }}>
+					<Tabs.Root defaultValue="a">
+						<Tabs.List aria-label="Shown later">
+							<Tabs.Trigger value="a">A</Tabs.Trigger>
+							<Tabs.Trigger value="b">B</Tabs.Trigger>
+						</Tabs.List>
+					</Tabs.Root>
+				</div>
+			</>
+		);
+		const { rerender } = render(<Shown shown={false} />);
+		rerender(<Shown shown />);
+		tab("A").focus();
+
+		await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+
+		expect(screen.getByRole("button", { name: "Before" })).toHaveFocus();
+	});
+
 	test("when the selected tab is disabled, Tab reaches the first enabled tab", async () => {
 		render(<FourTabs defaultValue="c" activationMode="manual" />);
-		await vi.waitFor(() => {
-			expect(screen.getByRole("tablist")).toHaveAttribute("tabindex", "0");
-		});
 
 		await userEvent.click(screen.getByRole("button", { name: "Before" }));
 		await userEvent.keyboard("{Tab}");
 
 		expect(tab("A")).toHaveFocus();
-		await vi.waitFor(() => {
-			expect(screen.getByRole("tablist")).not.toHaveAttribute("tabindex");
-		});
 		await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
 		expect(screen.getByRole("button", { name: "Before" })).toHaveFocus();
 	});
@@ -1003,6 +1089,21 @@ describe("Tabs keyboard, focus, and ARIA contract", () => {
 		expect(tab("B")).toHaveAttribute("aria-selected", "true");
 		expect(onValueChange.mock.calls).toEqual([["b"]]);
 		history.replaceState(null, "", window.location.pathname);
+	});
+
+	test("Tab skips the inactive panels that are hidden until found", async () => {
+		render(
+			<>
+				<UntilFound value="b" />
+				<button type="button">After</button>
+			</>,
+		);
+		tab("B").focus();
+
+		await userEvent.keyboard("{Tab}");
+		expect(screen.getByRole("tabpanel", { name: "B" })).toHaveFocus();
+		await userEvent.keyboard("{Tab}");
+		expect(screen.getByRole("button", { name: "After" })).toHaveFocus();
 	});
 
 	test("a panel revealed before hydration selects its tab once hydrated", async () => {

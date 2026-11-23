@@ -490,6 +490,7 @@ const Trigger = ({
 	className,
 	"data-slot": dataSlot,
 	disabled: _disabled,
+	onBlur,
 	onClick,
 	onFocus,
 	onKeyDown,
@@ -511,6 +512,7 @@ const Trigger = ({
 		// Why only `asChild`: the click handler serves a link child. React gives an
 		// element with `onClick` a DOM listener of its own.
 		onClick: asChild ? composeHandlers(onClick, tabProps.onClick) : onClick,
+		onBlur: composeHandlers(onBlur, tabProps.onBlur),
 		onFocus: composeHandlers(onFocus, tabProps.onFocus),
 		onKeyDown: composeHandlers(onKeyDown, tabProps.onKeyDown),
 		onMouseDown: composeHandlers(onMouseDown, tabProps.onMouseDown),
