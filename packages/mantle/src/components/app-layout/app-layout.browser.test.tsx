@@ -372,10 +372,20 @@ describe("AppLayout.SidePanel motion across mobileBreakpoint", () => {
 			defaultOpen: true,
 			style: { transitionDuration: "200ms, 1000ms, 200ms", transitionDelay: "500ms, 0ms, 0ms" },
 		});
+		// Why the run's last event: a gate that shuts early cancels the 1000ms slide
+		// mid-flight, and one that shuts on time lets it end.
+		const slideOutcome = new Promise<string>((resolve) => {
+			for (const type of ["transitionend", "transitioncancel"]) {
+				panel.addEventListener(type, (event) => {
+					if (event instanceof TransitionEvent && event.propertyName === "translate") {
+						resolve(type);
+					}
+				});
+			}
+		});
 		await userEvent.click(screen.getByRole("button", { name: "Toggle the assistant" }));
-		await expect
-			.poll(() => getComputedStyle(panel).transitionProperty, { timeout: 1300 })
-			.toBe("none");
+		expect(await slideOutcome).toBe("transitionend");
+		await expect.poll(() => getComputedStyle(panel).transitionProperty).toBe("none");
 	});
 });
 
