@@ -179,7 +179,17 @@ function writeOpenState({ dialog, open }: { dialog: HTMLDialogElement; open: boo
 	const covered = new Set<HTMLElement>();
 	for (const each of openDialogs) {
 		const panel = each.querySelector("[data-mantle-modal-content]");
-		if (top != null && each !== top && !top.contains(each) && panel instanceof HTMLElement) {
+		// Why the inert check: a panel that its owner made inert stays the owner's.
+		// Why the containment check: a kept-mounted dialog renders in the panel
+		// of its parent, and an inert ancestor makes the top modal inert too.
+		if (
+			top != null &&
+			each !== top &&
+			!top.contains(each) &&
+			panel instanceof HTMLElement &&
+			!panel.contains(top) &&
+			(inertPanels.has(panel) || !panel.inert)
+		) {
 			covered.add(panel);
 		}
 	}

@@ -1360,6 +1360,66 @@ describe("a stack of three", () => {
 		expect(one).toHaveFocus();
 		expect(root).not.toHaveAttribute("data-mantle-scroll-lock");
 	});
+
+	test("a panel that its owner makes inert stays inert after a dialog above it closes", async () => {
+		const Page = ({ second }: { second: boolean }) => (
+			<>
+				<Dialog.Root open>
+					<Dialog.Content inert>
+						<Dialog.Title>Saving</Dialog.Title>
+						<button type="button">Retry</button>
+					</Dialog.Content>
+				</Dialog.Root>
+				<Dialog.Root open={second}>
+					<Dialog.Content>
+						<Dialog.Title>Second</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+			</>
+		);
+		const view = render(<Page second={false} />);
+		view.rerender(<Page second />);
+		await waitFor(() =>
+			expect(screen.getByRole("dialog", { name: "Second" }).matches(":modal")).toBe(true),
+		);
+		view.rerender(<Page second={false} />);
+		await waitFor(() => expect(screen.queryByRole("dialog", { name: "Second" })).toBeNull());
+
+		const retry = screen.getByText("Retry");
+		expect(retry.closest("[inert]")).not.toBeNull();
+	});
+
+	test("a native close() of a kept-mounted dialog returns focus to the trigger that opened it", async () => {
+		render(
+			<Dialog.Root defaultOpen>
+				<Dialog.Content>
+					<Dialog.Title>One</Dialog.Title>
+					<Dialog.Root>
+						<Dialog.Trigger>First trigger</Dialog.Trigger>
+						<Dialog.Trigger>Second trigger</Dialog.Trigger>
+						<Dialog.Content forceMount>
+							<Dialog.Title>Two</Dialog.Title>
+							<button
+								type="button"
+								onClick={(event) => event.currentTarget.closest("dialog")?.close()}
+							>
+								Done
+							</button>
+						</Dialog.Content>
+					</Dialog.Root>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+		const second = screen.getByRole("button", { name: "Second trigger" });
+		await userEvent.click(second);
+		await waitFor(() =>
+			expect(screen.getByRole("dialog", { name: "Two" }).matches(":modal")).toBe(true),
+		);
+
+		await userEvent.click(screen.getByRole("button", { name: "Done" }));
+
+		await waitFor(() => expect(second).toHaveFocus());
+	});
 });
 
 describe("Sheet positioning", () => {
