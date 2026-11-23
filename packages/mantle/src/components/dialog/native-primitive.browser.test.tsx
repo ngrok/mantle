@@ -194,6 +194,45 @@ describe("Dialog", () => {
 		expect(screen.getByRole("textbox", { name: "Query" })).toHaveFocus();
 	});
 
+	// Why: Firefox opens Command's palette with focus on its input, and the
+	// handler then focuses that same input.
+	test("an onOpenAutoFocus that prevents the default and focuses the browser's pick keeps it", async () => {
+		render(
+			<Dialog.Root>
+				<Dialog.Trigger>Open dialog</Dialog.Trigger>
+				<Dialog.Content
+					onOpenAutoFocus={(event) => {
+						event.preventDefault();
+						document.getElementById("query")?.focus();
+					}}
+				>
+					<Dialog.Title>Search</Dialog.Title>
+					<input id="query" aria-label="Query" />
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+
+		await userEvent.click(screen.getByRole("button", { name: "Open dialog" }));
+
+		expect(screen.getByRole("textbox", { name: "Query" })).toHaveFocus();
+	});
+
+	test("an onOpenAutoFocus that prevents the default and moves no focus keeps focus off the browser's pick", async () => {
+		render(
+			<Dialog.Root>
+				<Dialog.Trigger>Open dialog</Dialog.Trigger>
+				<Dialog.Content onOpenAutoFocus={(event) => event.preventDefault()}>
+					<Dialog.Title>Search</Dialog.Title>
+					<input aria-label="Query" />
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+
+		await userEvent.click(screen.getByRole("button", { name: "Open dialog" }));
+
+		expect(document.activeElement).toBe(dialogElement());
+	});
+
 	test("Dialog.Close and a click on the backdrop close it, and a click in the panel does not", async () => {
 		render(<ExampleDialog>Body text</ExampleDialog>);
 		const trigger = screen.getByRole("button", { name: "Open dialog" });
@@ -709,6 +748,269 @@ describe("focus return on close", () => {
 
 		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 		expect(screen.getByRole("textbox", { name: "Filter" })).toHaveFocus();
+	});
+});
+
+describe("state the DOM owns, hydration, and nesting", () => {
+	test("with forceMount and no owner, Escape runs onEscapeKeyDown, which can keep it open", async () => {
+		const onEscapeKeyDown = vi.fn<(event: KeyboardEvent) => void>((event) =>
+			event.preventDefault(),
+		);
+		render(
+			<Dialog.Root>
+				<Dialog.Trigger>Open dialog</Dialog.Trigger>
+				<Dialog.Content forceMount onEscapeKeyDown={onEscapeKeyDown}>
+					<Dialog.Title>Kept</Dialog.Title>
+					<button type="button">Inside</button>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Open dialog" }));
+
+		await userEvent.keyboard("{Escape}");
+
+		expect(onEscapeKeyDown).toHaveBeenCalledTimes(1);
+		expect(dialogElement().open).toBe(true);
+	});
+
+	test("with forceMount and no owner, a trigger open runs onOpenAutoFocus", async () => {
+		render(
+			<Dialog.Root>
+				<Dialog.Trigger>Open dialog</Dialog.Trigger>
+				<Dialog.Content
+					forceMount
+					onOpenAutoFocus={(event) => {
+						event.preventDefault();
+						document.getElementById("query")?.focus();
+					}}
+				>
+					<Dialog.Title>Kept</Dialog.Title>
+					<button type="button">First</button>
+					<input id="query" aria-label="Query" />
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+
+		await userEvent.click(screen.getByRole("button", { name: "Open dialog" }));
+
+		await waitFor(() => expect(screen.getByRole("textbox", { name: "Query" })).toHaveFocus());
+	});
+
+	test("a dialog that hydrates open runs onEscapeKeyDown", async () => {
+		const onEscapeKeyDown = vi.fn<(event: KeyboardEvent) => void>((event) =>
+			event.preventDefault(),
+		);
+		const tree = (
+			<Dialog.Root defaultOpen>
+				<Dialog.Content onEscapeKeyDown={onEscapeKeyDown}>
+					<Dialog.Title>Hydrated</Dialog.Title>
+				</Dialog.Content>
+			</Dialog.Root>
+		);
+		const container = document.createElement("div");
+		container.innerHTML = renderToString(tree);
+		document.body.append(container);
+		const root = await act(async () => hydrateRoot(container, tree));
+		onTestFinished(() => {
+			act(() => root.unmount());
+			container.remove();
+		});
+		await screen.findByRole("dialog", { name: "Hydrated" });
+
+		await userEvent.keyboard("{Escape}");
+
+		expect(onEscapeKeyDown).toHaveBeenCalledTimes(1);
+		expect(screen.getByRole("dialog", { name: "Hydrated" })).toBeInTheDocument();
+	});
+
+	test("a child that opens in a closed forceMount parent does not make the page inert", async () => {
+		function Nested() {
+			const [child, setChild] = useState(false);
+			return (
+				<>
+					<button type="button" onClick={() => setChild(true)}>
+						Open child
+					</button>
+					<Dialog.Root>
+						<Dialog.Content forceMount>
+							<Dialog.Title>Parent</Dialog.Title>
+							<Dialog.Root open={child} onOpenChange={setChild}>
+								<Dialog.Content>
+									<Dialog.Title>Child</Dialog.Title>
+								</Dialog.Content>
+							</Dialog.Root>
+						</Dialog.Content>
+					</Dialog.Root>
+				</>
+			);
+		}
+		render(<Nested />);
+
+		await userEvent.click(screen.getByRole("button", { name: "Open child" }));
+		await act(async () => {
+			await Promise.resolve();
+		});
+
+		expect(document.querySelector("dialog:modal")).toBeNull();
+	});
+
+	test("an open uses the props of the render that opens it", async () => {
+		function Switching() {
+			const [shown, setShown] = useState(false);
+			return (
+				<>
+					<button type="button" onClick={() => setShown(true)}>
+						Show
+					</button>
+					<Dialog.Root open={shown} onOpenChange={setShown} modal={!shown}>
+						<Dialog.Content forceMount>
+							<Dialog.Title>Switching</Dialog.Title>
+						</Dialog.Content>
+					</Dialog.Root>
+				</>
+			);
+		}
+		render(<Switching />);
+
+		await userEvent.click(screen.getByRole("button", { name: "Show" }));
+
+		await waitFor(() => expect(dialogElement().open).toBe(true));
+		expect(dialogElement().matches(":modal")).toBe(false);
+	});
+
+	test("an onCloseAutoFocus that prevents the default and focuses the trigger keeps it there", async () => {
+		render(
+			<Dialog.Root>
+				<Dialog.Trigger>Open dialog</Dialog.Trigger>
+				<Dialog.Content
+					onCloseAutoFocus={(event) => {
+						event.preventDefault();
+						screen.getByRole("button", { name: "Open dialog" }).focus();
+					}}
+				>
+					<Dialog.Title>Close focus</Dialog.Title>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Open dialog" }));
+		await screen.findByRole("dialog", { name: "Close focus" });
+
+		await userEvent.keyboard("{Escape}");
+
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+		await waitFor(() => expect(screen.getByRole("button", { name: "Open dialog" })).toHaveFocus());
+	});
+
+	test("an open dialog that leaves the page runs onCloseAutoFocus", async () => {
+		const onCloseAutoFocus = vi.fn<(event: Event) => void>();
+		function Removable() {
+			const [mounted, setMounted] = useState(true);
+			return mounted ? (
+				<Dialog.Root defaultOpen>
+					<Dialog.Content onCloseAutoFocus={onCloseAutoFocus}>
+						<Dialog.Title>Removable</Dialog.Title>
+						<button type="button" onClick={() => setMounted(false)}>
+							Remove
+						</button>
+					</Dialog.Content>
+				</Dialog.Root>
+			) : null;
+		}
+		render(<Removable />);
+
+		await userEvent.click(await screen.findByRole("button", { name: "Remove" }));
+
+		await waitFor(() => expect(onCloseAutoFocus).toHaveBeenCalledTimes(1));
+	});
+
+	test("a reopen during the exit keeps the dialog open", async () => {
+		const style = document.createElement("style");
+		style.textContent =
+			"@keyframes exit { to { opacity: 0 } } [data-slot~='dialog-content'][data-state='closed'] { animation: exit 200ms }";
+		document.head.append(style);
+		onTestFinished(() => style.remove());
+		render(
+			<Dialog.Root modal={false}>
+				<Dialog.Trigger>Open dialog</Dialog.Trigger>
+				<Dialog.Content forceMount>
+					<Dialog.Title>Reopened</Dialog.Title>
+					<Dialog.Close>Cancel</Dialog.Close>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+		const trigger = screen.getByRole("button", { name: "Open dialog" });
+		await userEvent.click(trigger);
+
+		act(() => {
+			screen.getByRole("button", { name: "Cancel" }).click();
+			trigger.click();
+		});
+		await Promise.allSettled(
+			dialogElement()
+				.getAnimations({ subtree: true })
+				.map((animation) => animation.finished),
+		);
+		await act(async () => {
+			await Promise.resolve();
+		});
+
+		expect(dialogElement().open).toBe(true);
+		expect(dialogElement().dataset.state).toBe("open");
+	});
+
+	test("nested default-open forceMount dialogs open parent first, so the child is on top", async () => {
+		render(
+			<Dialog.Root defaultOpen>
+				<Dialog.Content forceMount>
+					<Dialog.Title>Outer</Dialog.Title>
+					<Dialog.Root defaultOpen>
+						<Dialog.Content forceMount>
+							<Dialog.Title>Inner</Dialog.Title>
+							<button type="button">Inner button</button>
+						</Dialog.Content>
+					</Dialog.Root>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+
+		await waitFor(() => expect(screen.getByRole("button", { name: "Inner button" })).toHaveFocus());
+	});
+
+	test("a non-modal dialog lets a press around the panel reach the page and close it", async () => {
+		const style = document.createElement("style");
+		style.textContent = [
+			await commands.tailwindCss("./native-primitive.tsx"),
+			await commands.tailwindCss("./dialog.tsx"),
+			await commands.tailwindCss("./presentation.tsx"),
+		].join("\n");
+		document.head.append(style);
+		onTestFinished(() => style.remove());
+		const onPageClick = vi.fn<() => void>();
+		render(
+			<>
+				<button
+					type="button"
+					onClick={onPageClick}
+					style={{ position: "fixed", top: 24, left: 24 }}
+				>
+					Page button
+				</button>
+				<Dialog.Root defaultOpen modal={false}>
+					<Dialog.Content>
+						<Dialog.Title>Live page</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+			</>,
+		);
+		const dialog = await screen.findByRole("dialog", { name: "Live page" });
+		// The premise: the `<dialog>` spans the corner where the page button sits.
+		const box = dialog.getBoundingClientRect();
+		expect(box.left <= 24 && box.top <= 24).toBe(true);
+
+		await userEvent.click(screen.getByRole("button", { name: "Page button" }));
+
+		expect(onPageClick).toHaveBeenCalledTimes(1);
+		await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 	});
 });
 

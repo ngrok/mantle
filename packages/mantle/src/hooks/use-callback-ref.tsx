@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useInsertionEffect, useMemo, useRef } from "react";
 
 /**
  * Returns a memoized callback that always invokes the latest version of
@@ -36,7 +36,9 @@ import { useEffect, useMemo, useRef } from "react";
 function useCallbackRef<T extends (...args: never[]) => unknown>(callback: T | undefined): T {
 	const callbackRef = useRef(callback);
 
-	useEffect(() => {
+	// Why an insertion effect: a ref callback or a layout effect of the same
+	// commit can call the returned function, and must see this render's callback.
+	useInsertionEffect(() => {
 		callbackRef.current = callback;
 	});
 

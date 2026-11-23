@@ -6,7 +6,7 @@ introducedIn: "0.95.0"
 
 # Mantle Native Dialog Migration Guide
 
-`Dialog`, `AlertDialog`, and `Sheet` no longer use Radix Dialog. Each `Content` renders the browser's modal `<dialog>`, and the panel goes inside it. The browser traps focus, makes the page inert, closes the dialog on Escape, paints it in the top layer, and returns focus to the trigger. The parts, their names, their props, and the look stay the same. What changes is the DOM around the panel, the reach of the modal, and the timing of the close.
+`Dialog`, `AlertDialog`, and `Sheet` no longer use Radix Dialog. Each `Content` renders the browser's modal `<dialog>`, and the panel goes inside it. The browser traps focus, makes the page inert, closes the dialog on Escape, paints it in the top layer, and returns focus to the trigger. The parts, their names, and the look stay the same, and most props do. What changes is the DOM around the panel, the reach of the modal, and the timing of the close.
 
 **TL;DR:** Add `modal={false}` to the `Root` of each dialog or sheet that holds a third-party frame, such as a payment form, a 3-D Secure challenge, or a captcha. Replace a selector for `[data-slot~="dialog-overlay"]` (or `sheet-overlay`, `alert-dialog-overlay`) with `[data-slot~="dialog-positioner"]::backdrop`. In tests, `getByRole("dialog")` returns the `<dialog>`, the props of `Content` go to the panel inside it, and the dialog closes after its exit animation, so wait for it.
 
@@ -88,7 +88,9 @@ expect(content).toHaveAttribute("data-appearance", "full-page");
 - On open, the browser focuses the first focusable element in the dialog, which can be an element with `tabindex="-1"`. To pick the element, add `autoFocus` to it, or use `onOpenAutoFocus`.
 - `Sandbar` sits under the backdrop of a modal dialog, with the rest of the page.
 - Escape closes the top modal unless a listener prevents the key. An open `Select`, `Combobox`, `MultiSelect`, or a popup with `aria-expanded` and `aria-controls` in the panel takes the key first.
-- `Content` takes no `asChild`. It renders the `<dialog>` and the panel inside it. Put your element inside `Content` instead.
+- `Content` takes no `asChild` and no `role`. It renders the `<dialog>`, which takes the role, and the panel inside it. Put your element inside `Content` instead. `AlertDialog` sets `role="alertdialog"` itself.
+- `Content` has no `onFocusOutside`. Focus cannot leave a modal dialog. Move the logic to `onInteractOutside`, or to `onOpenChange` for a non-modal dialog.
+- `Title` takes no `id`. The dialog names itself from the id it gives the title. Pass `aria-label` or `aria-labelledby` on `Content` to name it from other text.
 - happy-dom does not move focus into a `<dialog>` on `showModal()` or back on `close()`, and jsdom has no `showModal()`. A unit test that asserts focus on open or close runs in a real browser, such as Vitest browser mode. Escape and clicks work in both.
 - The exit plays in every browser: the dialog writes `data-state="closed"`, waits for the animations of the panel and the backdrop, and then closes.
 

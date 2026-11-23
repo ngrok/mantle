@@ -1424,7 +1424,9 @@ MARK: CUSTOM VARIANTS
 	/*
 	 * An open modal `Dialog`, `AlertDialog`, `Sheet`, or mobile `Sidebar.Nav`
 	 * locks page scroll on `<body>`, as Radix did: the browser applies the
-	 * `overflow` of `<body>` to the viewport. The dialog marks the root as it
+	 * `overflow` of `<body>` to the viewport. Why not the root too: a page
+	 * whose `<body>` has `h-full` would lose its scroll position. The dialog
+	 * marks the root as it
 	 * opens and measures the width of the scrollbar that goes, so the page does
 	 * not shift. `!important` beats an overflow utility on `<body>`.
 	 *

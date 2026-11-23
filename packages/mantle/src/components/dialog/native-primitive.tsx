@@ -164,6 +164,11 @@ function moveDialog({
 	open: boolean;
 }): void {
 	if (open === dialog.open) {
+		// Why: a reopen during the exit keeps the dialog open, and the pending
+		// close sees the state and stops.
+		if (open && dialog.dataset.state === "closed") {
+			writeOpenState({ dialog, open });
+		}
 		return;
 	}
 	if (modal) {
@@ -484,6 +489,9 @@ const Close = ({ asChild, onClick, scope, ...props }: ButtonProps) => {
  */
 const positionerBaseClassName = cx(
 	"group/native-dialog m-0 h-auto max-h-none w-auto max-w-none overflow-visible overscroll-none bg-transparent p-0 text-inherit outline-hidden",
+	// Why: a non-modal dialog leaves the page live, so the area around the
+	// panel lets presses through to the page. The panel and floats take them.
+	"[&[open]:not(:modal)]:pointer-events-none [&[open]:not(:modal)>*]:pointer-events-auto",
 	"backdrop:bg-overlay backdrop:backdrop-blur-xs",
 	"data-state-open:backdrop:animate-in data-state-open:backdrop:fade-in-0 data-state-closed:backdrop:animate-out data-state-closed:backdrop:fade-out-0",
 	"backdrop:duration-200 data-state-closed:backdrop:duration-150 motion-reduce:backdrop:animate-none!",
@@ -619,6 +627,23 @@ const Content = ({
 			close();
 		}
 	});
+	/**
+	 * Handles an Escape for this dialog, from the document or from a covered
+	 * float. Why the consumer runs after the guards: it sees the prevented
+	 * Escape that a picker in the panel or a covering frame takes, as with Radix.
+	 */
+	const guardedEscape = useCallbackRef((event: KeyboardEvent) => {
+		const dialog = dialogRef.current;
+		if (dialog != null && escapeBelongsToNestedPopup(dialog, event.target)) {
+			event.preventDefault();
+		} else if (!root.modal) {
+			yieldEscapeToCoveringFrame(event);
+		}
+		escape(event);
+		// Why prevent: the browser's own close request would close the dialog
+		// at once, with no exit, and a dialog under a non-modal one would close too.
+		event.preventDefault();
+	});
 	const pressOutside = useCallbackRef((originalEvent: PointerEvent): boolean => {
 		const outside = createPointerDownOutsideEvent(originalEvent);
 		preventCloseOnPromptInteraction(outside);
@@ -629,22 +654,40 @@ const Content = ({
 
 	/** The element that had focus when the dialog opened, such as a frame. */
 	const opener = useRef<Element | null>(null);
+	/** Runs `onOpenAutoFocus` on an open `dialog`. */
+	const openAutoFocus = useCallbackRef((dialog: HTMLDialogElement) => {
+		if (onOpenAutoFocus == null) {
+			return;
+		}
+		// Why the dialog takes focus before the handler: a prevented event keeps
+		// the browser's pick, such as an input that opens a phone's keyboard, from
+		// focus. A comparison after the handler cannot tell a handler that
+		// focused the browser's pick, as Firefox picks Command's input.
+		const autoFocused = dialog.ownerDocument.activeElement;
+		if (autoFocused !== dialog) {
+			dialog.focus({ preventScroll: true });
+		}
+		const event = new Event("openAutoFocus", { cancelable: true });
+		onOpenAutoFocus(event);
+		if (
+			!event.defaultPrevented &&
+			dialog.ownerDocument.activeElement === dialog &&
+			autoFocused instanceof HTMLElement
+		) {
+			autoFocused.focus({ preventScroll: true });
+		}
+	});
+
 	/** Opens `dialog`, then runs `onOpenAutoFocus`. */
 	const openDialog = useCallbackRef((dialog: HTMLDialogElement) => {
 		opener.current = dialog.ownerDocument.activeElement;
 		moveDialog({ dialog, modal: root.modal, open: true });
-		if (onOpenAutoFocus == null) {
-			return;
-		}
-		const autoFocused = dialog.ownerDocument.activeElement;
-		const event = new Event("openAutoFocus", { cancelable: true });
-		onOpenAutoFocus(event);
-		if (event.defaultPrevented && dialog.ownerDocument.activeElement === autoFocused) {
-			dialog.focus();
-		}
+		openAutoFocus(dialog);
 	});
 
-	const wantsOpen = useCallbackRef(() => expectedOpen === true);
+	const wantsOpen = useCallbackRef(
+		() => expectedOpen === true || (expectedOpen === undefined && reportedOpen.current),
+	);
 	/**
 	 * Opens `dialog` now, or after the `<dialog>` around it opens.
 	 *
@@ -656,11 +699,77 @@ const Content = ({
 			openDialog(dialog);
 			return;
 		}
+		// Why the second check: a closed dialog that stays mounted, such as a
+		// `forceMount` parent, does not open. A modal in it would make the page
+		// inert and not show.
 		queueMicrotask(() => {
-			if (dialogRef.current === dialog && wantsOpen() && !dialog.open) {
+			if (
+				dialogRef.current === dialog &&
+				wantsOpen() &&
+				!dialog.open &&
+				dialog.parentElement?.closest("dialog:not([open])") == null
+			) {
 				openDialog(dialog);
 			}
 		});
+	});
+
+	// Why register: a float that this dialog covers hides, and a frame that
+	// covers it takes Escape. Why until `close`: the dialog stays modal through
+	// its exit, so a float that opens in the exit shows when the dialog closes.
+	const releaseOverlay = useRef<(() => void) | null>(null);
+	const registerOnce = useCallbackRef((dialog: HTMLDialogElement) => {
+		const panel = panelRef.current;
+		if (inline || panel == null || releaseOverlay.current != null) {
+			return;
+		}
+		const unregister = registerOverlay({
+			container: dialog,
+			content: panel,
+			escape: guardedEscape,
+		});
+		const release = () => {
+			dialog.removeEventListener("close", release);
+			releaseOverlay.current = null;
+			unregister();
+		};
+		releaseOverlay.current = release;
+		dialog.addEventListener("close", release);
+	});
+
+	/**
+	 * Runs `onCloseAutoFocus` after `dialog` closes or leaves the page.
+	 *
+	 * Why so little: `close()` already returned focus to the element that had
+	 * it at open, and a non-modal close keeps focus that moved outside. Three
+	 * gaps stay. A consumer that cancels owns focus, so the focus a modal
+	 * returned goes first and comes back only if the consumer does not cancel.
+	 * Chromium returns no focus to a frame, such as a docs preview that sent
+	 * ⌘K, and none from a dialog that leaves the page, so the opener takes it.
+	 * An opener that is gone leaves focus on `<body>`, so the trigger takes it.
+	 */
+	const returnFocus = useCallbackRef((dialog: HTMLDialogElement) => {
+		const { ownerDocument } = dialog;
+		const { body } = ownerDocument;
+		const returned = ownerDocument.activeElement;
+		const modal = !nonModal.has(dialog);
+		if (modal && returned instanceof HTMLElement && returned !== body) {
+			returned.blur();
+		}
+		const event = new Event("closeAutoFocus", { cancelable: true });
+		onCloseAutoFocus?.(event);
+		if (event.defaultPrevented || ownerDocument.activeElement !== body) {
+			return;
+		}
+		const trigger = ownerDocument.querySelector(`[aria-controls="${dialog.id}"]`);
+		for (const target of [modal ? returned : null, opener.current, trigger]) {
+			if (target instanceof HTMLElement && target !== body && target.isConnected) {
+				target.focus();
+				if (ownerDocument.activeElement === target) {
+					return;
+				}
+			}
+		}
 	});
 
 	const sync = useCallbackRef((dialog: HTMLDialogElement) => {
@@ -671,37 +780,21 @@ const Content = ({
 		// Why here too: it sees a dialog that opens through its command before
 		// hydration, and each close, after the exit.
 		lockPageScroll({ dialog, lock: open && !nonModal.has(dialog) });
+		if (open) {
+			registerOnce(dialog);
+		}
 		if (open === reportedOpen.current) {
 			return;
 		}
 		reportedOpen.current = open;
-		if (!open) {
-			// Why so little: `close()` already returned focus to the element that
-			// had it at open, and a non-modal close keeps focus that moved outside.
-			// Three gaps stay: a consumer that cancels owns focus, so the focus a
-			// modal restored goes; Chromium returns no focus to a frame, such as a
-			// docs preview that sent ⌘K, so the opener takes it here; and an opener
-			// that is gone leaves focus on `<body>`, so the trigger takes it.
+		if (open) {
+			if (expectedOpen === undefined) {
+				openAutoFocus(dialog);
+			}
+		} else {
 			// Why a microtask: the close can run in a React commit, which puts
 			// back the focus it saw at its start.
-			const { ownerDocument } = dialog;
-			const restored = ownerDocument.activeElement;
-			const event = new Event("closeAutoFocus", { cancelable: true });
-			onCloseAutoFocus?.(event);
-			const modal = !nonModal.has(dialog);
-			queueMicrotask(() => {
-				const { activeElement, body } = ownerDocument;
-				if (!event.defaultPrevented) {
-					if (activeElement === body && opener.current instanceof HTMLElement) {
-						opener.current.focus();
-					}
-					if (ownerDocument.activeElement === body) {
-						ownerDocument.querySelector<HTMLElement>(`[aria-controls="${dialog.id}"]`)?.focus();
-					}
-				} else if (modal && activeElement === restored && restored instanceof HTMLElement) {
-					restored.blur();
-				}
-			});
+			queueMicrotask(() => returnFocus(dialog));
 		}
 		if (open === expectedOpen) {
 			return;
@@ -759,12 +852,12 @@ const Content = ({
 		// Why a reset: a new portal target mounts a new, closed `<dialog>`, which
 		// is no close of the dialog.
 		reportedOpen.current = false;
-		if (keepMounted && !root.controlled && root.defaultOpen) {
-			reportedOpen.current = true;
-			openDialog(dialog);
-		}
 		// Why a sync now: a tap before hydration can open the dialog through its command.
 		sync(dialog);
+		if (keepMounted && !root.controlled && root.defaultOpen && !dialog.open) {
+			reportedOpen.current = true;
+			openSoon(dialog);
+		}
 		// Why open here too: a new portal target mounts a new `<dialog>` with no
 		// change to the open state, so the layout effect does not run again.
 		if (expectedOpen === true && !dialog.open) {
@@ -785,10 +878,9 @@ const Content = ({
 			}
 			// Why: the browser returns focus only from `close()`, not when an open
 			// `<dialog>` leaves the page. A StrictMode remount keeps it on the page.
-			const { ownerDocument } = dialog;
 			queueMicrotask(() => {
-				if (!dialog.isConnected && ownerDocument.activeElement === ownerDocument.body) {
-					ownerDocument.querySelector<HTMLElement>(`[aria-controls="${dialog.id}"]`)?.focus();
+				if (!dialog.isConnected) {
+					returnFocus(dialog);
 				}
 			});
 		};
@@ -810,54 +902,26 @@ const Content = ({
 		}
 	}, [expectedOpen, keepMounted, openSoon]);
 
-	// Why register: a float that this dialog covers hides, and a frame that
-	// covers it takes Escape. Why until `close`: the dialog stays modal through
-	// its exit, so a float that opens in the exit shows when the dialog closes.
-	const releaseOverlay = useRef<(() => void) | null>(null);
-	useEffect(() => {
-		const dialog = dialogRef.current;
-		const panel = panelRef.current;
-		if (!root.open || inline || dialog == null || panel == null || releaseOverlay.current != null) {
-			return;
-		}
-		const unregister = registerOverlay({ container: dialog, content: panel, escape });
-		const release = () => {
-			dialog.removeEventListener("close", release);
-			releaseOverlay.current = null;
-			unregister();
-		};
-		releaseOverlay.current = release;
-		dialog.addEventListener("close", release);
-	}, [root.open, inline, escape]);
 	useEffect(() => () => releaseOverlay.current?.(), []);
 
 	// Why Escape on the document: an open picker in the panel takes the key
 	// first and prevents it, in every engine, and the key closes the top dialog
 	// wherever focus is, as with Radix. Why a press outside here: a non-modal
 	// dialog has no backdrop.
+	// Why the DOM-owned case: a dialog that stays mounted and owns its state
+	// opens with no render, so `root.open` stays false. Why `portalTarget`: the
+	// `<dialog>` mounts after hydration, or anew in a new target.
+	const listening = root.open || expectedOpen === undefined;
 	useEffect(() => {
 		const dialog = dialogRef.current;
-		if (dialog == null || !root.open || inline) {
+		if (dialog == null || !listening || inline || (!keepMounted && portalTarget == null)) {
 			return;
 		}
 		const { ownerDocument } = dialog;
 		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.key !== "Escape" || event.defaultPrevented || openDialogs.at(-1) !== dialog) {
-				return;
+			if (event.key === "Escape" && !event.defaultPrevented && openDialogs.at(-1) === dialog) {
+				guardedEscape(event);
 			}
-			// Why the consumer runs after the guard: it sees the prevented
-			// Escape that a picker in the panel takes, as with Radix.
-			if (escapeBelongsToNestedPopup(dialog, event.target)) {
-				event.preventDefault();
-			} else if (!root.modal) {
-				// Why the consumer still runs: it sees the Escape that a covering
-				// frame took, prevented, as it would with Radix.
-				yieldEscapeToCoveringFrame(event);
-			}
-			escape(event);
-			// Why prevent: the browser's own close request would close the dialog
-			// at once, with no exit, and a dialog under a non-modal one would close too.
-			event.preventDefault();
 		};
 		// Why the covering-frame check: a press on the popup around a captcha
 		// frame is a press in that flow, not outside the dialog.
@@ -865,6 +929,7 @@ const Content = ({
 			const { target } = event;
 			if (
 				!root.modal &&
+				dialog.open &&
 				target instanceof Node &&
 				!dialog.contains(target) &&
 				getCoveringFrame()?.closest("body > *")?.contains(target) !== true &&
@@ -879,7 +944,16 @@ const Content = ({
 			ownerDocument.removeEventListener("keydown", onKeyDown);
 			ownerDocument.removeEventListener("pointerdown", onPointerDown, { capture: true });
 		};
-	}, [root.modal, root.open, inline, escape, pressOutside, close]);
+	}, [
+		root.modal,
+		listening,
+		inline,
+		keepMounted,
+		portalTarget,
+		guardedEscape,
+		pressOutside,
+		close,
+	]);
 
 	if (!present || (!keepMounted && portalTarget == null)) {
 		return null;
