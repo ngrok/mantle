@@ -155,28 +155,35 @@ function itemsOf(menu: HTMLElement): HTMLElement[] {
 	);
 }
 
-/** The shown menu element, and the inert boundary that a modal menu holds around one element. */
+/** The shown menu element, and the inert boundary that a modal menu holds around it and its trigger. */
 type ModalBoundary = {
 	shown: HTMLElement | null;
-	held: { element: HTMLElement; exit: () => void } | null;
+	held: { element: HTMLElement; trigger: HTMLElement; exit: () => void } | null;
 };
 
 /**
- * Makes the page inert around a shown modal menu, and lets it go when the menu
- * hides or stops being modal. Why for each element: an `asChild` menu can get a
- * new element while it stays open, and the boundary moves to it.
+ * Makes the page inert around a shown modal menu and its trigger, and lets it
+ * go when the menu hides or stops being modal. Why for each pair of elements:
+ * the menu (under `asChild`) or the trigger can get a new element while the
+ * menu stays open, and the boundary moves to the new one.
  */
 function syncModal(
 	boundary: ModalBoundary,
 	{ modal, trigger }: { modal: boolean; trigger: HTMLElement | null },
 ): void {
-	const element = modal && trigger != null ? boundary.shown : null;
-	if ((boundary.held?.element ?? null) === element) {
+	const element = modal ? boundary.shown : null;
+	const { held } = boundary;
+	if (held?.element === element && held?.trigger === trigger) {
 		return;
 	}
-	boundary.held?.exit();
+	if (held == null && (element == null || trigger == null)) {
+		return;
+	}
+	held?.exit();
 	boundary.held =
-		element == null || trigger == null ? null : { element, exit: enterModal([trigger, element]) };
+		element == null || trigger == null
+			? null
+			: { element, trigger, exit: enterModal([trigger, element]) };
 }
 
 /** Moves focus to an item or the menu, with no scroll jump. */
@@ -191,9 +198,15 @@ function focusWithoutScroll(element: HTMLElement | null | undefined): void {
  */
 function focusFirst(items: readonly HTMLElement[]): boolean {
 	for (const item of items) {
+		const before = item.ownerDocument.activeElement;
 		focusWithoutScroll(item);
-		if (item.ownerDocument.activeElement === item) {
+		const after = item.ownerDocument.activeElement;
+		if (after === item) {
 			item.scrollIntoView({ block: "nearest" });
+			return true;
+		}
+		// Why stop: a consumer's focus handler sent focus somewhere else on purpose.
+		if (after !== before) {
 			return true;
 		}
 	}
@@ -750,17 +763,21 @@ const panelClassName =
 	"text-popover-foreground border-popover bg-popover flex flex-col min-w-32 max-h-(--available-height) rounded-md border shadow-xl outline-hidden font-sans";
 
 /**
- * The element inside a menu panel that scrolls. Why a separate element: the
- * `scroll-fade-y` mask fades the edges of the element that has it, and on the
- * panel it would fade the border and shadow too. Why `scroll-py-6`: a focused
- * item scrolls clear of the 1.5rem fade at each edge.
+ * How the element that scrolls a menu's items scrolls. Why `scroll-py-6`: a
+ * focused item scrolls clear of the 1.5rem `scroll-fade-y` fade at each edge.
  */
-const scrollerClassName =
-	"scroll-fade-y scrollbar-none [&::-webkit-scrollbar]:hidden min-h-0 overflow-auto overscroll-none scroll-py-6 p-1.25 space-y-px";
+const scrollClassName =
+	"scrollbar-none [&::-webkit-scrollbar]:hidden min-h-0 overflow-auto overscroll-none scroll-py-6 p-1.25 space-y-px";
 
-/** Puts a menu panel's items in its scrolling element. */
+/**
+ * Puts a menu panel's items in an element that scrolls them. Why a separate
+ * element: the `scroll-fade-y` mask fades the edges of the element that has
+ * it, and on the panel it would fade the border and shadow too. Why not under
+ * `asChild`: a custom panel can render items of its own beside its children,
+ * so the panel scrolls itself, with no fade.
+ */
 const renderScroller = (items: ReactNode) => (
-	<div data-slot="dropdown-menu-viewport" className={scrollerClassName}>
+	<div data-slot="dropdown-menu-viewport" className={cx("scroll-fade-y", scrollClassName)}>
 		{items}
 	</div>
 );
@@ -882,10 +899,7 @@ const Content = ({
 		},
 		onHide: (floating, focusWasInside) => {
 			resetTyping();
-			// Why the check: a new `asChild` element shows before the old one hides.
-			if (modalBoundary.current.shown === floating) {
-				modalBoundary.current.shown = null;
-			}
+			modalBoundary.current.shown = null;
 			syncModal(modalBoundary.current, { modal: state.modal, trigger: state.triggerRef.current });
 			const event = new Event("mantle.dropdown-menu.closeAutoFocus", { cancelable: true });
 			onCloseAutoFocus?.(event);
@@ -911,10 +925,11 @@ const Content = ({
 			}
 		},
 	});
-	// Why: `modal` can change while the menu is open.
+	// Why after each render: `modal` or the trigger element can change while the
+	// menu is open. A render that changes neither costs two comparisons.
 	useEffect(() => {
 		syncModal(modalBoundary.current, { modal: state.modal, trigger: state.triggerRef.current });
-	}, [state.modal, state.triggerRef]);
+	});
 	const menuElementRef = useCallback((element: HTMLElement | null) => {
 		menuRef.current = element;
 		setMenu(element);
@@ -962,6 +977,7 @@ const Content = ({
 					className={cx(
 						floatClassName,
 						panelClassName,
+						asChild && scrollClassName,
 						width === "trigger" && "w-(--anchor-width)",
 						className,
 					)}
@@ -979,7 +995,7 @@ const Content = ({
 						}
 					}}
 				>
-					{asChild ? slotContent(children, renderScroller) : renderScroller(children)}
+					{asChild ? children : renderScroller(children)}
 				</Component>,
 			),
 			portalTarget,
@@ -1530,7 +1546,7 @@ const SubContent = ({
 					data-slot={joinDataSlot(dataSlot, "dropdown-menu-sub-content")}
 					data-state={sub.open ? "open" : "closed"}
 					inert={!sub.open}
-					className={cx(floatClassName, panelClassName, className)}
+					className={cx(floatClassName, panelClassName, asChild && scrollClassName, className)}
 					ref={composedRef}
 					{...props}
 					onClick={(event: MouseEvent<HTMLDivElement>) => {
@@ -1552,7 +1568,7 @@ const SubContent = ({
 						onMenuKeyDown(event);
 					}}
 				>
-					{asChild ? slotContent(children, renderScroller) : renderScroller(children)}
+					{asChild ? children : renderScroller(children)}
 				</Component>,
 			),
 			portalTarget,

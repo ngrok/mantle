@@ -221,15 +221,16 @@ describe("Popover.Content placement", () => {
 		await user.click(screen.getByRole("button", { name: "Open" }));
 		const content = await screen.findByRole("dialog");
 		await waitFor(() => expect(getComputedStyle(content).opacity).toBe("1"));
-		const styleWrites: MutationRecord[] = [];
-		const observer = new MutationObserver((records) => styleWrites.push(...records));
+		const observer = new MutationObserver(() => {});
 		observer.observe(content, { attributeFilter: ["style"] });
 
 		rerender(tree("Second"));
-		await screen.findByText("Second");
-		await new Promise(requestAnimationFrame);
+		// Why right after the render: a placement in its commit writes the style at
+		// once. A later write comes from the open transition's end, not the render.
+		const styleWrites = observer.takeRecords();
 		observer.disconnect();
 
+		expect(screen.getByText("Second")).toBeInTheDocument();
 		expect(styleWrites).toHaveLength(0);
 	});
 });

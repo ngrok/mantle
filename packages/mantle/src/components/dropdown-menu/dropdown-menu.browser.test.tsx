@@ -3,7 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import { useState } from "react";
 import type { ComponentProps } from "react";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import { userEvent as browserUser } from "vitest/browser";
+import { commands, userEvent as browserUser } from "vitest/browser";
 import * as Popover from "../popover/popover-parts.js";
 import * as DropdownMenu from "./dropdown-menu-parts.js";
 
@@ -840,17 +840,17 @@ describe("DropdownMenu parity with Radix (browser)", () => {
 				expect(getComputedStyle(menu).opacity).toBe("1");
 			}
 		});
-		const styleWrites: MutationRecord[] = [];
-		const observer = new MutationObserver((records) => styleWrites.push(...records));
+		const observer = new MutationObserver(() => {});
 		for (const menu of menus) {
 			observer.observe(menu, { attributeFilter: ["style"] });
 		}
 
 		rerender(tree("Second"));
-		await screen.findByText("Second");
-		await new Promise(requestAnimationFrame);
+		// Why right after the render: see the same test for Popover.
+		const styleWrites = observer.takeRecords();
 		observer.disconnect();
 
+		expect(screen.getByText("Second")).toBeInTheDocument();
 		expect(styleWrites).toHaveLength(0);
 	});
 
@@ -1081,6 +1081,69 @@ describe("DropdownMenu parity with Radix (browser)", () => {
 		expect(screen.getByRole("menu").tagName).toBe("SECTION");
 		expect(outside.closest("[inert]")).not.toBeNull();
 	});
+
+	test("a new trigger element for an open modal menu is not inert", async () => {
+		const tree = (changed: boolean) => (
+			<DropdownMenu.Root defaultOpen>
+				<DropdownMenu.Trigger key={String(changed)}>Open</DropdownMenu.Trigger>
+				<DropdownMenu.Content>
+					<DropdownMenu.Item>Apple</DropdownMenu.Item>
+				</DropdownMenu.Content>
+			</DropdownMenu.Root>
+		);
+		const { rerender } = render(tree(false));
+		await screen.findByRole("menu");
+
+		rerender(tree(true));
+		await act(async () => {});
+
+		const trigger = screen.getByRole("button", { name: "Open" });
+		expect(trigger).toHaveAttribute("aria-expanded", "true");
+		expect(trigger.closest("[inert]")).toBeNull();
+	});
+
+	test.each(["Content", "SubContent"])(
+		"a new asChild element for an open %s keeps focus in the menu",
+		async (part) => {
+			const user = userEvent.setup();
+			const host = (changed: boolean) =>
+				changed ? (
+					<section>
+						<DropdownMenu.Item>Apple</DropdownMenu.Item>
+					</section>
+				) : (
+					<div>
+						<DropdownMenu.Item>Apple</DropdownMenu.Item>
+					</div>
+				);
+			const tree = (changed: boolean) => (
+				<DropdownMenu.Root modal={false}>
+					<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+					{part === "Content" ? (
+						<DropdownMenu.Content asChild>{host(changed)}</DropdownMenu.Content>
+					) : (
+						<DropdownMenu.Content>
+							<DropdownMenu.Sub>
+								<DropdownMenu.SubTrigger>More</DropdownMenu.SubTrigger>
+								<DropdownMenu.SubContent asChild>{host(changed)}</DropdownMenu.SubContent>
+							</DropdownMenu.Sub>
+						</DropdownMenu.Content>
+					)}
+				</DropdownMenu.Root>
+			);
+			const { rerender } = render(tree(false));
+			screen.getByRole("button", { name: "Open" }).focus();
+			await user.keyboard(part === "Content" ? "{ArrowDown}" : "{ArrowDown}{ArrowRight}");
+			await waitFor(() => expect(item("Apple")).toHaveFocus());
+
+			rerender(tree(true));
+			await act(async () => {});
+
+			const menu = item("Apple").closest("[role='menu']");
+			expect(menu?.tagName).toBe("SECTION");
+			await waitFor(() => expect(menu?.contains(document.activeElement)).toBe(true));
+		},
+	);
 });
 
 /** A consumer panel for `asChild` that adds an item of its own before its children. */
@@ -1092,3 +1155,53 @@ function PanelWithItem({ children, ...props }: ComponentProps<"section">) {
 		</section>
 	);
 }
+
+describe("DropdownMenu scrolling (browser)", () => {
+	let styleElement: HTMLStyleElement;
+
+	beforeAll(async () => {
+		styleElement = document.createElement("style");
+		styleElement.textContent =
+			(await commands.tailwindCss("../../utils/float/use-float.ts")) +
+			(await commands.tailwindCss("./dropdown-menu.tsx"));
+		document.head.appendChild(styleElement);
+	});
+
+	afterAll(() => {
+		styleElement.remove();
+	});
+
+	test("a custom asChild panel scrolls its own items into view", async () => {
+		const user = userEvent.setup();
+		function OwnItemsPanel(props: ComponentProps<"section">) {
+			return (
+				<section {...props}>
+					{Array.from({ length: 20 }, (_, index) => (
+						<DropdownMenu.Item key={index} style={{ height: 32, flexShrink: 0 }}>
+							{`Action ${index + 1}`}
+						</DropdownMenu.Item>
+					))}
+				</section>
+			);
+		}
+		render(
+			<DropdownMenu.Root modal={false}>
+				<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+				<DropdownMenu.Content asChild style={{ maxHeight: 176 }}>
+					<OwnItemsPanel />
+				</DropdownMenu.Content>
+			</DropdownMenu.Root>,
+		);
+		screen.getByRole("button", { name: "Open" }).focus();
+		await user.keyboard("{ArrowDown}");
+		await waitFor(() => expect(item("Action 1")).toHaveFocus());
+
+		await user.keyboard("{End}");
+
+		const panel = screen.getByRole("menu");
+		expect(item("Action 20")).toHaveFocus();
+		expect(item("Action 20").getBoundingClientRect().bottom).toBeLessThanOrEqual(
+			panel.getBoundingClientRect().bottom,
+		);
+	});
+});

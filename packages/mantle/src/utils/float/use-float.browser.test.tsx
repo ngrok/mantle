@@ -58,24 +58,29 @@ describe("useFloat placement while open", () => {
 		await waitFor(() => expect(panel.getBoundingClientRect().left).toBeCloseTo(240, 0));
 	});
 
-	test("Popover follows an Anchor that mounts after it opens", async () => {
-		const tree = (anchor: boolean) => (
-			<Popover.Root defaultOpen>
-				<Popover.Trigger style={anchorStyle}>Open</Popover.Trigger>
-				{anchor && <Popover.Anchor style={{ ...anchorStyle, left: 240, width: 100 }} />}
-				<Popover.Content data-testid="panel" align="start" sideOffset={4} style={panelStyle}>
-					Content
-				</Popover.Content>
-			</Popover.Root>
-		);
-		const { rerender } = render(tree(false));
-		const panel = await screen.findByTestId("panel");
-		await waitFor(() => expect(panel.getBoundingClientRect().left).toBeCloseTo(180, 0));
+	test.each(["before", "after"])(
+		"Popover follows an Anchor that mounts %s the content after it opens",
+		async (order) => {
+			const anchor = <Popover.Anchor style={{ ...anchorStyle, left: 240, width: 100 }} />;
+			const tree = (mounted: boolean) => (
+				<Popover.Root defaultOpen>
+					<Popover.Trigger style={anchorStyle}>Open</Popover.Trigger>
+					{mounted && order === "before" && anchor}
+					<Popover.Content data-testid="panel" align="start" sideOffset={4} style={panelStyle}>
+						Content
+					</Popover.Content>
+					{mounted && order === "after" && anchor}
+				</Popover.Root>
+			);
+			const { rerender } = render(tree(false));
+			const panel = await screen.findByTestId("panel");
+			await waitFor(() => expect(panel.getBoundingClientRect().left).toBeCloseTo(180, 0));
 
-		rerender(tree(true));
+			rerender(tree(true));
 
-		await waitFor(() => expect(panel.getBoundingClientRect().left).toBeCloseTo(240, 0));
-	});
+			await waitFor(() => expect(panel.getBoundingClientRect().left).toBeCloseTo(240, 0));
+		},
+	);
 
 	test.each(families)(
 		"%s follows the inherited direction when it changes",
@@ -119,4 +124,53 @@ describe("useFloat placement while open", () => {
 
 		await waitFor(() => expect(panel.getBoundingClientRect().top).toBeCloseTo(253, 0));
 	});
+
+	test("an open Popover with no anchor shows when its first Anchor mounts", async () => {
+		const tree = (anchor: boolean) => (
+			<Popover.Root open>
+				{anchor && <Popover.Anchor style={anchorStyle} />}
+				<Popover.Content data-testid="panel" side="bottom" align="start" style={panelStyle}>
+					Content
+				</Popover.Content>
+			</Popover.Root>
+		);
+		const { rerender } = render(tree(false));
+		const panel = await screen.findByTestId("panel");
+		expect(panel.matches(":popover-open")).toBe(false);
+
+		rerender(tree(true));
+
+		await waitFor(() => expect(panel.matches(":popover-open")).toBe(true));
+		expect(panel.getBoundingClientRect().left).toBeCloseTo(180, 0);
+	});
+
+	test.each(["inserted", "replaced"])(
+		"Popover keeps the arrow tip sideOffset from the anchor when an arrow is %s",
+		async (mode) => {
+			const tree = (updated: boolean) => (
+				<Popover.Root open>
+					<Popover.Trigger style={anchorStyle}>Open</Popover.Trigger>
+					<Popover.Content data-testid="panel" align="start" sideOffset={4} style={panelStyle}>
+						{(mode === "replaced" || updated) && (
+							<Popover.Arrow
+								key={String(updated)}
+								height={updated ? 19 : 7}
+								style={{ display: "block" }}
+							/>
+						)}
+						Content
+					</Popover.Content>
+				</Popover.Root>
+			);
+			const { rerender } = render(tree(false));
+			const panel = await screen.findByTestId("panel");
+			await waitFor(() =>
+				expect(panel.getBoundingClientRect().top).toBeCloseTo(mode === "replaced" ? 241 : 234, 0),
+			);
+
+			rerender(tree(true));
+
+			await waitFor(() => expect(panel.getBoundingClientRect().top).toBeCloseTo(253, 0));
+		},
+	);
 });

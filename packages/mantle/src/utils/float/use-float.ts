@@ -56,9 +56,11 @@ type OutsideHandlers = {
 };
 
 /** Why a float closed without the caller asking. */
-/** The anchor that an open float is placed against, its direction when the placement reads it, and the call that places it again. */
+/** What an open float is placed against: its anchor, its arrow, its direction when the placement reads it, and the call that places it again. */
 type PlacedFor = {
+	floating: HTMLElement;
 	anchor: HTMLElement;
+	arrow: HTMLElement | null;
 	rtl: boolean | null;
 	retrack: (anchor: HTMLElement) => void;
 };
@@ -152,6 +154,11 @@ type FloatSession = {
 const floatSessions = new WeakMap<HTMLElement, FloatSession>();
 
 /** Whether a native modal `<dialog>` that does not hold `element` is open: the float would paint over it. */
+/** The arrow of a float: its direct child with `data-float-arrow`. */
+function arrowOf(floating: HTMLElement): HTMLElement | null {
+	return floating.querySelector<HTMLElement>(":scope > [data-float-arrow]");
+}
+
 function isUnderNativeModal(element: HTMLElement): boolean {
 	return Array.from(element.ownerDocument.querySelectorAll("dialog[open]")).some(
 		(dialog) => !dialog.contains(element) && dialog.matches(":modal"),
@@ -266,34 +273,39 @@ function useFloat({
 	const visible = open && !covered;
 	/** What the open float is placed against, and the call that places it again. */
 	const placedFor = useRef<PlacedFor | null>(null);
+	/** Starts an open float that had no anchor when its ref callback ran. */
+	const attachLate = useRef<((anchor: HTMLElement) => void) | null>(null);
 	// Why: the ref callback keeps one identity while the float is open, so it
-	// does not see a new anchor element, such as a replaced trigger, or a new
-	// inherited direction. This places the float again only when one changes.
-	useIsomorphicLayoutEffect(() => {
-		const placed = placedFor.current;
+	// does not see a new anchor element, such as a replaced trigger or an Anchor
+	// that mounts later, a new inherited direction, or a new arrow element. This
+	// starts or places the float again only when one changes.
+	const reconcile = () => {
 		const anchor = anchorOf();
-		if (placed == null || anchor == null) {
+		if (anchor == null) {
+			return;
+		}
+		const placed = placedFor.current;
+		if (placed == null) {
+			attachLate.current?.(anchor);
 			return;
 		}
 		if (
 			anchor !== placed.anchor ||
+			arrowOf(placed.floating) !== placed.arrow ||
 			(placed.rtl != null && (getComputedStyle(anchor).direction === "rtl") !== placed.rtl)
 		) {
 			placed.retrack(anchor);
 		}
-	});
+	};
+	// Why a layout effect: the float moves before the browser paints.
+	useIsomorphicLayoutEffect(reconcile);
+	// Why a passive effect too: an Anchor after the content in the tree attaches
+	// its ref after the content's layout effects run.
+	useEffect(reconcile);
 
-	// Why a ref callback: React calls it again when `visible` or the placement
-	// changes, so the float shows and follows its anchor only while visible.
-	// Why `useCallback`: a new callback on each render would place the open
-	// float again, with a forced layout, each time its owner renders.
-	const floatingRef = useCallback<RefCallback<HTMLElement>>(
-		(floating) => {
-			floatElement.current = floating;
-			const anchor = anchorOf();
-			if (!visible || floating == null || anchor == null) {
-				return;
-			}
+	/** Shows an open float on `anchor` and tracks it there. Returns the cleanup that hides it. */
+	const attach = useCallback(
+		(floating: HTMLElement, anchor: HTMLElement) => {
 			// Why only with the popover API: without it the float has no top layer,
 			// so it paints under a modal dialog anyway.
 			if (hasPopoverApi && isUnderNativeModal(floating)) {
@@ -356,12 +368,15 @@ function useFloat({
 				});
 			let stopTracking = track(anchor);
 			const placed: PlacedFor = {
+				floating,
 				anchor,
+				arrow: arrowOf(floating),
 				rtl: readsDirection ? getComputedStyle(anchor).direction === "rtl" : null,
 				retrack: (next) => {
 					stopTracking();
 					stopTracking = track(next);
 					placed.anchor = next;
+					placed.arrow = arrowOf(floating);
 					placed.rtl = readsDirection ? getComputedStyle(next).direction === "rtl" : null;
 				},
 			};
@@ -424,7 +439,15 @@ function useFloat({
 					}
 					floatSessions.delete(floating);
 					session.popEscape();
-					latestHide.current?.(floating, focusWasInside);
+					// Why: under `asChild`, an open float can get a new element. The new
+					// element shows in the same commit, so the old one has not closed.
+					const next = floatElement.current;
+					const replaced = next != null && next !== floating && floatSessions.has(next);
+					if (!replaced) {
+						latestHide.current?.(floating, focusWasInside);
+					} else if (focusWasInside && !next.contains(document.activeElement)) {
+						next.focus({ preventScroll: true });
+					}
 					if (shown && hasPopoverApi) {
 						shown = false;
 						floating.hidePopover();
@@ -434,7 +457,6 @@ function useFloat({
 		},
 		[
 			align,
-			anchorOf,
 			dir,
 			dismiss,
 			dismissOnOutside,
@@ -446,8 +468,34 @@ function useFloat({
 			pointerDownOutside,
 			side,
 			sideOffset,
-			visible,
 		],
+	);
+
+	// Why a ref callback: React calls it again when `visible` or the placement
+	// changes, so the float shows and follows its anchor only while visible.
+	// Why `useCallback`: a new callback on each render would place the open
+	// float again, with a forced layout, each time its owner renders.
+	const floatingRef = useCallback<RefCallback<HTMLElement>>(
+		(floating) => {
+			floatElement.current = floating;
+			if (!visible || floating == null) {
+				return;
+			}
+			const anchor = anchorOf();
+			if (anchor == null) {
+				let stop: (() => void) | undefined;
+				attachLate.current = (late) => {
+					attachLate.current = null;
+					stop = attach(floating, late);
+				};
+				return () => {
+					attachLate.current = null;
+					stop?.();
+				};
+			}
+			return attach(floating, anchor);
+		},
+		[anchorOf, attach, visible],
 	);
 
 	return {
