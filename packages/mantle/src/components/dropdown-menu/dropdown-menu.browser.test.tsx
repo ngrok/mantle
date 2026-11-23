@@ -1342,10 +1342,24 @@ describe("DropdownMenu with its CSS (browser)", () => {
 				const r = el.getBoundingClientRect();
 				return `${Math.round(r.top)}..${Math.round(r.bottom)}`;
 			};
+			const t0 = performance.now();
+			const raf = await Promise.race([
+				new Promise<number>((r) => requestAnimationFrame(() => r(performance.now() - t0))),
+				new Promise<number>((r) => setTimeout(() => r(-1), 10000)),
+			]);
+			let flip = -1;
+			for (let i = 0; i < 100; i++) {
+				if (edges() === "false,true") {
+					flip = performance.now() - t0;
+					break;
+				}
+				await new Promise((r) => setTimeout(r, 100));
+			}
+			const extra = `raf=${Math.round(raf)} flip=${Math.round(flip)} animsAfter=${document.getAnimations().length} hasFocus=${document.hasFocus()} inIframe=${window.self !== window.top}`;
 			const cs = getComputedStyle(scroller);
 			const ps = getComputedStyle(panel);
 			throw new Error(
-				`DIAG edges=${edges()} scroller=${rect(scroller)} sh=${scroller.scrollHeight} ch=${scroller.clientHeight} st=${scroller.scrollTop} overflow=${cs.overflowY} minh=${cs.minHeight} panel=${rect(panel)} pdisplay=${ps.display} pflex=${ps.flexDirection} pmax=${ps.maxHeight} open=${panel.matches(":popover-open")} last=${rect(last)} items=${items.length} vis=${document.visibilityState} anims=${document.getAnimations().length} css=${document.querySelectorAll("style").length} ${String(error).slice(0, 80)}`,
+				`DIAG ${extra} edges=${edges()} scroller=${rect(scroller)} sh=${scroller.scrollHeight} ch=${scroller.clientHeight} st=${scroller.scrollTop} overflow=${cs.overflowY} minh=${cs.minHeight} panel=${rect(panel)} pdisplay=${ps.display} pflex=${ps.flexDirection} pmax=${ps.maxHeight} open=${panel.matches(":popover-open")} last=${rect(last)} items=${items.length} vis=${document.visibilityState} anims=${document.getAnimations().length} css=${document.querySelectorAll("style").length} ${String(error).slice(0, 80)}`,
 			);
 		}
 		expect(getComputedStyle(scroller, "::after").opacity).toBe("1");
