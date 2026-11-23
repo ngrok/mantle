@@ -150,8 +150,8 @@ export function versionDataFromFiles(version: string, files: PackageFiles): Vers
 					});
 				}
 				lookup = entry == null ? { status: "unknown" } : partPropsOf(resolver, entry, path);
-				// Why the cap: the path comes from caller code, so the keys are unbounded.
-				if (partsByKey.size < MAX_CACHED_PARTS) {
+				// Why parts only: caller code can name any path, and only a real part's path is bounded.
+				if (lookup.status === "part" && partsByKey.size < MAX_CACHED_PARTS) {
 					partsByKey.set(key, lookup);
 				}
 			}

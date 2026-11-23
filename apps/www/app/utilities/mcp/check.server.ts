@@ -28,7 +28,6 @@ export type Diagnostic = {
 		| "unknown-prop"
 		| "forbidden-prop"
 		| "missing-prop"
-		| "part-outside-root"
 		| "missing-dialog-title";
 	severity: "error" | "warning" | "info";
 	message: string;
@@ -89,10 +88,6 @@ function jsxNameSegments(name: unknown): string[] | undefined {
 
 /** The namespace of a compound part, such as `@ngrok/mantle/dialog#Dialog` for `Dialog.Content`. */
 const namespaceOf = (use: PartUse) => `${use.specifier}#${use.path.slice(0, -1).join(".")}`;
-
-/** Whether a part is the root of its compound, such as `Dialog.Root` or `Command.DialogRoot`. */
-const isRootPart = (use: PartUse) =>
-	use.path.length >= 2 && (use.path.at(-1) ?? "").endsWith("Root");
 
 /** The edit distance between two names, for a "did you mean" hint. */
 function editDistance(left: string, right: string): number {
@@ -357,9 +352,31 @@ export function checkCode({
 		}
 	}
 
+	// Why: a local declaration can shadow an import, and its JSX is not the mantle part.
+	const shadowed = new Set<string>();
+	walk(parsed.program, (node) => {
+		const declares =
+			node.type === "VariableDeclarator" ||
+			node.type === "FunctionDeclaration" ||
+			node.type === "ClassDeclaration";
+		const declared = [declares ? node.id : undefined, node.params];
+		walk(declared, (binding) => {
+			if (
+				binding.type === "Identifier" &&
+				typeof binding.name === "string" &&
+				bindings.has(binding.name)
+			) {
+				shadowed.add(binding.name);
+			}
+		});
+	});
+
 	const partUseOf = (opening: unknown): PartUse | undefined => {
 		const segments = isRecord(opening) ? jsxNameSegments(opening.name) : undefined;
-		const binding = segments == null ? undefined : bindings.get(segments[0] ?? "");
+		const [first = ""] = segments ?? [];
+		// Why: a lone lowercase name such as `<button>` is a DOM element, whatever the file imports.
+		const intrinsic = segments?.length === 1 && /^[a-z]/.test(first);
+		const binding = intrinsic || shadowed.has(first) ? undefined : bindings.get(first);
 		if (segments == null || binding == null) {
 			return undefined;
 		}
@@ -368,18 +385,6 @@ export function checkCode({
 		return path.length === 0
 			? undefined
 			: { specifier: binding.specifier, path, label: segments.join(".") };
-	};
-
-	/** The namespaces whose root renders somewhere in one JSX tree. */
-	const rootsIn = (tree: Record<string, unknown>): Set<string> => {
-		const roots = new Set<string>();
-		walk(tree, (node) => {
-			const use = node.type === "JSXOpeningElement" ? partUseOf(node) : undefined;
-			if (use != null && isRootPart(use)) {
-				roots.add(namespaceOf(use));
-			}
-		});
-		return roots;
 	};
 
 	const checkProps = (element: Record<string, unknown>, use: PartUse, props: PartProps) => {
@@ -444,43 +449,55 @@ export function checkCode({
 	const namesDialog = (element: Record<string, unknown>, use: PartUse): boolean => {
 		const opening = isRecord(element.openingElement) ? element.openingElement : {};
 		const attributes = Array.isArray(opening.attributes) ? opening.attributes : [];
+		const namingProps = new Set(["aria-label", "aria-labelledby", "children"]);
 		if (
 			attributes.some(
 				(attribute) =>
 					!isRecord(attribute) ||
 					attribute.type !== "JSXAttribute" ||
-					(isRecord(attribute.name) &&
-						(attribute.name.name === "aria-label" || attribute.name.name === "aria-labelledby")),
+					(isRecord(attribute.name) && namingProps.has(String(attribute.name.name))),
 			)
 		) {
 			return true;
 		}
-		let named = false;
-		walk(element.children, (node) => {
-			if (node.type === "JSXOpeningElement") {
-				const child = partUseOf(node);
-				const segments = jsxNameSegments(node.name) ?? [];
+		const namespace = namespaceOf(use);
+		const names = (node: unknown): boolean => {
+			if (Array.isArray(node)) {
+				return node.some(names);
+			}
+			if (!isRecord(node)) {
+				return false;
+			}
+			if (node.type === "JSXElement") {
+				const child = partUseOf(node.openingElement);
+				const opening = isRecord(node.openingElement) ? node.openingElement : {};
+				const [first = ""] = jsxNameSegments(opening.name) ?? [];
+				if (child != null && namespaceOf(child) === namespace) {
+					// Why stop at a nested Content: it names its own dialog, and one pass keeps check linear.
+					return (
+						child.path.at(-1) === "Title" ||
+						(child.path.at(-1) !== "Content" && names(node.children))
+					);
+				}
 				// Why a local component counts: it can render the title where check cannot see.
-				named ||=
-					child == null
-						? /^[A-Z]/.test(segments[0] ?? "")
-						: namespaceOf(child) === namespaceOf(use) && child.path.at(-1) === "Title";
+				return (child == null && /^[A-Z]/.test(first)) || names(node.children);
 			}
 			if (node.type === "JSXExpressionContainer" && isRecord(node.expression)) {
-				// Why an empty expression counts: `{/* … */}` marks content left out of an excerpt.
-				named ||=
-					node.expression.type === "Identifier" ||
-					node.expression.type === "MemberExpression" ||
-					node.expression.type === "JSXEmptyExpression";
+				// Why: an identifier, a call, or `{/* … */}` can hold a title that check cannot see.
+				const { type } = node.expression;
+				return (
+					(type !== "Literal" && type !== "JSXElement" && type !== "JSXFragment") ||
+					names(node.expression)
+				);
 			}
-		});
-		return named;
+			return Object.entries(node).some(
+				([key, value]) => key !== "parent" && typeof value === "object" && names(value),
+			);
+		};
+		return names(element.children);
 	};
 
-	/** The mantle parts that enclose a JSX element, and the namespaces whose root its tree renders. */
-	type Tree = { open: PartUse[]; roots: ReadonlySet<string> };
-
-	const checkElement = (element: Record<string, unknown>, use: PartUse, tree: Tree) => {
+	const checkElement = (element: Record<string, unknown>, use: PartUse) => {
 		const offset = typeof element.start === "number" ? element.start : 0;
 		const owner = use.label.slice(0, use.label.lastIndexOf("."));
 		const lookup = data.partPropsOf(use.specifier, use.path);
@@ -495,22 +512,6 @@ export function checkCode({
 		}
 		if (lookup.status === "part") {
 			checkProps(element, use, lookup.props);
-		}
-		const namespace = namespaceOf(use);
-		if (
-			use.path.length >= 2 &&
-			!isRootPart(use) &&
-			tree.roots.has(namespace) &&
-			!tree.open.some((ancestor) => isRootPart(ancestor) && namespaceOf(ancestor) === namespace) &&
-			// Why: a part that holds roots, such as `BarChart.List`, is a provider above them.
-			!rootsIn(element).has(namespace)
-		) {
-			add(offset, {
-				code: "part-outside-root",
-				severity: "error",
-				message: `${use.label} renders outside ${owner}.Root, so it has no root to read.`,
-				fix: `Move it inside <${owner}.Root>.`,
-			});
 		}
 		if (
 			DIALOG_SPECIFIERS.has(use.specifier) &&
@@ -528,36 +529,13 @@ export function checkCode({
 		}
 	};
 
-	const visit = (node: unknown, tree: Tree | undefined): void => {
-		if (Array.isArray(node)) {
-			for (const child of node) {
-				visit(child, tree);
-			}
-			return;
-		}
-		if (!isRecord(node)) {
-			return;
-		}
-		if (node.type === "JSXElement" || node.type === "JSXFragment") {
-			const current = tree ?? { open: [], roots: rootsIn(node) };
+	if (bindings.size > 0) {
+		walk(parsed.program, (node) => {
 			const use = node.type === "JSXElement" ? partUseOf(node.openingElement) : undefined;
 			if (use != null) {
-				checkElement(node, use, current);
+				checkElement(node, use);
 			}
-			// Why a new tree: JSX in a prop renders where the part puts it, not here.
-			const opening = isRecord(node.openingElement) ? node.openingElement : {};
-			visit(opening.attributes, undefined);
-			visit(node.children, use == null ? current : { ...current, open: [...current.open, use] });
-			return;
-		}
-		for (const [key, value] of Object.entries(node)) {
-			if (key !== "parent" && typeof value === "object") {
-				visit(value, tree);
-			}
-		}
-	};
-	if (bindings.size > 0) {
-		visit(parsed.program, undefined);
+		});
 	}
 
 	walk(parsed.program, (node) => {

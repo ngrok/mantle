@@ -229,12 +229,12 @@ describe("checkCode", () => {
 		]);
 	});
 
-	it("reports a part outside its root only in a JSX tree that renders the root", () => {
-		const sibling = `${SHEET}<><Sheet.Root>x</Sheet.Root><Sheet.Title>t</Sheet.Title></>;`;
-		const separate = `${SHEET}const title = <Sheet.Title>t</Sheet.Title>;\nconst root = <Sheet.Root>{title}</Sheet.Root>;`;
+	it("ignores a DOM tag or a local component that shares a name with an import", () => {
+		const intrinsic = `import { IconButton as button } from "@ngrok/mantle/icon-button";\n<button aria-label="Save" />;`;
+		const local = `${SHEET}function Edit() {\n\tconst Sheet = { Root: (props: { custom: string }) => props.custom };\n\treturn <Sheet.Root custom="ok" />;\n}`;
 
-		expect(partsOf(sibling)).toMatchObject([{ code: "part-outside-root" }]);
-		expect(partsOf(separate)).toEqual([]);
+		expect(partsOf(intrinsic)).toEqual([]);
+		expect(partsOf(local)).toEqual([]);
 	});
 
 	it("reports dialog content with no title, label, or code that can render one", () => {
@@ -250,5 +250,11 @@ describe("checkCode", () => {
 		]);
 		expect(partsOf(wrap("<Sheet.Title>Edit</Sheet.Title>Body"))).toEqual([]);
 		expect(partsOf(wrap("<EditHeader />"))).toEqual([]);
+		expect(partsOf(wrap("{renderTitle()}"))).toEqual([]);
+		expect(
+			partsOf(
+				`${SHEET}<Sheet.Root><Sheet.Content children={<Sheet.Title>Edit</Sheet.Title>} /></Sheet.Root>;`,
+			),
+		).toEqual([]);
 	});
 });

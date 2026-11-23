@@ -786,7 +786,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 		"check",
 		{
 			title: "Check mantle code",
-			description: `Returns feedback on one TSX file for the selected version: mantle imports, parts, and props (unknown, forbidden, or missing), parts outside their Root, untitled dialogs, foreign UI libraries, and className construction. No type check. Max ${MAX_CHECK_CODE_BYTES} bytes. Supports ${MIN_SUPPORTED_VERSION} and later.`,
+			description: `Returns feedback on one TSX file for the selected version: mantle imports, parts, and props (unknown, forbidden, or missing), untitled dialogs, foreign UI libraries, and className construction. No type check. Max ${MAX_CHECK_CODE_BYTES} bytes. Supports ${MIN_SUPPORTED_VERSION} and later.`,
 			inputSchema: logInvalid(
 				"check",
 				z.object({
