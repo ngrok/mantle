@@ -202,11 +202,30 @@ const createCommand = (initialValue: string) => {
 
 	/**
 	 * Puts each container's children back in the order they had before the
-	 * first sort. It moves only the children that the sort moved, so the
-	 * children that mounted during the search stay where they are.
+	 * first sort, and moves only the children out of order. A child that
+	 * mounted during the search stays at the end when it follows every saved
+	 * child, and goes to the front otherwise.
 	 */
 	const restore = () => {
 		for (const [container, order] of natural) {
+			let last = container.lastElementChild;
+			while (last != null && !order.has(last)) {
+				last = last.previousElementSibling;
+			}
+			// Why the front: React put a prepended item before the first item's node, which the sort moved down.
+			const mounted: Element[] = [];
+			for (
+				let child = last == null ? null : container.firstElementChild;
+				child != null && child !== last;
+				child = child.nextElementSibling
+			) {
+				if (!order.has(child)) {
+					mounted.push(child);
+				}
+			}
+			if (mounted.length > 0) {
+				container.prepend(...mounted);
+			}
 			place(
 				container,
 				[...order.keys()].filter((node) => node.parentElement === container),
