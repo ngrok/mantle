@@ -4,6 +4,8 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import process from "node:process";
 
+import { contributorDocFile } from "./check-agent-docs.ts";
+
 /** One command that `check:changed` runs. */
 export type CheckStep = {
 	name: string;
@@ -13,7 +15,6 @@ export type CheckStep = {
 
 const lintableFile = /\.(?:[cm]?[jt]sx?)$/;
 const formattableFile = /\.(?:[cm]?[jt]sx?|json|jsonc|css|md|mdx|ya?ml)$/;
-const agentDocFile = /(?:^|\/)(?:AGENTS|CONVENTIONS)\.md$/;
 const tailwindSourceFile = /^(?:apps|packages)\/.+\.tsx?$/;
 // Why every source file: a new theme, Tailwind version, or fixer rule can change the canonical form of any class.
 const tailwindRulesFile = /\.css$|^pnpm-lock\.yaml$|^scripts\/tailwind-canonical/;
@@ -93,7 +94,10 @@ export function planChecks({
 			args: ["exec", "oxlint", "--type-aware", "--deny-warnings", ...lintable],
 		});
 	}
-	if (files.some((file) => agentDocFile.test(file))) {
+	// Why the mantle manifest: a dependency it adds or drops changes which library names the docs may use.
+	if (
+		files.some((file) => contributorDocFile.test(file) || file === "packages/mantle/package.json")
+	) {
 		steps.push({ name: "agent docs", command: "node", args: ["./scripts/check-agent-docs.ts"] });
 	}
 	if (markdown.length > 0) {

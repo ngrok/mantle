@@ -2,7 +2,7 @@ Read each `AGENTS.md` in the directories from the repo root down to the file you
 
 # Mantle Agent Guide
 
-ngrok's UI library and design system: React, TypeScript, Radix, and Tailwind CSS, in a pnpm and Turborepo monorepo.
+ngrok's UI library and design system: native HTML, React, TypeScript, and Tailwind CSS, in a pnpm and Turborepo monorepo.
 
 This file follows the [AGENTS.md standard](https://agents.md) and is canonical for every harness. It routes you to the rules a task needs, and the files it links to are active instructions. `CLAUDE.md` is a symlink to it in each directory that has one; edit `AGENTS.md` only.
 
@@ -22,13 +22,13 @@ Each change meets all seven goals, for humans and agents alike. They have no ord
 
 Read the files for your task before the first edit. Work is incomplete until you check your diff against them.
 
-- **Any code change:** [CONVENTIONS.md](./CONVENTIONS.md) in full. It holds the code and prose rules for every file.
+- **Any code change:** [CONVENTIONS.md](./CONVENTIONS.md) in full: the code and prose rules for every file.
 - **Component source** under `packages/mantle/src/components/`, or its docs page, tests, or wiring: [COMPONENT_SPEC.md](./COMPONENT_SPEC.md), then work its [review checklist](./COMPONENT_SPEC.md#11-review-checklist). Load the `browser-translation-hazards` skill. `/scaffold-component`, `/audit-component`, and `/promote-preview-component` implement the spec.
-- **Hooks, utilities, and other public API:** the [Philosophy page](./apps/www/app/docs/philosophy.mdx) for the design rationale. Its JSDoc feeds `llms.txt`, so follow [CONVENTIONS.md § JSDoc](./CONVENTIONS.md#jsdoc).
+- **Hooks, utilities, and other public API:** the [Philosophy page](./apps/www/app/docs/philosophy.mdx) for the rationale. Its JSDoc feeds `llms.txt`, so follow [CONVENTIONS.md § JSDoc](./CONVENTIONS.md#jsdoc).
 - **An import in `packages/mantle/src`, or a part that reads router state:** [docs/framework-boundary.md](./docs/framework-boundary.md).
 - **JSX that renders text beside an element:** [docs/browser-translation.md](./docs/browser-translation.md).
 - **Any animation or transition:** [docs/motion.md](./docs/motion.md). Load the `motion` skill.
-- **A performance change or claim:** [explain the number](./docs/principles/explain-the-number.md) and [COMPONENT_SPEC.md §3.9](./COMPONENT_SPEC.md#39-performance). Measure the base and the branch the same way.
+- **A performance change or claim:** [explain the number](./docs/principles/explain-the-number.md) and [COMPONENT_SPEC.md §3.9](./COMPONENT_SPEC.md#39-performance). Measure the base and the branch alike.
 - **Tests:** [docs/testing.md](./docs/testing.md).
 - **Docs site and recipes** under `apps/www`: [COMPONENT_SPEC.md §7](./COMPONENT_SPEC.md#7-the-docs-page) and the `ngrok-style` skill. The recipe-fence tests pin each recipe file.
 - **Changesets and releases:** [VERSIONING.md](./VERSIONING.md) decides the bump. Mantle is `0.x`: a breaking change is a `minor`, an additive change is a `patch`, and `major` is never correct. Never correct a bump that a maintainer set by hand.
@@ -67,6 +67,7 @@ They are the methods that meet the [north star](#north-star). Each one has a fil
 - [Sequence verifiable units](./docs/principles/sequence-verifiable-units.md) (code): small steps, each checked.
 - [Encode lessons in structure](./docs/principles/encode-lessons-in-structure.md) (code, prose): a check beats a doc rule.
 - [Guard the context window](./docs/principles/guard-the-context-window.md) (code, prose): load only what the task needs.
+- [Follow the platform](./docs/principles/follow-the-platform.md) (code): native first, measured against a native floor.
 - [Do less in the browser](./docs/principles/do-less-in-the-browser.md) (code): the build, then CSS and the platform, then JavaScript.
 - [Keep the hot path lean](./docs/principles/keep-the-hot-path-lean.md) (code): no repeated work for each frame, event, or item.
 - [Redesign before you cache](./docs/principles/redesign-before-you-cache.md) (code): a cache must beat the best design with no cache.

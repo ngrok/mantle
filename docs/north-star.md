@@ -38,7 +38,7 @@ Each component owns the keyboard and ARIA contract that its name promises. It wo
 
 A component does what a consumer expects from its name, its props, and its JSDoc. A default is safe and matches the ecosystem. One component answers one intent, and one job has one way to do it. A consumer who knows one mantle component can predict the others. An upgrade never changes the behavior of an app with no word in the changeset, and a breaking change gets a `minor` bump ([VERSIONING.md](../VERSIONING.md)).
 
-- **Served by:** [experience first](./principles/experience-first.md), [composition over configuration](./principles/composition-over-configuration.md), [migrate callers, then delete](./principles/migrate-callers-then-delete.md), [derive, don't sync](./principles/derive-dont-sync.md), and [make illegal states unrepresentable](./principles/make-illegal-states-unrepresentable.md).
+- **Served by:** [follow the platform](./principles/follow-the-platform.md), [experience first](./principles/experience-first.md), [composition over configuration](./principles/composition-over-configuration.md), [migrate callers, then delete](./principles/migrate-callers-then-delete.md), [derive, don't sync](./principles/derive-dont-sync.md), and [make illegal states unrepresentable](./principles/make-illegal-states-unrepresentable.md).
 - **Signs you missed it:** two props that do one job, a prop whose name does not read as the DOM or ARIA that it sets, a default that differs from the ecosystem with no reason, or a breaking change with a `patch` bump.
 
 ## Fast
@@ -53,7 +53,7 @@ The user never waits for mantle, and the Core Web Vitals hold: Interaction to Ne
 
 A claim of speed needs a measurement of the base and of the branch.
 
-- **Served by:** [do less in the browser](./principles/do-less-in-the-browser.md), [keep the hot path lean](./principles/keep-the-hot-path-lean.md), [redesign before you cache](./principles/redesign-before-you-cache.md), and [explain the number](./principles/explain-the-number.md).
+- **Served by:** [follow the platform](./principles/follow-the-platform.md), [do less in the browser](./principles/do-less-in-the-browser.md), [keep the hot path lean](./principles/keep-the-hot-path-lean.md), [redesign before you cache](./principles/redesign-before-you-cache.md), and [explain the number](./principles/explain-the-number.md).
 - **Signs you missed it:** content that only a script renders, a claim of speed with no measurement, a scroll listener for an effect that CSS can do, a layout read for each item of a list, or state that an effect sets on mount when render can compute it.
 
 ## Delightful
