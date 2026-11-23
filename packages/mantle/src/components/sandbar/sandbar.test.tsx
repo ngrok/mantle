@@ -300,8 +300,8 @@ describe("Sandbar structure", () => {
 		// tailwind-merge override contract, asserting the merge OUTCOME rather than a
 		// list of internal defaults. The docs' reduced-motion demo cancels the panel's
 		// travel this way, and it only works when the consumer's variant chain matches
-		// the internal utility exactly: a bare `data-state-closed:translate-y-0` sits
-		// beside `motion-safe:data-state-closed:translate-y-[…]` and loses to it.
+		// the internal utility exactly: a bare `not-data-open:translate-y-0` sits
+		// beside `motion-safe:not-data-open:translate-y-[…]` and loses to it.
 		const { unmount } = render(
 			<Sandbar.Root open>
 				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
@@ -313,13 +313,13 @@ describe("Sandbar structure", () => {
 		unmount();
 
 		render(
-			<Sandbar.Root className="motion-safe:data-state-closed:translate-y-0" open>
+			<Sandbar.Root className="motion-safe:not-data-open:translate-y-0" open>
 				<Sandbar.Message>You have unsaved changes</Sandbar.Message>
 			</Sandbar.Root>,
 		);
 
 		const panel = getPanel();
-		expect(panel.className).toContain("motion-safe:data-state-closed:translate-y-0");
+		expect(panel.className).toContain("motion-safe:not-data-open:translate-y-0");
 		expect(panel.className).not.toContain("translate-y-[calc(100%+2.5rem)]");
 	});
 
@@ -354,14 +354,14 @@ describe("Sandbar structure", () => {
 		).toBeInTheDocument();
 	});
 
-	test("the panel reflects its presence through data-state", () => {
+	test("the panel reflects its presence through data-open", () => {
 		const { rerender } = render(fullTree({ open: true }));
-		expect(getPanel()).toHaveAttribute("data-state", "open");
+		expect(getPanel()).toHaveAttribute("data-open");
 
 		rerender(fullTree({ open: false }));
 		// closing keeps the panel mounted but already reports "closed"; that flip
 		// is what drives the exit transition
-		expect(getPanel()).toHaveAttribute("data-state", "closed");
+		expect(getPanel()).not.toHaveAttribute("data-open");
 	});
 
 	test("parts throw when rendered outside Sandbar.Root", () => {
@@ -445,17 +445,17 @@ describe("Sandbar accessible name", () => {
 });
 
 describe("Sandbar presence", () => {
-	test("open renders the panel visible with data-state=open", () => {
+	test("open renders the panel visible with data-open", () => {
 		render(fullTree({ open: true }));
 		const panel = getPanel();
-		expect(panel).toHaveAttribute("data-state", "open");
+		expect(panel).toHaveAttribute("data-open");
 		expect(panel).not.toHaveAttribute("hidden");
 	});
 
 	test("mounting closed hides the panel immediately, with no exit phase", () => {
 		render(fullTree({ open: false }));
 		const panel = getPanel();
-		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("data-open");
 		expect(panel).toHaveAttribute("hidden");
 	});
 
@@ -474,7 +474,7 @@ describe("Sandbar presence", () => {
 		rerender(fullTree({ open: false }));
 
 		const panel = getPanel();
-		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("data-open");
 		expect(panel).not.toHaveAttribute("hidden");
 
 		fireTransitionEnd(panel, "translate");
@@ -537,11 +537,11 @@ describe("Sandbar presence", () => {
 		// the pre-paint frame: visible but still in the closed pose, so the
 		// enter has a from-state to transition from
 		const panel = getPanel();
-		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("data-open");
 		expect(panel).not.toHaveAttribute("hidden");
 
 		await waitFor(() => {
-			expect(panel).toHaveAttribute("data-state", "open");
+			expect(panel).toHaveAttribute("data-open");
 		});
 	});
 
@@ -553,7 +553,7 @@ describe("Sandbar presence", () => {
 		// synchronously open: the in-flight transition retargets from the
 		// panel's current position instead of restarting from the bottom
 		const panel = getPanel();
-		expect(panel).toHaveAttribute("data-state", "open");
+		expect(panel).toHaveAttribute("data-open");
 		expect(panel).not.toHaveAttribute("hidden");
 	});
 
@@ -563,7 +563,7 @@ describe("Sandbar presence", () => {
 		rerender(fullTree({ open: false }));
 
 		const panel = getPanel();
-		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("data-open");
 		expect(panel).toHaveAttribute("hidden");
 	});
 
@@ -602,7 +602,7 @@ describe("Sandbar presence", () => {
 		panel.focus();
 		await user.keyboard("{Escape}");
 
-		expect(panel).toHaveAttribute("data-state", "open");
+		expect(panel).toHaveAttribute("data-open");
 		expect(panel).not.toHaveAttribute("hidden");
 	});
 });

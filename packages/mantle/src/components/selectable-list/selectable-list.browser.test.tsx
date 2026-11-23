@@ -94,11 +94,11 @@ describe("SelectableList (browser)", () => {
 		grid.focus();
 		await waitFor(() => expect(grid).toHaveAttribute("aria-activedescendant"));
 		const appleRow = screen.getByRole("checkbox", { name: "Apple" }).closest("[role='row']");
-		expect(appleRow).toHaveAttribute("data-active");
+		expect(appleRow).toHaveAttribute("data-highlighted");
 
 		screen.getByRole("button", { name: "outside" }).focus();
 		await waitFor(() => expect(grid).not.toHaveAttribute("aria-activedescendant"));
-		expect(appleRow).not.toHaveAttribute("data-active");
+		expect(appleRow).not.toHaveAttribute("data-highlighted");
 	});
 
 	test("clicking a disabled row does not arm the first enabled row", async () => {
@@ -125,7 +125,7 @@ describe("SelectableList (browser)", () => {
 		expect(grid).not.toHaveAttribute("aria-activedescendant");
 		expect(
 			screen.getByRole("checkbox", { name: "Apple" }).closest("[role='row']"),
-		).not.toHaveAttribute("data-active");
+		).not.toHaveAttribute("data-highlighted");
 	});
 
 	test("holding Space (auto-repeat) toggles the active row only once", async () => {
@@ -351,7 +351,7 @@ describe("SelectableList (browser)", () => {
 		}
 
 		const viewport = grid.closest("[data-slot~='selectable-list-viewport']");
-		const activeRow = document.querySelector("[role='row'][data-active]");
+		const activeRow = document.querySelector("[role='row'][data-highlighted]");
 		if (viewport == null || activeRow == null) {
 			throw new Error("viewport or active row not found");
 		}

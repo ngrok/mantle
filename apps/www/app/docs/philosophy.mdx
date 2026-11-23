@@ -251,9 +251,9 @@ vocabulary.
 Your overrides always win. Every component composes consumer `className` last
 through [cx](/utils/cx), whose merge engine Mantle vendors with the house spacing scale
 baked in rather than taking clsx and tailwind-merge as dependencies: className merging is
-core infrastructure, so Mantle owns it. Interactive state is styled through custom
-[Tailwind variants](/base/tailwind-variants) that match the DOM the headless layers
-actually emit (`data-state-*`, `aria-*`), and key internal defaults are wrapped in
+core infrastructure, so Mantle owns it. Interactive state is styled through Tailwind's built-in
+[variants](/base/tailwind-variants) against the attributes the components actually emit
+(`aria-*` first, then presence-only `data-*`), and key internal defaults are wrapped in
 `:where()` so a single utility class from you outranks them.
 
 ## Performance happens before the browser

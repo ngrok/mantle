@@ -120,7 +120,7 @@ const measure = async (impl: Run["impl"]): Promise<Run> => {
 					.filter((frame) => frame.startTime >= since && frame.startTime < since + 1000)
 					.map((frame) => frame.duration),
 			),
-			open: document.querySelector("[data-slot~='sheet-content'][data-state='open']") != null,
+			open: document.querySelector("[data-slot~='sheet-content'][data-open]") != null,
 		};
 	}, tapAt);
 	await context.close();

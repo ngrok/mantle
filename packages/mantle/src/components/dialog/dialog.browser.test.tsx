@@ -178,7 +178,7 @@ const EXIT_STYLE = `
 .motion-safe\\:not-has-\\[\\>\\[data-mantle-modal-content\\]\\[data-state\\=open\\]\\]\\:animate-exit-hold:not(:has( > [data-mantle-modal-content][data-state=open])) {
 	animation: exit-hold 150ms;
 }
-[data-slot~="dialog-content"][data-state="closed"] { animation: quick-exit 50ms; }
+[data-slot~="dialog-content"][data-closing] { animation: quick-exit 50ms; }
 `;
 
 describe("Dialog exit", () => {

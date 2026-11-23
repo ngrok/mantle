@@ -510,7 +510,6 @@ function ThemeSwitcher({
 				className,
 			)}
 			data-appearance={appearance}
-			data-disabled={disabled ? "" : undefined}
 			data-icon-button
 			data-intent="neutral"
 			data-loading={isLoading ? "" : undefined}

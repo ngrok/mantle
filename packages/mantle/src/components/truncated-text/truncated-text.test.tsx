@@ -273,7 +273,6 @@ describe("TruncatedText", () => {
 			const tooltip = await screen.findByRole("tooltip");
 			expect(tooltip).toHaveTextContent(url);
 			expect(tooltip).toHaveAttribute("translate", "no");
-			expect(root).toHaveAttribute("data-state", expect.stringMatching(/open$/));
 			// The tooltip's text is the root's own content, so a description would
 			// make a screen reader read the value twice.
 			expect(root).not.toHaveAttribute("aria-describedby");
@@ -370,9 +369,9 @@ describe("TruncatedText", () => {
 			const root = screen.getByTestId("value");
 			expect(root).toHaveAttribute("data-truncated", "");
 			expect(root).not.toHaveAttribute("tabindex");
-			// Radix stamps `data-state` on every trigger it renders, so its absence
-			// pins that the root is no tooltip trigger here.
-			expect(root).not.toHaveAttribute("data-state");
+			await userEvent.hover(root);
+			await measured();
+			expect(screen.queryByRole("tooltip")).toBeNull();
 			expect(screen.getByRole("button", { name: url })).toBeInTheDocument();
 		});
 
@@ -391,7 +390,9 @@ describe("TruncatedText", () => {
 			const root = screen.getByTestId("value");
 			expect(root).toHaveAttribute("data-truncated", "");
 			expect(root).not.toHaveAttribute("tabindex");
-			expect(root).not.toHaveAttribute("data-state");
+			await userEvent.hover(root);
+			await measured();
+			expect(screen.queryByRole("tooltip")).toBeNull();
 		});
 
 		test("takes its tab stop and tooltip back when the element above it stops being a control", async () => {
@@ -418,7 +419,8 @@ describe("TruncatedText", () => {
 
 			const root = screen.getByTestId("value");
 			expect(root).toHaveAttribute("tabindex", "0");
-			expect(root).toHaveAttribute("data-state", "closed");
+			await user.hover(root);
+			expect(await screen.findByRole("tooltip")).toHaveTextContent(url);
 		});
 
 		test("drops its tab stop and tooltip when the element above it becomes a control", async () => {
@@ -446,7 +448,9 @@ describe("TruncatedText", () => {
 
 			const root = screen.getByTestId("value");
 			expect(root).not.toHaveAttribute("tabindex");
-			expect(root).not.toHaveAttribute("data-state");
+			await user.hover(root);
+			await measured();
+			expect(screen.queryByRole("tooltip")).toBeNull();
 		});
 
 		test("lets a consumer's tabIndex win", async () => {
@@ -560,7 +564,10 @@ describe("TruncatedText", () => {
 				await measured();
 
 				await waitFor(() => {
-					expect(container.querySelector('[data-state$="open"]')).toBe(root);
+					const tooltip =
+						host.shadowRoot?.querySelector('[role="tooltip"]') ??
+						document.querySelector('[role="tooltip"]');
+					expect(tooltip).toHaveTextContent(url);
 				});
 				await user.keyboard("{Escape}");
 			} finally {

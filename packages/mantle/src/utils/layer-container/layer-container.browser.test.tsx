@@ -260,7 +260,7 @@ describe("covered-float focus", () => {
 	 */
 	const EXIT_STYLE = `
 @keyframes exit-hold { to { opacity: 0.5; } }
-[data-slot="dialog-content"][data-state="closed"] { animation: exit-hold 300ms; }
+[data-slot="dialog-content"][data-closing] { animation: exit-hold 300ms; }
 `;
 
 	function CloseDialogThenOpenFloat() {
@@ -306,7 +306,7 @@ describe("covered-float focus", () => {
 			await user.click(screen.getByRole("button", { name: "Close and open" }));
 
 			// The closing dialog must still be modal, or this test proves nothing.
-			expect(document.querySelector("dialog:modal")).toHaveAttribute("data-state", "closed");
+			expect(document.querySelector("dialog:modal")).not.toHaveAttribute("data-open");
 			await waitFor(() => {
 				expect(screen.getByRole("button", { name: "Float button" })).toHaveFocus();
 			});

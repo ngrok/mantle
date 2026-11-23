@@ -406,14 +406,14 @@ import { useRef, useState } from "react";
 
 // What a reduced-motion visitor sees, reproduced through the consumer `className`
 // that `Sandbar.Root` merges last. The variant chain has to match the internal
-// utility exactly: a bare `data-state-closed:translate-y-0` would sit beside the
+// utility exactly: a bare `not-data-open:translate-y-0` would sit beside the
 // panel's own travel instead of replacing it.
 //
 // `transform-none!` is what stops the `shake()` wiggle: the wiggle is a Web
 // Animations transform, and an `!important` author declaration outranks an
 // animation in the cascade. It leaves the fades alone, because those animate the
 // standalone `translate` property.
-const STILLNESS = "motion-safe:data-state-closed:translate-y-0 transform-none!";
+const STILLNESS = "motion-safe:not-data-open:translate-y-0 transform-none!";
 
 export function ReducedMotionExample() {
 	const prefersReducedMotion = usePrefersReducedMotion();
@@ -653,10 +653,10 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 Stamped on the panel:
 
-| Data Attribute | Value                  | Description                                                                                                                                      |
-| -------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `data-slot`    | `"sandbar"`            | Stable styling hook for the panel. Survives `className` overrides.                                                                               |
-| `data-state`   | `"open"` \| `"closed"` | `"open"` only at the resting open pose. `"closed"` covers both the pre-enter frame and the exit transition, which is what drives the slide/fade. |
+| Data Attribute | Value              | Description                                                                                                                                        |
+| -------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`    | `"sandbar"`        | Stable styling hook for the panel. Survives `className` overrides.                                                                                 |
+| `data-open`    | present while open | Presence-only, and only at the resting open pose. Absent in both the pre-enter frame and the exit transition, which is what drives the slide/fade. |
 
 Every part also joins an incoming `data-slot` chain ahead of its own name, so composing a
 part through an ancestor's `asChild` yields `data-slot="ancestor-slot sandbar-…"` instead of
@@ -725,7 +725,6 @@ All props from [Button](/components/actions/button), with these differences:
 | `data-appearance` | the resolved `appearance`      | Stamped by [Button](/components/actions/button).              |
 | `data-intent`     | the resolved `intent`          | Stamped by Button.                                            |
 | `data-size`       | the resolved `size`            | Stamped by Button; absent for `appearance="link"`.            |
-| `data-disabled`   | present when disabled          | Stamped by Button. Presence-only, never `"false"`.            |
 | `data-loading`    | present when `isLoading`       | Stamped by Button. Presence-only, never `"false"`.            |
 
 ### Sandbar.DiscardButton
@@ -747,5 +746,4 @@ All props from [Button](/components/actions/button), with these differences:
 | `data-appearance` | the resolved `appearance`         | Stamped by [Button](/components/actions/button).              |
 | `data-intent`     | the resolved `intent`             | Stamped by Button.                                            |
 | `data-size`       | the resolved `size`               | Stamped by Button; absent for `appearance="link"`.            |
-| `data-disabled`   | present when disabled             | Stamped by Button. Presence-only, never `"false"`.            |
 | `data-loading`    | present when `isLoading`          | Stamped by Button. Presence-only, never `"false"`.            |

@@ -277,9 +277,9 @@ function Panel() {
 	// A persisted-collapsed panel snaps on load and animates on every later toggle.
 	return (
 		<div
-			data-state={state}
+			data-expanded={state === "expanded" ? "" : undefined}
 			data-hydrated={isHydrated ? "" : undefined}
-			className="w-52 transition-[width] data-[state=collapsed]:w-13 not-data-hydrated:transition-none"
+			className="w-52 transition-[width] not-data-expanded:w-13 not-data-hydrated:transition-none"
 		/>
 	);
 }
@@ -476,8 +476,8 @@ function FloatingPanel({
 		<aside
 			ref={panelRef}
 			aria-label="Assistant"
-			data-state={open ? "open" : "closed"}
-			className="transition-[translate] duration-200 ease-out-strong motion-reduce:transition-none data-state-closed:translate-x-full"
+			data-open={open ? "" : undefined}
+			className="transition-[translate] duration-200 ease-out-strong motion-reduce:transition-none not-data-open:translate-x-full"
 		>
 			<div ref={headerRef} className="touch-pan-y">
 				Assistant

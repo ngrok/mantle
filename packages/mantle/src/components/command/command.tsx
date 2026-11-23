@@ -1069,12 +1069,11 @@ const CommandSeparator = ({
  * One selectable row in the palette's list. A query that does not match it
  * writes `hidden` on it, and it stays mounted.
  *
- * | Data Attribute  | Value                  | Description                       |
- * | --------------- | ---------------------- | --------------------------------- |
- * | `data-slot`     | `"command-item"`       | The item.                         |
- * | `data-value`    | the resolved value     | The `value`, or the trimmed text. |
- * | `data-selected` | `"true"` when active   | The active item.                  |
- * | `data-disabled` | `"true"` when disabled | Set by `disabled`.                |
+ * | Data Attribute     | Value                    | Description                                       |
+ * | ------------------ | ------------------------ | ------------------------------------------------- |
+ * | `data-slot`        | `"command-item"`         | The item.                                         |
+ * | `data-highlighted` | present when highlighted | Presence-only. The item the keyboard or pointer is on. |
+ * | `aria-disabled`    | `"true"` when disabled   | Set by `disabled`. Style it with `aria-disabled:`. |
  *
  * @see https://mantle.ngrok.com/components/navigation/command#commanditem
  *
@@ -1185,10 +1184,9 @@ const CommandItem = ({
 			// Why `false`: the list writes `true` on the active item when it moves.
 			aria-selected={false}
 			aria-disabled={disabled || undefined}
-			data-disabled={disabled ? "true" : undefined}
 			data-slot={joinDataSlot(dataSlot, "command-item")}
 			className={cx(
-				"data-[selected=true]:bg-active-menu-item [:where(&_svg)]:text-muted relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [:where(&_svg)]:size-5",
+				"data-highlighted:bg-active-menu-item [:where(&_svg)]:text-muted relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [:where(&_svg)]:size-5",
 				className,
 			)}
 			onPointerMove={(event) => {

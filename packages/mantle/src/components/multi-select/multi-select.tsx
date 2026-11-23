@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentProps, KeyboardEvent, PropsWithChildren, ReactNode } from "react";
-import { cloneElement, createContext, isValidElement, use, useId, useRef, useState } from "react";
+import { cloneElement, createContext, isValidElement, use, useId, useRef } from "react";
 import { createPortal, flushSync } from "react-dom";
 import { composeHandlers } from "../../behaviors/compose-handlers.js";
 import { useComboboxInput } from "../../behaviors/use-combobox.js";
@@ -178,9 +178,9 @@ const Trigger = ({
 					"border-form bg-form text-strong flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border px-3 py-1 has-data-[slot=multi-select-tag]:px-1",
 					"has-focus-within:focus-ring has-aria-expanded:focus-ring",
 					"has-focus-within:border-accent-600 has-aria-expanded:border-accent-600",
-					"data-validation-success:border-success-600 data-validation-success:has-focus-within:border-success-600 data-validation-success:has-focus-within:ring-focus-success data-validation-success:has-aria-expanded:border-success-600 data-validation-success:has-aria-expanded:ring-focus-success",
-					"data-validation-warning:border-warning-600 data-validation-warning:has-focus-within:border-warning-600 data-validation-warning:has-focus-within:ring-focus-warning data-validation-warning:has-aria-expanded:border-warning-600 data-validation-warning:has-aria-expanded:ring-focus-warning",
-					"data-validation-error:border-danger-600 data-validation-error:has-focus-within:border-danger-600 data-validation-error:has-focus-within:ring-focus-danger data-validation-error:has-aria-expanded:border-danger-600 data-validation-error:has-aria-expanded:ring-focus-danger motion-safe:data-validation-error:animate-shake",
+					"data-[validation=success]:border-success-600 data-[validation=success]:has-focus-within:border-success-600 data-[validation=success]:has-focus-within:ring-focus-success data-[validation=success]:has-aria-expanded:border-success-600 data-[validation=success]:has-aria-expanded:ring-focus-success",
+					"data-[validation=warning]:border-warning-600 data-[validation=warning]:has-focus-within:border-warning-600 data-[validation=warning]:has-focus-within:ring-focus-warning data-[validation=warning]:has-aria-expanded:border-warning-600 data-[validation=warning]:has-aria-expanded:ring-focus-warning",
+					"data-[validation=error]:border-danger-600 data-[validation=error]:has-focus-within:border-danger-600 data-[validation=error]:has-focus-within:ring-focus-danger data-[validation=error]:has-aria-expanded:border-danger-600 data-[validation=error]:has-aria-expanded:ring-focus-danger motion-safe:data-[validation=error]:animate-shake",
 					className,
 				)}
 				data-validation={validation || undefined}
@@ -244,8 +244,8 @@ type TagProps = Omit<ComponentProps<"span">, "children"> & {
 /**
  * The default tag rendered inside `MultiSelect.TagValues` for each selected value.
  * Displays the value label with a remove button. Renders a `role="listitem"`
- * inside the `role="list"` that `MultiSelect.TagValues` renders, and marks
- * itself `data-active` while it has focus.
+ * inside the `role="list"` that `MultiSelect.TagValues` renders. The tag that
+ * keyboard navigation is on has DOM focus; style it with `focus-visible:`.
  *
  * Arrow-key navigation and Backspace/Delete removal come from the
  * `MultiSelect.TagValues` render props; spread them onto the tag to get them.
@@ -256,7 +256,6 @@ type TagProps = Omit<ComponentProps<"span">, "children"> & {
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-active` | present while focused | The tag that keyboard navigation is on. |
  * | `data-locked` | present when `locked` | The tag cannot be removed. |
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselecttag
@@ -282,17 +281,11 @@ const Tag = ({
 	value,
 	onRemove,
 	locked = false,
-	onBlur,
-	onFocus,
 	onKeyDown,
 	ref,
 	...props
 }: TagProps) => {
 	const internalRef = useRef<HTMLSpanElement | null>(null);
-	// Why local state: the tag list has no listbox, so `aria-selected` is not
-	// valid here, and `aria-current` names a current item, not focus. DOM focus
-	// exposes the active tag; `data-active` drives its styling.
-	const [isActive, setIsActive] = useState(false);
 	// Why a hook: the tags re-render on each keystroke, and a new ref callback would run the caller's callback ref again.
 	const composedRef = useComposedRefs(internalRef, ref);
 
@@ -302,21 +295,12 @@ const Tag = ({
 			role="listitem"
 			tabIndex={-1}
 			data-slot={joinDataSlot(dataSlot, "multi-select-tag")}
-			data-active={isActive || undefined}
 			data-locked={locked || undefined}
 			className={cx(
 				"cursor-default bg-neutral-500/10 border border-neutral-500/20 rounded-xs text-strong inline-flex items-center gap-1 pl-2 pr-0.5 py-0.5 text-sm font-normal motion-safe:data-shake:animate-shake",
 				"focus-visible:border-accent-600/50 focus-visible:ring-3 focus-visible:focus-ring",
 				className,
 			)}
-			onBlur={(event) => {
-				setIsActive(false);
-				onBlur?.(event);
-			}}
-			onFocus={(event) => {
-				setIsActive(true);
-				onFocus?.(event);
-			}}
 			onKeyDown={(event) => {
 				if (locked && (event.key === "Backspace" || event.key === "Delete")) {
 					event.preventDefault();
@@ -860,7 +844,7 @@ const OpenContent = ({
 					popover={hasPopoverApi ? "manual" : undefined}
 					ref={composedRef}
 					data-slot={joinDataSlot(dataSlot, "multi-select-content")}
-					data-state="open"
+					data-open=""
 					className={cx(
 						"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 has-data-content-footer:after:hidden rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col space-y-px outline-hidden",
 						sameWidth && "w-(--anchor-width)",

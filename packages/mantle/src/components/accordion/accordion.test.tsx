@@ -121,19 +121,15 @@ describe("Accordion", () => {
 		expect(triggerA.closest('[data-slot="accordion-item"]')).toHaveAttribute("role", "group");
 	});
 
-	test("trigger reflects open state via aria-expanded and data-state", () => {
+	test("trigger reflects open state via aria-expanded", () => {
 		renderExample("a");
 		const triggerA = screen.getByRole("button", { name: /Trigger A/ });
 		const triggerB = screen.getByRole("button", { name: /Trigger B/ });
 
+		// `aria-expanded` is also the styling hook: it rotates `Accordion.TriggerIcon`
+		// via `group-aria-expanded:rotate-180`.
 		expect(triggerA).toHaveAttribute("aria-expanded", "true");
 		expect(triggerB).toHaveAttribute("aria-expanded", "false");
-
-		// `data-state` on the trigger is the documented styling hook consumers target
-		// (`data-state-open:*`), and it's what rotates `Accordion.TriggerIcon` via
-		// `group-data-state-open:rotate-180`, so it has to track open state too.
-		expect(triggerA).toHaveAttribute("data-state", "open");
-		expect(triggerB).toHaveAttribute("data-state", "closed");
 	});
 
 	test('type="single" emits the newly open value, then "" when it collapses', async () => {
@@ -201,9 +197,8 @@ describe("Accordion", () => {
 			"false",
 		);
 		const collapsedBody = screen.getByText("Body of section B");
-		expect(collapsedBody.closest('[data-slot="accordion-content"]')).toHaveAttribute(
-			"data-state",
-			"closed",
+		expect(collapsedBody.closest('[data-slot="accordion-content"]')).not.toHaveAttribute(
+			"data-open",
 		);
 		// Its body text still exists in the DOM. This is the entire point of the
 		// component (browser find-in-page support).
@@ -429,8 +424,8 @@ describe("Accordion", () => {
 		// `string[]` without `type` being set).
 		const itemA = screen.getByText("Body of section A").closest('[data-slot="accordion-item"]');
 		const itemB = screen.getByText("Body of section B").closest('[data-slot="accordion-item"]');
-		expect(itemA).toHaveAttribute("data-state", "open");
-		expect(itemB).toHaveAttribute("data-state", "open");
+		expect(itemA).toHaveAttribute("data-open");
+		expect(itemB).toHaveAttribute("data-open");
 	});
 
 	test('type="multiple" allows several sections open at once', async () => {

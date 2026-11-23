@@ -39,7 +39,7 @@ function queryBarWrapper(): HTMLElement | null {
 }
 
 /**
- * The bar's presence wrapper: the element that owns `data-state`, `inert`, and
+ * The bar's presence wrapper: the element that owns `data-open`, `inert`, and
  * the `transitionend` that completes the exit. Throws rather than returning
  * `null` so call sites stay type-safe without a non-null assertion.
  */
@@ -452,8 +452,8 @@ describe("AlertCenter.Bar", () => {
 			});
 			const closingBar = container.querySelector('[data-slot~="alert-center-bar"]');
 			expect(closingBar).not.toBeNull();
-			const wrapper = closingBar?.closest("[data-state]");
-			expect(wrapper).toHaveAttribute("data-state", "closed");
+			const wrapper = closingBar?.closest("[inert]");
+			expect(wrapper).not.toHaveAttribute("data-open");
 			expect(wrapper).toHaveAttribute("inert");
 			// the retained children keep the banner filled through the slide;
 			// an empty strip collapsing would flash blank before the exit
@@ -490,7 +490,7 @@ describe("AlertCenter.Bar", () => {
 				<AlertCenter.Bar />
 			</AlertCenter.Root>,
 		);
-		expect(getBarWrapper()).toHaveAttribute("data-state", "closed");
+		expect(getBarWrapper()).not.toHaveAttribute("data-open");
 		const chrome = getBarChrome();
 		expect(chrome).toHaveAttribute("data-alert-id", "payment");
 		// `Alert.Root` derives this documented variable from its `intent` prop.
@@ -948,7 +948,7 @@ describe("AlertCenter.Bar", () => {
 		render(<ThreeAlertHarness />);
 		const wrapper = getBarWrapper();
 		// the wrapper (not the chrome) is what owns the enter/exit state
-		expect(wrapper).toHaveAttribute("data-state", "open");
+		expect(wrapper).toHaveAttribute("data-open");
 		expect(wrapper).toContainElement(getBarChrome());
 		expect(screen.getByRole("status")).toHaveAttribute("data-slot", "alert-center-announcer");
 		// The chain runs through `Alert.DismissIconButton` into `IconButton`.
@@ -976,7 +976,7 @@ describe("AlertCenter.Bar", () => {
 					</AlertCenter.Root>,
 				);
 			});
-			expect(getBarWrapper()).toHaveAttribute("data-state", "closed");
+			expect(getBarWrapper()).not.toHaveAttribute("data-open");
 
 			// a height transition bubbling up from a descendant is not the wrapper's
 			// collapse: the expand caret's rotate would otherwise unmount the bar
@@ -1444,7 +1444,7 @@ describe("AlertCenter.Item after browser translation", () => {
 				<AlertCenter.Bar />
 			</AlertCenter.Root>,
 		);
-		expect(getBarWrapper()).toHaveAttribute("data-state", "closed");
+		expect(getBarWrapper()).not.toHaveAttribute("data-open");
 		// Why identity: a ghost is a clone with the same attributes, so only the
 		// live host's identity tells the two apart.
 		expect(getBarChrome()).toContainElement(host);
@@ -1576,7 +1576,7 @@ describe("AlertCenter.Content", () => {
 
 		const content = screen.getByTestId("content");
 		expect(content).toHaveAttribute("data-slot", "alert-center-content");
-		expect(content).toHaveAttribute("data-state", "open");
+		expect(content).toHaveAttribute("data-open");
 		const rows = content.querySelectorAll('[data-slot~="alert-center-item"]');
 		expect(rows).toHaveLength(2);
 		for (const row of rows) {
@@ -1596,8 +1596,8 @@ describe("AlertCenter.Content", () => {
 
 		await user.click(screen.getByRole("button", { name: "Collapse additional alerts" }));
 		// Collapsing runs an exit animation, so the content stays mounted (hidden)
-		// rather than unmounting: its data-state flips to "closed".
-		expect(screen.getByTestId("content")).toHaveAttribute("data-state", "closed");
+		// rather than unmounting: it drops `data-open`.
+		expect(screen.getByTestId("content")).not.toHaveAttribute("data-open");
 	});
 
 	test("does not render inline content when there are no additional alerts", () => {
@@ -1676,7 +1676,7 @@ describe("AlertCenter.Content", () => {
 		render(<LaterArrival />);
 
 		await user.click(screen.getByRole("button", { name: "Show 1 more alert" }));
-		expect(screen.getByTestId("content")).toHaveAttribute("data-state", "open");
+		expect(screen.getByTestId("content")).toHaveAttribute("data-open");
 
 		// the extra condition clears, so the expansion (and its control) unmount
 		await user.click(screen.getByRole("button", { name: "toggle region" }));
@@ -1684,7 +1684,7 @@ describe("AlertCenter.Content", () => {
 
 		// it recurs later, with no user interaction on the expand control
 		await user.click(screen.getByRole("button", { name: "toggle region" }));
-		expect(screen.getByTestId("content")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("content")).not.toHaveAttribute("data-open");
 		expect(screen.getByRole("button", { name: "Show 1 more alert" })).toBeInTheDocument();
 	});
 
@@ -1706,7 +1706,7 @@ describe("AlertCenter.Content", () => {
 				</AlertCenter.Item>
 			</AlertCenter.Root>,
 		);
-		expect(screen.getByTestId("content")).toHaveAttribute("data-state", "open");
+		expect(screen.getByTestId("content")).toHaveAttribute("data-open");
 		expect(screen.getByRole("button", { name: "Collapse additional alerts" })).toHaveAttribute(
 			"aria-expanded",
 			"true",
@@ -1991,13 +1991,13 @@ describe("AlertCenter.Root", () => {
 		render(<ControlledHarness onOpenChange={onOpenChange} open={false} />);
 
 		// `open` is the source of truth, so `defaultOpen` does not apply
-		expect(screen.getByTestId("content")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("content")).not.toHaveAttribute("data-open");
 
 		await user.click(screen.getByRole("button", { name: "Show 1 more alert" }));
 
 		// the consumer owns the state: the expansion stays closed until they pass
 		// the next `open`, but the request is reported
-		expect(screen.getByTestId("content")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("content")).not.toHaveAttribute("data-open");
 		expect(onOpenChange).toHaveBeenCalledTimes(1);
 		expect(onOpenChange).toHaveBeenCalledWith(true);
 	});
@@ -2020,12 +2020,12 @@ describe("AlertCenter.Root", () => {
 
 		await user.click(screen.getByRole("button", { name: "Show 1 more alert" }));
 		expect(onOpenChange).toHaveBeenLastCalledWith(true);
-		expect(screen.getByTestId("content")).toHaveAttribute("data-state", "open");
+		expect(screen.getByTestId("content")).toHaveAttribute("data-open");
 
 		await user.click(screen.getByRole("button", { name: "Collapse additional alerts" }));
 		expect(onOpenChange).toHaveBeenLastCalledWith(false);
 		expect(onOpenChange).toHaveBeenCalledTimes(2);
-		expect(screen.getByTestId("content")).toHaveAttribute("data-state", "closed");
+		expect(screen.getByTestId("content")).not.toHaveAttribute("data-open");
 	});
 
 	test("reports the close a controlled root cannot see coming when the row set empties", () => {
@@ -2035,7 +2035,7 @@ describe("AlertCenter.Root", () => {
 		// would silently re-open the expansion on the next lower-ranked arrival.
 		const onOpenChange = vi.fn<(open: boolean) => void>();
 		const { rerender } = render(<ControlledHarness onOpenChange={onOpenChange} open />);
-		expect(screen.getByTestId("content")).toHaveAttribute("data-state", "open");
+		expect(screen.getByTestId("content")).toHaveAttribute("data-open");
 		expect(onOpenChange).not.toHaveBeenCalled();
 
 		rerender(<ControlledHarness onOpenChange={onOpenChange} open showRegion={false} />);

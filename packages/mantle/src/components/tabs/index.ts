@@ -76,10 +76,10 @@ const Tabs = TabsParts;
  * ```tsx
  * <HeadlessTabs.Root defaultValue="api" className="flex flex-col gap-6">
  *   <HeadlessTabs.List aria-label="Use cases" className="grid grid-cols-2">
- *     <HeadlessTabs.Trigger value="api" className="p-6 data-state-active:bg-card-hover">
+ *     <HeadlessTabs.Trigger value="api" className="p-6 aria-selected:bg-card-hover">
  *       API gateway
  *     </HeadlessTabs.Trigger>
- *     <HeadlessTabs.Trigger value="webhooks" className="p-6 data-state-active:bg-card-hover">
+ *     <HeadlessTabs.Trigger value="webhooks" className="p-6 aria-selected:bg-card-hover">
  *       Webhooks
  *     </HeadlessTabs.Trigger>
  *   </HeadlessTabs.List>

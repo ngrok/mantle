@@ -847,7 +847,7 @@ All props of an `<input>` except `value`, `defaultValue`, and `autoComplete`. Ke
 
 ### MultiSelect.Tag
 
-The default tag component rendered inside `MultiSelect.TagValues` for each selected value. Displays the value label with a remove button. Renders a `role="listitem"` inside the `role="list"` that `MultiSelect.TagValues` renders, and marks itself `data-active` while it has focus.
+The default tag component rendered inside `MultiSelect.TagValues` for each selected value. Displays the value label with a remove button. Renders a `role="listitem"` inside the `role="list"` that `MultiSelect.TagValues` renders. The tag that keyboard navigation is on has DOM focus; style it with `focus-visible:`.
 
 Arrow-key navigation and Backspace/Delete removal come from the `MultiSelect.TagValues` render props; spread them onto the tag to get them. On its own, `Tag` only blocks Backspace and Delete on a locked tag.
 
@@ -861,10 +861,9 @@ Also accepts all standard `span` element props (except `children`). The `onKeyDo
 | `onRemove?` | `() => void` |         | Called when the remove button is clicked. `MultiSelect.TagValues` passes one through its render props that removes the value from the selection. |
 | `locked?`   | `boolean`    | `false` | When true, shows a lock icon, disables the remove button, and shakes on Delete/Backspace key presses.                                            |
 
-| Data Attribute | Value                 | Description                             |
-| :------------- | :-------------------- | :-------------------------------------- |
-| `data-active`  | present while focused | The tag that keyboard navigation is on. |
-| `data-locked`  | present when `locked` | The tag cannot be removed.              |
+| Data Attribute | Value                 | Description                |
+| :------------- | :-------------------- | :------------------------- |
+| `data-locked`  | present when `locked` | The tag cannot be removed. |
 
 ### MultiSelect.Content
 

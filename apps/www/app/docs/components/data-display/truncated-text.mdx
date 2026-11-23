@@ -275,11 +275,10 @@ All props from [span](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/
 
 #### Data attributes
 
-| Data Attribute   | Value                                              | Description                                                                                  |
-| ---------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `data-slot`      | `"truncated-text"`                                 | On the root, and joined onto the child via `asChild`.                                        |
-| `data-slot`      | `"truncated-text-head"`                            | On the `<span>` that clips. Holds everything before the tail.                                |
-| `data-slot`      | `"truncated-text-tail"`                            | On the `<span>` that stays visible. Holds the last `tail` graphemes.                         |
-| `data-slot`      | `"truncated-text-value"`                           | On the visually hidden `<span>` that holds the whole value for assistive technology.         |
-| `data-truncated` | present while the value overflows                  | Presence-only. Style with `data-truncated:`. Absent on the server render.                    |
-| `data-state`     | `"closed"` \| `"delayed-open"` \| `"instant-open"` | The tooltip state on the root. `"closed"` until the tooltip mounts. Absent inside a control. |
+| Data Attribute   | Value                             | Description                                                                          |
+| ---------------- | --------------------------------- | ------------------------------------------------------------------------------------ |
+| `data-slot`      | `"truncated-text"`                | On the root, and joined onto the child via `asChild`.                                |
+| `data-slot`      | `"truncated-text-head"`           | On the `<span>` that clips. Holds everything before the tail.                        |
+| `data-slot`      | `"truncated-text-tail"`           | On the `<span>` that stays visible. Holds the last `tail` graphemes.                 |
+| `data-slot`      | `"truncated-text-value"`          | On the visually hidden `<span>` that holds the whole value for assistive technology. |
+| `data-truncated` | present while the value overflows | Presence-only. Style with `data-truncated:`. Absent on the server render.            |

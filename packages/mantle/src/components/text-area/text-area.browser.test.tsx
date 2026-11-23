@@ -7,7 +7,7 @@ import { TextArea } from "./text-area.js";
 /**
  * Mirrors the CSS Tailwind 4 emits for the utilities `TextArea` uses for its
  * `appearance="monospaced"` variant and its `data-drag-over` state, paired with
- * the `data-drag-over` custom variant registered in `mantle.css`. We inline it
+ * Tailwind's built-in `data-drag-over:` presence variant. We inline it
  * instead of importing the full mantle stylesheet so the test stays hermetic
  * and doesn't require a Tailwind build step in the test pipeline.
  *
@@ -27,7 +27,7 @@ const STYLE = `
 @layer utilities {
 	.font-sans { font-family: ui-sans-serif, sans-serif; }
 	.font-mono { font-family: ui-monospace, monospace; }
-	.data-drag-over\\:border-dashed[data-drag-over="true"] { border-style: dashed; }
+	.data-drag-over\\:border-dashed[data-drag-over] { border-style: dashed; }
 }
 `;
 

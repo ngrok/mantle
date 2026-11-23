@@ -265,9 +265,8 @@ export function Example({ name, title, height, children }: ExampleProps) {
 			</Tabs.List>
 			<Tabs.Content
 				value="preview"
-				// Radix leaves a force-mounted inactive panel visible, so hide it here.
+				// Keeps the preview mounted while the code shows. The inactive panel is `hidden`.
 				forceMount
-				className="data-[state=inactive]:hidden"
 			>
 				{frame}
 			</Tabs.Content>

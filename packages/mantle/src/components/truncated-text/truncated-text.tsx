@@ -775,13 +775,10 @@ type TriggerBinding = {
 	/** The trigger's composed ref: the tooltip's anchor and its own ref. */
 	ref: Ref<HTMLElement> | undefined;
 	handlers: TriggerHandlers;
-	/** The tooltip state for `data-state`. */
-	state: string | undefined;
 };
 
 type TriggerBridgeProps = TriggerHandlers & {
 	ref?: Ref<HTMLElement>;
-	"data-state"?: string;
 	"aria-describedby"?: string;
 	/** Receives the trigger's props after each commit. */
 	onBind: (binding: TriggerBinding) => void;
@@ -796,13 +793,12 @@ type TriggerBridgeProps = TriggerHandlers & {
  */
 function TriggerBridge({
 	"aria-describedby": _describedBy,
-	"data-state": state,
 	onBind,
 	ref,
 	...handlers
 }: TriggerBridgeProps) {
 	useIsomorphicLayoutEffect(() => {
-		onBind({ ref, handlers, state });
+		onBind({ ref, handlers });
 	});
 	return null;
 }
@@ -934,7 +930,6 @@ function assignRef(ref: Ref<HTMLElement> | undefined, node: HTMLElement | null) 
  * | `data-slot`      | `"truncated-text-tail"`                            | On the `<span>` that stays visible. Holds the last `tail` graphemes.               |
  * | `data-slot`      | `"truncated-text-value"`                           | On the visually hidden `<span>` that holds the whole value for assistive technology. |
  * | `data-truncated` | present while the value overflows                  | Presence-only. Style with `data-truncated:`. Absent on the server render.          |
- * | `data-state`     | `"closed"` \| `"delayed-open"` \| `"instant-open"` | The tooltip state on the root. `"closed"` until the tooltip mounts. Absent inside a control. |
  *
  * @useWhen Show one long opaque value on one line, and keep its end visible when it clips.
  *
@@ -1144,9 +1139,6 @@ const TruncatedText = ({
 		ref: composedRef,
 		"aria-describedby": describedBy,
 		"data-slot": joinDataSlot(dataSlot, "truncated-text"),
-		// Why "closed" before the tooltip mounts: the trigger stamps the state once
-		// it mounts, and the attribute stays a stable styling hook in both states.
-		"data-state": insideControl ? undefined : "closed",
 		// Why `ltr`: a URL, an ID, or a token reads left to right on an RTL page
 		// too, so the tail stays on the right and the head clips at its end.
 		dir: "ltr",
@@ -1265,9 +1257,6 @@ const TruncatedText = ({
 								if (previous?.ref !== binding.ref) {
 									assignRef(previous?.ref, null);
 									assignRef(binding.ref, element);
-								}
-								if (binding.state != null) {
-									element.setAttribute("data-state", binding.state);
 								}
 								const pending = pendingEventRef.current;
 								if (pending == null) {

@@ -88,7 +88,7 @@ describe("Accordion (browser)", () => {
 		await waitFor(() => expect(region).not.toHaveAttribute("hidden"));
 		// Why wait: the state change renders in a later task in WebKit. The next
 		// test pins the synchronous part, the unhidden box.
-		await waitFor(() => expect(region).toHaveAttribute("data-state", "open"));
+		await waitFor(() => expect(region).toHaveAttribute("data-open"));
 	});
 
 	test('"beforematch" expands the content synchronously so the browser can highlight the revealed match', () => {
@@ -114,7 +114,7 @@ describe("Accordion (browser)", () => {
 		expect(region).not.toHaveAttribute("hidden");
 		// React has not re-rendered yet, so the layout below can only come from the
 		// handler's inline height.
-		expect(region).toHaveAttribute("data-state", "closed");
+		expect(region).not.toHaveAttribute("data-open");
 		expect(region.style.height).toBe("auto");
 		expect(region.offsetHeight).toBeGreaterThan(0);
 		// The closed state is transparent, so a match the browser highlights now
@@ -188,14 +188,14 @@ describe("Accordion (browser)", () => {
 		}
 
 		region.dispatchEvent(new Event("beforematch", { bubbles: true }));
-		await waitFor(() => expect(region).toHaveAttribute("data-state", "open"));
+		await waitFor(() => expect(region).toHaveAttribute("data-open"));
 		expect(region.style.height).toBe("auto");
 
 		await user.click(screen.getByRole("button", { name: /Trigger A/ }));
 
 		// The reveal's inline `height: auto` is a one-shot escape hatch. The close branch
 		// must clear it so the class-driven `h-0 ↔ h-auto` slide takes over again.
-		await waitFor(() => expect(region).toHaveAttribute("data-state", "closed"));
+		await waitFor(() => expect(region).not.toHaveAttribute("data-open"));
 		await waitFor(() => expect(region.style.height).toBe(""));
 		expect(region.style.opacity).toBe("");
 		expect(region.style.transition).toBe("");

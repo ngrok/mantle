@@ -685,6 +685,14 @@ export const migrations = [
 			"Each Slider thumb is now a native range input inside the thumb span. Target the input for focus, keys, ids, and test queries, and expect a disabled slider to submit no value.",
 		route: "/migrations/0028-native-slider-migration",
 	},
+	{
+		number: 29,
+		slug: "data-attribute-contract-migration",
+		title: "Data Attribute Contract",
+		description:
+			"Mantle's data attributes follow one small contract. Triggers, tabs, options, and checkable items use ARIA state, a boolean state is a presence attribute such as data-open, and mantle.css registers no data-* variants, so style with Tailwind's built-in forms.",
+		route: "/migrations/0029-data-attribute-contract-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

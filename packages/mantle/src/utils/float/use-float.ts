@@ -12,18 +12,18 @@ import type { Align, Side } from "./position.js";
 
 /**
  * How long a closed float stays mounted for its exit transition, in
- * milliseconds. It matches `data-state-closed:duration-150` in `floatClassName`.
+ * milliseconds. It matches `not-data-open:duration-150` in `floatClassName`.
  */
 const EXIT_DURATION = 150;
 
 /**
  * The classes every native float shares. The float is a `popover` in the top
  * layer: these classes undo the browser's centered `[popover]` box. It fades
- * and scales in from `@starting-style` and out on `data-state="closed"`.
+ * and scales in from `@starting-style` and out when `data-open` goes away.
  * Chromium keeps the float in the top layer for the exit (`overlay`). Firefox
  * and Safari hide it at once, because they do not transition `overlay`.
  *
- * Why `data-state`, `fixed`, and `z-50`, not `:popover-open`: a browser with no
+ * Why `data-open`, `fixed`, and `z-50`, not `:popover-open`: a browser with no
  * popover API (Safari before 17, Chrome before 114, Firefox before 125) does
  * not know `:popover-open` and has no top layer. There the float is a plain
  * fixed box at the float tier, as before mantle used the popover API. The top
@@ -37,7 +37,7 @@ const EXIT_DURATION = 150;
  * on a float that does not scroll.
  */
 const floatClassName =
-	"pointer-events-auto fixed z-50 m-0 inset-auto overflow-visible overscroll-none starting:opacity-0 starting:scale-95 data-state-closed:opacity-0 data-state-closed:scale-95 transition-[opacity,scale,display,overlay] transition-discrete duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:transition-none";
+	"pointer-events-auto fixed z-50 m-0 inset-auto overflow-visible overscroll-none starting:opacity-0 starting:scale-95 not-data-open:opacity-0 not-data-open:scale-95 transition-[opacity,scale,display,overlay] transition-discrete duration-200 ease-out-strong not-data-open:duration-150 motion-reduce:transition-none";
 
 /**
  * Whether the browser has the popover API. Without it, `useFloat` shows the

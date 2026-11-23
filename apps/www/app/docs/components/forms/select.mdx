@@ -430,9 +430,7 @@ All props of a `<button>`, plus `asChild` and:
 | ------------------ | --------------------------------------- | ------------------------------------------------------------------- |
 | `data-slot`        | `"select-trigger"`                      | On the trigger button.                                              |
 | `data-slot`        | `"select-trigger-label"`                | On the `<span>` wrapping `children`.                                |
-| `data-state`       | `"open"` \| `"closed"`                  | Whether the list is open.                                           |
 | `data-placeholder` | present when there is no value          | Presence-only. Style the placeholder text with `data-placeholder:`. |
-| `data-disabled`    | present when disabled                   | Presence-only. The `disabled` prop on `Select.Root`.                |
 | `data-validation`  | `"success"` \| `"warning"` \| `"error"` | The resolved `validation` state. Omitted when there is none.        |
 
 ### Select.Value
@@ -465,12 +463,11 @@ All props of a `<div>`, plus:
 
 #### Data attributes
 
-| Data Attribute | Value                 | Description                                               |
-| -------------- | --------------------- | --------------------------------------------------------- |
-| `data-slot`    | `"select-content"`    | On the content element.                                   |
-| `data-state`   | `"open"`              | Drives the open animation. A closed list renders nothing. |
-| `data-side`    | `"top"` \| `"bottom"` | The side of the trigger the list opened on.               |
-| `data-align`   | `"start"`             | The alignment against the trigger.                        |
+| Data Attribute | Value                 | Description                                                              |
+| -------------- | --------------------- | ------------------------------------------------------------------------ |
+| `data-slot`    | `"select-content"`    | On the content element.                                                  |
+| `data-open`    | present               | Presence-only. Drives the open animation. A closed list renders nothing. |
+| `data-side`    | `"top"` \| `"bottom"` | The side of the trigger the list opened on.                              |
 
 ### Select.Group
 
@@ -512,13 +509,13 @@ All props of a `<div>`, plus `asChild`, `value`, `disabled`, `textValue`, and:
 
 #### Data attributes
 
-| Data Attribute     | Value                        | Description                                                          |
-| ------------------ | ---------------------------- | -------------------------------------------------------------------- |
-| `data-slot`        | `"select-item"`              | On the option element.                                               |
-| `data-slot`        | `"select-item-label"`        | On the `<span>` wrapping `children`, in the list and in the trigger. |
-| `data-state`       | `"checked"` \| `"unchecked"` | Whether this item is the selected value.                             |
-| `data-highlighted` | present when highlighted     | Presence-only. The item under the pointer or the keyboard focus.     |
-| `data-disabled`    | present when disabled        | Presence-only. The `disabled` prop.                                  |
+| Data Attribute     | Value                    | Description                                                              |
+| ------------------ | ------------------------ | ------------------------------------------------------------------------ |
+| `data-slot`        | `"select-item"`          | On the option element.                                                   |
+| `data-slot`        | `"select-item-label"`    | On the `<span>` wrapping `children`, in the list and in the trigger.     |
+| `aria-selected`    | `"true"` \| `"false"`    | Whether this item is the selected value. Style it with `aria-selected:`. |
+| `data-highlighted` | present when highlighted | Presence-only. The item under the pointer or the keyboard focus.         |
+| `aria-disabled`    | `"true"` when disabled   | The `disabled` prop. Style it with `aria-disabled:`.                     |
 
 ### Select.Label
 

@@ -96,8 +96,8 @@ import { NavLink } from "react-router";
 and it does not need to. `NavLink` calls it.
 
 Reach for this to add styling of your own. You do **not** need it for the active row treatment a mantle part
-already ships: `Sidebar.ItemButton` styles its current row from `aria-current="page"` as well as
-`data-current`, and `NavLink` sets that attribute itself, so
+already ships: `Sidebar.ItemButton` styles its current row from `aria-current="page"`, and `NavLink` sets
+that attribute itself, so
 [`<Sidebar.ItemButton asChild><NavLink to="…" /></Sidebar.ItemButton>`](/components/navigation/sidebar#with-react-router)
 highlights with no `className`, no `current`, and no `useMatch`.
 

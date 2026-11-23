@@ -559,8 +559,8 @@ describe("isDialogOverlayTarget", () => {
 /**
  * A nested popup owner inside a dialog, like a combobox or an input-attached
  * popover: an `aria-expanded` + `aria-controls` trigger paired with the popup it
- * controls. `popupAttributes` stands in for the open-state attribute each
- * library stamps on its popup, Ariakit `data-open` or Radix `data-state`.
+ * controls. `popupAttributes` stands in for the `data-open` a mantle popup
+ * stamps while open.
  */
 function NestedPopupDialog({
 	controlsId = "nested-popup",
@@ -593,42 +593,31 @@ describe("Escape with a nested popup open", () => {
 	// The real integrations run in `multi-select.browser.test.tsx`. These pin each
 	// conjunct of the guard with a synthetic popup, so a dropped check turns red
 	// without Chromium.
-	const openPopups: Array<{ library: string; popupAttributes: Record<string, string> }> = [
-		{ library: "ariakit", popupAttributes: { "data-open": "true" } },
-		{ library: "radix", popupAttributes: { "data-state": "open" } },
-	];
-	it.each(openPopups)(
-		"stays open while an expanded owner controls an open $library popup",
-		async ({ popupAttributes }) => {
-			const user = userEvent.setup();
-			const onOpenChange = vi.fn<(open: boolean) => void>();
-			render(<NestedPopupDialog onOpenChange={onOpenChange} popupAttributes={popupAttributes} />);
-			await screen.findByRole("dialog");
-			screen.getByRole("button", { name: "Region" }).focus();
+	it("stays open while an expanded owner controls an open popup", async () => {
+		const user = userEvent.setup();
+		const onOpenChange = vi.fn<(open: boolean) => void>();
+		render(<NestedPopupDialog onOpenChange={onOpenChange} popupAttributes={{ "data-open": "" }} />);
+		await screen.findByRole("dialog");
+		screen.getByRole("button", { name: "Region" }).focus();
 
-			await user.keyboard("{Escape}");
+		await user.keyboard("{Escape}");
 
-			expect(onOpenChange).toHaveBeenCalledTimes(0);
-			expect(screen.getByRole("dialog")).toBeInTheDocument();
-		},
-	);
+		expect(onOpenChange).toHaveBeenCalledTimes(0);
+		expect(screen.getByRole("dialog")).toBeInTheDocument();
+	});
 
 	const closingCases: Array<{ reason: string; props: ComponentProps<typeof NestedPopupDialog> }> = [
 		{
 			reason: "the owner is collapsed",
-			props: { expanded: false, popupAttributes: { "data-state": "open" } },
+			props: { expanded: false, popupAttributes: { "data-open": "" } },
 		},
 		{
-			reason: "the popup carries no open-state attribute",
+			reason: "the popup carries no data-open",
 			props: {},
 		},
 		{
-			reason: "the popup is closed",
-			props: { popupAttributes: { "data-state": "closed", "data-open": "false" } },
-		},
-		{
 			reason: "aria-controls resolves to nothing",
-			props: { controlsId: "does-not-exist", popupAttributes: { "data-state": "open" } },
+			props: { controlsId: "does-not-exist", popupAttributes: { "data-open": "" } },
 		},
 	];
 	it.each(closingCases)("closes when $reason", async ({ props }) => {
@@ -648,9 +637,7 @@ describe("Escape with a nested popup open", () => {
 	it("closes when focus is outside the expanded owner", async () => {
 		const user = userEvent.setup();
 		const onOpenChange = vi.fn<(open: boolean) => void>();
-		render(
-			<NestedPopupDialog onOpenChange={onOpenChange} popupAttributes={{ "data-open": "true" }} />,
-		);
+		render(<NestedPopupDialog onOpenChange={onOpenChange} popupAttributes={{ "data-open": "" }} />);
 		const content = await screen.findByRole("dialog");
 		content.focus();
 
@@ -667,10 +654,7 @@ describe("Escape with a nested popup open", () => {
 			preventedWhenCalled.push(event.defaultPrevented);
 		});
 		render(
-			<NestedPopupDialog
-				onEscapeKeyDown={onEscapeKeyDown}
-				popupAttributes={{ "data-state": "open" }}
-			/>,
+			<NestedPopupDialog onEscapeKeyDown={onEscapeKeyDown} popupAttributes={{ "data-open": "" }} />,
 		);
 		await screen.findByRole("dialog");
 		screen.getByRole("button", { name: "Region" }).focus();
@@ -703,7 +687,7 @@ describe("Escape with a nested popup open", () => {
 						>
 							Region
 						</button>
-						{expanded && <div data-state="open" id="nested-popup" role="listbox" />}
+						{expanded && <div data-open="" id="nested-popup" role="listbox" />}
 					</Dialog.Content>
 				</Dialog.Root>
 			);

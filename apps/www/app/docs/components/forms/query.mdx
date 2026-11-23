@@ -540,12 +540,11 @@ The suggestion popover. It holds the parts you compose into it and keeps focus i
 | `ref`                                                   | `Ref<HTMLDivElement>` | none    | The popover element.                                                  |
 | `side`, `sideOffset`, `id`, `style`, `aria-*`, `data-*` |                       | none    | Go to the popover, as on `Popover.Content`.                           |
 
-| Data Attribute | Value                  | Description                                 |
-| -------------- | ---------------------- | ------------------------------------------- |
-| `data-slot`    | `"query-content"`      | On the popover, beside `"popover-content"`. |
-| `data-state`   | `"open"` \| `"closed"` | On the popover, from Radix.                 |
-| `data-side`    | `"top"` \| `"bottom"`  | On the popover: the side it opened on.      |
-| `data-align`   | `"start"`              | On the popover.                             |
+| Data Attribute | Value                 | Description                                 |
+| -------------- | --------------------- | ------------------------------------------- |
+| `data-slot`    | `"query-content"`     | On the popover, beside `"popover-content"`. |
+| `data-open`    | present while open    | On the popover, from `Popover.Content`.     |
+| `data-side`    | `"top"` \| `"bottom"` | On the popover: the side it opened on.      |
 
 ### Query.List
 

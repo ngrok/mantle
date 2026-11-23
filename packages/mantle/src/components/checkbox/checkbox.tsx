@@ -139,9 +139,9 @@ const Checkbox = ({
 				"focus-visible:border-accent-600 focus-visible:focus-ring",
 				"checked:border-accent-600 checked:bg-accent-600 checked:bg-checked-icon",
 				"indeterminate:border-accent-600 indeterminate:bg-accent-600 indeterminate:bg-indeterminate-icon",
-				"data-validation-success:border-success-600 data-validation-success:checked:bg-success-600 data-validation-success:indeterminate:bg-success-600 focus-visible:data-validation-success:border-success-600 focus-visible:data-validation-success:ring-focus-success",
-				"data-validation-warning:border-warning-600 data-validation-warning:checked:bg-warning-600 data-validation-warning:indeterminate:bg-warning-600 focus-visible:data-validation-warning:border-warning-600 focus-visible:data-validation-warning:ring-focus-warning",
-				"data-validation-error:border-danger-600 data-validation-error:checked:bg-danger-600 data-validation-error:indeterminate:bg-danger-600 focus-visible:data-validation-error:border-danger-600 focus-visible:data-validation-error:ring-focus-danger",
+				"data-[validation=success]:border-success-600 data-[validation=success]:checked:bg-success-600 data-[validation=success]:indeterminate:bg-success-600 focus-visible:data-[validation=success]:border-success-600 focus-visible:data-[validation=success]:ring-focus-success",
+				"data-[validation=warning]:border-warning-600 data-[validation=warning]:checked:bg-warning-600 data-[validation=warning]:indeterminate:bg-warning-600 focus-visible:data-[validation=warning]:border-warning-600 focus-visible:data-[validation=warning]:ring-focus-warning",
+				"data-[validation=error]:border-danger-600 data-[validation=error]:checked:bg-danger-600 data-[validation=error]:indeterminate:bg-danger-600 focus-visible:data-[validation=error]:border-danger-600 focus-visible:data-[validation=error]:ring-focus-danger",
 				"where:block where:size-4 where:p-0",
 				className,
 			)}

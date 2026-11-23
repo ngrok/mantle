@@ -13,12 +13,11 @@ describe("IconSwap", () => {
 				}}
 			/>,
 		);
-		expect(screen.getByRole("img", { name: "Copied" }).parentElement).toHaveAttribute(
-			"data-state",
-			"active",
+		expect(screen.getByRole("img", { name: "Copied" }).parentElement).not.toHaveAttribute(
+			"aria-hidden",
 		);
 		expect(screen.queryByRole("img", { name: "Copy" })).not.toBeInTheDocument();
-		expect(screen.getByTestId("copy").parentElement).toHaveAttribute("data-state", "inactive");
+		expect(screen.getByTestId("copy").parentElement).toHaveAttribute("aria-hidden", "true");
 	});
 
 	test("swaps the state of the same mounted icons", () => {
@@ -30,8 +29,8 @@ describe("IconSwap", () => {
 		);
 		const check = screen.getByTestId("check");
 		const copy = screen.getByTestId("copy");
-		expect(copy.parentElement).toHaveAttribute("data-state", "active");
-		expect(check.parentElement).toHaveAttribute("data-state", "inactive");
+		expect(copy.parentElement).not.toHaveAttribute("aria-hidden");
+		expect(check.parentElement).toHaveAttribute("aria-hidden", "true");
 
 		rerender(
 			<IconSwap
@@ -41,8 +40,8 @@ describe("IconSwap", () => {
 		);
 		expect(screen.getByTestId("check")).toBe(check);
 		expect(screen.getByTestId("copy")).toBe(copy);
-		expect(check.parentElement).toHaveAttribute("data-state", "active");
-		expect(copy.parentElement).toHaveAttribute("data-state", "inactive");
+		expect(check.parentElement).not.toHaveAttribute("aria-hidden");
+		expect(copy.parentElement).toHaveAttribute("aria-hidden", "true");
 	});
 
 	test("passes className, data attributes, and a joined data-slot to the root", () => {

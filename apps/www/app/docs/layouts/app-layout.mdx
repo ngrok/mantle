@@ -1301,7 +1301,7 @@ export default function Root({ loaderData }: Route.ComponentProps) {
 
 `defaultOpen` is correct here, **not** controlled `open`. The value is already available at the server
 render and the hydration render, so the uncontrolled state initializes to the right value once and stays
-there; the server HTML ships `data-state="closed"` or `"open"` directly, with zero flash.
+there; the server HTML ships `data-open`, or leaves it off, directly and with zero flash.
 
 `extractSidePanelStateCookie` returns `boolean | undefined` rather than `boolean` on purpose: a first-time
 visitor with no cookie is not the same as someone who closed the panel, so choose the default explicitly
@@ -2490,7 +2490,7 @@ All props from [aside](https://developer.mozilla.org/en-US/docs/Web/HTML/Element
 
 | Data Attribute  | Value                             | Description                                                                                                                                                                |
 | --------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-state`    | `"open"` \| `"closed"`            | Mirrors the root's open state. The collapse and the transition key off it in CSS, and consumers style against it.                                                          |
+| `data-open`     | present while open                | Presence-only. Mirrors the root's open state. The collapse and the transition key off it in CSS, and consumers style against it.                                           |
 | `data-hydrated` | present one frame after hydration | Presence-only. The transition keys off its absence in CSS (`not-data-hydrated:transition-none`), so a state correction after the server render snaps instead of animating. |
 
 ### AppLayout.SidePanelTrigger
@@ -2515,17 +2515,15 @@ All props from [`IconButton`](/components/actions/icon-button#api-reference) exc
 | `onClick?`    | `MouseEventHandler<HTMLButtonElement>` |                                  | Runs before the toggle. Call `event.preventDefault()` to keep the panel where it is.                               |
 | `size?`       | `"xs" \| "sm" \| "md" \| "lg" \| "xl"` | `"sm"`                           | The size of the trigger. Small, so it sits level with the other `size="sm"` controls in an `AppLayout.Header` row. |
 
-| Data Attribute     | Value                                                     | Description                                                                                                                                                                                       |
-| ------------------ | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `data-state`       | `"open"` \| `"closed"`                                    | Mirrors the root's open state. Pairs with `aria-expanded`.                                                                                                                                        |
-| `data-slot`        | `"app-layout-side-panel-trigger icon-button"`             | On the button: the part's slot, joined ahead of `IconButton`'s own.                                                                                                                               |
-| `data-slot`        | `"app-layout-side-panel-trigger-tooltip tooltip-content"` | On the tooltip surface, not the button: the styling hook for the label popup this part renders, joined ahead of `Tooltip.Content`'s own slot.                                                     |
-| `data-appearance`  | `"filled"` \| `"ghost"` \| `"outlined"`                   | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`.                                                                                  |
-| `data-intent`      | `"neutral"`                                               | Read, not stamped: the underlying `IconButton` reflects its `intent`, which this part defaults to `"neutral"`.                                                                                    |
-| `data-size`        | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`            | Read, not stamped: the underlying `IconButton` reflects its `size`, which this part defaults to `"sm"`.                                                                                           |
-| `data-icon-button` | `"true"`                                                  | Read, not stamped: always present on the underlying `IconButton`.                                                                                                                                 |
-| `data-loading`     | present when `isLoading`                                  | Read, not stamped: the underlying `IconButton` stamps it by presence, never `"false"`.                                                                                                            |
-| `data-disabled`    | present when disabled                                     | Read, not stamped: the underlying `IconButton` stamps it by presence, never `"false"`, when it resolves disabled: `disabled`, `aria-disabled="true"`, or `isLoading` with no explicit `disabled`. |
+| Data Attribute     | Value                                                     | Description                                                                                                                                   |
+| ------------------ | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `data-slot`        | `"app-layout-side-panel-trigger icon-button"`             | On the button: the part's slot, joined ahead of `IconButton`'s own.                                                                           |
+| `data-slot`        | `"app-layout-side-panel-trigger-tooltip tooltip-content"` | On the tooltip surface, not the button: the styling hook for the label popup this part renders, joined ahead of `Tooltip.Content`'s own slot. |
+| `data-appearance`  | `"filled"` \| `"ghost"` \| `"outlined"`                   | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`.                              |
+| `data-intent`      | `"neutral"`                                               | Read, not stamped: the underlying `IconButton` reflects its `intent`, which this part defaults to `"neutral"`.                                |
+| `data-size`        | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`            | Read, not stamped: the underlying `IconButton` reflects its `size`, which this part defaults to `"sm"`.                                       |
+| `data-icon-button` | `"true"`                                                  | Read, not stamped: always present on the underlying `IconButton`.                                                                             |
+| `data-loading`     | present when `isLoading`                                  | Read, not stamped: the underlying `IconButton` stamps it by presence, never `"false"`.                                                        |
 
 ### AppLayout.SidePanelHeader
 

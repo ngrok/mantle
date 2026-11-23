@@ -114,10 +114,9 @@ import { joinDataSlot } from "../../utils/data-slot.js";
  *
  * Data attributes it stamps on the outer element, for your own CSS to target:
  *
- * - `data-x-overflow="true" | "false"`: whether the content is wider than the
- *   container. Always present, so match the value, not the attribute.
- * - `data-x-scroll-end="true" | "false"`: whether an overflowing container is
- *   scrolled to its right edge. Always present.
+ * - `data-x-overflow`: present while the content is wider than the container.
+ * - `data-x-scroll-end`: present while an overflowing container is scrolled to
+ *   its right edge.
  * - `data-sticky-active`: present only while the container overflows and is not
  *   scrolled to the end. `DataTable`'s pinned action column keys its shadow off
  *   this through `group-data-sticky-active/table:`.
@@ -142,12 +141,15 @@ const Root = ({
 				className,
 			)}
 			data-sticky-active={
-				(horizontalOverflow.state.hasOverflow && !horizontalOverflow.state.scrolledToEnd) ||
-				undefined
+				horizontalOverflow.state.hasOverflow && !horizontalOverflow.state.scrolledToEnd
+					? ""
+					: undefined
 			}
-			data-x-overflow={horizontalOverflow.state.hasOverflow}
+			data-x-overflow={horizontalOverflow.state.hasOverflow ? "" : undefined}
 			data-x-scroll-end={
 				horizontalOverflow.state.hasOverflow && horizontalOverflow.state.scrolledToEnd
+					? ""
+					: undefined
 			}
 			{...props}
 		>

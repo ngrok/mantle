@@ -754,7 +754,7 @@ test("clips a value inside a Dialog that opens with a zoom, also once the zoom e
 	const zoom = document.createElement("style");
 	zoom.textContent = `
 		@keyframes zoom-in { from { transform: scale(0.95); } }
-		[data-slot~="dialog-content"][data-state~="open"] { animation: zoom-in 200ms ease-out; }
+		[data-slot~="dialog-content"][data-open] { animation: zoom-in 200ms ease-out; }
 	`;
 	document.head.append(zoom);
 	const errors: string[] = [];

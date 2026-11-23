@@ -224,7 +224,7 @@ type SandbarRootProps = ComponentProps<"div"> &
  * | Data Attribute | Value                  | Description                                                                                                                                      |
  * | -------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
  * | `data-slot`    | `"sandbar"`            | Stable styling hook for the panel. Survives `className` overrides.                                                                               |
- * | `data-state`   | `"open"` \| `"closed"` | `"open"` only at the resting open pose. `"closed"` covers both the pre-enter frame and the exit transition, which is what drives the slide/fade. |
+ * | `data-open`    | present while open     | Presence-only, and only at the resting open pose. Absent in both the pre-enter frame and the exit transition, which is what drives the slide/fade. |
  *
  * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarroot
  *
@@ -584,7 +584,7 @@ const Root = ({
 	// `inert` covers the exit, not just the resting closed state: through the
 	// 200ms drop the panel is still painted and still in the tab order, so a user
 	// who was Tabbing toward Discard as the save landed could focus and activate a
-	// control that is visually gone. `data-state-closed:pointer-events-none` only
+	// control that is visually gone. `not-data-open:pointer-events-none` only
 	// suppresses the mouse. Focus that `inert` evicts lands on <body> with no
 	// `relatedTarget`, which `handleFocusOut` ignores (the departed control is
 	// neither disconnected, disabled, nor hidden) and which the restore-on-close
@@ -651,14 +651,14 @@ const Root = ({
 						// `translate-y-*` writes the standalone `translate` property in
 						// Tailwind v4. Transitioning `transform` instead silently snaps.
 						"transition-[opacity,translate] duration-200 ease-out-strong",
-						"data-state-closed:pointer-events-none data-state-closed:opacity-0 data-state-closed:duration-150 motion-safe:data-state-closed:translate-y-[calc(100%+2.5rem)]",
+						"not-data-open:pointer-events-none not-data-open:opacity-0 not-data-open:duration-150 motion-safe:not-data-open:translate-y-[calc(100%+2.5rem)]",
 						className,
 					)}
 					{...props}
 					aria-label={label}
 					aria-labelledby={labelledby}
 					data-slot={joinDataSlot(dataSlot, "sandbar")}
-					data-state={presence === "open" ? "open" : "closed"}
+					data-open={presence === "open" ? "" : undefined}
 					hidden={isClosed ? true : undefined}
 					inert={isInert ? true : undefined}
 					onTransitionEnd={handleTransitionEnd}
@@ -868,7 +868,6 @@ type SandbarSaveButtonProps = Omit<ButtonProps, "appearance" | "children" | "int
  * | `data-appearance` | the resolved `appearance` | Stamped by `Button`.                                                                             |
  * | `data-intent`     | the resolved `intent`     | Stamped by `Button`.                                                                             |
  * | `data-size`       | the resolved `size`       | Stamped by `Button`; absent for `appearance="link"`.                                             |
- * | `data-disabled`   | present when disabled     | Stamped by `Button`. Presence-only, never `"false"`.                                             |
  * | `data-loading`    | present when `isLoading`  | Stamped by `Button`. Presence-only, never `"false"`.                                             |
  *
  * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbarsavebutton
@@ -993,7 +992,6 @@ type SandbarDiscardButtonProps = Omit<ButtonProps, "appearance" | "children" | "
  * | `data-appearance` | the resolved `appearance`  | Stamped by `Button`.                                                                             |
  * | `data-intent`     | the resolved `intent`      | Stamped by `Button`.                                                                             |
  * | `data-size`       | the resolved `size`        | Stamped by `Button`; absent for `appearance="link"`.                                             |
- * | `data-disabled`   | present when disabled      | Stamped by `Button`. Presence-only, never `"false"`.                                             |
  * | `data-loading`    | present when `isLoading`   | Stamped by `Button`. Presence-only, never `"false"`.                                             |
  *
  * @see https://mantle.ngrok.com/components/feedback/sandbar#sandbardiscardbutton

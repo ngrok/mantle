@@ -167,7 +167,7 @@ type SelectProps = PropsWithChildren & {
 	 */
 	dir?: "ltr" | "rtl";
 	/**
-	 * Whether the whole select is inert. The trigger stamps `data-disabled`.
+	 * Whether the whole select is inert. The trigger button gets `disabled`.
 	 * @default false
 	 */
 	disabled?: boolean;
@@ -623,9 +623,7 @@ type SelectTriggerProps = ComponentProps<"button"> &
  * | ------------------ | --------------------------------------- | -------------------------------------------------------------------- |
  * | `data-slot`        | `"select-trigger"`                      | On the trigger button.                                               |
  * | `data-slot`        | `"select-trigger-label"`                | On the `<span>` wrapping `children`.                                 |
- * | `data-state`       | `"open"` \| `"closed"`                  | Whether the list is open.                                            |
  * | `data-placeholder` | present when there is no value          | Presence-only. Style the placeholder text with `data-placeholder:`.  |
- * | `data-disabled`    | present when disabled                   | Presence-only. The `disabled` prop on `Select.Root`.                 |
  * | `data-validation`  | `"success"` \| `"warning"` \| `"error"` | The resolved `validation` state. Omitted when there is none.         |
  *
  * @see https://mantle.ngrok.com/components/forms/select#selecttrigger
@@ -715,9 +713,9 @@ const Trigger = ({
 				// In Chromium and WebKit, a key press such as an arrow key in the open list shows it.
 				"focus-visible:focus-ring",
 				"focus-visible:border-accent-600 aria-expanded:border-accent-600",
-				"data-validation-success:border-success-600 data-validation-success:focus-visible:border-success-600 data-validation-success:focus-visible:ring-focus-success data-validation-success:aria-expanded:border-success-600",
-				"data-validation-warning:border-warning-600 data-validation-warning:focus-visible:border-warning-600 data-validation-warning:focus-visible:ring-focus-warning data-validation-warning:aria-expanded:border-warning-600",
-				"data-validation-error:border-danger-600 data-validation-error:focus-visible:border-danger-600 data-validation-error:focus-visible:ring-focus-danger data-validation-error:aria-expanded:border-danger-600 motion-safe:data-validation-error:animate-shake",
+				"data-[validation=success]:border-success-600 data-[validation=success]:focus-visible:border-success-600 data-[validation=success]:focus-visible:ring-focus-success data-[validation=success]:aria-expanded:border-success-600",
+				"data-[validation=warning]:border-warning-600 data-[validation=warning]:focus-visible:border-warning-600 data-[validation=warning]:focus-visible:ring-focus-warning data-[validation=warning]:aria-expanded:border-warning-600",
+				"data-[validation=error]:border-danger-600 data-[validation=error]:focus-visible:border-danger-600 data-[validation=error]:focus-visible:ring-focus-danger data-[validation=error]:aria-expanded:border-danger-600 motion-safe:data-[validation=error]:animate-shake",
 				className,
 			)}
 			data-validation={validation || undefined}
@@ -770,9 +768,8 @@ type SelectContentProps = Omit<ComponentProps<"div">, "dir"> &
  * | Data Attribute | Value                                          | Description                                                            |
  * | -------------- | ---------------------------------------------- | ---------------------------------------------------------------------- |
  * | `data-slot`    | `"select-content"`                             | On the content element.                                                |
- * | `data-state`   | `"open"`                                       | Drives the open animation. A closed list renders nothing.              |
+ * | `data-open`    | present                                        | Presence-only. Drives the open animation. A closed list renders nothing. |
  * | `data-side`    | `"top"` \| `"bottom"`                           | The side of the trigger the list opened on.                            |
- * | `data-align`   | `"start"`                                      | The alignment against the trigger.                                     |
  *
  * @see https://mantle.ngrok.com/components/forms/select#selectcontent
  *
@@ -838,10 +835,9 @@ const OpenContent = ({
 				ref={composedRef}
 				dir={dir}
 				data-slot={joinDataSlot(dataSlot, "select-content")}
-				data-state="open"
-				data-align="start"
+				data-open=""
 				className={cx(
-					"border-popover duration-200 ease-out-strong data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-top:slide-in-from-bottom-1 motion-reduce:animate-none! pointer-events-auto fixed inset-auto z-50 m-0 text-inherit min-w-32 overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 rounded-md border shadow-md",
+					"border-popover duration-200 ease-out-strong data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1 motion-reduce:animate-none! pointer-events-auto fixed inset-auto z-50 m-0 text-inherit min-w-32 overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 rounded-md border shadow-md",
 					"bg-popover font-sans p-1 space-y-px max-h-(--available-height) outline-hidden",
 					width === "trigger" && "w-(--anchor-width)",
 					className,
@@ -964,9 +960,9 @@ type SelectItemProps = Omit<ComponentProps<"div">, "children"> &
  * | ------------------ | ---------------------------- | -------------------------------------------------------------------- |
  * | `data-slot`        | `"select-item"`              | On the option element.                                               |
  * | `data-slot`        | `"select-item-label"`        | On the `<span>` wrapping `children`, in the list and in the trigger. |
- * | `data-state`       | `"checked"` \| `"unchecked"` | Whether this item is the selected value.                             |
+ * | `aria-selected`    | `"true"` \| `"false"` | Whether this item is the selected value. Style it with `aria-selected:`. |
  * | `data-highlighted` | present when highlighted     | Presence-only. The item under the pointer or the keyboard focus.     |
- * | `data-disabled`    | present when disabled        | Presence-only. The `disabled` prop.                                  |
+ * | `aria-disabled`    | `"true"` when disabled       | The `disabled` prop. Style it with `aria-disabled:`.                 |
  *
  * @see https://mantle.ngrok.com/components/forms/select#selectitem
  *
@@ -1063,9 +1059,9 @@ const Item = ({
 		className: cx(
 			"relative flex gap-2 w-full cursor-pointer select-none items-center rounded-md py-1.5 pl-2 pr-8 text-strong text-sm outline-hidden",
 			"data-highlighted:bg-active-menu-item",
-			"data-disabled:pointer-events-none data-disabled:opacity-50",
-			"data-state-checked:bg-selected-menu-item",
-			"data-highlighted:data-state-checked:bg-active-selected-menu-item",
+			"aria-disabled:pointer-events-none aria-disabled:opacity-50",
+			"aria-selected:bg-selected-menu-item",
+			"data-highlighted:aria-selected:bg-active-selected-menu-item",
 			className,
 		),
 	};

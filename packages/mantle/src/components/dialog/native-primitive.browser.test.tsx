@@ -79,9 +79,8 @@ describe("Dialog", () => {
 		const dialog = screen.getByRole("dialog", { name: "Delete tunnel" });
 		expect(dialog.matches(":modal")).toBe(true);
 		expect(dialog).toHaveAccessibleDescription("The tunnel stops at once.");
-		expect(panel).toHaveAttribute("data-state", "open");
+		expect(panel).toHaveAttribute("data-open");
 		expect(trigger).toHaveAttribute("aria-expanded", "true");
-		expect(trigger).toHaveAttribute("data-state", "open");
 		expect(screen.getByRole("button", { name: "Close Dialog" })).toHaveFocus();
 		expect(onOpenChange).toHaveBeenCalledTimes(1);
 		expect(onOpenChange).toHaveBeenLastCalledWith(true);
@@ -90,7 +89,7 @@ describe("Dialog", () => {
 		await userEvent.keyboard("{Escape}");
 
 		await waitFor(() => expect(dialogElement().open).toBe(false));
-		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("data-open");
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
 		expect(trigger).toHaveFocus();
 		expect(onOpenChange).toHaveBeenCalledTimes(2);
@@ -237,11 +236,11 @@ describe("Dialog", () => {
 		expect(screen.getByRole("textbox", { name: "Email" })).toHaveFocus();
 	});
 
-	test("the dialog stays modal with `data-state` closed through its exit, then unmounts", async () => {
+	test("the dialog stays modal with `data-closing` through its exit, then unmounts", async () => {
 		const style = document.createElement("style");
 		style.textContent = `
 @keyframes test-exit { to { opacity: 0; } }
-[data-slot~="dialog-content"][data-state="closed"] { animation: test-exit 200ms; }
+[data-slot~="dialog-content"][data-closing] { animation: test-exit 200ms; }
 `;
 		document.head.append(style);
 		onTestFinished(() => style.remove());
@@ -253,7 +252,7 @@ describe("Dialog", () => {
 
 		await userEvent.keyboard("{Escape}");
 
-		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("data-open");
 		expect(dialog.matches(":modal")).toBe(true);
 		expect(trigger).toHaveAttribute("aria-expanded", "false");
 		await waitFor(() => expect(dialog.isConnected).toBe(false));
@@ -420,8 +419,8 @@ describe("Dialog", () => {
 		);
 
 		expect(container.querySelector("[data-slot~='dialog-content']")).toHaveAttribute(
-			"data-state",
-			"open",
+			"data-open",
+			"",
 		);
 		expect(container.querySelector("[data-slot~='dialog-trigger']")).toHaveAttribute(
 			"aria-expanded",
@@ -495,7 +494,7 @@ describe("Dialog", () => {
 			</StrictMode>,
 		);
 		expect(dialogElement().open).toBe(true);
-		expect(dialogElement()).toHaveAttribute("data-state", "open");
+		expect(dialogElement()).toHaveAttribute("data-open");
 		expect(screen.getByText("Open dialog")).toHaveAttribute("aria-expanded", "true");
 	});
 
@@ -513,7 +512,7 @@ describe("Dialog", () => {
 		const { rerender } = render(<LateTrigger withTrigger={false} />);
 		rerender(<LateTrigger withTrigger />);
 		expect(screen.getByText("Open dialog")).toHaveAttribute("aria-expanded", "true");
-		expect(screen.getByText("Open dialog")).toHaveAttribute("data-state", "open");
+		expect(screen.getByText("Open dialog")).not.toHaveAttribute("data-open");
 	});
 
 	test("Content gives its aria-label, aria-labelledby, and aria-describedby to the <dialog>", () => {
@@ -1095,7 +1094,7 @@ describe("state the DOM owns, hydration, and nesting", () => {
 	test("a reopen during the exit keeps the dialog open", async () => {
 		const style = document.createElement("style");
 		style.textContent =
-			"@keyframes exit { to { opacity: 0 } } [data-slot~='dialog-content'][data-state='closed'] { animation: exit 200ms }";
+			"@keyframes exit { to { opacity: 0 } } [data-slot~='dialog-content'][data-closing] { animation: exit 200ms }";
 		document.head.append(style);
 		onTestFinished(() => style.remove());
 		render(
@@ -1124,7 +1123,8 @@ describe("state the DOM owns, hydration, and nesting", () => {
 		});
 
 		expect(dialogElement().open).toBe(true);
-		expect(dialogElement().dataset.state).toBe("open");
+		expect(dialogElement()).toHaveAttribute("data-open", "");
+		expect(dialogElement()).not.toHaveAttribute("data-closing");
 	});
 
 	test("nested default-open forceMount dialogs open parent first, so the child is on top", async () => {

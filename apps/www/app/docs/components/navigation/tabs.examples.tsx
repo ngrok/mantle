@@ -536,31 +536,25 @@ export function HeadlessTabsExample() {
 					<HeadlessTabs.List aria-label="How it works" className="grid grid-cols-3 gap-1 p-2">
 						<HeadlessTabs.Trigger
 							value="front-door"
-							className="group text-body hover:bg-card-hover data-state-active:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
+							className="group text-body hover:bg-card-hover aria-selected:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
 						>
-							<Icon
-								svg={<DoorOpenIcon />}
-								className="size-6 group-data-state-active:text-accent-600"
-							/>
+							<Icon svg={<DoorOpenIcon />} className="size-6 group-aria-selected:text-accent-600" />
 							Create one front door
 						</HeadlessTabs.Trigger>
 						<HeadlessTabs.Trigger
 							value="agent"
-							className="group text-body hover:bg-card-hover data-state-active:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
+							className="group text-body hover:bg-card-hover aria-selected:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
 						>
-							<Icon
-								svg={<StackIcon />}
-								className="size-6 group-data-state-active:text-accent-600"
-							/>
+							<Icon svg={<StackIcon />} className="size-6 group-aria-selected:text-accent-600" />
 							Run the agent
 						</HeadlessTabs.Trigger>
 						<HeadlessTabs.Trigger
 							value="route"
-							className="group text-body hover:bg-card-hover data-state-active:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
+							className="group text-body hover:bg-card-hover aria-selected:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
 						>
 							<Icon
 								svg={<GlobeHemisphereWestIcon />}
-								className="size-6 group-data-state-active:text-accent-600"
+								className="size-6 group-aria-selected:text-accent-600"
 							/>
 							Route and authenticate
 						</HeadlessTabs.Trigger>

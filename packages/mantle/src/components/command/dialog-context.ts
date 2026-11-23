@@ -25,8 +25,8 @@ import invariant from "tiny-invariant";
  */
 type CommandDialogState = {
 	/**
-	 * Whether the palette is open. Mirrored as `data-state="open" | "closed"` on
-	 * `Command.SearchTrigger` and paired with its `aria-expanded`.
+	 * Whether the palette is open. Mirrored as `aria-expanded` on
+	 * `Command.SearchTrigger`.
 	 */
 	open: boolean;
 	/**

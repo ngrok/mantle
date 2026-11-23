@@ -89,10 +89,10 @@ type RootProps = Omit<ComponentProps<"div">, "defaultValue" | "dir"> &
  * ```tsx
  * <HeadlessTabs.Root defaultValue="api" className="flex flex-col gap-6">
  *   <HeadlessTabs.List aria-label="Use cases" className="grid grid-cols-2">
- *     <HeadlessTabs.Trigger value="api" className="p-6 data-state-active:bg-card-hover">
+ *     <HeadlessTabs.Trigger value="api" className="p-6 aria-selected:bg-card-hover">
  *       API gateway
  *     </HeadlessTabs.Trigger>
- *     <HeadlessTabs.Trigger value="webhooks" className="p-6 data-state-active:bg-card-hover">
+ *     <HeadlessTabs.Trigger value="webhooks" className="p-6 aria-selected:bg-card-hover">
  *       Webhooks
  *     </HeadlessTabs.Trigger>
  *   </HeadlessTabs.List>
@@ -205,10 +205,10 @@ type ListProps = ComponentProps<"div"> &
  * ```tsx
  * <HeadlessTabs.Root defaultValue="api" className="flex flex-col gap-6">
  *   <HeadlessTabs.List aria-label="Use cases" className="grid grid-cols-2">
- *     <HeadlessTabs.Trigger value="api" className="p-6 data-state-active:bg-card-hover">
+ *     <HeadlessTabs.Trigger value="api" className="p-6 aria-selected:bg-card-hover">
  *       API gateway
  *     </HeadlessTabs.Trigger>
- *     <HeadlessTabs.Trigger value="webhooks" className="p-6 data-state-active:bg-card-hover">
+ *     <HeadlessTabs.Trigger value="webhooks" className="p-6 aria-selected:bg-card-hover">
  *       Webhooks
  *     </HeadlessTabs.Trigger>
  *   </HeadlessTabs.List>
@@ -258,19 +258,17 @@ type TriggerProps = ComponentProps<"button"> &
 /**
  * The unstyled `role="tab"` button that activates its content. Its only
  * class is mantle's focus ring for keyboard focus: a pointer press focuses the
- * trigger without the ring. Style the states with `data-state-active:` and
- * `data-state-inactive:`. An `asChild` link activates on click, so a press
+ * trigger without the ring. Style the states with `aria-selected:` and
+ * `not-aria-selected:`. An `asChild` link activates on click, so a press
  * released off the link switches no tab. A disabled `asChild` link renders as
  * a `<button>`, so it does not navigate.
  *
  * **Data attributes:**
  *
- * | Data Attribute     | Value                          | Description                           |
- * | ------------------ | ------------------------------ | ------------------------------------- |
- * | `data-slot`        | `"tabs-trigger"`               | On the trigger element.               |
- * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.               |
- * | `data-state`       | `"active"` \| `"inactive"`     | Whether the trigger's panel is shown. |
- * | `data-disabled`    | present when `disabled`        | Presence-only.                        |
+ * | Data Attribute  | Value                  | Description                                                     |
+ * | --------------- | ---------------------- | --------------------------------------------------------------- |
+ * | `data-slot`     | `"tabs-trigger"`       | On the trigger element.                                         |
+ * | `aria-selected` | `"true"` \| `"false"`  | Whether the trigger's panel is shown. Style it with `aria-selected:`. |
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#headlesstabstrigger
  *
@@ -278,10 +276,10 @@ type TriggerProps = ComponentProps<"button"> &
  * ```tsx
  * <HeadlessTabs.Root defaultValue="api" className="flex flex-col gap-6">
  *   <HeadlessTabs.List aria-label="Use cases" className="grid grid-cols-2">
- *     <HeadlessTabs.Trigger value="api" className="p-6 data-state-active:bg-card-hover">
+ *     <HeadlessTabs.Trigger value="api" className="p-6 aria-selected:bg-card-hover">
  *       API gateway
  *     </HeadlessTabs.Trigger>
- *     <HeadlessTabs.Trigger value="webhooks" className="p-6 data-state-active:bg-card-hover">
+ *     <HeadlessTabs.Trigger value="webhooks" className="p-6 aria-selected:bg-card-hover">
  *       Webhooks
  *     </HeadlessTabs.Trigger>
  *   </HeadlessTabs.List>
@@ -356,8 +354,8 @@ type ContentProps = ComponentProps<"div"> &
 		/** The value of the trigger that shows this panel. */
 		value: string;
 		/**
-		 * Keeps the panel mounted while its tab is inactive. Hide an inactive
-		 * panel yourself, such as with `data-[state=inactive]:hidden`.
+		 * Keeps the panel mounted while its tab is inactive. An inactive panel
+		 * gets the `hidden` attribute.
 		 */
 		forceMount?: true;
 		/**
@@ -379,11 +377,10 @@ type ContentProps = ComponentProps<"div"> &
  *
  * **Data attributes:**
  *
- * | Data Attribute     | Value                          | Description                 |
- * | ------------------ | ------------------------------ | --------------------------- |
- * | `data-slot`        | `"tabs-content"`               | On the panel element.       |
- * | `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.     |
- * | `data-state`       | `"active"` \| `"inactive"`     | Whether the panel is shown. |
+ * | Data Attribute | Value                  | Description                                                           |
+ * | -------------- | ---------------------- | --------------------------------------------------------------------- |
+ * | `data-slot`    | `"tabs-content"`       | On the panel element.                                                 |
+ * | `hidden`       | present while inactive | The browser hides the panel. `"until-found"` with `hiddenUntilFound`. |
  *
  * @see https://mantle.ngrok.com/components/navigation/tabs#headlesstabscontent
  *
@@ -391,10 +388,10 @@ type ContentProps = ComponentProps<"div"> &
  * ```tsx
  * <HeadlessTabs.Root defaultValue="api" className="flex flex-col gap-6">
  *   <HeadlessTabs.List aria-label="Use cases" className="grid grid-cols-2">
- *     <HeadlessTabs.Trigger value="api" className="p-6 data-state-active:bg-card-hover">
+ *     <HeadlessTabs.Trigger value="api" className="p-6 aria-selected:bg-card-hover">
  *       API gateway
  *     </HeadlessTabs.Trigger>
- *     <HeadlessTabs.Trigger value="webhooks" className="p-6 data-state-active:bg-card-hover">
+ *     <HeadlessTabs.Trigger value="webhooks" className="p-6 aria-selected:bg-card-hover">
  *       Webhooks
  *     </HeadlessTabs.Trigger>
  *   </HeadlessTabs.List>
