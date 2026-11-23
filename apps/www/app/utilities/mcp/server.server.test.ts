@@ -15,7 +15,7 @@ import {
 	type ToolCallEvent,
 } from "~/utilities/mcp/server.server";
 import { packageFilesFixture } from "~/utilities/mcp/test-fixtures";
-import { recordNamed, recordsOf, type DocPageRecord } from "~/utilities/mcp/tools";
+import type { DocPageRecord } from "~/utilities/mcp/tools";
 import { ServerBusyError, versionDataFromFiles } from "~/utilities/mcp/version-data.server";
 
 function dependencies(overrides: Partial<McpDependencies> = {}): McpDependencies {
@@ -867,6 +867,14 @@ describe("the golden find queries", () => {
 		},
 	);
 
+	// A version that lacks a part's API record still finds the part's docs page by its aliases.
+	it("keeps the aliases of a component's docs page", async () => {
+		const pages = await (await currentDependencies()).docPages();
+		const page = pages.find(({ docsSlug }) => docsSlug === "components/forms/segmented-control");
+
+		expect(page).toMatchObject({ kind: "page", aliases: expect.arrayContaining(["toggle group"]) });
+	});
+
 	it.each(["stepper", "file drop zone"])(
 		'calls "%s" weak, so find reports the gap',
 		async (query) => {
@@ -879,23 +887,6 @@ describe("the golden find queries", () => {
 			expect(found.strongMatch).toBe(false);
 		},
 	);
-
-	it("names a part of the current build in each part of each recipe", async () => {
-		const deps = await currentDependencies();
-		const records = recordsOf(await deps.loader.load(mantlePackageJson.version));
-		const recipes = (await deps.docPages()).filter((page) => page.kind === "recipe");
-
-		const unknown = recipes.flatMap(({ name, parts }) =>
-			parts == null || parts.length === 0
-				? [`${name}: no parts`]
-				: parts
-						.filter((part) => recordNamed(records, part) == null)
-						.map((part) => `${name}: ${part}`),
-		);
-
-		expect(recipes.length).toBeGreaterThan(0);
-		expect(unknown).toEqual([]);
-	});
 });
 
 describe("loadMigrationGuides", () => {

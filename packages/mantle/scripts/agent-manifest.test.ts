@@ -302,6 +302,16 @@ function inputs(overrides: Partial<AgentManifestInputs> = {}): AgentManifestInpu
 			{ slug: "components/actions/button/variants", frontmatter: { title: "Button variants" } },
 			{ slug: "layouts/app-layout", frontmatter: { title: "App Layout" } },
 			{ slug: "base/colors", frontmatter: { title: "Colors" } },
+			{
+				slug: "recipes/responsive-toolbar",
+				frontmatter: {
+					title: "Responsive Toolbar",
+					description: "A toolbar that folds its buttons into icons.",
+					useWhen: "Fold toolbar buttons into icon buttons on a narrow screen.",
+					aliases: ["adaptive toolbar"],
+					parts: ["IconButton", "useBreakpoint", "cx"],
+				},
+			},
 		],
 		readSource: (basePath) => sources[`${basePath}.tsx`] ?? sources[`${basePath}.ts`],
 		sourceHash: sourceHash(sources, {}),
@@ -429,6 +439,51 @@ describe("buildAgentManifest", () => {
 		expect(hook?.summary).toBe("Composes refs.");
 	});
 
+	// A recipe names its parts as code does (`IconButton`), and the entry is "Icon Button".
+	it("reads a recipe's summary, intent, aliases, and parts from its page", () => {
+		const manifest = buildAgentManifest(inputs());
+
+		expect(manifest.recipes).toEqual([
+			{
+				name: "Responsive Toolbar",
+				slug: "recipes/responsive-toolbar",
+				docsUrl: "https://docs.test/recipes/responsive-toolbar",
+				markdownUrl: "https://docs.test/recipes/responsive-toolbar.md",
+				summary: "A toolbar that folds its buttons into icons.",
+				useWhen: "Fold toolbar buttons into icon buttons on a narrow screen.",
+				aliases: ["adaptive toolbar"],
+				parts: ["IconButton", "useBreakpoint", "cx"],
+			},
+		]);
+	});
+
+	it("throws when a recipe names a part that mantle lacks", () => {
+		const docs = [
+			{ slug: "components/actions/button", frontmatter: { title: "Button" } },
+			{ slug: "recipes/stepper", frontmatter: { title: "Stepper", parts: ["Button", "Stepper"] } },
+		];
+
+		expect(() => buildAgentManifest(inputs({ docs }))).toThrow(
+			/names parts that mantle lacks: Stepper\.$/,
+		);
+	});
+
+	it("reads a recipe from a nested page under recipes/", () => {
+		const docs = [
+			{ slug: "recipes/tables/loading", frontmatter: { title: "Loading", parts: ["cx"] } },
+		];
+
+		expect(buildAgentManifest(inputs({ docs })).recipes?.map(({ slug }) => slug)).toEqual([
+			"recipes/tables/loading",
+		]);
+	});
+
+	it("throws when a recipe lists no parts", () => {
+		const docs = [{ slug: "recipes/stepper", frontmatter: { title: "Stepper", parts: [] } }];
+
+		expect(() => buildAgentManifest(inputs({ docs }))).toThrow(/must list the mantle parts/);
+	});
+
 	it("reads a utility's summary from its primary export", () => {
 		const manifest = buildAgentManifest(inputs());
 		const cx = manifest.utilities.find((entry) => entry.name === "cx");
@@ -447,6 +502,9 @@ describe("renderLlmsTxt", () => {
 			"- **Icon Button** (`@ngrok/mantle/button`): Renders an icon button. Also called: icon only.",
 		);
 		expect(text).toContain("- **useBreakpoint** (`@ngrok/mantle/hooks`): Reads the breakpoint.");
+		expect(text).toContain(
+			"- **Responsive Toolbar** (https://docs.test/recipes/responsive-toolbar.md): Fold toolbar buttons into icon buttons on a narrow screen. Parts: IconButton, useBreakpoint, cx.",
+		);
 	});
 
 	it("points agents at the bundled type declarations for props", () => {
@@ -482,6 +540,26 @@ describe("buildAgentManifestFromFilesystem", () => {
 			siblings: component.siblings,
 			useWhen: component.useWhen,
 		}));
+
+		expect(JSON.parse(JSON.stringify(surface))).toEqual(snapshot);
+	});
+
+	it("writes the recipe records the docs site snapshots", () => {
+		const snapshotPath = path.resolve(
+			import.meta.dirname,
+			"../../../apps/www/app/utilities/__snapshots__/recipes-surface.json",
+		);
+		const snapshot: unknown = JSON.parse(fs.readFileSync(snapshotPath, "utf8"));
+		const surface = (buildAgentManifestFromFilesystem().recipes ?? []).map(
+			({ name, slug, summary, useWhen, aliases, parts }) => ({
+				name,
+				slug,
+				summary,
+				useWhen,
+				aliases,
+				parts,
+			}),
+		);
 
 		expect(JSON.parse(JSON.stringify(surface))).toEqual(snapshot);
 	});
