@@ -373,6 +373,10 @@ function trackFloat({
 	let frame = 0;
 	const place = () => {
 		const anchorBox = anchor.getBoundingClientRect();
+		// Why before the reads: a float sized by the anchor, such as a picker list,
+		// takes its final width and wrapped height in this placement.
+		floating.style.setProperty("--anchor-width", `${anchorBox.width}px`);
+		floating.style.setProperty("--anchor-height", `${anchorBox.height}px`);
 		const width = floating.offsetWidth;
 		const height = floating.offsetHeight;
 		const contentHeight =
@@ -427,8 +431,6 @@ function trackFloat({
 		const anchorCenterX = anchorBox.left + anchorBox.width / 2 - placed.x;
 		const anchorCenterY = anchorBox.top + anchorBox.height / 2 - placed.y;
 		floating.dataset.side = placed.side;
-		floating.style.setProperty("--anchor-width", `${anchorBox.width}px`);
-		floating.style.setProperty("--anchor-height", `${anchorBox.height}px`);
 		floating.style.transformOrigin = {
 			top: `${anchorCenterX}px 100%`,
 			bottom: `${anchorCenterX}px 0`,

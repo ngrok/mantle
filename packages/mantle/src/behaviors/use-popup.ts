@@ -1,10 +1,13 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import type { RefCallback, RefObject } from "react";
 import { useCallbackRef } from "../hooks/use-callback-ref.js";
 import { useIsHydrated } from "../hooks/use-is-hydrated.js";
-import { useLayerContainer } from "../utils/layer-container/layer-container.js";
+import {
+	useIsCoveredByOverlay,
+	useLayerContainer,
+} from "../utils/layer-container/layer-container.js";
 import { trackFloat } from "../utils/float/position.js";
 import { hasPopoverApi, resolvePortalTarget } from "../utils/float/use-float.js";
 
@@ -21,7 +24,8 @@ const OFFSET = 8;
  * and the CSS variables `--anchor-width`, `--anchor-height`, and
  * `--available-height`. With no popover API, the popup is a fixed box.
  *
- * On the server and during hydration `portalTarget` is `null`, so the server
+ * While an overlay that does not hold it is open, `portalTarget` is `null`. On
+ * the server and during hydration it is `null` too, so the server
  * markup and the first client render match; the popup mounts in the commit
  * after hydration.
  *
@@ -54,10 +58,16 @@ const usePopup = ({
 	const outsidePress = useCallbackRef(onOutsidePress);
 	const closesOnOutsidePress = onOutsidePress != null;
 	const hydrated = useIsHydrated();
+	// Why: the top layer paints above every overlay, so a popup that an overlay
+	// covers, such as a controlled picker left open under a dialog, waits until
+	// that overlay closes, as `useFloat` does.
+	const floatElement = useRef<HTMLElement | null>(null);
+	const covered = useIsCoveredByOverlay(layerContainer, floatElement);
 	// Why `useCallback`: a new callback on each render would place the popup
 	// again on each keystroke.
 	const popupRef = useCallback<RefCallback<HTMLElement>>(
 		(floating) => {
+			floatElement.current = floating;
 			if (floating == null) {
 				return;
 			}
@@ -149,7 +159,7 @@ const usePopup = ({
 		[anchorRef, ownerRef, closesOnOutsidePress, outsidePress],
 	);
 	return {
-		portalTarget: hydrated ? resolvePortalTarget(layerContainer) : null,
+		portalTarget: hydrated && !covered ? resolvePortalTarget(layerContainer) : null,
 		popupRef,
 	};
 };

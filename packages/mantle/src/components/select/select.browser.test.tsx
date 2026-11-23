@@ -404,6 +404,35 @@ describe("Select keyboard, focus, and ARIA contract", () => {
 		expect(screen.queryByRole("dialog", { name: "Settings" })).not.toBeInTheDocument();
 	});
 
+	test("an open list that a dialog covers waits until the dialog closes", async () => {
+		const { rerender } = render(
+			<>
+				<Select.Root open onOpenChange={() => {}}>
+					<Select.Trigger aria-label="Fruit" />
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+					</Select.Content>
+				</Select.Root>
+				<Dialog.Root open>
+					<Dialog.Content>
+						<Dialog.Title>Settings</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+			</>,
+		);
+		expect(await screen.findByRole("dialog", { name: "Settings" })).toBeInTheDocument();
+		expect(screen.queryByRole("listbox", { hidden: true })).not.toBeInTheDocument();
+		rerender(
+			<Select.Root open onOpenChange={() => {}}>
+				<Select.Trigger aria-label="Fruit" />
+				<Select.Content>
+					<Select.Item value="apple">Apple</Select.Item>
+				</Select.Content>
+			</Select.Root>,
+		);
+		expect(await screen.findByRole("listbox")).toBeInTheDocument();
+	});
+
 	test("has no axe violations closed or open", async () => {
 		render(<FruitSelect />);
 		expect(await axeViolations()).toEqual([]);

@@ -862,6 +862,19 @@ const OpenContent = ({
 						if (event.key === "Escape") {
 							setOpen(false);
 						}
+						// Why: Shift+Tab from the first control in the list goes back to the
+						// input, the way Tab came in. Tab from the last one leaves and closes the list.
+						if (
+							event.key === "Tab" &&
+							event.shiftKey &&
+							event.target === event.currentTarget.querySelector(TABBABLE)
+						) {
+							event.preventDefault();
+							// Why not `inputRef`: the input names this list in `aria-controls`.
+							event.currentTarget.ownerDocument
+								.querySelector<HTMLElement>(`[aria-controls="${event.currentTarget.id}"]`)
+								?.focus();
+						}
 					})}
 					onBlur={composeHandlers(props.onBlur, (event) => {
 						// Why: focus that leaves a control in the list for outside the
