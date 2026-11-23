@@ -23,7 +23,7 @@ import { Popover } from "@ngrok/mantle/popover";
 			Open popover
 		</Button>
 	</Popover.Trigger>
-	<Popover.Content preferredWidth="max-w-96">
+	<Popover.Content aria-labelledby="popover-dimensions" preferredWidth="max-w-96">
 		<form
 			className="grid gap-4"
 			onSubmit={(event) => {
@@ -31,7 +31,9 @@ import { Popover } from "@ngrok/mantle/popover";
 			}}
 		>
 			<div className="space-y-2">
-				<h4 className="font-medium leading-none">Dimensions</h4>
+				<h4 id="popover-dimensions" className="font-medium leading-none">
+					Dimensions
+				</h4>
 				<p className="text-sm text-gray-700">Set the dimensions for the layer.</p>
 			</div>
 			<div className="grid gap-2">
@@ -144,6 +146,8 @@ All props of a `<button>`. It sets `aria-haspopup="dialog"`, `aria-expanded`, an
 ### Popover.Content
 
 The content to render inside the popover. Appears in a portal with styling and animations.
+
+It is a `role="dialog"` named by its trigger, such as "Open popover". Pass `aria-label` or `aria-labelledby`, such as the `id` of a heading in the content, to give it a name of its own.
 
 `Popover.Content` is `position: fixed`, so an absolutely-positioned child of the content anchors to the content. It sets the CSS variables `--anchor-width` (the width of the anchor) and `--available-height` (the room between the anchor and the edge of the viewport), for example `w-(--anchor-width)`.
 

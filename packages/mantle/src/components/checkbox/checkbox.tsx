@@ -20,7 +20,7 @@ import type { WithValidation } from "../field/validation.js";
  * @example
  * ```tsx
  * const checked: CheckedState = "indeterminate";
- * <Checkbox checked={checked} onChange={handleChange} />
+ * <Checkbox checked={checked} onCheckedChange={setChecked} />
  * ```
  */
 type CheckedState = boolean | "indeterminate";
@@ -31,13 +31,18 @@ const isIndeterminate = (checked: CheckedState | undefined): checked is "indeter
 type Props = Omit<ComponentProps<"input">, "type" | "checked" | "defaultChecked"> &
 	WithValidation & {
 		/**
-		 * The controlled checked state of the checkbox. Must be used in conjunction with onChange.
+		 * The controlled checked state of the checkbox. Pair it with `onCheckedChange`.
 		 */
 		checked?: CheckedState;
 		/**
 		 * The checked state of the checkbox when it is initially rendered. Use when you do not need to control its checked state.
 		 */
 		defaultChecked?: CheckedState;
+		/**
+		 * Runs with the new checked state when the user checks or unchecks the box.
+		 * An indeterminate box becomes checked. The native `onChange` event still runs first.
+		 */
+		onCheckedChange?: (checked: boolean) => void;
 	} & WithDataSlot;
 
 /**
@@ -75,6 +80,8 @@ const Checkbox = ({
 	checked: _checked,
 	defaultChecked: _defaultChecked,
 	defaultValue = "on",
+	onChange,
+	onCheckedChange,
 	onClick,
 	readOnly,
 	ref,
@@ -132,15 +139,26 @@ const Checkbox = ({
 				"focus-visible:border-accent-600 focus-visible:focus-ring",
 				"checked:border-accent-600 checked:bg-accent-600 checked:bg-checked-icon",
 				"indeterminate:border-accent-600 indeterminate:bg-accent-600 indeterminate:bg-indeterminate-icon",
-				"data-validation-success:border-success-600 data-validation-success:checked:bg-success-600 data-validation-success:indeterminate:bg-success-600 focus-visible:data-validation-success:border-success-600 focus-visible:data-validation-success:ring-focus-success",
-				"data-validation-warning:border-warning-600 data-validation-warning:checked:bg-warning-600 data-validation-warning:indeterminate:bg-warning-600 focus-visible:data-validation-warning:border-warning-600 focus-visible:data-validation-warning:ring-focus-warning",
-				"data-validation-error:border-danger-600 data-validation-error:checked:bg-danger-600 data-validation-error:indeterminate:bg-danger-600 focus-visible:data-validation-error:border-danger-600 focus-visible:data-validation-error:ring-focus-danger",
+				"data-[validation=success]:border-success-600 data-[validation=success]:checked:bg-success-600 data-[validation=success]:indeterminate:bg-success-600 focus-visible:data-[validation=success]:border-success-600 focus-visible:data-[validation=success]:ring-focus-success",
+				"data-[validation=warning]:border-warning-600 data-[validation=warning]:checked:bg-warning-600 data-[validation=warning]:indeterminate:bg-warning-600 focus-visible:data-[validation=warning]:border-warning-600 focus-visible:data-[validation=warning]:ring-focus-warning",
+				"data-[validation=error]:border-danger-600 data-[validation=error]:checked:bg-danger-600 data-[validation=error]:indeterminate:bg-danger-600 focus-visible:data-[validation=error]:border-danger-600 focus-visible:data-[validation=error]:ring-focus-danger",
 				"where:block where:size-4 where:p-0",
 				className,
 			)}
 			{...checkedProp}
 			data-validation={validation || undefined}
 			defaultValue={defaultValue}
+			onChange={
+				onChange == null && onCheckedChange == null
+					? undefined
+					: (event) => {
+							onChange?.(event);
+							// Why: React fires `change` on a read-only box before the browser undoes the toggle.
+							if (!readOnly) {
+								onCheckedChange?.(event.currentTarget.checked);
+							}
+						}
+			}
 			onClick={(event) => {
 				if (readOnly) {
 					event.preventDefault();

@@ -392,8 +392,8 @@ type CodeBlockCodeProps = Omit<ComponentProps<"pre">, "children" | "translate"> 
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-state` | `"collapsed"` \| `"expanded"` | Present when a `CodeBlock.ExpanderButton` is composed. Drives the collapsed max height. |
- * | `data-highlighted` | `"true"` \| `"false"` | Whether the value carried pre-rendered Shiki HTML. |
+ * | `data-expanded` | present when expanded | Presence-only. Only with a composed `CodeBlock.ExpanderButton`, which carries `aria-expanded`. |
+ * | `data-syntax-highlighted` | present when highlighted | Presence-only. The value carried pre-rendered Shiki HTML. |
  * | `data-lang` | the language id | The value's language. |
  * | `data-mantle-line-numbers` | `"true"` \| `"false"` | Whether the gutter shows line numbers. |
  * | `data-mantle-line-number-start` | a number as a string | The first line number. |
@@ -499,7 +499,6 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 	// `{ __html }` literal each render re-applies `innerHTML`, wiping any
 	// runtime-managed DOM state on the children (e.g. fold attributes).
 	const innerHtmlProp = useMemo(() => ({ __html: displayHtml }), [displayHtml]);
-	const expanderState = isCodeExpanded ? "expanded" : "collapsed";
 	// Why omit `MozTabSize`: Firefox reads `-moz-tab-size` as an alias of
 	// `tab-size`. React writes a number as `2px`, and on a client mount it writes
 	// an `undefined` value as `""`, which clears `tab-size` too.
@@ -508,19 +507,19 @@ const Code = ({ className, style, value, ref, ...props }: CodeBlockCodeProps) =>
 	return (
 		<pre
 			data-slot="code-block-code"
-			// Why data-state and not aria-expanded: `aria-expanded` is not a global
+			// Why data-expanded and not aria-expanded: `aria-expanded` is not a global
 			// attribute and `<pre>` has no role that supports it. The expander
-			// button owns the ARIA state; this attribute only drives the styling.
-			data-state={hasCodeExpander ? expanderState : undefined}
+			// button owns the ARIA state; this attribute mirrors it for styling.
+			data-expanded={hasCodeExpander && isCodeExpanded ? "" : undefined}
 			className={cx(
 				"scrollbar overflow-x-auto overscroll-x-none overflow-y-hidden py-4",
 				!isPreRendered && "pr-14",
 				"data-[mantle-line-numbers~='false']:pl-4",
 				"text-mono m-0 font-mono outline-hidden",
-				"data-[state=collapsed]:max-h-[13.6rem]",
+				hasCodeExpander && !isCodeExpanded && "max-h-[13.6rem]",
 				className,
 			)}
-			data-highlighted={isPreRendered ? "true" : "false"}
+			data-syntax-highlighted={isPreRendered ? "" : undefined}
 			data-lang={language}
 			data-mantle-highlight-lines={
 				isPreRendered && effectiveHighlightLines != null && effectiveHighlightLines.length > 0
@@ -814,7 +813,7 @@ const ExpanderButton = ({
 }: CodeBlockExpanderButtonProps) => {
 	const { codeId, isCodeExpanded, setIsCodeExpanded, setHasCodeExpander } = useCodeBlockContext();
 
-	// Why a layout effect: `Code` stamps `data-state="collapsed"` from this flag,
+	// Why a layout effect: `Code` collapses to its max height from this flag,
 	// and a passive registration paints one frame at full height first.
 	useIsomorphicLayoutEffect(() => {
 		setHasCodeExpander(true);
@@ -1048,7 +1047,7 @@ const TabTrigger = ({
 				"shrink-0 cursor-pointer rounded px-1.5 py-0.5 font-sans text-xs font-medium whitespace-nowrap",
 				"text-gray-600 outline-hidden",
 				"hover:text-gray-900",
-				"data-[state=active]:bg-neutral-500/15 data-[state=active]:text-strong",
+				"aria-selected:bg-neutral-500/15 aria-selected:text-strong",
 				"focus-visible:focus-ring",
 				className,
 			)}

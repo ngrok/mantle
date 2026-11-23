@@ -168,7 +168,7 @@ describe("IconButton", () => {
 			const button = screen.getByRole("button", { name: "Save" });
 			expect(button).toBeDisabled();
 			expect(button).toHaveAttribute("aria-disabled", "true");
-			expect(button).toHaveAttribute("data-disabled", "");
+			expect(button).toHaveAttribute("aria-disabled", "true");
 		});
 
 		test("aria-disabled={false} cannot re-enable a disabled button", () => {
@@ -185,41 +185,6 @@ describe("IconButton", () => {
 			const button = screen.getByRole("button", { name: "Save" });
 			expect(button).toBeDisabled();
 			expect(button).toHaveAttribute("aria-disabled", "true");
-		});
-
-		test("data-disabled is present while disabled and absent once enabled", () => {
-			// Why presence: the `data-disabled:` variant matches the attribute, so
-			// a `"false"` value fires it on every enabled button.
-			const { rerender } = render(
-				<IconButton
-					appearance="ghost"
-					intent="neutral"
-					disabled
-					label="Save"
-					icon={<GlobeIcon />}
-				/>,
-			);
-			const button = screen.getByRole("button", { name: "Save" });
-			expect(button).toHaveAttribute("data-disabled", "");
-
-			rerender(
-				<IconButton appearance="ghost" intent="neutral" label="Save" icon={<GlobeIcon />} />,
-			);
-			expect(button).not.toHaveAttribute("data-disabled");
-		});
-
-		test("aria-disabled=true stamps data-disabled", () => {
-			render(
-				<IconButton
-					appearance="ghost"
-					intent="neutral"
-					aria-disabled="true"
-					label="Save"
-					icon={<GlobeIcon />}
-				/>,
-			);
-			const button = screen.getByRole("button", { name: "Save" });
-			expect(button).toHaveAttribute("data-disabled", "");
 		});
 
 		test.each([
@@ -245,7 +210,7 @@ describe("IconButton", () => {
 				// native attribute as well.
 				expect(button).toBeDisabled();
 				expect(button).toHaveAttribute("aria-disabled", "true");
-				expect(button).toHaveAttribute("data-disabled", "");
+				expect(button).toHaveAttribute("aria-disabled", "true");
 
 				await user.click(button);
 				expect(handleClick).toHaveBeenCalledTimes(0);

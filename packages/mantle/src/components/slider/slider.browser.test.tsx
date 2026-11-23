@@ -4,7 +4,7 @@ import type { ComponentProps, CSSProperties } from "react";
 import { useState } from "react";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, onTestFinished, test, vi } from "vitest";
 import { cdp, commands, userEvent, server } from "vitest/browser";
 import mantleCss from "../../mantle.css?raw";
 import { Slider, SliderValue } from "./slider.js";
@@ -340,17 +340,39 @@ describe("Slider track press (browser)", () => {
 			const rect = root.getBoundingClientRect();
 			const thumb = thumbOf(slider);
 
+			// Why fake timers: the glide ends on a 250ms timer. On a slow runner it can end
+			// before the grab, and the grab then keeps an offset.
+			vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+			onTestFinished(() => {
+				vi.useRealTimers();
+			});
+
 			const y = rect.top + rect.height / 2;
 			await mouse("mousePressed", rect.right - 1, y);
 			await mouse("mouseReleased", rect.right - 1, y);
+			// Why pause the glide at 50ms: a glide that moves on after the read lets the press
+			// land on the track, and a glide near its start puts the move off the track.
+			for (const animation of document.getAnimations()) {
+				animation.pause();
+				animation.currentTime = 50;
+			}
 			const shown = thumb.getBoundingClientRect();
 			const x = shown.left + shown.width / 2;
 			await mouse("mousePressed", x, y);
+			// Why: a press on the thumb keeps its value. A press on the track moves it.
+			expect(thumbValues()).toEqual([100]);
 			await mouse("mouseMoved", x - 20, y);
 			await mouse("mouseReleased", x - 20, y);
 
-			// Why 5px: the thumb ends 20px left of where it showed, give or take the thumb inset along the track.
-			expect(thumb.getBoundingClientRect().left).toBeCloseTo(shown.left - 20, -1);
+			// Why these limits: the value snaps to a step. The thumb's center travels half a
+			// thumb short of each end of the track, and the snap adds half a step (1px). A
+			// grab that kept the offset from the value, not from where the thumb shows, ends near 90.
+			const value = ((x - 20 - rect.left) / rect.width) * 100;
+			expect(Math.abs((thumbValues()[0] ?? Number.NaN) - value)).toBeLessThanOrEqual(1);
+			const ended = thumb.getBoundingClientRect();
+			expect(Math.abs(ended.left + ended.width / 2 - (x - 20))).toBeLessThanOrEqual(
+				ended.width / 2 + 1,
+			);
 		},
 	);
 

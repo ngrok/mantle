@@ -1,10 +1,11 @@
+import { createHash, randomBytes } from "node:crypto";
 import mantlePackageJson from "@ngrok/mantle/package.json" with { type: "json" };
 import { McpServer, ResourceTemplate, type CallToolResult } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { buildSiteAgentManifest } from "~/utilities/agent-manifest.server";
 import { canonicalHref, canonicalOrigin } from "~/utilities/canonical-origin";
 import { loadFrontmatter, rawDocContent, urlToFileMap } from "~/utilities/docs";
-import { checkCode } from "~/utilities/mcp/check.server";
+import { checkCode, MAX_CHECK_CODE_BYTES, type Diagnostic } from "~/utilities/mcp/check.server";
 import { isMcpToolEnabled, previewFrameOrigin, type McpFlags } from "~/utilities/mcp/flags.server";
 import { fitMarkdown } from "~/utilities/mcp/markdown-budget";
 import { MCP_APP_MIME_TYPE, PREVIEW_APP_URI, previewAppHtml } from "~/utilities/mcp/preview-app";
@@ -39,6 +40,7 @@ import {
 	type VersionDataLoader,
 } from "~/utilities/mcp/version-data.server";
 import { countUrls, hasProfanity } from "~/utilities/mcp/content-safety";
+import { localTarballRegistry } from "~/utilities/mcp/npm-tarball.server";
 import { clipMarkdown, mcpPulse } from "~/utilities/mcp/pulse.server";
 import { renderMdxToMarkdown } from "~/utilities/render-mdx-to-markdown.server";
 import { loadDeclarationFiles, loadSourceFiles } from "~/utilities/mantle-source.server";
@@ -174,6 +176,8 @@ export type ToolCallEvent = ToolCallOutcome & {
 	resultBytes: number;
 	/** The first product token of the `User-Agent` header, such as `claude-code/2.1.3`. */
 	client?: string;
+	/** The pseudonymous key of the agent that called, from `callerOf`. The pulse groups calls into sessions by it. */
+	caller: string;
 	/** The ngrok repo that the call came from, from the `source` query parameter. */
 	source?: McpSource;
 	/** The agent's reason for the call, from `scrubIntent`. */
@@ -187,10 +191,48 @@ export type ToolCallEvent = ToolCallOutcome & {
 	ids?: string[];
 	/** The number of `find` results. */
 	resultCount?: number;
-	/** The top-level argument names that failed validation. */
-	invalidFields?: string[];
+	/** Each top-level argument that failed validation, and its problem. */
+	invalidArguments?: InvalidArgument[];
 	gap?: GapSignal;
 };
+
+/** What is wrong with an argument that failed validation. */
+export type ArgumentProblem =
+	| "missing"
+	| "wrong type"
+	| "empty"
+	| "too short"
+	| "too long"
+	| "not an allowed value"
+	| "bad format"
+	| "unknown key"
+	| "invalid";
+
+/** One top-level argument that failed validation. */
+export type InvalidArgument = { argument: string; problem: ArgumentProblem };
+
+/**
+ * The problem of one validation issue. Why the issue `code` and not its
+ * message: a code names no value that the agent sent.
+ */
+function problemOf(issue: object, value: unknown): ArgumentProblem {
+	switch (Reflect.get(issue, "code")) {
+		case "invalid_type":
+			return value === undefined ? "missing" : "wrong type";
+		case "too_small":
+			return Reflect.get(issue, "minimum") === 1 ? "empty" : "too short";
+		case "too_big":
+			return "too long";
+		case "invalid_value":
+			return "not an allowed value";
+		case "invalid_format":
+			return "bad format";
+		case "unrecognized_keys":
+			return "unknown key";
+		default:
+			return "invalid";
+	}
+}
 
 /** The fields that a tool body adds to its log event. */
 type ToolCallFacts = Pick<ToolCallEvent, "dataVersion" | "ids" | "resultCount" | "gap"> & {
@@ -213,6 +255,25 @@ function clientOf(request: Request | undefined): string | undefined {
 	const token = request?.headers.get("user-agent")?.trim().split(/\s+/)[0] ?? "";
 	const client = token.replace(/[^\w./-]/g, "").slice(0, 60);
 	return client === "" || hasProfanity(client) ? undefined : client;
+}
+
+/** The salt of `callerOf`. A new process makes a new salt, so a key cannot follow an agent across deploys. */
+const CALLER_SALT = randomBytes(16);
+
+/**
+ * The pseudonymous key of the agent that sent a request: a salted hash of
+ * its first `X-Forwarded-For` address, its whole `User-Agent` header, and
+ * its source. Why a hash: the server is stateless and gets no session ID,
+ * and the log must not hold an address.
+ */
+function callerOf(request: Request | undefined, source: McpSource | undefined): string {
+	const address = request?.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "";
+	const agent = request?.headers.get("user-agent") ?? "";
+	return createHash("sha256")
+		.update(CALLER_SALT)
+		.update(`${address}\n${agent}\n${source ?? ""}`)
+		.digest("hex")
+		.slice(0, 12);
 }
 
 /** The string at `key` in the raw arguments of a call, or `undefined`. */
@@ -337,6 +398,33 @@ async function provenanceFor(
 	};
 }
 
+/**
+ * Whether the docs build is the selected release plus unreleased changes.
+ * Why only then: an older version can inherit a prop from a dependency that
+ * the docs build now declares itself, and its words cannot show that.
+ */
+function hasUnreleasedDocs(
+	dependencies: McpDependencies,
+	data: VersionData,
+	provenance: Provenance,
+): boolean {
+	return dependencies.docsVersion === data.version && provenance.docsVersion !== data.version;
+}
+
+/** The `check` findings that read a part's declarations, which the docs build can change. */
+const PART_CONTRACT_CODES: ReadonlySet<Diagnostic["code"]> = new Set<Diagnostic["code"]>([
+	"unknown-part",
+	"unknown-prop",
+	"forbidden-prop",
+	"missing-prop",
+	"missing-dialog-title",
+]);
+
+/** One `check` finding as a line, such as `3:12 error unknown-prop: … Fix: …`. */
+function diagnosticLine({ line, column, severity, code, message, fix }: Diagnostic): string {
+	return `${line}:${column} ${severity} ${code}: ${message}${fix == null ? "" : ` Fix: ${fix}`}`;
+}
+
 /** The docs version as `provenanceFor` labels it against the latest release. */
 async function latestDocsVersion(dependencies: McpDependencies): Promise<string> {
 	try {
@@ -396,6 +484,7 @@ function findResultText(record: FindRecord): string {
 export function createMantleMcpServer(dependencies: McpDependencies, request?: Request): McpServer {
 	const client = clientOf(request);
 	const source = sourceOf(request);
+	const caller = callerOf(request, source);
 	/** The logged `workspace` and `ticket`. Both need a source. */
 	const attribution = (
 		workspace: string | null | undefined,
@@ -432,10 +521,19 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				const intent = rawString(value, "intent");
 				const workspace = rawString(value, "workspace");
 				const ticket = rawString(value, "ticket");
-				const fields = result.issues.map(({ path }) => {
-					const first = path?.[0];
-					return String(typeof first === "object" ? first.key : (first ?? "arguments"));
-				});
+				const invalid = new Map<string, ArgumentProblem>();
+				for (const issue of result.issues) {
+					const first = issue.path?.[0];
+					const key = typeof first === "object" ? first.key : first;
+					const argument = key == null ? "arguments" : String(key);
+					const argumentValue =
+						key == null || typeof value !== "object" || value == null
+							? value
+							: Reflect.get(value, key);
+					if (!invalid.has(argument)) {
+						invalid.set(argument, problemOf(issue, argumentValue));
+					}
+				}
 				dependencies.log({
 					tool,
 					outcome: "error",
@@ -443,10 +541,11 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					latencyMs: 0,
 					resultBytes: 0,
 					client,
+					caller,
 					source,
 					intent: intent == null ? undefined : scrubIntent(intent),
 					...attribution(workspace, ticket),
-					invalidFields: Array.from(new Set(fields)),
+					invalidArguments: Array.from(invalid, ([argument, problem]) => ({ argument, problem })),
 				});
 			}
 			return result;
@@ -501,6 +600,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 					latencyMs: Math.round(performance.now() - started),
 					resultBytes: byteLength(resultText),
 					client,
+					caller,
 					source,
 					intent: intent == null ? undefined : scrubIntent(intent),
 					...attribution(workspace, ticket),
@@ -658,16 +758,12 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 				);
 			}
 			const provenance = await provenanceFor(dependencies, data);
-			// Why only the latest release with unreleased changes: an older version can inherit a prop
-			// from a dependency that the docs build now declares itself, and its words cannot show that.
-			const unreleased =
-				dependencies.docsVersion === data.version && provenance.docsVersion !== data.version;
 			const body = getRecordText({
 				record,
 				data,
 				provenance,
 				docsMarkdown: await dependencies.readDocs(record.docsSlug),
-				docsWords: unreleased
+				docsWords: hasUnreleasedDocs(dependencies, data, provenance)
 					? await dependencies.docsDeclaredWordsOf(record.importPath)
 					: undefined,
 				sections,
@@ -772,7 +868,7 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 		"check",
 		{
 			title: "Check mantle code",
-			description: `Returns feedback on one TSX file: mantle import paths and names for the selected version, foreign UI libraries, and className construction. No type check. Max ${MAX_PREVIEW_CODE_BYTES} bytes. Supports ${MIN_SUPPORTED_VERSION} and later.`,
+			description: `Returns feedback on one TSX file for the selected version: mantle imports, parts, and props (unknown, forbidden, or missing), untitled dialogs, foreign UI libraries, and className construction. No type check. Max ${MAX_CHECK_CODE_BYTES} bytes. Supports ${MIN_SUPPORTED_VERSION} and later.`,
 			inputSchema: logInvalid(
 				"check",
 				z.object({
@@ -786,24 +882,42 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 			annotations: readOnly,
 		},
 		run("check", async ({ code, version }) => {
-			if (byteLength(code) > MAX_PREVIEW_CODE_BYTES) {
+			if (byteLength(code) > MAX_CHECK_CODE_BYTES) {
 				return failure(
 					"too_large",
-					`The code is over ${MAX_PREVIEW_CODE_BYTES} bytes. Check one file at a time.`,
+					`The code is over ${MAX_CHECK_CODE_BYTES} bytes. Check one file at a time.`,
 				);
 			}
 			const data = await dependencies.loader.load(version);
-			const diagnostics = checkCode({ code, data });
+			const provenance = await provenanceFor(dependencies, data);
+			// Why: a prop that only the docs build declares is on the docs page, but not in a release yet.
+			const docsWords = new Map<string, ReadonlySet<string> | undefined>();
+			if (hasUnreleasedDocs(dependencies, data, provenance)) {
+				for (const [, specifier] of code.matchAll(/from\s*["'](@ngrok\/mantle\/[\w-]+)["']/g)) {
+					if (
+						specifier != null &&
+						data.exportsBySpecifier.has(specifier) &&
+						!docsWords.has(specifier)
+					) {
+						docsWords.set(specifier, await dependencies.docsDeclaredWordsOf(specifier));
+					}
+				}
+			}
+			const diagnostics = checkCode({
+				code,
+				data,
+				docsWordsOf: (specifier) => docsWords.get(specifier),
+			});
 			const summary =
 				diagnostics.length === 0
 					? "No findings. This check does not run TypeScript; run tsc where you can."
-					: `${diagnostics.length} finding(s).`;
+					: `${diagnostics.length} finding(s):\n${diagnostics.map(diagnosticLine).join("\n")}`;
 			return {
 				result: {
 					content: [
 						{
 							type: "text",
-							text: `${provenanceLine(await provenanceFor(dependencies, data))}\n\n${summary}\n\n${JSON.stringify(diagnostics, null, 1)}`,
+							text: `${provenanceLine(provenance)}\n\n${summary}`,
 						},
 					],
 					structuredContent: { dataVersion: data.version, diagnostics },
@@ -841,7 +955,15 @@ export function createMantleMcpServer(dependencies: McpDependencies, request?: R
 			}
 			// Why the docs version: the preview page renders it, so check names what that page can import.
 			const data = await dependencies.loader.load(dependencies.docsVersion);
-			const diagnostics = checkCode({ code, data, requireDefaultExport: true });
+			// Why: with unreleased changes, the page renders parts whose props the release lacks.
+			const unreleased = hasUnreleasedDocs(
+				dependencies,
+				data,
+				await provenanceFor(dependencies, data),
+			);
+			const diagnostics = checkCode({ code, data, requireDefaultExport: true }).filter(
+				(diagnostic) => !unreleased || !PART_CONTRACT_CODES.has(diagnostic.code),
+			);
 			const url = await previewUrl({ origin: dependencies.previewOrigin, code });
 			return {
 				result: {
@@ -1251,7 +1373,13 @@ export function productionDependencies({
 	flags: () => McpFlags;
 	requestOrigin: string;
 }): McpDependencies {
-	loader ??= createVersionDataLoader();
+	// Why: the agent eval's branch mode serves the branch's packed tarball (docs/mcp-evals.md).
+	const localTarball = process.env.MANTLE_MCP_LOCAL_TARBALL;
+	loader ??= createVersionDataLoader(
+		localTarball == null || localTarball === ""
+			? {}
+			: { registry: localTarballRegistry(localTarball) },
+	);
 	const previewOrigin =
 		process.env.MANTLE_PREVIEW_ORIGIN ?? (import.meta.env.DEV ? requestOrigin : canonicalOrigin);
 	return {

@@ -1,0 +1,1387 @@
+# Rewrites what a codemod can place for the mantle data attribute contract:
+# the class variants mantle.css no longer registers, and test assertions on
+# data-state open/closed/expanded/collapsed. Read the migration guide for the
+# steps that stay manual.
+id: class-variant-radix
+language: tsx
+message: mantle.css has no data-state-* variants; the bracket form keeps matching Radix's own data-state
+utils:
+  # A file that imports Radix renders Radix's own `data-state` values, so its
+  # classes keep matching them through the bracket form.
+  radix-file:
+    inside:
+      stopBy: end
+      kind: program
+      has:
+        kind: import_statement
+        has:
+          field: source
+          regex: ^["']@radix-ui/
+  # A class on a part whose name ends in `Trigger`: the trigger now carries
+  # `aria-expanded`, not `data-state`.
+  trigger-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Trigger$
+  # A class on a Select item, which carries `aria-selected`, not `aria-checked`.
+  select-item-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Select\.Item$
+  # A class on a menu checkbox item, which marks indeterminate with `aria-checked="mixed"`.
+  checkbox-item-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: CheckboxItem$
+  # A class on a tab list, which carries `aria-orientation`, not `data-orientation`.
+  tab-list-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Tabs\.List$
+  # A class inside a trigger's children, where a `group-` variant reads the trigger.
+  trigger-child-class:
+    inside:
+      stopBy: end
+      kind: jsx_element
+      has:
+        field: open_tag
+        kind: jsx_opening_element
+        has:
+          field: name
+          regex: Trigger$
+rule:
+  kind: string_fragment
+  regex: '\bdata-(state-(open|closed|checked|unchecked|active|inactive|selected|indeterminate|idle|pending|submitting)|side-(top|right|bottom|left)|orientation-(horizontal|vertical)|validation-(success|warning|error)|active-item)(/[\w-]+)?:'
+  pattern: $F
+  matches: radix-file
+transform:
+  T1:
+    replace:
+      source: $F
+      replace: '\bdata-state-([a-z]+)(/[\w-]+)?:'
+      by: "data-[state~=${1}]${2}:"
+  T2:
+    replace:
+      source: $T1
+      replace: '\bdata-(side|orientation|validation)-([a-z]+)(/[\w-]+)?:'
+      by: "data-[${1}=${2}]${3}:"
+  T3:
+    replace:
+      source: $T2
+      replace: '\bdata-active-item(/[\w-]+)?:'
+      by: "data-highlighted${1}:"
+fix: $T3
+---
+id: class-variant-radix
+language: typescript
+message: mantle.css has no data-state-* variants; the bracket form keeps matching Radix's own data-state
+utils:
+  radix-file:
+    inside:
+      stopBy: end
+      kind: program
+      has:
+        kind: import_statement
+        has:
+          field: source
+          regex: ^["']@radix-ui/
+rule:
+  kind: string_fragment
+  regex: '\bdata-(state-(open|closed|checked|unchecked|active|inactive|selected|indeterminate|idle|pending|submitting)|side-(top|right|bottom|left)|orientation-(horizontal|vertical)|validation-(success|warning|error)|active-item)(/[\w-]+)?:'
+  pattern: $F
+  matches: radix-file
+transform:
+  T1:
+    replace:
+      source: $F
+      replace: '\bdata-state-([a-z]+)(/[\w-]+)?:'
+      by: "data-[state~=${1}]${2}:"
+  T2:
+    replace:
+      source: $T1
+      replace: '\bdata-(side|orientation|validation)-([a-z]+)(/[\w-]+)?:'
+      by: "data-[${1}=${2}]${3}:"
+  T3:
+    replace:
+      source: $T2
+      replace: '\bdata-active-item(/[\w-]+)?:'
+      by: "data-highlighted${1}:"
+fix: $T3
+---
+id: class-variant-trigger
+language: tsx
+message: a trigger carries aria-expanded, not data-state
+utils:
+  # A file that imports Radix renders Radix's own `data-state` values, so its
+  # classes keep matching them through the bracket form.
+  radix-file:
+    inside:
+      stopBy: end
+      kind: program
+      has:
+        kind: import_statement
+        has:
+          field: source
+          regex: ^["']@radix-ui/
+  # A class on a part whose name ends in `Trigger`: the trigger now carries
+  # `aria-expanded`, not `data-state`.
+  trigger-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Trigger$
+  # A class on a Select item, which carries `aria-selected`, not `aria-checked`.
+  select-item-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Select\.Item$
+  # A class on a menu checkbox item, which marks indeterminate with `aria-checked="mixed"`.
+  checkbox-item-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: CheckboxItem$
+  # A class on a tab list, which carries `aria-orientation`, not `data-orientation`.
+  tab-list-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Tabs\.List$
+  # A class inside a trigger's children, where a `group-` variant reads the trigger.
+  trigger-child-class:
+    inside:
+      stopBy: end
+      kind: jsx_element
+      has:
+        field: open_tag
+        kind: jsx_opening_element
+        has:
+          field: name
+          regex: Trigger$
+rule:
+  kind: string_fragment
+  regex: '\bdata-(state-(open|closed|checked|unchecked|active|inactive|selected|indeterminate|idle|pending|submitting)|side-(top|right|bottom|left)|orientation-(horizontal|vertical)|validation-(success|warning|error)|active-item)(/[\w-]+)?:'
+  pattern: $F
+  all:
+    - matches: trigger-class
+    - not:
+        matches: radix-file
+transform:
+  T1:
+    replace:
+      source: $F
+      replace: '\bgroup-data-state-open(/[\w-]+)?:'
+      by: "group-data-open${1}:"
+  T2:
+    replace:
+      source: $T1
+      replace: '\bgroup-data-state-closed(/[\w-]+)?:'
+      by: "group-not-data-open${1}:"
+  T3:
+    replace:
+      source: $T2
+      replace: '\bdata-state-open(/[\w-]+)?:'
+      by: "aria-expanded${1}:"
+  T4:
+    replace:
+      source: $T3
+      replace: '\bdata-state-closed(/[\w-]+)?:'
+      by: "not-aria-expanded${1}:"
+  T5:
+    replace:
+      source: $T4
+      replace: '\bdata-state-inactive(/[\w-]+)?:'
+      by: "not-aria-selected${1}:"
+  T6:
+    replace:
+      source: $T5
+      replace: '\bdata-state-open(/[\w-]+)?:'
+      by: "data-open${1}:"
+  T7:
+    replace:
+      source: $T6
+      replace: '\bdata-state-closed(/[\w-]+)?:'
+      by: "not-data-open${1}:"
+  T8:
+    replace:
+      source: $T7
+      replace: '\bdata-state-checked(/[\w-]+)?:'
+      by: "aria-checked${1}:"
+  T9:
+    replace:
+      source: $T8
+      replace: '\bdata-state-unchecked(/[\w-]+)?:'
+      by: "not-aria-checked${1}:"
+  T10:
+    replace:
+      source: $T9
+      replace: '\bdata-state-active(/[\w-]+)?:'
+      by: "aria-selected${1}:"
+  T11:
+    replace:
+      source: $T10
+      replace: '\bdata-state-selected(/[\w-]+)?:'
+      by: "data-selected${1}:"
+  T12:
+    replace:
+      source: $T11
+      replace: '\bdata-state-indeterminate(/[\w-]+)?:'
+      by: "data-indeterminate${1}:"
+  T13:
+    replace:
+      source: $T12
+      replace: '\bdata-state-(inactive|idle|pending|submitting)(/[\w-]+)?:'
+      by: "data-[state~=${1}]${2}:"
+  T14:
+    replace:
+      source: $T13
+      replace: '\bdata-(side|orientation|validation)-([a-z]+)(/[\w-]+)?:'
+      by: "data-[${1}=${2}]${3}:"
+  T15:
+    replace:
+      source: $T14
+      replace: '\bdata-active-item(/[\w-]+)?:'
+      by: "data-highlighted${1}:"
+fix: $T15
+---
+id: class-variant-trigger-child
+language: tsx
+message: inside a trigger, the asChild element and a group- variant read the trigger's aria-expanded
+utils:
+  # A file that imports Radix renders Radix's own `data-state` values, so its
+  # classes keep matching them through the bracket form.
+  radix-file:
+    inside:
+      stopBy: end
+      kind: program
+      has:
+        kind: import_statement
+        has:
+          field: source
+          regex: ^["']@radix-ui/
+  # A class on a part whose name ends in `Trigger`: the trigger now carries
+  # `aria-expanded`, not `data-state`.
+  trigger-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Trigger$
+  # A class on a Select item, which carries `aria-selected`, not `aria-checked`.
+  select-item-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Select\.Item$
+  # A class on a menu checkbox item, which marks indeterminate with `aria-checked="mixed"`.
+  checkbox-item-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: CheckboxItem$
+  # A class on a tab list, which carries `aria-orientation`, not `data-orientation`.
+  tab-list-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Tabs\.List$
+  # A class inside a trigger's children, where a `group-` variant reads the trigger.
+  trigger-child-class:
+    inside:
+      stopBy: end
+      kind: jsx_element
+      has:
+        field: open_tag
+        kind: jsx_opening_element
+        has:
+          field: name
+          regex: Trigger$
+rule:
+  kind: string_fragment
+  regex: '\bdata-(state-(open|closed|checked|unchecked|active|inactive|selected|indeterminate|idle|pending|submitting)|side-(top|right|bottom|left)|orientation-(horizontal|vertical)|validation-(success|warning|error)|active-item)(/[\w-]+)?:'
+  pattern: $F
+  all:
+    - matches: trigger-child-class
+    - not:
+        matches: trigger-class
+    - not:
+        matches: radix-file
+transform:
+  T1:
+    replace:
+      source: $F
+      replace: '\bgroup-data-state-open(/[\w-]+)?:'
+      by: "group-aria-expanded${1}:"
+  T2:
+    replace:
+      source: $T1
+      replace: '\bgroup-data-state-closed(/[\w-]+)?:'
+      by: "group-not-aria-expanded${1}:"
+  T3:
+    replace:
+      source: $T2
+      replace: '\bgroup-data-state-inactive(/[\w-]+)?:'
+      by: "group-not-aria-selected${1}:"
+  T4:
+    replace:
+      source: $T3
+      replace: '\bdata-state-open(/[\w-]+)?:'
+      by: "aria-expanded${1}:"
+  T5:
+    replace:
+      source: $T4
+      replace: '\bdata-state-closed(/[\w-]+)?:'
+      by: "not-aria-expanded${1}:"
+  T6:
+    replace:
+      source: $T5
+      replace: '\bdata-state-inactive(/[\w-]+)?:'
+      by: "not-aria-selected${1}:"
+  T7:
+    replace:
+      source: $T6
+      replace: '\bdata-state-open(/[\w-]+)?:'
+      by: "data-open${1}:"
+  T8:
+    replace:
+      source: $T7
+      replace: '\bdata-state-closed(/[\w-]+)?:'
+      by: "not-data-open${1}:"
+  T9:
+    replace:
+      source: $T8
+      replace: '\bdata-state-checked(/[\w-]+)?:'
+      by: "aria-checked${1}:"
+  T10:
+    replace:
+      source: $T9
+      replace: '\bdata-state-unchecked(/[\w-]+)?:'
+      by: "not-aria-checked${1}:"
+  T11:
+    replace:
+      source: $T10
+      replace: '\bdata-state-active(/[\w-]+)?:'
+      by: "aria-selected${1}:"
+  T12:
+    replace:
+      source: $T11
+      replace: '\bdata-state-selected(/[\w-]+)?:'
+      by: "data-selected${1}:"
+  T13:
+    replace:
+      source: $T12
+      replace: '\bdata-state-indeterminate(/[\w-]+)?:'
+      by: "data-indeterminate${1}:"
+  T14:
+    replace:
+      source: $T13
+      replace: '\bdata-state-(inactive|idle|pending|submitting)(/[\w-]+)?:'
+      by: "data-[state~=${1}]${2}:"
+  T15:
+    replace:
+      source: $T14
+      replace: '\bdata-(side|orientation|validation)-([a-z]+)(/[\w-]+)?:'
+      by: "data-[${1}=${2}]${3}:"
+  T16:
+    replace:
+      source: $T15
+      replace: '\bdata-active-item(/[\w-]+)?:'
+      by: "data-highlighted${1}:"
+fix: $T16
+---
+id: class-variant-select-item
+language: tsx
+message: a Select item carries aria-selected, not aria-checked
+utils:
+  # A file that imports Radix renders Radix's own `data-state` values, so its
+  # classes keep matching them through the bracket form.
+  radix-file:
+    inside:
+      stopBy: end
+      kind: program
+      has:
+        kind: import_statement
+        has:
+          field: source
+          regex: ^["']@radix-ui/
+  # A class on a part whose name ends in `Trigger`: the trigger now carries
+  # `aria-expanded`, not `data-state`.
+  trigger-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Trigger$
+  # A class on a Select item, which carries `aria-selected`, not `aria-checked`.
+  select-item-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Select\.Item$
+  # A class on a menu checkbox item, which marks indeterminate with `aria-checked="mixed"`.
+  checkbox-item-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: CheckboxItem$
+  # A class on a tab list, which carries `aria-orientation`, not `data-orientation`.
+  tab-list-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Tabs\.List$
+  # A class inside a trigger's children, where a `group-` variant reads the trigger.
+  trigger-child-class:
+    inside:
+      stopBy: end
+      kind: jsx_element
+      has:
+        field: open_tag
+        kind: jsx_opening_element
+        has:
+          field: name
+          regex: Trigger$
+rule:
+  kind: string_fragment
+  regex: '\bdata-(state-(open|closed|checked|unchecked|active|inactive|selected|indeterminate|idle|pending|submitting)|side-(top|right|bottom|left)|orientation-(horizontal|vertical)|validation-(success|warning|error)|active-item)(/[\w-]+)?:'
+  pattern: $F
+  all:
+    - matches: select-item-class
+    - not:
+        matches: radix-file
+transform:
+  T1:
+    replace:
+      source: $F
+      replace: '\bdata-state-checked(/[\w-]+)?:'
+      by: "aria-selected${1}:"
+  T2:
+    replace:
+      source: $T1
+      replace: '\bdata-state-unchecked(/[\w-]+)?:'
+      by: "not-aria-selected${1}:"
+  T3:
+    replace:
+      source: $T2
+      replace: '\bdata-state-open(/[\w-]+)?:'
+      by: "data-open${1}:"
+  T4:
+    replace:
+      source: $T3
+      replace: '\bdata-state-closed(/[\w-]+)?:'
+      by: "not-data-open${1}:"
+  T5:
+    replace:
+      source: $T4
+      replace: '\bdata-state-checked(/[\w-]+)?:'
+      by: "aria-checked${1}:"
+  T6:
+    replace:
+      source: $T5
+      replace: '\bdata-state-unchecked(/[\w-]+)?:'
+      by: "not-aria-checked${1}:"
+  T7:
+    replace:
+      source: $T6
+      replace: '\bdata-state-active(/[\w-]+)?:'
+      by: "aria-selected${1}:"
+  T8:
+    replace:
+      source: $T7
+      replace: '\bdata-state-selected(/[\w-]+)?:'
+      by: "data-selected${1}:"
+  T9:
+    replace:
+      source: $T8
+      replace: '\bdata-state-indeterminate(/[\w-]+)?:'
+      by: "data-indeterminate${1}:"
+  T10:
+    replace:
+      source: $T9
+      replace: '\bdata-state-(inactive|idle|pending|submitting)(/[\w-]+)?:'
+      by: "data-[state~=${1}]${2}:"
+  T11:
+    replace:
+      source: $T10
+      replace: '\bdata-(side|orientation|validation)-([a-z]+)(/[\w-]+)?:'
+      by: "data-[${1}=${2}]${3}:"
+  T12:
+    replace:
+      source: $T11
+      replace: '\bdata-active-item(/[\w-]+)?:'
+      by: "data-highlighted${1}:"
+fix: $T12
+---
+id: class-variant-checkbox-item
+language: tsx
+message: a menu checkbox item marks indeterminate with aria-checked=mixed
+utils:
+  # A file that imports Radix renders Radix's own `data-state` values, so its
+  # classes keep matching them through the bracket form.
+  radix-file:
+    inside:
+      stopBy: end
+      kind: program
+      has:
+        kind: import_statement
+        has:
+          field: source
+          regex: ^["']@radix-ui/
+  # A class on a part whose name ends in `Trigger`: the trigger now carries
+  # `aria-expanded`, not `data-state`.
+  trigger-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Trigger$
+  # A class on a Select item, which carries `aria-selected`, not `aria-checked`.
+  select-item-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Select\.Item$
+  # A class on a menu checkbox item, which marks indeterminate with `aria-checked="mixed"`.
+  checkbox-item-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: CheckboxItem$
+  # A class on a tab list, which carries `aria-orientation`, not `data-orientation`.
+  tab-list-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Tabs\.List$
+  # A class inside a trigger's children, where a `group-` variant reads the trigger.
+  trigger-child-class:
+    inside:
+      stopBy: end
+      kind: jsx_element
+      has:
+        field: open_tag
+        kind: jsx_opening_element
+        has:
+          field: name
+          regex: Trigger$
+rule:
+  kind: string_fragment
+  regex: '\bdata-(state-(open|closed|checked|unchecked|active|inactive|selected|indeterminate|idle|pending|submitting)|side-(top|right|bottom|left)|orientation-(horizontal|vertical)|validation-(success|warning|error)|active-item)(/[\w-]+)?:'
+  pattern: $F
+  all:
+    - matches: checkbox-item-class
+    - not:
+        matches: radix-file
+transform:
+  T1:
+    replace:
+      source: $F
+      replace: '\bdata-state-indeterminate(/[\w-]+)?:'
+      by: "aria-[checked=mixed]${1}:"
+  T2:
+    replace:
+      source: $T1
+      replace: '\bdata-state-open(/[\w-]+)?:'
+      by: "data-open${1}:"
+  T3:
+    replace:
+      source: $T2
+      replace: '\bdata-state-closed(/[\w-]+)?:'
+      by: "not-data-open${1}:"
+  T4:
+    replace:
+      source: $T3
+      replace: '\bdata-state-checked(/[\w-]+)?:'
+      by: "aria-checked${1}:"
+  T5:
+    replace:
+      source: $T4
+      replace: '\bdata-state-unchecked(/[\w-]+)?:'
+      by: "not-aria-checked${1}:"
+  T6:
+    replace:
+      source: $T5
+      replace: '\bdata-state-active(/[\w-]+)?:'
+      by: "aria-selected${1}:"
+  T7:
+    replace:
+      source: $T6
+      replace: '\bdata-state-selected(/[\w-]+)?:'
+      by: "data-selected${1}:"
+  T8:
+    replace:
+      source: $T7
+      replace: '\bdata-state-indeterminate(/[\w-]+)?:'
+      by: "data-indeterminate${1}:"
+  T9:
+    replace:
+      source: $T8
+      replace: '\bdata-state-(inactive|idle|pending|submitting)(/[\w-]+)?:'
+      by: "data-[state~=${1}]${2}:"
+  T10:
+    replace:
+      source: $T9
+      replace: '\bdata-(side|orientation|validation)-([a-z]+)(/[\w-]+)?:'
+      by: "data-[${1}=${2}]${3}:"
+  T11:
+    replace:
+      source: $T10
+      replace: '\bdata-active-item(/[\w-]+)?:'
+      by: "data-highlighted${1}:"
+fix: $T11
+---
+id: class-variant-tab-list
+language: tsx
+message: a tab list carries aria-orientation, not data-orientation
+utils:
+  # A file that imports Radix renders Radix's own `data-state` values, so its
+  # classes keep matching them through the bracket form.
+  radix-file:
+    inside:
+      stopBy: end
+      kind: program
+      has:
+        kind: import_statement
+        has:
+          field: source
+          regex: ^["']@radix-ui/
+  # A class on a part whose name ends in `Trigger`: the trigger now carries
+  # `aria-expanded`, not `data-state`.
+  trigger-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Trigger$
+  # A class on a Select item, which carries `aria-selected`, not `aria-checked`.
+  select-item-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Select\.Item$
+  # A class on a menu checkbox item, which marks indeterminate with `aria-checked="mixed"`.
+  checkbox-item-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: CheckboxItem$
+  # A class on a tab list, which carries `aria-orientation`, not `data-orientation`.
+  tab-list-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Tabs\.List$
+  # A class inside a trigger's children, where a `group-` variant reads the trigger.
+  trigger-child-class:
+    inside:
+      stopBy: end
+      kind: jsx_element
+      has:
+        field: open_tag
+        kind: jsx_opening_element
+        has:
+          field: name
+          regex: Trigger$
+rule:
+  kind: string_fragment
+  regex: '\bdata-(state-(open|closed|checked|unchecked|active|inactive|selected|indeterminate|idle|pending|submitting)|side-(top|right|bottom|left)|orientation-(horizontal|vertical)|validation-(success|warning|error)|active-item)(/[\w-]+)?:'
+  pattern: $F
+  all:
+    - matches: tab-list-class
+    - not:
+        matches: radix-file
+transform:
+  T1:
+    replace:
+      source: $F
+      replace: '\bdata-orientation-(horizontal|vertical)(/[\w-]+)?:'
+      by: "aria-[orientation=${1}]${2}:"
+  T2:
+    replace:
+      source: $T1
+      replace: '\bdata-state-open(/[\w-]+)?:'
+      by: "data-open${1}:"
+  T3:
+    replace:
+      source: $T2
+      replace: '\bdata-state-closed(/[\w-]+)?:'
+      by: "not-data-open${1}:"
+  T4:
+    replace:
+      source: $T3
+      replace: '\bdata-state-checked(/[\w-]+)?:'
+      by: "aria-checked${1}:"
+  T5:
+    replace:
+      source: $T4
+      replace: '\bdata-state-unchecked(/[\w-]+)?:'
+      by: "not-aria-checked${1}:"
+  T6:
+    replace:
+      source: $T5
+      replace: '\bdata-state-active(/[\w-]+)?:'
+      by: "aria-selected${1}:"
+  T7:
+    replace:
+      source: $T6
+      replace: '\bdata-state-selected(/[\w-]+)?:'
+      by: "data-selected${1}:"
+  T8:
+    replace:
+      source: $T7
+      replace: '\bdata-state-indeterminate(/[\w-]+)?:'
+      by: "data-indeterminate${1}:"
+  T9:
+    replace:
+      source: $T8
+      replace: '\bdata-state-(inactive|idle|pending|submitting)(/[\w-]+)?:'
+      by: "data-[state~=${1}]${2}:"
+  T10:
+    replace:
+      source: $T9
+      replace: '\bdata-(side|orientation|validation)-([a-z]+)(/[\w-]+)?:'
+      by: "data-[${1}=${2}]${3}:"
+  T11:
+    replace:
+      source: $T10
+      replace: '\bdata-active-item(/[\w-]+)?:'
+      by: "data-highlighted${1}:"
+fix: $T11
+---
+id: class-variant
+language: tsx
+message: mantle registers no data-* custom variants; state variants follow the mantle data attribute contract
+utils:
+  # A file that imports Radix renders Radix's own `data-state` values, so its
+  # classes keep matching them through the bracket form.
+  radix-file:
+    inside:
+      stopBy: end
+      kind: program
+      has:
+        kind: import_statement
+        has:
+          field: source
+          regex: ^["']@radix-ui/
+  # A class on a part whose name ends in `Trigger`: the trigger now carries
+  # `aria-expanded`, not `data-state`.
+  trigger-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Trigger$
+  # A class on a Select item, which carries `aria-selected`, not `aria-checked`.
+  select-item-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Select\.Item$
+  # A class on a menu checkbox item, which marks indeterminate with `aria-checked="mixed"`.
+  checkbox-item-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: CheckboxItem$
+  # A class on a tab list, which carries `aria-orientation`, not `data-orientation`.
+  tab-list-class:
+    inside:
+      stopBy: end
+      kind: jsx_attribute
+      has:
+        kind: property_identifier
+        regex: ^className$
+      inside:
+        any:
+          - kind: jsx_opening_element
+          - kind: jsx_self_closing_element
+        has:
+          field: name
+          regex: Tabs\.List$
+  # A class inside a trigger's children, where a `group-` variant reads the trigger.
+  trigger-child-class:
+    inside:
+      stopBy: end
+      kind: jsx_element
+      has:
+        field: open_tag
+        kind: jsx_opening_element
+        has:
+          field: name
+          regex: Trigger$
+rule:
+  kind: string_fragment
+  regex: '\bdata-(state-(open|closed|checked|unchecked|active|inactive|selected|indeterminate|idle|pending|submitting)|side-(top|right|bottom|left)|orientation-(horizontal|vertical)|validation-(success|warning|error)|active-item)(/[\w-]+)?:'
+  pattern: $F
+  all:
+    - not:
+        matches: radix-file
+    - not:
+        matches: trigger-class
+    - not:
+        matches: trigger-child-class
+    - not:
+        matches: select-item-class
+    - not:
+        matches: tab-list-class
+    - not:
+        matches: checkbox-item-class
+transform:
+  T1:
+    replace:
+      source: $F
+      replace: '\bdata-state-open(/[\w-]+)?:'
+      by: "data-open${1}:"
+  T2:
+    replace:
+      source: $T1
+      replace: '\bdata-state-closed(/[\w-]+)?:'
+      by: "not-data-open${1}:"
+  T3:
+    replace:
+      source: $T2
+      replace: '\bdata-state-checked(/[\w-]+)?:'
+      by: "aria-checked${1}:"
+  T4:
+    replace:
+      source: $T3
+      replace: '\bdata-state-unchecked(/[\w-]+)?:'
+      by: "not-aria-checked${1}:"
+  T5:
+    replace:
+      source: $T4
+      replace: '\bdata-state-active(/[\w-]+)?:'
+      by: "aria-selected${1}:"
+  T6:
+    replace:
+      source: $T5
+      replace: '\bdata-state-selected(/[\w-]+)?:'
+      by: "data-selected${1}:"
+  T7:
+    replace:
+      source: $T6
+      replace: '\bdata-state-indeterminate(/[\w-]+)?:'
+      by: "data-indeterminate${1}:"
+  T8:
+    replace:
+      source: $T7
+      replace: '\bdata-state-(inactive|idle|pending|submitting)(/[\w-]+)?:'
+      by: "data-[state~=${1}]${2}:"
+  T9:
+    replace:
+      source: $T8
+      replace: '\bdata-(side|orientation|validation)-([a-z]+)(/[\w-]+)?:'
+      by: "data-[${1}=${2}]${3}:"
+  T10:
+    replace:
+      source: $T9
+      replace: '\bdata-active-item(/[\w-]+)?:'
+      by: "data-highlighted${1}:"
+fix: $T10
+---
+id: class-variant
+language: typescript
+message: mantle registers no data-* custom variants; state variants follow the mantle data attribute contract
+utils:
+  radix-file:
+    inside:
+      stopBy: end
+      kind: program
+      has:
+        kind: import_statement
+        has:
+          field: source
+          regex: ^["']@radix-ui/
+rule:
+  kind: string_fragment
+  regex: '\bdata-(state-(open|closed|checked|unchecked|active|inactive|selected|indeterminate|idle|pending|submitting)|side-(top|right|bottom|left)|orientation-(horizontal|vertical)|validation-(success|warning|error)|active-item)(/[\w-]+)?:'
+  pattern: $F
+  not:
+    matches: radix-file
+transform:
+  T1:
+    replace:
+      source: $F
+      replace: '\bdata-state-open(/[\w-]+)?:'
+      by: "data-open${1}:"
+  T2:
+    replace:
+      source: $T1
+      replace: '\bdata-state-closed(/[\w-]+)?:'
+      by: "not-data-open${1}:"
+  T3:
+    replace:
+      source: $T2
+      replace: '\bdata-state-checked(/[\w-]+)?:'
+      by: "aria-checked${1}:"
+  T4:
+    replace:
+      source: $T3
+      replace: '\bdata-state-unchecked(/[\w-]+)?:'
+      by: "not-aria-checked${1}:"
+  T5:
+    replace:
+      source: $T4
+      replace: '\bdata-state-active(/[\w-]+)?:'
+      by: "aria-selected${1}:"
+  T6:
+    replace:
+      source: $T5
+      replace: '\bdata-state-selected(/[\w-]+)?:'
+      by: "data-selected${1}:"
+  T7:
+    replace:
+      source: $T6
+      replace: '\bdata-state-indeterminate(/[\w-]+)?:'
+      by: "data-indeterminate${1}:"
+  T8:
+    replace:
+      source: $T7
+      replace: '\bdata-state-(inactive|idle|pending|submitting)(/[\w-]+)?:'
+      by: "data-[state~=${1}]${2}:"
+  T9:
+    replace:
+      source: $T8
+      replace: '\bdata-(side|orientation|validation)-([a-z]+)(/[\w-]+)?:'
+      by: "data-[${1}=${2}]${3}:"
+  T10:
+    replace:
+      source: $T9
+      replace: '\bdata-active-item(/[\w-]+)?:'
+      by: "data-highlighted${1}:"
+fix: $T10
+---
+id: test-data-state-open
+language: tsx
+message: data-open is presence-only
+utils:
+  radix-file:
+    inside:
+      stopBy: end
+      kind: program
+      has:
+        kind: import_statement
+        has:
+          field: source
+          regex: ^["']@radix-ui/
+rule:
+  pattern: expect($E).toHaveAttribute($KEY, $VALUE)
+  not:
+    matches: radix-file
+constraints:
+  KEY:
+    regex: ^["'`]data-state["'`]$
+  VALUE:
+    regex: ^["'`]open["'`]$
+fix: 'expect($E).toHaveAttribute("data-open")'
+---
+id: test-data-state-closed
+language: tsx
+message: a closed part has no data-open
+utils:
+  radix-file:
+    inside:
+      stopBy: end
+      kind: program
+      has:
+        kind: import_statement
+        has:
+          field: source
+          regex: ^["']@radix-ui/
+rule:
+  pattern: expect($E).toHaveAttribute($KEY, $VALUE)
+  not:
+    matches: radix-file
+constraints:
+  KEY:
+    regex: ^["'`]data-state["'`]$
+  VALUE:
+    regex: ^["'`]closed["'`]$
+fix: 'expect($E).not.toHaveAttribute("data-open")'
+---
+id: test-data-state-expanded
+language: tsx
+message: data-expanded is presence-only
+utils:
+  radix-file:
+    inside:
+      stopBy: end
+      kind: program
+      has:
+        kind: import_statement
+        has:
+          field: source
+          regex: ^["']@radix-ui/
+rule:
+  pattern: expect($E).toHaveAttribute($KEY, $VALUE)
+  not:
+    matches: radix-file
+constraints:
+  KEY:
+    regex: ^["'`]data-state["'`]$
+  VALUE:
+    regex: ^["'`]expanded["'`]$
+fix: 'expect($E).toHaveAttribute("data-expanded")'
+---
+id: test-data-state-collapsed
+language: tsx
+message: a collapsed part has no data-expanded
+utils:
+  radix-file:
+    inside:
+      stopBy: end
+      kind: program
+      has:
+        kind: import_statement
+        has:
+          field: source
+          regex: ^["']@radix-ui/
+rule:
+  pattern: expect($E).toHaveAttribute($KEY, $VALUE)
+  not:
+    matches: radix-file
+constraints:
+  KEY:
+    regex: ^["'`]data-state["'`]$
+  VALUE:
+    regex: ^["'`]collapsed["'`]$
+fix: 'expect($E).not.toHaveAttribute("data-expanded")'
+---
+id: test-data-state-open
+language: typescript
+message: data-open is presence-only
+utils:
+  radix-file:
+    inside:
+      stopBy: end
+      kind: program
+      has:
+        kind: import_statement
+        has:
+          field: source
+          regex: ^["']@radix-ui/
+rule:
+  pattern: expect($E).toHaveAttribute($KEY, $VALUE)
+  not:
+    matches: radix-file
+constraints:
+  KEY:
+    regex: ^["'`]data-state["'`]$
+  VALUE:
+    regex: ^["'`]open["'`]$
+fix: 'expect($E).toHaveAttribute("data-open")'
+---
+id: test-data-state-closed
+language: typescript
+message: a closed part has no data-open
+utils:
+  radix-file:
+    inside:
+      stopBy: end
+      kind: program
+      has:
+        kind: import_statement
+        has:
+          field: source
+          regex: ^["']@radix-ui/
+rule:
+  pattern: expect($E).toHaveAttribute($KEY, $VALUE)
+  not:
+    matches: radix-file
+constraints:
+  KEY:
+    regex: ^["'`]data-state["'`]$
+  VALUE:
+    regex: ^["'`]closed["'`]$
+fix: 'expect($E).not.toHaveAttribute("data-open")'
+---
+id: test-data-state-expanded
+language: typescript
+message: data-expanded is presence-only
+utils:
+  radix-file:
+    inside:
+      stopBy: end
+      kind: program
+      has:
+        kind: import_statement
+        has:
+          field: source
+          regex: ^["']@radix-ui/
+rule:
+  pattern: expect($E).toHaveAttribute($KEY, $VALUE)
+  not:
+    matches: radix-file
+constraints:
+  KEY:
+    regex: ^["'`]data-state["'`]$
+  VALUE:
+    regex: ^["'`]expanded["'`]$
+fix: 'expect($E).toHaveAttribute("data-expanded")'
+---
+id: test-data-state-collapsed
+language: typescript
+message: a collapsed part has no data-expanded
+utils:
+  radix-file:
+    inside:
+      stopBy: end
+      kind: program
+      has:
+        kind: import_statement
+        has:
+          field: source
+          regex: ^["']@radix-ui/
+rule:
+  pattern: expect($E).toHaveAttribute($KEY, $VALUE)
+  not:
+    matches: radix-file
+constraints:
+  KEY:
+    regex: ^["'`]data-state["'`]$
+  VALUE:
+    regex: ^["'`]collapsed["'`]$
+fix: 'expect($E).not.toHaveAttribute("data-expanded")'

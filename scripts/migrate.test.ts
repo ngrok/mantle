@@ -18,14 +18,18 @@ const codemodDirs = fs
 // run once, and the negative cases in each before.tsx pin the guards.
 const oneShotMigrations = new Set(["0003", "0008"]);
 
-type Fixture = { dir: string; ext: "tsx" | "ts" };
+/** One `before` and `after` pair, such as `before.tsx` or `before.radix.tsx`. */
+type Fixture = { dir: string; name: string };
 
 // A migration ships a `.ts` pair as well when a rule carries
-// `language: typescript`, because a rule reaches only its own language.
+// `language: typescript`, because a rule reaches only its own language. It
+// ships a named pair (`before.radix.tsx`) when a rule depends on the whole
+// file, such as its imports, so one file cannot hold both cases.
 const fixtures: Fixture[] = codemodDirs.flatMap((dir) =>
-	(["tsx", "ts"] as const)
-		.filter((ext) => fs.existsSync(path.join(defaultPaths.rulesDir, dir, `before.${ext}`)))
-		.map((ext) => ({ dir, ext })),
+	fs
+		.readdirSync(path.join(defaultPaths.rulesDir, dir))
+		.filter((entry) => /^before(\.[\w-]+)?\.tsx?$/.test(entry))
+		.map((entry) => ({ dir, name: entry.slice("before".length) })),
 );
 const idempotentFixtures = fixtures.filter(({ dir }) => !oneShotMigrations.has(dir.slice(0, 4)));
 
@@ -48,11 +52,11 @@ function runMigrate(args: readonly string[]) {
 	return spawnSync(process.execPath, [scriptPath, ...args], { encoding: "utf8" });
 }
 
-function copyFixture({ dir, ext }: Fixture): { file: string; before: string; after: string } {
+function copyFixture({ dir, name }: Fixture): { file: string; before: string; after: string } {
 	const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "mantle-migrate-"));
-	const file = path.join(tempDir, `fixture.${ext}`);
-	const before = fs.readFileSync(path.join(defaultPaths.rulesDir, dir, `before.${ext}`), "utf8");
-	const after = fs.readFileSync(path.join(defaultPaths.rulesDir, dir, `after.${ext}`), "utf8");
+	const file = path.join(tempDir, `fixture${name.slice(name.lastIndexOf("."))}`);
+	const before = fs.readFileSync(path.join(defaultPaths.rulesDir, dir, `before${name}`), "utf8");
+	const after = fs.readFileSync(path.join(defaultPaths.rulesDir, dir, `after${name}`), "utf8");
 	fs.writeFileSync(file, before);
 	return { file, before, after };
 }
@@ -60,7 +64,7 @@ function copyFixture({ dir, ext }: Fixture): { file: string; before: string; aft
 describe("codemod fixtures", () => {
 	// Catches: a rule whose pattern no longer matches, a permuted fix, and a
 	// guard that lets a negative case through.
-	it.each(fixtures)("$dir rewrites before.$ext into after.$ext", (fixture) => {
+	it.each(fixtures)("$dir rewrites before$name into after$name", (fixture) => {
 		const { file, before, after } = copyFixture(fixture);
 		const result = runMigrate([fixture.dir.slice(0, 4), file]);
 
@@ -72,7 +76,7 @@ describe("codemod fixtures", () => {
 
 	// Catches: a rule that matches its own output, such as a rename whose fix
 	// still matches the renamed attribute.
-	it.each(idempotentFixtures)("$dir leaves after.$ext unchanged on a second run", (fixture) => {
+	it.each(idempotentFixtures)("$dir leaves after$name unchanged on a second run", (fixture) => {
 		const { file, after } = copyFixture(fixture);
 		fs.writeFileSync(file, after);
 		const result = runMigrate([fixture.dir.slice(0, 4), file]);
@@ -123,7 +127,7 @@ describe("migrate command line", () => {
 	});
 
 	it("prints the rewrites without applying them on --dry-run", () => {
-		const { file, before } = copyFixture({ dir: "0008-tabs-separator", ext: "tsx" });
+		const { file, before } = copyFixture({ dir: "0008-tabs-separator", name: ".tsx" });
 		const result = runMigrate(["0008", "--dry-run", file]);
 
 		expect(result.status).toBe(0);

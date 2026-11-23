@@ -1050,13 +1050,13 @@ type AlertCenterBarProps = Omit<
  * reaches a true zero that the banner's own `py-2` would otherwise clamp, and
  * the opacity fade hides the opening/closing frame. `@starting-style` (the
  * `starting:` variant in {@link barEnter}) supplies the pre-insertion state so
- * the enter runs on mount; the exit is driven by `data-state="closed"` while the wrapper stays
+ * the enter runs on mount; the exit is driven by the absence of `data-open` while the wrapper stays
  * mounted (see {@link useBarPresence}). `interpolate-size:allow-keywords`
  * makes the `auto` keyword animatable (Chromium only; other engines snap, a fine
  * progressive enhancement).
  */
 const barAnimation =
-	"shrink-0 overflow-hidden transition-[height,opacity] duration-200 ease-out [interpolate-size:allow-keywords] data-state-closed:h-0 data-state-closed:opacity-0 data-state-closed:duration-150 motion-reduce:transition-none";
+	"shrink-0 overflow-hidden transition-[height,opacity] duration-200 ease-out [interpolate-size:allow-keywords] not-data-open:h-0 not-data-open:opacity-0 not-data-open:duration-150 motion-reduce:transition-none";
 
 /** The enter half of {@link barAnimation}. A bar that replaces the server copy skips it. */
 const barEnter = "starting:h-0 starting:opacity-0";
@@ -1117,14 +1117,14 @@ function barPresenceReducer(state: BarPresence, event: "show" | "hide" | "exited
  * Keeps the bar mounted through its exit slide so the collapse can animate
  * instead of the bar popping out on unmount. `present` is the desired
  * visibility (whether there's a top alert to show). Returns whether to render,
- * the `data-state` the CSS animation reads, and a `transitionend` handler that
+ * whether to stamp the `data-open` the CSS animation reads, and a `transitionend` handler that
  * finishes the exit. A safety timeout backstops the exit when no `transitionend`
  * arrives, so the bar can never get stuck mounted.
  *
  * @example
  * const { isMounted, dataState, onExitTransitionEnd } = useBarPresence({ present: topAlert != null });
  * if (!isMounted) return null;
- * return <div data-state={dataState} onTransitionEnd={onExitTransitionEnd} />;
+ * return <div data-open={dataState === "open" ? "" : undefined} onTransitionEnd={onExitTransitionEnd} />;
  */
 function useBarPresence({ present }: { present: boolean }): {
 	isMounted: boolean;
@@ -1358,7 +1358,7 @@ const singleLineBarControls =
 	"not-has-data-[slot=alert-description]:[&_[data-alert-dismiss]]:top-1/2 not-has-data-[slot=alert-description]:[&_[data-alert-expand]]:top-1/2 not-has-data-[slot=alert-description]:[&_[data-alert-dismiss]]:-translate-y-1/2 not-has-data-[slot=alert-description]:[&_[data-alert-expand]]:-translate-y-1/2";
 
 // Why no `asChild`: Bar renders a fixed two-element structure (a presence
-// wrapper that owns the exit animation (`data-state`, `inert`, `tabIndex`, and
+// wrapper that owns the exit animation (`data-open`, `inert`, `tabIndex`, and
 // the `transitionend` that completes the exit) around an `Alert.Root` banner),
 // so there is no single default element a Slot swap could coherently replace:
 // swapping the outer element breaks the exit animation, swapping the inner one
@@ -1394,7 +1394,7 @@ const singleLineBarControls =
  * | `data-slot` | `alert-center-bar alert` | On the banner chrome the top item's children render inside, joined ahead of `Alert.Root`'s own slot. |
  * | `data-slot` | `alert-center-bar-mount` | On the layout-transparent element the top item's host is adopted into. |
  * | `data-slot` | `alert-center-bar-anchor` | While no bar shows: on a hidden element that marks where the items' server copies of the bar may show. |
- * | `data-state` | `"open"` \| `"closed"` | On the wrapper; drives the enter/exit transition, and stays `closed` while the exit plays. |
+ * | `data-open` | present while open | Presence-only, on the wrapper; drives the enter/exit transition, and stays absent while the exit plays. |
  * | `data-placement` | `"bar"` | On the chrome: where the top item's children are currently rendering. |
  * | `data-alert-id` | the top item's `id` | On the chrome; per-alert styling and testing hook. |
  * | `data-alert-dismiss` | present on the dismiss control | Read, not stamped. `Alert` emits it; the bar's CSS centers and offsets the control with it. |
@@ -1596,7 +1596,7 @@ const Bar = ({ className, "data-slot": dataSlot, ref, ...props }: AlertCenterBar
 			// Why no enter: the server copy already shows this alert at full
 			// height, so growing from zero would shift the page.
 			className={cx(barAnimation, !entersFromServer && barEnter)}
-			data-state={dataState}
+			data-open={dataState === "open" ? "" : undefined}
 			onTransitionEnd={onExitTransitionEnd}
 		>
 			<Alert.Root
@@ -1637,7 +1637,7 @@ type AlertCenterContentProps = Omit<ComponentProps<"div">, "children" | "id"> &
 	};
 
 // Why no `asChild`: Content renders a fixed structure (a focus-within
-// container that owns the collapse animation (`data-state`, the expansion's
+// container that owns the collapse animation (`data-open`, the expansion's
 // `id`) around the `<ul>` of rows), so there is no single default element a
 // Slot swap could coherently replace. It also takes `children?: never`: the
 // rows are the registered items' projected children, so a consumer has nothing
@@ -1661,7 +1661,7 @@ type AlertCenterContentProps = Omit<ComponentProps<"div">, "children" | "id"> &
  * | --- | --- | --- |
  * | `data-slot` | `alert-center-content` | On the expansion wrapper that owns the collapse animation. |
  * | `data-slot` | `alert-center-item alert` | On each row's banner chrome, joined ahead of `Alert.Root`'s own slot. |
- * | `data-state` | `"open"` \| `"closed"` | On the wrapper; drives the collapse transition. |
+ * | `data-open` | present while expanded | Presence-only, on the wrapper; drives the collapse transition. |
  * | `data-placement` | `"list"` | On each row's chrome: where that item's children are currently rendering. |
  * | `data-alert-id` | the row item's `id` | On each row's chrome; per-alert styling and testing hook. |
  * | `data-alert-mount` | the row item's `id` | On the row's layout-transparent mount point: the element that item's host is adopted into. |
@@ -1843,7 +1843,7 @@ const Content = ({
 			// after the spread so consumers can't break the aria-controls wiring or
 			// the state hook the animation reads
 			id={contentId}
-			data-state={isExpanded ? "open" : "closed"}
+			data-open={isExpanded ? "" : undefined}
 			className={cx(
 				// Slide the expansion open/closed by animating height 0 <-> auto,
 				// with the same technique and 200ms/ease-out curve as `Accordion.Content`.
@@ -1854,7 +1854,7 @@ const Content = ({
 				// of the tab order and a11y tree; `invisible` is the equivalent fallback
 				// for engines without content-visibility. Both transition discretely so
 				// the rows stay visible through the closing slide before they're skipped.
-				"h-0 overflow-hidden invisible [content-visibility:hidden] transition-[height,visibility,content-visibility] transition-discrete duration-200 ease-out [interpolate-size:allow-keywords] data-state-open:h-auto data-state-open:visible data-state-open:[content-visibility:visible] motion-reduce:transition-none",
+				"h-0 overflow-hidden invisible [content-visibility:hidden] transition-[height,visibility,content-visibility] transition-discrete duration-200 ease-out [interpolate-size:allow-keywords] data-open:h-auto data-open:visible data-open:[content-visibility:visible] motion-reduce:transition-none",
 				className,
 			)}
 		>

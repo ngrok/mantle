@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createRef } from "react";
 import type { ComponentProps, ReactElement } from "react";
 import { renderToString } from "react-dom/server";
@@ -15,11 +15,11 @@ import {
 } from "./theme-switcher.js";
 
 /**
- * The one icon the switcher shows. A hidden icon is in a `data-state="inactive"` span.
+ * The one icon the switcher shows. A hidden icon is in an `aria-hidden` span.
  */
 function shownIcon(button: HTMLElement): SVGElement {
 	const icons = [...button.querySelectorAll("svg")].filter(
-		(svg) => svg.closest("[data-state='inactive']") == null,
+		(svg) => svg.closest("[data-slot='icon-swap-item'][aria-hidden='true']") == null,
 	);
 	expect(icons).toHaveLength(1);
 	const [icon] = icons;
@@ -171,6 +171,34 @@ describe("ThemeSwitcher", () => {
 		expect(screen.getByTestId("current-theme")).toHaveTextContent("light");
 	});
 
+	test("a click says the theme it applied in a status", () => {
+		stubPrefersDarkMode(false);
+		renderSwitcher();
+
+		// Why not `getByRole("status")`: the theme probe is an `<output>`, a status too.
+		const status = () =>
+			screen.getAllByRole("status").find((element) => element.tagName !== "OUTPUT");
+		fireEvent.click(getSwitcher());
+		expect(status()).toHaveTextContent("Dark theme");
+
+		fireEvent.click(getSwitcher());
+		expect(status()).toHaveTextContent("Light theme (system default)");
+	});
+
+	test("in a dialog, the status is in the dialog, where a modal leaves it audible", () => {
+		stubPrefersDarkMode(false);
+		render(
+			<ThemeProvider>
+				<dialog open>
+					<ThemeSwitcher />
+				</dialog>
+			</ThemeProvider>,
+		);
+
+		fireEvent.click(getSwitcher());
+		expect(within(screen.getByRole("dialog")).getByRole("status")).toHaveTextContent("Dark theme");
+	});
+
 	test("an onClick that calls preventDefault keeps the theme", () => {
 		stubPrefersDarkMode(false);
 		renderSwitcher({ onClick: (event) => event.preventDefault() });
@@ -314,7 +342,7 @@ describe("ThemeSwitcher", () => {
 		expect(glyphOf(spinner)).not.toBe(glyphOf(<ThemeIcon theme="light" />));
 		const hiddenIcons = [...button.querySelectorAll("svg")].filter((svg) => svg !== spinner);
 		for (const svg of hiddenIcons) {
-			expect(svg.closest("[data-state='inactive']")).not.toBeNull();
+			expect(svg.closest("[data-slot='icon-swap-item'][aria-hidden='true']")).not.toBeNull();
 		}
 	});
 });

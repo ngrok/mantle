@@ -84,9 +84,13 @@ describe("CodeBlock (browser)", () => {
 			);
 
 			const button = screen.getByRole("button", { name: /copy code/i });
-			const iconBefore = button.querySelector("[data-state='active'] > svg")?.innerHTML;
+			const iconBefore = button.querySelector(
+				"[data-slot='icon-swap-item']:not([aria-hidden]) > svg",
+			)?.innerHTML;
 			await user.click(button);
-			const iconAfter = button.querySelector("[data-state='active'] > svg")?.innerHTML;
+			const iconAfter = button.querySelector(
+				"[data-slot='icon-swap-item']:not([aria-hidden]) > svg",
+			)?.innerHTML;
 
 			expect(iconAfter).not.toBe(iconBefore);
 		});

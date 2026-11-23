@@ -793,9 +793,9 @@ type AppLayoutSidePanelMobileBreakpoint = "sm" | "md" | "lg";
  * constant can hold the prefix.
  */
 const sidePanelFloatClassName: Record<AppLayoutSidePanelMobileBreakpoint, string> = {
-	sm: "sm:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 sm:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded]))_&]:@min-side-panel-lane-collapsed/app-layout-workspace:data-state-closed:basis-0 max-sm:absolute max-sm:inset-y-(--app-layout-card-gutter,0.5rem) max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:right-(--app-layout-card-gutter,0.5rem) max-sm:z-20 max-sm:my-0 max-sm:rounded-xl max-sm:shadow-lg max-sm:[--_side-panel-content-width:100%] max-sm:[--_side-panel-content-inset:0px] max-sm:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-sm:data-state-closed:invisible",
-	md: "md:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 md:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded]))_&]:@min-side-panel-lane-collapsed/app-layout-workspace:data-state-closed:basis-0 max-md:absolute max-md:inset-y-(--app-layout-card-gutter,0.5rem) max-md:right-(--app-layout-card-gutter,0.5rem) max-md:z-20 max-md:my-0 max-md:w-[min(24rem,calc(100cqw-5rem))] max-md:rounded-xl max-md:shadow-lg max-md:[--_side-panel-content-width:100%] max-md:[--_side-panel-content-inset:0px] max-md:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-md:data-state-closed:invisible max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:w-auto",
-	lg: "lg:@min-side-panel-lane/app-layout-workspace:data-state-closed:basis-0 lg:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded]))_&]:@min-side-panel-lane-collapsed/app-layout-workspace:data-state-closed:basis-0 max-lg:absolute max-lg:inset-y-(--app-layout-card-gutter,0.5rem) max-lg:right-(--app-layout-card-gutter,0.5rem) max-lg:z-20 max-lg:my-0 max-lg:w-[min(24rem,calc(100cqw-5rem))] max-lg:rounded-xl max-lg:shadow-lg max-lg:[--_side-panel-content-width:100%] max-lg:[--_side-panel-content-inset:0px] max-lg:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-lg:data-state-closed:invisible max-md:left-(--app-layout-card-gutter,0.5rem) max-md:w-auto",
+	sm: "sm:@min-side-panel-lane/app-layout-workspace:not-data-open:basis-0 sm:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile])))_&]:@min-side-panel-lane-collapsed/app-layout-workspace:not-data-open:basis-0 max-sm:absolute max-sm:inset-y-(--app-layout-card-gutter,0.5rem) max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:right-(--app-layout-card-gutter,0.5rem) max-sm:z-20 max-sm:my-0 max-sm:rounded-xl max-sm:shadow-lg max-sm:[--_side-panel-content-width:100%] max-sm:[--_side-panel-content-inset:0px] max-sm:not-data-open:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-sm:not-data-open:invisible",
+	md: "md:@min-side-panel-lane/app-layout-workspace:not-data-open:basis-0 md:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile])))_&]:@min-side-panel-lane-collapsed/app-layout-workspace:not-data-open:basis-0 max-md:absolute max-md:inset-y-(--app-layout-card-gutter,0.5rem) max-md:right-(--app-layout-card-gutter,0.5rem) max-md:z-20 max-md:my-0 max-md:w-[min(24rem,calc(100cqw-5rem))] max-md:rounded-xl max-md:shadow-lg max-md:[--_side-panel-content-width:100%] max-md:[--_side-panel-content-inset:0px] max-md:not-data-open:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-md:not-data-open:invisible max-sm:left-(--app-layout-card-gutter,0.5rem) max-sm:w-auto",
+	lg: "lg:@min-side-panel-lane/app-layout-workspace:not-data-open:basis-0 lg:[[data-slot~=app-layout-workspace]:not(:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile])))_&]:@min-side-panel-lane-collapsed/app-layout-workspace:not-data-open:basis-0 max-lg:absolute max-lg:inset-y-(--app-layout-card-gutter,0.5rem) max-lg:right-(--app-layout-card-gutter,0.5rem) max-lg:z-20 max-lg:my-0 max-lg:w-[min(24rem,calc(100cqw-5rem))] max-lg:rounded-xl max-lg:shadow-lg max-lg:[--_side-panel-content-width:100%] max-lg:[--_side-panel-content-inset:0px] max-lg:not-data-open:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] max-lg:not-data-open:invisible max-md:left-(--app-layout-card-gutter,0.5rem) max-md:w-auto",
 };
 
 /**
@@ -808,17 +808,17 @@ const sidePanelFloatClassName: Record<AppLayoutSidePanelMobileBreakpoint, string
  * width and a width from this rule would outrank it.
  */
 const sidePanelLaneFloatClassName =
-	"@max-side-panel-lane-collapsed/app-layout-workspace:absolute @max-side-panel-lane-collapsed/app-layout-workspace:inset-y-(--app-layout-card-gutter,0.5rem) @max-side-panel-lane-collapsed/app-layout-workspace:right-(--app-layout-card-gutter,0.5rem) @max-side-panel-lane-collapsed/app-layout-workspace:z-20 @max-side-panel-lane-collapsed/app-layout-workspace:my-0 @max-side-panel-lane-collapsed/app-layout-workspace:rounded-xl @max-side-panel-lane-collapsed/app-layout-workspace:shadow-lg @max-side-panel-lane-collapsed/app-layout-workspace:[--_side-panel-content-width:100%] @max-side-panel-lane-collapsed/app-layout-workspace:[--_side-panel-content-inset:0px] @max-side-panel-lane-collapsed/app-layout-workspace:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] @max-side-panel-lane-collapsed/app-layout-workspace:data-state-closed:invisible";
+	"@max-side-panel-lane-collapsed/app-layout-workspace:absolute @max-side-panel-lane-collapsed/app-layout-workspace:inset-y-(--app-layout-card-gutter,0.5rem) @max-side-panel-lane-collapsed/app-layout-workspace:right-(--app-layout-card-gutter,0.5rem) @max-side-panel-lane-collapsed/app-layout-workspace:z-20 @max-side-panel-lane-collapsed/app-layout-workspace:my-0 @max-side-panel-lane-collapsed/app-layout-workspace:rounded-xl @max-side-panel-lane-collapsed/app-layout-workspace:shadow-lg @max-side-panel-lane-collapsed/app-layout-workspace:[--_side-panel-content-width:100%] @max-side-panel-lane-collapsed/app-layout-workspace:[--_side-panel-content-inset:0px] @max-side-panel-lane-collapsed/app-layout-workspace:not-data-open:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] @max-side-panel-lane-collapsed/app-layout-workspace:not-data-open:invisible";
 
 /**
  * The same float as {@link sidePanelLaneFloatClassName}, up to
  * `--container-side-panel-lane`, while a direct child of the row is an
  * expanded `Sidebar.Nav`. The arbitrary variant keys the row through `:has()`
- * on the sidebar's `data-slot` and `data-state`, so collapsing the sidebar returns
+ * on the sidebar's `data-slot` and `data-expanded`, so collapsing the sidebar returns
  * the panel to the lane at the narrower threshold.
  */
 const sidePanelExpandedSidebarLaneFloatClassName =
-	"[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:absolute [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:inset-y-(--app-layout-card-gutter,0.5rem) [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:right-(--app-layout-card-gutter,0.5rem) [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:z-20 [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:my-0 [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:rounded-xl [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:shadow-lg [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:[--_side-panel-content-width:100%] [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:[--_side-panel-content-inset:0px] [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:data-state-closed:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:data-state-closed:invisible";
+	"[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:absolute [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:inset-y-(--app-layout-card-gutter,0.5rem) [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:right-(--app-layout-card-gutter,0.5rem) [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:z-20 [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:my-0 [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:rounded-xl [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:shadow-lg [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:[--_side-panel-content-width:100%] [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:[--_side-panel-content-inset:0px] [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:not-data-open:translate-x-[calc(100%+var(--app-layout-card-gutter,0.5rem))] [[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:not-data-open:invisible";
 
 /**
  * The strip width for the row-driven float, gated to the viewports above the
@@ -831,9 +831,9 @@ const sidePanelExpandedSidebarLaneFloatClassName =
  * than 24rem plus the strip never holds a panel wider than itself.
  */
 const sidePanelLaneStripWidthClassName: Record<AppLayoutSidePanelMobileBreakpoint, string> = {
-	sm: "sm:@max-side-panel-lane-collapsed/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] sm:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
-	md: "sm:@max-side-panel-lane-collapsed/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] sm:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
-	lg: "md:@max-side-panel-lane-collapsed/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] md:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-state~=expanded])_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
+	sm: "sm:@max-side-panel-lane-collapsed/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] sm:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
+	md: "sm:@max-side-panel-lane-collapsed/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] sm:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
+	lg: "md:@max-side-panel-lane-collapsed/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))] md:[[data-slot~=app-layout-workspace]:has(>[data-slot~=sidebar-positioner]_[data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))_&]:@max-side-panel-lane/app-layout-workspace:w-[min(24rem,calc(100cqw-5rem))]",
 };
 
 /**
@@ -887,8 +887,8 @@ function isSidePanelFloating(panel: HTMLElement | null): boolean {
  */
 type AppLayoutSidePanelState = {
 	/**
-	 * Whether the panel is on screen. Mirrored as `data-state="open" | "closed"`
-	 * on `AppLayout.SidePanel` and `AppLayout.SidePanelTrigger`.
+	 * Whether the panel is on screen. Mirrored as presence-only `data-open` on
+	 * `AppLayout.SidePanel` and as `aria-expanded` on `AppLayout.SidePanelTrigger`.
 	 */
 	open: boolean;
 	/**
@@ -1017,7 +1017,7 @@ type AppLayoutSidePanelRootProps = {
  * To persist the state across visits with no first-frame correction, read
  * `extractSidePanelStateCookie` in the server loader, pass the result to
  * `defaultOpen`, and write `serializeSidePanelStateCookie` from
- * `onOpenChange`. The server HTML then carries the right `data-state`, the
+ * `onOpenChange`. The server HTML then carries the right `data-open`, the
  * same way `Sidebar.Root` persists the sidebar.
  *
  * When the panel closes while focus is inside it, the root moves focus to the
@@ -1284,7 +1284,7 @@ type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-state` | `"open"` \| `"closed"` | Mirrors the root's open state. The collapse and the transition key off it in CSS, and consumers style against it. |
+ * | `data-open` | present while open | Presence-only. Mirrors the root's open state. The collapse and the transition key off it in CSS, and consumers style against it. |
  * | `data-hydrated` | present one frame after hydration | Presence-only. The transition keys off its absence in CSS (`not-data-hydrated:transition-none`), so a state correction after the server render snaps instead of animating. |
  *
  * @see https://mantle.ngrok.com/layouts/app-layout#applayoutsidepanel
@@ -1477,7 +1477,7 @@ const SidePanel = ({
 				"transition-[flex-basis,translate,visibility] duration-200 ease-out-strong motion-reduce:transition-none not-data-hydrated:transition-none",
 				!open && closeEnded && "transition-none",
 				// The closed `basis-0` is in `sidePanelFloatClassName`, gated to the lane.
-				"data-state-closed:pointer-events-none",
+				"not-data-open:pointer-events-none",
 				sidePanelFloatClassName[mobileBreakpoint],
 				sidePanelLaneFloatClassName,
 				sidePanelExpandedSidebarLaneFloatClassName,
@@ -1516,12 +1516,12 @@ const SidePanel = ({
 			}}
 			{...props}
 			// Why after the spread: a wider props object can carry `id`,
-			// `data-state`, `data-hydrated`, or `inert` past the type, and a consumer
+			// `data-open`, `data-hydrated`, or `inert` past the type, and a consumer
 			// value would break the trigger's `aria-controls`, desync the collapse
 			// from the root, release the transition gate, or leave a closed panel in
 			// the tab order.
 			id={panelId}
-			data-state={open ? "open" : "closed"}
+			data-open={open ? "" : undefined}
 			data-hydrated={isHydrated ? "" : undefined}
 			inert={!open}
 		>
@@ -1616,7 +1616,6 @@ const defaultSidePanelTriggerIcon = <SidebarSimpleIcon mirrored />;
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
- * | `data-state` | `"open"` \| `"closed"` | Mirrors the root's open state. Pairs with `aria-expanded`. |
  * | `data-slot` | `"app-layout-side-panel-trigger icon-button"` | On the button: the part's slot, joined ahead of `IconButton`'s own. |
  * | `data-slot` | `"app-layout-side-panel-trigger-tooltip tooltip-content"` | On the tooltip surface, not the button: the styling hook for the label popup this part renders, joined ahead of `Tooltip.Content`'s own slot. |
  * | `data-appearance` | `"filled"` \| `"ghost"` \| `"outlined"` | Read, not stamped: the underlying `IconButton` reflects its `appearance`, which this part defaults to `"ghost"`. |
@@ -1624,7 +1623,6 @@ const defaultSidePanelTriggerIcon = <SidebarSimpleIcon mirrored />;
  * | `data-size` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | Read, not stamped: the underlying `IconButton` reflects its `size`, which this part defaults to `"sm"`. |
  * | `data-icon-button` | `"true"` | Read, not stamped: always present on the underlying `IconButton`. |
  * | `data-loading` | present when `isLoading` | Read, not stamped: the underlying `IconButton` stamps it by presence, never `"false"`. |
- * | `data-disabled` | present when disabled | Read, not stamped: the underlying `IconButton` stamps it by presence, never `"false"`, when it resolves disabled: `disabled`, `aria-disabled="true"`, or `isLoading` with no explicit `disabled`. |
  *
  * @see https://mantle.ngrok.com/layouts/app-layout#applayoutsidepaneltrigger
  *
@@ -1693,7 +1691,6 @@ const SidePanelTrigger = ({
 					aria-controls={panelId}
 					aria-expanded={open}
 					data-slot={joinDataSlot(dataSlot, "app-layout-side-panel-trigger")}
-					data-state={open ? "open" : "closed"}
 					icon={icon}
 					intent={intent}
 					label={label}
@@ -1707,7 +1704,11 @@ const SidePanelTrigger = ({
 					{...props}
 				/>
 			</Tooltip.Trigger>
-			<Tooltip.Content data-slot="app-layout-side-panel-trigger-tooltip">{label}</Tooltip.Content>
+			<Tooltip.Content data-slot="app-layout-side-panel-trigger-tooltip">
+				{/* Why hidden: the label is also the button's name, and the tooltip is its
+				    description, so a screen reader would say the label twice. */}
+				<span aria-hidden>{label}</span>
+			</Tooltip.Content>
 		</Tooltip.Root>
 	);
 };

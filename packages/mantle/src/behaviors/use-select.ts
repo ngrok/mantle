@@ -140,8 +140,6 @@ const useSelectTrigger = (select: SelectBehavior) => {
 		"aria-controls": open ? listbox.id : undefined,
 		// Why: the open list writes this attribute, so no consumer value may render over it.
 		"aria-activedescendant": undefined,
-		"data-state": open ? "open" : "closed",
-		"data-disabled": disabled ? "" : undefined,
 		onClick: () => {
 			if (open) {
 				setOpen(false);

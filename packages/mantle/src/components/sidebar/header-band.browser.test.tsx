@@ -74,7 +74,7 @@ const STYLE = `
 	:is(:where(.group\\/app-layout):has(:is([data-slot~=sidebar-header]:not([data-mobile] *))) .group-has-\\[\\[data-slot\\~\\=sidebar-header\\]\\:not\\(\\[data-mobile\\]_\\*\\)\\]\\/app-layout\\:h-\\[calc\\(var\\(--sidebar-header-height\\,4\\.5rem\\)-2\\*var\\(--app-layout-card-gutter\\,0\\.5rem\\)-2px\\)\\]) {
 		height: calc(var(--sidebar-header-height,4.5rem) - 2 * var(--app-layout-card-gutter,0.5rem) - 2px);
 	}
-	.group-data-\\[state\\=expanded\\]\\/sidebar-nav\\:pr-1:is(:where(.group\\/sidebar-nav)[data-state="expanded"] *) {
+	.group-data-expanded\\/sidebar-nav\\:pr-1:is(:where(.group\\/sidebar-nav)[data-expanded] *) {
 		padding-right: var(--spacing);
 	}
 }

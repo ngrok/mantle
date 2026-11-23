@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 import { gunzipSync } from "node:zlib";
 
 /** The one registry host that the MCP server fetches `@ngrok/mantle` from. */
@@ -197,4 +199,30 @@ export async function fetchPackageFiles(dist: {
 	}
 	const archive = gunzipSync(compressed, { maxOutputLength: TARBALL_LIMITS.extractedBytes });
 	return readTarEntries(archive, isApiDataFile);
+}
+
+/**
+ * A registry with one version: the packed `@ngrok/mantle` tarball at `path`,
+ * read once. It serves that version as the latest, so a local server answers
+ * with unreleased API data. The agent eval's branch mode sets it through
+ * `MANTLE_MCP_LOCAL_TARBALL` (docs/mcp-evals.md).
+ *
+ * @example
+ * createVersionDataLoader({ registry: localTarballRegistry("/tmp/ngrok-mantle-0.94.1.tgz") });
+ */
+export function localTarballRegistry(path: string) {
+	const files = readTarEntries(gunzipSync(readFileSync(path)), isApiDataFile);
+	const packageJson: unknown = JSON.parse(files.get("package.json") ?? "null");
+	const version = isRecord(packageJson) ? packageJson.version : undefined;
+	if (typeof version !== "string") {
+		throw new Error(`${path} has no package.json version.`);
+	}
+	const dist = { tarball: pathToFileURL(path).href, integrity: "" };
+	return {
+		fetchPackument: async (): Promise<Packument> => ({
+			latest: version,
+			versions: new Map([[version, dist]]),
+		}),
+		fetchPackageFiles: async (): Promise<PackageFiles> => files,
+	};
 }

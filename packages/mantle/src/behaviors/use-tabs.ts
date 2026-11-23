@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import type { FocusEvent, KeyboardEvent, MouseEvent } from "react";
 import { flushSync } from "react-dom";
 import { useControllableState } from "./use-controllable-state.js";
@@ -28,6 +28,8 @@ type UseTabsProps = {
 type TabsBehavior = {
 	baseId: string;
 	value: string | undefined;
+	/** Reads the committed value, so a callback that outlives its render reads the current one. */
+	currentValue: () => string | undefined;
 	select: (value: string) => void;
 	/**
 	 * The value of the tab that is the Tab stop: the last focused tab, else the
@@ -79,9 +81,14 @@ const useTabs = ({
 		under: string | undefined;
 		inside: boolean;
 	} | null>(null);
+	const valueRef = useRef(value);
+	useLayoutEffect(() => {
+		valueRef.current = value;
+	});
 	return {
 		baseId: useId(),
 		value,
+		currentValue: () => valueRef.current,
 		select: setValue,
 		stop: focused != null && (focused.inside || focused.under === value) ? focused.value : value,
 		focusTab: (next) => {
@@ -177,7 +184,6 @@ const enterList = (event: FocusEvent<HTMLElement>) => {
 const getTabListProps = (tabs: TabsBehavior) => ({
 	role: "tablist",
 	"aria-orientation": tabs.orientation,
-	"data-orientation": tabs.orientation,
 	onFocus: enterList,
 	onMouseDown: pressList,
 });
@@ -234,7 +240,32 @@ const moveFocus = (
 			...(loop ? enabled.slice(index + 1).toReversed() : []),
 		];
 	}
-	focusFirst(tab, order);
+	// Why select before focus: NVDA reads a tab when it takes focus, and again
+	// when its selection changes. A tab that is already selected is read once.
+	const target =
+		tabs.activationMode === "automatic"
+			? order.find(
+					(candidate) =>
+						typeof candidate.checkVisibility !== "function" ||
+						candidate.checkVisibility({ visibilityProperty: true }),
+				)
+			: null;
+	const prefix = `${tabs.baseId}-trigger-`;
+	if (target == null || !target.id.startsWith(prefix)) {
+		focusFirst(tab, order);
+		return true;
+	}
+	flushSync(() => {
+		tabs.select(target.id.slice(prefix.length));
+	});
+	// Why: the tab's focus must not select it a second time.
+	const outer = pressedTab;
+	pressedTab = target;
+	try {
+		focusFirst(tab, order);
+	} finally {
+		pressedTab = outer;
+	}
 	return true;
 };
 
@@ -282,9 +313,6 @@ const getTabProps = (
 		disabled,
 		// Why `undefined` when disabled: React attaches the ref again when the tab becomes enabled.
 		ref: disabled ? undefined : joinList,
-		"data-state": selected ? "active" : "inactive",
-		"data-disabled": disabled ? "" : undefined,
-		"data-orientation": tabs.orientation,
 		onMouseDown: (event: MouseEvent<HTMLElement>) => {
 			const tab = event.currentTarget;
 			// Why: a link follows only a press released on it, so a link tab waits
@@ -367,8 +395,9 @@ const getTabProps = (
 /**
  * Wires one tab panel: `role="tabpanel"`, its label, and a Tab stop. The
  * panel element always renders, so each tab's `aria-controls` resolves; an
- * inactive panel is empty and `hidden`. `shown` says whether the panel renders
- * its children: it is selected, force-mounted, or hidden until found.
+ * inactive panel is `hidden`, and empty unless it is force-mounted. `shown`
+ * says whether the panel renders its children: it is selected, force-mounted,
+ * or hidden until found.
  *
  * A panel that is hidden until found gets `hidden="until-found"`.
  * Find-in-page and a fragment link make the browser remove `hidden`;
@@ -399,9 +428,9 @@ const getTabPanelProps = (
 			"aria-labelledby": tabId(tabs, value),
 			// Why -1: an inactive panel hidden until found is invisible but focusable.
 			tabIndex: hiddenUntilFound && !selected ? -1 : 0,
-			"data-state": selected ? "active" : "inactive",
-			"data-orientation": tabs.orientation,
-			hidden: !shown || undefined,
+			// Why `hidden` on a force-mounted inactive panel: the panel stays in the
+			// DOM and the server HTML, but not on screen.
+			hidden: (!selected && !hiddenUntilFound) || undefined,
 			// Why: the browser can remove `hidden` before hydration, which
 			// `revealRef` handles; React would report it as a mismatch.
 			suppressHydrationWarning: hiddenUntilFound || undefined,
@@ -419,13 +448,15 @@ const getTabPanelProps = (
 					// after `beforematch`, and it can do so before hydration. A change
 					// to `hidden` on an inactive panel covers both.
 					const reconcile = () => {
-						if (panel.dataset.state !== "inactive" || panel.hasAttribute("hidden")) {
+						// Why `currentValue`: this ref outlives its render, and `flushSync`
+						// below commits the selection before the reread.
+						if (tabs.currentValue() === value || panel.hasAttribute("hidden")) {
 							return;
 						}
 						flushSync(() => {
 							tabs.select(value);
 						});
-						if (panel.dataset.state === "inactive") {
+						if (tabs.currentValue() !== value) {
 							panel.setAttribute("hidden", "until-found");
 						}
 					};

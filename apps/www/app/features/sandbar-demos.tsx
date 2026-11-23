@@ -372,10 +372,10 @@ export function SandbarOverSheetDemo() {
  *
  * `Sandbar.Root` merges a consumer `className` last, so these win over the
  * panel's own defaults. The variant chain has to match the internal utility
- * exactly: `motion-safe:data-state-closed:translate-y-0` replaces the travel,
- * while a bare `data-state-closed:translate-y-0` would sit beside it and lose.
+ * exactly: `motion-safe:not-data-open:translate-y-0` replaces the travel,
+ * while a bare `not-data-open:translate-y-0` would sit beside it and lose.
  *
- * - `motion-safe:data-state-closed:translate-y-0` cancels the enter/exit
+ * - `motion-safe:not-data-open:translate-y-0` cancels the enter/exit
  *   travel, leaving the fades: the same result `motion-safe:` produces when
  *   the preference is real.
  * - `transform-none!` stops the `shake()` wiggle. The wiggle is a Web
@@ -383,7 +383,7 @@ export function SandbarOverSheetDemo() {
  *   animation in the cascade. It cannot touch the fades, which animate the
  *   standalone `translate` property instead.
  */
-const STILLNESS = "motion-safe:data-state-closed:translate-y-0 transform-none!";
+const STILLNESS = "motion-safe:not-data-open:translate-y-0 transform-none!";
 
 /**
  * Shows what `Sandbar` does under `prefers-reduced-motion: reduce` (no enter

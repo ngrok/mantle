@@ -887,9 +887,8 @@ type QueryContentProps = Omit<
  * | Attribute    | Value                  | Description                                 |
  * | ------------ | ---------------------- | ------------------------------------------- |
  * | `data-slot`  | `"query-content"`      | On the popover, beside `"popover-content"`. |
- * | `data-state` | `"open"` \| `"closed"` | On the popover, from `Popover.Content`.     |
+ * | `data-open`  | present while open     | On the popover, from `Popover.Content`.     |
  * | `data-side`  | `"top"` \| `"bottom"`  | On the popover: the side it opened on.      |
- * | `data-align` | `"start"`              | On the popover.                             |
  *
  * @see https://mantle.ngrok.com/components/forms/query#querycontent
  *

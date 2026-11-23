@@ -19,8 +19,7 @@ const SIDEBAR_STATE_COOKIE_NAME = "mantle-sidebar-state";
 
 /**
  * The serialized values the cookie holds. Words rather than `"true"`/`"false"`
- * so the cookie is readable in devtools and reads the same as the sidebar's
- * `data-state` attribute.
+ * so the cookie is readable in devtools.
  */
 const SIDEBAR_STATE_COOKIE_VALUES = {
 	collapsed: "collapsed",
@@ -32,7 +31,7 @@ const SIDEBAR_STATE_COOKIE_VALUES = {
  *
  * This is the server half of cookie-backed persistence: unlike storage-backed
  * persistence, a cookie is available *before* the server renders, so the
- * server-rendered HTML already carries the right `data-state` and there is no
+ * server-rendered HTML already carries the right `data-expanded` and there is no
  * first-frame correction to hide. Pass the result straight to `defaultOpen`;
  * controlled `open` is not required.
  *

@@ -30,6 +30,8 @@ import type { WithValidation } from "../field/validation.js";
 import { Icon } from "../icon/icon.js";
 import { Separator } from "../separator/separator.js";
 import { Slot, slotContent } from "../slot/slot.js";
+import { OptionSlot } from "../slot/option-slot.js";
+import type { OptionRender } from "../slot/option-slot.js";
 
 type WithAriaInvalid = Pick<SelectHTMLAttributes<HTMLSelectElement>, "aria-invalid">;
 
@@ -69,9 +71,23 @@ type ItemLabel = { value: string; label: ReactNode; translate?: "yes" | "no" };
 
 type ItemElementProps = {
 	asChild?: boolean;
-	children?: ReactNode;
+	children?: ReactNode | OptionRender;
+	textValue?: string;
 	translate?: "yes" | "no";
 	value?: unknown;
+};
+
+/**
+ * The label an item shows in `Select.Value`. A function child has no label to
+ * read, so it shows `textValue`, else `value`.
+ */
+const itemLabel = ({ asChild, children, textValue, value }: ItemElementProps): ReactNode => {
+	if (typeof children === "function") {
+		return textValue ?? String(value);
+	}
+	return asChild && isValidElement<{ children?: ReactNode }>(children)
+		? children.props.children
+		: children;
 };
 
 /**
@@ -95,15 +111,11 @@ const findItemLabel = (node: ReactNode, value: string): ItemLabel | null => {
 	if (!isValidElement<ItemElementProps>(node)) {
 		return null;
 	}
-	const { asChild, children, translate } = node.props;
+	const { children, translate } = node.props;
 	if (node.type === Item && node.props.value === value) {
-		const label =
-			asChild && isValidElement<{ children?: ReactNode }>(children)
-				? children.props.children
-				: children;
-		return { value, label, translate };
+		return { value, label: itemLabel(node.props), translate };
 	}
-	return findItemLabel(children, value);
+	return typeof children === "function" ? null : findItemLabel(children, value);
 };
 
 const SelectContext = createContext<SelectContextType | null>(null);
@@ -155,7 +167,7 @@ type SelectProps = PropsWithChildren & {
 	 */
 	dir?: "ltr" | "rtl";
 	/**
-	 * Whether the whole select is inert. The trigger stamps `data-disabled`.
+	 * Whether the whole select is inert. The trigger button gets `disabled`.
 	 * @default false
 	 */
 	disabled?: boolean;
@@ -323,8 +335,8 @@ const Root = ({
 					disabled={disabled}
 					value={select.value ?? ""}
 					// Why: a failed `required` check focuses this select, and the user must
-					// land on the trigger.
-					onFocus={() => select.triggerRef.current?.focus()}
+					// land on the trigger. `focusVisible` shows the ring after a mouse submit too.
+					onFocus={() => select.triggerRef.current?.focus({ focusVisible: true })}
 					onChange={(event) => {
 						// Why: the browser already dispatched this change.
 						committedValues.set(event.currentTarget, event.target.value);
@@ -611,9 +623,7 @@ type SelectTriggerProps = ComponentProps<"button"> &
  * | ------------------ | --------------------------------------- | -------------------------------------------------------------------- |
  * | `data-slot`        | `"select-trigger"`                      | On the trigger button.                                               |
  * | `data-slot`        | `"select-trigger-label"`                | On the `<span>` wrapping `children`.                                 |
- * | `data-state`       | `"open"` \| `"closed"`                  | Whether the list is open.                                            |
  * | `data-placeholder` | present when there is no value          | Presence-only. Style the placeholder text with `data-placeholder:`.  |
- * | `data-disabled`    | present when disabled                   | Presence-only. The `disabled` prop on `Select.Root`.                 |
  * | `data-validation`  | `"success"` \| `"warning"` \| `"error"` | The resolved `validation` state. Omitted when there is none.         |
  *
  * @see https://mantle.ngrok.com/components/forms/select#selecttrigger
@@ -699,11 +709,13 @@ const Trigger = ({
 				// the wrapper's `contents` and give it a box.
 				"[&>[data-slot=select-trigger-label]>span]:line-clamp-1 [&>[data-slot=select-trigger-label]>span]:text-left",
 				"hover:border-neutral-400",
-				"focus:focus-ring aria-expanded:focus-ring",
-				"focus:border-accent-600 aria-expanded:border-accent-600",
-				"data-validation-success:border-success-600 data-validation-success:focus:border-success-600 data-validation-success:focus:ring-focus-success data-validation-success:aria-expanded:border-success-600 data-validation-success:aria-expanded:ring-focus-success",
-				"data-validation-warning:border-warning-600 data-validation-warning:focus:border-warning-600 data-validation-warning:focus:ring-focus-warning data-validation-warning:aria-expanded:border-warning-600 data-validation-warning:aria-expanded:ring-focus-warning",
-				"data-validation-error:border-danger-600 data-validation-error:focus:border-danger-600 data-validation-error:focus:ring-focus-danger data-validation-error:aria-expanded:border-danger-600 data-validation-error:aria-expanded:ring-focus-danger motion-safe:data-validation-error:animate-shake",
+				// Why `focus-visible`: the trigger acts like a button. A pointer open shows no ring.
+				// In Chromium and WebKit, a key press such as an arrow key in the open list shows it.
+				"focus-visible:focus-ring",
+				"focus-visible:border-accent-600 aria-expanded:border-accent-600",
+				"data-[validation=success]:border-success-600 data-[validation=success]:focus-visible:border-success-600 data-[validation=success]:focus-visible:ring-focus-success data-[validation=success]:aria-expanded:border-success-600",
+				"data-[validation=warning]:border-warning-600 data-[validation=warning]:focus-visible:border-warning-600 data-[validation=warning]:focus-visible:ring-focus-warning data-[validation=warning]:aria-expanded:border-warning-600",
+				"data-[validation=error]:border-danger-600 data-[validation=error]:focus-visible:border-danger-600 data-[validation=error]:focus-visible:ring-focus-danger data-[validation=error]:aria-expanded:border-danger-600 motion-safe:data-[validation=error]:animate-shake",
 				className,
 			)}
 			data-validation={validation || undefined}
@@ -756,9 +768,8 @@ type SelectContentProps = Omit<ComponentProps<"div">, "dir"> &
  * | Data Attribute | Value                                          | Description                                                            |
  * | -------------- | ---------------------------------------------- | ---------------------------------------------------------------------- |
  * | `data-slot`    | `"select-content"`                             | On the content element.                                                |
- * | `data-state`   | `"open"`                                       | Drives the open animation. A closed list renders nothing.              |
+ * | `data-open`    | present                                        | Presence-only. Drives the open animation. A closed list renders nothing. |
  * | `data-side`    | `"top"` \| `"bottom"`                           | The side of the trigger the list opened on.                            |
- * | `data-align`   | `"start"`                                      | The alignment against the trigger.                                     |
  *
  * @see https://mantle.ngrok.com/components/forms/select#selectcontent
  *
@@ -824,10 +835,9 @@ const OpenContent = ({
 				ref={composedRef}
 				dir={dir}
 				data-slot={joinDataSlot(dataSlot, "select-content")}
-				data-state="open"
-				data-align="start"
+				data-open=""
 				className={cx(
-					"border-popover duration-200 ease-out-strong data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95 data-side-bottom:slide-in-from-top-1 data-side-top:slide-in-from-bottom-1 motion-reduce:animate-none! pointer-events-auto fixed inset-auto z-50 m-0 text-inherit min-w-32 overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 rounded-md border shadow-md",
+					"border-popover duration-200 ease-out-strong data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1 motion-reduce:animate-none! pointer-events-auto fixed inset-auto z-50 m-0 text-inherit min-w-32 overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 rounded-md border shadow-md",
 					"bg-popover font-sans p-1 space-y-px max-h-(--available-height) outline-hidden",
 					width === "trigger" && "w-(--anchor-width)",
 					className,
@@ -894,7 +904,6 @@ const Label = ({
 type SelectItemProps = Omit<ComponentProps<"div">, "children"> &
 	WithAsChild &
 	WithDataSlot & {
-		children?: ReactNode;
 		/**
 		 * Whether the option is inert.
 		 */
@@ -904,13 +913,21 @@ type SelectItemProps = Omit<ComponentProps<"div">, "children"> &
 		 */
 		icon?: ReactNode;
 		/**
-		 * The text that typeahead matches. Defaults to the item's text content.
-		 */
-		textValue?: string;
-		/**
 		 * The value the select takes when the user picks this item.
 		 */
 		value: string;
+		/**
+		 * The option's label, or a function child: `(props, { highlighted }) => element`
+		 * renders the option as the element it returns. Spread `props` on it and
+		 * write the label inside it.
+		 */
+		children?: ReactNode | OptionRender;
+		/**
+		 * The text that typeahead matches. Defaults to the item's text content.
+		 * With a function child, it is also the label `Select.Value` shows, which
+		 * falls back to `value`.
+		 */
+		textValue?: string;
 	};
 
 /**
@@ -935,13 +952,17 @@ type SelectItemProps = Omit<ComponentProps<"div">, "children"> &
  * **`asChild`.** Your single child becomes the option element. The label
  * span and the indicator move inside it, so the guarantee above holds on both paths.
  *
+ * **Function child.** `(props, { highlighted }) => element` renders the option as
+ * the element it returns. Spread `props` on it and write the label inside it.
+ * Set `textValue`: it is the label `Select.Value` shows, else `value`.
+ *
  * | Data Attribute     | Value                        | Description                                                          |
  * | ------------------ | ---------------------------- | -------------------------------------------------------------------- |
  * | `data-slot`        | `"select-item"`              | On the option element.                                               |
  * | `data-slot`        | `"select-item-label"`        | On the `<span>` wrapping `children`, in the list and in the trigger. |
- * | `data-state`       | `"checked"` \| `"unchecked"` | Whether this item is the selected value.                             |
+ * | `aria-selected`    | `"true"` \| `"false"` | Whether this item is the selected value. Style it with `aria-selected:`. |
  * | `data-highlighted` | present when highlighted     | Presence-only. The item under the pointer or the keyboard focus.     |
- * | `data-disabled`    | present when disabled        | Presence-only. The `disabled` prop.                                  |
+ * | `aria-disabled`    | `"true"` when disabled       | The `disabled` prop. Style it with `aria-disabled:`.                 |
  *
  * @see https://mantle.ngrok.com/components/forms/select#selectitem
  *
@@ -990,10 +1011,7 @@ const Item = ({
 		textValue,
 		id: childId({ asChild, children, id: props.id }),
 	});
-	const label =
-		asChild && isValidElement<{ children?: ReactNode }>(children)
-			? children.props.children
-			: children;
+	const label = itemLabel({ asChild, children, textValue, value });
 	const reportLabel = () => {
 		listbox.getStore().set({ itemLabel: { value, label, translate } });
 	};
@@ -1026,29 +1044,40 @@ const Item = ({
 			)}
 		</>
 	);
+	const elementProps = {
+		...props,
+		...optionProps,
+		onClick: composeHandlers(onClick, () => {
+			// Why: a tap can pick an item that no pointer move highlighted.
+			reportLabel();
+			optionProps.onClick();
+		}),
+		onPointerMove: composeHandlers(onPointerMove, optionProps.onPointerMove),
+		ref: composedRef,
+		"data-slot": joinDataSlot(dataSlot, "select-item"),
+		translate,
+		className: cx(
+			"relative flex gap-2 w-full cursor-pointer select-none items-center rounded-md py-1.5 pl-2 pr-8 text-strong text-sm outline-hidden",
+			"data-highlighted:bg-active-menu-item",
+			"aria-disabled:pointer-events-none aria-disabled:opacity-50",
+			"aria-selected:bg-selected-menu-item",
+			"data-highlighted:aria-selected:bg-active-selected-menu-item",
+			className,
+		),
+	};
+	if (typeof children === "function") {
+		return (
+			<OptionSlot
+				{...elementProps}
+				listbox={listbox}
+				render={children}
+				renderContent={renderContent}
+			/>
+		);
+	}
 	const Component = asChild ? Slot : "div";
 	return (
-		<Component
-			{...props}
-			{...optionProps}
-			onClick={composeHandlers(onClick, () => {
-				// Why: a tap can pick an item that no pointer move highlighted.
-				reportLabel();
-				optionProps.onClick();
-			})}
-			onPointerMove={composeHandlers(onPointerMove, optionProps.onPointerMove)}
-			ref={composedRef}
-			data-slot={joinDataSlot(dataSlot, "select-item")}
-			translate={translate}
-			className={cx(
-				"relative flex gap-2 w-full cursor-pointer select-none items-center rounded-md py-1.5 pl-2 pr-8 text-strong text-sm outline-hidden",
-				"data-highlighted:bg-active-menu-item",
-				"data-disabled:pointer-events-none data-disabled:opacity-50",
-				"data-state-checked:bg-selected-menu-item",
-				"data-highlighted:data-state-checked:bg-active-selected-menu-item",
-				className,
-			)}
-		>
+		<Component {...elementProps}>
 			{asChild ? slotContent(children, renderContent) : renderContent(children)}
 		</Component>
 	);

@@ -92,7 +92,7 @@ const Label = ({
 	<label
 		// Why data-disabled: `aria-disabled` is not valid on a `<label>`, so it
 		// conveyed nothing to assistive technology and only fed the cursor style.
-		data-disabled={parseBooleanish(disabled ?? _ariaDisabled) || undefined}
+		data-disabled={parseBooleanish(disabled ?? _ariaDisabled) ? "" : undefined}
 		data-slot={joinDataSlot(dataSlot, "label")}
 		className={cx(
 			"text-strong cursor-pointer text-sm peer-disabled:cursor-default has-disabled:cursor-default data-disabled:cursor-default font-sans",

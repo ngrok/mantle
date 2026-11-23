@@ -146,7 +146,7 @@ import { Tabs } from "@ngrok/mantle/tabs";
 
 Pass `hiddenUntilFound` to a `Tabs.Content` to keep its text in the HTML while its tab is inactive. The panel renders `hidden="until-found"`, so the browser's find-in-page and a link to a fragment inside it reveal the text and activate its tab. Use it for pages that crawlers and agents read, such as install instructions. It implies `forceMount`.
 
-Do not hide the panel with a `display: none` class, such as `data-[state=inactive]:hidden`: it blocks the search. A browser without `until-found` treats the panel as plain `hidden`.
+Do not hide the panel with a `display: none` class: it blocks the search. A browser without `until-found` treats the panel as plain `hidden`.
 
 <Example name="components/navigation/tabs/hidden-until-found" title="Tabs find in page example">
 
@@ -590,7 +590,7 @@ import { Tabs } from "@ngrok/mantle/tabs";
 
 ## Headless tabs
 
-Use `HeadlessTabs` when a page needs tabs in its own visual language, such as the large use-case cards on a marketing page. It has the same behavior as `Tabs` and no look of its own. Style each part with your own classes, and style the states with `data-state-active:` and `data-state-inactive:`.
+Use `HeadlessTabs` when a page needs tabs in its own visual language, such as the large use-case cards on a marketing page. It has the same behavior as `Tabs` and no look of its own. Style each part with your own classes, and style the states with `aria-selected:` and `not-aria-selected:`.
 
 `HeadlessTabs` keeps the keyboard and ARIA contract, `hiddenUntilFound`, the scroll of a keyboard-focused tab into view, and link tabs. The triggers and panels keep mantle's focus ring for keyboard focus, and a pointer press focuses a trigger without it. Add a `ring-focus-*` or `ring-*` class to change the ring's tone or width. `HeadlessTabs` has no `Separator` or `Badge`, and no `appearance` prop.
 
@@ -609,25 +609,25 @@ import { StackIcon } from "@phosphor-icons/react/Stack";
 		<HeadlessTabs.List aria-label="How it works" className="grid grid-cols-3 gap-1 p-2">
 			<HeadlessTabs.Trigger
 				value="front-door"
-				className="group text-body hover:bg-card-hover data-state-active:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
+				className="group text-body hover:bg-card-hover aria-selected:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
 			>
-				<Icon svg={<DoorOpenIcon />} className="size-6 group-data-state-active:text-accent-600" />
+				<Icon svg={<DoorOpenIcon />} className="size-6 group-aria-selected:text-accent-600" />
 				Create one front door
 			</HeadlessTabs.Trigger>
 			<HeadlessTabs.Trigger
 				value="agent"
-				className="group text-body hover:bg-card-hover data-state-active:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
+				className="group text-body hover:bg-card-hover aria-selected:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
 			>
-				<Icon svg={<StackIcon />} className="size-6 group-data-state-active:text-accent-600" />
+				<Icon svg={<StackIcon />} className="size-6 group-aria-selected:text-accent-600" />
 				Run the agent
 			</HeadlessTabs.Trigger>
 			<HeadlessTabs.Trigger
 				value="route"
-				className="group text-body hover:bg-card-hover data-state-active:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
+				className="group text-body hover:bg-card-hover aria-selected:bg-card-hover flex cursor-pointer flex-col items-center gap-2 rounded-md p-4 text-sm"
 			>
 				<Icon
 					svg={<GlobeHemisphereWestIcon />}
-					className="size-6 group-data-state-active:text-accent-600"
+					className="size-6 group-aria-selected:text-accent-600"
 				/>
 				Route and authenticate
 			</HeadlessTabs.Trigger>
@@ -663,7 +663,7 @@ HeadlessTabs.Root
 `Tabs` follows the [WAI-ARIA tabs pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/): the list is a `role="tablist"`, each trigger is a `role="tab"` with `aria-selected` and `aria-controls`, and each content panel is a `role="tabpanel"` labelled by its tab.
 
 - **Tab** moves focus into the list and lands on the active tab. Only the active tab is a Tab stop, so the next **Tab** leaves the list. This holds for `asChild` triggers too, so a list of router links is one Tab stop, not one per link.
-- **ArrowLeft** / **ArrowRight** (or **ArrowUp** / **ArrowDown** when vertical) move focus between the enabled tabs and activate the focused tab. They wrap at the ends unless `Tabs.List` has `loop={false}`. In a right-to-left page, **ArrowLeft** moves to the next tab. **Home** and **End** jump to the first and last tab.
+- **ArrowLeft** / **ArrowRight** (or **ArrowUp** / **ArrowDown** when vertical) move focus between the enabled tabs and activate the focused tab. The tab is selected before it takes focus, so a screen reader reads it once. They wrap at the ends unless `Tabs.List` has `loop={false}`. In a right-to-left page, **ArrowLeft** moves to the next tab. **Home** and **End** jump to the first and last tab.
 - With `activationMode="manual"`, the arrows only move focus, and **Enter** or **Space** activates the focused tab.
 - The active tab is a Tab stop in the server HTML, so the keyboard reaches it before hydration. After hydration, a forward **Tab** enters on the active tab, or on the first enabled tab that can take focus. **Shift+Tab** comes back to the last focused tab, unless the selection changed after focus left.
 - A trigger shows the [focus ring](/base/focus-ring) for keyboard focus only. A horizontal list scrolls, so it carries `px-1 -mx-1 pt-1 -mt-1` (and `pb-1 -mb-1` for the pill appearance) to keep the ring inside its scroll box. See [Give the ring room](/base/focus-ring#give-the-ring-room).
@@ -675,11 +675,11 @@ HeadlessTabs.Root
 | Data Attribute     | Value                                                                                                                                         | Description                                                                                                    |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `data-slot`        | `"tabs"` \| `"tabs-list"` \| `"tabs-trigger"` \| `"tabs-trigger-label"` \| `"tabs-badge"` \| `"tabs-separator separator"` \| `"tabs-content"` | Names each part, plus the trigger's label wrapper. The separator carries `Separator`'s own slot after its own. |
-| `data-orientation` | `"horizontal"` \| `"vertical"`                                                                                                                | On the root, list, triggers, separator, and content.                                                           |
+| `data-orientation` | `"horizontal"` \| `"vertical"`                                                                                                                | On the root, list, and separator.                                                                              |
 | `data-appearance`  | `"classic"` \| `"pill"`                                                                                                                       | On the root. Descendant parts style against it.                                                                |
 | `data-separator`   | present                                                                                                                                       | Presence-only, on the separator. Set by the mantle `Separator`.                                                |
-| `data-state`       | `"active"` \| `"inactive"`                                                                                                                    | On each trigger and content panel.                                                                             |
-| `data-disabled`    | present when `disabled`                                                                                                                       | Presence-only, on a trigger.                                                                                   |
+| `aria-selected`    | `"true"` \| `"false"`                                                                                                                         | On each trigger. Whether the trigger's panel is shown. Style it with `aria-selected:`.                         |
+| `hidden`           | present while inactive                                                                                                                        | On each content panel. The browser hides the panel. `"until-found"` with `hiddenUntilFound`.                   |
 
 ## API Reference
 
@@ -775,13 +775,11 @@ An icon you pass as a child is now a grandchild of the trigger, so a `[&>svg]` c
 
 #### Data attributes
 
-| Data Attribute     | Value                          | Description                           |
-| ------------------ | ------------------------------ | ------------------------------------- |
-| `data-slot`        | `"tabs-trigger"`               | On the trigger element.               |
-| `data-slot`        | `"tabs-trigger-label"`         | On the `<span>` wrapping `children`.  |
-| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.               |
-| `data-state`       | `"active"` \| `"inactive"`     | Whether the trigger's panel is shown. |
-| `data-disabled`    | present when `disabled`        | Presence-only.                        |
+| Data Attribute  | Value                  | Description                                                           |
+| --------------- | ---------------------- | --------------------------------------------------------------------- |
+| `data-slot`     | `"tabs-trigger"`       | On the trigger element.                                               |
+| `data-slot`     | `"tabs-trigger-label"` | On the `<span>` wrapping `children`.                                  |
+| `aria-selected` | `"true"` \| `"false"`  | Whether the trigger's panel is shown. Style it with `aria-selected:`. |
 
 ### Tabs.Content
 
@@ -790,18 +788,17 @@ Contains the content associated with each trigger.
 | Prop                | Type      | Default | Description                                                                                                                                                                                          |
 | ------------------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `value`             | `string`  |         | A unique value that associates the content with a trigger.                                                                                                                                           |
-| `forceMount?`       | `true`    |         | Keeps the panel's children mounted while its tab is inactive. Hide an inactive panel yourself, such as with `data-[state=inactive]:hidden`.                                                          |
+| `forceMount?`       | `true`    |         | Keeps the panel's children mounted while its tab is inactive. The inactive panel stays natively `hidden`.                                                                                            |
 | `hiddenUntilFound?` | `boolean` | `false` | Keeps the panel's children mounted as `hidden="until-found"` while its tab is inactive, so find-in-page reveals them and activates the tab. Implies `forceMount`. See [Find in page](#find-in-page). |
 | `asChild?`          | `boolean` | `false` | When `true`, renders the single child instead of its own `<div>` and forwards the panel's attributes and behavior onto it.                                                                           |
 | `className?`        | `string`  |         | Additional CSS classes to apply to the content element.                                                                                                                                              |
 
 #### Data attributes
 
-| Data Attribute     | Value                          | Description                 |
-| ------------------ | ------------------------------ | --------------------------- |
-| `data-slot`        | `"tabs-content"`               | On the panel element.       |
-| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.     |
-| `data-state`       | `"active"` \| `"inactive"`     | Whether the panel is shown. |
+| Data Attribute | Value                  | Description                                                           |
+| -------------- | ---------------------- | --------------------------------------------------------------------- |
+| `data-slot`    | `"tabs-content"`       | On the panel element.                                                 |
+| `hidden`       | present while inactive | The browser hides the panel. `"until-found"` with `hiddenUntilFound`. |
 
 ### Tabs.Badge
 
@@ -846,12 +843,10 @@ The unstyled tab button. It takes the props of [`Tabs.Trigger`](#tabstrigger). I
 
 #### Data attributes
 
-| Data Attribute     | Value                          | Description                           |
-| ------------------ | ------------------------------ | ------------------------------------- |
-| `data-slot`        | `"tabs-trigger"`               | On the trigger element.               |
-| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.               |
-| `data-state`       | `"active"` \| `"inactive"`     | Whether the trigger's panel is shown. |
-| `data-disabled`    | present when `disabled`        | Presence-only.                        |
+| Data Attribute  | Value                 | Description                                                           |
+| --------------- | --------------------- | --------------------------------------------------------------------- |
+| `data-slot`     | `"tabs-trigger"`      | On the trigger element.                                               |
+| `aria-selected` | `"true"` \| `"false"` | Whether the trigger's panel is shown. Style it with `aria-selected:`. |
 
 ### HeadlessTabs.Content
 
@@ -859,8 +854,7 @@ The unstyled tab panel. It takes the props of [`Tabs.Content`](#tabscontent). It
 
 #### Data attributes
 
-| Data Attribute     | Value                          | Description                 |
-| ------------------ | ------------------------------ | --------------------------- |
-| `data-slot`        | `"tabs-content"`               | On the panel element.       |
-| `data-orientation` | `"horizontal"` \| `"vertical"` | The root's orientation.     |
-| `data-state`       | `"active"` \| `"inactive"`     | Whether the panel is shown. |
+| Data Attribute | Value                  | Description                                                           |
+| -------------- | ---------------------- | --------------------------------------------------------------------- |
+| `data-slot`    | `"tabs-content"`       | On the panel element.                                                 |
+| `hidden`       | present while inactive | The browser hides the panel. `"until-found"` with `hiddenUntilFound`. |

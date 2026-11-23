@@ -48,6 +48,28 @@ const active = () => {
 	return id == null ? null : document.getElementById(id);
 };
 
+describe("Command.Input name", () => {
+	test("is Search with no other name, and the input's own name replaces it", () => {
+		render(
+			<>
+				<Command.Root>
+					<Command.Input />
+				</Command.Root>
+				<Command.Root>
+					<Command.Input aria-label="Find a command" />
+				</Command.Root>
+				<label htmlFor="palette-input">Jump to</label>
+				<Command.Root>
+					<Command.Input id="palette-input" />
+				</Command.Root>
+			</>,
+		);
+		expect(screen.getByRole("combobox", { name: "Search" })).toBeInTheDocument();
+		expect(screen.getByRole("combobox", { name: "Find a command" })).toBeInTheDocument();
+		expect(screen.getByRole("combobox", { name: "Jump to" })).toBeInTheDocument();
+	});
+});
+
 describe("Command.Root filtering", () => {
 	test("hides the items and groups that the query does not match, and names the active item", async () => {
 		const user = userEvent.setup();
@@ -60,7 +82,7 @@ describe("Command.Root filtering", () => {
 		expect(screen.getByRole("group", { name: "Settings" })).toBeInTheDocument();
 		expect(active()).toHaveTextContent("Billing");
 		expect(active()).toHaveAttribute("aria-selected", "true");
-		expect(active()).toHaveAttribute("data-selected", "true");
+		expect(active()).toHaveAttribute("data-highlighted");
 	});
 
 	test("matches an item by its keywords", async () => {
@@ -253,7 +275,7 @@ test("the empty state shows once the last item unmounts", async () => {
 });
 
 describe("Command.Root keyboard", () => {
-	test("in StrictMode, only the active item has data-selected", async () => {
+	test("in StrictMode, only the active item has data-highlighted", async () => {
 		const user = userEvent.setup();
 		render(
 			<StrictMode>
@@ -263,7 +285,7 @@ describe("Command.Root keyboard", () => {
 
 		await user.type(input(), "{ArrowDown}");
 
-		const selected = document.querySelectorAll('[data-selected="true"]');
+		const selected = document.querySelectorAll("[data-highlighted]");
 		expect(Array.from(selected, (option) => option.textContent)).toEqual(["Search Emoji"]);
 	});
 

@@ -211,7 +211,7 @@ const MenuTrigger = ({ "data-slot": dataSlot, icon, ...props }: MenuTriggerProps
 							svg={
 								<CaretDownIcon
 									weight="bold"
-									className="size-4 group-data-[state=open]:-rotate-180 transition-transform duration-200 ease-out-strong motion-reduce:transition-none"
+									className="size-4 group-aria-expanded:-rotate-180 transition-transform duration-200 ease-out-strong motion-reduce:transition-none"
 								/>
 							}
 						/>

@@ -194,23 +194,6 @@ describe("SplitButton", () => {
 		await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
 	});
 
-	test.each([
-		{ align: undefined, expected: "end" },
-		{ align: "start", expected: "start" },
-	] as const)("MenuContent align=$align places the menu at $expected", ({ align, expected }) => {
-		render(
-			<SplitButton.Root open>
-				<SplitButton.PrimaryAction>Save</SplitButton.PrimaryAction>
-				<SplitButton.MenuTrigger label="More save options" />
-				<SplitButton.MenuContent align={align}>
-					<SplitButton.MenuItem>Save as draft</SplitButton.MenuItem>
-				</SplitButton.MenuContent>
-			</SplitButton.Root>,
-		);
-
-		expect(screen.getByRole("menu")).toHaveAttribute("data-align", expected);
-	});
-
 	test("a consumer className on MenuItem overrides the part's gap", () => {
 		render(
 			<SplitButton.Root open>

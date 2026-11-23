@@ -341,7 +341,8 @@ const childId = ({
 	id,
 }: {
 	asChild: boolean;
-	children: ReactNode;
+	/** The option's children: an element under `asChild`, or content or a function child otherwise. */
+	children: unknown;
 	id: string | undefined;
 }): string | undefined =>
 	asChild && isValidElement<{ id?: string }>(children) ? (children.props.id ?? id) : id;
@@ -385,8 +386,6 @@ const useOption = (
 			"aria-disabled": disabled || undefined,
 			"data-value": value,
 			"data-text-value": textValue,
-			"data-state": selected ? "checked" : "unchecked",
-			"data-disabled": disabled ? "" : undefined,
 			onPointerMove: (event: { currentTarget: HTMLElement }) => {
 				// Why not `activate`: a hover must not scroll a half-visible option.
 				if (!disabled) {

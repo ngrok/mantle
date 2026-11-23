@@ -75,11 +75,11 @@ function contentSurfaceClassName({
 
 /**
  * The slide each {@link SheetSide} enters and exits with, keyed on the
- * panel's `data-state`.
+ * panel's `data-open` and `data-closing`.
  */
 const slideClassName: Record<SheetSide, string> = {
-	left: "data-state-closed:slide-out-to-left data-state-open:slide-in-from-left",
-	right: "data-state-closed:slide-out-to-right data-state-open:slide-in-from-right",
+	left: "data-closing:slide-out-to-left data-open:slide-in-from-left",
+	right: "data-closing:slide-out-to-right data-open:slide-in-from-right",
 };
 
 /** The classes of `Sheet.Title`. */

@@ -139,7 +139,7 @@ describe("CodeBlock", () => {
 
 			const pre = document.querySelector("pre");
 			expect(pre).not.toBeNull();
-			expect(pre?.dataset.highlighted).toBe("false");
+			expect(pre).not.toHaveAttribute("data-syntax-highlighted");
 			const code = document.querySelector("code");
 			expect(code?.innerHTML).toBe("const x = 1;");
 		});
@@ -655,7 +655,7 @@ describe("CodeBlock", () => {
 	});
 
 	describe("ExpanderButton", () => {
-		test("owns the ARIA state and points at the <pre>, which carries data-state instead", async () => {
+		test("owns the ARIA state and points at the <pre>, which carries data-expanded instead", async () => {
 			const user = userEvent.setup();
 
 			render(
@@ -672,9 +672,9 @@ describe("CodeBlock", () => {
 			expect(pre).not.toBeNull();
 			expect(button).toHaveAttribute("aria-expanded", "false");
 			expect(button).toHaveAttribute("aria-controls", pre?.getAttribute("id") ?? "");
-			// Why: `aria-expanded` is not valid on a `<pre>`; styling reads `data-state`.
+			// Why: `aria-expanded` is not valid on a `<pre>`; it mirrors as `data-expanded`.
 			expect(pre).not.toHaveAttribute("aria-expanded");
-			expect(pre).toHaveAttribute("data-state", "collapsed");
+			expect(pre).not.toHaveAttribute("data-expanded");
 
 			await user.click(button);
 
@@ -682,19 +682,7 @@ describe("CodeBlock", () => {
 				"aria-expanded",
 				"true",
 			);
-			expect(pre).toHaveAttribute("data-state", "expanded");
-		});
-
-		test("without an expander the <pre> carries no data-state", () => {
-			render(
-				<CodeBlock.Root>
-					<CodeBlock.Body>
-						<CodeBlock.Code value={makeValue("const x = 1;")} />
-					</CodeBlock.Body>
-				</CodeBlock.Root>,
-			);
-
-			expect(document.querySelector("pre")).not.toHaveAttribute("data-state");
+			expect(pre).toHaveAttribute("data-expanded");
 		});
 
 		test("runs a consumer's onClick and still toggles", async () => {
@@ -713,7 +701,7 @@ describe("CodeBlock", () => {
 			await user.click(screen.getByRole("button", { name: "Show more" }));
 
 			expect(onClick).toHaveBeenCalledTimes(1);
-			expect(document.querySelector("pre")).toHaveAttribute("data-state", "expanded");
+			expect(document.querySelector("pre")).toHaveAttribute("data-expanded");
 		});
 
 		test("points aria-controls at the <pre> id in the server HTML", () => {
@@ -740,7 +728,7 @@ describe("CodeBlock", () => {
 			expect(button).toHaveAttribute("aria-controls", preId);
 		});
 
-		test("stamps data-state on the <pre> in the same task as the mount commit", async () => {
+		test("collapses the <pre> in the same task as the mount commit", async () => {
 			// Why not `render`: its `act()` flushes layout and passive effects together,
 			// so it cannot tell which one wrote the attribute. `MutationObserver`
 			// reports in the microtask right after the commit, before React runs a
@@ -749,10 +737,12 @@ describe("CodeBlock", () => {
 			vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", false);
 			const container = document.createElement("div");
 			document.body.appendChild(container);
-			const firstObservedState = new Promise<string | null>((resolve) => {
+			// Why a class: the collapse is the max height itself, and no attribute
+			// marks a collapsed `<pre>`.
+			const firstObservedCollapsed = new Promise<boolean>((resolve) => {
 				const observer = new MutationObserver(() => {
 					observer.disconnect();
-					resolve(container.querySelector("pre")?.getAttribute("data-state") ?? null);
+					resolve(container.querySelector("pre")?.classList.contains("max-h-[13.6rem]") ?? false);
 				});
 				observer.observe(container, { attributes: true, childList: true, subtree: true });
 			});
@@ -767,7 +757,7 @@ describe("CodeBlock", () => {
 			);
 
 			try {
-				await expect(firstObservedState).resolves.toBe("collapsed");
+				await expect(firstObservedCollapsed).resolves.toBe(true);
 			} finally {
 				root.unmount();
 				container.remove();

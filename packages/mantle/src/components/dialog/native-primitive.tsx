@@ -144,25 +144,21 @@ function sendFocusEvent(
 	return event;
 }
 
-/** Writes `state` to the `aria-expanded` and `data-state` of `trigger`. */
-function writeTriggerState(trigger: Element, state: string): void {
-	trigger.setAttribute("aria-expanded", String(state === "open"));
-	trigger.setAttribute("data-state", state);
-}
-
 /**
- * Writes the open state of `dialog` to the DOM that mirrors it: `data-state` on
- * the `<dialog>` and its panel, `aria-expanded` and `data-state` on each
- * trigger, the stack of open dialogs, and the toaster hosts, which follow the
+ * Writes the open state of `dialog` to the DOM that mirrors it: `data-open`, or
+ * `data-closing` for the exit, on the `<dialog>` and its panel, `aria-expanded`
+ * on each trigger, the stack of open dialogs, and the toaster hosts, which follow the
  * top open modal. A write that changes nothing touches no attribute.
  */
 function writeOpenState({ dialog, open }: { dialog: HTMLDialogElement; open: boolean }): void {
-	const state = open ? "open" : "closed";
-	if (dialog.dataset.state !== state) {
-		dialog.dataset.state = state;
-		dialog.querySelector("[data-mantle-modal-content]")?.setAttribute("data-state", state);
+	if (dialog.hasAttribute("data-open") !== open) {
+		const panel = dialog.querySelector("[data-mantle-modal-content]");
+		for (const element of [dialog, panel]) {
+			element?.toggleAttribute("data-open", open);
+			element?.toggleAttribute("data-closing", !open);
+		}
 		for (const trigger of dialog.ownerDocument.querySelectorAll(`[aria-controls="${dialog.id}"]`)) {
-			writeTriggerState(trigger, state);
+			trigger.setAttribute("aria-expanded", String(open));
 		}
 	}
 	const index = openDialogs.indexOf(dialog);
@@ -256,7 +252,7 @@ function moveDialog({
 	if (open === dialog.open) {
 		// Why: a reopen during the exit keeps the dialog open, and the pending
 		// close sees the state and stops.
-		if (open && dialog.dataset.state === "closed") {
+		if (open && !dialog.hasAttribute("data-open")) {
 			writeOpenState({ dialog, open });
 		}
 		return;
@@ -301,7 +297,7 @@ function closeNested(dialog: HTMLDialogElement): void {
 }
 
 /**
- * Closes `dialog` after its exit animation: `data-state="closed"` starts the
+ * Closes `dialog` after its exit animation: `data-closing` starts the
  * exit of the `<dialog>`, its backdrop, and its panel, and `close()` runs when
  * those animations end. The dialog stays modal for the length of the exit, as
  * a Radix dialog does. `done` runs after the close, unless the dialog opened
@@ -326,13 +322,15 @@ function closeAfterExit(dialog: HTMLDialogElement, done?: () => void): void {
 			effect.getTiming().iterations !== Number.POSITIVE_INFINITY,
 	);
 	const closeNow = () => {
-		if (dialog.dataset.state !== "closed") {
+		if (dialog.hasAttribute("data-open")) {
 			return;
 		}
 		if (dialog.open) {
 			closeNested(dialog);
 			dialog.close();
 		}
+		dialog.removeAttribute("data-closing");
+		panel?.removeAttribute("data-closing");
 		done?.();
 	};
 	// Why at once with no exit: a dialog with no animation closes in the
@@ -543,7 +541,7 @@ function useClickToOpen({
 			const dialog = element.ownerDocument.getElementById(root.contentId);
 			// Why a toggle: a trigger outside an open non-modal dialog closes it, as with Radix.
 			const shown =
-				dialog instanceof HTMLDialogElement && dialog.open && dialog.dataset.state === "open";
+				dialog instanceof HTMLDialogElement && dialog.open && dialog.hasAttribute("data-open");
 			requestOpen({ dialog, open: open && !shown, root });
 		}
 	};
@@ -558,9 +556,9 @@ const Trigger = ({ asChild, onClick, ref, scope, ...props }: ButtonProps) => {
 	// Why a ref: a trigger that mounts while its dialog is open takes the open
 	// state the dialog already has.
 	const readState = (trigger: HTMLButtonElement | null) => {
-		const state = trigger?.ownerDocument.getElementById(root.contentId)?.dataset.state;
-		if (trigger != null && state != null) {
-			writeTriggerState(trigger, state);
+		const dialog = trigger?.ownerDocument.getElementById(root.contentId);
+		if (trigger != null && dialog != null) {
+			trigger.setAttribute("aria-expanded", String(dialog.hasAttribute("data-open")));
 		}
 	};
 	const composedRef = useComposedRefs(ref, readState);
@@ -571,7 +569,7 @@ const Trigger = ({ asChild, onClick, ref, scope, ...props }: ButtonProps) => {
 		return null;
 	}
 
-	// Why constant `aria-expanded` and `data-state`: `writeOpenState` keeps them
+	// Why a constant `aria-expanded`: `writeOpenState` keeps it
 	// current on the DOM, and React never writes a prop again that did not change.
 	return (
 		<Component
@@ -580,7 +578,6 @@ const Trigger = ({ asChild, onClick, ref, scope, ...props }: ButtonProps) => {
 			aria-controls={root.contentId}
 			aria-expanded="false"
 			aria-haspopup="dialog"
-			data-state="closed"
 			{...commandAttributes(root, "show-modal")}
 			{...props}
 			onClick={handleClick}
@@ -606,8 +603,10 @@ const Close = ({ asChild, onClick, scope, ...props }: ButtonProps) => {
 
 /**
  * The classes every `<dialog>` takes: a reset of the browser's dialog box,
- * and the backdrop with its motion. `data-state` drives the motion, as in
- * Radix, so the exit plays before `close()`.
+ * and the backdrop with its motion. `data-open` drives the entry and
+ * `data-closing` the exit, which plays before `close()`. Why not
+ * `not-data-open:` for the exit: an invoker command opens the `<dialog>`
+ * before hydration, with no `data-open`, and must not play the exit.
  *
  * Why `overscroll-none`: a scroll in the dialog must not bounce or chain to
  * the page behind it.
@@ -618,8 +617,8 @@ const positionerBaseClassName = cx(
 	// panel lets presses through to the page. The panel and floats take them.
 	"[&[open]:not(:modal)]:pointer-events-none [&[open]:not(:modal)>*]:pointer-events-auto",
 	"backdrop:bg-overlay backdrop:backdrop-blur-xs",
-	"data-state-open:backdrop:animate-in data-state-open:backdrop:fade-in-0 data-state-closed:backdrop:animate-out data-state-closed:backdrop:fade-out-0",
-	"backdrop:duration-200 data-state-closed:backdrop:duration-150 motion-reduce:backdrop:animate-none!",
+	"data-open:backdrop:animate-in data-open:backdrop:fade-in-0 data-closing:backdrop:animate-out data-closing:backdrop:fade-out-0",
+	"backdrop:duration-200 data-closing:backdrop:duration-150 motion-reduce:backdrop:animate-none!",
 );
 
 /** The style of an inline `<dialog>`, which has no box of its own. */
@@ -691,8 +690,8 @@ type ContentProps = ComponentProps<"div"> &
 /**
  * The panel of the dialog, inside a `<dialog>` (`positionerSlot`) that is the
  * layer container: a float composed inside portals into it and paints in the
- * top layer with it. Style the panel with `data-state-open:` and
- * `data-state-closed:`; the exit plays before the `<dialog>` closes.
+ * top layer with it. Style the panel with `data-open:` and
+ * `data-closing:`; the exit plays before the `<dialog>` closes.
  */
 const Content = ({
 	"aria-describedby": ariaDescribedBy,
@@ -1140,21 +1139,29 @@ const Content = ({
 		// Why: when the focused element leaves the panel, such as a retry button
 		// that a loading state replaces, the browser puts focus on `<body>`. The
 		// dialog takes it back, as a Radix dialog did, so a screen reader stays in it.
+		// Why a task later: a field that renders on blur, such as one that clears
+		// its error, changes the panel while Tab moves focus and `<body>` holds it
+		// for a moment. Focus on the dialog then would cancel the Tab.
+		let refocusTimer = 0;
 		const refocus = new MutationObserver(() => {
-			if (
-				dialog.open &&
-				dialog.dataset.state === "open" &&
-				!nonModal.has(dialog) &&
-				openDialogs.at(-1) === dialog &&
-				ownerDocument.activeElement === ownerDocument.body
-			) {
-				dialog.focus({ preventScroll: true });
-			}
+			clearTimeout(refocusTimer);
+			refocusTimer = window.setTimeout(() => {
+				if (
+					dialog.open &&
+					dialog.hasAttribute("data-open") &&
+					!nonModal.has(dialog) &&
+					openDialogs.at(-1) === dialog &&
+					ownerDocument.activeElement === ownerDocument.body
+				) {
+					dialog.focus({ preventScroll: true });
+				}
+			});
 		});
 		refocus.observe(dialog, { childList: true, subtree: true });
 		ownerDocument.addEventListener("keydown", onKeyDown);
 		ownerDocument.addEventListener("pointerdown", onPointerDown, { capture: true });
 		return () => {
+			clearTimeout(refocusTimer);
 			refocus.disconnect();
 			ownerDocument.removeEventListener("keydown", onKeyDown);
 			ownerDocument.removeEventListener("pointerdown", onPointerDown, { capture: true });
@@ -1244,7 +1251,7 @@ const Content = ({
 			{!keepMounted && <template ref={openBeforeChildren} />}
 			<LayerContainer active={layer && !inline} modal={root.modal} className="contents">
 				{/* Why no marker inline: the panel is not an overlay's content, and
-				    the close must not write `data-state` over the inline panel's own. */}
+				    the close must not write `data-open` over the inline panel's own. */}
 				<div ref={composedPanelRef} data-mantle-modal-content={inline ? undefined : ""} {...props}>
 					{children}
 				</div>

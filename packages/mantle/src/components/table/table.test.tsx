@@ -138,13 +138,12 @@ describe("Table", () => {
 		expect(refSpy).toHaveBeenLastCalledWith(screen.getByRole("table").parentElement);
 	});
 
-	test("Table.Root stamps the overflow attributes with values, and no sticky flag while nothing overflows", () => {
+	test("Table.Root stamps no overflow or sticky flag while nothing overflows", () => {
 		renderTable();
 		const root = screen.getByTestId("root");
-		expect(root).toHaveAttribute("data-x-overflow", "false");
-		expect(root).toHaveAttribute("data-x-scroll-end", "false");
-		// Why absent, not "false": DataTable keys its pinned-column fade off
-		// `group-data-sticky-active/table:`, which matches on attribute presence.
+		// Why absent, not "false": the variants that read these flags match on attribute presence.
+		expect(root).not.toHaveAttribute("data-x-overflow");
+		expect(root).not.toHaveAttribute("data-x-scroll-end");
 		expect(root).not.toHaveAttribute("data-sticky-active");
 	});
 
