@@ -54,6 +54,7 @@ export const previewModules: Readonly<Record<string, () => Promise<unknown>>> = 
 	"@ngrok/mantle/media-object": () => import("@ngrok/mantle/media-object"),
 	"@ngrok/mantle/multi-select": () => import("@ngrok/mantle/multi-select"),
 	"@ngrok/mantle/otp-input": () => import("@ngrok/mantle/otp-input"),
+	"@ngrok/mantle/overlay-prompt": () => import("@ngrok/mantle/overlay-prompt"),
 	"@ngrok/mantle/pagination": () => import("@ngrok/mantle/pagination"),
 	"@ngrok/mantle/popover": () => import("@ngrok/mantle/popover"),
 	"@ngrok/mantle/progress": () => import("@ngrok/mantle/progress"),

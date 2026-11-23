@@ -536,7 +536,7 @@ The bar renders above an open [Dialog](/components/overlays/dialog),
 scrim, the same as a toast. A click on the bar does not close the overlay. Edit a field below, open
 the sheet, then save or discard: the sheet stays open.
 
-The bar moves into the open overlay, so keyboard and screen-reader users reach it there too. For a form inside a dialog or sheet, put
+The bar is an [`OverlayPrompt`](/components/primitives/overlay-prompt): it moves into the open overlay, so keyboard and screen-reader users reach it there too. For a form inside a dialog or sheet, put
 the save and discard actions in the overlay's footer, not in a Sandbar.
 
 <Example name="sandbar-over-sheet" title="Sandbar over sheet demo">

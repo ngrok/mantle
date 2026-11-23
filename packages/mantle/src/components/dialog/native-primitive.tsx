@@ -26,7 +26,7 @@ import {
 } from "../../utils/layer-container/layer-container.js";
 import { Slot } from "../slot/index.js";
 import { preventCloseOnPromptInteraction } from "../toast/prevent-close-on-prompt-interaction.js";
-import { setTopModal } from "../toast/toaster-host.js";
+import { setTopModal } from "../overlay-prompt/host.js";
 import { escapeBelongsToNestedPopup } from "./targets.js";
 
 /**
