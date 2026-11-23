@@ -65,7 +65,15 @@ export function OverviewExample() {
 			<Field.Item name="volume">
 				<Field.Label>Volume</Field.Label>
 				<Field.Control>
-					<Slider aria-label="Volume" defaultValue={67} max={100} step={1} />
+					<Slider
+						aria-label="Volume"
+						defaultValue={67}
+						max={100}
+						step={1}
+						formatValue={(value) => `${value}%`}
+					>
+						<SliderValue />
+					</Slider>
 				</Field.Control>
 				<Field.Description>Drag to adjust playback volume.</Field.Description>
 			</Field.Item>
