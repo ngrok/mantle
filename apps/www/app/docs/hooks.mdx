@@ -570,13 +570,14 @@ Trigger once on first entry:
 
 ```tsx
 import { useRef } from "react";
+import { cx } from "@ngrok/mantle/cx";
 import { useInView } from "@ngrok/mantle/hooks";
 
 function AnimateOnce() {
 	const ref = useRef<HTMLDivElement>(null);
 	const isInView = useInView(ref, { once: true });
 
-	return <div ref={ref} className={isInView ? "animate" : ""} />;
+	return <div ref={ref} className={cx(isInView && "animate")} />;
 }
 ```
 

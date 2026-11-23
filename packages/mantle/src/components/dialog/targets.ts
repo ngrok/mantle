@@ -13,7 +13,9 @@ import { parseBooleanish } from "../../types/booleanish.js";
  *       event.preventDefault();
  *     }
  *   }}
- * />
+ * >
+ *   <Sheet.Title>Settings</Sheet.Title>
+ * </Sheet.Content>
  * ```
  */
 function isDialogOverlayTarget(target: EventTarget | null): boolean {

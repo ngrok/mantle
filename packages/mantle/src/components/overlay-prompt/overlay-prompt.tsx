@@ -62,7 +62,7 @@ function createHost(): HTMLDivElement {
  * <OverlayPrompt>
  *   <div className="pointer-events-none fixed inset-x-0 bottom-4 z-max flex justify-center">
  *     <div role="group" aria-label="Cookie preferences" className="pointer-events-auto">
- *       <Button type="button" appearance="filled" onClick={acceptAll}>
+ *       <Button type="button" appearance="filled" intent="neutral" onClick={acceptAll}>
  *         Accept all
  *       </Button>
  *     </div>

@@ -1320,7 +1320,7 @@
     "summary": "Keeps a banner, a bar, or another floating element usable above an open dialog or sheet.",
     "jsdoc": "Keeps its content usable above an open `Dialog`, `AlertDialog`, or `Sheet`.",
     "examples": [
-      "```tsx\n<OverlayPrompt>\n  <div className=\"pointer-events-none fixed inset-x-0 bottom-4 z-max flex justify-center\">\n    <div role=\"group\" aria-label=\"Cookie preferences\" className=\"pointer-events-auto\">\n      <Button type=\"button\" appearance=\"filled\" onClick={acceptAll}>\n        Accept all\n      </Button>\n    </div>\n  </div>\n</OverlayPrompt>\n```"
+      "```tsx\n<OverlayPrompt>\n  <div className=\"pointer-events-none fixed inset-x-0 bottom-4 z-max flex justify-center\">\n    <div role=\"group\" aria-label=\"Cookie preferences\" className=\"pointer-events-auto\">\n      <Button type=\"button\" appearance=\"filled\" intent=\"neutral\" onClick={acceptAll}>\n        Accept all\n      </Button>\n    </div>\n  </div>\n</OverlayPrompt>\n```"
     ],
     "aliases": [
       "above dialog",
