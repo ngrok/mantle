@@ -6,9 +6,9 @@
 #
 # ngrok/ship-action builds the image and reports it to ship. A pull request
 # gets a preview only when the action runs. The step runs only when the docs
-# site's turbo build inputs changed since the last run that built it, or when
-# this workflow changed. A push that changes only tests or other docs keeps the
-# running preview. A push to `main` deploys the `main` environment the same way.
+# site's turbo build inputs changed since the last successful run, or when
+# this workflow changed. A push that changes only tests or files outside the
+# docs site's dependency graph keeps the running preview. A push to `main` deploys the `main` environment the same way.
 
 # Do not start the name with "Build and Push Container". Ship reads a run with
 # that name at this path as a run of its old workflow, and looks for an image
@@ -25,7 +25,8 @@ on:
 
 concurrency:
   # A second push to the same ref makes the in-flight image obsolete before it lands.
-  group: ship-mantle-${{ github.ref }}
+  # Manual runs get their own group, so a push does not cancel a redeploy.
+  group: ship-mantle-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -58,7 +59,6 @@ jobs:
         id: node
         run: echo "version=$(cat .nvmrc)" >> "$GITHUB_OUTPUT"
 
-      # .github/actions/ship-build-changed finds the last build by this step name.
       - name: Build and deploy with ngrok ship
         if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.changed == 'true'
         uses: ngrok/ship-action@ce608ca50086eeaa02bb54783633d6e3a31004d7 # v1.0.0

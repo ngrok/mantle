@@ -6,9 +6,10 @@ description: Decide whether a ship app needs a new image in this run
 # image. A comparison with the PR base instead rebuilds the app on every push
 # after the first change to it.
 #
-# The caller's job must name its ngrok/ship-action step
-# "Build and deploy with ngrok ship". A run counts as a build of the app only
-# when that step succeeded, so a cancelled or failed build does not count.
+# The baseline is the head of the newest successful run for the same PR, or
+# for the pushed branch. A successful run either built its head, or skipped
+# because its head had the inputs of the build before it. So that head has
+# the inputs of the live image. A cancelled or failed run does not count.
 # The job needs `actions: read` and a checkout with `fetch-depth: 2`.
 
 inputs:
@@ -24,11 +25,11 @@ outputs:
 runs:
   using: composite
   steps:
-    # A PR that opens or reopens compares its merge commit with its base. A new
-    # push to a PR or a branch compares its head with the last built head. With
-    # no built head, or when that commit is gone after a force push, it uses the
-    # base comparison.
-    - name: Find the last built commit
+    # A PR that opens or reopens, or a PR push with no earlier run, compares
+    # its merge commit with its base. Any other push compares its head with the
+    # baseline head. When the baseline is unknown or cannot be fetched, the app
+    # builds without a comparison. A re-run attempt always builds.
+    - name: Find the baseline
       id: range
       shell: bash
       env:
@@ -39,58 +40,87 @@ runs:
         ACTION: ${{ github.event.action }}
         BRANCH: ${{ github.head_ref || github.ref_name }}
         PR_NUMBER: ${{ github.event.pull_request.number || 0 }}
+        PR_CREATED_AT: ${{ github.event.pull_request.created_at }}
         HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         RUN_ID: ${{ github.run_id }}
-        STEP: Build and deploy with ngrok ship
+        RUN_ATTEMPT: ${{ github.run_attempt }}
       run: |
         workflow="${WORKFLOW_REF#"${REPO}/"}"
         workflow="${workflow%%@*}"
         from=$(git rev-parse HEAD^1)
         to=$(git rev-parse HEAD)
+        force=false
 
-        if [[ "${EVENT}" == "push" || "${ACTION}" == "synchronize" ]]; then
-          runs=$(gh api "repos/${REPO}/actions/workflows/${workflow##*/}/runs?event=${EVENT}&branch=${BRANCH}&status=completed&per_page=20" \
-            | jq -r --argjson run "${RUN_ID}" --argjson pr "${PR_NUMBER}" --arg event "${EVENT}" \
-              '.workflow_runs[] | select(.id != $run) | select($event == "push" or any(.pull_requests[]; .number == $pr)) | "\(.id) \(.head_sha)"') || runs=""
-          while read -r id sha; do
-            [[ -n "${id}" ]] || continue
-            built=$(gh api "repos/${REPO}/actions/runs/${id}/jobs" \
-              | jq --arg step "${STEP}" '[.jobs[].steps[] | select(.name == $step and .conclusion == "success")] | length') || built=0
-            [[ "${built}" != "0" ]] || continue
-            if git cat-file -e "${sha}^{commit}" 2>/dev/null || git fetch --quiet --depth=1 origin "${sha}"; then
-              from="${sha}"
-              to="${HEAD_SHA}"
-            fi
-            break
-          done <<<"${runs}"
+        if [[ "${RUN_ATTEMPT}" != "1" ]]; then
+          force=true
+        elif [[ "${EVENT}" == "push" || "${ACTION}" == "synchronize" ]]; then
+          # A PR counts only its own runs since it opened. A branch also counts
+          # its manual runs, which always build. A re-run attempt newer than the
+          # baseline may have left an image the baseline does not have, and no
+          # successful run in the first page leaves the baseline unknown: both
+          # build.
+          if baseline=$(gh api -X GET "repos/${REPO}/actions/workflows/${workflow##*/}/runs" \
+            -f branch="${BRANCH}" -f status=completed -f per_page=100 \
+            | jq -r --argjson run "${RUN_ID}" --argjson pr "${PR_NUMBER}" --arg event "${EVENT}" --arg since "${PR_CREATED_AT}" '
+                [.workflow_runs[] | select(.id != $run) | select(
+                  if $event == "push" then .event == "push" or .event == "workflow_dispatch"
+                  else .event == "pull_request" and .created_at >= $since and any(.pull_requests[]?; .number == $pr) end
+                )] as $runs
+                | ($runs | map(.conclusion == "success") | index(true)) as $i
+                | if $i == null then (if ($runs | length) > 0 then "force" else "none" end)
+                  elif any($runs[:$i][]; .run_attempt > 1) then "force"
+                  else $runs[$i].head_sha end'); then
+            case "${baseline}" in
+              force) force=true ;;
+              none) [[ "${EVENT}" != "push" ]] || force=true ;;
+              *)
+                if git cat-file -e "${baseline}^{commit}" 2>/dev/null || git fetch --quiet --depth=1 origin "${baseline}"; then
+                  from="${baseline}"
+                  to="${HEAD_SHA}"
+                else
+                  force=true
+                fi
+                ;;
+            esac
+          else
+            echo "::warning::Could not read earlier runs, so the app builds."
+            force=true
+          fi
         fi
 
-        echo "Comparing ${from} with ${to}"
+        echo "Comparing ${from} with ${to} (force=${force})"
         {
           echo "workflow=${workflow}"
           echo "from=${from}"
           echo "to=${to}"
+          echo "force=${force}"
         } >> "${GITHUB_OUTPUT}"
 
     - name: Compare build hashes
       id: hash
+      if: steps.range.outputs.force != 'true'
       uses: ./.github/actions/turbo-build-changed
       with:
         package: ${{ inputs.package }}
         from: ${{ steps.range.outputs.from }}
         to: ${{ steps.range.outputs.to }}
 
-    # A change to the workflow or to this action also builds the app.
+    # The image also depends on files the turbo hash leaves out: the root
+    # package files, which the Dockerfile copies, and the ship workflow and its
+    # actions.
     - name: Decide
       id: result
       shell: bash
       env:
+        FORCE: ${{ steps.range.outputs.force }}
         HASH_CHANGED: ${{ steps.hash.outputs.changed }}
         WORKFLOW: ${{ steps.range.outputs.workflow }}
         FROM: ${{ steps.range.outputs.from }}
         TO: ${{ steps.range.outputs.to }}
       run: |
-        if [[ "${HASH_CHANGED}" == "true" ]] || ! git diff --quiet "${FROM}" "${TO}" -- "${WORKFLOW}" .github/actions/ship-build-changed .github/actions/turbo-build-changed; then
+        if [[ "${FORCE}" == "true" || "${HASH_CHANGED}" == "true" ]] \
+          || ! git diff --quiet "${FROM}" "${TO}" -- "${WORKFLOW}" .github/actions/ship-build-changed .github/actions/turbo-build-changed \
+            package.json pnpm-workspace.yaml scripts/package-manager-version; then
           echo "changed=true" >> "${GITHUB_OUTPUT}"
         else
           echo "changed=false" >> "${GITHUB_OUTPUT}"
