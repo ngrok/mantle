@@ -19,9 +19,9 @@ Mantle registers these Tailwind variants with `@custom-variant` in `mantle.css`.
 
 ## Between children
 
-| Variant    | Description                                                                                                                                                                                  |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `between:` | Applies a class to each child of the element except the last, at zero specificity, as `space-*` and `divide-*` do. Use `between:mb-2` for `space-y-2` and `between:border-b` for `divide-y`. |
+| Variant    | Description                                                                                                                                                                                   |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `between:` | Applies a class to each child of the element except the last, at zero specificity, as `space-*` and `divide-*` do. Use `between:mbe-2` for `space-y-2` and `between:border-b` for `divide-y`. |
 
 Why mantle's parts use it: Tailwind's `space-*` and `divide-*` rules put the class inside `:where()`, so Chromium tries them on each element of the page on each style pass. Chromium skips a `between:` rule at once outside the element. To override a part's spacing or dividers, use `between:` too, such as `between:border-b-0` on `Accordion.Root`, so that `cx` replaces the part's class.
 

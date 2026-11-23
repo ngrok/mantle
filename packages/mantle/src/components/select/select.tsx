@@ -432,7 +432,7 @@ const Group = ({
 				aria-labelledby={labelId}
 				ref={ref}
 				data-slot={joinDataSlot(dataSlot, "select-group")}
-				className={cx("between:mb-px", className)}
+				className={cx("between:mbe-px", className)}
 				{...props}
 			>
 				{children}
@@ -838,7 +838,7 @@ const OpenContent = ({
 				data-open=""
 				className={cx(
 					"border-popover duration-200 ease-out-strong data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1 motion-reduce:animate-none! pointer-events-auto fixed inset-auto z-50 m-0 text-inherit min-w-32 overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 rounded-md border shadow-md",
-					"bg-popover font-sans p-1 between:mb-px max-h-(--available-height) outline-hidden",
+					"bg-popover font-sans p-1 between:mbe-px max-h-(--available-height) outline-hidden",
 					width === "trigger" && "w-(--anchor-width)",
 					className,
 				)}

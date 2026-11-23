@@ -846,7 +846,7 @@ const OpenContent = ({
 					data-slot={joinDataSlot(dataSlot, "multi-select-content")}
 					data-open=""
 					className={cx(
-						"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 has-data-content-footer:after:hidden rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col between:mb-px outline-hidden",
+						"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 has-data-content-footer:after:hidden rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col between:mbe-px outline-hidden",
 						sameWidth && "w-(--anchor-width)",
 						className,
 					)}

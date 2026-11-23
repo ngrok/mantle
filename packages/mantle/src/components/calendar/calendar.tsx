@@ -52,7 +52,7 @@ const calendarClassNames = {
 	day_button: "day size-full rounded-md not-aria-selected:not-disabled:hover:bg-filled-accent/15",
 	disabled: "text-muted opacity-50",
 	hidden: "invisible",
-	month: "between:mb-4",
+	month: "between:mbe-4",
 	month_caption: "flex justify-center pt-1 relative items-center",
 	month_grid: "w-full border-collapse",
 	months: "flex flex-col sm:flex-row gap-y-4 sm:gap-x-4 sm:gap-y-0 relative max-w-min",

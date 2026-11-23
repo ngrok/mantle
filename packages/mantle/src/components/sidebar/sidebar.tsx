@@ -1352,7 +1352,7 @@ const Body = ({
 				// makes focus-triggered scrolling land rows clear of the
 				// scroll-fade-y mask's 1.5rem fade zones, so a keyboard user's
 				// focus ring is never faded out mid-list.
-				"scrollbar scrollbar-gutter-stable scroll-fade-y flex-1 scroll-py-6 between:mb-2 overflow-y-auto overflow-x-hidden px-3 pt-1.5 pb-4",
+				"scrollbar scrollbar-gutter-stable scroll-fade-y flex-1 scroll-py-6 between:mbe-2 overflow-y-auto overflow-x-hidden px-3 pt-1.5 pb-4",
 				// Match Header/Footer trailing geometry when expanded. The padding moves
 				// on the sidebar's clock, so the rows' available width never jumps.
 				"group-data-expanded/sidebar-nav:pr-1",
@@ -1753,7 +1753,7 @@ const List = ({
 		<Comp
 			aria-labelledby={ariaLabelledBy ?? groupContext?.mountedLabelId ?? undefined}
 			data-slot={joinDataSlot(dataSlot, "sidebar-list")}
-			className={cx("mb-2 between:mb-px", className)}
+			className={cx("mb-2 between:mbe-px", className)}
 			{...props}
 		>
 			{children}

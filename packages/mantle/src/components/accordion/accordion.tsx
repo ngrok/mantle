@@ -182,7 +182,7 @@ type AccordionRootProps = (AccordionSingleProps | AccordionMultipleProps) &
  * `between:border-b` on the root draws a hairline divider between items. The
  * shared `separator` token colors it, so it matches `Separator` and every other
  * divider in the system. Disable the dividers with `between:border-b-0` on the
- * root (e.g. pair it with `space-y-*` for a spaced-card layout).
+ * root (e.g. pair it with `between:mbe-*` for a spaced-card layout).
  *
  * @see https://mantle.ngrok.com/components/data-display/accordion#accordionroot
  *

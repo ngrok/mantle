@@ -391,7 +391,7 @@ describe("no-unanchored-child-variant", () => {
 		'cx("data-state-inactive:[&>*]:paused [&>:first-child]:size-7");',
 		'cx("[&:is([data-a],[data-b])]:p-2 has-[[data-a],[data-b]]:p-2");',
 		'const a = "2 * 3: four";',
-		'cx("between:mb-px sm:between:me-2 between:border-b between:border-separator");',
+		'cx("between:mbe-px sm:between:me-2 between:border-b between:border-separator");',
 		'const a = "space-between divide";',
 		'cx("[&_.foo\\\\,bar]:p-2");',
 	])("allows %s", (source) => {

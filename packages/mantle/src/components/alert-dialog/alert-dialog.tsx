@@ -312,7 +312,7 @@ const Body = ({
 	return (
 		<Component
 			data-slot={joinDataSlot(dataSlot, "alert-dialog-body")}
-			className={cx("flex-1 between:mb-4", className)}
+			className={cx("flex-1 between:mbe-4", className)}
 			ref={ref}
 			{...props}
 		/>
@@ -366,7 +366,7 @@ const Header = ({
 	return (
 		<Component
 			data-slot={joinDataSlot(dataSlot, "alert-dialog-header")}
-			className={cx("flex flex-col between:mb-2 text-center sm:text-start", className)}
+			className={cx("flex flex-col between:mbe-2 text-center sm:text-start", className)}
 			ref={ref}
 			{...props}
 		/>

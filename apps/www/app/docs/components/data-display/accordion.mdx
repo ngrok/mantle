@@ -222,7 +222,7 @@ The dashboard's Traffic Policy GUI puts a monospace label, a count badge, and an
 each header. Because the `Item` is a plain `<div>` and the `Trigger` is a real `<button>`, the header is a flex
 row holding the `Trigger`, a divider, and the action button as **siblings**: a clean composition with no overlay and
 no absolute positioning. The `Trigger` toggles its section; the **Add Rule** button is an independent sibling that
-never toggles it; and the `Content` spans full-width below. Override the defaults (`space-y-*` and `between:border-b-0` on
+never toggles it; and the `Content` spans full-width below. Override the defaults (`between:mbe-*` and `between:border-b-0` on
 `Root` to swap the dividers for spacing; and `w-auto` on `Trigger` so it sizes to its label) for the spaced-card look.
 
 <Example name="components/data-display/accordion/custom-header-with-an-inline-action" title="Accordion custom header with an inline action example">
@@ -241,7 +241,7 @@ import { PlusIcon } from "@phosphor-icons/react/Plus";
 <Accordion.Root
 	type="multiple"
 	defaultValue={["on_tcp_connect", "on_http_response"]}
-	className="space-y-2.5 between:border-b-0"
+	className="between:mbe-2.5 between:border-b-0"
 >
 	<Accordion.Item value="on_tcp_connect">
 		<div className="mx-4 flex items-center gap-2">

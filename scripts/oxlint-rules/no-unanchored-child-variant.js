@@ -10,7 +10,7 @@
  *
  * It also flags the `space-*` and `divide-*` utilities, which compile to
  * `:where(.space-y-2 > :not(:last-child))`. Mantle's `between:` variant
- * compiles to `:where(.between\:mb-2) > :where(:not(:last-child))`, with the
+ * compiles to `:where(.between\:mbe-2) > :where(:not(:last-child))`, with the
  * same zero specificity and the class outside.
  *
  * Scope: every static string in a file, so a class list in a `cx()` call, a
@@ -25,7 +25,7 @@
  * // ✅ Correct
  * cx("[&>*]:pointer-events-auto [&_[data-slot=icon]]:shrink-0");
  * cx("[&_[data-a]]:top-1/2 [&_[data-b]]:top-1/2");
- * cx("between:mb-px between:border-b between:border-separator");
+ * cx("between:mbe-px between:border-b between:border-separator");
  */
 
 /** The message for a variant, with the fix it names. */
@@ -91,14 +91,14 @@ export function unanchoredVariants(token) {
 
 /** The message for a `space-*` or `divide-*` utility. */
 const betweenHint =
-	"Tailwind puts the class of `space-*` and `divide-*` inside `:where()`, so Chromium tries the rule on each element of the page on each style pass. Use mantle's `between:` variant: `between:mb-2` for `space-y-2`, `between:me-2` for `space-x-2`, `between:border-b` for `divide-y`, and `between:border-<color>` for `divide-<color>`.";
+	"Tailwind puts the class of `space-*` and `divide-*` inside `:where()`, so Chromium tries the rule on each element of the page on each style pass. Use mantle's `between:` variant: `between:mbe-2` for `space-y-2`, `between:me-2` for `space-x-2`, `between:border-b` for `divide-y`, and `between:border-<color>` for `divide-<color>`.";
 
 /**
  * Whether a Tailwind class is a `space-*` or `divide-*` utility, under any variants.
  *
  * @example
  * isSpaceOrDivide("sm:space-x-2"); // => true
- * isSpaceOrDivide("between:mb-2"); // => false
+ * isSpaceOrDivide("between:mbe-2"); // => false
  */
 export function isSpaceOrDivide(token) {
 	const offsets = topLevelOffsets(token, ":");
