@@ -1,8 +1,9 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, test, vi } from "vitest";
 import * as Field from "../field/field-parts.js";
-import { Slider } from "./slider.js";
+import { renderToString } from "react-dom/server";
+import { Slider, SliderValue } from "./slider.js";
 import type { SliderProps } from "./slider.js";
 
 describe("Slider", () => {
@@ -410,5 +411,64 @@ describe("Slider", () => {
 			const colors = Array.from(range?.classList ?? []).filter((name) => name.startsWith("bg-"));
 			expect(colors).toEqual(["bg-blue-500"]);
 		});
+	});
+});
+
+describe("SliderValue", () => {
+	test("the server HTML holds each thumb's value text, and each label writes its text on mount", () => {
+		const slider = (
+			<Slider aria-label="Price" defaultValue={[20, 80]} formatValue={(value) => `$${value}`}>
+				<SliderValue />
+				<SliderValue placement="track" />
+			</Slider>
+		);
+		const page = document.createElement("div");
+		page.innerHTML = renderToString(slider);
+		render(slider);
+
+		expect(
+			[...page.querySelectorAll("input")].map((input) => input.getAttribute("aria-valuetext")),
+		).toEqual(["$20", "$80"]);
+		expect(
+			[...document.body.querySelectorAll("[data-slot='slider-value']")].map(
+				(label) => label.textContent,
+			),
+		).toEqual(["$20", "$80", "$20 – $80"]);
+	});
+
+	test("a key press on an uncontrolled slider updates the labels and the value text", async () => {
+		const user = userEvent.setup();
+		render(
+			<Slider aria-label="Volume" defaultValue={40} formatValue={(value) => `${value}%`}>
+				<SliderValue placement="track" />
+			</Slider>,
+		);
+		screen.getByRole("slider").focus();
+		await user.keyboard("{ArrowRight}");
+
+		expect(screen.getByRole("slider")).toHaveAttribute("aria-valuetext", "41%");
+		await waitFor(() =>
+			expect(document.querySelector("[data-slot='slider-value']")).toHaveTextContent("41%"),
+		);
+	});
+
+	test("a new formatValue keeps an uncontrolled thumb's value text on its current value", async () => {
+		const user = userEvent.setup();
+		const { rerender } = render(
+			<Slider aria-label="Heat" defaultValue={20} formatValue={(value) => `${value}C`} />,
+		);
+		screen.getByRole("slider").focus();
+		await user.keyboard("{PageUp}");
+		rerender(<Slider aria-label="Heat" defaultValue={20} formatValue={(value) => `${value}F`} />);
+
+		expect(screen.getByRole("slider")).toHaveAttribute("aria-valuetext", "30C");
+		await user.keyboard("{ArrowRight}");
+		expect(screen.getByRole("slider")).toHaveAttribute("aria-valuetext", "31F");
+	});
+
+	test("outside a Slider, it throws", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+
+		expect(() => render(<SliderValue />)).toThrow("SliderValue must be rendered inside a Slider.");
 	});
 });
