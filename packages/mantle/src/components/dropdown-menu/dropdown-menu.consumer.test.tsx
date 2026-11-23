@@ -1,7 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { expect, test } from "vitest";
-import { vi } from "vitest";
+import { expect, test, vi } from "vitest";
 import * as DropdownMenu from "./dropdown-menu-parts.js";
 
 test("a consumer opens the menu and picks an item by role", async () => {

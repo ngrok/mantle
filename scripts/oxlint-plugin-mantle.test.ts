@@ -467,9 +467,13 @@ describe("require-force-reason", () => {
 			"",
 			"await user.click(b, { force: true });",
 			"",
+			"// Why wait: the menu animates.",
+			"await user.click(c, { force: true }); // see http://x/Why force",
+			"",
 		].join("\n");
 
 		expect(lint({ rule: "require-force-reason", fileName: "a.test.ts", source })).toEqual([
+			"require-force-reason",
 			"require-force-reason",
 		]);
 	});
@@ -481,7 +485,7 @@ describe("require-force-reason", () => {
 			"await user.click(b, { force: true });",
 			"",
 			"await user.click(c, {",
-			"\tforce: true, // Why: the row covers it.",
+			"\tforce: true, // Why force: the row covers it.",
 			"});",
 			"",
 			"const options = { force: true };",

@@ -10,14 +10,17 @@ test("a consumer expands a section by role", async () => {
 			<Accordion.Item value="a">
 				<Accordion.Trigger>Billing</Accordion.Trigger>
 				<Accordion.Content>
-					<Accordion.Body>Billing details</Accordion.Body>
+					<Accordion.Body>
+						<button type="button">Pay invoice</button>
+					</Accordion.Body>
 				</Accordion.Content>
 			</Accordion.Item>
 		</Accordion.Root>,
 	);
 
-	expect(screen.getByText("Billing details")).not.toBeVisible();
+	expect(screen.queryByRole("button", { name: "Pay invoice" })).toBeNull();
 	await user.click(screen.getByRole("button", { name: "Billing" }));
 
 	expect(screen.getByRole("button", { name: "Billing" })).toHaveAttribute("aria-expanded", "true");
+	expect(screen.getByRole("button", { name: "Pay invoice" })).toBeInTheDocument();
 });

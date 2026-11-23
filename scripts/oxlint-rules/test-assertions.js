@@ -22,8 +22,8 @@
  *
  * `require-force-reason`: `{ force: true }` skips the checks that a user's
  * pointer would fail, so it can hide a part that a consumer cannot click.
- * Put a `Why` comment in the same paragraph, the lines above it up to a blank
- * line (COMPONENT_SPEC.md §3.6).
+ * Put a `// Why force:` comment in the same paragraph: beside or inside the
+ * call, or in the lines above it up to a blank line (COMPONENT_SPEC.md §3.6).
  *
  * @example
  * // ❌ Incorrect
@@ -295,12 +295,16 @@ const POINTER_ACTIONS = new Set([
 	"uncheck",
 	"unhover",
 ]);
-const WHY = /\/\/.*\bWhy\b|\/\*.*\bWhy\b/;
+const WHY_FORCE = /^\s*Why force\b/;
 
 const requireForceReason = {
 	meta: {},
 	create(context) {
 		const { lines } = context.sourceCode;
+		const reasonLines = context.sourceCode
+			.getAllComments()
+			.filter((comment) => WHY_FORCE.test(comment.value))
+			.map((comment) => comment.loc.end.line);
 		return {
 			Property(node) {
 				if (
@@ -315,15 +319,14 @@ const requireForceReason = {
 				) {
 					return;
 				}
-				// Why walk up from the end line: the reason can sit beside the call or above it.
-				for (let line = node.loc.end.line; line >= 1; line--) {
-					const text = lines[line - 1] ?? "";
-					if (WHY.test(text)) {
-						return;
-					}
-					if (line < node.loc.start.line && text.trim() === "") {
-						break;
-					}
+				// Why the paragraph: the reason can sit beside the call, inside it, or above it, up to a blank line.
+				let start = node.loc.start.line;
+				while (start > 1 && (lines[start - 2] ?? "").trim() !== "") {
+					start--;
+				}
+				const end = node.parent.parent.loc.end.line;
+				if (reasonLines.some((line) => line >= start && line <= end)) {
+					return;
 				}
 				context.report({
 					message:

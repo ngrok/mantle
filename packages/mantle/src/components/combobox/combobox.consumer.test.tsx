@@ -1,7 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { expect, test } from "vitest";
-import { vi } from "vitest";
+import { expect, test, vi } from "vitest";
 import * as Combobox from "./combobox-parts.js";
 
 test("a consumer types in the combobox and picks an option by role", async () => {

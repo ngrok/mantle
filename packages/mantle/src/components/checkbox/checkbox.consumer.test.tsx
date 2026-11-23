@@ -1,7 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { expect, test } from "vitest";
-import { vi } from "vitest";
+import { expect, test, vi } from "vitest";
 import { Checkbox } from "./checkbox.js";
 
 test("a consumer checks the checkbox by role", async () => {

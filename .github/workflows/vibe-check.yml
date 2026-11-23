@@ -291,7 +291,7 @@ jobs:
 
           echo "non-mantle test status: ${non_mantle_status}"
           echo "mantle-vite-plugins test status: ${vite_plugins_status}"
-          echo "mantle unit test status: ${mantle_status}"
+          echo "mantle unit and consumer test status: ${mantle_status}"
 
           if [[ "${non_mantle_status}" -ne 0 || "${vite_plugins_status}" -ne 0 || "${mantle_status}" -ne 0 ]]; then
             exit 1

@@ -1,7 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { expect, test } from "vitest";
-import { vi } from "vitest";
+import { expect, test, vi } from "vitest";
 import * as Command from "./command-parts.js";
 
 test("a consumer opens the palette, filters, and picks an item by role", async () => {
