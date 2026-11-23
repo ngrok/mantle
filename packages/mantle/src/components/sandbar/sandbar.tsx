@@ -923,14 +923,16 @@ const SaveButton = ({
 				// Why: a bar in a dialog is outside its form, so a submit button
 				// submits the form it left.
 				// Why the form owner check: a bar that the dialog's own form holds
-				// submits it natively.
+				// submits it natively. A bar that another form holds must not
+				// submit that form.
 				const form = liftedForm();
 				if (
 					!event.defaultPrevented &&
 					props.type === "submit" &&
 					form != null &&
-					buttonRef.current?.form == null
+					buttonRef.current?.form !== form
 				) {
+					event.preventDefault();
 					form.requestSubmit();
 				}
 			}}

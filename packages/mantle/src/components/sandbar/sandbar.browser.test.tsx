@@ -476,4 +476,37 @@ describe("a bar in a form", () => {
 		await waitFor(() => expect(form.contains(getPanel())).toBe(true));
 		expect(screen.getByRole("button", { name: "Save" })).toHaveProperty("form", form);
 	});
+
+	test("submits only its own form from a dialog that another form holds", async () => {
+		const onSave = vi.fn<(event: SubmitEvent) => void>((event) => event.preventDefault());
+		const onOther = vi.fn<(event: SubmitEvent) => void>((event) => event.preventDefault());
+		render(
+			<>
+				<form aria-label="Endpoint" onSubmit={(event) => onSave(event.nativeEvent)}>
+					<Sandbar.Root open>
+						<Sandbar.Message>You have unsaved changes</Sandbar.Message>
+						<Sandbar.Actions>
+							<Sandbar.SaveButton type="submit">Save</Sandbar.SaveButton>
+						</Sandbar.Actions>
+					</Sandbar.Root>
+				</form>
+				<form aria-label="Other" onSubmit={(event) => onOther(event.nativeEvent)}>
+					<Dialog.Root>
+						<Dialog.Trigger>Open dialog</Dialog.Trigger>
+						<Dialog.Content forceMount>
+							<Dialog.Title>Details</Dialog.Title>
+						</Dialog.Content>
+					</Dialog.Root>
+				</form>
+			</>,
+		);
+
+		await userEvent.click(screen.getByRole("button", { name: "Open dialog" }));
+		const dialog = screen.getByRole("dialog", { name: "Details" });
+		await waitFor(() => expect(dialog.contains(getPanel())).toBe(true));
+		await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+		expect(onSave).toHaveBeenCalledTimes(1);
+		expect(onOther).not.toHaveBeenCalled();
+	});
 });

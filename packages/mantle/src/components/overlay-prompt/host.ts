@@ -32,10 +32,16 @@ function moveHost(host: HTMLElement, parent: Element): void {
 /**
  * Puts `host` where it belongs: in the top open modal dialog, else in `home`.
  * It stays home in a dialog that holds its home, which it can already reach,
- * and in a dialog that it holds, such as a confirm that opens from it.
+ * and while it holds an open modal, such as a confirm that opens from it.
+ * Why the `:modal` query: a move without `moveBefore` takes a dialog out of
+ * the top layer, and `topModal` is not `:modal` yet as it opens.
  */
 function placeHost(host: HTMLElement, home: Element): void {
-	const lift = topModal != null && !topModal.contains(home) && !host.contains(topModal);
+	const lift =
+		topModal != null &&
+		!topModal.contains(home) &&
+		!host.contains(topModal) &&
+		host.querySelector("dialog:modal") == null;
 	moveHost(host, lift && topModal != null ? topModal : home);
 }
 

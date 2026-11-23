@@ -1,5 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, test, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, onTestFinished, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import * as Dialog from "../dialog/dialog-parts.js";
 import * as Popover from "../popover/popover-parts.js";
@@ -111,5 +111,81 @@ describe("OverlayPrompt over an open modal dialog", () => {
 		await userEvent.click(await screen.findByRole("button", { name: "Analytics" }));
 		expect(onPick).toHaveBeenCalledTimes(1);
 		expect(dialog).toHaveAttribute("open");
+	});
+
+	test("a kept-mounted dialog with no control in its panel keeps focus", async () => {
+		render(
+			<>
+				<Banner onAccept={() => {}} />
+				<Dialog.Root>
+					<Dialog.Trigger>Open</Dialog.Trigger>
+					<Dialog.Content forceMount>
+						<Dialog.Title>Loading</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+			</>,
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Open" }));
+		const dialog = screen.getByRole("dialog", { name: "Loading" });
+
+		await waitFor(() => expect(dialog).toHaveFocus());
+	});
+
+	test("a dialog composed in the content closes on a press on its backdrop", async () => {
+		render(
+			<OverlayPrompt>
+				<Dialog.Root>
+					<Dialog.Trigger>Open</Dialog.Trigger>
+					<Dialog.Content>
+						<Dialog.Title>Confirm</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+			</OverlayPrompt>,
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Open" }));
+		const dialog = screen.getByRole("dialog", { name: "Confirm" });
+
+		fireEvent.pointerDown(dialog);
+		fireEvent.click(dialog);
+		await waitFor(() => expect(dialog).not.toHaveAttribute("open"));
+	});
+
+	test("a dialog composed in the content stays modal while another dialog opens above it", async () => {
+		// Why: Safari has no `moveBefore`, and a plain move takes a dialog out of
+		// the top layer.
+		const proto = Element.prototype;
+		const methods = Object.getOwnPropertyDescriptors(proto);
+		Reflect.deleteProperty(proto, "moveBefore");
+		onTestFinished(() => {
+			Object.defineProperties(proto, methods);
+		});
+		const Page = ({ second }: { second: boolean }) => (
+			<>
+				<OverlayPrompt>
+					<Dialog.Root defaultOpen>
+						<Dialog.Content>
+							<Dialog.Title>First</Dialog.Title>
+						</Dialog.Content>
+					</Dialog.Root>
+				</OverlayPrompt>
+				<Dialog.Root open={second}>
+					<Dialog.Content>
+						<Dialog.Title>Second</Dialog.Title>
+					</Dialog.Content>
+				</Dialog.Root>
+			</>
+		);
+		const view = render(<Page second={false} />);
+		const first = screen.getByRole("dialog", { name: "First" });
+		await waitFor(() => expect(first.matches(":modal")).toBe(true));
+
+		view.rerender(<Page second />);
+		await waitFor(() =>
+			expect(screen.getByRole("dialog", { name: "Second" }).matches(":modal")).toBe(true),
+		);
+		view.rerender(<Page second={false} />);
+
+		await waitFor(() => expect(screen.queryByRole("dialog", { name: "Second" })).toBeNull());
+		expect(first.matches(":modal")).toBe(true);
 	});
 });
