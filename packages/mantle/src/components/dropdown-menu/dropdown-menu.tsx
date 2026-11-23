@@ -747,7 +747,23 @@ type MenuPanelProps = ComponentProps<"div"> &
 	};
 
 const panelClassName =
-	"scrollbar-none [&::-webkit-scrollbar]:hidden text-popover-foreground border-popover bg-popover p-1.25 min-w-32 max-h-(--available-height) overflow-auto overscroll-none rounded-md border shadow-xl outline-hidden space-y-px font-sans";
+	"text-popover-foreground border-popover bg-popover flex flex-col min-w-32 max-h-(--available-height) rounded-md border shadow-xl outline-hidden font-sans";
+
+/**
+ * The element inside a menu panel that scrolls. Why a separate element: the
+ * `scroll-fade-y` mask fades the edges of the element that has it, and on the
+ * panel it would fade the border and shadow too. Why `scroll-py-6`: a focused
+ * item scrolls clear of the 1.5rem fade at each edge.
+ */
+const scrollerClassName =
+	"scroll-fade-y scrollbar-none [&::-webkit-scrollbar]:hidden min-h-0 overflow-auto overscroll-none scroll-py-6 p-1.25 space-y-px";
+
+/** Puts a menu panel's items in its scrolling element. */
+const renderScroller = (items: ReactNode) => (
+	<div data-slot="dropdown-menu-viewport" className={scrollerClassName}>
+		{items}
+	</div>
+);
 
 type DropdownMenuContentProps = MenuPanelProps & {
 	/**
@@ -963,7 +979,7 @@ const Content = ({
 						}
 					}}
 				>
-					{children}
+					{asChild ? slotContent(children, renderScroller) : renderScroller(children)}
 				</Component>,
 			),
 			portalTarget,
@@ -1536,7 +1552,7 @@ const SubContent = ({
 						onMenuKeyDown(event);
 					}}
 				>
-					{children}
+					{asChild ? slotContent(children, renderScroller) : renderScroller(children)}
 				</Component>,
 			),
 			portalTarget,

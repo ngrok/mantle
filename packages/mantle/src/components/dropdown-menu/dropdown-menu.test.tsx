@@ -370,6 +370,26 @@ function getItem(slot: string): HTMLElement {
 	return item;
 }
 
+// Cross-file spelling pin: `scroll-fade-y` is the @utility declared in
+// packages/mantle/src/mantle.css that fades the scrolled edges. It belongs on
+// the element that scrolls, not the menu, where the mask would fade the border.
+test("the scrolling element in the menu carries the scroll-fade-y edge mask", async () => {
+	render(
+		<DropdownMenu.Root defaultOpen>
+			<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+			<DropdownMenu.Content>
+				<DropdownMenu.Item>Apple</DropdownMenu.Item>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>,
+	);
+	const menu = await screen.findByRole("menu");
+	const scroller = screen.getByRole("menuitem").parentElement;
+
+	expect(scroller?.className).toContain("scroll-fade-y");
+	expect(scroller?.parentElement).toBe(menu);
+	expect(menu.className).not.toContain("scroll-fade-y");
+});
+
 describe.each([{ asChild: false }, { asChild: true }])(
 	"DropdownMenu label slots (asChild: $asChild)",
 	({ asChild }) => {
