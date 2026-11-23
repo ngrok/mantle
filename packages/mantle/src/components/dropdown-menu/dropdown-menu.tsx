@@ -33,6 +33,7 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 import type { Align, Side } from "../../utils/float/position.js";
 import {
 	floatClassName,
+	hasPopoverApi,
 	useFloat,
 	useReconcileOnTriggerChange,
 	useTriggerRef,
@@ -1020,7 +1021,7 @@ const Content = ({
 			renderLevel(
 				<Component
 					id={state.contentId}
-					popover="manual"
+					popover={hasPopoverApi ? "manual" : undefined}
 					role="menu"
 					aria-labelledby={state.triggerId}
 					aria-orientation="vertical"
@@ -1593,7 +1594,7 @@ const SubContent = ({
 			renderLevel(
 				<Component
 					id={sub.contentId}
-					popover="manual"
+					popover={hasPopoverApi ? "manual" : undefined}
 					role="menu"
 					aria-labelledby={sub.triggerId}
 					aria-orientation="vertical"

@@ -14,6 +14,7 @@ import { FloatArrow, focusFirst } from "../../utils/float/parts.js";
 import type { Align, Side } from "../../utils/float/position.js";
 import {
 	floatClassName,
+	hasPopoverApi,
 	useFloat,
 	useReconcileOnTriggerChange,
 	useTriggerRef,
@@ -414,7 +415,7 @@ const Content = ({
 			<LayerContainer
 				modal={false}
 				id={state.contentId}
-				popover="manual"
+				popover={hasPopoverApi ? "manual" : undefined}
 				role="dialog"
 				tabIndex={-1}
 				data-slot={joinDataSlot(dataSlot, "popover-content")}

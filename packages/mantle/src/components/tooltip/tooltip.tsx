@@ -20,6 +20,7 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 import type { Align, Side } from "../../utils/float/position.js";
 import {
 	floatClassName,
+	hasPopoverApi,
 	useFloat,
 	useReconcileOnTriggerChange,
 	useTriggerRef,
@@ -579,7 +580,7 @@ function Content({
 			<LayerContainer
 				modal={false}
 				id={state.contentId}
-				popover="hint"
+				popover={hasPopoverApi ? "hint" : undefined}
 				role="tooltip"
 				data-slot={joinDataSlot(dataSlot, "tooltip-content")}
 				data-state={state.state}

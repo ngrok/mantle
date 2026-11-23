@@ -22,6 +22,7 @@ import { cx } from "../../utils/cx/cx.js";
 import { observeScrollEdges } from "../../utils/scroll-edges.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
+import { hasPopoverApi } from "../../utils/float/use-float.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { parseValidation } from "../field/validation.js";
 import { useFieldValidation } from "../field/validation-context.js";
@@ -816,7 +817,7 @@ const OpenContent = ({
 			<div
 				{...props}
 				{...listbox.listboxProps}
-				popover="manual"
+				popover={hasPopoverApi ? "manual" : undefined}
 				role="listbox"
 				tabIndex={-1}
 				onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}

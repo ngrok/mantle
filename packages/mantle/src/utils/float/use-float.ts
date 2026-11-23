@@ -42,6 +42,10 @@ const floatClassName =
 /**
  * Whether the browser has the popover API. Without it, `useFloat` shows the
  * float as a plain fixed box and runs every behavior from script.
+ *
+ * Why a float sets `popover` only when this is true: jsdom hides `[popover]`
+ * in its default stylesheet but has no `showPopover`, so a float with the
+ * attribute never shows, and a test cannot find it by its role.
  */
 const hasPopoverApi = canUseDOM() && "togglePopover" in HTMLElement.prototype;
 
@@ -210,7 +214,7 @@ type UseFloatOptions = OutsideHandlers & {
  * @example
  * ```tsx
  * const { present, portalTarget, floatingRef } = useFloat({ open, onDismiss: () => setOpen(false), ... });
- * return present && portalTarget != null && createPortal(<div popover="manual" ref={floatingRef} />, portalTarget);
+ * return present && portalTarget != null && createPortal(<div popover={hasPopoverApi ? "manual" : undefined} ref={floatingRef} />, portalTarget);
  * ```
  */
 function useFloat({

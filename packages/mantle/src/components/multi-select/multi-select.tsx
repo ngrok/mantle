@@ -15,6 +15,7 @@ import { cx } from "../../utils/cx/cx.js";
 import { observeScrollEdges } from "../../utils/scroll-edges.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { hasPopoverApi } from "../../utils/float/use-float.js";
 import { shakeElement } from "../../utils/shake.js";
 import { FieldControlContext } from "../field/field-context.js";
 import { parseValidation } from "../field/validation.js";
@@ -850,7 +851,7 @@ const OpenContent = ({
 					{...listbox.listboxProps}
 					onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
 					aria-multiselectable
-					popover="manual"
+					popover={hasPopoverApi ? "manual" : undefined}
 					ref={composedRef}
 					data-slot={joinDataSlot(dataSlot, "multi-select-content")}
 					data-state="open"
