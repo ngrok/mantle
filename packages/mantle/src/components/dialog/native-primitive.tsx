@@ -171,6 +171,9 @@ function moveDialog({
 		}
 		return;
 	}
+	if (open && insideHiddenDialog(dialog)) {
+		return;
+	}
 	if (modal) {
 		nonModal.delete(dialog);
 	} else {
@@ -308,8 +311,16 @@ function commandAttributes(root: RootState, command: "show-modal" | "close") {
  * hides nothing.
  */
 function insideHiddenDialog(dialog: HTMLDialogElement): boolean {
-	const ancestor = dialog.parentElement?.closest("dialog:not([open])");
-	return ancestor instanceof HTMLElement && ancestor.style.display !== "contents";
+	for (
+		let ancestor = dialog.parentElement?.closest("dialog:not([open])");
+		ancestor instanceof HTMLElement;
+		ancestor = ancestor.parentElement?.closest("dialog:not([open])")
+	) {
+		if (ancestor.style.display !== "contents") {
+			return true;
+		}
+	}
+	return false;
 }
 
 /** Whether the click on `element` sends a `command` event to the `<dialog>`. */
@@ -721,14 +732,15 @@ const Content = ({
 		// `forceMount` parent, does not open. A modal in it would make the page
 		// inert and not show.
 		queueMicrotask(() => {
-			if (
-				dialogRef.current === dialog &&
-				wantsOpen() &&
-				!dialog.open &&
-				!insideHiddenDialog(dialog)
-			) {
-				openDialog(dialog);
+			if (dialogRef.current !== dialog || !wantsOpen() || dialog.open) {
+				return;
 			}
+			if (insideHiddenDialog(dialog)) {
+				// Why: the open state must not stay true for a dialog that did not open.
+				root.setOpen(false);
+				return;
+			}
+			openDialog(dialog);
 		});
 	});
 
@@ -746,13 +758,19 @@ const Content = ({
 			content: panel,
 			escape: guardedEscape,
 		});
-		const release = () => {
-			dialog.removeEventListener("close", release);
+		// Why the open check: `close` fires in a later task, after a reopen too.
+		function release() {
+			dialog.removeEventListener("close", onClose);
 			releaseOverlay.current = null;
 			unregister();
-		};
+		}
+		function onClose() {
+			if (!dialog.open) {
+				release();
+			}
+		}
 		releaseOverlay.current = release;
-		dialog.addEventListener("close", release);
+		dialog.addEventListener("close", onClose);
 	});
 
 	/**

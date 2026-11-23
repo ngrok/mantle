@@ -1036,6 +1036,60 @@ describe("review round 2", () => {
 		expect(document.querySelector("dialog:modal")).toBeNull();
 	});
 
+	test("an asChild link trigger outside a closed forceMount parent does not open its child", async () => {
+		render(
+			<Sheet.Root>
+				<Dialog.Root>
+					<Dialog.Trigger asChild>
+						<a href="#child">Open child</a>
+					</Dialog.Trigger>
+					<Sheet.Content forceMount>
+						<Sheet.Title>Parent</Sheet.Title>
+						<Dialog.Content forceMount>
+							<Dialog.Title>Child</Dialog.Title>
+						</Dialog.Content>
+					</Sheet.Content>
+				</Dialog.Root>
+			</Sheet.Root>,
+		);
+
+		await userEvent.click(screen.getByRole("link", { name: "Open child" }));
+
+		expect(document.querySelector("dialog:modal")).toBeNull();
+	});
+
+	test("a lazy child that could not open in a closed parent opens once the parent does", async () => {
+		render(
+			<Sheet.Root>
+				<Sheet.Trigger>Open sheet</Sheet.Trigger>
+				<Dialog.Root>
+					<Dialog.Trigger>Open child outside</Dialog.Trigger>
+					<Sheet.Content forceMount>
+						<Sheet.Title>Parent</Sheet.Title>
+						<Dialog.Trigger>Open child inside</Dialog.Trigger>
+						<Dialog.Content>
+							<Dialog.Title>Child</Dialog.Title>
+						</Dialog.Content>
+					</Sheet.Content>
+				</Dialog.Root>
+			</Sheet.Root>,
+		);
+
+		await userEvent.click(screen.getByRole("button", { name: "Open child outside" }));
+		await waitFor(() =>
+			expect(screen.getByRole("button", { name: "Open child outside" })).toHaveAttribute(
+				"aria-expanded",
+				"false",
+			),
+		);
+		await userEvent.click(screen.getByRole("button", { name: "Open sheet" }));
+		await userEvent.click(await screen.findByRole("button", { name: "Open child inside" }));
+
+		await waitFor(() =>
+			expect(screen.getByRole("dialog", { name: "Child" }).matches(":modal")).toBe(true),
+		);
+	});
+
 	test("a dialog that moves to a new portal target keeps its floats working", async () => {
 		render(
 			<LayerContainer>
