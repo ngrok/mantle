@@ -17,6 +17,8 @@ type SliderBehaviorOptions = {
 	onValueChange: ((value: number[]) => void) | undefined;
 	/** Called once for each keyboard step, and at the end of a drag that changed a value. */
 	onValueCommit: ((value: number[]) => void) | undefined;
+	/** The text of a value, for `aria-valuetext`. */
+	formatValue: ((value: number) => string) | undefined;
 };
 
 /**
@@ -72,6 +74,7 @@ function sliderBehavior({
 	dir,
 	onValueChange,
 	onValueCommit,
+	formatValue,
 }: SliderBehaviorOptions) {
 	const edgeOfMin = (root: HTMLElement): Edge => {
 		if (orientation === "vertical") {
@@ -115,7 +118,7 @@ function sliderBehavior({
 		root.removeAttribute(TRACK_PRESS);
 		parts.inputs[result.index]?.focus({ preventScroll: true, focusVisible: keyboard });
 		if (!controlled) {
-			paint(parts, result.values, min);
+			paint(parts, result.values, { min, formatValue });
 		}
 		announce({ inputs: parts.inputs, before: current, after: result.values, grid: { min, step } });
 		onValueChange?.(result.values);
@@ -157,6 +160,7 @@ function sliderBehavior({
 				// Why the offset: a press on a thumb grabs it where it is, so the thumb
 				// does not jump to the pointer on the first move.
 				inputs[thumbIndex]?.focus({ preventScroll: true, focusVisible: false });
+				root.setAttribute(DRAGGING, "");
 				slides.set(root, {
 					pointerId: event.pointerId,
 					index: thumbIndex,
@@ -176,6 +180,7 @@ function sliderBehavior({
 				keyboard: false,
 			});
 			glide(root);
+			root.setAttribute(DRAGGING, "");
 			slides.set(root, {
 				pointerId: event.pointerId,
 				index,
@@ -209,6 +214,7 @@ function sliderBehavior({
 				return;
 			}
 			slides.delete(root);
+			root.removeAttribute(DRAGGING);
 			const { values } = partsOf(root);
 			if (String(values) !== String(slide.before)) {
 				onValueCommit?.(values);
@@ -262,7 +268,7 @@ function sliderBehavior({
 					each.step = onStepGrid(next[index] ?? min, { min, step }) ? String(step) : "any";
 				}
 				if (String(next) !== String(values)) {
-					paint(partsOf(root), next, min);
+					paint(partsOf(root), next, { min, formatValue });
 					onValueChange?.(next);
 				}
 				return;
@@ -331,6 +337,9 @@ function stopNativeTouch(event: TouchEvent) {
 		event.preventDefault();
 	}
 }
+
+/** The root attribute that shows the value labels while a pointer drags a thumb. */
+const DRAGGING = "data-dragging";
 
 /** The root attribute that lets the thumbs and the range glide to the value of a press on the track. */
 const TRACK_PRESS = "data-track-press";
@@ -452,11 +461,22 @@ function partsOf(root: Element): Parts {
 	};
 }
 
-/** Writes `values` to the thumbs and the range of an uncontrolled slider. {@link announce} writes the inputs. */
-function paint({ range, thumbs }: Parts, values: number[], min: number): void {
+/**
+ * Writes `values` to the thumbs and the range of an uncontrolled slider, and the
+ * value text to its inputs. {@link announce} writes the input values.
+ */
+function paint(
+	{ range, thumbs, inputs }: Parts,
+	values: number[],
+	{ min, formatValue }: { min: number; formatValue: ((value: number) => string) | undefined },
+): void {
 	const styles = sliderStyles(values, min);
 	for (const [index, thumb] of thumbs.entries()) {
-		thumb.style.setProperty(VALUE_PROPERTY, String(values[index]));
+		const value = values[index] ?? min;
+		thumb.style.setProperty(VALUE_PROPERTY, String(value));
+		if (formatValue != null) {
+			inputs[index]?.setAttribute("aria-valuetext", formatValue(value));
+		}
 	}
 	range?.style.setProperty(RANGE_START_PROPERTY, String(styles.range[RANGE_START_PROPERTY]));
 	range?.style.setProperty(RANGE_END_PROPERTY, String(styles.range[RANGE_END_PROPERTY]));
