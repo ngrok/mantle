@@ -2251,15 +2251,18 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 	}
 
 	/* The caret at the end of the streamed text: after the last paragraph, heading, or list item. */
-	:where([data-slot="markdown"][data-streaming]) > :last-child:is(p, h1, h2, h3, h4, h5, h6)::after,
 	:where([data-slot="markdown"][data-streaming])
-		> :last-child:is(ul, ol)
-		> li:last-child:not(:has(> p, > ul, > ol))::after,
+		> :not(:has(+ *)):is(p, h1, h2, h3, h4, h5, h6)::after,
 	:where([data-slot="markdown"][data-streaming])
-		> :last-child:is(ul, ol)
-		> li:last-child
-		> p:last-child::after,
-	:where([data-slot="markdown"][data-streaming]) > blockquote:last-child > p:last-child::after {
+		> :not(:has(+ *)):is(ul, ol)
+		> li:not(:has(+ *)):not(:has(> p, > ul, > ol))::after,
+	:where([data-slot="markdown"][data-streaming])
+		> :not(:has(+ *)):is(ul, ol)
+		> li:not(:has(+ *))
+		> p:not(:has(+ *))::after,
+	:where([data-slot="markdown"][data-streaming])
+		> blockquote:not(:has(+ *))
+		> p:not(:has(+ *))::after {
 		content: "";
 		display: inline-block;
 		width: 0.5em;

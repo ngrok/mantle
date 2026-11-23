@@ -5,7 +5,6 @@ import {
 	createElement,
 	memo,
 	useEffect,
-	useEffectEvent,
 	useId,
 	useMemo,
 	useRef,
@@ -14,6 +13,7 @@ import {
 	type ReactNode,
 } from "react";
 import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
+import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { cx } from "../../utils/cx/cx.js";
 import { Anchor } from "../anchor/anchor.js";
 import * as CodeBlock from "../code-block/code-block-parts.js";
@@ -622,7 +622,7 @@ function Markdown({
 		setHasStreamed(true);
 	}
 
-	const completeEvent = useEffectEvent((count: number, from: number) => {
+	const completeEvent = useCallbackRef((count: number, from: number) => {
 		for (let index = from; index < count; index += 1) {
 			const token = snapshot.blocks[index];
 			if (token != null) {
@@ -630,7 +630,7 @@ function Markdown({
 			}
 		}
 	});
-	const endEvent = useEffectEvent(() => {
+	const endEvent = useCallbackRef(() => {
 		onStreamEnd?.();
 	});
 	const reportedRef = useRef(snapshot.completeCount);
@@ -644,7 +644,7 @@ function Markdown({
 			endEvent();
 		}
 		wasStreamingRef.current = streaming;
-	}, [snapshot, streaming]);
+	}, [snapshot, streaming, completeEvent, endEvent]);
 
 	return (
 		<div

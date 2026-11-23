@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { readWithRetries, type MarkdownStreamSource } from "./read-stream.js";
 
 /** Options for {@link useMarkdownStream}. */
@@ -87,8 +88,8 @@ function useMarkdownStream({
 		status: enabled ? "streaming" : "done",
 		error: undefined,
 	});
-	const open = useEffectEvent((offset: number, signal: AbortSignal) => read({ offset, signal }));
-	const canRetry = useEffectEvent((failures: number) => failures <= retries);
+	const open = useCallbackRef((offset: number, signal: AbortSignal) => read({ offset, signal }));
+	const canRetry = useCallbackRef((failures: number) => failures <= retries);
 	// Why a ref: the offset outlives one read, such as when the effect runs again.
 	const receivedRef = useRef(initialText.length);
 
@@ -135,7 +136,7 @@ function useMarkdownStream({
 			controller.abort();
 			cancelAnimationFrame(frame);
 		};
-	}, [enabled]);
+	}, [enabled, open, canRetry]);
 
 	return stream;
 }
