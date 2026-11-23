@@ -37,18 +37,18 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        uses: pnpm/action-setup@v6.1.1
         with:
           run_install: false
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -68,7 +68,7 @@ jobs:
       # The fixer checks each cache file against the lockfile and the CSS it loads,
       # so a stale restore only costs a recompute.
       - name: Restore Tailwind Canonical Cache 💾
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache@v6.1.0
         with:
           path: .cache/tailwind-canonical
           key: tailwind-canonical-${{ hashFiles('pnpm-lock.yaml', 'packages/mantle/src/*.css') }}
@@ -98,13 +98,13 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Cache mise binary 🗃️
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache@v6.1.0
         with:
           path: ~/.local/bin/mise
           key: mise-${{ runner.os }}-${{ hashFiles('scripts/install-mise') }}
@@ -138,18 +138,18 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        uses: pnpm/action-setup@v6.1.1
         with:
           run_install: false
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -174,18 +174,18 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        uses: pnpm/action-setup@v6.1.1
         with:
           run_install: false
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -216,22 +216,22 @@ jobs:
         shard_total: [4]
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Compute Vitest cache key 🔑
         id: vitest-cache-key
-        uses: ./.github/actions/vitest-module-cache-key
+        uses: $/.github/actions/vitest-module-cache-key
 
       # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        uses: pnpm/action-setup@v6.1.1
         with:
           run_install: false
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -246,7 +246,7 @@ jobs:
       # Restore after the install, because the cache is in node_modules. Only `warm-vitest-cache`
       # saves, because a cache that a PR run saves is visible only to that PR.
       - name: Restore Vitest module cache 💾
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/restore@v6.1.0
         with:
           path: node_modules/.vitest-cache
           key: ${{ steps.vitest-cache-key.outputs.key }}
@@ -319,18 +319,18 @@ jobs:
       SHARD: ${{ matrix.shard }}
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        uses: pnpm/action-setup@v6.1.1
         with:
           run_install: false
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -348,7 +348,7 @@ jobs:
 
       - name: Restore Playwright browser cache 🎭
         id: playwright-cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache@v6.1.0
         with:
           path: ~/.cache/ms-playwright
           # Key on the Playwright version only, so the cached browser binaries
@@ -410,18 +410,18 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Compute Vitest cache key 🔑
         id: vitest-cache-key
-        uses: ./.github/actions/vitest-module-cache-key
+        uses: $/.github/actions/vitest-module-cache-key
 
       - name: Check Vitest module cache 💾
         id: vitest-cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/restore@v6.1.0
         with:
           path: node_modules/.vitest-cache
           key: ${{ steps.vitest-cache-key.outputs.key }}
@@ -430,12 +430,12 @@ jobs:
       # Use pnpm version from root package.json#packageManager
       - name: Install pnpm 📦
         if: steps.vitest-cache.outputs.cache-hit != 'true'
-        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        uses: pnpm/action-setup@v6.1.1
         with:
           run_install: false
 
       - if: steps.vitest-cache.outputs.cache-hit != 'true'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        uses: actions/setup-node@v7.1.0
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -463,7 +463,7 @@ jobs:
       # The job stays green on a failure, because the `test` shards already test this commit.
       - name: Save Vitest module cache 💾
         if: steps.vitest-cache.outputs.cache-hit != 'true' && steps.transform.outcome == 'success'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/save@v6.1.0
         with:
           path: node_modules/.vitest-cache
           key: ${{ steps.vitest-cache-key.outputs.key }}
