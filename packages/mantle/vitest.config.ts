@@ -40,6 +40,9 @@ const contextOptionsFor = (engine: Engine) =>
 
 // Why chromiumSandbox: Playwright starts Chromium with `--no-sandbox` by default. Without the
 // sandbox, one renderer bug runs code with the access of the user.
+// Why software GL for WebKit: on a GitHub runner, which has no GPU, WebKit stops painting the
+// whole browser once it composites a `backdrop-filter`. After that, no `requestAnimationFrame`
+// runs and no animation starts, so tests in other files time out too.
 const providerFor = (engine: Engine) =>
 	process.env.PLAYWRIGHT_WS_ENDPOINT
 		? playwright({
@@ -48,7 +51,11 @@ const providerFor = (engine: Engine) =>
 			})
 		: playwright({
 				contextOptions: contextOptionsFor(engine),
-				launchOptions: engine === "chromium" ? { chromiumSandbox: true } : {},
+				launchOptions: {
+					chromium: { chromiumSandbox: true },
+					firefox: {},
+					webkit: { env: { ...process.env, LIBGL_ALWAYS_SOFTWARE: "1" } },
+				}[engine],
 			});
 
 /**
