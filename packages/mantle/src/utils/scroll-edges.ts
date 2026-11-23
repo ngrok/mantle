@@ -47,12 +47,15 @@ const observeScrollEdges = (list: HTMLElement | null): (() => void) | undefined 
 	}
 	let first: Element | undefined;
 	let last: Element | undefined;
+	// Why: a list in a hidden panel has no box, so its first report says
+	// nothing, and the observer does not report again while an item stays out
+	// of view. The resize when the panel shows watches again.
+	let blind = false;
 	const intersection = new IntersectionObserver(
 		(entries) => {
 			for (const { target, boundingClientRect: box, rootBounds } of entries) {
-				// Why skip: a list with no box, such as one in a hidden panel,
-				// reports nothing useful. The resize when it gets a box watches again.
 				if (rootBounds == null || rootBounds.height === 0) {
+					blind = true;
 					continue;
 				}
 				if (target === first) {
@@ -99,14 +102,13 @@ const observeScrollEdges = (list: HTMLElement | null): (() => void) | undefined 
 	};
 	const mutation = new MutationObserver(watch);
 	mutation.observe(list, { childList: true, subtree: true, attributeFilter: ["hidden"] });
-	// Why each resize watches again: the observer does not report an item that
-	// stays out of view, so a list that gets a box, or a new height, after the
-	// first report needs a new one. Why not only after an empty report: that
-	// report can arrive after this resize, and then nothing watched again.
 	const resize = new ResizeObserver(() => {
-		first = undefined;
-		last = undefined;
-		watch();
+		if (blind) {
+			blind = false;
+			first = undefined;
+			last = undefined;
+			watch();
+		}
 	});
 	resize.observe(list);
 	watch();

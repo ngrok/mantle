@@ -1332,45 +1332,25 @@ describe("DropdownMenu with its CSS (browser)", () => {
 				scroller.hasAttribute("data-overflow-top"),
 				scroller.hasAttribute("data-overflow-bottom"),
 			].join();
-		try {
-			await expect.poll(edges).toBe("false,true");
-		} catch (error) {
-			const items = scroller.querySelectorAll('[role="menuitem"]');
-			const last = items[items.length - 1] as HTMLElement;
-			const panel = scroller.parentElement as HTMLElement;
-			const rect = (el: Element) => {
-				const r = el.getBoundingClientRect();
-				return `${Math.round(r.top)}..${Math.round(r.bottom)}`;
-			};
-			const t0 = performance.now();
-			const raf = await Promise.race([
-				new Promise<number>((r) => requestAnimationFrame(() => r(performance.now() - t0))),
-				new Promise<number>((r) => setTimeout(() => r(-1), 10000)),
-			]);
-			let flip = -1;
-			for (let i = 0; i < 100; i++) {
-				if (edges() === "false,true") {
-					flip = performance.now() - t0;
-					break;
-				}
-				await new Promise((r) => setTimeout(r, 100));
-			}
-			const extra = `raf=${Math.round(raf)} flip=${Math.round(flip)} animsAfter=${document.getAnimations().length} hasFocus=${document.hasFocus()} inIframe=${window.self !== window.top}`;
-			const cs = getComputedStyle(scroller);
-			const ps = getComputedStyle(panel);
-			throw new Error(
-				`DIAG ${extra} edges=${edges()} scroller=${rect(scroller)} sh=${scroller.scrollHeight} ch=${scroller.clientHeight} st=${scroller.scrollTop} overflow=${cs.overflowY} minh=${cs.minHeight} panel=${rect(panel)} pdisplay=${ps.display} pflex=${ps.flexDirection} pmax=${ps.maxHeight} open=${panel.matches(":popover-open")} last=${rect(last)} items=${items.length} vis=${document.visibilityState} anims=${document.getAnimations().length} css=${document.querySelectorAll("style").length} ${String(error).slice(0, 80)}`,
-			);
-		}
+		// Why wait for two frames: the cue updates in the frame after a change, and
+		// WebKit in CI can render less than one frame a second, longer than a poll.
+		const twoFrames = () =>
+			new Promise<void>((resolve) => {
+				requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+			});
+		await twoFrames();
+		await expect.poll(edges).toBe("false,true");
 		expect(getComputedStyle(scroller, "::after").opacity).toBe("1");
 
 		await user.keyboard("{End}");
 
+		await twoFrames();
 		await expect.poll(edges).toBe("true,false");
 		expect(getComputedStyle(scroller, "::before").opacity).toBe("1");
 		expect(getComputedStyle(scroller, "::after").opacity).toBe("0");
 		// Why 24: the cue is 1.5rem tall, and the focused item must sit below it.
 		await user.keyboard("{ArrowUp}{ArrowUp}{ArrowUp}{ArrowUp}{ArrowUp}{ArrowUp}");
+		await twoFrames();
 		await expect.poll(edges).toBe("true,true");
 		// Why: the open animation scales the menu, which shrinks the measured gap.
 		await Promise.all(document.getAnimations().map((animation) => animation.finished));
