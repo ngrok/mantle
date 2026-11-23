@@ -313,6 +313,11 @@
 			"types": "./dist/progress.d.ts",
 			"import": "./dist/progress.js"
 		},
+		"./prompt-input": {
+			"@ngrok/src-live-types": "./src/components/prompt-input/index.ts",
+			"types": "./dist/prompt-input.d.ts",
+			"import": "./dist/prompt-input.js"
+		},
 		"./qr-code": {
 			"@ngrok/src-live-types": "./src/components/qr-code/index.ts",
 			"types": "./dist/qr-code.d.ts",

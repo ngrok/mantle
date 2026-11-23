@@ -146,6 +146,7 @@ export const prodReadyComponents: readonly ProdReadyComponent[] = componentCateg
 export const previewComponents = [
 	//,
 	"Calendar",
+	"Prompt Input",
 	"Reasoning",
 	"Time Zone",
 	"Tool Call",
@@ -236,6 +237,7 @@ export const prodReadyComponentRouteLookup = {
 /** Route lookup for preview component pages. */
 export const previewComponentsRouteLookup = {
 	Calendar: "/components/preview/calendar",
+	"Prompt Input": "/components/preview/prompt-input",
 	Reasoning: "/components/preview/reasoning",
 	"Time Zone": "/components/preview/time-zone",
 	"Tool Call": "/components/preview/tool-call",
@@ -249,6 +251,7 @@ export const previewComponentsRouteLookup = {
  */
 export const previewComponentCategoryLookup = {
 	Calendar: "Forms",
+	"Prompt Input": "Forms",
 	Reasoning: "Data Display",
 	"Time Zone": "Primitives",
 	"Tool Call": "Data Display",

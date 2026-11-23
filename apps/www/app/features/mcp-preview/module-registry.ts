@@ -59,6 +59,7 @@ export const previewModules: Readonly<Record<string, () => Promise<unknown>>> = 
 	"@ngrok/mantle/pagination": () => import("@ngrok/mantle/pagination"),
 	"@ngrok/mantle/popover": () => import("@ngrok/mantle/popover"),
 	"@ngrok/mantle/progress": () => import("@ngrok/mantle/progress"),
+	"@ngrok/mantle/prompt-input": () => import("@ngrok/mantle/prompt-input"),
 	"@ngrok/mantle/qr-code": () => import("@ngrok/mantle/qr-code"),
 	"@ngrok/mantle/query": () => import("@ngrok/mantle/query"),
 	"@ngrok/mantle/query-filter": () => import("@ngrok/mantle/query-filter"),
