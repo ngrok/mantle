@@ -461,6 +461,36 @@ describe("Select keyboard, focus, and ARIA contract", () => {
 		}
 	});
 
+	// Why: the trigger acts like a button. Only keyboard use shows the ring, and the
+	// trigger keeps DOM focus while the list is open.
+	test("the trigger shows the focus ring for keyboard use only, open or closed", async () => {
+		const style = document.createElement("style");
+		style.textContent = await commands.tailwindCss("./select.tsx");
+		document.head.append(style);
+		try {
+			render(<FruitSelect />);
+			const trigger = screen.getByRole("combobox", { name: "Fruit" });
+			const hasRing = () => getComputedStyle(trigger).boxShadow.includes(" 4px");
+
+			await userEvent.click(trigger);
+			expect(trigger).toHaveAttribute("aria-expanded", "true");
+			expect(hasRing()).toBe(false);
+
+			await userEvent.keyboard("{ArrowDown}");
+			expect(trigger).toHaveFocus();
+			expect(hasRing()).toBe(true);
+
+			await userEvent.keyboard("{Escape}");
+			await userEvent.click(screen.getByRole("button", { name: "After" }));
+			await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+			expect(trigger).toHaveFocus();
+			expect(trigger).toHaveAttribute("aria-expanded", "false");
+			expect(hasRing()).toBe(true);
+		} finally {
+			style.remove();
+		}
+	});
+
 	test("has no axe violations closed or open", async () => {
 		render(<FruitSelect />);
 		expect(await axeViolations()).toEqual([]);
