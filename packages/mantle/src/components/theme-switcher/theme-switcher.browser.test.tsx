@@ -32,9 +32,8 @@ ${mantleCss.match(/[^{}]*\[data-theme-transition(?:-many)?\][^{]*\{[^}]*\}/g)?.j
 [data-slot~="theme-switcher-icon"] > * { transition: opacity 1s linear; }
 .dark [data-slot~="theme-switcher-icon"] > * { opacity: 0.5; }
 @keyframes slow-exit { to { opacity: 0; } }
-[data-slot~="dialog-overlay"][data-state="closed"] { animation: slow-exit 1s; }
 [data-slot~="dialog-content"][data-state="closed"] { animation: slow-exit 1s; }
-[data-slot~="dialog-positioner"]:not(:has(> [data-mantle-modal-content][data-state="open"])) { animation: slow-exit 1s; }
+[data-slot~="dialog-positioner"][data-state="closed"]::backdrop { animation: slow-exit 1s; }
 `;
 
 let styleElement: HTMLStyleElement;
@@ -427,7 +426,7 @@ function DarkThemeDialog() {
 }
 
 describe("setTheme theme swap in Chromium", () => {
-	test("with no origin, the new theme grows from the focused element, and a closing dialog overlay leaves at once", async () => {
+	test("with no origin, the new theme grows from the focused element, and a closing dialog leaves at once", async () => {
 		render(
 			<ThemeProvider>
 				<DarkThemeDialog />
@@ -443,8 +442,7 @@ describe("setTheme theme swap in Chromium", () => {
 		expect(from.x).toBeCloseTo(left + width / 2);
 		expect(from.y).toBeCloseTo(top + height / 2);
 		expect(document.documentElement).toHaveClass("dark");
-		// An exit animation or the exit hold would leave the dialog in the old snapshot.
-		expect(document.querySelector('[data-slot~="dialog-overlay"]')).toBeNull();
+		// An exit animation of the panel or the backdrop would leave the dialog in the old snapshot.
 		expect(document.querySelector('[data-slot~="dialog-positioner"]')).toBeNull();
 
 		await reveal.finished;

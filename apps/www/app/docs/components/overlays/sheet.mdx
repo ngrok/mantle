@@ -84,48 +84,40 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 - Prefer [`Dialog`](/components/overlays/dialog) for a centered modal.
 - Prefer [`AlertDialog`](/components/overlays/alert-dialog) for a destructive or irreversible confirmation.
 - Prefer [`Sidebar`](/components/navigation/sidebar) for the persistent navigation of the app.
-- Prefer the [native sheet](#native-sheet) when the tap that opens the sheet must answer in one frame, such as a mobile menu, and the sheet holds no third-party frame.
 
 ## Layering and z-index
 
-`Sheet.Content` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier, above every float (`z-50`). Floats composed inside the content portal into the positioner (`data-slot="sheet-positioner"`) and paint above the content. When multiple overlays are open, the most recently mounted overlay renders on top.
+`Sheet.Content` renders the browser's modal `<dialog>` (`data-slot="sheet-positioner"`), so it paints in the top layer, above the page and every float outside it. The browser traps focus in it, makes the page behind it inert, closes it on Escape, and returns focus to the trigger. Floats composed inside the content portal into the `<dialog>` and paint above the content. A sheet or dialog that opens from inside another one paints above it.
 
-`Sheet`, `Dialog`, and `AlertDialog` each render their own backdrop, so stacking modal layers compounds the dim and blur effect on the layers underneath.
+`Sheet`, `Dialog`, and `AlertDialog` each draw their own backdrop, so stacking modal layers compounds the dim and blur effect on the layers underneath.
 
 ## UI above an open sheet
 
-UI that must take clicks above an open sheet, such as a consent banner, carries the `overlay-prompt` class. A click inside it does not count as an outside click. Add `pointer-events-auto` too, because the open sheet sets `pointer-events: none` on `<body>`. mantle's `Toaster` does both.
-
-```tsx
-<div className="overlay-prompt pointer-events-auto fixed inset-x-0 bottom-0 z-max">
-	<ConsentBanner />
-</div>
-```
-
-The class reaches pointer input only. The open sheet traps keyboard focus and hides outside content from assistive technology with `aria-hidden`, so a keyboard or screen reader user cannot reach the banner. Put a control that every user must reach inside the sheet content.
+An open sheet makes the rest of the page inert: no click, focus, or screen reader reaches it. mantle's `Toaster` moves its toasts into the open sheet, so they paint above it and take clicks. `Sandbar` stays under the backdrop with the rest of the page. Put a control that a user must reach while the sheet is open inside the sheet content.
 
 ## Third-party popups
 
-A script can show its own popup in a frame on `<body>`, above the sheet. A payment script does this for a 3-D Secure challenge and for a wallet sign-in. While that frame is on top at the center of the viewport, the sheet yields to the popup:
+A script can show its own popup in a frame on `<body>`. A payment script does this for a 3-D Secure challenge and for a wallet sign-in, and a captcha does it for a challenge. A modal sheet makes that frame inert and paints over it. Set `modal={false}` on a sheet that holds such a flow:
 
-- Focus that the script moves into the popup stays there. The focus trap does not take it back.
+```tsx
+<Sheet.Root modal={false}>
+```
+
+A sheet that is not modal has no backdrop, paints at Tailwind `z-60`, and leaves the page live. Escape and a press outside close it. While a frame is on top at the center of the viewport, the sheet yields to the popup:
+
 - Escape does not close the sheet. It moves focus into the popup, and the popup then takes the keyboard.
-- A click in the popup is not an outside click.
+- A press in the popup is not a press outside.
 
 The sheet finds the popup with a hit test at the center of the viewport. The popup counts when:
 
 - the element on top there is a frame, and the frame takes pointer input
 - the frame is in a child of `<body>` that has a `position` and a `z-index` at or above the `z-60` of the sheet
 
-An open sheet sets `pointer-events: none` on `<body>`, so a frame must set `pointer-events: auto` to take a click. Stripe's popups set it. If the popup of another script does not, set it on the frame in your CSS.
-
 A popup that shows page elements at the center of the viewport does not count, also when it holds a frame at another place. If the script can render its popup into an element that you choose, give it an element in the sheet.
-
-An open sheet hides the rest of the page from assistive technology. That includes a popup that was on the page before the sheet opened. The sheet removes that `aria-hidden` from the popup when the page gets a focus event for the move into the popup. Firefox sends no such event when focus was in another frame or on `<body>`.
 
 Your code still does two things:
 
-- Close the sheet only after the popup closes. A payment script saves the `<body>` style and the `aria-hidden` state of the page when its popup opens. It puts them back when the popup closes. If the sheet closes in between, the page takes no clicks and a screen reader finds no content.
+- Close the sheet only after the popup closes. A payment script saves the `<body>` style of the page when its popup opens, and puts it back when the popup closes. If the sheet closes in between, the page can keep the scroll lock of the sheet.
 - Move focus when the script gives you the result. The browser does not return focus to the sheet when the popup closes.
 
 The example runs `confirmWithBank`, a stand-in for a payment script. It does what Stripe.js does to the page:
@@ -270,6 +262,8 @@ function Example() {
 
 	return (
 		<Sheet.Root
+			// Why not modal: a modal sheet makes the bank's frame on `<body>` inert.
+			modal={false}
 			open={isOpen}
 			onOpenChange={(open) => {
 				// Keep the sheet open until the popup closes. Focus can come back to
@@ -602,72 +596,30 @@ Sheet.Root
 
 `Sheet.Root` renders no DOM of its own, so it takes no `asChild`. `Sheet.Header`, `Sheet.Body`, `Sheet.Footer`, `Sheet.TitleGroup`, and `Sheet.Actions` are layout containers that do not currently accept it.
 
-## Native sheet
+## Keep the sheet mounted
 
-`@ngrok/mantle/sheet/native` is the same `Sheet`, with the same parts and the same look, on the browser's modal `<dialog>`. Swap the import to move a sheet onto it. The browser traps focus, makes the page inert, closes the sheet on Escape, paints it in the top layer, and returns focus to the trigger. An uncontrolled tap opens it with a DOM call and no React render, so the open answers in the next frame on a slow phone. A mobile navigation menu is the use case it is for.
-
-Know these trade-offs before you swap:
-
-- The server renders the content and the page hydrates it, open or not. Opening costs almost nothing, but the page pays more HTML and more hydration at load.
-- Floats inside the sheet (`Popover`, `Select`, `MultiSelect`, `DropdownMenu`, `Tooltip`, `HoverCard`, `AlertDialog`) portal into the `<dialog>` and work as usual. Escape closes the innermost one first. Toasts move into the open sheet, so they paint above it.
-- A frame that a third-party script puts on `<body>` is inert under the sheet, and the browser gives no way out. Keep `@ngrok/mantle/sheet` for a form that embeds a captcha, a payment challenge, or a chat widget.
-- A controlled `open` works, but each change renders React. The fast path is the uncontrolled `Sheet.Trigger`.
-- The exit animates in Chromium only. Other browsers close the sheet at once.
-- Do not open a native sheet from inside a `@ngrok/mantle/dialog` or `@ngrok/mantle/sheet`. The Radix overlay takes Escape first and closes itself, not the native sheet. Move both onto the native backend.
-- CSS locks page scroll, not a script.
-- `Sheet.Content` takes none of the Radix event props: use a controlled `open` to keep the sheet open on Escape or on a backdrop click.
-
-<Example name="components/overlays/sheet/native-sheet" title="Native sheet example">
+By default, `Sheet.Content` mounts when the sheet opens and unmounts after its exit animation. With `forceMount`, the content stays mounted and the server renders it, closed. An uncontrolled `Sheet.Trigger` then opens it with a DOM call and no React render, even before the page hydrates. Use it for a sheet that a tap must open in the next frame on a slow phone, such as a mobile menu. It costs the HTML and the hydration of the content on each page load.
 
 ```tsx
-import { Sheet } from "@ngrok/mantle/sheet/native";
-import { Button } from "@ngrok/mantle/button";
-
-<Sheet.Root>
-	<Sheet.Trigger asChild>
-		<Button type="button" appearance="filled" intent="neutral">
-			Open native sheet
-		</Button>
-	</Sheet.Trigger>
-	<Sheet.Content side="left">
-		<Sheet.Header>
-			<Sheet.TitleGroup>
-				<Sheet.Title>Menu</Sheet.Title>
-				<Sheet.Actions>
-					<Sheet.CloseIconButton />
-				</Sheet.Actions>
-			</Sheet.TitleGroup>
-			<Sheet.Description>The tap opened this sheet with no React render.</Sheet.Description>
-		</Sheet.Header>
-		<Sheet.Body>
-			<p>Press Escape, click the backdrop, or use the close button to close it.</p>
-		</Sheet.Body>
-		<Sheet.Footer>
-			<Sheet.Close asChild>
-				<Button type="button" appearance="outlined" intent="neutral">
-					Close
-				</Button>
-			</Sheet.Close>
-		</Sheet.Footer>
-	</Sheet.Content>
-</Sheet.Root>;
+<Sheet.Content forceMount>
 ```
-
-</Example>
 
 ## API Reference
 
-The `Sheet` components are built on top of [Radix Dialog](https://www.radix-ui.com/primitives/docs/components/dialog).
+The `Sheet` components are built on the browser's [`<dialog>` element](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dialog).
 
 ### Sheet.Root
 
 The root component for a `Sheet`. Should compose the `Sheet.Trigger` and `Sheet.Content`. Acts as a stateful provider for the Sheet's open/closed state.
 
-Every `Sheet` part reads a dialog scope of its own, so it binds to the nearest `Sheet.Root` and never to a `Dialog.Root`. The reverse holds too: a `Dialog.Trigger` or `Command.SearchTrigger` inside `Sheet.Content` reaches the `Dialog.Root` or `Command.DialogRoot` above the sheet, not the sheet. A `Dialog.Close` inside a sheet with no `Dialog.Root` above it throws Radix's "must be used within `Dialog`"; use `Sheet.Close` to close a sheet.
+Every `Sheet` part reads a dialog scope of its own, so it binds to the nearest `Sheet.Root` and never to a `Dialog.Root`. The reverse holds too: a `Dialog.Trigger` or `Command.SearchTrigger` inside `Sheet.Content` reaches the `Dialog.Root` or `Command.DialogRoot` above the sheet, not the sheet. A `Dialog.Close` inside a sheet with no `Dialog.Root` above it throws "must be rendered inside its `Root`"; use `Sheet.Close` to close a sheet.
 
-`Sheet` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier, above every float (`z-50`). Floats composed inside the content portal into the positioner (`data-slot="sheet-positioner"`) and paint above the content. When multiple overlays are open, the most recently mounted overlay renders on top.
-
-All props from Radix [Dialog.Root](https://www.radix-ui.com/primitives/docs/components/dialog#root).
+| Prop            | Type                      | Default | Description                                                                                                                                                                                  |
+| --------------- | ------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `open?`         | `boolean`                 |         | The controlled open state of the sheet. Use it with `onOpenChange`.                                                                                                                          |
+| `onOpenChange?` | `(open: boolean) => void` |         | Event handler called when the open state of the sheet changes.                                                                                                                               |
+| `defaultOpen?`  | `boolean`                 | `false` | The open state of the sheet when it first renders.                                                                                                                                           |
+| `modal?`        | `boolean`                 | `true`  | Whether the page behind the sheet is inert. Set `false` for a sheet that holds a third-party frame, such as a payment challenge or a captcha. See [Third-party popups](#third-party-popups). |
 
 ### Sheet.Trigger
 
@@ -675,7 +627,7 @@ The button trigger for a `Sheet`. Should be rendered as a child of the `Sheet` c
 
 Opens the nearest `Sheet.Root`. It never opens a `Dialog.Root`, and a `Dialog.Trigger` inside the sheet never opens the sheet.
 
-All props from Radix [Dialog.Trigger](https://www.radix-ui.com/primitives/docs/components/dialog#trigger).
+All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes), plus `asChild`.
 
 ### Sheet.Close
 
@@ -683,22 +635,21 @@ The close button for a `Sheet`. Should be rendered as a child of the `Sheet.Cont
 
 Closes the nearest `Sheet.Root`. It never closes a `Dialog.Root`, and a `Dialog.Close` inside the sheet never closes the sheet.
 
-Radix [Dialog.Close](https://www.radix-ui.com/primitives/docs/components/dialog#close) props.
+All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes), plus `asChild`.
 
 ### Sheet.Content
 
-The main container for a `Sheet`. Should be rendered as a child of the `Sheet` component. Renders on top of the overlay backdrop. Should contain the `Sheet.Header`, `Sheet.Body`, and `Sheet.Footer`.
+The panel of a `Sheet`. Should be rendered as a child of the `Sheet` component. Should contain the `Sheet.Header`, `Sheet.Body`, and `Sheet.Footer`. `ref`, `className`, and other props target the panel.
 
-`Sheet.Content` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier, above every float (`z-50`). Floats composed inside the content portal into the positioner (`data-slot="sheet-positioner"`) and paint above the content. When multiple overlays are open, the most recently mounted overlay renders on top.
+`Sheet.Content` renders the panel inside a `<dialog>` (`data-slot="sheet-positioner"`) that lays out the panel, draws the backdrop, and receives floats portaled from inside the sheet. The full stacking contract lives at [Stacking Layers](/base/stacking-layers).
 
-`Sheet.Content` renders inside a positioner element (`data-slot="sheet-positioner"`) that lays out the content and receives floats portaled from inside the sheet. The full stacking contract lives at [Stacking Layers](/base/stacking-layers).
-
-All props from Radix [Dialog.Content](https://www.radix-ui.com/primitives/docs/components/dialog#content), plus:
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) and the same event props as [`Dialog.Content`](/components/overlays/dialog#dialogcontent) (`onOpenAutoFocus`, `onCloseAutoFocus`, `onEscapeKeyDown`, `onPointerDownOutside`, `onInteractOutside`), plus:
 
 | Prop              | Type                       | Default          | Description                                                                                                                                                                                                                                                                   |
 | ----------------- | -------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `preferredWidth?` | `` `sm:max-w-${string}` `` | `"sm:max-w-120"` | The preferred width of the `Sheet.Content` as a tailwind `max-w-` class. By default, a `Sheet`'s content width is responsive with a default _preferred width_: the maximum width of the `Sheet.Content` when the window viewport is larger than the mobile breakpoint (`sm`). |
 | `side?`           | `"left" \| "right"`        | `"right"`        | The side of the screen the sheet slides in from.                                                                                                                                                                                                                              |
+| `forceMount?`     | `true`                     |                  | Keeps the content mounted while the sheet is closed, so the server renders it and a tap opens it with no React render. See [Keep the sheet mounted](#keep-the-sheet-mounted).                                                                                                 |
 
 ### Sheet.CloseIconButton
 
@@ -735,7 +686,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 The title for a `Sheet`. Typically rendered as a child of `Sheet.TitleGroup`. Defaults to an `h2` element, but can be changed via the `asChild` prop.
 
-All props from Radix [Dialog.Title](https://www.radix-ui.com/primitives/docs/components/dialog#title).
+All props from [h2](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements), plus `asChild`.
 
 ### Sheet.TitleGroup
 
@@ -747,7 +698,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 A description for a `Sheet`. Typically rendered as a child of `Sheet.Header`.
 
-All props from Radix [Dialog.Description](https://www.radix-ui.com/primitives/docs/components/dialog#description).
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus `asChild`.
 
 ### Sheet.Actions
 

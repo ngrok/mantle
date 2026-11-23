@@ -1,7 +1,6 @@
 /**
- * The presentation that `@ngrok/mantle/sheet` and `@ngrok/mantle/sheet/native`
- * share: the class recipes and the parts with no behavior. Each backend adds
- * its own slide motion and its own behavior parts.
+ * The presentation of `Sheet`, which `Sidebar.Nav` reuses for its mobile
+ * sheet: the class recipes and the parts with no behavior.
  */
 
 import { XIcon } from "@phosphor-icons/react/X";
@@ -74,15 +73,12 @@ function contentSurfaceClassName({
 }
 
 /**
- * The slide a native sheet enters and exits with from each {@link SheetSide}.
- * It keys on the `<dialog>`'s `[open]` and ends at `translate: none`, so a
- * float that the sheet holds positions against the viewport once the sheet is
- * in.
+ * The slide each {@link SheetSide} enters and exits with, keyed on the
+ * panel's `data-state`.
  */
-const nativeSlideClassName: Record<SheetSide, string> = {
-	left: "transition-[translate] duration-200 ease-out-strong group-not-open/native-dialog:duration-150 motion-reduce:transition-none group-not-open/native-dialog:-translate-x-full starting:group-open/native-dialog:-translate-x-full",
-	right:
-		"transition-[translate] duration-200 ease-out-strong group-not-open/native-dialog:duration-150 motion-reduce:transition-none group-not-open/native-dialog:translate-x-full starting:group-open/native-dialog:translate-x-full",
+const slideClassName: Record<SheetSide, string> = {
+	left: "data-state-closed:slide-out-to-left data-state-open:slide-in-from-left",
+	right: "data-state-closed:slide-out-to-right data-state-open:slide-in-from-right",
 };
 
 /** The classes of `Sheet.Title`. */
@@ -203,7 +199,7 @@ const Body = ({
 	<div
 		data-slot={joinDataSlot(dataSlot, "sheet-body")}
 		className={cx(
-			"scrollbar scrollbar-gutter-stable text-body flex-1 overflow-y-auto p-6",
+			"scrollbar scrollbar-gutter-stable text-body flex-1 overflow-y-auto overscroll-none p-6",
 			className,
 		)}
 		{...props}
@@ -482,7 +478,7 @@ export {
 	descriptionClassName,
 	Footer,
 	Header,
-	nativeSlideClassName,
+	slideClassName,
 	titleClassName,
 	TitleGroup,
 };

@@ -55,39 +55,35 @@ import { Button } from "@ngrok/mantle/button";
 - Prefer [`AlertDialog`](/components/overlays/alert-dialog) for a destructive or irreversible confirmation, such as a delete.
 - Prefer [`Sheet`](/components/overlays/sheet) for side-panel content, such as a filter panel, a detail view, or a navigation drawer.
 - Prefer [`Popover`](/components/overlays/popover) for small content that opens next to its trigger, with no modal backdrop.
-- Prefer the [native dialog](#native-dialog) when the tap that opens the dialog must answer in one frame, and the dialog holds no third-party frame.
 
 ## Layering and z-index
 
-`Dialog.Content` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier, above every float (`z-50`). Floats composed inside the content portal into the positioner (`data-slot="dialog-positioner"`) and paint above the content. When multiple overlays are open, the most recently mounted overlay renders on top.
+`Dialog.Content` renders the browser's modal `<dialog>` (`data-slot="dialog-positioner"`), so it paints in the top layer, above the page and every float outside it. The browser traps focus in it, makes the page behind it inert, closes it on Escape, and returns focus to the trigger. Floats composed inside the content portal into the `<dialog>` and paint above the content. A dialog that opens from inside another one paints above it.
 
-`Dialog`, `Sheet`, and `AlertDialog` each render their own backdrop, so stacking modal layers compounds the dim and blur effect on the layers underneath.
+`Dialog`, `Sheet`, and `AlertDialog` each draw their own backdrop, so stacking modal layers compounds the dim and blur effect on the layers underneath.
 
 ## UI above an open dialog
 
-UI that must take clicks above an open dialog, such as a consent banner, carries the `overlay-prompt` class. A click inside it does not count as an outside click. Add `pointer-events-auto` too, because the open dialog sets `pointer-events: none` on `<body>`. mantle's `Toaster` does both.
-
-```tsx
-<div className="overlay-prompt pointer-events-auto fixed inset-x-0 bottom-0 z-max">
-	<ConsentBanner />
-</div>
-```
-
-The class reaches pointer input only. The open dialog traps keyboard focus and hides outside content from assistive technology with `aria-hidden`, so a keyboard or screen reader user cannot reach the banner. Put a control that every user must reach inside the dialog content.
+An open dialog makes the rest of the page inert: no click, focus, or screen reader reaches it. mantle's `Toaster` moves its toasts into the open dialog, so they paint above it and take clicks. `Sandbar` stays under the backdrop with the rest of the page. Put a control that a user must reach while the dialog is open inside the dialog content.
 
 ## Third-party popups
 
-A script can show its own popup in a frame on `<body>`, above the dialog. A payment script does this for a 3-D Secure challenge and for a wallet sign-in. While that frame is on top at the center of the viewport, the dialog yields to the popup:
+A script can show its own popup in a frame on `<body>`. A payment script does this for a 3-D Secure challenge and for a wallet sign-in, and a captcha does it for a challenge. A modal dialog makes that frame inert and paints over it. Set `modal={false}` on a dialog that holds such a flow:
 
-- Focus that the script moves into the popup stays there. The focus trap does not take it back.
+```tsx
+<Dialog.Root modal={false}>
+```
+
+A dialog that is not modal has no backdrop, paints at Tailwind `z-60`, and leaves the page live. Escape and a press outside close it. While a frame is on top at the center of the viewport, the dialog yields to the popup:
+
 - Escape does not close the dialog. It moves focus into the popup, and the popup then takes the keyboard.
-- A click in the popup is not an outside click.
+- A press in the popup is not a press outside.
 
 Close the dialog from your code only after the popup closes. [Third-party popups](/components/overlays/sheet#third-party-popups) on the Sheet page has the reason, the rule for what counts as a popup, and an example.
 
 ## Handling autofill overlays
 
-When a dialog contains form inputs, browser autofill or password-manager plugins (e.g. 1Password) may render overlays as siblings to the dialog content. By default, clicking these overlays triggers `onPointerDownOutside`, which closes the dialog. Use `isDialogOverlayTarget` to prevent this:
+When a dialog contains form inputs, browser autofill or password-manager plugins (e.g. 1Password) may render overlays as siblings to the dialog content. A click on such an overlay can trigger `onPointerDownOutside`, which closes the dialog. A press on the backdrop targets the `<dialog>`, which `isDialogOverlayTarget` names. Use it to close the dialog on the backdrop only:
 
 ```tsx
 import { Dialog, isDialogOverlayTarget } from "@ngrok/mantle/dialog";
@@ -236,7 +232,7 @@ The parts keep their roles at every appearance. Because `Dialog.Content` is a fl
 
 When the content needs the whole viewport, reach for this: a request log, a diff, a media preview, a multi-column editor. When the content deserves its own URL, a back button, or a shareable link, a route beats a dialog.
 
-`"full-bleed"` keeps its backdrop. The content opens at `zoom-in-95`, so a sliver of viewport edge stays uncovered for the length of the animation, and the overlay is what fills it.
+`"full-bleed"` keeps its backdrop. The content opens at `zoom-in-95`, so a sliver of viewport edge stays uncovered for the length of the animation, and the backdrop is what fills it.
 
 The switch in the demo body swaps `"full-page"` for `"full-bleed"`.
 
@@ -380,7 +376,7 @@ import { TrashSimpleIcon } from "@phosphor-icons/react/TrashSimple";
 
 ## Stacking a Sheet over a Dialog
 
-`Dialog` and `Sheet` share the overlay tier (`z-60`), so the most recently mounted overlay renders on top. Open the dialog below first, then open the sheet from inside it: the sheet stacks over the dialog rather than disappearing behind it. Each overlay renders its own backdrop, so the dialog beneath is dimmed by the sheet's overlay.
+A modal `Dialog` and `Sheet` each open in the top layer, so the one that opened last paints on top. Open the dialog below first, then open the sheet from inside it: the sheet stacks over the dialog rather than disappearing behind it. Each overlay draws its own backdrop, so the sheet's backdrop dims the dialog beneath.
 
 <Example name="components/overlays/dialog/stacking-a-sheet-over-a-dialog" title="Dialog Stacking a Sheet over a Dialog example">
 
@@ -577,82 +573,34 @@ function Example() {
 
 ## Polymorphism
 
-`Dialog.Trigger`, `Dialog.Close`, `Dialog.Overlay`, `Dialog.Content`, `Dialog.Title`, `Dialog.Description`, and `Dialog.CloseIconButton` accept `asChild`, which renders your single child in place of the part's default element while keeping its styling and behavior.
+`Dialog.Trigger`, `Dialog.Close`, `Dialog.Title`, `Dialog.Description`, and `Dialog.CloseIconButton` accept `asChild`, which renders your single child in place of the part's default element while keeping its styling and behavior.
 
 `Dialog.Trigger asChild` is by far the most common: it makes your own `Button` open the dialog instead of nesting a button inside one. Use `Dialog.Close asChild` to let any element dismiss the dialog, and `Dialog.Title asChild` when the heading level must fit the surrounding page outline.
 
-`Dialog.Root` and `Dialog.Portal` render no DOM of their own (`Root` is a state provider and `Portal` only relocates its children), so neither takes `asChild`. `Dialog.Header`, `Dialog.Body`, and `Dialog.Footer` are plain layout `<div>`s that do not currently accept it.
+`Dialog.Root` renders no DOM of its own, so it takes no `asChild`. `Dialog.Content` renders a `<dialog>` and its panel, and `Dialog.Header`, `Dialog.Body`, and `Dialog.Footer` are plain layout `<div>`s. None of them accepts it.
 
-## Native dialog
+## Keep the dialog mounted
 
-`@ngrok/mantle/dialog/native` is the same `Dialog`, with the same parts and the same look, on the browser's modal `<dialog>`. Swap the import to move a dialog onto it. The browser traps focus, makes the page inert, closes the dialog on Escape, paints it in the top layer, and returns focus to the trigger. An uncontrolled tap opens it with a DOM call and no React render, so the open answers in the next frame on a slow phone.
-
-Know these trade-offs before you swap:
-
-- The server renders the content and the page hydrates it, open or not. Opening costs almost nothing, but the page pays more HTML and more hydration at load.
-- Floats inside the dialog (`Popover`, `Select`, `MultiSelect`, `DropdownMenu`, `Tooltip`, `HoverCard`, `AlertDialog`) portal into the `<dialog>` and work as usual. Escape closes the innermost one first. Toasts move into the open dialog, so they paint above it.
-- A frame that a third-party script puts on `<body>` is inert under the dialog, and the browser gives no way out. Keep `@ngrok/mantle/dialog` for a form that embeds a captcha, a payment challenge, or a chat widget.
-- A controlled `open` works, but each change renders React. The fast path is the uncontrolled `Dialog.Trigger`.
-- The exit animates in Chromium only. Other browsers close the dialog at once.
-- Do not open a native dialog from inside a `@ngrok/mantle/dialog` or `@ngrok/mantle/sheet`. The Radix overlay takes Escape first and closes itself, not the native dialog. Move both onto the native backend.
-- CSS locks page scroll, not a script.
-- `Dialog.Portal` renders its children and `Dialog.Overlay` renders nothing, so markup written for `@ngrok/mantle/dialog` swaps unchanged. `Dialog.Content` takes none of the Radix event props: use a controlled `open` to keep the dialog open on Escape or on a backdrop click.
-
-<Example name="components/overlays/dialog/native-dialog" title="Native dialog example">
+By default, `Dialog.Content` mounts when the dialog opens and unmounts after its exit animation. With `forceMount`, the content stays mounted and the server renders it, closed. An uncontrolled `Dialog.Trigger` then opens it with a DOM call and no React render, even before the page hydrates. Use it for a dialog that a tap must open in the next frame on a slow phone, such as a menu. It costs the HTML and the hydration of the content on each page load.
 
 ```tsx
-import { Dialog } from "@ngrok/mantle/dialog/native";
-import { Button } from "@ngrok/mantle/button";
-
-<Dialog.Root>
-	<Dialog.Trigger asChild>
-		<Button type="button" appearance="filled" intent="neutral">
-			Open native dialog
-		</Button>
-	</Dialog.Trigger>
-	<Dialog.Content>
-		<Dialog.Header>
-			<Dialog.Title>Are you absolutely sure?</Dialog.Title>
-			<Dialog.CloseIconButton />
-		</Dialog.Header>
-		<Dialog.Body>
-			This action cannot be undone. This will permanently delete your account and remove your data
-			from our servers.
-		</Dialog.Body>
-		<Dialog.Footer>
-			<Dialog.Close asChild>
-				<Button type="button" intent="neutral" appearance="outlined">
-					Cancel
-				</Button>
-			</Dialog.Close>
-			<Dialog.Close asChild>
-				<Button type="button" intent="danger" appearance="filled">
-					Delete
-				</Button>
-			</Dialog.Close>
-		</Dialog.Footer>
-	</Dialog.Content>
-</Dialog.Root>;
+<Dialog.Content forceMount>
 ```
-
-</Example>
 
 ## API Reference
 
-The `Dialog` components are built on top of [Radix Dialog](https://www.radix-ui.com/primitives/docs/components/dialog).
+The `Dialog` components are built on the browser's [`<dialog>` element](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dialog).
 
 ### Dialog.Root
 
 The root stateful component that manages the open/closed state of the dialog.
 
-`Dialog` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier, above every float (`z-50`). Floats composed inside the content portal into the positioner (`data-slot="dialog-positioner"`) and paint above the content. When multiple overlays are open, the most recently mounted overlay renders on top.
-
-| Prop            | Type                      | Default | Description                                                                                                                                                   |
-| --------------- | ------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `open?`         | `boolean`                 |         | The controlled open state of the dialog. Must be used in conjunction with `onOpenChange`.                                                                     |
-| `onOpenChange?` | `(open: boolean) => void` |         | Event handler called when the open state of the dialog changes.                                                                                               |
-| `defaultOpen?`  | `boolean`                 | `false` | The open state of the dialog when it is initially rendered. Use when you do not need to control its open state.                                               |
-| `modal?`        | `boolean`                 | `true`  | The modality of the dialog. When set to `true`, interaction with outside elements will be disabled and only dialog content will be visible to screen readers. |
+| Prop            | Type                      | Default | Description                                                                                                                                                                                    |
+| --------------- | ------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `open?`         | `boolean`                 |         | The controlled open state of the dialog. Must be used in conjunction with `onOpenChange`.                                                                                                      |
+| `onOpenChange?` | `(open: boolean) => void` |         | Event handler called when the open state of the dialog changes.                                                                                                                                |
+| `defaultOpen?`  | `boolean`                 | `false` | The open state of the dialog when it is initially rendered. Use when you do not need to control its open state.                                                                                |
+| `modal?`        | `boolean`                 | `true`  | Whether the page behind the dialog is inert. Set `false` for a dialog that holds a third-party frame, such as a payment challenge or a captcha. See [Third-party popups](#third-party-popups). |
 
 ### Dialog.Trigger
 
@@ -664,24 +612,25 @@ A button that opens the dialog.
 
 ### Dialog.Content
 
-The container for the dialog content. Renders on top of the overlay and is centered in the viewport.
+The panel of the dialog, centered in the viewport. `ref`, `className`, and other props target the panel.
 
-`Dialog.Content` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier, above every float (`z-50`). Floats composed inside the content portal into the positioner (`data-slot="dialog-positioner"`) and paint above the content. When multiple overlays are open, the most recently mounted overlay renders on top.
+`Dialog.Content` renders the panel inside a `<dialog>` (`data-slot="dialog-positioner"`) that lays out the panel, draws the backdrop, and receives floats portaled from inside the dialog. The full stacking contract lives at [Stacking Layers](/base/stacking-layers).
 
-`Dialog.Content` renders inside a positioner element (`data-slot="dialog-positioner"`) that lays out the content and receives floats portaled from inside the dialog. The full stacking contract lives at [Stacking Layers](/base/stacking-layers).
+| Prop                    | Type                                            | Default      | Description                                                                                                                                                                                                                     |
+| ----------------------- | ----------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `appearance?`           | `"centered"` \| `"full-page"` \| `"full-bleed"` | `"centered"` | How much of the viewport the dialog claims. See [Full-page dialog](#full-page-dialog).                                                                                                                                          |
+| `preferredWidth?`       | `` `max-w-${string}` ``                         | `"max-w-lg"` | The maximum width of a `"centered"` dialog, as a Tailwind `max-w-` class. Accepted for `appearance="centered"` only; a filled dialog has no width to cap.                                                                       |
+| `forceMount?`           | `true`                                          |              | Keeps the content mounted while the dialog is closed, so the server renders it and a tap opens it with no React render. See [Keep the dialog mounted](#keep-the-dialog-mounted).                                                |
+| `onOpenAutoFocus?`      | `(event: Event) => void`                        |              | Event handler called after the dialog opens and the browser moves focus into it. Call `event.preventDefault()` and focus an element of your choice.                                                                             |
+| `onCloseAutoFocus?`     | `(event: Event) => void`                        |              | Event handler called after the dialog closes and the browser returns focus to the trigger.                                                                                                                                      |
+| `onEscapeKeyDown?`      | `(event: KeyboardEvent) => void`                |              | Event handler called when the escape key is down. It can be prevented by calling `event.preventDefault`.                                                                                                                        |
+| `onInteractOutside?`    | `(event: PointerDownOutsideEvent) => void`      |              | Event handler called on the same presses as `onPointerDownOutside`, after it. It can be prevented by calling `event.preventDefault`.                                                                                            |
+| `onPointerDownOutside?` | `(event: PointerDownOutsideEvent) => void`      |              | Event handler called when a press starts on the backdrop, or anywhere outside a dialog that is not modal. It can be prevented by calling `event.preventDefault`. See [Handling autofill overlays](#handling-autofill-overlays). |
 
-| Prop                    | Type                                            | Default      | Description                                                                                                                                                                                   |
-| ----------------------- | ----------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `appearance?`           | `"centered"` \| `"full-page"` \| `"full-bleed"` | `"centered"` | How much of the viewport the dialog claims. See [Full-page dialog](#full-page-dialog).                                                                                                        |
-| `preferredWidth?`       | `` `max-w-${string}` ``                         | `"max-w-lg"` | The maximum width of a `"centered"` dialog, as a Tailwind `max-w-` class. Accepted for `appearance="centered"` only; a filled dialog has no width to cap.                                     |
-| `onEscapeKeyDown?`      | `(event: KeyboardEvent) => void`                |              | Event handler called when the escape key is down. It can be prevented by calling `event.preventDefault`.                                                                                      |
-| `onInteractOutside?`    | `(event: Event) => void`                        |              | Event handler called when the user interacts outside the component. It can be prevented by calling `event.preventDefault`.                                                                    |
-| `onPointerDownOutside?` | `(event: PointerDownOutsideEvent) => void`      |              | Event handler called when a pointer event starts outside the component. It can be prevented by calling `event.preventDefault`. See [Handling autofill overlays](#handling-autofill-overlays). |
-
-| Data Attribute    | Value                                           | Description                                            |
-| ----------------- | ----------------------------------------------- | ------------------------------------------------------ |
-| `data-appearance` | `"centered"` \| `"full-page"` \| `"full-bleed"` | Reflects the resolved `appearance`.                    |
-| `data-state`      | `"open"` \| `"closed"`                          | Stamped by Radix; drives the open and close animation. |
+| Data Attribute    | Value                                           | Description                                                                                           |
+| ----------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `data-appearance` | `"centered"` \| `"full-page"` \| `"full-bleed"` | Reflects the resolved `appearance`.                                                                   |
+| `data-state`      | `"open"` \| `"closed"`                          | Drives the open and close animation. `"closed"` holds through the exit, before the `<dialog>` closes. |
 
 ### Dialog.Header
 

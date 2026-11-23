@@ -5,7 +5,7 @@ import { defineConfig } from "tsdown";
 // dependency here would make a build cycle.
 import { mantlePhosphorPrunePlugin } from "../mantle-vite-plugins/src/mantle-phosphor-prune-plugin.ts";
 import { compileReact } from "./react-compiler.config.ts";
-import { compoundNamespaces, distName } from "./scripts/compound-namespaces.ts";
+import { compoundNamespaces } from "./scripts/compound-namespaces.ts";
 import { foldCxPlugin } from "./scripts/fold-cx.ts";
 import { preserveUseClient } from "./scripts/preserve-use-client.ts";
 
@@ -54,29 +54,10 @@ const componentPackages = allComponents
  */
 const consolidatedIntoUtils = new Set<string>(["compose-refs", "sorting"]);
 
-/**
- * The subpath directories one level inside a published component, such as
- * `dialog/native` for `@ngrok/mantle/dialog/native`. Each one builds as a flat
- * dist entry (`dialog-native.js`).
- */
-const subpathDirs = Object.keys(componentPackages).flatMap((name) =>
-	fs
-		.readdirSync(`src/components/${name}`, { withFileTypes: true })
-		.filter(
-			(dirent) =>
-				dirent.isDirectory() && fs.existsSync(`src/components/${name}/${dirent.name}/index.ts`),
-		)
-		.map((dirent) => `${name}/${dirent.name}`),
-);
-
-const subpathPackages = Object.fromEntries(
-	subpathDirs.map((dir) => [distName(dir), `./src/components/${dir}/index.ts`]),
-);
-
 /** Each compound component's parts entry and the plugin that keeps its namespace shakeable. */
 const compoundParts = compoundNamespaces({
 	componentsDir: "./src/components",
-	dirs: [...Object.keys(componentPackages), ...subpathDirs],
+	dirs: Object.keys(componentPackages),
 });
 
 const utilPackages = allUtils
@@ -238,7 +219,6 @@ export default defineConfig((options) => [
 		},
 		entry: {
 			...componentPackages,
-			...subpathPackages,
 			...compoundParts.entries,
 			...utilPackages,
 			"code-block_highlight-utils": "./src/components/code-block/highlight-utils.ts",

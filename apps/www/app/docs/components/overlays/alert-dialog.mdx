@@ -111,27 +111,17 @@ import { Button } from "@ngrok/mantle/button";
 
 ## Layering and z-index
 
-`AlertDialog.Content` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier, above every float (`z-50`). Floats composed inside the content portal into the positioner (`data-slot="alert-dialog-positioner"`) and paint above the content. When multiple overlays are open, the most recently mounted overlay renders on top.
+`AlertDialog.Content` renders the browser's modal `<dialog>` (`data-slot="alert-dialog-positioner"`, `role="alertdialog"`), so it paints in the top layer, above the page and every float outside it. The browser traps focus in it, makes the page behind it inert, closes it on Escape, and returns focus to the trigger. Floats composed inside the content portal into the `<dialog>` and paint above the content.
 
-`AlertDialog`, `Dialog`, and `Sheet` each render their own backdrop, so stacking modal layers compounds the dim and blur effect on the layers underneath.
+`AlertDialog`, `Dialog`, and `Sheet` each draw their own backdrop, so stacking modal layers compounds the dim and blur effect on the layers underneath.
 
 ## UI above an open alert dialog
 
-UI that must take clicks above an open alert dialog, such as a consent banner, carries the `overlay-prompt` class. A click inside it does not count as an outside click. Add `pointer-events-auto` too, because the open alert dialog sets `pointer-events: none` on `<body>`. mantle's `Toaster` does both.
-
-```tsx
-<div className="overlay-prompt pointer-events-auto fixed inset-x-0 bottom-0 z-max">
-	<ConsentBanner />
-</div>
-```
-
-The class reaches pointer input only. The open alert dialog traps keyboard focus and hides outside content from assistive technology with `aria-hidden`, so a keyboard or screen reader user cannot reach the banner. Put a control that every user must reach inside the alert dialog content.
+An open alert dialog makes the rest of the page inert: no click, focus, or screen reader reaches it. mantle's `Toaster` moves its toasts into the open alert dialog, so they paint above it and take clicks. Put a control that a user must reach while the alert dialog is open inside the alert dialog content.
 
 ## Third-party popups
 
-A script can show its own popup in a frame on `<body>`, above the alert dialog. A payment script does this for a 3-D Secure challenge and for a wallet sign-in. While that frame is on top at the center of the viewport, the alert dialog yields to the popup. Focus that the script moves into the popup stays there. Escape does not close the alert dialog: it moves focus into the popup, and the popup then takes the keyboard.
-
-Close the alert dialog from your code only after the popup closes. [Third-party popups](/components/overlays/sheet#third-party-popups) on the Sheet page has the reason, the rule for what counts as a popup, and an example.
+A modal alert dialog makes a frame that a script puts on `<body>`, such as a 3-D Secure challenge, inert. Set `modal={false}` on an alert dialog that holds such a flow. [Third-party popups](/components/overlays/dialog#third-party-popups) on the Dialog page has the details.
 
 ## Composition
 
@@ -259,34 +249,31 @@ function Example() {
 
 ## Polymorphism
 
-Every part of `AlertDialog` that renders DOM accepts `asChild`, which swaps the part's default element for your single child while keeping its styling, `data-slot`, and behavior. `AlertDialog.Root` is a state provider and renders no DOM, so it takes no `asChild`; `AlertDialog.Icon` already takes its element through the `svg` prop and clones it.
+Every part of `AlertDialog` that renders DOM accepts `asChild`, which swaps the part's default element for your single child while keeping its styling, `data-slot`, and behavior. `AlertDialog.Root` is a state provider and renders no DOM, so it takes no `asChild`; `AlertDialog.Content` renders the browser's `<dialog>` around its panel, so it takes none either; `AlertDialog.Icon` already takes its element through the `svg` prop and clones it.
 
-| Part                                                           | Reach for `asChild` when                                                                                         |
-| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `AlertDialog.Trigger`                                          | The control that opens the dialog is your own component, most often a `Button` or `IconButton`.                  |
-| `AlertDialog.Action`                                           | The confirming action must be a link or a form submit button rather than the default `Button`.                   |
-| `AlertDialog.Cancel`                                           | The dismissing control needs to be a link, or a button wired to your own handler.                                |
-| `AlertDialog.Close`                                            | Some other element inside the dialog should dismiss it.                                                          |
-| `AlertDialog.Title`                                            | The heading level must change to fit the page's outline.                                                         |
-| `AlertDialog.Description`                                      | The body copy needs a different element than the default paragraph.                                              |
-| `AlertDialog.Header`, `AlertDialog.Body`, `AlertDialog.Footer` | The region should be a semantic element such as `<header>`, `<section>`, or `<footer>`.                          |
-| `AlertDialog.Content`                                          | You need to own the dialog panel element itself. This is rare, since `Content` already carries the panel chrome. |
+| Part                                                           | Reach for `asChild` when                                                                        |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `AlertDialog.Trigger`                                          | The control that opens the dialog is your own component, most often a `Button` or `IconButton`. |
+| `AlertDialog.Action`                                           | The confirming action must be a link or a form submit button rather than the default `Button`.  |
+| `AlertDialog.Cancel`                                           | The dismissing control needs to be a link, or a button wired to your own handler.               |
+| `AlertDialog.Close`                                            | Some other element inside the dialog should dismiss it.                                         |
+| `AlertDialog.Title`                                            | The heading level must change to fit the page's outline.                                        |
+| `AlertDialog.Description`                                      | The body copy needs a different element than the default paragraph.                             |
+| `AlertDialog.Header`, `AlertDialog.Body`, `AlertDialog.Footer` | The region should be a semantic element such as `<header>`, `<section>`, or `<footer>`.         |
 
 ## Dismissal
 
-`AlertDialog` blocks all background interaction. The content carries `role="alertdialog"`, and a click on the backdrop does not close it. The user closes it with `AlertDialog.Cancel`, `AlertDialog.Close`, or the Escape key.
+`AlertDialog` blocks all background interaction. Its `<dialog>` carries `role="alertdialog"`, and a click on the backdrop does not close it. The user closes it with `AlertDialog.Cancel`, `AlertDialog.Close`, or the Escape key.
 
 ## API Reference
 
-The `AlertDialog` components are built on top of [Radix Dialog](https://www.radix-ui.com/primitives/docs/components/dialog).
+The `AlertDialog` components are built on the browser's [`<dialog>` element](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dialog).
 
 ### AlertDialog.Root
 
 Holds the open state and the required `intent` that `AlertDialog.Icon` and `AlertDialog.Action` read for their color.
 
-`AlertDialog` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier, above every float (`z-50`). Floats composed inside the content portal into the positioner (`data-slot="alert-dialog-positioner"`) and paint above the content. When multiple overlays are open, the most recently mounted overlay renders on top.
-
-All props from Radix [Dialog.Root](https://www.radix-ui.com/primitives/docs/components/dialog#root), plus:
+Takes the same `open`, `onOpenChange`, `defaultOpen`, and `modal` props as [`Dialog.Root`](/components/overlays/dialog#dialogroot), plus:
 
 | Prop     | Type                   | Default | Description                                                                                                                            |
 | -------- | ---------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------- |
@@ -296,23 +283,21 @@ All props from Radix [Dialog.Root](https://www.radix-ui.com/primitives/docs/comp
 
 A button that opens the Alert Dialog.
 
-Radix [Dialog.Trigger](https://www.radix-ui.com/primitives/docs/components/dialog#trigger) props.
+All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes), plus `asChild`.
 
 ### AlertDialog.Content
 
-The popover Alert Dialog container. Renders on top of the overlay and is centered in the viewport.
+The panel of the alert dialog, centered in the viewport. `ref`, `className`, and other props target the panel.
 
-`AlertDialog.Content` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier, above every float (`z-50`). Floats composed inside the content portal into the positioner (`data-slot="alert-dialog-positioner"`) and paint above the content. When multiple overlays are open, the most recently mounted overlay renders on top.
+`AlertDialog.Content` renders the panel inside a `<dialog>` (`data-slot="alert-dialog-positioner"`) that lays out the panel, draws the backdrop, and receives floats portaled from inside the alert dialog. The full stacking contract lives at [Stacking Layers](/base/stacking-layers).
 
-`AlertDialog.Content` renders inside a positioner element (`data-slot="alert-dialog-positioner"`) that lays out the content and receives floats portaled from inside the alert dialog. The full stacking contract lives at [Stacking Layers](/base/stacking-layers).
-
-Radix [Dialog.Content](https://www.radix-ui.com/primitives/docs/components/dialog#content) props, plus:
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes) and the same event props and `forceMount` as [`Dialog.Content`](/components/overlays/dialog#dialogcontent), plus:
 
 | Prop              | Type                    | Default      | Description                                                                   |
 | ----------------- | ----------------------- | ------------ | ----------------------------------------------------------------------------- |
 | `preferredWidth?` | `` `max-w-${string}` `` | `"max-w-md"` | The preferred width of the `AlertDialogContent` as a Tailwind `max-w-` class. |
 
-`onInteractOutside` still fires, but `AlertDialog.Content` calls `event.preventDefault()` after your handler, so an outside pointer interaction never closes the dialog.
+`onInteractOutside` still fires, but `AlertDialog.Content` calls `event.preventDefault()` after your handler, so a press on the backdrop never closes the dialog.
 
 ### AlertDialog.Body
 
@@ -350,7 +335,7 @@ An accessible name to be announced when the dialog is opened.
 
 Alternatively, pass `aria-label` or `aria-labelledby` to `AlertDialogContent` and exclude this component.
 
-Radix [Dialog.Title](https://www.radix-ui.com/primitives/docs/components/dialog#title) props.
+All props from [h2](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements), plus `asChild`.
 
 ### AlertDialog.Description
 
@@ -358,7 +343,7 @@ An accessible description to be announced when the dialog is opened. Renders as 
 
 Alternatively, pass `aria-describedby` to `AlertDialogContent` and exclude this component.
 
-Radix [Dialog.Description](https://www.radix-ui.com/primitives/docs/components/dialog#description) props.
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus `asChild`.
 
 ### AlertDialog.Action
 

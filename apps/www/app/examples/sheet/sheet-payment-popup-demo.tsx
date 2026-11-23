@@ -154,6 +154,8 @@ export function PaymentPopupDemo() {
 
 	return (
 		<Sheet.Root
+			// Why not modal: a modal sheet makes the bank's frame on `<body>` inert.
+			modal={false}
 			open={isOpen}
 			onOpenChange={(open) => {
 				// Keep the sheet open until the popup closes. Focus can come back to

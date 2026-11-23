@@ -1,7 +1,6 @@
 /**
- * The presentation that `@ngrok/mantle/dialog` and `@ngrok/mantle/dialog/native`
- * share: the class recipes and the parts with no behavior. Each backend adds
- * its own positioning motion and its own behavior parts.
+ * The presentation of `Dialog`: the class recipes and the parts with no
+ * behavior.
  */
 
 import { XIcon } from "@phosphor-icons/react/X";
@@ -273,7 +272,7 @@ const Body = ({
 	<div
 		data-slot={joinDataSlot(dataSlot, "dialog-body")}
 		className={cx(
-			"scrollbar scrollbar-gutter-stable text-body flex-1 overflow-y-auto p-6",
+			"scrollbar scrollbar-gutter-stable text-body flex-1 overflow-y-auto overscroll-none p-6",
 			className,
 		)}
 		{...props}

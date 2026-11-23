@@ -4,43 +4,30 @@ import type { ComponentProps } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import {
-	createDialogScope,
 	Close as SheetPrimitiveClose,
 	Content as SheetPrimitiveContent,
+	createScope,
 	Description as SheetPrimitiveDescription,
-	Overlay as SheetPrimitiveOverlay,
-	Portal as SheetPrimitivePortal,
 	Root as SheetPrimitiveRoot,
+	type RootProps,
 	Title as SheetPrimitiveTitle,
 	Trigger as SheetPrimitiveTrigger,
-} from "../dialog/primitive.js";
-import { Slot } from "../slot/index.js";
+} from "../dialog/native-primitive.js";
 import {
 	type CloseIconButtonProps,
 	CloseIconButtonView,
 	contentSurfaceClassName,
 	descriptionClassName,
 	type SheetLayoutProps,
-	type SheetSide,
+	slideClassName,
 	titleClassName,
 } from "./presentation.js";
 
-// Why a private dialog scope: a sheet wraps arbitrary content, and Radix binds
-// a default-scope `Dialog.Trigger` to the nearest dialog. With a scope of its
-// own, the sheet is never that dialog.
-const useSheetDialogScope = createDialogScope();
-
-/**
- * The scope props every `Sheet` part spreads onto the Radix part it renders.
- * Radix hands the scope out through a hook, so each part calls this in render.
- * Spread it after the props, so a wider props object cannot carry a foreign
- * `__scopeDialog` past the type.
- */
-function useSheetScope() {
-	return useSheetDialogScope(undefined);
-}
+// Why a scope of its own: a sheet wraps arbitrary content, and a
+// `Dialog.Trigger` inside it must bind to the nearest `Dialog.Root`, not to
+// the sheet.
+const scope = createScope();
 
 /**
  * The root component for a `Sheet`. Should compose the `Sheet.Trigger` and `Sheet.Content`.
@@ -154,10 +141,7 @@ function useSheetScope() {
  * </Sheet.Root>
  * ```
  */
-const Root = (props: ComponentProps<typeof SheetPrimitiveRoot>) => {
-	const sheetScope = useSheetScope();
-	return <SheetPrimitiveRoot {...props} {...sheetScope} />;
-};
+const Root = (props: Omit<RootProps, "scope">) => <SheetPrimitiveRoot scope={scope} {...props} />;
 
 /**
  * The button trigger for a `Sheet`. Should be rendered as a child of the `Sheet` component.
@@ -200,21 +184,15 @@ const Root = (props: ComponentProps<typeof SheetPrimitiveRoot>) => {
  * ```
  */
 const Trigger = ({
-	asChild,
-	children,
 	"data-slot": dataSlot,
 	...props
-}: ComponentProps<typeof SheetPrimitiveTrigger> & WithDataSlot) => {
-	const sheetScope = useSheetScope();
-	const slot = joinDataSlot(dataSlot, "sheet-trigger");
-	// Why mantle's `Slot` under `asChild`: Radix's merge lets the child's own
-	// `data-slot` replace this one, and `Slot` joins the two.
-	return (
-		<SheetPrimitiveTrigger asChild={asChild} data-slot={slot} {...props} {...sheetScope}>
-			{asChild ? <Slot data-slot={slot}>{children}</Slot> : children}
-		</SheetPrimitiveTrigger>
-	);
-};
+}: Omit<ComponentProps<typeof SheetPrimitiveTrigger>, "scope"> & WithDataSlot) => (
+	<SheetPrimitiveTrigger
+		scope={scope}
+		data-slot={joinDataSlot(dataSlot, "sheet-trigger")}
+		{...props}
+	/>
+);
 
 /**
  * The close button for a `Sheet`. Should be rendered as a child of the `Sheet.Content` component.
@@ -258,68 +236,16 @@ const Trigger = ({
  * ```
  */
 const Close = ({
-	asChild,
-	children,
 	"data-slot": dataSlot,
 	...props
-}: ComponentProps<typeof SheetPrimitiveClose> & WithDataSlot) => {
-	const sheetScope = useSheetScope();
-	const slot = joinDataSlot(dataSlot, "sheet-close");
-	return (
-		<SheetPrimitiveClose asChild={asChild} data-slot={slot} {...props} {...sheetScope}>
-			{asChild ? <Slot data-slot={slot}>{children}</Slot> : children}
-		</SheetPrimitiveClose>
-	);
-};
+}: Omit<ComponentProps<typeof SheetPrimitiveClose>, "scope"> & WithDataSlot) => (
+	<SheetPrimitiveClose scope={scope} data-slot={joinDataSlot(dataSlot, "sheet-close")} {...props} />
+);
 
-/**
- * Mounts `SheetOverlay` and `Sheet.Content` outside the app's DOM tree.
- *
- * @private
- */
-const SheetPortal = (props: ComponentProps<typeof SheetPrimitivePortal>) => {
-	const sheetScope = useSheetScope();
-	return <SheetPrimitivePortal {...props} {...sheetScope} />;
-};
-
-/**
- * The overlay backdrop for a sheet. Should be rendered as a child of the `SheetPortal` component.
- *
- * You likely don't need to use this component directly, as it is used internally by the `Sheet.Content` component.
- *
- * @private
- */
-const SheetOverlay = ({
-	"data-slot": dataSlot,
-	className,
-	ref,
-	...props
-}: ComponentProps<typeof SheetPrimitiveOverlay> & WithDataSlot) => {
-	const sheetScope = useSheetScope();
-	return (
-		<SheetPrimitiveOverlay
-			data-slot={joinDataSlot(dataSlot, "sheet-overlay")}
-			className={cx(
-				"bg-overlay data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:animate-in data-state-open:fade-in-0 duration-200 ease-out-strong data-state-closed:duration-150 fixed inset-0 z-60 backdrop-blur-xs",
-				className,
-			)}
-			{...props}
-			{...sheetScope}
-			ref={ref}
-		/>
-	);
-};
-
-/**
- * The keyframes each {@link SheetSide} slides in and out with. Radix waits for
- * `animationend` before it unmounts the content.
- */
-const motionClassName: Record<SheetSide, string> = {
-	left: "data-state-closed:slide-out-to-left data-state-open:slide-in-from-left",
-	right: "data-state-closed:slide-out-to-right data-state-open:slide-in-from-right",
-};
-
-type SheetContentProps = ComponentProps<typeof SheetPrimitiveContent> &
+type SheetContentProps = Omit<
+	ComponentProps<typeof SheetPrimitiveContent>,
+	"positionerClassName" | "positionerSlot" | "scope" | "inline" | "layer" | "role"
+> &
 	SheetLayoutProps &
 	WithDataSlot;
 
@@ -399,47 +325,25 @@ type SheetContentProps = ComponentProps<typeof SheetPrimitiveContent> &
  */
 const Content = ({
 	"data-slot": dataSlot,
-	children,
 	className,
 	preferredWidth = "sm:max-w-120",
 	side = "right",
-	ref,
 	...props
-}: SheetContentProps) => {
-	const sheetScope = useSheetScope();
-	return (
-		<SheetPortal>
-			<SheetOverlay />
-			{/* Why the positioner is the layer container: floats composed inside the
-			    sheet portal into it, after the content, so they paint above the
-			    content inside the sheet's own stacking context. The content cannot be
-			    the container itself: its slide animation carries a transform, which
-			    would turn a portaled float's `position: fixed` into a position
-			    relative to the content. The positioner has no box of its own; the
-			    content keeps its own fixed positioning. */}
-			<LayerContainer
-				data-slot="sheet-positioner"
-				className="fixed z-60 motion-safe:not-has-[>[data-mantle-modal-content][data-state=open]]:animate-exit-hold"
-			>
-				<SheetPrimitiveContent
-					data-slot={joinDataSlot(dataSlot, "sheet-content")}
-					data-mantle-modal-content
-					className={cx(
-						contentSurfaceClassName({ side, preferredWidth }),
-						"data-state-closed:animate-out data-state-open:animate-in duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none!",
-						motionClassName[side],
-						className,
-					)}
-					ref={ref}
-					{...props}
-					{...sheetScope}
-				>
-					{children}
-				</SheetPrimitiveContent>
-			</LayerContainer>
-		</SheetPortal>
-	);
-};
+}: SheetContentProps) => (
+	<SheetPrimitiveContent
+		scope={scope}
+		positionerSlot="sheet-positioner"
+		positionerClassName="fixed z-60"
+		data-slot={joinDataSlot(dataSlot, "sheet-content")}
+		className={cx(
+			contentSurfaceClassName({ side, preferredWidth }),
+			"data-state-closed:animate-out data-state-open:animate-in duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none!",
+			slideClassName[side],
+			className,
+		)}
+		{...props}
+	/>
+);
 
 /**
  * An icon button that closes the `Sheet` when clicked.
@@ -494,14 +398,11 @@ const Content = ({
  * </Sheet.Root>
  * ```
  */
-const CloseIconButton = (props: CloseIconButtonProps) => {
-	const sheetScope = useSheetScope();
-	return (
-		<SheetPrimitiveClose asChild {...sheetScope}>
-			<CloseIconButtonView {...props} />
-		</SheetPrimitiveClose>
-	);
-};
+const CloseIconButton = (props: CloseIconButtonProps) => (
+	<SheetPrimitiveClose scope={scope} asChild>
+		<CloseIconButtonView {...props} />
+	</SheetPrimitiveClose>
+);
 
 /**
  * The title for a `Sheet`. Typically rendered as a child of `Sheet.TitleGroup`.
@@ -556,20 +457,15 @@ const CloseIconButton = (props: CloseIconButtonProps) => {
 const Title = ({
 	"data-slot": dataSlot,
 	className,
-	ref,
 	...props
-}: ComponentProps<typeof SheetPrimitiveTitle> & WithDataSlot) => {
-	const sheetScope = useSheetScope();
-	return (
-		<SheetPrimitiveTitle
-			data-slot={joinDataSlot(dataSlot, "sheet-title")}
-			ref={ref}
-			className={cx(titleClassName, className)}
-			{...props}
-			{...sheetScope}
-		/>
-	);
-};
+}: Omit<ComponentProps<typeof SheetPrimitiveTitle>, "scope"> & WithDataSlot) => (
+	<SheetPrimitiveTitle
+		scope={scope}
+		data-slot={joinDataSlot(dataSlot, "sheet-title")}
+		className={cx(titleClassName, className)}
+		{...props}
+	/>
+);
 
 /**
  * A description for a sheet. Typically rendered as a child of `Sheet.Header`.
@@ -623,20 +519,15 @@ const Title = ({
 const Description = ({
 	"data-slot": dataSlot,
 	className,
-	ref,
 	...props
-}: ComponentProps<typeof SheetPrimitiveDescription> & WithDataSlot) => {
-	const sheetScope = useSheetScope();
-	return (
-		<SheetPrimitiveDescription
-			data-slot={joinDataSlot(dataSlot, "sheet-description")}
-			ref={ref}
-			className={cx(descriptionClassName, className)}
-			{...props}
-			{...sheetScope}
-		/>
-	);
-};
+}: Omit<ComponentProps<typeof SheetPrimitiveDescription>, "scope"> & WithDataSlot) => (
+	<SheetPrimitiveDescription
+		scope={scope}
+		data-slot={joinDataSlot(dataSlot, "sheet-description")}
+		className={cx(descriptionClassName, className)}
+		{...props}
+	/>
+);
 
 export {
 	//,

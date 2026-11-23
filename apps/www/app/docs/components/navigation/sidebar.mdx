@@ -651,7 +651,7 @@ Sidebar.Root
 including inside layout components that know nothing about the sidebar.
 `Sidebar.Nav` renders the panel: inline on desktop, collapsing to
 [its icons](#collapsing-the-sidebar), and a left-side sheet below the root's `mobileBreakpoint`. The
-sheet is the browser's `<dialog>`, as in the [native Sheet](/components/overlays/sheet#native-sheet), and
+sheet is the browser's `<dialog>`, kept mounted as with [`forceMount`](/components/overlays/sheet#keep-the-sheet-mounted), and
 CSS decides the presentation, so the nav mounts once and a tap opens the sheet with no React render. This keeps the sidebar decoupled from your app shell: place the trigger in an
 [App Layout](/layouts/app-layout) header without the shell knowing the sidebar exists. Render exactly one `Sidebar.Nav` per
 `Sidebar.Root`; nested roots shadow the outer sidebar for everything below them.
@@ -1626,7 +1626,7 @@ The [Assistant Across Routes](/recipes/assistant-across-routes) recipe shows the
   that attribute as well as `data-current`, so the announced state and the visual state cannot drift apart,
   whichever side sets it. `Sidebar.GroupLabel` is linked to its `Sidebar.List` via `aria-labelledby`.
 - The mobile sheet is the browser's modal `<dialog>`: it traps focus, makes the page inert, closes on
-  `Escape` or a click on the backdrop, and returns focus to the trigger, and CSS locks the page scroll. Its
+  `Escape` or a click on the backdrop, and returns focus to the trigger, and locks the page scroll. Its
   accessible name follows the nav's (`"Main"` by default), so overriding `aria-label` or `aria-labelledby` on
   `Sidebar.Nav` renames the dialog too. On desktop the same `<dialog>` is inline and exposes no dialog role
   (`role="generic"`), so screen readers meet only the `<nav>` landmark.

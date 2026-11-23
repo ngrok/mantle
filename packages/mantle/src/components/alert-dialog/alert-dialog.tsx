@@ -8,22 +8,24 @@ import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { LayerContainer } from "../../utils/layer-container/layer-container.js";
 import { Button, type ButtonAppearance, type ButtonProps } from "../button/button.js";
 import type { ButtonIntent } from "../button/intents.js";
 import {
 	Close as AlertDialogPrimitiveClose,
 	Content as AlertDialogPrimitiveContent,
+	createScope,
 	Description as AlertDialogPrimitiveDescription,
-	Overlay as AlertDialogPrimitiveOverlay,
-	Portal as AlertDialogPrimitivePortal,
 	Root as AlertDialogPrimitiveRoot,
+	type RootProps,
 	Title as AlertDialogPrimitiveTitle,
 	Trigger as AlertDialogPrimitiveTrigger,
-} from "../dialog/primitive.js";
+} from "../dialog/native-primitive.js";
 import { SvgOnly } from "../icon/svg-only.js";
 import type { SvgAttributes } from "../icon/types.js";
 import { Slot } from "../slot/index.js";
+
+/** The scope that ties the `AlertDialog` parts to their `Root`. */
+const scope = createScope();
 
 const intents = ["info", "danger"] as const;
 type AlertDialogIntent = (typeof intents)[number];
@@ -40,7 +42,7 @@ function useAlertDialogContext() {
 	return context;
 }
 
-type AlertDialogProps = ComponentProps<typeof AlertDialogPrimitiveRoot> & {
+type AlertDialogProps = Omit<RootProps, "scope"> & {
 	/**
 	 * The intent of the AlertDialog: the tone its color communicates to the
 	 * user, affecting the color and styling of descendants like
@@ -97,7 +99,7 @@ function Root({ intent, ...props }: AlertDialogProps) {
 
 	return (
 		<AlertDialogContext.Provider value={context}>
-			<AlertDialogPrimitiveRoot {...props} />
+			<AlertDialogPrimitiveRoot scope={scope} {...props} />
 		</AlertDialogContext.Provider>
 	);
 }
@@ -141,45 +143,19 @@ const Trigger = ({
 	"data-slot": dataSlot,
 	ref,
 	...props
-}: ComponentProps<typeof AlertDialogPrimitiveTrigger> & WithDataSlot) => (
+}: Omit<ComponentProps<typeof AlertDialogPrimitiveTrigger>, "scope"> & WithDataSlot) => (
 	<AlertDialogPrimitiveTrigger
+		scope={scope}
 		ref={ref}
 		data-slot={joinDataSlot(dataSlot, "alert-dialog-trigger")}
 		{...props}
 	/>
 );
 
-/**
- * Mounts `AlertDialogOverlay` and `AlertDialog.Content` outside the app's DOM
- * tree.
- *
- * @private
- */
-const AlertDialogPortal = AlertDialogPrimitivePortal;
-
-/**
- * A layer that covers the inert portion of the view when the dialog is open.
- *
- * @private
- */
-const AlertDialogOverlay = ({
-	"data-slot": dataSlot,
-	className,
-	ref,
-	...props
-}: ComponentProps<typeof AlertDialogPrimitiveOverlay> & WithDataSlot) => (
-	<AlertDialogPrimitiveOverlay
-		data-slot={joinDataSlot(dataSlot, "alert-dialog-overlay")}
-		className={cx(
-			"data-state-open:animate-in data-state-closed:animate-out data-state-closed:fade-out-0 data-state-open:fade-in-0 duration-200 ease-out-strong data-state-closed:duration-150 bg-overlay fixed inset-0 z-60 backdrop-blur-xs",
-			className,
-		)}
-		{...props}
-		ref={ref}
-	/>
-);
-
-type AlertDialogContentProps = ComponentProps<typeof AlertDialogPrimitiveContent> & {
+type AlertDialogContentProps = Omit<
+	ComponentProps<typeof AlertDialogPrimitiveContent>,
+	"positionerClassName" | "positionerSlot" | "scope" | "inline" | "layer" | "role"
+> & {
 	/**
 	 * The preferred width of the `AlertDialogContent` as a tailwind `max-w-` class.
 	 *
@@ -257,44 +233,35 @@ const Content = ({
 	className,
 	onInteractOutside,
 	preferredWidth = "max-w-md",
-	ref,
 	...props
 }: AlertDialogContentProps) => (
-	<AlertDialogPortal>
-		<AlertDialogOverlay />
-		{/* Why the positioner is the layer container: floats composed inside the
-		    alert dialog portal into it, after the content, so they paint above
-		    the content inside the alert dialog's own stacking context. It stays
-		    free of transforms (the open animation lives on the content), so a
-		    portaled float's `position: fixed` still resolves against the viewport. */}
-		<LayerContainer
-			data-slot="alert-dialog-positioner"
-			className="fixed inset-4 z-60 flex items-center justify-center motion-safe:not-has-[>[data-mantle-modal-content][data-state=open]]:animate-exit-hold"
-		>
-			<AlertDialogPrimitiveContent
-				role="alertdialog"
-				data-slot={joinDataSlot(dataSlot, "alert-dialog-content")}
-				data-mantle-modal-content
-				ref={ref}
-				onInteractOutside={(event) => {
-					onInteractOutside?.(event);
-					// Why: an alert dialog expects an explicit response, so a click on
-					// the backdrop must not dismiss it. Escape and the close parts still do.
-					event.preventDefault();
-				}}
-				className={cx(
-					"flex w-full flex-1 flex-col items-center gap-4 sm:flex-row sm:items-start",
-					"outline-hidden focus-within:outline-hidden",
-					"p-6",
-					"border-dialog bg-dialog rounded-xl border shadow-lg duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none!",
-					"data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95",
-					preferredWidth,
-					className,
-				)}
-				{...props}
-			/>
-		</LayerContainer>
-	</AlertDialogPortal>
+	<AlertDialogPrimitiveContent
+		scope={scope}
+		role="alertdialog"
+		positionerSlot="alert-dialog-positioner"
+		// Why `open:flex`: a `display` class would show a closed `<dialog>`.
+		positionerClassName="fixed inset-4 z-60 items-center justify-center open:flex"
+		data-slot={joinDataSlot(dataSlot, "alert-dialog-content")}
+		onInteractOutside={(event) => {
+			onInteractOutside?.(event);
+			// Why: an alert dialog expects an explicit response, so a click on
+			// the backdrop must not dismiss it. Escape and the close parts still do.
+			event.preventDefault();
+		}}
+		className={cx(
+			"flex w-full flex-1 flex-col items-center gap-4 sm:flex-row sm:items-start",
+			// Why `overscroll-none`: a long alert scrolls in the panel, with no
+			// bounce and no scroll that chains to the page.
+			"max-h-full overflow-y-auto overscroll-none",
+			"outline-hidden focus-within:outline-hidden",
+			"p-6",
+			"border-dialog bg-dialog rounded-xl border shadow-lg duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:animate-none!",
+			"data-state-closed:animate-out data-state-closed:fade-out-0 data-state-closed:zoom-out-95 data-state-open:animate-in data-state-open:fade-in-0 data-state-open:zoom-in-95",
+			preferredWidth,
+			className,
+		)}
+		{...props}
+	/>
 );
 
 /**
@@ -502,8 +469,9 @@ const Title = ({
 	className,
 	ref,
 	...props
-}: ComponentProps<typeof AlertDialogPrimitiveTitle> & WithDataSlot) => (
+}: Omit<ComponentProps<typeof AlertDialogPrimitiveTitle>, "scope"> & WithDataSlot) => (
 	<AlertDialogPrimitiveTitle
+		scope={scope}
 		ref={ref}
 		data-slot={joinDataSlot(dataSlot, "alert-dialog-title")}
 		className={cx("text-strong text-center text-lg font-medium sm:text-start", className)}
@@ -556,8 +524,9 @@ const Description = ({
 	className,
 	ref,
 	...props
-}: ComponentProps<typeof AlertDialogPrimitiveDescription> & WithDataSlot) => (
+}: Omit<ComponentProps<typeof AlertDialogPrimitiveDescription>, "scope"> & WithDataSlot) => (
 	<AlertDialogPrimitiveDescription
+		scope={scope}
 		ref={ref}
 		data-slot={joinDataSlot(dataSlot, "alert-dialog-description")}
 		className={cx("text-body text-center text-sm font-normal sm:text-start", className)}
@@ -724,7 +693,7 @@ const Cancel = ({
 	ref,
 	...props
 }: AlertDialogCancelProps) => (
-	<AlertDialogPrimitiveClose asChild>
+	<AlertDialogPrimitiveClose scope={scope} asChild>
 		<Button
 			appearance={appearance}
 			data-slot={joinDataSlot(dataSlot, "alert-dialog-cancel")}
@@ -858,8 +827,9 @@ const Close = ({
 	"data-slot": dataSlot,
 	ref,
 	...props
-}: ComponentProps<typeof AlertDialogPrimitiveClose> & WithDataSlot) => (
+}: Omit<ComponentProps<typeof AlertDialogPrimitiveClose>, "scope"> & WithDataSlot) => (
 	<AlertDialogPrimitiveClose
+		scope={scope}
 		ref={ref}
 		data-slot={joinDataSlot(dataSlot, "alert-dialog-close")}
 		{...props}

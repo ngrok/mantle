@@ -1,14 +1,13 @@
 import { Button } from "@ngrok/mantle/button";
-import { Sheet as RadixSheet } from "@ngrok/mantle/sheet";
-import { Sheet as NativeSheet } from "@ngrok/mantle/sheet/native";
+import { Sheet } from "@ngrok/mantle/sheet";
 import { useLocation } from "react-router";
 
 /**
  * The sheet open benchmark page, a chrome-less document that `bench/sheet.ts`
- * loads: `/bench/sheet?impl=native`. It server-renders a mobile navigation
- * sheet that holds about 150 elements, on `@ngrok/mantle/sheet` (`impl=radix`)
- * or `@ngrok/mantle/sheet/native` (`impl=native`), so the driver can time the
- * tap that opens it.
+ * loads: `/bench/sheet?impl=mounted`. It renders a mobile navigation sheet
+ * that holds about 150 elements, which mounts on open (`impl=default`) or
+ * stays mounted and server-rendered (`impl=mounted`, `forceMount`), so the
+ * driver can time the tap that opens it.
  */
 export function meta() {
 	return [
@@ -56,8 +55,7 @@ function Navigation() {
 }
 
 export default function SheetBenchPage() {
-	const native = new URLSearchParams(useLocation().search).get("impl") === "native";
-	const Sheet = native ? NativeSheet : RadixSheet;
+	const mounted = new URLSearchParams(useLocation().search).get("impl") === "mounted";
 	return (
 		<div className="p-4">
 			<Sheet.Root>
@@ -66,7 +64,7 @@ export default function SheetBenchPage() {
 						Menu
 					</Button>
 				</Sheet.Trigger>
-				<Sheet.Content side="left">
+				<Sheet.Content side="left" forceMount={mounted || undefined}>
 					<Sheet.Header>
 						<Sheet.TitleGroup>
 							<Sheet.Title>Menu</Sheet.Title>

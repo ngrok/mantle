@@ -5,6 +5,7 @@ import "@testing-library/jest-dom/vitest";
 import type { TestingLibraryMatchers } from "@testing-library/jest-dom/matchers";
 import { cleanup, configure } from "@testing-library/react";
 import { afterEach } from "vitest";
+import { installDialogCloseRequest } from "./src/test-utils/install-dialog-close-request.js";
 import { installPopoverApi } from "./src/test-utils/install-popover-api.js";
 import { createIntersectionObserverStub } from "./src/test-utils/mock-intersection-observer.js";
 import { canUseDOM } from "./src/components/browser-only/can-use-dom.js";
@@ -45,6 +46,7 @@ declare module "vitest/browser" {
 if (canUseDOM() && "happyDOM" in window) {
 	globalThis.IntersectionObserver = createIntersectionObserverStub({ intersecting: true }).Observer;
 	installPopoverApi();
+	installDialogCloseRequest();
 }
 
 // Why: Chromium computes `::before` and `::after` content, which can name an element
