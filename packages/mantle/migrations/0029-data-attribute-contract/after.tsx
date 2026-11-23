@@ -51,6 +51,12 @@ export function Menu() {
 			</DropdownMenu.Trigger>
 			<DropdownMenu.Content className="data-[side=top]:mb-2 data-[side=bottom]:mt-2 motion-safe:not-data-open:fade-out">
 				<DropdownMenu.Item className="data-highlighted:bg-active-menu-item">Copy</DropdownMenu.Item>
+				<DropdownMenu.CheckboxItem
+					checked="indeterminate"
+					className="aria-[checked=mixed]:text-muted"
+				>
+					Errors
+				</DropdownMenu.CheckboxItem>
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>
 	);
@@ -62,8 +68,11 @@ export function Settings({ invalid }: { invalid: boolean }) {
 		<>
 			<Switch className="aria-checked:bg-pink-500! not-aria-checked:bg-gray-200" />
 			<Tabs.Root defaultValue="a" orientation="vertical">
-				<Tabs.List className="data-[orientation=vertical]:flex-col">
-					<Tabs.Trigger value="a" className="aria-selected:text-strong group/tab">
+				<Tabs.List className="aria-[orientation=vertical]:flex-col">
+					<Tabs.Trigger
+						value="a"
+						className="aria-selected:text-strong not-aria-selected:opacity-60 group/tab"
+					>
 						<span className="group-aria-selected/tab:font-medium">A</span>
 					</Tabs.Trigger>
 				</Tabs.List>

@@ -789,36 +789,67 @@ describe("Tabs", () => {
 
 		// Why a consumer tabIndex: the panel forwards it, so the reveal cannot read
 		// the selected state from the panel's own `tabIndex`.
-		test("a revealed panel with a consumer tabIndex selects its tab and stays shown", async () => {
-			render(
-				<Tabs.Root defaultValue="a">
-					<Tabs.List>
-						<Tabs.Trigger value="a">A</Tabs.Trigger>
-						<Tabs.Trigger value="b">B</Tabs.Trigger>
-					</Tabs.List>
-					<Tabs.Content value="a">Panel A</Tabs.Content>
-					<Tabs.Content value="b" hiddenUntilFound tabIndex={-1}>
-						Panel B
-					</Tabs.Content>
-				</Tabs.Root>,
-			);
-			const panel = screen.getByText("Panel B");
-			expect(panel).toHaveAttribute("hidden", "until-found");
+		test.each([-1, 0])(
+			"a revealed panel with tabIndex={%i} selects its tab and stays shown",
+			async (tabIndex) => {
+				render(
+					<Tabs.Root defaultValue="a">
+						<Tabs.List>
+							<Tabs.Trigger value="a">A</Tabs.Trigger>
+							<Tabs.Trigger value="b">B</Tabs.Trigger>
+						</Tabs.List>
+						<Tabs.Content value="a">Panel A</Tabs.Content>
+						<Tabs.Content value="b" hiddenUntilFound tabIndex={tabIndex}>
+							Panel B
+						</Tabs.Content>
+					</Tabs.Root>,
+				);
+				const panel = screen.getByText("Panel B");
+				expect(panel).toHaveAttribute("hidden", "until-found");
 
-			// The browser removes `hidden` when find-in-page reaches the panel.
-			act(() => {
-				panel.removeAttribute("hidden");
-			});
+				// The browser removes `hidden` when find-in-page reaches the panel.
+				act(() => {
+					panel.removeAttribute("hidden");
+				});
 
-			await waitFor(() => {
-				expect(screen.getByRole("tab", { name: "B" })).toHaveAttribute("aria-selected", "true");
-			});
-			expect(panel).not.toHaveAttribute("hidden");
-		});
+				await waitFor(() => {
+					expect(screen.getByRole("tab", { name: "B" })).toHaveAttribute("aria-selected", "true");
+				});
+				expect(panel).not.toHaveAttribute("hidden");
+			},
+		);
 	});
 });
 
 describe("HeadlessTabs", () => {
+	// Why a custom id: the reveal must not find the trigger by its generated id.
+	test("a revealed panel whose trigger has its own id selects the tab and stays shown", async () => {
+		render(
+			<HeadlessTabs.Root defaultValue="a">
+				<HeadlessTabs.List>
+					<HeadlessTabs.Trigger value="a">A</HeadlessTabs.Trigger>
+					<HeadlessTabs.Trigger value="b" id="custom-b">
+						B
+					</HeadlessTabs.Trigger>
+				</HeadlessTabs.List>
+				<HeadlessTabs.Content value="a">Panel A</HeadlessTabs.Content>
+				<HeadlessTabs.Content value="b" hiddenUntilFound>
+					Panel B
+				</HeadlessTabs.Content>
+			</HeadlessTabs.Root>,
+		);
+		const panel = screen.getByText("Panel B");
+
+		act(() => {
+			panel.removeAttribute("hidden");
+		});
+
+		await waitFor(() => {
+			expect(screen.getByRole("tab", { name: "B" })).toHaveAttribute("aria-selected", "true");
+		});
+		expect(panel).not.toHaveAttribute("hidden");
+	});
+
 	test("keeps the tabs keyboard and ARIA contract without the Tabs look", async () => {
 		const user = userEvent.setup();
 		const onValueChange = vi.fn<(value: string) => void>();

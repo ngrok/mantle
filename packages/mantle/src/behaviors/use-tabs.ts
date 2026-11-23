@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import type { FocusEvent, KeyboardEvent, MouseEvent } from "react";
 import { flushSync } from "react-dom";
 import { useControllableState } from "./use-controllable-state.js";
@@ -28,6 +28,8 @@ type UseTabsProps = {
 type TabsBehavior = {
 	baseId: string;
 	value: string | undefined;
+	/** Reads the committed value, so a callback that outlives its render reads the current one. */
+	currentValue: () => string | undefined;
 	select: (value: string) => void;
 	/**
 	 * The value of the tab that is the Tab stop: the last focused tab, else the
@@ -79,9 +81,14 @@ const useTabs = ({
 		under: string | undefined;
 		inside: boolean;
 	} | null>(null);
+	const valueRef = useRef(value);
+	useLayoutEffect(() => {
+		valueRef.current = value;
+	});
 	return {
 		baseId: useId(),
 		value,
+		currentValue: () => valueRef.current,
 		select: setValue,
 		stop: focused != null && (focused.inside || focused.under === value) ? focused.value : value,
 		focusTab: (next) => {
@@ -415,20 +422,16 @@ const getTabPanelProps = (
 					// Why an observer and not `beforematch`: the browser removes `hidden`
 					// after `beforematch`, and it can do so before hydration. A change
 					// to `hidden` on an inactive panel covers both.
-					// Why the tab's `aria-selected`: it is the selected state that
-					// mantle writes, and `flushSync` below updates it before the reread.
-					const isInactive = () =>
-						panel.ownerDocument
-							.getElementById(tabId(tabs, value))
-							?.getAttribute("aria-selected") !== "true";
 					const reconcile = () => {
-						if (!isInactive() || panel.hasAttribute("hidden")) {
+						// Why `currentValue`: this ref outlives its render, and `flushSync`
+						// below commits the selection before the reread.
+						if (tabs.currentValue() === value || panel.hasAttribute("hidden")) {
 							return;
 						}
 						flushSync(() => {
 							tabs.select(value);
 						});
-						if (isInactive()) {
+						if (tabs.currentValue() !== value) {
 							panel.setAttribute("hidden", "until-found");
 						}
 					};

@@ -49,6 +49,9 @@ export function Menu() {
 			<DropdownMenu.Trigger className="hover:text-strong data-state-open:text-strong">Open</DropdownMenu.Trigger>
 			<DropdownMenu.Content className="data-side-top:mb-2 data-side-bottom:mt-2 motion-safe:data-state-closed:fade-out">
 				<DropdownMenu.Item className="data-active-item:bg-active-menu-item">Copy</DropdownMenu.Item>
+				<DropdownMenu.CheckboxItem checked="indeterminate" className="data-state-indeterminate:text-muted">
+					Errors
+				</DropdownMenu.CheckboxItem>
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>
 	);
@@ -61,7 +64,7 @@ export function Settings({ invalid }: { invalid: boolean }) {
 			<Switch className="data-state-checked:bg-pink-500! data-state-unchecked:bg-gray-200" />
 			<Tabs.Root defaultValue="a" orientation="vertical">
 				<Tabs.List className="data-orientation-vertical:flex-col">
-					<Tabs.Trigger value="a" className="data-state-active:text-strong group/tab">
+					<Tabs.Trigger value="a" className="data-state-active:text-strong data-state-inactive:opacity-60 group/tab">
 						<span className="group-data-state-active/tab:font-medium">A</span>
 					</Tabs.Trigger>
 				</Tabs.List>

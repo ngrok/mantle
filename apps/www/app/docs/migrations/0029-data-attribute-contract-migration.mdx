@@ -33,9 +33,9 @@ npx --yes --package=@ast-grep/cli@0.51.3 ast-grep scan --rule node_modules/@ngro
 The rules apply steps 2 and 4. They rewrite class strings in JSX, `cx` and `cva` calls, template strings, and constants:
 
 - `data-state-open:` becomes `aria-expanded:` in the `className` of a part whose name ends in `Trigger` and of the `asChild` element inside it. `group-data-state-open:` becomes `group-aria-expanded:` inside that part's children. Everywhere else, `data-state-open:` becomes `data-open:` and `data-state-closed:` becomes `not-data-open:`.
-- `data-state-checked:` becomes `aria-checked:` (`aria-selected:` on a `Select.Item`), `data-state-active:` becomes `aria-selected:`, `data-state-selected:` becomes `data-selected:`, and `data-state-indeterminate:` becomes `data-indeterminate:`.
-- `data-side-*:`, `data-orientation-*:`, and `data-validation-*:` become the bracket form, such as `data-[side=top]:`. `data-active-item:` becomes `data-highlighted:`.
-- In a file that imports `@radix-ui/*`, every `data-state-*:` becomes `data-[state~=*]:`, so classes on your own Radix parts keep their match.
+- `data-state-checked:` becomes `aria-checked:` (`aria-selected:` on a `Select.Item`), `data-state-active:` becomes `aria-selected:`, and `data-state-selected:` becomes `data-selected:`. On a trigger, `data-state-inactive:` becomes `not-aria-selected:`. `data-state-indeterminate:` becomes `data-indeterminate:`, or `aria-[checked=mixed]:` on a `CheckboxItem`.
+- `data-side-*:`, `data-orientation-*:`, and `data-validation-*:` become the bracket form, such as `data-[side=top]:`. On a `Tabs.List`, `data-orientation-*:` becomes `aria-[orientation=*]:`. `data-active-item:` becomes `data-highlighted:`.
+- In a file that imports `@radix-ui/*`, every `data-state-*:` becomes `data-[state~=*]:`, so classes on your own Radix parts keep their match. The test rules skip that file.
 - `expect(el).toHaveAttribute("data-state", "open")` becomes `toHaveAttribute("data-open")`, and `"closed"` becomes `.not.toHaveAttribute("data-open")`. `"expanded"` and `"collapsed"` map to `data-expanded` the same way.
 
 The rules read text, not the part a class lands on. A class string that one file builds and another file applies, a `group-` variant whose group is not the nearest `Trigger`, and selectors in CSS files stay manual: step 3 lists them. The codemod is safe to run again. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
@@ -47,22 +47,23 @@ The rules read text, not the part a class lands on. A class string that one file
 1. Run the codemod over the whole project, including tests and docs.
 2. Search for what is left: `rg -n 'data-state|data-\[state|data-disabled|data-align|data-current|data-active\b|data-side-|data-validation-|data-orientation-'`. Fix each match that reads a mantle part with this table:
 
-   | Before                                               | After                                                           |
-   | ---------------------------------------------------- | --------------------------------------------------------------- |
-   | `data-[state=open]:` on a trigger                    | `aria-expanded:`                                                |
-   | `data-[state=open]:` on content, an item, or a panel | `data-open:`                                                    |
-   | `data-[state=closed]:` on content                    | `not-data-open:`                                                |
-   | `data-[state=expanded]:` on `Sidebar.Nav`            | `data-expanded:` (`not-data-expanded:` for collapsed)           |
-   | `data-[state=checked]:`                              | `aria-checked:`, or `aria-selected:` on a `Select.Item`         |
-   | `data-[state=active]:` on a `Tabs.Trigger`           | `aria-selected:`                                                |
-   | `data-[state=inactive]:hidden` on a `Tabs.Content`   | delete it: an inactive panel has the `hidden` attribute         |
-   | `data-[state=inactive]:` on an `IconSwap` item       | `aria-hidden:`                                                  |
-   | `data-disabled:` on a button, a tab, or a menu item  | `disabled:` on a button, `aria-disabled:` on the others         |
-   | `data-current:` on a `Sidebar.ItemButton`            | `aria-[current=page]:`                                          |
-   | `data-active:` on a list row or an OTP slot          | `data-highlighted:`                                             |
-   | `data-active:` on a `MultiSelect` tag                | `focus:` or `focus-visible:`                                    |
-   | `[data-state="open"]` in a selector                  | `[data-open]` on content, `[aria-expanded="true"]` on a trigger |
-   | `data-align` in a selector or test                   | delete it: no part emits it                                     |
+   | Before                                                                  | After                                                                                   |
+   | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+   | `data-[state=open]:` on a trigger                                       | `aria-expanded:`                                                                        |
+   | `data-[state=open]:` on content, an item, or a panel                    | `data-open:`                                                                            |
+   | `data-[state=closed]:` on content                                       | `not-data-open:`                                                                        |
+   | `data-[state=expanded]:` on `Sidebar.Nav`                               | `data-expanded:` (`not-data-expanded:` for collapsed)                                   |
+   | `data-[state=checked]:`                                                 | `aria-checked:`, or `aria-selected:` on a `Select.Item`                                 |
+   | `data-[state=active]:` on a `Tabs.Trigger`                              | `aria-selected:`                                                                        |
+   | `data-[state=inactive]:hidden` on a `Tabs.Content`                      | delete it: an inactive panel has the `hidden` attribute                                 |
+   | `data-[state=inactive]:` on an `IconSwap` item                          | `aria-hidden:`                                                                          |
+   | `data-disabled:` on a button, a tab, or a menu item                     | `disabled:` on a button, `aria-disabled:` on the others                                 |
+   | `data-current:` on a `Sidebar.ItemButton`                               | `aria-[current=page]:`                                                                  |
+   | `data-active:` on a list row or an OTP slot                             | `data-highlighted:`                                                                     |
+   | `data-active:` on a `MultiSelect` tag                                   | `focus:` or `focus-visible:`                                                            |
+   | `[data-state="open"]` in a selector                                     | `[data-open]` on content, `[aria-expanded="true"]` on a trigger                         |
+   | `data-align` in a selector or test                                      | delete it: no part emits it                                                             |
+   | `data-[orientation=*]:` on a tab, a slider track, or another child part | read the root through a named `group-`, or use `aria-[orientation=*]:` on a `Tabs.List` |
 
    Leave `data-state` alone on an element that you or a third-party library renders, such as your own Radix component.
 

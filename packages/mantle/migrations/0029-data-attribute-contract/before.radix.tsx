@@ -1,6 +1,7 @@
 import * as TabsPrimitive from "@radix-ui/react-tabs";
 import { Icon } from "@ngrok/mantle/icon";
 import { Tabs } from "@ngrok/mantle/tabs";
+import { expect, test } from "vitest";
 
 // A file that imports Radix keeps matching Radix's data-state through the bracket form.
 export function UseCaseTabs() {
@@ -15,3 +16,8 @@ export function UseCaseTabs() {
 		</Tabs.Root>
 	);
 }
+
+// A file that imports Radix keeps its data-state assertions.
+test("radix state", () => {
+	expect(screen.getByRole("tab")).toHaveAttribute("data-state", "open");
+});
