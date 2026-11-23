@@ -374,7 +374,6 @@ function useFloat({
 					floating,
 					side,
 					sideOffset,
-					releaseAnchorAfter: EXIT_DURATION,
 				});
 			let stopTracking = track(anchor);
 			const placed: PlacedFor = {
