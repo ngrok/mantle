@@ -671,21 +671,57 @@
       ]
     },
     {
-      "id": "switch-form-error",
-      "component": "Switch",
-      "path": "components/forms/switch/switch-in-a-form-with-client-side-validation",
+      "id": "dialog-form-errors",
+      "component": "Dialog + Field + Select",
+      "path": "components/overlays/dialog/with-tanstack-form",
       "steps": [
         {
           "label": "press Tab",
           "spoken": [
-            "switch, Airplane mode, on, not checked, not invalid, not read only",
-            "focus: switch \"Airplane mode\" not checked"
+            "button, Invite a teammate, not disabled, not expanded, has popup dialog",
+            "focus: button \"Invite a teammate\" collapsed popup dialog"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Enter",
+          "spoken": [
+            "dialog, Invite a teammate",
+            "button, Close Dialog, not disabled",
+            "focus: button \"Close Dialog\" (in dialog \"Invite a teammate\")"
           ],
           "failed": []
         },
         {
           "label": "press Tab",
-          "spoken": ["button, Submit, not disabled", "focus: button \"Submit\""],
+          "spoken": [
+            "textbox, Email, not invalid, placeholder teammate@example.com",
+            "focus: textbox \"Email\" (in dialog \"Invite a teammate\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "combobox, Role, has popup listbox, not expanded, not invalid",
+            "focus: combobox \"Role\" value \"Select a role\" collapsed popup listbox (in dialog \"Invite a teammate\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Cancel, not disabled",
+            "focus: button \"Cancel\" (in dialog \"Invite a teammate\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "button, Send invite, not disabled",
+            "focus: button \"Send invite\" (in dialog \"Invite a teammate\")"
+          ],
           "failed": []
         },
         {
@@ -696,10 +732,23 @@
         {
           "label": "press Shift+Tab",
           "spoken": [
-            "switch, Airplane mode, on, not checked, not invalid, not read only",
-            "focus: switch \"Airplane mode\" not checked"
+            "button, Cancel, not disabled",
+            "focus: button \"Cancel\" (in dialog \"Invite a teammate\")"
           ],
           "failed": []
+        },
+        {
+          "label": "press Shift+Tab",
+          "spoken": [
+            "combobox, Role, Choose a role., has popup listbox, not expanded, 1 error message, invalid",
+            "focus: combobox \"Role\" value \"Select a role\" description \"Choose a role.\" collapsed invalid popup listbox (in dialog \"Invite a teammate\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Shift+Tab",
+          "spoken": ["dialog, Invite a teammate", "focus: dialog \"Invite a teammate\""],
+          "failed": ["missing /email/", "missing /invalid|error/", "missing /valid email/"]
         }
       ]
     },

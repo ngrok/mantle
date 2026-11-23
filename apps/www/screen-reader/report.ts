@@ -54,6 +54,13 @@ const cell = (spoken: string[] | undefined): string => {
 	return spoken.length === 0 ? "(silent)" : spoken.join("<br>").replaceAll("|", "\\|");
 };
 
+/** A step's speech without the punctuation and spacing a reader varies from run to run. */
+const words = (spoken: string[] | undefined) =>
+	(spoken ?? []).join(" ").toLowerCase().replaceAll(/[.,]/g, "").replaceAll(/\s+/g, " ").trim();
+
+const differs = (before: string[] | undefined, after: string[]): boolean =>
+	words(before) !== words(after);
+
 const unmet = (flow: FlowResult) =>
 	flow.steps.reduce((sum, step) => sum + step.failed.length, 0) + (flow.error ? 1 : 0);
 
@@ -68,7 +75,7 @@ lines.push(
 for (const flow of head.flows) {
 	const before = base?.flows.find((candidate) => candidate.id === flow.id);
 	const changed = flow.steps.filter(
-		(step, index) => before != null && cell(step.spoken) !== cell(before.steps[index]?.spoken),
+		(step, index) => before != null && differs(before.steps[index]?.spoken, step.spoken),
 	).length;
 	const marks = [
 		unmet(flow) > 0 ? `${unmet(flow)} unmet` : "ok",
@@ -82,7 +89,7 @@ for (const flow of head.flows) {
 	lines.push(base ? "| --- | --- | --- | --- |" : "| --- | --- | --- |");
 	flow.steps.forEach((step, index) => {
 		const old = before?.steps[index]?.spoken;
-		const mark = base && cell(old) !== cell(step.spoken) ? "Δ " : "";
+		const mark = base && differs(old, step.spoken) ? "Δ " : "";
 		const failed = step.failed.join("<br>").replaceAll("|", "\\|");
 		lines.push(
 			base

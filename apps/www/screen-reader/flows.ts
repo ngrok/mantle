@@ -231,10 +231,22 @@ export const flows: Flow[] = [
 		],
 	},
 	{
-		id: "switch-form-error",
-		component: "Switch",
-		path: "components/forms/switch/switch-in-a-form-with-client-side-validation",
-		steps: [{ key: "Tab" }, { key: "Tab" }, { key: "Enter" }, { key: "Shift+Tab" }],
+		id: "dialog-form-errors",
+		component: "Dialog + Field + Select",
+		path: "components/overlays/dialog/with-tanstack-form",
+		steps: [
+			{ key: "Tab", expect: [BUTTON] },
+			{ key: "Enter", expect: [DIALOG, "invite a teammate"] },
+			{ key: "Tab" },
+			{ key: "Tab" },
+			{ key: "Tab" },
+			{ key: "Tab" },
+			// Submit the empty form: each invalid field says it is invalid and why, on focus or at once.
+			{ key: "Enter", wait: 1000 },
+			{ key: "Shift+Tab", expect: ["cancel"] },
+			{ key: "Shift+Tab", expect: ["role", INVALID, "choose a role"] },
+			{ key: "Shift+Tab", expect: ["email", INVALID, "valid email"] },
+		],
 	},
 	{
 		id: "radio-group",
