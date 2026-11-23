@@ -209,6 +209,13 @@ function arrowTarget({
 	return radios.at((index + (forward ? 1 : -1)) % radios.length) ?? null;
 }
 
+/**
+ * The controls in a radio item's content that sit over the radio and stay
+ * visible to assistive technology. `mantle.css` lifts the same list.
+ */
+const CONTENT_CONTROL_SELECTOR =
+	'a[href], button, details, input, select, textarea, label, [tabindex], [contenteditable="true"]';
+
 /** Joins element ids into one IDREF list, or `undefined` when there are none. */
 function joinIds(ids: readonly (string | undefined)[]): string | undefined {
 	const present = ids.filter((id): id is string => id != null && id !== "");
@@ -238,11 +245,13 @@ type PrimitiveItemProps = ItemProps & {
 
 /**
  * One item of a `Root`: a `<div>` with a native `<input type="radio">` and
- * the item's children. The radio is a small invisible box at the middle of
- * the item's start edge, so `getByRole("radio").click()` in a test clicks the
- * radio itself. A click anywhere on the item focuses and checks the radio.
- * Links, buttons, labels, and form controls in the children keep their own
- * clicks, except on the radio's own 4px at the start edge. The radio takes its name from a
+ * the item's children. The radio is invisible, covers the item, and sits
+ * over its content, so assistive technology outlines the whole item, a click
+ * anywhere on the item checks the radio, and `getByRole("radio").click()` in
+ * a test clicks the radio itself. Links, buttons, labels, and form controls in
+ * the children sit over the radio and keep their own clicks. When the
+ * children have none, assistive technology skips their text, which already
+ * names the radio, so it stops once on each item. The radio takes its name from a
  * `<label>` in the item (the title line, such as `Choice.Label`), from a
  * `Choice.Title`, or else from all of the item's text. The caller
  * sets the styles; read the radio's state with `has-[>input:checked]:`,
@@ -294,7 +303,8 @@ const Item = ({
 			{/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- Why: the native radio in the item takes the keyboard; the click only widens its pointer target to the item. */}
 			<div
 				data-slot={joinDataSlot(dataSlot, part)}
-				className={cx("relative", className)}
+				// Why isolate: the radio and the controls over it stack inside the item, not over the page.
+				className={cx("relative isolate", className)}
 				{...props}
 				onClick={(event) => {
 					// Why: the click the item sends to its radio bubbles back here, and a caller handles one click once.
@@ -303,15 +313,22 @@ const Item = ({
 					}
 					onClick?.(event);
 					const radio = radioRef.current;
-					if (
-						event.defaultPrevented ||
-						radio == null ||
-						event.target === radio ||
-						isInteractiveTarget(event.target, event.currentTarget)
-					) {
+					if (radio == null) {
 						return;
 					}
-					// Why no scroll: the radio is a 4px box at the item's edge, and the user clicked a visible part of the item.
+					if (event.target === radio) {
+						// Why: Safari does not focus a radio on a pointer click. A click that a part sends with
+						// `click()` has no `detail`, and it keeps focus where the part put it.
+						if (event.detail > 0) {
+							radio.focus({ preventScroll: true });
+						}
+						return;
+					}
+					// Why a click on the item's text gets here: a test, such as Testing Library's `user.click()`,
+					// sends it to the text, not to the radio over the text.
+					if (event.defaultPrevented || isInteractiveTarget(event.target, event.currentTarget)) {
+						return;
+					}
 					radio.focus({ preventScroll: true });
 					forwardingClick.current = true;
 					radio.click();
@@ -336,10 +353,9 @@ const Item = ({
 					{...radioProps}
 					checked={checked}
 					onChange={check}
-					// Why a 4px box over the middle of the start edge: a click at the radio's center lands on the radio
-					// itself, so a test can click it by its role, and a click on the item's text still lands on that
-					// text. A rounded corner or a corner badge does not cover the middle of the edge.
-					className="absolute start-0 top-1/2 z-1 m-0 size-1 cursor-inherit opacity-0"
+					// Why it covers the item over the content: assistive technology outlines the whole item, and a
+					// click on the item lands on the radio itself. `mantle.css` lifts the content's controls over it.
+					className="absolute inset-0 z-1 m-0 size-full cursor-inherit opacity-0"
 					disabled={disabled}
 					form={group.form}
 					id={radioId}
@@ -366,11 +382,24 @@ const Item = ({
 						) {
 							input.removeAttribute("aria-labelledby");
 						}
+						// Why: hidden content still names the radio, but a control in it must stay reachable.
+						const content = input.nextElementSibling;
+						if (content?.querySelector(CONTENT_CONTROL_SELECTOR) == null) {
+							content?.setAttribute("aria-hidden", "true");
+						} else {
+							content.removeAttribute("aria-hidden");
+						}
 					}}
 					required={group.required}
 				/>
 				{/* Why a wrapper: a lone text child beside the radio would lose React's repair after a browser translation. */}
-				<div id={contentId} data-slot={`${part}-label`} className="contents">
+				{/* Why aria-hidden: the radio reads this text as its name, so a screen reader in browse mode does not stop on it again. */}
+				<div
+					id={contentId}
+					data-slot={`${part}-label`}
+					aria-hidden
+					className="radio-item-content contents"
+				>
 					{children}
 				</div>
 			</div>

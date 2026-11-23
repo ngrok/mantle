@@ -1438,6 +1438,29 @@ MARK: CUSTOM VARIANTS
 		overflow: hidden !important;
 		padding-inline-end: var(--mantle-scrollbar-width, 0px);
 	}
+
+	/*
+	 * The native radio of a `RadioGroup` or `SegmentedControl` item covers the
+	 * item, over its content. The controls in the content sit over the radio, so
+	 * they keep their own clicks. Why the base layer and `:where()`: a position
+	 * or z-index utility on the control wins. The list matches
+	 * `CONTENT_CONTROL_SELECTOR` in `radio-group/primitive.tsx`.
+	 */
+	:where(.radio-item-content)
+		:where(
+			a[href],
+			button,
+			details,
+			input,
+			select,
+			textarea,
+			label,
+			[tabindex],
+			[contenteditable="true"]
+		) {
+		position: relative;
+		z-index: 2;
+	}
 }
 
 /**
