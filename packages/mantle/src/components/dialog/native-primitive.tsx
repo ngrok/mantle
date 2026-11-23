@@ -93,6 +93,30 @@ const keptMounted = new WeakSet<HTMLDialogElement>();
 /** The `<dialog>` elements that open with `show()`, not as a modal. */
 const nonModal = new WeakSet<HTMLDialogElement>();
 
+/** The documents that `trackInput` listens to. */
+const trackedDocuments = new WeakSet<Document>();
+/**
+ * Whether the last press or key on a tracked document was a press, or
+ * `undefined` before the first one that `trackInput` sees.
+ */
+let pressedLast: boolean | undefined;
+
+/**
+ * Records whether the last input on `ownerDocument` was a press or a key, for
+ * the focus ring of a dialog that opens. Why on the document: a dialog can
+ * open from any press or key, such as a row action or a hotkey, and Safari
+ * gives a pressed button no focus to read.
+ */
+function trackInput(ownerDocument: Document): void {
+	if (trackedDocuments.has(ownerDocument)) {
+		return;
+	}
+	trackedDocuments.add(ownerDocument);
+	const options = { capture: true, passive: true };
+	ownerDocument.addEventListener("pointerdown", () => (pressedLast = true), options);
+	ownerDocument.addEventListener("keydown", () => (pressedLast = false), options);
+}
+
 /** Writes `state` to the `aria-expanded` and `data-state` of `trigger`. */
 function writeTriggerState(trigger: Element, state: string): void {
 	trigger.setAttribute("aria-expanded", String(state === "open"));
@@ -683,21 +707,18 @@ const Content = ({
 
 	/** The element that had focus when the dialog opened, such as a frame. */
 	const opener = useRef<Element | null>(null);
-	/** Whether the element that had focus at open showed a focus ring. */
-	const openerRing = useRef(true);
-	const noteOpener = useCallbackRef((ownerDocument: Document) => {
-		opener.current = ownerDocument.activeElement;
-		openerRing.current = opener.current?.matches(":focus-visible") === true;
-	});
+	/** Whether `opener` showed a focus ring at open. */
+	const openerRing = useRef(false);
 	/** Runs `onOpenAutoFocus` on an open `dialog`. */
 	const openAutoFocus = useCallbackRef((dialog: HTMLDialogElement) => {
 		// Why: WebKit shows a focus ring on the browser's pick after a press, and
-		// the script focus of a Radix dialog showed none. The pick shows a ring
-		// only when the opener did, as script focus does in each engine. A text
-		// field always shows one.
+		// the script focus of a Radix dialog showed none. A text field always
+		// shows one.
+		// Why the opener's ring as a fallback: a dialog that mounts on the press
+		// that opens it starts `trackInput` after that press.
 		const picked = dialog.ownerDocument.activeElement;
 		if (
-			!openerRing.current &&
+			(pressedLast ?? !openerRing.current) &&
 			picked instanceof HTMLElement &&
 			picked.matches(":focus-visible:not(:read-write)")
 		) {
@@ -733,7 +754,8 @@ const Content = ({
 	 * its ref attaches runs it once the refs of its content attach.
 	 */
 	const openDialog = useCallbackRef((dialog: HTMLDialogElement) => {
-		noteOpener(dialog.ownerDocument);
+		opener.current = dialog.ownerDocument.activeElement;
+		openerRing.current = opener.current?.matches(":focus-visible") === true;
 		moveDialog({ dialog, modal: root.modal, open: true });
 		if (dialogRef.current === dialog) {
 			openAutoFocus(dialog);
@@ -901,7 +923,6 @@ const Content = ({
 			return;
 		}
 		if (open && keepMounted && !root.controlled && root.modal) {
-			noteOpener(dialog.ownerDocument);
 			nonModal.delete(dialog);
 			lockPageScroll({ dialog, lock: true });
 			writeOpenState({ dialog, open });
@@ -986,7 +1007,10 @@ const Content = ({
 		}
 	}, [expectedOpen, keepMounted, openSoon]);
 
-	useEffect(() => () => releaseOverlay.current?.(), []);
+	useEffect(() => {
+		trackInput(document);
+		return () => releaseOverlay.current?.();
+	}, []);
 
 	// Why Escape on the document: an open picker in the panel takes the key
 	// first and prevents it, in every engine, and the key closes the top dialog

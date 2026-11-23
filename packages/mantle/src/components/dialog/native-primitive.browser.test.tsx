@@ -148,6 +148,27 @@ describe("Dialog", () => {
 		expect(screen.getByRole("textbox", { name: "Name" })).toHaveFocus();
 	});
 
+	test("the first button shows a focus ring after a hotkey open with no focused element", async () => {
+		function HotkeyDialog() {
+			const [open, setOpen] = useState(false);
+			useEffect(() => {
+				const onKeyDown = (event: KeyboardEvent) => event.key === "k" && setOpen(true);
+				document.addEventListener("keydown", onKeyDown);
+				return () => document.removeEventListener("keydown", onKeyDown);
+			}, []);
+			return <ExampleDialog open={open} onOpenChange={setOpen} />;
+		}
+		render(<HotkeyDialog />);
+		await userEvent.click(document.body);
+		expect(document.activeElement).toBe(document.body);
+
+		await userEvent.keyboard("k");
+
+		const close = screen.getByRole("button", { name: "Close Dialog" });
+		expect(close).toHaveFocus();
+		expect(close.matches(":focus-visible")).toBe(true);
+	});
+
 	test("the first button shows a focus ring after a keyboard open and none after a press", async () => {
 		render(<ExampleDialog />);
 		const trigger = screen.getByRole("button", { name: "Open dialog" });
