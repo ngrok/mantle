@@ -10,7 +10,7 @@ Read the exact version from `node_modules/@ngrok/mantle/package.json` or the loc
 
 Use the first source that you can reach.
 
-1. **The mantle MCP server**, `https://mantle.ngrok.com/mcp`. Use it when your client has it connected. It has no sign-in and does not store your code. Pass the exact installed version to each tool. The server supports 0.90.0 and later.
+1. **The mantle MCP server**, `https://mantle.ngrok.com/mcp`. Use it when your client has it connected. It has no sign-in, and `check` and `preview` do not store your code. Pass the exact installed version to each tool. The server supports 0.90.0 and later.
 
    | Tool         | Use it to                                                                                                    |
    | ------------ | ------------------------------------------------------------------------------------------------------------ |
@@ -30,10 +30,10 @@ Use the first source that you can reach.
    - The type declarations, with JSDoc, for each subpath: the `types` path of that subpath in `node_modules/@ngrok/mantle/package.json#exports`. Most are `dist/<name>.d.ts`, but `@ngrok/mantle/highlight-utils` is `dist/code-block_highlight-utils.d.ts`.
    - `node_modules/@ngrok/mantle/dist/migrations/`: the codemods that the migration guides name.
 
-3. **The docs site**, which shows the latest release:
+3. **The docs site**, which shows the latest build. It can be ahead of the latest release, so the installed package wins when the two differ:
    - `https://mantle.ngrok.com/llms.txt`: an index of every docs page.
    - Add `.md` to a docs page URL for plain markdown, such as `https://mantle.ngrok.com/components/actions/button.md`.
-   - `https://mantle.ngrok.com/api/components.json`, `/api/hooks.json`, and `/api/utils.json`: the manifests in `agent.json`, for the latest release.
+   - `https://mantle.ngrok.com/api/components.json`, `/api/hooks.json`, and `/api/utils.json`: the manifests in `agent.json`, for the latest build.
    - `https://mantle.ngrok.com/llms-full.txt` is several megabytes. Do not read all of it. Search it for `# Framed preview sources` when you build an app shell.
 
 ## Workflow

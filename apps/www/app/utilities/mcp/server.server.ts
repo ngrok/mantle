@@ -296,7 +296,7 @@ const workspaceArgument = z
 const ticketArgument = z
 	.string()
 	.nullish()
-	.describe('Linear issue key, such as "MNTL-59", if known. Never invent one.');
+	.describe('Linear issue key, such as "MNTL-59", if known. Never invent or ask for one.');
 
 // Why required: an agent fills each required argument, so it looks for the issue before it reports a gap.
 const requiredTicketArgument = z
