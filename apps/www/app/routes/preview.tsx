@@ -15,6 +15,7 @@ import {
 	previewExamples,
 	type PreviewExampleName,
 } from "~/features/preview-registry";
+import { forwardPreviewShortcutsScript } from "~/features/preview-shortcuts";
 import type { Route } from "./+types/preview";
 
 /**
@@ -63,15 +64,23 @@ export function meta({ loaderData }: Route.MetaArgs) {
  */
 export default function PreviewExamplePage({ loaderData }: Route.ComponentProps) {
 	return (
-		// Why Suspense: on the client, the example's module loads after the
-		// document. Hydration keeps the server markup until it resolves.
-		<Suspense fallback={null}>
-			{loaderData.kind === "registry" ? (
-				<RegistryDemo name={loaderData.key} />
-			) : (
-				<PageExample modulePath={loaderData.modulePath} exportName={loaderData.exportName} />
-			)}
-		</Suspense>
+		<>
+			{/* Why inline: the docs page's shortcuts work from the preview before it hydrates. */}
+			<script
+				nonce={cspNonce()}
+				dangerouslySetInnerHTML={{ __html: forwardPreviewShortcutsScript }}
+				suppressHydrationWarning
+			/>
+			{/* Why Suspense: on the client, the example's module loads after the
+			    document. Hydration keeps the server markup until it resolves. */}
+			<Suspense fallback={null}>
+				{loaderData.kind === "registry" ? (
+					<RegistryDemo name={loaderData.key} />
+				) : (
+					<PageExample modulePath={loaderData.modulePath} exportName={loaderData.exportName} />
+				)}
+			</Suspense>
+		</>
 	);
 }
 
