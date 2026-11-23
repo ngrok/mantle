@@ -1,6 +1,6 @@
 import { Button } from "@ngrok/mantle/button";
 import { Field, toErrorMessages } from "@ngrok/mantle/field";
-import { Slider } from "@ngrok/mantle/slider";
+import { Slider, SliderValue } from "@ngrok/mantle/slider";
 import { useForm } from "@tanstack/react-form";
 import { z } from "zod";
 
@@ -168,6 +168,19 @@ export function TicksExample() {
 		<PreviewCanvas className="flex-col gap-6">
 			<Slider aria-label="Volume" defaultValue={50} max={100} step={10} showTicks />
 			<Slider aria-label="Price" defaultValue={[20, 80]} max={100} step={20} showTicks />
+		</PreviewCanvas>
+	);
+}
+
+export function ValueExample() {
+	return (
+		<PreviewCanvas className="flex-col gap-12 pt-12">
+			<Slider aria-label="Volume" defaultValue={40} formatValue={(value) => `${value}%`}>
+				<SliderValue />
+			</Slider>
+			<Slider aria-label="Price" defaultValue={[20, 80]} formatValue={(value) => `$${value}`}>
+				<SliderValue placement="track" />
+			</Slider>
 		</PreviewCanvas>
 	);
 }

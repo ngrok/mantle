@@ -3,6 +3,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { userEvent } from "vitest/browser";
 import * as Dialog from "./dialog-parts.js";
 
 /**
@@ -206,5 +207,104 @@ describe("Dialog exit", () => {
 		} finally {
 			exitStyle.remove();
 		}
+	});
+});
+
+describe("Dialog.Body", () => {
+	/** A 60px body, so a few lines of text scroll it. */
+	const bodyStyle = { height: 60, overflowY: "auto", padding: 0 } as const;
+	const lines = (count: number) =>
+		Array.from({ length: count }, (_, index) => <p key={index}>Line {index + 1}</p>);
+
+	test("a body that scrolls and holds no tab stop takes a Tab, so the arrow keys can scroll it", async () => {
+		render(
+			<>
+				<button type="button">Before</button>
+				<Dialog.Body data-testid="body" style={bodyStyle}>
+					{lines(10)}
+				</Dialog.Body>
+			</>,
+		);
+		const body = screen.getByTestId("body");
+		screen.getByRole("button", { name: "Before" }).focus();
+
+		await userEvent.keyboard("{Tab}");
+
+		expect(document.activeElement).toBe(body);
+	});
+
+	test("a body gains the tab stop once its content scrolls it, and loses it to a tabbable child", async () => {
+		const { rerender } = render(
+			<Dialog.Body data-testid="body" style={bodyStyle}>
+				{lines(1)}
+			</Dialog.Body>,
+		);
+		const body = screen.getByTestId("body");
+		await new Promise(requestAnimationFrame);
+		expect(body).not.toHaveAttribute("tabindex");
+
+		rerender(
+			<Dialog.Body data-testid="body" style={bodyStyle}>
+				{lines(10)}
+			</Dialog.Body>,
+		);
+		await waitFor(() => expect(body).toHaveAttribute("tabindex", "0"));
+
+		rerender(
+			<Dialog.Body data-testid="body" style={bodyStyle}>
+				{lines(10)}
+				<button type="button">Save</button>
+			</Dialog.Body>,
+		);
+		await waitFor(() => expect(body).not.toHaveAttribute("tabindex"));
+	});
+
+	test("a body that shrinks until it scrolls gains the tab stop", async () => {
+		const { rerender } = render(
+			<Dialog.Body data-testid="body" style={{ ...bodyStyle, height: 400 }}>
+				{lines(3)}
+			</Dialog.Body>,
+		);
+		const body = screen.getByTestId("body");
+		await new Promise(requestAnimationFrame);
+		expect(body).not.toHaveAttribute("tabindex");
+
+		rerender(
+			<Dialog.Body data-testid="body" style={{ ...bodyStyle, height: 20 }}>
+				{lines(3)}
+			</Dialog.Body>,
+		);
+
+		await waitFor(() => expect(body).toHaveAttribute("tabindex", "0"));
+	});
+	test("a focused body keeps focus when it stops scrolling or gains a tabbable child", async () => {
+		const { rerender } = render(
+			<>
+				<button type="button">Before</button>
+				<Dialog.Body data-testid="body" style={bodyStyle}>
+					{lines(10)}
+				</Dialog.Body>
+			</>,
+		);
+		const body = screen.getByTestId("body");
+		screen.getByRole("button", { name: "Before" }).focus();
+		await userEvent.keyboard("{Tab}");
+		expect(document.activeElement).toBe(body);
+
+		rerender(
+			<>
+				<button type="button">Before</button>
+				<Dialog.Body data-testid="body" style={bodyStyle}>
+					{lines(1)}
+					<button type="button">Load more</button>
+				</Dialog.Body>
+			</>,
+		);
+		await new Promise(requestAnimationFrame);
+		await new Promise(requestAnimationFrame);
+		expect(document.activeElement).toBe(body);
+
+		screen.getByRole("button", { name: "Before" }).focus();
+		await waitFor(() => expect(body).not.toHaveAttribute("tabindex"));
 	});
 });
