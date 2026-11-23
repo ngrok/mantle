@@ -91,6 +91,7 @@ expect(content).toHaveAttribute("data-appearance", "full-page");
 - `Content` has no `onFocusOutside`. Focus cannot leave a modal dialog. Move the logic to `onInteractOutside`, or to `onOpenChange` for a non-modal dialog.
 - `Title` takes no `id`. The dialog names itself from the id it gives the title. Pass `aria-label` or `aria-labelledby` on `Content` to name it from other text.
 - happy-dom does not move focus into a `<dialog>` on `showModal()` or back on `close()`, and jsdom has no `showModal()`. A unit test that asserts focus on open or close runs in a real browser, such as Vitest browser mode. Escape and clicks work in both.
+- Testing Library does not read `inert`. Radix put `aria-hidden` on the page outside an open dialog, so a role query skipped it; now a query such as `getByRole("button", { name: "Close" })` also finds the matching button under the dialog. Scope the query to the dialog with `within(dialog)`. A screen reader still skips the inert page.
 - The exit plays in every browser: the dialog writes `data-state="closed"`, waits for the animations of the panel and the backdrop, and then closes.
 
 ## How to verify

@@ -523,6 +523,12 @@ const Trigger = ({ asChild, onClick, ref, scope, ...props }: ButtonProps) => {
 	};
 	const composedRef = useComposedRefs(ref, readState);
 
+	// Why: a dialog that opens from state passes an empty `asChild` trigger,
+	// which renders nothing, as with Radix.
+	if (asChild && props.children == null) {
+		return null;
+	}
+
 	// Why constant `aria-expanded` and `data-state`: `writeOpenState` keeps them
 	// current on the DOM, and React never writes a prop again that did not change.
 	return (
