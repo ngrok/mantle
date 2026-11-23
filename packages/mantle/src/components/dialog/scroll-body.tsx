@@ -5,6 +5,14 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { findTabbableDescendants } from "../alert/tabbable-neighbors.js";
 
 /**
+ * Whether a node is an element.
+ *
+ * Why `nodeType`: an element in another window's document, such as a frame
+ * that React renders into, is no instance of this window's `Element`.
+ */
+const isElement = (node: Node): node is Element => node.nodeType === Node.ELEMENT_NODE;
+
+/**
  * Puts `body` in the Tab order while it scrolls and holds nothing tabbable,
  * so a keyboard user can scroll it with the arrow keys. Chromium does this for
  * each scroll container; Safari does it for none. Returns the cleanup.
@@ -33,21 +41,22 @@ const observeKeyboardScroll = (body: HTMLDivElement | null): (() => void) | unde
 	for (const child of body.children) {
 		resize.observe(child);
 	}
-	// Why only the changed children: each `observe` queues a size report. In
-	// WebKit, a report queued from a resize callback fires a loop error.
+	// Why no `observe` for an attribute change: `update` writes `tabindex` inside
+	// the resize callback, and a new observation of `body` there fires a loop error.
 	const mutation = new MutationObserver((records) => {
 		for (const record of records) {
 			if (record.target !== body) {
 				continue;
 			}
-			for (const node of record.addedNodes) {
-				if (node instanceof Element) {
-					resize.observe(node);
+			// Why removed first: `replaceChildren` can list a kept child in both.
+			for (const node of record.removedNodes) {
+				if (isElement(node)) {
+					resize.unobserve(node);
 				}
 			}
-			for (const node of record.removedNodes) {
-				if (node instanceof Element) {
-					resize.unobserve(node);
+			for (const node of record.addedNodes) {
+				if (isElement(node)) {
+					resize.observe(node);
 				}
 			}
 		}
