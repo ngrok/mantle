@@ -5,7 +5,11 @@ import { CanvasBarChartRoot } from "../../test-utils/canvas-chart-roots.js";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import * as BarChart from "../bar-chart/bar-chart-parts.js";
-import { BAR_DENSE_THICKNESS, BAR_MAX_THICKNESS } from "./bar-geometry.js";
+
+// Why literals, not the constants from `bar-geometry.ts`: these are the design's
+// bar widths. A test that imports them moves its bounds with any change to them.
+const BAR_DENSE_THICKNESS = 24;
+const BAR_MAX_THICKNESS = 64;
 
 /**
  * Real-browser geometry tests for how thick a bar paints. `bar-geometry.test.ts`

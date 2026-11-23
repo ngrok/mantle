@@ -90,11 +90,11 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
 		const listbox = await screen.findByRole("listbox");
 		listbox.scrollTop = 300;
-		// Why: a page scroll places the list again, which measures it.
+		// Why: a page scroll places the list again, which measures it. Each
+		// placement writes `data-side`, so its return marks the placement's end.
+		delete listbox.dataset.side;
 		window.dispatchEvent(new Event("scroll"));
-		await new Promise((resolve) => {
-			requestAnimationFrame(() => requestAnimationFrame(resolve));
-		});
+		await expect.poll(() => listbox.dataset.side).toBe("bottom");
 		expect(listbox.scrollTop).toBe(300);
 	});
 	test("a list taller than both sides opens above a low input inside the viewport", async () => {

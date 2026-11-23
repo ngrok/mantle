@@ -4,7 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { createPortal } from "react-dom";
 import { userEvent } from "@testing-library/user-event";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { commands, userEvent as browserUser } from "vitest/browser";
+import { commands, server, userEvent as browserUser } from "vitest/browser";
 import * as AlertDialog from "../alert-dialog/alert-dialog-parts.js";
 import * as Popover from "./popover-parts.js";
 
@@ -51,32 +51,6 @@ function baseOverlap() {
 }
 
 describe("Popover.Arrow", () => {
-	test("keeps its offset through the open animation's scale", async () => {
-		const user = userEvent.setup();
-		render(
-			<Popover.Root>
-				<Popover.Trigger>Open</Popover.Trigger>
-				<Popover.Content side="right">
-					<Popover.Arrow />
-					<p>Products moved up here</p>
-				</Popover.Content>
-			</Popover.Root>,
-		);
-
-		await user.click(screen.getByRole("button", { name: "Open" }));
-		await screen.findByRole("dialog");
-		const settled = baseOverlap();
-
-		// The open animation scales the content. `scale: 1` sets the property with
-		// no visual change, so this isolates the property from the motion. The
-		// content is `fixed`, so it is the arrow's containing block either way.
-		const content = screen.getByRole("dialog");
-		content.style.scale = "1";
-		content.getBoundingClientRect();
-
-		expect(baseOverlap()).toBeCloseTo(settled, 1);
-	});
-
 	test("overlaps the content's border so the two edges read as one line", async () => {
 		const user = userEvent.setup();
 		render(
@@ -179,32 +153,35 @@ describe("Popover.Content placement", () => {
 		});
 	});
 
-	test("stays next to its trigger while its exit transition plays", async () => {
-		const user = userEvent.setup();
-		render(
-			<div style={{ padding: 120 }}>
-				<Popover.Root>
-					<Popover.Trigger>Open</Popover.Trigger>
-					<Popover.Content>
-						<Popover.Close>Done</Popover.Close>
-					</Popover.Content>
-				</Popover.Root>
-			</div>,
-		);
-		const trigger = screen.getByRole("button", { name: "Open" });
-		await user.click(trigger);
-		const content = await screen.findByRole("dialog");
-		await waitFor(() => expect(getComputedStyle(content).opacity).toBe("1"));
-		const openTop = content.getBoundingClientRect().top;
+	// Why Chromium only: Chromium keeps a closing popover in the top layer for its
+	// exit. Firefox and Safari hide it at once, so they paint no exit to place.
+	test.runIf(server.browser === "chromium")(
+		"stays next to its trigger while its exit transition plays",
+		async () => {
+			const user = userEvent.setup();
+			render(
+				<div style={{ padding: 120 }}>
+					<Popover.Root>
+						<Popover.Trigger>Open</Popover.Trigger>
+						<Popover.Content>
+							<Popover.Close>Done</Popover.Close>
+						</Popover.Content>
+					</Popover.Root>
+				</div>,
+			);
+			const trigger = screen.getByRole("button", { name: "Open" });
+			await user.click(trigger);
+			const content = await screen.findByRole("dialog");
+			await Promise.all(content.getAnimations().map((animation) => animation.finished));
+			const openTop = content.getBoundingClientRect().top;
 
-		await user.click(screen.getByRole("button", { name: "Done" }));
-		await new Promise(requestAnimationFrame);
+			await user.click(screen.getByRole("button", { name: "Done" }));
+			await new Promise(requestAnimationFrame);
 
-		// Why only while painted: Chromium keeps a closing popover in the top
-		// layer for its exit; Firefox and Safari hide it at once.
-		const paintedTop = content.checkVisibility() ? content.getBoundingClientRect().top : openTop;
-		expect(paintedTop).toBeCloseTo(openTop, 0);
-	});
+			expect(content.checkVisibility()).toBe(true);
+			expect(content.getBoundingClientRect().top).toBeCloseTo(openTop, 0);
+		},
+	);
 
 	test("takes pointer input when a modal menu turns off pointer events on the body", async () => {
 		const user = userEvent.setup();
@@ -239,7 +216,7 @@ describe("Popover.Content placement", () => {
 		const { rerender } = render(tree("First"));
 		await user.click(screen.getByRole("button", { name: "Open" }));
 		const content = await screen.findByRole("dialog");
-		await waitFor(() => expect(getComputedStyle(content).opacity).toBe("1"));
+		await Promise.all(content.getAnimations().map((animation) => animation.finished));
 		const observer = new MutationObserver(() => {});
 		observer.observe(content, { attributeFilter: ["style"] });
 

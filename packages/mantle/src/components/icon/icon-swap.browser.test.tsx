@@ -42,7 +42,7 @@ const itemOf = (testId: string): HTMLElement => {
 	return item;
 };
 
-test("an inactive icon is not rendered, so a hidden spinner paints nothing", () => {
+test("an inactive icon is hidden, so a hidden spinner paints nothing", () => {
 	render(<IconSwap active="idle" icons={icons} />);
 
 	expect(getComputedStyle(itemOf("loading")).visibility).toBe("hidden");

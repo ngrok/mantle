@@ -609,7 +609,7 @@ export const migrations = [
 		slug: "native-floats-migration",
 		title: "Native Floats",
 		description:
-			"Popover, Tooltip, and HoverCard are native popovers placed by CSS anchor positioning. The Radix positioning props, Popover.Root modal, and HoverCard.Portal are gone, and --anchor-width and --available-height replace the Radix CSS variables.",
+			"Popover, Tooltip, and HoverCard are native popovers in the top layer. The Radix positioning props, Popover.Root modal, and HoverCard.Portal are gone, and --anchor-width and --available-height replace the Radix CSS variables.",
 		route: "/migrations/0020-native-floats-migration",
 	},
 	{
@@ -657,7 +657,7 @@ export const migrations = [
 		slug: "native-dropdown-menu-migration",
 		title: "Native Dropdown Menu",
 		description:
-			"DropdownMenu is built on native popovers placed by CSS anchor positioning. The Radix positioning props are gone, --anchor-width and --available-height replace the Radix CSS variables, and a modal menu makes the page inert.",
+			"DropdownMenu is built on native popovers in the top layer. The Radix positioning props are gone, --anchor-width and --available-height replace the Radix CSS variables, and a modal menu makes the page inert.",
 		route: "/migrations/0026-native-dropdown-menu-migration",
 	},
 	{

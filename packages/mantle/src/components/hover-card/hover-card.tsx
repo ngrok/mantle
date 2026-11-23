@@ -20,6 +20,7 @@ import { FloatArrow } from "../../utils/float/parts.js";
 import type { Align, Side } from "../../utils/float/position.js";
 import {
 	floatClassName,
+	hasPopoverApi,
 	useFloat,
 	useReconcileOnTriggerChange,
 	useTriggerRef,
@@ -339,7 +340,7 @@ const Content = ({
 			<LayerContainer
 				modal={false}
 				id={state.contentId}
-				popover="hint"
+				popover={hasPopoverApi ? "hint" : undefined}
 				data-slot={joinDataSlot(dataSlot, "hover-card-content")}
 				data-state={state.open ? "open" : "closed"}
 				inert={!state.open}

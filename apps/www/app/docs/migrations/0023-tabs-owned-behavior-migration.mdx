@@ -19,13 +19,14 @@ Codemod: manual: the Radix part usually sits in a local wrapper component, and a
 ## You are an agent migrating a codebase. Do this:
 
 1. Find every import from `@radix-ui/react-tabs`. Include a namespace import (`import * as Tabs from "@radix-ui/react-tabs"`) and a local wrapper that renders a Radix part, such as a `TabsTrigger` in `~/components/tabs-trigger`.
-2. Keep only the parts that render inside a mantle `Tabs.Root` (from `@ngrok/mantle/tabs`) or `CodeBlock.Root` (from `@ngrok/mantle/code-block`). A Radix part inside a Radix `Root` still works. Leave it alone.
+2. Keep only the parts that render inside a mantle `Tabs.Root` (from `@ngrok/mantle/tabs`) or `CodeBlock.Root` (from `@ngrok/mantle/code-block`). A Radix part inside a Radix `Root` still works. To give that set mantle's tabs behavior too, change its import to `HeadlessTabs` from `@ngrok/mantle/tabs` and keep its JSX.
 3. Under `Tabs.Root`, replace each Radix `Trigger` with `Tabs.Trigger`. Keep `value`, `disabled`, `id`, `className`, and the children. `Tabs.Trigger` already focuses a pressed tab without the focus ring, so delete a wrapper's `onMouseDown` that calls `focus({ focusVisible: false })`.
 4. Under `CodeBlock.Root`, use `CodeBlock.TabList`, `CodeBlock.TabTrigger`, and `CodeBlock.TabContent` instead. A `Tabs` part there throws, because `CodeBlock.Root` provides no `Tabs.Root` context.
-5. `Tabs.Trigger` adds mantle's trigger classes and an underline decoration for the `classic` appearance. Your `className` merges after them, so a conflicting class of yours wins. To drop the underline, set `appearance="pill"` on the root and give each trigger its own classes. `data-state="active"` and `data-state="inactive"` stay on the trigger, so `data-state-active:` and `data-[state=active]:` classes keep working.
-6. Replace a Radix `List` or `Content` the same way, with `Tabs.List` or `Tabs.Content`.
-7. Delete the wrapper file when nothing imports it. Remove `@radix-ui/react-tabs` from `package.json` when nothing imports it.
-8. After editing, run the project's formatter, linter, type checker, and tests.
+5. When the Radix trigger drew its own look, use `HeadlessTabs.Trigger` instead of `Tabs.Trigger`. It works inside `Tabs.List`, has the same props, and adds only the focus ring, so drop the `!` overrides that fought the mantle classes.
+6. `Tabs.Trigger` adds mantle's trigger classes and an underline decoration for the `classic` appearance. Your `className` merges after them, so a conflicting class of yours wins. To drop the underline, set `appearance="pill"` on the root and give each trigger its own classes. `data-state="active"` and `data-state="inactive"` stay on the trigger, so `data-state-active:` and `data-[state=active]:` classes keep working.
+7. Replace a Radix `List` or `Content` the same way, with `Tabs.List` or `Tabs.Content`.
+8. Delete the wrapper file when nothing imports it. Remove `@radix-ui/react-tabs` from `package.json` when nothing imports it.
+9. After editing, run the project's formatter, linter, type checker, and tests.
 
 > **Why own the behavior?** Radix Tabs shipped its own roving focus, collection, and presence code for a pattern that needs one key handler and two ids per tab. On its own, the `Tabs` entry now ships 6 KB (gzip) less. The mantle version also puts the active tab in the Tab order in the server HTML, follows a right-to-left page's arrow keys, and adds `hiddenUntilFound` for find-in-page.
 

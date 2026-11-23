@@ -1,13 +1,13 @@
 ---
 title: Native Dropdown Menu Migration
-description: DropdownMenu is built on native popovers placed by CSS anchor positioning. The Radix positioning props are gone, --anchor-width and --available-height replace the Radix CSS variables, and a modal menu makes the page inert.
+description: DropdownMenu is built on native popovers in the top layer. The Radix positioning props are gone, --anchor-width and --available-height replace the Radix CSS variables, and a modal menu makes the page inert.
 introducedIn: "0.95.0"
 codemodIn: "0.95.0"
 ---
 
 # Mantle Native Dropdown Menu Migration Guide
 
-`@ngrok/mantle`'s `DropdownMenu` no longer uses Radix. `DropdownMenu.Content` and `DropdownMenu.SubContent` are native [`popover`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/popover) elements in the browser's top layer, and CSS anchor positioning places them. Where the browser has no anchor positioning, a small script places them. The parts, their nesting, and the other props stay the same, so no call site changes shape.
+`@ngrok/mantle`'s `DropdownMenu` no longer uses Radix. `DropdownMenu.Content` and `DropdownMenu.SubContent` are native [`popover`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/popover) elements in the browser's top layer, and a small script places them next to their trigger. The parts, their nesting, and the other props stay the same, so no call site changes shape.
 
 **TL;DR:** Delete `alignOffset`, `avoidCollisions`, `collisionBoundary`, `collisionPadding`, `arrowPadding`, `sticky`, `hideWhenDetached`, `updatePositionStrategy`, and `forceMount` from `DropdownMenu.Content` and `DropdownMenu.SubContent`. Replace `--radix-dropdown-menu-trigger-width` with `--anchor-width` and `--radix-dropdown-menu-content-available-height` with `--available-height`.
 
@@ -42,7 +42,7 @@ The rules apply steps 2 and 3. They delete the Radix positioning props from `Dro
    - `DropdownMenu.Content` has `sideOffset={8}` in place of a `my-2` margin class.
 6. After editing, run the project's formatter, linter, type checker, and tests.
 
-> **Why native popovers?** The top layer paints the menu above every `z-index`, CSS anchor positioning keeps it next to its trigger, and the menu ships less JavaScript with no Radix dependency. A browser with no popover API (Safari before 17, Chrome before 114, Firefox before 125) shows the menu as a fixed box at `z-50`, as before.
+> **Why native popovers?** The top layer paints the menu above every `z-index`, and the menu ships less JavaScript with no Radix dependency. A browser with no popover API (Safari before 17, Chrome before 114, Firefox before 125) shows the menu as a fixed box at `z-50`, as before.
 
 ---
 

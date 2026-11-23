@@ -575,12 +575,11 @@ describe("AppLayout.SidePanel lane", () => {
 		// absolutely positioned box ignores) moves the floating card's anchor
 		// mid-flight or runs an inert transition on every toggle.
 		expect(transitions.toSorted()).toEqual(["translate", "visibility"]);
-		await waitFor(
-			() => {
-				expect(getComputedStyle(panel).visibility).toBe("hidden");
-			},
-			{ timeout: 3000 },
-		);
+		// Why finish: the run's end value is the contract, not its two seconds.
+		for (const animation of panel.getAnimations()) {
+			animation.finish();
+		}
+		expect(getComputedStyle(panel).visibility).toBe("hidden");
 	});
 
 	test.each([
