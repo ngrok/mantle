@@ -1,4 +1,4 @@
-import type { MarkedExtension, Token, TokenizerAndRendererExtension, TokensList } from "marked";
+import type { Token, TokensList } from "marked";
 import { lexMarkdown, type MarkdownTokenizer } from "./markdown-lexer.js";
 import { closeMarkdown } from "./close-markdown.js";
 
@@ -36,19 +36,11 @@ type MarkdownParser = {
  */
 const closesMath: unique symbol = Symbol("closesMath");
 
-/** A marked extension that can carry {@link closesMath}. */
-type MarkdownExtension = MarkedExtension & { [closesMath]?: true };
-
-/**
- * Whether a marked extension adds a tokenizer. Why a guard and not a check of
- * `this`: the lexer calls a tokenizer without marked's `this.lexer`, and no
- * mantle extension reads it.
- */
-function isTokenizer(
-	extension: TokenizerAndRendererExtension,
-): extension is TokenizerAndRendererExtension & MarkdownTokenizer {
-	return "tokenizer" in extension && extension.tokenizer != null;
-}
+/** Tokenizers that read more kinds of tokens, such as math. It can carry {@link closesMath}. */
+type MarkdownExtension = {
+	extensions: readonly MarkdownTokenizer[];
+	[closesMath]?: true;
+};
 
 /** The index of the last token of `tokens` that is not a blank line, or -1. */
 function lastContentIndex(tokens: readonly Token[]): number {
@@ -82,9 +74,7 @@ function contentTokens(tokens: readonly Token[]): Token[] {
 function createMarkdownParser({
 	extensions = [],
 }: { extensions?: readonly MarkdownExtension[] } = {}): MarkdownParser {
-	const tokenizers = extensions
-		.flatMap((extension) => extension.extensions ?? [])
-		.filter(isTokenizer);
+	const tokenizers = extensions.flatMap((extension) => extension.extensions);
 	const lex = (source: string, known: MarkdownLinks) =>
 		lexMarkdown(source, { links: known, extensions: tokenizers });
 	const closeMath = extensions.some((extension) => extension[closesMath] === true);
@@ -152,6 +142,7 @@ export type {
 	//,
 	MarkdownExtension,
 	MarkdownLinks,
+	MarkdownTokenizer,
 	MarkdownParser,
 	MarkdownSnapshot,
 };

@@ -67,9 +67,14 @@ describe("Markdown", () => {
 		expect(container).toHaveTextContent("on <your-domain> <script>x</script>");
 	});
 
-	test("decodes character references in text, not in code", () => {
-		const { container } = render(<Markdown>{"Fish &amp; chips &rarr; `&amp;`"}</Markdown>);
-		expect(container).toHaveTextContent("Fish & chips → &amp;");
+	test("decodes character references in text and links, not in code", () => {
+		const { container } = render(
+			<Markdown>
+				{"Fish &amp; chips &rarr; `&amp;` &ouml; &constructor; [q](/s?a=1&amp;b=2)"}
+			</Markdown>,
+		);
+		expect(container).toHaveTextContent("Fish & chips → &amp; ö &constructor; q");
+		expect(screen.getByRole("link", { name: "q" })).toHaveAttribute("href", "/s?a=1&b=2");
 	});
 
 	test("renders unfinished syntax closed while it streams", () => {

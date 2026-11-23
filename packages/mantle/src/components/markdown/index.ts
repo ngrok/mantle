@@ -31,6 +31,7 @@ export type {
 export type {
 	//,
 	MarkdownExtension,
+	MarkdownTokenizer,
 } from "./markdown-parser.js";
 
 export {

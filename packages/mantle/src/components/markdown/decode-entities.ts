@@ -1,39 +1,38 @@
 /**
- * The named character references a model writes most. Why not the full HTML
- * table: it holds over 2,000 names, and an unknown name stays as written.
+ * The names of U+00A0 to U+00FF in order, the HTML 4 Latin-1 set: the
+ * character of each name is its index plus `0xA0`.
  */
-const NAMED_ENTITIES: Record<string, string> = {
-	amp: "&",
-	apos: "'",
-	bull: "•",
-	copy: "©",
-	deg: "°",
-	divide: "÷",
-	euro: "€",
-	gt: ">",
-	hellip: "…",
-	laquo: "«",
-	larr: "←",
-	ldquo: "“",
-	lsquo: "‘",
-	lt: "<",
-	mdash: "—",
-	middot: "·",
-	nbsp: "\u00A0",
-	ndash: "–",
-	plusmn: "±",
-	pound: "£",
-	quot: '"',
-	raquo: "»",
-	rarr: "→",
-	rdquo: "”",
-	reg: "®",
-	rsquo: "’",
-	times: "×",
-	trade: "™",
-};
+const LATIN_1 =
+	"nbsp iexcl cent pound curren yen brvbar sect uml copy ordf laquo not shy reg macr deg plusmn sup2 sup3 acute micro para middot cedil sup1 ordm raquo frac14 frac12 frac34 iquest Agrave Aacute Acirc Atilde Auml Aring AElig Ccedil Egrave Eacute Ecirc Euml Igrave Iacute Icirc Iuml ETH Ntilde Ograve Oacute Ocirc Otilde Ouml times Oslash Ugrave Uacute Ucirc Uuml Yacute THORN szlig agrave aacute acirc atilde auml aring aelig ccedil egrave eacute ecirc euml igrave iacute icirc iuml eth ntilde ograve oacute ocirc otilde ouml divide oslash ugrave uacute ucirc uuml yacute thorn yuml";
 
-const ENTITY = /&(?:#(\d{1,7})|#[xX]([\da-fA-F]{1,6})|([a-zA-Z]+));/g;
+/**
+ * The named character references a model writes most: the Latin-1 set and a
+ * few symbols. Why not the full HTML table: it holds over 2,000 names, and an
+ * unknown name stays as written. Why a `Map`: a plain object finds inherited
+ * names such as `constructor`.
+ */
+const NAMED_ENTITIES = new Map<string, string>([
+	...LATIN_1.split(" ").map((name, index) => [name, String.fromCharCode(0xa0 + index)] as const),
+	["amp", "&"],
+	["apos", "'"],
+	["bull", "•"],
+	["euro", "€"],
+	["gt", ">"],
+	["hellip", "…"],
+	["larr", "←"],
+	["ldquo", "“"],
+	["lsquo", "‘"],
+	["lt", "<"],
+	["mdash", "—"],
+	["ndash", "–"],
+	["quot", '"'],
+	["rarr", "→"],
+	["rdquo", "”"],
+	["rsquo", "’"],
+	["trade", "™"],
+]);
+
+const ENTITY = /&(?:#(\d{1,7})|#[xX]([\da-fA-F]{1,6})|([a-zA-Z][a-zA-Z\d]*));/g;
 
 /** Returns the character of a numeric reference, or U+FFFD for a code point that is not a valid character. */
 function fromCodePoint(codePoint: number): string {
@@ -64,7 +63,7 @@ function decodeEntities(text: string): string {
 		if (hex != null) {
 			return fromCodePoint(Number.parseInt(hex, 16));
 		}
-		return (name != null && NAMED_ENTITIES[name]) || match;
+		return (name != null && NAMED_ENTITIES.get(name)) || match;
 	});
 }
 

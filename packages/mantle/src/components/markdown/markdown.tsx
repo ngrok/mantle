@@ -62,7 +62,7 @@ type MarkdownComponentProps<T> = { token: T; children: ReactNode };
 /**
  * The components that render each kind of token. A component you set
  * replaces the built-in one for its token. `extension` renders each token of
- * a marked extension that has no component of its own. Keep the object stable,
+ * an extension that has no component of its own. Keep the object stable,
  * such as at module scope: a new object renders each block again.
  */
 type MarkdownComponents = {
@@ -548,7 +548,7 @@ type MarkdownProps = Omit<ComponentProps<"div">, "children"> & {
 	/** The components that replace the built-in one for a token. Keep the object stable. */
 	components?: MarkdownComponents;
 	/**
-	 * Marked extensions, such as `markdownMath()`. Keep the array stable: a new
+	 * Extensions that read more kinds of tokens, such as `markdownMath()`. Keep the array stable: a new
 	 * array parses the whole answer again.
 	 */
 	extensions?: readonly MarkdownExtension[];

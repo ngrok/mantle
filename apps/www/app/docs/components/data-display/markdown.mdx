@@ -172,7 +172,7 @@ const components: MarkdownComponents = {
 
 ## Components
 
-Set a component in `components` to replace the built-in one for a kind of token, such as `code`, `link`, `table`, or `math`. Each component gets the marked `token` and its content as `children`. `extension` renders each token of a marked extension that has no component of its own.
+Set a component in `components` to replace the built-in one for a kind of token, such as `code`, `link`, `table`, or `math`. Each component gets the `token` and its content as `children`. `extension` renders each token of an extension that has no component of its own.
 
 ## How it streams
 
@@ -214,7 +214,7 @@ A task-list checkbox takes its item's text as its name. The caret and the fade-i
 | `children`        | `string`                              |         | The Markdown so far. While it streams, each update appends to it.                                  |
 | `streaming`       | `boolean`                             | `false` | Whether more Markdown can arrive. Closes unfinished syntax, renders once per frame, shows a caret. |
 | `components`      | `MarkdownComponents`                  |         | The components that replace the built-in one for a token. Keep the object stable.                  |
-| `extensions`      | `readonly MarkdownExtension[]`        |         | Marked extensions, such as `markdownMath()`. Keep the array stable.                                |
+| `extensions`      | `readonly MarkdownExtension[]`        |         | Tokenizers for more kinds of tokens, such as `markdownMath()`. Keep the array stable.              |
 | `onBlockComplete` | `(block: MarkdownBlockEvent) => void` |         | Called once for each block that finishes after mount, in order.                                    |
 | `onStreamEnd`     | `() => void`                          |         | Called once when `streaming` turns from `true` to `false`.                                         |
 
@@ -244,4 +244,4 @@ Returns a ref for the element that scrolls. It takes no options.
 
 ### markdownMath
 
-Returns a marked extension that reads TeX math as `math` tokens, with `text` and `display`.
+Returns an extension that reads TeX math as `math` tokens, with `text` and `display`.
