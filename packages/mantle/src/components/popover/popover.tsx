@@ -27,6 +27,8 @@ type PopoverState = {
 	open: boolean;
 	setOpen: (open: boolean) => void;
 	contentId: string;
+	/** The trigger's default `id`. It names the content when the content has no name of its own. */
+	triggerId: string;
 	triggerRef: RefObject<HTMLElement | null>;
 	/** The trigger's ref callback. It tells the open content about a new trigger element. */
 	setTrigger: (element: HTMLElement | null) => void;
@@ -93,6 +95,7 @@ function Root({ children, defaultOpen = false, onOpenChange, open: openProp }: P
 		onTriggerChangeRef: onAnchorChangeRef,
 	} = useTriggerRef();
 	const contentId = useId();
+	const triggerId = useId();
 	const state = useMemo<PopoverState>(
 		() => ({
 			open,
@@ -106,6 +109,7 @@ function Root({ children, defaultOpen = false, onOpenChange, open: openProp }: P
 				onOpenChange?.(next);
 			},
 			contentId,
+			triggerId,
 			triggerRef,
 			setTrigger,
 			onTriggerChangeRef,
@@ -123,6 +127,7 @@ function Root({ children, defaultOpen = false, onOpenChange, open: openProp }: P
 			openProp,
 			setAnchor,
 			setTrigger,
+			triggerId,
 			triggerRef,
 		],
 	);
@@ -166,6 +171,7 @@ const Trigger = ({
 			aria-haspopup="dialog"
 			data-slot={joinDataSlot(dataSlot, "popover-trigger")}
 			data-state={state.open ? "open" : "closed"}
+			id={state.triggerId}
 			ref={composedRef}
 			// Why also under `asChild`: a slotted `<button>` with no type would submit its form.
 			type="button"
@@ -316,6 +322,9 @@ type PopoverContentProps = ComponentProps<"div"> &
  * float that holds it, else into `document.body`, and a float composed inside
  * it portals into it.
  *
+ * It is a `role="dialog"` named by its trigger. An `aria-label` or
+ * `aria-labelledby` gives it a name of its own.
+ *
  * **Data attributes:**
  *
  * | Data Attribute | Value                                          | Description                                        |
@@ -382,6 +391,16 @@ const Content = ({
 		onPointerDownOutside,
 		onShow: (floating) => {
 			closedFromOutside.current = false;
+			// Why the trigger: a dialog needs a name, and the trigger says what opens.
+			// Why its rendered `id`: a consumer `id` on the trigger replaces the default.
+			const triggerId = state.triggerRef.current?.id;
+			if (
+				triggerId &&
+				!floating.hasAttribute("aria-label") &&
+				!floating.hasAttribute("aria-labelledby")
+			) {
+				floating.setAttribute("aria-labelledby", triggerId);
+			}
 			const event = new Event("mantle.popover.openAutoFocus", { cancelable: true });
 			onOpenAutoFocus?.(event);
 			if (!event.defaultPrevented) {

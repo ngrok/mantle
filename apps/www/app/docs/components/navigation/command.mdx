@@ -395,17 +395,17 @@ The inline palette, wrapping `Command.Input` and `Command.List`. It owns the fil
 
 A query hides each item that scores 0 and moves the matches into score order: in each group the items, and in the list the items outside a group, then the groups by their best item. An empty query puts the items back in the order they had before the search, and an item appended during the search stays at the end.
 
-| Prop                       | Type                                                             | Default | Description                                                                                       |
-| :------------------------- | :--------------------------------------------------------------- | :------ | :------------------------------------------------------------------------------------------------ |
-| `label?`                   | `string`                                                         |         | The accessible name of `Command.Input`. Not shown.                                                |
-| `shouldFilter?`            | `boolean`                                                        | `true`  | Set `false` to turn off the built-in filtering and sorting, and render only the matches yourself. |
-| `filter?`                  | `(value: string, search: string, keywords?: string[]) => number` |         | Scores an item from 0 (hidden) to 1 (best). The default is cmdk's `command-score` fuzzy match.    |
-| `defaultValue?`            | `string`                                                         |         | The value of the item that is active on the first render.                                         |
-| `value?`                   | `string`                                                         |         | The value of the active item. A change activates that item. Pair with `onValueChange`.            |
-| `onValueChange?`           | `(value: string) => void`                                        |         | Called with the value of each item that becomes active.                                           |
-| `loop?`                    | `boolean`                                                        | `false` | Whether the arrow keys wrap from the last item to the first, and back.                            |
-| `disablePointerSelection?` | `boolean`                                                        | `false` | Whether a pointer over an item leaves the active item alone.                                      |
-| `vimBindings?`             | `boolean`                                                        | `true`  | Whether `Ctrl+N` / `Ctrl+J` and `Ctrl+P` / `Ctrl+K` move to the next and previous item.           |
+| Prop                       | Type                                                             | Default    | Description                                                                                                                |
+| :------------------------- | :--------------------------------------------------------------- | :--------- | :------------------------------------------------------------------------------------------------------------------------- |
+| `label?`                   | `string`                                                         | `"Search"` | The accessible name of `Command.Input`. Not shown. An `aria-label` or `aria-labelledby` on the input replaces the default. |
+| `shouldFilter?`            | `boolean`                                                        | `true`     | Set `false` to turn off the built-in filtering and sorting, and render only the matches yourself.                          |
+| `filter?`                  | `(value: string, search: string, keywords?: string[]) => number` |            | Scores an item from 0 (hidden) to 1 (best). The default is cmdk's `command-score` fuzzy match.                             |
+| `defaultValue?`            | `string`                                                         |            | The value of the item that is active on the first render.                                                                  |
+| `value?`                   | `string`                                                         |            | The value of the active item. A change activates that item. Pair with `onValueChange`.                                     |
+| `onValueChange?`           | `(value: string) => void`                                        |            | Called with the value of each item that becomes active.                                                                    |
+| `loop?`                    | `boolean`                                                        | `false`    | Whether the arrow keys wrap from the last item to the first, and back.                                                     |
+| `disablePointerSelection?` | `boolean`                                                        | `false`    | Whether a pointer over an item leaves the active item alone.                                                               |
+| `vimBindings?`             | `boolean`                                                        | `true`     | Whether `Ctrl+N` / `Ctrl+J` and `Ctrl+P` / `Ctrl+K` move to the next and previous item.                                    |
 
 Focus stays in `Command.Input`, which names the active item with `aria-activedescendant`. These keys work anywhere in the palette:
 

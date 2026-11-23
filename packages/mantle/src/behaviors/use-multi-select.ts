@@ -25,6 +25,8 @@ type MultiSelectBehavior = ComboboxBehavior & {
 	selected: readonly string[];
 	/** Removes `value`, unless it is locked. Returns whether it removed it. */
 	remove: (value: string) => boolean;
+	/** Says which value the last removal took out, such as "Removed apple", for a live region. */
+	removal: string;
 	/** The values that a pick, a click, or a key cannot remove. */
 	locked: Store<{ values: readonly string[] }>;
 	/** The trigger that holds the tags and the input, and anchors the list. */
@@ -80,8 +82,12 @@ const useMultiSelect = ({
 	const [tags] = useState(() => new Map<string, HTMLElement>());
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const triggerRef = useRef<HTMLElement | null>(null);
+	const [removed, setRemoved] = useState<string | null>(null);
+	// Why derive: a controlled parent can keep the value, and then nothing was removed.
+	// The message also clears when the value comes back, so a later removal of it is a change.
+	const removal = removed != null && !selected.includes(removed) ? `Removed ${removed}` : "";
 
-	const remove = (value: string): boolean => {
+	const deselect = (value: string): boolean => {
 		if (locked.get().values.includes(value)) {
 			return false;
 		}
@@ -89,12 +95,21 @@ const useMultiSelect = ({
 		return true;
 	};
 
+	const remove = (value: string): boolean => {
+		const done = deselect(value);
+		if (done) {
+			setRemoved(value);
+		}
+		return done;
+	};
+
 	const listbox = useListbox({
 		ownerRef: inputRef,
 		selected,
 		onSelect: (value) => {
 			if (selected.includes(value)) {
-				if (!remove(value)) {
+				// Why not `remove`: the option already says it is not selected.
+				if (!deselect(value)) {
 					return;
 				}
 			} else {
@@ -120,6 +135,7 @@ const useMultiSelect = ({
 		inputRef,
 		selected,
 		remove,
+		removal,
 		locked,
 		triggerRef,
 		tags,
