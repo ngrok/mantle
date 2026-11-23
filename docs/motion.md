@@ -51,10 +51,13 @@ explains nothing is noise. Leave it out.
   error stays, on focus, or on blur. The shake is never the only error signal: the border, `aria-invalid`, and
   the error message stay. A blocked action calls `shakeElement` (`utils/shake.ts`) on an element that
   composes `motion-safe:data-shake:animate-shake`; no component keeps its own shake keyframes.
-- **A Radix overlay** keeps keyframes (`animate-in`, `animate-out`): Radix unmounts on `animationend` and ignores
-  transitions, and a transition needs `forceMount`, which keeps each closed overlay in the DOM. A positioner
-  around the content holds `animate-exit-hold` so Radix waits for the exit. The hold matches while no open
-  content is inside it, not while closed content is, so a shorter content exit cannot cancel it.
+- **A native `<dialog>`** (`Dialog`, `AlertDialog`, `Sheet`) keeps keyframes (`animate-in`, `animate-out`).
+  `data-open` starts the enter, and `data-closing` starts the exit, which plays before `close()`. Not
+  `not-data-open:`: an invoker command opens the `<dialog>` before hydration, with no `data-open`, and that
+  open must not play the exit.
+- **A float** (`Popover`, `DropdownMenu`, `Tooltip`, `HoverCard`) fades and scales in from `@starting-style`,
+  and out when `data-open` goes away. It stays mounted for the exit. Chromium keeps it in the top layer for the
+  exit (`overlay`); Firefox and Safari hide it at once.
 - **An edge panel** (`Sheet`, `Sandbar`) slides its full size from the screen edge.
 - **A chart's enter reveal** runs 600ms on the `ease-out-strong` curve. It answers no input: it plays once, when
   the chart first comes into view. Each bar grows for 300ms, and the bars start one after another in category
