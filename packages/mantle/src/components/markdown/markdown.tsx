@@ -20,7 +20,6 @@ import * as CodeBlock from "../code-block/code-block-parts.js";
 import { defaultShowLineNumbers } from "../code-block/mantle-code.js";
 import { parseLanguage } from "../code-block/supported-languages.js";
 import { useCodeBlockStream } from "../code-block/use-code-block-stream.js";
-import { LiveRegion } from "../live-region/live-region.js";
 import * as Table from "../table/table-parts.js";
 import { decodeEntities } from "./decode-entities.js";
 import type { MarkdownMathToken } from "./markdown-math.js";
@@ -525,25 +524,6 @@ const MarkdownListItem = memo(
 		(previous.token === next.token || previous.token.raw === next.token.raw),
 );
 
-/** The visible text of a block, for a screen reader announcement. */
-function plainText(token: Token): string {
-	if (isTokenOf(token, "code")) {
-		return token.text;
-	}
-	if (isTokenOf(token, "list")) {
-		return token.items.map(plainText).join("\n");
-	}
-	if (isTokenOf(token, "table")) {
-		return [token.header, ...token.rows]
-			.map((row) => row.map((cell) => cell.text).join(", "))
-			.join("\n");
-	}
-	if (hasTokens(token)) {
-		return token.tokens.map(plainText).join("");
-	}
-	return "text" in token && typeof token.text === "string" ? decodeEntities(token.text) : "";
-}
-
 /** One block that finished, for `onBlockComplete`. */
 type MarkdownBlockEvent = {
 	/** The block's index in the answer. */
@@ -594,9 +574,9 @@ type MarkdownProps = Omit<ComponentProps<"div">, "children"> & {
  * text, so `javascript:` URLs never reach the DOM. An absolute link opens in a
  * new tab.
  *
- * While `streaming`, the root is `aria-busy`, and a polite live region reads
- * each block once it finishes, so a screen reader hears whole blocks, not
- * fragments.
+ * While `streaming`, the root is `aria-busy`. The answer is not a live region:
+ * a screen reader does not read it as it streams. Announce the start and the
+ * end of an answer from one status region that the chat owns.
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
@@ -638,18 +618,8 @@ function Markdown({
 
 	const isHydrated = useIsHydrated();
 	const [hasStreamed, setHasStreamed] = useState(streaming);
-	const [announced, setAnnounced] = useState({ count: snapshot.completeCount, text: "" });
 	if (streaming && !hasStreamed) {
 		setHasStreamed(true);
-	}
-	if (hasStreamed && snapshot.completeCount > announced.count) {
-		setAnnounced({
-			count: snapshot.completeCount,
-			text: snapshot.blocks
-				.slice(announced.count, snapshot.completeCount)
-				.map(plainText)
-				.join("\n"),
-		});
 	}
 
 	const completeEvent = useEffectEvent((count: number, from: number) => {
@@ -688,7 +658,6 @@ function Markdown({
 			className={cx("min-w-0 wrap-break-word", className)}
 			{...props}
 		>
-			<LiveRegion>{announced.text}</LiveRegion>
 			{Array.from({ length: Math.ceil(snapshot.blocks.length / GROUP_SIZE) }, (_, group) => (
 				<MarkdownGroup
 					// oxlint-disable-next-line react/no-array-index-key -- Why: a group holds the same blocks for the life of the answer.

@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { Markdown, type MarkdownBlockEvent, type MarkdownComponents } from "./markdown.js";
@@ -138,13 +138,15 @@ describe("Markdown", () => {
 		expect(onStreamEnd).toHaveBeenCalledTimes(1);
 	});
 
-	test("reads each finished block in a live region while it streams", () => {
-		const { container, rerender } = render(<Markdown streaming>{"First block."}</Markdown>);
-		const region = within(container).getByRole("status");
-		expect(region).toHaveTextContent("");
-		rerender(<Markdown streaming>{"First block.\n\nSecond"}</Markdown>);
-		expect(region).toHaveTextContent("First block.");
-		expect(container.firstElementChild).toHaveAttribute("aria-busy", "true");
+	test("marks the answer busy while it streams, and never makes it a live region", () => {
+		const { container, rerender } = render(
+			<Markdown streaming>{"First block.\n\nSecond"}</Markdown>,
+		);
+		const root = container.firstElementChild;
+		expect(root).toHaveAttribute("aria-busy", "true");
+		expect(container.querySelector("[aria-live], [role=status], [role=log]")).toBeNull();
+		rerender(<Markdown>{"First block.\n\nSecond block."}</Markdown>);
+		expect(root).not.toHaveAttribute("aria-busy");
 	});
 
 	test("reads math with the math extension, and leaves prices as text", () => {

@@ -188,7 +188,22 @@ The output is React elements, never `innerHTML`, and no part needs a CSP change 
 
 ## Accessibility
 
-While `streaming`, the root is `aria-busy`, and a polite live region reads each block once it finishes. A screen reader hears whole blocks, not fragments of words. A task-list checkbox takes its item's text as its name. The caret and the fade-in show only when the reader allows motion.
+`Markdown` is not a live region, so a screen reader does not read an answer as it streams. A reading of each chunk or each block breaks into whatever the reader is doing, such as reading the main page while an answer streams in a side panel. While `streaming`, the root is `aria-busy`.
+
+Announce the answer's state from the chat, not its text. Keep one visually hidden `role="status"` region in the chat for the life of the page. Set it to a short message when an answer starts, such as "Responding", and when it ends, such as "Response complete" from `onStreamEnd`. The reader then moves to the answer when they choose. ChatGPT and Claude work this way.
+
+```tsx
+const [status, setStatus] = useState("");
+
+<span role="status" className="sr-only">
+	{status}
+</span>
+<Markdown streaming={isStreaming} onStreamEnd={() => setStatus("Response complete")}>
+	{text}
+</Markdown>
+```
+
+A task-list checkbox takes its item's text as its name. The caret and the fade-in show only when the reader allows motion.
 
 ## API Reference
 

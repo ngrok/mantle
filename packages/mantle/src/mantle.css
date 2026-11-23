@@ -2100,11 +2100,6 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 		margin-block-start: 1em;
 	}
 
-	/* The live region renders first and takes no space, so the first block gets no margin. */
-	:where([data-slot="markdown"]) > [data-slot="live-region"] + * {
-		margin-block-start: 0;
-	}
-
 	:where([data-slot="markdown"]) :is(h1, h2, h3, h4, h5, h6) {
 		color: var(--text-color-strong);
 		font-family: var(--font-heading);
