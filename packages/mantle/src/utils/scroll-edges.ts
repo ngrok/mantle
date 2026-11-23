@@ -101,8 +101,8 @@ const observeScrollEdges = (list: HTMLElement | null): (() => void) | undefined 
 	mutation.observe(list, { childList: true, subtree: true, attributeFilter: ["hidden"] });
 	// Why each resize watches again: the observer does not report an item that
 	// stays out of view, so a list that gets a box, or a new height, after the
-	// first report needs a new one. Why not only after an empty report: WebKit
-	// can deliver that report after this resize, and then nothing watched again.
+	// first report needs a new one. Why not only after an empty report: that
+	// report can arrive after this resize, and then nothing watched again.
 	const resize = new ResizeObserver(() => {
 		first = undefined;
 		last = undefined;
