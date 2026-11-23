@@ -238,9 +238,9 @@ type PrimitiveItemProps = ItemProps & {
 
 /**
  * One item of a `Root`: a `<div>` with a native `<input type="radio">` and
- * the item's children. The radio is invisible and covers the item, so
- * assistive technology outlines the whole item. A click anywhere on the item
- * focuses and checks the radio. Links, buttons, labels, and form controls in
+ * the item's children. The radio is an invisible pixel in the item's corner,
+ * so `getByRole("radio").click()` in a test clicks the radio itself. A click
+ * anywhere on the item focuses and checks the radio. Links, buttons, labels, and form controls in
  * the children keep their own clicks. The radio takes its name from a
  * `<label>` in the item (the title line, such as `Choice.Label`), from a
  * `Choice.Title`, or else from all of the item's text. The caller
@@ -334,8 +334,9 @@ const Item = ({
 					{...radioProps}
 					checked={checked}
 					onChange={check}
-					// Why it covers the item: assistive technology then outlines the whole item. The item takes the clicks.
-					className="pointer-events-none absolute inset-0 m-0 size-full opacity-0"
+					// Why one pixel over the content's corner: a click at the radio's center lands on the radio itself, so a
+					// test can click it by its role, and a click on the item's text still lands on that text.
+					className="absolute start-0 top-0 z-1 m-0 size-px opacity-0"
 					disabled={disabled}
 					form={group.form}
 					id={radioId}

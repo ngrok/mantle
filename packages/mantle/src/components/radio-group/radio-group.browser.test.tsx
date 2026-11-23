@@ -1,11 +1,32 @@
 import { act, render, screen } from "@testing-library/react";
+import { userEvent as testingLibraryUserEvent } from "@testing-library/user-event";
 import axe from "axe-core";
 import { useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
-import { describe, expect, test, vi } from "vitest";
-import { userEvent } from "vitest/browser";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import { commands, page, userEvent } from "vitest/browser";
+import * as Choice from "../choice/choice-parts.js";
 import * as SegmentedControl from "../segmented-control/segmented-control-parts.js";
 import * as RadioGroup from "./radio-group-parts.js";
+
+let styleElement: HTMLStyleElement;
+
+// Why the compiled CSS: which element takes a click depends on the real layout of the item and
+// its radio. Without the utilities, the radio is in the flow and every click reaches it.
+beforeAll(async () => {
+	styleElement = document.createElement("style");
+	styleElement.textContent = [
+		await commands.tailwindCss("./primitive.tsx"),
+		await commands.tailwindCss("./radio-group.tsx"),
+		await commands.tailwindCss("../choice/choice.tsx"),
+		await commands.tailwindCss("../segmented-control/segmented-control.tsx"),
+	].join("\n");
+	document.head.appendChild(styleElement);
+});
+
+afterAll(() => {
+	styleElement.remove();
+});
 
 /** Renders a button, a group of four plans with "Team" disabled, and a second button. */
 function renderPlans({ defaultValue }: { defaultValue?: string } = {}) {
@@ -26,6 +47,61 @@ function renderPlans({ defaultValue }: { defaultValue?: string } = {}) {
 	);
 	return { onChange };
 }
+
+// Why role queries only: a test finds a radio by its role, as it finds a native one, and it
+// must not need to know which element of the item takes the click.
+describe("radios found by their role", () => {
+	test("a Playwright click and a Testing Library click check the radio itself", async () => {
+		const onChange = vi.fn<(value: string) => void>();
+		render(
+			<RadioGroup.Root aria-label="Plan" defaultValue="free" onValueChange={onChange}>
+				<RadioGroup.Item value="free">
+					<RadioGroup.Indicator />
+					Free
+				</RadioGroup.Item>
+				<RadioGroup.Card value="pro">
+					<Choice.Root>
+						<Choice.Indicator>
+							<RadioGroup.Indicator />
+						</Choice.Indicator>
+						<Choice.Content>
+							<Choice.Title>Pro</Choice.Title>
+							<Choice.Description>For teams that ship every day.</Choice.Description>
+						</Choice.Content>
+					</Choice.Root>
+				</RadioGroup.Card>
+				<RadioGroup.Item value="team">
+					<RadioGroup.ItemContent>Team</RadioGroup.ItemContent>
+				</RadioGroup.Item>
+			</RadioGroup.Root>,
+		);
+
+		await page.getByRole("radio", { name: "Pro" }).click();
+		expect(screen.getByRole("radio", { name: "Pro" })).toBeChecked();
+
+		await testingLibraryUserEvent.setup().click(screen.getByRole("radio", { name: "Team" }));
+		expect(screen.getByRole("radio", { name: "Team" })).toBeChecked();
+
+		await userEvent.click(screen.getByRole("radio", { name: "Free" }));
+		expect(screen.getByRole("radio", { name: "Free" })).toBeChecked();
+		expect(onChange.mock.calls.map(([value]) => value)).toEqual(["pro", "team", "free"]);
+	});
+
+	test("a SegmentedControl radio takes a Playwright click", async () => {
+		render(
+			<div style={{ width: 300 }}>
+				<SegmentedControl.Root aria-label="Environment" defaultValue="prod">
+					<SegmentedControl.Item value="dev">Dev</SegmentedControl.Item>
+					<SegmentedControl.Item value="prod">Prod</SegmentedControl.Item>
+				</SegmentedControl.Root>
+			</div>,
+		);
+
+		await page.getByRole("radio", { name: "Dev" }).click();
+
+		expect(screen.getByRole("radio", { name: "Dev" })).toBeChecked();
+	});
+});
 
 describe("RadioGroup keyboard", () => {
 	test("Tab enters on the checked radio, arrows check and wrap past a disabled one, and Tab leaves", async () => {
