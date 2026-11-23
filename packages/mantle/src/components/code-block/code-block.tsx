@@ -831,6 +831,9 @@ const ExpanderButton = ({
 			aria-expanded={isCodeExpanded}
 			className={cx(
 				"flex w-full items-center justify-center gap-0.5 border-t border-gray-300 bg-base px-4 py-2 font-sans text-gray-700 hover:bg-base-hover",
+				// Why inset: the button meets three edges of the root's `overflow-hidden`, which
+				// clips a ring or a forced-colors outline drawn outside the button.
+				"focus-visible:focus-ring focus-visible:ring-inset focus-visible:-outline-offset-2",
 				className,
 			)}
 			ref={ref}

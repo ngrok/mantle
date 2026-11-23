@@ -625,6 +625,7 @@ The two parts differ on whether a call site may turn the guard off. `CodeBlock.C
 - `CodeBlock.ExpanderButton` carries `aria-expanded` and `aria-controls` that points at the `<pre>`. The `<pre>` itself carries no ARIA state; `data-state="collapsed" | "expanded"` drives the styling.
 - Fold toggles are real `<button>` elements named "Toggle code folding" with `aria-expanded`. Enter and Space toggle them. The folded marker is `aria-hidden`.
 - A code block with fold toggles uses a 24px line height instead of 20px. The toggles of adjacent lines are then 24px apart, the spacing that WCAG 2.5.8 needs. The `--mantle-code-fold-line-height` CSS variable holds the value.
+- The tabs, the fold toggles, the copy button, and the expander button show the [focus ring](/base/focus-ring) for keyboard focus only. `CodeBlock.TabList` scrolls, so it carries `-m-1 p-1` to keep the ring of each tab inside its scroll box. See [Give the ring room](/base/focus-ring#give-the-ring-room). `CodeBlock.ExpanderButton` meets the edges of the root, so its ring draws inside it. See [Draw the ring inside](/base/focus-ring#draw-the-ring-inside).
 - Line numbers are `aria-hidden`, so a screen reader reads the code, not "1 const x".
 - `CodeBlock.Code` and `CodeBlock.Title` carry `translate="no"`; see [Translation](#translation).
 
