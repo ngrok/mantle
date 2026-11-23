@@ -151,6 +151,12 @@ describe("ThemeSwitcher name and icon from the theme on <html>", () => {
 		"before hydration, with $stored stored on a $os OS, CSS names the switcher $name",
 		async ({ stored, os, name }) => {
 			await commands.emulateMedia({ colorScheme: os });
+			const html = document.documentElement;
+			const previous = {
+				className: html.className,
+				theme: html.dataset.theme,
+				appliedTheme: html.dataset.appliedTheme,
+			};
 			// Why no hydration: the server HTML has no `aria-label`, so only CSS names it.
 			const container = document.createElement("div");
 			container.innerHTML = renderToString(
@@ -161,12 +167,6 @@ describe("ThemeSwitcher name and icon from the theme on <html>", () => {
 			document.body.appendChild(container);
 			// Why after the render: in a browser, `ThemeProvider` writes `<html>` as
 			// it renders, which a server never does.
-			const html = document.documentElement;
-			const previous = {
-				className: html.className,
-				theme: html.dataset.theme,
-				appliedTheme: html.dataset.appliedTheme,
-			};
 			const applied = stored === "system" ? os : stored;
 			html.dataset.theme = stored;
 			html.dataset.appliedTheme = applied;
