@@ -3,7 +3,12 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import process from "node:process";
-import { fixHint, hasStructuralCombinator } from "./oxlint-rules/no-structural-combinator.js";
+import {
+	fixHint,
+	hasStructuralCombinator,
+	hasUniversalSubjectTrap,
+	universalHint,
+} from "./oxlint-rules/no-structural-combinator.js";
 
 /** The stylesheets this check reads: mantle's own CSS. Class strings are the `mantle/no-structural-combinator` lint rule's job. */
 const checkedFile = /^packages\/mantle\/src\/.+\.css$/;
@@ -11,7 +16,7 @@ const checkedFile = /^packages\/mantle\/src\/.+\.css$/;
 /** The comment that allows one rule. It must give a reason after the colon. */
 const allowComment = /structural-selector-ok:\s*(?!\*\/)\S/;
 
-type Problem = { line: number; selector: string };
+type Problem = { line: number; selector: string; hint: string };
 
 /** A nested selector resolved against its parent rule's selector, as CSS nesting reads it. */
 function resolveNested(parent: string | null, selector: string): string {
@@ -25,12 +30,13 @@ function resolveNested(parent: string | null, selector: string): string {
 
 /**
  * The selectors in a stylesheet that put a structural pseudo-class before a
- * combinator, with their 1-based lines. A nested rule is checked as its
+ * combinator, or that end in a universal subject after a sibling combinator or
+ * only attribute anchors, with their 1-based lines and the fix to name. A nested rule is checked as its
  * resolved selector. A `structural-selector-ok: <reason>` comment right before
  * a rule allows it. `@custom-variant` selectors count.
  *
  * @example
- * selectorProblems(".a > tr:last-child > * { color: red }"); // => [{ line: 1, selector: ".a > tr:last-child > *" }]
+ * selectorProblems(".a > tr:last-child > * { color: red }"); // => [{ line: 1, selector: ".a > tr:last-child > *", hint: fixHint }]
  */
 export function selectorProblems(text: string): Problem[] {
 	const problems: Problem[] = [];
@@ -45,8 +51,16 @@ export function selectorProblems(text: string): Problem[] {
 		const parent = parents.at(-1) ?? null;
 		// Why the parent test: a parent that fails is already reported once.
 		const parentFails = parent != null && hasStructuralCombinator(parent);
-		if (!allowed && !parentFails && hasStructuralCombinator(resolveNested(parent, selector))) {
-			problems.push({ line: lineAt(offset), selector: selector.trim().replace(/\s+/g, " ") });
+		const resolved = resolveNested(parent, selector);
+		const push = (hint: string) =>
+			problems.push({ line: lineAt(offset), selector: selector.trim().replace(/\s+/g, " "), hint });
+		if (allowed) {
+			return;
+		}
+		if (!parentFails && hasStructuralCombinator(resolved)) {
+			push(fixHint);
+		} else if (hasUniversalSubjectTrap(resolved)) {
+			push(universalHint);
 		}
 	};
 	while (index < text.length) {
@@ -125,7 +139,7 @@ function cli(): void {
 		const text = fs.readFileSync(file, "utf8");
 		return [
 			...selectorProblems(text).map(
-				({ line, selector }) => `${file}:${line}: \`${selector}\`: ${fixHint}`,
+				({ line, selector, hint }) => `${file}:${line}: \`${selector}\`: ${hint}`,
 			),
 			...customDataVariants(text).map(
 				(line) =>

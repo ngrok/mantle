@@ -733,6 +733,12 @@ cure. Read the roster there rather than restating it here, because an enumerated
 - A component that a page holds many times (a row, a cell, a card, a chart) costs its page a measured amount.
   Share one listener or one observer between the instances. Do no work at mount for an instance that is off
   screen.
+- **A selector costs each element it can match.** A selector that ends in `*` or a pseudo-class alone is
+  tried on each element of the page. Anchor the subject to a class or a `data-slot`. Never put a structural
+  pseudo-class before a combinator (`[&>tr:last-child>*]`), a sibling combinator before a universal subject
+  (`[&+*]`, `[&>tr+tr>*]`), or a `*:` or `**:` variant, which compiles to `:is()`; write `[&>*]:` or `[&_*]:`
+  (lint: `mantle/no-structural-combinator`, `mantle/no-unanchored-child-variant`; `check:css-selectors` for
+  stylesheets). A kept exception has a reason with its measured numbers.
 - A leaf component imports no second component family, and no module has a side effect on import
   ([§1.7](#17-forbidden-api-shapes)).
 - Do not add `useMemo`, `useCallback`, or `memo` for speed. Memoization belongs only where it pays.

@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { customDataVariants, selectorProblems } from "./check-css-selectors.ts";
+import { fixHint } from "./oxlint-rules/no-structural-combinator.js";
 
 describe("selectorProblems", () => {
 	it("flags a structural pseudo-class before a combinator, with its line", () => {
 		const css = ".a { color: red; }\n\n.table > tr:last-child > *,\n.b {\n\tborder: 0;\n}\n";
 
 		expect(selectorProblems(css)).toEqual([
-			{ line: 3, selector: ".table > tr:last-child > *, .b" },
+			{ line: 3, selector: ".table > tr:last-child > *, .b", hint: fixHint },
 		]);
 	});
 
@@ -23,6 +24,13 @@ describe("selectorProblems", () => {
 			".a:first-child {\n\t& > b { color: red; }\n\t.c { color: red; }\n\t&:hover { color: red; }\n}\n.d > e:last-child {\n\t& f { color: red; }\n}\n";
 
 		expect(selectorProblems(css).map((problem) => problem.line)).toEqual([2, 3, 7]);
+	});
+
+	it("flags a universal subject after a sibling combinator or only attribute anchors", () => {
+		const css =
+			".a + * { color: red; }\n.b > tr ~ tr > * { color: red; }\n[data-state] > * { color: red; }\n.c > * { color: red; }\n.d + [data-slot=x] { color: red; }\n[data-x] .e > * { color: red; }\n@utility u {\n\t:root[data-theme] &::after { color: red; }\n}\n";
+
+		expect(selectorProblems(css).map((problem) => problem.line)).toEqual([1, 2, 3]);
 	});
 
 	it("reads past an escaped quote", () => {
@@ -42,7 +50,9 @@ describe("selectorProblems", () => {
 		const css =
 			"/* structural-selector-ok: the subtree is one icon. */\n.a:first-child > svg { color: red; }\n/* structural-selector-ok: */\n.b:first-child > svg { color: red; }\n";
 
-		expect(selectorProblems(css)).toEqual([{ line: 4, selector: ".b:first-child > svg" }]);
+		expect(selectorProblems(css)).toEqual([
+			{ line: 4, selector: ".b:first-child > svg", hint: fixHint },
+		]);
 	});
 });
 
