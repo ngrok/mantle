@@ -9,7 +9,6 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { findWrappedTabStop } from "../../hooks/use-focus-trap.js";
 import { findTabbableDescendants } from "../alert/tabbable-neighbors.js";
 import { FloatArrow, focusFirst } from "../../utils/float/parts.js";
 import type { Align, Side } from "../../utils/float/position.js";
@@ -436,26 +435,27 @@ const Content = ({
 				}}
 				onKeyDown={(event) => {
 					onKeyDown?.(event);
+					const content = event.currentTarget;
+					// Why the `dialog` check: a Dialog opened from the content portals
+					// into it, and that dialog keeps its own Tab order.
 					if (
 						event.key !== "Tab" ||
 						event.defaultPrevented ||
-						!(event.target instanceof Node) ||
-						!event.currentTarget.contains(event.target)
+						!(event.target instanceof Element) ||
+						event.target.closest("dialog") !== content.closest("dialog")
 					) {
 						return;
 					}
-					// Why wrap: the content portals to the end of the body, so the
-					// browser's next tab stop after it is outside the page. Tab cycles
-					// inside the open content, and Escape or a press outside leaves it.
-					const tabStops = findTabbableDescendants(event.currentTarget);
-					const target = findWrappedTabStop({
-						tabStops,
-						current: event.currentTarget.ownerDocument.activeElement,
-						backwards: event.shiftKey,
-					});
-					if (tabStops.length === 0 || target != null) {
+					// Why wrap: the content portals to the end of the body, so Tab on its
+					// last stop leaves the page. As Radix `FocusScope` did, Tab wraps only
+					// from the first or last stop, and the browser moves focus otherwise.
+					const tabStops = findTabbableDescendants(content);
+					const first = tabStops[0];
+					const last = tabStops[tabStops.length - 1];
+					const focused = content.ownerDocument.activeElement;
+					if (first == null || focused === (event.shiftKey ? first : last)) {
 						event.preventDefault();
-						target?.focus();
+						(event.shiftKey ? last : first)?.focus();
 					}
 				}}
 			/>,

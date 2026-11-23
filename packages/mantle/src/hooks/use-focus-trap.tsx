@@ -188,7 +188,6 @@ function useFocusTrap(
 
 export {
 	//,
-	findWrappedTabStop,
 	useFocusTrap,
 };
 
