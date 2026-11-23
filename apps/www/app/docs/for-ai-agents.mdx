@@ -246,7 +246,7 @@ Every mantle component is built on semantic HTML and tested ARIA patterns. Agent
   - `Button` takes `"accent"`, `"danger"`, or `"neutral"`. Use `intent="neutral"` when no tone is implied. Reserve `intent="accent"` for deliberate brand emphasis: an action that should carry the accent color.
   - `IconButton` takes `"neutral"` alone. Reach for `Button` where the tone carries meaning.
 - If choosing between `Tooltip`, `Popover`, and `HoverCard`, follow [the JSDoc guidance](https://mantle.ngrok.com/components/overlays/tooltip): `Tooltip` for short label hints, `Popover` for interactive content, `HoverCard` for non-essential preview cards.
-- If choosing between `DataTable` and `Table`: `DataTable` for dynamic, sortable, filterable, paginated tabular data; `Table` for static layout.
+- If choosing between `DataTable` and `Table`: `DataTable` for rows that the user sorts, filters, pages through, selects, or expands into a detail panel or sub-rows; `Table` for static rows, with no row expansion.
 - When uncertain, prefer to fetch the relevant `/<page>.md` and read the full doc rather than guessing.
 
 ## Versioning
