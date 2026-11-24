@@ -622,8 +622,9 @@ function Dictate({
 				}
 				const Recognition = speechRecognitionConstructor();
 				const button = event.currentTarget;
-				const field = button.form?.querySelector<HTMLTextAreaElement>(
-					'textarea[data-slot~="prompt-input-text-area"]',
+				const field = Array.from(button.form?.elements ?? []).find(
+					(element): element is HTMLTextAreaElement =>
+						element.matches('textarea[data-slot~="prompt-input-text-area"]'),
 				);
 				if (Recognition == null || field == null || field.readOnly || field.matches(":disabled")) {
 					return;
@@ -634,14 +635,15 @@ function Dictate({
 				recognition.lang =
 					lang ?? event.currentTarget.closest<HTMLElement>("[lang]")?.lang ?? navigator.language;
 				recognition.onresult = ({ resultIndex, results }) => {
-					if (
-						recognitionRef.current !== recognition ||
-						button.matches(":disabled") ||
-						!field.isConnected
-					) {
-						return;
-					}
 					for (let index = resultIndex; index < results.length; index++) {
+						// Why each result: onChange can disable or unmount the toggle between phrases.
+						if (
+							recognitionRef.current !== recognition ||
+							button.matches(":disabled") ||
+							!field.isConnected
+						) {
+							return;
+						}
 						const result = results[index];
 						if (result?.isFinal) {
 							insertDictatedText(field, result[0].transcript);

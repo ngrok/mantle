@@ -348,3 +348,69 @@ test("Dictate does not start for a field disabled by a fieldset", async () => {
 	await userEvent.click(screen.getByRole("button", { name: "Dictate" }));
 	expect(screen.getByRole("button", { name: "Dictate" })).toHaveAttribute("aria-pressed", "false");
 });
+
+test.each(["disable", "unmount"])(
+	"Dictate stops a batch when onChange cancels it (%s)",
+	async (cancel) => {
+		vi.stubGlobal("SpeechRecognition", FakeRecognition);
+		const onChange = vi.fn<(message: string) => void>();
+		function Composer() {
+			const [draft, setDraft] = useState("draft");
+			const [cancelled, setCancelled] = useState(false);
+			return (
+				<PromptInput.Root>
+					<PromptInput.TextArea
+						aria-label="Message"
+						value={draft}
+						onChange={(event) => {
+							setDraft(event.target.value);
+							setCancelled(true);
+							onChange(event.target.value);
+						}}
+					/>
+					{!(cancelled && cancel === "unmount") && <PromptInput.Dictate disabled={cancelled} />}
+				</PromptInput.Root>
+			);
+		}
+		render(<Composer />);
+		const field = screen.getByRole("textbox", { name: "Message" });
+		await userEvent.click(field);
+		await userEvent.keyboard("{End}");
+		await userEvent.click(screen.getByRole("button", { name: "Dictate" }));
+		FakeRecognition.last?.onresult?.({
+			resultIndex: 0,
+			results: [" first", " second"].map((transcript) => ({ isFinal: true, 0: { transcript } })),
+		});
+		await expect.poll(() => field).toHaveValue("draft first");
+		expect(onChange).toHaveBeenCalledTimes(1);
+		expect(onChange).toHaveBeenLastCalledWith("draft first");
+	},
+);
+
+test("Dictate edits its form's portaled field, not another form's descendant", async () => {
+	vi.stubGlobal("SpeechRecognition", FakeRecognition);
+	render(
+		<>
+			<form id="other-composer" />
+			<PromptInput.Root id="composer">
+				<PromptInput.TextArea
+					form="other-composer"
+					aria-label="Other message"
+					defaultValue="leave alone"
+				/>
+				{createPortal(
+					<PromptInput.TextArea form="composer" aria-label="Message" defaultValue="draft" />,
+					document.body,
+				)}
+				<PromptInput.Dictate />
+			</PromptInput.Root>
+		</>,
+	);
+	const field = screen.getByRole("textbox", { name: "Message" });
+	await userEvent.click(field);
+	await userEvent.keyboard("{End}");
+	await userEvent.click(screen.getByRole("button", { name: "Dictate" }));
+	FakeRecognition.last?.hear(" addition", true);
+	expect(field).toHaveValue("draft addition");
+	expect(screen.getByRole("textbox", { name: "Other message" })).toHaveValue("leave alone");
+});
