@@ -71,25 +71,40 @@ describe("CodeBlock (browser)", () => {
 			expect(clipboardText).toBe(expectedPlainText);
 		});
 
-		test("CopyButton marks itself copied after clicking", async () => {
-			const user = userEvent.setup();
+		// Why the compiled CSS: the swap lives in the paths' classes, so only computed opacity shows which icon paints.
+		test.each(["no-preference", "reduce"] as const)(
+			"CopyButton shows exactly one icon before, during, and after a copy (%s motion)",
+			async (reducedMotion) => {
+				const style = document.createElement("style");
+				style.textContent = await commands.tailwindCss("./code-block.tsx");
+				document.head.append(style);
+				await commands.emulateMedia({ reducedMotion });
+				try {
+					const user = userEvent.setup();
+					render(
+						<CodeBlock.Root>
+							<CodeBlock.Body>
+								<CodeBlock.CopyButton />
+								<CodeBlock.Code value={makeValue("code")} />
+							</CodeBlock.Body>
+						</CodeBlock.Root>,
+					);
+					const button = screen.getByRole("button", { name: /copy code/i });
+					const [copyPath, checkPath] = button.querySelectorAll("path");
+					const opacities = () =>
+						[copyPath, checkPath].map((path) => getComputedStyle(path as Element).opacity);
 
-			render(
-				<CodeBlock.Root>
-					<CodeBlock.Body>
-						<CodeBlock.CopyButton />
-						<CodeBlock.Code value={makeValue("code")} />
-					</CodeBlock.Body>
-				</CodeBlock.Root>,
-			);
-
-			const button = screen.getByRole("button", { name: /copy code/i });
-			expect(button).not.toHaveAttribute("data-copied");
-			await user.click(button);
-
-			// Why the attribute: CSS swaps the two paths of the one icon on it.
-			expect(button).toHaveAttribute("data-copied");
-		});
+					expect(opacities()).toEqual(["1", "0"]);
+					await user.click(button);
+					await expect.poll(opacities).toEqual(["0", "1"]);
+					// The check shows for two seconds, then the copy icon comes back.
+					await expect.poll(opacities, { timeout: 4000 }).toEqual(["1", "0"]);
+				} finally {
+					await commands.emulateMedia({ reducedMotion: "no-preference" });
+					style.remove();
+				}
+			},
+		);
 	});
 
 	/**
