@@ -3,6 +3,13 @@
 import type { RefCallback, RefObject } from "react";
 import { useCallback } from "react";
 
+const heldScrollRegions = new WeakSet<HTMLElement>();
+
+/** Whether an anchor owns the region's initial position, including a position at zero. */
+export function hasScrollAnchor(region: HTMLElement): boolean {
+	return heldScrollRegions.has(region);
+}
+
 /**
  * Where a reader is in some content: the child indexes from the content's
  * element down to the deepest element at the top edge of the region that
@@ -166,8 +173,10 @@ function holdAnchor(content: HTMLElement, anchor: Omit<ScrollAnchor, "key">): ()
 		region = next;
 		const overflowAnchor = next.style.overflowAnchor;
 		next.style.overflowAnchor = "none";
+		heldScrollRegions.add(next);
 		unpin = () => {
 			next.style.overflowAnchor = overflowAnchor;
+			heldScrollRegions.delete(next);
 		};
 		expected = next.scrollTop;
 		scrollTarget().addEventListener("scroll", onScroll, { passive: true });

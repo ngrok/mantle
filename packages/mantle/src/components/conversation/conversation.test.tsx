@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
+import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import * as Conversation from "./conversation-parts.js";
 
 function Transcript({ streaming }: { streaming?: boolean }) {
@@ -14,6 +15,22 @@ function Transcript({ streaming }: { streaming?: boolean }) {
 }
 
 describe("Conversation", () => {
+	test("Root survives a translated loading message changing to a transcript", () => {
+		const { container, rerender } = render(<Conversation.Root>Loading messages</Conversation.Root>);
+		translateTextNodes(container);
+
+		rerender(
+			<Conversation.Root streaming>
+				<Conversation.Viewport aria-label="Conversation">
+					<Conversation.Content />
+				</Conversation.Viewport>
+			</Conversation.Root>,
+		);
+
+		expect(screen.getByRole("region", { name: "Conversation" })).toBeInTheDocument();
+		expect(screen.getByRole("status")).toHaveTextContent("Answering…");
+	});
+
 	test("announces nothing before the first answer, then the start and the end of each answer", () => {
 		const { rerender } = render(<Transcript />);
 		const status = screen.getByRole("status");

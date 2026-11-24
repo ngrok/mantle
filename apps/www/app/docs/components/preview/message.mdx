@@ -102,14 +102,6 @@ function AnswerOnItsWay() {
 
 </Example>
 
-## Accessibility
-
-`Message.Content` starts with a visually hidden speaker label, "You said:" or "The assistant said:", so a screen reader says who wrote each message.
-
-## Translation
-
-`Message.Content` and `Message.Pending` render an element beside their children: the speaker label and the pulsing dot. Each wraps the children in a `display: contents` element (`message-content-label` and `message-pending-label`), so a page that a browser translates survives a change to them.
-
 ## Composition
 
 ```text showLineNumbers=false
@@ -122,6 +114,14 @@ Message.Root
 ## Polymorphism
 
 `Message.Root` and `Message.Actions` take `asChild`. `Message.Content` and `Message.Pending` do not, because each renders an element beside its children.
+
+## Accessibility
+
+`Message.Content` starts with a visually hidden speaker label, "You said:" or "The assistant said:", so a screen reader says who wrote each message.
+
+## Translation
+
+`Message.Content` and `Message.Pending` render an element beside their children: the speaker label and the pulsing dot. Each wraps the children in a `display: contents` element (`message-content-label` and `message-pending-label`), so a page that a browser translates survives a change to them.
 
 ## API Reference
 

@@ -120,6 +120,20 @@ function AssistantTranscript() {
 - Use [Message](/components/preview/message) for each message in it.
 - Prefer [List](/components/data-display/list) for items that do not grow at the end while the reader watches.
 
+## Composition
+
+```text showLineNumbers=false
+Conversation.Root
+├── Conversation.Viewport
+│   └── Conversation.Content
+│       └── Message.Root
+└── Conversation.ScrollButton
+```
+
+## Polymorphism
+
+`Conversation.Viewport` and `Conversation.Content` take `asChild`. `Conversation.Root` and `Conversation.ScrollButton` do not: the root renders the status region beside its children, and the button owns its icon and position.
+
 ## How it follows the end
 
 `Conversation.Viewport` follows the end while the reader is at the end, so streamed text never lands below the fold. It works as Amp does:
@@ -135,20 +149,6 @@ The top and bottom edges fade when there is more to read past them, with [`scrol
 `Conversation.Root` owns the chat's one status announcement. Set `streaming` while an answer streams. Screen readers then hear "Answering…" when it starts and "Answer ended." when it ends. Nothing reads the answer aloud word by word, because that interrupts a reader who is busy with other content.
 
 `Conversation.Viewport` is a named region that takes focus, so a keyboard can scroll a transcript that has no links or buttons. When `Conversation.ScrollButton` hides after a press, focus moves to the viewport.
-
-## Composition
-
-```text showLineNumbers=false
-Conversation.Root
-├── Conversation.Viewport
-│   └── Conversation.Content
-│       └── Message.Root
-└── Conversation.ScrollButton
-```
-
-## Polymorphism
-
-`Conversation.Viewport` and `Conversation.Content` take `asChild`. `Conversation.Root` and `Conversation.ScrollButton` do not: the root renders the status region beside its children, and the button owns its icon and position.
 
 ## API Reference
 
@@ -166,6 +166,8 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | ------------------ | ------------------------------------ | ------------------------------------------------- |
 | `data-scrolled-up` | present while the end is out of view | Presence-only. Shows `Conversation.ScrollButton`. |
 | `data-streaming`   | present while `streaming`            | Presence-only. Style with `data-streaming:`.      |
+
+The children sit in a `display: contents` wrapper, `data-slot="conversation-label"`, so a translated loading message can change to a transcript.
 
 ### Conversation.Viewport
 

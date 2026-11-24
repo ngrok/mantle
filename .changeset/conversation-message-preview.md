@@ -11,6 +11,8 @@ Add `Conversation` and `Message` (preview), the chat transcript parts.
 - `Conversation.Content` is the ordered list of messages.
 - `Conversation.Root` owns the chat's one status announcement. Set `streaming`, and screen readers hear "Answering…" when an answer starts and "Answer ended." when it ends. It stamps `data-scrolled-up` while the end is out of view, and `data-streaming` while `streaming` is set.
 
+The viewport preserves a place restored by `useScrollAnchor`, including the top of a long transcript. Loading older history does not resume following. The scroll button respects reduced motion and returns focus to the viewport before it becomes inert. A `conversation-label` wrapper protects translated loading text when it changes to a transcript.
+
 `Message` at `@ngrok/mantle/message` is one message of a chat:
 
 - `Message.Root` renders an `<li>` with `from="user"` or `from="assistant"`, and stamps `data-from`.

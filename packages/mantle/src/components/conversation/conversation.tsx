@@ -2,8 +2,9 @@
 
 import { ArrowDownIcon } from "@phosphor-icons/react/ArrowDown";
 import type { ComponentProps, RefObject } from "react";
-import { createContext, use, useCallback, useRef, useState } from "react";
+import { createContext, use, useCallback, useLayoutEffect, useRef, useState } from "react";
 import invariant from "tiny-invariant";
+import { hasScrollAnchor } from "../../hooks/use-scroll-anchor.js";
 import { useScrollBehavior } from "../../hooks/use-scroll-behavior.js";
 import type { WithAsChild } from "../../types/as-child.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
@@ -24,10 +25,10 @@ const SCROLLED_UP_ATTRIBUTE = "data-scrolled-up";
 const USER_MESSAGE_SELECTOR = '[data-from="user"]';
 
 type ConversationContextValue = {
-	rootRef: RefObject<HTMLDivElement | null>;
 	/** Scrolls the viewport to its end and follows it again. Set while a viewport is mounted. */
 	scrollToEndRef: RefObject<((behavior: ScrollBehavior) => void) | null>;
 	viewportRef: RefObject<HTMLDivElement | null>;
+	scrollButtonRef: RefObject<HTMLButtonElement | null>;
 };
 
 const ConversationContext = createContext<ConversationContextValue | null>(null);
@@ -63,6 +64,9 @@ type ConversationRootProps = ComponentProps<"div"> &
  * when it ends. A live region that read each streamed word would interrupt
  * the reader.
  *
+ * The children sit in a `display: contents` wrapper, `data-slot="conversation-label"`,
+ * so a translated loading message can change to a transcript.
+ *
  * | Data Attribute     | Value                                 | Description                                    |
  * | ------------------ | ------------------------------------- | ---------------------------------------------- |
  * | `data-scrolled-up` | present while the end is out of view  | Presence-only. Shows `Conversation.ScrollButton`. |
@@ -95,28 +99,28 @@ function Root({
 	streaming = false,
 	...props
 }: ConversationRootProps) {
-	const rootRef = useRef<HTMLDivElement>(null);
 	const scrollToEndRef = useRef<((behavior: ScrollBehavior) => void) | null>(null);
 	const viewportRef = useRef<HTMLDivElement>(null);
-	const composedRef = useComposedRefs(rootRef, ref);
+	const scrollButtonRef = useRef<HTMLButtonElement>(null);
 	const [context] = useState<ConversationContextValue>(() => ({
-		rootRef,
 		scrollToEndRef,
 		viewportRef,
+		scrollButtonRef,
 	}));
 	const announcement = useStreamAnnouncement(streaming);
 
 	return (
 		<ConversationContext value={context}>
 			<div
-				ref={composedRef}
+				ref={ref}
 				data-slot={joinDataSlot(dataSlot, "conversation")}
 				data-streaming={streaming ? "" : undefined}
 				className={cx("group/conversation relative flex min-h-0 flex-col", className)}
 				{...props}
 			>
-				{children}
-				{/* Why after the children: a live region that mounts last is an append, which a translated page survives. */}
+				<div data-slot="conversation-label" className="contents">
+					{children}
+				</div>
 				<LiveRegion data-slot="conversation-status">{announcement}</LiveRegion>
 			</div>
 		</ConversationContext>
@@ -183,26 +187,34 @@ function Viewport({
 	...props
 }: ConversationViewportProps) {
 	const Component = asChild ? Slot : "div";
-	const { rootRef, scrollToEndRef, viewportRef } = useConversationContext("Viewport");
-	const followRef = useCallback(
-		(element: HTMLDivElement | null) => {
-			if (element == null) {
-				return undefined;
-			}
-			const stop = followEnd(element, {
-				onScrolledUpChange: (scrolledUp) => {
-					rootRef.current?.toggleAttribute(SCROLLED_UP_ATTRIBUTE, scrolledUp);
-				},
-			});
-			scrollToEndRef.current = stop.scrollToEnd;
-			return () => {
-				stop.disconnect();
-				scrollToEndRef.current = null;
-			};
-		},
-		[rootRef, scrollToEndRef],
-	);
-	const composedRef = useComposedRefs(viewportRef, followRef, ref);
+	const { scrollToEndRef, viewportRef, scrollButtonRef } = useConversationContext("Viewport");
+	const [element, setElement] = useState<HTMLDivElement | null>(null);
+	const composedRef = useComposedRefs<HTMLDivElement>(viewportRef, setElement, ref);
+
+	// Why the element dependency: a consumer ref can change without replacing the viewport or its follow state.
+	useLayoutEffect(() => {
+		if (element == null) {
+			return;
+		}
+		const root = element.closest('[data-slot~="conversation"]');
+		const stop = followEnd(element, {
+			onScrolledUpChange: (scrolledUp) => {
+				root?.toggleAttribute(SCROLLED_UP_ATTRIBUTE, scrolledUp);
+				const button = scrollButtonRef.current;
+				if (button != null) {
+					if (!scrolledUp && button.contains(document.activeElement)) {
+						element.focus({ preventScroll: true });
+					}
+					button.inert = !scrolledUp;
+				}
+			},
+		});
+		scrollToEndRef.current = stop.scrollToEnd;
+		return () => {
+			stop.disconnect();
+			scrollToEndRef.current = null;
+		};
+	}, [element, scrollToEndRef, scrollButtonRef]);
 
 	return (
 		<Component
@@ -242,29 +254,30 @@ function followEnd(
 	viewport: HTMLElement,
 	{ onScrolledUpChange }: { onScrolledUpChange: (scrolledUp: boolean) => void },
 ): FollowEnd {
-	// Why `scrollTop === 0`: a restored place, such as one from `useScrollAnchor`, must stay.
-	let isFollowing = viewport.scrollTop === 0;
-	let followedTop = viewport.scrollTop;
-	let scrolledUp = false;
-
 	const distanceFromEnd = () => viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop;
+	// A restored place can be zero, so the position alone cannot identify a fresh mount.
+	let isFollowing =
+		distanceFromEnd() <= END_THRESHOLD || (!hasScrollAnchor(viewport) && viewport.scrollTop === 0);
+	let lastTop = viewport.scrollTop;
+	let smoothTarget: number | null = null;
+	let frame = 0;
+
 	const report = () => {
-		const next = distanceFromEnd() > END_THRESHOLD;
-		if (next !== scrolledUp) {
-			scrolledUp = next;
-			onScrolledUpChange(next);
-		}
+		onScrolledUpChange(distanceFromEnd() > END_THRESHOLD);
 	};
 	const follow = () => {
+		cancelAnimationFrame(frame);
+		frame = 0;
 		// Why: a scroll up whose event has not fired yet must still release the view.
-		if (viewport.scrollTop < followedTop && distanceFromEnd() > END_THRESHOLD) {
+		if (viewport.scrollTop < lastTop && distanceFromEnd() > END_THRESHOLD) {
 			isFollowing = false;
+			smoothTarget = null;
 		}
-		if (isFollowing) {
+		if (isFollowing && smoothTarget == null) {
 			// Why `instant`: a `scroll-behavior: smooth` container would animate each update and lag the text.
 			viewport.scrollTo({ top: viewport.scrollHeight, behavior: "instant" });
-			followedTop = viewport.scrollTop;
 		}
+		lastTop = viewport.scrollTop;
 		report();
 	};
 
@@ -279,52 +292,86 @@ function followEnd(
 	const mutations = new MutationObserver((records) => {
 		if (records.some(addsUserMessage)) {
 			isFollowing = true;
-			followedTop = viewport.scrollTop;
+			smoothTarget = null;
+			lastTop = viewport.scrollTop;
 		}
 		if (records.some((record) => record.target === viewport && record.type === "childList")) {
 			observeChildren();
 		}
-		follow();
+		// A buffered stream can deliver many mutations before paint; measure its final layout once.
+		if (frame === 0) {
+			frame = requestAnimationFrame(follow);
+		}
 	});
 	const onScroll = () => {
 		if (distanceFromEnd() <= END_THRESHOLD) {
 			isFollowing = true;
-			followedTop = viewport.scrollTop;
-		} else if (viewport.scrollTop < followedTop) {
+		} else if (viewport.scrollTop < lastTop) {
 			isFollowing = false;
+			smoothTarget = null;
 		}
+		lastTop = viewport.scrollTop;
 		report();
+	};
+	const onScrollEnd = () => {
+		// A previous instant scroll can deliver its scrollend after the button starts a smooth scroll.
+		if (
+			smoothTarget != null &&
+			viewport.scrollTop >=
+				Math.min(smoothTarget, viewport.scrollHeight - viewport.clientHeight) - 1
+		) {
+			smoothTarget = null;
+			follow();
+		}
 	};
 	// Why a wheel listener: a follow that lands before the scroll event would undo the reader's scroll up.
 	const onWheel = (event: WheelEvent) => {
-		if (event.deltaY < 0) {
+		if (event.deltaY < 0 && viewport.scrollTop > 0) {
 			isFollowing = false;
+			if (smoothTarget != null) {
+				smoothTarget = null;
+				viewport.scrollTo({ top: viewport.scrollTop, behavior: "instant" });
+			}
 		}
 	};
 
 	mutations.observe(viewport, { childList: true, subtree: true, characterData: true });
 	observeChildren();
 	viewport.addEventListener("scroll", onScroll, { passive: true });
+	viewport.addEventListener("scrollend", onScrollEnd);
 	viewport.addEventListener("wheel", onWheel, { passive: true });
 	follow();
 
 	return {
 		disconnect: () => {
+			cancelAnimationFrame(frame);
 			mutations.disconnect();
 			resizes.disconnect();
 			viewport.removeEventListener("scroll", onScroll);
+			viewport.removeEventListener("scrollend", onScrollEnd);
 			viewport.removeEventListener("wheel", onWheel);
 		},
 		scrollToEnd: (behavior) => {
 			isFollowing = true;
-			followedTop = viewport.scrollTop;
-			viewport.scrollTo({ top: viewport.scrollHeight, behavior });
+			lastTop = viewport.scrollTop;
+			smoothTarget =
+				behavior === "smooth" && distanceFromEnd() > 1
+					? viewport.scrollHeight - viewport.clientHeight
+					: null;
+			viewport.scrollTo({
+				top: viewport.scrollHeight,
+				behavior: smoothTarget != null ? "smooth" : "instant",
+			});
 		},
 	};
 }
 
 /** Whether a mutation adds a person's message, or an element that holds one. */
 function addsUserMessage(record: MutationRecord): boolean {
+	// Older history has a following sibling; only a new message at the end resumes following.
+	if (record.nextSibling != null) {
+		return false;
+	}
 	for (const node of record.addedNodes) {
 		if (
 			node instanceof Element &&
@@ -425,13 +472,24 @@ function ScrollButton({
 	className,
 	label = "Scroll to the latest message",
 	onClick,
+	ref,
 	...props
 }: ConversationScrollButtonProps) {
-	const { scrollToEndRef, viewportRef } = useConversationContext("ScrollButton");
+	const { scrollToEndRef, viewportRef, scrollButtonRef } = useConversationContext("ScrollButton");
 	const scrollBehavior = useScrollBehavior();
+	const setButton = useCallback((element: HTMLButtonElement | null) => {
+		if (element != null) {
+			element.inert = !element
+				.closest('[data-slot~="conversation"]')
+				?.hasAttribute(SCROLLED_UP_ATTRIBUTE);
+		}
+	}, []);
+	const composedRef = useComposedRefs(scrollButtonRef, setButton, ref);
 
 	return (
 		<IconButton
+			ref={composedRef}
+			inert
 			appearance="outlined"
 			intent="neutral"
 			size="sm"
@@ -439,8 +497,8 @@ function ScrollButton({
 			data-slot={joinDataSlot(dataSlot, "conversation-scroll-button")}
 			className={cx(
 				"bg-popover absolute bottom-3 left-1/2 size-8 -translate-x-1/2 rounded-full shadow-md",
-				// Hidden until the end leaves the view. `invisible` also takes it out of the tab order.
-				"invisible opacity-0 transition-[opacity,visibility] transition-discrete duration-150 ease-out motion-reduce:transition-none",
+				// Inert ends interaction at once; visibility lets the exit fade finish.
+				"invisible opacity-0 transition-[opacity,visibility] transition-discrete duration-150 ease-out-strong motion-reduce:transition-none",
 				"group-data-scrolled-up/conversation:visible group-data-scrolled-up/conversation:opacity-100",
 				className,
 			)}
