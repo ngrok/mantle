@@ -1,8 +1,8 @@
-#!/usr/bin/env node
-
 import fs from "node:fs";
+import { registerHooks } from "node:module";
 import path from "node:path";
 import process from "node:process";
+import { pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
 import { build } from "vite";
 
@@ -35,6 +35,8 @@ const UPDATE_HEADROOM = 64;
 const PACKAGE_ROOT = path.resolve(import.meta.dirname, "..");
 const DIST = path.join(PACKAGE_ROOT, "dist");
 const BUDGET_FILE = path.join(PACKAGE_ROOT, "bundle-budget.json");
+/** Where each scenario's build lands, so Node can import it and resolve React from the package. */
+const OUT_DIR = path.join(PACKAGE_ROOT, "node_modules", ".cache", "bundle-budget");
 
 /**
  * Compares a measured size with its budget. Pure, so the thresholds are testable.
@@ -65,7 +67,7 @@ const judge = ({
 type BuiltChunk = { fileName: string; code: string; isEntry: boolean; imports: readonly string[] };
 
 /**
- * Splits the chunks of a build into eager code, which the entry and its static
+ * Splits the chunks of a build, by file name, into eager code, which the entry and its static
  * imports load before the page runs, and lazy code: dynamic imports and
  * workers. Pure, so the split is testable.
  *
@@ -75,7 +77,7 @@ type BuiltChunk = { fileName: string; code: string; isEntry: boolean; imports: r
  *   { fileName: "entry.js", code: "a", isEntry: true, imports: ["shared.js"] },
  *   { fileName: "shared.js", code: "b", isEntry: false, imports: [] },
  *   { fileName: "grammar.js", code: "c", isEntry: false, imports: ["shared.js"] },
- * ]); // { eager: ["a", "b"], lazy: ["c"] }
+ * ]); // { eager: ["entry.js", "shared.js"], lazy: ["grammar.js"] }
  * ```
  */
 const splitChunks = (chunks: readonly BuiltChunk[]): { eager: string[]; lazy: string[] } => {
@@ -97,24 +99,77 @@ const splitChunks = (chunks: readonly BuiltChunk[]): { eager: string[]; lazy: st
 		}
 	}
 	return {
-		eager: chunks.filter((chunk) => eager.has(chunk.fileName)).map((chunk) => chunk.code),
-		lazy: chunks.filter((chunk) => !eager.has(chunk.fileName)).map((chunk) => chunk.code),
+		eager: chunks.filter((chunk) => eager.has(chunk.fileName)).map((chunk) => chunk.fileName),
+		lazy: chunks.filter((chunk) => !eager.has(chunk.fileName)).map((chunk) => chunk.fileName),
 	};
 };
 
 const gzipBytesOf = (code: readonly string[]): number =>
 	code.length === 0 ? 0 : gzipSync(code.join("\n"), { level: 9 }).length;
 
+/** The module URLs that Node loaded since the script started. */
+const loadedUrls = new Set<string>();
+
+/**
+ * Imports a scenario's built entry in Node, as a page that renders nothing
+ * yet, and returns the lazy chunks that the import loaded and the count of
+ * workers it started. Why: a size split reads only the import graph, and a
+ * dynamic import or a worker that runs at module scope is eager in fact.
+ */
+const loadOnImport = async ({
+	dir,
+	entry,
+	lazy,
+}: {
+	dir: string;
+	entry: string;
+	lazy: readonly string[];
+}): Promise<{ lazyLoaded: string[]; workers: number }> => {
+	let workers = 0;
+	const previousWorker = Object.getOwnPropertyDescriptor(globalThis, "Worker");
+	// Why a stub: Node has no web `Worker`, and the check only counts the starts.
+	Object.defineProperty(globalThis, "Worker", {
+		configurable: true,
+		writable: true,
+		value: class {
+			constructor() {
+				workers += 1;
+			}
+			addEventListener() {}
+			postMessage() {}
+			terminate() {}
+		},
+	});
+	try {
+		await import(pathToFileURL(path.join(dir, entry)).href);
+		// Why a wait: a dynamic import at module scope starts during the import and loads after it.
+		await new Promise((resolve) => {
+			setTimeout(resolve, 100);
+		});
+	} finally {
+		if (previousWorker == null) {
+			Reflect.deleteProperty(globalThis, "Worker");
+		} else {
+			Object.defineProperty(globalThis, "Worker", previousWorker);
+		}
+	}
+	const lazyLoaded = lazy.filter((fileName) =>
+		loadedUrls.has(pathToFileURL(path.join(dir, fileName)).href),
+	);
+	return { lazyLoaded, workers };
+};
+
 /**
  * Builds one entry the way a consumer's Vite production build does, with React
  * external, and returns the gzip size of its eager JavaScript and of its lazy
  * chunks. Why apart: a dynamic import or a worker, such as a grammar of the
- * code highlighter, costs a page nothing until it runs.
+ * code highlighter, costs a page nothing until it runs. It also returns the
+ * lazy chunks and workers that an import of the entry loads at once.
  */
 const measure = async (
 	name: string,
 	entry: string,
-): Promise<{ gzipBytes: number; lazyGzipBytes: number }> => {
+): Promise<{ gzipBytes: number; lazyGzipBytes: number; lazyLoaded: string[]; workers: number }> => {
 	const virtualId = `\0bundle-budget:${name}`;
 	const output = await build({
 		configFile: false,
@@ -156,7 +211,24 @@ const measure = async (
 		file.type === "asset" && file.fileName.endsWith(".js") ? [String(file.source)] : [],
 	);
 	const { eager, lazy } = splitChunks(chunks);
-	return { gzipBytes: gzipBytesOf(eager), lazyGzipBytes: gzipBytesOf([...lazy, ...workers]) };
+	const codeOf = new Map(chunks.map((chunk) => [chunk.fileName, chunk.code]));
+	const dir = path.join(OUT_DIR, name);
+	fs.rmSync(dir, { recursive: true, force: true });
+	for (const file of files) {
+		const target = path.join(dir, file.fileName);
+		fs.mkdirSync(path.dirname(target), { recursive: true });
+		fs.writeFileSync(target, file.type === "chunk" ? file.code : file.source);
+	}
+	const entryChunk = chunks.find((chunk) => chunk.isEntry);
+	const onImport =
+		entryChunk == null
+			? { lazyLoaded: [], workers: 0 }
+			: await loadOnImport({ dir, entry: entryChunk.fileName, lazy });
+	return {
+		gzipBytes: gzipBytesOf(eager.map((fileName) => codeOf.get(fileName) ?? "")),
+		lazyGzipBytes: gzipBytesOf([...lazy.map((fileName) => codeOf.get(fileName) ?? ""), ...workers]),
+		...onImport,
+	};
 };
 
 const formatBytes = (bytes: number): string => `${(bytes / 1024).toFixed(1)} KB`;
@@ -169,7 +241,7 @@ const main = async (): Promise<void> => {
 	const budget: Budget = JSON.parse(fs.readFileSync(BUDGET_FILE, "utf8"));
 	let failed = false;
 	for (const [name, scenario] of Object.entries(budget)) {
-		const { gzipBytes, lazyGzipBytes } = await measure(name, scenario.entry);
+		const { gzipBytes, lazyGzipBytes, lazyLoaded, workers } = await measure(name, scenario.entry);
 		if (update) {
 			// Why the cap: a small scenario with the full headroom is at once more than 3% under its budget.
 			scenario.maxGzipBytes =
@@ -197,6 +269,12 @@ const main = async (): Promise<void> => {
 				throw new Error("Unknown verdict.");
 			}
 		}
+		if (lazyLoaded.length > 0 || workers > 0) {
+			failed = true;
+			console.log(
+				`✗ ${name}: an import with no render loads ${lazyLoaded.length} lazy chunks and starts ${workers} workers. Load them on first use.`,
+			);
+		}
 	}
 	if (update) {
 		fs.writeFileSync(BUDGET_FILE, `${JSON.stringify(budget, null, 2)}\n`);
@@ -212,6 +290,12 @@ const main = async (): Promise<void> => {
 };
 
 if (import.meta.main) {
+	registerHooks({
+		load(url, context, nextLoad) {
+			loadedUrls.add(url);
+			return nextLoad(url, context);
+		},
+	});
 	await main();
 }
 
