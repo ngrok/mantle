@@ -1,6 +1,6 @@
 /**
- * The tokens that the Markdown lexer emits. Their shapes match marked's, so a
- * component that read marked's tokens reads these with no change.
+ * The tokens that the Markdown lexer emits. Their shapes are marked's, minus
+ * the fields that the lexer never sets.
  */
 
 /** The alignment of a table column, from its delimiter row. */
@@ -45,22 +45,15 @@ type HeadingToken = {
 };
 type HrToken = { type: "hr"; raw: string };
 /** Raw HTML: a block, or one inline tag. `Markdown` shows it as text, except a short list of inline tags. */
-type HtmlToken = {
-	type: "html";
-	raw: string;
-	text: string;
-	/** Whether it is an HTML block, not an inline tag. */
-	block: boolean;
-	pre?: boolean;
-	inLink?: boolean;
-	inRawBlock?: boolean;
-};
+type HtmlToken =
+	| { type: "html"; raw: string; text: string; block: true; pre: boolean }
+	| { type: "html"; raw: string; text: string; block: false; inLink: boolean; inRawBlock: boolean };
 type ImageToken = {
 	type: "image";
 	raw: string;
 	href: string;
 	title: string | null;
-	/** The label's Markdown source. Its tokens hold the plain text. */
+	/** The label as plain text, with no Markdown syntax. Its tokens keep the formatting, such as `strong`. */
 	text: string;
 	tokens: MarkdownToken[];
 };
