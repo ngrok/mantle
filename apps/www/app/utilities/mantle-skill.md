@@ -40,7 +40,7 @@ Use the first source that you can reach.
 
 1. **Find the part.** Call `find` with the user's goal, or search `agent.json` by `name`, `aliases`, `useWhen`, and `summary`. Pick a component from its `useWhen` and `siblings` boundary, not from its name alone. When a recipe matches, start from its `parts`.
 2. **Read the contract.** Call `get`, or read the part's type declarations (see the `types` path above) and its `.md` docs page. Copy the import path from `importPath`. Do not guess props.
-3. **Compose.** Follow the import rules and the part tree in the examples. Arrange the parts by the design principles (`read_docs` with `base/design-principles`, or `https://mantle.ngrok.com/base/design-principles.md`): balance, grouping, hierarchy, consistency, and feedback.
+3. **Compose.** Follow the import rules and the part tree in the examples. Arrange the parts by the design principles (`read_docs` with `base/design-principles`, or `https://mantle.ngrok.com/base/design-principles.md`): balance, grouping, hierarchy, typography, consistency, and feedback.
 4. **Check.** Call `check` on each TSX file that you change, and fix what it reports. Without the server, compare each import with `importPath` and each prop with the type declarations.
 5. **Disclose.** In your final reply, list each part that you built instead of a mantle part, and why. Name the gap report when you filed one. Claim a mantle part only with evidence: its import and the JSX that renders it. An import alone is not evidence.
 6. **Upgrade.** Before you change the mantle version, call `migrate` (or read `https://mantle.ngrok.com/migrations`) and run each guide and codemod in order.
