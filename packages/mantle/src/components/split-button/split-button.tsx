@@ -236,16 +236,24 @@ type MenuContentProps = Omit<ComponentProps<typeof DropdownMenu.Content>, "width
 	 *
 	 * @default "root"
 	 * @enum
-	 * - `"root"`: at least the width of the whole split button, primary action and menu trigger together, and wider when an item needs it. With `align="end"` (the default), a menu as wide as the split button lines up with both of its edges. The menu is never narrower than 8rem.
-	 * - `"trigger"`: the width of the menu trigger, and never narrower than 8rem
-	 * - `"content"`: the intrinsic width of the menu: the width of the widest item
+	 * - `"root"`: at least the width of the whole split button, primary action and menu trigger together, and wider when an item needs it. The menu aligns against the split button. With `align="end"` (the default), a menu as wide as the split button lines up with both of its edges.
+	 * - `"trigger"`: the width of the menu trigger. The menu aligns against the trigger.
+	 * - `"content"`: the intrinsic width of the menu: the width of the widest item. The menu aligns against the trigger.
+	 *
+	 * Each width keeps the menu's 8rem minimum, except that `"root"` never passes the viewport less 8px on each side.
 	 */
 	width?: "root" | "trigger" | "content";
 };
 
-/** The split button that holds `trigger`, which a `width="root"` menu anchors to and grows from. */
-const rootOf = (trigger: HTMLElement) =>
-	trigger.closest<HTMLElement>('[data-slot~="split-button"]');
+/**
+ * The split button that holds `trigger`, which a `width="root"` menu anchors
+ * to and grows from. Why the box check: a root with `display: contents` has no
+ * box to place against, so the menu falls back to the trigger.
+ */
+const rootOf = (trigger: HTMLElement) => {
+	const root = trigger.closest<HTMLElement>('[data-slot~="split-button"]');
+	return root != null && root.getClientRects().length > 0 ? root : null;
+};
 
 /**
  * The container for the split button dropdown menu content. Appears in a
@@ -291,10 +299,12 @@ const MenuContent = ({
 				// an item is wider. Why the cap: a split button as wide as the viewport
 				// would push the menu past the viewport edge, because the float keeps
 				// 8px clear of it. Why the cap inside `min()`: `min-width` wins over
-				// `max-width`, so the floor must also yield to the cap.
+				// `max-width`, so the floor must also yield to the cap. Why `w-max`: a
+				// popover's fit-content width shrinks near the viewport edge, so each
+				// placement would free only a few more pixels.
 				className={cx(
 					width === "root" &&
-						"max-w-(--available-width) min-w-[min(max(--spacing(32),var(--anchor-width)),var(--available-width))]",
+						"w-max max-w-(--available-width) min-w-[min(max(--spacing(32),var(--anchor-width)),var(--available-width))]",
 					className,
 				)}
 				data-slot={joinDataSlot(dataSlot, "split-button-menu-content")}

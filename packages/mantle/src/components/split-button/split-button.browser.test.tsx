@@ -104,11 +104,11 @@ test("by default the menu grows past the split button when an item is wider", as
 	// past its start edge, and the float keeps it inside the viewport.
 	render(
 		<div style={{ display: "flex", justifyContent: "flex-end", padding: 16 }}>
-			<SplitButton.Root data-testid="root" open>
-				<SplitButton.PrimaryAction>Go</SplitButton.PrimaryAction>
+			<SplitButton.Root data-testid="root" open style={{ width: 160 }}>
+				<SplitButton.PrimaryAction className="flex-1">Go</SplitButton.PrimaryAction>
 				<SplitButton.MenuTrigger label="More options" />
 				<SplitButton.MenuContent>
-					<SplitButton.MenuItem>Deploy to every region</SplitButton.MenuItem>
+					<SplitButton.MenuItem>Deploy to every production region</SplitButton.MenuItem>
 				</SplitButton.MenuContent>
 			</SplitButton.Root>
 		</div>,
@@ -118,8 +118,30 @@ test("by default the menu grows past the split button when an item is wider", as
 	const item = screen.getByRole("menuitem");
 
 	await expect.poll(() => rightEdgeGap(menu, root)).toBeLessThan(1);
-	expect(width(menu)).toBeGreaterThan(width(root));
+	expect(width(menu)).toBeGreaterThan(160);
+	// Why the line height: a wrapped label fits its width but takes more lines.
+	expect(item.getClientRects()).toHaveLength(1);
 	expect(item.scrollWidth).toBeLessThanOrEqual(item.clientWidth);
+});
+
+test("a split button with display: contents falls back to the trigger", async () => {
+	render(
+		<div style={{ display: "flex", padding: 64 }}>
+			<SplitButton.Root open style={{ display: "contents" }}>
+				<SplitButton.PrimaryAction>Deploy</SplitButton.PrimaryAction>
+				<SplitButton.MenuTrigger label="More options" />
+				<SplitButton.MenuContent>
+					<SplitButton.MenuItem>Draft</SplitButton.MenuItem>
+				</SplitButton.MenuContent>
+			</SplitButton.Root>
+		</div>,
+	);
+	const caret = screen.getByRole("button", { name: "More options" });
+	const menu = screen.getByRole("menu");
+
+	await expect
+		.poll(() => menu.getBoundingClientRect().top)
+		.toBeGreaterThan(caret.getBoundingClientRect().bottom);
 });
 
 test('width="content" keeps the intrinsic width of the menu', async () => {
