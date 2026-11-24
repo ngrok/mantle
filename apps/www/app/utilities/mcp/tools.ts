@@ -142,12 +142,16 @@ const STOP_WORDS = new Set(
 	within without would yet you your`.split(/\s+/),
 );
 
-/** Words that ask for exactly one pick. */
+/**
+ * Words that ask for exactly one pick. Why: a bare count, as in "chart with
+ * a single series" or "many options", counts things, not picks.
+ */
 const ONE_PICK =
-	/\b(one of|(pick|choose|select) (exactly |only )?(one|a single)|only one|exactly one|single|exclusive)\b/;
+	/\b(one of|(pick|choose|select)s? (exactly |only )?(one|a single)|only one|exactly one|single (choice|select|selection|pick|answer)|exclusive)\b/;
 
-/** Words that ask for several picks. */
-const MANY_PICKS = /\b(multiple|several|many|any number|all that apply|multi-?select)\b/;
+/** Words that ask for several picks, with the same rule as `ONE_PICK`. */
+const MANY_PICKS =
+	/\b((pick|choose|select|check)s? (several|multiple|many|any number)|(several|multiple|many) (selectable|selected|selection|picks)|one or more|all that apply|multi-?select)\b/;
 
 /**
  * How many picks a query asks for, or undefined when it says nothing or both.
@@ -155,10 +159,10 @@ const MANY_PICKS = /\b(multiple|several|many|any number|all that apply|multi-?se
  * this tells `RadioGroup` from `CheckboxGroup`.
  */
 function queryPickCount(text: string): "one" | "many" | undefined {
-	const lower = text.toLowerCase().replace(/\bone or more\b/g, "several");
-	const one = ONE_PICK.test(lower);
-	// Why: in "one of several cards" or "a dropdown with many options", the count is of options, not picks.
-	const many = MANY_PICKS.test(lower.replace(/\b(of|with) \w+/g, ""));
+	const lower = text.toLowerCase();
+	const many = MANY_PICKS.test(lower);
+	// Why: "select one or more" also contains "select one".
+	const one = ONE_PICK.test(lower.replace(/\bone or more\b/g, ""));
 	if (one === many) {
 		return undefined;
 	}
@@ -411,9 +415,11 @@ export function findRecords<T extends FindRecord>(
 				matchedTokens += tokenScore > 0 ? 1 : 0;
 			}
 			const named = nameScore > 0 || namedInQuery(record, queryWords);
-			// Why: a part that takes several picks cannot answer "pick one", and the reverse.
+			// Why: a part that takes several picks cannot answer "pick one", and the reverse,
+			// unless the query names it: "single checkbox" still means Checkbox.
 			const recordPicks = queryPicks == null ? undefined : recordPickCount(record.useWhen);
-			if (!named && recordPicks != null && recordPicks !== queryPicks) {
+			const nameWordsInQuery = wordsOf(record.name).every((word) => queryWords.has(word));
+			if (!named && !nameWordsInQuery && recordPicks != null && recordPicks !== queryPicks) {
 				return { record, score: Math.floor(wordScore / 2), strong: false };
 			}
 			const strong =
