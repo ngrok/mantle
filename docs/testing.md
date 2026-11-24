@@ -2,12 +2,13 @@
 
 Read this file before you add or change a test anywhere in the monorepo. [COMPONENT_SPEC.md §8](../COMPONENT_SPEC.md#8-tests) adds the minimums for a component.
 
-- Runner: Vitest. Two modes: happy-dom (default, no per-file Playwright startup) and real-browser Chromium via Playwright.
+- Runner: Vitest. Two modes: happy-dom (default, no per-file Playwright startup) and real-browser Chromium via Playwright. Mantle adds a third project, `consumer`, that runs in plain jsdom with no shims, as a consumer's suite does.
 - Chromium starts with its sandbox on, in the browser project and in the `apps/www/bench` scripts. On Ubuntu 23.10 and later, AppArmor blocks the user namespaces that the sandbox needs, and Chromium does not start. Run `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0`, or add an AppArmor profile for the Playwright Chromium. The `browser-test` CI job runs the `sysctl` command.
 - Libraries: `@testing-library/react`, `@testing-library/dom`, `@testing-library/jest-dom`
 - File naming, colocated with source:
   - happy-dom: `*.test.{ts,tsx}`
   - browser: `*.browser.test.{ts,tsx}`
+  - consumer (mantle only): `*.consumer.test.{ts,tsx}`. Use only `getByRole` and `user.*`. jsdom has no popover API, `matchMedia`, observers, or pointer capture, so a failure here is a crash a consumer would hit. Guard the call in the part; never add a shim (COMPONENT_SPEC.md §8).
 - No `*.test.*` under `app/routes/`. React Router treats that as route modules. Put route-behavior tests under the owning `app/features/*` area.
 - Business logic MUST be thoroughly tested, including edge cases (transformations, validation, conditional rendering, state machines, parsing/formatting).
 - Every bug fix adds a regression test that fails before the fix and passes after, unless genuinely infeasible (document why in the PR).

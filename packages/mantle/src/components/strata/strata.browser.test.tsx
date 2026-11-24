@@ -12,7 +12,7 @@ import * as Strata from "./strata-parts.js";
  * The stylesheet is Tailwind 4.3.3's own output for the utilities these parts
  * emit, keyed by the same escaped class selectors. Keyed that way on purpose:
  * misspell `--strata-columns` in `Section`, put a bare `1fr` back in its
- * fallback, drop `grid-cols-1` from its stacked layout, or move `divide-y` off
+ * fallback, drop `grid-cols-1` from its stacked layout, or move `between:border-b` off
  * `Root`, and the rule stops matching and these assertions fail.
  *
  * The `md:` rule is copied **without** its `@media (width >= 48rem)` wrapper.
@@ -33,11 +33,6 @@ const STYLE = `
 	inherits: false;
 	initial-value: solid;
 }
-@property --tw-divide-y-reverse {
-	syntax: "*";
-	inherits: false;
-	initial-value: 0;
-}
 .grid { display: grid; }
 .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
 .py-8 { padding-block: calc(var(--spacing) * 8); }
@@ -47,9 +42,9 @@ ${MD_RULE}
 .flex-col { flex-direction: column; }
 .block { display: block; }
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-:where(.divide-y > :not(:last-child)) {
+:where(.between\\:border-b) > :where(:not(:last-child)) {
 	border-bottom-style: var(--tw-border-style);
-	border-bottom-width: calc(1px * calc(1 - var(--tw-divide-y-reverse)));
+	border-bottom-width: 1px;
 }
 /* Not a Tailwind class: the contract is that any rule setting the variable on an
    ancestor reaches the section, so a plain selector states it without pinning a

@@ -30,6 +30,8 @@ declare module "vitest/browser" {
 			colorScheme?: "light" | "dark";
 			reducedMotion?: "reduce" | "no-preference";
 			forcedColors?: "active" | "none";
+			/** Chromium only. `"none"` turns on touch emulation, which also sets `pointer: coarse`. */
+			hover?: "hover" | "none";
 		}) => Promise<void>;
 		/**
 		 * Compiles the Tailwind utilities that a source file uses, with the path
@@ -50,8 +52,8 @@ if (canUseDOM() && "happyDOM" in window) {
 }
 
 // Why: Chromium computes `::before` and `::after` content, which can name an element
-// (`ThemeSwitcher`). Testing Library reads it only when told; happy-dom computes none.
-if (canUseDOM() && !("happyDOM" in window)) {
+// (`ThemeSwitcher`). Testing Library reads it only when told; happy-dom and jsdom compute none.
+if (canUseDOM() && !("happyDOM" in window) && !navigator.userAgent.includes("jsdom")) {
 	configure({ computedStyleSupportsPseudoElements: true });
 }
 

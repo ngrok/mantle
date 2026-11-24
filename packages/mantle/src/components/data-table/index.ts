@@ -37,7 +37,7 @@ export { expandedRowId } from "./expanded-row-id.js";
  *   browser's find in page still sees every row on it.
  *
  * @useWhen Show rows of application data that the user sorts, filters, pages through, selects, or
- * expands into a detail panel or sub-rows.
+ * expands with a row button into a detail panel or sub-rows.
  *
  * @siblings
  * - `Table`: the data is static, with no sorting, filtering, pagination, selection, or row expansion.

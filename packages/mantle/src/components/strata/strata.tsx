@@ -6,7 +6,7 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 import { Slot } from "../slot/index.js";
 
 /**
- * The stack of sections. Renders a `<div>` with `divide-card-muted divide-y`, so
+ * The stack of sections. Renders a `<div>` with `between:border-b`, so
  * a hairline falls between adjacent `Strata.Section` children and never above
  * the first or below the last. Vertical rhythm belongs to `Section`
  * (`py-8 first:pt-0`) rather than here, which keeps a lone `Section` usable
@@ -56,7 +56,7 @@ const Root = ({
 	return (
 		<Comp
 			data-slot={joinDataSlot(dataSlot, "strata")}
-			className={cx("divide-card-muted divide-y", className)}
+			className={cx("between:border-card-muted between:border-b", className)}
 			{...props}
 		>
 			{children}

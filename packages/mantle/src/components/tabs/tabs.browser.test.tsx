@@ -649,6 +649,9 @@ describe("Tabs keyboard, focus, and ARIA contract", () => {
 		expect(panelB?.getBoundingClientRect().height).toBeLessThanOrEqual(1);
 		expect(getComputedStyle(panelB as HTMLElement).position).toBe("absolute");
 		expect(screen.getByText("Panel A").closest("[hidden]")).toBeNull();
+		// `until-found` hides only the contents, so the inactive panel must leave
+		// the accessibility tree some other way.
+		expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel A");
 
 		window.location.hash = "#deep-link-target";
 
@@ -656,6 +659,7 @@ describe("Tabs keyboard, focus, and ARIA contract", () => {
 			expect(tab("B")).toHaveAttribute("aria-selected", "true");
 		});
 		expect(panelB).not.toHaveAttribute("hidden");
+		expect(screen.getByRole("tabpanel")).toBe(panelB);
 		expect(onValueChange.mock.calls).toEqual([["b"]]);
 		history.replaceState(null, "", window.location.pathname);
 	});
@@ -1284,6 +1288,7 @@ describe("Tabs keyboard, focus, and ARIA contract", () => {
 		await vi.waitFor(() => {
 			expect(tab("B")).toHaveAttribute("aria-selected", "true");
 		});
+		expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel B");
 		expect(container.querySelector('[role="tabpanel"]')).toHaveAttribute("hidden", "until-found");
 		// Why the filter: React warns about the uppercase `HIDDEN` name on purpose.
 		const unexpected = errors.mock.calls
@@ -1295,5 +1300,21 @@ describe("Tabs keyboard, focus, and ARIA contract", () => {
 		});
 		container.remove();
 		errors.mockRestore();
+	});
+
+	test("a panel that the browser reveals before any script runs is readable", async () => {
+		const container = document.createElement("div");
+		container.innerHTML = renderToString(<UntilFound />);
+		document.body.append(container);
+		const panelB = screen.getByText("Panel B").parentElement;
+
+		window.location.hash = "#deep-b";
+
+		await vi.waitFor(() => {
+			expect(panelB).not.toHaveAttribute("hidden");
+		});
+		expect(screen.getByRole("tabpanel", { name: "B" })).toBe(panelB);
+		container.remove();
+		history.replaceState(null, "", window.location.pathname);
 	});
 });

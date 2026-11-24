@@ -20,8 +20,8 @@ import * as AccordionParts from "./accordion-parts.js";
  * `Accordion.Root` defaults to `type="multiple"` (sections open independently);
  * pass `type="single"` when opening one section should auto-close the others.
  *
- * @useWhen Stack titled sections that each expand and collapse in place, such as questions and
- * answers or a group of advanced settings.
+ * @useWhen Stack titled sections that each expand and collapse in place to show and hide their
+ * content, such as questions and answers or a group of advanced settings.
  *
  * @siblings
  * - `Tabs`: one section shows at a time, and a row of tabs switches between them.

@@ -329,6 +329,7 @@ const Head = ({
 			// page each time a portal is appended to `<body>`.
 			"[&>tr:not(:has(+tr))>*]:border-b [&>tr:not(:has(+tr))>*]:border-card-muted",
 			// Why `tr+tr`: see `Body`.
+			// oxlint-disable-next-line mantle/no-structural-combinator -- Why: a measured trade-off; see `Body`.
 			"[&>tr+tr>*]:border-t [&>tr+tr>*]:border-card-muted",
 			"text-muted bg-base",
 			"[&>tr]:bg-base", // Row styling
@@ -405,6 +406,7 @@ const Body = ({
 			// also keeps the restyle when a `data-slot` element is inserted into a
 			// parent that sibling rules mark (4,259 elements on a docs page, 84
 			// without it). `Head` above has the same rule.
+			// oxlint-disable-next-line mantle/no-structural-combinator -- Why: the measured trade-off above.
 			"[&>tr+tr>*]:border-t [&>tr+tr>*]:border-card-muted",
 			"text-body",
 			// Body row styling. The focus variant mirrors hover for a keyboard user:

@@ -20,7 +20,8 @@ import * as SelectParts from "./select-parts.js";
  * (`z-60`). When sibling floats share a container, the most recently mounted
  * float paints on top.
  *
- * @useWhen Pick one value from a short, fixed list of options that needs no filter.
+ * @useWhen Pick one value from a short, fixed list of options that needs no filter, such as a
+ * region or an expiry duration.
  *
  * @siblings
  * - `Combobox`: the list is long or loads from a server, and the user types to filter it.

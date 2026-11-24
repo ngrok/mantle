@@ -81,6 +81,31 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 		"a prompt that stays clickable while a dialog is open": "Overlay Prompt",
 		"qr code rendered on the server": "QR Code",
 	},
+	"Checkbox cards (MNTL-74)": {
+		"selectable cards": "Checkbox",
+		"multi-select cards": "Checkbox",
+		"select all that apply cards with title and description": "Checkbox",
+	},
+	"Single-choice cards go to Radio Group, multi-select cards to Checkbox": {
+		"selectable cards pick one product": "Radio Group",
+		"choose one plan cards": "Radio Group",
+		"one of three cards": "Radio Group",
+		"pick one of several cards": "Radio Group",
+		"select one card": "Radio Group",
+		"single select card grid": "Radio Group",
+		"selectable cards select all that apply": "Checkbox",
+		"multiple selectable cards": "Checkbox",
+		"pick several options as cards": "Checkbox",
+		"select several features as cards": "Checkbox",
+		"select one or more cards": "Checkbox",
+		"dropdown with many options": "Select",
+		"type to filter many options": "Combobox",
+		"single dropdown with removable tags": "Multi Select",
+		"single checkbox with indeterminate state": "Checkbox",
+		"chart with a single series": "Line Chart",
+		"pick multiple dates": "Calendar",
+		"select a date range across several days": "Calendar",
+	},
 	"Weak finds from #pulse-mantle-mcp": {
 		"status banner success callout": "Alert",
 		"horizontal separator divider text label middle": "Separator",
@@ -113,6 +138,23 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 	"AI answers": {
 		"chat message bubble rendered markdown prose": "Markdown",
 	},
+	"Former known misses, fixed in the docs and JSDoc": {
+		"selectable radio card grid icon": "Radio Group",
+		"banner explaining degraded data source list": "Alert",
+		"inline alert": "Alert",
+		"chip shows one word text colored": "Badge",
+		"status badge unknown unavailable state": "Badge",
+		"select expiry duration": "Select",
+		"single choice compact inline segmented filter": "Segmented Control",
+		"toggle with two line explanation": ["Choice", "Switch"],
+		"show error toast delete failure": "Toast",
+		"toast show error menu action failed": "Toast",
+		"expand row disclosure button chevron": "Data Table",
+		"disclosure toggle show hide section": "Accordion",
+		"tab state hook custom tab markup": "Tabs",
+		"tabs with custom styling marketing cards": "Tabs",
+		"type a question to build a filter": "Natural Language Query",
+	},
 };
 
 /**
@@ -120,24 +162,7 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
  * below another, or ranks first as a weak match. Each one must still miss, so
  * a fix moves it to `goldenFinds` and it cannot regress again.
  */
-const knownMisses: Record<string, string | readonly string[]> = {
-	"selectable cards pick one product": ["Radio Group", "Choice"],
-	"selectable radio card grid icon": ["Radio Group", "Choice"],
-	"banner explaining degraded data source list": "Alert",
-	"inline alert": "Alert",
-	"chip shows one word text colored": "Badge",
-	"status badge unknown unavailable state": "Badge",
-	"select expiry duration": "Select",
-	"single choice compact inline segmented filter": "Segmented Control",
-	"toggle with two line explanation": ["Choice", "Switch"],
-	"show error toast delete failure": "Toast",
-	"toast show error menu action failed": "Toast",
-	"expand row disclosure button chevron": "Data Table",
-	"disclosure toggle show hide section": "Accordion",
-	"tab state hook custom tab markup": "Tabs",
-	"tabs with custom styling marketing cards": "Tabs",
-	"type a question to build a filter": "Natural Language Query",
-};
+const knownMisses: Record<string, string | readonly string[]> = {};
 
 /**
  * Needs that mantle has no part for, from real gap reports. `find` must call
@@ -250,7 +275,8 @@ describe("the golden find queries", () => {
 	);
 });
 
-describe("the known find misses", () => {
+// Why runIf: the list can be empty, and vitest fails a suite with no tests.
+describe.runIf(Object.keys(knownMisses).length > 0)("the known find misses", () => {
 	it.each(Object.entries(knownMisses))('still misses %s for "%s"', async (query, wanted) => {
 		const { hit, row } = await orRegression(
 			{ section: "Known misses", query, want: [wanted].flat().join(" or ") },

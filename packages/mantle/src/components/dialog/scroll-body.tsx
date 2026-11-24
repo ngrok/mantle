@@ -23,7 +23,8 @@ const isElement = (node: Node): node is Element => node.nodeType === Node.ELEMEN
  * focus to the page. It checks again when focus leaves.
  */
 const observeKeyboardScroll = (body: HTMLDivElement | null): (() => void) | undefined => {
-	if (body == null) {
+	// Why the `ResizeObserver` check: jsdom has none and no layout, so nothing scrolls there.
+	if (body == null || typeof ResizeObserver === "undefined") {
 		return undefined;
 	}
 	const update = () => {

@@ -46,15 +46,16 @@ type Props = Omit<ComponentProps<"input">, "type" | "checked" | "defaultChecked"
 	} & WithDataSlot;
 
 /**
- * A form control that allows the user to toggle between checked and not checked.
- * Supports indeterminate state.
+ * A form control that allows the user to toggle between checked and not checked, alone
+ * or in a group of cards. Supports indeterminate state.
  *
  * Pair it with a [`Label`](/components/forms/label) for a single-line caption, or
  * compose it inside [`Choice`](/components/forms/choice) for a titled, multi-line
  * label with a supplementary description.
  *
  * @useWhen Turn one or more independent options on or off in a form, with an indeterminate state
- * for a partial selection.
+ * for a partial selection. `CheckboxGroup` shows the options as selectable cards where the user
+ * picks several, for a "select all that apply" question.
  *
  * @siblings
  * - `Switch`: one setting turns on or off and needs no indeterminate state.

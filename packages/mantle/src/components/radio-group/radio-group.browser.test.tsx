@@ -14,9 +14,9 @@ let styleElement: HTMLStyleElement;
 
 /** The `mantle.css` rule that lifts the controls in an item's content over its radio. */
 function radioItemContentRule(): string {
-	const rule = /:where\(\.radio-item-content\)[^{]*\{[^}]*\}/.exec(mantleCss)?.[0];
+	const rule = /:where\(\.covered-item-content\)[^{]*\{[^}]*\}/.exec(mantleCss)?.[0];
 	if (rule == null) {
-		throw new Error("mantle.css holds no radio-item-content rule.");
+		throw new Error("mantle.css holds no covered-item-content rule.");
 	}
 	return rule;
 }
@@ -307,6 +307,7 @@ describe("RadioGroup item clicks", () => {
 		expect(pro).toHaveFocus();
 		expect(onItemClick).toHaveBeenCalledTimes(2);
 
+		// Why force: the radio covers its text here too.
 		await userEvent.click(screen.getByText("Free"), { force: true });
 		await userEvent.click(screen.getByText("Pro"), { force: true });
 		expect(pro).toBeChecked();

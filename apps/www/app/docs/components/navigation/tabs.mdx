@@ -142,11 +142,61 @@ import { Tabs } from "@ngrok/mantle/tabs";
 
 </Example>
 
+## Stop arrow-key selection
+
+To keep the keyboard on a tab, for example while its panel has unsaved changes, call `preventDefault()` in the trigger's `onKeyDown`. The key then neither moves focus nor selects. A click still selects. The key goes to the tab that has focus, so put the handler on each tab the user can leave.
+
+Do not use `onFocus` with `preventDefault()` for this. An arrow key selects the next tab before it takes focus, so a focus handler runs too late to stop the selection.
+
+```tsx
+import { Tabs } from "@ngrok/mantle/tabs";
+import type { KeyboardEvent } from "react";
+
+const tabKeys = [
+	"ArrowLeft",
+	"ArrowRight",
+	"ArrowUp",
+	"ArrowDown",
+	"Home",
+	"End",
+	"PageUp",
+	"PageDown",
+];
+
+function SettingsTabs({ hasUnsavedChanges }: { hasUnsavedChanges: boolean }) {
+	const holdTab = (event: KeyboardEvent) => {
+		if (hasUnsavedChanges && tabKeys.includes(event.key)) {
+			event.preventDefault();
+		}
+	};
+
+	return (
+		<Tabs.Root defaultValue="profile">
+			<Tabs.List>
+				<Tabs.Trigger value="profile" onKeyDown={holdTab}>
+					Profile
+				</Tabs.Trigger>
+				<Tabs.Trigger value="billing" onKeyDown={holdTab}>
+					Billing
+				</Tabs.Trigger>
+			</Tabs.List>
+		</Tabs.Root>
+	);
+}
+```
+
 ## Find in page
 
-Pass `hiddenUntilFound` to a `Tabs.Content` to keep its text in the HTML while its tab is inactive. The panel renders `hidden="until-found"`, so the browser's find-in-page and a link to a fragment inside it reveal the text and activate its tab. Use it for pages that crawlers and agents read, such as install instructions. It implies `forceMount`.
+Pass `hiddenUntilFound` to a `Tabs.Content` to keep its text in the HTML while its tab is inactive. The panel renders `hidden="until-found"`, so the browser's find-in-page and a link to a fragment inside it reveal the text and activate its tab. It implies `forceMount`.
 
-Do not hide the panel with a `display: none` class: it blocks the search. A browser without `until-found` treats the panel as plain `hidden`.
+By default, only the active panel renders its children. That keeps an app page to the fewest DOM nodes. Add `hiddenUntilFound` to every panel on a page that search engines and AI crawlers read, such as a marketing page or install instructions:
+
+- Search engines see every panel. Google's [mobile-first indexing guide](https://developers.google.com/search/docs/crawling-indexing/mobile/mobile-sites-mobile-first-indexing) suggests moving content into tabs or accordions to save space instead of removing it. A plain inactive panel renders empty, so its text isn't on the page at all.
+- AI crawlers read it without JavaScript. Vercel [measured](https://vercel.com/blog/the-rise-of-the-ai-crawler) that GPTBot, ClaudeBot, and PerplexityBot don't run JavaScript, so they see only the server HTML. Each panel's text is in that HTML.
+
+After hydration, an inactive panel is also `aria-hidden`, so screen readers and `getByRole` queries see only the active panel. The server HTML leaves `aria-hidden` out, so a panel that the browser reveals before your scripts run stays readable.
+
+Do not hide the panel with a `display: none` class: it blocks the search. A browser without `until-found`, such as Safari before 26.2, treats the panel as plain `hidden`: the text stays in the HTML, and find-in-page skips it.
 
 <Example name="components/navigation/tabs/hidden-until-found" title="Tabs find in page example">
 
@@ -663,7 +713,7 @@ HeadlessTabs.Root
 `Tabs` follows the [WAI-ARIA tabs pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/): the list is a `role="tablist"`, each trigger is a `role="tab"` with `aria-selected` and `aria-controls`, and each content panel is a `role="tabpanel"` labelled by its tab.
 
 - **Tab** moves focus into the list and lands on the active tab. Only the active tab is a Tab stop, so the next **Tab** leaves the list. This holds for `asChild` triggers too, so a list of router links is one Tab stop, not one per link.
-- **ArrowLeft** / **ArrowRight** (or **ArrowUp** / **ArrowDown** when vertical) move focus between the enabled tabs and activate the focused tab. The tab is selected before it takes focus, so a screen reader reads it once. They wrap at the ends unless `Tabs.List` has `loop={false}`. In a right-to-left page, **ArrowLeft** moves to the next tab. **Home** and **End** jump to the first and last tab.
+- **ArrowLeft** / **ArrowRight** (or **ArrowUp** / **ArrowDown** when vertical) move focus between the enabled tabs and activate the focused tab. The tab is selected before it takes focus, so a screen reader reads it once. They wrap at the ends unless `Tabs.List` has `loop={false}`. In a right-to-left page, **ArrowLeft** moves to the next tab. **Home** and **End** (or **PageUp** and **PageDown**) jump to the first and last tab.
 - With `activationMode="manual"`, the arrows only move focus, and **Enter** or **Space** activates the focused tab.
 - The active tab is a Tab stop in the server HTML, so the keyboard reaches it before hydration. After hydration, a forward **Tab** enters on the active tab, or on the first enabled tab that can take focus. **Shift+Tab** comes back to the last focused tab, unless the selection changed after focus left.
 - A trigger shows the [focus ring](/base/focus-ring) for keyboard focus only. A horizontal list scrolls, so it carries `px-1 -mx-1 pt-1 -mt-1` (and `pb-1 -mb-1` for the pill appearance) to keep the ring inside its scroll box. See [Give the ring room](/base/focus-ring#give-the-ring-room).
@@ -785,13 +835,13 @@ An icon you pass as a child is now a grandchild of the trigger, so a `[&>svg]` c
 
 Contains the content associated with each trigger.
 
-| Prop                | Type      | Default | Description                                                                                                                                                                                          |
-| ------------------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `value`             | `string`  |         | A unique value that associates the content with a trigger.                                                                                                                                           |
-| `forceMount?`       | `true`    |         | Keeps the panel's children mounted while its tab is inactive. The inactive panel stays natively `hidden`.                                                                                            |
-| `hiddenUntilFound?` | `boolean` | `false` | Keeps the panel's children mounted as `hidden="until-found"` while its tab is inactive, so find-in-page reveals them and activates the tab. Implies `forceMount`. See [Find in page](#find-in-page). |
-| `asChild?`          | `boolean` | `false` | When `true`, renders the single child instead of its own `<div>` and forwards the panel's attributes and behavior onto it.                                                                           |
-| `className?`        | `string`  |         | Additional CSS classes to apply to the content element.                                                                                                                                              |
+| Prop                | Type      | Default | Description                                                                                                                                                                                                                                                |
+| ------------------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `value`             | `string`  |         | A unique value that associates the content with a trigger.                                                                                                                                                                                                 |
+| `forceMount?`       | `true`    |         | Keeps the panel's children mounted while its tab is inactive. The inactive panel stays natively `hidden`.                                                                                                                                                  |
+| `hiddenUntilFound?` | `boolean` | `false` | Keeps the panel's children mounted as `hidden="until-found"` while its tab is inactive, so find-in-page reveals them and activates the tab. After hydration, the inactive panel is `aria-hidden`. Implies `forceMount`. See [Find in page](#find-in-page). |
+| `asChild?`          | `boolean` | `false` | When `true`, renders the single child instead of its own `<div>` and forwards the panel's attributes and behavior onto it.                                                                                                                                 |
+| `className?`        | `string`  |         | Additional CSS classes to apply to the content element.                                                                                                                                                                                                    |
 
 #### Data attributes
 

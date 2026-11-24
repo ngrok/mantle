@@ -125,7 +125,7 @@ const Title = ({
 
 /**
  * Supporting descriptive text below the title. Renders as a `div` with
- * `space-y-4` so multiple paragraphs can be placed inside. Use the `asChild`
+ * `between:mbe-4` so multiple paragraphs can be placed inside. Use the `asChild`
  * prop to render as a different element.
  *
  * @see https://mantle.ngrok.com/components/feedback/empty
@@ -159,7 +159,7 @@ const Description = ({
 	return (
 		<Comp
 			data-slot={joinDataSlot(dataSlot, "empty-description")}
-			className={cx("text-muted space-y-4 text-pretty text-sm font-sans", className)}
+			className={cx("text-muted between:mbe-4 text-pretty text-sm font-sans", className)}
 			{...props}
 		>
 			{children}

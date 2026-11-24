@@ -19,6 +19,10 @@
     "entry": "import { ProgressBar } from \"@ngrok/mantle/progress\"; export default [ProgressBar.Root, ProgressBar.Indicator];",
     "maxGzipBytes": 7940
   },
+  "checkbox-group": {
+    "entry": "import { CheckboxGroup } from \"@ngrok/mantle/checkbox\"; export default [CheckboxGroup.Root, CheckboxGroup.Card, CheckboxGroup.Indicator];",
+    "maxGzipBytes": 9710
+  },
   "radio-group": {
     "entry": "import { RadioGroup } from \"@ngrok/mantle/radio-group\"; export default [RadioGroup.Root, RadioGroup.Item, RadioGroup.Indicator];",
     "maxGzipBytes": 9359
@@ -41,7 +45,7 @@
   },
   "tabs": {
     "entry": "import { Tabs } from \"@ngrok/mantle/tabs\"; export default [Tabs.Root, Tabs.List, Tabs.Trigger, Tabs.Content];",
-    "maxGzipBytes": 11374
+    "maxGzipBytes": 11441
   },
   "tooltip": {
     "entry": "import { Tooltip } from \"@ngrok/mantle/tooltip\"; export default [Tooltip.Root, Tooltip.Trigger, Tooltip.Content];",
