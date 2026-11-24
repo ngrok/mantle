@@ -66,6 +66,19 @@ describe("lexMarkdown", () => {
 			{ href: "https://a.io/" },
 		],
 		["a URL with an uppercase scheme", "HTTPS://a.io", "link", { href: "HTTPS://a.io" }],
+		[
+			"a lowercase `www.` after an uppercase one",
+			"WWW.a.io or www.b.io",
+			"link",
+			{ href: "http://www.b.io" },
+		],
+		["a tab of indented code after a list marker", "-     \tfoo", "code", { text: "\tfoo" }],
+		[
+			"a closing fence after a tab in a quote",
+			"> ~~~\n> \t~~~\n> after",
+			"paragraph",
+			{ text: "after" },
+		],
 		["a definition that ends in `>`", "[r]: /x>\n\n[r]", "link", { href: "/x>" }],
 		["an escaped `<` in a definition in `<…>`", "[r]: <a\\<b>\n\n[r]", "link", { href: "a<b" }],
 		["a link after many `(`", `${"(".repeat(40)}[x](a(b)c)`, "link", { href: "a(b)c" }],
@@ -80,6 +93,23 @@ describe("lexMarkdown", () => {
 		expect(flatten(lexMarkdown(source)).find((token) => token.type === type)).toMatchObject(
 			expected,
 		);
+	});
+
+	test.each([
+		["a destination with a backslash before a space", "[x](a\\ b)", "link", 0],
+		["a destination with a backslash before a space in parentheses", "[x](a(b\\ c))", "link", 0],
+		["an uppercase `www.`", "WWW.a.io", "link", 0],
+		["a tab before a nested quote's `>`", "> > one\n> \t> two", "blockquote", 2],
+	])("reads %s", (...[, source, type, count]) => {
+		expect(types(lexMarkdown(source)).filter((found) => found === type)).toHaveLength(count);
+	});
+
+	test("ends a table when its short rows pad more than cmark-gfm's budget of empty cells", () => {
+		const source = `${"| a ".repeat(1000)}|\n${"| - ".repeat(1000)}|\n${"x\n".repeat(600)}`;
+		const [table, rest] = lexMarkdown(source);
+		// 524 rows pad 523,476 cells, and the next row would pass 524,288.
+		expect(table).toMatchObject({ type: "table", rows: { length: 524 } });
+		expect(rest).toMatchObject({ type: "paragraph" });
 	});
 
 	test("keeps an autolink in a link's text as text", () => {

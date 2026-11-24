@@ -155,12 +155,21 @@ function stripColumns(line: string, columns: number, start = 0): string {
 	return " ".repeat(Math.max(0, column - start - columns)) + line.slice(index);
 }
 
-/** Removes the `>` of a quote and the one space after it. A tab after it counts as its columns. */
+/**
+ * Removes the indent and the `>` of a quote, and the one space after it, from
+ * a raw line that starts at `column`. A tab counts as its columns, so a tab
+ * before the `>` in a container can be its indent.
+ */
 function stripQuoteMarker(line: string, column: number): string {
-	const marker = /^ {0,3}>/.exec(line)?.[0] ?? "";
-	const rest = line.slice(marker.length);
+	let at = 0;
+	let end = column;
+	for (; line[at] === " " || line[at] === "\t"; at += 1) {
+		end += line[at] === " " ? 1 : 4 - (end % 4);
+	}
+	// Why no check for the `>`: the caller found it on the line with its tabs expanded.
+	const rest = line.slice(at + 1);
 	if (rest.startsWith("\t")) {
-		return " ".repeat(3 - ((column + marker.length) % 4)) + rest.slice(1);
+		return " ".repeat(3 - ((end + 1) % 4)) + rest.slice(1);
 	}
 	return rest.startsWith(" ") ? rest.slice(1) : rest;
 }
@@ -370,7 +379,7 @@ function startsTable(line: string, next: string): boolean {
 }
 
 /** Splits a table row into its cells, without the outer pipes. */
-function cells(row: string, count?: number): string[] {
+function cells(row: string): string[] {
 	const whole = row.trim();
 	const trimmed = whole.startsWith("|") ? whole.slice(1) : whole;
 	const out: string[] = [];
@@ -394,12 +403,6 @@ function cells(row: string, count?: number): string[] {
 	if (last.trim() !== "" || !trimmed.endsWith("|")) {
 		out.push(last.trim());
 	}
-	if (count != null) {
-		while (out.length < count) {
-			out.push("");
-		}
-		out.length = count;
-	}
 	return out;
 }
 
@@ -417,6 +420,8 @@ function withInline<T extends { text: string }>(token: T, context: Context): T &
  * stay text. Why: deep nesting overflows the stack of the lexer or renderer.
  */
 const MAX_NESTING = 32;
+/** The most empty cells that pad the short rows of one table: cmark-gfm's limit. */
+const MAX_TABLE_PADDING = 0x80000;
 
 /** Lexes the blocks inside a quote or a list item, one level deeper. */
 function lexNested(
@@ -537,11 +542,14 @@ function lexBlocks(
 					while (at < 4 && source.charCodeAt(from + at) === 32) {
 						at += 1;
 					}
-					const close =
-						at < 4 && source[from + at] === marker[0]
-							? FENCE_CLOSE.exec(rawLineAt(end))?.[1]
-							: undefined;
-					if (close != null && close.length >= marker.length) {
+					let close: string | undefined;
+					if (at < 4 && source[from + at] === marker[0]) {
+						close = FENCE_CLOSE.exec(rawLineAt(end))?.[1];
+					} else if (at < 4 && source.charCodeAt(from + at) === 9) {
+						// Why the expanded line: in a container, a tab can fill fewer than 4 columns.
+						close = FENCE_CLOSE.exec(lineAt(end))?.[1];
+					}
+					if (close?.startsWith(marker[0] ?? "") === true && close.length >= marker.length) {
 						closed = true;
 						break;
 					}
@@ -754,12 +762,25 @@ function lexBlocks(
 					text === ""
 						? { text, tokens: [], header: false, align: align[column] ?? null }
 						: withInline({ text, header: false, align: align[column] ?? null }, context);
+				// Why a budget: each short row pads to the header's width, so a wide header over many short
+				// rows costs their product. At the budget the table ends, as in cmark-gfm.
+				let padding = 0;
+				const rows = [];
+				for (let row = index + 2; row < end; row += 1) {
+					const values = cells(rawLineAt(row));
+					padding += Math.max(0, header.length - values.length);
+					if (padding > MAX_TABLE_PADDING) {
+						end = row;
+						break;
+					}
+					rows.push(Array.from(header, (_, column) => bodyCell(values[column] ?? "", column)));
+				}
 				tokens.push({
 					type: "table",
 					raw: raw(index, end),
 					header: header.map(headerCell),
 					align,
-					rows: rawLines(index + 2, end).map((row) => cells(row, header.length).map(bodyCell)),
+					rows,
 				} as Tok);
 				index = end;
 				continue;
@@ -892,8 +913,14 @@ function lexList(
 			isBlank(rest) || (match[5]?.length ?? 0) > 4
 				? (match[1]?.length ?? 0) + (match[2]?.length ?? 0) + 1
 				: match[0].length;
-		// Why the expanded line: the first line starts with the marker, and its tabs only space the content out.
-		const content = [line.slice(Math.min(width, line.length))];
+		// Why the raw line after the marker: a tab there can belong to indented code, which keeps it.
+		const markerEnd = (match[1]?.length ?? 0) + (match[2]?.length ?? 0);
+		const rawLine = rawLineAt(index);
+		const content = [
+			rawLine === line || rawLine.slice(0, markerEnd) !== line.slice(0, markerEnd)
+				? line.slice(Math.min(width, line.length))
+				: stripColumns(rawLine.slice(markerEnd), width - markerEnd, column + markerEnd),
+		];
 		let end = index + 1;
 		const tracker = createLazyTracker(column + width);
 		tracker.read(content[0] ?? "");
@@ -1034,7 +1061,9 @@ const URL_START = /(?<![a-zA-Z\d])https?:\/\/|(?<![^\s*_~(])www\./gi;
 const AUTOLINK = /^<([a-zA-Z][a-zA-Z\d+.-]{1,31}:[^\s<>]*)>/;
 const EMAIL_AUTOLINK =
 	/^<([\w.!#$%&'*+/=?^`{|}~-]+@[a-zA-Z\d](?:[a-zA-Z\d-]*[a-zA-Z\d])?(?:\.[a-zA-Z\d](?:[a-zA-Z\d-]*[a-zA-Z\d])?)*)>/;
-const URL_LITERAL = /^(?:https?:\/\/[\w-]|www\.[\w-]+\.[\w-])(?:[^\s<]*[^\s<?!.,:*_~'"])?/i;
+// Why a case-insensitive scheme and a lowercase `www.`: marked and cmark-gfm read them so.
+const URL_LITERAL =
+	/^(?:[hH][tT][tT][pP][sS]?:\/\/[\w-]|www\.[\w-]+\.[\w-])(?:[^\s<]*[^\s<?!.,:*_~'"])?/;
 /** A character that ends a URL literal. */
 const STOP = /[\s<]/g;
 const EMPHASIS = ["", "em", "strong"] as const;
@@ -1212,7 +1241,7 @@ function createParens(source: string): (open: number) => number {
 			const stack: number[] = [];
 			for (let at = 0; at < source.length; at += 1) {
 				const code = source.charCodeAt(at);
-				if (code === 92) {
+				if (code === 92 && ESCAPABLE.test(source[at + 1] ?? "")) {
 					at += 1;
 				} else if (code <= 32) {
 					stack.length = 0;
@@ -1252,7 +1281,8 @@ function inlineLink(
 		const from = index;
 		for (; index < source.length; index += 1) {
 			const code = source.charCodeAt(index);
-			if (code === 92) {
+			// Why only before punctuation: a backslash does not escape a space, so the space still ends the destination.
+			if (code === 92 && ESCAPABLE.test(source[index + 1] ?? "")) {
 				index += 1;
 			} else if (code === 40) {
 				// Why a jump: `closeOf` pairs each `(` once, so no scan reads a group twice.
@@ -1659,7 +1689,7 @@ function lexInline(source: string, context: Context): Tok[] {
 					}
 				}
 				value = value.slice(0, end);
-				push(autolinkToken(value, value, /^www\./i.test(value) ? `http://${value}` : value));
+				push(autolinkToken(value, value, value.startsWith("www.") ? `http://${value}` : value));
 				index += value.length;
 				continue;
 			}
