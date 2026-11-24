@@ -43,7 +43,8 @@ import * as ComboboxParts from "./combobox-parts.js";
  *     │   ├── Combobox.GroupLabel
  *     │   └── Combobox.Item
  *     │       └── Combobox.ItemValue
- *     └── Combobox.Separator
+ *     ├── Combobox.Separator
+ *     └── Combobox.ContentFooter
  * ```
  *
  * @example

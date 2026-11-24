@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import axe from "axe-core";
 import { useState } from "react";
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, onTestFinished, test, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
 import * as Dialog from "../dialog/dialog-parts.js";
 import * as Combobox from "./combobox-parts.js";
@@ -38,6 +38,23 @@ const DomainCombobox = ({
 	);
 };
 
+/** The positioned popup box that holds the listbox and the footer. */
+const popupOf = (listbox: HTMLElement): HTMLElement => {
+	const popup = listbox.closest<HTMLElement>('[data-slot~="combobox-content"]');
+	if (popup == null) {
+		throw new Error("The listbox has no popup box.");
+	}
+	return popup;
+};
+
+/** Loads the compiled classes of combobox.tsx, so the box caps the listbox and the listbox scrolls. */
+const injectComboboxCss = async () => {
+	const style = document.createElement("style");
+	style.textContent = await commands.tailwindCss("./combobox.tsx");
+	document.head.append(style);
+	onTestFinished(() => style.remove());
+};
+
 const activeOption = (owner: HTMLElement) => {
 	const id = owner.getAttribute("aria-activedescendant");
 	return id == null ? null : document.getElementById(id);
@@ -57,11 +74,12 @@ const axeViolations = async () => {
 
 describe("Combobox keyboard, focus, and ARIA contract", () => {
 	test("a list that CSS caps below the space above sits right above its input", async () => {
+		await injectComboboxCss();
 		const fruits = Array.from({ length: 50 }, (_, index) => `Fruit ${index}`);
 		render(
 			<Combobox.Root>
 				<Combobox.Input aria-label="Fruit" style={{ position: "fixed", bottom: 40 }} />
-				<Combobox.Content style={{ maxHeight: 100, overflowY: "auto" }}>
+				<Combobox.Content style={{ maxHeight: 100 }}>
 					{fruits.map((fruit) => (
 						<Combobox.Item key={fruit} value={fruit} />
 					))}
@@ -71,16 +89,17 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		const input = screen.getByRole("combobox", { name: "Fruit" });
 		await userEvent.click(input);
 		const listbox = await screen.findByRole("listbox");
-		const gap = input.getBoundingClientRect().top - listbox.getBoundingClientRect().bottom;
+		const gap = input.getBoundingClientRect().top - popupOf(listbox).getBoundingClientRect().bottom;
 		expect(gap).toBeCloseTo(8, 0);
 	});
 
 	test("a scrolled list keeps its scroll position", async () => {
+		await injectComboboxCss();
 		const fruits = Array.from({ length: 80 }, (_, index) => `Fruit ${index}`);
 		render(
 			<Combobox.Root>
 				<Combobox.Input aria-label="Fruit" />
-				<Combobox.Content style={{ maxHeight: "var(--available-height)", overflowY: "auto" }}>
+				<Combobox.Content>
 					{fruits.map((fruit) => (
 						<Combobox.Item key={fruit} value={fruit} />
 					))}
@@ -89,28 +108,24 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		);
 		await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
 		const listbox = await screen.findByRole("listbox");
+		const popup = popupOf(listbox);
 		listbox.scrollTop = 300;
 		// Why: a new input width places the list again, which measures it. Each
 		// placement writes `data-side`, so its return marks the placement's end.
-		delete listbox.dataset.side;
+		delete popup.dataset.side;
 		const input = screen.getByRole("combobox", { name: "Fruit" });
 		input.style.width = `${input.offsetWidth + 1}px`;
-		await expect.poll(() => listbox.dataset.side).toBe("bottom");
+		await expect.poll(() => popup.dataset.side).toBe("bottom");
 		expect(listbox.scrollTop).toBe(300);
 	});
 	test("a list taller than both sides opens above a low input inside the viewport", async () => {
+		await injectComboboxCss();
 		const fruits = Array.from({ length: 60 }, (_, index) => `Fruit ${index}`);
 		render(
 			<Combobox.Root>
 				<Combobox.Input aria-label="Fruit" style={{ position: "fixed", bottom: 40 }} />
-				{/* Why the style: this page loads no Tailwind, and the real classes cap the list and size its box the same way. */}
-				<Combobox.Content
-					style={{
-						maxHeight: "var(--available-height)",
-						overflowY: "auto",
-						boxSizing: "border-box",
-					}}
-				>
+				{/* Why the style: the compiled CSS holds no preflight, which sizes every box with its border. */}
+				<Combobox.Content style={{ boxSizing: "border-box" }}>
 					{fruits.map((fruit) => (
 						<Combobox.Item key={fruit} value={fruit} />
 					))}
@@ -119,8 +134,8 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		);
 		await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
 		const listbox = await screen.findByRole("listbox");
-		expect(listbox).toHaveAttribute("data-side", "top");
-		expect(listbox.getBoundingClientRect().top).toBeGreaterThanOrEqual(8);
+		expect(popupOf(listbox)).toHaveAttribute("data-side", "top");
+		expect(popupOf(listbox).getBoundingClientRect().top).toBeGreaterThanOrEqual(8);
 	});
 	test("typing filters and highlights the first match; arrows move; Enter fills the input", async () => {
 		const onPick = vi.fn<(value: string) => void>();
@@ -290,5 +305,64 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		await userEvent.click(screen.getByRole("combobox", { name: "Domain" }));
 		await userEvent.keyboard("acme");
 		expect(await axeViolations()).toEqual([]);
+	});
+
+	test("a footer sits after the listbox: Tab reaches it, the list stays open, and axe finds no violation", async () => {
+		render(
+			<>
+				<label htmlFor="release">Release</label>
+				<Combobox.Root>
+					<Combobox.Input id="release" />
+					<Combobox.Content>
+						<Combobox.Item value="v1.2.0" />
+						<Combobox.Item value="v1.1.0" />
+						<Combobox.ContentFooter>
+							<button type="button">Load more</button>
+						</Combobox.ContentFooter>
+					</Combobox.Content>
+				</Combobox.Root>
+				<button type="button">Next field</button>
+			</>,
+		);
+		const input = screen.getByRole("combobox", { name: "Release" });
+
+		await userEvent.click(input);
+		await userEvent.keyboard("{Tab}");
+		const loadMore = screen.getByRole("button", { name: "Load more" });
+		expect(loadMore).toHaveFocus();
+		expect(input).toHaveAttribute("aria-expanded", "true");
+		expect(await axeViolations()).toEqual([]);
+
+		await userEvent.keyboard("{Tab}");
+		expect(screen.getByRole("button", { name: "Next field" })).toHaveFocus();
+		expect(input).toHaveAttribute("aria-expanded", "false");
+	});
+
+	test("a footer control that turns disabled returns focus to the input and keeps the list open", async () => {
+		const LoadMore = () => {
+			const [loading, setLoading] = useState(false);
+			return (
+				<Combobox.Root>
+					<Combobox.Input aria-label="Release" />
+					<Combobox.Content>
+						<Combobox.Item value="v1.2.0" />
+						<Combobox.ContentFooter>
+							<button type="button" disabled={loading} onClick={() => setLoading(true)}>
+								Load more
+							</button>
+						</Combobox.ContentFooter>
+					</Combobox.Content>
+				</Combobox.Root>
+			);
+		};
+		render(<LoadMore />);
+		const input = screen.getByRole("combobox", { name: "Release" });
+
+		await userEvent.click(input);
+		await userEvent.keyboard("{Tab}{Enter}");
+
+		expect(screen.getByRole("button", { name: "Load more" })).toBeDisabled();
+		await expect.poll(() => document.activeElement).toBe(input);
+		expect(input).toHaveAttribute("aria-expanded", "true");
 	});
 });

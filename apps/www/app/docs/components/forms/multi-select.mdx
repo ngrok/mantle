@@ -768,7 +768,7 @@ MultiSelect.Root
 
 `MultiSelect.Item`, `MultiSelect.Content`, `MultiSelect.Group`, `MultiSelect.GroupLabel`, and `MultiSelect.Separator` accept `asChild`, rendering your single child in place of the part's default element while keeping its selection and keyboard behavior.
 
-`MultiSelect.GroupLabel asChild` is the useful one: reach for it when a group heading must be a specific element for the page's outline. `MultiSelect.Content asChild` lets you own the popover panel element.
+`MultiSelect.GroupLabel asChild` is the useful one: reach for it when a group heading must be a specific element for the page's outline. `MultiSelect.Content asChild` lets you own the listbox element inside the popover.
 
 `MultiSelect.Item` also takes a function child, `(props, { highlighted }) => element`, for a row that renders different content while highlighted. Write the label inside your element: the label wrapper and the check move inside it, as with `asChild`. Only a row that uses one re-renders when the highlight moves. To only restyle the highlighted row, use the `data-highlighted:` variant, or `in-data-highlighted:` from a child. Anything you write after `{...props}` wins, so join a class with `cx(props.className, "…")`, and set `id` on the item, not on your element.
 
@@ -871,12 +871,12 @@ Renders a popover that contains multi-select content.
 
 `MultiSelect.Content` is a `popover="manual"` element in the top layer, so it paints above the page and every overlay. It portals into the overlay or float that holds it, such as an open `Dialog` or `Popover.Content`, else into `document.body`. In a browser with no popover API, it is a fixed box at Tailwind `z-50`.
 
-All props of a `<div>`, plus:
+The popover holds the `role="listbox"` element and, after it, the `MultiSelect.ContentFooter`. `className` and the other props of a `<div>` go on the popover. `aria-label` and `aria-labelledby` name the listbox. Plus:
 
-| Prop         | Type      | Default | Description                                                           |
-| :----------- | :-------- | :------ | :-------------------------------------------------------------------- |
-| `asChild?`   | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
-| `sameWidth?` | `boolean` | `true`  | Whether the popover should be the same width as the trigger.          |
+| Prop         | Type      | Default | Description                                                  |
+| :----------- | :-------- | :------ | :----------------------------------------------------------- |
+| `asChild?`   | `boolean` | `false` | Compose the listbox onto your own element.                   |
+| `sameWidth?` | `boolean` | `true`  | Whether the popover should be the same width as the trigger. |
 
 ### MultiSelect.Item
 
@@ -936,6 +936,6 @@ Standard `div` element props.
 
 ### MultiSelect.ContentFooter
 
-Renders a sticky footer inside `MultiSelect.Content` that stays pinned to the bottom edge of the content area. Place it as the last child of `MultiSelect.Content`.
+Renders a footer at the bottom of the open `MultiSelect.Content`, after the listbox and not in it, because a listbox holds only options and groups. Tab from the input moves to its first control, and the list stays open. Shift+Tab from that control returns to the input, and Escape closes the list.
 
 Standard `div` element props.

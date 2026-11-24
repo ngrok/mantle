@@ -206,6 +206,18 @@ export const flows: Flow[] = [
 		],
 	},
 	{
+		id: "combobox-footer",
+		component: "Combobox",
+		path: "components/forms/combobox/with-a-footer",
+		steps: [
+			{ key: "Tab", expect: ["release", "combo ?box|edit|text"] },
+			{ key: "ArrowDown", expect: ["v1\\.4\\.0"] },
+			{ key: "Tab", expect: ["show all releases", SWITCH] },
+			{ key: "Tab", expect: ["load more", BUTTON] },
+			{ key: "Escape", expect: ["release"] },
+		],
+	},
+	{
 		id: "multi-select",
 		component: "MultiSelect",
 		path: "components/forms/multi-select/overview",

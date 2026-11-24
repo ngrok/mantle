@@ -446,6 +446,8 @@ describe("MultiSelect", () => {
 			await user.keyboard("{Tab}");
 			const upgrade = screen.getByRole("button", { name: "Upgrade" });
 			expect(upgrade).toHaveFocus();
+			// Why: a listbox holds only options and groups, so the footer renders after it.
+			expect(screen.getByRole("listbox")).not.toContainElement(upgrade);
 			expect(input).toHaveAttribute("aria-expanded", "true");
 			await user.keyboard("{Shift>}{Tab}{/Shift}");
 			expect(input).toHaveFocus();

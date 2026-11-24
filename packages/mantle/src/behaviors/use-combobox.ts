@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef } from "react";
-import type { ChangeEvent, KeyboardEvent } from "react";
+import type { ChangeEvent, FocusEvent, KeyboardEvent } from "react";
 import { flushSync } from "react-dom";
+import { findTabbableDescendants, isTabbable } from "../components/alert/tabbable-neighbors.js";
 import { useControllableState } from "./use-controllable-state.js";
 import { useListbox } from "./use-listbox.js";
 import type { Listbox } from "./use-listbox.js";
@@ -38,6 +39,8 @@ type ComboboxBehavior = {
 	setInputValue: (value: string) => void;
 	listbox: Listbox;
 	inputRef: { current: HTMLInputElement | null };
+	/** The open popup box, which holds the listbox and an optional footer outside it. */
+	popupRef: { current: HTMLElement | null };
 };
 
 /**
@@ -93,6 +96,7 @@ const useCombobox = ({
 		onChange: onOpenChange,
 	});
 	const inputRef = useRef<HTMLInputElement | null>(null);
+	const popupRef = useRef<HTMLElement | null>(null);
 	const listbox = useListbox({
 		selected: value == null ? [] : [value],
 		onSelect: (next) => {
@@ -107,7 +111,18 @@ const useCombobox = ({
 		setValue(defaultValue ?? "");
 		setInputValue(defaultInputValue);
 	};
-	return { value, setValue, reset, open, setOpen, inputValue, setInputValue, listbox, inputRef };
+	return {
+		value,
+		setValue,
+		reset,
+		open,
+		setOpen,
+		inputValue,
+		setInputValue,
+		listbox,
+		inputRef,
+		popupRef,
+	};
 };
 
 /**
@@ -173,8 +188,12 @@ const useComboboxInput = (
 				openTo(autoSelect === "always" ? "first" : null);
 			}
 		},
-		onBlur: () => {
-			setOpen(false);
+		onBlur: (event: FocusEvent<HTMLInputElement>) => {
+			// Why: focus that moves to a control in the popup's footer stays in the combobox.
+			const { relatedTarget } = event;
+			if (!(relatedTarget instanceof Node && combobox.popupRef.current?.contains(relatedTarget))) {
+				setOpen(false);
+			}
 		},
 		onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => {
 			// Why: an input method uses the arrows, Enter, and Escape for its own candidates.
@@ -187,6 +206,18 @@ const useComboboxInput = (
 				return;
 			}
 			switch (event.key) {
+				case "Tab": {
+					// Why: Tab moves into the popup's footer, and the list stays open. With
+					// no control there, Tab leaves the field and the blur closes the list.
+					const first = open
+						? findTabbableDescendants(combobox.popupRef.current ?? event.currentTarget)[0]
+						: undefined;
+					if (!event.shiftKey && first != null && combobox.popupRef.current != null) {
+						event.preventDefault();
+						first.focus();
+					}
+					return;
+				}
 				case "ArrowDown": {
 					event.preventDefault();
 					if (!open) {
@@ -236,10 +267,112 @@ const useComboboxInput = (
 	};
 };
 
+/**
+ * The first element after `anchor` in document order, outside `popup`, that
+ * takes focus. Returns `false` when none does, so the browser's own Tab runs.
+ */
+const focusAfter = (anchor: HTMLElement, popup: HTMLElement): boolean => {
+	const candidates = findTabbableDescendants(anchor.ownerDocument.body).filter(
+		(element) =>
+			!popup.contains(element) &&
+			(anchor.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0 &&
+			!anchor.contains(element),
+	);
+	for (const candidate of candidates) {
+		candidate.focus();
+		if (candidate.ownerDocument.activeElement === candidate) {
+			return true;
+		}
+	}
+	return false;
+};
+
+/**
+ * Wires the open popup box of a combobox. The box holds the listbox and an
+ * optional footer, which sits outside the listbox because a listbox holds only
+ * options and groups. Focus in the footer keeps the list open:
+ *
+ * - Escape closes the list, and focus returns to the input.
+ * - Shift+Tab from the first footer control returns to the input.
+ * - Tab from the last one moves to the control after `anchorRef`, and the list closes.
+ * - Focus that leaves the box and `anchorRef` closes the list.
+ *
+ * @example
+ * ```tsx
+ * const popupProps = useComboboxPopup(combobox, { anchorRef: combobox.inputRef });
+ * return <div {...popupProps}>{listbox}{footer}</div>;
+ * ```
+ */
+const useComboboxPopup = (
+	combobox: ComboboxBehavior,
+	{ anchorRef }: { anchorRef: { current: HTMLElement | null } },
+) => {
+	const { inputRef, setOpen } = combobox;
+	const inAnchor = (node: unknown) =>
+		node instanceof Node && anchorRef.current?.contains(node) === true;
+	return {
+		onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
+			const box = event.currentTarget;
+			if (event.key === "Escape") {
+				// Why: a modal dialog closes on an Escape that nothing prevented.
+				event.preventDefault();
+				setOpen(false);
+				inputRef.current?.focus();
+				return;
+			}
+			if (event.key !== "Tab") {
+				return;
+			}
+			const tabbables = findTabbableDescendants(box);
+			if (event.shiftKey && event.target === tabbables[0]) {
+				event.preventDefault();
+				inputRef.current?.focus();
+				return;
+			}
+			const anchor = anchorRef.current;
+			// Why: the box is in a portal, so the browser's next stop is not the control after the field.
+			if (!event.shiftKey && event.target === tabbables.at(-1) && anchor != null) {
+				if (focusAfter(anchor, box)) {
+					event.preventDefault();
+					setOpen(false);
+				}
+			}
+		},
+		onBlur: (event: FocusEvent<HTMLElement>) => {
+			const { relatedTarget } = event;
+			const inside =
+				relatedTarget instanceof Node &&
+				(event.currentTarget.contains(relatedTarget) || inAnchor(relatedTarget));
+			if (inside) {
+				return;
+			}
+			// Why: a footer control that turns disabled, such as "Load more" while it
+			// loads, drops focus to the page. Focus returns to the input, and the list stays open.
+			const { target } = event;
+			if (relatedTarget == null && (target.matches(":disabled") || !target.isConnected)) {
+				inputRef.current?.focus();
+				return;
+			}
+			setOpen(false);
+		},
+		onMouseDown: (event: { target: EventTarget; preventDefault: () => void }) => {
+			// Why: a press on the box's own surface must not move focus off the input.
+			const target = event.target instanceof Element ? event.target : null;
+			const control = target?.closest<HTMLElement>(
+				"a, button, input, select, textarea, [tabindex]",
+			);
+			if (control == null || !isTabbable(control)) {
+				event.preventDefault();
+			}
+		},
+	};
+};
+
 export {
 	//,
 	useCombobox,
 	useComboboxInput,
+	useComboboxPopup,
 };
 export type {
 	//,

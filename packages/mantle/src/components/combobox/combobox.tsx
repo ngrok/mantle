@@ -1,10 +1,10 @@
 "use client";
 
 import type { ComponentProps, ReactNode } from "react";
-import { createContext, use, useId, useMemo } from "react";
+import { createContext, use, useId, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { composeHandlers } from "../../behaviors/compose-handlers.js";
-import { useCombobox, useComboboxInput } from "../../behaviors/use-combobox.js";
+import { useCombobox, useComboboxInput, useComboboxPopup } from "../../behaviors/use-combobox.js";
 import type { UseComboboxProps } from "../../behaviors/use-combobox.js";
 import { childId, useOption } from "../../behaviors/use-listbox.js";
 import { usePopup } from "../../behaviors/use-popup.js";
@@ -41,6 +41,9 @@ const ItemValueContext = createContext<string | undefined>(undefined);
 
 /** The `id` of the closest `Combobox.Group`'s label. */
 const GroupLabelContext = createContext<string | undefined>(undefined);
+
+/** The element after the listbox in the open popup, where `Combobox.ContentFooter` renders. */
+const FooterHostContext = createContext<HTMLElement | null>(null);
 
 type ComboboxProps = UseComboboxProps & {
 	children?: ReactNode;
@@ -261,11 +264,16 @@ type ComboboxContentProps = ComponentProps<"div"> &
  *
  * It opens below the input, or above it when the space below is too small.
  *
- * The popover has `role="listbox"`, so its children must be `Combobox.Item`,
- * `Combobox.Group`, or `Combobox.Separator`. Render an empty-state or "create" row as a
- * `Combobox.Item`: arrow keys skip any other element, and assistive technology
- * does not expect it in a listbox. Give an empty-state row `disabled`, so Enter or a
- * click cannot pick its text. Keep a "create" row enabled.
+ * The popover holds a `role="listbox"`, so its children must be `Combobox.Item`,
+ * `Combobox.Group`, `Combobox.Separator`, or `Combobox.ContentFooter`. Render an
+ * empty-state or "create" row as a `Combobox.Item`: arrow keys skip any other
+ * element, and assistive technology does not expect it in a listbox. Give an
+ * empty-state row `disabled`, so Enter or a click cannot pick its text. Put a
+ * button, a switch, or a link in `Combobox.ContentFooter`, which renders after
+ * the listbox and not in it.
+ *
+ * `className` and the other props style the popover. `asChild` swaps the listbox
+ * element.
  *
  * @see https://mantle.ngrok.com/components/forms/combobox#comboboxcontent
  *
@@ -285,38 +293,61 @@ const Content = (props: ComboboxContentProps) =>
 
 /** The open list. A closed combobox mounts none of it: no popup, store, or listener. */
 const OpenContent = ({
+	"aria-label": ariaLabel,
+	"aria-labelledby": ariaLabelledBy,
 	"data-slot": dataSlot,
 	asChild = false,
 	children,
 	className,
+	onBlur,
+	onKeyDown,
+	onMouseDown,
 	ref,
 	sameWidth = true,
 	...props
 }: ComboboxContentProps) => {
-	const { inputRef, listbox } = useComboboxContext();
+	const combobox = useComboboxContext();
+	const { inputRef, listbox } = combobox;
 	const { portalTarget, popupRef } = usePopup({ anchorRef: inputRef, ownerRef: inputRef });
+	const popupProps = useComboboxPopup(combobox, { anchorRef: inputRef });
+	const [footerHost, setFooterHost] = useState<HTMLElement | null>(null);
+	const boxRef = useComposedRefs(ref, popupRef, combobox.popupRef);
 	const listRef = useComposedRefs(listbox.listboxProps.ref, observeScrollEdges);
-	const composedRef = useComposedRefs(ref, popupRef, listRef);
-	const Component = asChild ? Slot : "div";
+	const List = asChild ? Slot : "div";
 	return (
 		portalTarget != null &&
 		createPortal(
-			<Component
+			<div
 				{...props}
-				{...listbox.listboxProps}
+				// Why presentation: the handlers only catch keys and focus from the footer's
+				// controls. The listbox inside and the controls carry the semantics.
+				role="presentation"
 				popover={hasPopoverApi ? "manual" : undefined}
-				onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
-				ref={composedRef}
+				onBlur={composeHandlers(onBlur, popupProps.onBlur)}
+				onKeyDown={composeHandlers(onKeyDown, popupProps.onKeyDown)}
+				onMouseDown={composeHandlers(onMouseDown, popupProps.onMouseDown)}
+				ref={boxRef}
 				data-slot={joinDataSlot(dataSlot, "combobox-content")}
 				data-open=""
 				className={cx(
-					"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 rounded-md border shadow-md p-1 between:mbe-px font-sans outline-hidden",
+					"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 flex flex-col overflow-hidden rounded-md border shadow-md font-sans outline-hidden",
 					sameWidth && "w-(--anchor-width)",
 					className,
 				)}
 			>
-				{children}
-			</Component>,
+				<List
+					{...listbox.listboxProps}
+					aria-label={ariaLabel}
+					aria-labelledby={ariaLabelledBy}
+					ref={listRef}
+					data-slot="combobox-listbox"
+					className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 p-1 between:mbe-px outline-hidden"
+				>
+					<FooterHostContext value={footerHost}>{children}</FooterHostContext>
+				</List>
+				{/* Why a host: the footer's controls must sit outside the listbox, wherever the footer is written. */}
+				<div ref={setFooterHost} className="contents" />
+			</div>,
 			portalTarget,
 		)
 	);
@@ -591,6 +622,60 @@ const ItemValue = ({
 	);
 };
 
+type ComboboxContentFooterProps = ComponentProps<"div"> & WithDataSlot;
+
+/**
+ * Renders a footer at the bottom of the open `Combobox.Content`, after the
+ * listbox and not in it, for controls such as a "Show expired" switch or a
+ * "Load more" button.
+ *
+ * Tab from the input moves to the footer's first control, and the list stays
+ * open. Shift+Tab from that control returns to the input. Escape closes the list
+ * and returns focus to the input. Arrow keys in the input still move through the
+ * options.
+ *
+ * @see https://mantle.ngrok.com/components/forms/combobox#comboboxcontentfooter
+ *
+ * @example
+ * ```tsx
+ * <Combobox.Root>
+ *   <Combobox.Input aria-label="Release" />
+ *   <Combobox.Content>
+ *     <Combobox.Item value="v1.2.0" />
+ *     <Combobox.Item value="v1.1.0" />
+ *     <Combobox.ContentFooter>
+ *       <Button type="button" appearance="ghost" intent="accent" onClick={loadMore}>
+ *         Load more releases
+ *       </Button>
+ *     </Combobox.ContentFooter>
+ *   </Combobox.Content>
+ * </Combobox.Root>
+ * ```
+ */
+const ContentFooter = ({
+	"data-slot": dataSlot,
+	className,
+	children,
+	ref,
+	...props
+}: ComboboxContentFooterProps) => {
+	const host = use(FooterHostContext);
+	return (
+		host != null &&
+		createPortal(
+			<div
+				ref={ref}
+				data-slot={joinDataSlot(dataSlot, "combobox-content-footer")}
+				className={cx("bg-popover border-popover shrink-0 border-t", className)}
+				{...props}
+			>
+				{children}
+			</div>,
+			host,
+		)
+	);
+};
+
 /**
  * Renders a separator between Combobox.Items or Combobox.Groups.
  *
@@ -631,6 +716,7 @@ export {
 	//,
 	Root,
 	Content,
+	ContentFooter,
 	Group,
 	GroupLabel,
 	Input,

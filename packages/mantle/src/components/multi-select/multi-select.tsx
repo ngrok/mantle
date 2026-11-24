@@ -1,10 +1,10 @@
 "use client";
 
 import type { ComponentProps, KeyboardEvent, PropsWithChildren, ReactNode } from "react";
-import { cloneElement, createContext, isValidElement, use, useId, useRef } from "react";
+import { cloneElement, createContext, isValidElement, use, useId, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
 import { composeHandlers } from "../../behaviors/compose-handlers.js";
-import { useComboboxInput } from "../../behaviors/use-combobox.js";
+import { useComboboxInput, useComboboxPopup } from "../../behaviors/use-combobox.js";
 import { childId, useOption } from "../../behaviors/use-listbox.js";
 import { useMultiSelect } from "../../behaviors/use-multi-select.js";
 import type { MultiSelectBehavior, UseMultiSelectProps } from "../../behaviors/use-multi-select.js";
@@ -56,13 +56,13 @@ const useMultiSelectContext = (): MultiSelectBehavior => {
  */
 const TriggerAriaInvalidContext = createContext<AriaInvalid>(undefined);
 
+/** The element after the listbox in the open popup, where `MultiSelect.ContentFooter` renders. */
+const FooterHostContext = createContext<HTMLElement | null>(null);
+
 /** The `id` of the closest `MultiSelect.Group`'s label. */
 const GroupLabelContext = createContext<string | undefined>(undefined);
 
 /** The controls in the list that Tab can reach, such as a footer button. */
-const TABBABLE =
-	'a[href], button:not(:disabled), input:not([type="hidden"]):not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
-
 /** Shakes the tag of `value` to show that a removal is blocked. */
 const shakeTag = (tags: Map<string, HTMLElement>, value: string) => {
 	const tag = tags.get(value);
@@ -688,30 +688,17 @@ const Input = ({
 					}
 				})}
 				onBlur={composeHandlers(onBlur, (event) => {
-					// Why: focus that moves to a tag, a remove button, or a control in the
-					// list stays in the component, so the list stays open.
+					// Why: focus that moves to a tag or a remove button stays in the
+					// component, so the list stays open. The input handles the popup itself.
 					const trigger = event.currentTarget.closest('[data-slot~="multi-select-trigger"]');
 					const { relatedTarget } = event;
-					const inside =
-						relatedTarget instanceof Node &&
-						(trigger?.contains(relatedTarget) ||
-							multiSelect.listbox.ref.current?.contains(relatedTarget));
-					if (!inside) {
-						inputProps.onBlur();
+					if (!(relatedTarget instanceof Node && trigger?.contains(relatedTarget))) {
+						inputProps.onBlur(event);
 					}
 				})}
 				onKeyDown={composeHandlers(onKeyDown, (event) => {
 					// Why: an input method uses these keys for its own candidates.
 					if (event.nativeEvent.isComposing) {
-						return;
-					}
-					// Why: while the list is open, Tab moves only to a control in the list,
-					// such as a footer button, and focus stays until Escape closes it.
-					if (event.key === "Tab" && multiSelect.open) {
-						event.preventDefault();
-						if (!event.shiftKey) {
-							multiSelect.listbox.ref.current?.querySelector<HTMLElement>(TABBABLE)?.focus();
-						}
 						return;
 					}
 					const input = event.currentTarget;
@@ -810,24 +797,31 @@ const Content = (props: MultiSelectContentProps) =>
 
 /** The open list. A closed multi-select mounts none of it: no popup, store, or listener. */
 const OpenContent = ({
+	"aria-label": ariaLabel,
+	"aria-labelledby": ariaLabelledBy,
 	"data-slot": dataSlot,
 	asChild = false,
 	children,
 	className,
+	onBlur,
+	onKeyDown,
+	onMouseDown,
 	ref,
 	sameWidth = true,
 	...props
 }: MultiSelectContentProps) => {
-	const { inputRef, listbox, setOpen, triggerRef } = useMultiSelectContext();
+	const multiSelect = useMultiSelectContext();
+	const { inputRef, listbox, setOpen, triggerRef } = multiSelect;
 	const { portalTarget, popupRef } = usePopup({
 		anchorRef: triggerRef,
 		ownerRef: inputRef,
 		onOutsidePress: () => setOpen(false),
 	});
-
+	const popupProps = useComboboxPopup(multiSelect, { anchorRef: triggerRef });
+	const [footerHost, setFooterHost] = useState<HTMLElement | null>(null);
+	const boxRef = useComposedRefs(ref, popupRef, multiSelect.popupRef);
 	const listRef = useComposedRefs(listbox.listboxProps.ref, observeScrollEdges);
-	const composedRef = useComposedRefs(ref, popupRef, listRef);
-	const Component = asChild ? Slot : "div";
+	const List = asChild ? Slot : "div";
 	return (
 		portalTarget != null &&
 		createPortal(
@@ -836,61 +830,38 @@ const OpenContent = ({
 				<button type="button" tabIndex={-1} className="sr-only" onClick={() => setOpen(false)}>
 					Dismiss popup
 				</button>
-				<Component
+				<div
 					{...props}
-					{...listbox.listboxProps}
-					onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
-					aria-multiselectable
+					// Why presentation: the handlers only catch keys and focus from the footer's
+					// controls. The listbox inside and the controls carry the semantics.
+					role="presentation"
 					popover={hasPopoverApi ? "manual" : undefined}
-					ref={composedRef}
+					onBlur={composeHandlers(onBlur, popupProps.onBlur)}
+					onKeyDown={composeHandlers(onKeyDown, popupProps.onKeyDown)}
+					onMouseDown={composeHandlers(onMouseDown, popupProps.onMouseDown)}
+					ref={boxRef}
 					data-slot={joinDataSlot(dataSlot, "multi-select-content")}
 					data-open=""
 					className={cx(
-						"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 has-data-content-footer:after:hidden rounded-md border shadow-md pt-1 pb-1 has-data-content-footer:pb-0 font-sans flex flex-col between:mbe-px outline-hidden",
+						"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 flex flex-col overflow-hidden rounded-md border shadow-md font-sans outline-hidden",
 						sameWidth && "w-(--anchor-width)",
 						className,
 					)}
-					onKeyDown={composeHandlers(props.onKeyDown, (event) => {
-						// Why: a focused control in the footer, such as a button, closes the list on Escape too.
-						if (event.key === "Escape") {
-							setOpen(false);
-						}
-						// Why: Shift+Tab from the first control in the list goes back to the
-						// input, the way Tab came in. Tab from the last one leaves and closes the list.
-						if (
-							event.key === "Tab" &&
-							event.shiftKey &&
-							event.target === event.currentTarget.querySelector(TABBABLE)
-						) {
-							// Why the root node and not `inputRef`: the compiler's pass forbids a
-							// ref read in a handler built during render. The input names this list
-							// in `aria-controls`, in the same document or shadow root.
-							const root = event.currentTarget.getRootNode();
-							const input =
-								root instanceof Document || root instanceof ShadowRoot
-									? root.querySelector<HTMLElement>(`[aria-controls="${event.currentTarget.id}"]`)
-									: null;
-							if (input != null) {
-								event.preventDefault();
-								input.focus();
-							}
-						}
-					})}
-					onBlur={composeHandlers(props.onBlur, (event) => {
-						// Why: focus that leaves a control in the list for outside the
-						// component closes the list, as it does from the input.
-						const { relatedTarget } = event;
-						const inside =
-							relatedTarget instanceof Element &&
-							(event.currentTarget.contains(relatedTarget) ||
-								relatedTarget.closest('[data-slot~="multi-select-trigger"]') != null);
-						if (!inside) {
-							setOpen(false);
-						}
-					})}
 				>
-					{children}
-				</Component>
+					<List
+						{...listbox.listboxProps}
+						aria-label={ariaLabel}
+						aria-labelledby={ariaLabelledBy}
+						aria-multiselectable
+						ref={listRef}
+						data-slot="multi-select-listbox"
+						className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 py-1 flex flex-col between:mbe-px outline-hidden"
+					>
+						<FooterHostContext value={footerHost}>{children}</FooterHostContext>
+					</List>
+					{/* Why a host: the footer's controls must sit outside the listbox, wherever the footer is written. */}
+					<div ref={setFooterHost} className="contents" />
+				</div>
 			</>,
 			portalTarget,
 		)
@@ -1281,8 +1252,10 @@ const Empty = ({
 type MultiSelectContentFooterProps = ComponentProps<"div"> & WithDataSlot;
 
 /**
- * Renders a sticky footer pinned to the bottom inside `MultiSelect.Content`,
- * with a separator border at the top.
+ * Renders a footer at the bottom of the open `MultiSelect.Content`, after the
+ * listbox and not in it, with a separator border at the top. Tab from the input
+ * moves to its first control, and the list stays open. Shift+Tab from that
+ * control returns to the input, and Escape closes the list.
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select#multiselectcontentfooter
  *
@@ -1310,16 +1283,21 @@ const ContentFooter = ({
 	ref,
 	...props
 }: MultiSelectContentFooterProps) => {
+	const host = use(FooterHostContext);
 	return (
-		<div
-			ref={ref}
-			data-slot={joinDataSlot(dataSlot, "multi-select-content-footer")}
-			data-content-footer
-			className={cx("bg-popover sticky bottom-0 border-t border-popover", className)}
-			{...props}
-		>
-			{children}
-		</div>
+		host != null &&
+		createPortal(
+			<div
+				ref={ref}
+				data-slot={joinDataSlot(dataSlot, "multi-select-content-footer")}
+				data-content-footer
+				className={cx("bg-popover border-popover shrink-0 border-t", className)}
+				{...props}
+			>
+				{children}
+			</div>,
+			host,
+		)
 	);
 };
 

@@ -188,12 +188,67 @@ Combobox.Root
     │   ├── Combobox.GroupLabel
     │   └── Combobox.Item
     │       └── Combobox.ItemValue
-    └── Combobox.Separator
+    ├── Combobox.Separator
+    └── Combobox.ContentFooter
 ```
+
+## With a footer
+
+Put a switch, a "Load more" button, or a link in `Combobox.ContentFooter`. It renders at the bottom of the popover, after the listbox and not in it, because a listbox holds only options and groups. Tab from the input moves to the footer's first control and keeps the list open. Shift+Tab from that control returns to the input. Escape closes the list and returns focus to the input. Tab from the last control moves to the control after the field and closes the list.
+
+<Example name="components/forms/combobox/with-a-footer" title="Combobox with a footer example">
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Combobox } from "@ngrok/mantle/combobox";
+import { Field } from "@ngrok/mantle/field";
+import { Switch } from "@ngrok/mantle/switch";
+import { useState } from "react";
+
+const releases = ["v1.4.0", "v1.3.2", "v1.3.1", "v1.3.0", "v1.2.0", "v1.1.0"];
+
+function Example() {
+	const [showAll, setShowAll] = useState(false);
+	const [count, setCount] = useState(3);
+	const shown = releases.slice(0, showAll ? releases.length : count);
+	return (
+		<Field.Item name="release">
+			<Field.Label>Release</Field.Label>
+			<Combobox.Root>
+				<Field.Control>
+					<Combobox.Input placeholder="Search releases..." />
+				</Field.Control>
+				<Combobox.Content>
+					{shown.map((release) => (
+						<Combobox.Item key={release} value={release} />
+					))}
+					<Combobox.ContentFooter className="flex items-center justify-between gap-2 p-2">
+						<div className="flex items-center gap-2 text-sm">
+							<Switch id="show-all-releases" checked={showAll} onCheckedChange={setShowAll} />
+							<label htmlFor="show-all-releases">Show all releases</label>
+						</div>
+						<Button
+							type="button"
+							appearance="ghost"
+							intent="accent"
+							disabled={showAll || count >= releases.length}
+							onClick={() => setCount((current) => current + 3)}
+						>
+							Load more
+						</Button>
+					</Combobox.ContentFooter>
+				</Combobox.Content>
+			</Combobox.Root>
+		</Field.Item>
+	);
+}
+```
+
+</Example>
 
 ## Polymorphism
 
-`Combobox.Content`, `Combobox.Item`, `Combobox.Group`, and `Combobox.GroupLabel` support `asChild` to render as a different element or your own component while keeping the combobox behavior and styling.
+`Combobox.Content`, `Combobox.Item`, `Combobox.Group`, and `Combobox.GroupLabel` support `asChild` to render as a different element or your own component while keeping the combobox behavior and styling. On `Combobox.Content`, `asChild` swaps the listbox element, and `className` styles the popover around it.
 
 `Combobox.Item` also takes a function child, `(props, { highlighted }) => element`, for a row that renders different content while highlighted, such as a preview. Only a row that uses one re-renders when the highlight moves. To only restyle the highlighted row, use the `data-highlighted:` variant, or `in-data-highlighted:` from a child, which needs no JavaScript. Anything you write after `{...props}` wins, so join a class with `cx(props.className, "…")`, and set `id` on the item, not on your element.
 
@@ -219,7 +274,7 @@ import { Combobox } from "@ngrok/mantle/combobox";
 
 ## Accessibility
 
-`Combobox` follows the [WAI-ARIA Combobox Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) with list autocomplete. DOM focus stays on the input, and `aria-activedescendant` names the highlighted option. Inside a field, `Field.Control` puts the generated `id`, `name`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` on the focusable input.
+`Combobox` follows the [WAI-ARIA Combobox Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) with list autocomplete. DOM focus stays on the input, and `aria-activedescendant` names the highlighted option. `Combobox.ContentFooter` renders outside the listbox, so its controls are ordinary buttons and switches in the Tab order, and the listbox holds only options. Inside a field, `Field.Control` puts the generated `id`, `name`, `aria-describedby`, `aria-errormessage`, and `aria-invalid` on the focusable input.
 
 ## API Reference
 
@@ -264,12 +319,12 @@ Renders a popover that contains combobox content, e.g. items, groups, and separa
 
 `Combobox.Content` is a `popover="manual"` element in the top layer, so it paints above the page and every overlay. It portals into the overlay or float that holds it, such as an open `Dialog` or `Popover.Content`, else into `document.body`. In a browser with no popover API, it is a fixed box at Tailwind `z-50`. It opens below the input, or above it when the space below is too small.
 
-All props of a `<div>`, plus:
+The popover holds the `role="listbox"` element and, after it, the `Combobox.ContentFooter`. `className` and the other props of a `<div>` go on the popover. `aria-label` and `aria-labelledby` name the listbox. Plus:
 
-| Prop         | Type      | Default | Description                                                           |
-| :----------- | :-------- | :------ | :-------------------------------------------------------------------- |
-| `asChild?`   | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
-| `sameWidth?` | `boolean` | `true`  | Whether the popover should be the same width as the input.            |
+| Prop         | Type      | Default | Description                                                |
+| :----------- | :-------- | :------ | :--------------------------------------------------------- |
+| `asChild?`   | `boolean` | `false` | Compose the listbox onto your own element.                 |
+| `sameWidth?` | `boolean` | `true`  | Whether the popover should be the same width as the input. |
 
 ### Combobox.Item
 
@@ -320,3 +375,9 @@ All props of a `<div>`, plus:
 Renders a separator between `Combobox.Item`s or `Combobox.Group`s.
 
 All props from [Separator](/components/structure/separator).
+
+### Combobox.ContentFooter
+
+Renders a footer at the bottom of the open `Combobox.Content`, after the listbox and not in it, for controls such as a switch or a "Load more" button. Tab from the input moves to its first control, and the list stays open.
+
+All props of a `<div>`.

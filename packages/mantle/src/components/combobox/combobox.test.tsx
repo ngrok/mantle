@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -172,6 +172,117 @@ describe("Combobox", () => {
 				Array.from(option.querySelectorAll(selector), (span) => span.textContent).join("");
 			expect(textOf("[data-user-value]")).toBe("Ba");
 			expect(textOf("[data-autocomplete-value]")).toBe("nana");
+		});
+	});
+
+	describe("Combobox.ContentFooter", () => {
+		const Releases = ({ onLoadMore }: { onLoadMore?: () => void }) => (
+			<>
+				<Combobox.Root>
+					<Combobox.Input aria-label="Release" />
+					<Combobox.Content>
+						<Combobox.Item value="v1.2.0" />
+						<Combobox.Item value="v1.1.0" />
+						<Combobox.ContentFooter>
+							<label>
+								<input type="checkbox" /> Show expired
+							</label>
+							<button type="button" onClick={onLoadMore}>
+								Load more
+							</button>
+						</Combobox.ContentFooter>
+					</Combobox.Content>
+				</Combobox.Root>
+				<button type="button">Next field</button>
+			</>
+		);
+
+		test("renders its controls after the listbox, not in it", async () => {
+			const user = userEvent.setup();
+			render(<Releases />);
+			await user.click(screen.getByRole("combobox", { name: "Release" }));
+
+			const listbox = screen.getByRole("listbox");
+			const loadMore = screen.getByRole("button", { name: "Load more" });
+			expect(listbox).not.toContainElement(loadMore);
+			expect(loadMore.closest('[data-slot~="combobox-content-footer"]')).not.toBeNull();
+			expect(within(listbox).getAllByRole("option")).toHaveLength(2);
+		});
+
+		test("Tab moves into the footer and keeps the list open, Shift+Tab returns to the input", async () => {
+			const user = userEvent.setup();
+			const onLoadMore = vi.fn<() => void>();
+			render(<Releases onLoadMore={onLoadMore} />);
+			const input = screen.getByRole("combobox", { name: "Release" });
+
+			await user.click(input);
+			await user.tab();
+			expect(screen.getByRole("checkbox", { name: "Show expired" })).toHaveFocus();
+			expect(input).toHaveAttribute("aria-expanded", "true");
+
+			await user.tab();
+			await user.keyboard("{Enter}");
+			expect(onLoadMore).toHaveBeenCalledTimes(1);
+			expect(input).toHaveAttribute("aria-expanded", "true");
+
+			await user.tab({ shift: true });
+			await user.tab({ shift: true });
+			expect(input).toHaveFocus();
+			expect(input).toHaveAttribute("aria-expanded", "true");
+			await user.keyboard("{ArrowDown}");
+			expect(input).toHaveAttribute(
+				"aria-activedescendant",
+				screen.getByRole("option", { name: "v1.1.0" }).id,
+			);
+		});
+
+		test("Escape in the footer closes the list and returns focus to the input", async () => {
+			const user = userEvent.setup();
+			render(<Releases />);
+			const input = screen.getByRole("combobox", { name: "Release" });
+
+			await user.click(input);
+			await user.tab();
+			await user.keyboard("{Escape}");
+
+			expect(input).toHaveAttribute("aria-expanded", "false");
+			expect(input).toHaveFocus();
+		});
+
+		test("Tab from the last footer control moves to the control after the field and closes the list", async () => {
+			const user = userEvent.setup();
+			render(<Releases />);
+			const input = screen.getByRole("combobox", { name: "Release" });
+
+			await user.click(input);
+			await user.tab();
+			await user.tab();
+			await user.tab();
+
+			expect(screen.getByRole("button", { name: "Next field" })).toHaveFocus();
+			expect(input).toHaveAttribute("aria-expanded", "false");
+		});
+
+		test("with no footer, Tab leaves the field and closes the list", async () => {
+			const user = userEvent.setup();
+			render(
+				<>
+					<Combobox.Root>
+						<Combobox.Input aria-label="Fruit" />
+						<Combobox.Content>
+							<Combobox.Item value="Apple" />
+						</Combobox.Content>
+					</Combobox.Root>
+					<button type="button">Next field</button>
+				</>,
+			);
+			const input = screen.getByRole("combobox", { name: "Fruit" });
+
+			await user.click(input);
+			await user.tab();
+
+			expect(screen.getByRole("button", { name: "Next field" })).toHaveFocus();
+			expect(input).toHaveAttribute("aria-expanded", "false");
 		});
 	});
 
