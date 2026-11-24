@@ -54,11 +54,11 @@ export const MCP_INSTRUCTIONS = [
 	"Your trained knowledge of mantle can be stale. Call `find` before you pick a component or pattern, and `get` before you write its props.",
 	"Pass the exact installed version from node_modules/@ngrok/mantle/package.json or the lockfile, not the package.json range.",
 	"Call `check` on each file you change. Import each part from its own subpath, such as @ngrok/mantle/button.",
-	"With no repo to run the code in, call `preview` and give the user the link.",
-	"When mantle has no part for a need, call `report_gap` once for that need.",
+	"Before you lay out UI, `read_docs` base/design-principles.",
+	"With no repo to run code in, call `preview` and share the link.",
+	"When mantle has no part for a need, call `report_gap` once for it.",
 	"Your final reply lists each part you built instead of mantle, and why. Claim a mantle part only with its import and the JSX that renders it.",
-	"Pass `intent` and `workspace` on each call, so mantle learns what agents build.",
-	'When you know the Linear issue of the work, such as MNTL-59, pass it as `ticket` on each call. `report_gap` requires it, or "none".',
+	'Pass `intent` and `workspace` on each call, so mantle learns what agents build. Pass a known Linear issue, like MNTL-59, as `ticket`; `report_gap` requires it, or "none".',
 ].join("\n");
 
 /** What the server reads; tests pass fakes. */
