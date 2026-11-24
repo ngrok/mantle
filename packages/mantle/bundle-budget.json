@@ -118,5 +118,13 @@
   "prompt-input-attach": {
     "entry": "import { PromptInput } from \"@ngrok/mantle/prompt-input\"; export default [PromptInput.Root, PromptInput.TextArea, PromptInput.Footer, PromptInput.Submit, PromptInput.AttachButton];",
     "maxGzipBytes": 11913
+  },
+  "conversation": {
+    "entry": "import { Conversation } from \"@ngrok/mantle/conversation\"; export default [Conversation.Root, Conversation.Viewport, Conversation.Content, Conversation.ScrollButton];",
+    "maxGzipBytes": 11799
+  },
+  "message": {
+    "entry": "import { Message } from \"@ngrok/mantle/message\"; export default [Message.Root, Message.Content, Message.Pending, Message.Actions];",
+    "maxGzipBytes": 8021
   }
 }

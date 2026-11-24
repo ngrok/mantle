@@ -1,0 +1,171 @@
+---
+title: Message
+description: One message of a chat, a person's message in a bubble or the assistant's answer as full-width prose.
+category: Data Display
+aliases: [chat message, chat bubble, bubble, answer, ai message, transcript message]
+---
+
+import { PageHeader } from "~/components/page-header";
+import { Example } from "~/components/example";
+
+<PageHeader id="message" isPreview>
+	Message
+</PageHeader>
+
+One message of a chat, a person's message in a bubble or the assistant's answer as full-width prose. Each `Message.Root` renders an `<li>`, so put it in [Conversation](/components/preview/conversation)'s `Conversation.Content`.
+
+<Example name="components/preview/message/overview" title="Message example">
+
+```tsx
+import { IconButton } from "@ngrok/mantle/button";
+import { Conversation } from "@ngrok/mantle/conversation";
+import { useCopyToClipboard } from "@ngrok/mantle/hooks";
+import { Message } from "@ngrok/mantle/message";
+import { CopyIcon } from "@phosphor-icons/react/Copy";
+
+const answer =
+	"Three endpoints are online: https://api.example.com, https://app.example.com, and tcp://1.tcp.ngrok.io:20012.";
+
+function AssistantAnswer() {
+	const copy = useCopyToClipboard();
+
+	return (
+		<>
+			<Conversation.Root className="w-full max-w-2xl">
+				<Conversation.Viewport aria-label="Conversation with the assistant">
+					<Conversation.Content className="p-4">
+						<Message.Root from="user">
+							<Message.Content>What&apos;s live right now?</Message.Content>
+						</Message.Root>
+						<Message.Root from="assistant">
+							<Message.Content>{answer}</Message.Content>
+							<Message.Actions>
+								<IconButton
+									type="button"
+									appearance="ghost"
+									intent="neutral"
+									size="sm"
+									label="Copy the answer"
+									icon={<CopyIcon />}
+									onClick={() => {
+										void copy(answer);
+									}}
+								/>
+							</Message.Actions>
+						</Message.Root>
+					</Conversation.Content>
+				</Conversation.Viewport>
+			</Conversation.Root>
+		</>
+	);
+}
+```
+
+</Example>
+
+## When to use
+
+- Show one message of a chat with an assistant or a model, with actions such as copy.
+- Show a marker while the answer is on its way.
+- Use [Conversation](/components/preview/conversation) for the transcript that holds the messages.
+
+## An answer on its way
+
+Render `Message.Pending` under the part of the answer that arrived, until the answer ends. A first sentence such as "Let me check your endpoints." can come before seconds of tool calls, so keep the marker after the first text. It is not a live region: `Conversation.Root` announces the start and the end of the answer once.
+
+<Example name="components/preview/message/pending" title="Message pending example">
+
+```tsx
+import { Conversation } from "@ngrok/mantle/conversation";
+import { Message } from "@ngrok/mantle/message";
+
+function AnswerOnItsWay() {
+	return (
+		<>
+			<Conversation.Root streaming className="w-full max-w-2xl">
+				<Conversation.Viewport aria-label="Conversation with the assistant">
+					<Conversation.Content className="p-4">
+						<Message.Root from="user">
+							<Message.Content>Which endpoints have no traffic policy?</Message.Content>
+						</Message.Root>
+						<Message.Root from="assistant">
+							<Message.Content>Let me check your endpoints.</Message.Content>
+							<Message.Pending>Thinking…</Message.Pending>
+						</Message.Root>
+					</Conversation.Content>
+				</Conversation.Viewport>
+			</Conversation.Root>
+		</>
+	);
+}
+```
+
+</Example>
+
+## Composition
+
+```text showLineNumbers=false
+Message.Root
+├── Message.Content
+├── Message.Pending
+└── Message.Actions
+```
+
+## Polymorphism
+
+`Message.Root` and `Message.Actions` take `asChild`. `Message.Content` and `Message.Pending` do not, because each renders an element beside its children.
+
+## Accessibility
+
+`Message.Content` starts with a visually hidden speaker label, "You said:" or "The assistant said:", so a screen reader says who wrote each message.
+
+## Translation
+
+`Message.Content` and `Message.Pending` render an element beside their children: the speaker label and the pulsing dot. Each wraps the children in a `display: contents` element (`message-content-label` and `message-pending-label`), so a page that a browser translates survives a change to them.
+
+## API Reference
+
+### Message.Root
+
+One message: an `<li>` that lays out the content, the actions, and any pending marker.
+
+All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li#attributes), plus:
+
+| Prop       | Type                    | Default | Description                                                                                 |
+| ---------- | ----------------------- | ------- | ------------------------------------------------------------------------------------------- |
+| `from`     | `"user" \| "assistant"` |         | Who wrote the message. Required. A person's message sits at the end of the row in a bubble. |
+| `asChild?` | `boolean`               | `false` | Render as a different element by passing a child.                                           |
+
+| Data Attribute | Value                     | Description                                            |
+| -------------- | ------------------------- | ------------------------------------------------------ |
+| `data-from`    | `"user"` or `"assistant"` | Who wrote the message. Style with `data-[from=user]:`. |
+
+### Message.Content
+
+The body of a message: a bubble for a person, full-width prose for the assistant.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).
+
+| Data Attribute                      | Value          | Description                                          |
+| ----------------------------------- | -------------- | ---------------------------------------------------- |
+| `data-slot="message-content-label"` | on the wrapper | The `display: contents` wrapper around the children. |
+
+### Message.Pending
+
+A marker with a pulsing dot that an answer is on its way, such as "Thinking…".
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).
+
+| Data Attribute                      | Value          | Description                                          |
+| ----------------------------------- | -------------- | ---------------------------------------------------- |
+| `data-slot="message-pending-label"` | on the wrapper | The `display: contents` wrapper around the children. |
+
+### Message.Actions
+
+A row of small actions and facts under a message, such as a copy button.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                       |
+| ---------- | --------- | ------- | ------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Render as a different element by passing a child. |

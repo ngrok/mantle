@@ -158,7 +158,8 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 		"password field show hide": "Password Input",
 	},
 	"AI answers": {
-		"chat message bubble rendered markdown prose": "Markdown",
+		// Why both: a message bubble is Message, which renders its text with Markdown.
+		"chat message bubble rendered markdown prose": ["Message", "Markdown"],
 	},
 	"Former known misses, fixed in the docs and JSDoc": {
 		"selectable radio card grid icon": "Radio Group",
@@ -176,6 +177,10 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 		"tab state hook custom tab markup": "Tabs",
 		"tabs with custom styling marketing cards": "Tabs",
 		"type a question to build a filter": "Natural Language Query",
+	},
+	"AI chat": {
+		"chat transcript scroll to bottom button": "Conversation",
+		"keep newest streamed text in view": "Conversation",
 	},
 };
 

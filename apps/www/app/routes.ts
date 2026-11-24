@@ -120,6 +120,8 @@ const docsPages = [
 	// preview (lifecycle namespace, not a category)
 	"components/preview/attachment",
 	"components/preview/calendar",
+	"components/preview/conversation",
+	"components/preview/message",
 	"components/preview/prompt-input",
 	"components/preview/reasoning",
 	"components/preview/time-zone",
