@@ -53,6 +53,22 @@ describe("useMarkdownStream", () => {
 		expect(reads).toBe(1);
 	});
 
+	test("cancels a stream that opens after it unmounts", async () => {
+		const cancel = vi.fn<() => void>();
+		let resolveOpen: (source: ReadableStream<string>) => void = () => {};
+		const { unmount } = renderHook(() =>
+			useMarkdownStream({
+				read: () =>
+					new Promise<ReadableStream<string>>((resolve) => {
+						resolveOpen = resolve;
+					}),
+			}),
+		);
+		unmount();
+		resolveOpen(new ReadableStream<string>({ cancel }));
+		await waitFor(() => expect(cancel).toHaveBeenCalledTimes(1));
+	});
+
 	test("cancels a pending read when it unmounts", async () => {
 		const cancel = vi.fn<() => void>();
 		const { unmount } = renderHook(() =>

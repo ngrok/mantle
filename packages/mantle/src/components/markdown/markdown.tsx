@@ -149,15 +149,16 @@ function pairInlineTags(tokens: readonly Token[]): Map<number, number> {
  * In a run, each text is wrapped in a `span`. Why: the engine reparents a text
  * node, and React then throws when it removes the text or inserts before it.
  */
-function translationSafeRun(all: ReactNode[]): ReactNode {
+function translationSafeRun(nodes: ReactNode[]): ReactNode {
 	// Why without `null`: a blank line or a definition renders nothing, and must not cost lone text its fast path.
-	const nodes = all.filter((node) => node != null);
-	if (nodes.length === 1) {
-		return nodes[0];
+	const rendered = nodes.filter((node) => node != null);
+	if (rendered.length === 1) {
+		return rendered[0];
 	}
+	// Why a `text-` key: an element's key is its token index, and a text must not take the same key.
 	return nodes.map((node, index) =>
-		// oxlint-disable-next-line react/no-array-index-key -- Why: a node has no identity but its position, as each token's key is.
-		typeof node === "string" ? <span key={index}>{node}</span> : node,
+		// oxlint-disable-next-line react/no-array-index-key -- Why: a text has no identity but its position, as each token's key is.
+		typeof node === "string" ? <span key={`text-${index}`}>{node}</span> : node,
 	);
 }
 
@@ -465,8 +466,15 @@ function isSameBlock(previous: BlockProps, next: BlockProps): boolean {
 	return (
 		previous.components === next.components &&
 		previous.links === next.links &&
-		(previous.token === next.token || previous.token.raw === next.token.raw)
+		(previous.token === next.token ||
+			(previous.token.raw === next.token.raw &&
+				looseness(previous.token) === looseness(next.token)))
 	);
+}
+
+/** Whether a list item is loose. Why: a blank line later in the list makes each item loose, with no change to its source. */
+function looseness(token: Token): boolean | undefined {
+	return isTokenOf(token, "list_item") ? token.loose : undefined;
 }
 
 /**

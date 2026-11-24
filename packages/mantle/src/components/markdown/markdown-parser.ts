@@ -111,6 +111,9 @@ function createMarkdownParser({
 	// finished block can still change, so its definitions are read again on each parse.
 	let frozenLinks: MarkdownLinks = Object.create(null);
 	let links: MarkdownLinks = Object.create(null);
+	// Whether a finished block was lexed with definitions. Why: a definition that later changes or goes away
+	// leaves a stale link in it, so the final parse must lex the whole answer again.
+	let frozenReadLinks = false;
 	/** Keeps the `links` object while its definitions stay the same, so a memoized block does not render again. */
 	const setLinks = (next: MarkdownLinks) => {
 		if (!isSameLinks(links, next)) {
@@ -132,6 +135,7 @@ function createMarkdownParser({
 			.join("");
 		frozenLinks = Object.create(null);
 		addDefinitions(frozenLinks, frozen);
+		frozenReadLinks = Object.keys(all.links).length > 0;
 		// Why a new object: the blocks are new tokens, and each must read the definitions again.
 		links = all.links;
 		return { blocks, completeCount: blocks.length, links };
@@ -145,6 +149,7 @@ function createMarkdownParser({
 				frozen = [];
 				frozenSource = "";
 				frozenLinks = Object.create(null);
+				frozenReadLinks = false;
 			}
 
 			const tail = source.slice(frozenSource.length);
@@ -152,16 +157,23 @@ function createMarkdownParser({
 			const tokens = lex(text, frozenLinks);
 			setLinks(tokens.links);
 
-			if (!streaming && frozen.length > 0 && Object.keys(links).length > 0) {
+			if (!streaming && frozen.length > 0 && (frozenReadLinks || Object.keys(links).length > 0)) {
 				return parseWhole(source);
 			}
 
 			const finished = tokens.slice(0, Math.max(lastContentIndex(tokens), 0));
 			const finishedRaw = finished.map((token) => token.raw).join("");
-			// Why the check: a finished block must be the source as it is, not text that `closeMarkdown` closed.
-			if (finished.length > 0 && tail.startsWith(finishedRaw)) {
+			// Why the checks: a finished block must be the source as it is, not text that `closeMarkdown` closed. And
+			// with no blank line before it, the next block's first line must be whole: more of that line can join
+			// the two blocks, as a fence opener ``` can become a code span.
+			if (
+				finished.length > 0 &&
+				tail.startsWith(finishedRaw) &&
+				(finished.at(-1)?.type === "space" || tail.includes("\n", finishedRaw.length))
+			) {
 				frozen = [...frozen, ...contentTokens(finished)];
 				frozenSource += finishedRaw;
+				frozenReadLinks ||= Object.keys(tokens.links).length > 0;
 				addDefinitions(frozenLinks, finished);
 			}
 			const blocks = [...frozen, ...contentTokens(tokens.slice(finished.length))];

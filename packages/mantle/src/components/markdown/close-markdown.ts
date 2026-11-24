@@ -52,6 +52,8 @@ const LIST_MARKER = /^(?:[-*+]|\d{1,9}[.)])(?: |$)/;
 const HEADING = /^#{1,6}(?: |$)/;
 const THEMATIC_BREAK = /^([-*_])(?: *\1){2,} *$/;
 const FENCE = /^(`{3,}|~{3,})(.*)$/;
+/** An unfinished character reference that runs to the end. Why sticky: a test at each `&` reads only its run. */
+const ENTITY_TAIL = /&#?[a-z0-9]*$/iy;
 /** The list markers at the start of a line's content, such as `- ` or `1. - `. */
 const LIST_MARKERS = /^(?:(?:[-*+]|\d{1,9}[.)])[ \t]+)+/;
 
@@ -69,6 +71,27 @@ function indentOf(line: string): number {
 		}
 	}
 }
+
+/** The columns of a line's indent after its blockquote markers, each with its one optional space. */
+function indentAfterQuotes(line: string): number {
+	let index = 0;
+	for (;;) {
+		let spaces = 0;
+		while (spaces < 3 && line.charCodeAt(index + spaces) === 32) {
+			spaces += 1;
+		}
+		if (line.charCodeAt(index + spaces) !== 62) {
+			return indentOf(line.slice(index));
+		}
+		index += spaces + 1;
+		if (line.charCodeAt(index) === 32) {
+			index += 1;
+		}
+	}
+}
+
+/** A list marker and the spaces after it. */
+const LIST_MARKER_WIDTH = /^(?:[-*+]|\d{1,9}[.)])[ \t]*/;
 
 /** The content of a line after its indent and blockquote markers. */
 function lineContent(line: string): string {
@@ -89,9 +112,11 @@ function scanBlocks(text: string, { math }: { math: boolean }): BlockScan {
 	let fence: { char: string; length: number } | undefined;
 	let inMath = false;
 	let inIndentedCode = false;
-	// Why: indented code cannot start inside a paragraph, and an indented line in a list is the item's content.
+	// Why: indented code cannot start inside a paragraph, and in a list it starts 4 columns past the item's content.
 	let inParagraph = false;
 	let inList = false;
+	let listColumn = 0;
+	let codeColumn = 0;
 	let regionStart = 0;
 	let afterSingleLineBlock = false;
 	let lineStart = 0;
@@ -122,17 +147,18 @@ function scanBlocks(text: string, { math }: { math: boolean }): BlockScan {
 			}
 		} else if (
 			inIndentedCode &&
-			(content.trim() === "" || indentOf(text.slice(lineStart, lineEnd)) >= 4)
+			(content.trim() === "" || indentAfterQuotes(text.slice(lineStart, lineEnd)) >= codeColumn)
 		) {
 			// The indented code goes on.
 		} else {
 			inIndentedCode = false;
-			const indent = indentOf(text.slice(lineStart, lineEnd));
+			const indent = indentAfterQuotes(text.slice(lineStart, lineEnd));
 			// Why without the list markers: a fence can start on the line of its item's marker.
 			const open = FENCE.exec(content.replace(LIST_MARKERS, ""));
 			const marker = open?.[1];
-			if (content.trim() !== "" && indent >= 4 && !inParagraph && !inList) {
+			if (content.trim() !== "" && indent >= (inList ? listColumn : 0) + 4 && !inParagraph) {
 				inIndentedCode = true;
+				codeColumn = (inList ? listColumn : 0) + 4;
 				regionStart = nextStart;
 			} else if (marker != null && !(marker.startsWith("`") && open?.[2]?.includes("`"))) {
 				fence = { char: marker.slice(0, 1), length: marker.length };
@@ -158,6 +184,7 @@ function scanBlocks(text: string, { math }: { math: boolean }): BlockScan {
 					!THEMATIC_BREAK.test(content);
 				if (LIST_MARKER.test(content)) {
 					inList = true;
+					listColumn = indent + (LIST_MARKER_WIDTH.exec(content)?.[0].length ?? 0);
 				} else if (indent === 0 && content.trim() !== "") {
 					inList = false;
 				}
@@ -347,6 +374,9 @@ function closeInline(region: string): string {
 	let end = region.length;
 	let suffix = "";
 	let index = 0;
+	// The next `>` and line break, or -1 for none. Why cached: a search for each `<` is quadratic.
+	let nextClose = -2;
+	let nextNewline = -2;
 
 	scan: while (index < region.length) {
 		const code = region.charCodeAt(index);
@@ -375,13 +405,17 @@ function closeInline(region: string): string {
 			break;
 		}
 		if (char === "<") {
-			const close = region.indexOf(">", index);
-			const newline = region.indexOf("\n", index);
-			if (close !== -1 && (newline === -1 || close < newline)) {
-				index = close + 1;
+			if (nextClose !== -1 && nextClose < index) {
+				nextClose = region.indexOf(">", index);
+			}
+			if (nextNewline !== -1 && nextNewline < index) {
+				nextNewline = region.indexOf("\n", index);
+			}
+			if (nextClose !== -1 && (nextNewline === -1 || nextClose < nextNewline)) {
+				index = nextClose + 1;
 				continue;
 			}
-			if (/^<(?:[a-z/!]|$)/i.test(region.slice(index, index + 2)) && newline === -1) {
+			if (/^<(?:[a-z/!]|$)/i.test(region.slice(index, index + 2)) && nextNewline === -1) {
 				end = index;
 				break;
 			}
@@ -389,7 +423,8 @@ function closeInline(region: string): string {
 			continue;
 		}
 		if (char === "&") {
-			if (/^&#?[a-z0-9]*$/i.test(region.slice(index))) {
+			ENTITY_TAIL.lastIndex = index;
+			if (ENTITY_TAIL.test(region)) {
 				end = index;
 				break;
 			}

@@ -172,7 +172,10 @@ describe("Markdown", () => {
 	});
 
 	test("decodes character references in a link destination before its check", () => {
-		render(<Markdown>{"[q](/s?a=1&amp;b=2) [x](&#106;avascript:alert(1))"}</Markdown>);
+		render(
+			<Markdown>{"[q](/s?a=1&amp;b=2) [x](&#106;avascript:alert(1)) &constructor;"}</Markdown>,
+		);
+		expect(screen.getByText(/&constructor;/)).toBeInTheDocument();
 		expect(screen.getByRole("link", { name: "q" })).toHaveAttribute("href", "/s?a=1&b=2");
 		expect(screen.queryByRole("link", { name: "x" })).toBeNull();
 	});
@@ -182,6 +185,19 @@ describe("Markdown", () => {
 		render(<Markdown>{"x <b>".repeat(8000)}</Markdown>);
 		// Why 1,000 ms: a scan for each unclosed tag takes seconds here, and one pass takes milliseconds.
 		expect(performance.now() - start).toBeLessThan(1000);
+	});
+
+	test("keeps one element for each token when an inline run changes", () => {
+		const { container, rerender } = render(<Markdown>{"x <b>y *z*</b> a **b** c `d` e"}</Markdown>);
+		rerender(<Markdown>{"x <b>y z</b> a **b** c `d` e"}</Markdown>);
+		expect(container.querySelectorAll("strong")).toHaveLength(1);
+		expect(container).toHaveTextContent(/^x y z a b c d e$/);
+	});
+
+	test("renders each item of a list as loose when a later blank line makes the list loose", () => {
+		const { container, rerender } = render(<Markdown streaming>{"- a\n- b"}</Markdown>);
+		rerender(<Markdown>{"- a\n- b\n\n- c"}</Markdown>);
+		expect(container.querySelectorAll("li > p")).toHaveLength(3);
 	});
 
 	test("renders inline HTML with an `html` component when one is set", () => {
