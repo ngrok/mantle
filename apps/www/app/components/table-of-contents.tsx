@@ -133,10 +133,10 @@ export function TableOfContents({ entries }: { entries: Array<TocEntry> }) {
 	return (
 		<nav
 			aria-label="Table of contents"
-			// Why wider than its 10rem aside: the nav grows into the page margin beside
-			// the `max-w-7xl` frame, up to 15rem, so long API names fit and the content
+			// Why wider than its 10rem aside: the nav grows into the side margin of the
+			// `PageContainer` frame, up to 15rem, so long API names fit and the content
 			// column keeps its width. An entry that still does not fit wraps.
-			className="sticky top-15 flex max-h-[calc(100vh-3.75rem)] w-[min(15rem,calc(10rem+(100vw-var(--container-7xl))/2))] flex-col pt-4"
+			className="sticky top-15 flex max-h-[calc(100vh-3.75rem)] w-[min(15rem,calc(10rem+max(0px,(100vw-var(--page-max-width))/2)))] flex-col pt-4"
 		>
 			<p className="mb-3 text-xs font-medium uppercase tracking-wider font-mono">On this page</p>
 			<div className="scroll-fade-y scrollbar min-h-0 flex-1 overflow-y-auto pb-4">
