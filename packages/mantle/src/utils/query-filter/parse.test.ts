@@ -462,10 +462,14 @@ describe("toggleFacet", () => {
 		).toBe("");
 	});
 
-	test("replaces the opposite qualifier", () => {
+	test("replaces the opposite qualifier in its place", () => {
 		expect(toggleFacet({ grammar: testGrammar, query: "-is:shared api", facet: shared })).toBe(
-			"api is:shared",
+			"is:shared api",
 		);
+		// Appending instead would turn the `api` alternative into a required term.
+		expect(
+			toggleFacet({ grammar: testGrammar, query: "NOT is:shared OR api", facet: shared }),
+		).toBe("is:shared OR api");
 	});
 
 	test("keeps a list as written, and drops an operator beside a removed qualifier", () => {
@@ -486,7 +490,7 @@ describe("toggleFacet", () => {
 			}),
 		).toBe("api");
 		expect(toggleFacet({ grammar: testGrammar, query: "NOT is:shared api", facet: shared })).toBe(
-			"api is:shared",
+			"is:shared api",
 		);
 	});
 
@@ -495,11 +499,59 @@ describe("toggleFacet", () => {
 			toggleFacet({ grammar: testGrammar, query: "NOT NOT is:shared api", facet: shared }),
 		).toBe("api");
 		expect(toggleFacet({ grammar: testGrammar, query: "NOT (is:shared) api", facet: shared })).toBe(
-			"api is:shared",
+			"is:shared api",
+		);
+		// Inside a kept negated group, the replacement goes after the group, not into it.
+		expect(toggleFacet({ grammar: testGrammar, query: "NOT (is:shared api)", facet: shared })).toBe(
+			"NOT (api) is:shared",
 		);
 		expect(
 			toggleFacet({ grammar: testGrammar, query: "(is:shared OR is:new) api", facet: shared }),
 		).toBe("(is:new) api");
+	});
+
+	test("keeps the OR between the alternatives left beside a removed one", () => {
+		expect(
+			toggleFacet({
+				grammar: testGrammar,
+				query: "api OR NOT (is:shared) OR lemur",
+				facet: { ...shared, negated: true },
+			}),
+		).toBe("api OR lemur");
+	});
+
+	test("takes out a group the query leaves open, so the new qualifier is not inside it", () => {
+		expect(toggleFacet({ grammar: testGrammar, query: "NOT (is:shared", facet: shared })).toBe(
+			"is:shared",
+		);
+		expect(toggleFacet({ grammar: testGrammar, query: "NOT (api", facet: shared })).toBe(
+			"NOT (api) is:shared",
+		);
+	});
+
+	test("compares a typed qualifier by its operator and value", () => {
+		const region = { key: "region", value: "us", negated: false };
+		expect(toggleFacet({ grammar: typedTestGrammar, query: "region:=us", facet: region })).toBe("");
+		expect(
+			toggleFacet({
+				grammar: typedTestGrammar,
+				query: "name:api*",
+				facet: { key: "name", value: "api*", negated: false },
+			}),
+		).toBe('name:api* name:"api*"');
+	});
+
+	test("writes a value as is where the grammar reads no quotes", () => {
+		const grammar = defineRemoteFilterGrammar({
+			keys: [{ key: "state", description: "State", values: [{ value: "ready(us)" }] }],
+		});
+		expect(
+			toggleFacet({
+				grammar,
+				query: "",
+				facet: { key: "state", value: "ready(us)", negated: false },
+			}),
+		).toBe("state:ready(us)");
 	});
 
 	test("quotes a value that needs quotes", () => {
@@ -520,6 +572,12 @@ describe("findTokenAtCaret", () => {
 		expect(findTokenAtCaret(tokens, 0)).toMatchObject({ key: "is" });
 		expect(findTokenAtCaret(tokens, 6)).toMatchObject({ key: "is" });
 		expect(findTokenAtCaret(tokens, 7)).toMatchObject({ text: "acme" });
+	});
+
+	test("claims the word, not the parenthesis, for a caret between them", () => {
+		expect(findTokenAtCaret(parseFilterQuery(testGrammar, "(is:new)"), 1)).toMatchObject({
+			key: "is",
+		});
 	});
 
 	test("claims no token for a caret parked in whitespace", () => {

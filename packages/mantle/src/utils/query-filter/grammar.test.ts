@@ -1,6 +1,11 @@
 import { describe, expect, test } from "vitest";
 
-import { acceptsValueList, defineRemoteFilterGrammar, getFilterSyntax } from "./grammar.js";
+import {
+	acceptsValueList,
+	defineRemoteFilterGrammar,
+	getFilterOperators,
+	getFilterSyntax,
+} from "./grammar.js";
 import { getHighlightSegments } from "./highlight.js";
 import { parseFilterQuery } from "./parse.js";
 import { getFilterSuggestions } from "./suggestions.js";
@@ -38,6 +43,12 @@ describe("getFilterSyntax", () => {
 
 	test("reads the conjunction syntax a remote grammar declares", () => {
 		expect(getFilterSyntax(conjunctionGrammar)).toBe("conjunction");
+	});
+});
+
+describe("getFilterOperators", () => {
+	test("limits a type's operators and adds none it does not parse", () => {
+		expect(getFilterOperators({ type: "text", operators: ["equals", "gt"] })).toEqual(["equals"]);
 	});
 });
 

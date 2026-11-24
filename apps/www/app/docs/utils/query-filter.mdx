@@ -16,6 +16,7 @@ import {
 	filterItemsByTokens,
 	findTokenAtCaret,
 	formatFacet,
+	getEffectiveNegations,
 	getFilterKeyDefinition,
 	getFilterOperators,
 	getFilterSuggestions,
@@ -140,7 +141,7 @@ const deploymentFilterGrammar: FilterGrammar<Deployment> = {
 | `"number"`   | `replicas:3`, `replicas:>3`, `replicas:<=3`       | Equals, more than, at most. `>=` and `<` work too.            |
 | `"number"`   | `replicas:2..5`                                   | From 2 to 5, both ends included.                              |
 | `"date"`     | `created:2026-01-31`, `created:<2026-01-31`       | On that UTC day, before it. A date and time works too.        |
-| `"date"`     | `created:>7d`                                     | In the last 7 days. A duration counts back from the clock.    |
+| `"date"`     | `created:>7d`                                     | After 7 days ago. A duration counts back from the clock.      |
 | `"duration"` | `uptime:>90s`, `uptime:1h30m`                     | Longer than 90 seconds. Units: `ms`, `s`, `m`, `h`, `d`, `w`. |
 | `"boolean"`  | `canary:true`                                     | The field is `true`.                                          |
 | `"enum"`     | `state:live`                                      | One of the key's `values`.                                    |
@@ -205,6 +206,7 @@ parseFilterQuery(projectFilterGrammar, "is:shared -acme");
 ```
 
 - `formatFacet({ key, value, negated })` writes a qualifier in its canonical form, with quotes where the value needs them.
+- `getEffectiveNegations(tokens)` reads whether each token excludes in effect: by its own `-` or `!`, by each `NOT` before it, and by each negated group around it. Read it, not `token.negated`, to show whether a filter is on.
 - `toggleFacet({ grammar, query, facet })` adds a qualifier, or takes it out when the query has it. The [Filter from a value](/recipes/filter-from-a-value) recipe uses it for a value a person selects in a table row.
 - `queryUsesQualifiers(grammar, query)` reports whether a query holds a qualifier. Use it to pick the advice in a filtered-empty state.
 - `getFilterSuggestions` and `getHighlightSegments` are what `Query` renders. Use them to build your own field.
@@ -230,8 +232,9 @@ The tree comes normalized, so a compiler handles few shapes:
 
 - A comma list is an `or` of one `facet` node for each value.
 - A `not` node wraps one `facet` or `text` node. `NOT (a OR b)` arrives as `a` and `b`, each negated.
-- `{ kind: "and", children: [] }` matches every item, and `{ kind: "or", children: [] }` matches none. They stand for a filter still being typed and for one nothing can satisfy, such as an unknown value.
+- `{ kind: "and", children: [] }` matches every item, and `{ kind: "or", children: [] }` matches none. They stand for a filter nothing can satisfy, such as an unknown value, and for its exclusion. A whole query that excludes a key with `negatable: false` arrives as `{ kind: "or", children: [] }`. A qualifier still being typed, such as `is:`, drops out of its group, and a query of nothing else arrives as `{ kind: "and", children: [] }`.
 - A `"date"` operand is an ISO 8601 string: a date alone means that whole UTC day. A `"duration"` operand is milliseconds; on a date key, it counts back from now.
+- A `"range"` keeps `from` and `to` in the order they were written, and `replicas:5..2` keeps the same items as `replicas:2..5`. Use the smaller bound as the lower bound. On a date key, resolve a duration bound to a date first.
 
 It returns `null` when the query asks nothing, so send no filter at all.
 

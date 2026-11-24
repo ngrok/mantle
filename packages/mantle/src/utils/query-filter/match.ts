@@ -135,22 +135,22 @@ function compileFacet<Item>(
 		return false;
 	}
 	const { comparison } = node;
+	// Why method calls: a grammar can define `matches` or `getValue` as a method
+	// that reads `this`, so the test must not detach it from its key.
 	if (definition.matches != null) {
-		const { matches } = definition;
 		// A key with no type only ever parses to text equality.
 		if (comparison.operator !== "equals" || comparison.operand.type !== "text") {
 			return false;
 		}
 		const value = comparison.operand.value;
-		return (item) => matches(item, value, context);
+		return (item) => definition.matches(item, value, context);
 	}
-	const { getValue } = definition;
 	const compare = compileComparison({
 		type: getFilterValueType(definition),
 		comparison,
 		now: context.now,
 	});
-	return (item) => compare(getValue(item));
+	return (item) => compare(definition.getValue(item));
 }
 
 /**

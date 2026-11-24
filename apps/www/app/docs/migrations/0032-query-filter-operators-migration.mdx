@@ -21,9 +21,11 @@ Codemod: manual: each step depends on what the call site does with a token or a 
 1. Search for `parseFilterQuery(` and for the `FilterToken` type. Where code switches on `token.kind` or compares it with `"or"` or `"and"`, decide what `"not"`, `"group-start"`, and `"group-end"` mean there. A check that a query holds only qualifiers keeps working: it already rejects every kind but `"facet"`.
 2. Where code rebuilds the `OR` groups from the token list, replace that code with `parseFilterExpression(grammar, query)` and walk its `and`, `or`, `not`, `facet`, and `text` nodes. The tree has the grouping and the negation of `NOT`, `!`, and parentheses already applied.
 3. Search for `.matches(` on a value typed `FilterKeyDefinition`. Narrow it first: `if (definition.matches != null) { definition.matches(item, value, context) }`. A key literal in a grammar needs no change.
-4. Search stored queries, saved views, and `?q=` links for a term that starts with `!`, the bare word `NOT`, and a term that starts with `(` or ends with `)`. Each one now parses as structure. To keep one as a search term, quote it: `"!important"`, `"NOT"`, `"(beta)"`.
-5. Leave a grammar under the `"qualifiers"` syntax alone. It reads `NOT`, `!`, and parentheses as text, as it reads `-`.
-6. After editing, run the project's formatter, linter, type checker, and tests.
+4. Search for `.negated` on a token. Where code reads it as whether a filter excludes, as for a pressed state, read `getEffectiveNegations(tokens)[index]` instead. A `NOT` or a negated group around a token negates it too, so `NOT -is:shared` includes.
+5. Where code stores or builds `FilterToken` values, such as a token cache or a fixture, parse the query again with `parseFilterQuery`. A qualifier member now carries `operator` and `comparison`, and `filterItemsByTokens` reads a member with no `comparison` as a filter that matches no item.
+6. Search stored queries, saved views, and `?q=` links for a term that starts with `!`, the bare word `NOT`, and a term that starts with `(`. Each one now parses as structure, and a later `)` closes the group. To keep one as a search term, quote it, and keep a leading `-` outside the quotes: `"!important"`, `"NOT"`, `-"(beta)"`. A `)` inside a qualifier value outside a group, as in `name:fn(x)`, stays part of the value, so leave it as written.
+7. Leave a grammar under the `"qualifiers"` syntax alone. It reads `NOT`, `!`, and parentheses as text, as it reads `-`.
+8. After editing, run the project's formatter, linter, type checker, and tests.
 
 > **Why change the language?** A list could not say "created in the last 7 days", "3 or more replicas", or "name starts with api-" in a way the field could check, suggest, and paint. Each app parsed its own operators out of the value. The operators, the typed keys, and the tree now live in the language, so every list and every backend reads one query the same way.
 
@@ -113,4 +115,4 @@ const savedQuery = '"!important" is:open';
 
 ## How to verify
 
-Run the type checker: a `switch` on `token.kind` with an exhaustive check names each missing kind, and a call to `matches` on the union names each missing narrow. Then run `checkFilterQuery(grammar, query)` on each stored query from step 4. It must report nothing new.
+Run the type checker: a `switch` on `token.kind` with an exhaustive check names each missing kind, and a call to `matches` on the union names each missing narrow. Then, for each stored query from step 6, read `parseFilterExpression(grammar, query)` and check that it holds the filters the saved view meant. `checkFilterQuery` alone cannot show this: a term that became a group, and a qualifier that became a quoted search term, both report nothing.

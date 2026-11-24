@@ -8,13 +8,14 @@ Add comparison and match operators, typed keys, grouping, and an expression tree
 - `NOT` and a leading `!` exclude, as `-` does. Parentheses group: `(is:shared OR is:new) -name:api*`. `OR` binds looser than `AND`, and both bind looser than `NOT`.
 - `parseFilterExpression` returns the query as a tree of `and`, `or`, `not`, `facet`, and `text` nodes, with the comma lists, the negations, and the constants normalized. Compile it to your backend's query language.
 - `defineRemoteFilterGrammar` accepts `syntax: "full"` and typed keys.
+- `getEffectiveNegations(tokens)` reads whether each token excludes in effect, through each `NOT` and each negated group around it.
 - The suggestions offer the comparisons of a number, date, or duration key, recent windows such as `>7d` for a date key, `true` and `false` for a boolean key, and the exact, prefix, and suffix forms of a word typed into a text key. `Query.Legend` names the comparisons and groups when the grammar has them.
-- `filterItemsByQuery` compiles the query into one test before it scans. In our benchmark of 50,000 items, `is:active` went from 0.93 ms to 0.49 ms, and no query got slower.
+- `filterItemsByQuery` compiles the query into one test before it scans. In our benchmark of 50,000 items, `is:active` went from 1.43 ms to 0.88 ms, and no filter query got slower. Parsing a query costs about 0.1 µs more.
 
 This is a breaking change:
 
 - `FilterToken` has three new kinds: `"not"`, `"group-start"`, and `"group-end"`. Handle them where you switch on `token.kind`.
 - `FilterKeyDefinition` is a union of a key with `matches` and a typed key with `getValue`. Narrow a key with `definition.matches != null` before you call `matches`.
-- Under the `"full"` and `"conjunction"` syntax, a term that starts with `!`, the bare word `NOT`, and a `(` or `)` at the edge of a term now parse as structure. Quote such a term to keep searching for it: `"!important"`. `quoteFilterValue` now also quotes a value with a parenthesis, a leading `=` or `*`, or a trailing `*`, so a typed key reads it as text. Groups nest 32 deep at most.
+- Under the `"full"` and `"conjunction"` syntax, a term that starts with `!`, the bare word `NOT`, and a term that starts with `(` now parse as structure, and a later `)` closes the group. Quote such a term to keep searching for it: `"!important"`. `quoteFilterValue` now also quotes a value with a parenthesis, a leading `=` or `*`, or a trailing `*`, so a typed key reads it as text. Groups nest 32 deep at most.
 
 See the [migration guide](https://mantle.ngrok.com/migrations/0032-query-filter-operators-migration).

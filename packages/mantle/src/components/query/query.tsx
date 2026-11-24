@@ -1268,11 +1268,35 @@ function Empty({ "data-slot": dataSlot, children, className, ...props }: QueryEm
 }
 
 /** What a number, date, or duration key takes, for the empty message. */
-const typedValueHints = {
-	number: "Takes a number, as in >3 or 2..5.",
-	date: "Takes a date, as in 2026-01-31, or a time back from now, as in >7d.",
-	duration: "Takes a duration, as in >90s or 1h30m.",
+const typedValueNouns = {
+	number: "a number",
+	date: "a date or a time back from now",
+	duration: "a duration",
 } as const;
+
+/** One example for each operator of a number, date, or duration key, best first. */
+const typedValueExamples = {
+	number: { gt: ">3", range: "2..5", equals: "3", gte: ">=3", lt: "<3", lte: "<=3" },
+	date: {
+		gt: ">7d",
+		equals: "2026-01-31",
+		range: "2026-01-01..2026-01-31",
+		gte: ">=7d",
+		lt: "<2026-01-31",
+		lte: "<=2026-01-31",
+	},
+	duration: {
+		gt: ">90s",
+		equals: "1h30m",
+		range: "1m..5m",
+		gte: ">=90s",
+		lt: "<90s",
+		lte: "<=90s",
+	},
+} as const;
+
+/** The comparison symbols, in the order the legend prefers them. */
+const comparisonTokens = { gt: ">", gte: ">=", lt: "<", lte: "<=" } as const;
 
 /** What the field accepts at the caret, from the grammar. */
 function EmptyMessage({
@@ -1299,10 +1323,16 @@ function EmptyMessage({
 	}
 	const type = getFilterValueType(definition);
 	if (type === "number" || type === "date" || type === "duration") {
+		// Only the operators the key accepts, so each example is a valid filter.
+		const operators = getFilterOperators(definition);
+		const examples = Object.entries(typedValueExamples[type])
+			.filter(([operator]) => operators.some((accepted) => accepted === operator))
+			.slice(0, 2)
+			.map(([, example]) => example);
 		return (
 			<p key={`${type}-value`}>
 				<SyntaxRule token={`${definition.key}:`}>
-					{`${definition.description}. ${typedValueHints[type]}`}
+					{`${definition.description}. Takes ${typedValueNouns[type]}, as in ${examples.join(" or ")}.`}
 				</SyntaxRule>
 			</p>
 		);
@@ -1445,10 +1475,15 @@ function Legend({ "data-slot": dataSlot, className, ...props }: QueryLegendProps
 	const excludes = keys.some((definition) => definition.negatable !== false);
 	const accepts = (operator: FilterOperator) =>
 		keys.some((definition) => getFilterOperators(definition).includes(operator));
+	const comparison = Object.entries(comparisonTokens).find(([operator]) =>
+		keys.some((definition) =>
+			getFilterOperators(definition).some((accepted) => accepted === operator),
+		),
+	);
 	const rules = [
 		excludes && { token: "-key:value", text: "excludes" },
 		{ token: "key:a,b", text: "matches either" },
-		accepts("gt") && { token: "key:>n", text: "compares" },
+		comparison != null && { token: `key:${comparison[1]}n`, text: "compares" },
 		accepts("starts-with") && { token: "key:a*", text: "starts with" },
 		syntax === "full" && { token: "OR", text: "joins filters" },
 		syntax === "full" && { token: "(a OR b)", text: "groups" },

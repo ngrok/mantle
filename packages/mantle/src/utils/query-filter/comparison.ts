@@ -112,8 +112,12 @@ function parseDuration(text: string): number | null {
 		return null;
 	}
 	let total = 0;
-	for (const [, amount, unit] of text.matchAll(durationPartPattern)) {
-		total += Number(amount) * (durationUnits[unit ?? ""] ?? Number.NaN);
+	for (const [, amount = "", unit = ""] of text.matchAll(durationPartPattern)) {
+		// Why integer math: `1.001 * 1000` is 1000.9999…, so scale the digits
+		// first and divide once, and `1.001s` equals `1001ms`.
+		const [whole = "", fraction = ""] = amount.split(".");
+		const scale = 10 ** fraction.length;
+		total += (Number(whole + fraction) * (durationUnits[unit] ?? Number.NaN)) / scale;
 	}
 	return Number.isFinite(total) ? total : null;
 }
@@ -253,7 +257,9 @@ function parseOrderedOperand(
 	text: string,
 ): FilterOperand | null {
 	if (type === "number") {
-		return numberPattern.test(text) ? { type: "number", value: Number(text) } : null;
+		const value = Number(text);
+		// A long run of digits passes the pattern but overflows to `Infinity`.
+		return numberPattern.test(text) && Number.isFinite(value) ? { type: "number", value } : null;
 	}
 	const duration = parseDuration(text);
 	if (duration != null) {
@@ -266,7 +272,13 @@ function parseOrderedOperand(
 	if (Number.isNaN(epoch)) {
 		return null;
 	}
-	return { type: "date", value: text.length === 10 ? text : new Date(epoch).toISOString() };
+	if (text.length === 10) {
+		return { type: "date", value: text };
+	}
+	// An offset can move a four-digit year past 9999 or before 0000 in UTC, where
+	// `toISOString` writes an expanded year that no date operand reads back.
+	const iso = new Date(epoch).toISOString();
+	return iso.length === 24 ? { type: "date", value: iso } : null;
 }
 
 /**
@@ -318,7 +330,10 @@ function parseTextComparison({ key, source, literal }: TypedMember): ParsedCompa
 	}
 
 	const leading = source.startsWith("*");
-	const trailing = source.length > 1 && source.endsWith("*") && !endsInsideQuotes(source);
+	// A source that equals its literal has no quotes to read, as in a
+	// `"qualifiers"` grammar, where `"` is text.
+	const trailing =
+		source.length > 1 && source.endsWith("*") && (source === literal || !endsInsideQuotes(source));
 	if (!leading && !trailing) {
 		const operator = getFilterOperators(key).includes("contains") ? "contains" : "equals";
 		return {
@@ -378,7 +393,8 @@ function parseOrderedComparison({
 }): ParsedComparison {
 	const prefix = comparisonPrefixPattern.exec(source)?.[0];
 	const body = prefix == null ? literal : literal.slice(prefix.length);
-	const rangeIndex = prefix == null ? body.indexOf("..") : -1;
+	// A quoted `..` is text, so a range must be written outside quotes.
+	const rangeIndex = prefix == null && source === literal ? body.indexOf("..") : -1;
 
 	if (rangeIndex !== -1) {
 		const from = parseOrderedOperand(type, body.slice(0, rangeIndex));
@@ -558,7 +574,7 @@ function matchesText(operator: FilterOperator, field: string, operand: string) {
  * @example
  * ```ts
  * const isRecent = compileComparison({ type: "date", comparison, now: Date.now() });
- * isRecent(project.createdAt); // => true for a project from the last 7 days, with `created:>7d`
+ * isRecent(project.createdAt); // => true for a project created after 7 days ago, with `created:>7d`
  * ```
  */
 function compileComparison({

@@ -1459,9 +1459,23 @@ describe("Query.Content", () => {
 		type(input, "created:2026");
 		expect(
 			await screen.findByText(
-				"When it was created. Takes a date, as in 2026-01-31, or a time back from now, as in >7d.",
+				"When it was created. Takes a date or a time back from now, as in >7d or 2026-01-31.",
 			),
 		).toBeInTheDocument();
+	});
+
+	test("gives only examples and a legend rule that the key's operators accept", async () => {
+		const input = renderRemoteQuery(
+			defineRemoteFilterGrammar({
+				syntax: "full",
+				keys: [{ key: "n", description: "Count", type: "number", operators: ["lte"] }],
+			}),
+		);
+
+		input.focus();
+		type(input, "n:x");
+		expect(await screen.findByText("Count. Takes a number, as in <=3.")).toBeInTheDocument();
+		expect(input).toHaveAccessibleDescription(/key:<=n compares/);
 	});
 
 	test("leaves exclusions out of the legend when no key can exclude", async () => {

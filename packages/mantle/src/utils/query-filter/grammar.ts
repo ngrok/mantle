@@ -47,7 +47,7 @@ type FilterMatchContext = {
  * - `"number"`: a decimal such as `3` or `-1.5`.
  * - `"date"`: an ISO 8601 date (`2026-01-31`) or date and time
  *   (`2026-01-31T12:00Z`, UTC without an offset). A duration such as `7d`
- *   counts back from the clock, so `key:>7d` keeps the last 7 days.
+ *   counts back from the clock, so `key:>7d` keeps the dates after 7 days ago.
  * - `"duration"`: a number with a unit (`ms`, `s`, `m`, `h`, `d`, `w`), such
  *   as `250ms` or `1h30m`.
  * - `"boolean"`: `true` or `false`.
@@ -393,7 +393,9 @@ function getFilterOperators(definition: FilterValueShape): readonly FilterOperat
 	if (definition.type == null) {
 		return operatorsByType.enum;
 	}
-	return definition.operators ?? operatorsByType[definition.type];
+	const supported: readonly FilterOperator[] = operatorsByType[definition.type];
+	// `operators` limits the type's operators; it cannot add one the type does not parse.
+	return definition.operators?.filter((operator) => supported.includes(operator)) ?? supported;
 }
 
 /** One qualifier of a remote grammar: a key definition without the client-side test. */

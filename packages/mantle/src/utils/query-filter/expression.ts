@@ -69,7 +69,11 @@ function combine(kind: "and" | "or", parts: readonly FilterExpression[]): Filter
 	const children: FilterExpression[] = [];
 	for (const part of parts) {
 		if (part.kind === kind) {
-			children.push(...part.children);
+			// Why a loop: a spread passes each child as an argument, and a wide
+			// node can pass the engine's argument limit.
+			for (const child of part.children) {
+				children.push(child);
+			}
 		} else if (part.kind === absorbing && part.children.length === 0) {
 			return part;
 		} else {
@@ -80,20 +84,21 @@ function combine(kind: "and" | "or", parts: readonly FilterExpression[]): Filter
 	return children.length === 1 && onlyChild != null ? onlyChild : { kind, children };
 }
 
-/** Builds the nodes of one qualifier, negated by De Morgan's laws when `negated`. */
+/**
+ * Builds the nodes of one qualifier, negated by De Morgan's laws when `negated`.
+ *
+ * @returns `null` when the qualifier has no members yet.
+ */
 function toFacetExpression<Item>(
 	grammar: FilterGrammar<Item>,
 	token: FacetToken,
 	{ negated }: { negated: boolean },
-): FilterExpression {
-	// A qualifier with no members yet (`is:`, `is:,`) is mid-token; filtering
-	// on nothing would empty the list under the user.
+): FilterExpression | null {
+	// A qualifier with no members yet (`is:`, `is:,`) is mid-token. It drops
+	// out, as an empty group does: a constant in its place would flip meaning
+	// when a negation turns its `and` into an `or`.
 	if (token.members.length === 0) {
-		return always();
-	}
-	// An exclusion the executor cannot run is a filter nothing satisfies.
-	if (negated && getFilterKeyDefinition(grammar, token.key)?.negatable === false) {
-		return never();
+		return null;
 	}
 	const leaves = token.members.map((member): FilterExpression => {
 		// A member that does not parse matches nothing, so its negation excludes nothing.
@@ -126,6 +131,13 @@ function toFilterExpression<Item>(
 	tokens: readonly FilterToken[],
 ): FilterExpression | null {
 	let index = 0;
+	// An exclusion the executor cannot run makes the whole query match nothing.
+	// A `never` leaf in its place would drop out of the `or` that a negated
+	// group becomes, and run a different, valid filter.
+	let forbidden = false;
+	// A qualifier still being typed drops out of its group. A query of nothing
+	// else still matches every item, as it did before the qualifier had a value.
+	let typing = false;
 
 	function parseUnary(negated: boolean): FilterExpression | null {
 		let flipped = negated;
@@ -153,6 +165,14 @@ function toFilterExpression<Item>(
 				return inner;
 			}
 			case "facet":
+				if (
+					negate &&
+					token.members.length > 0 &&
+					getFilterKeyDefinition(grammar, token.key)?.negatable === false
+				) {
+					forbidden = true;
+				}
+				typing ||= token.members.length === 0;
 				return toFacetExpression(grammar, token, { negated: negate });
 			default: {
 				const leaf: FilterTextNode = {
@@ -214,7 +234,13 @@ function toFilterExpression<Item>(
 			index += 1;
 		}
 	}
-	return parts.length === 0 ? null : combine("and", parts);
+	if (forbidden) {
+		return never();
+	}
+	if (parts.length === 0) {
+		return typing ? always() : null;
+	}
+	return combine("and", parts);
 }
 
 /**

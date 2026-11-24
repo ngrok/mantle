@@ -88,11 +88,29 @@ describe("describeFilterGrammar with typed keys", () => {
 		const untypedRules = describeFilterGrammar(testGrammar).rules.join(" ");
 
 		expect(typedRules).toContain("`key:>a`");
-		expect(typedRules).toContain("`key:>7d` keeps the last 7 days");
+		expect(typedRules).toContain("`key:>7d` keeps the dates after 7 days ago");
 		expect(typedRules).toContain("`key:a*` starts with a");
 		expect(untypedRules).not.toMatch(/key:>a|7d|starts with/);
 		expect(untypedRules).toContain("`NOT key:value`");
 		expect(untypedRules).toContain("Parentheses group");
+	});
+
+	test("teaches only the operators a key accepts", () => {
+		const rules = describeFilterGrammar({
+			keys: [
+				{
+					key: "count",
+					description: "Count",
+					type: "number",
+					operators: ["gt"],
+					getValue: (item: { count: number }) => item.count,
+				},
+			],
+			getSearchText: () => "",
+		}).rules.join(" ");
+
+		expect(rules).toContain("`key:>a` compare");
+		expect(rules).not.toMatch(/key:<a|key:>=a|a\.\.b/);
 	});
 });
 
@@ -159,6 +177,12 @@ describe("checkFilterQuery", () => {
 			{ kind: "invalid-value", key: "replicas", value: "many", start: 9, end: 13 },
 			{ kind: "unsupported-operator", key: "latency", operator: "lt", start: 22, end: 25 },
 			{ kind: "unknown-value", key: "state", value: "bogus", start: 32, end: 37 },
+		]);
+	});
+
+	test("reports a date that leaves the four-digit years in UTC", () => {
+		expect(checkFilterQuery(typedTestGrammar, "created:9999-12-31T23:59-01:00")).toMatchObject([
+			{ kind: "invalid-value", key: "created" },
 		]);
 	});
 

@@ -87,18 +87,45 @@ function describeFilterGrammar<Item>(grammar: FilterGrammar<Item>): FilterGramma
 		acceptsList: acceptsValueList(grammar, definition),
 	}));
 
-	const accepts = (operator: FilterOperator) =>
-		keys.some((key) => key.operators.includes(operator));
+	// Why typed keys only: a key with no type reads `=a` and `a*` as the value itself.
+	const typedOperators = (types: readonly FilterValueType[]) =>
+		new Set(
+			grammar.keys
+				.filter((definition) => definition.type != null && types.includes(definition.type))
+				.flatMap((definition) => getFilterOperators(definition)),
+		);
+	const textOperators = typedOperators(["text"]);
+	const orderedOperators = typedOperators(["number", "date", "duration"]);
+	const textForms = (
+		[
+			["contains", "`key:a` contains a"],
+			["equals", "`key:=a` is exactly a"],
+			["starts-with", "`key:a*` starts with a"],
+			["ends-with", "`key:*a` ends with a"],
+		] as const
+	)
+		.filter(([operator]) => textOperators.has(operator))
+		.map(([, form]) => form);
+	const comparisonForms = (
+		[
+			["gt", "`key:>a`"],
+			["gte", "`key:>=a`"],
+			["lt", "`key:<a`"],
+			["lte", "`key:<=a`"],
+		] as const
+	)
+		.filter(([operator]) => orderedOperators.has(operator))
+		.map(([, form]) => form);
 	const hasType = (type: FilterValueType) => keys.some((key) => key.type === type);
 	const rules = [
 		"`key:value` keeps the items whose key has that value.",
 		"A key with listed values accepts only those values.",
-		accepts("contains") &&
-			"On a text key with operators, `key:a` contains a, `key:=a` is exactly a, `key:a*` starts with a, and `key:*a` ends with a.",
-		accepts("gt") &&
-			"`key:>a`, `key:>=a`, `key:<a`, and `key:<=a` compare a number, a date, or a duration. `key:a..b` keeps the values from a to b, both included.",
+		textForms.length > 0 && `On a text key with operators, ${textForms.join(", ")}.`,
+		comparisonForms.length > 0 &&
+			`${comparisonForms.join(", ")} compare a number, a date, or a duration.`,
+		orderedOperators.has("range") && "`key:a..b` keeps the values from a to b, both included.",
 		hasType("date") &&
-			"A date is `YYYY-MM-DD`. A duration on a date key counts back from now: `key:>7d` keeps the last 7 days.",
+			"A date is `YYYY-MM-DD`. A duration on a date key counts back from now: `key:>7d` keeps the dates after 7 days ago.",
 		(hasType("date") || hasType("duration")) &&
 			"A duration is a number and a unit: `ms`, `s`, `m`, `h`, `d`, or `w`, as in `90s` or `1h30m`.",
 		hasType("boolean") && "A boolean key takes `true` or `false`.",

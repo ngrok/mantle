@@ -67,6 +67,7 @@ export {
 	//,
 	findTokenAtCaret,
 	formatFacet,
+	getEffectiveNegations,
 	isCaretInFacetValue,
 	parseFilterQuery,
 	queryUsesQualifiers,

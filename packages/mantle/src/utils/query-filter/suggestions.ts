@@ -8,6 +8,7 @@ import {
 	getFilterKeyDefinition,
 	getFilterOperators,
 	getFilterSyntax,
+	getFilterValueType,
 	resolveFilterKey,
 	resolveFilterValue,
 } from "./grammar.js";
@@ -17,9 +18,11 @@ import {
 	type FilterToken,
 	findTokenAtCaret,
 	formatFacet,
+	getEffectiveNegations,
 	isCaretInFacetValue,
 	parseFilterQuery,
 	quoteFilterValue,
+	writeFilterValue,
 } from "./parse.js";
 
 /**
@@ -132,9 +135,9 @@ type ValueCandidate = {
 
 /** The recent windows a date key offers, newest first. */
 const recentDateCandidates: readonly ValueCandidate[] = [
-	{ value: ">24h", description: "In the last 24 hours" },
-	{ value: ">7d", description: "In the last 7 days" },
-	{ value: ">30d", description: "In the last 30 days" },
+	{ value: ">24h", description: "After 24 hours ago" },
+	{ value: ">7d", description: "After 7 days ago" },
+	{ value: ">30d", description: "After 30 days ago" },
 ];
 
 const booleanCandidates: readonly ValueCandidate[] = [{ value: "true" }, { value: "false" }];
@@ -148,7 +151,7 @@ const booleanCandidates: readonly ValueCandidate[] = [{ value: "true" }, { value
  * @example
  * ```ts
  * getValueCandidates(isDefinition); // => [{ value: "active", description: "…" }, …]
- * getValueCandidates({ type: "date" }); // => [{ value: ">24h", description: "In the last 24 hours" }, …]
+ * getValueCandidates({ type: "date" }); // => [{ value: ">24h", description: "After 24 hours ago" }, …]
  * getValueCandidates(descriptionDefinition); // => [] (free text)
  * ```
  */
@@ -157,6 +160,15 @@ function getValueCandidates(definition: {
 	values?: readonly FilterValueDefinition[];
 	operators?: readonly FilterOperator[];
 }): ValueCandidate[] {
+	const type = getFilterValueType(definition);
+	// An enum or boolean value only ever reads as equality, so a key that takes
+	// no `equals` has no value to offer.
+	if (
+		(type === "enum" || type === "boolean") &&
+		!getFilterOperators(definition).includes("equals")
+	) {
+		return [];
+	}
 	if (definition.values != null) {
 		return definition.values.map(({ value, description }) => ({ value, description }));
 	}
@@ -300,14 +312,23 @@ function getValueSuggestions<Item extends object>(
 		});
 	}
 
+	// An enum or boolean value reads a leading `=` as the equality it already is.
+	const typedValue =
+		(definition.type === "enum" || definition.type === "boolean") && typed.startsWith("=")
+			? typed.slice(1)
+			: typed;
 	const rows = getValueCandidates(definition)
 		.filter((candidate) =>
-			valueMatchesTyped({ grammar, key: definition.key, value: candidate.value, typed }),
+			valueMatchesTyped({
+				grammar,
+				key: definition.key,
+				value: candidate.value,
+				typed: typedValue,
+			}),
 		)
 		.filter((candidate) => !pickedElsewhere.has(candidate.value.toLowerCase()))
 		.map((candidate): FilterSuggestion => {
-			// A `"qualifiers"` grammar reads quotes as literal text, so it takes the value as is.
-			const insertText = quotes ? quoteFilterValue(candidate.value) : candidate.value;
+			const insertText = writeFilterValue(grammar, definition.key, candidate.value);
 
 			return {
 				section: "values",
@@ -440,25 +461,39 @@ function getKeySuggestions<Item>({
 	grammar,
 	query,
 	caretIndex,
+	tokens,
 	token,
 }: {
 	grammar: FilterGrammar<Item>;
 	query: string;
 	caretIndex: number;
+	tokens: readonly FilterToken[];
 	token: FilterToken | undefined;
 }): FilterSuggestions {
 	const syntax = getFilterSyntax(grammar);
-	// A lone `-` parses as text until a key follows it. Where `-` excludes, it starts an exclusion.
+	// A lone `-` or `!` parses as text until a key follows it. Where it excludes, it starts an exclusion.
 	const { replaceStart, replaceEnd, typed, negated } =
-		syntax !== "qualifiers" && token?.kind === "text" && !token.negated && token.text === "-"
+		syntax !== "qualifiers" &&
+		token?.kind === "text" &&
+		!token.negated &&
+		(token.text === "-" || token.text === "!")
 			? { replaceStart: token.start, replaceEnd: token.end, typed: "", negated: true }
 			: getKeyEdit(query, caretIndex, token);
+	// The negation each `NOT` and negated group before the row gives it.
+	const probe: FilterToken = {
+		kind: "text",
+		text: "",
+		negated: false,
+		start: replaceStart,
+		end: replaceStart,
+	};
+	const before = tokens.filter((other) => other.end <= replaceStart);
+	const inherited = getEffectiveNegations([...before, probe]).at(-1) ?? false;
 	const matching = grammar.keys.filter((definition) => keyMatchesTyped(grammar, definition, typed));
 	const negatable = matching.filter((definition) => definition.negatable !== false);
 
-	// A typed `-` already made every row an exclusion, so a key that cannot
-	// exclude has no row to offer.
-	const filters = (negated ? negatable : matching).map((definition) =>
+	// A row that excludes in effect cannot offer a key that cannot exclude.
+	const filters = (negated === inherited ? matching : negatable).map((definition) =>
 		toKeySuggestion(definition, { section: "filters", negated }),
 	);
 
@@ -468,7 +503,7 @@ function getKeySuggestions<Item>({
 		return { replaceStart, replaceEnd, items: filters };
 	}
 
-	const exclusions = negatable.map((definition) =>
+	const exclusions = (inherited ? matching : negatable).map((definition) =>
 		toKeySuggestion(definition, { section: "exclusions", negated: true }),
 	);
 
@@ -490,13 +525,14 @@ function getFilterSuggestions<Item extends object>(
 ): FilterSuggestions {
 	const { grammar, query, caretIndex } = options;
 	const clampedCaret = Math.min(Math.max(caretIndex, 0), query.length);
-	const token = findTokenAtCaret(parseFilterQuery(grammar, query), clampedCaret);
+	const tokens = parseFilterQuery(grammar, query);
+	const token = findTokenAtCaret(tokens, clampedCaret);
 
 	if (token != null && isCaretInFacetValue(token, clampedCaret)) {
 		return getValueSuggestions(token, { ...options, caretIndex: clampedCaret });
 	}
 
-	return getKeySuggestions({ grammar, query, caretIndex: clampedCaret, token });
+	return getKeySuggestions({ grammar, query, caretIndex: clampedCaret, tokens, token });
 }
 
 export {

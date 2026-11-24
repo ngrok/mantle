@@ -99,6 +99,12 @@ describe("a lone dash", () => {
 		]);
 		expect(accept("-", 1, "-is:")).toBe("-is:");
 	});
+
+	test("offers the same exclusions after a lone !", () => {
+		expect(suggest("!").items.map((item) => item.label)).toEqual(
+			suggest("-").items.map((item) => item.label),
+		);
+	});
 });
 
 describe("value suggestions", () => {
@@ -295,15 +301,56 @@ describe("typed key suggestions", () => {
 		]);
 	});
 
+	test("offers no key that cannot exclude where a NOT or a negated group excludes", () => {
+		const labels = (query: string) => suggestTyped(query).items.map((row) => row.label);
+		expect(labels("c")).toContain("canary:");
+		expect(labels("NOT c")).not.toContain("canary:");
+		expect(labels("!(c")).not.toContain("canary:");
+	});
+
+	test("offers no value of an enum key that takes no equality", () => {
+		const grammar = defineRemoteFilterGrammar({
+			keys: [
+				{
+					key: "state",
+					description: "State",
+					type: "enum",
+					operators: [],
+					values: [{ value: "live" }],
+				},
+			],
+		});
+		expect(getFilterSuggestions({ grammar, query: "state:", caretIndex: 6 }).items).toEqual([]);
+	});
+
+	test("completes an enum value after an explicit =", () => {
+		expect(rows("state:=l").map((row) => row.label)).toEqual(["live"]);
+	});
+
+	test("writes = before an enum value that would read as an operator where quotes do not work", () => {
+		const grammar = defineRemoteFilterGrammar({
+			keys: [
+				{
+					key: "state",
+					description: "State",
+					type: "enum",
+					values: [{ value: "=draft" }, { value: "draft" }],
+				},
+			],
+		});
+		const { items } = getFilterSuggestions({ grammar, query: "state:", caretIndex: 6 });
+		expect(items.map((row) => row.insertText)).toEqual(["==draft", "draft"]);
+	});
+
 	test("offers only the comparisons the key accepts", () => {
 		expect(rows("latency:").map((row) => row.label)).toEqual([">", ">="]);
 	});
 
 	test("offers recent windows with their counts before the comparisons of a date", () => {
 		expect(rows("created:")).toEqual([
-			{ label: ">24h", description: "In the last 24 hours", matchCount: 0, completes: true },
-			{ label: ">7d", description: "In the last 7 days", matchCount: 1, completes: true },
-			{ label: ">30d", description: "In the last 30 days", matchCount: 2, completes: true },
+			{ label: ">24h", description: "After 24 hours ago", matchCount: 0, completes: true },
+			{ label: ">7d", description: "After 7 days ago", matchCount: 1, completes: true },
+			{ label: ">30d", description: "After 30 days ago", matchCount: 2, completes: true },
 			{ label: ">", description: "After", matchCount: undefined, completes: false },
 			{ label: ">=", description: "On or after", matchCount: undefined, completes: false },
 			{ label: "<", description: "Before", matchCount: undefined, completes: false },

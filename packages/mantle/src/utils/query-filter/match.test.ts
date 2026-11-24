@@ -8,6 +8,7 @@ import {
 	testNow,
 	typedTestGrammar,
 	typedTestItems,
+	type TestDeployment,
 	type TestItem,
 } from "./test-grammar.js";
 
@@ -240,6 +241,29 @@ describe("filterItemsByQuery with groups and NOT", () => {
 	test("closes an unclosed group at the end of the query", () => {
 		expect(names("(api OR lemur")).toEqual(["acme-api", "lovely-lemur"]);
 	});
+
+	test("drops a qualifier still being typed, also inside a negated group", () => {
+		// Negation turns the group's AND into an OR, where a match-all stand-in would keep every item.
+		expect(names("NOT (is:shared name:)")).toEqual(["lovely-lemur"]);
+	});
+
+	test("calls a matcher as a method of its key", () => {
+		const grammar = {
+			keys: [
+				{
+					key: "name",
+					description: "The name",
+					matches(item: { name: string }, value: string) {
+						return item.name === value && this.key === "name";
+					},
+				},
+			],
+			getSearchText: (item: { name: string }) => item.name,
+		};
+		expect(
+			filterItemsByQuery({ grammar, items: [{ name: "api" }, { name: "web" }], query: "name:api" }),
+		).toEqual([{ name: "api" }]);
+	});
 });
 
 describe("filterItemsByQuery with typed keys", () => {
@@ -302,6 +326,28 @@ describe("filterItemsByQuery with typed keys", () => {
 		expect(names("uptime:5")).toEqual([]);
 		expect(names("created:2026-02-30")).toEqual([]);
 		expect(names("canary:yes")).toEqual([]);
+		// A quoted `..` is text, not a range.
+		expect(names('replicas:"2..5"')).toEqual([]);
+		// Too many digits overflow to Infinity.
+		expect(names(`replicas:${"9".repeat(309)}`)).toEqual([]);
+	});
+
+	test("reads a decimal duration as exactly the milliseconds it names", () => {
+		const items = [
+			{
+				name: "exact",
+				state: "live",
+				replicas: 1,
+				createdAt: 0,
+				uptime: 1001,
+				canary: false,
+				region: null,
+			},
+		] satisfies TestDeployment[];
+		const query = (q: string) =>
+			filterItemsByQuery({ grammar: typedTestGrammar, items, query: q }).map((item) => item.name);
+		expect(query("uptime:1.001s")).toEqual(["exact"]);
+		expect(query("uptime:1001ms")).toEqual(["exact"]);
 	});
 
 	test("reads a date alone as its whole UTC day", () => {
@@ -387,6 +433,8 @@ describe("filterItemsByQuery with typed keys", () => {
 	test("matches nothing for any negation of a key that cannot exclude", () => {
 		expect(names("-canary:true")).toEqual([]);
 		expect(names("NOT (canary:true OR name:web)")).toEqual([]);
+		// Negation turns this AND into an OR, which must not drop the forbidden half and run the rest.
+		expect(names("NOT (canary:true name:web)")).toEqual([]);
 		expect(names("NOT NOT canary:true")).toEqual(["web"]);
 	});
 
