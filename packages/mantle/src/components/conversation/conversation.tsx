@@ -252,7 +252,8 @@ function Viewport({
 			className={cx(
 				// Why both gutters: centered content lines up with a centered composer below the viewport.
 				// Why no focus ring: a ring around the whole transcript fights the edge fade, as in Amp.
-				"scrollbar scrollbar-gutter-both scroll-fade-b min-h-0 flex-1 overflow-y-auto focus-visible:outline-hidden",
+				// Why the negative offset: forced colors paint the hidden outline, and the fade mask clips one outside the box.
+				"scrollbar scrollbar-gutter-both scroll-fade-b min-h-0 flex-1 overflow-y-auto focus-visible:-outline-offset-4 focus-visible:outline-hidden",
 				className,
 			)}
 			{...props}
@@ -599,7 +600,8 @@ function ScrollButton({
 			type="button"
 			data-slot={joinDataSlot(dataSlot, "conversation-scroll-button")}
 			className={cx(
-				"bg-popover absolute right-3 bottom-3 size-8 rounded-full shadow-md",
+				// Why right-5: it clears a 15px classic scrollbar, so a press on the thumb never hits the button.
+				"bg-popover absolute right-5 bottom-3 size-8 rounded-full shadow-md",
 				// Inert ends interaction at once; visibility lets the exit finish.
 				// It morphs in from a little smaller and lower, and leaves on the reverse path.
 				"invisible translate-y-1 scale-90 opacity-0 transition-[opacity,scale,translate,visibility] transition-discrete duration-150 ease-out-strong motion-reduce:transition-none",

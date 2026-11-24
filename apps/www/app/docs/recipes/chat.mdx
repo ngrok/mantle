@@ -3,6 +3,7 @@ title: Chat
 description: Compose the AI chat parts into a full assistant, with a composer that takes files, a model, and dictation, a transcript that follows a streaming Markdown answer, and stop, retry, an empty state, and a failure notice.
 useWhen: Build an AI assistant or a model playground from the mantle chat parts, with streaming answers, stop, and retry.
 parts:
+  - AppLayout
   - PromptInput
   - Attachment
   - Select
@@ -62,6 +63,7 @@ import { PromptInput } from "@ngrok/mantle/prompt-input";
 import { Reasoning } from "@ngrok/mantle/reasoning";
 import { useCopyToClipboard } from "@ngrok/mantle/hooks";
 import { Select } from "@ngrok/mantle/select";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { Toast, makeToast } from "@ngrok/mantle/toast";
 import { ToolCall } from "@ngrok/mantle/tool-call";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react/ArrowClockwise";
@@ -103,6 +105,7 @@ export function ChatDemo() {
 export function ChatPanelDemo() {
 	return (
 		<AppLayout.Root className="fixed inset-0">
+			<SkipToMainLink />
 			<AppLayout.SidePanelRoot defaultOpen>
 				<AppLayout.Workspace>
 					<AppLayout.Content>

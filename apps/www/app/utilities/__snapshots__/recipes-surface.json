@@ -62,6 +62,7 @@
       "ai assistant"
     ],
     "parts": [
+      "AppLayout",
       "PromptInput",
       "Attachment",
       "Select",

@@ -12,6 +12,7 @@ import { PromptInput } from "@ngrok/mantle/prompt-input";
 import { Reasoning } from "@ngrok/mantle/reasoning";
 import { useCopyToClipboard } from "@ngrok/mantle/hooks";
 import { Select } from "@ngrok/mantle/select";
+import { SkipToMainLink } from "@ngrok/mantle/skip-to-main-link";
 import { Toast, makeToast } from "@ngrok/mantle/toast";
 import { ToolCall } from "@ngrok/mantle/tool-call";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react/ArrowClockwise";
@@ -53,6 +54,7 @@ export function ChatDemo() {
 export function ChatPanelDemo() {
 	return (
 		<AppLayout.Root className="fixed inset-0">
+			<SkipToMainLink />
 			<AppLayout.SidePanelRoot defaultOpen>
 				<AppLayout.Workspace>
 					<AppLayout.Content>

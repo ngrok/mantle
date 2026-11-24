@@ -9,7 +9,7 @@ import * as ConversationParts from "./conversation-parts.js";
 /**
  * A chat transcript that follows the newest message while an answer streams,
  * as Amp does. When the reader scrolls up, it stays put and shows a button
- * back to the end. The edges fade when there is more to read past them.
+ * back to the end. The bottom edge fades when newer text is below the view.
  *
  * @useWhen Show the messages of a chat with an assistant or a model, and keep the newest text in view
  * while an answer streams.
