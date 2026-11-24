@@ -1,0 +1,100 @@
+import { render, screen } from "@testing-library/react";
+import { describe, expect, test, vi } from "vitest";
+import * as Conversation from "./conversation-parts.js";
+
+function Transcript({ streaming }: { streaming?: boolean }) {
+	return (
+		<Conversation.Root streaming={streaming}>
+			<Conversation.Viewport aria-label="Conversation">
+				<Conversation.Content aria-label="Messages" />
+			</Conversation.Viewport>
+			<Conversation.ScrollButton />
+		</Conversation.Root>
+	);
+}
+
+describe("Conversation", () => {
+	test("announces nothing before the first answer, then the start and the end of each answer", () => {
+		const { rerender } = render(<Transcript />);
+		const status = screen.getByRole("status");
+		expect(status).toHaveTextContent(/^$/);
+
+		rerender(<Transcript streaming />);
+		expect(status).toHaveTextContent("Answering…");
+
+		rerender(<Transcript streaming={false} />);
+		expect(status).toHaveTextContent("Answer ended.");
+
+		rerender(<Transcript streaming />);
+		expect(status).toHaveTextContent("Answering…");
+	});
+
+	test("Root stamps data-streaming only while streaming", () => {
+		const { container, rerender } = render(<Transcript streaming />);
+		const root = container.querySelector('[data-slot="conversation"]');
+		expect(root).toHaveAttribute("data-streaming", "");
+
+		rerender(<Transcript />);
+		expect(root).not.toHaveAttribute("data-streaming");
+	});
+
+	test("each part forwards className, ref, and data attributes, and joins data-slot", () => {
+		const rootRef = vi.fn<(node: HTMLDivElement | null) => void>();
+		const viewportRef = vi.fn<(node: HTMLDivElement | null) => void>();
+		const { container } = render(
+			<Conversation.Root ref={rootRef} className="root-class" data-testid="root">
+				<Conversation.Viewport
+					ref={viewportRef}
+					aria-label="Conversation"
+					className="viewport-class"
+					data-slot="outer"
+				>
+					<Conversation.Content aria-label="Messages" className="content-class" />
+				</Conversation.Viewport>
+				<Conversation.ScrollButton className="button-class" />
+			</Conversation.Root>,
+		);
+
+		const root = container.querySelector('[data-slot="conversation"]');
+		expect(rootRef).toHaveBeenLastCalledWith(root);
+		expect(root).toHaveClass("root-class");
+		expect(root).toHaveAttribute("data-testid", "root");
+		const viewport = screen.getByRole("region", { name: "Conversation" });
+		expect(viewportRef).toHaveBeenLastCalledWith(viewport);
+		expect(viewport).toHaveAttribute("data-slot", "outer conversation-viewport");
+		expect(viewport).toHaveAttribute("tabindex", "0");
+		expect(screen.getByRole("list", { name: "Messages" })).toHaveAttribute(
+			"data-slot",
+			"conversation-content",
+		);
+		expect(screen.getByRole("button", { name: "Scroll to the latest message" })).toHaveClass(
+			"button-class",
+		);
+	});
+
+	test("Content with asChild renders the child and merges props", () => {
+		const ref = vi.fn<(node: HTMLOListElement | null) => void>();
+		render(
+			<Conversation.Root>
+				<Conversation.Viewport aria-label="Conversation">
+					<Conversation.Content asChild ref={ref} className="content-class" data-testid="content">
+						<ol aria-label="Messages" className="child-class" />
+					</Conversation.Content>
+				</Conversation.Viewport>
+			</Conversation.Root>,
+		);
+
+		const list = screen.getByRole("list", { name: "Messages" });
+		expect(list).toHaveClass("content-class", "child-class");
+		expect(list).toHaveAttribute("data-testid", "content");
+		expect(list).toHaveAttribute("data-slot", "conversation-content");
+		expect(ref).toHaveBeenLastCalledWith(list);
+	});
+
+	test("a part outside Root throws", () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() => render(<Conversation.ScrollButton />)).toThrow(
+			"Conversation.ScrollButton must be rendered inside Conversation.Root.",
+		);
+	});
+});

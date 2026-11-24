@@ -1,0 +1,198 @@
+---
+title: Conversation
+description: A chat transcript that follows the newest message while an answer streams, with a button back to the end.
+category: Structure
+aliases: [chat, transcript, message list, thread, stick to bottom, scroll to bottom, ai chat]
+---
+
+import { PageHeader } from "~/components/page-header";
+import { Example } from "~/components/example";
+
+<PageHeader id="conversation" isPreview>
+	Conversation
+</PageHeader>
+
+A chat transcript that follows the newest message while an answer streams, with a button back to the end. Scroll up while the answer streams: the view stays put, the bottom edge fades, and a button takes you back.
+
+<Example name="components/preview/conversation/overview" title="Conversation example">
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Card } from "@ngrok/mantle/card";
+import { Conversation } from "@ngrok/mantle/conversation";
+import { Message } from "@ngrok/mantle/message";
+import { useEffect, useState } from "react";
+
+type Turn = { id: number; from: "user" | "assistant"; text: string };
+
+const answer = `Two of your endpoints have no traffic policy.
+
+https://api.example.com takes every request it gets. Add a rate limit by client IP so one client cannot use up its capacity.
+
+tcp://1.tcp.ngrok.io:20012 is open to the internet. Add an IP restriction so only your office network can reach it.
+
+app.example.com already has a policy, so it needs no change.
+
+To add a policy, open the endpoint, choose Traffic Policy, and paste the rule. The change takes effect at once, with no restart. You can test it with a request from another network before you rely on it.`;
+
+const firstTurns: Turn[] = [
+	{ id: 1, from: "user", text: "What's live right now?" },
+	{
+		id: 2,
+		from: "assistant",
+		text: "Three endpoints are online: https://api.example.com, https://app.example.com, and tcp://1.tcp.ngrok.io:20012.",
+	},
+];
+
+function AssistantTranscript() {
+	const [turns, setTurns] = useState(firstTurns);
+	const [streaming, setStreaming] = useState(false);
+
+	useEffect(() => {
+		if (!streaming) {
+			return;
+		}
+		const words = answer.split(" ");
+		let count = 0;
+		const interval = setInterval(() => {
+			count += 1;
+			const text = words.slice(0, count).join(" ");
+			setTurns((current) =>
+				current.map((turn, index) => (index === current.length - 1 ? { ...turn, text } : turn)),
+			);
+			if (count === words.length) {
+				setStreaming(false);
+			}
+		}, 60);
+		return () => clearInterval(interval);
+	}, [streaming]);
+
+	return (
+		<div className="flex flex-col items-center gap-4">
+			<Card.Root className="h-80 w-full max-w-2xl overflow-hidden p-0">
+				<Conversation.Root streaming={streaming} className="h-full">
+					<Conversation.Viewport aria-label="Conversation with the assistant">
+						<Conversation.Content className="p-4">
+							{turns.map((turn) => (
+								<Message.Root key={turn.id} from={turn.from}>
+									<Message.Content className="flex flex-col gap-3">
+										{turn.text.split("\n\n").map((paragraph) => (
+											<p key={paragraph}>{paragraph}</p>
+										))}
+									</Message.Content>
+								</Message.Root>
+							))}
+						</Conversation.Content>
+					</Conversation.Viewport>
+					<Conversation.ScrollButton />
+				</Conversation.Root>
+			</Card.Root>
+			<Button
+				type="button"
+				appearance="filled"
+				intent="neutral"
+				disabled={streaming}
+				onClick={() => {
+					setTurns((current) => [
+						...current,
+						{
+							id: current.length + 1,
+							from: "user",
+							text: "Which endpoints have no traffic policy?",
+						},
+						{ id: current.length + 2, from: "assistant", text: "" },
+					]);
+					setStreaming(true);
+				}}
+			>
+				Ask about traffic policies
+			</Button>
+		</div>
+	);
+}
+```
+
+</Example>
+
+## When to use
+
+- Show the messages of a chat with an assistant or a model, and keep the newest text in view while an answer streams.
+- Use [Message](/components/preview/message) for each message in it.
+- Prefer [List](/components/data-display/list) for items that do not grow at the end while the reader watches.
+
+## How it follows the end
+
+`Conversation.Viewport` follows the end while the reader is at the end, so streamed text never lands below the fold. It works as Amp does:
+
+- When the reader scrolls up by any means (wheel, touch, keys, or the scrollbar), the view stays where they put it. The bottom edge fades, and `Conversation.ScrollButton` shows.
+- The view follows the end again when the reader scrolls back to it, presses `Conversation.ScrollButton`, or sends a message. A message from the person is a `Message.Root` with `from="user"`.
+- On mount, the view starts at the end. If something already moved it, such as [`useScrollAnchor`](/hooks#usescrollanchor) restoring the reader's place, the view stays there.
+
+The top and bottom edges fade when there is more to read past them, with [`scroll-fade-y`](/base/scroll-fade).
+
+## Accessibility
+
+`Conversation.Root` owns the chat's one status announcement. Set `streaming` while an answer streams. Screen readers then hear "Answering…" when it starts and "Answer ended." when it ends. Nothing reads the answer aloud word by word, because that interrupts a reader who is busy with other content.
+
+`Conversation.Viewport` is a named region that takes focus, so a keyboard can scroll a transcript that has no links or buttons. When `Conversation.ScrollButton` hides after a press, focus moves to the viewport.
+
+## Composition
+
+```text showLineNumbers=false
+Conversation.Root
+├── Conversation.Viewport
+│   └── Conversation.Content
+│       └── Message.Root
+└── Conversation.ScrollButton
+```
+
+## Polymorphism
+
+`Conversation.Viewport` and `Conversation.Content` take `asChild`. `Conversation.Root` and `Conversation.ScrollButton` do not: the root renders the status region beside its children, and the button owns its icon and position.
+
+## API Reference
+
+### Conversation.Root
+
+The transcript: it holds the viewport and the scroll button, and owns the status announcement. Give it a height, such as `flex-1` in a flex column.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop         | Type      | Default | Description                                                                                                     |
+| ------------ | --------- | ------- | --------------------------------------------------------------------------------------------------------------- |
+| `streaming?` | `boolean` | `false` | True while an answer streams. Screen readers hear "Answering…" when it starts and "Answer ended." when it ends. |
+
+| Data Attribute     | Value                                | Description                                       |
+| ------------------ | ------------------------------------ | ------------------------------------------------- |
+| `data-scrolled-up` | present while the end is out of view | Presence-only. Shows `Conversation.ScrollButton`. |
+| `data-streaming`   | present while `streaming`            | Presence-only. Style with `data-streaming:`.      |
+
+### Conversation.Viewport
+
+The region that scrolls and follows the end. Name it with `aria-label`.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                       |
+| ---------- | --------- | ------- | ------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Render as a different element by passing a child. |
+
+### Conversation.Content
+
+The ordered list of messages. Set the measure and padding here, such as `mx-auto max-w-3xl p-4`.
+
+All props from [ol](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ol#attributes), plus:
+
+| Prop       | Type      | Default | Description                                       |
+| ---------- | --------- | ------- | ------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Render as a different element by passing a child. |
+
+### Conversation.ScrollButton
+
+The round button over the bottom edge of the viewport that goes back to the newest message. It shows only while the end is out of view.
+
+All props from [Icon Button](/components/actions/icon-button) except `appearance`, `asChild`, `icon`, `intent`, `label`, and `type`, plus:
+
+| Prop     | Type     | Default                          | Description                        |
+| -------- | -------- | -------------------------------- | ---------------------------------- |
+| `label?` | `string` | `"Scroll to the latest message"` | The accessible name of the button. |

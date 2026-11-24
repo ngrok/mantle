@@ -162,6 +162,11 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 		"tabs with custom styling marketing cards": "Tabs",
 		"type a question to build a filter": "Natural Language Query",
 	},
+	"AI chat": {
+		"chat message bubble rendered markdown prose": "Message",
+		"chat transcript scroll to bottom button": "Conversation",
+		"keep newest streamed text in view": "Conversation",
+	},
 };
 
 /**

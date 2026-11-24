@@ -183,6 +183,11 @@
 			"types": "./dist/command.d.ts",
 			"import": "./dist/command.js"
 		},
+		"./conversation": {
+			"@ngrok/src-live-types": "./src/components/conversation/index.ts",
+			"types": "./dist/conversation.d.ts",
+			"import": "./dist/conversation.js"
+		},
 		"./cx": {
 			"@ngrok/src-live-types": "./src/utils/cx/index.ts",
 			"types": "./dist/cx.d.ts",
@@ -287,6 +292,11 @@
 			"@ngrok/src-live-types": "./src/components/media-object/index.ts",
 			"types": "./dist/media-object.d.ts",
 			"import": "./dist/media-object.js"
+		},
+		"./message": {
+			"@ngrok/src-live-types": "./src/components/message/index.ts",
+			"types": "./dist/message.d.ts",
+			"import": "./dist/message.js"
 		},
 		"./multi-select": {
 			"@ngrok/src-live-types": "./src/components/multi-select/index.ts",

@@ -147,6 +147,8 @@ export const previewComponents = [
 	//,
 	"Attachment",
 	"Calendar",
+	"Conversation",
+	"Message",
 	"Prompt Input",
 	"Reasoning",
 	"Time Zone",
@@ -239,6 +241,8 @@ export const prodReadyComponentRouteLookup = {
 export const previewComponentsRouteLookup = {
 	Attachment: "/components/preview/attachment",
 	Calendar: "/components/preview/calendar",
+	Conversation: "/components/preview/conversation",
+	Message: "/components/preview/message",
 	"Prompt Input": "/components/preview/prompt-input",
 	Reasoning: "/components/preview/reasoning",
 	"Time Zone": "/components/preview/time-zone",
@@ -254,6 +258,8 @@ export const previewComponentsRouteLookup = {
 export const previewComponentCategoryLookup = {
 	Attachment: "Data Display",
 	Calendar: "Forms",
+	Conversation: "Structure",
+	Message: "Data Display",
 	"Prompt Input": "Forms",
 	Reasoning: "Data Display",
 	"Time Zone": "Primitives",

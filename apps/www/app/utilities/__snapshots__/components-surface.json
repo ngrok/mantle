@@ -704,6 +704,40 @@
     "useWhen": "Search for an action or a page and run it from a keyboard-first palette, such as a `⌘K` menu."
   },
   {
+    "name": "Conversation",
+    "slug": "components/preview/conversation",
+    "kind": "component",
+    "category": "Structure",
+    "status": "preview",
+    "importPath": "@ngrok/mantle/conversation",
+    "summary": "A chat transcript that follows the newest message while an answer streams, with a button back to the end.",
+    "jsdoc": "A chat transcript that follows the newest message while an answer streams, as Amp does.",
+    "examples": [
+      "Composition:\n```\nConversation.Root\n├── Conversation.Viewport\n│   └── Conversation.Content\n│       └── Message.Root\n└── Conversation.ScrollButton\n```",
+      "```tsx\n<Conversation.Root streaming={isAnswering} className=\"flex-1\">\n  <Conversation.Viewport aria-label=\"Conversation with the assistant\">\n    <Conversation.Content className=\"mx-auto max-w-3xl p-4\">\n      {messages.map((message) => (\n        <Message.Root key={message.id} from={message.role}>\n          <Message.Content>{message.text}</Message.Content>\n        </Message.Root>\n      ))}\n    </Conversation.Content>\n  </Conversation.Viewport>\n  <Conversation.ScrollButton />\n</Conversation.Root>\n```"
+    ],
+    "aliases": [
+      "chat",
+      "transcript",
+      "message list",
+      "thread",
+      "stick to bottom",
+      "scroll to bottom",
+      "ai chat"
+    ],
+    "siblings": [
+      {
+        "name": "Message",
+        "boundary": "one message inside the conversation."
+      },
+      {
+        "name": "List",
+        "boundary": "a list of items that does not grow at its end while the reader watches."
+      }
+    ],
+    "useWhen": "Show the messages of a chat with an assistant or a model, and keep the newest text in view while an answer streams."
+  },
+  {
     "name": "Data Table",
     "slug": "components/data-display/data-table",
     "kind": "component",
@@ -1311,6 +1345,39 @@
       }
     ],
     "useWhen": "Put an image, an avatar, or an icon beside a title and a description, such as in a comment or a list row."
+  },
+  {
+    "name": "Message",
+    "slug": "components/preview/message",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "preview",
+    "importPath": "@ngrok/mantle/message",
+    "summary": "One message of a chat, a person's message in a bubble or the assistant's answer as full-width prose.",
+    "jsdoc": "One message of a chat: a person's message in a bubble at the end of the row, or the assistant's answer as full-width prose.",
+    "examples": [
+      "Composition:\n```\nMessage.Root\n├── Message.Content\n├── Message.Pending\n└── Message.Actions\n```",
+      "```tsx\n<Conversation.Content>\n  <Message.Root from=\"user\">\n    <Message.Content>Which endpoints have no traffic policy?</Message.Content>\n  </Message.Root>\n  <Message.Root from=\"assistant\">\n    <Message.Content>{answer}</Message.Content>\n    {isAnswering && <Message.Pending>Thinking…</Message.Pending>}\n    <Message.Actions>\n      <IconButton\n        appearance=\"ghost\"\n        intent=\"neutral\"\n        size=\"sm\"\n        label=\"Copy the answer\"\n        icon={<CopyIcon />}\n        onClick={() => copyToClipboard(answer)}\n      />\n    </Message.Actions>\n  </Message.Root>\n</Conversation.Content>\n```"
+    ],
+    "aliases": [
+      "chat message",
+      "chat bubble",
+      "bubble",
+      "answer",
+      "ai message",
+      "transcript message"
+    ],
+    "siblings": [
+      {
+        "name": "Conversation",
+        "boundary": "the transcript that holds the messages and follows the newest one."
+      },
+      {
+        "name": "CodeBlock",
+        "boundary": "code in an answer, inside `Message.Content`."
+      }
+    ],
+    "useWhen": "Show one message of a chat with an assistant or a model, with its actions and a marker while the answer is on its way."
   },
   {
     "name": "Multi Select",
