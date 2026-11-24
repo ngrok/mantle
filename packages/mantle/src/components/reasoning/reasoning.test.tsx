@@ -79,6 +79,16 @@ describe("Reasoning", () => {
 		expect(screen.getByRole("button", { name: "Thought for 8 seconds" })).toBeInTheDocument();
 	});
 
+	test("a translated multi-node label survives a new streaming turn", () => {
+		const seconds = 4;
+		const { container, rerender } = render(<Thoughts label={<>Thought for {seconds} seconds</>} />);
+		translateTextNodes(container);
+
+		rerender(<Thoughts streaming label={<>Thought for {seconds} seconds</>} />);
+
+		expect(screen.getByRole("button")).toHaveTextContent("Thinking…");
+	});
+
 	test("a part outside Root throws", () => {
 		vi.spyOn(console, "error").mockImplementation(() => {});
 		expect(() => render(<Reasoning.Trigger />)).toThrow(

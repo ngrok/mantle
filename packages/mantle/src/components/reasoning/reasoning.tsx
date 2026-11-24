@@ -109,10 +109,16 @@ function Trigger({ "data-slot": dataSlot, children, className, ...props }: Reaso
 			)}
 			{...props}
 		>
-			<span data-slot="reasoning-trigger-label" className="contents">
+			{/* Why a key: React swaps one host element, not a multi-node label that a translator has moved. */}
+			<span
+				key={streaming ? "thinking" : "label"}
+				data-slot="reasoning-trigger-label"
+				className="contents"
+			>
 				{streaming ? "Thinking…" : (label ?? "Reasoning")}
 			</span>
-			<Accordion.TriggerIcon className="size-3" />
+			{/* Why w-3 only: size-3 would drop the icon's h-lh, which centers it in the first line. */}
+			<Accordion.TriggerIcon className="w-3" />
 		</Accordion.Trigger>
 	);
 }

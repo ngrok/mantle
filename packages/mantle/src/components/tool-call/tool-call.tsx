@@ -149,7 +149,8 @@ function Trigger({ "data-slot": dataSlot, children, className, ...props }: ToolC
 				{children}
 			</span>
 			<span className="text-muted">{statusLabels[status]}</span>
-			<Accordion.TriggerIcon className="ms-auto size-3" />
+			{/* Why w-3 only: size-3 would drop the icon's h-lh, which centers it in the first line. */}
+			<Accordion.TriggerIcon className="ms-auto w-3" />
 		</Accordion.Trigger>
 	);
 }
