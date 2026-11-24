@@ -59,12 +59,24 @@ jobs:
           github-token: ${{ steps.generate-token.outputs.token }}
           publish-script: pnpm -w changeset:publish
           version-script: pnpm -w changeset:version
+          # Why not the action's releases: it sends the whole changelog entry, and GitHub
+          # rejects a release body past 125,000 characters after npm publish already ran.
+          # The next step cuts a large entry to fit and links the full notes.
+          create-github-releases: false
         env:
           NPM_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
 
-      - name: Post to slack
+      - name: Create GitHub releases
         if: steps.changesets.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+          PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.published-packages }}
+        run: node ./scripts/github-releases.ts
+
+      - name: Post to slack
+        # Why `!cancelled()`: the packages are on npm even when a release fails.
+        if: ${{ !cancelled() && steps.changesets.outputs.published == 'true' }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_PUBLISH_WEBHOOK_URL }}
           PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.published-packages }}

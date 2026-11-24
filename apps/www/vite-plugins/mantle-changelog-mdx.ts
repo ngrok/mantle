@@ -2,6 +2,33 @@ import { readFileSync } from "node:fs";
 import type { Plugin } from "vite";
 
 /**
+ * The most markdown the changelog page renders, in characters.
+ *
+ * Why a budget: each character of markdown renders to about 7 bytes of HTML and 2 bytes of route JavaScript.
+ * With no budget, the page grows with each release. `/changelog.md` and GitHub keep the full history.
+ */
+const PAGE_BUDGET = 100_000;
+
+/**
+ * The changelog title and the newest `## x.y.z` sections that fit in `budget` characters.
+ * Always keeps the newest section, so one release larger than `budget` still renders in full.
+ */
+export function newestReleases(changelog: string, budget = PAGE_BUDGET): string {
+	// Why a column-0 match is enough: changesets indents every line of a change body.
+	const [title = "", ...sections] = changelog.split(/\n(?=## \d)/);
+	const kept: string[] = [];
+	let size = 0;
+	for (const section of sections) {
+		if (kept.length > 0 && size + section.length > budget) {
+			break;
+		}
+		kept.push(section);
+		size += section.length;
+	}
+	return [title, ...kept].join("\n");
+}
+
+/**
  * Vite plugin that exposes the published `@ngrok/mantle` CHANGELOG as a
  * virtual MDX module. Two reasons we can't just import the package
  * `CHANGELOG.md` directly:
@@ -42,7 +69,7 @@ export function mantleChangelogMdx(absoluteChangelogPath: string): Plugin {
 				return;
 			}
 			this.addWatchFile(absoluteChangelogPath);
-			return readFileSync(absoluteChangelogPath, "utf-8");
+			return newestReleases(readFileSync(absoluteChangelogPath, "utf-8"));
 		},
 		handleHotUpdate({ file, server }) {
 			if (file === absoluteChangelogPath) {
