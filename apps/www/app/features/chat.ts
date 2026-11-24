@@ -138,23 +138,31 @@ function newAnswer(): ChatAnswer {
  */
 export function useChat({ respond }: { respond: Respond }) {
 	const [messages, setMessages] = useState<ChatMessage[]>([]);
+	// Why a ref too: two sends before a render must each build on the other, not on the rendered array.
+	const messagesRef = useRef<ChatMessage[]>([]);
 	const abortRef = useRef<AbortController | null>(null);
 
 	useEffect(() => () => abortRef.current?.abort(), []);
 
+	function commit(next: ChatMessage[]) {
+		messagesRef.current = next;
+		setMessages(next);
+	}
+
 	/** Updates the last message, which is the answer that streams. */
 	function updateAnswer(update: (answer: ChatAnswer) => ChatAnswer) {
-		setMessages((current) => {
-			const last = current.at(-1);
-			return last?.from === "assistant" ? [...current.slice(0, -1), update(last)] : current;
-		});
+		const current = messagesRef.current;
+		const last = current.at(-1);
+		if (last?.from === "assistant") {
+			commit([...current.slice(0, -1), update(last)]);
+		}
 	}
 
 	async function stream(history: ChatMessage[], model: string) {
 		abortRef.current?.abort();
 		const controller = new AbortController();
 		abortRef.current = controller;
-		setMessages([...history, newAnswer()]);
+		commit([...history, newAnswer()]);
 
 		const startedAt = Date.now();
 		let status: ChatAnswer["status"] = "done";
@@ -185,11 +193,13 @@ export function useChat({ respond }: { respond: Respond }) {
 		/** Sends a message and streams its answer. */
 		send: ({ text, files, model }: { text: string; files: ChatFile[]; model: string }) => {
 			const message: ChatUserMessage = { id: crypto.randomUUID(), from: "user", text, files };
+			const current = messagesRef.current;
+			const previous = current.at(-1);
 			// Why: a message sent mid-answer keeps that answer as stopped, as the stop button would.
 			const history =
-				last?.from === "assistant" && streaming
-					? [...messages.slice(0, -1), endAnswer(last, "stopped")]
-					: messages;
+				previous?.from === "assistant" && previous.status === "streaming"
+					? [...current.slice(0, -1), endAnswer(previous, "stopped")]
+					: current;
 			void stream([...history, message], model);
 		},
 		/** Stops the answer and keeps its text so far. */
@@ -202,7 +212,8 @@ export function useChat({ respond }: { respond: Respond }) {
 		},
 		/** Streams a new answer in place of the last one. */
 		retry: (model: string) => {
-			const history = last?.from === "assistant" ? messages.slice(0, -1) : messages;
+			const current = messagesRef.current;
+			const history = current.at(-1)?.from === "assistant" ? current.slice(0, -1) : current;
 			if (history.at(-1)?.from === "user") {
 				void stream(history, model);
 			}

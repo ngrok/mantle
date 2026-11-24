@@ -77,8 +77,11 @@ export const mockRespond: Respond = async function* ({
 	yield { type: "tool-end", id: "call-1", result: endpoints };
 
 	const files = question?.files ?? [];
+	// Why a count, not the names: a file name is input, and in Markdown it could close a code span and add a link.
 	const intro =
-		files.length > 0 ? `I read ${files.map((file) => `\`${file.name}\``).join(" and ")}.\n\n` : "";
+		files.length > 0
+			? `I read the ${files.length === 1 ? "file" : `${files.length} files`} you attached.\n\n`
+			: "";
 	const words = deltas(intro + answer);
 	for (const [index, text] of words.entries()) {
 		if (fails && index === Math.floor(words.length / 3)) {
