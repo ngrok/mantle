@@ -8,8 +8,8 @@ export const handle = { sidebar: <LayoutsNavigation /> } satisfies SectionHandle
 
 /**
  * Layout route for the layouts section. Renders the layouts sidebar alongside
- * the page outlet. The section index keeps the standard centered `max-w-7xl`
- * container (matching the recipes/migrations indexes); the layout detail pages
+ * the page outlet. The section index keeps the standard centered `PageContainer`
+ * frame (matching the recipes/migrations indexes); the layout detail pages
  * render on a full-width canvas (layout demos need the horizontal room) with
  * MDX flow content kept at a readable centered measure via
  * {@link fullWidthProseMeasure}.

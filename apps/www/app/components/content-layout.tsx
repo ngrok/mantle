@@ -76,8 +76,13 @@ export function ContentLayout({ children, markdownPath }: ContentLayoutProps) {
 			<MdxProvider>
 				{/* don't overlap the doc actions; data-mdx-content is a stable styling
 				hook so section layouts can target the MDX flow children (e.g. the
-				prose measure on full-width sections) */}
-				<div data-mdx-content className="sm:[&>h1:first-child]:pr-40">
+				prose measure on full-width sections). Why a measure on paragraphs and
+				lists: examples, code, and tables take the full column width, and
+				lines of text stay readable. */}
+				<div
+					data-mdx-content
+					className="sm:[&>h1:first-child]:pr-40 [&>:is(p,ul,ol,blockquote)]:max-w-3xl"
+				>
 					{children}
 				</div>
 			</MdxProvider>
