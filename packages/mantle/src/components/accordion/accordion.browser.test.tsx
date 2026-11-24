@@ -2,6 +2,7 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import { startTransition, useEffect, useState } from "react";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import * as Accordion from "./accordion-parts.js";
 
@@ -85,8 +86,10 @@ describe("Accordion (browser)", () => {
 		// The browser fires `beforematch` on the element right before it reveals a
 		// find-in-page match; that opens the section and clears the hidden attribute.
 		region?.dispatchEvent(new Event("beforematch", { bubbles: true }));
-		expect(region).not.toHaveAttribute("hidden");
-		expect(region).toHaveAttribute("data-open");
+		await waitFor(() => expect(region).not.toHaveAttribute("hidden"));
+		// Why wait: the state change renders in a later task in WebKit. The next
+		// test pins the synchronous part, the unhidden box.
+		await waitFor(() => expect(region).toHaveAttribute("data-open"));
 	});
 
 	test('"beforematch" expands the content synchronously so the browser can highlight the revealed match', () => {
@@ -106,11 +109,13 @@ describe("Accordion (browser)", () => {
 
 		region.dispatchEvent(new Event("beforematch", { bubbles: true }));
 
-		// The reveal handler must open, un-hide, and un-clip the content before the
-		// event returns. The browser highlights the match right after this event, so a
-		// box that the height transition still holds at zero clips the highlight away.
+		// The reveal handler must un-hide and un-clip the content before React flushes
+		// the open state. The browser highlights the match right after this event, so a
+		// box still at `h-0` clips the highlight away.
 		expect(region).not.toHaveAttribute("hidden");
-		expect(region).toHaveAttribute("data-open");
+		// React has not re-rendered yet, so the layout below can only come from the
+		// handler's inline height.
+		expect(region).not.toHaveAttribute("data-open");
 		expect(region.style.height).toBe("auto");
 		expect(region.offsetHeight).toBeGreaterThan(0);
 		// The closed state is transparent, so a match the browser highlights now
@@ -198,30 +203,47 @@ describe("Accordion (browser)", () => {
 		expect(region).toHaveAttribute("hidden", "until-found");
 	});
 
+	// A fragment link reveals the content the same way find-in-page does: the
+	// browser fires `beforematch`, then removes `hidden`.
+	const revealByFragment = async (id: string, check: () => Promise<void>) => {
+		window.location.hash = `#${id}`;
+		try {
+			await check();
+		} finally {
+			history.replaceState(null, "", window.location.pathname);
+		}
+	};
+
+	const ControlledItem = ({
+		value,
+		onValueChange,
+	}: {
+		value: string;
+		onValueChange: (value: string) => void;
+	}) => (
+		<Accordion.Root type="single" value={value} onValueChange={onValueChange}>
+			<Accordion.Item value="a">
+				<Accordion.Trigger>Trigger A</Accordion.Trigger>
+				<Accordion.Content>
+					<Accordion.Body id="controlled-a">Body of section A</Accordion.Body>
+				</Accordion.Content>
+			</Accordion.Item>
+		</Accordion.Root>
+	);
+
 	test("a controlled root that refuses a find-in-page reveal hides the content again", async () => {
 		const onValueChange = vi.fn<(value: string) => void>();
-		render(
-			<Accordion.Root type="single" value="" onValueChange={onValueChange}>
-				<Accordion.Item value="a">
-					<Accordion.Trigger>Trigger A</Accordion.Trigger>
-					<Accordion.Content>
-						<Accordion.Body id="refused-a">Body of section A</Accordion.Body>
-					</Accordion.Content>
-				</Accordion.Item>
-			</Accordion.Root>,
-		);
+		render(<ControlledItem value="" onValueChange={onValueChange} />);
 		const region = regionFor("Body of section A");
 		if (!(region instanceof HTMLElement)) {
 			throw new Error("expected the content region to be an HTMLElement");
 		}
 		await waitFor(() => expect(region).toHaveAttribute("hidden", "until-found"));
 
-		// A fragment link reveals the content the same way find-in-page does: the
-		// browser fires `beforematch`, then removes `hidden`.
-		window.location.hash = "#refused-a";
-
-		await vi.waitFor(() => expect(onValueChange.mock.calls).toEqual([["a"]]));
-		await vi.waitFor(() => expect(region).toHaveAttribute("hidden", "until-found"));
+		await revealByFragment("controlled-a", async () => {
+			await vi.waitFor(() => expect(onValueChange.mock.calls).toEqual([["a"]]));
+			await vi.waitFor(() => expect(region).toHaveAttribute("hidden", "until-found"));
+		});
 		expect(screen.getByRole("button", { name: "Trigger A" })).toHaveAttribute(
 			"aria-expanded",
 			"false",
@@ -230,7 +252,80 @@ describe("Accordion (browser)", () => {
 		expect(region.style.height).toBe("");
 		expect(region.style.opacity).toBe("");
 		expect(region.offsetHeight).toBe(0);
-		history.replaceState(null, "", window.location.pathname);
+	});
+
+	test("a controlled root that accepts a find-in-page reveal in a transition never hides it again", async () => {
+		const Transitioned = () => {
+			const [value, setValue] = useState("");
+			return (
+				<ControlledItem
+					value={value}
+					onValueChange={(next) => {
+						startTransition(() => {
+							setValue(next);
+						});
+					}}
+				/>
+			);
+		};
+		render(<Transitioned />);
+		const region = regionFor("Body of section A");
+		if (!(region instanceof HTMLElement)) {
+			throw new Error("expected the content region to be an HTMLElement");
+		}
+		await waitFor(() => expect(region).toHaveAttribute("hidden", "until-found"));
+		const hiddenValues: (string | null)[] = [];
+		const observer = new MutationObserver(() => {
+			hiddenValues.push(region.getAttribute("hidden"));
+		});
+		observer.observe(region, { attributeFilter: ["hidden"] });
+
+		await revealByFragment("controlled-a", async () => {
+			await vi.waitFor(() => expect(region).toHaveAttribute("data-open"));
+			// Why three frames: a refusal hides the content in the second one.
+			await new Promise((resolve) => {
+				requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+			});
+		});
+		observer.disconnect();
+		expect(hiddenValues).not.toContain("until-found");
+		expect(region.offsetHeight).toBeGreaterThan(0);
+		expect(screen.getByRole("button", { name: "Trigger A" })).toHaveAttribute(
+			"aria-expanded",
+			"true",
+		);
+	});
+
+	test("a reveal from a React effect opens the section without a React error", async () => {
+		const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+		const RevealOnMount = () => {
+			useEffect(() => {
+				window.location.hash = "#effect-a";
+			}, []);
+			return (
+				<Accordion.Root type="single" defaultValue="">
+					<Accordion.Item value="a">
+						<Accordion.Trigger>Trigger A</Accordion.Trigger>
+						<Accordion.Content>
+							<Accordion.Body id="effect-a">Body of section A</Accordion.Body>
+						</Accordion.Content>
+					</Accordion.Item>
+				</Accordion.Root>
+			);
+		};
+		try {
+			render(<RevealOnMount />);
+			await vi.waitFor(() => {
+				expect(screen.getByRole("button", { name: "Trigger A" })).toHaveAttribute(
+					"aria-expanded",
+					"true",
+				);
+			});
+			expect(errors).not.toHaveBeenCalled();
+		} finally {
+			errors.mockRestore();
+			history.replaceState(null, "", window.location.pathname);
+		}
 	});
 
 	const verticalCenter = (rect: DOMRect) => rect.top + rect.height / 2;

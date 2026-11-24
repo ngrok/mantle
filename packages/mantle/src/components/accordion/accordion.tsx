@@ -14,7 +14,6 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { flushSync } from "react-dom";
 import invariant from "tiny-invariant";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { WithAsChild } from "../../types/as-child.js";
@@ -554,41 +553,43 @@ const Content = ({
 			return;
 		}
 		const handleBeforeMatch = () => {
-			// Why `flushSync`: the open must commit before this event returns, so the
-			// check below knows whether a controlled root refused it.
-			flushSync(() => {
-				setOpen(true);
-			});
-			if (!node.hasAttribute("data-open")) {
-				// Why an observer: the browser removes `hidden` after this event, so
-				// the refused content must hide again once it does.
-				const observer = new MutationObserver(() => {
-					observer.disconnect();
-					if (!node.hasAttribute("data-open")) {
-						node.setAttribute("hidden", "until-found");
-					}
-				});
-				observer.observe(node, { attributeFilter: ["hidden"] });
-				return;
-			}
 			// The browser reveals and highlights the match synchronously right after
-			// this event. The open commit above removed `hidden`, but the height
-			// transition starts the box at `h-0 overflow-hidden`, so the browser's find
-			// highlight is clipped to zero height and lost. Setting `height: auto`
-			// lays the text out at full height before the highlight paints. The closed
-			// state is also transparent, so show the content at full opacity for the
-			// same paint. Turn the transition off, force a style and layout flush so
-			// the box settles at its end values, then restore the consumer's inline
-			// value. Override only the `transition-property` longhand: the
-			// `transition` shorthand reads as empty when only some longhands are set,
-			// so restoring it would delete them. The close branch of the effect below
-			// clears the inline height and opacity so the slide and the fade resume.
+			// this event, but our React-driven height (`data-open:h-auto`) only
+			// applies a tick later. Without expanding now, the box is still
+			// `h-0 overflow-hidden` when the browser paints its find highlight, so the
+			// match opens but its highlight is clipped to zero height and lost. Removing
+			// `hidden` restores `content-visibility`, so setting `height: auto` lays the
+			// text out at full height before the highlight paints. The closed state is
+			// also transparent, so show the content at full opacity for the same paint.
+			// The height transition would start the box at zero and slide it open, so
+			// the highlight would still be clipped when it paints: turn the transition
+			// off, force a style and layout flush so the box settles at its end values,
+			// then restore the consumer's inline value. Override only the
+			// `transition-property` longhand: the `transition` shorthand reads as empty
+			// when only some longhands are set, so restoring it would delete them. The
+			// close branch of the effect below clears the inline height and opacity so
+			// the slide and the fade resume.
 			const { transitionProperty } = node.style;
+			node.removeAttribute("hidden");
 			node.style.transitionProperty = "none";
 			node.style.height = "auto";
 			node.style.opacity = "1";
 			node.getBoundingClientRect();
 			node.style.transitionProperty = transitionProperty;
+			setOpen(true);
+			// Why two frames: the open commits after this event, and a controlled
+			// root can accept it in a transition. Firefox and WebKit can run the next
+			// frame before either commits. A root that has not opened the item by the
+			// frame after it refused the open, so hide the content again.
+			requestAnimationFrame(() => {
+				requestAnimationFrame(() => {
+					if (!node.hasAttribute("data-open")) {
+						node.setAttribute("hidden", "until-found");
+						node.style.height = "";
+						node.style.opacity = "";
+					}
+				});
+			});
 		};
 
 		node.addEventListener("beforematch", handleBeforeMatch);
