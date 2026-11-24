@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { type ComponentProps, useState } from "react";
+import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import * as PromptInput from "./prompt-input-parts.js";
 
@@ -137,25 +138,61 @@ describe("PromptInput", () => {
 		expect(onSubmit).toHaveBeenCalledTimes(0);
 	});
 
-	test("a consumer onKeyDown that prevents default stops the submit", async () => {
+	test.each(["onKeyDown", "onClick"])(
+		"a consumer %s can cancel Enter submission",
+		async (handler) => {
+			const user = userEvent.setup();
+			const onSubmit = vi.fn<(message: string) => void>();
+			render(
+				<Composer
+					onSubmit={onSubmit}
+					submitProps={{
+						onClick: (event) => {
+							if (handler === "onClick") {
+								event.preventDefault();
+							}
+						},
+					}}
+					textAreaProps={{
+						onKeyDown: (event) => {
+							if (handler === "onKeyDown" && event.key === "Enter") {
+								event.preventDefault();
+							}
+						},
+					}}
+				/>,
+			);
+
+			await user.type(screen.getByRole("textbox", { name: "Message" }), "hi{Enter}");
+
+			expect(onSubmit).toHaveBeenCalledTimes(0);
+		},
+	);
+
+	test("Enter submits without a submit button", async () => {
 		const user = userEvent.setup();
-		const onSubmit = vi.fn<(message: string) => void>();
+		const onSubmit = vi.fn<() => void>();
 		render(
-			<Composer
-				onSubmit={onSubmit}
-				textAreaProps={{
-					onKeyDown: (event) => {
-						if (event.key === "Enter") {
-							event.preventDefault();
-						}
-					},
+			<PromptInput.Root
+				onSubmit={(event) => {
+					event.preventDefault();
+					onSubmit();
 				}}
-			/>,
+			>
+				<PromptInput.TextArea aria-label="Message" />
+			</PromptInput.Root>,
 		);
+		await user.type(screen.getByRole("textbox", { name: "Message" }), "hello{Enter}");
+		expect(onSubmit).toHaveBeenCalledTimes(1);
+		expect(onSubmit).toHaveBeenLastCalledWith();
+	});
 
-		await user.type(screen.getByRole("textbox", { name: "Message" }), "hi{Enter}");
-
-		expect(onSubmit).toHaveBeenCalledTimes(0);
+	test("the server renders a streaming composer as a stop button", () => {
+		const container = document.createElement("div");
+		container.innerHTML = renderToString(<Composer onSubmit={() => {}} streaming />);
+		expect(container.querySelector("form")).toHaveAttribute("data-streaming", "");
+		expect(container.querySelector("button")).toHaveAttribute("type", "button");
+		expect(container.querySelector("button")).toHaveAttribute("aria-label", "Stop answer");
 	});
 
 	test("Root stamps data-streaming only while streaming", () => {
@@ -214,6 +251,21 @@ describe("PromptInput", () => {
 		expect(form).toHaveAttribute("data-testid", "root");
 		expect(form).toHaveAttribute("data-slot", "prompt-input");
 		expect(ref).toHaveBeenLastCalledWith(form);
+	});
+
+	test("Footer with asChild merges classes, data attributes, and the ref", () => {
+		const ref = vi.fn<(node: HTMLDivElement | null) => void>();
+		render(
+			<PromptInput.Footer asChild ref={ref} className="footer-class" data-testid="footer">
+				<div className="child-class" data-slot="child">
+					Controls
+				</div>
+			</PromptInput.Footer>,
+		);
+		const footer = screen.getByTestId("footer");
+		expect(footer).toHaveClass("footer-class", "child-class");
+		expect(footer).toHaveAttribute("data-slot", "prompt-input-footer child");
+		expect(ref).toHaveBeenLastCalledWith(footer);
 	});
 
 	test("a part outside Root throws", () => {

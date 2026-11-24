@@ -36,6 +36,7 @@ function AssistantComposer() {
 		>
 			<PromptInput.TextArea
 				aria-label="Message the assistant"
+				name="message"
 				placeholder="Ask about endpoints, domains, or Traffic Policy…"
 				value={draft}
 				onChange={(event) => setDraft(event.target.value)}
@@ -95,6 +96,7 @@ function AssistantComposer() {
 		>
 			<PromptInput.TextArea
 				aria-label="Message the assistant"
+				name="message"
 				placeholder="Send a message, then stop the answer…"
 				value={draft}
 				onChange={(event) => setDraft(event.target.value)}
@@ -122,6 +124,8 @@ PromptInput.Root
 
 `PromptInput.Root` and `PromptInput.Footer` take `asChild`. Use it on `PromptInput.Root` to render your router's form component, such as React Router's `<Form>`, in place of the native `<form>`.
 
+`PromptInput.TextArea` keeps its native `<textarea>` because its Enter handler depends on the field's form owner and editing behavior.
+
 `PromptInput.Submit` does not take `asChild`. It owns its button so that it can change from send to stop and keep focus.
 
 ## Keyboard
@@ -130,6 +134,8 @@ PromptInput.Root
 - **Shift+Enter** adds a line.
 - The Enter that confirms an input method editor (IME) candidate does not submit. This includes Safari, which ends the composition before the key event.
 - Enter does nothing while `streaming` is set, or when the form's default button is disabled. The second rule matches the [implicit submission](https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#implicit-submission) of the HTML Standard.
+
+Enter activates the form's first submit button, including its click handler and submission overrides. If the form has no submit button, Enter calls `requestSubmit()`.
 
 `PromptInput.Submit` is never disabled for an empty field, because a gray button reads as a broken message box. Ignore a blank message in your submit handler, as the examples do.
 
@@ -149,17 +155,26 @@ All props from [form](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/
 
 | Data Attribute   | Value                     | Description                                  |
 | ---------------- | ------------------------- | -------------------------------------------- |
+| `data-slot`      | `"prompt-input"`          | On the form, joined with ancestor slots.     |
 | `data-streaming` | present while `streaming` | Presence-only. Style with `data-streaming:`. |
 
 ### PromptInput.TextArea
 
 The message field. It grows with its text up to `max-h-48`, then scrolls. Name it with `aria-label` or a `Label`.
 
+For a form `action`, set `name="message"` on the field and read `formData.get("message")` in the action. The accessible name does not set the form-data key.
+
 All props from [Text Area](/components/forms/text-area) except `appearance` and `validation`.
 
 | Prop    | Type     | Default | Description                                                          |
 | ------- | -------- | ------- | -------------------------------------------------------------------- |
 | `rows?` | `number` | `2`     | The height in lines, in browsers that do not support `field-sizing`. |
+
+| Data Attribute    | Value                                   | Description                               |
+| ----------------- | --------------------------------------- | ----------------------------------------- |
+| `data-slot`       | `"prompt-input-text-area text-area"`    | On the field, joined with ancestor slots. |
+| `data-drag-over`  | present during a drag                   | Inherited from `TextArea`.                |
+| `data-validation` | `"error"` \| `"success"` \| `"warning"` | Validation from an enclosing `Field`.     |
 
 ### PromptInput.Footer
 
@@ -171,13 +186,26 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | ---------- | --------- | ------- | ------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Render as a different element by passing a child. |
 
+| Data Attribute | Value                   | Description                             |
+| -------------- | ----------------------- | --------------------------------------- |
+| `data-slot`    | `"prompt-input-footer"` | On the row, joined with ancestor slots. |
+
 ### PromptInput.Submit
 
 The button that sends the message, and stops the answer while one streams. It sits at the end of `PromptInput.Footer`.
 
-All props from [Icon Button](/components/actions/icon-button) except `appearance`, `asChild`, `icon`, `intent`, `label`, and `type`, plus:
+All props from [Icon Button](/components/actions/icon-button) except `appearance`, `asChild`, `children`, `icon`, `intent`, `label`, and `type`, plus:
 
 | Prop         | Type     | Default          | Description                                       |
 | ------------ | -------- | ---------------- | ------------------------------------------------- |
 | `label?`     | `string` | `"Send message"` | The accessible name of the button while it sends. |
 | `stopLabel?` | `string` | `"Stop answer"`  | The accessible name of the button while it stops. |
+
+| Data Attribute     | Value                                                     | Description                                |
+| ------------------ | --------------------------------------------------------- | ------------------------------------------ |
+| `data-slot`        | `"prompt-input-submit icon-button"`                       | On the button, joined with ancestor slots. |
+| `data-icon-button` | `"true"`                                                  | Inherited from `IconButton`.               |
+| `data-appearance`  | `"filled"`                                                | The button's appearance.                   |
+| `data-intent`      | `"neutral"`                                               | The button's tone.                         |
+| `data-size`        | `"2xs"` \| `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop; defaults to `"sm"`.       |
+| `data-loading`     | present when `isLoading`                                  | Inherited from `IconButton`.               |

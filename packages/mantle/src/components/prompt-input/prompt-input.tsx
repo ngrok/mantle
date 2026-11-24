@@ -56,7 +56,7 @@ function usePromptInputContext(part: string): PromptInputContextValue {
 }
 
 /**
- * The props for `PromptInput.Root`.
+ * Native form attributes and the controls for a streaming answer.
  */
 type PromptInputRootProps = ComponentProps<"form"> &
 	WithAsChild &
@@ -71,6 +71,7 @@ type PromptInputRootProps = ComponentProps<"form"> &
  *
  * | Data Attribute   | Value                         | Description                                   |
  * | ---------------- | ----------------------------- | --------------------------------------------- |
+ * | `data-slot` | `"prompt-input"` | On the form, joined with ancestor slots. |
  * | `data-streaming` | present while `streaming`     | Presence-only. Style with `data-streaming:`.  |
  *
  * @see https://mantle.ngrok.com/components/preview/prompt-input#promptinputroot
@@ -87,6 +88,7 @@ type PromptInputRootProps = ComponentProps<"form"> &
  * >
  *   <PromptInput.TextArea
  *     aria-label="Message the assistant"
+ *     name="message"
  *     placeholder="Ask about your endpoints…"
  *     value={draft}
  *     onChange={(event) => setDraft(event.target.value)}
@@ -129,7 +131,7 @@ function Root({
 }
 
 /**
- * The props for `PromptInput.TextArea`.
+ * Native textarea attributes, with the composer's frame styles fixed.
  */
 type PromptInputTextAreaProps = Omit<
 	ComponentProps<typeof BaseTextArea>,
@@ -146,6 +148,12 @@ type PromptInputTextAreaProps = Omit<
  * Standard's implicit submission does. Name the field with `aria-label` or a
  * `Label`.
  *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"prompt-input-text-area text-area"` | On the field, joined with ancestor slots. |
+ * | `data-drag-over` | present during a drag | Inherited from `TextArea`. |
+ * | `data-validation` | `"error"` \| `"success"` \| `"warning"` | Validation from an enclosing `Field`. |
+ *
  * @see https://mantle.ngrok.com/components/preview/prompt-input#promptinputtextarea
  *
  * @example
@@ -160,6 +168,7 @@ type PromptInputTextAreaProps = Omit<
  * >
  *   <PromptInput.TextArea
  *     aria-label="Message the assistant"
+ *     name="message"
  *     placeholder="Ask about your endpoints…"
  *     value={draft}
  *     onChange={(event) => setDraft(event.target.value)}
@@ -170,6 +179,7 @@ type PromptInputTextAreaProps = Omit<
  * </PromptInput.Root>
  * ```
  */
+// Why no asChild: the Enter handler needs a native textarea's form owner and editing behavior.
 function PromptInputTextArea({
 	"data-slot": dataSlot,
 	className,
@@ -197,10 +207,15 @@ function PromptInputTextArea({
 				}
 				event.preventDefault();
 				const form = event.currentTarget.form;
-				if (streaming || form == null || defaultButtonOf(form)?.disabled === true) {
+				if (streaming || form == null) {
 					return;
 				}
-				form.requestSubmit();
+				const button = defaultButtonOf(form);
+				if (button != null) {
+					button.click();
+				} else {
+					form.requestSubmit();
+				}
 			}}
 			{...props}
 		/>
@@ -230,12 +245,20 @@ function isSendKey(event: {
  * @see https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#default-button
  */
 function defaultButtonOf(form: HTMLFormElement): HTMLButtonElement | HTMLInputElement | undefined {
-	for (const element of form.elements) {
-		if (element instanceof HTMLButtonElement && element.type === "submit") {
+	// Why tree order: form.elements omits image buttons, and a submitter can sit outside its form.
+	const root = form.getRootNode();
+	const tree = root instanceof ShadowRoot ? root : form.ownerDocument;
+	for (const element of tree.querySelectorAll("button, input")) {
+		if (
+			element instanceof HTMLButtonElement &&
+			element.form === form &&
+			element.type === "submit"
+		) {
 			return element;
 		}
 		if (
 			element instanceof HTMLInputElement &&
+			element.form === form &&
 			(element.type === "submit" || element.type === "image")
 		) {
 			return element;
@@ -245,7 +268,7 @@ function defaultButtonOf(form: HTMLFormElement): HTMLButtonElement | HTMLInputEl
 }
 
 /**
- * The props for `PromptInput.Footer`.
+ * Row attributes and optional element substitution for the message's controls.
  */
 type PromptInputFooterProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
 
@@ -253,6 +276,10 @@ type PromptInputFooterProps = ComponentProps<"div"> & WithAsChild & WithDataSlot
  * The row under the field for the message's controls, such as a model picker,
  * an attach button, and `PromptInput.Submit`. `PromptInput.Submit` sits at the
  * end of the row.
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"prompt-input-footer"` | On the row, joined with ancestor slots. |
  *
  * @see https://mantle.ngrok.com/components/preview/prompt-input#promptinputfooter
  *
@@ -268,6 +295,7 @@ type PromptInputFooterProps = ComponentProps<"div"> & WithAsChild & WithDataSlot
  * >
  *   <PromptInput.TextArea
  *     aria-label="Message the assistant"
+ *     name="message"
  *     placeholder="Ask about your endpoints…"
  *     value={draft}
  *     onChange={(event) => setDraft(event.target.value)}
@@ -296,7 +324,7 @@ function Footer({
 }
 
 /**
- * The props for `PromptInput.Submit`.
+ * Send and stop labels, plus attributes for the shared icon button.
  */
 type PromptInputSubmitProps = Omit<
 	ComponentProps<typeof IconButton>,
@@ -325,6 +353,15 @@ type PromptInputSubmitProps = Omit<
  * It is not disabled for an empty field, because a gray button reads as a
  * broken message box. Ignore a blank message in `onSubmit`.
  *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"prompt-input-submit icon-button"` | On the button, joined with ancestor slots. |
+ * | `data-icon-button` | `"true"` | Inherited from `IconButton`. |
+ * | `data-appearance` | `"filled"` | The button's appearance. |
+ * | `data-intent` | `"neutral"` | The button's tone. |
+ * | `data-size` | `"2xs"` \| `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop; defaults to `"sm"`. |
+ * | `data-loading` | present when `isLoading` | Inherited from `IconButton`. |
+ *
  * @see https://mantle.ngrok.com/components/preview/prompt-input#promptinputsubmit
  *
  * @example
@@ -339,6 +376,7 @@ type PromptInputSubmitProps = Omit<
  * >
  *   <PromptInput.TextArea
  *     aria-label="Message the assistant"
+ *     name="message"
  *     placeholder="Ask about your endpoints…"
  *     value={draft}
  *     onChange={(event) => setDraft(event.target.value)}
@@ -374,6 +412,8 @@ function Submit({
 			onClick={(event) => {
 				onClick?.(event);
 				if (stops && !event.defaultPrevented) {
+					// Why: onStop can change this button to a submitter before the click's default action.
+					event.preventDefault();
 					onStop();
 				}
 			}}

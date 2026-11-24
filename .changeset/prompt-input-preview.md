@@ -9,4 +9,6 @@ Add `PromptInput` (preview) at `@ngrok/mantle/prompt-input`: the message box of 
 - `PromptInput.Footer` holds the message's controls.
 - `PromptInput.Submit` sends the message, and stops the answer while one streams. It is one button in both states, so focus stays on it.
 
+Enter activates the form's default submit button, including its click handler and submission overrides. A disabled default button blocks Enter, including a button inside a disabled fieldset. Stopping an answer does not submit the next draft.
+
 Docs: https://mantle.ngrok.com/components/preview/prompt-input

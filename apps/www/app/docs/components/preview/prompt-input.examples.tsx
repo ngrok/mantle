@@ -21,6 +21,7 @@ export function OverviewExample() {
 			>
 				<PromptInput.TextArea
 					aria-label="Message the assistant"
+					name="message"
 					placeholder="Ask about endpoints, domains, or Traffic Policy…"
 					value={draft}
 					onChange={(event) => setDraft(event.target.value)}
@@ -63,6 +64,7 @@ export function StopExample() {
 			>
 				<PromptInput.TextArea
 					aria-label="Message the assistant"
+					name="message"
 					placeholder="Send a message, then stop the answer…"
 					value={draft}
 					onChange={(event) => setDraft(event.target.value)}

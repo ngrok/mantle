@@ -41,6 +41,7 @@ import * as PromptInputParts from "./prompt-input-parts.js";
  * >
  *   <PromptInput.TextArea
  *     aria-label="Message the assistant"
+ *     name="message"
  *     placeholder="Ask about your endpoints…"
  *     value={draft}
  *     onChange={(event) => setDraft(event.target.value)}
