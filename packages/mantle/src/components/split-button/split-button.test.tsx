@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import type { ComponentProps } from "react";
+import { createRef, type ComponentProps } from "react";
 import { describe, expect, test, vi } from "vitest";
 import * as SplitButton from "./split-button-parts.js";
 
@@ -230,6 +230,33 @@ describe("SplitButton", () => {
 		const icons = menuTrigger.querySelectorAll("svg");
 		expect(icons).toHaveLength(1);
 		expect(icons[0]).toBe(screen.getByTestId("custom-icon"));
+	});
+
+	test("a `ref` on Root receives the wrapping div", () => {
+		const ref = createRef<HTMLDivElement>();
+		const { container } = render(
+			<SplitButton.Root ref={ref}>
+				<SplitButton.PrimaryAction>Save</SplitButton.PrimaryAction>
+				<SplitButton.MenuTrigger label="More save options" />
+			</SplitButton.Root>,
+		);
+
+		expect(ref.current).toBe(container.querySelector('[data-slot="split-button"]'));
+	});
+
+	test('a `ref` on MenuContent with width="root" receives the menu', () => {
+		const ref = createRef<HTMLDivElement>();
+		render(
+			<SplitButton.Root open>
+				<SplitButton.PrimaryAction>Save</SplitButton.PrimaryAction>
+				<SplitButton.MenuTrigger label="More save options" />
+				<SplitButton.MenuContent ref={ref} width="root">
+					<SplitButton.MenuItem>Save as draft</SplitButton.MenuItem>
+				</SplitButton.MenuContent>
+			</SplitButton.Root>,
+		);
+
+		expect(ref.current).toBe(screen.getByRole("menu"));
 	});
 
 	test("every part stamps its own data-slot in front of the part it wraps", async () => {

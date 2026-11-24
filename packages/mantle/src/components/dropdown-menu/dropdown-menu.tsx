@@ -98,6 +98,13 @@ type MenuLevel = {
 
 const MenuLevelContext = createContext<MenuLevel | null>(null);
 
+/**
+ * An element that `Content` places against and sizes `width="trigger"` by,
+ * in place of the trigger. Internal: `SplitButton` anchors its menu to the
+ * whole split button with it.
+ */
+const ContentAnchorContext = createContext<RefObject<HTMLElement | null> | null>(null);
+
 function useMenuLevel(part: string): MenuLevel {
 	const level = useContext(MenuLevelContext);
 	invariant(
@@ -911,6 +918,7 @@ const Content = ({
 	...props
 }: DropdownMenuContentProps) => {
 	const state = useRootState("Content");
+	const anchorRef = useContext(ContentAnchorContext);
 	const menuRef = useRef<HTMLElement | null>(null);
 	const { isInSubmenuPath, setSubmenuPath, clearSubmenuPath } = useSubmenuPath();
 	/** How the last outside interaction left focus: where it landed (`keep`), or back to the trigger (`restore`). */
@@ -940,7 +948,7 @@ const Content = ({
 			}
 			state.setOpen(false);
 		},
-		getAnchor: () => state.triggerRef.current,
+		getAnchor: () => anchorRef?.current ?? state.triggerRef.current,
 		getInsideElements: () => [state.triggerRef.current],
 		dismissOnOutside: true,
 		dismissWhenCovered: true,
@@ -2094,6 +2102,7 @@ export {
 	Root,
 	CheckboxItem,
 	Content,
+	ContentAnchorContext,
 	Group,
 	Item,
 	Label,
