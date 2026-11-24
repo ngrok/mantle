@@ -1,7 +1,7 @@
 ---
 title: Command
 description: A command palette that allows users to search and execute commands.
-aliases: [command palette, command menu, cmdk, spotlight]
+aliases: [command palette, command menu, cmdk, cmd k, ctrl k, spotlight]
 ---
 
 import { Example } from "~/components/example";
@@ -72,11 +72,12 @@ function SearchPalette() {
 
 ## When to use
 
-- Search for an action or a page and run it from a keyboard-first palette, such as a `⌘K` menu.
+- Search for an action or a page and run it from a keyboard-first palette, such as a `⌘K` menu. Cmd+K on Apple platforms and Ctrl+K elsewhere open its search field.
 - Open the palette from a search field. Give the trigger focus and start typing: the palette opens with what you typed already in the query. Pasting works too.
 - Show the same list and filtering [inline](#inline-palette), without a dialog around it.
 - Prefer [`Combobox`](/components/forms/combobox) for a text field that filters options in place and sets a form value, rather than opening a modal.
 - Prefer [`DropdownMenu`](/components/overlays/dropdown-menu) for a short list of actions that opens from one button.
+- Prefer [`Query`](/components/forms/query) for a filter on the page that its `keyboardShortcut` prop binds to the slash key (`/`).
 
 ## Inline palette
 
