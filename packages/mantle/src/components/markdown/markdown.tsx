@@ -488,9 +488,14 @@ function looseness(token: Token): boolean | undefined {
 /**
  * One top-level block. Why `memo`: a finished block keeps its token, so it
  * never renders again while the answer streams. Why a `<p>` for text: the
- * blocks of a group have no parent element of their own.
+ * blocks of a group have no parent element of their own. Why `@__PURE__` on
+ * this file's module-level calls: an import of `useMarkdownStream` alone drops
+ * the renderer and the `CodeBlock` highlighter.
  */
-const MarkdownBlock = memo(function MarkdownBlock({ token, components }: BlockProps) {
+const MarkdownBlock = /* @__PURE__ */ memo(function MarkdownBlock({
+	token,
+	components,
+}: BlockProps) {
 	const node = renderToken(token, 0, components);
 	return typeof node === "string" ? <p>{node}</p> : node;
 }, isSameBlock);
@@ -526,7 +531,7 @@ function isSameGroup(previous: GroupProps, next: GroupProps): boolean {
  * which holds the unfinished block. That block stays in its group when it
  * finishes, so it keeps its parent and its key, and never remounts.
  */
-const MarkdownGroup = memo(function MarkdownGroup({
+const MarkdownGroup = /* @__PURE__ */ memo(function MarkdownGroup({
 	blocks,
 	start,
 	components,
@@ -548,10 +553,13 @@ const MarkdownGroup = memo(function MarkdownGroup({
  * deep in a block, and its items compare `links` to render again when a
  * definition resolves one of their reference links.
  */
-const LinksContext = createContext<MarkdownLinks>(Object.create(null));
+const LinksContext = /* @__PURE__ */ createContext<MarkdownLinks>(Object.create(null));
 
 /** One list item. Why `memo`: a long list streams one item at a time, and the items above it keep their source. */
-const MarkdownListItem = memo(function MarkdownListItem({ token, components }: BlockProps) {
+const MarkdownListItem = /* @__PURE__ */ memo(function MarkdownListItem({
+	token,
+	components,
+}: BlockProps) {
 	return renderToken(token, 0, components);
 }, isSameBlock);
 

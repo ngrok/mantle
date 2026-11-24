@@ -61,11 +61,60 @@ const judge = ({
 	return { kind: "within" };
 };
 
+/** A chunk of a build: its code and the chunks it imports. */
+type BuiltChunk = { fileName: string; code: string; isEntry: boolean; imports: readonly string[] };
+
+/**
+ * Splits the chunks of a build into eager code, which the entry and its static
+ * imports load before the page runs, and lazy code: dynamic imports and
+ * workers. Pure, so the split is testable.
+ *
+ * @example
+ * ```ts
+ * splitChunks([
+ *   { fileName: "entry.js", code: "a", isEntry: true, imports: ["shared.js"] },
+ *   { fileName: "shared.js", code: "b", isEntry: false, imports: [] },
+ *   { fileName: "grammar.js", code: "c", isEntry: false, imports: ["shared.js"] },
+ * ]); // { eager: ["a", "b"], lazy: ["c"] }
+ * ```
+ */
+const splitChunks = (chunks: readonly BuiltChunk[]): { eager: string[]; lazy: string[] } => {
+	const byName = new Map(chunks.map((chunk) => [chunk.fileName, chunk]));
+	const eager = new Set<string>();
+	const visit = (fileName: string) => {
+		const chunk = byName.get(fileName);
+		if (chunk == null || eager.has(fileName)) {
+			return;
+		}
+		eager.add(fileName);
+		for (const imported of chunk.imports) {
+			visit(imported);
+		}
+	};
+	for (const chunk of chunks) {
+		if (chunk.isEntry) {
+			visit(chunk.fileName);
+		}
+	}
+	return {
+		eager: chunks.filter((chunk) => eager.has(chunk.fileName)).map((chunk) => chunk.code),
+		lazy: chunks.filter((chunk) => !eager.has(chunk.fileName)).map((chunk) => chunk.code),
+	};
+};
+
+const gzipBytesOf = (code: readonly string[]): number =>
+	code.length === 0 ? 0 : gzipSync(code.join("\n"), { level: 9 }).length;
+
 /**
  * Builds one entry the way a consumer's Vite production build does, with React
- * external, and returns the gzip size of the JavaScript it ships.
+ * external, and returns the gzip size of its eager JavaScript and of its lazy
+ * chunks. Why apart: a dynamic import or a worker, such as a grammar of the
+ * code highlighter, costs a page nothing until it runs.
  */
-const measure = async (name: string, entry: string): Promise<number> => {
+const measure = async (
+	name: string,
+	entry: string,
+): Promise<{ gzipBytes: number; lazyGzipBytes: number }> => {
 	const virtualId = `\0bundle-budget:${name}`;
 	const output = await build({
 		configFile: false,
@@ -78,9 +127,10 @@ const measure = async (name: string, entry: string): Promise<number> => {
 				input: virtualId,
 				external: [/^react($|\/)/, /^react-dom($|\/)/],
 				preserveEntrySignatures: "strict",
-				output: { codeSplitting: false },
 			},
 		},
+		// Why a worker build like the page's: a worker is lazy code, and its own chunks stay out of the entry.
+		worker: { format: "es" },
 		resolve: {
 			// Why dist: the budget measures what consumers install, after the React
 			// Compiler pass and the namespace rewrite.
@@ -95,11 +145,18 @@ const measure = async (name: string, entry: string): Promise<number> => {
 		],
 	});
 	const results = Array.isArray(output) ? output : [output];
-	const code = results
-		.flatMap((result) => ("output" in result ? result.output : []))
-		.map((chunk) => (chunk.type === "chunk" ? chunk.code : ""))
-		.join("\n");
-	return gzipSync(code, { level: 9 }).length;
+	const files = results.flatMap((result) => ("output" in result ? result.output : []));
+	const chunks: BuiltChunk[] = files.flatMap((file) =>
+		file.type === "chunk"
+			? [{ fileName: file.fileName, code: file.code, isEntry: file.isEntry, imports: file.imports }]
+			: [],
+	);
+	// Why the assets: Vite emits a worker's bundle as an asset, and it is lazy code.
+	const workers = files.flatMap((file) =>
+		file.type === "asset" && file.fileName.endsWith(".js") ? [String(file.source)] : [],
+	);
+	const { eager, lazy } = splitChunks(chunks);
+	return { gzipBytes: gzipBytesOf(eager), lazyGzipBytes: gzipBytesOf([...lazy, ...workers]) };
 };
 
 const formatBytes = (bytes: number): string => `${(bytes / 1024).toFixed(1)} KB`;
@@ -112,12 +169,15 @@ const main = async (): Promise<void> => {
 	const budget: Budget = JSON.parse(fs.readFileSync(BUDGET_FILE, "utf8"));
 	let failed = false;
 	for (const [name, scenario] of Object.entries(budget)) {
-		const gzipBytes = await measure(name, scenario.entry);
+		const { gzipBytes, lazyGzipBytes } = await measure(name, scenario.entry);
 		if (update) {
-			scenario.maxGzipBytes = gzipBytes + UPDATE_HEADROOM;
+			// Why the cap: a small scenario with the full headroom is at once more than 3% under its budget.
+			scenario.maxGzipBytes =
+				gzipBytes + Math.min(UPDATE_HEADROOM, Math.floor(gzipBytes * STALE_RATIO));
 		}
 		const verdict = judge({ gzipBytes, maxGzipBytes: scenario.maxGzipBytes });
-		const line = `${name.padEnd(24)} ${formatBytes(gzipBytes).padStart(9)} / ${formatBytes(scenario.maxGzipBytes)}`;
+		const lazy = lazyGzipBytes > 0 ? `  (+${formatBytes(lazyGzipBytes)} lazy)` : "";
+		const line = `${name.padEnd(24)} ${formatBytes(gzipBytes).padStart(9)} / ${formatBytes(scenario.maxGzipBytes)}${lazy}`;
 		switch (verdict.kind) {
 			case "over": {
 				failed = true;
@@ -158,5 +218,6 @@ if (import.meta.main) {
 export {
 	//,
 	judge,
+	splitChunks,
 };
 export type { Verdict };
