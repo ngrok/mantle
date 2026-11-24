@@ -957,4 +957,28 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		region.dispatchEvent(new KeyboardEvent("keyup", { key: "Tab", altKey: true, bubbles: true }));
 		await expect.poll(() => region.getAttribute("aria-expanded")).toBe("true");
 	});
+	test("a long picked text keeps the input one line, with an ellipsis", async () => {
+		await injectComboboxCss();
+		const long = "Grace Hopper, Rear Admiral, United States Navy, inventor of the first compiler";
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Owner" style={{ width: 160 }} />
+				<Combobox.Content>
+					<Combobox.Item value="usr_7f">
+						<span aria-hidden="true">GH</span>
+						{long}
+					</Combobox.Item>
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Owner" });
+		const { height, width } = input.getBoundingClientRect();
+		await userEvent.click(input);
+		await userEvent.click(screen.getByRole("option", { name: long }));
+
+		expect(input).toHaveValue(long);
+		expect(input.getBoundingClientRect().height).toBe(height);
+		expect(input.getBoundingClientRect().width).toBe(width);
+		expect(getComputedStyle(input).textOverflow).toBe("ellipsis");
+	});
 });
