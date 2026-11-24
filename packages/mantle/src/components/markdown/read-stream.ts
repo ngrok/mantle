@@ -14,15 +14,20 @@ async function* chunksOf(
 	if (!("getReader" in source)) {
 		const iterator = source[Symbol.asyncIterator]();
 		// Why a race: `return()` does not settle a pending `next()`, so the read must also end on abort.
-		const aborted = new Promise<IteratorResult<string>>((resolve) => {
-			signal.addEventListener("abort", () => resolve({ done: true, value: undefined }), {
-				once: true,
+		// Why a listener for each read: a reaction for each chunk on one shared promise grows until the end.
+		const next = () =>
+			new Promise<IteratorResult<string>>((resolve, reject) => {
+				const end = () => resolve({ done: true, value: undefined });
+				if (signal.aborted) {
+					end();
+					return;
+				}
+				signal.addEventListener("abort", end, { once: true });
+				iterator
+					.next()
+					.then(resolve, reject)
+					.finally(() => signal.removeEventListener("abort", end));
 			});
-			if (signal.aborted) {
-				resolve({ done: true, value: undefined });
-			}
-		});
-		const next = () => Promise.race([iterator.next(), aborted]);
 		let stopped = false;
 		const stop = () => {
 			if (!stopped) {
@@ -70,15 +75,13 @@ async function* chunksOf(
 
 function wait(milliseconds: number, signal: AbortSignal): Promise<void> {
 	return new Promise((resolve) => {
-		const timer = setTimeout(resolve, milliseconds);
-		signal.addEventListener(
-			"abort",
-			() => {
-				clearTimeout(timer);
-				resolve();
-			},
-			{ once: true },
-		);
+		const end = () => {
+			clearTimeout(timer);
+			signal.removeEventListener("abort", end);
+			resolve();
+		};
+		const timer = setTimeout(end, milliseconds);
+		signal.addEventListener("abort", end, { once: true });
 	});
 }
 
