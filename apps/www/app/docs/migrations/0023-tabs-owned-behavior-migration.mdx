@@ -73,7 +73,7 @@ import { Tabs } from "@ngrok/mantle/tabs";
 
 - **Right-to-left pages.** Radix set `dir="ltr"` on the root, so the arrow keys moved left to right in a right-to-left page. The root now sets `dir` only when you pass it, and in a right-to-left page **ArrowLeft** moves to the next tab.
 - **Tab order before hydration.** The server HTML now puts the active tab in the Tab order. After hydration, the tab list is the entry point for a forward Tab, as in Radix, and moves focus to the active tab.
-- **Stop an arrow key with `onKeyDown`, not `onFocus`.** An arrow key now selects the next tab before it takes focus, so a screen reader reads the tab once. A trigger's `onFocus` that calls `preventDefault()` no longer stops that selection. Call `preventDefault()` in the `onKeyDown` of the tab that has focus instead:
+- **Stop an arrow key with `onKeyDown`, not `onFocus`.** An arrow key now selects the next tab before it takes focus. A trigger's `onFocus` that calls `preventDefault()` no longer stops that selection. Call `preventDefault()` in the `onKeyDown` of the tab that has focus instead. The [Tabs page](/components/navigation/tabs#stop-arrow-key-selection) defines `tabKeys`:
 
   ```tsx
   // BEFORE: the focus handler on the next tab vetoed the selection
@@ -81,11 +81,11 @@ import { Tabs } from "@ngrok/mantle/tabs";
   	Billing
   </Tabs.Trigger>
 
-  // AFTER: the key handler on the focused tab stops the arrow key
+  // AFTER: the key handler on the focused tab stops the arrow keys, Home, End, PageUp, and PageDown
   <Tabs.Trigger
   	value="profile"
   	onKeyDown={(event) => {
-  		if (hasUnsavedChanges && event.key.startsWith("Arrow")) {
+  		if (hasUnsavedChanges && tabKeys.includes(event.key)) {
   			event.preventDefault();
   		}
   	}}
