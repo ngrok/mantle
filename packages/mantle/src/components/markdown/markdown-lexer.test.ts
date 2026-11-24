@@ -130,6 +130,14 @@ describe("lexMarkdown", () => {
 		expect(tokens.map((token) => token.raw).join("")).toBe(`${"*".repeat(200)}x${"*".repeat(200)}`);
 	});
 
+	test("keeps a lazy line as a quote's text, not a table's delimiter row", () => {
+		expect(types(lexMarkdown("> | a | b |\n|---|---|\n| 1 | 2 |"))).toEqual([
+			"blockquote",
+			"paragraph",
+			"text",
+		]);
+	});
+
 	test("ends a quoted table at an unquoted line", () => {
 		const tokens = lexMarkdown(
 			"> | Name | Value |\n> | --- | --- |\n> | a | 1 |\nThe result is ready.",

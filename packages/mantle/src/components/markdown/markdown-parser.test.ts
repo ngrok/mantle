@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { markdownMath } from "./markdown-math.js";
 import { createMarkdownParser } from "./markdown-parser.js";
 
 const answer = [
@@ -136,6 +137,14 @@ describe("createMarkdownParser", () => {
 		expect(parser.parse("[a]: https://ngrok.com\n\nSome text", { streaming: true }).links).toBe(
 			first.links,
 		);
+	});
+
+	test("keeps a line that starts with inline math in its paragraph", () => {
+		const parser = createMarkdownParser({ extensions: [markdownMath()] });
+		const { blocks } = parser.parse("The energy is\n$$E = mc^2$$ where m is mass.", {
+			streaming: false,
+		});
+		expect(blocks.map((block) => block.type)).toEqual(["paragraph"]);
 	});
 
 	test("keeps a single tilde as text", () => {

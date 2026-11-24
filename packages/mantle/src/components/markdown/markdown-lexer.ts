@@ -472,8 +472,26 @@ function lexBlocks(
 	const expanded: (string | undefined)[] = [];
 	const rawLineAt = (at: number) => (rawCache[at] ??= source.slice(starts[at], lineEnd(at)));
 	const lineAt = (at: number) => (expanded[at] ??= expandTabs(rawLineAt(at), column));
-	const interruptsParagraph = (line: string) =>
-		interrupts(line) || context.block.some((extension) => extension.start?.(line) === 0);
+	/** The token of a block extension at line `at`, when it ends at a line end. */
+	const extensionAt = (at: number): Tok | undefined => {
+		for (const extension of context.block) {
+			const token = extension.tokenizer(source.slice(starts[at]), []);
+			const end = (starts[at] ?? 0) + (token?.raw.length ?? 0);
+			// Why a whole line: the lexer reads lines, and text after the token on its last line would be lost.
+			if (
+				token != null &&
+				token.raw !== "" &&
+				(end >= source.length || source.charCodeAt(end - 1) === 10 || source.charCodeAt(end) === 10)
+			) {
+				return token;
+			}
+		}
+		return undefined;
+	};
+	// Why the tokenizer after `start`: a line such as `$$x$$ more` starts like math but stays in the paragraph.
+	const interruptsParagraph = (line: string, at: number) =>
+		interrupts(line) ||
+		(context.block.some((extension) => extension.start?.(line) === 0) && extensionAt(at) != null);
 	const rawLines = (from: number, to: number) => {
 		const out: string[] = [];
 		for (let at = from; at < to; at += 1) {
@@ -489,35 +507,26 @@ function lexBlocks(
 	let afterDefinition = -1;
 	let index = 0;
 
-	blocks: while (index < lines.length) {
+	while (index < lines.length) {
 		const line = lineAt(index);
 		// A line that continues a paragraph: a lazy line, or a line after a definition that cannot interrupt it.
 		const plain =
 			lazy?.has(index) === true ||
-			(index === afterDefinition && !isBlank(line) && !interruptsParagraph(line));
+			(index === afterDefinition && !isBlank(line) && !interruptsParagraph(line, index));
 
 		if (!plain) {
-			for (const extension of context.block) {
-				const token = extension.tokenizer(source.slice(starts[index]), []);
-				const end = (starts[index] ?? 0) + (token?.raw.length ?? 0);
-				// Why a whole line: the lexer reads lines, and text after the token on its last line would be lost.
-				if (
-					token != null &&
-					token.raw !== "" &&
-					(end >= source.length ||
-						source.charCodeAt(end - 1) === 10 ||
-						source.charCodeAt(end) === 10)
-				) {
-					tokens.push(token);
-					// Why: the line break after the token belongs to no token, and the raws must join to the source.
-					if (source.charCodeAt(end - 1) !== 10 && source.charCodeAt(end) === 10) {
-						tokens.push({ type: "space", raw: "\n" } as Tok);
-					}
-					while (index < lines.length && (starts[index] ?? 0) < end) {
-						index += 1;
-					}
-					continue blocks;
+			const token = context.block.length > 0 ? extensionAt(index) : undefined;
+			if (token != null) {
+				const end = (starts[index] ?? 0) + token.raw.length;
+				tokens.push(token);
+				// Why: the line break after the token belongs to no token, and the raws must join to the source.
+				if (source.charCodeAt(end - 1) !== 10 && source.charCodeAt(end) === 10) {
+					tokens.push({ type: "space", raw: "\n" } as Tok);
 				}
+				while (index < lines.length && (starts[index] ?? 0) < end) {
+					index += 1;
+				}
+				continue;
 			}
 
 			if (isBlank(line)) {
@@ -731,7 +740,7 @@ function lexBlocks(
 			continue;
 		}
 
-		if (!plain && startsTable(line, lineAt(index + 1))) {
+		if (!plain && lazy?.has(index + 1) !== true && startsTable(line, lineAt(index + 1))) {
 			const header = cells(line);
 			const align = cells(lineAt(index + 1)).map((cell) => {
 				const left = cell.startsWith(":");
@@ -831,8 +840,9 @@ function lexBlocks(
 			}
 			if (
 				isBlank(current) ||
-				interruptsParagraph(current) ||
-				startsTable(current, lineAt(end + 1))
+				interruptsParagraph(current, end) ||
+				// Why not before a lazy line: a lazy line only continues a paragraph, so it is no delimiter row.
+				(lazy?.has(end + 1) !== true && startsTable(current, lineAt(end + 1)))
 			) {
 				break;
 			}
