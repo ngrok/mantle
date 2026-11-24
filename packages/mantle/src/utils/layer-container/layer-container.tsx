@@ -123,16 +123,14 @@ function LayerContainer({
 }
 
 /**
- * An open overlay. It can take an Escape from a float it covers, and it yields
- * to a frame that covers it.
+ * An open overlay. It hides the floats it covers, and it yields to a frame
+ * that covers it.
  */
 type OpenOverlay = {
 	/** The overlay's layer container: its positioner. */
 	container: Element;
 	/** The overlay's content element, inside `container`. Floats the overlay owns sit beside it. */
 	content: Element;
-	/** Runs the overlay's own Escape handling, then closes it unless a handler prevents that. */
-	escape: (event: KeyboardEvent) => void;
 };
 
 /**
@@ -151,8 +149,8 @@ function subscribeToOverlays(listener: () => void): () => void {
 }
 
 /**
- * Registers an open overlay, so a float it covers can hand it Escape, and so
- * the overlay on top can find a frame that covers it. Call it when the
+ * Registers an open overlay, so a float it covers can hide, and so the
+ * overlay on top can find a frame that covers it. Call it when the
  * overlay opens; it returns the function to call when it closes.
  */
 function registerOverlay(overlay: OpenOverlay): () => void {
