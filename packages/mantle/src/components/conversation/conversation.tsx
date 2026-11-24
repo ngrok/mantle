@@ -195,7 +195,8 @@ function Viewport({
 		if (viewport != null && initializedRef.current !== viewport) {
 			initializedRef.current = viewport;
 			if (!hasScrollAnchor(viewport) && viewport.scrollTop === 0) {
-				viewport.scrollTo({ top: viewport.scrollHeight, behavior: "instant" });
+				// Why `scrollTo?.`: jsdom has no Element scrollTo, and a consumer's tests render chats there.
+				viewport.scrollTo?.({ top: viewport.scrollHeight, behavior: "instant" });
 			}
 		}
 		setElement(viewport);
@@ -204,7 +205,8 @@ function Viewport({
 
 	// Why the element dependency: a consumer ref can change without replacing the viewport or its follow state.
 	useLayoutEffect(() => {
-		if (element == null) {
+		// Why: jsdom has no ResizeObserver, and with no layout there is no end to follow.
+		if (element == null || typeof ResizeObserver === "undefined") {
 			return;
 		}
 		const root = element.closest('[data-slot~="conversation"]');
