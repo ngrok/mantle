@@ -85,17 +85,22 @@ describe("findRetiredLibraryMentions", () => {
 		},
 	);
 
-	it("skips a frontmatter alias, which only feeds search", () => {
+	it.each([
+		["a flow list", "aliases: [Radix dialog]"],
+		["a block list", "aliases:\n  - Radix dialog\n- Radix modal"],
+	])("skips a frontmatter alias in %s, which only feeds search", (_, aliases) => {
 		writeManifest({});
 		write(
 			"apps/www/app/docs/command.mdx",
-			"---\naliases: [Radix dialog]\n---\n\nA Radix dialog.\n",
+			`---\n${aliases}\ntitle: Radix\n---\n\naliases: Radix\n`,
 		);
+		const lines = aliases.split("\n").length;
 
 		expect(
 			findRetiredLibraryMentions({ rootDir, files: ["apps/www/app/docs/command.mdx"], libraries }),
 		).toEqual([
-			"apps/www/app/docs/command.mdx:5 names Radix, which packages/mantle/package.json does not list.",
+			`apps/www/app/docs/command.mdx:${lines + 2} names Radix, which packages/mantle/package.json does not list.`,
+			`apps/www/app/docs/command.mdx:${lines + 5} names Radix, which packages/mantle/package.json does not list.`,
 		]);
 	});
 

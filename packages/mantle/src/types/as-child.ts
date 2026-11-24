@@ -15,7 +15,7 @@ type WithAsChild = {
 	 * `asChild` can be used as deeply as you need to. This means it is a great way
 	 * to compose multiple primitive's behavior together.
 	 *
-	 * @see https://mantle.ngrok.com/components/primitives/slot#composition
+	 * @see https://mantle.ngrok.com/components/primitives/slot#usage-with-aschild
 	 */
 	asChild?: boolean;
 };
@@ -39,7 +39,7 @@ type SelfClosingWithAsChild =
 			 * `asChild` can be used as deeply as you need to. This means it is a great way
 			 * to compose multiple primitive's behavior together.
 			 *
-			 * @see https://mantle.ngrok.com/components/primitives/slot#composition
+			 * @see https://mantle.ngrok.com/components/primitives/slot#usage-with-aschild
 			 */
 			asChild: true;
 			children: ReactNode;

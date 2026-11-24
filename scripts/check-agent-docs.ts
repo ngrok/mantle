@@ -115,10 +115,18 @@ export function findRetiredLibraryMentions({
 			continue;
 		}
 		const lines = fs.readFileSync(path.join(rootDir, file), "utf8").split("\n");
+		const frontmatterEnd = lines[0] === "---" ? lines.indexOf("---", 1) : -1;
+		let inAliases = false;
 		lines.forEach((line, index) => {
 			// Why: an alias only feeds search and MCP `find`, so `cmdk` still leads a port of cmdk code to Command.
-			if (line.startsWith("aliases:")) {
-				return;
+			// A frontmatter key starts at column 0. A block-list item starts with `-` or a space.
+			if (index < frontmatterEnd) {
+				if (/^[^\s-]/.test(line)) {
+					inAliases = line.startsWith("aliases:");
+				}
+				if (inAliases) {
+					return;
+				}
 			}
 			for (const library of retired) {
 				const match = library.mention.exec(line);

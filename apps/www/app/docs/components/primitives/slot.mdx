@@ -104,7 +104,9 @@ highlights with no `className`, no `current`, and no `useMatch`.
 A function `children` is forwarded untouched, so `NavLink`'s `children={({ isActive }) => …}` works too.
 
 > [!NOTE]
-> This is `Slot`'s behavior, so it covers every mantle part that takes `asChild`. Nesting works too:
+> This is `Slot`'s behavior, so a function `className` or `style` works on every mantle part that takes
+> `asChild`. A function `children` doesn't: a part that wraps the child's content in its own label, such as
+> `Button` or `Tabs.Trigger`, needs element children. Nesting works too:
 > `DropdownMenu.Trigger asChild > Sidebar.ItemButton asChild > NavLink` composes fine.
 
 ## API Reference
