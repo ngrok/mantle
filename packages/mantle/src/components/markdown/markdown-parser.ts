@@ -1,4 +1,5 @@
-import { Lexer, Marked, type MarkedExtension, type Token, type TokensList } from "marked";
+import type { Token, TokensList } from "marked";
+import { lexMarkdown, type MarkdownTokenizer } from "./markdown-lexer.js";
 import { closeMarkdown } from "./close-markdown.js";
 
 /** The reference definitions of an answer, such as `[1]: https://ngrok.com`, by label. */
@@ -35,15 +36,11 @@ type MarkdownParser = {
  */
 const closesMath: unique symbol = Symbol("closesMath");
 
-/** A marked extension that can carry {@link closesMath}. */
-type MarkdownExtension = MarkedExtension & { [closesMath]?: true };
-
-/** A lexer for the options of one `Marked` instance, seeded with known reference definitions. */
-function lex(marked: Marked, source: string, links: MarkdownLinks): TokensList {
-	const lexer = new Lexer(marked.defaults);
-	Object.assign(lexer.tokens.links, links);
-	return lexer.lex(source);
-}
+/** Tokenizers that read more kinds of tokens, such as math. It can carry {@link closesMath}. */
+type MarkdownExtension = {
+	extensions: readonly MarkdownTokenizer[];
+	[closesMath]?: true;
+};
 
 /** The index of the last token of `tokens` that is not a blank line, or -1. */
 function lastContentIndex(tokens: readonly Token[]): number {
@@ -58,7 +55,7 @@ function lastContentIndex(tokens: readonly Token[]): number {
 function addDefinitions(links: MarkdownLinks, tokens: readonly Token[]) {
 	for (const token of tokens) {
 		if (token.type === "def") {
-			links[token.tag] ??= { href: token.href, title: token.title };
+			links[token.tag] ??= { href: token.href, title: token.title ?? "" };
 		} else if (token.type === "list") {
 			addDefinitions(links, token.items);
 		} else if ("tokens" in token && token.tokens != null && token.type !== "paragraph") {
@@ -103,18 +100,9 @@ function contentTokens(tokens: readonly Token[]): Token[] {
 function createMarkdownParser({
 	extensions = [],
 }: { extensions?: readonly MarkdownExtension[] } = {}): MarkdownParser {
-	const marked = new Marked(
-		{
-			gfm: true,
-			// Why: GitHub reads `~one~` as strikethrough, and a model writes `20~25` for a range.
-			tokenizer: {
-				del(source) {
-					return source.startsWith("~~") ? false : undefined;
-				},
-			},
-		},
-		...extensions,
-	);
+	const tokenizers = extensions.flatMap((extension) => extension.extensions);
+	const lex = (source: string, known: MarkdownLinks) =>
+		lexMarkdown(source, { links: known, extensions: tokenizers });
 	const closeMath = extensions.some((extension) => extension[closesMath] === true);
 
 	let frozen: Token[] = [];
@@ -138,7 +126,7 @@ function createMarkdownParser({
 	 * block can come before its definition, and only a whole lex resolves it.
 	 */
 	const parseWhole = (source: string): MarkdownSnapshot => {
-		const all = lex(marked, source, Object.create(null));
+		const all = lex(source, Object.create(null));
 		const blocks = contentTokens(all);
 		frozen = blocks.slice(0, -1);
 		frozenSource = all
@@ -166,7 +154,7 @@ function createMarkdownParser({
 
 			const tail = source.slice(frozenSource.length);
 			const text = streaming ? closeMarkdown(tail, { math: closeMath }) : tail;
-			const tokens = lex(marked, text, frozenLinks);
+			const tokens = lex(text, frozenLinks);
 			setLinks(tokens.links);
 
 			if (!streaming && frozen.length > 0 && (frozenReadLinks || Object.keys(links).length > 0)) {
@@ -214,6 +202,7 @@ export type {
 	//,
 	MarkdownExtension,
 	MarkdownLinks,
+	MarkdownTokenizer,
 	MarkdownParser,
 	MarkdownSnapshot,
 };

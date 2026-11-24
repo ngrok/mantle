@@ -111,6 +111,70 @@ function AssistantComposer() {
 
 </Example>
 
+## Attach files
+
+Set `onFilesAdd` on `PromptInput.Root` to take files. A person can pick them with `PromptInput.AttachButton`, drop them on the frame, or paste them into the field. Show them with [Attachment](/components/preview/attachment) above the field. Reading, checking, and storing the files stays with your app.
+
+<Example name="components/preview/prompt-input/attach" title="Prompt Input attach example">
+
+```tsx
+import { Attachment } from "@ngrok/mantle/attachment";
+import { PromptInput } from "@ngrok/mantle/prompt-input";
+import { useState } from "react";
+
+function AssistantComposer() {
+	const [draft, setDraft] = useState("");
+	const [files, setFiles] = useState<{ id: string; file: File }[]>([]);
+
+	return (
+		<PromptInput.Root
+			className="w-full max-w-2xl"
+			onFilesAdd={(added) => {
+				const entries = added.map((file) => ({ id: crypto.randomUUID(), file }));
+				setFiles((current) => [...current, ...entries]);
+			}}
+			onSubmit={(event) => {
+				event.preventDefault();
+				if (draft.trim() === "" && files.length === 0) {
+					return;
+				}
+				setDraft("");
+				setFiles([]);
+			}}
+		>
+			{files.length > 0 && (
+				<Attachment.List aria-label="Attachments" className="px-3 pt-3">
+					{files.map(({ id, file }) => (
+						<Attachment.Root key={id}>
+							<Attachment.Preview />
+							<Attachment.Name title={file.name}>{file.name}</Attachment.Name>
+							<Attachment.Size bytes={file.size} />
+							<Attachment.Remove
+								label={`Remove ${file.name}`}
+								onClick={() => setFiles((current) => current.filter((entry) => entry.id !== id))}
+							/>
+						</Attachment.Root>
+					))}
+				</Attachment.List>
+			)}
+			<PromptInput.TextArea
+				aria-label="Message the assistant"
+				name="message"
+				placeholder="Drop or paste a file, or attach one…"
+				value={draft}
+				onChange={(event) => setDraft(event.target.value)}
+			/>
+			<PromptInput.Footer>
+				<PromptInput.AttachButton accept="image/*,.txt,.json" />
+				<PromptInput.Submit />
+			</PromptInput.Footer>
+		</PromptInput.Root>
+	);
+}
+```
+
+</Example>
+
 ## Pick a model and dictate
 
 Put the message's controls in `PromptInput.Footer`. For a model picker, use [Select](/components/forms/select) with a `name`, so the form submits the model with the message. Mantle has no model picker component, because each app lists its own models.
@@ -180,6 +244,7 @@ function PlaygroundComposer() {
 PromptInput.Root
 ├── PromptInput.TextArea
 └── PromptInput.Footer
+    ├── PromptInput.AttachButton
     ├── PromptInput.Dictate
     └── PromptInput.Submit
 ```
@@ -212,16 +277,18 @@ The message box: a native `<form>` that holds the field and its controls in one 
 
 All props from [form](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#attributes), plus:
 
-| Prop         | Type         | Default | Description                                                                                          |
-| ------------ | ------------ | ------- | ---------------------------------------------------------------------------------------------------- |
-| `streaming?` | `boolean`    | `false` | True while an answer streams. `PromptInput.Submit` then stops the answer, and Enter does not submit. |
-| `onStop?`    | `() => void` |         | Runs when the person presses stop. Required when you set `streaming`.                                |
-| `asChild?`   | `boolean`    | `false` | Render as a different element by passing a child, such as your router's form.                        |
+| Prop          | Type                      | Default | Description                                                                                                            |
+| ------------- | ------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `streaming?`  | `boolean`                 | `false` | True while an answer streams. `PromptInput.Submit` then stops the answer, and Enter does not submit.                   |
+| `onStop?`     | `() => void`              |         | Runs when the person presses stop. Required when you set `streaming`.                                                  |
+| `onFilesAdd?` | `(files: File[]) => void` |         | Receives the files a person attaches: from `PromptInput.AttachButton`, a drop on the frame, or a paste into the field. |
+| `asChild?`    | `boolean`                 | `false` | Render as a different element by passing a child, such as your router's form.                                          |
 
-| Data Attribute   | Value                     | Description                                  |
-| ---------------- | ------------------------- | -------------------------------------------- |
-| `data-slot`      | `"prompt-input"`          | On the form, joined with ancestor slots.     |
-| `data-streaming` | present while `streaming` | Presence-only. Style with `data-streaming:`. |
+| Data Attribute   | Value                                   | Description                                  |
+| ---------------- | --------------------------------------- | -------------------------------------------- |
+| `data-slot`      | `"prompt-input"`                        | On the form, joined with ancestor slots.     |
+| `data-streaming` | present while `streaming`               | Presence-only. Style with `data-streaming:`. |
+| `data-drag-over` | present while files drag over the frame | Presence-only. Set only with `onFilesAdd`.   |
 
 ### PromptInput.TextArea
 
@@ -254,6 +321,26 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 | Data Attribute | Value                   | Description                             |
 | -------------- | ----------------------- | --------------------------------------- |
 | `data-slot`    | `"prompt-input-footer"` | On the row, joined with ancestor slots. |
+
+### PromptInput.AttachButton
+
+The button that opens the file picker. It needs `onFilesAdd` on `PromptInput.Root`.
+
+All props from [Icon Button](/components/actions/icon-button) except `appearance`, `asChild`, `children`, `icon`, `intent`, `label`, and `type`, plus:
+
+| Prop      | Type     | Default          | Description                                                                                    |
+| --------- | -------- | ---------------- | ---------------------------------------------------------------------------------------------- |
+| `accept?` | `string` |                  | The file types the picker offers, such as `"image/*,.txt"`. A drop or a paste is not filtered. |
+| `label?`  | `string` | `"Attach files"` | The accessible name of the button.                                                             |
+
+| Data Attribute     | Value                                                     | Description                                |
+| ------------------ | --------------------------------------------------------- | ------------------------------------------ |
+| `data-slot`        | `"prompt-input-attach-button icon-button"`                | On the button, joined with ancestor slots. |
+| `data-icon-button` | `"true"`                                                  | Inherited from `IconButton`.               |
+| `data-appearance`  | `"ghost"`                                                 | The button's appearance.                   |
+| `data-intent`      | `"neutral"`                                               | The button's tone.                         |
+| `data-size`        | `"2xs"` \| `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop; defaults to `"sm"`.       |
+| `data-loading`     | present when `isLoading`                                  | Inherited from `IconButton`.               |
 
 ### PromptInput.Dictate
 

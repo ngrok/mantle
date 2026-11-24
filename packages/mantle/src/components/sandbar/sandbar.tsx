@@ -368,7 +368,7 @@ const Root = ({
 	/**
 	 * The form that the bar saves while it sits in an open modal dialog. A modal
 	 * makes the rest of the page inert, so `OverlayPrompt` moves the bar into the
-	 * dialog, as it painted above a Radix dialog and took clicks. There the form
+	 * dialog, where it paints above the panel and takes clicks. There the form
 	 * no longer owns the bar's submit button.
 	 */
 	const liftedForm = useCallback(() => {

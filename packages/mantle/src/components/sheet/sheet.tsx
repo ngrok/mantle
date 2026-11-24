@@ -37,8 +37,8 @@ const scope = createScope();
  * nearest `Sheet.Root` and never to a `Dialog.Root`. The reverse holds too: a
  * `Dialog.Trigger` or `Command.SearchTrigger` inside `Sheet.Content` reaches
  * the `Dialog.Root` or `Command.DialogRoot` above the sheet, not the sheet. A
- * `Dialog.Close` inside a sheet with no `Dialog.Root` above it throws Radix's
- * "must be used within `Dialog`"; use `Sheet.Close` to close a sheet.
+ * `Dialog.Close` inside a sheet with no `Dialog.Root` above it throws, because
+ * it must render inside its `Root`; use `Sheet.Close` to close a sheet.
  *
  * `Sheet` renders its floating layer at Tailwind `z-60`, Mantle's overlay tier,
  * above every float (`z-50`). Floats composed inside the content portal into

@@ -95,8 +95,8 @@ describe("Query in a browser", () => {
 		expect(onSubmit).toHaveBeenCalledOnce();
 	});
 
-	// Radix reports a mouse press outside the popover after the click, when the
-	// clear button is already gone. The popover must not read that as a dismiss.
+	// The clear button unmounts on its click. The popover must not read the
+	// press on it as a dismiss.
 	test("keeps the suggestions open after the clear button empties the query", async () => {
 		render(<Host />);
 		const input = page.getByRole("combobox", { name: "Filter projects" });

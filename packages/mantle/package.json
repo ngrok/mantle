@@ -93,6 +93,11 @@
 			"types": "./dist/area-chart.d.ts",
 			"import": "./dist/area-chart.js"
 		},
+		"./attachment": {
+			"@ngrok/src-live-types": "./src/components/attachment/index.ts",
+			"types": "./dist/attachment.d.ts",
+			"import": "./dist/attachment.js"
+		},
 		"./avatar": {
 			"@ngrok/src-live-types": "./src/components/avatar/index.ts",
 			"types": "./dist/avatar.d.ts",

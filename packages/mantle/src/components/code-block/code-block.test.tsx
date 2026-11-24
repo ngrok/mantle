@@ -606,8 +606,8 @@ describe("CodeBlock", () => {
 				<TabbedCodeBlock activeTab="a" onActiveTabChange={onActiveTabChange} />,
 			);
 
-			// Why the keyboard: a click fires Radix's mousedown and focus activation
-			// both, so one controlled click reports "b" twice.
+			// Why the keyboard: one key press is one activation, with no mousedown
+			// and focus pair in it.
 			screen.getByRole("tab", { name: "example.ts" }).focus();
 			await user.keyboard("{ArrowRight}");
 

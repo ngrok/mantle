@@ -32,7 +32,6 @@ import * as MultiSelectParts from "./multi-select-parts.js";
  *
  * @see https://mantle.ngrok.com/components/forms/multi-select
  * @see https://www.w3.org/WAI/ARIA/apg/patterns/combobox/
- * @see https://ariakit.org/components/combobox
  *
  * @example
  * Composition:

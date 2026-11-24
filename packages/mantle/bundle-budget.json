@@ -93,10 +93,18 @@
   },
   "prompt-input": {
     "entry": "import { PromptInput } from \"@ngrok/mantle/prompt-input\"; export default [PromptInput.Root, PromptInput.TextArea, PromptInput.Footer, PromptInput.Submit];",
-    "maxGzipBytes": 11188
+    "maxGzipBytes": 11524
+  },
+  "attachment": {
+    "entry": "import { Attachment } from \"@ngrok/mantle/attachment\"; export default [Attachment.List, Attachment.Root, Attachment.Preview, Attachment.Name, Attachment.Size, Attachment.Remove];",
+    "maxGzipBytes": 10338
+  },
+  "prompt-input-attach": {
+    "entry": "import { PromptInput } from \"@ngrok/mantle/prompt-input\"; export default [PromptInput.Root, PromptInput.TextArea, PromptInput.Footer, PromptInput.Submit, PromptInput.AttachButton];",
+    "maxGzipBytes": 11913
   },
   "prompt-input-dictate": {
     "entry": "import { PromptInput } from \"@ngrok/mantle/prompt-input\"; export default [PromptInput.Root, PromptInput.TextArea, PromptInput.Footer, PromptInput.Submit, PromptInput.Dictate];",
-    "maxGzipBytes": 12098
+    "maxGzipBytes": 12421
   }
 }

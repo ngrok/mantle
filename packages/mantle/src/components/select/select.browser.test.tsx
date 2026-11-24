@@ -75,7 +75,7 @@ describe("Select wrapper span layout", () => {
 		expect(getComputedStyle(wrapper("select-value-label")).display).toBe("contents");
 	});
 
-	test("the portaled item label keeps the item's children as flex items of the value node", async () => {
+	test("the item label in the value node keeps the item's children as flex items of the value node", async () => {
 		render(
 			<Select.Root defaultValue="apple">
 				<Select.Trigger>
@@ -90,7 +90,7 @@ describe("Select wrapper span layout", () => {
 			</Select.Root>,
 		);
 
-		// Radix portals the label span into the value node, so the same contract
+		// `Select.Value` renders the item's label span in the value node, so the same contract
 		// holds for the copy the trigger shows.
 		const name = await screen.findByTestId("name");
 		expect(horizontalDistance(name, screen.getByTestId("hint"))).toBeCloseTo(GAP, 0);

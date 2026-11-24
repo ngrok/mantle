@@ -191,7 +191,7 @@ describe("List (browser)", () => {
 
 	test("a disabled asChild link cannot navigate or act, even on a programmatic click", async () => {
 		// Regression: the disabled swallow ran in the bubble phase, after the
-		// slotted child's own onClick (Radix Slot composes it first), so a
+		// slotted child's own onClick (`Slot` composes it first), so a
 		// screen-reader / programmatic click still fired the child handler.
 		let activated = 0;
 		render(

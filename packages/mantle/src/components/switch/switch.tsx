@@ -165,7 +165,7 @@ const Switch = ({
 						return;
 					}
 					// Why: the checkbox's click bubbles in place of this one, so an
-					// ancestor sees one click for each toggle, as with Radix.
+					// ancestor sees one click for each toggle.
 					event.stopPropagation();
 					// Why a click on the checkbox: React derives a checkbox's change from
 					// its click, so a `<form onChange>` sees the toggle, and the checkbox's

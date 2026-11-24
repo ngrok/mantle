@@ -184,7 +184,7 @@ const EXIT_STYLE = `
 describe("Dialog exit", () => {
 	test("unmounts the positioner when the content exit ends before the hold", async () => {
 		// Regression: the hold matched only while the closed content was in the DOM.
-		// The content left first, the browser cancelled the hold, and Radix kept the
+		// The content left first, the browser cancelled the hold, and Radix's `Presence` kept the
 		// empty positioner mounted over the page.
 		const exitStyle = document.createElement("style");
 		exitStyle.textContent = EXIT_STYLE;

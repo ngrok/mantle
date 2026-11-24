@@ -433,7 +433,7 @@ describe("Button", () => {
 			expect(window.location.hash).toBe("");
 		});
 
-		test("a disabled asChild anchor drops its own onClickCapture, which Radix would run first", async () => {
+		test("a disabled asChild anchor drops its own onClickCapture, which `Slot` would run first", async () => {
 			const user = userEvent.setup();
 			const handleClickCapture = vi.fn<() => void>();
 			render(
