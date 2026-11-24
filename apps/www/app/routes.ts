@@ -168,6 +168,7 @@ const recipesPages = [
 	"assistant-across-routes",
 	"breadcrumbs-from-routes",
 	"cancel-and-submit",
+	"chat",
 	"filter-from-a-value",
 	"header-actions-from-routes",
 	"list-page-loading-states",

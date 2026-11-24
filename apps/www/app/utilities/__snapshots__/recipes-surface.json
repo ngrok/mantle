@@ -48,6 +48,34 @@
     ]
   },
   {
+    "name": "Chat",
+    "slug": "recipes/chat",
+    "summary": "Compose the AI chat parts into a full assistant, with a composer that takes files, a model, and dictation, a transcript that follows a streaming Markdown answer, and stop, retry, an empty state, and a failure notice.",
+    "useWhen": "Build an AI assistant or a model playground from the mantle chat parts, with streaming answers, stop, and retry.",
+    "aliases": [
+      "ai chat",
+      "assistant",
+      "chatbot",
+      "chat ui",
+      "llm chat",
+      "model playground",
+      "ai assistant"
+    ],
+    "parts": [
+      "PromptInput",
+      "Attachment",
+      "Select",
+      "Conversation",
+      "Message",
+      "Reasoning",
+      "ToolCall",
+      "Markdown",
+      "CodeBlock",
+      "Empty",
+      "Alert"
+    ]
+  },
+  {
     "name": "Filter from a Value",
     "slug": "recipes/filter-from-a-value",
     "summary": "Turn a value in a table row into a Query filter with one click, and take it out with a second click, with toggleFacet.",

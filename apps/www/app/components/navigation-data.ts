@@ -373,6 +373,7 @@ export const recipePages = [
 	"Assistant Across Routes",
 	"Breadcrumbs from Routes",
 	"Cancel and Submit Actions",
+	"Chat",
 	"Filter from a Value",
 	"Header Actions from Routes",
 	"List Page Loading States",
@@ -398,6 +399,7 @@ export const recipeRoutes = {
 	"Assistant Across Routes": "/recipes/assistant-across-routes",
 	"Breadcrumbs from Routes": "/recipes/breadcrumbs-from-routes",
 	"Cancel and Submit Actions": "/recipes/cancel-and-submit",
+	Chat: "/recipes/chat",
 	"Filter from a Value": "/recipes/filter-from-a-value",
 	"Header Actions from Routes": "/recipes/header-actions-from-routes",
 	"List Page Loading States": "/recipes/list-page-loading-states",
@@ -416,6 +418,7 @@ export const recipeDescriptions = {
 		"Derive a breadcrumb trail from the matched route chain with React Router route handles \u2014 derived state, so it is correct on the server and on the first frame, with no context and no effects.",
 	"Cancel and Submit Actions":
 		"Where a form's Cancel and submit buttons go: one actions row below its Strata sections of Field rows. Switch to a Sandbar when the form edits saved settings.",
+	Chat: "Compose the AI chat parts into a full assistant: a composer with files, a model picker, and dictation, a transcript that follows a streaming Markdown answer with its reasoning and tool calls, and stop, retry, an empty state, and a failure notice.",
 	"Filter from a Value":
 		"Turn a value in a table row into a Query filter with one click, and take it out with a second click. One pure function, toggleFacet, does the edit.",
 	"Header Actions from Routes":
