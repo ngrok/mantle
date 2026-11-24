@@ -204,6 +204,7 @@ const migrationsPages = [
 	"0028-native-slider-migration",
 	"0029-data-attribute-contract-migration",
 	"0030-between-variant-migration",
+	"0031-anchored-child-variant-migration",
 ];
 
 export default [
