@@ -753,9 +753,9 @@ const Content = ({
 		}
 	});
 	/**
-	 * Handles an Escape for this dialog, from the document or from a covered
-	 * float. Why the consumer runs after the guards: it sees the prevented
-	 * Escape that a picker in the panel or a covering frame takes.
+	 * Handles an Escape for this dialog from the document. Why the consumer
+	 * runs after the guards: it sees the prevented Escape that a picker in the
+	 * panel or a covering frame takes.
 	 */
 	const guardedEscape = useCallbackRef((event: KeyboardEvent) => {
 		const dialog = dialogRef.current;
@@ -904,7 +904,6 @@ const Content = ({
 		const unregister = registerOverlay({
 			container: dialog,
 			content: panel,
-			escape: guardedEscape,
 		});
 		// Why the open check: `close` fires in a later task, after a reopen too.
 		function release() {

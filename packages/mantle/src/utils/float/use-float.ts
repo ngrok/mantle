@@ -87,13 +87,12 @@ type OpenFloat = {
 const openFloats: OpenFloat[] = [];
 
 /**
- * A layer that a float holds and that handles its own Escape: a Radix popper
- * that a consumer renders, an overlay, or an expanded popup owner such as a
- * combobox input. An expanded accordion trigger also sets `aria-controls`, but
- * it does not take Escape.
+ * A layer that a float holds and that handles its own Escape: an overlay, or an
+ * expanded popup owner such as a combobox input. An expanded accordion trigger
+ * also sets `aria-controls`, but it does not take Escape.
  */
 const nestedLayerSelector =
-	"[data-radix-popper-content-wrapper], [data-mantle-modal-content], [aria-expanded='true'][aria-controls]:is([role='combobox'], [aria-haspopup]:not([aria-haspopup='false']))";
+	"[data-mantle-modal-content], [aria-expanded='true'][aria-controls]:is([role='combobox'], [aria-haspopup]:not([aria-haspopup='false']))";
 
 /** Whether an Escape at `target` belongs to a layer inside `floating`. */
 function belongsToNestedLayer(floating: HTMLElement, target: EventTarget | null): boolean {
