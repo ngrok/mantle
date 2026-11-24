@@ -13,7 +13,9 @@ import { parseBooleanish } from "../../types/booleanish.js";
  *       event.preventDefault();
  *     }
  *   }}
- * />
+ * >
+ *   <Sheet.Title>Settings</Sheet.Title>
+ * </Sheet.Content>
  * ```
  */
 function isDialogOverlayTarget(target: EventTarget | null): boolean {
@@ -28,9 +30,8 @@ function isDialogOverlayTarget(target: EventTarget | null): boolean {
  * `container`, so the surface that owns `container` must stay open. The popup
  * owner is the nearest ancestor of `target`, else of the focused element, with
  * `aria-expanded="true"` and `aria-controls`; its popup must sit inside
- * `container` and be open (Ariakit's `data-open="true"`, Radix's
- * `data-state="open"`). An always-visible list such as cmdk carries neither
- * attribute and never claims the Escape.
+ * `container` and be open (`data-open`). An always-visible list carries no
+ * `data-open` and never claims the Escape.
  *
  * @example
  * ```ts
@@ -56,7 +57,7 @@ function escapeBelongsToNestedPopup(
 		popup != null &&
 		container.contains(owner) &&
 		container.contains(popup) &&
-		(popup.getAttribute("data-open") === "true" || popup.getAttribute("data-state") === "open")
+		popup.hasAttribute("data-open")
 	);
 }
 

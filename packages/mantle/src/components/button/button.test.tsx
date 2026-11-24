@@ -231,7 +231,7 @@ describe("Button", () => {
 			const icon = screen.getByTestId("icon");
 			expect(button.firstChild).toContainElement(icon);
 			expect(icon).toHaveAttribute("data-slot", "icon svg-only");
-			expect(icon.parentElement).toHaveAttribute("data-state", "active");
+			expect(icon.parentElement).not.toHaveAttribute("aria-hidden");
 			expect(button).toHaveTextContent("click me");
 		});
 
@@ -334,8 +334,6 @@ describe("Button", () => {
 			expect(button).not.toBeDisabled();
 			expect(button).toHaveAttribute("aria-disabled", "false");
 			expect(button).toHaveAttribute("data-loading", "");
-			// Why: `data-disabled` follows the resolved state, not `isLoading`.
-			expect(button).not.toHaveAttribute("data-disabled");
 		});
 
 		test("isLoading sets the native disabled attribute and aria-disabled", () => {
@@ -347,7 +345,7 @@ describe("Button", () => {
 			const button = screen.getByRole("button", { name: "Save" });
 			expect(button).toBeDisabled();
 			expect(button).toHaveAttribute("aria-disabled", "true");
-			expect(button).toHaveAttribute("data-disabled", "");
+			expect(button).toHaveAttribute("aria-disabled", "true");
 		});
 
 		test("aria-disabled={false} cannot re-enable a disabled button", () => {
@@ -372,35 +370,6 @@ describe("Button", () => {
 			expect(button).toHaveAttribute("aria-disabled", "false");
 		});
 
-		test("data-disabled is present while disabled and absent once enabled", () => {
-			// Why presence: the `data-disabled:` variant matches the attribute, so
-			// a `"false"` value fires it on every enabled button.
-			const { rerender } = render(
-				<Button appearance="filled" intent="neutral" disabled>
-					Save
-				</Button>,
-			);
-			const button = screen.getByRole("button", { name: "Save" });
-			expect(button).toHaveAttribute("data-disabled", "");
-
-			rerender(
-				<Button appearance="filled" intent="neutral">
-					Save
-				</Button>,
-			);
-			expect(button).not.toHaveAttribute("data-disabled");
-		});
-
-		test("aria-disabled=true stamps data-disabled", () => {
-			render(
-				<Button appearance="filled" intent="neutral" aria-disabled="true">
-					Save
-				</Button>,
-			);
-			const button = screen.getByRole("button", { name: "Save" });
-			expect(button).toHaveAttribute("data-disabled", "");
-		});
-
 		test.each([
 			["aria-disabled", { "aria-disabled": true }],
 			[`aria-disabled="true"`, { "aria-disabled": "true" }],
@@ -419,7 +388,7 @@ describe("Button", () => {
 				// native attribute as well.
 				expect(button).toBeDisabled();
 				expect(button).toHaveAttribute("aria-disabled", "true");
-				expect(button).toHaveAttribute("data-disabled", "");
+				expect(button).toHaveAttribute("aria-disabled", "true");
 
 				await user.click(button);
 				expect(handleClick).toHaveBeenCalledTimes(0);
@@ -493,7 +462,7 @@ describe("Button", () => {
 			);
 			const link = screen.getByRole("link", { name: "Open" });
 			expect(link).toHaveAttribute("aria-disabled", "true");
-			expect(link).toHaveAttribute("data-disabled", "");
+			expect(link).toHaveAttribute("aria-disabled", "true");
 			expect(link).toHaveAttribute("data-loading", "");
 			expect(link).toHaveAttribute("tabindex", "-1");
 
@@ -584,9 +553,9 @@ describe("Button", () => {
 		const icon = screen.getByTestId("icon");
 		expect(button).toHaveAttribute("data-loading", "");
 		// The consumer's icon stays mounted for the transition, hidden behind the spinner.
-		expect(icon.parentElement).toHaveAttribute("data-state", "inactive");
 		expect(icon.parentElement).toHaveAttribute("aria-hidden", "true");
-		const spinner = button.querySelector("[data-state='active'] > svg");
+		expect(icon.parentElement).toHaveAttribute("aria-hidden", "true");
+		const spinner = button.querySelector("[data-slot=icon-swap-item]:not([aria-hidden]) > svg");
 		expect(spinner).toBeInTheDocument();
 		expect(spinner).not.toBe(icon);
 		expect(button).toHaveTextContent("submit");
@@ -599,8 +568,8 @@ describe("Button", () => {
 		expect(button).not.toHaveAttribute("data-loading");
 		// The same nodes swap state, so a CSS transition can carry the swap.
 		expect(screen.getByTestId("icon")).toBe(icon);
-		expect(icon.parentElement).toHaveAttribute("data-state", "active");
-		expect(spinner?.parentElement).toHaveAttribute("data-state", "inactive");
+		expect(icon.parentElement).not.toHaveAttribute("aria-hidden");
+		expect(spinner?.parentElement).toHaveAttribute("aria-hidden", "true");
 	});
 
 	test("isLoading with `asChild` swaps the consumer's icon for a spinner in the child", () => {
@@ -617,8 +586,8 @@ describe("Button", () => {
 		);
 		const link = screen.getByRole("link");
 		expect(link).toHaveAttribute("data-loading", "");
-		expect(screen.getByTestId("icon").parentElement).toHaveAttribute("data-state", "inactive");
-		const spinner = link.querySelector("[data-state='active'] > svg");
+		expect(screen.getByTestId("icon").parentElement).toHaveAttribute("aria-hidden", "true");
+		const spinner = link.querySelector("[data-slot=icon-swap-item]:not([aria-hidden]) > svg");
 		expect(spinner).toBeInTheDocument();
 		expect(spinner).not.toBe(screen.getByTestId("icon"));
 		expect(link).toHaveTextContent("continue");

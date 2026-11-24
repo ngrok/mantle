@@ -282,7 +282,6 @@ type ButtonProps = ComponentProps<"button"> &
  * | `data-intent`     | `"accent"` \| `"danger"` \| `"neutral"`                 | The `intent` prop.                                                                            |
  * | `data-size`       | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"`            | The `size` prop. Omitted when `appearance` is `"link"`, which has no box to size.             |
  * | `data-loading`    | present when `isLoading`                               | Presence-only, never `"false"`.                                                               |
- * | `data-disabled`   | present when disabled                                  | Presence-only, never `"false"`, since the `data-disabled:` variant matches the attribute's existence. Set when the button resolves disabled: `disabled`, `aria-disabled="true"`, or `isLoading` with no explicit `disabled`. `disabled={false}` keeps a loading button enabled and omits it. |
  *
  * @useWhen Run an action on a click: submit a form, save a change, or open a dialog.
  *
@@ -407,9 +406,6 @@ const Button = ({
 			className,
 		),
 		"data-appearance": appearance,
-		// Why presence-only: the `data-disabled:` variant matches the attribute,
-		// so a `"false"` value fires it on every enabled button.
-		"data-disabled": disabled ? "" : undefined,
 		"data-intent": intent,
 		"data-loading": isLoading ? "" : undefined,
 		"data-size": appearance === "link" ? undefined : size,

@@ -51,6 +51,32 @@ function lastContentIndex(tokens: readonly Token[]): number {
 	return index;
 }
 
+/** Adds the reference definitions in `tokens` and in their children to `links`. The first definition of a label wins. */
+function addDefinitions(links: MarkdownLinks, tokens: readonly Token[]) {
+	for (const token of tokens) {
+		if (token.type === "def") {
+			links[token.tag] ??= { href: token.href, title: token.title ?? "" };
+		} else if (token.type === "list") {
+			addDefinitions(links, token.items);
+		} else if ("tokens" in token && token.tokens != null && token.type !== "paragraph") {
+			addDefinitions(links, token.tokens);
+		}
+	}
+}
+
+/** Whether two sets of reference definitions hold the same labels and targets. */
+function isSameLinks(previous: MarkdownLinks, next: MarkdownLinks): boolean {
+	const labels = Object.keys(next);
+	return (
+		labels.length === Object.keys(previous).length &&
+		labels.every(
+			(label) =>
+				previous[label]?.href === next[label]?.href &&
+				previous[label]?.title === next[label]?.title,
+		)
+	);
+}
+
 /** Each block of `tokens` that renders: all but the blank lines between blocks. */
 function contentTokens(tokens: readonly Token[]): Token[] {
 	return tokens.filter((token) => token.type !== "space");
@@ -81,7 +107,16 @@ function createMarkdownParser({
 
 	let frozen: Token[] = [];
 	let frozenSource = "";
+	// The definitions in the finished blocks, and in the whole answer so far. Why apart: the text after the last
+	// finished block can still change, so its definitions are read again on each parse.
+	let frozenLinks: MarkdownLinks = Object.create(null);
 	let links: MarkdownLinks = Object.create(null);
+	/** Keeps the `links` object while its definitions stay the same, so a memoized block does not render again. */
+	const setLinks = (next: MarkdownLinks) => {
+		if (!isSameLinks(links, next)) {
+			links = next;
+		}
+	};
 
 	/**
 	 * Lexes the whole answer once more. Why: a reference link in a finished
@@ -95,6 +130,9 @@ function createMarkdownParser({
 			.slice(0, Math.max(lastContentIndex(all), 0))
 			.map((token) => token.raw)
 			.join("");
+		frozenLinks = Object.create(null);
+		addDefinitions(frozenLinks, frozen);
+		// Why a new object: the blocks are new tokens, and each must read the definitions again.
 		links = all.links;
 		return { blocks, completeCount: blocks.length, links };
 	};
@@ -106,13 +144,13 @@ function createMarkdownParser({
 				// Why a reset: the text before the last finished block changed, such as for a new answer.
 				frozen = [];
 				frozenSource = "";
-				links = Object.create(null);
+				frozenLinks = Object.create(null);
 			}
 
 			const tail = source.slice(frozenSource.length);
 			const text = streaming ? closeMarkdown(tail, { math: closeMath }) : tail;
-			const tokens = lex(text, links);
-			Object.assign(links, tokens.links);
+			const tokens = lex(text, frozenLinks);
+			setLinks(tokens.links);
 
 			if (!streaming && frozen.length > 0 && Object.keys(links).length > 0) {
 				return parseWhole(source);
@@ -124,6 +162,7 @@ function createMarkdownParser({
 			if (finished.length > 0 && tail.startsWith(finishedRaw)) {
 				frozen = [...frozen, ...contentTokens(finished)];
 				frozenSource += finishedRaw;
+				addDefinitions(frozenLinks, finished);
 			}
 			const blocks = [...frozen, ...contentTokens(tokens.slice(finished.length))];
 			// Why not the last block when done: a stream that resumes later can still add to it.

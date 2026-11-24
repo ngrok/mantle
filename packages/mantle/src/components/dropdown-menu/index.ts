@@ -13,9 +13,9 @@ import * as DropdownMenuParts from "./dropdown-menu-parts.js";
  * elements in the browser's top layer, so they paint above the page with no
  * `z-index`. They portal into the content of the open `Dialog`, `AlertDialog`,
  * `Sheet`, or `Popover` that holds them, else into `document.body`. They do not
- * show while an overlay that does not hold them is open. CSS anchor
- * positioning places them; where the browser has none, a script places them.
- * Where the browser has no popover API, they are fixed boxes at `z-50`.
+ * show while an overlay that does not hold them is open. A script places them
+ * next to their trigger. Where the browser has no popover API, they are fixed
+ * boxes at `z-50`.
  *
  * @useWhen Show a menu of actions or options when the user clicks a button.
  *

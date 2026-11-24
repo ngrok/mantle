@@ -19,10 +19,10 @@ import * as AppLayout from "./app-layout-parts.js";
  * keyed by the same escaped class selectors, with the theme variables resolved.
  * Regenerate it by compiling those class names through `tailwindcss`'s
  * `compile()`. Drop `grow-0`, the inner card's width or inset, or a
- * `data-state-closed:` utility from a part and the matching assertion fails.
+ * `not-data-open:` utility from a part and the matching assertion fails.
  * The removed `mx-auto` and `--app-layout-max-width` cap rules stay loaded with
  * no part that uses them, so a cap that comes back fails the ultrawide test.
- * The ungated `data-state-closed:basis-0` rule stays loaded with no part that
+ * The ungated `not-data-open:basis-0` rule stays loaded with no part that
  * uses it, so an ungated utility shows up as a third transition on the floating
  * panel. The row-driven float is loaded for a row
  * with no sidebar, the only row this file renders, so a lane expectation at a row
@@ -127,8 +127,8 @@ const STYLE = `
 		.max-sm\\:\\[--_side-panel-content-width\\:100\\%\\] { --_side-panel-content-width: 100%; }
 		.max-sm\\:\\[--_side-panel-content-inset\\:0px\\] { --_side-panel-content-inset: 0px; }
 	}
-	.data-state-closed\\:pointer-events-none[data-state~=closed] { pointer-events: none; }
-	.data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+	.not-data-open\\:pointer-events-none:not([data-open]) { pointer-events: none; }
+	.not-data-open\\:basis-0:not([data-open]) { flex-basis: 0px; }
 	.\\@container\\/app-layout-workspace {
 		container-type: inline-size;
 		container-name: app-layout-workspace;
@@ -141,8 +141,8 @@ const STYLE = `
 		.\\@max-side-panel-lane-collapsed\\/app-layout-workspace\\:my-0 { margin-block: 0px; }
 		.\\@max-side-panel-lane-collapsed\\/app-layout-workspace\\:\\[--_side-panel-content-width\\:100\\%\\] { --_side-panel-content-width: 100%; }
 		.\\@max-side-panel-lane-collapsed\\/app-layout-workspace\\:\\[--_side-panel-content-inset\\:0px\\] { --_side-panel-content-inset: 0px; }
-		.\\@max-side-panel-lane-collapsed\\/app-layout-workspace\\:data-state-closed\\:invisible[data-state~=closed] { visibility: hidden; }
-		.\\@max-side-panel-lane-collapsed\\/app-layout-workspace\\:data-state-closed\\:translate-x-\\[calc\\(100\\%\\+var\\(--app-layout-card-gutter\\,0\\.5rem\\)\\)\\][data-state~=closed] {
+		.\\@max-side-panel-lane-collapsed\\/app-layout-workspace\\:not-data-open\\:invisible:not([data-open]) { visibility: hidden; }
+		.\\@max-side-panel-lane-collapsed\\/app-layout-workspace\\:not-data-open\\:translate-x-\\[calc\\(100\\%\\+var\\(--app-layout-card-gutter\\,0\\.5rem\\)\\)\\]:not([data-open]) {
 			--tw-translate-x: calc(100% + var(--app-layout-card-gutter,0.5rem));
 			translate: var(--tw-translate-x) var(--tw-translate-y);
 		}
@@ -159,31 +159,31 @@ const STYLE = `
 	}
 	@media (width >= 40rem) {
 		@container app-layout-workspace (width >= 56.5rem) {
-			.sm\\:\\@min-side-panel-lane\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+			.sm\\:\\@min-side-panel-lane\\/app-layout-workspace\\:not-data-open\\:basis-0:not([data-open]) { flex-basis: 0px; }
 		}
 		@container app-layout-workspace (width >= 46.75rem) {
-			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-state~=expanded])) .sm\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-state\\~\\=expanded\\]\\)\\)_\\&\\]\\:\\@min-side-panel-lane-collapsed\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))) .sm\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-expanded\\]\\:not\\(\\[data-mobile\\]\\)\\)\\)_\\&\\]\\:\\@min-side-panel-lane-collapsed\\/app-layout-workspace\\:not-data-open\\:basis-0:not([data-open]) { flex-basis: 0px; }
 		}
 	}
 	@media (width >= 48rem) {
 		@container app-layout-workspace (width >= 56.5rem) {
-			.md\\:\\@min-side-panel-lane\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+			.md\\:\\@min-side-panel-lane\\/app-layout-workspace\\:not-data-open\\:basis-0:not([data-open]) { flex-basis: 0px; }
 		}
 		@container app-layout-workspace (width >= 46.75rem) {
-			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-state~=expanded])) .md\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-state\\~\\=expanded\\]\\)\\)_\\&\\]\\:\\@min-side-panel-lane-collapsed\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))) .md\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-expanded\\]\\:not\\(\\[data-mobile\\]\\)\\)\\)_\\&\\]\\:\\@min-side-panel-lane-collapsed\\/app-layout-workspace\\:not-data-open\\:basis-0:not([data-open]) { flex-basis: 0px; }
 		}
 	}
 	@media (width >= 64rem) {
 		@container app-layout-workspace (width >= 56.5rem) {
-			.lg\\:\\@min-side-panel-lane\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+			.lg\\:\\@min-side-panel-lane\\/app-layout-workspace\\:not-data-open\\:basis-0:not([data-open]) { flex-basis: 0px; }
 		}
 		@container app-layout-workspace (width >= 46.75rem) {
-			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-state~=expanded])) .lg\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-state\\~\\=expanded\\]\\)\\)_\\&\\]\\:\\@min-side-panel-lane-collapsed\\/app-layout-workspace\\:data-state-closed\\:basis-0[data-state~=closed] { flex-basis: 0px; }
+			[data-slot~=app-layout-workspace]:not(:has(> [data-slot~=sidebar-positioner] [data-slot~=sidebar-nav][data-expanded]:not([data-mobile]))) .lg\\:\\[\\[data-slot\\~\\=app-layout-workspace\\]\\:not\\(\\:has\\(\\>\\[data-slot\\~\\=sidebar-positioner\\]_\\[data-slot\\~\\=sidebar-nav\\]\\[data-expanded\\]\\:not\\(\\[data-mobile\\]\\)\\)\\)_\\&\\]\\:\\@min-side-panel-lane-collapsed\\/app-layout-workspace\\:not-data-open\\:basis-0:not([data-open]) { flex-basis: 0px; }
 		}
 	}
 	@media (width < 64rem) {
-		.max-lg\\:data-state-closed\\:invisible[data-state~=closed] { visibility: hidden; }
-		.max-lg\\:data-state-closed\\:translate-x-\\[calc\\(100\\%\\+var\\(--app-layout-card-gutter\\,0\\.5rem\\)\\)\\][data-state~=closed] {
+		.max-lg\\:not-data-open\\:invisible:not([data-open]) { visibility: hidden; }
+		.max-lg\\:not-data-open\\:translate-x-\\[calc\\(100\\%\\+var\\(--app-layout-card-gutter\\,0\\.5rem\\)\\)\\]:not([data-open]) {
 			--tw-translate-x: calc(100% + var(--app-layout-card-gutter,0.5rem));
 			translate: var(--tw-translate-x) var(--tw-translate-y);
 		}
@@ -562,7 +562,7 @@ describe("AppLayout.SidePanel lane", () => {
 			position: { x: 8, y: 8 },
 		});
 
-		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("data-open");
 		// Poll the position itself: the run starts on the next frame, not in the click.
 		await waitFor(() => {
 			expect(panel.getBoundingClientRect().left).toBeGreaterThan(openLeft);
@@ -575,12 +575,11 @@ describe("AppLayout.SidePanel lane", () => {
 		// absolutely positioned box ignores) moves the floating card's anchor
 		// mid-flight or runs an inert transition on every toggle.
 		expect(transitions.toSorted()).toEqual(["translate", "visibility"]);
-		await waitFor(
-			() => {
-				expect(getComputedStyle(panel).visibility).toBe("hidden");
-			},
-			{ timeout: 3000 },
-		);
+		// Why finish: the run's end value is the contract, not its two seconds.
+		for (const animation of panel.getAnimations()) {
+			animation.finish();
+		}
+		expect(getComputedStyle(panel).visibility).toBe("hidden");
 	});
 
 	test.each([
@@ -613,7 +612,7 @@ describe("AppLayout.SidePanel lane", () => {
 
 		await userEvent.click(screen.getByRole("button", { name: "Toggle the assistant" }));
 
-		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("data-open");
 		await waitFor(() => {
 			expect(transitions).toContain("flex-basis");
 		});
@@ -634,7 +633,7 @@ describe("AppLayout.SidePanel lane", () => {
 		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
 
 		await userEvent.click(trigger);
-		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("data-open");
 		const close = transitionOf(panel);
 		close.pause();
 		// Why a quarter in: a reversal runs for the share of the duration the
@@ -647,7 +646,7 @@ describe("AppLayout.SidePanel lane", () => {
 
 		// The held run keeps the trigger still, so a pointer click lands mid-flight.
 		await userEvent.click(trigger);
-		expect(panel).toHaveAttribute("data-state", "open");
+		expect(panel).toHaveAttribute("data-open");
 		// The reversal starts from where the close got to, not from zero: its
 		// first frame is the held width, wherever the round-trip left it since.
 		const reversal = transitionOf(panel);
@@ -669,7 +668,7 @@ describe("AppLayout.SidePanel lane", () => {
 
 		await userEvent.click(screen.getByRole("button", { name: "Toggle the assistant" }));
 
-		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("data-open");
 		// Why read the width: a running transition would still be mid-flight here.
 		expect(panel.getBoundingClientRect().width).toBe(0);
 		expect(transitions).toEqual([]);
@@ -685,7 +684,7 @@ describe("AppLayout.SidePanel lane", () => {
 
 		await userEvent.click(screen.getByRole("button", { name: "Toggle the assistant" }));
 
-		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("data-open");
 		expect(panel.getBoundingClientRect().width).toBe(0);
 		expect(transitions).toEqual([]);
 	});
@@ -703,14 +702,14 @@ describe("AppLayout.SidePanel lane", () => {
 		// hydration, and only a painted width can be the start value of a
 		// transition. In a 1200px row, 24cqw is under the 21rem floor, so the
 		// default open width is 336px, and the box adds the end inset.
-		expect(panel).toHaveAttribute("data-state", "open");
+		expect(panel).toHaveAttribute("data-open");
 		expect(panel.getBoundingClientRect().width).toBe(336 + GUTTER);
 		const transitions = recordTransitions(panel);
 
 		render(<CorrectedShell />, { container, hydrate: true });
 		await waitForHydration(panel);
 
-		expect(panel).toHaveAttribute("data-state", "closed");
+		expect(panel).not.toHaveAttribute("data-open");
 		expect(panel.getBoundingClientRect().width).toBe(0);
 		expect(transitions).toEqual([]);
 	});

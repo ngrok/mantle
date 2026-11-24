@@ -169,9 +169,16 @@ describe("the y axis fits its labels to the plot height (MNTL-97)", () => {
 		await waitFor(() => {
 			expect(paintedValueLabels()).toContain("$0.0001");
 		});
-		const labels = paintedValueLabels();
-		// Each tick has its own label: the precision follows the step.
-		expect(new Set(labels).size).toBe(labels.length);
+		// Each tick has its own label: the precision follows the step. Why the whole
+		// list: two ticks that format to one string drop out of the distinct labels.
+		expect(paintedValueLabels()).toEqual([
+			"$0",
+			"$0.00002",
+			"$0.00004",
+			"$0.00006",
+			"$0.00008",
+			"$0.0001",
+		]);
 		expect(tickFormat).toHaveBeenCalledWith(0.00002, { defaultLabel: "0.00002", step: 0.00002 });
 	});
 });

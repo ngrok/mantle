@@ -209,16 +209,12 @@ function arrowTarget({
 	return radios.at((index + (forward ? 1 : -1)) % radios.length) ?? null;
 }
 
-/** The state of one radio item that its parts read. */
-type RadioStateContextValue = {
-	checked: boolean;
-	disabled: boolean;
-};
-
-const RadioStateContext = createContext<RadioStateContextValue>({
-	checked: false,
-	disabled: false,
-});
+/**
+ * The controls in a radio item's content that sit over the radio and stay
+ * visible to assistive technology. `mantle.css` lifts the same list.
+ */
+const CONTENT_CONTROL_SELECTOR =
+	'a[href], button, details, input, select, textarea, label, [role="button"], [role="link"], [role="menuitem"], [tabindex]:not([tabindex="-1"]), [contenteditable="true"]';
 
 /** Joins element ids into one IDREF list, or `undefined` when there are none. */
 function joinIds(ids: readonly (string | undefined)[]): string | undefined {
@@ -249,10 +245,14 @@ type PrimitiveItemProps = ItemProps & {
 
 /**
  * One item of a `Root`: a `<div>` with a native `<input type="radio">` and
- * the item's children. The radio is invisible and covers the item, so
- * assistive technology outlines the whole item. A click anywhere on the item
- * focuses and checks the radio. Links, buttons, labels, and form controls in
- * the children keep their own clicks. The radio takes its name from a
+ * the item's children. The radio is invisible, covers the item, and sits
+ * over its content, so assistive technology outlines the whole item, a click
+ * anywhere on the item checks the radio, and `getByRole("radio").click()` in
+ * a test clicks the radio itself. Links, buttons, labels, and form controls in
+ * the children sit over the radio and keep their own clicks. When the
+ * children have none, assistive technology skips their text, which already
+ * names the radio, so it stops once on each item. Render a control with the
+ * item: the item looks for one only when it renders itself. The radio takes its name from a
  * `<label>` in the item (the title line, such as `Choice.Label`), from a
  * `Choice.Title`, or else from all of the item's text. The caller
  * sets the styles; read the radio's state with `has-[>input:checked]:`,
@@ -295,91 +295,119 @@ const Item = ({
 		disabled: disabledProp,
 	});
 	const itemContext = useMemo(
-		() => ({ titleId, descriptionId, radioId, contentId }),
-		[titleId, descriptionId, radioId, contentId],
+		() => ({ titleId, descriptionId, radioId, contentId, checked, disabled }),
+		[titleId, descriptionId, radioId, contentId, checked, disabled],
 	);
-	const state = useMemo(() => ({ checked, disabled }), [checked, disabled]);
 
 	return (
 		<RadioItemContext.Provider value={itemContext}>
-			<RadioStateContext.Provider value={state}>
-				{/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- Why: the native radio in the item takes the keyboard; the click only widens its pointer target to the item. */}
-				<div
-					data-slot={joinDataSlot(dataSlot, part)}
-					className={cx("relative", className)}
-					{...props}
-					onClick={(event) => {
-						// Why: the click the item sends to its radio bubbles back here, and a caller handles one click once.
-						if (forwardingClick.current) {
+			{/* oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- Why: the native radio in the item takes the keyboard; the click only widens its pointer target to the item. */}
+			<div
+				data-slot={joinDataSlot(dataSlot, part)}
+				// Why isolate: the radio and the controls over it stack inside the item, not over the page.
+				className={cx("relative isolate", className)}
+				{...props}
+				onClick={(event) => {
+					// Why: the click the item sends to its radio bubbles back here, and a caller handles one click once.
+					if (forwardingClick.current) {
+						return;
+					}
+					onClick?.(event);
+					const radio = radioRef.current;
+					if (radio == null) {
+						return;
+					}
+					if (event.target === radio) {
+						// Why: Safari does not focus a radio on a pointer click. A click that a part sends with
+						// `click()` has no `detail`, and it keeps focus where the part put it.
+						if (event.detail > 0 && !event.defaultPrevented) {
+							radio.focus({ preventScroll: true });
+						}
+						return;
+					}
+					// Why a click on the item's text gets here: a test, such as Testing Library's `user.click()`,
+					// sends it to the text, not to the radio over the text.
+					if (event.defaultPrevented || isInteractiveTarget(event.target, event.currentTarget)) {
+						return;
+					}
+					radio.focus({ preventScroll: true });
+					forwardingClick.current = true;
+					radio.click();
+					forwardingClick.current = false;
+				}}
+			>
+				<input
+					// Why an IDREF to a part that may not render: an IDREF list with no element in the DOM is ignored.
+					aria-describedby={joinIds([
+						fieldControl?.["aria-describedby"],
+						ariaDescribedBy,
+						descriptionId,
+					])}
+					// oxlint-disable-next-line jsx-a11y/role-supports-aria-props -- Why: a screen reader announces the invalid state when a radio takes focus, and it does not read the group's state there.
+					aria-errormessage={fieldControl?.["aria-errormessage"] ?? ariaErrorMessage}
+					// oxlint-disable-next-line jsx-a11y/role-supports-aria-props -- Why: see `aria-errormessage` above.
+					aria-invalid={fieldControl?.["aria-invalid"] ?? ariaInvalid}
+					aria-label={ariaLabel}
+					aria-labelledby={ariaLabelledBy ?? (ariaLabel == null ? contentId : undefined)}
+					// oxlint-disable-next-line jsx-a11y/no-autofocus -- Why: the item passes the consumer's own `autoFocus` to its radio.
+					autoFocus={autoFocus}
+					{...radioProps}
+					checked={checked}
+					onChange={check}
+					// Why it covers the item over the content: assistive technology outlines the whole item, and a
+					// click on the item lands on the radio itself. `mantle.css` lifts the content's controls over it.
+					// Why no pointer events when disabled: a link in a disabled item's dimmed content, which stacks under
+					// the radio, keeps its click.
+					className="absolute inset-0 z-1 m-0 size-full cursor-inherit opacity-0 disabled:pointer-events-none"
+					disabled={disabled}
+					form={group.form}
+					id={radioId}
+					// Why: a click before hydration, or a choice the browser restores, checks a
+					// radio that React does not know about. React keeps it, so the value follows it.
+					ref={(input) => {
+						radioRef.current = input;
+						if (input == null) {
 							return;
 						}
-						onClick?.(event);
-						const radio = radioRef.current;
+						if (input.checked && !checked) {
+							check();
+						}
+						// Why: a label in the item is its title line, so it alone names the radio. The DOM
+						// write needs no render, and React writes the attribute only when its prop changes.
+						// Why the item and not `input.labels`: `labels` searches the whole document for each radio.
+						// Why `getElementsByTagName` and not a selector: parsing a selector for each radio made
+						// hydration about 12% slower.
 						if (
-							event.defaultPrevented ||
-							radio == null ||
-							event.target === radio ||
-							isInteractiveTarget(event.target, event.currentTarget)
+							input.getAttribute("aria-labelledby") === contentId &&
+							Array.from(input.parentElement?.getElementsByTagName("label") ?? []).some(
+								(label) => label.htmlFor === radioId,
+							)
 						) {
-							return;
+							input.removeAttribute("aria-labelledby");
 						}
-						radio.focus();
-						forwardingClick.current = true;
-						radio.click();
-						forwardingClick.current = false;
+						// Why: hidden content still names the radio, but a control in it must stay reachable.
+						// The item's own title label is not a control: it only names the radio.
+						const content = input.nextElementSibling;
+						const hasControl = Array.from(
+							content?.querySelectorAll(CONTENT_CONTROL_SELECTOR) ?? [],
+						).some(
+							(control) => !(control instanceof HTMLLabelElement && control.htmlFor === radioId),
+						);
+						if (!hasControl) {
+							content?.setAttribute("aria-hidden", "true");
+						} else {
+							content?.removeAttribute("aria-hidden");
+						}
 					}}
-				>
-					<input
-						// Why an IDREF to a part that may not render: an IDREF list with no element in the DOM is ignored.
-						aria-describedby={joinIds([
-							fieldControl?.["aria-describedby"],
-							ariaDescribedBy,
-							descriptionId,
-						])}
-						// oxlint-disable-next-line jsx-a11y/role-supports-aria-props -- Why: a screen reader announces the invalid state when a radio takes focus, and it does not read the group's state there.
-						aria-errormessage={fieldControl?.["aria-errormessage"] ?? ariaErrorMessage}
-						// oxlint-disable-next-line jsx-a11y/role-supports-aria-props -- Why: see `aria-errormessage` above.
-						aria-invalid={fieldControl?.["aria-invalid"] ?? ariaInvalid}
-						aria-label={ariaLabel}
-						aria-labelledby={ariaLabelledBy ?? (ariaLabel == null ? contentId : undefined)}
-						// oxlint-disable-next-line jsx-a11y/no-autofocus -- Why: the item passes the consumer's own `autoFocus` to its radio.
-						autoFocus={autoFocus}
-						{...radioProps}
-						checked={checked}
-						onChange={check}
-						// Why it covers the item: assistive technology then outlines the whole item. The item takes the clicks.
-						className="pointer-events-none absolute inset-0 m-0 size-full opacity-0"
-						disabled={disabled}
-						form={group.form}
-						id={radioId}
-						// Why: a click before hydration, or a choice the browser restores, checks a
-						// radio that React does not know about. React keeps it, so the value follows it.
-						ref={(input) => {
-							radioRef.current = input;
-							if (input == null) {
-								return;
-							}
-							if (input.checked && !checked) {
-								check();
-							}
-							// Why: a label in the item is its title line, so it alone names the radio. The DOM
-							// write needs no render, and React writes the attribute only when its prop changes.
-							// Why the item and not `input.labels`: `labels` searches the whole document for each radio.
-							if (
-								input.getAttribute("aria-labelledby") === contentId &&
-								input.parentElement?.querySelector(`label[for="${CSS.escape(radioId)}"]`) != null
-							) {
-								input.removeAttribute("aria-labelledby");
-							}
-						}}
-						required={group.required}
-					/>
-					{/* Why a wrapper: a lone text child beside the radio would lose React's repair after a browser translation. */}
-					<div id={contentId} data-slot={`${part}-label`} className="contents">
-						{children}
-					</div>
+					required={group.required}
+				/>
+				{/* Why a wrapper: a lone text child beside the radio would lose React's repair after a browser translation. */}
+				{/* Why the radio's ref sets aria-hidden here: the radio reads this text as its name, so a screen reader in
+				browse mode does not stop on it again. Before hydration, a control in the text stays reachable. */}
+				<div id={contentId} data-slot={`${part}-label`} className="radio-item-content contents">
+					{children}
 				</div>
-			</RadioStateContext.Provider>
+			</div>
 		</RadioItemContext.Provider>
 	);
 };
@@ -387,7 +415,6 @@ const Item = ({
 export {
 	//,
 	Item,
-	RadioStateContext,
 	Root,
 	useRadioGroupValue,
 };
@@ -395,6 +422,5 @@ export {
 export type {
 	//,
 	ItemProps,
-	RadioStateContextValue,
 	RootProps,
 };

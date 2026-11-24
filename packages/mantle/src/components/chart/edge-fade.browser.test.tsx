@@ -3,7 +3,7 @@
 import { render, waitFor } from "@testing-library/react";
 import { CanvasAreaChartRoot, CanvasLineChartRoot } from "../../test-utils/canvas-chart-roots.js";
 import { findChartCanvas } from "../../test-utils/find-chart-canvas.js";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import * as AreaChart from "../area-chart/area-chart-parts.js";
 import * as LineChart from "../line-chart/line-chart-parts.js";
 
@@ -173,6 +173,24 @@ const scanColumn = (canvas: HTMLCanvasElement, cssX: number): ColumnInk => {
 	return ink;
 };
 
+/** How long the mask stays after the last slide: `EDGE_FADE_LINGER_MS`. */
+const LINGER_MS = 1000;
+
+// Why fake timers: the mask decays after a 1s linger, and a test that waits it
+// out in real time spends a second for nothing. The engine reads the linger
+// from `performance.now()` and wakes from a one-shot `setTimeout`, so both are
+// fake. `shouldAdvanceTime` keeps them moving with real frames.
+beforeEach(() => {
+	vi.useFakeTimers({
+		shouldAdvanceTime: true,
+		toFake: ["setTimeout", "clearTimeout", "performance"],
+	});
+});
+
+afterEach(() => {
+	vi.useRealTimers();
+});
+
 describe("left-edge scroll mask", () => {
 	test("a sliding window fades the marks at the left edge, then decays once idle", async () => {
 		const { container, rerender } = render(<Chart data={windowAt(0)} />);
@@ -204,15 +222,13 @@ describe("left-edge scroll mask", () => {
 		});
 		// The mask is transient: once the stream idles past the linger window,
 		// the left edge returns to full strength.
-		await waitFor(
-			() => {
-				const left = alphaAt(canvas, LEFT_X, SAMPLE_Y);
-				const right = alphaAt(canvas, RIGHT_X, SAMPLE_Y);
-				expect(left).toBeGreaterThan(0);
-				expect(Math.abs(left - right)).toBeLessThanOrEqual(8);
-			},
-			{ timeout: 3000, interval: 100 },
-		);
+		await vi.advanceTimersByTimeAsync(LINGER_MS);
+		await waitFor(() => {
+			const left = alphaAt(canvas, LEFT_X, SAMPLE_Y);
+			const right = alphaAt(canvas, RIGHT_X, SAMPLE_Y);
+			expect(left).toBeGreaterThan(0);
+			expect(Math.abs(left - right)).toBeLessThanOrEqual(8);
+		});
 	});
 
 	test("the eased ramp decays on its own frames (the production animate default)", async () => {
@@ -237,17 +253,15 @@ describe("left-edge scroll mask", () => {
 			expect(right).toBeGreaterThan(0);
 			expect(left).toBeLessThan(right * 0.5);
 		});
-		// 1s linger, then the ease-out: comfortably inside 4s if it keeps
-		// scheduling frames, never reached if it stalls at its first eased step.
-		await waitFor(
-			() => {
-				const left = alphaAt(canvas, LEFT_X, SAMPLE_Y);
-				const right = alphaAt(canvas, RIGHT_X, SAMPLE_Y);
-				expect(right).toBeGreaterThan(0);
-				expect(Math.abs(left - right)).toBeLessThanOrEqual(8);
-			},
-			{ timeout: 4000, interval: 100 },
-		);
+		// The linger, then the ease-out: reached if it keeps scheduling frames,
+		// never reached if it stalls at its first eased step.
+		await vi.advanceTimersByTimeAsync(LINGER_MS);
+		await waitFor(() => {
+			const left = alphaAt(canvas, LEFT_X, SAMPLE_Y);
+			const right = alphaAt(canvas, RIGHT_X, SAMPLE_Y);
+			expect(right).toBeGreaterThan(0);
+			expect(Math.abs(left - right)).toBeLessThanOrEqual(8);
+		});
 	});
 
 	test("an append that keeps the window's start never fades the left edge", async () => {
@@ -426,11 +440,14 @@ describe("left-edge scroll mask on the SVG renderer", () => {
 		});
 		// The production default eases: the decay must keep scheduling frames
 		// until the mask is gone, or a stopped stream stays faded.
+		await vi.advanceTimersByTimeAsync(LINGER_MS);
+		// Why a longer timeout: the eased decay takes about 640ms, and a slow frame
+		// slows it. A pass returns as soon as the mask is gone.
 		await waitFor(
 			() => {
 				expect(svgLeftEdgeOpacity(container)).toBe(1);
 			},
-			{ timeout: 4000, interval: 100 },
+			{ timeout: 3000 },
 		);
 	});
 });

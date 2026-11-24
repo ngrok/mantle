@@ -104,130 +104,111 @@ const isShadowSize = (value: string) =>
 
 // --- Class tables ----------------------------------------------------------------------------
 
-/** Classes with no value, mapped to their class group. */
+/**
+ * Classes with no value, mapped to their class group. Each line is `group:classes`. `font-size`
+ * holds mantle's own font sizes, and `invert-theme` is mantle's theme island class: it sets the
+ * theme variables, not the `invert` filter.
+ */
 const KEYWORDS: Record<string, string | undefined> = Object.create(null);
-for (const [group, words] of [
-	[
-		"display",
-		"block inline-block inline flex inline-flex table inline-table table-caption table-cell table-column table-column-group table-footer-group table-header-group table-row-group table-row flow-root grid inline-grid contents list-item hidden",
-	],
-	["position", "static fixed absolute relative sticky"],
-	["visibility", "visible invisible collapse"],
-	["isolation", "isolate isolation-auto"],
-	["text-transform", "uppercase lowercase capitalize normal-case"],
-	["font-style", "italic not-italic"],
-	["font-smoothing", "antialiased subpixel-antialiased"],
-	["text-decoration", "underline overline line-through no-underline"],
-	["text-overflow", "truncate text-ellipsis text-clip"],
-	["fvn-normal", "normal-nums"],
-	["fvn-ordinal", "ordinal"],
-	["fvn-slashed-zero", "slashed-zero"],
-	["fvn-figure", "lining-nums oldstyle-nums"],
-	["fvn-spacing", "proportional-nums tabular-nums"],
-	["fvn-fraction", "diagonal-fractions stacked-fractions"],
-	["sr", "sr-only"],
-	["not-sr", "not-sr-only"],
-	["container", "container"],
-	["container-type", "@container @container-normal @container-size"],
-	["box", "box-border box-content"],
-	["border-collapse", "border-collapse border-separate"],
-	["table-layout", "table-auto table-fixed"],
-	["transition-behavior", "transition-normal transition-discrete"],
-	["ring-w-inset", "ring-inset"],
-	["flex-direction", "flex-row flex-row-reverse flex-col flex-col-reverse"],
-	["flex-wrap", "flex-wrap flex-wrap-reverse flex-nowrap"],
-	["bg-attachment", "bg-fixed bg-local bg-scroll"],
-	["bg-repeat", "bg-repeat bg-no-repeat bg-repeat-x bg-repeat-y bg-repeat-round bg-repeat-space"],
-	["list-style-position", "list-inside list-outside"],
-	["space-x-reverse", "space-x-reverse"],
-	["space-y-reverse", "space-y-reverse"],
-	["divide-x-reverse", "divide-x-reverse"],
-	["divide-y-reverse", "divide-y-reverse"],
-	["break", "break-normal break-words break-all break-keep"],
-	["transform", "transform transform-cpu transform-gpu transform-none"],
-	["filter", "filter filter-none"],
-	["backdrop-filter", "backdrop-filter backdrop-filter-none"],
-	["translate-none", "translate-none"],
-	["snap-strictness", "snap-mandatory snap-proximity"],
-	["snap-stop", "snap-normal snap-always"],
-	["snap-align", "snap-start snap-end snap-center snap-align-none"],
-	["snap-type", "snap-none snap-x snap-y snap-both"],
-	["mask-type", "mask-type-alpha mask-type-luminance"],
-	["mask-mode", "mask-alpha mask-luminance mask-match"],
-	[
-		"mask-repeat",
-		"mask-repeat mask-no-repeat mask-repeat-x mask-repeat-y mask-repeat-round mask-repeat-space",
-	],
-	["mask-composite", "mask-add mask-subtract mask-intersect mask-exclude"],
-	["transform-style", "transform-3d transform-flat"],
-	["scale-3d", "scale-3d"],
-	["backface", "backface-visible backface-hidden"],
-	["field-sizing", "field-sizing-fixed field-sizing-content"],
-	["forced-color-adjust", "forced-color-adjust-auto forced-color-adjust-none"],
-	["scroll-behavior", "scroll-auto scroll-smooth"],
-	// Mantle's own font-size utilities (packages/mantle/src/mantle.css).
-	["font-size", "text-mono text-size-inherit"],
-	// Mantle's theme island class: it sets the theme variables, not the `invert` filter.
-	["invert-theme", "invert-theme"],
-] as const) {
-	for (const word of words.split(" ")) {
+for (const line of `display:block,inline-block,inline,flex,inline-flex,table,inline-table,table-caption,table-cell,table-column,table-column-group,table-footer-group,table-header-group,table-row-group,table-row,flow-root,grid,inline-grid,contents,list-item,hidden
+	|position:static,fixed,absolute,relative,sticky
+	|visibility:visible,invisible,collapse
+	|isolation:isolate,isolation-auto
+	|text-transform:uppercase,lowercase,capitalize,normal-case
+	|font-style:italic,not-italic
+	|font-smoothing:antialiased,subpixel-antialiased
+	|text-decoration:underline,overline,line-through,no-underline
+	|text-overflow:truncate,text-ellipsis,text-clip
+	|fvn-normal:normal-nums
+	|fvn-ordinal:ordinal
+	|fvn-slashed-zero:slashed-zero
+	|fvn-figure:lining-nums,oldstyle-nums
+	|fvn-spacing:proportional-nums,tabular-nums
+	|fvn-fraction:diagonal-fractions,stacked-fractions
+	|sr:sr-only
+	|not-sr:not-sr-only
+	|container:container
+	|container-type:@container,@container-normal,@container-size
+	|box:box-border,box-content
+	|border-collapse:border-collapse,border-separate
+	|table-layout:table-auto,table-fixed
+	|transition-behavior:transition-normal,transition-discrete
+	|ring-w-inset:ring-inset
+	|flex-direction:flex-row,flex-row-reverse,flex-col,flex-col-reverse
+	|flex-wrap:flex-wrap,flex-wrap-reverse,flex-nowrap
+	|bg-attachment:bg-fixed,bg-local,bg-scroll
+	|bg-repeat:bg-repeat,bg-no-repeat,bg-repeat-x,bg-repeat-y,bg-repeat-round,bg-repeat-space
+	|list-style-position:list-inside,list-outside
+	|space-x-reverse:space-x-reverse
+	|space-y-reverse:space-y-reverse
+	|divide-x-reverse:divide-x-reverse
+	|divide-y-reverse:divide-y-reverse
+	|break:break-normal,break-words,break-all,break-keep
+	|transform:transform,transform-cpu,transform-gpu,transform-none
+	|filter:filter,filter-none
+	|backdrop-filter:backdrop-filter,backdrop-filter-none
+	|translate-none:translate-none
+	|snap-strictness:snap-mandatory,snap-proximity
+	|snap-stop:snap-normal,snap-always
+	|snap-align:snap-start,snap-end,snap-center,snap-align-none
+	|snap-type:snap-none,snap-x,snap-y,snap-both
+	|mask-type:mask-type-alpha,mask-type-luminance
+	|mask-mode:mask-alpha,mask-luminance,mask-match
+	|mask-repeat:mask-repeat,mask-no-repeat,mask-repeat-x,mask-repeat-y,mask-repeat-round,mask-repeat-space
+	|mask-composite:mask-add,mask-subtract,mask-intersect,mask-exclude
+	|transform-style:transform-3d,transform-flat
+	|scale-3d:scale-3d
+	|backface:backface-visible,backface-hidden
+	|field-sizing:field-sizing-fixed,field-sizing-content
+	|forced-color-adjust:forced-color-adjust-auto,forced-color-adjust-none
+	|scroll-behavior:scroll-auto,scroll-smooth
+	|font-size:text-mono,text-size-inherit
+	|invert-theme:invert-theme`.split("|")) {
+	const [group = "", words = ""] = line.trim().split(":");
+	for (const word of words.split(",")) {
 		KEYWORDS[word] = group;
 	}
 }
 
 /**
- * Roots that take any value, mapped to their class group. A root that maps to itself is listed
- * once in the space-separated `SAME_NAME_ROOTS`.
+ * Roots that take any value, mapped to their class group, as `root:group` pairs. A root that maps
+ * to itself is listed once in `SAME_NAME_ROOTS`.
  */
-const ROOTS: Record<string, string | undefined> = Object.assign(Object.create(null), {
-	"@container": "container-type",
-	"backdrop-filter": "backdrop-filter",
-	filter: "filter",
-	align: "vertical-align",
-	block: "block-size",
-	inline: "inline-size",
-	"max-block": "max-block-size",
-	"max-inline": "max-inline-size",
-	"min-block": "min-block-size",
-	"min-inline": "min-inline-size",
-	caret: "caret-color",
-	col: "col-start-end",
-	content: "align-content",
-	"inset-e": "end",
-	"inset-s": "start",
-	items: "align-items",
-	justify: "justify-content",
-	origin: "transform-origin",
-	placeholder: "placeholder-color",
-	row: "row-start-end",
-	scheme: "color-scheme",
-	"scrollbar-thumb": "scrollbar-thumb-color",
-	"scrollbar-track": "scrollbar-track-color",
-	self: "align-self",
-});
-const SAME_NAME_ROOTS = `aspect columns break-after break-before break-inside box-decoration float clear overflow overflow-x
-	overflow-y overscroll overscroll-x overscroll-y inset inset-x inset-y start end inset-bs inset-be top right bottom left z basis
-	grow shrink order grid-cols col-start col-end grid-rows row-start row-end grid-flow auto-cols auto-rows gap gap-x gap-y
-	justify-items justify-self place-content place-items place-self p px py ps pe pbs pbe pt pr pb pl m mx my ms me mbs mbe mt mr
-	mb ml space-x space-y size w min-w max-w h
-	min-h max-h tracking line-clamp leading list-image indent whitespace wrap hyphens underline-offset bg-clip bg-origin
-	bg-size bg-position bg-blend mix-blend opacity brightness contrast grayscale hue-rotate invert saturate sepia backdrop-blur
-	backdrop-brightness backdrop-contrast backdrop-grayscale backdrop-hue-rotate backdrop-invert backdrop-opacity backdrop-saturate
-	backdrop-sepia border-spacing border-spacing-x border-spacing-y caption duration ease delay animate perspective
-	perspective-origin rotate rotate-x rotate-y rotate-z scale scale-x scale-y scale-z skew skew-x skew-y translate translate-x
-	translate-y translate-z zoom accent appearance cursor pointer-events resize scroll-m scroll-mx scroll-my scroll-ms scroll-me
-	scroll-mbs scroll-mbe scroll-mt scroll-mr scroll-mb scroll-ml scroll-p scroll-px scroll-py scroll-ps scroll-pe scroll-pbs
-	scroll-pbe scroll-pt scroll-pr scroll-pb scroll-pl select will-change fill rounded rounded-s rounded-e rounded-t rounded-r
-	rounded-b rounded-l rounded-ss rounded-se rounded-ee rounded-es rounded-tl rounded-tr rounded-br rounded-bl mask-clip
-	mask-origin mask-size mask-position font-features font-stretch outline-offset divide-x divide-y blur scrollbar-gutter`;
-for (const root of SAME_NAME_ROOTS.split(/\s+/)) {
+const ROOTS: Record<string, string | undefined> = Object.create(null);
+for (const pair of `@container:container-type,align:vertical-align,block:block-size,inline:inline-size,
+	max-block:max-block-size,max-inline:max-inline-size,min-block:min-block-size,
+	min-inline:min-inline-size,caret:caret-color,col:col-start-end,content:align-content,inset-e:end,
+	inset-s:start,items:align-items,justify:justify-content,origin:transform-origin,
+	placeholder:placeholder-color,row:row-start-end,scheme:color-scheme,
+	scrollbar-thumb:scrollbar-thumb-color,scrollbar-track:scrollbar-track-color,self:align-self`.split(
+	/,\s*/,
+)) {
+	const [root = "", group = ""] = pair.split(":");
+	ROOTS[root] = group;
+}
+const SAME_NAME_ROOTS = `backdrop-filter,filter,flex,transition,aspect,columns,break-after,break-before,break-inside,box-decoration,float,clear,overflow,overflow-x,
+	overflow-y,overscroll,overscroll-x,overscroll-y,inset,inset-x,inset-y,start,end,inset-bs,inset-be,top,right,bottom,left,z,basis,
+	grow,shrink,order,grid-cols,col-start,col-end,grid-rows,row-start,row-end,grid-flow,auto-cols,auto-rows,gap,gap-x,gap-y,
+	justify-items,justify-self,place-content,place-items,place-self,p,px,py,ps,pe,pbs,pbe,pt,pr,pb,pl,m,mx,my,ms,me,mbs,mbe,mt,mr,
+	mb,ml,space-x,space-y,size,w,min-w,max-w,h,
+	min-h,max-h,tracking,line-clamp,leading,list-image,indent,whitespace,wrap,hyphens,underline-offset,bg-clip,bg-origin,
+	bg-size,bg-position,bg-blend,mix-blend,opacity,brightness,contrast,grayscale,hue-rotate,invert,saturate,sepia,backdrop-blur,
+	backdrop-brightness,backdrop-contrast,backdrop-grayscale,backdrop-hue-rotate,backdrop-invert,backdrop-opacity,backdrop-saturate,
+	backdrop-sepia,border-spacing,border-spacing-x,border-spacing-y,caption,duration,ease,delay,animate,perspective,
+	perspective-origin,rotate,rotate-x,rotate-y,rotate-z,scale,scale-x,scale-y,scale-z,skew,skew-x,skew-y,translate,translate-x,
+	translate-y,translate-z,zoom,accent,appearance,cursor,pointer-events,resize,scroll-m,scroll-mx,scroll-my,scroll-ms,scroll-me,
+	scroll-mbs,scroll-mbe,scroll-mt,scroll-mr,scroll-mb,scroll-ml,scroll-p,scroll-px,scroll-py,scroll-ps,scroll-pe,scroll-pbs,
+	scroll-pbe,scroll-pt,scroll-pr,scroll-pb,scroll-pl,select,will-change,fill,rounded,rounded-s,rounded-e,rounded-t,rounded-r,
+	rounded-b,rounded-l,rounded-ss,rounded-se,rounded-ee,rounded-es,rounded-tl,rounded-tr,rounded-br,rounded-bl,mask-clip,
+	mask-origin,mask-size,mask-position,font-features,font-stretch,outline-offset,divide-x,divide-y,blur,scrollbar-gutter`;
+for (const root of SAME_NAME_ROOTS.split(/,\s*/)) {
 	ROOTS[root] = root;
 }
 
 /** Roots that are a class with no value too, such as `rounded`, `shadow`, and `grow`. */
 const BARE_ROOTS = new Set(
-	"rounded rounded-s rounded-e rounded-t rounded-r rounded-b rounded-l rounded-ss rounded-se rounded-ee rounded-es rounded-tl rounded-tr rounded-br rounded-bl shadow inset-shadow drop-shadow ring inset-ring outline grow shrink transition blur backdrop-blur invert backdrop-invert grayscale backdrop-grayscale sepia backdrop-sepia divide-x divide-y resize mask border".split(
-		" ",
+	"rounded,rounded-s,rounded-e,rounded-t,rounded-r,rounded-b,rounded-l,rounded-ss,rounded-se,rounded-ee,rounded-es,rounded-tl,rounded-tr,rounded-br,rounded-bl,shadow,inset-shadow,drop-shadow,ring,inset-ring,outline,grow,shrink,transition,blur,backdrop-blur,invert,backdrop-invert,grayscale,backdrop-grayscale,sepia,backdrop-sepia,divide-x,divide-y,resize,mask,border".split(
+		",",
 	),
 );
 
@@ -238,8 +219,8 @@ const BARE_ROOTS = new Set(
 const SPACING_VALUE =
 	/^(\d*\.?\d+|\d+\/\d+|px|auto|full|screen|[sld]?v[wh]|min|max|fit|em|lh|none|prose|screen-\w+|(\d+(\.\d+)?)?(xs|sm|md|lg|xl))$/;
 const VALUE_SHAPES: Record<string, RegExp | undefined> = Object.create(null);
-for (const root of "block inline min-block max-block min-inline max-inline p px py ps pe pbs pbe pt pr pb pl m mx my ms me mbs mbe mt mr mb ml gap gap-x gap-y inset inset-x inset-y inset-s inset-e start end top right bottom left space-x space-y w h size min-w min-h max-w max-h basis indent scroll-m scroll-mx scroll-my scroll-ms scroll-me scroll-mbs scroll-mbe scroll-mt scroll-mr scroll-mb scroll-ml scroll-p scroll-px scroll-py scroll-ps scroll-pe scroll-pbs scroll-pbe scroll-pt scroll-pr scroll-pb scroll-pl inset-bs inset-be translate translate-x translate-y translate-z border-spacing border-spacing-x border-spacing-y".split(
-	" ",
+for (const root of "block,inline,min-block,max-block,min-inline,max-inline,p,px,py,ps,pe,pbs,pbe,pt,pr,pb,pl,m,mx,my,ms,me,mbs,mbe,mt,mr,mb,ml,gap,gap-x,gap-y,inset,inset-x,inset-y,inset-s,inset-e,start,end,top,right,bottom,left,space-x,space-y,w,h,size,min-w,min-h,max-w,max-h,basis,indent,scroll-m,scroll-mx,scroll-my,scroll-ms,scroll-me,scroll-mbs,scroll-mbe,scroll-mt,scroll-mr,scroll-mb,scroll-ml,scroll-p,scroll-px,scroll-py,scroll-ps,scroll-pe,scroll-pbs,scroll-pbe,scroll-pt,scroll-pr,scroll-pb,scroll-pl,inset-bs,inset-be,translate,translate-x,translate-y,translate-z,border-spacing,border-spacing-x,border-spacing-y".split(
+	",",
 )) {
 	VALUE_SHAPES[root] = SPACING_VALUE;
 }
@@ -300,14 +281,6 @@ const VALUE_ROOTS: Record<string, ((value: string) => string | undefined) | unde
 				? "text-decoration-thickness"
 				: "text-decoration-color";
 		},
-		shadow: (value: string) => (isShadowSize(value) ? "shadow" : "shadow-color"),
-		"inset-shadow": (value: string) =>
-			isShadowSize(value) ? "inset-shadow" : "inset-shadow-color",
-		"text-shadow": (value: string) => (isShadowSize(value) ? "text-shadow" : "text-shadow-color"),
-		"drop-shadow": (value: string) => (isShadowSize(value) ? "drop-shadow" : "drop-shadow-color"),
-		ring: (value: string) => (value === "" || isLength(value) ? "ring-w" : "ring-color"),
-		"inset-ring": (value: string) =>
-			value === "" || isLength(value) ? "inset-ring-w" : "inset-ring-color",
 		"ring-offset": (value: string) => (isLength(value) ? "ring-offset-w" : "ring-offset-color"),
 		outline: (value: string) => {
 			if (/^(solid|dashed|dotted|double|none|hidden)$/.test(value)) {
@@ -321,8 +294,6 @@ const VALUE_ROOTS: Record<string, ((value: string) => string | undefined) | unde
 		to: (value: string) => (isPosition(value) ? "gradient-to-pos" : "gradient-to"),
 		divide: (value: string) =>
 			/^(solid|dashed|dotted|double|hidden|none)$/.test(value) ? "divide-style" : "divide-color",
-		flex: () => "flex",
-		transition: () => "transition",
 		transform: (value: string) => (arbitraryKind(value) == null ? undefined : "transform"),
 		object: (value: string) =>
 			/^(contain|cover|fill|none|scale-down)$/.test(value) ? "object-fit" : "object-position",
@@ -386,6 +357,14 @@ const VALUE_ROOTS: Record<string, ((value: string) => string | undefined) | unde
 		tab: (value: string) =>
 			NUMBER.test(value) || arbitraryKind(value) != null ? "tab-size" : undefined,
 	});
+// `shadow-lg` sets the size and `shadow-red-500` the color, and `ring-2` the width and `ring-red-500`
+// the color.
+for (const root of "shadow,inset-shadow,text-shadow,drop-shadow".split(",")) {
+	VALUE_ROOTS[root] = (value) => (isShadowSize(value) ? root : `${root}-color`);
+}
+for (const root of "ring,inset-ring".split(",")) {
+	VALUE_ROOTS[root] = (value) => (value === "" || isLength(value) ? `${root}-w` : `${root}-color`);
+}
 
 /** `border`, `border-x`, … : a width, a style, or a color. */
 const BORDER_SIDES = new Set(["x", "y", "s", "e", "bs", "be", "t", "r", "b", "l"]);
@@ -409,11 +388,11 @@ const borderGroup = (value: string) => {
  * choice over tailwind-merge 3.7: a later `text-xl` resets the line height that `leading-*` set.
  */
 const CONFLICTS: Record<string, string[] | undefined> = Object.create(null);
-for (const line of `font-size:leading|container-named:container-type|overflow:overflow-x overflow-y|overscroll:overscroll-x overscroll-y|inset:inset-x inset-y inset-bs inset-be start end top right bottom left|inset-x:start end right left|inset-y:inset-bs inset-be top bottom|flex:basis grow shrink|gap:gap-x gap-y|place-content:align-content justify-content|place-items:align-items justify-items|place-self:align-self justify-self|p:px py ps pe pbs pbe pt pr pb pl|px:ps pe pr pl|py:pbs pbe pt pb|m:mx my ms me mbs mbe mt mr mb ml|mx:ms me mr ml|my:mbs mbe mt mb|size:w h|fvn-normal:fvn-ordinal fvn-slashed-zero fvn-figure fvn-spacing fvn-fraction|fvn-ordinal:fvn-normal|fvn-slashed-zero:fvn-normal|fvn-figure:fvn-normal|fvn-spacing:fvn-normal|fvn-fraction:fvn-normal|line-clamp:display overflow|sr:not-sr position size w h p px py ps pe pbs pbe pt pr pb pl m mx my ms me mbs mbe mt mr mb ml overflow overflow-x overflow-y whitespace|not-sr:sr|rounded:rounded-s rounded-e rounded-t rounded-r rounded-b rounded-l rounded-ss rounded-se rounded-ee rounded-es rounded-tl rounded-tr rounded-br rounded-bl|rounded-s:rounded-ss rounded-es|rounded-e:rounded-se rounded-ee|rounded-t:rounded-tl rounded-tr|rounded-r:rounded-tr rounded-br|rounded-b:rounded-br rounded-bl|rounded-l:rounded-tl rounded-bl|border-spacing:border-spacing-x border-spacing-y|border-w:border-w-x border-w-y border-w-s border-w-e border-w-bs border-w-be border-w-t border-w-r border-w-b border-w-l|border-w-x:border-w-s border-w-e border-w-r border-w-l|border-w-y:border-w-bs border-w-be border-w-t border-w-b|border-color:border-color-x border-color-y border-color-s border-color-e border-color-bs border-color-be border-color-t border-color-r border-color-b border-color-l|border-color-x:border-color-s border-color-e border-color-r border-color-l|border-color-y:border-color-bs border-color-be border-color-t border-color-b|mask-image-x-from-pos:mask-image-r-from-pos mask-image-l-from-pos|mask-image-x-to-pos:mask-image-r-to-pos mask-image-l-to-pos|mask-image-x-from-color:mask-image-r-from-color mask-image-l-from-color|mask-image-x-to-color:mask-image-r-to-color mask-image-l-to-color|mask-image-y-from-pos:mask-image-t-from-pos mask-image-b-from-pos|mask-image-y-to-pos:mask-image-t-to-pos mask-image-b-to-pos|mask-image-y-from-color:mask-image-t-from-color mask-image-b-from-color|mask-image-y-to-color:mask-image-t-to-color mask-image-b-to-color|translate:translate-x translate-y translate-none|translate-none:translate translate-x translate-y translate-z|scroll-m:scroll-mx scroll-my scroll-ms scroll-me scroll-mbs scroll-mbe scroll-mt scroll-mr scroll-mb scroll-ml|scroll-mx:scroll-ms scroll-me scroll-mr scroll-ml|scroll-my:scroll-mbs scroll-mbe scroll-mt scroll-mb|scroll-p:scroll-px scroll-py scroll-ps scroll-pe scroll-pbs scroll-pbe scroll-pt scroll-pr scroll-pb scroll-pl|scroll-px:scroll-ps scroll-pe scroll-pr scroll-pl|scroll-py:scroll-pbs scroll-pbe scroll-pt scroll-pb|touch:touch-x touch-y touch-pz|touch-x:touch|touch-y:touch|touch-pz:touch`.split(
+for (const line of `font-size:leading|container-named:container-type|overflow:overflow-x,overflow-y|overscroll:overscroll-x,overscroll-y|inset:inset-x,inset-y,inset-bs,inset-be,start,end,top,right,bottom,left|inset-x:start,end,right,left|inset-y:inset-bs,inset-be,top,bottom|flex:basis,grow,shrink|gap:gap-x,gap-y|place-content:align-content,justify-content|place-items:align-items,justify-items|place-self:align-self,justify-self|p:px,py,ps,pe,pbs,pbe,pt,pr,pb,pl|px:ps,pe,pr,pl|py:pbs,pbe,pt,pb|m:mx,my,ms,me,mbs,mbe,mt,mr,mb,ml|mx:ms,me,mr,ml|my:mbs,mbe,mt,mb|size:w,h|fvn-normal:fvn-ordinal,fvn-slashed-zero,fvn-figure,fvn-spacing,fvn-fraction|fvn-ordinal:fvn-normal|fvn-slashed-zero:fvn-normal|fvn-figure:fvn-normal|fvn-spacing:fvn-normal|fvn-fraction:fvn-normal|line-clamp:display,overflow|sr:not-sr,position,size,w,h,p,px,py,ps,pe,pbs,pbe,pt,pr,pb,pl,m,mx,my,ms,me,mbs,mbe,mt,mr,mb,ml,overflow,overflow-x,overflow-y,whitespace|not-sr:sr|rounded:rounded-s,rounded-e,rounded-t,rounded-r,rounded-b,rounded-l,rounded-ss,rounded-se,rounded-ee,rounded-es,rounded-tl,rounded-tr,rounded-br,rounded-bl|rounded-s:rounded-ss,rounded-es|rounded-e:rounded-se,rounded-ee|rounded-t:rounded-tl,rounded-tr|rounded-r:rounded-tr,rounded-br|rounded-b:rounded-br,rounded-bl|rounded-l:rounded-tl,rounded-bl|border-spacing:border-spacing-x,border-spacing-y|border-w:border-w-x,border-w-y,border-w-s,border-w-e,border-w-bs,border-w-be,border-w-t,border-w-r,border-w-b,border-w-l|border-w-x:border-w-s,border-w-e,border-w-r,border-w-l|border-w-y:border-w-bs,border-w-be,border-w-t,border-w-b|border-color:border-color-x,border-color-y,border-color-s,border-color-e,border-color-bs,border-color-be,border-color-t,border-color-r,border-color-b,border-color-l|border-color-x:border-color-s,border-color-e,border-color-r,border-color-l|border-color-y:border-color-bs,border-color-be,border-color-t,border-color-b|mask-image-x-from-pos:mask-image-r-from-pos,mask-image-l-from-pos|mask-image-x-to-pos:mask-image-r-to-pos,mask-image-l-to-pos|mask-image-x-from-color:mask-image-r-from-color,mask-image-l-from-color|mask-image-x-to-color:mask-image-r-to-color,mask-image-l-to-color|mask-image-y-from-pos:mask-image-t-from-pos,mask-image-b-from-pos|mask-image-y-to-pos:mask-image-t-to-pos,mask-image-b-to-pos|mask-image-y-from-color:mask-image-t-from-color,mask-image-b-from-color|mask-image-y-to-color:mask-image-t-to-color,mask-image-b-to-color|translate:translate-x,translate-y,translate-none|translate-none:translate,translate-x,translate-y,translate-z|scroll-m:scroll-mx,scroll-my,scroll-ms,scroll-me,scroll-mbs,scroll-mbe,scroll-mt,scroll-mr,scroll-mb,scroll-ml|scroll-mx:scroll-ms,scroll-me,scroll-mr,scroll-ml|scroll-my:scroll-mbs,scroll-mbe,scroll-mt,scroll-mb|scroll-p:scroll-px,scroll-py,scroll-ps,scroll-pe,scroll-pbs,scroll-pbe,scroll-pt,scroll-pr,scroll-pb,scroll-pl|scroll-px:scroll-ps,scroll-pe,scroll-pr,scroll-pl|scroll-py:scroll-pbs,scroll-pbe,scroll-pt,scroll-pb|touch:touch-x,touch-y,touch-pz|touch-x:touch|touch-y:touch|touch-pz:touch`.split(
 	"|",
 )) {
 	const [group = "", others = ""] = line.split(":");
-	CONFLICTS[group] = others.split(" ");
+	CONFLICTS[group] = others.split(",");
 }
 
 // --- Lookup --------------------------------------------------------------------------------
@@ -665,7 +644,7 @@ let classIds = new Int32Array(64);
 let classSetsLeading = new Int32Array(64);
 let taken = new Int32Array(256);
 
-const grow = (buffer: Int32Array) => {
+const growBuffer = (buffer: Int32Array) => {
 	const grown = new Int32Array(buffer.length * 2);
 	grown.set(buffer);
 	return grown;
@@ -765,10 +744,10 @@ export const mergeClassList = (classList: string): string => {
 				continue;
 			}
 			if (count === classStarts.length) {
-				classStarts = grow(classStarts);
-				classEnds = grow(classEnds);
-				classIds = grow(classIds);
-				classSetsLeading = grow(classSetsLeading);
+				classStarts = growBuffer(classStarts);
+				classEnds = growBuffer(classEnds);
+				classIds = growBuffer(classIds);
+				classSetsLeading = growBuffer(classSetsLeading);
 			}
 			classStarts[count] = start;
 			classEnds[count] = index;
@@ -826,7 +805,7 @@ export const mergeClassList = (classList: string): string => {
 		const offset = id - group;
 		const conflicts = groupConflicts[group] ?? [];
 		while (takenCount + conflicts.length + 2 > taken.length) {
-			taken = grow(taken);
+			taken = growBuffer(taken);
 		}
 		taken[takenCount++] = id;
 		for (const conflict of conflicts) {

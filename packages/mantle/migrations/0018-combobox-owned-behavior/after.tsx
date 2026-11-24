@@ -56,3 +56,15 @@ export const Lone = <Combobox.Root defaultValue="App" />;
 
 // mantle's own text setter is an Ariakit name too.
 export const TextSetter = <Combobox.Root inputValue="a" onInputValueChange={() => {}} />;
+
+// A bare or true click opt-out does nothing now, so the rules delete it. A false
+// or computed opt-out changed the click, so the rules report it and leave it.
+export const ClickOptOuts = ({ keepOpen }: { keepOpen: boolean }) => (
+	<Combobox.Root>
+		<Combobox.Content>
+			<Combobox.Item value="Apple" />
+			<Picker.Item value="Banana" setValueOnClick={false} hideOnClick={keepOpen} />
+			<Other.Item value="Cherry" hideOnClick />
+		</Combobox.Content>
+	</Combobox.Root>
+);

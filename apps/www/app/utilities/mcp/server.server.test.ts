@@ -1,21 +1,17 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { createMcpHandler } from "@modelcontextprotocol/server";
-import mantlePackageJson from "@ngrok/mantle/package.json" with { type: "json" };
 import { describe, expect, it, vi } from "vitest";
-import { buildSiteAgentManifest } from "~/utilities/agent-manifest.server";
 import { urlToFileMap } from "~/utilities/docs";
 import type { McpFlags } from "~/utilities/mcp/flags.server";
 import {
-	createMantleMcpServer,
 	loadMigrationGuides,
 	MCP_INSTRUCTIONS,
-	productionDependencies,
 	type McpDependencies,
 	type ToolCallEvent,
 } from "~/utilities/mcp/server.server";
 import { packageFilesFixture } from "~/utilities/mcp/test-fixtures";
-import { recordNamed, recordsOf, type DocPageRecord } from "~/utilities/mcp/tools";
+import { currentDependencies, rpcAt } from "~/utilities/mcp/test-server";
+import type { DocPageRecord } from "~/utilities/mcp/tools";
 import { ServerBusyError, versionDataFromFiles } from "~/utilities/mcp/version-data.server";
 
 function dependencies(overrides: Partial<McpDependencies> = {}): McpDependencies {
@@ -49,40 +45,9 @@ function dependencies(overrides: Partial<McpDependencies> = {}): McpDependencies
 	};
 }
 
-let requestId = 0;
-
-/** Sends one 2025-era JSON-RPC request to `url` through the stateless HTTP handler. */
-function rpcAt(url: string) {
-	return async (deps: McpDependencies, method: string, params: Record<string, unknown> = {}) => {
-		const handler = createMcpHandler(({ requestInfo }) => createMantleMcpServer(deps, requestInfo));
-		requestId += 1;
-		const response = await handler.fetch(
-			new Request(url, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Accept: "application/json, text/event-stream",
-					"User-Agent": "claude-code/2.1.3 (cli; darwin)",
-				},
-				body: JSON.stringify({ jsonrpc: "2.0", id: requestId, method, params }),
-			}),
-		);
-		// Why: the 2025-era leg answers over SSE, so the JSON-RPC response is the `data:` line.
-		const raw = await response.text();
-		await handler.close();
-		const data =
-			raw
-				.split("\n")
-				.find((line) => line.startsWith("data: "))
-				?.slice("data: ".length) ?? raw;
-		const body: unknown = JSON.parse(data);
-		return body as { result?: Record<string, unknown>; error?: { message: string } };
-	};
-}
-
 /** Calls one tool at `url`, and returns its text and error flag. */
-function callToolAt(url: string) {
-	const send = rpcAt(url);
+function callToolAt(url: string, headers: Record<string, string> = {}) {
+	const send = rpcAt(url, headers);
 	return async (deps: McpDependencies, name: string, args: Record<string, unknown>) => {
 		const { result } = await send(deps, "tools/call", { name, arguments: args });
 		const content = (result?.content ?? []) as { type: string; text: string }[];
@@ -226,7 +191,10 @@ describe("the mantle MCP server", () => {
 		});
 
 		expect(missing.isError).toBe(true);
-		expect(missingEvent).toMatchObject({ errorKind: "validation", invalidFields: ["ticket"] });
+		expect(missingEvent).toMatchObject({
+			errorKind: "validation",
+			invalidArguments: [{ argument: "ticket", problem: "missing" }],
+		});
 		expect(none.isError).toBe(false);
 		expect(log).toHaveBeenLastCalledWith(
 			expect.objectContaining({
@@ -352,6 +320,13 @@ describe("the mantle MCP server", () => {
 		expect(new TextEncoder().encode(MCP_INSTRUCTIONS).length).toBeLessThan(1024);
 	});
 
+	// Why: a client loads tools/list in each session, and shared argument text repeats in each tool.
+	it("keeps tools/list under 9 KB", async () => {
+		const { result } = await rpc(dependencies(), "tools/list");
+
+		expect(new TextEncoder().encode(JSON.stringify(result)).length).toBeLessThan(9 * 1024);
+	});
+
 	// Regression: main keeps the released version number until the next release,
 	// and `get Query` at 0.94.1 served an unreleased prop as that version's contract.
 	it("answers get with the declarations when the docs build has unreleased changes", async () => {
@@ -466,7 +441,10 @@ describe("the mantle MCP server", () => {
 				outcome: "error",
 				errorKind: "validation",
 				client: "claude-code/2.1.3",
-				invalidFields: ["query", "kind"],
+				invalidArguments: [
+					{ argument: "query", problem: "empty" },
+					{ argument: "kind", problem: "not an allowed value" },
+				],
 			}),
 		);
 	});
@@ -480,7 +458,7 @@ describe("the mantle MCP server", () => {
 			expect.objectContaining({
 				errorKind: "validation",
 				intent: "Danger zone for",
-				invalidFields: ["name"],
+				invalidArguments: [{ argument: "name", problem: "empty" }],
 			}),
 		);
 	});
@@ -502,6 +480,28 @@ describe("the mantle MCP server", () => {
 				intent: "Confirm before a user deletes a domain at",
 			}),
 		);
+	});
+
+	it("logs one caller key for each address, agent, and source, and no address", async () => {
+		const log = vi.fn<(event: ToolCallEvent) => void>();
+		const callFrom = (address: string, url = "https://mantle.example/mcp") =>
+			callToolAt(url, { "X-Forwarded-For": `${address}, 10.0.0.1` })(
+				dependencies({ log }),
+				"find",
+				{
+					query: "modal",
+				},
+			);
+
+		await callFrom("203.0.113.24");
+		await callFrom("203.0.113.24");
+		await callFrom("198.51.100.7");
+		await callFrom("203.0.113.24", "https://mantle.example/mcp?source=frontend");
+		const callers = log.mock.calls.map(([event]) => event.caller);
+
+		expect(callers[0]).toBe(callers[1]);
+		expect(new Set(callers).size).toBe(3);
+		expect(JSON.stringify(log.mock.calls)).not.toContain("203.0.113.24");
 	});
 
 	it("logs the ngrok repo from the source parameter and the workspace slug", async () => {
@@ -742,38 +742,54 @@ describe("the mantle MCP server", () => {
 		);
 	});
 
-	it("rejects code over the size cap before it parses it", async () => {
-		const result = await callTool(dependencies(), "check", { code: "x".repeat(20 * 1024 + 1) });
+	it("checks a file over the preview cap, and rejects code over its own cap before it parses it", async () => {
+		const large = `export const a = 1;\n${"// pad\n".repeat(4 * 1024)}`;
+		const accepted = await callTool(dependencies(), "check", { code: large });
+		const result = await callTool(dependencies(), "check", { code: "x".repeat(100 * 1024 + 1) });
 
+		expect(accepted.isError).toBeFalsy();
 		expect(result.isError).toBe(true);
-		expect(result.text).toBe("The code is over 20480 bytes. Check one file at a time.");
+		expect(result.text).toBe("The code is over 102400 bytes. Check one file at a time.");
+	});
+
+	it("leaves part contracts out of preview when the page renders unreleased changes", async () => {
+		const code =
+			'import { Button } from "@ngrok/mantle/button";\nexport default () => <Button intent="neutral" keyboardShortcut />;';
+
+		const unreleased = await callTool(
+			dependencies({ docsSourceHash: async () => "main-hash" }),
+			"preview",
+			{ code },
+		);
+		const released = await callTool(dependencies(), "preview", { code });
+
+		expect(unreleased.text).toContain("check found nothing.");
+		expect(released.text).toContain("unknown-prop");
+	});
+
+	// Regression: agents wrote the documented `keyboardShortcut` prop that 0.94.1 lacks.
+	it("says when a prop that check rejects is in the docs build but in no release", async () => {
+		const code =
+			'import { Button } from "@ngrok/mantle/button";\n<Button intent="neutral" keyboardShortcut />;';
+		const docsWords = async () => new Set(["keyboardShortcut"]);
+
+		const unreleased = await callTool(
+			dependencies({ docsSourceHash: async () => "main-hash", docsDeclaredWordsOf: docsWords }),
+			"check",
+			{ code },
+		);
+		const released = await callTool(dependencies({ docsDeclaredWordsOf: docsWords }), "check", {
+			code,
+		});
+
+		expect(unreleased.text).toContain(
+			"2:26 error unknown-prop: Button has no prop keyboardShortcut in @ngrok/mantle@0.93.0. Fix: The docs show keyboardShortcut, but no release has it yet. Remove it.",
+		);
+		expect(released.text).toContain("Fix: Call `get` with Button for its props.");
 	});
 });
 
 /** The production dependencies, with the current docs build as the published version. */
-async function currentDependencies(): Promise<McpDependencies> {
-	const manifest = await buildSiteAgentManifest();
-	const data = versionDataFromFiles(
-		manifest.version,
-		new Map([
-			["package.json", JSON.stringify(mantlePackageJson)],
-			["dist/agent.json", JSON.stringify(manifest)],
-		]),
-	);
-	return {
-		...productionDependencies({
-			flags: () => ({ enabled: true, disabledTools: new Set() }),
-			requestOrigin: "https://mantle.example",
-		}),
-		loader: {
-			latestVersion: async () => data.version,
-			isPublished: async () => true,
-			load: async () => data,
-		},
-		log: () => {},
-	};
-}
-
 /** The queries in `("…")` form, as the `find` description and the For AI Agents page quote them. */
 function quotedExamples(text: string): string[] {
 	return Array.from(text.matchAll(/\("([^"]+)"\)/g), (match) => match[1] ?? "");
@@ -815,87 +831,12 @@ describe("the documented find examples", () => {
 	);
 });
 
-/**
- * Golden queries: how designers and agents describe a need, and the record
- * that must answer it. Each one came from a real search, such as Ricky's
- * words for Strata in Slack. Add a query when a weak find turns out to be a
- * find bug, not a gap.
- */
-describe("the golden find queries", () => {
-	const topResultByQuery = {
-		"form sections (our 2column layouts with label/description on left, inputs or controls on right)":
-			"Strata",
-		"this group of info on left, form fields on right": "Strata",
-		"form section with label and description on the left": "Strata",
-		"description left controls right": "Strata",
-		"two-column settings layout": "Strata",
-		"settings page": "Strata",
-		"icon on the left text on the right": "Media Object",
-		"checkbox on the left label and description on the right": "Choice",
-		"avatar initials from name": "Avatar",
-		"app shell sidebar header": "App Layout",
-		"centered login page": "Centered Layout",
-		"page heading with actions": "App Layout",
-		"list page with filters and a table": "List Page Loading States",
-		"skeleton rows while a table loads": "List Page Loading States",
-		"dialog loading state": "Overlays + Async Data (React Query)",
-		"sparkline in each table row": "Sparklines in a List",
-		"dialog loading state pattern": "Overlays + Async Data (React Query)",
-		"table sub-rows": "Data Table",
-		"expandable row detail": "Data Table",
-		"nested rows in a table": "Data Table",
-		"text search query": "Query",
-		"search filter": "Query",
-		"responsive adaptive layouts": "Breakpoints",
-		breadcrumbs: "Breadcrumb",
-	};
+// A version that lacks a part's API record still finds the part's docs page by its aliases.
+it("keeps the aliases of a component's docs page", async () => {
+	const pages = await (await currentDependencies()).docPages();
+	const page = pages.find(({ docsSlug }) => docsSlug === "components/forms/segmented-control");
 
-	it.each(Object.entries(topResultByQuery))(
-		'finds "%s" as a strong match to %s first',
-		async (query, name) => {
-			const { result } = await rpc(await currentDependencies(), "tools/call", {
-				name: "find",
-				arguments: { query },
-			});
-			const found = result?.structuredContent as {
-				strongMatch: boolean;
-				results: { name: string }[];
-			};
-
-			expect(found.strongMatch).toBe(true);
-			expect(found.results[0]?.name).toBe(name);
-		},
-	);
-
-	it.each(["stepper", "file drop zone"])(
-		'calls "%s" weak, so find reports the gap',
-		async (query) => {
-			const { result } = await rpc(await currentDependencies(), "tools/call", {
-				name: "find",
-				arguments: { query },
-			});
-			const found = result?.structuredContent as { strongMatch: boolean };
-
-			expect(found.strongMatch).toBe(false);
-		},
-	);
-
-	it("names a part of the current build in each part of each recipe", async () => {
-		const deps = await currentDependencies();
-		const records = recordsOf(await deps.loader.load(mantlePackageJson.version));
-		const recipes = (await deps.docPages()).filter((page) => page.kind === "recipe");
-
-		const unknown = recipes.flatMap(({ name, parts }) =>
-			parts == null || parts.length === 0
-				? [`${name}: no parts`]
-				: parts
-						.filter((part) => recordNamed(records, part) == null)
-						.map((part) => `${name}: ${part}`),
-		);
-
-		expect(recipes.length).toBeGreaterThan(0);
-		expect(unknown).toEqual([]);
-	});
+	expect(page).toMatchObject({ kind: "page", aliases: expect.arrayContaining(["toggle group"]) });
 });
 
 describe("loadMigrationGuides", () => {

@@ -56,10 +56,6 @@ type CommandSearchTriggerProps = Omit<ComponentProps<typeof Slot>, "children"> &
  *   `Sheet` (a `Sidebar.Nav` below its `mobileBreakpoint`) the trigger still
  *   binds to `Command.DialogRoot`, because `Sheet` parts read a dialog scope
  *   of their own.
- * - `data-state="open" | "closed"`, stamped from the palette's own state so it
- *   survives being wrapped in another cloning trigger. A `Sidebar.Tooltip`
- *   passes its own `data-state` down, and Radix's prop merge would otherwise
- *   let it win.
  * - `aria-keyshortcuts`, so the `⌘K` binding is announced rather than only
  *   drawn. It is present only when `Command.DialogRoot` owns the shortcut, so it
  *   can never advertise a binding that is not bound. Pass your own value to
@@ -159,7 +155,7 @@ const CommandSearchTrigger = ({
 	onPaste,
 	...props
 }: CommandSearchTriggerProps) => {
-	const { keyboardShortcut, open, openWithQuery } = useCommandDialogContext("SearchTrigger");
+	const { keyboardShortcut, openWithQuery } = useCommandDialogContext("SearchTrigger");
 	const isApple = useIsApplePlatform();
 
 	const applyAction = (action: SearchAction) => {
@@ -183,12 +179,6 @@ const CommandSearchTrigger = ({
 				// owns the announcement, so their value wins over ours.
 				aria-keyshortcuts={ariaKeyshortcuts ?? (keyboardShortcut ? platformChord : undefined)}
 				data-slot={joinDataSlot(dataSlot, "command-search-trigger")}
-				// Stamped last, and from the palette's own state, because an outer
-				// cloning trigger's `data-state` arrives in `props` and Radix's
-				// `mergeProps` gives the child's value priority, so a
-				// `Sidebar.Tooltip` wrapper would otherwise hand the row the
-				// *tooltip's* state and the palette's open highlight would never fire.
-				data-state={open ? "open" : "closed"}
 				onKeyDown={(event) => {
 					onKeyDown?.(event);
 					if (event.defaultPrevented) {

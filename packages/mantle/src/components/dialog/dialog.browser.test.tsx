@@ -3,6 +3,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { userEvent } from "vitest/browser";
 import * as Dialog from "./dialog-parts.js";
 
 /**
@@ -60,9 +61,9 @@ const STYLE = `
 	.text-lg { font-size: var(--text-lg); line-height: var(--tw-leading, var(--text-lg--line-height)); }
 	.font-medium { font-weight: var(--font-weight-medium); }
 	.has-\\[\\.icon-button\\]\\:pr-4:has(:is(.icon-button)) { padding-right: calc(var(--spacing) * 4); }
-	.\\*\\:data-\\[slot\\~\\=dialog-description\\]\\:order-last > [data-slot~=dialog-description] { order: 9999; }
-	.\\*\\:data-\\[slot\\~\\=dialog-description\\]\\:basis-full > [data-slot~=dialog-description] { flex-basis: 100%; }
-	.\\*\\:data-\\[slot\\~\\=dialog-title\\]\\:flex-1 > [data-slot~=dialog-title] { flex: 1; }
+	.\\[\\&\\>\\[data-slot\\~\\=dialog-description\\]\\]\\:order-last > [data-slot~=dialog-description] { order: 9999; }
+	.\\[\\&\\>\\[data-slot\\~\\=dialog-description\\]\\]\\:basis-full > [data-slot~=dialog-description] { flex-basis: 100%; }
+	.\\[\\&\\>\\[data-slot\\~\\=dialog-title\\]\\]\\:flex-1 > [data-slot~=dialog-title] { flex: 1; }
 }
 `;
 
@@ -177,7 +178,7 @@ const EXIT_STYLE = `
 .motion-safe\\:not-has-\\[\\>\\[data-mantle-modal-content\\]\\[data-state\\=open\\]\\]\\:animate-exit-hold:not(:has( > [data-mantle-modal-content][data-state=open])) {
 	animation: exit-hold 150ms;
 }
-[data-slot~="dialog-content"][data-state="closed"] { animation: quick-exit 50ms; }
+[data-slot~="dialog-content"][data-closing] { animation: quick-exit 50ms; }
 `;
 
 describe("Dialog exit", () => {
@@ -204,6 +205,140 @@ describe("Dialog exit", () => {
 				expect(document.querySelector('[data-slot="dialog-positioner"]')).toBeNull();
 			});
 		} finally {
+			exitStyle.remove();
+		}
+	});
+});
+
+describe("Dialog.Body", () => {
+	/** A 60px body, so a few lines of text scroll it. */
+	const bodyStyle = { height: 60, overflowY: "auto", padding: 0 } as const;
+	const lines = (count: number) =>
+		Array.from({ length: count }, (_, index) => <p key={index}>Line {index + 1}</p>);
+
+	test("a body that scrolls and holds no tab stop takes a Tab, so the arrow keys can scroll it", async () => {
+		render(
+			<>
+				<button type="button">Before</button>
+				<Dialog.Body data-testid="body" style={bodyStyle}>
+					{lines(10)}
+				</Dialog.Body>
+			</>,
+		);
+		const body = screen.getByTestId("body");
+		screen.getByRole("button", { name: "Before" }).focus();
+
+		await userEvent.keyboard("{Tab}");
+
+		expect(document.activeElement).toBe(body);
+	});
+
+	test("a body gains the tab stop once its content scrolls it, and loses it to a tabbable child", async () => {
+		const { rerender } = render(
+			<Dialog.Body data-testid="body" style={bodyStyle}>
+				{lines(1)}
+			</Dialog.Body>,
+		);
+		const body = screen.getByTestId("body");
+		await new Promise(requestAnimationFrame);
+		expect(body).not.toHaveAttribute("tabindex");
+
+		rerender(
+			<Dialog.Body data-testid="body" style={bodyStyle}>
+				{lines(10)}
+			</Dialog.Body>,
+		);
+		await waitFor(() => expect(body).toHaveAttribute("tabindex", "0"));
+
+		rerender(
+			<Dialog.Body data-testid="body" style={bodyStyle}>
+				{lines(10)}
+				<button type="button">Save</button>
+			</Dialog.Body>,
+		);
+		await waitFor(() => expect(body).not.toHaveAttribute("tabindex"));
+	});
+
+	test("a body that shrinks until it scrolls gains the tab stop", async () => {
+		const { rerender } = render(
+			<Dialog.Body data-testid="body" style={{ ...bodyStyle, height: 400 }}>
+				{lines(3)}
+			</Dialog.Body>,
+		);
+		const body = screen.getByTestId("body");
+		await new Promise(requestAnimationFrame);
+		expect(body).not.toHaveAttribute("tabindex");
+
+		rerender(
+			<Dialog.Body data-testid="body" style={{ ...bodyStyle, height: 20 }}>
+				{lines(3)}
+			</Dialog.Body>,
+		);
+
+		await waitFor(() => expect(body).toHaveAttribute("tabindex", "0"));
+	});
+	test("a focused body keeps focus when it stops scrolling or gains a tabbable child", async () => {
+		const { rerender } = render(
+			<>
+				<button type="button">Before</button>
+				<Dialog.Body data-testid="body" style={bodyStyle}>
+					{lines(10)}
+				</Dialog.Body>
+			</>,
+		);
+		const body = screen.getByTestId("body");
+		screen.getByRole("button", { name: "Before" }).focus();
+		await userEvent.keyboard("{Tab}");
+		expect(document.activeElement).toBe(body);
+
+		rerender(
+			<>
+				<button type="button">Before</button>
+				<Dialog.Body data-testid="body" style={bodyStyle}>
+					{lines(1)}
+					<button type="button">Load more</button>
+				</Dialog.Body>
+			</>,
+		);
+		await new Promise(requestAnimationFrame);
+		await new Promise(requestAnimationFrame);
+		expect(document.activeElement).toBe(body);
+
+		screen.getByRole("button", { name: "Before" }).focus();
+		await waitFor(() => expect(body).not.toHaveAttribute("tabindex"));
+	});
+
+	test("a scrolling body reports no ResizeObserver loop error while its dialog plays the exit", async () => {
+		// Regression: the body dropped its tab stop when the closed dialog hid it, and
+		// the observer then observed the body again inside the resize callback.
+		const exitStyle = document.createElement("style");
+		exitStyle.textContent = `@keyframes slow-exit { to { opacity: 0; } }
+[data-slot~="dialog-content"][data-closing] { animation: slow-exit 300ms; }`;
+		document.head.appendChild(exitStyle);
+		const errors: string[] = [];
+		const onError = (event: ErrorEvent) => errors.push(event.message);
+		window.addEventListener("error", onError);
+		try {
+			render(
+				<Dialog.Root defaultOpen>
+					<Dialog.Content>
+						<Dialog.Title>Exit</Dialog.Title>
+						<Dialog.Body data-testid="body" style={bodyStyle}>
+							{lines(10)}
+						</Dialog.Body>
+						<Dialog.Close>Close</Dialog.Close>
+					</Dialog.Content>
+				</Dialog.Root>,
+			);
+			const body = screen.getByTestId("body");
+			await waitFor(() => expect(body).toHaveAttribute("tabindex", "0"));
+
+			await userEvent.click(screen.getByRole("button", { name: "Close" }));
+
+			await waitFor(() => expect(screen.queryByTestId("body")).toBeNull());
+			expect(errors).toEqual([]);
+		} finally {
+			window.removeEventListener("error", onError);
 			exitStyle.remove();
 		}
 	});

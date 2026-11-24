@@ -1,5 +1,6 @@
 import type { AgentManifest } from "../../../../../packages/mantle/scripts/agent-manifest";
 import {
+	createResolver,
 	declarationEntryFor,
 	declarationsOf,
 	declaredWordsOf,
@@ -12,9 +13,13 @@ import {
 	type PackageFiles,
 	type Packument,
 } from "~/utilities/mcp/npm-tarball.server";
+import { partPropsOf, type PartLookup } from "~/utilities/mcp/part-props.server";
 
 /** The first version whose `dist/agent.json` carries full records. */
 export const MIN_SUPPORTED_VERSION = "0.90.0";
+
+/** The most part lookups that one version keeps. Mantle has a few hundred parts. */
+const MAX_CACHED_PARTS = 2_000;
 
 /** The API data of one published `@ngrok/mantle` version. */
 export type VersionData = {
@@ -30,6 +35,8 @@ export type VersionData = {
 	declarationsOf: (specifier: string, names: readonly string[]) => string | undefined;
 	/** Each identifier in the declarations that `specifier` reaches, such as the name of each prop. */
 	declaredWordsOf: (specifier: string) => ReadonlySet<string>;
+	/** The props of a part that `specifier` exports, such as `["Dialog", "Content"]`. */
+	partPropsOf: (specifier: string, path: readonly string[]) => PartLookup;
 };
 
 /** A version argument the caller can act on: why the server cannot answer for it. */
@@ -107,6 +114,8 @@ export function versionDataFromFiles(version: string, files: PackageFiles): Vers
 	}
 
 	const wordsBySpecifier = new Map<string, ReadonlySet<string>>();
+	const partsByKey = new Map<string, PartLookup>();
+	let resolver: ReturnType<typeof createResolver> | undefined;
 
 	return {
 		version,
@@ -126,6 +135,28 @@ export function versionDataFromFiles(version: string, files: PackageFiles): Vers
 				wordsBySpecifier.set(specifier, words);
 			}
 			return words;
+		},
+		partPropsOf: (specifier, path) => {
+			const entry = entryBySpecifier.get(specifier);
+			const key = `${specifier}#${path.join(".")}`;
+			let lookup = partsByKey.get(key);
+			if (lookup == null) {
+				// Why one resolver until the task ends: the parts of one check share chunk files, and
+				// the version cache must not keep their parsed trees.
+				if (resolver == null) {
+					resolver = createResolver(files);
+					queueMicrotask(() => {
+						resolver = undefined;
+					});
+				}
+				lookup = entry == null ? { status: "unknown" } : partPropsOf(resolver, entry, path);
+				// Why real parts only: caller code can name any path, and only an exported part's path is bounded.
+				const exported = exportsBySpecifier.get(specifier)?.names.has(path[0] ?? "") === true;
+				if (lookup.status === "part" && exported && partsByKey.size < MAX_CACHED_PARTS) {
+					partsByKey.set(key, lookup);
+				}
+			}
+			return lookup;
 		},
 	};
 }

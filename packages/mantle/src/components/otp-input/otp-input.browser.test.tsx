@@ -266,19 +266,19 @@ describe("OtpInput (browser)", () => {
 		});
 	});
 
-	test("the slot at the caret position has data-active", async () => {
+	test("the slot at the caret position has data-highlighted", async () => {
 		const user = userEvent.setup();
 		const { input, slots } = renderOtp();
 
 		await user.click(input);
 		// Caret starts at index 0 when the input is focused with no value.
-		expect(slots[0]).toHaveAttribute("data-active");
+		expect(slots[0]).toHaveAttribute("data-highlighted");
 
 		await user.keyboard("12");
 		// After typing 2 chars, the caret is now at index 2.
-		expect(slots[2]).toHaveAttribute("data-active");
-		expect(slots[0]).not.toHaveAttribute("data-active");
-		expect(slots[1]).not.toHaveAttribute("data-active");
+		expect(slots[2]).toHaveAttribute("data-highlighted");
+		expect(slots[0]).not.toHaveAttribute("data-highlighted");
+		expect(slots[1]).not.toHaveAttribute("data-highlighted");
 	});
 
 	describe("selection", () => {
@@ -287,10 +287,10 @@ describe("OtpInput (browser)", () => {
 			const { input, slots } = renderOtp({ defaultValue: "123456" });
 
 			await browserUser.click(input);
-			await expect.poll(() => slots[5]?.hasAttribute("data-active")).toBe(true);
+			await expect.poll(() => slots[5]?.hasAttribute("data-highlighted")).toBe(true);
 			await browserUser.keyboard("{ArrowLeft}");
-			await expect.poll(() => slots[4]?.hasAttribute("data-active")).toBe(true);
-			expect(slots[5]).not.toHaveAttribute("data-active");
+			await expect.poll(() => slots[4]?.hasAttribute("data-highlighted")).toBe(true);
+			expect(slots[5]).not.toHaveAttribute("data-highlighted");
 
 			await browserUser.keyboard("9");
 			expect(input).toHaveValue("123496");
@@ -315,12 +315,12 @@ describe("OtpInput (browser)", () => {
 			const input = screen.getByRole<HTMLInputElement>("textbox", { name: "otp" });
 			await browserUser.click(input);
 			input.setSelectionRange(2, 2);
-			await expect.poll(() => slots[2]?.hasAttribute("data-active")).toBe(true);
+			await expect.poll(() => slots[2]?.hasAttribute("data-highlighted")).toBe(true);
 
 			rerender(subject(""));
 
-			await expect.poll(() => slots[0]?.hasAttribute("data-active")).toBe(true);
-			expect(slots[2]).not.toHaveAttribute("data-active");
+			await expect.poll(() => slots[0]?.hasAttribute("data-highlighted")).toBe(true);
+			expect(slots[2]).not.toHaveAttribute("data-highlighted");
 		});
 	});
 
@@ -378,6 +378,27 @@ describe("OtpInput (browser)", () => {
 				expect(inputBox.width).toBe(slotsBox.width + gutter);
 			},
 		);
+
+		test("a badge that a password manager puts after the input takes the pointer", () => {
+			render(
+				<OtpInput.Root maxLength={3} aria-label="otp">
+					<OtpInput.Group>
+						<OtpInput.Slot index={0} />
+						<OtpInput.Slot index={1} />
+						<OtpInput.Slot index={2} />
+					</OtpInput.Group>
+				</OtpInput.Root>,
+			);
+			const input = screen.getByRole("textbox", { name: "otp" });
+			const badge = document.createElement("span");
+			input.after(badge);
+
+			expect(getComputedStyle(badge).pointerEvents).toBe("auto");
+			expect(input.parentElement && getComputedStyle(input.parentElement).pointerEvents).toBe(
+				"none",
+			);
+			badge.remove();
+		});
 	});
 
 	// `data-otp-state` is what every conditional slot/group style keys off, and it

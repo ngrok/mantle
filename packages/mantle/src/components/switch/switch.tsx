@@ -111,7 +111,6 @@ const Switch = ({
 		"aria-invalid": _ariaInvalid,
 		validation: _validation ?? fieldValidation,
 	});
-	const state = checked ? "checked" : "unchecked";
 	const checkboxRef = useRef<HTMLInputElement | null>(null);
 	const resetToDefault = () => setChecked(defaultChecked);
 	const composedRef = useComposedRefs(ref, (button: HTMLButtonElement | null) => {
@@ -135,21 +134,19 @@ const Switch = ({
 				aria-invalid={ariaInvalid}
 				aria-readonly={readOnly}
 				aria-required={required}
-				data-disabled={disabled ? "" : undefined}
 				data-slot={joinDataSlot(dataSlot, "switch")}
-				data-state={state}
 				data-validation={validation || undefined}
 				disabled={disabled}
 				form={form}
 				value={value}
 				className={cx(
-					"peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full outline-hidden",
+					"group/switch peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full outline-hidden",
 					"disabled:cursor-default disabled:opacity-50",
 					"focus-visible:border-accent-600 focus-visible:focus-ring",
-					"data-state-checked:bg-accent-600 data-state-unchecked:bg-gray-400",
-					"data-validation-success:data-state-checked:bg-success-600 focus-visible:data-validation-success:ring-focus-success",
-					"data-validation-warning:data-state-checked:bg-warning-600 focus-visible:data-validation-warning:ring-focus-warning",
-					"data-validation-error:data-state-checked:bg-danger-600 focus-visible:data-validation-error:ring-focus-danger",
+					"bg-gray-400 aria-checked:bg-accent-600",
+					"data-[validation=success]:aria-checked:bg-success-600 focus-visible:data-[validation=success]:ring-focus-success",
+					"data-[validation=warning]:aria-checked:bg-warning-600 focus-visible:data-[validation=warning]:ring-focus-warning",
+					"data-[validation=error]:aria-checked:bg-danger-600 focus-visible:data-[validation=error]:ring-focus-danger",
 					className,
 				)}
 				onClick={(event) => {
@@ -181,11 +178,9 @@ const Switch = ({
 				{...props}
 			>
 				<span
-					data-state={state}
-					data-disabled={disabled ? "" : undefined}
 					className={clsx(
 						"pointer-events-none block size-4 rounded-full bg-[#fff] shadow-md ring-0 transition-transform duration-200 ease-out-strong motion-reduce:transition-none",
-						"data-state-checked:translate-x-4.5 data-state-unchecked:translate-x-0.5",
+						"translate-x-0.5 group-aria-checked/switch:translate-x-4.5",
 					)}
 				/>
 			</button>

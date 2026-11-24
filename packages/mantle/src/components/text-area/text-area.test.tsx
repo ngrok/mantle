@@ -58,12 +58,12 @@ describe("TextArea", () => {
 		const textarea = screen.getByRole("textbox");
 
 		fireEvent.dragEnter(textarea);
-		expect(textarea).toHaveAttribute("data-drag-over", "true");
+		expect(textarea).toHaveAttribute("data-drag-over", "");
 		expect(onDragEnter).toHaveBeenCalledTimes(1);
 		expect(onDragEnter).toHaveBeenLastCalledWith(expect.objectContaining({ type: "dragenter" }));
 
 		fireEvent.dragLeave(textarea);
-		expect(textarea).toHaveAttribute("data-drag-over", "false");
+		expect(textarea).not.toHaveAttribute("data-drag-over");
 		expect(onDragLeave).toHaveBeenCalledTimes(1);
 	});
 
@@ -74,7 +74,7 @@ describe("TextArea", () => {
 
 		fireEvent.dragEnter(textarea);
 		fireEvent.drop(textarea);
-		expect(textarea).toHaveAttribute("data-drag-over", "false");
+		expect(textarea).not.toHaveAttribute("data-drag-over");
 		expect(textarea).toHaveFocus();
 		expect(onDropCapture).toHaveBeenCalledTimes(1);
 	});
@@ -84,19 +84,19 @@ describe("TextArea", () => {
 			render(<TextArea aria-label="Feedback" />);
 
 			const textArea = screen.getByRole("textbox", { name: "Feedback" });
-			expect(textArea).toHaveAttribute("data-drag-over", "false");
+			expect(textArea).not.toHaveAttribute("data-drag-over");
 
 			fireEvent.dragEnter(textArea);
-			expect(textArea).toHaveAttribute("data-drag-over", "true");
+			expect(textArea).toHaveAttribute("data-drag-over", "");
 
 			fireEvent.dragLeave(textArea);
-			expect(textArea).toHaveAttribute("data-drag-over", "false");
+			expect(textArea).not.toHaveAttribute("data-drag-over");
 
 			fireEvent.dragEnter(textArea);
-			expect(textArea).toHaveAttribute("data-drag-over", "true");
+			expect(textArea).toHaveAttribute("data-drag-over", "");
 
 			fireEvent.drop(textArea);
-			expect(textArea).toHaveAttribute("data-drag-over", "false");
+			expect(textArea).not.toHaveAttribute("data-drag-over");
 		});
 
 		test("focuses the textarea on drop so the pasted text is editable right away", () => {

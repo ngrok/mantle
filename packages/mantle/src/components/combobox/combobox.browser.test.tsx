@@ -90,11 +90,12 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
 		const listbox = await screen.findByRole("listbox");
 		listbox.scrollTop = 300;
-		// Why: a page scroll places the list again, which measures it.
-		window.dispatchEvent(new Event("scroll"));
-		await new Promise((resolve) => {
-			requestAnimationFrame(() => requestAnimationFrame(resolve));
-		});
+		// Why: a new input width places the list again, which measures it. Each
+		// placement writes `data-side`, so its return marks the placement's end.
+		delete listbox.dataset.side;
+		const input = screen.getByRole("combobox", { name: "Fruit" });
+		input.style.width = `${input.offsetWidth + 1}px`;
+		await expect.poll(() => listbox.dataset.side).toBe("bottom");
 		expect(listbox.scrollTop).toBe(300);
 	});
 	test("a list taller than both sides opens above a low input inside the viewport", async () => {
@@ -223,6 +224,38 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		expect(screen.getByRole("dialog", { name: "Settings" })).toBeInTheDocument();
 		await userEvent.keyboard("{Escape}");
 		expect(screen.queryByRole("dialog", { name: "Settings" })).not.toBeInTheDocument();
+	});
+
+	test("the edge cue follows the options when a filter changes them", async () => {
+		const style = document.createElement("style");
+		style.textContent = await commands.tailwindCss("./combobox.tsx");
+		document.head.append(style);
+		try {
+			const Filtered = ({ count }: { count: number }) => (
+				<Combobox.Root>
+					<Combobox.Input aria-label="Fruit" />
+					{/* Why the style: the compiled CSS holds only the classes in combobox.tsx. */}
+					<Combobox.Content style={{ maxHeight: 120 }}>
+						{Array.from({ length: count }, (_, index) => (
+							<Combobox.Item key={index} value={`Fruit ${index}`} />
+						))}
+					</Combobox.Content>
+				</Combobox.Root>
+			);
+			const { rerender } = render(<Filtered count={30} />);
+			await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
+			const list = screen.getByRole("listbox");
+			const edges = () =>
+				[list.hasAttribute("data-overflow-top"), list.hasAttribute("data-overflow-bottom")].join();
+			await expect.poll(edges).toBe("false,true");
+			list.scrollTop = 200;
+			await expect.poll(edges).toBe("true,true");
+			// Why: the list no longer scrolls, so neither edge has more options.
+			rerender(<Filtered count={2} />);
+			await expect.poll(edges).toBe("false,false");
+		} finally {
+			style.remove();
+		}
 	});
 
 	test("the open list hides its scrollbar and stops overscroll", async () => {

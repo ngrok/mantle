@@ -54,8 +54,116 @@ export function checkAgentDocs({
 	return problems;
 }
 
+/** A library mantle used to wrap, and the package name that would bring it back. */
+export type RetiredLibrary = {
+	mention: RegExp;
+	packageName: RegExp;
+};
+
+/**
+ * The UI libraries mantle replaced with native elements and its own behavior hooks.
+ * Why a list: a contributor doc that still names one teaches an agent to follow a design that main no longer has.
+ * Why case-sensitive: a lowercase `data-radix-*` names a shape that COMPONENT_SPEC.md §6 bans, not a dependency.
+ */
+export const retiredLibraries = [
+	{ mention: /\bRadix\b|@radix-ui\//, packageName: /^@radix-ui\// },
+	{ mention: /\bAriakit\b|@ariakit\//, packageName: /^@ariakit\// },
+	{ mention: /\bcmdk\b/, packageName: /^cmdk$/ },
+	{ mention: /\bHeadless ?UI\b|@headlessui\//, packageName: /^@headlessui\// },
+	// Why the lookbehind: `OtpInput` still emits `data-input-otp`, which is not the library.
+	{ mention: /(?<![\w-])input-otp\b/, packageName: /^input-otp$/ },
+	{ mention: /\bFloating UI\b|@floating-ui\//, packageName: /^@floating-ui\// },
+] satisfies readonly RetiredLibrary[];
+
+/**
+ * The docs that guide work on mantle itself, relative to the repo root, plus the Philosophy page that AGENTS.md
+ * routes to. Why no `decisions/`: a decision records what was true on its date.
+ */
+export const contributorDocFile =
+	/^(?:AGENTS|CONVENTIONS|COMPONENT_SPEC|VERSIONING|CONTRIBUTING)\.md$|^(?:packages|apps\/www)\/AGENTS\.md$|^docs\/.+\.md$|^\.claude\/.+\.md$|^\.github\/copilot-instructions\.md$|^apps\/www\/app\/docs\/philosophy\.mdx$/;
+
+/**
+ * Find each line of a contributor doc that names a retired library that `packages/mantle/package.json` no longer lists.
+ *
+ * @param files Paths relative to `rootDir`. Paths that `contributorDocFile` does not match are skipped.
+ * @returns One message for each line that names a retired library.
+ *
+ * @example
+ * findRetiredLibraryMentions({ rootDir: process.cwd(), files: ["docs/motion.md"], libraries: retiredLibraries });
+ * // => ["docs/motion.md:54 names Radix, which packages/mantle/package.json does not list."]
+ */
+export function findRetiredLibraryMentions({
+	rootDir,
+	files,
+	libraries,
+}: {
+	rootDir: string;
+	files: readonly string[];
+	libraries: readonly RetiredLibrary[];
+}): string[] {
+	const manifest = JSON.parse(
+		fs.readFileSync(path.join(rootDir, "packages/mantle/package.json"), "utf8"),
+	);
+	const listed = Object.keys({ ...manifest.dependencies, ...manifest.peerDependencies });
+	const retired = libraries.filter(
+		(library) => !listed.some((name) => library.packageName.test(name)),
+	);
+	const problems: string[] = [];
+	for (const file of files) {
+		if (!contributorDocFile.test(file)) {
+			continue;
+		}
+		const lines = fs.readFileSync(path.join(rootDir, file), "utf8").split("\n");
+		lines.forEach((line, index) => {
+			for (const library of retired) {
+				const match = library.mention.exec(line);
+				if (match != null) {
+					problems.push(
+						`${file}:${index + 1} names ${match[0]}, which packages/mantle/package.json does not list.`,
+					);
+				}
+			}
+		});
+	}
+	return problems;
+}
+
+/** Every contributor doc under `rootDir`, relative to it. */
+export function listContributorDocs(rootDir: string): string[] {
+	const nested = ["docs", ".claude"]
+		.filter((dir) => fs.existsSync(path.join(rootDir, dir)))
+		.flatMap((dir) =>
+			fs
+				.readdirSync(path.join(rootDir, dir), { recursive: true, encoding: "utf8" })
+				.map((file) => `${dir}/${file.split(path.sep).join("/")}`),
+		);
+	const fixed = [
+		"packages/AGENTS.md",
+		"apps/www/AGENTS.md",
+		".github/copilot-instructions.md",
+		"apps/www/app/docs/philosophy.mdx",
+	].filter((file) => fs.existsSync(path.join(rootDir, file)));
+	return [...fs.readdirSync(rootDir), ...fixed, ...nested].filter((file) =>
+		contributorDocFile.test(file),
+	);
+}
+
 if (import.meta.main) {
 	const rootDir = path.join(import.meta.dirname, "..");
+	const mentions = findRetiredLibraryMentions({
+		rootDir,
+		files: listContributorDocs(rootDir),
+		libraries: retiredLibraries,
+	});
+	for (const mention of mentions) {
+		console.error(mention);
+	}
+	if (mentions.length > 0) {
+		console.error(
+			"Describe what main does today: native elements and the hooks under packages/mantle/src/behaviors.",
+		);
+		process.exitCode = 1;
+	}
 	const problems = checkAgentDocs({ rootDir, budgets: agentDocBudgets });
 	for (const problem of problems) {
 		console.error(problem);

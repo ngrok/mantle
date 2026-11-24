@@ -300,7 +300,7 @@ export function CustomIndicatorIconExample() {
 						Request logs
 						<Accordion.TriggerIcon
 							svg={<CaretRightIcon weight="bold" />}
-							className="group-data-[state=open]:rotate-90"
+							className="group-aria-expanded:rotate-90"
 						/>
 					</Accordion.Trigger>
 					<Accordion.Content>
@@ -312,7 +312,7 @@ export function CustomIndicatorIconExample() {
 						Metrics
 						<Accordion.TriggerIcon
 							svg={<CaretRightIcon weight="bold" />}
-							className="group-data-[state=open]:rotate-90"
+							className="group-aria-expanded:rotate-90"
 						/>
 					</Accordion.Trigger>
 					<Accordion.Content>

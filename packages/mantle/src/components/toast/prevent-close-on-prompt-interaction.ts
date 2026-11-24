@@ -11,12 +11,11 @@
  * dependency) into their module graph.
  *
  * @example
- * ```tsx
- * <Dialog.Root onInteractOutside={preventCloseOnPromptInteraction}>
- *   <Dialog.Content>
- *     <p>Dialog content</p>
- *   </Dialog.Content>
- * </Dialog.Root>
+ * ```ts
+ * // a modal surface's press-outside handler: a press on a prompt keeps it open
+ * const outside = createPointerDownOutsideEvent(originalEvent);
+ * preventCloseOnPromptInteraction(outside);
+ * if (!outside.defaultPrevented) close();
  * ```
  */
 export function preventCloseOnPromptInteraction(

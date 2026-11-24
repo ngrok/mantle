@@ -75,6 +75,21 @@ function renderValue({
 	};
 }
 
+/**
+ * Waits for the component's first measurement. Why an observer created after the
+ * component's: its first callback runs after the component's in the same frame,
+ * and after the microtask that measures on mount.
+ */
+function measured(element: Element): Promise<void> {
+	return new Promise((resolve) => {
+		const observer = new ResizeObserver(() => {
+			observer.disconnect();
+			resolve();
+		});
+		observer.observe(element);
+	});
+}
+
 /** The width of an element's text, including the part an overflow clip hides. */
 function textWidth(element: HTMLElement): number {
 	const range = document.createRange();
@@ -98,8 +113,9 @@ test("clips the head, keeps the tail whole, and stamps data-truncated when the v
 	);
 });
 
-test("renders the whole value plain while it fits", () => {
-	const { root, head } = renderValue({ width: 600 });
+test("renders the whole value plain while it fits", async () => {
+	const { container, root, head } = renderValue({ width: 600 });
+	await measured(container);
 
 	expect(root).not.toHaveAttribute("data-truncated");
 	expect(head.scrollWidth).toBeLessThanOrEqual(head.clientWidth);
@@ -107,6 +123,7 @@ test("renders the whole value plain while it fits", () => {
 
 test("measures again when the container shrinks", async () => {
 	const { container, root } = renderValue({ width: 600 });
+	await measured(container);
 	expect(root).not.toHaveAttribute("data-truncated");
 
 	container.style.width = "240px";
@@ -116,7 +133,8 @@ test("measures again when the container shrinks", async () => {
 
 test("stamps data-truncated in the same frame as the resize, before paint", async () => {
 	const { container, root } = renderValue({ width: 600 });
-	await expect.poll(() => root.hasAttribute("data-truncated")).toBe(false);
+	await measured(container);
+	expect(root).not.toHaveAttribute("data-truncated");
 
 	container.style.width = "240px";
 	// Why an observer created after the component's: its callback runs after the
@@ -394,8 +412,9 @@ test("with `head`, a narrower container clips the head further", async () => {
 	expect(head.getBoundingClientRect().width).toBeCloseTo(2 * ch + 0.5, 0);
 });
 
-test("with `head`, a value no longer than head plus tail renders whole", () => {
-	const { root, head } = renderValue({ width: 600, head: 4, value: "mem_A8KImPbQ" });
+test("with `head`, a value no longer than head plus tail renders whole", async () => {
+	const { container, root, head } = renderValue({ width: 600, head: 4, value: "mem_A8KImPbQ" });
+	await measured(container);
 
 	expect(root).not.toHaveAttribute("data-truncated");
 	expect(head.scrollWidth).toBeLessThanOrEqual(head.clientWidth);
@@ -735,7 +754,7 @@ test("clips a value inside a Dialog that opens with a zoom, also once the zoom e
 	const zoom = document.createElement("style");
 	zoom.textContent = `
 		@keyframes zoom-in { from { transform: scale(0.95); } }
-		[data-slot~="dialog-content"][data-state~="open"] { animation: zoom-in 200ms ease-out; }
+		[data-slot~="dialog-content"][data-open] { animation: zoom-in 200ms ease-out; }
 	`;
 	document.head.append(zoom);
 	const errors: string[] = [];

@@ -362,7 +362,7 @@ import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
 			Request logs
 			<Accordion.TriggerIcon
 				svg={<CaretRightIcon weight="bold" />}
-				className="group-data-[state=open]:rotate-90"
+				className="group-aria-expanded:rotate-90"
 			/>
 		</Accordion.Trigger>
 		<Accordion.Content>
@@ -374,7 +374,7 @@ import { CaretRightIcon } from "@phosphor-icons/react/CaretRight";
 			Metrics
 			<Accordion.TriggerIcon
 				svg={<CaretRightIcon weight="bold" />}
-				className="group-data-[state=open]:rotate-90"
+				className="group-aria-expanded:rotate-90"
 			/>
 		</Accordion.Trigger>
 		<Accordion.Content>
@@ -404,6 +404,9 @@ open/close slide respects `prefers-reduced-motion`.
 The trigger keeps the same size when its section opens, so the header never moves. Only the content moves: its height
 and opacity ease open over 200 ms with a strong ease-out (in browsers that support `interpolate-size`; others open at
 once), and the caret turns with the same curve.
+
+The trigger shows the [focus ring](/base/focus-ring) for keyboard focus only. Its `-mx-2 px-2` gives the ring space
+around the label, and the label stays aligned with the content.
 
 ## Composition
 

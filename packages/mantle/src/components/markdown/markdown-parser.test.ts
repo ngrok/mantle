@@ -86,6 +86,27 @@ describe("createMarkdownParser", () => {
 		expect(next.blocks.map((token) => token.raw)).toEqual(["Second answer."]);
 	});
 
+	test("drops a definition that the new text no longer has", () => {
+		const parser = createMarkdownParser();
+		parser.parse("[docs]: https://old.example", { streaming: true });
+		expect(parser.parse("[docs]", { streaming: true }).links).toEqual({});
+	});
+
+	test("reads a definition again when the stream completes its URL", () => {
+		const parser = createMarkdownParser();
+		parser.parse("[r]: https://a", { streaming: true });
+		const done = parser.parse("[r]: https://author.example\n\nSee [r].", { streaming: false });
+		expect(JSON.stringify(done.blocks)).toContain('"href":"https://author.example"');
+	});
+
+	test("keeps the links object while the definitions stay the same", () => {
+		const parser = createMarkdownParser();
+		const first = parser.parse("[a]: https://ngrok.com\n\nSome", { streaming: true });
+		expect(parser.parse("[a]: https://ngrok.com\n\nSome text", { streaming: true }).links).toBe(
+			first.links,
+		);
+	});
+
 	test("keeps a single tilde as text", () => {
 		const snapshot = createMarkdownParser().parse("Use 20~25 or 30~40 workers.", {
 			streaming: false,

@@ -12,18 +12,18 @@ import type { Align, Side } from "./position.js";
 
 /**
  * How long a closed float stays mounted for its exit transition, in
- * milliseconds. It matches `data-state-closed:duration-150` in `floatClassName`.
+ * milliseconds. It matches `not-data-open:duration-150` in `floatClassName`.
  */
 const EXIT_DURATION = 150;
 
 /**
  * The classes every native float shares. The float is a `popover` in the top
  * layer: these classes undo the browser's centered `[popover]` box. It fades
- * and scales in from `@starting-style` and out on `data-state="closed"`.
+ * and scales in from `@starting-style` and out when `data-open` goes away.
  * Chromium keeps the float in the top layer for the exit (`overlay`). Firefox
  * and Safari hide it at once, because they do not transition `overlay`.
  *
- * Why `data-state`, `fixed`, and `z-50`, not `:popover-open`: a browser with no
+ * Why `data-open`, `fixed`, and `z-50`, not `:popover-open`: a browser with no
  * popover API (Safari before 17, Chrome before 114, Firefox before 125) does
  * not know `:popover-open` and has no top layer. There the float is a plain
  * fixed box at the float tier, as before mantle used the popover API. The top
@@ -31,13 +31,21 @@ const EXIT_DURATION = 150;
  *
  * Why `pointer-events-auto`: a modal Radix menu sets `pointer-events: none` on
  * `<body>`, and a float that portals there would inherit it.
+ *
+ * Why `overscroll-none`: a float whose content scrolls, such as a tall
+ * popover, does not bounce or scroll the page at its ends. It changes nothing
+ * on a float that does not scroll.
  */
 const floatClassName =
-	"pointer-events-auto fixed z-50 m-0 inset-auto overflow-visible starting:opacity-0 starting:scale-95 data-state-closed:opacity-0 data-state-closed:scale-95 transition-[opacity,scale,display,overlay] transition-discrete duration-200 ease-out-strong data-state-closed:duration-150 motion-reduce:transition-none";
+	"pointer-events-auto fixed z-50 m-0 inset-auto overflow-visible overscroll-none starting:opacity-0 starting:scale-95 not-data-open:opacity-0 not-data-open:scale-95 transition-[opacity,scale,display,overlay] transition-discrete duration-200 ease-out-strong not-data-open:duration-150 motion-reduce:transition-none";
 
 /**
  * Whether the browser has the popover API. Without it, `useFloat` shows the
  * float as a plain fixed box and runs every behavior from script.
+ *
+ * Why a float sets `popover` only when this is true: jsdom hides `[popover]`
+ * in its default stylesheet but has no `showPopover`, so a float with the
+ * attribute never shows, and a test cannot find it by its role.
  */
 const hasPopoverApi = canUseDOM() && "togglePopover" in HTMLElement.prototype;
 
@@ -168,8 +176,12 @@ function isUnderNativeModal(element: HTMLElement): boolean {
 type UseFloatOptions = OutsideHandlers & {
 	/** Whether the float is open. */
 	open: boolean;
-	/** Closes the float, with the reason: Escape, an outside interaction, the browser hid it, or an overlay covers it. */
-	onDismiss: (reason: DismissReason) => void;
+	/**
+	 * Closes the float, with the reason: Escape, an outside interaction, the
+	 * browser hid it, or an overlay covers it. An outside interaction also
+	 * gives the event that the outside handlers got.
+	 */
+	onDismiss: (reason: DismissReason, outside?: PointerDownOutsideEvent | FocusOutsideEvent) => void;
 	/** The element the float sits next to. */
 	getAnchor: () => HTMLElement | null;
 	/** Elements a press or a focus move may reach without closing the float, such as its trigger. */
@@ -206,7 +218,7 @@ type UseFloatOptions = OutsideHandlers & {
  * @example
  * ```tsx
  * const { present, portalTarget, floatingRef } = useFloat({ open, onDismiss: () => setOpen(false), ... });
- * return present && portalTarget != null && createPortal(<div popover="manual" ref={floatingRef} />, portalTarget);
+ * return present && portalTarget != null && createPortal(<div popover={hasPopoverApi ? "manual" : undefined} ref={floatingRef} />, portalTarget);
  * ```
  */
 function useFloat({
@@ -322,10 +334,13 @@ function useFloat({
 			let shown = true;
 			let dismissed = false;
 			// Why once: the browser can hide a `hint` float on the same press that the outside check sees.
-			const dismissOnce = (reason: DismissReason) => {
+			const dismissOnce = (
+				reason: DismissReason,
+				outside?: PointerDownOutsideEvent | FocusOutsideEvent,
+			) => {
 				if (!dismissed) {
 					dismissed = true;
-					dismiss(reason);
+					dismiss(reason, outside);
 				}
 			};
 			// Why: the browser hides a `hint` float when the user presses outside it,
@@ -366,7 +381,6 @@ function useFloat({
 					floating,
 					side,
 					sideOffset,
-					releaseAnchorAfter: EXIT_DURATION,
 				});
 			let stopTracking = track(anchor);
 			const placed: PlacedFor = {
@@ -388,13 +402,14 @@ function useFloat({
 				target instanceof Node &&
 				(floating.contains(target) ||
 					(insideElementsOf()?.some((element) => element?.contains(target) === true) ?? false));
+			/** Runs the outside handlers, and returns their event if none kept the float open. */
 			const onOutside = <TEvent extends PointerEvent | FocusEvent>(
 				originalEvent: TEvent,
 				handler: (event: CustomEvent<{ originalEvent: TEvent }>) => void,
-			) => {
+			): CustomEvent<{ originalEvent: TEvent }> | null => {
 				const target = originalEvent.target;
 				if (target == null || isInside(target)) {
-					return;
+					return null;
 				}
 				const event = new CustomEvent("mantle.float.outside", {
 					cancelable: true,
@@ -408,15 +423,71 @@ function useFloat({
 				};
 				target.addEventListener(event.type, runHandlers, { once: true });
 				target.dispatchEvent(event);
-				if (!event.defaultPrevented) {
-					dismissOnce("outside");
+				return event.defaultPrevented ? null : event;
+			};
+			// Why close when a primary press ends, as a native `popover="auto"` does:
+			// a touch scroll that starts outside cancels the press, so the float stays
+			// open. A press that ends inside the float, as a drag into it, keeps it open too.
+			let press: { pointerId: number; event: PointerDownOutsideEvent } | null = null;
+			/** Whether a pending press is in the task of its `pointerdown`, where the browser moves focus for it. */
+			let pressFocusTask = false;
+			let pressFocusTimer = 0;
+			const onPointerDown = (event: PointerEvent) => {
+				press = null;
+				// Why: a controlled float that refused the last close is asked again.
+				dismissed = false;
+				const outside = onOutside(event, pointerDownOutside);
+				if (outside == null) {
+					return;
+				}
+				// Why other presses close now: a context menu, as from a right click or a
+				// Control click on macOS, can take the press's end.
+				if (event.button === 0 && !event.ctrlKey) {
+					press = { pointerId: event.pointerId, event: outside };
+					pressFocusTask = true;
+					clearTimeout(pressFocusTimer);
+					pressFocusTimer = window.setTimeout(() => {
+						pressFocusTask = false;
+					});
+				} else {
+					dismissOnce("outside", outside);
 				}
 			};
-			const onPointerDown = (event: PointerEvent) => onOutside(event, pointerDownOutside);
-			const onFocusIn = (event: FocusEvent) => onOutside(event, focusOutside);
+			const onPointerUp = (event: PointerEvent) => {
+				if (press == null || press.pointerId !== event.pointerId) {
+					return;
+				}
+				const outside = press.event;
+				press = null;
+				if (!isInside(event.target)) {
+					dismissOnce("outside", outside);
+				}
+			};
+			const onPointerCancel = (event: PointerEvent) => {
+				if (press?.pointerId === event.pointerId) {
+					press = null;
+				}
+			};
+			const onFocusIn = (event: FocusEvent) => {
+				// Why: the focus move of a press that will close the float when it ends
+				// waits for that end, so a press that ends inside keeps the float open.
+				// Why only in the press's task: a later focus move, such as Tab during a
+				// held press, is not the press's, and closes the float.
+				if (press != null && pressFocusTask) {
+					return;
+				}
+				const outside = onOutside(event, focusOutside);
+				if (outside != null) {
+					dismissOnce("outside", outside);
+				}
+			};
 			const document = floating.ownerDocument;
 			if (dismissOnOutside) {
 				document.addEventListener("pointerdown", onPointerDown);
+				// Why the capture phase: page code that stops the press's end from
+				// bubbling would leave the press pending.
+				document.addEventListener("pointerup", onPointerUp, { capture: true });
+				document.addEventListener("pointercancel", onPointerCancel, { capture: true });
 				document.addEventListener("focusin", onFocusIn);
 			}
 			if (!continuing) {
@@ -426,6 +497,9 @@ function useFloat({
 			return () => {
 				placedFor.current = null;
 				document.removeEventListener("pointerdown", onPointerDown);
+				document.removeEventListener("pointerup", onPointerUp, { capture: true });
+				document.removeEventListener("pointercancel", onPointerCancel, { capture: true });
+				clearTimeout(pressFocusTimer);
 				document.removeEventListener("focusin", onFocusIn);
 				stopTracking();
 				floating.removeEventListener("beforetoggle", onBeforeToggle);

@@ -12,14 +12,44 @@ import { foldCxPlugin } from "./scripts/fold-cx.ts";
 
 type ContextOptions = Pick<PlaywrightProviderOptions, "contextOptions">["contextOptions"];
 
-// Grant clipboard permissions so browser tests can read/write the real clipboard, and pin the
-// timezone and locale so date/number formatting is deterministic. Chromium takes these from the
-// Playwright context, not `process.env`, so the `env` pin below cannot reach it.
-const contextOptions = {
-	locale: "en-US",
-	permissions: ["clipboard-read", "clipboard-write"],
-	timezoneId: "UTC",
-} as const satisfies ContextOptions;
+/** The engines the browser project can run, one Playwright browser each. */
+type Engine = "chromium" | "firefox" | "webkit";
+
+/**
+ * The engines this run uses: `MANTLE_BROWSERS`, a comma-separated list, or
+ * Chromium alone. CI runs one job for each engine, in parallel.
+ */
+const engines = (process.env.MANTLE_BROWSERS || "chromium").split(",").map((name): Engine => {
+	const engine = name.trim();
+	if (engine !== "chromium" && engine !== "firefox" && engine !== "webkit") {
+		throw new Error(`MANTLE_BROWSERS takes chromium, firefox, or webkit, not "${engine}".`);
+	}
+	return engine;
+});
+
+// Pin the timezone and locale so date/number formatting is deterministic. A browser takes these
+// from the Playwright context, not `process.env`, so the `env` pin below cannot reach it.
+// Why clipboard permissions in Chromium only: Firefox has none to grant, and Playwright refuses
+// the context. `copy-to-clipboard.browser.test.ts` runs in Chromium for the same reason.
+const contextOptionsFor = (engine: Engine) =>
+	({
+		locale: "en-US",
+		timezoneId: "UTC",
+		...(engine === "chromium" ? { permissions: ["clipboard-read", "clipboard-write"] } : {}),
+	}) satisfies ContextOptions;
+
+// Why chromiumSandbox: Playwright starts Chromium with `--no-sandbox` by default. Without the
+// sandbox, one renderer bug runs code with the access of the user.
+const providerFor = (engine: Engine) =>
+	process.env.PLAYWRIGHT_WS_ENDPOINT
+		? playwright({
+				connectOptions: { wsEndpoint: process.env.PLAYWRIGHT_WS_ENDPOINT },
+				contextOptions: contextOptionsFor(engine),
+			})
+		: playwright({
+				contextOptions: contextOptionsFor(engine),
+				launchOptions: engine === "chromium" ? { chromiumSandbox: true } : {},
+			});
 
 /**
  * The media features a browser test can emulate through `commands.emulateMedia`.
@@ -33,8 +63,17 @@ type EmulatedMedia = {
 
 // Why a command: a media feature such as `prefers-reduced-motion` is a Playwright
 // page emulation, and no script inside the test iframe can set it.
-const emulateMedia: BrowserCommand<[options: EmulatedMedia]> = async ({ page }, options) => {
-	await page.emulateMedia(options);
+// Why wait on the frame: Firefox applies the emulation to the test iframe after
+// `emulateMedia` resolves, so a test that renders at once still reads the old value.
+const emulateMedia: BrowserCommand<[options: EmulatedMedia]> = async (context, options) => {
+	await context.page.emulateMedia(options);
+	const queries = Object.entries({
+		"prefers-color-scheme": options.colorScheme,
+		"prefers-reduced-motion": options.reducedMotion,
+		"forced-colors": options.forcedColors,
+	}).flatMap(([feature, value]) => (value == null ? [] : [`(${feature}: ${value})`]));
+	const frame = await context.frame();
+	await frame.waitForFunction((list) => list.every((query) => matchMedia(query).matches), queries);
 };
 
 /**
@@ -53,20 +92,51 @@ const mantleCustomVariants = async (): Promise<string> => {
 };
 
 /**
- * The `focus-ring`, `theme-switcher-name`, and `otp-input-overlay` utilities of
- * `mantle.css`. Without them, Tailwind compiles `focus-visible:focus-ring` to
- * nothing, so a focused element keeps the browser outline, a `ThemeSwitcher`
- * has no name, and the `OtpInput` input does not lie over its slots.
+ * The `focus-ring`, `theme-switcher-name`, `otp-input-overlay`, and
+ * `scroll-cue-y` utilities of `mantle.css`. Without them, Tailwind compiles
+ * `focus-visible:focus-ring` to nothing, so a focused element keeps the
+ * browser outline, a `ThemeSwitcher` has no name, the `OtpInput` input does
+ * not lie over its slots, and a picker list shows no scroll cue.
  */
 const mantleUtilities = async (): Promise<string> => {
 	const css = await readFile(path.join(import.meta.dirname, "src/mantle.css"), "utf8");
 	const rules = css.match(
-		/^@utility (?:focus-ring|theme-switcher-name|otp-input-overlay)[^{]*\{[\s\S]*?^\}/gm,
+		/^@utility (?:focus-ring|theme-switcher-name|otp-input-overlay|scroll-cue-y)[^{]*\{[\s\S]*?^\}/gm,
 	);
 	if (rules == null) {
 		throw new Error("mantle.css holds no focus-ring or theme-switcher-name utilities.");
 	}
 	return rules.join("\n");
+};
+
+/**
+ * The `--animate-*` tokens and their keyframes from the `@theme inline` block of
+ * `mantle.css`. Without them, Tailwind compiles `animate-shake` to nothing.
+ */
+const mantleAnimations = async (): Promise<string> => {
+	const css = await readFile(path.join(import.meta.dirname, "src/mantle.css"), "utf8");
+	const tokens = [...css.matchAll(/^\t--animate-([\w-]+):[^;]*;/gm)];
+	if (tokens.length === 0) {
+		throw new Error("mantle.css holds no --animate-* tokens.");
+	}
+	const rules = tokens.map(([token, name]) => {
+		const keyframes = new RegExp(`^\\t@keyframes ${name} \\{[\\s\\S]*?^\\t\\}`, "m").exec(css);
+		if (keyframes == null) {
+			throw new Error(`mantle.css holds no keyframes for --animate-${name}.`);
+		}
+		return `${token}\n${keyframes[0]}`;
+	});
+	return `@theme inline {\n${rules.join("\n")}\n}`;
+};
+
+/** The `ease-*` tokens of mantle's theme, so a test reads the curve that a component's class compiles to. */
+const mantleEasings = async (): Promise<string> => {
+	const css = await readFile(path.join(import.meta.dirname, "src/mantle.css"), "utf8");
+	const tokens = css.match(/^\s*--ease-[\w-]+:[^;]+;/gm);
+	if (tokens == null) {
+		throw new Error("mantle.css holds no ease tokens.");
+	}
+	return `@theme {${tokens.join("")}}`;
 };
 
 // Why a command: a browser test asserts layout, so it needs the CSS that Tailwind
@@ -82,7 +152,7 @@ const tailwindCss: BrowserCommand<[sourceFile: string]> = async ({ testPath }, s
 		.getCandidatesWithPositions({ content, extension: path.extname(file).slice(1) })
 		.map(({ candidate }) => candidate);
 	const compiler = await compile(
-		`@import "tailwindcss/theme"; @import "tailwindcss/utilities";\n${await mantleCustomVariants()}\n${await mantleUtilities()}`,
+		`@import "tailwindcss/theme"; @import "tailwindcss/utilities";\n${await mantleEasings()}\n${await mantleCustomVariants()}\n${await mantleUtilities()}\n${await mantleAnimations()}`,
 		{
 			base: import.meta.dirname,
 			onDependency: () => {},
@@ -122,6 +192,16 @@ const compilerPlugins =
 // Both projects inherit every option here (Vitest 5 defaults projects to `extends: true`), so a
 // hygiene or locale pin is written once and cannot drift between them.
 export default defineConfig({
+	// Why an alias, not a resolve condition: a condition reaches every dependency. The unit
+	// and browser projects run in a DOM, so they get the encoder file a browser bundle gets.
+	resolve: {
+		alias: {
+			"#qr-code-encoder": path.join(
+				import.meta.dirname,
+				"src/components/qr-code/qr-code-encoder.browser.ts",
+			),
+		},
+	},
 	test: {
 		// A spy or global stub that a test installs and then fails to tear down leaks into every test
 		// that runs after it, which turns an unrelated failure into a cascade and makes results depend
@@ -171,9 +251,14 @@ export default defineConfig({
 					name: "browser",
 					include: ["**/*.browser.test.{ts,tsx}"],
 					// Why a bench project: the `bench` test-context fixture refuses to run in a regular
-					// project, so this derives a `browser (bench)` project that runs `*.browser.bench.ts`
-					// in Chromium under `vitest run`. CI selects both with `--project='browser*'`.
-					benchmark: { enabled: true, include: ["**/*.browser.bench.ts"] },
+					// project, so this derives a `browser (chromium) (bench)` project that runs
+					// `*.browser.bench.ts` under `vitest run`. CI selects both with `--project='browser*'`.
+					// Why Chromium only: the benches pin V8's cost of mantle's caches, and a run that
+					// adds Firefox or WebKit checks behavior, not that cost.
+					benchmark: {
+						enabled: engines.every((engine) => engine === "chromium"),
+						include: ["**/*.browser.bench.ts"],
+					},
 					browser: {
 						enabled: true,
 						screenshotFailures: false,
@@ -181,15 +266,22 @@ export default defineConfig({
 							!process.env.DISABLE_HEADLESS ||
 							process.env.CI === "1" ||
 							/true/i.test(process.env.CI ?? ""),
-						// Why chromiumSandbox: Playwright starts Chromium with `--no-sandbox` by default.
-						// Without the sandbox, one renderer bug runs code with the access of the user.
-						provider: process.env.PLAYWRIGHT_WS_ENDPOINT
-							? playwright({
-									connectOptions: { wsEndpoint: process.env.PLAYWRIGHT_WS_ENDPOINT },
-									contextOptions,
-								})
-							: playwright({ contextOptions, launchOptions: { chromiumSandbox: true } }),
-						instances: [{ browser: "chromium" }],
+						// Why Firefox runs one file at a time: Firefox keeps mouse capture and
+						// drag state for the whole browser, so a real drag in one page breaks a
+						// drag or a selection in another. CI splits Firefox into shards instead.
+						// Why a WebKit setup file: see `vitest.setup-webkit.ts`.
+						instances: engines.map((engine) => ({
+							browser: engine,
+							provider: providerFor(engine),
+							...(engine === "firefox" ? { fileParallelism: false } : {}),
+							...(engine === "webkit"
+								? {
+										setupFiles: ["vitest.setup.ts", "vitest.setup-webkit.ts"].map((file) =>
+											path.join(import.meta.dirname, file),
+										),
+									}
+								: {}),
+						})),
 						commands: { emulateMedia, tailwindCss },
 					},
 				},

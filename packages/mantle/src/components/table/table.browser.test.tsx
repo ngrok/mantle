@@ -77,7 +77,7 @@ describe("Table.Root overflow observer", () => {
 
 		const root = screen.getByTestId("root");
 		await waitFor(() => {
-			expect(root).toHaveAttribute("data-x-overflow", "true");
+			expect(root).toHaveAttribute("data-x-overflow", "");
 		});
 	});
 
@@ -98,7 +98,7 @@ describe("Table.Root overflow observer", () => {
 			observer.observe(root);
 		});
 
-		expect(seenBeforePaint).toBe("true");
+		expect(seenBeforePaint).toBe("");
 	});
 
 	test("an overflowing table flags overflow and the sticky column, then clears them at the end", async () => {
@@ -110,17 +110,17 @@ describe("Table.Root overflow observer", () => {
 		}
 
 		await waitFor(() => {
-			expect(root).toHaveAttribute("data-x-overflow", "true");
+			expect(root).toHaveAttribute("data-x-overflow", "");
 		});
-		expect(root).toHaveAttribute("data-x-scroll-end", "false");
-		expect(root).toHaveAttribute("data-sticky-active", "true");
+		expect(root).not.toHaveAttribute("data-x-scroll-end");
+		expect(root).toHaveAttribute("data-sticky-active", "");
 
 		scroller.scrollLeft = scroller.scrollWidth;
 
 		await waitFor(() => {
-			expect(root).toHaveAttribute("data-x-scroll-end", "true");
+			expect(root).toHaveAttribute("data-x-scroll-end", "");
 		});
-		expect(root).toHaveAttribute("data-x-overflow", "true");
+		expect(root).toHaveAttribute("data-x-overflow", "");
 		expect(root).not.toHaveAttribute("data-sticky-active");
 	});
 
@@ -130,11 +130,11 @@ describe("Table.Root overflow observer", () => {
 		const scroller = requireScroller();
 
 		await waitFor(() => {
-			expect(root).toHaveAttribute("data-sticky-active", "true");
+			expect(root).toHaveAttribute("data-sticky-active", "");
 		});
 		scroller.scrollLeft = scroller.scrollWidth;
 		await waitFor(() => {
-			expect(root).toHaveAttribute("data-x-scroll-end", "true");
+			expect(root).toHaveAttribute("data-x-scroll-end", "");
 		});
 
 		// 3px of unscrolled content: 2px outside the 1px tolerance in
@@ -144,9 +144,9 @@ describe("Table.Root overflow observer", () => {
 		scroller.scrollLeft = scroller.scrollWidth - scroller.clientWidth - 3;
 
 		await waitFor(() => {
-			expect(root).toHaveAttribute("data-x-scroll-end", "false");
+			expect(root).not.toHaveAttribute("data-x-scroll-end");
 		});
-		expect(root).toHaveAttribute("data-sticky-active", "true");
+		expect(root).toHaveAttribute("data-sticky-active", "");
 	});
 
 	test("a column appended while parked at the right edge re-evaluates the scroll position", async () => {
@@ -159,20 +159,20 @@ describe("Table.Root overflow observer", () => {
 		const scroller = requireScroller();
 
 		await waitFor(() => {
-			expect(root).toHaveAttribute("data-sticky-active", "true");
+			expect(root).toHaveAttribute("data-sticky-active", "");
 		});
 		scroller.scrollLeft = scroller.scrollWidth;
 		await waitFor(() => {
-			expect(root).toHaveAttribute("data-x-scroll-end", "true");
+			expect(root).toHaveAttribute("data-x-scroll-end", "");
 		});
 		const scrollLeftAtEdge = scroller.scrollLeft;
 
 		rerender(<ColumnsTable columns={4} />);
 
 		await waitFor(() => {
-			expect(root).toHaveAttribute("data-x-scroll-end", "false");
+			expect(root).not.toHaveAttribute("data-x-scroll-end");
 		});
-		expect(root).toHaveAttribute("data-sticky-active", "true");
+		expect(root).toHaveAttribute("data-sticky-active", "");
 		// The premise: the appended column grew the scrollable width without moving
 		// the scroll position.
 		expect(scroller.scrollLeft).toBe(scrollLeftAtEdge);
@@ -199,19 +199,21 @@ describe("Table.Root overflow observer", () => {
 		const { rerender } = render(<SwappedTable generation={1} width={200} />);
 		const root = screen.getByTestId("root");
 		const firstTable = screen.getByRole("table");
+		const scrollWidth = vi.spyOn(Element.prototype, "scrollWidth", "get");
 		rerender(<SwappedTable generation={2} width={200} />);
 		expect(screen.getByRole("table")).not.toBe(firstTable);
-		// Two frames: the swap settles, with each notification it causes.
-		await new Promise(requestAnimationFrame);
-		await new Promise(requestAnimationFrame);
-		expect(root).toHaveAttribute("data-x-overflow", "false");
+		await waitFor(() => {
+			// oxlint-disable-next-line mantle/no-bare-to-have-been-called -- Why: the first read of the new table is a readiness signal, so the count does not matter.
+			expect(scrollWidth).toHaveBeenCalled();
+		});
+		expect(root).not.toHaveAttribute("data-x-overflow");
 
 		rerender(<SwappedTable generation={2} width={800} />);
 
 		await waitFor(() => {
-			expect(root).toHaveAttribute("data-x-overflow", "true");
+			expect(root).toHaveAttribute("data-x-overflow", "");
 		});
-		expect(root).toHaveAttribute("data-sticky-active", "true");
+		expect(root).toHaveAttribute("data-sticky-active", "");
 	});
 
 	test("a table inside a wrapper keeps the overflow state current as it grows", async () => {
@@ -230,16 +232,19 @@ describe("Table.Root overflow observer", () => {
 				</Table.Root>
 			);
 		}
+		const scrollWidth = vi.spyOn(Element.prototype, "scrollWidth", "get");
 		const { rerender } = render(<WrappedTable width={200} />);
 		const root = screen.getByTestId("root");
-		await new Promise(requestAnimationFrame);
-		await new Promise(requestAnimationFrame);
-		expect(root).toHaveAttribute("data-x-overflow", "false");
+		await waitFor(() => {
+			// oxlint-disable-next-line mantle/no-bare-to-have-been-called -- Why: the first read is a readiness signal, so the count does not matter.
+			expect(scrollWidth).toHaveBeenCalled();
+		});
+		expect(root).not.toHaveAttribute("data-x-overflow");
 
 		rerender(<WrappedTable width={800} />);
 
 		await waitFor(() => {
-			expect(root).toHaveAttribute("data-x-overflow", "true");
+			expect(root).toHaveAttribute("data-x-overflow", "");
 		});
 	});
 
@@ -252,16 +257,16 @@ describe("Table.Root overflow observer", () => {
 			// oxlint-disable-next-line mantle/no-bare-to-have-been-called -- Why: the first read is a readiness signal, so the count does not matter.
 			expect(scrollWidth).toHaveBeenCalled();
 		});
-		expect(root).toHaveAttribute("data-x-overflow", "false");
+		expect(root).not.toHaveAttribute("data-x-overflow");
 
 		// Resized outside React, as a style change on an ancestor, so only the
 		// scroll container's own resize can show it.
 		root.style.width = "200px";
 
 		await waitFor(() => {
-			expect(root).toHaveAttribute("data-x-overflow", "true");
+			expect(root).toHaveAttribute("data-x-overflow", "");
 		});
-		expect(root).toHaveAttribute("data-sticky-active", "true");
+		expect(root).toHaveAttribute("data-sticky-active", "");
 	});
 
 	test("a cell edit that keeps the table's size does no layout read", async () => {
@@ -271,7 +276,7 @@ describe("Table.Root overflow observer", () => {
 		renderTable({ rootWidth: 200, tableWidth: 800 });
 		const root = screen.getByTestId("root");
 		await waitFor(() => {
-			expect(root).toHaveAttribute("data-sticky-active", "true");
+			expect(root).toHaveAttribute("data-sticky-active", "");
 		});
 		const scrollWidth = vi.spyOn(Element.prototype, "scrollWidth", "get");
 
@@ -294,8 +299,8 @@ describe("Table.Root overflow observer", () => {
 			// oxlint-disable-next-line mantle/no-bare-to-have-been-called -- Why: the same readiness signal as above.
 			expect(scrollWidth).toHaveBeenCalled();
 		});
-		expect(root).toHaveAttribute("data-x-overflow", "false");
-		expect(root).toHaveAttribute("data-x-scroll-end", "false");
+		expect(root).not.toHaveAttribute("data-x-overflow");
+		expect(root).not.toHaveAttribute("data-x-scroll-end");
 		expect(root).not.toHaveAttribute("data-sticky-active");
 	});
 });

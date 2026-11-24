@@ -1,0 +1,97 @@
+---
+title: Overlay Prompt
+description: Keeps a banner, a bar, or another floating element usable above an open dialog or sheet.
+aliases: [above dialog, top layer, cookie banner, inert]
+---
+
+import { Example } from "~/components/example";
+
+# Overlay Prompt
+
+Keeps a banner, a bar, or another floating element usable above an open dialog or sheet. Wrap one element that positions itself, such as a `fixed` banner.
+
+<Example name="components/primitives/overlay-prompt/overview" title="Overlay Prompt example">
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Card } from "@ngrok/mantle/card";
+import { Dialog } from "@ngrok/mantle/dialog";
+import { OverlayPrompt } from "@ngrok/mantle/overlay-prompt";
+import { useState } from "react";
+
+export function CookieBanner() {
+	const [decided, setDecided] = useState(false);
+	return (
+		<>
+			<Dialog.Root>
+				<Dialog.Trigger asChild>
+					<Button type="button" appearance="filled" intent="neutral">
+						Open dialog
+					</Button>
+				</Dialog.Trigger>
+				<Dialog.Content>
+					<Dialog.Header>
+						<Dialog.Title>Invite team member</Dialog.Title>
+						<Dialog.CloseIconButton />
+					</Dialog.Header>
+					<Dialog.Body>The cookie banner stays above this dialog and takes clicks.</Dialog.Body>
+				</Dialog.Content>
+			</Dialog.Root>
+			{!decided && (
+				<OverlayPrompt>
+					<div className="pointer-events-none fixed inset-x-0 bottom-4 z-max flex justify-center px-4">
+						<Card.Root
+							role="group"
+							aria-label="Cookie preferences"
+							className="pointer-events-auto flex flex-row items-center gap-3 px-4 py-2 shadow-lg"
+						>
+							<p className="text-sm">We use cookies.</p>
+							<Button
+								type="button"
+								appearance="filled"
+								intent="neutral"
+								onClick={() => setDecided(true)}
+							>
+								Accept all
+							</Button>
+						</Card.Root>
+					</div>
+				</OverlayPrompt>
+			)}
+		</>
+	);
+}
+```
+
+</Example>
+
+## When to use
+
+- Keep a banner, a bar, or another floating element usable while a [`Dialog`](/components/overlays/dialog), [`AlertDialog`](/components/overlays/alert-dialog), or [`Sheet`](/components/overlays/sheet) is open, such as a cookie banner or a support widget.
+- Prefer [`Toaster`](/components/feedback/toast) for short notifications and [`Sandbar`](/components/feedback/sandbar) for a save bar. Both already use `OverlayPrompt`.
+- Put a control that belongs to the dialog's task inside the dialog content instead.
+
+## How it works
+
+An open modal dialog makes the rest of the page inert: no click, focus, or screen reader reaches it. While a modal dialog is open, `OverlayPrompt` moves its content into the top one, at each depth of a stack. There the content paints above the dialog, takes clicks and focus, and screen readers reach it. A press in the content does not close the dialog. When the last modal closes, the content moves back to where you render it, so a form owns its buttons again and Tab reaches them in page order.
+
+- **No cost without a dialog.** The component renders a wrapper with no box (`display: contents`) and adds no listener. The move happens only when the top modal dialog changes.
+- **Server rendering.** The server renders the content in place, so the first paint and crawlers have it. After hydration the content renders through a portal: it mounts again one time when the page hydrates, and never when a dialog opens or closes.
+- **Frames and focus.** In Chrome and Firefox the move keeps the state of the content, so a frame stays loaded and focus stays. Safari has no move that keeps state, so a frame in the content reloads when a dialog opens or closes.
+- **Forms.** While a dialog is open, a submit button in the content is outside its form. Give the button a `form` attribute with the form's `id`, or submit from its click handler. `Sandbar.SaveButton` does this for you.
+- **One element.** The content moves as a whole and lays out as a child of the `<dialog>`, so give it one element that positions itself with `fixed`.
+
+Why a component and not a class: React removes and inserts the elements it renders in the parent where it put them, and it throws when one has moved. So mantle cannot move an element that your component renders. `OverlayPrompt` moves an element that React does not own, a portal's container, so the move is safe. The `overlay-prompt` class still marks an element whose presses must not close an open dialog, but it does not move the element.
+
+## API Reference
+
+### OverlayPrompt
+
+| Prop       | Type        | Default | Description                                                              |
+| ---------- | ----------- | ------- | ------------------------------------------------------------------------ |
+| `children` | `ReactNode` |         | One element that positions itself, such as a `fixed` banner.             |
+| `ref`      | `Ref`       |         | The wrapper, which marks where the content lives when no dialog is open. |
+
+| Data Attribute | Value              | Description                                                            |
+| -------------- | ------------------ | ---------------------------------------------------------------------- |
+| `data-slot`    | `"overlay-prompt"` | The wrapper that marks where the content lives when no dialog is open. |

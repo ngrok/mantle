@@ -11,8 +11,6 @@ import {
 	createContext,
 	useContext,
 	useEffect,
-	useLayoutEffect,
-	useState,
 	useSyncExternalStore,
 } from "react";
 import { createPortal } from "react-dom";
@@ -25,9 +23,9 @@ import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { Icon as IconComponent } from "../icon/icon.js";
 import type { SvgOnlyProps } from "../icon/svg-only.js";
-import { canUseDOM } from "../browser-only/can-use-dom.js";
 import { Slot } from "../slot/index.js";
-import { attachPromptHost } from "./toaster-host.js";
+import { canUseDOM } from "../browser-only/can-use-dom.js";
+import { OverlayPrompt } from "../overlay-prompt/overlay-prompt.js";
 
 type ToasterPrimitiveProps = ComponentProps<typeof Sonner.Toaster>;
 
@@ -151,11 +149,6 @@ const Toaster = ({
 }: ToasterProps) => {
 	const isHydrated = useIsHydrated();
 	const loadedSonner = useSyncExternalStore(subscribeToSonner, getSonner, getSonner);
-	// Why a host of its own: an open native modal `<dialog>` makes the rest of
-	// the page inert, so the host moves into it. React never moves a portal's
-	// container, so the move is safe.
-	const [host] = useState(() => (canUseDOM() ? document.createElement("div") : null));
-	useLayoutEffect(() => (host == null ? undefined : attachPromptHost(host)), [host]);
 	// Why idle: sonner stays off the critical path. A `makeToast` call that
 	// comes first starts the load sooner.
 	useEffect(() => {
@@ -168,40 +161,42 @@ const Toaster = ({
 		return () => clearTimeout(handle);
 	}, []);
 
-	if (!isHydrated || host == null) {
+	if (!isHydrated) {
 		return null;
 	}
 
+	// Why `<body>`: the toasts stay out of the stacking context of the place
+	// that renders the `Toaster`. Why `OverlayPrompt`: an open modal dialog makes
+	// the rest of the page inert, so the toasts move into it.
 	// Why the placeholder: assistive technology finds the notifications landmark
 	// from hydration on, as with sonner's own section, which replaces it on load.
-	if (loadedSonner == null) {
-		return createPortal(
-			<section
-				aria-label={`${containerAriaLabel ?? "Notifications"} alt+T`}
-				aria-live="polite"
-				aria-relevant="additions text"
-				aria-atomic="false"
-				tabIndex={-1}
-			/>,
-			host,
-		);
-	}
-
 	return createPortal(
-		<loadedSonner.Toaster
-			data-slot="toaster"
-			className={cx("toaster overlay-prompt pointer-events-auto *:duration-200", className)}
-			containerAriaLabel={containerAriaLabel}
-			dir={dir}
-			duration={resolveToastDuration(duration_ms)}
-			gap={12}
-			position={position ?? "top-center"}
-			style={style}
-			toastOptions={{
-				unstyled: true,
-			}}
-		/>,
-		host,
+		<OverlayPrompt>
+			{loadedSonner == null ? (
+				<section
+					aria-label={`${containerAriaLabel ?? "Notifications"} alt+T`}
+					aria-live="polite"
+					aria-relevant="additions text"
+					aria-atomic="false"
+					tabIndex={-1}
+				/>
+			) : (
+				<loadedSonner.Toaster
+					data-slot="toaster"
+					className={cx("toaster pointer-events-auto [&>*]:duration-200", className)}
+					containerAriaLabel={containerAriaLabel}
+					dir={dir}
+					duration={resolveToastDuration(duration_ms)}
+					gap={12}
+					position={position ?? "top-center"}
+					style={style}
+					toastOptions={{
+						unstyled: true,
+					}}
+				/>
+			)}
+		</OverlayPrompt>,
+		document.body,
 	);
 };
 

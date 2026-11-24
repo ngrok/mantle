@@ -1,0 +1,178 @@
+---
+title: Data Attribute Contract Migration
+description: Mantle's data attributes follow one small contract. Triggers, tabs, options, and checkable items use ARIA state, a boolean state is a presence attribute such as data-open, and mantle.css registers no data-* variants, so style with Tailwind's built-in forms.
+introducedIn: "0.95.0"
+codemodIn: "0.95.0"
+---
+
+# Mantle Data Attribute Contract Migration Guide
+
+`@ngrok/mantle` no longer emits the `data-*` names it took from Radix, Ariakit, and Headless UI. Each part emits one mantle-owned set of attributes:
+
+- **Native and ARIA state first.** A trigger has `aria-expanded`, a tab and a listbox option have `aria-selected`, a checkable item has `aria-checked`, and a disabled control has `disabled` or `aria-disabled`. None of them carries a `data-state` or `data-disabled`.
+- **A boolean state is a presence attribute.** It is `""` when true and absent when false: `data-open`, `data-expanded`, `data-highlighted`, `data-selected`, `data-placeholder`, `data-loading`, `data-indeterminate`, `data-engaged`. No attribute is ever `"true"` or `"false"`.
+- **A value with several options stays an enum:** `data-side="top"`, `data-validation="error"`, `data-orientation="vertical"` (on a root only), `data-appearance`.
+- **`mantle.css` registers no `data-*` variants.** `data-state-open:`, `data-side-top:`, `data-validation-error:`, `data-orientation-vertical:`, and `data-active-item:` are gone. Use Tailwind's built-in forms.
+
+**TL;DR:** Run the codemod. It rewrites the old class variants and the `data-state` test assertions. Then search for `data-state`, `data-disabled`, `data-align`, `data-current`, and `data-active` in your code, and fix what is left by hand with the table in step 2.
+
+## Codemod
+
+From a mantle checkout:
+
+```sh
+pnpm -w run migrate 0029 <path>
+```
+
+In a project that installs `@ngrok/mantle`:
+
+```sh
+npx --yes --package=@ast-grep/cli@0.51.3 ast-grep scan --rule node_modules/@ngrok/mantle/dist/migrations/0029-data-attribute-contract.yml --update-all <path>
+```
+
+The rules apply steps 2 and 4. They rewrite class strings in JSX, `cx` and `cva` calls, template strings, and constants:
+
+- `data-state-open:` becomes `aria-expanded:` in the `className` of a part whose name ends in `Trigger` and of the `asChild` element inside it. `group-data-state-open:` becomes `group-aria-expanded:` inside that part's children. Everywhere else, `data-state-open:` becomes `data-open:` and `data-state-closed:` becomes `not-data-open:`.
+- `data-state-checked:` becomes `aria-checked:` (`aria-selected:` on a `Select.Item`), `data-state-active:` becomes `aria-selected:`, and `data-state-selected:` becomes `data-selected:`. On a trigger, `data-state-inactive:` becomes `not-aria-selected:`. `data-state-indeterminate:` becomes `data-indeterminate:`, or `aria-[checked=mixed]:` on a `CheckboxItem`.
+- `data-side-*:`, `data-orientation-*:`, and `data-validation-*:` become the bracket form, such as `data-[side=top]:`. On a `Tabs.List`, `data-orientation-*:` becomes `aria-[orientation=*]:`. `data-active-item:` becomes `data-highlighted:`.
+- In a file that imports `@radix-ui/*`, every `data-state-*:` becomes `data-[state~=*]:`, so classes on your own Radix parts keep their match. The test rules skip that file.
+- On an element that sets its own `data-state`, such as `<div data-state={state} className="data-state-closed:opacity-0">`, a `data-state-*:` variant becomes `data-[state~=*]:` for the same reason. A `group-` or `peer-` variant on that element reads another element, so it follows the general map. A trigger, a `Select.Item`, a `CheckboxItem`, and a `Tabs.List` keep the rules above.
+- `expect(el).toHaveAttribute("data-state", "open")` becomes `toHaveAttribute("data-open")`, and `"closed"` becomes `.not.toHaveAttribute("data-open")`. `"expanded"` and `"collapsed"` map to `data-expanded` the same way.
+
+The rules read text, not the part a class lands on. A class string that one file builds and another file applies, a `group-` variant whose group is not the nearest `Trigger`, and selectors in CSS files stay manual: step 3 lists them. The codemod is safe to run again. Pass `--dry-run` to print the rewrites first, and run your formatter after the rewrite.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Run the codemod over the whole project, including tests and docs.
+2. Search for what is left: `rg -n 'data-state|data-\[state|data-disabled|data-align|data-current|data-active\b|data-side-|data-validation-|data-orientation-'`. Fix each match that reads a mantle part with this table:
+
+   | Before                                                                  | After                                                                                   |
+   | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+   | `data-[state=open]:` on a trigger                                       | `aria-expanded:`                                                                        |
+   | `data-[state=open]:` on content, an item, or a panel                    | `data-open:`                                                                            |
+   | `data-[state=closed]:` on content                                       | `not-data-open:`                                                                        |
+   | `data-[state=expanded]:` on `Sidebar.Nav`                               | `data-expanded:` (`not-data-expanded:` for collapsed)                                   |
+   | `data-[state=checked]:`                                                 | `aria-checked:`, or `aria-selected:` on a `Select.Item`                                 |
+   | `data-[state=active]:` on a `Tabs.Trigger`                              | `aria-selected:`                                                                        |
+   | `data-[state=inactive]:hidden` on a `Tabs.Content`                      | delete it: an inactive panel has the `hidden` attribute                                 |
+   | `data-[state=inactive]:` on an `IconSwap` item                          | `aria-hidden:`                                                                          |
+   | `data-disabled:` on a button, a tab, or a menu item                     | `disabled:` on a button, `aria-disabled:` on the others                                 |
+   | `data-current:` on a `Sidebar.ItemButton`                               | `aria-[current=page]:`                                                                  |
+   | `data-active:` on a list row or an OTP slot                             | `data-highlighted:`                                                                     |
+   | `data-active:` on a `MultiSelect` tag                                   | `focus:` or `focus-visible:`                                                            |
+   | `[data-state="open"]` in a selector                                     | `[data-open]` on content, `[aria-expanded="true"]` on a trigger                         |
+   | `data-align` in a selector or test                                      | delete it: no part emits it                                                             |
+   | `data-[orientation=*]:` on a tab, a slider track, or another child part | read the root through a named `group-`, or use `aria-[orientation=*]:` on a `Tabs.List` |
+
+   Leave `data-state` alone on an element that you or a third-party library renders, such as your own Radix component.
+
+3. Fix the shapes the codemod cannot place:
+   - A `group-data-open:` or `group-not-data-open:` whose `group` class is on a trigger. Use `group-aria-expanded:` and `group-not-aria-expanded:`.
+   - A class constant in one file that another file passes to a trigger. Use `aria-expanded:`, not `data-open:`.
+   - A `group-` variant whose `group` element sets its own `data-state`. The codemod reads it as mantle state. Use the bracket form, such as `group-data-[state~=closed]:`.
+   - A `group-` variant on an element that sets its own `data-state`, inside a trigger. The codemod writes `group-data-open:`. Use `group-aria-expanded:`.
+   - An exit on a `Dialog`, `AlertDialog`, or `Sheet` part keyed on `not-data-open:`. These parts add `data-closing` while the exit plays, so key the exit on `data-closing:`. A dialog that an invoker command opens before hydration has no `data-open`, and `not-data-open:` plays the exit on it.
+   - Selectors in `.css` files and `querySelector` strings.
+4. Update tests that read the old attributes:
+   - Assert a trigger with `toHaveAttribute("aria-expanded", "true")`.
+   - Assert a tab or an option with `aria-selected`, a menu checkbox item or a switch with `aria-checked`, and a disabled item with `aria-disabled`.
+   - Assert a presence attribute with `toHaveAttribute("data-open")`, not `toHaveAttribute("data-open", "true")`. `data-drag-over`, `data-x-overflow`, `data-x-scroll-end`, `data-sticky-active`, `data-disabled`, and `data-engaged` are now `""` when true and absent when false.
+   - A Progress part drops `data-value`, `data-min`, and `data-max`. Read `aria-valuenow`, `aria-valuemin`, and `aria-valuemax`. `data-indeterminate` replaces `data-state="indeterminate"`.
+   - `CodeBlock.Code` has `data-syntax-highlighted` in place of `data-highlighted="true"`.
+   - An inactive `Tabs.Content` with `forceMount` now has the `hidden` attribute, so a role query skips it. Find the active panel with `getByRole("tabpanel")`, not a `data-state="active"` filter. Assert a panel with `toBeVisible()` or `not.toBeVisible()`. Pass `{ hidden: true }` to a query that checks that every panel is in the DOM. In server HTML, the active panel is the `tabpanel` without `hidden`.
+5. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why one contract?** Each library brought its own names, so the same state had three spellings and a reader could not tell a Tailwind built-in from a mantle extension. ARIA state is already on the element for assistive tech, so styling from it costs nothing and cannot drift from what a screen reader hears. A presence attribute matches Tailwind's built-in `data-*:` variant directly, so mantle needs no custom variants.
+
+---
+
+## Before → after
+
+### A trigger and its icon
+
+```tsx
+// BEFORE
+<Accordion.Trigger className="data-state-open:pb-0">
+	<CaretRightIcon className="group-data-state-open:rotate-90" />
+</Accordion.Trigger>
+```
+
+```tsx
+// AFTER
+<Accordion.Trigger className="aria-expanded:pb-0">
+	<CaretRightIcon className="group-aria-expanded:rotate-90" />
+</Accordion.Trigger>
+```
+
+### Overlay content
+
+```tsx
+// BEFORE
+<Popover.Content className="data-side-top:mb-2 data-state-closed:opacity-0" />
+```
+
+```tsx
+// AFTER
+<Popover.Content className="data-[side=top]:mb-2 not-data-open:opacity-0" />
+```
+
+### Validation
+
+```tsx
+// BEFORE
+<Input className="data-validation-error:border-danger-600" validation="error" />
+```
+
+```tsx
+// AFTER
+<Input className="data-[validation=error]:border-danger-600" validation="error" />
+```
+
+### Tabs
+
+```tsx
+// BEFORE
+<Tabs.Trigger value="usage" className="data-state-active:text-strong">Usage</Tabs.Trigger>
+<Tabs.Content value="usage" forceMount className="data-[state=inactive]:hidden" />
+```
+
+```tsx
+// AFTER: an inactive panel has the hidden attribute
+<Tabs.Trigger value="usage" className="aria-selected:text-strong">Usage</Tabs.Trigger>
+<Tabs.Content value="usage" forceMount />
+```
+
+### Tests
+
+```tsx
+// BEFORE
+expect(screen.getByRole("button", { name: "Filters" })).toHaveAttribute("data-state", "open");
+expect(screen.getByRole("dialog")).toHaveAttribute("data-state", "closed");
+```
+
+```tsx
+// AFTER
+expect(screen.getByRole("button", { name: "Filters" })).toHaveAttribute("aria-expanded", "true");
+expect(screen.getByRole("dialog")).not.toHaveAttribute("data-open");
+```
+
+## Edge cases & gotchas
+
+- `data-slot` does not change. Selectors such as `[data-slot~="dialog-content"]` keep working.
+- `data-open` goes away when the exit starts, so `not-data-open:` styles the exit frame of a floating part. The part unmounts after its exit animation.
+- `Sidebar.Nav` in the mobile sheet always has `data-expanded`, because the sheet is always at full width. The sheet also has `data-open` and `data-closing`.
+- A Tooltip or HoverCard trigger carries no state attribute: it does not expand anything.
+- A `forceMount` panel stays in the DOM and the server HTML, but it is `hidden` while inactive. Tailwind's preflight sets `display: none !important` on `[hidden]` in the base layer, so no class shows it again. A layout that stacks inactive panels with `invisible` to keep their size needs panels that are not `Tabs.Content`.
+- A `Tabs.Content` with `hiddenUntilFound` gets `hidden="until-found"` while inactive, so find-in-page can reach it. A `hidden` class (`display: none`) on that panel blocks the search.
+- `Combobox.Item` keeps `aria-selected` on the highlighted row, as the ARIA combobox pattern requires. The chosen row has `data-selected`.
+
+## How to verify
+
+```sh
+rg -n 'data-state-|data-side-|data-validation-|data-orientation-|data-active-item' <path>
+rg -n 'data-state|data-align|data-current' <path>
+```
+
+The first search finds nothing. Each match of the second search reads an element that mantle does not render. Then run the type checker and the tests.

@@ -5,7 +5,7 @@ import { renderToString } from "react-dom/server";
 
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 import { commands } from "vitest/browser";
 import mantleCss from "../../mantle.css?raw";
 import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
@@ -32,8 +32,8 @@ ${mantleCss.match(/[^{}]*\[data-theme-transition(?:-many)?\][^{]*\{[^}]*\}/g)?.j
 [data-slot~="theme-switcher-icon"] > * { transition: opacity 1s linear; }
 .dark [data-slot~="theme-switcher-icon"] > * { opacity: 0.5; }
 @keyframes slow-exit { to { opacity: 0; } }
-[data-slot~="dialog-content"][data-state="closed"] { animation: slow-exit 1s; }
-[data-slot~="dialog-positioner"][data-state="closed"]::backdrop { animation: slow-exit 1s; }
+[data-slot~="dialog-content"][data-closing] { animation: slow-exit 1s; }
+[data-slot~="dialog-positioner"][data-closing]::backdrop { animation: slow-exit 1s; }
 `;
 
 let styleElement: HTMLStyleElement;
@@ -52,8 +52,47 @@ afterAll(() => {
 	styleElement.remove();
 });
 
+/** The view transitions that swaps start in the running test. */
+const swaps: ViewTransition[] = [];
+
+beforeEach(() => {
+	swaps.length = 0;
+	if (typeof document.startViewTransition !== "function") {
+		return;
+	}
+	const start = document.startViewTransition.bind(document);
+	vi.spyOn(document, "startViewTransition").mockImplementation((update) => {
+		const swap = start(update);
+		swaps.push(swap);
+		return swap;
+	});
+});
+
+/**
+ * Waits for a step of each swap. Why the swap's own promises: they settle on the
+ * frames the swap renders, and WebKit in CI can render no frame for more than
+ * the 1 s a `waitFor` allows.
+ */
+async function swapStep(step: "updateCallbackDone" | "ready" | "finished") {
+	await Promise.allSettled(swaps.map((swap) => swap[step]));
+}
+
+/** Ends a running theme swap's view transition at once. */
+function finishSwap() {
+	for (const animation of document.getAnimations()) {
+		if (
+			animation.effect instanceof KeyframeEffect &&
+			animation.effect.pseudoElement?.startsWith("::view-transition")
+		) {
+			animation.finish();
+		}
+	}
+}
+
 afterEach(async () => {
 	// Why wait: a running view transition holds the next test's clicks.
+	finishSwap();
+	await swapStep("finished");
 	await waitFor(() => {
 		if (document.documentElement.hasAttribute("data-theme-transition")) {
 			throw new Error("the theme swap still runs");
@@ -127,12 +166,67 @@ describe("ThemeSwitcher name and icon from the theme on <html>", () => {
 		},
 	);
 
+	test.each([
+		{ stored: "system", os: "light", name: "Switch to dark theme" },
+		{ stored: "system", os: "dark", name: "Switch to light theme" },
+		{ stored: "light", os: "light", name: "Switch to dark theme" },
+		{ stored: "light", os: "dark", name: "Switch to dark theme (system default)" },
+		{ stored: "dark", os: "light", name: "Switch to light theme (system default)" },
+		{ stored: "dark", os: "dark", name: "Switch to light theme" },
+	] as const)(
+		"before hydration, with $stored stored on a $os OS, CSS names the switcher $name",
+		async ({ stored, os, name }) => {
+			await commands.emulateMedia({ colorScheme: os });
+			const html = document.documentElement;
+			const previous = {
+				className: html.className,
+				theme: html.dataset.theme,
+				appliedTheme: html.dataset.appliedTheme,
+			};
+			// Why no hydration: the server HTML has no `aria-label`, so only CSS names it.
+			const container = document.createElement("div");
+			container.innerHTML = renderToString(
+				<ThemeProvider>
+					<ThemeSwitcher />
+				</ThemeProvider>,
+			);
+			document.body.appendChild(container);
+			// Why after the render: in a browser, `ThemeProvider` writes `<html>` as
+			// it renders, which a server never does.
+			const applied = stored === "system" ? os : stored;
+			html.dataset.theme = stored;
+			html.dataset.appliedTheme = applied;
+			html.className = applied;
+			try {
+				expect(screen.getByRole("button", { name })).not.toHaveAttribute("aria-label");
+			} finally {
+				container.remove();
+				html.className = previous.className;
+				for (const key of ["theme", "appliedTheme"] as const) {
+					if (previous[key] == null) {
+						delete html.dataset[key];
+					} else {
+						html.dataset[key] = previous[key];
+					}
+				}
+			}
+		},
+	);
+
 	test("an OS change renames the switcher and swaps its icon", async () => {
 		renderSwitcher();
 		await commands.emulateMedia({ colorScheme: "dark" });
 
 		const button = await screen.findByRole("button", { name: "Switch to light theme" });
-		await expect.poll(() => shownGlyphs(button)).toEqual([glyphs.dark]);
+		// Why wait for the swap: both icons paint while it crossfades, and a loaded
+		// runner can run it past a poll's timeout.
+		await Promise.all(
+			button
+				.getAnimations({ subtree: true })
+				.filter((animation) => animation instanceof CSSTransition)
+				.map((animation) => animation.finished),
+		);
+		expect(shownGlyphs(button)).toEqual([glyphs.dark]);
 	});
 
 	test("each click names the theme the next click shows", async () => {
@@ -183,6 +277,7 @@ describe("ThemeSwitcher name and icon from the theme on <html>", () => {
 /** Waits for a reveal animation on the new snapshot of the root, other than `except`. */
 async function revealAnimation({ except }: { except?: Animation } = {}) {
 	let reveal: Animation | undefined;
+	await swapStep("ready");
 	await waitFor(() => {
 		reveal = document
 			.getAnimations()
@@ -226,7 +321,8 @@ describe("ThemeSwitcher theme swap in Chromium", () => {
 		expect(to.radius).toBeGreaterThan(Math.hypot(window.innerWidth, window.innerHeight) / 2);
 		expect(document.documentElement).toHaveClass("dark");
 
-		await reveal.finished;
+		reveal.finish();
+		await swapStep("finished");
 		await waitFor(() =>
 			expect(document.documentElement).not.toHaveAttribute("data-theme-transition"),
 		);
@@ -237,6 +333,7 @@ describe("ThemeSwitcher theme swap in Chromium", () => {
 		const probe = screen.getByTestId("probe");
 		await userEvent.click(button);
 
+		await swapStep("updateCallbackDone");
 		await waitFor(() => expect(document.documentElement).toHaveClass("dark"));
 		expect(document.documentElement).toHaveAttribute("data-theme-transition");
 		expect(getComputedStyle(probe).color).toBe("rgb(255, 255, 255)");
@@ -255,11 +352,14 @@ describe("ThemeSwitcher theme swap in Chromium", () => {
 		}
 		await userEvent.click(button);
 
+		await swapStep("updateCallbackDone");
 		await waitFor(() => expect(document.documentElement).toHaveClass("dark"));
 		expect(document.documentElement).toHaveAttribute("data-theme-transition-many");
 		expect(getComputedStyle(probe).color).toBe("rgb(255, 255, 255)");
 		expect(getComputedStyle(probe).transitionDuration).toBe("0s");
 
+		finishSwap();
+		await swapStep("finished");
 		await waitFor(() =>
 			expect(document.documentElement).not.toHaveAttribute("data-theme-transition"),
 		);
@@ -283,6 +383,7 @@ describe("ThemeSwitcher theme swap in Chromium", () => {
 		}
 
 		// Five toggles from light: dark, light, dark, light, dark.
+		await swapStep("finished");
 		await waitFor(() =>
 			expect(document.documentElement).not.toHaveAttribute("data-theme-transition"),
 		);
@@ -339,8 +440,6 @@ describe("ThemeDropdownMenuItem theme swap in Chromium", () => {
 		expect(document.documentElement).toHaveClass("dark");
 		expect(item).toHaveAccessibleName("Theme: Switch to light theme (system default)");
 		expect(screen.getByRole("menu")).toBeInTheDocument();
-
-		await reveal.finished;
 	});
 });
 
@@ -395,8 +494,6 @@ describe("useThemeToggle theme swap in Chromium", () => {
 					animation.effect.target === swap,
 			);
 		expect(iconMotion.map((animation) => animation.playState)).toEqual(["running"]);
-
-		await reveal.finished;
 	});
 });
 
@@ -444,7 +541,5 @@ describe("setTheme theme swap in Chromium", () => {
 		expect(document.documentElement).toHaveClass("dark");
 		// An exit animation of the panel or the backdrop would leave the dialog in the old snapshot.
 		expect(document.querySelector('[data-slot~="dialog-positioner"]')).toBeNull();
-
-		await reveal.finished;
 	});
 });

@@ -53,6 +53,10 @@ describe("closeMarkdown", () => {
 		["Title\n---\n", "Title\n---\n"],
 		["```js\nconst a = `x **y", "```js\nconst a = `x **y"],
 		["- item\n\n  ```sh\n  ngrok **", "- item\n\n  ```sh\n  ngrok **"],
+		// Code keeps its text: indented code, and a fence on its item's marker line.
+		["    print([1", "    print([1"],
+		["- ```js\n  const a = `", "- ```js\n  const a = `"],
+		["Text\n    more **b", "Text\n    more **b**"],
 	])("%j → %j", (text, expected) => {
 		expect(close(text)).toBe(expected);
 	});

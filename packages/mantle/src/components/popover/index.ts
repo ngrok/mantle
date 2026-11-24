@@ -24,9 +24,8 @@ import * as PopoverParts from "./popover-parts.js";
  * above the page with no `z-index`. It portals into the content of the open
  * `Dialog`, `AlertDialog`, `Sheet`, or `Popover` that holds it, else into
  * `document.body`. It does not show while an overlay that does not hold it
- * is open. CSS anchor positioning places it; where the browser has none, a
- * script places it. Where the browser has no popover API, it is a fixed box
- * at `z-50`.
+ * is open. A script places it next to its trigger. Where the browser has no
+ * popover API, it is a fixed box at `z-50`.
  *
  * @useWhen Show interactive content, such as a small form, a settings menu, or a color picker, that
  * the user opens from a button.

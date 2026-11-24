@@ -49,7 +49,7 @@ docs page, and a new subpath export, so consumers want it called out. Everything
 | **A new sub-component or part in a shipped namespace**    | `add DataTable.ActionHeader`                     |
 | A new data attribute, `data-slot`, or CSS variable        | `main-joins-data-slot`                           |
 | Visual or styling change that keeps the API               | `paint decorative charts neutral`                |
-| Dependency bump                                           | `bump @ariakit/react from 0.4.34 to 0.4.35`      |
+| Dependency bump                                           | `bump sonner from 2.0.6 to 2.0.7`                |
 | JSDoc, comment, or docs-page prose that ships in the type | `ste-prose-sweep`, `audit-component-sweep`       |
 | Emit or build fix                                         | `publish the per-part JSDoc in the built types`  |
 | Teaching a Vite plugin about a new component              | `vite-plugins-know-sandbar`                      |

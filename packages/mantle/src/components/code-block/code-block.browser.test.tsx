@@ -6,6 +6,7 @@ import axe from "axe-core";
 import { useState } from "react";
 import type { CSSProperties } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { commands, userEvent as browserUserEvent } from "vitest/browser";
 import mantleCss from "../../mantle.css?raw";
 import * as CodeBlock from "./code-block-parts.js";
 import type { FoldableRange } from "./compute-json-fold-ranges.js";
@@ -83,9 +84,13 @@ describe("CodeBlock (browser)", () => {
 			);
 
 			const button = screen.getByRole("button", { name: /copy code/i });
-			const iconBefore = button.querySelector("[data-state='active'] > svg")?.innerHTML;
+			const iconBefore = button.querySelector(
+				"[data-slot='icon-swap-item']:not([aria-hidden]) > svg",
+			)?.innerHTML;
 			await user.click(button);
-			const iconAfter = button.querySelector("[data-state='active'] > svg")?.innerHTML;
+			const iconAfter = button.querySelector(
+				"[data-slot='icon-swap-item']:not([aria-hidden]) > svg",
+			)?.innerHTML;
 
 			expect(iconAfter).not.toBe(iconBefore);
 		});
@@ -601,6 +606,40 @@ describe("CodeBlock (browser)", () => {
 			tabList.scrollLeft = 40;
 			expect(tabList.scrollLeft).toBe(40);
 		});
+	});
+
+	// Why inset: the button meets three edges of the root's `overflow-hidden`,
+	// which clips a ring drawn outside it.
+	test("a keyboard focus draws the ExpanderButton focus ring inside the button", async () => {
+		const style = document.createElement("style");
+		style.textContent = await commands.tailwindCss("./code-block.tsx");
+		document.head.append(style);
+		try {
+			render(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.Code value={makeValue("const a = 1;")} />
+					</CodeBlock.Body>
+					<CodeBlock.ExpanderButton />
+				</CodeBlock.Root>,
+			);
+			const button = screen.getByRole("button", { name: /show more/i });
+			await browserUserEvent.keyboard("{Tab}");
+
+			expect(document.activeElement).toBe(button);
+			expect(button.matches(":focus-visible")).toBe(true);
+			expect(getComputedStyle(button).boxShadow).toMatch(/inset/);
+
+			// Forced colors removes the ring, so the outline fallback must also stay inside.
+			await commands.emulateMedia({ forcedColors: "active" });
+			expect(getComputedStyle(button)).toMatchObject({
+				outlineStyle: "solid",
+				outlineOffset: "-2px",
+			});
+		} finally {
+			await commands.emulateMedia({ forcedColors: "none" });
+			style.remove();
+		}
 	});
 });
 

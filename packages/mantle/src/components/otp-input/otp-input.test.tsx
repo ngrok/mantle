@@ -240,6 +240,19 @@ describe("OtpInput", () => {
 		container.remove();
 	});
 
+	test("a paste raises no error with no CSS.supports, as in jsdom", () => {
+		vi.stubGlobal("CSS", { escape: CSS.escape });
+		const errors: unknown[] = [];
+		const onError = (event: ErrorEvent) => errors.push(event.error);
+		window.addEventListener("error", onError);
+		const { input } = renderOtp();
+
+		fireEvent.paste(input, { clipboardData: { getData: () => "123456" } });
+
+		window.removeEventListener("error", onError);
+		expect(errors).toEqual([]);
+	});
+
 	test("a fill while the input has no focus activates no slot", () => {
 		const { bridge, container, input } = renderOtp();
 
@@ -247,7 +260,7 @@ describe("OtpInput", () => {
 
 		expect(input).toHaveValue("12");
 		expect(bridge).toHaveAttribute("data-otp-state", "idle");
-		expect(container.querySelector("[data-active]")).toBeNull();
+		expect(container.querySelector("[data-highlighted]")).toBeNull();
 	});
 
 	// Why: a `noScriptCSSFallback` or a page style selects the input with these attributes.

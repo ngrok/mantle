@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { readWithRetries, type MarkdownStreamSource } from "./read-stream.js";
 
 /** Options for {@link useMarkdownStream}. */
@@ -87,8 +88,18 @@ function useMarkdownStream({
 		status: enabled ? "streaming" : "done",
 		error: undefined,
 	});
-	const open = useEffectEvent((offset: number, signal: AbortSignal) => read({ offset, signal }));
-	const canRetry = useEffectEvent((failures: number) => failures <= retries);
+	// Why during render: the status follows `enabled` in the same render, so no frame shows the old one.
+	const [wasEnabled, setWasEnabled] = useState(enabled);
+	if (enabled !== wasEnabled) {
+		setWasEnabled(enabled);
+		setStream((current) =>
+			enabled
+				? { text: current.text, status: "streaming", error: undefined }
+				: { ...current, status: current.status === "streaming" ? "done" : current.status },
+		);
+	}
+	const open = useCallbackRef((offset: number, signal: AbortSignal) => read({ offset, signal }));
+	const canRetry = useCallbackRef((failures: number) => failures <= retries);
 	// Why a ref: the offset outlives one read, such as when the effect runs again.
 	const receivedRef = useRef(initialText.length);
 
@@ -134,8 +145,12 @@ function useMarkdownStream({
 		return () => {
 			controller.abort();
 			cancelAnimationFrame(frame);
+			// Why: the offset already counts the buffered text, so the next read starts after it.
+			if (buffer !== "") {
+				flush();
+			}
 		};
-	}, [enabled]);
+	}, [enabled, open, canRetry]);
 
 	return stream;
 }

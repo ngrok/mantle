@@ -3,10 +3,11 @@
 import { createContext } from "react";
 
 /**
- * The ids a radio item gives the text that names and describes it. The
- * item's native radio points `aria-describedby` at `descriptionId`, so
- * `Choice.Description` takes that id. `Choice.Title` points the radio's
- * `aria-labelledby` at itself in place of all of the item's text.
+ * The state of a radio item and the ids it gives the text that names and
+ * describes it. The item's native radio points `aria-describedby` at
+ * `descriptionId`, so `Choice.Description` takes that id. `Choice.Title`
+ * points the radio's `aria-labelledby` at itself in place of all of the
+ * item's text.
  */
 type RadioItemContextValue = {
 	/** The id `Choice.Title` takes when it has no `id` of its own. */
@@ -17,6 +18,10 @@ type RadioItemContextValue = {
 	radioId: string;
 	/** The id of the item's content, which names the radio when no title does. */
 	contentId: string;
+	/** Whether the item's radio is checked. */
+	checked: boolean;
+	/** Whether the item's radio is disabled. */
+	disabled: boolean;
 };
 
 /**
