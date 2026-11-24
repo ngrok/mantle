@@ -155,10 +155,10 @@ const MANY_PICKS = /\b(multiple|several|many|any number|all that apply|multi-?se
  * this tells `RadioGroup` from `CheckboxGroup`.
  */
 function queryPickCount(text: string): "one" | "many" | undefined {
-	const lower = text.toLowerCase();
+	const lower = text.toLowerCase().replace(/\bone or more\b/g, "several");
 	const one = ONE_PICK.test(lower);
-	// Why: "one of several cards" asks for one pick, so "several" there counts the options.
-	const many = MANY_PICKS.test(lower.replace(/\bone of \w+/g, ""));
+	// Why: in "one of several cards" or "a dropdown with many options", the count is of options, not picks.
+	const many = MANY_PICKS.test(lower.replace(/\b(of|with) \w+/g, ""));
 	if (one === many) {
 		return undefined;
 	}

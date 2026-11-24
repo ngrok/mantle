@@ -97,6 +97,8 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 		"multiple selectable cards": "Checkbox",
 		"pick several options as cards": "Checkbox",
 		"select several features as cards": "Checkbox",
+		"select one or more cards": "Checkbox",
+		"dropdown with many options": "Select",
 		"chart with a single series": "Line Chart",
 		"pick multiple dates": "Calendar",
 		"select a date range across several days": "Calendar",
