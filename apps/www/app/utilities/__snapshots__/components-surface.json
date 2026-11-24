@@ -1978,7 +1978,9 @@
     "aliases": [
       "side nav",
       "side navigation",
-      "navigation drawer"
+      "navigation drawer",
+      "cmd b",
+      "ctrl b"
     ],
     "siblings": [
       {
