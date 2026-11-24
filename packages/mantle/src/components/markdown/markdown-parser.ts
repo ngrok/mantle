@@ -1,9 +1,6 @@
-import type { Token, TokensList } from "marked";
 import { lexMarkdown, type MarkdownTokenizer } from "./markdown-lexer.js";
 import { closeMarkdown } from "./close-markdown.js";
-
-/** The reference definitions of an answer, such as `[1]: https://ngrok.com`, by label. */
-type MarkdownLinks = TokensList["links"];
+import type { MarkdownLinks, MarkdownToken as Token } from "./markdown-tokens.js";
 
 /**
  * The blocks of an answer at one point in its stream. A block is one

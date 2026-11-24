@@ -34,6 +34,12 @@ export type {
 	MarkdownTokenizer,
 } from "./markdown-parser.js";
 
+export type {
+	//,
+	MarkdownExtensionToken,
+	MarkdownToken,
+} from "./markdown-tokens.js";
+
 export {
 	//,
 	useMarkdownStream,

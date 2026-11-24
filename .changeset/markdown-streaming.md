@@ -7,3 +7,5 @@ Add `Markdown` at `@ngrok/mantle/markdown`, a renderer for a Markdown answer tha
 Add `useMarkdownStream` to read an answer from a stream of text chunks, with resume from the last offset and retry.
 
 `Markdown` loads the syntax highlighter, its worker, and each grammar only when a code fence renders. An import of only `useMarkdownStream` or `markdownMath` tree-shakes the renderer, and costs about 1 KB gzip.
+
+`@ngrok/mantle` no longer depends on `marked`. `Markdown` reads Markdown with its own lexer, and mantle owns the token types: `MarkdownToken`, `MarkdownExtensionToken`, and `MarkdownTokens` take the place of marked's `Token` and `Tokens`, with the same shapes. A component or an extension that imported a type from `marked` imports it from `@ngrok/mantle/markdown` now. An extension's tokenizer gets no `this.lexer`.

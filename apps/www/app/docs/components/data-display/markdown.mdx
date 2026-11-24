@@ -148,7 +148,7 @@ const components: MarkdownComponents = {
 
 ## Components
 
-Set a component in `components` to replace the built-in one for a kind of token, such as `code`, `link`, `table`, or `math`. Each component gets the `token` and its content as `children`. `extension` renders each token of an extension that has no component of its own.
+Set a component in `components` to replace the built-in one for a kind of token, such as `code`, `link`, `table`, or `math`. Each component gets the `token` and its content as `children`. `extension` renders each token of an extension that has no component of its own. Mantle exports the token types: `MarkdownTokens["code"]` is the token of a fence, and `MarkdownToken` is any token.
 
 ## How it streams
 

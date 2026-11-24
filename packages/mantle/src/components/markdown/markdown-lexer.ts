@@ -1,15 +1,14 @@
 /**
- * A CommonMark and GFM lexer for model answers that emits marked's token
- * shapes. `Markdown` renders its output with no change.
+ * A CommonMark and GFM lexer for model answers. Its tokens have the shapes of
+ * marked's, so a component that read marked's tokens reads them with no change.
  */
-import type { Token, Tokens, TokensList } from "marked";
 import { decodeEntities } from "./decode-entities.js";
+import type { MarkdownExtensionToken, MarkdownLinks, MarkdownToken } from "./markdown-tokens.js";
 
-type Links = TokensList["links"];
+type Links = MarkdownLinks;
 /**
- * A tokenizer that reads one more kind of token, in marked's `{ name, level,
- * start, tokenizer }` shape. The lexer is not marked's, so a tokenizer gets
- * no `this.lexer`.
+ * A tokenizer that reads one more kind of token: `{ name, level, start,
+ * tokenizer }`, the shape of a marked extension, with no `this.lexer`.
  */
 type MarkdownTokenizer = {
 	/** The token kind, such as `"math"`. */
@@ -18,7 +17,7 @@ type MarkdownTokenizer = {
 	level: "block" | "inline";
 	/** The index in `source` where the token can start next, or `undefined` for none. */
 	start?: (source: string) => number | undefined;
-	tokenizer: (source: string, tokens: Token[]) => Tokens.Generic | undefined;
+	tokenizer: (source: string, tokens: MarkdownToken[]) => MarkdownExtensionToken | undefined;
 };
 type Context = {
 	links: Links;
@@ -30,8 +29,8 @@ type Context = {
 	/** Whether a definition is known. Why: a check of `links` for each paragraph reads each key. */
 	defined: boolean;
 };
-// oxlint-disable-next-line typescript/no-explicit-any -- Why: tokens are marked's loose shapes.
-type Tok = Token & Record<string, any>;
+// oxlint-disable-next-line typescript/no-explicit-any -- Why: the lexer builds each token kind field by field.
+type Tok = MarkdownToken & Record<string, any>;
 
 const HR = /^ {0,3}((?:-[\t ]*){3,}|(?:_[ \t]*){3,}|(?:\*[ \t]*){3,})$/;
 const HEADING = /^ {0,3}(#{1,6})(?=[ \t]|$)(.*)$/;
@@ -1330,7 +1329,7 @@ function inlineLink(
 	return source[index] === ")" ? { href: literal(href), title, end: index + 1 } : undefined;
 }
 
-/** Lexes inline Markdown into marked's inline tokens. */
+/** Lexes inline Markdown into inline tokens. */
 function lexInline(source: string, context: Context): Tok[] {
 	const nodes: Node[] = [];
 	const brackets: Bracket[] = [];
@@ -1881,13 +1880,13 @@ function finish(nodes: readonly Node[]): Tok[] {
 }
 
 /**
- * Lexes Markdown into marked's tokens. `links` seeds the reference
+ * Lexes Markdown into tokens. `links` seeds the reference
  * definitions, and the result's `links` holds each one it read.
  */
 function lexMarkdown(
 	source: string,
 	{ links, extensions = [] }: { links?: Links; extensions?: readonly MarkdownTokenizer[] } = {},
-): TokensList {
+): MarkdownToken[] & { links: MarkdownLinks } {
 	const context: Context = {
 		// Why no prototype: a label such as `__proto__` must stay a plain key.
 		links: Object.assign(Object.create(null), links),
