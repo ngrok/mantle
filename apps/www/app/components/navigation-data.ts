@@ -145,7 +145,9 @@ export const prodReadyComponents: readonly ProdReadyComponent[] = componentCateg
 export const previewComponents = [
 	//,
 	"Calendar",
+	"Reasoning",
 	"Time Zone",
+	"Tool Call",
 	"World Map",
 ] as const;
 
@@ -232,7 +234,9 @@ export const prodReadyComponentRouteLookup = {
 /** Route lookup for preview component pages. */
 export const previewComponentsRouteLookup = {
 	Calendar: "/components/preview/calendar",
+	Reasoning: "/components/preview/reasoning",
 	"Time Zone": "/components/preview/time-zone",
+	"Tool Call": "/components/preview/tool-call",
 	"World Map": "/components/preview/world-map",
 } as const satisfies Record<(typeof previewComponents)[number], Route>;
 
@@ -243,7 +247,9 @@ export const previewComponentsRouteLookup = {
  */
 export const previewComponentCategoryLookup = {
 	Calendar: "Forms",
+	Reasoning: "Data Display",
 	"Time Zone": "Primitives",
+	"Tool Call": "Data Display",
 	"World Map": "Charts",
 } as const satisfies Record<(typeof previewComponents)[number], ComponentCategory>;
 
