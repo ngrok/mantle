@@ -346,7 +346,7 @@ All props from [Icon Button](/components/actions/icon-button) except `appearance
 
 A toggle that turns speech into text in `PromptInput.TextArea`. It reports `aria-pressed` while it listens. It renders nothing on the server and in browsers without speech recognition.
 
-Each final phrase replaces the selection with the browser's text, including its spacing, up to `maxLength`. Dictation skips disabled and read-only fields. An error or the end of a session resets the toggle. Dictated edits do not enter the browser's undo history.
+Each final phrase replaces the selection with the browser's text, including its spacing, up to `maxLength`. Dictation skips disabled and read-only fields. An error or the end of a session resets the toggle. Disabling the toggle ends the session. Dictated edits do not enter the browser's undo history.
 
 All props from [Icon Button](/components/actions/icon-button) except `appearance`, `aria-pressed`, `asChild`, `children`, `icon`, `intent`, `label`, and `type`, plus:
 

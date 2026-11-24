@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
-import { type ComponentProps, useState } from "react";
+// oxlint-disable-next-line no-restricted-imports -- Why: the test covers a React 19.2 consumer that hides the composer in Activity.
+import { Activity, type ComponentProps, useState } from "react";
 import { createPortal } from "react-dom";
 import { expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
@@ -386,6 +387,35 @@ test.each(["readOnly", "disabled", "button disabled"])(
 		expect(onChange).toHaveBeenCalledTimes(0);
 	},
 );
+
+test("Dictate releases the microphone when the toggle becomes disabled", async () => {
+	vi.stubGlobal("SpeechRecognition", FakeRecognition);
+	const onSubmit = vi.fn<(message: string) => void>();
+	const { rerender } = render(<DictatingComposer onSubmit={onSubmit} />);
+	await userEvent.click(screen.getByRole("button", { name: "Dictate" }));
+	const recognition = FakeRecognition.last;
+	rerender(<DictatingComposer onSubmit={onSubmit} disabled />);
+	expect(recognition?.aborted).toBe(true);
+	expect(screen.getByRole("button", { name: "Dictate" })).toHaveAttribute("aria-pressed", "false");
+});
+
+test("Dictate is not pressed when a hidden Activity shows it again", async () => {
+	vi.stubGlobal("SpeechRecognition", FakeRecognition);
+	function Composer({ mode }: { mode: "visible" | "hidden" }) {
+		return (
+			<Activity mode={mode}>
+				<DictatingComposer onSubmit={() => {}} />
+			</Activity>
+		);
+	}
+	const { rerender } = render(<Composer mode="visible" />);
+	await userEvent.click(screen.getByRole("button", { name: "Dictate" }));
+	const recognition = FakeRecognition.last;
+	rerender(<Composer mode="hidden" />);
+	expect(recognition?.aborted).toBe(true);
+	rerender(<Composer mode="visible" />);
+	expect(screen.getByRole("button", { name: "Dictate" })).toHaveAttribute("aria-pressed", "false");
+});
 
 test("Dictate does not start for a field disabled by a fieldset", async () => {
 	vi.stubGlobal("SpeechRecognition", FakeRecognition);

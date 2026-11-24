@@ -701,6 +701,19 @@ function subscribeToNothing(): () => void {
 }
 
 /**
+ * Ends the current dictation session: releases the microphone and resets the toggle.
+ */
+function endDictation(
+	recognitionRef: { current: SpeechRecognitionLike | null },
+	setListening: (listening: boolean) => void,
+) {
+	const recognition = recognitionRef.current;
+	recognitionRef.current = null;
+	setListening(false);
+	recognition?.abort();
+}
+
+/**
  * Inserts the transcript at the selection, within the field's editing limits.
  * The native edit reaches `onChange` on controlled fields too.
  */
@@ -747,7 +760,8 @@ type PromptInputDictateProps = Omit<
 /**
  * A speech-to-text toggle that replaces `PromptInput.TextArea`'s selection and
  * runs `onChange`, without submission or undo history.
- * Appears after hydration only in browsers with speech recognition.
+ * Appears after hydration only in browsers with speech recognition. Disabling it
+ * ends the session.
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
@@ -793,14 +807,14 @@ function Dictate({
 	const [listening, setListening] = useState(false);
 	const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
-	useEffect(
-		() => () => {
-			const recognition = recognitionRef.current;
-			recognitionRef.current = null;
-			recognition?.abort();
-		},
-		[],
-	);
+	// Why: a disabled toggle cannot be pressed to stop, so it must not leave the microphone open.
+	useEffect(() => {
+		if (props.disabled) {
+			endDictation(recognitionRef, setListening);
+		}
+	}, [props.disabled]);
+	// Why reset too: a hidden Activity keeps the state, so the toggle must not come back pressed.
+	useEffect(() => () => endDictation(recognitionRef, setListening), []);
 
 	if (!supported) {
 		return null;
@@ -858,8 +872,7 @@ function Dictate({
 							field.readOnly ||
 							field.matches(":disabled")
 						) {
-							finish();
-							recognition.abort();
+							endDictation(recognitionRef, setListening);
 							return;
 						}
 						const result = results[index];
