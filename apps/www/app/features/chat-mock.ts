@@ -36,11 +36,15 @@ Then restrict the TCP endpoint to your office network with a \`restrict-ips\` ac
 /** Waits like a network chunk, and rejects when the request aborts. */
 function wait(ms: number, signal: AbortSignal): Promise<void> {
 	return new Promise((resolve, reject) => {
-		const timer = setTimeout(resolve, ms);
-		signal.addEventListener("abort", () => {
+		const onAbort = () => {
 			clearTimeout(timer);
 			reject(signal.reason);
-		});
+		};
+		const timer = setTimeout(() => {
+			signal.removeEventListener("abort", onAbort);
+			resolve();
+		}, ms);
+		signal.addEventListener("abort", onAbort, { once: true });
 	});
 }
 

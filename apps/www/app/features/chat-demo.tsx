@@ -14,7 +14,7 @@ import { ToolCall } from "@ngrok/mantle/tool-call";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react/ArrowClockwise";
 import { ChatsCircleIcon } from "@phosphor-icons/react/ChatsCircle";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { type ChatAnswer, type ChatFile, type ChatToolCall, useChat } from "~/features/chat";
 import { mockRespond } from "~/features/chat-mock";
 
@@ -41,6 +41,7 @@ export function ChatDemo() {
 	const [draft, setDraft] = useState("");
 	const [files, setFiles] = useState<DraftFile[]>([]);
 	const [model, setModel] = useState(models[0]?.value ?? "");
+	const fieldRef = useRef<HTMLTextAreaElement>(null);
 
 	function send(text: string) {
 		if (text.trim() === "" && files.length === 0) {
@@ -49,6 +50,8 @@ export function ChatDemo() {
 		chat.send({ text, files: files.map(({ id, name, size }) => ({ id, name, size })), model });
 		setDraft("");
 		setFiles([]);
+		// Why: a starter button leaves with the empty state, so focus must not fall to the page.
+		fieldRef.current?.focus();
 	}
 
 	const lastAnswer = chat.messages.findLast((message) => message.from === "assistant");
@@ -102,7 +105,15 @@ export function ChatDemo() {
 									<Answer
 										key={message.id}
 										answer={message}
-										onRetry={message === lastAnswer ? () => chat.retry(model) : undefined}
+										onRetry={
+											message === lastAnswer
+												? () => {
+														chat.retry(model);
+														// Why: Retry leaves while the new answer streams, so focus moves to the field.
+														fieldRef.current?.focus();
+													}
+												: undefined
+										}
 									/>
 								),
 							)}
@@ -147,6 +158,7 @@ export function ChatDemo() {
 						</Attachment.List>
 					)}
 					<PromptInput.TextArea
+						ref={fieldRef}
 						aria-label="Message the assistant"
 						name="message"
 						placeholder="Ask about your endpoints…"
@@ -182,14 +194,13 @@ export function ChatDemo() {
 /** One answer: its reasoning, its tool calls, its text, and how it ended. */
 function Answer({ answer, onRetry }: { answer: ChatAnswer; onRetry: (() => void) | undefined }) {
 	const streaming = answer.status === "streaming";
-	const empty = answer.reasoning === "" && answer.tools.length === 0 && answer.text === "";
+	const reasoningStreams = streaming && answer.reasoningSeconds == null;
 
 	return (
 		<Message.Root from="assistant">
 			<Message.Content className="flex flex-col gap-3">
-				{empty && streaming && <Message.Pending>Thinking…</Message.Pending>}
 				{answer.reasoning !== "" && (
-					<Reasoning.Root streaming={streaming && answer.reasoningSeconds == null}>
+					<Reasoning.Root streaming={reasoningStreams}>
 						<Reasoning.Trigger>
 							{answer.reasoningSeconds == null
 								? "Reasoning"
@@ -203,7 +214,7 @@ function Answer({ answer, onRetry }: { answer: ChatAnswer; onRetry: (() => void)
 				))}
 				{answer.text !== "" && <Markdown streaming={streaming}>{answer.text}</Markdown>}
 				{answer.status === "failed" && (
-					<Alert.Root intent="danger">
+					<Alert.Root intent="danger" role="alert">
 						<Alert.Icon />
 						<Alert.Content>
 							<Alert.Title>The answer stopped partway</Alert.Title>
@@ -217,6 +228,10 @@ function Answer({ answer, onRetry }: { answer: ChatAnswer; onRetry: (() => void)
 					<p className="text-muted text-sm">You stopped this answer.</p>
 				)}
 			</Message.Content>
+			{/* Why the reasoning check: Reasoning already reads "Thinking…" while it streams. */}
+			{streaming && !(reasoningStreams && answer.reasoning !== "") && (
+				<Message.Pending>Thinking…</Message.Pending>
+			)}
 			{!streaming && (
 				<Message.Actions>
 					<IconButton

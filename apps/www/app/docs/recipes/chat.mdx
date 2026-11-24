@@ -25,7 +25,7 @@ import { Example } from "~/components/example";
 
 Every assistant at ngrok is built from the same parts: the dashboard assistant, the corp assistant, and the AI Gateway playground. This recipe puts them together into one chat. The composer is a [Prompt Input](/components/ai/prompt-input) with [Attachment](/components/ai/attachment) chips, a [Select](/components/forms/select) model picker, and dictation. The transcript is a [Conversation](/components/ai/conversation) of [Message](/components/ai/message)s, and each answer shows its [Reasoning](/components/ai/reasoning), its [Tool Call](/components/ai/tool-call)s, and streaming [Markdown](/components/data-display/markdown).
 
-Pick a starter prompt, or type a question and press Enter. Scroll up while the answer streams, and the transcript stays where you put it until you press the button that goes back to the newest message. Press stop to keep the answer so far, and press retry to ask again. Ask anything with "fail" in it to see a failed answer. A mock writes the answers, so the demo runs with no network and answers the same way every time.
+Pick a starter prompt, or type a question and press Enter. Scroll up while the answer streams, and the transcript stays where you put it until you press the button that goes back to the newest message. Press **Stop answer** to keep the answer so far, and press **Retry** to ask again. Ask anything with "fail" in it to see a failed answer. A mock writes the answers, so the demo runs with no network and answers the same way every time.
 
 <Example name="chat" title="Chat demo" />
 
@@ -35,10 +35,10 @@ Pick a starter prompt, or type a question and press Enter. Scroll up while the a
 ## How it works
 
 - **The parts own the behavior, the app owns the state.** `useChat` holds the messages and streams each answer. `Conversation.Root` and `PromptInput.Root` both take its `streaming` flag: the transcript follows the end and announces "Answering…" once, and the send button turns into stop. There is no chat root component, because each app stores its messages in its own place (a route loader, a query cache, a store above the shell).
-- **One answer, one shape.** An answer is reasoning, tool calls, and text, each built from stream events by the pure `applyChatEvent`. Reasoning reads "Thinking…" until the first other event, then "Thought for N seconds". A tool call runs until its result arrives, and a stop or a failure marks it interrupted.
+- **One answer, one shape.** An answer is reasoning, tool calls, and text, each built from stream events by the pure `applyChatEvent`. Reasoning reads "Thinking…" until the first other event, then "Thought for N seconds". A tool call runs until its result arrives, and a stop or a failure marks it interrupted. `Message.Pending` sits after `Message.Content` and pulses until the answer ends.
 - **Stop keeps the text.** `stop` aborts the stream and ends the answer as stopped, so the reader keeps what arrived. A new message sent mid-answer does the same. `retry` replaces the last answer with a new one from the same messages.
-- **A failure is a notice, not a dead end.** When the stream throws, the answer keeps its text so far and shows an [Alert](/components/feedback/alert) under it, and the retry action asks again.
-- **The empty state is the first screen.** Before the first message, [Empty](/components/feedback/empty) offers starter prompts in place of the transcript. The composer stays put, so focus and the draft never move.
+- **A failure is a notice, not a dead end.** When the stream throws, the answer keeps its text so far and shows an [Alert](/components/feedback/alert) with `role="alert"` under it, so a screen reader hears it, and the retry action asks again.
+- **The empty state is the first screen.** Before the first message, [Empty](/components/feedback/empty) offers starter prompts in place of the transcript. The composer stays put, so the draft never moves, and a pressed starter or Retry hands focus to the field.
 - **Markdown streams as it arrives.** `Markdown` lexes only the unfinished block, renders at most once per frame, and renders a fence as a `CodeBlock` that highlights as the code arrives.
 
 ## The demo
@@ -60,7 +60,7 @@ import { ToolCall } from "@ngrok/mantle/tool-call";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react/ArrowClockwise";
 import { ChatsCircleIcon } from "@phosphor-icons/react/ChatsCircle";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { type ChatAnswer, type ChatFile, type ChatToolCall, useChat } from "~/features/chat";
 import { mockRespond } from "~/features/chat-mock";
 
@@ -87,6 +87,7 @@ export function ChatDemo() {
 	const [draft, setDraft] = useState("");
 	const [files, setFiles] = useState<DraftFile[]>([]);
 	const [model, setModel] = useState(models[0]?.value ?? "");
+	const fieldRef = useRef<HTMLTextAreaElement>(null);
 
 	function send(text: string) {
 		if (text.trim() === "" && files.length === 0) {
@@ -95,6 +96,8 @@ export function ChatDemo() {
 		chat.send({ text, files: files.map(({ id, name, size }) => ({ id, name, size })), model });
 		setDraft("");
 		setFiles([]);
+		// Why: a starter button leaves with the empty state, so focus must not fall to the page.
+		fieldRef.current?.focus();
 	}
 
 	const lastAnswer = chat.messages.findLast((message) => message.from === "assistant");
@@ -148,7 +151,15 @@ export function ChatDemo() {
 									<Answer
 										key={message.id}
 										answer={message}
-										onRetry={message === lastAnswer ? () => chat.retry(model) : undefined}
+										onRetry={
+											message === lastAnswer
+												? () => {
+														chat.retry(model);
+														// Why: Retry leaves while the new answer streams, so focus moves to the field.
+														fieldRef.current?.focus();
+													}
+												: undefined
+										}
 									/>
 								),
 							)}
@@ -193,6 +204,7 @@ export function ChatDemo() {
 						</Attachment.List>
 					)}
 					<PromptInput.TextArea
+						ref={fieldRef}
 						aria-label="Message the assistant"
 						name="message"
 						placeholder="Ask about your endpoints…"
@@ -228,14 +240,13 @@ export function ChatDemo() {
 /** One answer: its reasoning, its tool calls, its text, and how it ended. */
 function Answer({ answer, onRetry }: { answer: ChatAnswer; onRetry: (() => void) | undefined }) {
 	const streaming = answer.status === "streaming";
-	const empty = answer.reasoning === "" && answer.tools.length === 0 && answer.text === "";
+	const reasoningStreams = streaming && answer.reasoningSeconds == null;
 
 	return (
 		<Message.Root from="assistant">
 			<Message.Content className="flex flex-col gap-3">
-				{empty && streaming && <Message.Pending>Thinking…</Message.Pending>}
 				{answer.reasoning !== "" && (
-					<Reasoning.Root streaming={streaming && answer.reasoningSeconds == null}>
+					<Reasoning.Root streaming={reasoningStreams}>
 						<Reasoning.Trigger>
 							{answer.reasoningSeconds == null
 								? "Reasoning"
@@ -249,7 +260,7 @@ function Answer({ answer, onRetry }: { answer: ChatAnswer; onRetry: (() => void)
 				))}
 				{answer.text !== "" && <Markdown streaming={streaming}>{answer.text}</Markdown>}
 				{answer.status === "failed" && (
-					<Alert.Root intent="danger">
+					<Alert.Root intent="danger" role="alert">
 						<Alert.Icon />
 						<Alert.Content>
 							<Alert.Title>The answer stopped partway</Alert.Title>
@@ -263,6 +274,10 @@ function Answer({ answer, onRetry }: { answer: ChatAnswer; onRetry: (() => void)
 					<p className="text-muted text-sm">You stopped this answer.</p>
 				)}
 			</Message.Content>
+			{/* Why the reasoning check: Reasoning already reads "Thinking…" while it streams. */}
+			{streaming && !(reasoningStreams && answer.reasoning !== "") && (
+				<Message.Pending>Thinking…</Message.Pending>
+			)}
 			{!streaming && (
 				<Message.Actions>
 					<IconButton
@@ -586,11 +601,15 @@ Then restrict the TCP endpoint to your office network with a \`restrict-ips\` ac
 /** Waits like a network chunk, and rejects when the request aborts. */
 function wait(ms: number, signal: AbortSignal): Promise<void> {
 	return new Promise((resolve, reject) => {
-		const timer = setTimeout(resolve, ms);
-		signal.addEventListener("abort", () => {
+		const onAbort = () => {
 			clearTimeout(timer);
 			reject(signal.reason);
-		});
+		};
+		const timer = setTimeout(() => {
+			signal.removeEventListener("abort", onAbort);
+			resolve();
+		}, ms);
+		signal.addEventListener("abort", onAbort, { once: true });
 	});
 }
 
