@@ -132,6 +132,7 @@ PromptInput.Root
 
 - **Enter** submits the form.
 - **Shift+Enter** adds a line.
+- On a touch screen, **Return** adds a line, because on-screen keyboards have no Shift+Return. The person sends with `PromptInput.Submit`.
 - The Enter that confirms an input method editor (IME) candidate does not submit. This includes Safari, which ends the composition before the key event.
 - Enter does nothing while `streaming` is set, or when the form's default button is disabled. The second rule matches the [implicit submission](https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#implicit-submission) of the HTML Standard.
 
@@ -194,18 +195,18 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 The button that sends the message, and stops the answer while one streams. It sits at the end of `PromptInput.Footer`.
 
-All props from [Icon Button](/components/actions/icon-button) except `appearance`, `asChild`, `children`, `icon`, `intent`, `label`, and `type`, plus:
+All props from [Icon Button](/components/actions/icon-button) except `appearance`, `asChild`, `children`, `icon`, `intent`, `label`, `size`, and `type`, plus:
 
 | Prop         | Type     | Default          | Description                                       |
 | ------------ | -------- | ---------------- | ------------------------------------------------- |
 | `label?`     | `string` | `"Send message"` | The accessible name of the button while it sends. |
 | `stopLabel?` | `string` | `"Stop answer"`  | The accessible name of the button while it stops. |
 
-| Data Attribute     | Value                                                     | Description                                |
-| ------------------ | --------------------------------------------------------- | ------------------------------------------ |
-| `data-slot`        | `"prompt-input-submit icon-button"`                       | On the button, joined with ancestor slots. |
-| `data-icon-button` | `"true"`                                                  | Inherited from `IconButton`.               |
-| `data-appearance`  | `"filled"`                                                | The button's appearance.                   |
-| `data-intent`      | `"neutral"`                                               | The button's tone.                         |
-| `data-size`        | `"2xs"` \| `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop; defaults to `"sm"`.       |
-| `data-loading`     | present when `isLoading`                                  | Inherited from `IconButton`.               |
+| Data Attribute     | Value                               | Description                                     |
+| ------------------ | ----------------------------------- | ----------------------------------------------- |
+| `data-slot`        | `"prompt-input-submit icon-button"` | On the button, joined with ancestor slots.      |
+| `data-icon-button` | `"true"`                            | Inherited from `IconButton`.                    |
+| `data-appearance`  | `"filled"`                          | The button's appearance.                        |
+| `data-intent`      | `"neutral"`                         | The button's tone.                              |
+| `data-size`        | `"sm"`                              | The button's size, fixed so it fits the footer. |
+| `data-loading`     | present when `isLoading`            | Inherited from `IconButton`.                    |

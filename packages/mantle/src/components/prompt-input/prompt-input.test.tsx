@@ -3,6 +3,7 @@ import { userEvent } from "@testing-library/user-event";
 import { type ComponentProps, useState } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
+import { mockMatchMedia } from "../../test-utils/mock-match-media.js";
 import * as PromptInput from "./prompt-input-parts.js";
 
 type ComposerProps = {
@@ -55,6 +56,18 @@ describe("PromptInput", () => {
 		expect(onSubmit).toHaveBeenCalledTimes(1);
 		expect(onSubmit).toHaveBeenLastCalledWith("what's live?");
 		expect(screen.getByRole("textbox", { name: "Message" })).toHaveValue("what's live?");
+	});
+
+	test("on a touch screen, Return adds a line and does not submit", async () => {
+		mockMatchMedia({ "(hover: none) and (pointer: coarse)": true });
+		const user = userEvent.setup();
+		const onSubmit = vi.fn<(message: string) => void>();
+		render(<Composer onSubmit={onSubmit} />);
+
+		await user.type(screen.getByRole("textbox", { name: "Message" }), "one{Enter}two");
+
+		expect(onSubmit).not.toHaveBeenCalled();
+		expect(screen.getByRole("textbox", { name: "Message" })).toHaveValue("one\ntwo");
 	});
 
 	test("Shift+Enter adds a line and does not submit", async () => {

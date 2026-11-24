@@ -141,7 +141,8 @@ type PromptInputTextAreaProps = Omit<
 /**
  * The message field. It grows with its text up to `max-h-48`, then scrolls.
  * Enter submits the form and Shift+Enter adds a line. The Enter that confirms
- * an input method editor (IME) candidate does not submit. While an answer
+ * an input method editor (IME) candidate does not submit. On a touch screen,
+ * Return adds a line, because on-screen keyboards have no Shift+Return. While an answer
  * streams, the field stays editable and Enter does not submit.
  *
  * Enter does nothing when the form's default button is disabled, as the HTML
@@ -196,13 +197,15 @@ function PromptInputTextArea({
 			rows={rows}
 			className={cx(
 				"field-sizing-content max-h-48 min-h-16 resize-none rounded-none border-0 bg-transparent px-3 pt-3 pb-1 shadow-none",
+				// Why: the base field's touch padding is a variant, so it would win over `pt-3 pb-1`.
+				"pointer-coarse:pt-3 pointer-coarse:pb-1",
 				// The frame on `PromptInput.Root` draws focus and a drop target, so the field draws neither.
 				"focus-visible:ring-0 data-drag-over:ring-0",
 				className,
 			)}
 			onKeyDown={(event) => {
 				onKeyDown?.(event);
-				if (event.defaultPrevented || !isSendKey(event)) {
+				if (event.defaultPrevented || !isSendKey(event) || hasTouchKeyboard(event.currentTarget)) {
 					return;
 				}
 				event.preventDefault();
@@ -219,6 +222,17 @@ function PromptInputTextArea({
 			}}
 			{...props}
 		/>
+	);
+}
+
+/**
+ * Whether the person types on an on-screen keyboard, which has no
+ * Shift+Return. Return then adds a line, and the person sends with the button.
+ */
+function hasTouchKeyboard(field: HTMLTextAreaElement): boolean {
+	return (
+		field.ownerDocument.defaultView?.matchMedia("(hover: none) and (pointer: coarse)").matches ===
+		true
 	);
 }
 
@@ -324,7 +338,7 @@ function Footer({
  */
 type PromptInputSubmitProps = Omit<
 	ComponentProps<typeof IconButton>,
-	"appearance" | "asChild" | "children" | "icon" | "intent" | "label" | "type"
+	"appearance" | "asChild" | "children" | "icon" | "intent" | "label" | "size" | "type"
 > & {
 	/**
 	 * The accessible name of the button while it sends.
@@ -355,7 +369,7 @@ type PromptInputSubmitProps = Omit<
  * | `data-icon-button` | `"true"` | Inherited from `IconButton`. |
  * | `data-appearance` | `"filled"` | The button's appearance. |
  * | `data-intent` | `"neutral"` | The button's tone. |
- * | `data-size` | `"2xs"` \| `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop; defaults to `"sm"`. |
+ * | `data-size` | `"sm"` | The button's size, fixed so it fits the footer. |
  * | `data-loading` | present when `isLoading` | Inherited from `IconButton`. |
  *
  * @see https://mantle.ngrok.com/components/preview/prompt-input#promptinputsubmit
