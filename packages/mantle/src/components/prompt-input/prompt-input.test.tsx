@@ -363,6 +363,24 @@ describe("PromptInput file intake", () => {
 		expect(field).toHaveValue("before inserted after");
 	});
 
+	test.each([
+		"/home/me/report.txt",
+		"report.txt",
+		"file:///Users/me/My%20Files/report.txt",
+		"C:\\Users\\me\\report.txt",
+	])("a paste of files with their reference %s adds files alone", (reference) => {
+		const onFilesAdd = vi.fn<(files: File[]) => void>();
+		render(<FileComposer onFilesAdd={onFilesAdd} />);
+		const file = new File(["x"], "report.txt");
+
+		const notPrevented = fireEvent.paste(screen.getByRole("textbox", { name: "Message" }), {
+			clipboardData: { files: [file], getData: () => reference },
+		});
+
+		expect(onFilesAdd).toHaveBeenLastCalledWith([file]);
+		expect(notPrevented).toBe(false);
+	});
+
 	test("a paste of text alone is left to the field", () => {
 		const onFilesAdd = vi.fn<(files: File[]) => void>();
 		render(<FileComposer onFilesAdd={onFilesAdd} />);

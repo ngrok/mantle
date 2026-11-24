@@ -118,7 +118,9 @@ function Root({
 			data-slot={joinDataSlot(dataSlot, "attachment")}
 			aria-busy={busy || undefined}
 			className={cx(
-				"border-card bg-card grid max-w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 rounded-lg border py-1.5 ps-1.5 pe-1",
+				"border-card bg-card grid max-w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center rounded-lg border py-1.5 ps-1.5 pe-1",
+				// Why margins, not a gap: a grid keeps the gap beside an empty track, so a chip without a preview or remove button would gain space.
+				"[&>[data-slot~=attachment-preview]]:me-2 [&>[data-slot~=attachment-remove]]:ms-2",
 				"[&>[data-slot~=attachment-preview]]:col-start-1 [&>[data-slot~=attachment-preview]]:row-span-2 [&>[data-slot~=attachment-preview]]:row-start-1",
 				"[&>[data-slot~=attachment-name]]:col-start-2 [&>[data-slot~=attachment-name]]:row-start-1 [&>[data-slot~=attachment-size]]:col-start-2 [&>[data-slot~=attachment-size]]:row-start-2",
 				"[&>[data-slot~=attachment-remove]]:col-start-3 [&>[data-slot~=attachment-remove]]:row-span-2 [&>[data-slot~=attachment-remove]]:row-start-1",
@@ -137,7 +139,8 @@ type AttachmentPreviewProps = Omit<ComponentProps<"img">, "alt" | "children" | "
 
 /**
  * A 32-pixel thumbnail of an image file, or a file icon when `src` is not
- * set. It is decorative: `Attachment.Name` names the file.
+ * set. It is decorative: `Attachment.Name` names the file. Without `src`,
+ * `ref` and event handlers reach the icon's `<span>`, not an image.
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |

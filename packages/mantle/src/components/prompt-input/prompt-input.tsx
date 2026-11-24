@@ -268,10 +268,11 @@ function PromptInputTextArea({
 				) {
 					return;
 				}
-				if (event.clipboardData.getData("text/plain") === "") {
+				const files = Array.from(event.clipboardData.files);
+				if (namesOnlyFiles(event.clipboardData.getData("text/plain"), files)) {
 					event.preventDefault();
 				}
-				onFilesAdd(Array.from(event.clipboardData.files));
+				onFilesAdd(files);
 			}}
 			onKeyDown={(event) => {
 				onKeyDown?.(event);
@@ -304,6 +305,26 @@ function hasTouchKeyboard(field: HTMLTextAreaElement): boolean {
 		field.ownerDocument.defaultView?.matchMedia("(hover: none) and (pointer: coarse)").matches ===
 		true
 	);
+}
+
+/**
+ * Whether pasted text only names the pasted files, as file managers write a
+ * copied file's path or name next to the file. Such text is not part of the
+ * message, so the paste adds the files alone.
+ */
+function namesOnlyFiles(text: string, files: readonly File[]): boolean {
+	const lines = text.split(/\r?\n/).filter((line) => line.trim() !== "");
+	return lines.every((line) => {
+		let path = line.trim();
+		try {
+			path = decodeURIComponent(path);
+		} catch {
+			// Why: a malformed escape is a plain path; compare it as it is.
+		}
+		return files.some(
+			({ name }) => path === name || path.endsWith(`/${name}`) || path.endsWith(`\\${name}`),
+		);
+	});
 }
 
 /**
