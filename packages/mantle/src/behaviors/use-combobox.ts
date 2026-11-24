@@ -156,6 +156,8 @@ const useComboboxInput = (
 	{ autoSelect = "always" }: { autoSelect?: boolean | "always" } = {},
 ) => {
 	const { open, setOpen, listbox, inputValue, setInputValue } = combobox;
+	/** Whether focus entered the input since its last key press, so a Tab's keyup there is an entry. */
+	const entered = useRef(false);
 
 	// Why no flushSync: the list moves to `target` when it mounts, in the
 	// commit that opens it.
@@ -199,12 +201,22 @@ const useComboboxInput = (
 				openTo(autoSelect === "always" ? "first" : null);
 			}
 		},
+		onFocus: () => {
+			entered.current = true;
+		},
+		// Why the capture phase: a consumer's `onKeyDown` that cancels Tab keeps focus
+		// here, and its keyup must not count as an entry.
+		onKeyDownCapture: () => {
+			entered.current = false;
+		},
 		onKeyUp: (event: KeyboardEvent<HTMLInputElement>) => {
 			// Why the keyup: Tab's keyup lands on the control that Tab focused, so a Tab
 			// into the field opens the list as a click does. Focus from script, such as a
 			// dialog's autofocus or the return from the footer, opens nothing.
-			const modified = event.altKey || event.ctrlKey || event.metaKey;
-			if (event.key === "Tab" && !modified && !open) {
+			// Why Alt counts: Safari moves between fields and links with Option+Tab.
+			const entry = event.key === "Tab" && !event.ctrlKey && !event.metaKey && entered.current;
+			entered.current = false;
+			if (entry && !open) {
 				openTo(autoSelect === "always" ? "first" : null);
 			}
 		},

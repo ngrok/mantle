@@ -186,7 +186,9 @@ const Input = ({
 	onBlur,
 	onChange,
 	onClick,
+	onFocus,
 	onKeyDown,
+	onKeyDownCapture,
 	onKeyUp,
 	ref,
 	validation: _validation,
@@ -242,6 +244,14 @@ const Input = ({
 			onClick={composeHandlers(onClick, inputProps.onClick)}
 			onKeyDown={composeHandlers(onKeyDown, inputProps.onKeyDown)}
 			onKeyUp={composeHandlers(onKeyUp, inputProps.onKeyUp)}
+			onFocus={(event) => {
+				onFocus?.(event);
+				inputProps.onFocus();
+			}}
+			onKeyDownCapture={(event) => {
+				onKeyDownCapture?.(event);
+				inputProps.onKeyDownCapture();
+			}}
 		/>
 	);
 };

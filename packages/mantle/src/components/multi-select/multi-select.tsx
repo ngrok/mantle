@@ -656,6 +656,7 @@ const Input = ({
 	onClick,
 	onFocus,
 	onKeyDown,
+	onKeyDownCapture,
 	onKeyUp,
 	placeholder,
 	ref,
@@ -686,7 +687,12 @@ const Input = ({
 				onChange={composeHandlers(onChange, inputProps.onChange)}
 				onClick={composeHandlers(onClick, inputProps.onClick)}
 				onKeyUp={composeHandlers(onKeyUp, inputProps.onKeyUp)}
+				onKeyDownCapture={(event) => {
+					onKeyDownCapture?.(event);
+					inputProps.onKeyDownCapture();
+				}}
 				onFocus={composeHandlers(onFocus, (event) => {
+					inputProps.onFocus();
 					// Why only from a tag: focus that returns from a tag keeps the list
 					// open. Focus from outside, such as a dialog's autofocus, opens nothing.
 					const trigger = event.currentTarget.closest('[data-slot~="multi-select-trigger"]');

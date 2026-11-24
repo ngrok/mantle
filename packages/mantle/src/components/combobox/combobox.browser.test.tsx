@@ -775,4 +775,40 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		await userEvent.keyboard("{Escape}");
 		expect(input).toHaveAttribute("aria-expanded", "false");
 	});
+	test("a Tab that the input's onKeyDown cancels opens nothing; an Option+Tab entry opens the list", async () => {
+		render(
+			<>
+				<Combobox.Root>
+					<Combobox.Input
+						aria-label="Release"
+						onKeyDown={(event) => {
+							if (event.key === "Tab") {
+								event.preventDefault();
+							}
+						}}
+					/>
+					<Combobox.Content>
+						<Combobox.Item value="v1.2.0" />
+					</Combobox.Content>
+				</Combobox.Root>
+				<Combobox.Root>
+					<Combobox.Input aria-label="Region" />
+					<Combobox.Content>
+						<Combobox.Item value="us-east-1" />
+					</Combobox.Content>
+				</Combobox.Root>
+			</>,
+		);
+		const release = screen.getByRole("combobox", { name: "Release" });
+		release.focus();
+		await userEvent.keyboard("{Tab}");
+		expect(release).toHaveFocus();
+		expect(release).toHaveAttribute("aria-expanded", "false");
+
+		// Why a dispatched keyup: only Safari moves focus on Option+Tab, and its keyup lands on the field.
+		const region = screen.getByRole("combobox", { name: "Region" });
+		region.focus();
+		region.dispatchEvent(new KeyboardEvent("keyup", { key: "Tab", altKey: true, bubbles: true }));
+		await expect.poll(() => region.getAttribute("aria-expanded")).toBe("true");
+	});
 });
