@@ -75,10 +75,11 @@ describe("Combobox", () => {
 			const user = userEvent.setup();
 			const onItemClick = vi.fn<() => void>();
 			const onLinkClick = vi.fn<() => void>();
+			const onListCapture = vi.fn<() => void>();
 			render(
 				<Combobox.Root>
 					<Combobox.Input aria-label="Fruit" />
-					<Combobox.Content>
+					<Combobox.Content onClickCapture={onListCapture} onAuxClickCapture={onListCapture}>
 						<Combobox.Item value="Apple" />
 						<Combobox.Item value="Docs" disabled asChild onClick={onItemClick}>
 							<a href="#docs" onClick={onLinkClick} onClickCapture={onLinkClick}>
@@ -101,6 +102,14 @@ describe("Combobox", () => {
 			expect(onItemClick).toHaveBeenCalledTimes(0);
 			expect(onLinkClick).toHaveBeenCalledTimes(0);
 			expect(input).toHaveValue("");
+			expect(onListCapture).toHaveBeenCalledTimes(0);
+
+			// Why: the guard must still run the caller's capture handlers for an enabled item.
+			const apple = screen.getByRole("option", { name: "Apple" });
+			fireEvent(apple, new MouseEvent("auxclick", { bubbles: true, cancelable: true, button: 1 }));
+			fireEvent.click(apple);
+			expect(onListCapture).toHaveBeenCalledTimes(2);
+			expect(input).toHaveValue("Apple");
 		});
 
 		test("renders as an option, and a click writes its value into the input", async () => {
