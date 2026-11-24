@@ -318,7 +318,11 @@ function followEnd(
 	});
 	const onScroll = () => {
 		// Why `>= lastTop`: the first step of a smooth scroll up can still be near the end.
-		if (distanceFromEnd() <= END_THRESHOLD && viewport.scrollTop >= lastTop) {
+		// Why `<= 1`: a taller viewport pulls the view up to exactly the end, so the reader is there.
+		if (
+			distanceFromEnd() <= END_THRESHOLD &&
+			(viewport.scrollTop >= lastTop || distanceFromEnd() <= 1)
+		) {
 			isFollowing = true;
 		} else if (viewport.scrollTop < lastTop && distanceFromEnd() > END_THRESHOLD) {
 			isFollowing = false;
@@ -363,8 +367,16 @@ function followEnd(
 			smoothTarget = viewport.scrollTop + 2;
 		}
 	};
+	// Why on the document: it runs after React's handlers, so their preventDefault is visible.
+	// Why the skips: a nested scroller takes the key, and Space on a button presses it.
 	const onKeyDown = (event: KeyboardEvent) => {
-		if (event.defaultPrevented || isEditable(event.target)) {
+		if (
+			!event.composedPath().includes(viewport) ||
+			event.defaultPrevented ||
+			isEditable(event.target) ||
+			nestedScrollerTakes(event.target, viewport) ||
+			(event.key === " " && event.target instanceof Element && event.target.closest("button"))
+		) {
 			return;
 		}
 		const up =
@@ -385,7 +397,7 @@ function followEnd(
 	viewport.addEventListener("scroll", onScroll, { passive: true });
 	viewport.addEventListener("scrollend", onScrollEnd);
 	viewport.addEventListener("wheel", onWheel, { passive: true });
-	viewport.addEventListener("keydown", onKeyDown);
+	viewport.ownerDocument.addEventListener("keydown", onKeyDown);
 	// Why: a touch drag or a scrollbar drag starts with a press in the viewport.
 	viewport.addEventListener("pointerdown", holdSmoothScroll, { passive: true });
 	follow();
@@ -397,7 +409,7 @@ function followEnd(
 			viewport.removeEventListener("scroll", onScroll);
 			viewport.removeEventListener("scrollend", onScrollEnd);
 			viewport.removeEventListener("wheel", onWheel);
-			viewport.removeEventListener("keydown", onKeyDown);
+			viewport.ownerDocument.removeEventListener("keydown", onKeyDown);
 			viewport.removeEventListener("pointerdown", holdSmoothScroll);
 		},
 		scrollToEnd: (behavior) => {

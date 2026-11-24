@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { createRef, type Ref, StrictMode } from "react";
+import { createRef, type ReactNode, type Ref, StrictMode } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 import { commands, userEvent as browserUser } from "vitest/browser";
@@ -23,20 +23,24 @@ function Transcript({
 	contentRef,
 	viewportRef,
 	width,
+	height = viewportStyle.height,
 	label = "Conversation",
+	children,
 }: {
 	turns: Turn[];
 	contentRef?: Ref<HTMLOListElement>;
 	viewportRef?: Ref<HTMLDivElement>;
 	width?: number;
+	height?: number;
 	label?: string;
+	children?: ReactNode;
 }) {
 	return (
 		<Conversation.Root>
 			<Conversation.Viewport
 				ref={viewportRef}
 				aria-label={label}
-				style={{ ...viewportStyle, width }}
+				style={{ ...viewportStyle, width, height }}
 			>
 				<Conversation.Content ref={contentRef}>
 					{turns.map((turn) => (
@@ -44,6 +48,7 @@ function Transcript({
 							<Message.Content style={{ whiteSpace: "pre-wrap" }}>{turn.text}</Message.Content>
 						</Message.Root>
 					))}
+					{children}
 				</Conversation.Content>
 			</Conversation.Viewport>
 			<Conversation.ScrollButton />
@@ -580,5 +585,92 @@ describe("Conversation", () => {
 		} finally {
 			streaming = false;
 		}
+	});
+	test("follows the next update after a taller viewport pulls the reader to the end", async () => {
+		const answer: Turn = { id: "a1", from: "assistant", text: longAnswer };
+		const { rerender } = render(<Transcript turns={[answer]} />);
+		await nextFrame();
+		viewport().scrollTo({ top: viewport().scrollTop - 100, behavior: "instant" });
+		await waitFor(() => expect(root()).toHaveAttribute("data-scrolled-up"));
+		// Why: the prompt input shrinks after a send, or the window grows.
+		rerender(<Transcript turns={[answer]} height={400} />);
+		await waitFor(() => expect(root()).not.toHaveAttribute("data-scrolled-up"));
+		rerender(
+			<Transcript
+				turns={[{ ...answer, text: `${longAnswer}\nMore 1\nMore 2\nMore 3` }]}
+				height={400}
+			/>,
+		);
+		await nextFrame();
+		await nextFrame();
+		expect(distanceFromEnd(viewport())).toBeLessThanOrEqual(1);
+	});
+
+	test.each([
+		{
+			name: "an ArrowUp a React handler takes",
+			key: "{ArrowUp}",
+			extra: (
+				<li>
+					<button
+						type="button"
+						onKeyDown={(event) => event.key === "ArrowUp" && event.preventDefault()}
+					>
+						Option
+					</button>
+				</li>
+			),
+			target: () => screen.getByRole("button", { name: "Option" }),
+		},
+		{
+			name: "an ArrowUp a nested scroller takes",
+			key: "{ArrowUp}",
+			extra: (
+				<li>
+					<pre
+						data-testid="nested"
+						// oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- Why: a focusable scroller, as a code block is.
+						tabIndex={0}
+						style={{ maxHeight: 40, overflowY: "auto", margin: 0 }}
+					>
+						{Array.from({ length: 20 }, (_, index) => `Row ${index + 1}`).join("\n")}
+					</pre>
+				</li>
+			),
+			target: () => {
+				const pre = screen.getByTestId("nested");
+				pre.scrollTop = 100;
+				return pre;
+			},
+		},
+		{
+			name: "a Shift+Space that presses a button",
+			key: "{Shift>} {/Shift}",
+			extra: (
+				<li>
+					<button type="button">Copy</button>
+				</li>
+			),
+			target: () => screen.getByRole("button", { name: "Copy" }),
+		},
+	])("keeps following after $name", async ({ key, extra, target }) => {
+		const answer: Turn = { id: "a1", from: "assistant", text: longAnswer };
+		const { rerender } = render(<Transcript turns={[answer]}>{extra}</Transcript>);
+		await nextFrame();
+		target().focus({ preventScroll: true });
+		await waitFor(() => expect(distanceFromEnd(viewport())).toBeLessThanOrEqual(1));
+		const top = viewport().scrollTop;
+		await browserUser.keyboard(key);
+		await nextFrame();
+		expect(viewport().scrollTop).toBe(top);
+		rerender(
+			<Transcript turns={[{ ...answer, text: `${longAnswer}\nMore 1\nMore 2\nMore 3` }]}>
+				{extra}
+			</Transcript>,
+		);
+		await nextFrame();
+		await nextFrame();
+		expect(distanceFromEnd(viewport())).toBeLessThanOrEqual(1);
+		expect(root()).not.toHaveAttribute("data-scrolled-up");
 	});
 });
