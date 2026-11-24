@@ -622,7 +622,9 @@ Errors are control flow. `console.error` is not error handling.
   element's role, name, and state. A consumer finds it with `getByRole` and acts on it with Playwright `click`,
   `check`, `fill`, or `selectOption`, or with Testing Library `user.*`. That holds in jsdom and in a real
   browser, with no `force` and no knowledge of mantle's markup. Never document a `force` workaround for a
-  regression; fix the part.
+  regression; fix the part. A `<component>.consumer.test.tsx` holds this contract
+  ([§8](#8-tests)), and a `force` in a mantle test needs a `// Why force:` comment
+  (lint: `mantle/require-force-reason`).
 - An accessible name comes from the DOM, not from CSS generated content, which jsdom and Testing Library
   cannot read. A default name or live region yields to any name the consumer set, and every idref points at
   an element that exists.
@@ -1069,6 +1071,10 @@ Minimums:
   only classes and `data-slot`.)
 - The ARIA and keyboard contract the API promises: roles, `aria-current` / `aria-expanded` / `aria-controls`
   wiring, focus movement, keyboard shortcuts.
+- A part that enhances a native element or an ARIA pattern has a `<component>.consumer.test.tsx`: one test
+  that drives the main use with `getByRole` and `user.*` only, as a consumer's suite does
+  ([§3.6](#36-accessibility-and-motion)). The `consumer` project runs it in plain jsdom with no shims. When it
+  fails on a missing API, guard the call in the part; never add a shim to the project.
 - Reduced motion, if the component animates.
 - Business logic and its edge cases: state machines, parsing/formatting, validation, conditional rendering.
 - Every bug fix adds a regression test that fails before the fix and passes after.

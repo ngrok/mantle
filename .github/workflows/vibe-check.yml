@@ -199,7 +199,7 @@ jobs:
 
   # Happy-dom/unit shards. `@ngrok/mantle` is the only package with browser-mode
   # tests, so each shard runs non-mantle tests normally and then runs Mantle's
-  # `unit` Vitest project explicitly. PLAYWRIGHT_WS_ENDPOINT is set to a dummy
+  # `unit` and `consumer` Vitest projects explicitly. PLAYWRIGHT_WS_ENDPOINT is set to a dummy
   # value so the root //#install:playwright turbo dependency no-ops on this path;
   # browser tests run in the separate `browser-test` job below.
   #
@@ -287,11 +287,11 @@ jobs:
             --concurrency="${TURBO_TEST_CONCURRENCY}" \
             --continue=always \
             --filter='@ngrok/mantle' \
-            -- --project=unit --shard="${{ matrix.shard }}/${{ matrix.shard_total }}" --maxWorkers="${TURBO_TEST_CONCURRENCY}" || mantle_status=$?
+            -- --project=unit --project=consumer --shard="${{ matrix.shard }}/${{ matrix.shard_total }}" --maxWorkers="${TURBO_TEST_CONCURRENCY}" || mantle_status=$?
 
           echo "non-mantle test status: ${non_mantle_status}"
           echo "mantle-vite-plugins test status: ${vite_plugins_status}"
-          echo "mantle unit test status: ${mantle_status}"
+          echo "mantle unit and consumer test status: ${mantle_status}"
 
           if [[ "${non_mantle_status}" -ne 0 || "${vite_plugins_status}" -ne 0 || "${mantle_status}" -ne 0 ]]; then
             exit 1
@@ -457,7 +457,7 @@ jobs:
           pnpm exec turbo run test --cache=local:,remote: --continue=always --output-logs=errors-only \
             --filter='!@ngrok/mantle'
           pnpm exec turbo run test --cache=local:,remote: --continue=always --output-logs=errors-only \
-            --filter='@ngrok/mantle' -- --project=unit
+            --filter='@ngrok/mantle' -- --project=unit --project=consumer
 
       # Save only after a clean run, because a crash or a failed test can leave a partial cache.
       # The job stays green on a failure, because the `test` shards already test this commit.

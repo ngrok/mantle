@@ -462,3 +462,41 @@ describe("prop-vocabulary", () => {
 		expect(lint({ rule: "prop-vocabulary", fileName: "a.ts", source })).toEqual([]);
 	});
 });
+
+describe("require-force-reason", () => {
+	it("flags a force press with no reason in its paragraph", () => {
+		const source = [
+			"// Why force: the radio covers its text.",
+			"await user.click(a, { force: true });",
+			"",
+			"await user.click(b, { force: true });",
+			"",
+			"// Why wait: the menu animates.",
+			"await user.click(c, { force: true }); // see http://x/Why force",
+			"",
+		].join("\n");
+
+		expect(lint({ rule: "require-force-reason", fileName: "a.test.ts", source })).toEqual([
+			"require-force-reason",
+			"require-force-reason",
+		]);
+	});
+
+	it("allows a reason above the call, beside it, or inside it, and a force outside a pointer action", () => {
+		const source = [
+			"// Why force: the radio covers its text.",
+			"await user.click(a, { force: true });",
+			"await user.click(b, { force: true });",
+			"",
+			"await user.click(c, {",
+			"\tforce: true, // Why force: the row covers it.",
+			"});",
+			"",
+			"const options = { force: true };",
+			'fs.rmSync("dir", { recursive: true, force: true });',
+			"",
+		].join("\n");
+
+		expect(lint({ rule: "require-force-reason", fileName: "a.test.ts", source })).toEqual([]);
+	});
+});

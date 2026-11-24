@@ -267,6 +267,7 @@
         "mantle/no-config-teardown": "error",
         "mantle/no-happy-dom-to-be-visible": "error",
         "mantle/no-only-to-be-defined": "error",
+        "mantle/require-force-reason": "error",
         "mantle/no-bare-to-have-been-called": "error",
         "mantle/no-presence-matcher-on-get-by": "error",
         "mantle/no-process-env-write": "error",

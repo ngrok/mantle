@@ -40,7 +40,8 @@ export function getPrefersReducedMotion(): boolean {
 	if (!canUseDOM()) {
 		return true;
 	}
-	return !window.matchMedia(query).matches;
+	// Why optional: jsdom has no `matchMedia`; reduced motion stays the default there.
+	return !(window.matchMedia?.(query).matches ?? false);
 }
 
 /**
