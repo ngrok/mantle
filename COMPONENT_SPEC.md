@@ -733,6 +733,16 @@ cure. Read the roster there rather than restating it here, because an enumerated
 - A component that a page holds many times (a row, a cell, a card, a chart) costs its page a measured amount.
   Share one listener or one observer between the instances. Do no work at mount for an instance that is off
   screen.
+- **A selector costs each element it can match.** Chromium tries a rule on each element when its last
+  compound has no class, id, attribute, or tag (`*`, `:hover`, `:not(.x)`). Keep a class outside `:is()`, so
+  that Chromium's ancestor test can skip the rule. Never write:
+  - a structural pseudo-class before a combinator (`[&>tr:last-child>*]`);
+  - a sibling combinator before a universal subject (`[&+*]`, `[&>tr+tr>*]`);
+  - a `*:` or `**:` variant. Write `[&>*]:` or `[&_*]:`.
+
+  The lint rules are `mantle/no-structural-combinator` and `mantle/no-unanchored-child-variant`, and
+  `check:css-selectors` checks stylesheets. A kept exception has a reason with its measured numbers.
+
 - A leaf component imports no second component family, and no module has a side effect on import
   ([§1.7](#17-forbidden-api-shapes)).
 - Do not add `useMemo`, `useCallback`, or `memo` for speed. Memoization belongs only where it pays.
