@@ -544,7 +544,7 @@ function menuBoxOf(element: HTMLElement): DOMRect {
 	return menu.getBoundingClientRect();
 }
 
-describe("DropdownMenu parity with Radix (browser)", () => {
+describe("DropdownMenu parity with its former Radix menu (browser)", () => {
 	test("Content and SubContent with asChild render the menu on the child and forward the ref", async () => {
 		const user = userEvent.setup();
 		let content: HTMLElement | null = null;

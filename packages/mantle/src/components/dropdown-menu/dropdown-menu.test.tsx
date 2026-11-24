@@ -219,7 +219,7 @@ describe("DropdownMenu", () => {
 	});
 
 	describe("loop", () => {
-		// Radix defaults `loop` to false; the wrap-around is mantle's default.
+		// `loop` defaults to `true`, so the menu wraps around.
 		test("ArrowDown from the last item wraps to the first", async () => {
 			const user = userEvent.setup();
 			render(

@@ -234,7 +234,7 @@ const Item = ({
 				)}
 				{...props}
 				// After the spread so a consumer's own capture handler can't shadow the
-				// disabled guard. Radix Slot composes the child's own onClick FIRST (in
+				// disabled guard. `Slot` composes the child's own onClick FIRST (in
 				// the bubble phase), so the bubble-phase swallow above lands too late to
 				// stop a router <Link> / consumer handler on the child. A capture-phase
 				// preventDefault runs before any bubble onClick, so the child sees

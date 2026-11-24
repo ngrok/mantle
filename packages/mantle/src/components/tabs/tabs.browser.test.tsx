@@ -232,9 +232,9 @@ test("a horizontal list's triggers line up with the separator at both scroll end
 });
 
 /**
- * A controlled root that never takes the value it is handed. Radix focuses the
- * trigger inside its own mousedown handler, and that focus activates the
- * trigger again before any state flushes, so the dedupe depends on the order
+ * A controlled root that never takes the value it is handed. `useTabs` focuses
+ * the tab inside its mousedown handler, and its focus handler must skip that
+ * tab before any state flushes, so the dedupe depends on the order
  * a real mousedown, its focus, and the microtask after them run in. A
  * synthetic mousedown shares one stack with the focus by construction, so
  * only Chromium pins that order.
@@ -368,7 +368,7 @@ test("a press that moves on an asChild link starts no drag", async () => {
 	expect(dragStarted).toBe(false);
 });
 
-// Why: in manual mode the Radix focus handler activates nothing, so a link
+// Why: in manual mode, focus activates nothing, so a link
 // trigger that skips the press must activate on its click.
 test("a click on an asChild link activates its tab in manual activation mode", async () => {
 	render(

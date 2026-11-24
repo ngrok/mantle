@@ -42,8 +42,8 @@ describe("Switch", () => {
 	});
 
 	describe("readOnly", () => {
-		// Radix's Switch has no read-only mode, so the `aria-readonly` announcement
-		// and the click guard behind it are both mantle's own.
+		// A `<button>` has no read-only state, so the `aria-readonly` announcement
+		// and the click guard behind it are both `Switch`'s own.
 		test("exposes aria-readonly and does not toggle on click, and the click skips the caller's onClick", async () => {
 			const user = userEvent.setup();
 			const onCheckedChange = vi.fn<(checked: boolean) => void>();

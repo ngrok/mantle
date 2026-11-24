@@ -2,7 +2,7 @@
  * A dictionary of class names to truthy or falsy values, as in `clsx`.
  */
 export type ClassDictionary = {
-	// Why `any`: a render-function className such as Radix's `className={(state) => …}` fits
+	// Why `any`: a value such as a render-function className `(state) => …` fits
 	// clsx's `Record<string, any>` but not an `unknown`-valued index signature.
 	// oxlint-disable-next-line typescript/no-explicit-any -- Why: clsx type parity.
 	[className: string]: any;

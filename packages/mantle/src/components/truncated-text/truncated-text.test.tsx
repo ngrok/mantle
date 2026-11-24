@@ -522,7 +522,7 @@ describe("TruncatedText", () => {
 			);
 			await measured();
 			const root = screen.getByTestId("value");
-			// Why fake timers: with no delay, Radix still opens in a timeout.
+			// Why fake timers: with no delay, `Tooltip` still opens in a timeout.
 			vi.useFakeTimers({ toFake: ["setTimeout"] });
 			try {
 				// Why one act: the tooltip mounts in the commit after both events.
@@ -771,7 +771,7 @@ describe("TruncatedText", () => {
 
 			await user.hover(screen.getByTestId("value"));
 
-			// Radix closes every other tooltip when a trigger opens, so this one
+			// `Tooltip` closes every other tooltip when a trigger opens, so this one
 			// survives only when the fitting value never asks to open.
 			expect(screen.getByRole("tooltip")).toHaveTextContent("Copy endpoint URL");
 		});

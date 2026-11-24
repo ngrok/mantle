@@ -776,7 +776,7 @@ function Input({
 							onBlur?.(event);
 							// Focus that moves into the popover, such as a press on a
 							// footer link, keeps the list open, or the link unmounts
-							// before its click. Radix closes the list when focus leaves it.
+							// before its click. Focus that goes anywhere else closes the list.
 							const target = event.relatedTarget;
 							if (event.defaultPrevented || contentRef.current?.contains(target) === true) {
 								return;
