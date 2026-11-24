@@ -96,17 +96,18 @@ describe("Combobox", () => {
 	describe("Combobox.Item", () => {
 		// Red if a disabled item runs a click handler or follows its link: a disabled "create" row
 		// then acts. `Slot` runs the child's handler first, so only a capture guard stops it.
-		test("a disabled asChild link runs no click handler and does not navigate", async () => {
+		test("a disabled asChild link runs no click handler and opens on neither a click nor a middle click", async () => {
 			const user = userEvent.setup();
 			const onItemClick = vi.fn<() => void>();
 			const onLinkClick = vi.fn<() => void>();
+			const onListCapture = vi.fn<() => void>();
 			render(
 				<Combobox.Root>
 					<Combobox.Input aria-label="Fruit" />
-					<Combobox.Content>
+					<Combobox.Content onClickCapture={onListCapture} onAuxClickCapture={onListCapture}>
 						<Combobox.Item value="Apple" />
 						<Combobox.Item value="Docs" disabled asChild onClick={onItemClick}>
-							<a href="#docs" onClick={onLinkClick}>
+							<a href="#docs" onClick={onLinkClick} onClickCapture={onLinkClick}>
 								Docs
 							</a>
 						</Combobox.Item>
@@ -116,12 +117,24 @@ describe("Combobox", () => {
 			const input = screen.getByRole("combobox", { name: "Fruit" });
 
 			await user.click(input);
-			const notCanceled = fireEvent.click(await screen.findByRole("option", { name: "Docs" }));
+			const docs = await screen.findByRole("option", { name: "Docs" });
 
-			expect(notCanceled).toBe(false);
+			expect(fireEvent.click(docs)).toBe(false);
+			// Why: a middle click fires `auxclick`, which opens a link in a new tab.
+			expect(
+				fireEvent(docs, new MouseEvent("auxclick", { bubbles: true, cancelable: true, button: 1 })),
+			).toBe(false);
 			expect(onItemClick).toHaveBeenCalledTimes(0);
 			expect(onLinkClick).toHaveBeenCalledTimes(0);
 			expect(input).toHaveValue("");
+			expect(onListCapture).toHaveBeenCalledTimes(0);
+
+			// Why: the guard must still run the caller's capture handlers for an enabled item.
+			const apple = screen.getByRole("option", { name: "Apple" });
+			fireEvent(apple, new MouseEvent("auxclick", { bubbles: true, cancelable: true, button: 1 }));
+			fireEvent.click(apple);
+			expect(onListCapture).toHaveBeenCalledTimes(2);
+			expect(input).toHaveValue("Apple");
 		});
 
 		test("renders as an option, and a click writes its value into the input", async () => {

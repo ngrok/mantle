@@ -23,7 +23,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import invariant from "tiny-invariant";
-import { ignoreClick } from "../../behaviors/compose-handlers.js";
+import { disabledItemGuard } from "../../behaviors/compose-handlers.js";
 import { enterModal } from "../../behaviors/enter-modal.js";
 import { swallowOutsideClick } from "../../behaviors/swallow-outside-click.js";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
@@ -1058,6 +1058,7 @@ const Content = ({
 					)}
 					ref={composedRef}
 					{...props}
+					{...disabledItemGuard(props)}
 					onClick={(event: MouseEvent<HTMLDivElement>) => {
 						// Why: a click in the menu must not reach a clickable parent of the trigger.
 						event.stopPropagation();
@@ -1146,9 +1147,6 @@ function useItemBehavior({
 			pointerDown.current = false;
 		},
 		onClick: (event: MouseEvent<HTMLDivElement>) => select(event.currentTarget),
-		// Why only when disabled: `withHandlers` spreads these props over the caller's, so an
-		// enabled item keeps the caller's own `onClickCapture`.
-		...(disabled && { onClickCapture: ignoreClick }),
 		onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
 			if (event.target !== event.currentTarget || disabled) {
 				return;
@@ -1628,6 +1626,7 @@ const SubContent = ({
 					className={cx(floatClassName, panelClassName, asChild && scrollClassName, className)}
 					ref={composedRef}
 					{...props}
+					{...disabledItemGuard(props)}
 					onClick={(event: MouseEvent<HTMLDivElement>) => {
 						event.stopPropagation();
 						onClick?.(event);

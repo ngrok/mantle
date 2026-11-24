@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { StrictMode, type ComponentProps } from "react";
 import { describe, expect, test, vi } from "vitest";
@@ -378,6 +378,28 @@ describe("Command.Root keyboard", () => {
 		await user.click(screen.getByRole("option", { name: "Calculator" }));
 
 		expect(onClick).toHaveBeenCalledTimes(0);
+		expect(onSelect).toHaveBeenCalledTimes(0);
+	});
+
+	// Why: `Slot` runs a child's own `onClickCapture` before a guard on the item.
+	test("a disabled asChild link runs no handler of its own and does not navigate", () => {
+		const onLinkClick = vi.fn<() => void>();
+		const onSelect = vi.fn<(value: string) => void>();
+		render(
+			<Command.Root>
+				<Command.Input />
+				<Command.List>
+					<Command.Item asChild disabled onSelect={onSelect} value="/docs">
+						<a href="#docs" onClick={onLinkClick} onClickCapture={onLinkClick}>
+							Docs
+						</a>
+					</Command.Item>
+				</Command.List>
+			</Command.Root>,
+		);
+
+		expect(fireEvent.click(screen.getByRole("option", { name: "Docs" }))).toBe(false);
+		expect(onLinkClick).toHaveBeenCalledTimes(0);
 		expect(onSelect).toHaveBeenCalledTimes(0);
 	});
 

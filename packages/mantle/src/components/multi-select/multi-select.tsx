@@ -3,7 +3,7 @@
 import type { ComponentProps, KeyboardEvent, PropsWithChildren, ReactNode } from "react";
 import { cloneElement, createContext, isValidElement, use, useId, useRef, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
-import { composeHandlers } from "../../behaviors/compose-handlers.js";
+import { composeHandlers, disabledItemGuard } from "../../behaviors/compose-handlers.js";
 import { useComboboxInput, useComboboxPopup } from "../../behaviors/use-combobox.js";
 import { childId, useOption } from "../../behaviors/use-listbox.js";
 import { useMultiSelect } from "../../behaviors/use-multi-select.js";
@@ -857,6 +857,7 @@ const OpenContent = ({
 						<List
 							{...props}
 							{...listbox.listboxProps}
+							{...disabledItemGuard(props)}
 							onMouseDown={composeHandlers(props.onMouseDown, (event) => {
 								// Why: the footer is in this list's React tree, so its presses reach this handler.
 								if (event.target instanceof Node && event.currentTarget.contains(event.target)) {

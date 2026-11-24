@@ -799,6 +799,36 @@ describe("MultiSelect", () => {
 			expect(banana).toHaveAttribute("aria-selected", "false");
 		});
 
+		test("a disabled asChild link runs no handler of its own and opens on neither a click nor a middle click", async () => {
+			const user = userEvent.setup();
+			const onLinkClick = vi.fn<() => void>();
+			render(
+				<MultiSelect.Root>
+					<MultiSelect.Trigger>
+						<MultiSelect.Input aria-label="Fruits" />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+						<MultiSelect.Item value="docs" disabled asChild>
+							<a href="#docs" onClick={onLinkClick} onClickCapture={onLinkClick}>
+								Docs
+							</a>
+						</MultiSelect.Item>
+					</MultiSelect.Content>
+				</MultiSelect.Root>,
+			);
+
+			await user.click(screen.getByRole("combobox", { name: "Fruits" }));
+			const docs = await screen.findByRole("option", { name: "Docs" });
+
+			expect(fireEvent.click(docs)).toBe(false);
+			expect(
+				fireEvent(docs, new MouseEvent("auxclick", { bubbles: true, cancelable: true, button: 1 })),
+			).toBe(false);
+			expect(onLinkClick).toHaveBeenCalledTimes(0);
+			expect(docs).toHaveAttribute("aria-selected", "false");
+		});
+
 		test("locking a value while the popover is open keeps its item selected on click", async () => {
 			const user = userEvent.setup();
 			const { rerender } = render(<LockableSubject />);

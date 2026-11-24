@@ -13,7 +13,7 @@ import {
 	useState,
 	useSyncExternalStore,
 } from "react";
-import { composeHandlers, ignoreClick } from "../../behaviors/compose-handlers.js";
+import { composeHandlers, disabledItemGuard } from "../../behaviors/compose-handlers.js";
 import { useListbox } from "../../behaviors/use-listbox.js";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { WithAsChild } from "../../types/as-child.js";
@@ -831,6 +831,7 @@ const CommandList = ({
 				"scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y",
 				className,
 			)}
+			{...disabledItemGuard(props)}
 			onMouseDown={composeHandlers(onMouseDown, (event) => {
 				// Why: a press inside the list must not move focus off `Command.Input`.
 				event.preventDefault();
@@ -1198,7 +1199,6 @@ const CommandItem = ({
 				onClick?.(event);
 				command.select(event.currentTarget);
 			}}
-			{...(disabled && { onClickCapture: ignoreClick })}
 		/>
 	);
 };
