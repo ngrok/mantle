@@ -440,8 +440,8 @@ const getTabPanelProps = (
 			// HTML lowercases it. React warns about it in development.
 			...(hiddenUntilFound && !selected ? { HIDDEN: "until-found" } : {}),
 			// Why: `until-found` hides only the panel's contents, so the browser
-			// and the role queries of tests still expose an empty, labeled
-			// tabpanel. Find-in-page ignores `aria-hidden`.
+			// and test role queries still expose an empty, labeled tabpanel.
+			// Find-in-page ignores `aria-hidden`.
 			"aria-hidden": (hiddenUntilFound && !selected) || undefined,
 		},
 		revealRef: hiddenUntilFound

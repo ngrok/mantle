@@ -1288,6 +1288,7 @@ describe("Tabs keyboard, focus, and ARIA contract", () => {
 		await vi.waitFor(() => {
 			expect(tab("B")).toHaveAttribute("aria-selected", "true");
 		});
+		expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel B");
 		expect(container.querySelector('[role="tabpanel"]')).toHaveAttribute("hidden", "until-found");
 		// Why the filter: React warns about the uppercase `HIDDEN` name on purpose.
 		const unexpected = errors.mock.calls
