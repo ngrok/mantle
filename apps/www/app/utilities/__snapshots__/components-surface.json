@@ -484,7 +484,11 @@
     ],
     "aliases": [
       "check box",
-      "tickbox"
+      "tickbox",
+      "checkbox group",
+      "checkbox cards",
+      "selectable cards",
+      "multi-select cards"
     ],
     "siblings": [
       {
@@ -500,7 +504,7 @@
         "boundary": "the checkbox needs a title and a description beside it."
       }
     ],
-    "useWhen": "Turn one or more independent options on or off in a form, with an indeterminate state for a partial selection."
+    "useWhen": "Turn one or more independent options on or off in a form, with an indeterminate state for a partial selection. `CheckboxGroup` shows the options as selectable cards for a \"select all that apply\" question."
   },
   {
     "name": "Choice",

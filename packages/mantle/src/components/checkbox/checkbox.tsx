@@ -54,7 +54,8 @@ type Props = Omit<ComponentProps<"input">, "type" | "checked" | "defaultChecked"
  * label with a supplementary description.
  *
  * @useWhen Turn one or more independent options on or off in a form, with an indeterminate state
- * for a partial selection.
+ * for a partial selection. `CheckboxGroup` shows the options as selectable cards for a "select all
+ * that apply" question.
  *
  * @siblings
  * - `Switch`: one setting turns on or off and needs no indeterminate state.

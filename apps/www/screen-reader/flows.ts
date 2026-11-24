@@ -37,6 +37,7 @@ const COMBOBOX = "combo ?box|pop-up button|popup button|listbox button";
 const MENU = "menu";
 const MENUITEM = "menu ?item|menuitem";
 const RADIO = "radio( button)?";
+const CHECKBOX = "check ?box";
 const SWITCH = "switch|toggle button";
 const TAB = "\\btab\\b";
 const CHECKED = "(?<!not |un)checked|(?<!not )selected|(?:^|\\| )on\\b";
@@ -264,6 +265,19 @@ export const flows: Flow[] = [
 			// Browse mode reads each option once: the radio, named by its label, then the next radio.
 			{ next: true, expect: ["compact", RADIO] },
 			{ next: true },
+		],
+	},
+	{
+		id: "checkbox-cards",
+		component: "CheckboxGroup",
+		path: "components/forms/checkbox/cards",
+		steps: [
+			{ key: "Tab", expect: ["review site", CHECKBOX, CHECKED, "how did you find us"] },
+			{ key: "Tab", expect: ["ai agent", CHECKBOX, UNCHECKED] },
+			{ key: " ", expect: [CHECKED] },
+			// Browse mode reads each card once: the checkbox, named by its text, then the next checkbox.
+			{ next: true, expect: ["friend or colleague", CHECKBOX] },
+			{ next: true, expect: ["search engine", CHECKBOX] },
 		],
 	},
 	{
