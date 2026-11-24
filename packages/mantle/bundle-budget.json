@@ -90,5 +90,9 @@
   "overlay-prompt": {
     "entry": "import { OverlayPrompt } from \"@ngrok/mantle/overlay-prompt\"; export default [OverlayPrompt];",
     "maxGzipBytes": 930
+  },
+  "prompt-input": {
+    "entry": "import { PromptInput } from \"@ngrok/mantle/prompt-input\"; export default [PromptInput.Root, PromptInput.TextArea, PromptInput.Footer, PromptInput.Submit];",
+    "maxGzipBytes": 11188
   }
 }
