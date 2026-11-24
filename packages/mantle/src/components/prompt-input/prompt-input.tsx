@@ -634,14 +634,28 @@ function Dictate({
 				recognition.interimResults = false;
 				recognition.lang =
 					lang ?? event.currentTarget.closest<HTMLElement>("[lang]")?.lang ?? navigator.language;
+				const finish = () => {
+					if (recognitionRef.current !== recognition) {
+						return;
+					}
+					recognitionRef.current = null;
+					setListening(false);
+				};
 				recognition.onresult = ({ resultIndex, results }) => {
 					for (let index = resultIndex; index < results.length; index++) {
-						// Why each result: onChange can disable or unmount the toggle between phrases.
+						if (recognitionRef.current !== recognition) {
+							return;
+						}
+						// Why each result: onChange can disable the toggle, or replace or lock the field, between phrases.
+						// Why abort: a session that can no longer type must release the microphone and reset the toggle.
 						if (
-							recognitionRef.current !== recognition ||
 							button.matches(":disabled") ||
-							!field.isConnected
+							!field.isConnected ||
+							field.readOnly ||
+							field.matches(":disabled")
 						) {
+							finish();
+							recognition.abort();
 							return;
 						}
 						const result = results[index];
@@ -649,13 +663,6 @@ function Dictate({
 							insertDictatedText(field, result[0].transcript);
 						}
 					}
-				};
-				const finish = () => {
-					if (recognitionRef.current !== recognition) {
-						return;
-					}
-					recognitionRef.current = null;
-					setListening(false);
 				};
 				// Why both: WebKit and Firefox can reject startup without an end event.
 				// oxlint-disable-next-line unicorn/prefer-add-event-listener -- Why: each session owns one recognizer and its handlers.

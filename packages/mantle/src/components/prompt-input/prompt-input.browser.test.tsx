@@ -187,7 +187,11 @@ class FakeRecognition {
 	stop() {
 		this.onend?.();
 	}
-	abort() {}
+	aborted = false;
+	abort() {
+		this.aborted = true;
+		this.onend?.();
+	}
 
 	constructor() {
 		FakeRecognition.last = this;
@@ -384,8 +388,35 @@ test.each(["disable", "unmount"])(
 		await expect.poll(() => field).toHaveValue("draft first");
 		expect(onChange).toHaveBeenCalledTimes(1);
 		expect(onChange).toHaveBeenLastCalledWith("draft first");
+		expect(FakeRecognition.last?.aborted).toBe(true);
+		// Disabled or unmounted, the toggle no longer reports that it listens.
+		await expect
+			.poll(() => screen.queryByRole("button", { name: "Dictate", pressed: true }))
+			.toBeNull();
 	},
 );
+
+test("Dictate ends the session when its field is replaced", async () => {
+	vi.stubGlobal("SpeechRecognition", FakeRecognition);
+	function Composer({ thread }: { thread: string }) {
+		return (
+			<PromptInput.Root>
+				<PromptInput.TextArea key={thread} aria-label="Message" />
+				<PromptInput.Dictate />
+			</PromptInput.Root>
+		);
+	}
+	const { rerender } = render(<Composer thread="a" />);
+	const dictate = screen.getByRole("button", { name: "Dictate" });
+	await userEvent.click(dictate);
+	const recognition = FakeRecognition.last;
+	rerender(<Composer thread="b" />);
+	recognition?.hear(" hello", true);
+
+	await expect.poll(() => dictate).toHaveAttribute("aria-pressed", "false");
+	expect(recognition?.aborted).toBe(true);
+	expect(screen.getByRole("textbox", { name: "Message" })).toHaveValue("");
+});
 
 test("Dictate edits its form's portaled field, not another form's descendant", async () => {
 	vi.stubGlobal("SpeechRecognition", FakeRecognition);
