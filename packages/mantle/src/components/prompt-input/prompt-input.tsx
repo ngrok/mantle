@@ -1,9 +1,18 @@
 "use client";
 
 import { ArrowUpIcon } from "@phosphor-icons/react/ArrowUp";
+import { MicrophoneIcon } from "@phosphor-icons/react/Microphone";
 import { StopIcon } from "@phosphor-icons/react/Stop";
 import type { ComponentProps } from "react";
-import { createContext, use, useMemo } from "react";
+import {
+	createContext,
+	use,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+	useSyncExternalStore,
+} from "react";
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -433,11 +442,213 @@ function Submit({
 	);
 }
 
+/**
+ * The part of the Web Speech API that `PromptInput.Dictate` uses. Browsers
+ * ship it as `SpeechRecognition` or as `webkitSpeechRecognition`.
+ */
+type SpeechRecognitionLike = {
+	continuous: boolean;
+	interimResults: boolean;
+	lang: string;
+	onresult: ((event: SpeechResultEventLike) => void) | null;
+	onend: (() => void) | null;
+	start: () => void;
+	stop: () => void;
+	abort: () => void;
+};
+
+type SpeechResultEventLike = {
+	resultIndex: number;
+	results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>;
+};
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+function isSpeechRecognitionConstructor(value: unknown): value is SpeechRecognitionConstructor {
+	return typeof value === "function";
+}
+
+/**
+ * The browser's speech recognition constructor, or `undefined` where the
+ * browser has none.
+ */
+function speechRecognitionConstructor(): SpeechRecognitionConstructor | undefined {
+	const candidate =
+		Reflect.get(window, "SpeechRecognition") ?? Reflect.get(window, "webkitSpeechRecognition");
+	return isSpeechRecognitionConstructor(candidate) ? candidate : undefined;
+}
+
+function hasSpeechRecognition(): boolean {
+	return speechRecognitionConstructor() != null;
+}
+
+function noSpeechRecognitionOnServer(): boolean {
+	return false;
+}
+
+/**
+ * Speech support never changes after load, so there is nothing to subscribe to.
+ */
+function subscribeToNothing(): () => void {
+	return () => {
+		// Why: intentionally empty; support is constant for the page.
+	};
+}
+
+/**
+ * Types `text` into the field at the caret, as a person does, so the field's
+ * `onChange` runs for a controlled field too.
+ */
+function insertDictatedText(field: HTMLTextAreaElement, text: string) {
+	const start = field.selectionStart;
+	const before = field.value.slice(0, start);
+	const spaced = before === "" || /\s$/.test(before) ? text.trimStart() : ` ${text.trimStart()}`;
+	field.setRangeText(spaced, start, field.selectionEnd, "end");
+	field.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+/**
+ * Microphone button attributes, with the toggle's icon and type fixed.
+ */
+type PromptInputDictateProps = Omit<
+	ComponentProps<typeof IconButton>,
+	"appearance" | "asChild" | "children" | "icon" | "intent" | "label" | "type" | "aria-pressed"
+> & {
+	/**
+	 * The accessible name of the toggle. The toggle reports `aria-pressed`
+	 * while it listens, so the name stays the same in both states.
+	 *
+	 * @default "Dictate"
+	 */
+	label?: string;
+	/**
+	 * The language to recognize, as a BCP 47 tag such as `"en-US"`. Defaults
+	 * to the nearest `lang` attribute, then to the browser's language.
+	 */
+	lang?: string;
+};
+
+/**
+ * A toggle that turns speech into text in `PromptInput.TextArea`, with the
+ * browser's speech recognition. Each phrase the browser recognizes goes into
+ * the field at the caret, as if the person typed it, so the field's
+ * `onChange` runs. Press it again to stop listening. It does not send the
+ * message.
+ *
+ * It renders nothing on the server and in browsers without speech
+ * recognition, and appears after hydration where the browser has it. The
+ * browser asks the person for microphone access on the first use.
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"prompt-input-dictate icon-button"` | On the button, joined with ancestor slots. |
+ * | `data-icon-button` | `"true"` | Inherited from `IconButton`. |
+ * | `data-appearance` | `"ghost"` | The button's appearance. |
+ * | `data-intent` | `"neutral"` | The button's tone. |
+ * | `data-size` | `"2xs"` \| `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop; defaults to `"sm"`. |
+ *
+ * @see https://mantle.ngrok.com/components/preview/prompt-input#promptinputdictate
+ *
+ * @example
+ * ```tsx
+ * <PromptInput.Root onSubmit={send}>
+ *   <PromptInput.TextArea
+ *     aria-label="Message the assistant"
+ *     name="message"
+ *     value={draft}
+ *     onChange={(event) => setDraft(event.target.value)}
+ *   />
+ *   <PromptInput.Footer>
+ *     <PromptInput.Dictate />
+ *     <PromptInput.Submit />
+ *   </PromptInput.Footer>
+ * </PromptInput.Root>
+ * ```
+ */
+// Why no asChild: the part owns its button so it can report the listening state with aria-pressed.
+function Dictate({
+	"data-slot": dataSlot,
+	className,
+	label = "Dictate",
+	lang,
+	onClick,
+	...props
+}: PromptInputDictateProps) {
+	usePromptInputContext("Dictate");
+	const supported = useSyncExternalStore(
+		subscribeToNothing,
+		hasSpeechRecognition,
+		noSpeechRecognitionOnServer,
+	);
+	const [listening, setListening] = useState(false);
+	const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+
+	useEffect(() => () => recognitionRef.current?.abort(), []);
+
+	if (!supported) {
+		return null;
+	}
+
+	return (
+		<IconButton
+			appearance="ghost"
+			intent="neutral"
+			size="sm"
+			data-slot={joinDataSlot(dataSlot, "prompt-input-dictate")}
+			className={cx("aria-pressed:text-accent-600 size-8 shrink-0 rounded-full", className)}
+			type="button"
+			aria-pressed={listening}
+			icon={<MicrophoneIcon weight={listening ? "fill" : "regular"} />}
+			label={label}
+			onClick={(event) => {
+				onClick?.(event);
+				if (event.defaultPrevented) {
+					return;
+				}
+				if (recognitionRef.current != null) {
+					recognitionRef.current.stop();
+					return;
+				}
+				const Recognition = speechRecognitionConstructor();
+				const field = event.currentTarget.form?.querySelector<HTMLTextAreaElement>(
+					'textarea[data-slot~="prompt-input-text-area"]',
+				);
+				if (Recognition == null || field == null) {
+					return;
+				}
+				const recognition = new Recognition();
+				recognition.continuous = true;
+				recognition.interimResults = false;
+				recognition.lang =
+					lang ?? event.currentTarget.closest<HTMLElement>("[lang]")?.lang ?? navigator.language;
+				recognition.onresult = ({ resultIndex, results }) => {
+					for (let index = resultIndex; index < results.length; index++) {
+						const result = results[index];
+						if (result?.isFinal) {
+							insertDictatedText(field, result[0].transcript);
+						}
+					}
+				};
+				// Why onend only: the browser fires end after every stop, abort, and error.
+				recognition.onend = () => {
+					recognitionRef.current = null;
+					setListening(false);
+				};
+				recognitionRef.current = recognition;
+				recognition.start();
+				setListening(true);
+			}}
+			{...props}
+		/>
+	);
+}
+
 export {
 	//,
 	Root,
 	PromptInputTextArea,
 	Footer,
+	Dictate,
 	Submit,
 };
 
@@ -446,5 +657,6 @@ export type {
 	PromptInputRootProps,
 	PromptInputTextAreaProps,
 	PromptInputFooterProps,
+	PromptInputDictateProps,
 	PromptInputSubmitProps,
 };

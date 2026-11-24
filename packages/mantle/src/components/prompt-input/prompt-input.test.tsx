@@ -288,3 +288,90 @@ describe("PromptInput", () => {
 		);
 	});
 });
+
+/** A stand-in for the browser's speech recognition that the test drives. */
+class FakeRecognition {
+	static last: FakeRecognition | undefined;
+	continuous = false;
+	interimResults = true;
+	lang = "";
+	onresult: ((event: unknown) => void) | null = null;
+	onend: (() => void) | null = null;
+	start = vi.fn<() => void>();
+	stop = vi.fn<() => void>(() => this.onend?.());
+	abort = vi.fn<() => void>();
+
+	constructor() {
+		FakeRecognition.last = this;
+	}
+}
+
+function DictatingComposer({ onSubmit }: { onSubmit: (message: string) => void }) {
+	const [draft, setDraft] = useState("");
+	return (
+		<PromptInput.Root
+			lang="fr-FR"
+			onSubmit={(event) => {
+				event.preventDefault();
+				onSubmit(draft);
+			}}
+		>
+			<PromptInput.TextArea
+				aria-label="Message"
+				value={draft}
+				onChange={(event) => setDraft(event.target.value)}
+			/>
+			<PromptInput.Footer>
+				<PromptInput.Dictate />
+				<PromptInput.Submit />
+			</PromptInput.Footer>
+		</PromptInput.Root>
+	);
+}
+
+describe("PromptInput.Dictate", () => {
+	test("renders nothing where the browser has no speech recognition", () => {
+		render(<DictatingComposer onSubmit={() => {}} />);
+
+		expect(screen.queryByRole("button", { name: "Dictate" })).not.toBeInTheDocument();
+	});
+
+	test("renders nothing on the server, so hydration matches every browser", () => {
+		vi.stubGlobal("webkitSpeechRecognition", FakeRecognition);
+		try {
+			expect(renderToString(<DictatingComposer onSubmit={() => {}} />)).not.toContain("Dictate");
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
+	test("listens in the form's language until pressed again, and unmount aborts it", async () => {
+		vi.stubGlobal("SpeechRecognition", FakeRecognition);
+		try {
+			const user = userEvent.setup();
+			const { unmount } = render(<DictatingComposer onSubmit={() => {}} />);
+			const dictate = screen.getByRole("button", { name: "Dictate" });
+
+			await user.click(dictate);
+			const first = FakeRecognition.last;
+
+			expect(dictate).toHaveAttribute("aria-pressed", "true");
+			expect(first?.start).toHaveBeenCalledTimes(1);
+			expect(first?.lang).toBe("fr-FR");
+			expect(first?.continuous).toBe(true);
+
+			await user.click(dictate);
+
+			expect(first?.stop).toHaveBeenCalledTimes(1);
+			expect(dictate).toHaveAttribute("aria-pressed", "false");
+
+			await user.click(dictate);
+			const second = FakeRecognition.last;
+			expect(second).not.toBe(first);
+			unmount();
+			expect(second?.abort).toHaveBeenCalledTimes(1);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+});

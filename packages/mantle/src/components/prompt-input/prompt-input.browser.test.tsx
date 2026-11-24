@@ -174,3 +174,72 @@ test.each(["next draft", "double-click"])(
 		);
 	},
 );
+
+/** A stand-in for the browser's speech recognition that the test drives. */
+class FakeRecognition {
+	static last: FakeRecognition | undefined;
+	continuous = false;
+	interimResults = true;
+	lang = "";
+	onresult: ((event: unknown) => void) | null = null;
+	onend: (() => void) | null = null;
+	start() {}
+	stop() {
+		this.onend?.();
+	}
+	abort() {}
+
+	constructor() {
+		FakeRecognition.last = this;
+	}
+
+	hear(transcript: string, isFinal: boolean) {
+		this.onresult?.({ resultIndex: 0, results: [{ isFinal, 0: { transcript } }] });
+	}
+}
+
+// Why browser mode: React must see the dictated text as a native edit for a controlled field's onChange.
+test("Dictate types each final phrase at the caret into a controlled draft", async () => {
+	vi.stubGlobal("SpeechRecognition", FakeRecognition);
+	vi.stubGlobal("webkitSpeechRecognition", undefined);
+	try {
+		const onSubmit = vi.fn<(message: string) => void>();
+		function Composer() {
+			const [draft, setDraft] = useState("");
+			return (
+				<PromptInput.Root
+					onSubmit={(event) => {
+						event.preventDefault();
+						onSubmit(draft);
+					}}
+				>
+					<PromptInput.TextArea
+						aria-label="Message"
+						value={draft}
+						onChange={(event) => setDraft(event.target.value)}
+					/>
+					<PromptInput.Dictate />
+					<PromptInput.Submit />
+				</PromptInput.Root>
+			);
+		}
+		render(<Composer />);
+		const field = screen.getByRole("textbox", { name: "Message" });
+		await userEvent.click(field);
+		await userEvent.keyboard("Hi there");
+		// Put the caret after "Hi", so the phrase goes in the middle.
+		if (field instanceof HTMLTextAreaElement) {
+			field.setSelectionRange(2, 2);
+		}
+
+		await userEvent.click(screen.getByRole("button", { name: "Dictate" }));
+		FakeRecognition.last?.hear("list my", false);
+		FakeRecognition.last?.hear("list my endpoints", true);
+
+		await expect.poll(() => field).toHaveValue("Hi list my endpoints there");
+		await userEvent.click(screen.getByRole("button", { name: "Send message" }));
+		expect(onSubmit).toHaveBeenLastCalledWith("Hi list my endpoints there");
+	} finally {
+		vi.unstubAllGlobals();
+	}
+});
