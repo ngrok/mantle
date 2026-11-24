@@ -20,6 +20,10 @@ async function* chunksOf(
 		void reader.cancel().catch(() => {});
 	};
 	signal.addEventListener("abort", cancel, { once: true });
+	// Why: the signal can abort while the stream opens, before the listener.
+	if (signal.aborted) {
+		cancel();
+	}
 	try {
 		for (let result = await reader.read(); !result.done; result = await reader.read()) {
 			yield result.value;

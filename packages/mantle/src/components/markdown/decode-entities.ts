@@ -64,7 +64,10 @@ function decodeEntities(text: string): string {
 		if (hex != null) {
 			return fromCodePoint(Number.parseInt(hex, 16));
 		}
-		return (name != null && NAMED_ENTITIES[name]) || match;
+		// Why `hasOwn`: a name such as `constructor` must not find `Object.prototype`.
+		return name != null && Object.hasOwn(NAMED_ENTITIES, name)
+			? (NAMED_ENTITIES[name] ?? match)
+			: match;
 	});
 }
 

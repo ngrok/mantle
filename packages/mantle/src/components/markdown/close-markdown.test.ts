@@ -57,8 +57,19 @@ describe("closeMarkdown", () => {
 		["    print([1", "    print([1"],
 		["- ```js\n  const a = `", "- ```js\n  const a = `"],
 		["Text\n    more **b", "Text\n    more **b**"],
+		[">     print([1", ">     print([1"],
+		["- item\n\n      print([1", "- item\n\n      print([1"],
+		["- item\n\n    more **b", "- item\n\n    more **b**"],
 	])("%j → %j", (text, expected) => {
 		expect(close(text)).toBe(expected);
+	});
+
+	test("closes a paragraph of many `<` and `&` in linear time", () => {
+		const start = performance.now();
+		close("< ".repeat(256_000));
+		close("&a ".repeat(200_000));
+		// Why 1,000 ms: a search to the end at each `<` or `&` takes seconds here, and one pass takes milliseconds.
+		expect(performance.now() - start).toBeLessThan(1000);
 	});
 
 	test("closes a `$$` block only with math", () => {

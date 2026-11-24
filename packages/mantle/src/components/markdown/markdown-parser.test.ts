@@ -99,6 +99,20 @@ describe("createMarkdownParser", () => {
 		expect(done.links["r"]?.href).toBe("https://author.example");
 	});
 
+	test("drops a link whose definition is gone when the stream ends", () => {
+		const parser = createMarkdownParser();
+		parser.parse("[link][r]\n\n[r]: /old", { streaming: true });
+		const done = parser.parse("[link][r]\n\n[r]: /old extra", { streaming: false });
+		expect(JSON.stringify(done.blocks[0])).not.toContain('"type":"link"');
+	});
+
+	test("does not finish a paragraph before a fence opener line is whole", () => {
+		const parser = createMarkdownParser();
+		parser.parse("Intro\n```", { streaming: true });
+		const done = parser.parse("Intro\n```code```", { streaming: false });
+		expect(done.blocks.map((token) => token.type)).toEqual(["paragraph"]);
+	});
+
 	test("keeps the links object while the definitions stay the same", () => {
 		const parser = createMarkdownParser();
 		const first = parser.parse("[a]: https://ngrok.com\n\nSome", { streaming: true });
