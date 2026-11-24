@@ -1,0 +1,71 @@
+---
+title: Anchored Child Variant Migration
+description: "Mantle's parts style their children with arbitrary variants such as [&>*]:, not *: or **:. Write an override of those styles with the same arbitrary variant, such as [&>:first-child]:size-9 on Sidebar.SwitcherTrigger."
+introducedIn: "0.95.0"
+---
+
+# Mantle Anchored Child Variant Migration Guide
+
+Mantle's parts no longer use Tailwind's `*:` and `**:` variants or an arbitrary variant with a selector list. Each part now styles its children with an arbitrary variant that keeps the class outside, such as `[&>*]:`, `[&>:first-child]:`, or `[&_[data-slot=x]]:`. The rules match the same elements at the same specificity, so the parts look the same. A `*:` or `**:` class that you pass to one of those parts no longer replaces the part's class through `cx`, so the part's style stays.
+
+**TL;DR:** To override a child style of a mantle part from its `className`, write the arbitrary variant that the part uses, such as `[&>:first-child]:size-9` in place of `*:first:size-9` on `Sidebar.SwitcherTrigger`. The spacing and divider overrides of migration [0030](/migrations/0030-between-variant-migration) follow the same rule with `between:`.
+
+## Codemod
+
+Codemod: manual: each step is a class string, and the arbitrary variant to write depends on the part.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find each `*:` and `**:` class in the `className` of a mantle part, also inside a `cx()` call, a variable, or a prop of your own wrapper that reaches the part. A class on an element that is not a mantle part keeps working.
+2. Look up the class that the part sets for the same property. These parts set one:
+   - `Sidebar.SwitcherTrigger`: `[&>:first-child]:size-7`
+   - `Toaster`: `[&>*]:duration-200`
+   - `Combobox.ItemValue`: `[&>[data-user-value]]:font-medium`
+   - `Command.Group`: `[&>[data-slot=command-group-heading]]:` with `text-muted`, `px-2`, `py-1.5`, `text-xs`, and `font-medium`
+   - `Dialog.Header`: `[&>[data-slot~=dialog-title]]:flex-1`, and `[&>[data-slot~=dialog-description]]:` with `order-last` and `basis-full`
+   - `SplitButton.Root`: `[&>*:first-child]:`, `[&>*:last-child]:`, `[&>*:not(:first-child)]:`, `[&>*:focus]:`, `[&>*:hover]:`, and `[&>:active]:` for the joined button shapes
+   - `Alert.Root`: `has-data-alert-expand:[&_[data-slot~=alert-content]]:pr-16` and `has-data-alert-dismiss:[&_[data-alert-expand]]:right-(--alert-dismiss-room)`
+3. Rewrite the override with the part's arbitrary variant, and keep the value and every other variant prefix: `*:first:size-9` becomes `[&>:first-child]:size-9`, and `*:duration-500` becomes `[&>*]:duration-500`.
+4. Find a class of equal specificity on a child that one of these rules styles, such as `flex-none` on `Dialog.Title`. It no longer wins over the part's rule. Move the override to the part with its arbitrary variant, or add `!`.
+5. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why an arbitrary variant?** Tailwind compiles `*:first:size-7` to `:is(.\*\:first\:size-7 > *):first-child`. The class sits inside `:is()`, so Chromium cannot skip the rule on its quick ancestor test, and it tries the rule on each element of the page on each style pass. A native modal restyles the whole page as it opens, so each such rule makes each `Dialog` open slower. `[&>:first-child]:size-7` compiles to `.\[\&\>\:first-child\]\:size-7 > :first-child`: the same specificity, with the class outside, so Chromium skips it at once. Your own `*:` classes cost the same, so rewriting them on any element makes the page faster.
+
+---
+
+## Before → after
+
+### A larger leading tile in the sidebar switcher
+
+```tsx
+// BEFORE
+<Sidebar.SwitcherTrigger className="*:first:size-9">…</Sidebar.SwitcherTrigger>
+```
+
+```tsx
+// AFTER
+<Sidebar.SwitcherTrigger className="[&>:first-child]:size-9">…</Sidebar.SwitcherTrigger>
+```
+
+### Slower toast transitions
+
+```tsx
+// BEFORE
+<Toaster className="*:duration-500" />
+```
+
+```tsx
+// AFTER
+<Toaster className="[&>*]:duration-500" />
+```
+
+## Edge cases & gotchas
+
+- `cx` replaces a class only when its variant is the same text. `[&>*:first-child]:` and `[&>:first-child]:` select the same element but do not merge, so copy the part's variant exactly.
+- Tailwind sorts arbitrary-variant rules after its named variants. A child class such as `hover:flex-none` on `Dialog.Title` used to win over `*:flex-1` on `Dialog.Header` by source order, and now loses to `[&>[data-slot~=dialog-title]]:flex-1`. Step 4 covers it.
+
+## How to verify
+
+Search the parts in step 2 for `*:` and `**:` in their `className`, and expect no match. Then run your formatter, linter, type checker, and tests, and look at each changed part in a browser.

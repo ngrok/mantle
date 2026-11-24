@@ -701,6 +701,14 @@ export const migrations = [
 			"Mantle's parts space and divide their children with the new between: variant, not space-* or divide-*. Write an override on those parts with between: too, such as between:border-b-0 on Accordion.Root.",
 		route: "/migrations/0030-between-variant-migration",
 	},
+	{
+		number: 31,
+		slug: "anchored-child-variant-migration",
+		title: "Anchored Child Variant",
+		description:
+			"Mantle's parts style their children with arbitrary variants such as [&>*]:, not *: or **:. Write an override of those styles with the same arbitrary variant, such as [&>:first-child]:size-9 on Sidebar.SwitcherTrigger.",
+		route: "/migrations/0031-anchored-child-variant-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */
