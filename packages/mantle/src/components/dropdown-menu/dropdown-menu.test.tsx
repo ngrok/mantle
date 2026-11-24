@@ -194,6 +194,28 @@ describe("DropdownMenu", () => {
 		expect(screen.getByRole("menu")).toBeInTheDocument();
 	});
 
+	// Red if the guard cancels any `aria-disabled` click: a popup portaled into the
+	// menu can hold a control, such as a locked tag, that still handles its click.
+	test("a disabled control that is not a menu item keeps its click", () => {
+		const onClick = vi.fn<() => void>();
+		const onMenuCapture = vi.fn<() => void>();
+		render(
+			<DropdownMenu.Root defaultOpen>
+				<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+				<DropdownMenu.Content onClickCapture={onMenuCapture}>
+					<button type="button" aria-disabled="true" onClick={onClick}>
+						Locked
+					</button>
+				</DropdownMenu.Content>
+			</DropdownMenu.Root>,
+		);
+
+		fireEvent.click(screen.getByRole("button", { name: "Locked" }));
+
+		expect(onClick).toHaveBeenCalledTimes(1);
+		expect(onMenuCapture).toHaveBeenCalledTimes(1);
+	});
+
 	describe("click propagation guard", () => {
 		test("a click inside the menu does not reach an ancestor onClick", async () => {
 			// React routes portaled events through the React tree, so without
