@@ -41,6 +41,7 @@ const FENCE_CLOSE = /^ {0,3}(`{3,}|~{3,})[ \t]*$/;
 const SETEXT = /^ {0,3}(=+|-+)[ \t]*$/;
 const LIST = /^( {0,3})([*+-]|(\d{1,9})([.)]))([ \t]+|$)/;
 const QUOTE = /^ {0,3}>/;
+const QUOTE_MARKER = /^ {0,3}>[ \t]?/;
 const DELIMITER_ROW = /^ {0,3}\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*$/;
 /**
  * A link reference definition, which can span lines: the label, the
@@ -211,6 +212,8 @@ function createLazyTracker(column: number): {
 	continues: (line: string) => boolean;
 } {
 	let fence: string | undefined;
+	// The count of quote markers before the open fence. Why: a fence in a nested quote ends with the quote.
+	let fenceQuotes = 0;
 	let open = false;
 	// The width of the quote and list markers before the open paragraph, and whether it starts with a definition.
 	let width = 0;
@@ -219,12 +222,28 @@ function createLazyTracker(column: number): {
 		read(line) {
 			const content = expandTabs(line, column);
 			if (fence != null) {
-				const close = FENCE_CLOSE.exec(content)?.[1];
-				if (close?.startsWith(fence[0] ?? "") === true && close.length >= fence.length) {
-					fence = undefined;
+				let inner = content;
+				let quotes = 0;
+				for (
+					let marker = QUOTE_MARKER.exec(inner);
+					marker != null && quotes < fenceQuotes;
+					marker = QUOTE_MARKER.exec(inner)
+				) {
+					inner = inner.slice(marker[0].length);
+					quotes += 1;
 				}
-				open = false;
-			} else if (open && !definition && SETEXT.test(content) && indentOf(content) >= width) {
+				if (quotes === fenceQuotes) {
+					const close = FENCE_CLOSE.exec(inner)?.[1];
+					if (close?.startsWith(fence[0] ?? "") === true && close.length >= fence.length) {
+						fence = undefined;
+					}
+					open = false;
+					return;
+				}
+				// The quote that held the fence ended, so the line starts again outside it.
+				fence = undefined;
+			}
+			if (open && !definition && SETEXT.test(content) && indentOf(content) >= width) {
 				// A setext underline ends the paragraph as a heading. Why the width: a line left of a nested item's
 				// content is lazy, and a definition is not a heading's text.
 				open = false;
@@ -237,18 +256,25 @@ function createLazyTracker(column: number): {
 				open = NOT_SPACE.test(content) && (open || indentOf(content) < 4);
 			} else if (isFence(content)) {
 				fence = FENCE.exec(content)?.[2];
+				fenceQuotes = 0;
 				open = false;
 			} else if (open && !interrupts(content)) {
 				// A line that cannot interrupt the paragraph, such as an empty item, continues it.
 			} else {
 				// Why strip the markers: the paragraph that stays open is the one in the deepest quote or item.
 				let inner = content;
+				let quotes = 0;
 				for (
 					let marker = NESTED_MARKER.exec(inner);
 					marker != null;
 					marker = NESTED_MARKER.exec(inner)
 				) {
 					inner = inner.slice(marker[0].length);
+					quotes += marker[0].includes(">") ? 1 : 0;
+				}
+				if (isFence(inner)) {
+					fence = FENCE.exec(inner)?.[2];
+					fenceQuotes = quotes;
 				}
 				width = content.length - inner.length;
 				definition = DEFINITION_START.test(inner);
@@ -285,10 +311,7 @@ const markLazy = (lazy: Set<number> | undefined, at: number) => (lazy ?? new Set
 function startsTable(line: string, next: string): boolean {
 	// Why a pipe in the delimiter row: without one, `---` under a line is a setext heading.
 	return (
-		line.includes("|") &&
-		next.includes("|") &&
-		DELIMITER_ROW.test(next) &&
-		cells(line).length === cells(next).length
+		next.includes("|") && DELIMITER_ROW.test(next) && cells(line).length === cells(next).length
 	);
 }
 
@@ -300,7 +323,11 @@ function cells(row: string, count?: number): string[] {
 	let cell = "";
 	let from = 0;
 	for (let at = trimmed.indexOf("|"); at !== -1; at = trimmed.indexOf("|", at + 1)) {
-		if (trimmed.charCodeAt(at - 1) === 92) {
+		let slashes = 0;
+		while (trimmed.charCodeAt(at - 1 - slashes) === 92) {
+			slashes += 1;
+		}
+		if (slashes % 2 === 1) {
 			// An escaped pipe stays in the cell, without its backslash.
 			cell += `${trimmed.slice(from, at - 1)}|`;
 		} else {
@@ -414,9 +441,16 @@ function lexBlocks(
 		if (!plain) {
 			for (const extension of context.block) {
 				const token = extension.tokenizer(source.slice(starts[index]), []);
-				if (token != null) {
+				const end = (starts[index] ?? 0) + (token?.raw.length ?? 0);
+				// Why a whole line: the lexer reads lines, and text after the token on its last line would be lost.
+				if (
+					token != null &&
+					token.raw !== "" &&
+					(end >= source.length ||
+						source.charCodeAt(end - 1) === 10 ||
+						source.charCodeAt(end) === 10)
+				) {
 					tokens.push(token);
-					const end = (starts[index] ?? 0) + token.raw.length;
 					while (index < lines.length && (starts[index] ?? 0) < end) {
 						index += 1;
 					}
@@ -595,13 +629,18 @@ function lexBlocks(
 		const from = (starts[index] ?? 0) + indentOf(rawLineAt(index));
 		const rest =
 			(!plain || index === afterDefinition) && source.charCodeAt(from) === 91
-				? source.slice(from, from + 4096)
+				? source.slice(from, lineEnd(index) + 4096)
 				: "";
 		let def = rest === "" ? null : DEF_WITH_TITLE.exec(rest);
 		if (rest !== "" && (def == null || BLANK_LINE.test(def[3] ?? ""))) {
 			def = DEF_WITHOUT_TITLE.exec(rest);
 		}
-		if (def != null && NOT_SPACE.test(def[1] ?? "") && !BLANK_LINE.test(def[1] ?? "")) {
+		if (
+			def != null &&
+			NOT_SPACE.test(def[1] ?? "") &&
+			!BLANK_LINE.test(def[1] ?? "") &&
+			hasBalancedParens(def[2] ?? "")
+		) {
 			const tag = normalizeLabel(def[1] ?? "");
 			const href = literal((def[2] ?? "").replace(/^<|>$/g, ""));
 			const title = def[3] == null ? undefined : literal(def[3].slice(1, -1));
@@ -679,7 +718,8 @@ function lexBlocks(
 				first < 128 &&
 				PLAIN_START[first] === 1 &&
 				at < 4 &&
-				(nextPipe === -1 || nextPipe >= lineEnd(end))
+				// Why the next line too: a delimiter row under the line makes it a table header.
+				(nextPipe === -1 || nextPipe >= lineEnd(end + 1))
 			) {
 				continue;
 			}
@@ -914,7 +954,78 @@ const EMPHASIS = ["", "em", "strong"] as const;
 const isDelimiter = (node: Node): node is Delimiter => node.type === DELIMITER;
 const isSpace = (char: string | undefined) => char === undefined || SPACE.test(char);
 const isPunctuation = (char: string | undefined) => char !== undefined && PUNCTUATION.test(char);
+const isLowSurrogate = (code: number) => code >= 0xdc_00 && code <= 0xdf_ff;
 const countOf = (text: string, part: string) => text.split(part).length - 1;
+
+/** `tokens` with each autolink literal at any depth as text. */
+function withoutAutolinks(tokens: Tok[]): Tok[] {
+	return tokens.map((token) => {
+		if (token.type === "link" && token.raw === token.text && !token.raw.startsWith("<")) {
+			return textToken(token.raw);
+		}
+		if (token.type === "strong" || token.type === "em" || token.type === "del") {
+			token.tokens = withoutAutolinks(token.tokens ?? []);
+		}
+		return token;
+	});
+}
+
+/** Whether the unescaped parentheses of a destination pair up. A destination in `<…>` can hold any. */
+function hasBalancedParens(destination: string): boolean {
+	if (destination.startsWith("<")) {
+		return true;
+	}
+	let depth = 0;
+	for (let at = 0; at < destination.length; at += 1) {
+		const char = destination[at];
+		if (char === "\\") {
+			at += 1;
+		} else if (char === "(") {
+			depth += 1;
+		} else if (char === ")" && --depth < 0) {
+			return false;
+		}
+	}
+	return depth === 0;
+}
+
+/** Whether `object` has a key. Why not `Object.keys`: it builds an array for each call. */
+function hasKeys(object: object): boolean {
+	for (const _ in object) {
+		return true;
+	}
+	return false;
+}
+
+/** The start of each run of backticks in `source`, by its length. */
+function backtickRuns(source: string): Map<number, { starts: number[]; next: number }> {
+	const runs = new Map<number, { starts: number[]; next: number }>();
+	for (let at = source.indexOf("`"); at !== -1;) {
+		let end = at;
+		while (source.charCodeAt(end) === 96) {
+			end += 1;
+		}
+		let run = runs.get(end - at);
+		if (run == null) {
+			run = { starts: [], next: 0 };
+			runs.set(end - at, run);
+		}
+		run.starts.push(at);
+		at = source.indexOf("`", end);
+	}
+	return runs;
+}
+
+/** The text that ends the inline HTML at the start of `rest`: `-->` for a comment, `>` for a tag. */
+function htmlTerminator(rest: string): string {
+	if (rest.startsWith("<!--")) {
+		return "-->";
+	}
+	if (rest.startsWith("<?")) {
+		return "?>";
+	}
+	return rest.startsWith("<![CDATA[") ? "]]>" : ">";
+}
 const autolinkToken = (raw: string, label: string, href: string): Tok =>
 	({ type: "link", raw, text: label, href, title: null, tokens: [textToken(label)] }) as Tok;
 
@@ -1020,7 +1131,7 @@ function inlineLink(
 		if (
 			close === -1 ||
 			source.slice(index, close).includes("\n") ||
-			source.slice(index + 1, close).includes("<")
+			/(?:^|[^\\])(?:\\\\)*</.test(source.slice(index + 1, close))
 		) {
 			return undefined;
 		}
@@ -1068,8 +1179,56 @@ function lexInline(source: string, context: Context): Tok[] {
 	let activeFloor = 0;
 	const find = createFinder(source);
 	const scanner = { find, closeOf: createParens(source) };
-	// Each backtick run length that has no closing run after the last search. Why: it keeps code spans linear.
-	let noCloser: Set<number> | undefined;
+	// The backtick runs of the source by length, read once on the first backtick. Why: a search for each run
+	// that has no closing run is quadratic.
+	let runs: Map<number, { starts: number[]; next: number }> | undefined;
+	const closingRun = (from: number, length: number) => {
+		runs ??= backtickRuns(source);
+		const run = runs.get(length);
+		if (run == null) {
+			return -1;
+		}
+		while ((run.starts[run.next] ?? Infinity) < from) {
+			run.next += 1;
+		}
+		return run.starts[run.next] ?? -1;
+	};
+	let hasDefinitions: boolean | undefined;
+	// The next end of each kind of inline HTML, or -1 for none. Why: a search for each opener is quadratic.
+	/** The destination of the link or image that the `]` at `close` ends, from `(…)` or a definition. */
+	const targetOf = (bracket: Bracket, close: number) => {
+		if (source[close + 1] === "(") {
+			const target = inlineLink(source, close + 2, scanner);
+			if (target != null) {
+				return target;
+			}
+		}
+		// Why the checks: with no definitions there is no reference, and a label is at most 999 characters.
+		if (!(hasDefinitions ??= hasKeys(context.links))) {
+			return undefined;
+		}
+		const reference = /^\[((?:\\.|[^[\]\\]){0,999})\]/.exec(source.slice(close + 1, close + 1002));
+		const name = reference?.[1] || source.slice(bracket.index + (bracket.image ? 2 : 1), close);
+		const key = name.length > 999 ? "" : normalizeLabel(name);
+		const definition = key === "" ? undefined : context.links[key];
+		return definition == null
+			? undefined
+			: {
+					href: definition.href,
+					title: definition.title || null,
+					end: close + 1 + (reference?.[0].length ?? 0),
+				};
+	};
+	let htmlEnds: Map<string, number> | undefined;
+	const htmlEnd = (end: string, from: number) => {
+		htmlEnds ??= new Map();
+		let at = htmlEnds.get(end) ?? -2;
+		if (at !== -1 && at < from) {
+			at = source.indexOf(end, from);
+			htmlEnds.set(end, at);
+		}
+		return at;
+	};
 	let text = "";
 	const flush = () => {
 		if (text !== "") {
@@ -1162,30 +1321,16 @@ function lexInline(source: string, context: Context): Tok[] {
 				runEnd += 1;
 			}
 			const length = runEnd - index;
-			if (noCloser?.has(length) !== true) {
-				for (let close = source.indexOf("`", runEnd); close !== -1;) {
-					let closeEnd = close;
-					while (source[closeEnd] === "`") {
-						closeEnd += 1;
-					}
-					if (closeEnd - close === length) {
-						let code = source.slice(runEnd, close).replace(/\n/g, " ");
-						if (
-							code.length > 1 &&
-							code.startsWith(" ") &&
-							code.endsWith(" ") &&
-							code.trim() !== ""
-						) {
-							code = code.slice(1, -1);
-						}
-						push({ type: "codespan", raw: source.slice(index, closeEnd), text: code } as Tok);
-						index = closeEnd;
-						continue scan;
-					}
-					close = source.indexOf("`", closeEnd);
+			const close = closingRun(runEnd, length);
+			if (close !== -1) {
+				const closeEnd = close + length;
+				let code = source.slice(runEnd, close).replace(/\n/g, " ");
+				if (code.length > 1 && code.startsWith(" ") && code.endsWith(" ") && code.trim() !== "") {
+					code = code.slice(1, -1);
 				}
-				noCloser ??= new Set();
-				noCloser.add(length);
+				push({ type: "codespan", raw: source.slice(index, closeEnd), text: code } as Tok);
+				index = closeEnd;
+				continue;
 			}
 			text += source.slice(index, runEnd);
 			index = runEnd;
@@ -1201,7 +1346,8 @@ function lexInline(source: string, context: Context): Tok[] {
 				index += link[0].length;
 				continue;
 			}
-			const html = HTML_TAG.exec(rest);
+			// Why the end first: an opener with no end after it cannot be a tag, and the regex would read to the end.
+			const html = htmlEnd(htmlTerminator(rest), index) === -1 ? null : HTML_TAG.exec(rest);
 			if (html != null) {
 				push({
 					type: "html",
@@ -1226,39 +1372,18 @@ function lexInline(source: string, context: Context): Tok[] {
 			if (bracket != null) {
 				const active = bracket.image || brackets.length >= activeFloor;
 				activeFloor = Math.min(activeFloor, brackets.length);
-				const labelStart = bracket.index + (bracket.image ? 2 : 1);
-				const label = source.slice(labelStart, index);
-				let target =
-					active && source[index + 1] === "(" ? inlineLink(source, index + 2, scanner) : undefined;
-				if (target == null && active) {
-					const reference = /^\[((?:\\.|[^[\]\\]){0,999})\]/.exec(
-						source.slice(index + 1, index + 1002),
-					);
-					const key = normalizeLabel(reference?.[1] || label);
-					const definition = key === "" ? undefined : context.links[key];
-					if (definition != null) {
-						target = {
-							href: definition.href,
-							title: definition.title || null,
-							end: index + 1 + (reference?.[0].length ?? 0),
-						};
-					}
-				}
+				const target = active ? targetOf(bracket, index) : undefined;
 				if (target != null) {
 					flush();
 					// Why: a link cannot hold a link, so an autolink literal in its text stays text.
-					const children = finish(nodes.splice(bracket.node + 1)).map((child) =>
-						child.type === "link" && child.raw === child.text && !child.raw.startsWith("<")
-							? textToken(child.raw)
-							: child,
-					);
+					const children = withoutAutolinks(finish(nodes.splice(bracket.node + 1)));
 					const linkRaw = source.slice(bracket.index, target.end);
 					nodes[bracket.node] = {
 						type: bracket.image ? "image" : "link",
 						raw: linkRaw,
 						href: target.href,
 						title: target.title,
-						text: bracket.image ? plainText(children) : label,
+						text: bracket.image ? plainText(children) : source.slice(bracket.index + 1, index),
 						tokens: children,
 					} as Tok;
 					if (!bracket.image) {
@@ -1274,8 +1399,13 @@ function lexInline(source: string, context: Context): Tok[] {
 				runEnd += 1;
 			}
 			const length = runEnd - index;
-			const before = source[index - 1];
-			const after = source[runEnd];
+			// Why code points: an emoji is two UTF-16 units, and only the pair reads as punctuation.
+			const before = isLowSurrogate(source.charCodeAt(index - 1))
+				? source.slice(index - 2, index)
+				: source[index - 1];
+			const after = isLowSurrogate(source.charCodeAt(runEnd + 1))
+				? source.slice(runEnd, runEnd + 2)
+				: source[runEnd];
 			const left =
 				!isSpace(after) && (!isPunctuation(after) || isSpace(before) || isPunctuation(before));
 			const right =
@@ -1350,19 +1480,38 @@ function lexInline(source: string, context: Context): Tok[] {
 			const url = URL_LITERAL.exec(source.slice(index));
 			if (url != null) {
 				let value = url[0];
-				// Why: GFM ends a URL before a trailing entity such as `&hl;` and before an unpaired `)`.
-				for (let trail = TRAILING_ENTITY.exec(value); ; trail = TRAILING_ENTITY.exec(value)) {
+				// Why: a URL in the text of a link ends before the `]` that closes the link.
+				const close = brackets.length > 0 ? value.indexOf("]") : -1;
+				const bracket = brackets.at(-1);
+				if (
+					close !== -1 &&
+					bracket != null &&
+					(bracket.image || brackets.length - 1 >= activeFloor) &&
+					targetOf(bracket, index + close) != null
+				) {
+					value = value.slice(0, close);
+				}
+				// Why: GFM ends a URL before a trailing entity such as `&hl;` and before an unpaired `)`. Why the
+				// counts once: a count for each `)` is quadratic in a URL that ends in many of them.
+				let opens = countOf(value, "(");
+				let closes = countOf(value, ")");
+				let end = value.length;
+				for (;;) {
+					const last = value.charCodeAt(end - 1);
+					const trail = last === 59 ? TRAILING_ENTITY.exec(value.slice(0, end)) : null;
 					if (trail != null) {
-						value = value.slice(0, trail.index);
-					} else if (
-						value.endsWith("(") ||
-						(value.endsWith(")") && countOf(value, "(") < countOf(value, ")"))
-					) {
-						value = value.slice(0, -1);
+						end = trail.index;
+					} else if (last === 40) {
+						end -= 1;
+						opens -= 1;
+					} else if (last === 41 && opens < closes) {
+						end -= 1;
+						closes -= 1;
 					} else {
 						break;
 					}
 				}
+				value = value.slice(0, end);
 				push(autolinkToken(value, value, value.startsWith("www.") ? `http://${value}` : value));
 				index += value.length;
 				continue;

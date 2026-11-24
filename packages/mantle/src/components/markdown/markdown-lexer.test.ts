@@ -36,6 +36,58 @@ describe("lexMarkdown", () => {
 		expect(types(tokens)).toEqual(["def", "paragraph", "text"]);
 	});
 
+	test.each([
+		["a URL as a link's text", "[https://ngrok.com](/ok)", "link", { href: "/ok" }],
+		[
+			"an email in emphasis in a link",
+			"[**a@b.com**](/ok)",
+			"strong",
+			{ tokens: [{ type: "text" }] },
+		],
+		["a single-column table", "Name\n| --- |\nvalue", "table", { rows: [[{ text: "value" }]] }],
+		["emphasis after an emoji", "🎉_done_", "em", { text: "done" }],
+		["an escaped `<` in a destination in `<…>`", "[a](<b\\<c>)", "link", { href: "b<c" }],
+	])("reads %s", (...[, source, type, expected]) => {
+		expect(flatten(lexMarkdown(source)).find((token) => token.type === type)).toMatchObject(
+			expected,
+		);
+	});
+
+	test("splits a table cell at a pipe after an even run of backslashes", () => {
+		const [table] = lexMarkdown("| a | b |\n| - | - |\n| x\\\\| y |");
+		expect(table).toMatchObject({ rows: [[{ text: "x\\\\" }, { text: "y" }]] });
+	});
+
+	test("ends a fence in a nested quote with the quote", () => {
+		expect(lexMarkdown("> > ```\n> > code\noutside").map((token) => token.type)).toEqual([
+			"blockquote",
+			"paragraph",
+		]);
+	});
+
+	test("reads a definition with a URL longer than 4,096 characters, and not one with unpaired parentheses", () => {
+		const href = `https://ngrok.com/${"x".repeat(5000)}`;
+		expect(
+			flatten(lexMarkdown(`[r]: ${href}\n\n[r]`)).find((token) => token.type === "link"),
+		).toMatchObject({ href });
+		expect(types(lexMarkdown("[r]: /a(b\n\n[r]"))).not.toContain("link");
+	});
+
+	test("keeps a block extension's token only when it ends at a line end", () => {
+		const note = {
+			name: "note",
+			level: "block" as const,
+			tokenizer: (source: string) =>
+				source.startsWith(":::") ? { type: "note", raw: ":::" } : undefined,
+		};
+		const source = "::: keep this\n\nnext";
+		expect(
+			lexMarkdown(source, { extensions: [note] })
+				.map((token) => token.raw)
+				.join(""),
+		).toBe(source);
+	});
+
 	// Why 20,000: a parser that is quadratic in these inputs takes seconds, and a linear one a few milliseconds.
 	test.each([
 		["unclosed emphasis", "_a*".repeat(20_000)],
@@ -43,6 +95,13 @@ describe("lexMarkdown", () => {
 		["unclosed link destinations", "[a](".repeat(20_000)],
 		["deep quotes", "> ".repeat(20_000)],
 		["deep lists", "1. ".repeat(20_000)],
+		["a URL that ends in many `)`", `https://ngrok.com/${")".repeat(20_000)}`],
+		["nested brackets", `${"[".repeat(40_000)}x${"]".repeat(40_000)}`],
+		[
+			"backtick runs of each length",
+			Array.from({ length: 1500 }, (_, at) => `${"`".repeat(at + 1)}a`).join(""),
+		],
+		["unclosed comments", `x ${"<!--".repeat(40_000)}`],
 	])("lexes %s in linear time", (_, source) => {
 		const start = performance.now();
 		const tokens = lexMarkdown(source);
