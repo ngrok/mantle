@@ -110,6 +110,47 @@ describe("CheckboxGroup value", () => {
 
 		expect(onValueChange).toHaveBeenLastCalledWith([]);
 		expect(screen.getByRole("checkbox", { name: "Tunnels" })).toBeChecked();
+
+		// Why: the next click builds on the value prop, not on the change the parent refused.
+		await user.click(screen.getByRole("checkbox", { name: "Agents" }));
+		expect(onValueChange).toHaveBeenLastCalledWith(["tunnels", "agents"]);
+	});
+
+	test("a script that clicks every card in one event checks them all", async () => {
+		const user = userEvent.setup();
+		const onValueChange = vi.fn<(value: string[]) => void>();
+		render(
+			<>
+				<button
+					type="button"
+					onClick={() => {
+						for (const input of screen.getAllByRole("checkbox")) {
+							if (input instanceof HTMLInputElement && !input.checked) {
+								input.click();
+							}
+						}
+					}}
+				>
+					Select all
+				</button>
+				<CheckboxGroup.Root
+					aria-label="Interests"
+					defaultValue={["gateway"]}
+					onValueChange={onValueChange}
+				>
+					<CheckboxGroup.Card value="tunnels">Tunnels</CheckboxGroup.Card>
+					<CheckboxGroup.Card value="gateway">Gateway</CheckboxGroup.Card>
+					<CheckboxGroup.Card value="agents">Agents</CheckboxGroup.Card>
+				</CheckboxGroup.Root>
+			</>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "Select all" }));
+
+		expect(onValueChange).toHaveBeenLastCalledWith(["gateway", "tunnels", "agents"]);
+		for (const name of ["Tunnels", "Gateway", "Agents"]) {
+			expect(screen.getByRole("checkbox", { name })).toBeChecked();
+		}
 	});
 
 	test("a disabled group or card reports nothing on a click", async () => {
@@ -334,13 +375,19 @@ describe("CheckboxGroup forms", () => {
 		expect(onValueChange).toHaveBeenLastCalledWith(["gateway"]);
 	});
 
-	test("checks made before hydration become the value", async () => {
+	test("checks and unchecks made before hydration become the value", async () => {
+		const user = userEvent.setup();
 		const onValueChange = vi.fn<(value: string[]) => void>();
 		const interests = (
-			<CheckboxGroup.Root aria-label="Interests" name="interests" onValueChange={onValueChange}>
+			<CheckboxGroup.Root
+				aria-label="Interests"
+				name="interests"
+				defaultValue={["gateway"]}
+				onValueChange={onValueChange}
+			>
 				{["tunnels", "gateway", "agents"].map((value) => (
 					<CheckboxGroup.Card key={value} value={value}>
-						<CheckboxGroup.Indicator data-testid={`${value}-mark`}>
+						<CheckboxGroup.Indicator aria-hidden data-testid={`${value}-mark`}>
 							{stateMark}
 						</CheckboxGroup.Indicator>
 						{value}
@@ -351,12 +398,16 @@ describe("CheckboxGroup forms", () => {
 		const container = document.createElement("div");
 		container.innerHTML = renderToString(interests);
 		document.body.append(container);
-		for (const value of ["tunnels", "agents"]) {
+		for (const [value, checked] of [
+			["tunnels", true],
+			["gateway", false],
+			["agents", true],
+		] as const) {
 			const input = container.querySelector<HTMLInputElement>(`input[value=${value}]`);
 			if (input == null) {
 				throw new Error(`The server HTML has no ${value} checkbox.`);
 			}
-			input.checked = true;
+			input.checked = checked;
 		}
 
 		await act(async () => {
@@ -366,6 +417,9 @@ describe("CheckboxGroup forms", () => {
 		expect(onValueChange).toHaveBeenCalledTimes(1);
 		expect(onValueChange).toHaveBeenLastCalledWith(["tunnels", "agents"]);
 		expect(marks()).toEqual(["on", "off", "on"]);
+
+		await user.click(screen.getByRole("checkbox", { name: "gateway" }));
+		expect(onValueChange).toHaveBeenLastCalledWith(["tunnels", "agents", "gateway"]);
 		container.remove();
 	});
 

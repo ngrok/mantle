@@ -110,18 +110,25 @@ const Root = ({
 		onChange: (next) => onValueChange?.([...next]),
 	});
 	const groupRef = useRef<HTMLDivElement>(null);
-	// Why: a click before hydration, or a choice the browser restores, checks a checkbox that
-	// React does not know about. React keeps it, so the value follows it. Why the root and not
-	// each card: the cards of one commit would each set the value from the same render.
+	// Why: a click before hydration, or a choice the browser restores, checks or unchecks a
+	// checkbox that React does not know about. React keeps it, so the value follows it. Why the
+	// root and not each card: the cards of one commit would each set the value from the same render.
 	const adoptCheckedBeforeHydration = useCallbackRef((group: HTMLDivElement | null) => {
-		const missing = Array.from(
+		const inputs = Array.from(
 			group?.querySelectorAll<HTMLInputElement>(CARD_CHECKBOX_SELECTOR) ?? [],
-			(input) => (input.checked && !current.includes(input.value) ? input.value : []),
-		).flat();
-		if (missing.length > 0) {
-			setValue([...current, ...missing]);
+		);
+		const unchecked = new Set(inputs.filter((input) => !input.checked).map((input) => input.value));
+		const kept = current.filter((checkedValue) => !unchecked.has(checkedValue));
+		const added = inputs
+			.filter((input) => input.checked && !kept.includes(input.value))
+			.map((input) => input.value);
+		if (kept.length !== current.length || added.length > 0) {
+			setValue([...kept, ...added]);
 		}
 	});
+	// Why: a script that clicks several cards in one event, such as a "select all" button, gets one
+	// React batch, so each card builds on the value the card before it set, not on the rendered one.
+	const pendingValue = useRef<readonly string[] | null>(null);
 	const composedRef = useComposedRefs(ref, groupRef, adoptCheckedBeforeHydration);
 	const cardCheckboxes = () =>
 		groupRef.current?.querySelectorAll<HTMLInputElement>(CARD_CHECKBOX_SELECTOR) ?? [];
@@ -168,12 +175,22 @@ const Root = ({
 	const context = useMemo<CheckboxGroupContextValue>(
 		() => ({
 			value: current,
-			setChecked: ({ value: changed, checked }) =>
-				setValue(
-					checked
-						? [...current, changed]
-						: current.filter((checkedValue) => checkedValue !== changed),
-				),
+			setChecked: ({ value: changed, checked }) => {
+				const base = pendingValue.current ?? current;
+				if (base.includes(changed) === checked) {
+					return;
+				}
+				const next = checked
+					? [...base, changed]
+					: base.filter((checkedValue) => checkedValue !== changed);
+				pendingValue.current = next;
+				// Why a microtask: it runs after the whole event, so a value that a controlled parent
+				// refuses does not carry into the next event.
+				queueMicrotask(() => {
+					pendingValue.current = null;
+				});
+				setValue(next);
+			},
 			disabled,
 			name: name || undefined,
 			// Why only with a name: a checkbox with no name submits nothing, so it needs no form owner.
