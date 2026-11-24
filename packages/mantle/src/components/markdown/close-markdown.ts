@@ -33,14 +33,21 @@ function closeMarkdown(text: string, { math }: { math: boolean }): string {
 	}
 	if (blocks.inMath) {
 		// Why the cut: a partial `$` closer would show as math. Why the prefix: a closer in a quote keeps its `>`.
-		const body = lastLine === "$" ? text.slice(0, blocks.lastLineStart) : text;
+		let body = lastLine === "$" ? text.slice(0, blocks.lastLineStart) : text;
+		// A `$` at the end of a line with content is half of the closer too, as in `$$E = mc^2$`.
+		if (body === text && text.endsWith("$")) {
+			body = text.slice(0, -1);
+		}
 		const line =
 			body === text && !text.endsWith("\n") ? blocks.lastLineStart : blocks.previousLineStart;
 		const prefix = QUOTE_PREFIX.exec(text.slice(Math.max(line, 0)))?.[0] ?? "";
 		return `${body}${body.endsWith("\n") ? "" : "\n"}${prefix}$$`;
 	}
 	const lines = closeLastLines(text, blocks);
-	return lines.text.slice(0, lines.regionStart) + closeInline(lines.text.slice(lines.regionStart));
+	return (
+		lines.text.slice(0, lines.regionStart) +
+		closeInline(lines.text.slice(lines.regionStart), { math })
+	);
 }
 
 type BlockScan = {
@@ -374,7 +381,8 @@ function closeLastLines(
 
 	// Why not only a row with a pipe: GFM allows a delimiter row without its leading pipe, such as `--- | ---`.
 	if (
-		(content.startsWith("|") || (previous.startsWith("|") && content.includes("-"))) &&
+		(content.startsWith("|") ||
+			(previous.startsWith("|") && (content.includes("-") || content.startsWith(":")))) &&
 		DELIMITER_ROW.test(content)
 	) {
 		if (isTableHeader(text, previousLineStart, previous)) {
@@ -482,7 +490,7 @@ function closingBackticks(text: string, start: number, length: number): number {
  * delimiter rules for `*`, `_`, and `~~`, and pairs each closer with the
  * nearest opener of its character.
  */
-function closeInline(region: string): string {
+function closeInline(region: string, { math }: { math: boolean }): string {
 	// The open runs of each marker. Why apart: a closer finds the nearest run of its own marker in one step.
 	const openers: Record<number, Opener[]> = { [STAR]: [], [UNDERSCORE]: [], [TILDE]: [] };
 	const brackets: Bracket[] = [];
@@ -499,6 +507,24 @@ function closeInline(region: string): string {
 		const code = region.charCodeAt(index);
 		const char = region[index];
 		if (char === "\\") {
+			// Why `\(` with math: its text is math, so it holds no emphasis, and an open one closes at the end.
+			// A `$` is not closed: in prose it is a price far more often than math.
+			if (math && region[index + 1] === "(") {
+				const close = region.indexOf("\\)", index + 2);
+				const newline = region.indexOf("\n", index + 2);
+				if (close !== -1 && (newline === -1 || close < newline)) {
+					index = close + 2;
+					continue;
+				}
+				if (close === -1 && newline === -1) {
+					if (region.slice(index + 2).trim() === "") {
+						end = index;
+					} else {
+						suffix = "\\)";
+					}
+					break;
+				}
+			}
 			index += 2;
 			continue;
 		}
@@ -667,11 +693,11 @@ function closeInline(region: string): string {
 		for (const bracket of unclosed) {
 			stripped += region.slice(from, bracket.index);
 			if (bracket.image) {
-				return closeInline(stripped);
+				return closeInline(stripped, { math });
 			}
 			from = bracket.index + 1;
 		}
-		return closeInline(stripped + region.slice(from));
+		return closeInline(stripped + region.slice(from), { math });
 	}
 
 	const body = region.slice(0, end);
