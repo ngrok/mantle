@@ -68,11 +68,11 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
 
       - name: Create GitHub releases
-        # Why `!cancelled()`: after a partial publish, the action fails but reports the packages it published.
-        if: ${{ !cancelled() && steps.changesets.outputs.published == 'true' }}
+        # Why on each push, not only on `published`: after a partial publish the action fails,
+        # and a rerun publishes nothing new. The script releases each tagged version that has no release.
+        if: ${{ !cancelled() }}
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
-          PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.published-packages }}
         run: node ./scripts/github-releases.ts
 
       - name: Post to slack

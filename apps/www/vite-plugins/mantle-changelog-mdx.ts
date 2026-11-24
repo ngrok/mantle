@@ -3,9 +3,7 @@ import type { Plugin } from "vite";
 
 /**
  * The most markdown the changelog page renders, in characters.
- *
- * Why a budget: each character of markdown renders to about 7 bytes of HTML and 2 bytes of route JavaScript.
- * With no budget, the page grows with each release. `/changelog.md` and GitHub keep the full history.
+ * Why a budget: each character renders to about 7 bytes of HTML and 2 bytes of route JavaScript, and the history grows with each release.
  */
 const PAGE_BUDGET = 100_000;
 

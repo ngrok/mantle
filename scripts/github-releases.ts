@@ -7,14 +7,9 @@ import process from "node:process";
 
 /**
  * The longest release body this script sends, in UTF-8 bytes.
- *
- * Why 120,000: GitHub rejects a release body longer than 125,000 characters.
- * A UTF-8 byte count is never smaller than the character count, so the margin holds for any text.
+ * Why bytes below 125,000: GitHub rejects a longer body in characters, and a text never has more characters than bytes.
  */
 export const RELEASE_BODY_LIMIT = 120_000;
-
-/** One package that `changesets/action` published, from its `published-packages` output. */
-type PublishedPackage = { name: string; version: string };
 
 /**
  * The section of a changesets `CHANGELOG.md` for one version, without its `## x.y.z` heading.
@@ -35,9 +30,8 @@ export function changelogEntry(changelog: string, version: string): string | nul
 }
 
 /**
- * The GitHub release body for one changelog entry.
- * Returns the whole entry when it fits in `limit` bytes.
- * Else returns the leading changes that fit, then a count of the omitted changes and a link to `fullNotesUrl`.
+ * The GitHub release body for one changelog entry: the whole entry when it fits in `limit` bytes.
+ * Else the leading changes that fit, a count of the omitted changes, and a link to `fullNotesUrl`.
  */
 export function releaseBody(
 	entry: string,
@@ -82,52 +76,54 @@ function versionAnchor(version: string): string {
 	return version.toLowerCase().replace(/[^\w-]/g, "");
 }
 
-/** The directory of each workspace package under `packages/`, by package name. */
-function packageDirs(root: string): Map<string, string> {
-	const dirs = new Map<string, string>();
-	for (const entry of fs.readdirSync(path.join(root, "packages"))) {
+/** A public workspace package under `packages/`, at the version in its `package.json`. */
+type WorkspacePackage = { name: string; version: string; dir: string };
+
+/** Each public workspace package under `packages/`. */
+function publicPackages(root: string): WorkspacePackage[] {
+	return fs.readdirSync(path.join(root, "packages")).flatMap((entry) => {
 		const manifest = path.join(root, "packages", entry, "package.json");
-		if (fs.existsSync(manifest)) {
-			const pkg: { name: string } = JSON.parse(fs.readFileSync(manifest, "utf8"));
-			dirs.set(pkg.name, path.join("packages", entry));
+		if (!fs.existsSync(manifest)) {
+			return [];
 		}
-	}
-	return dirs;
+		const pkg: { name: string; version: string; private?: boolean } = JSON.parse(
+			fs.readFileSync(manifest, "utf8"),
+		);
+		return pkg.private
+			? []
+			: [{ name: pkg.name, version: pkg.version, dir: path.join("packages", entry) }];
+	});
+}
+
+/** Whether `gh` exits 0 for `args`. */
+function gh(args: string[]): boolean {
+	return spawnSync("gh", args, { stdio: "ignore" }).status === 0;
 }
 
 /**
- * Creates one GitHub release for each package in `PUBLISHED_PACKAGES`, with a body that fits GitHub's size limit.
- * Skips a release that already exists, so a rerun after a partial failure is safe.
+ * Creates the missing GitHub release for each tagged version of a public package.
+ * Why tags, not the action output: a rerun publishes nothing new, so only the tags still name the versions to release.
  */
 function main() {
-	const published: PublishedPackage[] = JSON.parse(process.env.PUBLISHED_PACKAGES ?? "[]");
 	const repo = process.env.GITHUB_REPOSITORY ?? "ngrok/mantle";
 	const sha = process.env.GITHUB_SHA ?? "main";
 	const root = path.resolve(import.meta.dirname, "..");
-	const dirs = packageDirs(root);
 	let failures = 0;
 
-	for (const { name, version } of published) {
+	for (const { name, version, dir } of publicPackages(root)) {
 		const tag = `${name}@${version}`;
+		// The action pushes the tag when it publishes, so a version with no tag is not on npm yet.
+		const tagged = gh(["api", `repos/${repo}/git/ref/tags/${tag}`]);
+		if (!tagged || gh(["release", "view", tag, "--repo", repo])) {
+			continue;
+		}
 		try {
-			const dir = dirs.get(name);
-			if (!dir) {
-				throw new Error(`no workspace package named ${name}`);
-			}
 			const changelog = fs.readFileSync(path.join(root, dir, "CHANGELOG.md"), "utf8");
 			const entry = changelogEntry(changelog, version);
 			if (entry == null) {
 				throw new Error(`${dir}/CHANGELOG.md has no ## ${version} section`);
 			}
 			const fullNotesUrl = `https://github.com/${repo}/blob/${sha}/${dir}/CHANGELOG.md#${versionAnchor(version)}`;
-
-			const existing = spawnSync("gh", ["release", "view", tag, "--repo", repo], {
-				stdio: "ignore",
-			});
-			if (existing.status === 0) {
-				console.log(`skip ${tag}: the release exists`);
-				continue;
-			}
 			execFileSync(
 				"gh",
 				[
