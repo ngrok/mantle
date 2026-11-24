@@ -142,6 +142,47 @@ const STOP_WORDS = new Set(
 	within without would yet you your`.split(/\s+/),
 );
 
+/**
+ * Words that ask for exactly one pick. Why: a bare count, as in "chart with
+ * a single series" or "many options", counts things, not picks.
+ */
+const ONE_PICK =
+	/\b(one of|(pick|choose|select)s? (exactly |only )?(one|a single)|only one|exactly one|single (choice|select|selection|pick|answer)|exclusive)\b/;
+
+/** Words that ask for several picks, with the same rule as `ONE_PICK`. */
+const MANY_PICKS =
+	/\b((pick|choose|select|check)s? (several|multiple|many|any number)|(several|multiple|many) (selectable|selected|selection|picks)|one or more|all that apply|multi-?select)\b/;
+
+/**
+ * How many picks a query asks for, or undefined when it says nothing or both.
+ * Why: "pick one" and "select all that apply" name the same cards, so only
+ * this tells `RadioGroup` from `CheckboxGroup`.
+ */
+function queryPickCount(text: string): "one" | "many" | undefined {
+	const lower = text.toLowerCase();
+	const many = MANY_PICKS.test(lower);
+	// Why: "select one or more" also contains "select one".
+	const one = ONE_PICK.test(lower.replace(/\bone or more\b/g, ""));
+	if (one === many) {
+		return undefined;
+	}
+	return one ? "one" : "many";
+}
+
+/**
+ * How many picks a `useWhen` states with a pick verb, or undefined.
+ * Why: "many points" or "several lines" counts content, not picks.
+ */
+function recordPickCount(text: string | undefined): "one" | "many" | undefined {
+	const lower = text?.toLowerCase() ?? "";
+	if (/\b(pick|choose|select)s? (exactly )?one\b(?! \w+ or)|\bsingle choice\b/.test(lower)) {
+		return "one";
+	}
+	return /\b(pick|choose|select)s? (several|multiple|any number)\b|all that apply/.test(lower)
+		? "many"
+		: undefined;
+}
+
 /** A name with case, spaces, and dashes removed, so "Data Table" equals "data-table" and "DataTable". */
 function compact(name: string): string {
 	return name.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -346,6 +387,7 @@ export function findRecords<T extends FindRecord>(
 	);
 	const queryWords = new Set(wordsOf(query));
 	const boundaries = boundariesBySibling(records);
+	const queryPicks = queryPickCount(query);
 
 	const scored = records
 		.filter((record) => kind == null || record.kind === kind)
@@ -372,9 +414,16 @@ export function findRecords<T extends FindRecord>(
 				wordScore += tokenScore;
 				matchedTokens += tokenScore > 0 ? 1 : 0;
 			}
+			const named = nameScore > 0 || namedInQuery(record, queryWords);
+			// Why: a part that takes several picks cannot answer "pick one", and the reverse,
+			// unless the query names it: "single checkbox" still means Checkbox.
+			const recordPicks = queryPicks == null ? undefined : recordPickCount(record.useWhen);
+			const nameWordsInQuery = wordsOf(record.name).every((word) => queryWords.has(word));
+			if (!named && !nameWordsInQuery && recordPicks != null && recordPicks !== queryPicks) {
+				return { record, score: Math.floor(wordScore / 2), strong: false };
+			}
 			const strong =
-				nameScore > 0 ||
-				namedInQuery(record, queryWords) ||
+				named ||
 				(wordScore >= STRONG_WORD_SCORE &&
 					matchedTokens * 2 >= tokens.length &&
 					(record.kind !== "recipe" || namesRecipe(record, tokens, partWords)));
