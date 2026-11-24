@@ -744,6 +744,42 @@
     "useWhen": "Show the messages of a chat with an assistant or a model, and keep the newest text in view while an answer streams."
   },
   {
+    "name": "Conversation Outline",
+    "slug": "components/ai/conversation-outline",
+    "kind": "component",
+    "category": "AI",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/conversation-outline",
+    "summary": "A list of the person's messages in a long chat. A press on one jumps to that message.",
+    "jsdoc": "A list of the person's messages in a long chat, as Amp's conversation outline does.",
+    "examples": [
+      "Composition:\n```\nConversationOutline.Root\n├── ConversationOutline.Trigger\n└── ConversationOutline.Content\n    └── ConversationOutline.Item\n```",
+      "```tsx\n<ConversationOutline.Root>\n  <ConversationOutline.Trigger />\n  <ConversationOutline.Content>\n    {userMessages.map((message) => (\n      <ConversationOutline.Item key={message.id} target={`message-${message.id}`}>\n        {message.text}\n      </ConversationOutline.Item>\n    ))}\n  </ConversationOutline.Content>\n</ConversationOutline.Root>\n```"
+    ],
+    "aliases": [
+      "chat navigator",
+      "jump to message",
+      "message outline",
+      "thread outline",
+      "ai chat"
+    ],
+    "siblings": [
+      {
+        "name": "Conversation",
+        "boundary": "the transcript the outline jumps in."
+      },
+      {
+        "name": "Message",
+        "boundary": "give each `Message.Root` an `id` for an item's `target`."
+      },
+      {
+        "name": "Popover",
+        "boundary": "a floating panel with other content."
+      }
+    ],
+    "useWhen": "Let the person find and jump back to one of their own messages in a long chat."
+  },
+  {
     "name": "Data Table",
     "slug": "components/data-display/data-table",
     "kind": "component",

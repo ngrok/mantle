@@ -188,6 +188,7 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 		"keep newest streamed text in view": "Conversation",
 		"show work hide work toggle": "Work",
 		"fold an answer's reasoning and tool calls": "Work",
+		"jump to one of my earlier messages in a long chat": "Conversation Outline",
 	},
 };
 
