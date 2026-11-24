@@ -55,6 +55,7 @@ const docsPages = [
 	"components/ai/prompt-input",
 	"components/ai/reasoning",
 	"components/ai/tool-call",
+	"components/ai/work",
 	// charts
 	"components/charts/area-chart",
 	"components/charts/bar-chart",

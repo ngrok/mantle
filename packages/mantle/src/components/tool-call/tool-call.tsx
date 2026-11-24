@@ -141,7 +141,12 @@ function Trigger({ "data-slot": dataSlot, children, className, ...props }: ToolC
 	return (
 		<Accordion.Trigger
 			data-slot={joinDataSlot(dataSlot, "tool-call-trigger")}
-			className={cx("justify-start gap-2 py-1 text-xs font-normal", className)}
+			className={cx(
+				"pointer-coarse:py-2 justify-start gap-2 py-1 text-xs font-normal",
+				// Why: a pointer that hovers sees the caret on hover, focus, or open; touch always sees it.
+				"hover-hover:[&:not(:hover,:focus-visible)[aria-expanded=false]>[data-slot~=accordion-trigger-icon]]:opacity-0",
+				className,
+			)}
 			{...props}
 		>
 			{statusIcons[status]}
@@ -150,7 +155,7 @@ function Trigger({ "data-slot": dataSlot, children, className, ...props }: ToolC
 			</span>
 			<span className="text-muted">{statusLabels[status]}</span>
 			{/* Why w-3 only: size-3 would drop the icon's h-lh, which centers it in the first line. */}
-			<Accordion.TriggerIcon className="ms-auto w-3" />
+			<Accordion.TriggerIcon className="w-3" />
 		</Accordion.Trigger>
 	);
 }

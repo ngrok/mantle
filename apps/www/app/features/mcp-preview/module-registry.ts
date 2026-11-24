@@ -99,6 +99,7 @@ export const previewModules: Readonly<Record<string, () => Promise<unknown>>> = 
 	"@ngrok/mantle/utils": () => import("@ngrok/mantle/utils"),
 	"@ngrok/mantle/visually-hidden": () => import("@ngrok/mantle/visually-hidden"),
 	"@ngrok/mantle/well": () => import("@ngrok/mantle/well"),
+	"@ngrok/mantle/work": () => import("@ngrok/mantle/work"),
 	"@ngrok/mantle/world-map": () => import("@ngrok/mantle/world-map"),
 };
 

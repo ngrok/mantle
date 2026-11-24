@@ -1,0 +1,158 @@
+---
+title: Work
+description: The work behind one chat answer, its reasoning and its tool calls, under one "Show work" toggle that stays open while the answer streams.
+category: AI
+aliases: [agent steps, tool calls and reasoning, ai work, answer steps]
+---
+
+import { PageHeader } from "~/components/page-header";
+import { Example } from "~/components/example";
+
+<PageHeader id="work">Work</PageHeader>
+
+The work behind one chat answer, its reasoning and its tool calls, under one "Show work" toggle that stays open while the answer streams. When the answer ends, the work folds away, so the answer is what the reader sees.
+
+<Example name="components/ai/work/overview" title="Work example">
+
+```tsx
+import { CodeBlock, jsonCodeBlockValue } from "@ngrok/mantle/code-block";
+import { Reasoning } from "@ngrok/mantle/reasoning";
+import { ToolCall } from "@ngrok/mantle/tool-call";
+import { Work } from "@ngrok/mantle/work";
+
+const reasoning =
+	"The person asks which endpoints have no traffic policy. I should list the endpoints, read the policy on each, and name the ones with none.";
+
+function AnswerWork() {
+	return (
+		<Work.Root className="w-full max-w-2xl">
+			<Work.Trigger />
+			<Work.Content>
+				<Reasoning.Root>
+					<Reasoning.Trigger>Thought for 4 seconds</Reasoning.Trigger>
+					<Reasoning.Content>{reasoning}</Reasoning.Content>
+				</Reasoning.Root>
+				<ToolCall.Root status="done">
+					<ToolCall.Trigger>
+						<ToolCall.Name>list_endpoints</ToolCall.Name>
+					</ToolCall.Trigger>
+					<ToolCall.Content>
+						<CodeBlock.Root>
+							<CodeBlock.Body>
+								<CodeBlock.Code value={jsonCodeBlockValue({ limit: 5 })} />
+							</CodeBlock.Body>
+						</CodeBlock.Root>
+					</ToolCall.Content>
+				</ToolCall.Root>
+			</Work.Content>
+		</Work.Root>
+	);
+}
+```
+
+</Example>
+
+## When to use
+
+- Fold the reasoning and the tool calls of one chat answer under one toggle, above the answer's text.
+- Use [Reasoning](/components/ai/reasoning) or [Tool Call](/components/ai/tool-call) alone when an answer has one step.
+- Prefer [Accordion](/components/data-display/accordion) for titled sections that are not part of a chat answer.
+
+## While it streams
+
+Set `streaming` on `Work.Root` while the model works on the answer. The work shows, so the reader sees each step arrive, and the trigger reads "Hide work". When `streaming` turns off, the work folds away and the trigger reads "Show work".
+
+The reader's choice wins. When they press the trigger, the work stays the way they left it. When they press or focus a step while the answer streams, such as to open a tool call, the work stays open when the answer ends.
+
+<Example name="components/ai/work/streaming" title="Work streaming example">
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Reasoning } from "@ngrok/mantle/reasoning";
+import { ToolCall } from "@ngrok/mantle/tool-call";
+import { Work } from "@ngrok/mantle/work";
+import { useState } from "react";
+
+const reasoning =
+	"The person asks which endpoints have no traffic policy. I should list the endpoints, read the policy on each, and name the ones with none.";
+
+function StreamingWork() {
+	const [streaming, setStreaming] = useState(true);
+
+	return (
+		<div className="flex flex-col items-center gap-4">
+			<Work.Root streaming={streaming} className="w-full max-w-2xl">
+				<Work.Trigger />
+				<Work.Content>
+					<Reasoning.Root streaming={streaming}>
+						<Reasoning.Trigger>Thought for 4 seconds</Reasoning.Trigger>
+						<Reasoning.Content>{reasoning}</Reasoning.Content>
+					</Reasoning.Root>
+					<ToolCall.Root status={streaming ? "running" : "done"}>
+						<ToolCall.Trigger>
+							<ToolCall.Name>list_endpoints</ToolCall.Name>
+						</ToolCall.Trigger>
+						<ToolCall.Content>Found 5 endpoints.</ToolCall.Content>
+					</ToolCall.Root>
+				</Work.Content>
+			</Work.Root>
+			<Button
+				type="button"
+				appearance="outlined"
+				intent="neutral"
+				onClick={() => setStreaming(!streaming)}
+			>
+				{streaming ? "End the answer" : "Answer again"}
+			</Button>
+		</div>
+	);
+}
+```
+
+</Example>
+
+## Carets on hover
+
+Each step's caret shows only on hover, on keyboard focus, or while the step is open, so a column of finished steps reads as a quiet list. A touch screen has no hover, so there the caret always shows and each row is taller to tap. `Work.Trigger` keeps its caret at all times, because it is the one control that opens the rest.
+
+## Composition
+
+```text showLineNumbers=false
+Work.Root
+├── Work.Trigger
+└── Work.Content
+    ├── Reasoning.Root
+    └── ToolCall.Root
+```
+
+## Polymorphism
+
+No part takes `asChild`. Each one renders more than one element, or an element beside its children.
+
+## API Reference
+
+### Work.Root
+
+The work disclosure. It is open while `streaming` is set, until the reader chooses.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop         | Type      | Default | Description                                                                            |
+| ------------ | --------- | ------- | -------------------------------------------------------------------------------------- |
+| `streaming?` | `boolean` | `false` | True while the model works on the answer. The work shows, and folds away when it ends. |
+
+| Data Attribute   | Value                     | Description                                  |
+| ---------------- | ------------------------- | -------------------------------------------- |
+| `data-streaming` | present while `streaming` | Presence-only. Style with `data-streaming:`. |
+
+### Work.Trigger
+
+The toggle reads "Show work" while the work is closed and "Hide work" while it is open, with a caret. It takes no children.
+
+All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes) except `type` and `children`.
+
+### Work.Content
+
+The steps of the answer in a column. A focus or a press inside keeps the work open when the answer ends. Find-in-page reaches it while it is closed.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).

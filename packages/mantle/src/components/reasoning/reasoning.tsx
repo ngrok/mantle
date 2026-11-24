@@ -103,7 +103,9 @@ function Trigger({ "data-slot": dataSlot, children, className, ...props }: Reaso
 		<Accordion.Trigger
 			data-slot={joinDataSlot(dataSlot, "reasoning-trigger")}
 			className={cx(
-				"text-muted justify-start gap-1 py-1 text-xs font-normal",
+				"text-muted pointer-coarse:py-2 justify-start gap-1 py-1 text-xs font-normal",
+				// Why: a pointer that hovers sees the caret on hover, focus, or open; touch always sees it.
+				"hover-hover:[&:not(:hover,:focus-visible)[aria-expanded=false]>[data-slot~=accordion-trigger-icon]]:opacity-0",
 				streaming && "animate-pulse motion-reduce:animate-none",
 				className,
 			)}
