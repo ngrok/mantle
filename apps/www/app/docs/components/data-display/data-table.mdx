@@ -151,8 +151,9 @@ const columns = columnHelper.columns([
 	}),
 	columnHelper.accessor("amount", {
 		id: "amount",
+		meta: { width: "fit" },
 		header: (props) => (
-			<DataTable.Header className="w-50" column={props.column}>
+			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton
 					className="justify-end"
 					column={props.column}
@@ -163,10 +164,15 @@ const columns = columnHelper.columns([
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell className="text-right">{props.getValue()}</DataTable.Cell>,
+		cell: (props) => (
+			<DataTable.Cell column={props.column} className="text-right">
+				{props.getValue()}
+			</DataTable.Cell>
+		),
 	}),
 	columnHelper.accessor("status", {
 		id: "status",
+		meta: { width: "fit" },
 		header: (props) => (
 			<DataTable.Header column={props.column}>
 				<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
@@ -174,7 +180,7 @@ const columns = columnHelper.columns([
 				</DataTable.HeaderSortButton>
 			</DataTable.Header>
 		),
-		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
 	}),
 	columnHelper.accessor("email", {
 		id: "email",
@@ -664,7 +670,7 @@ columnHelper.display({
 
 ### Customizing cells (badges, numeric, truncation)
 
-Cell rendering is plain React. Use `Badge` for status pills, `text-right` for numeric columns, and `truncate max-w-*` for long strings.
+Cell rendering is plain React. Use `Badge` for status pills, `text-right` for numeric columns. A long string truncates on its own; see [Sizing a column](#sizing-a-column).
 
 ```tsx
 import { Badge } from "@ngrok/mantle/badge";
@@ -673,6 +679,7 @@ import { DataTable } from "@ngrok/mantle/data-table";
 // Status pill
 columnHelper.accessor("status", {
 	id: "status",
+	meta: { width: "fit" },
 	header: (props) => (
 		<DataTable.Header column={props.column}>
 			<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
@@ -684,7 +691,7 @@ columnHelper.accessor("status", {
 		const status = props.getValue();
 		const color = status === "success" ? "green" : status === "failed" ? "red" : "amber";
 		return (
-			<DataTable.Cell>
+			<DataTable.Cell column={props.column}>
 				<Badge color={color} appearance="muted">
 					{status}
 				</Badge>
@@ -697,6 +704,7 @@ columnHelper.accessor("status", {
 // so the sort affordance stays visually paired with the label
 columnHelper.accessor("amount", {
 	id: "amount",
+	meta: { width: "fit" },
 	header: (props) => (
 		<DataTable.Header column={props.column}>
 			<DataTable.HeaderSortButton
@@ -710,7 +718,7 @@ columnHelper.accessor("amount", {
 		</DataTable.Header>
 	),
 	cell: (props) => (
-		<DataTable.Cell className="text-right">${props.getValue().toFixed(2)}</DataTable.Cell>
+		<DataTable.Cell column={props.column} className="text-right">${props.getValue().toFixed(2)}</DataTable.Cell>
 	),
 }),
 
@@ -718,13 +726,13 @@ columnHelper.accessor("amount", {
 columnHelper.accessor("url", {
 	id: "url",
 	header: (props) => (
-		<DataTable.Header column={props.column} className="min-w-100">
+		<DataTable.Header column={props.column}>
 			<DataTable.HeaderSortButton column={props.column} sortingMode="alphanumeric">
 				URL
 			</DataTable.HeaderSortButton>
 		</DataTable.Header>
 	),
-	cell: (props) => <DataTable.Cell className="truncate max-w-100">{props.getValue()}</DataTable.Cell>,
+	cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 }),
 ```
 
@@ -789,8 +797,9 @@ const columns = columnHelper.columns([
 	}),
 	columnHelper.accessor("clientIp", {
 		id: "clientIp",
-		header: () => <DataTable.Header>Client IP</DataTable.Header>,
-		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+		meta: { width: "fit" },
+		header: (props) => <DataTable.Header column={props.column}>Client IP</DataTable.Header>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
 	}),
 	columnHelper.accessor("userAgent", {
 		id: "userAgent",
@@ -799,8 +808,9 @@ const columns = columnHelper.columns([
 	}),
 	columnHelper.accessor("duration", {
 		id: "duration",
-		header: () => <DataTable.Header>Duration</DataTable.Header>,
-		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+		meta: { width: "fit" },
+		header: (props) => <DataTable.Header column={props.column}>Duration</DataTable.Header>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
 	}),
 ]);
 
@@ -1247,9 +1257,10 @@ const columns = columnHelper.columns([
 	}),
 	columnHelper.accessor("status", {
 		id: "status",
-		header: () => <DataTable.Header>Status</DataTable.Header>,
+		meta: { width: "fit" },
+		header: (props) => <DataTable.Header column={props.column}>Status</DataTable.Header>,
 		cell: (props) => (
-			<DataTable.Cell className="align-top">
+			<DataTable.Cell column={props.column} className="align-top">
 				<Badge color="green" appearance="muted">
 					{props.getValue()}
 				</Badge>
@@ -1258,9 +1269,16 @@ const columns = columnHelper.columns([
 	}),
 	columnHelper.accessor("age", {
 		id: "age",
-		header: () => <DataTable.Header className="text-right">Age</DataTable.Header>,
+		meta: { width: "fit" },
+		header: (props) => (
+			<DataTable.Header column={props.column} className="text-right">
+				Age
+			</DataTable.Header>
+		),
 		cell: (props) => (
-			<DataTable.Cell className="align-top text-right">{props.getValue()}</DataTable.Cell>
+			<DataTable.Cell column={props.column} className="align-top text-right">
+				{props.getValue()}
+			</DataTable.Cell>
 		),
 	}),
 ]);

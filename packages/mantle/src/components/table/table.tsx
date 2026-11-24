@@ -22,26 +22,26 @@ import { joinDataSlot } from "../../utils/data-slot.js";
  *     <Table.Caption>A list of your recent invoices.</Table.Caption>
  *     <Table.Head>
  *       <Table.Row>
- *         <Table.Header className="w-25">Invoice</Table.Header>
- *         <Table.Header>Status</Table.Header>
+ *         <Table.Header width="fit">Invoice</Table.Header>
+ *         <Table.Header width="fit">Status</Table.Header>
  *         <Table.Header>Method</Table.Header>
- *         <Table.Header className="text-right">Amount</Table.Header>
+ *         <Table.Header width="fit" className="text-right">Amount</Table.Header>
  *       </Table.Row>
  *     </Table.Head>
  *     <Table.Body>
  *       {invoices.map((invoice) => (
  *         <Table.Row key={invoice.invoice}>
- *           <Table.Cell className="font-medium">{invoice.invoice}</Table.Cell>
- *           <Table.Cell>{invoice.paymentStatus}</Table.Cell>
+ *           <Table.Cell width="fit" className="font-medium">{invoice.invoice}</Table.Cell>
+ *           <Table.Cell width="fit">{invoice.paymentStatus}</Table.Cell>
  *           <Table.Cell>{invoice.paymentMethod}</Table.Cell>
- *           <Table.Cell className="text-right">{invoice.totalAmount}</Table.Cell>
+ *           <Table.Cell width="fit" className="text-right">{invoice.totalAmount}</Table.Cell>
  *         </Table.Row>
  *       ))}
  *     </Table.Body>
  *     <Table.Foot>
  *       <Table.Row>
  *         <Table.Cell colSpan={3}>Total</Table.Cell>
- *         <Table.Cell className="text-right">$2,500.00</Table.Cell>
+ *         <Table.Cell width="fit" className="text-right">$2,500.00</Table.Cell>
  *       </Table.Row>
  *     </Table.Foot>
  *   </Table.Element>
@@ -69,15 +69,15 @@ import { joinDataSlot } from "../../utils/data-slot.js";
  *         <Table.Element>
  *           <Table.Head>
  *             <Table.Row>
- *               <Table.Header>Invoice</Table.Header>
- *               <Table.Header className="text-right">Amount</Table.Header>
+ *               <Table.Header width="fit">Invoice</Table.Header>
+ *               <Table.Header width="fit" className="text-right">Amount</Table.Header>
  *             </Table.Row>
  *           </Table.Head>
  *           <Table.Body>
  *             {pageInvoices.map((invoice) => (
  *               <Table.Row key={invoice.invoice}>
  *                 <Table.Cell>{invoice.invoice}</Table.Cell>
- *                 <Table.Cell className="text-right">{invoice.totalAmount}</Table.Cell>
+ *                 <Table.Cell width="fit" className="text-right">{invoice.totalAmount}</Table.Cell>
  *               </Table.Row>
  *             ))}
  *           </Table.Body>
@@ -211,26 +211,26 @@ const Root = ({
  *     <Table.Caption>A list of your recent invoices.</Table.Caption>
  *     <Table.Head>
  *       <Table.Row>
- *         <Table.Header className="w-25">Invoice</Table.Header>
- *         <Table.Header>Status</Table.Header>
+ *         <Table.Header width="fit">Invoice</Table.Header>
+ *         <Table.Header width="fit">Status</Table.Header>
  *         <Table.Header>Method</Table.Header>
- *         <Table.Header className="text-right">Amount</Table.Header>
+ *         <Table.Header width="fit" className="text-right">Amount</Table.Header>
  *       </Table.Row>
  *     </Table.Head>
  *     <Table.Body>
  *       {invoices.map((invoice) => (
  *         <Table.Row key={invoice.invoice}>
- *           <Table.Cell className="font-medium">{invoice.invoice}</Table.Cell>
- *           <Table.Cell>{invoice.paymentStatus}</Table.Cell>
+ *           <Table.Cell width="fit" className="font-medium">{invoice.invoice}</Table.Cell>
+ *           <Table.Cell width="fit">{invoice.paymentStatus}</Table.Cell>
  *           <Table.Cell>{invoice.paymentMethod}</Table.Cell>
- *           <Table.Cell className="text-right">{invoice.totalAmount}</Table.Cell>
+ *           <Table.Cell width="fit" className="text-right">{invoice.totalAmount}</Table.Cell>
  *         </Table.Row>
  *       ))}
  *     </Table.Body>
  *     <Table.Foot>
  *       <Table.Row>
  *         <Table.Cell colSpan={3}>Total</Table.Cell>
- *         <Table.Cell className="text-right">$2,500.00</Table.Cell>
+ *         <Table.Cell width="fit" className="text-right">$2,500.00</Table.Cell>
  *       </Table.Row>
  *     </Table.Foot>
  *   </Table.Element>
@@ -283,26 +283,26 @@ const Element = ({
  *     <Table.Caption>A list of your recent invoices.</Table.Caption>
  *     <Table.Head>
  *       <Table.Row>
- *         <Table.Header className="w-25">Invoice</Table.Header>
- *         <Table.Header>Status</Table.Header>
+ *         <Table.Header width="fit">Invoice</Table.Header>
+ *         <Table.Header width="fit">Status</Table.Header>
  *         <Table.Header>Method</Table.Header>
- *         <Table.Header className="text-right">Amount</Table.Header>
+ *         <Table.Header width="fit" className="text-right">Amount</Table.Header>
  *       </Table.Row>
  *     </Table.Head>
  *     <Table.Body>
  *       {invoices.map((invoice) => (
  *         <Table.Row key={invoice.invoice}>
- *           <Table.Cell className="font-medium">{invoice.invoice}</Table.Cell>
- *           <Table.Cell>{invoice.paymentStatus}</Table.Cell>
+ *           <Table.Cell width="fit" className="font-medium">{invoice.invoice}</Table.Cell>
+ *           <Table.Cell width="fit">{invoice.paymentStatus}</Table.Cell>
  *           <Table.Cell>{invoice.paymentMethod}</Table.Cell>
- *           <Table.Cell className="text-right">{invoice.totalAmount}</Table.Cell>
+ *           <Table.Cell width="fit" className="text-right">{invoice.totalAmount}</Table.Cell>
  *         </Table.Row>
  *       ))}
  *     </Table.Body>
  *     <Table.Foot>
  *       <Table.Row>
  *         <Table.Cell colSpan={3}>Total</Table.Cell>
- *         <Table.Cell className="text-right">$2,500.00</Table.Cell>
+ *         <Table.Cell width="fit" className="text-right">$2,500.00</Table.Cell>
  *       </Table.Row>
  *     </Table.Foot>
  *   </Table.Element>
@@ -358,26 +358,26 @@ const Head = ({
  *     <Table.Caption>A list of your recent invoices.</Table.Caption>
  *     <Table.Head>
  *       <Table.Row>
- *         <Table.Header className="w-25">Invoice</Table.Header>
- *         <Table.Header>Status</Table.Header>
+ *         <Table.Header width="fit">Invoice</Table.Header>
+ *         <Table.Header width="fit">Status</Table.Header>
  *         <Table.Header>Method</Table.Header>
- *         <Table.Header className="text-right">Amount</Table.Header>
+ *         <Table.Header width="fit" className="text-right">Amount</Table.Header>
  *       </Table.Row>
  *     </Table.Head>
  *     <Table.Body>
  *       {invoices.map((invoice) => (
  *         <Table.Row key={invoice.invoice}>
- *           <Table.Cell className="font-medium">{invoice.invoice}</Table.Cell>
- *           <Table.Cell>{invoice.paymentStatus}</Table.Cell>
+ *           <Table.Cell width="fit" className="font-medium">{invoice.invoice}</Table.Cell>
+ *           <Table.Cell width="fit">{invoice.paymentStatus}</Table.Cell>
  *           <Table.Cell>{invoice.paymentMethod}</Table.Cell>
- *           <Table.Cell className="text-right">{invoice.totalAmount}</Table.Cell>
+ *           <Table.Cell width="fit" className="text-right">{invoice.totalAmount}</Table.Cell>
  *         </Table.Row>
  *       ))}
  *     </Table.Body>
  *     <Table.Foot>
  *       <Table.Row>
  *         <Table.Cell colSpan={3}>Total</Table.Cell>
- *         <Table.Cell className="text-right">$2,500.00</Table.Cell>
+ *         <Table.Cell width="fit" className="text-right">$2,500.00</Table.Cell>
  *       </Table.Row>
  *     </Table.Foot>
  *   </Table.Element>
@@ -441,26 +441,26 @@ const Body = ({
  *     <Table.Caption>A list of your recent invoices.</Table.Caption>
  *     <Table.Head>
  *       <Table.Row>
- *         <Table.Header className="w-25">Invoice</Table.Header>
- *         <Table.Header>Status</Table.Header>
+ *         <Table.Header width="fit">Invoice</Table.Header>
+ *         <Table.Header width="fit">Status</Table.Header>
  *         <Table.Header>Method</Table.Header>
- *         <Table.Header className="text-right">Amount</Table.Header>
+ *         <Table.Header width="fit" className="text-right">Amount</Table.Header>
  *       </Table.Row>
  *     </Table.Head>
  *     <Table.Body>
  *       {invoices.map((invoice) => (
  *         <Table.Row key={invoice.invoice}>
- *           <Table.Cell className="font-medium">{invoice.invoice}</Table.Cell>
- *           <Table.Cell>{invoice.paymentStatus}</Table.Cell>
+ *           <Table.Cell width="fit" className="font-medium">{invoice.invoice}</Table.Cell>
+ *           <Table.Cell width="fit">{invoice.paymentStatus}</Table.Cell>
  *           <Table.Cell>{invoice.paymentMethod}</Table.Cell>
- *           <Table.Cell className="text-right">{invoice.totalAmount}</Table.Cell>
+ *           <Table.Cell width="fit" className="text-right">{invoice.totalAmount}</Table.Cell>
  *         </Table.Row>
  *       ))}
  *     </Table.Body>
  *     <Table.Foot>
  *       <Table.Row>
  *         <Table.Cell colSpan={3}>Total</Table.Cell>
- *         <Table.Cell className="text-right">$2,500.00</Table.Cell>
+ *         <Table.Cell width="fit" className="text-right">$2,500.00</Table.Cell>
  *       </Table.Row>
  *     </Table.Foot>
  *   </Table.Element>
@@ -510,26 +510,26 @@ const Foot = ({
  *     <Table.Caption>A list of your recent invoices.</Table.Caption>
  *     <Table.Head>
  *       <Table.Row>
- *         <Table.Header className="w-25">Invoice</Table.Header>
- *         <Table.Header>Status</Table.Header>
+ *         <Table.Header width="fit">Invoice</Table.Header>
+ *         <Table.Header width="fit">Status</Table.Header>
  *         <Table.Header>Method</Table.Header>
- *         <Table.Header className="text-right">Amount</Table.Header>
+ *         <Table.Header width="fit" className="text-right">Amount</Table.Header>
  *       </Table.Row>
  *     </Table.Head>
  *     <Table.Body>
  *       {invoices.map((invoice) => (
  *         <Table.Row key={invoice.invoice}>
- *           <Table.Cell className="font-medium">{invoice.invoice}</Table.Cell>
- *           <Table.Cell>{invoice.paymentStatus}</Table.Cell>
+ *           <Table.Cell width="fit" className="font-medium">{invoice.invoice}</Table.Cell>
+ *           <Table.Cell width="fit">{invoice.paymentStatus}</Table.Cell>
  *           <Table.Cell>{invoice.paymentMethod}</Table.Cell>
- *           <Table.Cell className="text-right">{invoice.totalAmount}</Table.Cell>
+ *           <Table.Cell width="fit" className="text-right">{invoice.totalAmount}</Table.Cell>
  *         </Table.Row>
  *       ))}
  *     </Table.Body>
  *     <Table.Foot>
  *       <Table.Row>
  *         <Table.Cell colSpan={3}>Total</Table.Cell>
- *         <Table.Cell className="text-right">$2,500.00</Table.Cell>
+ *         <Table.Cell width="fit" className="text-right">$2,500.00</Table.Cell>
  *       </Table.Row>
  *     </Table.Foot>
  *   </Table.Element>
@@ -568,26 +568,26 @@ const Row = ({
  *     <Table.Caption>A list of your recent invoices.</Table.Caption>
  *     <Table.Head>
  *       <Table.Row>
- *         <Table.Header className="w-25">Invoice</Table.Header>
- *         <Table.Header>Status</Table.Header>
+ *         <Table.Header width="fit">Invoice</Table.Header>
+ *         <Table.Header width="fit">Status</Table.Header>
  *         <Table.Header>Method</Table.Header>
- *         <Table.Header className="text-right">Amount</Table.Header>
+ *         <Table.Header width="fit" className="text-right">Amount</Table.Header>
  *       </Table.Row>
  *     </Table.Head>
  *     <Table.Body>
  *       {invoices.map((invoice) => (
  *         <Table.Row key={invoice.invoice}>
- *           <Table.Cell className="font-medium">{invoice.invoice}</Table.Cell>
- *           <Table.Cell>{invoice.paymentStatus}</Table.Cell>
+ *           <Table.Cell width="fit" className="font-medium">{invoice.invoice}</Table.Cell>
+ *           <Table.Cell width="fit">{invoice.paymentStatus}</Table.Cell>
  *           <Table.Cell>{invoice.paymentMethod}</Table.Cell>
- *           <Table.Cell className="text-right">{invoice.totalAmount}</Table.Cell>
+ *           <Table.Cell width="fit" className="text-right">{invoice.totalAmount}</Table.Cell>
  *         </Table.Row>
  *       ))}
  *     </Table.Body>
  *     <Table.Foot>
  *       <Table.Row>
  *         <Table.Cell colSpan={3}>Total</Table.Cell>
- *         <Table.Cell className="text-right">$2,500.00</Table.Cell>
+ *         <Table.Cell width="fit" className="text-right">$2,500.00</Table.Cell>
  *       </Table.Row>
  *     </Table.Foot>
  *   </Table.Element>
@@ -650,26 +650,26 @@ const Header = ({
  *     <Table.Caption>A list of your recent invoices.</Table.Caption>
  *     <Table.Head>
  *       <Table.Row>
- *         <Table.Header className="w-25">Invoice</Table.Header>
- *         <Table.Header>Status</Table.Header>
+ *         <Table.Header width="fit">Invoice</Table.Header>
+ *         <Table.Header width="fit">Status</Table.Header>
  *         <Table.Header>Method</Table.Header>
- *         <Table.Header className="text-right">Amount</Table.Header>
+ *         <Table.Header width="fit" className="text-right">Amount</Table.Header>
  *       </Table.Row>
  *     </Table.Head>
  *     <Table.Body>
  *       {invoices.map((invoice) => (
  *         <Table.Row key={invoice.invoice}>
- *           <Table.Cell className="font-medium">{invoice.invoice}</Table.Cell>
- *           <Table.Cell>{invoice.paymentStatus}</Table.Cell>
+ *           <Table.Cell width="fit" className="font-medium">{invoice.invoice}</Table.Cell>
+ *           <Table.Cell width="fit">{invoice.paymentStatus}</Table.Cell>
  *           <Table.Cell>{invoice.paymentMethod}</Table.Cell>
- *           <Table.Cell className="text-right">{invoice.totalAmount}</Table.Cell>
+ *           <Table.Cell width="fit" className="text-right">{invoice.totalAmount}</Table.Cell>
  *         </Table.Row>
  *       ))}
  *     </Table.Body>
  *     <Table.Foot>
  *       <Table.Row>
  *         <Table.Cell colSpan={3}>Total</Table.Cell>
- *         <Table.Cell className="text-right">$2,500.00</Table.Cell>
+ *         <Table.Cell width="fit" className="text-right">$2,500.00</Table.Cell>
  *       </Table.Row>
  *     </Table.Foot>
  *   </Table.Element>
@@ -730,26 +730,26 @@ const Cell = ({
  *     <Table.Caption>A list of your recent invoices.</Table.Caption>
  *     <Table.Head>
  *       <Table.Row>
- *         <Table.Header className="w-25">Invoice</Table.Header>
- *         <Table.Header>Status</Table.Header>
+ *         <Table.Header width="fit">Invoice</Table.Header>
+ *         <Table.Header width="fit">Status</Table.Header>
  *         <Table.Header>Method</Table.Header>
- *         <Table.Header className="text-right">Amount</Table.Header>
+ *         <Table.Header width="fit" className="text-right">Amount</Table.Header>
  *       </Table.Row>
  *     </Table.Head>
  *     <Table.Body>
  *       {invoices.map((invoice) => (
  *         <Table.Row key={invoice.invoice}>
- *           <Table.Cell className="font-medium">{invoice.invoice}</Table.Cell>
- *           <Table.Cell>{invoice.paymentStatus}</Table.Cell>
+ *           <Table.Cell width="fit" className="font-medium">{invoice.invoice}</Table.Cell>
+ *           <Table.Cell width="fit">{invoice.paymentStatus}</Table.Cell>
  *           <Table.Cell>{invoice.paymentMethod}</Table.Cell>
- *           <Table.Cell className="text-right">{invoice.totalAmount}</Table.Cell>
+ *           <Table.Cell width="fit" className="text-right">{invoice.totalAmount}</Table.Cell>
  *         </Table.Row>
  *       ))}
  *     </Table.Body>
  *     <Table.Foot>
  *       <Table.Row>
  *         <Table.Cell colSpan={3}>Total</Table.Cell>
- *         <Table.Cell className="text-right">$2,500.00</Table.Cell>
+ *         <Table.Cell width="fit" className="text-right">$2,500.00</Table.Cell>
  *       </Table.Row>
  *     </Table.Foot>
  *   </Table.Element>
