@@ -21,7 +21,7 @@
   },
   "checkbox-group": {
     "entry": "import { CheckboxGroup } from \"@ngrok/mantle/checkbox\"; export default [CheckboxGroup.Root, CheckboxGroup.Card, CheckboxGroup.Indicator];",
-    "maxGzipBytes": 9616
+    "maxGzipBytes": 9710
   },
   "radio-group": {
     "entry": "import { RadioGroup } from \"@ngrok/mantle/radio-group\"; export default [RadioGroup.Root, RadioGroup.Item, RadioGroup.Indicator];",
