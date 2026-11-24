@@ -2283,7 +2283,7 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 
 :root:active-view-transition:not([data-theme-transition])
 	[data-slot~="app-layout-side-panel"][data-open]
-	> * {
+	> div {
 	right: 0;
 }
 
