@@ -266,36 +266,36 @@ describe("MultiSelect", () => {
 			expect(onChange.mock.lastCall?.[0].target).toBe(screen.getByRole("combobox"));
 		});
 
+		/**
+		 * The documented filtering shape: the consumer owns the query and the
+		 * rendered items, driven entirely by `onInputValueChange`.
+		 */
+		const FilteringSubject = () => {
+			const [query, setQuery] = useState("");
+			const matches = ["Apple", "Banana", "Cherry"].filter((fruit) =>
+				fruit.toLowerCase().includes(query.trim().toLowerCase()),
+			);
+
+			return (
+				<MultiSelect.Root onInputValueChange={setQuery}>
+					<MultiSelect.Trigger>
+						<MultiSelect.TagValues />
+						<MultiSelect.Input placeholder="Select items..." />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						{matches.length === 0 && <MultiSelect.Empty>No results found</MultiSelect.Empty>}
+						{matches.map((fruit) => (
+							<MultiSelect.Item key={fruit} value={fruit.toLowerCase()}>
+								{fruit}
+							</MultiSelect.Item>
+						))}
+					</MultiSelect.Content>
+				</MultiSelect.Root>
+			);
+		};
+
 		test("filtering the items from onInputValueChange narrows the listbox and reveals Empty", async () => {
 			const user = userEvent.setup();
-			/**
-			 * The documented filtering shape: the consumer owns the query and the
-			 * rendered items, driven entirely by `onInputValueChange`.
-			 */
-			const FilteringSubject = () => {
-				const [query, setQuery] = useState("");
-				const matches = ["Apple", "Banana", "Cherry"].filter((fruit) =>
-					fruit.toLowerCase().includes(query.trim().toLowerCase()),
-				);
-
-				return (
-					<MultiSelect.Root onInputValueChange={setQuery}>
-						<MultiSelect.Trigger>
-							<MultiSelect.TagValues />
-							<MultiSelect.Input placeholder="Select items..." />
-						</MultiSelect.Trigger>
-						<MultiSelect.Content>
-							{matches.length === 0 && <MultiSelect.Empty>No results found</MultiSelect.Empty>}
-							{matches.map((fruit) => (
-								<MultiSelect.Item key={fruit} value={fruit.toLowerCase()}>
-									{fruit}
-								</MultiSelect.Item>
-							))}
-						</MultiSelect.Content>
-					</MultiSelect.Root>
-				);
-			};
-
 			render(<FilteringSubject />);
 
 			const input = screen.getByRole("combobox");
@@ -312,6 +312,45 @@ describe("MultiSelect", () => {
 			await user.type(input, "zzz");
 			expect(within(listbox).queryAllByRole("option")).toHaveLength(0);
 			expect(screen.getByText("No results found")).toBeInTheDocument();
+		});
+
+		test("closing the list clears the filter text, so the field and the list agree", async () => {
+			const user = userEvent.setup();
+			render(<FilteringSubject />);
+			const input = screen.getByRole("combobox");
+
+			await user.type(input, "ban");
+			expect(screen.getAllByRole("option")).toHaveLength(1);
+			await user.keyboard("{Escape}");
+
+			expect(input).toHaveAttribute("aria-expanded", "false");
+			expect(input).toHaveValue("");
+			await user.click(input);
+			expect(screen.getAllByRole("option")).toHaveLength(3);
+		});
+
+		test("a blur while the list is closed keeps the text, because nothing closed", async () => {
+			const user = userEvent.setup();
+			render(
+				<>
+					<MultiSelect.Root defaultInputValue="ban">
+						<MultiSelect.Trigger>
+							<MultiSelect.Input aria-label="Fruit" />
+						</MultiSelect.Trigger>
+						<MultiSelect.Content>
+							<MultiSelect.Item value="banana">Banana</MultiSelect.Item>
+						</MultiSelect.Content>
+					</MultiSelect.Root>
+					<button type="button">Next</button>
+				</>,
+			);
+			const input = screen.getByRole("combobox", { name: "Fruit" });
+
+			input.focus();
+			await user.tab();
+
+			expect(screen.getByRole("button", { name: "Next" })).toHaveFocus();
+			expect(input).toHaveValue("ban");
 		});
 	});
 
