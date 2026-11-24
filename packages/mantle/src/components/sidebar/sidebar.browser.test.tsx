@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, onTestFinished, test,
 import { commands, page, userEvent } from "vitest/browser";
 import { useLocalStorage } from "../../hooks/use-local-storage.js";
 import mantleCss from "../../mantle.css?raw";
+import { isApplePlatform } from "../../utils/platform.js";
 import * as Command from "../command/command-parts.js";
 import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
 import { TooltipProvider } from "../tooltip/index.js";
@@ -660,7 +661,9 @@ describe("Sidebar.Nav on the native <dialog>", () => {
 		);
 		await waitForSheet();
 
-		await userEvent.keyboard("{Control>}k{/Control}");
+		// The palette binds ⌘K on Apple platforms and Ctrl+K elsewhere.
+		const modifier = isApplePlatform() ? "Meta" : "Control";
+		await userEvent.keyboard(`{${modifier}>}k{/${modifier}}`);
 
 		const input = await screen.findByPlaceholderText("Type a command…");
 		expect(input.closest("dialog")).not.toBe(sheetDialog());
