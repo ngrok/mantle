@@ -2,7 +2,7 @@
 "@ngrok/mantle": patch
 ---
 
-Add `width="root"` to `SplitButton.MenuContent`. The menu then takes the width of the whole split button: the primary action and the menu trigger together. With `align="end"` (the default), the menu lines up with both edges of the split button. The menu is anchored to the split button, so it follows the split button's width while it is open.
+Add `width="root"` to `SplitButton.MenuContent`. The menu then takes the width of the whole split button: the primary action and the menu trigger together. With `align="end"` (the default), the menu lines up with both edges of the split button. The menu is never narrower than 8rem, as with `width="trigger"`. It is also never wider than the viewport less 8px on each side. The menu is anchored to the split button, so it follows the split button's width while it is open.
 
 `SplitButton.MenuContent` also takes `width="trigger"` and `width="content"`, as `DropdownMenu.Content` does. When you omit `width`, the menu keeps its intrinsic width.
 

@@ -1,16 +1,7 @@
 "use client";
 
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
-import {
-	createContext,
-	useContext,
-	useMemo,
-	useRef,
-	type ComponentProps,
-	type ReactNode,
-	type RefObject,
-} from "react";
-import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
+import { createContext, useContext, useMemo, type ComponentProps, type ReactNode } from "react";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -23,8 +14,6 @@ import { Icon } from "../icon/icon.js";
 
 type SplitButtonContextValue = {
 	size: ButtonSize;
-	/** The wrapping `<div>` of `Root`, which a `width="root"` menu anchors to. */
-	rootRef: RefObject<HTMLDivElement | null>;
 };
 
 /**
@@ -33,14 +22,10 @@ type SplitButtonContextValue = {
  * value (rather than a null-and-throw context) is deliberate: the context
  * carries pure geometry, so a `PrimaryAction` stranded outside `Root`
  * degrades to the standalone `Button` default (`md`) instead of crashing,
- * and a `MenuContent` with `width="root"` anchors to the trigger instead,
  * while `MenuTrigger` already fails fast outside `Root` via
  * `DropdownMenu.Trigger`.
  */
-const SplitButtonContext = createContext<SplitButtonContextValue>({
-	size: "md",
-	rootRef: { current: null },
-});
+const SplitButtonContext = createContext<SplitButtonContextValue>({ size: "md" });
 
 type RootProps = ComponentProps<typeof DropdownMenu.Root> &
 	ComponentProps<"div"> & {
@@ -103,9 +88,7 @@ const Root = ({
 	ref,
 	...props
 }: RootProps) => {
-	const rootRef = useRef<HTMLDivElement>(null);
-	const composedRef = useComposedRefs(rootRef, ref);
-	const context: SplitButtonContextValue = useMemo(() => ({ size, rootRef }), [size]);
+	const context: SplitButtonContextValue = useMemo(() => ({ size }), [size]);
 
 	return (
 		<DropdownMenu.Root
@@ -123,7 +106,7 @@ const Root = ({
 						"flex w-fit flex-row [&>*:first-child]:rounded-r-none [&>*:last-child]:rounded-l-none [&>*:not(:first-child):not(:last-child)]:rounded-none [&>*:not(:first-child)]:-ml-px [&>*:focus]:relative [&>*:focus]:z-10 [&>*:hover]:relative [&>*:hover]:z-10 [&>:active]:scale-100!",
 						className,
 					)}
-					ref={composedRef}
+					ref={ref}
 					{...props}
 				>
 					{children}
@@ -252,12 +235,16 @@ type MenuContentProps = Omit<ComponentProps<typeof DropdownMenu.Content>, "width
 	 * The width of the menu. When omitted, the menu takes its intrinsic width.
 	 *
 	 * @enum
-	 * - `"root"`: the width of the whole split button, primary action and menu trigger together. With `align="end"` (the default), the menu lines up with both edges of the split button.
-	 * - `"trigger"`: the width of the menu trigger
+	 * - `"root"`: the width of the whole split button, primary action and menu trigger together. With `align="end"` (the default), the menu lines up with both edges of the split button. The menu is never narrower than 8rem.
+	 * - `"trigger"`: the width of the menu trigger, and never narrower than 8rem
 	 * - `"content"`: the intrinsic width of the menu: the width of the widest item
 	 */
 	width?: "root" | "trigger" | "content";
 };
+
+/** The split button that holds `trigger`, which a `width="root"` menu anchors to. */
+const rootOf = (trigger: HTMLElement) =>
+	trigger.closest<HTMLElement>('[data-slot~="split-button"]');
 
 /**
  * The container for the split button dropdown menu content. Appears in a
@@ -295,13 +282,13 @@ const MenuContent = ({
 	width,
 	...props
 }: MenuContentProps) => {
-	const { rootRef } = useContext(SplitButtonContext);
-
 	return (
-		<ContentAnchorContext.Provider value={width === "root" ? rootRef : null}>
+		<ContentAnchorContext.Provider value={width === "root" ? rootOf : null}>
 			<DropdownMenu.Content
 				align={align}
-				className={className}
+				// Why the cap: a split button as wide as the viewport would push the
+				// menu past the viewport edge, because the float keeps 8px clear of it.
+				className={cx(width === "root" && "max-w-(--available-width)", className)}
 				data-slot={joinDataSlot(dataSlot, "split-button-menu-content")}
 				ref={ref}
 				width={width === "root" ? "trigger" : width}

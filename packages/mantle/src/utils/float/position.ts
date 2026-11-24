@@ -325,7 +325,8 @@ function observeMove(element: HTMLElement, onMove: () => void): () => void {
  * with `data-float-scroll`.
  *
  * Each frame it writes on the float `data-side` (the side it resolved to),
- * `--anchor-width`, `--anchor-height`, `--available-height`, and a `transform-origin` at the
+ * `--anchor-width`, `--anchor-height`, `--available-width` (the viewport less
+ * its edge gaps), `--available-height`, and a `transform-origin` at the
  * anchor. A child with `data-float-arrow` moves to the edge that faces the
  * anchor and centers on the anchor.
  *
@@ -393,8 +394,16 @@ function trackFloat({
 		};
 		// Why before the reads: a float sized by the anchor, such as a picker list,
 		// takes its final width and wrapped height in this placement.
+		const viewport = {
+			width: document.documentElement.clientWidth / zoom,
+			height: document.documentElement.clientHeight / zoom,
+		};
 		floating.style.setProperty("--anchor-width", `${anchorBox.width}px`);
 		floating.style.setProperty("--anchor-height", `${anchorBox.height}px`);
+		floating.style.setProperty(
+			"--available-width",
+			`${Math.max(viewport.width - 2 * VIEWPORT_PADDING, 0)}px`,
+		);
 		const width = floating.offsetWidth;
 		const height = floating.offsetHeight;
 		// Why a scroll child, found on each placement: a popup with a fixed part, such
@@ -411,10 +420,6 @@ function trackFloat({
 		const contentHeight = sizeByContent
 			? scroller.scrollHeight + height - scroller.clientHeight
 			: height;
-		const viewport = {
-			width: document.documentElement.clientWidth / zoom,
-			height: document.documentElement.clientHeight / zoom,
-		};
 		let placed = computePlacement({
 			align,
 			anchor: anchorBox,

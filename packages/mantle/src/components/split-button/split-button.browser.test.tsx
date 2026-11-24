@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
+import { memo } from "react";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { commands } from "vitest/browser";
+import { DropdownMenu } from "../dropdown-menu/index.js";
 import { SplitButton } from "./index.js";
 
 let styleElement: HTMLStyleElement;
@@ -131,6 +133,78 @@ test('width="root" follows a stretched split button that resizes while the menu 
 	expect(width(root)).toBeLessThan(widthBefore);
 	await expect.poll(() => width(menu)).toBe(width(root));
 	await expect.poll(() => rightEdgeGap(menu, root)).toBeLessThan(1);
+});
+
+test('a dropdown menu inside a width="root" menu anchors to its own trigger', async () => {
+	render(
+		<div style={{ padding: 16 }}>
+			<SplitButton.Root data-testid="root" open style={{ width: 320 }}>
+				<SplitButton.PrimaryAction className="flex-1">Deploy</SplitButton.PrimaryAction>
+				<SplitButton.MenuTrigger label="More deploy options" />
+				<SplitButton.MenuContent width="root">
+					<DropdownMenu.Root open>
+						<DropdownMenu.Trigger style={{ width: 144 }}>Export</DropdownMenu.Trigger>
+						<DropdownMenu.Content width="trigger">
+							<DropdownMenu.Item>As CSV</DropdownMenu.Item>
+						</DropdownMenu.Content>
+					</DropdownMenu.Root>
+				</SplitButton.MenuContent>
+			</SplitButton.Root>
+		</div>,
+	);
+	const inner = screen.getByRole("menu", { name: "Export" });
+	const innerTrigger = screen.getByRole("button", { name: "Export" });
+
+	await expect.poll(() => inner.style.getPropertyValue("--anchor-width")).toBe("144px");
+	expect(width(innerTrigger)).toBe(144);
+});
+
+/** A menu that a parent rerender does not render again, as a hoisted element is not. */
+const StaticMenu = memo(function StaticMenu() {
+	return (
+		<SplitButton.MenuContent width="root">
+			<SplitButton.MenuItem>Draft</SplitButton.MenuItem>
+		</SplitButton.MenuContent>
+	);
+});
+
+test('width="root" keeps the split button as its anchor when Root and the trigger take new ref callbacks', async () => {
+	const ui = () => (
+		<div style={{ padding: 16 }}>
+			<SplitButton.Root data-testid="root" open ref={() => {}} style={{ width: 320 }}>
+				<SplitButton.PrimaryAction className="flex-1">Deploy</SplitButton.PrimaryAction>
+				<SplitButton.MenuTrigger label="More deploy options" ref={() => {}} />
+				<StaticMenu />
+			</SplitButton.Root>
+		</div>
+	);
+	const { rerender } = render(ui());
+	const menu = screen.getByRole("menu");
+	await expect.poll(() => menu.style.getPropertyValue("--anchor-width")).toBe("320px");
+
+	rerender(ui());
+
+	await expect.poll(() => menu.style.getPropertyValue("--anchor-width")).toBe("320px");
+	await expect.poll(() => width(menu)).toBe(320);
+});
+
+test('a width="root" menu under a viewport-wide split button stays inside the viewport', async () => {
+	render(
+		<div style={{ position: "fixed", top: 16, left: 0, right: 0 }}>
+			<SplitButton.Root className="w-full" open>
+				<SplitButton.PrimaryAction className="flex-1">Deploy</SplitButton.PrimaryAction>
+				<SplitButton.MenuTrigger label="More deploy options" />
+				<SplitButton.MenuContent width="root">
+					<SplitButton.MenuItem>Draft</SplitButton.MenuItem>
+				</SplitButton.MenuContent>
+			</SplitButton.Root>
+		</div>,
+	);
+	const menu = screen.getByRole("menu");
+	const viewportWidth = document.documentElement.clientWidth;
+
+	await expect.poll(() => menu.getBoundingClientRect().left).toBe(8);
+	expect(menu.getBoundingClientRect().right).toBe(viewportWidth - 8);
 });
 
 describe("SplitButton menu placement (browser)", () => {
