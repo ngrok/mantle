@@ -455,7 +455,7 @@ const Button = ({
  * click is cancelled in the capture phase, before the child's own `onClick` or
  * a router's navigation runs.
  *
- * Why on the child through `cloneElement`, not on the `Slot`: Radix composes a
+ * Why on the child through `cloneElement`, not on the `Slot`: `Slot` composes a
  * child handler ahead of a slot handler, so a child's own `onClickCapture`
  * would run before the blocker. Set on the child, these props replace it.
  */

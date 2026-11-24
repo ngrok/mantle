@@ -85,7 +85,7 @@ describe("Sheet.Content", () => {
 
 describe("Sheet dialog scope", () => {
 	it("a Dialog.Trigger inside Sheet.Content opens the Dialog.Root above the sheet", async () => {
-		// Why: a sheet is a Radix dialog, and a default-scope trigger binds to the
+		// Why: a sheet is a dialog, and a default-scope trigger binds to the
 		// nearest one. The sheet's own scope keeps it out of that lookup.
 		const user = userEvent.setup();
 		const onSheetOpenChange = vi.fn<(open: boolean) => void>();
@@ -116,7 +116,7 @@ describe("Sheet dialog scope", () => {
 	});
 
 	it("Sheet.Description under a Dialog.Root describes the sheet, not the dialog", () => {
-		// Pins the primitive `Description` handing its props to the Radix part:
+		// Pins the primitive `Description` handing its props to the dialog part:
 		// with the scope dropped there, the description registers with the outer
 		// dialog and the sheet loses its `aria-describedby`.
 		render(

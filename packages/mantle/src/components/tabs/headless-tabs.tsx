@@ -49,7 +49,7 @@ type RootProps = Omit<ComponentProps<"div">, "defaultValue" | "dir"> &
 		value?: string;
 		/** Called with the tab's value when a tab activates. Fires once per activation. */
 		// Why the method type: its parameter is bivariant, so a handler typed with
-		// a union of tab values still type-checks, as it did with Radix.
+		// a union of tab values still type-checks.
 		onValueChange?: { bivarianceHack(value: string): void }["bivarianceHack"];
 		/**
 		 * The axis of the list. It decides which arrow keys move focus.

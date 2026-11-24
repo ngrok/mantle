@@ -542,9 +542,9 @@ describe("Command.DialogRoot", () => {
 		test("the caret lands at the end of a seeded query, not over it", async () => {
 			// Cross-part pin: `Command.DialogContent`'s open-autofocus handler finds
 			// the field with `[data-slot="command-input"]`, which `Command.Input`
-			// stamps. Renaming either side restores Radix's own autofocus, which
-			// selects the whole value, so the first keystroke after a seeded open
-			// would replace the seed instead of extending it.
+			// stamps. Renaming either side drops the caret fix, so the first
+			// keystroke after a seeded open would replace the seed instead of
+			// extending it.
 			const user = userEvent.setup();
 			render(<Palette />);
 			await focusTrigger(user);
@@ -566,7 +566,7 @@ describe("Command.DialogRoot", () => {
 		test("a forwarded data-slot on Command.Input cannot take the caret fix away", async () => {
 			// Same cross-part pin from the consumer's side: `command-input` is joined
 			// after the spread rather than replaced by it, so a styling hook on the
-			// field cannot silently restore Radix's select-the-whole-value autofocus.
+			// field cannot silently drop the caret fix.
 			const user = userEvent.setup();
 			render(
 				<Command.DialogRoot>
@@ -593,8 +593,8 @@ describe("Command.DialogRoot", () => {
 		test.for([
 			["there is no Command.Input", null],
 			// The blog's palette disables its input while its posts load; focusing a
-			// disabled element is a no-op, so taking Radix's autofocus over would
-			// leave focus outside the dialog with no focus trap.
+			// disabled element is a no-op, so taking the dialog's autofocus over would
+			// leave focus outside the dialog.
 			[
 				"the Command.Input is disabled",
 				<Command.Input key="input" placeholder="Type a command or search..." disabled />,

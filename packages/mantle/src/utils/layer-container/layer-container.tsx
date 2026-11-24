@@ -23,10 +23,9 @@ import { useComposedRefs } from "../compose-refs/use-composed-refs.js";
  * portals to `document.body`, and stays below the overlay tier no matter when
  * it opens.
  *
- * Why the positioner and not a sibling element: Radix marks the portal's
- * other children `aria-hidden` when a modal overlay opens, so a float portaled
- * into a sibling would be hidden from screen readers. The positioner is on the
- * overlay content's ancestor chain, which the marking skips.
+ * Why the positioner and not a sibling element: a modal `<dialog>` makes the
+ * page outside it inert, so a float portaled into a sibling would take no input
+ * and leave the accessibility tree. The positioner is inside the `<dialog>`.
  */
 const LayerContainerContext = createContext<Element | DocumentFragment | null>(null);
 
@@ -52,8 +51,8 @@ const ModalLayerContext = createContext(false);
  * ```
  */
 function useLayerContainer(): Element | DocumentFragment | null {
-	// Why here: each float and each overlay calls this hook, so the listeners are
-	// on the document before the ones that Radix adds for the layer.
+	// Why here: each float and each overlay calls this hook on mount, so these
+	// listeners are on the document before the ones the layer adds as it opens.
 	useLayoutEffect(listenForCoveringLayer, []);
 	return useContext(LayerContainerContext);
 }
@@ -230,14 +229,13 @@ function useFloatOpenAutoFocus(
 }
 
 /**
- * Returns the `onEscapeKeyDown` handler for a float. Radix sends Escape to the
- * layer that mounted last. A float outside an overlay can mount after the
- * overlay and paint under it, and Escape then closes a float the user cannot
- * see. While focus is in the content of an overlay that does not contain the
- * float, this handler gives Escape to that overlay and keeps the float open.
+ * Returns the `onEscapeKeyDown` handler for a float. A float outside an
+ * overlay paints under it, so the user cannot see it. While focus is in the
+ * content of an overlay that does not contain the float, this handler gives
+ * Escape to that overlay and keeps the float open.
  *
  * Focus in a float that the overlay owns is outside the overlay's content, so
- * Radix keeps the Escape: the overlay cannot close that float, and it must
+ * the float keeps the Escape: the overlay cannot close that float, and it must
  * not close itself under the float.
  */
 function useFloatEscapeKeyDown(
@@ -278,8 +276,8 @@ const notCoveringLayers = "[data-mantle-modal-content], .overlay-prompt";
  * and when mantle renders the layer of the frame (an open overlay, one of its
  * floats, or a floating prompt).
  *
- * Why a hit test: an open modal overlay sets `pointer-events: none` on
- * `<body>`, so only a layer that turns pointer input back on is on top. That
+ * Why a hit test: the page behind an open modal overlay is inert, and the
+ * browser does not hit-test inert content, so only a live layer is on top. That
  * layer is one the user can use, and the page behind the overlay never is.
  *
  * Why a frame: its key presses and its focus moves never reach the page, so
@@ -351,15 +349,15 @@ function getCoveringLayerFor(node: EventTarget | null): Element | null {
  * Runs for each focus event of the document. When focus leaves the top open
  * overlay while a layer covers it, the overlay yields to the layer:
  *
- * - The layer loses its `aria-hidden`. Radix sets that attribute on each
- *   `<body>` child that is on the page as a modal overlay opens, and a wallet
- *   popup stays on the page between uses.
- * - A focus move into the layer stops here, so the focus trap of the overlay
- *   does not take focus back. A page script makes that move when it calls
- *   `focus()` on the frame, as a wallet popup does when it opens.
+ * - The layer loses its `aria-hidden`. A modal from another library, such as
+ *   Radix, sets that attribute on each `<body>` child as it opens, and a
+ *   wallet popup stays on the page between uses.
+ * - A focus move into the layer stops here, so no float or overlay reads it
+ *   as focus that left. A page script makes that move when it calls `focus()`
+ *   on the frame, as a wallet popup does when it opens.
  *
- * Why stop the event: the trap is a later listener on the document. Radix
- * lets only a React child of the content keep focus outside the content.
+ * Why stop the event: the outside-focus listener of a float is a later
+ * listener on the document, and it closes the float.
  */
 function yieldFocusToCoveringLayer(event: FocusEvent): void {
 	const destination = event.type === "focusin" ? event.target : event.relatedTarget;
@@ -378,8 +376,8 @@ function yieldFocusToCoveringLayer(event: FocusEvent): void {
 /**
  * The presses that landed in a covering layer.
  *
- * Why a record: a layer can close on the press, and the listeners of Radix
- * run after the layer is gone.
+ * Why a record: a layer can close on the press, and the outside-press
+ * listeners of the overlays and floats run after the layer is gone.
  */
 const coveringLayerPresses = new WeakSet<Event>();
 
@@ -395,8 +393,8 @@ function recordCoveringLayerPress(event: PointerEvent): void {
 }
 
 /**
- * Stops a recorded pointer down before the listeners of Radix get it, so no
- * overlay and no float counts it as a press outside.
+ * Stops a recorded pointer down before the later listeners on the document get
+ * it, so no float counts it as a press outside.
  */
 function stopCoveringLayerPress(event: PointerEvent): void {
 	if (coveringLayerPresses.has(event)) {
@@ -409,8 +407,8 @@ function stopCoveringLayerPress(event: PointerEvent): void {
  * the top open overlay. Each float and each overlay calls it on mount, through
  * {@link useLayerContainer}.
  *
- * Why no removal: a popover that holds the overlay adds its Radix listeners
- * before the overlay opens, and these listeners must run before those. The
+ * Why no removal: a popover that holds the overlay adds its outside-press
+ * listeners before the overlay opens, and these listeners must run before those. The
  * document keeps one copy of a listener, in its first place, so each call
  * after the first does nothing.
  */

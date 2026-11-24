@@ -255,8 +255,8 @@ export default defineConfig({
 					// Why: the theme and chart tests import the shipped stylesheets with `?raw`, and
 					// without this Vitest hands them an empty module.
 					css: true,
-					// Why `isolate: false`: an isolated worker builds a new happy-dom and imports React,
-					// Radix, and the rest again for each file. The setup file reset keeps the files
+					// Why `isolate: false`: an isolated worker builds a new happy-dom and imports React
+					// and the rest again for each file. The setup file reset keeps the files
 					// independent in the shared worker.
 					isolate: false,
 					setupFiles: ["./vitest.setup-file-reset.ts"],

@@ -214,7 +214,7 @@ function focusWithoutScroll(element: HTMLElement | null | undefined): void {
 /**
  * Moves keyboard focus to the first of `items` that takes it, and scrolls the
  * menu so the item shows. Why try each: an item that CSS hides, that is
- * `inert`, or that is a disabled button cannot take focus, as with Radix.
+ * `inert`, or that is a disabled button cannot take focus.
  */
 function focusFirst(items: readonly HTMLElement[]): boolean {
 	for (const item of items) {
@@ -356,7 +356,7 @@ function useMenuKeyboard(loop: boolean): {
 			const items = itemsOf(menu);
 			const current = items.indexOf(target);
 			const move = navigationOrder({ key: event.key, items, current, loop });
-			// Why not with a modifier: as with Radix, Shift or Ctrl with an arrow key is the page's.
+			// Why not with a modifier: Shift or Ctrl with an arrow key is the page's.
 			if (move != null) {
 				if (!event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) {
 					event.preventDefault();
@@ -389,7 +389,7 @@ function useMenuKeyboard(loop: boolean): {
 		return {
 			onMenuKeyDown,
 			isTyping: () => search.current !== "",
-			// Why: a menu that opens again starts a new search, as with Radix.
+			// Why: a menu that opens again starts a new search.
 			resetTyping: () => {
 				clearTimeout(searchTimer.current);
 				search.current = "";

@@ -7,7 +7,7 @@ import * as Sheet from "../../components/sheet/sheet-parts.js";
 /**
  * Why its own file: the listeners for a covering frame stay on the document
  * for the life of the module. Only the first float that mounts in a file shows
- * that it adds them before Radix adds the listeners of its own layer.
+ * that it adds them before the float and the overlay add their own listeners.
  */
 test("focus into a frame above a sheet leaves open the popover that holds the sheet", async () => {
 	// Regression: a popover closes when focus leaves it, and it unmounts the

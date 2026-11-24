@@ -90,7 +90,7 @@ describe("Select wrapper span layout", () => {
 			</Select.Root>,
 		);
 
-		// Radix portals the label span into the value node, so the same contract
+		// `Select.Value` renders the item's label span in the value node, so the same contract
 		// holds for the copy the trigger shows.
 		const name = await screen.findByTestId("name");
 		expect(horizontalDistance(name, screen.getByTestId("hint"))).toBeCloseTo(GAP, 0);

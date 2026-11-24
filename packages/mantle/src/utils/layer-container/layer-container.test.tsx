@@ -392,8 +392,8 @@ describe("layer containers", () => {
 
 	describe("floats inside a Popover", () => {
 		// Popover.Content is a layer container: it paints in the top layer, so a
-		// float composed inside it must portal into it. A Radix float at `z-50`
-		// on `document.body` would paint under the top layer.
+		// float composed inside it must portal into it. A float at `z-50` on
+		// `document.body` would paint under the top layer.
 		const nestedFloats = [
 			...floats.map((float) => ({
 				name: float.name,
@@ -859,7 +859,7 @@ describe("Escape and covered floats", () => {
 		expect(screen.getByRole("dialog")).toBeInTheDocument();
 	});
 
-	test("Escape from a covered float closes the dialog that Radix binds to the content, not an inner sheet root", async () => {
+	test("Escape from a covered float closes the dialog that owns the content, not an inner sheet root", async () => {
 		const user = userEvent.setup();
 		const onDialogOpenChange = vi.fn<(open: boolean) => void>();
 		const onSheetOpenChange = vi.fn<(open: boolean) => void>();
@@ -1239,7 +1239,7 @@ describe("a frame that covers an overlay", () => {
 
 	test("a press that hides the layer of the frame leaves the dialog open", async () => {
 		// A captcha popup hides itself on a press of its backdrop. It is hidden
-		// before the listeners of Radix run, and the press was still for it.
+		// before the outside-press listeners run, and the press was still for it.
 		const user = userEvent.setup();
 		const onOpenChange = vi.fn<(open: boolean) => void>();
 		render(

@@ -1604,7 +1604,7 @@ describe("Sidebar.SearchTrigger", () => {
 
 	test("a Sidebar.Tooltip around it opens in the collapsed sidebar, shortcut and all", async () => {
 		// Regression: `Command.SearchTrigger` typed its props as `{ children }` only,
-		// so wrapping it in `Sidebar.Tooltip` dropped every prop Radix's
+		// so wrapping it in `Sidebar.Tooltip` dropped every prop that
 		// `Tooltip.Trigger` passes down. The row rendered fine and the tooltip
 		// could never open. This is the composition the docs recommend, so it is
 		// asserted end to end rather than per-part.
@@ -1700,8 +1700,8 @@ describe("Sidebar.SearchTrigger", () => {
 	});
 
 	test("inside the mobile sheet, Command.SearchTrigger opens the palette above Sidebar.Nav", async () => {
-		// Regression (#1523): the trigger is a Radix `Dialog.Trigger` and the
-		// mobile sheet is a Radix dialog, so without the sheet's own dialog scope
+		// Regression (#1523): the trigger is a `Dialog.Trigger` and the
+		// mobile sheet is a dialog, so without the sheet's own dialog scope
 		// a click toggles the sheet and never opens the palette.
 		useIsBelowBreakpointMock.mockReturnValue(true);
 		const user = userEvent.setup();
@@ -1862,7 +1862,7 @@ describe("Sidebar.Tooltip", () => {
 
 		expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
 		// The mobile arm of the veto, held to the same bar as the expanded panel
-		// below: silent means Radix's own state is closed, not just that the
+		// below: silent means the tooltip's own state is closed, not just that the
 		// surface was withheld.
 		expect(row).not.toHaveAttribute("aria-describedby");
 		expect(row).not.toHaveAttribute("data-open");
@@ -1882,7 +1882,7 @@ describe("Sidebar.Tooltip", () => {
 
 	test("leaves an expanded row undescribed after the pointer sweeps across it", async () => {
 		// The label may not open while the panel is expanded, and "not open" has to
-		// mean Radix's own open state, not just a withheld surface: an open state
+		// mean the tooltip's own open state, not just a withheld surface: an open state
 		// with no mounted surface points aria-describedby at an id that is not in
 		// the document.
 		const user = userEvent.setup();
@@ -1949,10 +1949,10 @@ describe("Sidebar.Tooltip", () => {
 
 	test("stays closed when the sidebar collapses after a menu on the row hands focus back", async () => {
 		// The overlay path into the same bug. Closing a menu restores focus to its
-		// trigger, which here is also the tooltip trigger, so Radix asks for a label
+		// trigger, which here is also the tooltip trigger, so `Tooltip` asks for a label
 		// the expanded panel has no use for: a request that must not outlive the
 		// collapse either. The hover first is what makes it a *repeat* request, the
-		// shape a mirror of Radix's state can silently keep queued.
+		// shape a mirror of the tooltip's state can silently keep queued.
 		const user = userEvent.setup();
 		render(
 			<TooltipProvider>
