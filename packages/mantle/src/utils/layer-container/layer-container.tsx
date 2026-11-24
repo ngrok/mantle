@@ -210,56 +210,6 @@ function coversFloat(
 }
 
 /**
- * Returns the `onOpenAutoFocus` handler for a float. A float that opens under
- * the top overlay keeps focus in that overlay, because the user cannot see
- * the float.
- */
-function useFloatOpenAutoFocus(
-	onOpenAutoFocus: ((event: Event) => void) | undefined,
-): (event: Event) => void {
-	const floatContainer = useLayerContainer();
-
-	return (event) => {
-		onOpenAutoFocus?.(event);
-		const topOverlay = openOverlays.at(-1);
-		if (topOverlay != null && coversFloat(topOverlay, floatContainer)) {
-			event.preventDefault();
-		}
-	};
-}
-
-/**
- * Returns the `onEscapeKeyDown` handler for a float. A float outside an
- * overlay paints under it, so the user cannot see it. While focus is in the
- * content of an overlay that does not contain the float, this handler gives
- * Escape to that overlay and keeps the float open.
- *
- * Focus in a float that the overlay owns is outside the overlay's content, so
- * the float keeps the Escape: the overlay cannot close that float, and it must
- * not close itself under the float.
- */
-function useFloatEscapeKeyDown(
-	onEscapeKeyDown: ((event: KeyboardEvent) => void) | undefined,
-): (event: KeyboardEvent) => void {
-	const floatContainer = useLayerContainer();
-
-	return (event) => {
-		const coveringOverlay = openOverlays.findLast(
-			(overlay) =>
-				event.target instanceof Node &&
-				overlay.content.contains(event.target) &&
-				coversFloat(overlay, floatContainer),
-		);
-		if (coveringOverlay == null) {
-			onEscapeKeyDown?.(event);
-			return;
-		}
-		coveringOverlay.escape(event);
-		event.preventDefault();
-	};
-}
-
-/**
  * Where a frame is not a covering frame: in the content of an overlay that
  * plays its exit animation, and in a floating prompt, which takes clicks only.
  */
@@ -423,8 +373,6 @@ export {
 	getCoveringFrame,
 	LayerContainer,
 	LayerContainerContext,
-	useFloatEscapeKeyDown,
-	useFloatOpenAutoFocus,
 	useIsCoveredByOverlay,
 	useIsInsideModalLayer,
 	useLayerContainer,
