@@ -906,6 +906,7 @@ type SelectItemProps = Omit<ComponentProps<"div">, "children"> &
 	WithDataSlot & {
 		/**
 		 * Whether the option is inert.
+		 * A click on a disabled option does not run its `onClick`.
 		 */
 		disabled?: boolean;
 		/**
@@ -1047,7 +1048,8 @@ const Item = ({
 	const elementProps = {
 		...props,
 		...optionProps,
-		onClick: composeHandlers(onClick, () => {
+		// Why: a disabled option ignores a click, as a disabled button does.
+		onClick: composeHandlers(disabled ? undefined : onClick, () => {
 			// Why: a tap can pick an item that no pointer move highlighted.
 			reportLabel();
 			optionProps.onClick();

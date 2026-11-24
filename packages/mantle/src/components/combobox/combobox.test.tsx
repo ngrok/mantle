@@ -69,6 +69,28 @@ describe("Combobox", () => {
 	});
 
 	describe("Combobox.Item", () => {
+		// Red if a disabled item runs its onClick: a "create" row then acts while it is disabled.
+		test("a disabled item ignores a click and does not run its onClick", async () => {
+			const user = userEvent.setup();
+			const onClick = vi.fn<() => void>();
+			render(
+				<Combobox.Root>
+					<Combobox.Input aria-label="Fruit" />
+					<Combobox.Content>
+						<Combobox.Item value="Apple" />
+						<Combobox.Item value="Banana" disabled onClick={onClick} />
+					</Combobox.Content>
+				</Combobox.Root>,
+			);
+			const input = screen.getByRole("combobox", { name: "Fruit" });
+
+			await user.click(input);
+			await user.click(await screen.findByRole("option", { name: "Banana" }));
+
+			expect(onClick).toHaveBeenCalledTimes(0);
+			expect(input).toHaveValue("");
+		});
+
 		test("renders as an option, and a click writes its value into the input", async () => {
 			const user = userEvent.setup();
 			render(

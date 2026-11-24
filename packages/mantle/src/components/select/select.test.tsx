@@ -472,6 +472,32 @@ describe("Select", () => {
 			expect(screen.getByTestId("disabled")).toBeDisabled();
 		});
 
+		// Red if a disabled item runs its onClick. Only CSS stops a pointer, so a scripted or assistive
+		// click still reaches the item.
+		test("a disabled item ignores a click and does not run its onClick", async () => {
+			const user = userEvent.setup();
+			const onClick = vi.fn<() => void>();
+			render(
+				<Select.Root>
+					<Select.Trigger>
+						<Select.Value placeholder="Select a fruit" />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+						<Select.Item value="cherry" disabled onClick={onClick}>
+							Cherry
+						</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+
+			await user.click(screen.getByRole("combobox"));
+			(await screen.findByRole("option", { name: "Cherry" })).click();
+
+			expect(onClick).toHaveBeenCalledTimes(0);
+			expect(screen.getByRole("combobox")).toHaveTextContent("Select a fruit");
+		});
+
 		test("documented item data attributes follow selection, keyboard highlight, and disabled", async () => {
 			const user = userEvent.setup();
 			render(
