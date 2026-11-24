@@ -1517,6 +1517,39 @@
     "useWhen": "Show how much of a task or a quota is complete, as a small circle."
   },
   {
+    "name": "Prompt Input",
+    "slug": "components/preview/prompt-input",
+    "kind": "component",
+    "category": "Forms",
+    "status": "preview",
+    "importPath": "@ngrok/mantle/prompt-input",
+    "summary": "The message box of a chat, with a field that grows with its text and one button that sends or stops.",
+    "jsdoc": "The message box of a chat: a text field that grows with its text and a button that sends the message, or stops the answer while one streams.",
+    "examples": [
+      "Composition:\n```\nPromptInput.Root\n├── PromptInput.TextArea\n└── PromptInput.Footer\n    └── PromptInput.Submit\n```",
+      "```tsx\n<PromptInput.Root\n  streaming={isAnswering}\n  onStop={stop}\n  onSubmit={(event) => {\n    event.preventDefault();\n    send(draft);\n  }}\n>\n  <PromptInput.TextArea\n    aria-label=\"Message the assistant\"\n    name=\"message\"\n    placeholder=\"Ask about your endpoints…\"\n    value={draft}\n    onChange={(event) => setDraft(event.target.value)}\n  />\n  <PromptInput.Footer>\n    <PromptInput.Submit />\n  </PromptInput.Footer>\n</PromptInput.Root>\n```"
+    ],
+    "aliases": [
+      "chat input",
+      "composer",
+      "message box",
+      "prompt",
+      "chat composer",
+      "ai input"
+    ],
+    "siblings": [
+      {
+        "name": "TextArea",
+        "boundary": "a form field for free-form text that a form submits with its other fields."
+      },
+      {
+        "name": "Input",
+        "boundary": "a single-line field, such as a search box."
+      }
+    ],
+    "useWhen": "Let a person write and send a message to an assistant or a model, and stop the answer while it streams."
+  },
+  {
     "name": "QR Code",
     "slug": "components/data-display/qr-code",
     "kind": "component",
