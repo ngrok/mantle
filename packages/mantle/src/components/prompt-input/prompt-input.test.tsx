@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { type ComponentProps, useState } from "react";
 import { renderToString } from "react-dom/server";
@@ -297,6 +297,7 @@ class FakeRecognition {
 	lang = "";
 	onresult: ((event: unknown) => void) | null = null;
 	onend: (() => void) | null = null;
+	onerror: (() => void) | null = null;
 	start = vi.fn<() => void>();
 	stop = vi.fn<() => void>(() => this.onend?.());
 	abort = vi.fn<() => void>();
@@ -330,6 +331,65 @@ function DictatingComposer({ onSubmit }: { onSubmit: (message: string) => void }
 }
 
 describe("PromptInput.Dictate", () => {
+	test.each(["error", "synchronous error", "exception"])(
+		"allows a fresh attempt after a startup %s without end",
+		async (failure) => {
+			let fail = true;
+			class FailingRecognition extends FakeRecognition {
+				override start = vi.fn<() => void>(() => {
+					if (!fail) {
+						return;
+					}
+					if (failure === "exception") {
+						throw new DOMException("Blocked by AI Controls", "NotAllowedError");
+					}
+					if (failure === "synchronous error") {
+						this.onerror?.();
+					}
+				});
+			}
+			vi.stubGlobal("SpeechRecognition", FailingRecognition);
+			const user = userEvent.setup();
+			render(<DictatingComposer onSubmit={() => {}} />);
+			const dictate = screen.getByRole("button", { name: "Dictate" });
+			await user.click(dictate);
+			const first = FakeRecognition.last;
+			if (failure === "error") {
+				act(() => first?.onerror?.());
+			}
+			await vi.waitFor(() => expect(dictate).toHaveAttribute("aria-pressed", "false"));
+
+			fail = false;
+			await user.click(dictate);
+			expect(dictate).toHaveAttribute("aria-pressed", "true");
+			expect(FakeRecognition.last).not.toBe(first);
+			act(() => first?.onend?.());
+			expect(dictate).toHaveAttribute("aria-pressed", "true");
+			await user.click(dictate);
+			expect(dictate).toHaveAttribute("aria-pressed", "false");
+		},
+	);
+
+	test("keeps its button type and pressed state through composition", async () => {
+		vi.stubGlobal("SpeechRecognition", FakeRecognition);
+		const user = userEvent.setup();
+		const onSubmit = vi.fn<() => void>();
+		const injected = { type: "submit", "aria-pressed": true } as const;
+		render(
+			<PromptInput.Root onSubmit={onSubmit}>
+				<PromptInput.TextArea aria-label="Message" />
+				<PromptInput.Dictate {...injected} />
+			</PromptInput.Root>,
+		);
+		const dictate = screen.getByRole("button", { name: "Dictate" });
+		expect(dictate).toHaveAttribute("aria-pressed", "false");
+		await user.click(dictate);
+		expect(onSubmit).toHaveBeenCalledTimes(0);
+		expect(dictate).toHaveAttribute("aria-pressed", "true");
+		await user.click(dictate);
+		expect(dictate).toHaveAttribute("aria-pressed", "false");
+	});
+
 	test("renders nothing where the browser has no speech recognition", () => {
 		render(<DictatingComposer onSubmit={() => {}} />);
 

@@ -1,5 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
-import { useState } from "react";
+import { type ComponentProps, useState } from "react";
 import { createPortal } from "react-dom";
 import { expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
@@ -198,48 +198,153 @@ class FakeRecognition {
 	}
 }
 
-// Why browser mode: React must see the dictated text as a native edit for a controlled field's onChange.
-test("Dictate types each final phrase at the caret into a controlled draft", async () => {
-	vi.stubGlobal("SpeechRecognition", FakeRecognition);
-	vi.stubGlobal("webkitSpeechRecognition", undefined);
-	try {
+function DictatingComposer({
+	onSubmit,
+	onChange,
+	textAreaProps,
+	disabled,
+}: {
+	onSubmit: (message: string) => void;
+	onChange?: (message: string) => void;
+	textAreaProps?: ComponentProps<typeof PromptInput.TextArea>;
+	disabled?: boolean;
+}) {
+	const [draft, setDraft] = useState("");
+	return (
+		<PromptInput.Root
+			onSubmit={(event) => {
+				event.preventDefault();
+				onSubmit(draft);
+			}}
+		>
+			<PromptInput.TextArea
+				aria-label="Message"
+				{...textAreaProps}
+				value={draft}
+				onChange={(event) => {
+					setDraft(event.target.value);
+					onChange?.(event.target.value);
+				}}
+			/>
+			<PromptInput.Dictate disabled={disabled} />
+			<PromptInput.Submit />
+		</PromptInput.Root>
+	);
+}
+
+// Why browser mode: setRangeText must reach React's onChange with the field unfocused.
+test.each([
+	{
+		name: "middle",
+		draft: "Hi there",
+		start: 2,
+		end: 2,
+		phrases: [" list my endpoints"],
+		expected: "Hi list my endpoints there",
+	},
+	{
+		name: "recognizer whitespace",
+		draft: "Hi there",
+		start: 3,
+		end: 3,
+		phrases: ["list my endpoints "],
+		expected: "Hi list my endpoints there",
+	},
+	{
+		name: "Japanese",
+		draft: "",
+		start: 0,
+		end: 0,
+		phrases: ["おはよう", "ございます"],
+		expected: "おはようございます",
+	},
+	{
+		name: "length limit",
+		draft: "Hi there",
+		start: 3,
+		end: 8,
+		phrases: ["everyone"],
+		expected: "Hi every",
+		maxLength: 8,
+	},
+	{
+		name: "length limit within a surrogate pair",
+		draft: "",
+		start: 0,
+		end: 0,
+		phrases: ["a😀😀"],
+		expected: "a😀",
+		maxLength: 4,
+	},
+])(
+	"Dictate inserts final phrases into a controlled draft ($name)",
+	async ({ draft, start, end, phrases, expected, maxLength }) => {
+		vi.stubGlobal("SpeechRecognition", FakeRecognition);
+		vi.stubGlobal("webkitSpeechRecognition", undefined);
 		const onSubmit = vi.fn<(message: string) => void>();
-		function Composer() {
-			const [draft, setDraft] = useState("");
-			return (
-				<PromptInput.Root
-					onSubmit={(event) => {
-						event.preventDefault();
-						onSubmit(draft);
-					}}
-				>
-					<PromptInput.TextArea
-						aria-label="Message"
-						value={draft}
-						onChange={(event) => setDraft(event.target.value)}
-					/>
-					<PromptInput.Dictate />
-					<PromptInput.Submit />
-				</PromptInput.Root>
-			);
-		}
-		render(<Composer />);
+		const onChange = vi.fn<(message: string) => void>();
+		render(
+			<DictatingComposer onSubmit={onSubmit} onChange={onChange} textAreaProps={{ maxLength }} />,
+		);
 		const field = screen.getByRole("textbox", { name: "Message" });
-		await userEvent.click(field);
-		await userEvent.keyboard("Hi there");
-		// Put the caret after "Hi", so the phrase goes in the middle.
-		if (field instanceof HTMLTextAreaElement) {
-			field.setSelectionRange(2, 2);
+		await userEvent.fill(field, draft);
+		if (!(field instanceof HTMLTextAreaElement)) {
+			throw new Error("The message field must be a textarea.");
 		}
-
+		field.setSelectionRange(start, end);
+		onChange.mockClear();
 		await userEvent.click(screen.getByRole("button", { name: "Dictate" }));
-		FakeRecognition.last?.hear("list my", false);
-		FakeRecognition.last?.hear("list my endpoints", true);
-
-		await expect.poll(() => field).toHaveValue("Hi list my endpoints there");
+		FakeRecognition.last?.hear("interim guess", false);
+		expect(field).toHaveValue(draft);
+		for (const phrase of phrases) {
+			FakeRecognition.last?.hear(phrase, true);
+		}
+		await expect.poll(() => field).toHaveValue(expected);
+		expect(onChange).toHaveBeenCalledTimes(phrases.length);
+		expect(onChange).toHaveBeenLastCalledWith(expected);
+		expect(field.selectionStart).toBe(expected.length - (draft.length - end));
+		expect(field.selectionEnd).toBe(field.selectionStart);
 		await userEvent.click(screen.getByRole("button", { name: "Send message" }));
-		expect(onSubmit).toHaveBeenLastCalledWith("Hi list my endpoints there");
-	} finally {
-		vi.unstubAllGlobals();
-	}
+		expect(onSubmit).toHaveBeenCalledTimes(1);
+		expect(onSubmit).toHaveBeenLastCalledWith(expected);
+	},
+);
+
+test.each(["readOnly", "disabled", "button disabled"])(
+	"Dictate does not edit a locked draft (%s)",
+	async (lock) => {
+		vi.stubGlobal("SpeechRecognition", FakeRecognition);
+		const onSubmit = vi.fn<(message: string) => void>();
+		const onChange = vi.fn<(message: string) => void>();
+		const { rerender } = render(<DictatingComposer onSubmit={onSubmit} onChange={onChange} />);
+		const field = screen.getByRole("textbox", { name: "Message" });
+		await userEvent.fill(field, "approved draft");
+		await userEvent.click(screen.getByRole("button", { name: "Dictate" }));
+		onChange.mockClear();
+		rerender(
+			<DictatingComposer
+				onSubmit={onSubmit}
+				onChange={onChange}
+				disabled={lock === "button disabled"}
+				textAreaProps={{ readOnly: lock === "readOnly", disabled: lock === "disabled" }}
+			/>,
+		);
+		FakeRecognition.last?.hear(" unexpected addition", true);
+		expect(field).toHaveValue("approved draft");
+		expect(onChange).toHaveBeenCalledTimes(0);
+	},
+);
+
+test("Dictate does not start for a field disabled by a fieldset", async () => {
+	vi.stubGlobal("SpeechRecognition", FakeRecognition);
+	render(
+		<PromptInput.Root>
+			<fieldset disabled>
+				<PromptInput.TextArea aria-label="Message" />
+			</fieldset>
+			<PromptInput.Dictate />
+		</PromptInput.Root>,
+	);
+	await userEvent.click(screen.getByRole("button", { name: "Dictate" }));
+	expect(screen.getByRole("button", { name: "Dictate" })).toHaveAttribute("aria-pressed", "false");
 });

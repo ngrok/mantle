@@ -452,6 +452,7 @@ type SpeechRecognitionLike = {
 	lang: string;
 	onresult: ((event: SpeechResultEventLike) => void) | null;
 	onend: (() => void) | null;
+	onerror: (() => void) | null;
 	start: () => void;
 	stop: () => void;
 	abort: () => void;
@@ -496,14 +497,25 @@ function subscribeToNothing(): () => void {
 }
 
 /**
- * Types `text` into the field at the caret, as a person does, so the field's
- * `onChange` runs for a controlled field too.
+ * Inserts the transcript at the selection, within the field's editing limits.
+ * The native edit reaches `onChange` on controlled fields too.
  */
 function insertDictatedText(field: HTMLTextAreaElement, text: string) {
+	if (field.readOnly || field.matches(":disabled")) {
+		return;
+	}
 	const start = field.selectionStart;
-	const before = field.value.slice(0, start);
-	const spaced = before === "" || /\s$/.test(before) ? text.trimStart() : ` ${text.trimStart()}`;
-	field.setRangeText(spaced, start, field.selectionEnd, "end");
+	const end = field.selectionEnd;
+	const available = field.maxLength - (field.value.length - (end - start));
+	// Why verbatim: the recognizer owns whitespace between phrases in each language.
+	const inserted =
+		field.maxLength < 0
+			? text
+			: text.slice(0, Math.max(0, available)).replace(/[\uD800-\uDBFF]$/u, "");
+	if (inserted === "") {
+		return;
+	}
+	field.setRangeText(inserted, start, end, "end");
 	field.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
@@ -529,15 +541,9 @@ type PromptInputDictateProps = Omit<
 };
 
 /**
- * A toggle that turns speech into text in `PromptInput.TextArea`, with the
- * browser's speech recognition. Each phrase the browser recognizes goes into
- * the field at the caret, as if the person typed it, so the field's
- * `onChange` runs. Press it again to stop listening. It does not send the
- * message.
- *
- * It renders nothing on the server and in browsers without speech
- * recognition, and appears after hydration where the browser has it. The
- * browser asks the person for microphone access on the first use.
+ * A speech-to-text toggle that replaces `PromptInput.TextArea`'s selection and
+ * runs `onChange`, without submission or undo history.
+ * Appears after hydration only in browsers with speech recognition.
  *
  * | Data Attribute | Value | Description |
  * | --- | --- | --- |
@@ -583,7 +589,14 @@ function Dictate({
 	const [listening, setListening] = useState(false);
 	const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
-	useEffect(() => () => recognitionRef.current?.abort(), []);
+	useEffect(
+		() => () => {
+			const recognition = recognitionRef.current;
+			recognitionRef.current = null;
+			recognition?.abort();
+		},
+		[],
+	);
 
 	if (!supported) {
 		return null;
@@ -596,8 +609,6 @@ function Dictate({
 			size="sm"
 			data-slot={joinDataSlot(dataSlot, "prompt-input-dictate")}
 			className={cx("aria-pressed:text-accent-600 size-8 shrink-0 rounded-full", className)}
-			type="button"
-			aria-pressed={listening}
 			icon={<MicrophoneIcon weight={listening ? "fill" : "regular"} />}
 			label={label}
 			onClick={(event) => {
@@ -610,10 +621,11 @@ function Dictate({
 					return;
 				}
 				const Recognition = speechRecognitionConstructor();
-				const field = event.currentTarget.form?.querySelector<HTMLTextAreaElement>(
+				const button = event.currentTarget;
+				const field = button.form?.querySelector<HTMLTextAreaElement>(
 					'textarea[data-slot~="prompt-input-text-area"]',
 				);
-				if (Recognition == null || field == null) {
+				if (Recognition == null || field == null || field.readOnly || field.matches(":disabled")) {
 					return;
 				}
 				const recognition = new Recognition();
@@ -622,6 +634,13 @@ function Dictate({
 				recognition.lang =
 					lang ?? event.currentTarget.closest<HTMLElement>("[lang]")?.lang ?? navigator.language;
 				recognition.onresult = ({ resultIndex, results }) => {
+					if (
+						recognitionRef.current !== recognition ||
+						button.matches(":disabled") ||
+						!field.isConnected
+					) {
+						return;
+					}
 					for (let index = resultIndex; index < results.length; index++) {
 						const result = results[index];
 						if (result?.isFinal) {
@@ -629,16 +648,29 @@ function Dictate({
 						}
 					}
 				};
-				// Why onend only: the browser fires end after every stop, abort, and error.
-				recognition.onend = () => {
+				const finish = () => {
+					if (recognitionRef.current !== recognition) {
+						return;
+					}
 					recognitionRef.current = null;
 					setListening(false);
 				};
+				// Why both: WebKit and Firefox can reject startup without an end event.
+				// oxlint-disable-next-line unicorn/prefer-add-event-listener -- Why: each session owns one recognizer and its handlers.
+				recognition.onerror = finish;
+				recognition.onend = finish;
 				recognitionRef.current = recognition;
-				recognition.start();
 				setListening(true);
+				try {
+					recognition.start();
+				} catch {
+					finish();
+				}
 			}}
 			{...props}
+			// Why last: composition must not turn dictation into submission or replace its state.
+			type="button"
+			aria-pressed={listening}
 		/>
 	);
 }

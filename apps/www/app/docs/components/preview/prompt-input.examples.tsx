@@ -84,7 +84,7 @@ export function FooterControlsExample() {
 	const [model, setModel] = useState("claude-sonnet-5-5");
 
 	return (
-		<PreviewCanvas>
+		<PreviewCanvas className="min-h-160">
 			<PromptInput.Root
 				className="w-full max-w-2xl"
 				onSubmit={(event) => {

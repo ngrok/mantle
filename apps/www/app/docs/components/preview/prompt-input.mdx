@@ -115,7 +115,9 @@ function AssistantComposer() {
 
 Put the message's controls in `PromptInput.Footer`. For a model picker, use [Select](/components/forms/select) with a `name`, so the form submits the model with the message. Mantle has no model picker component, because each app lists its own models.
 
-`PromptInput.Dictate` turns speech into text with the browser's speech recognition. Each phrase it recognizes goes into the field at the caret, as if the person typed it, so your `onChange` runs. Press it again to stop. It does not send the message.
+`PromptInput.Dictate` turns speech into text with the browser's speech recognition. Each final phrase replaces the field's selection and runs your `onChange`. The browser supplies spacing; `maxLength` limits the edit. Disabled and read-only fields stay unchanged.
+
+Press the toggle again to stop. If recognition fails or ends, press it to start a new session. Dictation does not send the message. Its edits do not enter the browser's undo history, so review a selected passage before you replace it.
 
 The toggle renders nothing on the server and in browsers without speech recognition, and appears after hydration where the browser has it. Keep it before `PromptInput.Submit`, so the send button does not move when it appears.
 
@@ -256,6 +258,8 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 ### PromptInput.Dictate
 
 A toggle that turns speech into text in `PromptInput.TextArea`. It reports `aria-pressed` while it listens. It renders nothing on the server and in browsers without speech recognition.
+
+Each final phrase replaces the selection with the browser's text, including its spacing, up to `maxLength`. Dictation skips disabled and read-only fields. An error or the end of a session resets the toggle. Dictated edits do not enter the browser's undo history.
 
 All props from [Icon Button](/components/actions/icon-button) except `appearance`, `aria-pressed`, `asChild`, `children`, `icon`, `intent`, `label`, and `type`, plus:
 
