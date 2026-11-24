@@ -352,8 +352,8 @@ The pieces need one stylesheet. Import it after `mantle.css`:
  * The close button belongs to the panel only. When the panel grows into the
  * page it slides out past the inline end, and it slides back in when the page
  * folds into the panel, so the header reads as one panel that keeps its edge.
- * `:only-child` limits this to a crossing: a theme switch captures the button
- * in both states, and it stays put.
+ * `:only-child` limits this to a crossing, where the button is in one state
+ * only.
  */
 ::view-transition-group(assistant-close) {
 	animation-duration: 300ms;
