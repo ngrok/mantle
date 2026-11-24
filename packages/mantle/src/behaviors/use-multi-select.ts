@@ -40,8 +40,8 @@ const EMPTY: readonly string[] = [];
 /**
  * Owns a multi-select combobox: a text input that filters a listbox popup
  * whose options toggle in and out of the selection. A pick clears the text
- * and keeps the list open and the highlight on the option. A close also
- * clears the text. Call it in the
+ * and keeps the list open and the highlight on the option. A close clears
+ * the text too. Call it in the
  * root part; call `useComboboxInput` in the input and `useOption` in each
  * option.
  *
@@ -81,7 +81,7 @@ const useMultiSelect = ({
 	});
 	// Why: the text only filters the open list. It is not a value, so it must not stay in a closed field.
 	const setOpen = (next: boolean) => {
-		if (!next) {
+		if (!next && open) {
 			setInputValue("");
 		}
 		setOpenState(next);

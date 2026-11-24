@@ -328,6 +328,30 @@ describe("MultiSelect", () => {
 			await user.click(input);
 			expect(screen.getAllByRole("option")).toHaveLength(3);
 		});
+
+		test("a blur while the list is closed keeps the text, because nothing closed", async () => {
+			const user = userEvent.setup();
+			render(
+				<>
+					<MultiSelect.Root defaultInputValue="ban">
+						<MultiSelect.Trigger>
+							<MultiSelect.Input aria-label="Fruit" />
+						</MultiSelect.Trigger>
+						<MultiSelect.Content>
+							<MultiSelect.Item value="banana">Banana</MultiSelect.Item>
+						</MultiSelect.Content>
+					</MultiSelect.Root>
+					<button type="button">Next</button>
+				</>,
+			);
+			const input = screen.getByRole("combobox", { name: "Fruit" });
+
+			input.focus();
+			await user.tab();
+
+			expect(screen.getByRole("button", { name: "Next" })).toHaveFocus();
+			expect(input).toHaveValue("ban");
+		});
 	});
 
 	describe("trigger mousedown", () => {
