@@ -80,6 +80,8 @@ type MarkdownComponents = {
 const OPEN_TAG = /^<([a-z]+)\s*>$/i;
 const CLOSE_TAG = /^<\/([a-z]+)\s*>$/i;
 const BREAK_TAG = /^<br\s*\/?>$/i;
+/** The inline HTML tags of code, keys, output, and variables. */
+const CODE_TAGS = new Set(["kbd", "samp", "tt", "var"]);
 
 /** Narrows a token to one kind. Why a guard: marked's token union holds a generic token whose `type` is any string, so a `switch` cannot narrow it. */
 function isTokenOf<Name extends keyof MarkdownTokens | "table" | "list">(
@@ -171,7 +173,8 @@ function renderInline(
 				nodes.push(
 					createElement(
 						tag === "tt" ? "code" : tag,
-						{ key: index },
+						// Why: a browser translation must not change a key name, code, output, or a variable.
+						{ key: index, translate: CODE_TAGS.has(tag) ? "no" : undefined },
 						renderInline(tokens.slice(index + 1, close), components, depth + 1),
 					),
 				);
@@ -184,6 +187,24 @@ function renderInline(
 		nodes.push(renderToken(token, index, components));
 	}
 	return translationSafeRun(nodes);
+}
+
+/**
+ * The plain text of inline tokens, as the text renders: formatting markers
+ * and inline HTML tags drop, and character references decode.
+ */
+function plainText(tokens: readonly Token[]): string {
+	let text = "";
+	for (const token of tokens) {
+		if (hasTokens(token)) {
+			text += plainText(token.tokens);
+		} else if (token.type === "text" || token.type === "escape") {
+			text += decodeEntities(token.text);
+		} else if (token.type === "codespan") {
+			text += token.text;
+		}
+	}
+	return text;
 }
 
 /** Renders the block tokens inside a blockquote or a list item. */
@@ -269,18 +290,14 @@ const defaultComponents: Required<Omit<MarkdownComponents, "extension" | "table"
 	image: ({ token }) => {
 		// Why no decode here: the lexer decodes character references, so a `&#106;avascript:` meets the check.
 		const src = safeUrl(token.href, "image");
+		// Why the tokens: `text` is the label's Markdown source, with its markers.
+		const alt = plainText(token.tokens ?? []);
 		if (src == null) {
-			return token.text === "" ? null : <span>{token.text}</span>;
+			return alt === "" ? null : <span>{alt}</span>;
 		}
 		return (
 			// oxlint-disable-next-line mantle/img-dimensions -- Why: Markdown carries no image size. A `components.image` that knows the size can set it.
-			<img
-				src={src}
-				alt={token.text}
-				title={token.title ?? undefined}
-				loading="lazy"
-				decoding="async"
-			/>
+			<img src={src} alt={alt} title={token.title ?? undefined} loading="lazy" decoding="async" />
 		);
 	},
 	link: ({ token, children }) => {
@@ -288,8 +305,8 @@ const defaultComponents: Required<Omit<MarkdownComponents, "extension" | "table"
 		if (href == null) {
 			return <span>{children}</span>;
 		}
-		// Why a new tab for an absolute URL: an answer lives in a panel or a chat, and a full page load loses it.
-		const isAbsolute = /^[a-z][a-z\d+.-]*:/i.test(href);
+		// Why a new tab for an absolute or protocol-relative URL: an answer lives in a panel or a chat, and a full page load loses it.
+		const isAbsolute = /^(?:[a-z][a-z\d+.-]*:|[/\\]{2})/i.test(href);
 		return (
 			<Anchor
 				href={href}

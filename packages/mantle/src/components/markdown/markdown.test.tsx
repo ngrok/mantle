@@ -18,7 +18,9 @@ describe("Markdown", () => {
 					"- [x] Install the agent",
 					"- [ ] Add a domain",
 					"",
-					"See [the docs](https://ngrok.com/docs) or [settings](/settings).",
+					"See [the docs](https://ngrok.com/docs), [status](//status.ngrok.com), or [settings](/settings).",
+					"",
+					"![**Agent** &amp; `ngrok` status](/status.png)",
 				].join("\n")}
 			</Markdown>,
 		);
@@ -30,7 +32,9 @@ describe("Markdown", () => {
 		const docs = screen.getByRole("link", { name: "the docs" });
 		expect(docs).toHaveAttribute("target", "_blank");
 		expect(docs).toHaveAttribute("rel", "noopener noreferrer");
+		expect(screen.getByRole("link", { name: "status" })).toHaveAttribute("target", "_blank");
 		expect(screen.getByRole("link", { name: "settings" })).not.toHaveAttribute("target");
+		expect(screen.getByRole("img")).toHaveAccessibleName("Agent & ngrok status");
 	});
 
 	test("renders a fence as a code block that keeps the code's text", () => {
@@ -63,6 +67,8 @@ describe("Markdown", () => {
 		);
 		expect(container.querySelector("sub")).toHaveTextContent("2");
 		expect(container.querySelector("kbd")).toHaveTextContent("Ctrl");
+		expect(container.querySelector("kbd")).toHaveAttribute("translate", "no");
+		expect(container.querySelector("sub")).not.toHaveAttribute("translate");
 		expect(container.querySelector("script")).toBeNull();
 		expect(container).toHaveTextContent("on <your-domain> <script>x</script>");
 	});
