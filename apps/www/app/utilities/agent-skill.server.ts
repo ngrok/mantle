@@ -7,7 +7,7 @@ const SKILL_NAME = "mantle";
 
 /** What the skill does and when an agent loads it. The spec caps it at 1024 characters. */
 const SKILL_DESCRIPTION =
-	"Build React UI with @ngrok/mantle, ngrok's design system (React, TypeScript, Tailwind CSS, Radix). Use when a project depends on @ngrok/mantle or imports from @ngrok/mantle/*, or when the user asks for ngrok-styled UI. Covers how to pick a component, read its props, import it, set up the theme and stylesheet, check the code, and upgrade between versions.";
+	"Build React UI with @ngrok/mantle, ngrok's design system (React, TypeScript, Tailwind CSS). Use when a project depends on @ngrok/mantle or imports from @ngrok/mantle/*, or when the user asks for ngrok-styled UI. Covers how to pick a component, read its props, import it, set up the theme and stylesheet, check the code, and upgrade between versions.";
 
 /** The URL path of the skill's `SKILL.md`. Both discovery indexes point at it. */
 const skillMarkdownPath = `/.well-known/skills/${SKILL_NAME}/SKILL.md`;

@@ -10,8 +10,8 @@ import * as MultiSelectParts from "./multi-select-parts.js";
  * A multi-select combobox that allows users to select multiple values with
  * typeahead filtering. Selected values are displayed as removable tags.
  *
- * Built on top of Ariakit's Combobox primitives with full keyboard support
- * and WAI-ARIA compliance.
+ * Built on mantle's own listbox behavior, with full keyboard support and the
+ * WAI-ARIA combobox pattern.
  *
  * Use MultiSelect when the user can choose multiple values from a list, with selected
  * items rendered as removable tags/chips. For single selection, use Combobox (with search)

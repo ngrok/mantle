@@ -64,7 +64,7 @@ import { Button } from "@ngrok/mantle/button";
 
 ## Type
 
-Unlike the native `<button>` element (which defaults to `type="submit"`), a mantle `Button` defaults to **`type="button"`**. This matches the wider React ecosystem (Radix, shadcn, MUI, …) and stops a button from accidentally submitting a surrounding `<form>` when all you wanted was an `onClick`.
+Unlike the native `<button>` element (which defaults to `type="submit"`), a mantle `Button` defaults to **`type="button"`**. This matches the wider React ecosystem (shadcn/ui, MUI, …) and stops a button from accidentally submitting a surrounding `<form>` when all you wanted was an `onClick`.
 
 The tradeoff: a button that _should_ submit a form has to opt in with `type="submit"` (or `type="reset"` to reset it). A plain `<Button>` that relies on native form submission will silently do nothing.
 

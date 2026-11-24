@@ -639,10 +639,9 @@ function FilterSelect({ label, value, options, onValueChange }: FilterSelectProp
 	return (
 		<Select.Root value={value} onValueChange={onValueChange}>
 			<Select.Trigger className="w-44" aria-label={label}>
-				{/* Why children: Radix fills an empty `Select.Value` from the mounted
-				    items, which the server never renders. Explicit text puts the
-				    label in the server HTML, so the trigger is not blank on the
-				    first frame. */}
+				{/* Why children: the part that changes flips from a string (`any`)
+				    to an element (a region code). The `<span>` keeps that flip
+				    inside one element, so a translated page does not crash. */}
 				<Select.Value>
 					{label}: <span>{selected?.label}</span>
 				</Select.Value>
