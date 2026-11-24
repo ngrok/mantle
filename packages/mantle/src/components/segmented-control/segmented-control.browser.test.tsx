@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
+import { IconButton } from "../button/icon-button.js";
 import * as SegmentedControl from "./segmented-control-parts.js";
 
 /** The item of the radio named `name`, the element a user's click on the item hits. */
@@ -22,6 +23,7 @@ beforeAll(async () => {
 		"*, ::before, ::after { box-sizing: border-box; }",
 		await commands.tailwindCss("./segmented-control.tsx"),
 		await commands.tailwindCss("../radio-group/primitive.tsx"),
+		await commands.tailwindCss("../button/icon-button-variants.ts"),
 	].join("\n");
 	document.head.appendChild(styleElement);
 });
@@ -54,6 +56,31 @@ describe("SegmentedControl.Item", () => {
 		expect(item.scrollHeight).toBeLessThanOrEqual(item.clientHeight);
 		expect(item.scrollWidth).toBeLessThanOrEqual(item.clientWidth);
 	});
+});
+
+describe("SegmentedControl size", () => {
+	test.each(["sm", "md"] as const)(
+		"a %s control is as high as an IconButton of the same size, and its labels fit",
+		(size) => {
+			render(
+				<div style={{ display: "flex", alignItems: "center" }}>
+					<SegmentedControl.Root aria-label="View" defaultValue="headers" size={size}>
+						<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+						<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+					</SegmentedControl.Root>
+					<IconButton appearance="ghost" intent="neutral" size={size} label="Copy" icon={<svg />} />
+				</div>,
+			);
+
+			const control = screen.getByRole("radiogroup", { name: "View" });
+			const button = screen.getByRole("button", { name: "Copy" });
+			expect(control).toHaveAttribute("data-size", size);
+			expect(control.getBoundingClientRect().height).toBe(button.getBoundingClientRect().height);
+			for (const name of ["Headers", "Raw"]) {
+				expect(item(name).scrollHeight).toBeLessThanOrEqual(item(name).clientHeight);
+			}
+		},
+	);
 });
 
 /** Renders a 300px control with "Prod" checked, and returns its `::before` thumb animations. */

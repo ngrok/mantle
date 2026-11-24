@@ -1,6 +1,8 @@
-import { Button } from "@ngrok/mantle/button";
+import { Button, IconButton } from "@ngrok/mantle/button";
 import { Field, toErrorMessages } from "@ngrok/mantle/field";
 import { SegmentedControl } from "@ngrok/mantle/segmented-control";
+import { CopyIcon } from "@phosphor-icons/react/Copy";
+import { DownloadSimpleIcon } from "@phosphor-icons/react/DownloadSimple";
 import { ListIcon } from "@phosphor-icons/react/List";
 import { SquaresFourIcon } from "@phosphor-icons/react/SquaresFour";
 import { useForm } from "@tanstack/react-form";
@@ -114,6 +116,40 @@ export function IconSegmentsExample() {
 					<span className="sr-only">Grid</span>
 				</SegmentedControl.Item>
 			</SegmentedControl.Root>
+		</PreviewCanvas>
+	);
+}
+
+/** The "Size" example on the Segmented Control docs page. */
+export function SizeExample() {
+	return (
+		<PreviewCanvas className="flex-col items-start gap-4">
+			<SegmentedControl.Root aria-label="Request view" defaultValue="headers" size="md">
+				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+				<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+				<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<div className="flex items-center gap-2">
+				<SegmentedControl.Root aria-label="Event view" defaultValue="headers" size="sm">
+					<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+					<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+					<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+				</SegmentedControl.Root>
+				<IconButton
+					appearance="ghost"
+					intent="neutral"
+					size="sm"
+					label="Copy event"
+					icon={<CopyIcon />}
+				/>
+				<IconButton
+					appearance="ghost"
+					intent="neutral"
+					size="sm"
+					label="Download event"
+					icon={<DownloadSimpleIcon />}
+				/>
+			</div>
 		</PreviewCanvas>
 	);
 }
