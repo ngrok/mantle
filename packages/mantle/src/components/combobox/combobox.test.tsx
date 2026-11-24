@@ -253,6 +253,51 @@ describe("Combobox", () => {
 			);
 		});
 
+		test("with asChild and a footer, the consumer's element is the listbox", async () => {
+			const user = userEvent.setup();
+			render(
+				<Combobox.Root>
+					<Combobox.Input aria-label="Release" />
+					<Combobox.Content asChild>
+						<section aria-label="Releases">
+							<Combobox.Item value="v1.2.0" />
+							<Combobox.ContentFooter>
+								<button type="button">Load more</button>
+							</Combobox.ContentFooter>
+						</section>
+					</Combobox.Content>
+				</Combobox.Root>,
+			);
+			await user.click(screen.getByRole("combobox", { name: "Release" }));
+
+			const listbox = screen.getByRole("listbox", { name: "Releases" });
+			expect(listbox.tagName).toBe("SECTION");
+			expect(within(listbox).getByRole("option", { name: "v1.2.0" })).toBeInTheDocument();
+			expect(listbox).not.toContainElement(screen.getByRole("button", { name: "Load more" }));
+		});
+
+		test("Tab skips an option rendered as a link and moves to the footer", async () => {
+			const user = userEvent.setup();
+			render(
+				<Combobox.Root>
+					<Combobox.Input aria-label="Page" />
+					<Combobox.Content>
+						<Combobox.Item value="Settings" asChild>
+							<a href="#settings">Settings</a>
+						</Combobox.Item>
+						<Combobox.ContentFooter>
+							<button type="button">Load more</button>
+						</Combobox.ContentFooter>
+					</Combobox.Content>
+				</Combobox.Root>,
+			);
+
+			await user.click(screen.getByRole("combobox", { name: "Page" }));
+			await user.tab();
+
+			expect(screen.getByRole("button", { name: "Load more" })).toHaveFocus();
+		});
+
 		test("Escape in the footer closes the list and returns focus to the input", async () => {
 			const user = userEvent.setup();
 			render(<Releases />);

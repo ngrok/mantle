@@ -3,7 +3,7 @@
 import { useCallback, useRef } from "react";
 import type { ChangeEvent, FocusEvent, KeyboardEvent } from "react";
 import { flushSync } from "react-dom";
-import { findTabbableDescendants, isTabbable } from "../components/alert/tabbable-neighbors.js";
+import { findTabbableDescendants } from "../components/alert/tabbable-neighbors.js";
 import { useControllableState } from "./use-controllable-state.js";
 import { useListbox } from "./use-listbox.js";
 import type { Listbox } from "./use-listbox.js";
@@ -41,6 +41,8 @@ type ComboboxBehavior = {
 	inputRef: { current: HTMLInputElement | null };
 	/** The open popup box, which holds the listbox and an optional footer outside it. */
 	popupRef: { current: HTMLElement | null };
+	/** The element in the popup box that holds the footer, after the listbox. */
+	footerRef: { current: HTMLElement | null };
 };
 
 /**
@@ -97,9 +99,15 @@ const useCombobox = ({
 	});
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const popupRef = useRef<HTMLElement | null>(null);
+	const footerRef = useRef<HTMLElement | null>(null);
 	const listbox = useListbox({
 		selected: value == null ? [] : [value],
 		onSelect: (next) => {
+			// Why: a pick unmounts the popup, so focus in its footer would fall to the page.
+			const popup = popupRef.current;
+			if (popup != null && popup.contains(popup.ownerDocument.activeElement)) {
+				inputRef.current?.focus();
+			}
 			setValue(next);
 			setInputValue(next);
 			setOpen(false);
@@ -122,6 +130,7 @@ const useCombobox = ({
 		listbox,
 		inputRef,
 		popupRef,
+		footerRef,
 	};
 };
 
@@ -209,8 +218,9 @@ const useComboboxInput = (
 				case "Tab": {
 					// Why: Tab moves into the popup's footer, and the list stays open. With
 					// no control there, Tab leaves the field and the blur closes the list.
-					const popup = open ? combobox.popupRef.current : null;
-					const first = popup == null ? undefined : findTabbableDescendants(popup)[0];
+					// Why the footer only: an option rendered as a link is tabbable too, and arrows reach it.
+					const footer = open ? combobox.footerRef.current : null;
+					const first = footer == null ? undefined : findTabbableDescendants(footer)[0];
 					if (!event.shiftKey && first != null) {
 						event.preventDefault();
 						first.focus();
@@ -266,6 +276,10 @@ const useComboboxInput = (
 	};
 };
 
+/** The controls that take focus from a press in the popup's footer. */
+const TEXT_ENTRY =
+	'textarea, select, [contenteditable]:not([contenteditable="false"]), input:not([type="button"], [type="checkbox"], [type="radio"], [type="submit"], [type="reset"], [type="image"])';
+
 /**
  * The first element after `anchor` in document order, outside `popup`, that
  * takes focus. Returns `false` when none does, so the browser's own Tab runs.
@@ -296,6 +310,7 @@ const focusAfter = (anchor: HTMLElement, popup: HTMLElement): boolean => {
  * - Tab from the last one moves to the control after `anchorRef`, and the list closes.
  * - Focus that leaves the box and `anchorRef` closes the list.
  * - A footer control that turns disabled or unmounts while it has focus returns focus to the input.
+ * - A press on a footer control keeps focus on the input, unless the control is a text field.
  *
  * Put `footerRef` on the element that holds the footer.
  *
@@ -309,10 +324,11 @@ const useComboboxPopup = (
 	combobox: ComboboxBehavior,
 	{ anchorRef }: { anchorRef: { current: HTMLElement | null } },
 ) => {
-	const { inputRef, setOpen } = combobox;
+	const { inputRef, setOpen, footerRef: footerElementRef } = combobox;
 	// Why a stable callback: a new ref callback on each render would rebuild the observer.
 	const footerRef = useCallback(
 		(host: HTMLElement | null) => {
+			footerElementRef.current = host;
 			if (host == null) {
 				return;
 			}
@@ -323,14 +339,21 @@ const useComboboxPopup = (
 				}
 			});
 			observer.observe(host, { childList: true, subtree: true });
-			return () => observer.disconnect();
+			return () => {
+				observer.disconnect();
+				footerElementRef.current = null;
+			};
 		},
-		[inputRef],
+		[inputRef, footerElementRef],
 	);
 	const inAnchor = (node: unknown) =>
 		node instanceof Node && anchorRef.current?.contains(node) === true;
 	return {
 		onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
+			// Why: `Content`'s own `onKeyDown` runs first and can cancel the key.
+			if (event.defaultPrevented) {
+				return;
+			}
 			const box = event.currentTarget;
 			if (event.key === "Escape") {
 				// Why: a modal dialog closes on an Escape that nothing prevented.
@@ -342,7 +365,8 @@ const useComboboxPopup = (
 			if (event.key !== "Tab") {
 				return;
 			}
-			const tabbables = findTabbableDescendants(box);
+			const footer = footerElementRef.current;
+			const tabbables = footer == null ? [] : findTabbableDescendants(footer);
 			if (event.shiftKey && event.target === tabbables[0]) {
 				event.preventDefault();
 				inputRef.current?.focus();
@@ -377,12 +401,11 @@ const useComboboxPopup = (
 		// and focus falls to the page.
 		footerRef,
 		onMouseDown: (event: { target: EventTarget; preventDefault: () => void }) => {
-			// Why: a press on the box's own surface must not move focus off the input.
+			// Why: only a text field takes focus from a press. A press on a button, a switch,
+			// or a link keeps focus on the input, and its click still runs. Safari never
+			// focuses a button on a press, so the input's blur would close the list first.
 			const target = event.target instanceof Element ? event.target : null;
-			const control = target?.closest<HTMLElement>(
-				"a, button, input, select, textarea, [tabindex]",
-			);
-			if (control == null || !isTabbable(control)) {
+			if (target?.closest(TEXT_ENTRY) == null) {
 				event.preventDefault();
 			}
 		},

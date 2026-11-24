@@ -90,6 +90,7 @@ const useMultiSelect = ({
 	const [tags] = useState(() => new Map<string, HTMLElement>());
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const popupRef = useRef<HTMLElement | null>(null);
+	const footerRef = useRef<HTMLElement | null>(null);
 	const triggerRef = useRef<HTMLElement | null>(null);
 	const [removed, setRemoved] = useState<string | null>(null);
 	// Why derive: a controlled parent can keep the value, and then nothing was removed.
@@ -143,6 +144,7 @@ const useMultiSelect = ({
 		listbox,
 		inputRef,
 		popupRef,
+		footerRef,
 		selected,
 		remove,
 		removal,

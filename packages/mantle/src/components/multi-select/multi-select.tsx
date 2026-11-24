@@ -841,24 +841,32 @@ const OpenContent = ({
 					data-slot="multi-select-popup"
 					data-open=""
 					className={cx(
-						"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 flex flex-col overflow-hidden box-border rounded-md border shadow-md font-sans",
-						sameWidth && "w-(--anchor-width)",
+						"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) flex flex-col overflow-hidden box-border rounded-md border shadow-md font-sans",
 					)}
 				>
-					<List
-						{...props}
-						{...listbox.listboxProps}
-						onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
-						aria-multiselectable
-						ref={listRef}
-						data-slot={joinDataSlot(dataSlot, "multi-select-content")}
-						className={cx(
-							"min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 py-1 flex flex-col between:mbe-px outline-hidden",
-							className,
-						)}
-					>
-						<FooterHostContext value={footerHost}>{children}</FooterHostContext>
-					</List>
+					<FooterHostContext value={footerHost}>
+						<List
+							{...props}
+							{...listbox.listboxProps}
+							onMouseDown={composeHandlers(props.onMouseDown, (event) => {
+								// Why: the footer is in this list's React tree, so its presses reach this handler.
+								if (event.target instanceof Node && event.currentTarget.contains(event.target)) {
+									listbox.listboxProps.onMouseDown(event);
+								}
+							})}
+							aria-multiselectable
+							ref={listRef}
+							data-slot={joinDataSlot(dataSlot, "multi-select-content")}
+							className={cx(
+								"min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none min-w-32 scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 py-1 flex flex-col between:mbe-px outline-hidden",
+								// Why less 2px: the popup's border sits outside the listbox, and the popup matches the anchor.
+								sameWidth && "w-[calc(var(--anchor-width)-2px)]",
+								className,
+							)}
+						>
+							{children}
+						</List>
+					</FooterHostContext>
 					{/* Why a host: the footer's controls must sit outside the listbox, wherever the footer is written. */}
 					<div ref={hostRef} className="contents" />
 				</div>

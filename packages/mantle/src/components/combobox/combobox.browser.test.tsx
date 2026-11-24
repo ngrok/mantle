@@ -396,4 +396,97 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		await userEvent.keyboard("{Escape}");
 		expect(input).toHaveAttribute("aria-expanded", "false");
 	});
+
+	test("a press on a footer button runs it and keeps focus on the input; a footer text field takes focus", async () => {
+		const onLoadMore = vi.fn<() => void>();
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Release" />
+				<Combobox.Content>
+					<Combobox.Item value="v1.2.0" />
+					<Combobox.ContentFooter>
+						<button type="button" onClick={onLoadMore}>
+							Load more
+						</button>
+						<input aria-label="Tag filter" />
+					</Combobox.ContentFooter>
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Release" });
+
+		await userEvent.click(input);
+		await userEvent.click(screen.getByRole("button", { name: "Load more" }));
+		expect(onLoadMore).toHaveBeenCalledTimes(1);
+		expect(input).toHaveFocus();
+		expect(input).toHaveAttribute("aria-expanded", "true");
+
+		await userEvent.click(screen.getByRole("textbox", { name: "Tag filter" }));
+		expect(screen.getByRole("textbox", { name: "Tag filter" })).toHaveFocus();
+		expect(input).toHaveAttribute("aria-expanded", "true");
+	});
+
+	test("a pick by pointer while focus is in the footer returns focus to the input", async () => {
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Release" />
+				<Combobox.Content>
+					<Combobox.Item value="v1.2.0" />
+					<Combobox.ContentFooter>
+						<button type="button">Load more</button>
+					</Combobox.ContentFooter>
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Release" });
+
+		await userEvent.click(input);
+		await userEvent.keyboard("{Tab}");
+		await userEvent.click(screen.getByRole("option", { name: "v1.2.0" }));
+
+		expect(input).toHaveValue("v1.2.0");
+		expect(input).toHaveAttribute("aria-expanded", "false");
+		expect(input).toHaveFocus();
+	});
+
+	test("a click on a control outside the open list runs that control", async () => {
+		const onSubmit = vi.fn<(event: SubmitEvent) => void>((event) => event.preventDefault());
+		render(
+			<form
+				ref={(form) => {
+					form?.addEventListener("submit", onSubmit);
+				}}
+			>
+				<DomainCombobox autoSelect={false} />
+				<button type="submit">Save</button>
+			</form>,
+		);
+		const input = screen.getByRole("combobox", { name: "Domain" });
+
+		await userEvent.click(input);
+		expect(input).toHaveAttribute("aria-expanded", "true");
+		await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+		expect(onSubmit).toHaveBeenCalledTimes(1);
+		expect(input).toHaveAttribute("aria-expanded", "false");
+	});
+
+	test("a wider Content is not clipped by the popup", async () => {
+		await injectComboboxCss();
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Fruit" style={{ width: 200 }} />
+				<Combobox.Content style={{ width: 384 }}>
+					<Combobox.Item value="Apple" />
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+
+		await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
+		const listbox = await screen.findByRole("listbox");
+
+		const popup = popupOf(listbox).getBoundingClientRect();
+		expect(popup.width).toBeGreaterThan(384);
+		expect(popup.right).toBeGreaterThanOrEqual(listbox.getBoundingClientRect().right);
+	});
 });
