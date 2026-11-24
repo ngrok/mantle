@@ -48,6 +48,11 @@ function escapeBelongsToNestedPopup(
 			? container.activeElement
 			: (container.ownerDocument?.activeElement ?? null);
 
+	// Why: a control in a popup's footer sits outside the listbox, so no owner holds it.
+	const popupBox = isHTMLElement(target) ? target.closest("[data-mantle-popup]") : null;
+	if (popupBox != null && popupBox !== container && container.contains(popupBox)) {
+		return true;
+	}
 	const owner = getExpandedPopupOwner(target) ?? getExpandedPopupOwner(activeElement);
 	const popup = owner ? getControlledPopup(owner) : null;
 

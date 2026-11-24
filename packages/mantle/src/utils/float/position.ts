@@ -367,15 +367,6 @@ function trackFloat({
 	// `left` and `top` start at that element. An open animation sets and clears
 	// the transform, so each placement looks again.
 	const inTopLayer = "togglePopover" in HTMLElement.prototype;
-	// Why only a float that scrolls: in one that does not, `scrollHeight` also
-	// counts an arrow that sticks out below it, which the gap already counts.
-	// Why only above or below: beside the anchor, the height only aligns the
-	// float, and the rendered height is the one to align.
-	// Why a scroll child: a popup with a fixed part, such as a footer, scrolls an
-	// inner element marked `data-float-scroll` and clips the rest.
-	const scroller = floating.querySelector<HTMLElement>(":scope > [data-float-scroll]") ?? floating;
-	const sizeByContent =
-		(side === "top" || side === "bottom") && getComputedStyle(scroller).overflowY !== "visible";
 
 	/** The anchor box and viewport size of the last placement, to see a move. */
 	let placedFor = "";
@@ -406,6 +397,17 @@ function trackFloat({
 		floating.style.setProperty("--anchor-height", `${anchorBox.height}px`);
 		const width = floating.offsetWidth;
 		const height = floating.offsetHeight;
+		// Why a scroll child, found on each placement: a popup with a fixed part, such
+		// as a footer, scrolls an inner element marked `data-float-scroll`, which an
+		// `asChild` list can replace while the popup stays open.
+		const scroller =
+			floating.querySelector<HTMLElement>(":scope > [data-float-scroll]") ?? floating;
+		// Why only a float that scrolls: in one that does not, `scrollHeight` also
+		// counts an arrow that sticks out below it, which the gap already counts.
+		// Why only above or below: beside the anchor, the height only aligns the
+		// float, and the rendered height is the one to align.
+		const sizeByContent =
+			(side === "top" || side === "bottom") && getComputedStyle(scroller).overflowY !== "visible";
 		const contentHeight = sizeByContent
 			? scroller.scrollHeight + height - scroller.clientHeight
 			: height;

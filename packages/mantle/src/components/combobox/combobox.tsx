@@ -339,6 +339,8 @@ const OpenContent = ({
 						ref={listRef}
 						data-float-scroll=""
 						data-slot={joinDataSlot(dataSlot, "combobox-content")}
+						// Why: an enclosing Dialog reads `data-open` on the `aria-controls` target to leave Escape to this list.
+						data-open=""
 						className={cx(
 							"relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none min-w-32 scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 p-1 between:mbe-px outline-hidden",
 							// Why less 2px: the popup's border sits outside the listbox, and the popup matches the anchor.

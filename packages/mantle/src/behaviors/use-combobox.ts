@@ -376,9 +376,9 @@ const useComboboxPopup = (
 			const anchor = anchorRef.current;
 			// Why: the box is in a portal, so the browser's next stop is not the control after the field.
 			if (!event.shiftKey && event.target === tabbables.at(-1) && anchor != null) {
+				// Why no setOpen: the footer control's blur closes the list, unless `Content.onBlur` cancels it.
 				if (focusAfter(anchor, box)) {
 					event.preventDefault();
-					setOpen(false);
 				}
 			}
 		},

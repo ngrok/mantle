@@ -644,4 +644,86 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		expect(screen.getByRole("button", { name: "Elsewhere" })).toHaveFocus();
 		expect(input).toHaveAttribute("aria-expanded", "true");
 	});
+	test("inside a Dialog, a composing Escape in the input or a footer field keeps the dialog open", async () => {
+		render(
+			<Dialog.Root defaultOpen>
+				<Dialog.Content>
+					<Dialog.Title>Settings</Dialog.Title>
+					<Combobox.Root>
+						<Combobox.Input aria-label="Release" />
+						<Combobox.Content>
+							<Combobox.Item value="v1.2.0" />
+							<Combobox.ContentFooter>
+								<input aria-label="Tag filter" />
+							</Combobox.ContentFooter>
+						</Combobox.Content>
+					</Combobox.Root>
+				</Dialog.Content>
+			</Dialog.Root>,
+		);
+		const composingEscape = () =>
+			new KeyboardEvent("keydown", {
+				key: "Escape",
+				isComposing: true,
+				bubbles: true,
+				cancelable: true,
+			});
+		const input = screen.getByRole("combobox", { name: "Release" });
+		await userEvent.click(input);
+		input.dispatchEvent(composingEscape());
+		expect(screen.getByRole("dialog", { name: "Settings" })).toBeInTheDocument();
+
+		const field = screen.getByRole("textbox", { name: "Tag filter" });
+		await userEvent.click(field);
+		field.dispatchEvent(composingEscape());
+		expect(screen.getByRole("dialog", { name: "Settings" })).toBeInTheDocument();
+		expect(input).toHaveAttribute("aria-expanded", "true");
+	});
+
+	test("Content's onBlur can cancel the close when Tab leaves the footer", async () => {
+		render(
+			<>
+				<Combobox.Root>
+					<Combobox.Input aria-label="Release" />
+					<Combobox.Content onBlur={(event) => event.preventDefault()}>
+						<Combobox.Item value="v1.2.0" />
+						<Combobox.ContentFooter>
+							<button type="button">Load more</button>
+						</Combobox.ContentFooter>
+					</Combobox.Content>
+				</Combobox.Root>
+				<button type="button">Next field</button>
+			</>,
+		);
+		const input = screen.getByRole("combobox", { name: "Release" });
+		await userEvent.click(input);
+		await userEvent.keyboard("{Tab}{Tab}");
+		expect(screen.getByRole("button", { name: "Next field" })).toHaveFocus();
+		expect(input).toHaveAttribute("aria-expanded", "true");
+	});
+
+	test("an asChild list that is replaced while open still moves to the side with more room", async () => {
+		await injectComboboxCss();
+		const Replaced = () => {
+			const [count, setCount] = useState(1);
+			return (
+				<Combobox.Root onInputValueChange={() => setCount(40)}>
+					<Combobox.Input aria-label="Fruit" style={{ position: "fixed", bottom: 120 }} />
+					<Combobox.Content asChild>
+						<section key={count}>
+							{Array.from({ length: count }, (_, index) => (
+								<Combobox.Item key={index} value={`Fruit ${index}`} />
+							))}
+						</section>
+					</Combobox.Content>
+				</Combobox.Root>
+			);
+		};
+		render(<Replaced />);
+		await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
+		const popup = popupOf(await screen.findByRole("listbox"));
+		expect(popup).toHaveAttribute("data-side", "bottom");
+		await userEvent.keyboard("F");
+		await expect.poll(() => popup.dataset.side).toBe("top");
+	});
 });
