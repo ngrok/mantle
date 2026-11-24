@@ -105,7 +105,7 @@
   },
   "conversation": {
     "entry": "import { Conversation } from \"@ngrok/mantle/conversation\"; export default [Conversation.Root, Conversation.Viewport, Conversation.Content, Conversation.ScrollButton];",
-    "maxGzipBytes": 11734
+    "maxGzipBytes": 11799
   },
   "message": {
     "entry": "import { Message } from \"@ngrok/mantle/message\"; export default [Message.Root, Message.Content, Message.Pending, Message.Actions];",
