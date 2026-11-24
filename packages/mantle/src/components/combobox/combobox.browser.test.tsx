@@ -49,9 +49,9 @@ const popupOf = (listbox: HTMLElement): HTMLElement => {
 };
 
 /** Loads the compiled classes of combobox.tsx, so the box caps the listbox and the listbox scrolls. */
-const injectComboboxCss = async () => {
+const injectComboboxCss = async (options?: { theme?: boolean }) => {
 	const style = document.createElement("style");
-	style.textContent = await commands.tailwindCss("./combobox.tsx");
+	style.textContent = await commands.tailwindCss("./combobox.tsx", options);
 	document.head.append(style);
 	onTestFinished(() => style.remove());
 };
@@ -137,8 +137,9 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		expect(popupOf(listbox)).toHaveAttribute("data-side", "top");
 		expect(popupOf(listbox).getBoundingClientRect().top).toBeGreaterThanOrEqual(8);
 	});
-	test("the typed match keeps the option text width and the option name", async () => {
-		await injectComboboxCss();
+	test("the typed match keeps the option text width and the option name, and shows a line", async () => {
+		// Why the theme: without it, `decoration-accent-600` and a type-scale weight compile to nothing.
+		await injectComboboxCss({ theme: true });
 		render(
 			<Combobox.Root>
 				<Combobox.Input aria-label="Domain" />
@@ -152,29 +153,37 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		const input = screen.getByRole("combobox", { name: "Domain" });
 		await userEvent.click(input);
 		const option = await screen.findByRole("option", { name: "https://acme.ngrok.app" });
+		const slice = (selector: string) => {
+			const element = option.querySelector(selector);
+			if (element == null) {
+				throw new Error(`The option has no ${selector} slice.`);
+			}
+			return element;
+		};
 		// Why a range: the value span grows to fill the row, and the range measures only its text.
 		const textWidth = () => {
 			const text = document.createRange();
-			text.selectNodeContents(option.querySelector('[data-slot="combobox-item-value"]') ?? option);
+			text.selectNodeContents(slice('[data-slot="combobox-item-value"]'));
 			return text.getBoundingClientRect().width;
 		};
-		const plainWidth = textWidth();
-
-		await userEvent.type(input, "https://");
-		expect(option.querySelector("[data-user-value]")).toHaveTextContent("https://");
-		// Why close and not equal: the cut between slices can drop a kerning pair, under 0.05px.
-		expect(textWidth()).toBeCloseTo(plainWidth, 1);
 		// Why the computed font too: the test fonts have no 500 face, so a medium weight
 		// draws at 400 here and keeps the width. Roobert in the product draws it wider.
 		const glyphs = (selector: string) => {
-			const slice = option.querySelector(selector);
-			if (slice == null) {
-				throw new Error(`The option has no ${selector} slice.`);
-			}
-			const style = getComputedStyle(slice);
+			const style = getComputedStyle(slice(selector));
 			return [style.font, style.letterSpacing, style.fontVariationSettings];
 		};
-		expect(glyphs("[data-user-value]")).toEqual(glyphs("[data-autocomplete-value]"));
+		const plainWidth = textWidth();
+		const plainGlyphs = glyphs("[data-autocomplete-value]");
+
+		await userEvent.type(input, "https://");
+		expect(slice("[data-user-value]")).toHaveTextContent("https://");
+		// Why close and not equal: the cut between slices can drop a kerning pair, under 0.05px.
+		expect(textWidth()).toBeCloseTo(plainWidth, 1);
+		expect(glyphs("[data-user-value]")).toEqual(plainGlyphs);
+		expect(glyphs("[data-autocomplete-value]")).toEqual(plainGlyphs);
+		const line = getComputedStyle(slice("[data-user-value]"));
+		expect(line.textDecorationLine).toBe("underline");
+		expect(line.textDecorationColor).not.toBe(line.color);
 		expect(option).toHaveAccessibleName("https://acme.ngrok.app");
 	});
 

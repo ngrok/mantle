@@ -623,9 +623,9 @@ const ItemValue = ({
 			data-slot={joinDataSlot(dataSlot, "combobox-item-value")}
 			className={cx(
 				"flex-1 shrink-0 text-strong font-normal",
-				// Why a tint and not a weight: a heavier glyph is wider, so the row text moves as the user types.
-				// Why the underline in forced colors: that mode removes the tint.
-				"[&>[data-user-value]]:rounded-xs [&>[data-user-value]]:bg-accent-500/25 forced-colors:[&>[data-user-value]]:underline",
+				// Why an underline and not a weight: a heavier glyph is wider, so the row text moves as the user types.
+				// The accent line has at least 3:1 contrast on each row background, and forced colors keeps it.
+				"[&>[data-user-value]]:underline [&>[data-user-value]]:decoration-accent-600 [&>[data-user-value]]:decoration-2 [&>[data-user-value]]:underline-offset-4",
 				className,
 			)}
 			ref={ref}

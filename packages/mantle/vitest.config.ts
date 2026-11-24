@@ -147,6 +147,20 @@ const mantleAnimations = async (): Promise<string> => {
 	return `@theme inline {\n${rules.join("\n")}\n}`;
 };
 
+/**
+ * The first `@theme` block of `mantle.css`: the accent colors and the type
+ * scale. Without it, Tailwind compiles a class such as `decoration-accent-600`
+ * or `text-heading-sm` to nothing.
+ */
+const mantleTheme = async (): Promise<string> => {
+	const css = await readFile(path.join(import.meta.dirname, "src/mantle.css"), "utf8");
+	const theme = /^@theme \{[\s\S]*?^\}/m.exec(css);
+	if (theme == null) {
+		throw new Error("mantle.css holds no @theme block.");
+	}
+	return theme[0];
+};
+
 /** The `ease-*` tokens of mantle's theme, so a test reads the curve that a component's class compiles to. */
 const mantleEasings = async (): Promise<string> => {
 	const css = await readFile(path.join(import.meta.dirname, "src/mantle.css"), "utf8");
@@ -160,7 +174,12 @@ const mantleEasings = async (): Promise<string> => {
 // Why a command: a browser test asserts layout, so it needs the CSS that Tailwind
 // really compiles for a component. A hand-written copy keeps passing when Tailwind
 // drops a rule. The path is relative to the test file.
-const tailwindCss: BrowserCommand<[sourceFile: string]> = async ({ testPath }, sourceFile) => {
+// Why the theme is opt-in: older tests pin Tailwind's default colors.
+const tailwindCss: BrowserCommand<[sourceFile: string, options?: { theme?: boolean }]> = async (
+	{ testPath },
+	sourceFile,
+	options,
+) => {
 	if (testPath == null) {
 		throw new Error("tailwindCss runs only inside a test file.");
 	}
@@ -170,7 +189,7 @@ const tailwindCss: BrowserCommand<[sourceFile: string]> = async ({ testPath }, s
 		.getCandidatesWithPositions({ content, extension: path.extname(file).slice(1) })
 		.map(({ candidate }) => candidate);
 	const compiler = await compile(
-		`@import "tailwindcss/theme"; @import "tailwindcss/utilities";\n${await mantleEasings()}\n${await mantleCustomVariants()}\n${await mantleUtilities()}\n${await mantleAnimations()}`,
+		`@import "tailwindcss/theme"; @import "tailwindcss/utilities";\n${options?.theme ? await mantleTheme() : ""}\n${await mantleEasings()}\n${await mantleCustomVariants()}\n${await mantleUtilities()}\n${await mantleAnimations()}`,
 		{
 			base: import.meta.dirname,
 			onDependency: () => {},
