@@ -28,7 +28,7 @@
         "boundary": "every section stays open, with its title and explanation beside its content."
       }
     ],
-    "useWhen": "Stack titled sections that each expand and collapse in place, such as questions and answers or a group of advanced settings."
+    "useWhen": "Stack titled sections that each expand and collapse in place to show and hide their content, such as questions and answers or a group of advanced settings."
   },
   {
     "name": "Alert",
@@ -46,7 +46,9 @@
     "aliases": [
       "callout",
       "notice",
-      "admonition"
+      "admonition",
+      "inline alert",
+      "page banner"
     ],
     "siblings": [
       {
@@ -66,7 +68,7 @@
         "boundary": "a region has no data, no results, or no access to show."
       }
     ],
-    "useWhen": "Show a persistent message in the page, such as a warning, an error, or a success note, beside the content it describes."
+    "useWhen": "Show a persistent message in the page, such as a warning about degraded data, an error, or a success note, beside the content it describes."
   },
   {
     "name": "Alert Center",
@@ -275,7 +277,7 @@
         "boundary": "the tags are values that the user picks and removes."
       }
     ],
-    "useWhen": "Label an item with a short status, a category tag, or a count."
+    "useWhen": "Label an item with a short status or state (such as active, paused, or unknown), a category tag, or a count, shown as one or two words on a colored background."
   },
   {
     "name": "Bar Chart",
@@ -535,7 +537,7 @@
         "boundary": "the thing beside the text is an image or an icon, not a control."
       }
     ],
-    "useWhen": "Put a checkbox, a radio, or a switch beside a title and an optional description."
+    "useWhen": "Put a checkbox, a radio, or a toggle switch beside a title and an optional description, such as an explanation of one or more lines."
   },
   {
     "name": "Code",
@@ -704,7 +706,7 @@
         "boundary": "one record shows as label and value pairs."
       }
     ],
-    "useWhen": "Show rows of application data that the user sorts, filters, pages through, selects, or expands into a detail panel or sub-rows."
+    "useWhen": "Show rows of application data that the user sorts, filters, pages through, selects, or expands with a row button into a detail panel or sub-rows."
   },
   {
     "name": "Description List",
@@ -1553,7 +1555,9 @@
     ],
     "aliases": [
       "radio button",
-      "radio"
+      "radio",
+      "radio cards",
+      "radio card grid"
     ],
     "siblings": [
       {
@@ -1688,7 +1692,7 @@
         "boundary": "the set is long, or the row has little space."
       }
     ],
-    "useWhen": "Switch between a few short options, like a view or an environment, in one row."
+    "useWhen": "Switch between a few short options in one compact, inline row, such as a view, an environment, or a filter."
   },
   {
     "name": "Select",
@@ -1725,7 +1729,7 @@
         "boundary": "the list runs actions and sets no value."
       }
     ],
-    "useWhen": "Pick one value from a short, fixed list of options that needs no filter."
+    "useWhen": "Pick one value from a short, fixed list of options that needs no filter, such as a region or an expiry duration."
   },
   {
     "name": "Selectable List",
@@ -2118,7 +2122,7 @@
         "boundary": "the user picks a form value, not a view."
       }
     ],
-    "useWhen": "Switch between peer views of related content in one place, with one view visible at a time."
+    "useWhen": "Switch between peer views of related content in one place, with one view visible at a time. Use `HeadlessTabs` to keep the tab state and behavior under your own custom markup and styling."
   },
   {
     "name": "Text Area",
@@ -2226,8 +2230,8 @@
     "category": "Feedback",
     "status": "stable",
     "importPath": "@ngrok/mantle/toast",
-    "summary": "A succinct message that appears temporarily.",
-    "jsdoc": "A succinct message that appears temporarily.",
+    "summary": "A brief message that shows the result of an action, such as a save or a failed request, then goes away on its own.",
+    "jsdoc": "A brief message that shows the result of an action, such as a save or a failed request, then goes away on its own.",
     "examples": [
       "Composition:\n```\nToast.Root\n├── Toast.Icon\n├── Toast.Message\n└── Toast.Action\n```",
       "```tsx\nmakeToast(\n  <Toast.Root intent=\"success\">\n    <Toast.Icon />\n    <Toast.Message>Operation completed successfully!</Toast.Message>\n    <Toast.Action>Dismiss</Toast.Action>\n  </Toast.Root>\n);\n```"
@@ -2252,7 +2256,7 @@
         "boundary": "the message waits for the user to save or discard pending changes."
       }
     ],
-    "useWhen": "Report the result of an action, such as a save or a copy, in a brief message that goes away on its own."
+    "useWhen": "Show the result of an action in a brief message that goes away on its own, such as a saved change, a copied value, or an error when a delete failed."
   },
   {
     "name": "Tooltip",
