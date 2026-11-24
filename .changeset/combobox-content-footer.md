@@ -12,11 +12,7 @@ A footer holds controls such as a "Show expired" switch, an "Upload certificate"
 - Escape closes the list and returns focus to the input. A press outside still closes it.
 - Arrow keys in the input still move through the options.
 
-`Combobox.Content` and `MultiSelect.Content` now render a popover box around the listbox:
-
-- `className`, `style`, `ref`, the event handlers, and the other `<div>` props go on the popover box, which keeps `data-slot="combobox-content"` or `"multi-select-content"` and gets `data-side`.
-- `aria-label` and `aria-labelledby` name the listbox, which has `data-slot="combobox-listbox"` or `"multi-select-listbox"` and scrolls.
-- `asChild` swaps the listbox element.
+`Combobox.Content` and `MultiSelect.Content` stay the `role="listbox"` element, with their props, `ref`, `className`, and `asChild`. A popover box around the listbox now holds the footer, with `data-slot="combobox-popup"` or `"multi-select-popup"`, and carries `data-side` and the border and shadow. A footer control that turns disabled or unmounts while it has focus returns focus to the input. A press outside a `Combobox` now closes its list even when focus is in the footer.
 
 With no footer, Tab from an open `MultiSelect` input now leaves the field and closes the list, as it does in `Combobox`. It did nothing before.
 

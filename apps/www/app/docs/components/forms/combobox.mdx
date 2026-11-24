@@ -248,7 +248,7 @@ function Example() {
 
 ## Polymorphism
 
-`Combobox.Content`, `Combobox.Item`, `Combobox.Group`, and `Combobox.GroupLabel` support `asChild` to render as a different element or your own component while keeping the combobox behavior and styling. On `Combobox.Content`, `asChild` swaps the listbox element, and `className` styles the popover around it.
+`Combobox.Content`, `Combobox.Item`, `Combobox.Group`, and `Combobox.GroupLabel` support `asChild` to render as a different element or your own component while keeping the combobox behavior and styling.
 
 `Combobox.Item` also takes a function child, `(props, { highlighted }) => element`, for a row that renders different content while highlighted, such as a preview. Only a row that uses one re-renders when the highlight moves. To only restyle the highlighted row, use the `data-highlighted:` variant, or `in-data-highlighted:` from a child, which needs no JavaScript. Anything you write after `{...props}` wins, so join a class with `cx(props.className, "…")`, and set `id` on the item, not on your element.
 
@@ -319,12 +319,12 @@ Renders a popover that contains combobox content, e.g. items, groups, and separa
 
 `Combobox.Content` is a `popover="manual"` element in the top layer, so it paints above the page and every overlay. It portals into the overlay or float that holds it, such as an open `Dialog` or `Popover.Content`, else into `document.body`. In a browser with no popover API, it is a fixed box at Tailwind `z-50`. It opens below the input, or above it when the space below is too small.
 
-The popover holds the `role="listbox"` element and, after it, the `Combobox.ContentFooter`. `className` and the other props of a `<div>` go on the popover. `aria-label` and `aria-labelledby` name the listbox. Plus:
+`Combobox.Content` is the `role="listbox"` element, and it scrolls. It sits in a popover that also holds the `Combobox.ContentFooter`, after the listbox. All props of a `<div>`, plus:
 
-| Prop         | Type      | Default | Description                                                |
-| :----------- | :-------- | :------ | :--------------------------------------------------------- |
-| `asChild?`   | `boolean` | `false` | Compose the listbox onto your own element.                 |
-| `sameWidth?` | `boolean` | `true`  | Whether the popover should be the same width as the input. |
+| Prop         | Type      | Default | Description                                                           |
+| :----------- | :-------- | :------ | :-------------------------------------------------------------------- |
+| `asChild?`   | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
+| `sameWidth?` | `boolean` | `true`  | Whether the popover should be the same width as the input.            |
 
 ### Combobox.Item
 

@@ -40,7 +40,7 @@ const DomainCombobox = ({
 
 /** The positioned popup box that holds the listbox and the footer. */
 const popupOf = (listbox: HTMLElement): HTMLElement => {
-	const popup = listbox.closest<HTMLElement>('[data-slot~="combobox-content"]');
+	const popup = listbox.closest<HTMLElement>('[data-slot="combobox-popup"]');
 	if (popup == null) {
 		throw new Error("The listbox has no popup box.");
 	}
@@ -124,8 +124,7 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		render(
 			<Combobox.Root>
 				<Combobox.Input aria-label="Fruit" style={{ position: "fixed", bottom: 40 }} />
-				{/* Why the style: the compiled CSS holds no preflight, which sizes every box with its border. */}
-				<Combobox.Content style={{ boxSizing: "border-box" }}>
+				<Combobox.Content>
 					{fruits.map((fruit) => (
 						<Combobox.Item key={fruit} value={fruit} />
 					))}
@@ -364,5 +363,37 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		expect(screen.getByRole("button", { name: "Load more" })).toBeDisabled();
 		await expect.poll(() => document.activeElement).toBe(input);
 		expect(input).toHaveAttribute("aria-expanded", "true");
+	});
+
+	test("a footer control that unmounts while it has focus returns focus to the input", async () => {
+		const LoadMore = () => {
+			const [done, setDone] = useState(false);
+			return (
+				<Combobox.Root>
+					<Combobox.Input aria-label="Release" />
+					<Combobox.Content>
+						<Combobox.Item value="v1.2.0" />
+						<Combobox.ContentFooter>
+							{!done && (
+								<button type="button" onClick={() => setDone(true)}>
+									Load more
+								</button>
+							)}
+						</Combobox.ContentFooter>
+					</Combobox.Content>
+				</Combobox.Root>
+			);
+		};
+		render(<LoadMore />);
+		const input = screen.getByRole("combobox", { name: "Release" });
+
+		await userEvent.click(input);
+		await userEvent.keyboard("{Tab}{Enter}");
+
+		expect(screen.queryByRole("button", { name: "Load more" })).not.toBeInTheDocument();
+		await expect.poll(() => document.activeElement).toBe(input);
+		expect(input).toHaveAttribute("aria-expanded", "true");
+		await userEvent.keyboard("{Escape}");
+		expect(input).toHaveAttribute("aria-expanded", "false");
 	});
 });

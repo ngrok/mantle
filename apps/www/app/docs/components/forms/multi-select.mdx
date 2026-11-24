@@ -768,7 +768,7 @@ MultiSelect.Root
 
 `MultiSelect.Item`, `MultiSelect.Content`, `MultiSelect.Group`, `MultiSelect.GroupLabel`, and `MultiSelect.Separator` accept `asChild`, rendering your single child in place of the part's default element while keeping its selection and keyboard behavior.
 
-`MultiSelect.GroupLabel asChild` is the useful one: reach for it when a group heading must be a specific element for the page's outline. `MultiSelect.Content asChild` lets you own the listbox element inside the popover.
+`MultiSelect.GroupLabel asChild` is the useful one: reach for it when a group heading must be a specific element for the page's outline. `MultiSelect.Content asChild` lets you own the listbox element.
 
 `MultiSelect.Item` also takes a function child, `(props, { highlighted }) => element`, for a row that renders different content while highlighted. Write the label inside your element: the label wrapper and the check move inside it, as with `asChild`. Only a row that uses one re-renders when the highlight moves. To only restyle the highlighted row, use the `data-highlighted:` variant, or `in-data-highlighted:` from a child. Anything you write after `{...props}` wins, so join a class with `cx(props.className, "…")`, and set `id` on the item, not on your element.
 
@@ -871,12 +871,12 @@ Renders a popover that contains multi-select content.
 
 `MultiSelect.Content` is a `popover="manual"` element in the top layer, so it paints above the page and every overlay. It portals into the overlay or float that holds it, such as an open `Dialog` or `Popover.Content`, else into `document.body`. In a browser with no popover API, it is a fixed box at Tailwind `z-50`.
 
-The popover holds the `role="listbox"` element and, after it, the `MultiSelect.ContentFooter`. `className` and the other props of a `<div>` go on the popover. `aria-label` and `aria-labelledby` name the listbox. Plus:
+`MultiSelect.Content` is the `role="listbox"` element, and it scrolls. It sits in a popover that also holds the `MultiSelect.ContentFooter`, after the listbox. All props of a `<div>`, plus:
 
-| Prop         | Type      | Default | Description                                                  |
-| :----------- | :-------- | :------ | :----------------------------------------------------------- |
-| `asChild?`   | `boolean` | `false` | Compose the listbox onto your own element.                   |
-| `sameWidth?` | `boolean` | `true`  | Whether the popover should be the same width as the trigger. |
+| Prop         | Type      | Default | Description                                                           |
+| :----------- | :-------- | :------ | :-------------------------------------------------------------------- |
+| `asChild?`   | `boolean` | `false` | Compose onto an alternative element type or your own React component. |
+| `sameWidth?` | `boolean` | `true`  | Whether the popover should be the same width as the trigger.          |
 
 ### MultiSelect.Item
 

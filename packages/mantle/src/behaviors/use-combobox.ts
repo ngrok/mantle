@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 import type { ChangeEvent, FocusEvent, KeyboardEvent } from "react";
 import { flushSync } from "react-dom";
 import { findTabbableDescendants, isTabbable } from "../components/alert/tabbable-neighbors.js";
@@ -209,10 +209,9 @@ const useComboboxInput = (
 				case "Tab": {
 					// Why: Tab moves into the popup's footer, and the list stays open. With
 					// no control there, Tab leaves the field and the blur closes the list.
-					const first = open
-						? findTabbableDescendants(combobox.popupRef.current ?? event.currentTarget)[0]
-						: undefined;
-					if (!event.shiftKey && first != null && combobox.popupRef.current != null) {
+					const popup = open ? combobox.popupRef.current : null;
+					const first = popup == null ? undefined : findTabbableDescendants(popup)[0];
+					if (!event.shiftKey && first != null) {
 						event.preventDefault();
 						first.focus();
 					}
@@ -296,6 +295,9 @@ const focusAfter = (anchor: HTMLElement, popup: HTMLElement): boolean => {
  * - Shift+Tab from the first footer control returns to the input.
  * - Tab from the last one moves to the control after `anchorRef`, and the list closes.
  * - Focus that leaves the box and `anchorRef` closes the list.
+ * - A footer control that turns disabled or unmounts while it has focus returns focus to the input.
+ *
+ * Put `footerRef` on the element that holds the footer.
  *
  * @example
  * ```tsx
@@ -308,6 +310,23 @@ const useComboboxPopup = (
 	{ anchorRef }: { anchorRef: { current: HTMLElement | null } },
 ) => {
 	const { inputRef, setOpen } = combobox;
+	// Why a stable callback: a new ref callback on each render would rebuild the observer.
+	const footerRef = useCallback(
+		(host: HTMLElement | null) => {
+			if (host == null) {
+				return;
+			}
+			const observer = new MutationObserver(() => {
+				const { activeElement, body } = host.ownerDocument;
+				if (activeElement == null || activeElement === body) {
+					inputRef.current?.focus();
+				}
+			});
+			observer.observe(host, { childList: true, subtree: true });
+			return () => observer.disconnect();
+		},
+		[inputRef],
+	);
 	const inAnchor = (node: unknown) =>
 		node instanceof Node && anchorRef.current?.contains(node) === true;
 	return {
@@ -348,13 +367,15 @@ const useComboboxPopup = (
 			}
 			// Why: a footer control that turns disabled, such as "Load more" while it
 			// loads, drops focus to the page. Focus returns to the input, and the list stays open.
-			const { target } = event;
-			if (relatedTarget == null && (target.matches(":disabled") || !target.isConnected)) {
+			if (relatedTarget == null && event.target.matches(":disabled")) {
 				inputRef.current?.focus();
 				return;
 			}
 			setOpen(false);
 		},
+		// Why an observer: a focused control that unmounts sends no blur that React sees,
+		// and focus falls to the page.
+		footerRef,
 		onMouseDown: (event: { target: EventTarget; preventDefault: () => void }) => {
 			// Why: a press on the box's own surface must not move focus off the input.
 			const target = event.target instanceof Element ? event.target : null;

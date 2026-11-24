@@ -209,6 +209,23 @@ describe("Combobox", () => {
 			expect(within(listbox).getAllByRole("option")).toHaveLength(2);
 		});
 
+		test("Content's props, such as aria-busy, stay on the listbox", async () => {
+			const user = userEvent.setup();
+			render(
+				<Combobox.Root>
+					<Combobox.Input aria-label="Release" />
+					<Combobox.Content aria-busy className="max-h-80">
+						<Combobox.Item value="v1.2.0" />
+					</Combobox.Content>
+				</Combobox.Root>,
+			);
+			await user.click(screen.getByRole("combobox", { name: "Release" }));
+
+			const listbox = screen.getByRole("listbox");
+			expect(listbox).toHaveAttribute("aria-busy", "true");
+			expect(listbox).toHaveAttribute("data-slot", "combobox-content");
+		});
+
 		test("Tab moves into the footer and keeps the list open, Shift+Tab returns to the input", async () => {
 			const user = userEvent.setup();
 			const onLoadMore = vi.fn<() => void>();

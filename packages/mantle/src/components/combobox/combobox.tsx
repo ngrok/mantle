@@ -271,9 +271,7 @@ type ComboboxContentProps = ComponentProps<"div"> &
  * empty-state row `disabled`, so Enter or a click cannot pick its text. Put a
  * button, a switch, or a link in `Combobox.ContentFooter`, which renders after
  * the listbox and not in it.
- *
- * `className` and the other props style the popover. `asChild` swaps the listbox
- * element.
+
  *
  * @see https://mantle.ngrok.com/components/forms/combobox#comboboxcontent
  *
@@ -293,60 +291,59 @@ const Content = (props: ComboboxContentProps) =>
 
 /** The open list. A closed combobox mounts none of it: no popup, store, or listener. */
 const OpenContent = ({
-	"aria-label": ariaLabel,
-	"aria-labelledby": ariaLabelledBy,
 	"data-slot": dataSlot,
 	asChild = false,
 	children,
 	className,
-	onBlur,
-	onKeyDown,
-	onMouseDown,
 	ref,
 	sameWidth = true,
 	...props
 }: ComboboxContentProps) => {
 	const combobox = useComboboxContext();
-	const { inputRef, listbox } = combobox;
-	const { portalTarget, popupRef } = usePopup({ anchorRef: inputRef, ownerRef: inputRef });
-	const popupProps = useComboboxPopup(combobox, { anchorRef: inputRef });
+	const { inputRef, listbox, setOpen } = combobox;
+	const { portalTarget, popupRef } = usePopup({
+		anchorRef: inputRef,
+		ownerRef: inputRef,
+		onOutsidePress: () => setOpen(false),
+	});
+	const { footerRef, ...popupProps } = useComboboxPopup(combobox, { anchorRef: inputRef });
 	const [footerHost, setFooterHost] = useState<HTMLElement | null>(null);
-	const boxRef = useComposedRefs(ref, popupRef, combobox.popupRef);
-	const listRef = useComposedRefs(listbox.listboxProps.ref, observeScrollEdges);
+	const hostRef = useComposedRefs(setFooterHost, footerRef);
+	const boxRef = useComposedRefs(popupRef, combobox.popupRef);
+	const listRef = useComposedRefs(ref, listbox.listboxProps.ref, observeScrollEdges);
 	const List = asChild ? Slot : "div";
 	return (
 		portalTarget != null &&
 		createPortal(
 			<div
-				{...props}
+				{...popupProps}
 				// Why presentation: the handlers only catch keys and focus from the footer's
 				// controls. The listbox inside and the controls carry the semantics.
 				role="presentation"
 				popover={hasPopoverApi ? "manual" : undefined}
-				onBlur={composeHandlers(onBlur, popupProps.onBlur)}
-				onKeyDown={composeHandlers(onKeyDown, popupProps.onKeyDown)}
-				onMouseDown={composeHandlers(onMouseDown, popupProps.onMouseDown)}
 				ref={boxRef}
-				data-slot={joinDataSlot(dataSlot, "combobox-content")}
+				data-slot="combobox-popup"
 				data-open=""
 				className={cx(
-					"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 flex flex-col overflow-hidden rounded-md border shadow-md font-sans outline-hidden",
+					"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) min-w-32 flex flex-col overflow-hidden box-border rounded-md border shadow-md font-sans",
 					sameWidth && "w-(--anchor-width)",
-					className,
 				)}
 			>
 				<List
+					{...props}
 					{...listbox.listboxProps}
-					aria-label={ariaLabel}
-					aria-labelledby={ariaLabelledBy}
+					onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
 					ref={listRef}
-					data-slot="combobox-listbox"
-					className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 p-1 between:mbe-px outline-hidden"
+					data-slot={joinDataSlot(dataSlot, "combobox-content")}
+					className={cx(
+						"min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 p-1 between:mbe-px outline-hidden",
+						className,
+					)}
 				>
 					<FooterHostContext value={footerHost}>{children}</FooterHostContext>
 				</List>
 				{/* Why a host: the footer's controls must sit outside the listbox, wherever the footer is written. */}
-				<div ref={setFooterHost} className="contents" />
+				<div ref={hostRef} className="contents" />
 			</div>,
 			portalTarget,
 		)
