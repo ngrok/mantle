@@ -542,9 +542,8 @@ describe("Command.DialogRoot", () => {
 		test("the caret lands at the end of a seeded query, not over it", async () => {
 			// Cross-part pin: `Command.DialogContent`'s open-autofocus handler finds
 			// the field with `[data-slot="command-input"]`, which `Command.Input`
-			// stamps. Renaming either side drops the caret fix, so the first
-			// keystroke after a seeded open would replace the seed instead of
-			// extending it.
+			// stamps. Renaming either side drops the caret fix, so the caret need
+			// not land after the seed, and the first keystroke would not extend it.
 			const user = userEvent.setup();
 			render(<Palette />);
 			await focusTrigger(user);
@@ -594,7 +593,7 @@ describe("Command.DialogRoot", () => {
 			["there is no Command.Input", null],
 			// The blog's palette disables its input while its posts load; focusing a
 			// disabled element is a no-op, so taking the dialog's autofocus over would
-			// leave focus outside the dialog.
+			// leave focus on the `<dialog>` itself, not on the browser's pick.
 			[
 				"the Command.Input is disabled",
 				<Command.Input key="input" placeholder="Type a command or search..." disabled />,

@@ -88,9 +88,8 @@ describe("Tabs", () => {
 			);
 		}
 
-		// Why mousedown: `useTabs` activates a tab on mousedown and moves focus to it
-		// in the same handler, and the focus can activate it again. A controlled root
-		// re-renders after both, so a second call would carry the same value.
+		// Why mousedown: `useTabs` focuses the tab on mousedown, then selects it. Its
+		// focus handler skips the pressed tab, so one press is one call.
 		test("fires once per activation on a controlled root", () => {
 			const onValueChange = vi.fn<(value: string) => void>();
 			render(<ControlledTabs onValueChange={onValueChange} />);

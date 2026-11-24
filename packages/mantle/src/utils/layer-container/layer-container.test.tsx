@@ -209,10 +209,9 @@ describe("layer containers", () => {
 				expect(
 					overlayContent.compareDocumentPosition(floatContent) & Node.DOCUMENT_POSITION_FOLLOWING,
 				).toBeTruthy();
-				// The modal overlay marks the portal's other children
-				// `aria-hidden` on open. The positioner is on the content's
-				// ancestor chain, so a float portaled into it stays readable.
-				// Portaling into a sibling element instead would hide it.
+				// A modal `<dialog>` makes the page outside it inert. The
+				// layer container is inside the `<dialog>`, so a float portaled
+				// into it stays readable. A float beside the `<dialog>` would not.
 				expect(floatContent.closest("[aria-hidden='true']")).toBeNull();
 			});
 		}

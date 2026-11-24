@@ -233,8 +233,8 @@ test("a horizontal list's triggers line up with the separator at both scroll end
 
 /**
  * A controlled root that never takes the value it is handed. `useTabs` focuses
- * the tab inside its mousedown handler, and that focus can activate the tab
- * again before any state flushes, so the dedupe depends on the order
+ * the tab inside its mousedown handler, and its focus handler must skip that
+ * tab before any state flushes, so the dedupe depends on the order
  * a real mousedown, its focus, and the microtask after them run in. A
  * synthetic mousedown shares one stack with the focus by construction, so
  * only Chromium pins that order.

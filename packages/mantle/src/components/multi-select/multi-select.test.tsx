@@ -492,7 +492,7 @@ describe("MultiSelect", () => {
 			const user = userEvent.setup();
 			render(<Subject />);
 			await user.click(screen.getByRole("combobox"));
-			// Escape closes the popover first, so ArrowLeft starts from a closed list.
+			// The Escape step dates from the Ariakit popover, which made the tags inert while open.
 			await user.keyboard("{Escape}");
 			await user.keyboard("{ArrowLeft}");
 			expect(getTagOption("cherry")).toHaveFocus();
@@ -852,8 +852,8 @@ describe("MultiSelect", () => {
 			// `locked` reaches the tag
 			expect(screen.getByLabelText("Remove apple")).toHaveAttribute("aria-disabled", "true");
 			expect(screen.getByLabelText("Remove cherry")).not.toHaveAttribute("aria-disabled");
-			// `ref` registers the tag, so ArrowLeft from the input can focus it. Escape closes
-			// the popover first, so ArrowLeft starts from a closed list.
+			// `ref` registers the tag, so ArrowLeft from the input can focus it. The Escape
+			// step dates from the Ariakit popover, which made the tags inert while open.
 			await user.click(screen.getByRole("combobox"));
 			await user.keyboard("{Escape}");
 			await user.keyboard("{ArrowLeft}");

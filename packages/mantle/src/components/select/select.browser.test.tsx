@@ -75,7 +75,7 @@ describe("Select wrapper span layout", () => {
 		expect(getComputedStyle(wrapper("select-value-label")).display).toBe("contents");
 	});
 
-	test("the portaled item label keeps the item's children as flex items of the value node", async () => {
+	test("the item label in the value node keeps the item's children as flex items of the value node", async () => {
 		render(
 			<Select.Root defaultValue="apple">
 				<Select.Trigger>

@@ -69,8 +69,8 @@ function useIsInsideModalLayer(): boolean {
 /**
  * The provider half of {@link LayerContainerContext}: a `div` that registers
  * itself as the layer container for every float composed inside it. An overlay
- * renders it as its positioner (the fixed element that lays out its content),
- * so floats portaled into it later land on the content's ancestor chain and
+ * renders it inside its `<dialog>`, around its content, so floats portaled
+ * into it later land on the content's ancestor chain and
  * paint above the content. The caller passes the positioning classes and the
  * `data-slot`; this component carries none of its own.
  *
@@ -276,9 +276,8 @@ const notCoveringLayers = "[data-mantle-modal-content], .overlay-prompt";
  * and when mantle renders the layer of the frame (an open overlay, one of its
  * floats, or a floating prompt).
  *
- * Why a hit test: the page behind an open modal overlay is inert, and the
- * browser does not hit-test inert content, so only a live layer is on top. That
- * layer is one the user can use, and the page behind the overlay never is.
+ * Why a hit test: `elementFromPoint` returns what paints on top at the center
+ * of the viewport, so a frame under the overlay or hidden does not count.
  *
  * Why a frame: its key presses and its focus moves never reach the page, so
  * the overlay must yield them. A layer of page elements gets the same Escape

@@ -405,8 +405,8 @@ describe("Dialog.Content", () => {
 		});
 
 		it("keeps a consumer-supplied aria-describedby", async () => {
-			// Content spreads its props after its own value, so a consumer id must
-			// survive the spread instead of being replaced by `undefined`.
+			// `Description` names itself only when the `<dialog>` has no
+			// `aria-describedby`, so a consumer id stays.
 			render(
 				<Dialog.Root defaultOpen>
 					<Dialog.Content aria-describedby="external-help">
