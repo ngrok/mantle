@@ -371,7 +371,8 @@ describe("Conversation", () => {
 		await nextFrame();
 		viewport().scrollTo({ top: 40, behavior: "instant" });
 		await waitFor(() => expect(root()).toHaveAttribute("data-scrolled-up"));
-		rerender(<RestoredTranscript key="panel" width={1100} />);
+		// Wide enough that the text fits in every engine's default font.
+		rerender(<RestoredTranscript key="panel" width={1600} />);
 		await nextFrame();
 		expect(viewport().scrollTop).toBe(0);
 		expect(distanceFromEnd(viewport())).toBe(0);

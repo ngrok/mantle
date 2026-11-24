@@ -363,6 +363,17 @@ function followEnd(
 		}
 	};
 	const onKeyDown = (event: KeyboardEvent) => {
+		if (event.defaultPrevented || isEditable(event.target)) {
+			return;
+		}
+		const up =
+			["ArrowUp", "PageUp", "Home"].includes(event.key) || (event.key === " " && event.shiftKey);
+		// Why: a smooth key scroll moves after the next stream update, which would scroll back to the end.
+		if (up && viewport.scrollTop > 0) {
+			isFollowing = false;
+			smoothTarget = null;
+			return;
+		}
 		if (["ArrowDown", "PageDown", "End", " "].includes(event.key) && !event.shiftKey) {
 			holdSmoothScroll();
 		}
@@ -401,6 +412,14 @@ function followEnd(
 			});
 		},
 	};
+}
+
+/** Whether a key press edits text in `target` and so does not scroll the viewport. */
+function isEditable(target: EventTarget | null): boolean {
+	return (
+		target instanceof HTMLElement &&
+		(target.isContentEditable || target.matches("input, textarea, select"))
+	);
 }
 
 /** Whether an element between `target` and `viewport` can scroll up, so it takes an upward wheel. */
