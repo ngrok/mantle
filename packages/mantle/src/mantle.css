@@ -2266,17 +2266,24 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 
 /*
  * A docked panel keeps its end gutter inside its box, so its snapshot would be
- * wider than its card and the morph would show two end edges. While a view
- * transition runs, the gutter moves to the box's margin and the card fills the
- * box. The card renders in the same place, and the snapshot is the card.
- * Why `max-width`: a change to `flex-basis` would run the panel's slide.
+ * wider than its card and the morph would show two end edges. While the panel
+ * takes part in a view transition, the gutter moves to the box's margin and
+ * the card fills the box. The card renders in the same place, and the snapshot
+ * is the card. Why `max-width`: a change to `flex-basis` would run the panel's
+ * slide. Why not in a theme swap: the panel does not take part, and a panel
+ * that is still sliding open would lose its gutter's width to the margin.
+ * Why not the panel's inline name: React clears it once the transition is
+ * ready, and the live new snapshot would grow back to the gutter.
  */
-:root:active-view-transition [data-slot~="app-layout-side-panel"][data-open] {
+:root:active-view-transition:not([data-theme-transition])
+	[data-slot~="app-layout-side-panel"][data-open] {
 	max-width: var(--_side-panel-content-width);
 	margin-right: var(--_side-panel-content-inset);
 }
 
-:root:active-view-transition [data-slot~="app-layout-side-panel"][data-open] > * {
+:root:active-view-transition:not([data-theme-transition])
+	[data-slot~="app-layout-side-panel"][data-open]
+	> * {
 	right: 0;
 }
 

@@ -227,7 +227,8 @@ function AssistantPanel({
 						label="Close the assistant"
 						// Why a CSS name, not a boundary: React runs no exit or enter for a
 						// boundary inside one it shares, and this button has no pair in the page.
-						className={cx(open && "[view-transition-name:assistant-close]")}
+						// `assistant-view-transition.css` gives the class its name.
+						className={cx(open && "assistant-close")}
 					/>
 				</AppLayout.SidePanelHeader>
 				<AppLayout.SidePanelBody>

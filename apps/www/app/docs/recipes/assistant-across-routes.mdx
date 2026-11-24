@@ -269,7 +269,7 @@ rounded corners, and grows or shrinks from its start edge. Each snapshot keeps i
 frame's end edge, so the panel stays where it is while the page grows out of it, and the text crossfades
 instead of stretching. When the page and the panel pair, the new snapshot fills the frame with the card's
 surface and stays opaque, and the old one fades out on top of it in 150ms, so two layouts of the same text
-do not show through each other. A card that enters or leaves alone only fades. Under
+do not show through each other. A card that enters or leaves alone fades, with no surface behind it. Under
 `prefers-reduced-motion: reduce` the morph is a cut, the same as every `motion-reduce:` rule in mantle. The
 class does nothing until a card has a name, so a page that names no card never takes part.
 
@@ -288,8 +288,9 @@ one moves on its own from where it sits in one home to where it sits in the othe
 Each piece is a `<ViewTransition>` with `default="none"`, so it animates only when its name pairs across
 a crossing. A panel piece takes its name only while the panel is open: a closed panel has no header to
 move, and leaving the assistant's route with it closed fades the page out. The close button takes a CSS
-`view-transition-name` instead of a boundary, because React runs no enter or exit for a boundary inside
-one it shares, and this button has no pair on the page.
+`view-transition-name` from its `assistant-close` class instead of a boundary, because React runs no enter
+or exit for a boundary inside one it shares, and this button has no pair on the page. The stylesheet drops
+the name during a theme swap, so the button stays inside the theme's circle reveal.
 
 The pieces need one stylesheet. Import it after `mantle.css`:
 
@@ -356,6 +357,11 @@ The pieces need one stylesheet. Import it after `mantle.css`:
  */
 ::view-transition-group(assistant-close) {
 	animation-duration: 300ms;
+}
+
+/* Not in a theme swap: there the button stays inside the root's circle reveal. */
+:root:not([data-theme-transition]) .assistant-close {
+	view-transition-name: assistant-close;
 }
 
 /* The end edge is on the left in a right-to-left page. */
@@ -702,7 +708,8 @@ function AssistantPanel({
 						label="Close the assistant"
 						// Why a CSS name, not a boundary: React runs no exit or enter for a
 						// boundary inside one it shares, and this button has no pair in the page.
-						className={cx(open && "[view-transition-name:assistant-close]")}
+						// `assistant-view-transition.css` gives the class its name.
+						className={cx(open && "assistant-close")}
 					/>
 				</AppLayout.SidePanelHeader>
 				<AppLayout.SidePanelBody>
