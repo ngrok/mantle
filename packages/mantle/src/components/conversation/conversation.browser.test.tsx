@@ -475,6 +475,86 @@ describe("Conversation", () => {
 		await waitFor(() => expect(distanceFromEnd(viewport())).toBeLessThanOrEqual(1));
 	});
 
+	test("an upward wheel that a nested scroller takes does not stop following", async () => {
+		const nested = Array.from({ length: 20 }, (_, index) => `Row ${index + 1}`).join("\n");
+		const { rerender } = render(
+			<Transcript turns={[question, { id: "a1", from: "assistant", text: longAnswer }]} />,
+		);
+		await nextFrame();
+		const table = document.createElement("div");
+		Object.assign(table.style, { maxHeight: "40px", overflowY: "auto", whiteSpace: "pre" });
+		table.textContent = nested;
+		screen.getAllByRole("listitem").at(-1)?.append(table);
+		await waitFor(() => expect(distanceFromEnd(viewport())).toBeLessThanOrEqual(1));
+		table.scrollTop = 30;
+		table.dispatchEvent(new WheelEvent("wheel", { deltaY: -100, bubbles: true }));
+		viewport().dispatchEvent(new WheelEvent("wheel", { deltaY: -100, ctrlKey: true }));
+
+		rerender(
+			<Transcript
+				turns={[question, { id: "a1", from: "assistant", text: longAnswer.repeat(2) }]}
+			/>,
+		);
+		await waitFor(() => expect(distanceFromEnd(viewport())).toBeLessThanOrEqual(1));
+		expect(root()).not.toHaveAttribute("data-scrolled-up");
+	});
+
+	test("a wheel down during the button's smooth scroll does not strand following", async () => {
+		await commands.emulateMedia({ reducedMotion: "no-preference" });
+		const { rerender } = render(
+			<Transcript turns={[question, { id: "a1", from: "assistant", text: longAnswer }]} />,
+		);
+		await nextFrame();
+		viewport().scrollTo({ top: 0, behavior: "instant" });
+		await waitFor(() => expect(root()).toHaveAttribute("data-scrolled-up"));
+		await browserUser.click(screen.getByRole("button", { name: "Scroll to the latest message" }));
+		await waitFor(() => expect(viewport().scrollTop).toBeGreaterThan(20));
+		viewport().dispatchEvent(new WheelEvent("wheel", { deltaY: 10 }));
+		viewport().scrollTo({ top: viewport().scrollTop + 5, behavior: "instant" });
+		await nextFrame();
+		viewport().dispatchEvent(new Event("scrollend"));
+
+		rerender(
+			<Transcript
+				turns={[question, { id: "a1", from: "assistant", text: longAnswer.repeat(2) }]}
+			/>,
+		);
+		await waitFor(() => expect(distanceFromEnd(viewport())).toBeLessThanOrEqual(1));
+	});
+
+	test("unmounting the viewport clears the scrolled-up state", async () => {
+		function Switching({ loading }: { loading: boolean }) {
+			return (
+				<Conversation.Root>
+					{loading ? (
+						<p>Loading…</p>
+					) : (
+						<Conversation.Viewport aria-label="Conversation" style={viewportStyle}>
+							<Conversation.Content>
+								<Message.Root from="assistant">
+									<Message.Content style={{ whiteSpace: "pre-wrap" }}>{longAnswer}</Message.Content>
+								</Message.Root>
+							</Conversation.Content>
+						</Conversation.Viewport>
+					)}
+					<Conversation.ScrollButton />
+				</Conversation.Root>
+			);
+		}
+		const { container, rerender } = render(<Switching loading={false} />);
+		await nextFrame();
+		viewport().scrollTo({ top: 0, behavior: "instant" });
+		await waitFor(() => expect(root()).toHaveAttribute("data-scrolled-up"));
+		const conversation = root();
+
+		rerender(<Switching loading />);
+
+		expect(conversation).not.toHaveAttribute("data-scrolled-up");
+		expect(container.querySelector('[data-slot~="conversation-scroll-button"]')).toHaveAttribute(
+			"inert",
+		);
+	});
+
 	test("PageUp releases the view before another stream update", async () => {
 		render(<Transcript turns={[question, { id: "a1", from: "assistant", text: longAnswer }]} />);
 		await nextFrame();

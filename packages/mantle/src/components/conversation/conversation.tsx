@@ -208,22 +208,23 @@ function Viewport({
 			return;
 		}
 		const root = element.closest('[data-slot~="conversation"]');
-		const stop = followEnd(element, {
-			onScrolledUpChange: (scrolledUp) => {
-				root?.toggleAttribute(SCROLLED_UP_ATTRIBUTE, scrolledUp);
-				const button = scrollButtonRef.current;
-				if (button != null) {
-					if (!scrolledUp && button.contains(document.activeElement)) {
-						element.focus({ preventScroll: true });
-					}
-					button.inert = !scrolledUp;
+		const onScrolledUpChange = (scrolledUp: boolean) => {
+			root?.toggleAttribute(SCROLLED_UP_ATTRIBUTE, scrolledUp);
+			const button = scrollButtonRef.current;
+			if (button != null) {
+				if (!scrolledUp && button.contains(document.activeElement)) {
+					element.focus({ preventScroll: true });
 				}
-			},
-		});
+				button.inert = !scrolledUp;
+			}
+		};
+		const stop = followEnd(element, { onScrolledUpChange });
 		scrollToEndRef.current = stop.scrollToEnd;
 		return () => {
 			stop.disconnect();
 			scrollToEndRef.current = null;
+			// Why: Root can outlive the viewport, such as while a loading message replaces it.
+			onScrolledUpChange(false);
 		};
 	}, [element, scrollToEndRef, scrollButtonRef]);
 
@@ -338,6 +339,14 @@ function followEnd(
 	};
 	// Why a wheel listener: a follow that lands before the scroll event would undo the reader's scroll up.
 	const onWheel = (event: WheelEvent) => {
+		if (event.deltaY > 0) {
+			holdSmoothScroll();
+			return;
+		}
+		// Why: a pinch zoom, or a wheel that a nested scroller takes, does not move the viewport.
+		if (event.ctrlKey || nestedScrollerTakes(event.target, viewport)) {
+			return;
+		}
 		if (event.deltaY < 0 && viewport.scrollTop > 0) {
 			isFollowing = false;
 			if (smoothTarget != null) {
@@ -346,16 +355,16 @@ function followEnd(
 			}
 		}
 	};
-	const onKeyDown = (event: KeyboardEvent) => {
-		// A downward key can replace the native smooth scroll with a shorter one.
-		// Wait for movement beyond the one-pixel completion tolerance before accepting its scrollend.
-		if (
-			smoothTarget != null &&
-			event.target === viewport &&
-			["ArrowDown", "PageDown", "End", " "].includes(event.key) &&
-			!event.shiftKey
-		) {
+	// A reader's scroll down can replace the native smooth scroll with a shorter one.
+	// Wait for movement beyond the one-pixel completion tolerance before accepting its scrollend.
+	const holdSmoothScroll = () => {
+		if (smoothTarget != null) {
 			smoothTarget = viewport.scrollTop + 2;
+		}
+	};
+	const onKeyDown = (event: KeyboardEvent) => {
+		if (["ArrowDown", "PageDown", "End", " "].includes(event.key) && !event.shiftKey) {
+			holdSmoothScroll();
 		}
 	};
 
@@ -365,6 +374,8 @@ function followEnd(
 	viewport.addEventListener("scrollend", onScrollEnd);
 	viewport.addEventListener("wheel", onWheel, { passive: true });
 	viewport.addEventListener("keydown", onKeyDown);
+	// Why: a touch drag or a scrollbar drag starts with a press in the viewport.
+	viewport.addEventListener("pointerdown", holdSmoothScroll, { passive: true });
 	follow();
 
 	return {
@@ -375,6 +386,7 @@ function followEnd(
 			viewport.removeEventListener("scrollend", onScrollEnd);
 			viewport.removeEventListener("wheel", onWheel);
 			viewport.removeEventListener("keydown", onKeyDown);
+			viewport.removeEventListener("pointerdown", holdSmoothScroll);
 		},
 		scrollToEnd: (behavior) => {
 			isFollowing = true;
@@ -389,6 +401,23 @@ function followEnd(
 			});
 		},
 	};
+}
+
+/** Whether an element between `target` and `viewport` can scroll up, so it takes an upward wheel. */
+function nestedScrollerTakes(target: EventTarget | null, viewport: HTMLElement): boolean {
+	for (
+		let node = target instanceof Element ? target : null;
+		node != null && node !== viewport;
+		node = node.parentElement
+	) {
+		if (node.scrollTop > 0 && node.scrollHeight > node.clientHeight) {
+			const { overflowY } = getComputedStyle(node);
+			if (overflowY === "auto" || overflowY === "scroll") {
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 /** Whether a mutation adds a person's message, or an element that holds one. */
