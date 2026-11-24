@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Message component.
  *
- * @see https://mantle.ngrok.com/components/preview/message
+ * @see https://mantle.ngrok.com/components/ai/message
  */
 
 import * as MessageParts from "./message-parts.js";
@@ -18,7 +18,7 @@ import * as MessageParts from "./message-parts.js";
  * - `Conversation`: the transcript that holds the messages and follows the newest one.
  * - `CodeBlock`: code in an answer, inside `Message.Content`.
  *
- * @see https://mantle.ngrok.com/components/preview/message
+ * @see https://mantle.ngrok.com/components/ai/message
  *
  * @example
  * Composition:

@@ -1,20 +1,18 @@
 ---
 title: Prompt Input
 description: The message box of a chat, with a field that grows with its text and one button that sends or stops.
-category: Forms
+category: AI
 aliases: [chat input, composer, message box, prompt, chat composer, ai input]
 ---
 
 import { PageHeader } from "~/components/page-header";
 import { Example } from "~/components/example";
 
-<PageHeader id="prompt-input" isPreview>
-	Prompt Input
-</PageHeader>
+<PageHeader id="prompt-input">Prompt Input</PageHeader>
 
 The message box of a chat, with a field that grows with its text and one button that sends or stops. `PromptInput.Root` is a native `<form>`, so you read the message in `onSubmit` or `action`.
 
-<Example name="components/preview/prompt-input/overview" title="Prompt Input example">
+<Example name="components/ai/prompt-input/overview" title="Prompt Input example">
 
 ```tsx
 import { PromptInput } from "@ngrok/mantle/prompt-input";
@@ -62,7 +60,7 @@ function AssistantComposer() {
 
 Set `streaming` on `PromptInput.Root` while an answer streams, and pass `onStop`. `PromptInput.Submit` then stops the answer. It stays the same button, so focus does not move when the answer starts or ends. The field stays editable, so the person can write the next message, but Enter does not submit until the answer ends.
 
-<Example name="components/preview/prompt-input/stop" title="Prompt Input stop example">
+<Example name="components/ai/prompt-input/stop" title="Prompt Input stop example">
 
 ```tsx
 import { PromptInput } from "@ngrok/mantle/prompt-input";
@@ -113,9 +111,9 @@ function AssistantComposer() {
 
 ## Attach files
 
-Set `onFilesAdd` on `PromptInput.Root` to take files. A person can pick them with `PromptInput.AttachButton`, drop them on the frame, or paste them into the field. Show them with [Attachment](/components/preview/attachment) above the field. Reading, checking, and storing the files stays with your app.
+Set `onFilesAdd` on `PromptInput.Root` to take files. A person can pick them with `PromptInput.AttachButton`, drop them on the frame, or paste them into the field. Show them with [Attachment](/components/ai/attachment) above the field. Reading, checking, and storing the files stays with your app.
 
-<Example name="components/preview/prompt-input/attach" title="Prompt Input attach example">
+<Example name="components/ai/prompt-input/attach" title="Prompt Input attach example">
 
 ```tsx
 import { Attachment } from "@ngrok/mantle/attachment";
@@ -185,7 +183,7 @@ Press the toggle again to stop. If recognition fails or ends, press it to start 
 
 The toggle renders nothing on the server and in browsers without speech recognition, and appears after hydration where the browser has it. Keep it before `PromptInput.Submit`, so the send button does not move when it appears.
 
-<Example name="components/preview/prompt-input/footer-controls" title="Prompt Input footer controls example">
+<Example name="components/ai/prompt-input/footer-controls" title="Prompt Input footer controls example">
 
 ```tsx
 import { PromptInput } from "@ngrok/mantle/prompt-input";

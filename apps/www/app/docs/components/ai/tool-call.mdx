@@ -1,20 +1,18 @@
 ---
 title: Tool Call
 description: One tool call of a chat answer, folded under a row with the tool's name and its state.
-category: Data Display
+category: AI
 aliases: [tool use, function call, tool result, agent step, ai tool]
 ---
 
 import { PageHeader } from "~/components/page-header";
 import { Example } from "~/components/example";
 
-<PageHeader id="tool-call" isPreview>
-	Tool Call
-</PageHeader>
+<PageHeader id="tool-call">Tool Call</PageHeader>
 
 One tool call of a chat answer, folded under a row with the tool's name and its state. Open it to read what the model sent the tool and what came back.
 
-<Example name="components/preview/tool-call/overview" title="Tool Call example">
+<Example name="components/ai/tool-call/overview" title="Tool Call example">
 
 ```tsx
 import { CodeBlock, jsonCodeBlockValue } from "@ngrok/mantle/code-block";
@@ -50,14 +48,14 @@ function ListEndpointsCall() {
 ## When to use
 
 - Show a tool that a model called while it answered, inside a chat message.
-- Use [Reasoning](/components/preview/reasoning) for the reasoning the model wrote.
+- Use [Reasoning](/components/ai/reasoning) for the reasoning the model wrote.
 - Prefer [Accordion](/components/data-display/accordion) for titled sections that are not part of a chat answer.
 
 ## States
 
 `status` takes four values, and the row shows an icon and a word for each. A call is `running` until its result arrives, then `done`, or `failed` when the tool returned an error. Set `interrupted` when the answer ended, by a stop or a failure, before the result arrived.
 
-<Example name="components/preview/tool-call/status" title="Tool Call status example">
+<Example name="components/ai/tool-call/status" title="Tool Call status example">
 
 ```tsx
 import { ToolCall } from "@ngrok/mantle/tool-call";

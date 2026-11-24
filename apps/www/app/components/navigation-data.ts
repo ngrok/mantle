@@ -9,13 +9,15 @@ type Route = Parameters<typeof href>[0];
  * `/components/<category-slug>/<component-slug>`.
  *
  * Categories describe what a component *is* in the UI (an action, a form
- * control, an overlay, …). Page/viewport structure primitives graduate to
+ * control, an overlay, …). AI is the one domain category: it holds the parts
+ * of an AI chat, so an app builds its assistant from one section. Page/viewport structure primitives graduate to
  * the top-level Layouts section instead. Membership tests (and their
  * precedence order for ambiguous components) live in
  * `decisions/2026-07-08-docs-information-architecture.md`.
  */
 export const componentCategories = [
 	"Actions",
+	"AI",
 	"Charts",
 	"Data Display",
 	"Feedback",
@@ -32,6 +34,7 @@ export type ComponentCategory = (typeof componentCategories)[number];
 /** URL segment for each component category. */
 export const componentCategorySlugs = {
 	Actions: "actions",
+	AI: "ai",
 	Charts: "charts",
 	"Data Display": "data-display",
 	Feedback: "feedback",
@@ -50,6 +53,7 @@ export const componentCategorySlugs = {
  */
 export const componentsByCategory = {
 	Actions: ["Button", "Icon Button", "Split Button"],
+	AI: ["Attachment", "Conversation", "Message", "Prompt Input", "Reasoning", "Tool Call"],
 	Charts: ["Area Chart", "Bar Chart", "Line Chart", "Scatter Plot"],
 	"Data Display": [
 		"Accordion",
@@ -145,14 +149,8 @@ export const prodReadyComponents: readonly ProdReadyComponent[] = componentCateg
  */
 export const previewComponents = [
 	//,
-	"Attachment",
 	"Calendar",
-	"Conversation",
-	"Message",
-	"Prompt Input",
-	"Reasoning",
 	"Time Zone",
-	"Tool Call",
 	"World Map",
 ] as const;
 
@@ -164,6 +162,7 @@ export const prodReadyComponentRouteLookup = {
 	"Alert Dialog": "/components/overlays/alert-dialog",
 	Anchor: "/components/navigation/anchor",
 	"Area Chart": "/components/charts/area-chart",
+	Attachment: "/components/ai/attachment",
 	Avatar: "/components/data-display/avatar",
 	Badge: "/components/data-display/badge",
 	"Bar Chart": "/components/charts/bar-chart",
@@ -177,6 +176,7 @@ export const prodReadyComponentRouteLookup = {
 	"Code Block": "/components/data-display/code-block",
 	Combobox: "/components/forms/combobox",
 	Command: "/components/navigation/command",
+	Conversation: "/components/ai/conversation",
 	"Data Table": "/components/data-display/data-table",
 	"Description List": "/components/data-display/description-list",
 	Dialog: "/components/overlays/dialog",
@@ -197,6 +197,7 @@ export const prodReadyComponentRouteLookup = {
 	Main: "/components/primitives/main",
 	Markdown: "/components/data-display/markdown",
 	"Media Object": "/components/structure/media-object",
+	Message: "/components/ai/message",
 	"Multi Select": "/components/forms/multi-select",
 	"OTP Input": "/components/forms/otp-input",
 	"Overlay Prompt": "/components/primitives/overlay-prompt",
@@ -205,9 +206,11 @@ export const prodReadyComponentRouteLookup = {
 	Popover: "/components/overlays/popover",
 	"Progress Bar": "/components/feedback/progress-bar",
 	"Progress Donut": "/components/feedback/progress-donut",
+	"Prompt Input": "/components/ai/prompt-input",
 	"QR Code": "/components/data-display/qr-code",
 	Query: "/components/forms/query",
 	"Radio Group": "/components/forms/radio-group",
+	Reasoning: "/components/ai/reasoning",
 	Sandbar: "/components/feedback/sandbar",
 	SandboxedOnClick: "/components/primitives/sandboxed-on-click",
 	"Scatter Plot": "/components/charts/scatter-plot",
@@ -230,6 +233,7 @@ export const prodReadyComponentRouteLookup = {
 	Theme: "/components/primitives/theme",
 	"Theme Switcher": "/components/forms/theme-switcher",
 	Toast: "/components/feedback/toast",
+	"Tool Call": "/components/ai/tool-call",
 	Tooltip: "/components/overlays/tooltip",
 	"Truncated Text": "/components/data-display/truncated-text",
 	Typography: "/components/data-display/typography",
@@ -239,14 +243,8 @@ export const prodReadyComponentRouteLookup = {
 
 /** Route lookup for preview component pages. */
 export const previewComponentsRouteLookup = {
-	Attachment: "/components/preview/attachment",
 	Calendar: "/components/preview/calendar",
-	Conversation: "/components/preview/conversation",
-	Message: "/components/preview/message",
-	"Prompt Input": "/components/preview/prompt-input",
-	Reasoning: "/components/preview/reasoning",
 	"Time Zone": "/components/preview/time-zone",
-	"Tool Call": "/components/preview/tool-call",
 	"World Map": "/components/preview/world-map",
 } as const satisfies Record<(typeof previewComponents)[number], Route>;
 
@@ -256,14 +254,8 @@ export const previewComponentsRouteLookup = {
  * still belongs to a category in the manifest so agents can group them.
  */
 export const previewComponentCategoryLookup = {
-	Attachment: "Data Display",
 	Calendar: "Forms",
-	Conversation: "Structure",
-	Message: "Data Display",
-	"Prompt Input": "Forms",
-	Reasoning: "Data Display",
 	"Time Zone": "Primitives",
-	"Tool Call": "Data Display",
 	"World Map": "Charts",
 } as const satisfies Record<(typeof previewComponents)[number], ComponentCategory>;
 

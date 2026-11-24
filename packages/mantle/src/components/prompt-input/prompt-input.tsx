@@ -94,7 +94,7 @@ type PromptInputRootProps = ComponentProps<"form"> &
  * | `data-streaming` | present while `streaming`     | Presence-only. Style with `data-streaming:`.  |
  * | `data-drag-over` | present while files drag over the frame | Presence-only. Set only with `onFilesAdd`. |
  *
- * @see https://mantle.ngrok.com/components/preview/prompt-input#promptinputroot
+ * @see https://mantle.ngrok.com/components/ai/prompt-input#promptinputroot
  *
  * @example
  * ```tsx
@@ -220,7 +220,7 @@ type PromptInputTextAreaProps = Omit<
  * | `data-drag-over` | present during a drag | Inherited from `TextArea`. |
  * | `data-validation` | `"error"` \| `"success"` \| `"warning"` | Validation from an enclosing `Field`. |
  *
- * @see https://mantle.ngrok.com/components/preview/prompt-input#promptinputtextarea
+ * @see https://mantle.ngrok.com/components/ai/prompt-input#promptinputtextarea
  *
  * @example
  * ```tsx
@@ -312,7 +312,8 @@ function PromptInputTextArea({
  */
 function hasTouchKeyboard(field: HTMLTextAreaElement): boolean {
 	return (
-		field.ownerDocument.defaultView?.matchMedia("(hover: none) and (pointer: coarse)").matches ===
+		// Why `matchMedia?.`: jsdom has no matchMedia, and a consumer's tests press Enter there.
+		field.ownerDocument.defaultView?.matchMedia?.("(hover: none) and (pointer: coarse)").matches ===
 		true
 	);
 }
@@ -392,7 +393,7 @@ type PromptInputFooterProps = ComponentProps<"div"> & WithAsChild & WithDataSlot
  * | --- | --- | --- |
  * | `data-slot` | `"prompt-input-footer"` | On the row, joined with ancestor slots. |
  *
- * @see https://mantle.ngrok.com/components/preview/prompt-input#promptinputfooter
+ * @see https://mantle.ngrok.com/components/ai/prompt-input#promptinputfooter
  *
  * @example
  * ```tsx
@@ -473,7 +474,7 @@ type PromptInputSubmitProps = Omit<
  * | `data-size` | `"sm"` | The button's size, fixed so it fits the footer. |
  * | `data-loading` | present when `isLoading` | Inherited from `IconButton`. |
  *
- * @see https://mantle.ngrok.com/components/preview/prompt-input#promptinputsubmit
+ * @see https://mantle.ngrok.com/components/ai/prompt-input#promptinputsubmit
  *
  * @example
  * ```tsx
@@ -569,7 +570,7 @@ type PromptInputAttachButtonProps = Omit<
  * | `data-size` | `"2xs"` \| `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop; defaults to `"sm"`. |
  * | `data-loading` | present when `isLoading` | Inherited from `IconButton`. |
  *
- * @see https://mantle.ngrok.com/components/preview/prompt-input#promptinputattachbutton
+ * @see https://mantle.ngrok.com/components/ai/prompt-input#promptinputattachbutton
  *
  * @example
  * ```tsx
@@ -772,7 +773,7 @@ type PromptInputDictateProps = Omit<
  * | `data-intent` | `"neutral"` | The button's tone. |
  * | `data-size` | `"2xs"` \| `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop; defaults to `"sm"`. |
  *
- * @see https://mantle.ngrok.com/components/preview/prompt-input#promptinputdictate
+ * @see https://mantle.ngrok.com/components/ai/prompt-input#promptinputdictate
  *
  * @example
  * ```tsx

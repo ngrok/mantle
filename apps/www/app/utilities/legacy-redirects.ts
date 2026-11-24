@@ -31,6 +31,17 @@ function buildLegacySlugMap(): Map<string, string> {
 		"components/code-block/folding-by-language",
 		"components/data-display/code-block/folding-by-language",
 	);
+	// The AI chat parts left the preview namespace for the AI category.
+	for (const slug of [
+		"attachment",
+		"conversation",
+		"message",
+		"prompt-input",
+		"reasoning",
+		"tool-call",
+	]) {
+		map.set(`components/preview/${slug}`, `components/ai/${slug}`);
+	}
 	map.set("blocks", "recipes");
 	map.set("blocks/sheet-async", "recipes/overlay-async");
 	map.set("recipes/sheet-async", "recipes/overlay-async");

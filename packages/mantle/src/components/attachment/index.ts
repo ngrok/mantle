@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Attachment component.
  *
- * @see https://mantle.ngrok.com/components/preview/attachment
+ * @see https://mantle.ngrok.com/components/ai/attachment
  */
 
 import * as AttachmentParts from "./attachment-parts.js";
@@ -18,7 +18,7 @@ import * as AttachmentParts from "./attachment-parts.js";
  * - `PromptInput`: the message box that takes the files.
  * - `Badge`: a short status label, not a file.
  *
- * @see https://mantle.ngrok.com/components/preview/attachment
+ * @see https://mantle.ngrok.com/components/ai/attachment
  *
  * @example
  * Composition:

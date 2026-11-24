@@ -123,4 +123,24 @@ describe("ToolCall", () => {
 			"ToolCall.Trigger must be rendered inside ToolCall.Root.",
 		);
 	});
+
+	test("parts forward className, ref, and data attributes to their elements", () => {
+		const refs = [0, 1, 2].map(() => vi.fn<(node: HTMLElement | null) => void>());
+		render(
+			<ToolCall.Root status="done" ref={refs[0]} className="class-0" data-testid="part-0">
+				<ToolCall.Trigger ref={refs[1]} className="class-1" data-testid="part-1">
+					<ToolCall.Name>list_endpoints</ToolCall.Name>
+				</ToolCall.Trigger>
+				<ToolCall.Content ref={refs[2]} className="class-2" data-testid="part-2">
+					No endpoints.
+				</ToolCall.Content>
+			</ToolCall.Root>,
+		);
+		for (const [index, slot] of ["tool-call", "tool-call-trigger", "tool-call-content"].entries()) {
+			const element = document.querySelector(`[data-slot~="${slot}"]`);
+			expect(element).toHaveClass(`class-${index}`);
+			expect(element).toHaveAttribute("data-testid", `part-${index}`);
+			expect(refs[index]).toHaveBeenLastCalledWith(element);
+		}
+	});
 });

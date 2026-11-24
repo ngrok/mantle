@@ -72,7 +72,7 @@ type ConversationRootProps = ComponentProps<"div"> &
  * | `data-scrolled-up` | present while the end is out of view  | Presence-only. Shows `Conversation.ScrollButton`. |
  * | `data-streaming`   | present while `streaming`             | Presence-only. Style with `data-streaming:`.   |
  *
- * @see https://mantle.ngrok.com/components/preview/conversation#conversationroot
+ * @see https://mantle.ngrok.com/components/ai/conversation#conversationroot
  *
  * @example
  * ```tsx
@@ -161,7 +161,7 @@ type ConversationViewportProps = ComponentProps<"div"> & WithAsChild & WithDataS
  * On mount it starts at the end, unless something already moved it, such as
  * `useScrollAnchor` restoring the reader's place.
  *
- * @see https://mantle.ngrok.com/components/preview/conversation#conversationviewport
+ * @see https://mantle.ngrok.com/components/ai/conversation#conversationviewport
  *
  * @example
  * ```tsx
@@ -195,7 +195,8 @@ function Viewport({
 		if (viewport != null && initializedRef.current !== viewport) {
 			initializedRef.current = viewport;
 			if (!hasScrollAnchor(viewport) && viewport.scrollTop === 0) {
-				viewport.scrollTo({ top: viewport.scrollHeight, behavior: "instant" });
+				// Why `scrollTo?.`: jsdom has no Element scrollTo, and a consumer's tests render chats there.
+				viewport.scrollTo?.({ top: viewport.scrollHeight, behavior: "instant" });
 			}
 		}
 		setElement(viewport);
@@ -204,7 +205,12 @@ function Viewport({
 
 	// Why the element dependency: a consumer ref can change without replacing the viewport or its follow state.
 	useLayoutEffect(() => {
-		if (element == null) {
+		// Why both: jsdom has neither, and a test setup often stubs only ResizeObserver; with no layout there is no end to follow.
+		if (
+			element == null ||
+			typeof element.scrollTo !== "function" ||
+			typeof ResizeObserver === "undefined"
+		) {
 			return;
 		}
 		const root = element.closest('[data-slot~="conversation"]');
@@ -481,7 +487,7 @@ type ConversationContentProps = ComponentProps<"ol"> & WithAsChild & WithDataSlo
  * The ordered list of messages. Each child is a `Message.Root`, which renders
  * an `<li>`. Set the measure and padding here, such as `mx-auto max-w-3xl p-4`.
  *
- * @see https://mantle.ngrok.com/components/preview/conversation#conversationcontent
+ * @see https://mantle.ngrok.com/components/ai/conversation#conversationcontent
  *
  * @example
  * ```tsx
@@ -537,7 +543,7 @@ type ConversationScrollButtonProps = Omit<
  * and leaves the tab order while hidden. A press scrolls to the end, follows
  * the end again, and moves focus to the viewport, because the button hides.
  *
- * @see https://mantle.ngrok.com/components/preview/conversation#conversationscrollbutton
+ * @see https://mantle.ngrok.com/components/ai/conversation#conversationscrollbutton
  *
  * @example
  * ```tsx

@@ -70,7 +70,7 @@ type ToolCallRootProps = Omit<ComponentProps<"div">, "defaultValue"> &
  * | -------------- | -------------------------------------------------- | ------------------------------------------------- |
  * | `data-status`  | `"running"`, `"done"`, `"failed"`, `"interrupted"` | The state of the call. Style with `data-[status=failed]:`. |
  *
- * @see https://mantle.ngrok.com/components/preview/tool-call#toolcallroot
+ * @see https://mantle.ngrok.com/components/ai/tool-call#toolcallroot
  *
  * @example
  * ```tsx
@@ -116,7 +116,7 @@ type ToolCallTriggerProps = Omit<ComponentProps<"button">, "type"> & WithDataSlo
  * `data-slot="tool-call-trigger-label"`, so a translated page survives a
  * change to them.
  *
- * @see https://mantle.ngrok.com/components/preview/tool-call#toolcalltrigger
+ * @see https://mantle.ngrok.com/components/ai/tool-call#toolcalltrigger
  *
  * @example
  * ```tsx
@@ -164,7 +164,7 @@ type ToolCallNameProps = Omit<ComponentProps<"code">, "translate"> & WithAsChild
  * The tool's name, as the model called it, in code type. It truncates when
  * the row is narrow, and never translates.
  *
- * @see https://mantle.ngrok.com/components/preview/tool-call#toolcallname
+ * @see https://mantle.ngrok.com/components/ai/tool-call#toolcallname
  *
  * @example
  * ```tsx
@@ -217,7 +217,7 @@ type ToolCallContentProps = ComponentProps<"div"> & WithDataSlot;
  * What the model sent the tool and what came back, such as two `CodeBlock`s.
  * The children stack with a small gap.
  *
- * @see https://mantle.ngrok.com/components/preview/tool-call#toolcallcontent
+ * @see https://mantle.ngrok.com/components/ai/tool-call#toolcallcontent
  *
  * @example
  * ```tsx

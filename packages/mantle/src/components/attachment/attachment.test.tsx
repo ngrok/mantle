@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { MouseEvent } from "react";
 import { describe, expect, test, vi } from "vitest";
+import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import * as Attachment from "./attachment-parts.js";
 
 describe("Attachment", () => {
@@ -101,5 +102,88 @@ describe("Attachment", () => {
 		expect(item).toHaveClass("root-class", "child-class");
 		expect(item).toHaveAttribute("data-slot", "outer attachment");
 		expect(ref).toHaveBeenLastCalledWith(item);
+	});
+
+	test("parts forward className, ref, and data attributes to their elements", () => {
+		const refs = [0, 1, 2, 3, 4].map(() => vi.fn<(node: HTMLElement | null) => void>());
+		render(
+			<Attachment.List
+				aria-label="Attachments"
+				ref={refs[0]}
+				className="class-0"
+				data-testid="part-0"
+			>
+				<Attachment.Root ref={refs[1]} className="class-1" data-testid="part-1">
+					<Attachment.Name ref={refs[2]} className="class-2" data-testid="part-2">
+						report.pdf
+					</Attachment.Name>
+					<Attachment.Size bytes={2340} ref={refs[3]} className="class-3" data-testid="part-3" />
+					<Attachment.Remove
+						label="Remove report.pdf"
+						ref={refs[4]}
+						className="class-4"
+						data-testid="part-4"
+					/>
+				</Attachment.Root>
+			</Attachment.List>,
+		);
+		for (const [index, slot] of [
+			"attachment-list",
+			"attachment",
+			"attachment-name",
+			"attachment-size",
+			"attachment-remove",
+		].entries()) {
+			const element = document.querySelector(`[data-slot~="${slot}"]`);
+			expect(element).toHaveClass(`class-${index}`);
+			expect(element).toHaveAttribute("data-testid", `part-${index}`);
+			expect(refs[index]).toHaveBeenLastCalledWith(element);
+		}
+	});
+
+	test.each(["yes", undefined] as const)(
+		"Name with asChild locks translate=%s and merges props",
+		(translate) => {
+			const ref = vi.fn<(node: HTMLElement | null) => void>();
+			render(
+				<Attachment.Root>
+					<Attachment.Name asChild ref={ref} className="name-class">
+						<a
+							href="/files/report.pdf"
+							className="child-class"
+							translate={translate}
+							data-slot="consumer-name"
+						>
+							report.pdf
+						</a>
+					</Attachment.Name>
+				</Attachment.Root>,
+			);
+
+			const name = screen.getByRole("link", { name: "report.pdf" });
+			expect(name).toHaveClass("name-class", "child-class");
+			expect(name).toHaveAttribute("data-slot", "attachment-name consumer-name");
+			expect(name).toHaveAttribute("translate", "no");
+			translateTextNodes(name);
+			expect(name).toHaveTextContent(/^report\.pdf$/);
+			expect(ref).toHaveBeenLastCalledWith(name);
+		},
+	);
+
+	test("List with asChild renders the child and merges props", () => {
+		render(
+			<Attachment.List asChild aria-label="Attachments" className="list-class">
+				<ol className="child-class">
+					<Attachment.Root>
+						<Attachment.Name>report.pdf</Attachment.Name>
+					</Attachment.Root>
+				</ol>
+			</Attachment.List>,
+		);
+
+		const list = screen.getByRole("list", { name: "Attachments" });
+		expect(list.tagName).toBe("OL");
+		expect(list).toHaveClass("list-class", "child-class");
+		expect(list).toHaveAttribute("data-slot", "attachment-list");
 	});
 });

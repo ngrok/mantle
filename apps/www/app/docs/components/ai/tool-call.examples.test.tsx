@@ -2,7 +2,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { expect, test } from "vitest";
-import { StatusExample } from "~/docs/components/preview/tool-call.examples";
+import { StatusExample } from "~/docs/components/ai/tool-call.examples";
 
 test("each tool-call state opens its own details", async () => {
 	const user = userEvent.setup();

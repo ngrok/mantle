@@ -48,6 +48,13 @@ const docsPages = [
 	"components/actions/button",
 	"components/actions/icon-button",
 	"components/actions/split-button",
+	// ai
+	"components/ai/attachment",
+	"components/ai/conversation",
+	"components/ai/message",
+	"components/ai/prompt-input",
+	"components/ai/reasoning",
+	"components/ai/tool-call",
 	// charts
 	"components/charts/area-chart",
 	"components/charts/bar-chart",
@@ -118,14 +125,8 @@ const docsPages = [
 	"components/overlays/sheet",
 	"components/overlays/tooltip",
 	// preview (lifecycle namespace, not a category)
-	"components/preview/attachment",
 	"components/preview/calendar",
-	"components/preview/conversation",
-	"components/preview/message",
-	"components/preview/prompt-input",
-	"components/preview/reasoning",
 	"components/preview/time-zone",
-	"components/preview/tool-call",
 	"components/preview/world-map",
 	// primitives
 	"components/primitives/browser-only",

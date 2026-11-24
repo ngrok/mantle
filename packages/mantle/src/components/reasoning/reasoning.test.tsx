@@ -95,4 +95,24 @@ describe("Reasoning", () => {
 			"Reasoning.Trigger must be rendered inside Reasoning.Root.",
 		);
 	});
+
+	test("parts forward className, ref, and data attributes to their elements", () => {
+		const refs = [0, 1, 2].map(() => vi.fn<(node: HTMLElement | null) => void>());
+		render(
+			<Reasoning.Root ref={refs[0]} className="class-0" data-testid="part-0">
+				<Reasoning.Trigger ref={refs[1]} className="class-1" data-testid="part-1">
+					Reasoning
+				</Reasoning.Trigger>
+				<Reasoning.Content ref={refs[2]} className="class-2" data-testid="part-2">
+					The user wants endpoints with no policy.
+				</Reasoning.Content>
+			</Reasoning.Root>,
+		);
+		for (const [index, slot] of ["reasoning", "reasoning-trigger", "reasoning-content"].entries()) {
+			const element = document.querySelector(`[data-slot~="${slot}"]`);
+			expect(element).toHaveClass(`class-${index}`);
+			expect(element).toHaveAttribute("data-testid", `part-${index}`);
+			expect(refs[index]).toHaveBeenLastCalledWith(element);
+		}
+	});
 });

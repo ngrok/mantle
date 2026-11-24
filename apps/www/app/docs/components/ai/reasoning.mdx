@@ -1,20 +1,18 @@
 ---
 title: Reasoning
 description: A model's reasoning in a chat answer, folded under a label that reads "Thinking…" while it streams.
-category: Data Display
+category: AI
 aliases: [thinking, chain of thought, reasoning summary, ai reasoning, thought process]
 ---
 
 import { PageHeader } from "~/components/page-header";
 import { Example } from "~/components/example";
 
-<PageHeader id="reasoning" isPreview>
-	Reasoning
-</PageHeader>
+<PageHeader id="reasoning">Reasoning</PageHeader>
 
 A model's reasoning in a chat answer, folded under a label that reads "Thinking…" while it streams. It starts closed, so the answer stays what the reader sees first.
 
-<Example name="components/preview/reasoning/overview" title="Reasoning example">
+<Example name="components/ai/reasoning/overview" title="Reasoning example">
 
 ```tsx
 import { Reasoning } from "@ngrok/mantle/reasoning";
@@ -39,14 +37,14 @@ function AnswerReasoning() {
 ## When to use
 
 - Show the reasoning a model wrote before its answer, inside a chat message.
-- Use [Tool Call](/components/preview/tool-call) for a tool the model called.
+- Use [Tool Call](/components/ai/tool-call) for a tool the model called.
 - Prefer [Accordion](/components/data-display/accordion) for titled sections that are not part of a chat answer.
 
 ## While it streams
 
 Set `streaming` on `Reasoning.Root` while the model writes its reasoning. `Reasoning.Trigger` then reads "Thinking…" and pulses, with no motion when the reader prefers reduced motion. After that it shows its children, such as "Thought for 4 seconds", or "Reasoning" when it has none.
 
-<Example name="components/preview/reasoning/streaming" title="Reasoning streaming example">
+<Example name="components/ai/reasoning/streaming" title="Reasoning streaming example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";

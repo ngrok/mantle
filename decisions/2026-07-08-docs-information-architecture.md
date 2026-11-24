@@ -25,18 +25,21 @@ The docs site has four content surfaces, each with a one-sentence membership rul
 | `/recipes/<name>`               | Not published API: documented compositions of primitives involving state, data, or routing. |
 | `/migrations/<name>`            | Step-by-step guides for adopting new APIs/behaviors.                                        |
 
-Component reference pages are grouped into eight categories, which appear as sidebar subheadings **and** as a URL segment. The sidebar lists categories alphabetically (components within each, too); the table below is in **precedence order**. For an ambiguous component, apply the tests top to bottom and take the first that answers yes. If a new component passes none of them cleanly, refine a test or discuss; do not create a new category for fewer than ~4 members.
+Component reference pages are grouped into nine categories, which appear as sidebar subheadings **and** as a URL segment. The sidebar lists categories alphabetically (components within each, too); the table below is in **precedence order**. For an ambiguous component, apply the tests top to bottom and take the first that answers yes. If a new component passes none of them cleanly, refine a test or discuss; do not create a new category for fewer than ~4 members.
 
-| Category         | Membership test                                                                             |
-| ---------------- | ------------------------------------------------------------------------------------------- |
-| **Actions**      | Exists to be clicked to trigger an action (button family).                                  |
-| **Forms**        | Collects or labels user input; has a value the user edits.                                  |
-| **Navigation**   | Takes the user somewhere or switches what they're looking at.                               |
-| **Overlays**     | Renders in a floating layer above the page.                                                 |
-| **Structure**    | Contains, divides, or arranges _arbitrary_ content; doesn't care what's inside.             |
-| **Data Display** | Presents _specific_ content or data (badge, code, table, list).                             |
-| **Feedback**     | Communicates system status: progress, loading, success/error, emptiness.                    |
-| **Primitives**   | Renders nothing visible of its own or provides context/behavior (Slot, Theme, BrowserOnly). |
+| Category         | Membership test                                                                              |
+| ---------------- | -------------------------------------------------------------------------------------------- |
+| **AI**           | Exists to show or collect a turn of an AI chat: the composer, the transcript, and its parts. |
+| **Actions**      | Exists to be clicked to trigger an action (button family).                                   |
+| **Forms**        | Collects or labels user input; has a value the user edits.                                   |
+| **Navigation**   | Takes the user somewhere or switches what they're looking at.                                |
+| **Overlays**     | Renders in a floating layer above the page.                                                  |
+| **Structure**    | Contains, divides, or arranges _arbitrary_ content; doesn't care what's inside.              |
+| **Data Display** | Presents _specific_ content or data (badge, code, table, list).                              |
+| **Feedback**     | Communicates system status: progress, loading, success/error, emptiness.                     |
+| **Primitives**   | Renders nothing visible of its own or provides context/behavior (Slot, Theme, BrowserOnly).  |
+
+AI is the one category named for a domain, not a role. Added on 2026-11-24 by the maintainer: the dashboard assistant, the corp assistant, and the AI Gateway playground each build a chat from the same six parts (Attachment, Conversation, Message, Prompt Input, Reasoning, Tool Call), so one section beats six scattered across Forms, Data Display, and Structure. It comes first in precedence so a chat part never falls through to a role. Markdown stays in Data Display, because it renders any Markdown, not only answers.
 
 Structure is deliberately distinct from both Data Display and the top-level Layouts surface (which owns _page/viewport_ structure; Structure components are in-flow). A component that genuinely straddles categories gets **one primary category** (which owns its URL). Secondary discoverability is solved with cross-links, search keywords, and (if ever needed) extra sidebar listings, never with a second URL. `componentsByCategory` in `apps/www/app/components/navigation-data.ts` is the source of truth; the flat `prodReadyComponents` list is derived from it. Preview components keep the `/components/preview/<name>` namespace (lifecycle, not category) and carry their eventual category in `previewComponentCategoryLookup`.
 
