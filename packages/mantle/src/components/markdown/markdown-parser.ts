@@ -178,17 +178,20 @@ function createMarkdownParser({
 			// Why the checks: a finished block must be the source as it is, not text that `closeMarkdown` closed. And
 			// with no blank line before it, the next block's first line must be whole: more of that line can join
 			// the two blocks, as a fence opener ``` can become a code span.
-			if (
+			const freezes =
 				finished.length > 0 &&
 				tail.startsWith(finishedRaw) &&
-				(finished.at(-1)?.type === "space" || tail.includes("\n", finishedRaw.length))
-			) {
+				(finished.at(-1)?.type === "space" || tail.includes("\n", finishedRaw.length));
+			if (freezes) {
 				frozen = [...frozen, ...contentTokens(finished)];
 				frozenSource += finishedRaw;
 				frozenReadLinks ||= Object.keys(tokens.links).length > 0;
 				addDefinitions(frozenLinks, finished);
 			}
-			const blocks = [...frozen, ...contentTokens(tokens.slice(finished.length))];
+			const blocks = [
+				...frozen,
+				...contentTokens(freezes ? tokens.slice(finished.length) : tokens),
+			];
 			// Why not the last block when done: a stream that resumes later can still add to it.
 			return { blocks, completeCount: streaming ? frozen.length : blocks.length, links };
 		},

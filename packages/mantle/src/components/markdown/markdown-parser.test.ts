@@ -113,6 +113,11 @@ describe("createMarkdownParser", () => {
 		expect(done.blocks.map((token) => token.type)).toEqual(["paragraph"]);
 	});
 
+	test("keeps each block when the last block starts with no blank line before it", () => {
+		const done = createMarkdownParser().parse("# Title\nBody", { streaming: false });
+		expect(done.blocks.map((token) => token.type)).toEqual(["heading", "paragraph"]);
+	});
+
 	test("keeps the links object while the definitions stay the same", () => {
 		const parser = createMarkdownParser();
 		const first = parser.parse("[a]: https://ngrok.com\n\nSome", { streaming: true });

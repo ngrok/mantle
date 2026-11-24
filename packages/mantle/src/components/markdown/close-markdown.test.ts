@@ -60,6 +60,8 @@ describe("closeMarkdown", () => {
 		[">     print([1", ">     print([1"],
 		["- item\n\n      print([1", "- item\n\n      print([1"],
 		["- item\n\n    more **b", "- item\n\n    more **b**"],
+		["-     print([1", "-     print([1"],
+		["1.     print([1", "1.     print([1"],
 	])("%j → %j", (text, expected) => {
 		expect(close(text)).toBe(expected);
 	});
@@ -69,6 +71,14 @@ describe("closeMarkdown", () => {
 		close("< ".repeat(256_000));
 		close("&a ".repeat(200_000));
 		// Why 1,000 ms: a search to the end at each `<` or `&` takes seconds here, and one pass takes milliseconds.
+		expect(performance.now() - start).toBeLessThan(1000);
+	});
+
+	test("closes many runs of one marker after many of another in linear time, and adds no closers past 32 runs", () => {
+		const text = `${"*a ".repeat(40_000)}${"a_ ".repeat(40_000)}`;
+		const start = performance.now();
+		expect(close(text)).toBe(text);
+		// Why 1,000 ms: a scan past each run of the other marker takes seconds here.
 		expect(performance.now() - start).toBeLessThan(1000);
 	});
 

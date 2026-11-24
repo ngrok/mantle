@@ -182,6 +182,13 @@ describe("Markdown", () => {
 		expect(performance.now() - start).toBeLessThan(1000);
 	});
 
+	test("renders deeply nested inline tags past the depth limit as text", () => {
+		const { container } = render(
+			<Markdown>{`x ${"<b>".repeat(5000)}y${"</b>".repeat(5000)}`}</Markdown>,
+		);
+		expect(container.querySelectorAll("b")).toHaveLength(32);
+	});
+
 	test("keeps one element for each token when an inline run changes", () => {
 		const { container, rerender } = render(<Markdown>{"x <b>y *z*</b> a **b** c `d` e"}</Markdown>);
 		rerender(<Markdown>{"x <b>y z</b> a **b** c `d` e"}</Markdown>);
