@@ -53,6 +53,29 @@ describe("lexMarkdown", () => {
 			"link",
 			{ href: "https://a.io/?x=1&y=2" },
 		],
+		[
+			"a task item's text as a paragraph",
+			"- [x] # a",
+			"list_item",
+			{ tokens: [{ type: "checkbox" }, { type: "text", text: "# a" }] },
+		],
+		[
+			"a URL before trailing punctuation and parentheses",
+			"https://a.io/!)))",
+			"link",
+			{ href: "https://a.io/" },
+		],
+		["a URL with an uppercase scheme", "HTTPS://a.io", "link", { href: "HTTPS://a.io" }],
+		["a definition that ends in `>`", "[r]: /x>\n\n[r]", "link", { href: "/x>" }],
+		["an escaped `<` in a definition in `<…>`", "[r]: <a\\<b>\n\n[r]", "link", { href: "a<b" }],
+		["a link after many `(`", `${"(".repeat(40)}[x](a(b)c)`, "link", { href: "a(b)c" }],
+		["a fence that ends in a blank line", "```\na\n\n```", "code", { text: "a\n\n" }],
+		[
+			"an image's text across a hard break",
+			"![first  \nsecond](/x)",
+			"image",
+			{ text: "first\nsecond" },
+		],
 	])("reads %s", (...[, source, type, expected]) => {
 		expect(flatten(lexMarkdown(source)).find((token) => token.type === type)).toMatchObject(
 			expected,
@@ -77,6 +100,18 @@ describe("lexMarkdown", () => {
 		expect(tokens.map((token) => token.raw).join("")).toBe(`${"*".repeat(200)}x${"*".repeat(200)}`);
 	});
 
+	test("ends a quote's HTML block, not a paragraph, at a lazy line", () => {
+		expect(lexMarkdown("> <div>\n> text\noutside").map((token) => token.type)).toEqual([
+			"blockquote",
+			"paragraph",
+		]);
+	});
+
+	test("keeps no image in an image", () => {
+		const tokens = lexMarkdown(`${"![".repeat(50)}x${"](/u)".repeat(50)}`);
+		expect(flatten(tokens).filter((token) => token.type === "image")).toHaveLength(1);
+	});
+
 	test("splits a table cell at a pipe after an even run of backslashes", () => {
 		const [table] = lexMarkdown("| a | b |\n| - | - |\n| x\\\\| y |");
 		expect(table).toMatchObject({ rows: [[{ text: "x\\\\" }, { text: "y" }]] });
@@ -91,20 +126,22 @@ describe("lexMarkdown", () => {
 
 	test("reads a definition with a URL longer than 4,096 characters, and not one with unpaired parentheses", () => {
 		const href = `https://ngrok.com/${"x".repeat(5000)}`;
-		expect(
-			flatten(lexMarkdown(`[r]: ${href}\n\n[r]`)).find((token) => token.type === "link"),
-		).toMatchObject({ href });
+		for (const source of [`[r]: ${href}\n\n[r]`, `[r]:\n${href}\n\n[r]`]) {
+			expect(flatten(lexMarkdown(source)).find((token) => token.type === "link")).toMatchObject({
+				href,
+			});
+		}
 		expect(types(lexMarkdown("[r]: /a(b\n\n[r]"))).not.toContain("link");
 	});
 
-	test("keeps a block extension's token only when it ends at a line end", () => {
+	test("keeps a block extension's token only when it ends at a line end, with the line break after it", () => {
 		const note = {
 			name: "note",
 			level: "block" as const,
 			tokenizer: (source: string) =>
 				source.startsWith(":::") ? { type: "note", raw: ":::" } : undefined,
 		};
-		const source = "::: keep this\n\nnext";
+		const source = "::: keep this\n\n:::\n# title";
 		expect(
 			lexMarkdown(source, { extensions: [note] })
 				.map((token) => token.raw)
@@ -127,6 +164,11 @@ describe("lexMarkdown", () => {
 		],
 		["unclosed comments", `x ${"<!--".repeat(40_000)}`],
 		["nested images", `${"![".repeat(20_000)}x${"](/u)".repeat(20_000)}`],
+		[
+			"many references to many definitions",
+			`${Array.from({ length: 8000 }, (_, at) => `[r${at}]: /u\n`).join("")}\n${"[r0]\n\n".repeat(8000)}`,
+		],
+		["a URL that ends in many entities", `https://a.io/${"&amp;".repeat(16_000)}`],
 	])("lexes %s in linear time", (_, source) => {
 		const start = performance.now();
 		const tokens = lexMarkdown(source);

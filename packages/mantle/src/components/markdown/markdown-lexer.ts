@@ -27,8 +27,10 @@ type Context = {
 	jobs: (() => void)[];
 	/** How many quotes and list items hold the blocks that lex now. */
 	depth: number;
+	/** Whether a definition is known. Why: a check of `links` for each paragraph reads each key. */
+	defined: boolean;
 };
-// oxlint-disable-next-line typescript/no-explicit-any -- POC: tokens are marked's loose shapes.
+// oxlint-disable-next-line typescript/no-explicit-any -- Why: tokens are marked's loose shapes.
 type Tok = Token & Record<string, any>;
 
 const HR = /^ {0,3}((?:-[\t ]*){3,}|(?:_[ \t]*){3,}|(?:\*[ \t]*){3,})$/;
@@ -46,7 +48,7 @@ const DELIMITER_ROW = /^ {0,3}\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*\|?[
  */
 const DEF = (title: boolean) =>
 	new RegExp(
-		String.raw`^ {0,3}\[((?:\\.|[^[\]\\]){1,999})\]:[ \t]*\n?[ \t]*(<[^<>\n]*>|[^\s<]\S*)` +
+		String.raw`^ {0,3}\[((?:\\.|[^[\]\\]){1,999})\]:[ \t]*\n?[ \t]*(<(?:\\.|[^<>\n\\])*>|[^\s<]\S*)` +
 			(title
 				? String.raw`(?:[ \t]+|[ \t]*\n[ \t]*)("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\((?:\\.|[^()\\])*\))`
 				: "") +
@@ -211,6 +213,9 @@ function createLazyTracker(column: number): {
 	let fence: string | undefined;
 	// The count of quote markers before the open fence. Why: a fence in a nested quote ends with the quote.
 	let fenceQuotes = 0;
+	// The end of the open HTML block: a pattern, or `"blank"` for a blank line. Why: its text opens no paragraph.
+	let html: RegExp | "blank" | undefined;
+	let htmlQuotes = 0;
 	let open = false;
 	// The width of the quote and list markers before the open paragraph, and whether it starts with a definition.
 	let width = 0;
@@ -239,6 +244,26 @@ function createLazyTracker(column: number): {
 				}
 				// The quote that held the fence ended, so the line starts again outside it.
 				fence = undefined;
+			}
+			if (html != null) {
+				let inner = content;
+				let quotes = 0;
+				for (
+					let marker = QUOTE_MARKER.exec(inner);
+					marker != null && quotes < htmlQuotes;
+					marker = QUOTE_MARKER.exec(inner)
+				) {
+					inner = inner.slice(marker[0].length);
+					quotes += 1;
+				}
+				if (quotes === htmlQuotes) {
+					if (html === "blank" ? isBlank(inner) : html.test(inner)) {
+						html = undefined;
+					}
+					open = false;
+					return;
+				}
+				html = undefined;
 			}
 			if (open && !definition && SETEXT.test(content) && indentOf(content) >= width) {
 				// A setext underline ends the paragraph as a heading. Why the width: a line left of a nested item's
@@ -272,6 +297,15 @@ function createLazyTracker(column: number): {
 				if (isFence(inner)) {
 					fence = FENCE.exec(inner)?.[2];
 					fenceQuotes = quotes;
+				}
+				if (startsWithTag(inner) && indentOf(inner) < 4) {
+					const rawHtml = HTML_RAW.find(([start]) => start.test(inner));
+					if (rawHtml != null) {
+						html = rawHtml[1].test(inner) ? undefined : rawHtml[1];
+					} else if (HTML_BLOCK.test(inner) || HTML_TAG_LINE.test(inner)) {
+						html = "blank";
+					}
+					htmlQuotes = quotes;
 				}
 				width = content.length - inner.length;
 				definition = DEFINITION_START.test(inner);
@@ -447,6 +481,10 @@ function lexBlocks(
 						source.charCodeAt(end) === 10)
 				) {
 					tokens.push(token);
+					// Why: the line break after the token belongs to no token, and the raws must join to the source.
+					if (source.charCodeAt(end) === 10) {
+						tokens.push({ type: "space", raw: "\n" } as Tok);
+					}
 					while (index < lines.length && (starts[index] ?? 0) < end) {
 						index += 1;
 					}
@@ -502,11 +540,13 @@ function lexBlocks(
 								)
 								.join("\n");
 				const after = closed ? end + 1 : end;
+				// Why: marked keeps the line break before a blank last line.
+				const blankLast = end > index + 1 && isBlank(lineAt(end - 1));
 				tokens.push({
 					type: "code",
 					raw: raw(index, after),
 					lang: literal(info.trim()),
-					text: body,
+					text: blankLast ? `${body}\n` : body,
 				} as Tok);
 				index = after;
 				continue;
@@ -625,7 +665,7 @@ function lexBlocks(
 		const from = (starts[index] ?? 0) + indentOf(rawLineAt(index));
 		const rest =
 			(!plain || index === afterDefinition) && source.charCodeAt(from) === 91
-				? source.slice(from, lineEnd(index) + 4096)
+				? source.slice(from, lineEnd(Math.min(index + 1, lines.length - 1)) + 4096)
 				: "";
 		let def = rest === "" ? null : DEF_WITH_TITLE.exec(rest);
 		if (rest !== "" && (def == null || BLANK_LINE.test(def[3] ?? ""))) {
@@ -638,10 +678,12 @@ function lexBlocks(
 			hasBalancedParens(def[2] ?? "")
 		) {
 			const tag = normalizeLabel(def[1] ?? "");
-			const href = literal((def[2] ?? "").replace(/^<|>$/g, ""));
+			const destination = def[2] ?? "";
+			const href = literal(destination.startsWith("<") ? destination.slice(1, -1) : destination);
 			const title = def[3] == null ? undefined : literal(def[3].slice(1, -1));
 			if (!(tag in context.links)) {
 				context.links[tag] = { href, title: title ?? "" };
+				context.defined = true;
 			}
 			const end = from + def[0].length;
 			let next = index + 1;
@@ -849,15 +891,27 @@ function lexList(
 		}
 		let text = content.join("\n");
 		const task = /^\[[ xX]\][ \t]+(?=\S)/.exec(text);
-		if (task != null) {
-			text = text.slice(task[0].length);
-		}
 		const checked = task == null ? undefined : task[0][1] !== " ";
+		// Why lex with the marker: the text after it stays a paragraph, so `- [x] # a` holds no heading.
 		const itemTokens = lexNested(text, context, {
 			top: false,
 			column: column + width,
 			lazy: innerLazy,
 		});
+		if (task != null) {
+			const first = itemTokens[0];
+			text = text.slice(task[0].length);
+			if (first?.type === "paragraph" || first?.type === "text") {
+				first.raw = first.raw.slice(task[0].length);
+				first.text = first.text.slice(task[0].length);
+			} else {
+				itemTokens.splice(
+					0,
+					itemTokens.length,
+					...lexNested(text, context, { top: false, column: column + width, lazy: innerLazy }),
+				);
+			}
+		}
 		// Why the tokens: a blank line inside a nested block, such as a fence or a sublist, does not make the item loose.
 		loose ||= itemTokens.some(
 			(token, at) => token.type === "space" && at > 0 && at < itemTokens.length - 1,
@@ -923,7 +977,9 @@ type Node = Tok | Delimiter;
 
 const DELIMITER = "\0delimiter";
 const LOCAL_PART = /[\w.+-]/;
-const TRAILING_ENTITY = /&[a-zA-Z\d]+;$/;
+const ENTITY_NAME = /^&[a-zA-Z\d]+;$/;
+/** The characters that GFM drops from the end of a URL literal. */
+const TRAILING_PUNCTUATION = `?!.,:*_~'"`;
 /**
  * The next character that can start inline syntax. Why one regex: plain text
  * between two of them is copied as one slice, not one character at a time.
@@ -938,13 +994,11 @@ function nextSpecialFrom(source: string, from: number): number {
 	return SPECIAL.test(source) ? SPECIAL.lastIndex - 1 : -1;
 }
 /** Where a URL literal can start. Why apart from `SPECIAL`: a lookbehind slows each search, so this one runs once for each URL. */
-const URL_START = /(?<![a-zA-Z\d])https?:\/\/|(?<![^\s*_~(])www\./g;
+const URL_START = /(?<![a-zA-Z\d])https?:\/\/|(?<![^\s*_~(])www\./gi;
 const AUTOLINK = /^<([a-zA-Z][a-zA-Z\d+.-]{1,31}:[^\s<>]*)>/;
 const EMAIL_AUTOLINK =
 	/^<([\w.!#$%&'*+/=?^`{|}~-]+@[a-zA-Z\d](?:[a-zA-Z\d-]*[a-zA-Z\d])?(?:\.[a-zA-Z\d](?:[a-zA-Z\d-]*[a-zA-Z\d])?)*)>/;
-const URL_LITERAL = /^(?:https?:\/\/[\w-]|www\.[\w-]+\.[\w-])(?:[^\s<]*[^\s<?!.,:*_~'"])?/;
-/** CommonMark's limit on parentheses nested in a link destination. Why: it bounds each scan. */
-const MAX_DESTINATION_PARENS = 32;
+const URL_LITERAL = /^(?:https?:\/\/[\w-]|www\.[\w-]+\.[\w-])(?:[^\s<]*[^\s<?!.,:*_~'"])?/i;
 const EMPHASIS = ["", "em", "strong"] as const;
 
 const isDelimiter = (node: Node): node is Delimiter => node.type === DELIMITER;
@@ -964,6 +1018,19 @@ function withoutAutolinks(tokens: Tok[]): Tok[] {
 		}
 		if (token.type === "strong" || token.type === "em" || token.type === "del") {
 			token.tokens = withoutAutolinks(token.tokens ?? []);
+		}
+		return token;
+	});
+}
+
+/** `tokens` with each image at any depth as its alt text. */
+function withoutImages(tokens: Tok[]): Tok[] {
+	return tokens.map((token) => {
+		if (token.type === "image") {
+			return textToken(token.text);
+		}
+		if (token.type === "strong" || token.type === "em" || token.type === "del") {
+			token.tokens = withoutImages(token.tokens ?? []);
 		}
 		return token;
 	});
@@ -1043,7 +1110,9 @@ function plainText(tokens: readonly Tok[]): string {
 	for (let token = stack.pop(); token != null; token = stack.pop()) {
 		// Why an image is a leaf: its `text` is already plain, and a walk into
 		// nested images is quadratic.
-		if (token.tokens == null || token.type === "image") {
+		if (token.type === "br") {
+			out += "\n";
+		} else if (token.tokens == null || token.type === "image") {
 			out += token.text ?? "";
 		} else {
 			for (let at = token.tokens.length - 1; at >= 0; at -= 1) {
@@ -1112,11 +1181,7 @@ function createParens(source: string): (open: number) => number {
 				} else if (code === 40) {
 					stack.push(at);
 				} else if (code === 41 && stack.length > 0) {
-					const depth = stack.length;
-					const opener = stack.pop() ?? 0;
-					if (depth <= MAX_DESTINATION_PARENS) {
-						close[opener] = at;
-					}
+					close[stack.pop() ?? 0] = at;
 				}
 			}
 		}
@@ -1201,8 +1266,6 @@ function lexInline(source: string, context: Context): Tok[] {
 		}
 		return run.starts[run.next] ?? -1;
 	};
-	let hasDefinitions: boolean | undefined;
-	// The next end of each kind of inline HTML, or -1 for none. Why: a search for each opener is quadratic.
 	/** The destination of the link or image that the `]` at `close` ends, from `(…)` or a definition. */
 	const targetOf = (bracket: Bracket, close: number) => {
 		if (source[close + 1] === "(") {
@@ -1212,7 +1275,7 @@ function lexInline(source: string, context: Context): Tok[] {
 			}
 		}
 		// Why the checks: with no definitions there is no reference, and a label is at most 999 characters.
-		if (!(hasDefinitions ??= hasKeys(context.links))) {
+		if (!context.defined) {
 			return undefined;
 		}
 		const reference = /^\[((?:\\.|[^[\]\\]){0,999})\]/.exec(source.slice(close + 1, close + 1002));
@@ -1384,7 +1447,9 @@ function lexInline(source: string, context: Context): Tok[] {
 				if (target != null) {
 					flush();
 					// Why: a link cannot hold a link, so an autolink literal in its text stays text.
-					const children = withoutAutolinks(finish(nodes.splice(bracket.node + 1)));
+					const inner = withoutAutolinks(finish(nodes.splice(bracket.node + 1)));
+					// Why an image holds no image: its text is already the alt text, and deep nesting overflows the renderer.
+					const children = bracket.image ? withoutImages(inner) : inner;
 					const linkRaw = source.slice(bracket.index, target.end);
 					nodes[bracket.node] = {
 						type: bracket.image ? "image" : "link",
@@ -1506,9 +1571,12 @@ function lexInline(source: string, context: Context): Tok[] {
 				let end = value.length;
 				for (;;) {
 					const last = value.charCodeAt(end - 1);
-					const trail = last === 59 ? TRAILING_ENTITY.exec(value.slice(0, end)) : null;
-					if (trail != null) {
-						end = trail.index;
+					// Why a slice from the last `&`: a regex anchored at the end reads the whole URL each time.
+					const amp = last === 59 ? value.lastIndexOf("&", end - 1) : -1;
+					if (amp !== -1 && ENTITY_NAME.test(value.slice(amp, end))) {
+						end = amp;
+					} else if (TRAILING_PUNCTUATION.includes(value[end - 1] ?? "") && end > 1) {
+						end -= 1;
 					} else if (last === 40) {
 						end -= 1;
 						opens -= 1;
@@ -1520,7 +1588,7 @@ function lexInline(source: string, context: Context): Tok[] {
 					}
 				}
 				value = value.slice(0, end);
-				push(autolinkToken(value, value, value.startsWith("www.") ? `http://${value}` : value));
+				push(autolinkToken(value, value, /^www\./i.test(value) ? `http://${value}` : value));
 				index += value.length;
 				continue;
 			}
@@ -1708,6 +1776,7 @@ function lexMarkdown(
 		inline: extensions.filter((extension) => extension.level === "inline"),
 		jobs: [],
 		depth: 0,
+		defined: links != null && hasKeys(links),
 	};
 	const normalized = source.includes("\r") ? source.replace(/\r\n?/g, "\n") : source;
 	const tokens = lexBlocks(normalized, context, { top: true });
