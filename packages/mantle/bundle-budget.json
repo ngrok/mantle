@@ -94,5 +94,9 @@
   "prompt-input": {
     "entry": "import { PromptInput } from \"@ngrok/mantle/prompt-input\"; export default [PromptInput.Root, PromptInput.TextArea, PromptInput.Footer, PromptInput.Submit];",
     "maxGzipBytes": 11188
+  },
+  "prompt-input-dictate": {
+    "entry": "import { PromptInput } from \"@ngrok/mantle/prompt-input\"; export default [PromptInput.Root, PromptInput.TextArea, PromptInput.Footer, PromptInput.Submit, PromptInput.Dictate];",
+    "maxGzipBytes": 12098
   }
 }
