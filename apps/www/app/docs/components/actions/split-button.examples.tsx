@@ -2,6 +2,7 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { FileTextIcon } from "@phosphor-icons/react/FileText";
 import { PlusIcon } from "@phosphor-icons/react/Plus";
 import { DownloadIcon } from "@phosphor-icons/react/Download";
+import { RocketLaunchIcon } from "@phosphor-icons/react/RocketLaunch";
 import { Icon } from "@ngrok/mantle/icon";
 import { SplitButton } from "@ngrok/mantle/split-button";
 
@@ -52,6 +53,22 @@ export function SizeExample() {
 				<SplitButton.MenuTrigger label="Open create options" />
 				<SplitButton.MenuContent>
 					<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
+				</SplitButton.MenuContent>
+			</SplitButton.Root>
+		</PreviewCanvas>
+	);
+}
+
+/** The "Menu width" example on the Split Button docs page. */
+export function MenuWidthExample() {
+	return (
+		<PreviewCanvas className="min-h-160">
+			<SplitButton.Root>
+				<SplitButton.PrimaryAction icon={<RocketLaunchIcon />}>Deploy</SplitButton.PrimaryAction>
+				<SplitButton.MenuTrigger label="Open deploy options" />
+				<SplitButton.MenuContent>
+					<SplitButton.MenuItem>Deploy to staging</SplitButton.MenuItem>
+					<SplitButton.MenuItem>Deploy to every production region</SplitButton.MenuItem>
 				</SplitButton.MenuContent>
 			</SplitButton.Root>
 		</PreviewCanvas>

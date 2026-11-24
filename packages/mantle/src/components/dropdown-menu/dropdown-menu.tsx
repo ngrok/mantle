@@ -98,6 +98,18 @@ type MenuLevel = {
 
 const MenuLevelContext = createContext<MenuLevel | null>(null);
 
+/**
+ * Finds, from the trigger, the element that `Content` places against and sizes
+ * `width="trigger"` by. Internal: `SplitButton` anchors its menu to the whole
+ * split button with it.
+ *
+ * Why a function of the trigger, not a ref: the float reads its anchor when
+ * the trigger attaches, which can be while a parent's ref is still detached.
+ */
+const ContentAnchorContext = createContext<((trigger: HTMLElement) => HTMLElement | null) | null>(
+	null,
+);
+
 function useMenuLevel(part: string): MenuLevel {
 	const level = useContext(MenuLevelContext);
 	invariant(
@@ -911,6 +923,7 @@ const Content = ({
 	...props
 }: DropdownMenuContentProps) => {
 	const state = useRootState("Content");
+	const anchorOf = useContext(ContentAnchorContext);
 	const menuRef = useRef<HTMLElement | null>(null);
 	const { isInSubmenuPath, setSubmenuPath, clearSubmenuPath } = useSubmenuPath();
 	/** How the last outside interaction left focus: where it landed (`keep`), or back to the trigger (`restore`). */
@@ -940,7 +953,10 @@ const Content = ({
 			}
 			state.setOpen(false);
 		},
-		getAnchor: () => state.triggerRef.current,
+		getAnchor: () => {
+			const trigger = state.triggerRef.current;
+			return trigger == null ? null : (anchorOf?.(trigger) ?? trigger);
+		},
 		getInsideElements: () => [state.triggerRef.current],
 		dismissOnOutside: true,
 		dismissWhenCovered: true,
@@ -1026,10 +1042,13 @@ const Content = ({
 	// Why the layer container: a float opened from an item, such as a popover,
 	// portals into the menu, so it is inside the menu's inert boundary, outside
 	// press check, and focus. Why around the element: under `asChild`, a custom
-	// component can render items of its own, and they need the menu too.
+	// component can render items of its own, and they need the menu too. Why
+	// the anchor reset: a `DropdownMenu` inside this menu anchors to its own trigger.
 	const renderLevel = (inner: ReactNode) => (
 		<LayerContainerContext.Provider value={menu}>
-			<MenuLevelContext.Provider value={level}>{inner}</MenuLevelContext.Provider>
+			<MenuLevelContext.Provider value={level}>
+				<ContentAnchorContext.Provider value={null}>{inner}</ContentAnchorContext.Provider>
+			</MenuLevelContext.Provider>
 		</LayerContainerContext.Provider>
 	);
 	const Component = asChild ? Slot : "div";
@@ -2094,6 +2113,7 @@ export {
 	Root,
 	CheckboxItem,
 	Content,
+	ContentAnchorContext,
 	Group,
 	Item,
 	Label,

@@ -8,6 +8,7 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 import { Button } from "../button/button.js";
 import { IconButton } from "../button/icon-button.js";
 import type { ButtonSize } from "../button/sizes.js";
+import { ContentAnchorContext } from "../dropdown-menu/dropdown-menu.js";
 import * as DropdownMenu from "../dropdown-menu/dropdown-menu-parts.js";
 import { Icon } from "../icon/icon.js";
 
@@ -41,6 +42,9 @@ type RootProps = ComponentProps<typeof DropdownMenu.Root> &
  * A button group that pairs a one-click default action with a dropdown menu
  * of related alternatives. Best for when users typically want one action but
  * occasionally need variants.
+ *
+ * `Root` is as wide as its parts, also in a block container. To stretch it,
+ * pass a width class such as `w-full`.
  *
  * | Data Attribute | Value                                       | Description                                        |
  * | -------------- | ------------------------------------------- | -------------------------------------------------- |
@@ -99,7 +103,7 @@ const Root = ({
 					data-slot={joinDataSlot(dataSlot, "split-button")}
 					data-size={size}
 					className={cx(
-						"flex flex-row [&>*:first-child]:rounded-r-none [&>*:last-child]:rounded-l-none [&>*:not(:first-child):not(:last-child)]:rounded-none [&>*:not(:first-child)]:-ml-px [&>*:focus]:relative [&>*:focus]:z-10 [&>*:hover]:relative [&>*:hover]:z-10 [&>:active]:scale-100!",
+						"flex w-fit max-w-full flex-row [&>*:first-child]:rounded-r-none [&>*:last-child]:rounded-l-none [&>*:not(:first-child):not(:last-child)]:rounded-none [&>*:not(:first-child)]:-ml-px [&>*:focus]:relative [&>*:focus]:z-10 [&>*:hover]:relative [&>*:hover]:z-10 [&>:active]:scale-100!",
 						className,
 					)}
 					ref={ref}
@@ -226,6 +230,31 @@ const MenuTrigger = ({ "data-slot": dataSlot, icon, ...props }: MenuTriggerProps
 	);
 };
 
+type MenuContentProps = Omit<ComponentProps<typeof DropdownMenu.Content>, "width"> & {
+	/**
+	 * The width of the menu.
+	 *
+	 * @default "root"
+	 * @enum
+	 * - `"root"`: at least the width of the whole split button, primary action and menu trigger together, and wider when an item needs it. The menu aligns against the split button. With `align="end"` (the default), a menu as wide as the split button lines up with both of its edges.
+	 * - `"trigger"`: the width of the menu trigger. The menu aligns against the trigger.
+	 * - `"content"`: the intrinsic width of the menu: the width of the widest item. The menu aligns against the trigger.
+	 *
+	 * Each width keeps the menu's 8rem minimum, except that `"root"` never passes the viewport less 8px on each side.
+	 */
+	width?: "root" | "trigger" | "content";
+};
+
+/**
+ * The split button that holds `trigger`, which a `width="root"` menu anchors
+ * to and grows from. Why the box check: a root with `display: contents` has no
+ * box to place against, so the menu falls back to the trigger.
+ */
+const rootOf = (trigger: HTMLElement) => {
+	const root = trigger.closest<HTMLElement>('[data-slot~="split-button"]');
+	return root != null && root.getClientRects().length > 0 ? root : null;
+};
+
 /**
  * The container for the split button dropdown menu content. Appears in a
  * portal with scrolling and animations.
@@ -256,15 +285,34 @@ const MenuTrigger = ({ "data-slot": dataSlot, icon, ...props }: MenuTriggerProps
  */
 const MenuContent = ({
 	align = "end",
+	className,
 	"data-slot": dataSlot,
+	ref,
+	width = "root",
 	...props
-}: ComponentProps<typeof DropdownMenu.Content>) => {
+}: MenuContentProps) => {
 	return (
-		<DropdownMenu.Content
-			align={align}
-			data-slot={joinDataSlot(dataSlot, "split-button-menu-content")}
-			{...props}
-		/>
+		<ContentAnchorContext.Provider value={width === "root" ? rootOf : null}>
+			<DropdownMenu.Content
+				align={align}
+				// Why a minimum, not a width: the menu grows past the split button when
+				// an item is wider. Why the cap: a split button as wide as the viewport
+				// would push the menu past the viewport edge, because the float keeps
+				// 8px clear of it. Why the cap inside `min()`: `min-width` wins over
+				// `max-width`, so the floor must also yield to the cap. Why `w-max`: a
+				// popover's fit-content width shrinks near the viewport edge, so each
+				// placement would free only a few more pixels.
+				className={cx(
+					width === "root" &&
+						"w-max max-w-(--available-width) min-w-[min(max(--spacing(32),var(--anchor-width)),var(--available-width))]",
+					className,
+				)}
+				data-slot={joinDataSlot(dataSlot, "split-button-menu-content")}
+				ref={ref}
+				width={width === "root" ? "content" : width}
+				{...props}
+			/>
+		</ContentAnchorContext.Provider>
 	);
 };
 

@@ -74,6 +74,30 @@ import { SplitButton } from "@ngrok/mantle/split-button";
 
 </Example>
 
+## Menu width
+
+The menu is at least as wide as the whole split button: the primary action and the menu trigger together. When an item is wider, the menu grows to fit it and reaches past the start edge of the split button. The menu keeps an 8rem minimum and is never wider than the viewport less 8px on each side.
+
+To size the menu another way, set `width` on `SplitButton.MenuContent`: `"trigger"` matches the menu trigger, and `"content"` takes the width of the widest item. Both keep the 8rem minimum and align against the menu trigger, not the whole split button.
+
+<Example name="components/actions/split-button/menu-width" title="Split Button menu width example">
+
+```tsx
+import { RocketLaunchIcon } from "@phosphor-icons/react";
+import { SplitButton } from "@ngrok/mantle/split-button";
+
+<SplitButton.Root>
+	<SplitButton.PrimaryAction icon={<RocketLaunchIcon />}>Deploy</SplitButton.PrimaryAction>
+	<SplitButton.MenuTrigger label="Open deploy options" />
+	<SplitButton.MenuContent>
+		<SplitButton.MenuItem>Deploy to staging</SplitButton.MenuItem>
+		<SplitButton.MenuItem>Deploy to every production region</SplitButton.MenuItem>
+	</SplitButton.MenuContent>
+</SplitButton.Root>;
+```
+
+</Example>
+
 ## Polymorphism
 
 To render _something else_ as a `SplitButton.MenuItem`, use the `asChild` prop to compose. This is useful for rendering links as menu items.
@@ -156,9 +180,10 @@ The container for the split button dropdown menu content. Appears in a portal wi
 
 All props from [`DropdownMenu.Content`](/components/overlays/dropdown-menu).
 
-| Prop     | Type                               | Default | Description                                  |
-| -------- | ---------------------------------- | ------- | -------------------------------------------- |
-| `align?` | `"start"` \| `"center"` \| `"end"` | `"end"` | The preferred alignment against the trigger. |
+| Prop     | Type                                   | Default  | Description                                                                                                                                                                                                                                                                                             |
+| -------- | -------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `align?` | `"start"` \| `"center"` \| `"end"`     | `"end"`  | The preferred alignment against the split button, or against the menu trigger with `width="trigger"` or `width="content"`.                                                                                                                                                                              |
+| `width?` | `"root"` \| `"trigger"` \| `"content"` | `"root"` | The width of the menu. `"root"` is at least the width of the whole split button, and wider when an item needs it. `"trigger"` is the width of the menu trigger. `"content"` is the width of the widest item. Each keeps an 8rem minimum; `"root"` also never passes the viewport less 8px on each side. |
 
 ### SplitButton.MenuItem
 
