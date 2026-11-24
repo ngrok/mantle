@@ -81,13 +81,16 @@ describe("CodeBlock (browser)", () => {
 				await commands.emulateMedia({ reducedMotion });
 				try {
 					const user = userEvent.setup();
+					// Why an ancestor with `data-copied`: only the button's own attribute swaps the icons.
 					render(
-						<CodeBlock.Root>
-							<CodeBlock.Body>
-								<CodeBlock.CopyButton />
-								<CodeBlock.Code value={makeValue("code")} />
-							</CodeBlock.Body>
-						</CodeBlock.Root>,
+						<div data-copied="">
+							<CodeBlock.Root>
+								<CodeBlock.Body>
+									<CodeBlock.CopyButton />
+									<CodeBlock.Code value={makeValue("code")} />
+								</CodeBlock.Body>
+							</CodeBlock.Root>
+						</div>,
 					);
 					const button = screen.getByRole("button", { name: /copy code/i });
 					const [copyPath, checkPath] = button.querySelectorAll("path");

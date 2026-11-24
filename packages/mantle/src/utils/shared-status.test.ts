@@ -4,6 +4,12 @@ import { announce, mountSharedStatus } from "./shared-status.js";
 const region = (container: Element) =>
 	container.querySelector<HTMLElement>(":scope > [data-slot='shared-status']");
 
+/** Waits until a new region takes messages: after the next paint. */
+const afterPaint = () =>
+	new Promise((resolve) => {
+		requestAnimationFrame(() => setTimeout(resolve));
+	});
+
 afterEach(() => {
 	document.body.replaceChildren();
 });
@@ -14,6 +20,7 @@ describe("announce", () => {
 		const gone = document.body.appendChild(document.createElement("button"));
 		mountSharedStatus(survivor);
 		const unmount = mountSharedStatus(gone);
+		await afterPaint();
 		announce(survivor, "Dark theme");
 
 		if (typeof unmount === "function") {
@@ -47,11 +54,72 @@ describe("announce", () => {
 		announce(button, "Dark theme");
 		announce(button, "Light theme");
 
-		// Why empty until the frame: a screen reader skips a region that is made and filled at once.
+		// Why empty until the paint: a screen reader skips a region that is made and filled at once.
 		expect(status).toHaveTextContent("");
 		await vi.waitFor(() => {
 			expect(writes).toEqual(["Light theme"]);
 		});
+	});
+
+	test("an element that unmounted before the frame does not write its queued message", async () => {
+		const dialog = document.body.appendChild(document.createElement("dialog"));
+		const survivor = dialog.appendChild(document.createElement("button"));
+		const gone = document.body.appendChild(document.createElement("button"));
+		const unmount = mountSharedStatus(gone);
+		// Why the move: it makes the dialog's region, so the message waits a frame.
+		dialog.append(gone);
+		announce(gone, "Copied", { repeat: true });
+		mountSharedStatus(survivor);
+		if (typeof unmount === "function") {
+			unmount();
+		}
+
+		await afterPaint();
+		expect(region(dialog)).toHaveTextContent("");
+	});
+
+	test("an element that moved back before the paint announces in its new region", async () => {
+		const button = document.body.appendChild(document.createElement("button"));
+		const dialog = document.body.appendChild(document.createElement("dialog"));
+		mountSharedStatus(button);
+		await afterPaint();
+		dialog.append(button);
+		announce(button, "Copied", { repeat: true });
+		// Why: a dialog that closes before the paint moves the button back to the page.
+		document.body.append(button);
+
+		await afterPaint();
+		expect(region(dialog)).toBeNull();
+		expect(region(document.body)).toHaveTextContent("Copied");
+	});
+
+	test("an element out of the document announces nothing", async () => {
+		const host = document.body.appendChild(document.createElement("div"));
+		const survivor = document.body.appendChild(document.createElement("button"));
+		const detached = host.appendChild(document.createElement("button"));
+		mountSharedStatus(survivor);
+		mountSharedStatus(detached);
+		await afterPaint();
+		announce(survivor, "Dark theme");
+		// Why: a portal host can leave the page while its React root stays mounted.
+		host.remove();
+
+		announce(detached, "Copied", { repeat: true });
+		expect(region(document.body)).toHaveTextContent("Dark theme");
+	});
+
+	test("announces in the modal around a shadow root, and in an ARIA modal", () => {
+		const dialog = document.body.appendChild(document.createElement("dialog"));
+		const shadow = dialog.appendChild(document.createElement("div")).attachShadow({ mode: "open" });
+		const inShadow = shadow.appendChild(document.createElement("button"));
+		const modal = document.body.appendChild(document.createElement("div"));
+		modal.setAttribute("aria-modal", "true");
+		const inModal = modal.appendChild(document.createElement("button"));
+
+		mountSharedStatus(inShadow);
+		mountSharedStatus(inModal);
+		expect(region(dialog)).not.toBeNull();
+		expect(region(modal)).not.toBeNull();
 	});
 });
 
@@ -67,9 +135,10 @@ describe("the shared region", () => {
 				throw new Error("The dialog has no shared region.");
 			}
 			expect(status).toHaveAttribute("aria-atomic", "true");
-			// Why a frame: a new region gets its first message one frame later.
+			// Why a frame and a timeout: a new region gets its first message after a paint.
 			announce(button, "Dark theme");
 			vi.advanceTimersToNextFrame();
+			vi.advanceTimersByTime(1);
 			expect(status).toHaveTextContent("Dark theme");
 
 			vi.advanceTimersByTime(6000);

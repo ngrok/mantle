@@ -814,24 +814,28 @@ const CopyButton = ({
 				size="sm"
 				label={label}
 				// Why one svg with both paths, and not `IconSwap`: CSS swaps the paths on
-				// `data-copied`, so a copy button renders 3 components fewer.
+				// `data-copied`, so a copy button renders 3 components fewer. Why a named
+				// group: an ancestor with its own `data-copied` must not swap them.
 				icon={
 					<svg viewBox="0 0 256 256" fill="currentColor">
 						<path
-							className={clsx(COPY_PATH_CLASS, "in-data-copied:scale-50 in-data-copied:opacity-0")}
+							className={clsx(
+								COPY_PATH_CLASS,
+								"group-data-copied/copy:scale-50 group-data-copied/copy:opacity-0",
+							)}
 							d="M216,32H88a8,8,0,0,0-8,8V80H40a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H168a8,8,0,0,0,8-8V176h40a8,8,0,0,0,8-8V40A8,8,0,0,0,216,32ZM160,208H48V96H160Zm48-48H176V88a8,8,0,0,0-8-8H96V48H208Z"
 						/>
 						<path
 							className={clsx(
 								COPY_PATH_CLASS,
-								"not-in-data-copied:scale-50 not-in-data-copied:opacity-0",
+								"not-group-data-copied/copy:scale-50 not-group-data-copied/copy:opacity-0",
 							)}
 							d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"
 						/>
 					</svg>
 				}
 				data-copied={wasCopied ? "" : undefined}
-				className={cx("bg-base not-disabled:hover:bg-neutral-500/15", className)}
+				className={cx("group/copy bg-base not-disabled:hover:bg-neutral-500/15", className)}
 				ref={composedRef}
 				onClick={async (event) => {
 					// Why if-guards: the React Compiler cannot lower `?.()` inside a `try`

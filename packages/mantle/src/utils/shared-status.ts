@@ -19,20 +19,69 @@ const clearTimers = new WeakMap<HTMLSpanElement, ReturnType<typeof setTimeout>>(
 /** The container that each mounted element holds a region in. */
 const registrations = new WeakMap<Element, Element>();
 
-/**
- * The element that holds the live region of `element`: the dialog around it,
- * else `<body>`. Why the dialog: a modal dialog makes the rest of the page
- * inert, and a screen reader does not hear a live region there.
- */
-const statusContainer = (element: Element) =>
-	element.closest("dialog") ?? element.ownerDocument.body;
+/** A message to announce, and the element that announced it. See `announce` for `repeat`. */
+type Message = { element: Element; message: string; repeat: boolean };
 
-/** Adds one user to the region of `container`, and makes the region when it has none. */
-function acquire(container: Element): { status: Status; fresh: boolean } {
+/**
+ * The regions that a screen reader has not seen yet, and the latest message
+ * for each. `null` means no message yet.
+ */
+const pendingMessages = new WeakMap<HTMLSpanElement, Message | null>();
+
+/**
+ * The element that holds the live region of `element`: the modal around it,
+ * else `<body>`. Why the modal: a modal dialog makes the rest of the page
+ * inert, and a screen reader does not hear a live region there. Why through
+ * shadow roots: `closest` stops at a shadow root, and the modal can be
+ * outside it.
+ */
+function statusContainer(element: Element): Element {
+	let node: Element | null = element;
+	while (node != null) {
+		const modal = node.closest('dialog, [aria-modal="true"]');
+		if (modal != null) {
+			return modal;
+		}
+		const root = node.getRootNode();
+		node = root instanceof ShadowRoot ? root.host : null;
+	}
+	return element.ownerDocument.body;
+}
+
+/**
+ * Puts `region` in `container`, and holds its messages until the next paint.
+ * Why after a paint: a screen reader skips a region that is made and filled
+ * before it sees the region empty. A frame callback runs before the paint, so
+ * the timeout in it runs after.
+ */
+function attach(container: Element, region: HTMLSpanElement) {
+	container.append(region);
+	pendingMessages.set(region, null);
+	requestAnimationFrame(() => {
+		setTimeout(() => {
+			const pending = pendingMessages.get(region);
+			pendingMessages.delete(region);
+			// Why announce again: the element can unmount or move before the paint.
+			if (pending != null) {
+				announce(pending.element, pending.message, { repeat: pending.repeat });
+			}
+		});
+	});
+}
+
+/**
+ * Adds one user to the region of `container`, and makes the region when it
+ * has none. Why attach a region again: a page can remove it, such as when
+ * React renders the document again after a hydration error.
+ */
+function acquire(container: Element) {
 	const existing = statuses.get(container);
 	if (existing != null) {
 		existing.users += 1;
-		return { status: existing, fresh: false };
+		if (!existing.element.isConnected) {
+			attach(container, existing.element);
+		}
+		return;
 	}
 	const region = container.ownerDocument.createElement("span");
 	region.setAttribute("role", "status");
@@ -40,10 +89,8 @@ function acquire(container: Element): { status: Status; fresh: boolean } {
 	region.setAttribute("aria-atomic", "true");
 	region.className = "sr-only";
 	region.dataset.slot = "shared-status";
-	container.append(region);
-	const status = { element: region, users: 1 };
-	statuses.set(container, status);
-	return { status, fresh: true };
+	statuses.set(container, { element: region, users: 1 });
+	attach(container, region);
 }
 
 /** Removes one user from the region of `container`, and removes the region with its last user. */
@@ -87,12 +134,6 @@ const mountSharedStatus: RefCallback<Element> = (element) => {
 	};
 };
 
-/** The latest message for a new region, written on the next frame. */
-const pendingMessages = new WeakMap<HTMLSpanElement, Message>();
-
-/** A message to announce. See `announce` for `repeat`. */
-type Message = { message: string; repeat: boolean };
-
 /** Writes a message to `region`, and clears the region `CLEAR_DELAY_MS` later. */
 function writeMessage(region: HTMLSpanElement, { message, repeat }: Message) {
 	if (region.textContent === message && !repeat) {
@@ -110,8 +151,9 @@ function writeMessage(region: HTMLSpanElement, { message, repeat }: Message) {
 
 /**
  * Announces `message` in the shared region of an element that
- * `mountSharedStatus` mounted. An element that is not mounted announces
- * nothing, such as a copy button whose copy finished after it unmounted.
+ * `mountSharedStatus` mounted. An element that is not mounted, or not in the
+ * document, announces nothing, such as a copy button whose copy finished
+ * after it unmounted.
  *
  * A screen reader does not read the same text twice. With `repeat`, a message
  * equal to the region's text gets a trailing no-break space, so it reads
@@ -120,18 +162,17 @@ function writeMessage(region: HTMLSpanElement, { message, repeat }: Message) {
  * The region clears `CLEAR_DELAY_MS` after each write.
  *
  * When the element moved to another container, such as into a dialog, its
- * region moves with it. A new region gets the latest message one frame later,
- * because a screen reader skips a region that is made and filled at once.
+ * region moves with it. A new region gets the latest message after the next
+ * paint.
  */
 function announce(element: Element, message: string, { repeat = false } = {}) {
 	const registered = registrations.get(element);
-	if (registered == null) {
+	if (registered == null || !element.isConnected) {
 		return;
 	}
 	const container = statusContainer(element);
-	let fresh = false;
 	if (registered !== container) {
-		fresh = acquire(container).fresh;
+		acquire(container);
 		registrations.set(element, container);
 		release(registered);
 	}
@@ -139,23 +180,16 @@ function announce(element: Element, message: string, { repeat = false } = {}) {
 	if (region == null) {
 		return;
 	}
-	if (!fresh && !pendingMessages.has(region)) {
-		writeMessage(region, { message, repeat });
+	if (!region.isConnected) {
+		attach(container, region);
+	}
+	// Why the latest only: a caller can announce twice for one action, and the
+	// last request wins.
+	if (pendingMessages.has(region)) {
+		pendingMessages.set(region, { element, message, repeat });
 		return;
 	}
-	// Why one write for each frame: a caller can announce twice for one action,
-	// such as a theme updater that runs twice, and the last request wins.
-	const scheduled = pendingMessages.has(region);
-	pendingMessages.set(region, { message, repeat });
-	if (!scheduled) {
-		requestAnimationFrame(() => {
-			const pending = pendingMessages.get(region);
-			pendingMessages.delete(region);
-			if (pending != null) {
-				writeMessage(region, pending);
-			}
-		});
-	}
+	writeMessage(region, { element, message, repeat });
 }
 
 export {
