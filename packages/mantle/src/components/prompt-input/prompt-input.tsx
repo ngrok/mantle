@@ -247,24 +247,20 @@ function isSendKey(event: {
 function defaultButtonOf(form: HTMLFormElement): HTMLButtonElement | HTMLInputElement | undefined {
 	// Why tree order: form.elements omits image buttons, and a submitter can sit outside its form.
 	const root = form.getRootNode();
-	const tree = root instanceof ShadowRoot ? root : form.ownerDocument;
-	for (const element of tree.querySelectorAll("button, input")) {
-		if (
-			element instanceof HTMLButtonElement &&
-			element.form === form &&
-			element.type === "submit"
-		) {
-			return element;
-		}
-		if (
-			element instanceof HTMLInputElement &&
-			element.form === form &&
-			(element.type === "submit" || element.type === "image")
-		) {
+	const tree = isDocumentFragment(root) ? root : form.ownerDocument;
+	for (const element of tree.querySelectorAll<HTMLButtonElement | HTMLInputElement>(
+		"button, input",
+	)) {
+		if (element.form === form && (element.type === "submit" || element.type === "image")) {
 			return element;
 		}
 	}
 	return undefined;
+}
+
+function isDocumentFragment(node: Node): node is DocumentFragment {
+	// Why nodeType: a portal's root can belong to another window.
+	return node.nodeType === Node.DOCUMENT_FRAGMENT_NODE;
 }
 
 /**
@@ -406,7 +402,6 @@ function Submit({
 			size="sm"
 			data-slot={joinDataSlot(dataSlot, "prompt-input-submit")}
 			className={cx("ms-auto size-8 shrink-0 rounded-full", className)}
-			type={stops ? "button" : "submit"}
 			icon={stops ? <StopIcon weight="fill" /> : <ArrowUpIcon />}
 			label={stops ? stopLabel : label}
 			onClick={(event) => {
@@ -418,6 +413,8 @@ function Submit({
 				}
 			}}
 			{...props}
+			// Why last: a composed trigger can inject its own button type.
+			type={stops ? "button" : "submit"}
 		/>
 	);
 }

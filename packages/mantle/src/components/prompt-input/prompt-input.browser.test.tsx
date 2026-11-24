@@ -1,7 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
+import { Tooltip } from "../tooltip/index.js";
 import * as PromptInput from "./prompt-input-parts.js";
 
 // Why browser mode: these tests depend on native form activation and constraint validation.
@@ -25,6 +27,73 @@ test("Enter activates the default button and preserves its submitter overrides",
 	expect(onSubmit).toHaveBeenCalledTimes(1);
 	expect(onSubmit).toHaveBeenLastCalledWith(screen.getByRole("button", { name: "Send message" }));
 });
+
+test("Send submits when composed with a tooltip trigger", async () => {
+	const onSubmit = vi.fn<() => void>();
+	render(
+		<PromptInput.Root
+			onSubmit={(event) => {
+				event.preventDefault();
+				onSubmit();
+			}}
+		>
+			<PromptInput.TextArea aria-label="Message" />
+			<Tooltip.Root>
+				<Tooltip.Trigger asChild>
+					<PromptInput.Submit />
+				</Tooltip.Trigger>
+			</Tooltip.Root>
+		</PromptInput.Root>,
+	);
+
+	await userEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+	expect(onSubmit).toHaveBeenCalledTimes(1);
+	expect(onSubmit).toHaveBeenLastCalledWith();
+});
+
+test.each([false, true])(
+	"Enter respects an iframe's default button (disabled=%s)",
+	async (disabled) => {
+		const frame = document.createElement("iframe");
+		frame.srcdoc = "<!doctype html><title>Composer</title>";
+		await new Promise((resolve) => {
+			frame.addEventListener("load", resolve, { once: true });
+			document.body.append(frame);
+		});
+		const frameDocument = frame.contentDocument;
+		if (frameDocument == null) {
+			throw new Error("The frame has no document.");
+		}
+		const onSubmit = vi.fn<(submitter: HTMLElement | null) => void>();
+		const { unmount } = render(
+			createPortal(
+				<PromptInput.Root
+					onSubmit={(event) => {
+						event.preventDefault();
+						onSubmit(event.nativeEvent.submitter);
+					}}
+				>
+					<PromptInput.TextArea aria-label="Message" required={!disabled} />
+					<PromptInput.Submit disabled={disabled} formNoValidate />
+				</PromptInput.Root>,
+				frameDocument.body,
+			),
+		);
+		try {
+			const fields = within(frameDocument.body);
+			fields.getByRole("textbox", { name: "Message" }).focus();
+			await userEvent.keyboard("{Enter}");
+
+			expect(onSubmit.mock.calls).toEqual(
+				disabled ? [] : [[fields.getByRole("button", { name: "Send message" })]],
+			);
+		} finally {
+			unmount();
+			frame.remove();
+		}
+	},
+);
 
 test.each(["fieldset", "external image"])(
 	"Enter respects a disabled default button (%s)",
