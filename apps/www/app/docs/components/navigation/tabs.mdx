@@ -151,7 +151,7 @@ By default, only the active panel renders its children. That keeps an app page t
 - Search engines see every panel. Google's [mobile-first indexing guide](https://developers.google.com/search/docs/crawling-indexing/mobile/mobile-sites-mobile-first-indexing) suggests moving content into tabs or accordions to save space instead of removing it. A plain inactive panel renders empty, so its text isn't on the page at all.
 - AI crawlers read it without JavaScript. Vercel [measured](https://vercel.com/blog/the-rise-of-the-ai-crawler) that GPTBot, ClaudeBot, and PerplexityBot don't run JavaScript, so they see only the server HTML. Each panel's text is in that HTML.
 
-An inactive panel is also `aria-hidden`, so screen readers and `getByRole` queries see only the active panel. Before hydration, a panel that find-in-page reveals stays `aria-hidden` until its tab activates.
+After hydration, an inactive panel is also `aria-hidden`, so screen readers and `getByRole` queries see only the active panel. The server HTML leaves `aria-hidden` out, so a panel that the browser reveals before your scripts run stays readable.
 
 Do not hide the panel with a `display: none` class: it blocks the search. A browser without `until-found`, such as Safari before 26.2, treats the panel as plain `hidden`: the text stays in the HTML, and find-in-page skips it.
 
@@ -792,13 +792,13 @@ An icon you pass as a child is now a grandchild of the trigger, so a `[&>svg]` c
 
 Contains the content associated with each trigger.
 
-| Prop                | Type      | Default | Description                                                                                                                                                                                                                               |
-| ------------------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `value`             | `string`  |         | A unique value that associates the content with a trigger.                                                                                                                                                                                |
-| `forceMount?`       | `true`    |         | Keeps the panel's children mounted while its tab is inactive. The inactive panel stays natively `hidden`.                                                                                                                                 |
-| `hiddenUntilFound?` | `boolean` | `false` | Keeps the panel's children mounted as `hidden="until-found"` while its tab is inactive, so find-in-page reveals them and activates the tab. The inactive panel is `aria-hidden`. Implies `forceMount`. See [Find in page](#find-in-page). |
-| `asChild?`          | `boolean` | `false` | When `true`, renders the single child instead of its own `<div>` and forwards the panel's attributes and behavior onto it.                                                                                                                |
-| `className?`        | `string`  |         | Additional CSS classes to apply to the content element.                                                                                                                                                                                   |
+| Prop                | Type      | Default | Description                                                                                                                                                                                                                                                |
+| ------------------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `value`             | `string`  |         | A unique value that associates the content with a trigger.                                                                                                                                                                                                 |
+| `forceMount?`       | `true`    |         | Keeps the panel's children mounted while its tab is inactive. The inactive panel stays natively `hidden`.                                                                                                                                                  |
+| `hiddenUntilFound?` | `boolean` | `false` | Keeps the panel's children mounted as `hidden="until-found"` while its tab is inactive, so find-in-page reveals them and activates the tab. After hydration, the inactive panel is `aria-hidden`. Implies `forceMount`. See [Find in page](#find-in-page). |
+| `asChild?`          | `boolean` | `false` | When `true`, renders the single child instead of its own `<div>` and forwards the panel's attributes and behavior onto it.                                                                                                                                 |
+| `className?`        | `string`  |         | Additional CSS classes to apply to the content element.                                                                                                                                                                                                    |
 
 #### Data attributes
 

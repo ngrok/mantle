@@ -1301,4 +1301,20 @@ describe("Tabs keyboard, focus, and ARIA contract", () => {
 		container.remove();
 		errors.mockRestore();
 	});
+
+	test("a panel that the browser reveals before any script runs is readable", async () => {
+		const container = document.createElement("div");
+		container.innerHTML = renderToString(<UntilFound />);
+		document.body.append(container);
+		const panelB = screen.getByText("Panel B").parentElement;
+
+		window.location.hash = "#deep-b";
+
+		await vi.waitFor(() => {
+			expect(panelB).not.toHaveAttribute("hidden");
+		});
+		expect(screen.getByRole("tabpanel", { name: "B" })).toBe(panelB);
+		container.remove();
+		history.replaceState(null, "", window.location.pathname);
+	});
 });

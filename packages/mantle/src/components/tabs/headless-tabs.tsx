@@ -11,6 +11,7 @@ import {
 	useTabs,
 } from "../../behaviors/use-tabs.js";
 import type { ActivationMode, Orientation, TabsBehavior } from "../../behaviors/use-tabs.js";
+import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import { getPrefersReducedMotion } from "../../hooks/use-prefers-reduced-motion.js";
 import type { ScrollBehavior } from "../../hooks/use-scroll-behavior.js";
 import type { WithAsChild } from "../../types/as-child.js";
@@ -361,8 +362,8 @@ type ContentProps = ComponentProps<"div"> &
 		/**
 		 * Keeps the panel mounted while its tab is inactive, as
 		 * `hidden="until-found"`. Find-in-page and a fragment link reveal the
-		 * text and activate the tab. The inactive panel is `aria-hidden`, so it
-		 * leaves the accessibility tree. Implies `forceMount`. Do not hide the panel
+		 * text and activate the tab. After hydration, the inactive panel is
+		 * `aria-hidden`. Implies `forceMount`. Do not hide the panel
 		 * with a `display: none` class: it blocks the search.
 		 * @default false
 		 */
@@ -417,6 +418,7 @@ const Content = ({
 		value,
 		forceMount,
 		hiddenUntilFound,
+		hydrated: useIsHydrated(),
 	});
 	const composedRef = useComposedRefs(ref, revealRef);
 	// Why: an `asChild` panel has no element of its own to leave empty.
