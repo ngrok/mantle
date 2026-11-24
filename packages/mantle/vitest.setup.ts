@@ -36,9 +36,9 @@ declare module "vitest/browser" {
 		/**
 		 * Compiles the Tailwind utilities that a source file uses, with the path
 		 * relative to the test file. Browser project only; the config registers
-		 * the command.
+		 * the command. `theme` adds the first `@theme` block of `mantle.css`.
 		 */
-		tailwindCss: (sourceFile: string) => Promise<string>;
+		tailwindCss: (sourceFile: string, options?: { theme?: boolean }) => Promise<string>;
 	}
 }
 
