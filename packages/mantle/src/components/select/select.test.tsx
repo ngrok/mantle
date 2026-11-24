@@ -1,5 +1,5 @@
 import { CheckCircleIcon } from "@phosphor-icons/react/CheckCircle";
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import type { ComponentProps, ReactNode } from "react";
 import { createRef, useState } from "react";
@@ -501,6 +501,33 @@ describe("Select", () => {
 
 			expect(onClick).toHaveBeenCalledTimes(0);
 			expect(trigger).toHaveTextContent("a.ngrok.app");
+		});
+
+		// Why: `Slot` runs a child's own `onClickCapture` before a guard on the item.
+		test("a disabled asChild link runs no handler of its own and does not navigate", async () => {
+			const user = userEvent.setup();
+			const onLinkClick = vi.fn<() => void>();
+			render(
+				<Select.Root defaultValue="apple">
+					<Select.Trigger aria-label="Fruit">
+						<Select.Value />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="apple">Apple</Select.Item>
+						<Select.Item value="docs" disabled asChild>
+							<a href="#docs" onClick={onLinkClick} onClickCapture={onLinkClick}>
+								Docs
+							</a>
+						</Select.Item>
+					</Select.Content>
+				</Select.Root>,
+			);
+
+			await user.click(screen.getByRole("combobox", { name: "Fruit" }));
+
+			expect(fireEvent.click(await screen.findByRole("option", { name: "Docs" }))).toBe(false);
+			expect(onLinkClick).toHaveBeenCalledTimes(0);
+			expect(screen.getByRole("combobox", { name: "Fruit" })).toHaveTextContent("Apple");
 		});
 
 		test("documented item data attributes follow selection, keyboard highlight, and disabled", async () => {

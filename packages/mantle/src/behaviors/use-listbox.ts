@@ -2,7 +2,6 @@
 
 import { isValidElement, useCallback, useId, useInsertionEffect, useRef, useState } from "react";
 import type { HTMLAttributes, MouseEventHandler, ReactNode, RefCallback, RefObject } from "react";
-import { ignoreClick } from "./compose-handlers.js";
 import { createStore } from "./store.js";
 import type { Store } from "./store.js";
 
@@ -398,9 +397,6 @@ const useOption = (
 					listbox.select(value);
 				}
 			},
-			// Why only when disabled: the part spreads these props over the caller's, so an
-			// enabled option keeps the caller's own `onClickCapture`.
-			...(disabled && { onClickCapture: ignoreClick }),
 		},
 	};
 };

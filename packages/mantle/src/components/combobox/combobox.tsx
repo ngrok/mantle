@@ -3,7 +3,7 @@
 import type { ComponentProps, ReactNode } from "react";
 import { createContext, use, useId, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { composeHandlers } from "../../behaviors/compose-handlers.js";
+import { composeHandlers, disabledItemGuard } from "../../behaviors/compose-handlers.js";
 import { useCombobox, useComboboxInput } from "../../behaviors/use-combobox.js";
 import type { UseComboboxProps } from "../../behaviors/use-combobox.js";
 import { childId, useOption } from "../../behaviors/use-listbox.js";
@@ -304,6 +304,7 @@ const OpenContent = ({
 			<Component
 				{...props}
 				{...listbox.listboxProps}
+				{...disabledItemGuard(props)}
 				popover={hasPopoverApi ? "manual" : undefined}
 				onMouseDown={composeHandlers(props.onMouseDown, listbox.listboxProps.onMouseDown)}
 				ref={composedRef}

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRef, type ReactNode } from "react";
 import { describe, expect, test, vi } from "vitest";
@@ -167,6 +167,29 @@ describe("DropdownMenu", () => {
 		await user.click(screen.getByRole("menuitem", { name: "Delete" }));
 
 		expect(onClick).toHaveBeenCalledTimes(0);
+		expect(onSelect).toHaveBeenCalledTimes(0);
+		expect(screen.getByRole("menu")).toBeInTheDocument();
+	});
+
+	// Why: `Slot` runs a child's own `onClickCapture` before a guard on the item.
+	test("a disabled asChild link runs no handler of its own and does not navigate", () => {
+		const onLinkClick = vi.fn<() => void>();
+		const onSelect = vi.fn<(event: Event) => void>();
+		render(
+			<DropdownMenu.Root defaultOpen>
+				<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+				<DropdownMenu.Content>
+					<DropdownMenu.Item disabled asChild onSelect={onSelect}>
+						<a href="#docs" onClick={onLinkClick} onClickCapture={onLinkClick}>
+							Docs
+						</a>
+					</DropdownMenu.Item>
+				</DropdownMenu.Content>
+			</DropdownMenu.Root>,
+		);
+
+		expect(fireEvent.click(screen.getByRole("menuitem", { name: "Docs" }))).toBe(false);
+		expect(onLinkClick).toHaveBeenCalledTimes(0);
 		expect(onSelect).toHaveBeenCalledTimes(0);
 		expect(screen.getByRole("menu")).toBeInTheDocument();
 	});

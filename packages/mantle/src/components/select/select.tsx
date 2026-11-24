@@ -10,7 +10,7 @@ import type {
 } from "react";
 import { createContext, isValidElement, use, useEffect, useId, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { composeHandlers } from "../../behaviors/compose-handlers.js";
+import { composeHandlers, disabledItemGuard } from "../../behaviors/compose-handlers.js";
 import { useStoreValue } from "../../behaviors/store.js";
 import { childId, useOption } from "../../behaviors/use-listbox.js";
 import { usePopup } from "../../behaviors/use-popup.js";
@@ -828,6 +828,7 @@ const OpenContent = ({
 			<div
 				{...props}
 				{...listbox.listboxProps}
+				{...disabledItemGuard(props)}
 				popover={hasPopoverApi ? "manual" : undefined}
 				role="listbox"
 				tabIndex={-1}

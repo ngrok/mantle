@@ -71,7 +71,7 @@ describe("Combobox", () => {
 	describe("Combobox.Item", () => {
 		// Red if a disabled item runs a click handler or follows its link: a disabled "create" row
 		// then acts. `Slot` runs the child's handler first, so only a capture guard stops it.
-		test("a disabled asChild link runs no click handler and does not navigate", async () => {
+		test("a disabled asChild link runs no click handler and opens on neither a click nor a middle click", async () => {
 			const user = userEvent.setup();
 			const onItemClick = vi.fn<() => void>();
 			const onLinkClick = vi.fn<() => void>();
@@ -81,7 +81,7 @@ describe("Combobox", () => {
 					<Combobox.Content>
 						<Combobox.Item value="Apple" />
 						<Combobox.Item value="Docs" disabled asChild onClick={onItemClick}>
-							<a href="#docs" onClick={onLinkClick}>
+							<a href="#docs" onClick={onLinkClick} onClickCapture={onLinkClick}>
 								Docs
 							</a>
 						</Combobox.Item>
@@ -91,9 +91,13 @@ describe("Combobox", () => {
 			const input = screen.getByRole("combobox", { name: "Fruit" });
 
 			await user.click(input);
-			const notCanceled = fireEvent.click(await screen.findByRole("option", { name: "Docs" }));
+			const docs = await screen.findByRole("option", { name: "Docs" });
 
-			expect(notCanceled).toBe(false);
+			expect(fireEvent.click(docs)).toBe(false);
+			// Why: a middle click fires `auxclick`, which opens a link in a new tab.
+			expect(
+				fireEvent(docs, new MouseEvent("auxclick", { bubbles: true, cancelable: true, button: 1 })),
+			).toBe(false);
 			expect(onItemClick).toHaveBeenCalledTimes(0);
 			expect(onLinkClick).toHaveBeenCalledTimes(0);
 			expect(input).toHaveValue("");
