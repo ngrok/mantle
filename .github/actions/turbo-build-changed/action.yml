@@ -1,0 +1,69 @@
+name: Turbo build changed
+description: Compare a package's turbo `build` task hash between two commits
+
+# Why: turbo's `--filter=<package>...[from...to]` marks a package changed for any
+# file in its directory, tests and docs included. The `build` task hash follows
+# the `inputs` in turbo.json, so a change to an excluded file leaves it equal.
+
+inputs:
+  package:
+    description: Workspace package name, for example `@app/dashboard`
+    required: true
+  from:
+    description: Commit or ref at the start of the range
+    required: true
+  to:
+    description: Commit or ref at the end of the range
+    required: false
+    default: HEAD
+
+outputs:
+  changed:
+    description: "`true` when the build hash at `to` differs from the hash at `from`"
+    value: ${{ steps.compare.outputs.changed }}
+
+runs:
+  using: composite
+  steps:
+    # The pinned turbo version reads the lockfile itself, so the job needs no
+    # `pnpm install`.
+    - name: Install turbo at the pinned version
+      shell: bash
+      run: npm install --global "turbo@$(node -p "require('./package.json').devDependencies.turbo")"
+
+    - name: Compare build hashes
+      id: compare
+      shell: bash
+      env:
+        PACKAGE: ${{ inputs.package }}
+        FROM: ${{ inputs.from }}
+        TO: ${{ inputs.to }}
+        DO_NOT_TRACK: "1"
+        TURBO_TELEMETRY_DISABLED: "1"
+      run: |
+        # A fresh worktree per ref keeps untracked files and node_modules out of
+        # the hash. Caches stay off, so the dry run makes no network calls.
+        build_hash() {
+          local ref="$1"
+          local dir hash
+          dir=$(mktemp -d)
+          git worktree add --detach --quiet "${dir}" "${ref}"
+          hash=$(turbo --cwd "${dir}" run build --filter="${PACKAGE}" --dry-run=json --cache=local:,remote: \
+            | jq -r --arg task "${PACKAGE}#build" '.tasks[] | select(.taskId == $task) | .hash')
+          git worktree remove --force "${dir}"
+          if [[ -z "${hash}" ]]; then
+            echo "::error::No ${PACKAGE}#build task at ${ref}."
+            return 1
+          fi
+          printf '%s\n' "${hash}"
+        }
+
+        from_hash=$(build_hash "${FROM}")
+        to_hash=$(build_hash "${TO}")
+        echo "${PACKAGE}#build hash: ${from_hash} at ${FROM}, ${to_hash} at ${TO}"
+
+        if [[ "${from_hash}" == "${to_hash}" ]]; then
+          echo "changed=false" >> "${GITHUB_OUTPUT}"
+        else
+          echo "changed=true" >> "${GITHUB_OUTPUT}"
+        fi
