@@ -36,21 +36,25 @@ export function StatusExample() {
 				<ToolCall.Trigger>
 					<ToolCall.Name>get_traffic_policy</ToolCall.Name>
 				</ToolCall.Trigger>
+				<ToolCall.Content>Reading Traffic Policy for the endpoint.</ToolCall.Content>
 			</ToolCall.Root>
 			<ToolCall.Root status="done" className="w-full max-w-2xl">
 				<ToolCall.Trigger>
 					<ToolCall.Name>list_endpoints</ToolCall.Name>
 				</ToolCall.Trigger>
+				<ToolCall.Content>Found 5 endpoints.</ToolCall.Content>
 			</ToolCall.Root>
 			<ToolCall.Root status="failed" className="w-full max-w-2xl">
 				<ToolCall.Trigger>
 					<ToolCall.Name>list_domains</ToolCall.Name>
 				</ToolCall.Trigger>
+				<ToolCall.Content>The request timed out. Try again.</ToolCall.Content>
 			</ToolCall.Root>
 			<ToolCall.Root status="interrupted" className="w-full max-w-2xl">
 				<ToolCall.Trigger>
 					<ToolCall.Name>list_agents</ToolCall.Name>
 				</ToolCall.Trigger>
+				<ToolCall.Content>The answer stopped before the result arrived.</ToolCall.Content>
 			</ToolCall.Root>
 		</PreviewCanvas>
 	);

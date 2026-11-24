@@ -7,7 +7,7 @@ import type { ToolCallStatus } from "./tool-call.js";
 
 function Call({ status, name = "list_endpoints" }: { status: ToolCallStatus; name?: string }) {
 	return (
-		<ToolCall.Root status={status}>
+		<ToolCall.Root status={status} data-status="running">
 			<ToolCall.Trigger>
 				<ToolCall.Name>{name}</ToolCall.Name>
 			</ToolCall.Trigger>
@@ -58,32 +58,63 @@ describe("ToolCall", () => {
 		expect(screen.getByText("list_endpoints")).toHaveAttribute("translate", "no");
 	});
 
-	test("Name with asChild renders the child and merges props", () => {
-		const ref = vi.fn<(node: HTMLElement | null) => void>();
-		render(
-			<ToolCall.Root status="done">
-				<ToolCall.Trigger>
-					<ToolCall.Name asChild ref={ref} className="name-class">
-						<kbd className="child-class">list_endpoints</kbd>
-					</ToolCall.Name>
-				</ToolCall.Trigger>
-			</ToolCall.Root>,
-		);
+	test.each(["yes", undefined] as const)(
+		"Name with asChild locks translate=%s and merges props",
+		(translate) => {
+			const ref = vi.fn<(node: HTMLElement | null) => void>();
+			render(
+				<ToolCall.Root status="done">
+					<ToolCall.Trigger>
+						<ToolCall.Name asChild ref={ref} className="name-class">
+							<kbd className="child-class" translate={translate} data-slot="consumer-name">
+								list_endpoints
+							</kbd>
+						</ToolCall.Name>
+					</ToolCall.Trigger>
+				</ToolCall.Root>,
+			);
 
-		const name = screen.getByText("list_endpoints");
-		expect(name).toHaveClass("name-class", "child-class");
-		expect(name).toHaveAttribute("data-slot", "tool-call-name");
-		expect(name).toHaveAttribute("translate", "no");
-		expect(ref).toHaveBeenLastCalledWith(name);
-	});
+			const name = screen.getByText("list_endpoints");
+			expect(name).toHaveClass("name-class", "child-class");
+			expect(name.tagName).toBe("KBD");
+			expect(name).toHaveAttribute("data-slot", "tool-call-name consumer-name");
+			expect(name).toHaveAttribute("translate", "no");
+			translateTextNodes(name);
+			expect(name).toHaveTextContent(/^list_endpoints$/);
+			expect(ref).toHaveBeenCalledTimes(1);
+			expect(ref).toHaveBeenLastCalledWith(name);
+		},
+	);
 
-	test("the trigger survives a translated page when the state changes", () => {
+	test("the trigger survives a translated page when the state changes", async () => {
+		const user = userEvent.setup();
 		const { container, rerender } = render(<Call status="running" />);
 		translateTextNodes(container);
+		await user.click(screen.getByRole("button"));
+		expect(screen.getByRole("button")).toHaveAttribute("aria-expanded", "true");
 
 		rerender(<Call status="failed" />);
 
 		expect(screen.getByRole("button")).toHaveTextContent("Failed");
+	});
+
+	test("the trigger survives translated children changing from text to an element", () => {
+		const { container, rerender } = render(
+			<ToolCall.Root status="running">
+				<ToolCall.Trigger>Looking up endpoints</ToolCall.Trigger>
+			</ToolCall.Root>,
+		);
+		translateTextNodes(container);
+
+		rerender(
+			<ToolCall.Root status="done">
+				<ToolCall.Trigger>
+					<span>Found endpoints</span>
+				</ToolCall.Trigger>
+			</ToolCall.Root>,
+		);
+
+		expect(screen.getByRole("button", { name: "Found endpoints Done" })).toBeInTheDocument();
 	});
 
 	test("a part outside Root throws", () => {

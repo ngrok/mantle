@@ -1,12 +1,13 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import type { ReactNode } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import * as Reasoning from "./reasoning-parts.js";
 
-function Thoughts({ streaming, label }: { streaming?: boolean; label?: string }) {
+function Thoughts({ streaming, label }: { streaming?: boolean; label?: ReactNode }) {
 	return (
-		<Reasoning.Root streaming={streaming}>
+		<Reasoning.Root streaming={streaming} data-streaming="">
 			<Reasoning.Trigger>{label}</Reasoning.Trigger>
 			<Reasoning.Content>The user wants endpoints with no policy.</Reasoning.Content>
 		</Reasoning.Root>
@@ -25,6 +26,17 @@ describe("Reasoning", () => {
 		expect(screen.getByRole("button", { name: "Reasoning" })).toBeInTheDocument();
 	});
 
+	test.each([false, ""])("keeps a fallback name for empty children (%s)", (label) => {
+		const { container, rerender } = render(<Thoughts streaming label={label} />);
+		translateTextNodes(container);
+
+		rerender(<Thoughts label={label} />);
+
+		expect(screen.getByRole("button", { name: "Reasoning" })).toBeInTheDocument();
+		rerender(<Thoughts label={0} />);
+		expect(screen.getByRole("button", { name: "0" })).toBeInTheDocument();
+	});
+
 	test("starts closed and opens on a click", async () => {
 		const user = userEvent.setup();
 		render(<Thoughts />);
@@ -36,7 +48,7 @@ describe("Reasoning", () => {
 		expect(trigger).toHaveAttribute("aria-expanded", "true");
 	});
 
-	test("Root stamps data-streaming only while streaming, and parts join data-slot", () => {
+	test("Root owns data-streaming even with a conflicting attribute, and parts join data-slot", () => {
 		const { container, rerender } = render(<Thoughts streaming />);
 		const root = container.querySelector('[data-slot~="reasoning"]');
 		expect(root).toHaveAttribute("data-streaming", "");
@@ -52,13 +64,19 @@ describe("Reasoning", () => {
 		expect(root).not.toHaveAttribute("data-streaming");
 	});
 
-	test("the trigger survives a translated page when the label changes", () => {
+	test("the trigger survives a translated page when the label changes", async () => {
+		const user = userEvent.setup();
 		const { container, rerender } = render(<Thoughts streaming />);
 		translateTextNodes(container);
+		await user.click(screen.getByRole("button"));
+		expect(screen.getByRole("button")).toHaveAttribute("aria-expanded", "true");
 
 		rerender(<Thoughts label="Thought for 4 seconds" />);
 
 		expect(screen.getByRole("button")).toHaveTextContent("Thought for 4 seconds");
+		translateTextNodes(container);
+		rerender(<Thoughts label={<span>Thought for 8 seconds</span>} />);
+		expect(screen.getByRole("button", { name: "Thought for 8 seconds" })).toBeInTheDocument();
 	});
 
 	test("a part outside Root throws", () => {

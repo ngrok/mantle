@@ -38,7 +38,7 @@ function AnswerReasoning() {
 
 ## When to use
 
-- Show the reasoning a model wrote before its answer, inside a [Message](/components/preview/message).
+- Show the reasoning a model wrote before its answer, inside a chat message.
 - Use [Tool Call](/components/preview/tool-call) for a tool the model called.
 - Prefer [Accordion](/components/data-display/accordion) for titled sections that are not part of a chat answer.
 
@@ -80,10 +80,6 @@ function StreamingReasoning() {
 
 </Example>
 
-## Translation
-
-`Reasoning.Trigger` renders a caret beside its label. The label sits in a `display: contents` wrapper, `data-slot="reasoning-trigger-label"`, so a page that a browser translates survives the change from "Thinking…".
-
 ## Composition
 
 ```text showLineNumbers=false
@@ -95,6 +91,10 @@ Reasoning.Root
 ## Polymorphism
 
 No part takes `asChild`. Each one renders more than one element, or an element beside its children.
+
+## Translation
+
+`Reasoning.Trigger` renders a caret beside its label. The label sits in a `display: contents` wrapper, `data-slot="reasoning-trigger-label"`, so a page that a browser translates survives the change from "Thinking…".
 
 ## API Reference
 
@@ -114,7 +114,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### Reasoning.Trigger
 
-The one-line label that opens and closes the reasoning.
+The disclosure label reads "Thinking…" and pulses while streaming, then shows its children or "Reasoning" when empty.
 
 All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes) except `type`.
 
@@ -124,6 +124,6 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 
 ### Reasoning.Content
 
-The reasoning text, in muted type. Find-in-page reaches it while it is closed.
+The model's summary, as plain text or Markdown in muted type. Find-in-page reaches it while it is closed.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).

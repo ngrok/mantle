@@ -33,8 +33,7 @@ type ReasoningRootProps = Omit<ComponentProps<"div">, "defaultValue"> &
 
 /**
  * The model's reasoning, folded under a one-line label so the answer stays
- * what the reader sees first. It starts closed. Open it to read how the model
- * got to its answer.
+ * what the reader sees first. It starts closed.
  *
  * | Data Attribute   | Value                     | Description                                  |
  * | ---------------- | ------------------------- | -------------------------------------------- |
@@ -62,9 +61,9 @@ function Root({
 		<ReasoningContext value={streaming}>
 			<Accordion.Root
 				data-slot={joinDataSlot(dataSlot, "reasoning")}
-				data-streaming={streaming ? "" : undefined}
 				className={cx("w-full", className)}
 				{...props}
+				data-streaming={streaming ? "" : undefined}
 			>
 				<Accordion.Item value="reasoning">{children}</Accordion.Item>
 			</Accordion.Root>
@@ -78,9 +77,8 @@ function Root({
 type ReasoningTriggerProps = Omit<ComponentProps<"button">, "type"> & WithDataSlot;
 
 /**
- * The one-line label that opens and closes the reasoning. It reads
- * "Thinking…" and pulses while the reasoning streams. After that it shows its
- * children, or "Reasoning" when it has none, such as "Thought for 4 seconds".
+ * The disclosure label reads "Thinking…" and pulses while streaming, then
+ * shows its children or "Reasoning" when empty.
  *
  * The label sits in a `display: contents` wrapper,
  * `data-slot="reasoning-trigger-label"`, so a translated page survives the
@@ -99,6 +97,7 @@ type ReasoningTriggerProps = Omit<ComponentProps<"button">, "type"> & WithDataSl
 // Why no asChild: the trigger renders its caret beside the label.
 function Trigger({ "data-slot": dataSlot, children, className, ...props }: ReasoningTriggerProps) {
 	const streaming = useReasoningStreaming("Trigger");
+	const label = typeof children === "boolean" || children === "" ? undefined : children;
 
 	return (
 		<Accordion.Trigger
@@ -111,7 +110,7 @@ function Trigger({ "data-slot": dataSlot, children, className, ...props }: Reaso
 			{...props}
 		>
 			<span data-slot="reasoning-trigger-label" className="contents">
-				{streaming ? "Thinking…" : (children ?? "Reasoning")}
+				{streaming ? "Thinking…" : (label ?? "Reasoning")}
 			</span>
 			<Accordion.TriggerIcon className="size-3" />
 		</Accordion.Trigger>
@@ -124,8 +123,8 @@ function Trigger({ "data-slot": dataSlot, children, className, ...props }: Reaso
 type ReasoningContentProps = ComponentProps<"div"> & WithDataSlot;
 
 /**
- * The reasoning text, in muted type. Put the model's summary here, as plain
- * text or Markdown. Find-in-page reaches it while it is closed.
+ * The model's summary, as plain text or Markdown in muted type.
+ * Find-in-page reaches it while it is closed.
  *
  * @see https://mantle.ngrok.com/components/preview/reasoning#reasoningcontent
  *

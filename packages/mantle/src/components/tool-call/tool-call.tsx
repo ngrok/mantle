@@ -5,7 +5,7 @@ import { MinusCircleIcon } from "@phosphor-icons/react/MinusCircle";
 import { WrenchIcon } from "@phosphor-icons/react/Wrench";
 import { XCircleIcon } from "@phosphor-icons/react/XCircle";
 import type { ComponentProps, ReactElement } from "react";
-import { createContext, use } from "react";
+import { cloneElement, createContext, isValidElement, use } from "react";
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -64,8 +64,7 @@ type ToolCallRootProps = Omit<ComponentProps<"div">, "defaultValue"> &
 
 /**
  * One tool call of an answer, folded under a row that names the tool and its
- * state. It starts closed. Open it to read what the model sent the tool and
- * what came back.
+ * state. It starts closed.
  *
  * | Data Attribute | Value                                              | Description                                       |
  * | -------------- | -------------------------------------------------- | ------------------------------------------------- |
@@ -95,9 +94,9 @@ function Root({ "data-slot": dataSlot, children, className, status, ...props }: 
 		<ToolCallContext value={status}>
 			<Accordion.Root
 				data-slot={joinDataSlot(dataSlot, "tool-call")}
-				data-status={status}
 				className={cx("w-full", className)}
 				{...props}
+				data-status={status}
 			>
 				<Accordion.Item value="tool-call">{children}</Accordion.Item>
 			</Accordion.Root>
@@ -111,9 +110,7 @@ function Root({ "data-slot": dataSlot, children, className, status, ...props }: 
 type ToolCallTriggerProps = Omit<ComponentProps<"button">, "type"> & WithDataSlot;
 
 /**
- * The row that opens and closes the call. It shows an icon for the state,
- * its children (the tool's name, and a duration if you have one), the state
- * as a word, and a caret.
+ * The disclosure row shows a state icon, its children, a state label, and a caret.
  *
  * The children sit in a `display: contents` wrapper,
  * `data-slot="tool-call-trigger-label"`, so a translated page survives a
@@ -184,8 +181,19 @@ type ToolCallNameProps = Omit<ComponentProps<"code">, "translate"> & WithAsChild
  * </ToolCall.Root>
  * ```
  */
-function Name({ "data-slot": dataSlot, asChild = false, className, ...props }: ToolCallNameProps) {
+function Name({
+	"data-slot": dataSlot,
+	asChild = false,
+	children,
+	className,
+	...props
+}: ToolCallNameProps) {
 	const Component = asChild ? Slot : "code";
+	// Why: Slot gives child props precedence, so the identifier's lock must also reach the child.
+	const content =
+		asChild && isValidElement<ComponentProps<"code">>(children)
+			? cloneElement(children, { translate: "no" })
+			: children;
 
 	return (
 		<Component
@@ -193,7 +201,9 @@ function Name({ "data-slot": dataSlot, asChild = false, className, ...props }: T
 			className={cx("text-strong min-w-0 truncate font-mono", className)}
 			{...props}
 			translate="no"
-		/>
+		>
+			{content}
+		</Component>
 	);
 }
 

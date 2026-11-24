@@ -49,7 +49,7 @@ function ListEndpointsCall() {
 
 ## When to use
 
-- Show a tool that a model called while it answered, inside a [Message](/components/preview/message).
+- Show a tool that a model called while it answered, inside a chat message.
 - Use [Reasoning](/components/preview/reasoning) for the reasoning the model wrote.
 - Prefer [Accordion](/components/data-display/accordion) for titled sections that are not part of a chat answer.
 
@@ -69,21 +69,25 @@ function ToolCallStates() {
 				<ToolCall.Trigger>
 					<ToolCall.Name>get_traffic_policy</ToolCall.Name>
 				</ToolCall.Trigger>
+				<ToolCall.Content>Reading Traffic Policy for the endpoint.</ToolCall.Content>
 			</ToolCall.Root>
 			<ToolCall.Root status="done" className="w-full max-w-2xl">
 				<ToolCall.Trigger>
 					<ToolCall.Name>list_endpoints</ToolCall.Name>
 				</ToolCall.Trigger>
+				<ToolCall.Content>Found 5 endpoints.</ToolCall.Content>
 			</ToolCall.Root>
 			<ToolCall.Root status="failed" className="w-full max-w-2xl">
 				<ToolCall.Trigger>
 					<ToolCall.Name>list_domains</ToolCall.Name>
 				</ToolCall.Trigger>
+				<ToolCall.Content>The request timed out. Try again.</ToolCall.Content>
 			</ToolCall.Root>
 			<ToolCall.Root status="interrupted" className="w-full max-w-2xl">
 				<ToolCall.Trigger>
 					<ToolCall.Name>list_agents</ToolCall.Name>
 				</ToolCall.Trigger>
+				<ToolCall.Content>The answer stopped before the result arrived.</ToolCall.Content>
 			</ToolCall.Root>
 		</div>
 	);
@@ -91,10 +95,6 @@ function ToolCallStates() {
 ```
 
 </Example>
-
-## Translation
-
-`ToolCall.Name` sets `translate="no"`, because a tool's name is an identifier. `ToolCall.Trigger` renders an icon, the state, and a caret beside its children. The children sit in a `display: contents` wrapper, `data-slot="tool-call-trigger-label"`, so a page that a browser translates survives a change to them.
 
 ## Composition
 
@@ -108,6 +108,10 @@ ToolCall.Root
 ## Polymorphism
 
 `ToolCall.Name` takes `asChild`. The other parts do not: each renders more than one element, or an element beside its children.
+
+## Translation
+
+`ToolCall.Name` sets `translate="no"`, because a tool's name is an identifier. `ToolCall.Trigger` renders an icon, the state, and a caret beside its children. The children sit in a `display: contents` wrapper, `data-slot="tool-call-trigger-label"`, so a page that a browser translates survives a change to them.
 
 ## API Reference
 
@@ -127,7 +131,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 
 ### ToolCall.Trigger
 
-The row that opens and closes the call: an icon for the state, the children, the state as a word, and a caret.
+The disclosure row shows a state icon, its children, a state label, and a caret.
 
 All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes) except `type`.
 
