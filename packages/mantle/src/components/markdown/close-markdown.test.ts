@@ -62,6 +62,14 @@ describe("closeMarkdown", () => {
 		["- item\n\n    more **b", "- item\n\n    more **b**"],
 		["-     print([1", "-     print([1"],
 		["1.     print([1", "1.     print([1"],
+		["-\t\tprint([1", "-\t\tprint([1"],
+		["- -     print([1", "- -     print([1"],
+		["```text\n    ```\nprint([1", "```text\n    ```\nprint([1"],
+		["**bold *italic***", "**bold *italic***"],
+		["> | a | b |\n> | --- | --- |", "> | a | b |\n> | --- | --- |"],
+		["Press <kbd>Ctrl</kb", "Press <kbd>Ctrl</kbd>"],
+		["**<kbd>Ct", "**<kbd>Ct</kbd>**"],
+		["<span>x", "<span>x"],
 	])("%j → %j", (text, expected) => {
 		expect(close(text)).toBe(expected);
 	});
