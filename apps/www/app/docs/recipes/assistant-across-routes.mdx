@@ -264,11 +264,146 @@ set for any UI animation.
 
 Mantle owns these numbers. `AppLayout.Content` and `AppLayout.SidePanel` both carry
 `view-transition-class: app-layout-card`, and `mantle.css` styles that class: 300ms on mantle's
-ease-out-strong curve, the curve the panel's own slide uses, with the frame clipped to the card's rounded
-corners and each snapshot at its own width, so the text crossfades instead of stretching. Under
-`prefers-reduced-motion: reduce` the morph is a cut, the same as every `motion-reduce:` rule in mantle.
-There is no stylesheet to import. The class does nothing until a card has a name, so a page that names no
-card never takes part.
+ease-out-strong curve, the curve the panel's own slide uses. The frame is the card: it paints the card's
+surface and edge, clips to its rounded corners, and grows or shrinks from its start edge. Each snapshot
+keeps its own width and sits at the frame's end edge, so the panel stays where it is while the page grows
+out of it, and the text crossfades instead of stretching. The old snapshot fades out in 150ms, so two
+layouts of the same text do not show through each other. Under `prefers-reduced-motion: reduce` the morph
+is a cut, the same as every `motion-reduce:` rule in mantle. The class does nothing until a card has a
+name, so a page that names no card never takes part.
+
+## One panel, not two
+
+The card morph alone still reads as two panels: the header's controls fade from one layout to the other.
+The page and the panel are different elements, so the recipe names the pieces both homes have, and each
+one moves on its own from where it sits in one home to where it sits in the other:
+
+- **The title** rides the card's start edge.
+- **The new conversation button** stays at the end edge. On the page it is the last control.
+- **The composer** grows from its end edge, where the send button is in both homes.
+- **The close button** belongs to the panel only. It slides out past the end edge when the panel grows
+  into the page, and slides back in when the page folds into the panel.
+
+Each piece is a `<ViewTransition>` with `default="none"`, so it animates only when its name pairs across
+a crossing. A panel piece takes its name only while the panel is open: a closed panel has no header to
+move, and leaving the assistant's route with it closed fades the page out. The close button takes a CSS
+`view-transition-name` instead of a boundary, because React runs no enter or exit for a boundary inside
+one it shares, and this button has no pair on the page.
+
+The pieces need one stylesheet. Import it after `mantle.css`:
+
+```css
+/*
+ * The pieces of the assistant's chrome that both homes have: the title, the
+ * new conversation button, and the composer. Each moves on its own from where
+ * it sits in one home to where it sits in the other, on the card's clock, at
+ * its own size: a stretched snapshot blurs its text.
+ */
+::view-transition-group(.assistant-part),
+::view-transition-old(.assistant-part),
+::view-transition-new(.assistant-part) {
+	animation-duration: 300ms;
+	animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/*
+ * The assistant's card paints above the page card that comes in or goes out
+ * beside it, so the page never shows through the card while it moves. Its
+ * pieces paint above the card.
+ */
+::view-transition-group(assistant) {
+	z-index: 1;
+}
+
+::view-transition-group(.assistant-part),
+::view-transition-group(assistant-close) {
+	z-index: 2;
+}
+
+::view-transition-old(.assistant-part),
+::view-transition-new(.assistant-part) {
+	width: auto;
+	height: auto;
+}
+
+/*
+ * The composer is wider on the page. Its box grows from the inline end, where
+ * the send button is in both homes, and clips the snapshots inside it.
+ */
+::view-transition-group(.assistant-composer) {
+	overflow: clip;
+	border-radius: var(--radius-lg, 0.5rem);
+}
+
+::view-transition-old(.assistant-composer),
+::view-transition-new(.assistant-composer) {
+	inset-inline-start: auto;
+	inset-inline-end: 0;
+}
+
+/* The old text fades out first, as the card's does, so two placeholders never show. */
+::view-transition-old(.assistant-composer) {
+	animation-duration: 150ms;
+}
+
+/*
+ * The close button belongs to the panel only. When the panel grows into the
+ * page it slides out past the inline end, and it slides back in when the page
+ * folds into the panel, so the header reads as one panel that keeps its edge.
+ * `:only-child` limits this to a crossing: a theme switch captures the button
+ * in both states, and it stays put.
+ */
+::view-transition-group(assistant-close) {
+	animation-duration: 300ms;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	::view-transition-old(assistant-close):only-child {
+		animation: assistant-close-out 300ms cubic-bezier(0.23, 1, 0.32, 1) both;
+	}
+
+	::view-transition-new(assistant-close):only-child {
+		animation: assistant-close-in 300ms cubic-bezier(0.23, 1, 0.32, 1) both;
+	}
+}
+
+/*
+ * It moves by about its own width and is gone by the middle, so it leaves
+ * through the card's edge without showing past it. Why not nest it in the
+ * card's group to clip it: a nested group follows the card's start edge, and
+ * the card grows from there.
+ */
+@keyframes assistant-close-out {
+	60%,
+	to {
+		opacity: 0;
+	}
+	to {
+		translate: 1.25rem 0;
+	}
+}
+
+@keyframes assistant-close-in {
+	from {
+		opacity: 0;
+		translate: 1.25rem 0;
+	}
+	40% {
+		opacity: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-group(.assistant-part),
+	::view-transition-old(.assistant-part),
+	::view-transition-new(.assistant-part),
+	::view-transition-group(assistant-close),
+	::view-transition-old(assistant-close),
+	::view-transition-new(assistant-close) {
+		animation: none;
+	}
+}
+```
 
 ## Server rendering
 
@@ -314,7 +449,7 @@ The demo narrows both to `md`; most apps keep the `lg` default.
 
 ## The files
 
-Two files to copy. `assistant-across-routes.tsx` is the two homes, the content card, and the path
+Two files to copy, with the stylesheet above. `assistant-across-routes.tsx` is the two homes, the content card, and the path
 helpers; nothing in it touches the router.
 `assistant-conversation.tsx` is the store and the two pieces of chat UI; nothing in it knows where it
 renders.
@@ -322,6 +457,7 @@ renders.
 ````tsx
 import { AppLayout, useSidePanel } from "@ngrok/mantle/app-layout";
 import { IconButton } from "@ngrok/mantle/button";
+import { cx } from "@ngrok/mantle/cx";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { Tooltip } from "@ngrok/mantle/tooltip";
 import { PencilSimpleLineIcon } from "@phosphor-icons/react/PencilSimpleLine";
@@ -419,24 +555,30 @@ function AssistantContentCard({
 }
 
 /** The control that starts a new conversation, in both headers. */
-function NewConversationButton() {
+function NewConversationButton({ open = true }: { open?: boolean }) {
 	const { reset } = useAssistantConversation();
 
 	return (
-		<Tooltip.Root>
-			<Tooltip.Trigger asChild>
-				<IconButton
-					type="button"
-					appearance="ghost"
-					intent="neutral"
-					size="sm"
-					icon={<PencilSimpleLineIcon />}
-					label="New conversation"
-					onClick={reset}
-				/>
-			</Tooltip.Trigger>
-			<Tooltip.Content>New conversation</Tooltip.Content>
-		</Tooltip.Root>
+		<ViewTransition
+			name={open ? "assistant-new-conversation" : undefined}
+			default="none"
+			share="assistant-part"
+		>
+			<Tooltip.Root>
+				<Tooltip.Trigger asChild>
+					<IconButton
+						type="button"
+						appearance="ghost"
+						intent="neutral"
+						size="sm"
+						icon={<PencilSimpleLineIcon />}
+						label="New conversation"
+						onClick={reset}
+					/>
+				</Tooltip.Trigger>
+				<Tooltip.Content>New conversation</Tooltip.Content>
+			</Tooltip.Root>
+		</ViewTransition>
 	);
 }
 
@@ -465,7 +607,9 @@ function AssistantPage() {
 					<Sidebar.Trigger />
 				</AppLayout.HeaderStart>
 				<AppLayout.HeaderContent>
-					<h1 className="text-strong text-sm font-medium">Assistant</h1>
+					<ViewTransition name="assistant-title" default="none" share="assistant-part">
+						<h1 className="text-strong text-sm font-medium">Assistant</h1>
+					</ViewTransition>
 				</AppLayout.HeaderContent>
 				<AppLayout.HeaderActions>
 					<NewConversationButton />
@@ -477,7 +621,13 @@ function AssistantPage() {
 				<div className="flex min-h-full flex-col">
 					<AssistantTranscript onSend={openCompanion} />
 					<div className="bg-card sticky bottom-0 mt-auto shrink-0 px-3 pt-2 pb-3">
-						<AssistantComposer className="mx-auto w-full max-w-xl" onSend={openCompanion} />
+						<ViewTransition
+							name="assistant-composer"
+							default="none"
+							share="assistant-part assistant-composer"
+						>
+							<AssistantComposer className="mx-auto w-full max-w-xl" onSend={openCompanion} />
+						</ViewTransition>
 					</div>
 				</div>
 			</AppLayout.Body>
@@ -521,15 +671,33 @@ function AssistantPanel({
 		>
 			<AppLayout.SidePanel aria-label="Assistant" mobileBreakpoint={mobileBreakpoint}>
 				<AppLayout.SidePanelHeader>
-					<h2 className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</h2>
-					<NewConversationButton />
-					<AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
+					<ViewTransition
+						name={open ? "assistant-title" : undefined}
+						default="none"
+						share="assistant-part"
+					>
+						<h2 className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</h2>
+					</ViewTransition>
+					<NewConversationButton open={open} />
+					<AppLayout.SidePanelTrigger
+						icon={<XIcon />}
+						label="Close the assistant"
+						// Why a CSS name, not a boundary: React runs no exit or enter for a
+						// boundary inside one it shares, and this button has no pair in the page.
+						className={cx(open && "[view-transition-name:assistant-close]")}
+					/>
 				</AppLayout.SidePanelHeader>
 				<AppLayout.SidePanelBody>
 					<AssistantTranscript />
 				</AppLayout.SidePanelBody>
 				<AppLayout.SidePanelFooter>
-					<AssistantComposer />
+					<ViewTransition
+						name={open ? "assistant-composer" : undefined}
+						default="none"
+						share="assistant-part assistant-composer"
+					>
+						<AssistantComposer />
+					</ViewTransition>
 				</AppLayout.SidePanelFooter>
 			</AppLayout.SidePanel>
 		</ViewTransition>

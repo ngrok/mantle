@@ -1,0 +1,110 @@
+/*
+ * The pieces of the assistant's chrome that both homes have: the title, the
+ * new conversation button, and the composer. Each moves on its own from where
+ * it sits in one home to where it sits in the other, on the card's clock, at
+ * its own size: a stretched snapshot blurs its text.
+ */
+::view-transition-group(.assistant-part),
+::view-transition-old(.assistant-part),
+::view-transition-new(.assistant-part) {
+	animation-duration: 300ms;
+	animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/*
+ * The assistant's card paints above the page card that comes in or goes out
+ * beside it, so the page never shows through the card while it moves. Its
+ * pieces paint above the card.
+ */
+::view-transition-group(assistant) {
+	z-index: 1;
+}
+
+::view-transition-group(.assistant-part),
+::view-transition-group(assistant-close) {
+	z-index: 2;
+}
+
+::view-transition-old(.assistant-part),
+::view-transition-new(.assistant-part) {
+	width: auto;
+	height: auto;
+}
+
+/*
+ * The composer is wider on the page. Its box grows from the inline end, where
+ * the send button is in both homes, and clips the snapshots inside it.
+ */
+::view-transition-group(.assistant-composer) {
+	overflow: clip;
+	border-radius: var(--radius-lg, 0.5rem);
+}
+
+::view-transition-old(.assistant-composer),
+::view-transition-new(.assistant-composer) {
+	inset-inline-start: auto;
+	inset-inline-end: 0;
+}
+
+/* The old text fades out first, as the card's does, so two placeholders never show. */
+::view-transition-old(.assistant-composer) {
+	animation-duration: 150ms;
+}
+
+/*
+ * The close button belongs to the panel only. When the panel grows into the
+ * page it slides out past the inline end, and it slides back in when the page
+ * folds into the panel, so the header reads as one panel that keeps its edge.
+ * `:only-child` limits this to a crossing: a theme switch captures the button
+ * in both states, and it stays put.
+ */
+::view-transition-group(assistant-close) {
+	animation-duration: 300ms;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	::view-transition-old(assistant-close):only-child {
+		animation: assistant-close-out 300ms cubic-bezier(0.23, 1, 0.32, 1) both;
+	}
+
+	::view-transition-new(assistant-close):only-child {
+		animation: assistant-close-in 300ms cubic-bezier(0.23, 1, 0.32, 1) both;
+	}
+}
+
+/*
+ * It moves by about its own width and is gone by the middle, so it leaves
+ * through the card's edge without showing past it. Why not nest it in the
+ * card's group to clip it: a nested group follows the card's start edge, and
+ * the card grows from there.
+ */
+@keyframes assistant-close-out {
+	60%,
+	to {
+		opacity: 0;
+	}
+	to {
+		translate: 1.25rem 0;
+	}
+}
+
+@keyframes assistant-close-in {
+	from {
+		opacity: 0;
+		translate: 1.25rem 0;
+	}
+	40% {
+		opacity: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-group(.assistant-part),
+	::view-transition-old(.assistant-part),
+	::view-transition-new(.assistant-part),
+	::view-transition-group(assistant-close),
+	::view-transition-old(assistant-close),
+	::view-transition-new(assistant-close) {
+		animation: none;
+	}
+}

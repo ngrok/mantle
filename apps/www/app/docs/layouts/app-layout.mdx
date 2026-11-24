@@ -1096,8 +1096,9 @@ card.
 An assistant can also be a page of its own. [Assistant Across Routes](/recipes/assistant-across-routes)
 renders one conversation in `main` on the assistant's route and in this panel on every other route, with a
 View Transition between the two. `AppLayout.Content` and `AppLayout.SidePanel` both carry
-`view-transition-class: app-layout-card`, and `mantle.css` styles the morph between them: 300ms, clipped to
-the card's corners, with no stretched text, and a cut under reduced motion. The app only gives the two the
+`view-transition-class: app-layout-card`, and `mantle.css` styles the morph between them: 300ms, one card
+surface that grows or shrinks from its start edge while the content keeps its end edge, clipped to the card's
+corners, with no stretched text, and a cut under reduced motion. The app only gives the two the
 same `view-transition-name`.
 
 <Example name="app-layout-side-panel" title="Side panel demo">
