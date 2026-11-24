@@ -134,6 +134,8 @@ type ComboboxInputProps = Omit<ComponentProps<"input">, "value" | "defaultValue"
 /**
  * Renders a combobox input element for filtering a list of items.
  *
+ * A click or a Tab into the input opens the list. Focus from script does not.
+ *
  * When the combobox is open, Enter selects the active option or does nothing. It
  * never submits a parent form. `autoSelect` defaults to `"always"`, so the first
  * matching option is active and Enter replaces the typed text with it. For free-text
@@ -185,6 +187,7 @@ const Input = ({
 	onChange,
 	onClick,
 	onKeyDown,
+	onKeyUp,
 	ref,
 	validation: _validation,
 	...props
@@ -238,6 +241,7 @@ const Input = ({
 			onChange={composeHandlers(onChange, inputProps.onChange)}
 			onClick={composeHandlers(onClick, inputProps.onClick)}
 			onKeyDown={composeHandlers(onKeyDown, inputProps.onKeyDown)}
+			onKeyUp={composeHandlers(onKeyUp, inputProps.onKeyUp)}
 		/>
 	);
 };

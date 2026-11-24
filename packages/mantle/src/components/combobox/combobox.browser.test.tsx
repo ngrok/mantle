@@ -726,4 +726,53 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		await userEvent.keyboard("F");
 		await expect.poll(() => popup.dataset.side).toBe("top");
 	});
+	test("a Tab into the input opens the list as a click does; focus from script, a pick, and Escape do not", async () => {
+		render(
+			<>
+				<button type="button">Before</button>
+				<DomainCombobox />
+			</>,
+		);
+		const input = screen.getByRole("combobox", { name: "Domain" });
+		input.focus();
+		expect(input).toHaveAttribute("aria-expanded", "false");
+		screen.getByRole("button", { name: "Before" }).focus();
+
+		await userEvent.keyboard("{Tab}");
+		expect(input).toHaveFocus();
+		expect(input).toHaveAttribute("aria-expanded", "true");
+		expect(activeOption(input)).toHaveTextContent("acme.ngrok.app");
+
+		await userEvent.keyboard("{Escape}");
+		expect(input).toHaveAttribute("aria-expanded", "false");
+		await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+		await userEvent.keyboard("{Tab}");
+		expect(input).toHaveAttribute("aria-expanded", "true");
+
+		await userEvent.keyboard("{Enter}");
+		expect(input).toHaveValue("acme.ngrok.app");
+		expect(input).toHaveAttribute("aria-expanded", "false");
+	});
+
+	test("Shift+Tab from the footer back to the input keeps the list open", async () => {
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Release" />
+				<Combobox.Content>
+					<Combobox.Item value="v1.2.0" />
+					<Combobox.ContentFooter>
+						<button type="button">Load more</button>
+					</Combobox.ContentFooter>
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Release" });
+		await userEvent.click(input);
+		await userEvent.keyboard("{Tab}");
+		await userEvent.keyboard("{Shift>}{Tab}{/Shift}");
+		expect(input).toHaveFocus();
+		expect(input).toHaveAttribute("aria-expanded", "true");
+		await userEvent.keyboard("{Escape}");
+		expect(input).toHaveAttribute("aria-expanded", "false");
+	});
 });

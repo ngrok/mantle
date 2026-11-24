@@ -8,6 +8,31 @@ import * as Field from "../field/field-parts.js";
 import * as Combobox from "./combobox-parts.js";
 
 describe("Combobox", () => {
+	test("a Tab into the input opens the list; focus from script does not", async () => {
+		const user = userEvent.setup();
+		render(
+			<>
+				<button type="button">Before</button>
+				<Combobox.Root>
+					<Combobox.Input aria-label="Fruit" />
+					<Combobox.Content>
+						<Combobox.Item value="Apple" />
+					</Combobox.Content>
+				</Combobox.Root>
+			</>,
+		);
+		const input = screen.getByRole("combobox", { name: "Fruit" });
+		act(() => input.focus());
+		expect(input).toHaveAttribute("aria-expanded", "false");
+		act(() => screen.getByRole("button", { name: "Before" }).focus());
+
+		await user.tab();
+
+		expect(input).toHaveFocus();
+		expect(input).toHaveAttribute("aria-expanded", "true");
+		expect(screen.getByRole("option", { name: "Apple" })).toBeInTheDocument();
+	});
+
 	test('given validation="error", renders the input with aria-invalid="true" and data-validation="error"', () => {
 		render(
 			<Combobox.Root>

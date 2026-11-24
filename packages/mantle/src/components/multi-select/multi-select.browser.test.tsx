@@ -707,4 +707,29 @@ describe("MultiSelect.Item label slot (browser)", () => {
 			style.remove();
 		}
 	});
+	test("a Tab into the input opens the list; focus from script does not", async () => {
+		render(
+			<>
+				<button type="button">Before</button>
+				<MultiSelect.Root>
+					<MultiSelect.Trigger>
+						<MultiSelect.Input aria-label="Fruits" />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+					</MultiSelect.Content>
+				</MultiSelect.Root>
+			</>,
+		);
+		const input = screen.getByRole("combobox", { name: "Fruits" });
+		input.focus();
+		expect(input).toHaveAttribute("aria-expanded", "false");
+		screen.getByRole("button", { name: "Before" }).focus();
+
+		await browserUser.keyboard("{Tab}");
+
+		expect(input).toHaveFocus();
+		expect(input).toHaveAttribute("aria-expanded", "true");
+		expect(screen.getByRole("option", { name: "Apple" })).toBeInTheDocument();
+	});
 });

@@ -143,6 +143,8 @@ const useCombobox = ({
  * `autoSelect` gives the first option the highlight as the text changes, so
  * Enter picks it. `"always"` also highlights it when the list opens.
  *
+ * A click or a Tab into the input opens the list. Focus from script does not.
+ *
  * @example
  * ```tsx
  * const inputProps = useComboboxInput(combobox, { autoSelect: "always" });
@@ -194,6 +196,15 @@ const useComboboxInput = (
 		},
 		onClick: () => {
 			if (!open) {
+				openTo(autoSelect === "always" ? "first" : null);
+			}
+		},
+		onKeyUp: (event: KeyboardEvent<HTMLInputElement>) => {
+			// Why the keyup: Tab's keyup lands on the control that Tab focused, so a Tab
+			// into the field opens the list as a click does. Focus from script, such as a
+			// dialog's autofocus or the return from the footer, opens nothing.
+			const modified = event.altKey || event.ctrlKey || event.metaKey;
+			if (event.key === "Tab" && !modified && !open) {
 				openTo(autoSelect === "always" ? "first" : null);
 			}
 		},

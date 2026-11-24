@@ -656,6 +656,7 @@ const Input = ({
 	onClick,
 	onFocus,
 	onKeyDown,
+	onKeyUp,
 	placeholder,
 	ref,
 	...props
@@ -684,6 +685,7 @@ const Input = ({
 				placeholder={selected.length > 0 ? undefined : placeholder}
 				onChange={composeHandlers(onChange, inputProps.onChange)}
 				onClick={composeHandlers(onClick, inputProps.onClick)}
+				onKeyUp={composeHandlers(onKeyUp, inputProps.onKeyUp)}
 				onFocus={composeHandlers(onFocus, (event) => {
 					// Why only from a tag: focus that returns from a tag keeps the list
 					// open. Focus from outside, such as a dialog's autofocus, opens nothing.
