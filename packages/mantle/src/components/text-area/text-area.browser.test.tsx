@@ -6,7 +6,8 @@ import { TextArea } from "./text-area.js";
 
 /**
  * Mirrors the CSS Tailwind 4 emits for the utilities `TextArea` uses for its
- * `appearance="monospaced"` variant and its `data-drag-over` state, paired with
+ * `appearance="monospaced"` variant, its default minimum height, and its
+ * `data-drag-over` state, paired with
  * Tailwind's built-in `data-drag-over:` presence variant. We inline it
  * instead of importing the full mantle stylesheet so the test stays hermetic
  * and doesn't require a Tailwind build step in the test pipeline.
@@ -27,6 +28,7 @@ const STYLE = `
 @layer utilities {
 	.font-sans { font-family: ui-sans-serif, sans-serif; }
 	.font-mono { font-family: ui-monospace, monospace; }
+	.min-h-24 { min-height: 6rem; }
 	.data-drag-over\\:border-dashed[data-drag-over] { border-style: dashed; }
 }
 `;
@@ -81,5 +83,23 @@ describe("TextArea drag-over styling", () => {
 
 		fireEvent.dragLeave(textArea);
 		expect(getComputedStyle(textArea).borderStyle).not.toBe("dashed");
+	});
+});
+
+describe("TextArea height", () => {
+	test("rows sets the height, and the field without rows is at least 6rem tall", () => {
+		// Why: the test page has no preflight, so the browser's padding and border would add to each height.
+		const style = { border: 0, lineHeight: "20px", padding: 0 };
+		render(
+			<>
+				<TextArea aria-label="Feedback" style={style} />
+				<TextArea aria-label="Prompt" rows={1} style={style} />
+			</>,
+		);
+
+		expect(screen.getByRole("textbox", { name: "Feedback" }).getBoundingClientRect().height).toBe(
+			96,
+		);
+		expect(screen.getByRole("textbox", { name: "Prompt" }).getBoundingClientRect().height).toBe(20);
 	});
 });
