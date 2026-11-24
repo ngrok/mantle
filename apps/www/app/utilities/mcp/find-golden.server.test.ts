@@ -34,6 +34,8 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 		"a ton of real estate to one column while the others are tight and narrow": "Design Principles",
 		"better proximity for related controls": "Design Principles",
 		"less space inside a group than between groups": "Design Principles",
+		"the rows feel bigger and looser than the design": "Design Principles",
+		"only the endpoint ID, which is hard to recognize at a glance": "Design Principles",
 	},
 	Layouts: {
 		"app shell sidebar header": "App Layout",
