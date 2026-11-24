@@ -82,6 +82,11 @@ export const previewExamples = {
 			import("./assistant-across-routes-demo").then((module) => module.AssistantAcrossRoutesDemo),
 		sourceFile: "assistant-across-routes-demo.tsx",
 	},
+	chat: {
+		title: "Chat demo",
+		load: () => import("./chat-demo").then((module) => module.ChatDemo),
+		sourceFile: "chat-demo.tsx",
+	},
 	"centered-layout": {
 		title: "Centered layout demo",
 		load: () => import("./centered-layout-demos").then((module) => module.CenteredLayoutDemo),
