@@ -2182,8 +2182,9 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
  *
  * It is a page transition, so it runs for 300ms, on ease-out-strong. The frame
  * clips its snapshots at the card's radius. Each snapshot keeps its own width
- * at the frame's top-start corner: a 24rem panel stretched across the page
- * reads as a zoom of blurred text. Reduced motion makes it a cut.
+ * at the frame's end edge: a 24rem panel stretched across the page reads as a
+ * zoom of blurred text, and the panel keeps its edge while the page grows out
+ * of it. Reduced motion makes it a cut.
  */
 ::view-transition-group(*.app-layout-card),
 ::view-transition-old(*.app-layout-card),
@@ -2193,38 +2194,106 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 	animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
+/*
+ * The frame draws the card's edge, and its snapshots sit 1px out under it, so
+ * each snapshot's own border is under the frame's.
+ */
 ::view-transition-group(*.app-layout-card) {
+	box-sizing: border-box;
 	overflow: clip;
+	border: 1px solid var(--border-color-card-muted);
 	border-radius: var(--radius-xl, 0.75rem);
-	/* The frame is the card: its surface grows and shrinks the whole way while
-	   the snapshots crossfade inside it, and nothing behind shows through. */
-	background-color: var(--background-color-card);
-	box-shadow: inset 0 0 0 1px var(--color-card-border-muted);
 }
 
 ::view-transition-old(*.app-layout-card),
 ::view-transition-new(*.app-layout-card) {
 	width: auto;
+	inset-block-start: -1px;
 	inset-inline-start: auto;
-	inset-inline-end: 0;
-	/* The frame draws the card's edge. A snapshot's own border would show as a
-	   second card inside the frame while it is wider than the snapshot. */
-	clip-path: inset(1px round calc(var(--radius-xl, 0.75rem) - 1px));
+	inset-inline-end: -1px;
 }
 
 /*
- * The old snapshot fades out in half the time, so the two layouts of the same
- * text do not show through each other while the frame moves.
+ * When the page and the panel pair, the new snapshot is the card: an outline
+ * in the card's surface color fills the frame around it and covers its own
+ * border, and it stays opaque, so nothing behind shows through while the frame
+ * moves. The old snapshot sits on top without its border and fades out in
+ * 150ms, so two layouts of the same text do not show through each other.
+ *
+ * A card that enters or leaves alone is an only child, and it only fades, so
+ * no empty card stays behind. Why not `:not(:only-child)` on the paired rules:
+ * a view transition pseudo-element takes no `:not()`, and the browser drops
+ * the whole rule.
  */
-::view-transition-old(*.app-layout-card) {
-	animation-duration: 150ms;
+@media (prefers-reduced-motion: no-preference) {
+	::view-transition-new(*.app-layout-card) {
+		border-radius: var(--radius-xl, 0.75rem);
+		outline: 100vmax solid var(--background-color-card);
+		outline-offset: -1px;
+		mix-blend-mode: normal;
+		animation: none;
+	}
+
+	::view-transition-old(*.app-layout-card) {
+		z-index: 1;
+		clip-path: inset(1px round calc(var(--radius-xl, 0.75rem) - 1px));
+		mix-blend-mode: normal;
+		animation: mantle-app-layout-card-fade-out 150ms cubic-bezier(0.23, 1, 0.32, 1) both;
+	}
+
+	::view-transition-new(*.app-layout-card):only-child {
+		outline: none;
+		animation: mantle-app-layout-card-fade-in 300ms cubic-bezier(0.23, 1, 0.32, 1) both;
+	}
+
+	::view-transition-old(*.app-layout-card):only-child {
+		clip-path: none;
+		animation-duration: 300ms;
+	}
 }
 
+@keyframes mantle-app-layout-card-fade-in {
+	from {
+		opacity: 0;
+	}
+}
+
+@keyframes mantle-app-layout-card-fade-out {
+	to {
+		opacity: 0;
+	}
+}
+
+/*
+ * A docked panel keeps its end gutter inside its box, so its snapshot would be
+ * wider than its card and the morph would show two end edges. While a view
+ * transition runs, the gutter moves to the box's margin and the card fills the
+ * box. The card renders in the same place, and the snapshot is the card.
+ * Why `max-width`: a change to `flex-basis` would run the panel's slide.
+ */
+:root:active-view-transition [data-slot~="app-layout-side-panel"][data-open] {
+	max-width: var(--_side-panel-content-width);
+	margin-right: var(--_side-panel-content-inset);
+}
+
+:root:active-view-transition [data-slot~="app-layout-side-panel"][data-open] > * {
+	right: 0;
+}
+
+/*
+ * Reduced motion is a cut. The old snapshot hides at once: another animation
+ * on the page can keep the transition running, and a still snapshot would
+ * show over the new one until it ends.
+ */
 @media (prefers-reduced-motion: reduce) {
 	::view-transition-group(*.app-layout-card),
 	::view-transition-old(*.app-layout-card),
 	::view-transition-new(*.app-layout-card) {
 		animation: none;
+	}
+
+	::view-transition-old(*.app-layout-card) {
+		opacity: 0;
 	}
 }
 

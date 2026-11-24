@@ -264,13 +264,14 @@ set for any UI animation.
 
 Mantle owns these numbers. `AppLayout.Content` and `AppLayout.SidePanel` both carry
 `view-transition-class: app-layout-card`, and `mantle.css` styles that class: 300ms on mantle's
-ease-out-strong curve, the curve the panel's own slide uses. The frame is the card: it paints the card's
-surface and edge, clips to its rounded corners, and grows or shrinks from its start edge. Each snapshot
-keeps its own width and sits at the frame's end edge, so the panel stays where it is while the page grows
-out of it, and the text crossfades instead of stretching. The old snapshot fades out in 150ms, so two
-layouts of the same text do not show through each other. Under `prefers-reduced-motion: reduce` the morph
-is a cut, the same as every `motion-reduce:` rule in mantle. The class does nothing until a card has a
-name, so a page that names no card never takes part.
+ease-out-strong curve, the curve the panel's own slide uses. The frame draws the card's edge, clips to its
+rounded corners, and grows or shrinks from its start edge. Each snapshot keeps its own width and sits at the
+frame's end edge, so the panel stays where it is while the page grows out of it, and the text crossfades
+instead of stretching. When the page and the panel pair, the new snapshot fills the frame with the card's
+surface and stays opaque, and the old one fades out on top of it in 150ms, so two layouts of the same text
+do not show through each other. A card that enters or leaves alone only fades. Under
+`prefers-reduced-motion: reduce` the morph is a cut, the same as every `motion-reduce:` rule in mantle. The
+class does nothing until a card has a name, so a page that names no card never takes part.
 
 ## One panel, not two
 
@@ -357,6 +358,17 @@ The pieces need one stylesheet. Import it after `mantle.css`:
 	animation-duration: 300ms;
 }
 
+/* The end edge is on the left in a right-to-left page. */
+::view-transition-old(assistant-close),
+::view-transition-new(assistant-close) {
+	--assistant-close-shift: 1.25rem;
+}
+
+:root:dir(rtl)::view-transition-old(assistant-close),
+:root:dir(rtl)::view-transition-new(assistant-close) {
+	--assistant-close-shift: -1.25rem;
+}
+
 @media (prefers-reduced-motion: no-preference) {
 	::view-transition-old(assistant-close):only-child {
 		animation: assistant-close-out 300ms cubic-bezier(0.23, 1, 0.32, 1) both;
@@ -379,14 +391,14 @@ The pieces need one stylesheet. Import it after `mantle.css`:
 		opacity: 0;
 	}
 	to {
-		translate: 1.25rem 0;
+		translate: var(--assistant-close-shift) 0;
 	}
 }
 
 @keyframes assistant-close-in {
 	from {
 		opacity: 0;
-		translate: 1.25rem 0;
+		translate: var(--assistant-close-shift) 0;
 	}
 	40% {
 		opacity: 0;
@@ -401,6 +413,12 @@ The pieces need one stylesheet. Import it after `mantle.css`:
 	::view-transition-old(assistant-close),
 	::view-transition-new(assistant-close) {
 		animation: none;
+	}
+
+	/* Another animation can keep the transition running; a still old piece would show. */
+	::view-transition-old(.assistant-part),
+	::view-transition-old(assistant-close) {
+		opacity: 0;
 	}
 }
 ```
