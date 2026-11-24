@@ -321,7 +321,8 @@ function observeMove(element: HTMLElement, onMove: () => void): () => void {
  *
  * A float that scrolls, such as a list that `--available-height` caps, is
  * sized by its content height (`scrollHeight`), so it can still move to the
- * side with more room.
+ * side with more room. A float that scrolls a child instead marks that child
+ * with `data-float-scroll`.
  *
  * Each frame it writes on the float `data-side` (the side it resolved to),
  * `--anchor-width`, `--anchor-height`, `--available-height`, and a `transform-origin` at the
@@ -366,12 +367,6 @@ function trackFloat({
 	// `left` and `top` start at that element. An open animation sets and clears
 	// the transform, so each placement looks again.
 	const inTopLayer = "togglePopover" in HTMLElement.prototype;
-	// Why only a float that scrolls: in one that does not, `scrollHeight` also
-	// counts an arrow that sticks out below it, which the gap already counts.
-	// Why only above or below: beside the anchor, the height only aligns the
-	// float, and the rendered height is the one to align.
-	const sizeByContent =
-		(side === "top" || side === "bottom") && getComputedStyle(floating).overflowY !== "visible";
 
 	/** The anchor box and viewport size of the last placement, to see a move. */
 	let placedFor = "";
@@ -402,8 +397,19 @@ function trackFloat({
 		floating.style.setProperty("--anchor-height", `${anchorBox.height}px`);
 		const width = floating.offsetWidth;
 		const height = floating.offsetHeight;
+		// Why a scroll child, found on each placement: a popup with a fixed part, such
+		// as a footer, scrolls an inner element marked `data-float-scroll`, which an
+		// `asChild` list can replace while the popup stays open.
+		const scroller =
+			floating.querySelector<HTMLElement>(":scope > [data-float-scroll]") ?? floating;
+		// Why only a float that scrolls: in one that does not, `scrollHeight` also
+		// counts an arrow that sticks out below it, which the gap already counts.
+		// Why only above or below: beside the anchor, the height only aligns the
+		// float, and the rendered height is the one to align.
+		const sizeByContent =
+			(side === "top" || side === "bottom") && getComputedStyle(scroller).overflowY !== "visible";
 		const contentHeight = sizeByContent
-			? floating.scrollHeight + height - floating.clientHeight
+			? scroller.scrollHeight + height - scroller.clientHeight
 			: height;
 		const viewport = {
 			width: document.documentElement.clientWidth / zoom,
