@@ -60,6 +60,8 @@ function DraftAttachments() {
 
 Set `busy` on `Attachment.Root` while your app reads a file, and show a [Skeleton](/components/feedback/skeleton) in place of `Attachment.Preview`. The chip sets `aria-busy`.
 
+Set `data-slot="attachment-preview"` on the skeleton so it occupies the preview's grid cell.
+
 <Example name="components/preview/attachment/busy" title="Attachment busy example">
 
 ```tsx
@@ -71,7 +73,7 @@ function ReadingAttachment() {
 		<>
 			<Attachment.List aria-label="Attachments">
 				<Attachment.Root busy>
-					<Skeleton className="size-8 rounded" />
+					<Skeleton data-slot="attachment-preview" className="size-8 rounded" />
 					<Attachment.Name>screenshot.png</Attachment.Name>
 					<Attachment.Size bytes={482_000} />
 				</Attachment.Root>
@@ -82,10 +84,6 @@ function ReadingAttachment() {
 ```
 
 </Example>
-
-## Translation
-
-`Attachment.Name` sets `translate="no"`, because a file name is an identifier.
 
 ## Composition
 
@@ -102,6 +100,10 @@ Attachment.List
 
 `Attachment.List`, `Attachment.Root`, and `Attachment.Name` take `asChild`. `Attachment.Preview` picks between an image and an icon, `Attachment.Size` renders its own text, and `Attachment.Remove` owns its icon, so those three do not.
 
+## Translation
+
+`Attachment.Name` sets `translate="no"`, because a file name is an identifier.
+
 ## API Reference
 
 ### Attachment.List
@@ -114,6 +116,10 @@ All props from [ul](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ul
 | ---------- | --------- | ------- | ------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Render as a different element by passing a child. |
 
+| Data Attribute | Value               | Description                              |
+| -------------- | ------------------- | ---------------------------------------- |
+| `data-slot`    | `"attachment-list"` | On the list, joined with ancestor slots. |
+
 ### Attachment.Root
 
 One attached file. The chip lays out its parts by their `data-slot`: the preview on the left, the name over the size, and the remove button on the right.
@@ -125,11 +131,19 @@ All props from [li](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/li
 | `busy?`    | `boolean` | `false` | True while your app reads the file. The chip sets `aria-busy`. |
 | `asChild?` | `boolean` | `false` | Render as a different element by passing a child.              |
 
+| Data Attribute | Value          | Description                              |
+| -------------- | -------------- | ---------------------------------------- |
+| `data-slot`    | `"attachment"` | On the chip, joined with ancestor slots. |
+
 ### Attachment.Preview
 
 A 32-pixel thumbnail of an image file, or a file icon when `src` is not set. It is decorative.
 
 All props from [img](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#attributes) except `alt`, `width`, and `height`.
+
+| Data Attribute | Value                  | Description                                               |
+| -------------- | ---------------------- | --------------------------------------------------------- |
+| `data-slot`    | `"attachment-preview"` | On the image or icon wrapper, joined with ancestor slots. |
 
 ### Attachment.Name
 
@@ -141,6 +155,10 @@ All props from [span](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/
 | ---------- | --------- | ------- | ------------------------------------------------- |
 | `asChild?` | `boolean` | `false` | Render as a different element by passing a child. |
 
+| Data Attribute | Value               | Description                              |
+| -------------- | ------------------- | ---------------------------------------- |
+| `data-slot`    | `"attachment-name"` | On the name, joined with ancestor slots. |
+
 ### Attachment.Size
 
 The file's size, such as "1.5 KB".
@@ -151,8 +169,21 @@ All props from [span](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/
 | ------- | -------- | ------- | ----------------------------------- |
 | `bytes` | `number` |         | The file's size in bytes. Required. |
 
+| Data Attribute | Value               | Description                              |
+| -------------- | ------------------- | ---------------------------------------- |
+| `data-slot`    | `"attachment-size"` | On the size, joined with ancestor slots. |
+
 ### Attachment.Remove
 
-The button that removes the file. Name the file in `label`, such as "Remove report.pdf".
+The button that removes a file from a draft message. Name the file in the required `label`, such as "Remove report.pdf".
 
 All props from [Icon Button](/components/actions/icon-button) except `appearance`, `asChild`, `icon`, `intent`, and `type`. `label` is required.
+
+| Data Attribute     | Value                                                     | Description                                |
+| ------------------ | --------------------------------------------------------- | ------------------------------------------ |
+| `data-slot`        | `"attachment-remove icon-button"`                         | On the button, joined with ancestor slots. |
+| `data-icon-button` | `"true"`                                                  | Inherited from `IconButton`.               |
+| `data-appearance`  | `"ghost"`                                                 | The button's appearance.                   |
+| `data-intent`      | `"neutral"`                                               | The button's tone.                         |
+| `data-size`        | `"2xs"` \| `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop; defaults to `"sm"`.       |
+| `data-loading`     | present when `isLoading`                                  | Inherited from `IconButton`.               |

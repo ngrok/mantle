@@ -21,6 +21,10 @@ type AttachmentListProps = ComponentProps<"ul"> & WithAsChild & WithDataSlot;
  * The list of files attached to a message, as chips that wrap. Name it, such
  * as `aria-label="Attachments"`.
  *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"attachment-list"` | On the list, joined with ancestor slots. |
+ *
  * @see https://mantle.ngrok.com/components/preview/attachment#attachmentlist
  *
  * @example
@@ -77,6 +81,10 @@ type AttachmentRootProps = ComponentProps<"li"> &
  * remove button. The chip lays its parts out by their `data-slot`, so they
  * can come in any order.
  *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"attachment"` | On the chip, joined with ancestor slots. |
+ *
  * @see https://mantle.ngrok.com/components/preview/attachment#attachmentroot
  *
  * @example
@@ -111,7 +119,9 @@ function Root({
 			aria-busy={busy || undefined}
 			className={cx(
 				"border-card bg-card grid max-w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 rounded-lg border py-1.5 ps-1.5 pe-1",
-				"[&>[data-slot~=attachment-preview]]:row-span-2 [&>[data-slot~=attachment-remove]]:col-start-3 [&>[data-slot~=attachment-remove]]:row-span-2 [&>[data-slot~=attachment-remove]]:row-start-1",
+				"[&>[data-slot~=attachment-preview]]:col-start-1 [&>[data-slot~=attachment-preview]]:row-span-2 [&>[data-slot~=attachment-preview]]:row-start-1",
+				"[&>[data-slot~=attachment-name]]:col-start-2 [&>[data-slot~=attachment-name]]:row-start-1 [&>[data-slot~=attachment-size]]:col-start-2 [&>[data-slot~=attachment-size]]:row-start-2",
+				"[&>[data-slot~=attachment-remove]]:col-start-3 [&>[data-slot~=attachment-remove]]:row-span-2 [&>[data-slot~=attachment-remove]]:row-start-1",
 				className,
 			)}
 			{...props}
@@ -128,6 +138,10 @@ type AttachmentPreviewProps = Omit<ComponentProps<"img">, "alt" | "children" | "
 /**
  * A 32-pixel thumbnail of an image file, or a file icon when `src` is not
  * set. It is decorative: `Attachment.Name` names the file.
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"attachment-preview"` | On the image or icon wrapper, joined with ancestor slots. |
  *
  * @see https://mantle.ngrok.com/components/preview/attachment#attachmentpreview
  *
@@ -159,6 +173,7 @@ function Preview({ "data-slot": dataSlot, className, src, ...props }: Attachment
 					"text-muted flex size-8 items-center justify-center rounded bg-neutral-500/8",
 					className,
 				)}
+				{...props}
 			>
 				<Icon svg={<FileTextIcon />} className="size-4" />
 			</span>
@@ -185,6 +200,10 @@ type AttachmentNameProps = Omit<ComponentProps<"span">, "translate"> & WithAsChi
 /**
  * The file's name. It truncates when the chip is narrow, and never
  * translates. Set `title` to show the whole name on hover.
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"attachment-name"` | On the name, joined with ancestor slots. |
  *
  * @see https://mantle.ngrok.com/components/preview/attachment#attachmentname
  *
@@ -235,6 +254,10 @@ type AttachmentSizeProps = Omit<ComponentProps<"span">, "children"> &
 /**
  * The file's size, such as "1.5 KB", under its name.
  *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"attachment-size"` | On the size, joined with ancestor slots. |
+ *
  * @see https://mantle.ngrok.com/components/preview/attachment#attachmentsize
  *
  * @example
@@ -276,10 +299,17 @@ type AttachmentRemoveProps = Omit<
 >;
 
 /**
- * The button that removes the file from the message. `label` is required,
- * because the button shows only an icon: name the file, such as
- * "Remove report.pdf". Leave it out where the file cannot be removed, such as
- * in a sent message.
+ * The button that removes a file from a draft message.
+ * Name the file in the required `label`, such as "Remove report.pdf".
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"attachment-remove icon-button"` | On the button, joined with ancestor slots. |
+ * | `data-icon-button` | `"true"` | Inherited from `IconButton`. |
+ * | `data-appearance` | `"ghost"` | The button's appearance. |
+ * | `data-intent` | `"neutral"` | The button's tone. |
+ * | `data-size` | `"2xs"` \| `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop; defaults to `"sm"`. |
+ * | `data-loading` | present when `isLoading` | Inherited from `IconButton`. |
  *
  * @see https://mantle.ngrok.com/components/preview/attachment#attachmentremove
  *

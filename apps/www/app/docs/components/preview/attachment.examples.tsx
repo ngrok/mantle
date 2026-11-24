@@ -38,7 +38,7 @@ export function BusyExample() {
 		<PreviewCanvas>
 			<Attachment.List aria-label="Attachments">
 				<Attachment.Root busy>
-					<Skeleton className="size-8 rounded" />
+					<Skeleton data-slot="attachment-preview" className="size-8 rounded" />
 					<Attachment.Name>screenshot.png</Attachment.Name>
 					<Attachment.Size bytes={482_000} />
 				</Attachment.Root>

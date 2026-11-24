@@ -81,13 +81,16 @@ export function StopExample() {
 /** A composer that takes files from the attach button, a drop on the frame, or a paste. */
 export function AttachExample() {
 	const [draft, setDraft] = useState("");
-	const [files, setFiles] = useState<File[]>([]);
+	const [files, setFiles] = useState<{ id: string; file: File }[]>([]);
 
 	return (
 		<PreviewCanvas>
 			<PromptInput.Root
 				className="w-full max-w-2xl"
-				onFilesAdd={(added) => setFiles((current) => [...current, ...added])}
+				onFilesAdd={(added) => {
+					const entries = added.map((file) => ({ id: crypto.randomUUID(), file }));
+					setFiles((current) => [...current, ...entries]);
+				}}
 				onSubmit={(event) => {
 					event.preventDefault();
 					if (draft.trim() === "" && files.length === 0) {
@@ -99,16 +102,14 @@ export function AttachExample() {
 			>
 				{files.length > 0 && (
 					<Attachment.List aria-label="Attachments" className="px-3 pt-3">
-						{files.map((file, index) => (
-							<Attachment.Root key={`${file.name}-${file.lastModified}-${file.size}`}>
+						{files.map(({ id, file }) => (
+							<Attachment.Root key={id}>
 								<Attachment.Preview />
 								<Attachment.Name title={file.name}>{file.name}</Attachment.Name>
 								<Attachment.Size bytes={file.size} />
 								<Attachment.Remove
 									label={`Remove ${file.name}`}
-									onClick={() =>
-										setFiles((current) => current.filter((_, position) => position !== index))
-									}
+									onClick={() => setFiles((current) => current.filter((entry) => entry.id !== id))}
 								/>
 							</Attachment.Root>
 						))}

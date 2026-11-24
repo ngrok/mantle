@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import type { MouseEvent } from "react";
 import { describe, expect, test, vi } from "vitest";
 import * as Attachment from "./attachment-parts.js";
 
@@ -50,6 +51,33 @@ describe("Attachment", () => {
 		expect(container.querySelector('[data-slot="attachment-preview"]')).not.toHaveAttribute("src");
 		expect(container.querySelector('[data-slot="attachment-preview"] svg')).toBeInTheDocument();
 	});
+
+	test.each([undefined, "https://example.com/shot.png"])(
+		"Preview forwards attributes, its ref, and events (src=%s)",
+		async (src) => {
+			const user = userEvent.setup();
+			const ref = vi.fn<(node: HTMLElement | null) => void>();
+			const onClick = vi.fn<(event: MouseEvent) => void>();
+			render(
+				<Attachment.Preview
+					src={src}
+					title="File preview"
+					data-testid="preview"
+					data-slot="outer"
+					ref={ref}
+					onClick={onClick}
+				/>,
+			);
+
+			const preview = screen.getByTestId("preview");
+			expect(preview).toHaveAttribute("title", "File preview");
+			expect(preview).toHaveAttribute("data-slot", "outer attachment-preview");
+			expect(ref).toHaveBeenLastCalledWith(preview);
+			await user.click(preview);
+			expect(onClick).toHaveBeenCalledTimes(1);
+			expect(onClick).toHaveBeenLastCalledWith(expect.objectContaining({ target: preview }));
+		},
+	);
 
 	test("Root sets aria-busy only while busy", () => {
 		const { rerender } = render(<Attachment.Root busy />);

@@ -342,6 +342,27 @@ describe("PromptInput file intake", () => {
 		expect(notPrevented).toBe(false);
 	});
 
+	test("a mixed paste adds files and inserts text at the selection", async () => {
+		const user = userEvent.setup();
+		const onFilesAdd = vi.fn<(files: File[]) => void>();
+		render(<FileComposer onFilesAdd={onFilesAdd} />);
+		const field = screen.getByRole("textbox", { name: "Message" });
+		await user.type(field, "before replace after");
+		if (!(field instanceof HTMLTextAreaElement)) {
+			throw new Error("The message field is not a textarea.");
+		}
+		field.setSelectionRange(7, 14);
+		const clipboard = new DataTransfer();
+		clipboard.setData("text/plain", "inserted");
+		clipboard.items.add(report);
+
+		await user.paste(clipboard);
+
+		expect(onFilesAdd).toHaveBeenCalledTimes(1);
+		expect(onFilesAdd).toHaveBeenLastCalledWith([report]);
+		expect(field).toHaveValue("before inserted after");
+	});
+
 	test("a paste of text alone is left to the field", () => {
 		const onFilesAdd = vi.fn<(files: File[]) => void>();
 		render(<FileComposer onFilesAdd={onFilesAdd} />);

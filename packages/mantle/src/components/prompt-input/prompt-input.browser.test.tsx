@@ -1,10 +1,58 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { expect, test, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { Tooltip } from "../tooltip/index.js";
 import * as PromptInput from "./prompt-input-parts.js";
+
+// Why browser mode: an iframe has its own DOM constructors.
+test("a file drag stays active over children in an iframe and ends outside it", async () => {
+	const frame = document.createElement("iframe");
+	frame.srcdoc = "<!doctype html><title>Composer</title>";
+	await new Promise((resolve) => {
+		frame.addEventListener("load", resolve, { once: true });
+		document.body.append(frame);
+	});
+	const frameDocument = frame.contentDocument;
+	const frameWindow = frameDocument?.defaultView;
+	if (frameDocument == null || frameWindow == null) {
+		throw new Error("The frame has no document.");
+	}
+	const onFilesAdd = vi.fn<(files: File[]) => void>();
+	const { unmount } = render(
+		createPortal(
+			<PromptInput.Root aria-label="Composer" onFilesAdd={onFilesAdd}>
+				<PromptInput.TextArea aria-label="Message" />
+			</PromptInput.Root>,
+			frameDocument.body,
+		),
+	);
+	try {
+		const fields = within(frameDocument.body);
+		const form = fields.getByRole("form", { name: "Composer" });
+		const field = fields.getByRole("textbox", { name: "Message" });
+		const dataTransfer = new frameWindow.DataTransfer();
+		dataTransfer.items.add(new File(["report"], "report.txt"));
+		await act(async () =>
+			form.dispatchEvent(
+				new frameWindow.DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer }),
+			),
+		);
+		expect(form).toHaveAttribute("data-drag-over", "");
+		await act(async () => fireEvent.dragLeave(form, { relatedTarget: field, dataTransfer }));
+		expect(form).toHaveAttribute("data-drag-over", "");
+		await act(async () =>
+			fireEvent.dragLeave(field, { relatedTarget: frameDocument.body, dataTransfer }),
+		);
+		expect(form).not.toHaveAttribute("data-drag-over");
+		fireEvent.drop(frameDocument.body, { dataTransfer });
+		expect(onFilesAdd).toHaveBeenCalledTimes(0);
+	} finally {
+		unmount();
+		frame.remove();
+	}
+});
 
 // Why browser mode: these tests depend on native form activation and constraint validation.
 test("Enter activates the default button and preserves its submitter overrides", async () => {

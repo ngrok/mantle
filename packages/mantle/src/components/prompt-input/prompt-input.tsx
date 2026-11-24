@@ -66,7 +66,7 @@ type PromptInputRootProps = ComponentProps<"form"> &
 	PromptInputStreaming & {
 		/**
 		 * Receives the files a person attaches: from `PromptInput.AttachButton`,
-		 * a drop on the frame, or a paste into the field. Set it to take files.
+		 * a drop on the frame, or a paste into the field.
 		 * Reading, checking, and storing them stays with the app.
 		 */
 		onFilesAdd?: (files: File[]) => void;
@@ -157,8 +157,10 @@ function Root({
 				onDragLeave={(event: DragEvent<HTMLFormElement>) => {
 					onDragLeave?.(event);
 					// Why the check: a drag from the frame into a child fires `dragleave` on the frame.
+					const NodeConstructor = event.currentTarget.ownerDocument.defaultView?.Node;
 					if (
-						!(event.relatedTarget instanceof Node) ||
+						NodeConstructor == null ||
+						!(event.relatedTarget instanceof NodeConstructor) ||
 						!event.currentTarget.contains(event.relatedTarget)
 					) {
 						setDragOver(false);
@@ -266,7 +268,9 @@ function PromptInputTextArea({
 				) {
 					return;
 				}
-				event.preventDefault();
+				if (event.clipboardData.getData("text/plain") === "") {
+					event.preventDefault();
+				}
 				onFilesAdd(Array.from(event.clipboardData.files));
 			}}
 			onKeyDown={(event) => {
@@ -524,6 +528,15 @@ type PromptInputAttachButtonProps = Omit<
  * The button that opens the file picker. The files a person picks go to
  * `onFilesAdd` on `PromptInput.Root`, which this part requires. Put it in
  * `PromptInput.Footer`.
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"prompt-input-attach-button icon-button"` | On the button, joined with ancestor slots. |
+ * | `data-icon-button` | `"true"` | Inherited from `IconButton`. |
+ * | `data-appearance` | `"ghost"` | The button's appearance. |
+ * | `data-intent` | `"neutral"` | The button's tone. |
+ * | `data-size` | `"2xs"` \| `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop; defaults to `"sm"`. |
+ * | `data-loading` | present when `isLoading` | Inherited from `IconButton`. |
  *
  * @see https://mantle.ngrok.com/components/preview/prompt-input#promptinputattachbutton
  *
