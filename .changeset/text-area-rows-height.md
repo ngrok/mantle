@@ -2,4 +2,11 @@
 "@ngrok/mantle": patch
 ---
 
-`TextArea`: the native `rows` attribute now sets the height of the field. Before, a `6rem` minimum height overrode `rows={1}`, `rows={2}`, and `rows={3}`. A `TextArea` without `rows` keeps the `6rem` minimum height and looks the same. If you set a small `rows` value and want the old height, remove `rows` or add `className="min-h-24"`. With `field-sizing-content`, supporting browsers ignore `rows` of any size, so an empty field shrinks to one line. To keep the old minimum there, add `min-h-24`.
+`TextArea` grows with its text, and the native `rows` attribute sets its minimum height.
+
+- The field grows as the person types, up to `15rem` (`max-h-60`), then scrolls. Set a `max-h-*` class to change the cap. Browsers without `field-sizing` keep a fixed height and scroll, as before.
+- `rows` sets the minimum height in lines, so `rows={1}` and `rows={2}` now give a compact field. Before, a `6rem` minimum height overrode `rows={1}`, `rows={2}`, and `rows={3}`.
+- A `TextArea` without `rows` keeps the `6rem` minimum height.
+- A drag on the resize handle cannot make the field shorter than its minimum height.
+
+If you set a small `rows` value and want the old height, remove `rows` or add `className="min-h-24"`. If you want a fixed height that does not grow, add `className="field-sizing-fixed"`.

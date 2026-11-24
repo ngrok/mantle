@@ -253,8 +253,8 @@ function PromptInputTextArea({
 			rows={rows}
 			className={cx(
 				"field-sizing-content max-h-48 min-h-16 resize-none rounded-none border-0 bg-transparent px-3 pt-3 pb-1 shadow-none",
-				// Why: the base field's touch padding is a variant, so it would win over `pt-3 pb-1`.
-				"pointer-coarse:pt-3 pointer-coarse:pb-1",
+				// Why: the base field's touch padding and minimum height are variants, so they would win over `pt-3 pb-1 min-h-16`.
+				"pointer-coarse:pt-3 pointer-coarse:pb-1 pointer-coarse:min-h-16",
 				// The frame on `PromptInput.Root` draws focus and a drop target, so the field draws neither.
 				"focus-visible:ring-0 data-drag-over:ring-0",
 				className,
