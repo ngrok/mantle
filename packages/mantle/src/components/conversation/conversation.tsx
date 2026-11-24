@@ -317,9 +317,10 @@ function followEnd(
 		follow();
 	});
 	const onScroll = () => {
-		if (distanceFromEnd() <= END_THRESHOLD) {
+		// Why `>= lastTop`: the first step of a smooth scroll up can still be near the end.
+		if (distanceFromEnd() <= END_THRESHOLD && viewport.scrollTop >= lastTop) {
 			isFollowing = true;
-		} else if (viewport.scrollTop < lastTop) {
+		} else if (viewport.scrollTop < lastTop && distanceFromEnd() > END_THRESHOLD) {
 			isFollowing = false;
 			smoothTarget = null;
 		}
