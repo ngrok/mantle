@@ -51,6 +51,7 @@ export const previewModules: Readonly<Record<string, () => Promise<unknown>>> = 
 	"@ngrok/mantle/list": () => import("@ngrok/mantle/list"),
 	"@ngrok/mantle/live-region": () => import("@ngrok/mantle/live-region"),
 	"@ngrok/mantle/main": () => import("@ngrok/mantle/main"),
+	"@ngrok/mantle/markdown": () => import("@ngrok/mantle/markdown"),
 	"@ngrok/mantle/media-object": () => import("@ngrok/mantle/media-object"),
 	"@ngrok/mantle/multi-select": () => import("@ngrok/mantle/multi-select"),
 	"@ngrok/mantle/otp-input": () => import("@ngrok/mantle/otp-input"),

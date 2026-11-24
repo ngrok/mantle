@@ -222,6 +222,9 @@ export default defineConfig((options) => [
 			...compoundParts.entries,
 			...utilPackages,
 			"code-block_highlight-utils": "./src/components/code-block/highlight-utils.ts",
+			// Why an entry with no subpath: `useCodeBlockStream` starts it as a module worker from
+			// `new URL("./highlight-worker.js", import.meta.url)`, which names this file beside its chunk.
+			"highlight-worker": "./src/components/code-block/highlight-worker.ts",
 			// Why: `package.json#imports` maps `#qr-code-encoder` to one of these two files by the `browser` condition.
 			"qr-code-encoder": "./src/components/qr-code/qr-code-encoder.ts",
 			"qr-code-encoder.browser": "./src/components/qr-code/qr-code-encoder.browser.ts",

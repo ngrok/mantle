@@ -98,6 +98,22 @@ export type {
 
 export {
 	//,
+	useCodeBlockStream,
+} from "./use-code-block-stream.js";
+
+export type {
+	//,
+	UseCodeBlockStreamOptions,
+} from "./use-code-block-stream.js";
+
+export type {
+	//,
+	CodeLine,
+	CodeToken,
+} from "./line-tokenizer.js";
+
+export {
+	//,
 	jsonCodeBlockValue,
 	jsonToShikiHtml,
 } from "./json-highlight.js";

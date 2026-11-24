@@ -274,6 +274,11 @@
 			"types": "./dist/main.d.ts",
 			"import": "./dist/main.js"
 		},
+		"./markdown": {
+			"@ngrok/src-live-types": "./src/components/markdown/index.ts",
+			"types": "./dist/markdown.d.ts",
+			"import": "./dist/markdown.js"
+		},
 		"./media-object": {
 			"@ngrok/src-live-types": "./src/components/media-object/index.ts",
 			"types": "./dist/media-object.d.ts",
@@ -510,9 +515,13 @@
 		"typecheck": "tsrs && tsrs -p tsconfig.node.json"
 	},
 	"dependencies": {
+		"@shikijs/core": "4.6.0",
+		"@shikijs/engine-javascript": "4.6.0",
+		"@shikijs/langs": "4.6.0",
 		"@tanstack/react-table": "9.3.1",
 		"@tanstack/react-virtual": "3.14.28",
 		"class-variance-authority": "0.7.1",
+		"marked": "18.2.1",
 		"react-day-picker": "10.0.2",
 		"sonner": "2.0.8",
 		"tiny-invariant": "1.3.3",

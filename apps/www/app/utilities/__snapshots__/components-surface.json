@@ -1220,6 +1220,36 @@
     "useWhen": "Mark the primary content of a page as a focusable `<main>` landmark that a skip link can move focus to."
   },
   {
+    "name": "Markdown",
+    "slug": "components/data-display/markdown",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/markdown",
+    "summary": "Renders Markdown from a model as it streams, with mantle's CodeBlock, Table, and Anchor for its fences, tables, and links.",
+    "jsdoc": "Renders Markdown from a model, as it streams.",
+    "examples": [
+      "```tsx\nimport { Markdown } from \"@ngrok/mantle/markdown\";\n\nfunction Answer({ text, isStreaming }: { text: string; isStreaming: boolean }) {\n  return <Markdown streaming={isStreaming}>{text}</Markdown>;\n}\n```"
+    ],
+    "aliases": [
+      "streaming markdown",
+      "chat answer",
+      "llm output",
+      "prose"
+    ],
+    "siblings": [
+      {
+        "name": "CodeBlock",
+        "boundary": "the content is one block of code."
+      },
+      {
+        "name": "Typography",
+        "boundary": "you write the prose in the source."
+      }
+    ],
+    "useWhen": "Render Markdown that arrives at runtime, such as a model's answer, as it streams or after."
+  },
+  {
     "name": "Media Object",
     "slug": "components/structure/media-object",
     "kind": "component",
