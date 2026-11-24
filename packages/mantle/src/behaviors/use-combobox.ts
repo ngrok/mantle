@@ -35,13 +35,17 @@ type UseComboboxProps = {
 	textFor?: (value: string) => string | undefined;
 };
 
-/** The text a node shows, without its `aria-hidden` parts, on one line. */
+/** The text a node shows, without its `hidden` and `aria-hidden` parts, on one line. */
 const shownText = (node: Node): string => {
 	const read = (each: Node): string => {
 		if (each.nodeType === Node.TEXT_NODE) {
 			return each.textContent ?? "";
 		}
-		if (!(each instanceof Element) || each.getAttribute("aria-hidden") === "true") {
+		if (
+			!(each instanceof Element) ||
+			each.hasAttribute("hidden") ||
+			each.getAttribute("aria-hidden") === "true"
+		) {
 			return "";
 		}
 		return Array.from(each.childNodes, read).join("");
@@ -99,17 +103,34 @@ const useCombobox = ({
 	/** Returns the value and the text to their defaults, such as on a form reset. */
 	reset: () => void;
 } => {
+	// Why the value as a fallback: an item that is not loaded, or that a component of
+	// your own renders, has no text to read.
 	const textOf = (option: string | undefined) =>
-		option == null || option === "" ? "" : (textFor?.(option) ?? "");
-	// Why a lazy state: the walk for the preset value's text runs once, on the first render.
-	const [initialText] = useState(() =>
-		inputValueProp !== undefined ? "" : (defaultInputValue ?? textOf(valueProp ?? defaultValue)),
+		option == null || option === "" ? "" : (textFor?.(option) ?? option);
+	// Why lazy states: the walks for the preset texts run once, on the first render.
+	// The default's text outlives a filter that later hides its item, for a reset.
+	const [defaultText] = useState(() => defaultInputValue ?? textOf(defaultValue));
+	const [text, setText] = useState(() =>
+		valueProp === undefined || defaultInputValue !== undefined ? defaultText : textOf(valueProp),
 	);
-	const [inputValue, setInputValue] = useControllableState({
-		value: inputValueProp,
-		defaultValue: initialText,
-		onChange: onInputValueChange,
-	});
+	/** The value whose text the input shows, to see a controlled `value` change. */
+	const [shownFor, setShownFor] = useState(valueProp ?? defaultValue);
+	// Why during render: a controlled `value` that the app changes, such as on its own
+	// form reset, shows its item's text in the same render, with no effect.
+	if (inputValueProp === undefined && valueProp !== undefined && valueProp !== shownFor) {
+		setShownFor(valueProp);
+		setText(textOf(valueProp));
+	}
+	const inputValue = inputValueProp ?? text;
+	const setInputValue = (next: string) => {
+		if (Object.is(next, inputValue)) {
+			return;
+		}
+		if (inputValueProp === undefined) {
+			setText(next);
+		}
+		onInputValueChange?.(next);
+	};
 	const [value, setValue] = useControllableState({
 		value: valueProp,
 		defaultValue,
@@ -136,13 +157,15 @@ const useCombobox = ({
 				inputRef.current?.focus();
 			}
 			// Why the option's text: the input shows what the user picked, not an ID.
+			// Why before `setValue`: an `onValueChange` that closes the list removes the option.
 			const option = Array.from(popup?.querySelectorAll('[role="option"]') ?? []).find(
 				(each) => each.getAttribute("data-value") === next,
 			);
+			const picked =
+				(option instanceof HTMLElement && (option.dataset.textValue ?? shownText(option))) || next;
 			setValue(next);
-			const text =
-				option instanceof HTMLElement ? (option.dataset.textValue ?? shownText(option)) : next;
-			setInputValue(text);
+			setShownFor(next);
+			setInputValue(picked);
 			setOpen(false);
 		},
 		ownerRef: inputRef,
@@ -150,7 +173,8 @@ const useCombobox = ({
 	});
 	const reset = () => {
 		setValue(defaultValue ?? "");
-		setInputValue(defaultInputValue ?? textOf(defaultValue));
+		setShownFor(defaultValue);
+		setInputValue(defaultText);
 	};
 	return {
 		value,

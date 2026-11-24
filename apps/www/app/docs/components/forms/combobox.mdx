@@ -341,7 +341,7 @@ All props of a `<div>`, plus:
 
 #### The text a pick writes
 
-A pick writes the text that the item's children show into the input, without their `aria-hidden` parts, such as a decorative icon or avatar. A preset `value` or `defaultValue`, and a form reset, write it too. `value` stays the picked value, so an item can pick an ID and show a name:
+A pick writes the text that the item's children show into the input, without their `hidden` and `aria-hidden` parts, such as a decorative icon or avatar. A preset `value` or `defaultValue`, and a form reset, write it too. `value` stays the picked value, so an item can pick an ID and show a name:
 
 ```tsx
 <Combobox.Item value="usr_7f">
@@ -352,6 +352,8 @@ A pick writes the text that the item's children show into the input, without the
 
 - Filter on that text, because the input holds it after a pick.
 - A preset value reads the elements you wrote. A component with no `children` prop, such as `Combobox.ItemValue` or an icon, adds no text there. An item with no text, a function child, an item that a component of your own renders, and an item that is not loaded yet show `value`.
+- A controlled `value` that changes, such as on your form's own reset, shows its item's text too.
+- Submit the picked value with `name` on `Combobox.Root`. A `name` on `Combobox.Input` submits the text.
 - When the text still reads wrong, such as an email you show but do not want in the input, control `inputValue` and `onInputValueChange` and write the text yourself.
 - The input stays one line. Long text ends with an ellipsis.
 

@@ -1,0 +1,87 @@
+---
+title: Combobox Item Text Migration
+description: "A Combobox pick writes the text that the item's children show into the input, not the item's value. A preset value shows that text too. Filter on the text, and submit the value from Combobox.Root."
+introducedIn: "0.96.0"
+---
+
+# Mantle Combobox Item Text Migration Guide
+
+A pick on `Combobox.Item` wrote the item's `value` into `Combobox.Input`. It now writes the text that the item's children show, without their `hidden` and `aria-hidden` parts, such as a decorative icon or avatar. `value` stays the value that `Combobox.Root` holds and submits. A preset `value` or `defaultValue`, and a form reset, now show the same text, also on the server, where the input was empty before. An item whose children show its `value`, such as `<Combobox.Item value="Apple" />` or `<Combobox.Item value="Apple">Apple</Combobox.Item>`, behaves as before.
+
+**TL;DR:** For each `Combobox.Item` whose children show other text than its `value`: filter on the shown text, not on `value`; submit the picked value with `name` on `Combobox.Root`, not on `Combobox.Input`; delete the `preventDefault()` and `inputValue` code that only kept an ID out of the input; and, when the children show extra text that must not reach the input, control `inputValue`.
+
+## Codemod
+
+Codemod: manual: which items show other text than their value, and what the app does with the input text, is a semantic question that no syntax rule can answer.
+
+---
+
+## You are an agent migrating a codebase. Do this:
+
+1. Find each `Combobox.Item` whose children show other text than its `value`, such as `<Combobox.Item value={user.id}>{user.name}</Combobox.Item>`. Skip an item with no children, or with children that show its `value`.
+2. Find the filter of that combobox, the code that reads `inputValue` or `onInputValueChange` to choose the items. After a pick, the input holds the item's text. A filter that matches only `value`, such as an ID, now shows no options when the list opens again. Match the shown text, or the shown text and the value.
+3. Find a `name` on `Combobox.Input` in that combobox. The input now submits the shown text, not the value. Move `name` to `Combobox.Root`, which submits the picked value. Keep it on the input only when the form must submit the typed text.
+4. Find a `Combobox.Item` `onClick` that calls `event.preventDefault()` and then sets the value, the text, and `open` itself, or an `inputValue` that the app controls only to show a name for an ID value or a preset value. Delete that code: the pick and the preset value now show the name. Keep a `preventDefault()` for an item that must not pick, such as an action item.
+5. Find an item whose children show text that must not reach the input, such as a status badge, an email, a "Join pool" label, or a domain's availability. Mark decorative parts `aria-hidden="true"`. When the text must still reach a screen reader, control `inputValue` and `onInputValueChange` and write the text yourself on a pick, from `onValueChange`.
+6. Find an item whose `onClick` writes a sentinel value into a field through `onInputValueChange`, such as a "Random URL" item. `onInputValueChange` now receives the shown text after the click. Write the sentinel from `onValueChange`, or cancel the pick with `event.preventDefault()` and set the field yourself.
+7. In tests, assert the shown text on the input after a pick, a preset `value`, or a form reset. Assert the picked value through `onValueChange` or the form data.
+8. After editing, run the project's formatter, linter, type checker, and tests.
+
+> **Why the children?** The user picks what they read. An input that shows an ID after the user picked a name, or an empty input for a preset value, made each app with ID values keep its own text state. Radix `Select.Value` shows the selected item's children for the same reason.
+
+---
+
+## Before → after
+
+### An ID value with a name
+
+```tsx
+// BEFORE
+<Combobox.Root
+	inputValue={open ? query : (owners.find((owner) => owner.id === ownerId)?.name ?? "")}
+	onInputValueChange={setQuery}
+	value={ownerId}
+	onValueChange={setOwnerId}
+>
+	<Combobox.Input />
+	<Combobox.Content>
+		{owners
+			.filter((owner) => owner.name.includes(query))
+			.map((owner) => (
+				<Combobox.Item key={owner.id} value={owner.id}>
+					{owner.name}
+				</Combobox.Item>
+			))}
+	</Combobox.Content>
+</Combobox.Root>
+```
+
+```tsx
+// AFTER
+<Combobox.Root onInputValueChange={setQuery} value={ownerId} onValueChange={setOwnerId}>
+	<Combobox.Input />
+	<Combobox.Content>
+		{owners
+			.filter((owner) => owner.name.includes(query))
+			.map((owner) => (
+				<Combobox.Item key={owner.id} value={owner.id}>
+					{owner.name}
+				</Combobox.Item>
+			))}
+	</Combobox.Content>
+</Combobox.Root>
+```
+
+---
+
+## Edge cases & gotchas
+
+- A function child can render text only while it is highlighted, so a pick writes its `value`. An item that a component of your own renders, and an item that is not loaded yet, show `value` for a preset value.
+- For a preset value, mantle reads the elements that you wrote. A component with no `children` prop, such as `Combobox.ItemValue` or an icon, adds no text there.
+- The input stays one line. Long text ends with an ellipsis.
+
+## How to verify
+
+- Pick an item whose children differ from its `value`. The input shows the children's text, and the form submits the value.
+- Open the list again. The filter shows the picked item.
+- Render the form with a preset value. The input shows the item's text before any script runs.

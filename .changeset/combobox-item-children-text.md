@@ -1,11 +1,7 @@
 ---
-"@ngrok/mantle": patch
+"@ngrok/mantle": minor
 ---
 
-A `Combobox.Item` pick now writes the text that the item's children show into the input, not its `value`. The text skips `aria-hidden` parts, such as an icon or an avatar. `value` stays the value that `Combobox.Root` holds and submits, so an item can pick an ID and show a name. A preset `value` or `defaultValue`, and a form reset, now show the item's text too, also on the server, where the input was empty before.
+A `Combobox.Item` pick now writes the text that the item's children show into the input, not its `value`. The text skips `hidden` and `aria-hidden` parts, such as an icon or an avatar. `value` stays the value that `Combobox.Root` holds and submits, so an item can pick an ID and show a name. A preset `value` or `defaultValue`, a controlled `value` that changes, and a form reset now show the item's text too, also on the server, where the input was empty before. An item with no text to read shows its `value`. Long text stays on one line and ends with an ellipsis.
 
-- Filter on the text, because the input holds it after a pick.
-- A function child, or an item that a component of your own renders, shows its `value`. To show other text, control `inputValue`.
-- Long text stays on one line and ends with an ellipsis.
-
-Docs: https://mantle.ngrok.com/components/forms/combobox#the-text-a-pick-writes
+An item whose children show other text than its `value` changes: filter on the shown text, and submit the value with `name` on `Combobox.Root`, not on `Combobox.Input`. Read the [migration guide](https://mantle.ngrok.com/migrations/0034-combobox-item-text-migration).

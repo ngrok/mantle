@@ -218,6 +218,7 @@ const migrationsPages = [
 	"0031-anchored-child-variant-migration",
 	"0032-query-filter-operators-migration",
 	"0033-compact-code-markup-migration",
+	"0034-combobox-item-text-migration",
 ];
 
 export default [

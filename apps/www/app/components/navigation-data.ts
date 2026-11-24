@@ -743,6 +743,14 @@ export const migrations = [
 			"Highlighted code now colors tokens with short classes and draws line numbers, the fold caret, and the fold ellipsis in CSS. Update a selector or a parser that read the old markup.",
 		route: "/migrations/0033-compact-code-markup-migration",
 	},
+	{
+		number: 34,
+		slug: "combobox-item-text-migration",
+		title: "Combobox Item Text",
+		description:
+			"A Combobox pick writes the text that the item's children show into the input, not the item's value. A preset value shows that text too. Filter on the text, and submit the value from Combobox.Root.",
+		route: "/migrations/0034-combobox-item-text-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

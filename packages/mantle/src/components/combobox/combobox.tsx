@@ -60,39 +60,9 @@ type ComboboxProps = Omit<UseComboboxProps, "textFor"> & {
 	disabled?: boolean;
 };
 
-/**
- * The outermost part of a combobox. It holds the query text, the open state, and the selection.
- *
- * Use Combobox for a list of options where the user types to filter: large static lists,
- * async/server-side data, or any single-select where search is helpful. For very small
- * finite lists with no filtering, prefer Select. For multi-selection, prefer MultiSelect.
- *
- * `Combobox.Content` is a `popover="manual"` element in the top layer, so it paints
- * above the page and every overlay. It portals into the overlay or float that
- * holds it, such as an open `Dialog` or `Popover.Content`, else into
- * `document.body`. In a browser with no popover API, it is a fixed box at
- * Tailwind `z-50`.
- *
- * The list opens on each keystroke. While it is open, Enter in `Combobox.Input`
- * never submits a parent form. If you render `Combobox.Content` conditionally, control `open`
- * and `onOpenChange` with the same condition, so the open state matches what the user sees.
- *
- * @see https://mantle.ngrok.com/components/forms/combobox#comboboxroot
- *
- * @example
- * ```tsx
- * <Combobox.Root>
- *   <Combobox.Input />
- *   <Combobox.Content>
- *     <Combobox.Item value="Apple" />
- *     <Combobox.Item value="Banana" />
- *   </Combobox.Content>
- * </Combobox.Root>
- * ```
- */
 const isNodeList = (node: ReactNode): node is readonly ReactNode[] => Array.isArray(node);
 
-/** The text that the elements in `node` show, without their `aria-hidden` parts. */
+/** The text that the elements in `node` show, without their `hidden` and `aria-hidden` parts. */
 const nodeText = (node: ReactNode): string => {
 	if (typeof node === "string" || typeof node === "number") {
 		return String(node);
@@ -101,7 +71,8 @@ const nodeText = (node: ReactNode): string => {
 		return node.map(nodeText).join("");
 	}
 	if (
-		!isValidElement<{ children?: ReactNode; "aria-hidden"?: unknown }>(node) ||
+		!isValidElement<{ children?: ReactNode; hidden?: unknown; "aria-hidden"?: unknown }>(node) ||
+		Boolean(node.props.hidden) ||
 		String(node.props["aria-hidden"]) === "true"
 	) {
 		return "";
@@ -137,6 +108,36 @@ const findItemText = (node: ReactNode, value: string): string | undefined => {
 	return typeof children === "function" ? undefined : findItemText(children, value);
 };
 
+/**
+ * The outermost part of a combobox. It holds the query text, the open state, and the selection.
+ *
+ * Use Combobox for a list of options where the user types to filter: large static lists,
+ * async/server-side data, or any single-select where search is helpful. For very small
+ * finite lists with no filtering, prefer Select. For multi-selection, prefer MultiSelect.
+ *
+ * `Combobox.Content` is a `popover="manual"` element in the top layer, so it paints
+ * above the page and every overlay. It portals into the overlay or float that
+ * holds it, such as an open `Dialog` or `Popover.Content`, else into
+ * `document.body`. In a browser with no popover API, it is a fixed box at
+ * Tailwind `z-50`.
+ *
+ * The list opens on each keystroke. While it is open, Enter in `Combobox.Input`
+ * never submits a parent form. If you render `Combobox.Content` conditionally, control `open`
+ * and `onOpenChange` with the same condition, so the open state matches what the user sees.
+ *
+ * @see https://mantle.ngrok.com/components/forms/combobox#comboboxroot
+ *
+ * @example
+ * ```tsx
+ * <Combobox.Root>
+ *   <Combobox.Input />
+ *   <Combobox.Content>
+ *     <Combobox.Item value="Apple" />
+ *     <Combobox.Item value="Banana" />
+ *   </Combobox.Content>
+ * </Combobox.Root>
+ * ```
+ */
 const Root = ({ children, name, form, required, disabled, ...props }: ComboboxProps) => {
 	const combobox = useCombobox({ ...props, textFor: (value) => findItemText(children, value) });
 	const contextValue = useMemo(
