@@ -361,7 +361,8 @@ type ContentProps = ComponentProps<"div"> &
 		/**
 		 * Keeps the panel mounted while its tab is inactive, as
 		 * `hidden="until-found"`. Find-in-page and a fragment link reveal the
-		 * text and activate the tab. Implies `forceMount`. Do not hide the panel
+		 * text and activate the tab. The inactive panel is `aria-hidden`, so it
+		 * leaves the accessibility tree. Implies `forceMount`. Do not hide the panel
 		 * with a `display: none` class: it blocks the search.
 		 * @default false
 		 */

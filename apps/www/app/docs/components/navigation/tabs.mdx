@@ -144,9 +144,15 @@ import { Tabs } from "@ngrok/mantle/tabs";
 
 ## Find in page
 
-Pass `hiddenUntilFound` to a `Tabs.Content` to keep its text in the HTML while its tab is inactive. The panel renders `hidden="until-found"`, so the browser's find-in-page and a link to a fragment inside it reveal the text and activate its tab. Use it for pages that crawlers and agents read, such as install instructions. It implies `forceMount`.
+Pass `hiddenUntilFound` to a `Tabs.Content` to keep its text in the HTML while its tab is inactive. The panel renders `hidden="until-found"`, so the browser's find-in-page and a link to a fragment inside it reveal the text and activate its tab. It implies `forceMount`.
 
-Do not hide the panel with a `display: none` class: it blocks the search. A browser without `until-found` treats the panel as plain `hidden`.
+By default, only the active panel renders its children. That keeps an app page to the fewest DOM nodes. Add `hiddenUntilFound` to every panel on a page that search engines and AI crawlers read, such as a marketing page or install instructions:
+
+- Search engines index it. Google indexes text in tabs and accordions when it's in the page's HTML, and its [mobile-first indexing guide](https://developers.google.com/search/docs/crawling-indexing/mobile/mobile-sites-mobile-first-indexing) suggests tabs to save space instead of removing content.
+- AI crawlers read it without JavaScript. Vercel [measured](https://vercel.com/blog/the-rise-of-the-ai-crawler) that GPTBot, ClaudeBot, and PerplexityBot don't run JavaScript, so they see only the server HTML. Each panel's text is in that HTML, and a plain inactive panel is empty.
+- Screen readers skip it. An inactive panel also gets `aria-hidden`, so assistive technology and `getByRole` queries see one panel, the active one.
+
+Do not hide the panel with a `display: none` class: it blocks the search. A browser without `until-found`, such as Safari before 26.2, treats the panel as plain `hidden`: the text stays in the HTML, and find-in-page skips it.
 
 <Example name="components/navigation/tabs/hidden-until-found" title="Tabs find in page example">
 
@@ -785,13 +791,13 @@ An icon you pass as a child is now a grandchild of the trigger, so a `[&>svg]` c
 
 Contains the content associated with each trigger.
 
-| Prop                | Type      | Default | Description                                                                                                                                                                                          |
-| ------------------- | --------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `value`             | `string`  |         | A unique value that associates the content with a trigger.                                                                                                                                           |
-| `forceMount?`       | `true`    |         | Keeps the panel's children mounted while its tab is inactive. The inactive panel stays natively `hidden`.                                                                                            |
-| `hiddenUntilFound?` | `boolean` | `false` | Keeps the panel's children mounted as `hidden="until-found"` while its tab is inactive, so find-in-page reveals them and activates the tab. Implies `forceMount`. See [Find in page](#find-in-page). |
-| `asChild?`          | `boolean` | `false` | When `true`, renders the single child instead of its own `<div>` and forwards the panel's attributes and behavior onto it.                                                                           |
-| `className?`        | `string`  |         | Additional CSS classes to apply to the content element.                                                                                                                                              |
+| Prop                | Type      | Default | Description                                                                                                                                                                                                                               |
+| ------------------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `value`             | `string`  |         | A unique value that associates the content with a trigger.                                                                                                                                                                                |
+| `forceMount?`       | `true`    |         | Keeps the panel's children mounted while its tab is inactive. The inactive panel stays natively `hidden`.                                                                                                                                 |
+| `hiddenUntilFound?` | `boolean` | `false` | Keeps the panel's children mounted as `hidden="until-found"` while its tab is inactive, so find-in-page reveals them and activates the tab. The inactive panel is `aria-hidden`. Implies `forceMount`. See [Find in page](#find-in-page). |
+| `asChild?`          | `boolean` | `false` | When `true`, renders the single child instead of its own `<div>` and forwards the panel's attributes and behavior onto it.                                                                                                                |
+| `className?`        | `string`  |         | Additional CSS classes to apply to the content element.                                                                                                                                                                                   |
 
 #### Data attributes
 

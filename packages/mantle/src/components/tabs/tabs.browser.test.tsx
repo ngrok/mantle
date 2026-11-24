@@ -649,6 +649,9 @@ describe("Tabs keyboard, focus, and ARIA contract", () => {
 		expect(panelB?.getBoundingClientRect().height).toBeLessThanOrEqual(1);
 		expect(getComputedStyle(panelB as HTMLElement).position).toBe("absolute");
 		expect(screen.getByText("Panel A").closest("[hidden]")).toBeNull();
+		// `until-found` hides only the contents, so the inactive panel must leave
+		// the accessibility tree some other way.
+		expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel A");
 
 		window.location.hash = "#deep-link-target";
 
@@ -656,6 +659,7 @@ describe("Tabs keyboard, focus, and ARIA contract", () => {
 			expect(tab("B")).toHaveAttribute("aria-selected", "true");
 		});
 		expect(panelB).not.toHaveAttribute("hidden");
+		expect(screen.getByRole("tabpanel")).toBe(panelB);
 		expect(onValueChange.mock.calls).toEqual([["b"]]);
 		history.replaceState(null, "", window.location.pathname);
 	});
