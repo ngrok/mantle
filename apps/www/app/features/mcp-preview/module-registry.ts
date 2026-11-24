@@ -15,6 +15,7 @@ export const previewModules: Readonly<Record<string, () => Promise<unknown>>> = 
 	"@ngrok/mantle/anchor": () => import("@ngrok/mantle/anchor"),
 	"@ngrok/mantle/app-layout": () => import("@ngrok/mantle/app-layout"),
 	"@ngrok/mantle/area-chart": () => import("@ngrok/mantle/area-chart"),
+	"@ngrok/mantle/attachment": () => import("@ngrok/mantle/attachment"),
 	"@ngrok/mantle/avatar": () => import("@ngrok/mantle/avatar"),
 	"@ngrok/mantle/badge": () => import("@ngrok/mantle/badge"),
 	"@ngrok/mantle/bar-chart": () => import("@ngrok/mantle/bar-chart"),

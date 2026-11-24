@@ -1,9 +1,10 @@
 "use client";
 
 import { ArrowUpIcon } from "@phosphor-icons/react/ArrowUp";
+import { PaperclipIcon } from "@phosphor-icons/react/Paperclip";
 import { StopIcon } from "@phosphor-icons/react/Stop";
-import type { ComponentProps } from "react";
-import { createContext, use, useMemo } from "react";
+import type { ComponentProps, DragEvent } from "react";
+import { createContext, use, useMemo, useRef, useState } from "react";
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
@@ -45,6 +46,7 @@ type PromptInputStreaming =
 type PromptInputContextValue = {
 	streaming: boolean;
 	onStop: (() => void) | undefined;
+	onFilesAdd: ((files: File[]) => void) | undefined;
 };
 
 const PromptInputContext = createContext<PromptInputContextValue | null>(null);
@@ -61,7 +63,14 @@ function usePromptInputContext(part: string): PromptInputContextValue {
 type PromptInputRootProps = ComponentProps<"form"> &
 	WithAsChild &
 	WithDataSlot &
-	PromptInputStreaming;
+	PromptInputStreaming & {
+		/**
+		 * Receives the files a person attaches: from `PromptInput.AttachButton`,
+		 * a drop on the frame, or a paste into the field.
+		 * Reading, checking, and storing them stays with the app.
+		 */
+		onFilesAdd?: (files: File[]) => void;
+	};
 
 /**
  * The message box of a chat: a native `<form>` that holds the text field and
@@ -73,6 +82,7 @@ type PromptInputRootProps = ComponentProps<"form"> &
  * | ---------------- | ----------------------------- | --------------------------------------------- |
  * | `data-slot` | `"prompt-input"` | On the form, joined with ancestor slots. |
  * | `data-streaming` | present while `streaming`     | Presence-only. Style with `data-streaming:`.  |
+ * | `data-drag-over` | present while files drag over the frame | Presence-only. Set only with `onFilesAdd`. |
  *
  * @see https://mantle.ngrok.com/components/preview/prompt-input#promptinputroot
  *
@@ -103,14 +113,19 @@ function Root({
 	"data-slot": dataSlot,
 	asChild = false,
 	className,
+	onDragLeave,
+	onDragOver,
+	onDrop,
+	onFilesAdd,
 	onStop,
 	streaming = false,
 	...props
 }: PromptInputRootProps) {
 	const Component = asChild ? Slot : "form";
+	const [dragOver, setDragOver] = useState(false);
 	const context = useMemo<PromptInputContextValue>(
-		() => ({ streaming, onStop }),
-		[streaming, onStop],
+		() => ({ streaming, onStop, onFilesAdd }),
+		[streaming, onStop, onFilesAdd],
 	);
 
 	return (
@@ -118,12 +133,52 @@ function Root({
 			<Component
 				data-slot={joinDataSlot(dataSlot, "prompt-input")}
 				data-streaming={streaming ? "" : undefined}
+				data-drag-over={dragOver ? "" : undefined}
 				className={cx(
 					"border-form bg-form flex flex-col rounded-2xl border shadow-sm",
 					// The border takes the ring's accent, so the edge and the ring read as one.
 					"focus-within:border-accent-600 focus-within:ring-focus-accent focus-within:ring-4",
+					"data-drag-over:border-accent-600 data-drag-over:ring-focus-accent data-drag-over:border-dashed data-drag-over:ring-4",
 					className,
 				)}
+				onDragOver={(event: DragEvent<HTMLFormElement>) => {
+					onDragOver?.(event);
+					if (
+						event.defaultPrevented ||
+						onFilesAdd == null ||
+						!event.dataTransfer.types.includes("Files")
+					) {
+						return;
+					}
+					// Why: the browser drops a file only on an element that cancels `dragover`.
+					event.preventDefault();
+					setDragOver(true);
+				}}
+				onDragLeave={(event: DragEvent<HTMLFormElement>) => {
+					onDragLeave?.(event);
+					// Why the check: a drag from the frame into a child fires `dragleave` on the frame.
+					const NodeConstructor = event.currentTarget.ownerDocument.defaultView?.Node;
+					if (
+						NodeConstructor == null ||
+						!(event.relatedTarget instanceof NodeConstructor) ||
+						!event.currentTarget.contains(event.relatedTarget)
+					) {
+						setDragOver(false);
+					}
+				}}
+				onDrop={(event: DragEvent<HTMLFormElement>) => {
+					onDrop?.(event);
+					setDragOver(false);
+					if (
+						event.defaultPrevented ||
+						onFilesAdd == null ||
+						event.dataTransfer.files.length === 0
+					) {
+						return;
+					}
+					event.preventDefault();
+					onFilesAdd(Array.from(event.dataTransfer.files));
+				}}
 				{...props}
 			/>
 		</PromptInputContext>
@@ -185,10 +240,11 @@ function PromptInputTextArea({
 	"data-slot": dataSlot,
 	className,
 	onKeyDown,
+	onPaste,
 	rows = 2,
 	...props
 }: PromptInputTextAreaProps) {
-	const { streaming } = usePromptInputContext("TextArea");
+	const { streaming, onFilesAdd } = usePromptInputContext("TextArea");
 
 	return (
 		<BaseTextArea
@@ -203,6 +259,21 @@ function PromptInputTextArea({
 				"focus-visible:ring-0 data-drag-over:ring-0",
 				className,
 			)}
+			onPaste={(event) => {
+				onPaste?.(event);
+				if (
+					event.defaultPrevented ||
+					onFilesAdd == null ||
+					event.clipboardData.files.length === 0
+				) {
+					return;
+				}
+				const files = Array.from(event.clipboardData.files);
+				if (namesOnlyFiles(event.clipboardData.getData("text/plain"), files)) {
+					event.preventDefault();
+				}
+				onFilesAdd(files);
+			}}
 			onKeyDown={(event) => {
 				onKeyDown?.(event);
 				if (event.defaultPrevented || !isSendKey(event) || hasTouchKeyboard(event.currentTarget)) {
@@ -234,6 +305,26 @@ function hasTouchKeyboard(field: HTMLTextAreaElement): boolean {
 		field.ownerDocument.defaultView?.matchMedia("(hover: none) and (pointer: coarse)").matches ===
 		true
 	);
+}
+
+/**
+ * Whether pasted text only names the pasted files, as file managers write a
+ * copied file's path or name next to the file. Such text is not part of the
+ * message, so the paste adds the files alone.
+ */
+function namesOnlyFiles(text: string, files: readonly File[]): boolean {
+	const lines = text.split(/\r?\n/).filter((line) => line.trim() !== "");
+	return lines.every((line) => {
+		let path = line.trim();
+		try {
+			path = decodeURIComponent(path);
+		} catch {
+			// Why: a malformed escape is a plain path; compare it as it is.
+		}
+		return files.some(
+			({ name }) => path === name || path.endsWith(`/${name}`) || path.endsWith(`\\${name}`),
+		);
+	});
 }
 
 /**
@@ -433,16 +524,131 @@ function Submit({
 	);
 }
 
+/**
+ * The props for `PromptInput.AttachButton`.
+ */
+type PromptInputAttachButtonProps = Omit<
+	ComponentProps<typeof IconButton>,
+	"appearance" | "asChild" | "children" | "icon" | "intent" | "label" | "type"
+> & {
+	/**
+	 * The file types the picker offers, as the `accept` attribute of a file
+	 * input takes them, such as `"image/*,.txt"`. A drop or a paste is not
+	 * filtered, so check each file in `onFilesAdd`.
+	 */
+	accept?: string;
+	/**
+	 * The accessible name of the button.
+	 *
+	 * @default "Attach files"
+	 */
+	label?: string;
+};
+
+/**
+ * The button that opens the file picker. The files a person picks go to
+ * `onFilesAdd` on `PromptInput.Root`, which this part requires. Put it in
+ * `PromptInput.Footer`.
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"prompt-input-attach-button icon-button"` | On the button, joined with ancestor slots. |
+ * | `data-icon-button` | `"true"` | Inherited from `IconButton`. |
+ * | `data-appearance` | `"ghost"` | The button's appearance. |
+ * | `data-intent` | `"neutral"` | The button's tone. |
+ * | `data-size` | `"2xs"` \| `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop; defaults to `"sm"`. |
+ * | `data-loading` | present when `isLoading` | Inherited from `IconButton`. |
+ *
+ * @see https://mantle.ngrok.com/components/preview/prompt-input#promptinputattachbutton
+ *
+ * @example
+ * ```tsx
+ * <PromptInput.Root onFilesAdd={addFiles} onSubmit={send}>
+ *   {files.length > 0 && (
+ *     <Attachment.List aria-label="Attachments" className="px-3 pt-3">
+ *       {files.map((file) => (
+ *         <Attachment.Root key={file.id}>
+ *           <Attachment.Name>{file.name}</Attachment.Name>
+ *           <Attachment.Size bytes={file.size} />
+ *           <Attachment.Remove label={`Remove ${file.name}`} onClick={() => removeFile(file.id)} />
+ *         </Attachment.Root>
+ *       ))}
+ *     </Attachment.List>
+ *   )}
+ *   <PromptInput.TextArea aria-label="Message the assistant" name="message" />
+ *   <PromptInput.Footer>
+ *     <PromptInput.AttachButton accept="image/*,.txt" />
+ *     <PromptInput.Submit />
+ *   </PromptInput.Footer>
+ * </PromptInput.Root>
+ * ```
+ */
+// Why no asChild: the part renders its file input beside the button.
+function AttachButton({
+	"data-slot": dataSlot,
+	accept,
+	className,
+	label = "Attach files",
+	onClick,
+	...props
+}: PromptInputAttachButtonProps) {
+	const { onFilesAdd } = usePromptInputContext("AttachButton");
+	invariant(onFilesAdd != null, "PromptInput.AttachButton needs onFilesAdd on PromptInput.Root.");
+	const inputRef = useRef<HTMLInputElement>(null);
+
+	return (
+		<>
+			<input
+				ref={inputRef}
+				type="file"
+				multiple
+				accept={accept}
+				hidden
+				// Why: the picker is reached through the button, so the input stays out of the tab order and the accessibility tree.
+				tabIndex={-1}
+				aria-hidden
+				onChange={(event) => {
+					const files = Array.from(event.currentTarget.files ?? []);
+					// Why: an empty value lets the person pick the same file again.
+					event.currentTarget.value = "";
+					if (files.length > 0) {
+						onFilesAdd(files);
+					}
+				}}
+			/>
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				size="sm"
+				type="button"
+				data-slot={joinDataSlot(dataSlot, "prompt-input-attach-button")}
+				className={cx("text-muted size-8 shrink-0 rounded-full", className)}
+				icon={<PaperclipIcon />}
+				label={label}
+				onClick={(event) => {
+					onClick?.(event);
+					if (!event.defaultPrevented) {
+						inputRef.current?.click();
+					}
+				}}
+				{...props}
+			/>
+		</>
+	);
+}
+
 export {
 	//,
 	Root,
 	PromptInputTextArea,
 	Footer,
+	AttachButton,
 	Submit,
 };
 
 export type {
 	//,
+	PromptInputAttachButtonProps,
 	PromptInputRootProps,
 	PromptInputTextAreaProps,
 	PromptInputFooterProps,

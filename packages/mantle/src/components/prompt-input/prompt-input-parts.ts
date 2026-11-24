@@ -8,5 +8,6 @@ export {
 	Root,
 	PromptInputTextArea as TextArea,
 	Footer,
+	AttachButton,
 	Submit,
 } from "./prompt-input.js";
