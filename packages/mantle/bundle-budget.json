@@ -126,5 +126,9 @@
   "message": {
     "entry": "import { Message } from \"@ngrok/mantle/message\"; export default [Message.Root, Message.Content, Message.Pending, Message.Actions];",
     "maxGzipBytes": 8021
+  },
+  "prompt-input-dictate": {
+    "entry": "import { PromptInput } from \"@ngrok/mantle/prompt-input\"; export default [PromptInput.Root, PromptInput.TextArea, PromptInput.Footer, PromptInput.Submit, PromptInput.Dictate];",
+    "maxGzipBytes": 12421
   }
 }

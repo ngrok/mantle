@@ -27,6 +27,7 @@ import * as PromptInputParts from "./prompt-input-parts.js";
  * ├── PromptInput.TextArea
  * └── PromptInput.Footer
  *     ├── PromptInput.AttachButton
+ *     ├── PromptInput.Dictate
  *     └── PromptInput.Submit
  * ```
  *
@@ -63,6 +64,7 @@ export {
 export type {
 	//,
 	PromptInputAttachButtonProps,
+	PromptInputDictateProps,
 	PromptInputFooterProps,
 	PromptInputRootProps,
 	PromptInputSubmitProps,

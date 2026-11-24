@@ -175,6 +175,69 @@ function AssistantComposer() {
 
 </Example>
 
+## Pick a model and dictate
+
+Put the message's controls in `PromptInput.Footer`. For a model picker, use [Select](/components/forms/select) with a `name`, so the form submits the model with the message. Mantle has no model picker component, because each app lists its own models.
+
+`PromptInput.Dictate` turns speech into text with the browser's speech recognition. Each final phrase replaces the field's selection and runs your `onChange`. The browser supplies spacing; `maxLength` limits the edit. Disabled and read-only fields stay unchanged.
+
+Press the toggle again to stop. If recognition fails or ends, press it to start a new session. Dictation does not send the message. Its edits do not enter the browser's undo history, so review a selected passage before you replace it.
+
+The toggle renders nothing on the server and in browsers without speech recognition, and appears after hydration where the browser has it. Keep it before `PromptInput.Submit`, so the send button does not move when it appears.
+
+<Example name="components/preview/prompt-input/footer-controls" title="Prompt Input footer controls example">
+
+```tsx
+import { PromptInput } from "@ngrok/mantle/prompt-input";
+import { Select } from "@ngrok/mantle/select";
+import { useState } from "react";
+
+function PlaygroundComposer() {
+	const [draft, setDraft] = useState("");
+	const [model, setModel] = useState("claude-sonnet-5-5");
+
+	return (
+		<PromptInput.Root
+			className="w-full max-w-2xl"
+			onSubmit={(event) => {
+				event.preventDefault();
+				if (draft.trim() === "") {
+					return;
+				}
+				setDraft("");
+			}}
+		>
+			<PromptInput.TextArea
+				aria-label="Message the model"
+				name="message"
+				placeholder="Ask the model, or press the microphone and talk…"
+				value={draft}
+				onChange={(event) => setDraft(event.target.value)}
+			/>
+			<PromptInput.Footer>
+				<Select.Root name="model" value={model} onValueChange={setModel}>
+					<Select.Trigger
+						aria-label="Model"
+						className="h-8 w-auto rounded-full border-transparent bg-transparent shadow-none hover:border-transparent"
+					>
+						<Select.Value />
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="claude-sonnet-5-5">Claude Sonnet 5.5</Select.Item>
+						<Select.Item value="gpt-6-sol">GPT-6 Sol</Select.Item>
+						<Select.Item value="gemini-4-hydrogen">Gemini 4 Hydrogen</Select.Item>
+					</Select.Content>
+				</Select.Root>
+				<PromptInput.Dictate />
+				<PromptInput.Submit />
+			</PromptInput.Footer>
+		</PromptInput.Root>
+	);
+}
+```
+
+</Example>
+
 ## Composition
 
 ```text showLineNumbers=false
@@ -182,6 +245,7 @@ PromptInput.Root
 ├── PromptInput.TextArea
 └── PromptInput.Footer
     ├── PromptInput.AttachButton
+    ├── PromptInput.Dictate
     └── PromptInput.Submit
 ```
 
@@ -191,7 +255,7 @@ PromptInput.Root
 
 `PromptInput.TextArea` keeps its native `<textarea>` because its Enter handler depends on the field's form owner and editing behavior.
 
-`PromptInput.Submit` does not take `asChild`. It owns its button so that it can change from send to stop and keep focus.
+`PromptInput.Submit` does not take `asChild`. It owns its button so that it can change from send to stop and keep focus. `PromptInput.Dictate` owns its button so that it can report the listening state with `aria-pressed`.
 
 ## Keyboard
 
@@ -277,6 +341,27 @@ All props from [Icon Button](/components/actions/icon-button) except `appearance
 | `data-intent`      | `"neutral"`                                               | The button's tone.                         |
 | `data-size`        | `"2xs"` \| `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop; defaults to `"sm"`.       |
 | `data-loading`     | present when `isLoading`                                  | Inherited from `IconButton`.               |
+
+### PromptInput.Dictate
+
+A toggle that turns speech into text in `PromptInput.TextArea`. It reports `aria-pressed` while it listens. It renders nothing on the server and in browsers without speech recognition.
+
+Each final phrase replaces the selection with the browser's text, including its spacing, up to `maxLength`. Dictation skips disabled and read-only fields. An error or the end of a session resets the toggle. Disabling the toggle ends the session. Dictated edits do not enter the browser's undo history.
+
+All props from [Icon Button](/components/actions/icon-button) except `appearance`, `aria-pressed`, `asChild`, `children`, `icon`, `intent`, `label`, and `type`, plus:
+
+| Prop     | Type     | Default     | Description                                                                                                             |
+| -------- | -------- | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `label?` | `string` | `"Dictate"` | The accessible name of the toggle. It stays the same while the toggle listens.                                          |
+| `lang?`  | `string` |             | The language to recognize, such as `"en-US"`. Defaults to the nearest `lang` attribute, then to the browser's language. |
+
+| Data Attribute     | Value                                                     | Description                                |
+| ------------------ | --------------------------------------------------------- | ------------------------------------------ |
+| `data-slot`        | `"prompt-input-dictate icon-button"`                      | On the button, joined with ancestor slots. |
+| `data-icon-button` | `"true"`                                                  | Inherited from `IconButton`.               |
+| `data-appearance`  | `"ghost"`                                                 | The button's appearance.                   |
+| `data-intent`      | `"neutral"`                                               | The button's tone.                         |
+| `data-size`        | `"2xs"` \| `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop; defaults to `"sm"`.       |
 
 ### PromptInput.Submit
 
