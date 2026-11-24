@@ -27,7 +27,10 @@ function closeMarkdown(text: string, { math }: { math: boolean }): string {
 		return text;
 	}
 	if (blocks.inMath) {
-		return `${text}${text.endsWith("\n") ? "" : "\n"}$$`;
+		// Why the prefix: the closing line of a `$$` block in a quote keeps its `>` markers.
+		const line = text.endsWith("\n") ? blocks.previousLineStart : blocks.lastLineStart;
+		const prefix = QUOTE_PREFIX.exec(text.slice(Math.max(line, 0)))?.[0] ?? "";
+		return `${text}${text.endsWith("\n") ? "" : "\n"}${prefix}$$`;
 	}
 	const lines = closeLastLines(text, blocks);
 	return lines.text.slice(0, lines.regionStart) + closeInline(lines.text.slice(lines.regionStart));
@@ -147,6 +150,14 @@ function itemCodeColumn(content: string, column: number): number {
 /** A list marker and the spaces after it. */
 const LIST_MARKER_WIDTH = /^(?:[-*+]|\d{1,9}[.)])[ \t]*/;
 
+/** The count of blockquote markers at the start of a line. */
+function quoteDepth(line: string): number {
+	return (QUOTE_PREFIX.exec(line)?.[0].split(">").length ?? 1) - 1;
+}
+
+/** The blockquote markers at the start of a line, each with its indent and one optional space. */
+const QUOTE_PREFIX = /^(?: {0,3}> ?)*/;
+
 /** The content of a line after its indent and blockquote markers. */
 function lineContent(line: string): string {
 	let index = 0;
@@ -163,7 +174,7 @@ function lineContent(line: string): string {
 
 /** Finds the open fence or `$$` block at the end, and where the last paragraph starts. */
 function scanBlocks(text: string, { math }: { math: boolean }): BlockScan {
-	let fence: { char: string; length: number; column: number } | undefined;
+	let fence: { char: string; length: number; column: number; quotes: number } | undefined;
 	let inMath = false;
 	let inIndentedCode = false;
 	// Why: indented code cannot start inside a paragraph, and in a list it starts 4 columns past the item's content.
@@ -184,11 +195,19 @@ function scanBlocks(text: string, { math }: { math: boolean }): BlockScan {
 		previousLineStart = lastLineStart;
 		lastLineStart = lineStart;
 
+		// Why: a line in fewer quotes than an open fence ends the quote, and the fence with it.
+		if (fence != null && quoteDepth(text.slice(lineStart, lineEnd)) < fence.quotes) {
+			fence = undefined;
+			regionStart = lineStart;
+		}
 		if (fence != null) {
+			const line = text.slice(lineStart, lineEnd);
 			const close = FENCE.exec(content);
-			// Why the column: a fence-like line indented 4 or more past the opener is code.
+			// Why the column and the quotes: a fence-like line indented 4 or more past the fence's container, or
+			// in another quote, is code.
 			if (
-				indentAfterQuotes(text.slice(lineStart, lineEnd)) < fence.column + 4 &&
+				quoteDepth(line) === fence.quotes &&
+				indentAfterQuotes(line) < fence.column + 4 &&
 				close?.[1]?.[0] === fence.char &&
 				close[1].length >= fence.length &&
 				close[2]?.trim() === ""
@@ -226,16 +245,25 @@ function scanBlocks(text: string, { math }: { math: boolean }): BlockScan {
 				codeColumn = listColumn + 4;
 				regionStart = nextStart;
 			} else if (marker != null && !(marker.startsWith("`") && open?.[2]?.includes("`"))) {
+				// The column of the fence's container: the content of its item, or the left edge.
+				let column = inList && indent >= listColumn ? listColumn : 0;
+				if (afterMarkers !== content) {
+					column = indent + content.length - afterMarkers.length;
+				}
 				fence = {
 					char: marker.slice(0, 1),
 					length: marker.length,
-					column: indent + content.length - afterMarkers.length,
+					column,
+					quotes: quoteDepth(text.slice(lineStart, lineEnd)),
 				};
 			} else if (math && content.startsWith("$$") && !content.slice(2).includes("$$")) {
 				inMath = true;
 			} else if (content.trim() === "") {
-				regionStart = nextStart;
-				afterSingleLineBlock = false;
+				// Why only a whole line: a line break at the very end does not end the paragraph yet.
+				if (newline !== -1) {
+					regionStart = nextStart;
+					afterSingleLineBlock = false;
+				}
 			} else if (HEADING.test(content) || THEMATIC_BREAK.test(content)) {
 				regionStart = lineStart;
 				afterSingleLineBlock = true;
@@ -361,7 +389,7 @@ function closeLastLines(
 		return { text: text.slice(0, previousLineStart), regionStart: previousLineStart };
 	}
 	const isMarkerOnly =
-		/^(?:(?:[-*+]|\d{1,9}[.)])(?: +\[[ xX]\])?|#{1,6}) *$/.test(content) ||
+		/^(?:(?:[-*+]|\d{1,9}[.)])(?: +\[(?:[ xX]\]?)?)?|#{1,6}) *$/.test(content) ||
 		/^\[[^\]]+\]: *$/.test(content);
 	const isUnderline = /^(?:-+|=+) *$/.test(content) && previous.trim() !== "";
 	if (isMarkerOnly || isUnderline) {

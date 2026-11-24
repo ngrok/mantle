@@ -12,7 +12,28 @@ async function* chunksOf(
 ): AsyncGenerator<string> {
 	// Why the reader first: Safari's `ReadableStream` is not async iterable.
 	if (!("getReader" in source)) {
-		yield* source;
+		const iterator = source[Symbol.asyncIterator]();
+		let stopped = false;
+		const stop = () => {
+			if (!stopped) {
+				stopped = true;
+				void Promise.resolve(iterator.return?.()).catch(() => {});
+			}
+		};
+		signal.addEventListener("abort", stop, { once: true });
+		if (signal.aborted) {
+			stop();
+		}
+		try {
+			for (let result = await iterator.next(); !result.done; result = await iterator.next()) {
+				yield result.value;
+			}
+		} finally {
+			signal.removeEventListener("abort", stop);
+			if (signal.aborted) {
+				stop();
+			}
+		}
 		return;
 	}
 	const reader = source.getReader();

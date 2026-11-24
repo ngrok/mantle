@@ -178,10 +178,16 @@ function createMarkdownParser({
 			// Why the checks: a finished block must be the source as it is, not text that `closeMarkdown` closed. And
 			// with no blank line before it, the next block's first line must be whole: more of that line can join
 			// the two blocks, as a fence opener ``` can become a code span.
+			// A list or indented code can go on past a blank line: a line that starts with an indent, a bullet, or a
+			// digit can still become its next item or line, so it must be whole first.
+			const last = contentTokens(finished).at(-1);
+			const goesOn =
+				(last?.type === "list" || (last?.type === "code" && last.codeBlockStyle === "indented")) &&
+				/^[\t +*\d-]/.test(tail.slice(finishedRaw.length));
 			const freezes =
 				finished.length > 0 &&
 				tail.startsWith(finishedRaw) &&
-				(finished.at(-1)?.type === "space" || tail.includes("\n", finishedRaw.length));
+				((finished.at(-1)?.type === "space" && !goesOn) || tail.includes("\n", finishedRaw.length));
 			if (freezes) {
 				frozen = [...frozen, ...contentTokens(finished)];
 				frozenSource += finishedRaw;

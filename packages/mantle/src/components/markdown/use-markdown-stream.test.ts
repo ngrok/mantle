@@ -81,6 +81,21 @@ describe("useMarkdownStream", () => {
 		await waitFor(() => expect(cancel).toHaveBeenCalledTimes(1));
 	});
 
+	test("ends a pending read of an async iterable when it unmounts", async () => {
+		const end = vi.fn<() => Promise<IteratorResult<string>>>(() =>
+			Promise.resolve({ done: true, value: undefined }),
+		);
+		const next = vi.fn<() => Promise<IteratorResult<string>>>(() => new Promise(() => {}));
+		const { unmount } = renderHook(() =>
+			useMarkdownStream({
+				read: () => ({ [Symbol.asyncIterator]: () => ({ next, return: end }) }),
+			}),
+		);
+		await waitFor(() => expect(next).toHaveBeenCalledTimes(1));
+		unmount();
+		await waitFor(() => expect(end).toHaveBeenCalledTimes(1));
+	});
+
 	test("opens no stream again after it turns off during the wait before a retry", async () => {
 		vi.useFakeTimers();
 		let reads = 0;

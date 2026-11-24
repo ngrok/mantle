@@ -118,6 +118,13 @@ describe("createMarkdownParser", () => {
 		expect(done.blocks.map((token) => token.type)).toEqual(["heading", "paragraph"]);
 	});
 
+	test("keeps a list open after a blank line while the next line can still be its item", () => {
+		const parser = createMarkdownParser();
+		parser.parse("1. Install\n\n1", { streaming: true });
+		const done = parser.parse("1. Install\n\n1. Configure", { streaming: false });
+		expect(done.blocks).toMatchObject([{ type: "list", items: [{}, {}] }]);
+	});
+
 	test("parses a long run of open emphasis while it streams", () => {
 		const snapshot = createMarkdownParser().parse(`a ${"*".repeat(8192)}b`, { streaming: true });
 		expect(snapshot.blocks.map((token) => token.type)).toEqual(["paragraph"]);
