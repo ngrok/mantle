@@ -1,8 +1,9 @@
 "use client";
 
 import type { ComponentProps, Dispatch, SetStateAction } from "react";
-import { createContext, use, useMemo, useState } from "react";
+import { createContext, use, useEffect, useMemo, useRef, useState } from "react";
 import invariant from "tiny-invariant";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -108,6 +109,9 @@ type WorkTriggerProps = Omit<ComponentProps<"button">, "type" | "children"> & Wi
  * The toggle reads "Show work" while the work is closed and "Hide work" while
  * it is open, with a caret.
  *
+ * The label sits in a `display: contents` wrapper,
+ * `data-slot="work-trigger-label"`, so a translated page survives the change.
+ *
  * @see https://mantle.ngrok.com/components/ai/work#worktrigger
  *
  * @example
@@ -131,8 +135,10 @@ function Trigger({ "data-slot": dataSlot, className, ...props }: WorkTriggerProp
 			)}
 			{...props}
 		>
-			{/* Why no wrapper: one string that never unmounts, so React rewrites the node a translator moved. */}
-			{open ? "Hide work" : "Show work"}
+			{/* Why a keyed host: a translator can replace the text node, so React swaps the element instead. */}
+			<span key={open ? "hide" : "show"} data-slot="work-trigger-label" className="contents">
+				{open ? "Hide work" : "Show work"}
+			</span>
 			{/* Why w-3 only: size-3 would drop the icon's h-lh, which centers it in the first line. */}
 			<Accordion.TriggerIcon className="w-3" />
 		</Accordion.Trigger>
@@ -146,8 +152,9 @@ type WorkContentProps = ComponentProps<"div"> & WithDataSlot;
 
 /**
  * The steps of the answer, such as a `Reasoning` and each `ToolCall`, in a
- * column. A focus or a press inside keeps the work open when the answer ends,
- * so a step the reader opened stays where they left it.
+ * column. A press in a step, or a find-in-page match in it, keeps the work
+ * open when the answer ends, so a step the reader opened stays where they
+ * left it.
  *
  * @see https://mantle.ngrok.com/components/ai/work#workcontent
  *
@@ -160,30 +167,40 @@ type WorkContentProps = ComponentProps<"div"> & WithDataSlot;
  * ```
  */
 // Why no asChild: the content renders two elements, the region that opens and its body.
-function Content({
-	"data-slot": dataSlot,
-	className,
-	onFocus,
-	onPointerDown,
-	...props
-}: WorkContentProps) {
+function Content({ "data-slot": dataSlot, className, onClick, ref, ...props }: WorkContentProps) {
 	const { setChoice } = useWorkContext("Content");
-	// Why: the reader uses a step while it streams, so the end of the answer must not hide it.
+	const nodeRef = useRef<HTMLDivElement>(null);
+	const composedRef = useComposedRefs(nodeRef, ref);
+	// Why: the end of the answer must not hide a step the reader used while it streamed.
 	const keepOpen = () => setChoice((choice) => choice ?? true);
 
+	// Why a native listener: React has no `onBeforeMatch`. A step's own reveal bubbles here,
+	// and the work must stay open for the match once the answer ends.
+	useEffect(() => {
+		const node = nodeRef.current;
+		const reveal = () => setChoice((choice) => choice ?? true);
+		node?.addEventListener("beforematch", reveal);
+		return () => node?.removeEventListener("beforematch", reveal);
+	}, [setChoice]);
+
 	return (
-		<Accordion.Content>
+		// Why -mx-3 px-3 on the region: it clips, and a step's focus ring reaches 12px past its text.
+		<Accordion.Content className="-mx-3 px-3">
 			<Accordion.Body
+				ref={composedRef}
 				data-slot={joinDataSlot(dataSlot, "work-content")}
-				className={cx("flex flex-col gap-1 pb-0", className)}
+				className={cx("flex flex-col gap-1 pb-1", className)}
 				{...props}
-				onFocus={(event) => {
-					onFocus?.(event);
-					keepOpen();
-				}}
-				onPointerDown={(event) => {
-					onPointerDown?.(event);
-					keepOpen();
+				onClick={(event) => {
+					onClick?.(event);
+					if (event.defaultPrevented) {
+						return;
+					}
+					// Why click: it is a finished press from a mouse, a tap, or a key, never a scroll
+					// or a focus moved by code. Why contains: React events bubble out of portals.
+					if (event.target instanceof Node && event.currentTarget.contains(event.target)) {
+						keepOpen();
+					}
 				}}
 			/>
 		</Accordion.Content>

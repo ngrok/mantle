@@ -143,8 +143,9 @@ function Trigger({ "data-slot": dataSlot, children, className, ...props }: ToolC
 			data-slot={joinDataSlot(dataSlot, "tool-call-trigger")}
 			className={cx(
 				"pointer-coarse:py-2 justify-start gap-2 py-1 text-xs font-normal",
-				// Why: a pointer that hovers sees the caret on hover, focus, or open; touch always sees it.
-				"hover-hover:[&:not(:hover,:focus-visible)[aria-expanded=false]>[data-slot~=accordion-trigger-icon]]:opacity-0",
+				// Why: a pointer that hovers sees the caret on hover, focus, or open. A device with any
+				// touch input always sees it, because a tap has no hover to reveal it first.
+				"[@media(hover:hover)_and_(not_(any-pointer:coarse))]:[&:not(:hover,:focus-visible)[aria-expanded=false]>[data-slot~=accordion-trigger-icon]]:opacity-0",
 				className,
 			)}
 			{...props}

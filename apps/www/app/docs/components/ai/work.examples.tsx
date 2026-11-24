@@ -42,10 +42,12 @@ export function OverviewExample() {
 /** Work that streams: it shows while the answer streams and folds away when the button ends it. */
 export function StreamingExample() {
 	const [streaming, setStreaming] = useState(true);
+	// Why a key: each answer gets a fresh Work, so the reader's choice on one answer stays with it.
+	const [answer, setAnswer] = useState(0);
 
 	return (
 		<PreviewCanvas className="flex-col gap-4">
-			<Work.Root streaming={streaming} className="w-full max-w-2xl">
+			<Work.Root key={answer} streaming={streaming} className="w-full max-w-2xl">
 				<Work.Trigger />
 				<Work.Content>
 					<Reasoning.Root streaming={streaming}>
@@ -64,7 +66,12 @@ export function StreamingExample() {
 				type="button"
 				appearance="outlined"
 				intent="neutral"
-				onClick={() => setStreaming(!streaming)}
+				onClick={() => {
+					if (!streaming) {
+						setAnswer(answer + 1);
+					}
+					setStreaming(!streaming);
+				}}
 			>
 				{streaming ? "End the answer" : "Answer again"}
 			</Button>

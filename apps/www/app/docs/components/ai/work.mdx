@@ -5,10 +5,9 @@ category: AI
 aliases: [agent steps, tool calls and reasoning, ai work, answer steps]
 ---
 
-import { PageHeader } from "~/components/page-header";
 import { Example } from "~/components/example";
 
-<PageHeader id="work">Work</PageHeader>
+# Work
 
 The work behind one chat answer, its reasoning and its tool calls, under one "Show work" toggle that stays open while the answer streams. When the answer ends, the work folds away, so the answer is what the reader sees.
 
@@ -62,7 +61,7 @@ function AnswerWork() {
 
 Set `streaming` on `Work.Root` while the model works on the answer. The work shows, so the reader sees each step arrive, and the trigger reads "Hide work". When `streaming` turns off, the work folds away and the trigger reads "Show work".
 
-The reader's choice wins. When they press the trigger, the work stays the way they left it. When they press or focus a step while the answer streams, such as to open a tool call, the work stays open when the answer ends.
+The reader's choice wins. When they press the trigger, the work stays the way they left it. When they press a step while the answer streams, such as to open a tool call, or find-in-page reveals a match in one, the work stays open when the answer ends.
 
 <Example name="components/ai/work/streaming" title="Work streaming example">
 
@@ -78,10 +77,12 @@ const reasoning =
 
 function StreamingWork() {
 	const [streaming, setStreaming] = useState(true);
+	// Why a key: each answer gets a fresh Work, so the reader's choice on one answer stays with it.
+	const [answer, setAnswer] = useState(0);
 
 	return (
 		<div className="flex flex-col items-center gap-4">
-			<Work.Root streaming={streaming} className="w-full max-w-2xl">
+			<Work.Root key={answer} streaming={streaming} className="w-full max-w-2xl">
 				<Work.Trigger />
 				<Work.Content>
 					<Reasoning.Root streaming={streaming}>
@@ -100,7 +101,12 @@ function StreamingWork() {
 				type="button"
 				appearance="outlined"
 				intent="neutral"
-				onClick={() => setStreaming(!streaming)}
+				onClick={() => {
+					if (!streaming) {
+						setAnswer(answer + 1);
+					}
+					setStreaming(!streaming);
+				}}
 			>
 				{streaming ? "End the answer" : "Answer again"}
 			</Button>
@@ -151,8 +157,12 @@ The toggle reads "Show work" while the work is closed and "Hide work" while it i
 
 All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes) except `type` and `children`.
 
+| Data Attribute                   | Value          | Description                                       |
+| -------------------------------- | -------------- | ------------------------------------------------- |
+| `data-slot="work-trigger-label"` | on the wrapper | The `display: contents` wrapper around the label. |
+
 ### Work.Content
 
-The steps of the answer in a column. A focus or a press inside keeps the work open when the answer ends. Find-in-page reaches it while it is closed.
+The steps of the answer in a column. A press in a step, or a find-in-page match in one, keeps the work open when the answer ends. Find-in-page reaches it while it is closed.
 
 All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).
