@@ -74,49 +74,65 @@ const mountSharedStatus: RefCallback<Element> = (element) => {
 	};
 };
 
+/** The latest message for a new region, written on the next frame. */
+const pendingMessages = new WeakMap<HTMLSpanElement, Message>();
+
+/** A message to announce. See `announce` for `repeat`. */
+type Message = { message: string; repeat: boolean };
+
+/** Writes a message to `region`. */
+function writeMessage(region: HTMLSpanElement, { message, repeat }: Message) {
+	if (region.textContent === message && !repeat) {
+		return;
+	}
+	region.textContent = region.textContent === message ? `${message}\u00A0` : message;
+}
+
 /**
  * Announces `message` in the shared region of an element that
- * `mountSharedStatus` mounted.
+ * `mountSharedStatus` mounted. An element that is not mounted announces
+ * nothing, such as a copy button whose copy finished after it unmounted.
  *
  * A screen reader does not read the same text twice. With `repeat`, a message
  * equal to the region's text gets a trailing no-break space, so it reads
  * again. Without it, an equal message writes nothing.
  *
  * When the element moved to another container, such as into a dialog, its
- * region moves with it. A new region gets the message one frame later,
+ * region moves with it. A new region gets the latest message one frame later,
  * because a screen reader skips a region that is made and filled at once.
  */
 function announce(element: Element, message: string, { repeat = false } = {}) {
-	const container = statusContainer(element);
 	const registered = registrations.get(element);
-	let status = statuses.get(container);
+	if (registered == null) {
+		return;
+	}
+	const container = statusContainer(element);
 	let fresh = false;
 	if (registered !== container) {
-		const acquired = acquire(container);
-		status = acquired.status;
-		fresh = acquired.fresh;
-		if (registered != null) {
-			registrations.set(element, container);
-			release(registered);
-		} else {
-			// Why: an element that is not mounted keeps no region.
-			release(container);
-		}
+		fresh = acquire(container).fresh;
+		registrations.set(element, container);
+		release(registered);
 	}
-	if (status == null) {
+	const region = statuses.get(container)?.element;
+	if (region == null) {
 		return;
 	}
-	const region = status.element;
-	if (region.textContent === message && !repeat) {
+	if (!fresh && !pendingMessages.has(region)) {
+		writeMessage(region, { message, repeat });
 		return;
 	}
-	const text = region.textContent === message ? `${message}\u00A0` : message;
-	if (fresh) {
+	// Why one write for each frame: a caller can announce twice for one action,
+	// such as a theme updater that runs twice, and the last request wins.
+	const scheduled = pendingMessages.has(region);
+	pendingMessages.set(region, { message, repeat });
+	if (!scheduled) {
 		requestAnimationFrame(() => {
-			region.textContent = text;
+			const pending = pendingMessages.get(region);
+			pendingMessages.delete(region);
+			if (pending != null) {
+				writeMessage(region, pending);
+			}
 		});
-	} else {
-		region.textContent = text;
 	}
 }
 
