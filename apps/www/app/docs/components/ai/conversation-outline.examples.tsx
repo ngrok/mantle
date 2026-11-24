@@ -34,25 +34,29 @@ const turns: Turn[] = [
 	},
 ];
 
-/** The first example on the Conversation Outline docs page: the trigger in a panel header. */
+/** The person's messages, which the outline lists. */
+const questions = turns.filter((turn) => turn.from === "user");
+
+/** The first example on the Conversation Outline docs page: the trigger in the chat header. */
 export function OverviewExample() {
 	return (
 		<PreviewCanvas className="min-h-160">
 			<Card.Root className="flex h-96 w-full max-w-md flex-col overflow-hidden p-0">
 				<div className="flex items-center justify-between border-b px-4 py-2">
 					<h2 className="text-strong text-sm font-medium">Assistant</h2>
-					<ConversationOutline.Root>
-						<ConversationOutline.Trigger />
-						<ConversationOutline.Content align="end">
-							{turns
-								.filter((turn) => turn.from === "user")
-								.map((turn) => (
+					{/* Why three: with one or two messages, a scroll is faster than the outline. */}
+					{questions.length >= 3 && (
+						<ConversationOutline.Root>
+							<ConversationOutline.Trigger />
+							<ConversationOutline.Content align="end">
+								{questions.map((turn) => (
 									<ConversationOutline.Item key={turn.id} target={turn.id}>
 										{turn.text}
 									</ConversationOutline.Item>
 								))}
-						</ConversationOutline.Content>
-					</ConversationOutline.Root>
+							</ConversationOutline.Content>
+						</ConversationOutline.Root>
+					)}
 				</div>
 				<Conversation.Root className="min-h-0 flex-1">
 					<Conversation.Viewport aria-label="Conversation with the assistant">
@@ -65,42 +69,6 @@ export function OverviewExample() {
 						</Conversation.Content>
 					</Conversation.Viewport>
 					<Conversation.ScrollButton />
-				</Conversation.Root>
-			</Card.Root>
-		</PreviewCanvas>
-	);
-}
-
-/** A full-width chat: the trigger floats at the bottom center of the transcript, as Amp's does. */
-export function FloatingExample() {
-	return (
-		<PreviewCanvas className="min-h-160">
-			<Card.Root className="h-96 w-full max-w-2xl overflow-hidden p-0">
-				<Conversation.Root className="h-full">
-					<Conversation.Viewport aria-label="Conversation with the assistant">
-						<Conversation.Content className="mx-auto max-w-xl px-4 pt-4 pb-16">
-							{turns.map((turn) => (
-								<Message.Root key={turn.id} id={turn.id} from={turn.from}>
-									<Message.Content>{turn.text}</Message.Content>
-								</Message.Root>
-							))}
-						</Conversation.Content>
-					</Conversation.Viewport>
-					<ConversationOutline.Root>
-						<ConversationOutline.Trigger
-							appearance="outlined"
-							className="bg-popover absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full shadow-md"
-						/>
-						<ConversationOutline.Content side="top">
-							{turns
-								.filter((turn) => turn.from === "user")
-								.map((turn) => (
-									<ConversationOutline.Item key={turn.id} target={turn.id}>
-										{turn.text}
-									</ConversationOutline.Item>
-								))}
-						</ConversationOutline.Content>
-					</ConversationOutline.Root>
 				</Conversation.Root>
 			</Card.Root>
 		</PreviewCanvas>

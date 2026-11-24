@@ -49,23 +49,27 @@ const turns: Turn[] = [
 	},
 ];
 
+/** The person's messages, which the outline lists. */
+const questions = turns.filter((turn) => turn.from === "user");
+
 function AssistantPanel() {
 	return (
 		<Card.Root className="flex h-96 w-full max-w-md flex-col overflow-hidden p-0">
 			<div className="flex items-center justify-between border-b px-4 py-2">
 				<h2 className="text-strong text-sm font-medium">Assistant</h2>
-				<ConversationOutline.Root>
-					<ConversationOutline.Trigger />
-					<ConversationOutline.Content align="end">
-						{turns
-							.filter((turn) => turn.from === "user")
-							.map((turn) => (
+				{/* Why three: with one or two messages, a scroll is faster than the outline. */}
+				{questions.length >= 3 && (
+					<ConversationOutline.Root>
+						<ConversationOutline.Trigger />
+						<ConversationOutline.Content align="end">
+							{questions.map((turn) => (
 								<ConversationOutline.Item key={turn.id} target={turn.id}>
 									{turn.text}
 								</ConversationOutline.Item>
 							))}
-					</ConversationOutline.Content>
-				</ConversationOutline.Root>
+						</ConversationOutline.Content>
+					</ConversationOutline.Root>
+				)}
 			</div>
 			<Conversation.Root className="min-h-0 flex-1">
 				<Conversation.Viewport aria-label="Conversation with the assistant">
@@ -107,83 +111,9 @@ ConversationOutline.Root
 
 ## Where to put the trigger
 
-The trigger goes where the layout has room, and the outline opens next to it:
+Put the trigger in the chat's header, at every width: a side panel, a full-width page, and a phone. The outline is not a frequent action, so it stays clear of the message box and `Conversation.ScrollButton`, which own the bottom of the chat. It opens below the trigger, aligned to its end.
 
-- **A side panel, or a narrow screen:** in the header, with the panel's other actions. The outline opens below it, aligned to its end. The example above shows this.
-- **A full-width chat:** float it over the bottom center of the transcript, as Amp does, with `appearance="outlined"`. The outline opens above it. Pad the end of `Conversation.Content` so the trigger does not cover the last line.
-
-<Example name="components/ai/conversation-outline/floating" title="Conversation Outline over a full-width chat">
-
-```tsx
-import { Card } from "@ngrok/mantle/card";
-import { Conversation } from "@ngrok/mantle/conversation";
-import { ConversationOutline } from "@ngrok/mantle/conversation-outline";
-import { Message } from "@ngrok/mantle/message";
-
-type Turn = { id: string; from: "user" | "assistant"; text: string };
-
-const turns: Turn[] = [
-	{ id: "turn-1", from: "user", text: "What's live right now?" },
-	{
-		id: "turn-2",
-		from: "assistant",
-		text: "Three endpoints are online: https://api.example.com, https://app.example.com, and tcp://1.tcp.ngrok.io:20012. Each one has run for more than a week with no restarts.",
-	},
-	{ id: "turn-3", from: "user", text: "Which of them have no traffic policy?" },
-	{
-		id: "turn-4",
-		from: "assistant",
-		text: "Two have none: https://api.example.com and tcp://1.tcp.ngrok.io:20012. The first takes every request it gets. The second is open to the internet. app.example.com already has a policy, so it needs no change.",
-	},
-	{ id: "turn-5", from: "user", text: "Add a rate limit by client IP to the API endpoint." },
-	{
-		id: "turn-6",
-		from: "assistant",
-		text: "Done. https://api.example.com now allows 100 requests a minute from each client IP and returns 429 above that. The change took effect at once, with no restart.",
-	},
-	{ id: "turn-7", from: "user", text: "And restrict the TCP address to our office network." },
-	{
-		id: "turn-8",
-		from: "assistant",
-		text: "Done. tcp://1.tcp.ngrok.io:20012 now accepts connections from 203.0.113.0/24 only. A connection from any other address closes before it reaches your service.",
-	},
-];
-
-function FullWidthChat() {
-	return (
-		<Card.Root className="h-96 w-full max-w-2xl overflow-hidden p-0">
-			<Conversation.Root className="h-full">
-				<Conversation.Viewport aria-label="Conversation with the assistant">
-					<Conversation.Content className="mx-auto max-w-xl px-4 pt-4 pb-16">
-						{turns.map((turn) => (
-							<Message.Root key={turn.id} id={turn.id} from={turn.from}>
-								<Message.Content>{turn.text}</Message.Content>
-							</Message.Root>
-						))}
-					</Conversation.Content>
-				</Conversation.Viewport>
-				<ConversationOutline.Root>
-					<ConversationOutline.Trigger
-						appearance="outlined"
-						className="bg-popover absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full shadow-md"
-					/>
-					<ConversationOutline.Content side="top">
-						{turns
-							.filter((turn) => turn.from === "user")
-							.map((turn) => (
-								<ConversationOutline.Item key={turn.id} target={turn.id}>
-									{turn.text}
-								</ConversationOutline.Item>
-							))}
-					</ConversationOutline.Content>
-				</ConversationOutline.Root>
-			</Conversation.Root>
-		</Card.Root>
-	);
-}
-```
-
-</Example>
+Render the trigger once the person has sent three messages, as the example above does. With one or two, a scroll is faster, and an outline of one line looks broken. Put it before the header's other actions, so they do not move when it appears.
 
 The outline is at most 22rem wide and 24rem tall, and never taller than the room next to the trigger. On a 320px screen it narrows to fit, and a long message shows as one line that ends in an ellipsis.
 
@@ -213,16 +143,15 @@ All props from [Popover.Root](/components/overlays/popover#popoverroot): `open`,
 
 The icon button that opens and closes the outline.
 
-All props from [Icon Button](/components/actions/icon-button) except `asChild`, `icon`, `intent`, `label`, and `type`, plus:
+All props from [Icon Button](/components/actions/icon-button) except `appearance`, `asChild`, `icon`, `intent`, `label`, and `type`, plus:
 
-| Prop          | Type                                | Default                  | Description                                                         |
-| ------------- | ----------------------------------- | ------------------------ | ------------------------------------------------------------------- |
-| `appearance?` | `"filled" \| "ghost" \| "outlined"` | `"ghost"`                | `ghost` in a header, `outlined` when it floats over the transcript. |
-| `label?`      | `string`                            | `"Conversation outline"` | The accessible name of the button. It also names the outline.       |
+| Prop     | Type     | Default                  | Description                                                   |
+| -------- | -------- | ------------------------ | ------------------------------------------------------------- |
+| `label?` | `string` | `"Conversation outline"` | The accessible name of the button. It also names the outline. |
 
 ### ConversationOutline.Content
 
-The floating panel that lists the messages, one item each. It marks the items of the messages in view and the current one, and keeps the marks up to date while the transcript scrolls.
+The panel that lists the messages, one item each. It marks the items of the messages in view and the current one, and keeps the marks up to date while the transcript scrolls.
 
 All props from [Popover.Content](/components/overlays/popover#popovercontent) except `preferredWidth`.
 

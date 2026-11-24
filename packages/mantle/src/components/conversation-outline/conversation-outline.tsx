@@ -77,13 +77,6 @@ type ConversationOutlineTriggerProps = Omit<
 	"appearance" | "asChild" | "children" | "icon" | "intent" | "label" | "type"
 > & {
 	/**
-	 * The look of the button: `ghost` in a header, `outlined` when it floats
-	 * over the transcript.
-	 *
-	 * @default "ghost"
-	 */
-	appearance?: ComponentProps<typeof IconButton>["appearance"];
-	/**
 	 * The accessible name of the button. It also names the outline.
 	 *
 	 * @default "Conversation outline"
@@ -93,7 +86,10 @@ type ConversationOutlineTriggerProps = Omit<
 
 /**
  * The icon button that opens and closes the outline. Put it where the layout
- * has room: in a side panel's header, or floating over a full-width chat.
+ * is the chat's header, at every width. The outline is not a frequent
+ * action, so it stays clear of the message box and
+ * `Conversation.ScrollButton`. Render it once the person has sent a few
+ * messages: with one or two, a scroll is faster.
  *
  * @see https://mantle.ngrok.com/components/ai/conversation-outline#conversationoutlinetrigger
  *
@@ -114,7 +110,6 @@ type ConversationOutlineTriggerProps = Omit<
 // Why no asChild: the part owns its icon and its label.
 function Trigger({
 	"data-slot": dataSlot,
-	appearance = "ghost",
 	label = "Conversation outline",
 	size = "sm",
 	...props
@@ -122,7 +117,7 @@ function Trigger({
 	return (
 		<Popover.Trigger asChild>
 			<IconButton
-				appearance={appearance}
+				appearance="ghost"
 				intent="neutral"
 				size={size}
 				type="button"
