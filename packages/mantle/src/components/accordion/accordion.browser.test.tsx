@@ -244,6 +244,8 @@ describe("Accordion (browser)", () => {
 			await vi.waitFor(() => expect(onValueChange.mock.calls).toEqual([["a"]]));
 			await vi.waitFor(() => expect(region).toHaveAttribute("hidden", "until-found"));
 		});
+		// A close slide would keep the refused content visible and interactive.
+		expect(region.getAnimations()).toEqual([]);
 		expect(screen.getByRole("button", { name: "Trigger A" })).toHaveAttribute(
 			"aria-expanded",
 			"false",
