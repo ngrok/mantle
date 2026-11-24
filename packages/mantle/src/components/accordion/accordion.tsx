@@ -179,10 +179,10 @@ type AccordionRootProps = (AccordionSingleProps | AccordionMultipleProps) &
  * the classic accordion where opening a section auto-closes the previously open
  * one.
  *
- * `divide-y` on the root draws a hairline divider between items. The shared
- * `separator` token colors it, so it matches `Separator` and every other divider
- * in the system. Disable the dividers with `divide-y-0` on the root (e.g. pair it
- * with `space-y-*` for a spaced-card layout).
+ * `between:border-b` on the root draws a hairline divider between items. The
+ * shared `separator` token colors it, so it matches `Separator` and every other
+ * divider in the system. Disable the dividers with `between:border-b-0` on the
+ * root (e.g. pair it with `between:mbe-*` for a spaced-card layout).
  *
  * @see https://mantle.ngrok.com/components/data-display/accordion#accordionroot
  *
@@ -277,10 +277,10 @@ const Root = (props: AccordionRootProps) => {
 	const containerProps = {
 		...domProps,
 		"data-slot": joinDataSlot(dataSlot, "accordion"),
-		// Dividers live on the root via `divide-y` (one border between adjacent items,
+		// Dividers live on the root via `between:border-b` (one border between adjacent items,
 		// none trailing) rather than a per-item `border-b` + `last:border-b-0`. The color
 		// is the shared `separator` token so dividers match `Separator` across the system.
-		className: cx("w-full divide-y divide-separator", className),
+		className: cx("w-full between:border-b between:border-separator", className),
 	};
 
 	return (

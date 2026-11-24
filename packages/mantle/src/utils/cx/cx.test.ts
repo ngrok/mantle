@@ -144,6 +144,15 @@ describe("cx: plugin and mantle classes that set the same property merge", () =>
 });
 
 describe("cx: value shapes (clsx parity)", () => {
+	test("between: keeps its place among the variants, and a part's between: class yields to a later one", () => {
+		expect(cx("first:between:mbe-2", "between:first:mbe-4")).toBe(
+			"first:between:mbe-2 between:first:mbe-4",
+		);
+		expect(cx("between:mbe-px between:border-b", "between:mbe-0 between:border-b-0")).toBe(
+			"between:mbe-0 between:border-b-0",
+		);
+	});
+
 	test("object syntax resolves conflicts left-to-right by insertion order", () => {
 		expect(cx({ "p-4": true, "p-8": true })).toBe("p-8");
 	});

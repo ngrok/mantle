@@ -571,6 +571,7 @@ const ORDER_SENSITIVE_VARIANTS = new Set([
 	"after",
 	"backdrop",
 	"before",
+	"between",
 	"details-content",
 	"file",
 	"first-letter",
