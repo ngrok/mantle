@@ -399,7 +399,8 @@ const getTabProps = (
  * says whether the panel renders its children: it is selected, force-mounted,
  * or hidden until found.
  *
- * A panel that is hidden until found gets `hidden="until-found"`.
+ * An inactive panel that is hidden until found gets `hidden="until-found"`,
+ * and after hydration `aria-hidden`, so it leaves the accessibility tree.
  * Find-in-page and a fragment link make the browser remove `hidden`;
  * `revealRef` then selects the panel's tab. When a controlled root keeps
  * another tab, the panel hides again.
@@ -416,7 +417,8 @@ const getTabPanelProps = (
 		value,
 		forceMount = false,
 		hiddenUntilFound = false,
-	}: { value: string; forceMount?: boolean; hiddenUntilFound?: boolean },
+		hydrated = false,
+	}: { value: string; forceMount?: boolean; hiddenUntilFound?: boolean; hydrated?: boolean },
 ) => {
 	const selected = tabs.value === value;
 	const shown = selected || forceMount || hiddenUntilFound;
@@ -438,6 +440,11 @@ const getTabPanelProps = (
 			// would become `hidden=""`. React passes an unknown name through, and
 			// HTML lowercases it. React warns about it in development.
 			...(hiddenUntilFound && !selected ? { HIDDEN: "until-found" } : {}),
+			// Why: `until-found` hides only the panel's contents, so the browser
+			// and test role queries still expose an empty, labeled tabpanel.
+			// Why `hydrated`: before hydration, nothing could clear `aria-hidden`
+			// from a panel that the browser reveals.
+			"aria-hidden": (hiddenUntilFound && hydrated && !selected) || undefined,
 		},
 		revealRef: hiddenUntilFound
 			? (panel: HTMLElement | null) => {
