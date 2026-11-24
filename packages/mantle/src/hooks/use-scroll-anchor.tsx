@@ -3,11 +3,11 @@
 import type { RefCallback, RefObject } from "react";
 import { useCallback } from "react";
 
-const heldScrollRegions = new WeakSet<HTMLElement>();
+const heldScrollRegions = new WeakMap<HTMLElement, () => boolean>();
 
-/** Whether an anchor owns the region's initial position, including a position at zero. */
+/** Applies pending anchor layout changes and reports whether the anchor still owns the region's position. */
 export function hasScrollAnchor(region: HTMLElement): boolean {
-	return heldScrollRegions.has(region);
+	return heldScrollRegions.get(region)?.() ?? false;
 }
 
 /**
@@ -173,7 +173,10 @@ function holdAnchor(content: HTMLElement, anchor: Omit<ScrollAnchor, "key">): ()
 		region = next;
 		const overflowAnchor = next.style.overflowAnchor;
 		next.style.overflowAnchor = "none";
-		heldScrollRegions.add(next);
+		heldScrollRegions.set(next, () => {
+			update();
+			return holding;
+		});
 		unpin = () => {
 			next.style.overflowAnchor = overflowAnchor;
 			heldScrollRegions.delete(next);
@@ -181,8 +184,8 @@ function holdAnchor(content: HTMLElement, anchor: Omit<ScrollAnchor, "key">): ()
 		expected = next.scrollTop;
 		scrollTarget().addEventListener("scroll", onScroll, { passive: true });
 	};
-	// The first call reports the size at `observe`, which changes nothing.
-	const observer = new ResizeObserver(() => {
+	// A follower can run before ResizeObserver, so both paths apply the same pending layout change.
+	const update = () => {
 		const next = content.getBoundingClientRect();
 		if (moved()) {
 			release();
@@ -192,7 +195,8 @@ function holdAnchor(content: HTMLElement, anchor: Omit<ScrollAnchor, "key">): ()
 			release();
 		}
 		size = next;
-	});
+	};
+	const observer = new ResizeObserver(update);
 	const release = () => {
 		const held = holding && !moved();
 		holding = false;

@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { createRef, type Ref } from "react";
+import { createRef, type Ref, StrictMode } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 import { commands, userEvent as browserUser } from "vitest/browser";
@@ -22,16 +22,22 @@ function Transcript({
 	turns,
 	contentRef,
 	viewportRef,
+	width,
 	label = "Conversation",
 }: {
 	turns: Turn[];
 	contentRef?: Ref<HTMLOListElement>;
 	viewportRef?: Ref<HTMLDivElement>;
+	width?: number;
 	label?: string;
 }) {
 	return (
 		<Conversation.Root>
-			<Conversation.Viewport ref={viewportRef} aria-label={label} style={viewportStyle}>
+			<Conversation.Viewport
+				ref={viewportRef}
+				aria-label={label}
+				style={{ ...viewportStyle, width }}
+			>
 				<Conversation.Content ref={contentRef}>
 					{turns.map((turn) => (
 						<Message.Root key={turn.id} from={turn.from}>
@@ -317,25 +323,62 @@ describe("Conversation", () => {
 
 	test.each([0, 40])("restores a place at %i and shows the scroll button", async (top) => {
 		const anchorRef = createRef<ScrollAnchor>();
-		function RestoredTranscript() {
+		const turns: Turn[] = [question, { id: "a1", from: "assistant", text: longAnswer }];
+		function RestoredTranscript({ turns }: { turns: Turn[] }) {
 			const contentRef = useScrollAnchor({ anchorRef });
-			return (
-				<Transcript
-					contentRef={contentRef}
-					turns={[question, { id: "a1", from: "assistant", text: longAnswer }]}
-				/>
-			);
+			return <Transcript contentRef={contentRef} turns={turns} />;
 		}
-		const { rerender } = render(<RestoredTranscript key="page" />);
+		const { rerender } = render(
+			<StrictMode>
+				<RestoredTranscript key="page" turns={turns} />
+			</StrictMode>,
+		);
 		await nextFrame();
+		expect(distanceFromEnd(viewport())).toBeLessThanOrEqual(1);
 		viewport().scrollTo({ top, behavior: "instant" });
 		await waitFor(() => expect(root()).toHaveAttribute("data-scrolled-up"));
 
-		rerender(<RestoredTranscript key="panel" />);
+		rerender(
+			<StrictMode>
+				<RestoredTranscript key="panel" turns={turns} />
+			</StrictMode>,
+		);
 		await nextFrame();
 
 		expect(viewport().scrollTop).toBeCloseTo(top, 0);
 		expect(root()).toHaveAttribute("data-scrolled-up", "");
+		rerender(
+			<StrictMode>
+				<RestoredTranscript key="panel" turns={[...turns, { ...question, id: "q2" }]} />
+			</StrictMode>,
+		);
+		await waitFor(() => expect(distanceFromEnd(viewport())).toBeLessThanOrEqual(1));
+	});
+
+	test("a restored place survives a wide mount that temporarily fits all the text", async () => {
+		const anchorRef = createRef<ScrollAnchor>();
+		function RestoredTranscript({ width }: { width: number }) {
+			const contentRef = useScrollAnchor({ anchorRef });
+			return (
+				<Transcript
+					width={width}
+					contentRef={contentRef}
+					turns={[{ id: "a1", from: "assistant", text: "word ".repeat(160) }]}
+				/>
+			);
+		}
+		const { rerender } = render(<RestoredTranscript key="page" width={380} />);
+		await nextFrame();
+		viewport().scrollTo({ top: 40, behavior: "instant" });
+		await waitFor(() => expect(root()).toHaveAttribute("data-scrolled-up"));
+		rerender(<RestoredTranscript key="panel" width={1100} />);
+		await nextFrame();
+		expect(viewport().scrollTop).toBe(0);
+		expect(distanceFromEnd(viewport())).toBe(0);
+
+		rerender(<RestoredTranscript key="panel" width={380} />);
+		await waitFor(() => expect(viewport().scrollTop).toBeCloseTo(40, 0));
+		expect(root()).toHaveAttribute("data-scrolled-up");
 	});
 
 	test("keeps following when content above the end shrinks", async () => {
@@ -353,6 +396,18 @@ describe("Conversation", () => {
 		rerender(<Transcript turns={[question, { id: "a1", from: "assistant", text: longAnswer }]} />);
 		await nextFrame();
 		expect(distanceFromEnd(viewport())).toBeLessThanOrEqual(1);
+
+		rerender(
+			<Transcript turns={[question, { id: "a1", from: "assistant", text: "Short answer" }]} />,
+		);
+		expect(viewport().scrollTop).toBe(0);
+		await Promise.resolve();
+		rerender(
+			<Transcript
+				turns={[question, { id: "a1", from: "assistant", text: longAnswer.repeat(2) }]}
+			/>,
+		);
+		await waitFor(() => expect(distanceFromEnd(viewport())).toBeLessThanOrEqual(1));
 	});
 
 	test("stream updates do not jump to the end during the button's smooth scroll", async () => {
@@ -397,6 +452,27 @@ describe("Conversation", () => {
 
 		expect(viewport().scrollTop).toBe(interruptedTop);
 		expect(root()).toHaveAttribute("data-scrolled-up");
+	});
+
+	test("ArrowDown during the button's smooth scroll does not strand following", async () => {
+		await commands.emulateMedia({ reducedMotion: "no-preference" });
+		const { rerender } = render(
+			<Transcript turns={[question, { id: "a1", from: "assistant", text: longAnswer }]} />,
+		);
+		await nextFrame();
+		viewport().scrollTo({ top: 0, behavior: "instant" });
+		await waitFor(() => expect(root()).toHaveAttribute("data-scrolled-up"));
+		await browserUser.click(screen.getByRole("button", { name: "Scroll to the latest message" }));
+		await waitFor(() => expect(viewport().scrollTop).toBeGreaterThan(20));
+		await browserUser.keyboard("{ArrowDown}");
+		await waitFor(() => expect(distanceFromEnd(viewport())).toBeLessThanOrEqual(1));
+
+		rerender(
+			<Transcript
+				turns={[question, { id: "a1", from: "assistant", text: longAnswer.repeat(2) }]}
+			/>,
+		);
+		await waitFor(() => expect(distanceFromEnd(viewport())).toBeLessThanOrEqual(1));
 	});
 
 	test("PageUp releases the view before another stream update", async () => {

@@ -189,7 +189,18 @@ function Viewport({
 	const Component = asChild ? Slot : "div";
 	const { scrollToEndRef, viewportRef, scrollButtonRef } = useConversationContext("Viewport");
 	const [element, setElement] = useState<HTMLDivElement | null>(null);
-	const composedRef = useComposedRefs<HTMLDivElement>(viewportRef, setElement, ref);
+	const initializedRef = useRef<HTMLDivElement | null>(null);
+	const attachViewport = useCallback((viewport: HTMLDivElement | null) => {
+		// Initialize before an anchor's StrictMode ref replay can save the fresh viewport's top.
+		if (viewport != null && initializedRef.current !== viewport) {
+			initializedRef.current = viewport;
+			if (!hasScrollAnchor(viewport) && viewport.scrollTop === 0) {
+				viewport.scrollTo({ top: viewport.scrollHeight, behavior: "instant" });
+			}
+		}
+		setElement(viewport);
+	}, []);
+	const composedRef = useComposedRefs(viewportRef, attachViewport, ref);
 
 	// Why the element dependency: a consumer ref can change without replacing the viewport or its follow state.
 	useLayoutEffect(() => {
@@ -255,19 +266,21 @@ function followEnd(
 	{ onScrolledUpChange }: { onScrolledUpChange: (scrolledUp: boolean) => void },
 ): FollowEnd {
 	const distanceFromEnd = () => viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop;
-	// A restored place can be zero, so the position alone cannot identify a fresh mount.
-	let isFollowing =
-		distanceFromEnd() <= END_THRESHOLD || (!hasScrollAnchor(viewport) && viewport.scrollTop === 0);
+	let isFollowing = distanceFromEnd() <= END_THRESHOLD;
 	let lastTop = viewport.scrollTop;
 	let smoothTarget: number | null = null;
-	let frame = 0;
 
 	const report = () => {
 		onScrolledUpChange(distanceFromEnd() > END_THRESHOLD);
 	};
 	const follow = () => {
-		cancelAnimationFrame(frame);
-		frame = 0;
+		// A held anchor can be clamped to the end until a later width change restores its real place.
+		if (hasScrollAnchor(viewport)) {
+			isFollowing = distanceFromEnd() <= END_THRESHOLD;
+			lastTop = viewport.scrollTop;
+			report();
+			return;
+		}
 		// Why: a scroll up whose event has not fired yet must still release the view.
 		if (viewport.scrollTop < lastTop && distanceFromEnd() > END_THRESHOLD) {
 			isFollowing = false;
@@ -293,15 +306,14 @@ function followEnd(
 		if (records.some(addsUserMessage)) {
 			isFollowing = true;
 			smoothTarget = null;
+			viewport.scrollTo({ top: viewport.scrollHeight, behavior: "instant" });
 			lastTop = viewport.scrollTop;
 		}
 		if (records.some((record) => record.target === viewport && record.type === "childList")) {
 			observeChildren();
 		}
-		// A buffered stream can deliver many mutations before paint; measure its final layout once.
-		if (frame === 0) {
-			frame = requestAnimationFrame(follow);
-		}
+		// Read a clamped position before another mutation grows the content and hides the clamp.
+		follow();
 	});
 	const onScroll = () => {
 		if (distanceFromEnd() <= END_THRESHOLD) {
@@ -334,22 +346,35 @@ function followEnd(
 			}
 		}
 	};
+	const onKeyDown = (event: KeyboardEvent) => {
+		// A downward key can replace the native smooth scroll with a shorter one.
+		// Wait for movement beyond the one-pixel completion tolerance before accepting its scrollend.
+		if (
+			smoothTarget != null &&
+			event.target === viewport &&
+			["ArrowDown", "PageDown", "End", " "].includes(event.key) &&
+			!event.shiftKey
+		) {
+			smoothTarget = viewport.scrollTop + 2;
+		}
+	};
 
 	mutations.observe(viewport, { childList: true, subtree: true, characterData: true });
 	observeChildren();
 	viewport.addEventListener("scroll", onScroll, { passive: true });
 	viewport.addEventListener("scrollend", onScrollEnd);
 	viewport.addEventListener("wheel", onWheel, { passive: true });
+	viewport.addEventListener("keydown", onKeyDown);
 	follow();
 
 	return {
 		disconnect: () => {
-			cancelAnimationFrame(frame);
 			mutations.disconnect();
 			resizes.disconnect();
 			viewport.removeEventListener("scroll", onScroll);
 			viewport.removeEventListener("scrollend", onScrollEnd);
 			viewport.removeEventListener("wheel", onWheel);
+			viewport.removeEventListener("keydown", onKeyDown);
 		},
 		scrollToEnd: (behavior) => {
 			isFollowing = true;
