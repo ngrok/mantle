@@ -256,11 +256,13 @@ function DictatingComposer({
 	onChange,
 	textAreaProps,
 	disabled,
+	dictateProps,
 }: {
 	onSubmit: (message: string) => void;
 	onChange?: (message: string) => void;
 	textAreaProps?: ComponentProps<typeof PromptInput.TextArea>;
 	disabled?: boolean;
+	dictateProps?: ComponentProps<typeof PromptInput.Dictate>;
 }) {
 	const [draft, setDraft] = useState("");
 	return (
@@ -279,7 +281,7 @@ function DictatingComposer({
 					onChange?.(event.target.value);
 				}}
 			/>
-			<PromptInput.Dictate disabled={disabled} />
+			<PromptInput.Dictate disabled={disabled} {...dictateProps} />
 			<PromptInput.Submit />
 		</PromptInput.Root>
 	);
@@ -388,13 +390,18 @@ test.each(["readOnly", "disabled", "button disabled"])(
 	},
 );
 
-test("Dictate releases the microphone when the toggle becomes disabled", async () => {
+test.each([
+	{ name: "disabled", dictateProps: { disabled: true } },
+	{ name: "isLoading", dictateProps: { isLoading: true } },
+	{ name: "aria-disabled", dictateProps: { "aria-disabled": true } },
+])("Dictate releases the microphone when $name disables the toggle", async ({ dictateProps }) => {
 	vi.stubGlobal("SpeechRecognition", FakeRecognition);
 	const onSubmit = vi.fn<(message: string) => void>();
 	const { rerender } = render(<DictatingComposer onSubmit={onSubmit} />);
 	await userEvent.click(screen.getByRole("button", { name: "Dictate" }));
 	const recognition = FakeRecognition.last;
-	rerender(<DictatingComposer onSubmit={onSubmit} disabled />);
+	rerender(<DictatingComposer onSubmit={onSubmit} dictateProps={dictateProps} />);
+	expect(screen.getByRole("button", { name: "Dictate" })).toBeDisabled();
 	expect(recognition?.aborted).toBe(true);
 	expect(screen.getByRole("button", { name: "Dictate" })).toHaveAttribute("aria-pressed", "false");
 });

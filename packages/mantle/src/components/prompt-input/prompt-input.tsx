@@ -16,6 +16,7 @@ import {
 } from "react";
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
+import { parseBooleanish } from "../../types/booleanish.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
@@ -808,11 +809,14 @@ function Dictate({
 	const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
 	// Why: a disabled toggle cannot be pressed to stop, so it must not leave the microphone open.
+	// Why the same rule as IconButton: `isLoading` and `aria-disabled` disable the button too.
+	const disabled =
+		parseBooleanish(props.disabled ?? props.isLoading) || parseBooleanish(props["aria-disabled"]);
 	useEffect(() => {
-		if (props.disabled) {
+		if (disabled) {
 			endDictation(recognitionRef, setListening);
 		}
-	}, [props.disabled]);
+	}, [disabled]);
 	// Why reset too: a hidden Activity keeps the state, so the toggle must not come back pressed.
 	useEffect(() => () => endDictation(recognitionRef, setListening), []);
 
