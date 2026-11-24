@@ -1,6 +1,6 @@
 ---
 title: Radio Group
-description: A set of checkable buttons (known as radio buttons) where no more than one of the buttons can be checked at a time.
+description: A set of radio buttons, shown as radios, a list, or selectable cards, where no more than one can be checked at a time.
 aliases: [radio button, radio, radio cards, radio card grid]
 ---
 
@@ -8,7 +8,7 @@ import { Example } from "~/components/example";
 
 # Radio Group
 
-A set of checkable buttons (known as radio buttons) where no more than one of the buttons can be checked at a time. Wrap it in `Field.Set` and `Field.Legend` to label the group in a form, and set `name` on `RadioGroup.Root`.
+A set of radio buttons, shown as radios, a list, or selectable cards, where no more than one can be checked at a time. Wrap it in `Field.Set` and `Field.Legend` to label the group in a form, and set `name` on `RadioGroup.Root`.
 
 <Example name="components/forms/radio-group/overview" title="Radio Group example">
 
@@ -40,7 +40,7 @@ import { RadioGroup } from "@ngrok/mantle/radio-group";
 
 ## When to use
 
-- Pick exactly one value from a few fixed options, with every option visible at once.
+- Pick exactly one value from a few fixed options, with every option visible at once, such as a single choice between selectable [cards](#cards).
 - Prefer [`Select`](/components/forms/select) when the set is long, or the form has little space.
 - Prefer [`Checkbox`](/components/forms/checkbox) when the user picks any number of options.
 - Prefer [`Choice`](/components/forms/choice) when each radio needs a title and a description beside it. See [Rich option layout](#rich-option-layout-with-choice).

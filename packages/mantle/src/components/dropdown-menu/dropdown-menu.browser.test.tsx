@@ -722,7 +722,7 @@ describe("DropdownMenu parity with Radix (browser)", () => {
 		await user.keyboard("{ArrowDown}");
 		await waitFor(() => expect(item("Apple")).toHaveFocus());
 
-		// Why a real click: the outside button is inert, so the press lands on the page.
+		// Why force: the outside button is inert, so the press lands on the page.
 		await browserUser.click(screen.getByRole("button", { name: "Outside" }), { force: true });
 
 		await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "false"));

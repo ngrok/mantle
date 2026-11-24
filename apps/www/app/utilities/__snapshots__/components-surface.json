@@ -479,8 +479,8 @@
     "category": "Forms",
     "status": "stable",
     "importPath": "@ngrok/mantle/checkbox",
-    "summary": "A form control that toggles between checked and not checked, with an indeterminate state.",
-    "jsdoc": "A form control that allows the user to toggle between checked and not checked.",
+    "summary": "A form control that toggles between checked and not checked, with an indeterminate state, alone or in a group of selectable cards.",
+    "jsdoc": "A form control that allows the user to toggle between checked and not checked, alone or in a group of cards.",
     "examples": [
       "```tsx\n<form>\n  <Label htmlFor=\"terms\" className=\"flex items-center gap-2\">\n    <Checkbox name=\"terms\" id=\"terms\" />\n    Accept terms and conditions\n  </Label>\n</form>\n```"
     ],
@@ -506,7 +506,7 @@
         "boundary": "the checkbox needs a title and a description beside it."
       }
     ],
-    "useWhen": "Turn one or more independent options on or off in a form, with an indeterminate state for a partial selection. `CheckboxGroup` shows the options as selectable cards for a \"select all that apply\" question."
+    "useWhen": "Turn one or more independent options on or off in a form, with an indeterminate state for a partial selection. `CheckboxGroup` shows the options as selectable cards where the user picks several, for a \"select all that apply\" question."
   },
   {
     "name": "Choice",
@@ -1547,8 +1547,8 @@
     "category": "Forms",
     "status": "stable",
     "importPath": "@ngrok/mantle/radio-group",
-    "summary": "A set of checkable buttons (known as radio buttons) where no more than one of the buttons can be checked at a time.",
-    "jsdoc": "A group of radio items.",
+    "summary": "A set of radio buttons, shown as radios, a list, or selectable cards, where no more than one can be checked at a time.",
+    "jsdoc": "A group of radio items, shown as radios, a list, or cards.",
     "examples": [
       "Composition:\n```\n# Default radios\nRadioGroup.Root\n└── RadioGroup.Item\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# List layout with descriptions\nRadioGroup.List\n└── RadioGroup.ListItem\n    ├── RadioGroup.Indicator\n    └── RadioGroup.ItemContent\n\n# Card-style radios\nRadioGroup.Root\n└── RadioGroup.Card\n    └── RadioGroup.Indicator\n\n# Rich option layout (Choice)\nRadioGroup.Root\n└── RadioGroup.Item\n    └── Choice.Root\n        ├── Choice.Indicator\n        │   └── RadioGroup.Indicator\n        └── Choice.Content\n            ├── Choice.Title\n            └── Choice.Description\n```",
       "```tsx\n<RadioGroup.Root value={value} onValueChange={setValue}>\n  <RadioGroup.Item value=\"option1\">\n    <RadioGroup.Indicator />\n    <span>Option 1</span>\n  </RadioGroup.Item>\n  <RadioGroup.Item value=\"option2\">\n    <RadioGroup.Indicator />\n    <span>Option 2</span>\n  </RadioGroup.Item>\n</RadioGroup.Root>\n```"
@@ -1577,7 +1577,7 @@
         "boundary": "a few short options switch a view or a mode in one row."
       }
     ],
-    "useWhen": "Pick exactly one value from a few fixed options, with every option visible at once."
+    "useWhen": "Pick exactly one value from a few fixed options, with every option visible at once, such as a single choice between selectable cards."
   },
   {
     "name": "Sandbar",

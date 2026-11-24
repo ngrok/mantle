@@ -43,6 +43,7 @@ catalog:
   "@types/node": "26.6.6"
   "@vitest/browser-playwright": "5.1.1"
   "happy-dom": "21.0.4"
+  "jsdom": "31.0.1"
   "magic-string": "1.4.5"
   "oxc-parser": "0.160.0"
   "oxc-transform-react": "0.158.0"

@@ -247,7 +247,11 @@ export default defineConfig({
 					name: "unit",
 					environment: "happy-dom",
 					include: ["**/*.test.{ts,tsx}"],
-					exclude: [...configDefaults.exclude, "**/*.browser.test.{ts,tsx}"],
+					exclude: [
+						...configDefaults.exclude,
+						"**/*.browser.test.{ts,tsx}",
+						"**/*.consumer.test.{ts,tsx}",
+					],
 					// Why: the theme and chart tests import the shipped stylesheets with `?raw`, and
 					// without this Vitest hands them an empty module.
 					css: true,
@@ -256,6 +260,17 @@ export default defineConfig({
 					// independent in the shared worker.
 					isolate: false,
 					setupFiles: ["./vitest.setup-file-reset.ts"],
+				},
+			},
+			{
+				plugins: compilerPlugins,
+				test: {
+					// Why a jsdom project with no shims: a consumer's suite runs mantle in plain jsdom, which
+					// has no popover API, no `showModal()`, no observers, and no `matchMedia`. The unit
+					// project's happy-dom shims hide each of those paths.
+					name: "consumer",
+					environment: "jsdom",
+					include: ["**/*.consumer.test.{ts,tsx}"],
 				},
 			},
 			{

@@ -7,6 +7,17 @@
  * (#1794). A structural pseudo-class in the last compound, such as
  * `[&>*:last-child]`, and one inside `:has()` are fine.
  *
+ * It also flags two shapes whose subject has no class, id, attribute, or
+ * tag, such as `*` or `:not(.x)`. Chromium tries such a rule on each element.
+ * - A sibling combinator anywhere, such as `[&+*]` or `[&>tr+tr>*]`. When
+ *   all of the selector after the combinator is universal, as in `[&+*]`,
+ *   Chromium marks each parent on the page, and an insert restyles the next
+ *   sibling's subtree (the OtpInput overlay restyled 4,662 elements, #1825).
+ * - Only attributes as anchors, such as `[data-state] > *` in a stylesheet:
+ *   no class, id, or tag limits it to mantle's parts.
+ * The check reads a combinator inside a one-selector `:is()`, as CSS nesting
+ * writes it, and composes the arbitrary variants of one class.
+ *
  * Scope: every static string in a file, so a class list in a `cx()` call, a
  * `className`, or a variants object is covered. Only Tailwind arbitrary
  * variants (`[&…]:`) and the `group-*` and `peer-*` structural variants can
@@ -17,10 +28,12 @@
  * // ❌ Incorrect
  * cx("[&>tr:last-child>*]:border-b");
  * cx("group-first:hidden");
+ * cx("[&+*]:ml-2");
  *
  * // ✅ Correct
  * cx("[&>tr:not(:has(+tr))>*]:border-b");
  * cx("[&>*:last-child]:border-b");
+ * cx("[&+[data-slot=x]]:ml-2");
  */
 
 const STRUCTURAL =
@@ -40,6 +53,10 @@ const RELATIVE_ARBITRARY_VARIANT = /^(?:group|peer|in)-\[(.+)\](?:\/\S+)?$/;
 /** The message for a selector, with the fix it names. */
 const fixHint =
 	"A structural pseudo-class before a combinator makes Chromium restyle the whole subtree of an element whose position changes, such as the app root on each portal. Use `:not(:has(+…))` for a last item, a selector with no position, or a structural pseudo-class in the last compound.";
+
+/** The message for a selector whose subject has no class, id, attribute, or tag. */
+const universalHint =
+	"This rule's subject has no class, id, attribute, or tag, so Chromium tries it on each element. After a sibling combinator such as `+*`, an insert anywhere on the page can restyle a whole subtree. Give the subject a class or a `data-slot` attribute.";
 
 /** Replaces the argument of each `:has(…)` with nothing; a structural pseudo-class there is fine. */
 function dropHasArguments(selector) {
@@ -69,8 +86,13 @@ function dropAttributes(selector) {
 	let result = "";
 	let depth = 0;
 	let quote = null;
+	let escaped = false;
 	for (const char of selector) {
-		if (quote != null) {
+		if (escaped || char === "\\") {
+			// Why: an escaped character, such as `\]` or `\+`, is not syntax.
+			escaped = !escaped;
+			result += depth === 0 ? char : "";
+		} else if (quote != null) {
 			if (char === quote) {
 				quote = null;
 				result += depth === 0 ? char : "";
@@ -143,6 +165,160 @@ function lastCompoundStart(selector) {
 }
 
 /**
+ * The compounds of a complex selector and the combinator before each one
+ * after the first: `>`, `+`, `~`, or `" "` for a descendant.
+ *
+ * @example
+ * splitCompounds("tr + tr>*"); // => { compounds: ["tr", "tr", "*"], combinators: ["+", ">"] }
+ */
+function splitCompounds(selector) {
+	const compounds = [];
+	const combinators = [];
+	let depth = 0;
+	let current = "";
+	let pending = null;
+	let escaped = false;
+	for (const char of selector.trim()) {
+		if (!escaped && depth === 0 && /[\s>+~]/.test(char)) {
+			if (current !== "") {
+				compounds.push(current);
+				current = "";
+				pending = char.trim() === "" ? " " : char;
+			} else if (char.trim() !== "") {
+				pending = char;
+			}
+			continue;
+		}
+		if (current === "" && pending != null) {
+			combinators.push(pending);
+			pending = null;
+		}
+		if (escaped) {
+			escaped = false;
+		} else if (char === "\\") {
+			escaped = true;
+		} else if (char === "(" || char === "[") {
+			depth++;
+		} else if (char === ")" || char === "]") {
+			depth--;
+		}
+		current += char;
+	}
+	compounds.push(current);
+	return { compounds, combinators };
+}
+
+/**
+ * Empties the argument of each `:not(…)`, and of each `:is(…)` or `:where(…)`
+ * with more than one selector. Chromium files a rule with such a subject
+ * under no class, id, attribute, or tag.
+ *
+ * @example
+ * dropUnbucketedArguments(":not(.x):is(.a,.b):is(.c)"); // => ":not():is():is(.c)"
+ */
+function dropUnbucketedArguments(compound) {
+	let result = "";
+	for (let index = 0; index < compound.length; index++) {
+		const name = /^:(not|is|where)\(/.exec(compound.slice(index))?.[1];
+		if (name == null) {
+			result += compound[index];
+			continue;
+		}
+		const open = index + name.length + 1;
+		let depth = 0;
+		let end = open;
+		for (; end < compound.length; end++) {
+			if (compound[end] === "(") {
+				depth++;
+			} else if (compound[end] === ")" && --depth === 0) {
+				break;
+			}
+		}
+		const argument = compound.slice(open + 1, end);
+		const keep = name !== "not" && splitTopLevel(argument).length === 1;
+		result += `:${name}(${keep ? argument : ""})`;
+		index = end;
+	}
+	return result;
+}
+
+/** Whether a compound, with its attribute and `:has()` text emptied, names no class, id, attribute, or tag. */
+const isUniversal = (compound) => {
+	const bucketed = dropUnbucketedArguments(compound);
+	return !/[.#[]/.test(bucketed) && !/^[a-z]/i.test(bucketed);
+};
+
+/**
+ * Replaces a one-selector `:is(…)` or `:where(…)` that holds a combinator with
+ * its argument, so a combinator that CSS nesting wraps is seen.
+ *
+ * @example
+ * unwrapIs(":is(.a + .b) > *"); // => ".a + .b > *"
+ */
+function unwrapIs(selector) {
+	let result = "";
+	for (let index = 0; index < selector.length; index++) {
+		const name = /^:(is|where)\(/.exec(selector.slice(index))?.[1];
+		if (name == null) {
+			result += selector[index];
+			continue;
+		}
+		const open = index + name.length + 1;
+		let depth = 0;
+		let end = open;
+		for (; end < selector.length; end++) {
+			if (selector[end] === "(") {
+				depth++;
+			} else if (selector[end] === ")" && --depth === 0) {
+				break;
+			}
+		}
+		const argument = selector.slice(open + 1, end);
+		const { compounds } = splitCompounds(dropAttributes(argument));
+		const flatten = splitTopLevel(argument).length === 1 && compounds.length > 1;
+		result += flatten ? unwrapIs(argument) : selector.slice(index, end + 1);
+		index = end;
+	}
+	return result;
+}
+
+/** Whether a compound anchors only on attributes: no class, id, or tag. */
+const isAttributeOnly = (compound) =>
+	!/[.#]/.test(compound) && !/^[a-z]/i.test(compound) && compound.includes("[");
+
+/**
+ * Whether a selector ends in a universal subject after a sibling combinator,
+ * or after only attribute anchors. A selector with one compound is fine.
+ *
+ * @example
+ * hasUniversalSubjectTrap(".a + *"); // => true
+ * hasUniversalSubjectTrap(".a + :not(.x)"); // => true
+ * hasUniversalSubjectTrap(".a>tr+tr>*"); // => true
+ * hasUniversalSubjectTrap("[data-state] > *"); // => true
+ * hasUniversalSubjectTrap(".a > *"); // => false
+ * hasUniversalSubjectTrap(".a + [data-slot=x]"); // => false
+ */
+export function hasUniversalSubjectTrap(selector) {
+	// Why `&` counts as a class: Tailwind puts the utility's class there.
+	for (const part of splitTopLevel(unwrapIs(dropHasArguments(selector.replaceAll("&", ".x"))))) {
+		const { compounds, combinators } = splitCompounds(dropAttributes(part));
+		const subject = compounds.at(-1) ?? "";
+		if (compounds.length < 2 || !isUniversal(subject)) {
+			continue;
+		}
+		const anchors = compounds.slice(0, -1);
+		if (
+			combinators.some((combinator) => combinator === "+" || combinator === "~") ||
+			(anchors.some(isAttributeOnly) &&
+				anchors.every((compound) => isAttributeOnly(compound) || isUniversal(compound)))
+		) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
  * Whether a selector has a structural pseudo-class that a combinator follows,
  * outside `:has()`. It checks the arguments of `:is()`, `:where()`, and
  * `:not()` the same way.
@@ -189,10 +365,24 @@ export function hasStructuralCombinator(selector) {
  * structuralVariants("first:*:p-2"); // => ["*"]
  */
 export function structuralVariants(token) {
+	return classifyVariants(token).map(({ variant }) => variant);
+}
+
+/**
+ * The variants that `structuralVariants` returns, each with the fixes it needs:
+ * `structural` for a structural pseudo-class before a combinator, `universal`
+ * for a universal subject trap in the selector the arbitrary variants build.
+ *
+ * @example
+ * classifyVariants("[&+tr]:[&>*]:p-2"); // => [{ variant: "[&>*]", structural: false, universal: true }]
+ */
+function classifyVariants(token) {
 	const found = [];
 	let depth = 0;
 	let start = 0;
 	let structuralBefore = false;
+	// Why compose: `[&+tr]:[&>*]:` builds `.x+tr>*`, a trap that neither variant shows alone.
+	let composed = "&";
 	for (let index = 0; index < token.length; index++) {
 		const char = token[index];
 		if (char === "[" || char === "(") {
@@ -208,22 +398,26 @@ export function structuralVariants(token) {
 				const selector = variant.slice(1, -1).replace(/(?<!\\)_/g, " ");
 				const selfStart = lastCompoundStart(selector);
 				const addsCombinator = selector.indexOf("&") < selfStart;
-				if (hasStructuralCombinator(selector) || (structuralBefore && addsCombinator)) {
-					found.push(variant);
+				composed = selector.replaceAll("&", composed);
+				const structural =
+					hasStructuralCombinator(selector) || (structuralBefore && addsCombinator);
+				const universal = hasUniversalSubjectTrap(composed);
+				if (structural || universal) {
+					found.push({ variant, structural, universal });
 				}
 				const self = dropHasArguments(dropAttributes(selector.slice(selfStart)));
 				structuralBefore = (structuralBefore && !addsCombinator) || STRUCTURAL.test(self);
 			} else if (relative != null) {
 				// Why `structuralBefore` stays: the relative selector goes in front, so the element's own compound stays last.
 				if (STRUCTURAL.test(dropHasArguments(dropAttributes(relative[1] ?? "")))) {
-					found.push(variant);
+					found.push({ variant, structural: true, universal: false });
 				}
 			} else if (STRUCTURAL_RELATIVE_VARIANT.test(variant)) {
-				found.push(variant);
+				found.push({ variant, structural: true, universal: false });
 				structuralBefore = false;
 			} else if (variant === "*" || variant === "**") {
 				if (structuralBefore) {
-					found.push(variant);
+					found.push({ variant, structural: true, universal: false });
 				}
 				structuralBefore = false;
 			} else if (
@@ -242,8 +436,11 @@ const noStructuralCombinator = {
 	create(context) {
 		function check(node, value) {
 			for (const token of value.split(/\s+/)) {
-				for (const variant of structuralVariants(token)) {
-					context.report({ message: `\`${variant}\` in \`${token}\`: ${fixHint}`, node });
+				for (const { variant, structural, universal } of classifyVariants(token)) {
+					const hint = [structural && fixHint, universal && universalHint]
+						.filter(Boolean)
+						.join(" ");
+					context.report({ message: `\`${variant}\` in \`${token}\`: ${hint}`, node });
 				}
 			}
 		}
@@ -267,5 +464,9 @@ const plugin = {
 	},
 };
 
-export { fixHint };
+export {
+	//,
+	fixHint,
+	universalHint,
+};
 export default plugin;

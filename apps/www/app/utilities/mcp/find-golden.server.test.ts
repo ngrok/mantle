@@ -86,6 +86,26 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 		"multi-select cards": "Checkbox",
 		"select all that apply cards with title and description": "Checkbox",
 	},
+	"Single-choice cards go to Radio Group, multi-select cards to Checkbox": {
+		"selectable cards pick one product": "Radio Group",
+		"choose one plan cards": "Radio Group",
+		"one of three cards": "Radio Group",
+		"pick one of several cards": "Radio Group",
+		"select one card": "Radio Group",
+		"single select card grid": "Radio Group",
+		"selectable cards select all that apply": "Checkbox",
+		"multiple selectable cards": "Checkbox",
+		"pick several options as cards": "Checkbox",
+		"select several features as cards": "Checkbox",
+		"select one or more cards": "Checkbox",
+		"dropdown with many options": "Select",
+		"type to filter many options": "Combobox",
+		"single dropdown with removable tags": "Multi Select",
+		"single checkbox with indeterminate state": "Checkbox",
+		"chart with a single series": "Line Chart",
+		"pick multiple dates": "Calendar",
+		"select a date range across several days": "Calendar",
+	},
 	"Weak finds from #pulse-mantle-mcp": {
 		"status banner success callout": "Alert",
 		"horizontal separator divider text label middle": "Separator",
@@ -139,10 +159,7 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
  * below another, or ranks first as a weak match. Each one must still miss, so
  * a fix moves it to `goldenFinds` and it cannot regress again.
  */
-const knownMisses: Record<string, string | readonly string[]> = {
-	// Why: Checkbox's "selectable cards" alias outranks `RadioGroup.Card` for a single choice.
-	"selectable cards pick one product": "Radio Group",
-};
+const knownMisses: Record<string, string | readonly string[]> = {};
 
 /**
  * Needs that mantle has no part for, from real gap reports. `find` must call
