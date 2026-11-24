@@ -142,6 +142,40 @@ import { Tabs } from "@ngrok/mantle/tabs";
 
 </Example>
 
+## Stop arrow-key selection
+
+To keep the user on a tab, for example while its panel has unsaved changes, call `preventDefault()` in the trigger's `onKeyDown`. The arrow key then neither moves focus nor selects. The key goes to the tab that has focus, so put the handler on each tab the user can leave.
+
+Do not use `onFocus` with `preventDefault()` for this. An arrow key selects the next tab before it takes focus, so a focus handler runs too late to stop the selection.
+
+```tsx
+import { Tabs } from "@ngrok/mantle/tabs";
+import type { KeyboardEvent } from "react";
+
+const arrowKeys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"];
+
+function SettingsTabs({ hasUnsavedChanges }: { hasUnsavedChanges: boolean }) {
+	const holdTab = (event: KeyboardEvent) => {
+		if (hasUnsavedChanges && arrowKeys.includes(event.key)) {
+			event.preventDefault();
+		}
+	};
+
+	return (
+		<Tabs.Root defaultValue="profile">
+			<Tabs.List>
+				<Tabs.Trigger value="profile" onKeyDown={holdTab}>
+					Profile
+				</Tabs.Trigger>
+				<Tabs.Trigger value="billing" onKeyDown={holdTab}>
+					Billing
+				</Tabs.Trigger>
+			</Tabs.List>
+		</Tabs.Root>
+	);
+}
+```
+
 ## Find in page
 
 Pass `hiddenUntilFound` to a `Tabs.Content` to keep its text in the HTML while its tab is inactive. The panel renders `hidden="until-found"`, so the browser's find-in-page and a link to a fragment inside it reveal the text and activate its tab. Use it for pages that crawlers and agents read, such as install instructions. It implies `forceMount`.
