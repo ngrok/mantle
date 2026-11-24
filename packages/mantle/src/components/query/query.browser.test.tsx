@@ -1,7 +1,7 @@
 import { render } from "@testing-library/react";
 import { useState } from "react";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import { commands, page, userEvent } from "vitest/browser";
+import { commands, page, server, userEvent } from "vitest/browser";
 import { testGrammar } from "../../utils/query-filter/test-grammar.js";
 import * as Query from "./query-parts.js";
 
@@ -183,6 +183,23 @@ describe("Query in a browser", () => {
 			await expect.element(page.getByRole("combobox", { name: "Enabled" })).toHaveFocus();
 			expect(enabledHint).not.toBeVisible();
 		});
+
+		test.runIf(server.browser === "chromium")(
+			"hides on a device that cannot hover, and keeps the shortcut",
+			async () => {
+				await commands.emulateMedia({ hover: "none" });
+				try {
+					render(<ShortcutField label="Touch" />);
+
+					expect(document.querySelector('[data-slot~="query-input-shortcut"]')).not.toBeVisible();
+					await expect
+						.element(page.getByRole("combobox", { name: "Touch" }))
+						.toHaveAttribute("aria-keyshortcuts", "/");
+				} finally {
+					await commands.emulateMedia({ hover: "hover" });
+				}
+			},
+		);
 	});
 
 	describe("the popover height", () => {
