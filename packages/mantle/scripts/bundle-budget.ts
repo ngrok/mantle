@@ -104,8 +104,9 @@ const splitChunks = (chunks: readonly BuiltChunk[]): { eager: string[]; lazy: st
 	};
 };
 
+/** The gzip size of each file, summed. Why each apart: a browser fetches each chunk as its own file. */
 const gzipBytesOf = (code: readonly string[]): number =>
-	code.length === 0 ? 0 : gzipSync(code.join("\n"), { level: 9 }).length;
+	code.reduce((total, file) => total + gzipSync(file, { level: 9 }).length, 0);
 
 /** The module URLs that Node loaded since the script started. */
 const loadedUrls = new Set<string>();
@@ -301,6 +302,7 @@ if (import.meta.main) {
 
 export {
 	//,
+	gzipBytesOf,
 	judge,
 	splitChunks,
 };

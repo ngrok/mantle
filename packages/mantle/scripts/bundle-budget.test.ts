@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { judge, splitChunks } from "./bundle-budget.ts";
+import { gzipSync } from "node:zlib";
+import { gzipBytesOf, judge, splitChunks } from "./bundle-budget.ts";
 
 describe("judge", () => {
 	it("fails a size one byte over its budget", () => {
@@ -40,5 +41,14 @@ describe("splitChunks", () => {
 			eager: ["entry.js", "shared.js", "deep.js"],
 			lazy: ["grammar.js", "grammar-dep.js"],
 		});
+	});
+});
+
+describe("gzipBytesOf", () => {
+	it("sums the gzip size of each file, so files with shared text cost what a browser fetches", () => {
+		const file =
+			"export const grammar = " + JSON.stringify("x".repeat(64) + "keyword ".repeat(200)) + ";";
+		const one = gzipSync(file, { level: 9 }).length;
+		expect(gzipBytesOf([file, file])).toBe(2 * one);
 	});
 });
