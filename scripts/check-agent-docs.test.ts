@@ -85,6 +85,20 @@ describe("findRetiredLibraryMentions", () => {
 		},
 	);
 
+	it("skips a frontmatter alias, which only feeds search", () => {
+		writeManifest({});
+		write(
+			"apps/www/app/docs/command.mdx",
+			"---\naliases: [Radix dialog]\n---\n\nA Radix dialog.\n",
+		);
+
+		expect(
+			findRetiredLibraryMentions({ rootDir, files: ["apps/www/app/docs/command.mdx"], libraries }),
+		).toEqual([
+			"apps/www/app/docs/command.mdx:5 names Radix, which packages/mantle/package.json does not list.",
+		]);
+	});
+
 	it("skips a decision doc, which records what was true on its date", () => {
 		writeManifest({});
 		write("decisions/2026-11-21-hooks.md", "Mantle wraps Radix.\n");
