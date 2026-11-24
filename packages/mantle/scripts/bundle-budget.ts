@@ -4,6 +4,7 @@ import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
+import { Window } from "happy-dom";
 import { build } from "vite";
 
 /**
@@ -110,12 +111,56 @@ const gzipBytesOf = (code: readonly string[]): number =>
 
 /** The module URLs that Node loaded since the script started. */
 const loadedUrls = new Set<string>();
+/** The workers that started since the script started. */
+let workerStarts = 0;
 
 /**
- * Imports a scenario's built entry in Node, as a page that renders nothing
- * yet, and returns the lazy chunks that the import loaded and the count of
- * workers it started. Why: a size split reads only the import graph, and a
- * dynamic import or a worker that runs at module scope is eager in fact.
+ * Makes Node look like a browser page that renders nothing yet: a `window`
+ * and a `document`, so a `canUseDOM()` guard takes its browser branch, and a
+ * `Worker` stub that counts starts. Why for the whole run: a timer that an
+ * import starts can load a chunk or start a worker after the import ends.
+ */
+const stubBrowser = (): void => {
+	// Why happy-dom: modules read browser globals such as `HTMLElement` when they load.
+	const page = new Window({ url: "https://localhost/" });
+	for (const name of Object.getOwnPropertyNames(page)) {
+		if (!(name in globalThis)) {
+			Object.defineProperty(globalThis, name, {
+				configurable: true,
+				writable: true,
+				value: Reflect.get(page, name),
+			});
+		}
+	}
+	Object.defineProperty(globalThis, "window", { configurable: true, writable: true, value: page });
+	Object.defineProperty(globalThis, "document", {
+		configurable: true,
+		writable: true,
+		value: page.document,
+	});
+	Object.defineProperty(globalThis, "Worker", {
+		configurable: true,
+		writable: true,
+		value: class {
+			constructor() {
+				workerStarts += 1;
+			}
+			addEventListener() {}
+			postMessage() {}
+			terminate() {}
+		},
+	});
+};
+
+/** The lazy chunks of a scenario that Node loaded. */
+const loadedLazy = (dir: string, lazy: readonly string[]): string[] =>
+	lazy.filter((fileName) => loadedUrls.has(pathToFileURL(path.join(dir, fileName)).href));
+
+/**
+ * Imports a scenario's built entry, as a page that renders nothing yet, and
+ * returns the lazy chunks that the import loaded and the count of workers it
+ * started. Why: a size split reads only the import graph, and a dynamic import
+ * or a worker that runs at module scope is eager in fact.
  */
 const loadOnImport = async ({
 	dir,
@@ -126,38 +171,13 @@ const loadOnImport = async ({
 	entry: string;
 	lazy: readonly string[];
 }): Promise<{ lazyLoaded: string[]; workers: number }> => {
-	let workers = 0;
-	const previousWorker = Object.getOwnPropertyDescriptor(globalThis, "Worker");
-	// Why a stub: Node has no web `Worker`, and the check only counts the starts.
-	Object.defineProperty(globalThis, "Worker", {
-		configurable: true,
-		writable: true,
-		value: class {
-			constructor() {
-				workers += 1;
-			}
-			addEventListener() {}
-			postMessage() {}
-			terminate() {}
-		},
+	const startsBefore = workerStarts;
+	await import(pathToFileURL(path.join(dir, entry)).href);
+	// Why a wait: a dynamic import at module scope starts during the import and loads after it.
+	await new Promise((resolve) => {
+		setTimeout(resolve, 100);
 	});
-	try {
-		await import(pathToFileURL(path.join(dir, entry)).href);
-		// Why a wait: a dynamic import at module scope starts during the import and loads after it.
-		await new Promise((resolve) => {
-			setTimeout(resolve, 100);
-		});
-	} finally {
-		if (previousWorker == null) {
-			Reflect.deleteProperty(globalThis, "Worker");
-		} else {
-			Object.defineProperty(globalThis, "Worker", previousWorker);
-		}
-	}
-	const lazyLoaded = lazy.filter((fileName) =>
-		loadedUrls.has(pathToFileURL(path.join(dir, fileName)).href),
-	);
-	return { lazyLoaded, workers };
+	return { lazyLoaded: loadedLazy(dir, lazy), workers: workerStarts - startsBefore };
 };
 
 /**
@@ -170,7 +190,14 @@ const loadOnImport = async ({
 const measure = async (
 	name: string,
 	entry: string,
-): Promise<{ gzipBytes: number; lazyGzipBytes: number; lazyLoaded: string[]; workers: number }> => {
+): Promise<{
+	gzipBytes: number;
+	lazyGzipBytes: number;
+	lazyLoaded: string[];
+	workers: number;
+	dir: string;
+	lazy: string[];
+}> => {
 	const virtualId = `\0bundle-budget:${name}`;
 	const output = await build({
 		configFile: false,
@@ -229,6 +256,8 @@ const measure = async (
 		gzipBytes: gzipBytesOf(eager.map((fileName) => codeOf.get(fileName) ?? "")),
 		lazyGzipBytes: gzipBytesOf([...lazy.map((fileName) => codeOf.get(fileName) ?? ""), ...workers]),
 		...onImport,
+		dir,
+		lazy,
 	};
 };
 
@@ -241,8 +270,19 @@ const main = async (): Promise<void> => {
 	const update = process.argv.includes("--update");
 	const budget: Budget = JSON.parse(fs.readFileSync(BUDGET_FILE, "utf8"));
 	let failed = false;
+	// Why apart from `failed`: `--update` fixes a size, but not a chunk that an import loads.
+	let loadsOnImport = false;
+	const lazyByScenario: { name: string; dir: string; lazy: string[]; loaded: number }[] = [];
 	for (const [name, scenario] of Object.entries(budget)) {
-		const { gzipBytes, lazyGzipBytes, lazyLoaded, workers } = await measure(name, scenario.entry);
+		const {
+			gzipBytes,
+			lazyGzipBytes,
+			lazyLoaded,
+			workers,
+			dir,
+			lazy: lazyFiles,
+		} = await measure(name, scenario.entry);
+		lazyByScenario.push({ name, dir, lazy: lazyFiles, loaded: lazyLoaded.length });
 		if (update) {
 			// Why the cap: a small scenario with the full headroom is at once more than 3% under its budget.
 			scenario.maxGzipBytes =
@@ -271,11 +311,31 @@ const main = async (): Promise<void> => {
 			}
 		}
 		if (lazyLoaded.length > 0 || workers > 0) {
-			failed = true;
+			loadsOnImport = true;
 			console.log(
 				`✗ ${name}: an import with no render loads ${lazyLoaded.length} lazy chunks and starts ${workers} workers. Load them on first use.`,
 			);
 		}
+	}
+	const workersBefore = workerStarts;
+	// Why a last check: a timer that an import started can load a chunk or start a worker later.
+	await new Promise((resolve) => {
+		setTimeout(resolve, 1000);
+	});
+	for (const { name, dir, lazy: lazyFiles, loaded } of lazyByScenario) {
+		const late = loadedLazy(dir, lazyFiles).length - loaded;
+		if (late > 0) {
+			loadsOnImport = true;
+			console.log(`✗ ${name}: an import with no render loads ${late} lazy chunks after a delay.`);
+		}
+	}
+	if (workerStarts > workersBefore) {
+		loadsOnImport = true;
+		console.log(`✗ ${workerStarts - workersBefore} workers start after a delay, with no render.`);
+	}
+	if (loadsOnImport) {
+		console.log("\nAn import with no render loads lazy code. Load it on first use.");
+		process.exitCode = 1;
 	}
 	if (update) {
 		fs.writeFileSync(BUDGET_FILE, `${JSON.stringify(budget, null, 2)}\n`);
@@ -291,6 +351,7 @@ const main = async (): Promise<void> => {
 };
 
 if (import.meta.main) {
+	stubBrowser();
 	registerHooks({
 		load(url, context, nextLoad) {
 			loadedUrls.add(url);
