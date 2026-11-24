@@ -112,6 +112,24 @@ describe("describeFilterGrammar with typed keys", () => {
 		expect(rules).toContain("`key:>a` compare");
 		expect(rules).not.toMatch(/key:<a|key:>=a|a\.\.b/);
 	});
+
+	test("teaches a time back from now only for a date key that takes >", () => {
+		const rules = describeFilterGrammar({
+			keys: [
+				{
+					key: "created",
+					description: "Created",
+					type: "date",
+					operators: ["lte"],
+					getValue: (item: { created: string }) => item.created,
+				},
+			],
+			getSearchText: () => "",
+		}).rules.join(" ");
+
+		expect(rules).toContain("YYYY-MM-DD");
+		expect(rules).not.toContain("7d");
+	});
 });
 
 describe("checkFilterQuery", () => {

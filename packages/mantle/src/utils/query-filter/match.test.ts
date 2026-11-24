@@ -328,6 +328,8 @@ describe("filterItemsByQuery with typed keys", () => {
 		expect(names("canary:yes")).toEqual([]);
 		// A quoted `..` is text, not a range.
 		expect(names('replicas:"2..5"')).toEqual([]);
+		// A `..` between quoted operands is a range.
+		expect(names('replicas:"2".."3"')).toEqual(["api-gateway", "legacy-API"]);
 		// Too many digits overflow to Infinity.
 		expect(names(`replicas:${"9".repeat(309)}`)).toEqual([]);
 	});
@@ -348,6 +350,22 @@ describe("filterItemsByQuery with typed keys", () => {
 			filterItemsByQuery({ grammar: typedTestGrammar, items, query: q }).map((item) => item.name);
 		expect(query("uptime:1.001s")).toEqual(["exact"]);
 		expect(query("uptime:1001ms")).toEqual(["exact"]);
+		expect(query("uptime:1s0.001s")).toEqual(["exact"]);
+		// Adding 0.1 and 0.2 as floats gives 0.30000000000000004.
+		const short: TestDeployment[] = [
+			{
+				name: "short",
+				state: "live",
+				replicas: 1,
+				createdAt: 0,
+				uptime: 0.3,
+				canary: false,
+				region: null,
+			},
+		];
+		expect(
+			filterItemsByQuery({ grammar: typedTestGrammar, items: short, query: "uptime:0.0001s0.2ms" }),
+		).toEqual(short);
 	});
 
 	test("reads a date alone as its whole UTC day", () => {

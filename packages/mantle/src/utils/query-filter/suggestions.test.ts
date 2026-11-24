@@ -100,6 +100,10 @@ describe("a lone dash", () => {
 		expect(accept("-", 1, "-is:")).toBe("-is:");
 	});
 
+	test("keeps a group whole when it inserts a key against its (", () => {
+		expect(accept("(api)", 0, "is:")).toBe("is: (api)");
+	});
+
 	test("offers the same exclusions after a lone !", () => {
 		expect(suggest("!").items.map((item) => item.label)).toEqual(
 			suggest("-").items.map((item) => item.label),
@@ -325,6 +329,35 @@ describe("typed key suggestions", () => {
 
 	test("completes an enum value after an explicit =", () => {
 		expect(rows("state:=l").map((row) => row.label)).toEqual(["live"]);
+	});
+
+	test("offers no value where a key that cannot exclude excludes", () => {
+		expect(rows("NOT canary:")).toEqual([]);
+		expect(rows("canary:").map((row) => row.label)).toEqual(["true", "false"]);
+	});
+
+	test("does not offer a boolean picked with an explicit = again", () => {
+		expect(rows("canary:=true,").map((row) => row.label)).toEqual(["false"]);
+	});
+
+	test("reads a quoted = as text when it filters enum values", () => {
+		const grammar = defineRemoteFilterGrammar({
+			syntax: "full",
+			keys: [
+				{
+					key: "state",
+					description: "State",
+					type: "enum",
+					values: [{ value: "draft" }, { value: "=draft" }],
+				},
+			],
+		});
+		const query = 'state:"=dr"';
+		expect(
+			getFilterSuggestions({ grammar, query, caretIndex: query.length }).items.map(
+				(row) => row.label,
+			),
+		).toEqual(["=draft"]);
 	});
 
 	test("writes = before an enum value that would read as an operator where quotes do not work", () => {

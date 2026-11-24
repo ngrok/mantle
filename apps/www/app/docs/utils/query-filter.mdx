@@ -205,7 +205,7 @@ parseFilterQuery(projectFilterGrammar, "is:shared -acme");
 //     { kind: "text", text: "acme", negated: true, … }]
 ```
 
-- `formatFacet({ key, value, negated })` writes a qualifier in its canonical form, with quotes where the value needs them.
+- `formatFacet({ key, value, negated, grammar })` writes a qualifier in its canonical form, with quotes where the value needs them. Pass `grammar` for a `"qualifiers"` grammar, which reads quotes as text.
 - `getEffectiveNegations(tokens)` reads whether each token excludes in effect: by its own `-` or `!`, by each `NOT` before it, and by each negated group around it. Read it, not `token.negated`, to show whether a filter is on.
 - `toggleFacet({ grammar, query, facet })` adds a qualifier, or takes it out when the query has it. The [Filter from a value](/recipes/filter-from-a-value) recipe uses it for a value a person selects in a table row.
 - `queryUsesQualifiers(grammar, query)` reports whether a query holds a qualifier. Use it to pick the advice in a filtered-empty state.

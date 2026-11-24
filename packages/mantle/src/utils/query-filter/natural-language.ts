@@ -96,6 +96,7 @@ function describeFilterGrammar<Item>(grammar: FilterGrammar<Item>): FilterGramma
 		);
 	const textOperators = typedOperators(["text"]);
 	const orderedOperators = typedOperators(["number", "date", "duration"]);
+	const dateOperators = typedOperators(["date"]);
 	const textForms = (
 		[
 			["contains", "`key:a` contains a"],
@@ -124,8 +125,9 @@ function describeFilterGrammar<Item>(grammar: FilterGrammar<Item>): FilterGramma
 		comparisonForms.length > 0 &&
 			`${comparisonForms.join(", ")} compare a number, a date, or a duration.`,
 		orderedOperators.has("range") && "`key:a..b` keeps the values from a to b, both included.",
-		hasType("date") &&
-			"A date is `YYYY-MM-DD`. A duration on a date key counts back from now: `key:>7d` keeps the dates after 7 days ago.",
+		hasType("date") && "A date is `YYYY-MM-DD`.",
+		dateOperators.has("gt") &&
+			"A duration on a date key counts back from now: `key:>7d` keeps the dates after 7 days ago.",
 		(hasType("date") || hasType("duration")) &&
 			"A duration is a number and a unit: `ms`, `s`, `m`, `h`, `d`, or `w`, as in `90s` or `1h30m`.",
 		hasType("boolean") && "A boolean key takes `true` or `false`.",

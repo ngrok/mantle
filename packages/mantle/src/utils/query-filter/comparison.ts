@@ -111,14 +111,23 @@ function parseDuration(text: string): number | null {
 	if (!durationPattern.test(text)) {
 		return null;
 	}
-	let total = 0;
-	for (const [, amount = "", unit = ""] of text.matchAll(durationPartPattern)) {
-		// Why integer math: `1.001 * 1000` is 1000.9999…, so scale the digits
-		// first and divide once, and `1.001s` equals `1001ms`.
+	// Why integer math: `1.001 * 1000` is 1000.9999…, so add each part as an
+	// integer over one shared power of ten and divide once. Then `1.001s`
+	// equals `1001ms`, and `0.0001s0.2ms` equals `0.3ms`.
+	const parts = [...text.matchAll(durationPartPattern)].map(([, amount = "", unit = ""]) => {
 		const [whole = "", fraction = ""] = amount.split(".");
-		const scale = 10 ** fraction.length;
-		total += (Number(whole + fraction) * (durationUnits[unit] ?? Number.NaN)) / scale;
+		return {
+			digits: whole + fraction,
+			places: fraction.length,
+			unit: durationUnits[unit] ?? Number.NaN,
+		};
+	});
+	const places = Math.max(...parts.map((part) => part.places));
+	let total = 0;
+	for (const part of parts) {
+		total += Number(part.digits) * 10 ** (places - part.places) * part.unit;
 	}
+	total /= 10 ** places;
 	return Number.isFinite(total) ? total : null;
 }
 
@@ -381,6 +390,31 @@ function parseEqualityComparison({
 	};
 }
 
+/** Removes the quotes of a quoted run and the backslash before an escaped character. */
+function dequote(source: string) {
+	return source.replaceAll(/\\(.)|"/g, (_match, escaped: string | undefined) => escaped ?? "");
+}
+
+/**
+ * Splits a member at its first `..` outside quotes. Without `quotes`, as in a
+ * `"qualifiers"` grammar, a `"` is text and every `..` counts.
+ */
+function splitRange(source: string, { quotes }: { quotes: boolean }) {
+	let insideQuotes = false;
+	for (let index = 0; index < source.length - 1; index += 1) {
+		const character = source.charAt(index);
+		if (quotes && character === "\\") {
+			index += 1;
+		} else if (quotes && character === '"') {
+			insideQuotes = !insideQuotes;
+		} else if (!insideQuotes && source.startsWith("..", index)) {
+			const clean = quotes ? dequote : (text: string) => text;
+			return { from: clean(source.slice(0, index)), to: clean(source.slice(index + 2)) };
+		}
+	}
+	return null;
+}
+
 /** Parses a `"number"`, `"date"`, or `"duration"` member. */
 function parseOrderedComparison({
 	type,
@@ -393,12 +427,13 @@ function parseOrderedComparison({
 }): ParsedComparison {
 	const prefix = comparisonPrefixPattern.exec(source)?.[0];
 	const body = prefix == null ? literal : literal.slice(prefix.length);
-	// A quoted `..` is text, so a range must be written outside quotes.
-	const rangeIndex = prefix == null && source === literal ? body.indexOf("..") : -1;
+	// A quoted `..` is text, so a range must be written outside quotes; its
+	// operands may be quoted, as in `"2".."5"`.
+	const range = prefix == null ? splitRange(source, { quotes: source !== literal }) : null;
 
-	if (rangeIndex !== -1) {
-		const from = parseOrderedOperand(type, body.slice(0, rangeIndex));
-		const to = parseOrderedOperand(type, body.slice(rangeIndex + 2));
+	if (range != null) {
+		const from = parseOrderedOperand(type, range.from);
+		const to = parseOrderedOperand(type, range.to);
 		return {
 			operator: "range",
 			comparison: from != null && to != null ? { operator: "range", from, to } : null,

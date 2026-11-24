@@ -8,6 +8,7 @@ Add comparison and match operators, typed keys, grouping, and an expression tree
 - `NOT` and a leading `!` exclude, as `-` does. Parentheses group: `(is:shared OR is:new) -name:api*`. `OR` binds looser than `AND`, and both bind looser than `NOT`.
 - `parseFilterExpression` returns the query as a tree of `and`, `or`, `not`, `facet`, and `text` nodes, with the comma lists, the negations, and the constants normalized. Compile it to your backend's query language.
 - `defineRemoteFilterGrammar` accepts `syntax: "full"` and typed keys.
+- `formatFacet` takes an optional `grammar`, and writes the value the way that grammar reads it.
 - `getEffectiveNegations(tokens)` reads whether each token excludes in effect, through each `NOT` and each negated group around it.
 - The suggestions offer the comparisons of a number, date, or duration key, recent windows such as `>7d` for a date key, `true` and `false` for a boolean key, and the exact, prefix, and suffix forms of a word typed into a text key. `Query.Legend` names the comparisons and groups when the grammar has them.
 - `filterItemsByQuery` compiles the query into one test before it scans. In our benchmark of 50,000 items, `is:active` went from 1.43 ms to 0.88 ms, and no filter query got slower. Parsing a query costs about 0.1 µs more.

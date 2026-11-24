@@ -1478,6 +1478,18 @@ describe("Query.Content", () => {
 		expect(input).toHaveAccessibleDescription(/key:<=n compares/);
 	});
 
+	test("ends the sentence when a number key takes no operator", async () => {
+		const input = renderRemoteQuery(
+			defineRemoteFilterGrammar({
+				keys: [{ key: "n", description: "Count", type: "number", operators: [] }],
+			}),
+		);
+
+		input.focus();
+		type(input, "n:x");
+		expect(await screen.findByText("Count. Takes a number.")).toBeInTheDocument();
+	});
+
 	test("leaves exclusions out of the legend when no key can exclude", async () => {
 		const input = renderRemoteQuery(
 			defineRemoteFilterGrammar({

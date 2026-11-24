@@ -554,6 +554,81 @@ describe("toggleFacet", () => {
 		).toBe("state:ready(us)");
 	});
 
+	test("replaces the opposite qualifier in each OR branch and inside a kept group", () => {
+		expect(
+			toggleFacet({ grammar: testGrammar, query: "(-is:shared OR lemur)", facet: shared }),
+		).toBe("(is:shared OR lemur)");
+		expect(
+			toggleFacet({
+				grammar: testGrammar,
+				query: "-is:shared api OR -is:shared lemur",
+				facet: shared,
+			}),
+		).toBe("is:shared api OR is:shared lemur");
+	});
+
+	test("drops a trailing NOT, so it cannot negate the added qualifier", () => {
+		expect(toggleFacet({ grammar: testGrammar, query: "NOT", facet: shared })).toBe("is:shared");
+	});
+
+	test("compares typed text without regard to case, and never an invalid filter with a valid one", () => {
+		expect(
+			toggleFacet({
+				grammar: typedTestGrammar,
+				query: "-region:=US",
+				facet: { key: "region", value: "us", negated: false },
+			}),
+		).toBe("region:us");
+		const containsOnly = {
+			syntax: "full" as const,
+			keys: [
+				{
+					key: "name",
+					description: "Name",
+					type: "text" as const,
+					operators: ["contains" as const],
+					getValue: (item: { name: string }) => item.name,
+				},
+			],
+			getSearchText: (item: { name: string }) => item.name,
+		};
+		expect(
+			toggleFacet({
+				grammar: containsOnly,
+				query: "name:api*",
+				facet: { key: "name", value: "api*", negated: false },
+			}),
+		).toBe('name:api* name:"api*"');
+		expect(
+			toggleFacet({
+				grammar: { ...containsOnly, syntax: "qualifiers" },
+				query: "",
+				facet: { key: "name", value: "api*", negated: false },
+			}),
+		).toBe("name:*api**");
+	});
+
+	test("leaves the query as it is for a value the grammar cannot write", () => {
+		const grammar = defineRemoteFilterGrammar({ keys: [{ key: "name", description: "Name" }] });
+		expect(
+			toggleFacet({
+				grammar,
+				query: "name:api",
+				facet: { key: "name", value: "api gateway", negated: false },
+			}),
+		).toBe("name:api");
+	});
+
+	test("takes out a quoted empty value", () => {
+		expect(
+			toggleFacet({
+				grammar: testGrammar,
+				query: 'name:""',
+				facet: { key: "name", value: "", negated: false },
+			}),
+		).toBe("");
+	});
+
 	test("quotes a value that needs quotes", () => {
 		expect(
 			toggleFacet({
@@ -562,6 +637,17 @@ describe("toggleFacet", () => {
 				facet: { key: "name", value: "staging api", negated: true },
 			}),
 		).toBe('-name:"staging api"');
+	});
+});
+
+describe("formatFacet with a grammar", () => {
+	test("writes a value as is where the grammar reads no quotes", () => {
+		const grammar = defineRemoteFilterGrammar({
+			keys: [{ key: "state", description: "State", values: [{ value: "ready(us)" }] }],
+		});
+		expect(formatFacet({ grammar, key: "state", value: "ready(us)", negated: false })).toBe(
+			"state:ready(us)",
+		);
 	});
 });
 

@@ -277,19 +277,32 @@ function getValueSuggestions<Item extends object>(
 		caretIndex,
 	});
 
+	const tokens = parseFilterQuery(grammar, query);
+	// A key that cannot exclude has no value that works where the qualifier excludes.
+	const negated =
+		getEffectiveNegations(tokens)[tokens.findIndex((other) => other.start === token.start)];
+	if (negated === true && definition.negatable === false) {
+		return { replaceStart, replaceEnd, items: [], key: definition.key };
+	}
+
+	// An enum or boolean value reads a leading `=` outside quotes as the
+	// equality it already is.
+	const isEquality = definition.type === "enum" || definition.type === "boolean";
+	const withoutEquals = (written: string) => (isEquality ? written.replace(/^=/, "") : written);
+
 	// Values already picked by the token's other members would only repeat
 	// themselves, so `is:active,` offers everything but `active`.
 	const pickedElsewhere = new Set(
 		token.members
 			.filter((member) => member.start !== replaceStart || member.end !== replaceEnd)
-			.map((member) => member.value.toLowerCase()),
+			.map((member) => withoutEquals(member.value).toLowerCase()),
 	);
 
 	// Every row rewrites only this token. Without an `OR`, a `NOT`, or a group,
 	// the query is one AND group, so the rest of it filters the items once for
 	// all the rows.
 	const restQuery = `${query.slice(0, token.start)} ${query.slice(token.end)}`;
-	const isOneGroup = parseFilterQuery(grammar, query).every(
+	const isOneGroup = tokens.every(
 		(other) => other.kind === "facet" || other.kind === "text" || other.kind === "and",
 	);
 	const quotes = getFilterSyntax(grammar) !== "qualifiers";
@@ -312,11 +325,8 @@ function getValueSuggestions<Item extends object>(
 		});
 	}
 
-	// An enum or boolean value reads a leading `=` as the equality it already is.
-	const typedValue =
-		(definition.type === "enum" || definition.type === "boolean") && typed.startsWith("=")
-			? typed.slice(1)
-			: typed;
+	// `typed` has its quotes removed, so read the `=` from the source: `"=dr"` is text.
+	const typedValue = query.charAt(replaceStart) === "=" ? withoutEquals(typed) : typed;
 	const rows = getValueCandidates(definition)
 		.filter((candidate) =>
 			valueMatchesTyped({
@@ -493,8 +503,20 @@ function getKeySuggestions<Item>({
 	const negatable = matching.filter((definition) => definition.negatable !== false);
 
 	// A row that excludes in effect cannot offer a key that cannot exclude.
+	// A key inserted against a `(` needs a space, or its `:` reads the group as its value.
+	const separator =
+		replaceStart === replaceEnd && token?.kind === "group-start" && token.start === replaceEnd
+			? " "
+			: "";
+	const toRow = (
+		definition: FilterKeyDefinition<Item>,
+		row: { section: FilterSuggestionSection; negated: boolean },
+	) => {
+		const suggestion = toKeySuggestion(definition, row);
+		return { ...suggestion, insertText: suggestion.insertText + separator };
+	};
 	const filters = (negated === inherited ? matching : negatable).map((definition) =>
-		toKeySuggestion(definition, { section: "filters", negated }),
+		toRow(definition, { section: "filters", negated }),
 	);
 
 	// A typed `-` already made every row an exclusion; do not offer them twice.
@@ -504,7 +526,7 @@ function getKeySuggestions<Item>({
 	}
 
 	const exclusions = (inherited ? matching : negatable).map((definition) =>
-		toKeySuggestion(definition, { section: "exclusions", negated: true }),
+		toRow(definition, { section: "exclusions", negated: true }),
 	);
 
 	return { replaceStart, replaceEnd, items: [...filters, ...exclusions] };

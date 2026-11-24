@@ -1332,7 +1332,9 @@ function EmptyMessage({
 		return (
 			<p key={`${type}-value`}>
 				<SyntaxRule token={`${definition.key}:`}>
-					{`${definition.description}. Takes ${typedValueNouns[type]}, as in ${examples.join(" or ")}.`}
+					{examples.length === 0
+						? `${definition.description}. Takes ${typedValueNouns[type]}.`
+						: `${definition.description}. Takes ${typedValueNouns[type]}, as in ${examples.join(" or ")}.`}
 				</SyntaxRule>
 			</p>
 		);
