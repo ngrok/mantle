@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
 	checkAgentDocs,
 	findRetiredLibraryMentions,
-	listContributorDocs,
+	listCurrentDocs,
 	retiredLibraries,
 } from "./check-agent-docs.ts";
 
@@ -109,22 +109,32 @@ describe("retiredLibraries", () => {
 	});
 });
 
-describe("listContributorDocs", () => {
-	it("finds nested skills and docs, and skips decisions", () => {
+describe("listCurrentDocs", () => {
+	it("finds nested skills, docs, READMEs, and docs-site pages, and skips decisions, migrations, and changelogs", () => {
 		for (const file of [
 			"AGENTS.md",
+			"README.md",
 			"docs/principles/a.md",
 			".claude/skills/x/SKILL.md",
 			"decisions/2026-11-21-a.md",
+			"packages/mantle/README.md",
+			"packages/mantle/CHANGELOG.md",
+			"apps/www/app/docs/index.mdx",
+			"apps/www/app/docs/components/forms/select.mdx",
+			"apps/www/app/docs/migrations/0017-select-migration.mdx",
 		]) {
 			fs.mkdirSync(path.dirname(path.join(rootDir, file)), { recursive: true });
 			fs.writeFileSync(path.join(rootDir, file), "");
 		}
 
-		expect(listContributorDocs(rootDir).toSorted()).toEqual([
+		expect(listCurrentDocs(rootDir).toSorted()).toEqual([
 			".claude/skills/x/SKILL.md",
 			"AGENTS.md",
+			"README.md",
+			"apps/www/app/docs/components/forms/select.mdx",
+			"apps/www/app/docs/index.mdx",
 			"docs/principles/a.md",
+			"packages/mantle/README.md",
 		]);
 	});
 });

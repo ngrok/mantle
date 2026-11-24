@@ -62,7 +62,7 @@ export type RetiredLibrary = {
 
 /**
  * The UI libraries mantle replaced with native elements and its own behavior hooks.
- * Why a list: a contributor doc that still names one teaches an agent to follow a design that main no longer has.
+ * Why a list: a doc that still names one teaches a reader or an agent a design that main no longer has.
  * Why case-sensitive: a lowercase `data-radix-*` names a shape that COMPONENT_SPEC.md §6 bans, not a dependency.
  */
 export const retiredLibraries = [
@@ -76,16 +76,17 @@ export const retiredLibraries = [
 ] satisfies readonly RetiredLibrary[];
 
 /**
- * The docs that guide work on mantle itself, relative to the repo root, plus the Philosophy page that AGENTS.md
- * routes to. Why no `decisions/`: a decision records what was true on its date.
+ * The docs that describe mantle as it is today, relative to the repo root: the docs that guide work on mantle
+ * itself, the READMEs, and the pages of the docs site.
+ * Why no `decisions/`, migration guides, or changelogs: each records what was true at its date or version.
  */
-export const contributorDocFile =
-	/^(?:AGENTS|CONVENTIONS|COMPONENT_SPEC|VERSIONING|CONTRIBUTING)\.md$|^(?:packages|apps\/www)\/AGENTS\.md$|^docs\/.+\.md$|^\.claude\/.+\.md$|^\.github\/copilot-instructions\.md$|^apps\/www\/app\/docs\/philosophy\.mdx$/;
+export const currentDocFile =
+	/^(?:AGENTS|CONVENTIONS|COMPONENT_SPEC|VERSIONING|CONTRIBUTING|README)\.md$|^(?:packages|apps\/www)\/AGENTS\.md$|^packages\/[^/]+\/README\.md$|^docs\/.+\.md$|^\.claude\/.+\.md$|^\.github\/copilot-instructions\.md$|^apps\/www\/app\/docs\/(?!migrations\/).+\.mdx$/;
 
 /**
- * Find each line of a contributor doc that names a retired library that `packages/mantle/package.json` no longer lists.
+ * Find each line of a current doc that names a retired library that `packages/mantle/package.json` no longer lists.
  *
- * @param files Paths relative to `rootDir`. Paths that `contributorDocFile` does not match are skipped.
+ * @param files Paths relative to `rootDir`. Paths that `currentDocFile` does not match are skipped.
  * @returns One message for each line that names a retired library.
  *
  * @example
@@ -110,7 +111,7 @@ export function findRetiredLibraryMentions({
 	);
 	const problems: string[] = [];
 	for (const file of files) {
-		if (!contributorDocFile.test(file)) {
+		if (!currentDocFile.test(file)) {
 			continue;
 		}
 		const lines = fs.readFileSync(path.join(rootDir, file), "utf8").split("\n");
@@ -128,23 +129,26 @@ export function findRetiredLibraryMentions({
 	return problems;
 }
 
-/** Every contributor doc under `rootDir`, relative to it. */
-export function listContributorDocs(rootDir: string): string[] {
-	const nested = ["docs", ".claude"]
+/** Every current doc under `rootDir`, relative to it. */
+export function listCurrentDocs(rootDir: string): string[] {
+	const nested = ["docs", ".claude", "apps/www/app/docs"]
 		.filter((dir) => fs.existsSync(path.join(rootDir, dir)))
 		.flatMap((dir) =>
 			fs
 				.readdirSync(path.join(rootDir, dir), { recursive: true, encoding: "utf8" })
 				.map((file) => `${dir}/${file.split(path.sep).join("/")}`),
 		);
+	const packages = fs.existsSync(path.join(rootDir, "packages"))
+		? fs.readdirSync(path.join(rootDir, "packages")).map((dir) => `packages/${dir}/README.md`)
+		: [];
 	const fixed = [
 		"packages/AGENTS.md",
 		"apps/www/AGENTS.md",
 		".github/copilot-instructions.md",
-		"apps/www/app/docs/philosophy.mdx",
+		...packages,
 	].filter((file) => fs.existsSync(path.join(rootDir, file)));
 	return [...fs.readdirSync(rootDir), ...fixed, ...nested].filter((file) =>
-		contributorDocFile.test(file),
+		currentDocFile.test(file),
 	);
 }
 
@@ -152,7 +156,7 @@ if (import.meta.main) {
 	const rootDir = path.join(import.meta.dirname, "..");
 	const mentions = findRetiredLibraryMentions({
 		rootDir,
-		files: listContributorDocs(rootDir),
+		files: listCurrentDocs(rootDir),
 		libraries: retiredLibraries,
 	});
 	for (const mention of mentions) {

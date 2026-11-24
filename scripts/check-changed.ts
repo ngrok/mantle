@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import process from "node:process";
 
-import { contributorDocFile } from "./check-agent-docs.ts";
+import { currentDocFile } from "./check-agent-docs.ts";
 
 /** One command that `check:changed` runs. */
 export type CheckStep = {
@@ -98,7 +98,7 @@ export function planChecks({
 	if (
 		files.some(
 			(file) =>
-				contributorDocFile.test(file) ||
+				currentDocFile.test(file) ||
 				file === "packages/mantle/package.json" ||
 				file === "scripts/check-agent-docs.ts",
 		)

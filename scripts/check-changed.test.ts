@@ -22,9 +22,10 @@ describe("planChecks", () => {
 		expect(stepNames(["packages/AGENTS.md"])).toEqual(["fmt", "agent docs", "doc links", "prose"]);
 	});
 
-	it("typechecks and tests a changed docs page, which the www suite reads", () => {
+	it("checks a changed docs page for retired names, and typechecks and tests it, which the www suite reads", () => {
 		expect(stepNames(["apps/www/app/docs/components/button.mdx"])).toEqual([
 			"fmt",
+			"agent docs",
 			"prose",
 			"typecheck",
 			"test",
@@ -182,6 +183,11 @@ describe("planChecks", () => {
 					"--deny-warnings",
 					"packages/mantle/src/components/button/button.tsx",
 				],
+			},
+			{
+				name: "agent docs",
+				command: "node",
+				args: ["./scripts/check-agent-docs.ts"],
 			},
 			{
 				name: "doc links",
