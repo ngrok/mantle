@@ -321,22 +321,27 @@ describe("LineChart.CopyButton", () => {
 		expect(screen.getByRole("button", { name: "Copy latency data" })).toBeInTheDocument();
 	});
 
-	test("announces 'Copied' through an always-mounted live region after a copy", async () => {
+	test("announces 'Copied' through one live region shared by every copy button", async () => {
 		const user = userEvent.setup();
-		const { container } = render(
-			<LineChart.Root data={data} xKey="time" aria-label="Request latency">
-				<LineChart.Line dataKey="p50" label="p50" color="blue" />
-				<LineChart.CopyButton />
-			</LineChart.Root>,
+		render(
+			<>
+				{["Request latency", "Error rate"].map((label) => (
+					<LineChart.Root key={label} data={data} xKey="time" aria-label={label}>
+						<LineChart.Line dataKey="p50" label="p50" color="blue" />
+						<LineChart.CopyButton />
+					</LineChart.Root>
+				))}
+			</>,
 		);
-		// Why the slot: the chart's keyboard announcer is a second `role="status"`. The
-		// copy button's region is the chart's only `LiveRegion`.
-		const button = screen.getByRole("button", { name: "Copy data as Markdown" });
-		const status = container.querySelector('[data-slot="live-region"]');
-		expect(status).toHaveAttribute("role", "status");
+		// Why the slot: each chart's keyboard announcer is another `role="status"`.
+		const [status, ...rest] = document.body.querySelectorAll(
+			':scope > [data-slot="shared-status"]',
+		);
+		expect(rest).toHaveLength(0);
 		expect(status).toHaveTextContent("");
 
-		await user.click(button);
+		const buttons = screen.getAllByRole("button", { name: "Copy data as Markdown" });
+		await user.click(buttons.at(-1) as HTMLElement);
 
 		await vi.waitFor(() => {
 			expect(status).toHaveTextContent("Copied");

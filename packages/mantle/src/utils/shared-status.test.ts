@@ -54,3 +54,34 @@ describe("announce", () => {
 		});
 	});
 });
+
+describe("the shared region", () => {
+	test("clears seven seconds after the latest message, not the first", () => {
+		vi.useFakeTimers();
+		try {
+			const dialog = document.body.appendChild(document.createElement("dialog"));
+			const button = dialog.appendChild(document.createElement("button"));
+			mountSharedStatus(button);
+			const status = region(dialog);
+			if (status == null) {
+				throw new Error("The dialog has no shared region.");
+			}
+			expect(status).toHaveAttribute("aria-atomic", "true");
+			// Why a frame: a new region gets its first message one frame later.
+			announce(button, "Dark theme");
+			vi.advanceTimersToNextFrame();
+			expect(status).toHaveTextContent("Dark theme");
+
+			vi.advanceTimersByTime(6000);
+			announce(button, "Light theme");
+			// Why: a clear timed from the first message would empty the region here.
+			vi.advanceTimersByTime(2000);
+			expect(status).toHaveTextContent("Light theme");
+
+			vi.advanceTimersByTime(5000);
+			expect(status).toBeEmptyDOMElement();
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+});

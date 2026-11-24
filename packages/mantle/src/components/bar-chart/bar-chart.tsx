@@ -431,7 +431,7 @@ const CopyButton = (props: BarChartCopyButtonProps) => (
 /**
  * Groups a list of charts, such as one chart per card, so they share one
  * `role="status"` live region. A page of 100 charts mounts one region instead
- * of one per chart, plus one for each `BarChart.CopyButton`. Each chart keeps
+ * of one per chart. Copy buttons announce in one shared region. Each chart keeps
  * its own tooltip, description, and data table.
  *
  * Renders a `div` (`bar-chart-list`) that holds the charts in a `display: contents`

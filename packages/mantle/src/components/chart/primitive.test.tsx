@@ -174,16 +174,15 @@ test("a CopyButton consumer onClick that prevents default cancels the copy", asy
 	const onClick = vi.fn<(event: MouseEvent<HTMLButtonElement>) => void>((event) => {
 		event.preventDefault();
 	});
-	const { container } = render(
+	render(
 		<BarChart.Root data={data} xKey="month" aria-label="Visitors by month">
 			<BarChart.Bar dataKey="desktop" label="Desktop" color="blue" />
 			<BarChart.CopyButton onClick={onClick} onCopy={onCopy} />
 		</BarChart.Root>,
 	);
 	const button = screen.getByRole("button", { name: "Copy data as Markdown" });
-	// Why the slot: the keyboard announcer is a second `role="status"` span. The
-	// copy button's region is the chart's only `LiveRegion`.
-	const status = container.querySelector('[data-slot="live-region"]');
+	// Why the slot: the keyboard announcer is a second `role="status"` span.
+	const status = document.body.querySelector(':scope > [data-slot="shared-status"]');
 	expect(status).toHaveAttribute("role", "status");
 	await user.click(button);
 	expect(onClick).toHaveBeenCalledTimes(1);

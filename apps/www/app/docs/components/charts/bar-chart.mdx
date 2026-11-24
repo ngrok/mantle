@@ -1187,7 +1187,7 @@ function CopyMarkdownExample() {
 
 A page of 100 charts pays for the handful a reader can see. A dormant `BarChart.Root` is a shell: the plot box, the named interaction overlay, and its screen-reader description. It holds no paint surface and no engine until it comes within one viewport of the visible area, takes focus, or prints; then it activates outside React, in slices of a few milliseconds that yield between them, on-screen charts first, and paints in the task that activates it. A print paints every chart settled, with tick labels and gridlines at full opacity. The hover layers and the tooltip surface mount on the first hover, and the screen-reader data table waits for focus alone: it mounts once a reader tabs into the chart, so a page of sparklines holds no hidden tables until a reader asks for one. Add `content-visibility: auto` to your list's cards as a complement: it skips style and layout for offscreen cards, and the chart's own gate already skips paint.
 
-Wrap a list of interactive charts in [`BarChart.List`](#barchartlist). The charts inside share one `role="status"` live region, so a page of 100 charts mounts one region instead of one per chart, plus one for each `BarChart.CopyButton`. Each chart keeps its own tooltip, description, and data table. Charts of different families can share one List, so one `BarChart.List` can hold a grid of bar, line, area, and scatter charts. A [static chart](#static-charts) has no tooltip and no live region, so a list of sparklines needs no List.
+Wrap a list of interactive charts in [`BarChart.List`](#barchartlist). The charts inside share one `role="status"` live region, so a page of 100 charts mounts one region instead of one per chart. Copy buttons announce in one shared region. Each chart keeps its own tooltip, description, and data table. Charts of different families can share one List, so one `BarChart.List` can hold a grid of bar, line, area, and scatter charts. A [static chart](#static-charts) has no tooltip and no live region, so a list of sparklines needs no List.
 
 The mount cost of a list is measured, not assumed. The [chart mount benchmark](/bench/charts?animate=0&kind=bar&mode=table&n=100&points=30) renders a `DataTable` of 100 rows with two sparklines each; `mode=list` renders cards of full charts, and `n`, `kind`, and `points` set the shape. The Playwright driver in `apps/www/bench/` loads the page and reports main-thread time, long tasks, and frames per case.
 
@@ -1552,7 +1552,7 @@ All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Elemen
 | `onCopyError?` | `(error: unknown) => void` |                           | Callback fired when an error occurs during copying.                            |
 | `asChild?`     | `boolean`                  | `false`                   | Compose the copy behavior onto your own element instead of the default button. |
 
-While a copy is fresh, an always-mounted `role="status"` element beside the button announces "Copied" to a screen reader.
+After a copy, a shared `role="status"` region at the end of the page, or of the dialog around the button, announces "Copied". All copy buttons in a page, or in a dialog, use the same region.
 
 | Data Attribute | Value                     | Description                  |
 | -------------- | ------------------------- | ---------------------------- |
@@ -1560,7 +1560,7 @@ While a copy is fresh, an always-mounted `role="status"` element beside the butt
 
 ### BarChart.List
 
-Groups a list of charts, such as one chart per card, so they share one `role="status"` live region. A page of 100 charts mounts one region instead of one per chart, plus one for each `BarChart.CopyButton`. Each chart keeps its own tooltip, description, and data table. Charts of different families can share one List. See [Lists of charts](#lists-of-charts).
+Groups a list of charts, such as one chart per card, so they share one `role="status"` live region. A page of 100 charts mounts one region instead of one per chart. Copy buttons announce in one shared region. Each chart keeps its own tooltip, description, and data table. Charts of different families can share one List. See [Lists of charts](#lists-of-charts).
 
 Renders a `div` (`bar-chart-list`) that holds the charts in a `display: contents` wrapper (`bar-chart-list-items`), so a grid or flex layout on the List reaches the cards, and the live region as its last child. `BarChart.List` takes no `asChild`: a list element such as `ul` cannot hold the live region as a child.
 

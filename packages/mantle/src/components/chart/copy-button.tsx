@@ -4,14 +4,14 @@ import { CheckIcon } from "@phosphor-icons/react/Check";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
 import type { ComponentProps } from "react";
 import { useEffect, useRef, useState } from "react";
+import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { useCopyToClipboard } from "../../hooks/use-copy-to-clipboard.js";
 import type { SelfClosingWithAsChild } from "../../types/as-child.js";
-import { alternateAnnouncement } from "../../utils/alternate-announcement.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
 import { IconButton } from "../button/icon-button.js";
 import { IconSwap } from "../icon/icon-swap.js";
-import { LiveRegion } from "../live-region/live-region.js";
+import { announce, mountSharedStatus } from "../../utils/shared-status.js";
 import { serializeChartMarkdown } from "./serialize.js";
 import { useChartContext } from "./context.js";
 
@@ -78,12 +78,8 @@ const ChartCopyButtonPrimitive = ({
 }: CopyButtonPrimitiveProps & { partName: string; slotName: string }) => {
 	const context = useChartContext(partName);
 	const copyToClipboard = useCopyToClipboard();
-	// Why one state: the check icon shows exactly while the region reads "Copied".
-	// `alternateAnnouncement` makes a repeat inside the reset window a real DOM
-	// change, so a second copy is announced again.
-	const [announcement, setAnnouncement] = useState("");
-	const wasCopied = announcement !== "";
-	const announceToggle = useRef(false);
+	const [wasCopied, setWasCopied] = useState(false);
+	const composedRef = useComposedRefs(ref, mountSharedStatus);
 	const timeoutHandle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
 	useEffect(() => {
@@ -95,70 +91,68 @@ const ChartCopyButtonPrimitive = ({
 	}, []);
 
 	return (
-		<>
-			<IconButton
-				type="button"
-				appearance="ghost"
-				intent="neutral"
-				size="sm"
-				data-slot={joinDataSlot(dataSlot, `${slotName}-copy-button`)}
-				label={label}
-				icon={
-					<IconSwap
-						active={wasCopied ? "check" : "copy"}
-						icons={{ check: <CheckIcon />, copy: <CopyIcon /> }}
-					/>
-				}
-				ref={ref}
-				onClick={async (event) => {
-					try {
-						// Why braced guards: React Compiler 1.0 skips a component whose
-						// `try` block holds an optional call.
-						if (onClick != null) {
-							onClick(event);
-						}
-						if (event.defaultPrevented) {
-							// The consumer took over the click, so cancel any pending revert and
-							// return the icon to its idle copy state, rather than stranding the
-							// check icon left over from a prior copy.
-							if (timeoutHandle.current != null) {
-								clearTimeout(timeoutHandle.current);
-								timeoutHandle.current = undefined;
-							}
-							setAnnouncement("");
-							return;
-						}
-						const { data, xKey, xScale, zKey } = context.dataRef.current;
-						const markdown = serializeChartMarkdown({
-							data,
-							xKey,
-							xScale,
-							zKey,
-							series: context.store.getSnapshot().series,
-						});
-						await copyToClipboard(markdown);
-						if (onCopy != null) {
-							onCopy(markdown);
-						}
-						setAnnouncement(alternateAnnouncement("Copied", announceToggle));
+		<IconButton
+			type="button"
+			appearance="ghost"
+			intent="neutral"
+			size="sm"
+			data-slot={joinDataSlot(dataSlot, `${slotName}-copy-button`)}
+			label={label}
+			icon={
+				<IconSwap
+					active={wasCopied ? "check" : "copy"}
+					icons={{ check: <CheckIcon />, copy: <CopyIcon /> }}
+				/>
+			}
+			ref={composedRef}
+			onClick={async (event) => {
+				try {
+					// Why braced guards: React Compiler 1.0 skips a component whose
+					// `try` block holds an optional call.
+					if (onClick != null) {
+						onClick(event);
+					}
+					if (event.defaultPrevented) {
+						// The consumer took over the click, so cancel any pending revert and
+						// return the icon to its idle copy state, rather than stranding the
+						// check icon left over from a prior copy.
 						if (timeoutHandle.current != null) {
 							clearTimeout(timeoutHandle.current);
+							timeoutHandle.current = undefined;
 						}
-						timeoutHandle.current = setTimeout(() => {
-							setAnnouncement("");
-						}, 2000);
-					} catch (error) {
-						onCopyError?.(error);
+						setWasCopied(false);
+						return;
 					}
-				}}
-				{...props}
-			/>
-			{/* Why always mounted: the icon swap is silent to a screen reader. A
-			    lone text child is written with textContent, which is safe under a
-			    browser translation engine, and a fresh live region is not
-			    announced on mount. */}
-			<LiveRegion>{announcement}</LiveRegion>
-		</>
+					// Why read it before the await: React clears `currentTarget` after the handler returns.
+					const button = event.currentTarget;
+					const { data, xKey, xScale, zKey } = context.dataRef.current;
+					const markdown = serializeChartMarkdown({
+						data,
+						xKey,
+						xScale,
+						zKey,
+						series: context.store.getSnapshot().series,
+					});
+					await copyToClipboard(markdown);
+					if (onCopy != null) {
+						onCopy(markdown);
+					}
+					// Why the shared region: the icon swap is silent to a screen reader,
+					// and a page of charts must not hold a region for each copy button.
+					announce(button, "Copied", { repeat: true });
+					setWasCopied(true);
+					if (timeoutHandle.current != null) {
+						clearTimeout(timeoutHandle.current);
+					}
+					timeoutHandle.current = setTimeout(() => {
+						setWasCopied(false);
+					}, 2000);
+				} catch (error) {
+					onCopyError?.(error);
+				}
+			}}
+			{...props}
+		/>
 	);
 };
 
