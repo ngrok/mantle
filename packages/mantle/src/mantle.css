@@ -2142,25 +2142,8 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
  * `:where()`: the scope adds no specificity, so each rule weighs one element.
  */
 @layer components {
-	/*
-	 * Why one selector for each tag: a subject with no tag, such as `*`, makes
-	 * Chromium try the rule on each element of the page. These are the blocks
-	 * that `Markdown` renders at the top level.
-	 */
-	:where([data-slot~="markdown"]) > p:where(:not(:first-child)),
-	:where([data-slot~="markdown"]) > h1:where(:not(:first-child)),
-	:where([data-slot~="markdown"]) > h2:where(:not(:first-child)),
-	:where([data-slot~="markdown"]) > h3:where(:not(:first-child)),
-	:where([data-slot~="markdown"]) > h4:where(:not(:first-child)),
-	:where([data-slot~="markdown"]) > h5:where(:not(:first-child)),
-	:where([data-slot~="markdown"]) > h6:where(:not(:first-child)),
-	:where([data-slot~="markdown"]) > ul:where(:not(:first-child)),
-	:where([data-slot~="markdown"]) > ol:where(:not(:first-child)),
-	:where([data-slot~="markdown"]) > blockquote:where(:not(:first-child)),
-	:where([data-slot~="markdown"]) > hr:where(:not(:first-child)),
-	:where([data-slot~="markdown"]) > pre:where(:not(:first-child)),
-	:where([data-slot~="markdown"]) > div:where(:not(:first-child)),
-	:where([data-slot~="markdown"]) > code:where(:not(:first-child)) {
+	/* structural-selector-ok: the child combinators test only the parent and the previous sibling, so the cost is constant. */
+	:where([data-slot~="markdown"]) > * + * {
 		margin-block-start: 1em;
 	}
 
@@ -2184,20 +2167,8 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 		margin-block-start: 1.5em;
 	}
 
-	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + p,
-	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + h1,
-	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + h2,
-	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + h3,
-	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + h4,
-	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + h5,
-	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + h6,
-	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + ul,
-	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + ol,
-	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + blockquote,
-	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + hr,
-	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + pre,
-	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + div,
-	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + code {
+	/* structural-selector-ok: the previous sibling must be a heading, so the test on most elements stops at one sibling. */
+	:where([data-slot~="markdown"]) :is(h1, h2, h3, h4, h5, h6) + * {
 		margin-block-start: 0.5em;
 	}
 
@@ -2300,25 +2271,14 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 	}
 
 	/* The caret at the end of the streamed text: after the last paragraph, heading, or list item. */
-	:where([data-slot~="markdown"][data-streaming]) > p:not(:has(+ *))::after,
-	:where([data-slot~="markdown"][data-streaming]) > h1:not(:has(+ *))::after,
-	:where([data-slot~="markdown"][data-streaming]) > h2:not(:has(+ *))::after,
-	:where([data-slot~="markdown"][data-streaming]) > h3:not(:has(+ *))::after,
-	:where([data-slot~="markdown"][data-streaming]) > h4:not(:has(+ *))::after,
-	:where([data-slot~="markdown"][data-streaming]) > h5:not(:has(+ *))::after,
-	:where([data-slot~="markdown"][data-streaming]) > h6:not(:has(+ *))::after,
+	/* structural-selector-ok: only a streaming Markdown element sets the attribute, and the child combinators keep each test inside it. */
 	:where([data-slot~="markdown"][data-streaming])
-		> ul:not(:has(+ *))
+		> :not(:has(+ *)):is(p, h1, h2, h3, h4, h5, h6)::after,
+	:where([data-slot~="markdown"][data-streaming])
+		> :not(:has(+ *)):is(ul, ol)
 		> li:not(:has(+ *)):not(:has(> p, > ul, > ol))::after,
 	:where([data-slot~="markdown"][data-streaming])
-		> ol:not(:has(+ *))
-		> li:not(:has(+ *)):not(:has(> p, > ul, > ol))::after,
-	:where([data-slot~="markdown"][data-streaming])
-		> ul:not(:has(+ *))
-		> li:not(:has(+ *))
-		> p:not(:has(+ *))::after,
-	:where([data-slot~="markdown"][data-streaming])
-		> ol:not(:has(+ *))
+		> :not(:has(+ *)):is(ul, ol)
 		> li:not(:has(+ *))
 		> p:not(:has(+ *))::after,
 	:where([data-slot~="markdown"][data-streaming])
@@ -2336,20 +2296,8 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 
 	@media (prefers-reduced-motion: no-preference) {
 		/* A block fades in when it starts to stream. `ease-out-strong` is cubic-bezier(0.23, 1, 0.32, 1). */
-		:where([data-slot~="markdown"][data-streamed]) > p,
-		:where([data-slot~="markdown"][data-streamed]) > h1,
-		:where([data-slot~="markdown"][data-streamed]) > h2,
-		:where([data-slot~="markdown"][data-streamed]) > h3,
-		:where([data-slot~="markdown"][data-streamed]) > h4,
-		:where([data-slot~="markdown"][data-streamed]) > h5,
-		:where([data-slot~="markdown"][data-streamed]) > h6,
-		:where([data-slot~="markdown"][data-streamed]) > ul,
-		:where([data-slot~="markdown"][data-streamed]) > ol,
-		:where([data-slot~="markdown"][data-streamed]) > blockquote,
-		:where([data-slot~="markdown"][data-streamed]) > hr,
-		:where([data-slot~="markdown"][data-streamed]) > pre,
-		:where([data-slot~="markdown"][data-streamed]) > div,
-		:where([data-slot~="markdown"][data-streamed]) > code {
+		/* structural-selector-ok: the child combinator tests only the parent, and only a streamed Markdown element sets the attribute. */
+		:where([data-slot~="markdown"][data-streamed]) > * {
 			transition: opacity 200ms cubic-bezier(0.23, 1, 0.32, 1);
 
 			@starting-style {
