@@ -935,7 +935,7 @@ function Content({ "data-slot": dataSlot, children, className, ref, ...props }: 
 			// Why the popover scrolls and not only the list: the float measures a popover
 			// that scrolls by its content height, so it can still move to the side with more room.
 			className={cx(
-				"max-h-(--available-height) w-(--anchor-width) overflow-x-hidden overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden p-1",
+				"scrollbar max-h-(--available-height) w-(--anchor-width) overflow-x-hidden overflow-y-auto p-1",
 				className,
 			)}
 			preferredWidth="max-w-none"
