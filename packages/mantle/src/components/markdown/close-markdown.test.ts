@@ -1,6 +1,8 @@
-import { marked } from "marked";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 import { closeMarkdown } from "./close-markdown.js";
+import { Markdown } from "./markdown.js";
 
 const close = (text: string) => closeMarkdown(text, { math: false });
 
@@ -139,10 +141,11 @@ describe("closeMarkdown", () => {
 			"",
 			"![diagram](https://ngrok.com/diagram.png)",
 		].join("\n");
-		const render = (text: string) => marked.parse(text, { gfm: true, async: false });
+		// Why the finished render: it is the HTML that a reader sees once the prefix is closed.
+		const render = (text: string) => renderToStaticMarkup(createElement(Markdown, null, text));
 		const visible = (html: string) =>
 			html
-				.replace(/<pre[\s\S]*?<\/pre>|<code>[\s\S]*?<\/code>|<[^>]+>/g, "")
+				.replace(/<pre[\s\S]*?<\/pre>|<code[^>]*>[\s\S]*?<\/code>|<[^>]+>/g, "")
 				.replaceAll("&lt;", "<")
 				.replaceAll("&amp;", "&");
 		const count = (text: string, part: string) => text.split(part).length - 1;

@@ -1,6 +1,6 @@
 ---
 title: Design Principles
-description: "How ngrok's designers arrange mantle parts: balance, grouping, hierarchy, consistency, and feedback, each as do and don't rules with the parts that apply them."
+description: "How ngrok's designers arrange mantle parts: balance, grouping, hierarchy, typography, consistency, and feedback, each as do and don't rules with the parts that apply them."
 useWhen: Lay out a page, a table, a form, or a group of related controls so that it looks the way ngrok's designers build it.
 aliases:
   - design rules
@@ -12,6 +12,9 @@ aliases:
   - space between groups
   - balanced table columns
   - one column takes all the real estate
+  - text size
+  - rows feel bigger and looser
+  - ID hard to recognize at a glance
 ---
 
 import { Example } from "~/components/example";
@@ -443,8 +446,10 @@ The most important thing on a screen gets the most visual weight, and nothing el
 Two filled buttons ask the reader to choose before they know what the page is for.
 
 - **Do** make the main action a filled `Button` with `intent="neutral"`, and make every other action outlined or ghost.
+- **Do** make a control that only changes the view, such as **Expand all**, a smaller control: a `Button` with `appearance="link"` inside `text-xs` text.
 - **Don't** put two filled buttons side by side, or use `intent="accent"` for an ordinary action.
-- **Part:** [`Button`](/components/actions/button).
+- **Don't** show a control that only changes the view at full size. It reads louder than the content it controls.
+- **Part:** [`Button`](/components/actions/button). A `Button` with `appearance="link"` takes the size of the text around it.
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -475,6 +480,47 @@ Each extra icon, badge, shadow, or line of text makes the rest harder to scan.
 - **Do** remove a decorative icon in a title, a badge that repeats a heading, and subtext that repeats the title.
 - **Don't** stack shadows, glows, and colors for emphasis. When every card has an effect, none of them stands out.
 - **Part:** none. Start from the plain part, and add only what the reader needs.
+
+### Lead with the name a person recognizes
+
+An ID alone is hard to recognize at a glance.
+
+- **Do** lead with the resource's name or URL, and put its ID after it, muted and copyable.
+- **Do** keep a long URL or ID on one line, and show the full value in a tooltip or a copy button.
+- **Don't** show only the ID, or wrap a long URL across several lines with `break-all`.
+- **Part:** [`TruncatedText`](/components/data-display/truncated-text) keeps a long value on one line and shows the full value on hover. Copy the ID with the [`useCopyToClipboard`](/hooks#usecopytoclipboard) hook.
+
+```tsx
+import { TruncatedText } from "@ngrok/mantle/truncated-text";
+
+// Do: the URL leads, and the muted ID follows on the same line.
+<div className="flex min-w-0 items-center gap-2 text-sm">
+	<TruncatedText className="text-strong" value="https://checkout.example.ngrok.app/api/v1/orders" />
+	<TruncatedText className="text-muted shrink-0 font-mono text-xs" value="ep_4Hn8c" />
+</div>;
+```
+
+## Typography
+
+Text size sets how dense a screen feels.
+
+### Give each line of text you place a size
+
+Text with no size class renders at the browser's 16px default, so rows feel bigger and looser than the design.
+
+- **Do** set `text-sm` (14px on a 20px line) on the labels and row text you place by hand.
+- **Do** set secondary detail, such as a size or a count, in `text-xs text-muted`.
+- **Do** give the rows of one list the same line height, such as `leading-5`, so their text sits at the same height.
+- **Don't** leave a label or a row of text with no size from a part or a class.
+- **Part:** some parts set their own size, such as `Table.Cell` and `Field.Label`. Others take the size of the text around them, such as `TruncatedText` and a link `Button`. Set the size on their container.
+
+```tsx
+// Do: the row text is text-sm, and the size note is text-xs and muted.
+<div className="flex items-center gap-2">
+	<span className="text-strong text-sm leading-5">Response sent to client</span>
+	<span className="text-muted text-xs leading-5">9.38 KiB</span>
+</div>
+```
 
 ## Consistency
 
@@ -542,7 +588,9 @@ import { Input } from "@ngrok/mantle/input";
 When a list reorders after an action, the user loses their place.
 
 - **Do** keep the order the user saw until they leave and come back, and keep a check, a toggle, or a tab in the same position and size in every state.
+- **Do** change only the color of a name to show its state, such as a `text-muted` name that turns `text-strong` when its row opens. Then the name doesn't shift.
 - **Don't** move an item to the end of the list as soon as the user selects it, or let tabs push the content sideways.
+- **Don't** change the weight or the size of a name to show its state.
 - **Part:** none. Sort the data you pass to the part before it renders.
 
-This page grows as ngrok's designers write down more of what they check. It has no typography rules yet.
+This page grows as ngrok's designers write down more of what they check.

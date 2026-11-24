@@ -22,7 +22,23 @@ const composeHandlers =
 		}
 	};
 
+/**
+ * Cancels a click on a disabled item in the capture phase, so no handler on
+ * the item or its child runs and an `asChild` link does not navigate. A
+ * native disabled button also runs no click handler.
+ *
+ * @example
+ * ```tsx
+ * <div aria-disabled {...(disabled && { onClickCapture: ignoreClick })} />
+ * ```
+ */
+const ignoreClick = (event: { preventDefault: () => void; stopPropagation: () => void }) => {
+	event.preventDefault();
+	event.stopPropagation();
+};
+
 export {
 	//,
 	composeHandlers,
+	ignoreClick,
 };

@@ -906,6 +906,7 @@ type SelectItemProps = Omit<ComponentProps<"div">, "children"> &
 	WithDataSlot & {
 		/**
 		 * Whether the option is inert.
+		 * A disabled option runs no click handler, and an `asChild` link does not navigate.
 		 */
 		disabled?: boolean;
 		/**

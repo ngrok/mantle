@@ -13,7 +13,7 @@ import {
 	useState,
 	useSyncExternalStore,
 } from "react";
-import { composeHandlers } from "../../behaviors/compose-handlers.js";
+import { composeHandlers, ignoreClick } from "../../behaviors/compose-handlers.js";
 import { useListbox } from "../../behaviors/use-listbox.js";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { WithAsChild } from "../../types/as-child.js";
@@ -1126,7 +1126,8 @@ const CommandItem = ({
 		 */
 		onPointerMove?: PointerEventHandler<HTMLElement>;
 		/**
-		 * Whether the item can be activated and selected.
+		 * Whether the item can be activated and selected. A disabled item runs no
+		 * click handler, and an `asChild` link does not navigate.
 		 *
 		 * @default false
 		 */
@@ -1197,6 +1198,7 @@ const CommandItem = ({
 				onClick?.(event);
 				command.select(event.currentTarget);
 			}}
+			{...(disabled && { onClickCapture: ignoreClick })}
 		/>
 	);
 };

@@ -472,6 +472,37 @@ describe("Select", () => {
 			expect(screen.getByTestId("disabled")).toBeDisabled();
 		});
 
+		// Red if a disabled item runs its onClick, or reports its label: a scripted or assistive
+		// click then blanks the trigger of a select whose items a component of your own renders.
+		test("a disabled item ignores a scripted click and keeps the trigger label", async () => {
+			const user = userEvent.setup();
+			const onClick = vi.fn<() => void>();
+			const DomainItem = ({ domain, inUse }: { domain: string; inUse?: boolean }) => (
+				<Select.Item value={domain} disabled={inUse} onClick={onClick}>
+					{domain}
+				</Select.Item>
+			);
+			render(
+				<Select.Root defaultValue="a.ngrok.app">
+					<Select.Trigger aria-label="Domain">
+						<Select.Value placeholder="Pick a domain" />
+					</Select.Trigger>
+					<Select.Content>
+						<DomainItem domain="a.ngrok.app" />
+						<DomainItem domain="b.ngrok.app" inUse />
+					</Select.Content>
+				</Select.Root>,
+			);
+			const trigger = screen.getByRole("combobox", { name: "Domain" });
+
+			await user.click(trigger);
+			(await screen.findByRole("option", { name: "b.ngrok.app" })).click();
+			await user.keyboard("{Escape}");
+
+			expect(onClick).toHaveBeenCalledTimes(0);
+			expect(trigger).toHaveTextContent("a.ngrok.app");
+		});
+
 		test("documented item data attributes follow selection, keyboard highlight, and disabled", async () => {
 			const user = userEvent.setup();
 			render(

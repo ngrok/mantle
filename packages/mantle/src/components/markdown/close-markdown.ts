@@ -12,7 +12,7 @@
  * - hides a table header until its delimiter row starts, and completes a partial delimiter row
  * - closes an open `$$` block when `math` is set
  *
- * An open code fence stays open: marked renders an unclosed fence to the end.
+ * An open code fence stays open: the lexer reads an unclosed fence to the end.
  *
  * One pass over the lines finds the last paragraph, and one pass over its
  * characters finds the open markers. The cost grows with the length of the
@@ -708,8 +708,7 @@ function closeInline(region: string, { math }: { math: boolean }): string {
 		...(openers[UNDERSCORE] ?? []),
 		...(openers[TILDE] ?? []),
 	];
-	// Why no closers past 32 open delimiters: marked nests each pair once more, which overflows its stack or
-	// takes seconds. No answer holds that many.
+	// Why no closers past 32 open delimiters: each closer nests one more element. No answer holds that many.
 	const depth = open.reduce((sum, opener) => sum + opener.count, 0);
 	const pending = [...(depth > 32 ? [] : open), ...tags].toSorted((a, b) => b.index - a.index);
 	for (const item of pending) {

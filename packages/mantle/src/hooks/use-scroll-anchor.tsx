@@ -3,6 +3,13 @@
 import type { RefCallback, RefObject } from "react";
 import { useCallback } from "react";
 
+const heldScrollRegions = new WeakMap<HTMLElement, () => boolean>();
+
+/** Applies pending anchor layout changes and reports whether the anchor still owns the region's position. */
+export function hasScrollAnchor(region: HTMLElement): boolean {
+	return heldScrollRegions.get(region)?.() ?? false;
+}
+
 /**
  * Where a reader is in some content: the child indexes from the content's
  * element down to the deepest element at the top edge of the region that
@@ -166,14 +173,19 @@ function holdAnchor(content: HTMLElement, anchor: Omit<ScrollAnchor, "key">): ()
 		region = next;
 		const overflowAnchor = next.style.overflowAnchor;
 		next.style.overflowAnchor = "none";
+		heldScrollRegions.set(next, () => {
+			update();
+			return holding;
+		});
 		unpin = () => {
 			next.style.overflowAnchor = overflowAnchor;
+			heldScrollRegions.delete(next);
 		};
 		expected = next.scrollTop;
 		scrollTarget().addEventListener("scroll", onScroll, { passive: true });
 	};
-	// The first call reports the size at `observe`, which changes nothing.
-	const observer = new ResizeObserver(() => {
+	// A follower can run before ResizeObserver, so both paths apply the same pending layout change.
+	const update = () => {
 		const next = content.getBoundingClientRect();
 		if (moved()) {
 			release();
@@ -183,7 +195,8 @@ function holdAnchor(content: HTMLElement, anchor: Omit<ScrollAnchor, "key">): ()
 			release();
 		}
 		size = next;
-	});
+	};
+	const observer = new ResizeObserver(update);
 	const release = () => {
 		const held = holding && !moved();
 		holding = false;

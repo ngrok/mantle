@@ -1,8 +1,8 @@
-import type { Tokens } from "marked";
+import type { MarkdownExtensionToken } from "./markdown-tokens.js";
 import { closesMath, type MarkdownExtension } from "./markdown-parser.js";
 
 /** A formula in the Markdown: its TeX source, and whether it shows as its own block. */
-type MarkdownMathToken = Tokens.Generic & {
+type MarkdownMathToken = MarkdownExtensionToken & {
 	type: "math";
 	raw: string;
 	/** The TeX source, without its delimiters. */

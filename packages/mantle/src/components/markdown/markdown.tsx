@@ -1,6 +1,5 @@
 "use client";
 
-import type { Token, Tokens } from "marked";
 import {
 	createContext,
 	createElement,
@@ -32,28 +31,48 @@ import {
 	type MarkdownExtension,
 	type MarkdownLinks,
 } from "./markdown-parser.js";
+import type {
+	BlockquoteToken,
+	BrToken,
+	CodeToken,
+	CodespanToken,
+	DelToken,
+	EmToken,
+	HeadingToken,
+	HrToken,
+	HtmlToken,
+	ImageToken,
+	LinkToken,
+	ListItemToken,
+	ListToken,
+	MarkdownExtensionToken,
+	ParagraphToken,
+	StrongToken,
+	TableToken,
+	MarkdownToken as Token,
+} from "./markdown-tokens.js";
 import { safeUrl } from "./safe-url.js";
 import { useFrameValue } from "./use-frame-value.js";
 
 /** The token that each built-in component renders, by component name. */
 type MarkdownTokens = {
-	blockquote: Tokens.Blockquote;
-	br: Tokens.Br;
-	code: Tokens.Code;
-	codespan: Tokens.Codespan;
-	del: Tokens.Del;
-	em: Tokens.Em;
-	heading: Tokens.Heading;
-	hr: Tokens.Hr;
-	html: Tokens.HTML;
-	image: Tokens.Image;
-	link: Tokens.Link;
-	list: Tokens.List;
-	list_item: Tokens.ListItem;
+	blockquote: BlockquoteToken;
+	br: BrToken;
+	code: CodeToken;
+	codespan: CodespanToken;
+	del: DelToken;
+	em: EmToken;
+	heading: HeadingToken;
+	hr: HrToken;
+	html: HtmlToken;
+	image: ImageToken;
+	link: LinkToken;
+	list: ListToken;
+	list_item: ListItemToken;
 	math: MarkdownMathToken;
-	paragraph: Tokens.Paragraph;
-	strong: Tokens.Strong;
-	table: Tokens.Table;
+	paragraph: ParagraphToken;
+	strong: StrongToken;
+	table: TableToken;
 };
 
 /**
@@ -74,7 +93,7 @@ type MarkdownComponents = {
 		props: MarkdownComponentProps<MarkdownTokens[Name]>,
 	) => ReactNode;
 } & {
-	extension?: (props: MarkdownComponentProps<Tokens.Generic>) => ReactNode;
+	extension?: (props: MarkdownComponentProps<MarkdownExtensionToken>) => ReactNode;
 };
 
 const OPEN_TAG = /^<([a-z]+)\s*>$/i;
@@ -83,11 +102,11 @@ const BREAK_TAG = /^<br\s*\/?>$/i;
 /** The inline HTML tags of code, keys, output, and variables. */
 const CODE_TAGS = new Set(["kbd", "samp", "tt", "var"]);
 
-/** Narrows a token to one kind. Why a guard: marked's token union holds a generic token whose `type` is any string, so a `switch` cannot narrow it. */
+/** Narrows a token to one kind. Why a guard: the token union holds an extension token whose `type` is any string, so a `switch` cannot narrow it. */
 function isTokenOf<Name extends keyof MarkdownTokens | "table" | "list">(
 	token: Token,
 	type: Name,
-): token is (MarkdownTokens & { table: Tokens.Table; list: Tokens.List })[Name] {
+): token is (MarkdownTokens & { table: TableToken; list: ListToken })[Name] {
 	return token.type === type;
 }
 
@@ -232,7 +251,7 @@ function cellClassName(align: "center" | "left" | "right" | null | undefined): s
 }
 
 /** The fence of a code token, rendered as a mantle `CodeBlock` that highlights as the code streams. */
-function MarkdownCodeBlock({ token }: { token: Tokens.Code }) {
+function MarkdownCodeBlock({ token }: { token: CodeToken }) {
 	const label = token.lang?.trim().split(/\s/, 1)[0] ?? "";
 	const language = parseLanguage(label);
 	const value = useCodeBlockStream({
@@ -256,7 +275,7 @@ function MarkdownCodeBlock({ token }: { token: Tokens.Code }) {
 }
 
 /** A list item. A task item labels its checkbox with the item's text. */
-function MarkdownListItemContent({ token, children }: MarkdownComponentProps<Tokens.ListItem>) {
+function MarkdownListItemContent({ token, children }: MarkdownComponentProps<ListItemToken>) {
 	const labelId = useId();
 	if (!token.task) {
 		return <li>{children}</li>;
@@ -337,7 +356,7 @@ const defaultComponents: Required<Omit<MarkdownComponents, "extension" | "table"
 };
 
 /** Renders a GitHub table as mantle's `Table`, with each column's alignment. */
-function renderTable(token: Tokens.Table, components: MarkdownComponents) {
+function renderTable(token: TableToken, components: MarkdownComponents) {
 	return (
 		<Table.Root>
 			<Table.Element>
@@ -447,13 +466,7 @@ function renderComponent(
 }
 
 /** A table block. Why a component: it renders `components.table` when set, and mantle's `Table` when not. */
-function TableBlock({
-	token,
-	components,
-}: {
-	token: Tokens.Table;
-	components: MarkdownComponents;
-}) {
+function TableBlock({ token, components }: { token: TableToken; components: MarkdownComponents }) {
 	if (components.table != null) {
 		return renderComponent(components.table, { key: 0, token, children: null });
 	}
@@ -488,9 +501,14 @@ function looseness(token: Token): boolean | undefined {
 /**
  * One top-level block. Why `memo`: a finished block keeps its token, so it
  * never renders again while the answer streams. Why a `<p>` for text: the
- * blocks of a group have no parent element of their own.
+ * blocks of a group have no parent element of their own. Why `@__PURE__` on
+ * this file's module-level calls: an import of `useMarkdownStream` alone drops
+ * the renderer and the `CodeBlock` highlighter.
  */
-const MarkdownBlock = memo(function MarkdownBlock({ token, components }: BlockProps) {
+const MarkdownBlock = /* @__PURE__ */ memo(function MarkdownBlock({
+	token,
+	components,
+}: BlockProps) {
 	const node = renderToken(token, 0, components);
 	return typeof node === "string" ? <p>{node}</p> : node;
 }, isSameBlock);
@@ -526,7 +544,7 @@ function isSameGroup(previous: GroupProps, next: GroupProps): boolean {
  * which holds the unfinished block. That block stays in its group when it
  * finishes, so it keeps its parent and its key, and never remounts.
  */
-const MarkdownGroup = memo(function MarkdownGroup({
+const MarkdownGroup = /* @__PURE__ */ memo(function MarkdownGroup({
 	blocks,
 	start,
 	components,
@@ -548,21 +566,18 @@ const MarkdownGroup = memo(function MarkdownGroup({
  * deep in a block, and its items compare `links` to render again when a
  * definition resolves one of their reference links.
  */
-const LinksContext = createContext<MarkdownLinks>(Object.create(null));
+const LinksContext = /* @__PURE__ */ createContext<MarkdownLinks>(Object.create(null));
 
 /** One list item. Why `memo`: a long list streams one item at a time, and the items above it keep their source. */
-const MarkdownListItem = memo(function MarkdownListItem({ token, components }: BlockProps) {
+const MarkdownListItem = /* @__PURE__ */ memo(function MarkdownListItem({
+	token,
+	components,
+}: BlockProps) {
 	return renderToken(token, 0, components);
 }, isSameBlock);
 
 /** A list, with each item memoized. */
-function MarkdownList({
-	token,
-	components,
-}: {
-	token: Tokens.List;
-	components: MarkdownComponents;
-}) {
+function MarkdownList({ token, components }: { token: ListToken; components: MarkdownComponents }) {
 	const links = use(LinksContext);
 	return renderComponent(components.list ?? defaultComponents.list, {
 		key: 0,
@@ -583,7 +598,7 @@ function MarkdownList({
 type MarkdownBlockEvent = {
 	/** The block's index in the answer. */
 	index: number;
-	/** The block's marked token, such as `{ type: "paragraph", raw, tokens }`. */
+	/** The block's token, such as `{ type: "paragraph", raw, tokens }`. */
 	token: Token;
 };
 

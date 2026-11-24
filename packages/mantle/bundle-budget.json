@@ -91,6 +91,22 @@
     "entry": "import { OverlayPrompt } from \"@ngrok/mantle/overlay-prompt\"; export default [OverlayPrompt];",
     "maxGzipBytes": 930
   },
+  "markdown": {
+    "entry": "import { Markdown } from \"@ngrok/mantle/markdown\"; export default [Markdown];",
+    "maxGzipBytes": 31524
+  },
+  "markdown-chat": {
+    "entry": "import { Markdown, markdownMath, useMarkdownStream } from \"@ngrok/mantle/markdown\"; export default [Markdown, markdownMath, useMarkdownStream];",
+    "maxGzipBytes": 32542
+  },
+  "markdown-stream-hook": {
+    "entry": "import { useMarkdownStream } from \"@ngrok/mantle/markdown\"; export default [useMarkdownStream];",
+    "maxGzipBytes": 1042
+  },
+  "code-block-stream": {
+    "entry": "import { CodeBlock, useCodeBlockStream } from \"@ngrok/mantle/code-block\"; export default [CodeBlock.Root, CodeBlock.Body, CodeBlock.Code, CodeBlock.CopyButton, useCodeBlockStream];",
+    "maxGzipBytes": 15657
+  },
   "prompt-input": {
     "entry": "import { PromptInput } from \"@ngrok/mantle/prompt-input\"; export default [PromptInput.Root, PromptInput.TextArea, PromptInput.Footer, PromptInput.Submit];",
     "maxGzipBytes": 11524
@@ -102,6 +118,14 @@
   "prompt-input-attach": {
     "entry": "import { PromptInput } from \"@ngrok/mantle/prompt-input\"; export default [PromptInput.Root, PromptInput.TextArea, PromptInput.Footer, PromptInput.Submit, PromptInput.AttachButton];",
     "maxGzipBytes": 11913
+  },
+  "conversation": {
+    "entry": "import { Conversation } from \"@ngrok/mantle/conversation\"; export default [Conversation.Root, Conversation.Viewport, Conversation.Content, Conversation.ScrollButton];",
+    "maxGzipBytes": 11799
+  },
+  "message": {
+    "entry": "import { Message } from \"@ngrok/mantle/message\"; export default [Message.Root, Message.Content, Message.Pending, Message.Actions];",
+    "maxGzipBytes": 8021
   },
   "prompt-input-dictate": {
     "entry": "import { PromptInput } from \"@ngrok/mantle/prompt-input\"; export default [PromptInput.Root, PromptInput.TextArea, PromptInput.Footer, PromptInput.Submit, PromptInput.Dictate];",

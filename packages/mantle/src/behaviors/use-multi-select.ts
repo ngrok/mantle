@@ -40,7 +40,8 @@ const EMPTY: readonly string[] = [];
 /**
  * Owns a multi-select combobox: a text input that filters a listbox popup
  * whose options toggle in and out of the selection. A pick clears the text
- * and keeps the list open and the highlight on the option. Call it in the
+ * and keeps the list open and the highlight on the option. A close clears
+ * the text too. Call it in the
  * root part; call `useComboboxInput` in the input and `useOption` in each
  * option.
  *
@@ -73,11 +74,18 @@ const useMultiSelect = ({
 		defaultValue: defaultInputValue,
 		onChange: onInputValueChange,
 	});
-	const [open, setOpen] = useControllableState({
+	const [open, setOpenState] = useControllableState({
 		value: openProp,
 		defaultValue: defaultOpen,
 		onChange: onOpenChange,
 	});
+	// Why: the text only filters the open list. It is not a value, so it must not stay in a closed field.
+	const setOpen = (next: boolean) => {
+		if (!next && open) {
+			setInputValue("");
+		}
+		setOpenState(next);
+	};
 	const [locked] = useState(() => createStore({ values: EMPTY }));
 	const [tags] = useState(() => new Map<string, HTMLElement>());
 	const inputRef = useRef<HTMLInputElement | null>(null);

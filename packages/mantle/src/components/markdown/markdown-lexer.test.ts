@@ -1,6 +1,6 @@
-import type { Token } from "marked";
 import { describe, expect, test } from "vitest";
 import { lexMarkdown } from "./markdown-lexer.js";
+import type { MarkdownToken as Token } from "./markdown-tokens.js";
 
 /** Each token in `tokens` and in their children, depth first. */
 function flatten(tokens: readonly Token[]): Token[] {

@@ -799,7 +799,7 @@ Root component for a multi-select combobox. Owns the selected values and the typ
 | `value?`              | `string[]`                     |         | The controlled selected values. Pair with `onValueChange`.                                                    |
 | `defaultValue?`       | `string[]`                     | `[]`    | The selected values on first render.                                                                          |
 | `onValueChange?`      | `(value: string[]) => void`    |         | Called when the user picks or removes a value.                                                                |
-| `inputValue?`         | `string`                       |         | The controlled filter text. Pair with `onInputValueChange`.                                                   |
+| `inputValue?`         | `string`                       |         | The controlled filter text. Pair with `onInputValueChange`. A pick or a close clears it.                      |
 | `defaultInputValue?`  | `string`                       | `""`    | The filter text on first render.                                                                              |
 | `onInputValueChange?` | `(inputValue: string) => void` |         | Called with the whole filter text on each change. Use it to filter the items, for example with `matchSorter`. |
 
