@@ -11,7 +11,7 @@ import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { CONTENT_CONTROL_SELECTOR, isInteractiveTarget } from "../../utils/interactive-target.js";
+import { CONTENT_CONTROL_SELECTOR } from "../../utils/interactive-target.js";
 import { RadioItemContext } from "../radio-group/radio-item-context.js";
 import { Slot } from "../slot/index.js";
 import { Checkbox } from "./checkbox.js";
@@ -110,9 +110,8 @@ const Root = ({
 		onChange: (next) => onValueChange?.([...next]),
 	});
 	const groupRef = useRef<HTMLDivElement>(null);
-	// Why: a click before hydration, or a choice the browser restores, checks or unchecks a
-	// checkbox that React does not know about. React keeps it, so the value follows it. Why the
-	// root and not each card: the cards of one commit would each set the value from the same render.
+	// Why: React keeps a check or an uncheck made before hydration, or restored by the browser, so the
+	// value follows it. The root reads all cards at once, because the cards of one commit share one render.
 	const adoptCheckedBeforeHydration = useCallbackRef((group: HTMLDivElement | null) => {
 		const inputs = Array.from(
 			group?.querySelectorAll<HTMLInputElement>(CARD_CHECKBOX_SELECTOR) ?? [],
@@ -341,7 +340,14 @@ const Card = ({
 					}
 					// Why a click on the card's text gets here: a test, such as Testing Library's `user.click()`,
 					// sends it to the text, not to the checkbox over the text.
-					if (event.defaultPrevented || isInteractiveTarget(event.target, event.currentTarget)) {
+					// Why the content control list: a focusable custom control, such as a `tabIndex` div, sits
+					// over the checkbox too, and its click must not toggle the card.
+					const control =
+						event.target instanceof Element ? event.target.closest(CONTENT_CONTROL_SELECTOR) : null;
+					if (
+						event.defaultPrevented ||
+						(control != null && event.currentTarget.contains(control))
+					) {
 						return;
 					}
 					checkbox.focus({ preventScroll: true });

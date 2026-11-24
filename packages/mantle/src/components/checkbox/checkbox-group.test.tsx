@@ -252,6 +252,32 @@ describe("CheckboxGroup value", () => {
 		expect(screen.getByRole("checkbox")).not.toBeChecked();
 	});
 
+	test("a focusable custom control in a card keeps its click and does not toggle the card", async () => {
+		const user = userEvent.setup();
+		const onControlClick = vi.fn<() => void>();
+		render(
+			<CheckboxGroup.Root aria-label="Interests">
+				<CheckboxGroup.Card value="tunnels">
+					Tunnels{" "}
+					<span
+						role="switch"
+						aria-checked={false}
+						tabIndex={0}
+						onClick={onControlClick}
+						onKeyDown={() => {}}
+					>
+						<span>details</span>
+					</span>
+				</CheckboxGroup.Card>
+			</CheckboxGroup.Root>,
+		);
+
+		await user.click(screen.getByText("details"));
+
+		expect(onControlClick).toHaveBeenCalledTimes(1);
+		expect(screen.getByRole("checkbox")).not.toBeChecked();
+	});
+
 	test("Indicator render props receive the card's disabled state", () => {
 		render(
 			<CheckboxGroup.Root aria-label="Interests" defaultValue={["tunnels"]}>

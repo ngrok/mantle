@@ -1415,13 +1415,12 @@ MARK: CUSTOM VARIANTS
 	}
 
 	/*
-	 * The native input of a `RadioGroup`, `SegmentedControl`, or `CheckboxGroup`
-	 * item covers the item, over its content. The controls in the content sit
-	 * over the input, so they keep their own clicks. Why the base layer and
-	 * `:where()`: a position or z-index utility on the control wins. The list
-	 * matches `CONTENT_CONTROL_SELECTOR` in `utils/interactive-target.ts`, but
-	 * for `label`: a title label would cover the input, and a click on it
-	 * toggles the input anyway.
+	 * The controls in a `RadioGroup`, `SegmentedControl`, or `CheckboxGroup`
+	 * item sit over the native input that covers the item, so they keep their
+	 * own clicks. The list matches `CONTENT_CONTROL_SELECTOR` in
+	 * `utils/interactive-target.ts`, but for `label`, which toggles the input.
+	 *
+	 * Why the base layer and `:where()`: a position or z-index utility on the control wins.
 	 */
 	:where(.covered-item-content)
 		:where(
