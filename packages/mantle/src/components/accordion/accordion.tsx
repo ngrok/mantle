@@ -60,6 +60,25 @@ function supportsBeforeMatch(): boolean {
 	return canUseDOM() && document.body != null && "onbeforematch" in document.body;
 }
 
+/**
+ * Applies a style change with the transition off, forces a style and layout flush so the box
+ * settles at its end values, then restores the consumer's inline value. Overrides only the
+ * `transition-property` longhand: the `transition` shorthand reads as empty when only some
+ * longhands are set, so restoring it would delete them.
+ *
+ * @example
+ * ```ts
+ * settle(node, () => { node.style.height = "auto"; });
+ * ```
+ */
+function settle(node: HTMLElement, apply: () => void) {
+	const { transitionProperty } = node.style;
+	node.style.transitionProperty = "none";
+	apply();
+	node.getBoundingClientRect();
+	node.style.transitionProperty = transitionProperty;
+}
+
 type AccordionContextValue = {
 	type: AccordionType;
 	openValues: readonly string[];
@@ -544,6 +563,11 @@ const Content = ({
 	// still forwarding it to any ref the consumer passes.
 	const nodeRef = useRef<ComponentRef<"div">>(null);
 	const composedRef = useComposedRefs(nodeRef, ref);
+	// Counts find-in-page reveals. Each one commits with the open it asks for.
+	const [reveals, setReveals] = useState(0);
+	// The pending frame of the check below. A new reveal cancels it in its event, so a check of
+	// a refused reveal cannot hide a later reveal before that one commits.
+	const checkFrameRef = useRef(0);
 
 	// When the browser is about to reveal a find-in-page match inside this
 	// (collapsed) region, open the item so our state agrees and it stays open.
@@ -552,21 +576,6 @@ const Content = ({
 		if (!node || !supportsBeforeMatch()) {
 			return;
 		}
-		// Apply a style change with the transition off, force a style and layout
-		// flush so the box settles at its end values, then restore the consumer's
-		// inline value. Override only the `transition-property`
-		// longhand: the `transition` shorthand reads as empty when only some
-		// longhands are set, so restoring it would delete them.
-		const settle = (apply: () => void) => {
-			const { transitionProperty } = node.style;
-			node.style.transitionProperty = "none";
-			apply();
-			node.getBoundingClientRect();
-			node.style.transitionProperty = transitionProperty;
-		};
-		// Why: a newer reveal gets its own two frames, so it cancels the check of
-		// an earlier one.
-		let frame = 0;
 		const handleBeforeMatch = () => {
 			// The browser reveals and highlights the match synchronously right after
 			// this event, but our React-driven height (`data-open:h-auto`) only
@@ -580,39 +589,51 @@ const Content = ({
 			// the highlight would still be clipped when it paints. The close branch of
 			// the effect below clears the inline height and opacity so the slide and
 			// the fade resume.
-			settle(() => {
+			settle(node, () => {
 				node.removeAttribute("hidden");
 				node.style.height = "auto";
 				node.style.opacity = "1";
 			});
+			cancelAnimationFrame(checkFrameRef.current);
+			// Why one batch: the reveal count commits with an open the root accepts at once, so
+			// the check below sees that open.
 			setOpen(true);
-			// Why two frames: the open commits after this event, and a controlled
-			// root can accept it in a transition. Firefox and WebKit can run the next
-			// frame before either commits. A root that has not opened the item by the
-			// frame after it refused the open, so hide the content again. Why
-			// `settle`: the close slide keeps the refused content visible and
-			// interactive for its whole duration.
-			cancelAnimationFrame(frame);
-			frame = requestAnimationFrame(() => {
-				frame = requestAnimationFrame(() => {
-					if (!node.hasAttribute("data-open")) {
-						settle(() => {
-							node.setAttribute("hidden", "until-found");
-							node.style.height = "";
-							node.style.opacity = "";
-						});
-					}
-				});
-			});
+			setReveals((count) => count + 1);
 		};
 
 		node.addEventListener("beforematch", handleBeforeMatch);
 
 		return () => {
 			node.removeEventListener("beforematch", handleBeforeMatch);
-			cancelAnimationFrame(frame);
 		};
 	}, [setOpen]);
+
+	// Why an effect: a root can refuse the open, and only a commit shows the answer. Why after
+	// the commit: WebKit and Firefox can run two frames before React commits an open that the
+	// root accepts at once, and a check started in the event hid that content again. A root
+	// that accepts in a transition commits later, so wait two frames more. Content that is
+	// still closed then was refused, so hide it again. Why `settle`: the close slide keeps the
+	// refused content visible and interactive for its whole duration.
+	useEffect(() => {
+		const node = nodeRef.current;
+		if (reveals === 0 || !node || node.hasAttribute("data-open")) {
+			return;
+		}
+		checkFrameRef.current = requestAnimationFrame(() => {
+			checkFrameRef.current = requestAnimationFrame(() => {
+				if (!node.hasAttribute("data-open")) {
+					settle(node, () => {
+						node.setAttribute("hidden", "until-found");
+						node.style.height = "";
+						node.style.opacity = "";
+					});
+				}
+			});
+		});
+		return () => {
+			cancelAnimationFrame(checkFrameRef.current);
+		};
+	}, [reveals]);
 
 	// Toggle `hidden="until-found"` with the open state, imperatively: React types
 	// `hidden` as boolean-only (no `"until-found"`) and has no `onBeforeMatch`, so

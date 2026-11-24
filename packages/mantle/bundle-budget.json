@@ -37,11 +37,11 @@
   },
   "combobox": {
     "entry": "import { Combobox } from \"@ngrok/mantle/combobox\"; export default [Combobox.Root, Combobox.Input, Combobox.Content, Combobox.Item];",
-    "maxGzipBytes": 14718
+    "maxGzipBytes": 15811
   },
   "multi-select": {
     "entry": "import { MultiSelect } from \"@ngrok/mantle/multi-select\"; export default [MultiSelect.Root, MultiSelect.Trigger, MultiSelect.Input, MultiSelect.Content, MultiSelect.Item];",
-    "maxGzipBytes": 16286
+    "maxGzipBytes": 17104
   },
   "tabs": {
     "entry": "import { Tabs } from \"@ngrok/mantle/tabs\"; export default [Tabs.Root, Tabs.List, Tabs.Trigger, Tabs.Content];",
@@ -53,7 +53,7 @@
   },
   "popover": {
     "entry": "import { Popover } from \"@ngrok/mantle/popover\"; export default [Popover.Root, Popover.Trigger, Popover.Content];",
-    "maxGzipBytes": 13514
+    "maxGzipBytes": 13551
   },
   "hover-card": {
     "entry": "import { HoverCard } from \"@ngrok/mantle/hover-card\"; export default [HoverCard.Root, HoverCard.Trigger, HoverCard.Content];",
@@ -65,7 +65,7 @@
   },
   "dialog": {
     "entry": "import { Dialog } from \"@ngrok/mantle/dialog\"; export default [Dialog.Root, Dialog.Trigger, Dialog.Content, Dialog.Header, Dialog.Title, Dialog.Body, Dialog.Footer];",
-    "maxGzipBytes": 13482
+    "maxGzipBytes": 13539
   },
   "command": {
     "entry": "import { Command } from \"@ngrok/mantle/command\"; export default [Command.DialogRoot, Command.DialogContent, Command.Input, Command.List, Command.Item];",
@@ -85,7 +85,7 @@
   },
   "form-page": {
     "entry": "import { Button } from \"@ngrok/mantle/button\"; import { Field } from \"@ngrok/mantle/field\"; import { Select } from \"@ngrok/mantle/select\"; import { Combobox } from \"@ngrok/mantle/combobox\"; export default [Button, Field.Item, Field.Label, Field.Control, Select.Root, Select.Trigger, Select.Value, Select.Content, Select.Item, Combobox.Root, Combobox.Input, Combobox.Content, Combobox.Item];",
-    "maxGzipBytes": 20191
+    "maxGzipBytes": 21123
   },
   "overlay-prompt": {
     "entry": "import { OverlayPrompt } from \"@ngrok/mantle/overlay-prompt\"; export default [OverlayPrompt];",
@@ -118,5 +118,13 @@
   "prompt-input-attach": {
     "entry": "import { PromptInput } from \"@ngrok/mantle/prompt-input\"; export default [PromptInput.Root, PromptInput.TextArea, PromptInput.Footer, PromptInput.Submit, PromptInput.AttachButton];",
     "maxGzipBytes": 11913
+  },
+  "conversation": {
+    "entry": "import { Conversation } from \"@ngrok/mantle/conversation\"; export default [Conversation.Root, Conversation.Viewport, Conversation.Content, Conversation.ScrollButton];",
+    "maxGzipBytes": 11799
+  },
+  "message": {
+    "entry": "import { Message } from \"@ngrok/mantle/message\"; export default [Message.Root, Message.Content, Message.Pending, Message.Actions];",
+    "maxGzipBytes": 8021
   }
 }

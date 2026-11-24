@@ -446,6 +446,8 @@ describe("MultiSelect", () => {
 			await user.keyboard("{Tab}");
 			const upgrade = screen.getByRole("button", { name: "Upgrade" });
 			expect(upgrade).toHaveFocus();
+			// Why: a listbox holds only options and groups, so the footer renders after it.
+			expect(screen.getByRole("listbox")).not.toContainElement(upgrade);
 			expect(input).toHaveAttribute("aria-expanded", "true");
 			await user.keyboard("{Shift>}{Tab}{/Shift}");
 			expect(input).toHaveFocus();
@@ -462,6 +464,36 @@ describe("MultiSelect", () => {
 			await user.keyboard("{Escape}");
 			expect(input).toHaveAttribute("aria-expanded", "false");
 			expect(input).toHaveFocus();
+		});
+
+		test("an Escape that Content's onKeyDown cancels keeps the list open", async () => {
+			const user = userEvent.setup();
+			render(
+				<MultiSelect.Root>
+					<MultiSelect.Trigger>
+						<MultiSelect.Input aria-label="Fruits" />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content
+						onKeyDown={(event) => {
+							if (event.key === "Escape") {
+								event.preventDefault();
+							}
+						}}
+					>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+						<MultiSelect.ContentFooter>
+							<button type="button">Upgrade</button>
+						</MultiSelect.ContentFooter>
+					</MultiSelect.Content>
+				</MultiSelect.Root>,
+			);
+			const input = screen.getByRole("combobox", { name: "Fruits" });
+			await user.click(input);
+			await user.tab();
+			await user.keyboard("{Escape}");
+
+			expect(screen.getByRole("button", { name: "Upgrade" })).toHaveFocus();
+			expect(input).toHaveAttribute("aria-expanded", "true");
 		});
 
 		test("the submitted values follow the input's form and disabled", () => {

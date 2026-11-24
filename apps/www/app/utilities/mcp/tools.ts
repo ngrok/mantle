@@ -373,8 +373,11 @@ function weightedFields(
  */
 export function findRecords<T extends FindRecord>(
 	records: readonly T[],
-	{ query, kind }: { query: string; kind?: FindRecord["kind"] },
+	{ query: rawQuery, kind }: { query: string; kind?: FindRecord["kind"] },
 ): FindMatch<T>[] {
+	// Why: the word split drops a lone `/`, so "press / to search" lost its key. Read it as the
+	// `slash` that the docs spell.
+	const query = rawQuery.replace(/(?<=^|\s)[`'"]?\/[`'"]?(?=\s|$)/g, "slash");
 	const wanted = compact(query);
 	// Why: `⌘` is no word, so "⌘K palette" must read as "cmd k palette" to reach the `cmd k` alias.
 	const tokens = keywordsFrom(query.replaceAll("⌘", " cmd "))

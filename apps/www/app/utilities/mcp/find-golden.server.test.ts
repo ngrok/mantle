@@ -141,6 +141,11 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 		"cmd+k shortcut to focus the search field": "Command",
 		"⌘K shortcut to focus search": "Command",
 		"ctrl+k shortcut to focus search": "Command",
+		"press / to search": "Query",
+		"keyboard search field with ⌘K": "Command",
+		"⌘K": "Command",
+		"Ctrl+B": "Sidebar",
+		"cmd+b": "Sidebar",
 	},
 	"Forms and other names": {
 		"form validation": "Field",
@@ -158,7 +163,8 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 		"password field show hide": "Password Input",
 	},
 	"AI answers": {
-		"chat message bubble rendered markdown prose": "Markdown",
+		// Why both: a message bubble is Message, which renders its text with Markdown.
+		"chat message bubble rendered markdown prose": ["Message", "Markdown"],
 	},
 	"Former known misses, fixed in the docs and JSDoc": {
 		"selectable radio card grid icon": "Radio Group",
@@ -176,6 +182,10 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 		"tab state hook custom tab markup": "Tabs",
 		"tabs with custom styling marketing cards": "Tabs",
 		"type a question to build a filter": "Natural Language Query",
+	},
+	"AI chat": {
+		"chat transcript scroll to bottom button": "Conversation",
+		"keep newest streamed text in view": "Conversation",
 	},
 };
 

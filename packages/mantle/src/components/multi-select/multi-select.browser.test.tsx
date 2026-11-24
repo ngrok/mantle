@@ -639,7 +639,7 @@ describe("MultiSelect.Item label slot (browser)", () => {
 		expect(screen.getByTestId("row").parentElement).toBe(label);
 	});
 
-	test("with a footer, the list cues only its top edge", async () => {
+	test("with a footer, the listbox scrolls above it and the footer stays in view", async () => {
 		const style = document.createElement("style");
 		style.textContent = await commands.tailwindCss("./multi-select.tsx");
 		document.head.append(style);
@@ -657,16 +657,23 @@ describe("MultiSelect.Item label slot (browser)", () => {
 								Fruit {index}
 							</MultiSelect.Item>
 						))}
-						<MultiSelect.ContentFooter>Footer</MultiSelect.ContentFooter>
+						<MultiSelect.ContentFooter>
+							<button type="button">Upgrade</button>
+						</MultiSelect.ContentFooter>
 					</MultiSelect.Content>
 				</MultiSelect.Root>,
 			);
 			await user.click(screen.getByRole("combobox", { name: "Fruits" }));
 			const list = await screen.findByRole("listbox");
 			await waitFor(() => expect(list).toHaveAttribute("data-overflow-bottom"));
-			// Why: the sticky footer sits on the bottom edge, so a cue there would cover it.
-			expect(getComputedStyle(list, "::after").display).toBe("none");
-			expect(getComputedStyle(list, "::before").display).toBe("block");
+			const box = list.parentElement;
+			const footer = screen.getByRole("button", { name: "Upgrade" });
+			expect(box).not.toBeNull();
+			const boxRect = box?.getBoundingClientRect();
+			expect(footer.getBoundingClientRect().top).toBeGreaterThanOrEqual(
+				list.getBoundingClientRect().bottom - 1,
+			);
+			expect(footer.getBoundingClientRect().bottom).toBeLessThanOrEqual((boxRect?.bottom ?? 0) + 1);
 		} finally {
 			style.remove();
 		}
@@ -699,5 +706,30 @@ describe("MultiSelect.Item label slot (browser)", () => {
 		} finally {
 			style.remove();
 		}
+	});
+	test("a Tab into the input opens the list; focus from script does not", async () => {
+		render(
+			<>
+				<button type="button">Before</button>
+				<MultiSelect.Root>
+					<MultiSelect.Trigger>
+						<MultiSelect.Input aria-label="Fruits" />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+					</MultiSelect.Content>
+				</MultiSelect.Root>
+			</>,
+		);
+		const input = screen.getByRole("combobox", { name: "Fruits" });
+		input.focus();
+		expect(input).toHaveAttribute("aria-expanded", "false");
+		screen.getByRole("button", { name: "Before" }).focus();
+
+		await browserUser.keyboard("{Tab}");
+
+		expect(input).toHaveFocus();
+		expect(input).toHaveAttribute("aria-expanded", "true");
+		expect(screen.getByRole("option", { name: "Apple" })).toBeInTheDocument();
 	});
 });

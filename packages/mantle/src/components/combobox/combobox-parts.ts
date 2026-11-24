@@ -7,6 +7,7 @@ export {
 	//,
 	Root,
 	Content,
+	ContentFooter,
 	Group,
 	GroupLabel,
 	Input,

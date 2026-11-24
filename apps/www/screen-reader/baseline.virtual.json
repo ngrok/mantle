@@ -571,6 +571,47 @@
       ]
     },
     {
+      "id": "combobox-footer",
+      "component": "Combobox",
+      "path": "components/forms/combobox/with-a-footer",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "combobox, Release, has popup listbox, not expanded, autocomplete in list, not invalid",
+            "focus: combobox \"Release\" collapsed popup listbox"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press ArrowDown",
+          "spoken": ["focus: option \"v1.4.0\" selected"],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "switch, Show all releases, on, not checked, not invalid, not read only",
+            "focus: switch \"Show all releases\" not checked"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": ["button, Load more, not disabled", "focus: button \"Load more\""],
+          "failed": []
+        },
+        {
+          "label": "press Escape",
+          "spoken": [
+            "combobox, Release, has popup listbox, not expanded, autocomplete in list, not invalid",
+            "focus: combobox \"Release\" collapsed popup listbox"
+          ],
+          "failed": []
+        }
+      ]
+    },
+    {
       "id": "multi-select",
       "component": "MultiSelect",
       "path": "components/forms/multi-select/overview",
