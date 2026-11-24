@@ -13,6 +13,16 @@ async function* chunksOf(
 	// Why the reader first: Safari's `ReadableStream` is not async iterable.
 	if (!("getReader" in source)) {
 		const iterator = source[Symbol.asyncIterator]();
+		// Why a race: `return()` does not settle a pending `next()`, so the read must also end on abort.
+		const aborted = new Promise<IteratorResult<string>>((resolve) => {
+			signal.addEventListener("abort", () => resolve({ done: true, value: undefined }), {
+				once: true,
+			});
+			if (signal.aborted) {
+				resolve({ done: true, value: undefined });
+			}
+		});
+		const next = () => Promise.race([iterator.next(), aborted]);
 		let stopped = false;
 		const stop = () => {
 			if (!stopped) {
@@ -25,7 +35,7 @@ async function* chunksOf(
 			stop();
 		}
 		try {
-			for (let result = await iterator.next(); !result.done; result = await iterator.next()) {
+			for (let result = await next(); !result.done; result = await next()) {
 				yield result.value;
 			}
 		} finally {

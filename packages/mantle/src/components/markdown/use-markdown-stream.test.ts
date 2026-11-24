@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, test, vi } from "vitest";
+import { readWithRetries } from "./read-stream.js";
 import { useMarkdownStream } from "./use-markdown-stream.js";
 
 /** An async stream of `chunks` that throws after the last one when `fail` is set. */
@@ -96,6 +97,21 @@ describe("useMarkdownStream", () => {
 		await waitFor(() => expect(end).toHaveBeenCalledTimes(1));
 	});
 
+	test("ends a read on abort while the next value is still pending", async () => {
+		const controller = new AbortController();
+		const next = vi.fn<() => Promise<IteratorResult<string>>>(() => new Promise(() => {}));
+		const read = readWithRetries({
+			open: () => ({ [Symbol.asyncIterator]: () => ({ next }) }),
+			offset: () => 0,
+			canRetry: () => false,
+			signal: controller.signal,
+			onChunk: () => {},
+		});
+		await waitFor(() => expect(next).toHaveBeenCalledTimes(1));
+		controller.abort();
+		await expect(read).resolves.toBeUndefined();
+	});
+
 	test("opens no stream again after it turns off during the wait before a retry", async () => {
 		vi.useFakeTimers();
 		let reads = 0;
@@ -148,7 +164,7 @@ describe("useMarkdownStream", () => {
 		expect(result.current.status).toBe("streaming");
 		await act(async () => {
 			// Why the ticks: the async generator yields its chunk a few microtasks after it opens.
-			for (let tick = 0; tick < 5; tick += 1) {
+			for (let tick = 0; tick < 10; tick += 1) {
 				await Promise.resolve();
 			}
 			vi.advanceTimersToNextFrame();

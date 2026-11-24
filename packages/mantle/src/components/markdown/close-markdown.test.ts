@@ -75,6 +75,10 @@ describe("closeMarkdown", () => {
 		["> ```\n> a\noutside [b", "> ```\n> a\noutside b"],
 		["**bold\n", "**bold**\n"],
 		["- [x", ""],
+		["```js\nconsole.log(1);\n``", "```js\nconsole.log(1);\n"],
+		["1. Install\n\n2", "1. Install\n\n"],
+		["- > ```js\n  > const values = [1", "- > ```js\n  > const values = [1"],
+		["| Name | Value |\n--", "| Name | Value |\n| -- | --- |"],
 	])("%j → %j", (text, expected) => {
 		expect(close(text)).toBe(expected);
 	});
@@ -99,6 +103,7 @@ describe("closeMarkdown", () => {
 		expect(closeMarkdown("$$\nx^2", { math: true })).toBe("$$\nx^2\n$$");
 		expect(closeMarkdown("$$\nx^2", { math: false })).toBe("$$\nx^2");
 		expect(closeMarkdown("> $$\n> x^2", { math: true })).toBe("> $$\n> x^2\n> $$");
+		expect(closeMarkdown("$$\nx^2\n$", { math: true })).toBe("$$\nx^2\n$$");
 	});
 
 	test("no prefix of an answer shows a marker or a block that the whole answer does not", () => {
