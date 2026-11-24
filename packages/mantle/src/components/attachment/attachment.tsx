@@ -3,6 +3,7 @@
 import { FileTextIcon } from "@phosphor-icons/react/FileText";
 import { XIcon } from "@phosphor-icons/react/X";
 import type { ComponentProps } from "react";
+import { cloneElement, isValidElement } from "react";
 import type { WithAsChild } from "../../types/as-child.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -230,10 +231,16 @@ type AttachmentNameProps = Omit<ComponentProps<"span">, "translate"> & WithAsChi
 function Name({
 	"data-slot": dataSlot,
 	asChild = false,
+	children,
 	className,
 	...props
 }: AttachmentNameProps) {
 	const Component = asChild ? Slot : "span";
+	// Why: Slot gives child props precedence, so the filename's lock must also reach the child.
+	const content =
+		asChild && isValidElement<ComponentProps<"span">>(children)
+			? cloneElement(children, { translate: "no" })
+			: children;
 
 	return (
 		<Component
@@ -241,7 +248,9 @@ function Name({
 			className={cx("text-strong max-w-48 truncate text-xs", className)}
 			{...props}
 			translate="no"
-		/>
+		>
+			{content}
+		</Component>
 	);
 }
 

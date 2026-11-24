@@ -312,7 +312,8 @@ function PromptInputTextArea({
  */
 function hasTouchKeyboard(field: HTMLTextAreaElement): boolean {
 	return (
-		field.ownerDocument.defaultView?.matchMedia("(hover: none) and (pointer: coarse)").matches ===
+		// Why `matchMedia?.`: jsdom has no matchMedia, and a consumer's tests press Enter there.
+		field.ownerDocument.defaultView?.matchMedia?.("(hover: none) and (pointer: coarse)").matches ===
 		true
 	);
 }
