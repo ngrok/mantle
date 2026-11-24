@@ -396,6 +396,32 @@ describe("CodeBlock", () => {
 			});
 		});
 
+		test("shares one live region across code blocks", async () => {
+			const user = userEvent.setup();
+
+			render(
+				<>
+					{["a", "b", "c"].map((code) => (
+						<CodeBlock.Root key={code}>
+							<CodeBlock.Body>
+								<CodeBlock.CopyButton />
+								<CodeBlock.Code value={makeValue(code)} />
+							</CodeBlock.Body>
+						</CodeBlock.Root>
+					))}
+				</>,
+			);
+
+			// Why: an answer with many fences must not hold a polite region for each.
+			const [status, ...rest] = screen.getAllByRole("status");
+			expect(rest).toHaveLength(0);
+
+			await user.click(screen.getAllByRole("button", { name: /copy code/i }).at(-1) as HTMLElement);
+			await vi.waitFor(() => {
+				expect(status).toHaveTextContent("Copied");
+			});
+		});
+
 		test("announces again when a second copy lands inside the reset window", async () => {
 			const user = userEvent.setup();
 

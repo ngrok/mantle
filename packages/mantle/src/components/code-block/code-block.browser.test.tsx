@@ -71,7 +71,7 @@ describe("CodeBlock (browser)", () => {
 			expect(clipboardText).toBe(expectedPlainText);
 		});
 
-		test("CopyButton swaps to check icon after clicking", async () => {
+		test("CopyButton marks itself copied after clicking", async () => {
 			const user = userEvent.setup();
 
 			render(
@@ -84,15 +84,11 @@ describe("CodeBlock (browser)", () => {
 			);
 
 			const button = screen.getByRole("button", { name: /copy code/i });
-			const iconBefore = button.querySelector(
-				"[data-slot='icon-swap-item']:not([aria-hidden]) > svg",
-			)?.innerHTML;
+			expect(button).not.toHaveAttribute("data-copied");
 			await user.click(button);
-			const iconAfter = button.querySelector(
-				"[data-slot='icon-swap-item']:not([aria-hidden]) > svg",
-			)?.innerHTML;
 
-			expect(iconAfter).not.toBe(iconBefore);
+			// Why the attribute: CSS swaps the two paths of the one icon on it.
+			expect(button).toHaveAttribute("data-copied");
 		});
 	});
 

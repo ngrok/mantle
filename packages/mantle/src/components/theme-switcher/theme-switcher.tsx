@@ -19,6 +19,7 @@ import { useForcedTheme, useSetTheme, useTheme } from "../theme/theme-provider.j
 import type { Theme } from "../theme/themes.js";
 import { getToggledTheme, isTheme } from "../theme/themes.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
+import { mountSharedStatus, sharedStatus } from "../../utils/shared-status.js";
 
 /**
  * The transition each icon of `AppliedThemeIcon` runs when the theme changes.
@@ -342,55 +343,6 @@ const nameSwitcher: RefCallback<HTMLButtonElement> = (button) => {
 	};
 };
 
-/** The live region of each container that holds a switcher, and how many switchers use it. */
-const themeStatuses = new WeakMap<Element, { element: HTMLSpanElement; users: number }>();
-
-/**
- * The element that holds a switcher's live region: the dialog around it, else
- * `<body>`. Why the dialog: a modal dialog makes the rest of the page inert,
- * and a screen reader does not hear a live region there.
- */
-const statusContainer = (button: Element) => button.closest("dialog") ?? button.ownerDocument.body;
-
-/**
- * A ref callback that keeps a live region in the switcher's container while a
- * switcher is mounted. Why on mount: a screen reader announces a change only
- * in a live region that existed before it.
- *
- * Why not in the switcher: the button's content is its name, and an element
- * next to the button could change a consumer's layout.
- */
-const mountThemeStatus: RefCallback<HTMLButtonElement> = (button) => {
-	if (button == null) {
-		return undefined;
-	}
-	const container = statusContainer(button);
-	let status = themeStatuses.get(container);
-	if (status == null) {
-		const element = button.ownerDocument.createElement("span");
-		element.setAttribute("role", "status");
-		element.setAttribute("aria-live", "polite");
-		element.className = "sr-only";
-		element.dataset.slot = "theme-switcher-status";
-		container.append(element);
-		status = { element, users: 0 };
-		themeStatuses.set(container, status);
-	}
-	status.users += 1;
-	const current = status;
-	return () => {
-		current.users -= 1;
-		// Why a microtask: React detaches and attaches a new ref when a consumer's
-		// ref changes, and the region must keep the text it holds.
-		queueMicrotask(() => {
-			if (current.users === 0 && themeStatuses.get(container) === current) {
-				current.element.remove();
-				themeStatuses.delete(container);
-			}
-		});
-	};
-};
-
 /**
  * Says the theme that a press shows, such as "Dark theme" or
  * "Light theme (system default)".
@@ -496,7 +448,7 @@ function ThemeSwitcher({
 		(button) => (ariaLabel == null ? nameSwitcher(button) : undefined),
 		[ariaLabel],
 	);
-	const composedRef = useComposedRefs(ref, defaultName, mountThemeStatus);
+	const composedRef = useComposedRefs(ref, defaultName, mountSharedStatus);
 	const disabled =
 		forcedTheme != null ||
 		parseBooleanish(disabledProp ?? isLoading) ||
@@ -530,7 +482,7 @@ function ThemeSwitcher({
 					// switcher holds no media query list between clicks.
 					const prefersDarkMode =
 						window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
-					const status = themeStatuses.get(statusContainer(event.currentTarget));
+					const status = sharedStatus(event.currentTarget);
 					setTheme(
 						(current) => {
 							const next = getToggledTheme({ theme: current, prefersDarkMode });
@@ -541,8 +493,8 @@ function ThemeSwitcher({
 							// provider can call it twice for one press, and a rewrite of the
 							// same text can be read twice.
 							const message = themeMessage(next, { prefersDarkMode });
-							if (status != null && status.element.textContent !== message) {
-								status.element.textContent = message;
+							if (status != null && status.textContent !== message) {
+								status.textContent = message;
 							}
 							return next;
 						},
