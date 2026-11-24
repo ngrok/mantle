@@ -784,6 +784,48 @@
       ]
     },
     {
+      "id": "checkbox-cards",
+      "component": "CheckboxGroup",
+      "path": "components/forms/checkbox/cards",
+      "steps": [
+        {
+          "label": "press Tab",
+          "spoken": [
+            "checkbox, Review site G2, Capterra, checked, not invalid",
+            "focus: checkbox \"Review site G2, Capterra\" checked (in group \"How did you find us?\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press Tab",
+          "spoken": [
+            "checkbox, AI agent Claude, ChatGPT, etc., not checked, not invalid",
+            "focus: checkbox \"AI agent Claude, ChatGPT, etc.\" not checked (in group \"How did you find us?\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "press  ",
+          "spoken": [
+            "focus: checkbox \"AI agent Claude, ChatGPT, etc.\" checked (in group \"How did you find us?\")"
+          ],
+          "failed": []
+        },
+        {
+          "label": "reader next",
+          "spoken": [
+            "checkbox, Friend or colleague Someone you work with, not checked, not invalid"
+          ],
+          "failed": []
+        },
+        {
+          "label": "reader next",
+          "spoken": ["checkbox, Search engine Google, Bing, etc., not checked, not invalid"],
+          "failed": []
+        }
+      ]
+    },
+    {
       "id": "segmented-control",
       "component": "SegmentedControl",
       "path": "components/forms/segmented-control/overview",

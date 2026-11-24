@@ -353,6 +353,12 @@ describe("no-structural-combinator", () => {
 		'cx("first:*:p-2 not-last:[&>td]:p-2 in-[tr:last-child]:p-2 group-not-first:p-2");',
 		'cx("first:group-[.x]:*:p-2 not-[:first-child]:*:p-2");',
 		'cx("[&>tr:last-child]:[&>*]:border-b");',
+		// The OtpInput overlay rule that #1825 removed, and the Table divider rule.
+		'cx("[&+*]:ml-2");',
+		'cx("md:[&~*]:hidden");',
+		'cx("[&+:not(.x)]:ml-2");',
+		'cx("[&>tr+tr>*]:border-t");',
+		'cx("[&+tr]:[&>*]:p-2");',
 	])("flags %s", (source) => {
 		expect(
 			lint({ rule: "no-structural-combinator", fileName: "a.ts", source }).length,
@@ -360,7 +366,8 @@ describe("no-structural-combinator", () => {
 	});
 
 	it.each([
-		'cx("[&>tr:not(:has(+tr))>*]:border-b [&>tr+tr>*]:border-t");',
+		'cx("[&>tr:not(:has(+tr))>*]:border-b [&>tr+tr>td]:border-t [&+[data-slot=x]]:ml-2");',
+		'cx("[&>*]:p-2 [&_*]:p-2 [&[data-open]>*]:p-2 [&+:is(.a)]:p-2");',
 		'cx("[&>*:last-child]:rounded-l-none [&>*:not(:first-child)]:-ml-px last:border-0");',
 		'cx("has-[>button:last-child]:pe-1 [&:has(>a:first-child_b)]:p-2");',
 		'document.querySelector("tr:last-child > td");',
@@ -378,6 +385,8 @@ describe("no-unanchored-child-variant", () => {
 		'const a = "data-state-inactive:*:paused";',
 		'cx("not-has-data-[slot=x]:[&_[data-a],&_[data-b]]:top-1/2");',
 		`cx("[&_[data-label='(']]:*:p-2");`,
+		'cx("space-y-px");',
+		'cx("sm:space-x-2 divide-y divide-separator");',
 	])("flags %s", (source) => {
 		expect(
 			lint({ rule: "no-unanchored-child-variant", fileName: "a.ts", source }).length,
@@ -389,6 +398,8 @@ describe("no-unanchored-child-variant", () => {
 		'cx("data-state-inactive:[&>*]:paused [&>:first-child]:size-7");',
 		'cx("[&:is([data-a],[data-b])]:p-2 has-[[data-a],[data-b]]:p-2");',
 		'const a = "2 * 3: four";',
+		'cx("between:mbe-px sm:between:me-2 between:border-b between:border-separator");',
+		'const a = "space-between divide";',
 		'cx("[&_.foo\\\\,bar]:p-2");',
 	])("allows %s", (source) => {
 		expect(lint({ rule: "no-unanchored-child-variant", fileName: "a.ts", source })).toEqual([]);
@@ -456,5 +467,43 @@ describe("prop-vocabulary", () => {
 		"type PickerContextValue = { setOpen: (open: boolean) => void };",
 	])("allows %s", (source) => {
 		expect(lint({ rule: "prop-vocabulary", fileName: "a.ts", source })).toEqual([]);
+	});
+});
+
+describe("require-force-reason", () => {
+	it("flags a force press with no reason in its paragraph", () => {
+		const source = [
+			"// Why force: the radio covers its text.",
+			"await user.click(a, { force: true });",
+			"",
+			"await user.click(b, { force: true });",
+			"",
+			"// Why wait: the menu animates.",
+			"await user.click(c, { force: true }); // see http://x/Why force",
+			"",
+		].join("\n");
+
+		expect(lint({ rule: "require-force-reason", fileName: "a.test.ts", source })).toEqual([
+			"require-force-reason",
+			"require-force-reason",
+		]);
+	});
+
+	it("allows a reason above the call, beside it, or inside it, and a force outside a pointer action", () => {
+		const source = [
+			"// Why force: the radio covers its text.",
+			"await user.click(a, { force: true });",
+			"await user.click(b, { force: true });",
+			"",
+			"await user.click(c, {",
+			"\tforce: true, // Why force: the row covers it.",
+			"});",
+			"",
+			"const options = { force: true };",
+			'fs.rmSync("dir", { recursive: true, force: true });',
+			"",
+		].join("\n");
+
+		expect(lint({ rule: "require-force-reason", fileName: "a.test.ts", source })).toEqual([]);
 	});
 });

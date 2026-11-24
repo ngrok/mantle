@@ -7,9 +7,11 @@
 import * as RadioGroupParts from "./radio-group-parts.js";
 
 /**
- * A group of radio items. It manages the state of the children radios.
+ * A group of radio items, shown as radios, a list, or cards. It manages the state of the
+ * children radios.
  *
- * @useWhen Pick exactly one value from a few fixed options, with every option visible at once.
+ * @useWhen Pick exactly one value from a few fixed options, with every option visible at once, such
+ * as a single choice between selectable cards.
  *
  * @siblings
  * - `Select`: the set is long, or the form has little space.

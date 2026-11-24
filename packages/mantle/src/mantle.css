@@ -1364,6 +1364,12 @@ MARK: CUSTOM VARIANTS
 @custom-variant aria-unchecked (&[aria-checked="false"]);
 
 @custom-variant where (:where(&));
+/*
+ * Each child of the element except the last, at zero specificity, as Tailwind's
+ * `space-*` and `divide-*` match. Why not those: they put the class inside
+ * `:where()`, so Chromium tries the rule on each element of the page.
+ */
+@custom-variant between (:where(&) > :where(:not(:last-child)));
 
 @custom-variant hover-hover {
 	@media (hover: hover) {
@@ -1415,15 +1421,14 @@ MARK: CUSTOM VARIANTS
 	}
 
 	/*
-	 * The native radio of a `RadioGroup` or `SegmentedControl` item covers the
-	 * item, over its content. The controls in the content sit over the radio, so
-	 * they keep their own clicks. Why the base layer and `:where()`: a position
-	 * or z-index utility on the control wins. The list matches
-	 * `CONTENT_CONTROL_SELECTOR` in `radio-group/primitive.tsx`, but for
-	 * `label`: a title label would cover the radio, and a click on it checks
-	 * the radio anyway.
+	 * The controls in a `RadioGroup`, `SegmentedControl`, or `CheckboxGroup`
+	 * item sit over the native input that covers the item, so they keep their
+	 * own clicks. The list matches `CONTENT_CONTROL_SELECTOR` in
+	 * `utils/interactive-target.ts`, but for `label`, which toggles the input.
+	 *
+	 * Why the base layer and `:where()`: a position or z-index utility on the control wins.
 	 */
-	:where(.radio-item-content)
+	:where(.covered-item-content)
 		:where(
 			a[href],
 			button,
@@ -2137,21 +2142,62 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
  * `:where()`: the scope adds no specificity, so each rule weighs one element.
  */
 @layer components {
-	:where([data-slot~="markdown"]) > * + * {
+	/*
+	 * Why one selector for each tag: a subject with no tag, such as `*`, makes
+	 * Chromium try the rule on each element of the page. These are the blocks
+	 * that `Markdown` renders at the top level.
+	 */
+	:where([data-slot~="markdown"]) > p:where(:not(:first-child)),
+	:where([data-slot~="markdown"]) > h1:where(:not(:first-child)),
+	:where([data-slot~="markdown"]) > h2:where(:not(:first-child)),
+	:where([data-slot~="markdown"]) > h3:where(:not(:first-child)),
+	:where([data-slot~="markdown"]) > h4:where(:not(:first-child)),
+	:where([data-slot~="markdown"]) > h5:where(:not(:first-child)),
+	:where([data-slot~="markdown"]) > h6:where(:not(:first-child)),
+	:where([data-slot~="markdown"]) > ul:where(:not(:first-child)),
+	:where([data-slot~="markdown"]) > ol:where(:not(:first-child)),
+	:where([data-slot~="markdown"]) > blockquote:where(:not(:first-child)),
+	:where([data-slot~="markdown"]) > hr:where(:not(:first-child)),
+	:where([data-slot~="markdown"]) > pre:where(:not(:first-child)),
+	:where([data-slot~="markdown"]) > div:where(:not(:first-child)),
+	:where([data-slot~="markdown"]) > code:where(:not(:first-child)) {
 		margin-block-start: 1em;
 	}
 
-	:where([data-slot~="markdown"]) :is(h1, h2, h3, h4, h5, h6) {
+	:where([data-slot~="markdown"]) h1,
+	:where([data-slot~="markdown"]) h2,
+	:where([data-slot~="markdown"]) h3,
+	:where([data-slot~="markdown"]) h4,
+	:where([data-slot~="markdown"]) h5,
+	:where([data-slot~="markdown"]) h6 {
 		color: var(--text-color-strong);
 		font-family: var(--font-heading);
 		text-wrap: balance;
 	}
 
-	:where([data-slot~="markdown"]) * + :is(h1, h2, h3, h4, h5, h6) {
+	:where([data-slot~="markdown"]) * + h1,
+	:where([data-slot~="markdown"]) * + h2,
+	:where([data-slot~="markdown"]) * + h3,
+	:where([data-slot~="markdown"]) * + h4,
+	:where([data-slot~="markdown"]) * + h5,
+	:where([data-slot~="markdown"]) * + h6 {
 		margin-block-start: 1.5em;
 	}
 
-	:where([data-slot~="markdown"]) :is(h1, h2, h3, h4, h5, h6) + * {
+	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + p,
+	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + h1,
+	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + h2,
+	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + h3,
+	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + h4,
+	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + h5,
+	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + h6,
+	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + ul,
+	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + ol,
+	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + blockquote,
+	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + hr,
+	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + pre,
+	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + div,
+	:where([data-slot~="markdown"]) :where(h1, h2, h3, h4, h5, h6) + code {
 		margin-block-start: 0.5em;
 	}
 
@@ -2173,13 +2219,16 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 		font-weight: var(--text-heading-lg--font-weight);
 	}
 
-	:where([data-slot~="markdown"]) :is(h4, h5, h6) {
+	:where([data-slot~="markdown"]) h4,
+	:where([data-slot~="markdown"]) h5,
+	:where([data-slot~="markdown"]) h6 {
 		font-size: var(--text-heading-base);
 		line-height: var(--text-heading-base--line-height);
 		font-weight: var(--text-heading-base--font-weight);
 	}
 
-	:where([data-slot~="markdown"]) :is(strong, b) {
+	:where([data-slot~="markdown"]) strong,
+	:where([data-slot~="markdown"]) b {
 		color: var(--text-color-strong);
 		font-weight: 600;
 	}
@@ -2251,13 +2300,25 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 	}
 
 	/* The caret at the end of the streamed text: after the last paragraph, heading, or list item. */
+	:where([data-slot~="markdown"][data-streaming]) > p:not(:has(+ *))::after,
+	:where([data-slot~="markdown"][data-streaming]) > h1:not(:has(+ *))::after,
+	:where([data-slot~="markdown"][data-streaming]) > h2:not(:has(+ *))::after,
+	:where([data-slot~="markdown"][data-streaming]) > h3:not(:has(+ *))::after,
+	:where([data-slot~="markdown"][data-streaming]) > h4:not(:has(+ *))::after,
+	:where([data-slot~="markdown"][data-streaming]) > h5:not(:has(+ *))::after,
+	:where([data-slot~="markdown"][data-streaming]) > h6:not(:has(+ *))::after,
 	:where([data-slot~="markdown"][data-streaming])
-		> :not(:has(+ *)):is(p, h1, h2, h3, h4, h5, h6)::after,
-	:where([data-slot~="markdown"][data-streaming])
-		> :not(:has(+ *)):is(ul, ol)
+		> ul:not(:has(+ *))
 		> li:not(:has(+ *)):not(:has(> p, > ul, > ol))::after,
 	:where([data-slot~="markdown"][data-streaming])
-		> :not(:has(+ *)):is(ul, ol)
+		> ol:not(:has(+ *))
+		> li:not(:has(+ *)):not(:has(> p, > ul, > ol))::after,
+	:where([data-slot~="markdown"][data-streaming])
+		> ul:not(:has(+ *))
+		> li:not(:has(+ *))
+		> p:not(:has(+ *))::after,
+	:where([data-slot~="markdown"][data-streaming])
+		> ol:not(:has(+ *))
 		> li:not(:has(+ *))
 		> p:not(:has(+ *))::after,
 	:where([data-slot~="markdown"][data-streaming])
@@ -2275,7 +2336,20 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 
 	@media (prefers-reduced-motion: no-preference) {
 		/* A block fades in when it starts to stream. `ease-out-strong` is cubic-bezier(0.23, 1, 0.32, 1). */
-		:where([data-slot~="markdown"][data-streamed]) > * {
+		:where([data-slot~="markdown"][data-streamed]) > p,
+		:where([data-slot~="markdown"][data-streamed]) > h1,
+		:where([data-slot~="markdown"][data-streamed]) > h2,
+		:where([data-slot~="markdown"][data-streamed]) > h3,
+		:where([data-slot~="markdown"][data-streamed]) > h4,
+		:where([data-slot~="markdown"][data-streamed]) > h5,
+		:where([data-slot~="markdown"][data-streamed]) > h6,
+		:where([data-slot~="markdown"][data-streamed]) > ul,
+		:where([data-slot~="markdown"][data-streamed]) > ol,
+		:where([data-slot~="markdown"][data-streamed]) > blockquote,
+		:where([data-slot~="markdown"][data-streamed]) > hr,
+		:where([data-slot~="markdown"][data-streamed]) > pre,
+		:where([data-slot~="markdown"][data-streamed]) > div,
+		:where([data-slot~="markdown"][data-streamed]) > code {
 			transition: opacity 200ms cubic-bezier(0.23, 1, 0.32, 1);
 
 			@starting-style {
@@ -2336,8 +2410,9 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
  *
  * It is a page transition, so it runs for 300ms, on ease-out-strong. The frame
  * clips its snapshots at the card's radius. Each snapshot keeps its own width
- * at the frame's top-start corner: a 24rem panel stretched across the page
- * reads as a zoom of blurred text. Reduced motion makes it a cut.
+ * at the frame's end edge: a 24rem panel stretched across the page reads as a
+ * zoom of blurred text, and the panel keeps its edge while the page grows out
+ * of it. Reduced motion makes it a cut.
  */
 ::view-transition-group(*.app-layout-card),
 ::view-transition-old(*.app-layout-card),
@@ -2347,21 +2422,113 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 	animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
+/*
+ * The frame draws the card's edge, and its snapshots sit 1px out under it, so
+ * each snapshot's own border is under the frame's.
+ */
 ::view-transition-group(*.app-layout-card) {
+	box-sizing: border-box;
 	overflow: clip;
+	border: 1px solid var(--border-color-card-muted);
 	border-radius: var(--radius-xl, 0.75rem);
 }
 
 ::view-transition-old(*.app-layout-card),
 ::view-transition-new(*.app-layout-card) {
 	width: auto;
+	inset-block-start: -1px;
+	inset-inline-start: auto;
+	inset-inline-end: -1px;
 }
 
+/*
+ * When the page and the panel pair, the new snapshot is the card: an outline
+ * in the card's surface color fills the frame around it and covers its own
+ * border, and it stays opaque, so nothing behind shows through while the frame
+ * moves. The old snapshot sits on top without its border and fades out in
+ * 150ms, so two layouts of the same text do not show through each other.
+ *
+ * A card that enters or leaves alone is an only child, and it only fades, so
+ * no empty card stays behind. Why not `:not(:only-child)` on the paired rules:
+ * a view transition pseudo-element takes no `:not()`, and the browser drops
+ * the whole rule.
+ */
+@media (prefers-reduced-motion: no-preference) {
+	::view-transition-new(*.app-layout-card) {
+		border-radius: var(--radius-xl, 0.75rem);
+		outline: 100vmax solid var(--background-color-card);
+		outline-offset: -1px;
+		mix-blend-mode: normal;
+		animation: none;
+	}
+
+	::view-transition-old(*.app-layout-card) {
+		z-index: 1;
+		clip-path: inset(1px round calc(var(--radius-xl, 0.75rem) - 1px));
+		mix-blend-mode: normal;
+		animation: mantle-app-layout-card-fade-out 150ms cubic-bezier(0.23, 1, 0.32, 1) both;
+	}
+
+	::view-transition-new(*.app-layout-card):only-child {
+		outline: none;
+		animation: mantle-app-layout-card-fade-in 300ms cubic-bezier(0.23, 1, 0.32, 1) both;
+	}
+
+	::view-transition-old(*.app-layout-card):only-child {
+		clip-path: none;
+		animation-duration: 300ms;
+	}
+}
+
+@keyframes mantle-app-layout-card-fade-in {
+	from {
+		opacity: 0;
+	}
+}
+
+@keyframes mantle-app-layout-card-fade-out {
+	to {
+		opacity: 0;
+	}
+}
+
+/*
+ * A docked panel keeps its end gutter inside its box, so its snapshot would be
+ * wider than its card and the morph would show two end edges. While the panel
+ * takes part in a view transition, the gutter moves to the box's margin and
+ * the card fills the box. The card renders in the same place, and the snapshot
+ * is the card. Why `max-width`: a change to `flex-basis` would run the panel's
+ * slide. Why not in a theme swap: the panel does not take part, and a panel
+ * that is still sliding open would lose its gutter's width to the margin.
+ * Why not the panel's inline name: React clears it once the transition is
+ * ready, and the live new snapshot would grow back to the gutter.
+ */
+:root:active-view-transition:not([data-theme-transition])
+	[data-slot~="app-layout-side-panel"][data-open] {
+	max-width: var(--_side-panel-content-width);
+	margin-right: var(--_side-panel-content-inset);
+}
+
+:root:active-view-transition:not([data-theme-transition])
+	[data-slot~="app-layout-side-panel"][data-open]
+	> div {
+	right: 0;
+}
+
+/*
+ * Reduced motion is a cut. The old snapshot hides at once: another animation
+ * on the page can keep the transition running, and a still snapshot would
+ * show over the new one until it ends.
+ */
 @media (prefers-reduced-motion: reduce) {
 	::view-transition-group(*.app-layout-card),
 	::view-transition-old(*.app-layout-card),
 	::view-transition-new(*.app-layout-card) {
 		animation: none;
+	}
+
+	::view-transition-old(*.app-layout-card) {
+		opacity: 0;
 	}
 }
 
@@ -2373,6 +2540,7 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
  * swap does not use it on other pages. The icon of the switcher and each
  * `ThemeSwitcherIcon` keep their own swap.
  */
+/* structural-selector-ok: the rule must reach each element, and only a page with many transitions sets the attribute. */
 :root[data-theme-transition-many]
 	:not([data-slot~="theme-switcher"] *, [data-slot~="theme-switcher-icon"] *),
 :root[data-theme-transition-many]

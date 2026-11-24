@@ -44,7 +44,7 @@
     "@tailwindcss/oxide": "catalog:",
     "@types/node": "catalog:",
     "husky": "9.1.7",
-    "lint-staged": "17.6.1",
+    "lint-staged": "17.6.2",
     "oxc-parser": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "1.94.0",
@@ -57,5 +57,5 @@
   "engines": {
     "node": "^26.0.0"
   },
-  "packageManager": "pnpm@12.21.0"
+  "packageManager": "pnpm@12.23.0"
 }

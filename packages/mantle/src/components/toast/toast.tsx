@@ -315,8 +315,9 @@ type ToastProps = ComponentProps<"div"> & {
 } & WithDataSlot;
 
 /**
- * A succinct message with an intent that appears temporarily. The intent
- * is the tone or status that the toast's color communicates.
+ * A brief message with an intent that shows the result of an action, then
+ * goes away on its own. The intent is the tone or status that the toast's
+ * color communicates.
  * Toasts give the user feedback without interrupting their workflow.
  *
  * **Structure.** `children` render inside a

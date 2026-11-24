@@ -103,7 +103,8 @@
     "aliases": [
       "ai search",
       "natural language filter",
-      "plain language search"
+      "plain language search",
+      "type a question to filter"
     ],
     "parts": [
       "Query",

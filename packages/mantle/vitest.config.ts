@@ -4,6 +4,7 @@ import path from "node:path";
 import { compile } from "@tailwindcss/node";
 import { Scanner } from "@tailwindcss/oxide";
 import { playwright, type PlaywrightProviderOptions } from "@vitest/browser-playwright";
+import type { CDPSession } from "playwright";
 import { configDefaults, defineConfig } from "vitest/config";
 import type { BrowserCommand } from "vitest/node";
 
@@ -59,20 +60,37 @@ type EmulatedMedia = {
 	colorScheme?: "light" | "dark";
 	reducedMotion?: "reduce" | "no-preference";
 	forcedColors?: "active" | "none";
+	/** Chromium only. `"none"` turns on touch emulation, which also sets `pointer: coarse`. */
+	hover?: "hover" | "none";
 };
 
 // Why a command: a media feature such as `prefers-reduced-motion` is a Playwright
 // page emulation, and no script inside the test iframe can set it.
 // Why wait on the frame: Firefox applies the emulation to the test iframe after
 // `emulateMedia` resolves, so a test that renders at once still reads the old value.
+// Why touch emulation for `hover`: Playwright's `emulateMedia` has no hover feature,
+// and Chromium ignores `hover` in `Emulation.setEmulatedMedia`. Why one session for
+// each page: the emulation belongs to the session that turned it on.
+const touchSessions = new WeakMap<object, CDPSession>();
 const emulateMedia: BrowserCommand<[options: EmulatedMedia]> = async (context, options) => {
-	await context.page.emulateMedia(options);
+	const { hover, ...playwrightOptions } = options;
+	await context.page.emulateMedia(playwrightOptions);
+	const frame = await context.frame();
+	if (hover != null) {
+		const session =
+			touchSessions.get(context.page) ?? (await context.page.context().newCDPSession(context.page));
+		touchSessions.set(context.page, session);
+		await session.send("Emulation.setTouchEmulationEnabled", {
+			enabled: hover === "none",
+			maxTouchPoints: 1,
+		});
+	}
 	const queries = Object.entries({
 		"prefers-color-scheme": options.colorScheme,
 		"prefers-reduced-motion": options.reducedMotion,
 		"forced-colors": options.forcedColors,
+		hover,
 	}).flatMap(([feature, value]) => (value == null ? [] : [`(${feature}: ${value})`]));
-	const frame = await context.frame();
 	await frame.waitForFunction((list) => list.every((query) => matchMedia(query).matches), queries);
 };
 
@@ -229,7 +247,11 @@ export default defineConfig({
 					name: "unit",
 					environment: "happy-dom",
 					include: ["**/*.test.{ts,tsx}"],
-					exclude: [...configDefaults.exclude, "**/*.browser.test.{ts,tsx}"],
+					exclude: [
+						...configDefaults.exclude,
+						"**/*.browser.test.{ts,tsx}",
+						"**/*.consumer.test.{ts,tsx}",
+					],
 					// Why: the theme and chart tests import the shipped stylesheets with `?raw`, and
 					// without this Vitest hands them an empty module.
 					css: true,
@@ -238,6 +260,17 @@ export default defineConfig({
 					// independent in the shared worker.
 					isolate: false,
 					setupFiles: ["./vitest.setup-file-reset.ts"],
+				},
+			},
+			{
+				plugins: compilerPlugins,
+				test: {
+					// Why a jsdom project with no shims: a consumer's suite runs mantle in plain jsdom, which
+					// has no popover API, no `showModal()`, no observers, and no `matchMedia`. The unit
+					// project's happy-dom shims hide each of those paths.
+					name: "consumer",
+					environment: "jsdom",
+					include: ["**/*.consumer.test.{ts,tsx}"],
 				},
 			},
 			{

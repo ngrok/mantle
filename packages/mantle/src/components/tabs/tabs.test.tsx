@@ -273,6 +273,28 @@ describe("Tabs", () => {
 			expect(scrollIntoView).toHaveBeenCalledTimes(2);
 		});
 
+		test("onKeyDown with preventDefault on the focused tab stops an arrow key", async () => {
+			const user = userEvent.setup();
+			const onValueChange = vi.fn<(value: string) => void>();
+			render(
+				<Tabs.Root defaultValue="a" onValueChange={onValueChange}>
+					<Tabs.List>
+						<Tabs.Trigger value="a" onKeyDown={(event) => event.preventDefault()}>
+							Tab A
+						</Tabs.Trigger>
+						<Tabs.Trigger value="b">Tab B</Tabs.Trigger>
+					</Tabs.List>
+				</Tabs.Root>,
+			);
+
+			await user.tab();
+			await user.keyboard("{ArrowRight}");
+
+			expect(screen.getByRole("tab", { name: "Tab A" })).toHaveFocus();
+			expect(screen.getByRole("tab", { name: "Tab A" })).toHaveAttribute("aria-selected", "true");
+			expect(onValueChange).not.toHaveBeenCalled();
+		});
+
 		test("an arrow key selects the next tab before focus reaches it", async () => {
 			const user = userEvent.setup();
 			const onValueChange = vi.fn<(value: string) => void>();

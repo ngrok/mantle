@@ -66,7 +66,8 @@ type BadgeProps = ComponentProps<"span"> &
  * | -------------- | --------------- | -------------------------------------------------------------------------------------------- |
  * | `data-slot`    | `"badge-label"` | On the `<span>` wrapping `children`. `display: contents`, so it changes no layout by itself. |
  *
- * @useWhen Label an item with a short status, a category tag, or a count.
+ * @useWhen Label an item with a short status or state (such as active, paused, or unknown), a
+ * category tag, or a count, shown as one or two words on a colored background.
  *
  * @siblings
  * - `Button`: the label must respond to a click.

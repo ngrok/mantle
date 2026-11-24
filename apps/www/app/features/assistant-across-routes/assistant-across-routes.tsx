@@ -1,5 +1,6 @@
 import { AppLayout, useSidePanel } from "@ngrok/mantle/app-layout";
 import { IconButton } from "@ngrok/mantle/button";
+import { cx } from "@ngrok/mantle/cx";
 import { Sidebar } from "@ngrok/mantle/sidebar";
 import { Tooltip } from "@ngrok/mantle/tooltip";
 import { PencilSimpleLineIcon } from "@phosphor-icons/react/PencilSimpleLine";
@@ -97,24 +98,30 @@ function AssistantContentCard({
 }
 
 /** The control that starts a new conversation, in both headers. */
-function NewConversationButton() {
+function NewConversationButton({ open = true }: { open?: boolean }) {
 	const { reset } = useAssistantConversation();
 
 	return (
-		<Tooltip.Root>
-			<Tooltip.Trigger asChild>
-				<IconButton
-					type="button"
-					appearance="ghost"
-					intent="neutral"
-					size="sm"
-					icon={<PencilSimpleLineIcon />}
-					label="New conversation"
-					onClick={reset}
-				/>
-			</Tooltip.Trigger>
-			<Tooltip.Content>New conversation</Tooltip.Content>
-		</Tooltip.Root>
+		<ViewTransition
+			name={open ? "assistant-new-conversation" : undefined}
+			default="none"
+			share="assistant-part"
+		>
+			<Tooltip.Root>
+				<Tooltip.Trigger asChild>
+					<IconButton
+						type="button"
+						appearance="ghost"
+						intent="neutral"
+						size="sm"
+						icon={<PencilSimpleLineIcon />}
+						label="New conversation"
+						onClick={reset}
+					/>
+				</Tooltip.Trigger>
+				<Tooltip.Content>New conversation</Tooltip.Content>
+			</Tooltip.Root>
+		</ViewTransition>
 	);
 }
 
@@ -143,7 +150,9 @@ function AssistantPage() {
 					<Sidebar.Trigger />
 				</AppLayout.HeaderStart>
 				<AppLayout.HeaderContent>
-					<h1 className="text-strong text-sm font-medium">Assistant</h1>
+					<ViewTransition name="assistant-title" default="none" share="assistant-part">
+						<h1 className="text-strong text-sm font-medium">Assistant</h1>
+					</ViewTransition>
 				</AppLayout.HeaderContent>
 				<AppLayout.HeaderActions>
 					<NewConversationButton />
@@ -155,7 +164,13 @@ function AssistantPage() {
 				<div className="flex min-h-full flex-col">
 					<AssistantTranscript onSend={openCompanion} />
 					<div className="bg-card sticky bottom-0 mt-auto shrink-0 px-3 pt-2 pb-3">
-						<AssistantComposer className="mx-auto w-full max-w-xl" onSend={openCompanion} />
+						<ViewTransition
+							name="assistant-composer"
+							default="none"
+							share="assistant-part assistant-composer"
+						>
+							<AssistantComposer className="mx-auto w-full max-w-xl" onSend={openCompanion} />
+						</ViewTransition>
 					</div>
 				</div>
 			</AppLayout.Body>
@@ -199,15 +214,34 @@ function AssistantPanel({
 		>
 			<AppLayout.SidePanel aria-label="Assistant" mobileBreakpoint={mobileBreakpoint}>
 				<AppLayout.SidePanelHeader>
-					<h2 className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</h2>
-					<NewConversationButton />
-					<AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
+					<ViewTransition
+						name={open ? "assistant-title" : undefined}
+						default="none"
+						share="assistant-part"
+					>
+						<h2 className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</h2>
+					</ViewTransition>
+					<NewConversationButton open={open} />
+					<AppLayout.SidePanelTrigger
+						icon={<XIcon />}
+						label="Close the assistant"
+						// Why a CSS name, not a boundary: React runs no exit or enter for a
+						// boundary inside one it shares, and this button has no pair in the page.
+						// `assistant-view-transition.css` gives the class its name.
+						className={cx(open && "assistant-close")}
+					/>
 				</AppLayout.SidePanelHeader>
 				<AppLayout.SidePanelBody>
 					<AssistantTranscript />
 				</AppLayout.SidePanelBody>
 				<AppLayout.SidePanelFooter>
-					<AssistantComposer />
+					<ViewTransition
+						name={open ? "assistant-composer" : undefined}
+						default="none"
+						share="assistant-part assistant-composer"
+					>
+						<AssistantComposer />
+					</ViewTransition>
 				</AppLayout.SidePanelFooter>
 			</AppLayout.SidePanel>
 		</ViewTransition>

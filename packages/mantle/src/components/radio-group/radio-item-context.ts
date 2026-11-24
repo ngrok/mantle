@@ -26,7 +26,8 @@ type RadioItemContextValue = {
 
 /**
  * Published by every radio item (`RadioGroup.Item`, `ListItem`, `Card`, and
- * `SegmentedControl.Item`). `null` outside a radio item.
+ * `SegmentedControl.Item`) and by `CheckboxGroup.Card`, whose checkbox id is
+ * `radioId`. `null` outside those items.
  */
 const RadioItemContext = createContext<RadioItemContextValue | null>(null);
 

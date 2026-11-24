@@ -13,11 +13,11 @@ export {
 } from "./toast.js";
 
 /**
- * A succinct message that appears temporarily. Toasts give the user feedback
- * without interrupting their workflow.
+ * A brief message that shows the result of an action, such as a save or a failed request, then
+ * goes away on its own. Toasts give the user feedback without interrupting their workflow.
  *
- * @useWhen Report the result of an action, such as a save or a copy, in a brief message that goes
- * away on its own.
+ * @useWhen Show the result of an action in a brief message that goes away on its own, such as a
+ * saved change, a copied value, or an error when a delete failed.
  *
  * @siblings
  * - `Alert`: the message stays in the page next to the content it describes.
