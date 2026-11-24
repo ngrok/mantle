@@ -19,7 +19,7 @@ import { useForcedTheme, useSetTheme, useTheme } from "../theme/theme-provider.j
 import type { Theme } from "../theme/themes.js";
 import { getToggledTheme, isTheme } from "../theme/themes.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
-import { mountSharedStatus, sharedStatus } from "../../utils/shared-status.js";
+import { announce, mountSharedStatus } from "../../utils/shared-status.js";
 
 /**
  * The transition each icon of `AppliedThemeIcon` runs when the theme changes.
@@ -482,7 +482,7 @@ function ThemeSwitcher({
 					// switcher holds no media query list between clicks.
 					const prefersDarkMode =
 						window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
-					const status = sharedStatus(event.currentTarget);
+					const button = event.currentTarget;
 					setTheme(
 						(current) => {
 							const next = getToggledTheme({ theme: current, prefersDarkMode });
@@ -493,9 +493,7 @@ function ThemeSwitcher({
 							// provider can call it twice for one press, and a rewrite of the
 							// same text can be read twice.
 							const message = themeMessage(next, { prefersDarkMode });
-							if (status != null && status.textContent !== message) {
-								status.textContent = message;
-							}
+							announce(button, message);
 							return next;
 						},
 						{ origin: event.currentTarget },

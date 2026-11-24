@@ -29,13 +29,12 @@ import type { TabsBehavior } from "../../behaviors/use-tabs.js";
 import { useCopyToClipboard } from "../../hooks/use-copy-to-clipboard.js";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { SelfClosingWithAsChild, WithAsChild } from "../../types/as-child.js";
-import { alternateAnnouncement } from "../../utils/alternate-announcement.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { clsx } from "../../utils/cx/clsx.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
-import { mountSharedStatus, sharedStatus } from "../../utils/shared-status.js";
+import { announce, mountSharedStatus } from "../../utils/shared-status.js";
 import { Icon as MantleIcon } from "../icon/icon.js";
 import type { SvgAttributes } from "../icon/types.js";
 import { TrafficPolicyFileIcon } from "../icons/traffic-policy-file.js";
@@ -792,9 +791,6 @@ const CopyButton = ({
 	const { copyTextRef } = useCodeBlockContext();
 	const copyToClipboard = useCopyToClipboard();
 	const [wasCopied, setWasCopied] = useState(false);
-	// Why: `alternateAnnouncement` makes a repeated "Copied" a real DOM change,
-	// so a second copy is announced again.
-	const announceToggle = useRef(false);
 	const composedRef = useComposedRefs(ref, mountSharedStatus);
 	const timeoutHandle = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
@@ -818,8 +814,7 @@ const CopyButton = ({
 				size="sm"
 				label={label}
 				// Why one svg with both paths, and not `IconSwap`: CSS swaps the paths on
-				// `data-copied`, so a copy button renders 3 components fewer. It made a
-				// 29-fence answer mount 17% faster at 4× CPU.
+				// `data-copied`, so a copy button renders 3 components fewer.
 				icon={
 					<svg viewBox="0 0 256 256" fill="currentColor">
 						<path
@@ -860,10 +855,7 @@ const CopyButton = ({
 						}
 						// Why one shared region: the icon swap is silent to a screen reader,
 						// and an answer with many code blocks must not hold a region for each.
-						const status = sharedStatus(button);
-						if (status != null) {
-							status.textContent = alternateAnnouncement("Copied", announceToggle);
-						}
+						announce(button, "Copied", { repeat: true });
 						setWasCopied(true);
 						if (timeoutHandle.current != null) {
 							clearTimeout(timeoutHandle.current);

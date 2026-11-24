@@ -1,6 +1,6 @@
 "use client";
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -419,6 +419,64 @@ describe("CodeBlock", () => {
 			await user.click(screen.getAllByRole("button", { name: /copy code/i }).at(-1) as HTMLElement);
 			await vi.waitFor(() => {
 				expect(status).toHaveTextContent("Copied");
+			});
+		});
+
+		test("announces a copy from a second code block after a copy from the first", async () => {
+			const user = userEvent.setup();
+
+			render(
+				<>
+					{["a", "b"].map((code) => (
+						<CodeBlock.Root key={code}>
+							<CodeBlock.Body>
+								<CodeBlock.CopyButton />
+								<CodeBlock.Code value={makeValue(code)} />
+							</CodeBlock.Body>
+						</CodeBlock.Root>
+					))}
+				</>,
+			);
+
+			const status = screen.getByRole("status");
+			const [first, second] = screen.getAllByRole("button", { name: /copy code/i });
+			await user.click(first as HTMLElement);
+			await vi.waitFor(() => {
+				expect(status).toHaveTextContent("Copied");
+			});
+			const before = status.textContent;
+
+			await user.click(second as HTMLElement);
+			// Why: the region is shared, so the second button's text must differ from the first's.
+			await vi.waitFor(() => {
+				expect(status.textContent).not.toBe(before);
+			});
+			expect(status).toHaveTextContent("Copied");
+		});
+
+		test("announces in the dialog that a copy button moved into", async () => {
+			const user = userEvent.setup();
+
+			const { container } = render(
+				<>
+					<dialog open />
+					<CodeBlock.Root>
+						<CodeBlock.Body>
+							<CodeBlock.CopyButton />
+							<CodeBlock.Code value={makeValue("const x = 1;")} />
+						</CodeBlock.Body>
+					</CodeBlock.Root>
+				</>,
+			);
+
+			const dialog = container.querySelector("dialog") as HTMLDialogElement;
+			const button = screen.getByRole("button", { name: /copy code/i });
+			// Why a DOM move: a portal host such as `OverlayPrompt` moves its content and keeps the ref.
+			dialog.append(button);
+
+			await user.click(button);
+			await vi.waitFor(() => {
+				expect(within(dialog).getByRole("status")).toHaveTextContent("Copied");
 			});
 		});
 
