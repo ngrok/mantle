@@ -46,7 +46,7 @@ export function Header({ className, ...props }: Omit<ComponentProps<"header">, "
 
 	return (
 		<header className={cx("sticky top-0 z-30 bg-card", className)} {...props}>
-			<div className="mx-auto flex h-15 w-full max-w-(--breakpoint-2xl) items-center gap-3 px-4 md:gap-4">
+			<div className="mx-auto flex h-15 w-full max-w-7xl items-center gap-3 px-4 md:gap-4">
 				<Link
 					to={href("/")}
 					className="flex items-center gap-2 rounded font-mono text-xl leading-8 text-strong/90 hover:text-strong focus-visible:ring-3 focus-visible:focus-ring"
