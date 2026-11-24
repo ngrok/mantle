@@ -184,4 +184,36 @@ describe("Query in a browser", () => {
 			expect(enabledHint).not.toBeVisible();
 		});
 	});
+
+	// Why the compiled CSS: the cap and the scroll are CSS. Why the box sizing: it
+	// comes from Tailwind's preflight in `mantle.css`, which the compiled CSS leaves out.
+	test("keeps the popover and its footer in a short viewport, and scrolls the list", async () => {
+		const styleElement = document.createElement("style");
+		styleElement.textContent = `${await commands.tailwindCss("./query.tsx")} *, ::before, ::after { box-sizing: border-box; }`;
+		document.head.appendChild(styleElement);
+		const [width, height] = [window.innerWidth, window.innerHeight];
+		await page.viewport(800, 240);
+		try {
+			render(
+				<Query.Root grammar={testGrammar} value="" onValueChange={() => {}}>
+					<Query.Input aria-label="Filter projects" placeholder="Filter" />
+					<Query.Content>
+						<Query.List>{(suggestion) => <Query.Item suggestion={suggestion} />}</Query.List>
+						<Query.Footer>Footer</Query.Footer>
+					</Query.Content>
+				</Query.Root>,
+			);
+			await userEvent.click(page.getByRole("combobox", { name: "Filter projects" }));
+			const list = page.getByRole("listbox").element();
+			const footer = page.getByText("Footer").element();
+
+			await expect
+				.poll(() => footer.getBoundingClientRect().bottom)
+				.toBeLessThanOrEqual(window.innerHeight);
+			expect(list.scrollHeight).toBeGreaterThan(list.clientHeight);
+		} finally {
+			await page.viewport(width, height);
+			styleElement.remove();
+		}
+	});
 });

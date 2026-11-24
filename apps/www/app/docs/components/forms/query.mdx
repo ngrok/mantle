@@ -310,7 +310,7 @@ export function InlineActionsQueryExample() {
 
 ## Keyboard shortcut
 
-Set `keyboardShortcut` on `Query.Input` to let `/` move focus into the field from anywhere on the page. While the field is empty and not focused, it shows a `/` hint at its right edge. The key still types a slash in any text field, and it does nothing while the field is disabled or a modal covers it.
+Set `keyboardShortcut` on `Query.Input` to let `/` move focus into the field from anywhere on the page. While the field is empty and not focused, it shows a `/` hint at its right edge. A device that can't hover, such as a phone, usually has no key to press, so it shows no hint. The key still types a slash in any text field, and it does nothing while the field is disabled or a modal covers it.
 
 The shortcut is off by default, because a page with many tables has many fields and `/` can focus only one. Turn it on for the one primary filter on a page. If more than one field turns it on, `/` goes to the field that turned it on first and can take focus.
 
@@ -524,14 +524,14 @@ The query field. `className` and `style` go to the field's outer element, as on 
 | ----------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `data-slot`       | `"query-input"`                         | On the field's outer element.                                                                                                      |
 | `data-slot`       | `"query-input-actions"`                 | On the `span` that wraps the children. The clear button follows it. It has `display: contents`, so each child lays out in the row. |
-| `data-slot`       | `"query-input-shortcut kbd"`            | On the `/` hint, with `keyboardShortcut`. It shows while the field is empty and not focused.                                       |
+| `data-slot`       | `"query-input-shortcut kbd"`            | On the `/` hint, with `keyboardShortcut`. It shows while the field is empty and not focused, on a device that can hover.           |
 | `data-slot`       | `"input"`                               | On the field's chrome, inside `"query-input"`, as on `Input`.                                                                      |
 | `data-disabled`   | present                                 | On the `"input"` chrome while the field is disabled.                                                                               |
 | `data-validation` | `"error"` \| `"success"` \| `"warning"` | On the `"input"` chrome. Omitted when unset.                                                                                       |
 
 ### Query.Content
 
-The suggestion popover. It holds the parts you compose into it and keeps focus in the field. It accepts the `Popover.Content` props except the ones it owns: `align`, `role`, `preferredWidth`, the auto-focus handlers, and `onInteractOutside`.
+The suggestion popover. It holds the parts you compose into it and keeps focus in the field. It grows no taller than the room between the field and the viewport edge: the list shrinks and scrolls, and the footer stays in view. It accepts the `Popover.Content` props except the ones it owns: `align`, `role`, `preferredWidth`, the auto-focus handlers, and `onInteractOutside`.
 
 | Prop                                                    | Type                  | Default | Description                                                           |
 | ------------------------------------------------------- | --------------------- | ------- | --------------------------------------------------------------------- |
@@ -555,9 +555,10 @@ The suggestion listbox for the token under the caret. It groups the rows under "
 | `children`   | `(suggestion: FilterSuggestion) => ReactNode` | none                   | Renders one suggestion. Return a `Query.Item` for every suggestion, because the arrow keys move through every one. Required. |
 | `aria-label` | `string`                                      | `"Filter suggestions"` | The accessible name of the listbox.                                                                                          |
 
-| Data Attribute | Value          | Description     |
-| -------------- | -------------- | --------------- |
-| `data-slot`    | `"query-list"` | On the listbox. |
+| Data Attribute | Value                 | Description                                                         |
+| -------------- | --------------------- | ------------------------------------------------------------------- |
+| `data-slot`    | `"query-list"`        | On the listbox.                                                     |
+| `data-slot`    | `"query-group-label"` | On each section heading, a block `span` hidden from assistive tech. |
 
 ### Query.Item
 

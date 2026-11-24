@@ -29,6 +29,7 @@ import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import { observeScrollEdges } from "../../utils/scroll-edges.js";
 import {
 	type FilterGrammar,
 	type FilterSyntax,
@@ -501,6 +502,8 @@ type QueryInputProps = Omit<
  * With `keyboardShortcut`, `/` focuses the field. The key types as usual
  * while focus is in a text control, and it does nothing while the field is
  * disabled or a modal covers it. The `<input>` carries `aria-keyshortcuts="/"`.
+ * A `/` hint shows while the field is empty and not focused, on a device that
+ * can hover.
  *
  * **CSS variables:**
  *
@@ -791,12 +794,13 @@ function Input({
 					/>
 				</div>
 				{/* `aria-keyshortcuts` names the key to assistive tech, so the hint is visual only.
-				    A focused field hides it: there, `/` types a slash. A disabled fieldset hides it too. */}
+				    A focused field hides it: there, `/` types a slash. A disabled fieldset hides it too.
+				    A device that cannot hover, such as a phone, usually has no key to press. */}
 				{keyboardShortcut && !disabled && context.value === "" && (
 					<Kbd
 						aria-hidden
 						data-slot="query-input-shortcut"
-						className="[[data-slot=input]:focus-within>&]:hidden [[data-slot=input]:has(input:disabled)>&]:hidden"
+						className="hover-none:hidden [[data-slot=input]:focus-within>&]:hidden [[data-slot=input]:has(input:disabled)>&]:hidden"
 					>
 						/
 					</Kbd>
@@ -880,7 +884,8 @@ type QueryContentProps = Omit<
  * The suggestion popover. It holds the parts you compose into it, and it
  * keeps focus in the field: the active row is announced through
  * `aria-activedescendant`. It accepts the `Popover.Content` props except the
- * ones it owns.
+ * ones it owns. It grows no taller than the room between the field and the
+ * viewport edge: the list shrinks and scrolls, and the footer stays in view.
  *
  * **Data attributes:**
  *
@@ -927,7 +932,9 @@ function Content({ "data-slot": dataSlot, children, className, ref, ...props }: 
 			ref={composedRef}
 			data-slot={joinDataSlot(dataSlot, "query-content")}
 			align="start"
-			className={cx("w-(--anchor-width) p-1", className)}
+			// Why a flex column: the list shrinks and scrolls when the room between
+			// the field and the viewport edge is short, and the footer stays in view.
+			className={cx("flex max-h-(--available-height) w-(--anchor-width) flex-col p-1", className)}
 			preferredWidth="max-w-none"
 			// Why presentation: the popup is the listbox inside, which the `<input>`
 			// controls. The default `role="dialog"` adds an unnamed dialog around it.
@@ -975,9 +982,10 @@ type QueryListProps = Omit<ComponentProps<"div">, "children" | "id" | "role"> &
  *
  * **Data attributes:**
  *
- * | Attribute   | Value          | Description          |
- * | ----------- | -------------- | -------------------- |
- * | `data-slot` | `"query-list"` | On the listbox.      |
+ * | Attribute   | Value                 | Description                                                         |
+ * | ----------- | --------------------- | ------------------------------------------------------------------- |
+ * | `data-slot` | `"query-list"`        | On the listbox.                                                     |
+ * | `data-slot` | `"query-group-label"` | On each section heading, a block `span` hidden from assistive tech. |
  *
  * @see https://mantle.ngrok.com/components/forms/query#querylist
  *
@@ -999,8 +1007,9 @@ type QueryListProps = Omit<ComponentProps<"div">, "children" | "id" | "role"> &
  * ```
  */
 // Why no asChild: the part renders the section groups and their headings itself.
-function List({ "data-slot": dataSlot, children, className, ...props }: QueryListProps) {
+function List({ "data-slot": dataSlot, children, className, ref, ...props }: QueryListProps) {
 	const context = useQueryContext("Query.List");
+	const listRef = useComposedRefs(ref, observeScrollEdges);
 	const { registerList } = context;
 
 	// Why an effect: the `<input>` is an earlier sibling, so the render pass
@@ -1022,13 +1031,21 @@ function List({ "data-slot": dataSlot, children, className, ...props }: QueryLis
 			role="listbox"
 			aria-label="Filter suggestions"
 			{...props}
+			ref={listRef}
 			id={context.listboxId}
 			data-slot={joinDataSlot(dataSlot, "query-list")}
-			className={cx("max-h-72 overflow-y-auto", className)}
+			className={cx(
+				"max-h-72 overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y scroll-py-6",
+				className,
+			)}
 		>
 			{[...rowsBySection].map(([section, rows]) => (
 				<div key={section} role="group" aria-label={sectionHeadings[section]}>
-					<span aria-hidden className="text-muted block px-2 pt-2 pb-1 text-xs font-medium">
+					<span
+						aria-hidden
+						data-slot="query-group-label"
+						className="text-muted block px-2 pt-2 pb-1 text-xs font-medium"
+					>
 						{sectionHeadings[section]}
 					</span>
 					{rows.map(({ suggestion, index }) => (
