@@ -81,6 +81,11 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 		"a prompt that stays clickable while a dialog is open": "Overlay Prompt",
 		"qr code rendered on the server": "QR Code",
 	},
+	"Checkbox cards (MNTL-74)": {
+		"selectable cards": "Checkbox",
+		"multi-select cards": "Checkbox",
+		"select all that apply cards with title and description": "Checkbox",
+	},
 	"Weak finds from #pulse-mantle-mcp": {
 		"status banner success callout": "Alert",
 		"horizontal separator divider text label middle": "Separator",

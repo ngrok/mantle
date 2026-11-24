@@ -1,7 +1,7 @@
 ---
 title: Checkbox
 description: A form control that toggles between checked and not checked, with an indeterminate state.
-aliases: [check box, tickbox]
+aliases: [check box, tickbox, checkbox group, checkbox cards, selectable cards, multi-select cards]
 ---
 
 import { Example } from "~/components/example";
@@ -33,8 +33,9 @@ import { Field } from "@ngrok/mantle/field";
 
 - Turn one or more independent options on or off in a form.
 - Show a partial selection with the indeterminate state, such as a [select-all box](#select-all-helper).
+- Show a "select all that apply" question as selectable [cards](#cards) with `CheckboxGroup`.
 - Prefer [`Switch`](/components/forms/switch) when one setting turns on or off and needs no indeterminate state.
-- Prefer [`RadioGroup`](/components/forms/radio-group) when the user picks exactly one option from a set.
+- Prefer [`RadioGroup`](/components/forms/radio-group) when the user picks exactly one option from a set, including its card variant, `RadioGroup.Card`.
 - Prefer [`Choice`](/components/forms/choice) when the checkbox needs a title and a description beside it.
 
 ## Without a Field
@@ -124,6 +125,87 @@ import { Field } from "@ngrok/mantle/field";
 </Example>
 
 For the fully-clickable list-row variant (and the full API), see the [`Choice` docs](/components/forms/choice).
+
+## Cards
+
+Use `CheckboxGroup` when each option is a larger block of content and the user can pick several, such as a "select all that apply" question. It looks like the [`RadioGroup` cards](/components/forms/radio-group#cards): the checked card gets an accent border and tint. Lay the cards out with a grid on `CheckboxGroup.Root`, and set `name` so a form submits one entry for each checked value.
+
+<Example name="components/forms/checkbox/cards" title="Checkbox cards example">
+
+```tsx
+import { CheckboxGroup } from "@ngrok/mantle/checkbox";
+
+const sources = [
+	{ value: "review-site", title: "Review site", description: "G2, Capterra" },
+	{ value: "ai-agent", title: "AI agent", description: "Claude, ChatGPT, etc." },
+	{ value: "colleague", title: "Friend or colleague", description: "Someone you work with" },
+	{ value: "search", title: "Search engine", description: "Google, Bing, etc." },
+];
+
+<CheckboxGroup.Root
+	aria-label="How did you find us?"
+	className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+	defaultValue={["review-site"]}
+	name="sources"
+>
+	{sources.map((source) => (
+		<CheckboxGroup.Card key={source.value} className="flex gap-3" value={source.value}>
+			<CheckboxGroup.ItemContent>
+				<p className="text-strong font-medium">{source.title}</p>
+				<p className="text-muted mt-1">{source.description}</p>
+			</CheckboxGroup.ItemContent>
+			<CheckboxGroup.Indicator />
+		</CheckboxGroup.Card>
+	))}
+</CheckboxGroup.Root>;
+```
+
+</Example>
+
+Each card holds a native `<input type="checkbox">` that covers it, so a click anywhere on the card toggles it, each card is its own Tab stop, and Space toggles it. A screen reader outlines the whole card and stops once on it. The card's text names the checkbox, and it cannot be selected. Links, buttons, and form controls in a card sit over the checkbox and keep their own clicks. To name the card with its title alone and describe it with the rest, compose [`Choice`](/components/forms/choice) inside it: `Choice.Title` names the checkbox, and `Choice.Description` describes it.
+
+### Checkmark indicator
+
+To show only a checkmark on the checked card, pass `CheckboxGroup.Indicator` your own mark and show it with `group-has-[>input:checked]/checkbox:`. The mark follows the native checkbox, so it is right before hydration.
+
+<Example name="components/forms/checkbox/checkmark-indicator" title="Checkbox cards checkmark indicator example">
+
+```tsx
+import { CheckboxGroup } from "@ngrok/mantle/checkbox";
+import { Icon } from "@ngrok/mantle/icon";
+import { CheckIcon } from "@phosphor-icons/react/Check";
+
+const sources = [
+	{ value: "review-site", title: "Review site", description: "G2, Capterra" },
+	{ value: "ai-agent", title: "AI agent", description: "Claude, ChatGPT, etc." },
+	{ value: "colleague", title: "Friend or colleague", description: "Someone you work with" },
+	{ value: "search", title: "Search engine", description: "Google, Bing, etc." },
+];
+
+<CheckboxGroup.Root
+	aria-label="How did you find us?"
+	className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+	defaultValue={["review-site"]}
+	name="sources"
+>
+	{sources.map((source) => (
+		<CheckboxGroup.Card key={source.value} className="flex gap-3" value={source.value}>
+			<CheckboxGroup.ItemContent>
+				<p className="text-strong font-medium">{source.title}</p>
+				<p className="text-muted mt-1">{source.description}</p>
+			</CheckboxGroup.ItemContent>
+			<CheckboxGroup.Indicator>
+				<Icon
+					className="text-accent-600 invisible group-has-[>input:checked]/checkbox:visible"
+					svg={<CheckIcon weight="bold" />}
+				/>
+			</CheckboxGroup.Indicator>
+		</CheckboxGroup.Card>
+	))}
+</CheckboxGroup.Root>;
+```
+
+</Example>
 
 ## With TanStack Form
 
@@ -245,6 +327,23 @@ Returns `boolean | "indeterminate"` (a `CheckedState`), ready to pass straight t
 | `allSelected`  | `boolean` | Whether every selectable item is currently selected.       |
 | `someSelected` | `boolean` | Whether some (but not necessarily all) items are selected. |
 
+## Composition
+
+`Checkbox` is a single element. Its card variant, `CheckboxGroup`, is a compound:
+
+```text showLineNumbers=false
+CheckboxGroup.Root
+└── CheckboxGroup.Card
+    ├── CheckboxGroup.ItemContent
+    └── CheckboxGroup.Indicator
+```
+
+## Polymorphism
+
+`CheckboxGroup.ItemContent` accepts `asChild`. When `true`, it renders its single child instead of its default `<div>`, and it forwards class names, `data-*` attributes, and `ref` to that child. Use it when the content beside the indicator needs to be a specific element, such as a `<p>`.
+
+The rest of `CheckboxGroup` does not take `asChild`. `CheckboxGroup.Root` renders the `role="group"` element whose form reset reads the cards. `CheckboxGroup.Card` renders a `<div>` with the native checkbox as its first child, and `CheckboxGroup.Indicator` paints the mark. In a Playwright or Cypress test, click a card by its role or label: `getByRole("checkbox", { name: "Review site" }).click()`.
+
 ## API Reference
 
 ### Checkbox
@@ -260,3 +359,70 @@ All props from [input\[type="checkbox"\]](https://developer.mozilla.org/en-US/do
 | `validation?`      | `"error"` \| `"success"` \| `"warning"` \| `false` \| `() => "error" \| "success" \| "warning" \| false` |         | Use the `validation` prop to show a specific validation status. This will change the border and outline of the checkbox. The `false` type is useful with short-circuiting logic. Setting `validation` to `"error"` also sets `aria-invalid`. |
 
 For a checkbox with a titled, multi-line label and a description, see [`Choice`](/components/forms/choice).
+
+### CheckboxGroup.Root
+
+A group of checkbox cards. The user checks any number of cards, and the group holds the checked values. Give it an accessible name with `aria-label`, or wrap it in `Field.Set` and `Field.Legend`.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop             | Type                        | Default | Description                                                                                    |
+| :--------------- | :-------------------------- | :------ | :--------------------------------------------------------------------------------------------- |
+| `value?`         | `string[]`                  |         | The checked values. Pair it with `onValueChange`.                                              |
+| `defaultValue?`  | `string[]`                  | `[]`    | The checked values on first render, for an uncontrolled group. A form reset returns to them.   |
+| `onValueChange?` | `(value: string[]) => void` |         | Called with the checked values after the user checks or unchecks a card, or resets the form.   |
+| `disabled?`      | `boolean`                   | `false` | When `true`, disables every card.                                                              |
+| `name?`          | `string`                    |         | The form field name. With a name, a form submits one entry for each checked value.             |
+| `form?`          | `string`                    |         | The `id` of the form the checkboxes belong to, when the group sits outside it. Needs a `name`. |
+
+| Data Attribute | Value              | Description |
+| :------------- | :----------------- | :---------- |
+| `data-slot`    | `"checkbox-group"` | The group.  |
+
+### CheckboxGroup.Card
+
+A checkbox card. Use it inside `CheckboxGroup.Root`, alone or in a layout element such as a grid. `id`, `autoFocus`, `aria-label`, `aria-labelledby`, and `aria-describedby` go to the native checkbox; the rest go to the card's `<div>`.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop        | Type      | Default | Description                                              |
+| :---------- | :-------- | :------ | :------------------------------------------------------- |
+| `value`     | `string`  |         | The value the group adds when the user checks this card. |
+| `disabled?` | `boolean` | `false` | When `true`, the user cannot check or uncheck this card. |
+
+Each card is a `<div>` with a native `<input type="checkbox">` as its first child. The checkbox carries the state, so style the card with these variants:
+
+| Variant                       | Matches                          |
+| :---------------------------- | :------------------------------- |
+| `has-[>input:checked]:`       | The card is checked.             |
+| `has-[>input:disabled]:`      | The card is disabled.            |
+| `has-[>input:focus-visible]:` | The checkbox has keyboard focus. |
+
+From a child, use the `group/checkbox` name the card sets: `group-has-[>input:checked]/checkbox:`.
+
+| Data Attribute | Value                         | Description                                             |
+| :------------- | :---------------------------- | :------------------------------------------------------ |
+| `data-slot`    | `"checkbox-group-card"`       | The card.                                               |
+| `data-slot`    | `"checkbox-group-card-label"` | The `display: contents` wrapper of the card's children. |
+
+### CheckboxGroup.Indicator
+
+The selection mark of a card. By default, it draws a check box that fills when the card is checked. Pass children to draw another mark, such as a checkmark styled with `group-has-[>input:checked]/checkbox:`, or a render-props function `(state) => ReactNode` that receives `checked` and `disabled`.
+
+| Data Attribute | Value                        | Description    |
+| :------------- | :--------------------------- | :------------- |
+| `data-slot`    | `"checkbox-group-indicator"` | The indicator. |
+
+### CheckboxGroup.ItemContent
+
+The content of a card: its title, description, and any other content. It fills the space beside the indicator and dims with a disabled card.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop       | Type      | Default | Description                                                                     |
+| :--------- | :-------- | :------ | :------------------------------------------------------------------------------ |
+| `asChild?` | `boolean` | `false` | Use the `asChild` prop to render a custom element instead of the default `div`. |
+
+| Data Attribute | Value                           | Description  |
+| :------------- | :------------------------------ | :----------- |
+| `data-slot`    | `"checkbox-group-item-content"` | The content. |

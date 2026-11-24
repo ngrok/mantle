@@ -12,6 +12,15 @@ const INTERACTIVE_TARGET_SELECTOR =
 	'a[href], button, details, input, select, textarea, label, [role="button"], [role="link"], [role="menuitem"], [contenteditable="true"]';
 
 /**
+ * The controls in the content of an item that a native input covers
+ * (`RadioGroup`, `SegmentedControl`, and `CheckboxGroup` items). They sit over
+ * the input and stay visible to assistive technology. `mantle.css` lifts the
+ * same list over the input of each `.covered-item-content`.
+ */
+const CONTENT_CONTROL_SELECTOR =
+	'a[href], button, details, input, select, textarea, label, [role="button"], [role="link"], [role="menuitem"], [tabindex]:not([tabindex="-1"]), [contenteditable="true"]';
+
+/**
  * Whether a click landed on interactive content inside `within`, so a
  * click-forwarding ancestor should defer to it. Interactive ancestors outside
  * `within` do not count, and a non-element target never does. Pure over the
@@ -35,5 +44,6 @@ function isInteractiveTarget(target: EventTarget | null, within: Element): boole
 
 export {
 	//,
+	CONTENT_CONTROL_SELECTOR,
 	isInteractiveTarget,
 };
