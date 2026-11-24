@@ -23,14 +23,21 @@
  */
 function closeMarkdown(text: string, { math }: { math: boolean }): string {
 	const blocks = scanBlocks(text, { math });
-	if (blocks.inFence || blocks.inIndentedCode) {
+	const lastLine = lineContent(text.slice(blocks.lastLineStart)).trim();
+	if (blocks.inFence) {
+		// Why: a partial closer such as ``` `` ``` would show as a code line until its last character arrives.
+		return /^(?:`+|~+)$/.test(lastLine) ? text.slice(0, blocks.lastLineStart) : text;
+	}
+	if (blocks.inIndentedCode) {
 		return text;
 	}
 	if (blocks.inMath) {
-		// Why the prefix: the closing line of a `$$` block in a quote keeps its `>` markers.
-		const line = text.endsWith("\n") ? blocks.previousLineStart : blocks.lastLineStart;
+		// Why the cut: a partial `$` closer would show as math. Why the prefix: a closer in a quote keeps its `>`.
+		const body = lastLine === "$" ? text.slice(0, blocks.lastLineStart) : text;
+		const line =
+			body === text && !text.endsWith("\n") ? blocks.lastLineStart : blocks.previousLineStart;
 		const prefix = QUOTE_PREFIX.exec(text.slice(Math.max(line, 0)))?.[0] ?? "";
-		return `${text}${text.endsWith("\n") ? "" : "\n"}${prefix}$$`;
+		return `${body}${body.endsWith("\n") ? "" : "\n"}${prefix}$$`;
 	}
 	const lines = closeLastLines(text, blocks);
 	return lines.text.slice(0, lines.regionStart) + closeInline(lines.text.slice(lines.regionStart));
@@ -58,7 +65,7 @@ const FENCE = /^(`{3,}|~{3,})(.*)$/;
 /** An unfinished character reference that runs to the end. Why sticky: a test at each `&` reads only its run. */
 const ENTITY_TAIL = /&#?[a-z0-9]*$/iy;
 /** The list markers at the start of a line's content, such as `- ` or `1. - `. */
-const LIST_MARKERS = /^(?:(?:[-*+]|\d{1,9}[.)])[ \t]+)+/;
+const LIST_MARKERS = /^(?:(?:[-*+]|\d{1,9}[.)])[ \t]+(?: {0,3}> ?)*)+/;
 
 /** The columns of a line's indent, with a tab to the next multiple of 4. */
 function indentOf(line: string): number {
@@ -254,7 +261,11 @@ function scanBlocks(text: string, { math }: { math: boolean }): BlockScan {
 					char: marker.slice(0, 1),
 					length: marker.length,
 					column,
-					quotes: quoteDepth(text.slice(lineStart, lineEnd)),
+					// Why the markers too: a fence in `- > ` sits in a quote that the list item holds.
+					quotes:
+						quoteDepth(text.slice(lineStart, lineEnd)) +
+						content.slice(0, content.length - afterMarkers.length).split(">").length -
+						1,
 				};
 			} else if (math && content.startsWith("$$") && !content.slice(2).includes("$$")) {
 				inMath = true;
@@ -361,7 +372,11 @@ function closeLastLines(
 	const previous =
 		previousLineStart === -1 ? "" : lineContent(text.slice(previousLineStart, lastLineStart - 1));
 
-	if (content.startsWith("|") && DELIMITER_ROW.test(content)) {
+	// Why not only a row with a pipe: GFM allows a delimiter row without its leading pipe, such as `--- | ---`.
+	if (
+		(content.startsWith("|") || (previous.startsWith("|") && content.includes("-"))) &&
+		DELIMITER_ROW.test(content)
+	) {
 		if (isTableHeader(text, previousLineStart, previous)) {
 			const row = delimiterRow(content, cellCount(previous));
 			// Why the prefix: a row in a quote keeps its `>` markers.
@@ -389,7 +404,7 @@ function closeLastLines(
 		return { text: text.slice(0, previousLineStart), regionStart: previousLineStart };
 	}
 	const isMarkerOnly =
-		/^(?:(?:[-*+]|\d{1,9}[.)])(?: +\[(?:[ xX]\]?)?)?|#{1,6}) *$/.test(content) ||
+		/^(?:(?:[-*+]|\d{1,9}[.)])(?: +\[(?:[ xX]\]?)?)?|#{1,6}|\d{1,9}) *$/.test(content) ||
 		/^\[[^\]]+\]: *$/.test(content);
 	const isUnderline = /^(?:-+|=+) *$/.test(content) && previous.trim() !== "";
 	if (isMarkerOnly || isUnderline) {
