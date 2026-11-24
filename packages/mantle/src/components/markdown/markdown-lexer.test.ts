@@ -100,6 +100,13 @@ describe("lexMarkdown", () => {
 		expect(tokens.map((token) => token.raw).join("")).toBe(`${"*".repeat(200)}x${"*".repeat(200)}`);
 	});
 
+	test("ends a table at indented code", () => {
+		expect(lexMarkdown("| a | b |\n| --- | --- |\n    code").map((token) => token.type)).toEqual([
+			"table",
+			"code",
+		]);
+	});
+
 	test("ends a quote's HTML block, not a paragraph, at a lazy line", () => {
 		expect(lexMarkdown("> <div>\n> text\noutside").map((token) => token.type)).toEqual([
 			"blockquote",
@@ -141,12 +148,18 @@ describe("lexMarkdown", () => {
 			tokenizer: (source: string) =>
 				source.startsWith(":::") ? { type: "note", raw: ":::" } : undefined,
 		};
-		const source = "::: keep this\n\n:::\n# title";
-		expect(
-			lexMarkdown(source, { extensions: [note] })
-				.map((token) => token.raw)
-				.join(""),
-		).toBe(source);
+		const line = {
+			...note,
+			tokenizer: (source: string) =>
+				source.startsWith("::\n") ? { type: "note", raw: "::\n" } : undefined,
+		};
+		for (const source of ["::: keep this\n\n:::\n# title", "::\n\nnext"]) {
+			expect(
+				lexMarkdown(source, { extensions: [note, line] })
+					.map((token) => token.raw)
+					.join(""),
+			).toBe(source);
+		}
 	});
 
 	// Why 20,000: a parser that is quadratic in these inputs takes seconds, and a linear one a few milliseconds.
@@ -169,6 +182,10 @@ describe("lexMarkdown", () => {
 			`${Array.from({ length: 8000 }, (_, at) => `[r${at}]: /u\n`).join("")}\n${"[r0]\n\n".repeat(8000)}`,
 		],
 		["a URL that ends in many entities", `https://a.io/${"&amp;".repeat(16_000)}`],
+		["spaces after a definition label", `[r]:${" ".repeat(40_000)}`],
+		["spaces after a heading", `# title${" ".repeat(40_000)}`],
+		["spaces after a delimiter row", `a | b\n- | -${" ".repeat(40_000)}x`],
+		["many `@` with no email", " @b.io".repeat(40_000)],
 	])("lexes %s in linear time", (_, source) => {
 		const start = performance.now();
 		const tokens = lexMarkdown(source);

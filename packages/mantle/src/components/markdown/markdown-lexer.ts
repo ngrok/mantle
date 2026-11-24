@@ -41,14 +41,15 @@ const SETEXT = /^ {0,3}(=+|-+)[ \t]*$/;
 const LIST = /^( {0,3})([*+-]|(\d{1,9})([.)]))([ \t]+|$)/;
 const QUOTE = /^ {0,3}>/;
 const QUOTE_MARKER = /^ {0,3}>[ \t]?/;
-const DELIMITER_ROW = /^ {0,3}\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*\|?[ \t]*$/;
+// Why the last pipe needs its own group: two runs of `[ \t]*` side by side retry each split, which is quadratic.
+const DELIMITER_ROW = /^ {0,3}\|?[ \t]*:?-+:?[ \t]*(?:\|[ \t]*:?-+:?[ \t]*)*(?:\|[ \t]*)?$/;
 /**
  * A link reference definition, which can span lines: the label, the
  * destination, and an optional title on the same line or the next one.
  */
 const DEF = (title: boolean) =>
 	new RegExp(
-		String.raw`^ {0,3}\[((?:\\.|[^[\]\\]){1,999})\]:[ \t]*\n?[ \t]*(<(?:\\.|[^<>\n\\])*>|[^\s<]\S*)` +
+		String.raw`^ {0,3}\[((?:\\.|[^[\]\\]){1,999})\]:[ \t]*(?:\n[ \t]*)?(<(?:\\.|[^<>\n\\])*>|[^\s<]\S*)` +
 			(title
 				? String.raw`(?:[ \t]+|[ \t]*\n[ \t]*)("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\((?:\\.|[^()\\])*\))`
 				: "") +
@@ -482,7 +483,7 @@ function lexBlocks(
 				) {
 					tokens.push(token);
 					// Why: the line break after the token belongs to no token, and the raws must join to the source.
-					if (source.charCodeAt(end) === 10) {
+					if (source.charCodeAt(end - 1) !== 10 && source.charCodeAt(end) === 10) {
 						tokens.push({ type: "space", raw: "\n" } as Tok);
 					}
 					while (index < lines.length && (starts[index] ?? 0) < end) {
@@ -579,7 +580,11 @@ function lexBlocks(
 
 			const heading = HEADING.exec(line);
 			if (heading != null) {
-				const text = (heading[2] ?? "").replace(/(?:^|[ \t]+)#+[ \t]*$/, "").trim();
+				// Why trim first: a regex that ends in `[ \t]*$` retries at each space of a long run.
+				const text = (heading[2] ?? "")
+					.trimEnd()
+					.replace(/(?:^|[ \t])#+$/, "")
+					.trim();
 				tokens.push(
 					withInline(
 						{ type: "heading", raw: raw(index, index + 1), depth: heading[1]?.length, text },
@@ -711,13 +716,22 @@ function lexBlocks(
 			});
 			if (header.length === align.length) {
 				let end = index + 2;
-				while (end < lines.length && !isBlank(lineAt(end)) && !interrupts(lineAt(end))) {
+				// Why the indent: indented code ends a table, though it cannot interrupt a paragraph.
+				while (
+					end < lines.length &&
+					!isBlank(lineAt(end)) &&
+					!interrupts(lineAt(end)) &&
+					indentOf(lineAt(end)) < 4
+				) {
 					end += 1;
 				}
 				const headerCell = (text: string, column: number) =>
 					withInline({ text, header: true, align: align[column] ?? null }, context);
+				// Why no job for an empty cell: a short row pads to the header's width, and padding has no inline text.
 				const bodyCell = (text: string, column: number) =>
-					withInline({ text, header: false, align: align[column] ?? null }, context);
+					text === ""
+						? { text, tokens: [], header: false, align: align[column] ?? null }
+						: withInline({ text, header: false, align: align[column] ?? null }, context);
 				tokens.push({
 					type: "table",
 					raw: raw(index, end),
@@ -1524,14 +1538,30 @@ function lexInline(source: string, context: Context): Tok[] {
 			}
 			continue;
 		} else if (char === "@") {
+			// Why the checks before a read of `text`: the read flattens it, which is quadratic when no link follows.
+			// So the read happens only when a link is sure but for its local part, and a link then resets `text`.
+			const found =
+				/[\w-]/.test(source[index + 1] ?? "") && LOCAL_PART.test(source[index - 1] ?? "")
+					? /^@[a-zA-Z\d_-]+(?:\.[a-zA-Z\d_-]+)+/.exec(source.slice(index, index + 256))
+					: null;
+			const domain = found != null && !/[-_]$/.test(found[0]) ? found : null;
+			if (domain == null) {
+				// Why the run: only the last `@` of a run can start a domain, and a step for each one is slow.
+				let end = index + 1;
+				while (source[end] === "@" && source[end + 1] === "@") {
+					end += 1;
+				}
+				text += source.slice(index, end);
+				index = end;
+				continue;
+			}
 			let start = text.length;
 			while (start > 0 && start > text.length - 256 && LOCAL_PART.test(text[start - 1] ?? "")) {
 				start -= 1;
 			}
 			const scheme = /(?:mailto|xmpp):$/.exec(text.slice(Math.max(0, start - 7), start))?.[0] ?? "";
 			const local = start < text.length ? scheme + text.slice(start) : null;
-			const domain = /^@[a-zA-Z\d_-]+(?:\.[a-zA-Z\d_-]+)+/.exec(source.slice(index, index + 256));
-			if (local != null && domain != null && !/[-_]$/.test(domain[0])) {
+			if (local != null) {
 				text = text.slice(0, -local.length);
 				const resource = local.startsWith("xmpp:")
 					? (/^\/[\w@.+-]*[\w@+-]/.exec(
