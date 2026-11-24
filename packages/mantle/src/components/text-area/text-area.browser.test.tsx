@@ -87,19 +87,21 @@ describe("TextArea drag-over styling", () => {
 });
 
 describe("TextArea height", () => {
-	test("rows sets the height, and the field without rows is at least 6rem tall", () => {
+	test("rows sets the height, and a field without a valid rows is at least 6rem tall", () => {
 		// Why: the test page has no preflight, so the browser's padding and border would add to each height.
 		const style = { border: 0, lineHeight: "20px", padding: 0 };
 		render(
 			<>
 				<TextArea aria-label="Feedback" style={style} />
-				<TextArea aria-label="Prompt" rows={1} style={style} />
+				<TextArea aria-label="Zero rows" rows={0} style={style} />
+				<TextArea aria-label="Prompt" rows={3} style={style} />
 			</>,
 		);
 
-		expect(screen.getByRole("textbox", { name: "Feedback" }).getBoundingClientRect().height).toBe(
-			96,
-		);
-		expect(screen.getByRole("textbox", { name: "Prompt" }).getBoundingClientRect().height).toBe(20);
+		const height = (name: string) =>
+			screen.getByRole("textbox", { name }).getBoundingClientRect().height;
+		expect(height("Feedback")).toBe(96);
+		expect(height("Zero rows")).toBe(96);
+		expect(height("Prompt")).toBe(60);
 	});
 });

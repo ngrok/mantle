@@ -56,7 +56,6 @@ const TextArea = ({
 	onDragLeave,
 	onDropCapture,
 	ref,
-	rows,
 	validation: _validation,
 	...props
 }: Props) => {
@@ -82,8 +81,8 @@ const TextArea = ({
 				"data-[validation=success]:border-success-600 data-[validation=success]:ring-focus-success data-[validation=success]:focus-visible:border-success-600 data-[validation=success]:data-drag-over:border-success-600",
 				"data-[validation=warning]:border-warning-600 data-[validation=warning]:ring-focus-warning data-[validation=warning]:focus-visible:border-warning-600 data-[validation=warning]:data-drag-over:border-warning-600",
 				appearance === "monospaced" && "font-mono pointer-coarse:text-base text-xs/5",
-				// Why only without `rows`: a minimum height overrides the native `rows` height.
-				rows == null && "min-h-24",
+				// Why `< 1`: React omits a `rows` below 1, so such a field gets the default height too.
+				(props.rows ?? 0) < 1 && "min-h-24",
 				className,
 			)}
 			data-drag-over={isDragOver ? "" : undefined}
@@ -101,7 +100,6 @@ const TextArea = ({
 				onDropCapture?.(event);
 			}}
 			ref={composedRef}
-			rows={rows}
 			{...props}
 		/>
 	);
