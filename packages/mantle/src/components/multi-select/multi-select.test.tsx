@@ -741,6 +741,32 @@ describe("MultiSelect", () => {
 		const getAppleOption = () =>
 			within(screen.getByRole("listbox")).getByRole("option", { name: "Apple" });
 
+		// Red if a disabled item runs its onClick, so an action row acts while it is disabled.
+		test("a disabled item ignores a click and does not run its onClick", async () => {
+			const user = userEvent.setup();
+			const onClick = vi.fn<() => void>();
+			render(
+				<MultiSelect.Root>
+					<MultiSelect.Trigger>
+						<MultiSelect.Input aria-label="Fruits" />
+					</MultiSelect.Trigger>
+					<MultiSelect.Content>
+						<MultiSelect.Item value="apple">Apple</MultiSelect.Item>
+						<MultiSelect.Item value="banana" disabled onClick={onClick}>
+							Banana
+						</MultiSelect.Item>
+					</MultiSelect.Content>
+				</MultiSelect.Root>,
+			);
+
+			await user.click(screen.getByRole("combobox", { name: "Fruits" }));
+			const banana = await screen.findByRole("option", { name: "Banana" });
+			await user.click(banana);
+
+			expect(onClick).toHaveBeenCalledTimes(0);
+			expect(banana).toHaveAttribute("aria-selected", "false");
+		});
+
 		test("locking a value while the popover is open keeps its item selected on click", async () => {
 			const user = userEvent.setup();
 			const { rerender } = render(<LockableSubject />);

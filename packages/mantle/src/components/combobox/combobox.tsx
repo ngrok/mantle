@@ -333,6 +333,7 @@ type ComboboxItemProps = Omit<ComponentProps<"div">, "children" | "value"> &
 		children?: ReactNode | OptionRender;
 		/**
 		 * Whether the item is inert.
+		 * A disabled item runs no click handler, and an `asChild` link does not navigate.
 		 */
 		disabled?: boolean;
 		/**
@@ -395,7 +396,7 @@ const Item = ({
 		className: cx(
 			"cursor-pointer rounded-md px-2 py-1.5 text-strong text-sm flex min-w-0 gap-2 items-center [&>svg]:size-5 [&_svg]:shrink-0",
 			"data-highlighted:bg-active-menu-item",
-			"aria-disabled:opacity-50",
+			"aria-disabled:cursor-default aria-disabled:opacity-50",
 			className,
 		),
 	};

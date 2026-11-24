@@ -147,6 +147,30 @@ describe("DropdownMenu", () => {
 		});
 	});
 
+	// Red if a disabled item runs its onClick: a pointer click then acts, though the item does not select.
+	test("a disabled item runs no onClick and stays open", async () => {
+		const user = userEvent.setup();
+		const onClick = vi.fn<() => void>();
+		const onSelect = vi.fn<(event: Event) => void>();
+		render(
+			<DropdownMenu.Root defaultOpen>
+				<DropdownMenu.Trigger>Open</DropdownMenu.Trigger>
+				<DropdownMenu.Content>
+					<DropdownMenu.Item>Edit</DropdownMenu.Item>
+					<DropdownMenu.Item disabled onClick={onClick} onSelect={onSelect}>
+						Delete
+					</DropdownMenu.Item>
+				</DropdownMenu.Content>
+			</DropdownMenu.Root>,
+		);
+
+		await user.click(screen.getByRole("menuitem", { name: "Delete" }));
+
+		expect(onClick).toHaveBeenCalledTimes(0);
+		expect(onSelect).toHaveBeenCalledTimes(0);
+		expect(screen.getByRole("menu")).toBeInTheDocument();
+	});
+
 	describe("click propagation guard", () => {
 		test("a click inside the menu does not reach an ancestor onClick", async () => {
 			// React routes portaled events through the React tree, so without
