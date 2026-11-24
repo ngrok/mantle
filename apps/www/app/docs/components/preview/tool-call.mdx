@@ -1,0 +1,156 @@
+---
+title: Tool Call
+description: One tool call of a chat answer, folded under a row with the tool's name and its state.
+category: Data Display
+aliases: [tool use, function call, tool result, agent step, ai tool]
+---
+
+import { PageHeader } from "~/components/page-header";
+import { Example } from "~/components/example";
+
+<PageHeader id="tool-call" isPreview>
+	Tool Call
+</PageHeader>
+
+One tool call of a chat answer, folded under a row with the tool's name and its state. Open it to read what the model sent the tool and what came back.
+
+<Example name="components/preview/tool-call/overview" title="Tool Call example">
+
+```tsx
+import { CodeBlock, jsonCodeBlockValue } from "@ngrok/mantle/code-block";
+import { ToolCall } from "@ngrok/mantle/tool-call";
+
+function ListEndpointsCall() {
+	return (
+		<>
+			<ToolCall.Root status="done" className="w-full max-w-2xl">
+				<ToolCall.Trigger>
+					<ToolCall.Name>list_endpoints</ToolCall.Name>
+					<span className="text-muted">840ms</span>
+				</ToolCall.Trigger>
+				<ToolCall.Content>
+					<CodeBlock.Root>
+						<CodeBlock.Header>
+							<CodeBlock.Title>Arguments</CodeBlock.Title>
+						</CodeBlock.Header>
+						<CodeBlock.Body>
+							<CodeBlock.CopyButton />
+							<CodeBlock.Code value={jsonCodeBlockValue({ limit: 5 })} />
+						</CodeBlock.Body>
+					</CodeBlock.Root>
+				</ToolCall.Content>
+			</ToolCall.Root>
+		</>
+	);
+}
+```
+
+</Example>
+
+## When to use
+
+- Show a tool that a model called while it answered, inside a chat message.
+- Use [Reasoning](/components/preview/reasoning) for the reasoning the model wrote.
+- Prefer [Accordion](/components/data-display/accordion) for titled sections that are not part of a chat answer.
+
+## States
+
+`status` takes four values, and the row shows an icon and a word for each. A call is `running` until its result arrives, then `done`, or `failed` when the tool returned an error. Set `interrupted` when the answer ended, by a stop or a failure, before the result arrived.
+
+<Example name="components/preview/tool-call/status" title="Tool Call status example">
+
+```tsx
+import { ToolCall } from "@ngrok/mantle/tool-call";
+
+function ToolCallStates() {
+	return (
+		<div className="flex flex-col">
+			<ToolCall.Root status="running" className="w-full max-w-2xl">
+				<ToolCall.Trigger>
+					<ToolCall.Name>get_traffic_policy</ToolCall.Name>
+				</ToolCall.Trigger>
+				<ToolCall.Content>Reading Traffic Policy for the endpoint.</ToolCall.Content>
+			</ToolCall.Root>
+			<ToolCall.Root status="done" className="w-full max-w-2xl">
+				<ToolCall.Trigger>
+					<ToolCall.Name>list_endpoints</ToolCall.Name>
+				</ToolCall.Trigger>
+				<ToolCall.Content>Found 5 endpoints.</ToolCall.Content>
+			</ToolCall.Root>
+			<ToolCall.Root status="failed" className="w-full max-w-2xl">
+				<ToolCall.Trigger>
+					<ToolCall.Name>list_domains</ToolCall.Name>
+				</ToolCall.Trigger>
+				<ToolCall.Content>The request timed out. Try again.</ToolCall.Content>
+			</ToolCall.Root>
+			<ToolCall.Root status="interrupted" className="w-full max-w-2xl">
+				<ToolCall.Trigger>
+					<ToolCall.Name>list_agents</ToolCall.Name>
+				</ToolCall.Trigger>
+				<ToolCall.Content>The answer stopped before the result arrived.</ToolCall.Content>
+			</ToolCall.Root>
+		</div>
+	);
+}
+```
+
+</Example>
+
+## Composition
+
+```text showLineNumbers=false
+ToolCall.Root
+├── ToolCall.Trigger
+│   └── ToolCall.Name
+└── ToolCall.Content
+```
+
+## Polymorphism
+
+`ToolCall.Name` takes `asChild`. The other parts do not: each renders more than one element, or an element beside its children.
+
+## Translation
+
+`ToolCall.Name` sets `translate="no"`, because a tool's name is an identifier. `ToolCall.Trigger` renders an icon, the state, and a caret beside its children. The children sit in a `display: contents` wrapper, `data-slot="tool-call-trigger-label"`, so a page that a browser translates survives a change to them.
+
+## API Reference
+
+### ToolCall.Root
+
+The tool call disclosure. It starts closed.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes), plus:
+
+| Prop     | Type                                               | Default | Description                      |
+| -------- | -------------------------------------------------- | ------- | -------------------------------- |
+| `status` | `"running" \| "done" \| "failed" \| "interrupted"` |         | The state of the call. Required. |
+
+| Data Attribute | Value                                              | Description                                                |
+| -------------- | -------------------------------------------------- | ---------------------------------------------------------- |
+| `data-status`  | `"running"`, `"done"`, `"failed"`, `"interrupted"` | The state of the call. Style with `data-[status=failed]:`. |
+
+### ToolCall.Trigger
+
+The disclosure row shows a state icon, its children, a state label, and a caret.
+
+All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes) except `type`.
+
+| Data Attribute                        | Value          | Description                                          |
+| ------------------------------------- | -------------- | ---------------------------------------------------- |
+| `data-slot="tool-call-trigger-label"` | on the wrapper | The `display: contents` wrapper around the children. |
+
+### ToolCall.Name
+
+The tool's name in code type. It never translates.
+
+All props from [code](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/code) except `translate`, plus:
+
+| Prop       | Type      | Default | Description                                       |
+| ---------- | --------- | ------- | ------------------------------------------------- |
+| `asChild?` | `boolean` | `false` | Render as a different element by passing a child. |
+
+### ToolCall.Content
+
+What the model sent the tool and what came back, such as two `CodeBlock`s. The children stack with a small gap.
+
+All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/div#attributes).

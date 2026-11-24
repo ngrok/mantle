@@ -1,6 +1,6 @@
 {
 	"name": "@ngrok/mantle",
-	"version": "0.94.1",
+	"version": "0.95.0",
 	"description": "mantle is ngrok's UI library and design system.",
 	"homepage": "https://mantle.ngrok.com",
 	"license": "MIT",
@@ -334,6 +334,11 @@
 			"types": "./dist/radio-group.d.ts",
 			"import": "./dist/radio-group.js"
 		},
+		"./reasoning": {
+			"@ngrok/src-live-types": "./src/components/reasoning/index.ts",
+			"types": "./dist/reasoning.d.ts",
+			"import": "./dist/reasoning.js"
+		},
 		"./sandbar": {
 			"@ngrok/src-live-types": "./src/components/sandbar/index.ts",
 			"types": "./dist/sandbar.d.ts",
@@ -448,6 +453,11 @@
 			"@ngrok/src-live-types": "./src/components/toast/index.ts",
 			"types": "./dist/toast.d.ts",
 			"import": "./dist/toast.js"
+		},
+		"./tool-call": {
+			"@ngrok/src-live-types": "./src/components/tool-call/index.ts",
+			"types": "./dist/tool-call.d.ts",
+			"import": "./dist/tool-call.js"
 		},
 		"./tooltip": {
 			"@ngrok/src-live-types": "./src/components/tooltip/index.ts",

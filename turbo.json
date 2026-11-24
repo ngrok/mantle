@@ -3,7 +3,12 @@
   "cacheMaxAge": "7d",
   "agentGuidance": false,
   "globalDependencies": [".nvmrc"],
-  "globalPassThroughEnv": ["CI", "DISABLE_HEADLESS", "PLAYWRIGHT_WS_ENDPOINT"],
+  "globalPassThroughEnv": [
+    "CI",
+    "DISABLE_HEADLESS",
+    "PLAYWRIGHT_WS_ENDPOINT",
+    "VITEST_MAX_WORKERS"
+  ],
   "tasks": {
     "build": {
       "cache": true,

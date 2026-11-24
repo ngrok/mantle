@@ -1,0 +1,548 @@
+---
+title: Design Principles
+description: "How ngrok's designers arrange mantle parts: balance, grouping, hierarchy, consistency, and feedback, each as do and don't rules with the parts that apply them."
+useWhen: Lay out a page, a table, a form, or a group of related controls so that it looks the way ngrok's designers build it.
+aliases:
+  - design rules
+  - visual design
+  - layout rules
+  - gestalt principles
+  - proximity
+  - common region
+  - space between groups
+  - balanced table columns
+  - one column takes all the real estate
+---
+
+import { Example } from "~/components/example";
+
+# Design Principles
+
+A mantle part gets the behavior and the styles right. These rules decide how you arrange the parts. They come from ngrok's designers. Each rule has a reason, a do and a don't, and the part that does the work when one exists. Some rules also have a golden example.
+
+Start from a pattern before you compose by hand. Search the docs, or call the MCP `find` tool, with what you build, such as "form sections" or "form actions". A form or settings page uses [`Strata`](/components/structure/strata), the buttons that end a form follow [Cancel and Submit Actions](/recipes/cancel-and-submit), and an app shell uses [`AppLayout`](/layouts/app-layout).
+
+## Balance
+
+Space spreads evenly across a layout. A layout looks off when one element takes most of the space and its neighbors shrink to their minimum.
+
+### Share the spare width across columns
+
+A table looks even when no one column takes the row.
+
+- **Do** let the columns whose values change in length, such as a name, a URL, and an upstream, share the spare width.
+- **Do** fit a column whose values are short and the same shape, such as a status, a date, or a duration, to its content.
+- **Don't** give one column `w-full` or a large fixed width. That column takes the row, and the other columns shrink and wrap.
+- **Don't** leave only one column unfit when its values are short. All the spare width goes to it, and a gap opens after its values.
+- **Part:** [`DataTable`](/components/data-display/data-table#sizing-a-column-to-its-content). Set `meta: { width: "fit" }` on a column, and pass `column` to its `DataTable.Header` and to each `DataTable.Cell`.
+
+Golden example: the name, the URL, and the upstream share the spare width. The status and the date fit their content.
+
+<Example name="base/design-principles/balanced-columns" title="Design Principles balanced columns example">
+
+```tsx
+import { Badge } from "@ngrok/mantle/badge";
+import { DataTable, createColumnHelper, tableFeatures, useTable } from "@ngrok/mantle/data-table";
+
+type Endpoint = {
+	id: string;
+	name: string;
+	url: string;
+	upstream: string;
+	status: "online" | "offline";
+	created: string;
+};
+
+const endpoints: Endpoint[] = [
+	{
+		id: "ep_1",
+		name: "checkout-api",
+		url: "https://checkout.example.ngrok.app",
+		upstream: "http://localhost:8080",
+		status: "online",
+		created: "Oct 22, 2026",
+	},
+	{
+		id: "ep_2",
+		name: "billing-webhooks",
+		url: "https://billing.example.ngrok.app",
+		upstream: "https://billing.internal.example.com:8443",
+		status: "online",
+		created: "Sep 30, 2026",
+	},
+	{
+		id: "ep_3",
+		name: "staging",
+		url: "https://staging.example.ngrok.dev",
+		upstream: "http://10.0.4.12:3000",
+		status: "offline",
+		created: "Aug 4, 2026",
+	},
+];
+
+const features = tableFeatures({});
+
+const columnHelper = createColumnHelper<typeof features, Endpoint>();
+
+function StatusBadge({ status }: { status: Endpoint["status"] }) {
+	return (
+		<Badge appearance="muted" color={status === "online" ? "green" : "gray"}>
+			{status === "online" ? "Online" : "Offline"}
+		</Badge>
+	);
+}
+
+const columns = columnHelper.columns([
+	columnHelper.accessor("name", {
+		id: "name",
+		header: () => <DataTable.Header>Name</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("url", {
+		id: "url",
+		header: () => <DataTable.Header>URL</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("upstream", {
+		id: "upstream",
+		header: () => <DataTable.Header>Upstream</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("status", {
+		id: "status",
+		meta: { width: "fit" },
+		header: (props) => <DataTable.Header column={props.column}>Status</DataTable.Header>,
+		cell: (props) => (
+			<DataTable.Cell column={props.column}>
+				<StatusBadge status={props.getValue()} />
+			</DataTable.Cell>
+		),
+	}),
+	columnHelper.accessor("created", {
+		id: "created",
+		meta: { width: "fit" },
+		header: (props) => <DataTable.Header column={props.column}>Created</DataTable.Header>,
+		cell: (props) => <DataTable.Cell column={props.column}>{props.getValue()}</DataTable.Cell>,
+	}),
+]);
+
+export function EndpointsTable() {
+	const table = useTable({ features, data: endpoints, columns, getRowId: (row) => row.id });
+
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{table.getRowModel().rows.map((row) => (
+					<DataTable.Row key={row.id} row={row} />
+				))}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+```
+
+</Example>
+
+Don't: the name column has `w-full`, so it takes the row. The URL, upstream, status, and date wrap in what is left.
+
+<Example name="base/design-principles/unbalanced-columns" title="Design Principles unbalanced columns example">
+
+```tsx
+import { Badge } from "@ngrok/mantle/badge";
+import { DataTable, createColumnHelper, tableFeatures, useTable } from "@ngrok/mantle/data-table";
+
+type Endpoint = {
+	id: string;
+	name: string;
+	url: string;
+	upstream: string;
+	status: "online" | "offline";
+	created: string;
+};
+
+const endpoints: Endpoint[] = [
+	{
+		id: "ep_1",
+		name: "checkout-api",
+		url: "https://checkout.example.ngrok.app",
+		upstream: "http://localhost:8080",
+		status: "online",
+		created: "Oct 22, 2026",
+	},
+	{
+		id: "ep_2",
+		name: "billing-webhooks",
+		url: "https://billing.example.ngrok.app",
+		upstream: "https://billing.internal.example.com:8443",
+		status: "online",
+		created: "Sep 30, 2026",
+	},
+	{
+		id: "ep_3",
+		name: "staging",
+		url: "https://staging.example.ngrok.dev",
+		upstream: "http://10.0.4.12:3000",
+		status: "offline",
+		created: "Aug 4, 2026",
+	},
+];
+
+const features = tableFeatures({});
+
+const columnHelper = createColumnHelper<typeof features, Endpoint>();
+
+function StatusBadge({ status }: { status: Endpoint["status"] }) {
+	return (
+		<Badge appearance="muted" color={status === "online" ? "green" : "gray"}>
+			{status === "online" ? "Online" : "Offline"}
+		</Badge>
+	);
+}
+
+const columns = columnHelper.columns([
+	columnHelper.accessor("name", {
+		id: "name",
+		header: () => <DataTable.Header className="w-full">Name</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("url", {
+		id: "url",
+		header: () => <DataTable.Header>URL</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("upstream", {
+		id: "upstream",
+		header: () => <DataTable.Header>Upstream</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("status", {
+		id: "status",
+		header: () => <DataTable.Header>Status</DataTable.Header>,
+		cell: (props) => (
+			<DataTable.Cell>
+				<StatusBadge status={props.getValue()} />
+			</DataTable.Cell>
+		),
+	}),
+	columnHelper.accessor("created", {
+		id: "created",
+		header: () => <DataTable.Header>Created</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+]);
+
+export function EndpointsTable() {
+	const table = useTable({ features, data: endpoints, columns, getRowId: (row) => row.id });
+
+	return (
+		<DataTable.Root table={table}>
+			<DataTable.Head />
+			<DataTable.Body>
+				{table.getRowModel().rows.map((row) => (
+					<DataTable.Row key={row.id} row={row} />
+				))}
+			</DataTable.Body>
+		</DataTable.Root>
+	);
+}
+```
+
+</Example>
+
+### Give siblings of equal weight equal space
+
+Items of equal importance get equal size.
+
+- **Do** put siblings of equal weight in equal tracks, such as three summary cards in one grid.
+- **Don't** mix `flex-1` and a fixed width on siblings of equal weight. One sibling grows. The other looks like an afterthought.
+- **Part:** [`Card`](/components/structure/card) in a CSS grid.
+
+```tsx
+import { Card } from "@ngrok/mantle/card";
+
+// Do: three equal tracks.
+<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+	<Card.Root>
+		<Card.Body>Requests</Card.Body>
+	</Card.Root>
+	<Card.Root>
+		<Card.Body>Errors</Card.Body>
+	</Card.Root>
+	<Card.Root>
+		<Card.Body>Latency</Card.Body>
+	</Card.Root>
+</div>;
+```
+
+### Inset a nested item by the same distance on every side
+
+An item that sits closer to one edge than to the others looks like it slipped.
+
+- **Do** give a badge, a button, or a control inside a container the same space on each side.
+- **Don't** pad only the top and bottom, or let an item hang over the container's edge.
+- **Part:** [`Card`](/components/structure/card). `Card.Body` pads all four sides the same. A [`Well`](/components/structure/well) has no padding of its own, so give it one value for every side, such as `p-4`.
+
+## Proximity
+
+Items that sit close together read as one group. Use space to show the structure.
+
+### Use less space inside a group than between groups
+
+The reader sees the groups before they read a word.
+
+- **Do** use the spacing that the parts build in. It grows at each level: a label and its control in `Field.Item` (`gap-1.5`), fields in `Field.Group` (`gap-4`), and sections in `Strata` (`py-8` and a divider). When you compose by hand, grow the space at each level, such as `gap-2` inside a group and `gap-8` between groups.
+- **Don't** put the same space between all children, such as `space-y-4` on a whole form. Then each item is as far from the next group as from its own, and the groups disappear.
+- **Part:** [`Field`](/components/forms/field) and [`Strata`](/components/structure/strata).
+
+```tsx
+import { Field } from "@ngrok/mantle/field";
+import { Input } from "@ngrok/mantle/input";
+
+// Do: the label sits close to its input, and the space between fields is larger.
+<Field.Group>
+	<Field.Item name="name">
+		<Field.Label>Name</Field.Label>
+		<Field.Control>
+			<Input />
+		</Field.Control>
+	</Field.Item>
+	<Field.Item name="url">
+		<Field.Label>URL</Field.Label>
+		<Field.Control>
+			<Input />
+		</Field.Control>
+	</Field.Item>
+</Field.Group>;
+```
+
+### Put an action next to what it acts on
+
+An action far from its target makes the reader search for what it changes.
+
+- **Do** put row actions in the row, a card's actions in its footer, and a form's buttons where [Cancel and Submit Actions](/recipes/cancel-and-submit) puts them.
+- **Don't** put an **Edit** button at the top of the page for one card further down, or an action for one row in a toolbar above the table.
+- **Part:** `DataTable.ActionCell`, `Card.Footer`, and [Cancel and Submit Actions](/recipes/cancel-and-submit).
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+import { Card } from "@ngrok/mantle/card";
+
+// Do: the card's action sits in its own footer.
+<Card.Root>
+	<Card.Header>
+		<Card.Title>Traffic Policy</Card.Title>
+	</Card.Header>
+	<Card.Body>Requests from outside the allowlist get a 403.</Card.Body>
+	<Card.Footer>
+		<Button appearance="outlined" intent="neutral" type="button">
+			Edit policy
+		</Button>
+	</Card.Footer>
+</Card.Root>;
+```
+
+### Put a title closer to the content it names
+
+A title halfway between two blocks belongs to neither.
+
+- **Do** use a part that pairs a title with its content, such as `Strata.Header` with its `Strata.Body`.
+- **Don't** put a hand-made heading with the same margin above and below it.
+- **Part:** [`Strata`](/components/structure/strata).
+
+```tsx
+import { Input } from "@ngrok/mantle/input";
+import { Strata } from "@ngrok/mantle/strata";
+
+// Do: the header names the body beside it.
+<Strata.Root>
+	<Strata.Section>
+		<Strata.Header>
+			<Strata.Title>Domain</Strata.Title>
+			<Strata.Description>The URL that clients connect to.</Strata.Description>
+		</Strata.Header>
+		<Strata.Body>
+			<Input aria-label="Domain" />
+		</Strata.Body>
+	</Strata.Section>
+</Strata.Root>;
+```
+
+## Common region
+
+Items inside one boundary read as one group, even when they are far apart.
+
+### Use one container for each group, picked by role
+
+The container tells the reader what kind of group it is.
+
+- **Do** put content that must read as one unit in one container:
+  - a [`Card`](/components/structure/card) for a primary group, with an optional title and actions;
+  - a [`Well`](/components/structure/well) for secondary content inset in the page, such as a note, a code sample, or a read-only summary;
+  - a [`Strata.Section`](/components/structure/strata) for a titled section of a settings page or a long form;
+  - a `Field.Set` with a `Field.Legend` for controls that answer one question.
+- **Don't** draw a box with a hand-made `border rounded-md p-4` where one of these parts fits.
+- **Part:** `Card`, `Well`, `Strata.Section`, and `Field.Set`.
+
+```tsx
+import { Card } from "@ngrok/mantle/card";
+import { DescriptionList } from "@ngrok/mantle/description-list";
+
+// Do: one card holds the facts of one endpoint.
+<Card.Root>
+	<Card.Header>
+		<Card.Title>checkout-api</Card.Title>
+	</Card.Header>
+	<Card.Body>
+		<DescriptionList.Root>
+			<DescriptionList.Item>
+				<DescriptionList.Label>URL</DescriptionList.Label>
+				<DescriptionList.Value>https://checkout.example.ngrok.app</DescriptionList.Value>
+			</DescriptionList.Item>
+			<DescriptionList.Item>
+				<DescriptionList.Label>Region</DescriptionList.Label>
+				<DescriptionList.Value>us-east</DescriptionList.Value>
+			</DescriptionList.Item>
+		</DescriptionList.Root>
+	</Card.Body>
+</Card.Root>;
+```
+
+### Don't nest a region in a region of the same kind
+
+Two borders around one group add noise and no meaning.
+
+- **Do** split one card into parts with sibling `Card.Body` parts. Each body after the first has a divider above it. Inside one body, split with space or a [`Separator`](/components/structure/separator), and use a `HorizontalSeparatorGroup` for a divider with a label.
+- **Don't** put a `Card` in a `Card`.
+- **Part:** `Card.Body` and `Separator`.
+
+```tsx
+import { Card } from "@ngrok/mantle/card";
+
+// Do: one card, split into two bodies.
+<Card.Root>
+	<Card.Body>Primary region: us-east</Card.Body>
+	<Card.Body>Failover region: eu-west</Card.Body>
+</Card.Root>;
+```
+
+### Don't put each item in its own box
+
+When each field or each fact has its own container, nothing groups, and the page reads as noise.
+
+- **Do** put the related items in one container, and separate them with space or rows.
+- **Don't** wrap each fact or each field in its own `Card`.
+- **Part:** [`DescriptionList`](/components/data-display/description-list) inside one `Card`, as in the golden example of [Use one container for each group](#use-one-container-for-each-group-picked-by-role).
+
+## Hierarchy
+
+The most important thing on a screen gets the most visual weight, and nothing else competes with it.
+
+### Give each view one primary action
+
+Two filled buttons ask the reader to choose before they know what the page is for.
+
+- **Do** make the main action a filled `Button` with `intent="neutral"`, and make every other action outlined or ghost.
+- **Don't** put two filled buttons side by side, or use `intent="accent"` for an ordinary action.
+- **Part:** [`Button`](/components/actions/button).
+
+```tsx
+import { Button } from "@ngrok/mantle/button";
+
+// Do: one filled action, and Cancel is outlined.
+<div className="flex justify-end gap-2">
+	<Button appearance="outlined" intent="neutral" type="button">
+		Cancel
+	</Button>
+	<Button appearance="filled" intent="neutral" type="submit">
+		Create endpoint
+	</Button>
+</div>;
+```
+
+### Keep red for one moment of danger
+
+Red draws the eye, so it loses its meaning when it shows up everywhere.
+
+- **Do** use red where the user commits to a destructive action: a menu item that deletes, or the action of an `AlertDialog` with `intent="danger"`.
+- **Don't** make a delete icon red in a row of icon buttons. A group of icon buttons stays uniform, and the confirmation step carries the danger.
+- **Part:** [`AlertDialog`](/components/overlays/alert-dialog). `IconButton` takes only `intent="neutral"`.
+
+### Cut what doesn't earn its place
+
+Each extra icon, badge, shadow, or line of text makes the rest harder to scan.
+
+- **Do** remove a decorative icon in a title, a badge that repeats a heading, and subtext that repeats the title.
+- **Don't** stack shadows, glows, and colors for emphasis. When every card has an effect, none of them stands out.
+- **Part:** none. Start from the plain part, and add only what the reader needs.
+
+## Consistency
+
+The same job looks and works the same on every page.
+
+### Use each part as it ships
+
+A part that looks a little different from the rest of the product reads as a bug.
+
+- **Do** render the mantle part, such as `Badge`, `Sheet`, or `DataTable` sub-rows, with its own props and parts.
+- **Don't** rebuild a part by hand, or restyle it with `className` to change its shape, color, or font. When the part can't do what the design needs, report the gap.
+- **Part:** every part. Call `get` before you write its props.
+
+## Feedback
+
+Tell the user what happened, and where, without moving the page under them.
+
+### Show an error next to what failed
+
+A toast disappears, and it doesn't say which field to fix.
+
+- **Do** show a field's error under the field with `Field.Errors`. Show an error for the whole form in an `Alert` at the top of the form.
+- **Don't** report a failed save or a blocked action in a `Toast`.
+- **Part:** [`Field`](/components/forms/field) and [`Alert`](/components/feedback/alert).
+
+```tsx
+import { Alert } from "@ngrok/mantle/alert";
+
+// Do: the error for the whole form sits at the top of the form.
+<Alert.Root intent="danger">
+	<Alert.Icon />
+	<Alert.Content>
+		<Alert.Title>Couldn't save the endpoint</Alert.Title>
+		<Alert.Description>
+			The URL is already in use. Pick another one and save again.
+		</Alert.Description>
+	</Alert.Content>
+</Alert.Root>;
+```
+
+### Disable a control and say why
+
+A control that is gone makes the user wonder where it went.
+
+- **Do** show the control as disabled, and put the reason in visible text beside it, such as a `Field.Description`.
+- **Don't** hide the control, or put the only explanation in a tooltip.
+- **Part:** [`Field`](/components/forms/field).
+
+```tsx
+import { Field } from "@ngrok/mantle/field";
+import { Input } from "@ngrok/mantle/input";
+
+// Do: the field stays, and its description says why it is disabled.
+<Field.Item name="domain">
+	<Field.Label>Domain</Field.Label>
+	<Field.Control>
+		<Input disabled />
+	</Field.Control>
+	<Field.Description>Upgrade to a paid plan to use a custom domain.</Field.Description>
+</Field.Item>;
+```
+
+### Keep items where the user put them
+
+When a list reorders after an action, the user loses their place.
+
+- **Do** keep the order the user saw until they leave and come back, and keep a check, a toggle, or a tab in the same position and size in every state.
+- **Don't** move an item to the end of the list as soon as the user selects it, or let tabs push the content sideways.
+- **Part:** none. Sort the data you pass to the part before it renders.
+
+This page grows as ngrok's designers write down more of what they check. It has no typography rules yet.

@@ -1610,6 +1610,38 @@
     "useWhen": "Pick exactly one value from a few fixed options, with every option visible at once, such as a single choice between selectable cards."
   },
   {
+    "name": "Reasoning",
+    "slug": "components/preview/reasoning",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "preview",
+    "importPath": "@ngrok/mantle/reasoning",
+    "summary": "A model's reasoning in a chat answer, folded under a label that reads \"Thinking…\" while it streams.",
+    "jsdoc": "A model's reasoning in a chat answer, folded under a one-line label that reads \"Thinking…\" while it streams.",
+    "examples": [
+      "Composition:\n```\nReasoning.Root\n├── Reasoning.Trigger\n└── Reasoning.Content\n```",
+      "```tsx\n<Reasoning.Root streaming={isThinking}>\n  <Reasoning.Trigger>Thought for 4 seconds</Reasoning.Trigger>\n  <Reasoning.Content>{reasoning}</Reasoning.Content>\n</Reasoning.Root>\n```"
+    ],
+    "aliases": [
+      "thinking",
+      "chain of thought",
+      "reasoning summary",
+      "ai reasoning",
+      "thought process"
+    ],
+    "siblings": [
+      {
+        "name": "ToolCall",
+        "boundary": "a tool the model called while it answered."
+      },
+      {
+        "name": "Accordion",
+        "boundary": "titled sections that are not part of a chat answer."
+      }
+    ],
+    "useWhen": "Show the reasoning a model wrote before its answer, closed by default, with a label that pulses while the model thinks."
+  },
+  {
     "name": "Sandbar",
     "slug": "components/feedback/sandbar",
     "kind": "component",
@@ -2287,6 +2319,38 @@
       }
     ],
     "useWhen": "Show the result of an action in a brief message that goes away on its own, such as a saved change, a copied value, or an error when a delete failed."
+  },
+  {
+    "name": "Tool Call",
+    "slug": "components/preview/tool-call",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "preview",
+    "importPath": "@ngrok/mantle/tool-call",
+    "summary": "One tool call of a chat answer, folded under a row with the tool's name and its state.",
+    "jsdoc": "One tool call of a chat answer, folded under a row with the tool's name and its state: running, done, failed, or interrupted.",
+    "examples": [
+      "Composition:\n```\nToolCall.Root\n├── ToolCall.Trigger\n│   └── ToolCall.Name\n└── ToolCall.Content\n```",
+      "```tsx\n<ToolCall.Root status=\"done\">\n  <ToolCall.Trigger>\n    <ToolCall.Name>list_endpoints</ToolCall.Name>\n  </ToolCall.Trigger>\n  <ToolCall.Content>\n    <CodeBlock.Root>\n      <CodeBlock.Body>\n        <CodeBlock.Code value={jsonCodeBlockValue({ limit: 5 })} />\n      </CodeBlock.Body>\n    </CodeBlock.Root>\n  </ToolCall.Content>\n</ToolCall.Root>\n```"
+    ],
+    "aliases": [
+      "tool use",
+      "function call",
+      "tool result",
+      "agent step",
+      "ai tool"
+    ],
+    "siblings": [
+      {
+        "name": "Reasoning",
+        "boundary": "the reasoning a model wrote before its answer."
+      },
+      {
+        "name": "Accordion",
+        "boundary": "titled sections that are not part of a chat answer."
+      }
+    ],
+    "useWhen": "Show a tool that a model called while it answered, with its state, and its arguments and result behind a disclosure."
   },
   {
     "name": "Tooltip",
