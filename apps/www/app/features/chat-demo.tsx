@@ -1,4 +1,5 @@
 import { Alert } from "@ngrok/mantle/alert";
+import { AppLayout } from "@ngrok/mantle/app-layout";
 import { Attachment } from "@ngrok/mantle/attachment";
 import { Button, IconButton } from "@ngrok/mantle/button";
 import { CodeBlock, jsonCodeBlockValue } from "@ngrok/mantle/code-block";
@@ -16,6 +17,8 @@ import { ToolCall } from "@ngrok/mantle/tool-call";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react/ArrowClockwise";
 import { ChatsCircleIcon } from "@phosphor-icons/react/ChatsCircle";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
+import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
+import { XIcon } from "@phosphor-icons/react/X";
 import { useRef, useState } from "react";
 import { type ChatAnswer, type ChatFile, type ChatToolCall, useChat } from "~/features/chat";
 import { mockRespond } from "~/features/chat-mock";
@@ -32,13 +35,71 @@ const starters = ["Which endpoints have no traffic policy?", "Why did my last re
 type DraftFile = ChatFile & { file: File };
 
 /**
- * A full chat: an empty state with starter prompts, a transcript that follows
- * the answer as it streams, and a composer with attachments, a model picker,
- * dictation, and one send-or-stop button. The answer comes from a mock, so the
- * demo runs with no network. Ask anything with "fail" in it to see a failed
- * answer.
+ * The chat as a full page. Switch the preview to its mobile width to see the
+ * narrow layout.
  */
 export function ChatDemo() {
+	return (
+		<Main className="fixed inset-0 flex flex-col">
+			<Chat />
+		</Main>
+	);
+}
+
+/**
+ * The same chat in `AppLayout.SidePanel`, beside the page it helps with. The
+ * panel is narrow, so the chat takes its narrow layout, as on a phone.
+ */
+export function ChatPanelDemo() {
+	return (
+		<AppLayout.Root className="fixed inset-0">
+			<AppLayout.SidePanelRoot defaultOpen>
+				<AppLayout.Workspace>
+					<AppLayout.Content>
+						<AppLayout.Header>
+							<AppLayout.HeaderContent>
+								<p className="text-strong text-sm font-medium">Endpoints</p>
+							</AppLayout.HeaderContent>
+							<AppLayout.HeaderActions>
+								<AppLayout.SidePanelTrigger icon={<SparkleIcon />} label="Toggle the assistant" />
+							</AppLayout.HeaderActions>
+						</AppLayout.Header>
+						<AppLayout.Body>
+							<div className="mx-auto max-w-7xl space-y-3 p-6">
+								{Array.from({ length: 8 }, (_, index) => (
+									<div key={index} className="border-card-muted rounded-lg border p-4">
+										<p className="text-strong text-sm font-medium">Endpoint {index + 1}</p>
+									</div>
+								))}
+							</div>
+						</AppLayout.Body>
+					</AppLayout.Content>
+					<AppLayout.SidePanel aria-label="Assistant" mobileBreakpoint="md">
+						<AppLayout.SidePanelHeader>
+							<p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
+							<AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
+						</AppLayout.SidePanelHeader>
+						<Chat />
+					</AppLayout.SidePanel>
+				</AppLayout.Workspace>
+			</AppLayout.SidePanelRoot>
+		</AppLayout.Root>
+	);
+}
+
+/**
+ * A full chat: an empty state with starter prompts, a transcript that follows
+ * the answer as it streams, and a composer with attachments, a model picker,
+ * dictation, and one send-or-stop button. It fills its container: a page, a
+ * side panel, or a phone. The answer comes from a mock, so the demo runs with
+ * no network. Ask anything with "fail" in it to see a failed answer.
+ *
+ * One gutter sets the layout at each width, as Amp does. The composer sits one
+ * gutter in from the edge. The transcript sits 0.5rem further in, so its edges
+ * line up with the composer's buttons and the composer is always the wider of
+ * the two. The gutter is 0.75rem, and 1rem when the chat is wider than 32rem.
+ */
+function Chat() {
 	const chat = useChat({ respond: mockRespond });
 	const [draft, setDraft] = useState("");
 	const [files, setFiles] = useState<DraftFile[]>([]);
@@ -59,137 +120,143 @@ export function ChatDemo() {
 	const lastAnswer = chat.messages.findLast((message) => message.from === "assistant");
 
 	return (
-		<Main className="fixed inset-0 flex flex-col">
-			<Conversation.Root streaming={chat.streaming} className="min-h-0 flex-1">
-				{chat.messages.length === 0 ? (
-					<Empty.Root className="m-auto">
-						<Empty.Icon svg={<ChatsCircleIcon />} />
-						<Empty.Title>Ask about your endpoints</Empty.Title>
-						<Empty.Description>
-							<p>The assistant reads your account. It never changes anything without asking.</p>
-						</Empty.Description>
-						<Empty.Actions className="flex-wrap justify-center">
-							{starters.map((starter) => (
-								<Button
-									key={starter}
-									type="button"
-									appearance="outlined"
-									intent="neutral"
-									onClick={() => send(starter)}
-								>
-									{starter}
-								</Button>
-							))}
-						</Empty.Actions>
-					</Empty.Root>
-				) : (
-					<Conversation.Viewport aria-label="Conversation with the assistant">
-						<Conversation.Content className="mx-auto w-full max-w-3xl px-4 py-6">
-							{chat.messages.map((message) =>
-								message.from === "user" ? (
-									<Message.Root key={message.id} from="user">
-										<Message.Content className="flex flex-col gap-2">
-											{message.files.length > 0 && (
-												<Attachment.List aria-label="Attached files">
-													{message.files.map((file) => (
-														<Attachment.Root key={file.id}>
-															<Attachment.Preview />
-															<Attachment.Name title={file.name}>{file.name}</Attachment.Name>
-															<Attachment.Size bytes={file.size} />
-														</Attachment.Root>
-													))}
-												</Attachment.List>
-											)}
-											<p className="whitespace-pre-wrap">{message.text}</p>
-										</Message.Content>
-									</Message.Root>
-								) : (
-									<Answer
-										key={message.id}
-										answer={message}
-										onRetry={
-											message === lastAnswer
-												? () => {
-														chat.retry(model);
-														// Why: Retry leaves while the new answer streams, so focus moves to the field.
-														fieldRef.current?.focus();
-													}
-												: undefined
-										}
-									/>
-								),
-							)}
-						</Conversation.Content>
-					</Conversation.Viewport>
-				)}
-				<Conversation.ScrollButton />
-			</Conversation.Root>
-			<div className="mx-auto w-full max-w-3xl px-4 pb-4">
-				<PromptInput.Root
-					streaming={chat.streaming}
-					onStop={chat.stop}
-					onFilesAdd={(added) => {
-						const entries = added.map((file) => ({
-							id: crypto.randomUUID(),
-							name: file.name,
-							size: file.size,
-							file,
-						}));
-						setFiles((current) => [...current, ...entries]);
-					}}
-					onSubmit={(event) => {
-						event.preventDefault();
-						send(draft);
-					}}
-				>
-					{files.length > 0 && (
-						<Attachment.List aria-label="Files to send" className="px-3 pt-3">
-							{files.map((file) => (
-								<Attachment.Root key={file.id}>
-									<Attachment.Preview />
-									<Attachment.Name title={file.name}>{file.name}</Attachment.Name>
-									<Attachment.Size bytes={file.size} />
-									<Attachment.Remove
-										label={`Remove ${file.name}`}
-										onClick={() =>
-											setFiles((current) => current.filter((entry) => entry.id !== file.id))
-										}
-									/>
-								</Attachment.Root>
-							))}
-						</Attachment.List>
-					)}
-					<PromptInput.TextArea
-						ref={fieldRef}
-						aria-label="Message the assistant"
-						name="message"
-						placeholder="Ask about your endpoints…"
-						value={draft}
-						onChange={(event) => setDraft(event.target.value)}
-					/>
-					<PromptInput.Footer>
-						<PromptInput.AttachButton />
-						<Select.Root name="model" value={model} onValueChange={setModel}>
-							<Select.Trigger
-								aria-label="Model"
-								className="h-8 w-auto rounded-full border-transparent bg-transparent shadow-none hover:border-transparent"
-							>
-								<Select.Value />
-							</Select.Trigger>
-							<Select.Content>
-								{models.map((option) => (
-									<Select.Item key={option.value} value={option.value}>
-										{option.label}
-									</Select.Item>
+		<div className="@container flex min-h-0 flex-1 flex-col">
+			{/* Why a second element: a container query reads an ancestor, so the gutter sits inside the container. */}
+			<div className="flex min-h-0 flex-1 flex-col [--gutter:--spacing(3)] @lg:[--gutter:--spacing(4)]">
+				<Conversation.Root streaming={chat.streaming} className="min-h-0 flex-1">
+					{chat.messages.length === 0 ? (
+						<Empty.Root className="m-auto">
+							<Empty.Icon svg={<ChatsCircleIcon />} />
+							<Empty.Title>Ask about your endpoints</Empty.Title>
+							<Empty.Description>
+								<p>The assistant reads your account. It never changes anything without asking.</p>
+							</Empty.Description>
+							<Empty.Actions className="flex-wrap justify-center">
+								{starters.map((starter) => (
+									<Button
+										key={starter}
+										type="button"
+										appearance="outlined"
+										intent="neutral"
+										onClick={() => send(starter)}
+									>
+										{starter}
+									</Button>
 								))}
-							</Select.Content>
-						</Select.Root>
-						<PromptInput.Dictate />
-						<PromptInput.Submit />
-					</PromptInput.Footer>
-				</PromptInput.Root>
+							</Empty.Actions>
+						</Empty.Root>
+					) : (
+						<Conversation.Viewport aria-label="Conversation with the assistant">
+							<Conversation.Content className="mx-auto w-full max-w-3xl px-[calc(var(--gutter)+(--spacing(2)))] py-6">
+								{chat.messages.map((message) =>
+									message.from === "user" ? (
+										<Message.Root key={message.id} from="user">
+											<Message.Content className="flex flex-col gap-2">
+												{message.files.length > 0 && (
+													<Attachment.List aria-label="Attached files">
+														{message.files.map((file) => (
+															<Attachment.Root key={file.id}>
+																<Attachment.Preview />
+																<Attachment.Name title={file.name}>{file.name}</Attachment.Name>
+																<Attachment.Size bytes={file.size} />
+															</Attachment.Root>
+														))}
+													</Attachment.List>
+												)}
+												<p className="whitespace-pre-wrap">{message.text}</p>
+											</Message.Content>
+										</Message.Root>
+									) : (
+										<Answer
+											key={message.id}
+											answer={message}
+											onRetry={
+												message === lastAnswer
+													? () => {
+															chat.retry(model);
+															// Why: Retry leaves while the new answer streams, so focus moves to the field.
+															fieldRef.current?.focus();
+														}
+													: undefined
+											}
+										/>
+									),
+								)}
+							</Conversation.Content>
+						</Conversation.Viewport>
+					)}
+					{/* Why the column: the button sits just outside the transcript's right edge, not at the window's. */}
+					<div className="absolute inset-x-0 bottom-3 mx-auto max-w-3xl">
+						<Conversation.ScrollButton className="right-[calc(var(--gutter)+(--spacing(1.5)))] bottom-0" />
+					</div>
+				</Conversation.Root>
+				<div className="mx-auto w-full max-w-3xl px-(--gutter) pb-(--gutter)">
+					<PromptInput.Root
+						streaming={chat.streaming}
+						onStop={chat.stop}
+						onFilesAdd={(added) => {
+							const entries = added.map((file) => ({
+								id: crypto.randomUUID(),
+								name: file.name,
+								size: file.size,
+								file,
+							}));
+							setFiles((current) => [...current, ...entries]);
+						}}
+						onSubmit={(event) => {
+							event.preventDefault();
+							send(draft);
+						}}
+					>
+						{files.length > 0 && (
+							<Attachment.List aria-label="Files to send" className="px-3 pt-3">
+								{files.map((file) => (
+									<Attachment.Root key={file.id}>
+										<Attachment.Preview />
+										<Attachment.Name title={file.name}>{file.name}</Attachment.Name>
+										<Attachment.Size bytes={file.size} />
+										<Attachment.Remove
+											label={`Remove ${file.name}`}
+											onClick={() =>
+												setFiles((current) => current.filter((entry) => entry.id !== file.id))
+											}
+										/>
+									</Attachment.Root>
+								))}
+							</Attachment.List>
+						)}
+						<PromptInput.TextArea
+							ref={fieldRef}
+							aria-label="Message the assistant"
+							name="message"
+							placeholder="Ask about your endpoints…"
+							value={draft}
+							onChange={(event) => setDraft(event.target.value)}
+						/>
+						<PromptInput.Footer>
+							<PromptInput.AttachButton />
+							<Select.Root name="model" value={model} onValueChange={setModel}>
+								<Select.Trigger
+									aria-label="Model"
+									className="h-8 w-auto rounded-full border-transparent bg-transparent shadow-none hover:border-transparent"
+								>
+									<Select.Value />
+								</Select.Trigger>
+								<Select.Content>
+									{models.map((option) => (
+										<Select.Item key={option.value} value={option.value}>
+											{option.label}
+										</Select.Item>
+									))}
+								</Select.Content>
+							</Select.Root>
+							<PromptInput.Dictate />
+							<PromptInput.Submit />
+						</PromptInput.Footer>
+					</PromptInput.Root>
+				</div>
 			</div>
-		</Main>
+		</div>
 	);
 }
 

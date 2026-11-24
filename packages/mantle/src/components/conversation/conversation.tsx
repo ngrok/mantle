@@ -57,7 +57,7 @@ type ConversationRootProps = ComponentProps<"div"> &
 /**
  * A chat transcript that keeps the newest message in view, as Amp does. It
  * holds `Conversation.Viewport`, the region that scrolls, and
- * `Conversation.ScrollButton`, which floats over the viewport's bottom edge.
+ * `Conversation.ScrollButton`, which floats at the viewport's bottom right.
  * Give it a height, such as `flex-1` in a flex column.
  *
  * It owns the chat's one screen-reader announcement: when an answer starts and
@@ -155,8 +155,13 @@ type ConversationViewportProps = ComponentProps<"div"> & WithAsChild & WithDataS
  * back to the end, press `Conversation.ScrollButton`, or send a message.
  *
  * The top and bottom edges fade when there is more to read past them, with
- * mantle's `scroll-fade-y`. The region is focusable, so a keyboard can scroll
- * a transcript with no focusable content. Name it with `aria-label`.
+ * mantle's `scroll-fade-y`. It reserves the scrollbar's space on both sides,
+ * so centered content lines up with a centered composer.
+ *
+ * The region is focusable, so a keyboard can scroll a transcript with no
+ * focusable content. It draws no focus ring, because a ring around the whole
+ * transcript fights the fade. A screen reader names the region on focus, and
+ * the view moves with each key. Name it with `aria-label`.
  *
  * On mount it starts at the end, unless something already moved it, such as
  * `useScrollAnchor` restoring the reader's place.
@@ -243,9 +248,9 @@ function Viewport({
 			tabIndex={0}
 			data-slot={joinDataSlot(dataSlot, "conversation-viewport")}
 			className={cx(
-				"scrollbar scroll-fade-y min-h-0 flex-1 overflow-y-auto",
-				// Inset, so an ancestor card does not clip the ring.
-				"focus-visible:ring-focus-accent focus-visible:ring-4 focus-visible:outline-hidden focus-visible:ring-inset",
+				// Why both gutters: centered content lines up with a centered composer below the viewport.
+				// Why no focus ring: a ring around the whole transcript fights the edge fade, as in Amp.
+				"scrollbar scrollbar-gutter-both scroll-fade-y min-h-0 flex-1 overflow-y-auto focus-visible:outline-hidden",
 				className,
 			)}
 			{...props}
@@ -538,10 +543,11 @@ type ConversationScrollButtonProps = Omit<
 };
 
 /**
- * The round button over the bottom edge of the viewport that goes back to the
+ * The round button at the bottom right of the viewport that goes back to the
  * newest message, as Amp's does. It shows only while the end is out of view,
- * and leaves the tab order while hidden. A press scrolls to the end, follows
- * the end again, and moves focus to the viewport, because the button hides.
+ * grows in and out as it shows and hides, and leaves the tab order while
+ * hidden. A press scrolls to the end, follows the end again, and moves focus
+ * to the viewport, because the button hides.
  *
  * @see https://mantle.ngrok.com/components/ai/conversation#conversationscrollbutton
  *
@@ -591,10 +597,11 @@ function ScrollButton({
 			type="button"
 			data-slot={joinDataSlot(dataSlot, "conversation-scroll-button")}
 			className={cx(
-				"bg-popover absolute bottom-3 left-1/2 size-8 -translate-x-1/2 rounded-full shadow-md",
-				// Inert ends interaction at once; visibility lets the exit fade finish.
-				"invisible opacity-0 transition-[opacity,visibility] transition-discrete duration-150 ease-out-strong motion-reduce:transition-none",
-				"group-data-scrolled-up/conversation:visible group-data-scrolled-up/conversation:opacity-100",
+				"bg-popover absolute right-3 bottom-3 size-8 rounded-full shadow-md",
+				// Inert ends interaction at once; visibility lets the exit finish.
+				// It morphs in from a little smaller and lower, and leaves on the reverse path.
+				"invisible translate-y-1 scale-90 opacity-0 transition-[opacity,scale,translate,visibility] transition-discrete duration-150 ease-out-strong motion-reduce:transition-none",
+				"group-data-scrolled-up/conversation:visible group-data-scrolled-up/conversation:translate-y-0 group-data-scrolled-up/conversation:scale-100 group-data-scrolled-up/conversation:opacity-100 group-data-scrolled-up/conversation:duration-200",
 				className,
 			)}
 			icon={<ArrowDownIcon />}

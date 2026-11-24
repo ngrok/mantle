@@ -140,13 +140,13 @@ Conversation.Root
 - The view follows the end again when the reader scrolls back to it, presses `Conversation.ScrollButton`, or sends a message. A message from the person is a `Message.Root` with `from="user"`.
 - On mount, the view starts at the end. If something already moved it, such as [`useScrollAnchor`](/hooks#usescrollanchor) restoring the reader's place, the view stays there.
 
-The top and bottom edges fade when there is more to read past them, with [`scroll-fade-y`](/base/scroll-fade).
+The top and bottom edges fade when there is more to read past them, with [`scroll-fade-y`](/base/scroll-fade). The viewport reserves the scrollbar's space on both sides, so centered content lines up with a centered composer below it.
 
 ## Accessibility
 
 `Conversation.Root` owns the chat's one status announcement. Set `streaming` while an answer streams. Screen readers then hear "Answering…" when it starts and "Answer ended." when it ends. Nothing reads the answer aloud word by word, because that interrupts a reader who is busy with other content.
 
-`Conversation.Viewport` is a named region that takes focus, so a keyboard can scroll a transcript that has no links or buttons. When `Conversation.ScrollButton` hides after a press, focus moves to the viewport.
+`Conversation.Viewport` is a named region that takes focus, so a keyboard can scroll a transcript that has no links or buttons. It draws no focus ring, because a ring around the whole transcript fights the edge fade. A screen reader names the region when it takes focus, the view moves with each arrow key, and Windows high-contrast mode still shows an outline. To draw a ring, pass `focus-visible:focus-ring focus-visible:ring-inset` in `className`. When `Conversation.ScrollButton` hides after a press, focus moves to the viewport.
 
 ## API Reference
 
@@ -189,7 +189,7 @@ All props from [ol](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/ol
 
 ### Conversation.ScrollButton
 
-The round button over the bottom edge of the viewport that goes back to the newest message. It shows only while the end is out of view.
+The round button at the bottom right of the viewport that goes back to the newest message. It shows only while the end is out of view, and grows in and out as it shows and hides. To move it, such as to the corner of a centered composer, set `right-*` and `bottom-*` in `className`.
 
 All props from [Icon Button](/components/actions/icon-button) except `appearance`, `asChild`, `icon`, `intent`, `label`, and `type`, plus:
 
