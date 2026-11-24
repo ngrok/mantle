@@ -1,9 +1,6 @@
 /**
- * POC: a Markdown lexer for model answers, in place of marked's. It emits
- * marked's token shapes, so `Markdown` renders its output unchanged. It reads
- * CommonMark blocks and inlines plus the GitHub extensions an answer uses:
- * tables, task items, strikethrough, and autolink literals. Block and inline
- * extensions use marked's `{ level, start, tokenizer }` shape.
+ * A CommonMark and GFM lexer for model answers that emits marked's token
+ * shapes. `Markdown` renders its output with no change.
  */
 import type { Token, Tokens, TokensList } from "marked";
 import { decodeEntities } from "./decode-entities.js";
@@ -359,9 +356,8 @@ function withInline<T extends { text: string }>(token: T, context: Context): T &
 }
 
 /**
- * The deepest quote or list that the lexer reads. Deeper markers stay text.
- * Why: each level lexes its content once more, and deep recursion overflows
- * the stack. No answer nests this deep.
+ * The deepest quote, list, or emphasis that the lexer reads; deeper markers
+ * stay text. Why: deep nesting overflows the stack of the lexer or renderer.
  */
 const MAX_NESTING = 32;
 
@@ -957,11 +953,14 @@ const isPunctuation = (char: string | undefined) => char !== undefined && PUNCTU
 const isLowSurrogate = (code: number) => code >= 0xdc_00 && code <= 0xdf_ff;
 const countOf = (text: string, part: string) => text.split(part).length - 1;
 
-/** `tokens` with each autolink literal at any depth as text. */
+/**
+ * `tokens` with each autolink at any depth as its text. Why `<…>` too: the
+ * spec nests it, but HTML and React reject an anchor in an anchor.
+ */
 function withoutAutolinks(tokens: Tok[]): Tok[] {
 	return tokens.map((token) => {
-		if (token.type === "link" && token.raw === token.text && !token.raw.startsWith("<")) {
-			return textToken(token.raw);
+		if (token.type === "link" && (token.raw === token.text || token.raw === `<${token.text}>`)) {
+			return textToken(token.text);
 		}
 		if (token.type === "strong" || token.type === "em" || token.type === "del") {
 			token.tokens = withoutAutolinks(token.tokens ?? []);
@@ -1026,15 +1025,25 @@ function htmlTerminator(rest: string): string {
 	}
 	return rest.startsWith("<![CDATA[") ? "]]>" : ">";
 }
+// Why `href` is decoded: the renderer decodes the label, and the two must match.
 const autolinkToken = (raw: string, label: string, href: string): Tok =>
-	({ type: "link", raw, text: label, href, title: null, tokens: [textToken(label)] }) as Tok;
+	({
+		type: "link",
+		raw,
+		text: label,
+		href: decodeEntities(href),
+		title: null,
+		tokens: [textToken(label)],
+	}) as Tok;
 
 /** The text of inline tokens, for an image's alt text. Why a loop: nested images can be deep. */
 function plainText(tokens: readonly Tok[]): string {
 	let out = "";
 	const stack: Tok[] = tokens.toReversed();
 	for (let token = stack.pop(); token != null; token = stack.pop()) {
-		if (token.tokens == null) {
+		// Why an image is a leaf: its `text` is already plain, and a walk into
+		// nested images is quadratic.
+		if (token.tokens == null || token.type === "image") {
 			out += token.text ?? "";
 		} else {
 			for (let at = token.tokens.length - 1; at >= 0; at -= 1) {
@@ -1056,8 +1065,7 @@ function skipSpace(source: string, index: number): number {
 
 /**
  * Finds the next unescaped `char` from an index, and remembers the answer.
- * Why: a link opener scans for its title's end. Without the memory, many
- * openers with no end scan the rest of the text each, which is quadratic.
+ * Why: without the memory, many openers with no end each scan the rest of the text.
  */
 function createFinder(source: string): (char: string, from: number) => number {
 	let found: Map<string, { from: number; at: number }> | undefined;
@@ -1073,7 +1081,8 @@ function createFinder(source: string): (char: string, from: number) => number {
 			while (source[at - 1 - slashes] === "\\") {
 				slashes += 1;
 			}
-			if (slashes % 2 === 0) {
+			// Why a line break counts: a backslash before it is a hard break, not an escape.
+			if (slashes % 2 === 0 || char === "\n") {
 				break;
 			}
 			at = source.indexOf(char, at + 1);
@@ -1128,11 +1137,10 @@ function inlineLink(
 	let href: string;
 	if (source[index] === "<") {
 		const close = find(">", index + 1);
-		if (
-			close === -1 ||
-			source.slice(index, close).includes("\n") ||
-			/(?:^|[^\\])(?:\\\\)*</.test(source.slice(index + 1, close))
-		) {
+		const newline = find("\n", index + 1);
+		const opener = find("<", index + 1);
+		// Why `find`: a slice scan for each `[a](<` opener is quadratic.
+		if (close === -1 || (newline !== -1 && newline < close) || (opener !== -1 && opener < close)) {
 			return undefined;
 		}
 		href = source.slice(index + 1, close);
@@ -1621,10 +1629,18 @@ function finish(nodes: readonly Node[]): Tok[] {
 		}
 	}
 
-	type Frame = { tokens: Tok[]; char: string; use: number };
-	const stack: Frame[] = [{ tokens: [], char: "", use: 0 }];
+	// Why `raw` grows with `+`: a join at each level copies the text again,
+	// which is quadratic for deep emphasis.
+	type Frame = { tokens: Tok[]; raw: string };
+	const root: Frame = { tokens: [], raw: "" };
+	const frames: Frame[] = [root];
+	// One entry for each open pair. `undefined` marks a pair past the depth
+	// limit, which stays text so that the renderer does not recurse too deep.
+	const stack: (Frame | undefined)[] = [];
 	const append = (token: Tok) => {
-		const tokens = stack.at(-1)?.tokens ?? [];
+		const frame = frames.at(-1) ?? root;
+		const tokens = frame.tokens;
+		frame.raw += token.raw;
 		const last = tokens.at(-1);
 		if (
 			token.type === "text" &&
@@ -1643,16 +1659,20 @@ function finish(nodes: readonly Node[]): Tok[] {
 			continue;
 		}
 		for (const use of node.closes) {
-			const frame = stack.length > 1 ? stack.pop() : undefined;
-			if (frame == null) {
+			if (stack.length === 0) {
 				break;
 			}
 			const marker = node.char.repeat(use);
-			const inner = frame.tokens.map((token) => token.raw).join("");
+			const frame = stack.pop();
+			if (frame == null) {
+				append(textToken(marker));
+				continue;
+			}
+			frames.pop();
 			append({
 				type: node.char === "~" ? "del" : (EMPHASIS[use] ?? "em"),
-				raw: marker + inner + marker,
-				text: inner,
+				raw: marker + frame.raw + marker,
+				text: frame.raw,
 				tokens: frame.tokens,
 			});
 		}
@@ -1660,10 +1680,17 @@ function finish(nodes: readonly Node[]): Tok[] {
 			append(textToken(node.char.repeat(node.count)));
 		}
 		for (let at = node.opens.length - 1; at >= 0; at -= 1) {
-			stack.push({ tokens: [], char: node.char, use: node.opens[at] ?? 1 });
+			if (frames.length > MAX_NESTING) {
+				stack.push(undefined);
+				append(textToken(node.char.repeat(node.opens[at] ?? 1)));
+			} else {
+				const frame: Frame = { tokens: [], raw: "" };
+				frames.push(frame);
+				stack.push(frame);
+			}
 		}
 	}
-	return stack[0]?.tokens ?? [];
+	return root.tokens;
 }
 
 /**

@@ -47,10 +47,34 @@ describe("lexMarkdown", () => {
 		["a single-column table", "Name\n| --- |\nvalue", "table", { rows: [[{ text: "value" }]] }],
 		["emphasis after an emoji", "🎉_done_", "em", { text: "done" }],
 		["an escaped `<` in a destination in `<…>`", "[a](<b\\<c>)", "link", { href: "b<c" }],
+		[
+			"an entity in an autolink's URL",
+			"<https://a.io/?x=1&amp;y=2>",
+			"link",
+			{ href: "https://a.io/?x=1&y=2" },
+		],
 	])("reads %s", (...[, source, type, expected]) => {
 		expect(flatten(lexMarkdown(source)).find((token) => token.type === type)).toMatchObject(
 			expected,
 		);
+	});
+
+	test("keeps an autolink in a link's text as text", () => {
+		const links = flatten(lexMarkdown("[<https://a.io> and <a@b.io>](/ok)")).filter(
+			(token) => token.type === "link",
+		);
+		expect(links).toMatchObject([{ href: "/ok", text: "<https://a.io> and <a@b.io>" }]);
+	});
+
+	test("keeps emphasis past the nesting limit as text", () => {
+		const depth = (tokens: readonly Token[]): number =>
+			Math.max(
+				0,
+				...tokens.map((token) => ("tokens" in token && token.tokens ? 1 + depth(token.tokens) : 0)),
+			);
+		const tokens = lexMarkdown(`${"*".repeat(200)}x${"*".repeat(200)}`);
+		expect(depth(tokens)).toBeLessThan(40);
+		expect(tokens.map((token) => token.raw).join("")).toBe(`${"*".repeat(200)}x${"*".repeat(200)}`);
 	});
 
 	test("splits a table cell at a pipe after an even run of backslashes", () => {
@@ -102,6 +126,7 @@ describe("lexMarkdown", () => {
 			Array.from({ length: 1500 }, (_, at) => `${"`".repeat(at + 1)}a`).join(""),
 		],
 		["unclosed comments", `x ${"<!--".repeat(40_000)}`],
+		["nested images", `${"![".repeat(20_000)}x${"](/u)".repeat(20_000)}`],
 	])("lexes %s in linear time", (_, source) => {
 		const start = performance.now();
 		const tokens = lexMarkdown(source);
