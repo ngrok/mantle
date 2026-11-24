@@ -321,7 +321,8 @@ function observeMove(element: HTMLElement, onMove: () => void): () => void {
  *
  * A float that scrolls, such as a list that `--available-height` caps, is
  * sized by its content height (`scrollHeight`), so it can still move to the
- * side with more room.
+ * side with more room. A float that scrolls a child instead marks that child
+ * with `data-float-scroll`.
  *
  * Each frame it writes on the float `data-side` (the side it resolved to),
  * `--anchor-width`, `--anchor-height`, `--available-height`, and a `transform-origin` at the
@@ -370,8 +371,11 @@ function trackFloat({
 	// counts an arrow that sticks out below it, which the gap already counts.
 	// Why only above or below: beside the anchor, the height only aligns the
 	// float, and the rendered height is the one to align.
+	// Why a scroll child: a popup with a fixed part, such as a footer, scrolls an
+	// inner element marked `data-float-scroll` and clips the rest.
+	const scroller = floating.querySelector<HTMLElement>(":scope > [data-float-scroll]") ?? floating;
 	const sizeByContent =
-		(side === "top" || side === "bottom") && getComputedStyle(floating).overflowY !== "visible";
+		(side === "top" || side === "bottom") && getComputedStyle(scroller).overflowY !== "visible";
 
 	/** The anchor box and viewport size of the last placement, to see a move. */
 	let placedFor = "";
@@ -403,7 +407,7 @@ function trackFloat({
 		const width = floating.offsetWidth;
 		const height = floating.offsetHeight;
 		const contentHeight = sizeByContent
-			? floating.scrollHeight + height - floating.clientHeight
+			? scroller.scrollHeight + height - scroller.clientHeight
 			: height;
 		const viewport = {
 			width: document.documentElement.clientWidth / zoom,

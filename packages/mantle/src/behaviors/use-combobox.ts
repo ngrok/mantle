@@ -350,8 +350,9 @@ const useComboboxPopup = (
 		node instanceof Node && anchorRef.current?.contains(node) === true;
 	return {
 		onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
-			// Why: `Content`'s own `onKeyDown` runs first and can cancel the key.
-			if (event.defaultPrevented) {
+			// Why: `Content`'s own `onKeyDown` runs first and can cancel the key, and an
+			// input method in a footer text field uses Escape for its own candidates.
+			if (event.defaultPrevented || event.nativeEvent.isComposing) {
 				return;
 			}
 			const box = event.currentTarget;
@@ -382,6 +383,10 @@ const useComboboxPopup = (
 			}
 		},
 		onBlur: (event: FocusEvent<HTMLElement>) => {
+			// Why: `Content`'s own `onBlur` runs first and can keep the list open.
+			if (event.defaultPrevented) {
+				return;
+			}
 			const { relatedTarget } = event;
 			const inside =
 				relatedTarget instanceof Node &&

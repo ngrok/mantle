@@ -320,6 +320,7 @@ const OpenContent = ({
 				popover={hasPopoverApi ? "manual" : undefined}
 				ref={boxRef}
 				data-slot="combobox-popup"
+				data-mantle-popup=""
 				data-open=""
 				className={cx(
 					"border-popover bg-popover pointer-events-auto fixed inset-auto z-50 m-0 text-inherit max-h-(--available-height) flex flex-col overflow-hidden box-border rounded-md border shadow-md font-sans",
@@ -336,9 +337,10 @@ const OpenContent = ({
 							}
 						})}
 						ref={listRef}
+						data-float-scroll=""
 						data-slot={joinDataSlot(dataSlot, "combobox-content")}
 						className={cx(
-							"min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none min-w-32 scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 p-1 between:mbe-px outline-hidden",
+							"relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none min-w-32 scroll-cue-y before:-top-1 after:-bottom-1 scroll-py-6 p-1 between:mbe-px outline-hidden",
 							// Why less 2px: the popup's border sits outside the listbox, and the popup matches the anchor.
 							sameWidth && "w-[calc(var(--anchor-width)-2px)]",
 							className,
@@ -668,7 +670,8 @@ const ContentFooter = ({
 			<div
 				ref={ref}
 				data-slot={joinDataSlot(dataSlot, "combobox-content-footer")}
-				className={cx("bg-popover border-popover shrink-0 border-t", className)}
+				// Why contain-inline-size: the footer takes the popup's width and never widens it.
+				className={cx("bg-popover border-popover shrink-0 border-t contain-inline-size", className)}
 				{...props}
 			>
 				{children}

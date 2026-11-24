@@ -4,6 +4,7 @@ import { useState } from "react";
 import { describe, expect, onTestFinished, test, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
 import * as Dialog from "../dialog/dialog-parts.js";
+import * as Popover from "../popover/popover-parts.js";
 import * as Combobox from "./combobox-parts.js";
 
 const domains = ["acme.ngrok.app", "acme.ngrok.dev", "acme.ngrok.io", "zeta.ngrok.app"];
@@ -488,5 +489,159 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		const popup = popupOf(listbox).getBoundingClientRect();
 		expect(popup.width).toBeGreaterThan(384);
 		expect(popup.right).toBeGreaterThanOrEqual(listbox.getBoundingClientRect().right);
+	});
+	test("with no footer, the highlighted option shows inside the scrolled listbox", async () => {
+		await injectComboboxCss();
+		const fruits = Array.from({ length: 30 }, (_, index) => `Fruit ${index}`);
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Fruit" style={{ marginTop: 48 }} />
+				<Combobox.Content style={{ maxHeight: 120 }}>
+					{fruits.map((fruit) => (
+						<Combobox.Item key={fruit} value={fruit} />
+					))}
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Fruit" });
+		await userEvent.click(input);
+		const listbox = await screen.findByRole("listbox");
+		await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}");
+		const option = activeOption(input);
+		expect(option).not.toBeNull();
+		const list = listbox.getBoundingClientRect();
+		const rect = option?.getBoundingClientRect();
+		expect(rect?.top).toBeGreaterThanOrEqual(list.top - 1);
+		expect(rect?.bottom).toBeLessThanOrEqual(list.bottom + 1);
+	});
+
+	test("a list that grows after it opens moves to the side with more room", async () => {
+		await injectComboboxCss();
+		const Growing = () => {
+			const [count, setCount] = useState(1);
+			return (
+				<Combobox.Root onInputValueChange={() => setCount(40)}>
+					<Combobox.Input aria-label="Fruit" style={{ position: "fixed", bottom: 120 }} />
+					<Combobox.Content>
+						{Array.from({ length: count }, (_, index) => (
+							<Combobox.Item key={index} value={`Fruit ${index}`} />
+						))}
+					</Combobox.Content>
+				</Combobox.Root>
+			);
+		};
+		render(<Growing />);
+		await userEvent.click(screen.getByRole("combobox", { name: "Fruit" }));
+		const listbox = await screen.findByRole("listbox");
+		expect(popupOf(listbox)).toHaveAttribute("data-side", "bottom");
+		await userEvent.keyboard("F");
+		await expect.poll(() => popupOf(listbox).dataset.side).toBe("top");
+	});
+
+	test("a footer never makes the popup wider than its input", async () => {
+		await injectComboboxCss();
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Release" style={{ width: 160 }} />
+				<Combobox.Content>
+					<Combobox.Item value="v1.2.0" />
+					<Combobox.ContentFooter>
+						<button type="button">Load more</button>
+						<input aria-label="Tag filter" />
+					</Combobox.ContentFooter>
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Release" });
+		await userEvent.click(input);
+		const listbox = await screen.findByRole("listbox");
+		// Why against the listbox: the listbox takes the input's width, and the footer takes the popup's.
+		const footer = screen.getByRole("button", { name: "Load more" }).parentElement;
+		expect(footer?.getBoundingClientRect().width).toBeCloseTo(
+			listbox.getBoundingClientRect().width,
+			0,
+		);
+	});
+
+	test("inside a Popover, Escape from a footer control closes only the list", async () => {
+		render(
+			<Popover.Root defaultOpen>
+				<Popover.Trigger>Filters</Popover.Trigger>
+				<Popover.Content>
+					<Combobox.Root>
+						<Combobox.Input aria-label="Release" />
+						<Combobox.Content>
+							<Combobox.Item value="v1.2.0" />
+							<Combobox.ContentFooter>
+								<button type="button">Load more</button>
+							</Combobox.ContentFooter>
+						</Combobox.Content>
+					</Combobox.Root>
+				</Popover.Content>
+			</Popover.Root>,
+		);
+		const input = await screen.findByRole("combobox", { name: "Release" });
+		await userEvent.click(input);
+		await userEvent.keyboard("{Tab}");
+		expect(screen.getByRole("button", { name: "Load more" })).toHaveFocus();
+		await userEvent.keyboard("{Escape}");
+
+		expect(input).toHaveAttribute("aria-expanded", "false");
+		expect(input).toHaveFocus();
+		expect(screen.getByRole("button", { name: "Filters" })).toHaveAttribute(
+			"aria-expanded",
+			"true",
+		);
+	});
+
+	test("an Escape that an input method composes in a footer text field keeps the list open", async () => {
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Release" />
+				<Combobox.Content>
+					<Combobox.Item value="v1.2.0" />
+					<Combobox.ContentFooter>
+						<input aria-label="Tag filter" />
+					</Combobox.ContentFooter>
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Release" });
+		await userEvent.click(input);
+		const field = screen.getByRole("textbox", { name: "Tag filter" });
+		await userEvent.click(field);
+		field.dispatchEvent(
+			new KeyboardEvent("keydown", {
+				key: "Escape",
+				isComposing: true,
+				bubbles: true,
+				cancelable: true,
+			}),
+		);
+		expect(input).toHaveAttribute("aria-expanded", "true");
+		expect(field).toHaveFocus();
+	});
+
+	test("Content's onBlur can cancel the close when focus leaves the footer", async () => {
+		render(
+			<>
+				<Combobox.Root>
+					<Combobox.Input aria-label="Release" />
+					<Combobox.Content onBlur={(event) => event.preventDefault()}>
+						<Combobox.Item value="v1.2.0" />
+						<Combobox.ContentFooter>
+							<button type="button">Load more</button>
+						</Combobox.ContentFooter>
+					</Combobox.Content>
+				</Combobox.Root>
+				<button type="button">Elsewhere</button>
+			</>,
+		);
+		const input = screen.getByRole("combobox", { name: "Release" });
+		await userEvent.click(input);
+		await userEvent.keyboard("{Tab}");
+		await userEvent.click(screen.getByRole("button", { name: "Elsewhere" }));
+		expect(screen.getByRole("button", { name: "Elsewhere" })).toHaveFocus();
+		expect(input).toHaveAttribute("aria-expanded", "true");
 	});
 });
