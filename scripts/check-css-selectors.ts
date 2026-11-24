@@ -29,11 +29,8 @@ function resolveNested(parent: string | null, selector: string): string {
 }
 
 /**
- * The selectors in a stylesheet that put a structural pseudo-class before a
- * combinator, or that end in a universal subject after a sibling combinator or
- * only attribute anchors, with their 1-based lines and the fixes to name. A
- * nested rule is checked as its resolved selector. A `structural-selector-ok: <reason>` comment right before
- * a rule allows it. `@custom-variant` selectors count.
+ * The selectors in a stylesheet that the two selector checks flag, with their
+ * 1-based lines and fixes. A `structural-selector-ok: <reason>` comment allows one.
  *
  * @example
  * selectorProblems(".a > tr:last-child > * { color: red }"); // => [{ line: 1, selector: ".a > tr:last-child > *", hint: fixHint }]

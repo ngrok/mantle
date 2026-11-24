@@ -15,8 +15,8 @@
  *   sibling's subtree (the OtpInput overlay restyled 4,662 elements, #1825).
  * - Only attributes as anchors, such as `[data-state] > *` in a stylesheet:
  *   no class, id, or tag limits it to mantle's parts.
- * The check reads the top-level compounds only, so a combinator inside
- * `:is()` and a trap that CSS nesting builds from two rules are not seen.
+ * The check reads a combinator inside a one-selector `:is()`, as CSS nesting
+ * writes it, and composes the arbitrary variants of one class.
  *
  * Scope: every static string in a file, so a class list in a `cx()` call, a
  * `className`, or a variants object is covered. Only Tailwind arbitrary
@@ -86,8 +86,13 @@ function dropAttributes(selector) {
 	let result = "";
 	let depth = 0;
 	let quote = null;
+	let escaped = false;
 	for (const char of selector) {
-		if (quote != null) {
+		if (escaped || char === "\\") {
+			// Why: an escaped character, such as `\]` or `\+`, is not syntax.
+			escaped = !escaped;
+			result += depth === 0 ? char : "";
+		} else if (quote != null) {
 			if (char === quote) {
 				quote = null;
 				result += depth === 0 ? char : "";
@@ -172,8 +177,9 @@ function splitCompounds(selector) {
 	let depth = 0;
 	let current = "";
 	let pending = null;
+	let escaped = false;
 	for (const char of selector.trim()) {
-		if (depth === 0 && /[\s>+~]/.test(char)) {
+		if (!escaped && depth === 0 && /[\s>+~]/.test(char)) {
 			if (current !== "") {
 				compounds.push(current);
 				current = "";
@@ -187,7 +193,11 @@ function splitCompounds(selector) {
 			combinators.push(pending);
 			pending = null;
 		}
-		if (char === "(" || char === "[") {
+		if (escaped) {
+			escaped = false;
+		} else if (char === "\\") {
+			escaped = true;
+		} else if (char === "(" || char === "[") {
 			depth++;
 		} else if (char === ")" || char === "]") {
 			depth--;
@@ -238,6 +248,40 @@ const isUniversal = (compound) => {
 	return !/[.#[]/.test(bucketed) && !/^[a-z]/i.test(bucketed);
 };
 
+/**
+ * Replaces a one-selector `:is(…)` or `:where(…)` that holds a combinator with
+ * its argument, so a combinator that CSS nesting wraps is seen.
+ *
+ * @example
+ * unwrapIs(":is(.a + .b) > *"); // => ".a + .b > *"
+ */
+function unwrapIs(selector) {
+	let result = "";
+	for (let index = 0; index < selector.length; index++) {
+		const name = /^:(is|where)\(/.exec(selector.slice(index))?.[1];
+		if (name == null) {
+			result += selector[index];
+			continue;
+		}
+		const open = index + name.length + 1;
+		let depth = 0;
+		let end = open;
+		for (; end < selector.length; end++) {
+			if (selector[end] === "(") {
+				depth++;
+			} else if (selector[end] === ")" && --depth === 0) {
+				break;
+			}
+		}
+		const argument = selector.slice(open + 1, end);
+		const { compounds } = splitCompounds(dropAttributes(argument));
+		const flatten = splitTopLevel(argument).length === 1 && compounds.length > 1;
+		result += flatten ? unwrapIs(argument) : selector.slice(index, end + 1);
+		index = end;
+	}
+	return result;
+}
+
 /** Whether a compound anchors only on attributes: no class, id, or tag. */
 const isAttributeOnly = (compound) =>
 	!/[.#]/.test(compound) && !/^[a-z]/i.test(compound) && compound.includes("[");
@@ -256,7 +300,7 @@ const isAttributeOnly = (compound) =>
  */
 export function hasUniversalSubjectTrap(selector) {
 	// Why `&` counts as a class: Tailwind puts the utility's class there.
-	for (const part of splitTopLevel(dropHasArguments(selector.replaceAll("&", ".x")))) {
+	for (const part of splitTopLevel(unwrapIs(dropHasArguments(selector.replaceAll("&", ".x"))))) {
 		const { compounds, combinators } = splitCompounds(dropAttributes(part));
 		const subject = compounds.at(-1) ?? "";
 		if (compounds.length < 2 || !isUniversal(subject)) {
@@ -265,7 +309,8 @@ export function hasUniversalSubjectTrap(selector) {
 		const anchors = compounds.slice(0, -1);
 		if (
 			combinators.some((combinator) => combinator === "+" || combinator === "~") ||
-			anchors.every(isAttributeOnly)
+			(anchors.some(isAttributeOnly) &&
+				anchors.every((compound) => isAttributeOnly(compound) || isUniversal(compound)))
 		) {
 			return true;
 		}
@@ -320,10 +365,24 @@ export function hasStructuralCombinator(selector) {
  * structuralVariants("first:*:p-2"); // => ["*"]
  */
 export function structuralVariants(token) {
+	return classifyVariants(token).map(({ variant }) => variant);
+}
+
+/**
+ * The variants that `structuralVariants` returns, each with the fixes it needs:
+ * `structural` for a structural pseudo-class before a combinator, `universal`
+ * for a universal subject trap in the selector the arbitrary variants build.
+ *
+ * @example
+ * classifyVariants("[&+tr]:[&>*]:p-2"); // => [{ variant: "[&>*]", structural: false, universal: true }]
+ */
+function classifyVariants(token) {
 	const found = [];
 	let depth = 0;
 	let start = 0;
 	let structuralBefore = false;
+	// Why compose: `[&+tr]:[&>*]:` builds `.x+tr>*`, a trap that neither variant shows alone.
+	let composed = "&";
 	for (let index = 0; index < token.length; index++) {
 		const char = token[index];
 		if (char === "[" || char === "(") {
@@ -339,26 +398,26 @@ export function structuralVariants(token) {
 				const selector = variant.slice(1, -1).replace(/(?<!\\)_/g, " ");
 				const selfStart = lastCompoundStart(selector);
 				const addsCombinator = selector.indexOf("&") < selfStart;
-				if (
-					hasStructuralCombinator(selector) ||
-					(structuralBefore && addsCombinator) ||
-					hasUniversalSubjectTrap(selector)
-				) {
-					found.push(variant);
+				composed = selector.replaceAll("&", composed);
+				const structural =
+					hasStructuralCombinator(selector) || (structuralBefore && addsCombinator);
+				const universal = hasUniversalSubjectTrap(composed);
+				if (structural || universal) {
+					found.push({ variant, structural, universal });
 				}
 				const self = dropHasArguments(dropAttributes(selector.slice(selfStart)));
 				structuralBefore = (structuralBefore && !addsCombinator) || STRUCTURAL.test(self);
 			} else if (relative != null) {
 				// Why `structuralBefore` stays: the relative selector goes in front, so the element's own compound stays last.
 				if (STRUCTURAL.test(dropHasArguments(dropAttributes(relative[1] ?? "")))) {
-					found.push(variant);
+					found.push({ variant, structural: true, universal: false });
 				}
 			} else if (STRUCTURAL_RELATIVE_VARIANT.test(variant)) {
-				found.push(variant);
+				found.push({ variant, structural: true, universal: false });
 				structuralBefore = false;
 			} else if (variant === "*" || variant === "**") {
 				if (structuralBefore) {
-					found.push(variant);
+					found.push({ variant, structural: true, universal: false });
 				}
 				structuralBefore = false;
 			} else if (
@@ -377,10 +436,7 @@ const noStructuralCombinator = {
 	create(context) {
 		function check(node, value) {
 			for (const token of value.split(/\s+/)) {
-				for (const variant of structuralVariants(token)) {
-					const selector = variant.slice(1, -1).replace(/(?<!\\)_/g, " ");
-					const universal = variant.startsWith("[") && hasUniversalSubjectTrap(selector);
-					const structural = !universal || hasStructuralCombinator(selector);
+				for (const { variant, structural, universal } of classifyVariants(token)) {
 					const hint = [structural && fixHint, universal && universalHint]
 						.filter(Boolean)
 						.join(" ");

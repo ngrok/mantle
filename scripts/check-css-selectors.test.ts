@@ -35,11 +35,14 @@ describe("selectorProblems", () => {
 
 	it("names each fix a selector needs, and reads a nested rule and a tag anchor", () => {
 		const css =
-			".a { & + * { color: red; } }\n.b > tr:last-child + * { color: red; }\nbutton[data-x] > * { color: red; }\n";
+			".a { & + * { color: red; } }\n.b > tr:last-child + * { color: red; }\nbutton[data-x] > * { color: red; }\n.c + .d { & > * { color: red; } }\n[data-y] > * > * { color: red; }\n.e\\+f > * { color: red; }\n.g + *:not(.h) { color: red; }\n";
 
 		expect(selectorProblems(css)).toEqual([
 			{ line: 1, selector: "& + *", hint: universalHint },
 			{ line: 2, selector: ".b > tr:last-child + *", hint: `${fixHint} ${universalHint}` },
+			{ line: 4, selector: "& > *", hint: universalHint },
+			{ line: 5, selector: "[data-y] > * > *", hint: universalHint },
+			{ line: 7, selector: ".g + *:not(.h)", hint: universalHint },
 		]);
 	});
 

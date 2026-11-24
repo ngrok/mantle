@@ -358,6 +358,7 @@ describe("no-structural-combinator", () => {
 		'cx("md:[&~*]:hidden");',
 		'cx("[&+:not(.x)]:ml-2");',
 		'cx("[&>tr+tr>*]:border-t");',
+		'cx("[&+tr]:[&>*]:p-2");',
 	])("flags %s", (source) => {
 		expect(
 			lint({ rule: "no-structural-combinator", fileName: "a.ts", source }).length,
