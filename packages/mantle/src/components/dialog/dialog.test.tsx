@@ -167,8 +167,8 @@ describe("Dialog.Content", () => {
 			expect(screen.queryByRole("dialog")).toBeNull();
 		});
 
-		// Why no `Dialog.Trigger`: Radix returns focus only to its trigger, and a
-		// palette that opens from its own buttons or a shortcut has none.
+		// Why no `Dialog.Trigger`: a palette that opens from its own buttons or a
+		// shortcut has no trigger, and focus must still go back.
 		it("returns focus to the element focused before a trigger-less open", async () => {
 			const user = userEvent.setup();
 			function SearchDialog() {
@@ -231,7 +231,7 @@ describe("Dialog.Content", () => {
 		});
 
 		// Why wait on `onCloseAutoFocus`: the focus return runs in the same call,
-		// after Radix's close timer, so focus is final once the spy has run.
+		// after the close, so focus is final once the spy has run.
 		it("keeps focus where the user moved it when a non-modal dialog closes", async () => {
 			const user = userEvent.setup();
 			const onCloseAutoFocus = vi.fn<(event: Event) => void>();
@@ -319,7 +319,7 @@ describe("Dialog.Content", () => {
 		it("runs a consumer onEscapeKeyDown with an unprevented event and still closes", async () => {
 			const user = userEvent.setup();
 			const onOpenChange = vi.fn<(open: boolean) => void>();
-			// Radix prevents the event itself once it decides to dismiss, so the flag
+			// The dialog prevents the event itself after the handler runs, so the flag
 			// is sampled while the handler runs, not from `mock.lastCall`.
 			const preventedWhenCalled: boolean[] = [];
 			const onEscapeKeyDown = vi.fn<(event: KeyboardEvent) => void>((event) => {
@@ -405,8 +405,8 @@ describe("Dialog.Content", () => {
 		});
 
 		it("keeps a consumer-supplied aria-describedby", async () => {
-			// Content spreads its props after the Radix value, so a consumer id must
-			// survive the spread instead of being replaced by `undefined`.
+			// `Description` names itself only when the `<dialog>` has no
+			// `aria-describedby`, so a consumer id stays.
 			render(
 				<Dialog.Root defaultOpen>
 					<Dialog.Content aria-describedby="external-help">
@@ -500,7 +500,7 @@ describe("Dialog.Content", () => {
 });
 
 describe("Dialog.Trigger", () => {
-	it("renders nothing for an empty asChild trigger of a dialog that opens from state, as with Radix", () => {
+	it("renders nothing for an empty asChild trigger of a dialog that opens from state", () => {
 		render(
 			<Dialog.Root open>
 				<Dialog.Trigger asChild>{undefined}</Dialog.Trigger>
@@ -725,7 +725,7 @@ function PromptViewport() {
 
 describe("outside interaction with a floating prompt", () => {
 	// `preventCloseOnPromptInteraction` has its own unit tests. These pin that
-	// `Dialog.Content` wires it into both Radix outside-interaction handlers.
+	// `Dialog.Content` applies it to the event of a press outside the dialog.
 	it("stays open on a click inside an .overlay-prompt", async () => {
 		const user = userEvent.setup();
 		const onOpenChange = vi.fn<(open: boolean) => void>();

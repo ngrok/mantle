@@ -79,7 +79,7 @@ describe("AlertDialog", () => {
 		expect(dialog).not.toHaveAttribute("aria-describedby");
 	});
 
-	test("an explicit aria-describedby on the content wins over the Radix default", async () => {
+	test("an explicit aria-describedby on the content wins over the default", async () => {
 		const user = userEvent.setup();
 		render(
 			<AlertDialog.Root intent="danger">

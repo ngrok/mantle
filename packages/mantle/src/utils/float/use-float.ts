@@ -29,8 +29,9 @@ const EXIT_DURATION = 150;
  * fixed box at the float tier, as before mantle used the popover API. The top
  * layer ignores `z-index`.
  *
- * Why `pointer-events-auto`: a modal Radix menu sets `pointer-events: none` on
- * `<body>`, and a float that portals there would inherit it.
+ * Why `pointer-events-auto`: a modal from another library, such as a Radix
+ * menu, sets `pointer-events: none` on `<body>`, and a float that portals
+ * there would inherit it.
  *
  * Why `overscroll-none`: a float whose content scrolls, such as a tall
  * popover, does not bounce or scroll the page at its ends. It changes nothing
@@ -86,12 +87,12 @@ type OpenFloat = {
 const openFloats: OpenFloat[] = [];
 
 /**
- * A layer that a float holds and that handles its own Escape: a Radix popper,
- * an overlay, or an expanded popup owner such as a combobox input. An expanded
- * accordion trigger also sets `aria-controls`, but it does not take Escape.
+ * A layer that a float holds and that handles its own Escape: an overlay, or an
+ * expanded popup owner such as a combobox input. An expanded accordion trigger
+ * also sets `aria-controls`, but it does not take Escape.
  */
 const nestedLayerSelector =
-	"[data-radix-popper-content-wrapper], [data-mantle-modal-content], [aria-expanded='true'][aria-controls]:is([role='combobox'], [aria-haspopup]:not([aria-haspopup='false']))";
+	"[data-mantle-modal-content], [aria-expanded='true'][aria-controls]:is([role='combobox'], [aria-haspopup]:not([aria-haspopup='false']))";
 
 /** Whether an Escape at `target` belongs to a layer inside `floating`. */
 function belongsToNestedLayer(floating: HTMLElement, target: EventTarget | null): boolean {
@@ -104,7 +105,7 @@ function belongsToNestedLayer(floating: HTMLElement, target: EventTarget | null)
 
 /**
  * Gives Escape to the float that opened last. Why the capture phase on
- * `window`: it runs before the document listeners of a Radix overlay under the
+ * `window`: it runs before the document listeners of an overlay under the
  * float, and a prevented Escape keeps that overlay and the browser's own close
  * request from closing anything else.
  */
@@ -416,7 +417,7 @@ function useFloat({
 					detail: { originalEvent },
 				});
 				// Why dispatch on the target: a handler reads `event.target` to keep the
-				// float open for one outside control, as it could with Radix.
+				// float open for one outside control.
 				const runHandlers = () => {
 					handler(event);
 					interactOutside(event);

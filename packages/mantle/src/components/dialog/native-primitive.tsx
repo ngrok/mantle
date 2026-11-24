@@ -37,7 +37,7 @@ import { escapeBelongsToNestedPopup } from "./targets.js";
  * onto them.
  *
  * By default, `Content` mounts its children when the dialog opens and
- * unmounts them after the exit animation, like a Radix dialog. With
+ * unmounts them after the exit animation. With
  * `forceMount`, the `<dialog>` and its children stay mounted and the server
  * renders them: an uncontrolled tap then opens the dialog with DOM calls and
  * no React render, even before hydration.
@@ -121,10 +121,9 @@ function trackInput(ownerDocument: Document): void {
 }
 
 /**
- * Runs `handler` with a cancelable `type` event that `target` receives, as a
- * Radix dialog sent it to its content, so `event.currentTarget` is the panel.
- * Returns the event. As with Radix, an error in `handler` goes to `window`'s
- * `error` event, not to the caller.
+ * Runs `handler` with a cancelable `type` event that `target` receives, so
+ * `event.currentTarget` is the panel. Returns the event. An error in `handler`
+ * goes to `window`'s `error` event, not to the caller.
  */
 function sendFocusEvent(
 	target: HTMLElement | null,
@@ -299,8 +298,8 @@ function closeNested(dialog: HTMLDialogElement): void {
 /**
  * Closes `dialog` after its exit animation: `data-closing` starts the
  * exit of the `<dialog>`, its backdrop, and its panel, and `close()` runs when
- * those animations end. The dialog stays modal for the length of the exit, as
- * a Radix dialog does. `done` runs after the close, unless the dialog opened
+ * those animations end. The dialog stays modal for the length of the exit.
+ * `done` runs after the close, unless the dialog opened
  * again during the exit.
  *
  * Why not CSS alone: Firefox does not animate `display`, and Safari takes a
@@ -334,7 +333,7 @@ function closeAfterExit(dialog: HTMLDialogElement, done?: () => void): void {
 		done?.();
 	};
 	// Why at once with no exit: a dialog with no animation closes in the
-	// event that asks for it, as a Radix dialog does.
+	// event that asks for it.
 	if (exits.length === 0) {
 		closeNow();
 		return;
@@ -422,8 +421,8 @@ function sendsCommand(element: Element): boolean {
 }
 
 /**
- * The event that `onPointerDownOutside` and `onInteractOutside` get, as in
- * Radix: a cancelable event at the pressed element, with the pointer event.
+ * The event that `onPointerDownOutside` and `onInteractOutside` get: a
+ * cancelable event at the pressed element, with the pointer event.
  * Call `preventDefault()` to keep the dialog open.
  */
 type PointerDownOutsideEvent = CustomEvent<{ originalEvent: PointerEvent }>;
@@ -539,7 +538,7 @@ function useClickToOpen({
 		const element = event.currentTarget;
 		if (!event.defaultPrevented && !sendsCommand(element)) {
 			const dialog = element.ownerDocument.getElementById(root.contentId);
-			// Why a toggle: a trigger outside an open non-modal dialog closes it, as with Radix.
+			// Why a toggle: a trigger outside an open non-modal dialog closes it.
 			const shown =
 				dialog instanceof HTMLDialogElement && dialog.open && dialog.hasAttribute("data-open");
 			requestOpen({ dialog, open: open && !shown, root });
@@ -564,7 +563,7 @@ const Trigger = ({ asChild, onClick, ref, scope, ...props }: ButtonProps) => {
 	const composedRef = useComposedRefs(ref, readState);
 
 	// Why: a dialog that opens from state passes an empty `asChild` trigger,
-	// which renders nothing, as with Radix.
+	// which renders nothing.
 	if (asChild && props.children == null) {
 		return null;
 	}
@@ -754,9 +753,9 @@ const Content = ({
 		}
 	});
 	/**
-	 * Handles an Escape for this dialog, from the document or from a covered
-	 * float. Why the consumer runs after the guards: it sees the prevented
-	 * Escape that a picker in the panel or a covering frame takes, as with Radix.
+	 * Handles an Escape for this dialog from the document. Why the consumer
+	 * runs after the guards: it sees the prevented Escape that a picker in the
+	 * panel or a covering frame takes.
 	 */
 	const guardedEscape = useCallbackRef((event: KeyboardEvent) => {
 		const dialog = dialogRef.current;
@@ -802,7 +801,7 @@ const Content = ({
 			dialog.focus({ preventScroll: true });
 		}
 		// Why: WebKit shows a focus ring on the browser's pick after a press, and
-		// the script focus of a Radix dialog showed none. A text field always
+		// a dialog that a press opens shows none. A text field always
 		// shows one. Firefox shows none after a key when the opener showed none,
 		// such as a trigger that got focus back from a dialog that a press opened.
 		// Why the opener's ring as a fallback: a dialog that mounts on the press
@@ -905,7 +904,6 @@ const Content = ({
 		const unregister = registerOverlay({
 			container: dialog,
 			content: panel,
-			escape: guardedEscape,
 		});
 		// Why the open check: `close` fires in a later task, after a reopen too.
 		function release() {
@@ -1100,7 +1098,7 @@ const Content = ({
 
 	// Why Escape on the document: an open picker in the panel takes the key
 	// first and prevents it, in every engine, and the key closes the top dialog
-	// wherever focus is, as with Radix. Why a press outside here: a non-modal
+	// wherever focus is. Why a press outside here: a non-modal
 	// dialog has no backdrop.
 	// Why the DOM-owned case: a dialog that stays mounted and owns its state
 	// opens with no render, so `root.open` stays false. Why `portalTarget`: the
@@ -1138,7 +1136,7 @@ const Content = ({
 		};
 		// Why: when the focused element leaves the panel, such as a retry button
 		// that a loading state replaces, the browser puts focus on `<body>`. The
-		// dialog takes it back, as a Radix dialog did, so a screen reader stays in it.
+		// dialog takes it back, so a screen reader stays in it.
 		// Why a task later: a field that renders on blur, such as one that clears
 		// its error, changes the panel while Tab moves focus and `<body>` holds it
 		// for a moment. Focus on the dialog then would cancel the Tab.
@@ -1191,7 +1189,7 @@ const Content = ({
 			// Why an inline `display`: the browser's own style hides a closed
 			// `<dialog>`, and the panel must show before any stylesheet loads.
 			// Why `tabIndex` on the `<dialog>`, not the panel: the browser opens a
-			// dialog with focus on its first focusable element, as Radix did, and a
+			// dialog with focus on its first focusable element, and a
 			// press on a bare part of the panel keeps focus in the dialog.
 			{...(inline
 				? { role: "generic", style: inlineStyle }

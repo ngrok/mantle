@@ -128,7 +128,7 @@ const focusFirst = (from: HTMLElement, order: HTMLElement[]) => {
 const exitingLists = new WeakSet<HTMLElement>();
 
 /**
- * Makes the list the entry point for a Tab forward, as in Radix: the list
+ * Makes the list the entry point for a Tab forward: the list
  * precedes its tabs in the Tab order, and its focus moves to the first tab that
  * takes focus. The server HTML leaves it out, so the selected tab is the Tab
  * stop before hydration. A Shift+Tab from a tab takes the list out of the Tab

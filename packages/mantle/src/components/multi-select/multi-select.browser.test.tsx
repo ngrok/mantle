@@ -13,9 +13,9 @@ import * as MultiSelect from "./multi-select-parts.js";
 
 /**
  * `userEvent.setup()` with the pre-interaction `pointer-events` assertion turned
- * off. In browser mode, Ariakit's popover/portal can momentarily compute
- * `pointer-events: none` while it mounts and animates, so user-event's default
- * check throws ("Unable to perform pointer interaction…") and flakes the
+ * off. When an Ariakit popover drove `MultiSelect`, it could compute
+ * `pointer-events: none` for a moment while it mounted, so user-event's default
+ * check threw ("Unable to perform pointer interaction…") and flaked the
  * click-driven tests in CI. None of the behaviors here rely on that CSS guard
  * (locked tags enforce their lock in the remove handler, not via `pointer-events`),
  * so disabling the check makes clicks deterministic without weakening intent.
@@ -260,9 +260,9 @@ describe("MultiSelect (browser)", () => {
 
 				unmount();
 
-				// Why wait a frame: with its body scroll lock on inside a modal, ariakit re-applies a
-				// stale body-style snapshot (the modal's transient `pointer-events: none`) in a
-				// microtask after unmount. A frame callback runs after that checkpoint, so the
+				// Why wait a frame: a body scroll lock can put back a stale body style, such as a
+				// modal's transient `pointer-events: none`, in a microtask after unmount, as the
+				// Ariakit popover did. A frame callback runs after that checkpoint, so the
 				// assertion reads the settled style.
 				await new Promise<void>((resolve) => {
 					requestAnimationFrame(() => {

@@ -467,8 +467,8 @@ const Content = ({
 						return;
 					}
 					// Why wrap: the content portals to the end of the body, so Tab on its
-					// last stop leaves the page. As Radix `FocusScope` did, Tab wraps only
-					// from the first or last stop, and the browser moves focus otherwise.
+					// last stop leaves the page. Tab wraps only from the first or last
+					// stop, and the browser moves focus otherwise.
 					const tabStops = findTabbableDescendants(content);
 					const first = tabStops[0];
 					const last = tabStops[tabStops.length - 1];

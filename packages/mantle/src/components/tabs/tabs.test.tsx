@@ -30,9 +30,8 @@ describe("Tabs", () => {
 			},
 		);
 
-		// Why: `orientation` reaches the tablist through mantle's context, not
-		// Radix, and `aria-orientation` is what tells assistive tech and Radix's
-		// roving focus which arrow keys move between tabs.
+		// Why: `orientation` reaches the tablist through mantle's context, and
+		// `aria-orientation` tells assistive tech which arrow keys move between tabs.
 		test.each(["horizontal", "vertical"] as const)(
 			"flows orientation=%s to the root element and the tablist",
 			(orientation) => {
@@ -89,9 +88,8 @@ describe("Tabs", () => {
 			);
 		}
 
-		// Why mousedown: Radix activates a trigger on mousedown and moves focus to it
-		// in the same handler, and the focus activates it again. A controlled root
-		// re-renders after both, so the second call carries the same value.
+		// Why mousedown: `useTabs` focuses the tab on mousedown, then selects it. Its
+		// focus handler skips the pressed tab, so one press is one call.
 		test("fires once per activation on a controlled root", () => {
 			const onValueChange = vi.fn<(value: string) => void>();
 			render(<ControlledTabs onValueChange={onValueChange} />);
@@ -574,9 +572,9 @@ describe("Tabs", () => {
 	});
 
 	describe("Trigger", () => {
-		// Regression: a cloned `tabIndex: 0` won over Radix's roving `tabIndex`, so
+		// Regression: a cloned `tabIndex: 0` won over the roving `tabIndex`, so
 		// every asChild tab was a Tab stop instead of only the active one.
-		test("asChild keeps Radix's roving tabIndex so only the active tab is a Tab stop", async () => {
+		test("asChild keeps the roving tabIndex so only the active tab is a Tab stop", async () => {
 			const user = userEvent.setup();
 			render(
 				<>

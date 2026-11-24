@@ -28,14 +28,14 @@ describe("HoverCard", () => {
 			expect(arrow).toHaveAttribute("aria-hidden", "true");
 		});
 
-		test("sizes the svg so Radix offsets the content by the arrow's real height", async () => {
+		test("sizes the svg so the float offsets the content by the arrow's real height", async () => {
 			const user = userEvent.setup();
 			renderHoverCard();
 
 			await user.hover(screen.getByRole("link", { name: "@ngrok/mantle" }));
 			await screen.findByText("The Design System");
 
-			// Radix measures the rendered arrow and adds its height to `sideOffset`, so a
+			// `trackFloat` measures the rendered arrow and adds its height to `sideOffset`, so a
 			// width/height that disagrees with the painted triangle detaches the tip.
 			const arrow = document.querySelector("[data-slot='hover-card-arrow']");
 			expect(arrow).toHaveAttribute("width", "14");

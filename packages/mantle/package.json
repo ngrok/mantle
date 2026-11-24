@@ -93,6 +93,11 @@
 			"types": "./dist/area-chart.d.ts",
 			"import": "./dist/area-chart.js"
 		},
+		"./attachment": {
+			"@ngrok/src-live-types": "./src/components/attachment/index.ts",
+			"types": "./dist/attachment.d.ts",
+			"import": "./dist/attachment.js"
+		},
 		"./avatar": {
 			"@ngrok/src-live-types": "./src/components/avatar/index.ts",
 			"types": "./dist/avatar.d.ts",
@@ -312,6 +317,11 @@
 			"@ngrok/src-live-types": "./src/components/progress/index.ts",
 			"types": "./dist/progress.d.ts",
 			"import": "./dist/progress.js"
+		},
+		"./prompt-input": {
+			"@ngrok/src-live-types": "./src/components/prompt-input/index.ts",
+			"types": "./dist/prompt-input.d.ts",
+			"import": "./dist/prompt-input.js"
 		},
 		"./qr-code": {
 			"@ngrok/src-live-types": "./src/components/qr-code/index.ts",

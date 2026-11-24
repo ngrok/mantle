@@ -9,7 +9,7 @@ import * as ComboboxParts from "./combobox-parts.js";
 /**
  * Fill in a React input field with autocomplete & autosuggest functionalities.
  * Choose from a list of suggested values with full keyboard support.
- * It follows the WAI-ARIA Combobox Pattern and builds on the ariakit Combobox.
+ * It follows the WAI-ARIA Combobox Pattern and builds on mantle's own listbox behavior.
  *
  * Use Combobox for a list of options where the user types to filter: large static lists,
  * async/server-side data, or any single-select where search is helpful. For very small
@@ -30,7 +30,6 @@ import * as ComboboxParts from "./combobox-parts.js";
  * - `Query`: the field filters a list with free text and `key:value` qualifiers.
  *
  * @see https://www.w3.org/WAI/ARIA/apg/patterns/combobox/
- * @see https://ariakit.org/components/combobox
  *
  * @see https://mantle.ngrok.com/components/forms/combobox
  *

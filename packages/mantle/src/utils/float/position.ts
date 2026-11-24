@@ -87,7 +87,7 @@ function alignOnAxis({
 /**
  * Places a float of `size` next to `anchor`. It flips to the opposite side
  * when the preferred side does not fit and the opposite side does, or when
- * neither fits and the opposite side has more room, as Radix's `bestFit` did.
+ * neither fits and the opposite side has more room.
  * It shifts along the side to stay `VIEWPORT_PADDING` inside the viewport.
  *
  * @example
@@ -351,7 +351,7 @@ function trackFloat({
 	side: Side;
 	sideOffset: number;
 }): () => void {
-	// Why: `start` and `end` follow the text direction, as they did with Radix.
+	// Why: `start` and `end` follow the text direction.
 	// Above or below the anchor in a right-to-left document, `start` is the right edge.
 	const align =
 		(side === "top" || side === "bottom") &&

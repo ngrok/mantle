@@ -314,8 +314,8 @@ in a plain stylesheet (a third-party widget override) resolves to nothing.
 			translate: 0;
 		}
 	}
-	/* Keeps a portal positioner mounted while its content plays the exit. Radix waits for an
-	   animation on the portal child itself, and these keyframes change nothing on screen. */
+	/* Holds an element for 150ms with no change on screen, for code that waits on the
+	   element's own animations before it unmounts the element. */
 	--animate-exit-hold: exit-hold 150ms;
 	@keyframes exit-hold {
 		to {
@@ -1404,10 +1404,9 @@ MARK: CUSTOM VARIANTS
 
 	/*
 	 * An open modal `Dialog`, `AlertDialog`, `Sheet`, or mobile `Sidebar.Nav`
-	 * locks page scroll on `<body>`, as Radix did: the browser applies the
-	 * `overflow` of `<body>` to the viewport. Why not the root too: a page
-	 * whose `<body>` has `h-full` would lose its scroll position. The dialog
-	 * marks the root as it
+	 * locks page scroll on `<body>`: the browser applies the `overflow` of
+	 * `<body>` to the viewport. Why not the root too: a page whose `<body>` has
+	 * `h-full` would lose its scroll position. The dialog marks the root as it
 	 * opens and measures the width of the scrollbar that goes, so the page does
 	 * not shift. `!important` beats an overflow utility on `<body>`.
 	 *

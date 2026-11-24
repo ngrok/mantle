@@ -5,7 +5,7 @@ import { describe, expect, test, vi } from "vitest";
 import * as CursorPagination from "./cursor-pagination-parts.js";
 
 describe("CursorPagination", () => {
-	// Regression: `Select.Value` had no children, so Radix filled the trigger on
+	// Regression: `Select.Value` had no children, so the former Radix Select filled the trigger on
 	// the client after a layout effect and the server HTML had an empty trigger.
 	test("PageSizeSelect renders the page size in the server HTML", () => {
 		const html = renderToString(

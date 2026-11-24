@@ -145,7 +145,9 @@ export const prodReadyComponents: readonly ProdReadyComponent[] = componentCateg
  */
 export const previewComponents = [
 	//,
+	"Attachment",
 	"Calendar",
+	"Prompt Input",
 	"Reasoning",
 	"Time Zone",
 	"Tool Call",
@@ -235,7 +237,9 @@ export const prodReadyComponentRouteLookup = {
 
 /** Route lookup for preview component pages. */
 export const previewComponentsRouteLookup = {
+	Attachment: "/components/preview/attachment",
 	Calendar: "/components/preview/calendar",
+	"Prompt Input": "/components/preview/prompt-input",
 	Reasoning: "/components/preview/reasoning",
 	"Time Zone": "/components/preview/time-zone",
 	"Tool Call": "/components/preview/tool-call",
@@ -248,7 +252,9 @@ export const previewComponentsRouteLookup = {
  * still belongs to a category in the manifest so agents can group them.
  */
 export const previewComponentCategoryLookup = {
+	Attachment: "Data Display",
 	Calendar: "Forms",
+	"Prompt Input": "Forms",
 	Reasoning: "Data Display",
 	"Time Zone": "Primitives",
 	"Tool Call": "Data Display",

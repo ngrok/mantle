@@ -107,7 +107,7 @@ describe("Dialog", () => {
 		const dialog = screen.getByRole("dialog", { name: "Delete tunnel" });
 		expect(dialog.matches(":modal")).toBe(true);
 		expect(trigger).toHaveAttribute("aria-expanded", "true");
-		// The browser focuses the first focusable element, as Radix did.
+		// The browser focuses the first focusable element.
 		expect(screen.getByRole("button", { name: "Close Dialog" })).toHaveFocus();
 
 		await userEvent.keyboard("{Escape}");
@@ -288,7 +288,7 @@ describe("Dialog", () => {
 		await waitFor(() => expect(document.querySelector("dialog")).toBeNull());
 	});
 
-	test("onOpenAutoFocus and onCloseAutoFocus get the panel as event.currentTarget, as with Radix", async () => {
+	test("onOpenAutoFocus and onCloseAutoFocus get the panel as event.currentTarget", async () => {
 		const targets: (EventTarget | null)[] = [];
 		render(
 			<Dialog.Root>
