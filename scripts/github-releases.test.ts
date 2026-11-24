@@ -59,7 +59,9 @@ function versionSyntheticRelease(count: number): string {
 		cwd: dir,
 		stdio: "pipe",
 	});
-	return fs.readFileSync(path.join(dir, "packages/pkg/CHANGELOG.md"), "utf8");
+	const changelog = fs.readFileSync(path.join(dir, "packages/pkg/CHANGELOG.md"), "utf8");
+	fs.rmSync(dir, { recursive: true });
+	return changelog;
 }
 
 describe("release notes for a large release", () => {

@@ -68,7 +68,8 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
 
       - name: Create GitHub releases
-        if: steps.changesets.outputs.published == 'true'
+        # Why `!cancelled()`: after a partial publish, the action fails but reports the packages it published.
+        if: ${{ !cancelled() && steps.changesets.outputs.published == 'true' }}
         env:
           GH_TOKEN: ${{ steps.generate-token.outputs.token }}
           PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.published-packages }}
