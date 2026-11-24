@@ -207,6 +207,54 @@ test('a width="root" menu under a viewport-wide split button stays inside the vi
 	expect(menu.getBoundingClientRect().right).toBe(viewportWidth - 8);
 });
 
+test("a long primary label truncates inside its container, not past it", () => {
+	render(
+		<div style={{ width: 320 }}>
+			<SplitButton.Root data-testid="root">
+				<SplitButton.PrimaryAction style={{ minWidth: 0 }}>
+					<span
+						style={{
+							minWidth: 0,
+							overflow: "hidden",
+							textOverflow: "ellipsis",
+							whiteSpace: "nowrap",
+						}}
+					>
+						{"Deploy to production ".repeat(8)}
+					</span>
+				</SplitButton.PrimaryAction>
+				<SplitButton.MenuTrigger label="More deploy options" />
+			</SplitButton.Root>
+		</div>,
+	);
+
+	expect(width(screen.getByTestId("root"))).toBeLessThanOrEqual(320);
+});
+
+test('under large text, a width="root" menu still stays inside the viewport', async () => {
+	document.documentElement.style.fontSize = "200px";
+	try {
+		render(
+			<div style={{ position: "fixed", top: 16, left: 0, right: 0 }}>
+				<SplitButton.Root className="w-full" open>
+					<SplitButton.PrimaryAction className="flex-1">Go</SplitButton.PrimaryAction>
+					<SplitButton.MenuTrigger label="More deploy options" />
+					<SplitButton.MenuContent width="root">
+						<SplitButton.MenuItem>Draft</SplitButton.MenuItem>
+					</SplitButton.MenuContent>
+				</SplitButton.Root>
+			</div>,
+		);
+		const menu = screen.getByRole("menu");
+		const viewportWidth = document.documentElement.clientWidth;
+
+		await expect.poll(() => menu.getBoundingClientRect().left).toBe(8);
+		expect(menu.getBoundingClientRect().right).toBe(viewportWidth - 8);
+	} finally {
+		document.documentElement.style.fontSize = "";
+	}
+});
+
 describe("SplitButton menu placement (browser)", () => {
 	test.each([
 		{ align: undefined, edge: "right" },

@@ -103,7 +103,7 @@ const Root = ({
 					data-slot={joinDataSlot(dataSlot, "split-button")}
 					data-size={size}
 					className={cx(
-						"flex w-fit flex-row [&>*:first-child]:rounded-r-none [&>*:last-child]:rounded-l-none [&>*:not(:first-child):not(:last-child)]:rounded-none [&>*:not(:first-child)]:-ml-px [&>*:focus]:relative [&>*:focus]:z-10 [&>*:hover]:relative [&>*:hover]:z-10 [&>:active]:scale-100!",
+						"flex w-fit max-w-full flex-row [&>*:first-child]:rounded-r-none [&>*:last-child]:rounded-l-none [&>*:not(:first-child):not(:last-child)]:rounded-none [&>*:not(:first-child)]:-ml-px [&>*:focus]:relative [&>*:focus]:z-10 [&>*:hover]:relative [&>*:hover]:z-10 [&>:active]:scale-100!",
 						className,
 					)}
 					ref={ref}
@@ -288,7 +288,13 @@ const MenuContent = ({
 				align={align}
 				// Why the cap: a split button as wide as the viewport would push the
 				// menu past the viewport edge, because the float keeps 8px clear of it.
-				className={cx(width === "root" && "max-w-(--available-width)", className)}
+				// Why the floor in `min()`: `min-width` wins over `max-width`, so the
+				// 8rem floor must also yield to the cap under large text.
+				className={cx(
+					width === "root" &&
+						"max-w-(--available-width) min-w-[min(--spacing(32),var(--available-width))]",
+					className,
+				)}
 				data-slot={joinDataSlot(dataSlot, "split-button-menu-content")}
 				ref={ref}
 				width={width === "root" ? "trigger" : width}
