@@ -1,15 +1,14 @@
 /**
- * A CommonMark and GFM lexer for model answers that emits marked's token
- * shapes. `Markdown` renders its output with no change.
+ * A CommonMark and GFM lexer for model answers. Its tokens have the shapes of
+ * marked's, so a component that read marked's tokens reads them with no change.
  */
-import type { Token, Tokens, TokensList } from "marked";
 import { decodeEntities } from "./decode-entities.js";
+import type { MarkdownExtensionToken, MarkdownLinks, MarkdownToken } from "./markdown-tokens.js";
 
-type Links = TokensList["links"];
+type Links = MarkdownLinks;
 /**
- * A tokenizer that reads one more kind of token, in marked's `{ name, level,
- * start, tokenizer }` shape. The lexer is not marked's, so a tokenizer gets
- * no `this.lexer`.
+ * A tokenizer that reads one more kind of token: `{ name, level, start,
+ * tokenizer }`, the shape of a marked extension, with no `this.lexer`.
  */
 type MarkdownTokenizer = {
 	/** The token kind, such as `"math"`. */
@@ -18,7 +17,7 @@ type MarkdownTokenizer = {
 	level: "block" | "inline";
 	/** The index in `source` where the token can start next, or `undefined` for none. */
 	start?: (source: string) => number | undefined;
-	tokenizer: (source: string, tokens: Token[]) => Tokens.Generic | undefined;
+	tokenizer: (source: string, tokens: MarkdownToken[]) => MarkdownExtensionToken | undefined;
 };
 type Context = {
 	links: Links;
@@ -30,8 +29,8 @@ type Context = {
 	/** Whether a definition is known. Why: a check of `links` for each paragraph reads each key. */
 	defined: boolean;
 };
-// oxlint-disable-next-line typescript/no-explicit-any -- Why: tokens are marked's loose shapes.
-type Tok = Token & Record<string, any>;
+// oxlint-disable-next-line typescript/no-explicit-any -- Why: the lexer builds each token kind field by field.
+type Tok = MarkdownToken & Record<string, any>;
 
 const HR = /^ {0,3}((?:-[\t ]*){3,}|(?:_[ \t]*){3,}|(?:\*[ \t]*){3,})$/;
 const HEADING = /^ {0,3}(#{1,6})(?=[ \t]|$)(.*)$/;
@@ -55,8 +54,9 @@ const DEF = (title: boolean) =>
 				: "") +
 			String.raw`[ \t]*(?:\n|$)`,
 	);
-const DEF_WITH_TITLE = DEF(true);
-const DEF_WITHOUT_TITLE = DEF(false);
+// Why `@__PURE__` on module-level calls: an import of `markdownMath` or `useMarkdownStream` alone drops the lexer.
+const DEF_WITH_TITLE = /* @__PURE__ */ DEF(true);
+const DEF_WITHOUT_TITLE = /* @__PURE__ */ DEF(false);
 /** The HTML blocks that end at a marker, not at a blank line: each start and its end. */
 const HTML_RAW: readonly (readonly [RegExp, RegExp])[] = [
 	[/^ {0,3}<(?:script|pre|style|textarea)(?:\s|>|$)/i, /<\/(?:script|pre|style|textarea)>/i],
@@ -67,18 +67,25 @@ const HTML_RAW: readonly (readonly [RegExp, RegExp])[] = [
 ];
 const HTML_BLOCK =
 	/^ {0,3}<(?:\/?(?:address|article|aside|base|blockquote|body|caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h[1-6]|head|header|hr|html|iframe|legend|li|link|main|menu|nav|ol|optgroup|option|p|param|search|section|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul)(?:[\s/>]|$))/i;
-const OPEN_TAG = String.raw`<[a-zA-Z][\w-]*(?:\s+[a-zA-Z_:][\w.:-]*(?:\s*=\s*(?:[^\s"'=<>\x60]+|'[^']*'|"[^"]*"))?)*\s*\/?>`;
-const CLOSE_TAG = String.raw`<\/[a-zA-Z][\w-]*\s*>`;
+/** A pattern of one open or close tag, or of `more`, between `before` and `after`. */
+const HTML_TAG_PATTERN = (before: string, more: string, after: string) =>
+	new RegExp(
+		`${before}(?:` +
+			String.raw`<[a-zA-Z][\w-]*(?:\s+[a-zA-Z_:][\w.:-]*(?:\s*=\s*(?:[^\s"'=<>\x60]+|'[^']*'|"[^"]*"))?)*\s*\/?>` +
+			String.raw`|<\/[a-zA-Z][\w-]*\s*>` +
+			`${more})${after}`,
+	);
 /** A line that holds one whole tag, which starts an HTML block that cannot interrupt a paragraph. */
-const HTML_TAG_LINE = new RegExp(String.raw`^ {0,3}(?:${OPEN_TAG}|${CLOSE_TAG})[ \t]*$`);
-const HTML_TAG = new RegExp(
-	String.raw`^(?:${OPEN_TAG}|${CLOSE_TAG}|<!-->|<!--->|<!--[\s\S]*?-->|<\?[\s\S]*?\?>|<![a-zA-Z][^>]*>|<!\[CDATA\[[\s\S]*?\]\]>)`,
+const HTML_TAG_LINE = /* @__PURE__ */ HTML_TAG_PATTERN("^ {0,3}", "", "[ \\t]*$");
+const HTML_TAG = /* @__PURE__ */ HTML_TAG_PATTERN(
+	"^",
+	"|<!-->|<!--->|<!--[\\s\\S]*?-->|<\\?[\\s\\S]*?\\?>|<![a-zA-Z][^>]*>|<!\\[CDATA\\[[\\s\\S]*?\\]\\]>",
+	"",
 );
 /** The first characters of a line that only continues a paragraph, by char code. */
-const PLAIN_START = new Uint8Array(128);
-for (let code = 33; code < 128; code += 1) {
-	PLAIN_START[code] = "#*+-_>`~<=|0123456789".includes(String.fromCharCode(code)) ? 0 : 1;
-}
+const PLAIN_START = /* @__PURE__ */ Uint8Array.from({ length: 128 }, (_, code) =>
+	code > 32 && !"#*+-_>`~<=|0123456789".includes(String.fromCharCode(code)) ? 1 : 0,
+);
 /** The first characters of a block that can end a paragraph. Why: a quick test skips most lines. */
 const BLOCK_START = /^ {0,3}[#*+\-_>`~<\d]/;
 const NOT_SPACE = /\S/;
@@ -1322,7 +1329,7 @@ function inlineLink(
 	return source[index] === ")" ? { href: literal(href), title, end: index + 1 } : undefined;
 }
 
-/** Lexes inline Markdown into marked's inline tokens. */
+/** Lexes inline Markdown into inline tokens. */
 function lexInline(source: string, context: Context): Tok[] {
 	const nodes: Node[] = [];
 	const brackets: Bracket[] = [];
@@ -1873,13 +1880,13 @@ function finish(nodes: readonly Node[]): Tok[] {
 }
 
 /**
- * Lexes Markdown into marked's tokens. `links` seeds the reference
+ * Lexes Markdown into tokens. `links` seeds the reference
  * definitions, and the result's `links` holds each one it read.
  */
 function lexMarkdown(
 	source: string,
 	{ links, extensions = [] }: { links?: Links; extensions?: readonly MarkdownTokenizer[] } = {},
-): TokensList {
+): MarkdownToken[] & { links: MarkdownLinks } {
 	const context: Context = {
 		// Why no prototype: a label such as `__proto__` must stay a plain key.
 		links: Object.assign(Object.create(null), links),

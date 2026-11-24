@@ -9,26 +9,34 @@ const LATIN_1 =
  * The named character references a model writes most; other names stay as
  * written. Why not the full HTML table: it holds over 2,000 names.
  */
-const NAMED_ENTITIES = new Map<string, string>([
-	...LATIN_1.split(" ").map((name, index) => [name, String.fromCharCode(0xa0 + index)] as const),
-	["amp", "&"],
-	["apos", "'"],
-	["bull", "•"],
-	["euro", "€"],
-	["gt", ">"],
-	["hellip", "…"],
-	["larr", "←"],
-	["ldquo", "“"],
-	["lsquo", "‘"],
-	["lt", "<"],
-	["mdash", "—"],
-	["ndash", "–"],
-	["quot", '"'],
-	["rarr", "→"],
-	["rdquo", "”"],
-	["rsquo", "’"],
-	["trade", "™"],
-]);
+let namedEntities: Map<string, string> | undefined;
+
+/** The character of a named reference. Why built on first use: an import that never decodes skips it. */
+function namedEntity(name: string): string | undefined {
+	namedEntities ??= new Map<string, string>([
+		...LATIN_1.split(" ").map(
+			(latin, index) => [latin, String.fromCharCode(0xa0 + index)] as const,
+		),
+		["amp", "&"],
+		["apos", "'"],
+		["bull", "•"],
+		["euro", "€"],
+		["gt", ">"],
+		["hellip", "…"],
+		["larr", "←"],
+		["ldquo", "“"],
+		["lsquo", "‘"],
+		["lt", "<"],
+		["mdash", "—"],
+		["ndash", "–"],
+		["quot", '"'],
+		["rarr", "→"],
+		["rdquo", "”"],
+		["rsquo", "’"],
+		["trade", "™"],
+	]);
+	return namedEntities.get(name);
+}
 
 const ENTITY = /&(?:#(\d{1,7})|#[xX]([\da-fA-F]{1,6})|([a-zA-Z][a-zA-Z\d]*));/g;
 
@@ -61,7 +69,7 @@ function decodeEntities(text: string): string {
 		if (hex != null) {
 			return fromCodePoint(Number.parseInt(hex, 16));
 		}
-		return (name != null && NAMED_ENTITIES.get(name)) || match;
+		return (name != null && namedEntity(name)) || match;
 	});
 }
 
