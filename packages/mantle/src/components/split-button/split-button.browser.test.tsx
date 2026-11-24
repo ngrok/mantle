@@ -73,8 +73,8 @@ function width(element: Element) {
 }
 
 /**
- * The distance between the right edges of the menu and the split button. Radix
- * rounds the menu's position to whole pixels, so a placed menu reads under 1.
+ * The distance between the right edges of the menu and the split button. Layout
+ * can snap the placed menu's edge to a device pixel, so a placed menu reads under 1.
  */
 function rightEdgeGap(menu: Element, root: Element) {
 	return Math.abs(menu.getBoundingClientRect().right - root.getBoundingClientRect().right);
