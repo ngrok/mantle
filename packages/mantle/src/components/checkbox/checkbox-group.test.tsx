@@ -1,6 +1,7 @@
 import { act, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import type { ComponentProps, MouseEvent, ReactNode } from "react";
@@ -151,6 +152,48 @@ describe("CheckboxGroup value", () => {
 		for (const name of ["Tunnels", "Gateway", "Agents"]) {
 			expect(screen.getByRole("checkbox", { name })).toBeChecked();
 		}
+	});
+
+	test("a render between two scripted clicks makes the new value prop the base", async () => {
+		const user = userEvent.setup();
+		function Controlled() {
+			const [value, setValue] = useState<string[]>([]);
+			return (
+				<>
+					<button
+						type="button"
+						onClick={() => {
+							screen.getByRole("checkbox", { name: "Tunnels" }).click();
+							flushSync(() => setValue(["gateway"]));
+							screen.getByRole("checkbox", { name: "Agents" }).click();
+						}}
+					>
+						Replace
+					</button>
+					<CheckboxGroup.Root aria-label="Interests" value={value} onValueChange={setValue}>
+						<CheckboxGroup.Card value="tunnels">Tunnels</CheckboxGroup.Card>
+						<CheckboxGroup.Card value="gateway">Gateway</CheckboxGroup.Card>
+						<CheckboxGroup.Card value="agents">Agents</CheckboxGroup.Card>
+					</CheckboxGroup.Root>
+				</>
+			);
+		}
+		render(<Controlled />);
+
+		await user.click(screen.getByRole("button", { name: "Replace" }));
+
+		expect(
+			screen
+				.getAllByRole("checkbox")
+				.map((checkbox) => [
+					checkbox.getAttribute("value"),
+					checkbox instanceof HTMLInputElement && checkbox.checked,
+				]),
+		).toEqual([
+			["tunnels", false],
+			["gateway", true],
+			["agents", true],
+		]);
 	});
 
 	test("a disabled group or card reports nothing on a click", async () => {

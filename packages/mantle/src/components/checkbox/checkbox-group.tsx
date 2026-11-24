@@ -128,7 +128,8 @@ const Root = ({
 	});
 	// Why: a script that clicks several cards in one event, such as a "select all" button, gets one
 	// React batch, so each card builds on the value the card before it set, not on the rendered one.
-	const pendingValue = useRef<readonly string[] | null>(null);
+	// Why `from`: a render between the clicks, such as a `flushSync`, makes its value the base again.
+	const pendingValue = useRef<{ from: readonly string[]; value: readonly string[] } | null>(null);
 	const composedRef = useComposedRefs(ref, groupRef, adoptCheckedBeforeHydration);
 	const cardCheckboxes = () =>
 		groupRef.current?.querySelectorAll<HTMLInputElement>(CARD_CHECKBOX_SELECTOR) ?? [];
@@ -176,14 +177,15 @@ const Root = ({
 		() => ({
 			value: current,
 			setChecked: ({ value: changed, checked }) => {
-				const base = pendingValue.current ?? current;
+				const pending = pendingValue.current;
+				const base = pending != null && pending.from === current ? pending.value : current;
 				if (base.includes(changed) === checked) {
 					return;
 				}
 				const next = checked
 					? [...base, changed]
 					: base.filter((checkedValue) => checkedValue !== changed);
-				pendingValue.current = next;
+				pendingValue.current = { from: current, value: next };
 				// Why a microtask: it runs after the whole event, so a value that a controlled parent
 				// refuses does not carry into the next event.
 				queueMicrotask(() => {
