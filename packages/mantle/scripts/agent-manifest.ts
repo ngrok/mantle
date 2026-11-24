@@ -14,6 +14,7 @@ import { createHash } from "node:crypto";
 /** The docs sidebar categories, in the order the site lists them. */
 const componentCategories = [
 	"Actions",
+	"AI",
 	"Charts",
 	"Data Display",
 	"Feedback",
@@ -734,13 +735,12 @@ function leafToPascal(leaf: string): string {
 		.join("");
 }
 
-/** Convert a kebab-case category segment (`data-display`) into its sidebar label. */
+/** Convert a kebab-case category segment (`data-display`, `ai`) into its sidebar label. */
 function categoryFromSegment(segment: string): ComponentCategory {
-	const label = segment
-		.split("-")
-		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-		.join(" ");
-	const category = componentCategories.find((candidate) => candidate === label);
+	// Why the slug compare: an acronym such as "AI" does not title-case back from "ai".
+	const category = componentCategories.find(
+		(candidate) => candidate.toLowerCase().replaceAll(" ", "-") === segment,
+	);
 	if (category == null) {
 		throw new Error(`The docs category "${segment}" is not a sidebar category.`);
 	}

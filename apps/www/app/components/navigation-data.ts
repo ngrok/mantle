@@ -9,13 +9,15 @@ type Route = Parameters<typeof href>[0];
  * `/components/<category-slug>/<component-slug>`.
  *
  * Categories describe what a component *is* in the UI (an action, a form
- * control, an overlay, …). Page/viewport structure primitives graduate to
+ * control, an overlay, …). AI is the one domain category: it holds the parts
+ * of an AI chat, so an app builds its assistant from one section. Page/viewport structure primitives graduate to
  * the top-level Layouts section instead. Membership tests (and their
  * precedence order for ambiguous components) live in
  * `decisions/2026-07-08-docs-information-architecture.md`.
  */
 export const componentCategories = [
 	"Actions",
+	"AI",
 	"Charts",
 	"Data Display",
 	"Feedback",
@@ -32,6 +34,7 @@ export type ComponentCategory = (typeof componentCategories)[number];
 /** URL segment for each component category. */
 export const componentCategorySlugs = {
 	Actions: "actions",
+	AI: "ai",
 	Charts: "charts",
 	"Data Display": "data-display",
 	Feedback: "feedback",
@@ -50,6 +53,7 @@ export const componentCategorySlugs = {
  */
 export const componentsByCategory = {
 	Actions: ["Button", "Icon Button", "Split Button"],
+	AI: [],
 	Charts: ["Area Chart", "Bar Chart", "Line Chart", "Scatter Plot"],
 	"Data Display": [
 		"Accordion",
@@ -256,14 +260,14 @@ export const previewComponentsRouteLookup = {
  * still belongs to a category in the manifest so agents can group them.
  */
 export const previewComponentCategoryLookup = {
-	Attachment: "Data Display",
+	Attachment: "AI",
 	Calendar: "Forms",
-	Conversation: "Structure",
-	Message: "Data Display",
-	"Prompt Input": "Forms",
-	Reasoning: "Data Display",
+	Conversation: "AI",
+	Message: "AI",
+	"Prompt Input": "AI",
+	Reasoning: "AI",
 	"Time Zone": "Primitives",
-	"Tool Call": "Data Display",
+	"Tool Call": "AI",
 	"World Map": "Charts",
 } as const satisfies Record<(typeof previewComponents)[number], ComponentCategory>;
 
