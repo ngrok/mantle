@@ -288,3 +288,112 @@ describe("PromptInput", () => {
 		);
 	});
 });
+
+describe("PromptInput file intake", () => {
+	const report = new File(["{}"], "report.json", { type: "application/json" });
+
+	function FileComposer({ onFilesAdd }: { onFilesAdd: (files: File[]) => void }) {
+		return (
+			<PromptInput.Root
+				aria-label="Composer"
+				onFilesAdd={onFilesAdd}
+				onSubmit={(event) => event.preventDefault()}
+			>
+				<PromptInput.TextArea aria-label="Message" />
+				<PromptInput.Footer>
+					<PromptInput.AttachButton accept=".json" />
+					<PromptInput.Submit />
+				</PromptInput.Footer>
+			</PromptInput.Root>
+		);
+	}
+
+	test("the attach button opens the picker and passes the picked files", async () => {
+		const user = userEvent.setup();
+		const onFilesAdd = vi.fn<(files: File[]) => void>();
+		const { container } = render(<FileComposer onFilesAdd={onFilesAdd} />);
+		const input = container.querySelector('input[type="file"]');
+		if (!(input instanceof HTMLInputElement)) {
+			throw new Error("The attach button rendered no file input.");
+		}
+		const clickInput = vi.spyOn(input, "click");
+
+		await user.click(screen.getByRole("button", { name: "Attach files" }));
+		// Why a spy: happy-dom opens no picker, so the click on the hidden input is the one trace.
+		expect(clickInput).toHaveBeenCalledTimes(1);
+
+		await user.upload(input, report);
+		expect(onFilesAdd).toHaveBeenCalledTimes(1);
+		expect(onFilesAdd).toHaveBeenLastCalledWith([report]);
+		expect(input).toHaveAttribute("accept", ".json");
+		expect(input.value).toBe("");
+	});
+
+	test("a paste of files passes them and does not paste text", () => {
+		const onFilesAdd = vi.fn<(files: File[]) => void>();
+		render(<FileComposer onFilesAdd={onFilesAdd} />);
+
+		const notPrevented = fireEvent.paste(screen.getByRole("textbox", { name: "Message" }), {
+			clipboardData: { files: [report], getData: () => "" },
+		});
+
+		expect(onFilesAdd).toHaveBeenCalledTimes(1);
+		expect(onFilesAdd).toHaveBeenLastCalledWith([report]);
+		expect(notPrevented).toBe(false);
+	});
+
+	test("a paste of text alone is left to the field", () => {
+		const onFilesAdd = vi.fn<(files: File[]) => void>();
+		render(<FileComposer onFilesAdd={onFilesAdd} />);
+
+		const notPrevented = fireEvent.paste(screen.getByRole("textbox", { name: "Message" }), {
+			clipboardData: { files: [], getData: () => "hello" },
+		});
+
+		expect(onFilesAdd).toHaveBeenCalledTimes(0);
+		expect(notPrevented).toBe(true);
+	});
+
+	test("files dragged over the frame mark it as a drop target, and a drop passes them", () => {
+		const onFilesAdd = vi.fn<(files: File[]) => void>();
+		render(<FileComposer onFilesAdd={onFilesAdd} />);
+		const form = screen.getByRole("form", { name: "Composer" });
+
+		fireEvent.dragOver(form, { dataTransfer: { types: ["Files"], files: [report] } });
+		expect(form).toHaveAttribute("data-drag-over", "");
+
+		fireEvent.drop(form, { dataTransfer: { types: ["Files"], files: [report] } });
+		expect(form).not.toHaveAttribute("data-drag-over");
+		expect(onFilesAdd).toHaveBeenCalledTimes(1);
+		expect(onFilesAdd).toHaveBeenLastCalledWith([report]);
+	});
+
+	test("a text drag does not mark the frame", () => {
+		render(<FileComposer onFilesAdd={() => {}} />);
+		const form = screen.getByRole("form", { name: "Composer" });
+
+		fireEvent.dragOver(form, { dataTransfer: { types: ["text/plain"], files: [] } });
+
+		expect(form).not.toHaveAttribute("data-drag-over");
+	});
+
+	test("without onFilesAdd, a drag does not mark the frame and the attach button throws", () => {
+		render(
+			<PromptInput.Root aria-label="Composer">
+				<PromptInput.TextArea aria-label="Message" />
+			</PromptInput.Root>,
+		);
+		const form = screen.getByRole("form", { name: "Composer" });
+		fireEvent.dragOver(form, { dataTransfer: { types: ["Files"], files: [report] } });
+		expect(form).not.toHaveAttribute("data-drag-over");
+
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		expect(() =>
+			render(
+				<PromptInput.Root>
+					<PromptInput.AttachButton />
+				</PromptInput.Root>,
+			),
+		).toThrow("PromptInput.AttachButton needs onFilesAdd on PromptInput.Root.");
+	});
+});

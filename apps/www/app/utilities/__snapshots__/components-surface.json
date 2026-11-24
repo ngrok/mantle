@@ -217,6 +217,38 @@
     "useWhen": "Show how a volume, or a total and its parts, changes across an ordered x axis, such as time."
   },
   {
+    "name": "Attachment",
+    "slug": "components/preview/attachment",
+    "kind": "component",
+    "category": "Data Display",
+    "status": "preview",
+    "importPath": "@ngrok/mantle/attachment",
+    "summary": "A file attached to a chat message, as a chip with its preview, name, size, and a remove button.",
+    "jsdoc": "A file attached to a chat message, as a chip with its preview, name, size, and a remove button.",
+    "examples": [
+      "Composition:\n```\nAttachment.List\n└── Attachment.Root\n    ├── Attachment.Preview\n    ├── Attachment.Name\n    ├── Attachment.Size\n    └── Attachment.Remove\n```",
+      "```tsx\n<Attachment.List aria-label=\"Attachments\">\n  {files.map((file) => (\n    <Attachment.Root key={file.id}>\n      <Attachment.Preview src={file.previewUrl} />\n      <Attachment.Name>{file.name}</Attachment.Name>\n      <Attachment.Size bytes={file.size} />\n      <Attachment.Remove\n        label={`Remove ${file.name}`}\n        onClick={() => removeFile(file.id)}\n      />\n    </Attachment.Root>\n  ))}\n</Attachment.List>\n```"
+    ],
+    "aliases": [
+      "file chip",
+      "attached file",
+      "upload chip",
+      "file attachment",
+      "ai attachment"
+    ],
+    "siblings": [
+      {
+        "name": "PromptInput",
+        "boundary": "the message box that takes the files."
+      },
+      {
+        "name": "Badge",
+        "boundary": "a short status label, not a file."
+      }
+    ],
+    "useWhen": "Show the files attached to a chat message, with a remove button while the message is a draft."
+  },
+  {
     "name": "Avatar",
     "slug": "components/data-display/avatar",
     "kind": "component",
@@ -1526,7 +1558,7 @@
     "summary": "The message box of a chat, with a field that grows with its text and one button that sends or stops.",
     "jsdoc": "The message box of a chat: a text field that grows with its text and a button that sends the message, or stops the answer while one streams.",
     "examples": [
-      "Composition:\n```\nPromptInput.Root\n├── PromptInput.TextArea\n└── PromptInput.Footer\n    └── PromptInput.Submit\n```",
+      "Composition:\n```\nPromptInput.Root\n├── PromptInput.TextArea\n└── PromptInput.Footer\n    ├── PromptInput.AttachButton\n    └── PromptInput.Submit\n```",
       "```tsx\n<PromptInput.Root\n  streaming={isAnswering}\n  onStop={stop}\n  onSubmit={(event) => {\n    event.preventDefault();\n    send(draft);\n  }}\n>\n  <PromptInput.TextArea\n    aria-label=\"Message the assistant\"\n    name=\"message\"\n    placeholder=\"Ask about your endpoints…\"\n    value={draft}\n    onChange={(event) => setDraft(event.target.value)}\n  />\n  <PromptInput.Footer>\n    <PromptInput.Submit />\n  </PromptInput.Footer>\n</PromptInput.Root>\n```"
     ],
     "aliases": [

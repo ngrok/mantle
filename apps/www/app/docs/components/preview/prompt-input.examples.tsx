@@ -1,3 +1,4 @@
+import { Attachment } from "@ngrok/mantle/attachment";
 import { PromptInput } from "@ngrok/mantle/prompt-input";
 import { useEffect, useState } from "react";
 
@@ -70,6 +71,58 @@ export function StopExample() {
 					onChange={(event) => setDraft(event.target.value)}
 				/>
 				<PromptInput.Footer>
+					<PromptInput.Submit />
+				</PromptInput.Footer>
+			</PromptInput.Root>
+		</PreviewCanvas>
+	);
+}
+
+/** A composer that takes files from the attach button, a drop on the frame, or a paste. */
+export function AttachExample() {
+	const [draft, setDraft] = useState("");
+	const [files, setFiles] = useState<File[]>([]);
+
+	return (
+		<PreviewCanvas>
+			<PromptInput.Root
+				className="w-full max-w-2xl"
+				onFilesAdd={(added) => setFiles((current) => [...current, ...added])}
+				onSubmit={(event) => {
+					event.preventDefault();
+					if (draft.trim() === "" && files.length === 0) {
+						return;
+					}
+					setDraft("");
+					setFiles([]);
+				}}
+			>
+				{files.length > 0 && (
+					<Attachment.List aria-label="Attachments" className="px-3 pt-3">
+						{files.map((file, index) => (
+							<Attachment.Root key={`${file.name}-${file.lastModified}-${file.size}`}>
+								<Attachment.Preview />
+								<Attachment.Name title={file.name}>{file.name}</Attachment.Name>
+								<Attachment.Size bytes={file.size} />
+								<Attachment.Remove
+									label={`Remove ${file.name}`}
+									onClick={() =>
+										setFiles((current) => current.filter((_, position) => position !== index))
+									}
+								/>
+							</Attachment.Root>
+						))}
+					</Attachment.List>
+				)}
+				<PromptInput.TextArea
+					aria-label="Message the assistant"
+					name="message"
+					placeholder="Drop or paste a file, or attach one…"
+					value={draft}
+					onChange={(event) => setDraft(event.target.value)}
+				/>
+				<PromptInput.Footer>
+					<PromptInput.AttachButton accept="image/*,.txt,.json" />
 					<PromptInput.Submit />
 				</PromptInput.Footer>
 			</PromptInput.Root>
