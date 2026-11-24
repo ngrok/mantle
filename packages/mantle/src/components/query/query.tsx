@@ -32,9 +32,12 @@ import { joinDataSlot } from "../../utils/data-slot.js";
 import { observeScrollEdges } from "../../utils/scroll-edges.js";
 import {
 	type FilterGrammar,
+	type FilterOperator,
 	type FilterSyntax,
 	type RemoteFilterKeyDefinition,
+	getFilterOperators,
 	getFilterSyntax,
+	getFilterValueType,
 } from "../../utils/query-filter/grammar.js";
 import {
 	type HighlightSegment,
@@ -507,11 +510,11 @@ type QueryInputProps = Omit<
  *
  * **CSS variables:**
  *
- * | CSS Variable             | Default                        | Description                     |
- * | ------------------------ | ------------------------------ | ------------------------------- |
- * | `--query-key-color`      | `var(--shiki-token-attribute)` | The color of a qualifier key.   |
- * | `--query-value-color`    | `var(--shiki-token-string)`    | The color of a qualifier value. |
- * | `--query-operator-color` | `var(--shiki-token-operator)`  | The color of `OR` and `AND`.    |
+ * | CSS Variable             | Default                        | Description                                       |
+ * | ------------------------ | ------------------------------ | ------------------------------------------------- |
+ * | `--query-key-color`      | `var(--shiki-token-attribute)` | The color of a qualifier key.                     |
+ * | `--query-value-color`    | `var(--shiki-token-string)`    | The color of a qualifier value.                   |
+ * | `--query-operator-color` | `var(--shiki-token-operator)`  | The color of `OR`, `AND`, `NOT`, and parentheses. |
  *
  * **Data attributes:**
  *
@@ -1264,6 +1267,37 @@ function Empty({ "data-slot": dataSlot, children, className, ...props }: QueryEm
 	);
 }
 
+/** What a number, date, or duration key takes, for the empty message. */
+const typedValueNouns = {
+	number: "a number",
+	date: "a date or a time back from now",
+	duration: "a duration",
+} as const;
+
+/** One example for each operator of a number, date, or duration key, best first. */
+const typedValueExamples = {
+	number: { gt: ">3", range: "2..5", equals: "3", gte: ">=3", lt: "<3", lte: "<=3" },
+	date: {
+		gt: ">7d",
+		equals: "2026-01-31",
+		range: "2026-01-01..2026-01-31",
+		gte: ">=7d",
+		lt: "<2026-01-31",
+		lte: "<=2026-01-31",
+	},
+	duration: {
+		gt: ">90s",
+		equals: "1h30m",
+		range: "1m..5m",
+		gte: ">=90s",
+		lt: "<90s",
+		lte: "<=90s",
+	},
+} as const;
+
+/** The comparison symbols, in the order the legend prefers them. */
+const comparisonTokens = { gt: ">", gte: ">=", lt: "<", lte: "<=" } as const;
+
 /** What the field accepts at the caret, from the grammar. */
 function EmptyMessage({
 	keys,
@@ -1287,7 +1321,25 @@ function EmptyMessage({
 	if (definition == null) {
 		return <p key="text">No filter matches. The words search as text.</p>;
 	}
-	if (definition.values == null) {
+	const type = getFilterValueType(definition);
+	if (type === "number" || type === "date" || type === "duration") {
+		// Only the operators the key accepts, so each example is a valid filter.
+		const operators = getFilterOperators(definition);
+		const examples = Object.entries(typedValueExamples[type])
+			.filter(([operator]) => operators.some((accepted) => accepted === operator))
+			.slice(0, 2)
+			.map(([, example]) => example);
+		return (
+			<p key={`${type}-value`}>
+				<SyntaxRule token={`${definition.key}:`}>
+					{examples.length === 0
+						? `${definition.description}. Takes ${typedValueNouns[type]}.`
+						: `${definition.description}. Takes ${typedValueNouns[type]}, as in ${examples.join(" or ")}.`}
+				</SyntaxRule>
+			</p>
+		);
+	}
+	if (type === "text") {
 		return (
 			<p key="free-value">
 				<SyntaxRule token={`${definition.key}:`}>
@@ -1423,10 +1475,20 @@ function Legend({ "data-slot": dataSlot, className, ...props }: QueryLegendProps
 	}
 
 	const excludes = keys.some((definition) => definition.negatable !== false);
+	const accepts = (operator: FilterOperator) =>
+		keys.some((definition) => getFilterOperators(definition).includes(operator));
+	const comparison = Object.entries(comparisonTokens).find(([operator]) =>
+		keys.some((definition) =>
+			getFilterOperators(definition).some((accepted) => accepted === operator),
+		),
+	);
 	const rules = [
 		excludes && { token: "-key:value", text: "excludes" },
 		{ token: "key:a,b", text: "matches either" },
+		comparison != null && { token: `key:${comparison[1]}n`, text: "compares" },
+		accepts("starts-with") && { token: "key:a*", text: "starts with" },
 		syntax === "full" && { token: "OR", text: "joins filters" },
+		syntax === "full" && { token: "(a OR b)", text: "groups" },
 		{ token: '"quotes"', text: "keep spaces" },
 	].filter((rule) => rule !== false);
 

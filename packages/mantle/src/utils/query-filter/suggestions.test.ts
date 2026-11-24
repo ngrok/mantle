@@ -1,9 +1,15 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { defineRemoteFilterGrammar } from "./grammar.js";
+import { defineRemoteFilterGrammar, type FilterGrammar } from "./grammar.js";
 import { filterItemsByQuery } from "./match.js";
 import { getFilterSuggestions } from "./suggestions.js";
-import { testGrammar, testItems } from "./test-grammar.js";
+import {
+	testGrammar,
+	testItems,
+	testNow,
+	typedTestGrammar,
+	typedTestItems,
+} from "./test-grammar.js";
 
 /** Runs the suggestion engine against the fixture items. */
 function suggest(query: string, caretIndex = query.length) {
@@ -92,6 +98,16 @@ describe("a lone dash", () => {
 			"-metadata:",
 		]);
 		expect(accept("-", 1, "-is:")).toBe("-is:");
+	});
+
+	test("keeps a group whole when it inserts a key against its (", () => {
+		expect(accept("(api)", 0, "is:")).toBe("is: (api)");
+	});
+
+	test("offers the same exclusions after a lone !", () => {
+		expect(suggest("!").items.map((item) => item.label)).toEqual(
+			suggest("-").items.map((item) => item.label),
+		);
 	});
 });
 
@@ -236,5 +252,197 @@ describe("suggestions without items", () => {
 
 		expect(items.map((item) => item.label)).toEqual(["new", "shared", "private", "archived"]);
 		expect(items.every((item) => item.matchCount == null)).toBe(true);
+	});
+});
+
+describe("value counts under NOT", () => {
+	test("counts a value the way the whole query reads, NOT included", () => {
+		// `NOT is:` excludes each value: 2 items are not new, 1 is not shared.
+		const counts = suggest("NOT is:").items.map((item) => [item.label, item.matchCount]);
+
+		expect(counts).toEqual([
+			["new", 2],
+			["shared", 1],
+			["private", 2],
+			["archived", 3],
+		]);
+	});
+});
+
+describe("typed key suggestions", () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	/** Suggests against the typed fixture, with the clock at the typed tests' now. */
+	function suggestTyped(query: string) {
+		// Why fake only Date: the counts read `Date.now()`, and nothing here waits on a timer.
+		vi.useFakeTimers({ now: testNow, toFake: ["Date"] });
+		return getFilterSuggestions({
+			grammar: typedTestGrammar,
+			query,
+			caretIndex: query.length,
+			items: typedTestItems,
+		});
+	}
+
+	/** The label, description, count, and completion of each row. */
+	function rows(query: string) {
+		return suggestTyped(query).items.map(({ label, description, matchCount, completes }) => ({
+			label,
+			description,
+			matchCount,
+			completes,
+		}));
+	}
+
+	test("offers the comparisons of an empty number value, which keep the value open", () => {
+		expect(rows("replicas:")).toEqual([
+			{ label: ">", description: "More than", matchCount: undefined, completes: false },
+			{ label: ">=", description: "At least", matchCount: undefined, completes: false },
+			{ label: "<", description: "Less than", matchCount: undefined, completes: false },
+			{ label: "<=", description: "At most", matchCount: undefined, completes: false },
+		]);
+	});
+
+	test("offers no key that cannot exclude where a NOT or a negated group excludes", () => {
+		const labels = (query: string) => suggestTyped(query).items.map((row) => row.label);
+		expect(labels("c")).toContain("canary:");
+		expect(labels("NOT c")).not.toContain("canary:");
+		expect(labels("!(c")).not.toContain("canary:");
+	});
+
+	test("offers no value of an enum key that takes no equality", () => {
+		const grammar = defineRemoteFilterGrammar({
+			keys: [
+				{
+					key: "state",
+					description: "State",
+					type: "enum",
+					operators: [],
+					values: [{ value: "live" }],
+				},
+			],
+		});
+		expect(getFilterSuggestions({ grammar, query: "state:", caretIndex: 6 }).items).toEqual([]);
+	});
+
+	test("completes an enum value after an explicit =", () => {
+		expect(rows("state:=l").map((row) => row.label)).toEqual(["live"]);
+	});
+
+	test("offers no value where a key that cannot exclude excludes", () => {
+		expect(rows("NOT canary:")).toEqual([]);
+		expect(rows("canary:").map((row) => row.label)).toEqual(["true", "false"]);
+	});
+
+	test("does not offer a boolean picked with an explicit = again", () => {
+		expect(rows("canary:=true,").map((row) => row.label)).toEqual(["false"]);
+	});
+
+	test("reads a quoted = as text when it filters enum values", () => {
+		const grammar = defineRemoteFilterGrammar({
+			syntax: "full",
+			keys: [
+				{
+					key: "state",
+					description: "State",
+					type: "enum",
+					values: [{ value: "draft" }, { value: "=draft" }],
+				},
+			],
+		});
+		const query = 'state:"=dr"';
+		expect(
+			getFilterSuggestions({ grammar, query, caretIndex: query.length }).items.map(
+				(row) => row.label,
+			),
+		).toEqual(["=draft"]);
+	});
+
+	test("writes = before an enum value that would read as an operator where quotes do not work", () => {
+		const grammar = defineRemoteFilterGrammar({
+			keys: [
+				{
+					key: "state",
+					description: "State",
+					type: "enum",
+					values: [{ value: "=draft" }, { value: "draft" }],
+				},
+			],
+		});
+		const { items } = getFilterSuggestions({ grammar, query: "state:", caretIndex: 6 });
+		expect(items.map((row) => row.insertText)).toEqual(["==draft", "draft"]);
+	});
+
+	test("offers only the comparisons the key accepts", () => {
+		expect(rows("latency:").map((row) => row.label)).toEqual([">", ">="]);
+	});
+
+	test("offers recent windows with their counts before the comparisons of a date", () => {
+		expect(rows("created:")).toEqual([
+			{ label: ">24h", description: "After 24 hours ago", matchCount: 0, completes: true },
+			{ label: ">7d", description: "After 7 days ago", matchCount: 1, completes: true },
+			{ label: ">30d", description: "After 30 days ago", matchCount: 2, completes: true },
+			{ label: ">", description: "After", matchCount: undefined, completes: false },
+			{ label: ">=", description: "On or after", matchCount: undefined, completes: false },
+			{ label: "<", description: "Before", matchCount: undefined, completes: false },
+			{ label: "<=", description: "On or before", matchCount: undefined, completes: false },
+		]);
+		expect(rows("created:>").map((row) => row.label)).toEqual([">24h", ">7d", ">30d"]);
+	});
+
+	test("offers the exact, prefix, and suffix forms of a typed word, with their counts", () => {
+		expect(rows("name:api")).toEqual([
+			{ label: "=api", description: "Is exactly", matchCount: 0, completes: true },
+			{ label: "api*", description: "Starts with", matchCount: 1, completes: true },
+			{ label: "*api", description: "Ends with", matchCount: 2, completes: true },
+		]);
+		expect(rows("region:us").map((row) => row.label)).toEqual(["=us"]);
+		expect(rows("name:api*")).toEqual([]);
+	});
+
+	test("quotes a value that would split or close a group, and counts it", () => {
+		type Task = { name: string; state: string };
+		const grammar: FilterGrammar<Task> = {
+			syntax: "full",
+			keys: [
+				{ key: "name", description: "Name", type: "text", getValue: (item) => item.name },
+				{
+					key: "state",
+					description: "State",
+					type: "enum",
+					values: [{ value: "in progress" }, { value: "=draft" }],
+					getValue: (item) => item.state,
+				},
+			],
+			getSearchText: (item) => item.name,
+		};
+		const items = [
+			{ name: "fn(x)", state: "in progress" },
+			{ name: "b", state: "=draft" },
+		];
+		const suggest = (query: string, caretIndex = query.length) =>
+			getFilterSuggestions({ grammar, query, caretIndex, items }).items.map((row) => [
+				row.insertText,
+				row.matchCount,
+			]);
+
+		expect(suggest("state:")).toEqual([
+			['"in progress"', 1],
+			['"=draft"', 1],
+		]);
+		expect(suggest('(name:"fn(x)")', 13)).toEqual([
+			['="fn(x)"', 1],
+			['"fn(x)"*', 1],
+			['*"fn(x)"', 1],
+		]);
+	});
+
+	test("offers true and false for a boolean key", () => {
+		expect(rows("canary:").map((row) => [row.label, row.matchCount])).toEqual([
+			["true", 1],
+			["false", 3],
+		]);
 	});
 });

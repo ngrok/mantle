@@ -1,19 +1,39 @@
+export type {
+	//,
+	FilterComparison,
+	FilterOperand,
+} from "./comparison.js";
+export {
+	//,
+	parseFilterExpression,
+} from "./expression.js";
+export type {
+	//,
+	FilterExpression,
+	FilterFacetNode,
+	FilterTextNode,
+} from "./expression.js";
 export {
 	//,
 	acceptsValueList,
 	defineRemoteFilterGrammar,
 	getFilterKeyDefinition,
+	getFilterOperators,
 	getFilterSyntax,
+	getFilterValueType,
 	resolveFilterKey,
 	resolveFilterValue,
 } from "./grammar.js";
 export type {
 	//,
+	FilterFieldValue,
 	FilterGrammar,
 	FilterKeyDefinition,
 	FilterMatchContext,
+	FilterOperator,
 	FilterSyntax,
 	FilterValueDefinition,
+	FilterValueType,
 	RemoteFilterGrammarOptions,
 	RemoteFilterKeyDefinition,
 } from "./grammar.js";
@@ -47,6 +67,7 @@ export {
 	//,
 	findTokenAtCaret,
 	formatFacet,
+	getEffectiveNegations,
 	isCaretInFacetValue,
 	parseFilterQuery,
 	queryUsesQualifiers,
@@ -60,6 +81,9 @@ export type {
 	FacetValueMember,
 	FilterToken,
 	FreeTextToken,
+	GroupEndToken,
+	GroupStartToken,
+	NotToken,
 	OrToken,
 } from "./parse.js";
 export {

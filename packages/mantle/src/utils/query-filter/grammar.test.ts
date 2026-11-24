@@ -1,6 +1,11 @@
 import { describe, expect, test } from "vitest";
 
-import { acceptsValueList, defineRemoteFilterGrammar, getFilterSyntax } from "./grammar.js";
+import {
+	acceptsValueList,
+	defineRemoteFilterGrammar,
+	getFilterOperators,
+	getFilterSyntax,
+} from "./grammar.js";
 import { getHighlightSegments } from "./highlight.js";
 import { parseFilterQuery } from "./parse.js";
 import { getFilterSuggestions } from "./suggestions.js";
@@ -38,6 +43,12 @@ describe("getFilterSyntax", () => {
 
 	test("reads the conjunction syntax a remote grammar declares", () => {
 		expect(getFilterSyntax(conjunctionGrammar)).toBe("conjunction");
+	});
+});
+
+describe("getFilterOperators", () => {
+	test("limits a type's operators and adds none it does not parse", () => {
+		expect(getFilterOperators({ type: "text", operators: ["equals", "gt"] })).toEqual(["equals"]);
 	});
 });
 
@@ -111,6 +122,36 @@ describe("defineRemoteFilterGrammar", () => {
 
 		expect(items.map((item) => item.label)).toEqual(["hasplan:", "is:"]);
 		expect(items.every((item) => item.section === "filters")).toBe(true);
+	});
+});
+
+describe("a remote grammar with the full syntax", () => {
+	const fullGrammar = defineRemoteFilterGrammar({
+		syntax: "full",
+		keys: [{ key: "replicas", description: "Replica count", type: "number", operators: ["gt"] }],
+	});
+
+	test("paints free text, groups, and typed comparisons as the executor reads them", () => {
+		expect(getFilterSyntax(fullGrammar)).toBe("full");
+		expect(
+			getHighlightSegments(fullGrammar, "(api OR replicas:>3) replicas:<3").map(
+				(segment) => segment.kind,
+			),
+		).toEqual([
+			"operator",
+			"text",
+			"plain",
+			"operator",
+			"plain",
+			"key",
+			"syntax",
+			"value",
+			"operator",
+			"plain",
+			"key",
+			"syntax",
+			"invalid",
+		]);
 	});
 });
 

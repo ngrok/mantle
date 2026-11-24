@@ -1,7 +1,11 @@
+import { type FilterComparison, parseTypedComparison } from "./comparison.js";
 import {
 	type FilterGrammar,
 	type FilterKeyDefinition,
+	type FilterOperator,
 	acceptsValueList,
+	getFilterKeyDefinition,
+	getFilterOperators,
 	getFilterSyntax,
 	resolveFilterKey,
 	resolveFilterValue,
@@ -16,10 +20,10 @@ import {
  * down mid-word. Anything the grammar does not recognize degrades to free text.
  *
  * A `"qualifiers"` grammar reads only `key:value` tokens as structure: quotes,
- * the negation dash, the `OR`/`AND` operators, and comma lists all stay text.
- * A `"conjunction"` grammar reads every token the full syntax does; what the
- * executor cannot run is the highlighter's and the consumer's concern. Under
- * either richer syntax, `\"` and `\\` write a literal quote and backslash.
+ * negation, the `OR`/`AND` operators, parentheses, and comma lists all stay
+ * text. A `"conjunction"` grammar reads every token the full syntax does; what
+ * the executor cannot run is the highlighter's and the consumer's concern.
+ * Under either richer syntax, `\"` and `\\` write a literal quote and backslash.
  */
 
 /** Fields every token carries, whatever its kind. */
@@ -28,7 +32,7 @@ type FilterTokenBase = {
 	start: number;
 	/** Offset one past the token's last character in the source query. */
 	end: number;
-	/** True when the token was written with a leading `-`. */
+	/** True when the token was written with a leading `-` or `!`. */
 	negated: boolean;
 };
 
@@ -48,8 +52,19 @@ type FacetValueMember = {
 	value: string;
 	/** The member exactly as written, with quotes removed. */
 	rawValue: string;
-	/** False only when the key is enumerated and the member matched no alias. */
+	/**
+	 * False when the member does not parse: an enumerated value that matches
+	 * no alias, a value that does not parse for its key's type, or an
+	 * operator the key does not accept. Such a member matches no item.
+	 */
 	isKnownValue: boolean;
+	/**
+	 * The operator as written, or the default of the key's type when none is
+	 * written. A key with no type always reads `"equals"`.
+	 */
+	operator: FilterOperator;
+	/** The parsed comparison, or `null` exactly when `isKnownValue` is false. */
+	comparison: FilterComparison | null;
 	/**
 	 * Offset of the member's first character in the source query. A quoted
 	 * member's span covers its quote characters too.
@@ -102,8 +117,42 @@ type AndToken = FilterTokenBase & {
 	text: string;
 };
 
+/**
+ * The NOT operator, written `NOT` and unquoted. It negates the token or group
+ * that follows it, as a leading `-` or `!` does.
+ */
+type NotToken = FilterTokenBase & {
+	kind: "not";
+	/** The operator exactly as written. */
+	text: string;
+};
+
+/**
+ * An unquoted `(` at the start of a token, which opens a group. A leading
+ * `-` or `!`, as in `-(`, negates the group. Groups nest 32 deep at most; a
+ * `(` past that depth is text.
+ */
+type GroupStartToken = FilterTokenBase & {
+	kind: "group-start";
+};
+
+/**
+ * An unquoted `)` that closes the innermost open group. A `)` outside any
+ * group stays text.
+ */
+type GroupEndToken = FilterTokenBase & {
+	kind: "group-end";
+};
+
 /** One token of a parsed filter query. */
-type FilterToken = FreeTextToken | FacetToken | OrToken | AndToken;
+type FilterToken =
+	| FreeTextToken
+	| FacetToken
+	| OrToken
+	| AndToken
+	| NotToken
+	| GroupStartToken
+	| GroupEndToken;
 
 /**
  * Reports whether a character separates tokens: any whitespace, the same set
@@ -150,8 +199,13 @@ type ScannedToken = {
  * dropped from the literal, and a backslash before a quote or a backslash keeps
  * that character as text. An unclosed quote consumes the rest of the query
  * rather than failing. Without them, a quote is one more character of text.
+ * Inside an open group, an unquoted `)` ends the token, so it can close the group.
  */
-function scanToken(query: string, start: number, { quotes }: { quotes: boolean }): ScannedToken {
+function scanToken(
+	query: string,
+	start: number,
+	{ quotes, insideGroup }: { quotes: boolean; insideGroup: boolean },
+): ScannedToken {
 	let index = start;
 	let insideQuotes = false;
 	let literal = "";
@@ -187,7 +241,7 @@ function scanToken(query: string, start: number, { quotes }: { quotes: boolean }
 			continue;
 		}
 
-		if (!insideQuotes && isTokenSeparator(character)) {
+		if (!insideQuotes && (isTokenSeparator(character) || (insideGroup && character === ")"))) {
 			break;
 		}
 
@@ -220,25 +274,60 @@ function scanToken(query: string, start: number, { quotes }: { quotes: boolean }
 	return { start, end: index, literal, colonIndex, literalColonIndex, members };
 }
 
-/** Builds one value member, resolving its spelling against the key's aliases. */
+/** Reads the text an `"equals"` comparison compares with, or `null`. */
+function equalsText(comparison: FilterComparison | null) {
+	return comparison?.operator === "equals" && comparison.operand.type === "text"
+		? comparison.operand.value
+		: null;
+}
+
+/**
+ * Builds one value member: resolves its spelling against the key's aliases,
+ * and parses its operator and typed value when the key has a type.
+ */
 function toFacetValueMember<Item>({
 	grammar,
-	key,
+	definition,
+	query,
 	rawValue,
 	start,
 	end,
 }: {
 	grammar: FilterGrammar<Item>;
-	key: string;
+	definition: FilterKeyDefinition<Item>;
+	query: string;
 	rawValue: string;
 	start: number;
 	end: number;
 }): FacetValueMember {
-	const canonicalValue = resolveFilterValue(grammar, key, rawValue);
+	if (definition.type == null) {
+		const canonicalValue = resolveFilterValue(grammar, definition.key, rawValue);
+		return {
+			value: canonicalValue ?? rawValue,
+			rawValue,
+			isKnownValue: canonicalValue != null,
+			operator: "equals",
+			comparison:
+				canonicalValue == null
+					? null
+					: { operator: "equals", operand: { type: "text", value: canonicalValue } },
+			start,
+			end,
+		};
+	}
+
+	const { operator, comparison } = parseTypedComparison({
+		key: definition,
+		source: query.slice(start, end),
+		literal: rawValue,
+		resolveEnumValue: (written) => resolveFilterValue(grammar, definition.key, written),
+	});
 	return {
-		value: canonicalValue ?? rawValue,
+		value: definition.type === "enum" ? (equalsText(comparison) ?? rawValue) : rawValue,
 		rawValue,
-		isKnownValue: canonicalValue != null,
+		isKnownValue: comparison != null,
+		operator,
+		comparison,
 		start,
 		end,
 	};
@@ -255,6 +344,7 @@ function toFacetValueMember<Item>({
 function splitFacetValue<Item>({
 	grammar,
 	definition,
+	query,
 	rawValue,
 	valueStart,
 	valueEnd,
@@ -262,6 +352,7 @@ function splitFacetValue<Item>({
 }: {
 	grammar: FilterGrammar<Item>;
 	definition: FilterKeyDefinition<Item>;
+	query: string;
 	rawValue: string;
 	valueStart: number;
 	valueEnd: number;
@@ -275,7 +366,8 @@ function splitFacetValue<Item>({
 		return [
 			toFacetValueMember({
 				grammar,
-				key: definition.key,
+				definition,
+				query,
 				rawValue,
 				start: valueStart,
 				end: valueEnd,
@@ -288,7 +380,8 @@ function splitFacetValue<Item>({
 		.map((member) =>
 			toFacetValueMember({
 				grammar,
-				key: definition.key,
+				definition,
+				query,
 				rawValue: member.literal,
 				start: member.start,
 				end: member.end,
@@ -302,6 +395,11 @@ function splitFacetValue<Item>({
  */
 function isWrittenValue(literal: string, start: number, end: number) {
 	return literal !== "" || end - start >= 2;
+}
+
+/** Whether a character negates the token it starts: `-` or `!`. */
+function isNegationPrefix(character: string) {
+	return character === "-" || character === "!";
 }
 
 /**
@@ -321,7 +419,7 @@ function toFilterToken<Item>(
 
 	// A quoted token opens with `"`, so `"-staging"` searches for the literal
 	// term rather than excluding it.
-	const negated = operators && query.charAt(start) === "-" && literal.length > 1;
+	const negated = operators && isNegationPrefix(query.charAt(start)) && literal.length > 1;
 	const bodyStart = negated ? 1 : 0;
 
 	// A dropped quote shortens the literal, so equal lengths mean a bare token.
@@ -331,6 +429,9 @@ function toFilterToken<Item>(
 	}
 	if (operators && isBareToken && !negated && (literal === "AND" || literal === "&&")) {
 		return { kind: "and", start, end, negated: false, text: literal };
+	}
+	if (operators && isBareToken && !negated && literal === "NOT") {
+		return { kind: "not", start, end, negated: false, text: literal };
 	}
 
 	const writtenKey = colonIndex === -1 ? "" : literal.slice(bodyStart, literalColonIndex);
@@ -347,6 +448,7 @@ function toFilterToken<Item>(
 	const members = splitFacetValue({
 		grammar,
 		definition,
+		query,
 		rawValue,
 		valueStart: colonIndex + 1,
 		valueEnd: end,
@@ -366,6 +468,9 @@ function toFilterToken<Item>(
 	};
 }
 
+/** The deepest that groups nest. Real queries nest two or three deep. */
+const maxGroupDepth = 32;
+
 /**
  * Parses a filter query into tokens. Never throws, on any input.
  *
@@ -379,16 +484,37 @@ function toFilterToken<Item>(
  */
 function parseFilterQuery<Item>(grammar: FilterGrammar<Item>, query: string): FilterToken[] {
 	const tokens: FilterToken[] = [];
-	const quotes = getFilterSyntax(grammar) !== "qualifiers";
+	// Quotes, negation, and groups are all structure, or all text.
+	const operators = getFilterSyntax(grammar) !== "qualifiers";
+	let groupDepth = 0;
 	let index = 0;
 
 	while (index < query.length) {
-		if (isTokenSeparator(query.charAt(index))) {
+		const character = query.charAt(index);
+		if (isTokenSeparator(character)) {
 			index += 1;
 			continue;
 		}
 
-		const scanned = scanToken(query, index, { quotes });
+		if (operators && character === ")" && groupDepth > 0) {
+			tokens.push({ kind: "group-end", start: index, end: index + 1, negated: false });
+			groupDepth -= 1;
+			index += 1;
+			continue;
+		}
+
+		const negatedGroup = isNegationPrefix(character) && query.charAt(index + 1) === "(";
+		// Why a cap: each group is a level of recursion in the expression parser,
+		// and a pasted query must not overflow the stack.
+		if (operators && (character === "(" || negatedGroup) && groupDepth < maxGroupDepth) {
+			const end = index + (negatedGroup ? 2 : 1);
+			tokens.push({ kind: "group-start", start: index, end, negated: negatedGroup });
+			groupDepth += 1;
+			index = end;
+			continue;
+		}
+
+		const scanned = scanToken(query, index, { quotes: operators, insideGroup: groupDepth > 0 });
 		tokens.push(toFilterToken(grammar, scanned, query));
 		index = scanned.end;
 	}
@@ -415,49 +541,156 @@ function queryUsesQualifiers<Item>(grammar: FilterGrammar<Item>, query: string) 
 
 /**
  * Writes a value so it parses back to itself: quoted when it would otherwise
- * split into several tokens, with each quote and backslash escaped.
+ * split into several tokens, close a group, or read as an operator of a typed
+ * key, with each quote and backslash escaped.
  *
  * @example
  * ```ts
  * quoteFilterValue("staging api"); // => "\"staging api\""
+ * quoteFilterValue("=draft"); // => "\"=draft\""
  * quoteFilterValue("acme"); // => "acme"
  * quoteFilterValue('/a"b'); // => "\"/a\\\"b\""
  * ```
  */
 function quoteFilterValue(value: string) {
 	const escaped = value.replaceAll(/["\\]/g, (character) => `\\${character}`);
-	// A comma needs quotes too, or a list key would split the value in two.
-	const needsQuotes = value === "" || /[\s",]/.test(value);
+	// A comma needs quotes too, or a list key would split the value in two. A
+	// parenthesis needs them so that it cannot close a group, and a leading `=`
+	// or `*` or a trailing `*` so that a typed key reads no operator.
+	const needsQuotes = value === "" || /[\s",()]|^[=*]|\*$/.test(value);
 	return needsQuotes ? `"${escaped}"` : escaped;
 }
 
 /**
  * Writes a qualifier in its canonical form. Accepting a suggestion always
  * replaces what was typed with this, so `-DESC:api` becomes `-description:api`.
+ * Pass `grammar` to write the value the way that grammar reads it: a
+ * `"qualifiers"` grammar reads quotes as text, so it gets no quotes.
  *
  * @example
  * ```ts
  * formatFacet({ key: "description", value: "staging api", negated: true });
  * // => '-description:"staging api"'
+ * formatFacet({ grammar: remoteGrammar, key: "state", value: "ready(us)", negated: false });
+ * // => "state:ready(us)"
  * ```
  */
-function formatFacet({ key, value, negated }: { key: string; value: string; negated: boolean }) {
+function formatFacet<Item>({
+	grammar,
+	key,
+	value,
+	negated,
+}: {
+	grammar?: FilterGrammar<Item>;
+	key: string;
+	value: string;
+	negated: boolean;
+}) {
 	const prefix = negated ? "-" : "";
 	// An empty value is the mid-typing state the value suggestions open on, and
 	// `key:""` would be a real (empty) value rather than an invitation to type.
-	return value === "" ? `${prefix}${key}:` : `${prefix}${key}:${quoteFilterValue(value)}`;
+	if (value === "") {
+		return `${prefix}${key}:`;
+	}
+	const written = grammar == null ? quoteFilterValue(value) : writeFilterValue(grammar, key, value);
+	return `${prefix}${key}:${written}`;
 }
 
-/** Whether a token is the one-value qualifier `key:value`, negated or not. */
-function isSingleFacet(token: FilterToken | undefined, key: string, value: string) {
-	return (
-		token?.kind === "facet" &&
-		token.key === key &&
-		token.members.length === 1 &&
-		token.members[0]?.value === value
-	);
+/**
+ * Writes a value so the grammar reads it back as that value. A grammar that
+ * reads quotes gets `quoteFilterValue`. A `"qualifiers"` grammar reads quotes
+ * as text, so it takes the value as is, with a `=` before a value that a typed
+ * key would read as an operator.
+ */
+function writeFilterValue<Item>(grammar: FilterGrammar<Item>, key: string, value: string) {
+	if (getFilterSyntax(grammar) !== "qualifiers") {
+		return quoteFilterValue(value);
+	}
+	const definition = getFilterKeyDefinition(grammar, key);
+	if (definition?.type == null || !/^[=*]|\*$/.test(value)) {
+		return value;
+	}
+	// A text key that takes no `=` can still say the value with contains: `*a**` contains `a*`.
+	const operators = getFilterOperators(definition);
+	return definition.type === "text" &&
+		!operators.includes("equals") &&
+		operators.includes("contains")
+		? `*${value}*`
+		: `=${value}`;
 }
 
+/** How a token changes the group depth: `(` opens one and `)` closes one. */
+function groupDepthChange(kind: FilterToken["kind"]) {
+	if (kind === "group-start") {
+		return 1;
+	}
+	return kind === "group-end" ? -1 : 0;
+}
+
+/** Whether a token is an `OR`, `AND`, or `NOT`, which asks nothing alone. */
+function isOperator(token: FilterToken) {
+	return token.kind === "or" || token.kind === "and" || token.kind === "not";
+}
+
+/**
+ * Reads whether each token is negated in effect: by its own `-` or `!`, by each
+ * `NOT` before it, and by each negated group around it. For a `group-start`, it
+ * is the negation that the group gives each token inside it.
+ *
+ * @example
+ * ```ts
+ * getEffectiveNegations(parseFilterQuery(grammar, "NOT (-is:shared api)"));
+ * // => [false, true, false, true, true]
+ * ```
+ */
+function getEffectiveNegations(tokens: readonly FilterToken[]): boolean[] {
+	// Why a stack: a `NOT` or `-` before a group negates each token inside it.
+	const groupNegations: boolean[] = [];
+	let pendingNot = false;
+	return tokens.map((token) => {
+		const inherited = groupNegations.at(-1) ?? false;
+		const negated = (inherited !== pendingNot) !== token.negated;
+		pendingNot = token.kind === "not" && !pendingNot;
+		if (token.kind === "group-start") {
+			groupNegations.push(negated);
+		} else if (token.kind === "group-end") {
+			groupNegations.pop();
+		}
+		return negated;
+	});
+}
+
+/**
+ * Whether a token is the one-value qualifier `target`, negated or not. A typed
+ * member compares by its operator and operand, so `region:=us` is
+ * `region:us` and `name:api*` is not `name:"api*"`.
+ */
+function isSameFacet<Item>(
+	grammar: FilterGrammar<Item>,
+	token: FilterToken | undefined,
+	target: FacetToken | undefined,
+) {
+	if (token?.kind !== "facet" || token.key !== target?.key || token.members.length !== 1) {
+		return false;
+	}
+	const [member] = token.members;
+	const [wanted] = target.members;
+	if (member == null || wanted == null) {
+		return false;
+	}
+	// A filter that does not parse is never the same as one that does.
+	if (member.comparison == null || wanted.comparison == null) {
+		return member.comparison == null && wanted.comparison == null && member.value === wanted.value;
+	}
+	// A text key matches without regard to case, so `region:=US` is `region:us`.
+	const definition = getFilterKeyDefinition(grammar, token.key);
+	const foldCase = definition?.type === "text";
+	const normalize = (comparison: FilterComparison) =>
+		JSON.stringify(comparison, (_name, field: unknown) =>
+			foldCase && typeof field === "string" ? field.toLowerCase() : field,
+		);
+	return normalize(member.comparison) === normalize(wanted.comparison);
+}
 /**
  * Adds a qualifier to a query, or takes it out when the query already has it.
  * Use it for a value that filters when the person clicks it, such as a status
@@ -465,8 +698,13 @@ function isSingleFacet(token: FilterToken | undefined, key: string, value: strin
  *
  * The key and the value resolve through the grammar's aliases, so `is:personal`
  * counts as `is:private`. The opposite qualifier gives way: `-is:shared`
- * becomes `is:shared`. A list such as `is:shared,private` stays as written. An
- * `OR` or `AND` beside a removed qualifier goes with it, so no operator dangles.
+ * becomes `is:shared` in its place, and so does `NOT is:shared`. A value that
+ * the grammar cannot write as one qualifier, such as a value with a space in a
+ * `"qualifiers"` grammar, leaves the query as it is. A list such as
+ * `is:shared,private` stays as written. An `OR` or `AND` beside a removed
+ * qualifier goes with it, and so does each `NOT` before it and a group that it
+ * leaves empty, so no operator dangles. A qualifier counts as negated by its
+ * own `-`, by each `NOT` before it, and by each negated group around it.
  *
  * @example
  * ```ts
@@ -489,25 +727,139 @@ function toggleFacet<Item>({
 }) {
 	const key = resolveFilterKey(grammar, facet.key)?.key ?? facet.key;
 	const value = resolveFilterValue(grammar, key, facet.value) ?? facet.value;
+	const added = formatFacet({ grammar, key, value, negated: facet.negated });
+	// An empty value compares as `key:""`, the real empty value the parser reads.
+	const targetTokens = parseFilterQuery(
+		grammar,
+		value === "" ? `${key}:""` : formatFacet({ grammar, key, value, negated: false }),
+	);
+	const [target] = targetTokens;
+	// A `"qualifiers"` grammar cannot write a value with whitespace as one
+	// qualifier, so there is nothing to add or take out.
+	if (targetTokens.length !== 1 || target?.kind !== "facet") {
+		return query;
+	}
 	const tokens = parseFilterQuery(grammar, query);
-	const removed = tokens.map((token) => isSingleFacet(token, key, value));
-	const wasOn = tokens.some((token, index) => removed[index] && token.negated === facet.negated);
+	const negations = getEffectiveNegations(tokens);
+	const matched = tokens.map((token) => isSameFacet(grammar, token, target));
+	const removed = [...matched];
+	const wasOn = matched.some((isMatch, index) => isMatch && negations[index] === facet.negated);
 
-	const kept: string[] = [];
+	// The negation that the groups around each token give it, without its own
+	// `-`, `!`, or the `NOT` before it.
+	const groupNegations: boolean[] = [];
+	const inherited = tokens.map((token, index) => {
+		const negated = groupNegations.at(-1) ?? false;
+		if (token.kind === "group-start") {
+			groupNegations.push(negations[index] ?? false);
+		} else if (token.kind === "group-end") {
+			groupNegations.pop();
+		}
+		return negated;
+	});
+
+	// A group left with only operators inside goes too, so `NOT (is:shared)`
+	// leaves no `NOT ( )`. The parser closes an open group at the end of the
+	// query, so this does too.
+	const openGroups: number[] = [];
+	const removeIfEmpty = (start: number, end: number) => {
+		const inside = tokens.slice(start + 1, end);
+		const empty = inside.every((other, offset) => removed[start + 1 + offset] || isOperator(other));
+		if (empty) {
+			removed.fill(true, start, end + 1);
+		}
+	};
 	tokens.forEach((token, index) => {
+		if (token.kind === "group-start") {
+			openGroups.push(index);
+		} else if (token.kind === "group-end") {
+			removeIfEmpty(openGroups.pop() ?? index, index);
+		}
+	});
+	for (const start of openGroups.toReversed()) {
+		removeIfEmpty(start, tokens.length);
+	}
+	// Each `NOT` before a removed token goes with it, or it would negate the next token.
+	for (let index = tokens.length - 2; index >= 0; index -= 1) {
+		if (tokens[index]?.kind === "not" && removed[index + 1]) {
+			removed[index] = true;
+		}
+	}
+
+	// Each opposite qualifier gives way in its own place, at the start of what
+	// goes with it, when no kept group around that place negates it. So the new
+	// qualifier keeps the joins around each one: toggling `is:shared` in
+	// `-is:shared api OR -is:shared lemur` gives `is:shared api OR is:shared lemur`.
+	const anchors = new Set<number>();
+	if (!wasOn) {
+		matched.forEach((isMatch, index) => {
+			let start = index;
+			while (removed[start - 1] === true) {
+				start -= 1;
+			}
+			if (isMatch && inherited[start] === false) {
+				anchors.add(start);
+			}
+		});
+	}
+
+	let result = "";
+	let previous: FilterToken["kind"] | undefined;
+	// Why pending tokens: a join lands only between two kept operands, so
+	// taking out one alternative of `a OR b OR c` keeps `a OR c`, not `a c`. A
+	// `NOT` lands only before an operand, so a trailing `NOT` cannot negate the
+	// qualifier this adds.
+	let pendingJoin: FilterToken | undefined;
+	let pendingNots: FilterToken[] = [];
+	let unclosed = 0;
+	const write = (kind: FilterToken["kind"], text: string) => {
+		const hugs = previous === "group-start" || kind === "group-end";
+		result += (previous == null || hugs ? "" : " ") + text;
+		previous = kind;
+	};
+	const emit = (kind: FilterToken["kind"], text: string) => {
+		if (kind !== "group-end") {
+			if (pendingJoin != null) {
+				write(pendingJoin.kind, query.slice(pendingJoin.start, pendingJoin.end));
+			}
+			for (const not of pendingNots) {
+				write(not.kind, query.slice(not.start, not.end));
+			}
+		}
+		pendingJoin = undefined;
+		pendingNots = [];
+		unclosed += groupDepthChange(kind);
+		write(kind, text);
+	};
+	tokens.forEach((token, index) => {
+		if (anchors.has(index)) {
+			emit("facet", added);
+		}
 		if (removed[index]) {
 			return;
 		}
-		const isOperator = token.kind === "or" || token.kind === "and";
-		if (isOperator && (removed[index - 1] === true || removed[index + 1] === true)) {
+		if (token.kind === "not") {
+			pendingNots.push(token);
 			return;
 		}
-		kept.push(query.slice(token.start, token.end));
+		if (token.kind === "or" || token.kind === "and") {
+			// A `NOT` with a join after it negates nothing, as the parser reads it.
+			pendingNots = [];
+			if (previous != null && previous !== "group-start") {
+				// `OR` binds looser than `AND`, so it is the join that keeps the meaning.
+				pendingJoin = pendingJoin?.kind === "or" ? pendingJoin : token;
+			}
+			return;
+		}
+		emit(token.kind, query.slice(token.start, token.end));
 	});
 
-	return [...kept, ...(wasOn ? [] : [formatFacet({ key, value, negated: facet.negated })])].join(
-		" ",
-	);
+	if (wasOn || anchors.size > 0) {
+		return result;
+	}
+	// A group the query leaves open closes first, or it would negate or join the new qualifier.
+	result += ")".repeat(Math.max(unclosed, 0));
+	return result === "" ? added : `${result} ${added}`;
 }
 
 /**
@@ -525,7 +877,12 @@ function toggleFacet<Item>({
  * ```
  */
 function findTokenAtCaret(tokens: readonly FilterToken[], caretIndex: number) {
-	return tokens.find((token) => caretIndex >= token.start && caretIndex <= token.end);
+	const touching = tokens.filter((token) => caretIndex >= token.start && caretIndex <= token.end);
+	// A caret between `(` and a word belongs to the word, so its suggestions edit that word.
+	return (
+		touching.find((token) => token.kind !== "group-start" && token.kind !== "group-end") ??
+		touching[0]
+	);
 }
 
 /**
@@ -546,11 +903,13 @@ export {
 	//,
 	findTokenAtCaret,
 	formatFacet,
+	getEffectiveNegations,
 	isCaretInFacetValue,
 	parseFilterQuery,
 	queryUsesQualifiers,
 	quoteFilterValue,
 	toggleFacet,
+	writeFilterValue,
 };
 
 export type {
@@ -560,5 +919,8 @@ export type {
 	FacetValueMember,
 	FilterToken,
 	FreeTextToken,
+	GroupEndToken,
+	GroupStartToken,
+	NotToken,
 	OrToken,
 };

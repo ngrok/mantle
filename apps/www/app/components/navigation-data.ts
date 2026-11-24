@@ -723,6 +723,14 @@ export const migrations = [
 			"Mantle's parts style their children with arbitrary variants such as [&>*]:, not *: or **:. Write an override of those styles with the same arbitrary variant, such as [&>:first-child]:size-9 on Sidebar.SwitcherTrigger.",
 		route: "/migrations/0031-anchored-child-variant-migration",
 	},
+	{
+		number: 32,
+		slug: "query-filter-operators-migration",
+		title: "Query Filter Operators",
+		description:
+			"The query-filter language now reads NOT, !, parentheses, and typed comparisons. Handle the new token kinds, and narrow a key before you call its matches.",
+		route: "/migrations/0032-query-filter-operators-migration",
+	},
 ] as const satisfies readonly Migration[];
 
 /** Migration guides, newest first: the order the index page and the sidebar show. */

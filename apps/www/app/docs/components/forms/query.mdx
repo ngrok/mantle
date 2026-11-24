@@ -27,6 +27,7 @@ type Project = {
 	description: string;
 	shared: boolean;
 	archived: boolean;
+	members: number;
 };
 
 const projects: Project[] = [
@@ -36,6 +37,7 @@ const projects: Project[] = [
 		description: "Invoices and payments",
 		shared: true,
 		archived: false,
+		members: 6,
 	},
 	{
 		id: "p_2",
@@ -43,6 +45,7 @@ const projects: Project[] = [
 		description: "Public website",
 		shared: true,
 		archived: false,
+		members: 3,
 	},
 	{
 		id: "p_3",
@@ -50,6 +53,7 @@ const projects: Project[] = [
 		description: "Old color scales",
 		shared: true,
 		archived: true,
+		members: 1,
 	},
 	{
 		id: "p_4",
@@ -57,6 +61,7 @@ const projects: Project[] = [
 		description: "Staging API",
 		shared: false,
 		archived: false,
+		members: 4,
 	},
 	{
 		id: "p_5",
@@ -64,6 +69,7 @@ const projects: Project[] = [
 		description: "Local webhook tests",
 		shared: false,
 		archived: false,
+		members: 1,
 	},
 ];
 
@@ -73,7 +79,8 @@ const projectFilterGrammar: FilterGrammar<Project> = {
 			key: "name",
 			aliases: ["title"],
 			description: "Text in the project name",
-			matches: (project, value) => project.name.toLowerCase().includes(value.toLowerCase()),
+			type: "text",
+			getValue: (project) => project.name,
 		},
 		{
 			key: "description",
@@ -103,6 +110,12 @@ const projectFilterGrammar: FilterGrammar<Project> = {
 				}
 			},
 		},
+		{
+			key: "members",
+			description: "How many people work on it",
+			type: "number",
+			getValue: (project) => project.members,
+		},
 	],
 	getSearchText: (project) => [project.name, project.description, project.id].join("\n"),
 };
@@ -127,6 +140,11 @@ const columns = columnHelper.columns([
 	columnHelper.accessor((project) => (project.shared ? "Shared" : "Private"), {
 		id: "visibility",
 		header: () => <DataTable.Header>Visibility</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
+	columnHelper.accessor("members", {
+		id: "members",
+		header: () => <DataTable.Header>Members</DataTable.Header>,
 		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 	}),
 ]);
@@ -245,6 +263,8 @@ The other parts don't take `asChild`:
 
 `Query` is a single-line filter field for a list. Free text and `key:value` qualifiers mix in one query: `is:shared -staging api`. The field colors each token in place. A suggestion popover completes keys and values while the caret stays in the field. In the example at the top of this page, type `is:` to see the values and their live match counts.
 
+A key with a `type` takes operators: `members:>3` compares a number, `name:api*` matches a prefix, and `(is:shared OR is:archived) -name:=billing-api` groups filters. Type `members:` in the example to see the comparisons. [query-filter](/utils/query-filter#typed-keys-and-operators) lists every operator.
+
 The grammar also filters your items with `filterItemsByQuery`, so the field and the list always agree.
 
 ## State
@@ -353,7 +373,7 @@ export function KeyboardShortcutQueryExample() {
 
 ## Search on the server
 
-When a server runs the query, declare its vocabulary with `defineRemoteFilterGrammar` and leave out `items`. The suggestions then carry no counts. The grammar's `syntax` keeps the highlighting to what the server reads: `"qualifiers"` (the default) treats only bare `key:value` tokens as structure, and `"conjunction"` reads one AND group of exclusions, comma lists, and quotes.
+When a server runs the query, declare its vocabulary with `defineRemoteFilterGrammar` and leave out `items`. The suggestions then carry no counts. The grammar's `syntax` keeps the highlighting to what the server reads: `"qualifiers"` (the default) treats only bare `key:value` tokens as structure, `"conjunction"` reads one AND group of exclusions, comma lists, and quotes, and `"full"` reads the whole language.
 
 Inside a `<form>`, Enter submits the form, unless the keyboard made a suggestion active. Then Enter accepts that suggestion.
 
@@ -514,11 +534,11 @@ The query field. `className` and `style` go to the field's outer element, as on 
 | `validation`       | `"error"` \| `"success"` \| `"warning"` \| `false` \| `() => "error" \| "success" \| "warning" \| false` | none             | The validation state. It sets the border, and `"error"` also sets `aria-invalid`. Inside `Field.Control`, the `Field.Item` sets it. |
 | `aria-describedby` | `string`                                                                                                 | none             | The field's own description. `Query.Footer` joins it while the popover is open.                                                     |
 
-| CSS Variable             | Default                        | Description                     |
-| ------------------------ | ------------------------------ | ------------------------------- |
-| `--query-key-color`      | `var(--shiki-token-attribute)` | The color of a qualifier key.   |
-| `--query-value-color`    | `var(--shiki-token-string)`    | The color of a qualifier value. |
-| `--query-operator-color` | `var(--shiki-token-operator)`  | The color of `OR` and `AND`.    |
+| CSS Variable             | Default                        | Description                                       |
+| ------------------------ | ------------------------------ | ------------------------------------------------- |
+| `--query-key-color`      | `var(--shiki-token-attribute)` | The color of a qualifier key.                     |
+| `--query-value-color`    | `var(--shiki-token-string)`    | The color of a qualifier value.                   |
+| `--query-operator-color` | `var(--shiki-token-operator)`  | The color of `OR`, `AND`, `NOT`, and parentheses. |
 
 | Data Attribute    | Value                                   | Description                                                                                                                        |
 | ----------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |

@@ -9,7 +9,8 @@ import {
 	quoteFilterValue,
 	toggleFacet,
 } from "./parse.js";
-import { testGrammar } from "./test-grammar.js";
+import { defineRemoteFilterGrammar } from "./grammar.js";
+import { testGrammar, typedTestGrammar } from "./test-grammar.js";
 
 describe("parseFilterQuery", () => {
 	test("separates tokens on any whitespace, a line break included", () => {
@@ -27,7 +28,17 @@ describe("parseFilterQuery", () => {
 				negated: false,
 				key: "is",
 				rawValue: "new",
-				members: [{ value: "new", rawValue: "new", isKnownValue: true, start: 3, end: 6 }],
+				members: [
+					{
+						value: "new",
+						rawValue: "new",
+						isKnownValue: true,
+						operator: "equals",
+						comparison: { operator: "equals", operand: { type: "text", value: "new" } },
+						start: 3,
+						end: 6,
+					},
+				],
 				isKnownValue: true,
 				colonIndex: 2,
 			},
@@ -241,6 +252,114 @@ describe("parseFilterQuery", () => {
 	});
 });
 
+describe("parseFilterQuery with NOT and groups", () => {
+	/** The kind of each token, and its negation, for a query. */
+	function shape(query: string) {
+		return parseFilterQuery(testGrammar, query).map((token) =>
+			token.negated ? `-${token.kind}` : token.kind,
+		);
+	}
+
+	test("reads a leading ! as negation, and a lone ! as text", () => {
+		expect(parseFilterQuery(testGrammar, "!acme")).toEqual([
+			{ kind: "text", start: 0, end: 5, negated: true, text: "acme" },
+		]);
+		expect(shape("! !is:new")).toEqual(["text", "-facet"]);
+	});
+
+	test("reads only a bare, capital NOT as the operator", () => {
+		expect(shape('NOT acme "NOT" not -NOT')).toEqual(["not", "text", "text", "text", "-text"]);
+	});
+
+	test("opens a group at the start of a token and closes it at a )", () => {
+		expect(parseFilterQuery(testGrammar, "(acme)")).toEqual([
+			{ kind: "group-start", start: 0, end: 1, negated: false },
+			{ kind: "text", start: 1, end: 5, negated: false, text: "acme" },
+			{ kind: "group-end", start: 5, end: 6, negated: false },
+		]);
+		expect(shape("-(a) !(b)")).toEqual([
+			"-group-start",
+			"text",
+			"group-end",
+			"-group-start",
+			"text",
+			"group-end",
+		]);
+	});
+
+	test("keeps a ) outside any group, and a quoted parenthesis, as text", () => {
+		expect(parseFilterQuery(testGrammar, "name:fn(x) a)")).toMatchObject([
+			{ kind: "facet", rawValue: "fn(x)" },
+			{ kind: "text", text: "a)" },
+		]);
+		expect(shape('"(" "-(x"')).toEqual(["text", "text"]);
+	});
+
+	test("nests groups 32 deep, and reads a deeper ( as text", () => {
+		const kinds = parseFilterQuery(testGrammar, `${"(".repeat(33)}a${")".repeat(33)}`).map(
+			(token) => token.kind,
+		);
+
+		expect(kinds.filter((kind) => kind === "group-start")).toHaveLength(32);
+		expect(kinds.filter((kind) => kind === "group-end")).toHaveLength(32);
+	});
+
+	test("reads NOT, !, and parentheses as text under the qualifiers syntax", () => {
+		const grammar = defineRemoteFilterGrammar({ keys: [{ key: "is", description: "State" }] });
+
+		expect(parseFilterQuery(grammar, "NOT (!is:a)").map((token) => token.kind)).toEqual([
+			"text",
+			"text",
+		]);
+	});
+});
+
+describe("parseFilterQuery with typed keys", () => {
+	/** The members of the one qualifier in a query. */
+	function members(query: string) {
+		const [token] = parseFilterQuery(typedTestGrammar, query);
+		return token?.kind === "facet" ? token.members : [];
+	}
+
+	test("splits the operator off a comparison and parses its value", () => {
+		expect(members("replicas:>=3")).toEqual([
+			{
+				value: ">=3",
+				rawValue: ">=3",
+				isKnownValue: true,
+				operator: "gte",
+				comparison: { operator: "gte", operand: { type: "number", value: 3 } },
+				start: 9,
+				end: 12,
+			},
+		]);
+	});
+
+	test("keeps the operator of a member that does not parse, with no comparison", () => {
+		expect(members("latency:<1s")).toMatchObject([
+			{ isKnownValue: false, operator: "lt", comparison: null },
+		]);
+		expect(members("replicas:>many")).toMatchObject([
+			{ isKnownValue: false, operator: "gt", comparison: null },
+		]);
+	});
+
+	test("resolves an enum alias behind an = to its canonical value", () => {
+		expect(members("state:=running")).toMatchObject([
+			{
+				value: "live",
+				comparison: { operator: "equals", operand: { type: "text", value: "live" } },
+			},
+		]);
+	});
+
+	test("rejects a date part that rolls over", () => {
+		expect(members("created:2026-02-29")).toMatchObject([{ isKnownValue: false }]);
+		expect(members("created:2028-02-29")).toMatchObject([{ isKnownValue: true }]);
+		expect(members("created:2026-01-31T24:00Z")).toMatchObject([{ isKnownValue: false }]);
+	});
+});
+
 describe("queryUsesQualifiers", () => {
 	test("reports a qualifier standing beside a search term", () => {
 		expect(queryUsesQualifiers(testGrammar, "is:new acme")).toBe(true);
@@ -274,6 +393,25 @@ describe("quoteFilterValue", () => {
 		expect(quoteFilterValue("a,b")).toBe('"a,b"');
 		expect(parseFilterQuery(testGrammar, `name:${quoteFilterValue("a,b")}`)).toMatchObject([
 			{ members: [{ value: "a,b" }] },
+		]);
+	});
+
+	test("quotes an operator character at the edge, so a typed key reads it as text", () => {
+		expect([quoteFilterValue("=draft"), quoteFilterValue("*a"), quoteFilterValue("a*")]).toEqual([
+			'"=draft"',
+			'"*a"',
+			'"a*"',
+		]);
+		expect(quoteFilterValue("a*b")).toBe("a*b");
+	});
+
+	test("quotes a parenthesis, so it cannot close a group", () => {
+		expect(quoteFilterValue("fn(x)")).toBe('"fn(x)"');
+		expect(quoteFilterValue("fn(")).toBe('"fn("');
+		expect(parseFilterQuery(testGrammar, `(name:${quoteFilterValue("fn(x)")})`)).toMatchObject([
+			{ kind: "group-start" },
+			{ kind: "facet", members: [{ value: "fn(x)" }] },
+			{ kind: "group-end" },
 		]);
 	});
 
@@ -324,10 +462,14 @@ describe("toggleFacet", () => {
 		).toBe("");
 	});
 
-	test("replaces the opposite qualifier", () => {
+	test("replaces the opposite qualifier in its place", () => {
 		expect(toggleFacet({ grammar: testGrammar, query: "-is:shared api", facet: shared })).toBe(
-			"api is:shared",
+			"is:shared api",
 		);
+		// Appending instead would turn the `api` alternative into a required term.
+		expect(
+			toggleFacet({ grammar: testGrammar, query: "NOT is:shared OR api", facet: shared }),
+		).toBe("is:shared OR api");
 	});
 
 	test("keeps a list as written, and drops an operator beside a removed qualifier", () => {
@@ -337,6 +479,154 @@ describe("toggleFacet", () => {
 		expect(toggleFacet({ grammar: testGrammar, query: "is:shared OR api", facet: shared })).toBe(
 			"api",
 		);
+	});
+
+	test("takes out a qualifier negated by NOT, and the NOT with it", () => {
+		expect(
+			toggleFacet({
+				grammar: testGrammar,
+				query: "api OR NOT is:shared",
+				facet: { ...shared, negated: true },
+			}),
+		).toBe("api");
+		expect(toggleFacet({ grammar: testGrammar, query: "NOT is:shared api", facet: shared })).toBe(
+			"is:shared api",
+		);
+	});
+
+	test("reads negation from each NOT and each negated group", () => {
+		expect(
+			toggleFacet({ grammar: testGrammar, query: "NOT NOT is:shared api", facet: shared }),
+		).toBe("api");
+		expect(toggleFacet({ grammar: testGrammar, query: "NOT (is:shared) api", facet: shared })).toBe(
+			"is:shared api",
+		);
+		// Inside a kept negated group, the replacement goes after the group, not into it.
+		expect(toggleFacet({ grammar: testGrammar, query: "NOT (is:shared api)", facet: shared })).toBe(
+			"NOT (api) is:shared",
+		);
+		expect(
+			toggleFacet({ grammar: testGrammar, query: "(is:shared OR is:new) api", facet: shared }),
+		).toBe("(is:new) api");
+	});
+
+	test("keeps the OR between the alternatives left beside a removed one", () => {
+		expect(
+			toggleFacet({
+				grammar: testGrammar,
+				query: "api OR NOT (is:shared) OR lemur",
+				facet: { ...shared, negated: true },
+			}),
+		).toBe("api OR lemur");
+	});
+
+	test("takes out a group the query leaves open, so the new qualifier is not inside it", () => {
+		expect(toggleFacet({ grammar: testGrammar, query: "NOT (is:shared", facet: shared })).toBe(
+			"is:shared",
+		);
+		expect(toggleFacet({ grammar: testGrammar, query: "NOT (api", facet: shared })).toBe(
+			"NOT (api) is:shared",
+		);
+	});
+
+	test("compares a typed qualifier by its operator and value", () => {
+		const region = { key: "region", value: "us", negated: false };
+		expect(toggleFacet({ grammar: typedTestGrammar, query: "region:=us", facet: region })).toBe("");
+		expect(
+			toggleFacet({
+				grammar: typedTestGrammar,
+				query: "name:api*",
+				facet: { key: "name", value: "api*", negated: false },
+			}),
+		).toBe('name:api* name:"api*"');
+	});
+
+	test("writes a value as is where the grammar reads no quotes", () => {
+		const grammar = defineRemoteFilterGrammar({
+			keys: [{ key: "state", description: "State", values: [{ value: "ready(us)" }] }],
+		});
+		expect(
+			toggleFacet({
+				grammar,
+				query: "",
+				facet: { key: "state", value: "ready(us)", negated: false },
+			}),
+		).toBe("state:ready(us)");
+	});
+
+	test("replaces the opposite qualifier in each OR branch and inside a kept group", () => {
+		expect(
+			toggleFacet({ grammar: testGrammar, query: "(-is:shared OR lemur)", facet: shared }),
+		).toBe("(is:shared OR lemur)");
+		expect(
+			toggleFacet({
+				grammar: testGrammar,
+				query: "-is:shared api OR -is:shared lemur",
+				facet: shared,
+			}),
+		).toBe("is:shared api OR is:shared lemur");
+	});
+
+	test("drops a trailing NOT, so it cannot negate the added qualifier", () => {
+		expect(toggleFacet({ grammar: testGrammar, query: "NOT", facet: shared })).toBe("is:shared");
+	});
+
+	test("compares typed text without regard to case, and never an invalid filter with a valid one", () => {
+		expect(
+			toggleFacet({
+				grammar: typedTestGrammar,
+				query: "-region:=US",
+				facet: { key: "region", value: "us", negated: false },
+			}),
+		).toBe("region:us");
+		const containsOnly = {
+			syntax: "full" as const,
+			keys: [
+				{
+					key: "name",
+					description: "Name",
+					type: "text" as const,
+					operators: ["contains" as const],
+					getValue: (item: { name: string }) => item.name,
+				},
+			],
+			getSearchText: (item: { name: string }) => item.name,
+		};
+		expect(
+			toggleFacet({
+				grammar: containsOnly,
+				query: "name:api*",
+				facet: { key: "name", value: "api*", negated: false },
+			}),
+		).toBe('name:api* name:"api*"');
+		expect(
+			toggleFacet({
+				grammar: { ...containsOnly, syntax: "qualifiers" },
+				query: "",
+				facet: { key: "name", value: "api*", negated: false },
+			}),
+		).toBe("name:*api**");
+	});
+
+	test("leaves the query as it is for a value the grammar cannot write", () => {
+		const grammar = defineRemoteFilterGrammar({ keys: [{ key: "name", description: "Name" }] });
+		expect(
+			toggleFacet({
+				grammar,
+				query: "name:api",
+				facet: { key: "name", value: "api gateway", negated: false },
+			}),
+		).toBe("name:api");
+	});
+
+	test("takes out a quoted empty value", () => {
+		expect(
+			toggleFacet({
+				grammar: testGrammar,
+				query: 'name:""',
+				facet: { key: "name", value: "", negated: false },
+			}),
+		).toBe("");
 	});
 
 	test("quotes a value that needs quotes", () => {
@@ -350,6 +640,17 @@ describe("toggleFacet", () => {
 	});
 });
 
+describe("formatFacet with a grammar", () => {
+	test("writes a value as is where the grammar reads no quotes", () => {
+		const grammar = defineRemoteFilterGrammar({
+			keys: [{ key: "state", description: "State", values: [{ value: "ready(us)" }] }],
+		});
+		expect(formatFacet({ grammar, key: "state", value: "ready(us)", negated: false })).toBe(
+			"state:ready(us)",
+		);
+	});
+});
+
 describe("findTokenAtCaret", () => {
 	const tokens = parseFilterQuery(testGrammar, "is:new acme");
 
@@ -357,6 +658,12 @@ describe("findTokenAtCaret", () => {
 		expect(findTokenAtCaret(tokens, 0)).toMatchObject({ key: "is" });
 		expect(findTokenAtCaret(tokens, 6)).toMatchObject({ key: "is" });
 		expect(findTokenAtCaret(tokens, 7)).toMatchObject({ text: "acme" });
+	});
+
+	test("claims the word, not the parenthesis, for a caret between them", () => {
+		expect(findTokenAtCaret(parseFilterQuery(testGrammar, "(is:new)"), 1)).toMatchObject({
+			key: "is",
+		});
 	});
 
 	test("claims no token for a caret parked in whitespace", () => {
