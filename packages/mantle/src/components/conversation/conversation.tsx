@@ -269,6 +269,7 @@ function followEnd(
 	const distanceFromEnd = () => viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop;
 	let isFollowing = distanceFromEnd() <= END_THRESHOLD;
 	let lastTop = viewport.scrollTop;
+	let lastMax = viewport.scrollHeight - viewport.clientHeight;
 	let smoothTarget: number | null = null;
 
 	const report = () => {
@@ -317,11 +318,12 @@ function followEnd(
 		follow();
 	});
 	const onScroll = () => {
+		const max = viewport.scrollHeight - viewport.clientHeight;
 		// Why `>= lastTop`: the first step of a smooth scroll up can still be near the end.
-		// Why `<= 1`: a taller viewport pulls the view up to exactly the end, so the reader is there.
+		// Why `max < lastMax`: a taller viewport clamps the view to the end, but a reader's tiny scroll up does not.
 		if (
 			distanceFromEnd() <= END_THRESHOLD &&
-			(viewport.scrollTop >= lastTop || distanceFromEnd() <= 1)
+			(viewport.scrollTop >= lastTop || (distanceFromEnd() <= 1 && max < lastMax))
 		) {
 			isFollowing = true;
 		} else if (viewport.scrollTop < lastTop && distanceFromEnd() > END_THRESHOLD) {
@@ -329,6 +331,7 @@ function followEnd(
 			smoothTarget = null;
 		}
 		lastTop = viewport.scrollTop;
+		lastMax = max;
 		report();
 	};
 	const onScrollEnd = () => {

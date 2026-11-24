@@ -673,4 +673,21 @@ describe("Conversation", () => {
 		expect(distanceFromEnd(viewport())).toBeLessThanOrEqual(1);
 		expect(root()).not.toHaveAttribute("data-scrolled-up");
 	});
+
+	test("stays released after a wheel up of 1 px", async () => {
+		const answer: Turn = { id: "a1", from: "assistant", text: longAnswer };
+		const { rerender } = render(<Transcript turns={[answer]} />);
+		await nextFrame();
+		await waitFor(() => expect(distanceFromEnd(viewport())).toBeLessThanOrEqual(1));
+		const top = viewport().scrollTop;
+		viewport().dispatchEvent(
+			new WheelEvent("wheel", { deltaY: -1, bubbles: true, cancelable: true }),
+		);
+		viewport().scrollTo({ top: top - 1, behavior: "instant" });
+		await nextFrame();
+		rerender(<Transcript turns={[{ ...answer, text: `${longAnswer}\nMore 1\nMore 2\nMore 3` }]} />);
+		await nextFrame();
+		await nextFrame();
+		expect(viewport().scrollTop).toBe(top - 1);
+	});
 });
