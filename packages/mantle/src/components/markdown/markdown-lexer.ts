@@ -221,6 +221,9 @@ function createLazyTracker(column: number): {
 	// The width of the quote and list markers before the open paragraph, and whether it starts with a definition.
 	let width = 0;
 	let definition = false;
+	// Whether a table is open, and the last line of the open paragraph. Why: a table row takes no lazy line.
+	let table = false;
+	let last = "";
 	return {
 		read(line) {
 			const content = expandTabs(line, column);
@@ -266,6 +269,25 @@ function createLazyTracker(column: number): {
 				}
 				html = undefined;
 			}
+			if (table && !isBlank(content) && !interrupts(content)) {
+				// Another row of the open table.
+				open = false;
+				return;
+			}
+			table = false;
+			if (
+				open &&
+				!definition &&
+				DELIMITER_ROW.test(content) &&
+				content.includes("|") &&
+				cells(content).length === cells(last).length
+			) {
+				// A delimiter row under a paragraph line starts a table.
+				table = true;
+				open = false;
+				return;
+			}
+			last = content;
 			if (open && !definition && SETEXT.test(content) && indentOf(content) >= width) {
 				// A setext underline ends the paragraph as a heading. Why the width: a line left of a nested item's
 				// content is lazy, and a definition is not a heading's text.
@@ -1013,6 +1035,8 @@ const AUTOLINK = /^<([a-zA-Z][a-zA-Z\d+.-]{1,31}:[^\s<>]*)>/;
 const EMAIL_AUTOLINK =
 	/^<([\w.!#$%&'*+/=?^`{|}~-]+@[a-zA-Z\d](?:[a-zA-Z\d-]*[a-zA-Z\d])?(?:\.[a-zA-Z\d](?:[a-zA-Z\d-]*[a-zA-Z\d])?)*)>/;
 const URL_LITERAL = /^(?:https?:\/\/[\w-]|www\.[\w-]+\.[\w-])(?:[^\s<]*[^\s<?!.,:*_~'"])?/i;
+/** A character that ends a URL literal. */
+const STOP = /[\s<]/g;
 const EMPHASIS = ["", "em", "strong"] as const;
 
 const isDelimiter = (node: Node): node is Delimiter => node.type === DELIMITER;
@@ -1340,6 +1364,9 @@ function lexInline(source: string, context: Context): Tok[] {
 	let nextBreak = -2;
 	// Why the includes: most text has no URL, and they skip the slower search.
 	let nextUrl = source.includes("://") || source.includes("www.") ? -2 : -1;
+	// The next `]`, or -1 for none. Why: a URL in a link's text ends there, and a scan past it is quadratic.
+	let nextBracketEnd = -2;
+	let nextStop = -2;
 
 	let index = 0;
 	scan: while (index < source.length) {
@@ -1382,7 +1409,14 @@ function lexInline(source: string, context: Context): Tok[] {
 			nextBreak === -1 ? source.length : nextBreak,
 		);
 		if (stop > index) {
-			text += source.slice(index, stop);
+			// Why the spaces before a line break stay out of `text`: they drop out, and a slice of `text` to drop
+			// them flattens it, which is quadratic over a paragraph of many lines.
+			let runEnd = stop;
+			const floor = stop === nextBreak ? index : stop;
+			while (runEnd > floor && (source[runEnd - 1] === " " || source[runEnd - 1] === "\t")) {
+				runEnd -= 1;
+			}
+			text += source.slice(index, runEnd);
 			index = stop;
 			continue;
 		}
@@ -1516,17 +1550,7 @@ function lexInline(source: string, context: Context): Tok[] {
 			index = runEnd;
 			continue;
 		} else if (char === "\n") {
-			// The spaces before a line break end `text`: two or more spaces make a hard break, and fewer drop out.
-			let spaces = 0;
-			while (
-				(source[index - 1 - spaces] === " " || source[index - 1 - spaces] === "\t") &&
-				spaces < text.length
-			) {
-				spaces += 1;
-			}
-			if (spaces > 0) {
-				text = text.slice(0, -spaces);
-			}
+			// The spaces before a line break never joined `text`: two or more make a hard break, and fewer drop out.
 			if (source[index - 1] === " " && source[index - 2] === " ") {
 				push({ type: "br", raw: "  \n" } as Tok);
 			} else {
@@ -1580,12 +1604,29 @@ function lexInline(source: string, context: Context): Tok[] {
 				continue;
 			}
 		} else if (index === nextUrl) {
-			const url = URL_LITERAL.exec(source.slice(index));
+			const bracket = brackets.at(-1);
+			if (bracket != null && nextBracketEnd !== -1 && nextBracketEnd < index) {
+				nextBracketEnd = source.indexOf("]", index);
+			}
+			if (bracket != null && nextStop !== -1 && nextStop < index) {
+				STOP.lastIndex = index;
+				nextStop = STOP.exec(source)?.index ?? -1;
+			}
+			// Why a scan to the `]` alone: a URL in a link's text ends there, and a scan of the rest past it for each
+			// adjacent link is quadratic.
+			const inLabel =
+				bracket != null &&
+				nextBracketEnd !== -1 &&
+				(nextStop === -1 || nextStop > nextBracketEnd) &&
+				(bracket.image || brackets.length - 1 >= activeFloor) &&
+				targetOf(bracket, nextBracketEnd) != null;
+			const url = URL_LITERAL.exec(
+				inLabel ? source.slice(index, nextBracketEnd) : source.slice(index),
+			);
 			if (url != null) {
 				let value = url[0];
 				// Why: a URL in the text of a link ends before the `]` that closes the link.
 				const close = brackets.length > 0 ? value.indexOf("]") : -1;
-				const bracket = brackets.at(-1);
 				if (
 					close !== -1 &&
 					bracket != null &&

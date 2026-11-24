@@ -100,6 +100,16 @@ describe("lexMarkdown", () => {
 		expect(tokens.map((token) => token.raw).join("")).toBe(`${"*".repeat(200)}x${"*".repeat(200)}`);
 	});
 
+	test("ends a quoted table at an unquoted line", () => {
+		const tokens = lexMarkdown(
+			"> | Name | Value |\n> | --- | --- |\n> | a | 1 |\nThe result is ready.",
+		);
+		expect(tokens.map((token) => token.type)).toEqual(["blockquote", "paragraph"]);
+		expect(flatten(tokens).find((token) => token.type === "table")).toMatchObject({
+			rows: [[{ text: "a" }, { text: "1" }]],
+		});
+	});
+
 	test("ends a table at indented code", () => {
 		expect(lexMarkdown("| a | b |\n| --- | --- |\n    code").map((token) => token.type)).toEqual([
 			"table",
@@ -186,6 +196,8 @@ describe("lexMarkdown", () => {
 		["spaces after a heading", `# title${" ".repeat(40_000)}`],
 		["spaces after a delimiter row", `a | b\n- | -${" ".repeat(40_000)}x`],
 		["many `@` with no email", " @b.io".repeat(40_000)],
+		["a paragraph of lines that end in a space", "a \n".repeat(80_000)],
+		["adjacent links with a URL as text", "[https://a.io](/u)".repeat(16_000)],
 	])("lexes %s in linear time", (_, source) => {
 		const start = performance.now();
 		const tokens = lexMarkdown(source);
