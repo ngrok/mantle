@@ -488,7 +488,7 @@ An ID alone is hard to recognize at a glance.
 - **Do** lead with the resource's name or URL, and put its ID after it, muted and copyable.
 - **Do** keep a long URL or ID on one line, and show the full value in a tooltip or a copy button.
 - **Don't** show only the ID, or wrap a long URL across several lines with `break-all`.
-- **Part:** [`TruncatedText`](/components/data-display/truncated-text) keeps a long value on one line and shows the full value on hover. [`useCopyToClipboard`](/hooks#usecopytoclipboard) copies the ID.
+- **Part:** [`TruncatedText`](/components/data-display/truncated-text) keeps a long value on one line and shows the full value on hover. Copy the ID with the [`useCopyToClipboard`](/hooks#usecopytoclipboard) hook.
 
 ```tsx
 import { TruncatedText } from "@ngrok/mantle/truncated-text";
@@ -511,8 +511,8 @@ Text with no size class renders at the browser's 16px default, so rows feel bigg
 - **Do** set `text-sm` (14px on a 20px line) on the labels and row text you place by hand.
 - **Do** set secondary detail, such as a size or a count, in `text-xs text-muted`.
 - **Do** give the rows of one list the same line height, such as `leading-5`, so their text sits at the same height.
-- **Don't** leave a label or a row of text that you place outside a part with no size class.
-- **Part:** text inside a mantle part takes the part's size, such as in `Table.Cell` or `Field.Label`. Give a size only to text outside a part.
+- **Don't** leave a label or a row of text with no size from a part or a class.
+- **Part:** some parts set their own size, such as `Table.Cell` and `Field.Label`. Others take the size of the text around them, such as `TruncatedText` and a link `Button`. Set the size on their container.
 
 ```tsx
 // Do: the row text is text-sm, and the size note is text-xs and muted.
