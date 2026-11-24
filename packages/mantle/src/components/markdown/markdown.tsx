@@ -2,8 +2,10 @@
 
 import type { Token, Tokens } from "marked";
 import {
+	createContext,
 	createElement,
 	memo,
+	use,
 	useEffect,
 	useId,
 	useMemo,
@@ -15,6 +17,7 @@ import {
 import { useIsHydrated } from "../../hooks/use-is-hydrated.js";
 import { useCallbackRef } from "../../hooks/use-callback-ref.js";
 import { cx } from "../../utils/cx/cx.js";
+import { joinDataSlot, type WithDataSlot } from "../../utils/data-slot.js";
 import { Anchor } from "../anchor/anchor.js";
 import * as CodeBlock from "../code-block/code-block-parts.js";
 import { defaultShowLineNumbers } from "../code-block/mantle-code.js";
@@ -111,46 +114,68 @@ function hasTokens(token: Token): token is Token & { tokens: Token[] } {
 	return "tokens" in token && Array.isArray(token.tokens) && token.tokens.length > 0;
 }
 
-/** Returns the index of the tag that closes the inline tag at `start`, or -1. */
-function findClosingTag(tokens: readonly Token[], start: number, tag: string): number {
-	let depth = 0;
-	for (let index = start + 1; index < tokens.length; index += 1) {
+/**
+ * Pairs each allowed inline opening tag in `tokens` with the tag that closes
+ * it, by index. Why one pass: a scan for each opening tag is quadratic in an
+ * answer with many unclosed tags.
+ */
+function pairInlineTags(tokens: readonly Token[]): Map<number, number> {
+	const pairs = new Map<number, number>();
+	const open = new Map<string, number[]>();
+	for (let index = 0; index < tokens.length; index += 1) {
 		const token = tokens[index];
 		if (token?.type !== "html") {
 			continue;
 		}
-		if (OPEN_TAG.exec(token.raw)?.[1]?.toLowerCase() === tag) {
-			depth += 1;
-		} else if (CLOSE_TAG.exec(token.raw)?.[1]?.toLowerCase() === tag) {
-			if (depth === 0) {
-				return index;
-			}
-			depth -= 1;
+		const opening = OPEN_TAG.exec(token.raw)?.[1]?.toLowerCase();
+		if (opening != null && INLINE_TAGS.has(opening)) {
+			const stack = open.get(opening) ?? [];
+			stack.push(index);
+			open.set(opening, stack);
+			continue;
+		}
+		const closing = CLOSE_TAG.exec(token.raw)?.[1]?.toLowerCase();
+		const start = closing == null ? undefined : open.get(closing)?.pop();
+		if (start !== undefined) {
+			pairs.set(start, index);
 		}
 	}
-	return -1;
+	return pairs;
 }
 
 /**
- * Returns a lone node as it is, so React writes a lone text child through
- * `textContent`, which a browser translation engine cannot break.
+ * Returns a run of nodes that a browser translation engine cannot break. A
+ * lone node stays as it is, so React writes lone text through `textContent`.
+ * In a run, each text is wrapped in a `span`. Why: the engine reparents a text
+ * node, and React then throws when it removes the text or inserts before it.
  */
-function unwrapLone(nodes: ReactNode[]): ReactNode {
-	return nodes.length === 1 ? nodes[0] : nodes;
+function translationSafeRun(all: ReactNode[]): ReactNode {
+	// Why without `null`: a blank line or a definition renders nothing, and must not cost lone text its fast path.
+	const nodes = all.filter((node) => node != null);
+	if (nodes.length === 1) {
+		return nodes[0];
+	}
+	return nodes.map((node, index) =>
+		// oxlint-disable-next-line react/no-array-index-key -- Why: a node has no identity but its position, as each token's key is.
+		typeof node === "string" ? <span key={index}>{node}</span> : node,
+	);
 }
 
 /** Renders a run of inline tokens, with the inline HTML tags that an answer may use as elements. */
 function renderInline(tokens: readonly Token[], components: MarkdownComponents): ReactNode {
 	const nodes: ReactNode[] = [];
+	let pairs: Map<number, number> | undefined;
 	for (let index = 0; index < tokens.length; index += 1) {
 		const token = tokens[index];
 		if (token == null) {
 			continue;
 		}
-		if (token.type === "html" && !token.block) {
+		// Why only without an `html` component: a component replaces the built-in tags too.
+		if (token.type === "html" && !token.block && components.html == null) {
 			const tag = OPEN_TAG.exec(token.raw)?.[1]?.toLowerCase();
-			const close = tag != null && INLINE_TAGS.has(tag) ? findClosingTag(tokens, index, tag) : -1;
-			if (tag != null && close !== -1) {
+			pairs ??= pairInlineTags(tokens);
+			const close = tag != null && INLINE_TAGS.has(tag) ? pairs.get(index) : undefined;
+			if (tag != null && close !== undefined) {
 				nodes.push(
 					createElement(
 						tag === "tt" ? "code" : tag,
@@ -166,12 +191,12 @@ function renderInline(tokens: readonly Token[], components: MarkdownComponents):
 		}
 		nodes.push(renderToken(token, index, components));
 	}
-	return unwrapLone(nodes);
+	return translationSafeRun(nodes);
 }
 
 /** Renders the block tokens inside a blockquote or a list item. */
 function renderBlocks(tokens: readonly Token[], components: MarkdownComponents): ReactNode {
-	return unwrapLone(tokens.map((token, index) => renderToken(token, index, components)));
+	return translationSafeRun(tokens.map((token, index) => renderToken(token, index, components)));
 }
 
 /** Renders the content of a token: blocks for a blockquote or a list item, else inline tokens. */
@@ -250,7 +275,8 @@ const defaultComponents: Required<Omit<MarkdownComponents, "extension" | "table"
 	// Why text: an answer's raw HTML never reaches the DOM as markup.
 	html: ({ token }) => <p>{token.text}</p>,
 	image: ({ token }) => {
-		const src = safeUrl(token.href, "image");
+		// Why decode first: marked keeps character references, and a decoded `&#106;avascript:` must meet the check.
+		const src = safeUrl(decodeEntities(token.href), "image");
 		if (src == null) {
 			return token.text === "" ? null : <span>{token.text}</span>;
 		}
@@ -259,14 +285,14 @@ const defaultComponents: Required<Omit<MarkdownComponents, "extension" | "table"
 			<img
 				src={src}
 				alt={token.text}
-				title={token.title ?? undefined}
+				title={token.title == null ? undefined : decodeEntities(token.title)}
 				loading="lazy"
 				decoding="async"
 			/>
 		);
 	},
 	link: ({ token, children }) => {
-		const href = safeUrl(token.href, "link");
+		const href = safeUrl(decodeEntities(token.href), "link");
 		if (href == null) {
 			return <span>{children}</span>;
 		}
@@ -275,7 +301,7 @@ const defaultComponents: Required<Omit<MarkdownComponents, "extension" | "table"
 		return (
 			<Anchor
 				href={href}
-				title={token.title ?? undefined}
+				title={token.title == null ? undefined : decodeEntities(token.title)}
 				target={isAbsolute ? "_blank" : undefined}
 			>
 				{children}
@@ -291,14 +317,12 @@ const defaultComponents: Required<Omit<MarkdownComponents, "extension" | "table"
 	list_item: ({ token, children }) => (
 		<MarkdownListItemContent token={token}>{children}</MarkdownListItemContent>
 	),
-	math: ({ token }) =>
-		token.display ? (
-			<pre translate="no">
-				<code>{token.text}</code>
-			</pre>
-		) : (
-			<code translate="no">{token.text}</code>
-		),
+	// Why a block `code` and not a `pre`: `$$…$$` can sit inside a paragraph, and a `pre` there breaks hydration.
+	math: ({ token }) => (
+		<code translate="no" className={cx(token.display && "block overflow-x-auto whitespace-pre")}>
+			{token.text}
+		</code>
+	),
 	paragraph: ({ children }) => <p>{children}</p>,
 	strong: ({ children }) => <strong>{children}</strong>,
 };
@@ -360,18 +384,7 @@ function renderToken(token: Token, key: number, components: MarkdownComponents):
 		return <TableBlock key={key} token={token} components={components} />;
 	}
 	if (isTokenOf(token, "list")) {
-		return renderComponent(components.list ?? defaultComponents.list, {
-			key,
-			token,
-			children: token.items.map((item, index) => (
-				<MarkdownListItem
-					// oxlint-disable-next-line react/no-array-index-key -- Why: an item has no identity but its position, and streamed items only append.
-					key={index}
-					token={item}
-					components={components}
-				/>
-			)),
-		});
+		return <MarkdownList key={key} token={token} components={components} />;
 	}
 	if (isComponentName(token.type)) {
 		const component: (props: MarkdownComponentProps<never>) => ReactNode =
@@ -433,7 +446,7 @@ function TableBlock({
 	components: MarkdownComponents;
 }) {
 	if (components.table != null) {
-		return components.table({ token, children: null });
+		return renderComponent(components.table, { key: 0, token, children: null });
 	}
 	return renderTable(token, components);
 }
@@ -514,15 +527,41 @@ const MarkdownGroup = memo(function MarkdownGroup({
 	));
 }, isSameGroup);
 
+/**
+ * The reference definitions of the answer. Why a context: a list can sit
+ * deep in a block, and its items compare `links` to render again when a
+ * definition resolves one of their reference links.
+ */
+const LinksContext = createContext<MarkdownLinks>(Object.create(null));
+
 /** One list item. Why `memo`: a long list streams one item at a time, and the items above it keep their source. */
-const MarkdownListItem = memo(
-	function MarkdownListItem({ token, components }: Omit<BlockProps, "links">) {
-		return renderToken(token, 0, components);
-	},
-	(previous, next) =>
-		previous.components === next.components &&
-		(previous.token === next.token || previous.token.raw === next.token.raw),
-);
+const MarkdownListItem = memo(function MarkdownListItem({ token, components }: BlockProps) {
+	return renderToken(token, 0, components);
+}, isSameBlock);
+
+/** A list, with each item memoized. */
+function MarkdownList({
+	token,
+	components,
+}: {
+	token: Tokens.List;
+	components: MarkdownComponents;
+}) {
+	const links = use(LinksContext);
+	return renderComponent(components.list ?? defaultComponents.list, {
+		key: 0,
+		token,
+		children: token.items.map((item, index) => (
+			<MarkdownListItem
+				// oxlint-disable-next-line react/no-array-index-key -- Why: an item has no identity but its position, and streamed items only append.
+				key={index}
+				token={item}
+				components={components}
+				links={links}
+			/>
+		)),
+	});
+}
 
 /** One block that finished, for `onBlockComplete`. */
 type MarkdownBlockEvent = {
@@ -533,30 +572,31 @@ type MarkdownBlockEvent = {
 };
 
 /** Props for {@link Markdown}. Other props go to the root `div`. */
-type MarkdownProps = Omit<ComponentProps<"div">, "children"> & {
-	/** The Markdown so far. While it streams, each update appends to it. */
-	children: string;
-	/**
-	 * Whether more Markdown can arrive. While `true`, unfinished syntax at the
-	 * end renders closed, updates render at most once per frame, and a caret
-	 * shows at the end. When it turns `false`, the whole answer parses once
-	 * more, so a reference link that comes before its definition resolves.
-	 *
-	 * @default false
-	 */
-	streaming?: boolean;
-	/** The components that replace the built-in one for a token. Keep the object stable. */
-	components?: MarkdownComponents;
-	/**
-	 * Marked extensions, such as `markdownMath()`. Keep the array stable: a new
-	 * array parses the whole answer again.
-	 */
-	extensions?: readonly MarkdownExtension[];
-	/** Called once for each block that finishes after mount, in order, after the render that shows it. */
-	onBlockComplete?: (block: MarkdownBlockEvent) => void;
-	/** Called once when `streaming` turns from `true` to `false`, after the final render. */
-	onStreamEnd?: () => void;
-};
+type MarkdownProps = Omit<ComponentProps<"div">, "children"> &
+	WithDataSlot & {
+		/** The Markdown so far. While it streams, each update appends to it. */
+		children: string;
+		/**
+		 * Whether more Markdown can arrive. While `true`, unfinished syntax at the
+		 * end renders closed, updates render at most once per frame, and a caret
+		 * shows at the end. When it turns `false`, the whole answer parses once
+		 * more, so a reference link that comes before its definition resolves.
+		 *
+		 * @default false
+		 */
+		streaming?: boolean;
+		/** The components that replace the built-in one for a token. Keep the object stable. */
+		components?: MarkdownComponents;
+		/**
+		 * Marked extensions, such as `markdownMath()`. Keep the array stable: a new
+		 * array parses the whole answer again.
+		 */
+		extensions?: readonly MarkdownExtension[];
+		/** Called once for each block that finishes after mount, in order, after the render that shows it. */
+		onBlockComplete?: (block: MarkdownBlockEvent) => void;
+		/** Called once when `streaming` turns from `true` to `false`, after the final render. */
+		onStreamEnd?: () => void;
+	};
 
 /**
  * Renders Markdown from a model, as it streams. Mantle parts render it out
@@ -610,6 +650,7 @@ function Markdown({
 	onBlockComplete,
 	onStreamEnd,
 	className,
+	"data-slot": dataSlot,
 	...props
 }: MarkdownProps) {
 	const source = useFrameValue(children, { throttle: streaming });
@@ -648,7 +689,7 @@ function Markdown({
 
 	return (
 		<div
-			data-slot="markdown"
+			data-slot={joinDataSlot(dataSlot, "markdown")}
 			data-streaming={streaming ? "" : undefined}
 			// Why apart from `data-streaming`: the fade rule restyles each block when its attribute changes,
 			// so it turns on once, while the answer is short. Why after hydration: a block that the server
@@ -658,16 +699,18 @@ function Markdown({
 			className={cx("min-w-0 wrap-break-word", className)}
 			{...props}
 		>
-			{Array.from({ length: Math.ceil(snapshot.blocks.length / GROUP_SIZE) }, (_, group) => (
-				<MarkdownGroup
-					// oxlint-disable-next-line react/no-array-index-key -- Why: a group holds the same blocks for the life of the answer.
-					key={group}
-					blocks={snapshot.blocks.slice(group * GROUP_SIZE, (group + 1) * GROUP_SIZE)}
-					start={group * GROUP_SIZE}
-					components={components ?? noComponents}
-					links={snapshot.links}
-				/>
-			))}
+			<LinksContext value={snapshot.links}>
+				{Array.from({ length: Math.ceil(snapshot.blocks.length / GROUP_SIZE) }, (_, group) => (
+					<MarkdownGroup
+						// oxlint-disable-next-line react/no-array-index-key -- Why: a group holds the same blocks for the life of the answer.
+						key={group}
+						blocks={snapshot.blocks.slice(group * GROUP_SIZE, (group + 1) * GROUP_SIZE)}
+						start={group * GROUP_SIZE}
+						components={components ?? noComponents}
+						links={snapshot.links}
+					/>
+				))}
+			</LinksContext>
 		</div>
 	);
 }

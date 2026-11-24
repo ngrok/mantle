@@ -3,7 +3,7 @@ import type { GrammarId } from "./grammars.js";
 import type { LineTokenizerResult } from "./line-tokenizer.js";
 
 /**
- * A message to the highlight worker. `id` names one code block. A `grammar`
+ * A message to the highlight worker. `id` names one block's stream for one grammar. A `grammar`
  * message comes before the first `highlight` message of its grammar.
  */
 type HighlightRequest =

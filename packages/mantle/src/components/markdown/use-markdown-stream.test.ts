@@ -1,5 +1,5 @@
-import { renderHook, waitFor } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { describe, expect, test, vi } from "vitest";
 import { useMarkdownStream } from "./use-markdown-stream.js";
 
 /** An async stream of `chunks` that throws after the last one when `fail` is set. */
@@ -51,5 +51,79 @@ describe("useMarkdownStream", () => {
 		expect(result.current.text).toBe("Partial");
 		expect(result.current.error).toBeInstanceOf(Error);
 		expect(reads).toBe(1);
+	});
+
+	test("cancels a pending read when it unmounts", async () => {
+		const cancel = vi.fn<() => void>();
+		const { unmount } = renderHook(() =>
+			useMarkdownStream({ read: () => new ReadableStream<string>({ cancel }) }),
+		);
+		await act(async () => {
+			await Promise.resolve();
+		});
+		unmount();
+		await waitFor(() => expect(cancel).toHaveBeenCalledTimes(1));
+	});
+
+	test("opens no stream again after it turns off during the wait before a retry", async () => {
+		vi.useFakeTimers();
+		let reads = 0;
+		const { result, rerender } = renderHook(
+			({ enabled }) =>
+				useMarkdownStream({
+					enabled,
+					read: () => {
+						reads += 1;
+						return chunks([], { fail: true });
+					},
+				}),
+			{ initialProps: { enabled: true } },
+		);
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(0);
+		});
+		rerender({ enabled: false });
+		await act(async () => {
+			await vi.advanceTimersByTimeAsync(10_000);
+		});
+		vi.useRealTimers();
+		expect(reads).toBe(1);
+		expect(result.current.status).toBe("done");
+	});
+
+	test("keeps the text of the last frame when it turns off, and streams again when it turns on", async () => {
+		vi.useFakeTimers({ toFake: ["requestAnimationFrame", "cancelAnimationFrame"] });
+		const offsets: number[] = [];
+		const { result, rerender } = renderHook(
+			({ enabled }) =>
+				useMarkdownStream({
+					enabled,
+					read: async function* ({ offset }) {
+						offsets.push(offset);
+						yield offsets.length === 1 ? "Hello" : " world";
+						// Why: the stream stays open until the hook turns off.
+						await new Promise(() => {});
+					},
+				}),
+			{ initialProps: { enabled: true } },
+		);
+		await act(async () => {
+			await Promise.resolve();
+		});
+		// The chunk waits for the next frame, and the hook turns off first.
+		rerender({ enabled: false });
+		expect(result.current.text).toBe("Hello");
+		rerender({ enabled: true });
+		expect(result.current.status).toBe("streaming");
+		await act(async () => {
+			// Why the ticks: the async generator yields its chunk a few microtasks after it opens.
+			for (let tick = 0; tick < 5; tick += 1) {
+				await Promise.resolve();
+			}
+			vi.advanceTimersToNextFrame();
+		});
+		vi.useRealTimers();
+		expect(offsets).toEqual([0, 5]);
+		expect(result.current.text).toBe("Hello world");
 	});
 });

@@ -23,7 +23,7 @@
  */
 function closeMarkdown(text: string, { math }: { math: boolean }): string {
 	const blocks = scanBlocks(text, { math });
-	if (blocks.inFence) {
+	if (blocks.inFence || blocks.inIndentedCode) {
 		return text;
 	}
 	if (blocks.inMath) {
@@ -36,6 +36,8 @@ function closeMarkdown(text: string, { math }: { math: boolean }): string {
 type BlockScan = {
 	/** Whether the text ends inside a code fence. */
 	inFence: boolean;
+	/** Whether the text ends inside indented code. */
+	inIndentedCode: boolean;
 	/** Whether the text ends inside a `$$` block. */
 	inMath: boolean;
 	/** Where the last run of lines that can share inline markup starts. */
@@ -50,6 +52,23 @@ const LIST_MARKER = /^(?:[-*+]|\d{1,9}[.)])(?: |$)/;
 const HEADING = /^#{1,6}(?: |$)/;
 const THEMATIC_BREAK = /^([-*_])(?: *\1){2,} *$/;
 const FENCE = /^(`{3,}|~{3,})(.*)$/;
+/** The list markers at the start of a line's content, such as `- ` or `1. - `. */
+const LIST_MARKERS = /^(?:(?:[-*+]|\d{1,9}[.)])[ \t]+)+/;
+
+/** The columns of a line's indent, with a tab to the next multiple of 4. */
+function indentOf(line: string): number {
+	let columns = 0;
+	for (let index = 0; ; index += 1) {
+		const code = line.charCodeAt(index);
+		if (code === 32) {
+			columns += 1;
+		} else if (code === 9) {
+			columns += 4 - (columns % 4);
+		} else {
+			return columns;
+		}
+	}
+}
 
 /** The content of a line after its indent and blockquote markers. */
 function lineContent(line: string): string {
@@ -69,6 +88,10 @@ function lineContent(line: string): string {
 function scanBlocks(text: string, { math }: { math: boolean }): BlockScan {
 	let fence: { char: string; length: number } | undefined;
 	let inMath = false;
+	let inIndentedCode = false;
+	// Why: indented code cannot start inside a paragraph, and an indented line in a list is the item's content.
+	let inParagraph = false;
+	let inList = false;
 	let regionStart = 0;
 	let afterSingleLineBlock = false;
 	let lineStart = 0;
@@ -97,10 +120,21 @@ function scanBlocks(text: string, { math }: { math: boolean }): BlockScan {
 				inMath = false;
 				regionStart = nextStart;
 			}
+		} else if (
+			inIndentedCode &&
+			(content.trim() === "" || indentOf(text.slice(lineStart, lineEnd)) >= 4)
+		) {
+			// The indented code goes on.
 		} else {
-			const open = FENCE.exec(content);
+			inIndentedCode = false;
+			const indent = indentOf(text.slice(lineStart, lineEnd));
+			// Why without the list markers: a fence can start on the line of its item's marker.
+			const open = FENCE.exec(content.replace(LIST_MARKERS, ""));
 			const marker = open?.[1];
-			if (marker != null && !(marker.startsWith("`") && open?.[2]?.includes("`"))) {
+			if (content.trim() !== "" && indent >= 4 && !inParagraph && !inList) {
+				inIndentedCode = true;
+				regionStart = nextStart;
+			} else if (marker != null && !(marker.startsWith("`") && open?.[2]?.includes("`"))) {
 				fence = { char: marker.slice(0, 1), length: marker.length };
 			} else if (math && content.startsWith("$$") && !content.slice(2).includes("$$")) {
 				inMath = true;
@@ -115,6 +149,19 @@ function scanBlocks(text: string, { math }: { math: boolean }): BlockScan {
 				regionStart = lineStart;
 				afterSingleLineBlock = false;
 			}
+			if (!inIndentedCode) {
+				inParagraph =
+					content.trim() !== "" &&
+					fence == null &&
+					!inMath &&
+					!HEADING.test(content) &&
+					!THEMATIC_BREAK.test(content);
+				if (LIST_MARKER.test(content)) {
+					inList = true;
+				} else if (indent === 0 && content.trim() !== "") {
+					inList = false;
+				}
+			}
 		}
 		if (newline === -1) {
 			break;
@@ -123,6 +170,7 @@ function scanBlocks(text: string, { math }: { math: boolean }): BlockScan {
 	}
 	return {
 		inFence: fence != null,
+		inIndentedCode,
 		inMath,
 		regionStart: Math.min(regionStart, text.length),
 		lastLineStart,

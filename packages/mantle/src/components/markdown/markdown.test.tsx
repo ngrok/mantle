@@ -166,6 +166,52 @@ describe("Markdown", () => {
 		expect(screen.getByText(/for \$5 and \$10\./)).toBeInTheDocument();
 	});
 
+	test("decodes character references in a link destination before its check", () => {
+		render(<Markdown>{"[q](/s?a=1&amp;b=2) [x](&#106;avascript:alert(1))"}</Markdown>);
+		expect(screen.getByRole("link", { name: "q" })).toHaveAttribute("href", "/s?a=1&b=2");
+		expect(screen.queryByRole("link", { name: "x" })).toBeNull();
+	});
+
+	test("pairs inline tags in linear time", () => {
+		const start = performance.now();
+		render(<Markdown>{"x <b>".repeat(8000)}</Markdown>);
+		// Why 1,000 ms: a scan for each unclosed tag takes seconds here, and one pass takes milliseconds.
+		expect(performance.now() - start).toBeLessThan(1000);
+	});
+
+	test("renders inline HTML with an `html` component when one is set", () => {
+		const components: MarkdownComponents = {
+			html: ({ token }) => <span data-testid="html">{token.raw}</span>,
+		};
+		render(<Markdown components={components}>{"Press <kbd>Ctrl</kbd>."}</Markdown>);
+		expect(screen.getAllByTestId("html").map((node) => node.textContent)).toEqual([
+			"<kbd>",
+			"</kbd>",
+		]);
+	});
+
+	test("renders display math inside a paragraph without a block element", () => {
+		const { container } = render(
+			<Markdown extensions={[markdownMath()]}>{"Before $$x$$ after."}</Markdown>,
+		);
+		expect(container.querySelector("p pre")).toBeNull();
+		expect(container.querySelector("p")).toHaveTextContent("Before x after.");
+	});
+
+	test("resolves a reference link in a list item when the stream ends", () => {
+		const answer = "- [docs][ref]\n\nAfter\n\n[ref]: https://ngrok.com";
+		// Why the prefix: the list finishes before its definition arrives.
+		const { rerender } = render(<Markdown streaming>{answer.slice(0, 22)}</Markdown>);
+		expect(screen.queryByRole("link", { name: "docs" })).toBeNull();
+		rerender(<Markdown>{answer}</Markdown>);
+		expect(screen.getByRole("link", { name: "docs" })).toHaveAttribute("href", "https://ngrok.com");
+	});
+
+	test("joins the `data-slot` of an `asChild` parent", () => {
+		const { container } = render(<Markdown data-slot="card-body">{"Text"}</Markdown>);
+		expect(container.firstElementChild).toHaveAttribute("data-slot", "card-body markdown");
+	});
+
 	test("survives a browser translation at each step of a stream", () => {
 		const answer = [
 			"Run **ngrok** *now*, then `ngrok http 80` on <your-domain>.",
@@ -181,13 +227,19 @@ describe("Markdown", () => {
 			"",
 			"[ref]: https://ngrok.com",
 		].join("\n");
+		// Why fake frames: the answer renders once per frame, and each step must commit before the next translation.
+		vi.useFakeTimers({ toFake: ["requestAnimationFrame", "cancelAnimationFrame"] });
 		const { container, rerender } = render(<Markdown streaming>{""}</Markdown>);
 		for (let end = 1; end <= answer.length; end += 1) {
 			translateTextNodes(container);
 			act(() => {
 				rerender(<Markdown streaming>{answer.slice(0, end)}</Markdown>);
 			});
+			act(() => {
+				vi.advanceTimersToNextFrame();
+			});
 		}
+		vi.useRealTimers();
 		translateTextNodes(container);
 		act(() => {
 			rerender(<Markdown>{answer}</Markdown>);

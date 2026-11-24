@@ -1,18 +1,34 @@
 /** A stream of Markdown text chunks, such as a decoded `fetch` body. */
 type MarkdownStreamSource = ReadableStream<string> | AsyncIterable<string>;
 
-async function* chunksOf(source: MarkdownStreamSource): AsyncGenerator<string> {
+/**
+ * Yields each chunk of `source` until it ends or `signal` aborts. Why cancel
+ * on abort: a pending read never settles by itself, and the producer, such as
+ * a `fetch` body, must stop.
+ */
+async function* chunksOf(
+	source: MarkdownStreamSource,
+	signal: AbortSignal,
+): AsyncGenerator<string> {
 	// Why the reader first: Safari's `ReadableStream` is not async iterable.
 	if (!("getReader" in source)) {
 		yield* source;
 		return;
 	}
 	const reader = source.getReader();
+	const cancel = () => {
+		void reader.cancel().catch(() => {});
+	};
+	signal.addEventListener("abort", cancel, { once: true });
 	try {
 		for (let result = await reader.read(); !result.done; result = await reader.read()) {
 			yield result.value;
 		}
 	} finally {
+		signal.removeEventListener("abort", cancel);
+		if (signal.aborted) {
+			cancel();
+		}
 		reader.releaseLock();
 	}
 }
@@ -20,10 +36,14 @@ async function* chunksOf(source: MarkdownStreamSource): AsyncGenerator<string> {
 function wait(milliseconds: number, signal: AbortSignal): Promise<void> {
 	return new Promise((resolve) => {
 		const timer = setTimeout(resolve, milliseconds);
-		signal.addEventListener("abort", () => {
-			clearTimeout(timer);
-			resolve();
-		});
+		signal.addEventListener(
+			"abort",
+			() => {
+				clearTimeout(timer);
+				resolve();
+			},
+			{ once: true },
+		);
 	});
 }
 
@@ -46,9 +66,10 @@ async function readWithRetries({
 	onChunk: (chunk: string) => void;
 }): Promise<{ cause: unknown } | undefined> {
 	let failures = 0;
-	for (;;) {
+	// Why the check: an abort during the wait before a retry must not open the stream again.
+	while (!signal.aborted) {
 		try {
-			for await (const chunk of chunksOf(await open(offset()))) {
+			for await (const chunk of chunksOf(await open(offset()), signal)) {
 				if (signal.aborted) {
 					return undefined;
 				}
@@ -64,6 +85,7 @@ async function readWithRetries({
 			await wait(500 * 2 ** (failures - 1), signal);
 		}
 	}
+	return undefined;
 }
 
 export {
