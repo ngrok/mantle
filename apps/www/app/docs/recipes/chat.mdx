@@ -8,6 +8,7 @@ parts:
   - Select
   - Conversation
   - Message
+  - Work
   - Reasoning
   - ToolCall
   - Markdown
@@ -22,7 +23,7 @@ import { Example } from "~/components/example";
 
 # Chat
 
-Every assistant at ngrok is built from the same parts: the dashboard assistant, the corp assistant, and the AI Gateway playground. This recipe puts them together into one chat. The composer is a [Prompt Input](/components/ai/prompt-input) with [Attachment](/components/ai/attachment) chips, a [Select](/components/forms/select) model picker, and dictation. The transcript is a [Conversation](/components/ai/conversation) of [Message](/components/ai/message)s, and each answer shows its [Reasoning](/components/ai/reasoning), its [Tool Call](/components/ai/tool-call)s, and streaming [Markdown](/components/data-display/markdown).
+Every assistant at ngrok is built from the same parts: the dashboard assistant, the corp assistant, and the AI Gateway playground. This recipe puts them together into one chat. The composer is a [Prompt Input](/components/ai/prompt-input) with [Attachment](/components/ai/attachment) chips, a [Select](/components/forms/select) model picker, and dictation. The transcript is a [Conversation](/components/ai/conversation) of [Message](/components/ai/message)s, and each answer folds its [Reasoning](/components/ai/reasoning) and its [Tool Call](/components/ai/tool-call)s under one [Work](/components/ai/work) toggle above streaming [Markdown](/components/data-display/markdown).
 
 Pick a starter prompt, or type a question and press Enter. Scroll up while the answer streams, and the transcript stays where you put it until you press the button that goes back to the newest message. Press **Stop answer** to keep the answer so far, and press **Retry** to ask again. Ask anything with "fail" in it to see a failed answer. A mock writes the answers, so the demo runs with no network and answers the same way every time.
 
@@ -35,6 +36,7 @@ Pick a starter prompt, or type a question and press Enter. Scroll up while the a
 
 - **The parts own the behavior, the app owns the state.** `useChat` holds the messages and streams each answer. `Conversation.Root` and `PromptInput.Root` both take its `streaming` flag: the transcript follows the end and announces "Answering…" once, and the send button turns into stop. There is no chat root component, because each app stores its messages in its own place (a route loader, a query cache, a store above the shell).
 - **One answer, one shape.** An answer is reasoning, tool calls, and text, each built from stream events by the pure `applyChatEvent`. Reasoning reads "Thinking…" until the first other event, then "Thought for N seconds". A tool call runs until its result arrives, and a stop or a failure marks it interrupted. `Message.Pending` sits after `Message.Content` and pulses until the answer ends.
+- **The work folds away when the answer ends.** `Work.Root` takes the answer's `streaming` flag, so the reasoning and the tool calls show while they arrive and fold under "Show work" once the text is done. A step the reader opened mid-answer stays open. Each step's caret shows on hover, focus, or open, and always on a touch screen.
 - **Stop keeps the text.** `stop` aborts the stream and ends the answer as stopped, so the reader keeps what arrived. A new message sent mid-answer does the same. `retry` replaces the last answer with a new one from the same messages.
 - **A failure is a notice, not a dead end.** When the stream throws, the answer keeps its text so far and shows an [Alert](/components/feedback/alert) with `role="alert"` under it, so a screen reader hears it, and the retry action asks again.
 - **The empty state is the first screen.** Before the first message, [Empty](/components/feedback/empty) offers starter prompts in place of the transcript. The composer stays put, so the draft never moves, and a pressed starter or Retry hands focus to the field.
@@ -58,6 +60,7 @@ import { useCopyToClipboard } from "@ngrok/mantle/hooks";
 import { Select } from "@ngrok/mantle/select";
 import { Toast, makeToast } from "@ngrok/mantle/toast";
 import { ToolCall } from "@ngrok/mantle/tool-call";
+import { Work } from "@ngrok/mantle/work";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react/ArrowClockwise";
 import { ChatsCircleIcon } from "@phosphor-icons/react/ChatsCircle";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
@@ -247,19 +250,26 @@ function Answer({ answer, onRetry }: { answer: ChatAnswer; onRetry: (() => void)
 	return (
 		<Message.Root from="assistant">
 			<Message.Content className="flex flex-col gap-3">
-				{answer.reasoning !== "" && (
-					<Reasoning.Root streaming={reasoningStreams}>
-						<Reasoning.Trigger>
-							{answer.reasoningSeconds == null
-								? "Reasoning"
-								: `Thought for ${answer.reasoningSeconds} ${answer.reasoningSeconds === 1 ? "second" : "seconds"}`}
-						</Reasoning.Trigger>
-						<Reasoning.Content>{answer.reasoning}</Reasoning.Content>
-					</Reasoning.Root>
+				{(answer.reasoning !== "" || answer.tools.length > 0) && (
+					<Work.Root streaming={streaming}>
+						<Work.Trigger />
+						<Work.Content>
+							{answer.reasoning !== "" && (
+								<Reasoning.Root streaming={reasoningStreams}>
+									<Reasoning.Trigger>
+										{answer.reasoningSeconds == null
+											? "Reasoning"
+											: `Thought for ${answer.reasoningSeconds} ${answer.reasoningSeconds === 1 ? "second" : "seconds"}`}
+									</Reasoning.Trigger>
+									<Reasoning.Content>{answer.reasoning}</Reasoning.Content>
+								</Reasoning.Root>
+							)}
+							{answer.tools.map((tool) => (
+								<Tool key={tool.id} tool={tool} />
+							))}
+						</Work.Content>
+					</Work.Root>
 				)}
-				{answer.tools.map((tool) => (
-					<Tool key={tool.id} tool={tool} />
-				))}
 				{answer.text !== "" && <Markdown streaming={streaming}>{answer.text}</Markdown>}
 				{answer.status === "failed" && (
 					<Alert.Root intent="danger" role="alert">

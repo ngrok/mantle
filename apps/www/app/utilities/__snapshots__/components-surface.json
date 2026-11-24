@@ -1773,6 +1773,10 @@
         "boundary": "a tool the model called while it answered."
       },
       {
+        "name": "Work",
+        "boundary": "the toggle that folds every step of one answer."
+      },
+      {
         "name": "Accordion",
         "boundary": "titled sections that are not part of a chat answer."
       }
@@ -2486,6 +2490,10 @@
         "boundary": "the reasoning a model wrote before its answer."
       },
       {
+        "name": "Work",
+        "boundary": "the toggle that folds every step of one answer."
+      },
+      {
         "name": "Accordion",
         "boundary": "titled sections that are not part of a chat answer."
       }
@@ -2648,6 +2656,41 @@
       }
     ],
     "useWhen": "De-emphasize a block of content relative to the surface around it."
+  },
+  {
+    "name": "Work",
+    "slug": "components/ai/work",
+    "kind": "component",
+    "category": "AI",
+    "status": "stable",
+    "importPath": "@ngrok/mantle/work",
+    "summary": "The work behind one chat answer, its reasoning and its tool calls, under one \"Show work\" toggle that stays open while the answer streams.",
+    "jsdoc": "The work behind one chat answer, its reasoning and its tool calls, under one \"Show work\" toggle.",
+    "examples": [
+      "Composition:\n```\nWork.Root\n├── Work.Trigger\n└── Work.Content\n    ├── Reasoning.Root\n    └── ToolCall.Root\n```",
+      "```tsx\n<Work.Root streaming={answer.streaming}>\n  <Work.Trigger />\n  <Work.Content>\n    <Reasoning.Root>\n      <Reasoning.Trigger>Thought for 4 seconds</Reasoning.Trigger>\n      <Reasoning.Content>{answer.reasoning}</Reasoning.Content>\n    </Reasoning.Root>\n    <ToolCall.Root status=\"done\">\n      <ToolCall.Trigger>\n        <ToolCall.Name>list_endpoints</ToolCall.Name>\n      </ToolCall.Trigger>\n      <ToolCall.Content>{result}</ToolCall.Content>\n    </ToolCall.Root>\n  </Work.Content>\n</Work.Root>\n```"
+    ],
+    "aliases": [
+      "agent steps",
+      "tool calls and reasoning",
+      "ai work",
+      "answer steps"
+    ],
+    "siblings": [
+      {
+        "name": "Reasoning",
+        "boundary": "one block of reasoning, a step inside `Work.Content`."
+      },
+      {
+        "name": "ToolCall",
+        "boundary": "one tool call, a step inside `Work.Content`."
+      },
+      {
+        "name": "Accordion",
+        "boundary": "titled sections that are not part of a chat answer."
+      }
+    ],
+    "useWhen": "Fold the reasoning and the tool calls of one chat answer under one \"Show work\" / \"Hide work\" toggle that stays open while the answer streams."
   },
   {
     "name": "World Map",

@@ -13,6 +13,7 @@ import { useCopyToClipboard } from "@ngrok/mantle/hooks";
 import { Select } from "@ngrok/mantle/select";
 import { Toast, makeToast } from "@ngrok/mantle/toast";
 import { ToolCall } from "@ngrok/mantle/tool-call";
+import { Work } from "@ngrok/mantle/work";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react/ArrowClockwise";
 import { ChatsCircleIcon } from "@phosphor-icons/react/ChatsCircle";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
@@ -202,19 +203,26 @@ function Answer({ answer, onRetry }: { answer: ChatAnswer; onRetry: (() => void)
 	return (
 		<Message.Root from="assistant">
 			<Message.Content className="flex flex-col gap-3">
-				{answer.reasoning !== "" && (
-					<Reasoning.Root streaming={reasoningStreams}>
-						<Reasoning.Trigger>
-							{answer.reasoningSeconds == null
-								? "Reasoning"
-								: `Thought for ${answer.reasoningSeconds} ${answer.reasoningSeconds === 1 ? "second" : "seconds"}`}
-						</Reasoning.Trigger>
-						<Reasoning.Content>{answer.reasoning}</Reasoning.Content>
-					</Reasoning.Root>
+				{(answer.reasoning !== "" || answer.tools.length > 0) && (
+					<Work.Root streaming={streaming}>
+						<Work.Trigger />
+						<Work.Content>
+							{answer.reasoning !== "" && (
+								<Reasoning.Root streaming={reasoningStreams}>
+									<Reasoning.Trigger>
+										{answer.reasoningSeconds == null
+											? "Reasoning"
+											: `Thought for ${answer.reasoningSeconds} ${answer.reasoningSeconds === 1 ? "second" : "seconds"}`}
+									</Reasoning.Trigger>
+									<Reasoning.Content>{answer.reasoning}</Reasoning.Content>
+								</Reasoning.Root>
+							)}
+							{answer.tools.map((tool) => (
+								<Tool key={tool.id} tool={tool} />
+							))}
+						</Work.Content>
+					</Work.Root>
 				)}
-				{answer.tools.map((tool) => (
-					<Tool key={tool.id} tool={tool} />
-				))}
 				{answer.text !== "" && <Markdown streaming={streaming}>{answer.text}</Markdown>}
 				{answer.status === "failed" && (
 					<Alert.Root intent="danger" role="alert">

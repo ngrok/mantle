@@ -53,7 +53,7 @@ export const componentCategorySlugs = {
  */
 export const componentsByCategory = {
 	Actions: ["Button", "Icon Button", "Split Button"],
-	AI: ["Attachment", "Conversation", "Message", "Prompt Input", "Reasoning", "Tool Call"],
+	AI: ["Attachment", "Conversation", "Message", "Prompt Input", "Reasoning", "Tool Call", "Work"],
 	Charts: ["Area Chart", "Bar Chart", "Line Chart", "Scatter Plot"],
 	"Data Display": [
 		"Accordion",
@@ -239,6 +239,7 @@ export const prodReadyComponentRouteLookup = {
 	Typography: "/components/data-display/typography",
 	"Visually Hidden": "/components/primitives/visually-hidden",
 	Well: "/components/structure/well",
+	Work: "/components/ai/work",
 } as const satisfies Record<ProdReadyComponent, Route>;
 
 /** Route lookup for preview component pages. */

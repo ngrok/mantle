@@ -16,6 +16,7 @@ import * as ToolCallParts from "./tool-call-parts.js";
  *
  * @siblings
  * - `Reasoning`: the reasoning a model wrote before its answer.
+ * - `Work`: the toggle that folds every step of one answer.
  * - `Accordion`: titled sections that are not part of a chat answer.
  *
  * @see https://mantle.ngrok.com/components/ai/tool-call

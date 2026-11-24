@@ -513,6 +513,11 @@
 			"types": "./dist/well.d.ts",
 			"import": "./dist/well.js"
 		},
+		"./work": {
+			"@ngrok/src-live-types": "./src/components/work/index.ts",
+			"types": "./dist/work.d.ts",
+			"import": "./dist/work.js"
+		},
 		"./world-map": {
 			"@ngrok/src-live-types": "./src/components/world-map/index.ts",
 			"types": "./dist/world-map.d.ts",

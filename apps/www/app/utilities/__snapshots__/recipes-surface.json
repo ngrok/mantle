@@ -67,6 +67,7 @@
       "Select",
       "Conversation",
       "Message",
+      "Work",
       "Reasoning",
       "ToolCall",
       "Markdown",

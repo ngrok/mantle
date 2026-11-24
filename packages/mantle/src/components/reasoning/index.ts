@@ -16,6 +16,7 @@ import * as ReasoningParts from "./reasoning-parts.js";
  *
  * @siblings
  * - `ToolCall`: a tool the model called while it answered.
+ * - `Work`: the toggle that folds every step of one answer.
  * - `Accordion`: titled sections that are not part of a chat answer.
  *
  * @see https://mantle.ngrok.com/components/ai/reasoning

@@ -186,6 +186,8 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 	"AI chat": {
 		"chat transcript scroll to bottom button": "Conversation",
 		"keep newest streamed text in view": "Conversation",
+		"show work hide work toggle": "Work",
+		"fold an answer's reasoning and tool calls": "Work",
 	},
 };
 
