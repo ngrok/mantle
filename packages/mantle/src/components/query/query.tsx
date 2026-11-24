@@ -885,7 +885,7 @@ type QueryContentProps = Omit<
  * keeps focus in the field: the active row is announced through
  * `aria-activedescendant`. It accepts the `Popover.Content` props except the
  * ones it owns. It grows no taller than the room between the field and the
- * viewport edge: the list shrinks and scrolls, and the footer stays in view.
+ * viewport edge, and it scrolls when its parts do not fit there.
  *
  * **Data attributes:**
  *
@@ -932,9 +932,12 @@ function Content({ "data-slot": dataSlot, children, className, ref, ...props }: 
 			ref={composedRef}
 			data-slot={joinDataSlot(dataSlot, "query-content")}
 			align="start"
-			// Why a flex column: the list shrinks and scrolls when the room between
-			// the field and the viewport edge is short, and the footer stays in view.
-			className={cx("flex max-h-(--available-height) w-(--anchor-width) flex-col p-1", className)}
+			// Why the popover scrolls and not only the list: the float measures a popover
+			// that scrolls by its content height, so it can still move to the side with more room.
+			className={cx(
+				"max-h-(--available-height) w-(--anchor-width) overflow-x-hidden overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden p-1",
+				className,
+			)}
 			preferredWidth="max-w-none"
 			// Why presentation: the popup is the listbox inside, which the `<input>`
 			// controls. The default `role="dialog"` adds an unnamed dialog around it.
@@ -1035,7 +1038,7 @@ function List({ "data-slot": dataSlot, children, className, ref, ...props }: Que
 			id={context.listboxId}
 			data-slot={joinDataSlot(dataSlot, "query-list")}
 			className={cx(
-				"max-h-72 overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden overscroll-y-none scroll-cue-y scroll-py-6",
+				"max-h-72 overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden scroll-cue-y scroll-py-6 empty:before:hidden empty:after:hidden",
 				className,
 			)}
 		>
