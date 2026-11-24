@@ -9,7 +9,7 @@
   Mantle Design System
 </h1>
 
-[Mantle](https://mantle.ngrok.com) is [ngrok](https://ngrok.com/)'s UI library and design system, inspired by [shadcn/ui](https://ui.shadcn.com) and built on [Radix](https://www.radix-ui.com), [Tailwind](https://tailwindcss.com/), and [React Router](https://reactrouter.com/).
+[Mantle](https://mantle.ngrok.com) is [ngrok](https://ngrok.com/)'s UI library and design system, inspired by [shadcn/ui](https://ui.shadcn.com) and built on native HTML, its own behavior hooks, [Tailwind](https://tailwindcss.com/), and [React Router](https://reactrouter.com/).
 
 This monorepo is managed with pnpm workspaces, [Turborepo](https://turbo.build/), and [mise](https://mise.jdx.dev/).
 
@@ -21,7 +21,7 @@ This monorepo is managed with pnpm workspaces, [Turborepo](https://turbo.build/)
 
 | Package                                                                                  | Description                                                                          | npm                                                                          |
 | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| [`@ngrok/mantle`](./packages/mantle)                                                     | UI component library (React, Tailwind, Radix)                                        | [npm](https://www.npmjs.com/package/@ngrok/mantle)                           |
+| [`@ngrok/mantle`](./packages/mantle)                                                     | UI component library (React, Tailwind)                                               | [npm](https://www.npmjs.com/package/@ngrok/mantle)                           |
 | [`@ngrok/mantle-vite-plugins`](./packages/mantle-vite-plugins)                           | Vite plugins: trim the production Tailwind scan, highlight code blocks at build time | [npm](https://www.npmjs.com/package/@ngrok/mantle-vite-plugins)              |
 | [`@ngrok/mantle-server-syntax-highlighter`](./packages/mantle-server-syntax-highlighter) | Server-side syntax highlighting engine powered by Shiki                              | [npm](https://www.npmjs.com/package/@ngrok/mantle-server-syntax-highlighter) |
 

@@ -89,8 +89,8 @@ type CommandRootProps = Omit<ComponentProps<"div">, "defaultValue" | "onChange">
 		shouldFilter?: boolean;
 		/**
 		 * Scores an item for the query, from 0 (hide the item) to 1 (the best
-		 * match). The items sort by score, highest first. The default is the
-		 * `command-score` fuzzy match that cmdk uses.
+		 * match). The items sort by score, highest first. The default is a fuzzy
+		 * match.
 		 */
 		filter?: CommandFilter;
 		/**
@@ -274,8 +274,8 @@ const CommandRoot = ({
 
 /**
  * Reads the palette state with a selector, and re-renders when the selected
- * value changes. Its state has cmdk's shape: `search`, `value`,
- * `selectedItemId`, and `filtered` (`count`, `items`, `groups`).
+ * value changes. Its state holds `search`, `value`, `selectedItemId`, and
+ * `filtered` (`count`, `items`, `groups`).
  *
  * @see https://mantle.ngrok.com/components/navigation/command#usecommandstate
  *
@@ -584,16 +584,13 @@ const CommandDialogContent = ({
 			ref={contentRef}
 			className={cx("overflow-hidden p-0 relative", className)}
 			onOpenAutoFocus={(event) => {
-				// Radix's own open-autofocus focuses the first candidate *and selects
-				// its value*, which would make the first keystroke after a seeded open
-				// replace the seed instead of extending it. Take the focus over and
-				// collapse the caret to the end.
+				// Why: the first keystroke after a seeded open must extend the seed.
+				// Take the focus over and collapse the caret to the end.
 				// `~=`, not `=`: `Command.Input` joins a forwarded `data-slot` chain
 				// ahead of its own, so the attribute is a space-separated list.
 				const input = contentRef.current?.querySelector('[data-slot~="command-input"]');
-				// No input, or one that cannot take focus: Radix's default is the
-				// right answer, and preventing it would leave focus outside the
-				// dialog with no focus trap.
+				// No input, or one that cannot take focus: the dialog's default focus
+				// is the right answer.
 				if (!(input instanceof HTMLInputElement) || input.disabled) {
 					return;
 				}

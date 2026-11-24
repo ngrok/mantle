@@ -1,14 +1,14 @@
 ---
 title: Command
 description: A command palette that allows users to search and execute commands.
-aliases: [command palette, command menu, cmdk, spotlight]
+aliases: [command palette, command menu, spotlight]
 ---
 
 import { Example } from "~/components/example";
 
 # Command
 
-A command palette that allows users to search and execute commands. It keeps the API and the fuzzy ranking of [cmdk](https://cmdk.paco.me/), and filters in the DOM, so no item re-renders on a keystroke. `Command.SearchTrigger` wraps the control that opens the palette and gives it the dialog wiring and the typing behavior.
+A command palette that allows users to search and execute commands. It ranks items with a fuzzy match and filters in the DOM, so no item re-renders on a keystroke. `Command.SearchTrigger` wraps the control that opens the palette and gives it the dialog wiring and the typing behavior.
 
 <Example name="components/navigation/command/overview" title="Command example">
 
@@ -194,7 +194,7 @@ Command.DialogRoot
 
 ## Polymorphism
 
-`Command.Input`, `Command.Item`, `Command.Separator`, and `Command.Empty` accept `asChild`. `Command.DialogTrigger` accepts it too, forwarded to its Radix dialog trigger.
+`Command.Input`, `Command.Item`, `Command.Separator`, and `Command.Empty` accept `asChild`. `Command.DialogTrigger` accepts it too, forwarded to its [`Dialog.Trigger`](/components/overlays/dialog).
 
 The common case is `Command.Item asChild` with an `<a>` or a router `Link`, so selecting a result navigates while the item keeps its filtering, keyboard selection, and highlight behavior. `Command.DialogTrigger asChild` is the other frequent one: it lets any element, usually a `Button`, open the command dialog.
 
@@ -399,7 +399,7 @@ A query hides each item that scores 0 and moves the matches into score order: in
 | :------------------------- | :--------------------------------------------------------------- | :--------- | :------------------------------------------------------------------------------------------------------------------------- |
 | `label?`                   | `string`                                                         | `"Search"` | The accessible name of `Command.Input`. Not shown. An `aria-label` or `aria-labelledby` on the input replaces the default. |
 | `shouldFilter?`            | `boolean`                                                        | `true`     | Set `false` to turn off the built-in filtering and sorting, and render only the matches yourself.                          |
-| `filter?`                  | `(value: string, search: string, keywords?: string[]) => number` |            | Scores an item from 0 (hidden) to 1 (best). The default is cmdk's `command-score` fuzzy match.                             |
+| `filter?`                  | `(value: string, search: string, keywords?: string[]) => number` |            | Scores an item from 0 (hidden) to 1 (best). The default is a fuzzy match.                                                  |
 | `defaultValue?`            | `string`                                                         |            | The value of the item that is active on the first render.                                                                  |
 | `value?`                   | `string`                                                         |            | The value of the active item. A change activates that item. Pair with `onValueChange`.                                     |
 | `onValueChange?`           | `(value: string) => void`                                        |            | Called with the value of each item that becomes active.                                                                    |
@@ -420,14 +420,14 @@ Focus stays in `Command.Input`, which names the active item with `aria-activedes
 
 The state owner for the Command dialog. Owns the open state, the query text, and the `⌘K` shortcut, and renders no DOM of its own.
 
-| Prop                | Type                      | Default | Description                                                                                          |
-| :------------------ | :------------------------ | :------ | :--------------------------------------------------------------------------------------------------- |
-| `children?`         | `ReactNode`               |         | The palette's parts, and any consumer of `useCommandDialog()`.                                       |
-| `defaultOpen?`      | `boolean`                 | `false` | The initial open state for the uncontrolled case.                                                    |
-| `keyboardShortcut?` | `boolean`                 | `true`  | Bind `⌘K` / `Ctrl+K` to toggle the palette. See [The keyboard shortcut](#the-keyboard-shortcut).     |
-| `open?`             | `boolean`                 |         | Controlled open state. Pair with `onOpenChange`.                                                     |
-| `onOpenChange?`     | `(open: boolean) => void` |         | Called with the next open state whenever it changes.                                                 |
-| `modal?`            | `boolean`                 | `true`  | Forwarded to Radix's [Dialog.Root](https://www.radix-ui.com/primitives/docs/components/dialog#root). |
+| Prop                | Type                      | Default | Description                                                                                      |
+| :------------------ | :------------------------ | :------ | :----------------------------------------------------------------------------------------------- |
+| `children?`         | `ReactNode`               |         | The palette's parts, and any consumer of `useCommandDialog()`.                                   |
+| `defaultOpen?`      | `boolean`                 | `false` | The initial open state for the uncontrolled case.                                                |
+| `keyboardShortcut?` | `boolean`                 | `true`  | Bind `⌘K` / `Ctrl+K` to toggle the palette. See [The keyboard shortcut](#the-keyboard-shortcut). |
+| `open?`             | `boolean`                 |         | Controlled open state. Pair with `onOpenChange`.                                                 |
+| `onOpenChange?`     | `(open: boolean) => void` |         | Called with the next open state whenever it changes.                                             |
+| `modal?`            | `boolean`                 | `true`  | Forwarded to [`Dialog.Root`](/components/overlays/dialog).                                       |
 
 ### Command.SearchTrigger
 
@@ -456,7 +456,7 @@ A bare button that opens the Command dialog when clicked: the escape hatch for a
 
 It carries none of `Command.SearchTrigger`'s behavior: no `aria-keyshortcuts`, and typing or pasting into it does nothing. Wrap your element in `Command.SearchTrigger` instead when it should behave like a search field.
 
-All props from Radix UI's [Dialog.Trigger](https://www.radix-ui.com/primitives/docs/components/dialog#trigger).
+All props from [`Dialog.Trigger`](/components/overlays/dialog).
 
 ### Command.DialogContent
 
@@ -471,7 +471,7 @@ The visible content of the Command dialog. Renders inside the dialog portal and 
 | `filter?`          | `(value: string, search: string, keywords?: string[]) => number` |                                    | Scores an item from 0 (hidden) to 1 (best). See `Command.Root`. |
 | `shouldFilter?`    | `boolean`                                                        |                                    | Whether to enable built-in filtering of command items.          |
 
-When the palette opens, this part takes over the dialog's initial focus so the caret lands at the **end** of a seeded query. Radix's own open-autofocus selects the focused field's whole value, which would make the first keystroke after a seeded open replace the seed instead of extending it. It finds the field by `Command.Input`'s `data-slot="command-input"`, and leaves Radix's default in place when there is no input or the input is disabled.
+When the palette opens, this part takes over the dialog's initial focus so the caret lands at the **end** of a seeded query, and the first keystroke extends the seed. It finds the field by `Command.Input`'s `data-slot="command-input"`, and leaves the dialog's default focus in place when there is no input or the input is disabled.
 
 ### Command.Input
 

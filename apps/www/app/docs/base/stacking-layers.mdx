@@ -370,6 +370,6 @@ A toast fired from inside an overlay renders in sonner's viewport, far above bot
 - **UI that must paint above open overlays**: use `z-60` and mount it after the overlay, or render it inside the overlay's content so it joins the overlay's layer. Use this rarely. Only toasts and the skip link belong above the overlay tier.
 - **Never out-stack toasts.** Toasts announce results of actions taken anywhere, including inside overlays.
 - **Custom portals inside an overlay**: pass the overlay's positioner as the portal target (query the `data-slot` above), or compose a mantle float, which resolves it automatically. `Dialog.Portal` accepts a `container` prop when you need explicit control.
-- **Do not select a float's portal as a direct `body` child** (`body > [data-radix-popper-content-wrapper]`). Inside an overlay the float lives in the positioner. Target the float's `data-slot` instead.
+- **Do not select a float as a direct `body` child.** Inside an overlay the float lives in the positioner. Target the float's `data-slot` instead.
 
 The [floating layer tiers decision doc](https://github.com/ngrok/mantle/blob/main/decisions/2026-08-11-floating-layer-tiers.md) has the full rationale, the alternatives, and the paint-order test matrix.

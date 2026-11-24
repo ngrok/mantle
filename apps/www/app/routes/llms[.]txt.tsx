@@ -112,7 +112,7 @@ async function buildBody(): Promise<string> {
 	const lines: string[] = [
 		"# @ngrok/mantle",
 		"",
-		"> ngrok's UI library and design system, built with React, TypeScript, Tailwind CSS, Radix, and Ariakit. Accessible, semantic, and progressively enhanced primitives for production web apps.",
+		"> ngrok's UI library and design system, built with React, TypeScript, and Tailwind CSS on native HTML and its own behavior hooks. Accessible, semantic, and progressively enhanced primitives for production web apps.",
 		"",
 		`Docs: ${canonicalHref("/")}`,
 		`MCP server: ${canonicalHref("/mcp")}`,

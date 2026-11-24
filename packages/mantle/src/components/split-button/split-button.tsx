@@ -21,7 +21,7 @@ type SplitButtonContextValue = {
  * value (rather than a null-and-throw context) is deliberate: the context
  * carries pure geometry, so a `PrimaryAction` stranded outside `Root`
  * degrades to the standalone `Button` default (`md`) instead of crashing,
- * while `MenuTrigger` already fails fast outside `Root` via Radix's
+ * while `MenuTrigger` already fails fast outside `Root` via
  * `DropdownMenu.Trigger`.
  */
 const SplitButtonContext = createContext<SplitButtonContextValue>({ size: "md" });
