@@ -232,17 +232,18 @@ const MenuTrigger = ({ "data-slot": dataSlot, icon, ...props }: MenuTriggerProps
 
 type MenuContentProps = Omit<ComponentProps<typeof DropdownMenu.Content>, "width"> & {
 	/**
-	 * The width of the menu. When omitted, the menu takes its intrinsic width.
+	 * The width of the menu.
 	 *
+	 * @default "root"
 	 * @enum
-	 * - `"root"`: the width of the whole split button, primary action and menu trigger together. With `align="end"` (the default), the menu lines up with both edges of the split button. The menu is never narrower than 8rem.
+	 * - `"root"`: at least the width of the whole split button, primary action and menu trigger together, and wider when an item needs it. With `align="end"` (the default), a menu as wide as the split button lines up with both of its edges. The menu is never narrower than 8rem.
 	 * - `"trigger"`: the width of the menu trigger, and never narrower than 8rem
 	 * - `"content"`: the intrinsic width of the menu: the width of the widest item
 	 */
 	width?: "root" | "trigger" | "content";
 };
 
-/** The split button that holds `trigger`, which a `width="root"` menu anchors to. */
+/** The split button that holds `trigger`, which a `width="root"` menu anchors to and grows from. */
 const rootOf = (trigger: HTMLElement) =>
 	trigger.closest<HTMLElement>('[data-slot~="split-button"]');
 
@@ -279,25 +280,26 @@ const MenuContent = ({
 	className,
 	"data-slot": dataSlot,
 	ref,
-	width,
+	width = "root",
 	...props
 }: MenuContentProps) => {
 	return (
 		<ContentAnchorContext.Provider value={width === "root" ? rootOf : null}>
 			<DropdownMenu.Content
 				align={align}
-				// Why the cap: a split button as wide as the viewport would push the
-				// menu past the viewport edge, because the float keeps 8px clear of it.
-				// Why the floor in `min()`: `min-width` wins over `max-width`, so the
-				// 8rem floor must also yield to the cap under large text.
+				// Why a minimum, not a width: the menu grows past the split button when
+				// an item is wider. Why the cap: a split button as wide as the viewport
+				// would push the menu past the viewport edge, because the float keeps
+				// 8px clear of it. Why the cap inside `min()`: `min-width` wins over
+				// `max-width`, so the floor must also yield to the cap.
 				className={cx(
 					width === "root" &&
-						"max-w-(--available-width) min-w-[min(--spacing(32),var(--available-width))]",
+						"max-w-(--available-width) min-w-[min(max(--spacing(32),var(--anchor-width)),var(--available-width))]",
 					className,
 				)}
 				data-slot={joinDataSlot(dataSlot, "split-button-menu-content")}
 				ref={ref}
-				width={width === "root" ? "trigger" : width}
+				width={width === "root" ? "content" : width}
 				{...props}
 			/>
 		</ContentAnchorContext.Provider>

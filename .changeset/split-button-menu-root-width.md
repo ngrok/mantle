@@ -2,9 +2,9 @@
 "@ngrok/mantle": patch
 ---
 
-Add `width="root"` to `SplitButton.MenuContent`. The menu then takes the width of the whole split button: the primary action and the menu trigger together. With `align="end"` (the default), the menu lines up with both edges of the split button. The menu is never narrower than 8rem, as with `width="trigger"`. It is also never wider than the viewport less 8px on each side. The menu is anchored to the split button, so it follows the split button's width while it is open.
+`SplitButton.MenuContent` is now at least as wide as the whole split button: the primary action and the menu trigger together. When an item is wider, the menu grows to fit it. With `align="end"` (the default), a menu as wide as the split button lines up with both of its edges. The menu is never narrower than 8rem, and never wider than the viewport less 8px on each side. The menu is anchored to the split button, so it follows the split button's width while it is open. Before, the menu took the width of its widest item and lined up with the menu trigger.
 
-`SplitButton.MenuContent` also takes `width="trigger"` and `width="content"`, as `DropdownMenu.Content` does. When you omit `width`, the menu keeps its intrinsic width.
+`SplitButton.MenuContent` takes `width`: `"root"` (the default, as above), `"trigger"` (the width of the menu trigger), or `"content"` (the width of the widest item, as before). To keep the old menu, pass `width="content"`.
 
 `SplitButton.Root` is now as wide as its parts, also in a block container. Before, it stretched to the width of a block container, past its two buttons. A split button whose parts fill the row, such as a `PrimaryAction` with `flex-1`, now hugs its content. To stretch `Root` as before, pass a width class such as `className="w-full"`.
 

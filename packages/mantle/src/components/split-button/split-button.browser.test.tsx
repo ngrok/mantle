@@ -8,7 +8,7 @@ import { SplitButton } from "./index.js";
 let styleElement: HTMLStyleElement;
 
 // Why the compiled CSS: the browser project loads no stylesheet. Without the
-// real utilities, `width="root"` sets a custom property that no rule reads.
+// real utilities, the menu's width reads a custom property that no rule uses.
 beforeAll(async () => {
 	styleElement = document.createElement("style");
 	// Why border-box: Tailwind's preflight sets it, and the menu's width holds
@@ -34,7 +34,7 @@ function OpenSplitButton({
 	className?: string;
 	label: string;
 	open?: boolean;
-	width?: "root";
+	width?: "root" | "content";
 }) {
 	// Why the padding: menus keep 8px from the viewport edge, and a split button
 	// flush with the edge would push the menu out of line.
@@ -82,16 +82,16 @@ function rightEdgeGap(menu: Element, root: Element) {
 	return Math.abs(menu.getBoundingClientRect().right - root.getBoundingClientRect().right);
 }
 
-test('width="root" lines the menu up with both edges of the split button, and matches its new width when it opens again', async () => {
-	const { rerender } = render(<OpenSplitButton label="Deploy to production" width="root" />);
+test("by default the menu lines up with both edges of the split button, and matches its new width when it opens again", async () => {
+	const { rerender } = render(<OpenSplitButton label="Deploy to production" />);
 	const root = screen.getByTestId("root");
 	const menu = screen.getByRole("menu");
 	await expect.poll(() => width(menu)).toBe(width(root));
 	await expect.poll(() => rightEdgeGap(menu, root)).toBeLessThan(1);
 	const widthBefore = width(root);
 
-	rerender(<OpenSplitButton label="Deploy to production" open={false} width="root" />);
-	rerender(<OpenSplitButton label="Deploy to every production region in the world" width="root" />);
+	rerender(<OpenSplitButton label="Deploy to production" open={false} />);
+	rerender(<OpenSplitButton label="Deploy to every production region in the world" />);
 	const reopenedMenu = screen.getByRole("menu");
 
 	expect(width(root)).toBeGreaterThan(widthBefore);
@@ -99,8 +99,31 @@ test('width="root" lines the menu up with both edges of the split button, and ma
 	await expect.poll(() => rightEdgeGap(reopenedMenu, root)).toBeLessThan(1);
 });
 
-test("without `width`, the menu keeps its intrinsic width", async () => {
-	render(<OpenSplitButton label="Deploy to every production region" />);
+test("by default the menu grows past the split button when an item is wider", async () => {
+	// Why at the end: an end-aligned menu wider than the split button reaches
+	// past its start edge, and the float keeps it inside the viewport.
+	render(
+		<div style={{ display: "flex", justifyContent: "flex-end", padding: 16 }}>
+			<SplitButton.Root data-testid="root" open>
+				<SplitButton.PrimaryAction>Go</SplitButton.PrimaryAction>
+				<SplitButton.MenuTrigger label="More options" />
+				<SplitButton.MenuContent>
+					<SplitButton.MenuItem>Deploy to every region</SplitButton.MenuItem>
+				</SplitButton.MenuContent>
+			</SplitButton.Root>
+		</div>,
+	);
+	const root = screen.getByTestId("root");
+	const menu = screen.getByRole("menu");
+	const item = screen.getByRole("menuitem");
+
+	await expect.poll(() => rightEdgeGap(menu, root)).toBeLessThan(1);
+	expect(width(menu)).toBeGreaterThan(width(root));
+	expect(item.scrollWidth).toBeLessThanOrEqual(item.clientWidth);
+});
+
+test('width="content" keeps the intrinsic width of the menu', async () => {
+	render(<OpenSplitButton label="Deploy to every production region" width="content" />);
 	const root = screen.getByTestId("root");
 	const menu = screen.getByRole("menu");
 
@@ -108,14 +131,14 @@ test("without `width`, the menu keeps its intrinsic width", async () => {
 	expect(width(menu)).toBeLessThan(width(root));
 });
 
-test('width="root" follows a stretched split button that resizes while the menu is open', async () => {
+test("the menu follows a stretched split button that resizes while the menu is open", async () => {
 	render(
 		<div style={{ padding: 16 }}>
 			<div data-testid="container" style={{ width: 320 }}>
 				<SplitButton.Root className="w-full" data-testid="root" open>
 					<SplitButton.PrimaryAction>Deploy</SplitButton.PrimaryAction>
 					<SplitButton.MenuTrigger label="More deploy options" />
-					<SplitButton.MenuContent width="root">
+					<SplitButton.MenuContent>
 						<SplitButton.MenuItem>Draft</SplitButton.MenuItem>
 					</SplitButton.MenuContent>
 				</SplitButton.Root>
@@ -135,13 +158,13 @@ test('width="root" follows a stretched split button that resizes while the menu 
 	await expect.poll(() => rightEdgeGap(menu, root)).toBeLessThan(1);
 });
 
-test('a dropdown menu inside a width="root" menu anchors to its own trigger', async () => {
+test("a dropdown menu inside the split button menu anchors to its own trigger", async () => {
 	render(
 		<div style={{ padding: 16 }}>
 			<SplitButton.Root data-testid="root" open style={{ width: 320 }}>
 				<SplitButton.PrimaryAction className="flex-1">Deploy</SplitButton.PrimaryAction>
 				<SplitButton.MenuTrigger label="More deploy options" />
-				<SplitButton.MenuContent width="root">
+				<SplitButton.MenuContent>
 					<DropdownMenu.Root open>
 						<DropdownMenu.Trigger style={{ width: 144 }}>Export</DropdownMenu.Trigger>
 						<DropdownMenu.Content width="trigger">
@@ -162,13 +185,13 @@ test('a dropdown menu inside a width="root" menu anchors to its own trigger', as
 /** A menu that a parent rerender does not render again, as a hoisted element is not. */
 const StaticMenu = memo(function StaticMenu() {
 	return (
-		<SplitButton.MenuContent width="root">
+		<SplitButton.MenuContent>
 			<SplitButton.MenuItem>Draft</SplitButton.MenuItem>
 		</SplitButton.MenuContent>
 	);
 });
 
-test('width="root" keeps the split button as its anchor when Root and the trigger take new ref callbacks', async () => {
+test("the menu keeps the split button as its anchor when Root and the trigger take new ref callbacks", async () => {
 	const ui = () => (
 		<div style={{ padding: 16 }}>
 			<SplitButton.Root data-testid="root" open ref={() => {}} style={{ width: 320 }}>
@@ -188,13 +211,13 @@ test('width="root" keeps the split button as its anchor when Root and the trigge
 	await expect.poll(() => width(menu)).toBe(320);
 });
 
-test('a width="root" menu under a viewport-wide split button stays inside the viewport', async () => {
+test("the menu under a viewport-wide split button stays inside the viewport", async () => {
 	render(
 		<div style={{ position: "fixed", top: 16, left: 0, right: 0 }}>
 			<SplitButton.Root className="w-full" open>
 				<SplitButton.PrimaryAction className="flex-1">Deploy</SplitButton.PrimaryAction>
 				<SplitButton.MenuTrigger label="More deploy options" />
-				<SplitButton.MenuContent width="root">
+				<SplitButton.MenuContent>
 					<SplitButton.MenuItem>Draft</SplitButton.MenuItem>
 				</SplitButton.MenuContent>
 			</SplitButton.Root>
@@ -231,7 +254,7 @@ test("a long primary label truncates inside its container, not past it", () => {
 	expect(width(screen.getByTestId("root"))).toBeLessThanOrEqual(320);
 });
 
-test('under large text, a width="root" menu still stays inside the viewport', async () => {
+test("under large text, the menu still stays inside the viewport", async () => {
 	document.documentElement.style.fontSize = "200px";
 	try {
 		render(
@@ -239,7 +262,7 @@ test('under large text, a width="root" menu still stays inside the viewport', as
 				<SplitButton.Root className="w-full" open>
 					<SplitButton.PrimaryAction className="flex-1">Go</SplitButton.PrimaryAction>
 					<SplitButton.MenuTrigger label="More deploy options" />
-					<SplitButton.MenuContent width="root">
+					<SplitButton.MenuContent>
 						<SplitButton.MenuItem>Draft</SplitButton.MenuItem>
 					</SplitButton.MenuContent>
 				</SplitButton.Root>
@@ -260,11 +283,11 @@ describe("SplitButton menu placement (browser)", () => {
 		{ align: undefined, edge: "right" },
 		{ align: "start", edge: "left" },
 	] as const)(
-		"MenuContent align=$align lines up the menu's $edge edge with the caret's",
+		"MenuContent align=$align lines up the menu's $edge edge with the split button's",
 		async ({ align, edge }) => {
 			render(
 				<div style={{ position: "absolute", left: 120, top: 20 }}>
-					<SplitButton.Root open>
+					<SplitButton.Root data-testid="root" open>
 						<SplitButton.PrimaryAction>Save</SplitButton.PrimaryAction>
 						<SplitButton.MenuTrigger label="More save options" />
 						<SplitButton.MenuContent align={align} style={{ width: 160, boxSizing: "border-box" }}>
@@ -273,13 +296,11 @@ describe("SplitButton menu placement (browser)", () => {
 					</SplitButton.Root>
 				</div>,
 			);
-			const caret = screen
-				.getByRole("button", { name: "More save options" })
-				.getBoundingClientRect();
+			const root = screen.getByTestId("root").getBoundingClientRect();
 
 			await expect
 				.poll(() => Math.round(screen.getByRole("menu").getBoundingClientRect()[edge]))
-				.toBe(Math.round(caret[edge]));
+				.toBe(Math.round(root[edge]));
 		},
 	);
 });

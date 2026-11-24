@@ -244,13 +244,13 @@ describe("SplitButton", () => {
 		expect(ref.current).toBe(container.querySelector('[data-slot="split-button"]'));
 	});
 
-	test('a `ref` on MenuContent with width="root" receives the menu', () => {
+	test("a `ref` on MenuContent receives the menu", () => {
 		const ref = createRef<HTMLDivElement>();
 		render(
 			<SplitButton.Root open>
 				<SplitButton.PrimaryAction>Save</SplitButton.PrimaryAction>
 				<SplitButton.MenuTrigger label="More save options" />
-				<SplitButton.MenuContent ref={ref} width="root">
+				<SplitButton.MenuContent ref={ref}>
 					<SplitButton.MenuItem>Save as draft</SplitButton.MenuItem>
 				</SplitButton.MenuContent>
 			</SplitButton.Root>,

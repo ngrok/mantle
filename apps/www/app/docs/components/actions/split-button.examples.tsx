@@ -64,13 +64,11 @@ export function MenuWidthExample() {
 	return (
 		<PreviewCanvas className="min-h-160">
 			<SplitButton.Root>
-				<SplitButton.PrimaryAction icon={<RocketLaunchIcon />}>
-					Deploy to production
-				</SplitButton.PrimaryAction>
+				<SplitButton.PrimaryAction icon={<RocketLaunchIcon />}>Deploy</SplitButton.PrimaryAction>
 				<SplitButton.MenuTrigger label="Open deploy options" />
-				<SplitButton.MenuContent width="root">
+				<SplitButton.MenuContent>
 					<SplitButton.MenuItem>Deploy to staging</SplitButton.MenuItem>
-					<SplitButton.MenuItem>Schedule deploy</SplitButton.MenuItem>
+					<SplitButton.MenuItem>Deploy to every production region</SplitButton.MenuItem>
 				</SplitButton.MenuContent>
 			</SplitButton.Root>
 		</PreviewCanvas>
