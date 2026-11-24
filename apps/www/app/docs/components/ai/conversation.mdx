@@ -8,13 +8,11 @@ aliases: [chat, transcript, message list, thread, stick to bottom, scroll to bot
 import { PageHeader } from "~/components/page-header";
 import { Example } from "~/components/example";
 
-<PageHeader id="conversation" isPreview>
-	Conversation
-</PageHeader>
+<PageHeader id="conversation">Conversation</PageHeader>
 
 A chat transcript that follows the newest message while an answer streams, with a button back to the end. Scroll up while the answer streams: the view stays put, the bottom edge fades, and a button takes you back.
 
-<Example name="components/preview/conversation/overview" title="Conversation example">
+<Example name="components/ai/conversation/overview" title="Conversation example">
 
 ```tsx
 import { Button } from "@ngrok/mantle/button";
@@ -117,7 +115,7 @@ function AssistantTranscript() {
 ## When to use
 
 - Show the messages of a chat with an assistant or a model, and keep the newest text in view while an answer streams.
-- Use [Message](/components/preview/message) for each message in it.
+- Use [Message](/components/ai/message) for each message in it.
 - Prefer [List](/components/data-display/list) for items that do not grow at the end while the reader watches.
 
 ## Composition

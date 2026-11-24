@@ -8,13 +8,11 @@ aliases: [file chip, attached file, upload chip, file attachment, ai attachment]
 import { PageHeader } from "~/components/page-header";
 import { Example } from "~/components/example";
 
-<PageHeader id="attachment" isPreview>
-	Attachment
-</PageHeader>
+<PageHeader id="attachment">Attachment</PageHeader>
 
-A file attached to a chat message, as a chip with its preview, name, size, and a remove button. Use it in [Prompt Input](/components/preview/prompt-input) for a draft, and under a sent message.
+A file attached to a chat message, as a chip with its preview, name, size, and a remove button. Use it in [Prompt Input](/components/ai/prompt-input) for a draft, and under a sent message.
 
-<Example name="components/preview/attachment/overview" title="Attachment example">
+<Example name="components/ai/attachment/overview" title="Attachment example">
 
 ```tsx
 import { Attachment } from "@ngrok/mantle/attachment";
@@ -54,7 +52,7 @@ function DraftAttachments() {
 
 - Show the files attached to a chat message, with a remove button while the message is a draft.
 - Leave out `Attachment.Remove` where a file cannot be removed, such as in a sent message.
-- Use [Prompt Input](/components/preview/prompt-input) to take the files.
+- Use [Prompt Input](/components/ai/prompt-input) to take the files.
 
 ## A file the app still reads
 
@@ -62,7 +60,7 @@ Set `busy` on `Attachment.Root` while your app reads a file, and show a [Skeleto
 
 Set `data-slot="attachment-preview"` on the skeleton so it occupies the preview's grid cell.
 
-<Example name="components/preview/attachment/busy" title="Attachment busy example">
+<Example name="components/ai/attachment/busy" title="Attachment busy example">
 
 ```tsx
 import { Attachment } from "@ngrok/mantle/attachment";

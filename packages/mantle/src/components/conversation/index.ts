@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Conversation component.
  *
- * @see https://mantle.ngrok.com/components/preview/conversation
+ * @see https://mantle.ngrok.com/components/ai/conversation
  */
 
 import * as ConversationParts from "./conversation-parts.js";
@@ -18,7 +18,7 @@ import * as ConversationParts from "./conversation-parts.js";
  * - `Message`: one message inside the conversation.
  * - `List`: a list of items that does not grow at its end while the reader watches.
  *
- * @see https://mantle.ngrok.com/components/preview/conversation
+ * @see https://mantle.ngrok.com/components/ai/conversation
  *
  * @example
  * Composition:

@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Tool Call component.
  *
- * @see https://mantle.ngrok.com/components/preview/tool-call
+ * @see https://mantle.ngrok.com/components/ai/tool-call
  */
 
 import * as ToolCallParts from "./tool-call-parts.js";
@@ -18,7 +18,7 @@ import * as ToolCallParts from "./tool-call-parts.js";
  * - `Reasoning`: the reasoning a model wrote before its answer.
  * - `Accordion`: titled sections that are not part of a chat answer.
  *
- * @see https://mantle.ngrok.com/components/preview/tool-call
+ * @see https://mantle.ngrok.com/components/ai/tool-call
  *
  * @example
  * Composition:

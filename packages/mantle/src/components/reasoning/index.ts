@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Reasoning component.
  *
- * @see https://mantle.ngrok.com/components/preview/reasoning
+ * @see https://mantle.ngrok.com/components/ai/reasoning
  */
 
 import * as ReasoningParts from "./reasoning-parts.js";
@@ -18,7 +18,7 @@ import * as ReasoningParts from "./reasoning-parts.js";
  * - `ToolCall`: a tool the model called while it answered.
  * - `Accordion`: titled sections that are not part of a chat answer.
  *
- * @see https://mantle.ngrok.com/components/preview/reasoning
+ * @see https://mantle.ngrok.com/components/ai/reasoning
  *
  * @example
  * Composition:

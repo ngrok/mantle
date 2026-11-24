@@ -58,7 +58,7 @@ type MessageRootProps = ComponentProps<"li"> &
  * | -------------- | ------------------------- | --------------------------------------------------- |
  * | `data-from`    | `"user"` or `"assistant"` | Who wrote the message. Style with `data-[from=user]:`. |
  *
- * @see https://mantle.ngrok.com/components/preview/message#messageroot
+ * @see https://mantle.ngrok.com/components/ai/message#messageroot
  *
  * @example
  * ```tsx
@@ -125,7 +125,7 @@ const speakerLabels = {
  * `space-y-3` does not reach through it, so space the children with
  * `flex flex-col gap-3`.
  *
- * @see https://mantle.ngrok.com/components/preview/message#messagecontent
+ * @see https://mantle.ngrok.com/components/ai/message#messagecontent
  *
  * @example
  * ```tsx
@@ -177,7 +177,7 @@ type MessageActionsProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  * A row of small actions and facts under a message, such as a copy button and
  * a count of tool calls.
  *
- * @see https://mantle.ngrok.com/components/preview/message#messageactions
+ * @see https://mantle.ngrok.com/components/ai/message#messageactions
  *
  * @example
  * ```tsx
@@ -234,7 +234,7 @@ type MessagePendingProps = ComponentProps<"div"> & WithDataSlot;
  * `data-slot="message-pending-label"`, so a translated page survives a change
  * to them.
  *
- * @see https://mantle.ngrok.com/components/preview/message#messagepending
+ * @see https://mantle.ngrok.com/components/ai/message#messagepending
  *
  * @example
  * ```tsx

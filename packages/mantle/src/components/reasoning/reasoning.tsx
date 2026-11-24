@@ -39,7 +39,7 @@ type ReasoningRootProps = Omit<ComponentProps<"div">, "defaultValue"> &
  * | ---------------- | ------------------------- | -------------------------------------------- |
  * | `data-streaming` | present while `streaming` | Presence-only. Style with `data-streaming:`. |
  *
- * @see https://mantle.ngrok.com/components/preview/reasoning#reasoningroot
+ * @see https://mantle.ngrok.com/components/ai/reasoning#reasoningroot
  *
  * @example
  * ```tsx
@@ -84,7 +84,7 @@ type ReasoningTriggerProps = Omit<ComponentProps<"button">, "type"> & WithDataSl
  * `data-slot="reasoning-trigger-label"`, so a translated page survives the
  * change from "Thinking…".
  *
- * @see https://mantle.ngrok.com/components/preview/reasoning#reasoningtrigger
+ * @see https://mantle.ngrok.com/components/ai/reasoning#reasoningtrigger
  *
  * @example
  * ```tsx
@@ -132,7 +132,7 @@ type ReasoningContentProps = ComponentProps<"div"> & WithDataSlot;
  * The model's summary, as plain text or Markdown in muted type.
  * Find-in-page reaches it while it is closed.
  *
- * @see https://mantle.ngrok.com/components/preview/reasoning#reasoningcontent
+ * @see https://mantle.ngrok.com/components/ai/reasoning#reasoningcontent
  *
  * @example
  * ```tsx

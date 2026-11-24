@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Prompt Input component.
  *
- * @see https://mantle.ngrok.com/components/preview/prompt-input
+ * @see https://mantle.ngrok.com/components/ai/prompt-input
  */
 
 import * as PromptInputParts from "./prompt-input-parts.js";
@@ -18,7 +18,7 @@ import * as PromptInputParts from "./prompt-input-parts.js";
  * - `TextArea`: a form field for free-form text that a form submits with its other fields.
  * - `Input`: a single-line field, such as a search box.
  *
- * @see https://mantle.ngrok.com/components/preview/prompt-input
+ * @see https://mantle.ngrok.com/components/ai/prompt-input
  *
  * @example
  * Composition:

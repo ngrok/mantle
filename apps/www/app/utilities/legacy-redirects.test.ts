@@ -26,6 +26,16 @@ describe("legacyRedirectFor", () => {
 		}
 	});
 
+	it("redirects the AI chat parts' preview URLs to the AI category", () => {
+		expect(legacyRedirectFor("/components/preview/prompt-input")).toBe(
+			"/components/ai/prompt-input",
+		);
+		expect(legacyRedirectFor("/components/preview/tool-call.md")).toBe(
+			"/components/ai/tool-call.md",
+		);
+		expect(legacyRedirectFor("/components/preview/calendar")).toBeNull();
+	});
+
 	it("preserves the .md suffix so raw-markdown URLs keep serving markdown", () => {
 		expect(legacyRedirectFor("/components/button.md")).toBe("/components/actions/button.md");
 		expect(legacyRedirectFor("/blocks/sheet-async.md")).toBe("/recipes/overlay-async.md");

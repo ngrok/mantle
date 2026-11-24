@@ -72,7 +72,7 @@ type ConversationRootProps = ComponentProps<"div"> &
  * | `data-scrolled-up` | present while the end is out of view  | Presence-only. Shows `Conversation.ScrollButton`. |
  * | `data-streaming`   | present while `streaming`             | Presence-only. Style with `data-streaming:`.   |
  *
- * @see https://mantle.ngrok.com/components/preview/conversation#conversationroot
+ * @see https://mantle.ngrok.com/components/ai/conversation#conversationroot
  *
  * @example
  * ```tsx
@@ -161,7 +161,7 @@ type ConversationViewportProps = ComponentProps<"div"> & WithAsChild & WithDataS
  * On mount it starts at the end, unless something already moved it, such as
  * `useScrollAnchor` restoring the reader's place.
  *
- * @see https://mantle.ngrok.com/components/preview/conversation#conversationviewport
+ * @see https://mantle.ngrok.com/components/ai/conversation#conversationviewport
  *
  * @example
  * ```tsx
@@ -483,7 +483,7 @@ type ConversationContentProps = ComponentProps<"ol"> & WithAsChild & WithDataSlo
  * The ordered list of messages. Each child is a `Message.Root`, which renders
  * an `<li>`. Set the measure and padding here, such as `mx-auto max-w-3xl p-4`.
  *
- * @see https://mantle.ngrok.com/components/preview/conversation#conversationcontent
+ * @see https://mantle.ngrok.com/components/ai/conversation#conversationcontent
  *
  * @example
  * ```tsx
@@ -539,7 +539,7 @@ type ConversationScrollButtonProps = Omit<
  * and leaves the tab order while hidden. A press scrolls to the end, follows
  * the end again, and moves focus to the viewport, because the button hides.
  *
- * @see https://mantle.ngrok.com/components/preview/conversation#conversationscrollbutton
+ * @see https://mantle.ngrok.com/components/ai/conversation#conversationscrollbutton
  *
  * @example
  * ```tsx

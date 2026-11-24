@@ -2,7 +2,7 @@
 "@ngrok/mantle": minor
 ---
 
-Add `Conversation` and `Message` (preview), the chat transcript parts.
+Add `Conversation` and `Message`, the chat transcript parts.
 
 `Conversation` at `@ngrok/mantle/conversation` is a chat transcript that follows the newest message while an answer streams:
 
@@ -20,4 +20,4 @@ The viewport preserves a place restored by `useScrollAnchor`, including the top 
 - `Message.Pending` marks an answer on its way with a pulsing dot.
 - `Message.Actions` holds actions such as copy.
 
-Docs: https://mantle.ngrok.com/components/preview/conversation and https://mantle.ngrok.com/components/preview/message
+Docs: https://mantle.ngrok.com/components/ai/conversation and https://mantle.ngrok.com/components/ai/message

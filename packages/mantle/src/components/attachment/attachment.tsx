@@ -26,7 +26,7 @@ type AttachmentListProps = ComponentProps<"ul"> & WithAsChild & WithDataSlot;
  * | --- | --- | --- |
  * | `data-slot` | `"attachment-list"` | On the list, joined with ancestor slots. |
  *
- * @see https://mantle.ngrok.com/components/preview/attachment#attachmentlist
+ * @see https://mantle.ngrok.com/components/ai/attachment#attachmentlist
  *
  * @example
  * ```tsx
@@ -86,7 +86,7 @@ type AttachmentRootProps = ComponentProps<"li"> &
  * | --- | --- | --- |
  * | `data-slot` | `"attachment"` | On the chip, joined with ancestor slots. |
  *
- * @see https://mantle.ngrok.com/components/preview/attachment#attachmentroot
+ * @see https://mantle.ngrok.com/components/ai/attachment#attachmentroot
  *
  * @example
  * ```tsx
@@ -147,7 +147,7 @@ type AttachmentPreviewProps = Omit<ComponentProps<"img">, "alt" | "children" | "
  * | --- | --- | --- |
  * | `data-slot` | `"attachment-preview"` | On the image or icon wrapper, joined with ancestor slots. |
  *
- * @see https://mantle.ngrok.com/components/preview/attachment#attachmentpreview
+ * @see https://mantle.ngrok.com/components/ai/attachment#attachmentpreview
  *
  * @example
  * ```tsx
@@ -209,7 +209,7 @@ type AttachmentNameProps = Omit<ComponentProps<"span">, "translate"> & WithAsChi
  * | --- | --- | --- |
  * | `data-slot` | `"attachment-name"` | On the name, joined with ancestor slots. |
  *
- * @see https://mantle.ngrok.com/components/preview/attachment#attachmentname
+ * @see https://mantle.ngrok.com/components/ai/attachment#attachmentname
  *
  * @example
  * ```tsx
@@ -270,7 +270,7 @@ type AttachmentSizeProps = Omit<ComponentProps<"span">, "children"> &
  * | --- | --- | --- |
  * | `data-slot` | `"attachment-size"` | On the size, joined with ancestor slots. |
  *
- * @see https://mantle.ngrok.com/components/preview/attachment#attachmentsize
+ * @see https://mantle.ngrok.com/components/ai/attachment#attachmentsize
  *
  * @example
  * ```tsx
@@ -323,7 +323,7 @@ type AttachmentRemoveProps = Omit<
  * | `data-size` | `"2xs"` \| `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop; defaults to `"sm"`. |
  * | `data-loading` | present when `isLoading` | Inherited from `IconButton`. |
  *
- * @see https://mantle.ngrok.com/components/preview/attachment#attachmentremove
+ * @see https://mantle.ngrok.com/components/ai/attachment#attachmentremove
  *
  * @example
  * ```tsx

@@ -2,7 +2,7 @@
 "@ngrok/mantle": minor
 ---
 
-Add `Attachment` (preview) at `@ngrok/mantle/attachment`: a file attached to a chat message, as a chip.
+Add `Attachment` at `@ngrok/mantle/attachment`: a file attached to a chat message, as a chip.
 
 - `Attachment.List` is the list of chips, which wrap.
 - `Attachment.Root` is one chip. Set `busy` while your app reads the file, and the chip sets `aria-busy`.
@@ -11,4 +11,4 @@ Add `Attachment` (preview) at `@ngrok/mantle/attachment`: a file attached to a c
 - `Attachment.Size` formats a size in bytes, such as "1.5 KB".
 - `Attachment.Remove` is an icon button with a required `label`.
 
-Docs: https://mantle.ngrok.com/components/preview/attachment
+Docs: https://mantle.ngrok.com/components/ai/attachment
