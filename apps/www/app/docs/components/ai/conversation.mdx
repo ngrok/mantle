@@ -140,7 +140,12 @@ Conversation.Root
 - The view follows the end again when the reader scrolls back to it, presses `Conversation.ScrollButton`, or sends a message. A message from the person is a `Message.Root` with `from="user"`.
 - On mount, the view starts at the end. If something already moved it, such as [`useScrollAnchor`](/hooks#usescrollanchor) restoring the reader's place, the view stays there.
 
-The top and bottom edges fade when there is more to read past them, with [`scroll-fade-y`](/base/scroll-fade). The viewport reserves the scrollbar's space on both sides, so centered content lines up with a centered composer below it.
+The bottom edge fades when newer text is below the view, with [`scroll-fade-b`](/base/scroll-fade), as in Amp. The top edge does not fade, on purpose:
+
+- **A top fade signals nothing.** A chat nearly always has older history above, so a top fade would stay on in almost every view and dim the first line for no reason.
+- **The bottom fade is the signal.** Most of the time the reader is at the end, and the bottom does not fade. The fade appears only after the reader scrolls up and the newest text is out of view. `Conversation.ScrollButton` shows at the same moment, so the fade and the button both say "there is more below".
+
+The viewport reserves the scrollbar's space on both sides, so centered content lines up with a centered composer below it.
 
 ## Accessibility
 

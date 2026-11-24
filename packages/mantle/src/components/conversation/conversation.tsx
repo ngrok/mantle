@@ -154,9 +154,11 @@ type ConversationViewportProps = ComponentProps<"div"> & WithAsChild & WithDataS
  * any means, it stays where they put it. It follows again when they scroll
  * back to the end, press `Conversation.ScrollButton`, or send a message.
  *
- * The top and bottom edges fade when there is more to read past them, with
- * mantle's `scroll-fade-y`. It reserves the scrollbar's space on both sides,
- * so centered content lines up with a centered composer.
+ * The bottom edge fades when newer text is below the view, with mantle's
+ * `scroll-fade-b`, as in Amp. The top does not fade: a chat nearly always has
+ * older history above, so a top fade would dim every view and say nothing.
+ * The region reserves the scrollbar's space on both sides, so centered
+ * content lines up with a centered composer.
  *
  * The region is focusable, so a keyboard can scroll a transcript with no
  * focusable content. It draws no focus ring, because a ring around the whole
@@ -250,7 +252,7 @@ function Viewport({
 			className={cx(
 				// Why both gutters: centered content lines up with a centered composer below the viewport.
 				// Why no focus ring: a ring around the whole transcript fights the edge fade, as in Amp.
-				"scrollbar scrollbar-gutter-both scroll-fade-y min-h-0 flex-1 overflow-y-auto focus-visible:outline-hidden",
+				"scrollbar scrollbar-gutter-both scroll-fade-b min-h-0 flex-1 overflow-y-auto focus-visible:outline-hidden",
 				className,
 			)}
 			{...props}
