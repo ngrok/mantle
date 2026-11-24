@@ -1184,7 +1184,7 @@ const CommandItem = ({
 			aria-disabled={disabled || undefined}
 			data-slot={joinDataSlot(dataSlot, "command-item")}
 			className={cx(
-				"data-highlighted:bg-active-menu-item [:where(&_svg)]:text-muted relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none aria-disabled:cursor-default aria-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [:where(&_svg)]:size-5",
+				"data-highlighted:bg-active-menu-item [:where(&_svg)]:text-muted relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [:where(&_svg)]:size-5",
 				className,
 			)}
 			onPointerMove={(event) => {

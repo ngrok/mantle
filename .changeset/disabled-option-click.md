@@ -6,4 +6,3 @@ Fix disabled items in `Combobox`, `MultiSelect`, `Select`, `Command`, and `Dropd
 
 - A scripted or assistive click on a disabled `Select.Item` no longer blanks the trigger label.
 - Disabled `Combobox.Item` and `MultiSelect.Item` rows show the default cursor.
-- Disabled `Select.Item` and `Command.Item` rows no longer set `pointer-events: none`, so a `title` or other hover hint on a disabled row works.

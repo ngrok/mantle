@@ -1060,7 +1060,7 @@ const Item = ({
 		className: cx(
 			"relative flex gap-2 w-full cursor-pointer select-none items-center rounded-md py-1.5 pl-2 pr-8 text-strong text-sm outline-hidden",
 			"data-highlighted:bg-active-menu-item",
-			"aria-disabled:cursor-default aria-disabled:opacity-50",
+			"aria-disabled:pointer-events-none aria-disabled:opacity-50",
 			"aria-selected:bg-selected-menu-item",
 			"data-highlighted:aria-selected:bg-active-selected-menu-item",
 			className,
