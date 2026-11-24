@@ -602,16 +602,19 @@ const Header = ({
 	className,
 	ref,
 	scope = "col",
+	width,
 	...props
-}: ComponentProps<"th"> & WithDataSlot) => (
+}: Omit<ComponentProps<"th">, "width"> & WithDataSlot & WithColumnWidth) => (
 	<th
 		data-slot={joinDataSlot(dataSlot, "table-header")}
+		data-column-width={width}
 		ref={ref}
 		scope={scope}
 		// `px-3` must equal the horizontal padding on `Table.Cell`, or the column label
 		// sits outboard of the body text.
 		className={cx(
 			"h-11 px-3 text-left align-middle text-sm font-medium has-[[role=checkbox]]:pr-0",
+			width !== "wrap" && "whitespace-nowrap",
 			className,
 		)}
 		{...props}
@@ -622,9 +625,20 @@ const Header = ({
 
 /**
  * The `<Table.Cell>` defines a cell of a table that contains data and may be
- * used as a child of a `<Table.Row>`.
+ * used as a child of a `<Table.Row>`. With no `width`, the cell keeps its
+ * value on one line and truncates it with an ellipsis when the column is too
+ * narrow. Pass `width="fit"` for a short value that must not truncate, and
+ * `width="wrap"` for prose.
  *
  * Must be used as a child of a `<Table.Row>`.
+ *
+ * **Data attributes:**
+ *
+ * | Data Attribute | Value | Description |
+ * | --- | --- | --- |
+ * | `data-slot` | `"table-cell"` | On the `<td>`. |
+ * | `data-column-width` | `"fit"` \| `"wrap"` | The `width` prop, when set. |
+ * | `data-slot` | `"table-cell-content"` | On the `<div>` that wraps the children when `width` is not set. |
  *
  * Permitted Content:
  * 1. Flow content
@@ -669,15 +683,34 @@ const Cell = ({
 	children,
 	className,
 	ref,
+	width,
 	...props
-}: ComponentProps<"td"> & WithDataSlot) => (
+}: Omit<ComponentProps<"td">, "width"> & WithDataSlot & WithColumnWidth) => (
 	<td
 		data-slot={joinDataSlot(dataSlot, "table-cell")}
+		data-column-width={width}
 		ref={ref}
-		className={cx("p-3 align-middle has-[[role=checkbox]]:pr-0 font-mono text-mono", className)}
+		className={cx(
+			"p-3 align-middle has-[[role=checkbox]]:pr-0 font-mono text-mono",
+			width !== "wrap" && "whitespace-nowrap",
+			className,
+		)}
 		{...props}
 	>
-		{children}
+		{width == null ? (
+			// Why a grid: in `table-auto`, a column is never narrower than its widest
+			// min-content. A `minmax(0,1fr)` track has a min-content of 0 and a
+			// max-content of its content, so the column asks for the full value when
+			// the table has room and gives way to `min-w-24` when it does not.
+			// Why `overflow-x-clip` and `px-1 -mx-1`: `clip` keeps the vertical
+			// overflow visible, and the padding keeps a focus ring at the start or
+			// end of the content inside the clip.
+			<div data-slot="table-cell-content" className="grid min-w-24 grid-cols-[minmax(0,1fr)]">
+				<div className="-mx-1 overflow-x-clip px-1 text-ellipsis">{children}</div>
+			</div>
+		) : (
+			children
+		)}
 	</td>
 );
 
@@ -741,6 +774,34 @@ const Caption = ({
 		{children}
 	</caption>
 );
+
+/**
+ * How a table column sizes. When omitted, the column's cells stay on one line,
+ * the column shares the table's spare width, and a value longer than its share
+ * truncates with an ellipsis. `"fit"` keeps the column one line and never
+ * truncates it, for short values such as a date, a status, or a control.
+ * `"wrap"` lets the column's text wrap onto more lines, for prose.
+ */
+type ColumnWidth = "fit" | "wrap";
+
+/**
+ * The `width` prop of `Table.Header` and `Table.Cell`.
+ */
+type WithColumnWidth = {
+	/**
+	 * How the column sizes. Pass the same value to the column's header and to
+	 * each of its cells.
+	 *
+	 * - omitted: one line; the column shares the spare width and truncates its
+	 *   value with an ellipsis when the table is too narrow.
+	 * - `"fit"`: one line, never truncated. Use for a short value, such as a
+	 *   date, a status, or a control.
+	 * - `"wrap"`: the text wraps onto more lines. Use for prose.
+	 */
+	width?: ColumnWidth;
+};
+
+export type { ColumnWidth };
 
 export {
 	//,

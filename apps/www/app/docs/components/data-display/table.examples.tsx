@@ -168,3 +168,57 @@ export function PaginationExample() {
 		</PreviewCanvas>
 	);
 }
+
+const tokens = [
+	{
+		id: "pat_…4uRjpirH",
+		description: "Created via ngrok OAuth",
+		owner: "wesley@example.com",
+		created: "4d ago",
+	},
+	{
+		id: "pat_…o8xvn6M4",
+		description: "ship pat 2",
+		owner: "takoda@example.com",
+		created: "4d ago",
+	},
+	{
+		id: "pat_…3P2R30Rn",
+		description:
+			"A long description that someone pasted in to explain what this token is for in production",
+		owner: "svc-deploy-pipeline@example.com",
+		created: "5d ago",
+	},
+];
+
+/** The "Sizing a column" example on the Table docs page. */
+export function SizingAColumnExample() {
+	return (
+		<PreviewCanvas>
+			<Table.Root>
+				<Table.Element>
+					<Table.Head>
+						<Table.Row>
+							<Table.Header width="fit">ID</Table.Header>
+							<Table.Header>Description</Table.Header>
+							<Table.Header>Owner</Table.Header>
+							<Table.Header width="fit">Created</Table.Header>
+						</Table.Row>
+					</Table.Head>
+					<Table.Body>
+						{tokens.map((token) => (
+							<Table.Row key={token.id}>
+								<Table.Cell width="fit">{token.id}</Table.Cell>
+								<Table.Cell className="font-sans">{token.description}</Table.Cell>
+								<Table.Cell className="font-sans">{token.owner}</Table.Cell>
+								<Table.Cell width="fit" className="font-sans">
+									{token.created}
+								</Table.Cell>
+							</Table.Row>
+						))}
+					</Table.Body>
+				</Table.Element>
+			</Table.Root>
+		</PreviewCanvas>
+	);
+}

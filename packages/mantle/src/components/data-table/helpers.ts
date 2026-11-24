@@ -40,6 +40,7 @@ function getNextInCircularList<T>(list: T[], currentItem: T, fallback?: T) {
  * @example
  * ```ts
  * resolveColumnWidth({ width: "fit" }); // => "fit"
+ * resolveColumnWidth({ width: "wrap" }); // => "wrap"
  * resolveColumnWidth({ align: "end" }); // => undefined
  * resolveColumnWidth(undefined); // => undefined
  * ```
@@ -48,7 +49,7 @@ function resolveColumnWidth(meta: unknown): ColumnWidth | undefined {
 	if (typeof meta !== "object" || meta == null || !("width" in meta)) {
 		return undefined;
 	}
-	return meta.width === "fit" ? "fit" : undefined;
+	return meta.width === "fit" || meta.width === "wrap" ? meta.width : undefined;
 }
 
 export {

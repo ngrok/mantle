@@ -1,15 +1,9 @@
 import type { CellData, RowData, TableFeatures } from "@tanstack/react-table";
+import type { ColumnWidth } from "../table/table.js";
 import { sortingDirections as baseSortingDirections } from "../../utils/sorting/direction.js";
 
 const sortDirections = [...baseSortingDirections, "unsorted"] as const;
 type SortDirection = (typeof sortDirections)[number];
-
-/**
- * How wide a `DataTable` column renders. `"fit"` makes the column only as wide
- * as its widest content, on one line, and gives the spare width to the other
- * columns.
- */
-type ColumnWidth = "fit";
 
 /**
  * The column `meta` fields that `DataTable.Header` and `DataTable.Cell` read
@@ -18,7 +12,7 @@ type ColumnWidth = "fit";
  * slot must add them to the slot type, because the slot replaces the global
  * interface.
  *
- * @see https://mantle.ngrok.com/components/data-display/data-table#sizing-a-column-to-its-content
+ * @see https://mantle.ngrok.com/components/data-display/data-table#sizing-a-column
  *
  * @example
  * ```tsx
@@ -31,8 +25,9 @@ type ColumnWidth = "fit";
  */
 type DataTableColumnMeta = {
 	/**
-	 * How wide the column renders. When omitted, the browser shares the
-	 * table's spare width across every column.
+	 * How the column sizes. When omitted, the column stays on one line, shares
+	 * the table's spare width, and truncates a value that does not fit. `"fit"`
+	 * never truncates; `"wrap"` lets prose wrap.
 	 */
 	width?: ColumnWidth;
 };

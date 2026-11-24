@@ -57,8 +57,8 @@ export function ActionColumnWithADropdownMenuExample() {
 	);
 }
 
-/** The "Sizing a column to its content" example on the Data Table docs page. */
-export function SizingAColumnToItsContentExample() {
+/** The "Sizing a column" example on the Data Table docs page. */
+export function SizingAColumnExample() {
 	return (
 		<PreviewCanvas className="min-h-160">
 			<FitColumnDemo />

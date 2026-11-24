@@ -1245,13 +1245,34 @@ type Connection = {
 	id: string;
 	timestamp: string;
 	clientIp: string;
+	userAgent: string;
 	duration: string;
 };
 
 const exampleConnections: Connection[] = [
-	{ id: "c1", timestamp: "Oct 22, 2026 14:03:11.482", clientIp: "203.0.113.24", duration: "1.2s" },
-	{ id: "c2", timestamp: "Oct 22, 2026 14:02:57.109", clientIp: "198.51.100.7", duration: "48ms" },
-	{ id: "c3", timestamp: "Oct 22, 2026 14:02:40.936", clientIp: "192.0.2.180", duration: "3.9s" },
+	{
+		id: "c1",
+		timestamp: "Oct 22, 2026 14:03:11.482",
+		clientIp: "203.0.113.24",
+		userAgent:
+			"Mozilla/5.0 (Macintosh; Intel Mac OS X 15_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/19.0 Safari/605.1.15",
+		duration: "1.2s",
+	},
+	{
+		id: "c2",
+		timestamp: "Oct 22, 2026 14:02:57.109",
+		clientIp: "198.51.100.7",
+		userAgent: "curl/8.11.1",
+		duration: "48ms",
+	},
+	{
+		id: "c3",
+		timestamp: "Oct 22, 2026 14:02:40.936",
+		clientIp: "192.0.2.180",
+		userAgent:
+			"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+		duration: "3.9s",
+	},
 ];
 
 const fitColumnFeatures = tableFeatures({});
@@ -1270,6 +1291,11 @@ const fitColumns = fitColumnHelper.columns([
 		header: () => <DataTable.Header>Client IP</DataTable.Header>,
 		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
 	}),
+	fitColumnHelper.accessor("userAgent", {
+		id: "userAgent",
+		header: () => <DataTable.Header>User agent</DataTable.Header>,
+		cell: (props) => <DataTable.Cell>{props.getValue()}</DataTable.Cell>,
+	}),
 	fitColumnHelper.accessor("duration", {
 		id: "duration",
 		header: () => <DataTable.Header>Duration</DataTable.Header>,
@@ -1278,8 +1304,8 @@ const fitColumns = fitColumnHelper.columns([
 ]);
 
 /**
- * Demo of a column sized to its content: the timestamp column sets
- * `meta.width` to `"fit"`, so the spare width goes to the other columns.
+ * Demo of column sizing: the timestamp column sets `meta.width` to `"fit"`,
+ * so it never truncates, and the long user agent truncates.
  */
 export function FitColumnDemo() {
 	const table = useTable({
