@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { markdownMath } from "./markdown-math.js";
 import { createMarkdownParser } from "./markdown-parser.js";
 
 const answer = [
@@ -96,7 +97,7 @@ describe("createMarkdownParser", () => {
 		const parser = createMarkdownParser();
 		parser.parse("[r]: https://a", { streaming: true });
 		const done = parser.parse("[r]: https://author.example\n\nSee [r].", { streaming: false });
-		expect(done.links["r"]?.href).toBe("https://author.example");
+		expect(JSON.stringify(done.blocks)).toContain('"href":"https://author.example"');
 	});
 
 	test("drops a link whose definition is gone when the stream ends", () => {
@@ -136,6 +137,14 @@ describe("createMarkdownParser", () => {
 		expect(parser.parse("[a]: https://ngrok.com\n\nSome text", { streaming: true }).links).toBe(
 			first.links,
 		);
+	});
+
+	test("keeps a line that starts with inline math in its paragraph", () => {
+		const parser = createMarkdownParser({ extensions: [markdownMath()] });
+		const { blocks } = parser.parse("The energy is\n$$E = mc^2$$ where m is mass.", {
+			streaming: false,
+		});
+		expect(blocks.map((block) => block.type)).toEqual(["paragraph"]);
 	});
 
 	test("keeps a single tilde as text", () => {

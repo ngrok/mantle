@@ -66,7 +66,7 @@ type MarkdownComponentProps<T> = { token: T; children: ReactNode };
 /**
  * The components that render each kind of token. A component you set
  * replaces the built-in one for its token. `extension` renders each token of
- * a marked extension that has no component of its own. Keep the object stable,
+ * an extension that has no component of its own. Keep the object stable,
  * such as at module scope: a new object renders each block again.
  */
 type MarkdownComponents = {
@@ -288,8 +288,8 @@ const defaultComponents: Required<Omit<MarkdownComponents, "extension" | "table"
 	// Why text: an answer's raw HTML never reaches the DOM as markup.
 	html: ({ token }) => <p>{token.text}</p>,
 	image: ({ token }) => {
-		// Why decode first: marked keeps character references, and a decoded `&#106;avascript:` must meet the check.
-		const src = safeUrl(decodeEntities(token.href), "image");
+		// Why no decode here: the lexer decodes character references, so a `&#106;avascript:` meets the check.
+		const src = safeUrl(token.href, "image");
 		// Why the tokens: `text` is the label's Markdown source, with its markers.
 		const alt = plainText(token.tokens ?? []);
 		if (src == null) {
@@ -297,17 +297,11 @@ const defaultComponents: Required<Omit<MarkdownComponents, "extension" | "table"
 		}
 		return (
 			// oxlint-disable-next-line mantle/img-dimensions -- Why: Markdown carries no image size. A `components.image` that knows the size can set it.
-			<img
-				src={src}
-				alt={alt}
-				title={token.title == null ? undefined : decodeEntities(token.title)}
-				loading="lazy"
-				decoding="async"
-			/>
+			<img src={src} alt={alt} title={token.title ?? undefined} loading="lazy" decoding="async" />
 		);
 	},
 	link: ({ token, children }) => {
-		const href = safeUrl(decodeEntities(token.href), "link");
+		const href = safeUrl(token.href, "link");
 		if (href == null) {
 			return <span>{children}</span>;
 		}
@@ -316,7 +310,7 @@ const defaultComponents: Required<Omit<MarkdownComponents, "extension" | "table"
 		return (
 			<Anchor
 				href={href}
-				title={token.title == null ? undefined : decodeEntities(token.title)}
+				title={token.title ?? undefined}
 				target={isAbsolute ? "_blank" : undefined}
 			>
 				{children}
@@ -610,7 +604,7 @@ type MarkdownProps = Omit<ComponentProps<"div">, "children"> &
 		/** The components that replace the built-in one for a token. Keep the object stable. */
 		components?: MarkdownComponents;
 		/**
-		 * Marked extensions, such as `markdownMath()`. Keep the array stable: a new
+		 * Extensions that read more kinds of tokens, such as `markdownMath()`. Keep the array stable: a new
 		 * array parses the whole answer again.
 		 */
 		extensions?: readonly MarkdownExtension[];
