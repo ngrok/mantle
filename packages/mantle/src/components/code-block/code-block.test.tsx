@@ -610,6 +610,37 @@ describe("CodeBlock", () => {
 
 			expect(onCopy).not.toHaveBeenCalled();
 		});
+
+		test("returns the copy icon when onClick cancels a click after a copy", async () => {
+			const user = userEvent.setup();
+			let cancel = false;
+
+			render(
+				<CodeBlock.Root>
+					<CodeBlock.Body>
+						<CodeBlock.CopyButton
+							onClick={(event) => {
+								if (cancel) {
+									event.preventDefault();
+								}
+							}}
+						/>
+						<CodeBlock.Code value={makeValue("code")} />
+					</CodeBlock.Body>
+				</CodeBlock.Root>,
+			);
+
+			const button = screen.getByRole("button", { name: /copy code/i });
+			await user.click(button);
+			await vi.waitFor(() => {
+				expect(button).toHaveAttribute("data-copied");
+			});
+
+			cancel = true;
+			await user.click(button);
+			// Why: the cancel clears the timeout that returns the copy icon.
+			expect(button).not.toHaveAttribute("data-copied");
+		});
 	});
 
 	describe("TabList", () => {

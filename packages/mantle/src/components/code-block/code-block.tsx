@@ -841,9 +841,11 @@ const CopyButton = ({
 							onClick(event);
 						}
 						if (event.defaultPrevented) {
+							// Why reset: the cleared timeout no longer returns the copy icon.
 							if (timeoutHandle.current != null) {
 								clearTimeout(timeoutHandle.current);
 							}
+							setWasCopied(false);
 							return;
 						}
 						// Why read it before the await: React clears `currentTarget` after the handler returns.
