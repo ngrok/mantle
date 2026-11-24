@@ -72,7 +72,8 @@
       "Markdown",
       "CodeBlock",
       "Empty",
-      "Alert"
+      "Alert",
+      "Toast"
     ]
   },
   {

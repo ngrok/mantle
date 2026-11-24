@@ -9,7 +9,9 @@ import { Markdown } from "@ngrok/mantle/markdown";
 import { Message } from "@ngrok/mantle/message";
 import { PromptInput } from "@ngrok/mantle/prompt-input";
 import { Reasoning } from "@ngrok/mantle/reasoning";
+import { useCopyToClipboard } from "@ngrok/mantle/hooks";
 import { Select } from "@ngrok/mantle/select";
+import { Toast, makeToast } from "@ngrok/mantle/toast";
 import { ToolCall } from "@ngrok/mantle/tool-call";
 import { ArrowClockwiseIcon } from "@phosphor-icons/react/ArrowClockwise";
 import { ChatsCircleIcon } from "@phosphor-icons/react/ChatsCircle";
@@ -195,6 +197,7 @@ export function ChatDemo() {
 function Answer({ answer, onRetry }: { answer: ChatAnswer; onRetry: (() => void) | undefined }) {
 	const streaming = answer.status === "streaming";
 	const reasoningStreams = streaming && answer.reasoningSeconds == null;
+	const copy = useCopyToClipboard();
 
 	return (
 		<Message.Root from="assistant">
@@ -241,7 +244,16 @@ function Answer({ answer, onRetry }: { answer: ChatAnswer; onRetry: (() => void)
 						size="sm"
 						label="Copy the answer"
 						icon={<CopyIcon />}
-						onClick={() => void navigator.clipboard.writeText(answer.text)}
+						onClick={() => {
+							copy(answer.text).catch(() => {
+								makeToast(
+									<Toast.Root intent="danger">
+										<Toast.Icon />
+										<Toast.Message>Could not copy the answer.</Toast.Message>
+									</Toast.Root>,
+								);
+							});
+						}}
 					/>
 					{onRetry != null && (
 						<IconButton
