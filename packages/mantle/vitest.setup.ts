@@ -30,6 +30,8 @@ declare module "vitest/browser" {
 			colorScheme?: "light" | "dark";
 			reducedMotion?: "reduce" | "no-preference";
 			forcedColors?: "active" | "none";
+			/** Chromium only. `"none"` turns on touch emulation, which also sets `pointer: coarse`. */
+			hover?: "hover" | "none";
 		}) => Promise<void>;
 		/**
 		 * Compiles the Tailwind utilities that a source file uses, with the path

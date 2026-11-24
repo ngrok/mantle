@@ -10,6 +10,7 @@ const ROWS = [
 	'[data-slot~="multi-select-group-label"]',
 	'[data-slot~="dropdown-menu-label"]',
 	'[data-slot~="command-group-heading"]',
+	'[data-slot~="query-group-label"]',
 ].join();
 
 /**
