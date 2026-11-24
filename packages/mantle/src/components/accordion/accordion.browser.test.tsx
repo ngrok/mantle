@@ -2,7 +2,8 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { startTransition, useEffect, useState } from "react";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import * as Accordion from "./accordion-parts.js";
 
 /**
@@ -200,6 +201,133 @@ describe("Accordion (browser)", () => {
 		expect(region.style.opacity).toBe("");
 		expect(region.style.transition).toBe("");
 		expect(region).toHaveAttribute("hidden", "until-found");
+	});
+
+	// A fragment link reveals the content the same way find-in-page does: the
+	// browser fires `beforematch`, then removes `hidden`.
+	const revealByFragment = async (id: string, check: () => Promise<void>) => {
+		window.location.hash = `#${id}`;
+		try {
+			await check();
+		} finally {
+			history.replaceState(null, "", window.location.pathname);
+		}
+	};
+
+	const ControlledItem = ({
+		value,
+		onValueChange,
+	}: {
+		value: string;
+		onValueChange: (value: string) => void;
+	}) => (
+		<Accordion.Root type="single" value={value} onValueChange={onValueChange}>
+			<Accordion.Item value="a">
+				<Accordion.Trigger>Trigger A</Accordion.Trigger>
+				<Accordion.Content>
+					<Accordion.Body id="controlled-a">Body of section A</Accordion.Body>
+				</Accordion.Content>
+			</Accordion.Item>
+		</Accordion.Root>
+	);
+
+	test("a controlled root that refuses a find-in-page reveal hides the content again", async () => {
+		const onValueChange = vi.fn<(value: string) => void>();
+		render(<ControlledItem value="" onValueChange={onValueChange} />);
+		const region = regionFor("Body of section A");
+		if (!(region instanceof HTMLElement)) {
+			throw new Error("expected the content region to be an HTMLElement");
+		}
+		await waitFor(() => expect(region).toHaveAttribute("hidden", "until-found"));
+
+		await revealByFragment("controlled-a", async () => {
+			await vi.waitFor(() => expect(onValueChange.mock.calls).toEqual([["a"]]));
+			await vi.waitFor(() => expect(region).toHaveAttribute("hidden", "until-found"));
+		});
+		// A close slide would keep the refused content visible and interactive.
+		expect(region.getAnimations()).toEqual([]);
+		expect(screen.getByRole("button", { name: "Trigger A" })).toHaveAttribute(
+			"aria-expanded",
+			"false",
+		);
+		expect(region).not.toHaveAttribute("data-open");
+		expect(region.style.height).toBe("");
+		expect(region.style.opacity).toBe("");
+		expect(region.offsetHeight).toBe(0);
+	});
+
+	test("a controlled root that accepts a find-in-page reveal in a transition never hides it again", async () => {
+		const Transitioned = () => {
+			const [value, setValue] = useState("");
+			return (
+				<ControlledItem
+					value={value}
+					onValueChange={(next) => {
+						startTransition(() => {
+							setValue(next);
+						});
+					}}
+				/>
+			);
+		};
+		render(<Transitioned />);
+		const region = regionFor("Body of section A");
+		if (!(region instanceof HTMLElement)) {
+			throw new Error("expected the content region to be an HTMLElement");
+		}
+		await waitFor(() => expect(region).toHaveAttribute("hidden", "until-found"));
+		const hiddenValues: (string | null)[] = [];
+		const observer = new MutationObserver(() => {
+			hiddenValues.push(region.getAttribute("hidden"));
+		});
+		observer.observe(region, { attributeFilter: ["hidden"] });
+
+		await revealByFragment("controlled-a", async () => {
+			await vi.waitFor(() => expect(region).toHaveAttribute("data-open"));
+			// Why three frames: a refusal hides the content in the second one.
+			await new Promise((resolve) => {
+				requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+			});
+		});
+		observer.disconnect();
+		expect(hiddenValues).not.toContain("until-found");
+		expect(region.offsetHeight).toBeGreaterThan(0);
+		expect(screen.getByRole("button", { name: "Trigger A" })).toHaveAttribute(
+			"aria-expanded",
+			"true",
+		);
+	});
+
+	test("a reveal from a React effect opens the section without a React error", async () => {
+		const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+		const RevealOnMount = () => {
+			useEffect(() => {
+				window.location.hash = "#effect-a";
+			}, []);
+			return (
+				<Accordion.Root type="single" defaultValue="">
+					<Accordion.Item value="a">
+						<Accordion.Trigger>Trigger A</Accordion.Trigger>
+						<Accordion.Content>
+							<Accordion.Body id="effect-a">Body of section A</Accordion.Body>
+						</Accordion.Content>
+					</Accordion.Item>
+				</Accordion.Root>
+			);
+		};
+		try {
+			render(<RevealOnMount />);
+			await vi.waitFor(() => {
+				expect(screen.getByRole("button", { name: "Trigger A" })).toHaveAttribute(
+					"aria-expanded",
+					"true",
+				);
+			});
+			expect(errors).not.toHaveBeenCalled();
+		} finally {
+			errors.mockRestore();
+			history.replaceState(null, "", window.location.pathname);
+		}
 	});
 
 	const verticalCenter = (rect: DOMRect) => rect.top + rect.height / 2;

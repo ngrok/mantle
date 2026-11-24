@@ -552,6 +552,21 @@ const Content = ({
 		if (!node || !supportsBeforeMatch()) {
 			return;
 		}
+		// Apply a style change with the transition off, force a style and layout
+		// flush so the box settles at its end values, then restore the consumer's
+		// inline value. Override only the `transition-property`
+		// longhand: the `transition` shorthand reads as empty when only some
+		// longhands are set, so restoring it would delete them.
+		const settle = (apply: () => void) => {
+			const { transitionProperty } = node.style;
+			node.style.transitionProperty = "none";
+			apply();
+			node.getBoundingClientRect();
+			node.style.transitionProperty = transitionProperty;
+		};
+		// Why: a newer reveal gets its own two frames, so it cancels the check of
+		// an earlier one.
+		let frame = 0;
 		const handleBeforeMatch = () => {
 			// The browser reveals and highlights the match synchronously right after
 			// this event, but our React-driven height (`data-open:h-auto`) only
@@ -562,27 +577,40 @@ const Content = ({
 			// text out at full height before the highlight paints. The closed state is
 			// also transparent, so show the content at full opacity for the same paint.
 			// The height transition would start the box at zero and slide it open, so
-			// the highlight would still be clipped when it paints: turn the transition
-			// off, force a style and layout flush so the box settles at its end values,
-			// then restore the consumer's inline value. Override only the
-			// `transition-property` longhand: the `transition` shorthand reads as empty
-			// when only some longhands are set, so restoring it would delete them. The
-			// close branch of the effect below clears the inline height and opacity so
-			// the slide and the fade resume.
-			const { transitionProperty } = node.style;
-			node.removeAttribute("hidden");
-			node.style.transitionProperty = "none";
-			node.style.height = "auto";
-			node.style.opacity = "1";
-			node.getBoundingClientRect();
-			node.style.transitionProperty = transitionProperty;
+			// the highlight would still be clipped when it paints. The close branch of
+			// the effect below clears the inline height and opacity so the slide and
+			// the fade resume.
+			settle(() => {
+				node.removeAttribute("hidden");
+				node.style.height = "auto";
+				node.style.opacity = "1";
+			});
 			setOpen(true);
+			// Why two frames: the open commits after this event, and a controlled
+			// root can accept it in a transition. Firefox and WebKit can run the next
+			// frame before either commits. A root that has not opened the item by the
+			// frame after it refused the open, so hide the content again. Why
+			// `settle`: the close slide keeps the refused content visible and
+			// interactive for its whole duration.
+			cancelAnimationFrame(frame);
+			frame = requestAnimationFrame(() => {
+				frame = requestAnimationFrame(() => {
+					if (!node.hasAttribute("data-open")) {
+						settle(() => {
+							node.setAttribute("hidden", "until-found");
+							node.style.height = "";
+							node.style.opacity = "";
+						});
+					}
+				});
+			});
 		};
 
 		node.addEventListener("beforematch", handleBeforeMatch);
 
 		return () => {
 			node.removeEventListener("beforematch", handleBeforeMatch);
+			cancelAnimationFrame(frame);
 		};
 	}, [setOpen]);
 
