@@ -376,7 +376,8 @@ export function findRecords<T extends FindRecord>(
 	{ query, kind }: { query: string; kind?: FindRecord["kind"] },
 ): FindMatch<T>[] {
 	const wanted = compact(query);
-	const tokens = keywordsFrom(query)
+	// Why: `⌘` is no word, so "⌘K palette" must read as "cmd k palette" to reach the `cmd k` alias.
+	const tokens = keywordsFrom(query.replaceAll("⌘", " cmd "))
 		.filter((token) => !STOP_WORDS.has(token))
 		.map(singular);
 	const nameWords = new Set(records.flatMap((record) => keywordsFrom(record.name).map(singular)));

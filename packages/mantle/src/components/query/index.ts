@@ -17,7 +17,7 @@ import * as QueryParts from "./query-parts.js";
  *
  * @useWhen Filter a list with a typed query of free text and `key:value` qualifiers. Its
  * `keyboardShortcut` prop makes the slash key (`/`) a keyboard shortcut that focuses the field
- * from anywhere on the page.
+ * while no other text field has focus.
  *
  * @siblings
  * - `Input`: a plain search box with no query language.

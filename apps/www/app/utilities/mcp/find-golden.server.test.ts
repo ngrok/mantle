@@ -138,6 +138,9 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 		"cmd+k search": "Command",
 		"cmd k search everything": "Command",
 		"keyboard first search": "Command",
+		"cmd+k shortcut to focus the search field": "Command",
+		"⌘K shortcut to focus search": "Command",
+		"ctrl+k shortcut to focus search": "Command",
 	},
 	"Forms and other names": {
 		"form validation": "Field",
