@@ -129,6 +129,16 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 		"collapsible section reader clicks expand inside": "Accordion",
 		"sparkline bar chart small metric trend": ["Bar Chart", "Sparklines in a List"],
 	},
+	"Slash focuses a Query field, ⌘K opens a Command palette": {
+		"slash keyboard shortcut focus search input": "Query",
+		"press / to focus the search field": "Query",
+		"keyboard shortcut to focus the filter input": "Query",
+		"focus search with slash key": "Query",
+		"focus the search box with a keyboard shortcut": "Query",
+		"cmd+k search": "Command",
+		"cmd k search everything": "Command",
+		"keyboard first search": "Command",
+	},
 	"Forms and other names": {
 		"form validation": "Field",
 		"form validation on submit": "Field",

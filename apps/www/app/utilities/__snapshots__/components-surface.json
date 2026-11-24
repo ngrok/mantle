@@ -689,6 +689,8 @@
       "command palette",
       "command menu",
       "cmdk",
+      "cmd k",
+      "ctrl k",
       "spotlight"
     ],
     "siblings": [
@@ -699,6 +701,10 @@
       {
         "name": "DropdownMenu",
         "boundary": "a short list of actions opens from one button."
+      },
+      {
+        "name": "Query",
+        "boundary": "a filter field on the page that `/` focuses."
       }
     ],
     "useWhen": "Search for an action or a page and run it from a keyboard-first palette, such as a `⌘K` menu."
@@ -1630,10 +1636,10 @@
       },
       {
         "name": "Command",
-        "boundary": "a palette that runs an action or navigates."
+        "boundary": "a `⌘K` palette that runs an action or navigates."
       }
     ],
-    "useWhen": "Filter a list with a typed query of free text and `key:value` qualifiers."
+    "useWhen": "Filter a list with a typed query of free text and `key:value` qualifiers. Its `keyboardShortcut` prop makes the slash key (`/`) a keyboard shortcut that focuses the field from anywhere on the page."
   },
   {
     "name": "Radio Group",

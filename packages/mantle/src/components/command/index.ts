@@ -29,6 +29,7 @@ export {
  * @siblings
  * - `Combobox`: the text field filters options in place and sets a form value.
  * - `DropdownMenu`: a short list of actions opens from one button.
+ * - `Query`: a filter field on the page that `/` focuses.
  *
  * @see https://mantle.ngrok.com/components/navigation/command
  *
