@@ -924,7 +924,7 @@ type MultiSelectItemProps = Omit<ComponentProps<"div">, "children" | "value"> &
 		children?: ReactNode | OptionRender;
 		/**
 		 * Whether the item is inert.
-		 * A click on a disabled item does not run its `onClick`.
+		 * A disabled item runs no click handler, and an `asChild` link does not navigate.
 		 */
 		disabled?: boolean;
 		/**
@@ -1018,15 +1018,14 @@ const Item = ({
 	const elementProps = {
 		...props,
 		...optionProps,
-		// Why: a disabled option ignores a click, as a disabled button does.
-		onClick: disabled ? optionProps.onClick : composeHandlers(onClick, optionProps.onClick),
+		onClick: composeHandlers(onClick, optionProps.onClick),
 		onPointerMove: composeHandlers(onPointerMove, optionProps.onPointerMove),
 		"data-slot": joinDataSlot(dataSlot, "multi-select-item"),
 		className: cx(
 			"relative mx-1 cursor-pointer rounded-md pl-2 pr-8 py-1.5 text-strong text-sm font-normal flex min-w-0 items-center gap-2",
 			"[[role=option]+&]:mt-px",
 			"data-highlighted:bg-active-menu-item",
-			"aria-disabled:opacity-50",
+			"aria-disabled:cursor-default aria-disabled:opacity-50",
 			"aria-selected:bg-selected-menu-item aria-selected:data-highlighted:bg-active-selected-menu-item",
 			className,
 		),

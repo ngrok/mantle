@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
@@ -69,25 +69,33 @@ describe("Combobox", () => {
 	});
 
 	describe("Combobox.Item", () => {
-		// Red if a disabled item runs its onClick: a "create" row then acts while it is disabled.
-		test("a disabled item ignores a click and does not run its onClick", async () => {
+		// Red if a disabled item runs a click handler or follows its link: a disabled "create" row
+		// then acts. `Slot` runs the child's handler first, so only a capture guard stops it.
+		test("a disabled asChild link runs no click handler and does not navigate", async () => {
 			const user = userEvent.setup();
-			const onClick = vi.fn<() => void>();
+			const onItemClick = vi.fn<() => void>();
+			const onLinkClick = vi.fn<() => void>();
 			render(
 				<Combobox.Root>
 					<Combobox.Input aria-label="Fruit" />
 					<Combobox.Content>
 						<Combobox.Item value="Apple" />
-						<Combobox.Item value="Banana" disabled onClick={onClick} />
+						<Combobox.Item value="Docs" disabled asChild onClick={onItemClick}>
+							<a href="#docs" onClick={onLinkClick}>
+								Docs
+							</a>
+						</Combobox.Item>
 					</Combobox.Content>
 				</Combobox.Root>,
 			);
 			const input = screen.getByRole("combobox", { name: "Fruit" });
 
 			await user.click(input);
-			await user.click(await screen.findByRole("option", { name: "Banana" }));
+			const notCanceled = fireEvent.click(await screen.findByRole("option", { name: "Docs" }));
 
-			expect(onClick).toHaveBeenCalledTimes(0);
+			expect(notCanceled).toBe(false);
+			expect(onItemClick).toHaveBeenCalledTimes(0);
+			expect(onLinkClick).toHaveBeenCalledTimes(0);
 			expect(input).toHaveValue("");
 		});
 

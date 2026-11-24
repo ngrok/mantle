@@ -906,7 +906,7 @@ type SelectItemProps = Omit<ComponentProps<"div">, "children"> &
 	WithDataSlot & {
 		/**
 		 * Whether the option is inert.
-		 * A click on a disabled option does not run its `onClick`.
+		 * A disabled option runs no click handler, and an `asChild` link does not navigate.
 		 */
 		disabled?: boolean;
 		/**
@@ -1048,8 +1048,7 @@ const Item = ({
 	const elementProps = {
 		...props,
 		...optionProps,
-		// Why: a disabled option ignores a click, as a disabled button does.
-		onClick: composeHandlers(disabled ? undefined : onClick, () => {
+		onClick: composeHandlers(onClick, () => {
 			// Why: a tap can pick an item that no pointer move highlighted.
 			reportLabel();
 			optionProps.onClick();
@@ -1061,7 +1060,7 @@ const Item = ({
 		className: cx(
 			"relative flex gap-2 w-full cursor-pointer select-none items-center rounded-md py-1.5 pl-2 pr-8 text-strong text-sm outline-hidden",
 			"data-highlighted:bg-active-menu-item",
-			"aria-disabled:pointer-events-none aria-disabled:opacity-50",
+			"aria-disabled:cursor-default aria-disabled:opacity-50",
 			"aria-selected:bg-selected-menu-item",
 			"data-highlighted:aria-selected:bg-active-selected-menu-item",
 			className,

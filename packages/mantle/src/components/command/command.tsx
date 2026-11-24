@@ -13,7 +13,7 @@ import {
 	useState,
 	useSyncExternalStore,
 } from "react";
-import { composeHandlers } from "../../behaviors/compose-handlers.js";
+import { composeHandlers, ignoreClick } from "../../behaviors/compose-handlers.js";
 import { useListbox } from "../../behaviors/use-listbox.js";
 import { useIsomorphicLayoutEffect } from "../../hooks/use-isomorphic-layout-effect.js";
 import type { WithAsChild } from "../../types/as-child.js";
@@ -1126,7 +1126,8 @@ const CommandItem = ({
 		 */
 		onPointerMove?: PointerEventHandler<HTMLElement>;
 		/**
-		 * Whether the item can be activated and selected.
+		 * Whether the item can be activated and selected. A disabled item runs no
+		 * click handler, and an `asChild` link does not navigate.
 		 *
 		 * @default false
 		 */
@@ -1183,7 +1184,7 @@ const CommandItem = ({
 			aria-disabled={disabled || undefined}
 			data-slot={joinDataSlot(dataSlot, "command-item")}
 			className={cx(
-				"data-highlighted:bg-active-menu-item [:where(&_svg)]:text-muted relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [:where(&_svg)]:size-5",
+				"data-highlighted:bg-active-menu-item [:where(&_svg)]:text-muted relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none aria-disabled:cursor-default aria-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [:where(&_svg)]:size-5",
 				className,
 			)}
 			onPointerMove={(event) => {
@@ -1197,6 +1198,7 @@ const CommandItem = ({
 				onClick?.(event);
 				command.select(event.currentTarget);
 			}}
+			{...(disabled && { onClickCapture: ignoreClick })}
 		/>
 	);
 };

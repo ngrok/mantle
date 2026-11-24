@@ -333,7 +333,7 @@ type ComboboxItemProps = Omit<ComponentProps<"div">, "children" | "value"> &
 		children?: ReactNode | OptionRender;
 		/**
 		 * Whether the item is inert.
-		 * A click on a disabled item does not run its `onClick`.
+		 * A disabled item runs no click handler, and an `asChild` link does not navigate.
 		 */
 		disabled?: boolean;
 		/**
@@ -384,8 +384,7 @@ const Item = ({
 	const elementProps = {
 		...props,
 		...optionProps,
-		// Why: a disabled option ignores a click, as a disabled button does.
-		onClick: disabled ? optionProps.onClick : composeHandlers(onClick, optionProps.onClick),
+		onClick: composeHandlers(onClick, optionProps.onClick),
 		onPointerMove: composeHandlers(onPointerMove, optionProps.onPointerMove),
 		// Why: in the APG combobox pattern, the highlighted option is the selected
 		// one, and the open list writes the attribute with the highlight.
@@ -397,7 +396,7 @@ const Item = ({
 		className: cx(
 			"cursor-pointer rounded-md px-2 py-1.5 text-strong text-sm flex min-w-0 gap-2 items-center [&>svg]:size-5 [&_svg]:shrink-0",
 			"data-highlighted:bg-active-menu-item",
-			"aria-disabled:opacity-50",
+			"aria-disabled:cursor-default aria-disabled:opacity-50",
 			className,
 		),
 	};

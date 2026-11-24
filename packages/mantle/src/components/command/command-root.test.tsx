@@ -358,14 +358,26 @@ describe("Command.Root keyboard", () => {
 		expect(input()).toHaveFocus();
 	});
 
-	test("a disabled item ignores a click", async () => {
-		// Why no pointer-events check: the disabled item's `pointer-events: none` lives in a class happy-dom never applies.
-		const user = userEvent.setup({ pointerEventsCheck: 0 });
+	// Red if a disabled item runs its onClick: a scripted or assistive click then acts.
+	test("a disabled item ignores a click and runs no onClick", async () => {
+		const user = userEvent.setup();
+		const onClick = vi.fn<() => void>();
 		const onSelect = vi.fn<(value: string) => void>();
-		render(<Palette onSelect={onSelect} />);
+		render(
+			<Command.Root>
+				<Command.Input />
+				<Command.List>
+					<Command.Item onSelect={onSelect}>Calendar</Command.Item>
+					<Command.Item onSelect={onSelect} onClick={onClick} disabled>
+						Calculator
+					</Command.Item>
+				</Command.List>
+			</Command.Root>,
+		);
 
 		await user.click(screen.getByRole("option", { name: "Calculator" }));
 
+		expect(onClick).toHaveBeenCalledTimes(0);
 		expect(onSelect).toHaveBeenCalledTimes(0);
 	});
 
