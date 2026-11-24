@@ -110,6 +110,9 @@ const goldenFinds: Record<string, Record<string, string | readonly string[]>> = 
 		"truncate long url keep end visible": "Truncated Text",
 		"password field show hide": "Password Input",
 	},
+	"AI answers": {
+		"chat message bubble rendered markdown prose": "Markdown",
+	},
 };
 
 /**
@@ -149,7 +152,6 @@ const weakFinds: Record<string, string> = {
 	"sankey flow diagram": "flow chart",
 	"static flowchart diagram yes branches": "flow chart",
 	"waffle grid squares showing percentage share": "waffle chart",
-	"chat message bubble rendered markdown prose": "chat bubble, markdown (#1802)",
 	"vertical timeline steps icons joining line": "timeline",
 	"bounding box image region overlay": "image annotation",
 	"availability uptime bar status history": "status history strip",

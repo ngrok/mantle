@@ -162,8 +162,18 @@ function translationSafeRun(nodes: ReactNode[]): ReactNode {
 	);
 }
 
-/** Renders a run of inline tokens, with the inline HTML tags that an answer may use as elements. */
-function renderInline(tokens: readonly Token[], components: MarkdownComponents): ReactNode {
+/** The deepest inline HTML tag that renders as an element. Why: each level recurses, and deep nesting overflows the stack. */
+const MAX_TAG_DEPTH = 32;
+
+/**
+ * Renders a run of inline tokens, with the inline HTML tags that an answer
+ * may use as elements. `depth` counts the tags around the run.
+ */
+function renderInline(
+	tokens: readonly Token[],
+	components: MarkdownComponents,
+	depth = 0,
+): ReactNode {
 	const nodes: ReactNode[] = [];
 	let pairs: Map<number, number> | undefined;
 	for (let index = 0; index < tokens.length; index += 1) {
@@ -174,14 +184,16 @@ function renderInline(tokens: readonly Token[], components: MarkdownComponents):
 		// Why only without an `html` component: a component replaces the built-in tags too.
 		if (token.type === "html" && !token.block && components.html == null) {
 			const tag = OPEN_TAG.exec(token.raw)?.[1]?.toLowerCase();
-			pairs ??= pairInlineTags(tokens);
-			const close = tag != null && INLINE_TAGS.has(tag) ? pairs.get(index) : undefined;
+			const close =
+				tag != null && INLINE_TAGS.has(tag) && depth < MAX_TAG_DEPTH
+					? (pairs ??= pairInlineTags(tokens)).get(index)
+					: undefined;
 			if (tag != null && close !== undefined) {
 				nodes.push(
 					createElement(
 						tag === "tt" ? "code" : tag,
 						{ key: index },
-						renderInline(tokens.slice(index + 1, close), components),
+						renderInline(tokens.slice(index + 1, close), components, depth + 1),
 					),
 				);
 				index = close;

@@ -90,6 +90,8 @@ function indentAfterQuotes(line: string): number {
 	}
 }
 
+/** A list marker with 5 or more spaces and then content: indented code in the item. */
+const LIST_ITEM_CODE = /^([-*+]|\d{1,9}[.)]) {5,}\S/;
 /** A list marker and the spaces after it. */
 const LIST_MARKER_WIDTH = /^(?:[-*+]|\d{1,9}[.)])[ \t]*/;
 
@@ -156,9 +158,17 @@ function scanBlocks(text: string, { math }: { math: boolean }): BlockScan {
 			// Why without the list markers: a fence can start on the line of its item's marker.
 			const open = FENCE.exec(content.replace(LIST_MARKERS, ""));
 			const marker = open?.[1];
+			const itemCode = LIST_ITEM_CODE.exec(content);
 			if (content.trim() !== "" && indent >= (inList ? listColumn : 0) + 4 && !inParagraph) {
 				inIndentedCode = true;
 				codeColumn = (inList ? listColumn : 0) + 4;
+				regionStart = nextStart;
+			} else if (itemCode?.[1] != null) {
+				// Indented code that starts on its item's marker line.
+				inList = true;
+				listColumn = indent + itemCode[1].length + 1;
+				inIndentedCode = true;
+				codeColumn = listColumn + 4;
 				regionStart = nextStart;
 			} else if (marker != null && !(marker.startsWith("`") && open?.[2]?.includes("`"))) {
 				fence = { char: marker.slice(0, 1), length: marker.length };
@@ -369,7 +379,8 @@ function closingBackticks(text: string, start: number, length: number): number {
  * nearest opener of its character.
  */
 function closeInline(region: string): string {
-	const openers: Opener[] = [];
+	// The open runs of each marker. Why apart: a closer finds the nearest run of its own marker in one step.
+	const openers: Record<number, Opener[]> = { [STAR]: [], [UNDERSCORE]: [], [TILDE]: [] };
 	const brackets: Bracket[] = [];
 	let end = region.length;
 	let suffix = "";
@@ -496,18 +507,19 @@ function closeInline(region: string): string {
 				code === UNDERSCORE ? left && (!right || isPunctuation(before)) : left && !intraword;
 			const canClose = code === UNDERSCORE ? right && (!left || isPunctuation(after)) : right;
 
-			if (canClose) {
-				for (let open = openers.length - 1; open >= 0 && count > 0; open -= 1) {
-					const opener = openers[open];
-					if (opener?.char !== code) {
-						continue;
+			const opener = canClose ? openers[code]?.at(-1) : undefined;
+			if (opener != null) {
+				const used = Math.min(opener.count, count);
+				opener.count -= used;
+				count -= used;
+				// Why the cut: an opener between a pair can no longer close, per CommonMark.
+				for (const runs of Object.values(openers)) {
+					while ((runs.at(-1)?.index ?? -1) > opener.index) {
+						runs.pop();
 					}
-					const used = Math.min(opener.count, count);
-					opener.count -= used;
-					count -= used;
-					// Why the cut: an opener between a pair can no longer close, per CommonMark.
-					openers.length = opener.count === 0 ? open : open + 1;
-					break;
+				}
+				if (opener.count === 0) {
+					openers[code]?.pop();
 				}
 			}
 			if (
@@ -520,7 +532,7 @@ function closeInline(region: string): string {
 				break scan;
 			}
 			if (count > 0 && canOpen) {
-				openers.push({ char: code, count, index });
+				openers[code]?.push({ char: code, count, index });
 			}
 			index = runEnd;
 			continue;
@@ -546,9 +558,15 @@ function closeInline(region: string): string {
 	const body = region.slice(0, end);
 	const trimmed = suffix === "" ? body.trimEnd() : body;
 	let closers = "";
-	for (let open = openers.length - 1; open >= 0; open -= 1) {
-		const opener = openers[open];
-		if (opener == null || opener.index >= trimmed.length) {
+	const open = [
+		...(openers[STAR] ?? []),
+		...(openers[UNDERSCORE] ?? []),
+		...(openers[TILDE] ?? []),
+	];
+	// Why no closers past 32 open runs: marked nests each pair once more, which overflows its stack or takes
+	// seconds. No answer holds that many.
+	for (const opener of open.length > 32 ? [] : open.toSorted((a, b) => b.index - a.index)) {
+		if (opener.index >= trimmed.length) {
 			continue;
 		}
 		closers += String.fromCharCode(opener.char).repeat(opener.char === TILDE ? 2 : opener.count);
