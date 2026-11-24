@@ -1,9 +1,22 @@
 import { render, screen } from "@testing-library/react";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import * as Message from "../message/message-parts.js";
 import * as Conversation from "./conversation-parts.js";
 
-test("a consumer renders a transcript and finds it by role", () => {
+test.each([
+	{ name: "plain jsdom", stub: false },
+	{ name: "a stubbed ResizeObserver", stub: true },
+])("a consumer renders a transcript in $name and finds it by role", ({ stub }) => {
+	if (stub) {
+		vi.stubGlobal(
+			"ResizeObserver",
+			class {
+				observe() {}
+				unobserve() {}
+				disconnect() {}
+			},
+		);
+	}
 	render(
 		<Conversation.Root>
 			<Conversation.Viewport aria-label="Conversation">

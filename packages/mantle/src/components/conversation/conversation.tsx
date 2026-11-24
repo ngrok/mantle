@@ -205,8 +205,12 @@ function Viewport({
 
 	// Why the element dependency: a consumer ref can change without replacing the viewport or its follow state.
 	useLayoutEffect(() => {
-		// Why: jsdom has no ResizeObserver, and with no layout there is no end to follow.
-		if (element == null || typeof ResizeObserver === "undefined") {
+		// Why both: jsdom has neither, and a test setup often stubs only ResizeObserver; with no layout there is no end to follow.
+		if (
+			element == null ||
+			typeof element.scrollTo !== "function" ||
+			typeof ResizeObserver === "undefined"
+		) {
 			return;
 		}
 		const root = element.closest('[data-slot~="conversation"]');
