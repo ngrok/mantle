@@ -1645,11 +1645,11 @@ function ControlCell({
 		<Table.Cell
 			data-slot={joinDataSlot(dataSlot, "data-table-control-cell")}
 			// `align-top` and the one-line label below put the control beside the
-			// first line of a multi-line row. `px-0` lets `w-9` fit the toggle. The
+			// first line of a multi-line row. `px-0` lets `w-9` fit the toggle, and `min-w-9` keeps the grid column that wide. The
 			// pointer cursor shows only while a padding click has an enabled control
 			// to click; an empty cell keeps the row's cursor.
 			className={cx(
-				"w-9 px-0 align-top has-[button:enabled,input:enabled]:cursor-pointer",
+				"w-9 min-w-9 px-0 align-top content-start has-[button:enabled,input:enabled]:cursor-pointer",
 				className,
 			)}
 			onClick={(event) => {
@@ -1730,7 +1730,7 @@ function ExpandHeader({
 			// `Table.Header` carries horizontal padding; zero it (and center) so the column is
 			// actually as narrow as `w-9` and aligns with the icon toggle in the cells
 			// below it. A consumer `className` still wins via tailwind-merge.
-			className={cx("w-9 px-0 text-center", className)}
+			className={cx("w-9 min-w-9 px-0 text-center", className)}
 			{...props}
 		>
 			{children ?? <span className="sr-only">Row details</span>}

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentProps, ComponentRef, RefCallback } from "react";
+import type { ComponentProps, ComponentRef, CSSProperties, RefCallback } from "react";
 import { createContext, useCallback, useContext, useLayoutEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
@@ -252,9 +252,13 @@ const Element = ({
 	return (
 		<table
 			data-slot={joinDataSlot(dataSlot, "table-element")}
+			// oxlint-disable-next-line jsx-a11y/no-redundant-roles -- Why: the grid layout changes `display`, and a browser can drop the table semantics of such an element; an explicit role keeps them.
+			role="table"
 			ref={composedRef}
 			className={cx(
-				"table-auto border-separate border-spacing-0 caption-bottom w-full min-w-full text-left",
+				"table-auto border-separate border-spacing-0 caption-bottom w-full min-w-min text-left",
+				gridLayoutClassName,
+				gridColumnCountClassName,
 				className,
 			)}
 			{...props}
@@ -320,9 +324,13 @@ const Head = ({
 }: ComponentProps<"thead"> & WithDataSlot) => (
 	<thead
 		data-slot={joinDataSlot(dataSlot, "table-head")}
+		// oxlint-disable-next-line jsx-a11y/no-redundant-roles -- Why: the grid layout changes `display`, and a browser can drop the table semantics of such an element; an explicit role keeps them.
+		role="rowgroup"
 		ref={ref}
 		className={cx(
 			//,
+			"[display:var(--_table-display,table-header-group)]",
+			subgridClassName,
 			// In border-separate, <tr>/<thead> borders don't render, so apply
 			// dividers directly to cells. Why `:not(:has(+tr))` and not `:last-child`:
 			// a structural pseudo-class before `>*` makes Chromium restyle the whole
@@ -395,8 +403,12 @@ const Body = ({
 }: ComponentProps<"tbody"> & WithDataSlot) => (
 	<tbody
 		data-slot={joinDataSlot(dataSlot, "table-body")}
+		// oxlint-disable-next-line jsx-a11y/no-redundant-roles -- Why: the grid layout changes `display`, and a browser can drop the table semantics of such an element; an explicit role keeps them.
+		role="rowgroup"
 		className={cx(
 			//,
+			"[display:var(--_table-display,table-row-group)]",
+			subgridClassName,
 			// In border-separate, <tr>/<tbody> borders don't render, so apply
 			// dividers directly to cells. Why `tr+tr` stays (a known trade-off):
 			// with it, a row inserted at the top or middle of a 200-row body
@@ -478,9 +490,13 @@ const Foot = ({
 }: ComponentProps<"tfoot"> & WithDataSlot) => (
 	<tfoot
 		data-slot={joinDataSlot(dataSlot, "table-foot")}
+		// oxlint-disable-next-line jsx-a11y/no-redundant-roles -- Why: the grid layout changes `display`, and a browser can drop the table semantics of such an element; an explicit role keeps them.
+		role="rowgroup"
 		ref={ref}
 		className={cx(
 			//,
+			"[display:var(--_table-display,table-footer-group)]",
+			subgridClassName,
 			"font-medium text-body",
 			// In border-separate, <tr>/<tfoot> borders don't render, so apply
 			// dividers directly to cells. Why each row and not `:first-child`: see `Head`.
@@ -541,10 +557,23 @@ const Foot = ({
 const Row = ({
 	"data-slot": dataSlot,
 	children,
+	className,
 	ref,
 	...props
 }: ComponentProps<"tr"> & WithDataSlot) => (
-	<tr data-slot={joinDataSlot(dataSlot, "table-row")} ref={ref} {...props}>
+	<tr
+		data-slot={joinDataSlot(dataSlot, "table-row")}
+		ref={ref}
+		// oxlint-disable-next-line jsx-a11y/no-redundant-roles, jsx-a11y/no-interactive-element-to-noninteractive-role -- Why: the grid layout changes `display`, and a browser can drop the table semantics of such an element; an explicit role keeps them.
+		role="row"
+		className={cx(
+			"[display:var(--_table-display,table-row)]",
+			subgridClassName,
+			cellWidthClassName,
+			className,
+		)}
+		{...props}
+	>
 		{children}
 	</tr>
 );
@@ -602,6 +631,8 @@ const Header = ({
 	className,
 	ref,
 	scope = "col",
+	colSpan,
+	style,
 	width,
 	...props
 }: Omit<ComponentProps<"th">, "width"> & WithDataSlot & WithColumnWidth) => (
@@ -609,11 +640,13 @@ const Header = ({
 		data-slot={joinDataSlot(dataSlot, "table-header")}
 		data-column-width={width}
 		ref={ref}
+		role={scope === "row" || scope === "rowgroup" ? "rowheader" : "columnheader"}
 		scope={scope}
+		{...spanProps(colSpan, style)}
 		// `px-3` must equal the horizontal padding on `Table.Cell`, or the column label
 		// sits outboard of the body text.
 		className={cx(
-			"h-11 px-3 text-left align-middle text-sm font-medium has-[[role=checkbox]]:pr-0",
+			"h-11 px-3 text-left align-middle content-center text-sm font-medium has-[[role=checkbox]]:pr-0",
 			width !== "wrap" && "whitespace-nowrap",
 			className,
 		)}
@@ -683,6 +716,8 @@ const Cell = ({
 	children,
 	className,
 	ref,
+	colSpan,
+	style,
 	width,
 	...props
 }: Omit<ComponentProps<"td">, "width"> & WithDataSlot & WithColumnWidth) => (
@@ -690,8 +725,11 @@ const Cell = ({
 		data-slot={joinDataSlot(dataSlot, "table-cell")}
 		data-column-width={width}
 		ref={ref}
+		// oxlint-disable-next-line jsx-a11y/no-redundant-roles, jsx-a11y/no-interactive-element-to-noninteractive-role -- Why: the grid layout changes `display`, and a browser can drop the table semantics of such an element; an explicit role keeps them.
+		role="cell"
+		{...spanProps(colSpan, style)}
 		className={cx(
-			"p-3 align-middle has-[[role=checkbox]]:pr-0 font-mono text-mono",
+			"p-3 align-middle content-center has-[[role=checkbox]]:pr-0 font-mono text-mono",
 			width !== "wrap" && "whitespace-nowrap",
 			className,
 		)}
@@ -768,12 +806,96 @@ const Caption = ({
 	<caption
 		data-slot={joinDataSlot(dataSlot, "table-caption")}
 		ref={ref}
-		className={cx("py-4 text-sm text-gray-500", "border-t border-card-muted", className)}
+		className={cx(
+			"py-4 text-sm text-gray-500",
+			"border-t border-card-muted",
+			// In the grid layout, the caption spans every column and sits last, as
+			// `caption-bottom` puts it in the table layout.
+			"col-span-full order-1",
+			className,
+		)}
 		{...props}
 	>
 		{children}
 	</caption>
 );
+
+/**
+ * The column layout of the table. With the browser's table layout, a column
+ * gets spare width in proportion to its content, so the column with the
+ * longest values takes most of the row. A CSS grid with one `auto` track for
+ * each column gives each column an equal share of the spare width. A last
+ * column of `DataTable.ActionHeader` and a first column of
+ * `DataTable.ControlCell` get a `min-content` track, so they stay as narrow
+ * as their controls. No script measures the table.
+ *
+ * The grid needs the number of tracks: `gridColumnCountClassName` counts the
+ * cells of the last header row. A table with no `<thead>`, with more than 24
+ * columns, or with a spanning cell in that row keeps the table layout. The row groups and
+ * rows read `--_table-display` and become subgrids only in the grid layout.
+ * The reset of each property keeps a nested table from taking its parent's
+ * grid.
+ */
+const gridLayoutClassName = cx(
+	"[--_table-columns:initial] [--_table-display:initial]",
+	"[display:var(--_table-display,table)] grid-cols-[repeat(var(--_table-columns),auto)]",
+	// oxlint-disable-next-line mantle/no-structural-combinator -- Why: the `:has()` tests this table's own header row, so it reruns only when that row changes.
+	"has-[>thead>tr:last-child>:nth-child(2)]:not-has-[>thead>tr:last-child>:nth-child(25)]:not-has-[>thead>tr:last-child>[aria-colspan]]:[--_table-display:grid]",
+	// A control column (a row checkbox or expand toggle) first, an action column last, or both.
+	// oxlint-disable-next-line mantle/no-structural-combinator -- Why: as above, for the header row and the first body row.
+	"has-[>thead>tr:last-child>[data-slot~=data-table-action-header]:last-child]:grid-cols-[repeat(calc(var(--_table-columns)-1),auto)_min-content]",
+	// oxlint-disable-next-line mantle/no-structural-combinator -- Why: as above.
+	"has-[>thead>tr:last-child>[data-slot~=data-table-expand-header]:first-child,>tbody>tr:first-child>[data-slot~=data-table-control-cell]:first-child]:grid-cols-[min-content_repeat(calc(var(--_table-columns)-1),auto)]",
+	// oxlint-disable-next-line mantle/no-structural-combinator -- Why: as above.
+	"has-[>thead>tr:last-child>[data-slot~=data-table-action-header]:last-child]:has-[>thead>tr:last-child>[data-slot~=data-table-expand-header]:first-child,>tbody>tr:first-child>[data-slot~=data-table-control-cell]:first-child]:grid-cols-[min-content_repeat(calc(var(--_table-columns)-2),auto)_min-content]",
+);
+
+/**
+ * Sets `--_table-columns` to the number of cells in the last header row, for 2
+ * to 24 columns. Why literal classes: Tailwind generates only the classes it
+ * finds in the source.
+ */
+// oxlint-disable-next-line mantle/no-structural-combinator -- Why: the `:has()` tests this table's own header row, so it reruns only when that row changes.
+const gridColumnCountClassName =
+	"has-[>thead>tr:last-child>:nth-child(2):last-child]:[--_table-columns:2] has-[>thead>tr:last-child>:nth-child(3):last-child]:[--_table-columns:3] has-[>thead>tr:last-child>:nth-child(4):last-child]:[--_table-columns:4] has-[>thead>tr:last-child>:nth-child(5):last-child]:[--_table-columns:5] has-[>thead>tr:last-child>:nth-child(6):last-child]:[--_table-columns:6] has-[>thead>tr:last-child>:nth-child(7):last-child]:[--_table-columns:7] has-[>thead>tr:last-child>:nth-child(8):last-child]:[--_table-columns:8] has-[>thead>tr:last-child>:nth-child(9):last-child]:[--_table-columns:9] has-[>thead>tr:last-child>:nth-child(10):last-child]:[--_table-columns:10] has-[>thead>tr:last-child>:nth-child(11):last-child]:[--_table-columns:11] has-[>thead>tr:last-child>:nth-child(12):last-child]:[--_table-columns:12] has-[>thead>tr:last-child>:nth-child(13):last-child]:[--_table-columns:13] has-[>thead>tr:last-child>:nth-child(14):last-child]:[--_table-columns:14] has-[>thead>tr:last-child>:nth-child(15):last-child]:[--_table-columns:15] has-[>thead>tr:last-child>:nth-child(16):last-child]:[--_table-columns:16] has-[>thead>tr:last-child>:nth-child(17):last-child]:[--_table-columns:17] has-[>thead>tr:last-child>:nth-child(18):last-child]:[--_table-columns:18] has-[>thead>tr:last-child>:nth-child(19):last-child]:[--_table-columns:19] has-[>thead>tr:last-child>:nth-child(20):last-child]:[--_table-columns:20] has-[>thead>tr:last-child>:nth-child(21):last-child]:[--_table-columns:21] has-[>thead>tr:last-child>:nth-child(22):last-child]:[--_table-columns:22] has-[>thead>tr:last-child>:nth-child(23):last-child]:[--_table-columns:23] has-[>thead>tr:last-child>:nth-child(24):last-child]:[--_table-columns:24]";
+
+/**
+ * The classes that make a row group or a row a subgrid of the table in the
+ * grid layout. In the table layout, they do nothing.
+ */
+const subgridClassName = "col-span-full grid-cols-subgrid";
+
+/**
+ * Keeps each cell as wide as its column. In the grid layout, a cell's
+ * `width` or `max-width` sizes only the cell, not its column, so a cell with
+ * `w-60` or `max-w-0` would stop short of its column and break the row's
+ * dividers. The grid sizes every column, so the row drops both. A `min-w-*`
+ * on a cell still sets the column's least width.
+ */
+// Why `!`: a width class on a cell must lose to the row, which a class merge cannot do.
+const cellWidthClassName = "[&>*]:w-auto! [&>*]:max-w-none!";
+
+/**
+ * The span props of a cell that covers more than one column. In the grid
+ * layout, `colSpan` does nothing, so the cell also spans the grid tracks. With
+ * explicit roles, a screen reader reads the span from `aria-colspan`.
+ *
+ * @example
+ * ```ts
+ * spanProps(3, undefined); // => { colSpan: 3, "aria-colspan": 3, style: { gridColumn: "span 3" } }
+ * spanProps(undefined, { color: "red" }); // => { style: { color: "red" } }
+ * ```
+ */
+function spanProps(colSpan: number | undefined, style: CSSProperties | undefined) {
+	if (colSpan == null || colSpan <= 1) {
+		return { colSpan, style };
+	}
+	return {
+		colSpan,
+		"aria-colspan": colSpan,
+		style: { gridColumn: `span ${colSpan}`, ...style },
+	};
+}
 
 /**
  * How a table column sizes. When omitted, the column's cells stay on one line,

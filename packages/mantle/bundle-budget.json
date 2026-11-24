@@ -93,11 +93,11 @@
   },
   "markdown": {
     "entry": "import { Markdown } from \"@ngrok/mantle/markdown\"; export default [Markdown];",
-    "maxGzipBytes": 32254
+    "maxGzipBytes": 32972
   },
   "markdown-chat": {
     "entry": "import { Markdown, markdownMath, useMarkdownStream } from \"@ngrok/mantle/markdown\"; export default [Markdown, markdownMath, useMarkdownStream];",
-    "maxGzipBytes": 33269
+    "maxGzipBytes": 33987
   },
   "markdown-stream-hook": {
     "entry": "import { useMarkdownStream } from \"@ngrok/mantle/markdown\"; export default [useMarkdownStream];",

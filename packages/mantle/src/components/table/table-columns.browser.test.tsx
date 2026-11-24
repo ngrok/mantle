@@ -1,54 +1,50 @@
 "use client";
 
 import { render, screen } from "@testing-library/react";
+import { commands } from "vitest/browser";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import * as Table from "./table-parts.js";
 import type { ColumnWidth } from "./table.js";
 
-/**
- * Mirrors the utilities Tailwind 4 emits for the table and its cells, inlined
- * so the test needs no Tailwind build and no mantle theme.
- */
-const COLUMN_STYLE = String.raw`
-@layer utilities {
-	.table-auto { table-layout: auto; }
-	.w-full { width: 100%; }
-	.p-3 { padding: 12px; }
-	.px-1 { padding-inline: 4px; }
-	.-mx-1 { margin-inline: -4px; }
-	.grid { display: grid; }
-	.min-w-24 { min-width: 96px; }
-	.grid-cols-\[minmax\(0\,1fr\)\] { grid-template-columns: minmax(0, 1fr); }
-	.overflow-x-clip { overflow-x: clip; }
-	.text-ellipsis { text-overflow: ellipsis; }
-	.whitespace-nowrap { white-space: nowrap; }
-	.w-px { width: 1px; }
-}
-td, th { font: 16px/20px monospace; }
-`;
+let styleElement: HTMLStyleElement;
 
-let columnStyleElement: HTMLStyleElement;
-
-beforeAll(() => {
-	columnStyleElement = document.createElement("style");
-	columnStyleElement.textContent = COLUMN_STYLE;
-	document.head.appendChild(columnStyleElement);
+beforeAll(async () => {
+	styleElement = document.createElement("style");
+	// Why the compiled CSS: the column layout lives in the parts' class names.
+	// The font rule makes text widths the same in each engine.
+	styleElement.textContent = `${await commands.tailwindCss("./table.tsx", { theme: true })}\ntd, th { font: 16px/20px monospace; }`;
+	document.head.appendChild(styleElement);
 });
 
 afterAll(() => {
-	columnStyleElement.remove();
+	styleElement.remove();
 });
 
-type Column = { value: string; width?: ColumnWidth };
+type Column = { label: string; value: string; width?: ColumnWidth; action?: boolean };
 
-function renderRow(tableWidth: number, columns: Column[]) {
+function renderTable(tableWidth: number, columns: Column[], { head = true } = {}) {
 	render(
 		<div style={{ width: tableWidth }}>
 			<Table.Element>
+				{head && (
+					<Table.Head>
+						<Table.Row>
+							{columns.map((column) => (
+								<Table.Header
+									key={column.label}
+									data-slot={column.action ? "data-table-action-header" : undefined}
+									width={column.action ? "fit" : column.width}
+								>
+									{column.label}
+								</Table.Header>
+							))}
+						</Table.Row>
+					</Table.Head>
+				)}
 				<Table.Body>
 					<Table.Row>
 						{columns.map((column) => (
-							<Table.Cell key={column.value} width={column.width}>
+							<Table.Cell key={column.label} width={column.action ? "fit" : column.width}>
 								{column.value}
 							</Table.Cell>
 						))}
@@ -59,8 +55,8 @@ function renderRow(tableWidth: number, columns: Column[]) {
 	);
 }
 
-/** The width of the value's text, on one line, whether or not the cell clips it. */
-function textWidth(value: string) {
+/** The box of the value's text: one line wide, whether or not the cell clips it. */
+function textRect(value: string) {
 	const cell = screen.getByRole("cell", { name: value });
 	const textNode = [...cell.querySelectorAll("*"), cell]
 		.flatMap((node) => [...node.childNodes])
@@ -70,7 +66,16 @@ function textWidth(value: string) {
 	}
 	const range = document.createRange();
 	range.selectNodeContents(textNode);
-	return range.getBoundingClientRect().width;
+	return range.getBoundingClientRect();
+}
+
+function textWidth(value: string) {
+	return textRect(value).width;
+}
+
+/** The height of one line of the value: the font rule sets a 20px line. */
+function isOneLine(value: string) {
+	return textRect(value).height <= 20;
 }
 
 /** The width the cell gives its content, inside its 12px padding on each side. */
@@ -81,57 +86,149 @@ function contentBoxWidth(value: string) {
 const longValue = "a description that someone pasted in to explain exactly what this is for";
 
 describe("Table column sizing", () => {
-	test("short values share the spare width, including a fit column", () => {
-		renderRow(1000, [
-			{ value: "web-10" },
-			{ value: "us-east-1" },
-			{ value: "Oct 22", width: "fit" },
+	test("columns of different lengths get equal shares of the spare width", () => {
+		// Why the lengths differ: the browser's table layout gives the longest
+		// value the largest share, so only an equal split passes.
+		renderTable(1000, [
+			// Why one-letter labels: a column is as wide as its widest content, and
+			// the values must be it.
+			// Why values past 6rem: a default column is at least 6rem wide, so a
+			// shorter value would count as 6rem.
+			{ label: "N", value: "web-production" },
+			{ label: "R", value: "us-east-1-staging-cluster" },
+			{ label: "C", value: "Oct 22", width: "fit" },
 		]);
 
-		for (const value of ["web-10", "us-east-1", "Oct 22"]) {
-			// Each column gets more than its text: the spare width is shared.
-			expect(contentBoxWidth(value)).toBeGreaterThan(textWidth(value) + 40);
+		const spare = ["web-production", "us-east-1-staging-cluster", "Oct 22"].map(
+			(value) => contentBoxWidth(value) - textWidth(value),
+		);
+		for (const share of spare) {
+			expect(share).toBeGreaterThan(100);
+			expect(Math.abs(share - (spare[0] ?? 0))).toBeLessThan(2);
 		}
 	});
 
-	test("a long value takes the spare width, then truncates; the table does not overflow", () => {
-		renderRow(600, [
-			{ value: longValue },
-			{ value: "web-10" },
-			{ value: "Oct 22, 2026", width: "fit" },
+	test("a long value takes the spare width, then truncates, and every cell stays on one line", () => {
+		renderTable(600, [
+			{ label: "Description", value: longValue },
+			{ label: "Name", value: "web-10" },
+			{ label: "Created", value: "Oct 22, 2026", width: "fit" },
 		]);
 
 		expect(screen.getByRole("table").getBoundingClientRect().width).toBeLessThanOrEqual(600);
-		// The long column takes more than half the row, on one line, and its text
-		// still does not fit.
-		expect(screen.getByRole("cell", { name: longValue }).getBoundingClientRect().height).toBe(44);
 		expect(contentBoxWidth(longValue)).toBeGreaterThan(300);
 		expect(contentBoxWidth(longValue)).toBeLessThan(textWidth(longValue));
-		// The short columns keep their whole value on one line.
 		expect(contentBoxWidth("web-10")).toBeGreaterThanOrEqual(textWidth("web-10"));
 		expect(contentBoxWidth("Oct 22, 2026")).toBeGreaterThanOrEqual(textWidth("Oct 22, 2026"));
-		expect(screen.getByRole("cell", { name: "Oct 22, 2026" }).getBoundingClientRect().height).toBe(
-			44,
-		);
+		expect(isOneLine(longValue)).toBe(true);
 	});
 
-	test("a narrow table truncates a default column no narrower than 6rem", () => {
-		renderRow(320, [
-			{ value: longValue },
-			{ value: `${longValue} again` },
-			{ value: "Oct 22, 2026", width: "fit" },
+	test("a table too narrow for its columns grows past its container, so it scrolls", () => {
+		renderTable(320, [
+			{ label: "Description", value: longValue },
+			{ label: "Notes", value: `${longValue} again` },
+			{ label: "Created", value: "Oct 22, 2026", width: "fit" },
 		]);
 
 		expect(contentBoxWidth(longValue)).toBeGreaterThanOrEqual(96);
 		expect(contentBoxWidth(`${longValue} again`)).toBeGreaterThanOrEqual(96);
 		expect(contentBoxWidth("Oct 22, 2026")).toBeGreaterThanOrEqual(textWidth("Oct 22, 2026"));
+		expect(screen.getByRole("table").getBoundingClientRect().width).toBeGreaterThan(320);
+	});
+
+	test("a last action column stays as narrow as its content", () => {
+		renderTable(1000, [
+			{ label: "Name", value: "web" },
+			{ label: "Region", value: "us-east-1" },
+			{ label: "Actions", value: "…", action: true },
+		]);
+
+		const header = screen.getByRole("columnheader", { name: "Actions" });
+		const range = document.createRange();
+		range.selectNodeContents(header);
+		// The column is as wide as its widest content, the header label: no share of the spare width.
+		expect(contentBoxWidth("…") - range.getBoundingClientRect().width).toBeLessThan(2);
+		expect(contentBoxWidth("web") - textWidth("web")).toBeGreaterThan(200);
+	});
+
+	test("a cell with its own width still fills its column", () => {
+		render(
+			<div style={{ width: 600 }}>
+				<Table.Element>
+					<Table.Head>
+						<Table.Row>
+							<Table.Header>Name</Table.Header>
+							<Table.Header>Region</Table.Header>
+						</Table.Row>
+					</Table.Head>
+					<Table.Body>
+						<Table.Row>
+							{/* Why inline styles: they stand in for a consumer's `w-0` and `max-w-0` classes. */}
+							<Table.Cell style={{ width: 0, maxWidth: 0 }}>web-production</Table.Cell>
+							<Table.Cell>us-east-1</Table.Cell>
+						</Table.Row>
+					</Table.Body>
+				</Table.Element>
+			</div>,
+		);
+
+		const header = screen.getByRole("columnheader", { name: "Name" }).getBoundingClientRect();
+		const cell = screen.getByRole("cell", { name: "web-production" }).getBoundingClientRect();
+		expect(cell.width).toBe(header.width);
+		expect(contentBoxWidth("web-production")).toBeGreaterThanOrEqual(textWidth("web-production"));
 	});
 
 	test("a wrap column wraps its text and shows all of it", () => {
-		renderRow(600, [{ value: longValue, width: "wrap" }, { value: "web-10" }]);
+		renderTable(600, [
+			{ label: "Notes", value: longValue, width: "wrap" },
+			{ label: "Name", value: "web-10" },
+		]);
 
 		const cell = screen.getByRole("cell", { name: longValue });
-		expect(cell.getBoundingClientRect().height).toBeGreaterThan(44);
+		expect(isOneLine(longValue)).toBe(false);
 		expect(cell.scrollWidth).toBeLessThanOrEqual(cell.clientWidth);
+	});
+
+	test("a spanning cell in the last header row keeps the table layout, so the columns line up", () => {
+		render(
+			<Table.Element>
+				<Table.Head>
+					<Table.Row>
+						<Table.Header colSpan={2}>Endpoint</Table.Header>
+						<Table.Header>Created</Table.Header>
+					</Table.Row>
+				</Table.Head>
+				<Table.Body>
+					<Table.Row>
+						<Table.Cell>web</Table.Cell>
+						<Table.Cell>us-east-1</Table.Cell>
+						<Table.Cell>Oct 22</Table.Cell>
+					</Table.Row>
+				</Table.Body>
+			</Table.Element>,
+		);
+
+		expect(getComputedStyle(screen.getByRole("table")).display).toBe("table");
+		expect(screen.getByRole("columnheader", { name: "Endpoint" })).toHaveAttribute(
+			"aria-colspan",
+			"2",
+		);
+	});
+
+	test("a table with no header row keeps the table layout and still truncates", () => {
+		renderTable(
+			600,
+			[
+				{ label: "Description", value: longValue },
+				{ label: "Name", value: "web-10" },
+			],
+			{
+				head: false,
+			},
+		);
+
+		expect(getComputedStyle(screen.getByRole("table")).display).toBe("table");
+		expect(contentBoxWidth(longValue)).toBeLessThan(textWidth(longValue));
+		expect(isOneLine(longValue)).toBe(true);
 	});
 });

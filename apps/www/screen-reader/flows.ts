@@ -43,6 +43,8 @@ const TAB = "\\btab\\b";
 const CHECKED = "(?<!not |un)checked|(?<!not )selected|(?:^|\\| )on\\b";
 const UNCHECKED = "not checked|unchecked|\\boff\\b|not selected";
 const INVALID = "invalid|error";
+const TABLE = "\\btable\\b";
+const COLUMN_HEADER = "column ?header|columnheader";
 /** Speech that says "Toggle Sidebar" twice, as a name and again as the description. */
 const NAME_TWICE = "(toggle sidebar).*\\1";
 
@@ -392,6 +394,32 @@ export const flows: Flow[] = [
 			{ key: "Tab", expect: ["switch to (dark|light) theme"] },
 			// The status says the theme the press applied.
 			{ key: "Enter", expect: ["(?<!to )(dark|light) theme"] },
+		],
+	},
+	// The grid layout of Table and DataTable changes `display`, so these flows
+	// check that a reader still meets a table with column headers and cells.
+	{
+		id: "table-browse",
+		component: "Table",
+		path: "components/data-display/table/overview",
+		steps: [
+			{ next: true, expect: [TABLE] },
+			{ next: true },
+			{ next: true },
+			{ next: true },
+			{ next: true, expect: [COLUMN_HEADER] },
+		],
+	},
+	{
+		id: "data-table-browse",
+		component: "DataTable",
+		path: "components/data-display/data-table/action-column-with-a-dropdown-menu",
+		steps: [
+			{ next: true, expect: [TABLE] },
+			{ next: true },
+			{ next: true },
+			{ next: true, expect: [COLUMN_HEADER] },
+			{ next: true },
 		],
 	},
 	{

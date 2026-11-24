@@ -498,7 +498,7 @@ describe("DataTable.ActionCell", () => {
 		render(<ActionCellHarness />);
 		// `sandboxedOnClickProps` also returns `role="presentation"`; the cell must
 		// take only the handler, or it drops out of the table.
-		expect(screen.getByRole("cell", { name: "Open actions" })).not.toHaveAttribute("role");
+		expect(screen.getByRole("cell", { name: "Open actions" })).toHaveAttribute("role", "cell");
 	});
 
 	test('wraps children in a span carrying data-slot="data-table-action-cell-label"', () => {

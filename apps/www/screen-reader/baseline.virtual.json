@@ -1142,6 +1142,70 @@
       ]
     },
     {
+      "id": "table-browse",
+      "component": "Table",
+      "path": "components/data-display/table/overview",
+      "steps": [
+        {
+          "label": "reader next",
+          "spoken": ["table, A list of your recent invoices."],
+          "failed": []
+        },
+        {
+          "label": "reader next",
+          "spoken": ["caption, A list of your recent invoices."],
+          "failed": []
+        },
+        {
+          "label": "reader next",
+          "spoken": ["rowgroup"],
+          "failed": []
+        },
+        {
+          "label": "reader next",
+          "spoken": ["row, Invoice Status Method Amount"],
+          "failed": []
+        },
+        {
+          "label": "reader next",
+          "spoken": ["columnheader, Invoice"],
+          "failed": []
+        }
+      ]
+    },
+    {
+      "id": "data-table-browse",
+      "component": "DataTable",
+      "path": "components/data-display/data-table/action-column-with-a-dropdown-menu",
+      "steps": [
+        {
+          "label": "reader next",
+          "spoken": ["table"],
+          "failed": []
+        },
+        {
+          "label": "reader next",
+          "spoken": ["rowgroup"],
+          "failed": []
+        },
+        {
+          "label": "reader next",
+          "spoken": ["row, Region URL Type Binding Created Updated Actions"],
+          "failed": []
+        },
+        {
+          "label": "reader next",
+          "spoken": ["columnheader, Region, sorted in ascending order"],
+          "failed": []
+        },
+        {
+          "label": "reader next",
+          "spoken": ["button, Region, not disabled"],
+          "failed": []
+        }
+      ]
+    },
+    {
       "id": "sidebar",
       "component": "Sidebar",
       "path": "sidebar-persistence",
