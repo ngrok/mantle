@@ -70,6 +70,11 @@ describe("closeMarkdown", () => {
 		["Press <kbd>Ctrl</kb", "Press <kbd>Ctrl</kbd>"],
 		["**<kbd>Ct", "**<kbd>Ct</kbd>**"],
 		["<span>x", "<span>x"],
+		["   ```text\n    ```\nprint([1", "   ```text\n    ```\nprint([1"],
+		["```markdown\n> ```\nprint([1", "```markdown\n> ```\nprint([1"],
+		["> ```\n> a\noutside [b", "> ```\n> a\noutside b"],
+		["**bold\n", "**bold**\n"],
+		["- [x", ""],
 	])("%j → %j", (text, expected) => {
 		expect(close(text)).toBe(expected);
 	});
@@ -93,6 +98,7 @@ describe("closeMarkdown", () => {
 	test("closes a `$$` block only with math", () => {
 		expect(closeMarkdown("$$\nx^2", { math: true })).toBe("$$\nx^2\n$$");
 		expect(closeMarkdown("$$\nx^2", { math: false })).toBe("$$\nx^2");
+		expect(closeMarkdown("> $$\n> x^2", { math: true })).toBe("> $$\n> x^2\n> $$");
 	});
 
 	test("no prefix of an answer shows a marker or a block that the whole answer does not", () => {
