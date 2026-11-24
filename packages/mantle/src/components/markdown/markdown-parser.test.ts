@@ -118,6 +118,11 @@ describe("createMarkdownParser", () => {
 		expect(done.blocks.map((token) => token.type)).toEqual(["heading", "paragraph"]);
 	});
 
+	test("parses a long run of open emphasis while it streams", () => {
+		const snapshot = createMarkdownParser().parse(`a ${"*".repeat(8192)}b`, { streaming: true });
+		expect(snapshot.blocks.map((token) => token.type)).toEqual(["paragraph"]);
+	});
+
 	test("keeps the links object while the definitions stay the same", () => {
 		const parser = createMarkdownParser();
 		const first = parser.parse("[a]: https://ngrok.com\n\nSome", { streaming: true });

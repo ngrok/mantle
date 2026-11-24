@@ -24,6 +24,7 @@ import { defaultShowLineNumbers } from "../code-block/mantle-code.js";
 import { parseLanguage } from "../code-block/supported-languages.js";
 import { useCodeBlockStream } from "../code-block/use-code-block-stream.js";
 import * as Table from "../table/table-parts.js";
+import { INLINE_TAGS } from "./close-markdown.js";
 import { decodeEntities } from "./decode-entities.js";
 import type { MarkdownMathToken } from "./markdown-math.js";
 import {
@@ -76,28 +77,6 @@ type MarkdownComponents = {
 	extension?: (props: MarkdownComponentProps<Tokens.Generic>) => ReactNode;
 };
 
-/**
- * The inline HTML tags that an answer may use, from GitHub's sanitize schema.
- * Each other tag shows as text, so a placeholder such as `<your-domain>` stays
- * in a command.
- */
-const INLINE_TAGS = new Set([
-	"b",
-	"del",
-	"em",
-	"i",
-	"ins",
-	"kbd",
-	"q",
-	"s",
-	"samp",
-	"strike",
-	"strong",
-	"sub",
-	"sup",
-	"tt",
-	"var",
-]);
 const OPEN_TAG = /^<([a-z]+)\s*>$/i;
 const CLOSE_TAG = /^<\/([a-z]+)\s*>$/i;
 const BREAK_TAG = /^<br\s*\/?>$/i;

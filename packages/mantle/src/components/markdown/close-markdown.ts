@@ -90,8 +90,60 @@ function indentAfterQuotes(line: string): number {
 	}
 }
 
-/** A list marker with 5 or more spaces and then content: indented code in the item. */
-const LIST_ITEM_CODE = /^([-*+]|\d{1,9}[.)]) {5,}\S/;
+/**
+ * The inline HTML tags that an answer may use, from GitHub's sanitize schema.
+ * Each other tag shows as text, so a placeholder such as `<your-domain>` stays
+ * in a command.
+ */
+const INLINE_TAGS = new Set([
+	"b",
+	"del",
+	"em",
+	"i",
+	"ins",
+	"kbd",
+	"q",
+	"s",
+	"samp",
+	"strike",
+	"strong",
+	"sub",
+	"sup",
+	"tt",
+	"var",
+]);
+/** An opening or closing tag, with its slash and name. */
+const TAG = /^<(\/?)([a-z][a-z0-9]*)(?:\s[^>]*)?>$/i;
+const MARKER = /^(?:[-*+]|\d{1,9}[.)])/;
+
+/**
+ * The content column of the list item whose marker line starts indented
+ * code, or -1. Why: 5 or more columns of space after a marker start code at
+ * 1 column past the marker. `column` is where `content` starts.
+ */
+function itemCodeColumn(content: string, column: number): number {
+	let index = 0;
+	let at = column;
+	for (;;) {
+		const marker = MARKER.exec(content.slice(index))?.[0];
+		if (marker == null) {
+			return -1;
+		}
+		index += marker.length;
+		at += marker.length;
+		const markerEnd = at;
+		while (content[index] === " " || content[index] === "\t") {
+			at += content[index] === "\t" ? 4 - (at % 4) : 1;
+			index += 1;
+		}
+		if (index === content.length || at === markerEnd) {
+			return -1;
+		}
+		if (at - markerEnd >= 5) {
+			return markerEnd + 1;
+		}
+	}
+}
 /** A list marker and the spaces after it. */
 const LIST_MARKER_WIDTH = /^(?:[-*+]|\d{1,9}[.)])[ \t]*/;
 
@@ -111,7 +163,7 @@ function lineContent(line: string): string {
 
 /** Finds the open fence or `$$` block at the end, and where the last paragraph starts. */
 function scanBlocks(text: string, { math }: { math: boolean }): BlockScan {
-	let fence: { char: string; length: number } | undefined;
+	let fence: { char: string; length: number; column: number } | undefined;
 	let inMath = false;
 	let inIndentedCode = false;
 	// Why: indented code cannot start inside a paragraph, and in a list it starts 4 columns past the item's content.
@@ -134,7 +186,9 @@ function scanBlocks(text: string, { math }: { math: boolean }): BlockScan {
 
 		if (fence != null) {
 			const close = FENCE.exec(content);
+			// Why the column: a fence-like line indented 4 or more past the opener is code.
 			if (
+				indentAfterQuotes(text.slice(lineStart, lineEnd)) < fence.column + 4 &&
 				close?.[1]?.[0] === fence.char &&
 				close[1].length >= fence.length &&
 				close[2]?.trim() === ""
@@ -156,22 +210,27 @@ function scanBlocks(text: string, { math }: { math: boolean }): BlockScan {
 			inIndentedCode = false;
 			const indent = indentAfterQuotes(text.slice(lineStart, lineEnd));
 			// Why without the list markers: a fence can start on the line of its item's marker.
-			const open = FENCE.exec(content.replace(LIST_MARKERS, ""));
+			const afterMarkers = content.replace(LIST_MARKERS, "");
+			const open = FENCE.exec(afterMarkers);
 			const marker = open?.[1];
-			const itemCode = LIST_ITEM_CODE.exec(content);
+			const itemColumn = itemCodeColumn(content, indent);
 			if (content.trim() !== "" && indent >= (inList ? listColumn : 0) + 4 && !inParagraph) {
 				inIndentedCode = true;
 				codeColumn = (inList ? listColumn : 0) + 4;
 				regionStart = nextStart;
-			} else if (itemCode?.[1] != null) {
+			} else if (itemColumn !== -1 && !THEMATIC_BREAK.test(content)) {
 				// Indented code that starts on its item's marker line.
 				inList = true;
-				listColumn = indent + itemCode[1].length + 1;
+				listColumn = itemColumn;
 				inIndentedCode = true;
 				codeColumn = listColumn + 4;
 				regionStart = nextStart;
 			} else if (marker != null && !(marker.startsWith("`") && open?.[2]?.includes("`"))) {
-				fence = { char: marker.slice(0, 1), length: marker.length };
+				fence = {
+					char: marker.slice(0, 1),
+					length: marker.length,
+					column: indent + content.length - afterMarkers.length,
+				};
 			} else if (math && content.startsWith("$$") && !content.slice(2).includes("$$")) {
 				inMath = true;
 			} else if (content.trim() === "") {
@@ -277,8 +336,10 @@ function closeLastLines(
 	if (content.startsWith("|") && DELIMITER_ROW.test(content)) {
 		if (isTableHeader(text, previousLineStart, previous)) {
 			const row = delimiterRow(content, cellCount(previous));
+			// Why the prefix: a row in a quote keeps its `>` markers.
 			return {
-				text: text.slice(0, lastLineStart) + row,
+				text:
+					text.slice(0, lastLineStart) + lastLine.slice(0, lastLine.length - content.length) + row,
 				regionStart: Math.min(regionStart, lastLineStart),
 			};
 		}
@@ -382,6 +443,8 @@ function closeInline(region: string): string {
 	// The open runs of each marker. Why apart: a closer finds the nearest run of its own marker in one step.
 	const openers: Record<number, Opener[]> = { [STAR]: [], [UNDERSCORE]: [], [TILDE]: [] };
 	const brackets: Bracket[] = [];
+	// The inline tags still open. Why: an open `<kbd>` shows as text until its closer arrives.
+	const tags: { name: string; index: number }[] = [];
 	let end = region.length;
 	let suffix = "";
 	let index = 0;
@@ -423,6 +486,15 @@ function closeInline(region: string): string {
 				nextNewline = region.indexOf("\n", index);
 			}
 			if (nextClose !== -1 && (nextNewline === -1 || nextClose < nextNewline)) {
+				const tag = TAG.exec(region.slice(index, nextClose + 1));
+				const name = tag?.[2]?.toLowerCase();
+				if (name != null && INLINE_TAGS.has(name)) {
+					if (tag?.[1] === "") {
+						tags.push({ name, index });
+					} else if (tags.at(-1)?.name === name) {
+						tags.pop();
+					}
+				}
 				index = nextClose + 1;
 				continue;
 			}
@@ -507,8 +579,12 @@ function closeInline(region: string): string {
 				code === UNDERSCORE ? left && (!right || isPunctuation(before)) : left && !intraword;
 			const canClose = code === UNDERSCORE ? right && (!left || isPunctuation(after)) : right;
 
-			const opener = canClose ? openers[code]?.at(-1) : undefined;
-			if (opener != null) {
+			// Why a loop: one run such as `***` can close `*` and then `**`.
+			for (
+				let opener = canClose ? openers[code]?.at(-1) : undefined;
+				opener != null && count > 0;
+				opener = openers[code]?.at(-1)
+			) {
 				const used = Math.min(opener.count, count);
 				opener.count -= used;
 				count -= used;
@@ -563,13 +639,18 @@ function closeInline(region: string): string {
 		...(openers[UNDERSCORE] ?? []),
 		...(openers[TILDE] ?? []),
 	];
-	// Why no closers past 32 open runs: marked nests each pair once more, which overflows its stack or takes
-	// seconds. No answer holds that many.
-	for (const opener of open.length > 32 ? [] : open.toSorted((a, b) => b.index - a.index)) {
-		if (opener.index >= trimmed.length) {
+	// Why no closers past 32 open delimiters: marked nests each pair once more, which overflows its stack or
+	// takes seconds. No answer holds that many.
+	const depth = open.reduce((sum, opener) => sum + opener.count, 0);
+	const pending = [...(depth > 32 ? [] : open), ...tags].toSorted((a, b) => b.index - a.index);
+	for (const item of pending) {
+		if (item.index >= trimmed.length) {
 			continue;
 		}
-		closers += String.fromCharCode(opener.char).repeat(opener.char === TILDE ? 2 : opener.count);
+		closers +=
+			"name" in item
+				? `</${item.name}>`
+				: String.fromCharCode(item.char).repeat(item.char === TILDE ? 2 : item.count);
 	}
 	return trimmed + suffix + closers + (suffix === "" ? body.slice(trimmed.length) : "");
 }
@@ -577,4 +658,5 @@ function closeInline(region: string): string {
 export {
 	//,
 	closeMarkdown,
+	INLINE_TAGS,
 };
