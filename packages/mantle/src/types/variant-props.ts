@@ -1,11 +1,15 @@
-import type { VariantProps as CVAVariantProps } from "class-variance-authority";
 import type { DeepNonNullable } from "./deep-non-nullable.js";
 
 /**
- * Variant props that are optional and cannot be `null`.
+ * The variant props of a function that returns a className from them, such as a `cva` function:
+ * optional, never `null`, and without `class` or `className`.
  *
- * Using VariantProps directly from CVA produces that can be `null`, which is not what we want.
+ * @example
+ * ```ts
+ * const badgeClasses = ({ tone }: { tone?: "info" | "danger" }) => (tone === "danger" ? "text-danger-600" : "");
+ * type BadgeVariants = VariantProps<typeof badgeClasses>; // { tone?: "info" | "danger" }
+ * ```
  */
-export type VariantProps<
-	Variants extends (props: Record<PropertyKey, unknown> | undefined) => string,
-> = Partial<DeepNonNullable<CVAVariantProps<Variants>>>;
+export type VariantProps<Variants extends (props: never) => string> = Partial<
+	DeepNonNullable<Omit<NonNullable<Parameters<Variants>[0]>, "class" | "className">>
+>;
