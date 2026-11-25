@@ -1112,6 +1112,37 @@ describe("Select", () => {
 			expect(trigger).toHaveTextContent("Banana");
 		});
 
+		// Red if a Ctrl-click on another link item reports its label: the selection stays, so the
+		// trigger of an item that a wrapper component renders goes blank.
+		test("a Ctrl-click on another link item keeps the trigger's label for the selected item", async () => {
+			const user = userEvent.setup();
+			const Page = ({ value, children }: { value: string; children: ReactNode }) => (
+				<Select.Item value={value} asChild>
+					<a href={`#${value}`}>{children}</a>
+				</Select.Item>
+			);
+			render(
+				<Select.Root defaultValue="docs">
+					<Select.Trigger>
+						<Select.Value placeholder="Pick a page" />
+					</Select.Trigger>
+					<Select.Content>
+						<Page value="docs">Docs</Page>
+						<Page value="blog">Blog</Page>
+					</Select.Content>
+				</Select.Root>,
+			);
+			const trigger = screen.getByRole("combobox");
+			await user.click(trigger);
+
+			expect(
+				fireEvent.click(await screen.findByRole("option", { name: "Blog" }), { ctrlKey: true }),
+			).toBe(true);
+			await user.keyboard("{Escape}");
+
+			expect(trigger).toHaveTextContent("Docs");
+		});
+
 		test("the trigger names the highlighted option while open, even after a Content that mounts first, and keeps no consumer value", async () => {
 			const user = userEvent.setup();
 			render(

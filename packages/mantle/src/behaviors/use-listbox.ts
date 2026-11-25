@@ -366,6 +366,20 @@ const childId = ({
  * return <div {...optionProps}>Apple</div>;
  * ```
  */
+/**
+ * Whether a click on an option opens its link in another tab or window: the
+ * option is a link, and the click has a modifier or a non-primary button. Such
+ * a click must not pick, so this page keeps its value.
+ *
+ * @example
+ * ```ts
+ * opensElsewhere(event); // => true for a Ctrl-click on `<a href>`
+ * ```
+ */
+const opensElsewhere = (event: MouseEvent<HTMLElement>) =>
+	event.currentTarget.matches("a[href]") &&
+	(event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey);
+
 const useOption = (
 	listbox: Listbox,
 	{
@@ -400,11 +414,7 @@ const useOption = (
 				}
 			},
 			onClick: (event: MouseEvent<HTMLElement>) => {
-				// Why: a modified click on a link opens it in another tab or window, so this page keeps its pick.
-				const opensElsewhere =
-					event.currentTarget.matches("a[href]") &&
-					(event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey);
-				if (!disabled && !opensElsewhere) {
+				if (!disabled && !opensElsewhere(event)) {
 					listbox.select(value);
 				}
 			},
@@ -415,6 +425,7 @@ const useOption = (
 export {
 	//,
 	childId,
+	opensElsewhere,
 	findTarget,
 	getOptions,
 	scrollIntoList,

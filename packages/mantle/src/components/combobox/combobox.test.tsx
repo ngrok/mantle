@@ -299,7 +299,12 @@ describe("Combobox", () => {
 				const input = screen.getByRole("combobox", { name: "Page" });
 				await user.type(input, "do");
 
-				fireEvent.click(await screen.findByRole("option", { name: "Docs" }), { [modifier]: true });
+				// Why the return value: a prevented click would also stop the link from opening elsewhere.
+				expect(
+					fireEvent.click(await screen.findByRole("option", { name: "Docs" }), {
+						[modifier]: true,
+					}),
+				).toBe(true);
 
 				expect(onValueChange).not.toHaveBeenCalled();
 				expect(input).toHaveValue("do");
