@@ -2483,8 +2483,8 @@ away in every presentation: a floating panel slides, and a panel in the lane shr
 animation does. A floating panel is also an overlay: `Escape` closes it while focus is inside. A panel in
 the lane is a docked pane and ignores `Escape`. A covering panel is modal: the row's other children go
 `inert` while it is open, and [`useFocusTrap`](/hooks#usefocustrap) wraps `Tab` inside it and moves focus
-into it on open. A panel open on mount stays modal but takes no focus until focus enters it or the reader
-opens it again. The one `<aside>` stays mounted across the lane, the float, and the cover.
+into it on open. A panel open on mount stays modal but takes no focus until focus enters it, a resize
+covers the card while it holds focus, or the reader opens it again. The one `<aside>` stays mounted across the lane, the float, and the cover.
 
 It does not take `asChild`: the panel is a fixed two-element structure (the clip box and the inner column),
 so no single element could be swapped.

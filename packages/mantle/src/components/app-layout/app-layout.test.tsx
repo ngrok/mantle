@@ -1158,9 +1158,13 @@ describe("AppLayout.SidePanel as an overlay", () => {
 		expect(popup).toHaveFocus();
 	});
 
-	test("a panel open on mount that starts covering moves focus in from the card", () => {
+	test("a panel open on mount that starts covering moves focus in from the card", async () => {
 		const media = mockMatchMedia({ [coverQuery]: false });
 		render(coveringShell());
+		// Why wait: the first client snapshot after hydration is no resize.
+		await waitFor(() => {
+			expect(screen.getByTestId("panel")).toHaveAttribute("data-hydrated");
+		});
 		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
 		trigger.focus();
 		act(() => {
@@ -1168,6 +1172,65 @@ describe("AppLayout.SidePanel as an overlay", () => {
 		});
 		expect(screen.getByTestId("card")).toHaveAttribute("inert");
 		expect(screen.getByRole("button", { name: "Close the assistant" })).toHaveFocus();
+	});
+
+	/** Server-render the covering shell, focus one of its buttons, then hydrate it. */
+	function hydrateWithFocusOn(name: string) {
+		const container = document.createElement("div");
+		document.body.append(container);
+		container.innerHTML = renderToString(coveringShell());
+		const button = Array.from(container.querySelectorAll("button")).find(
+			(candidate) =>
+				candidate.textContent === name || candidate.getAttribute("aria-label") === name,
+		);
+		button?.focus();
+		render(coveringShell(), { container, hydrate: true });
+		return button;
+	}
+
+	test("hydration at a phone width keeps focus on the card control the reader chose", async () => {
+		mockMatchMedia({ [coverQuery]: true });
+		const toggle = hydrateWithFocusOn("Toggle the assistant");
+		await waitFor(() => {
+			expect(screen.getByTestId("panel")).toHaveAttribute("data-hydrated");
+		});
+		expect(screen.getByTestId("card")).toHaveAttribute("inert");
+		expect(toggle).toHaveFocus();
+	});
+
+	test("focus inside a covering panel before hydration arms the trap", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [coverQuery]: true });
+		const send = hydrateWithFocusOn("send");
+		expect(send).toHaveFocus();
+		await user.tab();
+		expect(screen.getByRole("button", { name: "Close the assistant" })).toHaveFocus();
+	});
+
+	test("a covering panel that mounts when the reader opens it moves focus inside", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [coverQuery]: true });
+		function LazyPanel() {
+			const [open, setOpen] = useState(false);
+			return (
+				<AppLayout.SidePanelRoot open={open} onOpenChange={setOpen}>
+					<button type="button" onClick={() => setOpen(true)}>
+						open
+					</button>
+					<AppLayout.Workspace>
+						<AppLayout.Content data-testid="card" />
+						{open && (
+							<AppLayout.SidePanel aria-label="Assistant">
+								<button type="button">close</button>
+							</AppLayout.SidePanel>
+						)}
+					</AppLayout.Workspace>
+				</AppLayout.SidePanelRoot>
+			);
+		}
+		render(<LazyPanel />);
+		await user.click(screen.getByRole("button", { name: "open" }));
+		expect(screen.getByRole("button", { name: "close" })).toHaveFocus();
 	});
 
 	test("a covering panel the reader opens moves focus inside", async () => {
