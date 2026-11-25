@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { type ChatAnswer, type ChatEvent, type Respond, applyChatEvent, useChat } from "./chat";
 
 /** A stream that waits until its request aborts, so each answer stays in flight. */
@@ -118,7 +118,7 @@ test("an answer streams its events and ends as done", async () => {
 	const stream = controlledStream();
 	const { result } = renderHook(() => useChat({ respond: stream.respond }));
 
-	act(() => result.current.send({ text: "hi", files: [], model: "m" }));
+	act(() => result.current.send({ text: "hi", files: [], model: "m", effort: "Medium" }));
 	await stream.push({ type: "text", text: "Hel" });
 	await stream.push({ type: "text", text: "lo" });
 	expect(result.current.streaming).toBe(true);
@@ -133,7 +133,7 @@ test("a stream that throws ends as failed, keeps its text, and interrupts a runn
 	const stream = controlledStream();
 	const { result } = renderHook(() => useChat({ respond: stream.respond }));
 
-	act(() => result.current.send({ text: "hi", files: [], model: "m" }));
+	act(() => result.current.send({ text: "hi", files: [], model: "m", effort: "Medium" }));
 	await stream.push({ type: "text", text: "Partial" });
 	await stream.push({ type: "tool-start", id: "1", name: "lookup", args: {} });
 	await stream.fail();
@@ -151,7 +151,7 @@ test("stop keeps the text so far and ignores events that arrive later", async ()
 	const stream = controlledStream();
 	const { result } = renderHook(() => useChat({ respond: stream.respond }));
 
-	act(() => result.current.send({ text: "hi", files: [], model: "m" }));
+	act(() => result.current.send({ text: "hi", files: [], model: "m", effort: "Medium" }));
 	await stream.push({ type: "text", text: "Before" });
 	await stream.push({ type: "tool-start", id: "1", name: "lookup", args: {} });
 	act(() => result.current.stop());
@@ -169,11 +169,11 @@ test("retry replaces the last answer and keeps the question", async () => {
 	const stream = controlledStream();
 	const { result } = renderHook(() => useChat({ respond: stream.respond }));
 
-	act(() => result.current.send({ text: "hi", files: [], model: "m" }));
+	act(() => result.current.send({ text: "hi", files: [], model: "m", effort: "Medium" }));
 	await stream.push({ type: "text", text: "Wrong" });
 	await stream.fail();
 	await waitFor(() => expect(result.current.streaming).toBe(false));
-	act(() => result.current.retry("m"));
+	act(() => result.current.retry({ model: "m", effort: "Medium" }));
 	await stream.push({ type: "text", text: "Right" });
 	await stream.end();
 
@@ -186,12 +186,25 @@ test("retry replaces the last answer and keeps the question", async () => {
 	);
 });
 
+test("send and retry hand the picked model and effort to respond", () => {
+	const spy = vi.fn<Respond>(respond);
+	const { result } = renderHook(() => useChat({ respond: spy }));
+
+	act(() => result.current.send({ text: "hi", files: [], model: "m", effort: "High" }));
+	act(() => result.current.retry({ model: "n", effort: "Low" }));
+
+	expect(spy.mock.calls.map(([request]) => [request.model, request.effort])).toEqual([
+		["m", "High"],
+		["n", "Low"],
+	]);
+});
+
 test("two sends before a render keep both turns, and the first answer ends as stopped", () => {
 	const { result } = renderHook(() => useChat({ respond }));
 
 	act(() => {
-		result.current.send({ text: "first", files: [], model: "m" });
-		result.current.send({ text: "second", files: [], model: "m" });
+		result.current.send({ text: "first", files: [], model: "m", effort: "Medium" });
+		result.current.send({ text: "second", files: [], model: "m", effort: "Medium" });
 	});
 
 	expect(

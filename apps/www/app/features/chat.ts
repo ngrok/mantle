@@ -42,8 +42,12 @@ export type ChatMessage = ChatUserMessage | ChatAnswer;
 export type Respond = (request: {
 	messages: ChatMessage[];
 	model: string;
+	effort: string;
 	signal: AbortSignal;
 }) => AsyncIterable<ChatEvent>;
+
+/** The model and the effort a person picks for the next answer. */
+export type ChatModelChoice = { model: string; effort: string };
 
 /**
  * Applies one event to the answer it belongs to. Pure, so a test can drive an
@@ -158,7 +162,7 @@ export function useChat({ respond }: { respond: Respond }) {
 		}
 	}
 
-	async function stream(history: ChatMessage[], model: string) {
+	async function stream(history: ChatMessage[], choice: ChatModelChoice) {
 		abortRef.current?.abort();
 		const controller = new AbortController();
 		abortRef.current = controller;
@@ -168,7 +172,12 @@ export function useChat({ respond }: { respond: Respond }) {
 		let status: ChatAnswer["status"] = "done";
 		try {
 			await readAnswer(
-				respond({ messages: history, model, signal: controller.signal }),
+				respond({
+					messages: history,
+					model: choice.model,
+					effort: choice.effort,
+					signal: controller.signal,
+				}),
 				(event) => updateAnswer((answer) => applyChatEvent(answer, event, Date.now() - startedAt)),
 				controller.signal,
 			);
@@ -191,7 +200,7 @@ export function useChat({ respond }: { respond: Respond }) {
 		/** True while an answer streams. Hand it to `Conversation.Root` and `PromptInput.Root`. */
 		streaming,
 		/** Sends a message and streams its answer. */
-		send: ({ text, files, model }: { text: string; files: ChatFile[]; model: string }) => {
+		send: ({ text, files, ...choice }: { text: string; files: ChatFile[] } & ChatModelChoice) => {
 			const message: ChatUserMessage = { id: crypto.randomUUID(), from: "user", text, files };
 			const current = messagesRef.current;
 			const previous = current.at(-1);
@@ -200,7 +209,7 @@ export function useChat({ respond }: { respond: Respond }) {
 				previous?.from === "assistant" && previous.status === "streaming"
 					? [...current.slice(0, -1), endAnswer(previous, "stopped")]
 					: current;
-			void stream([...history, message], model);
+			void stream([...history, message], choice);
 		},
 		/** Stops the answer and keeps its text so far. */
 		stop: () => {
@@ -211,11 +220,11 @@ export function useChat({ respond }: { respond: Respond }) {
 			);
 		},
 		/** Streams a new answer in place of the last one. */
-		retry: (model: string) => {
+		retry: (choice: ChatModelChoice) => {
 			const current = messagesRef.current;
 			const history = current.at(-1)?.from === "assistant" ? current.slice(0, -1) : current;
 			if (history.at(-1)?.from === "user") {
-				void stream(history, model);
+				void stream(history, choice);
 			}
 		},
 	};

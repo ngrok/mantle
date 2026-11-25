@@ -569,6 +569,7 @@ const Trigger = ({
 	asChild = false,
 	"data-slot": dataSlot,
 	disabled,
+	onClick,
 	onKeyDown,
 	onPointerDown,
 	ref,
@@ -576,6 +577,8 @@ const Trigger = ({
 }: ComponentProps<"button"> & WithAsChild & WithDataSlot) => {
 	const state = useRootState("Trigger");
 	const composedRef = useComposedRefs(ref, state.setTrigger);
+	/** Whether a press on the trigger came before the next click, so the press toggled the menu. */
+	const pressed = useRef(false);
 	const Component = asChild ? Slot : "button";
 	return (
 		<Component
@@ -590,6 +593,7 @@ const Trigger = ({
 			type="button"
 			{...props}
 			onPointerDown={(event: PointerEvent<HTMLButtonElement>) => {
+				pressed.current = true;
 				onPointerDown?.(event);
 				if (event.defaultPrevented || disabled || event.button !== 0 || event.ctrlKey) {
 					return;
@@ -600,6 +604,19 @@ const Trigger = ({
 				if (!state.open) {
 					event.preventDefault();
 				}
+			}}
+			onClick={(event: MouseEvent<HTMLButtonElement>) => {
+				onClick?.(event);
+				// Why only a click with no press: a screen reader, a click on a
+				// `<label>`, or `element.click()` sends one. A press on the trigger and
+				// Enter or Space already toggled the menu in their own handlers.
+				const afterPress = pressed.current;
+				pressed.current = false;
+				if (event.defaultPrevented || disabled || afterPress) {
+					return;
+				}
+				state.setOpenFocus("first");
+				state.setOpen(!state.open);
 			}}
 			onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => {
 				onKeyDown?.(event);
@@ -1414,9 +1431,10 @@ const SubTrigger = ({
 				onPointerUp,
 				onClick: (event) => {
 					onClick?.(event);
-					// Why: a touch or a screen reader opens the submenu with a click.
+					// Why: a touch or a screen reader opens the submenu with a click. A
+					// click with no press, as a screen reader sends, moves focus into it.
 					if (!event.defaultPrevented && !disabled && !sub.open) {
-						sub.setOpenFocus("menu");
+						sub.setOpenFocus(event.detail === 0 ? "first" : "menu");
 						sub.setOpen(true);
 					}
 				},
@@ -1587,6 +1605,7 @@ const SubContent = ({
 		getInsideElements: () => [sub.triggerRef.current],
 		dismissOnOutside: true,
 		dismissWhenCovered: true,
+		overlapAnchor: true,
 		side: opensLeft ? "left" : "right",
 		align,
 		sideOffset,

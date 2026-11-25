@@ -89,6 +89,8 @@ function alignOnAxis({
  * when the preferred side does not fit and the opposite side does, or when
  * neither fits and the opposite side has more room.
  * It shifts along the side to stay `VIEWPORT_PADDING` inside the viewport.
+ * With `overlapAnchor`, beside an anchor on screen, when neither side fits, it
+ * also moves over the anchor to stay inside the viewport.
  *
  * @example
  * ```ts
@@ -105,6 +107,7 @@ function alignOnAxis({
 function computePlacement({
 	align,
 	anchor,
+	overlapAnchor = false,
 	side,
 	sideOffset,
 	size,
@@ -112,6 +115,8 @@ function computePlacement({
 }: {
 	align: Align;
 	anchor: Box;
+	/** Beside the anchor, whether the float may cover the anchor to stay on screen, as a submenu covers its menu. */
+	overlapAnchor?: boolean;
 	side: Side;
 	sideOffset: number;
 	size: { width: number; height: number };
@@ -136,9 +141,25 @@ function computePlacement({
 			y: placedSide === "top" ? anchor.top - sideOffset - size.height : anchor.bottom + sideOffset,
 		};
 	}
+	const besideX =
+		placedSide === "left" ? anchor.left - sideOffset - size.width : anchor.right + sideOffset;
 	return {
 		side: placedSide,
-		x: placedSide === "left" ? anchor.left - sideOffset - size.width : anchor.right + sideOffset,
+		// Why the clamp: on a narrow screen a submenu can have room on neither side
+		// of its menu. It covers part of the menu, not leave the screen, as a native
+		// menu does. Why only while the anchor shows: a float follows an anchor that
+		// scrolls away.
+		x:
+			overlapAnchor &&
+			anchor.right > 0 &&
+			anchor.left < viewport.width &&
+			anchor.bottom > 0 &&
+			anchor.top < viewport.height
+				? Math.max(
+						VIEWPORT_PADDING,
+						Math.min(besideX, viewport.width - VIEWPORT_PADDING - size.width),
+					)
+				: besideX,
 		y: alignOnAxis({
 			align,
 			start: anchor.top,
@@ -342,11 +363,14 @@ function trackFloat({
 	anchor,
 	dir,
 	floating,
+	overlapAnchor,
 	side,
 	sideOffset,
 }: {
 	align: Align;
 	anchor: HTMLElement;
+	/** Passed to `computePlacement`. */
+	overlapAnchor?: boolean;
 	/** The reading direction that `start` and `end` follow. Defaults to the anchor's direction. */
 	dir?: "ltr" | "rtl";
 	floating: HTMLElement;
@@ -423,6 +447,7 @@ function trackFloat({
 		let placed = computePlacement({
 			align,
 			anchor: anchorBox,
+			overlapAnchor,
 			side,
 			sideOffset: gap,
 			size: { width, height: contentHeight },

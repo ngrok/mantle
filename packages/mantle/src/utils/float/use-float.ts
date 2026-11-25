@@ -186,6 +186,8 @@ type UseFloatOptions = OutsideHandlers & {
 	onDismiss: (reason: DismissReason, outside?: PointerDownOutsideEvent | FocusOutsideEvent) => void;
 	/** The element the float sits next to. */
 	getAnchor: () => HTMLElement | null;
+	/** Beside the anchor, whether the float may cover the anchor to stay on screen, as a submenu covers its menu. */
+	overlapAnchor?: boolean;
 	/** Elements a press or a focus move may reach without closing the float, such as its trigger. */
 	getInsideElements?: () => readonly (Element | null)[];
 	/** Whether outside presses and focus moves close the float. */
@@ -238,6 +240,7 @@ function useFloat({
 	onPointerDownOutside,
 	onShow,
 	open,
+	overlapAnchor,
 	side,
 	sideOffset,
 }: UseFloatOptions): {
@@ -381,6 +384,7 @@ function useFloat({
 					anchor: target,
 					dir,
 					floating,
+					overlapAnchor,
 					side,
 					sideOffset,
 				});
@@ -544,6 +548,7 @@ function useFloat({
 			insideElementsOf,
 			interactOutside,
 			pointerDownOutside,
+			overlapAnchor,
 			side,
 			sideOffset,
 		],
