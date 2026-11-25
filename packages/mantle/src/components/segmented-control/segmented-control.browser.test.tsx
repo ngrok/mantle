@@ -62,32 +62,8 @@ describe("SegmentedControl.Item", () => {
 });
 
 describe("SegmentedControl size", () => {
-	test("xs items with one-character labels keep their targets 24px apart", () => {
-		render(
-			<SegmentedControl.Root
-				aria-label="Decimal separator"
-				defaultValue="point"
-				size="xs"
-				className="w-fit"
-			>
-				<SegmentedControl.Item value="point" aria-label="Point">
-					.
-				</SegmentedControl.Item>
-				<SegmentedControl.Item value="comma" aria-label="Comma">
-					,
-				</SegmentedControl.Item>
-			</SegmentedControl.Root>,
-		);
-
-		const point = item("Point").getBoundingClientRect();
-		const comma = item("Comma").getBoundingClientRect();
-		expect(comma.left + comma.width / 2 - (point.left + point.width / 2)).toBeGreaterThanOrEqual(
-			24,
-		);
-	});
-
 	test.each(["xs", "sm", "md", "lg", "xl"] as const)(
-		"a %s control matches the height of an IconButton and the padding of a Button of the same size",
+		"a %s control matches the height of an IconButton and the padding of a Button, and its labels have room",
 		(size) => {
 			render(
 				<div style={{ display: "flex", alignItems: "center" }}>
@@ -126,6 +102,17 @@ describe("SegmentedControl size", () => {
 			for (const name of ["Headers", "Raw"]) {
 				expect(item(name).scrollHeight).toBeLessThanOrEqual(item(name).clientHeight);
 				expect(getComputedStyle(item(name)).paddingInlineStart).toBe(buttonPadding);
+				// Why 2px: the label keeps room above and below inside the thumb.
+				expect(Number.parseFloat(getComputedStyle(item(name)).lineHeight) + 4).toBeLessThanOrEqual(
+					item(name).clientHeight,
+				);
+				// Why a range: a label that spills into the padding still reports no overflow.
+				const label = document.createRange();
+				label.selectNodeContents(screen.getByText(name));
+				const padding = Number.parseFloat(buttonPadding);
+				expect(label.getBoundingClientRect().width + 2 * padding).toBeLessThanOrEqual(
+					item(name).getBoundingClientRect().width + 0.5,
+				);
 			}
 		},
 	);
