@@ -32,8 +32,10 @@ const rootSizeClasses = {
 
 // Why: the same horizontal padding as a `Button` of the same size. Why `text-xs` at xs:
 // the thumb is 4px shorter than the track, so a 20px `text-sm` line fills it edge to edge.
+// Why a 1.5rem basis at xs: one-character targets stay 24px apart (WCAG 2.5.8), and
+// `min-width: auto` still keeps a long label at its full width.
 const itemSizeClasses = {
-	xs: "px-2 text-xs",
+	xs: "flex-[1_0_1.5rem] px-2 text-xs",
 	sm: "px-2.5",
 	md: "px-3",
 	lg: "px-3.5",

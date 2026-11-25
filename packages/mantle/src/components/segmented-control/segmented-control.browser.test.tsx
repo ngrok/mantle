@@ -62,13 +62,39 @@ describe("SegmentedControl.Item", () => {
 });
 
 describe("SegmentedControl size", () => {
+	test("xs items with one-character labels keep their targets 24px apart", () => {
+		render(
+			<SegmentedControl.Root
+				aria-label="Decimal separator"
+				defaultValue="point"
+				size="xs"
+				className="w-fit"
+			>
+				<SegmentedControl.Item value="point" aria-label="Point">
+					.
+				</SegmentedControl.Item>
+				<SegmentedControl.Item value="comma" aria-label="Comma">
+					,
+				</SegmentedControl.Item>
+			</SegmentedControl.Root>,
+		);
+
+		const point = item("Point").getBoundingClientRect();
+		const comma = item("Comma").getBoundingClientRect();
+		expect(comma.left + comma.width / 2 - (point.left + point.width / 2)).toBeGreaterThanOrEqual(
+			24,
+		);
+	});
+
 	test.each(["xs", "sm", "md", "lg", "xl"] as const)(
 		"a %s control matches the height of an IconButton and the padding of a Button, and its labels have room",
 		(size) => {
 			render(
 				<div style={{ display: "flex", alignItems: "center" }}>
 					<SegmentedControl.Root aria-label="View" defaultValue="headers" size={size}>
-						<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+						<SegmentedControl.Item value="headers">
+							<span>Headers</span>
+						</SegmentedControl.Item>
 						<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
 					</SegmentedControl.Root>
 					{/* Why icon segments: a text line can give the track its height with no height class. */}
@@ -99,13 +125,14 @@ describe("SegmentedControl size", () => {
 			const buttonPadding = getComputedStyle(
 				screen.getByRole("button", { name: "Save" }),
 			).paddingInlineStart;
+			// Why a span: it measures the line box, so the label keeps 2px above and below.
+			const line = screen.getByText("Headers").getBoundingClientRect();
+			const headers = item("Headers").getBoundingClientRect();
+			expect(line.top - headers.top).toBeGreaterThanOrEqual(2);
+			expect(headers.bottom - line.bottom).toBeGreaterThanOrEqual(2);
 			for (const name of ["Headers", "Raw"]) {
 				expect(item(name).scrollHeight).toBeLessThanOrEqual(item(name).clientHeight);
 				expect(getComputedStyle(item(name)).paddingInlineStart).toBe(buttonPadding);
-				// Why 2px: the label keeps room above and below inside the thumb.
-				expect(Number.parseFloat(getComputedStyle(item(name)).lineHeight) + 4).toBeLessThanOrEqual(
-					item(name).clientHeight,
-				);
 				// Why a range: a label that spills into the padding still reports no overflow.
 				const label = document.createRange();
 				label.selectNodeContents(screen.getByText(name));
