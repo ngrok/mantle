@@ -279,6 +279,43 @@ describe("Combobox", () => {
 			expect(input).toHaveValue("Apple");
 		});
 
+		// Red if a Ctrl- or ⌘-click on a link item picks it: the link opens in another tab, and this
+		// tab loses the query the user typed.
+		test.each([["ctrlKey"], ["metaKey"], ["shiftKey"], ["altKey"]] as const)(
+			"a %s-modified click on a link item opens it elsewhere and keeps this list",
+			async (modifier) => {
+				const user = userEvent.setup();
+				const onValueChange = vi.fn<(value: string) => void>();
+				render(
+					<Combobox.Root onValueChange={onValueChange}>
+						<Combobox.Input aria-label="Page" />
+						<Combobox.Content>
+							<Combobox.Item value="Docs" asChild>
+								<a href="#docs">Docs</a>
+							</Combobox.Item>
+						</Combobox.Content>
+					</Combobox.Root>,
+				);
+				const input = screen.getByRole("combobox", { name: "Page" });
+				await user.type(input, "do");
+
+				// Why the return value: a prevented click would also stop the link from opening elsewhere.
+				expect(
+					fireEvent.click(await screen.findByRole("option", { name: "Docs" }), {
+						[modifier]: true,
+					}),
+				).toBe(true);
+
+				expect(onValueChange).not.toHaveBeenCalled();
+				expect(input).toHaveValue("do");
+				expect(screen.getByRole("listbox")).toBeInTheDocument();
+
+				fireEvent.click(screen.getByRole("option", { name: "Docs" }));
+				expect(onValueChange).toHaveBeenCalledWith("Docs");
+				expect(input).toHaveValue("Docs");
+			},
+		);
+
 		test("renders as an option, and a click writes its value into the input", async () => {
 			const user = userEvent.setup();
 			render(

@@ -3,6 +3,7 @@
 import type {
 	ComponentProps,
 	FocusEvent,
+	MouseEvent,
 	PropsWithChildren,
 	ReactNode,
 	Ref,
@@ -12,7 +13,7 @@ import { createContext, isValidElement, use, useEffect, useId, useMemo } from "r
 import { createPortal } from "react-dom";
 import { composeHandlers, disabledItemGuard } from "../../behaviors/compose-handlers.js";
 import { useStoreValue } from "../../behaviors/store.js";
-import { childId, useOption } from "../../behaviors/use-listbox.js";
+import { childId, opensElsewhere, useOption } from "../../behaviors/use-listbox.js";
 import { usePopup } from "../../behaviors/use-popup.js";
 import { useSelect, useSelectTrigger } from "../../behaviors/use-select.js";
 import type { SelectBehavior } from "../../behaviors/use-select.js";
@@ -1049,10 +1050,13 @@ const Item = ({
 	const elementProps = {
 		...props,
 		...optionProps,
-		onClick: composeHandlers(onClick, () => {
-			// Why: a tap can pick an item that no pointer move highlighted.
-			reportLabel();
-			optionProps.onClick();
+		onClick: composeHandlers(onClick, (event: MouseEvent<HTMLElement>) => {
+			// Why: a tap can pick an item that no pointer move highlighted. A click
+			// that opens the link elsewhere picks nothing, so it reports nothing.
+			if (!opensElsewhere(event)) {
+				reportLabel();
+			}
+			optionProps.onClick(event);
 		}),
 		onPointerMove: composeHandlers(onPointerMove, optionProps.onPointerMove),
 		ref: composedRef,
