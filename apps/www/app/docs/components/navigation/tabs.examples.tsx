@@ -6,6 +6,7 @@ import { DoorOpenIcon } from "@phosphor-icons/react/DoorOpen";
 import { GlobeIcon } from "@phosphor-icons/react/Globe";
 import { GlobeHemisphereWestIcon } from "@phosphor-icons/react/GlobeHemisphereWest";
 import { StackIcon } from "@phosphor-icons/react/Stack";
+import { UserIcon } from "@phosphor-icons/react/User";
 import { Link, href } from "react-router";
 
 import { PreviewCanvas } from "~/components/preview-canvas";
@@ -53,21 +54,36 @@ export function AppearanceExample() {
 				<Field.Set className="w-auto items-center">
 					<Field.Legend className="w-full text-center">Appearance classic (default)</Field.Legend>
 					<Tabs.Root defaultValue="account">
-						<Tabs.List>
-							<Tabs.Trigger value="account">Account</Tabs.Trigger>
-							<Tabs.Trigger value="password">Password</Tabs.Trigger>
-							<Tabs.Trigger value="billing">Billing</Tabs.Trigger>
+						<Tabs.List aria-label="Settings, appearance classic">
+							<Tabs.Trigger value="account">
+								<Icon svg={<UserIcon />} />
+								Account
+							</Tabs.Trigger>
+							<Tabs.Trigger value="members">
+								Members
+								<Tabs.Badge>8</Tabs.Badge>
+							</Tabs.Trigger>
+							<Tabs.Trigger disabled value="billing">
+								Billing
+							</Tabs.Trigger>
 						</Tabs.List>
-						<Tabs.Separator />
 					</Tabs.Root>
 				</Field.Set>
 				<Field.Set className="w-auto items-center">
 					<Field.Legend className="w-full text-center">Appearance pill</Field.Legend>
 					<Tabs.Root appearance="pill" defaultValue="account">
-						<Tabs.List>
-							<Tabs.Trigger value="account">Account</Tabs.Trigger>
-							<Tabs.Trigger value="password">Password</Tabs.Trigger>
-							<Tabs.Trigger value="billing">Billing</Tabs.Trigger>
+						<Tabs.List aria-label="Settings, appearance pill">
+							<Tabs.Trigger value="account">
+								<Icon svg={<UserIcon />} />
+								Account
+							</Tabs.Trigger>
+							<Tabs.Trigger value="members">
+								Members
+								<Tabs.Badge>8</Tabs.Badge>
+							</Tabs.Trigger>
+							<Tabs.Trigger disabled value="billing">
+								Billing
+							</Tabs.Trigger>
 						</Tabs.List>
 					</Tabs.Root>
 				</Field.Set>
@@ -175,7 +191,7 @@ export function SeparatorExample() {
 				<Field.Set className="w-auto items-center">
 					<Field.Legend className="w-full text-center">With Tabs.Separator</Field.Legend>
 					<Tabs.Root defaultValue="tab-1">
-						<Tabs.List>
+						<Tabs.List aria-label="Sections, with separator">
 							<Tabs.Trigger value="tab-1">Tab title</Tabs.Trigger>
 							<Tabs.Trigger value="tab-2">Tab title</Tabs.Trigger>
 							<Tabs.Trigger value="tab-3">Tab title</Tabs.Trigger>
@@ -186,7 +202,7 @@ export function SeparatorExample() {
 				<Field.Set className="w-auto items-center">
 					<Field.Legend className="w-full text-center">Without Tabs.Separator</Field.Legend>
 					<Tabs.Root defaultValue="tab-1">
-						<Tabs.List>
+						<Tabs.List aria-label="Sections, without separator">
 							<Tabs.Trigger value="tab-1">Tab title</Tabs.Trigger>
 							<Tabs.Trigger value="tab-2">Tab title</Tabs.Trigger>
 							<Tabs.Trigger value="tab-3">Tab title</Tabs.Trigger>
@@ -202,7 +218,7 @@ export function SeparatorExample() {
 export function HorizontalOverflowExample() {
 	return (
 		<PreviewCanvas>
-			<Tabs.Root defaultValue="getting-started" className="w-full">
+			<Tabs.Root defaultValue="getting-started" className="w-full max-w-2xl">
 				<Tabs.List>
 					<Tabs.Trigger value="getting-started">Getting started</Tabs.Trigger>
 					<Tabs.Trigger value="traffic-policy">Traffic Policy</Tabs.Trigger>
@@ -262,7 +278,7 @@ export function PolymorphismExample() {
 							Shadows
 						</Link>
 					</Tabs.Trigger>
-					<Tabs.Trigger value="typography" asChild>
+					<Tabs.Trigger value="typography" disabled asChild>
 						<Link to={href("/base/typography")} target="_top">
 							Typography
 						</Link>

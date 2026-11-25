@@ -27,7 +27,7 @@ import { Tabs } from "@ngrok/mantle/tabs";
 			<Card.Header>
 				<Card.Title>Account</Card.Title>
 				<p className="text-muted">
-					Make changes to your account here. Click save when you&apos;re done.
+					Make changes to your account here. Click save when you're done.
 				</p>
 			</Card.Header>
 		</Card.Root>
@@ -36,9 +36,7 @@ import { Tabs } from "@ngrok/mantle/tabs";
 		<Card.Root>
 			<Card.Header>
 				<Card.Title>Password</Card.Title>
-				<p className="text-muted">
-					Change your password here. After saving, you&apos;ll be logged out.
-				</p>
+				<p className="text-muted">Change your password here. After saving, you'll be logged out.</p>
 			</Card.Header>
 		</Card.Root>
 	</Tabs.Content>
@@ -57,33 +55,50 @@ import { Tabs } from "@ngrok/mantle/tabs";
 
 ## Appearance
 
-Set `appearance` on `Tabs.Root` to choose how the tabs look. The default, `classic`, underlines the active tab. `pill` fills the active tab with a tinted pill. Each example on this page works in either appearance, including icons, badges, disabled tabs, link tabs, and the vertical orientation.
+Set `appearance` on `Tabs.Root` to choose how the tabs look. The default, `classic`, draws a line along the edge of the active tab. `pill` fills the active tab with a tinted pill. Icons, badges, and disabled tabs work in either appearance, as do link tabs and the vertical orientation.
 
 <Example name="components/navigation/tabs/appearance" title="Tabs appearance example">
 
 ```tsx
 import { Field } from "@ngrok/mantle/field";
+import { Icon } from "@ngrok/mantle/icon";
 import { Tabs } from "@ngrok/mantle/tabs";
+import { UserIcon } from "@phosphor-icons/react/User";
 
 <div className="flex flex-col items-center gap-8">
 	<Field.Set className="w-auto items-center">
 		<Field.Legend className="w-full text-center">Appearance classic (default)</Field.Legend>
 		<Tabs.Root defaultValue="account">
-			<Tabs.List>
-				<Tabs.Trigger value="account">Account</Tabs.Trigger>
-				<Tabs.Trigger value="password">Password</Tabs.Trigger>
-				<Tabs.Trigger value="billing">Billing</Tabs.Trigger>
+			<Tabs.List aria-label="Settings, appearance classic">
+				<Tabs.Trigger value="account">
+					<Icon svg={<UserIcon />} />
+					Account
+				</Tabs.Trigger>
+				<Tabs.Trigger value="members">
+					Members
+					<Tabs.Badge>8</Tabs.Badge>
+				</Tabs.Trigger>
+				<Tabs.Trigger disabled value="billing">
+					Billing
+				</Tabs.Trigger>
 			</Tabs.List>
-			<Tabs.Separator />
 		</Tabs.Root>
 	</Field.Set>
 	<Field.Set className="w-auto items-center">
 		<Field.Legend className="w-full text-center">Appearance pill</Field.Legend>
 		<Tabs.Root appearance="pill" defaultValue="account">
-			<Tabs.List>
-				<Tabs.Trigger value="account">Account</Tabs.Trigger>
-				<Tabs.Trigger value="password">Password</Tabs.Trigger>
-				<Tabs.Trigger value="billing">Billing</Tabs.Trigger>
+			<Tabs.List aria-label="Settings, appearance pill">
+				<Tabs.Trigger value="account">
+					<Icon svg={<UserIcon />} />
+					Account
+				</Tabs.Trigger>
+				<Tabs.Trigger value="members">
+					Members
+					<Tabs.Badge>8</Tabs.Badge>
+				</Tabs.Trigger>
+				<Tabs.Trigger disabled value="billing">
+					Billing
+				</Tabs.Trigger>
 			</Tabs.List>
 		</Tabs.Root>
 	</Field.Set>
@@ -225,7 +240,7 @@ import { Tabs } from "@ngrok/mantle/tabs";
 	<Field.Set className="w-auto items-center">
 		<Field.Legend className="w-full text-center">With Tabs.Separator</Field.Legend>
 		<Tabs.Root defaultValue="tab-1">
-			<Tabs.List>
+			<Tabs.List aria-label="Sections, with separator">
 				<Tabs.Trigger value="tab-1">Tab title</Tabs.Trigger>
 				<Tabs.Trigger value="tab-2">Tab title</Tabs.Trigger>
 				<Tabs.Trigger value="tab-3">Tab title</Tabs.Trigger>
@@ -236,7 +251,7 @@ import { Tabs } from "@ngrok/mantle/tabs";
 	<Field.Set className="w-auto items-center">
 		<Field.Legend className="w-full text-center">Without Tabs.Separator</Field.Legend>
 		<Tabs.Root defaultValue="tab-1">
-			<Tabs.List>
+			<Tabs.List aria-label="Sections, without separator">
 				<Tabs.Trigger value="tab-1">Tab title</Tabs.Trigger>
 				<Tabs.Trigger value="tab-2">Tab title</Tabs.Trigger>
 				<Tabs.Trigger value="tab-3">Tab title</Tabs.Trigger>
@@ -257,7 +272,7 @@ When there are too many tabs to fit the container, the list scrolls horizontally
 ```tsx
 import { Tabs } from "@ngrok/mantle/tabs";
 
-<Tabs.Root defaultValue="getting-started" className="w-full">
+<Tabs.Root defaultValue="getting-started" className="w-full max-w-2xl">
 	<Tabs.List>
 		<Tabs.Trigger value="getting-started">Getting started</Tabs.Trigger>
 		<Tabs.Trigger value="traffic-policy">Traffic Policy</Tabs.Trigger>
@@ -374,7 +389,7 @@ Tabs.Root
 ## Polymorphism
 
 `Tabs.Trigger` accepts an `asChild` prop. When `true`, it composes the trigger styling and tab behavior onto its single child instead of rendering its own `<button>`. Use it to render each tab as a router link (a `react-router` `Link` here) so tabs drive client-side navigation while keeping the active-tab styling.
-A link tab activates on click, not on the press, so a press released off the link switches no tab and follows no link.
+A link tab activates on click, not on the press, so a press released off the link switches no tab and follows no link. To disable a link tab, put `disabled` on `Tabs.Trigger`, not on the link.
 
 `Tabs.Separator` accepts `asChild` too. When `true`, it composes the hairline's styling and attributes onto your own element instead of rendering its own `<div>`.
 
@@ -398,7 +413,7 @@ import { Link, href } from "react-router";
 				Shadows
 			</Link>
 		</Tabs.Trigger>
-		<Tabs.Trigger value="typography" asChild>
+		<Tabs.Trigger value="typography" disabled asChild>
 			<Link to={href("/base/typography")} target="_top">
 				Typography
 			</Link>
