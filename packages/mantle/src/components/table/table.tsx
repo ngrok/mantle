@@ -256,7 +256,7 @@ const Element = ({
 			role="table"
 			ref={composedRef}
 			className={cx(
-				"table-auto border-separate border-spacing-0 caption-bottom w-full min-w-min align-top text-left",
+				"table-auto border-separate border-spacing-0 caption-bottom w-full min-w-min text-left",
 				gridLayoutClassName,
 				gridColumnCountClassName,
 				className,
@@ -833,10 +833,6 @@ const Caption = ({
  * cells of the last header row. A table with no `<thead>`, with more than 24
  * columns, or with a spanning cell in that row keeps the table layout. The row groups and
  * rows read `--_table-display` and become subgrids only in the grid layout.
- * Why `inline-grid`: with `grid`, VoiceOver in Safari starts a page whose first
- * item is the table on the first header cell, and does not say "table". The
- * row groups and rows are grid items, so they become `grid`. `align-top` stops
- * the line box from adding a gap under the table.
  * The reset of each property keeps a nested table from taking its parent's
  * grid.
  */
@@ -844,7 +840,7 @@ const gridLayoutClassName = cx(
 	"[--_table-columns:initial] [--_table-display:initial]",
 	"[display:var(--_table-display,table)] grid-cols-[repeat(var(--_table-columns),auto)]",
 	// oxlint-disable-next-line mantle/no-structural-combinator -- Why: the `:has()` tests this table's own header row, so it reruns only when that row changes.
-	"has-[>thead>tr:last-child>:nth-child(2)]:not-has-[>thead>tr:last-child>:nth-child(25)]:not-has-[>thead>tr:last-child>[aria-colspan]]:[--_table-display:inline-grid]",
+	"has-[>thead>tr:last-child>:nth-child(2)]:not-has-[>thead>tr:last-child>:nth-child(25)]:not-has-[>thead>tr:last-child>[aria-colspan]]:[--_table-display:grid]",
 	// A control column (a row checkbox or expand toggle) first, an action column last, or both.
 	// oxlint-disable-next-line mantle/no-structural-combinator -- Why: as above, for the header row and the first body row.
 	"has-[>thead>tr:last-child>[data-slot~=data-table-action-header]:last-child]:grid-cols-[repeat(calc(var(--_table-columns)-1),auto)_min-content]",
