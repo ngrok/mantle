@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
+import { Button } from "../button/button.js";
 import { IconButton } from "../button/icon-button.js";
 import * as SegmentedControl from "./segmented-control-parts.js";
 
@@ -24,6 +25,7 @@ beforeAll(async () => {
 		await commands.tailwindCss("./segmented-control.tsx"),
 		await commands.tailwindCss("../radio-group/primitive.tsx"),
 		await commands.tailwindCss("../button/icon-button-variants.ts"),
+		await commands.tailwindCss("../button/button.tsx"),
 	].join("\n");
 	document.head.appendChild(styleElement);
 });
@@ -60,7 +62,7 @@ describe("SegmentedControl.Item", () => {
 
 describe("SegmentedControl size", () => {
 	test.each(["sm", "md"] as const)(
-		"a %s control is as high as an IconButton of the same size, and its labels fit",
+		"a %s control matches the height of an IconButton and the padding of a Button of the same size",
 		(size) => {
 			render(
 				<div style={{ display: "flex", alignItems: "center" }}>
@@ -69,6 +71,9 @@ describe("SegmentedControl size", () => {
 						<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
 					</SegmentedControl.Root>
 					<IconButton appearance="ghost" intent="neutral" size={size} label="Copy" icon={<svg />} />
+					<Button appearance="outlined" intent="neutral" size={size}>
+						Save
+					</Button>
 				</div>,
 			);
 
@@ -76,8 +81,12 @@ describe("SegmentedControl size", () => {
 			const button = screen.getByRole("button", { name: "Copy" });
 			expect(control).toHaveAttribute("data-size", size);
 			expect(control.getBoundingClientRect().height).toBe(button.getBoundingClientRect().height);
+			const buttonPadding = getComputedStyle(
+				screen.getByRole("button", { name: "Save" }),
+			).paddingInlineStart;
 			for (const name of ["Headers", "Raw"]) {
 				expect(item(name).scrollHeight).toBeLessThanOrEqual(item(name).clientHeight);
+				expect(getComputedStyle(item(name)).paddingInlineStart).toBe(buttonPadding);
 			}
 		},
 	);

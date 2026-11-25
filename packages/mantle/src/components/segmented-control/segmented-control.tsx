@@ -41,7 +41,8 @@ type SegmentedControlRootProps = RadioPrimitive.RootProps & {
 	/**
 	 * The size of the control, default `"md"`. It sets the track height and
 	 * the padding of each item. `"sm"` is 1.75rem (28px) high, the height of a
-	 * `size="sm"` `Button` or `IconButton` beside it. The items do not accept
+	 * `size="sm"` `IconButton` beside it, or of a `size="sm"` `Button` with any
+	 * `appearance` except `"link"`. The items do not accept
 	 * `size`, so the items of one control always share one height.
 	 */
 	size?: SegmentedControlSize;

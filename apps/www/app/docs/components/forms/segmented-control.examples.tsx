@@ -123,32 +123,40 @@ export function IconSegmentsExample() {
 /** The "Size" example on the Segmented Control docs page. */
 export function SizeExample() {
 	return (
-		<PreviewCanvas className="flex-col items-start gap-4">
-			<SegmentedControl.Root aria-label="Request view" defaultValue="headers" size="md">
-				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
-				<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
-				<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
-			</SegmentedControl.Root>
-			<div className="flex items-center gap-2">
-				<SegmentedControl.Root aria-label="Event view" defaultValue="headers" size="sm">
-					<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
-					<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
-					<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
-				</SegmentedControl.Root>
-				<IconButton
-					appearance="ghost"
-					intent="neutral"
-					size="sm"
-					label="Copy event"
-					icon={<CopyIcon />}
-				/>
-				<IconButton
-					appearance="ghost"
-					intent="neutral"
-					size="sm"
-					label="Download event"
-					icon={<DownloadSimpleIcon />}
-				/>
+		<PreviewCanvas>
+			<div className="flex flex-wrap items-start justify-center gap-6">
+				<div>
+					<p className="mb-2 text-center font-mono text-xs">Size sm</p>
+					<div className="flex items-center gap-2">
+						<SegmentedControl.Root aria-label="Event view" defaultValue="headers" size="sm">
+							<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+							<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+							<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+						</SegmentedControl.Root>
+						<IconButton
+							appearance="ghost"
+							intent="neutral"
+							size="sm"
+							label="Copy event"
+							icon={<CopyIcon />}
+						/>
+						<IconButton
+							appearance="ghost"
+							intent="neutral"
+							size="sm"
+							label="Download event"
+							icon={<DownloadSimpleIcon />}
+						/>
+					</div>
+				</div>
+				<div>
+					<p className="mb-2 text-center font-mono text-xs">Size md (default)</p>
+					<SegmentedControl.Root aria-label="Request view" defaultValue="headers" size="md">
+						<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+						<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+						<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+					</SegmentedControl.Root>
+				</div>
 			</div>
 		</PreviewCanvas>
 	);

@@ -60,16 +60,61 @@ Set the `size` prop on `SplitButton.Root` to control the height of the whole com
 <Example name="components/actions/split-button/size" title="Split Button size example">
 
 ```tsx
-import { PlusIcon } from "@phosphor-icons/react";
 import { SplitButton } from "@ngrok/mantle/split-button";
+import { PlusIcon } from "@phosphor-icons/react/Plus";
 
-<SplitButton.Root size="sm">
-	<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
-	<SplitButton.MenuTrigger label="Open create options" />
-	<SplitButton.MenuContent>
-		<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
-	</SplitButton.MenuContent>
-</SplitButton.Root>;
+<div className="flex flex-wrap items-start justify-center gap-6">
+	<div>
+		<p className="mb-2 text-center font-mono text-xs">Size xs</p>
+		<SplitButton.Root size="xs">
+			<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
+			<SplitButton.MenuTrigger label="Open create options" />
+			<SplitButton.MenuContent>
+				<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
+			</SplitButton.MenuContent>
+		</SplitButton.Root>
+	</div>
+	<div>
+		<p className="mb-2 text-center font-mono text-xs">Size sm</p>
+		<SplitButton.Root size="sm">
+			<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
+			<SplitButton.MenuTrigger label="Open create options" />
+			<SplitButton.MenuContent>
+				<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
+			</SplitButton.MenuContent>
+		</SplitButton.Root>
+	</div>
+	<div>
+		<p className="mb-2 text-center font-mono text-xs">Size md (default)</p>
+		<SplitButton.Root size="md">
+			<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
+			<SplitButton.MenuTrigger label="Open create options" />
+			<SplitButton.MenuContent>
+				<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
+			</SplitButton.MenuContent>
+		</SplitButton.Root>
+	</div>
+	<div>
+		<p className="mb-2 text-center font-mono text-xs">Size lg</p>
+		<SplitButton.Root size="lg">
+			<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
+			<SplitButton.MenuTrigger label="Open create options" />
+			<SplitButton.MenuContent>
+				<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
+			</SplitButton.MenuContent>
+		</SplitButton.Root>
+	</div>
+	<div>
+		<p className="mb-2 text-center font-mono text-xs">Size xl</p>
+		<SplitButton.Root size="xl">
+			<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
+			<SplitButton.MenuTrigger label="Open create options" />
+			<SplitButton.MenuContent>
+				<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
+			</SplitButton.MenuContent>
+		</SplitButton.Root>
+	</div>
+</div>;
 ```
 
 </Example>

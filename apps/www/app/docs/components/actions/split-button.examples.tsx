@@ -33,28 +33,59 @@ export function OverviewExample() {
 /** The "Size" example on the Split Button docs page. */
 export function SizeExample() {
 	return (
-		<PreviewCanvas className="min-h-160 flex-col items-start gap-4">
-			<SplitButton.Root size="sm">
-				<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
-				<SplitButton.MenuTrigger label="Open create options" />
-				<SplitButton.MenuContent>
-					<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
-				</SplitButton.MenuContent>
-			</SplitButton.Root>
-			<SplitButton.Root size="md">
-				<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
-				<SplitButton.MenuTrigger label="Open create options" />
-				<SplitButton.MenuContent>
-					<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
-				</SplitButton.MenuContent>
-			</SplitButton.Root>
-			<SplitButton.Root size="lg">
-				<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
-				<SplitButton.MenuTrigger label="Open create options" />
-				<SplitButton.MenuContent>
-					<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
-				</SplitButton.MenuContent>
-			</SplitButton.Root>
+		<PreviewCanvas className="min-h-160 items-start">
+			<div className="flex flex-wrap items-start justify-center gap-6">
+				<div>
+					<p className="mb-2 text-center font-mono text-xs">Size xs</p>
+					<SplitButton.Root size="xs">
+						<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
+						<SplitButton.MenuTrigger label="Open create options" />
+						<SplitButton.MenuContent>
+							<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
+						</SplitButton.MenuContent>
+					</SplitButton.Root>
+				</div>
+				<div>
+					<p className="mb-2 text-center font-mono text-xs">Size sm</p>
+					<SplitButton.Root size="sm">
+						<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
+						<SplitButton.MenuTrigger label="Open create options" />
+						<SplitButton.MenuContent>
+							<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
+						</SplitButton.MenuContent>
+					</SplitButton.Root>
+				</div>
+				<div>
+					<p className="mb-2 text-center font-mono text-xs">Size md (default)</p>
+					<SplitButton.Root size="md">
+						<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
+						<SplitButton.MenuTrigger label="Open create options" />
+						<SplitButton.MenuContent>
+							<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
+						</SplitButton.MenuContent>
+					</SplitButton.Root>
+				</div>
+				<div>
+					<p className="mb-2 text-center font-mono text-xs">Size lg</p>
+					<SplitButton.Root size="lg">
+						<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
+						<SplitButton.MenuTrigger label="Open create options" />
+						<SplitButton.MenuContent>
+							<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
+						</SplitButton.MenuContent>
+					</SplitButton.Root>
+				</div>
+				<div>
+					<p className="mb-2 text-center font-mono text-xs">Size xl</p>
+					<SplitButton.Root size="xl">
+						<SplitButton.PrimaryAction icon={<PlusIcon />}>New endpoint</SplitButton.PrimaryAction>
+						<SplitButton.MenuTrigger label="Open create options" />
+						<SplitButton.MenuContent>
+							<SplitButton.MenuItem>New domain</SplitButton.MenuItem>
+						</SplitButton.MenuContent>
+					</SplitButton.Root>
+				</div>
+			</div>
 		</PreviewCanvas>
 	);
 }
