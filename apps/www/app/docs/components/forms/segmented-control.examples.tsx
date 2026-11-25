@@ -124,8 +124,8 @@ export function SizeExample() {
 	return (
 		<PreviewCanvas>
 			<div className="flex flex-wrap items-start justify-center gap-6">
-				<div>
-					<p className="mb-2 text-center font-mono text-xs">Size xs</p>
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="mx-auto">Size xs</Field.Legend>
 					<div className="flex items-center gap-2">
 						<SegmentedControl.Root
 							aria-label="Event view, size xs"
@@ -144,9 +144,9 @@ export function SizeExample() {
 							icon={<CopyIcon />}
 						/>
 					</div>
-				</div>
-				<div>
-					<p className="mb-2 text-center font-mono text-xs">Size sm</p>
+				</Field.Set>
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="mx-auto">Size sm</Field.Legend>
 					<div className="flex items-center gap-2">
 						<SegmentedControl.Root
 							aria-label="Event view, size sm"
@@ -165,9 +165,9 @@ export function SizeExample() {
 							icon={<CopyIcon />}
 						/>
 					</div>
-				</div>
-				<div>
-					<p className="mb-2 text-center font-mono text-xs">Size md (default)</p>
+				</Field.Set>
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="mx-auto">Size md (default)</Field.Legend>
 					<div className="flex items-center gap-2">
 						<SegmentedControl.Root
 							aria-label="Event view, size md"
@@ -186,9 +186,9 @@ export function SizeExample() {
 							icon={<CopyIcon />}
 						/>
 					</div>
-				</div>
-				<div>
-					<p className="mb-2 text-center font-mono text-xs">Size lg</p>
+				</Field.Set>
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="mx-auto">Size lg</Field.Legend>
 					<div className="flex items-center gap-2">
 						<SegmentedControl.Root
 							aria-label="Event view, size lg"
@@ -207,9 +207,9 @@ export function SizeExample() {
 							icon={<CopyIcon />}
 						/>
 					</div>
-				</div>
-				<div>
-					<p className="mb-2 text-center font-mono text-xs">Size xl</p>
+				</Field.Set>
+				<Field.Set className="w-auto items-center">
+					<Field.Legend className="mx-auto">Size xl</Field.Legend>
 					<div className="flex items-center gap-2">
 						<SegmentedControl.Root
 							aria-label="Event view, size xl"
@@ -228,7 +228,7 @@ export function SizeExample() {
 							icon={<CopyIcon />}
 						/>
 					</div>
-				</div>
+				</Field.Set>
 			</div>
 		</PreviewCanvas>
 	);

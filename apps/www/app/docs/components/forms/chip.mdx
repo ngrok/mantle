@@ -158,22 +158,23 @@ A chip is a `pill` by default. Set `appearance="square"` and `size="sm"` to matc
 
 ```tsx
 import { Chip } from "@ngrok/mantle/chip";
+import { Field } from "@ngrok/mantle/field";
 
 function Example() {
 	return (
 		<div className="flex flex-wrap items-start justify-center gap-6">
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Appearance pill (default)</p>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="mx-auto">Appearance pill (default)</Field.Legend>
 				<Chip size="sm" onRemove={() => {}} removeLabel="Remove us-east-1">
 					us-east-1
 				</Chip>
-			</div>
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Appearance square</p>
+			</Field.Set>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="mx-auto">Appearance square</Field.Legend>
 				<Chip appearance="square" size="sm" onRemove={() => {}} removeLabel="Remove eu-west-1">
 					eu-west-1
 				</Chip>
-			</div>
+			</Field.Set>
 		</div>
 	);
 }
@@ -189,40 +190,41 @@ Chip uses the `Button` size scale, from `xs` (24px) to `xl` (48px). A `pill` chi
 
 ```tsx
 import { Chip } from "@ngrok/mantle/chip";
+import { Field } from "@ngrok/mantle/field";
 
 function Example() {
 	return (
 		<div className="flex flex-wrap items-start justify-center gap-6">
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Size xs (default)</p>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="mx-auto">Size xs (default)</Field.Legend>
 				<Chip selectable size="xs">
 					Read
 				</Chip>
-			</div>
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Size sm</p>
+			</Field.Set>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="mx-auto">Size sm</Field.Legend>
 				<Chip selectable size="sm">
 					Read
 				</Chip>
-			</div>
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Size md</p>
+			</Field.Set>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="mx-auto">Size md</Field.Legend>
 				<Chip selectable size="md">
 					Read
 				</Chip>
-			</div>
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Size lg</p>
+			</Field.Set>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="mx-auto">Size lg</Field.Legend>
 				<Chip selectable size="lg">
 					Read
 				</Chip>
-			</div>
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Size xl</p>
+			</Field.Set>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="mx-auto">Size xl</Field.Legend>
 				<Chip selectable size="xl">
 					Read
 				</Chip>
-			</div>
+			</Field.Set>
 		</div>
 	);
 }

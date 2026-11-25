@@ -1,4 +1,5 @@
 import { IconButton } from "@ngrok/mantle/button";
+import { Field } from "@ngrok/mantle/field";
 import { Tooltip } from "@ngrok/mantle/tooltip";
 import { GlobeIcon } from "@phosphor-icons/react/Globe";
 import { Link, href } from "react-router";
@@ -35,8 +36,8 @@ export function OverviewExample() {
 export function SizeExample() {
 	return (
 		<PreviewCanvas className="min-h-160 flex flex-wrap gap-6">
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Size 2xs</p>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="mx-auto">Size 2xs</Field.Legend>
 				<div className="flex items-center gap-2">
 					<IconButton
 						appearance="ghost"
@@ -60,9 +61,9 @@ export function SizeExample() {
 						icon={<GlobeIcon />}
 					/>
 				</div>
-			</div>
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Size xs</p>
+			</Field.Set>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="mx-auto">Size xs</Field.Legend>
 				<div className="flex items-center gap-2">
 					<IconButton
 						appearance="ghost"
@@ -86,9 +87,9 @@ export function SizeExample() {
 						icon={<GlobeIcon />}
 					/>
 				</div>
-			</div>
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Size sm</p>
+			</Field.Set>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="mx-auto">Size sm</Field.Legend>
 				<div className="flex items-center gap-2">
 					<IconButton
 						appearance="ghost"
@@ -112,9 +113,9 @@ export function SizeExample() {
 						icon={<GlobeIcon />}
 					/>
 				</div>
-			</div>
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Size md</p>
+			</Field.Set>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="mx-auto">Size md</Field.Legend>
 				<div className="flex items-center gap-2">
 					<IconButton
 						appearance="ghost"
@@ -135,9 +136,9 @@ export function SizeExample() {
 						icon={<GlobeIcon />}
 					/>
 				</div>
-			</div>
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Size lg</p>
+			</Field.Set>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="mx-auto">Size lg</Field.Legend>
 				<div className="flex items-center gap-2">
 					<IconButton
 						appearance="ghost"
@@ -161,9 +162,9 @@ export function SizeExample() {
 						icon={<GlobeIcon />}
 					/>
 				</div>
-			</div>
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Size xl</p>
+			</Field.Set>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="mx-auto">Size xl</Field.Legend>
 				<div className="flex items-center gap-2">
 					<IconButton
 						appearance="ghost"
@@ -187,9 +188,9 @@ export function SizeExample() {
 						icon={<GlobeIcon />}
 					/>
 				</div>
-			</div>
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Disabled</p>
+			</Field.Set>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="mx-auto">Disabled</Field.Legend>
 				<div className="flex items-center gap-2">
 					<Tooltip.Root>
 						<Tooltip.Trigger asChild>
@@ -228,7 +229,7 @@ export function SizeExample() {
 						<Tooltip.Content>Tooltips work on disabled buttons!</Tooltip.Content>
 					</Tooltip.Root>
 				</div>
-			</div>
+			</Field.Set>
 		</PreviewCanvas>
 	);
 }
@@ -237,8 +238,8 @@ export function SizeExample() {
 export function IsloadingExample() {
 	return (
 		<PreviewCanvas className="flex-col gap-4">
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">idle</p>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="mx-auto">idle</Field.Legend>
 				<div className="flex items-center gap-2">
 					<IconButton
 						appearance="ghost"
@@ -253,9 +254,9 @@ export function IsloadingExample() {
 						icon={<GlobeIcon />}
 					/>
 				</div>
-			</div>
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">isLoading</p>
+			</Field.Set>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="mx-auto">isLoading</Field.Legend>
 				<div className="flex items-center gap-2">
 					<IconButton
 						appearance="ghost"
@@ -272,7 +273,7 @@ export function IsloadingExample() {
 						icon={<GlobeIcon />}
 					/>
 				</div>
-			</div>
+			</Field.Set>
 		</PreviewCanvas>
 	);
 }

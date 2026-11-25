@@ -1,4 +1,5 @@
 import { Button, ButtonGroup, IconButton } from "@ngrok/mantle/button";
+import { Field } from "@ngrok/mantle/field";
 import { CaretDownIcon } from "@phosphor-icons/react/CaretDown";
 import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { FireIcon } from "@phosphor-icons/react/Fire";
@@ -16,8 +17,8 @@ export const copyPage = () => {};
 export function OverviewExample() {
 	return (
 		<PreviewCanvas className="flex flex-col items-center gap-6">
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Neutral</p>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="mx-auto">Neutral</Field.Legend>
 				<div className="flex flex-wrap items-center justify-center gap-2">
 					<Button appearance="ghost" intent="neutral">
 						Ghost
@@ -32,9 +33,9 @@ export function OverviewExample() {
 						Link
 					</Button>
 				</div>
-			</div>
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Accent</p>
+			</Field.Set>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="mx-auto">Accent</Field.Legend>
 				<div className="flex flex-wrap items-center justify-center gap-2">
 					<Button appearance="ghost" intent="accent">
 						Ghost
@@ -49,9 +50,9 @@ export function OverviewExample() {
 						Link
 					</Button>
 				</div>
-			</div>
-			<div>
-				<p className="mb-2 text-center font-mono text-xs">Danger</p>
+			</Field.Set>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="mx-auto">Danger</Field.Legend>
 				<div className="flex flex-wrap items-center justify-center gap-2">
 					<Button appearance="ghost" intent="danger">
 						Ghost
@@ -66,7 +67,7 @@ export function OverviewExample() {
 						Link
 					</Button>
 				</div>
-			</div>
+			</Field.Set>
 		</PreviewCanvas>
 	);
 }
@@ -164,8 +165,8 @@ export function AnIconAsAChildExample() {
 export function IsloadingExample() {
 	return (
 		<PreviewCanvas className="flex-col gap-4">
-			<div className="space-y-2">
-				<p className="mb-2 text-center font-mono text-xs">Idle</p>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="mx-auto">Idle</Field.Legend>
 				<div className="flex flex-wrap items-center justify-center gap-2">
 					<Button appearance="outlined" intent="neutral">
 						No Icon + Idle
@@ -182,9 +183,9 @@ export function IsloadingExample() {
 						Icon End + Idle
 					</Button>
 				</div>
-			</div>
-			<div className="space-y-2">
-				<p className="mb-2 text-center font-mono text-xs">isLoading</p>
+			</Field.Set>
+			<Field.Set className="w-auto items-center">
+				<Field.Legend className="mx-auto">isLoading</Field.Legend>
 				<div className="flex flex-wrap items-center justify-center gap-2">
 					<Button appearance="outlined" intent="neutral" isLoading>
 						No Icon + isLoading
@@ -207,7 +208,7 @@ export function IsloadingExample() {
 						Icon End + isLoading
 					</Button>
 				</div>
-			</div>
+			</Field.Set>
 		</PreviewCanvas>
 	);
 }
