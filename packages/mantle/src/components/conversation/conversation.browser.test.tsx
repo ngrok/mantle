@@ -92,13 +92,15 @@ function distanceFromEnd(element: HTMLElement): number {
 	return element.scrollHeight - element.clientHeight - element.scrollTop;
 }
 
-/** The alpha of a computed color, such as `rgb(…)`, `rgba(…, 0.5)`, or `oklab(… / 0.05)`. */
-function backgroundAlpha(color: string): number {
-	const alpha = /(?:\/\s*|,\s*)([\d.]+%?)\s*\)$/.exec(color)?.[1];
-	if (color.startsWith("rgb(") || alpha == null) {
-		return 1;
+/** The alpha, from 0 to 1, that a CSS color paints. A canvas parses every color syntax the engine serializes. */
+function paintedAlpha(color: string): number {
+	const context = document.createElement("canvas").getContext("2d");
+	if (context == null) {
+		throw new Error("No 2D canvas context.");
 	}
-	return alpha.endsWith("%") ? Number.parseFloat(alpha) / 100 : Number(alpha);
+	context.fillStyle = color;
+	context.fillRect(0, 0, 1, 1);
+	return (context.getImageData(0, 0, 1, 1).data[3] ?? 0) / 255;
 }
 
 function root(): HTMLElement {
@@ -277,7 +279,7 @@ describe("Conversation", () => {
 	);
 
 	test.each(["light", "dark"] as const)(
-		"the scroll button stays opaque at rest, on hover, and on focus in the %s theme",
+		"the scroll button stays opaque at rest, on hover, on focus, and pressed in the %s theme",
 		async (theme) => {
 			// Why the full stylesheet: the test reads the real token colors, and the outlined hover fill has alpha.
 			const css = await commands.tailwindCss(
@@ -292,7 +294,8 @@ describe("Conversation", () => {
 			});
 			render(
 				<>
-					<style>{`${css}\n[data-slot~="conversation"] { height: 200px; }`}</style>
+					{/* Why a system font: the full stylesheet sets Roobert, and a test sends no network request. */}
+					<style>{`${css}\n[data-slot~="conversation"] { height: 200px; font-family: monospace; }`}</style>
 					<Transcript turns={[question, { id: "a1", from: "assistant", text: longAnswer }]} />
 				</>,
 			);
@@ -300,7 +303,7 @@ describe("Conversation", () => {
 			viewport().scrollTo({ top: 0, behavior: "instant" });
 			const button = await screen.findByRole("button", { name: "Scroll to the latest message" });
 			// Why the alpha: a see-through fill shows the transcript and its borders behind the floating button.
-			const alpha = () => backgroundAlpha(getComputedStyle(button).backgroundColor);
+			const alpha = () => paintedAlpha(getComputedStyle(button).backgroundColor);
 
 			expect(alpha()).toBe(1);
 			await browserUser.hover(button);
@@ -309,6 +312,15 @@ describe("Conversation", () => {
 			await browserUser.unhover(button);
 			button.focus();
 			expect(alpha()).toBe(1);
+			// Why a held button: the press lasts until release, which activates it and scrolls it away.
+			await browserUser.pointer({ target: button, keys: "[MouseLeft>]" });
+			// Why finally: a failed assertion must not leave the mouse down for the next test.
+			try {
+				expect(button.matches(":active")).toBe(true);
+				expect(alpha()).toBe(1);
+			} finally {
+				await browserUser.pointer({ keys: "[/MouseLeft]" });
+			}
 		},
 	);
 
