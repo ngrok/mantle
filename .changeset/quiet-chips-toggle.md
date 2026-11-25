@@ -13,4 +13,6 @@ component exposes `data-slot`, `data-appearance`, `data-size`, `data-state`, and
 
 `MultiSelect.Tag` now renders a `square` `Chip` at the `sm` size, so it also
 carries `data-appearance="square"` and `data-size="sm"`. Its look does not
-change.
+change, except in right-to-left layouts, where its padding now mirrors. A locked
+tag now stamps `data-locked=""` in place of `data-locked="true"`. Select it with
+`data-locked:` or `[data-locked]`, not `[data-locked="true"]`.

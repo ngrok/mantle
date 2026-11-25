@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { StarIcon } from "@phosphor-icons/react/Star";
-import { createRef, useState } from "react";
+import { createElement, createRef, useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { translateTextNodes } from "../../test-utils/translate-text-nodes.js";
 import { Chip } from "./chip.js";
@@ -168,6 +168,18 @@ describe("Chip", () => {
 		expect(screen.getByRole("button", { name: "Read" })).toHaveAttribute("aria-pressed", "true");
 	});
 
+	test("an aria-disabled chip cannot be toggled", async () => {
+		const onPressedChange = vi.fn<(pressed: boolean) => void>();
+		render(
+			<Chip selectable aria-disabled="true" onPressedChange={onPressedChange}>
+				Read
+			</Chip>,
+		);
+		await userEvent.setup().click(screen.getByRole("button", { name: "Read" }));
+		expect(onPressedChange).not.toHaveBeenCalled();
+		expect(screen.getByRole("button", { name: "Read" })).toHaveAttribute("aria-pressed", "false");
+	});
+
 	test("forwards the ref, className, and data attributes", () => {
 		const ref = createRef<HTMLButtonElement>();
 		render(
@@ -199,6 +211,22 @@ describe("Chip", () => {
 		expect(button).toHaveClass("chip-class", "child-class");
 		await userEvent.setup().click(button);
 		expect(button).toHaveAttribute("aria-pressed", "true");
+	});
+
+	test("a selectable asChild chip keeps its pressed and disabled state over the child's props", async () => {
+		const onClick = vi.fn<() => void>();
+		render(
+			<Chip selectable asChild defaultPressed disabled>
+				<button type="button" aria-pressed={false} disabled={false} onClick={onClick}>
+					Read
+				</button>
+			</Chip>,
+		);
+		const button = screen.getByRole("button", { name: "Read" });
+		await userEvent.setup().click(button);
+		expect(button).toHaveAttribute("aria-pressed", "true");
+		expect(button).toBeDisabled();
+		expect(onClick).not.toHaveBeenCalled();
 	});
 
 	test("a selectable asChild chip does not submit its form", async () => {
@@ -266,11 +294,12 @@ describe("Chip", () => {
 		).toThrow("A selectable Chip can only wrap a button");
 	});
 
-	test("a removable chip cannot put its remove button inside a button", () => {
+	// Why a label: it forwards a click on the value text to the remove button inside it.
+	test.each(["button", "label"])("a removable chip cannot wrap a %s", (tag) => {
 		expect(() =>
 			render(
 				<Chip asChild onRemove={() => {}} removeLabel="Remove Read">
-					<button type="button">Read</button>
+					{createElement(tag, null, "Read")}
 				</Chip>,
 			),
 		).toThrow("A removable Chip cannot wrap an interactive element");

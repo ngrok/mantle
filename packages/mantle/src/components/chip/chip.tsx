@@ -15,6 +15,7 @@ import {
 } from "react";
 import invariant from "tiny-invariant";
 import type { WithAsChild } from "../../types/as-child.js";
+import { parseBooleanish } from "../../types/booleanish.js";
 import { useComposedRefs } from "../../utils/compose-refs/use-composed-refs.js";
 import { cx } from "../../utils/cx/cx.js";
 import type { WithDataSlot } from "../../utils/data-slot.js";
@@ -32,16 +33,16 @@ type ChipAppearance = "pill" | "square";
 
 /**
  * The root classes for each appearance and size. A `square` chip at `sm` matches
- * the 26px value tags inside a 36px `MultiSelect` trigger.
+ * the value tags in a `MultiSelect` trigger: it inherits the font, and a long label wraps.
  */
 const chipClassName = {
 	pill: {
-		xs: "h-6 gap-0.5 rounded-full px-2 text-xs font-medium",
-		sm: "h-7 gap-0.5 rounded-full px-2.5 text-sm font-medium",
+		xs: "h-6 w-fit shrink-0 gap-0.5 whitespace-nowrap rounded-full px-2 font-sans text-xs font-medium",
+		sm: "h-7 w-fit shrink-0 gap-0.5 whitespace-nowrap rounded-full px-2.5 font-sans text-sm font-medium",
 	},
 	square: {
-		xs: "h-5.5 gap-0.5 rounded-xs px-1.5 text-xs font-normal",
-		sm: "h-6.5 gap-0.5 rounded-xs px-1.5 text-sm font-normal",
+		xs: "gap-0.5 rounded-xs px-1.5 py-0.5 text-xs font-normal",
+		sm: "gap-0.5 rounded-xs px-1.5 py-0.5 text-sm font-normal",
 	},
 } as const satisfies Record<ChipAppearance, Record<ChipSize, string>>;
 
@@ -85,14 +86,14 @@ type ChipPressedState =
 type ChipSharedProps = WithAsChild &
 	WithDataSlot & {
 		/**
-		 * The chip's shape. `pill` is fully rounded. `square` has small corner radii and
-		 * matches `MultiSelect` value tags.
+		 * The chip's shape. `pill` is fully rounded. `square` has small corner radii, wraps a
+		 * long label, and matches `MultiSelect` value tags at the `sm` size.
 		 * @default "pill"
 		 */
 		appearance?: ChipAppearance;
 		/**
 		 * Height and spacing on the Button scale. A `pill` chip is 24px at `xs` and 28px at `sm`.
-		 * A `square` chip is 2px shorter.
+		 * A one-line `square` chip is 2px shorter.
 		 * @default "xs"
 		 */
 		size?: ChipSize;
@@ -178,7 +179,7 @@ function SelectableChip({
 	const StateIcon = isPressed ? CheckIcon : PlusIcon;
 
 	function handleClick(event: MouseEvent<HTMLButtonElement>) {
-		if (disabled) {
+		if (disabled || parseBooleanish(props["aria-disabled"])) {
 			event.preventDefault();
 			return;
 		}
@@ -203,7 +204,7 @@ function SelectableChip({
 		onClick: handleClick,
 		ref,
 		className: cx(
-			"inline-flex w-fit shrink-0 cursor-pointer items-center border border-solid bg-transparent font-sans whitespace-nowrap",
+			"inline-flex cursor-pointer items-center border border-solid bg-transparent",
 			"focus-visible:ring-focus-accent focus-visible:ring-4 focus-visible:outline-hidden",
 			"disabled:cursor-default disabled:opacity-50",
 			"motion-safe:transition motion-safe:duration-200 motion-safe:ease-out-strong motion-safe:not-disabled:active:scale-97",
@@ -221,7 +222,12 @@ function SelectableChip({
 		);
 	if (asChild) {
 		invariant(
-			isValidElement<{ children?: ReactNode; type?: string }>(children) && Children.only(children),
+			isValidElement<{
+				children?: ReactNode;
+				type?: string;
+				"aria-pressed"?: boolean;
+				disabled?: boolean;
+			}>(children) && Children.only(children),
 			"When using `asChild`, a selectable Chip needs one button child.",
 		);
 		invariant(
@@ -230,9 +236,10 @@ function SelectableChip({
 		);
 		return (
 			<Slot {...buttonProps}>
+				{/* Why these overrides: a child prop wins in Slot, but the chip owns the toggle semantics. */}
 				{cloneElement(
 					children,
-					{ type: "button" },
+					{ type: "button", "aria-pressed": isPressed, disabled },
 					<>
 						{icon}
 						<span data-slot="chip-label" className="contents">
@@ -313,7 +320,7 @@ function LabelChip({
 		onKeyDown: handleKeyDown,
 		ref: composedRef,
 		className: cx(
-			"text-strong inline-flex w-fit shrink-0 items-center whitespace-nowrap border border-neutral-500/20 bg-neutral-500/10 font-sans",
+			"text-strong inline-flex items-center border border-neutral-500/20 bg-neutral-500/10",
 			"motion-safe:data-shake:animate-shake",
 			chipClassName[appearance][size],
 			className,
@@ -364,7 +371,7 @@ function LabelChip({
 		invariant(
 			!hasRemoveButton ||
 				typeof children.type !== "string" ||
-				!(["a", "button", "input", "select", "textarea"] as const).includes(children.type),
+				!(["a", "button", "input", "label", "select", "textarea"] as const).includes(children.type),
 			"A removable Chip cannot wrap an interactive element because it contains a remove button.",
 		);
 		return (

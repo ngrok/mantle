@@ -77,7 +77,7 @@ describe("MultiSelect (browser)", () => {
 		return tagEl;
 	};
 
-	test("selected tags keep the 0.95.0 tag and trigger geometry", async () => {
+	test("selected tags and the trigger keep the 0.95.0 geometry and styles", async () => {
 		const style = document.createElement("style");
 		const css = await Promise.all(
 			["./multi-select.tsx", "../chip/chip.tsx", "./multi-select.browser.test.tsx"].map((file) =>
@@ -87,73 +87,96 @@ describe("MultiSelect (browser)", () => {
 		// Why preflight: the docs site and apps load it, and it resets the native button and svg boxes.
 		style.textContent = `${preflightCss}\n${css.join("\n")}`;
 		document.head.append(style);
+		const longValue = "Production API credentials for the primary billing account";
+		const values = [longValue, "apple"];
 		try {
-			const user = setupUser();
 			render(
 				<>
-					<Subject />
-					{/* The tag markup that @ngrok/mantle@0.95.0 shipped, as the reference. */}
-					<div className="font-sans">
-						<span
-							data-testid="released-tag"
-							className="cursor-default bg-neutral-500/10 border border-neutral-500/20 rounded-xs text-strong inline-flex items-center gap-1 pl-2 pr-0.5 py-0.5 text-sm font-normal"
+					<div className="w-50">
+						<MultiSelect.Root value={values} onValueChange={() => {}}>
+							<MultiSelect.Trigger data-testid="current">
+								<MultiSelect.TagValues lockedValues={["apple"]} />
+							</MultiSelect.Trigger>
+						</MultiSelect.Root>
+					</div>
+					{/* The trigger and tag markup that @ngrok/mantle@0.95.0 shipped, as the reference. */}
+					<div className="w-50">
+						<div
+							data-testid="released"
+							className="cursor-text select-none font-sans text-sm border-form bg-form text-strong flex min-h-9 w-full flex-wrap items-center gap-1 rounded-md border px-3 py-1 has-data-[slot=multi-select-tag]:px-1"
 						>
-							apple
-							<button
-								type="button"
-								className="cursor-pointer text-strong/40 hover:bg-neutral-500/15 hover:text-strong rounded-xs p-0.5"
-							>
-								<svg viewBox="0 0 256 256" className="size-4 shrink-0" />
-							</button>
-						</span>
+							<div className="contents">
+								{values.map((value) => (
+									<span
+										key={value}
+										data-slot="multi-select-tag"
+										className="cursor-default bg-neutral-500/10 border border-neutral-500/20 rounded-xs text-strong inline-flex items-center gap-1 pl-2 pr-0.5 py-0.5 text-sm font-normal"
+									>
+										{value}
+										<button
+											type="button"
+											className="cursor-pointer text-strong/40 hover:bg-neutral-500/15 hover:text-strong rounded-xs p-0.5"
+										>
+											<svg viewBox="0 0 256 256" className="size-4 shrink-0" />
+										</button>
+									</span>
+								))}
+							</div>
+						</div>
 					</div>
 				</>,
 			);
-			const input = screen.getByRole("combobox");
-			const trigger = input.closest<HTMLElement>('[data-slot~="multi-select-trigger"]');
-			if (trigger == null) {
-				throw new Error("Expected a MultiSelect trigger");
-			}
-			const emptyHeight = trigger.getBoundingClientRect().height;
-			await user.click(input);
-			await waitFor(() => expect(screen.getByRole("listbox")).toBeVisible());
-			await user.click(getListboxOption("Apple"));
 
-			const tag = getTagOption("apple");
-			const released = screen.getByTestId("released-tag");
-			/** The box of each part, relative to its tag, plus the styles a reader sees. */
-			const measure = (root: HTMLElement) => {
-				const origin = root.getBoundingClientRect();
-				const button = root.querySelector("button");
-				const icon = root.querySelector("svg");
-				const textNode = [...root.querySelectorAll("*"), root]
-					.flatMap((element) => [...element.childNodes])
-					.find((node) => node.nodeType === Node.TEXT_NODE && node.textContent === "apple");
-				if (button == null || icon == null || textNode == null) {
-					throw new Error("Expected a label, a remove button, and an icon");
-				}
-				const range = document.createRange();
-				range.selectNodeContents(textNode);
+			/** The box of each tag part, relative to the trigger, plus the styles a reader sees. */
+			const measure = (trigger: HTMLElement) => {
+				const origin = trigger.getBoundingClientRect();
 				const relative = (rect: DOMRect) => ({
 					left: rect.left - origin.left,
 					top: rect.top - origin.top,
 					width: rect.width,
 					height: rect.height,
 				});
-				const rootStyle = getComputedStyle(root);
+				const tags = [...trigger.querySelectorAll<HTMLElement>('[data-slot~="multi-select-tag"]')];
 				return {
-					root: { width: origin.width, height: origin.height },
-					text: relative(range.getBoundingClientRect()),
-					button: relative(button.getBoundingClientRect()),
-					icon: relative(icon.getBoundingClientRect()),
-					radius: [rootStyle.borderRadius, getComputedStyle(button).borderRadius],
-					colors: [rootStyle.backgroundColor, rootStyle.borderColor, rootStyle.color],
-					font: [rootStyle.fontSize, rootStyle.fontWeight, rootStyle.lineHeight],
+					trigger: { width: origin.width, height: origin.height },
+					padding: getComputedStyle(trigger).padding,
+					tags: tags.map((tag, index) => {
+						const button = tag.querySelector("button");
+						const icon = tag.querySelector("svg");
+						const textNode = [...tag.querySelectorAll("*"), tag]
+							.flatMap((element) => [...element.childNodes])
+							.find(
+								(node) => node.nodeType === Node.TEXT_NODE && node.textContent === values[index],
+							);
+						if (button == null || icon == null || textNode == null) {
+							throw new Error("Expected a label, a remove button, and an icon");
+						}
+						const range = document.createRange();
+						range.selectNodeContents(textNode);
+						const tagStyle = getComputedStyle(tag);
+						return {
+							tag: relative(tag.getBoundingClientRect()),
+							text: relative(range.getBoundingClientRect()),
+							button: relative(button.getBoundingClientRect()),
+							icon: relative(icon.getBoundingClientRect()),
+							radius: [tagStyle.borderRadius, getComputedStyle(button).borderRadius],
+							colors: [tagStyle.backgroundColor, tagStyle.borderColor],
+							font: [
+								tagStyle.fontFamily,
+								tagStyle.fontSize,
+								tagStyle.fontWeight,
+								tagStyle.lineHeight,
+							],
+						};
+					}),
 				};
 			};
 
-			expect(measure(tag)).toEqual(measure(released));
-			expect(trigger.getBoundingClientRect().height).toBe(emptyHeight);
+			const current = measure(screen.getByTestId("current"));
+			expect(current.tags).toHaveLength(2);
+			// Why: the long value must wrap inside the trigger, as it did in 0.95.0.
+			expect(current.tags[0]?.tag.height).toBeGreaterThan(26);
+			expect(current).toEqual(measure(screen.getByTestId("released")));
 		} finally {
 			style.remove();
 		}
