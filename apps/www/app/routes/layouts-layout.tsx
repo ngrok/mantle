@@ -21,7 +21,9 @@ export default function LayoutsLayout() {
 	const isSectionIndex = matches[matches.length - 1]?.id === "layouts-index";
 
 	return (
-		<PageLayout className={cx(!isSectionIndex && ["max-w-full", fullWidthProseMeasure])}>
+		<PageLayout
+			className={cx(!isSectionIndex && ["[--page-max-width:100vw]", fullWidthProseMeasure])}
+		>
 			<Outlet />
 		</PageLayout>
 	);
