@@ -4,6 +4,7 @@ import { Attachment } from "@ngrok/mantle/attachment";
 import { Button, IconButton } from "@ngrok/mantle/button";
 import { CodeBlock, jsonCodeBlockValue } from "@ngrok/mantle/code-block";
 import { Conversation } from "@ngrok/mantle/conversation";
+import { ConversationOutline } from "@ngrok/mantle/conversation-outline";
 import { Empty } from "@ngrok/mantle/empty";
 import { Main } from "@ngrok/mantle/main";
 import { Markdown } from "@ngrok/mantle/markdown";
@@ -22,7 +23,14 @@ import { CopyIcon } from "@phosphor-icons/react/Copy";
 import { SparkleIcon } from "@phosphor-icons/react/Sparkle";
 import { XIcon } from "@phosphor-icons/react/X";
 import { useRef, useState } from "react";
-import { type ChatAnswer, type ChatFile, type ChatToolCall, useChat } from "~/features/chat";
+import {
+	type ChatAnswer,
+	type ChatFile,
+	type ChatMessage,
+	type ChatToolCall,
+	type ChatUserMessage,
+	useChat,
+} from "~/features/chat";
 import { mockRespond } from "~/features/chat-mock";
 
 const models = [
@@ -41,9 +49,15 @@ type DraftFile = ChatFile & { file: File };
  * narrow layout.
  */
 export function ChatDemo() {
+	const chat = useChat({ respond: mockRespond });
+
 	return (
 		<Main className="fixed inset-0 flex flex-col">
-			<Chat />
+			<header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+				<h1 className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</h1>
+				<ChatOutline messages={chat.messages} />
+			</header>
+			<Chat chat={chat} />
 		</Main>
 	);
 }
@@ -53,6 +67,8 @@ export function ChatDemo() {
  * panel is narrow, so the chat takes its narrow layout, as on a phone.
  */
 export function ChatPanelDemo() {
+	const chat = useChat({ respond: mockRespond });
+
 	return (
 		<AppLayout.Root className="fixed inset-0">
 			<SkipToMainLink />
@@ -80,13 +96,41 @@ export function ChatPanelDemo() {
 					<AppLayout.SidePanel aria-label="Assistant" mobileBreakpoint="md">
 						<AppLayout.SidePanelHeader>
 							<p className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</p>
+							<ChatOutline messages={chat.messages} />
 							<AppLayout.SidePanelTrigger icon={<XIcon />} label="Close the assistant" />
 						</AppLayout.SidePanelHeader>
-						<Chat />
+						<Chat chat={chat} />
 					</AppLayout.SidePanel>
 				</AppLayout.Workspace>
 			</AppLayout.SidePanelRoot>
 		</AppLayout.Root>
+	);
+}
+
+/**
+ * The outline of the person's messages, for the chat's header at every width.
+ * It shows from the third message: with fewer, a scroll is faster. It renders
+ * before the header's other actions, so they do not move when it appears.
+ */
+function ChatOutline({ messages }: { messages: ChatMessage[] }) {
+	const questions = messages.filter(
+		(message): message is ChatUserMessage => message.from === "user",
+	);
+	if (questions.length < 3) {
+		return null;
+	}
+
+	return (
+		<ConversationOutline.Root>
+			<ConversationOutline.Trigger />
+			<ConversationOutline.Content align="end">
+				{questions.map((message) => (
+					<ConversationOutline.Item key={message.id} target={message.id}>
+						{message.text || message.files.map((file) => file.name).join(", ")}
+					</ConversationOutline.Item>
+				))}
+			</ConversationOutline.Content>
+		</ConversationOutline.Root>
 	);
 }
 
@@ -102,8 +146,7 @@ export function ChatPanelDemo() {
  * line up with the composer's buttons and the composer is always the wider of
  * the two. The gutter is 0.75rem, and 1rem when the chat is wider than 32rem.
  */
-function Chat() {
-	const chat = useChat({ respond: mockRespond });
+function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 	const [draft, setDraft] = useState("");
 	const [files, setFiles] = useState<DraftFile[]>([]);
 	const [model, setModel] = useState(models[0]?.value ?? "");
@@ -153,7 +196,12 @@ function Chat() {
 							<Conversation.Content className="mx-auto w-full max-w-3xl px-[calc(var(--gutter)+(--spacing(2)))] py-6">
 								{chat.messages.map((message) =>
 									message.from === "user" ? (
-										<Message.Root key={message.id} from="user">
+										<Message.Root
+											key={message.id}
+											id={message.id}
+											from="user"
+											className="scroll-mt-4"
+										>
 											<Message.Content className="flex flex-col gap-2">
 												{message.files.length > 0 && (
 													<Attachment.List aria-label="Attached files">

@@ -75,7 +75,7 @@ function AssistantPanel() {
 				<Conversation.Viewport aria-label="Conversation with the assistant">
 					<Conversation.Content className="p-4">
 						{turns.map((turn) => (
-							<Message.Root key={turn.id} id={turn.id} from={turn.from}>
+							<Message.Root key={turn.id} id={turn.id} from={turn.from} className="scroll-mt-4">
 								<Message.Content>{turn.text}</Message.Content>
 							</Message.Root>
 						))}
@@ -119,7 +119,7 @@ The outline is at most 22rem wide and 24rem tall, and never taller than the room
 
 ## How a jump works
 
-A press on an item closes the outline and scrolls its message to the top of the transcript, below the top fade. The scroll is smooth, or instant when the person prefers reduced motion.
+A press on an item closes the outline and scrolls its message to the top of the transcript. Set `scroll-margin-top` on the message, such as `scroll-mt-4`, for room above it. The scroll is smooth, or instant when the person prefers reduced motion.
 
 A jump up while an answer streams stays at the message: `Conversation.Viewport` stops following the end. It follows the end again as usual, when the reader scrolls back to the end, presses `Conversation.ScrollButton`, or sends a message.
 

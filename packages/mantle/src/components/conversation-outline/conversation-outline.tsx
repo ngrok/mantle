@@ -275,7 +275,8 @@ function scrollerOf(message: HTMLElement): HTMLElement {
 }
 
 /**
- * Scrolls `message` to the top of its viewport, below the viewport's top fade.
+ * Scrolls `message` to the top of its viewport, less its `scroll-margin-top`,
+ * as `scrollIntoView` would. Set `scroll-mt-*` on the message for room above it.
  * A `Conversation.Viewport` stops following the end first, so a streamed
  * answer cannot pull the view back down before the scroll starts.
  */
@@ -286,14 +287,13 @@ function jumpTo(message: HTMLElement, behavior: ScrollBehavior) {
 		return;
 	}
 	releaseFollow(viewport);
-	// Why 1.5rem: it is the height of the viewport's `scroll-fade-y` edge.
-	const fade =
-		1.5 * Number.parseFloat(getComputedStyle(message.ownerDocument.documentElement).fontSize);
+	// Why not `scrollIntoView`: it also scrolls the page and each scroller around the viewport.
+	const margin = Number.parseFloat(getComputedStyle(message).scrollMarginTop) || 0;
 	const top =
 		viewport.scrollTop +
 		message.getBoundingClientRect().top -
 		viewport.getBoundingClientRect().top -
-		fade;
+		margin;
 	viewport.scrollTo({ top, behavior });
 }
 

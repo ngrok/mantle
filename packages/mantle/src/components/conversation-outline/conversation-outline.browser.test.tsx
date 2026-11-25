@@ -43,7 +43,12 @@ function Chat({ turns }: { turns: Turn[] }) {
 				<Conversation.Viewport aria-label="Conversation" style={{ height: 200, overflowY: "auto" }}>
 					<Conversation.Content>
 						{turns.map((turn) => (
-							<Message.Root key={turn.id} id={turn.id} from={turn.from}>
+							<Message.Root
+								key={turn.id}
+								id={turn.id}
+								from={turn.from}
+								style={{ scrollMarginTop: 16 }}
+							>
 								<Message.Content style={{ whiteSpace: "pre-wrap" }}>{turn.text}</Message.Content>
 							</Message.Root>
 						))}
@@ -101,7 +106,7 @@ describe("ConversationOutline", () => {
 		await user.click(item("Which endpoints have no policy?"));
 
 		await waitFor(() => {
-			expect(Math.abs(offsetInView("q1") - 24)).toBeLessThanOrEqual(2);
+			expect(Math.abs(offsetInView("q1") - 16)).toBeLessThanOrEqual(2);
 		});
 		expect(document.getElementById("q1")).toHaveFocus();
 		expect(screen.queryByRole("button", { name: "What's live?" })).toBeNull();
@@ -123,13 +128,13 @@ describe("ConversationOutline", () => {
 		rerender(<Chat turns={turnsWith(20)} />);
 
 		await waitFor(() => {
-			expect(Math.abs(offsetInView("q1") - 24)).toBeLessThanOrEqual(2);
+			expect(Math.abs(offsetInView("q1") - 16)).toBeLessThanOrEqual(2);
 		});
 		rerender(<Chat turns={turnsWith(40)} />);
 		// Why two frames: the follow observers run after layout, before the next paint.
 		await nextFrame();
 		await nextFrame();
-		expect(Math.abs(offsetInView("q1") - 24)).toBeLessThanOrEqual(2);
+		expect(Math.abs(offsetInView("q1") - 16)).toBeLessThanOrEqual(2);
 	});
 
 	test("works by keyboard", async () => {

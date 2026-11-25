@@ -62,7 +62,7 @@ export function OverviewExample() {
 					<Conversation.Viewport aria-label="Conversation with the assistant">
 						<Conversation.Content className="p-4">
 							{turns.map((turn) => (
-								<Message.Root key={turn.id} id={turn.id} from={turn.from}>
+								<Message.Root key={turn.id} id={turn.id} from={turn.from} className="scroll-mt-4">
 									<Message.Content>{turn.text}</Message.Content>
 								</Message.Root>
 							))}
