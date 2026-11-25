@@ -84,7 +84,8 @@ function decorateHighlightedHtml({
 	const regionsByBufferLine = new Map<number, string[]>();
 	// Why: a folded line is `display: none`, and CSS counts no such line. The
 	// line that closes a fold sets the line counter again, so the numbers after
-	// a fold stay right.
+	// a fold stay right. Why from the `<pre>`'s start: the first line counts
+	// from it too, so the two never disagree.
 	const closerBufferLines = new Set<number>();
 	const hasFolds = foldableRanges != null && foldableRanges.length > 0;
 
@@ -148,8 +149,7 @@ function decorateHighlightedHtml({
 			}
 		}
 
-		const renderedContent = line === "" ? " " : line;
-		const contentHtml = `<span class="mantle-code-line-content">${renderedContent}</span>`;
+		const contentHtml = `<span class="mantle-code-line-content">${line}</span>`;
 
 		// Why a newline between lines: lines break by CSS, so without it
 		// `textContent` (what crawlers and HTML-to-text tools read) runs every
@@ -160,7 +160,7 @@ function decorateHighlightedHtml({
 			output += "\n";
 		}
 		const counterStyle = closerBufferLines.has(bufferLineNumber)
-			? ` style="counter-set:mantle-line ${displayedLineNumber}"`
+			? ` style="counter-set:mantle-line calc(var(--mantle-line-number-start,1) + ${i})"`
 			: "";
 		output += `<span class="${lineClassName}" data-line-number="${displayedLineNumber}"${foldRegionsAttribute}${counterStyle}>${foldGutterHtml}${contentHtml}</span>`;
 	}

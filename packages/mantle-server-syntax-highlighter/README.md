@@ -70,25 +70,25 @@ const shiki = await getMantleShikiHighlighter();
 
 ### Input Options
 
-| Option            | Type                             | Default    | Description                                                  |
-| ----------------- | -------------------------------- | ---------- | ------------------------------------------------------------ |
-| `code`            | `string`                         | (required) | Raw code string to highlight.                                |
-| `language`        | `string`                         | (required) | Language hint (e.g. `"typescript"`, `"go"`, `"python"`).     |
-| `indentation`     | `"tabs" \| "spaces"`             | auto       | Indentation preference. Defaults to language-inferred value. |
-| `showLineNumbers` | `boolean`                        | `false`    | Whether to render line numbers into the returned HTML.       |
-| `highlightLines`  | `(number \| [number, number])[]` | `[]`       | Line numbers or ranges to highlight.                         |
-| `lineNumberStart` | `number`                         | `1`        | Start line number for rendered line numbers.                 |
+| Option            | Type                             | Default    | Description                                                                                                 |
+| ----------------- | -------------------------------- | ---------- | ----------------------------------------------------------------------------------------------------------- |
+| `code`            | `string`                         | (required) | Raw code string to highlight.                                                                               |
+| `language`        | `string`                         | (required) | Language hint (e.g. `"typescript"`, `"go"`, `"python"`).                                                    |
+| `indentation`     | `"tabs" \| "spaces"`             | auto       | Indentation preference. Defaults to language-inferred value.                                                |
+| `showLineNumbers` | `boolean`                        | `false`    | Whether the block shows line numbers. Returned for `createMantleCodeBlockValue`; the HTML holds no numbers. |
+| `highlightLines`  | `(number \| [number, number])[]` | `[]`       | Line numbers or ranges to highlight.                                                                        |
+| `lineNumberStart` | `number`                         | `1`        | The first line number. Sets `data-line-number` and the highlighted lines.                                   |
 
 ### Result
 
-| Field             | Type                             | Description                                           |
-| ----------------- | -------------------------------- | ----------------------------------------------------- |
-| `html`            | `string`                         | Highlighted HTML (inner content of `<code>` element). |
-| `code`            | `string`                         | Normalized source code used as the highlight input.   |
-| `language`        | `string`                         | Resolved language used for highlighting.              |
-| `showLineNumbers` | `boolean`                        | Whether the HTML includes line numbers.               |
-| `highlightLines`  | `(number \| [number, number])[]` | Highlighted line ranges applied to the HTML.          |
-| `lineNumberStart` | `number`                         | Start line number used in the HTML.                   |
+| Field             | Type                             | Description                                                                    |
+| ----------------- | -------------------------------- | ------------------------------------------------------------------------------ |
+| `html`            | `string`                         | Highlighted HTML (inner content of `<code>` element).                          |
+| `code`            | `string`                         | Normalized source code used as the highlight input.                            |
+| `language`        | `string`                         | Resolved language used for highlighting.                                       |
+| `showLineNumbers` | `boolean`                        | Whether the block shows line numbers. Pass it to `createMantleCodeBlockValue`. |
+| `highlightLines`  | `(number \| [number, number])[]` | Highlighted line ranges applied to the HTML.                                   |
+| `lineNumberStart` | `number`                         | The first line number. Pass it to `createMantleCodeBlockValue`.                |
 
 ### Supported Languages
 

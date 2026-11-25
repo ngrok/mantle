@@ -7,6 +7,7 @@ import { renderToString } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import * as CodeBlock from "./code-block-parts.js";
 import { createMantleCodeBlockValue } from "./mantle-code.js";
+import { useCodeBlockStream } from "./use-code-block-stream.js";
 
 function makeValue(code: string, preHtml?: string) {
 	return createMantleCodeBlockValue({
@@ -763,5 +764,24 @@ describe("CodeBlock", () => {
 				container.remove();
 			}
 		});
+	});
+});
+
+describe("useCodeBlockStream", () => {
+	function StreamedCode({ code }: { code: string }) {
+		return (
+			<CodeBlock.Root>
+				<CodeBlock.Body>
+					<CodeBlock.Code value={useCodeBlockStream({ code, language: "text" })} />
+				</CodeBlock.Body>
+			</CodeBlock.Root>
+		);
+	}
+
+	test("server HTML of CRLF code holds one line break for each line ending", () => {
+		const container = document.createElement("div");
+		container.innerHTML = renderToString(<StreamedCode code={"alpha\r\nbeta"} />);
+		const code = container.querySelector("[data-slot='code-block-code'] code");
+		expect(code?.textContent).toBe("alpha\nbeta");
 	});
 });

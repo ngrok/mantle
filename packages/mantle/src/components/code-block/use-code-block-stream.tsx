@@ -51,10 +51,13 @@ type UseCodeBlockStreamOptions = {
  * ```
  */
 function useCodeBlockStream({
-	code,
+	code: source,
 	language,
 	showLineNumbers = false,
 }: UseCodeBlockStreamOptions): MantleCodeBlockValue {
+	// Why: lines split on LF, so a CR stays at the end of a line, and the HTML
+	// parser reads it as a second line break. `mantleCode` normalizes the same way.
+	const code = source.replace(/\r\n?/g, "\n");
 	const grammar = grammarForLanguage(language);
 	const [id] = useState(createStreamId);
 	// Why the grammar with the lines: lines of another language never show, with no reset in an effect.

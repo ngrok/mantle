@@ -428,21 +428,17 @@ const CodeLineView = memo(function CodeLineView({
 	line: CodeLine | string;
 	lineNumber: number;
 }) {
-	const isEmpty = line.length === 0;
-	// Why no number element: `mantle.css` draws the number from
-	// `data-line-number`, so the digits stay out of the code's text.
+	// Why no number element: `mantle.css` counts the lines and draws each
+	// number, so the digits stay out of the code's text.
 	return (
 		<span className="mantle-code-line" data-line-number={lineNumber}>
 			<span className="mantle-code-line-content">
-				{/* Why a space: an empty line keeps its height. */}
-				{isEmpty && " "}
-				{!isEmpty && typeof line === "string" && line}
-				{!isEmpty &&
-					typeof line !== "string" &&
-					line.map((token, index) => (
-						// oxlint-disable-next-line react/no-array-index-key -- Why: a token has no identity but its position in a line that renders as a whole.
-						<TokenView key={index} token={token} />
-					))}
+				{typeof line === "string"
+					? line
+					: line.map((token, index) => (
+							// oxlint-disable-next-line react/no-array-index-key -- Why: a token has no identity but its position in a line that renders as a whole.
+							<TokenView key={index} token={token} />
+						))}
 			</span>
 		</span>
 	);

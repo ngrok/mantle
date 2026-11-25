@@ -1959,7 +1959,7 @@ pre[data-slot="code-block-code"][data-syntax-highlighted] > code {
 
 /*
  * Why a counter, not `attr(data-line-number)`: a counter costs less to
- * resolve, and a 29-block answer recalculated its styles 14% slower with
+ * resolve, and a 29-block answer recalculated its styles 12% slower with
  * `attr()`. A line that closes a fold sets the counter again (see
  * `decorateHighlightedHtml`), because a folded line is not counted.
  */
@@ -2106,7 +2106,23 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) {
 	background-color: currentColor;
 	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M3.22 5.97a.75.75 0 0 1 1.06 0L8 9.69l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L3.22 7.03a.75.75 0 0 1 0-1.06Z'/%3E%3C/svg%3E")
 		center / contain no-repeat;
-	transition: transform 120ms ease;
+}
+
+/*
+ * Why: forced colors paint a background in the canvas color, which hides the
+ * masked caret. The caret takes the system color of button text.
+ */
+@media (forced-colors: active) {
+	.mantle-code-fold-toggle::after {
+		forced-color-adjust: none;
+		background-color: ButtonText;
+	}
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.mantle-code-fold-toggle::after {
+		transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1);
+	}
 }
 
 .mantle-code-fold-toggle[aria-expanded="false"]::after {
@@ -2153,9 +2169,11 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 	display: inline;
 }
 
+/* Why `min-height`: an empty line keeps its height with no placeholder character in the code's text. */
 .mantle-code-line-content {
 	display: block;
 	min-width: 0;
+	min-height: 1lh;
 	flex: 1 1 auto;
 }
 
