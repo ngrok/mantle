@@ -145,18 +145,20 @@ module-internal and publish on demand.
 | Layout (page/viewport structure)            | required              | required  | `layoutPages` (§2.4)   |
 
 **Stable or preview.** A public component ships stable. Preview is an exception that someone chooses, and the
-choice needs evidence:
+choice needs evidence. Layouts have no preview kind.
 
-- **Proven in production → stable.** The component is hoisted out of the ngrok frontend repo, or extracted
-  from a part of a stable mantle component (`Panel` came out of `AppLayout.SidePanel`). Product use has
-  already tested the API, so preview adds a later rename and changeset for no gain.
+- **Proven in production → stable.** The code already runs in a shipped product: it is hoisted out of the
+  ngrok frontend repo or another ngrok app, or extracted from a part of a stable mantle component. `Panel`
+  came out of `AppLayout.SidePanel` and should have started stable. Product use has already tested the API,
+  so preview adds a later rename and changeset for no gain.
 - **New, unproven API → ask the requester.** Say which way you recommend and why. If you cannot ask (for
   example, another agent sent the task), ship stable, or ship preview only when you can name the part of the
   API you expect to change.
 - Do not copy the status of the last component that landed. It is evidence about that component only.
 
-The check: the PR description states "stable" or "preview" and the evidence. That is the frontend file or
-mantle part it came from, the requester's answer, or, for preview, the API you expect to change.
+The check: the PR that adds a public component states "stable" or "preview" and the evidence. That is the
+production code it came from, the requester's answer, "no requester to ask" for stable, or, for preview, the
+API you expect to change.
 
 Two shapes of internal primitive, with different build consequences:
 
@@ -1266,7 +1268,7 @@ Run this against the diff before calling a component done. Each line is a defect
 - [ ] Answers one user intent no existing component already answers; the primary export's JSDoc names the
       sibling boundary in `@useWhen` and `@siblings` tags.
 - [ ] Nothing is public that could have stayed module-internal.
-- [ ] The PR description states stable or preview and the evidence for it ([§1.2](#12-ship-the-smallest-public-surface)).
+- [ ] A PR that adds a public component states stable or preview and the evidence ([§1.2](#12-ship-the-smallest-public-surface)).
 - [ ] Each new prop names the shipped app that needs it; a behavior with one right answer has no prop
       ([§1.9](#19-build-the-behavior-in-before-you-add-a-prop)).
 - [ ] Outermost part is `Root`; every part name is the web-standards term for what it renders.
