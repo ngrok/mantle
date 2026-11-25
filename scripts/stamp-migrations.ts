@@ -42,8 +42,8 @@ export function stampMigrations({
 	const stamped: string[] = [];
 	for (const { name, file, source } of guides) {
 		const released = frontmatterValue(source, "introducedIn") != null;
-		// Why not a released 0001 to 0035: some of them ship a codemod with no
-		// `codemodIn`, and a release must not claim it shipped those codemods.
+		// Why not a released 0001 to 0035: each sets `codemodIn` by hand, and
+		// `migrate.test.ts` fails when one with a codemod has none.
 		const needsCodemodIn =
 			!(released && /^\d{4}-/.test(name)) &&
 			frontmatterValue(source, "codemodIn") == null &&

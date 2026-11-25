@@ -238,13 +238,18 @@ describe("Conversation", () => {
 				throw new Error("Conversation.ScrollButton did not render.");
 			}
 			const settled = () => button.getAnimations().length === 0;
+			// Why the animations' own promises: a slow engine can take longer than waitFor's timeout to fade.
+			const finish = async () => {
+				await Promise.allSettled(button.getAnimations().map((animation) => animation.finished));
+				expect(settled()).toBe(true);
+			};
 			const style = () => getComputedStyle(button);
 
 			viewport().scrollTo({ top: 0, behavior: "instant" });
 			await waitFor(() => expect(root()).toHaveAttribute("data-scrolled-up", ""));
 			expect(button.inert).toBe(false);
 			expect(settled()).toBe(reducedMotion === "reduce");
-			await waitFor(() => expect(settled()).toBe(true));
+			await finish();
 			expect(style().opacity).toBe("1");
 			expect(style().scale).toBe("1");
 			expect(style().visibility).toBe("visible");
@@ -256,7 +261,7 @@ describe("Conversation", () => {
 			// Why: with motion, the exit still shows; reduced motion hides the button at once.
 			expect(settled()).toBe(reducedMotion === "reduce");
 			expect(style().visibility).toBe(reducedMotion === "reduce" ? "hidden" : "visible");
-			await waitFor(() => expect(settled()).toBe(true));
+			await finish();
 			expect(style().opacity).toBe("0");
 			expect(style().visibility).toBe("hidden");
 		},

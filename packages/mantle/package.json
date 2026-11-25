@@ -188,6 +188,11 @@
 			"types": "./dist/conversation.d.ts",
 			"import": "./dist/conversation.js"
 		},
+		"./conversation-outline": {
+			"@ngrok/src-live-types": "./src/components/conversation-outline/index.ts",
+			"types": "./dist/conversation-outline.d.ts",
+			"import": "./dist/conversation-outline.js"
+		},
 		"./cx": {
 			"@ngrok/src-live-types": "./src/utils/cx/index.ts",
 			"types": "./dist/cx.d.ts",

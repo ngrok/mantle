@@ -1,0 +1,172 @@
+---
+title: Conversation Outline
+description: A list of the person's messages in a long chat. A press on one jumps to that message.
+category: AI
+aliases: [chat navigator, jump to message, message outline, thread outline, ai chat]
+---
+
+import { PageHeader } from "~/components/page-header";
+import { Example } from "~/components/example";
+
+<PageHeader id="conversation-outline">Conversation Outline</PageHeader>
+
+A list of the person's messages in a long chat. A press on one jumps to that message. Open the outline in the header, then choose an earlier question.
+
+<Example name="components/ai/conversation-outline/overview" title="Conversation Outline example">
+
+```tsx
+import { Card } from "@ngrok/mantle/card";
+import { Conversation } from "@ngrok/mantle/conversation";
+import { ConversationOutline } from "@ngrok/mantle/conversation-outline";
+import { Message } from "@ngrok/mantle/message";
+
+type Turn = { id: string; from: "user" | "assistant"; text: string };
+
+const turns: Turn[] = [
+	{ id: "turn-1", from: "user", text: "What's live right now?" },
+	{
+		id: "turn-2",
+		from: "assistant",
+		text: "Three endpoints are online: https://api.example.com, https://app.example.com, and tcp://1.tcp.ngrok.io:20012. Each one has run for more than a week with no restarts.",
+	},
+	{ id: "turn-3", from: "user", text: "Which of them have no traffic policy?" },
+	{
+		id: "turn-4",
+		from: "assistant",
+		text: "Two have none: https://api.example.com and tcp://1.tcp.ngrok.io:20012. The first takes every request it gets. The second is open to the internet. app.example.com already has a policy, so it needs no change.",
+	},
+	{ id: "turn-5", from: "user", text: "Add a rate limit by client IP to the API endpoint." },
+	{
+		id: "turn-6",
+		from: "assistant",
+		text: "Done. https://api.example.com now allows 100 requests a minute from each client IP and returns 429 above that. The change took effect at once, with no restart.",
+	},
+	{ id: "turn-7", from: "user", text: "And restrict the TCP address to our office network." },
+	{
+		id: "turn-8",
+		from: "assistant",
+		text: "Done. tcp://1.tcp.ngrok.io:20012 now accepts connections from 203.0.113.0/24 only. A connection from any other address closes before it reaches your service.",
+	},
+];
+
+/** The person's messages, which the outline lists. */
+const questions = turns.filter((turn) => turn.from === "user");
+
+function AssistantPanel() {
+	return (
+		<Card.Root className="flex h-96 w-full max-w-md flex-col overflow-hidden p-0">
+			<div className="flex items-center justify-between border-b px-4 py-2">
+				<h2 className="text-strong text-sm font-medium">Assistant</h2>
+				{/* Why three: with one or two messages, a scroll is faster than the outline. */}
+				{questions.length >= 3 && (
+					<ConversationOutline.Root>
+						<ConversationOutline.Trigger />
+						<ConversationOutline.Content align="end">
+							{questions.map((turn) => (
+								<ConversationOutline.Item key={turn.id} target={turn.id}>
+									{turn.text}
+								</ConversationOutline.Item>
+							))}
+						</ConversationOutline.Content>
+					</ConversationOutline.Root>
+				)}
+			</div>
+			<Conversation.Root className="min-h-0 flex-1">
+				<Conversation.Viewport>
+					<Conversation.Content aria-label="Conversation with the assistant" className="p-4">
+						{turns.map((turn) => (
+							<Message.Root key={turn.id} id={turn.id} from={turn.from} className="scroll-mt-4">
+								<Message.Content>{turn.text}</Message.Content>
+							</Message.Root>
+						))}
+					</Conversation.Content>
+				</Conversation.Viewport>
+				<Conversation.ScrollButton />
+			</Conversation.Root>
+		</Card.Root>
+	);
+}
+```
+
+</Example>
+
+## When to use
+
+- Let the person find and jump back to one of their own messages in a long chat.
+- Use it with [Conversation](/components/ai/conversation) and [Message](/components/ai/message). Give each `Message.Root` an `id`, and pass it to the item as `target`.
+- Prefer [Popover](/components/overlays/popover) for a floating panel with other content.
+
+## Composition
+
+```text showLineNumbers=false
+ConversationOutline.Root
+├── ConversationOutline.Trigger
+└── ConversationOutline.Content
+    └── ConversationOutline.Item
+```
+
+## Polymorphism
+
+`ConversationOutline.Item` takes `asChild`. The other parts do not: `ConversationOutline.Root` renders no element, `ConversationOutline.Trigger` owns its icon and its label, and `ConversationOutline.Content` portals into the top layer.
+
+## Where to put the trigger
+
+Put the trigger in the chat's header, at every width: a side panel, a full-width page, and a phone. The outline is not a frequent action, so it stays clear of the message box and `Conversation.ScrollButton`, which own the bottom of the chat. Pass `align="end"` to `ConversationOutline.Content` so the outline opens below the trigger and lines up with its end, as the example does.
+
+Render the trigger once the person has sent three messages, as the example above does. With one or two, a scroll is faster, and an outline of one line looks broken. Put it before the header's other actions, so they do not move when it appears.
+
+The outline is at most 22rem wide and 24rem tall, and never taller than the room next to the trigger. On a 320px screen it narrows to fit, and a long message shows as one line that ends in an ellipsis.
+
+## How a jump works
+
+A press on an item closes the outline and scrolls its message to the top of the transcript. Set `scroll-margin-top` on the message, such as `scroll-mt-4`, for room above it. The scroll is smooth, or instant when the person prefers reduced motion.
+
+A jump up while an answer streams stays at the message: `Conversation.Viewport` stops following the end. It follows the end again as usual, when the reader scrolls back to the end, presses `Conversation.ScrollButton`, or sends a message.
+
+## Accessibility
+
+`ConversationOutline.Content` is a dialog named by its trigger, "Conversation outline". Each item is a button named by its message text.
+
+- When the outline opens, focus moves to the item of the current message, which carries `aria-current="location"`. Tab and Shift+Tab move between the items, and Escape closes the outline and returns focus to the trigger.
+- After a jump, focus moves to the message, so a screen reader reads on from there and Tab continues from it.
+- The item of each message in view shows in the strong color, and the others are muted. The current item says the same thing to a screen reader with `aria-current`.
+
+## API Reference
+
+### ConversationOutline.Root
+
+The root, stateful part that owns the open state. It renders no element.
+
+All props from [Popover.Root](/components/overlays/popover#popoverroot): `open`, `defaultOpen`, and `onOpenChange`.
+
+### ConversationOutline.Trigger
+
+The icon button that opens and closes the outline.
+
+All props from [Icon Button](/components/actions/icon-button) except `appearance`, `asChild`, `icon`, `intent`, `label`, and `type`, plus:
+
+| Prop     | Type     | Default                  | Description                                                   |
+| -------- | -------- | ------------------------ | ------------------------------------------------------------- |
+| `label?` | `string` | `"Conversation outline"` | The accessible name of the button. It also names the outline. |
+
+### ConversationOutline.Content
+
+The panel that lists the messages, one item each. It marks the items of the messages in view and the current one, and keeps the marks up to date while the transcript scrolls.
+
+All props from [Popover.Content](/components/overlays/popover#popovercontent) except `preferredWidth`.
+
+### ConversationOutline.Item
+
+One of the person's messages, as one line of text. A press jumps to the message and moves focus to it.
+
+All props from [button](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button#attributes) except `type`, plus:
+
+| Prop       | Type      | Default | Description                                                                    |
+| ---------- | --------- | ------- | ------------------------------------------------------------------------------ |
+| `target`   | `string`  | –       | The `id` of the message this item jumps to, such as its `Message.Root`'s `id`. |
+| `asChild?` | `boolean` | `false` | Render as a different element by passing a child.                              |
+
+| Data Attribute | Value                                | Description                                                                    |
+| -------------- | ------------------------------------ | ------------------------------------------------------------------------------ |
+| `data-in-view` | present while its message is in view | Presence-only. The item shows in the strong color.                             |
+| `aria-current` | `"location"` on the current message  | The message the reader is at: the first in view, else the last above the view. |

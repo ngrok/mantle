@@ -54,7 +54,16 @@ export const componentCategorySlugs = {
  */
 export const componentsByCategory = {
 	Actions: ["Button", "Icon Button", "Split Button"],
-	AI: ["Attachment", "Conversation", "Message", "Prompt Input", "Reasoning", "Tool Call", "Work"],
+	AI: [
+		"Attachment",
+		"Conversation",
+		"Conversation Outline",
+		"Message",
+		"Prompt Input",
+		"Reasoning",
+		"Tool Call",
+		"Work",
+	],
 	Charts: ["Area Chart", "Bar Chart", "Line Chart", "Scatter Plot"],
 	"Data Display": [
 		"Accordion",
@@ -178,6 +187,7 @@ export const prodReadyComponentRouteLookup = {
 	Combobox: "/components/forms/combobox",
 	Command: "/components/navigation/command",
 	Conversation: "/components/ai/conversation",
+	"Conversation Outline": "/components/ai/conversation-outline",
 	"Data Table": "/components/data-display/data-table",
 	"Description List": "/components/data-display/description-list",
 	Dialog: "/components/overlays/dialog",

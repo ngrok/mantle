@@ -244,7 +244,7 @@ function Viewport({
 		if (element == null) {
 			return;
 		}
-		return rovingMessages(element, { release: () => follows.get(element)?.release() });
+		return rovingMessages(element, { release: () => releaseFollow(element) });
 	}, [element]);
 
 	useLayoutEffect(() => {
@@ -302,8 +302,19 @@ type FollowEnd = {
 	release: () => void;
 };
 
-/** The follow state of each mounted viewport. */
+/** The follow state of each mounted viewport, for `releaseFollow`. */
 const follows = new WeakMap<HTMLElement, FollowEnd>();
+
+/**
+ * Stops `viewport` from following its end before a scroll up that the script
+ * starts, such as a jump to an earlier message. Without it, a streamed chunk
+ * that lands before the first scroll frame pulls the view back to the end.
+ * Following resumes as usual: at the end, on `Conversation.ScrollButton`, or
+ * when the person sends a message. Internal to mantle.
+ */
+function releaseFollow(viewport: HTMLElement) {
+	follows.get(viewport)?.release();
+}
 
 /**
  * Keeps `viewport` at its end while its content grows, until the reader
@@ -880,6 +891,7 @@ export {
 	Viewport,
 	Content,
 	ScrollButton,
+	releaseFollow,
 };
 
 export type {

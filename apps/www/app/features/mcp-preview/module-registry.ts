@@ -34,6 +34,7 @@ export const previewModules: Readonly<Record<string, () => Promise<unknown>>> = 
 	"@ngrok/mantle/combobox": () => import("@ngrok/mantle/combobox"),
 	"@ngrok/mantle/command": () => import("@ngrok/mantle/command"),
 	"@ngrok/mantle/conversation": () => import("@ngrok/mantle/conversation"),
+	"@ngrok/mantle/conversation-outline": () => import("@ngrok/mantle/conversation-outline"),
 	"@ngrok/mantle/cx": () => import("@ngrok/mantle/cx"),
 	"@ngrok/mantle/data-table": () => import("@ngrok/mantle/data-table"),
 	"@ngrok/mantle/description-list": () => import("@ngrok/mantle/description-list"),
