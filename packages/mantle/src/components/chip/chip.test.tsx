@@ -194,6 +194,25 @@ describe("Chip", () => {
 		expect(onRemove).not.toHaveBeenCalled();
 	});
 
+	test("an aria-disabled chip blocks Backspace and Delete before the caller's onKeyDown", async () => {
+		const onKeyDown = vi.fn<() => void>();
+		render(
+			<Chip
+				aria-disabled="true"
+				tabIndex={-1}
+				onKeyDown={onKeyDown}
+				onRemove={() => {}}
+				removeLabel="Remove Read"
+			>
+				Read
+			</Chip>,
+		);
+		const user = userEvent.setup();
+		screen.getByText("Read").closest<HTMLElement>('[data-slot~="chip"]')?.focus();
+		await user.keyboard("{Backspace}{Delete}");
+		expect(onKeyDown).not.toHaveBeenCalled();
+	});
+
 	test("forwards the ref, className, and data attributes", () => {
 		const ref = createRef<HTMLButtonElement>();
 		render(

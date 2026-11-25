@@ -142,7 +142,7 @@ describe("Chip contrast", () => {
 		styleElement.media = "not all";
 		document.head.append(mantleStyle);
 		document.documentElement.classList.add(theme);
-		await commands.emulateMedia({ reducedMotion: "reduce", hover: "hover" });
+		await commands.emulateMedia({ reducedMotion: "reduce" });
 		try {
 			render(
 				<div data-testid="surface" className={surfaceClass}>
@@ -158,6 +158,13 @@ describe("Chip contrast", () => {
 				</div>,
 			);
 			const surface = screen.getByTestId("surface");
+			// Why: with no theme CSS, default black on white would pass every threshold.
+			expect(readColor(getComputedStyle(surface).backgroundColor)[3]).toBe(1);
+			expect(
+				readColor(
+					getComputedStyle(screen.getByRole("button", { name: "Read" })).backgroundColor,
+				)[3],
+			).toBeGreaterThan(0);
 			const pressed = screen.getByRole("button", { name: "Read" });
 			const glyphs = ["Remove Write", "Remove Manage"].map((name) =>
 				screen.getByRole("button", { name }),
@@ -177,28 +184,43 @@ describe("Chip contrast", () => {
 });
 
 describe("Chip width", () => {
-	test("a long pill stays inside a 320px container", async () => {
+	test("a long pill stays inside a 320px row beside a sibling and truncates its label", async () => {
 		const longLabel = "Production API credentials for the primary billing account";
 		// Why preflight: apps load it, and `max-w-full` counts the padding only in border-box sizing.
 		const preflight = document.createElement("style");
 		preflight.textContent = preflightCss;
 		document.head.prepend(preflight);
 		onTestFinished(() => preflight.remove());
+		// Why a fixed sibling: a pill must shrink into the space left after it, not only cap at the row width.
+		const row = { display: "flex", gap: 8, width: 320 } as const;
+		const sibling = <span style={{ flex: "0 0 64px" }} />;
 		render(
-			<div data-testid="container" className="flex w-80 flex-wrap gap-2">
-				<Chip selectable>{longLabel}</Chip>
-				<Chip onRemove={() => {}} removeLabel="Remove billing">
-					{longLabel}
-				</Chip>
-			</div>,
+			<>
+				<div data-testid="row" style={row}>
+					{sibling}
+					<Chip selectable>{longLabel}</Chip>
+				</div>
+				<div data-testid="row" style={row}>
+					{sibling}
+					<Chip onRemove={() => {}} removeLabel="Remove billing">
+						{longLabel}
+					</Chip>
+				</div>
+			</>,
 		);
-		const container = screen.getByTestId("container").getBoundingClientRect();
-		const remove = screen.getByRole("button", { name: "Remove billing" }).getBoundingClientRect();
-		for (const chip of screen.getByTestId("container").children) {
-			expect(chip.getBoundingClientRect().right).toBeLessThanOrEqual(container.right);
+		expect(screen.getByRole("button", { name: "Remove billing" }).clientWidth).toBeGreaterThan(0);
+		for (const row of screen.getAllByTestId("row")) {
+			const right = row.getBoundingClientRect().right;
+			const parts = row.querySelectorAll(
+				"[data-slot~=chip], [data-slot=chip-label] > span, [data-slot=chip-remove]",
+			);
+			for (const part of parts) {
+				expect(part.getBoundingClientRect().right).toBeLessThanOrEqual(right);
+			}
+			const label = row.querySelector<HTMLElement>("[data-slot=chip-label] > span");
+			expect(label && getComputedStyle(label).textOverflow).toBe("ellipsis");
+			expect(label && label.scrollWidth > label.clientWidth).toBe(true);
 		}
-		expect(remove.right).toBeLessThanOrEqual(container.right);
-		expect(remove.width).toBeGreaterThan(0);
 	});
 });
 

@@ -15,6 +15,6 @@ component exposes `data-slot`, `data-appearance`, `data-size`, `data-state`, and
 
 `MultiSelect.Tag` now renders a `square` `Chip` at the `sm` size, so it also
 carries `data-appearance="square"` and `data-size="sm"`. Its layout does not
-change. Its remove icon is darker, so it meets the 3:1 contrast that WCAG asks
+change. Its remove icon is more opaque, so it meets the 3:1 contrast that WCAG asks
 for a control. A locked tag now stamps `data-locked=""` in place of `data-locked="true"`. Select it with
 `data-locked:` or `[data-locked]`, not `[data-locked="true"]`.
