@@ -271,6 +271,10 @@ function mantleThemePrunePlugin(): Plugin {
 						}
 					}
 				}
+				// Why: with no stop removed, no read can warn, so skip reading every file of the bundle.
+				if (removed.size === 0) {
+					return;
+				}
 				// A read from another file cannot keep a stop: the pruned stylesheet would change
 				// under the same hashed name. Warn about every read of a stop that any mantle
 				// stylesheet removed, because a page may load the reader without another stylesheet
