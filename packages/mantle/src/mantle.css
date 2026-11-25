@@ -1380,6 +1380,21 @@ MARK: CUSTOM VARIANTS
 }
 
 @layer base {
+	/*
+	 * A border with no color class draws in the separator color. Tailwind v4
+	 * leaves it `currentColor`, so a bare `border-b` is black in light and
+	 * white in dark. Any `border-*` color utility, such as `border-current`,
+	 * still wins: utilities come after this layer. The selector list matches
+	 * the preflight rule that sets `border: 0 solid`.
+	 */
+	*,
+	::after,
+	::before,
+	::backdrop,
+	::file-selector-button {
+		border-color: var(--color-separator);
+	}
+
 	body {
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;

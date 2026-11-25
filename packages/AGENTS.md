@@ -9,5 +9,6 @@ Read [CONVENTIONS.md](../CONVENTIONS.md) in full before you change code here.
 - `packages/mantle/bundle-budget.json` pins bundle sizes. Run `pnpm -w run check:bundle-budget` after a build; a change that shrinks a size lowers its budget with `--update`.
 - Nothing under `packages/mantle/src` imports a router or an app framework ([docs/framework-boundary.md](../docs/framework-boundary.md)).
 - A change to a published package needs a changeset ([VERSIONING.md](../VERSIONING.md)).
+- Give each border a color class: `border-separator` for a divider, the surface token (`border-card-muted`, `border-popover`) for an edge, `border-form` for a control. Never a bare `border-b`: it draws in the text color ([Colors](../apps/www/app/docs/base/colors.mdx#borders-and-dividers)).
 - Tests follow [docs/testing.md](../docs/testing.md).
 - A JSDoc summary, `useWhen`, or alias feeds the MCP `find` tool. Run its golden queries ([docs/mcp-evals.md](../docs/mcp-evals.md)).
