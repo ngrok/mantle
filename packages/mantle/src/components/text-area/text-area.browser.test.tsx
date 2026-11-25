@@ -31,7 +31,8 @@ const STYLE = `
 	.field-sizing-content { field-sizing: content; }
 	.max-h-60 { max-height: 15rem; }
 	.min-h-24 { min-height: 6rem; }
-	[class~="min-h-[calc(var(--_text-area-rows)*1lh+(--spacing(4)))]"] { min-height: calc(var(--_text-area-rows) * 1lh + 1rem); }
+	[class~="[--_text-area-min:calc(var(--_text-area-rows)*1lh+(--spacing(4)))]"] { --_text-area-min: calc(var(--_text-area-rows) * 1lh + 1rem); }
+	[class~="min-h-(--_text-area-min)"] { min-height: var(--_text-area-min); }
 	.data-drag-over\\:border-dashed[data-drag-over] { border-style: dashed; }
 }
 `;

@@ -89,10 +89,10 @@ const TextArea = ({
 				"data-[validation=success]:border-success-600 data-[validation=success]:ring-focus-success data-[validation=success]:focus-visible:border-success-600 data-[validation=success]:data-drag-over:border-success-600",
 				"data-[validation=warning]:border-warning-600 data-[validation=warning]:ring-focus-warning data-[validation=warning]:focus-visible:border-warning-600 data-[validation=warning]:data-drag-over:border-warning-600",
 				appearance === "monospaced" && "font-mono pointer-coarse:text-base text-xs/5",
-				// Why a minimum height: `field-sizing-content` ignores `rows`. The sums add the vertical padding and border.
+				// Why a minimum height: `field-sizing-content` ignores `rows`. The sums add the vertical padding and border, and a caller `min-h-*` replaces the one `min-h` class on every pointer.
 				minRows == null
 					? "min-h-24"
-					: "min-h-[calc(var(--_text-area-rows)*1lh+(--spacing(4)))] pointer-coarse:min-h-[calc(var(--_text-area-rows)*1lh+(--spacing(5)))]",
+					: "min-h-(--_text-area-min) [--_text-area-min:calc(var(--_text-area-rows)*1lh+(--spacing(4)))] pointer-coarse:[--_text-area-min:calc(var(--_text-area-rows)*1lh+(--spacing(5)))]",
 				className,
 			)}
 			data-drag-over={isDragOver ? "" : undefined}
