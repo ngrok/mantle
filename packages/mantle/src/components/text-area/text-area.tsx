@@ -24,8 +24,7 @@ type Props = ComponentProps<"textarea"> &
  * to enter a sizeable amount of free-form text, for example a comment on a
  * review or feedback form.
  *
- * The field grows with its text up to `max-h-60`, then scrolls, with a fade
- * at each edge that has more text past it. Its minimum
+ * The field grows with its text up to `max-h-60`, then scrolls. Its minimum
  * height is `rows` lines, such as `rows={1}` or `rows={2}` for a compact
  * field, or `6rem` without `rows`. A drag on the resize handle cannot make it
  * shorter than that minimum.
@@ -82,7 +81,7 @@ const TextArea = ({
 			data-validation={validation || undefined}
 			data-slot={joinDataSlot(dataSlot, "text-area")}
 			className={cx(
-				"border-input bg-form data-drag-over:border-dashed data-drag-over:ring-4 pointer-coarse:py-[calc(--spacing(2.5)-1px)] pointer-coarse:text-base text-sm flex field-sizing-content max-h-60 scroll-fade-y-inset w-full rounded-md border px-3 py-[calc(--spacing(2)-1px)] focus-visible:outline-hidden focus-visible:ring-4 disabled:pointer-events-none disabled:opacity-50",
+				"border-input bg-form data-drag-over:border-dashed data-drag-over:ring-4 pointer-coarse:py-[calc(--spacing(2.5)-1px)] pointer-coarse:text-base text-sm flex field-sizing-content max-h-60 w-full rounded-md border px-3 py-[calc(--spacing(2)-1px)] focus-visible:outline-hidden focus-visible:ring-4 disabled:pointer-events-none disabled:opacity-50",
 				"placeholder:text-placeholder data-drag-over:border-dashed",
 				"border-form text-strong ring-focus-accent focus:border-accent-600 data-drag-over:border-accent-600",
 				"data-[validation=error]:border-danger-600 data-[validation=error]:ring-focus-danger data-[validation=error]:focus-visible:border-danger-600 data-[validation=error]:data-drag-over:border-danger-600 motion-safe:data-[validation=error]:animate-shake",
