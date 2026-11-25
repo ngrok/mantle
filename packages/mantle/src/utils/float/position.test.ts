@@ -86,7 +86,7 @@ describe("computePlacement", () => {
 		).toEqual({ side: "left", x: 696, y: 220 });
 	});
 
-	test("moves over the anchor to stay inside the viewport when neither side fits", () => {
+	test("with overlapAnchor, moves over the anchor to stay inside the viewport when neither side fits", () => {
 		const placement = (left: number) =>
 			computePlacement({
 				anchor: { left, top: 300, right: left + 290, bottom: 320, width: 290, height: 20 },
@@ -95,10 +95,24 @@ describe("computePlacement", () => {
 				side: "right",
 				align: "start",
 				sideOffset: 4,
+				overlapAnchor: true,
 			});
 		// More room on the right: the float stays right and ends 8px from the right edge.
 		expect(placement(40)).toEqual({ side: "right", x: 267, y: 300 });
 		// More room on the left: the float flips left and starts 8px from the left edge.
 		expect(placement(50)).toEqual({ side: "left", x: 8, y: 300 });
+		// An anchor scrolled off the screen keeps its float beside it.
+		expect(placement(-400)).toEqual({ side: "right", x: -106, y: 300 });
+		// Without the option, as for a tooltip, the float never covers its anchor.
+		expect(
+			computePlacement({
+				anchor: { left: 40, top: 300, right: 330, bottom: 320, width: 290, height: 20 },
+				size: { width: 100, height: 100 },
+				viewport: { width: 375, height: 600 },
+				side: "right",
+				align: "start",
+				sideOffset: 4,
+			}).x,
+		).toBe(334);
 	});
 });

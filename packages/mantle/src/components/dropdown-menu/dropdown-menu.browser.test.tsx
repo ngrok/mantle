@@ -124,6 +124,19 @@ describe("DropdownMenu keyboard (browser)", () => {
 		await waitFor(() => expect(item("More")).toHaveFocus());
 	});
 
+	test("a click with no press, as a screen reader sends, toggles the menu; a pointer click opens it once", async () => {
+		render(<FruitMenu />);
+		const trigger = screen.getByRole("button", { name: "Open" });
+
+		act(() => trigger.click());
+		await waitFor(() => expect(item("Apple")).toHaveFocus());
+		act(() => trigger.click());
+		await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "false"));
+
+		await browserUser.click(trigger);
+		await waitFor(() => expect(trigger).toHaveAttribute("aria-expanded", "true"));
+	});
+
 	test("arrow keys skip a disabled item, and Home and End move to the ends", async () => {
 		const user = userEvent.setup();
 		render(<FruitMenu />);

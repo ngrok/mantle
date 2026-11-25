@@ -46,7 +46,7 @@ The same chat fits a side panel beside the page it helps with. Switch either dem
 - **The work folds away when the answer ends.** `Work.Root` takes the answer's `streaming` flag, so the reasoning and the tool calls show while they arrive and fold under "Show work" once the text is done. A step the reader opened mid-answer stays open. Each step's caret shows on hover, focus, or open, and always on a touch screen.
 - **Stop keeps the text.** `stop` aborts the stream and ends the answer as stopped, so the reader keeps what arrived. A new message sent mid-answer does the same. `retry` replaces the last answer with a new one from the same messages.
 - **A failure is a notice, not a dead end.** When the stream throws, the answer keeps its text so far and shows an [Alert](/components/feedback/alert) with `role="alert"` under it, so a screen reader hears it, and the retry action asks again.
-- **The model picker follows Amp's.** A quiet button names the model and its effort. Its menu lists each model on one line, with a provider icon, an optional [Badge](/components/data-display/badge), a muted description, and a check on the pick. Effort and the other models sit in submenus under a separator. The menu takes the width of its widest row, capped at 24rem and the screen, so a name never wraps and truncates only as a last resort. In a chat narrower than 24rem, as in the side panel or on a phone, the button drops the effort from view, and a screen reader still hears it. A menu holds no form value, so hidden inputs submit the model and the effort with the message.
+- **The model picker follows Amp's.** A quiet button names the model and its effort. Its menu lists each model on one line, with a provider icon, an optional [Badge](/components/data-display/badge), a muted description, and a check on the pick. Effort and the other models sit in submenus under a separator. The menu takes the width of its widest row, capped at 24rem and the screen, so a name never wraps and truncates only as a last resort. In a chat narrower than 24rem, as in the side panel or on a phone, the button drops the effort from view, and a screen reader still hears it. `send` and `retry` hand the model and the effort to `respond`. A menu holds no form value, so hidden inputs carry both for a form that posts.
 - **The empty state is the first screen.** Before the first message, [Empty](/components/feedback/empty) offers starter prompts in place of the transcript. The composer stays put, so the draft never moves, and a pressed starter or Retry hands focus to the field.
 - **The transcript lines up with the composer.** The transcript and the composer share one centered column. The transcript's edges line up with the composer's buttons, so the bottom fade ends at the composer. The button that goes back to the newest message sits at the composer's right corner, not the window's.
 - **The outline waits for a long chat.** From the third message the person sends, a [Conversation Outline](/components/ai/conversation-outline) button shows in the header, at every width. It lists their messages, and a press jumps to one. With fewer messages a scroll is faster, so the button stays hidden, and it renders before the header's other actions so they do not move. Each person's `Message.Root` takes its message `id` and `scroll-mt-4`, so a jump leaves room above it.
@@ -243,13 +243,19 @@ function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 	const [draft, setDraft] = useState("");
 	const [files, setFiles] = useState<DraftFile[]>([]);
 	const [model, setModel] = useState(models[0]?.value ?? "");
+	const [effort, setEffort] = useState("Medium");
 	const fieldRef = useRef<HTMLTextAreaElement>(null);
 
 	function send(text: string) {
 		if (text.trim() === "" && files.length === 0) {
 			return;
 		}
-		chat.send({ text, files: files.map(({ id, name, size }) => ({ id, name, size })), model });
+		chat.send({
+			text,
+			files: files.map(({ id, name, size }) => ({ id, name, size })),
+			model,
+			effort,
+		});
 		setDraft("");
 		setFiles([]);
 		// Why: a starter button leaves with the empty state, so focus must not fall to the page.
@@ -320,7 +326,7 @@ function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 											onRetry={
 												message === lastAnswer
 													? () => {
-															chat.retry(model);
+															chat.retry({ model, effort });
 															// Why: Retry leaves while the new answer streams, so focus moves to the field.
 															fieldRef.current?.focus();
 														}
@@ -382,7 +388,12 @@ function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 						/>
 						<PromptInput.Footer>
 							<PromptInput.AttachButton />
-							<ModelPicker model={model} onModelChange={setModel} />
+							<ModelPicker
+								model={model}
+								onModelChange={setModel}
+								effort={effort}
+								onEffortChange={setEffort}
+							/>
 							<PromptInput.Dictate />
 							<PromptInput.Submit />
 						</PromptInput.Footer>
@@ -407,11 +418,14 @@ function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 function ModelPicker({
 	model,
 	onModelChange,
+	effort,
+	onEffortChange,
 }: {
 	model: string;
 	onModelChange: (model: string) => void;
+	effort: string;
+	onEffortChange: (effort: string) => void;
 }) {
-	const [effort, setEffort] = useState("Medium");
 	const selected = [...models, ...otherModels].find((option) => option.value === model);
 
 	return (
@@ -453,9 +467,13 @@ function ModelPicker({
 								{option.icon}
 								<span className="flex min-w-0 flex-1 flex-col">
 									<span className="flex items-center gap-2">
-										<span className="truncate font-medium">{option.label}</span>
+										<span className="max-w-full shrink-0 truncate font-medium">{option.label}</span>
 										{option.badge != null && (
-											<Badge appearance="muted" color="neutral" className="shrink-0">
+											<Badge
+												appearance="muted"
+												color="neutral"
+												className="min-w-0 shrink overflow-hidden whitespace-nowrap"
+											>
 												{option.badge}
 											</Badge>
 										)}
@@ -472,7 +490,7 @@ function ModelPicker({
 							<span className="text-muted ps-6">{effort}</span>
 						</DropdownMenu.SubTrigger>
 						<DropdownMenu.SubContent>
-							<DropdownMenu.RadioGroup value={effort} onValueChange={setEffort}>
+							<DropdownMenu.RadioGroup value={effort} onValueChange={onEffortChange}>
 								{efforts.map((level) => (
 									<DropdownMenu.RadioItem key={level} value={level}>
 										{level}
@@ -483,12 +501,12 @@ function ModelPicker({
 					</DropdownMenu.Sub>
 					<DropdownMenu.Sub>
 						<DropdownMenu.SubTrigger>Other models</DropdownMenu.SubTrigger>
-						<DropdownMenu.SubContent>
+						<DropdownMenu.SubContent className="max-w-[min(24rem,var(--available-width))]">
 							<DropdownMenu.RadioGroup value={model} onValueChange={onModelChange}>
 								{otherModels.map((option) => (
 									<DropdownMenu.RadioItem key={option.value} value={option.value}>
 										{option.icon}
-										<span className="whitespace-nowrap">{option.label}</span>
+										<span className="min-w-0 truncate">{option.label}</span>
 									</DropdownMenu.RadioItem>
 								))}
 							</DropdownMenu.RadioGroup>
@@ -669,8 +687,12 @@ export type ChatMessage = ChatUserMessage | ChatAnswer;
 export type Respond = (request: {
 	messages: ChatMessage[];
 	model: string;
+	effort: string;
 	signal: AbortSignal;
 }) => AsyncIterable<ChatEvent>;
+
+/** The model and the effort a person picks for the next answer. */
+export type ChatModelChoice = { model: string; effort: string };
 
 /**
  * Applies one event to the answer it belongs to. Pure, so a test can drive an
@@ -785,7 +807,7 @@ export function useChat({ respond }: { respond: Respond }) {
 		}
 	}
 
-	async function stream(history: ChatMessage[], model: string) {
+	async function stream(history: ChatMessage[], choice: ChatModelChoice) {
 		abortRef.current?.abort();
 		const controller = new AbortController();
 		abortRef.current = controller;
@@ -795,7 +817,7 @@ export function useChat({ respond }: { respond: Respond }) {
 		let status: ChatAnswer["status"] = "done";
 		try {
 			await readAnswer(
-				respond({ messages: history, model, signal: controller.signal }),
+				respond({ messages: history, ...choice, signal: controller.signal }),
 				(event) => updateAnswer((answer) => applyChatEvent(answer, event, Date.now() - startedAt)),
 				controller.signal,
 			);
@@ -818,7 +840,7 @@ export function useChat({ respond }: { respond: Respond }) {
 		/** True while an answer streams. Hand it to `Conversation.Root` and `PromptInput.Root`. */
 		streaming,
 		/** Sends a message and streams its answer. */
-		send: ({ text, files, model }: { text: string; files: ChatFile[]; model: string }) => {
+		send: ({ text, files, ...choice }: { text: string; files: ChatFile[] } & ChatModelChoice) => {
 			const message: ChatUserMessage = { id: crypto.randomUUID(), from: "user", text, files };
 			const current = messagesRef.current;
 			const previous = current.at(-1);
@@ -827,7 +849,7 @@ export function useChat({ respond }: { respond: Respond }) {
 				previous?.from === "assistant" && previous.status === "streaming"
 					? [...current.slice(0, -1), endAnswer(previous, "stopped")]
 					: current;
-			void stream([...history, message], model);
+			void stream([...history, message], choice);
 		},
 		/** Stops the answer and keeps its text so far. */
 		stop: () => {
@@ -838,11 +860,11 @@ export function useChat({ respond }: { respond: Respond }) {
 			);
 		},
 		/** Streams a new answer in place of the last one. */
-		retry: (model: string) => {
+		retry: (choice: ChatModelChoice) => {
 			const current = messagesRef.current;
 			const history = current.at(-1)?.from === "assistant" ? current.slice(0, -1) : current;
 			if (history.at(-1)?.from === "user") {
-				void stream(history, model);
+				void stream(history, choice);
 			}
 		},
 	};

@@ -569,6 +569,7 @@ const Trigger = ({
 	asChild = false,
 	"data-slot": dataSlot,
 	disabled,
+	onClick,
 	onKeyDown,
 	onPointerDown,
 	ref,
@@ -600,6 +601,17 @@ const Trigger = ({
 				if (!state.open) {
 					event.preventDefault();
 				}
+			}}
+			onClick={(event: MouseEvent<HTMLButtonElement>) => {
+				onClick?.(event);
+				// Why only `detail` 0: a screen reader or `element.click()` activates
+				// the button with a click and no press. A pointer press and Enter or
+				// Space already toggled the menu in their own handlers.
+				if (event.defaultPrevented || disabled || event.detail !== 0) {
+					return;
+				}
+				state.setOpenFocus("first");
+				state.setOpen(!state.open);
 			}}
 			onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => {
 				onKeyDown?.(event);
@@ -1587,6 +1599,7 @@ const SubContent = ({
 		getInsideElements: () => [sub.triggerRef.current],
 		dismissOnOutside: true,
 		dismissWhenCovered: true,
+		overlapAnchor: true,
 		side: opensLeft ? "left" : "right",
 		align,
 		sideOffset,

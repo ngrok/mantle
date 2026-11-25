@@ -127,11 +127,15 @@ export function FooterControlsExample() {
 								</span>
 							</Button>
 						</DropdownMenu.Trigger>
-						<DropdownMenu.Content side="top" align="start">
+						<DropdownMenu.Content
+							side="top"
+							align="start"
+							className="max-w-[min(24rem,var(--available-width))]"
+						>
 							<DropdownMenu.RadioGroup value={model} onValueChange={setModel}>
 								{models.map((option) => (
 									<DropdownMenu.RadioItem key={option.value} value={option.value}>
-										<span className="whitespace-nowrap">{option.label}</span>
+										<span className="min-w-0 truncate">{option.label}</span>
 									</DropdownMenu.RadioItem>
 								))}
 							</DropdownMenu.RadioGroup>

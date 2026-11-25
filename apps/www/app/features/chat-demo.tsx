@@ -186,13 +186,19 @@ function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 	const [draft, setDraft] = useState("");
 	const [files, setFiles] = useState<DraftFile[]>([]);
 	const [model, setModel] = useState(models[0]?.value ?? "");
+	const [effort, setEffort] = useState("Medium");
 	const fieldRef = useRef<HTMLTextAreaElement>(null);
 
 	function send(text: string) {
 		if (text.trim() === "" && files.length === 0) {
 			return;
 		}
-		chat.send({ text, files: files.map(({ id, name, size }) => ({ id, name, size })), model });
+		chat.send({
+			text,
+			files: files.map(({ id, name, size }) => ({ id, name, size })),
+			model,
+			effort,
+		});
 		setDraft("");
 		setFiles([]);
 		// Why: a starter button leaves with the empty state, so focus must not fall to the page.
@@ -263,7 +269,7 @@ function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 											onRetry={
 												message === lastAnswer
 													? () => {
-															chat.retry(model);
+															chat.retry({ model, effort });
 															// Why: Retry leaves while the new answer streams, so focus moves to the field.
 															fieldRef.current?.focus();
 														}
@@ -325,7 +331,12 @@ function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 						/>
 						<PromptInput.Footer>
 							<PromptInput.AttachButton />
-							<ModelPicker model={model} onModelChange={setModel} />
+							<ModelPicker
+								model={model}
+								onModelChange={setModel}
+								effort={effort}
+								onEffortChange={setEffort}
+							/>
 							<PromptInput.Dictate />
 							<PromptInput.Submit />
 						</PromptInput.Footer>
@@ -350,11 +361,14 @@ function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 function ModelPicker({
 	model,
 	onModelChange,
+	effort,
+	onEffortChange,
 }: {
 	model: string;
 	onModelChange: (model: string) => void;
+	effort: string;
+	onEffortChange: (effort: string) => void;
 }) {
-	const [effort, setEffort] = useState("Medium");
 	const selected = [...models, ...otherModels].find((option) => option.value === model);
 
 	return (
@@ -396,9 +410,13 @@ function ModelPicker({
 								{option.icon}
 								<span className="flex min-w-0 flex-1 flex-col">
 									<span className="flex items-center gap-2">
-										<span className="truncate font-medium">{option.label}</span>
+										<span className="max-w-full shrink-0 truncate font-medium">{option.label}</span>
 										{option.badge != null && (
-											<Badge appearance="muted" color="neutral" className="shrink-0">
+											<Badge
+												appearance="muted"
+												color="neutral"
+												className="min-w-0 shrink overflow-hidden whitespace-nowrap"
+											>
 												{option.badge}
 											</Badge>
 										)}
@@ -415,7 +433,7 @@ function ModelPicker({
 							<span className="text-muted ps-6">{effort}</span>
 						</DropdownMenu.SubTrigger>
 						<DropdownMenu.SubContent>
-							<DropdownMenu.RadioGroup value={effort} onValueChange={setEffort}>
+							<DropdownMenu.RadioGroup value={effort} onValueChange={onEffortChange}>
 								{efforts.map((level) => (
 									<DropdownMenu.RadioItem key={level} value={level}>
 										{level}
@@ -426,12 +444,12 @@ function ModelPicker({
 					</DropdownMenu.Sub>
 					<DropdownMenu.Sub>
 						<DropdownMenu.SubTrigger>Other models</DropdownMenu.SubTrigger>
-						<DropdownMenu.SubContent>
+						<DropdownMenu.SubContent className="max-w-[min(24rem,var(--available-width))]">
 							<DropdownMenu.RadioGroup value={model} onValueChange={onModelChange}>
 								{otherModels.map((option) => (
 									<DropdownMenu.RadioItem key={option.value} value={option.value}>
 										{option.icon}
-										<span className="whitespace-nowrap">{option.label}</span>
+										<span className="min-w-0 truncate">{option.label}</span>
 									</DropdownMenu.RadioItem>
 								))}
 							</DropdownMenu.RadioGroup>
