@@ -242,7 +242,9 @@ function Viewport({
 		};
 		const stop = followEnd(element, { onScrolledUpChange });
 		scrollToEndRef.current = stop.scrollToEnd;
+		follows.set(element, stop);
 		return () => {
+			follows.delete(element);
 			stop.disconnect();
 			scrollToEndRef.current = null;
 			// Why: Root can outlive the viewport, such as while a loading message replaces it.
@@ -273,7 +275,23 @@ function Viewport({
 type FollowEnd = {
 	disconnect: () => void;
 	scrollToEnd: (behavior: ScrollBehavior) => void;
+	/** Stops following the end, as a scroll up by the reader does. */
+	release: () => void;
 };
+
+/** The follow state of each mounted viewport, for `releaseFollow`. */
+const follows = new WeakMap<HTMLElement, FollowEnd>();
+
+/**
+ * Stops `viewport` from following its end before a scroll up that the script
+ * starts, such as a jump to an earlier message. Without it, a streamed chunk
+ * that lands before the first scroll frame pulls the view back to the end.
+ * Following resumes as usual: at the end, on `Conversation.ScrollButton`, or
+ * when the person sends a message. Internal to mantle.
+ */
+function releaseFollow(viewport: HTMLElement) {
+	follows.get(viewport)?.release();
+}
 
 /**
  * Keeps `viewport` at its end while its content grows, until the reader
@@ -437,6 +455,10 @@ function followEnd(
 			viewport.removeEventListener("wheel", onWheel);
 			viewport.ownerDocument.removeEventListener("keydown", onKeyDown);
 			viewport.removeEventListener("pointerdown", holdSmoothScroll);
+		},
+		release: () => {
+			isFollowing = false;
+			smoothTarget = null;
 		},
 		scrollToEnd: (behavior) => {
 			isFollowing = true;
@@ -638,6 +660,7 @@ export {
 	Viewport,
 	Content,
 	ScrollButton,
+	releaseFollow,
 };
 
 export type {

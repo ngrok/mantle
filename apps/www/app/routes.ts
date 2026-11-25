@@ -52,6 +52,7 @@ const docsPages = [
 	// ai
 	"components/ai/attachment",
 	"components/ai/conversation",
+	"components/ai/conversation-outline",
 	"components/ai/message",
 	"components/ai/prompt-input",
 	"components/ai/reasoning",
