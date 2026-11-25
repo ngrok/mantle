@@ -541,7 +541,7 @@
 	},
 	"scripts": {
 		"build": "NODE_OPTIONS='--max-old-space-size=16384' tsdown",
-		"check:bundle-budget": "node ./scripts/bundle-budget.ts",
+		"report:bundle-size": "node ./scripts/bundle-size.ts",
 		"check:dist": "node ./scripts/check-dist.ts",
 		"clean": "rm -rf dist",
 		"prebuild": "pnpm run clean",

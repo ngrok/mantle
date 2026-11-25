@@ -757,7 +757,7 @@ cure. Read the roster there rather than restating it here, because an enumerated
   run skews the other. Rotate the order of the base and the branch in each round, report medians, and compare
   numbers only within one run. One 8ms Event Timing step is noise unless a trace confirms it.
 - An opt-in API, such as a function child, ships only on a part where a named use case needs it. Measure its
-  gzip bytes on each page shape in `bundle-budget.json`, and weigh them against the product and marketing
+  gzip bytes on each page shape in `bundle-size.json`, and weigh them against the product and marketing
   JavaScript budgets.
 - Performance does not win against accessibility. Keep what assistive technology reads, and give the measured
   cost to the author as a decision ([docs/north-star.md](./docs/north-star.md#when-two-goals-pull-apart)).

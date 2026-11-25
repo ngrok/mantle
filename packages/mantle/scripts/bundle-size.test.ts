@@ -1,22 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { gzipSync } from "node:zlib";
-import { gzipBytesOf, judge, splitChunks } from "./bundle-budget.ts";
+import { formatReport, gzipBytesOf, splitChunks } from "./bundle-size.ts";
 
-describe("judge", () => {
-	it("fails a size one byte over its budget", () => {
-		expect(judge({ gzipBytes: 10_001, maxGzipBytes: 10_000 })).toEqual({ kind: "over", overBy: 1 });
-	});
-
-	it("passes a size at its budget and a size a little under it", () => {
-		expect(judge({ gzipBytes: 10_000, maxGzipBytes: 10_000 })).toEqual({ kind: "within" });
-		expect(judge({ gzipBytes: 9_700, maxGzipBytes: 10_000 })).toEqual({ kind: "within" });
-	});
-
-	it("asks for a lower budget once a size falls more than 3% under it", () => {
-		expect(judge({ gzipBytes: 9_699, maxGzipBytes: 10_000 })).toEqual({
-			kind: "stale",
-			underBy: 301,
+describe("formatReport", () => {
+	it("shows each change against the base, and a dash for a scenario the base lacks", () => {
+		const report = formatReport({
+			base: { button: 1000, slot: 800 },
+			head: { button: 1100, slot: 780, dictate: 500 },
 		});
+		expect(report).toContain("| `button` | 1000 B | 1100 B | +100 B (+10.0%) |");
+		expect(report).toContain("| `slot` | 800 B | 780 B | -20 B (-2.5%) |");
+		expect(report).toContain("| `dictate` | — | 500 B | new |");
 	});
 });
 

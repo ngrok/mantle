@@ -7,61 +7,64 @@ import { gzipSync } from "node:zlib";
 import { Window } from "happy-dom";
 import { build } from "vite";
 
-/**
- * One page shape the budget pins: the module source of a page entry that reads
- * the parts it renders, and the most gzip bytes its mantle JavaScript may cost.
- */
-type Scenario = {
-	entry: string;
-	maxGzipBytes: number;
-};
+/** Each scenario: the module source of a page entry that reads the parts it renders. */
+type Scenarios = Record<string, string>;
 
-type Budget = Record<string, Scenario>;
-
-/** The result of one scenario against its budget. */
-type Verdict =
-	| { kind: "over"; overBy: number }
-	| { kind: "stale"; underBy: number }
-	| { kind: "within" };
-
-/**
- * How far a scenario may fall under its budget before the check asks for a
- * lower budget. A win that is not written down can come back unnoticed.
- */
-const STALE_RATIO = 0.03;
-
-/** The headroom `--update` adds over the measured size, in bytes. */
-const UPDATE_HEADROOM = 64;
+/** The gzip bytes of each scenario's eager mantle JavaScript, by name. */
+type Sizes = Record<string, number>;
 
 const PACKAGE_ROOT = path.resolve(import.meta.dirname, "..");
-const DIST = path.join(PACKAGE_ROOT, "dist");
-const BUDGET_FILE = path.join(PACKAGE_ROOT, "bundle-budget.json");
+const SCENARIO_FILE = path.join(PACKAGE_ROOT, "bundle-size.json");
 /** Where each scenario's build lands, so Node can import it and resolve React from the package. */
-const OUT_DIR = path.join(PACKAGE_ROOT, "node_modules", ".cache", "bundle-budget");
+const OUT_DIR = path.join(PACKAGE_ROOT, "node_modules", ".cache", "bundle-size");
+
+/** Reads the value after a flag, such as `--dist ../base/dist`. */
+const flag = (name: string): string | undefined => {
+	const index = process.argv.indexOf(name);
+	return index === -1 ? undefined : process.argv[index + 1];
+};
+
+const DIST = path.resolve(flag("--dist") ?? path.join(PACKAGE_ROOT, "dist"));
+
+const formatBytes = (bytes: number): string => `${(bytes / 1024).toFixed(1)} KB`;
 
 /**
- * Compares a measured size with its budget. Pure, so the thresholds are testable.
+ * Formats a Markdown table that compares each scenario's size on the base
+ * branch with its size on the pull request. Pure, so the format is testable.
+ * A scenario with no base size, such as a new one, shows a dash.
  *
  * @example
  * ```ts
- * judge({ gzipBytes: 15_400, maxGzipBytes: 15_000 }); // { kind: "over", overBy: 400 }
+ * formatReport({ base: { button: 1000 }, head: { button: 1100 } });
+ * // | `button` | 1000 B | 1100 B | +100 B (+10.0%) |
  * ```
  */
-const judge = ({
-	gzipBytes,
-	maxGzipBytes,
-}: {
-	gzipBytes: number;
-	maxGzipBytes: number;
-}): Verdict => {
-	if (gzipBytes > maxGzipBytes) {
-		return { kind: "over", overBy: gzipBytes - maxGzipBytes };
-	}
-	const underBy = maxGzipBytes - gzipBytes;
-	if (underBy > maxGzipBytes * STALE_RATIO) {
-		return { kind: "stale", underBy };
-	}
-	return { kind: "within" };
+const formatReport = ({ base, head }: { base: Sizes; head: Sizes }): string => {
+	const rows = Object.entries(head).map(([name, bytes]) => {
+		const before = base[name];
+		if (before == null) {
+			return `| \`${name}\` | — | ${bytes} B | new |`;
+		}
+		const delta = bytes - before;
+		const sign = delta > 0 ? "+" : "";
+		const change =
+			delta === 0 ? "0 B" : `${sign}${delta} B (${sign}${((delta / before) * 100).toFixed(1)}%)`;
+		return `| \`${name}\` | ${before} B | ${bytes} B | ${change} |`;
+	});
+	const total = Object.values(head).reduce((sum, bytes) => sum + bytes, 0);
+	const totalBase = Object.entries(head).reduce((sum, [name]) => sum + (base[name] ?? 0), 0);
+	return [
+		"## Bundle size",
+		"",
+		"Gzip bytes of the mantle JavaScript that each scenario loads before render, built the way a consumer's Vite production build does. This report does not block a merge.",
+		"",
+		"| Scenario | Base | This PR | Change |",
+		"| --- | --- | --- | --- |",
+		...rows,
+		"",
+		`Sum of all scenarios: ${formatBytes(totalBase)} → ${formatBytes(total)}.`,
+		"",
+	].join("\n");
 };
 
 /** A chunk of a build: its code and the chunks it imports. */
@@ -187,10 +190,15 @@ const loadOnImport = async ({
  * code highlighter, costs a page nothing until it runs. It also returns the
  * lazy chunks and workers that an import of the entry loads at once.
  */
-const measure = async (
-	name: string,
-	entry: string,
-): Promise<{
+const measure = async ({
+	name,
+	entry,
+	checkImports,
+}: {
+	name: string;
+	entry: string;
+	checkImports: boolean;
+}): Promise<{
 	gzipBytes: number;
 	lazyGzipBytes: number;
 	lazyLoaded: string[];
@@ -198,7 +206,7 @@ const measure = async (
 	dir: string;
 	lazy: string[];
 }> => {
-	const virtualId = `\0bundle-budget:${name}`;
+	const virtualId = `\0bundle-size:${name}`;
 	const output = await build({
 		configFile: false,
 		logLevel: "silent",
@@ -215,13 +223,13 @@ const measure = async (
 		// Why a worker build like the page's: a worker is lazy code, and its own chunks stay out of the entry.
 		worker: { format: "es" },
 		resolve: {
-			// Why dist: the budget measures what consumers install, after the React
+			// Why dist: the report measures what consumers install, after the React
 			// Compiler pass and the namespace rewrite.
 			alias: [{ find: /^@ngrok\/mantle\/(.+)$/, replacement: `${DIST}/$1.js` }],
 		},
 		plugins: [
 			{
-				name: "bundle-budget-entry",
+				name: "bundle-size-entry",
 				resolveId: (id) => (id === virtualId ? id : undefined),
 				load: (id) => (id === virtualId ? entry : undefined),
 			},
@@ -249,7 +257,7 @@ const measure = async (
 	}
 	const entryChunk = chunks.find((chunk) => chunk.isEntry);
 	const onImport =
-		entryChunk == null
+		entryChunk == null || !checkImports
 			? { lazyLoaded: [], workers: 0 }
 			: await loadOnImport({ dir, entry: entryChunk.fileName, lazy });
 	return {
@@ -261,61 +269,57 @@ const measure = async (
 	};
 };
 
-const formatBytes = (bytes: number): string => `${(bytes / 1024).toFixed(1)} KB`;
+const readSizes = (file: string): Sizes => JSON.parse(fs.readFileSync(file, "utf8"));
 
 const main = async (): Promise<void> => {
-	if (!fs.existsSync(DIST)) {
-		throw new Error("No dist: run `pnpm -F @ngrok/mantle run build` first.");
+	const compare = flag("--compare");
+	if (compare != null) {
+		const head = flag("--head");
+		if (head == null) {
+			throw new Error("--compare <base.json> needs --head <head.json>.");
+		}
+		console.log(formatReport({ base: readSizes(compare), head: readSizes(head) }));
+		return;
 	}
-	const update = process.argv.includes("--update");
-	const budget: Budget = JSON.parse(fs.readFileSync(BUDGET_FILE, "utf8"));
-	let failed = false;
-	// Why apart from `failed`: `--update` fixes a size, but not a chunk that an import loads.
+	if (!fs.existsSync(DIST)) {
+		throw new Error(`No dist at ${DIST}: build @ngrok/mantle first.`);
+	}
+	// Why only for the package's own dist: a base dist is for sizes, and its import checks ran on its own branch.
+	const checkImports = flag("--dist") == null;
+	const scenarios: Scenarios = JSON.parse(fs.readFileSync(SCENARIO_FILE, "utf8"));
+	const sizes: Sizes = {};
 	let loadsOnImport = false;
 	const lazyByScenario: { name: string; dir: string; lazy: string[]; loaded: number }[] = [];
-	for (const [name, scenario] of Object.entries(budget)) {
-		const {
-			gzipBytes,
-			lazyGzipBytes,
-			lazyLoaded,
-			workers,
-			dir,
-			lazy: lazyFiles,
-		} = await measure(name, scenario.entry);
+	for (const [name, entry] of Object.entries(scenarios)) {
+		let result: Awaited<ReturnType<typeof measure>>;
+		try {
+			result = await measure({ name, entry, checkImports });
+		} catch (error) {
+			// Why: a base dist has no export for a part that the pull request adds.
+			if (checkImports) {
+				throw error;
+			}
+			console.log(`- ${name.padEnd(24)} not in this dist`);
+			continue;
+		}
+		const { gzipBytes, lazyGzipBytes, lazyLoaded, workers, dir, lazy: lazyFiles } = result;
+		sizes[name] = gzipBytes;
 		lazyByScenario.push({ name, dir, lazy: lazyFiles, loaded: lazyLoaded.length });
-		if (update) {
-			// Why the cap: a small scenario with the full headroom is at once more than 3% under its budget.
-			scenario.maxGzipBytes =
-				gzipBytes + Math.min(UPDATE_HEADROOM, Math.floor(gzipBytes * STALE_RATIO));
-		}
-		const verdict = judge({ gzipBytes, maxGzipBytes: scenario.maxGzipBytes });
 		const lazy = lazyGzipBytes > 0 ? `  (+${formatBytes(lazyGzipBytes)} lazy)` : "";
-		const line = `${name.padEnd(24)} ${formatBytes(gzipBytes).padStart(9)} / ${formatBytes(scenario.maxGzipBytes)}${lazy}`;
-		switch (verdict.kind) {
-			case "over": {
-				failed = true;
-				console.log(`✗ ${line}  over by ${verdict.overBy} B`);
-				break;
-			}
-			case "stale": {
-				failed = true;
-				console.log(`✗ ${line}  under by ${verdict.underBy} B: lower the budget`);
-				break;
-			}
-			case "within": {
-				console.log(`✓ ${line}`);
-				break;
-			}
-			default: {
-				throw new Error("Unknown verdict.");
-			}
-		}
+		console.log(`  ${name.padEnd(24)} ${formatBytes(gzipBytes).padStart(9)}${lazy}`);
 		if (lazyLoaded.length > 0 || workers > 0) {
 			loadsOnImport = true;
 			console.log(
 				`✗ ${name}: an import with no render loads ${lazyLoaded.length} lazy chunks and starts ${workers} workers. Load them on first use.`,
 			);
 		}
+	}
+	const json = flag("--json");
+	if (json != null) {
+		fs.writeFileSync(json, `${JSON.stringify(sizes, null, 2)}\n`);
+	}
+	if (!checkImports) {
+		return;
 	}
 	const workersBefore = workerStarts;
 	// Why a last check: a timer that an import started can load a chunk or start a worker later.
@@ -337,17 +341,6 @@ const main = async (): Promise<void> => {
 		console.log("\nAn import with no render loads lazy code. Load it on first use.");
 		process.exitCode = 1;
 	}
-	if (update) {
-		fs.writeFileSync(BUDGET_FILE, `${JSON.stringify(budget, null, 2)}\n`);
-		console.log(`Wrote ${path.relative(process.cwd(), BUDGET_FILE)}.`);
-		return;
-	}
-	if (failed) {
-		console.log(
-			"\nA scenario is off its budget. If the change is intended, run `pnpm -F @ngrok/mantle run check:bundle-budget --update` and commit bundle-budget.json.",
-		);
-		process.exitCode = 1;
-	}
 };
 
 if (import.meta.main) {
@@ -363,8 +356,7 @@ if (import.meta.main) {
 
 export {
 	//,
+	formatReport,
 	gzipBytesOf,
-	judge,
 	splitChunks,
 };
-export type { Verdict };
