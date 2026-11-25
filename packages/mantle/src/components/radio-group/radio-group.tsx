@@ -319,11 +319,10 @@ type RadioCardProps = RadioItemProps & WithDataSlot;
 const Card = ({ className, ...props }: RadioCardProps) => (
 	<RadioPrimitive.Item
 		part="radio-group-card"
-		className={clsx(
-			"group/radio border-card bg-card [&_label]:cursor-inherit relative block rounded-md border p-4 text-sm",
+		className={cx(
+			"group/radio border-card bg-card [&_label]:cursor-inherit relative block rounded-xl border p-4 text-sm",
 			"cursor-pointer has-[>input:disabled]:cursor-default",
 			"has-[>input:focus-visible]:focus-ring",
-			"first-of-type:rounded-tl-md first-of-type:rounded-tr-md last-of-type:rounded-bl-md last-of-type:rounded-br-md",
 			"has-[>input:disabled]:border-form/50 not-has-[>input:disabled]:hover:bg-card-hover",
 			"has-[>input:checked]:border-accent-500/50 has-[>input:checked]:bg-selected-menu-item not-has-[>input:disabled]:hover:has-[>input:checked]:bg-active-selected-menu-item",
 			className,

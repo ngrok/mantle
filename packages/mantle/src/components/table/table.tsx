@@ -137,7 +137,7 @@ const Root = ({
 		<div
 			data-slot={joinDataSlot(dataSlot, "table")}
 			className={cx(
-				"group/table relative w-full overflow-hidden rounded-lg border border-card bg-white dark:bg-gray-100",
+				"group/table relative w-full overflow-hidden rounded-xl border border-card bg-white dark:bg-gray-100",
 				className,
 			)}
 			data-sticky-active={

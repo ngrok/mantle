@@ -551,7 +551,7 @@ describe("Alert", () => {
 			// Why the class: `Root` emits no `data-appearance`, so `rounded-none` is the
 			// only observable of the banner appearance.
 			// `toHaveClass` ignores extras, so the radius list is the proof: the base
-			// `rounded-md` must lose the merge to the variant's `rounded-none`.
+			// `rounded-xl` must lose the merge to the variant's `rounded-none`.
 			const radius = Array.from(getAlertRoot(container)?.classList ?? []).filter((name) =>
 				name.startsWith("rounded"),
 			);

@@ -119,7 +119,7 @@ function Root({
 			data-slot={joinDataSlot(dataSlot, "attachment")}
 			aria-busy={busy || undefined}
 			className={cx(
-				"border-card bg-card grid max-w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center rounded-lg border py-1.5 ps-1.5 pe-1",
+				"border-card bg-card grid max-w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center rounded-xl border py-1.5 ps-1.5 pe-1",
 				// Why margins, not a gap: a grid keeps the gap beside an empty track, so a chip without a preview or remove button would gain space.
 				"[&>[data-slot~=attachment-preview]]:me-2 [&>[data-slot~=attachment-remove]]:ms-2",
 				"[&>[data-slot~=attachment-preview]]:col-start-1 [&>[data-slot~=attachment-preview]]:row-span-2 [&>[data-slot~=attachment-preview]]:row-start-1",

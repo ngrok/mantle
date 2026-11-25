@@ -80,7 +80,7 @@ function Frame({ name, title, height }: FrameProps) {
 	return (
 		<div
 			className={cx(
-				"grid overflow-hidden rounded-lg border border-gray-300",
+				"grid overflow-hidden rounded-xl border border-gray-300",
 				height === "fixed" ? "h-160 grid-rows-[auto_minmax(0,1fr)]" : "grid-rows-[auto_auto]",
 			)}
 		>

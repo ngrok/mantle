@@ -46,7 +46,7 @@ const Well = ({ "data-slot": dataSlot, asChild = false, className, ref, ...props
 		<Comp
 			ref={ref}
 			data-slot={joinDataSlot(dataSlot, "well")}
-			className={cx("border-card-muted bg-base relative rounded-md border shadow-inner", className)}
+			className={cx("border-card-muted bg-base relative rounded-xl border shadow-inner", className)}
 			{...props}
 		/>
 	);

@@ -106,7 +106,7 @@ export const AgentCard = ({
 }) => {
 	const name = `agent-${index + 1}`;
 	return (
-		<Card.Root className="overflow-hidden rounded-xl" data-bench-chart>
+		<Card.Root className="overflow-hidden" data-bench-chart>
 			<Card.Body className="flex min-h-31 items-stretch gap-4 border-none p-0">
 				<div className="flex min-w-0 flex-1 items-start">
 					<label className="flex items-center py-5 pr-3 pl-5" htmlFor={`${name}-select`}>
