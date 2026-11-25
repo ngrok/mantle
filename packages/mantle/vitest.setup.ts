@@ -34,13 +34,14 @@ declare module "vitest/browser" {
 			hover?: "hover" | "none";
 		}) => Promise<void>;
 		/**
-		 * Compiles the Tailwind utilities that a source file uses, with the path
-		 * relative to the test file. Browser project only; the config registers
-		 * the command. `theme` adds the first `@theme` block of `mantle.css`.
-		 * `mantleCss` compiles against all of `mantle.css`, with the light and dark tokens.
+		 * Compiles the Tailwind utilities that one or more source files use, with
+		 * paths relative to the test file. Browser project only; the config
+		 * registers the command. `theme` adds the first `@theme` block of
+		 * `mantle.css`. `mantleCss` compiles against all of `mantle.css`, with
+		 * the light and dark tokens.
 		 */
 		tailwindCss: (
-			sourceFile: string,
+			sourceFiles: string | readonly string[],
 			options?: { theme?: boolean; mantleCss?: boolean },
 		) => Promise<string>;
 	}

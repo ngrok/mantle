@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { createRef, type ReactNode, type Ref, StrictMode } from "react";
 import { renderToString } from "react-dom/server";
-import { describe, expect, test } from "vitest";
+import { describe, expect, onTestFinished, test } from "vitest";
 import { commands, userEvent as browserUser } from "vitest/browser";
 import { type ScrollAnchor, useScrollAnchor } from "../../hooks/use-scroll-anchor.js";
 import * as Message from "../message/message-parts.js";
@@ -90,6 +90,15 @@ function message(index: number): HTMLElement {
 
 function distanceFromEnd(element: HTMLElement): number {
 	return element.scrollHeight - element.clientHeight - element.scrollTop;
+}
+
+/** The alpha of a computed color, such as `rgb(…)`, `rgba(…, 0.5)`, or `oklab(… / 0.05)`. */
+function backgroundAlpha(color: string): number {
+	const alpha = /(?:\/\s*|,\s*)([\d.]+%?)\s*\)$/.exec(color)?.[1];
+	if (color.startsWith("rgb(") || alpha == null) {
+		return 1;
+	}
+	return alpha.endsWith("%") ? Number.parseFloat(alpha) / 100 : Number(alpha);
 }
 
 function root(): HTMLElement {
@@ -264,6 +273,42 @@ describe("Conversation", () => {
 			await finish();
 			expect(style().opacity).toBe("0");
 			expect(style().visibility).toBe("hidden");
+		},
+	);
+
+	test.each(["light", "dark"] as const)(
+		"the scroll button stays opaque at rest, on hover, and on focus in the %s theme",
+		async (theme) => {
+			// Why the full stylesheet: the test reads the real token colors, and the outlined hover fill has alpha.
+			const css = await commands.tailwindCss(
+				["./conversation.tsx", "../button/icon-button-variants.ts"],
+				{ mantleCss: true },
+			);
+			const html = document.documentElement;
+			const previousClassName = html.className;
+			html.className = theme;
+			onTestFinished(() => {
+				html.className = previousClassName;
+			});
+			render(
+				<>
+					<style>{`${css}\n[data-slot~="conversation"] { height: 200px; }`}</style>
+					<Transcript turns={[question, { id: "a1", from: "assistant", text: longAnswer }]} />
+				</>,
+			);
+			await nextFrame();
+			viewport().scrollTo({ top: 0, behavior: "instant" });
+			const button = await screen.findByRole("button", { name: "Scroll to the latest message" });
+			// Why the alpha: a see-through fill shows the transcript and its borders behind the floating button.
+			const alpha = () => backgroundAlpha(getComputedStyle(button).backgroundColor);
+
+			expect(alpha()).toBe(1);
+			await browserUser.hover(button);
+			expect(button.matches(":hover")).toBe(true);
+			expect(alpha()).toBe(1);
+			await browserUser.unhover(button);
+			button.focus();
+			expect(alpha()).toBe(1);
 		},
 	);
 

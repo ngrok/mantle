@@ -976,6 +976,8 @@ function ScrollButton({
 			className={cx(
 				// Why right-5: it clears a 15px classic scrollbar, so a press on the thumb never hits the button.
 				"bg-popover absolute right-5 bottom-3 size-8 rounded-full shadow-md",
+				// Why popover-hover: the outlined hover fill has alpha, and the transcript shows through a floating button.
+				"not-disabled:hover:bg-popover-hover",
 				// Inert ends interaction at once; visibility lets the exit finish.
 				// It morphs in from a little smaller and lower, and leaves on the reverse path.
 				"invisible translate-y-1 scale-90 opacity-0 transition-[opacity,scale,translate,visibility] transition-discrete duration-150 ease-out-strong motion-reduce:transition-none",
