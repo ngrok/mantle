@@ -173,20 +173,31 @@ const mantleEasings = async (): Promise<string> => {
 
 // Why a command: a browser test asserts layout, so it needs the CSS that Tailwind
 // really compiles for a component. A hand-written copy keeps passing when Tailwind
-// drops a rule. The path is relative to the test file.
+// drops a rule. The paths are relative to the test file.
 // Why the theme is opt-in: older tests pin Tailwind's default colors.
 // Why `mantleCss`: a contrast test needs every light and dark token, so it compiles against all of mantle.css.
+// Why several sources: a part can take classes from another module, such as `IconButton`'s variants.
 const tailwindCss: BrowserCommand<
-	[sourceFile: string, options?: { theme?: boolean; mantleCss?: boolean }]
-> = async ({ testPath }, sourceFile, options) => {
+	[sourceFiles: string | readonly string[], options?: { theme?: boolean; mantleCss?: boolean }]
+> = async ({ testPath }, sourceFiles, options) => {
 	if (testPath == null) {
 		throw new Error("tailwindCss runs only inside a test file.");
 	}
-	const file = path.resolve(path.dirname(testPath), sourceFile);
-	const content = await readFile(file, "utf8");
-	const candidates = new Scanner({ sources: [] })
-		.getCandidatesWithPositions({ content, extension: path.extname(file).slice(1) })
-		.map(({ candidate }) => candidate);
+	const files = (typeof sourceFiles === "string" ? [sourceFiles] : sourceFiles).map((sourceFile) =>
+		path.resolve(path.dirname(testPath), sourceFile),
+	);
+	const candidates = (
+		await Promise.all(
+			files.map(async (file) =>
+				new Scanner({ sources: [] })
+					.getCandidatesWithPositions({
+						content: await readFile(file, "utf8"),
+						extension: path.extname(file).slice(1),
+					})
+					.map(({ candidate }) => candidate),
+			),
+		)
+	).flat();
 	const input = options?.mantleCss
 		? `@import "./src/mantle.css";`
 		: `@import "tailwindcss/theme"; @import "tailwindcss/utilities";\n${options?.theme ? await mantleTheme() : ""}\n${await mantleEasings()}\n${await mantleCustomVariants()}\n${await mantleUtilities()}\n${await mantleAnimations()}`;

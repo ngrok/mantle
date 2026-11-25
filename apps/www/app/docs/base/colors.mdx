@@ -26,6 +26,16 @@ Each color is a CSS variable in the `oklch()` color space. Use it through a Tail
 
 <BlackWhiteDemo />
 
+## Borders and dividers
+
+Give each border a color class. Pick it by what the line does:
+
+- A divider between two parts, such as the line under a header: `border-separator`. The [`Separator`](/components/structure/separator) part draws the same color.
+- The edge of a surface: the token of that surface, such as `border-card-muted`, `border-popover`, or `border-dialog`.
+- The edge of a form control: `border-form`.
+
+A border with no color class, such as a bare `border-b`, draws in `currentColor` in Tailwind v4. That is the text color: black in light mode and white in dark mode, the strongest line on the page. Mantle's stylesheet gives such a border the separator color instead, so an omission does not show. Still write the color: the class says what the line is, and the line keeps its color where mantle's stylesheet does not load.
+
 ## Functional colors
 
 Use these colors for actions and states: `accent` for primary actions, and `danger`, `warning`, `success`, `info`, and `important` for the states they name. Use `neutral` for UI with no state.

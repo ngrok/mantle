@@ -11,7 +11,7 @@ export function OverviewExample() {
 			</BrowserOnly>
 			<BrowserOnly fallback={<div className="h-20 bg-gray-100 rounded p-4">Loading...</div>}>
 				{() => (
-					<div className="p-4 border rounded">
+					<div className="border-card-muted rounded border p-4">
 						<p>Browser-only content with window dimensions:</p>
 						<p>Width: {window.innerWidth}px</p>
 						<p>Height: {window.innerHeight}px</p>
