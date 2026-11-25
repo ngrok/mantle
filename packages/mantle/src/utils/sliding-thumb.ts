@@ -216,6 +216,8 @@ function useSlidingThumb(
 				disabled:
 					item.matches(disabled) ||
 					item.closest("[inert]") != null ||
+					// Why the empty box: a browser with no `checkVisibility` still skips `display: none`.
+					item.getClientRects().length === 0 ||
 					(typeof item.checkVisibility === "function" &&
 						!item.checkVisibility({ visibilityProperty: true })),
 			}));
@@ -346,7 +348,9 @@ function useSlidingThumb(
 			// Why: a press in a field inside the item selects text, and it must not drag.
 			const field =
 				target instanceof Element
-					? target.closest('textarea, select, [contenteditable="true"], input:not([type="radio"])')
+					? target.closest(
+							'textarea, select, [contenteditable]:not([contenteditable="false"]), input:not([type="radio"])',
+						)
 					: null;
 			if (field != null && checked.contains(field)) {
 				return;
@@ -366,15 +370,23 @@ function useSlidingThumb(
 			const shown = spans.filter((span) => span.end > span.start);
 			// Why the visible edges: a list that scrolls clips the items past
 			// them, and the thumb must stay where the reader sees it.
+			// Why the scale: `clientWidth` and the border are in the group's own pixels,
+			// and the item boxes are in viewport pixels.
+			const scale = scaleOf(group);
 			const groupRect = group.getBoundingClientRect();
 			const visibleStart = vertical
-				? groupRect.top + group.clientTop
-				: groupRect.left + group.clientLeft;
-			const visibleEnd = visibleStart + (vertical ? group.clientHeight : group.clientWidth);
+				? groupRect.top + group.clientTop * scale
+				: groupRect.left + group.clientLeft * scale;
+			const visibleEnd = visibleStart + (vertical ? group.clientHeight : group.clientWidth) * scale;
+			// Why only a group that clips: items that spill out of a group with
+			// `overflow: visible` stay in view, and the thumb follows them there.
+			const clips = getComputedStyle(group)[vertical ? "overflowY" : "overflowX"] !== "visible";
 			// Why the extremes and not the first and last item: in RTL, the first
 			// item is on the right.
-			const trackStart = Math.max(visibleStart, Math.min(...shown.map((span) => span.start)));
-			const trackEnd = Math.min(visibleEnd, Math.max(...shown.map((span) => span.end)));
+			const itemsStart = Math.min(...shown.map((span) => span.start));
+			const itemsEnd = Math.max(...shown.map((span) => span.end));
+			const trackStart = clips ? Math.max(visibleStart, itemsStart) : itemsStart;
+			const trackEnd = clips ? Math.min(visibleEnd, itemsEnd) : itemsEnd;
 			const checkedSpan = spanOf(checked.getBoundingClientRect(), axis);
 			const point = vertical ? event.clientY : event.clientX;
 			session = {
@@ -391,11 +403,16 @@ function useSlidingThumb(
 				trackEnd,
 				// Why the smaller side: free space on one side of the items, such as a
 				// short row in RTL, is not padding at the other end.
-				give: Math.max(0, Math.min(trackStart - visibleStart, visibleEnd - trackEnd)),
+				give: Math.max(
+					0,
+					clips
+						? Math.min(trackStart - visibleStart, visibleEnd - trackEnd)
+						: trackStart - visibleStart,
+				),
 				dragging: false,
 				base: 0,
 				offset: 0,
-				scale: scaleOf(group),
+				scale,
 				reach: 0,
 				lastPoint: point,
 				lastTime: event.timeStamp,
@@ -496,10 +513,17 @@ function useSlidingThumb(
 			const rested = event.timeStamp - finished.lastTime > flickRestMs;
 			const velocity = rested ? 0 : finished.velocity;
 			// Why a new read: the items can move, resize, or turn disabled during the
-			// drag. The thumb moves with the checked item, so it lands from there.
-			const checkedSpan = spanOf(finished.checked.getBoundingClientRect(), finished.axis);
+			// drag. The thumb moves with the checked item, so it lands from there. A
+			// checked item that a re-render replaced lands from its replacement.
+			const anchor = finished.checked.isConnected
+				? finished.checked
+				: (readChecked() ?? finished.checked);
+			const checkedSpan = spanOf(anchor.getBoundingClientRect(), finished.axis);
 			const checkedCenter = (checkedSpan.start + checkedSpan.end) / 2;
-			const projected = checkedCenter + finished.reach + velocity * flickProjectionMs;
+			// Why the release point: a `pointerup` can land away from the last move.
+			const point = finished.axis === "y" ? event.clientY : event.clientX;
+			const reach = finished.base + point - finished.startPoint;
+			const projected = checkedCenter + reach + velocity * flickProjectionMs;
 			// Why a new read of the items: one can mount during the drag, such as a
 			// link tab that turns enabled.
 			const current = readItems();

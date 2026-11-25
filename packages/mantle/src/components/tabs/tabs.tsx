@@ -37,28 +37,31 @@ const thumbOptions: SlidingThumbOptions = {
 	offset: "--_tabs-thumb-offset",
 	// Why a press and a click: a drag lands as a press does, so the trigger's own
 	// handlers run and an `onMouseDown` that calls `preventDefault()` vetoes it.
-	// A link tab ignores the press and follows its click.
+	// A press that a handler cancels still gets its click, as a real one does.
 	// Why no commit with a modifier key: a modified press on a link opens it elsewhere,
 	// and a script's click cannot do that. The indicator returns to the active tab.
 	commit: (tab, release) => {
 		if (release.altKey || release.ctrlKey || release.metaKey || release.shiftKey) {
 			return;
 		}
-		const press = new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0 });
-		if (tab.matches("a[href]") || tab.dispatchEvent(press)) {
-			tab.click();
-		}
+		tab.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, button: 0 }));
+		tab.click();
 	},
 };
 
 let overflowObserver: ResizeObserver | undefined;
 
-/** Marks `list` with `data-overflowing="true"` while it scrolls, else `"false"`. */
+/**
+ * Marks `list` with `data-overflowing="true"` while it scrolls along its own
+ * axis, else `"false"`. Why one axis: the bar of a vertical classic list sits
+ * 1px past the list's side, and that is no scroll a swipe needs.
+ */
 const measureOverflow = (list: Element) => {
-	list.setAttribute(
-		"data-overflowing",
-		String(list.scrollWidth > list.clientWidth || list.scrollHeight > list.clientHeight),
-	);
+	const overflows =
+		list.getAttribute("aria-orientation") === "vertical"
+			? list.scrollHeight > list.clientHeight
+			: list.scrollWidth > list.clientWidth;
+	list.setAttribute("data-overflowing", String(overflows));
 };
 
 /**
@@ -358,6 +361,9 @@ const triggerVariants = cva(
 		"aria-selected:not-in-data-dragging:text-strong not-aria-disabled:hover:aria-selected:text-strong",
 		// Why: during a drag, the label under the indicator is strong, and the active tab can be away from it.
 		"data-thumb-over:text-strong",
+		// Why: Chromium takes the touch action of a `display: contents` label under the finger as
+		// `auto`, and cancels a swipe on the text. The active tab's own box then takes the press.
+		"aria-selected:[&>[data-slot=tabs-trigger-label]]:pointer-events-none",
 		// Why: forced colors paint each background in the canvas color.
 		"forced-colors:after:forced-color-adjust-none",
 	),
@@ -370,12 +376,12 @@ const triggerVariants = cva(
 					"rounded-tl-md rounded-tr-md",
 					// Why only the active tab: an offset indicator on another tab would widen the scroll area.
 					"aria-selected:after:translate-x-(--_tabs-thumb-offset,0px)",
-					"aria-selected:in-data-[overflowing=false]:touch-pan-y aria-selected:in-data-[overflowing=false]:touch-pinch-zoom",
+					"aria-selected:in-[[role=tablist][data-overflowing=false]]:touch-pan-y aria-selected:in-[[role=tablist][data-overflowing=false]]:touch-pinch-zoom",
 				),
 				vertical: cx(
 					"rounded-bl-md rounded-tl-md pr-3",
 					"aria-selected:after:translate-y-(--_tabs-thumb-offset,0px)",
-					"aria-selected:in-data-[overflowing=false]:touch-pan-x aria-selected:in-data-[overflowing=false]:touch-pinch-zoom",
+					"aria-selected:in-[[role=tablist][data-overflowing=false]]:touch-pan-x aria-selected:in-[[role=tablist][data-overflowing=false]]:touch-pinch-zoom",
 				),
 			} as const satisfies Record<Orientation, string>,
 			appearance: {

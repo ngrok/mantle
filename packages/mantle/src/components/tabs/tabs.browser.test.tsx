@@ -1731,6 +1731,28 @@ describe("Tabs indicator", () => {
 		expect(onValueChange).toHaveBeenLastCalledWith("logs");
 	});
 
+	test("a vertical list that fits is measured as fitting, so a finger can drag its indicator", async () => {
+		renderSections({ orientation: "vertical" });
+		const list = screen.getByRole("tablist");
+
+		await vi.waitFor(() => {
+			expect(list).toHaveAttribute("data-overflowing", "false");
+		});
+		expect(
+			getComputedStyle(screen.getByRole("tab", { name: "Settings and access" })).touchAction,
+		).toBe("pan-x pinch-zoom");
+	});
+
+	test("a drag lands where the pointer is released, not where it last moved", () => {
+		const { onValueChange, move, release } = renderSections();
+		const travel = travelTo("Overview");
+
+		move([-20, travel]);
+		release(0, 200);
+
+		expect(onValueChange).not.toHaveBeenCalled();
+	});
+
 	test("a drag onto a link tab follows the link", async () => {
 		render(<LinkTabs />);
 		const tabA = screen.getByRole("tab", { name: "Tab A" });
