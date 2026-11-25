@@ -1870,7 +1870,7 @@
     "category": "Forms",
     "status": "stable",
     "importPath": "@ngrok/mantle/segmented-control",
-    "summary": "A row of segments that switches between a few short options, like a view or an environment. A raised thumb slides to the checked segment.",
+    "summary": "A row of segments that switches between a few short options, like a view or an environment. A tinted thumb slides to the checked segment.",
     "jsdoc": "A row of segments that switches between a few short options, like a view or an environment.",
     "examples": [
       "Composition:\n```\nSegmentedControl.Root\n└── SegmentedControl.Item\n```",

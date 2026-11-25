@@ -8,7 +8,7 @@ import * as SegmentedControlParts from "./segmented-control-parts.js";
 
 /**
  * A row of segments that switches between a few short options, like a view
- * or an environment. A raised thumb slides to the checked item,
+ * or an environment. A tinted thumb slides to the checked item,
  * and a mouse or a finger can drag it. It is a radio group underneath, with
  * the same keyboard, ARIA, and form contract as `RadioGroup`.
  *
