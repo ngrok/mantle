@@ -441,7 +441,7 @@ const Content = ({
 				inert={!state.open}
 				className={cx(
 					floatClassName,
-					"text-popover-foreground border-popover bg-popover rounded-md border p-4 shadow-md outline-hidden",
+					"border-popover bg-popover rounded-md border p-4 shadow-md outline-hidden",
 					preferredWidth,
 					className,
 				)}

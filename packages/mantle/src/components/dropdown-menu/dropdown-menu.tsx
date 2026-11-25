@@ -840,7 +840,7 @@ type MenuPanelProps = ComponentProps<"div"> &
 	};
 
 const panelClassName =
-	"text-popover-foreground border-popover bg-popover flex flex-col min-w-32 max-h-(--available-height) rounded-md border shadow-xl outline-hidden font-sans";
+	"border-popover bg-popover flex flex-col min-w-32 max-h-(--available-height) rounded-md border shadow-xl outline-hidden font-sans";
 
 /**
  * How the element that scrolls a menu's items scrolls. Why `scroll-py-6`: a
@@ -1412,7 +1412,7 @@ const SubTrigger = ({
 			data-slot={joinDataSlot(dataSlot, "dropdown-menu-sub-trigger")}
 			data-text-value={textValue}
 			className={cx(
-				"focus:bg-accent aria-expanded:bg-accent relative flex cursor-pointer select-none items-center rounded-md py-1.5 pl-2 pr-9 text-sm outline-hidden",
+				"relative flex cursor-pointer select-none items-center rounded-md py-1.5 pl-2 pr-9 text-sm outline-hidden",
 				"data-highlighted:bg-active-menu-item aria-expanded:bg-active-menu-item",
 				"aria-disabled:cursor-default aria-disabled:opacity-50",
 				// Why slot-scoped: the label span makes a consumer's svg a grandchild, so
@@ -1743,7 +1743,6 @@ const Item = ({
 			className={cx(
 				"relative flex cursor-pointer select-none items-center rounded-md px-2 py-1.5 text-strong text-sm font-normal outline-hidden transition-colors",
 				"data-highlighted:bg-active-menu-item",
-				"focus:bg-accent focus:text-accent-foreground",
 				"aria-disabled:cursor-default aria-disabled:opacity-50",
 				"[&>svg]:size-5 [&_svg]:shrink-0",
 				inset && "pl-8",
