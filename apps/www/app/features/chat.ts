@@ -172,7 +172,12 @@ export function useChat({ respond }: { respond: Respond }) {
 		let status: ChatAnswer["status"] = "done";
 		try {
 			await readAnswer(
-				respond({ messages: history, ...choice, signal: controller.signal }),
+				respond({
+					messages: history,
+					model: choice.model,
+					effort: choice.effort,
+					signal: controller.signal,
+				}),
 				(event) => updateAnswer((answer) => applyChatEvent(answer, event, Date.now() - startedAt)),
 				controller.signal,
 			);

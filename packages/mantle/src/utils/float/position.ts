@@ -150,7 +150,11 @@ function computePlacement({
 		// menu does. Why only while the anchor shows: a float follows an anchor that
 		// scrolls away.
 		x:
-			overlapAnchor && anchor.right > 0 && anchor.left < viewport.width
+			overlapAnchor &&
+			anchor.right > 0 &&
+			anchor.left < viewport.width &&
+			anchor.bottom > 0 &&
+			anchor.top < viewport.height
 				? Math.max(
 						VIEWPORT_PADDING,
 						Math.min(besideX, viewport.width - VIEWPORT_PADDING - size.width),

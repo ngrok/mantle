@@ -409,7 +409,7 @@ function ModelPicker({
 							>
 								{option.icon}
 								<span className="flex min-w-0 flex-1 flex-col">
-									<span className="flex items-center gap-2">
+									<span className="flex items-center gap-2 overflow-hidden">
 										<span className="max-w-full shrink-0 truncate font-medium">{option.label}</span>
 										{option.badge != null && (
 											<Badge
@@ -428,7 +428,7 @@ function ModelPicker({
 					</DropdownMenu.RadioGroup>
 					<DropdownMenu.Separator />
 					<DropdownMenu.Sub>
-						<DropdownMenu.SubTrigger textValue="Effort">
+						<DropdownMenu.SubTrigger>
 							<span className="flex-1">Effort</span>
 							<span className="text-muted ps-6">{effort}</span>
 						</DropdownMenu.SubTrigger>

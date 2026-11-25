@@ -466,7 +466,7 @@ function ModelPicker({
 							>
 								{option.icon}
 								<span className="flex min-w-0 flex-1 flex-col">
-									<span className="flex items-center gap-2">
+									<span className="flex items-center gap-2 overflow-hidden">
 										<span className="max-w-full shrink-0 truncate font-medium">{option.label}</span>
 										{option.badge != null && (
 											<Badge
@@ -485,7 +485,7 @@ function ModelPicker({
 					</DropdownMenu.RadioGroup>
 					<DropdownMenu.Separator />
 					<DropdownMenu.Sub>
-						<DropdownMenu.SubTrigger textValue="Effort">
+						<DropdownMenu.SubTrigger>
 							<span className="flex-1">Effort</span>
 							<span className="text-muted ps-6">{effort}</span>
 						</DropdownMenu.SubTrigger>
@@ -817,7 +817,12 @@ export function useChat({ respond }: { respond: Respond }) {
 		let status: ChatAnswer["status"] = "done";
 		try {
 			await readAnswer(
-				respond({ messages: history, ...choice, signal: controller.signal }),
+				respond({
+					messages: history,
+					model: choice.model,
+					effort: choice.effort,
+					signal: controller.signal,
+				}),
 				(event) => updateAnswer((answer) => applyChatEvent(answer, event, Date.now() - startedAt)),
 				controller.signal,
 			);
