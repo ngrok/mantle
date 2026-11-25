@@ -278,9 +278,10 @@ const useComboboxInput = (
 			}
 		},
 		onBlur: (event: FocusEvent<HTMLInputElement>) => {
-			// Why: focus that moves to a control in the popup's footer stays in the combobox.
+			// Why the footer only: focus that moves to a footer control stays in the combobox.
+			// Focus on an option, such as a link whose own `tabIndex` wins, leaves it.
 			const { relatedTarget } = event;
-			if (!(relatedTarget instanceof Node && combobox.popupRef.current?.contains(relatedTarget))) {
+			if (!(relatedTarget instanceof Node && combobox.footerRef.current?.contains(relatedTarget))) {
 				setOpen(false);
 			}
 		},
@@ -298,7 +299,7 @@ const useComboboxInput = (
 				case "Tab": {
 					// Why: Tab moves into the popup's footer, and the list stays open. With
 					// no control there, Tab leaves the field and the blur closes the list.
-					// Why the footer only: an option rendered as a link is tabbable too, and arrows reach it.
+					// Why the footer only: options are no Tab stops; the arrows reach them.
 					const footer = open ? combobox.footerRef.current : null;
 					const first = footer == null ? undefined : findTabbableDescendants(footer)[0];
 					if (!event.shiftKey && first != null) {

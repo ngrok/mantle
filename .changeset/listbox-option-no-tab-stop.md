@@ -2,4 +2,4 @@
 "@ngrok/mantle": patch
 ---
 
-Keep `Select`, `Combobox`, and `MultiSelect` options out of the Tab order. An option rendered as a link or a button with `asChild` took a Tab when the field was the last control on the page, and the list stayed open. Now Tab leaves the field and closes the list, as it did in 0.95.0.
+Keep `Select`, `Combobox`, and `MultiSelect` options out of the Tab order, and close an open `Combobox` or `MultiSelect` list when focus leaves the input for anything but a footer control. Since `Combobox.ContentFooter` (#1893), a `Combobox` that was the last control on the page sent Tab to an `asChild` link option and kept the list open. Now Tab leaves the field and the list closes, as in 0.95.0.
