@@ -328,6 +328,11 @@
 			"types": "./dist/pagination.d.ts",
 			"import": "./dist/pagination.js"
 		},
+		"./panel": {
+			"@ngrok/src-live-types": "./src/components/panel/index.ts",
+			"types": "./dist/panel.d.ts",
+			"import": "./dist/panel.js"
+		},
 		"./popover": {
 			"@ngrok/src-live-types": "./src/components/popover/index.ts",
 			"types": "./dist/popover.d.ts",

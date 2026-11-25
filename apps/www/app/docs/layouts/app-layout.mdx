@@ -2296,7 +2296,7 @@ All props from [div](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/d
 ### AppLayout.Header
 
 The toolbar row at the top of the content card. Render it as `AppLayout.Content`'s **first child**
-(`border-card-muted flex h-14 shrink-0 items-center gap-2 border-b px-4`), and compose its three slots in
+(`border-separator flex h-14 shrink-0 items-center gap-2 border-b px-4`), and compose its three slots in
 order: [`AppLayout.HeaderStart`](#applayoutheaderstart) for the
 [`Sidebar.Trigger`](/components/navigation/sidebar#sidebartrigger),
 [`AppLayout.HeaderContent`](#applayoutheadercontent) for the [Breadcrumb](/components/navigation/breadcrumb)
@@ -2536,7 +2536,7 @@ All props from [`IconButton`](/components/actions/icon-button#api-reference) exc
 ### AppLayout.SidePanelHeader
 
 The toolbar row at the top of the side panel, its **first child**:
-`border-card-muted flex shrink-0 items-center gap-2 border-b px-4`, on the same band as
+`border-separator flex shrink-0 items-center gap-2 border-b px-4`, on the same band as
 [`AppLayout.Header`](#applayoutheader). Standalone the band is `h-14`; with a `Sidebar.Header` in the shell
 it derives its height from `--sidebar-header-height` by the same formula, so the toolbar, this row, and the
 switcher row center on one line. Put the title first with `min-w-0 flex-1 truncate`, and the close control

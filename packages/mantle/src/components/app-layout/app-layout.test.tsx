@@ -1338,9 +1338,11 @@ describe("useSidePanel", () => {
 });
 
 describe.each([
-	["SidePanelHeader", AppLayout.SidePanelHeader, "app-layout-side-panel-header"],
-	["SidePanelBody", AppLayout.SidePanelBody, "app-layout-side-panel-body"],
-	["SidePanelFooter", AppLayout.SidePanelFooter, "app-layout-side-panel-footer"],
+	// Why both slots: each part renders the matching `Panel` part, and the
+	// `app-layout-side-panel-*` slot stays for the selectors that read it.
+	["SidePanelHeader", AppLayout.SidePanelHeader, "app-layout-side-panel-header panel-header"],
+	["SidePanelBody", AppLayout.SidePanelBody, "app-layout-side-panel-body panel-body"],
+	["SidePanelFooter", AppLayout.SidePanelFooter, "app-layout-side-panel-footer panel-footer"],
 ] as const)("AppLayout.%s", (_name, Part, slot) => {
 	test(`renders a div stamped data-slot ${slot} with its children and no landmark`, () => {
 		render(<Part data-testid="part">conversation</Part>);

@@ -4,6 +4,7 @@ description: Compose the AI chat parts into a full assistant, with a composer th
 useWhen: Build an AI assistant or a model playground from the mantle chat parts, with streaming answers, stop, and retry.
 parts:
   - AppLayout
+  - Panel
   - PromptInput
   - Attachment
   - DropdownMenu
@@ -47,6 +48,7 @@ The same chat fits a side panel beside the page it helps with. Switch either dem
 - **Stop keeps the text.** `stop` aborts the stream and ends the answer as stopped, so the reader keeps what arrived. A new message sent mid-answer does the same. `retry` replaces the last answer with a new one from the same messages.
 - **A failure is a notice, not a dead end.** When the stream throws, the answer keeps its text so far and shows an [Alert](/components/feedback/alert) with `role="alert"` under it, so a screen reader hears it, and the retry action asks again.
 - **The model picker follows Amp's.** A quiet button names the model and its effort. Its menu lists each model on one line, with a provider icon, an optional [Badge](/components/data-display/badge), a muted description, and a check on the pick. Effort and the other models sit in submenus under a separator. The menu takes the width of its widest row, capped at 24rem and the screen, so a name never wraps and truncates only as a last resort. In a chat narrower than 24rem, as in the side panel or on a phone, the button drops the effort from view, and a screen reader still hears it. `send` and `retry` hand the model and the effort to `respond`. A menu holds no form value, so hidden inputs carry both for a form that posts.
+- **One panel look at every size.** The full page and the side panel share [Panel](/components/preview/panel)'s parts: `Panel.Header` for the header row, `Panel.Body` for the transcript, and `Panel.Footer` for the composer. In the side panel, `AppLayout.SidePanelHeader` renders `Panel.Header` and adds the swipe that closes it. `Panel.Body` does not scroll here: `Conversation.Viewport` scrolls, so it can follow the answer as it streams.
 - **The empty state is the first screen.** Before the first message, [Empty](/components/feedback/empty) offers starter prompts in place of the transcript. The composer stays put, so the draft never moves, and a pressed starter or Retry hands focus to the field.
 - **The transcript lines up with the composer.** The transcript and the composer share one centered column. The transcript's edges line up with the composer's buttons, so the bottom fade ends at the composer. The button that goes back to the newest message sits at the composer's right corner, not the window's.
 - **The outline waits for a long chat.** From the third message the person sends, a [Conversation Outline](/components/ai/conversation-outline) button shows in the header, at every width. It lists their messages, and a press jumps to one. With fewer messages a scroll is faster, so the button stays hidden, and it renders before the header's other actions so they do not move. Each person's `Message.Root` takes its message `id` and `scroll-mt-4`, so a jump leaves room above it.
@@ -68,6 +70,7 @@ import { Empty } from "@ngrok/mantle/empty";
 import { Main } from "@ngrok/mantle/main";
 import { Markdown } from "@ngrok/mantle/markdown";
 import { Message } from "@ngrok/mantle/message";
+import { Panel } from "@ngrok/mantle/panel";
 import { PromptInput } from "@ngrok/mantle/prompt-input";
 import { Reasoning } from "@ngrok/mantle/reasoning";
 import { useCopyToClipboard } from "@ngrok/mantle/hooks";
@@ -146,10 +149,10 @@ export function ChatDemo() {
 
 	return (
 		<Main className="fixed inset-0 flex flex-col">
-			<header className="border-separator flex h-12 shrink-0 items-center gap-2 border-b px-4">
+			<Panel.Header>
 				<h1 className="text-strong min-w-0 flex-1 truncate text-sm font-medium">Assistant</h1>
 				<ChatOutline messages={chat.messages} />
-			</header>
+			</Panel.Header>
 			<Chat chat={chat} />
 		</Main>
 	);
@@ -268,82 +271,85 @@ function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 		<div className="@container flex min-h-0 flex-1 flex-col">
 			{/* Why a second element: a container query reads an ancestor, so the gutter sits inside the container. */}
 			<div className="flex min-h-0 flex-1 flex-col [--gutter:--spacing(3)] @lg:[--gutter:--spacing(4)]">
-				<Conversation.Root streaming={chat.streaming} className="min-h-0 flex-1">
-					{chat.messages.length === 0 ? (
-						<Empty.Root className="m-auto">
-							<Empty.Icon svg={<ChatsCircleIcon />} />
-							<Empty.Title>Ask about your endpoints</Empty.Title>
-							<Empty.Description>
-								<p>The assistant reads your account. It never changes anything without asking.</p>
-							</Empty.Description>
-							<Empty.Actions className="flex-wrap justify-center">
-								{starters.map((starter) => (
-									<Button
-										key={starter}
-										type="button"
-										appearance="outlined"
-										intent="neutral"
-										onClick={() => send(starter)}
-									>
-										{starter}
-									</Button>
-								))}
-							</Empty.Actions>
-						</Empty.Root>
-					) : (
-						<Conversation.Viewport>
-							<Conversation.Content
-								aria-label="Conversation with the assistant"
-								className="mx-auto w-full max-w-3xl px-[calc(var(--gutter)+(--spacing(2)))] py-6"
-							>
-								{chat.messages.map((message) =>
-									message.from === "user" ? (
-										<Message.Root
-											key={message.id}
-											id={message.id}
-											from="user"
-											className="scroll-mt-4"
+				{/* Why no scroll here: `Conversation.Viewport` scrolls, so it can follow the answer as it streams. */}
+				<Panel.Body className="flex flex-col overflow-visible">
+					<Conversation.Root streaming={chat.streaming} className="min-h-0 flex-1">
+						{chat.messages.length === 0 ? (
+							<Empty.Root className="m-auto">
+								<Empty.Icon svg={<ChatsCircleIcon />} />
+								<Empty.Title>Ask about your endpoints</Empty.Title>
+								<Empty.Description>
+									<p>The assistant reads your account. It never changes anything without asking.</p>
+								</Empty.Description>
+								<Empty.Actions className="flex-wrap justify-center">
+									{starters.map((starter) => (
+										<Button
+											key={starter}
+											type="button"
+											appearance="outlined"
+											intent="neutral"
+											onClick={() => send(starter)}
 										>
-											<Message.Content className="flex flex-col gap-2">
-												{message.files.length > 0 && (
-													<Attachment.List aria-label="Attached files">
-														{message.files.map((file) => (
-															<Attachment.Root key={file.id}>
-																<Attachment.Preview />
-																<Attachment.Name title={file.name}>{file.name}</Attachment.Name>
-																<Attachment.Size bytes={file.size} />
-															</Attachment.Root>
-														))}
-													</Attachment.List>
-												)}
-												<p className="whitespace-pre-wrap">{message.text}</p>
-											</Message.Content>
-										</Message.Root>
-									) : (
-										<Answer
-											key={message.id}
-											answer={message}
-											onRetry={
-												message === lastAnswer
-													? () => {
-															chat.retry({ model, effort });
-															// Why: Retry leaves while the new answer streams, so focus moves to the field.
-															fieldRef.current?.focus();
-														}
-													: undefined
-											}
-										/>
-									),
-								)}
-							</Conversation.Content>
-						</Conversation.Viewport>
-					)}
-					{/* Why the column: the button sits just outside the transcript's right edge, not at the window's. */}
-					<div className="absolute inset-x-0 bottom-3 mx-auto max-w-3xl">
-						<Conversation.ScrollButton className="right-[calc(var(--gutter)+(--spacing(1.5)))] bottom-0" />
-					</div>
-				</Conversation.Root>
-				<div className="mx-auto w-full max-w-3xl px-(--gutter) pb-(--gutter)">
+											{starter}
+										</Button>
+									))}
+								</Empty.Actions>
+							</Empty.Root>
+						) : (
+							<Conversation.Viewport>
+								<Conversation.Content
+									aria-label="Conversation with the assistant"
+									className="mx-auto w-full max-w-3xl px-[calc(var(--gutter)+(--spacing(2)))] py-6"
+								>
+									{chat.messages.map((message) =>
+										message.from === "user" ? (
+											<Message.Root
+												key={message.id}
+												id={message.id}
+												from="user"
+												className="scroll-mt-4"
+											>
+												<Message.Content className="flex flex-col gap-2">
+													{message.files.length > 0 && (
+														<Attachment.List aria-label="Attached files">
+															{message.files.map((file) => (
+																<Attachment.Root key={file.id}>
+																	<Attachment.Preview />
+																	<Attachment.Name title={file.name}>{file.name}</Attachment.Name>
+																	<Attachment.Size bytes={file.size} />
+																</Attachment.Root>
+															))}
+														</Attachment.List>
+													)}
+													<p className="whitespace-pre-wrap">{message.text}</p>
+												</Message.Content>
+											</Message.Root>
+										) : (
+											<Answer
+												key={message.id}
+												answer={message}
+												onRetry={
+													message === lastAnswer
+														? () => {
+																chat.retry({ model, effort });
+																// Why: Retry leaves while the new answer streams, so focus moves to the field.
+																fieldRef.current?.focus();
+															}
+														: undefined
+												}
+											/>
+										),
+									)}
+								</Conversation.Content>
+							</Conversation.Viewport>
+						)}
+						{/* Why the column: the button sits just outside the transcript's right edge, not at the window's. */}
+						<div className="absolute inset-x-0 bottom-3 mx-auto max-w-3xl">
+							<Conversation.ScrollButton className="right-[calc(var(--gutter)+(--spacing(1.5)))] bottom-0" />
+						</div>
+					</Conversation.Root>
+				</Panel.Body>
+				<Panel.Footer className="mx-auto w-full max-w-3xl px-(--gutter) pb-(--gutter)">
 					<PromptInput.Root
 						streaming={chat.streaming}
 						onStop={chat.stop}
@@ -398,7 +404,7 @@ function Chat({ chat }: { chat: ReturnType<typeof useChat> }) {
 							<PromptInput.Submit />
 						</PromptInput.Footer>
 					</PromptInput.Root>
-				</div>
+				</Panel.Footer>
 			</div>
 		</div>
 	);

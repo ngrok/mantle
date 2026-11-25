@@ -459,7 +459,6 @@
       "```tsx\n<Card.Root>\n  <Card.Body>\n    <p>Laborum in aute officia adipisicing elit velit.</p>\n  </Card.Body>\n</Card.Root>\n\n<Card.Root>\n  <Card.Header>\n    <Card.Title>Card Title Here</Card.Title>\n  </Card.Header>\n  <Card.Body>\n    <p>Laborum in aute officia adipisicing elit velit.</p>\n  </Card.Body>\n  <Card.Footer>\n    <p>Card footer</p>\n  </Card.Footer>\n</Card.Root>\n```"
     ],
     "aliases": [
-      "panel",
       "tile",
       "paper"
     ],
@@ -1573,6 +1572,40 @@
       "paginator"
     ],
     "useWhen": "Move through paged data one page at a time, with a cursor or an offset."
+  },
+  {
+    "name": "Panel",
+    "slug": "components/preview/panel",
+    "kind": "component",
+    "category": "Structure",
+    "status": "preview",
+    "importPath": "@ngrok/mantle/panel",
+    "summary": "The look of the app shell's side panel as a part of its own, with a header row, a scroll body, and a pinned footer.",
+    "jsdoc": "The look of `AppLayout.SidePanel` as a part of its own: a card with a header row, a scroll region, and a bar pinned to the bottom.",
+    "examples": [
+      "Composition:\n```\nPanel.Root\n├── Panel.Header\n├── Panel.Body\n└── Panel.Footer\n```",
+      "```tsx\n<Panel.Root aria-label=\"Assistant\" className=\"h-120\">\n  <Panel.Header>\n    <p className=\"text-strong min-w-0 flex-1 truncate text-sm font-medium\">Assistant</p>\n    <IconButton type=\"button\" appearance=\"ghost\" intent=\"neutral\" icon={<XIcon />} label=\"Close\" />\n  </Panel.Header>\n  <Panel.Body>\n    <AssistantConversation />\n  </Panel.Body>\n  <Panel.Footer>\n    <AssistantComposer />\n  </Panel.Footer>\n</Panel.Root>\n```"
+    ],
+    "aliases": [
+      "assistant panel",
+      "aside card",
+      "panel header"
+    ],
+    "siblings": [
+      {
+        "name": "AppLayout",
+        "boundary": "the panel opens and closes beside the page card of an app shell; use `AppLayout.SidePanel`."
+      },
+      {
+        "name": "Card",
+        "boundary": "the content sits in the page flow and does not scroll on its own."
+      },
+      {
+        "name": "Sheet",
+        "boundary": "the panel is a modal overlay with a backdrop."
+      }
+    ],
+    "useWhen": "Show a titled surface beside other content, with a header row, a body that scrolls on its own, and an optional bar pinned to the bottom, such as an assistant beside the page."
   },
   {
     "name": "Password Input",
