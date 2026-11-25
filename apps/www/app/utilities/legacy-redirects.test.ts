@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { prodReadyComponentRouteLookup } from "~/components/navigation-data";
-import { legacyRedirectFor } from "./legacy-redirects";
+import { legacyPreviewRedirectFor, legacyRedirectFor } from "./legacy-redirects";
 
 describe("legacyRedirectFor", () => {
 	it("redirects legacy component paths to their categorized homes", () => {
@@ -29,6 +29,13 @@ describe("legacyRedirectFor", () => {
 	it("redirects Chip's preview URL to the Forms category", () => {
 		expect(legacyRedirectFor("/components/preview/chip")).toBe("/components/forms/chip");
 		expect(legacyRedirectFor("/components/preview/chip.md")).toBe("/components/forms/chip.md");
+	});
+
+	it("redirects Panel's preview URL to the Structure category", () => {
+		expect(legacyRedirectFor("/components/preview/panel")).toBe("/components/structure/panel");
+		expect(legacyRedirectFor("/components/preview/panel.md")).toBe(
+			"/components/structure/panel.md",
+		);
 	});
 
 	it("redirects the AI chat parts' preview URLs to the AI category", () => {
@@ -83,5 +90,21 @@ describe("legacyRedirectFor", () => {
 		expect(legacyRedirectFor("/components/does-not-exist")).toBeNull();
 		expect(legacyRedirectFor("/definitely/not/a/page")).toBeNull();
 		expect(legacyRedirectFor("/")).toBeNull();
+	});
+});
+
+describe("legacyPreviewRedirectFor", () => {
+	it("moves a frame key whose page moved, and keeps the example name", () => {
+		expect(legacyPreviewRedirectFor("components/preview/panel/overview")).toBe(
+			"/preview/components/structure/panel/overview",
+		);
+		expect(legacyPreviewRedirectFor("components/preview/chip/removable")).toBe(
+			"/preview/components/forms/chip/removable",
+		);
+	});
+
+	it("leaves a current frame key and a shell demo name alone", () => {
+		expect(legacyPreviewRedirectFor("components/structure/panel/overview")).toBeNull();
+		expect(legacyPreviewRedirectFor("chat-panel")).toBeNull();
 	});
 });

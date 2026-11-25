@@ -130,7 +130,6 @@ const docsPages = [
 	"components/overlays/tooltip",
 	// preview (lifecycle namespace, not a category)
 	"components/preview/calendar",
-	"components/preview/panel",
 	"components/preview/time-zone",
 	"components/preview/world-map",
 	// primitives
@@ -146,6 +145,7 @@ const docsPages = [
 	// structure
 	"components/structure/card",
 	"components/structure/media-object",
+	"components/structure/panel",
 	"components/structure/separator",
 	"components/structure/strata",
 	"components/structure/well",

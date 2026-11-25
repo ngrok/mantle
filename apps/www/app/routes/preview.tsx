@@ -1,7 +1,7 @@
 import { cspNonce } from "@ngrok/app-server/client";
 import { useIsHydrated } from "@ngrok/mantle/hooks";
 import { Suspense, use, useEffect } from "react";
-import { data } from "react-router";
+import { data, redirect } from "react-router";
 import { previewHydratedEvent, reportPreviewHeightScript } from "~/features/example-heights";
 import {
 	isComponentType,
@@ -15,17 +15,23 @@ import {
 	previewExamples,
 	type PreviewExampleName,
 } from "~/features/preview-registry";
+import { legacyPreviewRedirectFor } from "~/utilities/legacy-redirects";
 import { forwardPreviewShortcutsScript } from "~/features/preview-shortcuts";
 import type { Route } from "./+types/preview";
 
 /**
  * Resolves the path after `/preview/` to an example. A key with no slash names
  * a shell demo in the preview registry. A key with a slash names a docs page
- * example, `<page path>/<example name>`. Unknown keys 404: this route is only
- * framed (or opened in a new tab) by the docs pages' preview frames.
+ * example, `<page path>/<example name>`. A key whose page moved redirects to
+ * its new key. Unknown keys 404: this route is only framed (or opened in a new
+ * tab) by the docs pages' preview frames.
  */
-export const loader = async ({ params }: Route.LoaderArgs) => {
+export const loader = async ({ params, request }: Route.LoaderArgs) => {
 	const key = params["*"] ?? "";
+	const moved = legacyPreviewRedirectFor(key);
+	if (moved != null) {
+		throw redirect(`${moved}${new URL(request.url).search}`, 301);
+	}
 	if (isPreviewExampleName(key)) {
 		return { kind: "registry", title: previewExamples[key].title, key } as const;
 	}

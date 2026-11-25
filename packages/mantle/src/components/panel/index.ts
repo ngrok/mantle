@@ -1,7 +1,7 @@
 /**
  * Re-exports for the Panel component.
  *
- * @see https://mantle.ngrok.com/components/preview/panel
+ * @see https://mantle.ngrok.com/components/structure/panel
  */
 
 import * as PanelParts from "./panel-parts.js";
@@ -20,7 +20,7 @@ import * as PanelParts from "./panel-parts.js";
  * - `Card`: the content sits in the page flow and does not scroll on its own.
  * - `Sheet`: the panel is a modal overlay with a backdrop.
  *
- * @see https://mantle.ngrok.com/components/preview/panel
+ * @see https://mantle.ngrok.com/components/structure/panel
  *
  * @example
  * Composition:
