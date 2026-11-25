@@ -483,21 +483,19 @@ function ThemeSwitcher({
 					const prefersDarkMode =
 						window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
 					const button = event.currentTarget;
-					let announced = "";
+					let first = true;
 					setTheme(
 						(current) => {
 							const next = getToggledTheme({ theme: current, prefersDarkMode });
 							// Why: a screen reader does not read a focused button again when its
 							// name changes, so the live region says what the press did. Why in
 							// the updater: the provider calls it last when it applies the theme,
-							// so rapid presses end on the theme that shows. Why compare with
-							// this press only: the provider can call it twice for one press,
-							// and a new press must read even when the region holds its text.
+							// so rapid presses end on the theme that shows. Why `repeat` on the
+							// first call only: a new press must read even when the region holds
+							// its text, and the provider can call it again for the same press.
 							const message = themeMessage(next, { prefersDarkMode });
-							if (message !== announced) {
-								announced = message;
-								announce(button, message, { repeat: true });
-							}
+							announce(button, message, { repeat: first });
+							first = false;
 							return next;
 						},
 						{ origin: event.currentTarget },

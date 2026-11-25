@@ -524,6 +524,24 @@ describe("ThemeSwitcher theme swap", () => {
 		);
 	});
 
+	test("three presses before the updates run announce the theme that applies", async () => {
+		stubPrefersDarkMode(false);
+		mockMatchMedia({ "(prefers-reduced-motion: no-preference)": true });
+		const { finish, runUpdates } = stubViewTransition({ deferUpdate: true });
+		renderSwitcher();
+		await afterPaint();
+		const button = getSwitcher();
+		fireEvent.click(button);
+		fireEvent.click(button);
+		fireEvent.click(button);
+		await act(async () => runUpdates());
+
+		const status = screen.getAllByRole("status").find((element) => element.tagName !== "OUTPUT");
+		await waitFor(() => expect(screen.getByTestId("current-theme")).toHaveTextContent("dark"));
+		expect(status).toHaveTextContent("Dark theme");
+		finish();
+	});
+
 	test("fast clicks during the swap start no second view transition, and each click toggles", async () => {
 		mockMatchMedia({ "(prefers-reduced-motion: no-preference)": true });
 		const { finish, runUpdates, startViewTransition } = stubViewTransition({ deferUpdate: true });

@@ -22,28 +22,41 @@ const registrations = new WeakMap<Element, Element>();
 /** A message to announce, and the element that announced it. See `announce` for `repeat`. */
 type Message = { element: Element; message: string; repeat: boolean };
 
-/**
- * The regions that a screen reader has not seen yet, and the latest message
- * for each. `null` means no message yet.
- */
-const pendingMessages = new WeakMap<HTMLSpanElement, Message | null>();
+/** The latest message of each element. A held message that is not the latest is old. */
+const latestMessages = new WeakMap<Element, Message>();
+
+/** A region's held message, for one attachment of the region. `null` means no message yet. */
+type Pending = { message: Message | null };
+
+/** The regions that a screen reader has not seen yet. */
+const pendingMessages = new WeakMap<HTMLSpanElement, Pending>();
+
+/** Whether `value` is an element. Why not `instanceof`: a node from another window fails it. */
+const isElement = (value: unknown): value is Element =>
+	typeof value === "object" && value != null && "nodeType" in value && value.nodeType === 1;
+
+/** The shadow host of the root that holds `node`, or `null` in a document. */
+function hostOf(node: Node): Element | null {
+	const root = node.getRootNode();
+	return "host" in root && isElement(root.host) ? root.host : null;
+}
 
 /**
  * The element that holds the live region of `element`: the modal around it,
  * else `<body>`. Why the modal: a modal dialog makes the rest of the page
- * inert, and a screen reader does not hear a live region there. Why through
- * shadow roots: `closest` stops at a shadow root, and the modal can be
- * outside it.
+ * inert, and a screen reader does not hear a live region there. Why the
+ * rendered tree, through slots and shadow roots: `closest` stops at a shadow
+ * root and skips the slot that places an element in a modal.
  */
 function statusContainer(element: Element): Element {
-	let node: Element | null = element;
-	while (node != null) {
-		const modal = node.closest('dialog, [aria-modal="true"]');
-		if (modal != null) {
-			return modal;
+	for (
+		let node: Element | null = element;
+		node != null;
+		node = node.assignedSlot ?? node.parentElement ?? hostOf(node)
+	) {
+		if (node.matches('dialog, [aria-modal="true"]')) {
+			return node;
 		}
-		const root = node.getRootNode();
-		node = root instanceof ShadowRoot ? root.host : null;
 	}
 	return element.ownerDocument.body;
 }
@@ -55,15 +68,22 @@ function statusContainer(element: Element): Element {
  * the timeout in it runs after.
  */
 function attach(container: Element, region: HTMLSpanElement) {
-	container.append(region);
-	pendingMessages.set(region, null);
+	// Why the shadow root: a host renders only its shadow tree, and a modal can be a host.
+	(container.shadowRoot ?? container).append(region);
+	// Why carry the message: an attachment again must not drop a held message.
+	const pending: Pending = { message: pendingMessages.get(region)?.message ?? null };
+	pendingMessages.set(region, pending);
 	requestAnimationFrame(() => {
 		setTimeout(() => {
-			const pending = pendingMessages.get(region);
+			// Why: only the latest attachment writes its held message.
+			if (pendingMessages.get(region) !== pending) {
+				return;
+			}
 			pendingMessages.delete(region);
+			const { message } = pending;
 			// Why announce again: the element can unmount or move before the paint.
-			if (pending != null) {
-				announce(pending.element, pending.message, { repeat: pending.repeat });
+			if (message != null && latestMessages.get(message.element) === message) {
+				announce(message.element, message.message, { repeat: message.repeat });
 			}
 		});
 	});
@@ -136,10 +156,12 @@ const mountSharedStatus: RefCallback<Element> = (element) => {
 
 /** Writes a message to `region`, and clears the region `CLEAR_DELAY_MS` later. */
 function writeMessage(region: HTMLSpanElement, { message, repeat }: Message) {
-	if (region.textContent === message && !repeat) {
+	const current = region.textContent;
+	// Why both spellings: a repeat adds a no-break space, and it says the same message.
+	if (!repeat && (current === message || current === `${message}\u00A0`)) {
 		return;
 	}
-	region.textContent = region.textContent === message ? `${message}\u00A0` : message;
+	region.textContent = current === message ? `${message}\u00A0` : message;
 	clearTimeout(clearTimers.get(region));
 	clearTimers.set(
 		region,
@@ -183,13 +205,16 @@ function announce(element: Element, message: string, { repeat = false } = {}) {
 	if (!region.isConnected) {
 		attach(container, region);
 	}
+	const next = { element, message, repeat };
+	latestMessages.set(element, next);
 	// Why the latest only: a caller can announce twice for one action, and the
 	// last request wins.
-	if (pendingMessages.has(region)) {
-		pendingMessages.set(region, { element, message, repeat });
+	const pending = pendingMessages.get(region);
+	if (pending != null) {
+		pending.message = next;
 		return;
 	}
-	writeMessage(region, { element, message, repeat });
+	writeMessage(region, next);
 }
 
 export {

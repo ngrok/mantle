@@ -10,7 +10,23 @@ const afterPaint = () =>
 		requestAnimationFrame(() => setTimeout(resolve));
 	});
 
-afterEach(() => {
+/** The ref cleanups of this test. Why: `replaceChildren` does not run them. */
+const cleanups: Array<() => void> = [];
+
+/** Mounts `element` like a ref, and unmounts it after the test. */
+function mount(element: Element) {
+	const cleanup = mountSharedStatus(element);
+	if (typeof cleanup === "function") {
+		cleanups.push(cleanup);
+	}
+	return cleanup;
+}
+
+afterEach(async () => {
+	for (const cleanup of cleanups.splice(0)) {
+		cleanup();
+	}
+	await Promise.resolve();
 	document.body.replaceChildren();
 });
 
@@ -18,8 +34,8 @@ describe("announce", () => {
 	test("an element that unmounted announces nothing in a surviving region", async () => {
 		const survivor = document.body.appendChild(document.createElement("button"));
 		const gone = document.body.appendChild(document.createElement("button"));
-		mountSharedStatus(survivor);
-		const unmount = mountSharedStatus(gone);
+		mount(survivor);
+		const unmount = mount(gone);
 		await afterPaint();
 		announce(survivor, "Dark theme");
 
@@ -36,7 +52,7 @@ describe("announce", () => {
 	test("a moved element writes once to its new region, with the latest message", async () => {
 		const button = document.body.appendChild(document.createElement("button"));
 		const dialog = document.body.appendChild(document.createElement("dialog"));
-		mountSharedStatus(button);
+		mount(button);
 		dialog.append(button);
 		const writes: string[] = [];
 
@@ -65,11 +81,11 @@ describe("announce", () => {
 		const dialog = document.body.appendChild(document.createElement("dialog"));
 		const survivor = dialog.appendChild(document.createElement("button"));
 		const gone = document.body.appendChild(document.createElement("button"));
-		const unmount = mountSharedStatus(gone);
+		const unmount = mount(gone);
 		// Why the move: it makes the dialog's region, so the message waits a frame.
 		dialog.append(gone);
 		announce(gone, "Copied", { repeat: true });
-		mountSharedStatus(survivor);
+		mount(survivor);
 		if (typeof unmount === "function") {
 			unmount();
 		}
@@ -81,24 +97,25 @@ describe("announce", () => {
 	test("an element that moved back before the paint announces in its new region", async () => {
 		const button = document.body.appendChild(document.createElement("button"));
 		const dialog = document.body.appendChild(document.createElement("dialog"));
-		mountSharedStatus(button);
+		mount(button);
 		await afterPaint();
 		dialog.append(button);
 		announce(button, "Copied", { repeat: true });
 		// Why: a dialog that closes before the paint moves the button back to the page.
 		document.body.append(button);
 
-		await afterPaint();
+		await vi.waitFor(() => {
+			expect(region(document.body)).toHaveTextContent("Copied");
+		});
 		expect(region(dialog)).toBeNull();
-		expect(region(document.body)).toHaveTextContent("Copied");
 	});
 
 	test("an element out of the document announces nothing", async () => {
 		const host = document.body.appendChild(document.createElement("div"));
 		const survivor = document.body.appendChild(document.createElement("button"));
 		const detached = host.appendChild(document.createElement("button"));
-		mountSharedStatus(survivor);
-		mountSharedStatus(detached);
+		mount(survivor);
+		mount(detached);
 		await afterPaint();
 		announce(survivor, "Dark theme");
 		// Why: a portal host can leave the page while its React root stays mounted.
@@ -116,10 +133,51 @@ describe("announce", () => {
 		modal.setAttribute("aria-modal", "true");
 		const inModal = modal.appendChild(document.createElement("button"));
 
-		mountSharedStatus(inShadow);
-		mountSharedStatus(inModal);
+		mount(inShadow);
+		mount(inModal);
 		expect(region(dialog)).not.toBeNull();
 		expect(region(modal)).not.toBeNull();
+	});
+});
+
+describe("held messages", () => {
+	test("an older held message does not replace a newer one after a move", async () => {
+		const survivor = document.body.appendChild(document.createElement("button"));
+		mount(survivor);
+		await afterPaint();
+		const dialog = document.body.appendChild(document.createElement("dialog"));
+		const button = dialog.appendChild(document.createElement("button"));
+		mount(button);
+		announce(button, "Dark theme");
+		document.body.append(button);
+		announce(button, "Light theme");
+
+		await afterPaint();
+		expect(region(document.body)).toHaveTextContent("Light theme");
+	});
+
+	test("a region attached again keeps its held message", async () => {
+		const a = document.body.appendChild(document.createElement("button"));
+		const b = document.body.appendChild(document.createElement("button"));
+		mount(a);
+		announce(a, "Copied");
+		region(document.body)?.remove();
+		mount(b);
+
+		await vi.waitFor(() => {
+			expect(region(document.body)).toHaveTextContent("Copied");
+		});
+	});
+
+	test("puts the region in the shadow tree of a modal host", () => {
+		const modal = document.body.appendChild(document.createElement("div"));
+		modal.setAttribute("aria-modal", "true");
+		const shadow = modal.attachShadow({ mode: "open" });
+		const button = shadow.appendChild(document.createElement("button"));
+
+		mount(button);
+		// Why no `:scope`: happy-dom does not match it in a shadow root.
+		expect(shadow.querySelector("[data-slot='shared-status']")?.parentNode).toBe(shadow);
 	});
 });
 
@@ -129,7 +187,7 @@ describe("the shared region", () => {
 		try {
 			const dialog = document.body.appendChild(document.createElement("dialog"));
 			const button = dialog.appendChild(document.createElement("button"));
-			mountSharedStatus(button);
+			mount(button);
 			const status = region(dialog);
 			if (status == null) {
 				throw new Error("The dialog has no shared region.");
