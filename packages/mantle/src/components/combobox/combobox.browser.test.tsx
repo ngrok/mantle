@@ -138,7 +138,8 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		expect(popupOf(listbox).getBoundingClientRect().top).toBeGreaterThanOrEqual(8);
 	});
 	test("the typed match keeps the option text width and the option name, and shows a line", async () => {
-		// Why the theme: without it, `decoration-accent-600` and a type-scale weight compile to nothing.
+		// Why the theme: without it, `--color-accent-600` is unset and the line draws nothing,
+		// and a type-scale weight compiles to nothing.
 		await injectComboboxCss({ theme: true });
 		render(
 			<Combobox.Root>
@@ -181,10 +182,105 @@ describe("Combobox keyboard, focus, and ARIA contract", () => {
 		expect(textWidth()).toBeCloseTo(plainWidth, 1);
 		expect(glyphs("[data-user-value]")).toEqual(plainGlyphs);
 		expect(glyphs("[data-autocomplete-value]")).toEqual(plainGlyphs);
-		const line = getComputedStyle(slice("[data-user-value]"));
-		expect(line.textDecorationLine).toBe("underline");
-		expect(line.textDecorationColor).not.toBe(line.color);
+		// Why a poll: the line transitions in.
+		const drawsLine = (selector: string) => {
+			const style = getComputedStyle(slice(selector));
+			return (
+				style.backgroundImage.startsWith("linear-gradient") &&
+				style.backgroundSize === "100% 2px" &&
+				style.backgroundPositionY === "100%"
+			);
+		};
+		await expect.poll(() => drawsLine("[data-user-value]")).toBe(true);
 		expect(option).toHaveAccessibleName("https://acme.ngrok.app");
+
+		// Why the old match keeps its own span: its line must stay on the same text while it transitions out.
+		const match = slice("[data-user-value]");
+		await userEvent.type(input, "x");
+		expect(match.textContent).toBe("https://");
+		expect(match).not.toHaveAttribute("data-user-value");
+		await expect.poll(() => getComputedStyle(match).backgroundSize).toBe("0px 2px");
+		// Why one span after the exit: one text run keeps the kerning across the old cut, as before typing.
+		await expect
+			.poll(() => option.querySelectorAll('[data-slot="combobox-item-value"] > span').length)
+			.toBe(1);
+		expect(textWidth()).toBeCloseTo(plainWidth, 1);
+	});
+
+	test("the match line transitions in and out, resumes on Backspace, and holds still with reduced motion", async () => {
+		await injectComboboxCss({ theme: true });
+		onTestFinished(() =>
+			commands.emulateMedia({ reducedMotion: "no-preference", forcedColors: "none" }),
+		);
+		render(
+			<Combobox.Root>
+				<Combobox.Input aria-label="Domain" />
+				<Combobox.Content>
+					<Combobox.Item value="https://acme.ngrok.app">
+						<Combobox.ItemValue />
+					</Combobox.Item>
+				</Combobox.Content>
+			</Combobox.Root>,
+		);
+		const input = screen.getByRole("combobox", { name: "Domain" });
+		await userEvent.click(input);
+		const option = await screen.findByRole("option", { name: "https://acme.ngrok.app" });
+		/** How far the line sits below its resting place, in px: 0 at rest, 2 out of view. */
+		const sunk = (element: Element) => {
+			const y = getComputedStyle(element).backgroundPositionY;
+			return y === "100%" ? 0 : Number.parseFloat(/\+ ([\d.e-]+)px/.exec(y)?.[1] ?? "NaN");
+		};
+		const positionTransition = (element: Element) =>
+			element
+				.getAnimations()
+				.find(
+					(animation): animation is CSSTransition =>
+						animation instanceof CSSTransition &&
+						animation.transitionProperty === "background-position-y",
+				);
+
+		await userEvent.type(input, "https");
+		const match = option.querySelector("[data-user-value]");
+		if (match == null) {
+			throw new Error("The option has no match.");
+		}
+		// The line enters with a transition, not a jump.
+		expect(positionTransition(match)).toBeDefined();
+		await expect.poll(() => sunk(match)).toBe(0);
+
+		// Halfway through the exit, a Backspace retargets from where the line is, not from out of view.
+		await userEvent.type(input, "x");
+		const exit = positionTransition(match);
+		if (exit == null) {
+			throw new Error("The line has no exit transition.");
+		}
+		exit.pause();
+		exit.currentTime = 40;
+		const midway = sunk(match);
+		expect(midway).toBeGreaterThan(0);
+		expect(midway).toBeLessThan(2);
+		// The line sinks at its full width; it does not vanish first.
+		expect(getComputedStyle(match).backgroundSize).toBe("100% 2px");
+		await userEvent.keyboard("{Backspace}");
+		const back = positionTransition(match);
+		back?.pause();
+		expect(back).toBeDefined();
+		expect(sunk(match)).toBeCloseTo(midway, 1);
+		back?.finish();
+
+		// Reduced motion: each state shows at once, with no transition.
+		await commands.emulateMedia({ reducedMotion: "reduce" });
+		await userEvent.type(input, "x");
+		expect(match.getAnimations()).toHaveLength(0);
+		expect(getComputedStyle(match).backgroundSize).toBe("0px 2px");
+		await userEvent.keyboard("{Backspace}");
+		expect(match.getAnimations()).toHaveLength(0);
+		expect(getComputedStyle(match).backgroundSize).toBe("100% 2px");
+		expect(sunk(match)).toBe(0);
+
+		// Forced colors removes the gradient, so the match falls back to an underline.
+		await commands.emulateMedia({ forcedColors: "active" });
+		expect(getComputedStyle(match).textDecorationLine).toBe("underline");
 	});
 
 	test("typing filters and highlights the first match; arrows move; Enter fills the input", async () => {

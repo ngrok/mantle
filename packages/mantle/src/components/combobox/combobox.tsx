@@ -619,29 +619,65 @@ const ItemValue = ({
 	const userValue = userValueProp ?? inputValue;
 	const start = userValue === "" ? -1 : itemValue.toLowerCase().indexOf(userValue.toLowerCase());
 	const end = start + userValue.length;
+	// Why the last match: when the text stops matching, the match span keeps its text, so its line can
+	// transition out (`combobox-match-line` in mantle.css). Set during render, so the exit starts on this commit.
+	// Why the item value in it: a new label must not inherit the old label's line.
+	const [lastMatch, setLastMatch] = useState<readonly [string, number, number] | null>(null);
+	if (
+		start !== -1 &&
+		(lastMatch?.[0] !== itemValue || lastMatch[1] !== start || lastMatch[2] !== end)
+	) {
+		setLastMatch([itemValue, start, end]);
+	}
+	const matched = start !== -1;
+	const exiting = !matched && lastMatch?.[0] === itemValue ? lastMatch : null;
+	const from = matched ? start : (exiting?.[1] ?? 0);
+	const to = matched ? end : (exiting?.[2] ?? itemValue.length);
 	return (
 		<span
 			data-slot={joinDataSlot(dataSlot, "combobox-item-value")}
 			className={cx(
 				"flex-1 shrink-0 text-strong font-normal",
-				// Why an underline and not a weight: a heavier glyph is wider, so the row text moves as the user types.
-				// The accent line has at least 3:1 contrast on each row background, and forced colors keeps it.
-				"[&>[data-user-value]]:underline [&>[data-user-value]]:decoration-accent-600 [&>[data-user-value]]:decoration-2 [&>[data-user-value]]:underline-offset-4",
+				// Why a line and not a weight: a heavier glyph is wider, so the row text moves as the user types.
+				"combobox-match-line",
 				className,
 			)}
 			ref={ref}
 			{...props}
 		>
-			{start === -1 ? (
-				<span data-autocomplete-value="">{itemValue}</span>
-			) : (
-				<>
-					{/* Why a span for each slice: docs/browser-translation.md */}
-					{start > 0 && <span data-autocomplete-value="">{itemValue.slice(0, start)}</span>}
-					<span data-user-value="">{itemValue.slice(start, end)}</span>
-					{end < itemValue.length && <span data-autocomplete-value="">{itemValue.slice(end)}</span>}
-				</>
-			)}
+			{/* Why a span for each slice: docs/browser-translation.md
+			    Why the start in the key: React keeps the match span while its start stays, so its line can
+			    transition. A match at a new start gets a new span, and its line grows in. */}
+			{[
+				from > 0 && (
+					<span key="before" data-autocomplete-value="">
+						{itemValue.slice(0, from)}
+					</span>
+				),
+				<span
+					key={`match-${from}`}
+					data-user-value={matched ? "" : undefined}
+					data-autocomplete-value={matched ? undefined : ""}
+					// Why: after the exit, one text run again keeps the kerning across the old cut. A hidden tab
+					// fires no event, and the label then stays split, which only costs that kerning.
+					onTransitionEnd={
+						exiting
+							? (event) => {
+									if (event.propertyName === "background-size") {
+										setLastMatch(null);
+									}
+								}
+							: undefined
+					}
+				>
+					{itemValue.slice(from, to)}
+				</span>,
+				to < itemValue.length && (
+					<span key="after" data-autocomplete-value="">
+						{itemValue.slice(to)}
+					</span>
+				),
+			]}
 		</span>
 	);
 };
