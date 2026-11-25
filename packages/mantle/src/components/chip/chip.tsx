@@ -37,11 +37,11 @@ type ChipAppearance = "pill" | "square";
  */
 const chipClassName = {
 	pill: {
-		xs: "h-6 w-fit shrink-0 gap-0.5 whitespace-nowrap rounded-full px-2 font-sans text-xs font-medium",
-		sm: "h-7 w-fit shrink-0 gap-0.5 whitespace-nowrap rounded-full px-2.5 font-sans text-sm font-medium",
-		md: "h-9 w-fit shrink-0 gap-1 whitespace-nowrap rounded-full px-3 font-sans text-sm font-medium",
-		lg: "h-10 w-fit shrink-0 gap-1 whitespace-nowrap rounded-full px-3.5 font-sans text-sm font-medium",
-		xl: "h-12 w-fit shrink-0 gap-1.5 whitespace-nowrap rounded-full px-4 font-sans text-base font-medium",
+		xs: "h-6 w-fit max-w-full shrink-0 gap-0.5 whitespace-nowrap rounded-full px-2 font-sans text-xs font-medium",
+		sm: "h-7 w-fit max-w-full shrink-0 gap-0.5 whitespace-nowrap rounded-full px-2.5 font-sans text-sm font-medium",
+		md: "h-9 w-fit max-w-full shrink-0 gap-1 whitespace-nowrap rounded-full px-3 font-sans text-sm font-medium",
+		lg: "h-10 w-fit max-w-full shrink-0 gap-1 whitespace-nowrap rounded-full px-3.5 font-sans text-sm font-medium",
+		xl: "h-12 w-fit max-w-full shrink-0 gap-1.5 whitespace-nowrap rounded-full px-4 font-sans text-base font-medium",
 	},
 	square: {
 		xs: "gap-1 rounded-xs px-2 py-0.5 has-data-[slot=chip-remove]:pr-0.5 text-xs font-normal",
@@ -107,8 +107,9 @@ type ChipPressedState =
 type ChipSharedProps = WithAsChild &
 	WithDataSlot & {
 		/**
-		 * The chip's shape. `pill` is fully rounded. `square` has small corner radii, wraps a
-		 * long label, and matches `MultiSelect` value tags at the `sm` size.
+		 * The chip's shape. `pill` is fully rounded and truncates a long label at its container's
+		 * width. `square` has small corner radii, wraps a long label, and matches `MultiSelect`
+		 * value tags at the `sm` size.
 		 * @default "pill"
 		 */
 		appearance?: ChipAppearance;
@@ -230,10 +231,10 @@ function SelectableChip({
 		className: cx(
 			"inline-flex cursor-pointer items-center border border-solid bg-transparent",
 			"focus-visible:ring-focus-accent focus-visible:ring-4 focus-visible:outline-hidden",
-			"disabled:cursor-default disabled:opacity-50",
-			"motion-safe:transition motion-safe:duration-200 motion-safe:ease-out-strong motion-safe:not-disabled:active:scale-97",
-			"not-aria-pressed:border-base not-aria-pressed:text-muted not-aria-pressed:not-disabled:hover:text-body not-aria-pressed:not-disabled:hover:bg-neutral-500/10",
-			"aria-pressed:bg-accent-500/20 aria-pressed:text-accent-700 aria-pressed:not-disabled:hover:bg-accent-500/30 aria-pressed:border-transparent",
+			"disabled:cursor-default disabled:opacity-50 aria-disabled:cursor-default aria-disabled:opacity-50",
+			"motion-safe:transition motion-safe:duration-200 motion-safe:ease-out-strong motion-safe:not-disabled:not-aria-disabled:active:scale-97",
+			"not-aria-pressed:border-base not-aria-pressed:text-muted not-aria-pressed:not-disabled:not-aria-disabled:hover:text-body not-aria-pressed:not-disabled:not-aria-disabled:hover:bg-neutral-500/10",
+			"aria-pressed:bg-accent-500/20 aria-pressed:text-accent-700 aria-pressed:not-disabled:not-aria-disabled:hover:bg-accent-500/30 aria-pressed:not-disabled:not-aria-disabled:hover:text-accent-800 aria-pressed:border-transparent",
 			chipClassName[appearance][size],
 			className,
 		),
@@ -266,7 +267,7 @@ function SelectableChip({
 					<>
 						{icon}
 						<span data-slot="chip-label" className="contents">
-							<span className={cx(appearance === "pill" && "px-0.5")}>
+							<span className={cx(appearance === "pill" && "truncate px-0.5")}>
 								{children.props.children}
 							</span>
 						</span>
@@ -279,7 +280,7 @@ function SelectableChip({
 		<button {...buttonProps} type="button">
 			{icon}
 			<span data-slot="chip-label" className="contents">
-				<span className={cx(appearance === "pill" && "px-0.5")}>{children}</span>
+				<span className={cx(appearance === "pill" && "truncate px-0.5")}>{children}</span>
 			</span>
 		</button>
 	);
@@ -306,6 +307,8 @@ function LabelChip({
 	const internalRef = useRef<HTMLSpanElement | null>(null);
 	const composedRef = useComposedRefs(internalRef, ref);
 	const hasRemoveButton = onRemove != null;
+	// Why the button too: `aria-disabled` on the chip's span is not announced, so its remove button carries it.
+	const isDisabled = parseBooleanish(props["aria-disabled"]);
 	if (hasRemoveButton) {
 		invariant(removeLabel != null, "A removable Chip needs `removeLabel` for its button.");
 	}
@@ -321,6 +324,9 @@ function LabelChip({
 
 	function handleRemoveClick(event: MouseEvent<HTMLButtonElement>) {
 		event.stopPropagation();
+		if (isDisabled) {
+			return;
+		}
 		if (locked) {
 			if (internalRef.current != null) {
 				shakeElement(internalRef.current);
@@ -346,7 +352,7 @@ function LabelChip({
 		ref: composedRef,
 		className: cx(
 			"text-strong inline-flex items-center border border-neutral-500/20 bg-neutral-500/10",
-			"motion-safe:data-shake:animate-shake",
+			"motion-safe:data-shake:animate-shake aria-disabled:opacity-50",
 			chipClassName[appearance][size],
 			className,
 		),
@@ -356,13 +362,13 @@ function LabelChip({
 			type="button"
 			data-slot="chip-remove"
 			aria-label={removeLabel}
-			aria-disabled={locked || undefined}
+			aria-disabled={locked || isDisabled || undefined}
 			tabIndex={removeButtonTabIndex}
 			className={cx(
-				"text-strong/40 hover:bg-neutral-500/15 hover:text-strong cursor-pointer p-0.5",
+				"text-strong/50 hover:bg-neutral-500/15 hover:text-strong cursor-pointer p-0.5",
 				removeClassName[appearance][size].button,
 				"focus-visible:ring-focus-accent focus-visible:ring-2 focus-visible:outline-hidden",
-				"aria-disabled:cursor-default aria-disabled:hover:bg-transparent aria-disabled:hover:text-strong/40",
+				"aria-disabled:cursor-default aria-disabled:hover:bg-transparent aria-disabled:hover:text-strong/50",
 			)}
 			onClick={handleRemoveClick}
 			onMouseDown={handleRemoveMouseDown}
@@ -384,7 +390,7 @@ function LabelChip({
 				<Icon data-slot="chip-icon" svg={icon} className={iconClassName[size]} />
 			)}
 			<span data-slot="chip-label" className="contents">
-				<span className={cx(appearance === "pill" && "px-0.5")}>{label}</span>
+				<span className={cx(appearance === "pill" && "truncate px-0.5")}>{label}</span>
 			</span>
 			{removeButton}
 		</>

@@ -181,6 +181,19 @@ describe("Chip", () => {
 		expect(screen.getByRole("button", { name: "Read" })).toHaveAttribute("aria-pressed", "false");
 	});
 
+	test("an aria-disabled removable chip announces a disabled remove button and keeps its value", async () => {
+		const onRemove = vi.fn<() => void>();
+		render(
+			<Chip aria-disabled="true" onRemove={onRemove} removeLabel="Remove Read">
+				Read
+			</Chip>,
+		);
+		const remove = screen.getByRole("button", { name: "Remove Read" });
+		expect(remove).toHaveAttribute("aria-disabled", "true");
+		await userEvent.setup().click(remove);
+		expect(onRemove).not.toHaveBeenCalled();
+	});
+
 	test("forwards the ref, className, and data attributes", () => {
 		const ref = createRef<HTMLButtonElement>();
 		render(

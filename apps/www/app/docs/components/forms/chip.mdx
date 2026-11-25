@@ -152,7 +152,7 @@ function Example() {
 
 ## Appearance
 
-A chip is a `pill` by default. Set `appearance="square"` and `size="sm"` to match the value tags in [`Multi Select`](/components/forms/multi-select), such as for chips beside a form field. A one-line `square` chip is 2px shorter than a `pill` chip of the same size. A long `square` label wraps.
+A chip is a `pill` by default. Set `appearance="square"` and `size="sm"` to match the value tags in [`Multi Select`](/components/forms/multi-select), such as for chips beside a form field. A one-line `square` chip is 2px shorter than a `pill` chip of the same size. A long `square` label wraps. A long `pill` label stays on one line and ends in an ellipsis at the width of its container.
 
 <Example name="components/forms/chip/appearance" title="Chip appearance example">
 
@@ -232,7 +232,7 @@ function Example() {
 
 ## Disabled
 
-A disabled selectable chip keeps its state visible. It does not change state when the user presses it.
+A disabled selectable chip keeps its state visible. It does not change state when the user presses it. Set `aria-disabled` in place of `disabled` to keep the chip in the tab order: it looks the same and does not change. On a removable chip, `aria-disabled` also disables the remove button.
 
 <Example name="components/forms/chip/disabled" title="Disabled Chip example">
 
