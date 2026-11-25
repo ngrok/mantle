@@ -8,13 +8,11 @@ aliases: [assistant panel, aside card, panel header]
 import { Example } from "~/components/example";
 import { PageHeader } from "~/components/page-header";
 
-<PageHeader id="panel" isPreview>
-	Panel
-</PageHeader>
+<PageHeader id="panel">Panel</PageHeader>
 
 The look of the app shell's side panel as a part of its own, with a header row, a scroll body, and a pinned footer. It has no open state and no placement: set its height, and the body takes what the header and the footer leave.
 
-<Example name="components/preview/panel/overview" title="Panel example">
+<Example name="components/structure/panel/overview" title="Panel example">
 
 ```tsx
 import { Button, IconButton } from "@ngrok/mantle/button";
@@ -79,7 +77,7 @@ function Example() {
 
 `Panel.Header` also stands alone as the header row of a full page, such as a chat page, so the page and a panel share one header. It sits on the same band as `AppLayout.Header`.
 
-<Example name="components/preview/panel/header" title="Panel header example">
+<Example name="components/structure/panel/header" title="Panel header example">
 
 ```tsx
 import { IconButton } from "@ngrok/mantle/button";
@@ -127,7 +125,7 @@ Every part accepts `asChild`:
 - **`Panel.Body`**: an `<ol>` when the body is one list.
 - **`Panel.Footer`**: a `<form>` when the bar is a composer.
 
-<Example name="components/preview/panel/polymorphism" title="Panel asChild example">
+<Example name="components/structure/panel/polymorphism" title="Panel asChild example">
 
 ```tsx
 import { Panel } from "@ngrok/mantle/panel";

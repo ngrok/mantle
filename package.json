@@ -6,7 +6,7 @@
   "scripts": {
     "build": "turbo run build",
     "check:agent-docs": "node ./scripts/check-agent-docs.ts",
-    "check:bundle-budget": "pnpm -F @ngrok/mantle run check:bundle-budget",
+    "report:bundle-size": "pnpm -F @ngrok/mantle run report:bundle-size",
     "check:changed": "node ./scripts/check-changed.ts",
     "check:css-selectors": "node ./scripts/check-css-selectors.ts",
     "check:dist": "pnpm -F @ngrok/mantle run check:dist",

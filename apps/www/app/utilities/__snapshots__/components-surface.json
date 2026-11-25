@@ -1575,10 +1575,10 @@
   },
   {
     "name": "Panel",
-    "slug": "components/preview/panel",
+    "slug": "components/structure/panel",
     "kind": "component",
     "category": "Structure",
-    "status": "preview",
+    "status": "stable",
     "importPath": "@ngrok/mantle/panel",
     "summary": "The look of the app shell's side panel as a part of its own, with a header row, a scroll body, and a pinned footer.",
     "jsdoc": "The look of `AppLayout.SidePanel` as a part of its own: a card with a header row, a scroll region, and a bar pinned to the bottom.",

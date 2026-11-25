@@ -23,7 +23,7 @@ const headerBandClassName =
 /**
  * The props for `Panel.Root`: an `<aside>`'s props, `asChild`, and `data-slot`.
  *
- * @see https://mantle.ngrok.com/components/preview/panel#panelroot
+ * @see https://mantle.ngrok.com/components/structure/panel#panelroot
  *
  * @example
  * ```tsx
@@ -47,7 +47,7 @@ type PanelRootProps = ComponentProps<"aside"> & WithAsChild & WithDataSlot;
  * The props for `Panel.Header`, `Panel.Body`, and `Panel.Footer`: a `<div>`'s
  * props, `asChild`, and `data-slot`.
  *
- * @see https://mantle.ngrok.com/components/preview/panel#api-reference
+ * @see https://mantle.ngrok.com/components/structure/panel#api-reference
  *
  * @example
  * ```tsx
@@ -81,7 +81,7 @@ type PanelPartProps = ComponentProps<"div"> & WithAsChild & WithDataSlot;
  * and `min-h-0 min-w-0`, so it shrinks as a flex item instead of growing to its
  * content.
  *
- * @see https://mantle.ngrok.com/components/preview/panel#panelroot
+ * @see https://mantle.ngrok.com/components/structure/panel#panelroot
  *
  * @example
  * ```tsx
@@ -147,7 +147,7 @@ const Root = ({
  * | `--sidebar-header-height` | `4.5rem` | Read, not owned: `Sidebar.Header` owns this token. In an `AppLayout` shell with a sidebar header, this row derives its height from it, the same way `AppLayout.Header` does. |
  * | `--app-layout-card-gutter` | `0.5rem` | Read, not owned: `AppLayout.Content` owns this token. The derived height subtracts twice its value. |
  *
- * @see https://mantle.ngrok.com/components/preview/panel#panelheader
+ * @see https://mantle.ngrok.com/components/structure/panel#panelheader
  *
  * @example
  * ```tsx
@@ -195,7 +195,7 @@ const Header = ({
  * the footer leave, and it has no landmark. It is block inside, so a child that
  * asks for `h-full` fills it, and `mx-auto max-w-*` still centers.
  *
- * @see https://mantle.ngrok.com/components/preview/panel#panelbody
+ * @see https://mantle.ngrok.com/components/structure/panel#panelbody
  *
  * @example
  * ```tsx
@@ -243,7 +243,7 @@ const Body = ({
  * rule above itself: the composer frame inside it is the edge. Merge
  * `flex-row justify-end` for an action row. Optional.
  *
- * @see https://mantle.ngrok.com/components/preview/panel#panelfooter
+ * @see https://mantle.ngrok.com/components/structure/panel#panelfooter
  *
  * @example
  * ```tsx

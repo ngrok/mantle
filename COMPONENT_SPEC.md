@@ -135,7 +135,7 @@ before adding surface.
 ### 1.2. Ship the smallest public surface
 
 Publishing later is additive and non-breaking; un-shipping after release is breaking forever. Default to
-module-internal and promote on demand.
+module-internal and publish on demand.
 
 | Kind                                        | `package.json` export | Docs page | Nav entry              |
 | ------------------------------------------- | --------------------- | --------- | ---------------------- |
@@ -143,6 +143,22 @@ module-internal and promote on demand.
 | Preview component (unstable API)            | required              | required  | `previewComponents`    |
 | Internal primitive backing other components | forbidden             | forbidden | forbidden              |
 | Layout (page/viewport structure)            | required              | required  | `layoutPages` (§2.4)   |
+
+**Stable or preview.** A public component ships stable. Preview is an exception that someone chooses, and the
+choice needs evidence. Layouts have no preview kind.
+
+- **Proven in production → stable.** The code already runs in a shipped product: it is hoisted out of the
+  ngrok frontend repo or another ngrok app, or extracted from a part of a stable mantle component. `Panel`
+  came out of `AppLayout.SidePanel` and should have started stable. Product use has already tested the API,
+  so preview adds a later rename and changeset for no gain.
+- **New, unproven API → ask the requester.** Say which way you recommend and why. If you cannot ask (for
+  example, another agent sent the task), ship stable, or ship preview only when you can name the part of the
+  API you expect to change.
+- Do not copy the status of the last component that landed. It is evidence about that component only.
+
+The check: the PR that adds a public component states "stable" or "preview" and the evidence. That is the
+production code it came from, the requester's answer, "no requester to ask" for stable, or, for preview, the
+API you expect to change.
 
 Two shapes of internal primitive, with different build consequences:
 
@@ -757,7 +773,7 @@ cure. Read the roster there rather than restating it here, because an enumerated
   run skews the other. Rotate the order of the base and the branch in each round, report medians, and compare
   numbers only within one run. One 8ms Event Timing step is noise unless a trace confirms it.
 - An opt-in API, such as a function child, ships only on a part where a named use case needs it. Measure its
-  gzip bytes on each page shape in `bundle-budget.json`, and weigh them against the product and marketing
+  gzip bytes on each page shape in `bundle-size.json`, and weigh them against the product and marketing
   JavaScript budgets.
 - Performance does not win against accessibility. Keep what assistive technology reads, and give the measured
   cost to the author as a decision ([docs/north-star.md](./docs/north-star.md#when-two-goals-pull-apart)).
@@ -1252,6 +1268,7 @@ Run this against the diff before calling a component done. Each line is a defect
 - [ ] Answers one user intent no existing component already answers; the primary export's JSDoc names the
       sibling boundary in `@useWhen` and `@siblings` tags.
 - [ ] Nothing is public that could have stayed module-internal.
+- [ ] A PR that adds a public component states stable or preview and the evidence ([§1.2](#12-ship-the-smallest-public-surface)).
 - [ ] Each new prop names the shipped app that needs it; a behavior with one right answer has no prop
       ([§1.9](#19-build-the-behavior-in-before-you-add-a-prop)).
 - [ ] Outermost part is `Root`; every part name is the web-standards term for what it renders.

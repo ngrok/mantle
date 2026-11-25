@@ -19,4 +19,4 @@ Start from the native element and the behavior the browser gives it. Add the lea
 
 - [COMPONENT_SPEC.md §0](../../COMPONENT_SPEC.md#0-principles) item 1 lists which parts are native elements. [§1.10](../../COMPONENT_SPEC.md#110-follow-the-browser) holds the browser defaults, [§3.6](../../COMPONENT_SPEC.md#36-accessibility-and-motion) the role-query contract, and [§3.9](../../COMPONENT_SPEC.md#39-performance) the native floor.
 
-**Enforced by:** the bundle budget (`packages/mantle/bundle-budget.json`) for bytes, the three-engine browser suite, and review.
+**Enforced by:** the bundle-size report on each pull request (`packages/mantle/bundle-size.json`) for bytes, the three-engine browser suite, and review.

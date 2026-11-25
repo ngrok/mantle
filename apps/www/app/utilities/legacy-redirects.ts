@@ -44,6 +44,8 @@ function buildLegacySlugMap(): Map<string, string> {
 	}
 	// Chip left the preview namespace for the Forms category.
 	map.set("components/preview/chip", "components/forms/chip");
+	// Panel left the preview namespace for the Structure category.
+	map.set("components/preview/panel", "components/structure/panel");
 	map.set("blocks", "recipes");
 	map.set("blocks/sheet-async", "recipes/overlay-async");
 	map.set("recipes/sheet-async", "recipes/overlay-async");
@@ -90,4 +92,25 @@ export function legacyRedirectFor(pathname: string): string | null {
 		return null;
 	}
 	return `/${target}${suffix}`;
+}
+
+/**
+ * Resolve a preview frame key, `<page path>/<example name>`, whose page moved
+ * to its new key, or `null` when the page did not move. A docs page links its
+ * frames in a new tab, so a saved frame link outlives the move.
+ *
+ * @example
+ * legacyPreviewRedirectFor("components/preview/panel/overview"); // "/preview/components/structure/panel/overview"
+ * legacyPreviewRedirectFor("components/structure/panel/overview"); // null
+ */
+export function legacyPreviewRedirectFor(key: string): string | null {
+	const slash = key.lastIndexOf("/");
+	if (slash === -1) {
+		return null;
+	}
+	const target = legacySlugMap.get(key.slice(0, slash));
+	if (target == null) {
+		return null;
+	}
+	return `/preview/${target}${key.slice(slash)}`;
 }

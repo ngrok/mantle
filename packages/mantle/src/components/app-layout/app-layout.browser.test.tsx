@@ -514,3 +514,111 @@ describe("AppLayout.SidePanelHeader swipe", () => {
 		expect(panel.style.flexBasis).toBe("");
 	});
 });
+
+/**
+ * At a phone width the open panel covers the row and is modal. A panel that is
+ * open on mount must not take focus from the page, or from a parent document
+ * when the shell renders in a frame. Only the real engine applies `inert` to
+ * the tab order, so the Tab case lives here.
+ */
+describe("AppLayout.SidePanel open on mount at a phone width", () => {
+	function renderOpenShell() {
+		render(
+			<TooltipProvider>
+				<button type="button">outside</button>
+				<AppLayout.SidePanelRoot defaultOpen>
+					<AppLayout.Workspace>
+						<AppLayout.Content data-testid="card">
+							<AppLayout.SidePanelTrigger label="Toggle the assistant" />
+						</AppLayout.Content>
+						<AppLayout.SidePanel aria-label="Assistant">
+							<AppLayout.SidePanelHeader>
+								<AppLayout.SidePanelTrigger label="Close the assistant" />
+							</AppLayout.SidePanelHeader>
+							<button type="button">send</button>
+						</AppLayout.SidePanel>
+					</AppLayout.Workspace>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>,
+		);
+	}
+
+	test("keeps focus where the page put it and still makes the card inert", async () => {
+		await page.viewport(375, 700);
+		const outside = document.createElement("button");
+		document.body.prepend(outside);
+		outside.focus();
+		try {
+			// Why no wait: the trap's first focus move runs in the commit's effect,
+			// which `render` flushes.
+			renderOpenShell();
+			expect(outside).toHaveFocus();
+			expect(screen.getByTestId("card")).toHaveAttribute("inert");
+		} finally {
+			outside.remove();
+		}
+	});
+
+	test("traps Tab once the reader tabs into it", async () => {
+		await page.viewport(375, 700);
+		renderOpenShell();
+		screen.getByRole("button", { name: "outside" }).focus();
+		await userEvent.tab();
+		expect(screen.getByRole("complementary", { name: "Assistant" })).toHaveFocus();
+		await userEvent.tab();
+		expect(screen.getByRole("button", { name: "Close the assistant" })).toHaveFocus();
+		await userEvent.tab();
+		expect(screen.getByRole("button", { name: "send" })).toHaveFocus();
+		await userEvent.tab();
+		expect(screen.getByRole("button", { name: "Close the assistant" })).toHaveFocus();
+	});
+
+	test("a panel with no tab stop takes Tab, and Escape closes it", async () => {
+		await page.viewport(375, 700);
+		render(
+			<TooltipProvider>
+				<button type="button">outside</button>
+				<AppLayout.SidePanelRoot defaultOpen>
+					<AppLayout.Workspace>
+						<AppLayout.Content data-testid="card">
+							<AppLayout.SidePanelTrigger label="Toggle the assistant" />
+						</AppLayout.Content>
+						<AppLayout.SidePanel aria-label="Assistant">
+							<p>Loading…</p>
+						</AppLayout.SidePanel>
+					</AppLayout.Workspace>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>,
+		);
+		screen.getByRole("button", { name: "outside" }).focus();
+		await userEvent.tab();
+		const panel = screen.getByRole("complementary", { name: "Assistant" });
+		expect(panel).toHaveFocus();
+		await userEvent.keyboard("{Escape}");
+		await expect.poll(() => panel.hasAttribute("data-open")).toBe(false);
+		expect(screen.getByTestId("card")).not.toHaveAttribute("inert");
+	});
+
+	test("a resize that covers the card takes focus from it into the panel", async () => {
+		await page.viewport(1280, 800);
+		renderOpenShell();
+		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
+		trigger.focus();
+		await page.viewport(375, 700);
+		await expect
+			.poll(() => document.activeElement)
+			.toBe(screen.getByRole("button", { name: "Close the assistant" }));
+	});
+
+	test("moves focus inside when the reader opens it again", async () => {
+		await page.viewport(375, 700);
+		renderOpenShell();
+		await userEvent.click(screen.getByRole("button", { name: "Close the assistant" }));
+		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
+		await expect.poll(() => document.activeElement).toBe(trigger);
+		await userEvent.click(trigger);
+		await expect
+			.poll(() => document.activeElement)
+			.toBe(screen.getByRole("button", { name: "Close the assistant" }));
+	});
+});
