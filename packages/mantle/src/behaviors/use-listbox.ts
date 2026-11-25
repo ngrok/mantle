@@ -1,7 +1,14 @@
 "use client";
 
 import { isValidElement, useCallback, useId, useInsertionEffect, useRef, useState } from "react";
-import type { HTMLAttributes, MouseEventHandler, ReactNode, RefCallback, RefObject } from "react";
+import type {
+	HTMLAttributes,
+	MouseEvent,
+	MouseEventHandler,
+	ReactNode,
+	RefCallback,
+	RefObject,
+} from "react";
 import { createStore } from "./store.js";
 import type { Store } from "./store.js";
 
@@ -392,8 +399,12 @@ const useOption = (
 					listbox.getStore().set({ activeId: event.currentTarget.id });
 				}
 			},
-			onClick: () => {
-				if (!disabled) {
+			onClick: (event: MouseEvent<HTMLElement>) => {
+				// Why: a modified click on a link opens it in another tab or window, so this page keeps its pick.
+				const opensElsewhere =
+					event.currentTarget.matches("a[href]") &&
+					(event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey);
+				if (!disabled && !opensElsewhere) {
 					listbox.select(value);
 				}
 			},

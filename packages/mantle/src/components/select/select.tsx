@@ -3,6 +3,7 @@
 import type {
 	ComponentProps,
 	FocusEvent,
+	MouseEvent,
 	PropsWithChildren,
 	ReactNode,
 	Ref,
@@ -1049,10 +1050,10 @@ const Item = ({
 	const elementProps = {
 		...props,
 		...optionProps,
-		onClick: composeHandlers(onClick, () => {
+		onClick: composeHandlers(onClick, (event: MouseEvent<HTMLElement>) => {
 			// Why: a tap can pick an item that no pointer move highlighted.
 			reportLabel();
-			optionProps.onClick();
+			optionProps.onClick(event);
 		}),
 		onPointerMove: composeHandlers(onPointerMove, optionProps.onPointerMove),
 		ref: composedRef,
