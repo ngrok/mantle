@@ -1299,7 +1299,9 @@ type AppLayoutSidePanelProps = Omit<ComponentProps<"aside">, "id"> &
  * into it on open. A panel that is open on mount (`defaultOpen` or a saved
  * cookie) still covers the card and keeps the row `inert`, but it does not
  * take focus: the trap starts when focus first enters the panel, when a resize
- * covers the card while it holds focus, or when the reader opens it again. The one `<aside>` stays mounted across the lane, the
+ * covers the card while it holds focus, or when the reader opens it again.
+ * Until then the panel is a tab stop of its own, so a panel with no control
+ * still takes `Tab` and `Escape`. The one `<aside>` stays mounted across the lane, the
  * float, and the cover, so a conversation keeps its DOM and the trap turns
  * on and off with the viewport.
  *
@@ -1442,17 +1444,36 @@ const SidePanel = ({
 		return () => requestSidebarWidth(false);
 	}, [needsSidebarWidth, requestSidebarWidth]);
 
+	// Why native listeners: React's `onFocus` misses focus that a child stops
+	// and a button portaled into the panel, and it reports popups portaled out
+	// of it. A capturing `focusin` sees the panel's DOM only. Why `resize`: the
+	// first client snapshot also turns a phone's panel modal, and that is no
+	// resize. The browser fires `resize` before it reports the media change.
+	const resizedRef = useRef(false);
+	useEffect(() => {
+		const panel = panelRef.current;
+		if (!openSinceMount || panel == null) {
+			return;
+		}
+		const handleResize = () => {
+			resizedRef.current = true;
+		};
+		panel.addEventListener("focusin", armFocusTrap, true);
+		window.addEventListener("resize", handleResize);
+		return () => {
+			panel.removeEventListener("focusin", armFocusTrap, true);
+			window.removeEventListener("resize", handleResize);
+		};
+	}, [armFocusTrap, openSinceMount, panelRef]);
+
 	// Why: a panel open since mount still arms the trap in two cases with no
-	// focus event. Focus that entered before hydration gets no React event, and
-	// a resize that covers the row takes focus from the card or the sidebar
-	// when they go `inert`. Why `isHydrated` and the previous value: the first
-	// client snapshot turns a phone's panel modal on page load, and that is no
-	// resize. Why before `useInertSiblings`: focus is read before the row goes
+	// focus event. Focus that entered before hydration fires none, and a resize
+	// that covers the row takes focus from the card or the sidebar when they go
+	// `inert`. Why before `useInertSiblings`: focus is read before the row goes
 	// `inert`.
-	const wasModalRef = useRef(isModal);
 	useLayoutEffect(() => {
-		const wasModal = wasModalRef.current;
-		wasModalRef.current = isModal;
+		const resized = resizedRef.current;
+		resizedRef.current = false;
 		const panel = panelRef.current;
 		const row = panel?.parentElement;
 		if (!isModal || !openSinceMount || panel == null || row == null) {
@@ -1460,17 +1481,24 @@ const SidePanel = ({
 		}
 		const activeElement = document.activeElement;
 		const focusIsInPanel = panel.contains(activeElement);
-		const resizeTookRowFocus =
-			isHydrated && !wasModal && activeElement !== row && row.contains(activeElement);
+		const resizeTookRowFocus = resized && activeElement !== row && row.contains(activeElement);
 		if (focusIsInPanel || resizeTookRowFocus) {
 			armFocusTrap();
 		}
-	}, [armFocusTrap, isHydrated, isModal, openSinceMount, panelRef]);
+	}, [armFocusTrap, isModal, openSinceMount, panelRef]);
 
 	// Why siblings: the card and the sidebar are the panel's siblings in the row,
 	// and `AppLayout` knows nothing about the sidebar.
 	useInertSiblings(panelRef, { active: isModal });
-	useFocusTrap(panelRef, { active: isModal && !openSinceMount });
+	const isTrapping = isModal && !openSinceMount;
+	useFocusTrap(panelRef, { active: isTrapping });
+	// Why a tab stop while the trap waits: the row is `inert`, and a panel with
+	// no tab stop of its own must still take Tab and then Escape. Why -1 once
+	// it traps: the trap keeps focus on the panel itself.
+	let modalTabIndex: number | undefined;
+	if (isModal) {
+		modalTabIndex = isTrapping ? -1 : 0;
+	}
 
 	// Why a document capture listener, registered at mount: a combobox or a
 	// popover inside the panel closes on the same Escape from a document
@@ -1549,11 +1577,6 @@ const SidePanel = ({
 			onFocus={(event) => {
 				onFocus?.(event);
 				lastFocusedInsideRef.current = event.target;
-				// Why the DOM check: React bubbles focus from a portaled popup, and
-				// the trap would pull that focus back into the panel.
-				if (event.currentTarget.contains(event.target)) {
-					armFocusTrap();
-				}
 			}}
 			onBlur={(event) => {
 				onBlur?.(event);
@@ -1581,6 +1604,7 @@ const SidePanel = ({
 				event.preventDefault();
 				setOpen(false);
 			}}
+			tabIndex={modalTabIndex}
 			{...props}
 			// Why after the spread: a wider props object can carry `id`,
 			// `data-open`, `data-hydrated`, or `inert` past the type, and a consumer

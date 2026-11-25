@@ -1158,16 +1158,14 @@ describe("AppLayout.SidePanel as an overlay", () => {
 		expect(popup).toHaveFocus();
 	});
 
-	test("a panel open on mount that starts covering moves focus in from the card", async () => {
+	test("a panel open on mount that a resize covers moves focus in from the card", () => {
 		const media = mockMatchMedia({ [coverQuery]: false });
 		render(coveringShell());
-		// Why wait: the first client snapshot after hydration is no resize.
-		await waitFor(() => {
-			expect(screen.getByTestId("panel")).toHaveAttribute("data-hydrated");
-		});
 		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
 		trigger.focus();
+		// Why both: the browser fires `resize` before it reports the media change.
 		act(() => {
+			window.dispatchEvent(new Event("resize"));
 			media.setMatches(coverQuery, true);
 		});
 		expect(screen.getByTestId("card")).toHaveAttribute("inert");
@@ -1188,14 +1186,39 @@ describe("AppLayout.SidePanel as an overlay", () => {
 		return button;
 	}
 
-	test("hydration at a phone width keeps focus on the card control the reader chose", async () => {
+	test("hydration at a phone width moves no focus into the panel", async () => {
 		mockMatchMedia({ [coverQuery]: true });
-		const toggle = hydrateWithFocusOn("Toggle the assistant");
+		hydrateWithFocusOn("Toggle the assistant");
 		await waitFor(() => {
 			expect(screen.getByTestId("panel")).toHaveAttribute("data-hydrated");
 		});
 		expect(screen.getByTestId("card")).toHaveAttribute("inert");
-		expect(toggle).toHaveFocus();
+		// Why not the toggle: a browser drops focus from an `inert` control.
+		expect(screen.getByTestId("panel")).not.toContainElement(document.activeElement as HTMLElement);
+	});
+
+	test("focus that a child stops still arms the trap", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [coverQuery]: true });
+		render(
+			<AppLayout.SidePanelRoot defaultOpen>
+				<AppLayout.Workspace>
+					<AppLayout.Content />
+					<AppLayout.SidePanel aria-label="Assistant">
+						<button type="button">close</button>
+						<button type="button" onFocus={(event) => event.stopPropagation()}>
+							send
+						</button>
+					</AppLayout.SidePanel>
+				</AppLayout.Workspace>
+				<button type="button">after</button>
+			</AppLayout.SidePanelRoot>,
+		);
+		act(() => {
+			screen.getByRole("button", { name: "send" }).focus();
+		});
+		await user.tab();
+		expect(screen.getByRole("button", { name: "close" })).toHaveFocus();
 	});
 
 	test("focus inside a covering panel before hydration arms the trap", async () => {
@@ -1205,6 +1228,33 @@ describe("AppLayout.SidePanel as an overlay", () => {
 		expect(send).toHaveFocus();
 		await user.tab();
 		expect(screen.getByRole("button", { name: "Close the assistant" })).toHaveFocus();
+	});
+
+	test("a controlled panel open on mount that a parent closes and reopens moves focus inside", async () => {
+		const user = userEvent.setup();
+		mockMatchMedia({ [coverQuery]: true });
+		function ControlledPanel() {
+			const [open, setOpen] = useState(true);
+			return (
+				<AppLayout.SidePanelRoot open={open} onOpenChange={setOpen}>
+					<button type="button" onClick={() => setOpen(!open)}>
+						outside toggle
+					</button>
+					<AppLayout.Workspace>
+						<AppLayout.Content />
+						<AppLayout.SidePanel aria-label="Assistant">
+							<button type="button">close</button>
+						</AppLayout.SidePanel>
+					</AppLayout.Workspace>
+				</AppLayout.SidePanelRoot>
+			);
+		}
+		render(<ControlledPanel />);
+		const toggle = screen.getByRole("button", { name: "outside toggle" });
+		await user.click(toggle);
+		expect(toggle).toHaveFocus();
+		await user.click(toggle);
+		expect(screen.getByRole("button", { name: "close" })).toHaveFocus();
 	});
 
 	test("a covering panel that mounts when the reader opens it moves focus inside", async () => {

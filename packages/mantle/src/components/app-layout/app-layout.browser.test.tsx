@@ -564,11 +564,50 @@ describe("AppLayout.SidePanel open on mount at a phone width", () => {
 		renderOpenShell();
 		screen.getByRole("button", { name: "outside" }).focus();
 		await userEvent.tab();
+		expect(screen.getByRole("complementary", { name: "Assistant" })).toHaveFocus();
+		await userEvent.tab();
 		expect(screen.getByRole("button", { name: "Close the assistant" })).toHaveFocus();
 		await userEvent.tab();
 		expect(screen.getByRole("button", { name: "send" })).toHaveFocus();
 		await userEvent.tab();
 		expect(screen.getByRole("button", { name: "Close the assistant" })).toHaveFocus();
+	});
+
+	test("a panel with no tab stop takes Tab, and Escape closes it", async () => {
+		await page.viewport(375, 700);
+		render(
+			<TooltipProvider>
+				<button type="button">outside</button>
+				<AppLayout.SidePanelRoot defaultOpen>
+					<AppLayout.Workspace>
+						<AppLayout.Content data-testid="card">
+							<AppLayout.SidePanelTrigger label="Toggle the assistant" />
+						</AppLayout.Content>
+						<AppLayout.SidePanel aria-label="Assistant">
+							<p>Loading…</p>
+						</AppLayout.SidePanel>
+					</AppLayout.Workspace>
+				</AppLayout.SidePanelRoot>
+			</TooltipProvider>,
+		);
+		screen.getByRole("button", { name: "outside" }).focus();
+		await userEvent.tab();
+		const panel = screen.getByRole("complementary", { name: "Assistant" });
+		expect(panel).toHaveFocus();
+		await userEvent.keyboard("{Escape}");
+		await expect.poll(() => panel.hasAttribute("data-open")).toBe(false);
+		expect(screen.getByTestId("card")).not.toHaveAttribute("inert");
+	});
+
+	test("a resize that covers the card takes focus from it into the panel", async () => {
+		await page.viewport(1280, 800);
+		renderOpenShell();
+		const trigger = screen.getByRole("button", { name: "Toggle the assistant" });
+		trigger.focus();
+		await page.viewport(375, 700);
+		await expect
+			.poll(() => document.activeElement)
+			.toBe(screen.getByRole("button", { name: "Close the assistant" }));
 	});
 
 	test("moves focus inside when the reader opens it again", async () => {
