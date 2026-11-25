@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 import { commands, userEvent } from "vitest/browser";
+import { Button } from "../button/button.js";
+import { IconButton } from "../button/icon-button.js";
 import * as SegmentedControl from "./segmented-control-parts.js";
 
 /** The item of the radio named `name`, the element a user's click on the item hits. */
@@ -22,6 +24,9 @@ beforeAll(async () => {
 		"*, ::before, ::after { box-sizing: border-box; }",
 		await commands.tailwindCss("./segmented-control.tsx"),
 		await commands.tailwindCss("../radio-group/primitive.tsx"),
+		await commands.tailwindCss("../button/icon-button-variants.ts"),
+		await commands.tailwindCss("../button/button.tsx"),
+		await commands.tailwindCss("./segmented-control.browser.test.tsx"),
 	].join("\n");
 	document.head.appendChild(styleElement);
 });
@@ -54,6 +59,90 @@ describe("SegmentedControl.Item", () => {
 		expect(item.scrollHeight).toBeLessThanOrEqual(item.clientHeight);
 		expect(item.scrollWidth).toBeLessThanOrEqual(item.clientWidth);
 	});
+});
+
+describe("SegmentedControl size", () => {
+	test("xs items with one-character labels keep their targets 24px apart", () => {
+		render(
+			<SegmentedControl.Root
+				aria-label="Decimal separator"
+				defaultValue="point"
+				size="xs"
+				className="w-fit"
+			>
+				<SegmentedControl.Item value="point" aria-label="Point">
+					.
+				</SegmentedControl.Item>
+				<SegmentedControl.Item value="comma" aria-label="Comma">
+					,
+				</SegmentedControl.Item>
+			</SegmentedControl.Root>,
+		);
+
+		const point = item("Point").getBoundingClientRect();
+		const comma = item("Comma").getBoundingClientRect();
+		expect(comma.left + comma.width / 2 - (point.left + point.width / 2)).toBeGreaterThanOrEqual(
+			24,
+		);
+	});
+
+	test.each(["xs", "sm", "md", "lg", "xl"] as const)(
+		"a %s control matches the height of an IconButton and the padding of a Button, and its labels have room",
+		(size) => {
+			render(
+				<div style={{ display: "flex", alignItems: "center" }}>
+					<SegmentedControl.Root aria-label="View" defaultValue="headers" size={size}>
+						<SegmentedControl.Item value="headers">
+							<span>Headers</span>
+						</SegmentedControl.Item>
+						<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+					</SegmentedControl.Root>
+					{/* Why icon segments: a text line can give the track its height with no height class. */}
+					<SegmentedControl.Root aria-label="Layout" defaultValue="list" size={size}>
+						<SegmentedControl.Item value="list">
+							<svg aria-hidden width={16} height={16} />
+							<span className="sr-only">List</span>
+						</SegmentedControl.Item>
+						<SegmentedControl.Item value="grid">
+							<svg aria-hidden width={16} height={16} />
+							<span className="sr-only">Grid</span>
+						</SegmentedControl.Item>
+					</SegmentedControl.Root>
+					<IconButton appearance="ghost" intent="neutral" size={size} label="Copy" icon={<svg />} />
+					<Button appearance="outlined" intent="neutral" size={size}>
+						Save
+					</Button>
+				</div>,
+			);
+
+			const control = screen.getByRole("radiogroup", { name: "View" });
+			const button = screen.getByRole("button", { name: "Copy" });
+			expect(control).toHaveAttribute("data-size", size);
+			const buttonHeight = button.getBoundingClientRect().height;
+			expect(control.getBoundingClientRect().height).toBe(buttonHeight);
+			const iconControl = screen.getByRole("radiogroup", { name: "Layout" });
+			expect(iconControl.getBoundingClientRect().height).toBe(buttonHeight);
+			const buttonPadding = getComputedStyle(
+				screen.getByRole("button", { name: "Save" }),
+			).paddingInlineStart;
+			// Why a span: it measures the line box, so the label keeps 2px above and below.
+			const line = screen.getByText("Headers").getBoundingClientRect();
+			const headers = item("Headers").getBoundingClientRect();
+			expect(line.top - headers.top).toBeGreaterThanOrEqual(2);
+			expect(headers.bottom - line.bottom).toBeGreaterThanOrEqual(2);
+			for (const name of ["Headers", "Raw"]) {
+				expect(item(name).scrollHeight).toBeLessThanOrEqual(item(name).clientHeight);
+				expect(getComputedStyle(item(name)).paddingInlineStart).toBe(buttonPadding);
+				// Why a range: a label that spills into the padding still reports no overflow.
+				const label = document.createRange();
+				label.selectNodeContents(screen.getByText(name));
+				const padding = Number.parseFloat(buttonPadding);
+				expect(label.getBoundingClientRect().width + 2 * padding).toBeLessThanOrEqual(
+					item(name).getBoundingClientRect().width + 0.5,
+				);
+			}
+		},
+	);
 });
 
 /** Renders a 300px control with "Prod" checked, and returns its `::before` thumb animations. */

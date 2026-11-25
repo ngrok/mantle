@@ -7,18 +7,58 @@ import { $cssProperties } from "../../types/index.js";
 import { useComposedRefs } from "../../utils/compose-refs/index.js";
 import { cx } from "../../utils/cx/cx.js";
 import { joinDataSlot } from "../../utils/data-slot.js";
+import type { ButtonSize } from "../button/sizes.js";
 import * as RadioPrimitive from "../radio-group/primitive.js";
 import { useSegmentedThumb } from "./use-segmented-thumb.js";
 
-/** Whether a part renders inside a `SegmentedControl.Root`. */
-const InsideRootContext = createContext(false);
+/**
+ * The size of a `SegmentedControl`: the button family's scale. A size renders
+ * the same box height as a `Button` or `IconButton` of the same name.
+ */
+type SegmentedControlSize = ButtonSize;
+
+/** The size of the `SegmentedControl.Root` around a part, or `null` outside one. */
+const SizeContext = createContext<SegmentedControlSize | null>(null);
+
+// Why each track radius: it is the item radius (6px) plus the padding (2px or 4px).
+// The items and their focus rings then follow the track corner.
+const rootSizeClasses = {
+	xs: "h-6 rounded-lg p-0.5",
+	sm: "h-7 rounded-lg p-0.5",
+	md: "h-9 rounded-[0.625rem] p-1",
+	lg: "h-10 rounded-[0.625rem] p-1",
+	xl: "h-12 rounded-[0.625rem] p-1",
+} as const satisfies Record<SegmentedControlSize, string>;
+
+// Why: the same horizontal padding as a `Button` of the same size. Why `text-xs` at xs:
+// the thumb is 4px shorter than the track, so a 20px `text-sm` line fills it edge to edge.
+// Why a 1.5rem basis at xs: one-character targets stay 24px apart (WCAG 2.5.8), and
+// `min-width: auto` still keeps a long label at its full width.
+const itemSizeClasses = {
+	xs: "flex-[1_0_1.5rem] px-2 text-xs",
+	sm: "px-2.5",
+	md: "px-3",
+	lg: "px-3.5",
+	xl: "px-4",
+} as const satisfies Record<SegmentedControlSize, string>;
 
 /**
  * The props of `SegmentedControl.Root`: the same props as `RadioGroup.Root`,
  * including `value`, `defaultValue`, `onValueChange`, `name`, `form`, and
- * `disabled`.
+ * `disabled`, plus `size`.
  */
-type SegmentedControlRootProps = RadioPrimitive.RootProps;
+type SegmentedControlRootProps = RadioPrimitive.RootProps & {
+	/**
+	 * The size of the control, default `"md"`. It sets the track height and
+	 * the padding of each item, on the button family's scale: `xs` 24px, `sm`
+	 * 28px, `md` 36px, `lg` 40px, and `xl` 48px. The control is as high as an
+	 * `IconButton` of the same size, or a `Button` with any `appearance` except
+	 * `"link"`. At `xs`, the labels are `text-xs`, so they have room inside the
+	 * 20px thumb. The items do not accept `size`, so the items of one control
+	 * always share one height.
+	 */
+	size?: SegmentedControlSize;
+};
 
 /**
  * The props of `SegmentedControl.Item`: the same props as `RadioGroup.Item`,
@@ -40,6 +80,7 @@ type SegmentedControlItemProps = RadioPrimitive.ItemProps;
  *
  * | Data Attribute  | Value                 | Description                                         |
  * | --------------- | --------------------- | --------------------------------------------------- |
+ * | `data-size`     | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop. |
  * | `data-dragging` | present during a drag | The thumb follows the pointer. Presence-only.       |
  *
  * @see https://mantle.ngrok.com/components/forms/segmented-control#segmentedcontrolroot
@@ -59,6 +100,7 @@ const Root = ({
 	children,
 	className,
 	ref,
+	size = "md",
 	style,
 	...props
 }: SegmentedControlRootProps) => {
@@ -68,13 +110,13 @@ const Root = ({
 	const groupRef = useRef<HTMLElement>(null);
 	const composedRef = useComposedRefs(ref, groupRef);
 	return (
-		<InsideRootContext.Provider value>
+		<SizeContext.Provider value={size}>
 			<RadioPrimitive.Root
 				data-slot={joinDataSlot(dataSlot, "segmented-control")}
+				data-size={size}
 				className={cx(
-					// Why 0.625rem: the item radius (6px) and the padding (4px) add up to it.
-					// The items and their focus rings then follow the track corner.
-					"bg-neutral-500/10 relative flex h-9 flex-row flex-nowrap gap-px rounded-[0.625rem] p-1",
+					"bg-neutral-500/10 relative flex flex-row flex-nowrap gap-px",
+					rootSizeClasses[size],
 					// Why a pseudo-element: one thumb slides to the checked item, and no
 					// element sits beside the consumer's children.
 					"before:absolute before:rounded-md before:bg-card before:shadow-sm dark:before:bg-neutral-300",
@@ -94,7 +136,7 @@ const Root = ({
 				{children}
 				<Thumb groupRef={groupRef} />
 			</RadioPrimitive.Root>
-		</InsideRootContext.Provider>
+		</SizeContext.Provider>
 	);
 };
 
@@ -132,15 +174,14 @@ const Thumb = ({ groupRef }: { groupRef: RefObject<HTMLElement | null> }) => {
  */
 // Why no asChild: the item is the `<div>` that holds its native radio.
 const Item = ({ className, ...props }: SegmentedControlItemProps) => {
-	invariant(
-		useContext(InsideRootContext),
-		"SegmentedControl.Item must be rendered inside SegmentedControl.Root.",
-	);
+	const size = useContext(SizeContext);
+	invariant(size != null, "SegmentedControl.Item must be rendered inside SegmentedControl.Root.");
 	return (
 		<RadioPrimitive.Item
 			part="segmented-control-item"
 			className={cx(
-				"group/radio [&_label]:cursor-inherit relative flex flex-1 select-none items-center justify-center gap-2 rounded-md px-3 text-sm",
+				"group/radio [&_label]:cursor-inherit relative flex flex-1 select-none items-center justify-center gap-2 rounded-md text-sm",
+				itemSizeClasses[size],
 				// Why nowrap: `SegmentedControl.Root` has a fixed height, so a wrapped label spills out of the item.
 				"whitespace-nowrap",
 				"has-[>input:focus-visible]:focus-ring has-[>input:focus-visible]:z-1",

@@ -21,6 +21,7 @@ describe("SegmentedControl.Root", () => {
 
 		const control = screen.getByRole("radiogroup", { name: "View" });
 		expect(control).toHaveAttribute("data-slot", "segmented-control");
+		expect(control).toHaveAttribute("data-size", "md");
 		expect(control).toHaveAttribute("data-testid", "view");
 		expect(control).toHaveClass("w-fit");
 		expect(refSpy).toHaveBeenLastCalledWith(control);

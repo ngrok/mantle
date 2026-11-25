@@ -86,6 +86,108 @@ import { SquaresFourIcon } from "@phosphor-icons/react/SquaresFour";
 
 </Example>
 
+## Size
+
+Set `size` on `SegmentedControl.Root` to set the height of the whole control, default `md`. The scale is the one [Button](/components/actions/button), [IconButton](/components/actions/icon-button), and [SplitButton](/components/actions/split-button) use: `xs`, `sm`, `md`, `lg`, and `xl`. A control lines up with buttons of the same size in a toolbar. At `xs`, the labels are `text-xs`, so they have room inside the 20px thumb. A `Button` with `appearance="link"` has no box, so it has no height to match. The items do not accept `size`, so the items of one control always share one height.
+
+<Example name="components/forms/segmented-control/size" title="Segmented Control size example">
+
+```tsx
+import { IconButton } from "@ngrok/mantle/button";
+import { SegmentedControl } from "@ngrok/mantle/segmented-control";
+import { CopyIcon } from "@phosphor-icons/react/Copy";
+
+<div className="flex flex-wrap items-start justify-center gap-6">
+	<div>
+		<p className="mb-2 text-center font-mono text-xs">Size xs</p>
+		<div className="flex items-center gap-2">
+			<SegmentedControl.Root aria-label="Event view, size xs" defaultValue="headers" size="xs">
+				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+				<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+				<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				size="xs"
+				label="Copy event"
+				icon={<CopyIcon />}
+			/>
+		</div>
+	</div>
+	<div>
+		<p className="mb-2 text-center font-mono text-xs">Size sm</p>
+		<div className="flex items-center gap-2">
+			<SegmentedControl.Root aria-label="Event view, size sm" defaultValue="headers" size="sm">
+				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+				<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+				<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				size="sm"
+				label="Copy event"
+				icon={<CopyIcon />}
+			/>
+		</div>
+	</div>
+	<div>
+		<p className="mb-2 text-center font-mono text-xs">Size md (default)</p>
+		<div className="flex items-center gap-2">
+			<SegmentedControl.Root aria-label="Event view, size md" defaultValue="headers" size="md">
+				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+				<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+				<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				size="md"
+				label="Copy event"
+				icon={<CopyIcon />}
+			/>
+		</div>
+	</div>
+	<div>
+		<p className="mb-2 text-center font-mono text-xs">Size lg</p>
+		<div className="flex items-center gap-2">
+			<SegmentedControl.Root aria-label="Event view, size lg" defaultValue="headers" size="lg">
+				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+				<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+				<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				size="lg"
+				label="Copy event"
+				icon={<CopyIcon />}
+			/>
+		</div>
+	</div>
+	<div>
+		<p className="mb-2 text-center font-mono text-xs">Size xl</p>
+		<div className="flex items-center gap-2">
+			<SegmentedControl.Root aria-label="Event view, size xl" defaultValue="headers" size="xl">
+				<SegmentedControl.Item value="headers">Headers</SegmentedControl.Item>
+				<SegmentedControl.Item value="body">Body</SegmentedControl.Item>
+				<SegmentedControl.Item value="raw">Raw</SegmentedControl.Item>
+			</SegmentedControl.Root>
+			<IconButton
+				appearance="ghost"
+				intent="neutral"
+				size="xl"
+				label="Copy event"
+				icon={<CopyIcon />}
+			/>
+		</div>
+	</div>
+</div>;
+```
+
+</Example>
+
 ## With TanStack Form
 
 Use `@tanstack/react-form` with `zod` to keep the control controlled in a form. Pass the field's `name`, `value`, and `handleChange`. Use `Field.Set` and `Field.Legend` to name the group and show its errors.
@@ -187,10 +289,17 @@ The same props as [`RadioGroup.Root`](/components/forms/radio-group#radiogroupro
 | `form?`          | `string`                  |         | The `id` of the form the radios belong to.                  |
 | `aria-label?`    | `string`                  |         | The name of the control. Set it, or set `aria-labelledby`.  |
 
-| Data Attribute  | Value                 | Description                                   |
-| :-------------- | :-------------------- | :-------------------------------------------- |
-| `data-slot`     | `"segmented-control"` | The control.                                  |
-| `data-dragging` | present during a drag | The thumb follows the pointer. Presence-only. |
+It also takes:
+
+| Prop    | Type                                           | Default | Description                                                                 |
+| :------ | :--------------------------------------------- | :------ | :-------------------------------------------------------------------------- |
+| `size?` | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | `"md"`  | The height of the control: 24px, 28px, 36px, 40px, or 48px, as on `Button`. |
+
+| Data Attribute  | Value                                          | Description                                   |
+| :-------------- | :--------------------------------------------- | :-------------------------------------------- |
+| `data-slot`     | `"segmented-control"`                          | The control.                                  |
+| `data-size`     | `"xs"` \| `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | The `size` prop.                              |
+| `data-dragging` | present during a drag                          | The thumb follows the pointer. Presence-only. |
 
 ### SegmentedControl.Item
 
