@@ -1937,7 +1937,7 @@ at `:root` (same reason as the palette-alias rule in MARK: INVERT THEME).
  * `textContent` keeps the line breaks. A flex container renders no text run
  * that is only white space, so those newlines add no empty lines.
  */
-pre[data-slot="code-block-code"][data-syntax-highlighted] > code {
+pre[data-slot~="code-block-code"][data-syntax-highlighted] > code {
 	display: flex;
 	flex-direction: column;
 }
@@ -1956,18 +1956,25 @@ pre[data-slot="code-block-code"][data-syntax-highlighted] > code {
 /*
  * The fold motion, the same as `Accordion`: the line's height and opacity
  * change together on the strong ease-out, and `display` changes at the end of
- * a close. Why only `[data-fold-hidden]`: the runtime sets it on the lines that
- * a toggle changed, and clears `"false"` when the open ends, so a block that
- * loads does not animate. Why `clip`: the text stays inside the line as it
- * grows or shrinks, and the sticky gutter keeps its scroll container. The
- * duration is `FOLD_MOTION_MS` in `fold-runtime.ts`.
+ * a close. Why `1lh`: a code line does not wrap, so one line height is its
+ * height, and each browser can animate it; `height: auto` animates only with
+ * `interpolate-size`, which only Chromium has. Why the transition only on
+ * `[data-fold-hidden]`: the runtime sets it on the lines that a toggle changed,
+ * and clears `"false"` when the open ends, so a block that loads does not
+ * animate. A line past the first 50 of a toggle has `data-fold-instant` and
+ * changes at once. Why `clip`: the text stays inside the line as it grows or shrinks,
+ * and the sticky gutter keeps its scroll container. The duration is
+ * `FOLD_MOTION_MS` in `fold-runtime.ts`.
  */
 @media (prefers-reduced-motion: no-preference) {
 	/* Why `min-height: 0`: a flex item does not shrink below its content without it. */
-	.mantle-code-line[data-fold-hidden] {
+	.mantle-code-line[data-fold-regions] {
+		height: 1lh;
 		min-height: 0;
+	}
+
+	.mantle-code-line[data-fold-hidden]:not([data-fold-instant]) {
 		overflow-y: clip;
-		interpolate-size: allow-keywords;
 		transition:
 			height 200ms cubic-bezier(0.23, 1, 0.32, 1),
 			opacity 200ms cubic-bezier(0.23, 1, 0.32, 1),
@@ -1980,7 +1987,7 @@ pre[data-slot="code-block-code"][data-syntax-highlighted] > code {
 	}
 
 	@starting-style {
-		.mantle-code-line[data-fold-hidden="false"] {
+		.mantle-code-line[data-fold-hidden="false"]:not([data-fold-instant]) {
 			height: 0;
 			opacity: 0;
 		}
@@ -2038,7 +2045,7 @@ pre[data-mantle-line-numbers="true"] .mantle-code-line::before {
 	background-color: var(--background-color-base);
 }
 
-pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) {
+pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle) {
 	--_gutter-overhang: calc(
 		var(--mantle-code-line-number-gap) + var(--mantle-code-fold-gutter-width) +
 			var(--mantle-code-fold-gutter-gap)
@@ -2114,7 +2121,7 @@ pre[data-mantle-line-numbers="true"] .mantle-code-fold-toggle {
  * Why `--tw-leading`: this rule is in no layer, so it wins over a `leading-*`
  * class from the consumer. That class sets `--tw-leading`, and it stays first.
  */
-pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) {
+pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle) {
 	line-height: var(--tw-leading, var(--mantle-code-fold-line-height));
 }
 
@@ -2173,10 +2180,10 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) {
  * with line count) with a flat class match, while keeping HTML payload tiny:
  * only the sparse opener lines carry an extra class.
  */
-pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle) .mantle-code-line-content {
+pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle) .mantle-code-line-content {
 	margin-left: calc(var(--mantle-code-fold-gutter-width) + var(--mantle-code-fold-gutter-gap));
 }
-pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
+pre[data-slot~="code-block-code"]:has(.mantle-code-fold-toggle)
 	.mantle-code-line-opener
 	> .mantle-code-line-content {
 	margin-left: 0;
@@ -2203,11 +2210,9 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
 	display: inline;
 }
 
-/* Why `min-height`: an empty line keeps its height with no placeholder character in the code's text. */
 .mantle-code-line-content {
 	display: block;
 	min-width: 0;
-	min-height: 1lh;
 	flex: 1 1 auto;
 }
 
@@ -2423,7 +2428,7 @@ pre[data-slot="code-block-code"]:has(.mantle-code-fold-toggle)
  * here. Plain-text languages get no theme colors from Shiki and keep the
  * inherited text color, as before.
  */
-pre[data-slot="code-block-code"][data-syntax-highlighted]:not(
+pre[data-slot~="code-block-code"][data-syntax-highlighted]:not(
 		[data-lang="text"],
 		[data-lang="txt"],
 		[data-lang="plain"],
@@ -2432,46 +2437,46 @@ pre[data-slot="code-block-code"][data-syntax-highlighted]:not(
 	> code {
 	color: var(--shiki-foreground);
 }
-pre[data-slot="code-block-code"] .tc {
+pre[data-slot~="code-block-code"] .tc {
 	color: var(--shiki-token-comment);
 }
-pre[data-slot="code-block-code"] .tn {
+pre[data-slot~="code-block-code"] .tn {
 	color: var(--shiki-token-constant);
 }
-pre[data-slot="code-block-code"] .ts {
+pre[data-slot~="code-block-code"] .ts {
 	color: var(--shiki-token-string);
 }
-pre[data-slot="code-block-code"] .tx {
+pre[data-slot~="code-block-code"] .tx {
 	color: var(--shiki-token-string-expression);
 }
-pre[data-slot="code-block-code"] .tk {
+pre[data-slot~="code-block-code"] .tk {
 	color: var(--shiki-token-keyword);
 }
-pre[data-slot="code-block-code"] .tf {
+pre[data-slot~="code-block-code"] .tf {
 	color: var(--shiki-token-function);
 }
-pre[data-slot="code-block-code"] .tp {
+pre[data-slot~="code-block-code"] .tp {
 	color: var(--shiki-token-parameter);
 }
-pre[data-slot="code-block-code"] .tu {
+pre[data-slot~="code-block-code"] .tu {
 	color: var(--shiki-token-punctuation);
 }
-pre[data-slot="code-block-code"] .tt {
+pre[data-slot~="code-block-code"] .tt {
 	color: var(--shiki-token-type, var(--shiki-token-function));
 }
-pre[data-slot="code-block-code"] .tv {
+pre[data-slot~="code-block-code"] .tv {
 	color: var(--shiki-token-variable, var(--shiki-foreground));
 }
-pre[data-slot="code-block-code"] .to {
+pre[data-slot~="code-block-code"] .to {
 	color: var(--shiki-token-operator, var(--shiki-token-keyword));
 }
-pre[data-slot="code-block-code"] .ta {
+pre[data-slot~="code-block-code"] .ta {
 	color: var(--shiki-token-attribute, var(--shiki-token-constant));
 }
-pre[data-slot="code-block-code"] .tr {
+pre[data-slot~="code-block-code"] .tr {
 	color: var(--shiki-token-property, var(--shiki-token-function));
 }
-pre[data-slot="code-block-code"] .te {
+pre[data-slot~="code-block-code"] .te {
 	color: var(--shiki-token-escape, var(--shiki-token-constant));
 }
 

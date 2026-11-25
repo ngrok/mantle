@@ -268,4 +268,31 @@ describe("fold-runtime", () => {
 		expect(toggleFoldFromButton(orphan)).toBe(false);
 		expect(pre.querySelector("[data-folded-regions]")).toBeNull();
 	});
+
+	test("a toggle animates the first 50 lines of a fold and changes the others at once", () => {
+		const pre = document.createElement("pre");
+		pre.dataset.slot = "code-block-code";
+		const code = document.createElement("code");
+		pre.appendChild(code);
+		const opener = document.createElement("span");
+		opener.className = "mantle-code-line";
+		const button = document.createElement("button");
+		button.className = "mantle-code-fold-toggle";
+		button.dataset.foldLine = "1";
+		opener.appendChild(button);
+		code.appendChild(opener);
+		for (let index = 0; index < 60; index += 1) {
+			const line = document.createElement("span");
+			line.className = "mantle-code-line";
+			line.dataset.foldRegions = "1";
+			code.appendChild(line);
+		}
+		document.body.appendChild(pre);
+
+		toggleFoldFromButton(button);
+
+		const folded = [...code.querySelectorAll("[data-fold-regions]")];
+		expect(folded.every((line) => line.getAttribute("data-fold-hidden") === "true")).toBe(true);
+		expect(folded.filter((line) => !line.hasAttribute("data-fold-instant"))).toHaveLength(50);
+	});
 });

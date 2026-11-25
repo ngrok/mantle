@@ -428,18 +428,23 @@ const CodeLineView = memo(function CodeLineView({
 	line: CodeLine | string;
 	lineNumber: number;
 }) {
+	// Why `<br>`: an empty line keeps its height and a copied blank line, and `textContent` holds no character for it.
+	let content: ReactNode;
+	if (line.length === 0) {
+		content = <br />;
+	} else if (typeof line === "string") {
+		content = line;
+	} else {
+		content = line.map((token, index) => (
+			// oxlint-disable-next-line react/no-array-index-key -- Why: a token has no identity but its position in a line that renders as a whole.
+			<TokenView key={index} token={token} />
+		));
+	}
 	// Why no number element: `mantle.css` counts the lines and draws each
 	// number, so the digits stay out of the code's text.
 	return (
 		<span className="mantle-code-line" data-line-number={lineNumber}>
-			<span className="mantle-code-line-content">
-				{typeof line === "string"
-					? line
-					: line.map((token, index) => (
-							// oxlint-disable-next-line react/no-array-index-key -- Why: a token has no identity but its position in a line that renders as a whole.
-							<TokenView key={index} token={token} />
-						))}
-			</span>
+			<span className="mantle-code-line-content">{content}</span>
 		</span>
 	);
 });

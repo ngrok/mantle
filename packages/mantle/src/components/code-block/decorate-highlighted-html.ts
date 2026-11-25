@@ -149,7 +149,8 @@ function decorateHighlightedHtml({
 			}
 		}
 
-		const contentHtml = `<span class="mantle-code-line-content">${line}</span>`;
+		// Why `<br>`: an empty line keeps its height and a copied blank line, and `textContent` holds no character for it.
+		const contentHtml = `<span class="mantle-code-line-content">${line === "" ? "<br>" : line}</span>`;
 
 		// Why a newline between lines: lines break by CSS, so without it
 		// `textContent` (what crawlers and HTML-to-text tools read) runs every
