@@ -50,6 +50,20 @@ describe("pending changesets", () => {
 		},
 	);
 
+	// Why: the release moves each pending changeset into the CHANGELOG, and the
+	// migration tests then need the guide's link in its release's section.
+	it("links each unreleased migration guide from a pending changeset", () => {
+		const pending = names.map((name) => fs.readFileSync(path.join(changesetDir, name), "utf8"));
+		const unlinked = migrationSlugs().filter(
+			(slug) =>
+				!/^introducedIn:/m.test(
+					fs.readFileSync(path.join(migrationDocsDir, `${slug}.mdx`), "utf8"),
+				) && !pending.some((source) => source.includes(`mantle.ngrok.com/migrations/${slug}`)),
+		);
+
+		expect(unlinked).toEqual([]);
+	});
+
 	// Why: VERSIONING.md has no major, and a `major` changeset would publish 1.0.0.
 	it.each(names.length > 0 ? names : ["(none)"])("%s never bumps @ngrok/mantle major", (name) => {
 		if (name === "(none)") {

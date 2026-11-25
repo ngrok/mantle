@@ -110,7 +110,7 @@ export function listMigrationDocs(docsDir: string): string[] {
  */
 export function frontmatterValue(source: string, key: string): string | null {
 	const frontmatter = source.match(/^---\n([\s\S]*?)\n---\n/)?.[1] ?? "";
-	const value = frontmatter.match(new RegExp(`^${key}:\\s*(.+?)\\s*$`, "m"))?.[1];
+	const value = frontmatter.match(new RegExp(`^${key}:\\s*(.+?)(?:\\s+#.*)?\\s*$`, "m"))?.[1];
 	return value == null ? null : value.replace(/^(["'])(.*)\1$/, "$2");
 }
 
@@ -126,15 +126,16 @@ export function rulesDirName(docName: string): string {
 
 /**
  * Whether a guide answers to an id: its frontmatter number for a numeric id,
- * else its slug with or without the number prefix and the `-migration` suffix.
+ * else its file name or its rules directory name, each with or without the
+ * number prefix.
  */
 function matchesId({ docName, source, id }: { docName: string; source: string; id: string }) {
 	if (/^\d+$/.test(id)) {
 		return frontmatterValue(source, "number") === String(Number(id));
 	}
-	const slug = rulesDirName(id);
-	const docSlug = rulesDirName(docName);
-	return docSlug === slug || docSlug.replace(/^\d{4}-/, "") === slug;
+	return [docName, rulesDirName(docName)].some(
+		(name) => name === id || name.replace(/^\d{4}-/, "") === id,
+	);
 }
 
 /**

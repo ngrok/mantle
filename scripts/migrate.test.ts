@@ -206,27 +206,57 @@ describe("migration docs", () => {
 		);
 	});
 
+	const numberedGuides = guides.filter(({ fileNumber }) => fileNumber != null);
+	const slugGuides = guides.filter(({ fileNumber }) => fileNumber == null);
+
 	// Catches: a new guide that picks the next number in its file name, and a
 	// numbered file whose frontmatter names another number.
-	it.each(guides.filter(({ fileNumber }) => fileNumber != null))(
-		"$name carries a number in its file name only up to 0035",
-		(guide) => {
-			expect(Number(guide.fileNumber)).toBeLessThanOrEqual(lastNumberedFileName);
-			expect(guide.number).toBe(String(Number(guide.fileNumber)));
-		},
-	);
+	it.each(numberedGuides)("$name carries a number in its file name only up to 0035", (guide) => {
+		expect(Number(guide.fileNumber)).toBeLessThanOrEqual(lastNumberedFileName);
+		expect(guide.number).toBe(String(Number(guide.fileNumber)));
+	});
+
+	// Catches: a slug-named guide that takes an old unnumbered URL. That URL
+	// redirects to its numbered guide, and published changelogs link it.
+	it("keeps the slugs of guides 0001 to 0035 for their redirects", () => {
+		const legacySlugs = new Set(numberedGuides.map(({ name }) => name.slice("0000-".length)));
+
+		expect(slugGuides.filter(({ name }) => legacySlugs.has(name)).map(({ name }) => name)).toEqual(
+			[],
+		);
+	});
 
 	// Catches: a pull request that writes the number or the release version by
 	// hand. `scripts/stamp-migrations.ts` writes them in the release pull request.
-	it.each(guides)("$name has a number and versions only from a release", (guide) => {
+	it.each(slugGuides)("$name has a number and versions only from a release", (guide) => {
 		const mantleVersion = packageVersion("../packages/mantle/package.json");
 		const versions = [guide.introducedIn, guide.codemodIn].filter((version) => version != null);
 
-		expect(
-			guide.fileNumber != null || (guide.number == null) === (guide.introducedIn == null),
-		).toBe(true);
+		expect(guide.number == null).toBe(guide.introducedIn == null);
 		expect(guide.codemodIn == null || guide.introducedIn != null).toBe(true);
+		expect(versions.filter((version) => !/^\d+\.\d+\.\d+$/.test(version))).toEqual([]);
 		expect(versions.filter((version) => compareVersions(version, mantleVersion) > 0)).toEqual([]);
+	});
+
+	// Catches: a hand-written `introducedIn` that is not newer than the current
+	// version. `changeset version` moves the guide's link into the CHANGELOG in
+	// the same release pull request that stamps the guide, and no other pull request does.
+	it("links each released slug-named guide in the CHANGELOG section of its release", () => {
+		const changelog = fs.readFileSync(
+			path.join(import.meta.dirname, "../packages/mantle/CHANGELOG.md"),
+			"utf8",
+		);
+		const unlinked = slugGuides.filter(({ name, introducedIn }) => {
+			if (introducedIn == null) {
+				return false;
+			}
+			const start = changelog.indexOf(`\n## ${introducedIn}\n`);
+			const end = changelog.indexOf("\n## ", start + 1);
+			const section = start === -1 ? "" : changelog.slice(start, end === -1 ? undefined : end);
+			return !section.includes(`mantle.ngrok.com/migrations/${name}`);
+		});
+
+		expect(unlinked.map(({ name }) => name)).toEqual([]);
 	});
 
 	it("numbers the guides from 1 with no gaps or repeats", () => {

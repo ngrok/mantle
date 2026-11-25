@@ -53,7 +53,9 @@
         "scripts/**",
         "packages/mantle/migrations/**",
         "apps/www/app/docs/migrations/**",
-        ".changeset/*.md"
+        ".changeset/*.md",
+        "packages/mantle/package.json",
+        "packages/mantle/CHANGELOG.md"
       ]
     },
     "test": {
