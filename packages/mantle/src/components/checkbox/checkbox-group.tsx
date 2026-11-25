@@ -312,7 +312,7 @@ const Card = ({
 				data-slot={joinDataSlot(dataSlot, "checkbox-group-card")}
 				className={cx(
 					// Why isolate: the checkbox and the controls over it stack inside the card, not over the page.
-					"group/checkbox border-card bg-card [&_label]:cursor-inherit relative isolate block rounded-md border p-4 text-sm",
+					"group/checkbox border-card bg-card [&_label]:cursor-inherit relative isolate block rounded-xl border p-4 text-sm",
 					"cursor-pointer has-[>input:disabled]:cursor-default",
 					"has-[>input:focus-visible]:focus-ring",
 					"has-[>input:disabled]:border-form/50 not-has-[>input:disabled]:hover:bg-card-hover",

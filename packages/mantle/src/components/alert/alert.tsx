@@ -107,7 +107,7 @@ const AlertContextProvider = ({
 };
 
 const alertVariants = cva(
-	"relative flex w-full gap-1.5 rounded-md border p-2.5 text-sm font-sans",
+	"relative flex w-full gap-1.5 rounded-xl border p-2.5 text-sm font-sans",
 	{
 		variants: {
 			/**

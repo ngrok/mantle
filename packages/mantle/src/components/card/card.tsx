@@ -48,7 +48,7 @@ const Root = ({
 		<Component
 			ref={ref}
 			data-slot={joinDataSlot(dataSlot, "card")}
-			className={cx("border-card bg-card relative rounded-md border", className)}
+			className={cx("border-card bg-card relative rounded-xl border", className)}
 			{...rest}
 		>
 			{children}

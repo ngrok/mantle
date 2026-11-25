@@ -49,7 +49,7 @@ const Root = ({
 			ref={ref}
 			data-slot={joinDataSlot(dataSlot, "description-list")}
 			className={cx(
-				"relative scrollbar overflow-x-auto overscroll-x-none rounded-lg border border-card grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 [&>*:nth-child(odd)]:bg-neutral-500/5 p-1",
+				"relative scrollbar overflow-x-auto overscroll-x-none rounded-xl border border-card grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 [&>*:nth-child(odd)]:bg-neutral-500/5 p-1",
 				className,
 			)}
 			{...rest}

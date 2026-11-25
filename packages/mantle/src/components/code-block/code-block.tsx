@@ -196,7 +196,7 @@ const Root = ({
 			data-slot={joinDataSlot(dataSlot, "code-block")}
 			data-orientation={hasTabs ? "horizontal" : undefined}
 			className={cx(
-				"text-mono w-full overflow-hidden rounded-md border border-gray-300 bg-base font-mono",
+				"text-mono w-full overflow-hidden rounded-xl border border-gray-300 bg-base font-mono",
 				"[&_svg]:shrink-0",
 				className,
 			)}
